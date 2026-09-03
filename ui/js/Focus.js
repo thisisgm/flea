@@ -47,10 +47,17 @@ function lookup(event, root) {
             return action === "seekBack" ? "cursorLeft" : "cursorRight"
         return ""
     }
-    // The PDF viewer's own four. Minus, plus, e and l mean nothing anywhere else, so they stay
-    // silent rather than reaching act()'s "not built yet" while browsing.
-    if (action === "zoomOut" || action === "zoomIn" || action === "expand" || action === "pageForward")
+    // Minus, plus and e mean nothing outside a PDF. l is h's forward: page, else enter or preview.
+    if (action === "zoomOut" || action === "zoomIn" || action === "expand")
         return (root.preview.active && root.preview.isPdf) ? action : ""
+    if (action === "pageForward") {
+        if (root.preview.active)
+            return root.preview.isPdf ? action : ""
+        if (root.focusView === RAIL)
+            return "open"
+        var row = root.rowFor(root.cursorIndex)
+        return row && row.d ? "open" : (row ? "preview" : "")
+    }
     // reveal only means something on a search result, so o is discarded everywhere else.
     if (action === "reveal" && root.searchMode !== Search.RESULTS)
         return ""

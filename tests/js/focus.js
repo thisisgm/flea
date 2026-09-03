@@ -114,27 +114,27 @@ function run(check) {
     check("plus zooms an open PDF", Focus.lookup(plus, pane(pdfOpen())), "zoomIn")
 
     // The three are silent everywhere else, so none of them acts while the list has the keys.
-    check("e is discarded while browsing", Focus.lookup(e, pane(closed())), "")
-    check("minus is discarded while browsing", Focus.lookup(minus, pane(closed())), "")
-    check("plus is discarded while browsing", Focus.lookup(plus, pane(closed())), "")
-    check("e is discarded over a media preview", Focus.lookup(e, pane(mediaOpen())), "")
-    check("minus is discarded over a media preview", Focus.lookup(minus, pane(mediaOpen())), "")
+    check("e minus plus are discarded while browsing",
+          Focus.lookup(e, pane(closed())) + Focus.lookup(minus, pane(closed())) + Focus.lookup(plus, pane(closed())), "")
+    check("e and minus are discarded over a media preview",
+          Focus.lookup(e, pane(mediaOpen())) + Focus.lookup(minus, pane(mediaOpen())), "")
 
     // Left and Right now serve two previews, and must still serve the grid and nothing else.
     check("left turns a PDF page", Focus.lookup(left, pane(pdfOpen())), "seekBack")
     check("right turns a PDF page", Focus.lookup(right, pane(pdfOpen())), "seekForward")
     check("left still seeks media", Focus.lookup(left, pane(mediaOpen())), "seekBack")
-    check("left is discarded in the list", Focus.lookup(left, pane(closed())), "")
-    check("left still steps a grid tile", Focus.lookup(left, pane(closed(), "grid")), "cursorLeft")
-    check("right still steps a grid tile", Focus.lookup(right, pane(closed(), "grid")), "cursorRight")
+    check("left is discarded in the list and steps a grid tile",
+          Focus.lookup(left, pane(closed())) + "|" + Focus.lookup(left, pane(closed(), "grid"))
+          + "|" + Focus.lookup(right, pane(closed(), "grid")), "|cursorLeft|cursorRight")
 
-    // h and l are the PDF page pair. l was unbound and h fell through previewAct's switch, so
-    // neither ever turned a page while the chevrons and the arrows both did.
+    // h and l are the PDF page pair; l is also browse-forward when no PDF is open.
     var h = key(Qt.Key_H, "h", none)
     var l = key(Qt.Key_L, "l", none)
     check("l turns a page in an open PDF", Focus.lookup(l, pane(pdfOpen())), "pageForward")
-    check("l is discarded while browsing, so it does nothing outside a PDF",
-          Focus.lookup(l, pane(closed())), "")
+    var d = pane(closed()); d.rowFor = function () { return { d: true } }
+    var f = pane(closed()); f.rowFor = function () { return { d: false } }
+    check("l opens a directory and previews a file while browsing",
+          Focus.lookup(l, d) + "|" + Focus.lookup(l, f), "open|preview")
     check("l is discarded over a media preview", Focus.lookup(l, pane(mediaOpen())), "")
     check("h still means parent, in the list and over a PDF both",
           Focus.lookup(h, pane(closed())) + "|" + Focus.lookup(h, pane(pdfOpen())), "parent|parent")
