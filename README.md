@@ -475,6 +475,9 @@ and the application cannot disagree.
 | `s`, `S` | Step the sort column, reverse the sort |
 | `.`, Ctrl-Shift-. | Show hidden files |
 | Tab | Move focus between the rail and the view |
+| `t` | Open a new tab at the current folder |
+| `w` | Close the current tab |
+| `1`–`9` | Switch to that tab |
 | Escape | Cancel a search, clear the filter, drop the selection, clear the status line |
 
 Finder hands land: every Cmd chord above is its Ctrl twin, added beside the vim key rather
@@ -516,9 +519,11 @@ hides leaves the selection with it, because a selection you cannot see is one yo
 on by accident. It filters the rows the pane holds, and says so in the strip when that is
 less than the whole directory.
 
-Bound ahead of their features, and saying so until they land: `:` for the path bar, and `t`,
-`w` and `1` through `9` for tabs, all drawn on the TUI board. Each answers with a sentence in
-the status line rather than doing nothing.
+Bound ahead of its feature, and saying so until it lands: `:` for the path bar, drawn on the TUI
+board. It answers with a sentence in the status line rather than doing nothing. `t` opens a new
+tab at the current folder, `w` closes the current one, and `1` through `9` switch. The tab strip
+shows only when there are two or more, so a single listing keeps the chrome the first paint uses.
+The last tab cannot close; the window still closes with the compositor's close chord.
 
 ## Testing
 

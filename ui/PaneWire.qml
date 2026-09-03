@@ -5,6 +5,7 @@ import "js/Errors.js" as Errors
 import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
 import "js/Search.js" as Search
+import "js/Tabs.js" as Tabs
 import "js/Thumbs.js" as Thumbs
 import "js/Transfer.js" as Transfer
 
@@ -88,6 +89,7 @@ Item {
             if (pane.rowsAt === 0 && pane.inputAt > 0 && pane.rowFor(pane.cursorIndex))
                 pane.rowsAt = Date.now()
             pane.applyPendingSelect()
+            Tabs.applyPending(pane)
             root.openRenameOnArrival()
             pane.listArea.restartSettle()
             if (pane.listInFlight) {

@@ -24,6 +24,7 @@ import "selection.js" as SelectionSuite
 import "sort.js" as SortSuite
 import "taildrop.js" as TaildropSuite
 import "tap.js" as TapSuite
+import "tabs.js" as TabsSuite
 import "thumbs.js" as ThumbsSuite
 
 Item {
@@ -64,6 +65,7 @@ Item {
         SortSuite.run(check)
         TaildropSuite.run(check)
         TapSuite.run(check)
+        TabsSuite.run(check)
         ThumbsSuite.run(check)
 
         for (var i = 0; i < failures.length; i++) {

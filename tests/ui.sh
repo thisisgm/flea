@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations ...]; no argument runs all thirty.
+# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; no argument runs all thirty-one.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -1750,6 +1750,54 @@ case_focus() {
     kill_flea
 }
 
+# Catches t not opening a tab, 1-9 not switching, w not closing, or the bar showing with one tab.
+case_tabs() {
+    local dir="$fixture_root/tabs"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/alpha" "$dir/beta"
+    : > "$dir/note.txt"
+    launch "$dir"
+    wait_listing 3
+    [[ "$(ipc tabCount)" == "1" ]] || fail "tabs: started with $(ipc tabCount) tabs, not 1"
+    [[ "$(ipc tabBarVisible)" == "false" ]] || fail "tabs: the bar showed with one tab"
+    key t >/dev/null
+    settle
+    [[ "$(ipc tabCount)" == "2" ]] || fail "tabs: t did not open a second tab, count=$(ipc tabCount)"
+    [[ "$(ipc tabBarVisible)" == "true" ]] || fail "tabs: the bar stayed hidden after t"
+    [[ "$(ipc tabIndex)" == "1" ]] || fail "tabs: t did not land on the new tab, index=$(ipc tabIndex)"
+    seek_row_named "alpha" || fail "tabs: could not find alpha"
+    key -k Return >/dev/null
+    wait_path "$dir/alpha"
+    key 1 >/dev/null
+    wait_path "$dir"
+    [[ "$(ipc tabIndex)" == "0" ]] || fail "tabs: 1 did not return to the first tab, index=$(ipc tabIndex)"
+    key 2 >/dev/null
+    wait_path "$dir/alpha"
+    [[ "$(ipc tabIndex)" == "1" ]] || fail "tabs: 2 did not return to the second tab, index=$(ipc tabIndex)"
+    key w >/dev/null
+    wait_path "$dir"
+    [[ "$(ipc tabCount)" == "1" ]] || fail "tabs: w did not close the current tab, count=$(ipc tabCount)"
+    [[ "$(ipc tabBarVisible)" == "false" ]] || fail "tabs: the bar stayed up after the last extra tab closed"
+    key w >/dev/null
+    wait_message "Can't close the last tab."
+    key 3 >/dev/null
+    wait_message "No tab 3."
+    shot tabs-one
+    key t >/dev/null
+    settle
+    local centre cx cy wx wy
+    centre=$(ipc tabCentre 0)
+    [[ -n "$centre" ]] || fail "tabs: tab 0 has no centre"
+    read -r cx cy <<< "$centre"
+    read -r wx wy _ww _wh < <(window_box)
+    omarchy-drive click "$((cx + wx))" "$((cy + wy))" >/dev/null
+    settle
+    [[ "$(ipc tabIndex)" == "0" ]] || fail "tabs: clicking tab 0 did not select it, index=$(ipc tabIndex)"
+    shot tabs-two
+    printf 'TABS count=%s index=%s labels=%s\n' "$(ipc tabCount)" "$(ipc tabIndex)" "$(ipc tabLabels)"
+    kill_flea
+}
+
 # Catches Space not opening a preview, the kind dispatch misclassifying a row, or the size gate not firing.
 case_preview() {
     command -v ffmpeg >/dev/null || fail "ffmpeg is missing, so the mp4 fixture cannot be built"
@@ -2941,7 +2989,7 @@ cache_snapshot
 trap cleanup EXIT
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network sharebrowser unmount eject rename renamelife taildrop grid columns operations)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
 
 : > "$run_log"
 : > "$flea_log"

@@ -51,6 +51,7 @@ ShareLink 1.0 ShareLink.qml
 StateMessage 1.0 StateMessage.qml
 TailscaleMark 1.0 TailscaleMark.qml
 StatusBar 1.0 StatusBar.qml
+TabBar 1.0 TabBar.qml
 TransferCard 1.0 TransferCard.qml
 Taildrop 1.0 Taildrop.qml
 FactsTable 1.0 FactsTable.qml
