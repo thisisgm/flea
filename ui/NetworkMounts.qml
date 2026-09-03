@@ -154,15 +154,17 @@ Item {
         var e = root.entries[index]
         if (!e || e.kind !== "share" || !e.mounted || unmountProcess.running || unmountDelay.running) return
         root._pendingUnmountLabel = e.label
-        root._pendingUnmountUri = e.uri
-        if (root._openFuseKey.length > 0 && Mounts.normalize(e.uri) === root._openFuseKey) {
+        // gio lists one SFTP mount for the host; -u must be that URI, not a path on it.
+        var target = Places.coveringUri(Mounts.parseMounts(root._mountListing), e.uri)
+        root._pendingUnmountUri = target
+        if (root._openFuseKey.length > 0 && Places.connectionKey(e.uri) === root._openFuseKey) {
             root._openFuse = ""
             root._openFuseKey = ""
             root.opened(Quickshell.env("HOME"))
             unmountDelay.restart()
             return
         }
-        root.runUnmount(e.uri)
+        root.runUnmount(target)
     }
 
     function runUnmount(uri) {
@@ -270,7 +272,7 @@ Item {
             if (exitCode === 0 && line) {
                 var localPath = line.substring("local path: ".length).trim()
                 root._openFuse = localPath
-                root._openFuseKey = Mounts.normalize(root._pendingUri)
+                root._openFuseKey = Places.connectionKey(root._pendingUri)
                 root.opened(localPath)
                 return
             }

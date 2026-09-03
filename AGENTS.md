@@ -3513,6 +3513,12 @@ session) and drop the bookmark's, so `r` rewrote the file and the next poll put 
 `Places.networkEntries` keeps the bookmark label on the live row. Unmount of a share whose FUSE
 path is the current listing goes Home first; otherwise gio refuses as busy.
 
+gvfsd-sftp mounts one connection per host: `gio mount -l` lists `sftp://user@host/` even when the
+bookmark is `sftp://user@host/home/tom`. A second path on that host now stays its own rail row and
+reads as mounted. Unmount sends gio the live root URI, and leaving Home is keyed on the connection
+not the path, so a listing inside `/home/tom` no longer keeps the root "in use". SMB/NFS stay
+per-share: a live `smb://nas/data` does not light `smb://nas/isos`.
+
 ### The rail menu, tested with a stubbed gio and a stubbed lsblk
 
 `tests/ui.sh case_unmount` and `case_eject` drive the rail menu through the real window.

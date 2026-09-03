@@ -143,4 +143,17 @@ function run(check) {
     var onlyMark = Places.networkEntries([], saved)
     check("an unmounted bookmark keeps its own uri and label",
           onlyMark[0].label + "|" + onlyMark[0].uri + "|" + onlyMark[0].mounted, "omv root|sftp://tom@h:22/|false")
+
+    var home = [{ label: "tom@omv ts", uri: "sftp://tom@h:22/home/tom" }]
+    var both = Places.networkEntries(live, saved.concat(home))
+    check("a second sftp path on the same host stays its own row", both.length, 2)
+    check("and reads as mounted because gio only lists the connection root",
+          both[0].mounted + "|" + both[1].label + "|" + both[1].mounted, "true|tom@omv ts|true")
+    check("Unmount of either path is handed gio's live root uri",
+          Places.coveringUri(live, home[0].uri), "sftp://tom@h/")
+    var smbLive = [{ label: "data", uri: "smb://nas/data/" }]
+    var smbMarks = [{ label: "data", uri: "smb://nas/data" }, { label: "isos", uri: "smb://nas/isos" }]
+    var smb = Places.networkEntries(smbLive, smbMarks)
+    check("an SMB share does not mark a different share on the same host mounted",
+          smb.length + "|" + smb[0].mounted + "|" + smb[1].label + "|" + smb[1].mounted, "2|true|isos|false")
 }

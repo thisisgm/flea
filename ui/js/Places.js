@@ -66,8 +66,32 @@ function taggedShare(uri, label, mounted) {
     return { path: "", label: label, group: "network", kind: "share", uri: uri, mounted: mounted, glyph: "server" }
 }
 
-// Live mounts first, then bookmarks not already mounted. A bookmark's label wins over gio's
-// "user on host" name, so a rename survives the next poll while the share is still mounted.
+// gvfsd-sftp (and ftp) mounts one connection per host, not per path. SMB/NFS stay per share.
+function connectionKey(uri) {
+    var n = Mounts.normalize(uri)
+    var s = (n.match(/^([a-z][a-z0-9+.-]*)/i) || [""])[0].toLowerCase()
+    if (s !== "sftp" && s !== "ssh" && s !== "ftp" && s !== "ftps")
+        return n
+    var m = n.match(/^([a-z][a-z0-9+.-]*:\/\/[^\/]+)/i)
+    return m ? Mounts.normalize(m[1]) : n
+}
+
+function covers(liveUri, otherUri) {
+    var a = connectionKey(liveUri)
+    return a.length > 0 && a === connectionKey(otherUri)
+}
+
+function coveringUri(mounts, uri) {
+    var list = mounts || []
+    for (var i = 0; i < list.length; i++) {
+        if (covers(list[i].uri, uri))
+            return list[i].uri
+    }
+    return uri
+}
+
+// Live mounts first, then bookmarks not already shown. A bookmark's label wins over gio's
+// "user on host" name. An SFTP path on a live host is mounted even when gio only lists the root.
 function networkEntries(mounts, marks) {
     var labels = {}
     var list = marks || []
@@ -92,7 +116,14 @@ function networkEntries(mounts, marks) {
         if (seen[bkey])
             continue
         seen[bkey] = true
-        out.push(taggedShare(list[n].uri, list[n].label, false))
+        var mounted = false
+        for (var k = 0; k < live.length; k++) {
+            if (covers(live[k].uri, list[n].uri)) {
+                mounted = true
+                break
+            }
+        }
+        out.push(taggedShare(list[n].uri, list[n].label, mounted))
     }
     return out
 }
