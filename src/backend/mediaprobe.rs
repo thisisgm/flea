@@ -45,7 +45,10 @@ fn argv(path: &Path) -> Vec<String> {
 pub fn probe(path: &Path) -> Media {
     let inner = argv(path);
     // The same jail the thumbnail pipeline uses; with no bwrap on PATH the probe is simply skipped.
-    let full = if sandbox::available() { sandbox::wrap_readonly(&inner, path) } else { inner };
+    if !sandbox::available() {
+        return Media::default();
+    }
+    let full = sandbox::wrap_readonly(&inner, path);
     let mut cmd = Command::new(&full[0]);
     cmd.args(&full[1..]);
     cmd.stdin(std::process::Stdio::null());

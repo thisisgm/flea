@@ -58,7 +58,12 @@ impl Drop for Work {
 // The tools print their own diagnosis on stderr and do not always exit non-zero, so success is read
 // off the filesystem: the file the job was told to produce either exists afterwards or it does not.
 pub fn run_boxed(inner: Vec<String>, read_only: &Path, writable: &Path) -> Result<(), FleaError> {
-    let full = if sandbox::available() { sandbox::wrap(&inner, read_only, writable) } else { inner };
+    // Fail closed: the jail is the only containment for these tools, so a missing bwrap or prlimit
+    // refuses the job rather than running it unsandboxed, the same rule thumbs.rs already follows.
+    if !sandbox::available() {
+        return Err(op_err("archive", "", "the sandbox is unavailable: bwrap or prlimit is not on PATH"));
+    }
+    let full = sandbox::wrap(&inner, read_only, writable);
     let out = Command::new(&full[0])
         .args(&full[1..])
         .stdin(std::process::Stdio::null())
@@ -84,7 +89,10 @@ pub fn is_empty_dir(dir: &Path) -> bool {
 // first as the second is what restored the defect this check exists for.
 pub fn archive_produced_count(formats: &Formats, archive: &Path) -> Option<usize> {
     let (inner, spec) = formats.list_argv(archive)?;
-    let full = if sandbox::available() { sandbox::wrap_readonly(&inner, archive) } else { inner };
+    if !sandbox::available() {
+        return None;
+    }
+    let full = sandbox::wrap_readonly(&inner, archive);
     // Streamed, not .output(): buffering the whole index here would contradict the streaming
     // contract the parser exists for, and a 200k-entry archive is exactly the case that motivated it.
     let mut child = Command::new(&full[0])

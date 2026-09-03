@@ -104,7 +104,10 @@ fn list_archive(path: &Path, formats: &Formats) -> Contents {
         Some(v) => v,
         None => return failed,
     };
-    let full = if sandbox::available() { sandbox::wrap_readonly(&inner, path) } else { inner };
+    if !sandbox::available() {
+        return failed;
+    }
+    let full = sandbox::wrap_readonly(&inner, path);
     let mut child = match std::process::Command::new(&full[0])
         .args(&full[1..])
         .stdin(std::process::Stdio::null())
