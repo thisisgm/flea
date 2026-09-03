@@ -73,12 +73,19 @@ pub fn start_archive(
     out: &mut impl Write,
     ops: &mut Ops,
     formats: Arc<Formats>,
-    compressing: bool,
+    op: &str,
     paths: Vec<String>,
     format: String,
     archive: PathBuf,
     dest: PathBuf,
 ) {
+    // An op that names neither would otherwise fall through to extract, so it is refused by name.
+    if op != "compress" && op != "extract" {
+        writeln!(out, "{}", error_line(&op_err("archive", op, "op must be compress or extract"))).ok();
+        out.flush().ok();
+        return;
+    }
+    let compressing = op == "compress";
     let id = ops.claim_id();
     writeln!(out, "{}", archivestarted_line(id)).ok();
     out.flush().ok();

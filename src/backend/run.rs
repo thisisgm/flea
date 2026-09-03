@@ -8,7 +8,7 @@ use crate::backend::convert;
 use crate::backend::peek::peek_line;
 use crate::backend::metareq::spawn as spawn_meta;
 use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, Ops};
-use crate::backend::opsreq::{op_err, OpMsg};
+use crate::backend::opsreq::OpMsg;
 use crate::backend::mime::Db;
 use crate::backend::dirsizereq::{queue_dirsizes, walk_one_dirsize};
 use crate::backend::fsinfo::{fsinfo_line, read as read_fsinfo};
@@ -303,18 +303,9 @@ fn handle_line(
         Request::Peek { path, first, hidden } =>
             say(out, &peek_line(&path, first, hidden, &tb.mime, &tb.icons)),
         // A compress names absolute paths and no path; an extract names the one archive in path.
-        Request::Archive { op, paths, path, dest, format } => {
-            // A typo would otherwise fall through to extract; refuse an op that names neither.
-            if op != "compress" && op != "extract" {
-                let e = op_err("archive", &op, "op must be compress or extract");
-                writeln!(out, "{}", error_line(&e)).ok();
-                out.flush().ok();
-            } else {
-                start_archive(
-                    out, ops, Arc::clone(&tb.formats), op == "compress",
-                    paths, format, PathBuf::from(&path), PathBuf::from(&dest));
-            }
-        }
+        Request::Archive { op, paths, path, dest, format } => start_archive(
+            out, ops, Arc::clone(&tb.formats), &op,
+            paths, format, PathBuf::from(&path), PathBuf::from(&dest)),
         Request::Convert { path, dest, strip } =>
             start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip),
         Request::Formats => say(out, &formats_line(&tb.formats, convert::available())),
