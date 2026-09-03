@@ -121,6 +121,9 @@ var PATHS = {
     "archive-out": "M2 3h20v5H2z M4 8v13h16V8 M12 18v-6 M9 15l3-3 3 3",
     // The Move to Dropbox row, which the canvas draws with the network mark.
     "network": "M9 2h6v6H9z M2 16h6v6H2z M16 16h6v6h-6z M12 8v4 M5 16v-4h14v4",
+    "history": "M3 12a9 9 0 1 0 3-6.7 M3 3v6h6 M12 7v5l3 2",
+    "refresh-cw": "M20 6v6h-6 M4 18v-6h6 M19 12a7 7 0 0 0-12-5L4 10 M5 12a7 7 0 0 0 12 5l3-3",
+    "power": "M12 2v10 M5.6 5.6a9 9 0 1 0 12.8 0",
     // The convert popup's checkbox mark.
     "check": "M4 12l6 6L20 6",
     // The PDF viewer's own three, recut sharp like the rest of the set; "maximize" is lucide's

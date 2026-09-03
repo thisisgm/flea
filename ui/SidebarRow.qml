@@ -25,19 +25,25 @@ Item {
 
     // A share or a removable volume carries a mount-state dot; the internal disk is always there
     // and always mounted, so a dot on it would say nothing, and a favourite is not a mount at all.
-    readonly property bool showsDot: (root.modelData.group === "network" && root.modelData.kind !== "dropbox")
+    readonly property bool showsDot: (root.modelData.group === "network"
+        && root.modelData.kind !== "dropbox" && root.modelData.kind !== "status")
         || (root.modelData.group === "device" && root.modelData.kind === "volume")
     // Small and fixed: a status dot is not part of the type or icon scale.
     readonly property int dotSize: 6
     // The canvas's own value for a bookmark nothing has mounted yet.
     readonly property real unmountedOpacity: 0.5
+    readonly property string health: String(root.modelData.health || (root.modelData.mounted ? "mounted" : "unknown"))
+    readonly property color healthColor: (root.health === "failed" || root.health === "offline")
+        ? Theme.color.error
+        : (root.health === "connecting" ? Theme.color.accent
+           : ((root.health === "mounted" || root.health === "online") ? Theme.color.executable : Theme.color.muted))
 
     width: parent ? parent.width : 0
     // The rail reads denser than the list it sits beside; see Theme.qml's railRowHeight comment.
     height: Theme.railRowHeight
 
     Accessible.role: Accessible.ListItem
-    Accessible.name: root.modelData.label
+    Accessible.name: root.showsDot ? root.modelData.label + ", " + root.health : root.modelData.label
 
     // A rail row is a row, so its cursor is the list row's own: a square full-bleed fill and the
     // accent bar, per the canvas and the icon spec's "the rail rounds nothing"; see ui/Row.qml.
@@ -135,8 +141,8 @@ Item {
             anchors.centerIn: parent
             width: root.dotSize
             height: root.dotSize
-            color: root.modelData.mounted ? Theme.color.executable : Theme.color.muted
-            opacity: root.modelData.mounted ? 1 : root.unmountedOpacity
+            color: root.healthColor
+            opacity: (root.health === "mounted" || root.health === "online") ? 1 : root.unmountedOpacity
         }
     }
 

@@ -26,7 +26,6 @@ Item {
     onNetworkEntriesChanged: root.cancelRename()
     readonly property var deviceEntries: devices.entries
     readonly property var entries: root.favoriteEntries.concat(root.networkEntries).concat(root.deviceEntries)
-
     // Clamped on the aggregate, never on a group: reading root.entries from onDeviceEntriesChanged
     // forces the entries binding's own first evaluation, which fires networkEntriesChanged, which
     // re-enters clampCursor before entries has a value. That threw a TypeError once per launch.
@@ -38,7 +37,8 @@ Item {
 
     signal opened(string path)
     signal addRequested()
-    signal editRequested(string uri, string label)
+    signal editRequested(string uri, string label, string mac)
+    signal taildropPeerRequested(string peerId)
     signal message(string text, bool isError)
     // Bubbled straight from NetworkMounts; shell.qml opens ui/ShareBrowser.qml on this.
     signal sharesListed(string baseUri, string baseLabel, var names)
@@ -91,7 +91,7 @@ Item {
         onMessage: function (text, isError) { root.message(text, isError) }
     }
 
-    NetworkMounts {
+    NetworkRail {
         id: mounts
         bookmarksText: bookmarksFile.text()
         onOpened: function (path) { root.opened(path) }
@@ -101,6 +101,7 @@ Item {
         // write can race a reload fired the moment setText() is called": mounts.rename() already
         // blocked on waitForJob() before this fires, so the reload here reads the write it caused.
         onRenamed: root.reloadBookmarks()
+        onTaildropRequested: function (peerId) { root.taildropPeerRequested(peerId) }
     }
 
     // Home is always first and is not in either file, so it is prepended rather than parsed; the
@@ -110,13 +111,15 @@ Item {
         root.favoriteEntries = Places.favorites(home, userDirsFile.text(), bookmarksFile.text(), Icons.sidebarGlyphFor)
     }
 
-    // ui/NetworkDialog.qml writes this same file; a watch set up before its parent directory
-    // existed never fires, so its own saved() signal drives this explicit reload instead.
+    // Dialog writes drive this reload because a watch created before gtk-3.0 exists stays inert.
     function reloadBookmarks() {
         bookmarksFile.reload()
     }
-
-    // ui/ShareBrowser.qml's own Enter action calls this with the resolved share uri; not yet one of root.entries, so it goes straight to NetworkMounts's own open-a-share path.
+    function rememberNetworkProfile(oldUri, uri, label, mac) { mounts.rememberProfile(oldUri, uri, label, mac) }
+    readonly property alias tailnetState: mounts.tailnetState
+    readonly property alias tailnetMessage: mounts.tailnetMessage
+    readonly property alias lanState: mounts.lanState
+    // ShareBrowser passes a resolved URI straight to the mount service.
     function mountShare(uri, label) {
         mounts.openShare(uri, false, label)
     }
@@ -148,7 +151,14 @@ Item {
     // names is Mounts.release', so tests/js/mounts.js drives the resolution with no rail.
     function releaseChosen(action, key) {
         Mounts.release(action, key, devices, mounts, root.deviceEntries, root.networkEntries, {
-            edit: function (uri, label) { root.editRequested(uri, label) }
+            edit: function (uri, label) {
+                var at = Mounts.rowByKey(root.networkEntries, uri)
+                root.editRequested(uri, label, at >= 0 ? root.networkEntries[at].mac : "")
+            },
+            copyAddress: function (entry) { mounts.copyAddress(entry) },
+            openSsh: function (entry) { mounts.openSsh(entry) },
+            taildrop: function (peerId) { root.taildropPeerRequested(peerId) },
+            wake: function (entry) { mounts.wake(entry) }
         })
     }
 
@@ -241,11 +251,7 @@ Item {
         contentHeight: rail.height + 2 * Style.spacing.rowPaddingX
         boundsBehavior: Flickable.StopAtBounds
 
-        FastScrollHandler {
-            parent: scroller
-            flickable: scroller
-        }
-
+        FastScrollHandler { parent: scroller; flickable: scroller }
         Column {
             id: rail
             anchors.top: parent.top
@@ -383,7 +389,6 @@ Item {
         return devRepeater.itemAt(rest - root.networkEntries.length)
     }
 
-    // The one divider in the whole design.
     Rectangle {
         anchors.right: parent.right
         anchors.top: parent.top

@@ -8,6 +8,7 @@ import "js/Mounts.js" as Mounts
 import "js/Places.js" as Places
 import "js/Protocols.js" as Protocols
 import "js/Motion.js" as Motion
+import "js/QuickConnect.js" as QuickConnect
 
 // The Network group's add/edit popup: a form over a gvfs URI, written to the same GTK bookmarks
 // file nautilus writes. Add appends; Edit rewrites the line it opened on. Dropbox install is add-only.
@@ -25,11 +26,13 @@ Item {
     // Empty while adding; the bookmark URI being rewritten while editing.
     property string editingUri: ""
     readonly property string titleText: root.editingUri.length > 0 ? "EDIT NETWORK LOCATION" : "ADD NETWORK LOCATION"
+    readonly property var quickParsed: QuickConnect.parse(quickField.text)
+    readonly property string quickPreview: root.quickParsed ? root.quickParsed.uri : ""
 
     signal closed()
     // Sidebar's own bookmarksFile FileView never watched a directory absent at its own
     // construction, so a plain watch is not enough the first run; the caller reloads on this.
-    signal saved()
+    signal saved(string oldUri, string uri, string label, string mac)
 
     // A plain overlay, not a QQC Popup, the same call ui/ContextMenu.qml already made.
     anchors.fill: parent
@@ -40,26 +43,38 @@ Item {
     function open() {
         root.statusText = ""
         root.editingUri = ""
+        quickField.text = ""
         form.reset()
         root.checkDropbox()
         root.opened = true
-        // The host is the one field the form actually needs, so it takes the caret on open.
-        form.focusHost()
+        quickField.takeFocus()
     }
 
-    function openEdit(uri, label) {
+    function openEdit(uri, label, mac) {
         root.statusText = ""
         root.editingUri = uri
+        quickField.text = ""
         var parsed = Protocols.parse(uri)
         if (!parsed) {
             form.reset()
             root.statusText = "This location could not be parsed."
         } else {
-            form.load(parsed, label)
+            form.load(parsed, label, mac)
         }
         root.checkDropbox()
         root.opened = true
         form.focusHost()
+    }
+
+    function submitQuick() {
+        if (!root.quickParsed) {
+            root.statusText = "Enter a host, host/share, user@host:/path, or a supported URI."
+            return
+        }
+        var parsed = root.quickParsed
+        form.load(parsed.form, "", "")
+        root.writeBookmark("", parsed.uri, Protocols.label(parsed.form), "")
+        root.close()
     }
 
     function close() {
@@ -73,11 +88,11 @@ Item {
             root.statusText = "A host is the one thing this needs; the rest is optional."
             return
         }
-        root.writeBookmark(root.editingUri, form.uri, form.labelText())
+        root.writeBookmark(root.editingUri, form.uri, form.labelText(), form.mac)
         root.close()
     }
 
-    function writeBookmark(oldUri, uri, label) {
+    function writeBookmark(oldUri, uri, label, mac) {
         // Canonical form, so this line dedups against a later gio-reported mount of the same share.
         var canonical = Mounts.normalize(uri)
         var body = bookmarksWrite.text()
@@ -85,7 +100,7 @@ Item {
         // Blocks until this write actually lands, not just until it is queued: without it,
         // Sidebar's reload() (fired by saved(), below) can race the write and read stale content.
         bookmarksWrite.waitForJob()
-        root.saved()
+        root.saved(oldUri, canonical, label, mac)
     }
 
     // Read back by shell.qml's IPC so a test asserts the protocol swap without OCR.
@@ -97,7 +112,10 @@ Item {
     function formPath() { return form.path }
     function formUser() { return form.user }
     function formLabel() { return form.label }
+    function formMac() { return form.mac }
     function formChip(name) { return form.chipFor(name) }
+    function quickText() { return quickField.text }
+    function quickUri() { return root.quickPreview }
 
     function checkDropbox() {
         if (dropboxCheck.running) return
@@ -197,6 +215,28 @@ Item {
 
                 PanelSectionHeader {
                     text: root.titleText
+                }
+
+                Flea.DialogField {
+                    id: quickField
+                    visible: root.editingUri.length === 0
+                    height: visible ? implicitHeight : 0
+                    width: parent.width
+                    label: "Quick Connect"
+                    placeholder: "host/share or user@host:/path"
+                    onAccepted: root.submitQuick()
+                    onTabbed: form.focusHost()
+                }
+
+                Text {
+                    visible: quickField.visible && quickField.text.length > 0
+                    width: parent.width
+                    text: root.quickPreview.length > 0 ? "CONNECTS AS  " + root.quickPreview : "ADDRESS NOT RECOGNIZED"
+                    color: root.quickPreview.length > 0 ? Theme.color.muted : Theme.color.error
+                    font.family: Theme.font.family
+                    font.pixelSize: Theme.font.caption
+                    elide: Text.ElideMiddle
+                    textFormat: Text.PlainText
                 }
 
                 NetworkForm {

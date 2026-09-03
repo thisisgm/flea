@@ -18,6 +18,7 @@ Column {
     readonly property string path: pathField.text
     readonly property string domain: domainField.text
     readonly property string user: userField.text
+    readonly property string mac: macField.text
     // The TLS box flips dav/davs and ftp/ftps, and the canvas draws it ticked.
     property bool tls: true
 
@@ -69,7 +70,7 @@ Column {
                 ring.push(kids[i])
             }
         }
-        ring.push(labelField, hostField, portField, pathField, domainField, userField, tlsRow)
+        ring.push(labelField, hostField, portField, pathField, domainField, userField, macField, tlsRow)
         return ring
     }
 
@@ -105,13 +106,14 @@ Column {
         pathField.text = ""
         domainField.text = ""
         userField.text = ""
+        macField.text = ""
         root.tls = true
         root.pick("SMB")
     }
 
     // Fill from Protocols.parse, without pick(), so a non-default port survives rather than
     // snapping back to the protocol's own default the way a chip click does.
-    function load(parsed, name) {
+    function load(parsed, name, mac) {
         if (!parsed) {
             reset()
             return
@@ -124,6 +126,7 @@ Column {
         pathField.text = parsed.path || ""
         domainField.text = parsed.domain || ""
         userField.text = parsed.user || ""
+        macField.text = mac || ""
     }
 
     Row {
@@ -200,6 +203,15 @@ Column {
         visible: root.spec.credentials
         height: visible ? implicitHeight : 0
         label: "Username"
+        onAccepted: root.submitted()
+        onTabbed: function (from, back) { root.step(from, back ? -1 : 1) }
+    }
+
+    Flea.DialogField {
+        id: macField
+        width: parent.width
+        label: "Wake MAC (optional)"
+        placeholder: "aa:bb:cc:dd:ee:ff"
         onAccepted: root.submitted()
         onTabbed: function (from, back) { root.step(from, back ? -1 : 1) }
     }

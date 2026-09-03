@@ -242,6 +242,7 @@ FocusScope {
         menu: menu
         // The rename TextField takes real Qt focus itself; this only hands it back once it is done.
         onRenameFinished: list.forceActiveFocus()
+        onTaildropPeerRequested: function (peerId) { root.sendTaildrop(peerId) }
     }
 
     Flea.Header {
