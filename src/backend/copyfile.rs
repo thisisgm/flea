@@ -1,6 +1,7 @@
 // The copy primitives every transfer is built from: streaming, symlink-preserving, and refusing to overwrite.
 use crate::error::{from_io, FleaError};
 use std::io::{Read, Write};
+use std::os::unix::fs::OpenOptionsExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -8,6 +9,8 @@ use std::sync::atomic::{AtomicBool, Ordering};
 const CHUNK: usize = 256 * 1024;
 // rename(2) sets EXDEV when the two paths are on different filesystems, which is the one failure that means "copy instead".
 const EXDEV: i32 = 18;
+// open(2) O_NOFOLLOW on linux x86-64; declared here because this tree takes no libc crate.
+const O_NOFOLLOW: i32 = 0o400000;
 
 // What a copy reports as it runs; a directory has no total without a sweep, so it reports 0 and renders indeterminate.
 pub struct Progress<'a> {
@@ -25,7 +28,13 @@ pub fn cancelled(p: &Progress) -> bool {
 
 // Copies one regular file, creating the destination exclusively so an existing file is never destroyed.
 pub fn copy_file(src: &Path, dst: &Path, total: u64, p: &mut Progress) -> Result<(), FleaError> {
-    let mut r = std::fs::File::open(src).map_err(|e| from_io("copy", &src.to_string_lossy(), &e))?;
+    // O_NOFOLLOW closes a same-uid race: copy_any already sent symlinks to copy_symlink, so a src
+    // that is a symlink here was swapped in after that stat, and it must not be followed.
+    let mut r = std::fs::OpenOptions::new()
+        .read(true)
+        .custom_flags(O_NOFOLLOW)
+        .open(src)
+        .map_err(|e| from_io("copy", &src.to_string_lossy(), &e))?;
     let mut w = std::fs::OpenOptions::new()
         .write(true)
         .create_new(true)
