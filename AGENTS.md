@@ -3578,6 +3578,17 @@ reachable while a device is misbehaving. The `_streamPending` interlock is relea
 rather than in the timer, because a collector whose stream was cut off may never finish it and
 `poll()` refuses on that flag alone.
 
+**Every reusable Process starts with an empty fallback.** `StdioCollector.text` and the parallel
+`_...Output` value exist because `Process.onExited` can race the collector property update, but the
+fallback is ordinary component state and survives the next command. Before this rule, a quiet
+second run could reuse the first run's bytes: an empty `gio mount -l` retained a disconnected
+share, empty `gio info` reopened the previous share's local path, an empty server listing repeated
+another server's names, a failed mount with no stderr inherited "already mounted", empty `lsblk`
+retained removed devices, and empty Tailscale status retained old Taildrop targets. Each start
+function now clears only its own fallback after refusing any overlapping run and before setting
+`Process.running`. `tests/process-output.sh` poisons all six values, starts all six real Process
+objects, and requires every reset synchronously; removing any one reset makes the suite red.
+
 ### Closing the window quits the backend, and a copy in flight is cancelled
 
 `ui/shell.qml` answers `Quickshell.onLastWindowClosed` with `backend.quit()` and signals its own pid
