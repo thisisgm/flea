@@ -29,8 +29,8 @@ function floors(t) {
 
 // One boolean per optional column, for a row of this width. hidden is the user's own set (keys
 // "mode"/"size"/"date"/"kind", from qs module ViewState), subtracted from what the width
-// affords: a hidden column never draws, and width still wins over a column the user wants back —
-// the name cannot be crowded out by a column the pane is too narrow to carry.
+// affords: a hidden column never draws, and width still wins over a column the user wants back,
+// so the name cannot be crowded out by a column the pane is too narrow to carry.
 function set(width, t, hidden) {
     var f = floors(t)
     var h = {}

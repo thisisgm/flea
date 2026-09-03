@@ -127,15 +127,9 @@ Column by column, and the one column Flea does not win is in the same list as th
   4.57x. Flea's three runs settled at 1,398, 1,152 and 1,166 ms, and the earlier batch of the same
   day read 4.27x on this comparison, so take the lead as about 4.5x rather than as a digit.
 - **Memory, PSS:** 106.7 MiB, **first of seven**, ahead of `pcmanfm` at 111.3 MiB, 1.04x. Flea runs
-  a second process, its backend, which the harness sampled separately at 5.3 MiB, so the pair reads
-  112.0 MiB here against 107.0 MiB in the earlier batch of the same day. **That increase is real and
-  it is Flea's own, not run to run noise.** Between those two batches Flea's window process rose
-  4.8 MiB on this fixture and 3.8 MiB on the media one, and of the five entrants measured on both
-  it is the only one that rose on both. The binary grew 85,488 bytes over the same window, and this
-  run is the heaviest Flea has measured on either fixture. So the pair crossed `pcmanfm`'s
-  111.3 MiB because Flea got heavier, not because the measurement moved, and the increase is not
-  yet attributed to a commit. The standalone column above is measured the way every other entrant
-  here was measured, and on it Flea is still first of seven.
+  a second process, its backend, sampled separately at 5.3 MiB; the pair reads 112.0 MiB, which is
+  past `pcmanfm`. That rise is Flea's own and not measurement noise, and it is not yet attributed
+  to a commit. The column above samples Flea the way it samples every other entrant.
 - **CPU, process tree:** 0.96 s, **first of seven**, ahead of `strata` at 7.62 s, 7.93x.
 - **Time to first window:** 752 ms, fifth of seven, behind `pcmanfm` at 410 ms, 1.83x.
 
@@ -171,24 +165,17 @@ never settled has no time.
 |---|---|---|---|
 | `pcmanfm` | never settled | 605 thumbnails | never settled in any of the 3 runs |
 
-`strata`'s three rows were taken on 2026-09-03, a day after the rest of the field, and they are the
-only rows in this table that were. It persists no thumbnail, so the cache count every other row
-uses saw nothing and its time sat below the rule unranked while it was in fact drawing 205 of them.
-The re-run counts that work by a live watch attached across the same three runs that take the
-timing, so its work column and its time come from one instrument pass and not from two. The method,
-the run conditions and the two differences from the batch are in
+`strata`'s three rows were taken a day after the rest of the field. It persists no thumbnail, so the
+cache count every other row uses saw nothing and it sat unranked while it was in fact drawing 205 of
+them; the re-run counts that work by a live watch across the same three runs that take the timing.
+The method, the run conditions and the two differences from the batch are in
 [`docs/bench/media-rc-2044.manifest.md`](docs/bench/media-rc-2044.manifest.md).
 
-**Flea settles first on this fixture while drawing the fewest thumbnails of any ranked entrant: 36
-against `dolphin`'s 552, a fifteenth of the work, so that first place is not a bare first place and
-does not mean anything read apart from the work column beside it.** Flea settles about 5.6x faster
-than `dolphin` here while drawing 36 thumbnails to its 552, which is 15.3x the work on `dolphin`'s
-side, and the honest reading is that the two were not asked the same question. Flea's 36 is the
-viewport and nothing else, by
-design: thumbnails are asked for only when the list stops moving and only for the rows on screen,
-and it is the same design that takes the settle column on the 100,000 file fixture by about 4.5x.
-`pcmanfm`'s 605 is 16.8x Flea's work and it never settled in any run, so neither of those times is
-comparable to Flea's without its own work column beside it.
+**Flea settles first here while drawing the fewest thumbnails of any ranked entrant: 36 against
+`dolphin`'s 552.** That first place means nothing read apart from the work column beside it, because
+the two were not asked the same question. Flea's 36 is the viewport and nothing else, by design:
+thumbnails are asked for only when the list stops moving and only for the rows on screen, which is
+the same design that takes the settle column on the 100,000 file fixture.
 
 Column by column. The denominator moves because an entrant that never settled still has a window, a
 memory and a CPU number, so `pcmanfm` is counted on three of these four:
@@ -202,23 +189,16 @@ memory and a CPU number, so `pcmanfm` is counted on three of these four:
   the six ranked entrants, behind `thunar` at 511 ms.
 
 Ranking `strata` cost Flea a place on memory and cut the CPU lead from 3.61x over `nemo` to 1.28x
-over `strata`, which is now the nearest rival on that column by a distance: 1.82 s against Flea's
-1.42 s where the next entrant is `nemo` at 5.13 s. It is also lighter than Flea, 70.3 MiB against
-112.6, while drawing 205 thumbnails to Flea's 36. What it does not take is the settle column, where
-it is the slowest ranked entrant on this fixture at 11.8x Flea's time. Excluding it was an
-instrument failure and not a choice, and a competitor that beats us on a column is exactly the thing
-an instrument failure must not be allowed to hide, which is why its rows are here and this paragraph
-is with them.
+over `strata`, now the nearest rival on that column: 1.82 s against Flea's 1.42 s, where the next
+entrant is `nemo` at 5.13 s. It is lighter than Flea too, 70.3 MiB against 112.6, while drawing 205
+thumbnails to Flea's 36. What it does not take is the settle column, where it is the slowest ranked
+entrant here at 11.8x Flea's time.
 
 First window moved the wrong way between the earlier batch of the same day and this one: 689 ms to
-752 ms on the scale fixture, third of seven to fifth of seven, and 774 ms to 833 ms here. That
-earlier batch's media place is not quoted beside it: it was ranked before `strata` was measured, so
-its denominator was six where this one is seven and the two ordinals are not the same question. In
-this run Flea is seventh of seven. It has never been a column Flea won and it blocks nothing, but
-the direction is real and it belongs here as a number rather than as an omission. The scale move is
-smaller than the range across Flea's own three runs in that batch, 732 to 913 ms; the media move is
-larger than its own range of 795 to 835 ms, so read the media one as a move and the scale one as
-noise-sized.
+752 ms on the scale fixture, and 774 ms to 833 ms here, where Flea is seventh of seven. It has never
+been a column Flea won and it blocks nothing. The scale move is smaller than the range across Flea's
+own three runs in that batch, 732 to 913 ms; the media move is larger than its own range of 795 to
+835 ms, so read the media one as a move and the scale one as noise.
 
 ### What each entrant can actually thumbnail
 
@@ -345,6 +325,12 @@ the name is one typed word away.
   and Dropbox as a first-class destination. Local disks and removable volumes group below them
   under DEVICES, which the screenshots here crop away rather than retouch: that row is labelled
   with the machine's own hostname.
+- **A path bar and directory tabs.** `:` or `Ctrl+L` types a path, with Tab completion over the
+  directories one level down; `t`, `w` and `1` to `9` open, close and switch up to nine tabs in
+  one window, and only one listing is ever live.
+- **Columns you choose.** Right click the column titles to hide Mode, Size, Date Modified or
+  Kind; the choice outlives the window, and the pane's width still wins over a column it cannot
+  carry. `Ctrl+Shift+Plus` and `Minus` scale the whole interface, `Ctrl+Shift+0` puts it back.
 - **It looks like Omarchy** because it reads the live palette, the same tokens the shell
   bar uses, and every mark is drawn in the Omarchy cut, which is its own section below.
 
@@ -364,8 +350,11 @@ That specimen is generated by [`tools/flea-glyph-sheet`](tools/flea-glyph-sheet)
 drawn here at the app's own stroke of 1.5. Re-run the tool rather than editing the sheet. Nothing is added to it
 until a surface actually draws it. Colour never comes from this language either. Every mark takes a
 palette role from the live Omarchy theme rather than a brand hex, so the whole set recolours when
-the desktop does. The only literal colours anywhere in the UI are the three fallbacks in
-`Theme.qml`'s `fallbackColor`, for the roles the shell's own palette does not model.
+the desktop does. The only literal colours anywhere in the UI are the five fallbacks in
+`Theme.qml`'s `fallbackColor`: three for roles the shell's own palette does not model, and two more
+read before the palette has loaded. Omarchy themes are not authored to WCAG AA, so Flea keeps each
+role's hue and walks its lightness until muted, symlink and executable clear 4.5:1 against the
+ground they are drawn on. On a theme that already clears it nothing moves.
 
 The spiral itself is reserved. It is the brand, not a row mark, and rows and menus never draw it. It
 appears in the empty state as a stroke on that same 24 unit grid, painting itself in from blank over
@@ -478,7 +467,7 @@ and the application cannot disagree.
 | Tab | Move focus between the rail and the view |
 | `t` | Open a new tab at the current folder |
 | `w` | Close the current tab |
-| `1`–`9` | Switch to that tab |
+| `1` to `9` | Switch to that tab |
 | Escape | Cancel a search, clear the filter, drop the selection, clear the status line |
 
 Finder hands land: every Cmd chord above is its Ctrl twin, added beside the vim key rather
@@ -563,9 +552,7 @@ cargo test                    # unit tests
 drives the debug binary and `thumbs.sh` the release one, runs the nine suites above that need
 nothing but a shell, and reads each suite's own exit code rather than a pipeline's. It then
 names `ui.sh`, `drag.sh` and `bench.sh` and says what each of the three wants: a display, a
-real pointer, an idle box. It is recent, and it is here because until it landed nothing in
-this tree executed any suite at all: there is no CI, `PKGBUILD`'s `check()` runs `cargo test`
-alone, and every other mention of a suite was prose naming it rather than a line running it.
+real pointer, an idle box. There is no CI, and `PKGBUILD`'s `check()` runs `cargo test` alone.
 
 `tools/flea-acceptance` derives its checklist at run time from the protocol document, the
 key table, the context menu, the design canvas and the sidebar, so it cannot be smaller
