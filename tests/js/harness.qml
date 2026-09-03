@@ -21,7 +21,6 @@ import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
 import "search.js" as SearchSuite
 import "selection.js" as SelectionSuite
-import "shadow.js" as ShadowSuite
 import "sort.js" as SortSuite
 import "taildrop.js" as TaildropSuite
 import "tap.js" as TapSuite
@@ -62,7 +61,6 @@ Item {
         ProtocolsSuite.run(check)
         SearchSuite.run(check)
         SelectionSuite.run(check)
-        ShadowSuite.run(check)
         SortSuite.run(check)
         TaildropSuite.run(check)
         TapSuite.run(check)

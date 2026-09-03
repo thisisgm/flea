@@ -258,16 +258,6 @@ Item {
         onPressed: root.close()
     }
 
-    // Declared before both frames so neither ring can darken the panel beside it; the canvas draws
-    // this shadow under the menu and under the flyout alike.
-    Flea.Shadow {
-        surface: frame
-    }
-
-    Flea.Shadow {
-        surface: flyout
-    }
-
     Rectangle {
         id: frame
         width: Theme.menuWidth

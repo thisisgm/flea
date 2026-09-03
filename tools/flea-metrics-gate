@@ -92,11 +92,6 @@ columnDate|125|16 ch x 7.8
 columnKind|130|120 x 13 / 12
 menuWidth|257|space(220)
 cornerRadius|$rounding|hyprctl getoption decoration:rounding, read live above
-shadowOffset|16|space(14), the canvas box-shadow y offset of 16 at base-size 14
-shadowSpread|20|round(space(34)/2), half the canvas blur of 40, which is all CSS puts outside the edge
-shadowSteps|3|Flea constant, the rings that stand in for the Gaussian
-shadowStrength|0.5|the canvas box-shadow alpha, which is the blur peak and not the edge
-shadowEdgeAlpha|0.25|half the peak, where a Gaussian sits on the shape edge, so what the visible band reaches
 previewFraction|0.82|Flea constant, Quick-Look sized inset
 gridIconSize|46|2 x 23
 gridMinCellWidth|175|space(150)"
