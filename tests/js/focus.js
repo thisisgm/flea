@@ -56,17 +56,6 @@ function listPane(hasRow) {
     return p
 }
 
-// The dd pair's own sink: what Ops.trash reaches for, plus the stamp Focus reads and writes.
-function trashPane() {
-    var p = listPane(true)
-    p.trashArmedAt = 0
-    p.cursorIndex = 3
-    p.trashedIdx = []
-    p.selectedIndices = function () { return [] }
-    p.backend = { trash: function (idx) { p.trashedIdx = idx } }
-    return p
-}
-
 function closed() {
     return { active: false, isMedia: false, isPdf: false }
 }
@@ -162,31 +151,6 @@ function run(check) {
     check("colon resolves to the path bar", Focus.lookup(colon, pane(closed())), "pathBar")
     var newTab = key(Qt.Key_T, "t", none)
     check("t resolves to a new tab", Focus.lookup(newTab, pane(closed())), "tabNew")
-
-    // Issue 7: one d used to trash on the third keystroke of a typed name. The pair is what trashes
-    // now, the first press only says so, and a stale arm is not a pair however long it has stood.
-    var arming = trashPane()
-    Focus.act("trashArm", arming)
-    check("the first d trashes nothing and says what to press", arming.trashedIdx.length, 0)
-    check("and the sentence names both routes", arming.said,
-          "Press d again to trash, or Delete on its own.")
-    check("and it leaves the pair armed", arming.trashArmedAt > 0, true)
-    Focus.act("trashArm", arming)
-    check("the second d inside the window trashes the cursor row", arming.trashedIdx.join(","), "3")
-    check("and disarms, so a third d only arms again", arming.trashArmedAt, 0)
-
-    var stale = trashPane()
-    stale.trashArmedAt = Date.now() - 60000
-    Focus.act("trashArm", stale)
-    check("a d a minute after the first is a fresh arm, not the second of a pair",
-          stale.trashedIdx.length, 0)
-    check("and it re-arms rather than completing a pair nobody meant",
-          stale.trashArmedAt > Date.now() - 1000, true)
-
-    // Delete keeps the single press, because it is not a letter a name is typed with.
-    var direct = trashPane()
-    Focus.act("trash", direct)
-    check("Delete trashes on one press, with no arming", direct.trashedIdx.join(","), "3")
 
     // The filter narrows rows already on screen, which only the list view draws; the GridView and
     // Columns boards draw no filter, so / is dropped there rather than narrowing a view nothing shows.

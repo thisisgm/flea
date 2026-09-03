@@ -33,8 +33,10 @@ function run(check) {
     check("escape retreats", Keymap.lookup(Qt.Key_Escape, "", none), "escape")
 
     check("v toggles selection", Keymap.lookup(Qt.Key_V, "v", none), "toggleSelect")
-    // GM ruling 2026-09-01: d trashes, which Delete also does.
-    check("d trashes", Keymap.lookup(Qt.Key_D, "d", none), "trash")
+    // GM ruling 2026-09-01: d trashes, which Delete also does. Since v0.1.3 the letter arms the
+    // pair instead, because a single d sat among the letters a name is typed with; see issue 7.
+    check("d arms the trash pair", Keymap.lookup(Qt.Key_D, "d", none), "trashArm")
+    check("Delete still trashes on one press", Keymap.lookup(Qt.Key_Delete, "", none), "trash")
     check("ctrl a selects all", Keymap.lookup(Qt.Key_A, "a", ctrl), "selectAll")
     check("shift J extends down", Keymap.lookup(Qt.Key_J, "J", shift), "extendDown")
     check("shift K extends up", Keymap.lookup(Qt.Key_K, "K", shift), "extendUp")
@@ -108,7 +110,8 @@ function run(check) {
 }
 
 // The three caps that name a key rather than printing one; everything else on the sheet is the
-// character itself, and a two-key cap like "j k" is checked on the first of the pair.
+// character itself, a two-key cap like "j k" is checked on the first of the pair, and a doubled
+// character like "dd" is one key pressed twice, so it resolves as that character.
 var NAMED = { "enter": Qt.Key_Return, "space": Qt.Key_Space, "esc": Qt.Key_Escape }
 // The one shifted character a chord prints; a capital letter after the caret is the other case.
 var SHIFTED = { ">": Qt.Key_Greater }
@@ -120,6 +123,9 @@ function sheetAction(row) {
     }
     if (first.charAt(0) === "^") {
         return chordAction(first)
+    }
+    if (first.length === 2 && first.charAt(0) === first.charAt(1)) {
+        first = first.charAt(0)
     }
     // Qt.Key_unknown is 0 and matches no case in the code switch, so the character decides.
     return Keymap.lookup(0, first, Qt.NoModifier)

@@ -382,7 +382,7 @@ action = "rename"
 label = "rename"
 
 [[sheet]]
-keys = "dd del"
+keys = "dd"
 action = "trashArm"
 label = "trash"
 

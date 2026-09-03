@@ -457,6 +457,7 @@ huge pages" below for what it is worth and what it cost.
 - `ui/js/Thumbs.js` is the pure row-to-path map and the visible-row request plan, and
   imports no QML so `./tests/js.sh` can redden on a mutation.
 - `ui/js/Tabs.js` is the directory-tab snapshots and the t/w/1-9 policy, and imports no QML.
+- `ui/js/Trash.js` is the dd pair's arm-and-fire policy, split out of `Focus.js` at its cap.
 - `ui/js/PathBar.js` is what a typed path line means: the tilde, the relative name, the
   `file://` URI, the interior `.` and `..`, and what Tab makes of one directory's names. Pure,
   so `tests/js/pathbar.js` drives all of it; the field itself is `ui/ChromeBar.qml`'s.
@@ -2719,10 +2720,11 @@ typing `Vid` toggled the selection on `v`, jumped on `i`, and trashed the row on
 unbound letter now answers `Press / to filter this listing by name.`, which is the filter
 that already narrows the held rows without a walk.
 
-Bare `d` is `trashArm`, not `trash`: the first press arms and says so, a second inside
-`Focus.TRASH_ARM_MS` trashes, and `handleKey` clears the stamp for every other action so an
-arm never survives the key after it. `Delete` and `Ctrl+Delete` still go on one press,
-because neither is a letter a name is typed with.
+Bare `d` is `trashArm`, not `trash`: `ui/js/Trash.js` owns the pair, the first press arms and
+says so, a second inside `Trash.ARM_MS` trashes, and `Focus.handleKey` clears
+`pane.trashArmedAt` for every other action so an arm never survives the key after it. `Delete`
+and `Ctrl+Delete` still go on one press, because neither is a letter a name is typed with. The
+sheet draws `dd`, and `tests/js/keymap.js` resolves a doubled cap as that one character.
 
 ### Theme roles and sources
 

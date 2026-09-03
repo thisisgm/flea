@@ -7,6 +7,7 @@
 .import "Ops.js" as Ops
 .import "Search.js" as Search
 .import "Sort.js" as Sort
+.import "Trash.js" as Trash
 .import "Tabs.js" as Tabs
 
 var LIST = "list"
@@ -14,10 +15,6 @@ var RAIL = "rail"
 
 // Left/Right's seek step, Task 22's operator ruling; previewAct is the only reader.
 var SEEK_MS = 5000
-
-// How long the first d of the dd pair stays armed. Long enough to be a deliberate pair, short
-// enough that an arm nobody finished cannot be completed by a d typed minutes later.
-var TRASH_ARM_MS = 1500
 
 // Tab is the only thing that moves focus between views, so the rule lives in one function.
 function next(current) {
@@ -102,7 +99,7 @@ function act(action, root) {
     // The write operations; every one of them is reversible with undo, so none of them confirms.
     case "duplicate": Ops.duplicate(root); return
     case "trash": Ops.trash(root); return
-    case "trashArm": armTrash(root); return
+    case "trashArm": Trash.arm(root); return
     case "copy": Ops.clip(root, false); return
     case "cut": Ops.clip(root, true); return
     case "paste": Ops.paste(root); return
@@ -219,7 +216,7 @@ function handleKey(event, root, sidebar) {
     }
     var action = lookup(event, root)
     // Anything that is not the second d of the pair disarms it, so an arm never outlives the key
-    // after it. armTrash re-stamps on its own line below, which is why it reads the stamp first.
+    // after it; ui/js/Trash.js re-stamps on its own, which is why it reads the stamp before writing.
     if (action !== "trashArm") {
         root.trashArmedAt = 0
     }
@@ -268,18 +265,6 @@ function handleKey(event, root, sidebar) {
         return true
     }
     return false
-}
-
-// The d of dd. The first press arms and says so, a second inside the window trashes; handleKey
-// above clears the stamp for every other action, so an arm never survives the key after it.
-function armTrash(root) {
-    if (root.trashArmedAt > 0 && Date.now() - root.trashArmedAt < TRASH_ARM_MS) {
-        root.trashArmedAt = 0
-        Ops.trash(root)
-        return
-    }
-    root.trashArmedAt = Date.now()
-    root.message("Press d again to trash, or Delete on its own.", false)
 }
 
 // The keyboard's route into the rail menu, and where a rail row without one is answered: the sheet

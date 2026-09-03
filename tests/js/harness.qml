@@ -24,6 +24,7 @@ import "search.js" as SearchSuite
 import "selection.js" as SelectionSuite
 import "sort.js" as SortSuite
 import "taildrop.js" as TaildropSuite
+import "trash.js" as TrashSuite
 import "tap.js" as TapSuite
 import "tabs.js" as TabsSuite
 import "thumbs.js" as ThumbsSuite
@@ -66,6 +67,7 @@ Item {
         SelectionSuite.run(check)
         SortSuite.run(check)
         TaildropSuite.run(check)
+        TrashSuite.run(check)
         TapSuite.run(check)
         TabsSuite.run(check)
         ThumbsSuite.run(check)
