@@ -47,9 +47,15 @@ function label(path, home) {
 
 // The current tab's path lives on the pane, not in the snapshot, so a navigate does not wait for a switch.
 function labelAt(pane, i) {
-    if (i === currentIndex(pane))
-        return label(pane.path, pane.home)
-    return label(pane.tabs.items[i].path, pane.home)
+    return label(pathAt(pane.tabs, currentIndex(pane), i, pane.path), pane.home)
+}
+
+// The path tab i draws: the live pane path for the current tab, the snapshot's for a hidden one.
+// Takes the values rather than the pane so ui/TabBar.qml's binding can read each one by name.
+function pathAt(tabs, index, i, currentPath) {
+    if (i === index)
+        return currentPath
+    return tabs && tabs.items && tabs.items[i] ? tabs.items[i].path : ""
 }
 
 function labels(pane) {

@@ -45,6 +45,16 @@ function pane(path) {
 }
 
 function run(check) {
+    // The strip's binding reads these four by name rather than through the pane, so a comma
+    // expression is not needed to make a label re-read when a tab opens; qmllint flagged that.
+    var items = [{ path: "/home/gm" }, { path: "/tmp/one" }]
+    check("the current tab draws the pane's live path, not its snapshot",
+          Tabs.pathAt({ items: items, index: 1 }, 1, 1, "/tmp/moved"), "/tmp/moved")
+    check("a hidden tab draws its own snapshot",
+          Tabs.pathAt({ items: items, index: 1 }, 1, 0, "/tmp/moved"), "/home/gm")
+    check("no tabs at all still answers a string",
+          Tabs.pathAt(null, 0, 3, "/home/gm"), "")
+
     check("a root tab is labelled with its separator", Tabs.label("/", ""), "/")
     check("the home directory uses the rail's own Home label", Tabs.label("/home/gm", "/home/gm"), "Home")
     check("a home child is labelled with its leaf, not the tilde form",

@@ -64,7 +64,10 @@ Item {
                 height: strip.height
 
                 readonly property bool current: root.currentIndex === tab.index
-                readonly property string title: (root.tabs, root.path, pane) ? Tabs.labelAt(pane, tab.index) : ""
+                // Every input named, so the label re-reads when a tab opens or the pane navigates.
+                readonly property string title: Tabs.label(
+                    Tabs.pathAt(root.tabs, root.currentIndex, tab.index, root.path),
+                    pane ? pane.home : "")
 
                 Accessible.role: Accessible.PageTab
                 Accessible.name: tab.title
