@@ -57,7 +57,16 @@ check "and the convert tool is reported" "1" "$(printf '%s' "$formats" | grep -c
 echo "  $formats"
 stop_backend
 
-for format in tar.zst zip 7z; do
+# tar.zst and zip come from the required libarchive toolchain. 7z is advertised only when the
+# optional 7zip executable is installed, so exercise it exactly when the live backend offers it.
+round_trip_formats="tar.zst zip"
+if printf '%s' "$formats" | grep -q '"7z"'; then
+  round_trip_formats="$round_trip_formats 7z"
+else
+  echo "--- 7z is unavailable; optional round trip skipped ---"
+fi
+
+for format in $round_trip_formats; do
   echo "--- compress and extract $format ---"
   start_backend
   send "{\"c\":\"archive\",\"op\":\"compress\",\"paths\":[\"$D/src/a.txt\",\"$D/src/sub\"],\"dest\":\"$D/out.$format\",\"format\":\"$format\"}"
