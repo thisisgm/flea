@@ -3496,16 +3496,17 @@ with its own trailing slash; nothing forced the two to agree, so `smb://h/data` 
 `smb://h/data/` (gio's own report of the same share once mounted) compared unequal everywhere a
 uri was used as a dedup key, and could show as two rows for one share. `ui/js/Mounts.js` gained
 `normalize(uri)`: every trailing slash is stripped, except a bare server root (nothing left but
-`scheme://host`), which keeps exactly one, the shape `gio` itself needs to parse it back. Applied
-in two places, per the ruling ("apply it... on write and on compare"): `ui/NetworkDialog.qml`'s
-`appendBookmark()` writes the normalized form rather than the raw typed string, and
-`ui/NetworkMounts.qml`'s `rebuild()` dedups live mounts against bookmarks using normalized keys
-rather than the raw `uri` fields, so a live mount (gio's trailing-slash form) and a bookmark (now
-also normalized, but an old hand-edited line might not be) still collapse to one row. `parseMounts()`
-and `nonFileBookmarks()` themselves are left returning whatever form their own source actually
-carries; only the write path and the dedup comparison were ever the places two spellings needed to
-agree. `tests/js/mounts.js` proves `normalize("smb://h/data") === normalize("smb://h/data/")` and
-that a bare root normalizes to its one-trailing-slash form regardless of how it was typed.
+`scheme://host`), which keeps exactly one, the shape `gio` itself needs to parse it back. A scheme's
+default port is dropped too: the add form writes `sftp://user@host:22/path` and `gio mount -l`
+reports `sftp://user@host/path`, which used to show as two rail rows (a dim bookmark the cursor
+stayed on, and a brighter live mount of the same share). Applied in two places, per the ruling
+("apply it... on write and on compare"): `ui/NetworkDialog.qml`'s write path uses the normalized
+form rather than the raw typed string, and `ui/NetworkMounts.qml`'s `rebuild()` dedups live mounts
+against bookmarks using normalized keys rather than the raw `uri` fields, so a live mount and a
+bookmark still collapse to one row. `parseMounts()` and `nonFileBookmarks()` themselves are left
+returning whatever form their own source actually carries; only the write path and the dedup
+comparison were ever the places two spellings needed to agree. `tests/js/mounts.js` proves a
+trailing slash, a default sftp port, and a bare root all collapse, and a non-default port does not.
 
 ### The rail menu, tested with a stubbed gio and a stubbed lsblk
 

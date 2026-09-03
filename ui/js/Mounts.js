@@ -68,9 +68,26 @@ function decodePath(raw) {
     }
 }
 
-// One canonical form: every trailing slash stripped, except a bare host root, which keeps one.
+// gio mount -l omits a scheme's default port; the add form writes it. Same share either way.
+var DEFAULT_PORTS = { smb: "445", sftp: "22", ftp: "21", ftps: "21", dav: "443", davs: "443", nfs: "2049" }
+
+function stripDefaultPort(uri) {
+    var m = String(uri).match(/^([a-z][a-z0-9+.-]*):\/\//i)
+    if (!m)
+        return uri
+    var def = DEFAULT_PORTS[m[1].toLowerCase()]
+    if (!def)
+        return uri
+    var rest = uri.substring(m[0].length)
+    var at = rest.lastIndexOf("@")
+    var hostPart = at >= 0 ? rest.substring(at + 1) : rest
+    var head = at >= 0 ? uri.substring(0, m[0].length + at + 1) : m[0]
+    return head + hostPart.replace(new RegExp("^([^/]+):" + def + "(?=/|$)"), "$1")
+}
+
+// One canonical form: default ports dropped, trailing slashes stripped except a bare host root.
 function normalize(uri) {
-    var stripped = String(uri || "").replace(/\/+$/, "")
+    var stripped = stripDefaultPort(String(uri || "")).replace(/\/+$/, "")
     var bareRoot = /^[a-z][a-z0-9+.-]*:\/\/[^\/]+$/i.test(stripped)
     return bareRoot ? stripped + "/" : stripped
 }

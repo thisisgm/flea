@@ -93,7 +93,7 @@ function run(check) {
     check("replace rewrites the matched URI and label",
         Places.replace(netFile, "smb://192.168.1.10/data", "sftp://tom@nas:22/home/tom", "omv"),
         'file:///home/gm/Downloads Downloads\n'
-        + 'sftp://tom@nas:22/home/tom omv\n'
+        + 'sftp://tom@nas/home/tom omv\n'
         + 'smb://10.0.0.9/backups Backups\n')
     check("a trailing-slash live uri still finds the written line",
         Places.replace(netFile, "smb://192.168.1.10/data/", "smb://192.168.1.10/isos", "ISOs"),

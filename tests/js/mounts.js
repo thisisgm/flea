@@ -48,13 +48,13 @@ function run(check) {
     var bareRoot = 'smb://192.168.1.10/\n'
     check("a bare server root with no label falls back to the host", Mounts.nonFileBookmarks(bareRoot)[0].label, "192.168.1.10")
 
-    // Item 4: one canonical form, so a share dedupes against itself regardless of who typed the slash.
+    // Item 4: one canonical form, so a share dedupes against itself regardless of slash or default port.
     check("a share uri normalizes its trailing slash away", Mounts.normalize("smb://h/data/"), "smb://h/data")
-    check("a share uri with no trailing slash is already canonical", Mounts.normalize("smb://h/data"), "smb://h/data")
-    check("smb://h/data and smb://h/data/ cannot coexist as two rows", Mounts.normalize("smb://h/data") === Mounts.normalize("smb://h/data/"), true)
-    check("a bare server root keeps its one trailing slash", Mounts.normalize("smb://h/"), "smb://h/")
-    check("a bare server root typed with no slash still canonicalizes to one", Mounts.normalize("smb://h"), "smb://h/")
+    check("a bare server root keeps one trailing slash either way", Mounts.normalize("smb://h/") + "|" + Mounts.normalize("smb://h"), "smb://h/|smb://h/")
     check("two different shares stay distinct after normalizing", Mounts.normalize("smb://h/data/") === Mounts.normalize("smb://h/other/"), false)
+    check("the form's default sftp port is the same share gio reports without one", Mounts.normalize("sftp://tom@h:22/home/tom"), "sftp://tom@h/home/tom")
+    check("a default port on a bare root still keeps the slash", Mounts.normalize("sftp://tom@h:22/"), "sftp://tom@h/")
+    check("a non-default port is kept", Mounts.normalize("sftp://tom@h:2222/home"), "sftp://tom@h:2222/home")
 
     // Real lsblk --json output, captured on the box with a USB stick plugged in (2026-09-02).
     // ui/DeviceMounts.qml feeds this exact command's stdout to parseDevices on the rail's own clock.
