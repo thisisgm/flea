@@ -143,6 +143,21 @@ check "undo put it back where it came from" "moving" "$(cat "$D/m.txt" 2>/dev/nu
 check "the destination copy is gone" "no" "$([ -e "$D/dest/m.txt" ] && echo yes || echo no)"
 stop_backend
 
+echo "--- transfers between two synthetic GVFS mount roots use the normal backend ---"
+start_backend
+mkdir -p "$D/run/user/1000/gvfs/sftp:host=source" "$D/run/user/1000/gvfs/smb-share:server=dest,share=data"
+printf 'remote copy' > "$D/run/user/1000/gvfs/sftp:host=source/copy.txt"
+printf 'remote move' > "$D/run/user/1000/gvfs/sftp:host=source/move.txt"
+remote_src="$D/run/user/1000/gvfs/sftp:host=source"
+remote_dst="$D/run/user/1000/gvfs/smb-share:server=dest,share=data"
+send "{\"c\":\"transfer\",\"op\":\"copy\",\"paths\":[\"$remote_src/copy.txt\"],\"dest\":\"$remote_dst\"}"
+await '"t":"transferdone"' || fail=1
+check "remote-to-remote copy preserves source bytes" "remote copy|remote copy" "$(cat "$remote_src/copy.txt")|$(cat "$remote_dst/copy.txt")"
+send "{\"c\":\"transfer\",\"op\":\"move\",\"paths\":[\"$remote_src/move.txt\"],\"dest\":\"$remote_dst\"}"
+for _attempt in $(seq 1 200); do [[ $(seen '"t":"transferdone"') -ge 2 ]] && break; sleep 0.05; done
+check "remote-to-remote move removes the source only after landing" "no|remote move" "$([ -e "$remote_src/move.txt" ] && echo yes || echo no)|$(cat "$remote_dst/move.txt")"
+stop_backend
+
 echo "--- one failing item is data, and the batch carries on ---"
 start_backend
 printf 'good' > "$D/good.txt"; mkdir -p "$D/dest"
