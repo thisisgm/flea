@@ -208,12 +208,12 @@ Item {
         radius: Style.cornerRadius
 
         Behavior on anchors.verticalCenterOffset {
-            enabled: root.active && !Motion.reduced
+            enabled: root.active && !Theme.reducedMotion
             NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
         }
 
         Behavior on opacity {
-            enabled: !Motion.reduced
+            enabled: !Theme.reducedMotion
             NumberAnimation {
                 duration: root.active ? Motion.durMs.open : Motion.durMs.close
                 easing.type: Easing.BezierSpline

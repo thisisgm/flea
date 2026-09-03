@@ -6,7 +6,6 @@ import QtQuick
 import qs.Commons
 import "js/Columns.js" as Columns
 import "js/Contrast.js" as Contrast
-import "js/Motion.js" as Motion
 import "js/Palette.js" as Palette
 
 // Flea is its own process, so it plays the role shell.qml plays for the bar: it feeds Color and Style.
@@ -17,6 +16,10 @@ Singleton {
 
     // True only once colors.toml parsed to a palette, so a test can tell one from a fallback.
     property bool ready: false
+
+    // A property and not a Motion.js var: a plain library var notifies nothing, so every Behavior
+    // reading it would keep whatever it was built with when the compositor's answer arrives.
+    property bool reducedMotion: Quickshell.env("FLEA_REDUCED_MOTION") === "1"
 
     // Color models five roles; these three have no counterpart and stay Flea's own.
     readonly property var fallbackColor: ({
@@ -36,29 +39,24 @@ Singleton {
         property color executable: root.fallbackColor.executable
     }
 
-    // The metrics gate and the canvas are written at omarchy base-size 14. This box is on 12, and
-    // on a 4K panel at 1.5 that makes body text 11 logical px. Floor at 14 so Flea matches the
-    // board; a larger omarchy display text size still wins.
-    readonly property real sizeScale: Math.max(1, 14 / Math.max(1, Style.font.baseSize))
-
     readonly property QtObject font: QtObject {
         readonly property string family: Style.font.family
-        readonly property int bodySmall: Math.round(Style.font.bodySmall * root.sizeScale)
-        readonly property int caption: Math.round(Style.font.caption * root.sizeScale)
+        readonly property int bodySmall: Style.font.bodySmall
+        readonly property int caption: Style.font.caption
     }
 
     readonly property QtObject spacing: QtObject {
         readonly property int hairline: Style.spacing.hairline
-        readonly property int rowPaddingX: Math.round(Style.spacing.rowPaddingX * root.sizeScale)
-        readonly property int rowPaddingY: Math.round(Style.spacing.controlPaddingY * root.sizeScale)
-        readonly property int gap: Math.round(Style.spacing.rowGap * root.sizeScale)
+        readonly property int rowPaddingX: Style.spacing.rowPaddingX
+        readonly property int rowPaddingY: Style.spacing.controlPaddingY
+        readonly property int gap: Style.spacing.rowGap
     }
 
     // One glyph's advance in a monospace face is every glyph's advance, so this sizes every fixed column.
     TextMetrics {
         id: glyphMetrics
         font.family: Style.font.family
-        font.pixelSize: root.font.bodySmall
+        font.pixelSize: Style.font.bodySmall
         text: "0"
     }
 
@@ -69,7 +67,7 @@ Singleton {
         readonly property int size: Math.round(root.sizeChars * glyphMetrics.advanceWidth)
         readonly property int date: Math.round(root.dateChars * glyphMetrics.advanceWidth)
         // Kind text varies too much for a character count, so its base is a pixel width scaled by the same ratio bodySmall already is.
-        readonly property int kind: Math.round(root.kindBaseWidth * root.font.bodySmall / 12)
+        readonly property int kind: Math.round(root.kindBaseWidth * Style.font.bodySmall / 12)
         // Not a column: the floor under the name, which the four above drop one by one to protect.
         readonly property int nameMin: Math.round(root.nameMinChars * glyphMetrics.advanceWidth)
     }
@@ -86,13 +84,13 @@ Singleton {
     readonly property int heroMarkSize: Math.round(root.font.bodySmall * 3.7)
     // A chrome strip's mark is the OEM's own icon token, the one Ui/Button.qml and the Tailscale and
     // Dropbox bar icons size from: 16 at base-size 14, which is the canvas's chrome mark on every board.
-    readonly property int chromeMarkSize: Math.round(Style.font.icon * root.sizeScale)
+    readonly property int chromeMarkSize: Style.font.icon
     // Lucide ships stroke 2 on its 24 unit grid; 1.5 is the operator's tune (Tabler ships 2 as well, see the A/B report).
     readonly property real strokeWidth: 1.5
     // WCAG 2.5.8 floor. Marks stay at their type-scale size; the hit box grows to this.
     readonly property int hitMin: 24
     // Wide enough for "Send with Taildrop" at bodySmall, 257 at base-size 14; ui/ContextMenu.qml draws it.
-    readonly property int menuWidth: Math.round(Style.space(220) * root.sizeScale)
+    readonly property int menuWidth: Style.space(220)
 
     // Leading a row gives its text, above and below, before the padding is added.
     readonly property real lineBoxRatio: 1.8
@@ -157,7 +155,7 @@ Singleton {
 
     // Five callers: ConvertDialog, KeymapSheet, NetworkDialog, NetworkForm, TransferCard; every other spacing token above is direct.
     function space(px) {
-        return Math.round(Style.space(px) * root.sizeScale);
+        return Style.space(px);
     }
 
     // The metrics contract as the app resolves it, one key=value per line in the Blueprint board's
@@ -220,17 +218,9 @@ Singleton {
         root.ready = Palette.isPalette(found);
     }
 
-    function applyReducedMotion() {
-        var env = Quickshell.env("FLEA_REDUCED_MOTION");
-        if (env === "1" || env === "true") {
-            Motion.reduced = true;
-            return;
-        }
-        if (env === "0" || env === "false") {
-            Motion.reduced = false;
-            return;
-        }
-        motionQuery.running = true;
+    // Sample input: {"option": "animations:enabled", "bool": false, "set": true }
+    function applyReducedMotion(body) {
+        root.reducedMotion = String(body).indexOf('"bool": false') >= 0;
     }
 
     // blockLoading only gates calls to text()/data(); nothing forced that call before this fix,
@@ -276,17 +266,15 @@ Singleton {
         }
     }
 
+    // Flea agrees with the compositor rather than carrying its own switch, the rule the corner
+    // radius already follows; FLEA_REDUCED_MOTION is the test override and skips the ask.
     Process {
         id: motionQuery
-        command: ["gsettings", "get", "org.gnome.desktop.a11y.interface", "reduced-motion"]
+        running: Quickshell.env("FLEA_REDUCED_MOTION") === ""
+        command: ["hyprctl", "getoption", "animations:enabled", "-j"]
         stdout: StdioCollector {
             waitForEnd: true
-            onStreamFinished: {
-                var body = String(text)
-                Motion.reduced = body.indexOf("reduce") >= 0 && body.indexOf("no-preference") < 0
-            }
+            onStreamFinished: root.applyReducedMotion(text())
         }
     }
-
-    Component.onCompleted: root.applyReducedMotion()
 }

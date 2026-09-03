@@ -33,7 +33,7 @@ Item {
     opacity: root.visible ? 1 : 0
 
     Behavior on opacity {
-        enabled: root.visible && !Motion.reduced
+        enabled: root.visible && !Theme.reducedMotion
         NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
     }
 
@@ -44,7 +44,7 @@ Item {
         spacing: Theme.spacing.gap
 
         Behavior on anchors.verticalCenterOffset {
-            enabled: root.visible && !Motion.reduced
+            enabled: root.visible && !Theme.reducedMotion
             NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
         }
 
@@ -94,7 +94,7 @@ Item {
     // root.visible mirrors the caller's listingState === "empty" gate, so the rotation timer stops once a real listing arrives.
     Timer {
         interval: root.rotateMs
-        running: root.visible && root.caption.length === 0 && !Motion.reduced
+        running: root.visible && root.caption.length === 0 && !Theme.reducedMotion
         repeat: true
         // One beat for both, per the operator: the mark repaints as the sentence changes.
         onTriggered: { fade.restart(); heroMark.replay() }

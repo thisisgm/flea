@@ -19,6 +19,3 @@ var durMs = {
 // Open rises into place from this far below its resting position; close does not translate,
 // opacity only (see the Preview/ShareBrowser/NetworkDialog verticalCenterOffset/y bindings).
 var translateUpPx = 10
-
-// org.gnome.desktop.a11y.interface reduced-motion, or FLEA_REDUCED_MOTION=1. Theme.qml sets this.
-var reduced = false

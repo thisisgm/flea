@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Commons
-import "js/Motion.js" as Motion
 
 // A text row with a hairline frame, not filled button chrome: the canvas draws every dialog button
 // this way, and the accent one is the action the dialog is for.
@@ -16,14 +15,14 @@ Item {
 
     implicitWidth: Math.max(Theme.hitMin, text.implicitWidth + 2 * Theme.spacing.gap + 2 * Theme.spacing.hairline)
     implicitHeight: Math.max(Theme.hitMin, text.implicitHeight + Theme.spacing.gap + 2 * Theme.spacing.hairline)
-    scale: tap.pressed && !Motion.reduced ? 0.96 : 1
+    scale: tap.pressed && !Theme.reducedMotion ? 0.96 : 1
 
     Accessible.role: Accessible.Button
     Accessible.name: root.label
     Accessible.onPressAction: root.activated()
 
     Behavior on scale {
-        enabled: !Motion.reduced
+        enabled: !Theme.reducedMotion
         NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
     }
 

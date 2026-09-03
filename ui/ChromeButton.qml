@@ -1,7 +1,6 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
-import "js/Motion.js" as Motion
 
 // One glyph button in the window chrome: muted at rest, accent when it names the current view, and
 // dimmed when there is nowhere for it to go.
@@ -35,14 +34,14 @@ Item {
     // The mark stays the chrome token; the hit box is at least 24 px wide and the strip's height.
     implicitWidth: Math.max(Theme.hitMin, Theme.chromeMarkSize)
     implicitHeight: Theme.chromeHeight
-    scale: tap.pressed && root.enabled && !Motion.reduced ? 0.96 : 1
+    scale: tap.pressed && root.enabled && !Theme.reducedMotion ? 0.96 : 1
 
     Accessible.role: Accessible.Button
     Accessible.name: root.accessName
     Accessible.onPressAction: if (root.enabled) root.activated()
 
     Behavior on scale {
-        enabled: !Motion.reduced
+        enabled: !Theme.reducedMotion
         NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
     }
 

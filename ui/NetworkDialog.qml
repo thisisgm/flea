@@ -110,7 +110,7 @@ Item {
         opacity: root.opened ? 1 : 0
 
         Behavior on opacity {
-            enabled: !Motion.reduced
+            enabled: !Theme.reducedMotion
             NumberAnimation {
                 duration: root.opened ? Motion.durMs.open : Motion.durMs.close
                 easing.type: Easing.BezierSpline
@@ -140,12 +140,12 @@ Item {
         padding: Style.spacing.panelPadding
 
         Behavior on anchors.verticalCenterOffset {
-            enabled: root.opened && !Motion.reduced
+            enabled: root.opened && !Theme.reducedMotion
             NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
         }
 
         Behavior on opacity {
-            enabled: !Motion.reduced
+            enabled: !Theme.reducedMotion
             NumberAnimation {
                 duration: root.opened ? Motion.durMs.open : Motion.durMs.close
                 easing.type: Easing.BezierSpline
