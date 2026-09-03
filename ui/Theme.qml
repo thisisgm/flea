@@ -21,9 +21,12 @@ Singleton {
     // reading it would keep whatever it was built with when the compositor's answer arrives.
     property bool reducedMotion: Quickshell.env("FLEA_REDUCED_MOTION") === "1"
 
-    // Color models five roles; these three have no counterpart and stay Flea's own.
+    // The only literal colours in the UI. Color models five roles; surface, symlink and executable
+    // have no counterpart, and the other two are read here before Color.loadColors has run.
     readonly property var fallbackColor: ({
+        background: "#101315",
         surface: "#181825",
+        muted: "#707880",
         symlink: "#94e2d5",
         executable: "#a6e3a1"
     })
@@ -31,7 +34,7 @@ Singleton {
     readonly property QtObject color: QtObject {
         readonly property color background: Color.background
         readonly property color foreground: Color.foreground
-        property color muted: "#707880"
+        property color muted: root.fallbackColor.muted
         readonly property color accent: Color.accent
         readonly property color error: Color.urgent
         property color surface: root.fallbackColor.surface
@@ -201,13 +204,13 @@ Singleton {
     // Color owns the other five; only the three it does not model are assigned here.
     function applyColors(body) {
         var found = Palette.parse(body);
-        var bg = Palette.pick(found, ["background"], "#101315");
+        var bg = Palette.pick(found, ["background"], root.fallbackColor.background);
         var surface = Palette.pick(found, ["dark_background", "selection"], root.fallbackColor.surface);
         // corner: the alacritty-derived colors.toml emits neither background ladder key, so selection is third.
         root.color.surface = surface;
         // Omarchy palettes are not authored to AA. Flea keeps the hex system and walks L until 4.5:1.
         root.color.muted = Contrast.ensureRatio(
-            Contrast.ensureRatio(Palette.pick(found, ["muted"], "#707880"), bg, 4.5), surface, 4.5);
+            Contrast.ensureRatio(Palette.pick(found, ["muted"], root.fallbackColor.muted), bg, 4.5), surface, 4.5);
         root.color.symlink = Contrast.ensureRatio(
             Palette.pick(found, ["cyan", "color6"], root.fallbackColor.symlink), bg, 4.5);
         root.color.executable = Contrast.ensureRatio(
