@@ -6,7 +6,6 @@ import QtQuick
 import qs.Commons
 import "js/Columns.js" as Columns
 import "js/Palette.js" as Palette
-import "js/Shadow.js" as ShadowMath
 
 // Flea is its own process, so it plays the role shell.qml plays for the bar: it feeds Color and Style.
 Singleton {
@@ -85,30 +84,6 @@ Singleton {
     readonly property real strokeWidth: 1.5
     // Wide enough for "Send with Taildrop" at bodySmall, 257 at base-size 14; ui/ContextMenu.qml draws it.
     readonly property int menuWidth: Style.space(220)
-
-    // The canvas draws box-shadow: 0 16px 40px rgba(0,0,0,0.5) under every floating in-app surface
-    // and nothing in ui/ ever drew one. The offset and the blur are the canvas's own design pixels
-    // put through Style.space, which lands them on exactly 16 and 40 at this box's base-size 14
-    // (14 x 14/12 rounds to 16, 34 x 14/12 rounds to 40) and scales both with the operator's text size.
-    readonly property QtObject shadow: QtObject {
-        id: shadowTokens
-
-        readonly property int offset: Style.space(14)
-        // CSS puts half a blur inside the shape's edge and half outside, so a ring grows by half of it.
-        readonly property int spread: Math.round(Style.space(34) / 2)
-        // Stacked rings stand in for the Gaussian. Three is where the falloff stops reading as bands
-        // on a dark ground, and it is the one number to turn if it ever does.
-        readonly property int steps: 3
-        // The canvas's own alpha, which is the shadow's peak rather than what any pixel outside the
-        // card shows: a Gaussian sits at half its peak on the shape's own edge, and every value
-        // darker than that falls behind the opaque surface, so half is what the visible band reaches.
-        readonly property real strength: 0.5
-        readonly property real edgeAlpha: shadowTokens.strength / 2
-        // A shadow is light the surface blocked rather than a role in the palette, so this is the one
-        // colour in this file that multiplies the ground instead of naming it, which is what keeps it
-        // right on a light theme as well as on this dark one.
-        readonly property color color: Qt.rgba(0, 0, 0, ShadowMath.stepAlpha(shadowTokens.edgeAlpha, shadowTokens.steps))
-    }
 
     // Leading a row gives its text, above and below, before the padding is added.
     readonly property real lineBoxRatio: 1.8
@@ -206,11 +181,6 @@ Singleton {
             columnKind: root.column.kind,
             menuWidth: root.menuWidth,
             cornerRadius: Style.cornerRadius,
-            shadowOffset: root.shadow.offset,
-            shadowSpread: root.shadow.spread,
-            shadowSteps: root.shadow.steps,
-            shadowStrength: root.shadow.strength,
-            shadowEdgeAlpha: root.shadow.edgeAlpha,
             previewFraction: root.preview.fraction,
             gridIconSize: root.grid.iconSize,
             gridMinCellWidth: root.grid.minCellWidth

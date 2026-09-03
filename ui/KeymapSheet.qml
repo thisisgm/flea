@@ -1,6 +1,5 @@
 import QtQuick
 import qs.Commons
-import "." as Flea
 import "js/Keymap.js" as Keymap
 
 // The keymap sheet ? opens, drawn as the Keys panel on Operations.dc.html draws it. Every row comes
@@ -56,11 +55,6 @@ Item {
             anchors.fill: parent
             onClicked: root.close()
         }
-    }
-
-    // After the dimmed ground and before the card, so the ground cannot wash the shadow out.
-    Flea.Shadow {
-        surface: card
     }
 
     Rectangle {

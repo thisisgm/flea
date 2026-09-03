@@ -123,11 +123,6 @@ Item {
         }
     }
 
-    // After the scrim and before the card, so the scrim cannot wash the shadow out.
-    Flea.Shadow {
-        surface: card
-    }
-
     // The house dialog shape read off ConfirmDialog.qml: BorderSurface, an accent border, cornerRadius.
     BorderSurface {
         id: card

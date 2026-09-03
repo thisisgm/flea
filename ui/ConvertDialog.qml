@@ -76,11 +76,6 @@ Item {
         }
     }
 
-    // After the dimmed ground and before the card, so the ground cannot wash the shadow out.
-    Flea.Shadow {
-        surface: card
-    }
-
     Rectangle {
         id: card
         anchors.centerIn: parent

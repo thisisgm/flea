@@ -47,7 +47,6 @@ Sidebar 1.0 Sidebar.qml
 SidebarRow 1.0 SidebarRow.qml
 Spinner 1.0 Spinner.qml
 SearchStrip 1.0 SearchStrip.qml
-Shadow 1.0 Shadow.qml
 ShareLink 1.0 ShareLink.qml
 StateMessage 1.0 StateMessage.qml
 TailscaleMark 1.0 TailscaleMark.qml
