@@ -121,11 +121,10 @@ fn main() {
         None => (start, None),
     };
 
-    // Both handles must be a tty, so a pipeline never receives the terminal interface.
+    // The window is the default until the terminal interface exists. Keep the tty check on an
+    // explicit --tui so a future implementation cannot write escape codes into a pipeline.
     let interactive = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
-    let tui = if want_tui { true } else if want_gui { false } else { interactive };
-
-    if tui {
+    if want_tui {
         if !interactive {
             eprintln!("flea: the terminal interface needs a terminal on stdin and stdout");
             exit(2);

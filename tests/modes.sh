@@ -42,6 +42,11 @@ check "missing qs carries no errno" "0" "$(echo "$out" | grep -c 'os error')"
 out=$(env -u WAYLAND_DISPLAY -u DISPLAY $BIN . 2>&1 </dev/null)
 check "no flag defaults to the window" "1" "$(echo "$out" | grep -c 'no graphical session')"
 
+# A shell gives the child a tty on both handles. Bare flea still means the product that exists,
+# not the reserved terminal interface; script comes from Flea's hard util-linux dependency.
+out=$(env -u WAYLAND_DISPLAY -u DISPLAY script -qec "$BIN ." /dev/null 2>&1)
+check "no flag at a terminal defaults to the window" "1" "$(echo "$out" | grep -c 'no graphical session')"
+
 # --tui with no tty must refuse rather than write escape codes into a pipe.
 out=$($BIN --tui 2>&1 </dev/null | cat)
 check "--tui without a tty refuses" "1" "$(echo "$out" | grep -c 'needs a terminal')"

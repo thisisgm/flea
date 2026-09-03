@@ -349,17 +349,17 @@ booleans, `want_tui` and `want_gui`, not an enum: there are four modes total, ea
 exactly once, and a type nobody matches on twice would be ceremony.
 
 `--tui` and `--gui` are mutually exclusive; giving both is a usage error naming the conflict,
-never a coin flip. With neither flag, the choice is `interactive`: both stdin and stdout must
-be a real terminal, not just one, so that a pipeline never receives the terminal interface.
-`flea | head` gives stdin a tty and stdout a pipe, so `interactive` is false and the window
-branch runs; what the rule prevents is the terminal interface writing escape codes into that
-pipe, which is exactly what the `--tui` refusal below it says. `--tui` without a terminal on
-both handles exits 2; `--gui` without `WAYLAND_DISPLAY` or `DISPLAY` refuses rather than
+never a coin flip. With neither flag the window is the default, including when both handles are
+a terminal, because the terminal interface is reserved but not built and a bare invocation must
+open the product that exists. `--tui` is the only route to that reserved interface. It requires
+both stdin and stdout to be a real terminal, not just one, so a future implementation cannot write
+escape codes into a pipeline. `flea | head` gives stdin a tty and stdout a pipe and an explicit
+`--tui` therefore refuses. `--gui` without `WAYLAND_DISPLAY` or `DISPLAY` refuses rather than
 trying and failing inside `qs`.
 
-Telling that `&&` apart from an `||` needs a tty on exactly one handle and no suite here has
-a pty, so that distinction is untested; the no-flag case in `./tests/modes.sh` pins only
-which branch the default takes.
+`./tests/modes.sh` checks both no-flag shapes: redirected handles exercise the launcher path and
+`script` from the hard `util-linux` dependency gives the child a real pty on both handles, pinning
+the terminal invocation that used to fall into the unbuilt interface.
 
 `paths::ui_dir()` finds the UI the same way `FLEA_BIN` finds the backend binary (see "Where
 the backend binary comes from" below): `FLEA_UI` first, then the packaged
