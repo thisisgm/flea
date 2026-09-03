@@ -94,6 +94,7 @@ Item {
         visible: root.drawsEmpty && root.rows.length === 0 && root.lockedMode < 0
         caption: emptyTile.messages[0]
         mark: "folder"
+        hint: "Press Ctrl+Shift+N for a new folder."
     }
 
     // The cursor can move off screen through the keyboard, so the column follows it.

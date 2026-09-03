@@ -71,8 +71,6 @@ Item {
         visible: root.cols.mode
         width: root.cols.mode ? Theme.column.mode : 0
         text: root.title("Mode", "mode")
-
-        TapHandler { enabled: root.sortable; onTapped: root.sortRequested("mode") }
     }
 
     PanelSectionHeader {
@@ -109,8 +107,6 @@ Item {
         width: root.cols.kind ? Theme.column.kind : 0
         text: root.title("Kind", "kind")
         elide: Text.ElideRight
-
-        TapHandler { enabled: root.sortable; onTapped: root.sortRequested("kind") }
     }
 
     Rectangle {

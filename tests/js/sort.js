@@ -4,7 +4,7 @@
 // else in ui/ reaches ui/Backend.qml's sort(), so a wrong gate here is the whole feature.
 // What the real backend does per column is asserted in tests/protocol.sh: name, size and mtime are
 // reordered with directories first in both directions, and mode and kind come back an error naming
-// the key. So nothing here holds a second list of what will be refused; every column asks.
+// the key. The header no longer asks for those two, so a click here must send nothing.
 
 // Only the members the sort path touches. The backend stub records the wire in order, because sort
 // before window is the protocol's own rule and a window sent first would read the old order's rows.
@@ -76,19 +76,17 @@ function run(check) {
           date.sent.join(","), "sort mtime asc,window 0 200")
     check("and the mark moves onto Date Modified", date.backend.sortBy + ":" + date.backend.sortDesc, "mtime:false")
 
-    // Mode and Kind are no keys the backend has, and it refuses them by name rather than answering
-    // them as name order, so they go out and nothing here moves: the refusal is the backend's alone.
+    // Mode and Kind are labels, not orders. A click must not look like a sort that then errors.
     var mode = pane("name", true)
     Sort.column(mode, "mode")
-    check("a click on Mode asks the backend, which refuses it by name", mode.sent.join(","), "sort mode asc")
-    check("and the UI says nothing of its own, because the refusal will", mode.said.length, 0)
+    check("a click on Mode sends nothing", mode.sent.join(","), "")
     check("a click on Mode leaves the descending name sort alone", mode.backend.sortDesc, true)
     check("and the selection survives a sort that did not happen", mode.cleared, 0)
 
     var kind = pane("size", false)
     Sort.column(kind, "kind")
-    check("a click on Kind asks the backend too", kind.sent.join(","), "sort kind asc")
-    check("but the mark stays on the order the listing is really in", kind.backend.sortBy, "size")
+    check("a click on Kind sends nothing either", kind.sent.join(","), "")
+    check("and the mark stays on the order the listing is really in", kind.backend.sortBy, "size")
     check("and the thumbnail cache is kept, because no row moved", kind.thumbState, "stale")
 
     // s steps to the next order the backend can produce, always ascending, and wraps: name, size,

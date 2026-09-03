@@ -40,7 +40,7 @@ function sentence(where, message) {
     if (where === "transfer" || where === "archive" || where === "convert") {
         return capitalised(message)
     }
-    return "Something went wrong; reopen Flea and try again."
+    return "That action could not be completed; try again."
 }
 
 // One condition, two spellings: rename gets the errno's "File exists", while src/backend/ops.rs
@@ -54,7 +54,7 @@ function exists(message) {
 function capitalised(message) {
     var text = String(message)
     if (text.length === 0) {
-        return "Something went wrong; reopen Flea and try again."
+        return "That action could not be completed; try again."
     }
     var out = text.charAt(0).toUpperCase() + text.substring(1)
     return out.charAt(out.length - 1) === "." ? out : out + "."

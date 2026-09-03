@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
+import "js/Motion.js" as Motion
 
 // One glyph button in the window chrome: muted at rest, accent when it names the current view, and
 // dimmed when there is nowhere for it to go.
@@ -15,10 +16,35 @@ Item {
     // A control with nowhere to go still occupies its slot, so the bar never reflows as history changes.
     readonly property real disabledOpacity: 0.35
 
-    // The mark is the chrome mark token and the hit area is the strip's whole height, so a click
-    // lands anywhere in the 27 px band rather than only on the 16 px mark.
-    implicitWidth: Theme.chromeMarkSize
+    readonly property string accessName: {
+        if (root.glyph === "arrow-left")
+            return "Back"
+        if (root.glyph === "arrow-up")
+            return "Parent folder"
+        if (root.glyph === "search")
+            return "Search"
+        if (root.glyph === "list")
+            return "List view"
+        if (root.glyph === "columns")
+            return "Columns view"
+        if (root.glyph === "grid")
+            return "Grid view"
+        return root.glyph
+    }
+
+    // The mark stays the chrome token; the hit box is at least 24 px wide and the strip's height.
+    implicitWidth: Math.max(Theme.hitMin, Theme.chromeMarkSize)
     implicitHeight: Theme.chromeHeight
+    scale: tap.pressed && root.enabled && !Motion.reduced ? 0.96 : 1
+
+    Accessible.role: Accessible.Button
+    Accessible.name: root.accessName
+    Accessible.onPressAction: if (root.enabled) root.activated()
+
+    Behavior on scale {
+        enabled: !Motion.reduced
+        NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
+    }
 
     Flea.Glyph {
         anchors.centerIn: parent
@@ -29,12 +55,12 @@ Item {
         opacity: root.enabled ? 1 : root.disabledOpacity
     }
 
-    // Item.enabled gates both handlers itself; a shadowing bool property here used to do it by hand.
     HoverHandler {
         cursorShape: Qt.PointingHandCursor
     }
 
     TapHandler {
+        id: tap
         acceptedButtons: Qt.LeftButton
         onTapped: root.activated()
     }

@@ -50,6 +50,12 @@ Item {
     function say(text, isError) {
         root.transient_ = text
         root.transientIsError = isError
+        // Errors and the undo hint stay until the next line or Escape. A 4 s toast was the only
+        // place many failures were explained, and z undoes is easy to miss if it vanishes.
+        if (!text || isError || text.indexOf(Ops.UNDO_HINT) >= 0) {
+            clear.stop()
+            return
+        }
         clear.restart()
     }
 

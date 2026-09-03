@@ -64,11 +64,12 @@ Item {
         opacity: root.active ? 1 : 0
 
         Behavior on y {
-            enabled: root.active
+            enabled: root.active && !Motion.reduced
             NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
         }
 
         Behavior on opacity {
+            enabled: !Motion.reduced
             NumberAnimation {
                 duration: root.active ? Motion.durMs.open : Motion.durMs.close
                 easing.type: Easing.BezierSpline

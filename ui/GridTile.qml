@@ -20,6 +20,9 @@ Item {
     // and the decode, and a tile whose Image failed to load has to be marked by its kind instead.
     readonly property bool thumbDrawn: root.thumb.length > 0 && tileThumb.status !== Image.Error
 
+    Accessible.role: Accessible.ListItem
+    Accessible.name: root.row ? root.row.n : ""
+
     Rectangle {
         anchors.fill: parent
         anchors.margins: Theme.spacing.hairline
@@ -64,8 +67,11 @@ Item {
         }
     }
 
+    HoverHandler { id: hover }
+
     // corner: a filename is arbitrary text, so PlainText, the same rule every name on this surface follows.
     Text {
+        id: nameLabel
         anchors.top: markSlot.bottom
         anchors.topMargin: Theme.spacing.gap
         anchors.left: parent.left
@@ -78,6 +84,33 @@ Item {
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
         textFormat: Text.PlainText
+        wrapMode: Text.Wrap
+        maximumLineCount: 2
         elide: Text.ElideRight
+    }
+
+    Rectangle {
+        visible: hover.hovered && nameLabel.truncated
+        z: 1
+        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.top: nameLabel.bottom
+        anchors.topMargin: Theme.spacing.hairline
+        width: Math.min(tip.implicitWidth + 2 * Theme.spacing.gap, Theme.grid.minCellWidth * 2)
+        height: tip.implicitHeight + Theme.spacing.gap
+        color: Theme.color.surface
+        border.width: Theme.spacing.hairline
+        border.color: Theme.color.muted
+
+        Text {
+            id: tip
+            anchors.centerIn: parent
+            width: parent.width - 2 * Theme.spacing.gap
+            text: root.row ? root.row.n : ""
+            color: Theme.color.foreground
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            wrapMode: Text.Wrap
+            textFormat: Text.PlainText
+        }
     }
 }

@@ -19,4 +19,13 @@ function run(check) {
           Contrast.ratioOf(Contrast.parse("#c8ccd0"), cursor) >= AA, true)
     check("muted still clears AA on the zebra row",
           Contrast.ratioOf(Contrast.parse("#868d93"), zebra) >= AA, true)
+
+    check("ensureRatio leaves a passing pair alone",
+          Contrast.ensureRatio("#000000", "#ffffff", AA), "#000000")
+    var lightMuted = Contrast.ensureRatio("#acb0be", "#eff1f5", AA)
+    check("ensureRatio lifts live light muted to AA",
+          Contrast.ratio(lightMuted, "#eff1f5") >= AA, true)
+    var lightLink = Contrast.ensureRatio("#179299", "#eff1f5", AA)
+    check("ensureRatio lifts live light symlink to AA",
+          Contrast.ratio(lightLink, "#eff1f5") >= AA, true)
 }

@@ -23,7 +23,7 @@ function run(check) {
           "The backend stopped responding; reopen Flea and try again.")
     check("an unknown origin falls back rather than leaking it",
           Errors.sentence("whatever", "/home/gm/secret/path"),
-          "Something went wrong; reopen Flea and try again.")
+          "That action could not be completed; try again.")
     // A non-string message must not throw, because the wire can carry a number or null.
     check("a message that is not a string is still one sentence",
           Errors.sentence("scan", null),
@@ -38,7 +38,7 @@ function run(check) {
           "That is gone.")
     check("an empty undo message still yields a sentence rather than a bare stop",
           Errors.sentence("undo", ""),
-          "Something went wrong; reopen Flea and try again.")
+          "That action could not be completed; try again.")
     check("a rename onto a taken name says which problem it is",
           Errors.sentence("rename", "File exists (os error 17)"),
           "A file with that name is already here.")

@@ -10,6 +10,8 @@ Item {
     // search's no-match answer names the query, so the rotation would be wrong there.
     property string caption: ""
     property string mark: ""
+    // Sentence case, not uppercased: the rotating caption is OEM all-caps; this is the next action.
+    property string hint: ""
     // Sentence case, matching the OEM's activePhrases; caption.text below uppercases at render, like PanelHero, not in the source.
     readonly property var messages: [
         "Nothing here yet",
@@ -31,7 +33,7 @@ Item {
     opacity: root.visible ? 1 : 0
 
     Behavior on opacity {
-        enabled: root.visible
+        enabled: root.visible && !Motion.reduced
         NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
     }
 
@@ -42,7 +44,7 @@ Item {
         spacing: Theme.spacing.gap
 
         Behavior on anchors.verticalCenterOffset {
-            enabled: root.visible
+            enabled: root.visible && !Motion.reduced
             NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
         }
 
@@ -77,12 +79,22 @@ Item {
             font.letterSpacing: 1.2
             textFormat: Text.PlainText
         }
+
+        Text {
+            visible: root.hint.length > 0
+            anchors.horizontalCenter: parent.horizontalCenter
+            text: root.hint
+            color: root.dim
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            textFormat: Text.PlainText
+        }
     }
 
     // root.visible mirrors the caller's listingState === "empty" gate, so the rotation timer stops once a real listing arrives.
     Timer {
         interval: root.rotateMs
-        running: root.visible && root.caption.length === 0
+        running: root.visible && root.caption.length === 0 && !Motion.reduced
         repeat: true
         // One beat for both, per the operator: the mark repaints as the sentence changes.
         onTriggered: { fade.restart(); heroMark.replay() }

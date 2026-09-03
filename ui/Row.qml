@@ -63,6 +63,9 @@ Item {
     implicitHeight: Theme.rowHeight
     implicitWidth: parent ? parent.width : 0
 
+    Accessible.role: Accessible.ListItem
+    Accessible.name: root.displayName
+
     Rectangle {
         anchors.fill: parent
         // selectionFill is the OEM's fifth rung, kept visually distinct from the cursor's selectedFill.

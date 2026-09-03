@@ -36,6 +36,9 @@ Item {
     // The rail reads denser than the list it sits beside; see Theme.qml's railRowHeight comment.
     height: Theme.railRowHeight
 
+    Accessible.role: Accessible.ListItem
+    Accessible.name: root.modelData.label
+
     // A rail row is a row, so its cursor is the list row's own: a square full-bleed fill and the
     // accent bar, per the canvas and the icon spec's "the rail rounds nothing"; see ui/Row.qml.
     Rectangle {
