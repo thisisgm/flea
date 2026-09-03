@@ -412,6 +412,13 @@ check "undo refuses a new folder the user has filled" "the new folder has been f
 check "and what they put inside is still there" "yes" "$([ -f "$MK/filled/theirs.txt" ] && echo yes || echo no)"
 sandbox_remove "$MK_SB"
 
+# An op that names neither compress nor extract used to fall through to extract, which would have
+# unpacked into a destination the caller never meant. It is refused by name and starts no job.
+out=$(printf '{"c":"archive","op":"bogus","paths":[],"path":"%s/three.txt","dest":"%s/out","format":"zip"}\n{"c":"quit"}\n' "$D" "$D" | $BIN --backend)
+check "an archive op that names neither is refused by name" "op must be compress or extract" "$(echo "$out" | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
+check "and the refusal names the op it was given" "bogus" "$(echo "$out" | grep -oE '"path":"[^"]*"' | head -1 | cut -d'"' -f4)"
+check "and no job was started for it" "0" "$(echo "$out" | grep -c '"t":"archivestarted"')"
+
 # No per-key cleanup: the cache is inside the sandbox, so it goes when the sandbox does.
 sandbox_remove "$SB"
 exit $fail

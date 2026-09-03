@@ -61,7 +61,8 @@ pub fn run_boxed(inner: Vec<String>, read_only: &Path, writable: &Path) -> Resul
     // Fail closed: the jail is the only containment for these tools, so a missing bwrap or prlimit
     // refuses the job rather than running it unsandboxed, the same rule thumbs.rs already follows.
     if !sandbox::available() {
-        return Err(op_err("archive", "", "the sandbox is unavailable: bwrap or prlimit is not on PATH"));
+        let tool = inner.first().map_or("", |s| s.as_str());
+        return Err(op_err("archive", tool, "the sandbox is unavailable: bwrap or prlimit is not on PATH"));
     }
     let full = sandbox::wrap(&inner, read_only, writable);
     let out = Command::new(&full[0])

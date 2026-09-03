@@ -172,6 +172,22 @@ mod tests {
         Progress { cancel: flag, on_bytes: sink, partial: None }
     }
 
+    // copy_any sends a symlink to copy_symlink, so a symlink reaching copy_file was swapped in after
+    // that stat. Without O_NOFOLLOW this copies the target's bytes, which is the defect.
+    #[test]
+    fn a_source_swapped_to_a_symlink_after_the_stat_is_refused_rather_than_followed() {
+        let d = TestDir::new("nofollow");
+        let secret = d.file("secret.txt", "not yours");
+        let src = d.join("src.bin");
+        std::os::unix::fs::symlink(&secret, &src).expect("the swap the stat cannot see");
+        let flag = AtomicBool::new(false);
+        let mut sink = |_: u64, _: u64| {};
+        let e = copy_file(&src, &d.join("dst.bin"), 9, &mut quiet(&flag, &mut sink))
+            .expect_err("a symlinked source must not be followed");
+        assert_eq!(e.where_, "copy");
+        assert!(!d.join("dst.bin").exists(), "and nothing of the target reached the destination");
+    }
+
     #[test]
     fn a_file_copy_reproduces_the_bytes_and_reports_progress() {
         let d = TestDir::new("copyfile");

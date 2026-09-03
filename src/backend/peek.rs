@@ -24,10 +24,8 @@ pub fn peek_line(path: &str, first: usize, hidden: bool, mime: &Db, icons: &Name
     let total = listing.len();
     let count = first.min(PEEK_CAP).min(total);
     let mut out = String::with_capacity(count * 64);
-    // hidden is echoed because two clients peek this wire at once: the columns view reads the pane's
-    // ancestors with the listing's own flag while the path bar's Tab reads whatever the typed leaf
-    // asks for. path alone cannot tell those two replies apart, and path plus hidden can, which is
-    // the whole of the correlation either of them needs: same pair, same rows.
+    // Echoed so the columns view and the path bar's Tab tell their two replies apart; both ask with
+    // pane.windowSize, so first cannot differ between them and path plus hidden is the whole key.
     out.push_str(&format!(
         r#"{{"t":"peeked","path":"{}","hidden":{},"n":{},"rows":["#,
         escape(path), hidden, total
@@ -81,8 +79,7 @@ mod tests {
         let (mime, icons) = tables();
         let line = peek_line(&d.path().to_string_lossy(), 10, false, &mime, &icons);
         assert!(line.starts_with(r#"{"t":"peeked""#));
-        // The flag the request carried, echoed so a client with two askers on this wire can tell
-        // its own reply from the other's; see the comment over the line above.
+        // The flag the request carried, so an asker can tell its own reply from the other's.
         assert!(line.contains(r#""hidden":false"#), "the reply says what it was asked for: {}", line);
         // The marker file the sandbox carries is a dotfile, so hidden false drops it.
         assert!(line.contains(r#""n":4"#) || line.contains(r#""n":3"#), "got {}", line);
@@ -113,7 +110,7 @@ mod tests {
         let (mime, icons) = tables();
         let line = peek_line(&d.join("never-existed").to_string_lossy(), 10, false, &mime, &icons);
         assert!(line.starts_with(r#"{"t":"peeked""#), "still an answer and not an error: {}", line);
-        // A failed peek is answered to one asker as much as a good one is, so it carries the flag too.
+        // A refusal is still a reply to one of the two askers, so it carries the flag too.
         assert!(line.contains(r#""hidden":false"#), "a refusal is still a reply to a request: {}", line);
         assert!(line.contains(r#""n":0"#));
         assert!(line.contains(r#""failed":true"#), "a column that could not look says so: {}", line);

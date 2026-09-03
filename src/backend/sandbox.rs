@@ -42,7 +42,12 @@ const BWRAP_FLAGS: &[&str] = &[
 ];
 
 pub fn available() -> bool {
-    let path = std::env::var("PATH").unwrap_or_default();
+    available_on(&std::env::var("PATH").unwrap_or_default())
+}
+
+// Split from available() so a test can ask the rule without setting PATH for every thread beside it.
+// Sample input: "/usr/local/bin:/usr/bin:/bin"
+fn available_on(path: &str) -> bool {
     let has = |prog: &str| {
         path.split(':')
             .filter(|d| !d.is_empty())
@@ -96,6 +101,15 @@ pub fn wrap_readonly(inner: &[String], input: &Path) -> Vec<String> {
 mod tests {
     use super::*;
     use std::path::Path;
+
+    // The jail is mandatory, so the one input that decides it is asserted rather than assumed: an
+    // empty PATH must read unavailable, or every caller's fail-closed branch is unreachable.
+    #[test]
+    fn a_path_without_the_two_tools_reads_unavailable() {
+        assert!(!available_on(""), "an empty PATH cannot hold either tool");
+        assert!(!available_on("::"), "empty components are skipped rather than treated as the root");
+        assert!(!available_on("/nonexistent-dir-for-this-test"), "a directory holding neither is not enough");
+    }
 
     fn inner() -> Vec<String> {
         vec![
