@@ -130,9 +130,9 @@ function act(action, root) {
         Ops.compress(root, action.substring("compress:".length))
         return
     }
+    // Both keys the Tui board drew ahead of their features are built now, so neither answers with
+    // a sentence any more: tabs run here, and handleKey opens the path bar before the views see it.
     if (action.indexOf("tab") === 0) { Tabs.act(action, root); return }
-    // Bound ahead of its feature, by the rule that a mapped key says why rather than doing nothing.
-    if (action === "palette") { root.message("The path bar is not built yet.", false); return }
     root.message(action + " is not built yet.", false)
 }
 
@@ -234,6 +234,13 @@ function handleKey(event, root, sidebar) {
     // Tabs are window-level, so t, w and the digits answer from the rail as well as the list.
     if (action.indexOf("tab") === 0) {
         root.act(action)
+        return true
+    }
+    // The path bar is global for the same reason, and for one more: it lives in the chrome above
+    // both views, so neither the list nor the rail is the view that owns it. The pane only asks for
+    // it; ui/shell.qml owns the field and hands the keyboard back when it closes.
+    if (action === "pathBar") {
+        root.pathBarRequested()
         return true
     }
     if (root.focusView === RAIL) {

@@ -174,7 +174,9 @@ Item {
             }
         }
 
-        function onPeeked(path, total, rows, readFailed, mode) {
+        // hidden is the request's own flag, echoed; this view asks with the listing's and has only
+        // ever one answer per path, so it reads the rows and lets the path bar do the correlating.
+        function onPeeked(path, hidden, total, rows, readFailed, mode) {
             var next = root.peeked
             next[path] = rows
             root.peeked = next

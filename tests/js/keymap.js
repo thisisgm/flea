@@ -19,7 +19,7 @@ function run(check) {
     check("h goes up a directory", Keymap.lookup(Qt.Key_H, "h", none), "parent")
     check("space previews", Keymap.lookup(Qt.Key_Space, " ", none), "preview")
     check("slash filters", Keymap.lookup(Qt.Key_Slash, "/", none), "filter")
-    check("colon opens the palette", Keymap.lookup(Qt.Key_Colon, ":", shift), "palette")
+    check("colon opens the path bar", Keymap.lookup(Qt.Key_Colon, ":", shift), "pathBar")
     check("t opens a tab", Keymap.lookup(Qt.Key_T, "t", none), "tabNew")
     check("w closes a tab", Keymap.lookup(Qt.Key_W, "w", none), "tabClose")
     check("1 selects a tab", Keymap.lookup(Qt.Key_1, "1", none), "tab1")
@@ -93,14 +93,14 @@ function run(check) {
           Keymap.SHEET.map(sheetAction).join("|"),
           Keymap.SHEET.map(function (row) { return row.action }).join("|"))
     check("the sheet is not empty, so the check above has a denominator",
-          Keymap.SHEET.length, 21)
+          Keymap.SHEET.length, 22)
     // A chord shares the row of the key it doubles, so every caret token must resolve to that row's
     // own action, or the sheet advertises a chord bound to something else.
     check("every chord the sheet draws is bound to the action of its own row",
           Keymap.SHEET.map(chordActions).join("|"),
           Keymap.SHEET.map(function (row) { return chordTokens(row).map(function () { return row.action }).join("+") }).join("|"))
     check("and the sheet draws chords at all, so that check has a denominator",
-          Keymap.SHEET.filter(function (row) { return chordTokens(row).length > 0 }).length, 7)
+          Keymap.SHEET.filter(function (row) { return chordTokens(row).length > 0 }).length, 8)
     check("slash filters, and the sheet now draws the row for it",
           Keymap.SHEET.filter(function (r) { return r.keys === "/" }).length, 1)
     check("and the sheet draws m, so eject and unmount are not mouse-only affordances",

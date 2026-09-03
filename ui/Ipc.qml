@@ -224,6 +224,11 @@ QtObject {
         // The chrome's buttons carry a glyph and no text, so a test reaches one by name and clicks
         // its centre, exactly the way rowCentre already works for a row.
         function chromeButtonCentre(glyph: string): string { return root.fleaWindow.centreOf(root.chrome.buttonFor(glyph)) }
+        // The path bar: whether it has the keyboard, what it is holding, and the box a double click
+        // opens it on, which is the pointer's half of ":" and Ctrl+L.
+        function pathBarOpen(): bool { return root.chrome.editing }
+        function pathBarText(): string { return String(root.chrome.editText) }
+        function pathCentre(): string { return root.fleaWindow.centreOf(root.chrome.pathArea) }
         // The button's painted box as "WxH": the mark is Theme.chromeMarkSize wide and the hit area is the whole strip tall.
         function chromeButtonSize(glyph: string): string {
             var item = root.chrome.buttonFor(glyph)

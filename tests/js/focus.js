@@ -145,12 +145,12 @@ function run(check) {
     Focus.previewAct("parent", { preview: reader })
     check("l turns the page forward and h turns it back", reader.page, 1)
 
-    // Bound ahead of its feature: the Tui board draws a typeable path bar on colon.
+    // Nothing in keys.toml is bound ahead of its feature now: lookup hands both actions through
+    // and handleKey routes each above the views, so neither answers with a sentence any more.
     var colon = key(Qt.Key_Colon, ":", shift)
-    check("colon reaches act until the path bar exists", Focus.lookup(colon, pane(closed())), "palette")
-    var early = listPane(true)
-    Focus.act("palette", early)
-    check("colon says the path bar is not built", early.said, "The path bar is not built yet.")
+    check("colon resolves to the path bar", Focus.lookup(colon, pane(closed())), "pathBar")
+    var newTab = key(Qt.Key_T, "t", none)
+    check("t resolves to a new tab", Focus.lookup(newTab, pane(closed())), "tabNew")
 
     // The filter narrows rows already on screen, which only the list view draws; the GridView and
     // Columns boards draw no filter, so / is dropped there rather than narrowing a view nothing shows.

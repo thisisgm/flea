@@ -49,6 +49,12 @@ action = "eject"
 key = "K"
 action = "addNetwork"
 
+# Not a Finder chord: Cmd+Shift+G is Go to Folder there, and Ctrl+Shift+G is nothing on this box.
+# Ctrl+L is what Nautilus, Thunar, Dolphin and every browser bind, so the path bar answers to it too.
+[[ctrl]]
+key = "L"
+action = "pathBar"
+
 [[ctrl]]
 key = "Delete"
 action = "trash"
@@ -208,9 +214,11 @@ action = "search"
 char = "o"
 action = "reveal"
 
+# The path bar's own key, the vim line-command colon it is drawn as on the Tui board. Ctrl+L above
+# is the same action under the chord every browser and every GTK file manager already carries.
 [[text]]
 char = ":"
-action = "palette"
+action = "pathBar"
 
 [[text]]
 char = "t"
@@ -346,6 +354,11 @@ label = "find in subtree"
 keys = "o"
 action = "reveal"
 label = "reveal result"
+
+[[sheet]]
+keys = ": ^l"
+action = "pathBar"
+label = "go to path"
 
 [[sheet]]
 keys = "y ^c"

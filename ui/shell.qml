@@ -60,10 +60,27 @@ ShellRoot {
                 canGoBack: pane.canGoBack
                 canGoUp: pane.canGoUp
                 viewMode: pane.viewMode
+                showHidden: pane.showHidden
                 onBackRequested: pane.goBack()
                 onUpRequested: pane.openParent()
                 onSearchRequested: pane.act("search")
                 onViewChosen: function (mode) { pane.viewMode = mode }
+                // The path bar's four. The pane navigates and answers for the keyboard exactly as it
+                // does for every other route in, so a path typed and a row opened end the same way.
+                onPathEntered: function (path) { pane.open(path) }
+                onEditClosed: pane.forceActiveFocus()
+                // Tab reads the directory with the same peek the columns view makes of an ancestor,
+                // so completion adds no request type and lands in that view's own cache on the way past.
+                onCompleteRequested: function (dir, hidden) { backend.peek(dir, pane.windowSize, hidden) }
+                onSaid: function (text) { bar.say(text, false) }
+            }
+
+            // The peek behind Tab. Every peeked line carries the directory and the hidden flag it
+            // answers for, so the bar takes the reply to its own request and the columns view, which
+            // peeks the same wire for the pane's ancestors, goes on taking its own.
+            Connections {
+                target: backend
+                function onPeeked(path, hidden, total, rows, readFailed, mode) { chrome.completeWith(path, hidden, rows) }
             }
 
             Flea.TabBar {
@@ -88,6 +105,7 @@ ShellRoot {
                 // A running operation's line, which stands until the operation replaces it; see ui/StatusBar.qml.
                 onSticky: function (text) { bar.sticky = text; bar.transfer = pane.transfer }
                 onConvertRequested: function (name) { convertDialog.open(name, pane) }
+                onPathBarRequested: chrome.startEdit()
                 onOpened: function (path) { shareBrowser.close() }
             }
 
