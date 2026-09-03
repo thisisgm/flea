@@ -14,7 +14,7 @@ function emptyTransfer() {
     return { id: 0, moving: false, n: 0, index: 0, name: "", running: false,
              done: 0, bytes: 0, total: 0, kind: "local" }
 }
-
+function clearPendingKind(pane, where) { if (where === "transfer") pane.pendingTransferKind = "local" }
 // "1 item" or "4 items", so no caller builds a plural by hand.
 function items(n) {
     return n + (n === 1 ? " item" : " items")

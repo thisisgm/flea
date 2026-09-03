@@ -242,6 +242,7 @@ Item {
         }
 
         function onFailed(where, input, message, mode) {
+            Ops.clearPendingKind(pane, where)
             var text = Errors.sentence(where, message)
             // A refused sort changes nothing in the backend, so it changes nothing here: a notice in the
             // plain role, never the error role, which is for a listing that stopped being true.
