@@ -1,14 +1,14 @@
 .import "../../ui/js/Taildrop.js" as Taildrop
 
 function run(check) {
-    // Trimmed real `tailscale status --json` shape, captured live off a tailnet: five branches.
+    // The `tailscale status --json` shape, five branches; every name and id here is synthetic.
     var status = JSON.stringify({
         Self: { UserID: 1000000000000001 },
         Peer: {
             "nodekey:offline": { HostName: "mediabox", Online: false, TaildropTarget: 5, UserID: 1000000000000001 },
             "nodekey:owned": { HostName: "laptop", Online: true, TaildropTarget: 1, UserID: 1000000000000001 },
             "nodekey:sameowner": { HostName: "DEVICE-A", Online: true, TaildropTarget: 1, UserID: 1000000000000001 },
-            "nodekey:otherowner": { HostName: "usautomationvm", Online: true, TaildropTarget: 9, UserID: 3507352519171095 },
+            "nodekey:otherowner": { HostName: "OTHER-TENANT", Online: true, TaildropTarget: 9, UserID: 2000000000000002 },
             "nodekey:relay": { HostName: "", DNSName: "foo.mullvad.ts.net.", Online: true, TaildropTarget: 1, UserID: 1000000000000001 }
         }
     })
