@@ -37,12 +37,28 @@ function normalize(path) {
 // A file:// URI is what a paste from another application carries, and Flea's own --select takes one
 // too. A URI that will not decode is left as it stands rather than dropped: a literal percent in a
 // filename is legal, and refusing the whole line over one would be worse than a listing that fails.
+//
+// The authority between the third slash and the fourth is part of the URI and not part of the path.
+// RFC 8089 gives it two local spellings, the empty one and "localhost", and both mean this machine;
+// file://localhost/etc is /etc. Any other authority names a file on another host, which is not a
+// path this bar can open, so it answers "" and ui/ChromeBar.qml says so rather than opening the
+// authority as a directory of its own: stripping the scheme alone turned that line into a relative
+// walk into <current>/localhost/etc, which is a directory nobody named.
+var LOCAL_HOSTS = ["", "localhost"]
+
 function unwrap(text) {
     var body = String(text)
     if (body.indexOf("file://") !== 0) {
         return body
     }
     body = body.substring("file://".length)
+    // Everything up to the next slash is the authority; with none, the whole remainder is one.
+    var cut = body.indexOf("/")
+    var authority = cut < 0 ? body : body.substring(0, cut)
+    if (LOCAL_HOSTS.indexOf(authority.toLowerCase()) < 0) {
+        return ""
+    }
+    body = cut < 0 ? "/" : body.substring(cut)
     try {
         return decodeURIComponent(body)
     } catch (e) {
@@ -53,7 +69,10 @@ function unwrap(text) {
 // The typed line as an absolute path. Answers "" for a line that names nothing, which is what the
 // field checks before it navigates: an empty commit closes the bar and leaves the pane where it is.
 function resolve(text, current, home) {
-    var body = unwrap(String(text).trim())
+    var line = String(text).trim()
+    var body = unwrap(line)
+    // Empty either because nothing was typed or because unwrap refused a URI on another host; both
+    // answer "" here, and refused() below is what tells the two apart for the sentence.
     if (body.length === 0) {
         return ""
     }
@@ -92,6 +111,15 @@ function completionDir(text, current, home) {
 // peek behind Tab is told to include them rather than completing against rows it cannot see.
 function wantsHidden(text, showHidden) {
     return showHidden || split(String(text).trim()).leaf.indexOf(".") === 0
+}
+
+// What a completion request and its reply are matched on. The peek wire carries no request id, and
+// it does not need one: two peeks of the same directory with the same hidden flag answer the same
+// rows, so the pair is identity enough, and a reply that differs in either is another asker's.
+// ui/ColumnsArea.qml peeks the pane's ancestors on the same signal, with the listing's own hidden
+// flag, so without this a Tab on ".conf" could complete against rows that carried no dotfiles at all.
+function requestKey(dir, hidden) {
+    return String(dir) + "\u0000" + (hidden ? "hidden" : "visible")
 }
 
 function commonPrefix(names) {
@@ -147,6 +175,13 @@ function complete(text, names) {
     // Tab walks a tree. Several share a prefix, which is as far as the line can honestly go.
     var tail = matched.length === 1 ? grown + "/" : grown
     return { text: parts.head + tail, matches: matched.length }
+}
+
+// A line that named something and still resolved to nothing, which is only ever a file:// URI on
+// another host: the bar owes that a sentence, where an empty line owes silence.
+function refused(text) {
+    var line = String(text).trim()
+    return line.length > 0 && unwrap(line).length === 0
 }
 
 // The sentence Tab answers with when it changed nothing, written for the user and never an action

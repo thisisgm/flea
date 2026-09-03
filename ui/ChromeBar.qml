@@ -71,12 +71,20 @@ Item {
     }
 
     function commitEdit() {
-        var target = PathBar.resolve(field.text, root.path, root.home)
+        var typed = field.text
+        var target = PathBar.resolve(typed, root.path, root.home)
         root.closeEdit()
         // An empty line closes the bar and nothing else, and so does the path already being shown:
         // re-listing the directory under the cursor would drop the selection for no navigation.
         if (target.length > 0 && target !== root.path) {
             root.pathEntered(target)
+            return
+        }
+        // A line that named something and still resolved to nothing is a file:// URI on another
+        // host. Silence there would read as a broken Enter, so it gets the sentence the rest of
+        // this application gives a key that cannot do what was asked.
+        if (PathBar.refused(typed)) {
+            root.said("That URI names a file on another host, not a path on this machine.")
         }
     }
 
@@ -85,7 +93,7 @@ Item {
     function completeEdit() {
         var dir = PathBar.completionDir(field.text, root.path, root.home)
         var hidden = PathBar.wantsHidden(field.text, root.showHidden)
-        var key = dir + "\u0000" + hidden
+        var key = PathBar.requestKey(dir, hidden)
         if (key === root.cachedKey) {
             root.applyCompletion(dir, root.cachedNames)
             return
@@ -95,12 +103,13 @@ Item {
         root.completeRequested(dir, hidden)
     }
 
-    // A peek came back. The columns view peeks the pane's ancestors on the same wire, so a response
-    // this bar did not ask for is dropped rather than cached under a key it cannot vouch for. Only
-    // directories are kept: this bar goes to a directory, and a name that cannot be opened is not a
-    // completion.
-    function completeWith(dir, rows) {
-        if (root.pendingDir !== dir) {
+    // A peek came back. The columns view peeks the pane's ancestors on the same wire, and a Tab that
+    // gained a dot asks the same directory again with the other hidden flag, so the reply is matched
+    // on the pair the backend echoes rather than on the path alone: a line completing ".conf" was
+    // otherwise free to answer off rows that carried no dotfiles at all. Only directories are kept:
+    // this bar goes to a directory, and a name that cannot be opened is not a completion.
+    function completeWith(dir, hidden, rows) {
+        if (PathBar.requestKey(dir, hidden) !== root.pendingKey) {
             return
         }
         var names = []

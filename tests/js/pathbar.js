@@ -77,6 +77,23 @@ function run(check) {
     check("an undecodable URI is kept as it stands",
           PathBar.resolve("file:///tmp/100%", HOME, HOME), "/tmp/100%")
 
+    // The authority is part of the URI and not part of the path. RFC 8089 spells the local one two
+    // ways, and the empty one above is the common one; stripping the scheme alone read the other as
+    // a relative walk into <current>/localhost/etc, which is a directory nobody named.
+    check("a localhost authority is this machine",
+          PathBar.resolve("file://localhost/etc", HOME, HOME), "/etc")
+    check("and its case does not matter, as a host name's never does",
+          PathBar.resolve("file://LOCALHOST/etc/apt", HOME, HOME), "/etc/apt")
+    check("a bare file://localhost is the root it names",
+          PathBar.resolve("file://localhost", HOME, HOME), "/")
+    // Another host is not a path this bar can open, and answering the parent's own directory for it
+    // would be worse than answering nothing: refused() is what turns that into a sentence.
+    check("a URI on another host resolves to nothing",
+          PathBar.resolve("file://otherbox/etc", HOME, HOME), "")
+    check("and says it was refused rather than empty", PathBar.refused("file://otherbox/etc"), true)
+    check("an empty line is not a refusal, so it stays silent", PathBar.refused("   "), false)
+    check("an ordinary path is not a refusal either", PathBar.refused("/etc"), false)
+
     // Where a completion reads, which is the head of the line and never the half-typed leaf.
     check("the completion directory is the head of the line",
           PathBar.completionDir("/etc/ap", HOME, HOME), "/etc")
@@ -91,6 +108,23 @@ function run(check) {
     check("a dotted leaf peeks hidden", PathBar.wantsHidden("~/.co", false), true)
     check("an ordinary leaf peeks as the listing is set", PathBar.wantsHidden("~/Do", false), false)
     check("and follows the listing when it shows hidden", PathBar.wantsHidden("~/Do", true), true)
+
+    // What a completion reply is matched on. ui/ColumnsArea.qml peeks the pane's ancestors on the
+    // same signal with the listing's own hidden flag, and a Tab that gains a dot asks the same
+    // directory again with the other flag, so a reply matched on the path alone could answer a
+    // hidden request off rows that carried no dotfiles.
+    check("the same directory and flag is the same request",
+          PathBar.requestKey("/home/gm", true), PathBar.requestKey("/home/gm", true))
+    check("the flag alone tells two requests for one directory apart",
+          PathBar.requestKey("/home/gm", true) === PathBar.requestKey("/home/gm", false), false)
+    check("and the directory alone still tells two apart",
+          PathBar.requestKey("/etc", false) === PathBar.requestKey("/home/gm", false), false)
+    // The out-of-order case: the visible reply for the directory the hidden request is waiting on
+    // must not be taken for that request's answer.
+    var pending = PathBar.requestKey("/home/gm", true)
+    check("a visible reply is not the hidden request's answer",
+          PathBar.requestKey("/home/gm", false) === pending, false)
+    check("the hidden reply is", PathBar.requestKey("/home/gm", true) === pending, true)
 
     var dirs = names(["Desktop", "Documents", "Downloads", "Dropbox", "Music"])
 

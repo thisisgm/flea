@@ -30,7 +30,8 @@ Item {
     signal meta(int row, int w, int h, real durationMs, int sampleRate, int entries, real unpacked, bool archiveFailed, var names, real lines, bool partial, bool linesFailed, string target, bool targetDir, string owner)
     signal fsInfo(string fs, real free)
     // readFailed tells a zero-row answer apart from an empty directory; mode is that directory's own, 0 when the stat failed too.
-    signal peeked(string path, int total, var rows, bool readFailed, int mode)
+    // hidden is the flag the request carried, echoed by the backend: two clients peek this wire, so path alone does not say whose reply this is.
+    signal peeked(string path, bool hidden, int total, var rows, bool readFailed, int mode)
     signal archiveStarted(int id)
     signal archiveDone(int id, bool ok, bool verified, string err)
     signal convertStarted(int id)
@@ -290,7 +291,7 @@ Item {
         } else if (message.t === "fsinfo") {
             root.fsInfo(message.fs, message.free)
         } else if (message.t === "peeked") {
-            root.peeked(message.path, message.n, message.rows || [], message.failed === true, message.mode || 0)
+            root.peeked(message.path, message.hidden === true, message.n, message.rows || [], message.failed === true, message.mode || 0)
         } else if (message.t === "formats") {
             root.archiveFormats = message.archive || []
             root.canConvert = message.convert === true

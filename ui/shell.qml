@@ -75,11 +75,12 @@ ShellRoot {
                 onSaid: function (text) { bar.say(text, false) }
             }
 
-            // The peek behind Tab. Every peeked line carries the directory it answers for, so the
-            // bar takes the ones it asked for and the columns view goes on taking its own.
+            // The peek behind Tab. Every peeked line carries the directory and the hidden flag it
+            // answers for, so the bar takes the reply to its own request and the columns view, which
+            // peeks the same wire for the pane's ancestors, goes on taking its own.
             Connections {
                 target: backend
-                function onPeeked(path, total, rows, readFailed, mode) { chrome.completeWith(path, rows) }
+                function onPeeked(path, hidden, total, rows, readFailed, mode) { chrome.completeWith(path, hidden, rows) }
             }
 
             Flea.Pane {

@@ -18,13 +18,20 @@ pub fn peek_line(path: &str, first: usize, hidden: bool, mime: &Db, icons: &Name
         Ok(v) => v,
         // An unreadable ancestor is still not an error for the pane it belongs to, but it is not an
         // empty directory either, and the column drew those two the same way until this line.
-        Err(_) => return failed_peek(path),
+        Err(_) => return failed_peek(path, hidden),
     };
     sort_by_name(&mut listing, false);
     let total = listing.len();
     let count = first.min(PEEK_CAP).min(total);
     let mut out = String::with_capacity(count * 64);
-    out.push_str(&format!(r#"{{"t":"peeked","path":"{}","n":{},"rows":["#, escape(path), total));
+    // hidden is echoed because two clients peek this wire at once: the columns view reads the pane's
+    // ancestors with the listing's own flag while the path bar's Tab reads whatever the typed leaf
+    // asks for. path alone cannot tell those two replies apart, and path plus hidden can, which is
+    // the whole of the correlation either of them needs: same pair, same rows.
+    out.push_str(&format!(
+        r#"{{"t":"peeked","path":"{}","hidden":{},"n":{},"rows":["#,
+        escape(path), hidden, total
+    ));
     for i in 0..count {
         if i > 0 {
             out.push(',');
@@ -46,12 +53,12 @@ pub fn peek_line(path: &str, first: usize, hidden: bool, mime: &Db, icons: &Name
 // A scan that failed answers zero rows, which is the exact count an empty directory answers, so the
 // line says which of the two it is. mode carries the directory's own permissions when the stat
 // outlived the refused read, and is left out when it did not, the same rule the error line follows.
-fn failed_peek(path: &str) -> String {
+fn failed_peek(path: &str, hidden: bool) -> String {
     let mode = mode_of(path);
     let mode_field = if mode == 0 { String::new() } else { format!(r#","mode":{}"#, mode) };
     format!(
-        r#"{{"t":"peeked","path":"{}","n":0,"failed":true{},"rows":[]}}"#,
-        escape(path), mode_field
+        r#"{{"t":"peeked","path":"{}","hidden":{},"n":0,"failed":true{},"rows":[]}}"#,
+        escape(path), hidden, mode_field
     )
 }
 
@@ -74,6 +81,9 @@ mod tests {
         let (mime, icons) = tables();
         let line = peek_line(&d.path().to_string_lossy(), 10, false, &mime, &icons);
         assert!(line.starts_with(r#"{"t":"peeked""#));
+        // The flag the request carried, echoed so a client with two askers on this wire can tell
+        // its own reply from the other's; see the comment over the line above.
+        assert!(line.contains(r#""hidden":false"#), "the reply says what it was asked for: {}", line);
         // The marker file the sandbox carries is a dotfile, so hidden false drops it.
         assert!(line.contains(r#""n":4"#) || line.contains(r#""n":3"#), "got {}", line);
         let sub = line.find(r#""n":"sub""#).expect("the directory row");
@@ -91,8 +101,10 @@ mod tests {
         let (mime, icons) = tables();
         let shown = peek_line(&d.path().to_string_lossy(), 10, false, &mime, &icons);
         assert!(!shown.contains(".secret"));
+        assert!(shown.contains(r#""hidden":false"#));
         let all = peek_line(&d.path().to_string_lossy(), 10, true, &mime, &icons);
         assert!(all.contains(".secret"));
+        assert!(all.contains(r#""hidden":true"#), "the two replies differ in the field that tells them apart");
     }
 
     #[test]
@@ -101,6 +113,8 @@ mod tests {
         let (mime, icons) = tables();
         let line = peek_line(&d.join("never-existed").to_string_lossy(), 10, false, &mime, &icons);
         assert!(line.starts_with(r#"{"t":"peeked""#), "still an answer and not an error: {}", line);
+        // A failed peek is answered to one asker as much as a good one is, so it carries the flag too.
+        assert!(line.contains(r#""hidden":false"#), "a refusal is still a reply to a request: {}", line);
         assert!(line.contains(r#""n":0"#));
         assert!(line.contains(r#""failed":true"#), "a column that could not look says so: {}", line);
         assert!(!line.contains(r#""mode":"#), "nothing to stat, so no mode is claimed: {}", line);
