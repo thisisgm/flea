@@ -66,7 +66,7 @@ function lookup(key, text, modifiers) {
     case "y": return "copy"
     case "x": return "cut"
     case "p": return "paste"
-    case "d": return "trash"
+    case "d": return "trashArm"
     case "r": return "rename"
     case "z": return "undo"
     case "s": return "sortNext"
@@ -100,7 +100,7 @@ var SHEET = [
     { keys: "x ^x", action: "cut", label: "cut" },
     { keys: "p ^v", action: "paste", label: "paste" },
     { keys: "r", action: "rename", label: "rename" },
-    { keys: "d", action: "trash", label: "trash" },
+    { keys: "dd", action: "trashArm", label: "trash" },
     { keys: "z ^z", action: "undo", label: "undo" },
     { keys: "^N", action: "newFolder", label: "new folder" },
     { keys: "v", action: "toggleSelect", label: "select" },
