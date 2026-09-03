@@ -161,6 +161,7 @@ ShellRoot {
             Connections {
                 target: pane.sidebar
                 function onAddRequested() { networkDialog.open() }
+                function onEditRequested(uri, label) { networkDialog.openEdit(uri, label) }
                 function onSharesListed(baseUri, baseLabel, names) { shareBrowser.open(baseUri, baseLabel, names) }
             }
 

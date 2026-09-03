@@ -196,21 +196,19 @@ function run(check) {
     var dropbox = { label: "Dropbox", group: "network", kind: "dropbox", uri: "", mounted: true }
     var favourite = { label: "Home", group: "favorite", kind: "favorite", path: "/home/user" }
 
-    check("a mounted removable volume offers one row", Mounts.railMenu(volume).length, 1)
-    check("and that row is Eject", Mounts.railMenu(volume)[0].label, "Eject")
-    check("the Eject row carries the eject action", Mounts.railMenu(volume)[0].action, "eject")
-    check("the Eject row draws the eject mark", Mounts.railMenu(volume)[0].glyph, "eject")
-    check("a mounted network share offers one row", Mounts.railMenu(share).length, 1)
-    check("and that row is Unmount", Mounts.railMenu(share)[0].label, "Unmount")
-    check("the Unmount row carries the unmount action", Mounts.railMenu(share)[0].action, "unmount")
-    check("the shelf lists eject for unmount too, so Unmount draws it", Mounts.railMenu(share)[0].glyph, "eject")
+    check("a mounted removable volume offers Eject", Mounts.railMenu(volume).map(function (r) { return r.action }).join("|"), "eject")
+    check("and that row is named and marked", Mounts.railMenu(volume)[0].label + "/" + Mounts.railMenu(volume)[0].glyph, "Eject/eject")
+    check("a mounted network share offers Unmount then Edit", Mounts.railMenu(share).map(function (r) { return r.action }).join("|"), "unmount|edit")
+    check("Unmount stays first so Ctrl+E still unmounts", Mounts.railMenu(share)[0].label + "/" + Mounts.railMenu(share)[0].glyph, "Unmount/eject")
+    check("Edit draws the rename mark", Mounts.railMenu(share)[1].label + "/" + Mounts.railMenu(share)[1].glyph, "Edit/rename")
 
     // Every rail row that must never be offered a release, each for its own reason.
     check("the internal disk offers nothing, it is the box's own system disk", Mounts.railMenu(internal).length, 0)
     check("the Dropbox row offers nothing, it is a local folder the stock service owns", Mounts.railMenu(dropbox).length, 0)
     check("a favourite offers nothing, it is not a mount at all", Mounts.railMenu(favourite).length, 0)
     check("an unmounted volume offers nothing, there is nothing to release", Mounts.railMenu(idle).length, 0)
-    check("a bookmark nothing has mounted offers nothing", Mounts.railMenu(bookmark).length, 0)
+    check("a bookmark nothing has mounted offers Edit", Mounts.railMenu(bookmark).map(function (r) { return r.action }).join("|"), "edit")
+    check("Ctrl+E unmounts a live share and ignores a bookmark", Mounts.releaseAction(share) + "|" + Mounts.releaseAction(bookmark), "unmount|")
     check("no entry at all offers nothing rather than throwing", Mounts.railMenu(null).length, 0)
     check("an undefined entry offers nothing rather than throwing", Mounts.railMenu(undefined).length, 0)
 
@@ -289,12 +287,14 @@ function run(check) {
     // The rail menu's chosen row, resolved by key; a key that no longer names a row releases nothing.
     function rec() { var a = []; return { a: a, eject: function (i) { a.push("e" + i) }, unmount: function (i) { a.push("u" + i) } } }
     function released(action, key) {
-        var d = rec(), n = rec()
-        Mounts.release(action, key, d, n, [disk, stick], [{ label: "isos", group: "network", kind: "share", uri: "smb://x/isos/", path: "", mounted: true }])
-        return d.a.concat(n.a).join(",")
+        var d = rec(), n = rec(), edited = []
+        Mounts.release(action, key, d, n, [disk, stick], [{ label: "isos", group: "network", kind: "share", uri: "smb://x/isos/", path: "", mounted: true }],
+            { edit: function (uri, label) { edited.push(uri + " " + label) } })
+        return d.a.concat(n.a, edited).join(",")
     }
     check("eject resolves the volume's position and never the network Service", released("eject", "/dev/sda1"), "e1")
     check("unmount resolves the share's position and never the device Service", released("unmount", "smb://x/isos/"), "u0")
+    check("edit names the share rather than a Service index", released("edit", "smb://x/isos/"), "smb://x/isos/ isos")
     check("a key that no longer names a row releases nothing", released("eject", "/dev/sdz9"), "")
     check("an action that is neither release does nothing", released("forget", "/dev/sda1"), "")
 }

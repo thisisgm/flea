@@ -3621,3 +3621,18 @@ key press fires a compositor bind, so `omarchy-drive hotkey --global super w` is
 on the ACTIVE window, so assert the active window is the one the run launched before sending it, and
 never call `hl.dsp.window.close()` with no argument: it returns `ok` rather than printing a signature
 and acts on whatever is active, which may be a window you did not open.
+
+### Editing a network place rewrites the bookmark line, not just its label
+
+`r` on a NETWORK row still only relabels. The URI itself is edited through the same dialog Add
+uses: right-click (or `m`) on a share, **Edit**, which fills `ui/NetworkForm.qml` from
+`Protocols.parse` and Save writes through `Places.replace`. An unmounted bookmark's menu is Edit
+alone, so a URI that will not mount (the operator's real `sftp://user@host:22/~`; gio does not
+expand `~`) can still be rewritten. A mounted share keeps **Unmount** first so Ctrl+E still
+releases; `Mounts.releaseAction` is what Ctrl+E reads, never `railMenu()[0]`, because Edit is a
+menu row and not a release.
+
+`Places.replace(body, oldUri, newUri, label)` is the write: normalized match like `relabel`, every
+duplicate rewritten, control characters stripped from the label, an empty old URI appends (Add).
+`tests/js/places.js`, `tests/js/protocols.js`, `tests/js/mounts.js` and `tests/ui.sh case_networkedit`
+hold it.

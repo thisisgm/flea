@@ -89,3 +89,35 @@ function relabel(body, path, name) {
         out += "\n"
     return out + target + " " + trimmed + "\n"
 }
+
+// Sample input: body as relabel's, oldUri the bookmark being rewritten, newUri the form's Mounts-as
+// line. Matching is the same normalized compare relabel uses, so a live gio trailing slash still
+// finds the written line. An empty oldUri matches nothing and appends, which is the add-dialog path.
+function replace(body, oldUri, newUri, label) {
+    var trimmed = String(label || "").replace(/[\r\n]/g, "").trim()
+    var next = Mounts.normalize(newUri)
+    if (next.length === 0)
+        return String(body || "")
+    if (trimmed.length === 0)
+        trimmed = Mounts.leaf(next)
+    var target = Mounts.normalize(oldUri)
+    var lines = String(body || "").split("\n")
+    var found = false
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i]
+        if (line.trim().length === 0)
+            continue
+        var space = line.indexOf(" ")
+        var uri = space < 0 ? line : line.substring(0, space)
+        if (target.length > 0 && Mounts.normalize(uri) === target) {
+            lines[i] = next + " " + trimmed
+            found = true
+        }
+    }
+    if (found)
+        return lines.join("\n")
+    var out = String(body || "")
+    if (out.length > 0 && out.charAt(out.length - 1) !== "\n")
+        out += "\n"
+    return out + next + " " + trimmed + "\n"
+}

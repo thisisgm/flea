@@ -89,4 +89,34 @@ function run(check) {
     check("every row is tagged as a favourite", favs[3].group + "/" + favs[3].kind, "favorite/favorite")
     check("the mark is resolved by the caller, so the rail keeps its own Icons import", favs[1].glyph, "mark:Downloads")
     check("a box with neither file still gets Home", Places.favorites("/home/gm", "", "", function () { return "m" }).length, 1)
+
+    check("replace rewrites the matched URI and label",
+        Places.replace(netFile, "smb://192.168.1.10/data", "sftp://tom@nas:22/home/tom", "omv"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'sftp://tom@nas:22/home/tom omv\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("a trailing-slash live uri still finds the written line",
+        Places.replace(netFile, "smb://192.168.1.10/data/", "smb://192.168.1.10/isos", "ISOs"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'smb://192.168.1.10/isos ISOs\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("an empty old uri appends, which is the add dialog",
+        Places.replace(netFile, "", "smb://host/share", "Share"),
+        netFile + "smb://host/share Share\n")
+    check("an unmatched old uri appends rather than dropping the edit",
+        Places.replace(netFile, "smb://missing/x", "smb://host/share", "Share"),
+        netFile + "smb://host/share Share\n")
+    check("an empty new uri is a no-op", Places.replace(netFile, "smb://192.168.1.10/data", "", "X"), netFile)
+    check("a blank label falls back to the path leaf",
+        Places.replace("", "smb://h/data", "smb://h/data", "  "), "smb://h/data data\n")
+    check("an embedded newline in the new label cannot fork a line",
+        Places.replace(netFile, "smb://192.168.1.10/data", "smb://192.168.1.10/data", "Home\nlab"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'smb://192.168.1.10/data Homelab\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("every matching duplicate rewrites to the new uri",
+        Places.replace(dupes, "smb://192.168.1.10/data", "sftp://nas/data", "Homelab"),
+        'sftp://nas/data Homelab\n'
+        + 'file:///home/gm/Downloads Downloads\n'
+        + 'sftp://nas/data Homelab\n')
 }

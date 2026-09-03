@@ -38,6 +38,7 @@ Item {
 
     signal opened(string path)
     signal addRequested()
+    signal editRequested(string uri, string label)
     signal message(string text, bool isError)
     // Bubbled straight from NetworkMounts; shell.qml opens ui/ShareBrowser.qml on this.
     signal sharesListed(string baseUri, string baseLabel, var names)
@@ -146,7 +147,9 @@ Item {
     // A chosen menu row, arriving with the row's key rather than its position; which row that
     // names is Mounts.release', so tests/js/mounts.js drives the resolution with no rail.
     function releaseChosen(action, key) {
-        Mounts.release(action, key, devices, mounts, root.deviceEntries, root.networkEntries)
+        Mounts.release(action, key, devices, mounts, root.deviceEntries, root.networkEntries, {
+            edit: function (uri, label) { root.editRequested(uri, label) }
+        })
     }
 
     Connections {

@@ -157,18 +157,36 @@ function sameEntry(x, y) {
 
 // Sample input: one rail entry as ui/DeviceMounts.qml and ui/NetworkMounts.qml build them,
 // {label:"128GB", group:"device", kind:"volume", device:"/dev/sda1", mounted:true}.
-// A removable volume ejects and a mounted network share unmounts; every other rail row offers
-// neither and opens no menu. The kind is read here, never re-derived: the internal disk reads as
-// mounted too, the Dropbox row is a local folder the stock service owns, and a favourite is not a
-// mount. gio's -f is offered nowhere: forcing an unmount over an open write is how data is lost.
+// A removable volume ejects and a mounted network share unmounts; a share also offers Edit so a
+// bookmark whose URI is wrong can be rewritten without leaving the rail. Every other rail row
+// offers neither and opens no menu. The kind is read here, never re-derived: the internal disk
+// reads as mounted too, the Dropbox row is a local folder the stock service owns, and a favourite
+// is not a mount. gio's -f is offered nowhere: forcing an unmount over an open write is how data
+// is lost. Unmount stays first on a live share so Ctrl+E still releases rather than opening Edit.
 function railMenu(entry) {
-    if (!entry || !entry.mounted)
+    if (!entry)
         return []
-    if (entry.group === "device" && entry.kind === "volume")
+    if (entry.group === "device" && entry.kind === "volume" && entry.mounted)
         return [{ label: "Eject", action: "eject", glyph: "eject" }]
-    if (entry.group === "network" && entry.kind === "share")
-        return [{ label: "Unmount", action: "unmount", glyph: "eject" }]
+    if (entry.group === "network" && entry.kind === "share") {
+        var rows = []
+        if (entry.mounted)
+            rows.push({ label: "Unmount", action: "unmount", glyph: "eject" })
+        rows.push({ label: "Edit", action: "edit", glyph: "rename" })
+        return rows
+    }
     return []
+}
+
+// The action Ctrl+E fires: eject or unmount, never Edit. A bookmark-only share has a menu and
+// still answers empty here, so the key cannot rewrite a URI the operator did not open a menu for.
+function releaseAction(entry) {
+    var rows = railMenu(entry)
+    for (var i = 0; i < rows.length; i++) {
+        if (rows[i].action === "eject" || rows[i].action === "unmount")
+            return rows[i].action
+    }
+    return ""
 }
 
 // The handle a chosen menu row carries back: a volume's device node, a share's uri, "" for a row
@@ -205,7 +223,7 @@ function holding(entries, dir) {
     var path = String(dir || "")
     for (var i = 0; i < list.length; i++) {
         var e = list[i]
-        if (!e.path || railMenu(e).length === 0)
+        if (!e.path || !releaseAction(e))
             continue
         if (path === e.path || path.indexOf(e.path + "/") === 0)
             return e
@@ -229,16 +247,18 @@ function raiseMenu(pane, sidebar) {
 // a five second poll, so the index the menu opened over can name a different row by now. A key
 // that no longer names a row does nothing, because the row it named has left the rail already.
 // Both Services re-check the kind themselves; this only resolves which row was meant.
-function release(action, key, devices, mounts, deviceEntries, networkEntries) {
+function release(action, key, devices, mounts, deviceEntries, networkEntries, editor) {
     if (action === "eject") {
         var volume = rowByKey(deviceEntries, key)
         if (volume >= 0)
             devices.eject(volume)
         return
     }
-    if (action === "unmount") {
-        var share = rowByKey(networkEntries, key)
-        if (share >= 0)
-            mounts.unmount(share)
-    }
+    var share = rowByKey(networkEntries, key)
+    if (share < 0)
+        return
+    if (action === "unmount")
+        mounts.unmount(share)
+    if (action === "edit" && editor)
+        editor.edit(networkEntries[share].uri, networkEntries[share].label)
 }

@@ -109,6 +109,23 @@ Column {
         root.pick("SMB")
     }
 
+    // Fill from Protocols.parse, without pick(), so a non-default port survives rather than
+    // snapping back to the protocol's own default the way a chip click does.
+    function load(parsed, name) {
+        if (!parsed) {
+            reset()
+            return
+        }
+        root.protocol = parsed.protocol
+        root.tls = !!parsed.tls
+        portField.text = String(parsed.port || Protocols.defaultPort(parsed.protocol))
+        labelField.text = name || ""
+        hostField.text = parsed.host || ""
+        pathField.text = parsed.path || ""
+        domainField.text = parsed.domain || ""
+        userField.text = parsed.user || ""
+    }
+
     Row {
         id: chips
         spacing: Theme.spacing.hairline * 6
