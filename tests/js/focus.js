@@ -2,7 +2,6 @@
 
 // Focus.lookup is where a key is discarded for being meaningless in the current state, and a wrong
 // gate there is silent: the key simply does nothing, and no suite but this one would notice.
-
 function pane(preview, viewMode) {
     return {
         focusView: "list",

@@ -45,9 +45,10 @@ preference and not a file of the package's: run `flea --default off` first, or s
 rather track it. Building from a clone still works too, and is what the repository's own `PKGBUILD`
 is for: `git clone https://github.com/thisisgm/flea.git && cd flea && makepkg -si`.
 
-Four optional packages each unlock one feature and nothing else: `libarchive` for archive listing
-and extraction, `7zip` for `.7z` archives, `imagemagick` for image conversion, and `tailscale` for
-Taildrop sharing.
+Optional packages each unlock one feature and nothing else: `libarchive` for archive listing and
+extraction, `7zip` for `.7z` archives, `imagemagick` for image conversion, `avahi` for automatic
+LAN discovery, `tailscale` for tailnet discovery and Taildrop, and `wl-clipboard` for copying a
+network address.
 
 [`docs/install.md`](docs/install.md) has the rest: what lands on disk, what `flea --default` writes
 and how to undo it by hand, and how the package proves itself.
@@ -323,10 +324,14 @@ the name is one typed word away.
 - **File operations with an undo journal.** Copy, cut, paste, trash, rename, duplicate,
   compress, extract and convert, each reversible with `z`. Copies and moves between two GVFS
   network mounts use that same cancellable, undoable backend and identify the remote-to-remote path.
-- **Network and cloud in the rail.** SMB and NFS mounts through `gio`, Taildrop to a peer,
-  and Dropbox as a first-class destination. Local disks and removable volumes group below them
-  under DEVICES, which the screenshots here crop away rather than retouch: that row is labelled
-  with the machine's own hostname.
+- **Network and cloud in the rail.** SFTP, SMB, NFS, FTPS, and WebDAV mount through `gio`.
+  Flea discovers Avahi services on the LAN and machines on your tailnet, while keeping Tailscale
+  as the private route rather than pretending it is a filesystem. Quick Connect accepts forms
+  such as `nas/photos` and `pi@box:/home/pi`; successful connections become bounded recents.
+  The row menu can reconnect, unmount, copy an address, open SSH, send with Taildrop, or wake a
+  saved LAN machine. Copies between two GVFS mounts use the normal cancellable transfer backend.
+  Dropbox remains a first-class destination. Local disks and removable volumes group below them
+  under DEVICES, which the screenshots here crop away rather than retouch.
 - **A path bar and directory tabs.** `:` or `Ctrl+L` types a path, with Tab completion over the
   directories one level down; `t`, `w` and `1` to `9` open, close and switch up to nine tabs in
   one window, and only one listing is ever live.
@@ -405,6 +410,7 @@ flea --gui [path]          # force the window
 flea --tui [path]          # force the terminal interface (not built yet)
 flea --select <uri|path>   # open the containing directory with that entry selected
 flea --default [off]       # become the desktop's default file manager, or stop being it
+flea --wake <mac>          # internal Wake-on-LAN action used by the network rail
 ```
 
 `--tui` and `--gui` are mutually exclusive. With neither given, `flea` opens the terminal

@@ -3652,3 +3652,39 @@ gio succeeds, so a busy share keeps its row. `Protocols.parse` splits the path o
 looks for `@`, so a path like `inbox@2026` is not stolen as a username. `tests/js/places.js`,
 `tests/js/protocols.js`, `tests/js/mounts.js`, `tests/ui.sh case_networkedit` and
 `case_networkremove` hold it.
+
+### Network discovery is transport-aware, not a Tailscale filesystem
+
+`ui/NetworkRail.qml` composes four independent concerns: `NetworkDiscovery` discovers, `NetworkHistory`
+persists successful recents and saved Wake metadata, `NetworkMounts` owns GIO, and `NetworkActions`
+runs host-side actions. `Sidebar` renders their merged rows and owns none of their processes.
+
+Tailscale is only private reachability and identity. `tailscale status --json` contributes peer names,
+addresses, online state, and Taildrop capability; a row still opens through an ordinary GIO protocol,
+defaulting to SFTP. LAN discovery is the same model over bounded `avahi-browse -artp` output for SSH,
+SMB, NFS, and WebDAV. Missing, failed, malformed, empty, and timed-out discovery never disables a
+manual GTK bookmark or a live GIO mount. `FLEA_DISABLE_NETWORK_DISCOVERY=1` is the hermetic UI-test seam.
+
+All discovery and GIO listing children have deadlines. A timed-out `gio mount -l` preserves the last
+good rail; a timed-out `gio list` reports the bare server as failed. Health is metadata, with a live
+mount authoritative over transient states. Metadata from multiple identities must combine: an older
+recent cannot shadow a fresh online/Taildrop state or a saved LAN MAC.
+
+Quick Connect turns shorthand into an explicit URI before saving: `user@host:/path` and bare hosts are
+SFTP, `host/share` is SMB, and an explicit supported scheme wins. Embedded passwords, raw query tokens,
+fragments, newlines, and unknown schemes are rejected. Structured editing stays available underneath.
+
+`~/.config/flea-network-recents.json` is written by FileView with atomic writes. It holds at most eight
+successful connections plus separate Wake profiles, never passwords, query strings, fragments, or
+control characters. Editing an identity removes the old profile; clearing its MAC removes Wake rather
+than leaving stale capability behind.
+
+Remote actions remain argv-direct. SSH ports occupy their own `-p` argv slot, clipboard and Wake report
+success only from `Process.onExited`, and no recovery row runs `sudo`, starts `tailscaled`, or changes
+authentication. Wake is the internal `flea --wake <mac>` mode: Rust validates the MAC, builds six FF
+bytes plus sixteen MAC copies, and broadcasts the 102-byte packet to UDP port 9.
+
+Two `/run/user/<uid>/gvfs` endpoints are labelled remote-to-remote, but deliberately reuse the normal
+copy/move backend. That preserves its existing no-clobber, cancellation, partial-file, and undo rules.
+`tests/network-services.sh` is the windowless Quickshell process harness; pure parsing lives under
+`tests/js`, and `tests/ops.sh` drives copies and moves between two synthetic mounted-root shapes.

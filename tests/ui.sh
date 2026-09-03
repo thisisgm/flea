@@ -303,7 +303,7 @@ launch() {
     kill_flea
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
-    FLEA_PATH="$start_path" FLEA_BIN="$flea_bin" \
+    FLEA_PATH="$start_path" FLEA_BIN="$flea_bin" FLEA_DISABLE_NETWORK_DISCOVERY=1 \
         setsid nohup qs -p "$flea_ui" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
@@ -2050,12 +2050,12 @@ case_network() {
     settle
     [[ "$(ipc dialogOpen)" == "true" ]] || fail "network: a from the rail did not open the add-location dialog"
     shot network-dialog-open
-    # The form opens with the caret in Host, which is the one field it actually needs.
-    # TEST-NET-2 (RFC 5737): guaranteed non-routable, so this never actually dials out.
+    # The form opens in Quick Connect. TEST-NET-2 (RFC 5737) is guaranteed non-routable,
+    # and saving a bookmark never dials it.
     key "198.51.100.1" >/dev/null
     settle
-    [[ "$(ipc networkUri)" == "smb://198.51.100.1:445/" ]] \
-        || fail "network: the Mounts-as line reads $(ipc networkUri)"
+    [[ "$(ipc networkQuickUri)" == "sftp://198.51.100.1/" ]] \
+        || fail "network: Quick Connect previews $(ipc networkQuickUri)"
     key -k Return >/dev/null
     settle
     [[ "$(ipc dialogOpen)" == "false" ]] || fail "network: Enter did not submit and close the dialog"
@@ -2111,6 +2111,7 @@ case_network() {
     key a >/dev/null
     settle
     [[ "$(ipc dialogOpen)" == "true" ]] || fail "network: the dialog did not reopen for the traversal walk"
+    key -k Tab >/dev/null
     key "hh" >/dev/null
     key -k Tab >/dev/null
     key -k Tab >/dev/null
@@ -2156,6 +2157,7 @@ case_network() {
     key a >/dev/null
     settle
     [[ "$(ipc dialogOpen)" == "true" ]] || fail "network: the dialog did not reopen for the re-home walk"
+    key -k Tab >/dev/null
     key "hh" >/dev/null
     key -k Tab >/dev/null
     key -k Tab >/dev/null
