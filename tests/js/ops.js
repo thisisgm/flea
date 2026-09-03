@@ -19,6 +19,9 @@ function run(check) {
     check("a move says so instead",
           Ops.progressLine({ moving: true, n: 5, index: 1, name: "photo.heic" }),
           "Moving 2 of 5, photo.heic")
+    check("a remote-to-remote transfer says what crosses the wire",
+          Ops.progressLine({ moving: false, n: 2, index: 0, name: "photo.heic", kind: "remote-to-remote" }),
+          "Copying between remote hosts 1 of 2, photo.heic")
     // A directory item reports no name until its first line arrives, and the count still reads.
     check("an item with no name yet still counts",
           Ops.progressLine({ moving: false, n: 2, index: 0, name: "" }),
