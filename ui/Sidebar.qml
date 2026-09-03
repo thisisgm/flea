@@ -221,7 +221,7 @@ Item {
         var row = root.railItemFor(root.cursorIndex)
         if (!row)
             return
-        var p = row.mapToItem(scroller.contentItem)
+        var p = row.mapToItem(scroller.contentItem, 0, 0)
         if (p.y < scroller.contentY)
             scroller.contentY = p.y
         else if (p.y + row.height > scroller.contentY + scroller.height)
