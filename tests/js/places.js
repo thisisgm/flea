@@ -132,4 +132,15 @@ function run(check) {
     check("every matching duplicate is dropped",
         Places.remove(dupes, "smb://192.168.1.10/data"),
         'file:///home/gm/Downloads Downloads\n')
+
+    var live = [{ label: "tom", uri: "sftp://tom@h/" }]
+    var saved = [{ label: "omv root", uri: "sftp://tom@h:22/" }]
+    var merged = Places.networkEntries(live, saved)
+    check("a live mount and its bookmark are one row", merged.length, 1)
+    check("the bookmark's label wins over gio's username-on-host name", merged[0].label, "omv root")
+    check("the live uri is what Unmount is handed", merged[0].uri, "sftp://tom@h/")
+    check("the collapsed row reads as mounted", merged[0].mounted, true)
+    var onlyMark = Places.networkEntries([], saved)
+    check("an unmounted bookmark keeps its own uri and label",
+          onlyMark[0].label + "|" + onlyMark[0].uri + "|" + onlyMark[0].mounted, "omv root|sftp://tom@h:22/|false")
 }

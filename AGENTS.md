@@ -3508,6 +3508,11 @@ returning whatever form their own source actually carries; only the write path a
 comparison were ever the places two spellings needed to agree. `tests/js/mounts.js` proves a
 trailing slash, a default sftp port, and a bare root all collapse, and a non-default port does not.
 
+Once collapsed, the live `gio mount -l` row used to keep gio's own label ("tom" for an SFTP
+session) and drop the bookmark's, so `r` rewrote the file and the next poll put "tom" back.
+`Places.networkEntries` keeps the bookmark label on the live row. Unmount of a share whose FUSE
+path is the current listing goes Home first; otherwise gio refuses as busy.
+
 ### The rail menu, tested with a stubbed gio and a stubbed lsblk
 
 `tests/ui.sh case_unmount` and `case_eject` drive the rail menu through the real window.

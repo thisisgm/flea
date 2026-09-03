@@ -62,6 +62,41 @@ function leaf(path) {
     return cut < 0 ? path : path.substring(cut + 1)
 }
 
+function taggedShare(uri, label, mounted) {
+    return { path: "", label: label, group: "network", kind: "share", uri: uri, mounted: mounted, glyph: "server" }
+}
+
+// Live mounts first, then bookmarks not already mounted. A bookmark's label wins over gio's
+// "user on host" name, so a rename survives the next poll while the share is still mounted.
+function networkEntries(mounts, marks) {
+    var labels = {}
+    var list = marks || []
+    for (var j = 0; j < list.length; j++) {
+        var k = Mounts.normalize(list[j].uri)
+        if (k.length === 0 || labels[k] !== undefined)
+            continue
+        labels[k] = list[j].label
+    }
+    var out = []
+    var seen = {}
+    var live = mounts || []
+    for (var i = 0; i < live.length; i++) {
+        var mkey = Mounts.normalize(live[i].uri)
+        if (seen[mkey])
+            continue
+        seen[mkey] = true
+        out.push(taggedShare(live[i].uri, labels[mkey] || live[i].label, true))
+    }
+    for (var n = 0; n < list.length; n++) {
+        var bkey = Mounts.normalize(list[n].uri)
+        if (seen[bkey])
+            continue
+        seen[bkey] = true
+        out.push(taggedShare(list[n].uri, list[n].label, false))
+    }
+    return out
+}
+
 // Sample input: "smb://192.168.1.10/data NAS"; see AGENTS.md "Places.relabel" for the matching, duplicate and control-character rules.
 function relabel(body, path, name) {
     // A trust boundary: an embedded newline could otherwise split one bookmark into two lines.

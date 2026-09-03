@@ -42,6 +42,10 @@ Item {
     // report a second, redundant failure for the exact same mount attempt.
     property bool _mountTimedOut: false
     property string _pendingUnmountLabel: ""
+    property string _pendingUnmountUri: ""
+    // The FUSE path last opened for a share, so Unmount can leave it before gio -u (busy otherwise).
+    property string _openFuse: ""
+    property string _openFuseKey: ""
     // A re-read asked for mid-listing used to be dropped, leaving a just-mounted share to wait out
     // the poll; this remembers it instead, and mountListProcess runs it the moment the listing ends.
     property bool _pollAgain: false
@@ -84,25 +88,11 @@ Item {
         onTriggered: root.pollMounts()
     }
 
-    // Three sources, deduped on the normalized uri (see ui/js/Mounts.js "normalize"): a live gio mount wins over a bookmark for the same share even when the trailing slash differs.
+    // Three sources, deduped on the normalized uri (see ui/js/Mounts.js "normalize"): a live gio
+    // mount wins the row, the bookmark keeps the label. Places.networkEntries is that merge.
     function rebuild() {
         var home = Quickshell.env("HOME")
-        var out = []
-        var seen = {}
-        var mounts = Mounts.parseMounts(root._mountListing)
-        for (var i = 0; i < mounts.length; i++) {
-            var mkey = Mounts.normalize(mounts[i].uri)
-            if (seen[mkey]) continue
-            seen[mkey] = true
-            out.push({ path: "", label: mounts[i].label, group: "network", kind: "share", uri: mounts[i].uri, mounted: true, glyph: "server" })
-        }
-        var marks = Mounts.nonFileBookmarks(root.bookmarksText)
-        for (var j = 0; j < marks.length; j++) {
-            var bkey = Mounts.normalize(marks[j].uri)
-            if (seen[bkey]) continue
-            seen[bkey] = true
-            out.push({ path: "", label: marks[j].label, group: "network", kind: "share", uri: marks[j].uri, mounted: false, glyph: "server" })
-        }
+        var out = Places.networkEntries(Mounts.parseMounts(root._mountListing), Mounts.nonFileBookmarks(root.bookmarksText))
         if (dropboxFile.loaded) {
             out.push({ path: home + "/Dropbox", label: "Dropbox", group: "network", kind: "dropbox", uri: "", mounted: true, glyph: "" })
         }
@@ -162,9 +152,21 @@ Item {
     // instance breaks the whole window's keyboard focus" for why one was tried and reverted.
     function unmount(index) {
         var e = root.entries[index]
-        if (!e || e.kind !== "share" || !e.mounted || unmountProcess.running) return
+        if (!e || e.kind !== "share" || !e.mounted || unmountProcess.running || unmountDelay.running) return
         root._pendingUnmountLabel = e.label
-        unmountProcess.command = ["gio", "mount", "-u", e.uri]
+        root._pendingUnmountUri = e.uri
+        if (root._openFuseKey.length > 0 && Mounts.normalize(e.uri) === root._openFuseKey) {
+            root._openFuse = ""
+            root._openFuseKey = ""
+            root.opened(Quickshell.env("HOME"))
+            unmountDelay.restart()
+            return
+        }
+        root.runUnmount(e.uri)
+    }
+
+    function runUnmount(uri) {
+        unmountProcess.command = ["gio", "mount", "-u", uri]
         unmountProcess.running = true
     }
 
@@ -227,6 +229,18 @@ Item {
         }
     }
 
+    Timer {
+        id: unmountDelay
+        interval: 150
+        repeat: false
+        onTriggered: {
+            var uri = root._pendingUnmountUri
+            root._pendingUnmountUri = ""
+            if (uri.length > 0)
+                root.runUnmount(uri)
+        }
+    }
+
     Process {
         id: mountProcess
         stderr: StdioCollector { id: mountErr; waitForEnd: true; onStreamFinished: root._mountErrOutput = text }
@@ -254,7 +268,10 @@ Item {
             var body = String(infoOut.text || root._infoOutput || "")
             var line = body.split("\n").find(function (l) { return l.indexOf("local path: ") === 0 })
             if (exitCode === 0 && line) {
-                root.opened(line.substring("local path: ".length).trim())
+                var localPath = line.substring("local path: ".length).trim()
+                root._openFuse = localPath
+                root._openFuseKey = Mounts.normalize(root._pendingUri)
+                root.opened(localPath)
                 return
             }
             if (root.isBareRoot(root._pendingUri)) {
