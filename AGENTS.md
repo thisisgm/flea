@@ -456,7 +456,9 @@ huge pages" below for what it is worth and what it cost.
   its own.
 - `ui/js/Thumbs.js` is the pure row-to-path map and the visible-row request plan, and
   imports no QML so `./tests/js.sh` can redden on a mutation.
-- `ui/js/Tabs.js` is the directory-tab snapshots and the t/w/1-9 policy, and imports no QML.
+- `ui/js/Tabs.js` is the directory-tab snapshots and the t/w/1-9 policy, and imports no QML. A
+  snapshot carries a cursor and a selection only across a switch that re-lists nothing, because an
+  index names a row and a re-read can put a different file behind the same number.
 - `ui/js/Trash.js` is the dd pair's arm-and-fire policy, split out of `Focus.js` at its cap.
 - `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` stores it
   and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord itself.
