@@ -62,8 +62,21 @@ function leaf(path) {
     return cut < 0 ? path : path.substring(cut + 1)
 }
 
-function taggedShare(uri, label, mounted) {
-    return { path: "", label: label, group: "network", kind: "share", uri: uri, mounted: mounted, glyph: "server" }
+function taggedShare(uri, label, mounted, meta, health, forceShare) {
+    var source = meta || {}
+    return {
+        path: "", label: label, group: "network", kind: forceShare ? "share" : (source.kind || "share"),
+        uri: uri, mounted: mounted, glyph: source.glyph || "server",
+        origin: source.origin || (mounted ? "mount" : "bookmark"),
+        health: mounted ? "mounted" : (health || source.health || "unknown"),
+        address: source.address || authority(uri), peerId: source.peerId || "",
+        taildrop: !!source.taildrop, mac: source.mac || ""
+    }
+}
+
+function authority(uri) {
+    var m = String(uri || "").match(/^[a-z][a-z0-9+.-]*:\/\/([^\/]+)/i)
+    return m ? m[1].replace(/^.*@/, "") : ""
 }
 
 // gvfsd-sftp (and ftp) mounts one connection per host, not per path. SMB/NFS stay per share.
@@ -92,7 +105,7 @@ function coveringUri(mounts, uri) {
 
 // Live mounts first, then bookmarks not already shown. A bookmark's label wins over gio's
 // "user on host" name. An SFTP path on a live host is mounted even when gio only lists the root.
-function networkEntries(mounts, marks) {
+function networkEntries(mounts, marks, discovered, healthMap) {
     var labels = {}
     var list = marks || []
     for (var j = 0; j < list.length; j++) {
@@ -109,7 +122,8 @@ function networkEntries(mounts, marks) {
         if (seen[mkey])
             continue
         seen[mkey] = true
-        out.push(taggedShare(live[i].uri, labels[mkey] || live[i].label, true))
+        out.push(taggedShare(live[i].uri, labels[mkey] || live[i].label, true,
+                             matching(discovered, live[i].uri), stateFor(healthMap, live[i].uri), true))
     }
     for (var n = 0; n < list.length; n++) {
         var bkey = Mounts.normalize(list[n].uri)
@@ -123,9 +137,64 @@ function networkEntries(mounts, marks) {
                 break
             }
         }
-        out.push(taggedShare(list[n].uri, list[n].label, mounted))
+        out.push(taggedShare(list[n].uri, list[n].label, mounted,
+                             matching(discovered, list[n].uri), stateFor(healthMap, list[n].uri), true))
+    }
+    var extras = discovered || []
+    for (var x = 0; x < extras.length; x++) {
+        var duplicate = false
+        for (var y = 0; y < out.length; y++) {
+            if (covers(out[y].uri, extras[x].uri)) {
+                duplicate = true
+                break
+            }
+        }
+        if (duplicate)
+            continue
+        var isMounted = false
+        for (var z = 0; z < live.length; z++) {
+            if (covers(live[z].uri, extras[x].uri)) {
+                isMounted = true
+                break
+            }
+        }
+        var combined = matching(extras, extras[x].uri) || extras[x]
+        out.push(taggedShare(extras[x].uri, extras[x].label, isMounted, combined,
+                             stateFor(healthMap, extras[x].uri), false))
     }
     return out
+}
+
+function matching(entries, uri) {
+    var list = entries || []
+    var found = null
+    for (var i = 0; i < list.length; i++) {
+        if (!covers(list[i].uri, uri))
+            continue
+        if (!found) {
+            found = copyMeta(list[i])
+            continue
+        }
+        found.taildrop = found.taildrop || !!list[i].taildrop
+        if (!found.peerId) found.peerId = list[i].peerId || ""
+        if (!found.address) found.address = list[i].address || ""
+        if (!found.mac) found.mac = list[i].mac || ""
+        if ((found.health || "unknown") === "unknown" && list[i].health)
+            found.health = list[i].health
+    }
+    if (found && found.mac)
+        found.origin = "lan"
+    return found
+}
+
+function copyMeta(entry) {
+    var out = {}
+    for (var key in entry) out[key] = entry[key]
+    return out
+}
+
+function stateFor(map, uri) {
+    return (map && map[Mounts.normalize(uri)]) || ""
 }
 
 // Sample input: "smb://192.168.1.10/data NAS"; see AGENTS.md "Places.relabel" for the matching, duplicate and control-character rules.

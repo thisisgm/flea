@@ -89,6 +89,7 @@ function run(check) {
     check("every row is tagged as a favourite", favs[3].group + "/" + favs[3].kind, "favorite/favorite")
     check("the mark is resolved by the caller, so the rail keeps its own Icons import", favs[1].glyph, "mark:Downloads")
     check("a box with neither file still gets Home", Places.favorites("/home/gm", "", "", function () { return "m" }).length, 1)
+    check("a bracketed IPv6 address stays copyable", Places.authority("sftp://pi@[fd7a::1]:2222/home"), "[fd7a::1]:2222")
 
     check("replace rewrites the matched URI and label",
         Places.replace(netFile, "smb://192.168.1.10/data", "sftp://tom@nas:22/home/tom", "omv"),
@@ -156,4 +157,23 @@ function run(check) {
     var smb = Places.networkEntries(smbLive, smbMarks)
     check("an SMB share does not mark a different share on the same host mounted",
           smb.length + "|" + smb[0].mounted + "|" + smb[1].label + "|" + smb[1].mounted, "2|true|isos|false")
+
+    var peers = [
+        { label:"Tail box", uri:"sftp://tom@h/", kind:"peer", origin:"tailnet", health:"online", address:"h", peerId:"p", taildrop:true },
+        { label:"LAN NAS", uri:"smb://nas/data", kind:"discovered", origin:"lan", health:"online", address:"nas", mac:"aa:bb:cc:dd:ee:ff" }
+    ]
+    var enriched = Places.networkEntries(live, saved, peers, { "sftp://tom@h/": "connecting" })
+    check("a discovered SFTP peer deduplicates against a live bookmarked host", enriched.length, 2)
+    check("the bookmark remains editable while discovery enriches it", enriched[0].kind, "share")
+    check("a confirmed live mount wins over transient health", enriched[0].health, "mounted")
+    check("an unmatched discovered LAN service is appended with its Wake metadata",
+          enriched[1].kind + "|" + enriched[1].origin + "|" + enriched[1].mac,
+          "discovered|lan|aa:bb:cc:dd:ee:ff")
+    var oldRecent = { label:"Tail box", uri:"sftp://tom@h/", kind:"recent", origin:"recent", health:"unknown" }
+    var livePeer = { label:"Tail box", uri:"sftp://tom@h/", kind:"peer", origin:"tailnet", health:"online", address:"h", peerId:"p", taildrop:true }
+    var fresh = Places.networkEntries([], [], [oldRecent, livePeer])
+    check("live discovery enriches rather than duplicates an older recent", fresh.length + "|" + fresh[0].health + "|" + fresh[0].taildrop, "1|online|true")
+    var profile = { label:"Tail box", uri:"sftp://tom@h/", kind:"profile", origin:"lan", health:"unknown", mac:"11:22:33:44:55:66" }
+    var awake = Places.networkEntries([], [], [oldRecent, profile])
+    check("a Wake profile enriches a matching recent", awake[0].origin + "|" + awake[0].mac, "lan|11:22:33:44:55:66")
 }

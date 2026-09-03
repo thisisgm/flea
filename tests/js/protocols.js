@@ -56,6 +56,10 @@ function run(check) {
     check("and only SMB asks for a domain",
           ["SMB", "SFTP", "WebDAV"].map(function (p) { return Protocols.fieldsFor(p).domain }).join("|"),
           "true|false|false")
+
+    var ipv6 = Protocols.parse("sftp://pi@[fd7a:115c:a1e0::1]:2222/home/pi")
+    check("a bracketed IPv6 host parses without becoming its port", ipv6.host + "|" + ipv6.port,
+          "[fd7a:115c:a1e0::1]|2222")
     check("while only the two schemes that have a plaintext twin carry a TLS box",
           ["SMB", "SFTP", "FTPS", "WebDAV", "NFS"].map(function (p) { return Protocols.fieldsFor(p).tls }).join("|"),
           "false|false|true|true|false")
@@ -104,8 +108,8 @@ function run(check) {
           Protocols.parse("sftp://tom@omv.example:22/~").path, "~")
     check("a missing scheme is not a location", Protocols.parse("nas/share") === null, true)
     check("an unknown scheme is refused", Protocols.parse("afp://h/share") === null, true)
-    check("a host with a non-numeric colon is refused rather than split",
-          Protocols.parse("sftp://u@[::1]/home") === null, true)
+    check("a bracketed IPv6 host with no port stays whole",
+          Protocols.parse("sftp://u@[::1]/home").host, "[::1]")
     check("an @ in the path is not stolen as a username",
           roundtrip({ protocol: "SFTP", host: "h", port: "22", path: "inbox@2026", user: "u" }),
           "sftp://u@h:22/inbox@2026")

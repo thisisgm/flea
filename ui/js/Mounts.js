@@ -1,5 +1,7 @@
 .pragma library
 
+.import "Remote.js" as Remote
+
 // Sample input, captured live on the box with one network share mounted (2026-08-31):
 // Drive(0): KBG40ZNS256G NVMe KIOXIA 256GB
 //   Type: GProxyDrive (GProxyVolumeMonitorUDisks2)
@@ -170,6 +172,8 @@ function sameEntries(a, b) {
 function sameEntry(x, y) {
     return x.path === y.path && x.label === y.label && x.group === y.group && x.kind === y.kind
         && x.uri === y.uri && x.device === y.device && x.mounted === y.mounted && x.glyph === y.glyph
+        && x.origin === y.origin && x.health === y.health && x.address === y.address
+        && x.peerId === y.peerId && x.taildrop === y.taildrop && x.mac === y.mac
 }
 
 // Sample input: one rail entry as ui/DeviceMounts.qml and ui/NetworkMounts.qml build them,
@@ -185,14 +189,8 @@ function railMenu(entry) {
         return []
     if (entry.group === "device" && entry.kind === "volume" && entry.mounted)
         return [{ label: "Eject", action: "eject", glyph: "eject" }]
-    if (entry.group === "network" && entry.kind === "share") {
-        var rows = []
-        if (entry.mounted)
-            rows.push({ label: "Unmount", action: "unmount", glyph: "eject" })
-        rows.push({ label: "Edit", action: "edit", glyph: "rename" })
-        rows.push({ label: "Remove", action: "remove", glyph: "trash" })
-        return rows
-    }
+    if (entry.group === "network")
+        return Remote.menu(entry)
     return []
 }
 
@@ -215,7 +213,7 @@ function railKey(entry) {
         return ""
     if (entry.group === "device" && entry.kind === "volume")
         return String(entry.device || "")
-    if (entry.group === "network" && entry.kind === "share")
+    if (entry.group === "network" && entry.kind !== "dropbox")
         return String(entry.uri || "")
     return ""
 }
@@ -265,7 +263,7 @@ function raiseMenu(pane, sidebar) {
 // a five second poll, so the index the menu opened over can name a different row by now. A key
 // that no longer names a row does nothing, because the row it named has left the rail already.
 // Both Services re-check the kind themselves; this only resolves which row was meant.
-function release(action, key, devices, mounts, deviceEntries, networkEntries, editor) {
+function release(action, key, devices, mounts, deviceEntries, networkEntries, actions) {
     if (action === "eject") {
         var volume = rowByKey(deviceEntries, key)
         if (volume >= 0)
@@ -277,8 +275,19 @@ function release(action, key, devices, mounts, deviceEntries, networkEntries, ed
         return
     if (action === "unmount")
         mounts.unmount(share)
-    if (action === "edit" && editor)
-        editor.edit(networkEntries[share].uri, networkEntries[share].label)
+    var entry = networkEntries[share]
+    if (action === "edit" && actions)
+        actions.edit(entry.uri, entry.label)
     if (action === "remove")
         mounts.remove(share)
+    if (action === "reconnect")
+        mounts.activate(share)
+    if (action === "copy-address" && actions)
+        actions.copyAddress(entry)
+    if (action === "open-ssh" && actions)
+        actions.openSsh(entry)
+    if (action === "taildrop-peer" && actions)
+        actions.taildrop(entry.peerId)
+    if (action === "wake" && actions)
+        actions.wake(entry)
 }

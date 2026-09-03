@@ -1,0 +1,27 @@
+.import "../../ui/js/Recents.js" as Recents
+
+function run(check) {
+    check("empty history is empty", Recents.parse("").length, 0)
+    check("malformed history is empty", Recents.parse("not json").length, 0)
+    var rows = Recents.record([], "sftp://pi:secret@host/home?token=nope", "Box\nInjected", 20, "AA-BB-CC-DD-EE-FF")
+    check("passwords queries and label newlines never persist", rows[0].uri + "|" + rows[0].label, "sftp://pi@host/home|BoxInjected")
+    check("MAC addresses normalize", rows[0].mac, "aa:bb:cc:dd:ee:ff")
+    rows = Recents.record(rows, "sftp://pi@host/home/", "New label", 30, "")
+    check("a success moves a duplicate to the front", rows.length + "|" + rows[0].label, "1|New label")
+    for (var i = 0; i < 12; i++)
+        rows = Recents.record(rows, "sftp://host" + i + "/", "h" + i, i, "")
+    check("history is bounded", rows.length, Recents.LIMIT)
+    var round = Recents.parse(Recents.serialize(rows))
+    check("serialized history round trips", round.map(function (r) { return r.uri }).join("|"), rows.map(function (r) { return r.uri }).join("|"))
+    check("recent entries carry unknown health", Recents.entries(round)[0].health, "unknown")
+    var profiles = Recents.rememberProfile([], "", "sftp://lan/", "Sleeping box", "AABBCCDDEEFF")
+    check("a saved Wake profile carries only a normalized MAC", Recents.profileEntries(profiles)[0].mac, "aa:bb:cc:dd:ee:ff")
+    var state = Recents.parseState(Recents.serializeState(rows, profiles))
+    check("recent history and Wake profiles persist independently", state.recent.length + "|" + state.profiles.length, "8|1")
+    check("an invalid MAC never creates a Wake profile", Recents.rememberProfile(profiles, "", "sftp://x/", "x", "bad").length, 1)
+    profiles = Recents.rememberProfile(profiles, "sftp://lan/", "sftp://new-lan/", "Renamed", "112233445566")
+    check("editing a profile removes its old identity", profiles.length + "|" + profiles[0].uri, "1|sftp://new-lan/")
+    profiles = Recents.rememberProfile(profiles, "sftp://new-lan/", "sftp://new-lan/", "Renamed", "")
+    check("clearing a MAC removes the stale Wake profile", profiles.length, 0)
+    check("recent removal compares normalized identities", Recents.remove([{ uri: "sftp://host/path/" }], "sftp://host/path").length, 0)
+}

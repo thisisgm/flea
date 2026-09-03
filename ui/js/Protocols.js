@@ -147,13 +147,26 @@ function parse(uri) {
     }
     var host = rest
     var port = ""
-    var colon = rest.lastIndexOf(":")
-    if (colon >= 0) {
-        var maybePort = rest.substring(colon + 1)
-        if (!/^\d+$/.test(maybePort))
+    if (rest.charAt(0) === "[") {
+        var close = rest.indexOf("]")
+        if (close < 2)
             return null
-        host = rest.substring(0, colon)
-        port = maybePort
+        host = rest.substring(0, close + 1)
+        var after = rest.substring(close + 1)
+        if (after.length > 0) {
+            if (!/^:\d+$/.test(after))
+                return null
+            port = after.substring(1)
+        }
+    } else {
+        var colon = rest.lastIndexOf(":")
+        if (colon >= 0) {
+            var maybePort = rest.substring(colon + 1)
+            if (!/^\d+$/.test(maybePort))
+                return null
+            host = rest.substring(0, colon)
+            port = maybePort
+        }
     }
     if (host.length === 0)
         return null

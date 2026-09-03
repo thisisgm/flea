@@ -185,9 +185,6 @@ function run(check) {
     check("a vanished device names nothing", Eject.blockers(gone, "/dev/sda1").join(","), "")
     check("garbage names nothing", Eject.blockers("not json", "/dev/sda1").join(","), "")
 
-    // The rail's own context menu. Which release a row offers is decided from the kind the rail
-    // already tagged: parseDevices above tags a removable volume "volume" off lsblk's RM flag and
-    // the box's own disk "disk", and ui/NetworkMounts.qml tags a gvfs share "share".
     var volume = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true }
     var idle = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: false }
     var internal = { label: "nvme0n1", group: "device", kind: "disk", device: "/dev/nvme0n1", mounted: true }
@@ -198,29 +195,25 @@ function run(check) {
 
     check("a mounted removable volume offers Eject", Mounts.railMenu(volume).map(function (r) { return r.action }).join("|"), "eject")
     check("and that row is named and marked", Mounts.railMenu(volume)[0].label + "/" + Mounts.railMenu(volume)[0].glyph, "Eject/eject")
-    check("a mounted network share offers Unmount, Edit, Remove", Mounts.railMenu(share).map(function (r) { return r.action }).join("|"), "unmount|edit|remove")
+    check("a mounted network share offers Unmount, Copy address, Edit, Remove", Mounts.railMenu(share).map(function (r) { return r.action }).join("|"), "unmount|copy-address|edit|remove")
     check("Unmount stays first so Ctrl+E still unmounts", Mounts.railMenu(share)[0].label + "/" + Mounts.railMenu(share)[0].glyph, "Unmount/eject")
-    check("Edit draws the rename mark", Mounts.railMenu(share)[1].label + "/" + Mounts.railMenu(share)[1].glyph, "Edit/rename")
+    check("Edit draws the rename mark", Mounts.railMenu(share)[2].label + "/" + Mounts.railMenu(share)[2].glyph, "Edit/rename")
 
-    // Every rail row that must never be offered a release, each for its own reason.
     check("the internal disk offers nothing, it is the box's own system disk", Mounts.railMenu(internal).length, 0)
     check("the Dropbox row offers nothing, it is a local folder the stock service owns", Mounts.railMenu(dropbox).length, 0)
     check("a favourite offers nothing, it is not a mount at all", Mounts.railMenu(favourite).length, 0)
     check("an unmounted volume offers nothing, there is nothing to release", Mounts.railMenu(idle).length, 0)
-    check("a bookmark nothing has mounted offers Edit then Remove", Mounts.railMenu(bookmark).map(function (r) { return r.action }).join("|"), "edit|remove")
+    check("a bookmark nothing has mounted offers Copy address, Edit, Remove", Mounts.railMenu(bookmark).map(function (r) { return r.action }).join("|"), "copy-address|edit|remove")
     check("Ctrl+E unmounts a live share and ignores a bookmark", Mounts.releaseAction(share) + "|" + Mounts.releaseAction(bookmark), "unmount|")
     check("no entry at all offers nothing rather than throwing", Mounts.railMenu(null).length, 0)
     check("an undefined entry offers nothing rather than throwing", Mounts.railMenu(undefined).length, 0)
 
-    // The safety property as one check: eject reaches exactly one kind of row and no other.
     var never = [idle, internal, dropbox, favourite, bookmark, share, null, undefined]
     check("no row but a mounted removable volume is ever offered eject",
           never.some(function (e) {
               return Mounts.railMenu(e).some(function (r) { return r.action === "eject" })
           }), false)
 
-    // The key a chosen row carries back: the rail rebuilds on a five second poll, so an index taken
-    // when the menu opened can name a different row by the time a row inside it is chosen.
     check("a volume's key is its device node", Mounts.railKey(volume), "/dev/sda1")
     check("a share's key is its uri", Mounts.railKey(share), "smb://example.com/isos/")
     check("the internal disk has no key", Mounts.railKey(internal), "")
@@ -288,13 +281,19 @@ function run(check) {
     function rec() { var a = []; return { a: a, eject: function (i) { a.push("e" + i) }, unmount: function (i) { a.push("u" + i) }, remove: function (i) { a.push("r" + i) } } }
     function released(action, key) {
         var d = rec(), n = rec(), edited = []
-        Mounts.release(action, key, d, n, [disk, stick], [{ label: "isos", group: "network", kind: "share", uri: "smb://x/isos/", path: "", mounted: true }],
-            { edit: function (uri, label) { edited.push(uri + " " + label) } })
+        var entry = { label: "isos", group: "network", kind: "share", uri: "smb://x/isos/", path: "", mounted: true, peerId: "peer", mac: "aa:bb:cc:dd:ee:ff" }
+        Mounts.release(action, key, d, n, [disk, stick], [entry], {
+            edit: function (uri, label) { edited.push(uri + " " + label) }, copyAddress: function (e) { edited.push("copy " + e.uri) },
+            openSsh: function (e) { edited.push("ssh " + e.uri) }, taildrop: function (id) { edited.push("taildrop " + id) }, wake: function (e) { edited.push("wake " + e.mac) }
+        })
         return d.a.concat(n.a, edited).join(",")
     }
     check("eject resolves the volume's position and never the network Service", released("eject", "/dev/sda1"), "e1")
     check("unmount resolves the share's position and never the device Service", released("unmount", "smb://x/isos/"), "u0")
     check("edit names the share rather than a Service index", released("edit", "smb://x/isos/"), "smb://x/isos/ isos")
+    check("copy address carries the resolved row", released("copy-address", "smb://x/isos/"), "copy smb://x/isos/")
+    check("Taildrop carries a stable peer id", released("taildrop-peer", "smb://x/isos/"), "taildrop peer")
+    check("Wake carries the row's validated metadata", released("wake", "smb://x/isos/"), "wake aa:bb:cc:dd:ee:ff")
     check("a key that no longer names a row releases nothing", released("eject", "/dev/sdz9"), "")
     check("an action that is neither release does nothing", released("forget", "/dev/sda1"), "")
 }
