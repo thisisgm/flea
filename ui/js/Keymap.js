@@ -115,7 +115,8 @@ var SHEET = [
     { keys: "a", action: "addNetwork", label: "add network place" },
     { keys: "m", action: "menu", label: "context menu" },
     { keys: "^e", action: "eject", label: "eject" },
-    { keys: "^+ ^-", action: "scaleUp", label: "interface scale" },
+    { keys: "^+", action: "scaleUp", label: "scale up" },
+    { keys: "^-", action: "scaleDown", label: "scale down" },
     { keys: "?", action: "keymapSheet", label: "this sheet" },
 ]
 
