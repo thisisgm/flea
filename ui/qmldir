@@ -21,6 +21,7 @@ MediaStrip 1.0 MediaStrip.qml
 MenuRow 1.0 MenuRow.qml
 RenameField 1.0 RenameField.qml
 EmptyState 1.0 EmptyState.qml
+FastScrollHandler 1.0 FastScrollHandler.qml
 DeviceMounts 1.0 DeviceMounts.qml
 DropboxMark 1.0 DropboxMark.qml
 Glyph 1.0 Glyph.qml
