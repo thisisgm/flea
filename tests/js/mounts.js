@@ -285,4 +285,28 @@ function run(check) {
     check("a share carries no path, so a listing inside one answers nothing rather than guessing",
           Mounts.holding([{ label: "isos", group: "network", kind: "share", uri: "smb://example.com/isos/", path: "", mounted: true }], "/run/user/1000/gvfs/x"), null)
     check("no rail at all answers nothing rather than throwing", Mounts.holding(null, "/x"), null)
+
+    // The rail menu's chosen row, resolved by key. Each Service records the position it was handed,
+    // because that is the whole of what release decides; both re-check the kind themselves.
+    function recorder() { var seen = []; return { seen: seen, eject: function (i) { seen.push("eject:" + i) }, unmount: function (i) { seen.push("unmount:" + i) } } }
+    var devs = [disk, stick]
+    var nets = [{ label: "isos", group: "network", kind: "share", uri: "smb://example.com/isos/", path: "", mounted: true }]
+
+    var d = recorder(); var n = recorder()
+    Mounts.release("eject", "/dev/sda1", d, n, devs, nets)
+    check("eject resolves the volume's own position", d.seen.join(","), "eject:1")
+    check("and never reaches the network Service", n.seen.length, 0)
+
+    d = recorder(); n = recorder()
+    Mounts.release("unmount", "smb://example.com/isos/", d, n, devs, nets)
+    check("unmount resolves the share's position", n.seen.join(","), "unmount:0")
+    check("and never reaches the device Service", d.seen.length, 0)
+
+    // The rail rebuilds on a five second poll, so the row the menu opened over may be gone by now.
+    d = recorder(); n = recorder()
+    Mounts.release("eject", "/dev/sdz9", d, n, devs, nets)
+    check("a key that no longer names a row releases nothing", d.seen.length + n.seen.length, 0)
+    d = recorder(); n = recorder()
+    Mounts.release("forget", "/dev/sda1", d, n, devs, nets)
+    check("an action that is neither release does nothing", d.seen.length + n.seen.length, 0)
 }

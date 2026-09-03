@@ -212,3 +212,21 @@ function holding(entries, dir) {
     }
     return null
 }
+
+// The rail menu's chosen row, handed the row's key rather than its position: the rail rebuilds on
+// a five second poll, so the index the menu opened over can name a different row by now. A key
+// that no longer names a row does nothing, because the row it named has left the rail already.
+// Both Services re-check the kind themselves; this only resolves which row was meant.
+function release(action, key, devices, mounts, deviceEntries, networkEntries) {
+    if (action === "eject") {
+        var volume = rowByKey(deviceEntries, key)
+        if (volume >= 0)
+            devices.eject(volume)
+        return
+    }
+    if (action === "unmount") {
+        var share = rowByKey(networkEntries, key)
+        if (share >= 0)
+            mounts.unmount(share)
+    }
+}

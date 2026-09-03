@@ -102,25 +102,11 @@ Item {
         onRenamed: root.reloadBookmarks()
     }
 
-    // Home is always first and is not in either file, so it is prepended rather than parsed.
+    // Home is always first and is not in either file, so it is prepended rather than parsed; the
+    // merge and its first-position-wins rule are Places.favorites', which tests/js/places.js checks.
     function rebuild() {
         var home = Quickshell.env("HOME")
-        var favs = [{ path: home, label: "Home", group: "favorite", kind: "favorite", glyph: Icons.sidebarGlyphFor("Home") }]
-        var dirs = Places.userDirs(userDirsFile.text(), home)
-        var marks = Places.bookmarks(bookmarksFile.text())
-        var seen = {}
-        seen[home] = true
-        for (var i = 0; i < dirs.length; i++) {
-            if (!seen[dirs[i].path]) { seen[dirs[i].path] = true; favs.push(root.taggedFavorite(dirs[i])) }
-        }
-        for (var j = 0; j < marks.length; j++) {
-            if (!seen[marks[j].path]) { seen[marks[j].path] = true; favs.push(root.taggedFavorite(marks[j])) }
-        }
-        root.favoriteEntries = favs
-    }
-
-    function taggedFavorite(e) {
-        return { path: e.path, label: e.label, group: "favorite", kind: "favorite", glyph: Icons.sidebarGlyphFor(e.label) }
+        root.favoriteEntries = Places.favorites(home, userDirsFile.text(), bookmarksFile.text(), Icons.sidebarGlyphFor)
     }
 
     // ui/NetworkDialog.qml writes this same file; a watch set up before its parent directory
@@ -157,24 +143,10 @@ Item {
         root.openRailMenu(root.cursorIndex, row.mapToItem(null, Style.spacing.rowPaddingX, row.height))
     }
 
-    // A chosen menu row, arriving with the row's key rather than its position: the rail rebuilds on
-    // a five second poll, so the index the menu opened over can name a different row by now. A key
-    // that no longer names a row does nothing, because the row it named has left the rail already.
+    // A chosen menu row, arriving with the row's key rather than its position; which row that
+    // names is Mounts.release', so tests/js/mounts.js drives the resolution with no rail.
     function releaseChosen(action, key) {
-        if (action === "eject") {
-            var volume = Mounts.rowByKey(root.deviceEntries, key)
-            // Both Services re-check the kind themselves; this only resolves which row was meant.
-            if (volume >= 0) {
-                devices.eject(volume)
-            }
-            return
-        }
-        if (action === "unmount") {
-            var share = Mounts.rowByKey(root.networkEntries, key)
-            if (share >= 0) {
-                mounts.unmount(share)
-            }
-        }
+        Mounts.release(action, key, devices, mounts, root.deviceEntries, root.networkEntries)
     }
 
     Connections {
@@ -242,128 +214,153 @@ Item {
         color: Theme.color.surface
     }
 
-    Column {
-        id: rail
-        anchors.top: parent.top
-        anchors.topMargin: Style.spacing.rowPaddingX
-        anchors.left: parent.left
-        anchors.right: parent.right
+    onCursorIndexChanged: root.revealCursor()
 
-        Text {
-            id: favHeading
-            x: Style.spacing.rowPaddingX
-            bottomPadding: Style.spacing.rowGap
-            text: "FAVORITES"
-            color: Theme.color.muted
-            font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
-            font.letterSpacing: 1
-        }
+    // Anchored inside the Flickable's contentItem, so a row's y is already the scroll coordinate.
+    function revealCursor() {
+        var row = root.railItemFor(root.cursorIndex)
+        if (!row)
+            return
+        var p = row.mapToItem(scroller.contentItem)
+        if (p.y < scroller.contentY)
+            scroller.contentY = p.y
+        else if (p.y + row.height > scroller.contentY + scroller.height)
+            scroller.contentY = p.y + row.height - scroller.height
+    }
 
-        Repeater {
-            id: favRepeater
-            model: root.favoriteEntries
-            delegate: SidebarRow {
-                cursor: index === root.cursorIndex
-                focused: root.focused
-                onActivated: function (idx) { root.activate(idx) }
-                onMenuRequested: function (idx, pos) { root.openRailMenu(idx, pos) }
-            }
-        }
+    // The rail's rows live in a viewport, not the bare Column they were: a rail taller than its
+    // own height could not show its bottom rows by any means, wheel included.
+    Flickable {
+        id: scroller
+        anchors.fill: parent
+        clip: true
+        contentWidth: width
+        contentHeight: rail.height + 2 * Style.spacing.rowPaddingX
+        boundsBehavior: Flickable.StopAtBounds
 
-        // The OEM panel idiom's own group gap, not the tighter row-to-row rhythm rows keep inside a group.
-        Item {
-            visible: root.networkEntries.length > 0
-            width: rail.width
-            height: Style.spacing.panelGap
-        }
-
-        // Self-hides with its list below when gio, the bookmarks file and Dropbox all have nothing to say.
-        Item {
-            id: netHeadingRow
-            visible: root.networkEntries.length > 0
-            width: rail.width
-            height: netHeading.implicitHeight + Style.spacing.rowGap
+        Column {
+            id: rail
+            anchors.top: parent.top
+            anchors.topMargin: Style.spacing.rowPaddingX
+            anchors.left: parent.left
+            anchors.right: parent.right
 
             Text {
-                id: netHeading
+                id: favHeading
                 x: Style.spacing.rowPaddingX
-                text: "NETWORK"
+                bottomPadding: Style.spacing.rowGap
+                text: "FAVORITES"
                 color: Theme.color.muted
                 font.family: Theme.font.family
                 font.pixelSize: Theme.font.caption
                 font.letterSpacing: 1
             }
 
-            // A hand-drawn plus, not a Text "+": at caption size the font glyph read as a Christian cross, not a plus. Sized off the heading's own font token.
+            Repeater {
+                id: favRepeater
+                model: root.favoriteEntries
+                delegate: SidebarRow {
+                    cursor: index === root.cursorIndex
+                    focused: root.focused
+                    onActivated: function (idx) { root.activate(idx) }
+                    onMenuRequested: function (idx, pos) { root.openRailMenu(idx, pos) }
+                }
+            }
+
+            // The OEM panel idiom's own group gap, not the tighter row-to-row rhythm rows keep inside a group.
             Item {
-                id: addMark
-                width: Math.max(Theme.hitMin, Theme.font.caption)
-                height: Math.max(Theme.hitMin, Theme.font.caption)
-                anchors.right: parent.right
-                anchors.rightMargin: Style.spacing.rowPaddingX
-                anchors.verticalCenter: netHeading.verticalCenter
+                visible: root.networkEntries.length > 0
+                width: rail.width
+                height: Style.spacing.panelGap
+            }
 
-                Accessible.role: Accessible.Button
-                Accessible.name: "Add network location"
-                Accessible.onPressAction: root.addRequested()
+            // Self-hides with its list below when gio, the bookmarks file and Dropbox all have nothing to say.
+            Item {
+                id: netHeadingRow
+                visible: root.networkEntries.length > 0
+                width: rail.width
+                height: netHeading.implicitHeight + Style.spacing.rowGap
 
-                Glyph {
-                    anchors.centerIn: parent
-                    name: "plus"
+                Text {
+                    id: netHeading
+                    x: Style.spacing.rowPaddingX
+                    text: "NETWORK"
                     color: Theme.color.muted
-                    width: Theme.font.caption
-                    height: Theme.font.caption
+                    font.family: Theme.font.family
+                    font.pixelSize: Theme.font.caption
+                    font.letterSpacing: 1
                 }
 
-                TapHandler {
-                    onTapped: root.addRequested()
+                // A hand-drawn plus, not a Text "+": at caption size the font glyph read as a Christian cross, not a plus. Sized off the heading's own font token.
+                Item {
+                    id: addMark
+                    width: Math.max(Theme.hitMin, Theme.font.caption)
+                    height: Math.max(Theme.hitMin, Theme.font.caption)
+                    anchors.right: parent.right
+                    anchors.rightMargin: Style.spacing.rowPaddingX
+                    anchors.verticalCenter: netHeading.verticalCenter
+
+                    Accessible.role: Accessible.Button
+                    Accessible.name: "Add network location"
+                    Accessible.onPressAction: root.addRequested()
+
+                    Glyph {
+                        anchors.centerIn: parent
+                        name: "plus"
+                        color: Theme.color.muted
+                        width: Theme.font.caption
+                        height: Theme.font.caption
+                    }
+
+                    TapHandler {
+                        onTapped: root.addRequested()
+                    }
                 }
             }
-        }
 
-        Repeater {
-            id: netRepeater
-            model: root.networkEntries
-            delegate: SidebarRow {
-                cursor: (index + root.favoriteEntries.length) === root.cursorIndex
-                focused: root.focused
-                renaming: (index + root.favoriteEntries.length) === root.renamingIndex
-                onActivated: function (idx) { root.activate(idx + root.favoriteEntries.length) }
-                onMenuRequested: function (idx, pos) { root.openRailMenu(idx + root.favoriteEntries.length, pos) }
-                onRenameCommitted: function (idx, text) { root.commitRename(idx + root.favoriteEntries.length, text) }
-                onRenameCancelled: root.cancelRename()
+            Repeater {
+                id: netRepeater
+                model: root.networkEntries
+                delegate: SidebarRow {
+                    cursor: (index + root.favoriteEntries.length) === root.cursorIndex
+                    focused: root.focused
+                    renaming: (index + root.favoriteEntries.length) === root.renamingIndex
+                    onActivated: function (idx) { root.activate(idx + root.favoriteEntries.length) }
+                    onMenuRequested: function (idx, pos) { root.openRailMenu(idx + root.favoriteEntries.length, pos) }
+                    onRenameCommitted: function (idx, text) { root.commitRename(idx + root.favoriteEntries.length, text) }
+                    onRenameCancelled: root.cancelRename()
+                }
             }
-        }
 
-        Item {
-            visible: root.deviceEntries.length > 0
-            width: rail.width
-            height: Style.spacing.panelGap
-        }
+            Item {
+                visible: root.deviceEntries.length > 0
+                width: rail.width
+                height: Style.spacing.panelGap
+            }
 
-        // Self-hides with its list below on a box lsblk reports no disk for; there is no header
-        // over an empty group. Unlike NETWORK it carries no add mark: nothing here is bookmarked.
-        Text {
-            id: devHeading
-            visible: root.deviceEntries.length > 0
-            x: Style.spacing.rowPaddingX
-            bottomPadding: Style.spacing.rowGap
-            text: "DEVICES"
-            color: Theme.color.muted
-            font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
-            font.letterSpacing: 1
-        }
+            // Self-hides with its list below on a box lsblk reports no disk for; there is no header
+            // over an empty group. Unlike NETWORK it carries no add mark: nothing here is bookmarked.
+            Text {
+                id: devHeading
+                visible: root.deviceEntries.length > 0
+                x: Style.spacing.rowPaddingX
+                bottomPadding: Style.spacing.rowGap
+                text: "DEVICES"
+                color: Theme.color.muted
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.caption
+                font.letterSpacing: 1
+            }
 
-        Repeater {
-            id: devRepeater
-            model: root.deviceEntries
-            delegate: SidebarRow {
-                cursor: (index + root.favoriteEntries.length + root.networkEntries.length) === root.cursorIndex
-                focused: root.focused
-                onActivated: function (idx) { root.activate(idx + root.favoriteEntries.length + root.networkEntries.length) }
-                onMenuRequested: function (idx, pos) { root.openRailMenu(idx + root.favoriteEntries.length + root.networkEntries.length, pos) }
+            Repeater {
+                id: devRepeater
+                model: root.deviceEntries
+                delegate: SidebarRow {
+                    cursor: (index + root.favoriteEntries.length + root.networkEntries.length) === root.cursorIndex
+                    focused: root.focused
+                    onActivated: function (idx) { root.activate(idx + root.favoriteEntries.length + root.networkEntries.length) }
+                    onMenuRequested: function (idx, pos) { root.openRailMenu(idx + root.favoriteEntries.length + root.networkEntries.length, pos) }
+                }
             }
         }
     }

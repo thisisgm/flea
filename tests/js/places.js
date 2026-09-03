@@ -72,4 +72,21 @@ function run(check) {
         Places.bookmarks("file:///home/gm/bad%zz Bad")[0].path, "/home/gm/bad%zz")
     check("a well-formed escape still decodes",
         Places.bookmarks("file:///home/gm/My%20Files Mine")[0].path, "/home/gm/My Files")
+
+    // The FAVORITES merge the rail used to do inline. Home leads whatever either file says, and a
+    // path named twice keeps the position it was first given rather than moving to the later one.
+    var favDirs = 'XDG_DOWNLOAD_DIR="$HOME/Downloads"\n'
+                + 'XDG_DOCUMENTS_DIR="$HOME/Documents"\n'
+    var favMarks = 'file:///home/gm/Downloads Grabbed\n'
+                 + 'file:///srv/media Media\n'
+                 + 'smb://192.168.1.10/data NAS\n'
+    var favs = Places.favorites("/home/gm", favDirs, favMarks, function (label) { return "mark:" + label })
+    check("Home leads the rail and is never parsed out of a file", favs[0].path + "|" + favs[0].label, "/home/gm|Home")
+    check("the XDG dirs follow in file order", favs[1].label + "," + favs[2].label, "Downloads,Documents")
+    check("a path already placed keeps its first position and its first label",
+          favs.map(function (e) { return e.label }).join(","), "Home,Downloads,Documents,Media")
+    check("a non-file bookmark never reaches FAVORITES", favs.length, 4)
+    check("every row is tagged as a favourite", favs[3].group + "/" + favs[3].kind, "favorite/favorite")
+    check("the mark is resolved by the caller, so the rail keeps its own Icons import", favs[1].glyph, "mark:Downloads")
+    check("a box with neither file still gets Home", Places.favorites("/home/gm", "", "", function () { return "m" }).length, 1)
 }

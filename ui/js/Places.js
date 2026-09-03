@@ -37,6 +37,26 @@ function bookmarks(body) {
     return out
 }
 
+// The FAVORITES rail's rows, Home first and always, then XDG dirs and bookmarked places in file
+// order, a path seen twice keeping its first position. glyphFor resolves each row's mark so the
+// rail's Icons import stays the rail's own business; see ui/Sidebar.qml's rebuild.
+function favorites(home, dirsText, marksText, glyphFor) {
+    var favs = [{ path: home, label: "Home", group: "favorite", kind: "favorite", glyph: glyphFor("Home") }]
+    var seen = {}
+    seen[home] = true
+    var groups = [userDirs(dirsText, home), bookmarks(marksText)]
+    for (var g = 0; g < groups.length; g++) {
+        for (var i = 0; i < groups[g].length; i++) {
+            if (seen[groups[g][i].path])
+                continue
+            var e = groups[g][i]
+            seen[e.path] = true
+            favs.push({ path: e.path, label: e.label, group: "favorite", kind: "favorite", glyph: glyphFor(e.label) })
+        }
+    }
+    return favs
+}
+
 function leaf(path) {
     var cut = path.lastIndexOf("/")
     return cut < 0 ? path : path.substring(cut + 1)
