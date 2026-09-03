@@ -4,8 +4,13 @@ function run(check) {
     var remote = "/run/user/1000/gvfs/sftp:host=box/home/pi"
     check("a GVFS path is remote", Remote.isRemotePath(remote), true)
     check("a local lookalike is local", Remote.isRemotePath("/tmp/gvfs/box"), false)
+    check("the mount root stops before the path inside it", Remote.remoteRoot(remote), "/run/user/1000/gvfs/sftp:host=box")
     check("two mounted endpoints are remote to remote", Remote.transferKind([remote + "/a"], "/run/user/1000/gvfs/smb-share:server=nas,share=data"), "remote-to-remote")
     check("a local source to a mount is named separately", Remote.transferKind(["/tmp/a"], remote), "local-to-remote")
+    check("a mixed batch is not mislabeled as entirely between remote hosts",
+          Remote.transferKind([remote + "/a", "/tmp/b"], "/run/user/1000/gvfs/smb-share:server=nas,share=data"), "local-to-remote")
+    check("a transfer within one mount is not described as crossing hosts",
+          Remote.transferKind([remote + "/a"], remote + "/folder"), "same-remote")
     check("a remote destination line is explicit", Remote.transferPrefix("remote-to-remote", false), "Copying between remote hosts")
     var peer = { group:"network", kind:"peer", uri:"sftp://pi@box/", health:"online", origin:"tailnet", taildrop:true, mac:"" }
     check("a Tailnet peer gets safe remote actions", Remote.menu(peer).map(function (r) { return r.action }).join("|"), "copy-address|open-ssh|taildrop-peer")

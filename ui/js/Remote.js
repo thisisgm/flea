@@ -1,18 +1,29 @@
 .pragma library
 
 function isRemotePath(path) {
-    return /^\/run\/user\/\d+\/gvfs\//.test(String(path || ""))
+    return remoteRoot(path).length > 0
+}
+
+function remoteRoot(path) {
+    var match = String(path || "").match(/^(\/run\/user\/\d+\/gvfs\/[^\/]+)(?:\/|$)/)
+    return match ? match[1] : ""
 }
 
 function transferKind(paths, destination) {
-    if (!isRemotePath(destination))
+    var destinationRoot = remoteRoot(destination)
+    if (destinationRoot.length === 0)
         return "local"
     var list = paths || []
+    if (list.length === 0)
+        return "local-to-remote"
     for (var i = 0; i < list.length; i++) {
-        if (isRemotePath(list[i]))
-            return "remote-to-remote"
+        var sourceRoot = remoteRoot(list[i])
+        if (sourceRoot.length === 0)
+            return "local-to-remote"
+        if (sourceRoot === destinationRoot)
+            return "same-remote"
     }
-    return "local-to-remote"
+    return "remote-to-remote"
 }
 
 function transferPrefix(kind, moving) {
