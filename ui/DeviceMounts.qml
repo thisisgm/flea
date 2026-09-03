@@ -74,6 +74,8 @@ Item {
         root._listTimedOut = false
         root._streamPending = true
         root._listingsStarted += 1
+        // lsblk can legitimately return an empty tree. Never rebuild from the previous poll.
+        root._listOutput = ""
         listProcess.running = true
         listTimeout.restart()
     }

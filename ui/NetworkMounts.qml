@@ -136,6 +136,9 @@ Item {
             root.runInfo(uri)
             return
         }
+        // The collector belongs to the Process, but this fallback belongs to us and survives
+        // restarts. A quiet failure must never inherit an earlier "already mounted" stderr.
+        root._mountErrOutput = ""
         mountProcess.command = ["gio", "mount", uri]
         mountProcess.running = true
         mountTimeout.restart()
@@ -155,6 +158,8 @@ Item {
     }
 
     function runInfo(uri) {
+        // An empty reply is an answer. Do not turn it into the previous share's local path.
+        root._infoOutput = ""
         infoProcess.command = ["gio", "info", uri]
         infoProcess.running = true
     }
@@ -173,6 +178,8 @@ Item {
     function listShares(uri) {
         if (listSharesProcess.running) return
         root._listSharesTimedOut = false
+        // A server that now lists nothing must not reopen the prior server's rows.
+        root._listSharesOutput = ""
         listSharesProcess.command = ["gio", "list", uri]
         listSharesProcess.running = true
         listSharesTimeout.restart()
@@ -240,6 +247,8 @@ Item {
             return
         }
         root._listTimedOut = false
+        // Successful empty output means there are no live mounts; the prior poll is not a fallback.
+        root._mountListOutput = ""
         mountListProcess.running = true
         listTimeout.restart()
     }

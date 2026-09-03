@@ -18,6 +18,8 @@ Item {
     function refresh() {
         if (statusProcess.running)
             return
+        // A successful empty status means no targets, not "reuse the last non-empty status".
+        root._statusOutput = ""
         statusProcess.running = true
     }
 
