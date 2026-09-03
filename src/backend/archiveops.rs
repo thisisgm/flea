@@ -89,6 +89,10 @@ pub fn convert_one(input: &Path, dest: &Path, strip: bool) -> Result<(), FleaErr
     if dest.symlink_metadata().is_ok() {
         return Err(op_err("convert", &dest.to_string_lossy(), "that destination already exists"));
     }
+    // Absolute, so ImageMagick can never read the input as an option (a file named "-write ...").
+    // The staged destination is already absolute under the work directory beside dest.
+    let input = std::fs::canonicalize(input).map_err(|e| from_io("convert", &input.to_string_lossy(), &e))?;
+    let input = input.as_path();
     let parent = dest.parent().unwrap_or(Path::new("/"));
     let work = Work::new(parent, "cvt")?;
     let name = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
