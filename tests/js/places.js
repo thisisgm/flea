@@ -119,4 +119,17 @@ function run(check) {
         'sftp://nas/data Homelab\n'
         + 'file:///home/gm/Downloads Downloads\n'
         + 'sftp://nas/data Homelab\n')
+
+    check("remove drops the matched line and keeps the rest",
+        Places.remove(netFile, "smb://192.168.1.10/data"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("a trailing-slash live uri still finds the written line to drop",
+        Places.remove(netFile, "smb://192.168.1.10/data/"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("an empty uri is a no-op", Places.remove(netFile, ""), netFile)
+    check("every matching duplicate is dropped",
+        Places.remove(dupes, "smb://192.168.1.10/data"),
+        'file:///home/gm/Downloads Downloads\n')
 }

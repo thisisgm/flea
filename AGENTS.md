@@ -3634,5 +3634,6 @@ menu row and not a release.
 
 `Places.replace(body, oldUri, newUri, label)` is the write: normalized match like `relabel`, every
 duplicate rewritten, control characters stripped from the label, an empty old URI appends (Add).
-`tests/js/places.js`, `tests/js/protocols.js`, `tests/js/mounts.js` and `tests/ui.sh case_networkedit`
-hold it.
+`Places.remove(body, uri)` drops matching lines. Remove on a live share also unmounts, so the row
+leaves instead of becoming a mount-only leftover. `tests/js/places.js`, `tests/js/protocols.js`,
+`tests/js/mounts.js` and `tests/ui.sh case_networkedit` hold it.

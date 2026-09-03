@@ -173,6 +173,7 @@ function railMenu(entry) {
         if (entry.mounted)
             rows.push({ label: "Unmount", action: "unmount", glyph: "eject" })
         rows.push({ label: "Edit", action: "edit", glyph: "rename" })
+        rows.push({ label: "Remove", action: "remove", glyph: "trash" })
         return rows
     }
     return []
@@ -261,4 +262,6 @@ function release(action, key, devices, mounts, deviceEntries, networkEntries, ed
         mounts.unmount(share)
     if (action === "edit" && editor)
         editor.edit(networkEntries[share].uri, networkEntries[share].label)
+    if (action === "remove")
+        mounts.remove(share)
 }

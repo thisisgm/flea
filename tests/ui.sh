@@ -2225,10 +2225,10 @@ case_networkedit() {
         "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
     shot networkedit-menu
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "networkedit: right click opened no menu on the bookmark"
-    [[ "$(ipc contextMenuEntries)" == "Edit" ]] \
-        || fail "networkedit: the bookmark's menu is $(ipc contextMenuEntries), not one Edit row"
-    [[ "$(ipc contextMenuGlyphs)" == "rename" ]] \
-        || fail "networkedit: the Edit row draws $(ipc contextMenuGlyphs), not the rename mark"
+    [[ "$(ipc contextMenuEntries)" == "Edit|Remove" ]] \
+        || fail "networkedit: the bookmark's menu is $(ipc contextMenuEntries), not Edit then Remove"
+    [[ "$(ipc contextMenuGlyphs)" == "rename|trash" ]] \
+        || fail "networkedit: the glyphs are $(ipc contextMenuGlyphs), not rename then trash"
 
     key -k Return >/dev/null
     settle
@@ -2489,10 +2489,10 @@ EOS
         "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
     shot unmount-menu
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "unmount: right click opened no menu on the share"
-    [[ "$(ipc contextMenuEntries)" == "Unmount|Edit" ]] \
-        || fail "unmount: the share's menu is $(ipc contextMenuEntries), not Unmount then Edit"
-    [[ "$(ipc contextMenuGlyphs)" == "eject|rename" ]] \
-        || fail "unmount: the share's glyphs are $(ipc contextMenuGlyphs), not eject then rename"
+    [[ "$(ipc contextMenuEntries)" == "Unmount|Edit|Remove" ]] \
+        || fail "unmount: the share's menu is $(ipc contextMenuEntries), not Unmount, Edit, Remove"
+    [[ "$(ipc contextMenuGlyphs)" == "eject|rename|trash" ]] \
+        || fail "unmount: the share's glyphs are $(ipc contextMenuGlyphs), not eject, rename, trash"
     [[ -z "$(cat "$unmount_log")" ]] || fail "unmount: opening the menu already unmounted: $(cat "$unmount_log")"
 
     # Escape closes it and still nothing has run, which is what makes the menu the confirmation.

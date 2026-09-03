@@ -198,7 +198,7 @@ function run(check) {
 
     check("a mounted removable volume offers Eject", Mounts.railMenu(volume).map(function (r) { return r.action }).join("|"), "eject")
     check("and that row is named and marked", Mounts.railMenu(volume)[0].label + "/" + Mounts.railMenu(volume)[0].glyph, "Eject/eject")
-    check("a mounted network share offers Unmount then Edit", Mounts.railMenu(share).map(function (r) { return r.action }).join("|"), "unmount|edit")
+    check("a mounted network share offers Unmount, Edit, Remove", Mounts.railMenu(share).map(function (r) { return r.action }).join("|"), "unmount|edit|remove")
     check("Unmount stays first so Ctrl+E still unmounts", Mounts.railMenu(share)[0].label + "/" + Mounts.railMenu(share)[0].glyph, "Unmount/eject")
     check("Edit draws the rename mark", Mounts.railMenu(share)[1].label + "/" + Mounts.railMenu(share)[1].glyph, "Edit/rename")
 
@@ -207,7 +207,7 @@ function run(check) {
     check("the Dropbox row offers nothing, it is a local folder the stock service owns", Mounts.railMenu(dropbox).length, 0)
     check("a favourite offers nothing, it is not a mount at all", Mounts.railMenu(favourite).length, 0)
     check("an unmounted volume offers nothing, there is nothing to release", Mounts.railMenu(idle).length, 0)
-    check("a bookmark nothing has mounted offers Edit", Mounts.railMenu(bookmark).map(function (r) { return r.action }).join("|"), "edit")
+    check("a bookmark nothing has mounted offers Edit then Remove", Mounts.railMenu(bookmark).map(function (r) { return r.action }).join("|"), "edit|remove")
     check("Ctrl+E unmounts a live share and ignores a bookmark", Mounts.releaseAction(share) + "|" + Mounts.releaseAction(bookmark), "unmount|")
     check("no entry at all offers nothing rather than throwing", Mounts.railMenu(null).length, 0)
     check("an undefined entry offers nothing rather than throwing", Mounts.railMenu(undefined).length, 0)
@@ -285,7 +285,7 @@ function run(check) {
     check("no rail at all answers nothing rather than throwing", Mounts.holding(null, "/x"), null)
 
     // The rail menu's chosen row, resolved by key; a key that no longer names a row releases nothing.
-    function rec() { var a = []; return { a: a, eject: function (i) { a.push("e" + i) }, unmount: function (i) { a.push("u" + i) } } }
+    function rec() { var a = []; return { a: a, eject: function (i) { a.push("e" + i) }, unmount: function (i) { a.push("u" + i) }, remove: function (i) { a.push("r" + i) } } }
     function released(action, key) {
         var d = rec(), n = rec(), edited = []
         Mounts.release(action, key, d, n, [disk, stick], [{ label: "isos", group: "network", kind: "share", uri: "smb://x/isos/", path: "", mounted: true }],

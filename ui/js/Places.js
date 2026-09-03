@@ -121,3 +121,26 @@ function replace(body, oldUri, newUri, label) {
         out += "\n"
     return out + next + " " + trimmed + "\n"
 }
+
+// Drops every line whose uri matches, leaving the rest byte-identical. An empty uri is a no-op
+// so a Dropbox row with no bookmark cannot wipe the file.
+function remove(body, uri) {
+    var target = Mounts.normalize(uri)
+    if (target.length === 0)
+        return String(body || "")
+    var lines = String(body || "").split("\n")
+    var out = []
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i]
+        if (line.trim().length === 0) {
+            out.push(line)
+            continue
+        }
+        var space = line.indexOf(" ")
+        var u = space < 0 ? line : line.substring(0, space)
+        if (Mounts.normalize(u) === target)
+            continue
+        out.push(line)
+    }
+    return out.join("\n")
+}

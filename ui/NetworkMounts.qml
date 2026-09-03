@@ -168,6 +168,19 @@ Item {
         unmountProcess.running = true
     }
 
+    // Drops the bookmark line. A live mount is unmounted too, so the row leaves the rail instead
+    // of turning into a mount-only leftover of the place the operator just deleted.
+    function remove(index) {
+        var e = root.entries[index]
+        if (!e || e.kind !== "share") return
+        var body = bookmarksWrite.text()
+        bookmarksWrite.setText(Places.remove(body, e.uri))
+        bookmarksWrite.waitForJob()
+        root.renamed()
+        if (e.mounted)
+            root.unmount(index)
+    }
+
     // Rewrites uri's own label, or appends a bookmark for it if it was only ever a live mount;
     // either way this is what makes the rename survive a reboot. waitForJob() blocks until the
     // write actually lands, the same fix AGENTS.md "A FileView write can race a reload" applies
