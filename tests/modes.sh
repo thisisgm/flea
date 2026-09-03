@@ -33,6 +33,11 @@ check "--version wins over another mode" "$want" "$out"
 out=$(env -u WAYLAND_DISPLAY -u DISPLAY $BIN --gui 2>&1 </dev/null)
 check "no display refuses" "1" "$(echo "$out" | grep -c 'no graphical session')"
 
+# An exported-but-empty display is absent too. It must not reach qs and turn the precise refusal
+# above into a generic shell-start failure.
+out=$(env WAYLAND_DISPLAY= DISPLAY= PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
+check "an empty display refuses" "1" "$(echo "$out" | grep -c 'no graphical session')"
+
 # qs missing from PATH is what a bad launcher or .desktop install hits; no errno may leak.
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
 check "missing qs is elided" "1" "$(echo "$out" | grep -c 'could not start the shell')"
