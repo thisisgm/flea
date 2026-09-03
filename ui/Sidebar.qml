@@ -134,7 +134,7 @@ Item {
     }
 
     // The keyboard's own entrance to the same menu, opened under the row the rail cursor is on.
-    // Whether that row has anything to release is ui/js/Focus.js "raiseMenu"'s question, already
+    // Whether that row has anything to release is ui/js/Mounts.js "raiseMenu"'s question, already
     // answered before this is called; this only turns the cursor into a point to open at.
     function openCursorMenu() {
         var row = root.railItemFor(root.cursorIndex)

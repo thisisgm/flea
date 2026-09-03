@@ -213,6 +213,18 @@ function holding(entries, dir) {
     return null
 }
 
+// The keyboard's route into the rail menu, and where a rail row without one is answered: the sheet
+// advertises m, so a key that silently did nothing on a favourite would read as a broken one.
+function raiseMenu(pane, sidebar) {
+    var entry = sidebar.entries[sidebar.cursorIndex]
+    if (!entry)
+        return
+    if (railMenu(entry).length > 0)
+        sidebar.openCursorMenu()
+    else
+        pane.message(entry.label + " has nothing to eject or unmount.", false)
+}
+
 // The rail menu's chosen row, handed the row's key rather than its position: the rail rebuilds on
 // a five second poll, so the index the menu opened over can name a different row by now. A key
 // that no longer names a row does nothing, because the row it named has left the rail already.

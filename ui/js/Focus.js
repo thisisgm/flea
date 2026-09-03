@@ -106,7 +106,7 @@ function act(action, root) {
     case "paste": Ops.paste(root); return
     case "undo": Ops.undo(root); return
     case "rename": Ops.startRename(root); return
-    // m. The rail's raiseMenu says why a favourite has no menu; here the pane says whether a row was
+    // m. Mounts.raiseMenu says why a favourite has no menu; here the pane says whether a row was
     // under the cursor at all, and an empty or fully filtered listing gets the sentence, not silence.
     case "menu":
         if (!root.openCursorMenu())
@@ -248,7 +248,7 @@ function handleKey(event, root, sidebar) {
     // both views, so neither the list nor the rail is the view that owns it. The pane only asks for
     // it; ui/shell.qml owns the field and hands the keyboard back when it closes.
     // Issue 9: the interface scale belongs to the window, so it answers from either view.
-    if (action === "scaleUp" || action === "scaleDown" || action === "scaleReset") {
+    if (action.indexOf("scale") === 0) {
         root.scaleRequested(action === "scaleReset" ? 0 : (action === "scaleUp" ? 1 : -1))
         return true
     }
@@ -273,18 +273,6 @@ function handleKey(event, root, sidebar) {
     return false
 }
 
-// The keyboard's route into the rail menu, and where a rail row without one is answered: the sheet
-// advertises m, so a key that silently did nothing on a favourite would read as a broken one.
-function raiseMenu(root, sidebar) {
-    var entry = sidebar.entries[sidebar.cursorIndex]
-    if (!entry)
-        return
-    if (Mounts.railMenu(entry).length > 0)
-        sidebar.openCursorMenu()
-    else
-        root.message(entry.label + " has nothing to eject or unmount.", false)
-}
-
 // The rail answers seven of the key table's action names and ignores the rest while it has focus.
 function railAct(action, root, sidebar) {
     switch (action) {
@@ -297,7 +285,7 @@ function railAct(action, root, sidebar) {
     // Favorites are not offered: Sidebar.startRename ignores an index outside the Network group.
     case "rename": sidebar.startRename(sidebar.cursorIndex); return
     // Eject and Unmount are menu rows, so this opens the menu rather than inventing a second route.
-    case "menu": raiseMenu(root, sidebar); return
+    case "menu": Mounts.raiseMenu(root, sidebar); return
     case "eject": Eject.release(root, sidebar, true); return
     }
 }
