@@ -164,13 +164,11 @@ Item {
     function isBareRoot(uri) {
         return /^[a-z][a-z0-9+.-]*:\/\/[^\/]+\/?$/i.test(uri)
     }
-
     // Reads gio's own words rather than guessing from the uri's shape; see AGENTS.md "'Already
     // mounted' is not just a bare-root quirk" for why isBareRoot() alone was wrong here.
     function isAlreadyMountedQuirk(text) {
         return /already mounted/i.test(String(text || ""))
     }
-
     // Client-side only, never writes bookmarks; see AGENTS.md "The share browser overlay".
     function listShares(uri) {
         if (listSharesProcess.running) return
@@ -179,7 +177,6 @@ Item {
         listSharesProcess.running = true
         listSharesTimeout.restart()
     }
-
     // Right click unmounts directly, no confirmation popup: see AGENTS.md "A second ContextMenu
     // instance breaks the whole window's keyboard focus" for why one was tried and reverted.
     function unmount(index) {
@@ -201,12 +198,10 @@ Item {
         root.runUnmount(target)
         return true
     }
-
     function runUnmount(uri) {
         unmountProcess.command = ["gio", "mount", "-u", uri]
         unmountProcess.running = true
     }
-
     function dropBookmark(uri) {
         var body = bookmarksWrite.text()
         bookmarksWrite.setText(Places.remove(body, uri))
