@@ -212,14 +212,33 @@ Item {
     function openSubmenu(index) {
         root.openSubmenuRow = index
         root.submenuCursor = 0
+        Qt.callLater(root.revealSubmenuCursor)
     }
 
-    // Rows above the open one are a mix of full rows and separators, so the offset is summed, not multiplied.
-    function submenuOffset() {
+    function entriesHeight(items) {
         var y = 0
-        for (var i = 0; i < root.openSubmenuRow; i++)
-            y += root.entries[i].separator === true ? separatorProbe.separatorHeight : Theme.rowHeight
+        for (var i = 0; i < items.length; i++)
+            y += items[i].separator === true ? separatorProbe.separatorHeight : Theme.rowHeight
         return y
+    }
+
+    function revealMainCursor() {
+        if (root.opened && !root.submenuOpen)
+            rows.positionViewAtIndex(root.cursor, ListView.Contain)
+    }
+
+    function revealSubmenuCursor() {
+        if (root.submenuOpen)
+            peers.positionViewAtIndex(root.submenuCursor, ListView.Contain)
+    }
+
+    onCursorChanged: root.revealMainCursor()
+    onSubmenuCursorChanged: root.revealSubmenuCursor()
+
+    function flyoutY() {
+        var row = rows.itemAtIndex(root.openSubmenuRow)
+        var wanted = row ? frame.y + Theme.spacing.rowPaddingY + row.y - rows.contentY : frame.y
+        return Menu.clamp(wanted, flyout.height, root.height)
     }
 
     // One row off the model, only so the two heights above are read from MenuRow rather than repeated here.
@@ -239,7 +258,7 @@ Item {
         id: frame
         width: Theme.menuWidth
         // The vertical inset keeps the first and last row's square highlight off the rounded corners.
-        height: rows.implicitHeight + 2 * Theme.spacing.rowPaddingY
+        height: Menu.boundedExtent(root.entriesHeight(root.entries) + 2 * Theme.spacing.rowPaddingY, root.height)
         // The height this menu is actually going to have, arriving after place() has already run.
         onHeightChanged: if (root.opened) root.clampFrame()
         color: Theme.color.surface
@@ -248,28 +267,34 @@ Item {
         // Mirrors hyprland decoration:rounding, same as NetworkDialog; 0 on a stock box stays square.
         radius: Style.cornerRadius
 
-        Column {
+        ListView {
             id: rows
-            width: parent.width
-            y: Theme.spacing.rowPaddingY
+            anchors.fill: parent
+            anchors.topMargin: Theme.spacing.rowPaddingY
+            anchors.bottomMargin: Theme.spacing.rowPaddingY
+            model: root.entries
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
 
-            Repeater {
-                model: root.entries
-                delegate: Flea.MenuRow {
-                    id: row
-                    required property var modelData
-                    required property int index
-                    width: rows.width
-                    entry: row.modelData
-                    compact: root.forRail
-                    current: !root.submenuOpen && root.cursor === row.index
-                    onHoverEntered: root.cursor = row.index
-                    onActivated: {
-                        if (Menu.hasSubmenu(row.modelData))
-                            root.openSubmenu(row.index)
-                        else
-                            root.choose(row.modelData.action)
-                    }
+            Flea.FastScrollHandler {
+                parent: rows
+                flickable: rows
+            }
+
+            delegate: Flea.MenuRow {
+                id: row
+                required property var modelData
+                required property int index
+                width: rows.width
+                entry: row.modelData
+                compact: root.forRail
+                current: !root.submenuOpen && root.cursor === row.index
+                onHoverEntered: root.cursor = row.index
+                onActivated: {
+                    if (Menu.hasSubmenu(row.modelData))
+                        root.openSubmenu(row.index)
+                    else
+                        root.choose(row.modelData.action)
                 }
             }
         }
@@ -279,36 +304,41 @@ Item {
     Rectangle {
         id: flyout
         visible: root.submenuOpen
-        x: frame.x + frame.width
-        // peers.y already carries the inset, so the flyout frame itself stays on the row grid.
-        y: frame.y + root.submenuOffset()
+        x: Menu.adjacentX(frame.x, frame.width, width, root.width)
+        y: root.flyoutY()
         width: Theme.menuWidth
-        height: peers.implicitHeight + 2 * Theme.spacing.rowPaddingY
+        height: Menu.boundedExtent(root.entriesHeight(root.submenuEntries) + 2 * Theme.spacing.rowPaddingY, root.height)
         color: Theme.color.surface
         border.width: Theme.spacing.hairline
         border.color: Theme.color.muted
         radius: Style.cornerRadius
 
-        Column {
+        ListView {
             id: peers
-            width: parent.width
-            y: Theme.spacing.rowPaddingY
+            anchors.fill: parent
+            anchors.topMargin: Theme.spacing.rowPaddingY
+            anchors.bottomMargin: Theme.spacing.rowPaddingY
+            model: root.submenuEntries
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
 
-            Repeater {
-                model: root.submenuEntries
-                delegate: Flea.MenuRow {
-                    id: subRow
-                    required property var modelData
-                    required property int index
-                    width: peers.width
-                    // A Taildrop peer is a machine and takes the sidebar's own server mark; an archive
-                    // format is a file about to exist and takes the archive mark.
-                    entry: ({ label: subRow.modelData.label, action: "",
-                              glyph: root.entries[root.openSubmenuRow].action === "taildrop" ? "server" : "archive" })
-                    current: root.submenuCursor === subRow.index
-                    onHoverEntered: root.submenuCursor = subRow.index
-                    onActivated: root.chooseSub(subRow.modelData.id)
-                }
+            Flea.FastScrollHandler {
+                parent: peers
+                flickable: peers
+            }
+
+            delegate: Flea.MenuRow {
+                id: subRow
+                required property var modelData
+                required property int index
+                width: peers.width
+                // A Taildrop peer is a machine and takes the sidebar's own server mark; an archive
+                // format is a file about to exist and takes the archive mark.
+                entry: ({ label: subRow.modelData.label, action: "",
+                          glyph: root.entries[root.openSubmenuRow].action === "taildrop" ? "server" : "archive" })
+                current: root.submenuCursor === subRow.index
+                onHoverEntered: root.submenuCursor = subRow.index
+                onActivated: root.chooseSub(subRow.modelData.id)
             }
         }
     }

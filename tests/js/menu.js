@@ -48,6 +48,14 @@ function run(check) {
           Menu.clamp(-40, railMenu, pane), 0)
     check("a frame taller than the pane pins to the near edge, which is where its tail is cut",
           Menu.clamp(700, 1200, pane), 0)
+    check("a tall menu is bounded to the viewport instead of cutting off its tail",
+          Menu.boundedExtent(1200, pane), 800)
+    check("an ordinary flyout opens on the right",
+          Menu.adjacentX(100, 240, 240, pane), 340)
+    check("a flyout near the far edge opens wholly on the left",
+          Menu.adjacentX(560, 240, 240, pane), 320)
+    check("a flyout wider than the viewport still pins to the near edge",
+          Menu.adjacentX(0, 240, 1200, pane), 0)
 }
 
 // ui/js/Menu.js listingEntries: the listing's rows, built from the pane's state in one object.
