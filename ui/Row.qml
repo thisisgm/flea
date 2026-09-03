@@ -43,7 +43,7 @@ Item {
     // The columns this row's width affords, and which of them this row is drawing. A column that
     // is not drawn takes neither its width nor its gap, so the chain collapses onto the one to its
     // right and the name takes back the whole of it.
-    readonly property var cols: Theme.columns(root.width)
+    readonly property var cols: Theme.columns(root.width, ViewState.hiddenCols)
     readonly property bool modeShown: !root.searching && root.cols.mode
     // The search column set keeps Size and drops the other three, so only this one ignores searching.
     readonly property bool sizeShown: root.cols.size
@@ -353,7 +353,7 @@ Item {
     }
 
     // What this row is drawing right now, for the seam that reads it beside the header's.
-    function columnSet() { return Theme.columnNames(root.width) }
+    function columnSet() { return Theme.columnNames(root.width, ViewState.hiddenCols) }
 
     // The same by-key idiom Header.cell uses, so the overflow reader can reach a specific cell.
     function cell(key) {

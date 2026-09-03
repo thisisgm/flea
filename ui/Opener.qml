@@ -38,4 +38,20 @@ Item {
             root.failed(root.current)
         }
     }
+
+    // The system clipboard, for the listing menu's Copy Path row. wl-copy reads the text on stdin,
+    // so the one-liner hands it over; flea's own copy clipboard (Ops.clip) is a different thing
+    // and must stay a different thing.
+    function copyText(text) {
+        if (copier.running) {
+            return
+        }
+        copier.command = ["sh", "-c", "printf '%s' \"$1\" | wl-copy", "_", text]
+        copier.running = true
+    }
+
+    Process {
+        id: copier
+    }
+
 }

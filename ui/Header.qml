@@ -13,6 +13,10 @@ Item {
     // was hit; the key is the protocol's own, which is why Date Modified sends "mtime".
     signal sortRequested(string key)
 
+    // A right click over the titles opens the pane's one ContextMenu with the column toggles and
+    // the Advanced group; a left click still sorts, and sortable still gates everything on a search.
+    signal menuRequested(var scenePosition)
+
     // The same hairline lift the status bar uses, so the two rules read alike.
     readonly property real ruleOpacity: 0.12
 
@@ -27,9 +31,10 @@ Item {
     // accepts no input, so the titles under it stay hittable unless the handlers go down with them.
     readonly property bool sortable: root.searchMode.length === 0
 
-    // The columns this width affords. ui/Row.qml resolves its own from a width anchoring keeps
+    // The columns this width affords, less the ones the user has hidden (qs module ViewState).
+    // ui/Row.qml resolves its own from a width anchoring keeps
     // equal to this one, so the header can never head a column no row below it is drawing.
-    readonly property var cols: Theme.columns(root.width)
+    readonly property var cols: Theme.columns(root.width, ViewState.hiddenCols)
 
     implicitHeight: Theme.chromeHeight
 
@@ -109,6 +114,13 @@ Item {
         elide: Text.ElideRight
     }
 
+    // The header is chrome, but it is the chrome the columns belong to, so its right click is where
+    // the columns are turned on and off. Left click sorts; sortable gates that, not this.
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: function (eventPoint) { root.menuRequested(eventPoint.scenePosition) }
+    }
+
     Rectangle {
         anchors.bottom: parent.bottom
         anchors.left: parent.left
@@ -132,7 +144,7 @@ Item {
     }
 
     // What the header is drawing right now, for the seam that reads it beside a row's.
-    function columnSet() { return Theme.columnNames(root.width) }
+    function columnSet() { return Theme.columnNames(root.width, ViewState.hiddenCols) }
 
     // The one lookup the geometry reader needs, the same by-key idiom Pane.itemFor uses for rows.
     function cell(key) {

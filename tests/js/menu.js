@@ -8,6 +8,7 @@
 // !== undefined, so the flyout opened correctly and only the affordance was missing.
 
 function run(check) {
+    runMenu(check)
     check("a Compress row carrying the probed formats is a submenu row",
           Menu.hasSubmenu({ label: "Compress", action: "compress",
                             submenu: Archive.formatEntries(["zip", "7z"]) }),
@@ -47,4 +48,55 @@ function run(check) {
           Menu.clamp(-40, railMenu, pane), 0)
     check("a frame taller than the pane pins to the near edge, which is where its tail is cut",
           Menu.clamp(700, 1200, pane), 0)
+}
+
+// ui/js/Menu.js listingEntries: the listing's rows, built from the pane's state in one object.
+// The row order below is the canvas's own, and the Open row now carries the resolved application
+// beside a Copy path row.
+
+function labels(entries) {
+    var out = []
+    for (var i = 0; i < entries.length; i++)
+        out.push(entries[i].separator === true ? "-" : entries[i].label)
+    return out.join("|")
+}
+
+function findEntry(entries, action) {
+    for (var i = 0; i < entries.length; i++)
+        if (entries[i].action === action)
+            return entries[i]
+    return {}
+}
+
+function runMenu(check) {
+    var full = Menu.listingEntries({
+        showHidden: false, hasRow: true, rowInDropbox: false,
+        dropboxPath: "/home/jw/Dropbox", taildropPeers: [{ id: "x", label: "Box" }],
+        archiveFormats: ["zip"], rowIsArchive: false, rowIsImage: false, canConvert: true
+    })
+    check("the listing menu opens with the row's own Open", full[0].label, "Open")
+    check("Copy path sits beside Open", findEntry(full, "copypath").label, "Copy path")
+    check("the hidden toggle moved behind Advanced, off the top level",
+          findEntry(full, "toggleHidden").label + "|" + findEntry(full, "advanced").submenu[0].label,
+          "undefined|Show hidden files")
+    check("Advanced carries the hidden toggle, flipping with the state",
+          Menu.advancedRows(false)[0].label + "|" + Menu.advancedRows(true)[0].label,
+          "Show hidden files|Hide hidden files")
+    check("an empty listing still offers New folder and Advanced",
+          labels(Menu.listingEntries({ showHidden: false, hasRow: false, rowInDropbox: false,
+                                       dropboxPath: "", taildropPeers: [], archiveFormats: [],
+                                       rowIsArchive: false, rowIsImage: false, canConvert: false })),
+          "New folder|Advanced")
+
+    // ui/Header.qml's own rows, on a right click over the column titles. Four toggles, flipping
+    // labels, each answering "col:<key>"; Name is absent because it never hides.
+    var head = Menu.headerEntries([], false)
+    check("the header menu offers the four optional columns, flipping labels when hidden",
+          labels(Menu.headerEntries(["size"], false)),
+          "Hide Mode|Show Size|Hide Date Modified|Hide Kind|-|Advanced")
+    check("every column row answers col:<key>",
+          findEntry(head, "col:size").action + "|" + findEntry(head, "col:kind").action,
+          "col:size|col:kind")
+    check("the header menu's Advanced carries the hidden toggle",
+          findEntry(head, "advanced").submenu[0].action, "toggleHidden")
 }

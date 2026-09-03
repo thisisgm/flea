@@ -1,5 +1,6 @@
 module flea
 singleton Theme 1.0 Theme.qml
+singleton ViewState 1.0 ViewState.qml
 Backend 1.0 Backend.qml
 ChromeBar 1.0 ChromeBar.qml
 ChromeButton 1.0 ChromeButton.qml

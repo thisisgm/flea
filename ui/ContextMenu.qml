@@ -1,7 +1,6 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
-import "js/Archive.js" as Archive
 import "js/Keymap.js" as Keymap
 import "js/Menu.js" as Menu
 
@@ -10,12 +9,14 @@ Item {
     id: root
 
     // Fires with the row's own action string ("open", "trash"); a chosen Taildrop peer fires
-    // "taildrop:<peerId>" instead, so one signal covers both without a second wire.
+    // "taildrop:<peerId>" instead, so one signal covers both without a second wire. The header's
+    // rows fire "col:<key>" and "toggleHidden", routed in ui/Pane.qml's onChosen.
     signal chosen(string action)
 
     property bool opened: false
     // Driven from ui/Pane.qml's own state, so this file owns no hidden-file logic itself.
     property bool showHidden: false
+    // The application name ui/Opener.qml resolved for the cursor row, shown muted beside "Open".
     // [{id, label}], the reachable Taildrop targets; empty self-hides the whole row, see ui/Taildrop.qml.
     property var taildropPeers: []
     // The archive formats this box actually probed, and whether a converter is installed at all.
@@ -39,6 +40,16 @@ Item {
     property string railKey: ""
     readonly property bool forRail: root.railEntries.length > 0
     signal railChosen(string action, string key)
+
+    // ui/Header.qml's own entrance, the third face of this one instance: openForHeader() flips the
+    // entries to ui/js/Menu.js headerEntries (the column toggles and the Advanced group, built from
+    // qs module ViewState's hidden columns and the pane's showHidden), and every row flows back
+    // through chosen() like the listing's own. A row's chosen verb routes by prefix in ui/Pane.qml.
+    property bool forHeader: false
+    function openForHeader(scenePoint) {
+        root.forHeader = true
+        root.place(scenePoint)
+    }
 
     // The pane keeps its Keys handler on the list, so the menu has to hand focus back on close.
     property Item focusHolder: null
@@ -66,62 +77,27 @@ Item {
     // The row list this menu currently offers; a test reads this back through shell.qml's IPC.
     readonly property var entries: root.buildEntries()
 
-    // The canvas's own order and grouping. Compress, Extract, Convert and Move to Dropbox belong
-    // between Duplicate and Taildrop and arrive with their own plans; a row whose action does
-    // nothing is worse than a row that is not there yet.
+    // The construction lives in ui/js/Menu.js now, so the rows are unit-testable without a window:
+    // listingEntries(p) builds the listing's rows from the pane's state, headerEntries() the column
+    // titles' own rows on a right click (see ui/Header.qml), and this file only routes between them.
     function buildEntries() {
         // Which release a rail row offers is the rail's knowledge, not the listing's, so the rail
         // hands its rows in already built; see ui/js/Mounts.js "railMenu".
         if (root.forRail)
             return root.railEntries
-        var out = []
-        if (root.hasRow) {
-            out.push({ label: "Open", action: "open", glyph: "folder-open" })
-            out.push({ separator: true })
-            out.push({ label: "Rename", action: "rename", glyph: "rename" })
-            out.push({ label: "Duplicate", action: "duplicate", glyph: "file-plus" })
-            var ops = []
-            // The submenu is exactly the table the backend probed, so a box with no tool offers nothing.
-            if (root.archiveFormats.length > 0)
-                ops.push({ label: "Compress", action: "compress", glyph: "archive",
-                           submenu: Archive.formatEntries(root.archiveFormats) })
-            if (root.rowIsArchive)
-                ops.push({ label: "Extract", action: "extract", glyph: "archive-out" })
-            if (root.canConvert && root.rowIsImage)
-                ops.push({ label: "Convert", action: "convert", glyph: "sliders" })
-            if (ops.length > 0) {
-                out.push({ separator: true })
-                for (var i = 0; i < ops.length; i++) out.push(ops[i])
-            }
-            var share = []
-            if (root.taildropPeers.length > 0)
-                share.push({ label: "Send with Taildrop", action: "taildrop", mark: "tailscale",
-                             submenu: root.taildropPeers })
-            // Moving a file into the folder it already lives in is not an action, so the row hides there.
-            if (root.dropboxPath.length > 0 && !root.rowInDropbox)
-                share.push({ label: "Move to Dropbox", action: "dropbox", mark: "dropbox" })
-            // A share link is inherently per file, so it appears only for a row already in Dropbox.
-            if (root.rowInDropbox)
-                share.push({ label: "Copy share link", action: "sharelink", glyph: "network" })
-            if (share.length > 0) {
-                out.push({ separator: true })
-                for (var s = 0; s < share.length; s++) out.push(share[s])
-            }
-            out.push({ separator: true })
-            // No confirm anywhere behind this row: the undo journal is the safety, see the operations design.
-            out.push({ label: "Move to Trash", action: "trash", glyph: "trash", danger: true })
-            out.push({ separator: true })
-        }
-        // The last group is the two rows that need no row under the cursor, which is also the whole
-        // menu on a listing's empty space. Operations.dc.html draws neither the row nor this divider,
-        // and a create action sitting directly under the destructive one is what earns the divider.
-        out.push({ label: "New folder", action: "newFolder", glyph: "folder-plus" })
-        out.push({
-            label: root.showHidden ? "Hide hidden files" : "Show hidden files",
-            action: "toggleHidden",
-            glyph: root.showHidden ? "eye-off" : "eye"
+        if (root.forHeader)
+            return Menu.headerEntries(ViewState.hiddenCols, root.showHidden)
+        return Menu.listingEntries({
+            showHidden: root.showHidden,
+            hasRow: root.hasRow,
+            rowInDropbox: root.rowInDropbox,
+            dropboxPath: root.dropboxPath,
+            taildropPeers: root.taildropPeers,
+            archiveFormats: root.archiveFormats,
+            rowIsArchive: root.rowIsArchive,
+            rowIsImage: root.rowIsImage,
+            canConvert: root.canConvert
         })
-        return out
     }
 
     // A separator is never the cursor, so both key steps and the opening cursor skip over one.
@@ -146,6 +122,7 @@ Item {
     // Takes a point in scene coordinates and keeps the whole menu inside the pane it belongs to.
     function openAt(scenePoint) {
         root.clearRail()
+        root.forHeader = false
         root.place(scenePoint)
     }
 

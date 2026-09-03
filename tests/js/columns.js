@@ -24,6 +24,7 @@ function nameSlot(width, s, t) {
 }
 
 function run(check) {
+    runHidden(check)
     var f = Columns.floors(BOX)
     // 216 is the name at its floor with no metadata at all: 14 + 23 + 9 + 156 + 14.
     check("mode needs the name's floor plus its own column and gap", f.mode, 295)
@@ -95,4 +96,26 @@ function run(check) {
           "name,mode,size,date,kind")
     check("the name is in the set even when everything else is gone",
           Columns.names({ mode: false, size: false, date: false, kind: false }), "name")
+}
+
+// The user's own hidden set, subtracted from what the width affords: a hidden column never draws,
+// and width still wins, so a column shown while the pane is too narrow stays dropped. The keys are
+// the same "mode"/"size"/"date"/"kind" the header menu's col:<key> actions carry.
+
+function runHidden(check) {
+    var none = Columns.set(2000, BOX, [])
+    check("an empty hidden set draws every column the width affords",
+          [none.mode, none.size, none.date, none.kind].join(","), "true,true,true,true")
+
+    var hid = Columns.set(2000, BOX, ["size", "kind"])
+    check("a hidden column does not draw at a width that would afford it",
+          [hid.mode, hid.size, hid.date, hid.kind].join(","), "true,false,true,false")
+
+    var narrow = Columns.set(200, BOX, ["kind"])
+    check("width still wins over a column the user wants back, Mode's own floor included",
+          [narrow.mode, narrow.size, narrow.date, narrow.kind].join(","), "false,false,false,false")
+
+    var undefinedSet = Columns.set(2000, BOX)
+    check("a caller that passes no hidden set draws as before",
+          [undefinedSet.mode, undefinedSet.size, undefinedSet.date, undefinedSet.kind].join(","), "true,true,true,true")
 }

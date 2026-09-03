@@ -101,6 +101,7 @@ Item {
     }
 
     Text {
+        id: label
         visible: !root.isSeparator
         anchors.left: markSlot.right
         anchors.leftMargin: Theme.spacing.gap

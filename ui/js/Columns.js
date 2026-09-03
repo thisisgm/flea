@@ -27,14 +27,20 @@ function floors(t) {
     return out
 }
 
-// One boolean per optional column, for a row of this width.
-function set(width, t) {
+// One boolean per optional column, for a row of this width. hidden is the user's own set (keys
+// "mode"/"size"/"date"/"kind", from qs module ViewState), subtracted from what the width
+// affords: a hidden column never draws, and width still wins over a column the user wants back —
+// the name cannot be crowded out by a column the pane is too narrow to carry.
+function set(width, t, hidden) {
     var f = floors(t)
+    var h = {}
+    var list = hidden || []
+    for (var i = 0; i < list.length; i++) h[list[i]] = true
     return {
-        mode: width >= f.mode,
-        size: width >= f.size,
-        date: width >= f.date,
-        kind: width >= f.kind
+        mode: width >= f.mode && !h["mode"],
+        size: width >= f.size && !h["size"],
+        date: width >= f.date && !h["date"],
+        kind: width >= f.kind && !h["kind"]
     }
 }
 

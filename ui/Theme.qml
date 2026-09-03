@@ -135,10 +135,11 @@ Singleton {
         readonly property real fraction: 0.82
     }
 
-    // The column set a list of this width can draw. ui/Header.qml and ui/Row.qml each call this
-    // with their own width, which anchoring keeps equal, so the header and the rows below it
-    // cannot disagree about which columns exist.
-    function columns(width) {
+    // The column set a list of this width can draw, less the columns the user has hidden (qs
+    // module ViewState). ui/Header.qml and ui/Row.qml each call this with their own width, which
+    // anchoring keeps equal, so the header and the rows below it cannot disagree about which
+    // columns exist.
+    function columns(width, hidden) {
         return Columns.set(width, {
             rowPaddingX: root.spacing.rowPaddingX,
             gap: root.spacing.gap,
@@ -148,12 +149,12 @@ Singleton {
             size: root.column.size,
             date: root.column.date,
             kind: root.column.kind
-        });
+        }, hidden);
     }
 
     // The same set as one string, which is what the seam in ui/Ipc.qml compares across the two.
-    function columnNames(width) {
-        return Columns.names(root.columns(width));
+    function columnNames(width, hidden) {
+        return Columns.names(root.columns(width, hidden));
     }
 
     // Five callers: ConvertDialog, KeymapSheet, NetworkDialog, NetworkForm, TransferCard; every other spacing token above is direct.
