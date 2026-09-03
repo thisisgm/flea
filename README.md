@@ -25,13 +25,13 @@ Flea is for Omarchy. `omarchy` and `quickshell` are hard dependencies, so it wil
 plain Arch box.
 
 ```bash
-git clone https://github.com/thisisgm/flea.git && cd flea && makepkg -si && flea --default
+omarchy pkg aur add flea && flea --default
 ```
 
-That is the whole install, and the last command is the only one you might leave out. `makepkg`
-builds the binary and the UI out of the clone, runs the test suite, and hands the finished package
-to pacman. `flea --default` then makes Flea the default file manager, the way
-`omarchy default browser` makes a browser the default: it becomes the handler for
+That is the whole install, and the last command is the only one you might leave out. Flea is on the
+AUR, so `omarchy pkg aur add` builds and installs it the way it installs anything else, and
+`omarchy update` keeps it current from then on. `flea --default` makes Flea the default file
+manager, the way `omarchy default browser` makes a browser the default: it becomes the handler for
 `inode/directory`, and Omarchy's two file-manager keys, `SUPER + SHIFT + F` and
 `SUPER + ALT + SHIFT + F`, open it instead of Nautilus. It prints what it replaced, and
 `flea --default off` puts both back.
@@ -40,6 +40,10 @@ to pacman. `flea --default` then makes Flea the default file manager, the way
 removal provable. `flea --default` is the one thing pacman does not own, because it is your
 preference and not a file of the package's: run `flea --default off` first, or see
 [`docs/install.md`](docs/install.md) for the two lines it would otherwise leave behind.
+
+`flea-git` is the same package built from `main` rather than from the last release, if you would
+rather track it. Building from a clone still works too, and is what the repository's own `PKGBUILD`
+is for: `git clone https://github.com/thisisgm/flea.git && cd flea && makepkg -si`.
 
 Four optional packages each unlock one feature and nothing else: `libarchive` for archive listing
 and extraction, `7zip` for `.7z` archives, `imagemagick` for image conversion, and `tailscale` for
@@ -51,18 +55,15 @@ and how to undo it by hand, and how the package proves itself.
 ## Update
 
 ```bash
-cd flea && git pull && makepkg -si
+omarchy update
 ```
 
-The same clone and the same command as the install. `makepkg` runs the test suite before it hands
-the package to pacman, pacman upgrades in place rather than installing alongside, and your
-`flea --default` choice survives it because that is a preference and not a file of the package's.
+Nothing Flea-specific to remember. `omarchy update` upgrades AUR packages on every run, so Flea
+comes up with the rest of the system, and your `flea --default` choice survives because that is a
+preference and not a file of the package's.
 
-There is no automatic update yet, so that command is the whole story: nothing tells you when a new
-version exists. An AUR package would fold Flea into `omarchy update`, which already upgrades AUR
-packages on every run, and would make the install `omarchy pkg aur add flea`. AUR account
-registration is closed at the moment while they deal with a wave of automated signups, so it goes
-up when registration reopens.
+The AUR packages are maintained by [@taxin-404](https://aur.archlinux.org/account/taxin-404), not by
+this repository.
 
 ## Measured against the field
 
