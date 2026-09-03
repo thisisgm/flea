@@ -33,9 +33,11 @@ this tree yet: `flea --tui` says so and exits 2.
    was rejected as slower and stale-capable; it remains disabled until the wire carries
    the requested path and a new measurement proves a real win.
 
-5. **Vulkan now, lazy multimedia later.** `ui/shell.qml` sets
-   `QSG_RHI_BACKEND=vulkan`, which costs 2.4x less memory than the OpenGL default and
-   initialises 35 ms faster, with identical frame timing. Preview and QtMultimedia
+5. **Vulkan first with an OpenGL fallback, lazy multimedia later.** `src/gui.rs` sets
+   `QSG_RHI_BACKEND=vulkan` when the user did not choose a renderer, which costs 2.4x less
+   memory than the OpenGL default and initialises 35 ms faster, with identical frame timing.
+   A scene-graph initialization failure relaunches once with OpenGL and drains the failed
+   backend; an explicit `QSG_RHI_BACKEND` is never replaced. Preview and QtMultimedia
    are now in the tree and the laziness held: `ui/PreviewMedia.qml` is the only file
    that imports QtMultimedia, reached through a `Loader` built by the first press of
    play, because QtMultimedia costs 20 MB before it plays anything.
