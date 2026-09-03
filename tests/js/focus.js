@@ -208,6 +208,18 @@ function run(check) {
     check("m raises the menu while the rail has focus", Focus.lookup(m, railPane()), "menu")
     check("m raises the menu in the list too, so the row menu has a key", Focus.lookup(m, pane(closed())), "menu")
 
+    // The rail is a cursored list, so g and G mean there what the sheet says they mean. Both
+    // answered nothing until v0.1.3, which is why tests/ui.sh sharebrowser pressed g to reset the
+    // rail cursor, landed one row below the entry it wanted, and activated the wrong one.
+    var railCursor = { entries: [1, 2, 3, 4], cursorIndex: 2 }
+    Focus.railAct("cursorFirst", railPane(), railCursor)
+    check("g takes the rail to its first row", railCursor.cursorIndex, 0)
+    Focus.railAct("cursorLast", railPane(), railCursor)
+    check("G takes the rail to its last row", railCursor.cursorIndex, 3)
+    var emptyRail = { entries: [], cursorIndex: 0 }
+    Focus.railAct("cursorLast", railPane(), emptyRail)
+    check("and an empty rail has no last row to reach", emptyRail.cursorIndex, 0)
+
     var railing = railPane()
     var mounted = rail([volume], 0)
     Focus.railAct("menu", railing, mounted)

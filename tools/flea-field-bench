@@ -5,7 +5,9 @@
 set -uo pipefail
 # This one runs from a copy outside the tree, so the guard is sourced by the tree's own path rather
 # than by $0's. It owns FIXTURE_ROOT and checks every path this script writes or deletes.
-FLEA_REPO="$HOME/Work/claude/flea"
+# Exported, and overridable: tools/flea-bench-manifest is a child process that defaults to this
+# same path, so an unexported value left it reporting a different tree than the run measured.
+export FLEA_REPO="${FLEA_REPO:-$HOME/Work/claude/flea}"
 . "$FLEA_REPO/tools/flea-sandbox-guard"
 
 
@@ -32,8 +34,8 @@ FIXTURE=${FIXTURE:-$FIXTURE_ROOT/flea-bench-btrfs}
 # re-derived by hand after an unrelated change is the same defect with a different constant.
 EXPECT_FILES=${EXPECT_FILES:-100000}
 DROP_THUMBS=${DROP_THUMBS:-no}
-FLEA_UI="$FLEA_REPO/ui"
-FLEA_BIN="$FLEA_REPO/target/release/flea"
+export FLEA_UI="$FLEA_REPO/ui"
+export FLEA_BIN="$FLEA_REPO/target/release/flea"
 # Strata is built from source rather than packaged, so its path is a variable and not a PATH lookup.
 STRATA_BIN=${STRATA_BIN:-$HOME/Work/strata/target/release/strata}
 # The one entrant here that persists no thumbnail. strata renders each one in a sandboxed helper

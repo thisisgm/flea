@@ -36,6 +36,17 @@ function names(list) {
 }
 
 function run(check) {
+    // The fold only runs when nothing matched exactly, so its matches can disagree in case inside
+    // the leaf. Before the guard this returned "R" for a typed "re" and said nothing about it.
+    var folded = PathBar.complete("~/re", ["README", "ReadMe.bak"])
+    check("a case-folded completion never hands back less than was typed", folded.text, "~/re")
+    check("and it still reports how many share it", folded.matches, 2)
+    check("so the sentence names the count rather than staying silent",
+          PathBar.completionMessage("~/re", folded, "/home/gm"), "2 names share that prefix.")
+    // The ordinary fold, where the common prefix is longer than the leaf, still grows the line.
+    var grows = PathBar.complete("~/de", ["Desktop"])
+    check("a lone case-folded match still completes to the real name", grows.text, "~/Desktop/")
+
     // The three shapes a line can take, which are the three the field's own prefill relies on.
     check("an absolute path is itself", PathBar.resolve("/etc", HOME, HOME), "/etc")
     check("a tilde is the home directory", PathBar.resolve("~", HOME, HOME), HOME)

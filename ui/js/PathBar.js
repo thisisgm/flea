@@ -171,6 +171,11 @@ function complete(text, names) {
         return { text: line, matches: 0 }
     }
     var grown = commonPrefix(matched)
+    // The fold only runs when nothing matched exactly, so the matches can disagree in case inside
+    // the leaf and their common prefix be shorter than it: "re" against README and ReadMe.bak
+    // shares only "R", and returning that would delete a character the user typed.
+    if (grown.length < parts.leaf.length)
+        grown = parts.leaf
     // One match is a whole name, so the line goes on with the separator already typed: Tab, Tab,
     // Tab walks a tree. Several share a prefix, which is as far as the line can honestly go.
     var tail = matched.length === 1 ? grown + "/" : grown

@@ -45,6 +45,87 @@ function pane(path) {
 }
 
 function run(check) {
+    // A search sets pane.path to the scope it walks and keeps the origin in searchFrom, which
+    // dropOverlay clears. openNew is driven whole rather than restingPath alone, because the defect
+    // was the ORDER of those two and a test on restingPath by itself passes either way.
+    var searching = pane("/")
+    searching.searchMode = "results"
+    searching.searchFrom = "/home/gm/Work"
+    Tabs.openNew(searching)
+    check("a tab opened from search results remembers where the user was, not the scope",
+          searching.tabs.items[1].path, "/home/gm/Work")
+    check("and so does the tab it was opened from", searching.tabs.items[0].path, "/home/gm/Work")
+    check("and the search is dropped once the paths are taken", searching.searchMode, "")
+    check("and the pane lands on the path the tab records", searching.path, "/home/gm/Work")
+    check("carrying no cursor from the search's own listing", searching.tabs.items[1].cursorIndex, 0)
+    check("and no selection from it either", searching.tabs.items[1].selected.length, 0)
+
+    var plain = pane("/tmp/here")
+    Tabs.openNew(plain)
+    check("an ordinary listing opens its tab on its own path", plain.tabs.items[1].path, "/tmp/here")
+
+    // The cursor is clamped when a listing arrives and the selection was not, so a row past the end
+    // of a directory that shrank while the tab was hidden was selected anyway.
+    var shrunk = { total: 3, selectionVersion: 0, toggled: [], clearSelection: function () {} }
+    shrunk.selection = { toggle: function (i) { shrunk.toggled.push(i) } }
+    Tabs.restoreSelection(shrunk, [0, 2, 7, 40])
+    check("a selection restored into a shrunken directory keeps only rows that still exist",
+          shrunk.toggled.join(","), "0,2")
+    var none = { total: 0, selectionVersion: 5, toggled: [], clearSelection: function () {} }
+    none.selection = { toggle: function (i) { none.toggled.push(i) } }
+    Tabs.restoreSelection(none, [1, 2])
+    check("and a restore that kept nothing does not announce a selection change",
+          none.toggled.length + "|" + none.selectionVersion, "0|5")
+
+    // The clamp alone was not enough: a row deleted BELOW a kept index leaves that index in range
+    // and naming a different file, which trash would then act on. A switch that re-lists carries no
+    // selection at all now, and the re-list's own reset is what clears it.
+    var moved = pane("/tmp/a")
+    moved.tabs = { items: [{ path: "/tmp/a" }, { path: "/tmp/b", history: [], cursorIndex: 1,
+                            viewMode: "list", showHidden: false, selected: [0, 1, 2],
+                            sortBy: "name", sortDesc: false }],
+                   index: 0, pendingCursor: -1, pendingSortBy: "", pendingSortDesc: false }
+    Tabs.selectAt(moved, 1)
+    check("a switch that re-lists asks for no selection to be restored",
+          moved.tabs.pendingSelected === undefined, true)
+    check("and it did re-list, which is what clears the selection", moved.listed.join(","), "/tmp/b")
+
+    // F3 and F4: a refusal and a background close must each cost the user nothing else.
+    var full = pane("/tmp/full")
+    var nine = []
+    for (var t = 0; t < 9; t++) nine.push({ path: "/tmp/" + t })
+    full.tabs = { items: nine, index: 0, pendingCursor: -1, pendingSelected: null,
+                  pendingSortBy: "", pendingSortDesc: false }
+    full.preview.active = true
+    full.searchMode = "results"
+    full.searchRunning = true
+    Tabs.openNew(full)
+    check("a refused tenth tab says so", full.said[full.said.length - 1], "Nine tabs is the most.")
+    check("and leaves the preview open", full.preview.active, true)
+    check("and does not cancel the running search", full.searchRunning, true)
+    check("and the search itself is still standing", full.searchMode, "results")
+
+    // selectAt got the same read-before-dropOverlay hoist, and nothing drove it from a search.
+    var leaving = pane("/")
+    leaving.searchMode = "results"
+    leaving.searchFrom = "/home/gm/Work"
+    var other = { path: "/tmp/other", history: [], cursorIndex: 0, viewMode: "list",
+                  showHidden: false, selected: [], sortBy: "name", sortDesc: false }
+    leaving.tabs = { items: [other, { path: "/" }], index: 1,
+                     pendingCursor: -1, pendingSortBy: "", pendingSortDesc: false }
+    Tabs.selectAt(leaving, 0)
+    check("the tab left behind during a search records where the user was",
+          leaving.tabs.items[1].path, "/home/gm/Work")
+
+    var many = pane("/tmp/one")
+    many.tabs = { items: [{ path: "/tmp/one" }, { path: "/tmp/two" }, { path: "/tmp/three" }],
+                  index: 0, pendingCursor: -1, pendingSelected: null,
+                  pendingSortBy: "", pendingSortDesc: false }
+    many.preview.active = true
+    Tabs.closeAt(many, 2)
+    check("closing a background tab leaves the current tab's preview alone", many.preview.active, true)
+    check("and still removes it", Tabs.count(many), 2)
+
     // The strip's binding reads these four by name rather than through the pane, so a comma
     // expression is not needed to make a label re-read when a tab opens; qmllint flagged that.
     var items = [{ path: "/home/gm" }, { path: "/tmp/one" }]

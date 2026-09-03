@@ -244,14 +244,12 @@ function handleKey(event, root, sidebar) {
         root.act(action)
         return true
     }
-    // The path bar is global for the same reason, and for one more: it lives in the chrome above
-    // both views, so neither the list nor the rail is the view that owns it. The pane only asks for
-    // it; ui/shell.qml owns the field and hands the keyboard back when it closes.
     // Issue 9: the interface scale belongs to the window, so it answers from either view.
     if (action.indexOf("scale") === 0) {
         root.scaleRequested(action === "scaleReset" ? 0 : (action === "scaleUp" ? 1 : -1))
         return true
     }
+    // The bar lives in the chrome above both views, so neither owns it; shell.qml holds the field.
     if (action === "pathBar") {
         root.pathBarRequested()
         return true
@@ -278,6 +276,10 @@ function railAct(action, root, sidebar) {
     switch (action) {
     case "cursorDown": sidebar.cursorIndex = Math.min(sidebar.entries.length - 1, sidebar.cursorIndex + 1); return
     case "cursorUp": sidebar.cursorIndex = Math.max(0, sidebar.cursorIndex - 1); return
+    // The sheet advertises g and G as first and last row, and the rail is a cursored list too, so
+    // they answered nothing here while every other cursor key worked.
+    case "cursorFirst": sidebar.cursorIndex = 0; return
+    case "cursorLast": sidebar.cursorIndex = Math.max(0, sidebar.entries.length - 1); return
     // activate(), not a direct opened(path): a Network entry may need mounting first.
     case "open": if (sidebar.entries.length > 0) sidebar.activate(sidebar.cursorIndex); return
     case "escape": root.focusView = LIST; return

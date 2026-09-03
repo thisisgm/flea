@@ -9,17 +9,26 @@
 
 var MAX = 9
 
-function snapshot(pane) {
-    var path = pane.path
+// Where a tab snapshotted now should reopen: a search sets pane.path to the scope it walks, so the
+// directory the user was in is searchFrom, and every caller reads this BEFORE dropOverlay clears it.
+function restingPath(pane) {
     if (pane.searchMode === "results" && pane.searchFrom.length > 0)
-        path = pane.searchFrom
+        return pane.searchFrom
+    return pane.path
+}
+
+function snapshot(pane, path) {
+    var where = path === undefined ? restingPath(pane) : path
+    // A cursor and a selection read off a search's own listing name nothing in the directory the
+    // tab records, so a tab stepping back out of a search starts at its first row with none.
+    var elsewhere = where !== pane.path
     return {
-        path: path,
+        path: where,
         history: pane.history.slice(),
-        cursorIndex: pane.cursorIndex,
+        cursorIndex: elsewhere ? 0 : pane.cursorIndex,
         viewMode: pane.viewMode,
         showHidden: pane.showHidden,
-        selected: pane.selectedIndices().slice(),
+        selected: elsewhere ? [] : pane.selectedIndices().slice(),
         sortBy: pane.backend.sortBy,
         sortDesc: pane.backend.sortDesc
     }
@@ -30,7 +39,6 @@ function pack(items, index) {
         items: items,
         index: index,
         pendingCursor: -1,
-        pendingSelected: null,
         pendingSortBy: "",
         pendingSortDesc: false
     }
@@ -101,13 +109,21 @@ function busy(pane) {
     return false
 }
 
+// Only ever called for a switch that re-listed nothing; the clamp is the belt on top of that, since
+// an index past the end would select a row that is not there at all.
 function restoreSelection(pane, selected) {
     pane.clearSelection()
     if (!selected || selected.length === 0)
         return
-    for (var i = 0; i < selected.length; i++)
-        pane.selection.toggle(selected[i])
-    pane.selectionVersion++
+    var kept = 0
+    for (var i = 0; i < selected.length; i++) {
+        if (selected[i] < pane.total) {
+            pane.selection.toggle(selected[i])
+            kept++
+        }
+    }
+    if (kept > 0)
+        pane.selectionVersion++
 }
 
 function apply(pane, item) {
@@ -122,15 +138,15 @@ function apply(pane, item) {
             pane.backend.sortDesc = item.sortDesc
             pane.backend.window(0, pane.windowSize)
             pane.tabs.pendingCursor = item.cursorIndex
-            pane.tabs.pendingSelected = item.selected
             return
         }
+        // The one switch that re-reads nothing, so the rows behind these indices are the rows the
+        // selection was made on and restoring it is safe. Every other path below drops it.
         pane.setCursor(item.cursorIndex)
         restoreSelection(pane, item.selected)
         return
     }
     pane.tabs.pendingCursor = item.cursorIndex
-    pane.tabs.pendingSelected = item.selected
     pane.tabs.pendingSortBy = item.sortBy
     pane.tabs.pendingSortDesc = item.sortDesc
     pane.openWithoutHistory(item.path)
@@ -157,39 +173,41 @@ function applyPending(pane) {
         pane.setCursor(Math.min(t.pendingCursor, last))
         t.pendingCursor = -1
     }
-    if (t.pendingSelected) {
-        restoreSelection(pane, t.pendingSelected)
-        t.pendingSelected = null
-    }
 }
 
-function currentItems(pane) {
+function currentItems(pane, here) {
     if (pane.tabs && pane.tabs.items && pane.tabs.items.length > 0)
         return pane.tabs.items.slice()
-    return [snapshot(pane)]
+    return [snapshot(pane, here)]
 }
 
 function openNew(pane) {
     if (busy(pane))
         return
-    closePreview(pane)
-    dropOverlay(pane)
-    var items = currentItems(pane)
-    var index = currentIndex(pane)
-    items[index] = snapshot(pane)
-    if (items.length >= MAX) {
-        pane.tabs = pack(items, index)
+    // Before the preview and the search go: a refused tenth tab must cost the user nothing.
+    if (count(pane) >= MAX) {
         pane.message("Nine tabs is the most.", false)
         return
     }
-    items.push(snapshot(pane))
+    var here = restingPath(pane)
+    closePreview(pane)
+    dropOverlay(pane)
+    var items = currentItems(pane, here)
+    var index = currentIndex(pane)
+    items[index] = snapshot(pane, here)
+    items.push(snapshot(pane, here))
     pane.tabs = pack(items, items.length - 1)
+    // dropOverlay clears the search but leaves the pane on the scope it walked, so the new tab has
+    // to land on the path it just recorded; this is what Escape out of a search already does.
+    if (pane.path !== here)
+        pane.openWithoutHistory(here)
 }
 
 function selectAt(pane, i) {
     if (busy(pane))
         return
-    var items = currentItems(pane)
+    var here = restingPath(pane)
+    var items = currentItems(pane, here)
     if (i < 0 || i >= items.length) {
         pane.message("No tab " + (i + 1) + ".", false)
         return
@@ -199,7 +217,7 @@ function selectAt(pane, i) {
         return
     closePreview(pane)
     dropOverlay(pane)
-    items[index] = snapshot(pane)
+    items[index] = snapshot(pane, here)
     pane.tabs = pack(items, i)
     apply(pane, items[i])
 }
@@ -216,7 +234,6 @@ function closeAt(pane, i) {
         pane.message("No tab " + (i + 1) + ".", false)
         return
     }
-    closePreview(pane)
     var index = currentIndex(pane)
     items.splice(i, 1)
     var next = index
@@ -225,6 +242,7 @@ function closeAt(pane, i) {
     else if (i === index)
         next = Math.min(i, items.length - 1)
     if (i === index) {
+        closePreview(pane)
         dropOverlay(pane)
         pane.tabs = pack(items, next)
         apply(pane, items[next])
