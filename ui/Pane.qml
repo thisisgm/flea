@@ -66,6 +66,7 @@ FocusScope {
     signal sticky(string text)
     // The one popup, hosted in shell.qml beside the network dialog rather than inside the pane.
     signal convertRequested(string name)
+    signal pathBarRequested()  // ":" and Ctrl+L; the bar is chrome, so shell.qml opens it as it does the popup above
 
     // The window covers [held, held + rows.length) and nothing outside it is in memory.
     property int held: 0

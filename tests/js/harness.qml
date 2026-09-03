@@ -17,6 +17,7 @@ import "mounts.js" as MountsSuite
 import "nav.js" as NavSuite
 import "ops.js" as OpsSuite
 import "palette.js" as PaletteSuite
+import "pathbar.js" as PathBarSuite
 import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
 import "search.js" as SearchSuite
@@ -58,6 +59,7 @@ Item {
         NavSuite.run(check)
         OpsSuite.run(check)
         PaletteSuite.run(check)
+        PathBarSuite.run(check)
         PlacesSuite.run(check)
         ProtocolsSuite.run(check)
         SearchSuite.run(check)

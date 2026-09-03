@@ -18,6 +18,7 @@ function lookup(key, text, modifiers) {
         if (key === Qt.Key_F) return "search"
         if (key === Qt.Key_E) return "eject"
         if (key === Qt.Key_K) return "addNetwork"
+        if (key === Qt.Key_L) return "pathBar"
         if (key === Qt.Key_Delete) return "trash"
         if (key === Qt.Key_Up) return "parent"
         if (key === Qt.Key_Down) return "open"
@@ -59,7 +60,7 @@ function lookup(key, text, modifiers) {
     case "/": return "filter"
     case "f": return "search"
     case "o": return "reveal"
-    case ":": return "palette"
+    case ":": return "pathBar"
     case "t": return "tabNew"
     case "w": return "tabClose"
     case "y": return "copy"
@@ -94,6 +95,7 @@ var SHEET = [
     { keys: "/", action: "filter", label: "filter" },
     { keys: "f", action: "search", label: "find in subtree" },
     { keys: "o", action: "reveal", label: "reveal result" },
+    { keys: ": ^l", action: "pathBar", label: "go to path" },
     { keys: "y ^c", action: "copy", label: "copy" },
     { keys: "x ^x", action: "cut", label: "cut" },
     { keys: "p ^v", action: "paste", label: "paste" },

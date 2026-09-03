@@ -445,6 +445,8 @@ huge pages" below for what it is worth and what it cost.
   `flea --open`, see "Opening a file".
 - `ui/ContextMenu.qml` is the one pane-owned right-click popup and its single Open action.
 - `ui/StatusBar.qml` renders the path, row counts and transient messages.
+- `ui/ChromeBar.qml` renders the top chrome, and owns the path bar: the same strip typed into
+  rather than drawn, opened by `:`, `Ctrl+L` or a double click on the path.
 - `keys.toml` is the one key table, and `tools/flea-keymap-gen` turns it into `Keymap.js`.
 - `ui/js/Keymap.js` is the generated key-to-action lookup and imports no QML.
 - `ui/js/Format.js` is the pure size, date and permission formatter.
@@ -453,6 +455,9 @@ huge pages" below for what it is worth and what it cost.
   its own.
 - `ui/js/Thumbs.js` is the pure row-to-path map and the visible-row request plan, and
   imports no QML so `./tests/js.sh` can redden on a mutation.
+- `ui/js/PathBar.js` is what a typed path line means: the tilde, the relative name, the
+  `file://` URI, the interior `.` and `..`, and what Tab makes of one directory's names. Pure,
+  so `tests/js/pathbar.js` drives all of it; the field itself is `ui/ChromeBar.qml`'s.
 
 ## Where the backend binary comes from
 
@@ -2727,9 +2732,14 @@ filename as rich text, so it is never safe for backend-provided names.
 
 The rule, applied on 2026-09-02 after two silent-by-accident keys and one silent-by-design: every
 row in `keys.toml` either works or says why it does not, in a sentence written for the user and
-never an action name. `t`, `w` and `1` to `9` (tabs) and `:` (the path bar), all drawn on the Tui
-board, stay in the table and `Focus.act` answers them with `Tabs are not built yet.` and `The path
-bar is not built yet.`; the old `lookup` gate that dropped `:` in silence is gone. The generic
+never an action name. `t`, `w` and `1` to `9` (tabs), drawn on the Tui board, stay in the table and
+`Focus.act` answers them with `Tabs are not built yet.`; the old `lookup` gate that dropped `:` in
+silence is gone. `:` was on this list beside them and is not on it now: the action is `pathBar`
+rather than `palette` (the old name read as a command palette, and `ui/js/Palette.js` is the theme's
+colour file), `Focus.handleKey` opens the bar beside the keymap sheet as the second global action,
+and `ui/ChromeBar.qml` carries the field. It is answered by `keycase_pathBar` in
+`tools/flea-acceptance-drive`, which drives the key and reads `pathBarOpen` off the seam, where the
+row used to assert a sentence. The generic
 `<action> is not built yet.` fallback below those stays as the loud failure for a row the
 dispatcher does not answer, and should never be reachable from the shipped table. `Ctrl+Shift+N`
 was on this list for one afternoon and is not on it now: `295e757` routed the action through

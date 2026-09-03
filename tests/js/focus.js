@@ -146,13 +146,9 @@ function run(check) {
     check("l turns the page forward and h turns it back", reader.page, 1)
 
     // Bound ahead of their features, by the rule that a mapped key says why rather than doing nothing:
-    // the Tui board draws a typeable path bar on colon and tabs on t, w and the digits. lookup lets
-    // them through and act answers each with a sentence written for the user, never an action name.
-    var colon = key(Qt.Key_Colon, ":", shift)
-    check("colon reaches act until the path bar exists", Focus.lookup(colon, pane(closed())), "palette")
+    // the Tui board draws tabs on t, w and the digits. lookup lets them through and act answers each
+    // with a sentence written for the user, never an action name. Colon no longer sits among them.
     var early = listPane(true)
-    Focus.act("palette", early)
-    check("colon says the path bar is not built", early.said, "The path bar is not built yet.")
     Focus.act("tabNew", early)
     check("t says tabs are not built, in words and not an action name", early.said, "Tabs are not built yet.")
     Focus.act("tab3", early)

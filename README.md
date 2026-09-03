@@ -516,9 +516,19 @@ hides leaves the selection with it, because a selection you cannot see is one yo
 on by accident. It filters the rows the pane holds, and says so in the strip when that is
 less than the whole directory.
 
-Bound ahead of their features, and saying so until they land: `:` for the path bar, and `t`,
-`w` and `1` through `9` for tabs, all drawn on the TUI board. Each answers with a sentence in
-the status line rather than doing nothing.
+`:` and `Ctrl+L` open the path bar, and so does a double click on the path itself: the strip
+above the listing becomes the line you type into, opening on the current directory with the
+whole line selected, so a name typed straight away replaces it. A leading `/` is absolute, a
+leading `~` is home, anything else is relative to the directory you are already in, and a
+`file://` URI pasted from another application is read as the path it names. Tab completes
+against the directories one level down, growing the line as far as the names agree and adding
+the separator when only one is left, so Tab, Tab, Tab walks a tree. Enter goes, Escape leaves
+the pane where it was, and `.` typed as the first character of a name completes hidden
+directories whether or not the listing is showing them.
+
+Bound ahead of their features, and saying so until they land: `t`, `w` and `1` through `9` for
+tabs, drawn on the TUI board. Each answers with a sentence in the status line rather than
+doing nothing.
 
 ## Testing
 

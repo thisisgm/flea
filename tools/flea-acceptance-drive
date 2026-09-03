@@ -1001,7 +1001,19 @@ keycase_message_is() {
   changed_to "the status line" "" "$after" "$want"
 }
 
-keycase_palette()   { keycase_message_is "The path bar is not built yet." "$@"; }
+# The path bar is built, so its key is driven by what it opens rather than by the sentence it used
+# to answer with. Closed again explicitly, the way keycase_filter closes its query line: a bar left
+# standing owns the keyboard and every later case would type its chords into the field.
+keycase_pathBar() {
+  local before after
+  reset_state || return 1
+  before=$(ipc pathBarOpen)
+  k "$@"; settle
+  after=$(ipc pathBarOpen)
+  mapfile -t escp < <(chord_args code Escape)
+  k "${escp[@]}"; settle
+  changed_to "the path bar" "$before" "$after" true
+}
 
 # ui/js/Focus.js answers every action starting "tab" from one branch, so tabNew, tabClose and the
 # nine keys the [digits] range binds share one driver rather than eleven copies of it.

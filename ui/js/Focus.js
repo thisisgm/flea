@@ -129,10 +129,10 @@ function act(action, root) {
         Ops.compress(root, action.substring("compress:".length))
         return
     }
-    // Bound ahead of their features, by the rule that a mapped key says why rather than doing nothing:
-    // the Tui board draws tabs on t, w and the digits, and a typeable path bar on colon.
+    // Bound ahead of its feature, by the rule that a mapped key says why rather than doing nothing:
+    // the Tui board draws tabs on t, w and the digits. The path bar that shared this line is built,
+    // and handleKey below opens it before the pane's own views ever see the key.
     if (action.indexOf("tab") === 0) { root.message("Tabs are not built yet.", false); return }
-    if (action === "palette") { root.message("The path bar is not built yet.", false); return }
     root.message(action + " is not built yet.", false)
 }
 
@@ -229,6 +229,13 @@ function handleKey(event, root, sidebar) {
     // takes active focus itself, so nothing below has to route keys into it while it stands.
     if (action === "keymapSheet") {
         root.keymapSheet.open(root)
+        return true
+    }
+    // The path bar is global for the same reason, and for one more: it lives in the chrome above
+    // both views, so neither the list nor the rail is the view that owns it. The pane only asks for
+    // it; ui/shell.qml owns the field and hands the keyboard back when it closes.
+    if (action === "pathBar") {
+        root.pathBarRequested()
         return true
     }
     if (root.focusView === RAIL) {
