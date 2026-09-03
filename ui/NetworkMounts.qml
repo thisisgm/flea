@@ -8,12 +8,10 @@ import "js/Places.js" as Places
 // that touches gio or the filesystem. ui/Sidebar.qml only reads "entries" and renders it.
 Item {
     id: root
-
     property string bookmarksText: ""
     property var extraEntries: []
     property var healthMap: ({})
     property var entries: []
-
     signal opened(string path)
     signal message(string text, bool isError)
     // Client-side only, see "listShares" below: ui/ShareBrowser.qml renders these as pane rows.
@@ -21,7 +19,6 @@ Item {
     // Fired once the write below has actually landed, so a caller's reload reads it, not stale content.
     signal renamed()
     signal connectionSucceeded(string uri, string label, string mac)
-
     // Nothing filesystem-watchable tells us when a share appears or drops: a mount materialises a
     // directory under /run/user/1000/gvfs that inotify never reports an event for, measured on this box.
     readonly property int mountPollMs: 5000
@@ -61,16 +58,13 @@ Item {
     // The entry's own label at activation time, carried through to the sharesListed signal.
     property string _pendingLabel: ""
     property string _pendingMac: ""
-
     onBookmarksTextChanged: root.rebuild()
     onExtraEntriesChanged: root.rebuild()
-
     // ~/Dropbox does not exist until the stock service is installed and authenticated; this
     // FileView never reads text(), it only watches the path's own existence flip.
     // The context menu's own gate for "Move to Dropbox": the same watch the sidebar row uses, because
     // ~/Dropbox does not exist until the stock service is installed and authenticated.
     readonly property bool dropboxReady: dropboxFile.loaded
-
     FileView {
         id: dropboxFile
         path: Quickshell.env("HOME") + "/Dropbox"
@@ -79,7 +73,6 @@ Item {
         onLoaded: root.rebuild()
         onLoadFailed: root.rebuild()
     }
-
     // A second FileView on the same path as ui/Sidebar.qml's own read-only watch, the identical
     // split ui/NetworkDialog.qml already uses to write this file without fighting that watch.
     FileView {
@@ -87,7 +80,6 @@ Item {
         path: Quickshell.env("HOME") + "/.config/gtk-3.0/bookmarks"
         printErrors: false
     }
-
     Timer {
         interval: root.mountPollMs
         running: true
@@ -95,7 +87,6 @@ Item {
         triggeredOnStart: true
         onTriggered: root.pollMounts()
     }
-
     // Three sources, deduped on the normalized uri (see ui/js/Mounts.js "normalize"): a live gio
     // mount wins the row, the bookmark keeps the label. Places.networkEntries is that merge.
     function rebuild() {
@@ -136,8 +127,7 @@ Item {
             root.runInfo(uri)
             return
         }
-        // The collector belongs to the Process, but this fallback belongs to us and survives
-        // restarts. A quiet failure must never inherit an earlier "already mounted" stderr.
+        // A quiet failure must never inherit an earlier "already mounted" stderr fallback.
         root._mountErrOutput = ""
         mountProcess.command = ["gio", "mount", uri]
         mountProcess.running = true
