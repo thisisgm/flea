@@ -14,7 +14,7 @@ Item {
     signal sortRequested(string key)
 
     // A right click over the titles opens the pane's one ContextMenu with the column toggles and
-    // the Advanced group; a left click still sorts, and sortable still gates everything on a search.
+    // the hidden toggle; a left click still sorts, and sortable still gates everything on a search.
     signal menuRequested(var scenePosition)
 
     // The same hairline lift the status bar uses, so the two rules read alike.

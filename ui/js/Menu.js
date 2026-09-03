@@ -62,25 +62,20 @@ function listingEntries(p) {
         out.push({ separator: true })
     }
     // The last group is the rows that need no row under the cursor, which is also the whole menu
-    // on a listing's empty space. New Folder sits alone; every state toggle lives behind Advanced,
-    // so the state rows grow without the menu growing with them.
+    // on a listing's empty space.
     out.push({ label: "New folder", action: "newFolder", glyph: "folder-plus" })
-    out.push({
-        label: "Advanced", action: "advanced", glyph: "sliders",
-        submenu: advancedRows(p.showHidden)
-    })
+    out.push(hiddenRow(p.showHidden))
     return out
 }
 
-// The Advanced flyout's rows: every state toggle in the menu, so a new preference is one row here
-// and not another top-level row the listing's menu never had room for. The label flips with the
-// state, the house pattern (ui/MenuRow.qml draws no checkmark), and the verb is the key's own.
-function advancedRows(showHidden) {
-    return [{
+// The one state toggle either menu draws. The label flips with the state, the house pattern
+// (ui/MenuRow.qml draws no checkmark), and the verb is the key's own.
+function hiddenRow(showHidden) {
+    return {
         label: showHidden ? "Hide hidden files" : "Show hidden files",
         action: "toggleHidden",
         glyph: showHidden ? "eye-off" : "eye"
-    }]
+    }
 }
 
 // ui/Header.qml's own rows, on a right click over the column titles. Name is not among them: it is
@@ -103,9 +98,6 @@ function headerEntries(hiddenCols, showHidden) {
         })
     }
     out.push({ separator: true })
-    out.push({
-        label: "Advanced", action: "advanced", glyph: "sliders",
-        submenu: advancedRows(showHidden)
-    })
+    out.push(hiddenRow(showHidden))
     return out
 }

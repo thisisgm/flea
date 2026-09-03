@@ -42,7 +42,7 @@ Item {
     signal railChosen(string action, string key)
 
     // ui/Header.qml's own entrance, the third face of this one instance: openForHeader() flips the
-    // entries to ui/js/Menu.js headerEntries (the column toggles and the Advanced group, built from
+    // entries to ui/js/Menu.js headerEntries (the column toggles and the hidden toggle, built from
     // qs module ViewState's hidden columns and the pane's showHidden), and every row flows back
     // through chosen() like the listing's own. A row's chosen verb routes by prefix in ui/Pane.qml.
     property bool forHeader: false

@@ -76,27 +76,27 @@ function runMenu(check) {
     })
     check("the listing menu opens with the row's own Open", full[0].label, "Open")
     check("Copy path sits beside Open", findEntry(full, "copypath").label, "Copy path")
-    check("the hidden toggle moved behind Advanced, off the top level",
-          findEntry(full, "toggleHidden").label + "|" + findEntry(full, "advanced").submenu[0].label,
-          "undefined|Show hidden files")
-    check("Advanced carries the hidden toggle, flipping with the state",
-          Menu.advancedRows(false)[0].label + "|" + Menu.advancedRows(true)[0].label,
+    // Top level, not behind a submenu: it is the menu's most used row and tests/ui.sh pins it there.
+    check("the hidden toggle is a top-level row",
+          findEntry(full, "toggleHidden").label, "Show hidden files")
+    check("and its label flips with the state",
+          Menu.hiddenRow(false).label + "|" + Menu.hiddenRow(true).label,
           "Show hidden files|Hide hidden files")
-    check("an empty listing still offers New folder and Advanced",
+    check("an empty listing still offers New folder and the hidden toggle",
           labels(Menu.listingEntries({ showHidden: false, hasRow: false, rowInDropbox: false,
                                        dropboxPath: "", taildropPeers: [], archiveFormats: [],
                                        rowIsArchive: false, rowIsImage: false, canConvert: false })),
-          "New folder|Advanced")
+          "New folder|Show hidden files")
 
     // ui/Header.qml's own rows, on a right click over the column titles. Four toggles, flipping
     // labels, each answering "col:<key>"; Name is absent because it never hides.
     var head = Menu.headerEntries([], false)
     check("the header menu offers the four optional columns, flipping labels when hidden",
           labels(Menu.headerEntries(["size"], false)),
-          "Hide Mode|Show Size|Hide Date Modified|Hide Kind|-|Advanced")
+          "Hide Mode|Show Size|Hide Date Modified|Hide Kind|-|Show hidden files")
     check("every column row answers col:<key>",
           findEntry(head, "col:size").action + "|" + findEntry(head, "col:kind").action,
           "col:size|col:kind")
-    check("the header menu's Advanced carries the hidden toggle",
-          findEntry(head, "advanced").submenu[0].action, "toggleHidden")
+    check("the header menu carries the hidden toggle too, below its own rule",
+          findEntry(head, "toggleHidden").action, "toggleHidden")
 }
