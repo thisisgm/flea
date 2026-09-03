@@ -144,6 +144,9 @@ ShellRoot {
                 // The design's no-match answer: the search mark over the query it could not find.
                 caption: pane.searchMode === "results" ? "Nothing matches " + pane.searchQuery : ""
                 mark: "search"
+                hint: pane.searchMode === "results"
+                      ? "Press Escape to clear."
+                      : "Press Ctrl+Shift+N for a new folder."
             }
 
             // The loading crawl, same listArea placement; its own hold-off keeps fast listings clean.

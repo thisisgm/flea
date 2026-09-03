@@ -102,7 +102,7 @@ Item {
                 share.push({ label: "Move to Dropbox", action: "dropbox", mark: "dropbox" })
             // A share link is inherently per file, so it appears only for a row already in Dropbox.
             if (root.rowInDropbox)
-                share.push({ label: "Copy Share Link", action: "sharelink", glyph: "network" })
+                share.push({ label: "Copy share link", action: "sharelink", glyph: "network" })
             if (share.length > 0) {
                 out.push({ separator: true })
                 for (var s = 0; s < share.length; s++) out.push(share[s])
@@ -115,7 +115,7 @@ Item {
         // The last group is the two rows that need no row under the cursor, which is also the whole
         // menu on a listing's empty space. Operations.dc.html draws neither the row nor this divider,
         // and a create action sitting directly under the destructive one is what earns the divider.
-        out.push({ label: "New Folder", action: "newFolder", glyph: "folder-plus" })
+        out.push({ label: "New folder", action: "newFolder", glyph: "folder-plus" })
         out.push({
             label: root.showHidden ? "Hide hidden files" : "Show hidden files",
             action: "toggleHidden",

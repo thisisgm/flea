@@ -90,11 +90,17 @@ Item {
             anchors.right: parent.right
             anchors.rightMargin: Theme.spacing.gap
             anchors.verticalCenter: parent.verticalCenter
-            width: root.secret ? Theme.font.bodySmall : 0
-            height: Theme.font.bodySmall
+            width: root.secret ? Math.max(Theme.hitMin, Theme.font.bodySmall) : 0
+            height: root.secret ? Math.max(Theme.hitMin, Theme.font.bodySmall) : 0
+
+            Accessible.role: Accessible.Button
+            Accessible.name: "Show password"
+            Accessible.ignored: !root.secret
 
             Flea.Glyph {
-                anchors.fill: parent
+                anchors.centerIn: parent
+                width: Theme.font.bodySmall
+                height: Theme.font.bodySmall
                 visible: root.secret
                 name: "eye"
                 color: reveal.pressed ? Theme.color.accent : Theme.color.muted

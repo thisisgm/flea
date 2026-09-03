@@ -63,11 +63,17 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: Theme.spacing.gap
         anchors.verticalCenter: parent.verticalCenter
-        width: Theme.font.bodySmall
-        height: Theme.font.bodySmall
+        width: Math.max(Theme.hitMin, Theme.font.bodySmall)
+        height: Math.max(Theme.hitMin, Theme.font.bodySmall)
+
+        Accessible.role: Accessible.Button
+        Accessible.name: root.playing ? "Pause" : "Play"
+        Accessible.onPressAction: { root.touched(); root.toggled() }
 
         Flea.Glyph {
-            anchors.fill: parent
+            anchors.centerIn: parent
+            width: Theme.font.bodySmall
+            height: Theme.font.bodySmall
             name: root.playing ? "pause" : "play"
             color: Theme.color.foreground
         }

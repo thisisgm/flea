@@ -296,15 +296,25 @@ Item {
             }
 
             // A hand-drawn plus, not a Text "+": at caption size the font glyph read as a Christian cross, not a plus. Sized off the heading's own font token.
-            Glyph {
+            Item {
                 id: addMark
-                name: "plus"
-                color: Theme.color.muted
-                width: Theme.font.caption
-                height: Theme.font.caption
+                width: Math.max(Theme.hitMin, Theme.font.caption)
+                height: Math.max(Theme.hitMin, Theme.font.caption)
                 anchors.right: parent.right
                 anchors.rightMargin: Style.spacing.rowPaddingX
                 anchors.verticalCenter: netHeading.verticalCenter
+
+                Accessible.role: Accessible.Button
+                Accessible.name: "Add network location"
+                Accessible.onPressAction: root.addRequested()
+
+                Glyph {
+                    anchors.centerIn: parent
+                    name: "plus"
+                    color: Theme.color.muted
+                    width: Theme.font.caption
+                    height: Theme.font.caption
+                }
 
                 TapHandler {
                     onTapped: root.addRequested()

@@ -27,8 +27,12 @@ Item {
     Keys.onEnterPressed: root.activated()
     Keys.onSpacePressed: root.activated()
 
-    implicitWidth: text.implicitWidth + 2 * Theme.spacing.gap + 2 * Theme.spacing.hairline
-    implicitHeight: text.implicitHeight + Theme.spacing.gap + 2 * Theme.spacing.hairline
+    implicitWidth: Math.max(Theme.hitMin, text.implicitWidth + 2 * Theme.spacing.gap + 2 * Theme.spacing.hairline)
+    implicitHeight: Math.max(Theme.hitMin, text.implicitHeight + Theme.spacing.gap + 2 * Theme.spacing.hairline)
+
+    Accessible.role: Accessible.Button
+    Accessible.name: root.label
+    Accessible.onPressAction: root.activated()
 
     Rectangle {
         anchors.fill: parent

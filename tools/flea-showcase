@@ -1818,7 +1818,7 @@ beat_taildrop() {
 
 # Dropbox: a move into the synced folder, then the share link from the row now sitting there.
 beat_dropbox() {
-    beat dropbox "Move to Dropbox from the menu; in Dropbox, Copy Share Link lands the link in the bar"
+    beat dropbox "Move to Dropbox from the menu; in Dropbox, Copy share link lands the link in the bar"
     seek_row 'flea demo, shared from Dropbox.txt'
     key m
     expect_ipc contextMenuVisible true
@@ -1836,7 +1836,7 @@ beat_dropbox() {
     key m
     expect_ipc contextMenuVisible true
     dwell 1
-    menu_seek "Copy Share Link"
+    menu_seek "Copy share link"
     dwell 1
     key -k Return
     settle

@@ -5,6 +5,8 @@ import Quickshell.Io
 import QtQuick
 import qs.Commons
 import "js/Columns.js" as Columns
+import "js/Contrast.js" as Contrast
+import "js/Motion.js" as Motion
 import "js/Palette.js" as Palette
 import "js/Shadow.js" as ShadowMath
 
@@ -27,7 +29,7 @@ Singleton {
     readonly property QtObject color: QtObject {
         readonly property color background: Color.background
         readonly property color foreground: Color.foreground
-        readonly property color muted: Color.muted
+        property color muted: "#707880"
         readonly property color accent: Color.accent
         readonly property color error: Color.urgent
         property color surface: root.fallbackColor.surface
@@ -35,24 +37,29 @@ Singleton {
         property color executable: root.fallbackColor.executable
     }
 
+    // The metrics gate and the canvas are written at omarchy base-size 14. This box is on 12, and
+    // on a 4K panel at 1.5 that makes body text 11 logical px. Floor at 14 so Flea matches the
+    // board; a larger omarchy display text size still wins.
+    readonly property real sizeScale: Math.max(1, 14 / Math.max(1, Style.font.baseSize))
+
     readonly property QtObject font: QtObject {
         readonly property string family: Style.font.family
-        readonly property int bodySmall: Style.font.bodySmall
-        readonly property int caption: Style.font.caption
+        readonly property int bodySmall: Math.round(Style.font.bodySmall * root.sizeScale)
+        readonly property int caption: Math.round(Style.font.caption * root.sizeScale)
     }
 
     readonly property QtObject spacing: QtObject {
         readonly property int hairline: Style.spacing.hairline
-        readonly property int rowPaddingX: Style.spacing.rowPaddingX
-        readonly property int rowPaddingY: Style.spacing.controlPaddingY
-        readonly property int gap: Style.spacing.rowGap
+        readonly property int rowPaddingX: Math.round(Style.spacing.rowPaddingX * root.sizeScale)
+        readonly property int rowPaddingY: Math.round(Style.spacing.controlPaddingY * root.sizeScale)
+        readonly property int gap: Math.round(Style.spacing.rowGap * root.sizeScale)
     }
 
     // One glyph's advance in a monospace face is every glyph's advance, so this sizes every fixed column.
     TextMetrics {
         id: glyphMetrics
         font.family: Style.font.family
-        font.pixelSize: Style.font.bodySmall
+        font.pixelSize: root.font.bodySmall
         text: "0"
     }
 
@@ -63,7 +70,7 @@ Singleton {
         readonly property int size: Math.round(root.sizeChars * glyphMetrics.advanceWidth)
         readonly property int date: Math.round(root.dateChars * glyphMetrics.advanceWidth)
         // Kind text varies too much for a character count, so its base is a pixel width scaled by the same ratio bodySmall already is.
-        readonly property int kind: Math.round(root.kindBaseWidth * Style.font.bodySmall / 12)
+        readonly property int kind: Math.round(root.kindBaseWidth * root.font.bodySmall / 12)
         // Not a column: the floor under the name, which the four above drop one by one to protect.
         readonly property int nameMin: Math.round(root.nameMinChars * glyphMetrics.advanceWidth)
     }
@@ -80,11 +87,13 @@ Singleton {
     readonly property int heroMarkSize: Math.round(root.font.bodySmall * 3.7)
     // A chrome strip's mark is the OEM's own icon token, the one Ui/Button.qml and the Tailscale and
     // Dropbox bar icons size from: 16 at base-size 14, which is the canvas's chrome mark on every board.
-    readonly property int chromeMarkSize: Style.font.icon
+    readonly property int chromeMarkSize: Math.round(Style.font.icon * root.sizeScale)
     // Lucide ships stroke 2 on its 24 unit grid; 1.5 is the operator's tune (Tabler ships 2 as well, see the A/B report).
     readonly property real strokeWidth: 1.5
+    // WCAG 2.5.8 floor. Marks stay at their type-scale size; the hit box grows to this.
+    readonly property int hitMin: 24
     // Wide enough for "Send with Taildrop" at bodySmall, 257 at base-size 14; ui/ContextMenu.qml draws it.
-    readonly property int menuWidth: Style.space(220)
+    readonly property int menuWidth: Math.round(Style.space(220) * root.sizeScale)
 
     // The canvas draws box-shadow: 0 16px 40px rgba(0,0,0,0.5) under every floating in-app surface
     // and nothing in ui/ ever drew one. The offset and the blur are the canvas's own design pixels
@@ -173,7 +182,7 @@ Singleton {
 
     // Five callers: ConvertDialog, KeymapSheet, NetworkDialog, NetworkForm, TransferCard; every other spacing token above is direct.
     function space(px) {
-        return Style.space(px);
+        return Math.round(Style.space(px) * root.sizeScale);
     }
 
     // The metrics contract as the app resolves it, one key=value per line in the Blueprint board's
@@ -224,14 +233,34 @@ Singleton {
     // Color owns the other five; only the three it does not model are assigned here.
     function applyColors(body) {
         var found = Palette.parse(body);
-        root.color.symlink = Palette.pick(found, ["cyan", "color6"], root.fallbackColor.symlink);
-        root.color.executable = Palette.pick(found, ["green", "color2"], root.fallbackColor.executable);
+        var bg = Palette.pick(found, ["background"], "#101315");
+        var surface = Palette.pick(found, ["dark_background", "selection"], root.fallbackColor.surface);
         // corner: the alacritty-derived colors.toml emits neither background ladder key, so selection is third.
-        root.color.surface = Palette.pick(found, ["dark_background", "selection"], root.fallbackColor.surface);
+        root.color.surface = surface;
+        // Omarchy palettes are not authored to AA. Flea keeps the hex system and walks L until 4.5:1.
+        root.color.muted = Contrast.ensureRatio(
+            Contrast.ensureRatio(Palette.pick(found, ["muted"], "#707880"), bg, 4.5), surface, 4.5);
+        root.color.symlink = Contrast.ensureRatio(
+            Palette.pick(found, ["cyan", "color6"], root.fallbackColor.symlink), bg, 4.5);
+        root.color.executable = Contrast.ensureRatio(
+            Palette.pick(found, ["green", "color2"], root.fallbackColor.executable), bg, 4.5);
         Color.loadColors(body);
         // A body that parsed to nothing left every role on its fallback, so the flag says so rather
         // than reporting that the read happened: text() returns "" for a file that is not there.
         root.ready = Palette.isPalette(found);
+    }
+
+    function applyReducedMotion() {
+        var env = Quickshell.env("FLEA_REDUCED_MOTION");
+        if (env === "1" || env === "true") {
+            Motion.reduced = true;
+            return;
+        }
+        if (env === "0" || env === "false") {
+            Motion.reduced = false;
+            return;
+        }
+        motionQuery.running = true;
     }
 
     // blockLoading only gates calls to text()/data(); nothing forced that call before this fix,
@@ -276,4 +305,18 @@ Singleton {
             Style.scheduleRefresh();
         }
     }
+
+    Process {
+        id: motionQuery
+        command: ["gsettings", "get", "org.gnome.desktop.a11y.interface", "reduced-motion"]
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: {
+                var body = String(text)
+                Motion.reduced = body.indexOf("reduce") >= 0 && body.indexOf("no-preference") < 0
+            }
+        }
+    }
+
+    Component.onCompleted: root.applyReducedMotion()
 }
