@@ -106,4 +106,10 @@ function run(check) {
     check("an unknown scheme is refused", Protocols.parse("afp://h/share") === null, true)
     check("a host with a non-numeric colon is refused rather than split",
           Protocols.parse("sftp://u@[::1]/home") === null, true)
+    check("an @ in the path is not stolen as a username",
+          roundtrip({ protocol: "SFTP", host: "h", port: "22", path: "inbox@2026", user: "u" }),
+          "sftp://u@h:22/inbox@2026")
+    check("and parse keeps that path and the real user",
+          Protocols.parse("sftp://u@h:22/inbox@2026").path + "|"
+          + Protocols.parse("sftp://u@h:22/inbox@2026").user, "inbox@2026|u")
 }

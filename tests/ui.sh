@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|networkedit|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; no argument runs all thirty-two.
+# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|networkedit|networkremove|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; no argument runs all thirty-three.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -2533,6 +2533,121 @@ EOS
     sandbox_remove "$fixture_home"
 }
 
+# Remove of a live share must not drop the bookmark if gio -u fails; an unmounted bookmark
+# is dropped immediately with no gio call.
+case_networkremove() {
+    local dir="$fixture_root/networkremove"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/bin"
+    : > "$dir/0-one.txt"
+
+    local unmount_log="$dir/unmount.log"
+    : > "$unmount_log"
+    local share_uri="smb://stubhost/stubshare/"
+    cat > "$dir/bin/gio" <<EOS
+#!/bin/sh
+case "\$1 \$2" in
+  "mount -l")
+    printf 'Mount(0): stubshare on stubhost -> $share_uri\n  Type: GDaemonMount\n'
+    exit 0
+    ;;
+  "mount -u")
+    printf 'UNMOUNT %s\n' "\$3" >> "$unmount_log"
+    exit 1
+    ;;
+esac
+exit 0
+EOS
+    chmod +x "$dir/bin/gio"
+
+    local fixture_home="$fixture_root/networkremove-home"
+    fixture_home_make "$fixture_home"
+    mkdir -p "$fixture_home/.config/gtk-3.0"
+    local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
+    printf '%s Stub\n' "$share_uri" > "$bookmarks"
+    local real_home="$HOME" saved_path="$PATH"
+
+    export PATH="$dir/bin:$PATH"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    export PATH="$saved_path"
+    wait_listing 2
+    wait_rail 2
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "Stub|network|share|true" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "Stub|network|share|true" ]] \
+        || fail "networkremove: the stub mount never appeared live, got $(ipc networkEntries)"
+
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "networkremove: Tab did not reach the rail"
+    key j >/dev/null
+    settle
+    click_rail_row 1 right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Unmount|Edit|Remove" ]] \
+        || fail "networkremove: menu is $(ipc contextMenuEntries)"
+    key j >/dev/null
+    key j >/dev/null
+    key -k Return >/dev/null
+    wait_message "That share could not be unmounted; it may still be in use."
+    [[ "$(cat "$unmount_log")" == "UNMOUNT $share_uri" ]] \
+        || fail "networkremove: Remove did not try to unmount, log is: $(cat "$unmount_log")"
+    [[ "$(cat "$bookmarks")" == "$share_uri Stub" ]] \
+        || fail "networkremove: a failed unmount dropped the bookmark, file is $(cat "$bookmarks")"
+
+    kill_flea
+    : > "$unmount_log"
+    cat > "$dir/bin/gio" <<EOS
+#!/bin/sh
+exit 0
+EOS
+    chmod +x "$dir/bin/gio"
+    printf '%s Stub\n' "$share_uri" > "$bookmarks"
+
+    export PATH="$dir/bin:$PATH"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    export PATH="$saved_path"
+    wait_listing 2
+    wait_rail 2
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "Stub|network|share|false" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "Stub|network|share|false" ]] \
+        || fail "networkremove: the unmounted bookmark never appeared, got $(ipc networkEntries)"
+
+    key -k Tab >/dev/null
+    settle
+    key j >/dev/null
+    settle
+    click_rail_row 1 right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Edit|Remove" ]] \
+        || fail "networkremove: unmounted menu is $(ipc contextMenuEntries)"
+    key j >/dev/null
+    key -k Return >/dev/null
+    settle
+    for _attempt in $(seq 1 100); do
+        [[ -z "$(ipc networkEntries)" ]] && break
+        sleep 0.05
+    done
+    [[ -z "$(ipc networkEntries)" ]] \
+        || fail "networkremove: the unmounted bookmark stayed on the rail, got $(ipc networkEntries)"
+    [[ "$(cat "$bookmarks")" != *"$share_uri"* ]] \
+        || fail "networkremove: the unmounted bookmark was not dropped, file is $(cat "$bookmarks")"
+    [[ -z "$(cat "$unmount_log")" ]] || fail "networkremove: an unmounted Remove called gio -u"
+
+    printf 'NETWORKREMOVE fail-keeps-bookmark=ok idle-drops=ok\n'
+    kill_flea
+    sandbox_remove "$fixture_home"
+}
+
 # The eject half of the same menu, and the one property that must never bend: "safe to unplug" is
 # read off an lsblk listing taken after gio exits, never off gio's exit code. Both are stubbed, so
 # no real device is touched and no privilege is needed; the gio stub always exits 0, which is the
@@ -3073,7 +3188,7 @@ cache_snapshot
 trap cleanup EXIT
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network networkedit sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network networkedit networkremove sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
 
 : > "$run_log"
 : > "$flea_log"

@@ -43,6 +43,8 @@ Item {
     property bool _mountTimedOut: false
     property string _pendingUnmountLabel: ""
     property string _pendingUnmountUri: ""
+    // Set by Remove on a live share; the bookmark is dropped only after gio -u succeeds.
+    property string _pendingRemoveUri: ""
     // The FUSE path last opened for a share, so Unmount can leave it before gio -u (busy otherwise).
     property string _openFuse: ""
     property string _openFuseKey: ""
@@ -152,7 +154,8 @@ Item {
     // instance breaks the whole window's keyboard focus" for why one was tried and reverted.
     function unmount(index) {
         var e = root.entries[index]
-        if (!e || e.kind !== "share" || !e.mounted || unmountProcess.running || unmountDelay.running) return
+        if (!e || e.kind !== "share" || !e.mounted || unmountProcess.running || unmountDelay.running)
+            return false
         root._pendingUnmountLabel = e.label
         // gio lists one SFTP mount for the host; -u must be that URI, not a path on it.
         var target = Places.coveringUri(Mounts.parseMounts(root._mountListing), e.uri)
@@ -162,9 +165,10 @@ Item {
             root._openFuseKey = ""
             root.opened(Quickshell.env("HOME"))
             unmountDelay.restart()
-            return
+            return true
         }
         root.runUnmount(target)
+        return true
     }
 
     function runUnmount(uri) {
@@ -172,17 +176,25 @@ Item {
         unmountProcess.running = true
     }
 
-    // Drops the bookmark line. A live mount is unmounted too, so the row leaves the rail instead
-    // of turning into a mount-only leftover of the place the operator just deleted.
+    function dropBookmark(uri) {
+        var body = bookmarksWrite.text()
+        bookmarksWrite.setText(Places.remove(body, uri))
+        bookmarksWrite.waitForJob()
+        root.renamed()
+    }
+
+    // An unmounted bookmark is dropped immediately. A live one is unmounted first; the file is
+    // rewritten from unmountProcess.onExited only when gio succeeds, so a busy share keeps its row.
     function remove(index) {
         var e = root.entries[index]
         if (!e || e.kind !== "share") return
-        var body = bookmarksWrite.text()
-        bookmarksWrite.setText(Places.remove(body, e.uri))
-        bookmarksWrite.waitForJob()
-        root.renamed()
-        if (e.mounted)
-            root.unmount(index)
+        if (!e.mounted) {
+            root.dropBookmark(e.uri)
+            return
+        }
+        root._pendingRemoveUri = e.uri
+        if (!root.unmount(index))
+            root._pendingRemoveUri = ""
     }
 
     // Rewrites uri's own label, or appends a bookmark for it if it was only ever a live mount;
@@ -301,12 +313,18 @@ Item {
     Process {
         id: unmountProcess
         onExited: function (exitCode) {
+            var removeUri = root._pendingRemoveUri
+            root._pendingRemoveUri = ""
             root.pollMounts()
             // A success message replaces the arm prompt, which would otherwise linger, stale,
             // for up to its own 4 s clear window with nothing on screen to say it already fired.
-            root.message(exitCode === 0
-                ? "Unmounted " + root._pendingUnmountLabel + "."
-                : "That share could not be unmounted; it may still be in use.", exitCode !== 0)
+            if (exitCode === 0) {
+                if (removeUri.length > 0)
+                    root.dropBookmark(removeUri)
+                root.message("Unmounted " + root._pendingUnmountLabel + ".", false)
+                return
+            }
+            root.message("That share could not be unmounted; it may still be in use.", true)
         }
     }
 

@@ -3646,6 +3646,9 @@ menu row and not a release.
 
 `Places.replace(body, oldUri, newUri, label)` is the write: normalized match like `relabel`, every
 duplicate rewritten, control characters stripped from the label, an empty old URI appends (Add).
-`Places.remove(body, uri)` drops matching lines. Remove on a live share also unmounts, so the row
-leaves instead of becoming a mount-only leftover. `tests/js/places.js`, `tests/js/protocols.js`,
-`tests/js/mounts.js` and `tests/ui.sh case_networkedit` hold it.
+`Places.remove(body, uri)` drops matching lines. An unmounted bookmark is dropped immediately. A
+live one is unmounted first and the file is rewritten only from `unmountProcess.onExited` when
+gio succeeds, so a busy share keeps its row. `Protocols.parse` splits the path off before it
+looks for `@`, so a path like `inbox@2026` is not stolen as a username. `tests/js/places.js`,
+`tests/js/protocols.js`, `tests/js/mounts.js`, `tests/ui.sh case_networkedit` and
+`case_networkremove` hold it.

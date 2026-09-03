@@ -124,8 +124,15 @@ function parse(uri) {
     if (!protocol)
         return null
     var rest = m[2]
+    var path = "/"
+    var slash = rest.indexOf("/")
+    if (slash >= 0) {
+        path = rest.substring(slash)
+        rest = rest.substring(0, slash)
+    }
     var user = ""
     var domain = ""
+    // Authority only: an @ in the path (inbox@2026) must not be read as credentials.
     var at = rest.lastIndexOf("@")
     if (at >= 0) {
         var creds = rest.substring(0, at)
@@ -137,12 +144,6 @@ function parse(uri) {
         } else {
             user = creds
         }
-    }
-    var path = "/"
-    var slash = rest.indexOf("/")
-    if (slash >= 0) {
-        path = rest.substring(slash)
-        rest = rest.substring(0, slash)
     }
     var host = rest
     var port = ""
