@@ -321,7 +321,8 @@ the name is one typed word away.
 - **Thumbnailing is mandatory-sandboxed.** Without `bwrap` and `prlimit` on `PATH` the job
   is refused rather than run unconfined.
 - **File operations with an undo journal.** Copy, cut, paste, trash, rename, duplicate,
-  compress, extract and convert, each reversible with `z`.
+  compress, extract and convert, each reversible with `z`. Copies and moves between two GVFS
+  network mounts use that same cancellable, undoable backend and identify the remote-to-remote path.
 - **Network and cloud in the rail.** SMB and NFS mounts through `gio`, Taildrop to a peer,
   and Dropbox as a first-class destination. Local disks and removable volumes group below them
   under DEVICES, which the screenshots here crop away rather than retouch: that row is labelled

@@ -20,6 +20,7 @@ import "palette.js" as PaletteSuite
 import "pathbar.js" as PathBarSuite
 import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
+import "remote.js" as RemoteSuite
 import "scale.js" as ScaleSuite
 import "search.js" as SearchSuite
 import "selection.js" as SelectionSuite
@@ -64,6 +65,7 @@ Item {
         PathBarSuite.run(check)
         PlacesSuite.run(check)
         ProtocolsSuite.run(check)
+        RemoteSuite.run(check)
         ScaleSuite.run(check)
         SearchSuite.run(check)
         SelectionSuite.run(check)

@@ -146,7 +146,8 @@ Item {
         // The verb comes off the wire, never off the clipboard: paste spends a cut before this line
         // arrives, and a Dropbox move never touches the clipboard at all.
         function onTransferStarted(id, n, moving) {
-            pane.transfer = Ops.started(id, moving, n)
+            pane.transfer = Ops.started(id, moving, n, pane.pendingTransferKind)
+            pane.pendingTransferKind = "local"
             pane.sticky(Ops.progressLine(pane.transfer))
         }
 
@@ -241,6 +242,7 @@ Item {
         }
 
         function onFailed(where, input, message, mode) {
+            Ops.clearPendingKind(pane, where)
             var text = Errors.sentence(where, message)
             // A refused sort changes nothing in the backend, so it changes nothing here: a notice in the
             // plain role, never the error role, which is for a listing that stopped being true.
