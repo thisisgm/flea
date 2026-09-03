@@ -454,9 +454,14 @@ action = "eject"
 label = "eject"
 
 [[sheet]]
-keys = "^+ ^-"
+keys = "^+"
 action = "scaleUp"
-label = "interface scale"
+label = "scale up"
+
+[[sheet]]
+keys = "^-"
+action = "scaleDown"
+label = "scale down"
 
 [[sheet]]
 keys = "?"

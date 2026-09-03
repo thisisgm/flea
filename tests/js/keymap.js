@@ -80,6 +80,15 @@ function run(check) {
     check("an unbound key is empty", Keymap.lookup(Qt.Key_Q, "q", none), "")
     check("ctrl j is not plain j", Keymap.lookup(Qt.Key_J, "j", ctrl), "")
 
+    // Issue 9's pair. Equal and Underscore are the same chords on an unshifted key, bound so the
+    // hand gets the scale whichever way the layout reports the keypress.
+    check("ctrl shift plus scales up", Keymap.lookup(Qt.Key_Plus, "", ctrl | shift), "scaleUp")
+    check("ctrl shift equal is the same chord", Keymap.lookup(Qt.Key_Equal, "", ctrl | shift), "scaleUp")
+    check("ctrl shift minus scales down", Keymap.lookup(Qt.Key_Minus, "", ctrl | shift), "scaleDown")
+    check("ctrl shift zero resets", Keymap.lookup(Qt.Key_0, "", ctrl | shift), "scaleReset")
+    // Bare minus is the PDF zoom and must not have been taken by the chord above.
+    check("bare minus still zooms a PDF out", Keymap.lookup(Qt.Key_Minus, "-", none), "zoomOut")
+
     check("shift ? opens the keymap sheet", Keymap.lookup(Qt.Key_Question, "?", shift), "keymapSheet")
     check("l turns a PDF page forward", Keymap.lookup(Qt.Key_L, "l", none), "pageForward")
 
@@ -95,14 +104,14 @@ function run(check) {
           Keymap.SHEET.map(sheetAction).join("|"),
           Keymap.SHEET.map(function (row) { return row.action }).join("|"))
     check("the sheet is not empty, so the check above has a denominator",
-          Keymap.SHEET.length, 22)
+          Keymap.SHEET.length, 24)
     // A chord shares the row of the key it doubles, so every caret token must resolve to that row's
     // own action, or the sheet advertises a chord bound to something else.
     check("every chord the sheet draws is bound to the action of its own row",
           Keymap.SHEET.map(chordActions).join("|"),
           Keymap.SHEET.map(function (row) { return chordTokens(row).map(function () { return row.action }).join("+") }).join("|"))
     check("and the sheet draws chords at all, so that check has a denominator",
-          Keymap.SHEET.filter(function (row) { return chordTokens(row).length > 0 }).length, 8)
+          Keymap.SHEET.filter(function (row) { return chordTokens(row).length > 0 }).length, 10)
     check("slash filters, and the sheet now draws the row for it",
           Keymap.SHEET.filter(function (r) { return r.keys === "/" }).length, 1)
     check("and the sheet draws m, so eject and unmount are not mouse-only affordances",
@@ -114,7 +123,7 @@ function run(check) {
 // character like "dd" is one key pressed twice, so it resolves as that character.
 var NAMED = { "enter": Qt.Key_Return, "space": Qt.Key_Space, "esc": Qt.Key_Escape }
 // The one shifted character a chord prints; a capital letter after the caret is the other case.
-var SHIFTED = { ">": Qt.Key_Greater }
+var SHIFTED = { ">": Qt.Key_Greater, "+": Qt.Key_Plus, "-": Qt.Key_Minus }
 
 function sheetAction(row) {
     var first = String(row.keys).split(" ")[0]
