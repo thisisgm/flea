@@ -1997,7 +1997,7 @@ PYEOF
 }
 
 # Catches the Network group failing to self-hide, the add dialog's keyboard path breaking the
-# list's own keyboard focus, "a" leaking into list type-ahead, and the dialog's own submit path
+# list's own keyboard focus, "a" leaking out of the rail into the list, and the dialog's own submit path
 # silently never updating the rail when ~/.config/gtk-3.0/ was absent at launch (a FileView never
 # watches a directory that did not exist at its own construction; the fix is Sidebar's own
 # reloadBookmarks(), driven off the dialog's saved() signal, not the watch alone). HOME is
@@ -2012,8 +2012,7 @@ PYEOF
 case_network() {
     local dir="$fixture_root/network"
     sandbox_scratch "$dir"
-    # Sorted before "apple.txt" on purpose, so a genuine type-ahead jump is a visible cursor move
-    # and not just "already sitting on the only a-name", which proved nothing the first time.
+    # Three rows so a cursor that did not move is distinguishable from one clamped to a short listing.
     : > "$dir/0-one.txt"
     : > "$dir/0-two.txt"
     : > "$dir/apple.txt"
@@ -2034,13 +2033,14 @@ case_network() {
     [[ -z "$(ipc networkEntries)" ]] || fail "network: the group is not empty with no bookmarks, gio mounts or Dropbox"
     shot network-empty
 
-    # "a" in the list is type-ahead, not the rail's add-dialog binding; ui/js/Focus.js "lookup" scopes it.
+    # "a" is the rail's add-dialog binding and nothing in the list; ui/js/Focus.js "lookup" scopes it.
+    # Since v0.1.3 there is no type-ahead, so the cursor must not move either.
     [[ "$(ipc focusView)" == "list" ]] || fail "network: did not start on the list"
     [[ "$(ipc cursor)" == "0" ]] || fail "network: did not start on row 0"
     key a >/dev/null
     settle
-    [[ "$(ipc dialogOpen)" == "false" ]] || fail "network: a opened the dialog from the list, stealing type-ahead"
-    [[ "$(ipc cursor)" == "2" ]] || fail "network: a did not type-ahead to apple.txt, cursor is $(ipc cursor)"
+    [[ "$(ipc dialogOpen)" == "false" ]] || fail "network: a opened the dialog from the list, where it is not bound"
+    [[ "$(ipc cursor)" == "0" ]] || fail "network: a moved the cursor, so something still type-aheads: $(ipc cursor)"
 
     # The real submit path: Tab to the rail, "a" opens the dialog there, type a location, Enter submits.
     key -k Tab >/dev/null
@@ -2073,7 +2073,7 @@ case_network() {
     key -k Escape >/dev/null
     settle
     [[ "$(ipc dialogOpen)" == "false" ]] || fail "network: Escape did not close the dialog"
-    # g resets to row 0 first: the earlier type-ahead check already moved the cursor to row 2.
+    # g resets to row 0 first, so this reads the same whatever the dialog left the cursor on.
     key g >/dev/null
     settle
     key j >/dev/null

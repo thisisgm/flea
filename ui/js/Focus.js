@@ -15,19 +15,23 @@ var RAIL = "rail"
 // Left/Right's seek step, Task 22's operator ruling; previewAct is the only reader.
 var SEEK_MS = 5000
 
+// How long the first d of the dd pair stays armed. Long enough to be a deliberate pair, short
+// enough that an arm nobody finished cannot be completed by a d typed minutes later.
+var TRASH_ARM_MS = 1500
+
 // Tab is the only thing that moves focus between views, so the rule lives in one function.
 function next(current) {
     return current === LIST ? RAIL : LIST
 }
 
 // The one lookup Pane.qml's Keys.onPressed calls. "addNetwork" is a rail-only action (the
-// dialog is reached from the rail's own "+" mark), so the list keeps "a" for type-ahead;
+// dialog is reached from the rail's own "+" mark), so "a" does nothing in the list;
 // filtering it here, not in Keymap.js, keeps the generated file a pure keys.toml mirror.
 // seekBack/seekForward get the same treatment, scoped to an open MEDIA preview instead of the
 // rail, so Left/Right stay silent everywhere else rather than reaching act()'s "not built yet".
 function lookup(event, root) {
     var action = Keymap.lookup(event.key, event.text, event.modifiers)
-    // Only the bare a is rail-only; Ctrl+K costs no type-ahead letter and opens the dialog anywhere.
+    // Only the bare a is rail-only; Ctrl+K is scoped to neither view and opens the dialog anywhere.
     if (action === "addNetwork" && root.focusView !== RAIL && !(event.modifiers & Qt.ControlModifier))
         return ""
     // A filter narrows rows already on screen, which is the list view's own job: the GridView and
@@ -49,7 +53,7 @@ function lookup(event, root) {
     // silent rather than reaching act()'s "not built yet" while browsing.
     if (action === "zoomOut" || action === "zoomIn" || action === "expand" || action === "pageForward")
         return (root.preview.active && root.preview.isPdf) ? action : ""
-    // reveal only means something on a search result, so o stays a type-ahead key everywhere else.
+    // reveal only means something on a search result, so o is discarded everywhere else.
     if (action === "reveal" && root.searchMode !== Search.RESULTS)
         return ""
     // A sort ends the running walk in the backend and the search strip hides the mark that would
@@ -98,6 +102,7 @@ function act(action, root) {
     // The write operations; every one of them is reversible with undo, so none of them confirms.
     case "duplicate": Ops.duplicate(root); return
     case "trash": Ops.trash(root); return
+    case "trashArm": armTrash(root); return
     case "copy": Ops.clip(root, false); return
     case "cut": Ops.clip(root, true); return
     case "paste": Ops.paste(root); return
@@ -213,6 +218,11 @@ function handleKey(event, root, sidebar) {
         return Filter.typeKey(event, root)
     }
     var action = lookup(event, root)
+    // Anything that is not the second d of the pair disarms it, so an arm never outlives the key
+    // after it. armTrash re-stamps on its own line below, which is why it reads the stamp first.
+    if (action !== "trashArm") {
+        root.trashArmedAt = 0
+    }
     if (root.preview.active) {
         previewAct(action, root)
         return true
@@ -251,13 +261,25 @@ function handleKey(event, root, sidebar) {
         root.act(action)
         return true
     }
-    // Type-ahead is the fallback, so any printable key that is not bound jumps. A standing filter is
-    // already a name match over these rows, so the two never run at once and never disagree.
+    // An unbound printable key used to jump to a name, which only half worked because most letters
+    // are bound, and taught a habit that reached d and trashed the row. It names the filter instead.
     if (root.shown === null && event.text.length === 1 && event.text >= " ") {
-        root.typeAhead(event.text)
+        root.message("Press / to filter this listing by name.", false)
         return true
     }
     return false
+}
+
+// The d of dd. The first press arms and says so, a second inside the window trashes; handleKey
+// above clears the stamp for every other action, so an arm never survives the key after it.
+function armTrash(root) {
+    if (root.trashArmedAt > 0 && Date.now() - root.trashArmedAt < TRASH_ARM_MS) {
+        root.trashArmedAt = 0
+        Ops.trash(root)
+        return
+    }
+    root.trashArmedAt = Date.now()
+    root.message("Press d again to trash, or Delete on its own.", false)
 }
 
 // The keyboard's route into the rail menu, and where a rail row without one is answered: the sheet

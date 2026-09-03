@@ -43,7 +43,7 @@ function openWithoutHistory(pane, newPath) {
     pane.thumbState = Thumbs.empty()
     pane.dirSizeState = DirSizes.empty()
     pane.cursorIndex = 0
-    pane.typed = ""
+    pane.trashArmedAt = 0
     // The row the editor sat on belongs to the listing being replaced, so the rename goes with it:
     // leaving the index set opened an empty editor over whatever file arrived at that row instead.
     pane.renamingIndex = -1
@@ -116,19 +116,6 @@ function openCursor(pane, opener) {
         return
     }
     opener.open(path)
-}
-
-// corner: type-ahead scans only held rows, see AGENTS.md "Held-window type-ahead".
-function typeAhead(pane, character, clearTimer) {
-    pane.typed += character.toLowerCase()
-    clearTimer.restart()
-    for (var i = 0; i < pane.rows.length; i++) {
-        if (pane.rows[i].n.toLowerCase().indexOf(pane.typed) === 0) {
-            pane.setCursor(pane.held + i)
-            return
-        }
-    }
-    pane.message("No match for " + pane.typed, false)
 }
 
 // The path helpers the columns view needs. A root has no parent and no leaf of its own.

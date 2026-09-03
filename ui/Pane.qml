@@ -27,7 +27,8 @@ FocusScope {
     property int lockedMode: 0
     // Off by default: dotfiles stay out of every listing until the context menu or "." turns them on.
     property bool showHidden: false
-    property string typed: ""
+    // When the first d of the dd pair landed; ui/js/Focus.js reads it and Nav's reset clears it.
+    property double trashArmedAt: 0
     // "" off, "typing" while the query line has the keyboard, "results" once a walk was asked for; ui/js/Search.js owns every transition.
     property string searchMode: ""
     // Where the search was started from, which a home-wide walk leaves behind; see ui/js/Search.js.
@@ -88,7 +89,6 @@ FocusScope {
     readonly property int refetchMargin: 25
     readonly property int cacheRows: 4
     readonly property int coalesceMs: 16
-    readonly property int typeAheadClearMs: 900
     // A settle, not a stream: a fling must issue no request at all, see AGENTS.md "Thumbnail requests in the GUI".
     readonly property int settleMs: 120
     // The first screen's settle only has to outlast the compositor's resize, see AGENTS.md "Thumbnail requests in the GUI".
@@ -223,8 +223,6 @@ FocusScope {
     function join(base, name) {
         return base === "/" ? "/" + name : base + "/" + name
     }
-
-    function typeAhead(character) { Nav.typeAhead(root, character, typedClear) }
 
     Flea.PaneWire {
         id: wire
@@ -392,10 +390,4 @@ FocusScope {
         total: root.total
     }
 
-    Timer {
-        id: typedClear
-        interval: root.typeAheadClearMs
-        repeat: false
-        onTriggered: root.typed = ""
-    }
 }

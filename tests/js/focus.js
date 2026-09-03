@@ -1,7 +1,7 @@
 .import "../../ui/js/Focus.js" as Focus
 
 // Focus.lookup is where a key is discarded for being meaningless in the current state, and a wrong
-// gate there is silent: the key does nothing, or it steals a letter the list wanted for type-ahead.
+// gate there is silent: the key simply does nothing, and no suite but this one would notice.
 
 function pane(preview, viewMode) {
     return {
@@ -53,6 +53,17 @@ function listPane(hasRow) {
     p.said = ""
     p.openCursorMenu = function () { p.opened += 1; return hasRow }
     p.message = function (text, isError) { p.said = text }
+    return p
+}
+
+// The dd pair's own sink: what Ops.trash reaches for, plus the stamp Focus reads and writes.
+function trashPane() {
+    var p = listPane(true)
+    p.trashArmedAt = 0
+    p.cursorIndex = 3
+    p.trashedIdx = []
+    p.selectedIndices = function () { return [] }
+    p.backend = { trash: function (idx) { p.trashedIdx = idx } }
     return p
 }
 
@@ -113,7 +124,7 @@ function run(check) {
     check("minus zooms an open PDF", Focus.lookup(minus, pane(pdfOpen())), "zoomOut")
     check("plus zooms an open PDF", Focus.lookup(plus, pane(pdfOpen())), "zoomIn")
 
-    // The three are silent everywhere else, or e steals a letter the list wants for type-ahead.
+    // The three are silent everywhere else, so none of them acts while the list has the keys.
     check("e is discarded while browsing", Focus.lookup(e, pane(closed())), "")
     check("minus is discarded while browsing", Focus.lookup(minus, pane(closed())), "")
     check("plus is discarded while browsing", Focus.lookup(plus, pane(closed())), "")
@@ -133,7 +144,7 @@ function run(check) {
     var h = key(Qt.Key_H, "h", none)
     var l = key(Qt.Key_L, "l", none)
     check("l turns a page in an open PDF", Focus.lookup(l, pane(pdfOpen())), "pageForward")
-    check("l is discarded while browsing, so it stays a type-ahead letter",
+    check("l is discarded while browsing, so it does nothing outside a PDF",
           Focus.lookup(l, pane(closed())), "")
     check("l is discarded over a media preview", Focus.lookup(l, pane(mediaOpen())), "")
     check("h still means parent, in the list and over a PDF both",
@@ -151,6 +162,31 @@ function run(check) {
     check("colon resolves to the path bar", Focus.lookup(colon, pane(closed())), "pathBar")
     var newTab = key(Qt.Key_T, "t", none)
     check("t resolves to a new tab", Focus.lookup(newTab, pane(closed())), "tabNew")
+
+    // Issue 7: one d used to trash on the third keystroke of a typed name. The pair is what trashes
+    // now, the first press only says so, and a stale arm is not a pair however long it has stood.
+    var arming = trashPane()
+    Focus.act("trashArm", arming)
+    check("the first d trashes nothing and says what to press", arming.trashedIdx.length, 0)
+    check("and the sentence names both routes", arming.said,
+          "Press d again to trash, or Delete on its own.")
+    check("and it leaves the pair armed", arming.trashArmedAt > 0, true)
+    Focus.act("trashArm", arming)
+    check("the second d inside the window trashes the cursor row", arming.trashedIdx.join(","), "3")
+    check("and disarms, so a third d only arms again", arming.trashArmedAt, 0)
+
+    var stale = trashPane()
+    stale.trashArmedAt = Date.now() - 60000
+    Focus.act("trashArm", stale)
+    check("a d a minute after the first is a fresh arm, not the second of a pair",
+          stale.trashedIdx.length, 0)
+    check("and it re-arms rather than completing a pair nobody meant",
+          stale.trashArmedAt > Date.now() - 1000, true)
+
+    // Delete keeps the single press, because it is not a letter a name is typed with.
+    var direct = trashPane()
+    Focus.act("trash", direct)
+    check("Delete trashes on one press, with no arming", direct.trashedIdx.join(","), "3")
 
     // The filter narrows rows already on screen, which only the list view draws; the GridView and
     // Columns boards draw no filter, so / is dropped there rather than narrowing a view nothing shows.
@@ -201,7 +237,7 @@ function run(check) {
     check("S is discarded over a search result", Focus.lookup(sortReverse, searching(closed())), "")
 
     // m is the one key into the menu a right click raises, in both views: the rail's rows and the
-    // listing's row menu, which had no key at all. It stops being a type-ahead letter for that.
+    // listing's row menu, which had no key at all, so it is routed by which view has focus.
     var m = key(Qt.Key_M, "m", none)
     var volume = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true }
     var home = { label: "Home", group: "favorite", kind: "favorite", path: "/home/user" }
@@ -224,7 +260,7 @@ function run(check) {
           empty.opened + "|" + railing.said, "0|")
 
     // Finder's Cmd+K with Cmd read as Ctrl opens the dialog from either view; the bare a stays a rail
-    // key, because in the list the letter belongs to type-ahead.
+    // key, because in the list the letter is not bound at all.
     var ctrl = Qt.ControlModifier
     check("ctrl k connects to a server from the list", Focus.lookup(key(Qt.Key_K, "\u000b", ctrl), pane(closed())), "addNetwork")
     check("bare a is still nothing in the list", Focus.lookup(key(Qt.Key_A, "a", none), pane(closed())), "")

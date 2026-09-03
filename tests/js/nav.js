@@ -18,7 +18,7 @@ function pane() {
         dirSizeState: "stale",
         cursorIndex: 7,
         renamingIndex: 4,
-        typed: "no",
+        trashArmedAt: 12345,
         listingState: "ready",
         stateMessage: "something",
         lockedMode: 0o40750,
@@ -52,8 +52,8 @@ function run(check) {
     Nav.openWithoutHistory(fresh, "/home/gm/Work")
     check("a new listing forgets the filter's query", fresh.filterQuery, "")
     check("and hands the keyboard back off its query line", fresh.filterTyping, false)
-    check("and forgets the type-ahead, the cursor and the selection",
-          fresh.typed + "|" + fresh.cursorIndex + "|" + fresh.cleared, "|0|1")
+    check("and forgets a half-pressed dd, the cursor and the selection",
+          fresh.trashArmedAt + "|" + fresh.cursorIndex + "|" + fresh.cleared, "0|0|1")
     check("and asks the backend for the directory it was given",
           fresh.sent.join(","), "list /home/gm/Work,fsinfo")
     // The Locked state carries a mode string, so the reset that forgets the state must forget the

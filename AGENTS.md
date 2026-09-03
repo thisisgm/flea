@@ -2711,11 +2711,18 @@ association. Wrapping the handler in a terminal from inside Flea would mean Flea
 programs are terminal programs, and that is the judgement the desktop's own database exists to
 make.
 
-### Held-window type-ahead
+### No type-ahead, and trash is a pair
 
-`Pane.qml` type-ahead scans only the rows held around the viewport. Searching every
-name would sweep the directory and violate load-bearing rule 1; full-directory search
-belongs behind the backend `filter` action in a later plan.
+Removed in v0.1.3 for issue 7. The type-ahead was the fallback for a printable key that
+`keys.toml` did not bind, so it only ever worked for the letters nothing else had claimed:
+typing `Vid` toggled the selection on `v`, jumped on `i`, and trashed the row on `d`. An
+unbound letter now answers `Press / to filter this listing by name.`, which is the filter
+that already narrows the held rows without a walk.
+
+Bare `d` is `trashArm`, not `trash`: the first press arms and says so, a second inside
+`Focus.TRASH_ARM_MS` trashes, and `handleKey` clears the stamp for every other action so an
+arm never survives the key after it. `Delete` and `Ctrl+Delete` still go on one press,
+because neither is a letter a name is typed with.
 
 ### Theme roles and sources
 

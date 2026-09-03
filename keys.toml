@@ -240,10 +240,11 @@ action = "cut"
 char = "p"
 action = "paste"
 
-# Delete carries this too; the sheet names d, and the journal is what makes both safe.
+# Two presses, because a single d sat in the middle of the letters a name is typed with and trashed
+# the row on the third keystroke of "Vid". Delete and Ctrl+Delete still go on one press.
 [[text]]
 char = "d"
-action = "trash"
+action = "trashArm"
 
 [[text]]
 char = "r"
@@ -381,8 +382,8 @@ action = "rename"
 label = "rename"
 
 [[sheet]]
-keys = "d"
-action = "trash"
+keys = "dd del"
+action = "trashArm"
 label = "trash"
 
 [[sheet]]

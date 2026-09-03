@@ -464,7 +464,7 @@ and the application cannot disagree.
 | `f`, Ctrl-f | Search |
 | `o` | Reveal the result in its own directory |
 | `y`, `x`, `p`, Ctrl-c, Ctrl-x, Ctrl-v | Copy, cut, paste; the chords are what Omarchy's Super-c, Super-x and Super-v deliver |
-| `d`, Delete, Ctrl-Delete | Trash |
+| `dd`, Delete, Ctrl-Delete | Trash. Two presses on the letter, one on the key |
 | `r`, F2 | Rename |
 | `z`, Ctrl-z | Undo the last operation |
 | Ctrl-Shift-n | New folder |
