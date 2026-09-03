@@ -155,6 +155,7 @@ await '"t":"transferdone"' || fail=1
 check "remote-to-remote copy preserves source bytes" "remote copy|remote copy" "$(cat "$remote_src/copy.txt")|$(cat "$remote_dst/copy.txt")"
 send "{\"c\":\"transfer\",\"op\":\"move\",\"paths\":[\"$remote_src/move.txt\"],\"dest\":\"$remote_dst\"}"
 for _attempt in $(seq 1 200); do [[ $(seen '"t":"transferdone"') -ge 2 ]] && break; sleep 0.05; done
+[[ $(seen '"t":"transferdone"') -ge 2 ]] || { printf 'FAIL remote move never completed\n'; fail=1; }
 check "remote-to-remote move removes the source only after landing" "no|remote move" "$([ -e "$remote_src/move.txt" ] && echo yes || echo no)|$(cat "$remote_dst/move.txt")"
 stop_backend
 
