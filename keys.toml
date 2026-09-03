@@ -88,6 +88,28 @@ action = "viewGrid"
 key = "N"
 action = "newFolder"
 
+# Issue 9: foot's own zoom chords. Plus and Equal both, because + is Shift+= on this layout and
+# the hand presses the one key either way; 0 resets, so a scale is never a state you are stuck in.
+[[ctrlshift]]
+key = "Plus"
+action = "scaleUp"
+
+[[ctrlshift]]
+key = "Equal"
+action = "scaleUp"
+
+[[ctrlshift]]
+key = "Minus"
+action = "scaleDown"
+
+[[ctrlshift]]
+key = "Underscore"
+action = "scaleDown"
+
+[[ctrlshift]]
+key = "0"
+action = "scaleReset"
+
 [[ctrlshift]]
 key = "Greater"
 action = "toggleHidden"
@@ -430,6 +452,11 @@ label = "context menu"
 keys = "^e"
 action = "eject"
 label = "eject"
+
+[[sheet]]
+keys = "^+ ^-"
+action = "scaleUp"
+label = "interface scale"
 
 [[sheet]]
 keys = "?"

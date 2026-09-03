@@ -9,6 +9,7 @@ import QtQuick
 import qs.Commons
 import "."
 import "." as Flea
+import "js/Scale.js" as Scale
 import "js/Ops.js" as Ops
 import "js/Search.js" as Search
 
@@ -106,6 +107,13 @@ ShellRoot {
                 onSticky: function (text) { bar.sticky = text; bar.transfer = pane.transfer }
                 onConvertRequested: function (name) { convertDialog.open(name, pane) }
                 onPathBarRequested: chrome.startEdit()
+                // Issue 9. ViewState persists it and Theme multiplies its own tokens by it, so the
+                // whole window follows without any surface reading the chord itself.
+                onScaleRequested: function (direction) {
+                    ViewState.uiScale = direction === 0 ? 1 : Scale.stepped(ViewState.uiScale, direction)
+                    ViewState.save()
+                    pane.message(Scale.announce(ViewState.uiScale), false)
+                }
                 onOpened: function (path) { shareBrowser.close() }
             }
 

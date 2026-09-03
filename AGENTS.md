@@ -458,6 +458,8 @@ huge pages" below for what it is worth and what it cost.
   imports no QML so `./tests/js.sh` can redden on a mutation.
 - `ui/js/Tabs.js` is the directory-tab snapshots and the t/w/1-9 policy, and imports no QML.
 - `ui/js/Trash.js` is the dd pair's arm-and-fire policy, split out of `Focus.js` at its cap.
+- `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` stores it
+  and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord itself.
 - `ui/js/PathBar.js` is what a typed path line means: the tilde, the relative name, the
   `file://` URI, the interior `.` and `..`, and what Tab makes of one directory's names. Pure,
   so `tests/js/pathbar.js` drives all of it; the field itself is `ui/ChromeBar.qml`'s.

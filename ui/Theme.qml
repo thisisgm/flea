@@ -44,22 +44,22 @@ Singleton {
 
     readonly property QtObject font: QtObject {
         readonly property string family: Style.font.family
-        readonly property int bodySmall: Style.font.bodySmall
-        readonly property int caption: Style.font.caption
+        readonly property int bodySmall: Math.round(Style.font.bodySmall * ViewState.uiScale)
+        readonly property int caption: Math.round(Style.font.caption * ViewState.uiScale)
     }
 
     readonly property QtObject spacing: QtObject {
         readonly property int hairline: Style.spacing.hairline
-        readonly property int rowPaddingX: Style.spacing.rowPaddingX
-        readonly property int rowPaddingY: Style.spacing.controlPaddingY
-        readonly property int gap: Style.spacing.rowGap
+        readonly property int rowPaddingX: Math.round(Style.spacing.rowPaddingX * ViewState.uiScale)
+        readonly property int rowPaddingY: Math.round(Style.spacing.controlPaddingY * ViewState.uiScale)
+        readonly property int gap: Math.round(Style.spacing.rowGap * ViewState.uiScale)
     }
 
     // One glyph's advance in a monospace face is every glyph's advance, so this sizes every fixed column.
     TextMetrics {
         id: glyphMetrics
         font.family: Style.font.family
-        font.pixelSize: Style.font.bodySmall
+        font.pixelSize: root.font.bodySmall
         text: "0"
     }
 
@@ -70,7 +70,7 @@ Singleton {
         readonly property int size: Math.round(root.sizeChars * glyphMetrics.advanceWidth)
         readonly property int date: Math.round(root.dateChars * glyphMetrics.advanceWidth)
         // Kind text varies too much for a character count, so its base is a pixel width scaled by the same ratio bodySmall already is.
-        readonly property int kind: Math.round(root.kindBaseWidth * Style.font.bodySmall / 12)
+        readonly property int kind: Math.round(root.kindBaseWidth * root.font.bodySmall / 12)
         // Not a column: the floor under the name, which the four above drop one by one to protect.
         readonly property int nameMin: Math.round(root.nameMinChars * glyphMetrics.advanceWidth)
     }
@@ -87,13 +87,13 @@ Singleton {
     readonly property int heroMarkSize: Math.round(root.font.bodySmall * 3.7)
     // A chrome strip's mark is the OEM's own icon token, the one Ui/Button.qml and the Tailscale and
     // Dropbox bar icons size from: 16 at base-size 14, which is the canvas's chrome mark on every board.
-    readonly property int chromeMarkSize: Style.font.icon
+    readonly property int chromeMarkSize: Math.round(Style.font.icon * ViewState.uiScale)
     // Lucide ships stroke 2 on its 24 unit grid; 1.5 is the operator's tune (Tabler ships 2 as well, see the A/B report).
     readonly property real strokeWidth: 1.5
     // WCAG 2.5.8 floor. Marks stay at their type-scale size; the hit box grows to this.
     readonly property int hitMin: 24
     // Wide enough for "Send with Taildrop" at bodySmall, 257 at base-size 14; ui/ContextMenu.qml draws it.
-    readonly property int menuWidth: Style.space(220)
+    readonly property int menuWidth: Math.round(Style.space(220) * ViewState.uiScale)
 
     // Leading a row gives its text, above and below, before the padding is added.
     readonly property real lineBoxRatio: 1.8
@@ -159,7 +159,7 @@ Singleton {
 
     // Five callers: ConvertDialog, KeymapSheet, NetworkDialog, NetworkForm, TransferCard; every other spacing token above is direct.
     function space(px) {
-        return Style.space(px);
+        return Math.round(Style.space(px) * ViewState.uiScale);
     }
 
     // The metrics contract as the app resolves it, one key=value per line in the Blueprint board's

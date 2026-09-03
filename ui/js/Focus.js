@@ -7,6 +7,7 @@
 .import "Ops.js" as Ops
 .import "Search.js" as Search
 .import "Sort.js" as Sort
+.import "Scale.js" as Scale
 .import "Trash.js" as Trash
 .import "Tabs.js" as Tabs
 
@@ -246,6 +247,11 @@ function handleKey(event, root, sidebar) {
     // The path bar is global for the same reason, and for one more: it lives in the chrome above
     // both views, so neither the list nor the rail is the view that owns it. The pane only asks for
     // it; ui/shell.qml owns the field and hands the keyboard back when it closes.
+    // Issue 9: the interface scale belongs to the window, so it answers from either view.
+    if (action === "scaleUp" || action === "scaleDown" || action === "scaleReset") {
+        root.scaleRequested(action === "scaleReset" ? 0 : (action === "scaleUp" ? 1 : -1))
+        return true
+    }
     if (action === "pathBar") {
         root.pathBarRequested()
         return true

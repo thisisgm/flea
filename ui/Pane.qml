@@ -68,6 +68,7 @@ FocusScope {
     // The one popup, hosted in shell.qml beside the network dialog rather than inside the pane.
     signal convertRequested(string name)
     signal pathBarRequested()  // ":" and Ctrl+L; the bar is chrome, so shell.qml opens it as it does the popup above
+    signal scaleRequested(int direction)  // issue 9's zoom pair, +1, -1 or 0 to reset; the scale is the window's
 
     // The window covers [held, held + rows.length) and nothing outside it is in memory.
     property int held: 0

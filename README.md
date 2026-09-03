@@ -471,6 +471,7 @@ and the application cannot disagree.
 | `a`, Ctrl-k | Add a network mount; `a` from the rail, Ctrl-k from either view |
 | Ctrl-e | Eject the rail's device, or the removable volume the listing is inside |
 | Ctrl-1, Ctrl-2, Ctrl-3 | List, columns, grid |
+| Ctrl-Shift-+, Ctrl-Shift-- , Ctrl-Shift-0 | Interface scale up, down, back to the desktop's own |
 | `m` | Open the context menu on the cursor row; in the rail, eject or unmount |
 | `s`, `S` | Step the sort column, reverse the sort |
 | `.`, Ctrl-Shift-. | Show hidden files |

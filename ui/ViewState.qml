@@ -2,6 +2,7 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "js/Scale.js" as Scale
 
 // The per-user view state that outlives a window: which list columns the user has hidden, and
 // later whatever else a preference earns a toggle for. One JSON file under ~/.config/flea, read
@@ -15,6 +16,9 @@ QtObject {
     // The list-column keys ("mode"/"size"/"date"/"kind") the user has hidden. Name is not here:
     // it is the one column a file manager cannot do without, see ui/js/Columns.js.
     property var hiddenCols: []
+
+    // The interface scale Ctrl+Shift+Plus steps; 1 is Omarchy's own size and the default.
+    property real uiScale: 1
 
     // Flipped by ui/Pane.qml's onChosen, when a header-menu row answers "col:<key>".
     function toggleColumn(key) {
@@ -38,6 +42,8 @@ QtObject {
             var parsed = JSON.parse(store.text())
             if (parsed && parsed.hiddenCols)
                 root.hiddenCols = parsed.hiddenCols
+            if (parsed && parsed.uiScale > 0)
+                root.uiScale = Scale.stepped(parsed.uiScale, 0)
         } catch (e) {
             // A file another hand wrote is not this file's problem: the defaults stand.
         }
@@ -55,6 +61,6 @@ QtObject {
     }
 
     function save() {
-        store.setText(JSON.stringify({ hiddenCols: root.hiddenCols }, null, 2) + "\n")
+        store.setText(JSON.stringify({ hiddenCols: root.hiddenCols, uiScale: root.uiScale }, null, 2) + "\n")
     }
 }
