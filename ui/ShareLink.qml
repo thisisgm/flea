@@ -31,7 +31,9 @@ Item {
                 root.failed()
                 return
             }
-            copyToClipboard.command = ["bash", "-c", "printf %s " + JSON.stringify(url) + " | wl-copy"]
+            // argv-direct, no shell: wl-copy takes the text as an argument, so a URL holding
+            // $(...) or backticks can never reach a shell to be expanded.
+            copyToClipboard.command = ["wl-copy", url]
             copyToClipboard.running = true
             root.copied(url)
         }

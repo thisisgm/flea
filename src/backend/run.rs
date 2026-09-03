@@ -303,9 +303,18 @@ fn handle_line(
         Request::Peek { path, first, hidden } =>
             say(out, &peek_line(&path, first, hidden, &tb.mime, &tb.icons)),
         // A compress names absolute paths and no path; an extract names the one archive in path.
-        Request::Archive { op, paths, path, dest, format } => start_archive(
-            out, ops, Arc::clone(&tb.formats), op == "compress",
-            paths, format, PathBuf::from(&path), PathBuf::from(&dest)),
+        Request::Archive { op, paths, path, dest, format } => {
+            // A typo would otherwise fall through to extract; refuse an op that names neither.
+            if op != "compress" && op != "extract" {
+                let e = FleaError { where_: "archive".to_string(), path: op.clone(), msg: "op must be compress or extract".to_string() };
+                writeln!(out, "{}", error_line(&e)).ok();
+                out.flush().ok();
+            } else {
+                start_archive(
+                    out, ops, Arc::clone(&tb.formats), op == "compress",
+                    paths, format, PathBuf::from(&path), PathBuf::from(&dest));
+            }
+        }
         Request::Convert { path, dest, strip } =>
             start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip),
         Request::Formats => say(out, &formats_line(&tb.formats, convert::available())),

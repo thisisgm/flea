@@ -73,6 +73,10 @@ impl Formats {
         a.push(dest.to_string_lossy().to_string());
         a.push("-C".to_string());
         a.push(parent.to_string_lossy().to_string());
+        // Members are relative names from the selection; one that begins with a dash would be read
+        // as a bsdtar option (`--use-compress-program` runs an arbitrary program), so option parsing
+        // is terminated first, the same way trash.rs does before its own paths.
+        a.push("--".to_string());
         a.extend(names.iter().cloned());
         Some(a)
     }
@@ -170,6 +174,24 @@ mod tests {
         let dash_c = a.iter().position(|s| s == "-C").expect("a working directory");
         let first_name = a.iter().position(|s| s == "a.txt").expect("the first name");
         assert!(dash_c < first_name, "-C must precede the names it applies to");
+    }
+
+    #[test]
+    fn a_member_name_that_looks_like_an_option_sits_after_the_terminator() {
+        let f = Formats::from_tools(true, true);
+        let a = f
+            .compress_argv("tar", Path::new("/x/out.tar"), Path::new("/src"),
+                           &["--use-compress-program=sh".to_string(), "ok.txt".to_string()])
+            .unwrap();
+        let term = a.iter().position(|s| s == "--").expect("a -- terminator before the names");
+        let bad = a.iter().position(|s| s == "--use-compress-program=sh").unwrap();
+        assert!(term < bad, "a dash-leading member must sit after the -- terminator");
+        // 7z stores absolute paths, so its members can never be read as options and it needs no --.
+        let seven = f
+            .compress_argv("7z", Path::new("/x/out.7z"), Path::new("/src"), &["--evil".to_string()])
+            .unwrap();
+        assert!(!seven.iter().any(|s| s == "--"));
+        assert_eq!(seven.last().unwrap(), "/src/--evil");
     }
 
     #[test]
