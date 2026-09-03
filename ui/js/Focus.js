@@ -7,6 +7,7 @@
 .import "Ops.js" as Ops
 .import "Search.js" as Search
 .import "Sort.js" as Sort
+.import "Tabs.js" as Tabs
 
 var LIST = "list"
 var RAIL = "rail"
@@ -129,9 +130,8 @@ function act(action, root) {
         Ops.compress(root, action.substring("compress:".length))
         return
     }
-    // Bound ahead of their features, by the rule that a mapped key says why rather than doing nothing:
-    // the Tui board draws tabs on t, w and the digits, and a typeable path bar on colon.
-    if (action.indexOf("tab") === 0) { root.message("Tabs are not built yet.", false); return }
+    if (action.indexOf("tab") === 0) { Tabs.act(action, root); return }
+    // Bound ahead of its feature, by the rule that a mapped key says why rather than doing nothing.
     if (action === "palette") { root.message("The path bar is not built yet.", false); return }
     root.message(action + " is not built yet.", false)
 }
@@ -229,6 +229,11 @@ function handleKey(event, root, sidebar) {
     // takes active focus itself, so nothing below has to route keys into it while it stands.
     if (action === "keymapSheet") {
         root.keymapSheet.open(root)
+        return true
+    }
+    // Tabs are window-level, so t, w and the digits answer from the rail as well as the list.
+    if (action.indexOf("tab") === 0) {
+        root.act(action)
         return true
     }
     if (root.focusView === RAIL) {

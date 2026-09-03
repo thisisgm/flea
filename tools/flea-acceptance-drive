@@ -406,6 +406,13 @@ reset_state() {
     k "${chord[@]}"
     settle
   fi
+  local tabs
+  for tabs in 1 2 3 4 5 6 7 8 9; do
+    [ "$(ipc tabCount)" -le 1 ] && break
+    mapfile -t closech < <(first_chord tabClose)
+    k "${closech[@]}"
+    settle
+  done
   for attempt in 1 2 3 4 5; do
     [ "$(ipc path)" = "$DRIVE_FIXTURE" ] && break
     mapfile -t chord < <(first_chord parent)
@@ -1003,11 +1010,49 @@ keycase_message_is() {
 
 keycase_palette()   { keycase_message_is "The path bar is not built yet." "$@"; }
 
-# ui/js/Focus.js answers every action starting "tab" from one branch, so tabNew, tabClose and the
-# nine keys the [digits] range binds share one driver rather than eleven copies of it.
-keycase_tabs()      { keycase_message_is "Tabs are not built yet." "$@"; }
-keycase_tabNew()    { keycase_tabs "$@"; }
-keycase_tabClose()  { keycase_tabs "$@"; }
+keycase_tabNew() {
+  local before after
+  reset_state || return 1
+  before=$(ipc tabCount)
+  k "$@"; settle
+  after=$(ipc tabCount)
+  changed_to "the tab count" "$before" "$after" "$((before + 1))"
+}
+
+keycase_tabClose() {
+  local before after
+  reset_state || return 1
+  mapfile -t newc < <(first_chord tabNew)
+  k "${newc[@]}"; settle
+  before=$(ipc tabCount)
+  k "$@"; settle
+  after=$(ipc tabCount)
+  changed_to "the tab count" "$before" "$after" "$((before - 1))"
+}
+
+# The digit keys share one driver. TAB_DIGIT is the number the runner pulled off the action name.
+keycase_tabDigit() {
+  local n=$TAB_DIGIT before after i
+  reset_state || return 1
+  if [ "$n" = 1 ]; then
+    mapfile -t newc < <(first_chord tabNew)
+    k "${newc[@]}"; settle
+    before=$(ipc tabIndex)
+    k "$@"; settle
+    after=$(ipc tabIndex)
+    changed_to "the current tab" "$before" "$after" "0"
+    return
+  fi
+  mapfile -t newc < <(first_chord tabNew)
+  for i in $(seq 2 "$n"); do
+    k "${newc[@]}"; settle
+  done
+  k 1; settle
+  before=$(ipc tabIndex)
+  k "$@"; settle
+  after=$(ipc tabIndex)
+  changed_to "the current tab" "$before" "$after" "$((n - 1))"
+}
 
 # The backend answers mkdir with the first free "New Folder", so the assertion is a directory that
 # was not there before, read off the filesystem: a status line would also be set by a dead handler.
@@ -1119,7 +1164,7 @@ drive_key_action() {
   # The digit keys are named by the [digits] prefix, which is read from keys.toml rather than
   # spelled here, so renaming the prefix moves the whole range onto the shared driver with it.
   case $action in
-    "$DIGIT_PREFIX"[0-9]) fn=keycase_tabs ;;
+    "$DIGIT_PREFIX"[0-9]) fn=keycase_tabDigit; TAB_DIGIT=${action#"$DIGIT_PREFIX"} ;;
   esac
   if ! declare -F "$fn" >/dev/null; then
     skip key "$action" "bound in keys.toml, and this battery has no driver for it yet"

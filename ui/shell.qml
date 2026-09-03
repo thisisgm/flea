@@ -66,11 +66,19 @@ ShellRoot {
                 onViewChosen: function (mode) { pane.viewMode = mode }
             }
 
+            Flea.TabBar {
+                id: tabBar
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.top: chrome.bottom
+                pane: pane
+            }
+
             Flea.Pane {
                 id: pane
                 anchors.left: parent.left
                 anchors.right: parent.right
-                anchors.top: chrome.bottom
+                anchors.top: tabBar.bottom
                 anchors.bottom: bar.top
                 backend: backend
                 preview: preview
@@ -182,6 +190,7 @@ ShellRoot {
         bar: bar
         backend: backend
         chrome: chrome
+        tabBar: tabBar
         convertDialog: convertDialog
         keymapSheet: keymapSheet
         networkDialog: networkDialog

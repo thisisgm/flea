@@ -126,6 +126,7 @@ FocusScope {
     // Directories already visited, newest last, so the chrome's back arrow has somewhere to go.
     // Deliberately not a forward stack: the canvas draws one arrow, not two.
     property var history: []
+    property var tabs: null
     readonly property bool canGoBack: root.history.length > 0
     readonly property bool canGoUp: root.path.length > 1
 

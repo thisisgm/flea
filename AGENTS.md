@@ -445,6 +445,7 @@ huge pages" below for what it is worth and what it cost.
   `flea --open`, see "Opening a file".
 - `ui/ContextMenu.qml` is the one pane-owned right-click popup and its single Open action.
 - `ui/StatusBar.qml` renders the path, row counts and transient messages.
+- `ui/TabBar.qml` is the window's tab strip, hidden with no height until a second tab exists.
 - `keys.toml` is the one key table, and `tools/flea-keymap-gen` turns it into `Keymap.js`.
 - `ui/js/Keymap.js` is the generated key-to-action lookup and imports no QML.
 - `ui/js/Format.js` is the pure size, date and permission formatter.
@@ -453,6 +454,7 @@ huge pages" below for what it is worth and what it cost.
   its own.
 - `ui/js/Thumbs.js` is the pure row-to-path map and the visible-row request plan, and
   imports no QML so `./tests/js.sh` can redden on a mutation.
+- `ui/js/Tabs.js` is the directory-tab snapshots and the t/w/1-9 policy, and imports no QML.
 
 ## Where the backend binary comes from
 
@@ -2727,9 +2729,11 @@ filename as rich text, so it is never safe for backend-provided names.
 
 The rule, applied on 2026-09-02 after two silent-by-accident keys and one silent-by-design: every
 row in `keys.toml` either works or says why it does not, in a sentence written for the user and
-never an action name. `t`, `w` and `1` to `9` (tabs) and `:` (the path bar), all drawn on the Tui
-board, stay in the table and `Focus.act` answers them with `Tabs are not built yet.` and `The path
-bar is not built yet.`; the old `lookup` gate that dropped `:` in silence is gone. The generic
+never an action name. `:` (the path bar), drawn on the Tui board, stays in the table and
+`Focus.act` answers it with `The path bar is not built yet.`; the old `lookup` gate that dropped
+`:` in silence is gone. `t`, `w` and `1` to `9` open, close and switch directory tabs: one live
+listing, a snapshot per hidden tab, the strip only once there are two. Closing the last tab is
+refused. Nine is the cap, because those digits are the jump keys. The generic
 `<action> is not built yet.` fallback below those stays as the loud failure for a row the
 dispatcher does not answer, and should never be reachable from the shipped table. `Ctrl+Shift+N`
 was on this list for one afternoon and is not on it now: `295e757` routed the action through

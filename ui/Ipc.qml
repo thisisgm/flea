@@ -1,6 +1,7 @@
 import QtQuick
 import Quickshell.Io
 import qs.Commons
+import "js/Tabs.js" as Tabs
 
 // The seam the tests drive, see AGENTS.md "Testing". Read-only: it reports, never acts.
 QtObject {
@@ -11,6 +12,7 @@ QtObject {
     property var bar: null
     property var backend: null
     property var chrome: null
+    property var tabBar: null
     property var convertDialog: null
     property var keymapSheet: null
     property var networkDialog: null
@@ -210,6 +212,15 @@ QtObject {
             return item && item.visible ? root.fleaWindow.centreOf(item) : ""
         }
         function chromeHeight(): int { return Math.round(Theme.chromeHeight) }
+        function tabCount(): int { return Tabs.count(root.pane) }
+        function tabIndex(): int { return Tabs.currentIndex(root.pane) }
+        function tabLabels(): string { return Tabs.labels(root.pane).join("|") }
+        function tabBarVisible(): bool { return root.tabBar ? root.tabBar.visible : false }
+        function tabCentre(i: int): string {
+            if (!root.tabBar)
+                return ""
+            return root.fleaWindow.centreOf(root.tabBar.itemAt(i))
+        }
         // The chrome's buttons carry a glyph and no text, so a test reaches one by name and clicks
         // its centre, exactly the way rowCentre already works for a row.
         function chromeButtonCentre(glyph: string): string { return root.fleaWindow.centreOf(root.chrome.buttonFor(glyph)) }
