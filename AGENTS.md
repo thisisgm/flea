@@ -2532,8 +2532,16 @@ already is, so the loop stays the only writer of stdout.
 **Every write creates its target exclusively, and this is the module's whole safety story.** A file copy
 opens with `create_new`, a directory copy and a `mkdir` use `create_dir`, a symlink copy uses `symlink`, and a rename
 or a move uses `renameat2` with `RENAME_NOREPLACE`. None of them can destroy a file that is already
-there, and none has a check-then-write window another process can slip through. `std::fs::rename`
-silently replaces its target on Unix and is never used here.
+there. One compatibility path is a directory on a mount identified exactly as `fuse.rclone` in
+`/proc/self/mountinfo`: rclone 1.75 returns `EINVAL` for `RENAME_NOREPLACE` even though its ordinary
+directory rename works. `renamecompat.rs` then checks the target for Flea's stable collision message
+and uses `std::fs::rename`; safety at the race boundary comes from rclone's own `operations.DirMove`,
+whose interface refuses an existing destination. This exception is never used for a file because rclone's
+file move deliberately accepts an object to overwrite, or on another filesystem. Mountinfo's escaped
+mount point is decoded and the deepest enclosing mount wins, so a nested non-rclone mount cannot
+inherit the exception. The parser, scope, successful fallback, and occupied-target refusal have Rust
+tests; the original failure and both outcomes were also reproduced through the real backend on the
+operator's `~/google` mount.
 
 **The journal records only what an operation created or moved.** `undo.rs`'s `Step` has exactly four
 shapes: `Moved` (rename back), `Created` (remove it), `MadeDir` (remove it while it is still empty, because
