@@ -21,29 +21,28 @@ directory and hands the window only what fits on screen.
 
 ## Install
 
-Flea is for Omarchy. `omarchy` and `quickshell` are hard dependencies, so it will not install on a
-plain Arch box.
+Flea is built for Omarchy. Preferred commands: `omarchy pkg add flea`, then `omarchy update`; AUR
+path only for `flea-git`.
 
 ```bash
-omarchy pkg aur add flea && flea --default
+omarchy pkg add flea
 ```
 
-That is the whole install, and the last command is the only one you might leave out. Flea is on the
-AUR, so `omarchy pkg aur add` builds and installs it the way it installs anything else, and
-`omarchy update` keeps it current from then on. `flea --default` makes Flea the default file
-manager, the way `omarchy default browser` makes a browser the default: it becomes the handler for
-`inode/directory`, and Omarchy's two file-manager keys, `SUPER + SHIFT + F` and
-`SUPER + ALT + SHIFT + F`, open it instead of Nautilus. It prints what it replaced, and
-`flea --default off` puts both back.
+To make Flea the default file manager:
 
-`sudo pacman -Rns flea` takes the package off again, and pacman's own file list is what makes that
-removal provable. `flea --default` is the one thing pacman does not own, because it is your
-preference and not a file of the package's: run `flea --default off` first, or see
-[`docs/install.md`](docs/install.md) for the two lines it would otherwise leave behind.
+```bash
+flea --default
+```
 
-`flea-git` is the same package built from `main` rather than from the last release, if you would
-rather track it. Building from a clone still works too, and is what the repository's own `PKGBUILD`
-is for: `git clone https://github.com/thisisgm/flea.git && cd flea && makepkg -si`.
+This sets Flea as the `inode/directory` handler and makes Omarchy's two file-manager keys,
+`SUPER + SHIFT + F` and `SUPER + ALT + SHIFT + F`, open it instead of Nautilus. Run
+`flea --default off` before `omarchy pkg drop flea` to restore the previous handlers and remove it.
+
+To track `main` instead of releases, use the AUR package:
+
+```bash
+omarchy pkg aur add flea-git
+```
 
 Four optional packages each unlock one feature and nothing else: `libarchive` for archive listing
 and extraction, `7zip` for `.7z` archives, `imagemagick` for image conversion, and `tailscale` for
@@ -58,12 +57,8 @@ and how to undo it by hand, and how the package proves itself.
 omarchy update
 ```
 
-Nothing Flea-specific to remember. `omarchy update` upgrades AUR packages on every run, so Flea
-comes up with the rest of the system, and your `flea --default` choice survives because that is a
-preference and not a file of the package's.
-
-The AUR packages are maintained by [@taxin-404](https://aur.archlinux.org/account/taxin-404), not by
-this repository.
+Flea updates with Omarchy. Your `flea --default` choice survives because it is a preference, not a
+package file.
 
 ## Measured against the field
 
@@ -322,8 +317,8 @@ the name is one typed word away.
   is refused rather than run unconfined.
 - **File operations with an undo journal.** Copy, cut, paste, trash, rename, duplicate,
   compress, extract and convert, each reversible with `z`.
-- **Network and cloud in the rail.** SMB and NFS mounts through `gio`, Taildrop to a peer,
-  and Dropbox as a first-class destination. Local disks and removable volumes group below them
+- **Network and cloud in the rail.** SMB, SFTP, FTPS, WebDAV and NFS mounts through `gio`,
+  Taildrop to a peer, and Dropbox as a first-class destination. Local disks and removable volumes group below them
   under DEVICES, which the screenshots here crop away rather than retouch: that row is labelled
   with the machine's own hostname.
 - **A path bar and directory tabs.** `:` or `Ctrl+L` types a path, with Tab completion over the
@@ -385,8 +380,8 @@ is one character per kind, upgrading to Nerd Font glyphs where the terminal has 
 - Rust to build the backend. This tree is built and tested against rustc/cargo 1.98.
 - `bubblewrap` for `bwrap` and `util-linux` for `prlimit`, both required for thumbnailing
   as described above. Everything else works without them.
-- `bsdtar` and optionally `7z` for archives, `gio` for network mounts. Each is probed at
-  startup and its absence removes only its own feature.
+- `bsdtar` and optionally `7z` for archives; missing archive helpers are detected at startup.
+  `gvfs`, `gvfs-smb`, `gvfs-dnssd` and `gvfs-nfs` provide the network mount backends.
 - Qt's PDF and Multimedia modules for the preview column, which ship with Qt 6 on this
   platform.
 
@@ -542,6 +537,7 @@ cargo test                    # unit tests
 ./tests/bench.sh              # the field bench harness itself
 ./tests/budget.sh             # the file-budget tool
 ./tests/keymap-gen.sh         # ui/js/Keymap.js still matches keys.toml
+FLEA_PACKAGE_FILE=/path/to/flea.pkg.tar.zst ./tests/package.sh # real makepkg archive
 ./tools/flea-acceptance       # the everything-works battery
 ./tools/flea-file-budget      # the file budget, against this tree
 ./tools/flea-field-bench      # the cold field run against the other file managers
@@ -549,11 +545,11 @@ cargo test                    # unit tests
 ./tools/flea-bench-report     # a field run's CSV as the tables in this README
 ```
 
-`./tests/run-all.sh` is the one command. It builds both cargo profiles, because `protocol.sh`
-drives the debug binary and `thumbs.sh` the release one, runs the nine suites above that need
-nothing but a shell, and reads each suite's own exit code rather than a pipeline's. It then
-names `ui.sh`, `drag.sh` and `bench.sh` and says what each of the three wants: a display, a
-real pointer, an idle box. There is no CI, and `PKGBUILD`'s `check()` runs `cargo test` alone.
+`./tests/run-all.sh` is the main headless command. It builds both cargo profiles, because
+`protocol.sh` drives the debug binary and `thumbs.sh` the release one, runs thirteen suites, and
+reads each suite's own exit code rather than a pipeline's. It then names `ui.sh`, `drag.sh`,
+`bench.sh` and `package.sh` and says what each needs: a display, a real pointer, an idle box, or a
+real makepkg archive. There is no CI, and `PKGBUILD`'s `check()` runs `cargo test` alone.
 
 `tools/flea-acceptance` derives its checklist at run time from the protocol document, the
 key table, the context menu, the design canvas and the sidebar, so it cannot be smaller

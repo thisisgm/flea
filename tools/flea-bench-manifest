@@ -290,9 +290,8 @@ for row in "${ENTRANT_ROWS[@]}"; do
     flea)
       sha=$(git -C "$FLEA_REPO" rev-parse --short HEAD 2>/dev/null)
       dirty=clean
-      # Only the paths that build what runs. A whole-tree check reads DIRTY on every run here,
-      # because the oversight session writes into .superpowers while the bench is going.
-      git -C "$FLEA_REPO" diff --quiet -- src ui Cargo.toml Cargo.lock 2>/dev/null || dirty=DIRTY
+      # Product, instrument and package paths count; session-only files elsewhere in the tree do not.
+      [ -z "$(git -C "$FLEA_REPO" status --porcelain -- src ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null)" ] || dirty=DIRTY
       if [ -x "$FLEA_BIN" ]; then
         built=$(date -Is -r "$FLEA_BIN")
         size=$(stat -c %s "$FLEA_BIN")

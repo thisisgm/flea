@@ -1,5 +1,5 @@
 // The undo journal, designed in from the first operation, which is why nothing in Flea needs a confirm dialog.
-use crate::backend::ops::rename_noreplace;
+use crate::backend::ops::rename_noreplace_compatible;
 use crate::backend::trash;
 use crate::error::{from_io, FleaError};
 use std::path::PathBuf;
@@ -76,7 +76,7 @@ impl Journal {
 fn reverse(step: &Step) -> Result<(), FleaError> {
     match step {
         // Back the way it came, and still refusing to clobber: something may occupy the old name now.
-        Step::Moved { from, to } => rename_noreplace(to, from),
+        Step::Moved { from, to } => rename_noreplace_compatible(to, from),
         Step::Created { path } => remove(path),
         Step::MadeDir { path } => remove_empty(path),
         Step::Trashed(entry) => trash::restore(entry),

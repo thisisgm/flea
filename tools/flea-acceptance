@@ -5,7 +5,7 @@
 #
 #   docs/protocol.md      every request the wire accepts
 #   keys.toml             every action the key table binds
-#   ui/ContextMenu.qml    every context menu entry
+#   ui/js/Menu.js         every context menu entry
 #   canvas.json           every artboard the design defines
 #   keys.toml [[pointer]]  every click the pointer contract declares
 #   tests/*.sh            every suite, and whether anything executable names it
@@ -106,9 +106,41 @@ derive_digit_actions() {
   done
 }
 
-# Sample input, ui/ContextMenu.qml: '{ label: "Rename", action: "rename", glyph: "rename" }'
+# Sample input, ui/js/Menu.js: 'var columns = [["mode", "Mode"], ["size", "Size"], ["date", "Date Modified"], ["kind", "Kind"]]'
+derive_header_keys() {
+  sed -n '/^[[:space:]]*var columns = \[\[/p' "$REPO/ui/js/Menu.js" \
+    | tr '[],' '\n' \
+    | sed -n 's/^[[:space:]]*"\([a-z][a-z]*\)"[[:space:]]*$/\1/p'
+}
+
+validate_header_keys() {
+  local key expected seen=" "
+  [ "$#" -gt 0 ] || die "ui/js/Menu.js yielded 0 header keys"
+  for key in "$@"; do
+    case "$seen" in
+      *" $key "*) die "ui/js/Menu.js contains duplicate header key: $key" ;;
+    esac
+    case "$key" in
+      mode|size|date|kind) ;;
+      *) die "ui/js/Menu.js contains unexpected header key: $key" ;;
+    esac
+    seen="$seen$key "
+  done
+  for expected in mode size date kind; do
+    case "$seen" in
+      *" $expected "*) ;;
+      *) die "ui/js/Menu.js is missing header key: $expected" ;;
+    esac
+  done
+}
+
+# Sample input, ui/js/Menu.js: '{ label: "Rename", action: "rename", glyph: "rename" }'
 derive_menu_actions() {
-  sed -n 's/.*action: "\([a-zA-Z][a-zA-Z]*\)".*/\1/p' "$REPO/ui/ContextMenu.qml" | LC_ALL=C sort -u
+  { sed -n 's/.*action: "\([a-zA-Z][a-zA-Z]*\)".*/\1/p' "$REPO/ui/js/Menu.js"
+    for key in "${HEADER_KEYS[@]}"; do
+      printf 'col:%s\n' "$key"
+    done
+  } | LC_ALL=C sort -u
 }
 
 # Sample input, canvas.json: '      "file": "FleaWindow.dc.html",'
@@ -265,6 +297,8 @@ drive_quit() {
 
 # ---- setup -------------------------------------------------------------------------------------
 
+mapfile -t HEADER_KEYS < <(derive_header_keys)
+validate_header_keys "${HEADER_KEYS[@]}"
 [ -x "$BIN" ] || die "$BIN is missing, so run cargo build --release first"
 [ -f "$REPO/docs/protocol.md" ] || die "docs/protocol.md is missing, so the request list cannot be derived"
 [ -n "${CANVAS:-}" ] && [ -f "$CANVAS" ] \
@@ -338,7 +372,7 @@ echo
 mapfile -t KEY_ACTIONS < <(derive_key_actions)
 require_list "key actions from keys.toml" "${#KEY_ACTIONS[@]}"
 mapfile -t MENU_ACTIONS < <(derive_menu_actions)
-require_list "menu actions from ui/ContextMenu.qml" "${#MENU_ACTIONS[@]}"
+require_list "menu actions from ui/js/Menu.js" "${#MENU_ACTIONS[@]}"
 mapfile -t ARTBOARDS < <(derive_artboards)
 require_list "artboards from canvas.json" "${#ARTBOARDS[@]}"
 mapfile -t SIDEBAR_KINDS < <(derive_sidebar_kinds)
@@ -358,7 +392,7 @@ else
     skip key "$a" "bound in keys.toml; --drive presses it on a real window"
   done
   for a in "${MENU_ACTIONS[@]}"; do
-    skip menu "$a" "an entry in ui/ContextMenu.qml; --drive chooses it on a real window"
+    skip menu "$a" "an entry from ui/js/Menu.js; --drive chooses it on a real window"
   done
   # Read line by line: a chord's name carries spaces, and a $( ) loop split "SUPER + C" into three
   # items and reported twenty-six of them where there are ten.

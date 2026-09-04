@@ -31,13 +31,350 @@ TRANSIENT_PREFIX=${TRANSIENT_PREFIX:-/tmp/strata-preview-}
 # Generous on purpose. A capability answer must not be a timing answer in disguise, so an entrant
 # gets far longer than it could possibly need for eight files.
 CAP_TIMEOUT_S=${CAP_TIMEOUT_S:-45}
-# One entrant, for re-measuring a single row. The box is shared: a full pass kills every file
-# manager by name, and the operator's own Flea is not this tool's to close.
+# One entrant for remeasurement; every mode refuses matching pre-existing processes instead of closing them.
 CAP_ONLY=${CAP_ONLY:-}
 OUT=${1:-$HOME/bench/capability.md}
 
 SB="$FIXTURE_ROOT/flea-capability-$$"
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
+
+declare -a PROCESS_TARGETS=()
+declare -a TARGET_PIDS=()
+declare -a OWNED_PIDS=()
+declare -a BOUNDARY_PIDS=()
+declare -A OWNED_STARTS=()
+declare -a WATCH_PIDS=()
+declare -A WATCH_STARTS=()
+OWNED_ROOT_PID=
+OWNED_UNIT=
+OWNED_BOUNDARY_VERIFIED=no
+OWNED_UNIT_INVOCATION=
+OWNED_CONTROL_GROUP=
+OWNED_UNIT_SEQUENCE=0
+
+process_command() {
+  ps -o command= -p "$1" 2>/dev/null
+}
+
+# Sample input: `/proc/4123/stat` starts `4123 (flea) S 4100 4123 4123 ...` and field 22 is starttime.
+process_identity() {
+  local pid=$1 stat rest
+  local -a fields=()
+  stat=$(< "/proc/$pid/stat") || return 1
+  rest=${stat##*) }
+  read -r -a fields <<< "$rest"
+  [ "${#fields[@]}" -ge 20 ] || return 1
+  PROCESS_STATE=${fields[0]}
+  PROCESS_START=${fields[19]}
+}
+
+read_unit_properties() {
+  local unit=$1 output key value
+  UNIT_LOAD_STATE=
+  UNIT_ACTIVE_STATE=
+  UNIT_SUB_STATE=
+  UNIT_MAIN_PID=
+  UNIT_CONTROL_GROUP=
+  UNIT_INVOCATION=
+  UNIT_KILL_MODE=
+  output=$(systemctl --user show "$unit" --no-pager \
+    --property=LoadState --property=ActiveState --property=SubState --property=MainPID \
+    --property=ControlGroup --property=InvocationID --property=KillMode 2>/dev/null) || return 1
+  while IFS='=' read -r key value; do
+    case "$key" in
+      LoadState) UNIT_LOAD_STATE=$value ;;
+      ActiveState) UNIT_ACTIVE_STATE=$value ;;
+      SubState) UNIT_SUB_STATE=$value ;;
+      MainPID) UNIT_MAIN_PID=$value ;;
+      ControlGroup) UNIT_CONTROL_GROUP=$value ;;
+      InvocationID) UNIT_INVOCATION=$value ;;
+      KillMode) UNIT_KILL_MODE=$value ;;
+    esac
+  done <<< "$output"
+  [ -n "$UNIT_LOAD_STATE" ]
+}
+
+unit_name_available() {
+  read_unit_properties "$1" || return 1
+  [ "$UNIT_LOAD_STATE" = not-found ]
+}
+
+owned_unit_active() {
+  [ -n "$OWNED_UNIT" ] || return 1
+  read_unit_properties "$OWNED_UNIT" || return 1
+  [ "$UNIT_LOAD_STATE" = loaded ] \
+    && [ "$UNIT_ACTIVE_STATE" = active ] \
+    && [ "$UNIT_SUB_STATE" = running ] \
+    && [ "$UNIT_MAIN_PID" = "$OWNED_ROOT_PID" ] \
+    && [ "$UNIT_CONTROL_GROUP" = "$OWNED_CONTROL_GROUP" ] \
+    && [ "$UNIT_INVOCATION" = "$OWNED_UNIT_INVOCATION" ] \
+    && [ "$UNIT_KILL_MODE" = control-group ]
+}
+
+read_boundary_pids() {
+  local cgroup_file pid
+  case "$OWNED_CONTROL_GROUP" in /*) ;; *) return 1 ;; esac
+  cgroup_file="/sys/fs/cgroup$OWNED_CONTROL_GROUP/cgroup.procs"
+  [ -r "$cgroup_file" ] || return 1
+  BOUNDARY_PIDS=()
+  while IFS= read -r pid; do
+    case "$pid" in *[!0-9]*|'') return 1 ;; esac
+    BOUNDARY_PIDS+=("$pid")
+  done < "$cgroup_file"
+}
+
+boundary_contains() {
+  local pid
+  for pid in "${BOUNDARY_PIDS[@]}"; do
+    [ "$pid" = "$1" ] && return 0
+  done
+  return 1
+}
+
+pids_for_target() {
+  local comm=$1 token=${2:-} pid command
+  TARGET_PIDS=()
+  for pid in $(pgrep -x "$comm" 2>/dev/null); do
+    command=$(process_command "$pid") || continue
+    if [ -n "$token" ]; then
+      case "$command" in *"$token"*) ;; *) continue ;; esac
+    fi
+    TARGET_PIDS+=("$pid")
+  done
+}
+
+select_process_targets() {
+  if [ "$CAP_ONLY" = flea ]; then
+    PROCESS_TARGETS=("qs|$FLEA_UI" "flea|")
+  elif [ -n "$CAP_ONLY" ]; then
+    PROCESS_TARGETS=("$CAP_ONLY|")
+  else
+    PROCESS_TARGETS=(
+      "qs|$FLEA_UI" "flea|" "nautilus|" "thunar|" "pcmanfm|" "nemo|"
+      "dolphin|" "strata|" "tumblerd|"
+    )
+  fi
+}
+
+owned_recorded() {
+  local owned_pid
+  for owned_pid in "${OWNED_PIDS[@]}"; do
+    [ "$owned_pid" = "$1" ] && return 0
+  done
+  return 1
+}
+
+remember_owned_pid() {
+  local pid=$1
+  case "$pid" in *[!0-9]*|'') return 1 ;; esac
+  boundary_contains "$pid" || return 1
+  process_identity "$pid" || return 1
+  if owned_recorded "$pid"; then
+    [ "${OWNED_STARTS[$pid]}" = "$PROCESS_START" ]
+    return
+  fi
+  OWNED_PIDS+=("$pid")
+  OWNED_STARTS[$pid]=$PROCESS_START
+}
+
+owned_matches() {
+  local pid=$1
+  [ -n "${OWNED_STARTS[$pid]:-}" ] || return 1
+  owned_unit_active || return 1
+  read_boundary_pids || return 1
+  boundary_contains "$pid" || return 1
+  process_identity "$pid" || return 1
+  [ "$PROCESS_START" = "${OWNED_STARTS[$pid]}" ]
+}
+
+capture_owned_boundary() {
+  local pid owned_pid
+  [ -n "$OWNED_UNIT" ] || return 0
+  owned_unit_active || return 1
+  read_boundary_pids || return 1
+  boundary_contains "$OWNED_ROOT_PID" || return 1
+  for pid in "${BOUNDARY_PIDS[@]}"; do
+    remember_owned_pid "$pid" || return 1
+  done
+  for owned_pid in "${OWNED_PIDS[@]}"; do
+    process_identity "$owned_pid" || continue
+    [ "$PROCESS_START" = "${OWNED_STARTS[$owned_pid]}" ] || return 1
+    case "$PROCESS_STATE" in Z*) continue ;; esac
+    boundary_contains "$owned_pid" || return 1
+  done
+  OWNED_BOUNDARY_VERIFIED=yes
+}
+
+owned_alive() {
+  owned_matches "$1" || return 1
+  case "$PROCESS_STATE" in Z*) return 1 ;; esac
+  return 0
+}
+
+require_no_foreign_processes() {
+  local row comm token pid command found=0
+  for row in "${PROCESS_TARGETS[@]}"; do
+    IFS='|' read -r comm token <<< "$row"
+    pids_for_target "$comm" "$token"
+    for pid in "${TARGET_PIDS[@]}"; do
+      owned_matches "$pid" && continue
+      command=$(process_command "$pid")
+      printf 'REFUSED: pid %s is not owned by this capability run: %s\n' "$pid" "$command" >&2
+      found=1
+    done
+  done
+  [ "$found" -eq 0 ]
+}
+
+start_unit_boundary() {
+  local unit=$1 cmd=$2
+  systemd-run --user --quiet --collect "--unit=$unit" \
+    --property=Type=exec --property=KillMode=control-group --property=Delegate=no \
+    --property=SendSIGKILL=yes --property=TimeoutStopSec=10s -- \
+    /bin/bash -c '
+      /bin/bash -c "$1" >/dev/null 2>&1 &
+      entrant_pid=$!
+      wait "$entrant_pid" 2>/dev/null || true
+      exec /usr/bin/sleep infinity
+    ' flea-capability-guardian "$cmd"
+}
+
+start_owned_entrant() {
+  local cmd=$1 unit launch_polls=100 poll_s=0.01
+  OWNED_PIDS=()
+  BOUNDARY_PIDS=()
+  OWNED_STARTS=()
+  OWNED_ROOT_PID=
+  OWNED_UNIT=
+  OWNED_BOUNDARY_VERIFIED=no
+  OWNED_UNIT_INVOCATION=
+  OWNED_CONTROL_GROUP=
+  OWNED_UNIT_SEQUENCE=$(( OWNED_UNIT_SEQUENCE + 1 ))
+  unit="flea-capability-${BASHPID}-${OWNED_UNIT_SEQUENCE}.service"
+  unit_name_available "$unit" \
+    || fail "the capability unit $unit already exists or could not be enumerated"
+  start_unit_boundary "$unit" "$cmd" \
+    || fail "the capability unit $unit could not start"
+  OWNED_UNIT=$unit
+  while [ "$launch_polls" -gt 0 ]; do
+    if read_unit_properties "$OWNED_UNIT" \
+      && [ "$UNIT_LOAD_STATE" = loaded ] \
+      && [ "$UNIT_ACTIVE_STATE" = active ] \
+      && [ "$UNIT_SUB_STATE" = running ] \
+      && [ "$UNIT_KILL_MODE" = control-group ] \
+      && [ -n "$UNIT_INVOCATION" ] \
+      && [ -n "$UNIT_CONTROL_GROUP" ] \
+      && [ "${UNIT_MAIN_PID:-0}" -gt 0 ]; then
+      OWNED_ROOT_PID=$UNIT_MAIN_PID
+      OWNED_UNIT_INVOCATION=$UNIT_INVOCATION
+      OWNED_CONTROL_GROUP=$UNIT_CONTROL_GROUP
+      capture_owned_boundary || break
+      return 0
+    fi
+    sleep "$poll_s"
+    launch_polls=$(( launch_polls - 1 ))
+  done
+  fail "the capability unit $OWNED_UNIT did not expose its verified control-group boundary"
+}
+
+stop_unit_boundary() {
+  systemctl --user stop "$1"
+}
+
+owned_unit_stopped() {
+  read_unit_properties "$OWNED_UNIT" || return 1
+  [ "$UNIT_LOAD_STATE" = not-found ] && return 0
+  [ "$UNIT_INVOCATION" = "$OWNED_UNIT_INVOCATION" ] \
+    && [ "$UNIT_ACTIVE_STATE" = inactive ] \
+    && [ "${UNIT_MAIN_PID:-0}" -eq 0 ]
+}
+
+owned_boundary_empty() {
+  local cgroup_file
+  cgroup_file="/sys/fs/cgroup$OWNED_CONTROL_GROUP/cgroup.procs"
+  [ ! -e "$cgroup_file" ] && return 0
+  read_boundary_pids || return 1
+  [ "${#BOUNDARY_PIDS[@]}" -eq 0 ]
+}
+
+stop_owned_entrants() {
+  local pid poll_s=0.05 boundary_status=0
+  [ -n "$OWNED_UNIT" ] || return 0
+  if ! capture_owned_boundary; then
+    [ "$OWNED_BOUNDARY_VERIFIED" = no ] || return 1
+    boundary_status=1
+  fi
+  stop_unit_boundary "$OWNED_UNIT" || return 1
+  owned_unit_stopped || return 1
+  [ -z "$OWNED_CONTROL_GROUP" ] || owned_boundary_empty || return 1
+  sleep "$poll_s"
+  for pid in "${OWNED_PIDS[@]}"; do
+    process_identity "$pid" || continue
+    [ "$PROCESS_START" = "${OWNED_STARTS[$pid]}" ] \
+      && { printf 'FAIL: capability unit %s left owned pid %s alive after control-group cleanup\n' "$OWNED_UNIT" "$pid" >&2; return 1; }
+  done
+  OWNED_PIDS=()
+  BOUNDARY_PIDS=()
+  OWNED_STARTS=()
+  OWNED_ROOT_PID=
+  OWNED_UNIT=
+  OWNED_BOUNDARY_VERIFIED=no
+  OWNED_UNIT_INVOCATION=
+  OWNED_CONTROL_GROUP=
+  [ "$boundary_status" -eq 0 ]
+}
+
+kill_entrants() {
+  local foreign_status=0 stop_status=0
+  capture_owned_boundary || foreign_status=1
+  require_no_foreign_processes || foreign_status=1
+  stop_owned_entrants || stop_status=1
+  [ "$foreign_status" -ne 0 ] || require_no_foreign_processes || foreign_status=1
+  [ "$foreign_status" -eq 0 ] && [ "$stop_status" -eq 0 ]
+}
+
+remember_watch() {
+  local pid=$1
+  process_identity "$pid" || return 1
+  WATCH_PIDS+=("$pid")
+  WATCH_STARTS[$pid]=$PROCESS_START
+}
+
+watch_owned() {
+  local pid=$1
+  [ -n "${WATCH_STARTS[$pid]:-}" ] || return 1
+  process_identity "$pid" || return 1
+  [ "$PROCESS_START" = "${WATCH_STARTS[$pid]}" ]
+}
+
+stop_watches() {
+  local pid
+  for pid in "${WATCH_PIDS[@]}"; do
+    if watch_owned "$pid"; then
+      kill "$pid" 2>/dev/null || true
+      wait "$pid" 2>/dev/null || true
+    fi
+    unset 'WATCH_STARTS[$pid]'
+  done
+  WATCH_PIDS=()
+}
+
+require_flea_enumeration() {
+  local shells status=0
+  shells=$(qs list --all 2>/dev/null) || status=$?
+  [ "$status" -eq 0 ] \
+    || { printf 'REFUSED: qs list --all failed with status %s\n' "$status" >&2; return 1; }
+  case "$shells" in
+    *"Shell ID: flea"*) printf 'REFUSED: a Flea instance already owns the display\n' >&2; return 1 ;;
+  esac
+}
+
+cap_terminate() {
+  local status=$1
+  trap - EXIT INT TERM
+  cap_cleanup
+  exit "$status"
+}
 
 # The operator's real cache, parked for the duration. A private XDG_CACHE_HOME was the first shape
 # of this and it was WRONG: thunar thumbnails through tumblerd, which is D-Bus activated and runs
@@ -81,32 +418,26 @@ restore_thumbs() {
   THUMBS_PARKED_OK=no
 }
 
-kill_entrants() {
-  local c
-  # Scoped to the entrant under test when there is only one, so a run that was asked for strata
-  # cannot close the operator's Flea or a window another lane is driving.
-  if [ -n "$CAP_ONLY" ]; then
-    pkill -x "$CAP_ONLY" >/dev/null 2>&1
-    return 0
-  fi
-  for c in qs flea nautilus thunar pcmanfm nemo dolphin strata tumblerd; do
-    pkill -x "$c" >/dev/null 2>&1
-  done
-}
-
 [ -d "$MEDIA" ] || fail "no media fixture at $MEDIA to take sample files from"
 [ -x "$FLEA_BIN" ] || fail "$FLEA_BIN is missing, so run cargo build --release first"
+select_process_targets
+if [ -z "$CAP_ONLY" ] || [ "$CAP_ONLY" = flea ]; then
+  require_flea_enumeration || fail "Flea display ownership could not be established"
+fi
+kill_entrants || fail "a capability entrant already runs or appeared outside this run, so its evidence is not attributable"
 
 # The operator's cache comes back first and the sandbox goes second: the cache is theirs and the
 # sandbox is ours.
 cap_cleanup() {
-  kill_entrants
+  stop_watches
+  stop_owned_entrants
   restore_thumbs
   sandbox_remove "$SB"
 }
 sandbox_make "$SB"
-trap 'cap_cleanup' EXIT INT TERM
-kill_entrants
+trap 'cap_cleanup' EXIT
+trap 'cap_terminate 130' INT
+trap 'cap_terminate 143' TERM
 # A transient entrant is measured by live watch and never writes this cache, so a run for it alone
 # has no reason to move the operator's real one out from under whatever else is on screen.
 if [ "$CAP_ONLY" != "$TRANSIENT_ID" ]; then
@@ -159,17 +490,25 @@ cap_transient() {
     : > "$log"
     inotifywait -m -q -r -e close_write --format '%w%f' /tmp > "$log" 2>/dev/null &
     watch_pid=$!
+    remember_watch "$watch_pid" || fail "the $id $ext render watch exited before this run recorded it"
     sleep 2
+    watch_owned "$watch_pid" || fail "the $id $ext render watch died before the entrant launched"
     # The entrant's own launch line, pointed at this format's directory rather than the mixed one.
-    eval "${cmd//$FIXTURE/$dir}" >/dev/null 2>&1 &
+    start_owned_entrant "${cmd//$FIXTURE/$dir}"
     sleep "$CAP_TIMEOUT_S"
+    capture_owned_boundary \
+      || fail "the $id $ext capability unit changed identity, so no result from it is attributable"
+    watch_owned "$watch_pid" || fail "the $id $ext render watch died during the capability window"
+    require_no_foreign_processes \
+      || fail "an unowned process appeared during the $id $ext capability window, so no result from it is attributable"
 
-    n=$(grep -c "^$TRANSIENT_PREFIX[0-9]*-[0-9]*/result\.png\$" "$log")
+    n=$(grep -c "^${TRANSIENT_PREFIX}[0-9]*-[0-9]*/result\.png\$" "$log")
     # Two entrant processes in one window would let one format's renders be counted for another.
-    pids=$(grep -o "^$TRANSIENT_PREFIX[0-9]*" "$log" | LC_ALL=C sort -u | wc -l)
+    pids=$(grep -o "^${TRANSIENT_PREFIX}[0-9]*" "$log" | LC_ALL=C sort -u | wc -l)
     [ "$pids" -le 1 ] || fail "$pids $id processes wrote renders during the $ext window, so no count from it is attributable"
-    kill "$watch_pid" 2>/dev/null
-    kill_entrants
+    stop_watches
+    kill_entrants \
+      || fail "an unowned process appeared during the $id $ext cleanup, so no result from it is attributable"
     sleep 2
 
     raw="${raw:+$raw;}$ext=$n"
@@ -186,6 +525,13 @@ cap_transient() {
   printf '%-10s can %s | cannot %s (live watch)\n' "$id" "${can:-nothing}" "${cannot:-nothing}"
 }
 
+repo_sha=$(git -C "$FLEA_REPO" rev-parse --short HEAD 2>/dev/null || printf unknown)
+repo_state=clean
+[ -z "$(git -C "$FLEA_REPO" status --porcelain -- src ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null)" ] || repo_state=DIRTY
+binary_size=$(stat -c %s "$FLEA_BIN")
+binary_sha=$(sha256sum "$FLEA_BIN" | cut -d' ' -f1)
+instrument_sha=$(sha256sum "$FLEA_REPO/tools/flea-bench-capability" | cut -d' ' -f1)
+
 mkdir -p "$(dirname "$OUT")"
 {
   echo "# What each GUI entrant can actually thumbnail"
@@ -195,6 +541,10 @@ mkdir -p "$(dirname "$OUT")"
   echo "timing is taken.** The field bench's format column answers a different question, how far an"
   echo "entrant got through a 2000-file directory whose names sort by format, and it was being read"
   echo "as this one."
+  echo
+  printf 'Source: `%s` (%s); release binary: `%s` bytes, SHA-256 `%s`.\n' \
+    "$repo_sha" "$repo_state" "$binary_size" "$binary_sha"
+  printf 'Capability instrument SHA-256: `%s`.\n' "$instrument_sha"
   echo
   echo "Formats offered: $formats"
   echo
@@ -228,7 +578,7 @@ for cap_row in "${CAP_ROWS[@]}"; do
 
   # Cold for every entrant, and the parked cache means none of this is the operator's.
   drop_thumbs
-  eval "$cmd" >/dev/null 2>&1 &
+  start_owned_entrant "$cmd"
 
   # Every entrant gets the whole timeout, with no early stop. Stopping once the count went quiet
   # for a few seconds was the first shape and it is the wrong bound for a capability question:
@@ -242,6 +592,10 @@ for cap_row in "${CAP_ROWS[@]}"; do
   while [ "$waited" -lt "$CAP_TIMEOUT_S" ]; do
     sleep 1
     waited=$(( waited + 1 ))
+    capture_owned_boundary \
+      || fail "the $id capability unit changed identity, so no result from it is attributable"
+    require_no_foreign_processes \
+      || fail "an unowned process appeared during the $id capability window, so no result from it is attributable"
     cap_keys "$produced"
     n=$(wc -l < "$produced")
     if [ "$n" != "$last_n" ]; then
@@ -274,7 +628,8 @@ for cap_row in "${CAP_ROWS[@]}"; do
       printf -- '    Add it to TRANSIENT_ID to measure it by live watch instead.\n'
     } >> "$OUT"
     printf '%-10s NOT MEASURED, it left the cache untouched\n' "$id"
-    kill_entrants
+    kill_entrants \
+      || fail "an unowned process appeared during the $id cleanup, so no result from it is attributable"
     sleep 2
     continue
   fi
@@ -286,10 +641,13 @@ for cap_row in "${CAP_ROWS[@]}"; do
   } >> "$OUT"
   printf '%-10s can %s | cannot %s\n' "$id" "${can:-nothing}" "${cannot:-nothing}"
 
-  kill_entrants
+  kill_entrants \
+    || fail "an unowned process appeared during the $id cleanup, so no result from it is attributable"
   sleep 2
 done
 
+kill_entrants \
+  || fail "an unowned process appeared before the capability report closed, so its evidence is not attributable"
 restore_thumbs
 
 {

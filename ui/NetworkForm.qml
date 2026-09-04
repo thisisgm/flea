@@ -18,6 +18,7 @@ Column {
     readonly property string path: pathField.text
     readonly property string domain: domainField.text
     readonly property string user: userField.text
+    readonly property string password: passwordField.text
     // The TLS box flips dav/davs and ftp/ftps, and the canvas draws it ticked.
     property bool tls: true
 
@@ -28,9 +29,9 @@ Column {
         protocol: root.protocol, host: root.host, port: root.port, path: root.path,
         domain: root.domain, user: root.user, tls: root.tls
     })
-    readonly property bool complete: Protocols.complete({ host: root.host })
+    readonly property bool complete: Protocols.complete({ host: root.host, port: root.port })
 
-    spacing: Theme.spacing.gap
+    spacing: Style.space(12)
 
     function pick(name) {
         root.protocol = name
@@ -69,7 +70,7 @@ Column {
                 ring.push(kids[i])
             }
         }
-        ring.push(labelField, hostField, portField, pathField, domainField, userField, tlsRow)
+        ring.push(labelField, hostField, portField, pathField, domainField, userField, passwordField, tlsRow)
         return ring
     }
 
@@ -105,8 +106,57 @@ Column {
         pathField.text = ""
         domainField.text = ""
         userField.text = ""
+        passwordField.text = ""
         root.tls = true
         root.pick("SMB")
+    }
+
+    function load(values) {
+        root.reset()
+        root.pick(values.protocol || "SMB")
+        labelField.text = values.label || ""
+        hostField.text = values.host || ""
+        portField.text = values.port || String(Protocols.defaultPort(root.protocol))
+        pathField.text = values.path || ""
+        domainField.text = values.domain || ""
+        userField.text = values.user || ""
+        passwordField.text = values.password || ""
+        root.tls = values.tls !== false
+    }
+
+    function takePassword() {
+        var value = passwordField.text
+        passwordField.text = ""
+        return value
+    }
+
+    // Non-secret form observables: tests may see shape, focus and masking, never field contents.
+    function visibleFields() {
+        var out = ["Label", "Host", "Port", root.spec.pathLabel]
+        if (root.spec.domain) out.push("Domain")
+        if (root.spec.credentials) out.push("Username", "Password")
+        if (root.spec.tls) out.push("TLS")
+        return out.join("|")
+    }
+
+    function focusName() {
+        var fields = [labelField, hostField, portField, pathField, domainField, userField, passwordField]
+        for (var i = 0; i < fields.length; i++) {
+            if (fields[i].focused) return fields[i].label
+        }
+        return tlsRow.focused ? "TLS" : ""
+    }
+
+    function hostPortWidths() { return Math.round(hostField.width) + "|" + Math.round(portField.width) }
+    function passwordState() {
+        return (passwordField.input.echoMode === TextInput.Password ? "masked" : "visible")
+            + "|" + (passwordField.text.length > 0 ? "set" : "empty")
+    }
+    function passwordEyeCentre() {
+        var input = passwordField.input
+        var hit = Math.max(Theme.hitMin, Theme.font.bodySmall)
+        var point = input.mapToItem(null, input.width + Theme.spacing.gap + hit / 2, input.height / 2)
+        return Math.round(point.x) + " " + Math.round(point.y)
     }
 
     Row {
@@ -136,18 +186,18 @@ Column {
 
     Row {
         width: parent.width
-        spacing: Theme.spacing.gap
+        spacing: Style.space(10)
 
         Flea.DialogField {
             id: hostField
-            width: (parent.width - Theme.spacing.gap) * 0.72
+            width: (parent.width - parent.spacing) / 2
             label: "Host"
             onAccepted: root.submitted()
             onTabbed: function (from, back) { root.step(from, back ? -1 : 1) }
         }
 
         Flea.DialogField {
-            width: parent.width - hostField.width - Theme.spacing.gap
+            width: hostField.width
             id: portField
             label: "Port"
             onAccepted: root.submitted()
@@ -174,9 +224,6 @@ Column {
         onTabbed: function (from, back) { root.step(from, back ? -1 : 1) }
     }
 
-    // Username only. A password field was here and nothing consumed it: the form writes a bookmark,
-    // and gio's own prompt is what asks for a secret at mount time. Collecting one to drop it is
-    // worse than not collecting it, so the field comes back when credentials reach the mount attempt.
     Flea.DialogField {
         id: userField
         width: parent.width
@@ -185,6 +232,27 @@ Column {
         label: "Username"
         onAccepted: root.submitted()
         onTabbed: function (from, back) { root.step(from, back ? -1 : 1) }
+    }
+
+    Flea.DialogField {
+        id: passwordField
+        width: parent.width
+        visible: root.spec.credentials
+        height: visible ? implicitHeight : 0
+        label: "Password"
+        secret: true
+        onAccepted: root.submitted()
+        onTabbed: function (from, back) { root.step(from, back ? -1 : 1) }
+    }
+
+    Text {
+        visible: root.protocol === "NFS"
+        width: parent.width
+        text: "No credentials: NFS trusts the client host"
+        color: Theme.color.muted
+        font.family: Theme.font.family
+        font.pixelSize: Theme.font.caption
+        textFormat: Text.PlainText
     }
 
     Item {

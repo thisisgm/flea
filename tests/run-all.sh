@@ -24,7 +24,7 @@ if [ ! -x target/release/flea ]; then
     cargo build -q --release || { printf 'run-all: release build failed, nothing else was run\n' >&2; exit 1; }
 fi
 
-headless="js keymap-gen charts budget sandbox ops modes protocol archive thumbs"
+headless="js keymap-gen charts budget empty-state sandbox gio-auth gvfs ops modes protocol archive thumbs"
 failed=0
 ran=0
 
@@ -51,6 +51,7 @@ printf '\nrun-all: %d suite(s) run, %d failed\n' "$ran" "$failed"
 printf '\nNot run here, and why:\n'
 printf '  ui.sh     needs the display, and refuses beside a Flea it did not start\n'
 printf '  drag.sh   needs the display and a real pointer through uinput\n'
-printf '  bench.sh  needs an idle box and the sudo password on stdin for drop_caches\n'
+printf '  bench.sh  is a separate headless benchmark-contract suite\n'
+printf '  package.sh needs a real makepkg archive in FLEA_PACKAGE_FILE\n'
 
 exit "$failed"

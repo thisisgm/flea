@@ -1,14 +1,14 @@
 # Maintainer: GM <gianmarcomorales@icloud.com>
 
 pkgname=flea
-pkgver=0.1.3
+pkgver=0.1.4
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy'
 arch=('x86_64')
 license=('MIT')
 # omarchy owns /usr/share/omarchy/shell, which ui/Commons and ui/Ui link into; quickshell owns qs.
 # util-linux ships prlimit, which the thumbnail and archive sandboxes require alongside bubblewrap.
-depends=('bubblewrap' 'glib2' 'omarchy' 'quickshell' 'shared-mime-info' 'util-linux' 'xdg-utils')
+depends=('bubblewrap' 'expect' 'glib2' 'gvfs' 'gvfs-dnssd' 'gvfs-nfs' 'gvfs-smb' 'omarchy' 'quickshell' 'shared-mime-info' 'util-linux' 'xdg-utils')
 makedepends=('cargo')
 optdepends=('libarchive: archive listing and extraction'
             '7zip: 7z archive support'
@@ -40,6 +40,7 @@ check() {
 package() {
   cd "$startdir"
   install -Dm755 "$srcdir/target/release/flea" "$pkgdir/usr/bin/flea"
+  install -Dm755 tools/flea-gio-auth "$pkgdir/usr/lib/flea/flea-gio-auth"
   install -Dm644 packaging/com.thisisgm.flea.desktop -t "$pkgdir/usr/share/applications"
   install -Dm644 packaging/com.thisisgm.flea.svg -t "$pkgdir/usr/share/icons/hicolor/scalable/apps"
   install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname"

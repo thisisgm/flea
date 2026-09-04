@@ -6,7 +6,7 @@
 # Nothing here is a key list. Every chord is derived from keys.toml at run time by derive_bindings
 # below, so the keymap lane's Finder chords were driven the day they landed and a key added tomorrow
 # arrives as an item nobody drives rather than as nothing at all. The menu derives its rows from
-# ui/ContextMenu.qml the same way, and the Omarchy group derives its chords from Omarchy's own
+# ui/js/Menu.js the same way, and the Omarchy group derives its chords from Omarchy's own
 # /usr/share/omarchy/default/hypr/bindings/clipboard.lua.
 #
 # Every check reads a value before the chord and a value after it. An assertion whose before value
@@ -216,12 +216,13 @@ keysym_for() {
 # modifiers pressed around it.
 chord_args() {
   local table=$1 keyname=$2 sym
-  # A -- argument is silently dropped by omarchy-drive key and the call still exits 0, so the text
-  # goes bare. tools/flea-showcase carries the same guard for the same reason.
-  # corner: a bare character starting with "-" would parse as a flag, which only the zoom keys use
-  # and those are undriven; a driver for them needs a form this does not have.
+  # Text goes bare because `--` is dropped; `-` uses its keysym because wtype parses it as a flag.
   if [ "$table" = text ]; then
-    printf -- '%s\n' "$keyname"
+    if [ "$keyname" = - ]; then
+      printf -- '-k\nminus\n'
+    else
+      printf -- '%s\n' "$keyname"
+    fi
     return 0
   fi
   sym=$(keysym_for "$keyname") || return 1
@@ -1138,10 +1139,8 @@ keycase_seek() {
 keycase_seekBack()    { keycase_seek back "$@"; }
 keycase_seekForward() { keycase_seek forward "$@"; }
 
-# The PDF page is the one preview state no IPC reader answers, so the page itself is read off the
-# screen. The fixture's pages carry one distinct word each for exactly this.
-keycase_pageForward() {
-  local before after
+# Open the two-page fixture through Flea's real preview action for every PDF key assertion.
+open_pdf_preview() {
   reset_state || return 1
   [ "$HAVE_PDF" = 1 ] || { WHY="no PDF fixture, magick is not on this box"; return 1; }
   seek_row_named c-doc.pdf || return 1
@@ -1149,20 +1148,46 @@ keycase_pageForward() {
   k "${prevc[@]}"
   sleep 3
   [ "$(ipc previewOpen)" = true ] || { WHY="the PDF preview did not open"; return 1; }
-  before=$(omarchy-drive ocr flea 2>/dev/null)
-  case $before in
-    *PAGEONE*) ;;
-    *) WHY="UNREADABLE: the first page's text did not come back off the screen, so a page turn is not assertable here"
-       return 2 ;;
-  esac
-  k "$@"
-  sleep 2
-  after=$(omarchy-drive ocr flea 2>/dev/null)
-  case $after in
-    *PAGETWO*) return 0 ;;
-  esac
-  WHY="the preview still does not show the second page after the chord"
-  return 1
+  [ "$(ipc previewKind)" = pdf ] || { WHY="the preview opened as $(ipc previewKind), not pdf"; return 1; }
+}
+
+keycase_pageForward() {
+  local before after
+  open_pdf_preview || return 1
+  before=$(ipc previewPdfPage)
+  [ -n "$before" ] || { WHY="the PDF page reader returned no value"; return 1; }
+  k "$@"; settle
+  after=$(ipc previewPdfPage)
+  changed_to "the PDF page" "$before" "$after" "$((before + 1))"
+}
+
+keycase_zoomIn() {
+  local before after
+  open_pdf_preview || return 1
+  before=$(ipc previewPdfZoom)
+  k "$@"; settle
+  after=$(ipc previewPdfZoom)
+  changed_to "the PDF zoom" "$before" "$after" "1.25"
+}
+
+keycase_zoomOut() {
+  local before after
+  open_pdf_preview || return 1
+  mapfile -t inc < <(first_chord zoomIn)
+  k "${inc[@]}"; settle
+  before=$(ipc previewPdfZoom)
+  k "$@"; settle
+  after=$(ipc previewPdfZoom)
+  changed_to "the PDF zoom" "$before" "$after" "1"
+}
+
+keycase_expand() {
+  local before after
+  open_pdf_preview || return 1
+  before=$(ipc previewExpanded)
+  k "$@"; settle
+  after=$(ipc previewExpanded)
+  changed_to "the PDF expand flag" "$before" "$after" "true"
 }
 
 # ---- the key runner ---------------------------------------------------------------------------------
@@ -1233,16 +1258,16 @@ menu_row_for() {
   esac
 }
 
-# The label an entry draws, derived from ui/ContextMenu.qml so a renamed row is followed rather than
+# The label an entry draws, derived from ui/js/Menu.js so a renamed row is followed rather than
 # missed. Sample input: '        out.push({ label: "Rename", action: "rename", glyph: "rename" })'
 derive_menu_labels() {
-  sed -n 's/.*label: "\([^"]*\)", action: "\([a-zA-Z][a-zA-Z]*\)".*/\2 \1/p' "$REPO/ui/ContextMenu.qml"
+  sed -n 's/.*label: "\([^"]*\)", action: "\([a-zA-Z][a-zA-Z]*\)".*/\2 \1/p' "$REPO/ui/js/Menu.js"
 }
 
 # The one entry whose label is a ternary rather than a literal, so it needs its own reader.
-# Sample input: '            label: root.showHidden ? "Hide hidden files" : "Show hidden files",'
+# Sample input: '        label: showHidden ? "Hide hidden files" : "Show hidden files",'
 derive_menu_toggle_labels() {
-  sed -n 's/.*label: root.showHidden ? "\([^"]*\)" : "\([^"]*\)".*/\1\n\2/p' "$REPO/ui/ContextMenu.qml"
+  sed -n 's/.*label: showHidden ? "\([^"]*\)" : "\([^"]*\)".*/\1\n\2/p' "$REPO/ui/js/Menu.js"
 }
 
 # Steps the menu cursor onto the row carrying one of the given labels and returns its index, using
@@ -1279,7 +1304,7 @@ menu_open_on() {
   k "${menuc[@]}"; settle
   [ "$(ipc contextMenuVisible)" = true ] || { WHY="the menu did not open on $row"; return 1; }
   labels=$(menu_labels_for "$action")
-  [ -n "$labels" ] || { WHY="no label for this entry could be derived from ui/ContextMenu.qml"; return 1; }
+  [ -n "$labels" ] || { WHY="no label for this entry could be derived from ui/js/Menu.js"; return 1; }
   menu_seek_label "$labels" >/dev/null
 }
 
@@ -1431,7 +1456,7 @@ drive_menu_action() {
       return ;;
   esac
   if ! declare -F "menucase_$action" >/dev/null; then
-    skip menu "$action" "an entry in ui/ContextMenu.qml, and this battery has no driver for it yet"
+    skip menu "$action" "an entry in ui/js/Menu.js, and this battery has no driver for it yet"
     return
   fi
   WHY=""
@@ -1926,21 +1951,6 @@ omarchy_invariant_case() {
   fi
 }
 
-# ---- the keys nothing outside the app can see -----------------------------------------------------
-
-# A key whose effect no reader outside the app can observe is reported undriven with the reason and
-# with the one line that would fix it, never given a check that would pass on a dead app. A smaller
-# honest number beats a larger false one.
-key_undriven_reason() {
-  case $1 in
-    zoomIn|zoomOut)
-      printf 'the PDF zoom is not on the IPC seam: ui/PdfViewer.qml holds zoom, and ui/shell.qml exposes no reader for it. A 0.25 step is not legible off a screenshot either, so one reader, previewPdfZoom(), is what this needs' ;;
-    expand)
-      printf 'the PDF expand flag is not on the IPC seam: ui/Preview.qml holds pdfExpanded, and ui/shell.qml exposes no reader for it. One reader, previewExpanded(), is what this needs' ;;
-    *) return 1 ;;
-  esac
-}
-
 # ---- is the harness itself delivering? ------------------------------------------------------------
 
 # Four harness defects surfaced on this box in one day, every one of which produced a pass over
@@ -2023,7 +2033,7 @@ drive_wants() {
 }
 
 drive_all() {
-  local a reason
+  local a
   drive_require_clean_sources
   drive_session_setup
   BINDINGS="$SB/bindings"
@@ -2045,10 +2055,6 @@ drive_all() {
     case $a in
       cursorFirst|cursorDown) continue ;;
     esac
-    if reason=$(key_undriven_reason "$a"); then
-      skip key "$a" "$reason"
-      continue
-    fi
     drive_key_action "$a"
   done
   fi

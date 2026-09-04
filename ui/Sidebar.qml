@@ -41,6 +41,7 @@ Item {
     signal message(string text, bool isError)
     // Bubbled straight from NetworkMounts; shell.qml opens ui/ShareBrowser.qml on this.
     signal sharesListed(string baseUri, string baseLabel, var names)
+    signal networkRetryRequested(string uri, string label, string password, string reason, bool failedConnect)
 
     // The entry index mid-rename, or -1; Network only, see startRename below. ui/SidebarRow.qml
     // reads this to swap its Text for the OEM TextField, and ui/Pane.qml reads it as its own
@@ -96,6 +97,9 @@ Item {
         onOpened: function (path) { root.opened(path) }
         onMessage: function (text, isError) { root.message(text, isError) }
         onSharesListed: function (baseUri, baseLabel, names) { root.sharesListed(baseUri, baseLabel, names) }
+        onRetryRequested: function (uri, label, password, reason, failedConnect) {
+            root.networkRetryRequested(uri, label, password, reason, failedConnect)
+        }
         // The same race NetworkDialog.qml's own saved() exists for, see AGENTS.md "A FileView
         // write can race a reload fired the moment setText() is called": mounts.rename() already
         // blocked on waitForJob() before this fires, so the reload here reads the write it caused.
@@ -115,9 +119,17 @@ Item {
         bookmarksFile.reload()
     }
 
+    function saveNetwork(uri, label, password) {
+        mounts.saveLocation(uri, label, password)
+    }
+
+    function networkResult() {
+        return mounts.result
+    }
+
     // ui/ShareBrowser.qml's own Enter action calls this with the resolved share uri; not yet one of root.entries, so it goes straight to NetworkMounts's own open-a-share path.
     function mountShare(uri, label) {
-        mounts.openShare(uri, false, label)
+        mounts.openChildShare(uri, label)
     }
 
     // Right click raises the menu over the row, which is the whole affordance: an eject that can
@@ -303,9 +315,10 @@ Item {
                     Accessible.role: Accessible.Button
                     Accessible.name: "Add network location"
                     Accessible.onPressAction: root.addRequested()
-
                     Glyph {
-                        anchors.centerIn: parent
+                        id: addGlyph
+                        anchors.right: parent.right
+                        anchors.verticalCenter: parent.verticalCenter
                         name: "plus"
                         color: Theme.color.muted
                         width: Theme.font.caption
@@ -365,6 +378,7 @@ Item {
         }
     }
 
+    function networkMarkItems() { return [addGlyph, netHeadingRow] }
     // The rail has no ListView virtualization, so every row already exists; the same itemFor idiom ui/Pane.qml uses for the list, so a test can find a rail row's on-screen box.
     function railItemFor(index) {
         if (index < root.favoriteEntries.length)
@@ -374,7 +388,6 @@ Item {
             return netRepeater.itemAt(rest)
         return devRepeater.itemAt(rest - root.networkEntries.length)
     }
-
     // The one divider in the whole design.
     Rectangle {
         anchors.right: parent.right

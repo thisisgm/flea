@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; no argument runs all thirty-one.
+# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; networklive is opt-in.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -81,12 +81,6 @@ settle_s=0.4
 # The Hyprland corner arc shows wallpaper through the window's own top-left pixels, so start past it.
 header_sample_x=16
 header_sample_width=600
-# Nothing else in the header palette is warm, so red well ahead of blue is the accent role and only that.
-accent_warmth=0.04
-# Anything brighter than the background is a header label or the header rule.
-lit_level=0.13
-# The "Name" label alone measured about 150 lit pixels, so this floor survives a darker theme.
-header_lit_floor=100
 # Qt's Image.status enum: Null 0, Ready 1, Loading 2, Error 3.
 image_ready=1
 image_loading=2
@@ -101,6 +95,9 @@ preview_play_wait_s=5
 ipc() {
     omarchy-drive ipc -p "$flea_ui" flea "$@"
 }
+
+# Window class used by every preflight, focus check and injected keystroke.
+flea_window_class=com.thisisgm.flea
 
 settle() {
     sleep "$settle_s"
@@ -127,6 +124,23 @@ if [[ -n "${foreign_pids// /}" ]]; then
     printf 'REFUSED close it, or run the suite against a git archive export at another path.\n'
     exit 1
 fi
+
+# A packaged Flea uses another UI path, but still makes every title/class-based drive ambiguous.
+windows_status=0
+windows_json=$(omarchy-drive --json windows) || windows_status=$?
+[[ "$windows_status" -eq 0 ]] \
+    || fail "omarchy-drive windows failed with status $windows_status, so foreign-window state is unknown"
+foreign_window_count=$(jq -er --arg class "$flea_window_class" \
+    'select(.ok == true and (.windows | type == "array")) | [.windows[] | select(.class == $class)] | length' \
+    <<< "$windows_json") \
+    || fail "omarchy-drive windows returned an invalid payload, so foreign-window state is unknown"
+if [[ "$foreign_window_count" -ne 0 ]]; then
+    printf 'REFUSED %s Flea window%s already open outside this suite.\n' \
+        "$foreign_window_count" "$( [[ "$foreign_window_count" -ne 1 ]] && printf s )"
+    printf 'REFUSED close every Flea window before running pointer-driven tests.\n'
+    exit 1
+fi
+unset foreign_window_count windows_json windows_status
 
 # The backend outlives the qs that spawned it, and only its own drain may publish or remove its temps.
 backend_pids() {
@@ -215,9 +229,6 @@ cache_restore() {
         "$real_cache_before" "$(ls -A "$real_cache_large" 2>/dev/null | wc -l)"
 }
 
-# The class every keystroke in this suite is aimed at.
-flea_window_class=com.thisisgm.flea
-
 command -v hyprctl >/dev/null || fail "no hyprctl on PATH, so no keystroke could be checked against the focused window"
 command -v jq >/dev/null || fail "no jq on PATH, so no keystroke could be checked against the focused window"
 
@@ -269,7 +280,7 @@ assert_theme() {
     done
     loaded=$(ipc themeLoaded 2>/dev/null || true)
     [[ "$loaded" == "true" ]] || fail "themeLoaded is '$loaded', not true, so this window has no parsed palette"
-    [[ "$seen" == "$real_foreground" ]] \
+    [[ "${seen,,}" == "${real_foreground,,}" ]] \
         || fail "this window paints foreground '$seen', not the live theme's $real_foreground, so no shot or colour claim from it is real"
 }
 
@@ -323,6 +334,55 @@ wait_listing() {
         sleep 0.05
     done
     fail "listing did not reach total $want_total, got total=$total row=$row"
+}
+
+# Focused network setup must not multiply the IPC client's own timeout by a retry count.
+wait_listing_wall() {
+    local want_total="$1" timeout_s="${2:-20}" total=unavailable row=loading state=unavailable
+    local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
+    while (( $(date +%s%3N) < deadline )); do
+        total=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea total 2>/dev/null || printf unavailable)
+        if [[ "$want_total" == 0 ]]; then
+            state=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea state 2>/dev/null || printf unavailable)
+            [[ "$total" == 0 && "$state" == empty ]] && return 0
+        else
+            row=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea rowAt 0 2>/dev/null || printf loading)
+            [[ "$total" == "$want_total" && "$row" != "loading" ]] && return 0
+        fi
+        sleep 0.05
+    done
+    fail "listing did not reach total $want_total before wall-clock deadline, got total=$total row=$row state=$state"
+}
+
+wait_path_wall() {
+    local want="$1" timeout_s="${2:-20}" seen=unavailable
+    local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
+    while (( $(date +%s%3N) < deadline )); do
+        seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea path 2>/dev/null || printf unavailable)
+        [[ "$seen" == "$want" ]] && return 0
+        sleep 0.05
+    done
+    fail "the pane did not open $want before wall-clock deadline, it is at $seen"
+}
+
+find_row_wall() {
+    local want="$1" timeout_s="${2:-20}" total=0 seen="" path=unavailable row
+    local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
+    while (( $(date +%s%3N) < deadline )); do
+        total=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea total 2>/dev/null || printf 0)
+        for ((row = 0; row < total && $(date +%s%3N) < deadline; row++)); do
+            seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea rowAt "$row" 2>/dev/null || true)
+            if [[ "$seen" == "$want|"* ]]; then
+                printf '%s\n' "$row"
+                return 0
+            fi
+        done
+        sleep 0.05
+    done
+    [[ "$total" =~ ^[0-9]+$ ]] || total=-1
+    path=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea path 2>/dev/null || printf unavailable)
+    printf 'NETWORKLIVE traversal expected=%s total=%s path=%s\n' "$want" "$total" "$path" >&2
+    return 1
 }
 
 wait_path() {
@@ -413,6 +473,58 @@ click_chip() {
     omarchy-drive click "$((cx + wx))" "$((cy + wy))" >/dev/null
 }
 
+# Submits one malformed port through the real dialog and keeps enough state to test every refusal.
+assert_invalid_network_port() {
+    local port="$1" bookmarks="$2" snapshot="$3"
+    local uri dialog error bytes seen_port visible_text
+
+    cp "$bookmarks" "$snapshot" || return 1
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "list" ]] || return 1
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || return 1
+    key a >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "true" ]] || return 1
+
+    key "203.0.113.1" >/dev/null
+    key -k Tab >/dev/null
+    key -M ctrl -k a -m ctrl >/dev/null
+    key "$port" >/dev/null
+    settle
+    seen_port=$(ipc networkPort)
+    key -k Return >/dev/null
+    settle
+    uri=$(ipc networkUri)
+    dialog=$(ipc dialogOpen)
+    visible_text=$(omarchy-drive ocr flea 2>/dev/null || true)
+    error=missing
+    grep -Fq "Enter a valid host and port." <<< "$visible_text" && error=visible
+    bytes=changed
+    cmp -s "$bookmarks" "$snapshot" && bytes=unchanged
+    printf 'NETWORK invalid-port=%s entered=%s uri=%s dialog=%s error=%s bookmarks=%s\n' \
+        "$port" "$seen_port" "${uri:-empty}" "$dialog" "$error" "$bytes"
+
+    [[ "$dialog" == "true" ]] && key -k Escape >/dev/null
+    settle
+    [[ "$seen_port" == "$port" && -z "$uri" && "$dialog" == "true" \
+        && "$error" == "visible" && "$bytes" == "unchanged" ]]
+}
+
+assert_network_attempt_reset() {
+    local cache="$1" process="$2" line previous=""
+    while IFS= read -r line; do
+        if [[ "$line" == *"$process.running = true"* ]]; then
+            [[ "$previous" == *"root.$cache = \"\""* ]]
+            return
+        fi
+        [[ -z "${line//[[:space:]]/}" ]] || previous="$line"
+    done < "$repo/ui/NetworkMounts.qml"
+    return 1
+}
+
 click_chrome() {
     local glyph="$1" centre cx cy wx wy
     centre=$(ipc chromeButtonCentre "$glyph")
@@ -434,18 +546,65 @@ click_rail_row() {
     omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$button" >/dev/null
 }
 
-# The status bar clears a transient after 4000 ms and an eject verdict arrives on the rail's own
-# 5000 ms poll, so a sentence that lands after a poll has to be caught as it lands, never slept for.
+assert_network_mark_alignment() {
+    local want_scale="$1" take_shot="${2:-false}" geometry scale plus_x slot_x wx wy ww wh
+    geometry=$(ipc networkMarkGeometry)
+    IFS='|' read -r scale plus_x slot_x <<< "$geometry"
+    [[ "$scale" == "$want_scale" ]] \
+        || fail "network: interface scale is $scale after requesting $want_scale"
+    read -r wx wy ww wh < <(window_box)
+    plus_x=$((plus_x + wx))
+    slot_x=$((slot_x + wx))
+    [[ "$take_shot" == "true" ]] && shot network-add-alignment
+    printf 'NETWORK add-alignment scale=%s plus-x=%s indicator-slot-x=%s\n' \
+        "$scale" "$plus_x" "$slot_x"
+    [[ "$plus_x" -eq "$slot_x" ]] \
+        || fail "network: add mark x centre $plus_x differs from network indicator slot x centre $slot_x at interface scale $scale"
+}
+
+assert_network_mark_anchor() {
+    local glyph_block
+    glyph_block=$(sed -n '/id: addGlyph/,/TapHandler/p' "$repo/ui/Sidebar.qml")
+    grep -Fq 'anchors.right: parent.right' <<< "$glyph_block" \
+        && grep -Fq 'anchors.verticalCenter: parent.verticalCenter' <<< "$glyph_block" \
+        && ! grep -Fq 'anchors.centerIn: parent' <<< "$glyph_block"
+}
+
+# A single IPC call may consume its own two-second timeout, so count wall time and bound each read;
+# a retry count alone turned one nominal 25-second wait into more than eight minutes.
 wait_message() {
-    local want="$1" seen=""
-    for _attempt in $(seq 1 250); do
-        seen=$(ipc lastMessage)
+    local want="$1" seen="" deadline=$(( $(date +%s%3N) + 25000 ))
+    while (( $(date +%s%3N) < deadline )); do
+        seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea lastMessage 2>/dev/null || true)
         if [[ "$seen" == "$want" ]]; then
             return 0
         fi
         sleep 0.1
     done
     fail "the status bar never said: $want (the last thing it said was: $seen)"
+}
+
+# Durable mount state does not disappear with the status bar, so live network checks wait on it.
+wait_network_result() {
+    local want="$1" timeout_s="${2:-40}" seen=""
+    local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
+    while (( $(date +%s%3N) < deadline )); do
+        seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea networkResult 2>/dev/null || true)
+        [[ "$seen" == "$want" ]] && return 0
+        sleep 0.1
+    done
+    fail "network result never became $want (last: ${seen:-unavailable})"
+}
+
+wait_network_entry_state() {
+    local want="$1" timeout_s="${2:-20}" seen=""
+    local deadline=$(( $(date +%s%3N) + timeout_s * 1000 ))
+    while (( $(date +%s%3N) < deadline )); do
+        seen=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea networkEntries 2>/dev/null || true)
+        [[ "$seen" == *"|network|share|$want" ]] && return 0
+        sleep 0.1
+    done
+    fail "network row never became mounted=$want (last: ${seen:-unavailable})"
 }
 
 # Reaches a known row index from wherever the cursor is, without assuming a predicted sort order.
@@ -555,6 +714,8 @@ case_cursor() {
     [[ -d "$bench_dir" ]] || fail "the 100,000-file fixture is missing at $bench_dir"
     launch "$bench_dir"
     wait_listing 100000
+    settle
+    shot cursor-before-scroll
     local wx wy ww wh burst cursor centre first_row
     read -r wx wy ww wh < <(window_box)
     omarchy-drive move "$((wx + ww / 2))" "$((wy + wh / 2))" >/dev/null
@@ -573,22 +734,17 @@ case_cursor() {
         || fail "row 0 is still on screen: the wheel did not scroll, or the clamp snapped the view back"
     (( cursor > 0 )) || fail "the wheel scrolled the viewport away but the cursor stayed on row $cursor"
     [[ -n "$centre" ]] || fail "cursor row $cursor is not in the viewport"
-    local row_height band warm lit centre_y header_x header_y
-    read -r _centre_x centre_y <<< "$centre"
-    row_height=$(ipc metrics | cut -d' ' -f4)
-    # The sidebar sits to the header's left and the window chrome sits above it, so the sample band
-    # is placed from the header's own origin rather than the window's.
+    local header_height band changed header_x header_y
+    header_height=$(ipc chromeHeight)
+    # The sample is the header's real box; a row-height crop includes valid list pixels on compact chrome.
     header_x=$(ipc headerLeft)
     header_y=$(ipc headerTop)
-    band="${header_sample_width}x${row_height}+$(( header_x + header_sample_x ))+${header_y}"
-    warm=$(count_pixels "$evidence_dir/cursor-after-scroll.png" "$band" "(r - b) > $accent_warmth")
-    lit=$(count_pixels "$evidence_dir/cursor-after-scroll.png" "$band" "((r+g+b)/3) > $lit_level")
-    printf 'CURSOR header band=%s warm=%s lit=%s rowHeight=%s cursorRowTop=%s\n' \
-        "$band" "$warm" "$lit" "$row_height" "$((centre_y - row_height / 2))"
-    (( centre_y - row_height / 2 < header_y + row_height )) \
-        || fail "the cursor row does not straddle the header, so the overpaint check proves nothing"
-    (( warm == 0 )) || fail "the cursor row painted $warm accent pixels over the column header"
-    (( lit >= header_lit_floor )) || fail "the header drew only $lit lit pixels, so its labels are gone"
+    band="${header_sample_width}x${header_height}+$(( header_x + header_sample_x ))+${header_y}"
+    changed=$(magick "$evidence_dir/cursor-before-scroll.png" \
+        "$evidence_dir/cursor-after-scroll.png" -compose difference -composite -crop "$band" +repage \
+        -fx '(r+g+b) > 0 ? 1.0 : 0.0' -format "%[fx:int(mean*w*h+0.5)]" info:)
+    printf 'CURSOR header band=%s changed=%s\n' "$band" "$changed"
+    (( changed == 0 )) || fail "scrolling changed $changed pixels in the column header"
 }
 
 # Catches removing the terminal branch from Pane.onFailed in ui/Pane.qml.
@@ -1410,10 +1566,11 @@ case_overflow() {
 # The OEM modules are reached by symlink, so a broken link is a silent palette regression.
 case_oem() {
     launch "$repo"
-    local fg
+    local fg expected_fg
     fg=$(ipc themeForeground)
-    [[ "$fg" == "$(theme_key foreground)" ]] \
-        || fail "oem: Flea's foreground is $fg, the theme's is $(theme_key foreground)"
+    expected_fg=$(theme_key foreground)
+    [[ "${fg,,}" == "${expected_fg,,}" ]] \
+        || fail "oem: Flea's foreground is $fg, the theme's is $expected_fg"
     local ladder
     ladder=$(ipc selectedFill)
     [[ -n "$ladder" && "$ladder" != "#00000000" ]] \
@@ -2010,20 +2167,50 @@ PYEOF
 # gates the empty check on "gio mount -l" itself carrying no Mount() line, and fails loud with
 # that listing rather than guessing, since this case cannot unmount another task's own work.
 case_network() {
+    assert_network_attempt_reset _mountErrOutput mountProcess \
+        || fail "network: direct mount stderr is not cleared immediately before mountProcess starts"
+    assert_network_attempt_reset _infoOutput infoProcess \
+        || fail "network: info output is not cleared immediately before infoProcess starts"
+    assert_network_attempt_reset _listSharesOutput listSharesProcess \
+        || fail "network: share output is not cleared immediately before listSharesProcess starts"
     local dir="$fixture_root/network"
     sandbox_scratch "$dir"
+    local fake_root="$fixture_root/network-fake"
+    sandbox_scratch "$fake_root"
+    mkdir -p "$fake_root/bin"
     # Three rows so a cursor that did not move is distinguishable from one clamped to a short listing.
     : > "$dir/0-one.txt"
     : > "$dir/0-two.txt"
     : > "$dir/apple.txt"
     local fixture_home="$fixture_root/network-home"
     fixture_home_make "$fixture_home"
-    local real_home="$HOME"
+    local real_home="$HOME" product_root mount_log="$fake_root/mount.log"
+    : > "$mount_log"
 
     local live_mounts
     live_mounts=$(gio mount -l 2>/dev/null | grep -c '^Mount(') || true
     [[ "$live_mounts" -eq 0 ]] \
         || fail "network: $live_mounts real gio mount(s) already present, cannot assert an empty rail against ambient state: $(gio mount -l 2>/dev/null)"
+
+    # This case proves form/bookmark behavior, not a network route; a bounded local gio double keeps
+    # the newly functional Save action from dialing TEST-NET-2 or reopening on its later timeout.
+    cat > "$fake_root/bin/gio" <<EOS
+#!/bin/sh
+case "\$1 \${2:-}" in
+"mount -l") exit 0 ;;
+"mount nfs://stale-one.test/export") printf 'Location is already mounted\n' >&2; exit 2 ;;
+"mount nfs://stale-two.test/export") exit 2 ;;
+"mount "*) printf '%s\n' "\$*" > "$mount_log" ;;
+"info smb://shares-one.test/"|"info smb://shares-two.test/") exit 1 ;;
+"info "*) printf 'local path: %s\n' "$dir" ;;
+"list smb://shares-one.test/") printf 'old-share\n' ;;
+"list smb://shares-two.test/") exit 0 ;;
+*) exit 0 ;;
+esac
+EOS
+    chmod +x "$fake_root/bin/gio"
+    local saved_path="$PATH"
+    export PATH="$fake_root/bin:$PATH"
 
     # No .config/gtk-3.0/ at all yet: the exact "absent at launch" shape the dialog's write must survive.
     export HOME="$fixture_home"
@@ -2054,11 +2241,13 @@ case_network() {
     # TEST-NET-2 (RFC 5737): guaranteed non-routable, so this never actually dials out.
     key "198.51.100.1" >/dev/null
     settle
-    [[ "$(ipc networkUri)" == "smb://198.51.100.1:445/" ]] \
+    [[ "$(ipc networkUri)" == "smb://198.51.100.1/" ]] \
         || fail "network: the Mounts-as line reads $(ipc networkUri)"
     key -k Return >/dev/null
-    settle
+    wait_network_result mounted 5
     [[ "$(ipc dialogOpen)" == "false" ]] || fail "network: Enter did not submit and close the dialog"
+    [[ "$(cat "$mount_log")" == 'mount --anonymous smb://198.51.100.1/' ]] \
+        || fail "network: guest SMB did not use gio mount --anonymous"
     for _attempt in $(seq 1 100); do
         [[ -n "$(ipc networkEntries)" ]] && break
         sleep 0.05
@@ -2069,6 +2258,33 @@ case_network() {
         || fail "network: the dialog's own write never reached the rail with gtk-3.0/ absent at launch, got $(ipc networkEntries)"
     shot network-appeared
     [[ -f "$fixture_home/.config/gtk-3.0/bookmarks" ]] || fail "network: the dialog did not create gtk-3.0/bookmarks under the fixture HOME"
+
+    key -M ctrl -M shift -k 0 -m shift -m ctrl >/dev/null
+    key -M ctrl -M shift -k minus -m shift -m ctrl >/dev/null
+    key -M ctrl -M shift -k minus -m shift -m ctrl >/dev/null
+    local ui_scale first_scale=true
+    for ui_scale in 0.8 0.9 1.0 1.1 1.2 1.3 1.4 1.5 1.6 1.7 1.8 1.9 2.0; do
+        settle
+        assert_network_mark_alignment "$ui_scale" "$first_scale"
+        first_scale=false
+        [[ "$ui_scale" == "2.0" ]] \
+            || key -M ctrl -M shift -k equal -m shift -m ctrl >/dev/null
+    done
+    assert_network_mark_anchor \
+        || fail "network: add mark is not right-anchored inside its caption-aligned hit target"
+    key -M ctrl -M shift -k 0 -m shift -m ctrl >/dev/null
+    settle
+
+    local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
+    local invalid_port invalid_port_failures=0 snapshot
+    for invalid_port in "22/path" "0" "65536"; do
+        snapshot="$fixture_root/network-bookmarks-${invalid_port//\//-}"
+        if ! assert_invalid_network_port "$invalid_port" "$bookmarks" "$snapshot"; then
+            invalid_port_failures=$((invalid_port_failures + 1))
+        fi
+    done
+    [[ "$invalid_port_failures" -eq 0 ]] \
+        || fail "network: $invalid_port_failures invalid-port submit checks failed"
 
     key -k Escape >/dev/null
     settle
@@ -2120,27 +2336,29 @@ case_network() {
     key -k Tab >/dev/null
     key "uu" >/dev/null
     settle
-    [[ "$(ipc networkUri)" == "smb://dd;uu@hh:445/ss" ]] \
+    [[ "$(ipc networkUri)" == "smb://dd;uu@hh/ss" ]] \
         || fail "network: Tab did not walk host, port, share, domain, username in order, URI is $(ipc networkUri)"
 
     # Reached by keyboard rather than by click, which is the only thing that exercises a chip's own
-    # Enter. Under SMB the TLS row is hidden, so one Tab from Username wraps past it to the first
-    # chip and a second lands on SFTP: the wrap and the hidden-row skip are proven by arriving.
+    # Enter. Under SMB, Username steps through Password before wrapping to the first chip; the third
+    # Tab lands on SFTP, proving the new secret row participates in the visible ring.
+    key -k Tab >/dev/null
     key -k Tab >/dev/null
     key -k Tab >/dev/null
     key -k Return >/dev/null
     settle
-    [[ "$(ipc networkUri)" == "sftp://uu@hh:22/ss" ]] \
+    [[ "$(ipc networkUri)" == "sftp://uu@hh/ss" ]] \
         || fail "network: Enter on a tabbed-to chip did not pick SFTP, URI is $(ipc networkUri)"
 
-    # SFTP hides Domain and the TLS row both. Two backtabs wrap back past the hidden TLS row to
-    # Username, and a third must skip the hidden Domain and land on Path.
+    # SFTP hides Domain and TLS. Backtab crosses SMB, Password and Username; the fourth must skip
+    # hidden Domain and land on Path.
+    key -k Backtab >/dev/null
     key -k Backtab >/dev/null
     key -k Backtab >/dev/null
     key -k Backtab >/dev/null
     key "XX" >/dev/null
     settle
-    [[ "$(ipc networkUri)" == "sftp://uu@hh:22/ssXX" ]] \
+    [[ "$(ipc networkUri)" == "sftp://uu@hh/ssXX" ]] \
         || fail "network: Shift-Tab did not skip the hidden Domain and reach Path, URI is $(ipc networkUri)"
     printf 'NETWORK traversal=ok wrap=ok skip=ok chip-enter=ok\n'
     shot network-traversal
@@ -2163,7 +2381,7 @@ case_network() {
     key -k Tab >/dev/null
     key "dd" >/dev/null
     settle
-    [[ "$(ipc networkUri)" == "smb://hh:445/ss" ]] \
+    [[ "$(ipc networkUri)" == "smb://hh/ss" ]] \
         || fail "network: the re-home walk did not reach Domain, URI is $(ipc networkUri)"
     click_chip SFTP
     settle
@@ -2171,7 +2389,7 @@ case_network() {
         || fail "network: the chip click did not pick SFTP, it is $(ipc networkProtocol)"
     key "uu" >/dev/null
     settle
-    [[ "$(ipc networkUri)" == "sftp://uu@hh:22/ss" ]] \
+    [[ "$(ipc networkUri)" == "sftp://uu@hh/ss" ]] \
         || fail "network: a chip click left the caret in the hidden Domain, URI is $(ipc networkUri)"
     printf 'NETWORK rehome=ok\n'
     key -k Escape >/dev/null
@@ -2179,9 +2397,736 @@ case_network() {
     [[ "$(ipc dialogOpen)" == "false" ]] \
         || fail "network: escape did not close the dialog after the re-home walk"
 
-    printf 'NETWORK empty=ok a-scoped=ok dialog=ok submit-path=ok keyboard-after=ok\n'
+    key a >/dev/null
+    settle
+    click_chip NFS
+    key "nfs.test" >/dev/null
+    key -k Tab >/dev/null
+    key -k Tab >/dev/null
+    key "/export" >/dev/null
+    key -k Return >/dev/null
+    wait_network_result mounted 5
+    [[ "$(cat "$mount_log")" == 'mount nfs://nfs.test/export' ]] \
+        || fail "network: NFS did not retain plain gio mount"
+
+    [[ "$(ipc focusView)" == "rail" ]] || fail "network: direct-cache setup did not return to rail"
+    key a >/dev/null
+    click_chip NFS
+    key "stale-one.test" >/dev/null
+    key -k Tab >/dev/null
+    key -k Tab >/dev/null
+    key "/export" >/dev/null
+    key -k Return >/dev/null
+    wait_network_result mounted 5
+    key a >/dev/null
+    click_chip NFS
+    key "stale-two.test" >/dev/null
+    key -k Tab >/dev/null
+    key -k Tab >/dev/null
+    key "/export" >/dev/null
+    key -k Return >/dev/null
+    wait_network_result failed 5
+    [[ "$(ipc networkStatus)" == "Connect failed: network location was refused" ]] \
+        || fail "network: direct mount reused stale stderr"
+    key -k Escape >/dev/null
+    settle
+
+    [[ "$(ipc focusView)" == "rail" ]] || fail "network: share-cache setup did not return to rail"
+    key a >/dev/null
+    key "shares-one.test" >/dev/null
+    key -k Return >/dev/null
+    wait_network_result mounted 5
+    [[ "$(ipc shareBrowserOpen)" == "true" && "$(ipc shareBrowserEntries)" == "old-share" ]] \
+        || fail "network: share-cache setup did not list first root"
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "network: first share browser did not return to rail"
+    key a >/dev/null
+    key "shares-two.test" >/dev/null
+    key -k Return >/dev/null
+    wait_network_result failed 5
+    [[ "$(ipc shareBrowserOpen)" == "false" \
+        && "$(ipc networkStatus)" == "Connect failed: location has no browsable folder" ]] \
+        || fail "network: bare root reused stale share output"
+
+    printf 'NETWORK empty=ok a-scoped=ok dialog=ok submit-path=ok keyboard-after=ok guest-smb=anonymous nfs=plain caches=isolated\n'
+    export PATH="$saved_path"
     kill_flea
     sandbox_remove "$fixture_home"
+    sandbox_remove "$fake_root"
+}
+
+# Restores the authenticated route as a product-level control: the helper sees one URI argument and
+# one stdin line, while every durable/test-visible surface stays secret-free.
+case_networkauth() {
+    local dir="$fixture_root/network-auth" fixture_home="$fixture_root/network-auth-home"
+    local state="$dir/state" runtime_canary
+    runtime_canary=$(od -An -N32 -tx1 /dev/urandom | tr -d ' \n')
+    local helper_log="$state/helper.log"
+    local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
+    local retry_dir="$state/retry-root"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/bin" "$state" "$retry_dir"
+    : > "$dir/local.txt"
+    : > "$retry_dir/alpha.txt"
+    : > "$state/mounted"
+    : > "$helper_log"
+    fixture_home_make "$fixture_home"
+    mkdir -p "$fixture_home/.config/gtk-3.0"
+    printf '%s\n' 'sftp://tester@slot.test/home42/tester Own slot' > "$bookmarks"
+    printf '%s\n' 'sftp://tester@slot.test/' > "$state/mounted"
+
+    assert_runtime_canary_absent() {
+        local surface method value
+        for surface in "$fixture_root" "$thumb_fixture" "$hash_fixture" "$stale_fixture" \
+            "$evidence_dir" "$flea_log" "$run_log" "$case_log" \
+            "$repo/.superpowers/flea/release-014-20260904/reports/baseline-authenticated-ui.md"; do
+            [[ -e "$surface" ]] || continue
+            ! printf '%s\n' "$runtime_canary" | grep -R -a -F -q -f - "$surface" 2>/dev/null \
+                || fail "networkauth: runtime canary reached byte-addressable surface"
+        done
+        for method in themeForeground selectedFill palette metrics tokens selectedIndices focusView \
+            path lastMessage stickyMessage firstRowsAt inputToRows mode state stateMessage \
+            contextMenuEntries contextMenuGlyphs contextMenuSubmenuGlyphs contextMenuSubmenuEntries \
+            renameEditorText railRenameEditorText previewKind previewState previewPdfZoom previewExpanded \
+            previewPdfPage headerTitles sortMark previewSliderCentre headerLeft viewMode archiveFormats \
+            keymapSheetRows convertFormat previewFacts previewColumnState columnPlayCentre columnStripCentre \
+            tabLabels pathBarText pathCentre \
+            headerTop networkProtocol networkPort networkUri networkPathLabel networkTitle networkFields \
+            networkFocus networkHostPortWidths networkPasswordState networkNote networkAction networkStatus \
+            networkDialogMetrics networkDialogMetricTargets networkResult networkPasswordEyeCentre \
+            shareBrowserEntries networkEntries deviceEntries; do
+            value=$(ipc "$method" 2>/dev/null || true)
+            [[ "$value" != *"$runtime_canary"* ]] \
+                || fail "networkauth: runtime canary reached IPC $method"
+        done
+    }
+
+    cat > "$dir/bin/gio" <<EOS
+#!/bin/sh
+case "\$1 \${2:-}" in
+"mount -l")
+    if [ -s "$state/mounted" ]; then
+        uri=\$(cat "$state/mounted")
+        printf 'Mount(0): auth-test -> %s\n' "\$uri"
+    fi
+    ;;
+"mount -u")
+    printf '%s\n' "\$3" > "$state/unmount-uri"
+    : > "$state/mounted"
+    ;;
+"info "*)
+    mounted=\$(cat "$state/mounted")
+    if [ "\$mounted" != "\$2" ]; then
+        [ "\$mounted" = "sftp://tester@slot.test/" ] \
+            && [ "\$2" = "sftp://tester@slot.test/home42/tester" ] || exit 1
+    fi
+    printf '%s\n' "\$2" > "$state/info-uri"
+    if [ "\$2" = "ftps://tester@slot.test/retry" ]; then
+        printf 'local path: %s\n' "$retry_dir"
+    else
+        printf 'local path: %s\n' "$dir"
+    fi
+    ;;
+"mount "*) printf '%s\n' "\$2" > "$state/mounted" ;;
+*) exit 1 ;;
+esac
+EOS
+    cat > "$dir/bin/flea-gio-auth" <<'EOS'
+#!/bin/sh
+[ "$#" -eq 1 ] || exit 2
+IFS= read -r secret || exit 3
+[ -n "$secret" ] || exit 4
+cmdline=$(tr '\0' '\n' < "/proc/$$/cmdline")
+environment=$(env)
+case "$cmdline$environment" in *"$secret"*) exit 5 ;; esac
+script_dir=$(CDPATH= cd -- "$(dirname -- "$0")" && pwd)
+state=${script_dir%/bin}/state
+printf 'argc=1 uri=%s stdin-lines=1\n' "$1" >> "$state/helper.log"
+[ ! -e "$state/fail" ] || exit 60
+printf '%s\n' "$1" > "$state/mounted"
+secret=
+EOS
+    chmod +x "$dir/bin/gio" "$dir/bin/flea-gio-auth"
+
+    local real_home="$HOME" saved_path="$PATH"
+    export HOME="$fixture_home"
+    export PATH="$dir/bin:$PATH"
+    export FLEA_GIO_AUTH="$dir/bin/flea-gio-auth"
+    launch "$dir"
+    export HOME="$real_home"
+    wait_listing_wall 3
+
+    # GIO exposes an authority-root mount for SFTP even when the saved product location is an
+    # addressable descendant. The rail must keep the saved URI, mark it mounted, and emit one row.
+    local want_entries='Own slot|network|share|true' seen_entries="" entries_deadline
+    entries_deadline=$(( $(date +%s%3N) + 12000 ))
+    while (( $(date +%s%3N) < entries_deadline )); do
+        seen_entries=$(timeout 1 omarchy-drive ipc -p "$flea_ui" flea networkEntries 2>/dev/null || true)
+        [[ "$seen_entries" == "$want_entries" ]] && break
+        sleep 0.1
+    done
+    [[ "$seen_entries" == "$want_entries" ]] \
+        || fail "networkauth: authority-root mount duplicated descendant bookmark ($seen_entries)"
+    local network_index step
+    network_index=$(ipc networkStartIndex)
+    key -k Tab >/dev/null
+    key g >/dev/null
+    for ((step = 0; step < network_index; step++)); do key j >/dev/null; done
+    key -k Return >/dev/null
+    wait_network_result mounted 5
+    [[ "$(cat "$state/info-uri")" == 'sftp://tester@slot.test/home42/tester' ]] \
+        || fail "networkauth: mounted saved row did not resolve its descendant URI"
+    [[ ! -s "$helper_log" ]] || fail "networkauth: already-mounted descendant launched helper"
+    click_rail_row "$network_index" right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Unmount" ]] \
+        || fail "networkauth: projected mounted row offered no Unmount"
+    key -k Return >/dev/null
+    wait_network_result unmounted 5
+    [[ "$(cat "$state/unmount-uri")" == 'sftp://tester@slot.test/' ]] \
+        || fail "networkauth: projected row unmounted its saved descendant URI"
+    printf 'NETWORKAUTH descendant-dedup=ok saved-uri=ok mount-uri=ok\n'
+    kill_flea
+    : > "$state/mounted"
+    printf '%s\n' \
+        'dav://tester@plain-default.test/ Plain 80' \
+        'dav://tester@plain-secure-port.test:443/ Plain 443' > "$bookmarks"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    wait_network_entry_state false
+    network_index=$(ipc networkStartIndex)
+    key -k Tab >/dev/null
+    key g >/dev/null
+    for ((step = 0; step < network_index; step++)); do key j >/dev/null; done
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc networkPort)" == 80 && "$(ipc networkUri)" == 'dav://tester@plain-default.test/' ]] \
+        || fail "networkauth: dav default reparsed as port $(ipc networkPort), URI $(ipc networkUri)"
+    key -k Escape >/dev/null
+    key j >/dev/null
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc networkPort)" == 443 && "$(ipc networkUri)" == 'dav://tester@plain-secure-port.test:443/' ]] \
+        || fail "networkauth: dav :443 reparsed as port $(ipc networkPort), URI $(ipc networkUri)"
+    printf 'NETWORKAUTH dav-default=80 dav-explicit=443\n'
+    kill_flea
+    : > "$bookmarks"
+    : > "$state/info-uri"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    wait_listing_wall 3
+
+    key -k Tab >/dev/null
+    key a >/dev/null
+    settle
+    [[ "$(ipc networkTitle)" == "SMB share" ]] || fail "networkauth: wrong SMB title"
+    [[ "$(ipc networkFields)" == "Label|Host|Port|Share|Domain|Username|Password" ]] \
+        || fail "networkauth: SMB fields are $(ipc networkFields)"
+    [[ "$(ipc networkHostPortWidths)" == *"|"* ]] || fail "networkauth: no Host/Port geometry"
+    local host_width port_width
+    IFS='|' read -r host_width port_width <<< "$(ipc networkHostPortWidths)"
+    [[ "$host_width" == "$port_width" ]] || fail "networkauth: Host/Port widths differ ($host_width/$port_width)"
+    [[ "$(ipc networkPasswordState)" == "masked|empty" ]] \
+        || fail "networkauth: fresh password state is $(ipc networkPasswordState)"
+    [[ "$(ipc networkDialogMetrics)" == "$(ipc networkDialogMetricTargets)" ]] \
+        || fail "networkauth: card padding/gap $(ipc networkDialogMetrics) differs from scaled 16/12 target $(ipc networkDialogMetricTargets)"
+
+    local title_case want_protocol want_title want_fields
+    for title_case in \
+        "SFTP|SFTP host|Label|Host|Port|Path|Username|Password" \
+        "FTPS|FTPS|Label|Host|Port|Path|Username|Password|TLS" \
+        "WebDAV|WebDAV endpoint|Label|Host|Port|Path|Username|Password|TLS"; do
+        IFS='|' read -r want_protocol want_title want_fields <<< "$title_case"
+        click_chip "$want_protocol"
+        [[ "$(ipc networkTitle)" == "$want_title" ]] \
+            || fail "networkauth: $want_protocol title is $(ipc networkTitle)"
+        [[ "$(ipc networkFields)" == "$want_fields" ]] \
+            || fail "networkauth: $want_protocol fields are $(ipc networkFields)"
+    done
+
+    click_chip NFS
+    settle
+    [[ "$(ipc networkTitle)" == "NFS export" ]] || fail "networkauth: wrong NFS title"
+    [[ "$(ipc networkFields)" == "Label|Host|Port|Export" ]] || fail "networkauth: NFS fields are $(ipc networkFields)"
+    [[ "$(ipc networkNote)" == "No credentials: NFS trusts the client host" ]] \
+        || fail "networkauth: NFS note is $(ipc networkNote)"
+
+    click_chip SMB
+    key "slot.test" >/dev/null
+    key -k Tab >/dev/null
+    key -k Tab >/dev/null
+    key "data" >/dev/null
+    key -k Tab >/dev/null
+    key -k Tab >/dev/null
+    key "tester" >/dev/null
+    key -k Tab >/dev/null
+    [[ "$(ipc networkFocus)" == "Password" ]] || fail "networkauth: Password did not follow Username"
+    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
+        || fail "networkauth: typed password is not masked"
+    shot networkauth-password-masked
+    assert_runtime_canary_absent
+    local eye_centre eye_x eye_y wx wy held_password_state released_password_state
+    eye_centre=$(ipc networkPasswordEyeCentre 2>/dev/null) \
+        || fail "networkauth: password eye has no IPC centre"
+    read -r eye_x eye_y <<< "$eye_centre"
+    read -r wx wy _ww _wh < <(window_box)
+    omarchy-drive move "$((wx + eye_x))" "$((wy + eye_y))" >/dev/null
+    ydotool click 0x40 >/dev/null 2>&1
+    held_password_state=$(ipc networkPasswordState)
+    ydotool click 0x80 >/dev/null 2>&1
+    released_password_state=$(ipc networkPasswordState)
+    [[ "$held_password_state" == "visible|set" ]] \
+        || fail "networkauth: password eye did not reveal only while held"
+    [[ "$released_password_state" == "masked|set" ]] \
+        || fail "networkauth: password eye did not remask on release"
+    key -k Return >/dev/null
+    wait_network_result mounted
+    [[ "$(ipc dialogOpen)" == "false" ]] || fail "networkauth: successful save left dialog open"
+    [[ "$(cat "$helper_log")" == "argc=1 uri=smb://tester@slot.test/data stdin-lines=1" ]] \
+        || fail "networkauth: SMB helper route is $(cat "$helper_log")"
+    [[ "$(cat "$bookmarks")" == "smb://tester@slot.test/data data" ]] \
+        || fail "networkauth: secret-free bookmark is $(cat "$bookmarks")"
+
+    # An already-mounted authenticated row resolves directly and never needs the process password.
+    local helper_calls
+    helper_calls=$(wc -l < "$helper_log")
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    wait_network_entry_state true
+    key -k Tab >/dev/null
+    key g >/dev/null
+    key j >/dev/null
+    key -k Return >/dev/null
+    wait_network_result mounted
+    [[ "$(ipc dialogOpen)" == "false" ]] \
+        || fail "networkauth: already-mounted row asked for a password"
+    [[ "$(wc -l < "$helper_log")" -eq "$helper_calls" ]] \
+        || fail "networkauth: already-mounted row launched helper"
+
+    # A restart erases the process map. The saved credentialed row must reopen populated and must
+    # not launch the helper until the user supplies a new password.
+    : > "$state/mounted"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    wait_network_entry_state false
+    key -k Tab >/dev/null
+    key g >/dev/null
+    key j >/dev/null
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "true" && "$(ipc networkUri)" == "smb://tester@slot.test/data" ]] \
+        || fail "networkauth: missing session credential did not reopen populated"
+    [[ "$(ipc networkAction)" == "Retry" && "$(ipc networkPasswordState)" == "masked|empty" ]] \
+        || fail "networkauth: missing credential state is $(ipc networkAction)/$(ipc networkPasswordState)"
+    [[ "$(wc -l < "$helper_log")" -eq "$helper_calls" ]] \
+        || fail "networkauth: missing credential launched helper"
+
+    # Missing and non-executable helpers both fail closed, retain the secret in process memory for
+    # Retry, and never turn the password into an argument, environment value or log line.
+    local _field
+    for _field in Port Share Domain Username Password; do key -k Tab >/dev/null; done
+    [[ "$(ipc networkFocus)" == "Password" ]] \
+        || fail "networkauth: missing-helper setup did not reach Password"
+    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    mv "$dir/bin/flea-gio-auth" "$dir/bin/flea-gio-auth.real"
+    key -k Return >/dev/null
+    wait_network_result failed 5
+    [[ "$(ipc dialogOpen)" == "true" \
+        && "$(ipc networkStatus)" == "Connect failed: authentication helper is unavailable" \
+        && "$(ipc networkPasswordState)" == "masked|set" ]] \
+        || fail "networkauth: missing helper did not fail closed and retain fields"
+    [[ "$(wc -l < "$helper_log")" -eq "$helper_calls" ]] \
+        || fail "networkauth: missing helper wrote helper output"
+
+    cp "$dir/bin/flea-gio-auth.real" "$dir/bin/flea-gio-auth"
+    chmod 0644 "$dir/bin/flea-gio-auth"
+    key -k Escape >/dev/null
+    key -k Return >/dev/null
+    wait_network_result failed 5
+    [[ "$(ipc dialogOpen)" == "true" \
+        && "$(ipc networkStatus)" == "Connect failed: authentication helper is unavailable" \
+        && "$(ipc networkPasswordState)" == "masked|set" ]] \
+        || fail "networkauth: permission-denied helper did not fail closed and retain fields"
+    [[ "$(wc -l < "$helper_log")" -eq "$helper_calls" ]] \
+        || fail "networkauth: permission-denied helper wrote helper output"
+
+    # A helper that never exits must be stopped by the product deadline, not by this driver's wait.
+    cat > "$dir/bin/flea-gio-auth" <<'EOS'
+#!/bin/sh
+IFS= read -r _password || exit 3
+sleep 120
+EOS
+    chmod +x "$dir/bin/flea-gio-auth"
+    key -k Escape >/dev/null
+    key -k Return >/dev/null
+    wait_network_result mounting 5
+    wait_network_result failed 40
+    [[ "$(ipc dialogOpen)" == "true" \
+        && "$(ipc networkStatus)" == "Connect failed: host did not respond" \
+        && "$(ipc networkPasswordState)" == "masked|set" ]] \
+        || fail "networkauth: helper timeout did not retain one sanitized Retry artifact"
+
+    # After another restart the same saved row has no map entry. Submitting its populated form with
+    # an empty password keeps it open and does not launch any helper.
+    cp "$dir/bin/flea-gio-auth.real" "$dir/bin/flea-gio-auth"
+    chmod +x "$dir/bin/flea-gio-auth"
+    key -k Escape >/dev/null
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    wait_network_entry_state false
+    key -k Tab >/dev/null
+    key g >/dev/null
+    key j >/dev/null
+    key -k Return >/dev/null
+    settle
+    helper_calls=$(wc -l < "$helper_log")
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "true" && "$(ipc networkResult)" == "missing-credential" \
+        && "$(ipc networkAction)" == "Retry" && "$(ipc networkPasswordState)" == "masked|empty" ]] \
+        || fail "networkauth: empty password did not remain a missing credential"
+    [[ "$(wc -l < "$helper_log")" -eq "$helper_calls" ]] \
+        || fail "networkauth: empty password launched helper"
+
+    for _field in Port Share Domain Username Password; do key -k Tab >/dev/null; done
+    [[ "$(ipc networkFocus)" == "Password" ]] \
+        || fail "networkauth: corrected-retry setup did not reach Password"
+    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    key -k Return >/dev/null
+    wait_network_result mounted
+    [[ "$(cat "$state/info-uri")" == "smb://tester@slot.test/data" ]] \
+        || fail "networkauth: corrected-retry setup did not resolve first location"
+
+    # The approved failed-connect artifact is FTPS: keep every field, mask the password, say one
+    # sentence and replace Save with Retry.
+    [[ "$(ipc focusView)" == "rail" ]] \
+        || fail "networkauth: corrected-retry setup did not return to rail"
+    key a >/dev/null
+    click_chip FTPS
+    key "slot.test" >/dev/null
+    key -k Tab >/dev/null
+    key -k Tab >/dev/null
+    key "retry" >/dev/null
+    key -k Tab >/dev/null
+    key "tester" >/dev/null
+    key -k Tab >/dev/null
+    printf '%s' "$runtime_canary" | omarchy-drive key --window flea - >/dev/null
+    : > "$state/fail"
+    key -k Return >/dev/null
+    wait_network_result failed
+    [[ "$(ipc dialogOpen)" == "true" && "$(ipc networkTitle)" == "FTPS, failed connect" ]] \
+        || fail "networkauth: failure did not reopen approved FTPS artifact"
+    [[ "$(ipc networkStatus)" == "Connect failed: host refused the TLS handshake" ]] \
+        || fail "networkauth: failure said $(ipc networkStatus)"
+    [[ "$(ipc networkAction)" == "Retry" && "$(ipc networkPasswordState)" == "masked|set" ]] \
+        || fail "networkauth: failure lost Retry or masked credential state"
+    [[ "$(ipc networkUri)" == "ftps://tester@slot.test/retry" ]] \
+        || fail "networkauth: failure lost fields, URI is $(ipc networkUri)"
+    assert_runtime_canary_absent
+
+    helper_calls=$(wc -l < "$helper_log")
+    rm -f "$state/fail"
+    key -k Return >/dev/null
+    wait_network_result mounted
+    [[ "$(wc -l < "$helper_log")" -eq $((helper_calls + 1)) ]] \
+        || fail "networkauth: corrected Retry did not launch helper once"
+    [[ "$(tail -n 1 "$helper_log")" == "argc=1 uri=ftps://tester@slot.test/retry stdin-lines=1" ]] \
+        || fail "networkauth: corrected Retry used stale helper URI"
+    [[ "$(cat "$state/info-uri")" == "ftps://tester@slot.test/retry" ]] \
+        || fail "networkauth: corrected Retry resolved stale info URI"
+    [[ "$(cat "$state/mounted")" == "ftps://tester@slot.test/retry" ]] \
+        || fail "networkauth: corrected Retry did not mount current URI"
+    wait_path_wall "$retry_dir" 10
+    wait_listing_wall 1 10
+    [[ "$(ipc rowAt 0)" == "alpha.txt|"* ]] \
+        || fail "networkauth: corrected Retry browsed stale child"
+    [[ "$(ipc dialogOpen)" == "false" && "$(ipc shareBrowserOpen)" == "false" ]] \
+        || fail "networkauth: corrected Retry left stale failure UI"
+    assert_runtime_canary_absent
+    sleep "$transient_clear_s"
+    [[ -z "$(ipc lastMessage)" ]] \
+        || fail "networkauth: corrected Retry retained stale error text"
+
+    printf 'NETWORKAUTH artifact=ok stdin=one persistence=none retry=corrected eye=held missing-session=no-launch\n'
+    unset FLEA_GIO_AUTH
+    export PATH="$saved_path"
+    kill_flea
+    sandbox_remove "$fixture_home"
+}
+
+case_networktimeout() {
+    local dir="$fixture_root/network-timeout"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/bin"
+    : > "$dir/one.txt"
+    : > "$dir/two.txt"
+    local calls="$dir/calls"
+    printf '0\n' > "$calls"
+
+    cat > "$dir/bin/gio" <<EOS
+#!/bin/sh
+if [ "\$1 \$2" != "mount -l" ]; then
+  exec /usr/bin/gio "\$@"
+fi
+count=\$(cat "$calls")
+count=\$((count + 1))
+printf '%s\n' "\$count" > "$calls"
+case "\$count" in
+  1) printf 'Mount(0): First -> smb://stub/first\n' ;;
+  2) exec sleep 20 ;;
+  *) printf 'Mount(0): Recovered -> smb://stub/recovered\n' ;;
+esac
+EOS
+    chmod +x "$dir/bin/gio"
+
+    local fixture_home="$fixture_root/network-timeout-home"
+    fixture_home_make "$fixture_home"
+    local real_home="$HOME"
+    local saved_path="$PATH"
+    export PATH="$dir/bin:$PATH"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "First|network|share|true" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "First|network|share|true" ]] \
+        || fail "networktimeout: first listing never appeared, got $(ipc networkEntries)"
+    sleep "$rail_poll_wait_s"
+    [[ "$(ipc networkEntries)" == "First|network|share|true" ]] \
+        || fail "networktimeout: a wedged listing erased the last good row"
+
+    for _attempt in $(seq 1 220); do
+        [[ "$(ipc networkEntries)" == "Recovered|network|share|true" ]] && break
+        sleep 0.1
+    done
+    [[ "$(ipc networkEntries)" == "Recovered|network|share|true" ]] \
+        || fail "networktimeout: polling never recovered, got $(ipc networkEntries)"
+    [[ "$(cat "$calls")" -ge 3 ]] || fail "networktimeout: expected three list attempts"
+
+    printf 'NETWORKTIMEOUT retained=ok retry=ok\n'
+    export PATH="$saved_path"
+    kill_flea
+    sandbox_remove "$fixture_home"
+}
+
+case_networklive() {
+    local uri=${FLEA_NETWORK_LIVE_URI:-}
+    local mount_uri=${FLEA_NETWORK_LIVE_MOUNT_URI:-$uri}
+    local mount_root=${FLEA_NETWORK_LIVE_ROOT:-}
+    local relative=${FLEA_NETWORK_LIVE_RELATIVE:-}
+    local protocol=${FLEA_NETWORK_LIVE_PROTOCOL:-}
+    local host=${FLEA_NETWORK_LIVE_HOST:-}
+    local remote_path=${FLEA_NETWORK_LIVE_PATH:-}
+    local remote_user=${FLEA_NETWORK_LIVE_USER:-}
+    local auth=${FLEA_NETWORK_LIVE_AUTH:-none}
+    local product_root
+    [[ "$uri" == *://* && "$mount_uri" == *://* \
+        && "$mount_root" == "/run/user/$(id -u)/gvfs/"* ]] \
+        || fail "networklive: missing or unsafe live mount contract"
+    [[ -n "$relative" && "$relative" != /* && "$relative" != *".."* ]] \
+        || fail "networklive: unsafe relative test path"
+    [[ -n "$host" && ( "$auth" == password || "$auth" == none ) ]] \
+        || fail "networklive: incomplete form contract"
+
+    local dir="$fixture_root/network-live"
+    local fixture_home="$fixture_root/network-live-home"
+    sandbox_scratch "$dir"
+    : > "$dir/local.txt"
+    fixture_home_make "$fixture_home"
+    local real_home="$HOME"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+
+    wait_listing_wall 1
+    key -k Tab >/dev/null
+    key a >/dev/null
+    settle
+    click_chip "$protocol"
+    key "$host" >/dev/null
+    key -k Tab >/dev/null
+    key -k Tab >/dev/null
+    [[ -z "$remote_path" ]] || key "$remote_path" >/dev/null
+    if [[ "$auth" == password ]]; then
+        key -k Tab >/dev/null
+        key "$remote_user" >/dev/null
+    fi
+    [[ "$(ipc networkUri)" == "$uri" ]] \
+        || fail "networklive: form did not build the exact product URI"
+    if [[ "$auth" == password ]]; then
+        key -k Tab >/dev/null
+        [[ "$(ipc networkFocus)" == "Password" ]] \
+            || fail "networklive: password field did not receive focus"
+        [[ "$(ipc networkPasswordState)" == "masked|empty" ]] \
+            || fail "networklive: password was populated before stdin delivery"
+        omarchy-drive key --window flea - >/dev/null
+        [[ "$(ipc networkPasswordState)" == "masked|set" ]] \
+            || fail "networklive: password stdin was empty"
+        key -k Return >/dev/null
+    else
+        key -k Return >/dev/null
+    fi
+    wait_network_result mounted 120
+    product_root=$(timeout 5 gio info "$uri" 2>/dev/null | sed -n 's/^local path: //p')
+    [[ "$product_root" == "/run/user/$(id -u)/gvfs/"* ]] \
+        || fail "networklive: product mount has no safe FUSE root"
+    mount_root=$product_root
+    [[ -f "${mount_root%/}/$relative/alpha.txt" ]] \
+        || fail "networklive: relative fixture is absent below product mount root $mount_root"
+    wait_path_wall "$mount_root" 25
+
+    wait_network_entry_state true
+    local entries entry label network_count network_index step
+    local -a components
+    entries=$(ipc networkEntries)
+    network_count=0
+    while IFS= read -r entry; do
+        [[ -n "$entry" ]] && network_count=$((network_count + 1))
+    done <<< "$entries"
+    [[ "$network_count" -eq 1 && "$entries" == *"|network|share|true" ]] \
+        || fail "networklive: expected one mounted share, got $network_count"
+    label=${entries%%|*}
+    network_index=$(ipc networkStartIndex)
+
+    if [[ "$(ipc focusView)" == "rail" ]]; then key -k Escape >/dev/null; fi
+    [[ "$(ipc focusView)" == "list" ]] \
+        || fail "networklive: could not normalize focus before rail activation"
+    key -k Tab >/dev/null
+    [[ "$(ipc focusView)" == "rail" ]] \
+        || fail "networklive: Tab did not focus the rail"
+    key g >/dev/null
+    for ((step = 0; step < network_index; step++)); do key j >/dev/null; done
+    key -k Return >/dev/null
+    wait_path_wall "$mount_root" 25
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "list" ]] || fail "networklive: Escape did not return focus to the list"
+
+    local current=$mount_root component row
+    IFS=/ read -ra components <<< "$relative"
+    for component in "${components[@]}"; do
+        [[ -n "$component" ]] || continue
+        row=$(find_row_wall "$component" 25) \
+            || fail "networklive: path component unavailable"
+        goto_row "$row"
+        key -k Return >/dev/null
+        current="${current%/}/$component"
+        wait_path_wall "$current" 25
+    done
+
+    row=$(find_row_wall alpha.txt 25) || fail "networklive: alpha.txt absent"
+    goto_row "$row"
+    key -k space >/dev/null
+    settle
+    [[ "$(ipc previewOpen)" == "true" && "$(ipc previewKind)" == "text" ]] \
+        || fail "networklive: remote text preview failed"
+    key -k Escape >/dev/null
+
+    key -k Tab >/dev/null
+    key g >/dev/null
+    key -k Return >/dev/null
+    wait_path_wall "$fixture_home" 25
+    wait_listing_wall 0 25
+    click_rail_row "$network_index" right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Unmount" ]] \
+        || fail "networklive: mounted share menu is not Unmount"
+    key -k Return >/dev/null
+    wait_message "Unmounted $label."
+    wait_network_result unmounted 25
+    wait_network_entry_state false 25
+    ! gio mount -l 2>/dev/null | grep -Fq -- "-> $mount_uri" || fail "networklive: GIO mount survived"
+
+    printf 'NETWORKLIVE protocol=%s cold-mount=ok rail=ok browse=ok preview=ok unmount=ok saved=false\n' "$protocol"
+    kill_flea
+    sandbox_remove "$fixture_home"
+}
+
+case_gvfs_cleanup() {
+    ( kill_flea ) >/dev/null 2>&1 || true
+    if [[ -n "${FLEA_GVFS_CASE_DIR:-}" ]]; then
+        DIR="$FLEA_GVFS_CASE_DIR" ./tools/flea-gvfs-fixture clean >/dev/null 2>&1 || true
+    fi
+    if [[ -n "${FLEA_GVFS_CASE_HOME:-}" ]]; then
+        sandbox_remove "$FLEA_GVFS_CASE_HOME"
+    fi
+}
+
+case_gvfs() {
+    local dir="$fixture_root/gvfs-local"
+    sandbox_scratch "$dir"
+    : > "$dir/one.txt"
+    : > "$dir/two.txt"
+    local share_dir="$fixture_root/gvfs-share"
+    local fixture_home="$fixture_root/gvfs-home"
+    fixture_home_make "$fixture_home"
+    FLEA_GVFS_CASE_DIR="$share_dir"
+    FLEA_GVFS_CASE_HOME="$fixture_home"
+    trap case_gvfs_cleanup EXIT HUP INT TERM
+    local real_home="$HOME"
+    local uri local_path
+
+    uri=$(DIR="$share_dir" ./tools/flea-gvfs-fixture make)
+    DIR="$share_dir" ./tools/flea-gvfs-fixture mount
+    local_path=$(gio info "$uri" | sed -n 's/^local path: //p')
+    [[ "$local_path" == "/run/user/$(id -u)/gvfs/"* ]] \
+        || fail "gvfs: fixture has no FUSE path, got $local_path"
+
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    wait_listing 2
+    wait_rail 2
+    [[ "$(ipc networkEntries)" == "share.zip|network|share|true" ]] \
+        || fail "gvfs: live mount never appeared, got $(ipc networkEntries)"
+
+    key -k Tab >/dev/null
+    key g >/dev/null
+    key j >/dev/null
+    settle
+    [[ "$(ipc railCursor)" == "1" ]] || fail "gvfs: share row is not rail index 1"
+    key -k Return >/dev/null
+    wait_path "$local_path"
+    wait_listing 2
+    [[ "$(ipc rowAt 0)" == "alpha.txt|"* || "$(ipc rowAt 1)" == "alpha.txt|"* ]] \
+        || fail "gvfs: alpha.txt absent from Flea listing"
+
+    key -k Escape >/dev/null
+    open_row alpha.txt
+    [[ "$(ipc previewOpen)" == "true" && "$(ipc previewKind)" == "text" ]] \
+        || fail "gvfs: alpha.txt did not open as a text preview"
+    key -k Escape >/dev/null
+    key -k Tab >/dev/null
+    key g >/dev/null
+    key -k Return >/dev/null
+    wait_path "$fixture_home"
+
+    click_rail_row 1 right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Unmount" ]] \
+        || fail "gvfs: mounted share menu is $(ipc contextMenuEntries)"
+    key -k Return >/dev/null
+    wait_message "Unmounted share.zip."
+    for _attempt in $(seq 1 100); do
+        [[ -z "$(ipc networkEntries)" ]] && break
+        sleep 0.05
+    done
+    [[ -z "$(ipc networkEntries)" ]] || fail "gvfs: row survived unmount"
+    ! gio mount -l | grep -Fq -- "-> $uri" || fail "gvfs: GIO mount survived Flea unmount"
+
+    printf 'GVFS rail=ok browse=ok preview=ok unmount=ok\n'
+    case_gvfs_cleanup
+    trap - EXIT HUP INT TERM
 }
 
 # Item 1 of Task 15 fix round 2: activating a bare smb://host/ entry lists its shares as pane
@@ -2989,7 +3934,7 @@ cache_snapshot
 trap cleanup EXIT
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
 
 : > "$run_log"
 : > "$flea_log"

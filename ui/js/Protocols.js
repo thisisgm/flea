@@ -37,7 +37,10 @@ function fieldsFor(protocol) {
     return FIELDS[protocol] || FIELDS["SMB"]
 }
 
-function defaultPort(protocol) {
+function defaultPort(protocol, tls) {
+    if (protocol === "WebDAV" && tls === false) {
+        return 80
+    }
     return PORTS[protocol] || 0
 }
 
@@ -45,7 +48,8 @@ function defaultPort(protocol) {
 // Mounts-as line shows nothing rather than a half-formed address.
 function uri(form) {
     var host = String(form.host || "").trim()
-    if (host.length === 0) {
+    var port = String(form.port || "").trim()
+    if (!validHost(host) || !validPort(port)) {
         return ""
     }
     var spec = fieldsFor(form.protocol)
@@ -54,13 +58,26 @@ function uri(form) {
         head += userPart(form, spec)
     }
     head += host
-    var port = String(form.port || "").trim()
-    if (port.length > 0 && Number(port) !== defaultPort(form.protocol)) {
-        head += ":" + port
-    } else if (port.length > 0) {
+    // Keep canvas defaults in the form, but omit them because GVFS NFS rejects an explicit :2049.
+    if (port.length > 0 && Number(port) !== defaultPort(form.protocol, form.tls)) {
         head += ":" + port
     }
     return head + pathPart(form.path)
+}
+
+function validHost(host) {
+    return /^\[[0-9A-Fa-f:.]+\]$/.test(host) || /^[A-Za-z0-9._-]+$/.test(host)
+}
+
+function validPort(port) {
+    if (port.length === 0) {
+        return true
+    }
+    if (!/^[0-9]+$/.test(port)) {
+        return false
+    }
+    var number = Number(port)
+    return number >= 1 && number <= 65535
 }
 
 // smb://DOMAIN;user@host/share is the form a domain takes; without one it is just user@host.
@@ -70,7 +87,8 @@ function userPart(form, spec) {
         return ""
     }
     var domain = spec.domain ? String(form.domain || "").trim() : ""
-    return (domain.length > 0 ? domain + ";" : "") + user + "@"
+    return (domain.length > 0 ? encodeURIComponent(domain) + ";" : "")
+        + encodeURIComponent(user) + "@"
 }
 
 function pathPart(path) {
@@ -78,7 +96,12 @@ function pathPart(path) {
     if (text.length === 0) {
         return "/"
     }
-    return text.charAt(0) === "/" ? text : "/" + text
+    var parts = text.split("/")
+    for (var i = 0; i < parts.length; i++) {
+        parts[i] = encodeURIComponent(parts[i])
+    }
+    var encoded = parts.join("/")
+    return encoded.charAt(0) === "/" ? encoded : "/" + encoded
 }
 
 // The label the sidebar row will carry: what the operator typed, or the last part of the path.
@@ -95,5 +118,7 @@ function label(form) {
 
 // A form with nothing to mount cannot be saved, which is what greys the Save row out.
 function complete(form) {
-    return String(form.host || "").trim().length > 0
+    var host = String(form.host || "").trim()
+    var port = String(form.port || "").trim()
+    return validHost(host) && validPort(port)
 }

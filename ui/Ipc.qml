@@ -100,6 +100,7 @@ QtObject {
         // only honest answer for either; "" means no PDF is loaded, which is not zoom 1 or false.
         function previewPdfZoom(): string { var p = root.pane.preview.pdfItem; return p ? String(p.zoom) : "" }
         function previewExpanded(): string { var p = root.pane.preview.pdfItem; return p ? String(p.expanded) : "" }
+        function previewPdfPage(): string { var p = root.pane.preview.pdfItem; return p ? String(p.page) : "" }
         function rowNameColor(i: int): string {
             var item = root.pane.itemFor(i)
             return item ? String(item.nameColor()) : ""
@@ -245,6 +246,27 @@ QtObject {
         function networkPort(): string { return root.networkDialog.formPort() }
         function networkUri(): string { return root.networkDialog.formUri() }
         function networkPathLabel(): string { return root.networkDialog.formPathLabel() }
+        function networkTitle(): string { return root.networkDialog.dialogTitle }
+        function networkFields(): string { return root.networkDialog.formFields() }
+        function networkFocus(): string { return root.networkDialog.formFocus() }
+        function networkHostPortWidths(): string { return root.networkDialog.formHostPortWidths() }
+        // Mask state and presence only: the seam never returns password content.
+        function networkPasswordState(): string { return root.networkDialog.formPasswordState() }
+        function networkPasswordEyeCentre(): string { return root.networkDialog.formPasswordEyeCentre() }
+        function networkNote(): string { return root.networkDialog.formNote() }
+        function networkAction(): string { return root.networkDialog.formAction() }
+        function networkStatus(): string { return root.networkDialog.statusText }
+        function networkDialogMetrics(): string { return root.networkDialog.formMetrics() }
+        function networkDialogMetricTargets(): string { return root.networkDialog.formMetricTargets() }
+        // Durable and non-secret, unlike the four-second status-bar transient.
+        function networkResult(): string { return root.pane.sidebar.networkResult() }
+        function networkMarkGeometry(): string {
+            var items = root.pane.sidebar.networkMarkItems()
+            var mark = root.fleaWindow.itemRect(items[0])
+            var heading = root.fleaWindow.itemRect(items[1])
+            var slot = heading.x + heading.width - Style.spacing.rowPaddingX - Theme.font.caption / 2
+            return ViewState.uiScale.toFixed(1) + "|" + Math.round(mark.x + mark.width / 2) + "|" + Math.round(slot)
+        }
         // A protocol chip carries a label and no tree, so a test clicks its centre the way it does a row.
         function networkChipCentre(name: string): string { return root.fleaWindow.centreOf(root.networkDialog.formChip(name)) }
         function shareBrowserOpen(): bool { return root.shareBrowser.active }
@@ -261,6 +283,7 @@ QtObject {
             }
             return out.join("\n")
         }
+        function networkStartIndex(): int { return root.pane.sidebar.favoriteEntries.length }
 
         // One line per entry, "label|group|kind|mounted", the same shape networkEntries answers.
         function deviceEntries(): string {

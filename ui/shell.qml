@@ -156,12 +156,18 @@ ShellRoot {
                 // FocusScope remembers its own last-focused child, list or rail, and restores it.
                 onClosed: pane.forceActiveFocus()
                 onSaved: pane.sidebar.reloadBookmarks()
+                onMountRequested: function (uri, label, password) {
+                    pane.sidebar.saveNetwork(uri, label, password)
+                }
             }
 
             Connections {
                 target: pane.sidebar
                 function onAddRequested() { networkDialog.open() }
                 function onSharesListed(baseUri, baseLabel, names) { shareBrowser.open(baseUri, baseLabel, names) }
+                function onNetworkRetryRequested(uri, label, password, reason, failedConnect) {
+                    networkDialog.openLocation(uri, label, password, reason, failedConnect)
+                }
             }
 
             // The Omarchy mark's one placement: over the list area alone, so the rail stays live.
@@ -180,7 +186,7 @@ ShellRoot {
                 mark: "search"
                 hint: pane.searchMode === "results"
                       ? "Press Escape to clear."
-                      : "Press Ctrl+Shift+N for a new folder."
+                      : ""
             }
 
             // The loading crawl, same listArea placement; its own hold-off keeps fast listings clean.

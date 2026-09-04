@@ -1,0 +1,58 @@
+#!/usr/bin/expect -f
+# Mounts one GIO URI with one password read from stdin and no secret output.
+log_user 0
+set timeout 30
+if {[info exists env(FLEA_GIO_AUTH_TIMEOUT)]} {
+    set timeout $env(FLEA_GIO_AUTH_TIMEOUT)
+}
+
+if {$argc != 1 || [gets stdin password] < 0 || $password eq ""} {
+    exit 2
+}
+set uri [lindex $argv 0]
+set password_sent 0
+
+spawn -noecho gio mount $uri
+expect {
+    -re {Choice: *$} {
+        set password ""
+        catch {close}
+        catch {wait}
+        exit 1
+    }
+    -re {Continue anyway.*y/n} {
+        set password ""
+        catch {close}
+        catch {wait}
+        exit 1
+    }
+    -re {Store password.*never/session/permanent} {
+        send -- "never\r"
+        exp_continue
+    }
+    -re {(Password|password|Passphrase|passphrase).*:} {
+        if {$password_sent} {
+            catch {close}
+            catch {wait}
+            exit 1
+        }
+        send -- "$password\r"
+        set password ""
+        set password_sent 1
+        exp_continue
+    }
+    eof {
+        set result [wait]
+        set password ""
+        if {!$password_sent && [lindex $result 3] == 0} {
+            exit 1
+        }
+        exit [lindex $result 3]
+    }
+    timeout {
+        set password ""
+        catch {close}
+        catch {wait}
+        exit 124
+    }
+}
