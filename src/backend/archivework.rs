@@ -1,12 +1,13 @@
 // The staging directory every delegated archive job writes into, the jail those jobs run in, and the
 // two reads an extract is verified against. The jobs themselves are archiveops.rs.
-use crate::backend::sandbox;
 use crate::backend::archive::Formats;
-use crate::backend::archivelist::parse_reader;
+use crate::backend::archive_reader;
 use crate::backend::opsreq::op_err;
+use crate::backend::sandbox;
 use crate::error::{from_io, FleaError};
+use std::io;
 use std::path::{Path, PathBuf};
-use std::process::Command;
+use std::process::{Command, Output, Stdio};
 
 // A private directory beside the destination, so the rename that follows never crosses a filesystem.
 const WORK_PREFIX: &str = ".flea-work-";
@@ -58,26 +59,27 @@ impl Drop for Work {
 // The tools print their own diagnosis on stderr and do not always exit non-zero, so success is read
 // off the filesystem: the file the job was told to produce either exists afterwards or it does not.
 pub fn run_boxed(inner: Vec<String>, read_only: &Path, writable: &Path) -> Result<(), FleaError> {
-    // Fail closed: the jail is the only containment for these tools, so a missing bwrap or prlimit
+    // Fail closed: the jail is the only containment for these tools, so a missing sandbox program
     // refuses the job rather than running it unsandboxed, the same rule thumbs.rs already follows.
     if !sandbox::available() {
         let tool = inner.first().map_or("", |s| s.as_str());
-        return Err(op_err("archive", tool, "the sandbox is unavailable: bwrap or prlimit is not on PATH"));
+        return Err(op_err("archive", tool, "the sandbox is unavailable: bwrap, prlimit, or systemd-run is not on PATH"));
     }
-    let full = sandbox::wrap(&inner, read_only, writable);
-    let out = Command::new(&full[0])
-        .args(&full[1..])
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::null())
-        .output()
-        .map_err(|e| from_io("archive", &full[0], &e))?;
+    let full = sandbox::one_shot(&sandbox::wrap(&inner, read_only, writable));
+    let out = captured_output(&full).map_err(|e| from_io("archive", &full[0], &e))?;
     if out.status.success() {
         return Ok(());
     }
-    let text = String::from_utf8_lossy(&out.stderr);
-    Err(op_err("archive", "", text.lines().last().unwrap_or("the archive tool failed")))
+    Err(op_err("archive", "", &last_error(&out)))
 }
 
+fn captured_output(argv: &[String]) -> io::Result<Output> {
+    Command::new(&argv[0]).args(&argv[1..]).stdin(Stdio::null()).stdout(Stdio::null()).output()
+}
+
+fn last_error(output: &Output) -> String {
+    String::from_utf8_lossy(&output.stderr).lines().last().unwrap_or("the archive tool failed").to_string()
+}
 
 pub fn is_empty_dir(dir: &Path) -> bool {
     std::fs::read_dir(dir).map(|mut e| e.next().is_none()).unwrap_or(true)
@@ -93,30 +95,13 @@ pub fn archive_produced_count(formats: &Formats, archive: &Path) -> Option<usize
     if !sandbox::available() {
         return None;
     }
-    let full = sandbox::wrap_readonly(&inner, archive);
-    // Streamed, not .output(): buffering the whole index here would contradict the streaming
-    // contract the parser exists for, and a 200k-entry archive is exactly the case that motivated it.
-    let mut child = Command::new(&full[0])
-        .args(&full[1..])
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .spawn()
-        .ok()?;
-    let listed = match child.stdout.take() {
-        Some(out) => parse_reader(std::io::BufReader::new(out), &spec),
-        None => {
-            let _ = child.wait();
-            return None;
-        }
-    };
-    let status = child.wait().ok()?;
-    if !status.success() || listed.failed {
+    let full = sandbox::one_shot(&sandbox::wrap_readonly(&inner, archive));
+    let listed = archive_reader::run(&full, &spec);
+    if listed.failed {
         return None;
     }
     Some(listed.produced_entries)
 }
-
 
 #[cfg(test)]
 mod tests {
@@ -152,5 +137,14 @@ mod tests {
         assert!(first.dir.join("in-flight").is_file(), "a third job must not destroy either");
         assert_ne!(third.dir, first.dir);
         assert_ne!(third.dir, second.dir);
+    }
+
+    #[test]
+    fn archive_commands_keep_final_status_and_the_last_stderr_line() {
+        let argv = ["/usr/bin/sh".to_string(), "-c".to_string(), "printf 'first\\nfinal reason\\n' >&2; exit 7".to_string()];
+        let output = captured_output(&argv).unwrap();
+        assert_eq!(output.status.code(), Some(7));
+        assert_eq!(last_error(&output), "final reason");
+        assert!(output.stdout.is_empty(), "archive tool stdout stays discarded");
     }
 }

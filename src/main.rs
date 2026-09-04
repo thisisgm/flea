@@ -26,17 +26,27 @@ fn usage(message: &str) -> ! {
 
 // A reveal names a file; the window opens on its parent with that entry selected.
 fn select_target(raw: &str) -> Option<(PathBuf, PathBuf)> {
-    let path = if let Some(rest) = raw.strip_prefix("file://") {
-        PathBuf::from(paths::percent_decode(rest))
-    } else {
-        PathBuf::from(raw)
-    };
+    let path = if let Some(rest) = raw.strip_prefix("file://") { PathBuf::from(paths::percent_decode(rest)) } else { PathBuf::from(raw) };
     let parent = path.parent()?.to_path_buf();
     Some((parent, path))
 }
 
 fn main() {
     let args: Vec<String> = std::env::args().collect();
+
+    // Internal modes run before public parsing because their stdin and argv are private protocols.
+    if args.get(1).map(String::as_str) == Some("--sandbox-exec-gate") {
+        exit(backend::sandbox_exec::exec_gate_main(&args));
+    }
+    if args.get(1).map(String::as_str) == Some("--sandbox-gate") {
+        exit(backend::sandbox::gate_main(&args));
+    }
+    if args.len() == 2 && args[1] == "--sandbox-broker" {
+        exit(backend::sandbox_broker::broker_main());
+    }
+    if args.get(1).map(String::as_str) == Some("--sandbox-test") {
+        exit(backend::sandbox_test::main(&args));
+    }
 
     // Bare, so a script can read it without parsing. Checked before every other mode: the only
     // way to tell which Flea is installed is to ask it, and updates here are a manual git pull.
@@ -123,7 +133,13 @@ fn main() {
 
     // Both handles must be a tty, so a pipeline never receives the terminal interface.
     let interactive = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
-    let tui = if want_tui { true } else if want_gui { false } else { interactive };
+    let tui = if want_tui {
+        true
+    } else if want_gui {
+        false
+    } else {
+        interactive
+    };
 
     if tui {
         if !interactive {

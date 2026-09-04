@@ -38,12 +38,12 @@ pub const ARCHIVE_READ_MS: u64 = 2000;
 // a line has been read, so an archive under one batch was checked exactly once and never again; and
 // Instant::elapsed is a vDSO read, tens of nanoseconds against a parse of hundreds.
 
-
 // Read a line at a time off the child's own stdout, so a 200k-entry index is never held in memory
 // and is still counted in full. read_until, not BufRead::lines: lines() answers Err on a filename
 // that is not UTF-8, and a break there would report a short count as though it were the total.
 use crate::backend::archivespec::{row_of, ListSpec};
 
+#[cfg(test)]
 pub fn parse_reader<R: std::io::BufRead>(reader: R, spec: &ListSpec) -> Contents {
     parse_until(reader, spec, std::time::Duration::from_millis(ARCHIVE_READ_MS))
 }
@@ -162,8 +162,7 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
         assert_eq!(c.entries, 5);
         assert_eq!(c.unpacked, 6);
         let names: Vec<&str> = c.names.iter().map(|e| e.name.as_str()).collect();
-        assert_eq!(names, vec!["arcfmt", "arcfmt/sub", "arcfmt/a.txt",
-                              "arcfmt/name with spaces.txt", "arcfmt/sub/b.txt"]);
+        assert_eq!(names, vec!["arcfmt", "arcfmt/sub", "arcfmt/a.txt", "arcfmt/name with spaces.txt", "arcfmt/sub/b.txt"]);
         assert_eq!(c.names[0].is_dir, true, "the attribute column is what says directory");
         assert_eq!(c.names[2].is_dir, false);
     }
@@ -208,21 +207,18 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
         for i in 0..2000 {
             text.push_str(&format!("-rw-r--r--  0 gm gm 10 Sep  1 09:14 f{}.txt\n", i));
         }
-        let c = parse_until(std::io::BufReader::new(text.as_bytes()), &tar_spec(),
-                            std::time::Duration::from_millis(0));
+        let c = parse_until(std::io::BufReader::new(text.as_bytes()), &tar_spec(), std::time::Duration::from_millis(0));
         assert!(c.failed, "a read that ran out of time did not read the archive");
         assert_eq!(c.entries, 0, "a trip leaves no count behind for the wire to call exact");
         assert_eq!(c.unpacked, 0);
         assert!(c.names.is_empty());
 
         // Every entry is checked, so a budget that expires partway still leaves nothing.
-        let mid = parse_until(std::io::BufReader::new(text.as_bytes()), &tar_spec(),
-                              std::time::Duration::from_nanos(1));
+        let mid = parse_until(std::io::BufReader::new(text.as_bytes()), &tar_spec(), std::time::Duration::from_nanos(1));
         assert!(mid.failed);
         assert_eq!(mid.entries, 0);
 
-        let ok = parse_until(std::io::BufReader::new(text.as_bytes()), &tar_spec(),
-                             std::time::Duration::from_secs(60));
+        let ok = parse_until(std::io::BufReader::new(text.as_bytes()), &tar_spec(), std::time::Duration::from_secs(60));
         assert!(!ok.failed);
         assert_eq!(ok.entries, 2000, "and a read inside its budget is still exact");
     }
@@ -272,27 +268,21 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
     fn a_trip_partway_through_a_listing_still_carries_nothing() {
         let free_lines = 3;
         let budget = std::time::Duration::from_millis(100);
-        let lines: Vec<String> = (0..20)
-            .map(|i| format!("-rw-r--r--  0 gm gm 10 Sep  1 09:14 f{}.txt\n", i))
-            .collect();
+        let lines: Vec<String> = (0..20).map(|i| format!("-rw-r--r--  0 gm gm 10 Sep  1 09:14 f{}.txt\n", i)).collect();
         let consumed = std::sync::Arc::new(std::sync::atomic::AtomicUsize::new(0));
-        let reader = SlowReader { lines: lines.clone(), at: 0, fast_lines: free_lines,
-                                  stall: budget * 10, consumed: consumed.clone() };
+        let reader = SlowReader { lines: lines.clone(), at: 0, fast_lines: free_lines, stall: budget * 10, consumed: consumed.clone() };
         let c = parse_until(reader, &tar_spec(), budget);
         assert!(c.failed, "a listing that outran its budget is a failed read");
-        assert_eq!((c.entries, c.produced_entries, c.unpacked), (0, 0, 0),
-                   "and it carries no partial count, however far it got");
+        assert_eq!((c.entries, c.produced_entries, c.unpacked), (0, 0, 0), "and it carries no partial count, however far it got");
         assert!(c.names.is_empty());
 
         // Without this the test is vacuous: a stall on line one would trip at entries == 0 and the
         // zeroes above would pass with clear_counts deleted. The free lines cost microseconds, so
         // this count is exact rather than a range, and a box stalled through them fails here loudly
         // instead of passing quietly.
-        assert_eq!(consumed.load(std::sync::atomic::Ordering::Relaxed), free_lines + 1,
-                   "the trip has to land after entries were counted, or nothing was cleared");
+        assert_eq!(consumed.load(std::sync::atomic::Ordering::Relaxed), free_lines + 1, "the trip has to land after entries were counted, or nothing was cleared");
 
-        let unhurried = SlowReader { lines, at: 0, fast_lines: 20,
-                                     stall: budget, consumed: consumed.clone() };
+        let unhurried = SlowReader { lines, at: 0, fast_lines: 20, stall: budget, consumed: consumed.clone() };
         let full = parse_until(unhurried, &tar_spec(), std::time::Duration::from_secs(60));
         assert!(!full.failed);
         assert_eq!(full.entries, 20, "the same reader counts every line when it is not cut short");
@@ -304,12 +294,9 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
     #[test]
     fn a_failed_read_reports_zero_of_everything_so_a_caller_must_read_failed_first() {
         let text = "-rw-r--r--  0 gm gm 10 Sep  1 09:14 a.txt\n-rw-r--r--  0 gm gm 20 Sep  1 09:14 b.txt\n";
-        let tripped = parse_until(std::io::BufReader::new(text.as_bytes()), &tar_spec(),
-                                  std::time::Duration::from_millis(0));
-        let empty = parse_until(std::io::BufReader::new("".as_bytes()), &tar_spec(),
-                                std::time::Duration::from_secs(60));
-        assert_eq!((tripped.entries, tripped.produced_entries), (empty.entries, empty.produced_entries),
-                   "the counts alone cannot tell a truncated read from an empty archive");
+        let tripped = parse_until(std::io::BufReader::new(text.as_bytes()), &tar_spec(), std::time::Duration::from_millis(0));
+        let empty = parse_until(std::io::BufReader::new("".as_bytes()), &tar_spec(), std::time::Duration::from_secs(60));
+        assert_eq!((tripped.entries, tripped.produced_entries), (empty.entries, empty.produced_entries), "the counts alone cannot tell a truncated read from an empty archive");
         assert!(tripped.failed && !empty.failed, "only this flag can");
     }
 
@@ -338,8 +325,7 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
 
         let root_only = "drwxr-xr-x  0 gm gm 0 Sep  1 09:14 ./\n";
         let r = parse(root_only, &tar_spec());
-        assert_eq!((r.entries, r.produced_entries), (1, 0),
-                   "a ./-only archive extracts to nothing, legally");
+        assert_eq!((r.entries, r.produced_entries), (1, 0), "a ./-only archive extracts to nothing, legally");
 
         // The case a file count called empty while extract produced two directories.
         let dirs = "drwxr-xr-x  0 gm gm 0 Sep  1 09:14 ./\n\
@@ -347,8 +333,7 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
                     drwxr-xr-x  0 gm gm 0 Sep  1 09:14 ./b/\n\
                     drwxr-xr-x  0 gm gm 0 Sep  1 09:14 ./b/c/\n";
         let d = parse(dirs, &tar_spec());
-        assert_eq!((d.entries, d.produced_entries), (4, 3),
-                   "nested directories are destination entries even though they are directories");
+        assert_eq!((d.entries, d.produced_entries), (4, 3), "nested directories are destination entries even though they are directories");
 
         // 7z emits no root member at all, measured on this box: from inside a directory it lists
         // "a", "b", "f.txt" and naming one it lists "src", "src/a", where the top name is itself a
@@ -359,8 +344,7 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
                                  2026-09-01 16:13:05 D....            0            0  b\n\
                                  2026-09-01 16:13:05 ....A            1            5  f.txt\n";
         let inside = parse(seven_from_inside, &seven_spec());
-        assert_eq!((inside.entries, inside.produced_entries), (3, 3),
-                   "no root to exclude, so the count is every member");
+        assert_eq!((inside.entries, inside.produced_entries), (3, 3), "no root to exclude, so the count is every member");
 
         // The root has more than one spelling. bsdtar writes "././" for `tar -c -C dir ./.`, measured
         // on this box, and a predicate that trimmed one trailing slash read it as "./." and refused a
@@ -369,8 +353,7 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
                          drwxr-xr-x  0 gm gm 0 Sep  1 16:20 .//\n\
                          drwxr-xr-x  0 gm gm 0 Sep  1 16:20 ./././\n";
         let s = parse(spellings, &tar_spec());
-        assert_eq!((s.entries, s.produced_entries), (3, 0),
-                   "every spelling of the root produces nothing, not just the two-character one");
+        assert_eq!((s.entries, s.produced_entries), (3, 0), "every spelling of the root produces nothing, not just the two-character one");
     }
 
     #[test]
@@ -394,5 +377,4 @@ drwxr-xr-x  0 gm     gm          0 Sep  1 12:10 ./sub/
         assert_eq!((slashes.entries, slashes.produced_entries), (1, 0));
         assert!(slashes.names.is_empty(), "a nameless member never reaches the wire");
     }
-
 }

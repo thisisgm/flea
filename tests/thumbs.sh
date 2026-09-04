@@ -40,6 +40,33 @@ cp "$FIXTURE/notes_9.txt" "$D/files/notes.txt"
 # A name no earlier run cached, so the superseded-listing case below is always a real miss.
 cp "$FIXTURE/photo_0.jpg" "$D/gen/gen.jpg"
 
+# This executable passes discovery on the host but is absent from the jail. It exercises the final exec handshake.
+mkdir -p "$D/missing-exec" "$D/data/thumbnailers"
+cp "$FIXTURE/photo_0.jpg" "$D/missing-exec/missing.jpg"
+printf '#!/usr/bin/env sh\nexit 0\n' > "$D/host-decoder"
+chmod +x "$D/host-decoder"
+{
+  printf '[Thumbnailer Entry]\n'
+  printf 'TryExec=%s\n' "$D/host-decoder"
+  printf 'Exec=%s %%i %%o\n' "$D/host-decoder"
+  printf 'MimeType=image/jpeg;\n'
+} > "$D/data/thumbnailers/missing.thumbnailer"
+missing_key=$(printf 'file://%s' "$D/missing-exec/missing.jpg" | md5sum | cut -d' ' -f1)
+out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"quit"}\n' "$D/missing-exec" | XDG_DATA_HOME="$D/data" timeout 120 $BIN --backend 2>/dev/null)
+check "a missing final decoder answers empty" "1" "$(echo "$out" | grep -c '"row":0,"file":""')"
+check "a missing final decoder writes no failure marker" "0" "$([ -e "$CACHE/fail/flea/$missing_key.png" ] && echo 1 || echo 0)"
+
+# This ICC-tagged JPEG makes Glycin reserve over 1 GiB. The same image without ICC stays below it.
+mkdir -p "$D/large"
+base64 -d tests/fixtures/srgb-iec61966-2.1.icc.b64 > "$D/srgb.icc"
+magick -size 6000x3375 'gradient:#2b5876-#d6a45f' -profile "$D/srgb.icc" "$D/large/large.jpg"
+check "the regression JPEG carries its 3144-byte ICC profile" "3144" "$(magick "$D/large/large.jpg" "$D/extracted.icc" 2>/dev/null && wc -c < "$D/extracted.icc" | tr -d ' ')"
+cp -f "$D/large/large.jpg" "$D/gen/gen.jpg"
+large_key=$(printf 'file://%s' "$D/large/large.jpg" | md5sum | cut -d' ' -f1)
+out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"quit"}\n' "$D/large" | timeout 120 $BIN --backend)
+check "the ICC-tagged 6000 by 3375 JPEG generates a thumbnail" "1" "$(echo "$out" | grep -c '"row":0,"file":"/')"
+check "and writes no failure marker" "0" "$([ -e "$CACHE/fail/flea/$large_key.png" ] && echo 1 || echo 0)"
+
 # Directories sort first, so the three media files get a directory of their own and the row order is clip.mp4, notes.txt, photo.jpg.
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0,1,2]}\n{"c":"quit"}\n' "$D/files" | timeout 120 $BIN --backend)
 check "a video generated a thumbnail" "1" "$(echo "$out" | grep -c '"row":0,"file":"/')"
