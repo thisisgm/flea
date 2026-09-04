@@ -1,46 +1,24 @@
 // Rename, duplicate and mkdir: the three operations that answer once, with no started or progress split.
 use crate::backend::copyfile::{copy_any, Progress};
+use crate::backend::renamecompat;
 use crate::backend::undo::Step;
 use crate::error::{from_io, FleaError};
-use std::ffi::{c_char, CString};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
-// renameat2's dirfd argument meaning "relative to the current directory"; both paths here are absolute, so it is never consulted.
-const AT_FDCWD: i32 = -100;
-// RENAME_NOREPLACE: fail with EEXIST rather than silently destroying whatever is already at the target.
-const RENAME_NOREPLACE: u32 = 1;
 // How many " copy N" names duplicate will try before giving up rather than looping forever.
 const NAME_TRIES: usize = 999;
 // The default a nameless mkdir starts from, then "New Folder 2" and up while the name is taken.
 const NEW_FOLDER: &str = "New Folder";
-
-// std has no wrapper for the flag that makes rename refuse to clobber, so the syscall is declared here rather than taking a crate.
-extern "C" {
-    fn renameat2(olddirfd: i32, oldpath: *const c_char, newdirfd: i32, newpath: *const c_char, flags: u32) -> i32;
-}
 
 // A name from the client is a trust boundary: anything with a separator would move the file out of its own directory.
 pub fn valid_name(name: &str) -> bool {
     !name.is_empty() && name != "." && name != ".." && !name.contains('/') && !name.contains('\0')
 }
 
-// Rename that refuses to overwrite. std::fs::rename silently replaces the target on Unix, which for a file manager is unrecoverable data loss.
+// Rename that refuses to overwrite. std::fs::rename alone can replace a target on Unix.
 pub fn rename_noreplace(from: &Path, to: &Path) -> Result<(), FleaError> {
-    let (c_from, c_to) = match (path_c(from), path_c(to)) {
-        (Some(a), Some(b)) => (a, b),
-        // corner: a path with an interior NUL cannot reach a syscall, and no listing can produce one.
-        _ => return Err(named("rename", to, "path contains an interior NUL")),
-    };
-    let rc = unsafe { renameat2(AT_FDCWD, c_from.as_ptr(), AT_FDCWD, c_to.as_ptr(), RENAME_NOREPLACE) };
-    if rc == 0 {
-        return Ok(());
-    }
-    Err(from_io("rename", &to.to_string_lossy(), &std::io::Error::last_os_error()))
-}
-
-fn path_c(p: &Path) -> Option<CString> {
-    CString::new(p.as_os_str().as_encoded_bytes()).ok()
+    renamecompat::rename_noreplace(from, to).map_err(|e| from_io("rename", &to.to_string_lossy(), &e))
 }
 
 fn named(where_: &str, path: &Path, msg: &str) -> FleaError {
