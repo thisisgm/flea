@@ -101,7 +101,6 @@ QtObject {
         function previewPdfPage(): int { var p = root.pane.preview.pdfItem; return p ? p.page : -1 }
         function previewPdfZoom(): string { var p = root.pane.preview.pdfItem; return p ? String(p.zoom) : "" }
         function previewExpanded(): string { var p = root.pane.preview.pdfItem; return p ? String(p.expanded) : "" }
-        function previewPdfPage(): string { var p = root.pane.preview.pdfItem; return p ? String(p.page) : "" }
         function rowNameColor(i: int): string {
             var item = root.pane.itemFor(i)
             return item ? String(item.nameColor()) : ""
