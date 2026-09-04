@@ -57,8 +57,7 @@ check "and the convert tool is reported" "1" "$(printf '%s' "$formats" | grep -c
 echo "  $formats"
 stop_backend
 
-# tar.zst and zip come from the required libarchive toolchain. 7z is advertised only when the
-# optional 7zip executable is installed, so exercise it exactly when the live backend offers it.
+# tar.zst and zip are required; exercise optional 7z exactly when the live backend offers it.
 round_trip_formats="tar.zst zip"
 if printf '%s' "$formats" | grep -q '"7z"'; then
   round_trip_formats="$round_trip_formats 7z"
