@@ -26,25 +26,27 @@ function pad(n) {
 
 var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 var SECONDS_PER_DAY = 86400
+var MILLISECONDS_PER_MINUTE = 60000
 
-// Never all-numeric: 01/05/22 is January 5 in one country and May 1 in another.
+// Never all-numeric; the stamp and Today/Yesterday boundary follow the machine's local wall clock.
 function date(mtime, nowMs) {
     var d = new Date(mtime * 1000)
     var now = new Date(nowMs)
-    var clock = pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes())
-    var day = Math.floor(mtime / SECONDS_PER_DAY)
-    var today = Math.floor(nowMs / 1000 / SECONDS_PER_DAY)
+    var clock = pad(d.getHours()) + ":" + pad(d.getMinutes())
+    // Each instant supplies its own offset so DST transitions keep the local day boundary.
+    var day = Math.floor((d.getTime() - d.getTimezoneOffset() * MILLISECONDS_PER_MINUTE) / (SECONDS_PER_DAY * 1000))
+    var today = Math.floor((now.getTime() - now.getTimezoneOffset() * MILLISECONDS_PER_MINUTE) / (SECONDS_PER_DAY * 1000))
     if (day === today) {
         return "Today, " + clock
     }
     if (day === today - 1) {
         return "Yesterday, " + clock
     }
-    var stamp = d.getUTCDate() + " " + MONTHS[d.getUTCMonth()]
+    var stamp = d.getDate() + " " + MONTHS[d.getMonth()]
     // The distant past omits the time, per Material's second table.
-    return d.getUTCFullYear() === now.getUTCFullYear()
+    return d.getFullYear() === now.getFullYear()
         ? stamp + ", " + clock
-        : stamp + " " + d.getUTCFullYear()
+        : stamp + " " + d.getFullYear()
 }
 
 // The low nine bits of st_mode, read three at a time.
