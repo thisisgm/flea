@@ -1138,8 +1138,7 @@ keycase_seek() {
 keycase_seekBack()    { keycase_seek back "$@"; }
 keycase_seekForward() { keycase_seek forward "$@"; }
 
-# The PDF page is the one preview state no IPC reader answers, so the page itself is read off the
-# screen. The fixture's pages carry one distinct word each for exactly this.
+# The fixture gives each page a distinct word, so both state and paint must advance.
 keycase_pageForward() {
   local before after
   reset_state || return 1
@@ -1156,6 +1155,8 @@ keycase_pageForward() {
        return 2 ;;
   esac
   k "$@"
+  omarchy-drive wait ipc -p "$UI" flea previewPdfPage 1 --timeout 10 >/dev/null \
+    || { WHY="the PDF page stayed at $(ipc previewPdfPage) after the chord"; return 1; }
   sleep 2
   after=$(omarchy-drive ocr flea 2>/dev/null)
   case $after in
