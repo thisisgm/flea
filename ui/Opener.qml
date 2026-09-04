@@ -14,6 +14,10 @@ Item {
     readonly property int isDirectoryStatus: 3
 
     property string current: ""
+    // The terminal launch's own path: open() and openTerminal() run on separate
+    // Processes guarded only against themselves, so sharing current let whichever
+    // started second rewrite the path the first one's onExited still reports.
+    property string terminalCurrent: ""
 
     // flea --open decides and exits in milliseconds, so one Process serves every open.
     function open(path) {
@@ -47,7 +51,7 @@ Item {
         if (terminalChild.running) {
             return
         }
-        root.current = path
+        root.terminalCurrent = path
         terminalChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--terminal", path]
         terminalChild.running = true
     }
@@ -59,7 +63,7 @@ Item {
             if (exitCode === 0) {
                 return
             }
-            root.terminalFailed(root.current)
+            root.terminalFailed(root.terminalCurrent)
         }
     }
 
