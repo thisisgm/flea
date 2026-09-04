@@ -9,8 +9,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 const CHUNK: usize = 256 * 1024;
 // rename(2) sets EXDEV when the two paths are on different filesystems, which is the one failure that means "copy instead".
 const EXDEV: i32 = 18;
-// open(2) O_NOFOLLOW on linux x86-64; declared here because this tree takes no libc crate.
+// open(2) O_NOFOLLOW differs between the two supported Linux architectures.
+#[cfg(target_arch = "x86_64")]
 const O_NOFOLLOW: i32 = 0o400000;
+#[cfg(target_arch = "aarch64")]
+const O_NOFOLLOW: i32 = 0o100000;
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+compile_error!("O_NOFOLLOW needs a verified value for this architecture");
 
 // What a copy reports as it runs; a directory has no total without a sweep, so it reports 0 and renders indeterminate.
 pub struct Progress<'a> {
