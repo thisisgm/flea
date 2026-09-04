@@ -32,13 +32,18 @@ function run(check) {
     check("Finder's own example, at GLib's precision", Format.size(26950000000), "26.9 GB")
     check("a terabyte", Format.size(1000000000000), "1.0 TB")
 
-    // 2026-08-27 00:27 UTC, the instant the old suite already pinned.
-    var FIXED = 1787790423
-    var NOW = 1787790423000
-    check("today shows the time", Format.date(FIXED, NOW), "Today, 00:27")
-    check("yesterday is named", Format.date(FIXED - 86400, NOW), "Yesterday, 00:27")
-    check("this year omits the year", Format.date(FIXED - 30 * 86400, NOW), "28 Jul, 00:27")
-    check("a past year carries it and drops the time", Format.date(FIXED - 400 * 86400, NOW), "23 Jul 2025")
+    // Local constructors keep these wall-clock expectations valid in every non-UTC test zone.
+    var midnightNow = new Date(2026, 0, 1, 0, 15).getTime()
+    check("today follows the local midnight",
+          Format.date(new Date(2026, 0, 1, 0, 10).getTime() / 1000, midnightNow), "Today, 00:10")
+    check("yesterday crosses the local year boundary",
+          Format.date(new Date(2025, 11, 31, 23, 55).getTime() / 1000, midnightNow), "Yesterday, 23:55")
+    check("a past year carries it and drops the time",
+          Format.date(new Date(2025, 11, 30, 22, 0).getTime() / 1000, midnightNow), "30 Dec 2025")
+
+    var currentYearNow = new Date(2026, 7, 27, 12, 0).getTime()
+    check("this year omits the year",
+          Format.date(new Date(2026, 6, 28, 0, 27).getTime() / 1000, currentYearNow), "28 Jul, 00:27")
 
     check("a regular file 644", Format.permissions(33188), "rw-r--r--")
     check("a directory 755", Format.permissions(16877), "rwxr-xr-x")
