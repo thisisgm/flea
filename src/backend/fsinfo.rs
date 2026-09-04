@@ -10,7 +10,7 @@ pub fn dev_of(path: &Path) -> u64 {
     use std::os::unix::fs::MetadataExt;
     std::fs::metadata(path).map(|m| m.dev()).unwrap_or(0)
 }
-use std::ffi::CString;
+use std::ffi::{c_char, CString};
 use std::path::Path;
 
 // The f_type values for the filesystems this box can actually mount; anything else reports its hex.
@@ -33,7 +33,7 @@ const MAGIC: &[(i64, &str)] = &[
     (0x1CD1, "devpts"),
 ];
 
-// struct statfs on linux x86-64: the fields this needs are f_type, f_bsize and f_bavail, and the
+// struct statfs on 64-bit linux, identical on x86-64 and arm64 (120 bytes, same offsets): the fields this needs are f_type, f_bsize and f_bavail, and the
 // rest is padding this never reads. Sizes are from man 2 statfs.
 #[repr(C)]
 struct StatFs {
@@ -52,7 +52,7 @@ struct StatFs {
 }
 
 extern "C" {
-    fn statfs(path: *const i8, buf: *mut StatFs) -> i32;
+    fn statfs(path: *const c_char, buf: *mut StatFs) -> i32;
 }
 
 pub struct Info {
