@@ -9,6 +9,7 @@ import "errors.js" as ErrorsSuite
 import "facts.js" as FactsSuite
 import "filter.js" as FilterSuite
 import "focus.js" as FocusSuite
+import "focus-forward.js" as FocusForwardSuite
 import "format.js" as FormatSuite
 import "icons.js" as IconsSuite
 import "keymap.js" as KeymapSuite
@@ -49,7 +50,8 @@ Item {
             ["dirsizes", DirSizesSuite], ["drag", DragSuite], ["dst", DstSuite],
             ["edmonton", DstSuite],
             ["errors", ErrorsSuite], ["facts", FactsSuite], ["filter", FilterSuite],
-            ["focus", FocusSuite], ["format", FormatSuite], ["icons", IconsSuite],
+            ["focus", FocusSuite], ["focus-forward", FocusForwardSuite],
+            ["format", FormatSuite], ["icons", IconsSuite],
             ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite],
             ["mounts", MountsSuite], ["nav", NavSuite], ["ops", OpsSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],

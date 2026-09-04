@@ -444,6 +444,7 @@ and the application cannot disagree.
 | `g`, `G` | First or last row |
 | Ctrl-d, Ctrl-u | Half a viewport |
 | `h`, Backspace, Ctrl-Up | Parent directory |
+| `l` | Browse forward: enter a directory, preview a file, page a PDF, or activate a rail/share row; unused in media |
 | Return, Enter, Ctrl-Down | Open a directory, or open a file with the desktop's handler |
 | Space | Quick Look, and close it |
 | Left, Right | Page a PDF, or seek in media |

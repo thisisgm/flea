@@ -1,7 +1,7 @@
 .pragma library
-
 .import "Eject.js" as Eject
 .import "Filter.js" as Filter
+.import "Format.js" as Format
 .import "Keymap.js" as Keymap
 .import "Mounts.js" as Mounts
 .import "Ops.js" as Ops
@@ -53,10 +53,10 @@ function lookup(event, root) {
     if (action === "pageForward") {
         if (root.preview.active)
             return root.preview.isPdf ? action : ""
-        if (root.focusView === RAIL)
+        if (root.shareBrowser.active || root.focusView === RAIL)
             return "open"
         var row = root.rowFor(root.cursorIndex)
-        return row && row.d ? "open" : (row ? "preview" : "")
+        return row && (row.d || (Format.isSymlink(row.p) && row.i === "folder")) ? "open" : (row ? "preview" : "")
     }
     // reveal only means something on a search result, so o is discarded everywhere else.
     if (action === "reveal" && root.searchMode !== Search.RESULTS)
@@ -265,8 +265,8 @@ function handleKey(event, root, sidebar) {
         root.railAct(action)
         return true
     }
-    if (action.length > 0) {
-        root.act(action)
+    if (action.length > 0 || Keymap.lookup(event.key, event.text, event.modifiers).length > 0) {
+        if (action.length > 0) root.act(action)
         return true
     }
     // An unbound printable key used to jump to a name, which only half worked because most letters
