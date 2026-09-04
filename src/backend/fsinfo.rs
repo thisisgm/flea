@@ -65,7 +65,7 @@ pub fn read(path: &Path) -> Option<Info> {
     let c = CString::new(path.as_os_str().as_encoded_bytes()).ok()?;
     // Every field is written by the call, so the zeroed value is never read as a result.
     let mut buf: StatFs = unsafe { std::mem::zeroed() };
-    if unsafe { statfs(c.as_ptr(), &mut buf) } != 0 {
+    if unsafe { statfs(c.as_ptr() as *const i8, &mut buf) } != 0 {
         return None;
     }
     Some(Info { name: name_for(buf.f_type), free: buf.f_bavail.saturating_mul(buf.f_bsize.max(0) as u64) })

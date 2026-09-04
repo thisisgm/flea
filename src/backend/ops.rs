@@ -32,7 +32,7 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> Result<(), FleaError> {
         // corner: a path with an interior NUL cannot reach a syscall, and no listing can produce one.
         _ => return Err(named("rename", to, "path contains an interior NUL")),
     };
-    let rc = unsafe { renameat2(AT_FDCWD, c_from.as_ptr(), AT_FDCWD, c_to.as_ptr(), RENAME_NOREPLACE) };
+    let rc = unsafe { renameat2(AT_FDCWD, c_from.as_ptr() as *const i8, AT_FDCWD, c_to.as_ptr() as *const i8, RENAME_NOREPLACE) };
     if rc == 0 {
         return Ok(());
     }
