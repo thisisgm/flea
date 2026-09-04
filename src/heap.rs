@@ -23,8 +23,10 @@ mod tests {
     const CHILD_TEST: &str = "heap::tests::a_freed_large_block_does_not_ratchet_the_mmap_threshold";
     // Larger than any threshold glibc adopts on its own, so freeing it is what would raise the threshold unpinned.
     const RATCHET_BYTES: usize = 8 * 1024 * 1024;
-    // Above the pinned 131072 and below the ratchet, so only a live pin keeps it off the heap.
-    const PROBE_BYTES: usize = 1024 * 1024;
+    // Above the pinned threshold even before the live heap size is added.
+    const PROBE_FLOOR_BYTES: usize = 1024 * 1024;
+    // Past every free chunk in the current heap, so only the threshold decides where the probe lands.
+    const PROBE_MARGIN_BYTES: usize = 1024 * 1024;
     // Below the pinned threshold, so it must come from the arena that [heap] describes.
     const ARENA_BYTES: usize = 65536;
 
@@ -46,7 +48,30 @@ mod tests {
         }
     }
 
-    // The guard itself: ratchet the threshold the way a first large listing does, then read where 1 MiB landed.
+    fn probe_bytes(heap_bytes: usize) -> usize {
+        let probe_bytes = heap_bytes
+            .checked_add(PROBE_MARGIN_BYTES)
+            .expect("the heap size must leave room for a probe")
+            .max(PROBE_FLOOR_BYTES);
+        assert!(
+            probe_bytes < RATCHET_BYTES,
+            "the {} byte heap leaves no probe size below the {} byte ratchet",
+            heap_bytes,
+            RATCHET_BYTES
+        );
+        probe_bytes
+    }
+
+    #[test]
+    fn probe_size_stays_between_the_live_heap_and_ratchet() {
+        for heap_bytes in (ARENA_BYTES..RATCHET_BYTES - PROBE_MARGIN_BYTES).step_by(PROBE_MARGIN_BYTES) {
+            let probe_bytes = probe_bytes(heap_bytes);
+            assert!(probe_bytes > heap_bytes);
+            assert!(probe_bytes < RATCHET_BYTES);
+        }
+    }
+
+    // The guard itself: ratchet the threshold the way a first large listing does, then read where the probe landed.
     fn probe() {
         pin_mmap_threshold();
         let arena = vec![0u8; ARENA_BYTES];
@@ -58,12 +83,14 @@ mod tests {
             heap_span()
         );
         // glibc raises its mmap threshold to the size of any mmapped block it frees, unless a mallopt froze it.
-        drop(vec![0u8; RATCHET_BYTES]);
-        let probed = vec![0u8; PROBE_BYTES];
+        drop(std::hint::black_box(vec![0u8; RATCHET_BYTES]));
+        let (lo, hi) = heap_span().expect("the probe needs a main heap");
+        let probe_bytes = probe_bytes(hi - lo);
+        let probed = vec![0u8; probe_bytes];
         assert!(
             !in_heap(probed.as_ptr() as usize),
             "a {} byte allocation came from [heap], so the mmap threshold ratcheted past it",
-            PROBE_BYTES
+            probe_bytes
         );
         drop(arena);
         drop(probed);
