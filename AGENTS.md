@@ -354,8 +354,8 @@ be a real terminal, not just one, so that a pipeline never receives the terminal
 `flea | head` gives stdin a tty and stdout a pipe, so `interactive` is false and the window
 branch runs; what the rule prevents is the terminal interface writing escape codes into that
 pipe, which is exactly what the `--tui` refusal below it says. `--tui` without a terminal on
-both handles exits 2; `--gui` without `WAYLAND_DISPLAY` or `DISPLAY` refuses rather than
-trying and failing inside `qs`.
+both handles exits 2; `--gui` without a non-empty `WAYLAND_DISPLAY` or `DISPLAY` refuses
+rather than trying and failing inside `qs`.
 
 Telling that `&&` apart from an `||` needs a tty on exactly one handle and no suite here has
 a pty, so that distinction is untested; the no-flag case in `./tests/modes.sh` pins only
