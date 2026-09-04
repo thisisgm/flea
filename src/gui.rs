@@ -7,6 +7,9 @@ use std::process::Command;
 pub fn exec_qs(ui: &Path, start: Option<&str>, select: Option<&str>) -> i32 {
     let mut cmd = Command::new("qs");
     cmd.arg("-p").arg(ui);
+    if let Ok(binary) = std::env::current_exe() {
+        cmd.env("FLEA_BIN", binary);
+    }
     // Vulkan is Flea's measured fast path. Mark only this implicit choice so
     // the QML side can retry OpenGL without overriding a user's explicit
     // QSG_RHI_BACKEND selection.
