@@ -326,8 +326,7 @@ action = "zoomIn"
 char = "e"
 action = "expand"
 
-# The page pair. h keeps "parent" above, because that is what it means while browsing, and turns a
-# page back only once a PDF preview is open; l means nothing anywhere else, so it stays type-ahead.
+# The page pair: h goes back in a PDF or to the parent while browsing; l goes forward, enters a directory, or previews a file.
 [[text]]
 char = "l"
 action = "pageForward"
@@ -356,6 +355,11 @@ label = "move"
 keys = "enter"
 action = "open"
 label = "open"
+
+[[sheet]]
+keys = "l"
+action = "pageForward"
+label = "browse forward"
 
 [[sheet]]
 keys = "space"

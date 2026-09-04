@@ -98,6 +98,7 @@ QtObject {
         function previewStripVisible(): bool { return root.pane.preview.stripVisible }
         // A 0.25 zoom step and an expand flag are not legible off a screenshot, so the seam is the
         // only honest answer for either; "" means no PDF is loaded, which is not zoom 1 or false.
+        function previewPdfPage(): int { var p = root.pane.preview.pdfItem; return p ? p.page : -1 }
         function previewPdfZoom(): string { var p = root.pane.preview.pdfItem; return p ? String(p.zoom) : "" }
         function previewExpanded(): string { var p = root.pane.preview.pdfItem; return p ? String(p.expanded) : "" }
         function previewPdfPage(): string { var p = root.pane.preview.pdfItem; return p ? String(p.page) : "" }

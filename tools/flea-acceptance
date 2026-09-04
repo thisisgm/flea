@@ -47,7 +47,7 @@ BIN=${BIN:-$REPO/target/release/flea}
 # reports a smaller checklist as a complete one.
 for cand in "${CANVAS:-}" \
             "$REPO/../flea-canvas/canvas.json" \
-            "$HOME/Documents/claude/omarchy/docs/superpowers/specs/assets/flea-canvas/canvas.json"; do
+            "$HOME/Documents/claude/omarchy/docs/reference/flea-canvas/canvas.json"; do
   [ -n "$cand" ] && [ -f "$cand" ] && { CANVAS=$cand; break; }
 done
 SB="$FIXTURE_ROOT/flea-acceptance-$$"
@@ -134,7 +134,7 @@ validate_header_keys() {
   done
 }
 
-# Sample input, ui/js/Menu.js: '{ label: "Rename", action: "rename", glyph: "rename" }'
+# Sample input, ui/js/Menu.js: 'out.push({ label: "Rename", action: "rename", glyph: "rename" })'
 derive_menu_actions() {
   { sed -n 's/.*action: "\([a-zA-Z][a-zA-Z]*\)".*/\1/p' "$REPO/ui/js/Menu.js"
     for key in "${HEADER_KEYS[@]}"; do
