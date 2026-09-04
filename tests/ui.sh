@@ -269,7 +269,7 @@ assert_theme() {
     done
     loaded=$(ipc themeLoaded 2>/dev/null || true)
     [[ "$loaded" == "true" ]] || fail "themeLoaded is '$loaded', not true, so this window has no parsed palette"
-    [[ "$seen" == "$real_foreground" ]] \
+    [[ "${seen,,}" == "${real_foreground,,}" ]] \
         || fail "this window paints foreground '$seen', not the live theme's $real_foreground, so no shot or colour claim from it is real"
 }
 
