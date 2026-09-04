@@ -4,6 +4,7 @@ import "columns.js" as ColumnsSuite
 import "contrast.js" as ContrastSuite
 import "dirsizes.js" as DirSizesSuite
 import "drag.js" as DragSuite
+import "dst.js" as DstSuite
 import "errors.js" as ErrorsSuite
 import "facts.js" as FactsSuite
 import "filter.js" as FilterSuite
@@ -43,36 +44,50 @@ Item {
             }
         }
 
-        ArchiveSuite.run(check)
-        ColumnsSuite.run(check)
-        ContrastSuite.run(check)
-        DirSizesSuite.run(check)
-        DragSuite.run(check)
-        ErrorsSuite.run(check)
-        FactsSuite.run(check)
-        FilterSuite.run(check)
-        FocusSuite.run(check)
-        FormatSuite.run(check)
-        IconsSuite.run(check)
-        KeymapSuite.run(check)
-        MatchSuite.run(check)
-        MenuSuite.run(check)
-        MountsSuite.run(check)
-        NavSuite.run(check)
-        OpsSuite.run(check)
-        PaletteSuite.run(check)
-        PathBarSuite.run(check)
-        PlacesSuite.run(check)
-        ProtocolsSuite.run(check)
-        ScaleSuite.run(check)
-        SearchSuite.run(check)
-        SelectionSuite.run(check)
-        SortSuite.run(check)
-        TaildropSuite.run(check)
-        TrashSuite.run(check)
-        TapSuite.run(check)
-        TabsSuite.run(check)
-        ThumbsSuite.run(check)
+        var suites = [
+            ["archive", ArchiveSuite], ["columns", ColumnsSuite], ["contrast", ContrastSuite],
+            ["dirsizes", DirSizesSuite], ["drag", DragSuite], ["dst", DstSuite],
+            ["edmonton", DstSuite],
+            ["errors", ErrorsSuite], ["facts", FactsSuite], ["filter", FilterSuite],
+            ["focus", FocusSuite], ["format", FormatSuite], ["icons", IconsSuite],
+            ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite],
+            ["mounts", MountsSuite], ["nav", NavSuite], ["ops", OpsSuite],
+            ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
+            ["protocols", ProtocolsSuite], ["scale", ScaleSuite], ["search", SearchSuite],
+            ["selection", SelectionSuite], ["sort", SortSuite], ["taildrop", TaildropSuite],
+            ["trash", TrashSuite], ["tap", TapSuite], ["tabs", TabsSuite],
+            ["thumbs", ThumbsSuite]
+        ]
+        var argv = Qt.application.arguments
+        var only = ""
+        var hasOnly = false
+        for (var a = 0; a < argv.length; a++) {
+            if (argv[a].indexOf(".qml") >= 0) {
+                var suiteIndex = a + 1
+                if (argv[suiteIndex] === "--") {
+                    suiteIndex += 1
+                }
+                if (suiteIndex < argv.length) {
+                    only = argv[suiteIndex]
+                    hasOnly = true
+                }
+                break
+            }
+        }
+        var matched = 0
+        for (var s = 0; s < suites.length; s++) {
+            // Unnamed runs omit timezone-specific fixtures; tests/js.sh invokes them by name.
+            if ((!hasOnly && suites[s][0] !== "dst" && suites[s][0] !== "edmonton")
+                    || (hasOnly && suites[s][0] === only)) {
+                matched += 1
+                suites[s][1].run(check, suites[s][0])
+            }
+        }
+        if (hasOnly && matched === 0) {
+            console.log("no suite named " + only)
+            Qt.exit(1)
+            return
+        }
 
         for (var i = 0; i < failures.length; i++) {
             console.log("FAIL " + failures[i])

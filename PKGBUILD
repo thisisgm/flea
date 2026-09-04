@@ -4,7 +4,7 @@ pkgname=flea
 pkgver=0.1.3
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy'
-arch=('x86_64')
+arch=('x86_64' 'aarch64')
 license=('MIT')
 # omarchy owns /usr/share/omarchy/shell, which ui/Commons and ui/Ui link into; quickshell owns qs.
 # util-linux ships prlimit, which the thumbnail and archive sandboxes require alongside bubblewrap.
