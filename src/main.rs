@@ -121,8 +121,7 @@ fn main() {
         None => (start, None),
     };
 
-    // The window is the default until the terminal interface exists. Keep the tty check on an
-    // explicit --tui so a future implementation cannot write escape codes into a pipeline.
+    // Keep the tty check on explicit --tui so a future implementation cannot write escape codes into a pipeline.
     let interactive = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
     if want_tui {
         if !interactive {

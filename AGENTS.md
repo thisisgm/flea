@@ -380,8 +380,7 @@ huge pages" below for what it is worth and what it cost.
 - `main.rs` dispatches on argv: `--backend` runs the command loop, `--prewarm <path>
   <first> <dest>` writes the prewarm file, `--open <path>` hands one file to the desktop's
   handler, `--default [off]` claims or releases the OS-level default, and anything else
-  picks the terminal interface or the window by the `--tui`/`--gui` flags and the tty
-  state, see "Modes".
+  opens the window unless explicit `--tui` requests the terminal interface, see "Modes".
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
 - `thp.rs` the one `prctl(PR_SET_THP_DISABLE)` declaration, `disable()` and `enable()`.
