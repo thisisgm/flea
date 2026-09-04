@@ -2536,8 +2536,8 @@ there. The one compatibility path is a directory on a mount identified exactly a
 `/proc/self/mountinfo`: rclone 1.75 returns `EINVAL` for `RENAME_NOREPLACE` even though its ordinary
 directory rename works. `renamecompat.rs` then checks the target for Flea's stable collision message
 and uses `std::fs::rename`; safety at the race boundary comes from rclone's own `operations.DirMove`,
-whose interface refuses an existing destination. This exception is never used for a file—rclone's
-file move deliberately accepts an object to overwrite—or on another filesystem. Mountinfo's escaped
+whose interface refuses an existing destination. This exception is never used for a file because rclone's
+file move deliberately accepts an object to overwrite, or on another filesystem. Mountinfo's escaped
 mount point is decoded and the deepest enclosing mount wins, so a nested non-rclone mount cannot
 inherit the exception. The parser, scope, successful fallback, and occupied-target refusal have Rust
 tests; the original failure and both outcomes were also reproduced through the real backend on the
