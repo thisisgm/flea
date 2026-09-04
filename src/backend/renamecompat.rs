@@ -1,5 +1,5 @@
 // Linux's atomic no-clobber rename, plus the one compatibility exception this product has measured.
-use std::ffi::{CString, OsString};
+use std::ffi::{c_char, CString, OsString};
 use std::io;
 use std::os::unix::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
@@ -13,9 +13,9 @@ const EEXIST: i32 = 17;
 extern "C" {
     fn renameat2(
         olddirfd: i32,
-        oldpath: *const i8,
+        oldpath: *const c_char,
         newdirfd: i32,
-        newpath: *const i8,
+        newpath: *const c_char,
         flags: u32,
     ) -> i32;
 }
