@@ -9,8 +9,17 @@ use std::sync::atomic::{AtomicBool, Ordering};
 const CHUNK: usize = 256 * 1024;
 // rename(2) sets EXDEV when the two paths are on different filesystems, which is the one failure that means "copy instead".
 const EXDEV: i32 = 18;
-// open(2) O_NOFOLLOW on linux x86-64; declared here because this tree takes no libc crate.
+// open(2) O_NOFOLLOW; declared here because this tree takes no libc crate. The value is not the same
+// on every linux architecture: arm64 carries its own asm/fcntl.h, where 0o400000 is O_LARGEFILE and
+// therefore a no-op on 64-bit, so a single hardcoded constant drops the guard below without failing.
+#[cfg(target_arch = "x86_64")]
 const O_NOFOLLOW: i32 = 0o400000;
+#[cfg(target_arch = "aarch64")]
+const O_NOFOLLOW: i32 = 0o100000;
+// A new architecture must add its own value rather than inherit one silently: this flag is a
+// security boundary, and the wrong number disables it quietly instead of erroring.
+#[cfg(not(any(target_arch = "x86_64", target_arch = "aarch64")))]
+compile_error!("O_NOFOLLOW is architecture specific: add this target's value from its asm/fcntl.h");
 
 // What a copy reports as it runs; a directory has no total without a sweep, so it reports 0 and renders indeterminate.
 pub struct Progress<'a> {
