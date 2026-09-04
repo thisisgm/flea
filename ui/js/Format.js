@@ -26,18 +26,16 @@ function pad(n) {
 
 var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oct", "Nov", "Dec"]
 var SECONDS_PER_DAY = 86400
+var MILLISECONDS_PER_MINUTE = 60000
 
-// Never all-numeric: 01/05/22 is January 5 in one country and May 1 in another.
-// The stamp is the machine's own wall clock, not UTC: a file saved at 21:27 local
-// reads 21:27, and Today/Yesterday follow the local calendar day.
+// Never all-numeric; the stamp and Today/Yesterday boundary follow the machine's local wall clock.
 function date(mtime, nowMs) {
     var d = new Date(mtime * 1000)
     var now = new Date(nowMs)
     var clock = pad(d.getHours()) + ":" + pad(d.getMinutes())
-    // Day numbers in local calendar days: getTimezoneOffset() shifts each instant so
-    // the day boundary is the one on the wall clock, DST transitions included.
-    var day = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / (SECONDS_PER_DAY * 1000))
-    var today = Math.floor((now.getTime() - now.getTimezoneOffset() * 60000) / (SECONDS_PER_DAY * 1000))
+    // Each instant supplies its own offset so DST transitions keep the local day boundary.
+    var day = Math.floor((d.getTime() - d.getTimezoneOffset() * MILLISECONDS_PER_MINUTE) / (SECONDS_PER_DAY * 1000))
+    var today = Math.floor((now.getTime() - now.getTimezoneOffset() * MILLISECONDS_PER_MINUTE) / (SECONDS_PER_DAY * 1000))
     if (day === today) {
         return "Today, " + clock
     }
