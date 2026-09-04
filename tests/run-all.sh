@@ -24,7 +24,7 @@ if [ ! -x target/release/flea ]; then
     cargo build -q --release || { printf 'run-all: release build failed, nothing else was run\n' >&2; exit 1; }
 fi
 
-headless="js keymap-gen charts budget empty-state sandbox gio-auth gvfs ops modes protocol archive thumbs"
+headless="js keymap-gen charts budget empty-state sandbox gio-auth gvfs ops modes protocol archive thumbs network-open-share"
 failed=0
 ran=0
 

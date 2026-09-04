@@ -160,7 +160,7 @@ Item {
     }
 
     function openShare(uri, alreadyMounted, label, authenticated) {
-        if (mountProcess.running || authProcess.running || infoProcess.running) return
+        if (mountProcess.running || authProcess.running || infoProcess.running || listSharesProcess.running) return
         if (root.result === "failed") root.message("", false)
         root._pendingUri = Mounts.normalize(uri)
         root._pendingLabel = label || ""
