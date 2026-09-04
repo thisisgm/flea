@@ -293,9 +293,9 @@ drive_fixture_build() {
     magick -size 320x200 gradient:'#0e1112-#b38956' "$DRIVE_FIXTURE/b-image.png" 2>/dev/null && HAVE_IMAGE=1
     # Each page in its own parentheses, or magick draws one annotation onto every page. The pages
     # carry different text because the page turn is asserted by reading the page back off the screen.
-    magick \( -size 400x560 xc:white -fill black -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -pointsize 40 -annotate +40+80 'PAGETWO' \) \
-           \( -size 400x560 xc:white -fill black -pointsize 40 -annotate +40+80 'PAGETHREE' \) \
+    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETHREE' \) \
            "$DRIVE_FIXTURE/c-doc.pdf" 2>/dev/null && HAVE_PDF=1
   fi
   if command -v ffmpeg >/dev/null; then
@@ -1138,10 +1138,9 @@ keycase_seek() {
 keycase_seekBack()    { keycase_seek back "$@"; }
 keycase_seekForward() { keycase_seek forward "$@"; }
 
-# The PDF page is the one preview state no IPC reader answers, so the page itself is read off the
-# screen. The fixture's pages carry one distinct word each for exactly this.
+# The fixture gives each page a distinct word, so both state and paint must advance.
 keycase_pageForward() {
-  local before after
+  local before
   reset_state || return 1
   [ "$HAVE_PDF" = 1 ] || { WHY="no PDF fixture, magick is not on this box"; return 1; }
   seek_row_named c-doc.pdf || return 1
@@ -1156,13 +1155,10 @@ keycase_pageForward() {
        return 2 ;;
   esac
   k "$@"
-  sleep 2
-  after=$(omarchy-drive ocr flea 2>/dev/null)
-  case $after in
-    *PAGETWO*) return 0 ;;
-  esac
-  WHY="the preview still does not show the second page after the chord"
-  return 1
+  omarchy-drive wait ipc -p "$REPO/ui" flea previewPdfPage 1 --timeout 10 >/dev/null \
+    || { WHY="the PDF page stayed at $(ipc previewPdfPage) after the chord"; return 1; }
+  omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null 2>&1 \
+    || { WHY="the preview still does not show the second page after the chord"; return 1; }
 }
 
 # ---- the key runner ---------------------------------------------------------------------------------
@@ -1233,16 +1229,16 @@ menu_row_for() {
   esac
 }
 
-# The label an entry draws, derived from ui/ContextMenu.qml so a renamed row is followed rather than
+# The label an entry draws, derived from ui/js/Menu.js so a renamed row is followed rather than
 # missed. Sample input: '        out.push({ label: "Rename", action: "rename", glyph: "rename" })'
 derive_menu_labels() {
-  sed -n 's/.*label: "\([^"]*\)", action: "\([a-zA-Z][a-zA-Z]*\)".*/\2 \1/p' "$REPO/ui/ContextMenu.qml"
+  sed -n 's/.*label: "\([^"]*\)", action: "\([a-zA-Z][a-zA-Z]*\)".*/\2 \1/p' "$REPO/ui/js/Menu.js"
 }
 
 # The one entry whose label is a ternary rather than a literal, so it needs its own reader.
-# Sample input: '            label: root.showHidden ? "Hide hidden files" : "Show hidden files",'
+# Sample input: '        label: showHidden ? "Hide hidden files" : "Show hidden files",'
 derive_menu_toggle_labels() {
-  sed -n 's/.*label: root.showHidden ? "\([^"]*\)" : "\([^"]*\)".*/\1\n\2/p' "$REPO/ui/ContextMenu.qml"
+  sed -n 's/.*label: showHidden ? "\([^"]*\)" : "\([^"]*\)".*/\1\n\2/p' "$REPO/ui/js/Menu.js"
 }
 
 # Steps the menu cursor onto the row carrying one of the given labels and returns its index, using
@@ -1279,7 +1275,7 @@ menu_open_on() {
   k "${menuc[@]}"; settle
   [ "$(ipc contextMenuVisible)" = true ] || { WHY="the menu did not open on $row"; return 1; }
   labels=$(menu_labels_for "$action")
-  [ -n "$labels" ] || { WHY="no label for this entry could be derived from ui/ContextMenu.qml"; return 1; }
+  [ -n "$labels" ] || { WHY="no label for this entry could be derived from ui/js/Menu.js"; return 1; }
   menu_seek_label "$labels" >/dev/null
 }
 
@@ -1431,7 +1427,7 @@ drive_menu_action() {
       return ;;
   esac
   if ! declare -F "menucase_$action" >/dev/null; then
-    skip menu "$action" "an entry in ui/ContextMenu.qml, and this battery has no driver for it yet"
+    skip menu "$action" "an entry in ui/js/Menu.js, and this battery has no driver for it yet"
     return
   fi
   WHY=""

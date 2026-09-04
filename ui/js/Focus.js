@@ -1,7 +1,7 @@
 .pragma library
-
 .import "Eject.js" as Eject
 .import "Filter.js" as Filter
+.import "Format.js" as Format
 .import "Keymap.js" as Keymap
 .import "Mounts.js" as Mounts
 .import "Ops.js" as Ops
@@ -47,10 +47,17 @@ function lookup(event, root) {
             return action === "seekBack" ? "cursorLeft" : "cursorRight"
         return ""
     }
-    // The PDF viewer's own four. Minus, plus, e and l mean nothing anywhere else, so they stay
-    // silent rather than reaching act()'s "not built yet" while browsing.
-    if (action === "zoomOut" || action === "zoomIn" || action === "expand" || action === "pageForward")
+    // Minus, plus and e mean nothing outside a PDF. l is h's forward: page, else enter or preview.
+    if (action === "zoomOut" || action === "zoomIn" || action === "expand")
         return (root.preview.active && root.preview.isPdf) ? action : ""
+    if (action === "pageForward") {
+        if (root.preview.active)
+            return root.preview.isPdf ? action : ""
+        if (root.shareBrowser.active || root.focusView === RAIL)
+            return "open"
+        var row = root.rowFor(root.cursorIndex)
+        return row && (row.d || (Format.isSymlink(row.p) && row.i === "folder")) ? "open" : (row ? "preview" : "")
+    }
     // reveal only means something on a search result, so o is discarded everywhere else.
     if (action === "reveal" && root.searchMode !== Search.RESULTS)
         return ""
@@ -258,8 +265,8 @@ function handleKey(event, root, sidebar) {
         root.railAct(action)
         return true
     }
-    if (action.length > 0) {
-        root.act(action)
+    if (action.length > 0 || Keymap.lookup(event.key, event.text, event.modifiers).length > 0) {
+        if (action.length > 0) root.act(action)
         return true
     }
     // An unbound printable key used to jump to a name, which only half worked because most letters

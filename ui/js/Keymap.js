@@ -96,6 +96,7 @@ function lookup(key, text, modifiers) {
 var SHEET = [
     { keys: "j k", action: "cursorDown", label: "move" },
     { keys: "enter", action: "open", label: "open" },
+    { keys: "l", action: "pageForward", label: "browse forward" },
     { keys: "space", action: "preview", label: "preview" },
     { keys: "/", action: "filter", label: "filter" },
     { keys: "f", action: "search", label: "find in subtree" },

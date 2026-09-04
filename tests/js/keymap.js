@@ -104,7 +104,7 @@ function run(check) {
           Keymap.SHEET.map(sheetAction).join("|"),
           Keymap.SHEET.map(function (row) { return row.action }).join("|"))
     check("the sheet is not empty, so the check above has a denominator",
-          Keymap.SHEET.length, 24)
+          Keymap.SHEET.length, 25)
     // A chord shares the row of the key it doubles, so every caret token must resolve to that row's
     // own action, or the sheet advertises a chord bound to something else.
     check("every chord the sheet draws is bound to the action of its own row",
@@ -116,6 +116,8 @@ function run(check) {
           Keymap.SHEET.filter(function (r) { return r.keys === "/" }).length, 1)
     check("and the sheet draws m, so eject and unmount are not mouse-only affordances",
           Keymap.SHEET.filter(function (r) { return r.keys === "m" }).length, 1)
+    check("and the sheet draws l, so browse-forward is discoverable",
+          Keymap.SHEET.filter(function (r) { return r.keys === "l" && r.action === "pageForward" }).length, 1)
 }
 
 // The three caps that name a key rather than printing one; everything else on the sheet is the

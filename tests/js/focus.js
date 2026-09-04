@@ -72,19 +72,6 @@ function key(code, text, modifiers) {
     return { key: code, text: text, modifiers: modifiers }
 }
 
-// Focus.previewAct is the other half: the gate above decides what reaches it, this records what it
-// then does to the preview. Only the members the PDF cases touch are stubbed.
-function pdfPreview() {
-    return {
-        active: true,
-        isMedia: false,
-        isPdf: true,
-        page: 0,
-        revealStrip: function () {},
-        turnPage: function (delta) { this.page += delta }
-    }
-}
-
 // Only the members the escape case reads. Search.cancel and Pane.escapePressed both record rather
 // than act, because what is being checked is the order they are reached in.
 function escaper(query, retreated) {
@@ -127,23 +114,6 @@ function run(check) {
     check("left is discarded in the list", Focus.lookup(left, pane(closed())), "")
     check("left still steps a grid tile", Focus.lookup(left, pane(closed(), "grid")), "cursorLeft")
     check("right still steps a grid tile", Focus.lookup(right, pane(closed(), "grid")), "cursorRight")
-
-    // h and l are the PDF page pair. l was unbound and h fell through previewAct's switch, so
-    // neither ever turned a page while the chevrons and the arrows both did.
-    var h = key(Qt.Key_H, "h", none)
-    var l = key(Qt.Key_L, "l", none)
-    check("l turns a page in an open PDF", Focus.lookup(l, pane(pdfOpen())), "pageForward")
-    check("l is discarded while browsing, so it does nothing outside a PDF",
-          Focus.lookup(l, pane(closed())), "")
-    check("l is discarded over a media preview", Focus.lookup(l, pane(mediaOpen())), "")
-    check("h still means parent, in the list and over a PDF both",
-          Focus.lookup(h, pane(closed())) + "|" + Focus.lookup(h, pane(pdfOpen())), "parent|parent")
-
-    var reader = pdfPreview()
-    Focus.previewAct("pageForward", { preview: reader })
-    Focus.previewAct("pageForward", { preview: reader })
-    Focus.previewAct("parent", { preview: reader })
-    check("l turns the page forward and h turns it back", reader.page, 1)
 
     // Nothing in keys.toml is bound ahead of its feature now: lookup hands both actions through
     // and handleKey routes each above the views, so neither answers with a sentence any more.

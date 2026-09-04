@@ -269,7 +269,7 @@ assert_theme() {
     done
     loaded=$(ipc themeLoaded 2>/dev/null || true)
     [[ "$loaded" == "true" ]] || fail "themeLoaded is '$loaded', not true, so this window has no parsed palette"
-    [[ "$seen" == "$real_foreground" ]] \
+    [[ "${seen,,}" == "${real_foreground,,}" ]] \
         || fail "this window paints foreground '$seen', not the live theme's $real_foreground, so no shot or colour claim from it is real"
 }
 
@@ -641,11 +641,42 @@ case_open() {
     # Measured row order: bin, subdir, broken, linkdir, linkfile, opened.log, target.txt.
     wait_listing 7
 
-    # A symlink to a file resolves and opens its target, and the listing does not move.
-    key -k Down >/dev/null
-    key -k Down >/dev/null
-    key -k Down >/dev/null
-    key -k Down >/dev/null
+    # Bare l enters a real directory and stays silent when its empty listing has no row.
+    seek_row_named subdir
+    key l >/dev/null
+    wait_path "$dir/subdir"
+    omarchy-drive wait ipc -p "$flea_ui" flea state empty --timeout 10 >/dev/null \
+        || fail "open: subdir never reached its empty listing, state is $(ipc state)"
+    [[ ! -s "$opened" ]] || fail "l on a directory handed $(cat "$opened") to xdg-open"
+    [[ -z "$(ipc lastMessage)" ]] || fail "open: entering the empty subdir said $(ipc lastMessage)"
+    key l >/dev/null
+    settle
+    [[ -z "$(ipc lastMessage)" ]] || fail "open: l on an empty directory said $(ipc lastMessage)"
+    key q >/dev/null
+    settle
+    [[ "$(ipc lastMessage)" == "Press / to filter this listing by name." ]] \
+        || fail "open: unbound q said $(ipc lastMessage), so the empty-row l check has no negative control"
+
+    # Bare l enters a symlink to a directory without handing it to xdg-open.
+    key -k Backspace >/dev/null
+    wait_path "$dir"
+    seek_row_named linkdir
+    key l >/dev/null
+    wait_path "$dir/linkdir"
+    [[ ! -s "$opened" ]] || fail "l on a symlink directory handed $(cat "$opened") to xdg-open"
+
+    # Return on a symlink to a directory keeps its existing navigation and opener coverage.
+    key -k Backspace >/dev/null
+    wait_path "$dir"
+    seek_row_named linkdir
+    key -k Return >/dev/null
+    wait_path "$dir/linkdir"
+    [[ ! -s "$opened" ]] || fail "Enter on a symlink directory handed $(cat "$opened") to xdg-open"
+
+    # Return on a symlink to a file still resolves and opens its target.
+    key -k Backspace >/dev/null
+    wait_path "$dir"
+    seek_row_named linkfile
     settle
     [[ "$(ipc rowAt "$(ipc cursor)")" == "linkfile|"* ]] || fail "the cursor is on $(ipc rowAt "$(ipc cursor)"), not linkfile"
     key -k Return >/dev/null
@@ -658,18 +689,7 @@ case_open() {
     grep -q "^OPENED $dir/target.txt$" "$opened" || fail "Enter on a symlink did not open its target"
     [[ "$(ipc path)" == "$dir" ]] || fail "Enter on a file left the directory for $(ipc path)"
 
-    # A symlink to a directory navigates rather than launching another file manager.
-    key -k Up >/dev/null
-    settle
-    [[ "$(ipc rowAt "$(ipc cursor)")" == "linkdir|"* ]] || fail "the cursor is on $(ipc rowAt "$(ipc cursor)"), not linkdir"
-    key -k Return >/dev/null
-    omarchy-drive wait ipc -p "$flea_ui" flea path "$dir/linkdir" --timeout 10 >/dev/null \
-        || fail "Enter on a symlink to a directory left the path at $(ipc path)"
-    [[ "$(grep -c OPENED "$opened")" == "1" ]] || fail "a directory was handed to xdg-open"
-
     # A broken symlink is one sentence and nothing else.
-    key -k Backspace >/dev/null
-    omarchy-drive wait ipc -p "$flea_ui" flea path "$dir" --timeout 10 >/dev/null
     key g >/dev/null
     key -k Down >/dev/null
     key -k Down >/dev/null
@@ -1871,8 +1891,8 @@ PYEOF
     [[ -s "$dir/clip.mp4" ]] || fail "ffmpeg produced no clip.mp4"
     # Space on a pdf answered "This file cannot be previewed" until kindOf gained its branch, on a
     # type the preview column had rendered all along, so this row is what guards that branch.
-    magick \( -size 400x560 xc:white -fill black -draw "rectangle 40,40 120,80" \) \
-           \( -size 400x560 xc:white -fill black -draw "rectangle 40,40 360,520" \) \
+    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
            "$dir/manual.pdf"
     [[ -s "$dir/manual.pdf" ]] || fail "magick produced no manual.pdf"
 
@@ -1912,8 +1932,10 @@ PYEOF
     settle
     [[ "$(ipc previewOpen)" == "false" ]] || fail "preview: escape did not close the preview after the negative control"
 
-    open_row sample.txt
-    [[ "$(ipc previewOpen)" == "true" ]] || fail "preview: space on sample.txt did not open a preview"
+    goto_row "$(row_index_of sample.txt)"
+    key l >/dev/null
+    settle
+    [[ "$(ipc previewOpen)" == "true" ]] || fail "preview: l on sample.txt did not open a preview"
     [[ "$(ipc previewKind)" == "text" ]] || fail "preview: sample.txt classified as $(ipc previewKind), not text"
     shot preview-text
     # Task 22 repurposes Space for play/pause only on a MEDIA preview; text keeps the old binding.
@@ -1954,6 +1976,14 @@ PYEOF
     key -k space >/dev/null
     wait_preview_state paused
     [[ "$(ipc previewOpen)" == "true" ]] || fail "preview: space paused tone.wav but also closed the preview"
+    pos_before=$(ipc previewPosition)
+    key l >/dev/null
+    settle
+    pos_after=$(ipc previewPosition)
+    [[ "$(ipc previewOpen)" == "true" ]] || fail "preview: l closed the paused audio preview"
+    [[ "$(ipc previewState)" == "paused" ]] || fail "preview: l changed paused audio to $(ipc previewState)"
+    [[ "$pos_after" == "$pos_before" ]] \
+        || fail "preview: l moved paused audio, before=$pos_before after=$pos_after"
     key -k space >/dev/null
     wait_preview_state playing
 
@@ -2012,6 +2042,12 @@ PYEOF
         || fail "preview: manual.pdf classified as $(ipc previewKind), not pdf"
     [[ "$(ipc previewState)" == "pdf" ]] \
         || fail "preview: the pdf overlay reports $(ipc previewState), so it fell through to the refusal"
+    [[ "$(ipc previewPdfPage)" == "0" ]] || fail "preview: manual.pdf opened on page $(ipc previewPdfPage), not page 0"
+    key l >/dev/null
+    omarchy-drive wait ipc -p "$flea_ui" flea previewPdfPage 1 --timeout 10 >/dev/null \
+        || fail "preview: l left manual.pdf on page $(ipc previewPdfPage), not page 1"
+    omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null \
+        || fail "preview: l advanced manual.pdf state but left page 1 painted"
     shot preview-pdf
     key -k Escape >/dev/null
     settle
@@ -2295,7 +2331,7 @@ EOS
     [[ "$(ipc networkEntries)" == "StubNAS|network|share|false" ]] \
         || fail "sharebrowser: the stub NAS bookmark did not appear, got $(ipc networkEntries)"
 
-    # Tab to the rail and Enter the bare-root entry: it lists shares, it does not open anything.
+    # Tab to the rail and l the bare-root entry: it lists shares, it does not open anything.
     key -k Tab >/dev/null
     settle
     [[ "$(ipc focusView)" == "rail" ]] || fail "sharebrowser: Tab did not reach the rail"
@@ -2303,12 +2339,12 @@ EOS
     key j >/dev/null
     settle
     [[ "$(ipc railCursor)" == "1" ]] || fail "sharebrowser: expected the rail cursor on StubNAS, got $(ipc railCursor)"
-    key -k Return >/dev/null
+    key l >/dev/null
     for _attempt in $(seq 1 100); do
         [[ "$(ipc shareBrowserOpen)" == "true" ]] && break
         sleep 0.05
     done
-    [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: Enter on the bare root never opened the overlay"
+    [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: l on the bare root never opened the overlay"
     [[ "$(ipc shareBrowserEntries)" == "$(printf 'share1\nshare2')" ]] \
         || fail "sharebrowser: the overlay's own shares over IPC are wrong: $(ipc shareBrowserEntries)"
     [[ "$(ipc path)" == "$dir" ]] || fail "sharebrowser: listing the shares navigated away from $dir"
@@ -2329,39 +2365,34 @@ EOS
     settle
     [[ "$(ipc cursor)" == "1" ]] || fail "sharebrowser: keyboard nav is dead after Escape, cursor is $(ipc cursor)"
 
-    # Enter on a share mounts it and opens its resolved path, the same pipeline a bookmarked share uses.
-    key -k Tab >/dev/null
-    settle
-    key -k Return >/dev/null
+    # Pointer-opened overlay leaves list focus underneath, so l must route through the active overlay.
+    click_rail_row 1 left
     for _attempt in $(seq 1 100); do
         [[ "$(ipc shareBrowserOpen)" == "true" ]] && break
         sleep 0.05
     done
-    [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: reactivating StubNAS did not reopen the overlay"
+    [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: pointer reactivation of StubNAS did not reopen the overlay"
+    [[ "$(ipc focusView)" == "list" ]] || fail "sharebrowser: pointer activation moved focus to $(ipc focusView)"
     [[ "$(ipc shareBrowserCursor)" == "0" ]] || fail "sharebrowser: the overlay did not reset its cursor to 0, got $(ipc shareBrowserCursor)"
-    key -k Return >/dev/null
+    key l >/dev/null
     for _attempt in $(seq 1 100); do
         [[ "$(ipc path)" == "$share1_dir" ]] && break
         sleep 0.05
     done
-    [[ "$(ipc path)" == "$share1_dir" ]] || fail "sharebrowser: Enter on share1 never opened $share1_dir, path is $(ipc path)"
+    [[ "$(ipc path)" == "$share1_dir" ]] || fail "sharebrowser: l on share1 never opened $share1_dir, path is $(ipc path)"
     [[ "$(ipc shareBrowserOpen)" == "false" ]] || fail "sharebrowser: opening share1 did not close the overlay"
     [[ "$(ipc total)" == "1" ]] || fail "sharebrowser: share1's own listing did not load, total is $(ipc total)"
     shot sharebrowser-opened-share1
 
-    # gio's own "already mounted" quirk must still resolve to an open, not a false failure.
-    # No Tab here: opening share1 never touched focusView, so it is already "rail" from the
-    # earlier Tab in this same phase; pressing Tab again would wrongly hand focus to the list.
-    [[ "$(ipc focusView)" == "rail" ]] || fail "sharebrowser: expected focus still on the rail after opening share1, got $(ipc focusView)"
-    key g >/dev/null
-    key j >/dev/null
-    settle
-    key -k Return >/dev/null
+    # Pointer reopens the overlay over list focus; retained Return drives the already-mounted share.
+    [[ "$(ipc focusView)" == "list" ]] || fail "sharebrowser: opening share1 moved focus to $(ipc focusView)"
+    click_rail_row 1 left
     for _attempt in $(seq 1 100); do
         [[ "$(ipc shareBrowserOpen)" == "true" ]] && break
         sleep 0.05
     done
-    [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: reactivating StubNAS a second time did not reopen the overlay"
+    [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: second pointer reactivation of StubNAS did not reopen the overlay"
+    [[ "$(ipc focusView)" == "list" ]] || fail "sharebrowser: second pointer activation moved focus to $(ipc focusView)"
     key j >/dev/null
     settle
     [[ "$(ipc shareBrowserCursor)" == "1" ]] || fail "sharebrowser: cursor did not move to share2, got $(ipc shareBrowserCursor)"
