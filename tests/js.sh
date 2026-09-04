@@ -42,7 +42,12 @@ run() {
 # Caller controls the standard battery's timezone; unattended runs default to positive-offset Tokyo.
 normal_timezone=${TZ-Asia/Tokyo}
 if [ "$#" -eq 1 ]; then
-  run "$normal_timezone" "$1"
+  suite_timezone=$normal_timezone
+  case "$1" in
+    dst) suite_timezone=America/New_York ;;
+    edmonton) suite_timezone=America/Edmonton ;;
+  esac
+  run "$suite_timezone" "$1"
   exit 0
 fi
 
