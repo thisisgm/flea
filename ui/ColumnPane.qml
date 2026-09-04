@@ -46,6 +46,11 @@ Item {
         boundsBehavior: Flickable.StopAtBounds
         reuseItems: true
 
+        Flea.FastScrollHandler {
+            parent: view
+            flickable: view
+        }
+
         delegate: Flea.ColumnRow {
             required property int index
             width: view.width

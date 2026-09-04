@@ -238,6 +238,11 @@ Item {
         contentHeight: rail.height + 2 * Style.spacing.rowPaddingX
         boundsBehavior: Flickable.StopAtBounds
 
+        FastScrollHandler {
+            parent: scroller
+            flickable: scroller
+        }
+
         Column {
             id: rail
             anchors.top: parent.top
