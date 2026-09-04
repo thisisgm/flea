@@ -293,9 +293,9 @@ drive_fixture_build() {
     magick -size 320x200 gradient:'#0e1112-#b38956' "$DRIVE_FIXTURE/b-image.png" 2>/dev/null && HAVE_IMAGE=1
     # Each page in its own parentheses, or magick draws one annotation onto every page. The pages
     # carry different text because the page turn is asserted by reading the page back off the screen.
-    magick \( -size 400x560 xc:white -fill black -pointsize 40 -annotate +40+80 'PAGEONE' \) \
-           \( -size 400x560 xc:white -fill black -pointsize 40 -annotate +40+80 'PAGETWO' \) \
-           \( -size 400x560 xc:white -fill black -pointsize 40 -annotate +40+80 'PAGETHREE' \) \
+    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
+           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETHREE' \) \
            "$DRIVE_FIXTURE/c-doc.pdf" 2>/dev/null && HAVE_PDF=1
   fi
   if command -v ffmpeg >/dev/null; then
@@ -1140,7 +1140,7 @@ keycase_seekForward() { keycase_seek forward "$@"; }
 
 # The fixture gives each page a distinct word, so both state and paint must advance.
 keycase_pageForward() {
-  local before after
+  local before
   reset_state || return 1
   [ "$HAVE_PDF" = 1 ] || { WHY="no PDF fixture, magick is not on this box"; return 1; }
   seek_row_named c-doc.pdf || return 1
@@ -1157,13 +1157,8 @@ keycase_pageForward() {
   k "$@"
   omarchy-drive wait ipc -p "$UI" flea previewPdfPage 1 --timeout 10 >/dev/null \
     || { WHY="the PDF page stayed at $(ipc previewPdfPage) after the chord"; return 1; }
-  sleep 2
-  after=$(omarchy-drive ocr flea 2>/dev/null)
-  case $after in
-    *PAGETWO*) return 0 ;;
-  esac
-  WHY="the preview still does not show the second page after the chord"
-  return 1
+  omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null 2>&1 \
+    || { WHY="the preview still does not show the second page after the chord"; return 1; }
 }
 
 # ---- the key runner ---------------------------------------------------------------------------------

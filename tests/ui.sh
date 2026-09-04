@@ -1891,8 +1891,8 @@ PYEOF
     [[ -s "$dir/clip.mp4" ]] || fail "ffmpeg produced no clip.mp4"
     # Space on a pdf answered "This file cannot be previewed" until kindOf gained its branch, on a
     # type the preview column had rendered all along, so this row is what guards that branch.
-    magick \( -size 400x560 xc:white -fill black -draw "rectangle 40,40 120,80" \) \
-           \( -size 400x560 xc:white -fill black -draw "rectangle 40,40 360,520" \) \
+    magick \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGEONE' \) \
+           \( -size 400x560 xc:white -fill black -font Liberation-Sans -pointsize 40 -annotate +40+80 'PAGETWO' \) \
            "$dir/manual.pdf"
     [[ -s "$dir/manual.pdf" ]] || fail "magick produced no manual.pdf"
 
@@ -2042,6 +2042,12 @@ PYEOF
         || fail "preview: manual.pdf classified as $(ipc previewKind), not pdf"
     [[ "$(ipc previewState)" == "pdf" ]] \
         || fail "preview: the pdf overlay reports $(ipc previewState), so it fell through to the refusal"
+    [[ "$(ipc previewPdfPage)" == "0" ]] || fail "preview: manual.pdf opened on page $(ipc previewPdfPage), not page 0"
+    key l >/dev/null
+    omarchy-drive wait ipc -p "$flea_ui" flea previewPdfPage 1 --timeout 10 >/dev/null \
+        || fail "preview: l left manual.pdf on page $(ipc previewPdfPage), not page 1"
+    omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null \
+        || fail "preview: l advanced manual.pdf state but left page 1 painted"
     shot preview-pdf
     key -k Escape >/dev/null
     settle
