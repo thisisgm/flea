@@ -1155,7 +1155,7 @@ keycase_pageForward() {
        return 2 ;;
   esac
   k "$@"
-  omarchy-drive wait ipc -p "$UI" flea previewPdfPage 1 --timeout 10 >/dev/null \
+  omarchy-drive wait ipc -p "$REPO/ui" flea previewPdfPage 1 --timeout 10 >/dev/null \
     || { WHY="the PDF page stayed at $(ipc previewPdfPage) after the chord"; return 1; }
   omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null 2>&1 \
     || { WHY="the preview still does not show the second page after the chord"; return 1; }
