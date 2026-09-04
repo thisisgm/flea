@@ -32,12 +32,14 @@ function run(check) {
     check("Finder's own example, at GLib's precision", Format.size(26950000000), "26.9 GB")
     check("a terabyte", Format.size(1000000000000), "1.0 TB")
 
-    // 2026-08-27 00:27 UTC, the instant the old suite already pinned.
+    // 2026-08-27 00:27 UTC, the instant the old suite already pinned. js.sh runs the
+    // harness under TZ=Asia/Tokyo, so these pin the JST wall clock (+09:00, no DST)
+    // and a regression to the old getUTC* getters reddens on every box, UTC included.
     var FIXED = 1787790423
     var NOW = 1787790423000
-    check("today shows the time", Format.date(FIXED, NOW), "Today, 00:27")
-    check("yesterday is named", Format.date(FIXED - 86400, NOW), "Yesterday, 00:27")
-    check("this year omits the year", Format.date(FIXED - 30 * 86400, NOW), "28 Jul, 00:27")
+    check("today shows the local time", Format.date(FIXED, NOW), "Today, 09:27")
+    check("yesterday is named", Format.date(FIXED - 86400, NOW), "Yesterday, 09:27")
+    check("this year omits the year", Format.date(FIXED - 30 * 86400, NOW), "28 Jul, 09:27")
     check("a past year carries it and drops the time", Format.date(FIXED - 400 * 86400, NOW), "23 Jul 2025")
 
     check("a regular file 644", Format.permissions(33188), "rw-r--r--")

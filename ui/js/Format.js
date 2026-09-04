@@ -28,23 +28,27 @@ var MONTHS = ["Jan", "Feb", "Mar", "Apr", "May", "Jun", "Jul", "Aug", "Sep", "Oc
 var SECONDS_PER_DAY = 86400
 
 // Never all-numeric: 01/05/22 is January 5 in one country and May 1 in another.
+// The stamp is the machine's own wall clock, not UTC: a file saved at 21:27 local
+// reads 21:27, and Today/Yesterday follow the local calendar day.
 function date(mtime, nowMs) {
     var d = new Date(mtime * 1000)
     var now = new Date(nowMs)
-    var clock = pad(d.getUTCHours()) + ":" + pad(d.getUTCMinutes())
-    var day = Math.floor(mtime / SECONDS_PER_DAY)
-    var today = Math.floor(nowMs / 1000 / SECONDS_PER_DAY)
+    var clock = pad(d.getHours()) + ":" + pad(d.getMinutes())
+    // Day numbers in local calendar days: getTimezoneOffset() shifts each instant so
+    // the day boundary is the one on the wall clock, DST transitions included.
+    var day = Math.floor((d.getTime() - d.getTimezoneOffset() * 60000) / (SECONDS_PER_DAY * 1000))
+    var today = Math.floor((now.getTime() - now.getTimezoneOffset() * 60000) / (SECONDS_PER_DAY * 1000))
     if (day === today) {
         return "Today, " + clock
     }
     if (day === today - 1) {
         return "Yesterday, " + clock
     }
-    var stamp = d.getUTCDate() + " " + MONTHS[d.getUTCMonth()]
+    var stamp = d.getDate() + " " + MONTHS[d.getMonth()]
     // The distant past omits the time, per Material's second table.
-    return d.getUTCFullYear() === now.getUTCFullYear()
+    return d.getFullYear() === now.getFullYear()
         ? stamp + ", " + clock
-        : stamp + " " + d.getUTCFullYear()
+        : stamp + " " + d.getFullYear()
 }
 
 // The low nine bits of st_mode, read three at a time.

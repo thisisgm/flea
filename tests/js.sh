@@ -11,7 +11,9 @@ fi
 # qml6 routes console.log to the systemd journal, not stderr, unless told otherwise.
 # A broken .import leaves the harness's event loop running with no checks reported, so the suite
 # hangs rather than failing. The timeout turns that into a failure, which is what a suite owes.
-out=$(QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 timeout 120 qml6 tests/js/harness.qml 2>&1)
+# TZ is pinned to a non-UTC zone because Format.date renders the machine's wall clock: under UTC
+# a regression back to its old getUTC* getters would be invisible everywhere.
+out=$(TZ=Asia/Tokyo QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 timeout 120 qml6 tests/js/harness.qml 2>&1)
 code=$?
 echo "$out"
 if [ "$code" = 124 ]; then
