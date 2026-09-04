@@ -5,7 +5,7 @@
 #
 #   docs/protocol.md      every request the wire accepts
 #   keys.toml             every action the key table binds
-#   ui/ContextMenu.qml    every context menu entry
+#   ui/js/Menu.js         every context menu entry
 #   canvas.json           every artboard the design defines
 #   keys.toml [[pointer]]  every click the pointer contract declares
 #   tests/*.sh            every suite, and whether anything executable names it
@@ -47,7 +47,7 @@ BIN=${BIN:-$REPO/target/release/flea}
 # reports a smaller checklist as a complete one.
 for cand in "${CANVAS:-}" \
             "$REPO/../flea-canvas/canvas.json" \
-            "$HOME/Documents/claude/omarchy/docs/superpowers/specs/assets/flea-canvas/canvas.json"; do
+            "$HOME/Documents/claude/omarchy/docs/reference/flea-canvas/canvas.json"; do
   [ -n "$cand" ] && [ -f "$cand" ] && { CANVAS=$cand; break; }
 done
 SB="$FIXTURE_ROOT/flea-acceptance-$$"
@@ -106,9 +106,9 @@ derive_digit_actions() {
   done
 }
 
-# Sample input, ui/ContextMenu.qml: '{ label: "Rename", action: "rename", glyph: "rename" }'
+# Sample input, ui/js/Menu.js: 'out.push({ label: "Rename", action: "rename", glyph: "rename" })'
 derive_menu_actions() {
-  sed -n 's/.*action: "\([a-zA-Z][a-zA-Z]*\)".*/\1/p' "$REPO/ui/ContextMenu.qml" | LC_ALL=C sort -u
+  sed -n 's/.*action: "\([a-zA-Z][a-zA-Z]*\)".*/\1/p' "$REPO/ui/js/Menu.js" | LC_ALL=C sort -u
 }
 
 # Sample input, canvas.json: '      "file": "FleaWindow.dc.html",'
@@ -338,7 +338,7 @@ echo
 mapfile -t KEY_ACTIONS < <(derive_key_actions)
 require_list "key actions from keys.toml" "${#KEY_ACTIONS[@]}"
 mapfile -t MENU_ACTIONS < <(derive_menu_actions)
-require_list "menu actions from ui/ContextMenu.qml" "${#MENU_ACTIONS[@]}"
+require_list "menu actions from ui/js/Menu.js" "${#MENU_ACTIONS[@]}"
 mapfile -t ARTBOARDS < <(derive_artboards)
 require_list "artboards from canvas.json" "${#ARTBOARDS[@]}"
 mapfile -t SIDEBAR_KINDS < <(derive_sidebar_kinds)
@@ -358,7 +358,7 @@ else
     skip key "$a" "bound in keys.toml; --drive presses it on a real window"
   done
   for a in "${MENU_ACTIONS[@]}"; do
-    skip menu "$a" "an entry in ui/ContextMenu.qml; --drive chooses it on a real window"
+    skip menu "$a" "an entry in ui/js/Menu.js; --drive chooses it on a real window"
   done
   # Read line by line: a chord's name carries spaces, and a $( ) loop split "SUPER + C" into three
   # items and reported twenty-six of them where there are ten.

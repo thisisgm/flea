@@ -1233,16 +1233,16 @@ menu_row_for() {
   esac
 }
 
-# The label an entry draws, derived from ui/ContextMenu.qml so a renamed row is followed rather than
+# The label an entry draws, derived from ui/js/Menu.js so a renamed row is followed rather than
 # missed. Sample input: '        out.push({ label: "Rename", action: "rename", glyph: "rename" })'
 derive_menu_labels() {
-  sed -n 's/.*label: "\([^"]*\)", action: "\([a-zA-Z][a-zA-Z]*\)".*/\2 \1/p' "$REPO/ui/ContextMenu.qml"
+  sed -n 's/.*label: "\([^"]*\)", action: "\([a-zA-Z][a-zA-Z]*\)".*/\2 \1/p' "$REPO/ui/js/Menu.js"
 }
 
 # The one entry whose label is a ternary rather than a literal, so it needs its own reader.
-# Sample input: '            label: root.showHidden ? "Hide hidden files" : "Show hidden files",'
+# Sample input: '        label: showHidden ? "Hide hidden files" : "Show hidden files",'
 derive_menu_toggle_labels() {
-  sed -n 's/.*label: root.showHidden ? "\([^"]*\)" : "\([^"]*\)".*/\1\n\2/p' "$REPO/ui/ContextMenu.qml"
+  sed -n 's/.*label: showHidden ? "\([^"]*\)" : "\([^"]*\)".*/\1\n\2/p' "$REPO/ui/js/Menu.js"
 }
 
 # Steps the menu cursor onto the row carrying one of the given labels and returns its index, using
@@ -1279,7 +1279,7 @@ menu_open_on() {
   k "${menuc[@]}"; settle
   [ "$(ipc contextMenuVisible)" = true ] || { WHY="the menu did not open on $row"; return 1; }
   labels=$(menu_labels_for "$action")
-  [ -n "$labels" ] || { WHY="no label for this entry could be derived from ui/ContextMenu.qml"; return 1; }
+  [ -n "$labels" ] || { WHY="no label for this entry could be derived from ui/js/Menu.js"; return 1; }
   menu_seek_label "$labels" >/dev/null
 }
 
@@ -1431,7 +1431,7 @@ drive_menu_action() {
       return ;;
   esac
   if ! declare -F "menucase_$action" >/dev/null; then
-    skip menu "$action" "an entry in ui/ContextMenu.qml, and this battery has no driver for it yet"
+    skip menu "$action" "an entry in ui/js/Menu.js, and this battery has no driver for it yet"
     return
   fi
   WHY=""
