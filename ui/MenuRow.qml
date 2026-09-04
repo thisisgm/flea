@@ -143,6 +143,7 @@ Item {
     TapHandler {
         enabled: !root.isSeparator
         acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: root.activated()
     }
 }
