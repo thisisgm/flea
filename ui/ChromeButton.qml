@@ -22,6 +22,8 @@ Item {
             return "Parent folder"
         if (root.glyph === "search")
             return "Search"
+        if (root.glyph === "terminal")
+            return "Open in terminal"
         if (root.glyph === "list")
             return "List view"
         if (root.glyph === "columns")
