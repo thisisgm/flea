@@ -413,7 +413,9 @@ huge pages" below for what it is worth and what it cost.
 - `backend/thumbcache.rs` names and reads entries in the shared thumbnail cache, see
   "Thumbnail cache".
 - `backend/thumbwrite.rs` creates the temp, stamps the PNG and writes the fail marker.
-- `backend/sandbox.rs` wraps a thumbnailer's argv in bwrap and prlimit, see "Thumbnail sandbox".
+- `backend/sandbox.rs` builds bubblewrap commands and transient systemd scopes, see "Thumbnail sandbox".
+- `backend/cgroup.rs` owns delegated scope paths, job leaves, memory controls and cleanup.
+- `backend/sandbox_broker.rs` owns one persistent thumbnail scope, its gate and binary protocol.
 - `backend/child.rs` runs one argv under a deadline and says whether it succeeded, failed or
   never started, which is the whole of what decides a `fail/` marker, see "Thumbnail pool".
 - `backend/thumbs.rs` the bounded, cancellable thumbnail pool, see "Thumbnail pool".
@@ -1661,14 +1663,13 @@ on opposite sides of the declarations, see "MIME aliases".
 
 ## Thumbnail sandbox
 
-`backend/sandbox.rs` builds the argv that confines a thumbnailer child. Untrusted bytes
-reach media decoders there, which is the richest CVE seam in this subsystem, so the child
-gets no network, no writable path outside its output directory, and a bounded amount of CPU
-and address space. The module only builds the argv; nothing in it runs a process, and the
-argv is exec'd directly and never through a shell.
+`backend/sandbox.rs` builds the bubblewrap argv that confines each untrusted helper.
+The child gets no network and no writable path outside its output. `prlimit --cpu=30`
+bounds CPU time. Cgroup v2 bounds resident memory and swap for the complete process tree.
+The argv is exec'd directly and never passes through a shell.
 
 **The sandbox is mandatory, and its absence fails the job closed.** `sandbox::available()` looks
-for `bwrap` and `prlimit` on `PATH`, and when either is missing `run_one` returns `Outcome::Failed`
+for `bwrap`, `prlimit`, and `systemd-run` on `PATH`. When one is missing, `run_one` returns `Outcome::Failed`
 before spawning anything: the row answers with an empty `file` and nothing is written to the shared
 cache. It used to run the UNWRAPPED argv instead, with no log line, no `fail` marker and no wire
 signal, which was reproduced by pointing `PATH` at an empty directory and watching glycin produce a
@@ -1683,20 +1684,26 @@ once at startup and prints one line on stderr, so the cause is stated rather tha
 fatal, because listing directories does not need the sandbox. `tests/thumbs.sh` runs the real binary
 with `PATH` pointed at an empty directory and asserts the empty `file`, no cache entry and no marker.
 
-The shape is `prlimit --cpu=30 --as=1073741824 bwrap <flags> <inner>`. **`prlimit` is the
-outermost program because `bwrap` has no rlimit option**, verified against `bwrap --help`
-on bubblewrap 0.11.2 here. Setting the limits from Rust would need raw `setrlimit`, which
-`std` does not expose and which the zero-dependency rule forbids reaching for through
-`libc`, so stock `/usr/bin/prlimit` from util-linux 2.42.2 carries them. `prlimit` is
-outermost because it keeps the argv one flat exec and covers `bwrap`'s own setup as well
-as the child, not because the limits would otherwise miss the decoder: rlimits survive
-fork and exec, so the reverse nesting was measured to kill the same spin and to report
-the same `/proc/self/limits`.
+The command shape is `prlimit --cpu=30 bwrap <flags> <inner>`. `prlimit` stays outside
+bubblewrap because bubblewrap has no rlimit option. The 30-second limit is for runaway CPU use.
+It does not limit virtual address space. Modern decoders can reserve more than 1 GiB while
+using much less resident memory.
 
-The two numbers: `--cpu=30` seconds, because a 1080p decode is well under a second of CPU
-here and 30 s is a runaway rather than a slow file; `--as=1073741824`, one GiB, because
-`ffmpegthumbnailer` peaks in the tens of megabytes on the media fixture and a gigabyte of
-address space is a decompression bomb rather than a big video.
+Each sequential thumbnail worker starts one systemd user scope when it receives its first job.
+The scope delegates only the memory controller. The broker moves itself into a `supervisor`
+leaf before it enables `+memory` at the scope root. Each file gets a new `job-<counter>` leaf.
+The leaf sets `memory.high=805306368`, `memory.max=1073741824`, `memory.swap.max=0`, and
+`memory.oom.group=1` before any decoder runs. The broker removes the leaf after every result.
+
+A gate blocks before `prlimit` and bubblewrap. The broker places the gate in the job leaf,
+then releases it. A close-on-exec pipe tells the broker when the final exec succeeds.
+Scope, protocol, setup, placement, gate, exec, wait, and cleanup errors are `NotStarted`.
+They write no thumbnail failure marker. Decoder failures, deadlines, and memory events are
+`Failed` and keep the existing marker behavior. Cleanup uses `cgroup.kill`, waits for
+`populated 0` with a fixed bound, and removes the leaf.
+
+Archive and media helpers use one transient scope per operation. They keep their buffered,
+streamed, and watchdog I/O paths. Cgroup v2 and a working systemd user manager are required.
 
 The flags, and why each is there:
 
@@ -1737,15 +1744,16 @@ real `glycin-thumbnailer` run the same nine pairs gave 1.2 to 5.8 ms, median nea
 but the decode itself is about 45 ms and drifts by as much as the effect, so the isolated
 number is the one to quote. Either way the wrapper is under a tenth of one thumbnail's
 cost. Do not treat any of these as a citable constant; two batches of the same harness on
-this box have disagreed by more than 2x. `systemd-run --user` was measured at 23.8 ms and
-rejected on that number.
+this box have disagreed by more than 2x. Creating one systemd scope per file costs too much.
+Four persistent worker scopes keep that setup outside each file request. A 35-file burst
+must create no more than four scopes.
 
 **Confinement results, all measured on the box.** It produces a real 256 px PNG through the
 full argv; the canary file outside the output directory survives and a write to it fails
 with `No such file or directory`; `/home` is not visible at all and the root holds only
 `bin dev etc lib lib64 proc sbin tmp usr`; `getent hosts example.com` exits 2 with no
-resolution; `ulimit -v` inside reads 1048576 KiB, so the address-space limit is applied;
-and a spin under `--cpu=2` is killed rather than returning 0. **The `sh -c` in those probes
+resolution; and a spin under `--cpu=2` is killed rather than returning 0. A fresh 6000 by
+4000 JPEG completes despite Glycin reserving about 1.60 GiB of virtual space. **The `sh -c` in those probes
 is a test OF the sandbox, not production code.** Production execs the argv directly, and
 `grep -rn 'sh -c' src/` finds nothing.
 
@@ -1800,11 +1808,11 @@ is full. The oldest job is the row furthest from the viewport after a scroll, so
 whose answer nobody is waiting for. `cancel` and `cancel_all` only remove queued jobs; a job
 already inside a child runs to its own end or to the timeout.
 
-`JOB_TIMEOUT` is 20 seconds, and `backend/child.rs` enforces it. The child is waited on
+`JOB_TIMEOUT` is 20 seconds, and `backend/child.rs` enforces it. The gate is waited on
 exactly, not polled: `pidfd_open` gives a descriptor that becomes readable when the child exits,
 and one `poll` on it with the remaining time as its timeout is BOTH the wait and the deadline, so
-a child still alive at the deadline is killed and reaped and only that case records a marker in
-`fail/`. `poll` returning `POLLIN` says only that the child exited, so the status itself still
+a child still alive at the deadline is killed through `cgroup.kill` and reaped. `poll` returning
+`POLLIN` says only that the child exited, so the status itself still
 comes from `wait`. The two symbols are `extern "C"` declarations in the idiom `src/thp.rs` already
 uses, because `std` links the system libc and this project takes zero crates; glibc has shipped a
 `pidfd_open` wrapper since 2.36, so no `syscall()` is needed. The descriptor is held in an
@@ -1813,8 +1821,8 @@ anyone remembering to. `EINTR` is a retry and is the only reason the loop goes r
 the retry recomputes the remaining time against the same deadline rather than restarting it, so a
 stream of signals cannot hand a hung child an unbounded wait.
 
-**There is deliberately no fallback to a sleep loop.** A `pidfd_open` that fails leaves a child
-already running with no way to enforce a deadline, so it is killed and reaped and reported as
+**There is deliberately no fallback to a sleep loop.** A `pidfd_open` that fails leaves a job
+with no reliable deadline, so the broker kills its cgroup, reaps the gate, and reports
 `Ran::NotStarted`. A second wait implementation, reachable only on fd exhaustion on a box whose
 kernel always has `pidfd_open`, would be code nobody ever runs and therefore code nobody has
 tested when it matters.
@@ -1827,17 +1835,13 @@ The distinction this enum draws is whether a thumbnailer's verdict on these byte
 `pidfd_open`, a `poll` or a `wait` this process could not complete produces no verdict at all,
 exactly like a fork that failed under memory pressure.
 
-**Three of the eight ways a job can end record a marker, and the deadline is only one of them.**
-That count is the `yes` column of the table below, counted off it rather than carried in from
-anywhere else. `run_with_timeout` itself returns `Ran::Failed` for only two of the three, a child
-still alive at the deadline and a child that exited non-zero; the third is `run_one`'s. Every way
-a job can end:
+**A decoder result records a marker. An infrastructure error does not.** Every way a job can end:
 
 | Path | Variant | Marker |
 |---|---|---|
-| `spawn` failed | `NotStarted` | no |
+| scope, cgroup, gate, or final exec failed | `NotStarted` | no |
 | `pidfd_open` failed | `NotStarted` | no |
-| `poll` failed, or was ready with no `POLLIN` | `NotStarted` | no |
+| broker protocol, placement, `poll`, or cleanup failed | `NotStarted` | no |
 | `wait` failed | `NotStarted` | no |
 | still alive at the deadline | `Failed` | **yes** |
 | exited non-zero | `Failed` | **yes** |
@@ -1848,12 +1852,7 @@ a job can end:
 success reaches only when it wrote nothing, and `tests/thumbs.sh` exercises that arm on every
 run. What the recording paths share is that a decoder ran on the file and produced no answer.
 
-The `wait` row was `Failed` until 2026-08-30, which contradicted the rule the rest of this
-section states: an `Err` from `wait` is `ECHILD` or nothing, never a verdict, and it wrote a
-permanent marker for a file that may be perfectly sound. The tail of `run_with_timeout` is
-`verdict`, its own function, so the failing wait is reachable from a test: it spawns a child,
-reaps it directly with `waitpid`, and leaves `verdict` a wait with nothing to reap. Against the
-old single `_ => Ran::Failed` arm that test fails and the other six in the file pass.
+An error from `wait` is not a decoder verdict. The broker reports it as `NotStarted`.
 
 **A machine-caused SIGKILL is NOT told apart here, and the attempt was refused on evidence.**
 The proposal was to read `status.signal() == SIGKILL` as `NotStarted`, since the deadline path
@@ -1875,10 +1874,8 @@ and a plain one that does not: **exit 137 for both**, never 152. That is a decom
 file verdict that must record, and it is indistinguishable from the OOM kill at the only layer
 where either is visible. A discriminator keyed on 152 does not exist to be built.
 
-**The premise is close to unreachable here anyway.** The sandbox caps address space at 1 GiB, so a
-memory bomb surfaces as the decoder's own non-zero exit long before the box is short: the probe's
-`as_rlimit_bomb` row is exit 1, a Python `MemoryError` and not a kill. The box carries 19 GiB of
-RAM and 38 GiB of swap.
+The broker reads `memory.events.local` after exit. A nonzero `max`, `oom`, or `oom_kill`
+counter makes the result `Failed`, even when the launcher status loses the signal detail.
 
 Only a SIGKILL of the sandbox launcher itself arrives as `signal=9`, and that process decodes
 nothing, allocates nothing and burns no CPU, so it can reach neither rlimit; with
@@ -1923,20 +1920,16 @@ emptiness is deliberate.** A non-empty but malformed output still discards witho
 exactly as before, because no thumbnailer on this box was observed to produce one, and retrying
 is the conservative direction against recording a verdict nothing measured.
 
-**Three failures were moved the other way, onto the not-recorded side.** A missing `bwrap` or
-`prlimit` records nothing, see "Thumbnail sandbox". And `run_with_timeout` returns three states
-rather than a bool: a child that could not be SPAWNED at all is `NotStarted` and records nothing,
-because a fork that failed under memory pressure says nothing about the file, and so is a child
-this process could not `wait` on, while a child that ran and exited non-zero, or that was killed
-at the deadline, is `Failed` and does record.
+**Infrastructure failures stay on the not-recorded side.** A missing sandbox program records
+nothing, see "Thumbnail sandbox". The broker returns `NotStarted` when it cannot start or
+contain a decoder. A child that ran and exited non-zero, reached its deadline, or crossed a
+memory boundary returns `Failed` and records a marker.
 The rule that separates them is whether a decoder ever looked at the bytes. The seam that
 bound the raw path while `argv` handed the child the canonical one, see "Thumbnailer specs",
 was in the recording class and wrote a permanent marker for every video under a symlinked
 directory; it is closed at the source rather than by widening this rule, because from inside
 `run_one` a bad bind and a corrupt file are the same non-zero exit and cannot be told apart.
-The `NotStarted` distinction cannot be reached from a test through `run_one`, because
-`sandbox::available()` has already checked `prlimit` microseconds earlier and both paths
-`discard` without a marker anyway; it is pinned at the `run_with_timeout` level instead.
+The resource suite forces scope setup failure and checks that no marker appears.
 
 **The destination is never handed to a child.** The output is a `thumbwrite::exclusive_temp`
 name in the target directory, and the entry is published by `rename`, which is atomic. `create_new` is what makes the guard load bearing: with `create(true)` a
@@ -1985,8 +1978,8 @@ different suspect:
 - `queued`, submit to the worker's pop, is queueing.
 - `setup`, the pop to the moment the argv is handed to the spawner, is worker startup, the cache
   key, `create_dir_all`, `exclusive_temp`, the argv build and the sandbox wrap.
-- `child`, that moment to `run_with_timeout` returning, is the decode. **It is not pure decode.**
-  It carries the `bwrap` and `prlimit` fork and exec, and about a millisecond of notice latency,
+- `child`, that moment to the broker returning, is the decode. **It is not pure decode.**
+  It carries the gate, `bwrap`, and `prlimit` fork and exec, and pidfd notice latency,
   because `child.rs` waits on a pidfd; see "Thumbnail pool". Until 2026-08-29 it also carried up
   to a full 25 ms poll step, which is how the poll was caught: every one of 70 sampled `child`
   durations landed on a multiple of 25 ms.
@@ -2202,7 +2195,7 @@ waits forever.
 
 **A drain that gives up sweeps this process's own temps.** The one path a worker cannot clean up
 after itself is the one where the drain runs out of budget: the process exits and the four worker
-threads die inside `run_with_timeout`, after `thumbwrite::exclusive_temp` and before `discard`.
+threads die inside the broker wait, after `thumbwrite::exclusive_temp` and before `discard`.
 Reproduced with eight hung jobs against four workers under a scratch cache root: four zero-byte
 `.flea-<pid>-<hex>.png` files were left behind, which is exactly the ten the operator found in the
 real cache. `drain` therefore calls `thumbwrite::sweep_own_temps` on the `large/` directory after

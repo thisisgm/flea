@@ -1,13 +1,19 @@
+use crate::backend::{fd, systemd_scope};
+use std::io::Read;
+use std::os::fd::{AsRawFd, RawFd};
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 
-// bwrap costs a few ms over a bare exec here and systemd-run costs 23.8 ms; see AGENTS.md "Thumbnail sandbox".
+// bwrap costs a few ms over a bare exec; persistent workers avoid paying for one scope per file.
 const BWRAP: &str = "bwrap";
 // bwrap has no rlimit option, so stock prlimit carries them; see AGENTS.md "Thumbnail sandbox".
 const PRLIMIT: &str = "prlimit";
+const SYSTEMD_RUN: &str = "systemd-run";
 // A 1080p decode is well under a second of CPU here, so 30 s is a runaway, not a slow file.
 const CPU_SECONDS: u32 = 30;
-// ffmpegthumbnailer peaks in the tens of megabytes on this fixture, so 1 GiB is a decompression bomb, not a big video.
-const ADDRESS_SPACE_BYTES: u64 = 1024 * 1024 * 1024;
+extern "C" {
+    fn write(fd: i32, buf: *const u8, count: usize) -> isize;
+}
 
 // /bin, /sbin, /lib and /lib64 are all symlinks into usr on this box, so binding /usr covers them.
 const BWRAP_FLAGS: &[&str] = &[
@@ -48,25 +54,22 @@ pub fn available() -> bool {
 // Split from available() so a test can ask the rule without setting PATH for every thread beside it.
 // Sample input: "/usr/local/bin:/usr/bin:/bin"
 fn available_on(path: &str) -> bool {
-    let has = |prog: &str| {
-        path.split(':')
-            .filter(|d| !d.is_empty())
-            .any(|d| Path::new(d).join(prog).is_file())
-    };
-    has(BWRAP) && has(PRLIMIT)
+    let has = |prog: &str| path.split(':').filter(|d| !d.is_empty()).any(|d| Path::new(d).join(prog).is_file());
+    has(BWRAP) && has(PRLIMIT) && has(SYSTEMD_RUN)
+}
+
+fn command_prefix(tail_capacity: usize) -> Vec<String> {
+    let mut argv = Vec::with_capacity(BWRAP_FLAGS.len() + tail_capacity + 3);
+    argv.push(PRLIMIT.to_string());
+    argv.push(format!("--cpu={}", CPU_SECONDS));
+    argv.push(BWRAP.to_string());
+    argv.extend(BWRAP_FLAGS.iter().map(|flag| flag.to_string()));
+    argv
 }
 
 // The input is read-only, the one path the caller names is the only writable one, and nothing else is shared.
 pub fn wrap(inner: &[String], input: &Path, out: &Path) -> Vec<String> {
-    let head_and_binds = 10;
-    let mut a: Vec<String> = Vec::with_capacity(inner.len() + BWRAP_FLAGS.len() + head_and_binds);
-    a.push(PRLIMIT.to_string());
-    a.push(format!("--cpu={}", CPU_SECONDS));
-    a.push(format!("--as={}", ADDRESS_SPACE_BYTES));
-    a.push(BWRAP.to_string());
-    for flag in BWRAP_FLAGS {
-        a.push(flag.to_string());
-    }
+    let mut a = command_prefix(inner.len() + 6);
     a.push("--ro-bind".to_string());
     a.push(input.to_string_lossy().to_string());
     a.push(input.to_string_lossy().to_string());
@@ -78,18 +81,20 @@ pub fn wrap(inner: &[String], input: &Path, out: &Path) -> Vec<String> {
     a
 }
 
+pub fn wrap_thumbnail_support(input: &Path, out: &Path, error: &Path, exe: &Path, gate: &Path, tail_capacity: usize) -> Vec<String> {
+    let mut a = command_prefix(12 + tail_capacity);
+    for (flag, source, target) in [("--ro-bind", input, input), ("--bind", out, out), ("--bind", error, error), ("--ro-bind", exe, gate)] {
+        a.push(flag.to_string());
+        a.push(source.to_string_lossy().into_owned());
+        a.push(target.to_string_lossy().into_owned());
+    }
+    a
+}
+
 // The same boundary with nothing writable at all, for a probe that answers on stdout rather than
 // into a file. ffprobe parses the same untrusted media a thumbnailer does and gets the same jail.
 pub fn wrap_readonly(inner: &[String], input: &Path) -> Vec<String> {
-    let head_and_binds = 8;
-    let mut a: Vec<String> = Vec::with_capacity(inner.len() + BWRAP_FLAGS.len() + head_and_binds);
-    a.push(PRLIMIT.to_string());
-    a.push(format!("--cpu={}", CPU_SECONDS));
-    a.push(format!("--as={}", ADDRESS_SPACE_BYTES));
-    a.push(BWRAP.to_string());
-    for flag in BWRAP_FLAGS {
-        a.push(flag.to_string());
-    }
+    let mut a = command_prefix(inner.len() + 3);
     a.push("--ro-bind".to_string());
     a.push(input.to_string_lossy().to_string());
     a.push(input.to_string_lossy().to_string());
@@ -97,28 +102,70 @@ pub fn wrap_readonly(inner: &[String], input: &Path) -> Vec<String> {
     a
 }
 
+// Low-volume helpers get one transient scope while keeping their existing stdio and watchdogs.
+pub fn one_shot(inner: &[String]) -> Vec<String> {
+    systemd_scope::transient(inner)
+}
+
+pub fn gate_main(args: &[String]) -> i32 {
+    let argv = match args {
+        [_, mode, separator, rest @ ..] if mode == "--sandbox-gate" && separator == "--" && !rest.is_empty() => rest,
+        _ => return 2,
+    };
+    let error_fd: RawFd = std::env::var("FLEA_GATE_ERROR_FD").ok().and_then(|v| v.parse().ok()).unwrap_or(-1);
+    if error_fd >= 0 && fd::close_on_exec(error_fd).is_err() {
+        report_gate_error(error_fd, b"cloexec");
+        return 2;
+    }
+    let mut release = [0u8; 1];
+    if std::io::stdin().read_exact(&mut release).is_err() {
+        report_gate_error(error_fd, b"release");
+        return 2;
+    }
+    let null = match std::fs::File::open("/dev/null") {
+        Ok(file) => file,
+        Err(_) => {
+            report_gate_error(error_fd, b"stdin");
+            return 2;
+        }
+    };
+    if fd::duplicate_to(null.as_raw_fd(), 0).is_err() {
+        report_gate_error(error_fd, b"stdin");
+        return 2;
+    }
+    let error = std::process::Command::new(&argv[0]).args(&argv[1..]).exec();
+    report_gate_error(error_fd, error.to_string().as_bytes());
+    2
+}
+
+fn report_gate_error(fd: RawFd, bytes: &[u8]) {
+    if fd >= 0 {
+        unsafe { write(fd, bytes.as_ptr(), bytes.len()) };
+    }
+}
+
 #[cfg(test)]
 mod tests {
     use super::*;
     use std::path::Path;
 
+    #[test]
+    fn sandbox_gate_rejects_a_missing_program() {
+        let args = vec!["flea".to_string(), "--sandbox-gate".to_string(), "--".to_string()];
+        assert_eq!(gate_main(&args), 2);
+    }
+
     // The jail is mandatory, so the one input that decides it is asserted rather than assumed: an
     // empty PATH must read unavailable, or every caller's fail-closed branch is unreachable.
     #[test]
-    fn a_path_without_the_two_tools_reads_unavailable() {
-        assert!(!available_on(""), "an empty PATH cannot hold either tool");
+    fn a_path_without_the_three_tools_reads_unavailable() {
+        assert!(!available_on(""), "an empty PATH cannot hold the sandbox tools");
         assert!(!available_on("::"), "empty components are skipped rather than treated as the root");
         assert!(!available_on("/nonexistent-dir-for-this-test"), "a directory holding neither is not enough");
     }
 
     fn inner() -> Vec<String> {
-        vec![
-            "/usr/bin/ffmpegthumbnailer".to_string(),
-            "-i".to_string(),
-            "/in/a.mp4".to_string(),
-            "-o".to_string(),
-            "/out/x.png".to_string(),
-        ]
+        vec!["/usr/bin/ffmpegthumbnailer".to_string(), "-i".to_string(), "/in/a.mp4".to_string(), "-o".to_string(), "/out/x.png".to_string()]
     }
 
     // The brief's "no argument contains sh" is false against a correct argv, because --unshare-all does.
@@ -156,11 +203,21 @@ mod tests {
         let got = wrap(&inner(), Path::new("/in/a.mp4"), Path::new("/out"));
         assert_eq!(got[0], "prlimit");
         assert!(got.iter().any(|a| a.starts_with("--cpu=")));
-        assert!(got.iter().any(|a| a.starts_with("--as=")));
         // This pins prlimit before bwrap in the argv; see AGENTS.md "Thumbnail sandbox" for why.
         let prlimit_at = got.iter().position(|a| a == "prlimit").unwrap();
         let bwrap_at = got.iter().position(|a| a == "bwrap").unwrap();
         assert!(prlimit_at < bwrap_at);
+    }
+
+    #[test]
+    fn one_shot_scopes_apply_resident_memory_limits_without_expanding_arguments() {
+        let hostile = "${path%/*}\nfile name".to_string();
+        let got = one_shot(&["program".to_string(), hostile.clone()]);
+        assert!(got.contains(&"--expand-environment=no".to_string()));
+        assert!(got.contains(&format!("--property=MemoryHigh={}", crate::backend::cgroup::LIMITS.high)));
+        assert!(got.contains(&format!("--property=MemoryMax={}", crate::backend::cgroup::LIMITS.max)));
+        assert!(got.contains(&format!("--property=MemorySwapMax={}", crate::backend::cgroup::LIMITS.swap_max)));
+        assert_eq!(got.last(), Some(&hostile));
     }
 
     #[test]

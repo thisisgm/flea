@@ -1,7 +1,8 @@
 // The per-row extras the preview column names and a listing row does not carry. Like thumb and
 // dirsize, only a row a client actually asked for is ever looked at.
 use crate::backend::archive::Formats;
-use crate::backend::archivelist::{parse_reader, Contents, Entry, ARCHIVE_READ_MS};
+use crate::backend::archive_reader;
+use crate::backend::archivelist::{Contents, Entry};
 use crate::backend::imagesize;
 use crate::backend::linecount::count_lines;
 use crate::backend::mediaprobe;
@@ -10,17 +11,6 @@ use crate::backend::owner;
 use crate::backend::sandbox;
 use crate::json::escape;
 use std::path::Path;
-use std::os::unix::process::CommandExt;
-use std::sync::atomic::{AtomicBool, Ordering};
-use std::sync::Arc;
-
-// std offers no way to kill a child from another thread without owning it, so the signal is declared
-// here rather than taking a crate, the same call ops.rs makes for renameat2.
-extern "C" {
-    fn kill(pid: i32, sig: i32) -> i32;
-}
-
-const SIGKILL: i32 = 9;
 
 pub struct Meta {
     pub width: u32,
@@ -50,7 +40,22 @@ pub struct Meta {
 
 impl Meta {
     fn empty() -> Meta {
-        Meta { width: 0, height: 0, duration_ms: 0, sample_rate: 0, entries: 0, unpacked: 0, names: Vec::new(), archive_failed: false, lines: 0, lines_partial: false, lines_failed: false, target: String::new(), target_is_dir: false, owner: String::new() }
+        Meta {
+            width: 0,
+            height: 0,
+            duration_ms: 0,
+            sample_rate: 0,
+            entries: 0,
+            unpacked: 0,
+            names: Vec::new(),
+            archive_failed: false,
+            lines: 0,
+            lines_partial: false,
+            lines_failed: false,
+            target: String::new(),
+            target_is_dir: false,
+            owner: String::new(),
+        }
     }
 }
 
@@ -107,95 +112,35 @@ fn list_archive(path: &Path, formats: &Formats) -> Contents {
     if !sandbox::available() {
         return failed;
     }
-    let full = sandbox::wrap_readonly(&inner, path);
-    let mut child = match std::process::Command::new(&full[0])
-        .args(&full[1..])
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        // Its own group, so the watchdog can end the whole tree in one signal.
-        .process_group(0)
-        .spawn()
-    {
-        Ok(c) => c,
-        Err(_) => return failed,
-    };
-    // The parser's own deadline cannot fire while it is blocked inside a read, so a tool that stops
-    // producing entirely is bounded here instead: one thread, one sleep, one signal, and it stands
-    // down the moment the read finishes normally.
-    let done = Arc::new(AtomicBool::new(false));
-    let watchdog = {
-        let done = Arc::clone(&done);
-        let pid = child.id() as i32;
-        std::thread::spawn(move || {
-            let step = std::time::Duration::from_millis(50);
-            let mut waited = std::time::Duration::ZERO;
-            let budget = std::time::Duration::from_millis(ARCHIVE_READ_MS);
-            while waited < budget {
-                if done.load(Ordering::Relaxed) {
-                    return;
-                }
-                std::thread::sleep(step);
-                waited += step;
-            }
-            if !done.load(Ordering::Relaxed) {
-                // The GROUP, not the pid: the listing tool runs under bwrap and prlimit, so killing
-                // the direct child leaves a grandchild holding the pipe open and the read still
-                // blocks. Measured: pid alone left a stalled tool running and the request unbounded.
-                // Safe: the child is still ours until wait() reaps it, and done gates that.
-                unsafe { kill(-pid, SIGKILL) };
-            }
-        })
-    };
-    let mut contents = match child.stdout.take() {
-        Some(out) => parse_reader(std::io::BufReader::new(out), &spec),
-        None => {
-            done.store(true, Ordering::Relaxed);
-            let _ = watchdog.join();
-            return failed;
-        }
-    };
-    // A read cut short at its deadline is the one path where the tool is still alive, so the group
-    // kill has to happen BEFORE the watchdog is stood down. Storing done first disarmed it exactly
-    // there and left only child.kill(), which this file's own comment says is not enough: the tool
-    // runs under prlimit and bwrap and a grandchild survives it.
-    if contents.failed {
-        unsafe { kill(-(child.id() as i32), SIGKILL) };
-    }
-    done.store(true, Ordering::Relaxed);
-    let _ = watchdog.join();
-    // The tool's own verdict, because an unreadable archive otherwise answers zero entries and the
-    // tile cannot tell that apart from a read that has not happened yet.
-    match child.wait() {
-        Ok(status) if status.success() => {}
-        _ => contents.failed = true,
-    }
-    // Cleared again here, because the status is only known after parse_until has already returned:
-    // a listing whose tool exited non-zero would otherwise ship a partial count beside afailed.
-    if contents.failed {
-        crate::backend::archivelist::clear_counts(&mut contents);
-    }
-    contents
+    let full = sandbox::one_shot(&sandbox::wrap_readonly(&inner, path));
+    archive_reader::run(&full, &spec)
 }
 
 // Sample output: {"t":"meta","row":4,"w":0,"h":0,"ms":0,"rate":0,"entries":214,"unpacked":3400,"afailed":false,"names":[{"n":"ui","d":true}],"lines":0,"partial":false,"lfailed":false,"target":"","targetdir":false,"owner":"gm"}
 pub fn meta_line(row: usize, m: &Meta) -> String {
-    let names: Vec<String> = m
-        .names
-        .iter()
-        .map(|e| format!(r#"{{"n":"{}","d":{}}}"#, escape(&e.name), e.is_dir))
-        .collect();
+    let names: Vec<String> = m.names.iter().map(|e| format!(r#"{{"n":"{}","d":{}}}"#, escape(&e.name), e.is_dir)).collect();
     format!(
         r#"{{"t":"meta","row":{},"w":{},"h":{},"ms":{},"rate":{},"entries":{},"unpacked":{},"afailed":{},"names":[{}],"lines":{},"partial":{},"lfailed":{},"target":"{}","targetdir":{},"owner":"{}"}}"#,
-        row, m.width, m.height, m.duration_ms, m.sample_rate, m.entries, m.unpacked,
-        m.archive_failed, names.join(","), m.lines, m.lines_partial, m.lines_failed,
-        escape(&m.target), m.target_is_dir, escape(&m.owner)
+        row,
+        m.width,
+        m.height,
+        m.duration_ms,
+        m.sample_rate,
+        m.entries,
+        m.unpacked,
+        m.archive_failed,
+        names.join(","),
+        m.lines,
+        m.lines_partial,
+        m.lines_failed,
+        escape(&m.target),
+        m.target_is_dir,
+        escape(&m.owner)
     )
 }
 
 // Answers on a thread, because a media row costs an ffprobe and the loop waits on nothing.
-pub fn spawn(row: usize, path: std::path::PathBuf, text: bool, media: bool,
-             archive: Option<std::sync::Arc<Formats>>, tx: std::sync::mpsc::Sender<OpMsg>) {
+pub fn spawn(row: usize, path: std::path::PathBuf, text: bool, media: bool, archive: Option<std::sync::Arc<Formats>>, tx: std::sync::mpsc::Sender<OpMsg>) {
     std::thread::spawn(move || {
         let line = meta_line(row, &read(&path, text, media, archive.as_deref()));
         let _ = tx.send(OpMsg::Meta { line });
@@ -328,14 +273,10 @@ mod tests {
         let mut m = Meta::empty();
         m.entries = 214;
         m.unpacked = 3400;
-        m.names = vec![
-            Entry { name: "ui".to_string(), is_dir: true },
-            Entry { name: "say \"hi\".txt".to_string(), is_dir: false },
-        ];
+        m.names = vec![Entry { name: "ui".to_string(), is_dir: true }, Entry { name: "say \"hi\".txt".to_string(), is_dir: false }];
         let line = meta_line(2, &m);
         assert!(line.contains(r#""entries":214"#), "the count is exact, never a cap: {}", line);
-        assert!(line.contains(r#""names":[{"n":"ui","d":true},{"n":"say \"hi\".txt","d":false}]"#),
-                "a name is escaped like every other string on this wire: {}", line);
+        assert!(line.contains(r#""names":[{"n":"ui","d":true},{"n":"say \"hi\".txt","d":false}]"#), "a name is escaped like every other string on this wire: {}", line);
         assert!(line.contains(r#""afailed":false"#));
     }
 

@@ -7,8 +7,8 @@ pkgdesc='Fast, keyboard-first file manager for Omarchy'
 arch=('x86_64')
 license=('MIT')
 # omarchy owns /usr/share/omarchy/shell, which ui/Commons and ui/Ui link into; quickshell owns qs.
-# util-linux ships prlimit, which the thumbnail and archive sandboxes require alongside bubblewrap.
-depends=('bubblewrap' 'glib2' 'omarchy' 'quickshell' 'shared-mime-info' 'util-linux' 'xdg-utils')
+# systemd ships systemd-run, and util-linux ships prlimit. Both are part of the cgroup sandbox.
+depends=('bubblewrap' 'glib2' 'omarchy' 'quickshell' 'shared-mime-info' 'systemd' 'util-linux' 'xdg-utils')
 makedepends=('cargo')
 optdepends=('libarchive: archive listing and extraction'
             '7zip: 7z archive support'

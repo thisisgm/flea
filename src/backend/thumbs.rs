@@ -1,6 +1,8 @@
 use crate::backend::aliases::Aliases;
-use crate::backend::child::{run_with_timeout, Ran};
+use crate::backend::child::Ran;
 use crate::backend::sandbox;
+use crate::backend::sandbox_broker::Client;
+use crate::backend::sandbox_exec::Launch;
 use crate::backend::thumbargv::argv;
 use crate::backend::thumbcache::{uri_for, Cache};
 use crate::backend::thumbspec::Thumbnailers;
@@ -11,13 +13,9 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
-// A viewport holds about 35 rows, so a queue twice that absorbs one fast scroll without unbounded growth.
 pub const MAX_QUEUE: usize = 70;
-// The freedesktop "large" size, which is what this box's cache holds.
 pub const THUMB_SIZE: u32 = 256;
-// A decoder that has not answered in this long is hung, and a hung child starves the pool.
 const JOB_TIMEOUT: Duration = Duration::from_secs(20);
-
 pub struct Job {
     pub path: PathBuf,
     pub mtime: i64,
@@ -25,8 +23,6 @@ pub struct Job {
     // None unless FLEA_THUMB_TRACE is set, so an untraced job carries no marks; see AGENTS.md "Thumbnail trace".
     pub trace: Option<Trace>,
 }
-
-// Every mark is a delta from the one Instant taken at submit, so the four durations sum to the job's whole life.
 pub struct Trace {
     pub row: usize,
     pub depth: usize,
@@ -36,7 +32,6 @@ pub struct Trace {
     pub exited: Duration,
 }
 
-// The environment is read once for the process, because the queue path must not pay a lookup per row.
 pub fn trace(row: usize) -> Option<Trace> {
     static ON: OnceLock<bool> = OnceLock::new();
     if !*ON.get_or_init(|| std::env::var_os("FLEA_THUMB_TRACE").is_some_and(|v| !v.is_empty())) {
@@ -58,7 +53,6 @@ pub struct Done {
     pub trace: Option<Trace>,
 }
 
-// Parsed once by the caller and shared from here, so no worker ever opens these files and four workers never read one of them four times.
 struct Tables {
     aliases: Arc<Aliases>,
     specs: Arc<Thumbnailers>,
@@ -77,7 +71,6 @@ impl Pool {
         Pool::start(workers, results, Tables { aliases, specs, cache: Cache::at(root) })
     }
 
-    // A test names its own thumbnailers, because no shipped one can be made to hang on demand.
     #[cfg(test)]
     fn with_specs(workers: usize, results: Sender<Done>, root: PathBuf, entries: &[(String, String)]) -> Pool {
         let aliases = Arc::new(Aliases::load());
@@ -127,7 +120,6 @@ impl Pool {
         dropped
     }
 
-    // Taken and cleared under one lock, because a caller that read the queue first could race a worker's own pop.
     pub fn cancel_all(&self) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
         let mut q = lock.lock().unwrap();
@@ -142,6 +134,7 @@ impl Pool {
 }
 
 fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
+    let mut broker = Client::new();
     loop {
         let mut job = {
             let (lock, cv) = &*inner;
@@ -158,7 +151,7 @@ fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
             t.popped = t.at.elapsed();
         }
         let started = Instant::now();
-        let outcome = run_one(&tables, &mut job);
+        let outcome = run_one(&tables, &mut broker, &mut job);
         let ms = started.elapsed().as_secs_f64() * 1000.0;
         if results.send(Done { path: job.path, result: outcome, ms, trace: job.trace }).is_err() {
             return;
@@ -166,7 +159,7 @@ fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
     }
 }
 
-fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
+fn run_one(tables: &Tables, broker: &mut Client, job: &mut Job) -> Outcome {
     let spec = match tables.specs.for_mime(&job.mime, &tables.aliases) {
         Some(s) => s,
         None => return Outcome::Failed,
@@ -190,28 +183,30 @@ fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
         Some(a) => a,
         None => return discard(&temp),
     };
-    // corner: a missing bwrap or prlimit fails the job closed and records nothing, because a missing package is not a broken file; see AGENTS.md "Thumbnail sandbox".
+    // corner: a missing sandbox program fails closed and records nothing, because a missing package is not a broken file; see AGENTS.md "Thumbnail sandbox".
     if !sandbox::available() {
         return discard(&temp);
     }
     // corner: a thumbnailer that wrote then renamed would fail against this file bind, and only glycin and ffmpegthumbnailer were probed; see AGENTS.md "Thumbnail pool".
-    let full = sandbox::wrap(&inner, &abs, &temp);
+    let launch = match Launch::new(&inner, &abs, &temp) {
+        Ok(launch) => launch,
+        Err(_) => return discard(&temp),
+    };
     if let Some(t) = job.trace.as_mut() {
         t.spawned = t.at.elapsed();
     }
-    let ran = run_with_timeout(&full, JOB_TIMEOUT);
+    let ran = broker.run_checked(&launch.argv, JOB_TIMEOUT, &launch.error);
     if let Some(t) = job.trace.as_mut() {
         t.exited = t.at.elapsed();
     }
-    match ran {
-        Ran::Succeeded if wrote_something(&temp) => {}
-        // corner: a child that never started is the machine's fault, not the file's, so it is not recorded in fail/; see AGENTS.md "Thumbnail pool".
-        Ran::NotStarted => return discard(&temp),
-        // corner: glycin exits 0 on bytes it cannot decode, so an empty output is the decoder's verdict on the file; see AGENTS.md "Thumbnail pool".
-        Ran::Succeeded | Ran::Failed => {
+    let wrote = wrote_something(&temp);
+    if !(ran == Ran::Succeeded && wrote) {
+        if records_failure(ran, wrote) {
+            // glycin exits zero on bad bytes. An empty output is still the decoder's verdict.
             record_failure(&tables.cache, &key_uri, job.mtime);
-            return discard(&temp);
         }
+        // A child that never started is a machine failure, so it does not mark the file.
+        return discard(&temp);
     }
     // The child wrote a bare PNG, so the spec's own metadata is added before the file is published.
     if stamp(&temp, &key_uri, job.mtime).is_err() || std::fs::rename(&temp, &final_path).is_err() {
@@ -220,9 +215,12 @@ fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
     Outcome::Ready(final_path)
 }
 
-// A decoder that ran to completion and left an empty file has judged these bytes, which is exactly what a fail marker records.
 fn wrote_something(temp: &Path) -> bool {
     std::fs::metadata(temp).map(|m| m.len() > 0).unwrap_or(false)
+}
+
+fn records_failure(ran: Ran, wrote: bool) -> bool {
+    !matches!((ran, wrote), (Ran::Succeeded, true) | (Ran::NotStarted, _))
 }
 
 // Every failing path drops its own temp; the one path that cannot is a worker abandoned at exit, which run.rs sweeps by pid.
@@ -271,10 +269,7 @@ mod tests {
         let dir = root(tag);
         // A duration nothing else on the box shares, so the gate below cannot be satisfied by another test's child or another suite's.
         let seconds = format!("{}.{}", base, std::process::id());
-        let body = format!(
-            "[Thumbnailer Entry]\nTryExec=/usr/bin/sleep\nExec=/usr/bin/sleep {}\nMimeType=image/jpeg;\n",
-            seconds
-        );
+        let body = format!("[Thumbnailer Entry]\nTryExec=/usr/bin/sleep\nExec=/usr/bin/sleep {}\nMimeType=image/jpeg;\n", seconds);
         let entries = [("pin.thumbnailer".to_string(), body)];
         let pool = Pool::with_specs(1, tx, dir.clone(), &entries);
         // The pin's input only has to canonicalise, and it sits outside the cache root so the teardown cannot race the worker.
@@ -298,11 +293,7 @@ mod tests {
             Ok(p) => p,
             Err(_) => return false,
         };
-        procs.flatten().any(|p| {
-            std::fs::read(p.path().join("cmdline"))
-                .map(|c| c == want.as_bytes())
-                .unwrap_or(false)
-        })
+        procs.flatten().any(|p| std::fs::read(p.path().join("cmdline")).map(|c| c == want.as_bytes()).unwrap_or(false))
     }
 
     #[test]
@@ -389,5 +380,13 @@ mod tests {
         assert_eq!(png_text(&bytes, "Thumb::URI"), Some(uri_for(&src)));
         assert_eq!(png_text(&bytes, "Thumb::MTime"), Some(FIXTURE_MTIME.to_string()));
         assert_eq!(published, 1, "a temp file survived the publish");
+    }
+
+    #[test]
+    fn only_decoder_verdicts_and_deadlines_record_failure_markers() {
+        assert!(records_failure(Ran::Succeeded, false), "an empty successful decode is a decoder verdict");
+        assert!(records_failure(Ran::Failed, false), "a failure or deadline is a decoder verdict");
+        assert!(!records_failure(Ran::Succeeded, true));
+        assert!(!records_failure(Ran::NotStarted, false), "infrastructure failure must not mark the file");
     }
 }

@@ -1,32 +1,32 @@
 use crate::backend::aliases::Aliases;
-use crate::backend::icons::Names;
-use crate::backend::kind::Kinds;
-use crate::backend::meta::stat_range;
 use crate::backend::archive::Formats;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
-use crate::backend::peek::peek_line;
-use crate::backend::metareq::spawn as spawn_meta;
-use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, Ops};
-use crate::backend::opsreq::OpMsg;
-use crate::backend::mime::Db;
 use crate::backend::dirsizereq::{queue_dirsizes, walk_one_dirsize};
-use crate::backend::fsinfo::{fsinfo_line, read as read_fsinfo};
 use crate::backend::fsinfo::dev_of;
+use crate::backend::fsinfo::{fsinfo_line, read as read_fsinfo};
+use crate::backend::icons::Names;
+use crate::backend::kind::Kinds;
+use crate::backend::listing::Listing;
+use crate::backend::meta::stat_range;
+use crate::backend::metareq::spawn as spawn_meta;
+use crate::backend::mime::Db;
+use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_transfer, start_trash, Ops};
+use crate::backend::opsreq::OpMsg;
+use crate::backend::peek::peek_line;
 use crate::backend::proto::{error_line, error_line_with_mode, listed_line, parse_request, paths_line, thumbed_line, Request};
 use crate::backend::rows::rows_line;
 use crate::backend::sandbox;
 use crate::backend::scan::{mode_of, scan};
-use crate::backend::listing::Listing;
 use crate::backend::search::Search;
-use crate::backend::state::{State, Tables};
 use crate::backend::searchreq::{finish_search, step_search};
 use crate::backend::sort::{parse_sort_by, sort_by_name, sort_listing};
+use crate::backend::state::{State, Tables};
 use crate::backend::thumbcache::{default_root, Cache};
 use crate::backend::thumbreq::{cancel_row, forget_one, report_done, thumb_rows};
 use crate::backend::thumbs::{Done, Pool};
-use crate::backend::thumbwrite::sweep_own_temps;
 use crate::backend::thumbspec::Thumbnailers;
+use crate::backend::thumbwrite::sweep_own_temps;
 use crate::error::{from_io, FleaError};
 use crate::heap;
 use std::cell::RefCell;
@@ -108,24 +108,9 @@ pub fn run() -> i32 {
     let mut out = BufWriter::new(io::stdout());
     let aliases = Arc::new(Aliases::load());
     let thumbs = Arc::new(Thumbnailers::load(&aliases));
-    let tb = Tables {
-        mime: Db::load(),
-        icons: Names::load(),
-        aliases,
-        thumbs,
-        kinds: RefCell::new(Kinds::new()),
-        formats: Arc::new(Formats::probe()),
-    };
-    let mut st = State {
-        listing: Listing::new(),
-        base: PathBuf::new(),
-        asked: Vec::new(),
-        outstanding: 0,
-        dirsizes: HashMap::new(),
-        dirsize_queue: Vec::new(),
-        search: None,
-        search_reported: Instant::now(),
-    };
+    let tb = Tables { mime: Db::load(), icons: Names::load(), aliases, thumbs, kinds: RefCell::new(Kinds::new()), formats: Arc::new(Formats::probe()) };
+    let mut st =
+        State { listing: Listing::new(), base: PathBuf::new(), asked: Vec::new(), outstanding: 0, dirsizes: HashMap::new(), dirsize_queue: Vec::new(), search: None, search_reported: Instant::now() };
 
     let (tx, rx) = channel::<Event>();
     let (results, done) = channel::<Done>();
@@ -136,7 +121,7 @@ pub fn run() -> i32 {
     let cache = Cache::new();
     // Every thumbnail job fails closed without these two, so the reason is said once here rather than never; see AGENTS.md "Thumbnail sandbox".
     if !sandbox::available() {
-        eprintln!("flea: thumbnails are disabled, bwrap or prlimit is not on PATH");
+        eprintln!("flea: thumbnails are disabled, bwrap, prlimit, or systemd-run is not on PATH");
     }
     // The workers hold senders too, so no exit can come from a disconnect and every exit is an explicit event; see AGENTS.md "Thumbnail requests".
     spawn_forwarder(done, tx.clone());
@@ -187,15 +172,7 @@ fn say(out: &mut BufWriter<io::Stdout>, line: &str) {
     out.flush().ok();
 }
 
-fn handle_line(
-    line: &str,
-    out: &mut BufWriter<io::Stdout>,
-    st: &mut State,
-    tb: &Tables,
-    pool: &Pool,
-    cache: &Cache,
-    ops: &mut Ops,
-) -> Control {
+fn handle_line(line: &str, out: &mut BufWriter<io::Stdout>, st: &mut State, tb: &Tables, pool: &Pool, cache: &Cache, ops: &mut Ops) -> Control {
     match parse_request(line) {
         Request::List { path, first, hidden } => {
             // A new listing replaces whatever the walk was filling, so the walk ends before the scan starts.
@@ -300,14 +277,10 @@ fn handle_line(
         Request::Duplicate { path } => start_duplicate(out, ops, &path),
         Request::Undo => do_undo(out, ops),
         // Never touches st.listing, which is the whole point: a column is not the pane's own listing.
-        Request::Peek { path, first, hidden } =>
-            say(out, &peek_line(&path, first, hidden, &tb.mime, &tb.icons)),
+        Request::Peek { path, first, hidden } => say(out, &peek_line(&path, first, hidden, &tb.mime, &tb.icons)),
         // A compress names absolute paths and no path; an extract names the one archive in path.
-        Request::Archive { op, paths, path, dest, format } => start_archive(
-            out, ops, Arc::clone(&tb.formats), &op,
-            paths, format, PathBuf::from(&path), PathBuf::from(&dest)),
-        Request::Convert { path, dest, strip } =>
-            start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip),
+        Request::Archive { op, paths, path, dest, format } => start_archive(out, ops, Arc::clone(&tb.formats), &op, paths, format, PathBuf::from(&path), PathBuf::from(&dest)),
+        Request::Convert { path, dest, strip } => start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip),
         Request::Formats => say(out, &formats_line(&tb.formats, convert::available())),
         Request::FsInfo => say(out, &fsinfo_line(&read_fsinfo(&st.base))),
         // One row, only when a client asked: the same no-sweep rule thumb and dirsize already follow.
@@ -317,8 +290,7 @@ fn handle_line(
                 spawn_meta(row, st.base.join(st.listing.name(row)), text, media, want, ops.tx.clone())
             }
         }
-        Request::Paths { rows } =>
-            say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
+        Request::Paths { rows } => say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
         Request::Quit => return Control::Quit,
         // corner: an unrecognised line is answered with silence, see AGENTS.md.
         Request::Unknown => {}
@@ -348,14 +320,7 @@ fn tick_walkers(out: &mut BufWriter<io::Stdout>, st: &mut State, pool: &Pool) {
 }
 
 // A worker inside a child owns a temp file in the shared cache that only its own return publishes or removes; see AGENTS.md "Thumbnail requests".
-fn drain(
-    out: &mut BufWriter<io::Stdout>,
-    st: &mut State,
-    ops: &mut Ops,
-    rx: &Receiver<Event>,
-    pool: &Pool,
-    cache: &Cache,
-) {
+fn drain(out: &mut BufWriter<io::Stdout>, st: &mut State, ops: &mut Ops, rx: &Receiver<Event>, pool: &Pool, cache: &Cache) {
     let deadline = Instant::now() + DRAIN_LIMIT;
     // A clean shutdown cancels the operation rather than abandoning it: a cancelled copy removes its own
     // partial destination, a file by copy_file and a tree by copy_dir, so quitting leaves nothing behind.

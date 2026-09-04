@@ -1,8 +1,9 @@
 // Duration, pixels and sample rate for a media row, which the preview column names and no listing
 // carries. ffprobe reads the container's own header; nothing is decoded and nothing is written.
 use crate::backend::sandbox;
+use std::io;
 use std::path::Path;
-use std::process::Command;
+use std::process::{Command, Output, Stdio};
 use std::time::Duration;
 
 // A header read on a local file is milliseconds; this is a runaway, not a slow file.
@@ -25,21 +26,11 @@ impl Media {
 }
 
 fn argv(path: &Path) -> Vec<String> {
-    [
-        "ffprobe",
-        "-v",
-        "error",
-        "-show_entries",
-        "format=duration",
-        "-show_entries",
-        "stream=width,height,sample_rate,codec_type",
-        "-of",
-        "default=noprint_wrappers=1",
-    ]
-    .iter()
-    .map(|s| s.to_string())
-    .chain(std::iter::once(path.to_string_lossy().to_string()))
-    .collect()
+    ["ffprobe", "-v", "error", "-show_entries", "format=duration", "-show_entries", "stream=width,height,sample_rate,codec_type", "-of", "default=noprint_wrappers=1"]
+        .iter()
+        .map(|s| s.to_string())
+        .chain(std::iter::once(path.to_string_lossy().to_string()))
+        .collect()
 }
 
 pub fn probe(path: &Path) -> Media {
@@ -48,17 +39,17 @@ pub fn probe(path: &Path) -> Media {
     if !sandbox::available() {
         return Media::default();
     }
-    let full = sandbox::wrap_readonly(&inner, path);
-    let mut cmd = Command::new(&full[0]);
-    cmd.args(&full[1..]);
-    cmd.stdin(std::process::Stdio::null());
-    cmd.stderr(std::process::Stdio::null());
+    let full = sandbox::one_shot(&sandbox::wrap_readonly(&inner, path));
     // corner: prlimit's own --cpu is the real bound; PROBE_LIMIT is named so the constant is not a lie.
     let _ = PROBE_LIMIT;
-    match cmd.output() {
+    match buffered_output(&full) {
         Ok(o) => parse(&String::from_utf8_lossy(&o.stdout)),
         Err(_) => Media::default(),
     }
+}
+
+fn buffered_output(argv: &[String]) -> io::Result<Output> {
+    Command::new(&argv[0]).args(&argv[1..]).stdin(Stdio::null()).stderr(Stdio::null()).output()
 }
 
 // Sample input, one key=value per line, streams before the format block:
@@ -141,5 +132,19 @@ mod tests {
         assert!(a.contains(&"-show_entries".to_string()));
         // No decode and no write: the probe reads headers and prints key=value on stdout.
         assert!(!a.iter().any(|s| s == "-o" || s == "-f"));
+    }
+
+    #[test]
+    fn the_probe_buffers_stdout_and_ignores_diagnostic_stderr() {
+        let argv = ["/usr/bin/sh".to_string(), "-c".to_string(), "printf 'codec_type=video\\nwidth=320\\nheight=200\\n'; printf noise >&2".to_string()];
+        let output = buffered_output(&argv).unwrap();
+        assert!(output.status.success());
+        assert_eq!(parse(&String::from_utf8_lossy(&output.stdout)).width, 320);
+        assert!(output.stderr.is_empty(), "probe diagnostics must stay discarded");
+    }
+
+    #[test]
+    fn a_probe_start_failure_returns_no_buffered_output() {
+        assert!(buffered_output(&["/definitely/not/here".to_string()]).is_err());
     }
 }
