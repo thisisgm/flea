@@ -89,4 +89,71 @@ function run(check) {
     check("every row is tagged as a favourite", favs[3].group + "/" + favs[3].kind, "favorite/favorite")
     check("the mark is resolved by the caller, so the rail keeps its own Icons import", favs[1].glyph, "mark:Downloads")
     check("a box with neither file still gets Home", Places.favorites("/home/gm", "", "", function () { return "m" }).length, 1)
+
+    check("replace rewrites the matched URI and label",
+        Places.replace(netFile, "smb://192.168.1.10/data", "sftp://tom@nas:22/home/tom", "omv"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'sftp://tom@nas/home/tom omv\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("a trailing-slash live uri still finds the written line",
+        Places.replace(netFile, "smb://192.168.1.10/data/", "smb://192.168.1.10/isos", "ISOs"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'smb://192.168.1.10/isos ISOs\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("an empty old uri appends, which is the add dialog",
+        Places.replace(netFile, "", "smb://host/share", "Share"),
+        netFile + "smb://host/share Share\n")
+    check("an unmatched old uri appends rather than dropping the edit",
+        Places.replace(netFile, "smb://missing/x", "smb://host/share", "Share"),
+        netFile + "smb://host/share Share\n")
+    check("an empty new uri is a no-op", Places.replace(netFile, "smb://192.168.1.10/data", "", "X"), netFile)
+    check("a blank label falls back to the path leaf",
+        Places.replace("", "smb://h/data", "smb://h/data", "  "), "smb://h/data data\n")
+    check("an embedded newline in the new label cannot fork a line",
+        Places.replace(netFile, "smb://192.168.1.10/data", "smb://192.168.1.10/data", "Home\nlab"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'smb://192.168.1.10/data Homelab\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("every matching duplicate rewrites to the new uri",
+        Places.replace(dupes, "smb://192.168.1.10/data", "sftp://nas/data", "Homelab"),
+        'sftp://nas/data Homelab\n'
+        + 'file:///home/gm/Downloads Downloads\n'
+        + 'sftp://nas/data Homelab\n')
+
+    check("remove drops the matched line and keeps the rest",
+        Places.remove(netFile, "smb://192.168.1.10/data"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("a trailing-slash live uri still finds the written line to drop",
+        Places.remove(netFile, "smb://192.168.1.10/data/"),
+        'file:///home/gm/Downloads Downloads\n'
+        + 'smb://10.0.0.9/backups Backups\n')
+    check("an empty uri is a no-op", Places.remove(netFile, ""), netFile)
+    check("every matching duplicate is dropped",
+        Places.remove(dupes, "smb://192.168.1.10/data"),
+        'file:///home/gm/Downloads Downloads\n')
+
+    var live = [{ label: "tom", uri: "sftp://tom@h/" }]
+    var saved = [{ label: "omv root", uri: "sftp://tom@h:22/" }]
+    var merged = Places.networkEntries(live, saved)
+    check("a live mount and its bookmark are one row", merged.length, 1)
+    check("the bookmark's label wins over gio's username-on-host name", merged[0].label, "omv root")
+    check("the live uri is what Unmount is handed", merged[0].uri, "sftp://tom@h/")
+    check("the collapsed row reads as mounted", merged[0].mounted, true)
+    var onlyMark = Places.networkEntries([], saved)
+    check("an unmounted bookmark keeps its own uri and label",
+          onlyMark[0].label + "|" + onlyMark[0].uri + "|" + onlyMark[0].mounted, "omv root|sftp://tom@h:22/|false")
+
+    var home = [{ label: "tom@omv ts", uri: "sftp://tom@h:22/home/tom" }]
+    var both = Places.networkEntries(live, saved.concat(home))
+    check("a second sftp path on the same host stays its own row", both.length, 2)
+    check("and reads as mounted because gio only lists the connection root",
+          both[0].mounted + "|" + both[1].label + "|" + both[1].mounted, "true|tom@omv ts|true")
+    check("Unmount of either path is handed gio's live root uri",
+          Places.coveringUri(live, home[0].uri), "sftp://tom@h/")
+    var smbLive = [{ label: "data", uri: "smb://nas/data/" }]
+    var smbMarks = [{ label: "data", uri: "smb://nas/data" }, { label: "isos", uri: "smb://nas/isos" }]
+    var smb = Places.networkEntries(smbLive, smbMarks)
+    check("an SMB share does not mark a different share on the same host mounted",
+          smb.length + "|" + smb[0].mounted + "|" + smb[1].label + "|" + smb[1].mounted, "2|true|isos|false")
 }

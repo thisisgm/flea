@@ -77,4 +77,39 @@ function run(check) {
           Protocols.label({ label: "", host: "h", path: "/media/isos" }), "isos")
     check("falling back to the host when there is no path either",
           Protocols.label({ label: "", host: "nas", path: "/" }), "nas")
+
+    function roundtrip(form) {
+        var built = Protocols.uri(form)
+        var parsed = Protocols.parse(built)
+        return Protocols.uri(parsed)
+    }
+    check("parse inverts the SFTP URI the canvas draws",
+          roundtrip({ protocol: "SFTP", host: "username.servername.example.com", port: "22",
+                      path: "/downloads", user: "username", tls: false }),
+          "sftp://username@username.servername.example.com:22/downloads")
+    check("and the SMB domain form",
+          roundtrip({ protocol: "SMB", host: "nas", port: "445", path: "isos",
+                      user: "gm", domain: "WORKGROUP", tls: false }),
+          "smb://WORKGROUP;gm@nas:445/isos")
+    check("and NFS, which carries no credentials",
+          roundtrip({ protocol: "NFS", host: "nas", port: "2049", path: "/export", user: "gm", tls: false }),
+          "nfs://nas:2049/export")
+    check("and WebDAV with TLS on",
+          roundtrip({ protocol: "WebDAV", host: "h", port: "443", path: "/webdav", user: "u", tls: true }),
+          "davs://u@h:443/webdav")
+    check("ftp is the TLS-off twin of FTPS",
+          Protocols.parse("ftp://u@h:21/").protocol + "|" + Protocols.parse("ftp://u@h:21/").tls,
+          "FTPS|false")
+    check("a bookmark whose path is a literal tilde keeps it, gio does not expand ~",
+          Protocols.parse("sftp://tom@omv.example:22/~").path, "~")
+    check("a missing scheme is not a location", Protocols.parse("nas/share") === null, true)
+    check("an unknown scheme is refused", Protocols.parse("afp://h/share") === null, true)
+    check("a host with a non-numeric colon is refused rather than split",
+          Protocols.parse("sftp://u@[::1]/home") === null, true)
+    check("an @ in the path is not stolen as a username",
+          roundtrip({ protocol: "SFTP", host: "h", port: "22", path: "inbox@2026", user: "u" }),
+          "sftp://u@h:22/inbox@2026")
+    check("and parse keeps that path and the real user",
+          Protocols.parse("sftp://u@h:22/inbox@2026").path + "|"
+          + Protocols.parse("sftp://u@h:22/inbox@2026").user, "inbox@2026|u")
 }

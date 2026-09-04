@@ -245,6 +245,11 @@ QtObject {
         function networkPort(): string { return root.networkDialog.formPort() }
         function networkUri(): string { return root.networkDialog.formUri() }
         function networkPathLabel(): string { return root.networkDialog.formPathLabel() }
+        function networkTitle(): string { return root.networkDialog.titleText }
+        function networkHost(): string { return root.networkDialog.formHost() }
+        function networkPath(): string { return root.networkDialog.formPath() }
+        function networkUser(): string { return root.networkDialog.formUser() }
+        function networkLabel(): string { return root.networkDialog.formLabel() }
         // A protocol chip carries a label and no tree, so a test clicks its centre the way it does a row.
         function networkChipCentre(name: string): string { return root.fleaWindow.centreOf(root.networkDialog.formChip(name)) }
         function shareBrowserOpen(): bool { return root.shareBrowser.active }

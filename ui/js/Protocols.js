@@ -97,3 +97,75 @@ function label(form) {
 function complete(form) {
     return String(form.host || "").trim().length > 0
 }
+
+function protocolFor(schemeName) {
+    switch (String(schemeName || "").toLowerCase()) {
+    case "smb": return "SMB"
+    case "sftp": return "SFTP"
+    case "ftp":
+    case "ftps": return "FTPS"
+    case "dav":
+    case "davs": return "WebDAV"
+    case "nfs": return "NFS"
+    }
+    return ""
+}
+
+// Inverse of uri(): a bookmark line's address becomes the form fields that would rebuild it.
+// corner: a host with a colon that is not a port (IPv6 without brackets) is refused rather than
+// split, because the form has no place to round-trip that spelling.
+function parse(uri) {
+    var raw = String(uri || "").trim()
+    var m = raw.match(/^([a-z][a-z0-9+.-]*):\/\/(.*)$/i)
+    if (!m)
+        return null
+    var schemeName = m[1].toLowerCase()
+    var protocol = protocolFor(schemeName)
+    if (!protocol)
+        return null
+    var rest = m[2]
+    var path = "/"
+    var slash = rest.indexOf("/")
+    if (slash >= 0) {
+        path = rest.substring(slash)
+        rest = rest.substring(0, slash)
+    }
+    var user = ""
+    var domain = ""
+    // Authority only: an @ in the path (inbox@2026) must not be read as credentials.
+    var at = rest.lastIndexOf("@")
+    if (at >= 0) {
+        var creds = rest.substring(0, at)
+        rest = rest.substring(at + 1)
+        var semi = creds.indexOf(";")
+        if (semi >= 0) {
+            domain = creds.substring(0, semi)
+            user = creds.substring(semi + 1)
+        } else {
+            user = creds
+        }
+    }
+    var host = rest
+    var port = ""
+    var colon = rest.lastIndexOf(":")
+    if (colon >= 0) {
+        var maybePort = rest.substring(colon + 1)
+        if (!/^\d+$/.test(maybePort))
+            return null
+        host = rest.substring(0, colon)
+        port = maybePort
+    }
+    if (host.length === 0)
+        return null
+    if (port.length === 0)
+        port = String(defaultPort(protocol))
+    return {
+        protocol: protocol,
+        host: host,
+        port: port,
+        path: path === "/" ? "" : path.replace(/^\/+/, ""),
+        domain: domain,
+        user: user,
+        tls: schemeName === "davs" || schemeName === "ftps"
+    }
+}

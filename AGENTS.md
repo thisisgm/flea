@@ -3496,16 +3496,28 @@ with its own trailing slash; nothing forced the two to agree, so `smb://h/data` 
 `smb://h/data/` (gio's own report of the same share once mounted) compared unequal everywhere a
 uri was used as a dedup key, and could show as two rows for one share. `ui/js/Mounts.js` gained
 `normalize(uri)`: every trailing slash is stripped, except a bare server root (nothing left but
-`scheme://host`), which keeps exactly one, the shape `gio` itself needs to parse it back. Applied
-in two places, per the ruling ("apply it... on write and on compare"): `ui/NetworkDialog.qml`'s
-`appendBookmark()` writes the normalized form rather than the raw typed string, and
-`ui/NetworkMounts.qml`'s `rebuild()` dedups live mounts against bookmarks using normalized keys
-rather than the raw `uri` fields, so a live mount (gio's trailing-slash form) and a bookmark (now
-also normalized, but an old hand-edited line might not be) still collapse to one row. `parseMounts()`
-and `nonFileBookmarks()` themselves are left returning whatever form their own source actually
-carries; only the write path and the dedup comparison were ever the places two spellings needed to
-agree. `tests/js/mounts.js` proves `normalize("smb://h/data") === normalize("smb://h/data/")` and
-that a bare root normalizes to its one-trailing-slash form regardless of how it was typed.
+`scheme://host`), which keeps exactly one, the shape `gio` itself needs to parse it back. A scheme's
+default port is dropped too: the add form writes `sftp://user@host:22/path` and `gio mount -l`
+reports `sftp://user@host/path`, which used to show as two rail rows (a dim bookmark the cursor
+stayed on, and a brighter live mount of the same share). Applied in two places, per the ruling
+("apply it... on write and on compare"): `ui/NetworkDialog.qml`'s write path uses the normalized
+form rather than the raw typed string, and `ui/NetworkMounts.qml`'s `rebuild()` dedups live mounts
+against bookmarks using normalized keys rather than the raw `uri` fields, so a live mount and a
+bookmark still collapse to one row. `parseMounts()` and `nonFileBookmarks()` themselves are left
+returning whatever form their own source actually carries; only the write path and the dedup
+comparison were ever the places two spellings needed to agree. `tests/js/mounts.js` proves a
+trailing slash, a default sftp port, and a bare root all collapse, and a non-default port does not.
+
+Once collapsed, the live `gio mount -l` row used to keep gio's own label ("tom" for an SFTP
+session) and drop the bookmark's, so `r` rewrote the file and the next poll put "tom" back.
+`Places.networkEntries` keeps the bookmark label on the live row. Unmount of a share whose FUSE
+path is the current listing goes Home first; otherwise gio refuses as busy.
+
+gvfsd-sftp mounts one connection per host: `gio mount -l` lists `sftp://user@host/` even when the
+bookmark is `sftp://user@host/home/tom`. A second path on that host now stays its own rail row and
+reads as mounted. Unmount sends gio the live root URI, and leaving Home is keyed on the connection
+not the path, so a listing inside `/home/tom` no longer keeps the root "in use". SMB/NFS stay
+per-share: a live `smb://nas/data` does not light `smb://nas/isos`.
 
 ### The rail menu, tested with a stubbed gio and a stubbed lsblk
 
@@ -3621,3 +3633,22 @@ key press fires a compositor bind, so `omarchy-drive hotkey --global super w` is
 on the ACTIVE window, so assert the active window is the one the run launched before sending it, and
 never call `hl.dsp.window.close()` with no argument: it returns `ok` rather than printing a signature
 and acts on whatever is active, which may be a window you did not open.
+
+### Editing a network place rewrites the bookmark line, not just its label
+
+`r` on a NETWORK row still only relabels. The URI itself is edited through the same dialog Add
+uses: right-click (or `m`) on a share, **Edit**, which fills `ui/NetworkForm.qml` from
+`Protocols.parse` and Save writes through `Places.replace`. An unmounted bookmark's menu is Edit
+alone, so a URI that will not mount (the operator's real `sftp://user@host:22/~`; gio does not
+expand `~`) can still be rewritten. A mounted share keeps **Unmount** first so Ctrl+E still
+releases; `Mounts.releaseAction` is what Ctrl+E reads, never `railMenu()[0]`, because Edit is a
+menu row and not a release.
+
+`Places.replace(body, oldUri, newUri, label)` is the write: normalized match like `relabel`, every
+duplicate rewritten, control characters stripped from the label, an empty old URI appends (Add).
+`Places.remove(body, uri)` drops matching lines. An unmounted bookmark is dropped immediately. A
+live one is unmounted first and the file is rewritten only from `unmountProcess.onExited` when
+gio succeeds, so a busy share keeps its row. `Protocols.parse` splits the path off before it
+looks for `@`, so a path like `inbox@2026` is not stolen as a username. `tests/js/places.js`,
+`tests/js/protocols.js`, `tests/js/mounts.js`, `tests/ui.sh case_networkedit` and
+`case_networkremove` hold it.

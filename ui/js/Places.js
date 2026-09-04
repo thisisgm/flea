@@ -62,6 +62,72 @@ function leaf(path) {
     return cut < 0 ? path : path.substring(cut + 1)
 }
 
+function taggedShare(uri, label, mounted) {
+    return { path: "", label: label, group: "network", kind: "share", uri: uri, mounted: mounted, glyph: "server" }
+}
+
+// gvfsd-sftp (and ftp) mounts one connection per host, not per path. SMB/NFS stay per share.
+function connectionKey(uri) {
+    var n = Mounts.normalize(uri)
+    var s = (n.match(/^([a-z][a-z0-9+.-]*)/i) || [""])[0].toLowerCase()
+    if (s !== "sftp" && s !== "ssh" && s !== "ftp" && s !== "ftps")
+        return n
+    var m = n.match(/^([a-z][a-z0-9+.-]*:\/\/[^\/]+)/i)
+    return m ? Mounts.normalize(m[1]) : n
+}
+
+function covers(liveUri, otherUri) {
+    var a = connectionKey(liveUri)
+    return a.length > 0 && a === connectionKey(otherUri)
+}
+
+function coveringUri(mounts, uri) {
+    var list = mounts || []
+    for (var i = 0; i < list.length; i++) {
+        if (covers(list[i].uri, uri))
+            return list[i].uri
+    }
+    return uri
+}
+
+// Live mounts first, then bookmarks not already shown. A bookmark's label wins over gio's
+// "user on host" name. An SFTP path on a live host is mounted even when gio only lists the root.
+function networkEntries(mounts, marks) {
+    var labels = {}
+    var list = marks || []
+    for (var j = 0; j < list.length; j++) {
+        var k = Mounts.normalize(list[j].uri)
+        if (k.length === 0 || labels[k] !== undefined)
+            continue
+        labels[k] = list[j].label
+    }
+    var out = []
+    var seen = {}
+    var live = mounts || []
+    for (var i = 0; i < live.length; i++) {
+        var mkey = Mounts.normalize(live[i].uri)
+        if (seen[mkey])
+            continue
+        seen[mkey] = true
+        out.push(taggedShare(live[i].uri, labels[mkey] || live[i].label, true))
+    }
+    for (var n = 0; n < list.length; n++) {
+        var bkey = Mounts.normalize(list[n].uri)
+        if (seen[bkey])
+            continue
+        seen[bkey] = true
+        var mounted = false
+        for (var k = 0; k < live.length; k++) {
+            if (covers(live[k].uri, list[n].uri)) {
+                mounted = true
+                break
+            }
+        }
+        out.push(taggedShare(list[n].uri, list[n].label, mounted))
+    }
+    return out
+}
+
 // Sample input: "smb://192.168.1.10/data NAS"; see AGENTS.md "Places.relabel" for the matching, duplicate and control-character rules.
 function relabel(body, path, name) {
     // A trust boundary: an embedded newline could otherwise split one bookmark into two lines.
@@ -88,4 +154,59 @@ function relabel(body, path, name) {
     if (out.length > 0 && out.charAt(out.length - 1) !== "\n")
         out += "\n"
     return out + target + " " + trimmed + "\n"
+}
+
+// Sample input: body as relabel's, oldUri the bookmark being rewritten, newUri the form's Mounts-as
+// line. Matching is the same normalized compare relabel uses, so a live gio trailing slash still
+// finds the written line. An empty oldUri matches nothing and appends, which is the add-dialog path.
+function replace(body, oldUri, newUri, label) {
+    var trimmed = String(label || "").replace(/[\r\n]/g, "").trim()
+    var next = Mounts.normalize(newUri)
+    if (next.length === 0)
+        return String(body || "")
+    if (trimmed.length === 0)
+        trimmed = Mounts.leaf(next)
+    var target = Mounts.normalize(oldUri)
+    var lines = String(body || "").split("\n")
+    var found = false
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i]
+        if (line.trim().length === 0)
+            continue
+        var space = line.indexOf(" ")
+        var uri = space < 0 ? line : line.substring(0, space)
+        if (target.length > 0 && Mounts.normalize(uri) === target) {
+            lines[i] = next + " " + trimmed
+            found = true
+        }
+    }
+    if (found)
+        return lines.join("\n")
+    var out = String(body || "")
+    if (out.length > 0 && out.charAt(out.length - 1) !== "\n")
+        out += "\n"
+    return out + next + " " + trimmed + "\n"
+}
+
+// Drops every line whose uri matches, leaving the rest byte-identical. An empty uri is a no-op
+// so a Dropbox row with no bookmark cannot wipe the file.
+function remove(body, uri) {
+    var target = Mounts.normalize(uri)
+    if (target.length === 0)
+        return String(body || "")
+    var lines = String(body || "").split("\n")
+    var out = []
+    for (var i = 0; i < lines.length; i++) {
+        var line = lines[i]
+        if (line.trim().length === 0) {
+            out.push(line)
+            continue
+        }
+        var space = line.indexOf(" ")
+        var u = space < 0 ? line : line.substring(0, space)
+        if (Mounts.normalize(u) === target)
+            continue
+        out.push(line)
+    }
+    return out.join("\n")
 }

@@ -42,6 +42,12 @@ Item {
     // report a second, redundant failure for the exact same mount attempt.
     property bool _mountTimedOut: false
     property string _pendingUnmountLabel: ""
+    property string _pendingUnmountUri: ""
+    // Set by Remove on a live share; the bookmark is dropped only after gio -u succeeds.
+    property string _pendingRemoveUri: ""
+    // The FUSE path last opened for a share, so Unmount can leave it before gio -u (busy otherwise).
+    property string _openFuse: ""
+    property string _openFuseKey: ""
     // A re-read asked for mid-listing used to be dropped, leaving a just-mounted share to wait out
     // the poll; this remembers it instead, and mountListProcess runs it the moment the listing ends.
     property bool _pollAgain: false
@@ -84,25 +90,11 @@ Item {
         onTriggered: root.pollMounts()
     }
 
-    // Three sources, deduped on the normalized uri (see ui/js/Mounts.js "normalize"): a live gio mount wins over a bookmark for the same share even when the trailing slash differs.
+    // Three sources, deduped on the normalized uri (see ui/js/Mounts.js "normalize"): a live gio
+    // mount wins the row, the bookmark keeps the label. Places.networkEntries is that merge.
     function rebuild() {
         var home = Quickshell.env("HOME")
-        var out = []
-        var seen = {}
-        var mounts = Mounts.parseMounts(root._mountListing)
-        for (var i = 0; i < mounts.length; i++) {
-            var mkey = Mounts.normalize(mounts[i].uri)
-            if (seen[mkey]) continue
-            seen[mkey] = true
-            out.push({ path: "", label: mounts[i].label, group: "network", kind: "share", uri: mounts[i].uri, mounted: true, glyph: "server" })
-        }
-        var marks = Mounts.nonFileBookmarks(root.bookmarksText)
-        for (var j = 0; j < marks.length; j++) {
-            var bkey = Mounts.normalize(marks[j].uri)
-            if (seen[bkey]) continue
-            seen[bkey] = true
-            out.push({ path: "", label: marks[j].label, group: "network", kind: "share", uri: marks[j].uri, mounted: false, glyph: "server" })
-        }
+        var out = Places.networkEntries(Mounts.parseMounts(root._mountListing), Mounts.nonFileBookmarks(root.bookmarksText))
         if (dropboxFile.loaded) {
             out.push({ path: home + "/Dropbox", label: "Dropbox", group: "network", kind: "dropbox", uri: "", mounted: true, glyph: "" })
         }
@@ -162,10 +154,47 @@ Item {
     // instance breaks the whole window's keyboard focus" for why one was tried and reverted.
     function unmount(index) {
         var e = root.entries[index]
-        if (!e || e.kind !== "share" || !e.mounted || unmountProcess.running) return
+        if (!e || e.kind !== "share" || !e.mounted || unmountProcess.running || unmountDelay.running)
+            return false
         root._pendingUnmountLabel = e.label
-        unmountProcess.command = ["gio", "mount", "-u", e.uri]
+        // gio lists one SFTP mount for the host; -u must be that URI, not a path on it.
+        var target = Places.coveringUri(Mounts.parseMounts(root._mountListing), e.uri)
+        root._pendingUnmountUri = target
+        if (root._openFuseKey.length > 0 && Places.connectionKey(e.uri) === root._openFuseKey) {
+            root._openFuse = ""
+            root._openFuseKey = ""
+            root.opened(Quickshell.env("HOME"))
+            unmountDelay.restart()
+            return true
+        }
+        root.runUnmount(target)
+        return true
+    }
+
+    function runUnmount(uri) {
+        unmountProcess.command = ["gio", "mount", "-u", uri]
         unmountProcess.running = true
+    }
+
+    function dropBookmark(uri) {
+        var body = bookmarksWrite.text()
+        bookmarksWrite.setText(Places.remove(body, uri))
+        bookmarksWrite.waitForJob()
+        root.renamed()
+    }
+
+    // An unmounted bookmark is dropped immediately. A live one is unmounted first; the file is
+    // rewritten from unmountProcess.onExited only when gio succeeds, so a busy share keeps its row.
+    function remove(index) {
+        var e = root.entries[index]
+        if (!e || e.kind !== "share") return
+        if (!e.mounted) {
+            root.dropBookmark(e.uri)
+            return
+        }
+        root._pendingRemoveUri = e.uri
+        if (!root.unmount(index))
+            root._pendingRemoveUri = ""
     }
 
     // Rewrites uri's own label, or appends a bookmark for it if it was only ever a live mount;
@@ -214,6 +243,18 @@ Item {
         }
     }
 
+    Timer {
+        id: unmountDelay
+        interval: 150
+        repeat: false
+        onTriggered: {
+            var uri = root._pendingUnmountUri
+            root._pendingUnmountUri = ""
+            if (uri.length > 0)
+                root.runUnmount(uri)
+        }
+    }
+
     Process {
         id: mountProcess
         stderr: StdioCollector { id: mountErr; waitForEnd: true; onStreamFinished: root._mountErrOutput = text }
@@ -241,7 +282,10 @@ Item {
             var body = String(infoOut.text || root._infoOutput || "")
             var line = body.split("\n").find(function (l) { return l.indexOf("local path: ") === 0 })
             if (exitCode === 0 && line) {
-                root.opened(line.substring("local path: ".length).trim())
+                var localPath = line.substring("local path: ".length).trim()
+                root._openFuse = localPath
+                root._openFuseKey = Places.connectionKey(root._pendingUri)
+                root.opened(localPath)
                 return
             }
             if (root.isBareRoot(root._pendingUri)) {
@@ -269,12 +313,18 @@ Item {
     Process {
         id: unmountProcess
         onExited: function (exitCode) {
+            var removeUri = root._pendingRemoveUri
+            root._pendingRemoveUri = ""
             root.pollMounts()
             // A success message replaces the arm prompt, which would otherwise linger, stale,
             // for up to its own 4 s clear window with nothing on screen to say it already fired.
-            root.message(exitCode === 0
-                ? "Unmounted " + root._pendingUnmountLabel + "."
-                : "That share could not be unmounted; it may still be in use.", exitCode !== 0)
+            if (exitCode === 0) {
+                if (removeUri.length > 0)
+                    root.dropBookmark(removeUri)
+                root.message("Unmounted " + root._pendingUnmountLabel + ".", false)
+                return
+            }
+            root.message("That share could not be unmounted; it may still be in use.", true)
         }
     }
 
