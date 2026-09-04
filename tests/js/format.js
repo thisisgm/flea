@@ -1,5 +1,8 @@
 .import "../../ui/js/Format.js" as Format
 
+// The whole Format suite against one check function: sizes, dates, permissions and
+// path parts. The date pins read the wall clock of the timezone js.sh hands the
+// harness, so a regression to the old UTC getters reddens on every box.
 function run(check) {
     // The home prefix reads as the user writes it; the window chrome and the search strip share this.
     check("a path under home comes back with a tilde",

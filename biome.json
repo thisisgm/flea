@@ -1,0 +1,9 @@
+{
+    "$schema": "https://biomejs.dev/schemas/2.5.8/schema.json",
+    // Every .js in this tree is QML dialect: .pragma library and .import are the
+    // language qml6 runs, not ECMAScript, and the tree's own gate for them is
+    // ./tests/js.sh. There is no plain JavaScript here to lint.
+    "files": {
+        "includes": ["**", "!ui/js/**", "!tests/js/**"]
+    }
+}
