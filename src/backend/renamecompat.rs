@@ -20,9 +20,7 @@ extern "C" {
     ) -> i32;
 }
 
-// rclone's FUSE server rejects RENAME_NOREPLACE with EINVAL, but its ordinary directory rename
-// calls operations.DirMove, whose contract refuses an existing destination. Files are excluded:
-// rclone's file move deliberately accepts a destination object to overwrite.
+// rclone rejects directory RENAME_NOREPLACE, while its ordinary DirMove refuses collisions; file moves can overwrite and stay excluded.
 pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
     let c_from = path_c(from)?;
     let c_to = path_c(to)?;
@@ -58,8 +56,7 @@ fn rclone_directory_fallback(from: &Path, to: &Path, mountinfo: &str) -> Option<
     if mount_type_in(from, mountinfo).as_deref() != Some("fuse.rclone") {
         return None;
     }
-    // Preserve Flea's stable collision result before entering the compatibility operation. If a
-    // destination arrives after this check, rclone's DirMove performs the authoritative refusal.
+    // Reject visible collisions first; rclone's DirMove contract remains authoritative if a destination races into existence.
     match to.symlink_metadata() {
         Ok(_) => return Some(Err(io::Error::from_raw_os_error(EEXIST))),
         Err(e) if e.kind() == io::ErrorKind::NotFound => {}
