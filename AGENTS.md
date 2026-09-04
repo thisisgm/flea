@@ -354,8 +354,8 @@ a terminal, because the terminal interface is reserved but not built and a bare 
 open the product that exists. `--tui` is the only route to that reserved interface. It requires
 both stdin and stdout to be a real terminal, not just one, so a future implementation cannot write
 escape codes into a pipeline. `flea | head` gives stdin a tty and stdout a pipe and an explicit
-`--tui` therefore refuses. `--gui` without `WAYLAND_DISPLAY` or `DISPLAY` refuses rather than
-trying and failing inside `qs`.
+`--tui` therefore refuses. A window launch without a non-empty `WAYLAND_DISPLAY` or `DISPLAY`
+refuses rather than trying and failing inside `qs`.
 
 `./tests/modes.sh` checks both no-flag shapes: redirected handles exercise the launcher path and
 `script` from the hard `util-linux` dependency gives the child a real pty on both handles, pinning

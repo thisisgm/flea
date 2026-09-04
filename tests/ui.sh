@@ -822,11 +822,15 @@ case_menu() {
     local dir="$fixture_root/menu"
     sandbox_scratch "$dir"
     mkdir -p "$dir/subdir"
+    : > "$dir/a.txt"
+    : > "$dir/b.txt"
+    : > "$dir/c.txt"
     : > "$dir/plain.txt"
     launch "$dir"
-    wait_listing 2
-    local row_height centre cx cy wx wy ww wh
-    row_height=$(ipc metrics | cut -d' ' -f4)
+    wait_listing 5
+    local row_height row_padding_x centre cx cy wx wy ww wh row_left beneath_y metrics
+    metrics=$(ipc metrics) || fail "menu: metrics unavailable"
+    read -r _body _caption row_padding_x row_height <<< "$metrics"
     click_row 1 right
     settle
     printf 'MENU on-file visible=%s cursor=%s\n' "$(ipc contextMenuVisible)" "$(ipc cursor)"
@@ -845,6 +849,36 @@ case_menu() {
     centre=$(ipc rowCentre 0)
     read -r cx cy <<< "$centre"
     read -r wx wy ww wh < <(window_box)
+
+    # Clicking outside still closes through the backdrop after menu pointer ownership changes.
+    click_row 0 right
+    settle
+    centre=$(ipc rowCentre 1)
+    read -r _beneath_cx beneath_y <<< "$centre"
+    row_left=$(ipc rowLeft 1)
+    omarchy-drive click "$((wx + row_left + row_padding_x))" "$((wy + beneath_y))" left >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "an outside click did not close the context menu"
+
+    # Rename lies over visible row 3 here; its click belongs only to the menu, never that row below.
+    click_row 0 right
+    settle
+    centre=$(ipc rowCentre 3)
+    read -r _beneath_cx beneath_y <<< "$centre"
+    [[ -n "$beneath_y" ]] || fail "menu: row 3 is not visible beneath Rename"
+    omarchy-drive click "$((wx + cx + row_height))" "$((wy + beneath_y))" left >/dev/null
+    settle
+    printf 'MENU rename-over-row cursor=%s renaming=%s live=%s text=%q beneath=%s\n' \
+        "$(ipc cursor)" "$(ipc renamingIndex)" "$(ipc renameEditorLive)" \
+        "$(ipc renameEditorText)" "$(ipc rowAt 3 | cut -d'|' -f1)"
+    shot menu-rename-over-row
+    [[ "$(ipc cursor)" == "0" ]] || fail "Rename passed its click to row $(ipc cursor)"
+    [[ "$(ipc renamingIndex)" == "0" ]] || fail "Rename retargeted or committed row 0, renamingIndex is $(ipc renamingIndex)"
+    [[ "$(ipc renameEditorLive)" == "true" ]] || fail "Rename left no live editor on row 0"
+    [[ "$(ipc renameEditorText)" == "subdir" ]] || fail "Rename opened over '$(ipc renameEditorText)', not subdir"
+    key -k Escape >/dev/null
+    settle
+
     click_row 0 right
     settle
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "right click on the directory opened no menu"

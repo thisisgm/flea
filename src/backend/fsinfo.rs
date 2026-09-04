@@ -10,7 +10,7 @@ pub fn dev_of(path: &Path) -> u64 {
     use std::os::unix::fs::MetadataExt;
     std::fs::metadata(path).map(|m| m.dev()).unwrap_or(0)
 }
-use std::ffi::CString;
+use std::ffi::{c_char, CString};
 use std::path::Path;
 
 // The f_type values for the filesystems this box can actually mount; anything else reports its hex.
@@ -52,7 +52,7 @@ struct StatFs {
 }
 
 extern "C" {
-    fn statfs(path: *const i8, buf: *mut StatFs) -> i32;
+    fn statfs(path: *const c_char, buf: *mut StatFs) -> i32;
 }
 
 pub struct Info {

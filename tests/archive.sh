@@ -57,7 +57,22 @@ check "and the convert tool is reported" "1" "$(printf '%s' "$formats" | grep -c
 echo "  $formats"
 stop_backend
 
-for format in tar.zst zip 7z; do
+seven_zip_installed=0
+if command -v 7z >/dev/null 2>&1; then
+  seven_zip_installed=1
+fi
+seven_zip_advertised=$(printf '%s' "$formats" | grep -c '"7z"')
+check "7z availability matches the advertised format" "$seven_zip_installed" "$seven_zip_advertised"
+
+# tar.zst and zip are required; exercise optional 7z exactly when the live backend offers it.
+round_trip_formats="tar.zst zip"
+if [ "$seven_zip_advertised" = 1 ]; then
+  round_trip_formats="$round_trip_formats 7z"
+else
+  echo "--- 7z is unavailable; optional round trip skipped ---"
+fi
+
+for format in $round_trip_formats; do
   echo "--- compress and extract $format ---"
   start_backend
   send "{\"c\":\"archive\",\"op\":\"compress\",\"paths\":[\"$D/src/a.txt\",\"$D/src/sub\"],\"dest\":\"$D/out.$format\",\"format\":\"$format\"}"
