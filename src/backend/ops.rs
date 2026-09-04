@@ -2,7 +2,7 @@
 use crate::backend::copyfile::{copy_any, remove_any, Progress};
 use crate::backend::undo::Step;
 use crate::error::{from_io, FleaError};
-use std::ffi::CString;
+use std::ffi::{c_char, CString};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
@@ -17,7 +17,7 @@ const NEW_FOLDER: &str = "New Folder";
 
 // std has no wrapper for the flag that makes rename refuse to clobber, so the syscall is declared here rather than taking a crate.
 extern "C" {
-    fn renameat2(olddirfd: i32, oldpath: *const i8, newdirfd: i32, newpath: *const i8, flags: u32) -> i32;
+    fn renameat2(olddirfd: i32, oldpath: *const c_char, newdirfd: i32, newpath: *const c_char, flags: u32) -> i32;
 }
 
 // A name from the client is a trust boundary: anything with a separator would move the file out of its own directory.
