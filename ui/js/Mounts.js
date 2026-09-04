@@ -1,5 +1,7 @@
 .pragma library
 
+.import "Remote.js" as Remote
+
 // Sample input, captured live on the box with one network share mounted (2026-08-31):
 // Drive(0): KBG40ZNS256G NVMe KIOXIA 256GB
 //   Type: GProxyDrive (GProxyVolumeMonitorUDisks2)
@@ -68,9 +70,26 @@ function decodePath(raw) {
     }
 }
 
-// One canonical form: every trailing slash stripped, except a bare host root, which keeps one.
+// gio mount -l omits a scheme's default port; the add form writes it. Same share either way.
+var DEFAULT_PORTS = { smb: "445", sftp: "22", ftp: "21", ftps: "21", dav: "443", davs: "443", nfs: "2049" }
+
+function stripDefaultPort(uri) {
+    var m = String(uri).match(/^([a-z][a-z0-9+.-]*):\/\//i)
+    if (!m)
+        return uri
+    var def = DEFAULT_PORTS[m[1].toLowerCase()]
+    if (!def)
+        return uri
+    var rest = uri.substring(m[0].length)
+    var at = rest.lastIndexOf("@")
+    var hostPart = at >= 0 ? rest.substring(at + 1) : rest
+    var head = at >= 0 ? uri.substring(0, m[0].length + at + 1) : m[0]
+    return head + hostPart.replace(new RegExp("^([^/]+):" + def + "(?=/|$)"), "$1")
+}
+
+// One canonical form: default ports dropped, trailing slashes stripped except a bare host root.
 function normalize(uri) {
-    var stripped = String(uri || "").replace(/\/+$/, "")
+    var stripped = stripDefaultPort(String(uri || "")).replace(/\/+$/, "")
     var bareRoot = /^[a-z][a-z0-9+.-]*:\/\/[^\/]+$/i.test(stripped)
     return bareRoot ? stripped + "/" : stripped
 }
@@ -153,22 +172,37 @@ function sameEntries(a, b) {
 function sameEntry(x, y) {
     return x.path === y.path && x.label === y.label && x.group === y.group && x.kind === y.kind
         && x.uri === y.uri && x.device === y.device && x.mounted === y.mounted && x.glyph === y.glyph
+        && x.origin === y.origin && x.health === y.health && x.address === y.address
+        && x.peerId === y.peerId && x.taildrop === y.taildrop && x.mac === y.mac
 }
 
 // Sample input: one rail entry as ui/DeviceMounts.qml and ui/NetworkMounts.qml build them,
 // {label:"128GB", group:"device", kind:"volume", device:"/dev/sda1", mounted:true}.
-// A removable volume ejects and a mounted network share unmounts; every other rail row offers
-// neither and opens no menu. The kind is read here, never re-derived: the internal disk reads as
-// mounted too, the Dropbox row is a local folder the stock service owns, and a favourite is not a
-// mount. gio's -f is offered nowhere: forcing an unmount over an open write is how data is lost.
+// A removable volume ejects and a mounted network share unmounts; a share also offers Edit so a
+// bookmark whose URI is wrong can be rewritten without leaving the rail. Every other rail row
+// offers neither and opens no menu. The kind is read here, never re-derived: the internal disk
+// reads as mounted too, the Dropbox row is a local folder the stock service owns, and a favourite
+// is not a mount. gio's -f is offered nowhere: forcing an unmount over an open write is how data
+// is lost. Unmount stays first on a live share so Ctrl+E still releases rather than opening Edit.
 function railMenu(entry) {
-    if (!entry || !entry.mounted)
+    if (!entry)
         return []
-    if (entry.group === "device" && entry.kind === "volume")
+    if (entry.group === "device" && entry.kind === "volume" && entry.mounted)
         return [{ label: "Eject", action: "eject", glyph: "eject" }]
-    if (entry.group === "network" && entry.kind === "share")
-        return [{ label: "Unmount", action: "unmount", glyph: "eject" }]
+    if (entry.group === "network")
+        return Remote.menu(entry)
     return []
+}
+
+// The action Ctrl+E fires: eject or unmount, never Edit. A bookmark-only share has a menu and
+// still answers empty here, so the key cannot rewrite a URI the operator did not open a menu for.
+function releaseAction(entry) {
+    var rows = railMenu(entry)
+    for (var i = 0; i < rows.length; i++) {
+        if (rows[i].action === "eject" || rows[i].action === "unmount")
+            return rows[i].action
+    }
+    return ""
 }
 
 // The handle a chosen menu row carries back: a volume's device node, a share's uri, "" for a row
@@ -179,7 +213,7 @@ function railKey(entry) {
         return ""
     if (entry.group === "device" && entry.kind === "volume")
         return String(entry.device || "")
-    if (entry.group === "network" && entry.kind === "share")
+    if (entry.group === "network" && entry.kind !== "dropbox")
         return String(entry.uri || "")
     return ""
 }
@@ -205,7 +239,7 @@ function holding(entries, dir) {
     var path = String(dir || "")
     for (var i = 0; i < list.length; i++) {
         var e = list[i]
-        if (!e.path || railMenu(e).length === 0)
+        if (!e.path || !releaseAction(e))
             continue
         if (path === e.path || path.indexOf(e.path + "/") === 0)
             return e
@@ -229,16 +263,31 @@ function raiseMenu(pane, sidebar) {
 // a five second poll, so the index the menu opened over can name a different row by now. A key
 // that no longer names a row does nothing, because the row it named has left the rail already.
 // Both Services re-check the kind themselves; this only resolves which row was meant.
-function release(action, key, devices, mounts, deviceEntries, networkEntries) {
+function release(action, key, devices, mounts, deviceEntries, networkEntries, actions) {
     if (action === "eject") {
         var volume = rowByKey(deviceEntries, key)
         if (volume >= 0)
             devices.eject(volume)
         return
     }
-    if (action === "unmount") {
-        var share = rowByKey(networkEntries, key)
-        if (share >= 0)
-            mounts.unmount(share)
-    }
+    var share = rowByKey(networkEntries, key)
+    if (share < 0)
+        return
+    if (action === "unmount")
+        mounts.unmount(share)
+    var entry = networkEntries[share]
+    if (action === "edit" && actions)
+        actions.edit(entry.uri, entry.label)
+    if (action === "remove")
+        mounts.remove(share)
+    if (action === "reconnect")
+        mounts.activate(share)
+    if (action === "copy-address" && actions)
+        actions.copyAddress(entry)
+    if (action === "open-ssh" && actions)
+        actions.openSsh(entry)
+    if (action === "taildrop-peer" && actions)
+        actions.taildrop(entry.peerId)
+    if (action === "wake" && actions)
+        actions.wake(entry)
 }

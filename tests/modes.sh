@@ -117,6 +117,11 @@ check "and that sentence names the handler" "1" "$(echo "$out" | grep -c 'nothin
 out=$($BIN --open 2>&1 </dev/null)
 check "--open with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--open')"
 
+out=$($BIN --wake not-a-mac 2>&1 </dev/null)
+rc=$?
+check "--wake rejects an invalid MAC before networking" "1" "$rc"
+check "and names the accepted MAC shape" "1" "$(echo "$out" | grep -c 'aa:bb:cc:dd:ee:ff')"
+
 # The stub qs is what exec_qs launched, so it inherits huge pages off; --open must hand them back.
 printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nexec %s --open %s\n' "$PWD/$BIN" "$D/file.txt" > "$D/bin/qs"
 chmod +x "$D/bin/qs"

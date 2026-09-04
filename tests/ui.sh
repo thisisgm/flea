@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; no argument runs all thirty-one.
+# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|networkedit|networkremove|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; no argument runs all thirty-three.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -303,7 +303,7 @@ launch() {
     kill_flea
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
-    FLEA_PATH="$start_path" FLEA_BIN="$flea_bin" \
+    FLEA_PATH="$start_path" FLEA_BIN="$flea_bin" FLEA_DISABLE_NETWORK_DISCOVERY=1 \
         setsid nohup qs -p "$flea_ui" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
@@ -2050,12 +2050,12 @@ case_network() {
     settle
     [[ "$(ipc dialogOpen)" == "true" ]] || fail "network: a from the rail did not open the add-location dialog"
     shot network-dialog-open
-    # The form opens with the caret in Host, which is the one field it actually needs.
-    # TEST-NET-2 (RFC 5737): guaranteed non-routable, so this never actually dials out.
+    # The form opens in Quick Connect. TEST-NET-2 (RFC 5737) is guaranteed non-routable,
+    # and saving a bookmark never dials it.
     key "198.51.100.1" >/dev/null
     settle
-    [[ "$(ipc networkUri)" == "smb://198.51.100.1:445/" ]] \
-        || fail "network: the Mounts-as line reads $(ipc networkUri)"
+    [[ "$(ipc networkQuickUri)" == "sftp://198.51.100.1/" ]] \
+        || fail "network: Quick Connect previews $(ipc networkQuickUri)"
     key -k Return >/dev/null
     settle
     [[ "$(ipc dialogOpen)" == "false" ]] || fail "network: Enter did not submit and close the dialog"
@@ -2111,6 +2111,7 @@ case_network() {
     key a >/dev/null
     settle
     [[ "$(ipc dialogOpen)" == "true" ]] || fail "network: the dialog did not reopen for the traversal walk"
+    key -k Tab >/dev/null
     key "hh" >/dev/null
     key -k Tab >/dev/null
     key -k Tab >/dev/null
@@ -2156,6 +2157,7 @@ case_network() {
     key a >/dev/null
     settle
     [[ "$(ipc dialogOpen)" == "true" ]] || fail "network: the dialog did not reopen for the re-home walk"
+    key -k Tab >/dev/null
     key "hh" >/dev/null
     key -k Tab >/dev/null
     key -k Tab >/dev/null
@@ -2180,6 +2182,90 @@ case_network() {
         || fail "network: escape did not close the dialog after the re-home walk"
 
     printf 'NETWORK empty=ok a-scoped=ok dialog=ok submit-path=ok keyboard-after=ok\n'
+    kill_flea
+    sandbox_remove "$fixture_home"
+}
+
+# A bookmarked SFTP URI whose path is a literal tilde does not mount (gio has no ~ expansion).
+# Edit opens the same form over that line and Save rewrites it in place.
+case_networkedit() {
+    local dir="$fixture_root/networkedit"
+    sandbox_scratch "$dir"
+    : > "$dir/0-one.txt"
+    : > "$dir/0-two.txt"
+
+    local fixture_home="$fixture_root/networkedit-home"
+    fixture_home_make "$fixture_home"
+    mkdir -p "$fixture_home/.config/gtk-3.0"
+    local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
+    printf 'sftp://tom@omv.example:22/~ omv\n' > "$bookmarks"
+    local real_home="$HOME"
+
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    wait_listing 3
+    wait_rail 2
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "omv|network|share|false" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "omv|network|share|false" ]] \
+        || fail "networkedit: the seeded bookmark never reached the rail, got $(ipc networkEntries)"
+
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "networkedit: Tab did not reach the rail"
+    # Home(0), omv(1).
+    key j >/dev/null
+    settle
+    [[ "$(ipc railCursor)" == "1" ]] || fail "networkedit: cursor did not reach omv, it is $(ipc railCursor)"
+
+    click_rail_row 1 right
+    settle
+    printf 'NETWORKEDIT menu visible=%s entries=%s glyphs=%s\n' \
+        "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
+    shot networkedit-menu
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "networkedit: right click opened no menu on the bookmark"
+    [[ "$(ipc contextMenuEntries)" == "Edit|Remove" ]] \
+        || fail "networkedit: the bookmark's menu is $(ipc contextMenuEntries), not Edit then Remove"
+    [[ "$(ipc contextMenuGlyphs)" == "rename|trash" ]] \
+        || fail "networkedit: the glyphs are $(ipc contextMenuGlyphs), not rename then trash"
+
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "true" ]] || fail "networkedit: choosing Edit did not open the dialog"
+    [[ "$(ipc networkTitle)" == "EDIT NETWORK LOCATION" ]] \
+        || fail "networkedit: the heading is $(ipc networkTitle), not EDIT NETWORK LOCATION"
+    [[ "$(ipc networkProtocol)" == "SFTP" ]] || fail "networkedit: protocol is $(ipc networkProtocol), not SFTP"
+    [[ "$(ipc networkHost)" == "omv.example" ]] || fail "networkedit: host is $(ipc networkHost)"
+    [[ "$(ipc networkUser)" == "tom" ]] || fail "networkedit: user is $(ipc networkUser)"
+    [[ "$(ipc networkPath)" == "~" ]] || fail "networkedit: path is $(ipc networkPath), not the literal tilde"
+    [[ "$(ipc networkLabel)" == "omv" ]] || fail "networkedit: label is $(ipc networkLabel)"
+    [[ "$(ipc networkUri)" == "sftp://tom@omv.example:22/~" ]] \
+        || fail "networkedit: Mounts-as is $(ipc networkUri)"
+    shot networkedit-dialog
+
+    # Host has the caret. Tab past Port onto Path, drop the tilde, type the real remote home.
+    key -k Tab >/dev/null
+    key -k Tab >/dev/null
+    key -k BackSpace >/dev/null
+    key "home/tom" >/dev/null
+    settle
+    [[ "$(ipc networkUri)" == "sftp://tom@omv.example:22/home/tom" ]] \
+        || fail "networkedit: rewriting the path left Mounts-as as $(ipc networkUri)"
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "false" ]] || fail "networkedit: Save did not close the dialog"
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "omv|network|share|false" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "omv|network|share|false" ]] \
+        || fail "networkedit: the rail lost the row after save, got $(ipc networkEntries)"
+    [[ "$(cat "$bookmarks")" == "sftp://tom@omv.example:22/home/tom omv" ]] \
+        || fail "networkedit: bookmarks became $(cat "$bookmarks")"
+    printf 'NETWORKEDIT menu=ok prefill=ok rewrite=ok\n'
     kill_flea
     sandbox_remove "$fixture_home"
 }
@@ -2405,10 +2491,10 @@ EOS
         "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
     shot unmount-menu
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "unmount: right click opened no menu on the share"
-    [[ "$(ipc contextMenuEntries)" == "Unmount" ]] \
-        || fail "unmount: the share's menu is $(ipc contextMenuEntries), not one Unmount row"
-    [[ "$(ipc contextMenuGlyphs)" == "eject" ]] \
-        || fail "unmount: the Unmount row draws $(ipc contextMenuGlyphs), not the eject mark"
+    [[ "$(ipc contextMenuEntries)" == "Unmount|Edit|Remove" ]] \
+        || fail "unmount: the share's menu is $(ipc contextMenuEntries), not Unmount, Edit, Remove"
+    [[ "$(ipc contextMenuGlyphs)" == "eject|rename|trash" ]] \
+        || fail "unmount: the share's glyphs are $(ipc contextMenuGlyphs), not eject, rename, trash"
     [[ -z "$(cat "$unmount_log")" ]] || fail "unmount: opening the menu already unmounted: $(cat "$unmount_log")"
 
     # Escape closes it and still nothing has run, which is what makes the menu the confirmation.
@@ -2445,6 +2531,121 @@ EOS
     [[ "$after" != "$before" ]] || fail "unmount: the list stopped taking keys after the rail menu, cursor stuck at $before"
 
     printf 'UNMOUNT menu=ok escape=ok fire=ok no-menu-on-favourite=ok keyboard=ok\n'
+    kill_flea
+    sandbox_remove "$fixture_home"
+}
+
+# Remove of a live share must not drop the bookmark if gio -u fails; an unmounted bookmark
+# is dropped immediately with no gio call.
+case_networkremove() {
+    local dir="$fixture_root/networkremove"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/bin"
+    : > "$dir/0-one.txt"
+
+    local unmount_log="$dir/unmount.log"
+    : > "$unmount_log"
+    local share_uri="smb://stubhost/stubshare/"
+    cat > "$dir/bin/gio" <<EOS
+#!/bin/sh
+case "\$1 \$2" in
+  "mount -l")
+    printf 'Mount(0): stubshare on stubhost -> $share_uri\n  Type: GDaemonMount\n'
+    exit 0
+    ;;
+  "mount -u")
+    printf 'UNMOUNT %s\n' "\$3" >> "$unmount_log"
+    exit 1
+    ;;
+esac
+exit 0
+EOS
+    chmod +x "$dir/bin/gio"
+
+    local fixture_home="$fixture_root/networkremove-home"
+    fixture_home_make "$fixture_home"
+    mkdir -p "$fixture_home/.config/gtk-3.0"
+    local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
+    printf '%s Stub\n' "$share_uri" > "$bookmarks"
+    local real_home="$HOME" saved_path="$PATH"
+
+    export PATH="$dir/bin:$PATH"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    export PATH="$saved_path"
+    wait_listing 2
+    wait_rail 2
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "Stub|network|share|true" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "Stub|network|share|true" ]] \
+        || fail "networkremove: the stub mount never appeared live, got $(ipc networkEntries)"
+
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "networkremove: Tab did not reach the rail"
+    key j >/dev/null
+    settle
+    click_rail_row 1 right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Unmount|Edit|Remove" ]] \
+        || fail "networkremove: menu is $(ipc contextMenuEntries)"
+    key j >/dev/null
+    key j >/dev/null
+    key -k Return >/dev/null
+    wait_message "That share could not be unmounted; it may still be in use."
+    [[ "$(cat "$unmount_log")" == "UNMOUNT $share_uri" ]] \
+        || fail "networkremove: Remove did not try to unmount, log is: $(cat "$unmount_log")"
+    [[ "$(cat "$bookmarks")" == "$share_uri Stub" ]] \
+        || fail "networkremove: a failed unmount dropped the bookmark, file is $(cat "$bookmarks")"
+
+    kill_flea
+    : > "$unmount_log"
+    cat > "$dir/bin/gio" <<EOS
+#!/bin/sh
+exit 0
+EOS
+    chmod +x "$dir/bin/gio"
+    printf '%s Stub\n' "$share_uri" > "$bookmarks"
+
+    export PATH="$dir/bin:$PATH"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    export PATH="$saved_path"
+    wait_listing 2
+    wait_rail 2
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "Stub|network|share|false" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "Stub|network|share|false" ]] \
+        || fail "networkremove: the unmounted bookmark never appeared, got $(ipc networkEntries)"
+
+    key -k Tab >/dev/null
+    settle
+    key j >/dev/null
+    settle
+    click_rail_row 1 right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Edit|Remove" ]] \
+        || fail "networkremove: unmounted menu is $(ipc contextMenuEntries)"
+    key j >/dev/null
+    key -k Return >/dev/null
+    settle
+    for _attempt in $(seq 1 100); do
+        [[ -z "$(ipc networkEntries)" ]] && break
+        sleep 0.05
+    done
+    [[ -z "$(ipc networkEntries)" ]] \
+        || fail "networkremove: the unmounted bookmark stayed on the rail, got $(ipc networkEntries)"
+    [[ "$(cat "$bookmarks")" != *"$share_uri"* ]] \
+        || fail "networkremove: the unmounted bookmark was not dropped, file is $(cat "$bookmarks")"
+    [[ -z "$(cat "$unmount_log")" ]] || fail "networkremove: an unmounted Remove called gio -u"
+
+    printf 'NETWORKREMOVE fail-keeps-bookmark=ok idle-drops=ok\n'
     kill_flea
     sandbox_remove "$fixture_home"
 }
@@ -2989,7 +3190,7 @@ cache_snapshot
 trap cleanup EXIT
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network networkedit networkremove sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
 
 : > "$run_log"
 : > "$flea_log"

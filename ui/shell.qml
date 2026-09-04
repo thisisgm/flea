@@ -155,12 +155,16 @@ ShellRoot {
                 id: networkDialog
                 // FocusScope remembers its own last-focused child, list or rail, and restores it.
                 onClosed: pane.forceActiveFocus()
-                onSaved: pane.sidebar.reloadBookmarks()
+                onSaved: function (oldUri, uri, label, mac) {
+                    pane.sidebar.rememberNetworkProfile(oldUri, uri, label, mac)
+                    pane.sidebar.reloadBookmarks()
+                }
             }
 
             Connections {
                 target: pane.sidebar
                 function onAddRequested() { networkDialog.open() }
+                function onEditRequested(uri, label, mac) { networkDialog.openEdit(uri, label, mac) }
                 function onSharesListed(baseUri, baseLabel, names) { shareBrowser.open(baseUri, baseLabel, names) }
             }
 

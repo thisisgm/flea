@@ -2533,8 +2533,16 @@ already is, so the loop stays the only writer of stdout.
 **Every write creates its target exclusively, and this is the module's whole safety story.** A file copy
 opens with `create_new`, a directory copy and a `mkdir` use `create_dir`, a symlink copy uses `symlink`, and a rename
 or a move uses `renameat2` with `RENAME_NOREPLACE`. None of them can destroy a file that is already
-there, and none has a check-then-write window another process can slip through. `std::fs::rename`
-silently replaces its target on Unix and is never used here.
+there. The one compatibility path is a directory on a mount identified exactly as `fuse.rclone` in
+`/proc/self/mountinfo`: rclone 1.75 returns `EINVAL` for `RENAME_NOREPLACE` even though its ordinary
+directory rename works. `renamecompat.rs` then checks the target for Flea's stable collision message
+and uses `std::fs::rename`; safety at the race boundary comes from rclone's own `operations.DirMove`,
+whose interface refuses an existing destination. This exception is never used for a file—rclone's
+file move deliberately accepts an object to overwrite—or on another filesystem. Mountinfo's escaped
+mount point is decoded and the deepest enclosing mount wins, so a nested non-rclone mount cannot
+inherit the exception. The parser, scope, successful fallback, and occupied-target refusal have Rust
+tests; the original failure and both outcomes were also reproduced through the real backend on the
+operator's `~/google` mount.
 
 **The journal records only what an operation created or moved.** `undo.rs`'s `Step` has exactly four
 shapes: `Moved` (rename back), `Created` (remove it), `MadeDir` (remove it while it is still empty, because
@@ -3496,16 +3504,28 @@ with its own trailing slash; nothing forced the two to agree, so `smb://h/data` 
 `smb://h/data/` (gio's own report of the same share once mounted) compared unequal everywhere a
 uri was used as a dedup key, and could show as two rows for one share. `ui/js/Mounts.js` gained
 `normalize(uri)`: every trailing slash is stripped, except a bare server root (nothing left but
-`scheme://host`), which keeps exactly one, the shape `gio` itself needs to parse it back. Applied
-in two places, per the ruling ("apply it... on write and on compare"): `ui/NetworkDialog.qml`'s
-`appendBookmark()` writes the normalized form rather than the raw typed string, and
-`ui/NetworkMounts.qml`'s `rebuild()` dedups live mounts against bookmarks using normalized keys
-rather than the raw `uri` fields, so a live mount (gio's trailing-slash form) and a bookmark (now
-also normalized, but an old hand-edited line might not be) still collapse to one row. `parseMounts()`
-and `nonFileBookmarks()` themselves are left returning whatever form their own source actually
-carries; only the write path and the dedup comparison were ever the places two spellings needed to
-agree. `tests/js/mounts.js` proves `normalize("smb://h/data") === normalize("smb://h/data/")` and
-that a bare root normalizes to its one-trailing-slash form regardless of how it was typed.
+`scheme://host`), which keeps exactly one, the shape `gio` itself needs to parse it back. A scheme's
+default port is dropped too: the add form writes `sftp://user@host:22/path` and `gio mount -l`
+reports `sftp://user@host/path`, which used to show as two rail rows (a dim bookmark the cursor
+stayed on, and a brighter live mount of the same share). Applied in two places, per the ruling
+("apply it... on write and on compare"): `ui/NetworkDialog.qml`'s write path uses the normalized
+form rather than the raw typed string, and `ui/NetworkMounts.qml`'s `rebuild()` dedups live mounts
+against bookmarks using normalized keys rather than the raw `uri` fields, so a live mount and a
+bookmark still collapse to one row. `parseMounts()` and `nonFileBookmarks()` themselves are left
+returning whatever form their own source actually carries; only the write path and the dedup
+comparison were ever the places two spellings needed to agree. `tests/js/mounts.js` proves a
+trailing slash, a default sftp port, and a bare root all collapse, and a non-default port does not.
+
+Once collapsed, the live `gio mount -l` row used to keep gio's own label ("tom" for an SFTP
+session) and drop the bookmark's, so `r` rewrote the file and the next poll put "tom" back.
+`Places.networkEntries` keeps the bookmark label on the live row. Unmount of a share whose FUSE
+path is the current listing goes Home first; otherwise gio refuses as busy.
+
+gvfsd-sftp mounts one connection per host: `gio mount -l` lists `sftp://user@host/` even when the
+bookmark is `sftp://user@host/home/tom`. A second path on that host now stays its own rail row and
+reads as mounted. Unmount sends gio the live root URI, and leaving Home is keyed on the connection
+not the path, so a listing inside `/home/tom` no longer keeps the root "in use". SMB/NFS stay
+per-share: a live `smb://nas/data` does not light `smb://nas/isos`.
 
 ### The rail menu, tested with a stubbed gio and a stubbed lsblk
 
@@ -3578,6 +3598,17 @@ reachable while a device is misbehaving. The `_streamPending` interlock is relea
 rather than in the timer, because a collector whose stream was cut off may never finish it and
 `poll()` refuses on that flag alone.
 
+**Every reusable Process starts with an empty fallback.** `StdioCollector.text` and the parallel
+`_...Output` value exist because `Process.onExited` can race the collector property update, but the
+fallback is ordinary component state and survives the next command. Before this rule, a quiet
+second run could reuse the first run's bytes: an empty `gio mount -l` retained a disconnected
+share, empty `gio info` reopened the previous share's local path, an empty server listing repeated
+another server's names, a failed mount with no stderr inherited "already mounted", empty `lsblk`
+retained removed devices, and empty Tailscale status retained old Taildrop targets. Each start
+function now clears only its own fallback after refusing any overlapping run and before setting
+`Process.running`. `tests/process-output.sh` poisons all six values, starts all six real Process
+objects, and requires every reset synchronously; removing any one reset makes the suite red.
+
 ### Closing the window quits the backend, and a copy in flight is cancelled
 
 `ui/shell.qml` answers `Quickshell.onLastWindowClosed` with `backend.quit()` and signals its own pid
@@ -3621,3 +3652,58 @@ key press fires a compositor bind, so `omarchy-drive hotkey --global super w` is
 on the ACTIVE window, so assert the active window is the one the run launched before sending it, and
 never call `hl.dsp.window.close()` with no argument: it returns `ok` rather than printing a signature
 and acts on whatever is active, which may be a window you did not open.
+
+### Editing a network place rewrites the bookmark line, not just its label
+
+`r` on a NETWORK row still only relabels. The URI itself is edited through the same dialog Add
+uses: right-click (or `m`) on a share, **Edit**, which fills `ui/NetworkForm.qml` from
+`Protocols.parse` and Save writes through `Places.replace`. An unmounted bookmark's menu is Edit
+alone, so a URI that will not mount (the operator's real `sftp://user@host:22/~`; gio does not
+expand `~`) can still be rewritten. A mounted share keeps **Unmount** first so Ctrl+E still
+releases; `Mounts.releaseAction` is what Ctrl+E reads, never `railMenu()[0]`, because Edit is a
+menu row and not a release.
+
+`Places.replace(body, oldUri, newUri, label)` is the write: normalized match like `relabel`, every
+duplicate rewritten, control characters stripped from the label, an empty old URI appends (Add).
+`Places.remove(body, uri)` drops matching lines. An unmounted bookmark is dropped immediately. A
+live one is unmounted first and the file is rewritten only from `unmountProcess.onExited` when
+gio succeeds, so a busy share keeps its row. `Protocols.parse` splits the path off before it
+looks for `@`, so a path like `inbox@2026` is not stolen as a username. `tests/js/places.js`,
+`tests/js/protocols.js`, `tests/js/mounts.js`, `tests/ui.sh case_networkedit` and
+`case_networkremove` hold it.
+
+### Network discovery is transport-aware, not a Tailscale filesystem
+
+`ui/NetworkRail.qml` composes four independent concerns: `NetworkDiscovery` discovers, `NetworkHistory`
+persists successful recents and saved Wake metadata, `NetworkMounts` owns GIO, and `NetworkActions`
+runs host-side actions. `Sidebar` renders their merged rows and owns none of their processes.
+
+Tailscale is only private reachability and identity. `tailscale status --json` contributes peer names,
+addresses, online state, and Taildrop capability; a row still opens through an ordinary GIO protocol,
+defaulting to SFTP. LAN discovery is the same model over bounded `avahi-browse -artp` output for SSH,
+SMB, NFS, and WebDAV. Missing, failed, malformed, empty, and timed-out discovery never disables a
+manual GTK bookmark or a live GIO mount. `FLEA_DISABLE_NETWORK_DISCOVERY=1` is the hermetic UI-test seam.
+
+All discovery and GIO listing children have deadlines. A timed-out `gio mount -l` preserves the last
+good rail; a timed-out `gio list` reports the bare server as failed. Health is metadata, with a live
+mount authoritative over transient states. Metadata from multiple identities must combine: an older
+recent cannot shadow a fresh online/Taildrop state or a saved LAN MAC.
+
+Quick Connect turns shorthand into an explicit URI before saving: `user@host:/path` and bare hosts are
+SFTP, `host/share` is SMB, and an explicit supported scheme wins. Embedded passwords, raw query tokens,
+fragments, newlines, and unknown schemes are rejected. Structured editing stays available underneath.
+
+`~/.config/flea-network-recents.json` is written by FileView with atomic writes. It holds at most eight
+successful connections plus separate Wake profiles, never passwords, query strings, fragments, or
+control characters. Editing an identity removes the old profile; clearing its MAC removes Wake rather
+than leaving stale capability behind.
+
+Remote actions remain argv-direct. SSH ports occupy their own `-p` argv slot, clipboard and Wake report
+success only from `Process.onExited`, and no recovery row runs `sudo`, starts `tailscaled`, or changes
+authentication. Wake is the internal `flea --wake <mac>` mode: Rust validates the MAC, builds six FF
+bytes plus sixteen MAC copies, and broadcasts the 102-byte packet to UDP port 9.
+
+Two `/run/user/<uid>/gvfs` endpoints are labelled remote-to-remote, but deliberately reuse the normal
+copy/move backend. That preserves its existing no-clobber, cancellation, partial-file, and undo rules.
+`tests/network-services.sh` is the windowless Quickshell process harness; pure parsing lives under
+`tests/js`, and `tests/ops.sh` drives copies and moves between two synthetic mounted-root shapes.

@@ -31,11 +31,17 @@ Item {
     }
 
     Flickable {
+        id: textFlick
         anchors.fill: parent
         clip: true
         contentWidth: width
         contentHeight: Math.max(height, body.implicitHeight)
         visible: !root.tooLarge && !root.readFailed
+
+        FastScrollHandler {
+            parent: textFlick
+            flickable: textFlick
+        }
 
         Text {
             id: body

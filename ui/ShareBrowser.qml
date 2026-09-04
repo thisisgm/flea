@@ -43,6 +43,8 @@ Item {
         root.cursorIndex = Math.max(0, Math.min(root.shares.length - 1, root.cursorIndex + delta))
     }
 
+    onCursorIndexChanged: shareView.positionViewAtIndex(root.cursorIndex, ListView.Contain)
+
     function activateCursor() {
         var name = root.shares[root.cursorIndex]
         if (name === undefined)
@@ -90,29 +92,35 @@ Item {
             onClicked: {}
         }
 
-        Column {
+        ListView {
+            id: shareView
             anchors.fill: parent
+            model: root.shares
+            clip: true
+            boundsBehavior: Flickable.StopAtBounds
+            reuseItems: true
 
-            Repeater {
-                model: root.shares
+            Flea.FastScrollHandler {
+                parent: shareView
+                flickable: shareView
+            }
 
-                // Network.dc.html draws the sidebar's own server mark and the share name, and no
-                // columns: nothing is known about a share until it is mounted, so a "-" size and a
-                // "--" date were columns of nothing. ui/MenuRow.qml is the mark-and-label row.
-                delegate: Flea.MenuRow {
-                    id: shareRow
-                    required property int index
-                    required property string modelData
-                    width: root.width
-                    entry: ({ label: shareRow.modelData, action: "", glyph: "server" })
-                    // The keyboard cursor is the pick and takes the accent; the pointer only lifts
-                    // the row it is over, which is what ui/Row.qml did here before.
-                    picked: shareRow.index === root.cursorIndex
-                    current: shareRow.hovered
-                    onActivated: {
-                        root.cursorIndex = shareRow.index
-                        root.activateCursor()
-                    }
+            // Network.dc.html draws the sidebar's own server mark and the share name, and no
+            // columns: nothing is known about a share until it is mounted, so a "-" size and a
+            // "--" date were columns of nothing. ui/MenuRow.qml is the mark-and-label row.
+            delegate: Flea.MenuRow {
+                id: shareRow
+                required property int index
+                required property string modelData
+                width: shareView.width
+                entry: ({ label: shareRow.modelData, action: "", glyph: "server" })
+                // The keyboard cursor is the pick and takes the accent; the pointer only lifts
+                // the row it is over, which is what ui/Row.qml did here before.
+                picked: shareRow.index === root.cursorIndex
+                current: shareRow.hovered
+                onActivated: {
+                    root.cursorIndex = shareRow.index
+                    root.activateCursor()
                 }
             }
         }

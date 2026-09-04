@@ -44,6 +44,7 @@ pub mod copyfile;
 pub mod ops;
 pub mod opsdispatch;
 pub mod opsreq;
+mod renamecompat;
 pub mod trash;
 pub mod undo;
 // Test-only: hard rule 9's sandbox root, so no destructive test names a path outside one.

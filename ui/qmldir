@@ -21,6 +21,7 @@ MediaStrip 1.0 MediaStrip.qml
 MenuRow 1.0 MenuRow.qml
 RenameField 1.0 RenameField.qml
 EmptyState 1.0 EmptyState.qml
+FastScrollHandler 1.0 FastScrollHandler.qml
 DeviceMounts 1.0 DeviceMounts.qml
 DropboxMark 1.0 DropboxMark.qml
 Glyph 1.0 Glyph.qml
@@ -34,6 +35,10 @@ LoadingState 1.0 LoadingState.qml
 NetworkDialog 1.0 NetworkDialog.qml
 NetworkForm 1.0 NetworkForm.qml
 NetworkMounts 1.0 NetworkMounts.qml
+NetworkDiscovery 1.0 NetworkDiscovery.qml
+NetworkHistory 1.0 NetworkHistory.qml
+NetworkActions 1.0 NetworkActions.qml
+NetworkRail 1.0 NetworkRail.qml
 FleaMark 1.0 FleaMark.qml
 Opener 1.0 Opener.qml
 Preview 1.0 Preview.qml

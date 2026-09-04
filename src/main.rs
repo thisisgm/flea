@@ -10,6 +10,7 @@ mod open;
 mod paths;
 mod thp;
 mod userfile;
+mod wol;
 
 use crate::backend::proto::error_line;
 use std::io::IsTerminal;
@@ -64,6 +65,17 @@ fn main() {
     // flea --open <path>
     if args.len() == 3 && args[1] == "--open" {
         exit(open::open(&args[2]));
+    }
+
+    // flea --wake <mac>: internal GUI action, kept argv-direct so a hostile value never reaches a shell.
+    if args.len() == 3 && args[1] == "--wake" {
+        match wol::wake(&args[2]) {
+            Ok(()) => exit(0),
+            Err(message) => {
+                eprintln!("flea: {message}");
+                exit(1);
+            }
+        }
     }
 
     // flea --default [off]: the one per-user step pacman cannot own, see docs/install.md.

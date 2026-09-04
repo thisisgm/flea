@@ -13,7 +13,9 @@ makedepends=('cargo')
 optdepends=('libarchive: archive listing and extraction'
             '7zip: 7z archive support'
             'imagemagick: image conversion'
-            'tailscale: Taildrop sharing')
+            'avahi: zero-configuration LAN discovery'
+            'tailscale: tailnet discovery and Taildrop sharing'
+            'wl-clipboard: copy network addresses')
 # The release profile strips, so a debug package would have nothing to hold.
 options=('!debug')
 # Empty on purpose: with no source array makepkg builds from $startdir, so a clone is the source.

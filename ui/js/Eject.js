@@ -122,10 +122,10 @@ function release(root, sidebar, fromRail) {
         root.message("This directory is not inside a removable volume, so there is nothing to eject.", false)
         return
     }
-    var rows = Mounts.railMenu(entry)
-    if (rows.length === 0) {
+    var action = Mounts.releaseAction(entry)
+    if (!action) {
         root.message(entry.label + " has nothing to eject or unmount.", false)
         return
     }
-    sidebar.releaseChosen(rows[0].action, Mounts.railKey(entry))
+    sidebar.releaseChosen(action, Mounts.railKey(entry))
 }

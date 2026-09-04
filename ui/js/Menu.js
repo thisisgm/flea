@@ -18,6 +18,18 @@ function clamp(point, size, bounds) {
     return Math.max(0, Math.min(bounds - size, point))
 }
 
+function boundedExtent(content, bounds) {
+    return Math.max(0, Math.min(content, bounds))
+}
+
+// Prefer the familiar right-hand flyout; when it would leave the pane, put the whole frame left.
+function adjacentX(frameX, frameWidth, flyoutWidth, bounds) {
+    var right = frameX + frameWidth
+    if (right + flyoutWidth <= bounds)
+        return right
+    return clamp(frameX - flyoutWidth, flyoutWidth, bounds)
+}
+
 // The listing's rows, built from the pane's state in one object so the construction can live here
 // and carry its own suite, tests/js/menu.js. Copy path sits beside Open because both answer
 // "where is this and what runs on it".

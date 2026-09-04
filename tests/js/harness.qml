@@ -3,6 +3,7 @@ import "archive.js" as ArchiveSuite
 import "columns.js" as ColumnsSuite
 import "contrast.js" as ContrastSuite
 import "dirsizes.js" as DirSizesSuite
+import "discovery.js" as DiscoverySuite
 import "drag.js" as DragSuite
 import "errors.js" as ErrorsSuite
 import "facts.js" as FactsSuite
@@ -20,11 +21,15 @@ import "palette.js" as PaletteSuite
 import "pathbar.js" as PathBarSuite
 import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
+import "quickconnect.js" as QuickConnectSuite
+import "recents.js" as RecentsSuite
+import "remote.js" as RemoteSuite
 import "scale.js" as ScaleSuite
 import "search.js" as SearchSuite
 import "selection.js" as SelectionSuite
 import "sort.js" as SortSuite
 import "taildrop.js" as TaildropSuite
+import "tailnet.js" as TailnetSuite
 import "trash.js" as TrashSuite
 import "tap.js" as TapSuite
 import "tabs.js" as TabsSuite
@@ -47,6 +52,7 @@ Item {
         ColumnsSuite.run(check)
         ContrastSuite.run(check)
         DirSizesSuite.run(check)
+        DiscoverySuite.run(check)
         DragSuite.run(check)
         ErrorsSuite.run(check)
         FactsSuite.run(check)
@@ -64,11 +70,15 @@ Item {
         PathBarSuite.run(check)
         PlacesSuite.run(check)
         ProtocolsSuite.run(check)
+        QuickConnectSuite.run(check)
+        RecentsSuite.run(check)
+        RemoteSuite.run(check)
         ScaleSuite.run(check)
         SearchSuite.run(check)
         SelectionSuite.run(check)
         SortSuite.run(check)
         TaildropSuite.run(check)
+        TailnetSuite.run(check)
         TrashSuite.run(check)
         TapSuite.run(check)
         TabsSuite.run(check)

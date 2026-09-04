@@ -8,17 +8,17 @@ import "js/Places.js" as Places
 // that touches gio or the filesystem. ui/Sidebar.qml only reads "entries" and renders it.
 Item {
     id: root
-
     property string bookmarksText: ""
+    property var extraEntries: []
+    property var healthMap: ({})
     property var entries: []
-
     signal opened(string path)
     signal message(string text, bool isError)
     // Client-side only, see "listShares" below: ui/ShareBrowser.qml renders these as pane rows.
     signal sharesListed(string baseUri, string baseLabel, var names)
     // Fired once the write below has actually landed, so a caller's reload reads it, not stale content.
     signal renamed()
-
+    signal connectionSucceeded(string uri, string label, string mac)
     // Nothing filesystem-watchable tells us when a share appears or drops: a mount materialises a
     // directory under /run/user/1000/gvfs that inotify never reports an event for, measured on this box.
     readonly property int mountPollMs: 5000
@@ -41,7 +41,14 @@ Item {
     // Set right before mountTimeout terminates the process, so its own onExited does not also
     // report a second, redundant failure for the exact same mount attempt.
     property bool _mountTimedOut: false
+    property bool _listSharesTimedOut: false
     property string _pendingUnmountLabel: ""
+    property string _pendingUnmountUri: ""
+    // Set by Remove on a live share; the bookmark is dropped only after gio -u succeeds.
+    property string _pendingRemoveUri: ""
+    // The FUSE path last opened for a share, so Unmount can leave it before gio -u (busy otherwise).
+    property string _openFuse: ""
+    property string _openFuseKey: ""
     // A re-read asked for mid-listing used to be dropped, leaving a just-mounted share to wait out
     // the poll; this remembers it instead, and mountListProcess runs it the moment the listing ends.
     property bool _pollAgain: false
@@ -50,15 +57,14 @@ Item {
     property bool _listTimedOut: false
     // The entry's own label at activation time, carried through to the sharesListed signal.
     property string _pendingLabel: ""
-
+    property string _pendingMac: ""
     onBookmarksTextChanged: root.rebuild()
-
+    onExtraEntriesChanged: root.rebuild()
     // ~/Dropbox does not exist until the stock service is installed and authenticated; this
     // FileView never reads text(), it only watches the path's own existence flip.
     // The context menu's own gate for "Move to Dropbox": the same watch the sidebar row uses, because
     // ~/Dropbox does not exist until the stock service is installed and authenticated.
     readonly property bool dropboxReady: dropboxFile.loaded
-
     FileView {
         id: dropboxFile
         path: Quickshell.env("HOME") + "/Dropbox"
@@ -67,7 +73,6 @@ Item {
         onLoaded: root.rebuild()
         onLoadFailed: root.rebuild()
     }
-
     // A second FileView on the same path as ui/Sidebar.qml's own read-only watch, the identical
     // split ui/NetworkDialog.qml already uses to write this file without fighting that watch.
     FileView {
@@ -75,7 +80,6 @@ Item {
         path: Quickshell.env("HOME") + "/.config/gtk-3.0/bookmarks"
         printErrors: false
     }
-
     Timer {
         interval: root.mountPollMs
         running: true
@@ -83,26 +87,13 @@ Item {
         triggeredOnStart: true
         onTriggered: root.pollMounts()
     }
-
-    // Three sources, deduped on the normalized uri (see ui/js/Mounts.js "normalize"): a live gio mount wins over a bookmark for the same share even when the trailing slash differs.
+    // Three sources, deduped on the normalized uri (see ui/js/Mounts.js "normalize"): a live gio
+    // mount wins the row, the bookmark keeps the label. Places.networkEntries is that merge.
     function rebuild() {
         var home = Quickshell.env("HOME")
-        var out = []
-        var seen = {}
-        var mounts = Mounts.parseMounts(root._mountListing)
-        for (var i = 0; i < mounts.length; i++) {
-            var mkey = Mounts.normalize(mounts[i].uri)
-            if (seen[mkey]) continue
-            seen[mkey] = true
-            out.push({ path: "", label: mounts[i].label, group: "network", kind: "share", uri: mounts[i].uri, mounted: true, glyph: "server" })
-        }
-        var marks = Mounts.nonFileBookmarks(root.bookmarksText)
-        for (var j = 0; j < marks.length; j++) {
-            var bkey = Mounts.normalize(marks[j].uri)
-            if (seen[bkey]) continue
-            seen[bkey] = true
-            out.push({ path: "", label: marks[j].label, group: "network", kind: "share", uri: marks[j].uri, mounted: false, glyph: "server" })
-        }
+        var out = Places.networkEntries(Mounts.parseMounts(root._mountListing),
+                                        Mounts.nonFileBookmarks(root.bookmarksText),
+                                        root.extraEntries, root.healthMap)
         if (dropboxFile.loaded) {
             out.push({ path: home + "/Dropbox", label: "Dropbox", group: "network", kind: "dropbox", uri: "", mounted: true, glyph: "" })
         }
@@ -115,27 +106,50 @@ Item {
     function activate(index) {
         var e = root.entries[index]
         if (!e) return
-        if (e.kind === "share") {
-            root.openShare(e.uri, e.mounted, e.label)
+        if (e.kind === "status") {
+            root.message(e.label, e.health === "failed")
+            return
+        }
+        if (e.kind !== "dropbox") {
+            root.openShare(e.uri, e.mounted, e.label, e.mac)
             return
         }
         root.opened(e.path)
     }
 
-    function openShare(uri, alreadyMounted, label) {
+    function openShare(uri, alreadyMounted, label, mac) {
         if (mountProcess.running || infoProcess.running) return
         root._pendingUri = uri
         root._pendingLabel = label || ""
+        root._pendingMac = mac || ""
+        root.setHealth(uri, "connecting")
         if (alreadyMounted) {
             root.runInfo(uri)
             return
         }
+        // A quiet failure must never inherit an earlier "already mounted" stderr fallback.
+        root._mountErrOutput = ""
         mountProcess.command = ["gio", "mount", uri]
         mountProcess.running = true
         mountTimeout.restart()
     }
 
+    function setHealth(uri, state) {
+        var next = {}
+        var target = Mounts.normalize(uri)
+        for (var key in root.healthMap) {
+            if (key !== target)
+                next[key] = root.healthMap[key]
+        }
+        if (state.length > 0)
+            next[target] = state
+        root.healthMap = next
+        root.rebuild()
+    }
+
     function runInfo(uri) {
+        // An empty reply is an answer. Do not turn it into the previous share's local path.
+        root._infoOutput = ""
         infoProcess.command = ["gio", "info", uri]
         infoProcess.running = true
     }
@@ -145,27 +159,65 @@ Item {
     function isBareRoot(uri) {
         return /^[a-z][a-z0-9+.-]*:\/\/[^\/]+\/?$/i.test(uri)
     }
-
     // Reads gio's own words rather than guessing from the uri's shape; see AGENTS.md "'Already
     // mounted' is not just a bare-root quirk" for why isBareRoot() alone was wrong here.
     function isAlreadyMountedQuirk(text) {
         return /already mounted/i.test(String(text || ""))
     }
-
     // Client-side only, never writes bookmarks; see AGENTS.md "The share browser overlay".
     function listShares(uri) {
+        if (listSharesProcess.running) return
+        root._listSharesTimedOut = false
+        // A server that now lists nothing must not reopen the prior server's rows.
+        root._listSharesOutput = ""
         listSharesProcess.command = ["gio", "list", uri]
         listSharesProcess.running = true
+        listSharesTimeout.restart()
     }
-
     // Right click unmounts directly, no confirmation popup: see AGENTS.md "A second ContextMenu
     // instance breaks the whole window's keyboard focus" for why one was tried and reverted.
     function unmount(index) {
         var e = root.entries[index]
-        if (!e || e.kind !== "share" || !e.mounted || unmountProcess.running) return
+        if (!e || e.kind === "dropbox" || e.kind === "status" || !e.mounted
+                || unmountProcess.running || unmountDelay.running)
+            return false
         root._pendingUnmountLabel = e.label
-        unmountProcess.command = ["gio", "mount", "-u", e.uri]
+        // gio lists one SFTP mount for the host; -u must be that URI, not a path on it.
+        var target = Places.coveringUri(Mounts.parseMounts(root._mountListing), e.uri)
+        root._pendingUnmountUri = target
+        if (root._openFuseKey.length > 0 && Places.connectionKey(e.uri) === root._openFuseKey) {
+            root._openFuse = ""
+            root._openFuseKey = ""
+            root.opened(Quickshell.env("HOME"))
+            unmountDelay.restart()
+            return true
+        }
+        root.runUnmount(target)
+        return true
+    }
+    function runUnmount(uri) {
+        unmountProcess.command = ["gio", "mount", "-u", uri]
         unmountProcess.running = true
+    }
+    function dropBookmark(uri) {
+        var body = bookmarksWrite.text()
+        bookmarksWrite.setText(Places.remove(body, uri))
+        bookmarksWrite.waitForJob()
+        root.renamed()
+    }
+
+    // An unmounted bookmark is dropped immediately. A live one is unmounted first; the file is
+    // rewritten from unmountProcess.onExited only when gio succeeds, so a busy share keeps its row.
+    function remove(index) {
+        var e = root.entries[index]
+        if (!e || e.kind !== "share") return
+        if (!e.mounted) {
+            root.dropBookmark(e.uri)
+            return
+        }
+        root._pendingRemoveUri = e.uri
+        if (!root.unmount(index))
+            root._pendingRemoveUri = ""
     }
 
     // Rewrites uri's own label, or appends a bookmark for it if it was only ever a live mount;
@@ -185,6 +237,8 @@ Item {
             return
         }
         root._listTimedOut = false
+        // Successful empty output means there are no live mounts; the prior poll is not a fallback.
+        root._mountListOutput = ""
         mountListProcess.running = true
         listTimeout.restart()
     }
@@ -199,6 +253,7 @@ Item {
             // Ending it is what lets the next poll run at all; a listing nobody can end froze the rail.
             root._listTimedOut = true
             mountListProcess.running = false
+            root.message("Network status timed out; keeping the last known connections.", true)
         }
     }
 
@@ -210,7 +265,32 @@ Item {
             if (!mountProcess.running) return
             root._mountTimedOut = true
             mountProcess.running = false
+            root.setHealth(root._pendingUri, "failed")
             root.message("That network location did not respond; check the address and try again.", true)
+        }
+    }
+
+    Timer {
+        id: unmountDelay
+        interval: 150
+        repeat: false
+        onTriggered: {
+            var uri = root._pendingUnmountUri
+            if (uri.length > 0)
+                root.runUnmount(uri)
+        }
+    }
+
+    Timer {
+        id: listSharesTimeout
+        interval: root.listTimeoutMs
+        repeat: false
+        onTriggered: {
+            if (!listSharesProcess.running) return
+            root._listSharesTimedOut = true
+            listSharesProcess.running = false
+            root.setHealth(root._pendingUri, "failed")
+            root.message("Listing shares timed out; the server may be offline.", true)
         }
     }
 
@@ -225,6 +305,7 @@ Item {
             var errText = String(mountErr.text || root._mountErrOutput || "")
             // gio's own "already mounted" quirk is still worth listing; only a real failure is fatal.
             if (exitCode !== 0 && !root.isAlreadyMountedQuirk(errText)) {
+                root.setHealth(root._pendingUri, "failed")
                 root.message("That network location could not be mounted; check the address and try again.", true)
                 return
             }
@@ -241,7 +322,12 @@ Item {
             var body = String(infoOut.text || root._infoOutput || "")
             var line = body.split("\n").find(function (l) { return l.indexOf("local path: ") === 0 })
             if (exitCode === 0 && line) {
-                root.opened(line.substring("local path: ".length).trim())
+                var localPath = line.substring("local path: ".length).trim()
+                root._openFuse = localPath
+                root._openFuseKey = Places.connectionKey(root._pendingUri)
+                root.setHealth(root._pendingUri, "mounted")
+                root.connectionSucceeded(root._pendingUri, root._pendingLabel, root._pendingMac)
+                root.opened(localPath)
                 return
             }
             if (root.isBareRoot(root._pendingUri)) {
@@ -249,6 +335,7 @@ Item {
                 return
             }
             root.message("This network location has no browsable folder; bookmark a specific share instead.", false)
+            root.setHealth(root._pendingUri, "failed")
         }
     }
 
@@ -256,12 +343,16 @@ Item {
         id: listSharesProcess
         stdout: StdioCollector { id: listSharesOut; waitForEnd: true; onStreamFinished: root._listSharesOutput = text }
         onExited: function (exitCode) {
+            listSharesTimeout.stop()
+            if (root._listSharesTimedOut) return
             var body = String(listSharesOut.text || root._listSharesOutput || "")
             var names = body.split("\n").map(function (s) { return s.trim() }).filter(function (s) { return s.length > 0 })
             if (exitCode !== 0 || names.length === 0) {
+                root.setHealth(root._pendingUri, "failed")
                 root.message("This network location has no browsable folder; bookmark a specific share instead.", false)
                 return
             }
+            root.setHealth(root._pendingUri, "online")
             root.sharesListed(root._pendingUri, root._pendingLabel, names)
         }
     }
@@ -269,12 +360,21 @@ Item {
     Process {
         id: unmountProcess
         onExited: function (exitCode) {
+            var removeUri = root._pendingRemoveUri
+            root._pendingRemoveUri = ""
             root.pollMounts()
+            root.setHealth(root._pendingUnmountUri, exitCode === 0 ? "" : "failed")
             // A success message replaces the arm prompt, which would otherwise linger, stale,
             // for up to its own 4 s clear window with nothing on screen to say it already fired.
-            root.message(exitCode === 0
-                ? "Unmounted " + root._pendingUnmountLabel + "."
-                : "That share could not be unmounted; it may still be in use.", exitCode !== 0)
+            if (exitCode === 0) {
+                if (removeUri.length > 0)
+                    root.dropBookmark(removeUri)
+                root.message("Unmounted " + root._pendingUnmountLabel + ".", false)
+            } else {
+                root.message("That share could not be unmounted; it may still be in use.", true)
+            }
+            root._pendingUnmountUri = ""
+            root._pendingUnmountLabel = ""
         }
     }
 
