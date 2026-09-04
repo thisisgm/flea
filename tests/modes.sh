@@ -33,10 +33,25 @@ check "--version wins over another mode" "$want" "$out"
 out=$(env -u WAYLAND_DISPLAY -u DISPLAY $BIN --gui 2>&1 </dev/null)
 check "no display refuses" "1" "$(echo "$out" | grep -c 'no graphical session')"
 
-# An exported-but-empty display is absent too. It must not reach qs and turn the precise refusal
-# above into a generic shell-start failure.
+# An exported-but-empty display is absent and must not reach qs.
 out=$(env WAYLAND_DISPLAY= DISPLAY= PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
 check "an empty display refuses" "1" "$(echo "$out" | grep -c 'no graphical session')"
+out=$(env -u DISPLAY WAYLAND_DISPLAY= PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
+check "an empty WAYLAND_DISPLAY alone refuses" "1" "$(echo "$out" | grep -c 'no graphical session')"
+out=$(env -u WAYLAND_DISPLAY DISPLAY= PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
+check "an empty DISPLAY alone refuses" "1" "$(echo "$out" | grep -c 'no graphical session')"
+
+# Each display variable independently permits launch, and an empty peer must not mask it.
+out=$(env -u DISPLAY WAYLAND_DISPLAY=flea-modes-test-display PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
+check "a non-empty WAYLAND_DISPLAY is accepted" "1" "$(echo "$out" | grep -c 'could not start the shell')"
+out=$(env -u WAYLAND_DISPLAY DISPLAY=:99 PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
+check "a non-empty DISPLAY is accepted" "1" "$(echo "$out" | grep -c 'could not start the shell')"
+out=$(env WAYLAND_DISPLAY= DISPLAY=:99 PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
+check "an empty WAYLAND_DISPLAY does not mask DISPLAY" "1" "$(echo "$out" | grep -c 'could not start the shell')"
+out=$(env WAYLAND_DISPLAY=flea-modes-test-display DISPLAY= PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
+check "an empty DISPLAY does not mask WAYLAND_DISPLAY" "1" "$(echo "$out" | grep -c 'could not start the shell')"
+out=$(env WAYLAND_DISPLAY=flea-modes-test-display DISPLAY=:99 PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)
+check "two non-empty displays are accepted" "1" "$(echo "$out" | grep -c 'could not start the shell')"
 
 # qs missing from PATH is what a bad launcher or .desktop install hits; no errno may leak.
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH=/nonexistent-flea-test-path $BIN --gui 2>&1 </dev/null)

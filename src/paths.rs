@@ -32,7 +32,7 @@ pub fn ui_dir() -> Option<PathBuf> {
 pub fn has_display() -> bool {
     ["WAYLAND_DISPLAY", "DISPLAY"]
         .iter()
-        .any(|name| std::env::var_os(name).map_or(false, |value| !value.is_empty()))
+        .any(|name| std::env::var_os(name).is_some_and(|value| !value.is_empty()))
 }
 
 // Decodes %XX triplets in a file:// URI path; a malformed triplet passes through as literal text.
