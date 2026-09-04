@@ -1,7 +1,6 @@
 //@ pragma AppId com.thisisgm.flea
 //@ pragma ShellId flea
 //@ pragma NativeTextRendering
-//@ pragma DefaultEnv QSG_RHI_BACKEND=vulkan
 //@ pragma CacheDir $BASE/flea
 
 import Quickshell
@@ -19,6 +18,25 @@ ShellRoot {
         title: "Flea"
         implicitWidth: 900
         implicitHeight: 600
+        property bool rendererFallbackStarted: false
+
+        function handleSceneGraphError(error, message) {
+            var backendName = Quickshell.env("QSG_RHI_BACKEND")
+            console.warn("graphics backend " + backendName + " failed (" + error + "): " + message)
+            if (!rendererFallbackStarted && backendName === "vulkan"
+                    && Quickshell.env("FLEA_RENDERER_AUTOMATIC") === "1") {
+                rendererFallbackStarted = true
+                var fleaBin = Quickshell.env("FLEA_BIN") || "flea"
+                Quickshell.execDetached(["/usr/bin/env", "QSG_RHI_BACKEND=opengl", fleaBin, "--gui"])
+            }
+            backend.quit()
+        }
+
+        Connections {
+            target: view.Window.window
+            function onSceneGraphError(error, message) { fleaWindow.handleSceneGraphError(error, message) }
+        }
+
         // Quickshell 0.3.1 has no exit API and Qt.quit() is a no-op, so the shell signals itself.
         // The backend is told first and answers when it has drained: a quit cancels the operation in
         // flight, and a cancelled copy removes its own partial, so closing never leaves a half file.

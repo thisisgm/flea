@@ -72,15 +72,22 @@ rc=$?
 check "--tui --gui is a usage error" "2" "$rc"
 check "--tui --gui names the conflict" "1" "$(echo "$out" | grep -c 'mutually exclusive')"
 
-# The prctl has to survive exec, so a stub qs reports the kernel's own view of the launched child.
+# The prctl and renderer choice have to survive exec, so a stub qs reports the launched child.
 D="$FIXTURE_ROOT/flea-thp-test-$$"
 sandbox_make "$D"
-printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status\n' > "$D/qs"
+printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status\nprintf "FLEA_BIN %%s\\n" "$FLEA_BIN"\nprintf "RENDERER %%s\\n" "$QSG_RHI_BACKEND"\nprintf "AUTOMATIC %%s\\n" "${FLEA_RENDERER_AUTOMATIC-unset}"\n' > "$D/qs"
 chmod +x "$D/qs"
-out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+out=$(env -u QSG_RHI_BACKEND -u FLEA_RENDERER_AUTOMATIC FLEA_BIN=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "the launched shell has transparent huge pages off" "1" \
   "$(echo "$out" | grep -c 'THP_enabled:[[:space:]]*0')"
 check "the launched shell reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
+check "the launched shell uses this Flea binary" "FLEA_BIN $PWD/target/debug/flea" \
+  "$(echo "$out" | grep '^FLEA_BIN ')"
+check "the automatic renderer starts with Vulkan" "1" "$(echo "$out" | grep -c '^RENDERER vulkan$')"
+check "the automatic renderer permits one fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC 1$')"
+out=$(env QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+check "an explicit renderer is preserved" "1" "$(echo "$out" | grep -c '^RENDERER opengl$')"
+check "an explicit renderer cannot trigger fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC unset$')"
 sandbox_remove "$D"
 
 # --open resolves the target, refuses a directory, and hands anything else to xdg-open.
