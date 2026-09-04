@@ -228,11 +228,33 @@ EOS
     ! grep -Fq -- "$fake_secret" "$inaccessible_output" \
         || self_fail "inaccessible marker-owned SFTP output contained password"
 
+    : > "$self_dir/state/operations"
+    rm -f "$self_dir/state/deny-info"
+    ui_failure_id=$((run_id + 3))
+    ui_failure_output="$self_dir/ui-failure.output"
+    if printf '%s\n%s\n' "$fake_secret" "$fake_secret" | env "${child_env[@]}" \
+        FLEA_NETWORK_TEST_CASE_ID="$ui_failure_id" FLEA_NETWORK_TEST_CASE=sftp-ui-failure \
+        ./tests/network-live.sh tester slot.test unraid.test > "$ui_failure_output" 2>&1; then
+        ui_failure_status=0
+    else
+        ui_failure_status=$?
+    fi
+    [[ "$ui_failure_status" -ne 0 ]] || self_fail "SFTP UI failure hook returned zero"
+    grep -Fq 'network-live: FAIL SFTP Flea UI' "$ui_failure_output" \
+        || self_fail "SFTP UI failure hook did not run"
+    ! grep -Fq 'network-live: FAIL cleanup did not remove owned test state' "$ui_failure_output" \
+        || self_fail "SFTP UI failure did not remount for cleanup"
+    ui_failure_dir="$self_dir/remote/home42/tester/000-flea-network-test-sftp-$ui_failure_id"
+    [[ ! -e "$ui_failure_dir" ]] || self_fail "SFTP UI failure left $ui_failure_dir"
+    [[ ! -s "$self_dir/state/mounts" ]] || self_fail "SFTP UI failure left a mount"
+    ! grep -Fq -- "$fake_secret" "$ui_failure_output" \
+        || self_fail "SFTP UI failure output contained password"
+
     if [[ "$self_failures" -ne 0 ]]; then
         printf 'network-live-self-test: %s failure(s)\n' "$self_failures" >&2
         exit 1
     fi
-    printf 'network-live-self-test: auth=trusted marker=fallback mount=owned refusal=ok cleanup=fails-loud sftp-inaccessible=fails-loud redaction=ok\n'
+    printf 'network-live-self-test: auth=trusted marker=fallback mount=owned refusal=ok cleanup=fails-loud sftp-inaccessible=fails-loud ui-remount-cleanup=ok redaction=ok\n'
     exit 0
 fi
 
@@ -416,7 +438,7 @@ cleanup_webdav_over_sftp() (
 run_case() {
     local protocol=$1 uri=$2 mode=$3 password=$4 resolver=$5 ui_mode=${6:-drive}
     local test_dir local_path work_uri work_path product_uri product_root case_path content
-    local home_dir candidate_home candidate_uri backend_output rmdir_mode case_id
+    local home_dir candidate_home candidate_uri backend_output rmdir_mode case_id ui_status mount_status
     local uri_rest authority form_user form_host form_path
     local -a ui_env
     printf 'network-live: %s begin\n' "$protocol"
@@ -496,11 +518,24 @@ run_case() {
             "FLEA_NETWORK_LIVE_AUTH=$([[ "$mode" == password ]] && printf password || printf none)"
         )
         mounted_uri=$uri
-        if [[ "$mode" == password ]]; then
-            printf '%s' "$password" | env "${ui_env[@]}" ./tests/ui.sh networklive
+        ui_status=0
+        if [[ -n "${FLEA_NETWORK_SELF_TEST_CHILD:-}" && "${FLEA_NETWORK_TEST_CASE:-}" == sftp-ui-failure ]]; then
+            ui_status=1
+        elif [[ "$mode" == password ]]; then
+            printf '%s' "$password" | env "${ui_env[@]}" ./tests/ui.sh networklive || ui_status=$?
         else
-            env "${ui_env[@]}" ./tests/ui.sh networklive
-        fi || fail "$protocol Flea UI"
+            env "${ui_env[@]}" ./tests/ui.sh networklive || ui_status=$?
+        fi
+        if [[ "$ui_status" -ne 0 ]]; then
+            if uri_is_mounted "$uri"; then
+                :
+            else
+                mount_status=$?
+                [[ "$mount_status" -eq 1 ]] || fail "$protocol cannot inspect mount after Flea UI failure"
+                mount_with "$mode" "$uri" "$password" || fail "$protocol cleanup remount after Flea UI failure"
+            fi
+            fail "$protocol Flea UI"
+        fi
         mounted_uri=""
         mount_with "$mode" "$uri" "$password" || fail "$protocol remount after Flea UI"
         mounted_uri=$uri
@@ -602,6 +637,9 @@ premounted-sftp)
     run_case SFTP "sftp://$slot_user@$slot_host/" password "$slot_password" ultra-home
     ;;
 post-marker-sftp)
+    run_case SFTP "sftp://$slot_user@$slot_host/" password "$slot_password" ultra-home
+    ;;
+sftp-ui-failure)
     run_case SFTP "sftp://$slot_user@$slot_host/" password "$slot_password" ultra-home
     ;;
 "")
