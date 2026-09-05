@@ -51,6 +51,8 @@ pub enum Rule {
     Word(&'static [&'static str]),
     Words(&'static [&'static str]),
     Paths,
+    // dual.paths is the pair handoff 5a specifies, or the empty array that means nothing remembered.
+    Pair,
     // menu.hidden is deliberately open: a closed list would make this Flea drop an id a newer one hid.
     Ids,
     Count(f64, f64),
@@ -63,7 +65,7 @@ pub const COLUMN_KEYS: &[&str] = &["name", "mode", "size", "date", "kind"];
 
 pub const SORT: &[(&str, Rule)] = &[("key", Rule::Word(&["name", "size", "date", "kind"])), ("reverse", Rule::Bool)];
 
-pub const DUAL: &[(&str, Rule)] = &[("paths", Rule::Paths), ("focus", Rule::Count(0.0, 1.0))];
+pub const DUAL: &[(&str, Rule)] = &[("paths", Rule::Pair), ("focus", Rule::Count(0.0, 1.0))];
 
 pub const PLACES: &[(&str, Rule)] = &[
     ("favourites", Rule::Paths),
