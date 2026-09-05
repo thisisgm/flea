@@ -1,4 +1,3 @@
-.import "../../ui/js/Filter.js" as Filter
 .import "../../ui/js/Focus.js" as Focus
 .import "filterfixture.js" as Fixture
 
@@ -258,29 +257,6 @@ function run(check) {
     check("ctrl e in a listing on the internal disk says so, even with the rail cursor on the stick",
           outside.sidebar.released.length + "|" + outside.said,
           "0|This directory is not inside a removable volume, so there is nothing to eject.")
-
-    // Issue 27: what a cursor step past an end does. The state file's wrapAtEnds is off by default,
-    // so the shipped answer is still the clamp the operator who reported the jump wanted; with the
-    // key on the cursor comes round, which is what the operator who asked for it wanted.
-    var stopping = Fixture.pane()
-    Focus.step(stopping, -1)
-    check("with the key off, up at the top leaves the cursor where it was", stopping.cursorIndex, 0)
-    var wrapping = Fixture.pane()
-    wrapping.wrapAtEnds = true
-    Focus.step(wrapping, -1)
-    check("with the key on, up at the top lands on the last row", wrapping.cursorIndex, 6)
-    Focus.step(wrapping, 1)
-    check("and down from the last row comes back to the first", wrapping.cursorIndex, 0)
-    // A page key overshoots on purpose, so only a step taken FROM an end may wrap.
-    wrapping.cursorIndex = 3
-    Focus.step(wrapping, 20)
-    check("a page key from the middle still stops at the end it was heading for", wrapping.cursorIndex, 6)
-    // The selection keys keep ui/js/Filter.js moveCursor's plain clamp: an extend that wrapped would
-    // run the anchor to the other end of the listing and select every row between the two.
-    var extending = Fixture.pane()
-    extending.wrapAtEnds = true
-    Filter.moveCursor(extending, -1)
-    check("moveCursor, which shift+j and shift+k move through, never wraps", extending.cursorIndex, 0)
 
     // The listing's m goes through the pane, which says whether a delegate was under the cursor; an
     // empty directory and a filter that hides every row both get the sentence rather than silence.

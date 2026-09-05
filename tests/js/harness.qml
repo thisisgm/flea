@@ -11,6 +11,7 @@ import "filter.js" as FilterSuite
 import "focus.js" as FocusSuite
 import "focus-forward.js" as FocusForwardSuite
 import "focus-lines.js" as FocusLinesSuite
+import "focus-wrap.js" as FocusWrapSuite
 import "format.js" as FormatSuite
 import "icons.js" as IconsSuite
 import "keymap.js" as KeymapSuite
@@ -52,7 +53,7 @@ Item {
             ["edmonton", DstSuite],
             ["errors", ErrorsSuite], ["facts", FactsSuite], ["filter", FilterSuite],
             ["focus", FocusSuite], ["focus-forward", FocusForwardSuite],
-            ["focus-lines", FocusLinesSuite],
+            ["focus-lines", FocusLinesSuite], ["focus-wrap", FocusWrapSuite],
             ["format", FormatSuite], ["icons", IconsSuite],
             ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite],
             ["mounts", MountsSuite], ["nav", NavSuite], ["ops", OpsSuite],
