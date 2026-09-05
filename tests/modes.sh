@@ -240,6 +240,92 @@ check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP
 check "and the opened program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"
 sandbox_remove "$D"
 
+# --terminal resolves the directory, refuses anything that is not one, and hands the canonical path
+# to xdg-terminal-exec as one --dir= argument. src/terminal.rs is its own copy of the stdio, process
+# group and huge page guards --open carries, so each one is pinned here rather than assumed to have
+# travelled with the code; see "Opening a file".
+D="$FIXTURE_ROOT/flea-terminal-test-$$"
+sandbox_make "$D"
+mkdir -p "$D/dir" "$D/bin"
+printf 'hello' > "$D/file.txt"
+ln -s "$D/dir" "$D/linkdir"
+ln -s "$D/nowhere" "$D/broken"
+# Its stdio is detached, so everything the terminal has to say goes to this log, not to our stdout.
+ran="$D/ran.log"
+# Sample input: xdg-terminal-exec --dir=/home/flea-sandbox/flea-terminal-test-123/dir
+# No strip-to-paren here: cut reads its OWN stat, comm is bare "cut", and its pgid is the stub's by fork.
+{
+  printf '#!/bin/sh\n'
+  printf 'printf "FD1 %%s\\n" "$(readlink /proc/$$/fd/1)" >> %q\n' "$ran"
+  printf 'exec >> %q 2>&1\n' "$ran"
+  printf 'printf "NARGS %%s\\n" "$#"\n'
+  printf 'printf "ARGV %%s\\n" "$*"\n'
+  printf 'P=$(cut -d" " -f5 /proc/self/stat)\n'
+  printf '[ "$$" = "$P" ] && printf "PGID MATCH pid=%%s pgid=%%s\\n" "$$" "$P" || printf "PGID MISMATCH pid=%%s pgid=%%s\\n" "$$" "$P"\n'
+  printf 'grep -i "^THP_enabled" /proc/self/status\n'
+} > "$D/bin/xdg-terminal-exec"
+chmod +x "$D/bin/xdg-terminal-exec"
+
+: > "$ran"
+# Quickshell hands flea --terminal a pipe and closes it, so a pipe is what the terminal must not inherit.
+PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/dir" 2>&1 | cat >/dev/null
+# --terminal spawns and returns without waiting, measured at 2 ms against a stub that then slept
+# half a second, so every line below arrives after it has already exited.
+wait_for_line "$ran" '^THP_enabled'
+out=$(cat "$ran")
+check "--terminal hands the directory to xdg-terminal-exec" "1" "$(echo "$out" | grep -c -- "^ARGV --dir=$D/dir$")"
+check "and it is given that one argument and nothing else" "1" "$(echo "$out" | grep -c '^NARGS 1$')"
+# A pipe here dies with the flea that made it, and the terminal dies with it on its first write.
+check "the terminal got no inherited pipe" "1" "$(echo "$out" | grep -c '^FD1 /dev/null$')"
+check "and the stub reported its first descriptor at all" "1" "$(echo "$out" | grep -c '^FD1 ')"
+# Field five of /proc/self/stat is the process group; it equals the pid only after setpgid(0, 0).
+check "the terminal leads its own process group" "1" "$(echo "$out" | grep -c '^PGID MATCH')"
+check "and the stub reported its process group at all" "1" "$(echo "$out" | grep -c '^PGID ')"
+# Nothing disabled huge pages in this process, so 1 is the untouched state and a stray disable would show.
+check "a plain --terminal leaves huge pages on" "1" "$(echo "$out" | grep -c '^THP_enabled:[[:space:]]*1')"
+check "and the stub reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
+
+: > "$ran"
+PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/linkdir" >/dev/null 2>&1
+wait_for_line "$ran" '^THP_enabled'
+check "a symlink to a directory is resolved to its target" "1" "$(grep -c -- "^ARGV --dir=$D/dir$" "$ran")"
+
+: > "$ran"
+out=$(PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/file.txt" 2>&1)
+rc=$?
+check "a file is refused with the failure status" "2" "$rc"
+check "and that sentence names the directory, which is the thing that was not one" "1" \
+  "$(echo "$out" | grep -c 'that directory could not be opened')"
+check "and no terminal was started over it" "0" "$(grep -c '^ARGV ' "$ran")"
+
+out=$(PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/broken" 2>&1)
+rc=$?
+check "a path that resolves to nothing is an error status" "2" "$rc"
+check "and one sentence, with no errno" "0" "$(echo "$out" | grep -c 'os error')"
+check "and that sentence names the directory too" "1" "$(echo "$out" | grep -c 'that directory could not be opened')"
+
+out=$(env PATH=/nonexistent-flea-test-path $BIN --terminal "$D/dir" 2>&1)
+rc=$?
+check "a missing xdg-terminal-exec is an error status" "2" "$rc"
+check "and is elided too" "0" "$(echo "$out" | grep -c 'os error')"
+# Without this the pair cannot tell a failed spawn from a --terminal that was never implemented.
+check "and that sentence names the handler" "1" "$(echo "$out" | grep -c 'nothing on this system could be asked')"
+
+out=$($BIN --terminal 2>&1 </dev/null)
+check "--terminal with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--terminal')"
+
+# The stub qs is what exec_qs launched, so it inherits huge pages off; --terminal must hand them
+# back. This is the arm with teeth: the plain call above runs with them already on.
+printf '#!/bin/sh\nexec %s --terminal %s\n' "$PWD/$BIN" "$D/dir" > "$D/bin/qs"
+chmod +x "$D/bin/qs"
+: > "$ran"
+env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui >/dev/null 2>&1 </dev/null
+# The sandbox is removed on the next line, so this wait is what keeps the stub from being deleted
+# out from under the chain that is still starting it.
+wait_for_line "$ran" '^THP_enabled'
+check "the terminal got its huge pages back through the shell" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$ran")"
+sandbox_remove "$D"
+
 # Issue 41. A handler declaring Terminal=true has to be run inside a terminal or it maps no window
 # at all, and which programs need one is the desktop database's judgement, never Flea's. This drives
 # the real gio against an isolated XDG_DATA_HOME and XDG_CONFIG_HOME, so the operator's own MIME

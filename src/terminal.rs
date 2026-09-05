@@ -6,7 +6,7 @@ use std::process::{Command, Stdio};
 // The exit status ui/Opener.qml reads. 0 is a successful handoff and needs no name.
 pub const FAILED: i32 = 2;
 
-// Canonical, so a directory named --output=/etc/x cannot be read as a flag by the child.
+// Canonical, so a relative path and a symlink both name the one real directory the terminal sits in.
 fn resolved(path: &str) -> Option<PathBuf> {
     std::fs::canonicalize(path).ok()
 }
@@ -18,12 +18,12 @@ pub fn open_terminal(path: &str) -> i32 {
         Some(p) => p,
         // The reason is elided, never shown raw, and the path is the user's own input.
         None => {
-            eprintln!("flea: that terminal could not be opened, check that it still exists");
+            eprintln!("flea: that directory could not be opened in a terminal, check that it still exists");
             return FAILED;
         }
     };
     if !target.is_dir() {
-        eprintln!("flea: that terminal could not be opened, check that it still exists");
+        eprintln!("flea: that directory could not be opened in a terminal, check that it still exists");
         return FAILED;
     }
     // The setting is inherited across exec, so this is the last point that can hand it back.
