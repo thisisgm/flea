@@ -911,6 +911,12 @@ with no `pointercase_`. One driven press at the real window closes it: `tests/ui
 (`FLEA_PATH=<dir> FLEA_BIN=<binary> qs -p ui`), then `ydotool click 0xC3` with the pointer over the
 listing, reading the path back through the IPC seam.
 
+A crumb click costs the platform's own double-click interval before anything happens, and that is
+inherent rather than a defect: `ui/ChromeBar.qml`'s `exclusiveSignals: TapHandler.SingleTap |
+TapHandler.DoubleTap` is what makes the tap count decide, and `singleTapped` cannot fire until the
+interval has expired. One target cannot host both gestures and answer the first one early, so the
+alternative is not a faster click, it is losing the double click that opens the path for editing.
+
 Its effect field is `does` and not `action`, and that is load bearing. `tools/flea-acceptance`
 derives its whole key checklist with one `sed` for `^action = ` over this file, with no table
 scoping, so an `action =` in a pointer block would put an item on that checklist that no key
