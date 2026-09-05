@@ -512,7 +512,7 @@ huge pages" below for what it is worth and what it cost.
   was lifted out of `Pane.qml` at the 400-line hard cap and has no behaviour.
 - `ui/Row.qml` renders one row delegate: the icon slot, which a thumbnail replaces in
   place, the PlainText name and the semantic colours.
-- `ui/Opener.qml` is the only component that launches a foreign program, by running
+- `ui/Opener.qml` is the only component that runs Flea's own opening modes, by running
   `flea --open`, `flea --terminal` and a one-line `sh` that pipes into `wl-copy`, see
   "Opening a file".
 - `ui/ContextMenu.qml` is the one pane-owned right-click popup and its single Open action.
@@ -805,7 +805,7 @@ lookup otherwise.
 `ui/Opener.qml` is 86 lines, well inside both budgets: three `Process` objects, three functions
 (`open`, `openTerminal` and `copyText`) and three signals. `flea --open` waits for `gio open` and
 not for the application, in the low tens of milliseconds, so one process serves every open, and
-this is the only component in the tree that launches a foreign program.
+this is the only component in the tree that runs `flea --open` or `flea --terminal`.
 
 `ui/js/Thumbs.js` is 77 lines by `wc -l` against a 200-line soft budget, and its suite
 `tests/js/thumbs.js` is 66. It is arithmetic over the row map and nothing else, with no QML
@@ -2804,8 +2804,8 @@ the opener from inside a file manager opens a different file manager; the caller
 `flea --open` with no path and `flea --open a b` both fall through to the unknown-flag branch, which
 names the flag and exits 2.
 
-`ui/Opener.qml` is the window side of that contract and the only component in the tree that
-launches a foreign program. It holds a `Process` for each of the three it runs, and the opener's
+`ui/Opener.qml` is the window side of that contract and the only component in the tree that runs
+`flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the opener's
 own `onExited` is the whole mapping for this half: `0` says nothing, `3` raises
 `isDirectory` and `Pane` navigates there, and anything else raises `failed` and `Pane` writes one
 sentence to the status line. A second `open()` while that `Process` is running is dropped rather
@@ -2842,8 +2842,8 @@ database's, `gio open` is how it is asked, and there is no desktop-entry parsing
 anything that is not one, and hands the result to `xdg-terminal-exec` as a single `--dir=` argument,
 with the same three guards the opener carries: `/dev/null` on all three descriptors,
 `process_group(0)`, and `thp::enable()` before the spawn. Unlike `--open` it does not wait, because
-the terminal it starts lives as long as the user keeps it open: it returned in 2 ms against a stub
-that then slept half a second. `xdg-terminal-exec` is the OEM route rather than a terminal name of
+the terminal it starts lives as long as the user keeps it open: it returned with the stub's log still
+empty, against a stub that slept half a second before its first write. `xdg-terminal-exec` is the OEM route rather than a terminal name of
 Flea's own, and `omarchy default terminal` is what configures it: that command writes
 `~/.config/xdg-terminals.list`, one of the config files `xdg-terminal-exec` reads, so whatever the
 operator set is what opens. `tests/modes.sh` pins the argument, both refusals, the descriptors, the

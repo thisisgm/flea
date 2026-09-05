@@ -21,9 +21,10 @@ check() {
 }
 
 # A handoff that spawns returns before its child has written anything, so the suite waits for the
-# child's own line instead of for a fixed time. A 0.2 s guess loses that race on a loaded box, and
-# losing it removes the sandbox out from under a handler that has not run yet. The wait is bounded
-# and gives up silently: the check that follows reads the same log and fails on the missing line.
+# child's own line instead of for a fixed time. The 0.2 s guess it replaced survived 20 runs under
+# twenty-four spinners here and failed 2 of 2 once the child's first write was delayed by 0.4 s, and
+# that is the case that removes the sandbox out from under a handler that has not run. The wait is
+# bounded and gives up silently: the check that follows reads the same log and fails on the missing line.
 wait_for_line() {
   local file="$1" pattern="$2" waited=0
   while [ "$waited" -lt 200 ]; do
@@ -237,8 +238,8 @@ printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nex
 chmod +x "$D/bin/qs"
 : > "$opened"
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
-# The sandbox is removed on the next line, so this wait is what keeps the stub from being deleted
-# out from under the chain that is still starting it.
+# src/open.rs:43 waits for the handler, so this record is whole when the chain returns; the wait is
+# kept so every log read in this file has one shape, and it returns at once.
 wait_for_line "$opened" '^THP_enabled'
 check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP_enabled:[[:space:]]*0')"
 check "and the opened program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"
@@ -273,8 +274,8 @@ chmod +x "$D/bin/xdg-terminal-exec"
 : > "$ran"
 # Quickshell hands flea --terminal a pipe and closes it, so a pipe is what the terminal must not inherit.
 PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/dir" 2>&1 | cat >/dev/null
-# --terminal spawns and returns without waiting, measured at 2 ms against a stub that then slept
-# half a second, so every line below arrives after it has already exited.
+# --terminal spawns and returns without waiting: against a stub that slept half a second before its
+# first write it returned with the log still empty, so every line below arrives after it has exited.
 wait_for_line "$ran" '^THP_enabled'
 out=$(cat "$ran")
 check "--terminal hands the directory to xdg-terminal-exec" "1" "$(echo "$out" | grep -c -- "^ARGV --dir=$D/dir$")"
@@ -300,6 +301,7 @@ rc=$?
 check "a file is refused with the failure status" "2" "$rc"
 check "and that sentence names the directory, which is the thing that was not one" "1" \
   "$(echo "$out" | grep -c 'that directory could not be opened')"
+# Best effort: a spawned stub may not have written yet, so the two checks above are the strict ones.
 check "and no terminal was started over it" "0" "$(grep -c '^ARGV ' "$ran")"
 
 out=$(PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/broken" 2>&1)
@@ -324,8 +326,8 @@ printf '#!/bin/sh\nexec %s --terminal %s\n' "$PWD/$BIN" "$D/dir" > "$D/bin/qs"
 chmod +x "$D/bin/qs"
 : > "$ran"
 env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui >/dev/null 2>&1 </dev/null
-# The sandbox is removed on the next line, so this wait is what keeps the stub from being deleted
-# out from under the chain that is still starting it.
+# The sandbox is removed below and src/terminal.rs:40 is a spawn, so this wait is what keeps the stub
+# from being deleted out from under the chain that is still starting it.
 wait_for_line "$ran" '^THP_enabled'
 check "the terminal got its huge pages back through the shell" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$ran")"
 sandbox_remove "$D"

@@ -2,7 +2,7 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 
-// The one component that launches a foreign program, so the huge page corner has one owner; see AGENTS.md "Opening a file".
+// The one component that runs Flea's own opening modes, so the huge page corner has one owner; see AGENTS.md "Opening a file".
 Item {
     id: root
 
