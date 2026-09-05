@@ -339,6 +339,11 @@ level and inside a nested object, so an older Flea cannot eat a newer one's sett
 other way round: it is checked whole before any of it lands, and one bad key refuses the whole patch
 with a sentence naming it, because a patch comes from Flea and not from a text editor.
 
+**`wrapAtEnds` is read by the window and by nothing else.** `ui/Pane.qml` exposes it off the
+document `ui/ViewState.qml` already holds, and `ui/js/Focus.js` `step` is its only reader: with the
+key off a cursor step past an end clamps, and with it on a step taken from an end comes round. It
+ships off because issue 27 asked for the wrap and another operator reported the same jump as a bug.
+
 **`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
 a closed list, because a closed list would make this Flea drop an id a newer one hid.
 
@@ -878,12 +883,21 @@ no second language. Do not restore the `awk`.
 
 A `[[pointer]]` table joined this on 2026-09-02, when a single left click stopped opening a
 row and the second tap started to. It declares what each button, modifier and tap count does
-in the listing, in the columns view's two neighbour columns and in the rail, and the generator
-emits it as `Keymap.POINTER`. `ui/js/Tap.js` is the only code that decides any of it and
-`tests/js/tap.js` drives every listing and neighbour row of the table through that file, so
-neither side can move without the other. `tests/ui.sh` case `click` then drives real clicks at
-the window, which is the half a JavaScript suite cannot reach: it is what says a delegate hands
-`Tap.tapped` the tap count and the modifiers the click actually carried.
+in five places, and the generator emits it as `Keymap.POINTER`: the listing, the columns view's
+two neighbour columns, the rail, the `window` itself and the `chrome`. `ui/js/Tap.js` is the
+only code that decides the first three and `tests/js/tap.js` drives every listing and neighbour
+row of the table through that file, so neither side can move without the other. `tests/ui.sh`
+case `click` then drives real clicks at the window, which is the half a JavaScript suite cannot
+reach: it is what says a delegate hands `Tap.tapped` the tap count and the modifiers the click
+actually carried.
+
+The last two rows landed with issues 20 and 45 and are not `Tap.js`'s. `window` is the mouse's
+back button, which belongs to no row: `ui/shell.qml` carries the handler and `ui/js/Nav.js`
+`mouseBack` decides between the history and the climb. `chrome` is the path above the listing,
+whose segments `ui/ChromeBar.qml` draws as their own click targets through `Nav.crumbs`. Neither
+`where` has a `pointercase_` driver in `tools/flea-acceptance-drive`, so both report as derived
+and undriven rather than as passes; `tests/js/tap.js` holds their counts, which is what stops a
+row being added to the table and reaching nothing at all.
 
 Its effect field is `does` and not `action`, and that is load bearing. `tools/flea-acceptance`
 derives its whole key checklist with one `sed` for `^action = ` over this file, with no table
