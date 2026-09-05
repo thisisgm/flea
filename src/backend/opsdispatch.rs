@@ -252,6 +252,23 @@ mod tests {
         assert!(o.journal.is_empty());
     }
 
+    // Journal::undo propagates with `?` and do_undo hands that error straight to error_line.
+    #[test]
+    fn a_failed_rename_reversal_answers_the_rename_kind_and_not_undo() {
+        let d = TestDir::new("dispatchundorename");
+        let mut o = ops();
+        let from = d.file("before.txt", "body");
+        let mut buf = out();
+        do_rename(&mut buf, &mut o, &from.to_string_lossy(), "after.txt");
+        // Something takes the old name back before the undo, so the reversal's own rename refuses it.
+        d.file("before.txt", "squatter");
+        let mut buf = out();
+        do_undo(&mut buf, &mut o);
+        let line = text(&buf);
+        assert!(line.contains(r#""t":"error","where":"rename""#), "{}", line);
+        assert!(!line.contains(r#""where":"undo""#), "an undo must not re-stamp the kind its step answered");
+    }
+
     #[test]
     fn a_refused_rename_records_nothing_to_undo() {
         let d = TestDir::new("dispatchrefuse");
