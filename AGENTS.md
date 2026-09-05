@@ -324,7 +324,11 @@ paths, the lock and the write.
 document and writes nothing. `flea --ui-state '<json object>'` merges that patch through the lock
 and prints the result. The window reaches it from `ui/ViewState.qml` through a `Process`; the
 terminal interface, when it is built, submits patches for `view`, `hidden` and `sort` only, because
-scale, menus and places are the window's.
+scale, menus and places are the window's. **The streams and the status are the contract**, because
+that `Process` reads the status alone: either shape prints the whole document on stdout and exits 0,
+and every refusal, a patch that is not JSON, a key or value this Flea does not take, a state file it
+could not write, or more than one argument, prints one `flea: ` sentence on stderr, prints nothing
+on stdout at all, and exits 2. Pinned in `tests/uistate.sh` beside the refusals themselves.
 
 **The window's read is the settled file, and not a raw one.** `main()` calls `Store::settle` before
 it hands off to `qs`: an empty patch through the same lock and the same per-key validation, so
@@ -334,9 +338,12 @@ reads it. A key this Flea does not know is not one of those: `merge` keeps it ve
 Flea's settings survive the settle rather than falling back to anything. Without the step the two
 front ends answer one file two ways, because the window's read is a `JSON.parse` and applies no rule
 of its own. The settle can fail, on an unwritable state directory or a `ui.json` that is a link, and
-then `main()` prints one line and opens the window anyway on a file it did not validate. `settle` is
-also where 0.1.3's `view.json` is migrated, since `read()` falls back to it only while `ui.json` is
-absent.
+then `main()` prints one line and opens the window anyway on a file it did not validate. **The
+migration is `read()`'s and not `settle`'s**: `read()` falls back to `view.json` exactly while
+`ui.json` is absent, so every path that reads reaches it, `flea --ui-state` included. Measured, a
+first `flea --ui-state '{"view":"grid"}'` on a box with `view.json` and no `ui.json` writes the
+migrated columns, the same ones the settle writes, and leaves `view.json` byte for byte. `settle` is
+only where the migration is first written down on a launch that never patches anything.
 
 **A launch never spends the file to settle it.** A launch with neither file writes nothing, the way
 a first run always has. Neither does one whose `ui.json` already reads back as exactly what a
@@ -379,11 +386,13 @@ patch this Flea refuses leaves both of those behind and only never writes the st
 cost is an empty `~/.local/state/flea/` and a lock the next accepted save uses anyway, which is why
 the check says what it leaves rather than the code being moved to leave nothing.
 
-**Failure is per key, never per file.** A document that does not parse reads as the full default
-shape rather than throwing, and is left on disk exactly as it was rather than rewritten into that
-shape. A value a key cannot take costs that key alone, and every other key in
-the file stands. A key this Flea does not know is kept and rewritten as it was read, at the top
-level and inside a nested object, so an older Flea cannot eat a newer one's settings. A patch is the
+**Failure is per key, and per file only when the document does not parse at all.** That one case
+is per file by construction: a document that does not parse reads as the full default shape rather
+than throwing, and is left on disk exactly as it was rather than rewritten into that shape, so every
+key in it is lost to the read at once. Every other failure costs one key: a value a key cannot take
+costs that key alone, and every other key in the file stands. A key this Flea does not know is kept
+and rewritten as it was read, at the top level and inside a nested object, so an older Flea cannot
+eat a newer one's settings. A patch is the
 other way round: it is checked whole before any of it lands, and one bad key refuses the whole patch
 with a sentence naming it, because a patch comes from Flea and not from a text editor. **A number is
 measured against JSON's own grammar and not Rust's**, because `Json::Num` keeps the literal it was
@@ -392,7 +401,18 @@ as an `f64` and none of them is a JSON number, and accepting one would have let 
 `ui.json` into a document the window's own `JSON.parse` refuses, after which every setting reads as
 default. The shape check is `is_json_number` in `src/jsondoc.rs`, run before the `f64` parse and not
 instead of it: the parse is what bounds the magnitude, since `1e400` is a JSON number and no finite
-`f64`.
+`f64`. **Every parse error names the byte it stopped at**, the four that ran off an end included, so
+a hand edit is answered with a position and `malformed_input_is_an_error_naming_where_it_stopped`
+asserts the whole sentence rather than `is_err()`, which is all it could see before.
+
+**`columns` names what the list row SHOWS, and it is a set that always holds `name`.** Every entry
+is one of the five column keys, no key appears twice, and `name` is among them, because
+`src/uischema.rs`'s own row says name is never optional and `ui/js/Columns.js` draws it whatever the
+file holds. A duplicate is not harmless: measured through the real `ui/ViewState.qml` singleton, a
+stored `["name","size","size","date"]` left one header-menu "Hide Size" click still drawing
+`name,size,date`, because `toggleColumn` splices the first match and the second still shows the
+column. The header menu offers only the four optional keys onto an array that already carries
+`name`, so no click this window can produce is refused by the rule.
 
 **`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
 a closed list, because a closed list would make this Flea drop an id a newer one hid.
@@ -402,8 +422,12 @@ It is one key and not two, so there is nowhere for a free number to be stored.
 
 **The write is a temp plus a rename, never a truncation**, created at mode 0600 in the `open()` call
 inside a directory created at 0700, and a symbolic link at either the file or the lock is refused
-rather than written through. The direct proof is `the_write_replaces_the_file_rather_than_truncating_it`,
-which holds an fd open across an update, reads the old bytes back through it and compares inodes. The
+rather than written through. **The temp carries the same guarantee and by the same mechanism as
+`src/userfile.rs`**: `write_new` opens `ui.json.<pid>.tmp` with `create_new`, which is
+`O_CREAT | O_EXCL`, so a link or a file planted at that path is an error rather than a redirect, and
+the pid in the name keeps two concurrent writers off each other's temp. The direct proof is
+`the_write_replaces_the_file_rather_than_truncating_it`, which holds an fd open across an update,
+reads the old bytes back through it and compares inodes. The
 sweep beside it fires a `SIGKILL` 1 to 9 ms into each of 120 rounds and lands on a live process in 88
 to 120 of them, measured across nine sweeps on this box and four more with other lanes live on it,
 the second set ranging 92 to 120; no round of the 120 has ever left the file as
@@ -422,9 +446,10 @@ and that there are never more of them than there were kills.
 `uiScale` to `$XDG_CONFIG_HOME/flea/view.json`, so the handoff's "0.1.3 stored nothing" is wrong.
 `hiddenCols` named what was HIDDEN and `columns` names what is SHOWN, so the migration inverts it;
 `uiScale` is dropped on the operator's ruling, because 0.1.4 stores an Omarchy stop and never a free
-multiplier. The migration rides `settle` above, so the first paint after an upgrade already reads
-the migrated columns. A `ui.json` that exists means `view.json` is never read again, whether or not
-this Flea can read that `ui.json`'s bytes, and `view.json` is never written again.
+multiplier. The migration rides `read()` above, so the first paint after an upgrade already reads
+the migrated columns, whether the settle or a `flea --ui-state` patch was what wrote them down. A
+`ui.json` that exists means `view.json` is never read again, whether or not this Flea can read that
+`ui.json`'s bytes, and `view.json` is never written again.
 
 ## Modes
 
@@ -802,8 +827,11 @@ are the test module. It is one job in two directions: pull one
 named field out of one JSON line, and escape one string into one. Nothing here builds or
 validates a document, because the wire is one object per line and never anything else.
 
-`src/jsondoc.rs` is 352 lines by `wc -l`, over the soft budget and 48 under the hard cap, with its
-`#[cfg(test)]` at 272, so 271 lines of implementation and 81 of tests. It is one job in two
+`src/jsondoc.rs` is 372 lines by `wc -l`, over the soft budget and 28 under the hard cap, with its
+`#[cfg(test)]` at 273, so 272 lines of implementation and 100 of tests. **Those three read 352, 272
+and 271 until this round and all three were one out**: `wc -l` on the commit that wrote them said
+353, the fourth count on this branch read off the shape of an edit rather than off the artefact.
+It is one job in two
 directions, the same shape as `json.rs`: a whole JSON document in, and the same document back out
 with its own numbers written the way they were read. **It stood at 398**, and this register said the
 next change here would split `parse` off from the `Json` type plus `render`. That is not the cut
@@ -813,11 +841,17 @@ in four files and buys a reader nothing. The string decoder went instead, to `sr
 different job on the same bytes, with exactly one caller in this file. `parse` against `render` is
 still the cut if this file needs another one.
 
-`src/jsonstring.rs` is 108 lines by `wc -l`, inside both budgets, with its `#[cfg(test)]` at 87, so
-86 lines of implementation and 22 of tests. It is one job: one JSON string in and one Rust `String`
+`src/jsonstring.rs` is 109 lines by `wc -l`, inside both budgets, with its `#[cfg(test)]` at 88, so
+87 lines of implementation and 22 of tests. It is one job: one JSON string in and one Rust `String`
 out, the `\u` escapes and UTF-16's surrogate pairing, which is the reading half of what `json.rs`'s
 `escape` writes. It came out of `jsondoc.rs` when `parse_number` needed JSON's own number grammar
 and that file had two lines of headroom left; `parse_value` is its only caller.
+
+`src/uischema.rs` is 250 lines by `wc -l`, exactly at the soft budget and so not one the tool warns
+about, with its `#[cfg(test)]` at 128, so 127 lines of implementation and 123 of tests. It is one
+job: the shipped `ui.json` shape and the rule table beside it. Its tests are half the file because
+each one is a table read back, and the rule-edge test lives here rather than in `uistate.rs` because
+the rules it bites are declared here and that file has 36 lines of headroom left.
 
 `src/uistore.rs` is 394 lines by `wc -l`, over the soft budget and 6 under the hard cap, with its
 `#[cfg(test)]` at 192, so 191 lines of implementation and 203 of tests. Just over half the file is
@@ -826,14 +860,14 @@ a real rename, and each of those costs a fixture on disk. The seam for the next 
 write helpers at the bottom, `make_dir`, `take_lock`, `refuse_a_link` and `write_new`, which know
 nothing about `Store` beyond the paths they are handed.
 
-`src/uistate.rs` is 323 lines by `wc -l`, over the soft budget and 77 under the hard cap, with its
-`#[cfg(test)]` at 172, so 171 lines of implementation and 152 of tests. It is one job in three
+`src/uistate.rs` is 364 lines by `wc -l`, over the soft budget and 36 under the hard cap, with its
+`#[cfg(test)]` at 189, so 188 lines of implementation and 176 of tests. It is one job in three
 shapes and all three are the same merge: a file onto the shipped defaults, one caller patch onto a
 document, and 0.1.3's `view.json` onto the defaults. They share `merge`, `fits` and the `SCHEMA`
 walk, so cutting `patched` away from `from_file` would put the validator on one side of a file
 boundary and the rule table's only other reader on the other. The seam, if this ever needs one, is
-the value predicates at the bottom, `one_line`, `is_action_id` and `is_a_place`, which know nothing
-about a document or a schema.
+the value predicates at the bottom, `one_line`, `is_column_set`, `is_action_id` and `is_a_place`,
+which know nothing about a document or a schema.
 
 `src/backend/thumbspec.rs` is 312 lines, over the soft budget and under the hard cap: 190 the
 discovery, the desktop-entry parser and `is_runnable`, the other 122 the test module. Those
@@ -853,9 +887,9 @@ need a real file, a real symlink and a real directory on disk before they prove 
 reader arriving without that context will read the ratio as top heavy; it is the cost of testing
 a boundary against the filesystem rather than against a mock.
 
-`src/backend/child.rs` is 231 lines by `wc -l`, inside both budgets and so not one of the eight
-files the tool warns about, with its `#[cfg(test)]` at line 96, so 95 lines of implementation and
-136 of tests. It runs one argv
+`src/backend/child.rs` is 231 lines by `wc -l`, inside both budgets and so not one of the files the
+tool warns about, with its `#[cfg(test)]` at line 96, so 95 lines of implementation and 136 of
+tests. It runs one argv
 under a deadline and reports `Ran::Succeeded`, `Ran::Failed` or `Ran::NotStarted`. It came out of
 `thumbs.rs` at 397 of the 400 hard cap, and it completes a three-part story each of whose parts is one file:
 `thumbargv` builds the inner argv, `sandbox` wraps it, `child` runs the result. Nothing in it
@@ -1019,9 +1053,11 @@ waits for its consumer.
   `cargo test --release` alone, which it still does. **`96186ff`'s own message is wrong about
   this and cannot be rewritten, because the branch is shared:** its subject says nine suites
   were uninvoked and its body says seven, and the derived answer is zero of twelve. The runner
-  builds both cargo profiles, since `protocol.sh` drives the debug binary and `thumbs.sh` the
-  release one, runs the twelve suites that need nothing but a shell, and reads each suite's OWN
-  exit code, never a pipeline's. It then names `ui.sh`, `drag.sh` and `bench.sh` with what each
+  builds both cargo profiles unconditionally, since `protocol.sh` drives the debug binary and
+  `thumbs.sh` the release one and an `[ ! -x ]` guard on either path leaves a STALE binary in place
+  and certifies code nobody compiled; cargo decides for itself whether a rebuild is owed. It runs
+  the twelve suites that need nothing but a shell, and reads each suite's OWN exit code, never a
+  pipeline's. It then names `ui.sh`, `drag.sh` and `bench.sh` with what each
   needs, so a suite it cannot run stays visible instead of being forgotten a second time.
 - **`./tests/drag.sh` is the internal drag's characterisation suite, 9 checks**, and it has to
   be run by hand: no runner invokes it. It was written against the drag's behaviour BEFORE the

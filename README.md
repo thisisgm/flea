@@ -553,8 +553,9 @@ cargo test                    # unit tests
 ./tools/flea-bench-report     # a field run's CSV as the tables in this README
 ```
 
-`./tests/run-all.sh` is the one command. It builds both cargo profiles, because `protocol.sh`
-drives the debug binary and `thumbs.sh` the release one, runs the twelve suites above that need
+`./tests/run-all.sh` is the one command. It builds both cargo profiles every run, because
+`protocol.sh` drives the debug binary and `thumbs.sh` the release one and a guard on the binary's
+existence would leave a stale one in place; it runs the twelve suites above that need
 nothing but a shell, and reads each suite's own exit code rather than a pipeline's. It then
 names `ui.sh`, `drag.sh` and `bench.sh` and says what each of the three wants: a display, a
 real pointer, an idle box. There is no CI, and `PKGBUILD`'s `check()` runs `cargo test` alone.
