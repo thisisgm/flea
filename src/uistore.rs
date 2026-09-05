@@ -107,10 +107,13 @@ impl Store {
 }
 
 fn state_home() -> Result<PathBuf, String> {
-    match userfile::env_dir("XDG_STATE_HOME") {
-        Some(p) => Ok(p),
-        None => Ok(userfile::home()?.join(".local").join("state")),
-    }
+    Ok(state_dir(userfile::env_dir("XDG_STATE_HOME"), &userfile::home()?))
+}
+
+// The environment is read by the caller above and never here, so the rule can be tested without
+// mutating a process-wide variable that another test in this binary is reading at the same time.
+fn state_dir(from_env: Option<PathBuf>, home: &Path) -> PathBuf {
+    from_env.unwrap_or_else(|| home.join(".local").join("state"))
 }
 
 fn make_dir(dir: &Path) -> Result<(), String> {
@@ -350,20 +353,16 @@ mod tests {
         assert!(fs::read_to_string(s.file()).expect("after").contains("\"columns\""));
     }
 
-    // One test, because the variables are process wide and cargo runs tests in threads.
+    // No environment at all: XDG_CONFIG_HOME and XDG_STATE_HOME are process wide, cargo runs tests
+    // in threads, and src/userfile.rs already owns the one test that mutates XDG_CONFIG_HOME.
     #[test]
-    fn the_paths_follow_xdg_state_home_and_xdg_config_home() {
-        std::env::set_var("XDG_STATE_HOME", "/tmp/flea-test-state");
-        std::env::set_var("XDG_CONFIG_HOME", "/tmp/flea-test-config");
-        let s = Store::user().expect("store");
-        assert_eq!(s.file(), std::path::Path::new("/tmp/flea-test-state/flea/ui.json"));
-        assert_eq!(s.lock_file(), std::path::Path::new("/tmp/flea-test-state/flea/ui.json.lock"));
-        assert_eq!(s.legacy(), std::path::Path::new("/tmp/flea-test-config/flea/view.json"));
-        std::env::set_var("XDG_STATE_HOME", "");
-        std::env::remove_var("XDG_CONFIG_HOME");
-        let home = std::env::var("HOME").expect("HOME");
-        let fallback = Store::user().expect("store");
-        assert_eq!(fallback.file(), std::path::Path::new(&home).join(".local/state/flea/ui.json"));
-        std::env::remove_var("XDG_STATE_HOME");
+    fn the_paths_hang_off_the_state_home_and_the_config_home() {
+        let home = PathBuf::from("/home/nobody");
+        assert_eq!(state_dir(Some(PathBuf::from("/tmp/flea-test-state")), &home), PathBuf::from("/tmp/flea-test-state"));
+        assert_eq!(state_dir(None, &home), PathBuf::from("/home/nobody/.local/state"));
+        let s = Store::at(&state_dir(None, &home), Path::new("/tmp/flea-test-config"));
+        assert_eq!(s.file(), Path::new("/home/nobody/.local/state/flea/ui.json"));
+        assert_eq!(s.lock_file(), Path::new("/home/nobody/.local/state/flea/ui.json.lock"));
+        assert_eq!(s.legacy(), Path::new("/tmp/flea-test-config/flea/view.json"));
     }
 }
