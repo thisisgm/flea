@@ -452,7 +452,7 @@ and the application cannot disagree.
 | `J`, `K`, Shift-Down, Shift-Up | Extend the selection |
 | Ctrl-a | Select all |
 | `/` | Filter the listing in place, in the list view |
-| `f`, Ctrl-f | Search |
+| `f`, Ctrl-f | Search the subtree from home; Tab on the query line points the walk at the folder the pane is in instead, and the strip names the scope it will use |
 | `o` | Reveal the result in its own directory |
 | `y`, `x`, `p`, Ctrl-c, Ctrl-x, Ctrl-v | Copy, cut, paste; the chords are what Omarchy's Super-c, Super-x and Super-v deliver |
 | `dd`, Delete, Ctrl-Delete | Trash. Two presses on the letter, one on the key |
@@ -466,7 +466,7 @@ and the application cannot disagree.
 | `m` | Open the context menu on the cursor row; in the rail, eject or unmount |
 | `s`, `S` | Step the sort column, reverse the sort |
 | `.`, Ctrl-Shift-. | Show hidden files |
-| Tab | Move focus between the rail and the view |
+| Tab | Move focus between the rail and the view; on a search's query line it picks the scope instead |
 | `t` | Open a new tab at the current folder |
 | `w` | Close the current tab |
 | `1` to `9` | Switch to that tab |
@@ -479,6 +479,13 @@ deliberately not matched: Enter opens rather than renames, because every Linux f
 and the vim table open on Enter and the TUI shares this table (rename is `r` or F2), and Cmd-d
 is not duplicate, because Ctrl-d already pages with Ctrl-u as its pair (duplicate is a menu
 row). The keymap sheet writes a chord as `^c`, and `^N` with a capital means Ctrl-Shift.
+
+`j`, `k` and the arrows stop at the first and the last row. Issue 27 asked for them to come round
+instead, so `"wrapAtEnds": true` in `~/.local/state/flea/ui.json` turns that on: a step taken from
+an end wraps, one that merely overshoots from the middle still stops at the end it was heading for,
+and `J`, `K` and the shifted arrows keep the clamp, because an extend that wrapped would take every
+row between the two ends with it. It ships off, and there is no key and no settings row for it,
+because another operator reported the same jump as a bug.
 
 Clicking a column header sorts by it, and clicking the sorted column reverses it. Name,
 Size and Date Modified are real orders and `s` steps through the three; the two metadata
@@ -499,8 +506,9 @@ because every entry the menu draws describes the row under the pointer. `m` open
 under the cursor row; `j` and `k` step it, and it closes on Escape, on a click outside, on
 scrolling, and when its action runs. The columns view's two neighbour columns are peeks with no cursor of
 their own, so one click there shows a directory in the middle column, the way a column view
-reveals rather than opens, and a file still waits for the second click. The rail is the one
-place a single click opens, as Finder's own sidebar does. `keys.toml` carries the whole table,
+reveals rather than opens, and a file still waits for the second click. The rail is one
+place a single click opens, as Finder's own sidebar does, and a parent segment of the path above
+the listing is the other; the segment the pane is already in is not a target. `keys.toml` carries the whole table,
 its `[[pointer]]` half included.
 
 `/` opens a filter strip under the column header and narrows the rows already listed as
