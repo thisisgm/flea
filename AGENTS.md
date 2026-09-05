@@ -522,6 +522,8 @@ huge pages" below for what it is worth and what it cost.
 - `ui/js/Trash.js` is the dd pair's arm-and-fire policy, split out of `Focus.js` at its cap.
 - `ui/js/PreviewKeys.js` is what the preview overlay does with a key, and the 5 s seek step only it
   reads, split out of `Focus.js` at its cap the second time it reached one.
+- `ui/js/RailKeys.js` is what the rail does with a key, split out of `Focus.js` at its cap the third
+  time it reached one; `Focus.handleKey` calls it directly, as it already called `PreviewKeys`.
 - `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` holds it
   for the window and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord
   itself. It is a session value: the state file stores an Omarchy text-size stop and no multiplier.
@@ -3258,8 +3260,9 @@ and open a stick somebody only meant to ask about.
 
 ### m raises the listing's menu too, under the cursor row
 
-`m` is one action, `menu`, and `ui/js/Focus.js` routes it by focus view. In the rail `raiseMenu`
-asks `Mounts.railMenu` and says `<label> has nothing to eject or unmount.` over a row with no
+`m` is one action, `menu`, and `ui/js/Focus.js` routes it by focus view. In the rail
+`ui/js/RailKeys.js` `act` calls `raiseMenu`, which asks `Mounts.railMenu` and says
+`<label> has nothing to eject or unmount.` over a row with no
 release. In the listing `act`'s `menu` case calls `ui/Pane.qml` `openCursorMenu`, which scrolls
 the cursor row into view (a wheel scroll in the grid can leave it off screen), opens the one
 `ContextMenu` at that delegate's bottom-left through `openAt`, and answers whether a delegate was

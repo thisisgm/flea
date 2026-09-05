@@ -1793,7 +1793,7 @@ case_focus() {
     key -k Return >/dev/null
     wait_path "$HOME"
     [[ "$(ipc path)" == "$HOME" ]] || fail "focus: Enter on Home did not open $HOME, path is $(ipc path)"
-    # railAct's open case only emits sidebar.opened; nothing there hands focus back to the list.
+    # RailKeys.act's open case only emits sidebar.opened; nothing there hands focus back to the list.
     [[ "$(ipc focusView)" == "rail" ]] || fail "focus: opening a favourite unexpectedly moved focus off the rail"
     shot focus-opened
     key -k Escape >/dev/null
@@ -2356,7 +2356,7 @@ EOS
     [[ "$(ipc shareBrowserOpen)" == "false" ]] || fail "sharebrowser: Escape did not close the overlay"
     [[ "$(ipc path)" == "$dir" ]] || fail "sharebrowser: Escape navigated to $(ipc path)"
     [[ "$(ipc total)" == "3" ]] || fail "sharebrowser: Escape changed the listing underneath"
-    # A second Escape hands focus back to the list, ui/js/Focus.js "railAct"'s own escape case;
+    # A second Escape hands focus back to the list, ui/js/RailKeys.js "act"'s own escape case;
     # case_network's own post-dialog check relies on the exact same mechanism.
     key -k Escape >/dev/null
     settle

@@ -4,9 +4,9 @@
 .import "Filter.js" as Filter
 .import "Format.js" as Format
 .import "Keymap.js" as Keymap
-.import "Mounts.js" as Mounts
 .import "Ops.js" as Ops
 .import "PreviewKeys.js" as PreviewKeys
+.import "RailKeys.js" as RailKeys
 .import "Search.js" as Search
 .import "Sort.js" as Sort
 .import "Scale.js" as Scale
@@ -256,7 +256,7 @@ function handleKey(event, root, sidebar) {
         return true
     }
     if (root.focusView === RAIL) {
-        root.railAct(action)
+        RailKeys.act(action, root, sidebar)
         return true
     }
     if (action.length > 0 || Keymap.lookup(event.key, event.text, event.modifiers).length > 0) {
@@ -270,25 +270,4 @@ function handleKey(event, root, sidebar) {
         return true
     }
     return false
-}
-
-// The rail answers seven of the key table's action names and ignores the rest while it has focus.
-function railAct(action, root, sidebar) {
-    switch (action) {
-    case "cursorDown": sidebar.cursorIndex = Math.min(sidebar.entries.length - 1, sidebar.cursorIndex + 1); return
-    case "cursorUp": sidebar.cursorIndex = Math.max(0, sidebar.cursorIndex - 1); return
-    // The sheet advertises g and G as first and last row, and the rail is a cursored list too, so
-    // they answered nothing here while every other cursor key worked.
-    case "cursorFirst": sidebar.cursorIndex = 0; return
-    case "cursorLast": sidebar.cursorIndex = Math.max(0, sidebar.entries.length - 1); return
-    // activate(), not a direct opened(path): a Network entry may need mounting first.
-    case "open": if (sidebar.entries.length > 0) sidebar.activate(sidebar.cursorIndex); return
-    case "escape": root.focusView = LIST; return
-    case "addNetwork": sidebar.addRequested(); return
-    // Favorites are not offered: Sidebar.startRename ignores an index outside the Network group.
-    case "rename": sidebar.startRename(sidebar.cursorIndex); return
-    // Eject and Unmount are menu rows, so this opens the menu rather than inventing a second route.
-    case "menu": Mounts.raiseMenu(root, sidebar); return
-    case "eject": Eject.release(root, sidebar, true); return
-    }
 }

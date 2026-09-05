@@ -30,12 +30,6 @@ function railPane() {
     return p
 }
 
-// Only the members Focus.railAct's menu case reads, and a counter for the call it makes.
-function rail(entries, cursor) {
-    return { entries: entries, cursorIndex: cursor, opened: 0,
-             openCursorMenu: function () { this.opened += 1 } }
-}
-
 // A pane and a rail for the eject key: the rail's rows and cursor, and a sink for what releaseChosen
 // is handed, since that call is the whole of what the key must produce.
 function ejectPane(view, path, entries, cursor) {
@@ -175,37 +169,9 @@ function run(check) {
     // m is the one key into the menu a right click raises, in both views: the rail's rows and the
     // listing's row menu, which had no key at all, so it is routed by which view has focus.
     var m = key(Qt.Key_M, "m", none)
-    var volume = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true }
     var home = { label: "Home", group: "favorite", kind: "favorite", path: "/home/user" }
     check("m raises the menu while the rail has focus", Focus.lookup(m, railPane()), "menu")
     check("m raises the menu in the list too, so the row menu has a key", Focus.lookup(m, pane(closed())), "menu")
-
-    // The rail is a cursored list, so g and G mean there what the sheet says they mean. Both
-    // answered nothing until v0.1.3, which is why tests/ui.sh sharebrowser pressed g to reset the
-    // rail cursor, landed one row below the entry it wanted, and activated the wrong one.
-    var railCursor = { entries: [1, 2, 3, 4], cursorIndex: 2 }
-    Focus.railAct("cursorFirst", railPane(), railCursor)
-    check("g takes the rail to its first row", railCursor.cursorIndex, 0)
-    Focus.railAct("cursorLast", railPane(), railCursor)
-    check("G takes the rail to its last row", railCursor.cursorIndex, 3)
-    var emptyRail = { entries: [], cursorIndex: 0 }
-    Focus.railAct("cursorLast", railPane(), emptyRail)
-    check("and an empty rail has no last row to reach", emptyRail.cursorIndex, 0)
-
-    var railing = railPane()
-    var mounted = rail([volume], 0)
-    Focus.railAct("menu", railing, mounted)
-    check("m opens the menu on a mounted volume, and says nothing over it",
-          mounted.opened + "|" + railing.said, "1|")
-    var favourite = rail([home], 0)
-    Focus.railAct("menu", railing, favourite)
-    check("a row with nothing to release says why instead of swallowing the key",
-          favourite.opened + "|" + railing.said, "0|Home has nothing to eject or unmount.")
-    var empty = rail([], 0)
-    railing.said = ""
-    Focus.railAct("menu", railing, empty)
-    check("an empty rail answers nothing at all rather than throwing",
-          empty.opened + "|" + railing.said, "0|")
 
     // Finder's Cmd+K with Cmd read as Ctrl opens the dialog from either view; the bare a stays a rail
     // key, because in the list the letter is not bound at all.
@@ -237,18 +203,10 @@ function run(check) {
     check("ctrl shift n asks the backend for a folder in the listed directory, and says nothing",
           folder.made.join(",") + "|" + folder.said, "/d|")
 
-    // Finder's Cmd+E: the rail's cursor row when the rail has focus, the removable volume the listing
-    // is inside otherwise, and the verdict is Mounts.railMenu's both ways. The release goes through
-    // the same releaseChosen a chosen menu row takes, carrying the row's key and not its index.
+    // Finder's Cmd+E in a listing: the removable volume the listing is inside, whose verdict is
+    // Mounts.railMenu's, released through the same releaseChosen a chosen menu row takes. The rail's
+    // own half of the key is ui/js/RailKeys.js's, and tests/js/railkeys.js drives it.
     var stick = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", path: "/run/media/user/128GB", mounted: true }
-    var ejecting = ejectPane("rail", "/home/user", [home, stick], 1)
-    Focus.railAct("eject", ejecting, ejecting.sidebar)
-    check("ctrl e in the rail ejects the cursor row by its key",
-          ejecting.sidebar.released.join(",") + "|" + ejecting.said, "eject:/dev/sda1|")
-    var favouriteRail = ejectPane("rail", "/home/user", [home, stick], 0)
-    Focus.railAct("eject", favouriteRail, favouriteRail.sidebar)
-    check("ctrl e on a favourite says why, and releases nothing",
-          favouriteRail.sidebar.released.length + "|" + favouriteRail.said, "0|Home has nothing to eject or unmount.")
     var inside = ejectPane("list", "/run/media/user/128GB/photos", [home, stick], 0)
     Focus.act("eject", inside)
     check("ctrl e in a listing inside the volume ejects that volume, whatever the rail cursor is on",

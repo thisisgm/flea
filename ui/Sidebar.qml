@@ -8,7 +8,7 @@ import "js/Places.js" as Places
 
 // The rail is Favorites, Network and Devices, three groups sharing one flat cursor space and one
 // row delegate, ui/SidebarRow.qml. Each group occupies a contiguous run of "entries" in that
-// order, so railAct's plain index math in ui/js/Focus.js needs no change and no existing index
+// order, so RailKeys.act's plain index math in ui/js/RailKeys.js needs no change and no existing index
 // moves. Each group's own sourcing and process management lives in its Service, ui/NetworkMounts.qml
 // and ui/DeviceMounts.qml, the OEM pattern: this file only reads "entries" from them and renders.
 Item {

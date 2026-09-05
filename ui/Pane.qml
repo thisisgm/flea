@@ -202,9 +202,8 @@ FocusScope {
     // shell.qml's IPC thumbFile reader calls this; the lookup lives with the thumbnail machinery in ui/List.qml.
     function thumbFor(index) { return list.thumbFor(index) }
 
-    // Lifted to Focus.act and Focus.railAct, see ui/js/Focus.js; each just names its own target.
+    // Lifted to Focus.act; the rail's keys are ui/js/RailKeys.js's, reached by Focus.handleKey.
     function act(action) { Focus.act(action, root) }
-    function railAct(action) { Focus.railAct(action, root, sidebar) }
 
     // index is a listing row, which is what every caller outside ui/js/Filter.js holds; the clamp
     // and the scroll both happen in view space, because a filter can be narrowing what is drawn.

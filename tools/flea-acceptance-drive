@@ -701,7 +701,7 @@ menu_rail_route() {
   mapfile -t tabc < <(first_chord focusNext)
   k "${tabc[@]}"; settle
   [ "$(ipc focusView)" = rail ] || { WHY="the rail would not take focus"; return 1; }
-  # railAct clamps cursorUp at 0, so this pins the cursor on the first row wherever it started.
+  # RailKeys.act clamps cursorUp at 0, so this pins the cursor on the first row wherever it started.
   mapfile -t upc < <(first_chord cursorUp)
   for i in $(seq 1 30); do k "${upc[@]}"; done
   settle
