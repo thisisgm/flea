@@ -40,14 +40,15 @@ type CreateInstance =
 type EnumeratePhysicalDevices = unsafe extern "C" fn(*mut c_void, *mut u32, *mut *mut c_void) -> i32;
 type DestroyInstance = unsafe extern "C" fn(*mut c_void, *const c_void);
 
-// The two WSI extensions Qt's Vulkan RHI presents through. QRhi is handed a QVulkanInstance built
-// with the platform surface extension, so a loader that can only make a bare instance still crashes.
+// VK_KHR_surface plus one of the two platform surface extensions below, the pair Qt's Vulkan RHI
+// presents through: QRhi is handed a QVulkanInstance built with them, not a bare one.
 const SURFACE: &CStr = c"VK_KHR_surface";
 const WAYLAND_SURFACE: &CStr = c"VK_KHR_wayland_surface";
 const XCB_SURFACE: &CStr = c"VK_KHR_xcb_surface";
 
-// Read from the same variable paths::has_display() prefers, because that is the session Qt will
-// pick its own platform plugin from; naming only the Wayland one would refuse an X11 box Qt serves.
+// Only WAYLAND_DISPLAY is read, so a Wayland session wins when both are set: the name has to be the
+// one this session's Qt plugin uses, and libQt6XcbQpa.so.6 and libQt6WaylandClient.so.6 here carry
+// exactly VK_KHR_xcb_surface and VK_KHR_wayland_surface and no other surface name.
 fn platform_surface() -> &'static CStr {
     surface_for(std::env::var_os("WAYLAND_DISPLAY").as_deref())
 }
@@ -64,8 +65,8 @@ fn surface_for(wayland_display: Option<&OsStr>) -> &'static CStr {
 
 // True only when this box can really start Vulkan the way Qt starts it: the loader is present, it
 // created an instance carrying the surface extensions QRhi needs, and it reported at least one
-// device. A box without a usable driver answers VK_ERROR_INCOMPATIBLE_DRIVER or
-// VK_ERROR_EXTENSION_NOT_PRESENT at creation, or creates an instance and then lists no device.
+// device. Measured here with every ICD hidden: the loader enumerates 5 instance extensions and no
+// surface one, and vkCreateInstance answers VK_ERROR_INCOMPATIBLE_DRIVER.
 pub fn usable() -> bool {
     usable_with(&[SURFACE, platform_surface()])
 }
