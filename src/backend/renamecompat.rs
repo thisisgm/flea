@@ -86,11 +86,6 @@ fn needs_rclone_fallback_in(from: &Path, error: &io::Error, mountinfo: &str) -> 
 
 // The target is built through the exclusive copy primitives, so an existing destination is refused rather than replaced.
 pub(crate) fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
-    // remove_file is atomic and remove_dir_all is not, so the two source kinds need different failure policies.
-    let source_is_dir = from
-        .symlink_metadata()
-        .map(|meta| meta.file_type().is_dir())
-        .unwrap_or(false);
     let cancel = AtomicBool::new(false);
     let mut sink = |_: u64, _: u64| {};
     let mut progress = Progress { cancel: &cancel, on_bytes: &mut sink, partial: None };
@@ -108,12 +103,19 @@ pub(crate) fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> 
     }
     match remove_any(from) {
         Ok(()) => Ok(()),
-        Err(error) if source_is_dir => Err(kept_error(from, error)),
-        Err(error) => Err(undo_the_copy(to, error)),
+        Err(error) => Err(after_failed_removal(from, to, error)),
     }
 }
 
-// remove_dir_all stops at its first failure, so the target may hold the only complete tree and stays under its own kind.
+// Taking the copy back needs proof the source survived whole, and only a regular file that still stats is that proof.
+fn after_failed_removal(from: &Path, to: &Path, error: FleaError) -> FleaError {
+    match from.symlink_metadata() {
+        Ok(meta) if meta.file_type().is_file() => undo_the_copy(to, error),
+        _ => kept_error(from, error),
+    }
+}
+
+// The source is not provably whole here, so the target may hold the only complete copy and stays under its own kind.
 fn kept_error(from: &Path, error: FleaError) -> FleaError {
     FleaError {
         where_: KEPT.to_string(),
@@ -122,7 +124,7 @@ fn kept_error(from: &Path, error: FleaError) -> FleaError {
     }
 }
 
-// An atomic removal leaves the source whole, so the copy is a duplicate this operation takes back before reporting.
+// The source still stats as a regular file, so it is whole and the copy is a duplicate this operation takes back.
 fn undo_the_copy(to: &Path, error: FleaError) -> FleaError {
     match remove_any(to) {
         Ok(()) => rename_error(error),
@@ -207,6 +209,7 @@ mod tests {
 
     const EEXIST: i32 = 17;
     const EACCES: i32 = 13;
+    const ENOENT: i32 = 2;
 
     #[test]
     fn deepest_mount_identifies_rclone_and_decodes_its_path() {
@@ -367,6 +370,17 @@ mod tests {
         assert_eq!(error.where_, "rename", "remove_file is atomic, so the source is provably whole");
         assert_eq!(std::fs::read_to_string(&source).unwrap(), "body");
         assert!(!target.exists(), "the copy is taken back rather than left as an unjournalled duplicate");
+    }
+    // A removal answering ENOENT after it took effect leaves the copy as the only whole name.
+    #[test]
+    fn a_source_that_no_longer_stats_keeps_the_copy_rather_than_taking_it_back() {
+        let d = TestDir::new("copyrenamevanished");
+        let to = d.file("target.txt", "body");
+        let from = d.join("source.txt");
+        let removal = from_io("move", &from.to_string_lossy(), &io::Error::from_raw_os_error(ENOENT));
+        let error = after_failed_removal(&from, &to, removal);
+        assert_eq!(std::fs::read_to_string(&to).unwrap(), "body", "the only complete copy stays on disk");
+        assert_eq!(error.where_, KEPT, "a source that proves nothing keeps the copy");
     }
     // The rclone arm reads the real mountinfo, so a unit test drives only the WebDAV arm; the live rclone battery drives the other.
     #[test]
