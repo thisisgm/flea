@@ -31,6 +31,7 @@ check() {
 
 [ -d "$FIXTURE" ] || { echo "thumbs.sh: the media fixture is missing at $FIXTURE"; exit 1; }
 [ -x "$BIN" ] || { echo "thumbs.sh: $BIN is missing, run cargo build --release"; exit 1; }
+command -v magick >/dev/null || { echo "thumbs.sh: magick is missing, the issue #17 regression image cannot be generated"; exit 1; }
 
 sandbox_make "$D"
 mkdir -p "$D/files" "$D/gen" "$D/other"
@@ -54,6 +55,17 @@ check "every requested row was answered" "3" "$(echo "$out" | grep -c '"t":"thum
 # A cache hit is one read and one parse, tens of microseconds, against the 75 ms and up that a real decode costs here.
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0,2]}\n{"c":"quit"}\n' "$D/files" | timeout 120 $BIN --backend)
 check "a cached row is answered without generating it" "2" "$(echo "$out" | grep -cE '"file":"/[^"]*","ms":[0-4]\.[0-9]+}')"
+
+# The issue #17 regression image: a 6000x3375 JPEG carrying a real ICC profile, which is what makes glycin allocate the address space --as bounds; see AGENTS.md "Thumbnail sandbox".
+# The profile bytes are @Yiin's deterministic fixture from PR #39, kept base64 so the tree stays text.
+mkdir -p "$D/icc"
+base64 -d tests/fixtures/srgb-iec61966-2.1.icc.b64 > "$D/srgb.icc"
+magick -size 6000x3375 'gradient:#2b5876-#d6a45f' -profile "$D/srgb.icc" "$D/icc/large.jpg"
+check "the regression JPEG carries its 3144-byte ICC profile" "3144" "$(magick "$D/icc/large.jpg" "$D/extracted.icc" 2>/dev/null && wc -c < "$D/extracted.icc" | tr -d ' ')"
+icc_key=$(printf 'file://%s' "$D/icc/large.jpg" | md5sum | cut -d' ' -f1)
+out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"quit"}\n' "$D/icc" | timeout 120 $BIN --backend)
+check "the ICC-tagged 6000 by 3375 JPEG generates a thumbnail" "1" "$(echo "$out" | grep -c '"row":0,"file":"/')"
+check "and records no failure marker against it" "0" "$([ -e "$CACHE/fail/flea/$icc_key.png" ] && echo 1 || echo 0)"
 
 # A list replaces the row mapping, so a result for the old listing is dropped rather than reported against the new one.
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D/gen" "$D/other" | timeout 120 $BIN --backend)
