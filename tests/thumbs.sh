@@ -31,7 +31,6 @@ check() {
 
 [ -d "$FIXTURE" ] || { echo "thumbs.sh: the media fixture is missing at $FIXTURE"; exit 1; }
 [ -x "$BIN" ] || { echo "thumbs.sh: $BIN is missing, run cargo build --release"; exit 1; }
-command -v magick >/dev/null || { echo "thumbs.sh: magick is missing, the issue #17 regression image cannot be generated"; exit 1; }
 
 sandbox_make "$D"
 mkdir -p "$D/files" "$D/gen" "$D/other"
@@ -56,16 +55,21 @@ check "every requested row was answered" "3" "$(echo "$out" | grep -c '"t":"thum
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0,2]}\n{"c":"quit"}\n' "$D/files" | timeout 120 $BIN --backend)
 check "a cached row is answered without generating it" "2" "$(echo "$out" | grep -cE '"file":"/[^"]*","ms":[0-4]\.[0-9]+}')"
 
-# The issue #17 regression image, the acceptance's own fixture: 6000x3375 carrying @Yiin's 3144-byte ICC profile from PR #39, kept base64 so the tree stays text.
-# The profile is the reporter's shape and not the cause: measured here, the same pixels stripped of it abort at exactly the same cap, and this box passes them at the old 1 GiB cap too, so what catches a revert of the constant is the exact --as=4294967296 assertion in src/backend/sandbox.rs and not this case; see AGENTS.md "Thumbnail sandbox".
-mkdir -p "$D/icc"
-base64 -d tests/fixtures/srgb-iec61966-2.1.icc.b64 > "$D/srgb.icc"
-magick -size 6000x3375 'gradient:#2b5876-#d6a45f' -profile "$D/srgb.icc" "$D/icc/large.jpg"
-check "the regression JPEG carries its 3144-byte ICC profile" "3144" "$(magick "$D/icc/large.jpg" "$D/extracted.icc" 2>/dev/null && wc -c < "$D/extracted.icc" | tr -d ' ')"
-icc_key=$(printf 'file://%s' "$D/icc/large.jpg" | md5sum | cut -d' ' -f1)
-out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"quit"}\n' "$D/icc" | timeout 120 $BIN --backend)
-check "the ICC-tagged 6000 by 3375 JPEG generates a thumbnail" "1" "$(echo "$out" | grep -c '"row":0,"file":"/')"
-check "and records no failure marker against it" "0" "$([ -e "$CACHE/fail/flea/$icc_key.png" ] && echo 1 || echo 0)"
+# The only case that decodes a real 6000 by 3375 image, 20.25 megapixels and 81 MB of RGBA, through the product path, so it is what says the address-space cap is large enough for one: it reddens at --as=536870912 and it cannot go red on issue #17 itself, because this box passes the same pixels at the old 1 GiB cap; see AGENTS.md "Thumbnail sandbox".
+if command -v magick >/dev/null; then
+  mkdir -p "$D/icc"
+  base64 -d tests/fixtures/srgb-iec61966-2.1.icc.b64 > "$D/srgb.icc"
+  magick -size 6000x3375 'gradient:#2b5876-#d6a45f' -profile "$D/srgb.icc" "$D/icc/large.jpg"
+  check "the 6000 by 3375 JPEG carries @Yiin's 3144-byte ICC profile from PR #39" "3144" "$(magick "$D/icc/large.jpg" "$D/extracted.icc" 2>/dev/null && wc -c < "$D/extracted.icc" | tr -d ' ')"
+  icc_key=$(printf 'file://%s' "$D/icc/large.jpg" | md5sum | cut -d' ' -f1)
+  out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"quit"}\n' "$D/icc" | timeout 120 $BIN --backend)
+  check "a 20-megapixel decode fits inside the address-space cap" "1" "$(echo "$out" | grep -c '"row":0,"file":"/')"
+  # The positive control on this key and this cache root, without which the negative check below is green whatever they are.
+  check "and the same key names the thumbnail it published" "1" "$([ -e "$CACHE/large/$icc_key.png" ] && echo 1 || echo 0)"
+  check "and records no failure marker against it" "0" "$([ -e "$CACHE/fail/flea/$icc_key.png" ] && echo 1 || echo 0)"
+else
+  echo "skip the 20-megapixel decode: magick is absent and imagemagick is an optdepends"
+fi
 
 # A list replaces the row mapping, so a result for the old listing is dropped rather than reported against the new one.
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D/gen" "$D/other" | timeout 120 $BIN --backend)
