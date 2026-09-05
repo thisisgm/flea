@@ -150,15 +150,6 @@ Item {
         color: Theme.color.surface
     }
 
-    Rectangle {
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: Theme.spacing.hairline
-        color: Theme.color.foreground
-        opacity: 0.12
-    }
-
     // A test drives these by coordinate, because a glyph button carries no text to find on screen.
     function buttonFor(glyph) {
         var groups = [nav, views]
@@ -386,5 +377,16 @@ Item {
                 onActivated: root.viewChosen(modelData)
             }
         }
+    }
+
+    // The strip's own bottom edge, declared last so it draws over the path area: the elided head's
+    // opaque fill reaches the same row and used to leave a seven pixel gap in it.
+    Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: Theme.spacing.hairline
+        color: Theme.color.foreground
+        opacity: 0.12
     }
 }
