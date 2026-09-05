@@ -367,17 +367,26 @@ upgrade already reads the migrated columns. A `ui.json` that exists is never re-
 ## Modes
 
 `main.rs` dispatches on argv before anything else runs, but only `--backend` is fully insulated
-from the flag parsing below: it is matched anywhere in argv and always wins. `--prewarm` and
-`--open` are matched only in their exact well-formed shape, `args.len() == 5` and
-`args.len() == 3` with the flag in argv[1], so a MALFORMED one is not caught here at all. It
+from the flag parsing below: it is matched anywhere in argv and always wins. `--prewarm`,
+`--open` and `--terminal` are matched only in their exact well-formed shape, `args.len() == 5`
+for the first and `args.len() == 3` with the flag in argv[1] for the other two, so a MALFORMED one
+is not caught here at all. It
 falls through to the parsing below and leaves by the unknown-flag branch, which names the flag
 and exits 2; `flea --open` with no path and `flea --open a b` are both that case. The looseness
-predates this branch for `--prewarm` and this branch extended it to `--open`. `--open` takes exactly one path and exits with the whole of its contract: `0` is a
+predates this branch for `--prewarm` and this branch extended it to `--open` and `--terminal`. `--open` takes exactly one path and exits with the whole of its contract: `0` is a
 successful handoff, `2` is anything that could not be opened and carries one elided
 sentence, and `3` means the resolved target is a directory and carries no output at all. A
 directory is refused rather than handed on because `xdg-mime query default inode/directory`
 here is `org.gnome.Nautilus.desktop`, so handing one to the desktop's opener from inside a file
 manager opens a different file manager; the caller navigates instead. See "Opening a file".
+
+`--terminal` takes exactly one directory and has a two-value contract: `0` is a successful handoff
+to `xdg-terminal-exec`, and `2` is everything else, carrying one elided sentence on stderr. A path
+that does not resolve and a path that resolves to something other than a directory both answer
+`that directory could not be opened in a terminal, check that it still exists`; a handler that
+could not be run at all answers `nothing on this system could be asked to open a terminal there`,
+so the pair tells a refusal from an unimplemented mode the way `--open`'s does. There is no third
+status: a terminal has no `IS_DIRECTORY` case to report. See "Opening a file".
 
 `--ui-state` is matched on `args[1]` alone and handles its own shapes: none reads the state file,
 one merges that JSON object through the shared update path, and anything more is a usage error. See
@@ -434,12 +443,14 @@ huge pages" below for what it is worth and what it cost.
 
 - `main.rs` dispatches on argv: `--backend` runs the command loop, `--prewarm <path>
   <first> <dest>` writes the prewarm file, `--open <path>` hands one file to the desktop's
-  handler, `--default [off]` claims or releases the OS-level default, and anything else
+  handler, `--terminal <dir>` opens the configured terminal there, `--default [off]` claims or
+  releases the OS-level default, and anything else
   opens the window unless explicit `--tui` requests the terminal interface, see "Modes".
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
 - `thp.rs` the one `prctl(PR_SET_THP_DISABLE)` declaration, `disable()` and `enable()`.
 - `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
+- `terminal.rs` hands one directory to `xdg-terminal-exec --dir=` and does not wait, see "Opening a file".
 - `defaults.rs` claims or releases the OS-level default: the desktop-entry install check,
   the `inode/directory` MIME default via `xdg-mime`, and reporting each half, see "Modes".
 - `hyprkeys.rs` adds or removes the additive, markered block in Omarchy's
@@ -502,7 +513,8 @@ huge pages" below for what it is worth and what it cost.
 - `ui/Row.qml` renders one row delegate: the icon slot, which a thumbnail replaces in
   place, the PlainText name and the semantic colours.
 - `ui/Opener.qml` is the only component that launches a foreign program, by running
-  `flea --open`, see "Opening a file".
+  `flea --open`, `flea --terminal` and a one-line `sh` that pipes into `wl-copy`, see
+  "Opening a file".
 - `ui/ContextMenu.qml` is the one pane-owned right-click popup and its single Open action.
 - `ui/StatusBar.qml` renders the path, row counts and transient messages.
 - `ui/TabBar.qml` is the window's tab strip, hidden with no height until a second tab exists.
@@ -765,7 +777,7 @@ under a deadline and reports `Ran::Succeeded`, `Ran::Failed` or `Ran::NotStarted
 knows about thumbnails, which is why the pool's `JOB_TIMEOUT` stays in `thumbs.rs` and is passed
 in.
 
-`ui/Pane.qml` is 391 lines by `wc -l`, over the soft budget and 9 lines under the hard cap. It stood at
+`ui/Pane.qml` is 393 lines by `wc -l`, over the soft budget and 7 lines under the hard cap. It stood at
 exactly 400 of 400 and could not gain a line, which is why `ui/Header.qml` came out of it
 first and alone, before any behaviour was added; it then took on the settle timer, the
 thumbnail row map, the opener wiring, the input-to-rows stamps and the first-screen settle, and
@@ -790,9 +802,10 @@ what makes the move provable rather than merely asserted.
 which answers a thumbnail URL when the pane holds one for this row and the OEM two-step icon
 lookup otherwise.
 
-`ui/Opener.qml` is 41 lines, well inside both budgets: one `Process`, one `open()` and two
-signals. `flea --open` decides and exits in milliseconds, so one process serves every open,
-and this is the only component in the tree that launches a foreign program.
+`ui/Opener.qml` is 86 lines, well inside both budgets: three `Process` objects, three functions
+(`open`, `openTerminal` and `copyText`) and three signals. `flea --open` waits for `gio open` and
+not for the application, in the low tens of milliseconds, so one process serves every open, and
+this is the only component in the tree that launches a foreign program.
 
 `ui/js/Thumbs.js` is 77 lines by `wc -l` against a 200-line soft budget, and its suite
 `tests/js/thumbs.js` is 66. It is arithmetic over the row map and nothing else, with no QML
@@ -2757,8 +2770,11 @@ before it spawns.
 
 It runs `gio open <path>` and waits for that one process, which is not the same as waiting for the
 application. `gio open` asks the desktop database for the handler, launches it and returns: measured
-on this box at 10 ms against a stub handler that then ran for five seconds of its own, with the
-handler still running long after `gio` had been reaped. Waiting is what makes the exit status mean
+on this box in the low tens of milliseconds against a stub handler that then ran for five seconds
+of its own, with the handler still running long after `gio` had been reaped. Ten runs against an isolated
+`XDG_DATA_HOME` holding one entry, whose `XDG_DATA_DIRS` was still the box's own 107 system
+entries, and ten more with the operator's 17 user entries on the search path as well, were the
+same 10 to 14 ms, so the size of the database is not what that number is made of. Waiting is what makes the exit status mean
 anything, and the detached `xdg-open` spawn it replaced answered `0` for a handoff that had not
 happened. It is still a spawn and never an `exec`, because an `exec` would leave a Flea-descended
 process alive for the application's whole life, as a child of the `qs` process, which Quickshell may
@@ -2789,10 +2805,11 @@ the opener from inside a file manager opens a different file manager; the caller
 names the flag and exits 2.
 
 `ui/Opener.qml` is the window side of that contract and the only component in the tree that
-launches a foreign program. It holds one `Process`, because `flea --open` decides and exits in
-milliseconds, and its `onExited` is the whole mapping: `0` says nothing, `3` raises
+launches a foreign program. It holds a `Process` for each of the three it runs, and the opener's
+own `onExited` is the whole mapping for this half: `0` says nothing, `3` raises
 `isDirectory` and `Pane` navigates there, and anything else raises `failed` and `Pane` writes one
-sentence to the status line. `Pane.openCursor` sends a row with `d` true to `open()` and every
+sentence to the status line. A second `open()` while that `Process` is running is dropped rather
+than queued, and the window it is dropped in is the low tens of milliseconds measured above. `Pane.openCursor` sends a row with `d` true to `open()` and every
 other row to the opener, so a symlink to a directory reaches the opener, comes back 3 and
 navigates; `tests/ui.sh open` asserts all three answers on one listing.
 
@@ -2803,9 +2820,10 @@ isolated `XDG_DATA_HOME` and `XDG_CONFIG_HOME` carrying one `Terminal=true` entr
 own MIME state was neither read nor written: `xdg-open` exited `3` with
 `no method available for opening`, the handler never ran, no terminal was reached, and `flea --open`
 still exited `0` over it. `gio open` on the same fixture ran the handler inside the stub
-`xdg-terminal-exec` and exited `0`. `glib2` is `2.88.3-1` here and `/usr/lib/libgio-2.0.so` carries
-the `xdg-terminal-exec` string, so `xdg-terminal-exec` is a `depends` entry and not an `optdepends`
-one.
+`xdg-terminal-exec` and exited `0`. `src/terminal.rs` execs `xdg-terminal-exec` by name, which is
+why it is a `depends` entry and not an `optdepends` one; `/usr/lib/libgio-2.0.so` on `glib2
+2.88.3-1` carries that name too, but alongside other terminal names it can fall back to, so glib
+alone would not have required it.
 
 **The entry here used to decline the issue, and its stated remedy was false.** It said the remedy
 belonged to the operator and was `omarchy default editor`, which rewrites the association.
@@ -2818,6 +2836,19 @@ it could not have fixed this and never could have.
 Flea still decides nothing about which programs are terminal programs. That judgement is the desktop
 database's, `gio open` is how it is asked, and there is no desktop-entry parsing anywhere in
 `src/open.rs`.
+
+**`flea --terminal <dir>` is the same shape for a terminal**, and the topbar's terminal button and
+`Ctrl+T` are its only callers. `src/terminal.rs` canonicalizes the directory the same way, refuses
+anything that is not one, and hands the result to `xdg-terminal-exec` as a single `--dir=` argument,
+with the same three guards the opener carries: `/dev/null` on all three descriptors,
+`process_group(0)`, and `thp::enable()` before the spawn. Unlike `--open` it does not wait, because
+the terminal it starts lives as long as the user keeps it open: it returned in 2 ms against a stub
+that then slept half a second. `xdg-terminal-exec` is the OEM route rather than a terminal name of
+Flea's own, and `omarchy default terminal` is what configures it: that command writes
+`~/.config/xdg-terminals.list`, one of the config files `xdg-terminal-exec` reads, so whatever the
+operator set is what opens. `tests/modes.sh` pins the argument, both refusals, the descriptors, the
+process group and the huge page restore against a stub on `PATH`, and `tests/ui.sh openterminal`
+drives the button and the chord from both views against a logging `FLEA_BIN`.
 
 ### No type-ahead, and trash is a pair
 

@@ -411,10 +411,11 @@ interface only when both stdin and stdout are a real terminal, and opens the win
 otherwise, which is the branch a `.desktop` launcher takes since it has no controlling
 terminal. `--default` opens no window: it sets the `inode/directory` handler and Omarchy's
 two file-manager keys, and `off` undoes both, see
-[`docs/install.md`](docs/install.md). `--backend`, `--prewarm` and `--open` are the
+[`docs/install.md`](docs/install.md). `--backend`, `--prewarm`, `--open` and `--terminal` are the
 internal modes the UI and the benchmarks drive directly; `flea --open <path>` is what Enter
-on a file runs, and it hands the file to `gio open` and waits for it. See `AGENTS.md` for their
-contract.
+on a file runs, and it hands the file to `gio open` and waits for it, while
+`flea --terminal <dir>` is what the topbar's terminal button and `Ctrl+T` run, and it hands the
+directory to `xdg-terminal-exec --dir=`. See `AGENTS.md` for their contract.
 
 `--select` accepts either a `file://` URI (percent-decoded) or a bare path, opens its
 parent directory, and puts the cursor and the selection on that one entry once the
@@ -461,6 +462,7 @@ and the application cannot disagree.
 | Ctrl-Shift-n | New folder |
 | `a`, Ctrl-k | Add a network mount; `a` from the rail, Ctrl-k from either view |
 | Ctrl-e | Eject the rail's device, or the removable volume the listing is inside |
+| Ctrl-t | Open the configured terminal in the directory being shown; the topbar's terminal button is the same action |
 | Ctrl-1, Ctrl-2, Ctrl-3 | List, columns, grid |
 | Ctrl-Shift-+, Ctrl-Shift-- , Ctrl-Shift-0 | Interface scale up, down, back to the desktop's own |
 | `m` | Open the context menu on the cursor row; in the rail, eject or unmount |
