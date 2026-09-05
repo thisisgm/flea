@@ -4,8 +4,8 @@
 // keys.toml's [[pointer]] table is the click contract, and this is what holds ui/js/Tap.js to it.
 // Every listing and neighbour row of Keymap.POINTER is driven here, so a click cannot change meaning
 // without the table saying so and the table cannot advertise a click the code does not make. The
-// rail's two rows are ui/SidebarRow.qml's own and carry no JavaScript, so they are counted and not
-// driven; the counts below are what stops a row being quietly dropped from either side.
+// rail, chrome and window rows are QML with no JavaScript under them, so they are counted here and
+// pressed at the real window by tests/ui.sh; the counts stop a row being dropped from either side.
 
 // A pane that records what a click asked it to do and does nothing else: one verb per call, in order.
 function pane() {
@@ -110,10 +110,10 @@ function run(check) {
     check("the table declares the neighbour columns' clicks", countWhere("neighbour"), 4)
     check("the table declares the rail's clicks", countWhere("rail"), 2)
     // Issue 20's back button belongs to no row, so it is declared against the window itself and
-    // ui/shell.qml is what carries it; there is nothing here for driveListing to press.
+    // ui/shell.qml is what carries it; nothing here can press it and tests/ui.sh does, with ydotool.
     check("the table declares the window's own buttons", countWhere("window"), 1)
     // Issue 45's crumbs are ui/ChromeBar.qml's own targets, above the listing and not in it, so
-    // driveListing has nothing to press for them either.
+    // driveListing has nothing to press for them either; the same tests/ui.sh case clicks one.
     check("the table declares the chrome path's clicks", countWhere("chrome"), 2)
     check("every row lands in one of those five places",
           countWhere("listing") + countWhere("neighbour") + countWhere("rail")

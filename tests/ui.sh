@@ -850,7 +850,10 @@ case_click() {
     [[ -n "$marker" ]] || fail "click: the path fits the bar here, so the elision marker is not under test at all"
     read -r ex ey <<< "$marker"
     read -r wx wy _ww _wh < <(window_box)
-    omarchy-drive click "$((ex + wx))" "$((ey + wy))" >/dev/null
+    # The status is read, because a click that never reached the compositor leaves the path
+    # unchanged too and would satisfy both assertions below without pressing anything.
+    omarchy-drive click "$((ex + wx))" "$((ey + wy))" >/dev/null \
+        || fail "click: omarchy-drive refused the press on the elision marker"
     # A crumb's single tap is deferred until the double-tap interval expires, see ui/ChromeBar.qml
     # "exclusiveSignals", so the reading is taken well after the click rather than on top of it.
     settle
@@ -859,6 +862,53 @@ case_click() {
     shot click-elision
     [[ "$(ipc path)" == "$deep" ]] || fail "click: a tap on the elision marker navigated to $(ipc path)"
     [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: a tap on the elision marker opened the path bar"
+
+    # Issue 45's own control, and the positive half the elision check needs: with only the negative
+    # above, a click that missed the window entirely passed it. Nothing drove a crumb at all, so a
+    # ChromeBar that ignored every press passed the whole suite.
+    local crumbs target centre cx cy up
+    up=$(dirname "$deep")
+    crumbs=$(ipc crumbCount)
+    (( crumbs >= 3 )) || fail "click: the bar drew $crumbs crumbs, too few to press a parent"
+    # keys.toml declares the press on a parent and not on the leaf, which is the directory already
+    # listed; the segment before the leaf is the one this fixture is standing in.
+    target=$((crumbs - 2))
+    centre=$(ipc crumbCentre "$target")
+    [[ -n "$centre" ]] || fail "click: crumb $target has no on-screen centre"
+    read -r cx cy <<< "$centre"
+    omarchy-drive click "$((cx + wx))" "$((cy + wy))" >/dev/null \
+        || fail "click: omarchy-drive refused the press on crumb $target"
+    settle
+    settle
+    printf 'CLICK crumb=%s path=%q barOpen=%s\n' "$target" "$(ipc path)" "$(ipc pathBarOpen)"
+    shot click-crumb
+    [[ "$(ipc path)" == "$up" ]] || fail "click: a tap on the parent crumb went to $(ipc path), not $up"
+    [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: a single tap on a crumb opened the path bar"
+
+    # Issue 20's own control, the other row this table declares and nothing pressed. omarchy-drive
+    # click knows left, right and middle only, so the extra button goes through ydotool directly;
+    # 0xC3 is its down|up for button 3, which Hyprland delivers as Qt.BackButton on this box.
+    command -v ydotool >/dev/null || fail "click: ydotool is missing, so the mouse back button cannot be pressed"
+    # The same default omarchy-drive exports, because calling ydotool directly skips that wrapper.
+    export YDOTOOL_SOCKET="${YDOTOOL_SOCKET:-$XDG_RUNTIME_DIR/.ydotool_socket}"
+    [[ -S "$YDOTOOL_SOCKET" ]] || fail "click: no ydotoold socket at $YDOTOOL_SOCKET"
+    local rx ry
+    read -r rx ry <<< "$(ipc rowCentre 0)"
+    omarchy-drive move "$((rx + wx))" "$((ry + wy))" >/dev/null \
+        || fail "click: the pointer could not be parked over the listing"
+    ydotool click 0xC3 >/dev/null 2>&1 || fail "click: ydotool refused the mouse back button"
+    settle
+    settle
+    printf 'CLICK back path=%q\n' "$(ipc path)"
+    shot click-back
+    [[ "$(ipc path)" == "$deep" ]] || fail "click: the back button went to $(ipc path), not back to $deep"
+    # The same button's other half: with the history spent it climbs, which is the whole of
+    # ui/js/Nav.js mouseBack and the half a stub calling mouseBack directly cannot prove is bound.
+    ydotool click 0xC3 >/dev/null 2>&1 || fail "click: ydotool refused the second back button press"
+    settle
+    settle
+    printf 'CLICK back-climb path=%q\n' "$(ipc path)"
+    [[ "$(ipc path)" == "$up" ]] || fail "click: the back button with no history left went to $(ipc path), not $up"
     kill_flea
 }
 
@@ -1895,9 +1945,9 @@ case_preview() {
     # seconds, not one: an omarchy-drive ipc round trip costs 190 to 565 ms measured on this box
     # (see the KB's ipc-timing-loops entry), so a one-second clip leaves the poll below one or two
     # samples to land the Playing state in, and this case caught that exact miss before the fix.
-    # Task 22's own Right/Left checks need headroom on both sides of a 5 s seek (Focus.js's
-    # SEEK_MS) starting from whatever position the round trips above already spent: at three
-    # seconds the clip had finished before the checks ran at all, and at eight, Right alone
+    # Task 22's own Right/Left checks need headroom on both sides of a 5 s seek (the SEEK_MS in
+    # ui/js/PreviewKeys.js) starting from whatever position the round trips above already spent:
+    # at three seconds the clip had finished before the checks ran at all, and at eight, Right alone
     # landed within 5 s of the end, clamped to it, and stopped the player before Left ran.
     clip_seconds=15
     python3 - "$dir/tone.wav" "$clip_seconds" <<'PYEOF'
@@ -1980,7 +2030,7 @@ PYEOF
     wait_preview_state playing
     shot preview-audio
 
-    # Left/Right seek 5 s (Focus.js's SEEK_MS), read before the pause/resume dance below spends
+    # Left/Right seek 5 s (PreviewKeys.js's SEEK_MS), read before the pause/resume dance below spends
     # its own several IPC round trips (190 to 565 ms each, see the clip_seconds comment above): an
     # eight-second clip still has room left once this runs, so both directions are unclamped.
     local pos_before pos_after

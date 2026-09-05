@@ -38,6 +38,8 @@ Item {
     readonly property alias pathArea: pathArea
     // The elided head's own marker, so a test can click the one spot the crumbs slide underneath.
     readonly property alias elisionMarker: elision
+    // Issue 45's segments as items, so tests/ui.sh can press one the way it presses a tab.
+    readonly property alias crumbItems: crumbs
     // The directory a Tab is waiting on, and the one that came back. Both are keyed by the hidden
     // flag as well as the path, or a Tab on ".conf" would answer off rows peeked without dotfiles in
     // them: the key is what the request asked for and never what the line happens to read later.
@@ -218,6 +220,7 @@ Item {
                 x: Math.min(0, crumbSlot.width - crumbRow.width)
 
                 Repeater {
+                    id: crumbs
                     model: Nav.crumbs(root.path, root.home)
 
                     // corner: a path is arbitrary text, so PlainText, the same rule every filename on this surface follows.

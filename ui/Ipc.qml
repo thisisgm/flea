@@ -234,6 +234,20 @@ QtObject {
         function elisionCentre(): string {
             return root.chrome.elisionMarker.visible ? root.fleaWindow.centreOf(root.chrome.elisionMarker) : ""
         }
+        // Issue 45's segments, reached the way tabCentre reaches a tab: a driven press on a real
+        // crumb is the only thing that can tell a bound TapHandler from an unbound one.
+        function crumbCount(): int { return root.chrome.crumbItems.count }
+        // Measured: with the bar open the slot is hidden and a crumb's box is still there, and a path
+        // too long for the bar slides its head clean off the left, so a bare centre aims a driven
+        // click at the desktop. Answering "" for both is what stops a test pressing nothing at all.
+        function crumbCentre(i: int): string {
+            var item = root.chrome.crumbItems.itemAt(i)
+            if (!item || !item.visible)
+                return ""
+            var box = item.mapToItem(root.chrome.pathArea, 0, 0)
+            var inside = box.x >= 0 && box.x + item.width <= root.chrome.pathArea.width
+            return inside ? root.fleaWindow.centreOf(item) : ""
+        }
         // The button's painted box as "WxH": the mark is Theme.chromeMarkSize wide and the hit area is the whole strip tall.
         function chromeButtonSize(glyph: string): string {
             var item = root.chrome.buttonFor(glyph)
