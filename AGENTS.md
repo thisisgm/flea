@@ -3127,8 +3127,9 @@ lucide glyph is therefore: square the corner arcs, keep the extents. One deliber
 change beyond corners: `music` note heads are squares, not circles, the set's brand tell
 (`file-text`'s three rules are lucide's own, restored with the body). The AE compare
 above no longer applies to recut marks (they differ from source on purpose); the gate is the
-montage eyeball plus a live `QSG_RHI_BACKEND=vulkan qs -p ui` look on the box (bench numbers still come from the
-launcher path, hard rule 7). `rsvg-convert` only
+montage eyeball plus a live `QSG_RHI_BACKEND=vulkan qs -p ui` look on the box, which names the
+renderer but not `FLEA_RENDERER_AUTOMATIC` and so leaves the QML fallback arm disarmed (bench
+numbers still come from the launcher path, hard rule 7). `rsvg-convert` only
 proves a `d` parses; librsvg renders through a bad tail and exits 0, so its exit status is
 not a gate.
 
