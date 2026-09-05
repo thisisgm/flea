@@ -1,4 +1,5 @@
 use crate::thp;
+use crate::vulkan;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
@@ -10,13 +11,18 @@ pub fn exec_qs(ui: &Path, start: Option<&str>, select: Option<&str>) -> i32 {
     if let Ok(binary) = std::env::current_exe() {
         cmd.env("FLEA_BIN", binary);
     }
-    // Vulkan is Flea's measured fast path. Mark only this implicit choice so
-    // the QML side can retry OpenGL without overriding a user's explicit
-    // QSG_RHI_BACKEND selection.
-    if std::env::var_os("QSG_RHI_BACKEND").is_none() {
+    // Vulkan is Flea's measured fast path, and the probe is what keeps a loader that cannot deliver
+    // it out of QRhi::create, which crashes there instead of raising the error the QML arm listens for.
+    if std::env::var_os("QSG_RHI_BACKEND").is_some() {
+        // An explicit choice is the operator's, so it is neither replaced nor offered a retry.
+        cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
+    } else if vulkan::usable() {
         cmd.env("QSG_RHI_BACKEND", "vulkan");
+        // The marker is what permits the QML arm its one retry, and only this implicit choice gets it.
         cmd.env("FLEA_RENDERER_AUTOMATIC", "1");
     } else {
+        // OpenGL is where that retry would have gone, so there is nothing left for it to mark.
+        cmd.env("QSG_RHI_BACKEND", "opengl");
         cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
     }
     if let Some(path) = start {

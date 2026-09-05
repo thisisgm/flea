@@ -33,14 +33,22 @@ this tree yet: `flea --tui` says so and exits 2.
    was rejected as slower and stale-capable; it remains disabled until the wire carries
    the requested path and a new measurement proves a real win.
 
-5. **Vulkan first with an OpenGL fallback, lazy multimedia later.** `src/gui.rs` sets
-   `QSG_RHI_BACKEND=vulkan` when the user did not choose a renderer, which costs 2.4x less
-   memory than the OpenGL default and initialises 35 ms faster, with identical frame timing.
-   A scene-graph initialization failure relaunches once with OpenGL and drains the failed
-   backend; an explicit `QSG_RHI_BACKEND` is never replaced. Preview and QtMultimedia
-   are now in the tree and the laziness held: `ui/PreviewMedia.qml` is the only file
-   that imports QtMultimedia, reached through a `Loader` built by the first press of
-   play, because QtMultimedia costs 20 MB before it plays anything.
+5. **Vulkan where the loader can deliver it, lazy multimedia later.** `src/gui.rs` sets
+   `QSG_RHI_BACKEND=vulkan` when the user did not choose a renderer and `src/vulkan.rs` has
+   created a throwaway instance and seen a device, which costs 2.4x less memory than the OpenGL
+   default and initialises 35 ms faster, with identical frame timing. A loader that cannot
+   deliver one is given `opengl` before `qs` starts at all, because Quickshell hands
+   `QRhi::create` a `QVulkanInstance` it never created and SIGSEGVs there rather than raising
+   the scene-graph error the QML arm listens for, issue #14 on a QEMU Virtio GPU. The probe is
+   `dlopen` plus `vkCreateInstance` plus `vkEnumeratePhysicalDevices`, and it costs an implicit
+   launch roughly 8 to 9 ms on this box, two interleaved batches against a probe-free build, so
+   about a quarter of that init advantage is what buys the crash out; dropping the device count
+   would save only 2 of those milliseconds and would stop catching a loader that creates an
+   instance and then lists nothing. A scene-graph failure after launch still relaunches once
+   with OpenGL and drains the failed backend; an explicit `QSG_RHI_BACKEND` is never replaced.
+   Preview and QtMultimedia are now in the tree and the laziness held: `ui/PreviewMedia.qml`
+   is the only file that imports QtMultimedia, reached through a `Loader` built by the first
+   press of play, because QtMultimedia costs 20 MB before it plays anything.
 
 6. **A hidden view is not a free view.** `visible: false` does NOT stop a QML view doing
    model work: it keeps its geometry, stays bound to the listing, and pays per row. All

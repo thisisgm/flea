@@ -10,6 +10,7 @@ mod open;
 mod paths;
 mod thp;
 mod userfile;
+mod vulkan;
 
 use crate::backend::proto::error_line;
 use std::io::IsTerminal;
