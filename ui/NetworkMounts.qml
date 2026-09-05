@@ -182,15 +182,24 @@ Item {
     }
 
     // Forgets a saved place, the same blocking write rename() makes just above: a share that is
-    // mounted right now stays on the rail as the live mount it is until something unmounts it.
+    // mounted right now stays on the rail as the live mount it is until something unmounts it, so
+    // the bar says which of the two happened rather than leaving Remove looking like a broken key.
     function forget(uri) {
         var body = bookmarksWrite.text()
         // A FileView that has not read yet answers "", and writing that back would empty the file.
-        if (String(uri || "").length === 0 || body.length === 0)
+        if (String(uri || "").length === 0 || body.length === 0) {
+            root.message("The saved places have not been read yet; try Remove again in a moment.", true)
             return
+        }
+        var row = Mounts.rowByKey(root.entries, uri)
+        var entry = row >= 0 ? root.entries[row] : null
+        var name = entry ? entry.label : uri
         bookmarksWrite.setText(Mounts.removeBookmark(body, uri))
         bookmarksWrite.waitForJob()
         root.renamed()
+        root.message(entry && entry.mounted
+                     ? name + " is forgotten, and stays on the rail until it is unmounted."
+                     : name + " is forgotten.", false)
     }
 
     function pollMounts() {
