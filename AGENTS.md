@@ -1193,7 +1193,8 @@ waits for its consumer.
   detached spawn reported. Both are named from `src/open.rs`'s own `Command::new` target, and the
   `--terminal` stub from `src/terminal.rs`'s, rather than spelled in the test: when the target moved
   from `xdg-open` to `gio` the hand-written name did not follow, so every `--open` in the block
-  resolved the real `/usr/bin/xdg-open` instead, and a stub named from the product cannot drift. Issue 41 has its own case beside them, driving the real `gio` against an
+  resolved the real `/usr/bin/xdg-open` instead, and a stub named from the product cannot drift.
+  Issue 41 has its own case beside them, driving the real `gio` against an
   isolated `XDG_DATA_HOME` and `XDG_CONFIG_HOME` holding one `Terminal=true` entry and a stub
   `xdg-terminal-exec`, so the operator's own MIME state is never read or written. The huge page half needs a second stub, because a bare `flea --open` runs in a
   process where nothing disabled huge pages, so `thp::enable()` is a no-op there and that
@@ -2808,8 +2809,8 @@ the opener from inside a file manager opens a different file manager; the caller
 names the flag and exits 2.
 
 `ui/Opener.qml` is the window side of that contract and the only component in the tree that runs
-`flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the opener's
-own `onExited` is the whole mapping for this half: `0` says nothing, `3` raises
+`flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the
+opener's own `onExited` is the whole mapping for this half: `0` says nothing, `3` raises
 `isDirectory` and `Pane` navigates there, and anything else raises `failed` and `Pane` writes one
 sentence to the status line. A second `open()` while that `Process` is running is dropped rather
 than queued, and the window it is dropped in is the low tens of milliseconds measured above. `Pane.openCursor` sends a row with `d` true to `open()` and every
@@ -2845,13 +2846,14 @@ database's, `gio open` is how it is asked, and there is no desktop-entry parsing
 anything that is not one, and hands the result to `xdg-terminal-exec` as a single `--dir=` argument,
 with the same three guards the opener carries: `/dev/null` on all three descriptors,
 `process_group(0)`, and `thp::enable()` before the spawn. Unlike `--open` it does not wait, because
-the terminal it starts lives as long as the user keeps it open: it returned with the stub's log still
-empty, against a stub that slept half a second before its first write. `xdg-terminal-exec` is the OEM route rather than a terminal name of
-Flea's own, and `omarchy default terminal` is what configures it: that command writes
-`~/.config/xdg-terminals.list`, one of the config files `xdg-terminal-exec` reads, so whatever the
-operator set is what opens. `tests/modes.sh` pins the argument, both refusals, the descriptors, the
-process group and the huge page restore against a stub on `PATH`, and `tests/ui.sh openterminal`
-drives the button and the chord from both views against a logging `FLEA_BIN`.
+the terminal it starts lives as long as the user keeps it open: it returned with the stub's log
+still empty, against a stub that slept half a second before its first write. `xdg-terminal-exec` is
+the OEM route rather than a terminal name of Flea's own, and `omarchy default terminal` is what
+configures it: that command writes `~/.config/xdg-terminals.list`, one of the config files
+`xdg-terminal-exec` reads, so whatever the operator set is what opens.
+`tests/modes.sh` pins the argument, both refusals, the descriptors, the process group and the huge
+page restore against a stub on `PATH`, and `tests/ui.sh openterminal` drives the button and the
+chord from both views against a logging `FLEA_BIN`.
 
 ### No type-ahead, and trash is a pair
 
