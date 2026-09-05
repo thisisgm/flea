@@ -98,15 +98,26 @@ QtObject {
         printErrors: false
     }
 
+    // The writer answered, with its own status or with 2 for one that never started: the same refusal
+    // to the pane and the same retry to the book, because neither reached the file.
+    function wrote(exitCode) {
+        var next = UiState.exited(root.writeBook, exitCode)
+        root.writeBook = next
+        if (next.failed)
+            root.saveFailed()
+        if (next.start.length > 0)
+            root.run(next.start)
+    }
+
     property var writer: Process {
         id: patcher
-        onExited: function (exitCode, exitStatus) {
-            var next = UiState.exited(root.writeBook, exitCode)
-            root.writeBook = next
-            if (next.failed)
-                root.saveFailed()
-            if (next.start.length > 0)
-                root.run(next.start)
+        onExited: function (exitCode, exitStatus) { root.wrote(exitCode) }
+        // Measured on Quickshell 0.3.1: a Process that cannot start its program emits no exited at
+        // all, only running going false, and a real exit clears the book before its own false
+        // arrives, so this fires for the writer that never ran and never for one that did.
+        onRunningChanged: {
+            if (!patcher.running && root.writeBook.inflight.length > 0)
+                root.wrote(2)
         }
     }
 }

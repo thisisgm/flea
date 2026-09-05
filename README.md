@@ -538,6 +538,9 @@ cargo test                    # unit tests
 ./tests/archive.sh            # archive listing, extract and compress
 ./tests/thumbs.sh             # the release binary against the media fixture
 ./tests/sandbox.sh            # the thumbnail jail and its refusals
+./tests/uistate.sh            # ui.json: the lock, the settle, the migration and a SIGKILL sweep
+./tests/uiwriter.sh           # ViewState's writer under a headless Quickshell
+./tests/charts.sh             # the README's own tables against the bench CSV
 ./tests/ui.sh                 # drives the real window
 ./tests/drag.sh               # the internal drag, through a real pointer on uinput
 ./tests/bench.sh              # the field bench harness itself
@@ -551,7 +554,7 @@ cargo test                    # unit tests
 ```
 
 `./tests/run-all.sh` is the one command. It builds both cargo profiles, because `protocol.sh`
-drives the debug binary and `thumbs.sh` the release one, runs the nine suites above that need
+drives the debug binary and `thumbs.sh` the release one, runs the twelve suites above that need
 nothing but a shell, and reads each suite's own exit code rather than a pipeline's. It then
 names `ui.sh`, `drag.sh` and `bench.sh` and says what each of the three wants: a display, a
 real pointer, an idle box. There is no CI, and `PKGBUILD`'s `check()` runs `cargo test` alone.
