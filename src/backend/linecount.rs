@@ -124,19 +124,40 @@ mod tests {
         assert_eq!(bounded(d.file("real.txt", "a\nb\nc\n")).lines, 3);
     }
 
+    // A Child is not killed by dropping it, so this is what stops a failed assertion leaving a writer behind.
+    struct FifoWriter(std::process::Child);
+
+    impl Drop for FifoWriter {
+        fn drop(&mut self) {
+            let _ = self.0.kill();
+            let _ = self.0.wait();
+        }
+    }
+
+    // The writer creates this only once its printf has returned, so nothing below measures a half-filled pipe.
+    fn await_written(signal: &Path) {
+        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
+        while !signal.exists() {
+            assert!(std::time::Instant::now() < deadline, "the fifo writer never signalled that its write finished");
+            std::thread::sleep(std::time::Duration::from_millis(2));
+        }
+    }
+
     #[test]
     fn a_fifo_that_has_a_writer_keeps_every_byte_a_count_did_not_read() {
         let d = TestDir::new("linecountfed");
         let p = d.join("pipe");
+        let wrote = d.join("wrote");
         mkfifo(&p);
         // exec 3<> opens both ends at once, the only way a writer sits on a fifo nobody is reading.
-        let mut writer = std::process::Command::new("sh")
-            .arg("-c").arg(r#"exec 3<>"$0"; printf 'a\nb\nc\n' >&3; exec sleep 30"#).arg(&p)
-            .spawn().expect("fifo writer");
+        let mut writer = FifoWriter(std::process::Command::new("sh")
+            .arg("-c").arg(r#"exec 3<>"$0"; printf 'a\nb\nc\n' >&3; : >"$1"; exec sleep 30"#).arg(&p).arg(&wrote)
+            .spawn().expect("fifo writer"));
+        await_written(&wrote);
         let counted = bounded(p.clone());
         let left = peek(p);
-        let killed = writer.kill().is_ok();
-        let reaped = writer.wait().is_ok();
+        let killed = writer.0.kill().is_ok();
+        let reaped = writer.0.wait().is_ok();
         assert_eq!((counted.lines, counted.partial, counted.failed), (0, false, true));
         assert_eq!(left.as_deref(), Some(&b"a\nb\nc\n"[..]), "a count must never eat a pipe someone else is reading");
         assert!(killed && reaped, "the writer this test started is killed by its own pid");
