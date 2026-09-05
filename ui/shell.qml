@@ -203,6 +203,18 @@ ShellRoot {
                 onActivated: function (uri, label) { pane.sidebar.mountShare(uri, label) }
             }
 
+            // Issue 20: mouse back is history when the left arrow would fire, and parent otherwise.
+            // Dialogs keep the button, because a navigation under one would leave it describing a
+            // directory that is gone.
+            TapHandler {
+                acceptedButtons: Qt.BackButton
+                onTapped: {
+                    if (chrome.editing || convertDialog.opened || keymapSheet.opened || networkDialog.opened)
+                        return
+                    pane.mouseBack()
+                }
+            }
+
             Component.onCompleted: {
                 var start = Quickshell.env("FLEA_PATH") || Quickshell.env("HOME")
                 // Read once: Pane.applyPendingSelect() forgets it after the first rows response.
