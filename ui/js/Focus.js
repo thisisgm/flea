@@ -176,6 +176,18 @@ function shareBrowserAct(action, root) {
     }
 }
 
+// The cursor keys and only those, resolved through the generated table rather than through a second
+// list of key codes, which is how issue 28's Home, End and page keys came with issue 12 for free. A
+// printable character is excluded before the lookup, or j and k would leave the line instead of
+// being typed into it.
+var LEAVES_LINE = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp"]
+
+function leavesLine(event) {
+    if (event.text.length === 1 && event.text >= " ")
+        return false
+    return LEAVES_LINE.indexOf(Keymap.lookup(event.key, event.text, event.modifiers)) >= 0
+}
+
 // Lifted whole from Pane.qml's Keys.onPressed, which had grown past its file's 400-line cap; returns whether the key was consumed.
 function handleKey(event, root, sidebar) {
     // Guards a key that reaches the list before a rename field's own focus transfer lands, the OEM's
@@ -187,6 +199,15 @@ function handleKey(event, root, sidebar) {
     }
     root.inputAt = Date.now()
     root.rowsAt = 0
+    // Issue 12: a query line owns every key while it has the caret, which swallowed the cursor keys
+    // and left a listing with more than one match unreachable from the keyboard. A cursor key commits
+    // the line the way enter does and then goes on to mean what it means everywhere else: the filter
+    // is left standing over the rows it narrowed, and the search walks once for that press rather
+    // than once per keystroke, which is the sweep the design refused.
+    if ((root.searchMode === Search.TYPING || root.filterTyping) && leavesLine(event)) {
+        if (root.filterTyping) Filter.commit(root)
+        else Search.run(root)
+    }
     // The query line owns every key while it has the caret, the same way the rename field does above.
     if (root.searchMode === Search.TYPING) {
         return Search.typeKey(event, root)
