@@ -313,6 +313,52 @@ unlinking a caller-supplied path is not this function's job even when that path 
 from a broken caller. The exit status is the contract: a caller must check it before
 trusting whatever `dest` currently holds.
 
+## The state file
+
+`~/.local/state/flea/ui.json`, or `$XDG_STATE_HOME/flea/ui.json` when that is set and not empty, is
+the one file Flea writes for itself. `src/uischema.rs` holds the shipped shape and every default,
+copied from the 0.1.4 build handoff; `src/uistate.rs` holds the merges; `src/uistore.rs` holds the
+paths, the lock and the write.
+
+**One update path, and both front ends go through it.** `flea --ui-state` prints the merged
+document and writes nothing. `flea --ui-state '<json object>'` merges that patch through the lock
+and prints the result. The window reaches it from `ui/ViewState.qml` through a `Process`; the
+terminal interface, when it is built, submits patches for `view`, `hidden` and `sort` only, because
+scale, menus and places are the window's.
+
+**The lock is the sibling `ui.json.lock`.** `File::lock()` is `flock(2)` here: advisory, exclusive
+and cross-process, held across the re-read, the per-key validation, the caller-key merge, the temp
+write and the rename, so a second Flea cannot land between this one's read and its write. Measured
+on the box with the lock taken out, twelve concurrent writers landed 1 of their 12 keys; with it in,
+12 of 12.
+
+**Failure is per key, never per file.** A document that does not parse reads as the full default
+shape rather than throwing. A value a key cannot take costs that key alone, and every other key in
+the file stands. A key this Flea does not know is kept and rewritten as it was read, at the top
+level and inside a nested object, so an older Flea cannot eat a newer one's settings. A patch is the
+other way round: it is checked whole before any of it lands, and one bad key refuses the whole patch
+with a sentence naming it, because a patch comes from Flea and not from a text editor.
+
+**`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
+a closed list, because a closed list would make this Flea drop an id a newer one hid.
+
+**`display.textSize.mode` is `"system"` or one Omarchy stop**, one of 9, 10, 11, 12, 14, 16 and 20.
+It is one key and not two, so there is nowhere for a free number to be stored.
+
+**The write is a temp plus a rename, never a truncation**, created at mode 0600 in the `open()` call
+inside a directory created at 0700, and a symbolic link at either the file or the lock is refused
+rather than written through. Proven by holding an fd open across an update and reading the old bytes
+back through it, and by a sweep of 120 `SIGKILL`s during the write, none of which left the file as
+anything but the old document or the new one.
+
+**0.1.3 did store something, and it is migrated.** `ui/ViewState.qml` wrote `hiddenCols` and
+`uiScale` to `$XDG_CONFIG_HOME/flea/view.json`, so the handoff's "0.1.3 stored nothing" is wrong.
+`hiddenCols` named what was HIDDEN and `columns` names what is SHOWN, so the migration inverts it;
+`uiScale` is dropped on the operator's ruling, because 0.1.4 stores an Omarchy stop and never a free
+multiplier. `main()` runs the migration once before it hands off to `qs`, so the first paint after an
+upgrade already reads the migrated columns. A `ui.json` that exists is never re-migrated, and
+`view.json` is never written again.
+
 ## Modes
 
 `main.rs` dispatches on argv before anything else runs, but only `--backend` is fully insulated
@@ -327,6 +373,10 @@ sentence, and `3` means the resolved target is a directory and carries no output
 directory is refused rather than handed on because `xdg-mime query default inode/directory`
 here is `org.gnome.Nautilus.desktop`, so handing one to `xdg-open` from inside a file
 manager opens a different file manager; the caller navigates instead. See "Opening a file".
+
+`--ui-state` is matched on `args[1]` alone and handles its own shapes: none reads the state file,
+one merges that JSON object through the shared update path, and anything more is a usage error. See
+"The state file".
 
 `--default` and `--default off` are matched the same way, in their own exact shape
 (`args.len() == 2`, and `args.len() == 3` with `args[2] == "off"`), dispatching to
@@ -392,7 +442,11 @@ huge pages" below for what it is worth and what it cost.
 - `userfile.rs` resolves `$HOME` and `$XDG_CONFIG_HOME` and rewrites a per-user file through
   an exclusive temp plus rename, see "Predictable path writes".
 - `error.rs` the one error type, naming the failing operation and input.
-- `json.rs` the whole of this tree's JSON: read one named field out of a line, escape one string into one.
+- `json.rs` the wire's JSON: read one named field out of one line, escape one string into one.
+- `jsondoc.rs` one whole JSON document in and out, which the one-line scanner above deliberately is not.
+- `uischema.rs` the shipped `ui.json` shape and the rule each key is measured against.
+- `uistate.rs` the `ui.json` merges: a file onto the defaults, one caller patch, and 0.1.3's `view.json`.
+- `uistore.rs` where `ui.json` lives and the one locked, atomic way it is rewritten, see "The state file".
 - `backend/mod.rs` declares the forty-six backend modules plus the test-only `testdir.rs`, nothing else.
 - `backend/listing.rs` the arena-backed `Listing`.
 - `backend/aliases.rs` resolves a MIME alias to its canonical name, see "MIME aliases".
@@ -429,6 +483,8 @@ huge pages" below for what it is worth and what it cost.
 - `ui/shell.qml` owns the pragmas, window, startup path and read-only IPC seam.
 - `ui/Backend.qml` is the only QML component that talks to the Rust child, and carries
   `thumb` and `thumbcancel` out and `thumbed` in alongside `list`, `window` and `sort`.
+- `ui/ViewState.qml` reads `ui.json` once at startup with a blocking `FileView` and writes nothing
+  itself: every change goes back out through `flea --ui-state`, see "The state file".
 - `ui/Theme.qml` owns the singleton palette, type and spacing tokens from the Omarchy
   theme plus the user override.
 - `ui/Pane.qml` owns one directory view, its integer model, held window, actions, the
@@ -461,8 +517,9 @@ huge pages" below for what it is worth and what it cost.
 - `ui/js/Trash.js` is the dd pair's arm-and-fire policy, split out of `Focus.js` at its cap.
 - `ui/js/PreviewKeys.js` is what the preview overlay does with a key, and the 5 s seek step only it
   reads, split out of `Focus.js` at its cap the second time it reached one.
-- `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` stores it
-  and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord itself.
+- `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` holds it
+  for the window and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord
+  itself. It is a session value: the state file stores an Omarchy text-size stop and no multiplier.
 - `ui/js/PathBar.js` is what a typed path line means: the tilde, the relative name, the
   `file://` URI, the interior `.` and `..`, and what Tab makes of one directory's names. Pure,
   so `tests/js/pathbar.js` drives all of it; the field itself is `ui/ChromeBar.qml`'s.
@@ -856,7 +913,7 @@ waits for its consumer.
   this and cannot be rewritten, because the branch is shared:** its subject says nine suites
   were uninvoked and its body says seven, and the derived answer is zero of twelve. The runner
   builds both cargo profiles, since `protocol.sh` drives the debug binary and `thumbs.sh` the
-  release one, runs the nine suites that need nothing but a shell, and reads each suite's OWN
+  release one, runs the eleven suites that need nothing but a shell, and reads each suite's OWN
   exit code, never a pipeline's. It then names `ui.sh`, `drag.sh` and `bench.sh` with what each
   needs, so a suite it cannot run stays visible instead of being forgotten a second time.
 - **`./tests/drag.sh` is the internal drag's characterisation suite, 9 checks**, and it has to

@@ -19,7 +19,7 @@ function run(check) {
 
     check("it clamps at the ceiling rather than growing forever", Scale.stepped(Scale.MAX, 1), Scale.MAX)
     check("and at the floor", Scale.stepped(Scale.MIN, -1), Scale.MIN)
-    // A hand-edited view.json is not a trust boundary but it is an input, so it is clamped on read.
+    // The scale is a session value now, but a step is still clamped so a walk cannot run away.
     check("a stored value above the ceiling is clamped, not honoured", Scale.stepped(9, 0), Scale.MAX)
     check("a stored zero reads as the default rather than collapsing every token",
           Scale.stepped(0, 0), 1)

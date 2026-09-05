@@ -2,65 +2,102 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
-import "js/Scale.js" as Scale
 
-// The per-user view state that outlives a window: which list columns the user has hidden, and
-// later whatever else a preference earns a toggle for. One JSON file under ~/.config/flea, read
-// once at construction and rewritten on every change through the same FileView pattern the
-// bookmarks use (ui/NetworkDialog.qml's write, ui/Sidebar.qml's watch). A write over a directory
-// that does not exist yet is the one silent failure this singleton allows: the toggles keep
-// working for the session and the state just does not outlive it.
+// The per-user state that outlives a window, `~/.local/state/flea/ui.json`. Read once here with a
+// blocking FileView so the first paint already has it, and never written from QML: every change
+// goes back out through `flea --ui-state`, the one Rust path that takes the lock, validates each
+// key, merges the caller's and renames a temp into place. See AGENTS.md "The state file".
 QtObject {
     id: root
 
-    // The list-column keys ("mode"/"size"/"date"/"kind") the user has hidden. Name is not here:
-    // it is the one column a file manager cannot do without, see ui/js/Columns.js.
-    property var hiddenCols: []
+    // The whole document, so a later section reads its own key without a second file read.
+    property var state: ({})
 
-    // The interface scale Ctrl+Shift+Plus steps; 1 is Omarchy's own size and the default.
+    // Mirrors "columns" in src/uischema.rs, and is the only default this front end needs before the
+    // first frame; the Rust side owns every other one and answers with the whole shape.
+    readonly property var defaultColumns: ["name", "size", "date"]
+
+    // ui.json names what is SHOWN. ui/Header.qml, ui/Row.qml and ui/ContextMenu.qml all ask the
+    // opposite question, so the inversion lives here once rather than at each of them.
+    readonly property var columns: Array.isArray(root.state.columns) ? root.state.columns : root.defaultColumns
+    readonly property var hiddenCols: {
+        var out = []
+        var optional = ["mode", "size", "date", "kind"]
+        for (var i = 0; i < optional.length; i++) {
+            if (root.columns.indexOf(optional[i]) < 0)
+                out.push(optional[i])
+        }
+        return out
+    }
+
+    // The interface scale Ctrl+Shift+Plus steps, issue 9. It lives for the window and no longer
+    // outlives it: 0.1.4 stores an Omarchy text-size stop and never a free multiplier.
     property real uiScale: 1
 
     // Flipped by ui/Pane.qml's onChosen, when a header-menu row answers "col:<key>".
     function toggleColumn(key) {
-        var next = []
-        var had = false
-        for (var i = 0; i < root.hiddenCols.length; i++) {
-            if (root.hiddenCols[i] === key) {
-                had = true
-                continue
-            }
-            next.push(root.hiddenCols[i])
-        }
-        if (!had)
-            next.push(key)
-        root.hiddenCols = next
+        var shown = root.columns.slice()
+        var at = shown.indexOf(key)
+        if (at >= 0)
+            shown.splice(at, 1)
+        else
+            shown.push(key)
+        root.state = Object.assign({}, root.state, { columns: shown })
         root.save()
     }
 
-    function load() {
-        try {
-            var parsed = JSON.parse(store.text())
-            if (parsed && parsed.hiddenCols)
-                root.hiddenCols = parsed.hiddenCols
-            if (parsed && parsed.uiScale > 0)
-                root.uiScale = Scale.stepped(parsed.uiScale, 0)
-        } catch (e) {
-            // A file another hand wrote is not this file's problem: the defaults stand.
-        }
-    }
-
-    property var store: FileView {
-        path: (Quickshell.env("XDG_CONFIG_HOME") && Quickshell.env("XDG_CONFIG_HOME").length > 0
-               ? Quickshell.env("XDG_CONFIG_HOME") : Quickshell.env("HOME") + "/.config") + "/flea/view.json"
-        watchChanges: false
-        printErrors: false
-        onLoaded: root.load()
-        // No seed on a missing file: the defaults are the whole state until a toggle changes one,
-        // and a first launch that never touched a column should leave nothing behind in ~/.config.
-        onLoadFailed: root.hiddenCols = []
-    }
+    // What the state file already holds, so a save that would change nothing writes nothing:
+    // ui/shell.qml's scale step calls save() too and the state file carries no scale.
+    property string saved: ""
+    property string pending: ""
 
     function save() {
-        store.setText(JSON.stringify({ hiddenCols: root.hiddenCols, uiScale: root.uiScale }, null, 2) + "\n")
+        var patch = JSON.stringify({ columns: root.columns })
+        if (patch === root.saved)
+            return
+        root.saved = patch
+        // One writer at a time, and the newest patch waits rather than being dropped on the floor.
+        if (patcher.running)
+            root.pending = patch
+        else
+            root.run(patch)
+    }
+
+    function run(patch) {
+        root.pending = ""
+        patcher.command = [Quickshell.env("FLEA_BIN") || "flea", "--ui-state", patch]
+        patcher.running = true
+    }
+
+    // The read is taken here and not in the FileView's onLoaded, which was measured on the box
+    // arriving after the first property read; blockLoading is what makes text() answer inside this
+    // call, so the stored columns are in the first frame instead of replacing it.
+    Component.onCompleted: root.load(stateFile.text())
+
+    function load(text) {
+        try {
+            var parsed = JSON.parse(text)
+            if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
+                root.state = parsed
+        } catch (e) {
+            // A file this cannot read is the update path's problem, and it answers with the defaults.
+        }
+        root.saved = JSON.stringify({ columns: root.columns })
+    }
+
+    // blockLoading, because the first list draws from this: an async read would paint one column
+    // set and correct it. printErrors off, because a missing file is what a first launch looks like.
+    property var store: FileView {
+        id: stateFile
+        path: (Quickshell.env("XDG_STATE_HOME") && Quickshell.env("XDG_STATE_HOME").length > 0
+               ? Quickshell.env("XDG_STATE_HOME") : Quickshell.env("HOME") + "/.local/state") + "/flea/ui.json"
+        blockLoading: true
+        watchChanges: false
+        printErrors: false
+    }
+
+    property var writer: Process {
+        id: patcher
+        onExited: if (root.pending.length > 0) root.run(root.pending)
     }
 }
