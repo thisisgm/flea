@@ -74,6 +74,19 @@ function run(check) {
     check("an at sign further along the path is never read as the authority",
           Mounts.normalize("sftp://u@h:22/inbox@2026"), "sftp://u@h/inbox@2026")
 
+    // PR #21: the rail takes live mounts first and skips a bookmark whose key it already has, so the
+    // bookmark's own label was thrown away. A rename typed on a mounted share was written to the file
+    // and reverted on the next five second poll with nothing said; the name the operator gave wins now.
+    var bookmarked = Mounts.nonFileBookmarks("smb://nas:445/isos NAS isos\nsmb://other/data Other\n")
+    check("the name the operator gave a place wins on the row its live mount draws",
+          Mounts.railLabel({ label: "isos", uri: "smb://nas/isos/" }, bookmarked), "NAS isos")
+    check("and it matches however the two spell the port, the way the rail's own dedup does",
+          Mounts.railLabel({ label: "isos", uri: "smb://nas:445/isos" }, bookmarked), "NAS isos")
+    check("a live mount nothing has bookmarked keeps the name gio gave it",
+          Mounts.railLabel({ label: "isos", uri: "smb://third/isos/" }, bookmarked), "isos")
+    check("and with no saved places at all it keeps that name too, rather than nothing",
+          Mounts.railLabel({ label: "isos", uri: "smb://nas/isos/" }, []), "isos")
+
     check("a bracketed IPv6 host whose own digits end in the port keeps them",
           Protocols.stripDefaultPort("smb://[fe80::445]/isos/"), "smb://[fe80::445]/isos/")
     check("but a real port after the bracket goes",

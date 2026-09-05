@@ -91,18 +91,19 @@ Item {
     }
 
     // Three sources, deduped on the normalized uri (see ui/js/Mounts.js "normalize"): a live gio mount wins over a bookmark for the same share even when the trailing slash differs.
+    // The bookmark's own label wins on that merged row, or a rename of a mounted share would be written to the file and never drawn again; see ui/js/Mounts.js "railLabel".
     function rebuild() {
         var home = Quickshell.env("HOME")
         var out = []
         var seen = {}
+        var marks = Mounts.nonFileBookmarks(root.bookmarksText)
         var mounts = Mounts.parseMounts(root._mountListing)
         for (var i = 0; i < mounts.length; i++) {
             var mkey = Mounts.normalize(mounts[i].uri)
             if (seen[mkey]) continue
             seen[mkey] = true
-            out.push({ path: "", label: mounts[i].label, group: "network", kind: "share", uri: mounts[i].uri, mounted: true, glyph: "server" })
+            out.push({ path: "", label: Mounts.railLabel(mounts[i], marks), group: "network", kind: "share", uri: mounts[i].uri, mounted: true, glyph: "server" })
         }
-        var marks = Mounts.nonFileBookmarks(root.bookmarksText)
         for (var j = 0; j < marks.length; j++) {
             var bkey = Mounts.normalize(marks[j].uri)
             if (seen[bkey]) continue

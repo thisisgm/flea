@@ -86,6 +86,15 @@ function normalize(uri) {
     return bareRoot ? stripped + "/" : stripped
 }
 
+// PR #21: a live mount wins the rail row, and the operator's own bookmark label wins its name, or a
+// rename typed on a mounted share is written to the file and never drawn. Matched the way rebuild dedups.
+function railLabel(mount, marks) {
+    for (var i = 0; i < marks.length; i++) {
+        if (normalize(marks[i].uri) === normalize(mount.uri)) return marks[i].label
+    }
+    return mount.label
+}
+
 // Sample input, captured live on the box with a USB stick plugged in (2026-09-02), from
 // lsblk --json -o NAME,LABEL,MOUNTPOINT,RM,SIZE,TYPE,MODEL:
 // {"blockdevices":[
