@@ -1698,9 +1698,15 @@ address space is virtual rather than resident and a multi-threaded thumbnailer r
 more of it than it ever touches. The original one GiB was set from
 `ffmpegthumbnailer`'s tens of megabytes on the media fixture, which measured the wrong
 thing: issue #17 reported `glycin-thumbnailer` exhausting one GiB on a large ICC-tagged
-JPEG and aborting, because each of its threads reserves a stack and an arena the process
-never faults in. Four GiB is still finite, still refuses a decompression bomb, and is a
-fifth of this box's 19 GiB of RAM before swap.
+JPEG and aborting. What inside `glycin` reserves that much is not measured here and is not
+claimed; the amount is. Driven through the production argv on
+`tests/thumbs.sh`'s own 6000x3375 ICC fixture, `glycin` 2.1.5-2 on this box aborts with
+status 134 at `--as=536870912` and writes a 601-byte PNG at `--as=671088640`, so it wants
+between 512 and 640 MiB for 81 MB of RGBA pixels. **This box therefore does not reproduce
+the reporter's one-GiB abort**: the same fixture and the same argv pass at
+`--as=1073741824` here, so their `glycin` wanted more address space than ours does, and the
+headroom is bought on their number and not on this one. Four GiB is still finite, still
+refuses a decompression bomb, and is a fifth of this box's 19 GiB of RAM before swap.
 
 The flags, and why each is there:
 
@@ -1879,10 +1885,14 @@ and a plain one that does not: **exit 137 for both**, never 152. That is a decom
 file verdict that must record, and it is indistinguishable from the OOM kill at the only layer
 where either is visible. A discriminator keyed on 152 does not exist to be built.
 
-**The premise is close to unreachable here anyway.** The sandbox caps address space at 4 GiB, so a
-memory bomb surfaces as the decoder's own non-zero exit long before the box is short: the probe's
-`as_rlimit_bomb` row is exit 1, a Python `MemoryError` and not a kill. The box carries 19 GiB of
-RAM and 38 GiB of swap.
+**The premise is close to unreachable here anyway, for one decoder.** The sandbox caps address
+space at 4 GiB, so a memory bomb surfaces as the decoder's own non-zero exit long before the box is
+short: re-measured at the 4 GiB cap, the probe's `as_rlimit_bomb` row is still exit 1, a Python
+`MemoryError` and not a kill. The box carries 19 GiB of RAM and 38 GiB of swap. What the cap change
+did move is the composed case: `src/backend/run.rs`'s `THUMB_WORKERS` is 4, so four decoders
+faulting toward their own caps at once is now 16 GiB of permitted address space against those
+19 GiB, where at one GiB it was 4. Not run, deliberately: four resident 4 GiB bombs is the state
+this paragraph warns about, not a test to schedule on the box.
 
 Only a SIGKILL of the sandbox launcher itself arrives as `signal=9`, and that process decodes
 nothing, allocates nothing and burns no CPU, so it can reach neither rlimit; with
