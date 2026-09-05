@@ -137,6 +137,25 @@ action = "cursorDown"
 key = "Up"
 action = "cursorUp"
 
+# Issue 28: the full-size keyboard's own four. Every one names an action the vim keys already carry,
+# so the sheet, tools/flea-acceptance's derived checklist and ui/js/Focus.js all take them for free;
+# Home and End are g and G, and the two page keys are the Ctrl+U and Ctrl+D pair, half a screen each.
+[[code]]
+key = "Home"
+action = "cursorFirst"
+
+[[code]]
+key = "End"
+action = "cursorLast"
+
+[[code]]
+key = "PageUp"
+action = "pageUp"
+
+[[code]]
+key = "PageDown"
+action = "pageDown"
+
 [[code]]
 key = "Return"
 action = "open"

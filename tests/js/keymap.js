@@ -13,6 +13,17 @@ function run(check) {
     check("shift G goes last", Keymap.lookup(Qt.Key_G, "G", shift), "cursorLast")
     check("ctrl d is half a page down", Keymap.lookup(Qt.Key_D, "d", ctrl), "pageDown")
     check("ctrl u is half a page up", Keymap.lookup(Qt.Key_U, "u", ctrl), "pageUp")
+
+    // Issue 28: the full-size keyboard's own four, reusing the actions the vim keys already carry so
+    // no new name reaches tools/flea-acceptance's checklist and no second control does the same job.
+    check("home goes to the first row", Keymap.lookup(Qt.Key_Home, "", none), "cursorFirst")
+    check("end goes to the last row", Keymap.lookup(Qt.Key_End, "", none), "cursorLast")
+    check("page down is the page key, not only the chord", Keymap.lookup(Qt.Key_PageDown, "", none), "pageDown")
+    check("page up is the page key, not only the chord", Keymap.lookup(Qt.Key_PageUp, "", none), "pageUp")
+    // The chord pair keeps its own half-page meaning: the page keys joined it rather than replacing it.
+    check("ctrl d still pages, so the page key did not take the chord's action away",
+          Keymap.lookup(Qt.Key_D, "d", ctrl), "pageDown")
+    check("ctrl u still pages too", Keymap.lookup(Qt.Key_U, "u", ctrl), "pageUp")
     check("enter opens", Keymap.lookup(Qt.Key_Return, "", none), "open")
     check("keypad enter opens", Keymap.lookup(Qt.Key_Enter, "", none), "open")
     check("backspace goes up a directory", Keymap.lookup(Qt.Key_Backspace, "", none), "parent")

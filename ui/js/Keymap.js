@@ -41,6 +41,10 @@ function lookup(key, text, modifiers) {
     switch (key) {
     case Qt.Key_Down: return "cursorDown"
     case Qt.Key_Up: return "cursorUp"
+    case Qt.Key_Home: return "cursorFirst"
+    case Qt.Key_End: return "cursorLast"
+    case Qt.Key_PageUp: return "pageUp"
+    case Qt.Key_PageDown: return "pageDown"
     case Qt.Key_Return: return "open"
     case Qt.Key_Enter: return "open"
     case Qt.Key_Backspace: return "parent"
