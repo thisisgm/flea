@@ -853,10 +853,12 @@ waits for its consumer.
   `cargo test --release` alone, which it still does. **`96186ff`'s own message is wrong about
   this and cannot be rewritten, because the branch is shared:** its subject says nine suites
   were uninvoked and its body says seven, and the derived answer is zero of twelve. The runner
-  builds both cargo profiles, since `protocol.sh` drives the debug binary and `thumbs.sh` the
-  release one, runs the nine suites that need nothing but a shell, and reads each suite's OWN
-  exit code, never a pipeline's. It then names `ui.sh`, `drag.sh` and `bench.sh` with what each
-  needs, so a suite it cannot run stays visible instead of being forgotten a second time.
+  builds both cargo profiles unconditionally, since five suites drive the debug binary and
+  `thumbs.sh` the release one and an `[ ! -x <path> ]` guard is satisfied by a stale binary
+  from an older commit, runs the eleven suites in its own `headless` list that need nothing
+  but a shell, and reads each suite's OWN exit code, never a pipeline's. It then names
+  `ui.sh`, `drag.sh` and `bench.sh` with what each needs, so a suite it cannot run stays
+  visible instead of being forgotten a second time.
 - **`./tests/drag.sh` is the internal drag's characterisation suite, 9 checks**, and it has to
   be run by hand: no runner invokes it. It was written against the drag's behaviour BEFORE the
   platform-drag rewrite, so it is the net that catches what the rewrite changes, and it earned
@@ -1682,7 +1684,7 @@ once at startup and prints one line on stderr, so the cause is stated rather tha
 fatal, because listing directories does not need the sandbox. `tests/thumbs.sh` runs the real binary
 with `PATH` pointed at an empty directory and asserts the empty `file`, no cache entry and no marker.
 
-The shape is `prlimit --cpu=30 --as=4294967296 bwrap <flags> <inner>`. **`prlimit` is the
+The shape is `prlimit --cpu=30 --as=2147483648 bwrap <flags> <inner>`. **`prlimit` is the
 outermost program because `bwrap` has no rlimit option**, verified against `bwrap --help`
 on bubblewrap 0.11.2 here. Setting the limits from Rust would need raw `setrlimit`, which
 `std` does not expose and which the zero-dependency rule forbids reaching for through
@@ -1693,7 +1695,7 @@ fork and exec, so the reverse nesting was measured to kill the same spin and to 
 the same `/proc/self/limits`.
 
 The two numbers: `--cpu=30` seconds, because a 1080p decode is well under a second of CPU
-here and 30 s is a runaway rather than a slow file; `--as=4294967296`, four GiB, because
+here and 30 s is a runaway rather than a slow file; `--as=2147483648`, two GiB, because
 `--as` bounds address space and not resident memory, and issue #17's own trace is a
 thumbnailer that could not `mmap` a thread stack. The original one GiB was set from
 `ffmpegthumbnailer`'s tens of megabytes on the media fixture, which measured the wrong
@@ -1706,12 +1708,17 @@ it" does not hold on this box. The amount is measured. Driven through the produc
 status 134 at `--as=536870912` and writes a 601-byte PNG at `--as=671088640`, so it wants
 between 512 and 640 MiB for 81 MB of RGBA pixels. **This box therefore does not reproduce
 the reporter's one-GiB abort**: the same fixture and the same argv pass at
-`--as=1073741824` here, so their `glycin` wanted more address space than ours does, and the
-headroom is bought on their number and not on this one. Four is a judgement and not a
-measurement here: issue #17 records 2 GiB and omitting the cap both working on the
-reporter's box and proposes 4 to 8 GiB, so four is the low end of their range and double
-their known-good number. It is still finite, still refuses a decompression bomb, and is a
-fifth of this box's 19 GiB of RAM before swap.
+`--as=1073741824` here (status 0, a 601-byte PNG), so their `glycin` wanted more address
+space than ours does, and the headroom is bought on their number and not on this one. **Two
+is the smallest value the ticket records as working**, and it is chosen on that rather than
+on a judgement: issue #17 says increasing `--as` to 2 GiB or omitting it succeeds without
+error, so 2 GiB is the reporter's own known-good number, three times what this box's
+`glycin` was measured to want, and half of what four workers at four GiB could compose. The
+same fixture and argv pass at `--as=2147483648` here too, status 0 and the same 601-byte
+PNG. The reporter proposes 4 to 8 GiB, so two leaves no margin over their range and a
+larger image on their box could reopen the issue; that is accepted, because the rung here
+is the smallest thing that works and the number moves again when somebody brings a
+measurement. It is still finite and still refuses a decompression bomb.
 
 The flags, and why each is there:
 
@@ -1759,7 +1766,7 @@ rejected on that number.
 full argv; the canary file outside the output directory survives and a write to it fails
 with `No such file or directory`; `/home` is not visible at all and the root holds only
 `bin dev etc lib lib64 proc sbin tmp usr`; `getent hosts example.com` exits 2 with no
-resolution; `ulimit -v` inside reads 1048576 KiB, so the address-space limit is applied;
+resolution; `ulimit -v` inside reads 2097152 KiB, so the address-space limit is applied;
 and a spin under `--cpu=2` is killed rather than returning 0. **The `sh -c` in those probes
 is a test OF the sandbox, not production code.** Production execs the argv directly, and
 `grep -rn 'sh -c' src/` finds nothing.
@@ -1891,13 +1898,19 @@ file verdict that must record, and it is indistinguishable from the OOM kill at 
 where either is visible. A discriminator keyed on 152 does not exist to be built.
 
 **The premise is close to unreachable here anyway, for one decoder.** The sandbox caps address
-space at 4 GiB, so a memory bomb surfaces as the decoder's own non-zero exit long before the box is
-short: re-measured at the 4 GiB cap, the probe's `as_rlimit_bomb` row is still exit 1, a Python
-`MemoryError` and not a kill. The box carries 19 GiB of RAM and 38 GiB of swap. What the cap change
-did move is the composed case: `src/backend/run.rs`'s `THUMB_WORKERS` is 4, so four decoders
-faulting toward their own caps at once is now 16 GiB of permitted address space against those
-19 GiB, where at one GiB it was 4. Not run, deliberately: four resident 4 GiB bombs is the state
-this paragraph warns about, not a test to schedule on the box.
+space at 2 GiB, so a memory bomb surfaces as the decoder's own non-zero exit long before the box is
+short: re-measured at the 2 GiB cap, the probe's `as_rlimit_bomb` row is still exit 1, a Python
+`MemoryError` and not a kill. The box carries 19 GiB of RAM and 38 GiB of swap. **The cap bounds
+address space and not resident memory, so it does not net against those 19 GiB**: a decode maps far
+more than it faults in, which is why the 1536 MiB sparse reservation in `sandbox.rs`'s own test
+stays near 13 MB of `VmRSS`, three runs spanning 12936 to 13008 kB. What the cap change moves is
+the composed case, and it moves it in permitted address space: `src/backend/run.rs`'s
+`THUMB_WORKERS` is 4, so four decoders multiply the permitted total to 8 GiB, where at one GiB it
+was 4 and at four GiB it would have been 16. The case
+that matters is the bomb that faults its pages in instead of reserving them sparsely, because that
+is the only one that turns permitted address space into memory the box has to find. Not run,
+deliberately: four decoders each faulting in a 2 GiB bomb at once is the state this paragraph warns
+about, not a test to schedule on the box.
 
 Only a SIGKILL of the sandbox launcher itself arrives as `signal=9`, and that process decodes
 nothing, allocates nothing and burns no CPU, so it can reach neither rlimit; with
