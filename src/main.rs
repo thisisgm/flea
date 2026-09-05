@@ -6,6 +6,7 @@ mod heap;
 mod hyprkeys;
 mod json;
 mod jsondoc;
+mod jsonstring;
 mod launcher;
 mod open;
 mod paths;

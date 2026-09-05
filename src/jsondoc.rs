@@ -1,16 +1,11 @@
 // One whole JSON document in and out, which src/json.rs deliberately is not: it scans one wire line.
 use crate::json::escape;
+use crate::jsonstring::parse_string;
 
 // A hand-edited state file is an input, so nesting is bounded rather than recursed until the stack ends.
 pub const MAX_DEPTH: usize = 32;
 
 const INDENT: &str = "  ";
-
-// UTF-16's surrogate halves, which are not scalar values and only mean anything as a pair.
-const HIGH_FIRST: u32 = 0xd800;
-const HIGH_LAST: u32 = 0xdbff;
-const LOW_FIRST: u32 = 0xdc00;
-const LOW_LAST: u32 = 0xdfff;
 
 // Num keeps the literal it was written with, so 192 stays 192 and 1.0 stays 1.0 across a rewrite.
 #[derive(Clone, Debug, PartialEq)]
@@ -214,93 +209,10 @@ fn parse_array(bytes: &[u8], at: &mut usize, depth: usize) -> Result<Json, Strin
     }
 }
 
-fn parse_string(bytes: &[u8], at: &mut usize) -> Result<String, String> {
-    if bytes.get(*at) != Some(&b'"') {
-        return Err(format!("a string was expected at byte {}", at));
-    }
-    *at += 1;
-    let mut out = String::new();
-    while let Some(&b) = bytes.get(*at) {
-        *at += 1;
-        match b {
-            b'"' => return Ok(out),
-            b'\\' => out.push(unescape(bytes, at)?),
-            _ => {
-                let start = *at - 1;
-                while *at < bytes.len() && bytes[*at] & 0xc0 == 0x80 {
-                    *at += 1;
-                }
-                match std::str::from_utf8(&bytes[start..*at]) {
-                    Ok(s) => out.push_str(s),
-                    Err(_) => return Err(format!("a byte that is not UTF-8 at {}", start)),
-                }
-            }
-        }
-    }
-    Err("a string ran to the end of the document".to_string())
-}
-
-fn unescape(bytes: &[u8], at: &mut usize) -> Result<char, String> {
-    let code = *bytes.get(*at).ok_or_else(|| "an escape ran off the end".to_string())?;
-    *at += 1;
-    match code {
-        b'"' => Ok('"'),
-        b'\\' => Ok('\\'),
-        b'/' => Ok('/'),
-        b'b' => Ok('\u{8}'),
-        b'f' => Ok('\u{c}'),
-        b'n' => Ok('\n'),
-        b'r' => Ok('\r'),
-        b't' => Ok('\t'),
-        b'u' => unescape_hex(bytes, at),
-        _ => Err(format!("an unknown escape at byte {}", *at - 1)),
-    }
-}
-
-// Sample input: the four hex digits after \u, as in é, or the \ud83d\udcc1 pair every ASCII-safe
-// serializer writes 📁 as; a surrogate with no partner becomes the replacement character.
-fn unescape_hex(bytes: &[u8], at: &mut usize) -> Result<char, String> {
-    let point = hex4(bytes, at)?;
-    if let Some(low) = low_half(bytes, at, point) {
-        let combined = 0x10000 + ((point - HIGH_FIRST) << 10) + (low - LOW_FIRST);
-        return Ok(char::from_u32(combined).unwrap_or(char::REPLACEMENT_CHARACTER));
-    }
-    Ok(char::from_u32(point).unwrap_or(char::REPLACEMENT_CHARACTER))
-}
-
-fn hex4(bytes: &[u8], at: &mut usize) -> Result<u32, String> {
-    let end = *at + 4;
-    let digits = bytes.get(*at..end).ok_or_else(|| "a short \\u escape".to_string())?;
-    let text = std::str::from_utf8(digits).map_err(|_| "a \\u escape that is not hex".to_string())?;
-    let point = u32::from_str_radix(text, 16).map_err(|_| format!("a \\u escape that is not hex at byte {}", at))?;
-    *at = end;
-    Ok(point)
-}
-
-// The partner of a high surrogate, consumed only when the next escape really is a low one.
-fn low_half(bytes: &[u8], at: &mut usize, high: u32) -> Option<u32> {
-    if !(HIGH_FIRST..=HIGH_LAST).contains(&high) || bytes.get(*at) != Some(&b'\\') || bytes.get(*at + 1) != Some(&b'u') {
-        return None;
-    }
-    let mut after = *at + 2;
-    let low = hex4(bytes, &mut after).ok()?;
-    if !(LOW_FIRST..=LOW_LAST).contains(&low) {
-        return None;
-    }
-    *at = after;
-    Some(low)
-}
-
-// Sample input: -12, 0, 192, 1.0, 1.5e-3; the literal is kept as written and only checked for shape.
+// Sample input: -12, 0, 192, 1.0, 1.5e-3; the literal is kept as written, and checked for JSON's
+// own shape and a finite value rather than rewritten into a canonical one.
 fn parse_number(bytes: &[u8], at: &mut usize) -> Result<Json, String> {
     let start = *at;
-    // Rust's own f64 parse takes a leading plus and JSON does not, and the literal is written back
-    // verbatim, so accepting one here would put a value in the file that this cannot read again.
-    match bytes.get(start) {
-        Some(b'-') => {}
-        Some(b) if b.is_ascii_digit() => {}
-        _ => return Err(format!("a value that is not JSON at byte {}", start)),
-    }
     while let Some(&b) = bytes.get(*at) {
         if b.is_ascii_digit() || matches!(b, b'-' | b'+' | b'.' | b'e' | b'E') {
             *at += 1;
@@ -309,10 +221,53 @@ fn parse_number(bytes: &[u8], at: &mut usize) -> Result<Json, String> {
         break;
     }
     let text = std::str::from_utf8(&bytes[start..*at]).map_err(|_| format!("a number that is not UTF-8 at byte {}", start))?;
+    // Rust's own f64 parse takes a leading plus, a leading zero, a bare fraction and a trailing dot
+    // where JSON takes none of them, and the literal is written back verbatim, so one accepted here
+    // would put a value in the file that this cannot read again.
+    if !is_json_number(text) {
+        return Err(format!("a value that is not JSON at byte {}", start));
+    }
+    // The shape is JSON's and the parse is the magnitude: 1e400 is a JSON number and no finite f64.
     match text.parse::<f64>() {
         Ok(n) if n.is_finite() => Ok(Json::Num(text.to_string())),
         _ => Err(format!("a value that is not JSON at byte {}", start)),
     }
+}
+
+// JSON's whole number grammar: -? (0 | [1-9][0-9]*) (. [0-9]+)? ([eE] [+-]? [0-9]+)? and nothing else.
+fn is_json_number(text: &str) -> bool {
+    let bytes = text.as_bytes();
+    let mut at = if bytes.first() == Some(&b'-') { 1 } else { 0 };
+    let int_end = digit_run(bytes, at);
+    // A leading zero is a whole integer part on its own, so 0192 is Rust's 192 and is not JSON at all.
+    if int_end == at || (int_end > at + 1 && bytes[at] == b'0') {
+        return false;
+    }
+    at = int_end;
+    if bytes.get(at) == Some(&b'.') {
+        let frac_end = digit_run(bytes, at + 1);
+        if frac_end == at + 1 {
+            return false;
+        }
+        at = frac_end;
+    }
+    if !matches!(bytes.get(at), Some(b'e' | b'E')) {
+        return at == bytes.len();
+    }
+    at += 1;
+    if matches!(bytes.get(at), Some(b'+' | b'-')) {
+        at += 1;
+    }
+    let exp_end = digit_run(bytes, at);
+    exp_end > at && exp_end == bytes.len()
+}
+
+// The end of the run of ASCII digits at `at`, which is `at` itself when there is no digit there.
+fn digit_run(bytes: &[u8], mut at: usize) -> usize {
+    while bytes.get(at).is_some_and(u8::is_ascii_digit) {
+        at += 1;
+    }
+    at
 }
 
 #[cfg(test)]
@@ -339,29 +294,29 @@ mod tests {
         assert_eq!(render(&v), "{\n  \"width\": 192,\n  \"opacity\": 1.0\n}\n");
     }
 
+    // Rust's f64 parse takes literals JSON does not, and Json::Num keeps the literal, so render
+    // writes it straight back and the window's own JSON.parse refuses the file the settle wrote.
+    #[test]
+    fn a_number_only_rust_takes_is_refused_rather_than_written_back() {
+        let mut written_back = Vec::new();
+        for bad in ["1.", "1.e5", "5.e3", "0192", "-0192", "01", "00", "-.5", "+1", ".5", "1e", "0x1"] {
+            let doc = format!("{{\"a\":{}}}", bad);
+            if let Ok(v) = parse(&doc) {
+                written_back.push(format!("{} -> {}", bad, render(&v).replace('\n', "")));
+            }
+        }
+        assert!(written_back.is_empty(), "written back verbatim: {:?}", written_back);
+        for good in ["0", "-0", "192", "-12", "1.0", "0.5", "1e5", "1E5", "1e+5", "1.5e-3"] {
+            let v = parse(&format!("{{\"a\":{}}}", good)).unwrap_or_else(|e| panic!("{} must parse: {}", good, e));
+            assert_eq!(render(&v), format!("{{\n  \"a\": {}\n}}\n", good), "the literal is written back as it was read");
+        }
+    }
+
     #[test]
     fn strings_survive_a_round_trip_with_every_escape_in_them() {
         let v = parse(r#"{"k":"a\"b\\c\nd\teAé\/f"}"#).expect("parse");
         assert_eq!(v.get("k").and_then(Json::as_str), Some("a\"b\\c\nd\te\u{41}\u{e9}/f"));
         assert_eq!(parse(&render(&v)).expect("reparse"), v);
-    }
-
-    // Python's json.dump defaults to ensure_ascii, so a favourite holding a non-BMP character
-    // reaches this parser as a surrogate pair and has to come back as the one character it names.
-    #[test]
-    fn a_surrogate_pair_is_one_character_and_not_two_replacements() {
-        let doc = parse(r#"{"favourites":["/home/gm/\ud83d\udcc1 Work"]}"#).expect("parse");
-        let first = doc.get("favourites").and_then(Json::as_array).expect("favourites")[0]
-            .as_str().expect("string");
-        assert_eq!(first, "/home/gm/\u{1F4C1} Work");
-        assert!(render(&doc).contains('\u{1F4C1}'), "the rewrite carries the character, not a replacement");
-        assert_eq!(parse(&render(&doc)).expect("reparse"), doc);
-        // A half with no partner is still the replacement character, which is what the file says.
-        assert_eq!(parse(r#"{"a":"\ud83d"}"#).expect("parse").get("a").and_then(Json::as_str), Some("\u{FFFD}"));
-        assert_eq!(parse(r#"{"a":"\udcc1x"}"#).expect("parse").get("a").and_then(Json::as_str), Some("\u{FFFD}x"));
-        // A high half followed by an escape that is not its partner keeps both, each on its own.
-        assert_eq!(parse(r#"{"a":"\ud83d\u0041"}"#).expect("parse").get("a").and_then(Json::as_str), Some("\u{FFFD}A"));
-        assert_eq!(parse(r#"{"a":"\ud83dx"}"#).expect("parse").get("a").and_then(Json::as_str), Some("\u{FFFD}x"));
     }
 
     #[test]
