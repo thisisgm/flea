@@ -45,7 +45,20 @@ this tree yet: `flea --tui` says so and exits 2.
    about a quarter of that init advantage is what buys the crash out; dropping the device count
    would save only 2 of those milliseconds and would stop catching a loader that creates an
    instance and then lists nothing. A scene-graph failure after launch still relaunches once
-   with OpenGL and drains the failed backend; an explicit `QSG_RHI_BACKEND` is never replaced.
+   with OpenGL and drains the failed backend; an explicit `QSG_RHI_BACKEND` is never replaced, and
+   an exported-but-empty one is absent rather than a choice, the same rule `paths::has_display()`
+   applies. What the probe proves is exactly what it asks the loader for: an instance carrying
+   `VK_KHR_surface` and the session's own surface extension, `VK_KHR_wayland_surface` here and
+   `VK_KHR_xcb_surface` where only `DISPLAY` is set, plus a physical device. A loader that can build
+   only a bare extension-free instance is refused, because that is not the instance Qt hands
+   `QRhi::create`. Asking for them is free: 21 interleaved pairs of the whole implicit launch to a
+   stub `qs` measured a median of 11 ms with the extensions and 11 ms without.
+   **`ui/shell.qml` no longer carries the `//@ pragma DefaultEnv QSG_RHI_BACKEND=vulkan`
+   line**, so `src/gui.rs` is the only thing that names a renderer and a direct `qs -p ui`
+   launch bypasses it entirely: `tools/flea-first-paint`, `tools/flea-metrics-gate`,
+   `tests/ui.sh`, `tests/drag.sh` and the `README.md` dev loop each state `QSG_RHI_BACKEND` for
+   themselves, so their numbers stay on the Vulkan baseline they were recorded against.
+   `tools/flea-field-bench` needs none of that, because it launches `$FLEA_BIN --gui`.
    Preview and QtMultimedia are now in the tree and the laziness held: `ui/PreviewMedia.qml`
    is the only file that imports QtMultimedia, reached through a `Loader` built by the first
    press of play, because QtMultimedia costs 20 MB before it plays anything.
@@ -3108,7 +3121,7 @@ lucide glyph is therefore: square the corner arcs, keep the extents. One deliber
 change beyond corners: `music` note heads are squares, not circles, the set's brand tell
 (`file-text`'s three rules are lucide's own, restored with the body). The AE compare
 above no longer applies to recut marks (they differ from source on purpose); the gate is the
-montage eyeball plus a live `qs -p ui` look on the box (bench numbers still come from the
+montage eyeball plus a live `QSG_RHI_BACKEND=vulkan qs -p ui` look on the box (bench numbers still come from the
 launcher path, hard rule 7). `rsvg-convert` only
 proves a `d` parses; librsvg renders through a bad tail and exits 0, so its exit status is
 not a gate.
