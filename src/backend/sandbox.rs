@@ -6,7 +6,7 @@ const BWRAP: &str = "bwrap";
 const PRLIMIT: &str = "prlimit";
 // A 1080p decode is well under a second of CPU here, so 30 s is a runaway, not a slow file.
 const CPU_SECONDS: u32 = 30;
-// glycin exhausts 1 GiB of address space on a large ICC-tagged JPEG and aborts (issue #17), so the cap is 4 GiB: still finite, and virtual rather than resident.
+// Issue #17 reports glycin exhausting 1 GiB of address space on a large ICC-tagged JPEG and aborting, which this box does not reproduce, so the cap is 4 GiB: still finite, and virtual rather than resident.
 const ADDRESS_SPACE_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 
 // /bin, /sbin, /lib and /lib64 are all symlinks into usr on this box, so binding /usr covers them.
@@ -190,7 +190,7 @@ print("over=" + reserve(6))
         assert_eq!(readonly[0], "prlimit");
         assert!(got.iter().any(|a| a.starts_with("--cpu=")));
         assert!(readonly.iter().any(|a| a.starts_with("--cpu=")));
-        // The exact value in both wrappers: "--as= has some value" passed at 1 GiB and so could not see issue #17.
+        // The exact value in both wrappers: "--as= has some value" passed at 1 GiB, so it could not see the cap itself being wrong.
         for a in [&got, &readonly] {
             assert!(a.iter().any(|x| x == FOUR_GIB), "the wrapper caps address space at 4 GiB: {:?}", a);
         }

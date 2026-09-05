@@ -1694,8 +1694,8 @@ the same `/proc/self/limits`.
 
 The two numbers: `--cpu=30` seconds, because a 1080p decode is well under a second of CPU
 here and 30 s is a runaway rather than a slow file; `--as=4294967296`, four GiB, because
-address space is virtual rather than resident and a multi-threaded thumbnailer reserves far
-more of it than it ever touches. The original one GiB was set from
+`--as` bounds address space and not resident memory, and issue #17's own trace is a
+thumbnailer that could not `mmap` a thread stack. The original one GiB was set from
 `ffmpegthumbnailer`'s tens of megabytes on the media fixture, which measured the wrong
 thing: issue #17 reported `glycin-thumbnailer` exhausting one GiB on a large ICC-tagged
 JPEG and aborting. What inside `glycin` reserves that much is not measured here and is not
@@ -1707,8 +1707,11 @@ status 134 at `--as=536870912` and writes a 601-byte PNG at `--as=671088640`, so
 between 512 and 640 MiB for 81 MB of RGBA pixels. **This box therefore does not reproduce
 the reporter's one-GiB abort**: the same fixture and the same argv pass at
 `--as=1073741824` here, so their `glycin` wanted more address space than ours does, and the
-headroom is bought on their number and not on this one. Four GiB is still finite, still
-refuses a decompression bomb, and is a fifth of this box's 19 GiB of RAM before swap.
+headroom is bought on their number and not on this one. Four is a judgement and not a
+measurement here: issue #17 records 2 GiB and omitting the cap both working on the
+reporter's box and proposes 4 to 8 GiB, so four is the low end of their range and double
+their known-good number. It is still finite, still refuses a decompression bomb, and is a
+fifth of this box's 19 GiB of RAM before swap.
 
 The flags, and why each is there:
 
