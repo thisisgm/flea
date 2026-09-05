@@ -9,6 +9,9 @@ Item {
     signal failed(string path)
     signal isDirectory(string path)
     signal terminalFailed(string path)
+    // Raised where the two single-flight guards below drop a request, so a swallowed press says so.
+    signal busy(string path)
+    signal terminalBusy(string path)
 
     // The status src/open.rs returns for a directory, which the caller navigates to instead.
     readonly property int isDirectoryStatus: 3
@@ -21,9 +24,10 @@ Item {
 
     // flea --open waits for gio open and not for the application it starts, and that wait is 11 to 15 ms
     // for an Exec= handler but 0.32 to 0.75 s for a DBusActivatable one, which is what this box's
-    // twenty-five archive types default to, so this guard drops a second Enter for that long in silence.
+    // twenty-five archive types default to, so this guard drops a second Enter for that long and says so.
     function open(path) {
         if (child.running) {
+            root.busy(path)
             return
         }
         root.current = path
@@ -51,6 +55,7 @@ Item {
     // launch and a file open in flight cannot take each other's exit status.
     function openTerminal(path) {
         if (terminalChild.running) {
+            root.terminalBusy(path)
             return
         }
         root.terminalCurrent = path
