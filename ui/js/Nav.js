@@ -20,10 +20,28 @@ function back(pane) {
     if (pane.history.length === 0) {
         return
     }
+    // The guard runs before the pop and not only inside openWithoutHistory: that call refuses the
+    // listing while one is loading, and the entry was already gone by then, so a back taken during
+    // a listing threw the place away and went nowhere. parent() below guards the same way.
+    if (pane.listInFlight) {
+        pane.message("A directory is already loading.", false)
+        return
+    }
     var target = pane.history[pane.history.length - 1]
     // The pop happens before the open, because open() is what would otherwise push it straight back on.
     pane.history = pane.history.slice(0, pane.history.length - 1)
     pane.openWithoutHistory(target)
+}
+
+// Issue 20: the mouse's back button. Nautilus and Explorer bind it to history, so it is the chrome's
+// own left arrow wherever there is somewhere to go back to and the up arrow where there is not, which
+// is the climb the issue asked for. No forward stack, because the canvas draws one arrow and not two.
+function mouseBack(pane) {
+    if (pane.history.length > 0) {
+        back(pane)
+        return
+    }
+    parent(pane)
 }
 
 // Everything a fresh listing has to forget. Called by open, by refresh and by the hidden toggle, so

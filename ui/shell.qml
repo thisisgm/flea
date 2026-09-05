@@ -10,6 +10,7 @@ import qs.Commons
 import "."
 import "." as Flea
 import "js/Scale.js" as Scale
+import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
 import "js/Search.js" as Search
 
@@ -201,6 +202,21 @@ ShellRoot {
                 height: pane.listArea.height
                 onClosed: pane.forceActiveFocus()
                 onActivated: function (uri, label) { pane.sidebar.mountShare(uri, label) }
+            }
+
+            // Issue 20: the mouse's own back button, taken by the window because no row is being
+            // clicked; ui/js/Nav.js mouseBack is what chooses between the history and the climb. It
+            // is refused behind anything holding the keyboard or covering the listing, because a
+            // navigation under one of those would leave it describing a directory that is gone.
+            TapHandler {
+                acceptedButtons: Qt.BackButton
+                onTapped: {
+                    if (chrome.editing || convertDialog.opened || keymapSheet.opened
+                            || networkDialog.opened || shareBrowser.active || preview.active
+                            || pane.renameEditor() !== null || pane.sidebar.renameEditor() !== null)
+                        return
+                    Nav.mouseBack(pane)
+                }
             }
 
             Component.onCompleted: {

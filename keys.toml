@@ -503,9 +503,10 @@ label = "this sheet"
 # where  listing    the list view, the grid view, and the columns view's own middle column
 #        neighbour  the columns view's parent and child columns, which are peeks with no cursor
 #        rail       ui/SidebarRow.qml: favourites, mounts and network places
+#        window     a press that belongs to no row at all, taken by ui/shell.qml
 # press  the button, then any modifier before it, then "x2" for the second tap of a double click
 # row    which rows the line covers: any, dir, file, renaming or result
-# does   setCursor open menu toggleSelect extendSelect reveal nothing
+# does   setCursor open menu toggleSelect extendSelect reveal backOrParent nothing
 #
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
 # opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
@@ -621,6 +622,16 @@ press = "right"
 row = "any"
 does = "nothing"
 label = "a peeked row has no menu"
+
+# Issue 20: the mouse's extra button. It belongs to the window rather than to a row, so it is the one
+# line here with no listing under it; ui/js/Nav.js mouseBack decides, and ui/shell.qml refuses it
+# behind a dialog, an open preview, the share overlay and any field holding the keyboard.
+[[pointer]]
+where = "window"
+press = "back"
+row = "any"
+does = "backOrParent"
+label = "go back through the history, or up a directory when there is none"
 
 [[pointer]]
 where = "rail"
