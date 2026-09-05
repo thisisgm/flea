@@ -3462,6 +3462,52 @@ shape-dependent decision. `tests/ui.sh case_sharebrowser` reproduces this with a
 that answers exit 2 plus that exact stderr for its second fixture share, asserting the mount still
 resolves to an open rather than the "could not be mounted" message.
 
+**Superseded, issue #36.** That stderr sentence is gvfsd's, and gvfsd translates it, so no client
+locale makes it English and reading it at all was the defect. `isAlreadyMountedQuirk()` and
+`mountProcess`'s `stderr` collector are both gone. `mountProcess.onExited` now records the exit code
+in `_mountFailed` and always runs `gio info`, and the info result is the whole decision: a FUSE path
+opens the share whatever the mount attempt reported, a bare root with a clean `gio info` lists its
+shares, and only a location `gio info` could not describe either reports the mount failure or the
+dead-end sentence. The case still proves the same two behaviours; its stub now speaks Spanish.
+
+### Issue #36: no network decision reads a translated sentence
+
+`@janoguerra` reported that network shares never open on a non-English box. There were three
+locale-dependent decisions, not the two the issue named, and each takes a different fix because the
+strings come from two different processes.
+
+**The gio client's own output is pinned, not parsed in every language.** `ui/NetworkMounts.qml` sets
+`readonly property var gioEnvironment: ({ "LC_ALL": "C" })` on all five `Process` objects.
+`Process.environment` merges into the inherited environment rather than replacing it, measured live
+on this box (a probe run under `QT_QPA_PLATFORM=offscreen qs -p` printed `LC_ALL=C PATH_SET=yes
+PROBE=yes HOME=/home/gm`), so `PATH` and `HOME` survive and only the locale is added. GNU gettext
+ignores `LANGUAGE` whenever the category value is `C` or `POSIX`, so `LC_ALL=C` alone is the whole
+pin. That makes `gio info`'s `local path: ` line deterministic, and `ui/js/Mounts.js localPath(body)`
+is the one resolver that reads it: the product calls it and `tests/js/network.js` drives it, so the
+wording exists in exactly one place.
+
+**gvfsd's strings are not fixable that way, so nothing decides on one.** The already-mounted refusal
+and a mount's own display name are composed by the daemon, which has its own locale, so
+`LC_ALL=C` on the client changes neither. The refusal is no longer read at all (above). The display
+name is no longer parsed for the English word "on": `ui/js/Protocols.js shareName(rawLabel, uri)`
+cuts the tail only when it is this URI's own host, which `hostOf(uri)` takes from the authority
+between `://` and the next `/`. Whatever word gvfsd puts between the two halves, in any language, is
+the one whitespace-delimited token before that host.
+
+**The old rule also mangled labels that had nothing to do with a host**, which no report had named.
+`/^(.*)\s+on\s+\S+$/` never tested that its tail was a host, only that it was a final
+whitespace-delimited token, so a mount actually named `backup on tuesday` came out as `backup`; the
+RED run recorded exactly that. Deciding from the URI fixes it and leaves every non-share label alone:
+an MTP phone whose label is `Pixel 7` under `mtp://Google_Pixel_7_1A2B/` keeps its name, because that
+label does not end in that host.
+
+**The suite could not fail before this.** `tests/ui.sh case_sharebrowser`'s `gio` stub hardcoded
+English, so it passed on a Spanish box and would have passed after a fix that changed nothing. Both
+network stubs now speak Spanish: `case_sharebrowser` answers `ruta local` unless the caller pinned
+`LC_ALL=C`, and both its already-mounted refusal and `case_unmount`'s `Mount(0): stubshare en
+stubhost` stay Spanish whatever the client asks for, because gvfsd would. Not one assertion in either
+case changed, so both are that fix's control.
+
 ### The Network group's plus mark: a lucide glyph, not a font character
 
 The operator's own words: the `Text "+"` next to the NETWORK heading "looks more like a christian

@@ -97,3 +97,50 @@ function label(form) {
 function complete(form) {
     return String(form.host || "").trim().length > 0
 }
+
+// The scheme a built or bookmarked URI carries, lowercased; "" when the text is not a URI at all.
+function schemeOf(uri) {
+    var text = String(uri || "")
+    var mark = text.indexOf("://")
+    return mark < 0 ? "" : text.substring(0, mark).toLowerCase()
+}
+
+// Everything between "://" and the next "/", which is the only place a userinfo, a host or a port
+// can live: a scan over the whole URI would read a "@" or a ":" inside the path as one of those.
+function authority(uri) {
+    var text = String(uri || "")
+    var mark = text.indexOf("://")
+    if (mark < 0)
+        return ""
+    var rest = text.substring(mark + 3)
+    var slash = rest.indexOf("/")
+    return slash < 0 ? rest : rest.substring(0, slash)
+}
+
+// The host alone: userinfo dropped at the authority's own last "@", a bracketed IPv6 literal kept
+// whole because its colons are not a port separator, and any real port dropped.
+function hostOf(uri) {
+    var auth = authority(uri)
+    var at = auth.lastIndexOf("@")
+    var hostPort = at < 0 ? auth : auth.substring(at + 1)
+    if (hostPort.charAt(0) === "[") {
+        var close = hostPort.indexOf("]")
+        return close < 0 ? hostPort : hostPort.substring(0, close + 1)
+    }
+    var colon = hostPort.indexOf(":")
+    return colon < 0 ? hostPort : hostPort.substring(0, colon)
+}
+
+// gvfsd renders a network mount as "<share> <word> <host>" and translates that word, so issue #36's
+// rule reads the URI instead: the tail that gets cut is this URI's own host, in any language, and a
+// label that does not end in it is left exactly as gio gave it.
+function shareName(rawLabel, uri) {
+    var label = String(rawLabel || "")
+    var host = hostOf(uri)
+    var head = label.substring(0, label.length - host.length)
+    if (host.length === 0 || head.length === 0 || label.substring(head.length) !== host)
+        return label
+    // Whatever language it is in, exactly one whitespace-delimited word separates the two halves.
+    var name = head.replace(/\s+\S+\s+$/, "")
+    return name.length > 0 ? name : label
+}

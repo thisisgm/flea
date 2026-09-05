@@ -2261,8 +2261,11 @@ case_network() {
 # no auth prompt. The stub also reproduces gio's own "already mounted" quirk on the second share,
 # found live against the real NAS this round when a share picked from the overlay was already
 # mounted from a prior activation; mountProcess used to treat that as a hard failure for anything
-# but a bare root, misreporting a location that actually mounted fine. The fix reads the process's
-# own stderr instead of guessing from the uri's shape, see ui/NetworkMounts.qml "isAlreadyMountedQuirk".
+# but a bare root, misreporting a location that actually mounted fine. Nothing reads that sentence
+# any more, so the stub speaks it in Spanish: issue #36 reported network shares that never open on
+# a non-English box, and a stub that only ever spoke English could not fail for that reason. It
+# answers gio's own "local path" line in Spanish too, unless the caller pinned the C locale the way
+# ui/NetworkMounts.qml "gioEnvironment" does, which is what makes this case that fix's control.
 case_sharebrowser() {
     local dir="$fixture_root/sharebrowser"
     sandbox_scratch "$dir"
@@ -2286,21 +2289,25 @@ case_sharebrowser() {
     # ui/NetworkMounts.qml issues, keyed on the exact uri each entry activates.
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
+# The gio client translates its own output, so it answers English only where the caller pinned C.
+local_path_label='ruta local'
+[ "\$LC_ALL" = C ] && local_path_label='local path'
 case "\$1" in
   mount)
     if [ "\$2" = "-l" ] || [ "\$2" = "-u" ]; then
       exit 0
     fi
     if [ "\$2" = "$share2_uri" ]; then
-      echo "gio: \$2: Location is already mounted" >&2
+      # gvfsd composes this refusal, so no client locale makes it English: it stays Spanish.
+      echo "gio: \$2: La ubicacion ya esta montada" >&2
       exit 2
     fi
     exit 0
     ;;
   info)
     case "\$2" in
-      "$share1_uri") printf 'local path: %s\n' "$share1_dir" ;;
-      "$share2_uri") printf 'local path: %s\n' "$share2_dir" ;;
+      "$share1_uri") printf '%s: %s\n' "\$local_path_label" "$share1_dir" ;;
+      "$share2_uri") printf '%s: %s\n' "\$local_path_label" "$share2_dir" ;;
     esac
     exit 0
     ;;
@@ -2426,7 +2433,9 @@ case_unmount() {
 #!/bin/sh
 case "\$1 \$2" in
   "mount -l")
-    printf 'Mount(0): stubshare on stubhost -> $share_uri\n  Type: GDaemonMount\n'
+    # gvfsd composes this label and translates the word between share and host, so the stub speaks
+    # Spanish here whatever the client locale is: issue #36's third dependency, and its control.
+    printf 'Mount(0): stubshare en stubhost -> $share_uri\n  Type: GDaemonMount\n'
     exit 0
     ;;
   "mount -u")

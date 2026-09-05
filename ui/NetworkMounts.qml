@@ -29,6 +29,10 @@ Item {
     // credential prompt hangs forever with no stdin to answer it; measured live against the real
     // NAS. This bounds that hang so the entry fails with a message instead of dying silently.
     readonly property int mountTimeoutMs: 15000
+    // Issue #36: every gio call here is read for its output, so the client's own wording is pinned
+    // instead of translated. gvfsd's own strings (a mount's label, its refusals) belong to the
+    // daemon and no client locale changes them, so nothing below decides on one.
+    readonly property var gioEnvironment: ({ "LC_ALL": "C" })
     property string _mountListing: ""
     property string _pendingUri: ""
     // A Process's own onExited can race its StdioCollector's text property, so both processes
@@ -37,10 +41,12 @@ Item {
     property string _infoOutput: ""
     property string _mountListOutput: ""
     property string _listSharesOutput: ""
-    property string _mountErrOutput: ""
     // Set right before mountTimeout terminates the process, so its own onExited does not also
     // report a second, redundant failure for the exact same mount attempt.
     property bool _mountTimedOut: false
+    // Set from "gio mount"'s own exit code and consumed by the "gio info" that follows it, which is
+    // what actually decides whether the location is mounted; this only colours the failure message.
+    property bool _mountFailed: false
     property string _pendingUnmountLabel: ""
     // A re-read asked for mid-listing used to be dropped, leaving a just-mounted share to wait out
     // the poll; this remembers it instead, and mountListProcess runs it the moment the listing ends.
@@ -126,6 +132,7 @@ Item {
         if (mountProcess.running || infoProcess.running) return
         root._pendingUri = uri
         root._pendingLabel = label || ""
+        root._mountFailed = false
         if (alreadyMounted) {
             root.runInfo(uri)
             return
@@ -144,12 +151,6 @@ Item {
     // root with no share segment mounts, but GVFS gives it no FUSE path".
     function isBareRoot(uri) {
         return /^[a-z][a-z0-9+.-]*:\/\/[^\/]+\/?$/i.test(uri)
-    }
-
-    // Reads gio's own words rather than guessing from the uri's shape; see AGENTS.md "'Already
-    // mounted' is not just a bare-root quirk" for why isBareRoot() alone was wrong here.
-    function isAlreadyMountedQuirk(text) {
-        return /already mounted/i.test(String(text || ""))
     }
 
     // Client-side only, never writes bookmarks; see AGENTS.md "The share browser overlay".
@@ -216,36 +217,43 @@ Item {
 
     Process {
         id: mountProcess
-        stderr: StdioCollector { id: mountErr; waitForEnd: true; onStreamFinished: root._mountErrOutput = text }
+        environment: root.gioEnvironment
         onExited: function (exitCode) {
             mountTimeout.stop()
             var timedOut = root._mountTimedOut
             root._mountTimedOut = false
             if (timedOut) return
-            var errText = String(mountErr.text || root._mountErrOutput || "")
-            // gio's own "already mounted" quirk is still worth listing; only a real failure is fatal.
-            if (exitCode !== 0 && !root.isAlreadyMountedQuirk(errText)) {
-                root.message("That network location could not be mounted; check the address and try again.", true)
-                return
-            }
+            // A refusal for a location that is already mounted and a refusal for one that does not
+            // exist differ only in a translated sentence, so neither is read: the info call below
+            // answers with a FUSE path when the location really is mounted, whatever this code was.
+            root._mountFailed = exitCode !== 0
             root.runInfo(root._pendingUri)
         }
     }
 
-    // "gio info" prints a "local path: " line only for a location GVFS exposes through its FUSE mount.
+    // The FUSE path is ui/js/Mounts.js "localPath"'s to find, one resolver for the product and for
+    // tests/js/network.js, and the C locale above is what keeps gio's own wording stable for it.
     Process {
         id: infoProcess
+        environment: root.gioEnvironment
         stdout: StdioCollector { id: infoOut; waitForEnd: true; onStreamFinished: root._infoOutput = text }
         onExited: function (exitCode) {
             root.pollMounts()
-            var body = String(infoOut.text || root._infoOutput || "")
-            var line = body.split("\n").find(function (l) { return l.indexOf("local path: ") === 0 })
-            if (exitCode === 0 && line) {
-                root.opened(line.substring("local path: ".length).trim())
+            var failed = root._mountFailed
+            root._mountFailed = false
+            var path = Mounts.localPath(String(infoOut.text || root._infoOutput || ""))
+            if (exitCode === 0 && path.length > 0) {
+                root.opened(path)
                 return
             }
-            if (root.isBareRoot(root._pendingUri)) {
+            // A server root has no FUSE path of its own, so its shares are listed instead; a
+            // location gio could not describe at all never had one to begin with.
+            if (exitCode === 0 && root.isBareRoot(root._pendingUri)) {
                 root.listShares(root._pendingUri)
+                return
+            }
+            if (failed) {
+                root.message("That network location could not be mounted; check the address and try again.", true)
                 return
             }
             root.message("This network location has no browsable folder; bookmark a specific share instead.", false)
@@ -254,6 +262,7 @@ Item {
 
     Process {
         id: listSharesProcess
+        environment: root.gioEnvironment
         stdout: StdioCollector { id: listSharesOut; waitForEnd: true; onStreamFinished: root._listSharesOutput = text }
         onExited: function (exitCode) {
             var body = String(listSharesOut.text || root._listSharesOutput || "")
@@ -268,6 +277,7 @@ Item {
 
     Process {
         id: unmountProcess
+        environment: root.gioEnvironment
         onExited: function (exitCode) {
             root.pollMounts()
             // A success message replaces the arm prompt, which would otherwise linger, stale,
@@ -280,6 +290,7 @@ Item {
 
     Process {
         id: mountListProcess
+        environment: root.gioEnvironment
         command: ["gio", "mount", "-l"]
         stdout: StdioCollector { id: mountListOut; waitForEnd: true; onStreamFinished: if (!root._listTimedOut) root._mountListOutput = text }
         onExited: function () {

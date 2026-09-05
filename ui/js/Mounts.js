@@ -1,5 +1,7 @@
 .pragma library
 
+.import "Protocols.js" as Protocols
+
 // Sample input, captured live on the box with one network share mounted (2026-08-31):
 // Drive(0): KBG40ZNS256G NVMe KIOXIA 256GB
 //   Type: GProxyDrive (GProxyVolumeMonitorUDisks2)
@@ -17,15 +19,23 @@ function parseMounts(output) {
         // corner: a local device mount (file://) is Favorites territory, not Network; Places.js skips the inverse.
         if (uri.indexOf("file://") === 0)
             continue
-        out.push({ label: stripHost(m[1]), uri: uri })
+        out.push({ label: Protocols.shareName(m[1], uri), uri: uri })
     }
     return out
 }
 
-// gio's own label carries " on <host>" for a network share; local mounts never do.
-function stripHost(rawLabel) {
-    var m = rawLabel.match(/^(.*)\s+on\s+\S+$/)
-    return m ? m[1] : rawLabel
+// Sample input, "gio info" under the C locale ui/NetworkMounts.qml pins on every gio call:
+// uri: smb://192.168.1.10/isos/
+// local path: /run/user/1000/gvfs/smb-share:server=192.168.1.10,share=isos
+// Only a location GVFS exposes through its FUSE mount prints that line, so "" means there is no
+// browsable folder. One resolver, so the product and tests/js/network.js read the same wording.
+function localPath(body) {
+    var lines = String(body || "").split("\n")
+    for (var i = 0; i < lines.length; i++) {
+        if (lines[i].indexOf("local path: ") === 0)
+            return lines[i].substring("local path: ".length).trim()
+    }
+    return ""
 }
 
 // Sample input: the operator's real bookmarks file, ui/js/Places.js "bookmarks" reads the same lines.

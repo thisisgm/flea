@@ -17,6 +17,7 @@ import "match.js" as MatchSuite
 import "menu.js" as MenuSuite
 import "mounts.js" as MountsSuite
 import "nav.js" as NavSuite
+import "network.js" as NetworkSuite
 import "ops.js" as OpsSuite
 import "palette.js" as PaletteSuite
 import "pathbar.js" as PathBarSuite
@@ -53,7 +54,8 @@ Item {
             ["focus", FocusSuite], ["focus-forward", FocusForwardSuite],
             ["format", FormatSuite], ["icons", IconsSuite],
             ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite],
-            ["mounts", MountsSuite], ["nav", NavSuite], ["ops", OpsSuite],
+            ["mounts", MountsSuite], ["nav", NavSuite], ["network", NetworkSuite],
+            ["ops", OpsSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
             ["protocols", ProtocolsSuite], ["scale", ScaleSuite], ["search", SearchSuite],
             ["selection", SelectionSuite], ["sort", SortSuite], ["taildrop", TaildropSuite],
