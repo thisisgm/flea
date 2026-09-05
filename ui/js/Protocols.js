@@ -168,8 +168,9 @@ function shareName(rawLabel, uri) {
     var head = text.substring(0, text.length - host.length)
     if (host.length === 0 || head.length === 0 || text.substring(head.length) !== host)
         return text
-    // Whatever language it is in, exactly one whitespace-delimited word separates the two halves, so
-    // a head this does not shorten was never a "<share> <word> <host>" render and is left whole.
+    // The one assumption left after the host check: gvfsd's connector is a single whitespace-delimited
+    // word in whatever language it renders. A translation using two would leave one of them on the
+    // name, a wrong label and never a wrong destination; a head this does not shorten is left whole.
     var name = head.replace(/\s+\S+\s+$/, "")
     return name.length > 0 && name !== head ? name : text
 }
