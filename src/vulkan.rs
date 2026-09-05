@@ -1,6 +1,6 @@
 // Quickshell hands QRhi::create a QVulkanInstance it never created, and an unusable loader turns
 // that into a SIGSEGV, so the launcher has to find one before the shell is started at all.
-use std::ffi::{c_void, CStr};
+use std::ffi::{c_void, CStr, OsStr};
 use std::os::raw::{c_char, c_int};
 use std::ptr::{null, null_mut};
 
@@ -49,7 +49,14 @@ const XCB_SURFACE: &CStr = c"VK_KHR_xcb_surface";
 // Read from the same variable paths::has_display() prefers, because that is the session Qt will
 // pick its own platform plugin from; naming only the Wayland one would refuse an X11 box Qt serves.
 fn platform_surface() -> &'static CStr {
-    match std::env::var_os("WAYLAND_DISPLAY") {
+    surface_for(std::env::var_os("WAYLAND_DISPLAY").as_deref())
+}
+
+// Split from platform_surface() so a test can ask the rule without setting the variable for every
+// thread beside it, the same split available_on() takes in src/backend/sandbox.rs.
+// Sample input: Some("wayland-1"), and None or Some("") for a session that is not Wayland.
+fn surface_for(wayland_display: Option<&OsStr>) -> &'static CStr {
+    match wayland_display {
         Some(value) if !value.is_empty() => WAYLAND_SURFACE,
         _ => XCB_SURFACE,
     }
@@ -118,8 +125,11 @@ mod tests {
     }
 
     // The session decides which surface extension Qt will want, so the probe must ask for that one.
+    // An exported-but-empty WAYLAND_DISPLAY is not a Wayland session, the rule paths::has_display() uses.
     #[test]
-    fn the_platform_surface_follows_the_session() {
-        assert_eq!(platform_surface(), if std::env::var_os("WAYLAND_DISPLAY").is_some_and(|v| !v.is_empty()) { WAYLAND_SURFACE } else { XCB_SURFACE });
+    fn the_surface_extension_follows_the_session() {
+        assert_eq!(surface_for(Some(OsStr::new("wayland-1"))), WAYLAND_SURFACE);
+        assert_eq!(surface_for(Some(OsStr::new(""))), XCB_SURFACE);
+        assert_eq!(surface_for(None), XCB_SURFACE);
     }
 }

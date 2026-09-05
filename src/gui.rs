@@ -13,8 +13,7 @@ pub fn exec_qs(ui: &Path, start: Option<&str>, select: Option<&str>) -> i32 {
     }
     // Vulkan is Flea's measured fast path, and the probe is what keeps a loader that cannot deliver
     // it out of QRhi::create, which crashes there instead of raising the error the QML arm listens for.
-    // Empty is absent, the same rule paths::has_display() applies: an unset variable in a wrapper
-    // script exports as empty, and that is an accident rather than the operator naming a renderer.
+    // Empty is absent, the rule paths::has_display() already applies: a wrapper script exporting an unset variable is an accident, not the operator naming a renderer.
     if std::env::var_os("QSG_RHI_BACKEND").is_some_and(|value| !value.is_empty()) {
         // An explicit choice is the operator's, so it is neither replaced nor offered a retry.
         cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
