@@ -36,6 +36,8 @@ Item {
     // What the seam reads: the line as it stands, and the box a test double-clicks to open the bar.
     readonly property alias editText: field.text
     readonly property alias pathArea: pathArea
+    // The elided head's own marker, so a test can click the one spot the crumbs slide underneath.
+    readonly property alias elisionMarker: elision
     // The directory a Tab is waiting on, and the one that came back. Both are keyed by the hidden
     // flag as well as the path, or a Tab on ".conf" would answer off rows peeked without dotfiles in
     // them: the key is what the request asked for and never what the line happens to read later.
@@ -272,6 +274,15 @@ Item {
                 visible: elision.visible
                 anchors.fill: elision
                 color: Theme.color.surface
+
+                // The crumbs slide under this fill, so without a gesture of its own a press here
+                // opened whichever one had scrolled behind it, a directory nobody could see. A
+                // MouseArea and not a TapHandler: the default DragThreshold policy takes a passive
+                // grab, so the crumb underneath still tapped, measured on the box.
+                MouseArea {
+                    anchors.fill: parent
+                    onDoubleClicked: root.startEdit()
+                }
             }
 
             Text {

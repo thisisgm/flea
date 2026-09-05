@@ -835,6 +835,31 @@ case_click() {
     grep -q "^OPENED $dir/beta.txt$" "$opened" || fail "click: a double click in the columns did not open beta.txt"
     click_chrome list
     settle
+
+    # The elided head is an opaque fill drawn over crumbs that have slid underneath it, so a press
+    # there used to open whichever one was behind it: a directory the operator could not see.
+    # Twelve of these overflow the strip on this box's own 2560 wide monitor; six did not, measured.
+    local seg="a-directory-with-a-deliberately-long-name" deep="$dir" _level
+    for _level in $(seq 1 12); do deep="$deep/$seg"; done
+    mkdir -p "$deep"
+    : > "$deep/leaf.txt"
+    launch "$deep"
+    wait_listing 1
+    local marker ex ey wx wy
+    marker=$(ipc elisionCentre)
+    [[ -n "$marker" ]] || fail "click: the path fits the bar here, so the elision marker is not under test at all"
+    read -r ex ey <<< "$marker"
+    read -r wx wy _ww _wh < <(window_box)
+    omarchy-drive click "$((ex + wx))" "$((ey + wy))" >/dev/null
+    # A crumb's single tap is held for the whole double-tap interval before it fires, so the reading
+    # has to be taken after it, not after one settle: see ui/ChromeBar.qml "exclusiveSignals".
+    settle
+    settle
+    printf 'CLICK elision path=%q barOpen=%s\n' "$(ipc path)" "$(ipc pathBarOpen)"
+    shot click-elision
+    [[ "$(ipc path)" == "$deep" ]] || fail "click: a tap on the elision marker navigated to $(ipc path)"
+    [[ "$(ipc pathBarOpen)" == "false" ]] || fail "click: a tap on the elision marker opened the path bar"
+    kill_flea
 }
 
 # Catches narrowing the delegate TapHandler back to Qt.LeftButton in ui/Pane.qml.

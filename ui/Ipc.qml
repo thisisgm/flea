@@ -230,6 +230,10 @@ QtObject {
         function pathBarOpen(): bool { return root.chrome.editing }
         function pathBarText(): string { return String(root.chrome.editText) }
         function pathCentre(): string { return root.fleaWindow.centreOf(root.chrome.pathArea) }
+        // The elision marker, or "" while the whole path fits: the one spot the crumbs slide under.
+        function elisionCentre(): string {
+            return root.chrome.elisionMarker.visible ? root.fleaWindow.centreOf(root.chrome.elisionMarker) : ""
+        }
         // The button's painted box as "WxH": the mark is Theme.chromeMarkSize wide and the hit area is the whole strip tall.
         function chromeButtonSize(glyph: string): string {
             var item = root.chrome.buttonFor(glyph)
