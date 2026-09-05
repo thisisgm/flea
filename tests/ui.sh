@@ -851,8 +851,8 @@ case_click() {
     read -r ex ey <<< "$marker"
     read -r wx wy _ww _wh < <(window_box)
     omarchy-drive click "$((ex + wx))" "$((ey + wy))" >/dev/null
-    # A crumb's single tap is held for the whole double-tap interval before it fires, so the reading
-    # has to be taken after it, not after one settle: see ui/ChromeBar.qml "exclusiveSignals".
+    # A crumb's single tap is deferred until the double-tap interval expires, see ui/ChromeBar.qml
+    # "exclusiveSignals", so the reading is taken well after the click rather than on top of it.
     settle
     settle
     printf 'CLICK elision path=%q barOpen=%s\n' "$(ipc path)" "$(ipc pathBarOpen)"
