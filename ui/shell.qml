@@ -10,6 +10,7 @@ import "."
 import "." as Flea
 import "js/Scale.js" as Scale
 import "js/Ops.js" as Ops
+import "js/Renderer.js" as Renderer
 import "js/Search.js" as Search
 
 ShellRoot {
@@ -23,15 +24,16 @@ ShellRoot {
         function handleSceneGraphError(error, message) {
             var backendName = Quickshell.env("QSG_RHI_BACKEND")
             console.warn("graphics backend " + backendName + " failed (" + error + "): " + message)
-            if (!rendererFallbackStarted && backendName === "vulkan"
-                    && Quickshell.env("FLEA_RENDERER_AUTOMATIC") === "1") {
+            var retry = Renderer.fallbackCommand(backendName, Quickshell.env("FLEA_RENDERER_AUTOMATIC"),
+                                                 Quickshell.env("FLEA_BIN"))
+            if (retry && !rendererFallbackStarted) {
                 rendererFallbackStarted = true
-                var fleaBin = Quickshell.env("FLEA_BIN") || "flea"
-                Quickshell.execDetached(["/usr/bin/env", "QSG_RHI_BACKEND=opengl", fleaBin, "--gui"])
+                Quickshell.execDetached(retry)
             }
             backend.quit()
         }
 
+        // Null while this loads and the QQuickWindow once it exists, which is before the scene graph starts.
         Connections {
             target: view.Window.window
             function onSceneGraphError(error, message) { fleaWindow.handleSceneGraphError(error, message) }

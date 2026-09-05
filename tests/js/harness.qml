@@ -22,6 +22,7 @@ import "palette.js" as PaletteSuite
 import "pathbar.js" as PathBarSuite
 import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
+import "renderer.js" as RendererSuite
 import "scale.js" as ScaleSuite
 import "search.js" as SearchSuite
 import "selection.js" as SelectionSuite
@@ -55,7 +56,8 @@ Item {
             ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite],
             ["mounts", MountsSuite], ["nav", NavSuite], ["ops", OpsSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
-            ["protocols", ProtocolsSuite], ["scale", ScaleSuite], ["search", SearchSuite],
+            ["protocols", ProtocolsSuite], ["renderer", RendererSuite],
+            ["scale", ScaleSuite], ["search", SearchSuite],
             ["selection", SelectionSuite], ["sort", SortSuite], ["taildrop", TaildropSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["tabs", TabsSuite],
             ["thumbs", ThumbsSuite]
