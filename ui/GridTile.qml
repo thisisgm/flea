@@ -4,7 +4,7 @@ import "." as Flea
 import "js/Format.js" as Format
 import "js/Icons.js" as Icons
 
-// One grid cell: the same mark the list row draws, in a larger slot, with the name under it.
+// One grid cell: a square thumb or mark filling the tile, with the name under it.
 Item {
     id: root
 
@@ -37,11 +37,11 @@ Item {
 
     Item {
         id: markSlot
-        anchors.horizontalCenter: parent.horizontalCenter
+        anchors.left: parent.left
+        anchors.right: parent.right
         anchors.top: parent.top
-        anchors.topMargin: Theme.spacing.rowPaddingX
-        width: Theme.grid.iconSize
-        height: Theme.grid.iconSize
+        anchors.margins: Theme.spacing.gap
+        height: width
 
         // A thumbnail is a decoded image and stays one; the glyph beside it is a native mark, and
         // exactly one is visible, chosen the same way ui/Row.qml chooses.
@@ -52,9 +52,10 @@ Item {
             // Format.fileUri, not a concatenation: a cache path can carry a # or a ? and either one
             // silently truncates a plain file:// URL, which is what the hashcache fixture proves.
             source: root.thumb.length > 0 ? Format.fileUri(root.thumb) : ""
+            // Longest side of the photo matches the slot; the other side letterboxes.
             fillMode: Image.PreserveAspectFit
-            sourceSize.width: Theme.grid.iconSize
-            sourceSize.height: Theme.grid.iconSize
+            sourceSize.width: Math.max(1, Math.round(width))
+            sourceSize.height: Math.max(1, Math.round(height))
             asynchronous: true
             cache: false
         }
@@ -62,6 +63,11 @@ Item {
         Flea.Glyph {
             anchors.fill: parent
             visible: !root.thumbDrawn
+            // Glyph.maxSize defaults to the list-row mark, so the slot has to lift it or the path
+            // cannot grow. Stroke is inverted against that scale so a large folder keeps the
+            // original grid-icon weight instead of thickening with the path.
+            maxSize: Math.min(width, height)
+            strokeWidth: Theme.strokeWidth * Theme.grid.iconSize / Math.max(1, Math.min(width, height))
             name: root.row ? Icons.glyphFor(root.row.i) : "file"
             color: root.cursor || root.selected ? Theme.color.accent : Theme.color.muted
         }

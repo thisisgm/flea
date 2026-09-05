@@ -19,16 +19,18 @@ GridView {
     // How many tiles fit across, which is what a cursor step down has to move by.
     readonly property int columns: Math.max(1, Math.floor(root.width / Theme.grid.minCellWidth))
     readonly property int tileRows: Math.max(1, Math.ceil(root.pane.total / root.columns))
-    // Mark, one gap, one line of caption, and the padding above and below.
-    readonly property int cellHeightPx: Theme.grid.iconSize + Theme.spacing.gap
+    readonly property int tileWidth: Math.max(1, Math.floor(root.width / root.columns))
+    // Square thumb filling the cell width, less the tile's own gap, then a gap and the caption.
+    readonly property int thumbPx: Math.max(1, root.tileWidth - 2 * Theme.spacing.gap)
+    readonly property int cellHeightPx: root.thumbPx + Theme.spacing.gap
                                         + Math.round(Theme.font.caption * 1.6)
-                                        + 2 * Theme.spacing.rowPaddingX
+                                        + Theme.spacing.gap
     readonly property int visibleTileRows: Math.max(1, Math.ceil(root.height / root.cellHeightPx))
 
     focus: true
     model: pane.total
     clip: true
-    cellWidth: Math.floor(root.width / root.columns)
+    cellWidth: root.tileWidth
     cellHeight: root.cellHeightPx
     cacheBuffer: root.cellHeightPx * 2
     boundsBehavior: Flickable.StopAtBounds

@@ -122,8 +122,8 @@ Singleton {
     // /usr/share/applications and this repo whole, and every further two buys under five points.
     readonly property int nameMinChars: 20
 
-    // The grid view's own two numbers. The canvas calls it a "48 px slot"; twice the list's own mark
-    // slot is 46 at base-size 14, and the token wins over the mock, see the icon-language spec.
+    // The grid view's designed mark size. Twice the list's own mark slot is 46 at base-size 14;
+    // tiles themselves fill the cell, and this token is the stroke-weight reference for a large glyph.
     readonly property QtObject grid: QtObject {
         readonly property int iconSize: root.iconSize * 2
         // Wide enough for a name of ordinary length under the mark; the view fits as many as this allows.
