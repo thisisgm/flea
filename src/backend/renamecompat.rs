@@ -86,6 +86,11 @@ fn needs_rclone_fallback_in(from: &Path, error: &io::Error, mountinfo: &str) -> 
 
 // The target is built through the exclusive copy primitives, so an existing destination is refused rather than replaced.
 pub(crate) fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
+    // remove_file is atomic and remove_dir_all is not, so the two source kinds need different failure policies.
+    let source_is_dir = from
+        .symlink_metadata()
+        .map(|meta| meta.file_type().is_dir())
+        .unwrap_or(false);
     let cancel = AtomicBool::new(false);
     let mut sink = |_: u64, _: u64| {};
     let mut progress = Progress { cancel: &cancel, on_bytes: &mut sink, partial: None };
@@ -101,13 +106,32 @@ pub(crate) fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> 
         }
         return Err(rename_error(error));
     }
-    // A source that will not go away leaves the complete target rather than risking a second destructive removal.
-    // Its own kind, because the rename half succeeded and the UI owes the operator a different sentence.
-    remove_any(from).map_err(|error| FleaError {
+    match remove_any(from) {
+        Ok(()) => Ok(()),
+        Err(error) if source_is_dir => Err(kept_error(from, error)),
+        Err(error) => Err(undo_the_copy(to, error)),
+    }
+}
+
+// remove_dir_all stops at its first failure, so the target may hold the only complete tree and stays under its own kind.
+fn kept_error(from: &Path, error: FleaError) -> FleaError {
+    FleaError {
         where_: KEPT.to_string(),
         path: from.to_string_lossy().to_string(),
         msg: error.msg,
-    })
+    }
+}
+
+// An atomic removal leaves the source whole, so the copy is a duplicate this operation takes back before reporting.
+fn undo_the_copy(to: &Path, error: FleaError) -> FleaError {
+    match remove_any(to) {
+        Ok(()) => rename_error(error),
+        Err(cleanup) => FleaError {
+            where_: "rename".to_string(),
+            path: to.to_string_lossy().to_string(),
+            msg: format!("{}; the copy left behind could not be removed: {}", error.msg, cleanup.msg),
+        },
+    }
 }
 
 fn rename_error(mut error: FleaError) -> FleaError {
@@ -307,6 +331,22 @@ mod tests {
             !error.msg.contains(&target.to_string_lossy().to_string()),
             "the target stays out of the message ui/js/Errors.js pattern matches for a collision"
         );
+    }
+
+    // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
+    #[test]
+    fn a_file_rename_takes_its_copy_back_when_the_source_will_not_go() {
+        let d = TestDir::new("copyrenamefileremove");
+        let hold = d.dir("hold");
+        let source = hold.join("source.txt");
+        std::fs::write(&source, "body").unwrap();
+        let target = d.join("target.txt");
+        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
+        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(error.where_, "rename", "remove_file is atomic, so the source is provably whole");
+        assert_eq!(std::fs::read_to_string(&source).unwrap(), "body");
+        assert!(!target.exists(), "the copy is taken back rather than left as an unjournalled duplicate");
     }
     // The rclone arm reads the real /proc/self/mountinfo, so only needs_rclone_fallback_in, which takes
     // an injected table, and the live rclone battery can drive it. This covers the arm a unit test can.
