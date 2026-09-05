@@ -201,7 +201,7 @@ Item {
         var body = bookmarksWrite.text()
         var next = Mounts.removeBookmark(body, uri)
         // This FileView answers "" until it has read, and the rail's own text says the line is there,
-        // so a body this changes nothing in is a stale read and writing it back would lose the file.
+        // so a body this removal changes nothing in is behind the file and would be written over it.
         if (next === body) {
             root.message("The saved places have not been read yet; try Remove again in a moment.", true)
             return
