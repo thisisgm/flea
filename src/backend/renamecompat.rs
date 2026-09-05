@@ -225,9 +225,14 @@ mod tests {
         let source = d.dir("source");
         let _socket = std::os::unix::net::UnixListener::bind(source.join("socket")).unwrap();
         let target = d.join("target");
-        copy_then_remove(&source, &target).expect_err("a socket cannot be copied");
+        let error = copy_then_remove(&source, &target).expect_err("a socket cannot be copied");
         assert!(source.join("socket").exists(), "the source remains after a failed copy");
         assert!(!target.exists(), "the failed rename leaves no unjournaled partial target");
+        assert_eq!(
+            error.path,
+            source.join("socket").to_string_lossy(),
+            "the copy failed on a child, so the target directory the cleanup removed had been created"
+        );
     }
     // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
     #[test]
@@ -280,6 +285,10 @@ mod tests {
         let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert_eq!(error.where_, "rename", "remove_file is atomic, so the source is provably whole");
+        assert!(
+            error.msg.contains(&format!("os error {}", EACCES)),
+            "the removal's EACCES is what tells this arm from a copy failure, which answers rename too"
+        );
         assert_eq!(std::fs::read_to_string(&source).unwrap(), "body");
         assert!(!target.exists(), "the copy is taken back rather than left as an unjournalled duplicate");
     }
@@ -297,6 +306,10 @@ mod tests {
         let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert_eq!(error.where_, "rename", "one unlink removes a symlink too, so the source is provably whole");
+        assert!(
+            error.msg.contains(&format!("os error {}", EACCES)),
+            "the removal's EACCES is what tells this arm from a copy failure, which answers rename too"
+        );
         assert_eq!(std::fs::read_link(&source).unwrap(), payload);
         assert!(target.symlink_metadata().is_err(), "the copy is taken back rather than left as an unjournalled duplicate");
     }
