@@ -101,7 +101,7 @@ fn watchdog(pid: i32, done: Arc<AtomicBool>) -> std::thread::JoinHandle<()> {
             std::thread::sleep(WATCHDOG_STEP);
             waited += WATCHDOG_STEP;
         }
-        // The GROUP, not the pid: ffprobe runs under bwrap and prlimit, so killing the direct child leaves grandchildren holding the pipe open and the read still blocked.
+        // The group holds prlimit and the outer bwrap only: --new-session puts the sandboxed child in a session of its own, and what reaps that is --die-with-parent plus the PID namespace dying with it.
         if !done.load(Ordering::Relaxed) {
             unsafe { kill(-pid, SIGKILL) };
         }

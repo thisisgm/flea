@@ -72,15 +72,17 @@ stop_backend() {
 # Lists the directory, asks row 0 for its media metadata, and leaves the backend running so the
 # caller can look for a probe that outlived the answer. Sets ANSWER and ELAPSED.
 ask_meta() {
-  local dir="$1" started i
+  local dir="$1" started i found
   start_backend
   send "{\"c\":\"list\",\"path\":\"$dir\",\"first\":10}"
   started=$SECONDS
   send '{"c":"meta","row":0,"media":true}'
   ANSWER=NO-ANSWER
+  # One grep both decides and answers: a loop that matches the prefix and then greps again for the
+  # number reports an empty ANSWER if the line ever reaches the file in two writes.
   for i in $(seq 1 $((ANSWER_BOUND * 10))); do
-    if grep -q '"t":"meta"' "$D/out"; then
-      ANSWER=$(grep -m1 -o '"w":[0-9]*,"h":[0-9]*,"ms":[0-9]*,"rate":[0-9]*' "$D/out")
+    if found=$(grep -m1 -o '"w":[0-9]*,"h":[0-9]*,"ms":[0-9]*,"rate":[0-9]*' "$D/out"); then
+      ANSWER=$found
       break
     fi
     sleep 0.1
