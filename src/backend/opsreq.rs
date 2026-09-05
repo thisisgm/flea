@@ -331,7 +331,7 @@ mod tests {
     }
 
     // A file with no permission bits answers EACCES to open(2) for every uid but root, so it forces
-    // the failure a real permission error would, in whichever order read_dir yields the tree.
+    // the failure a permission error would, in whichever order read_dir yields; what was copied stays.
     #[test]
     fn a_copy_that_fails_short_of_a_cancel_records_the_partial_tree_and_undo_removes_it() {
         let d = TestDir::new("transferpartialtree");

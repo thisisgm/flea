@@ -104,6 +104,7 @@ mod tests {
         assert!(e.contains("os error 17"), "EEXIST is what refuses it, got {}", e);
         assert_eq!(std::fs::read_to_string(&taken).expect("untouched"), "already here");
     }
+
     // ~/.gnupg and every agent directory hold one, so an ordinary copy meets a socket; opening one
     // answers ENXIO, which before this failed the whole tree around it.
     #[test]
@@ -154,6 +155,7 @@ mod tests {
         let mode = dst.symlink_metadata().expect("the copy").permissions().mode() & 0o777;
         assert_eq!(mode, 0o600, "a constant 0666 widens a private fifo that cp -a and rsync -a preserve");
     }
+
     // copy_any routes every kind it can name away from copy_file, so a fifo arriving there was
     // swapped in after that stat. A plain read-only open of one parks in open(2) until a writer appears.
     #[test]
