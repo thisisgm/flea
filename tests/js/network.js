@@ -38,6 +38,11 @@ function run(check) {
     var nothingBefore = 'Mount(0): on nas -> smb://nas/on/\n'
     check("and one with nothing before the separator keeps every character",
           Mounts.parseMounts(nothingBefore)[0].label, "on nas")
+    // hostOf keeps a bracketed IPv6 authority whole, and no gio label ends in the brackets, so the
+    // tail check cannot fire: a wrong label, never a wrong destination, pinned rather than assumed.
+    var literal = 'Mount(0): isos en fe80::1 -> smb://[fe80::1]/isos/\n'
+    check("a bracketed IPv6 mount keeps the whole label gio gave it",
+          Mounts.parseMounts(literal)[0].label, "isos en fe80::1")
 
     // The host the label is measured against comes out of the URI's authority, which stops at the
     // first slash: a "@" or a ":" further along belongs to the path and is not a host or a port.
@@ -58,9 +63,10 @@ function run(check) {
     check("a location with no FUSE path answers nothing rather than undefined",
           Mounts.localPath('uri: smb://nas/\ntype: directory\n'), "")
     check("no gio output at all answers nothing rather than throwing", Mounts.localPath(""), "")
-    // What the LC_ALL=C pin at ui/NetworkMounts.qml:35 is for, shown rather than assumed: gio's own
-    // wording is the client's, so without the pin the same location answers a line this cannot read
-    // and the share resolves to no folder at all. gvfsd's strings above are the daemon's and stay put.
+    // What the LC_ALL=C pin on ui/NetworkMounts.qml "gioEnvironment" is for, named rather than cited
+    // by line, because the extraction moved that line and the citation went stale: gio's own wording
+    // is the client's, so without the pin the same location answers a line this cannot read and the
+    // share resolves to no folder at all. gvfsd's strings above are the daemon's and stay put.
     var translated = 'uri: smb://192.168.1.10/isos/\n'
                    + 'ruta local: /run/user/1000/gvfs/smb-share:server=192.168.1.10,share=isos\n'
     check("a translated gio info carries no path this can read, which is why gio is pinned to C",
@@ -93,19 +99,34 @@ function run(check) {
           Mounts.railLabel({ label: "isos", uri: "smb://third/isos/" }, bookmarked), "isos")
     check("and with no saved places at all it keeps that name too, rather than nothing",
           Mounts.railLabel({ label: "isos", uri: "smb://nas/isos/" }, []), "isos")
+    // The shape Nautilus writes for a share nobody renamed, a uri and no name: nonFileBookmarks
+    // falls back to the leaf, so the row it wins is never a nameless one.
+    var unlabelled = Mounts.nonFileBookmarks("smb://nas/isos\n")
+    check("a bookmarks line with no name at all still names the place",
+          unlabelled[0].label + "|" + Mounts.railLabel({ label: "gio name", uri: "smb://nas/isos/" }, unlabelled),
+          "isos|isos")
 
     check("a bracketed IPv6 host whose own digits end in the port keeps them",
           Protocols.stripDefaultPort("smb://[fe80::445]/isos/"), "smb://[fe80::445]/isos/")
     check("but a real port after the bracket goes",
           Protocols.stripDefaultPort("smb://[fe80::1]:445/isos/"), "smb://[fe80::1]/isos/")
-    // Every port here is the one ui/NetworkForm.qml prefills for the protocol that builds that
-    // scheme, not a second table's idea of it: the old dav row asked about ":80", a port nothing in
-    // the form prefills, so the 443 it does prefill went on carrying its port into the rail.
-    check("every scheme the form can build knows its own default",
-          [Protocols.stripDefaultPort("sftp://h:22/x"), Protocols.stripDefaultPort("ftp://h:21/x"),
-           Protocols.stripDefaultPort("ftps://h:21/x"), Protocols.stripDefaultPort("dav://h:443/x"),
-           Protocols.stripDefaultPort("davs://h:443/x"), Protocols.stripDefaultPort("nfs://h:2049/x")].join("|"),
-          "sftp://h/x|ftp://h/x|ftps://h/x|dav://h/x|davs://h/x|nfs://h/x")
+    // Every port here is one gvfs 1.60.2 drops itself, measured on this box by round-tripping each
+    // spelling through Gio.File, the uri mapper "gio mount -l" prints a mount through.
+    check("every scheme drops the port gio drops",
+          [Protocols.stripDefaultPort("smb://h:445/x"), Protocols.stripDefaultPort("sftp://h:22/x"),
+           Protocols.stripDefaultPort("ftp://h:21/x"), Protocols.stripDefaultPort("ftps://h:21/x"),
+           Protocols.stripDefaultPort("dav://h:80/x"), Protocols.stripDefaultPort("davs://h:443/x")].join("|"),
+          "smb://h/x|sftp://h/x|ftp://h/x|ftps://h/x|dav://h/x|davs://h/x")
+    // The same measurement the other way: gio keeps a port that is not that scheme's own, so
+    // stripping one here would answer a rail key no gio listing can match.
+    check("a port another scheme calls default is kept, because gio keeps it",
+          [Protocols.stripDefaultPort("dav://h:443/x"), Protocols.stripDefaultPort("davs://h:80/x"),
+           Protocols.stripDefaultPort("ftps://h:990/x")].join("|"),
+          "dav://h:443/x|davs://h:80/x|ftps://h:990/x")
+    // gvfs canonicalises no nfs port, so the two spellings really can differ; 2049 stays because it
+    // is the port an nfs client uses when the line omits one.
+    check("an nfs line and an nfs mount are one row however 2049 is spelled",
+          Mounts.normalize("nfs://h:2049/export") === Mounts.normalize("nfs://h/export"), true)
     // Built by the form's own uri(), so the check cannot drift from what the dialog writes: WebDAV
     // picked, TLS unticked, the prefilled port left alone, which is the shape the operator gets.
     function formUri(tls) {
@@ -114,8 +135,12 @@ function run(check) {
     }
     check("the form spells the port it prefilled, whichever way the TLS box is set",
           formUri(false) + "|" + formUri(true), "dav://nas.local:443/dav|davs://nas.local:443/dav")
+    // 443 is not plain dav's default, so gio keeps it on both spellings and only the trailing slash
+    // separates them; the bookmark and the live mount are still one row.
     check("so plain WebDAV's bookmark and gio's own report of it are one rail row",
-          Mounts.normalize(formUri(false)) === Mounts.normalize("dav://nas.local/dav/"), true)
+          Mounts.normalize(formUri(false)) === Mounts.normalize("dav://nas.local:443/dav/"), true)
+    check("and a line spelling plain dav's real default is that same one row",
+          Mounts.normalize("dav://nas.local:80/dav") === Mounts.normalize("dav://nas.local/dav/"), true)
     check("and so are TLS WebDAV's, which was already the case",
           Mounts.normalize(formUri(true)) === Mounts.normalize("davs://nas.local/dav/"), true)
     check("and never drops another scheme's default", Protocols.stripDefaultPort("sftp://h:445/x"), "sftp://h:445/x")
@@ -130,7 +155,8 @@ function run(check) {
     function labels(rows) { return rows.map(function (r) { return r.label }).join("|") }
     check("a mounted share releases first, then offers the two the place itself owns",
           labels(Mounts.rowMenu(mounted)), "Unmount|Rename|Remove")
-    check("and Ctrl+E still reads the release row alone", Mounts.railMenu(mounted)[0].action, "unmount")
+    check("and Ctrl+E still reads the release row alone",
+          Mounts.railMenu(mounted).length + "|" + Mounts.railMenu(mounted)[0].action, "1|unmount")
     check("a bookmark nothing has mounted offers the two that need no mount",
           labels(Mounts.rowMenu(saved)), "Rename|Remove")
     check("so it opens a menu where it used to open an empty one", Mounts.rowMenu(saved).length, 2)
@@ -152,6 +178,8 @@ function run(check) {
         Mounts.release(action, key, devices, mounts, sidebar)
         return log.join(",")
     }
+    // ui/Sidebar.qml "entries" concatenates favourites, then network, then devices, so a network
+    // row's rail index is past the favourites alone and no device row can sit above it.
     check("Rename starts the rail's own editor on the row the key names, past the favourites",
           chose("rename", "smb://nas/", [mounted, saved]), "rename2")
     check("Remove forgets the place by uri and never by position",
@@ -169,6 +197,12 @@ function run(check) {
           Mounts.removeBookmark(body, "smb://nas/isos/"),
           "file:///home/gm/Downloads Downloads\nsmb://other/data Other\n")
     check("a uri no line carries changes nothing", Mounts.removeBookmark(body, "smb://gone/x"), body)
+    check("a line whose uri merely starts with this one is another place and stays",
+          Mounts.removeBookmark("smb://nas/isos2 Other\n", "smb://nas/isos"), "smb://nas/isos2 Other\n")
+    // nonFileBookmarks trims before it parses, so an indented line is a rail row that matching the
+    // raw line here could not remove, under the refusal's mounted-only clause.
+    check("an indented line is the row it draws, so Remove reaches it",
+          Mounts.removeBookmark("  smb://nas/isos NAS\n", "smb://nas/isos"), "")
     check("an empty uri never empties the file", Mounts.removeBookmark(body, ""), body)
     check("no body at all answers nothing rather than throwing", Mounts.removeBookmark("", "smb://nas/isos/"), "")
 }

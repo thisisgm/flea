@@ -98,17 +98,22 @@ function complete(form) {
     return String(form.host || "").trim().length > 0
 }
 
-// Scheme to default port, derived from the two tables the form itself uses rather than copied into
-// a third that can disagree with them, and one of them did: PORTS is keyed by the protocol the form
-// picked, "scheme()" above is every scheme that protocol can build, and a bookmarked or gio-reported
-// URI only ever carries the scheme, so it is measured against the port the dialog would have written.
+// The port each scheme drops, which is a property of the scheme and not of the protocol the form
+// picked: WebDAV builds two schemes whose ports differ, and deriving one number from PORTS for both
+// stripped a real ":443" off "dav://" and left its real ":80" on, the duplicate rail row below
+// exists to remove. Measured on this box against gvfs 1.60.2 by round-tripping each spelling
+// through Gio.File, the uri mapper "gio mount -l" prints through: gio drops smb 445, sftp 22,
+// ftp 21, ftps 21 (not IANA's 990) and davs 443, and keeps every other port it is given. It drops
+// no nfs port at all, so 2049 is here for the other half of the job: the port an nfs client uses
+// when the line omits one, so the two spellings of one export still make one row.
+var SCHEME_PORTS = {
+    "smb": 445, "sftp": 22, "ftp": 21, "ftps": 21, "dav": 80, "davs": 443, "nfs": 2049
+}
+
+// A bookmarks line is arbitrary text, so an inherited Object member must never answer as a port.
 function defaultPortFor(uriScheme) {
     var want = String(uriScheme || "").toLowerCase()
-    for (var i = 0; i < PROTOCOLS.length; i++) {
-        if (scheme(PROTOCOLS[i], true) === want || scheme(PROTOCOLS[i], false) === want)
-            return PORTS[PROTOCOLS[i]]
-    }
-    return 0
+    return SCHEME_PORTS.hasOwnProperty(want) ? SCHEME_PORTS[want] : 0
 }
 
 // "gio mount -l" never reports a scheme's default port and the add form spells out the one it

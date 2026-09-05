@@ -282,15 +282,15 @@ function release(action, key, devices, mounts, sidebar) {
 
 // Sample input: the operator's own bookmarks file, favourites and network places in one list.
 // smb://192.168.1.10/isos NAS isos
-// Matched normalized, the way Places.relabel matches, so a line spelling out a default port still
-// names the same place as the live mount that omits it.
+// Read off the trimmed line the way nonFileBookmarks reads it, or an indented line is a rail row
+// nothing removes, and normalized the way Places.relabel matches; a kept line is pushed back raw.
 function removeBookmark(body, uri) {
     var target = normalize(uri)
     var lines = String(body || "").split("\n")
     var out = []
     for (var i = 0; i < lines.length; i++) {
-        var space = lines[i].indexOf(" ")
-        var one = space < 0 ? lines[i] : lines[i].substring(0, space)
+        var trimmed = lines[i].trim(), space = trimmed.indexOf(" ")
+        var one = space < 0 ? trimmed : trimmed.substring(0, space)
         if (target.length > 0 && one.length > 0 && normalize(one) === target)
             continue
         out.push(lines[i])
