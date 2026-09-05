@@ -1,7 +1,5 @@
 #!/usr/bin/env bash
-# Drives the real backend's media probe. Two things it must do and once did not: answer a blocked
-# input inside its own deadline, and disbelieve a probe that exited non-zero however plausible the
-# output it printed looks.
+# Drives the real backend's media probe, which must answer a blocked input inside its own deadline and must disbelieve a probe that exited non-zero however plausible the output it printed looks.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete below.
@@ -13,6 +11,10 @@ FIXTURE="${FLEA_MEDIA_DIR:-$FIXTURE_ROOT/flea-media-btrfs}"
 D="$FIXTURE_ROOT/flea-media-test-$$"
 # src/backend/mediaprobe.rs PROBE_LIMIT is 5 s; this is that plus the slack a spawn and a debug build cost.
 PROBE_DEADLINE=8
+# That same PROBE_LIMIT less one: $SECONDS counts whole seconds, so a wait starting mid-second reads one lower.
+PROBE_FLOOR=4
+# tests/thumbs.sh runs its backend under a timeout for the same reason: this suite is in the unattended headless list, so a backend that will not exit has to end the run rather than hold it open.
+BACKEND_BOUND=45
 # Well past the deadline, so a probe with no wall bound at all is reported as no answer and not as a slow one.
 ANSWER_BOUND=20
 # Enough of a real container to keep ffprobe reading, and under the 64 KiB a pipe buffers, so the writer never blocks.
@@ -25,9 +27,9 @@ STUB_PATH=""
 fail=0
 
 cleanup() {
-  exec 3>&- 2>/dev/null
-  exec 4>&- 2>/dev/null
-  [ -n "$BACKEND_PID" ] && kill "$BACKEND_PID" 2>/dev/null
+  # No 2>/dev/null on these: closing an unopened fd is silent already, and the redirect stayed on the shell and swallowed sandbox_remove's own refusal message.
+  exec 3>&- 4>&-
+  end_backend
   [ -n "$WRITER_PID" ] && kill "$WRITER_PID" 2>/dev/null
   # A probe with no deadline outlives the backend that started it, and only this run knows its path.
   [ -n "$D" ] && pkill -f -- "$D" 2>/dev/null
@@ -57,20 +59,31 @@ send() { printf '%s\n' "$1" >&3; }
 
 start_backend() {
   rm -f "$D/out" "$D/in"; : > "$D/out"; mkfifo "$D/in"
-  PATH="${STUB_PATH:+$STUB_PATH:}$PATH" $BIN --backend < "$D/in" > "$D/out" 2>/dev/null &
+  PATH="${STUB_PATH:+$STUB_PATH:}$PATH" timeout -k 5 "$BACKEND_BOUND" $BIN --backend < "$D/in" > "$D/out" 2>/dev/null &
   BACKEND_PID=$!
   exec 3> "$D/in"
 }
 
-stop_backend() {
-  send '{"c":"quit"}'
-  exec 3>&-
+# GNU timeout runs the command in a process group of its own, so the negative pid is what reaches the backend behind it; signalling the timeout alone leaves the backend running.
+end_backend() {
+  [ -n "$BACKEND_PID" ] || return 0
+  kill -- -"$BACKEND_PID" 2>/dev/null
   wait "$BACKEND_PID" 2>/dev/null
   BACKEND_PID=""
 }
 
-# Lists the directory, asks row 0 for its media metadata, and leaves the backend running so the
-# caller can look for a probe that outlived the answer. Sets ANSWER and ELAPSED.
+stop_backend() {
+  local rc
+  send '{"c":"quit"}'
+  exec 3>&-
+  # The timeout above is what bounds this wait, because bash has none of its own; its 124 is a backend that had to be killed, which is a failure to report rather than a stall to sit through.
+  wait "$BACKEND_PID"
+  rc=$?
+  BACKEND_PID=""
+  check "the backend exited on quit rather than on its own timeout" "0" "$rc"
+}
+
+# Lists the directory, asks row 0 for its media metadata, leaves the backend running so the caller can look for a probe that outlived the answer, and sets ANSWER, ELAPSED and PROBE_SEEN.
 ask_meta() {
   local dir="$1" started i found
   start_backend
@@ -78,9 +91,11 @@ ask_meta() {
   started=$SECONDS
   send '{"c":"meta","row":0,"media":true}'
   ANSWER=NO-ANSWER
-  # One grep both decides and answers: a loop that matches the prefix and then greps again for the
-  # number reports an empty ANSWER if the line ever reaches the file in two writes.
+  PROBE_SEEN=no
+  # One grep both decides and answers: a loop that matches the prefix and then greps again for the number reports an empty ANSWER if the line ever reaches the file in two writes.
   for i in $(seq 1 $((ANSWER_BOUND * 10))); do
+    # The probe's argv carries the directory being asked about, and nothing else this run starts does.
+    [ "$PROBE_SEEN" = yes ] || { pgrep -f -- "$dir" >/dev/null 2>&1 && PROBE_SEEN=yes; }
     if found=$(grep -m1 -o '"w":[0-9]*,"h":[0-9]*,"ms":[0-9]*,"rate":[0-9]*' "$D/out"); then
       ANSWER=$found
       break
@@ -90,8 +105,7 @@ ask_meta() {
   ELAPSED=$((SECONDS - started))
 }
 
-# Plausible metadata on stdout and then the status this case is about. prlimit heads the product's
-# own sandbox argv, so shimming it is how a chosen probe result reaches the real code path.
+# Plausible metadata on stdout and then the status this case is about: prlimit heads the product's own sandbox argv, so shimming it is how a chosen probe result reaches the real code path.
 make_stub() {
   cat > "$D/stub/prlimit" <<SH
 #!/bin/sh
@@ -107,14 +121,14 @@ ask_meta "$D/clip"
 check "a real ffprobe answers the clip's own numbers" '"w":1920,"h":1080,"ms":10000,"rate":0' "$ANSWER"
 stop_backend
 
-# A stalled producer, not an empty pipe: the header read that runs before the probe consumes the
-# first 8 KiB and returns, and ffprobe then blocks waiting for a moov atom that never arrives. A
-# blocked process burns no CPU, so prlimit's own --cpu limit can never end it.
+# A stalled producer and not an empty pipe: the header read consumes the first 8 KiB and returns, ffprobe then blocks on a moov atom that never arrives, and a blocked process burns no CPU so prlimit's own --cpu can never end it.
 echo "--- a blocked input, which burns no CPU and so has no bound but a wall clock ---"
 ( exec 4> "$D/blocked/pipe.mp4"; head -c "$FED_BYTES" "$D/clip/clip.mp4" >&4; sleep "$WRITER_SECONDS" ) &
 WRITER_PID=$!
 ask_meta "$D/blocked"
+check "a probe really ran against the blocked input" "yes" "$PROBE_SEEN"
 check "a blocked input is answered at all" "yes" "$([ "$ANSWER" != NO-ANSWER ] && echo yes || echo no)"
+check "and not before the deadline it is supposed to wait out" "yes" "$([ "$ELAPSED" -ge "$PROBE_FLOOR" ] && echo yes || echo no)"
 check "inside the probe deadline" "yes" "$([ "$ELAPSED" -le "$PROBE_DEADLINE" ] && echo yes || echo no)"
 check "and it measured nothing" '"w":0,"h":0,"ms":0,"rate":0' "$ANSWER"
 check "no probe outlived the answer" "0" "$(pgrep -c -f -- "$D/blocked/pipe.mp4" 2>/dev/null || true)"
