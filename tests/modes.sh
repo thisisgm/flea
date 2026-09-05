@@ -92,7 +92,9 @@ printf 'FLEA_PATH %s\n' "${FLEA_PATH-unset}"
 printf 'FLEA_SELECT %s\n' "${FLEA_SELECT-unset}"
 STUB
 chmod +x "$D/qs"
-out=$(env -u QSG_RHI_BACKEND -u FLEA_RENDERER_AUTOMATIC FLEA_BIN=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+# The loader variables are scrubbed because this suite sets them itself below: an operator shell
+# already exporting a broken pair would redden the positive control as if the launcher were wrong.
+out=$(env -u QSG_RHI_BACKEND -u FLEA_RENDERER_AUTOMATIC -u VK_DRIVER_FILES -u VK_ICD_FILENAMES FLEA_BIN=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "the launched shell has transparent huge pages off" "1" \
   "$(echo "$out" | grep -c 'THP_enabled:[[:space:]]*0')"
 check "the launched shell reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
@@ -103,6 +105,11 @@ check "the automatic renderer permits one fallback" "1" "$(echo "$out" | grep -c
 out=$(env QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an explicit renderer is preserved" "1" "$(echo "$out" | grep -c '^RENDERER opengl$')"
 check "an explicit renderer cannot trigger fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC unset$')"
+# An exported-but-empty renderer is what a wrapper script's unset variable produces, and the tree
+# already rules that shape absent for WAYLAND_DISPLAY and DISPLAY above.
+out=$(env -u FLEA_RENDERER_AUTOMATIC -u VK_DRIVER_FILES -u VK_ICD_FILENAMES QSG_RHI_BACKEND= WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+check "an empty renderer is absent, not a choice" "1" "$(echo "$out" | grep -c '^RENDERER vulkan$')"
+check "and an empty renderer still permits the one fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC 1$')"
 
 # Issue #14: a loader that cannot deliver an instance SIGSEGVs Quickshell inside QRhi::create before
 # any scene-graph error can be raised, so the launcher must not name Vulkan to a shell it will crash.
@@ -118,7 +125,7 @@ check "an explicit Vulkan survives an unusable loader" "1" "$(echo "$out" | grep
 check "and an explicit choice still marks no fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC unset$')"
 
 # Nothing but the renderer may differ between the two arms, so both are launched on the same target.
-good=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" \
+good=$(env -u VK_DRIVER_FILES -u VK_ICD_FILENAMES WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" \
   $BIN --gui --select /etc/hostname 2>&1 </dev/null)
 broken=$(env VK_DRIVER_FILES=/nonexistent-flea-icd VK_ICD_FILENAMES=/nonexistent-flea-icd \
   WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" \
