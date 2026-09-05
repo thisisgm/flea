@@ -142,7 +142,7 @@ var POINTER = [
     { where: "neighbour", press: "left", row: "file", does: "nothing", label: "a file has no contents to reveal" },
     { where: "neighbour", press: "left x2", row: "file", does: "open", label: "open the file" },
     { where: "neighbour", press: "right", row: "any", does: "nothing", label: "a peeked row has no menu" },
-    { where: "chrome", press: "left", row: "crumb", does: "goToCrumb", label: "open the directory that segment of the path names" },
+    { where: "chrome", press: "left", row: "parent", does: "goToCrumb", label: "open the directory that segment of the path names" },
     { where: "chrome", press: "left x2", row: "any", does: "pathBar", label: "type the path instead of clicking it" },
     { where: "window", press: "back", row: "any", does: "backOrParent", label: "go back through the history, or up a directory when there is none" },
     { where: "rail", press: "left", row: "any", does: "open", label: "open the place" },

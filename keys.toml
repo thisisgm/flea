@@ -138,8 +138,10 @@ key = "Up"
 action = "cursorUp"
 
 # Issue 28: the full-size keyboard's own four. Every one names an action the vim keys already carry,
-# so the sheet, tools/flea-acceptance's derived checklist and ui/js/Focus.js all take them for free;
-# Home and End are g and G, and the two page keys are the Ctrl+U and Ctrl+D pair, half a screen each.
+# so ui/js/Focus.js takes them for free and tools/flea-acceptance derives each as its own driven
+# item; Home and End are g and G, the page pair is Ctrl+U and Ctrl+D half a screen each, and the
+# curated sheet below draws none of those eight, so all four of cursorFirst, cursorLast, pageUp and
+# pageDown have no row on it.
 [[code]]
 key = "Home"
 action = "cursorFirst"
@@ -181,9 +183,9 @@ action = "escape"
 key = "Tab"
 action = "focusNext"
 
-# Space already owns "open preview" in the browsing state Focus.act handles, and previewAct
-# reuses the same action name to mean "close" once a preview is open, so there is no free
-# context left for a third meaning; toggling selection uses x instead, see it below.
+# Space already owns "open preview" in the browsing state ui/js/Focus.js act handles, and
+# ui/js/PreviewKeys.js act reuses the same action name to mean "close" or "play/pause" once a
+# preview is open, so there is no free context left for a third meaning; v toggles selection.
 [[code]]
 key = "Space"
 action = "preview"
@@ -513,7 +515,7 @@ label = "this sheet"
 #        window     a press that belongs to no row at all, taken by ui/shell.qml
 #        chrome     ui/ChromeBar.qml's path above the listing, whose segments are their own targets
 # press  the button, then any modifier before it, then "x2" for the second tap of a double click
-# row    which rows the line covers: any, dir, file, renaming, result or crumb
+# row    which rows the line covers: any, dir, file, parent, renaming or result
 # does   backOrParent commitRename extendSelect goToCrumb menu nothing open pathBar reveal selectOnly toggleSelect
 #
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
@@ -633,13 +635,15 @@ label = "a peeked row has no menu"
 
 # Issue 45: the path above the listing is a control now as well as a label. Every segment but the
 # leaf opens its own directory on one tap, through the same pathEntered route the typed bar uses; the
-# leaf is the directory already listed, so it has nowhere of its own to go. The double click that
-# opens the bar is declared beside it because the crumb answers that press too: the tap count alone
-# decides between them, and neither ever runs with the other, which was measured on the box.
+# leaf is the directory already listed, so it has nowhere of its own to go, and the frozen List view
+# board draws it in the foreground role while every segment above it is muted. The row column reads
+# "parent" for that reason: a row saying "crumb" would promise a press the leaf never answers. The
+# double click that opens the bar is declared beside it because the crumb answers that press too:
+# the tap count alone decides between them, and neither runs with the other, measured on the box.
 [[pointer]]
 where = "chrome"
 press = "left"
-row = "crumb"
+row = "parent"
 does = "goToCrumb"
 label = "open the directory that segment of the path names"
 

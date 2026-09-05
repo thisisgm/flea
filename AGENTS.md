@@ -320,11 +320,13 @@ the one file Flea writes for itself. `src/uischema.rs` holds the shipped shape a
 copied from the 0.1.4 build handoff; `src/uistate.rs` holds the merges; `src/uistore.rs` holds the
 paths, the lock and the write.
 
-**One update path, and both front ends go through it.** `flea --ui-state` prints the merged
-document and writes nothing. `flea --ui-state '<json object>'` merges that patch through the lock
-and prints the result. The window reaches it from `ui/ViewState.qml` through a `Process`; the
-terminal interface, when it is built, submits patches for `view`, `hidden` and `sort` only, because
-scale, menus and places are the window's.
+**One update path, and the one front end in this tree goes through it.** `flea --ui-state` prints
+the merged document and writes nothing. `flea --ui-state '<json object>'` merges that patch through
+the lock and prints the result. The window reaches it from `ui/ViewState.qml` through a `Process`;
+the terminal interface is not here yet, as `flea --tui` says by exiting 2, and when it is built it
+will submit patches for `view`, `hidden` and `sort` only, because menus and places are the window's.
+Scale is on neither list: `src/uischema.rs` has no `scale` key at all, it stores an Omarchy text-size
+stop under `display.textSize.mode`, and the multiplier `ui/js/Scale.js` applies is a session value.
 
 **The lock is the sibling `ui.json.lock`.** `File::lock()` is `flock(2)` here: advisory, exclusive
 and cross-process, held across the re-read, the per-key validation, the caller-key merge, the temp
@@ -341,8 +343,9 @@ with a sentence naming it, because a patch comes from Flea and not from a text e
 
 **`wrapAtEnds` is read by the window and by nothing else.** `ui/Pane.qml` exposes it off the
 document `ui/ViewState.qml` already holds, and `ui/js/Focus.js` `step` is its only reader: with the
-key off a cursor step past an end clamps, and with it on a step taken from an end comes round. It
-ships off because issue 27 asked for the wrap and another operator reported the same jump as a bug.
+key off a cursor step past an end clamps, and with it on a step taken from an end comes round. The
+key exists because issue 27 asked for the wrap, and it ships off because a second operator reported
+that same jump past the top as a bug.
 
 **`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
 a closed list, because a closed list would make this Flea drop an id a newer one hid.
@@ -894,22 +897,24 @@ actually carried.
 The last two rows landed with issues 20 and 45 and are not `Tap.js`'s. `window` is the mouse's
 back button, which belongs to no row: `ui/shell.qml` carries the handler and `ui/js/Nav.js`
 `mouseBack` decides between the history and the climb. `chrome` is the path above the listing,
-whose segments `ui/ChromeBar.qml` draws as their own click targets through `Nav.crumbs`. Neither
-`where` has a `pointercase_` driver in `tools/flea-acceptance-drive`, so both report as derived
-and undriven rather than as passes; `tests/js/tap.js` holds their counts, which is what stops a
-row being added to the table and reaching nothing at all.
+whose segments `ui/ChromeBar.qml` draws as their own click targets through `Nav.crumbs`; the `row`
+column reads `parent` there because the leaf is the directory already listed and answers no single
+click. Neither `where` has a `pointercase_` driver in `tools/flea-acceptance-drive`, so both report
+as derived and undriven in that battery; `tests/js/tap.js` holds their counts and drives neither,
+because both are QML bindings rather than `Tap.js` calls, and **`tests/js` is structurally unable
+to press either one**. `tests/ui.sh` case `click` is what presses them at the real window.
 
-The `Qt.BackButton` binding is proven one layer short of the product, and a release note has to say
-so rather than call it proven. The probe was a standalone Quickshell `FloatingWindow` carrying
+The `Qt.BackButton` binding is now driven at the product, and the probe that used to stand in for it
+is the reason to say what changed. That probe was a standalone Quickshell `FloatingWindow` carrying
 nothing but a `TapHandler`, clicked with `ydotool click 0xC3`: it shows Hyprland delivering that
 button to a Quickshell surface and Qt reporting it as `Qt.BackButton`, and it never loaded the
 shipped tree, whose `ListView`, delegates, rail and overlays all sit under the same handler.
 `grep -rn acceptedButtons ui/*.qml` finds no child that accepts the button, so nothing should take
-it first, but nothing automated covers it either: the `window` row is derived and undriven by
-construction, `tests/ui.sh` has no case for it, and `tools/flea-acceptance --drive` skips a `where`
-with no `pointercase_`. One driven press at the real window closes it: `tests/ui.sh`'s own `launch`
-(`FLEA_PATH=<dir> FLEA_BIN=<binary> qs -p ui`), then `ydotool click 0xC3` with the pointer over the
-listing, reading the path back through the IPC seam.
+it first. `tests/ui.sh` case `click` now closes that gap the way this paragraph said it had to:
+after the crumb press it parks the pointer over a listing row with `omarchy-drive move`, sends
+`ydotool click 0xC3` twice, and reads the path back through the IPC seam both times, so the history
+branch and the climb branch of `mouseBack` are each pressed through the shipped tree. The crumb half
+is pressed the same way, from `crumbCentre`, which is the seam `ui/Ipc.qml` grew for it.
 
 A crumb click costs the platform's own double-click interval before anything happens, and that is
 inherent rather than a defect: `ui/ChromeBar.qml`'s `exclusiveSignals: TapHandler.SingleTap |
@@ -943,11 +948,13 @@ waits for its consumer.
   prose naming it rather than a line running it, and `PKGBUILD`'s `check()` runs
   `cargo test --release` alone, which it still does. **`96186ff`'s own message is wrong about
   this and cannot be rewritten, because the branch is shared:** its subject says nine suites
-  were uninvoked and its body says seven, and the derived answer is zero of twelve. The runner
-  builds both cargo profiles, since `protocol.sh` drives the debug binary and `thumbs.sh` the
-  release one, runs the eleven suites that need nothing but a shell, and reads each suite's OWN
-  exit code, never a pipeline's. It then names `ui.sh`, `drag.sh` and `bench.sh` with what each
-  needs, so a suite it cannot run stays visible instead of being forgotten a second time.
+  were uninvoked and its body says seven, and the derived answer is zero of the twelve there were
+  then. The runner builds both cargo profiles, since `protocol.sh` drives the debug binary and
+  `thumbs.sh` the release one, runs every suite that needs nothing but a shell, and reads each
+  suite's OWN exit code, never a pipeline's. Its own `headless=` list is the inventory of those,
+  so this paragraph carries no count for the list to outgrow. It then names `ui.sh`, `drag.sh` and
+  `bench.sh` with what each needs, so a suite it cannot run stays visible instead of being
+  forgotten a second time.
 - **`./tests/drag.sh` is the internal drag's characterisation suite, 9 checks**, and it has to
   be run by hand: no runner invokes it. It was written against the drag's behaviour BEFORE the
   platform-drag rewrite, so it is the net that catches what the rewrite changes, and it earned
