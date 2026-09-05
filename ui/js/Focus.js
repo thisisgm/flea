@@ -75,14 +75,14 @@ function act(action, root) {
     // move the cursor sideways, which is not what the key looks like it does.
     // Every one of these moves through what is drawn, not through the listing: with a filter up the
     // two differ, and stepping the listing would land the cursor on a row nothing is showing.
-    case "cursorDown": Filter.moveCursor(root, root.cursorStride); return
-    case "cursorUp": Filter.moveCursor(root, -root.cursorStride); return
-    case "cursorLeft": Filter.moveCursor(root, -1); return
-    case "cursorRight": Filter.moveCursor(root, 1); return
+    case "cursorDown": step(root, root.cursorStride); return
+    case "cursorUp": step(root, -root.cursorStride); return
+    case "cursorLeft": step(root, -1); return
+    case "cursorRight": step(root, 1); return
     case "cursorFirst": Filter.setCursorView(root, 0); return
     case "cursorLast": Filter.setCursorView(root, root.shownTotal - 1); return
-    case "pageDown": Filter.moveCursor(root, Math.max(1, Math.floor(root.visibleRows / 2))); return
-    case "pageUp": Filter.moveCursor(root, -Math.max(1, Math.floor(root.visibleRows / 2))); return
+    case "pageDown": step(root, Math.max(1, Math.floor(root.visibleRows / 2))); return
+    case "pageUp": step(root, -Math.max(1, Math.floor(root.visibleRows / 2))); return
     case "open": root.openCursor(); return
     case "parent": root.openParent(); return
     case "toggleHidden": root.toggleHidden(); return
@@ -143,6 +143,27 @@ function act(action, root) {
     // a sentence any more: tabs run here, and handleKey opens the path bar before the views see it.
     if (action.indexOf("tab") === 0) { Tabs.act(action, root); return }
     root.message(action + " is not built yet.", false)
+}
+
+// Issue 27: what a cursor key does at an end. The state file's wrapAtEnds is off by default, which
+// is deliberately both answers at once: the operator who reported the jump past the top as a bug
+// keeps the clamp, and the one who asked for it turns the key on. Only a step taken from an end
+// wraps, so a page key overshooting from the middle still stops at the end it was heading for, and
+// the selection keys keep ui/js/Filter.js moveCursor's plain clamp, because an extend that wrapped
+// would run the anchor to the far end and take every row between the two with it.
+function step(root, delta) {
+    var last = root.shownTotal - 1
+    if (root.wrapAtEnds !== true || last < 0) {
+        Filter.moveCursor(root, delta)
+        return
+    }
+    var from = Filter.viewOf(root.shown, root.cursorIndex)
+    var to = from + delta
+    if (to < 0)
+        to = from === 0 ? last : 0
+    if (to > last)
+        to = from === last ? 0 : last
+    Filter.setCursorView(root, to)
 }
 
 // ui/ShareBrowser.qml's own overlay, the same j/k/open/escape shape PreviewKeys.act uses.
