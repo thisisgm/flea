@@ -115,7 +115,7 @@ function run(check) {
           Keymap.SHEET.map(sheetAction).join("|"),
           Keymap.SHEET.map(function (row) { return row.action }).join("|"))
     check("the sheet is not empty, so the check above has a denominator",
-          Keymap.SHEET.length, 25)
+          Keymap.SHEET.length, 26)
     // A chord shares the row of the key it doubles, so every caret token must resolve to that row's
     // own action, or the sheet advertises a chord bound to something else.
     check("every chord the sheet draws is bound to the action of its own row",
@@ -129,12 +129,16 @@ function run(check) {
           Keymap.SHEET.filter(function (r) { return r.keys === "m" }).length, 1)
     check("and the sheet draws l, so browse-forward is discoverable",
           Keymap.SHEET.filter(function (r) { return r.keys === "l" && r.action === "pageForward" }).length, 1)
+    // Issue 30 asked for a way to search the folder the pane is in. It is tab on the query line, so
+    // the sheet has to draw tab or the only control the issue got is one nobody is told about.
+    check("and the sheet draws tab, so the search scope is not an undocumented key",
+          Keymap.SHEET.filter(function (r) { return r.keys === "tab" }).length, 1)
 }
 
 // The three caps that name a key rather than printing one; everything else on the sheet is the
 // character itself, a two-key cap like "j k" is checked on the first of the pair, and a doubled
 // character like "dd" is one key pressed twice, so it resolves as that character.
-var NAMED = { "enter": Qt.Key_Return, "space": Qt.Key_Space, "esc": Qt.Key_Escape }
+var NAMED = { "enter": Qt.Key_Return, "space": Qt.Key_Space, "esc": Qt.Key_Escape, "tab": Qt.Key_Tab }
 // The one shifted character a chord prints; a capital letter after the caret is the other case.
 var SHIFTED = { ">": Qt.Key_Greater, "+": Qt.Key_Plus, "-": Qt.Key_Minus }
 

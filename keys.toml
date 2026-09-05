@@ -401,6 +401,13 @@ keys = "o"
 action = "reveal"
 label = "reveal result"
 
+# Issue 30 asked for a way to search the folder the pane is in, and tab on the query line is it, so
+# the sheet draws the key here rather than leaving the only control the issue got undocumented.
+[[sheet]]
+keys = "tab"
+action = "focusNext"
+label = "search scope, or focus"
+
 [[sheet]]
 keys = ": ^l"
 action = "pathBar"

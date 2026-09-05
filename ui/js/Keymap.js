@@ -105,6 +105,7 @@ var SHEET = [
     { keys: "/", action: "filter", label: "filter" },
     { keys: "f", action: "search", label: "find in subtree" },
     { keys: "o", action: "reveal", label: "reveal result" },
+    { keys: "tab", action: "focusNext", label: "search scope, or focus" },
     { keys: ": ^l", action: "pathBar", label: "go to path" },
     { keys: "y ^c", action: "copy", label: "copy" },
     { keys: "x ^x", action: "cut", label: "cut" },
