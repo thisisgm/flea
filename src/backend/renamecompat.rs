@@ -1,4 +1,4 @@
-// Linux's atomic no-clobber rename, plus the one compatibility exception this product has measured.
+// Linux's atomic no-clobber rename, plus classification for the one mount that needs a safe caller-owned fallback.
 use std::ffi::{c_char, CString, OsString};
 use std::io;
 use std::os::unix::ffi::OsStringExt;
@@ -8,7 +8,6 @@ use std::path::{Path, PathBuf};
 const AT_FDCWD: i32 = -100;
 const RENAME_NOREPLACE: u32 = 1;
 const EINVAL: i32 = 22;
-const EEXIST: i32 = 17;
 
 extern "C" {
     fn renameat2(
@@ -20,7 +19,7 @@ extern "C" {
     ) -> i32;
 }
 
-// rclone rejects directory RENAME_NOREPLACE, while its ordinary DirMove refuses collisions; file moves can overwrite and stay excluded.
+// rclone rejects directory RENAME_NOREPLACE; callers that can safely copy and remove handle that case themselves.
 pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
     let c_from = path_c(from)?;
     let c_to = path_c(to)?;
@@ -36,33 +35,23 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
     if rc == 0 {
         return Ok(());
     }
-    let error = io::Error::last_os_error();
-    if error.raw_os_error() == Some(EINVAL) {
-        if let Ok(body) = std::fs::read_to_string("/proc/self/mountinfo") {
-            if let Some(result) = rclone_directory_fallback(from, to, &body) {
-                return result;
-            }
-        }
-    }
-    Err(error)
+    Err(io::Error::last_os_error())
 }
 
-fn rclone_directory_fallback(from: &Path, to: &Path, mountinfo: &str) -> Option<io::Result<()>> {
-    match from.symlink_metadata() {
-        Ok(meta) if meta.file_type().is_dir() => {}
-        Ok(_) => return None,
-        Err(e) => return Some(Err(e)),
-    }
-    if mount_type_in(from, mountinfo).as_deref() != Some("fuse.rclone") {
-        return None;
-    }
-    // Reject visible collisions first; rclone's DirMove contract remains authoritative if a destination races into existence.
-    match to.symlink_metadata() {
-        Ok(_) => return Some(Err(io::Error::from_raw_os_error(EEXIST))),
-        Err(e) if e.kind() == io::ErrorKind::NotFound => {}
-        Err(e) => return Some(Err(e)),
-    }
-    Some(std::fs::rename(from, to))
+pub(crate) fn needs_copy_fallback(from: &Path, error: &io::Error) -> bool {
+    std::fs::read_to_string("/proc/self/mountinfo")
+        .ok()
+        .map(|body| needs_copy_fallback_in(from, error, &body))
+        .unwrap_or(false)
+}
+
+fn needs_copy_fallback_in(from: &Path, error: &io::Error, mountinfo: &str) -> bool {
+    error.raw_os_error() == Some(EINVAL)
+        && from
+            .symlink_metadata()
+            .map(|meta| meta.file_type().is_dir())
+            .unwrap_or(false)
+        && mount_type_in(from, mountinfo).as_deref() == Some("fuse.rclone")
 }
 
 fn path_c(path: &Path) -> io::Result<CString> {
@@ -70,7 +59,7 @@ fn path_c(path: &Path) -> io::Result<CString> {
         .map_err(|_| io::Error::new(io::ErrorKind::InvalidInput, "path contains an interior NUL"))
 }
 
-// The longest enclosing mount wins. mountinfo escapes whitespace and backslashes as octal bytes.
+// Sample: `2 1 0:9 / /home/pi/My\040Drive rw - fuse.rclone remote: rw`; longest enclosing mount wins after octal unescaping.
 fn mount_type_in(path: &Path, body: &str) -> Option<String> {
     let mut best: Option<(usize, String)> = None;
     for line in body.lines() {
@@ -120,6 +109,8 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
 
+    const EEXIST: i32 = 17;
+
     #[test]
     fn deepest_mount_identifies_rclone_and_decodes_its_path() {
         let info = "1 0 8:1 / / rw - ext4 /dev/a rw\n\
@@ -145,42 +136,21 @@ mod tests {
     }
 
     #[test]
-    fn rclone_directory_fallback_renames_without_replacing() {
-        let d = TestDir::new("rclonerename");
-        let source = d.dir("source");
-        let target = d.join("renamed");
-        let info = format!(
-            "1 0 0:1 / {} rw - fuse.rclone remote: rw\n",
-            d.path().display()
-        );
-        rclone_directory_fallback(&source, &target, &info)
-            .expect("the rclone directory path is eligible")
-            .expect("ordinary rclone directory rename");
-        assert!(!source.exists());
-        assert!(target.is_dir());
-
-        let source = d.dir("another");
-        let occupied = d.dir("occupied");
-        let error = rclone_directory_fallback(&source, &occupied, &info)
-            .expect("rclone directory")
-            .expect_err("an existing target must never be replaced");
-        assert_eq!(error.raw_os_error(), Some(EEXIST));
-        assert!(source.is_dir());
-        assert!(occupied.is_dir());
-    }
-
-    #[test]
-    fn fallback_is_never_used_for_files_or_other_filesystems() {
+    fn copy_fallback_scope_is_only_an_einval_directory_on_rclone() {
         let d = TestDir::new("rclonerenamescope");
         let file = d.file("file", "body");
-        let target = d.join("target");
+        let directory = d.dir("directory");
         let rclone = format!(
             "1 0 0:1 / {} rw - fuse.rclone remote: rw\n",
             d.path().display()
         );
         let ext4 = format!("1 0 8:1 / {} rw - ext4 /dev/a rw\n", d.path().display());
-        assert!(rclone_directory_fallback(&file, &target, &rclone).is_none());
-        assert!(rclone_directory_fallback(d.path(), &target, &ext4).is_none());
+        let invalid = io::Error::from_raw_os_error(EINVAL);
+        let exists = io::Error::from_raw_os_error(EEXIST);
+        assert!(needs_copy_fallback_in(&directory, &invalid, &rclone));
+        assert!(!needs_copy_fallback_in(&file, &invalid, &rclone));
+        assert!(!needs_copy_fallback_in(&directory, &invalid, &ext4));
+        assert!(!needs_copy_fallback_in(&directory, &exists, &rclone));
         assert_eq!(std::fs::read_to_string(file).unwrap(), "body");
     }
 }

@@ -1,5 +1,5 @@
 // Rename, duplicate and mkdir: the three operations that answer once, with no started or progress split.
-use crate::backend::copyfile::{copy_any, Progress};
+use crate::backend::copyfile::{copy_any, remove_any, Progress};
 use crate::backend::renamecompat;
 use crate::backend::undo::Step;
 use crate::error::{from_io, FleaError};
@@ -21,6 +21,39 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> Result<(), FleaError> {
     renamecompat::rename_noreplace(from, to).map_err(|e| from_io("rename", &to.to_string_lossy(), &e))
 }
 
+// Rename uses the atomic path everywhere except a measured rclone directory EINVAL, which copies exclusively before removing its source.
+pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
+    match renamecompat::rename_noreplace(from, to) {
+        Ok(()) => Ok(()),
+        Err(error) if renamecompat::needs_copy_fallback(from, &error) => copy_remove_directory(from, to),
+        Err(error) => Err(from_io("rename", &to.to_string_lossy(), &error)),
+    }
+}
+
+fn copy_remove_directory(from: &Path, to: &Path) -> Result<(), FleaError> {
+    let cancel = AtomicBool::new(false);
+    let mut sink = |_: u64, _: u64| {};
+    let mut progress = Progress { cancel: &cancel, on_bytes: &mut sink, partial: None };
+    if let Err(error) = copy_any(from, to, &mut progress) {
+        if progress.partial.as_deref() == Some(to) {
+            if let Err(cleanup) = remove_any(to) {
+                return Err(named(
+                    "rename",
+                    to,
+                    &format!("{}; partial target could not be removed: {}", error.msg, cleanup.msg),
+                ));
+            }
+        }
+        return Err(rename_error(error));
+    }
+    remove_any(from).map_err(rename_error)
+}
+
+fn rename_error(mut error: FleaError) -> FleaError {
+    error.where_ = "rename".to_string();
+    error
+}
+
 fn named(where_: &str, path: &Path, msg: &str) -> FleaError {
     FleaError {
         where_: where_.to_string(),
@@ -40,7 +73,7 @@ pub fn rename(path: &Path, to_name: &str) -> Result<(PathBuf, Vec<Step>), FleaEr
         // Renaming a file to its own name is not a failure and is not work, so it records nothing.
         return Ok((to, Vec::new()));
     }
-    rename_noreplace(path, &to)?;
+    rename_path(path, &to)?;
     Ok((to.clone(), vec![Step::Moved { from: path.to_path_buf(), to }]))
 }
 
@@ -167,6 +200,61 @@ mod tests {
             "the file that was already there is untouched"
         );
         assert!(from.exists(), "the source is left where it was");
+    }
+
+    #[test]
+    fn copied_directory_rename_refuses_an_existing_empty_directory() {
+        let d = TestDir::new("copyrenameclobber");
+        let source = d.dir("source");
+        std::fs::write(source.join("source.txt"), "source body").unwrap();
+        let target = d.dir("target");
+        let error = copy_remove_directory(&source, &target).expect_err("must refuse");
+        assert_eq!(error.where_, "rename");
+        assert!(source.join("source.txt").is_file(), "the source tree stays complete");
+        assert!(target.is_dir(), "the directory that owned the target name stays in place");
+    }
+
+    #[test]
+    fn copied_directory_rename_moves_the_tree_and_the_same_path_reverses_it() {
+        let d = TestDir::new("copyrename");
+        let source = d.dir("source");
+        let nested = source.join("nested");
+        std::fs::create_dir(&nested).unwrap();
+        std::fs::write(nested.join("inside.txt"), "body").unwrap();
+        let target = d.join("target");
+        copy_remove_directory(&source, &target).expect("rename by exclusive copy");
+        assert!(!source.exists());
+        assert_eq!(std::fs::read_to_string(target.join("nested/inside.txt")).unwrap(), "body");
+
+        copy_remove_directory(&target, &source).expect("undo by exclusive copy");
+        assert!(!target.exists());
+        assert_eq!(std::fs::read_to_string(source.join("nested/inside.txt")).unwrap(), "body");
+    }
+
+    #[test]
+    fn copied_directory_rename_removes_its_partial_target_after_copy_failure() {
+        let d = TestDir::new("copyrenamepartial");
+        let source = d.dir("source");
+        let _socket = std::os::unix::net::UnixListener::bind(source.join("socket")).unwrap();
+        let target = d.join("target");
+        copy_remove_directory(&source, &target).expect_err("a socket cannot be copied");
+        assert!(source.join("socket").exists(), "the source remains after a failed copy");
+        assert!(!target.exists(), "the failed rename leaves no unjournaled partial target");
+    }
+
+    // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
+    #[test]
+    fn copied_directory_rename_keeps_the_complete_copy_when_source_removal_fails() {
+        let d = TestDir::new("copyrenameremove");
+        let source = d.dir("source");
+        std::fs::write(source.join("inside.txt"), "body").unwrap();
+        std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let target = d.join("target");
+        let error = copy_remove_directory(&source, &target).expect_err("source removal must fail");
+        std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(error.where_, "rename");
+        assert_eq!(std::fs::read_to_string(source.join("inside.txt")).unwrap(), "body");
+        assert_eq!(std::fs::read_to_string(target.join("inside.txt")).unwrap(), "body");
     }
 
     #[test]
