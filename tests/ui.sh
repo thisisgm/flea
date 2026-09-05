@@ -804,10 +804,12 @@ case_openterminal() {
 
     # A second request while the first terminal is still starting is dropped, and the third, once it
     # has exited, is not: without the second half this check passes for a key that does nothing.
+    # The drop is announced, because a swallowed keypress with nothing on screen is the defect.
     : > "$ran"
     hotkey --global ctrl t flea >/dev/null
     settle
     hotkey --global ctrl t flea >/dev/null
+    wait_message "Still opening the last terminal; try again in a moment."
     wait_terminal "$ran" "$dir" "the single-flight guard"
     sleep 1
     [[ "$(grep -c . "$ran")" == "1" ]] || fail "openterminal: two terminals were started, log is $(cat "$ran")"
