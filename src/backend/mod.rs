@@ -41,6 +41,7 @@ pub mod thumbwrite;
 // File operations and the undo journal they record into.
 pub mod convert;
 pub mod copyfile;
+pub mod copyfifo;
 pub mod ops;
 pub mod opsdispatch;
 pub mod opsreq;
@@ -49,3 +50,6 @@ pub mod undo;
 // Test-only: hard rule 9's sandbox root, so no destructive test names a path outside one.
 #[cfg(test)]
 pub mod testdir;
+// Test-only: the fifo, writer and bound every hang test shares.
+#[cfg(test)]
+pub mod fifotest;

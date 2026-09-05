@@ -1,7 +1,7 @@
 // The copy primitives every transfer is built from: streaming, symlink-preserving, and refusing to overwrite.
 use crate::error::{from_io, FleaError};
 use std::io::{Read, Write};
-use std::os::unix::fs::OpenOptionsExt;
+use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -86,7 +86,7 @@ pub fn copy_symlink(src: &Path, dst: &Path) -> Result<(), FleaError> {
     std::os::unix::fs::symlink(&target, dst).map_err(|e| from_io("copy", &dst.to_string_lossy(), &e))
 }
 
-// Copies a file, a symlink or a whole directory tree. The destination must not already exist.
+// Copies a file, a symlink, a fifo or a whole directory tree. The destination must not already exist.
 pub fn copy_any(src: &Path, dst: &Path, p: &mut Progress) -> Result<(), FleaError> {
     let meta = src
         .symlink_metadata()
@@ -96,6 +96,10 @@ pub fn copy_any(src: &Path, dst: &Path, p: &mut Progress) -> Result<(), FleaErro
     }
     if meta.is_dir() {
         return copy_dir(src, dst, p);
+    }
+    // A fifo is the one type copy_file cannot take: its open blocks until a writer appears, so it is recreated instead.
+    if meta.file_type().is_fifo() {
+        return crate::backend::copyfifo::copy_fifo(dst);
     }
     copy_file(src, dst, meta.len(), p)
 }
