@@ -44,6 +44,7 @@ pub mod copyfile;
 pub mod ops;
 pub mod opsdispatch;
 pub mod opsreq;
+mod mountinfo;
 mod renamecompat;
 pub mod trash;
 pub mod undo;
