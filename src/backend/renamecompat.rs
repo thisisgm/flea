@@ -283,6 +283,23 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&source).unwrap(), "body");
         assert!(!target.exists(), "the copy is taken back rather than left as an unjournalled duplicate");
     }
+
+    // corner: runs as a plain user, where a directory without its write bit cannot lose the child it holds.
+    #[test]
+    fn a_symlink_rename_takes_its_copy_back_when_the_source_will_not_go() {
+        let d = TestDir::new("copyrenamesymlinkremove");
+        let payload = d.file("payload.txt", "body");
+        let hold = d.dir("hold");
+        let source = hold.join("source");
+        std::os::unix::fs::symlink(&payload, &source).unwrap();
+        let target = d.join("target");
+        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
+        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(error.where_, "rename", "one unlink removes a symlink too, so the source is provably whole");
+        assert_eq!(std::fs::read_link(&source).unwrap(), payload);
+        assert!(target.symlink_metadata().is_err(), "the copy is taken back rather than left as an unjournalled duplicate");
+    }
     // A removal answering ENOENT after it took effect leaves the copy as the only whole name.
     #[test]
     fn a_source_that_no_longer_stats_keeps_the_copy_rather_than_taking_it_back() {
