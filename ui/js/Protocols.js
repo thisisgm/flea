@@ -54,10 +54,10 @@ function uri(form) {
         head += userPart(form, spec)
     }
     head += host
+    // The port is always spelled out, its own default included, because that is what the Mounts-as
+    // line promises to show; ui/js/Mounts.js normalize is what takes a default back off for the rail.
     var port = String(form.port || "").trim()
-    if (port.length > 0 && Number(port) !== defaultPort(form.protocol)) {
-        head += ":" + port
-    } else if (port.length > 0) {
+    if (port.length > 0) {
         head += ":" + port
     }
     return head + pathPart(form.path)
@@ -98,12 +98,17 @@ function complete(form) {
     return String(form.host || "").trim().length > 0
 }
 
-// Scheme to default port, one row per scheme "scheme()" above can produce. PORTS is keyed by the
-// protocol the form picked; a bookmarked or gio-reported URI only ever carries the scheme.
-var SCHEME_PORTS = { "smb": 445, "sftp": 22, "ftp": 21, "ftps": 21, "dav": 80, "davs": 443, "nfs": 2049 }
-
+// Scheme to default port, derived from the two tables the form itself uses rather than copied into
+// a third that can disagree with them, and one of them did: PORTS is keyed by the protocol the form
+// picked, "scheme()" above is every scheme that protocol can build, and a bookmarked or gio-reported
+// URI only ever carries the scheme, so it is measured against the port the dialog would have written.
 function defaultPortFor(uriScheme) {
-    return SCHEME_PORTS[String(uriScheme || "").toLowerCase()] || 0
+    var want = String(uriScheme || "").toLowerCase()
+    for (var i = 0; i < PROTOCOLS.length; i++) {
+        if (scheme(PROTOCOLS[i], true) === want || scheme(PROTOCOLS[i], false) === want)
+            return PORTS[PROTOCOLS[i]]
+    }
+    return 0
 }
 
 // "gio mount -l" never reports a scheme's default port and the add form spells out the one it

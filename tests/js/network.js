@@ -78,11 +78,26 @@ function run(check) {
           Protocols.stripDefaultPort("smb://[fe80::445]/isos/"), "smb://[fe80::445]/isos/")
     check("but a real port after the bracket goes",
           Protocols.stripDefaultPort("smb://[fe80::1]:445/isos/"), "smb://[fe80::1]/isos/")
+    // Every port here is the one ui/NetworkForm.qml prefills for the protocol that builds that
+    // scheme, not a second table's idea of it: the old dav row asked about ":80", a port the form
+    // has no way to write, so the one URI it does write went on carrying its port into the rail.
     check("every scheme the form can build knows its own default",
           [Protocols.stripDefaultPort("sftp://h:22/x"), Protocols.stripDefaultPort("ftp://h:21/x"),
-           Protocols.stripDefaultPort("ftps://h:21/x"), Protocols.stripDefaultPort("dav://h:80/x"),
+           Protocols.stripDefaultPort("ftps://h:21/x"), Protocols.stripDefaultPort("dav://h:443/x"),
            Protocols.stripDefaultPort("davs://h:443/x"), Protocols.stripDefaultPort("nfs://h:2049/x")].join("|"),
           "sftp://h/x|ftp://h/x|ftps://h/x|dav://h/x|davs://h/x|nfs://h/x")
+    // Built by the form's own uri(), so the check cannot drift from what the dialog writes: WebDAV
+    // picked, TLS unticked, the prefilled port left alone, which is the shape the operator gets.
+    function formUri(tls) {
+        return Protocols.uri({ protocol: "WebDAV", host: "nas.local", path: "/dav", user: "",
+                               domain: "", tls: tls, port: String(Protocols.defaultPort("WebDAV")) })
+    }
+    check("the form spells the port it prefilled, whichever way the TLS box is set",
+          formUri(false) + "|" + formUri(true), "dav://nas.local:443/dav|davs://nas.local:443/dav")
+    check("so plain WebDAV's bookmark and gio's own report of it are one rail row",
+          Mounts.normalize(formUri(false)) === Mounts.normalize("dav://nas.local/dav/"), true)
+    check("and so are TLS WebDAV's, which was already the case",
+          Mounts.normalize(formUri(true)) === Mounts.normalize("davs://nas.local/dav/"), true)
     check("and never drops another scheme's default", Protocols.stripDefaultPort("sftp://h:445/x"), "sftp://h:445/x")
     check("text that is not a uri at all is left alone", Protocols.stripDefaultPort("/home/gm"), "/home/gm")
 
