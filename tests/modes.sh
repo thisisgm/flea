@@ -141,6 +141,24 @@ check "and that sentence names the handler" "1" "$(echo "$out" | grep -c 'nothin
 out=$($BIN --open 2>&1 </dev/null)
 check "--open with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--open')"
 
+# Sample input: let started = Command::new("xdg-terminal-exec")
+# Every program the openers hand off to by name must be shipped by a PKGBUILD dependency, or the
+# package installs and the button it belongs to does nothing at all. The table is here rather than
+# from pacman so the check runs off the box too, and a handoff with no row in it is itself a failure.
+handoff_package() {
+  case "$1" in
+    gio) printf 'glib2' ;;
+    xdg-open) printf 'xdg-utils' ;;
+    xdg-terminal-exec) printf 'xdg-terminal-exec' ;;
+    *) printf '' ;;
+  esac
+}
+for handoff in $(grep -ho 'Command::new("[a-z0-9-]\+")' src/open.rs src/terminal.rs | cut -d'"' -f2 | sort -u); do
+  package=$(handoff_package "$handoff")
+  check "$handoff is a handoff this suite knows the package for" "1" "$([ -n "$package" ] && echo 1 || echo 0)"
+  check "PKGBUILD depends on $package, which ships $handoff" "1" "$(grep -c "^depends=.*'$package'" PKGBUILD)"
+done
+
 # The stub qs is what exec_qs launched, so it inherits huge pages off; --open must hand them back.
 printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nexec %s --open %s\n' "$PWD/$BIN" "$D/file.txt" > "$D/bin/qs"
 chmod +x "$D/bin/qs"
