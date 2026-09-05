@@ -111,11 +111,14 @@ function run(check) {
     here.path = "/home/u/Downloads"
     Search.typeKey(press(Qt.Key_Tab, "\t"), here)
     check("tab on the query line points the walk at the directory the pane is in", here.searchHere, true)
+    // Both presses land while the line still has the caret, which is the only state ui/js/Focus.js
+    // handleKey routes to typeKey at all: after enter the mode is results and the key is the rail's.
+    Search.typeKey(press(Qt.Key_Backtab, "\t"), here)
+    check("and the key flips back, so home is one press away again", here.searchHere, false)
+    Search.typeKey(press(Qt.Key_Tab, "\t"), here)
     Search.typeKey(press(Qt.Key_Return, ""), here)
     check("and the walk goes there instead of to home",
           here.sent.join(",") + "|" + here.path, "/home/u/Downloads?scr|/home/u/Downloads")
-    Search.typeKey(press(Qt.Key_Backtab, "\t"), here)
-    check("and the key flips back, so home is one press away again", here.searchHere, false)
 
     var blank = typing("")
     Search.typeKey(press(Qt.Key_Return, ""), blank)

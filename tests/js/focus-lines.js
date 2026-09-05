@@ -33,6 +33,8 @@ function queryPane() {
     p.inputAt = 0
     p.rowsAt = 0
     p.cursorStride = 1
+    // Half of this is a page key's step, so pageDown and pageUp move a real distance here.
+    p.visibleRows = 4
     p.preview = closed()
     p.shareBrowser = { active: false }
     p.said = ""
@@ -87,4 +89,29 @@ function run(check) {
     Focus.handleKey(key(Qt.Key_E, "e"), stillTyping, noRail())
     check("and a printable key still extends the query without walking anything",
           stillTyping.searchQuery + "|" + stillTyping.walked.length, "scre|0")
+
+    // Issue 28's four keys leaving the line was claimed in prose and in a comment and driven by
+    // nothing, and the up arrow was untested too. ui/SearchStrip.qml draws the query as a Text with
+    // the caret pinned after it, so Home, End, PageUp and PageDown have no caret to move on the line
+    // and the listing's own meaning is the only one they can carry: ui/js/Focus.js LEAVES_LINE.
+    var others = [Qt.Key_Up, Qt.Key_Home, Qt.Key_End, Qt.Key_PageUp, Qt.Key_PageDown]
+    var handed = []
+    var committed = []
+    for (var i = 0; i < others.length; i++) {
+        var narrowed = queryPane()
+        narrowed.filterTyping = true
+        narrowed.filterQuery = "scr"
+        narrowed.refresh()
+        Focus.handleKey(key(others[i], ""), narrowed, noRail())
+        handed.push(narrowed.filterTyping + ":" + narrowed.filterQuery)
+        var walks = queryPane()
+        walks.searchMode = "typing"
+        walks.searchQuery = "scr"
+        Focus.handleKey(key(others[i], ""), walks, noRail())
+        committed.push(walks.searchMode + ":" + walks.walked.length)
+    }
+    check("every other cursor key hands the filter's caret back, with its query left standing",
+          handed.join("|"), "false:scr|false:scr|false:scr|false:scr|false:scr")
+    check("and each commits the search's walk exactly once, the way the down arrow does",
+          committed.join("|"), "results:1|results:1|results:1|results:1|results:1")
 }
