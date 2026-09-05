@@ -13,9 +13,11 @@ Item {
     property bool hovered: false
     property bool selected: false
     property string thumb: ""
+    // The first d of the pair landed and the second would take this tile; GridArea.qml's delegate binds it through Trash.targeted.
+    property bool armed: false
 
     // A lifted tile is the cursor, the pointer or a selection member, the same ladder Row.qml climbs.
-    readonly property bool lifted: root.cursor || root.hovered || root.selected
+    readonly property bool lifted: root.cursor || root.hovered || root.selected || root.armed
     // A thumbnail path is not a thumbnail: the cache file can be evicted between the pane's answer
     // and the decode, and a tile whose Image failed to load has to be marked by its kind instead.
     readonly property bool thumbDrawn: root.thumb.length > 0 && tileThumb.status !== Image.Error
@@ -26,13 +28,16 @@ Item {
     Rectangle {
         anchors.fill: parent
         anchors.margins: Theme.spacing.hairline
-        color: root.cursor ? Style.selectedFill
+        // An armed tile takes the error role over the whole ladder, the same frame Row.qml draws
+        // over an armed row: the outline is the only edge a tile has to carry it.
+        color: root.armed ? Util.alpha(Theme.color.error, Style.hoverFillAlpha)
+             : root.cursor ? Style.selectedFill
              : root.selected ? Style.selectionFill
              : root.hovered ? Style.hoverFill
              : "transparent"
         // The canvas outlines the picked tile as well as filling it, because a tile has no row edge to read.
-        border.width: root.selected || root.cursor ? Theme.spacing.hairline : 0
-        border.color: Theme.color.accent
+        border.width: root.selected || root.cursor || root.armed ? Theme.spacing.hairline : 0
+        border.color: root.armed ? Theme.color.error : Theme.color.accent
     }
 
     Item {
@@ -63,7 +68,7 @@ Item {
             anchors.fill: parent
             visible: !root.thumbDrawn
             name: root.row ? Icons.glyphFor(root.row.i) : "file"
-            color: root.cursor || root.selected ? Theme.color.accent : Theme.color.muted
+            color: root.armed ? Theme.color.error : root.cursor || root.selected ? Theme.color.accent : Theme.color.muted
         }
     }
 
@@ -80,7 +85,7 @@ Item {
         anchors.rightMargin: Theme.spacing.gap
         horizontalAlignment: Text.AlignHCenter
         text: root.row ? root.row.n : ""
-        color: root.cursor || root.selected ? Theme.color.accent : Theme.color.foreground
+        color: root.armed ? Theme.color.error : root.cursor || root.selected ? Theme.color.accent : Theme.color.foreground
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
         textFormat: Text.PlainText

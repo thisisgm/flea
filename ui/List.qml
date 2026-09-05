@@ -5,6 +5,7 @@ import "js/Drag.js" as DragOps
 import "js/Filter.js" as Filter
 import "js/Tap.js" as Tap
 import "js/Thumbs.js" as Thumbs
+import "js/Trash.js" as Trash
 
 // The listing's render, scroll and settle-triggered refetch, split out of Pane.qml; reaches Pane's state through the pane reference and the context menu through menu, both handed in at instantiation.
 ListView {
@@ -65,6 +66,7 @@ ListView {
         // -1 is also what Filter.at answers for a stale delegate, so an idle list must never light one.
         dropTarget: root.dropIndex >= 0 && listingIndex === root.dropIndex
         dropCopying: root.dragCopy
+        armed: root.pane.trashArmedAt > 0 && Trash.targeted(root.pane, listingIndex)
 
         onRenameCommitted: function (newName) { root.pane.commitRename(newName) }
         onRenameAbandoned: root.pane.renamingIndex = -1

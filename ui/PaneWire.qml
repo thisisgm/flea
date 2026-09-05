@@ -182,9 +182,13 @@ Item {
             pane.refresh("")
         }
 
+        // The refresh keeps the cursor's index and the rows below what left shift up into it, so the
+        // cursor lands on the row after the one removed. A selection leaves as a block, so the cursor
+        // goes to its first row before the refresh reads the index: vim's dd in both cases.
         function onTrashed(ok, failed) {
             pane.sticky("")
             pane.message(Ops.trashed(ok, failed), ok === 0)
+            pane.cursorIndex = Ops.targetIndices(pane)[0]
             pane.clearSelection()
             pane.refresh("")
         }
