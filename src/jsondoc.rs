@@ -6,6 +6,12 @@ pub const MAX_DEPTH: usize = 32;
 
 const INDENT: &str = "  ";
 
+// UTF-16's surrogate halves, which are not scalar values and only mean anything as a pair.
+const HIGH_FIRST: u32 = 0xd800;
+const HIGH_LAST: u32 = 0xdbff;
+const LOW_FIRST: u32 = 0xdc00;
+const LOW_LAST: u32 = 0xdfff;
+
 // Num keeps the literal it was written with, so 192 stays 192 and 1.0 stays 1.0 across a rewrite.
 #[derive(Clone, Debug, PartialEq)]
 pub enum Json {
@@ -251,14 +257,38 @@ fn unescape(bytes: &[u8], at: &mut usize) -> Result<char, String> {
     }
 }
 
-// Sample input: the four hex digits after \u, as in é; a lone surrogate becomes the replacement character.
+// Sample input: the four hex digits after \u, as in é, or the \ud83d\udcc1 pair every ASCII-safe
+// serializer writes 📁 as; a surrogate with no partner becomes the replacement character.
 fn unescape_hex(bytes: &[u8], at: &mut usize) -> Result<char, String> {
+    let point = hex4(bytes, at)?;
+    if let Some(low) = low_half(bytes, at, point) {
+        let combined = 0x10000 + ((point - HIGH_FIRST) << 10) + (low - LOW_FIRST);
+        return Ok(char::from_u32(combined).unwrap_or(char::REPLACEMENT_CHARACTER));
+    }
+    Ok(char::from_u32(point).unwrap_or(char::REPLACEMENT_CHARACTER))
+}
+
+fn hex4(bytes: &[u8], at: &mut usize) -> Result<u32, String> {
     let end = *at + 4;
     let digits = bytes.get(*at..end).ok_or_else(|| "a short \\u escape".to_string())?;
     let text = std::str::from_utf8(digits).map_err(|_| "a \\u escape that is not hex".to_string())?;
     let point = u32::from_str_radix(text, 16).map_err(|_| format!("a \\u escape that is not hex at byte {}", at))?;
     *at = end;
-    Ok(char::from_u32(point).unwrap_or(char::REPLACEMENT_CHARACTER))
+    Ok(point)
+}
+
+// The partner of a high surrogate, consumed only when the next escape really is a low one.
+fn low_half(bytes: &[u8], at: &mut usize, high: u32) -> Option<u32> {
+    if !(HIGH_FIRST..=HIGH_LAST).contains(&high) || bytes.get(*at) != Some(&b'\\') || bytes.get(*at + 1) != Some(&b'u') {
+        return None;
+    }
+    let mut after = *at + 2;
+    let low = hex4(bytes, &mut after).ok()?;
+    if !(LOW_FIRST..=LOW_LAST).contains(&low) {
+        return None;
+    }
+    *at = after;
+    Some(low)
 }
 
 // Sample input: -12, 0, 192, 1.0, 1.5e-3; the literal is kept as written and only checked for shape.
@@ -314,6 +344,24 @@ mod tests {
         let v = parse(r#"{"k":"a\"b\\c\nd\teAé\/f"}"#).expect("parse");
         assert_eq!(v.get("k").and_then(Json::as_str), Some("a\"b\\c\nd\te\u{41}\u{e9}/f"));
         assert_eq!(parse(&render(&v)).expect("reparse"), v);
+    }
+
+    // Python's json.dump defaults to ensure_ascii, so a favourite holding a non-BMP character
+    // reaches this parser as a surrogate pair and has to come back as the one character it names.
+    #[test]
+    fn a_surrogate_pair_is_one_character_and_not_two_replacements() {
+        let doc = parse(r#"{"favourites":["/home/gm/\ud83d\udcc1 Work"]}"#).expect("parse");
+        let first = doc.get("favourites").and_then(Json::as_array).expect("favourites")[0]
+            .as_str().expect("string");
+        assert_eq!(first, "/home/gm/\u{1F4C1} Work");
+        assert!(render(&doc).contains('\u{1F4C1}'), "the rewrite carries the character, not a replacement");
+        assert_eq!(parse(&render(&doc)).expect("reparse"), doc);
+        // A half with no partner is still the replacement character, which is what the file says.
+        assert_eq!(parse(r#"{"a":"\ud83d"}"#).expect("parse").get("a").and_then(Json::as_str), Some("\u{FFFD}"));
+        assert_eq!(parse(r#"{"a":"\udcc1x"}"#).expect("parse").get("a").and_then(Json::as_str), Some("\u{FFFD}x"));
+        // A high half followed by an escape that is not its partner keeps both, each on its own.
+        assert_eq!(parse(r#"{"a":"\ud83d\u0041"}"#).expect("parse").get("a").and_then(Json::as_str), Some("\u{FFFD}A"));
+        assert_eq!(parse(r#"{"a":"\ud83dx"}"#).expect("parse").get("a").and_then(Json::as_str), Some("\u{FFFD}x"));
     }
 
     #[test]
