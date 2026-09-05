@@ -158,12 +158,13 @@ function hostOf(uri) {
 // rule reads the URI instead: the tail that gets cut is this URI's own host, in any language, and a
 // label that does not end in it is left exactly as gio gave it.
 function shareName(rawLabel, uri) {
-    var label = String(rawLabel || "")
+    var text = String(rawLabel || "")
     var host = hostOf(uri)
-    var head = label.substring(0, label.length - host.length)
-    if (host.length === 0 || head.length === 0 || label.substring(head.length) !== host)
-        return label
-    // Whatever language it is in, exactly one whitespace-delimited word separates the two halves.
+    var head = text.substring(0, text.length - host.length)
+    if (host.length === 0 || head.length === 0 || text.substring(head.length) !== host)
+        return text
+    // Whatever language it is in, exactly one whitespace-delimited word separates the two halves, so
+    // a head this does not shorten was never a "<share> <word> <host>" render and is left whole.
     var name = head.replace(/\s+\S+\s+$/, "")
-    return name.length > 0 ? name : label
+    return name.length > 0 && name !== head ? name : text
 }

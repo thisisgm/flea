@@ -30,6 +30,14 @@ function run(check) {
     var sameName = 'Mount(0): nas on nas -> smb://nas/nas/\n'
     check("a share named after its own host still loses only the host",
           Mounts.parseMounts(sameName)[0].label, "nas")
+    // Two more the fix round found in the fix: a tail that only happens to be the host with no
+    // separator at all, and a label whose separator word has nothing in front of it.
+    var glued = 'Mount(0): isosnas -> smb://nas/isos/\n'
+    check("a label that merely ends in the host, with no separator, is not cut",
+          Mounts.parseMounts(glued)[0].label, "isosnas")
+    var nothingBefore = 'Mount(0): on nas -> smb://nas/on/\n'
+    check("and one with nothing before the separator keeps every character",
+          Mounts.parseMounts(nothingBefore)[0].label, "on nas")
 
     // The host the label is measured against comes out of the URI's authority, which stops at the
     // first slash: a "@" or a ":" further along belongs to the path and is not a host or a port.
