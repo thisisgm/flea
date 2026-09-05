@@ -2252,7 +2252,7 @@ case_network() {
     # Remove on the place this session's own dialog added, which is the sequence the rail's own
     # write used to refuse forever: ui/NetworkDialog.qml appends through its own FileView, and
     # ui/NetworkPlaces.qml's never reloads, so the body it wrote back was the pre-Add snapshot. The
-    # write is derived from bookmarksText now, the text ui/Sidebar.qml reloads on that dialog's saved().
+    # write is derived from bookmarksText now, the text ui/shell.qml:158 has the rail reload on saved().
     click_rail_row 1 right
     settle
     [[ "$(ipc contextMenuEntries)" == "Rename|Remove" ]] \

@@ -3,8 +3,8 @@ import Quickshell
 import Quickshell.Io
 import "js/Mounts.js" as Mounts
 
-// The Network group's own Service, the OEM Dropbox panel's shape: gio and the saved places file
-// are reached only from here and the two components below. ui/Sidebar.qml only reads "entries".
+// The Network group's own Service, the OEM Dropbox panel's shape. Two of its jobs have their own
+// files: the live listing is ui/MountListing.qml's, the saved places file ui/NetworkPlaces.qml's.
 Item {
     id: root
 
@@ -60,7 +60,8 @@ Item {
         onLoadFailed: root.rebuild()
     }
 
-    // The five second "gio mount -l" poll is ui/MountListing.qml's; this Service only reads it.
+    // The five second "gio mount -l" poll is ui/MountListing.qml's: this Service reads its listing
+    // and asks for a re-read through pollMounts() below.
     MountListing {
         id: listing
         environment: root.gioEnvironment

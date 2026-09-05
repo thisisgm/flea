@@ -716,11 +716,11 @@ cut shipped as its own commit exactly so that no behaviour change could hide ins
 `ui/js/` whole and gained the suite every other file there has, `tests/js/errors.js`, which is
 what makes the move provable rather than merely asserted.
 
-`ui/NetworkMounts.qml` is 249 lines by `wc -l`, one under the soft budget, and it is the third cut of
+`ui/NetworkMounts.qml` is 250 lines by `wc -l`, exactly the soft budget, and it is the third cut of
 that class. It was 343 on its own branch and 400 on the 0.1.4 composition branch, over the same base:
 the two changes are additive to different halves of one file, so no resolution of that merge fitted the
 400 cap, which is a number no branch gate can see because neither branch is over it alone. Two whole
-subjects came out before the merge rather than inside it. `ui/MountListing.qml` is 83 lines and owns
+subjects came out before the merge rather than inside it. `ui/MountListing.qml` is 84 lines and owns
 the five second `gio mount -l` poll, its 10 s bound, the re-read queued mid-listing and the collector
 fallback; the Service keeps one `_mountListing` string and rebuilds on its `listed()` signal.
 `ui/NetworkPlaces.qml` is 64 lines and owns the bookmarks file: the write `FileView`, `rename()`,

@@ -2,7 +2,8 @@ import QtQuick
 import Quickshell.Io
 
 // The five second "gio mount -l" poll, lifted out of ui/NetworkMounts.qml whole so that file has
-// room in the 0.1.4 composition. Nothing else drives it: the Service reads "text" on "listed".
+// room in the 0.1.4 composition. The Service reads "text" when "listed" fires, and its own
+// pollMounts() is the only thing outside this file that calls poll().
 Item {
     id: root
 
