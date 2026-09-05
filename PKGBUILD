@@ -10,6 +10,8 @@ license=('MIT')
 # util-linux ships prlimit, which the thumbnail and archive sandboxes require alongside bubblewrap.
 depends=('bubblewrap' 'glib2' 'omarchy' 'quickshell' 'shared-mime-info' 'util-linux' 'xdg-utils')
 makedepends=('cargo')
+# check() runs the real sandboxed child, which shells to /usr/bin/python3 to reserve address space.
+checkdepends=('python')
 optdepends=('libarchive: archive listing and extraction'
             '7zip: 7z archive support'
             'imagemagick: image conversion'
