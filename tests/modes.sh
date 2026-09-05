@@ -20,6 +20,20 @@ check() {
   fi
 }
 
+# A handoff that spawns returns before its child has written anything, so the suite waits for the
+# child's own line instead of for a fixed time. A 0.2 s guess loses that race on a loaded box, and
+# losing it removes the sandbox out from under a handler that has not run yet. The wait is bounded
+# and gives up silently: the check that follows reads the same log and fails on the missing line.
+wait_for_line() {
+  local file="$1" pattern="$2" waited=0
+  while [ "$waited" -lt 200 ]; do
+    grep -q "$pattern" "$file" 2>/dev/null && return 0
+    waited=$((waited + 1))
+    sleep 0.05
+  done
+  return 1
+}
+
 # --version answers before any other mode, prints bare, and agrees with the crate it was built
 # from, so a stale binary beside a bumped Cargo.toml cannot report the new number.
 want=$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)
@@ -127,7 +141,9 @@ chmod +x "$D/failbin/gio"
 
 : > "$opened"
 # Quickshell hands flea --open a pipe and closes it, so a pipe is exactly what the handler must not inherit.
-PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1 | cat >/dev/null; sleep 0.2
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1 | cat >/dev/null
+# THP_enabled is the stub's last line, so waiting for it is waiting for the whole record.
+wait_for_line "$opened" '^THP_enabled'
 out=$(cat "$opened")
 check "--open hands the file to gio open" "1" "$(echo "$out" | grep -c "^ARGV open $D/file.txt$")"
 check "and gio is given the subcommand and the path and nothing else" "1" "$(echo "$out" | grep -c '^NARGS 2$')"
@@ -147,17 +163,20 @@ check "the launcher reported a pid at all" "1" "$([ -n "$launcher_pid" ] && echo
 check "and --open left no launcher behind" "1" "$(kill -0 "$launcher_pid" 2>/dev/null && echo 0 || echo 1)"
 
 : > "$opened"
-PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/linkfile" >/dev/null 2>&1; sleep 0.2
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/linkfile" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
 check "a symlink to a file is resolved to its target" "1" "$(grep -c "^ARGV open $D/file.txt$" "$opened")"
 
 # A leading dash and an embedded newline both survive canonicalization as one absolute argument.
 : > "$opened"; : > "$last_arg"
-PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/-dash.txt" >/dev/null 2>&1; sleep 0.2
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/-dash.txt" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
 check "a name starting with a dash is handed over absolute, so it is never read as a flag" \
   "$D/-dash.txt" "$(cat "$last_arg")"
 check "and it is still exactly two arguments" "1" "$(grep -c '^NARGS 2$' "$opened")"
 : > "$opened"; : > "$last_arg"
-PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/$newline_name" >/dev/null 2>&1; sleep 0.2
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/$newline_name" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
 check "a name with a newline in it arrives whole and unsplit" \
   "$D/$newline_name" "$(cat "$last_arg")"
 check "and it is still exactly two arguments too" "1" "$(grep -c '^NARGS 2$' "$opened")"
@@ -213,7 +232,10 @@ done
 printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nexec %s --open %s\n' "$PWD/$BIN" "$D/file.txt" > "$D/bin/qs"
 chmod +x "$D/bin/qs"
 : > "$opened"
-out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null; sleep 0.2)
+out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+# The sandbox is removed on the next line, so this wait is what keeps the stub from being deleted
+# out from under the chain that is still starting it.
+wait_for_line "$opened" '^THP_enabled'
 check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP_enabled:[[:space:]]*0')"
 check "and the opened program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"
 sandbox_remove "$D"
@@ -248,7 +270,8 @@ update-desktop-database "$T/data/applications" >/dev/null 2>&1
 env XDG_DATA_HOME="$T/data" XDG_CONFIG_HOME="$T/config" XDG_DATA_DIRS=/usr/share \
   PATH="$T/bin:/usr/bin:/bin" $BIN --open "$T/note.txt" >/dev/null 2>&1
 rc=$?
-sleep 0.5
+# The handler runs inside the terminal wrapper, so its own line arrives after gio has been reaped.
+wait_for_line "$terminal_log" '^HANDLER '
 check "a Terminal=true handler is reached at all" "1" "$(grep -c '^HANDLER ' "$terminal_log")"
 check "and it is run inside a terminal, which is the window the operator never saw" "1" \
   "$(grep -c '^TERMINAL ' "$terminal_log")"
