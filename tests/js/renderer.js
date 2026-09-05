@@ -1,7 +1,6 @@
 .import "../../ui/js/Renderer.js" as Renderer
 
-// ui/shell.qml's OpenGL retry, which only a real scene-graph failure raises: the guard and the argv are
-// driven here so a wrong one reds without one, and tests/ui.sh case_renderer drives the signal itself.
+// ui/shell.qml's OpenGL retry: its guard and its argv, driven without the scene-graph failure that raises it.
 
 // The argv as one string, so a wrong element and a wrong length both read as one difference.
 function command(backend, automatic, bin) {

@@ -108,14 +108,12 @@ check "a loader that can deliver Vulkan says nothing" "0" "$(echo "$out" | grep 
 out=$(env QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an explicit renderer is preserved" "1" "$(echo "$out" | grep -c '^RENDERER opengl$')"
 check "an explicit renderer cannot trigger fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC unset$')"
-# An exported-but-empty renderer is what a wrapper script's unset variable produces, and the tree
-# already rules that shape absent for WAYLAND_DISPLAY and DISPLAY above.
+# An exported-but-empty renderer is a wrapper script's unset variable, absent as WAYLAND_DISPLAY is.
 out=$(env QSG_RHI_BACKEND= WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an empty renderer is absent, not a choice" "1" "$(echo "$out" | grep -c '^RENDERER vulkan$')"
 check "and an empty renderer still permits the one fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC 1$')"
 
-# Issue #14: a loader that cannot deliver an instance SIGSEGVs Quickshell inside QRhi::create before
-# any scene-graph error can be raised, so the launcher must not name Vulkan to a shell it will crash.
+# Issue #14: a loader that cannot build an instance kills the shell before it can raise a scene-graph error.
 out=$(env VK_DRIVER_FILES=/nonexistent-flea-icd VK_ICD_FILENAMES=/nonexistent-flea-icd \
   WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an unusable Vulkan loader launches the shell on OpenGL" "1" "$(echo "$out" | grep -c '^RENDERER opengl$')"

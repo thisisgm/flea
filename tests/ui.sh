@@ -1855,8 +1855,7 @@ case_tabs() {
     kill_flea
 }
 
-# The one scene-graph failure this box can raise: Qt's GL backend with no EGL vendor file to load. A
-# broken Vulkan loader cannot stand in, because QVulkanInstance fails first and Quickshell SIGSEGVs.
+# The one scene-graph failure found to be raisable here: Qt's GL backend with no EGL vendor file to load.
 case_renderer() {
     kill_flea
     local dir="$fixture_root/renderer"

@@ -1,4 +1,4 @@
-// Quickshell hands QRhi::create a QVulkanInstance it never created, and an unusable loader SIGSEGVs there.
+// Quickshell hands QRhi::create a QVulkanInstance it never created, which kills the shell rather than raising.
 use std::ffi::{c_void, CStr, OsStr};
 use std::os::raw::{c_char, c_int};
 use std::ptr::{null, null_mut};
@@ -158,7 +158,6 @@ mod tests {
         assert!(reason.contains("VK_KHR_flea_probe_extension_that_cannot_exist"), "{reason}");
     }
 
-    // The session decides which surface extension Qt will want, so the probe must ask for that one.
     // An exported-but-empty WAYLAND_DISPLAY is not a Wayland session, the rule paths::has_display() uses.
     #[test]
     fn the_surface_extension_follows_the_session() {

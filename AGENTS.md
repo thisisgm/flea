@@ -67,8 +67,10 @@ this tree yet: `flea --tui` says so and exits 2.
    `ui/js/Renderer.js` is the decision and the argv, driven by `tests/js/renderer.js`; the signal
    reaching that decision is driven by `tests/ui.sh renderer`, which starts Qt's GL backend with
    no EGL vendor file to load. That is the one scene-graph failure found to be raisable on this
-   box: a broken Vulkan loader cannot stand in for it, because it SIGSEGVs instead, which is the
-   whole of issue #14. `view.Window.window` is null while `ui/shell.qml` loads and holds the
+   box: a broken Vulkan loader cannot stand in for it, because the shell dies first, which is the
+   whole of issue #14. Measured here with every ICD hidden, `qs` warns `No QVulkanInstance set for
+   QQuickWindow` and exits 255 without raising anything; the SIGSEGV is issue #14's own report on a
+   QEMU Virtio GPU. `view.Window.window` is null while `ui/shell.qml` loads and holds the
    `QQuickWindow` once it exists, and that same `Connections` was measured receiving
    `sceneGraphInitialized`, the signal Qt raises at the phase `sceneGraphError` replaces. What no
    test reaches is the positive arm, a Vulkan failure leaving `QVulkanInstance` valid and failing
