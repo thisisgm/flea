@@ -29,10 +29,11 @@ Item {
         id: opener
         // A dropped request is the app being busy, not a failure, so it takes the plain role.
         onBusy: function (path) { pane.message("Still opening the last file; try again in a moment.", false) }
-        onFailed: function (path) { pane.message("That file could not be opened; check that it still exists.", true) }
+        // canonicalize proved the path before every failure src/open.rs and src/terminal.rs report under their one status, so neither sentence below names a cause.
+        onFailed: function (path) { pane.message("That file could not be opened; nothing on this system took it.", true) }
         onIsDirectory: function (path) { pane.open(path) }
         onTerminalBusy: function (path) { pane.message("Still opening the last terminal; try again in a moment.", false) }
-        onTerminalFailed: function (path) { pane.message("That directory could not be opened in a terminal; check that it still exists.", true) }
+        onTerminalFailed: function (path) { pane.message("That directory could not be opened in a terminal; nothing on this system took it.", true) }
     }
 
     Flea.ShareLink {

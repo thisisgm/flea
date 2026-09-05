@@ -843,7 +843,7 @@ case_openterminal() {
     chmod +x "$dir/bin/flea"
     : > "$ran"
     hotkey --global ctrl t flea >/dev/null
-    wait_message "That directory could not be opened in a terminal; check that it still exists."
+    wait_message "That directory could not be opened in a terminal; nothing on this system took it."
     shot openterminal-failed
     [[ ! -s "$ran" ]] || fail "openterminal: the failing stub still logged $(cat "$ran")"
 
