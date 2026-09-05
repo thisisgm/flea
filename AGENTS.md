@@ -332,7 +332,10 @@ value a hand edit or a newer Flea left in `ui.json` has already fallen back to i
 the time `ui/ViewState.qml`'s `FileView` reads it. Without that step the two front ends answer one
 file two ways, because the window's read is a `JSON.parse` and applies no rule of its own. `settle`
 is also where 0.1.3's `view.json` is migrated, since `read()` falls back to it while `ui.json` is
-absent. A launch with neither file writes nothing, the way a first run always has.
+absent. A launch with neither file writes nothing, the way a first run always has, and neither does
+one whose `ui.json` already reads back as exactly what a rewrite would render: the temp, the
+`sync_all` and the rename measure 8 to 10 ms a call on this box against a bare read's 1.2 ms, which
+is real money against a 77 ms startup, so the settled case costs a read and stops.
 
 **A refused write reaches the operator.** `ui/ViewState.qml` records a patch as stored only when
 `flea --ui-state` exits 0. `ui/js/UiState.js` holds that bookkeeping, and `ui/PaneWire.qml` turns
