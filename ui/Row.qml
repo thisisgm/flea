@@ -22,6 +22,8 @@ Item {
     property bool dropTarget: false
     // Whether that drop would copy, so the label can say which; the status bar says the rest.
     property bool dropCopying: false
+    // The first d of the pair landed and the second would take this row; List.qml's delegate binds it through Trash.targeted.
+    property bool armed: false
     // A directory's recursive size, resolved by index in List.qml the same way thumb already is; null until it arrives.
     property var dirSize: null
     // Non-empty while a search or filter is narrowing the listing: the run to paint, and the switch to the search column set.
@@ -51,7 +53,7 @@ Item {
     readonly property bool kindShown: !root.searching && root.cols.kind
 
     // A lifted row is the cursor, the pointer, or a selection member; all three take the same fill treatment, per qui Minimal.
-    property bool lifted: root.cursor || root.hovered || root.selected || root.dropTarget
+    property bool lifted: root.cursor || root.hovered || root.selected || root.dropTarget || root.armed
     // The zebra is the OEM normal fill, which is the lightest rung of the same ladder.
     property bool alternate: false
     // The OEM derives its secondary ink from the foreground rather than reading a separate palette key.
@@ -82,6 +84,23 @@ Item {
         width: Theme.spacing.hairline * 2
         height: parent.height
         color: Theme.color.accent
+    }
+
+    // The armed frame, the drop frame's shape in the error role: shows what the second d will
+    // remove, for as long as the pair stays armed.
+    Rectangle {
+        visible: root.armed
+        anchors.fill: parent
+        color: Util.alpha(Theme.color.error, Style.hoverFillAlpha)
+        border.width: Theme.spacing.hairline
+        border.color: Theme.color.error
+    }
+
+    Rectangle {
+        visible: root.armed
+        width: Theme.spacing.hairline * 2
+        height: parent.height
+        color: Theme.color.error
     }
 
     // The drop frame: the board's hairline of accent inset in the row over a faint accent wash, the

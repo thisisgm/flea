@@ -24,11 +24,16 @@ function pane() {
         lockedMode: 0o40750,
         filterQuery: "scr",
         filterTyping: true,
+        pendingSelect: "",
+        pendingCursor: -1,
         cleared: 0,
         said: [],
-        sent: []
+        sent: [],
+        placed: []
     }
     p.clearSelection = function () { p.cleared += 1 }
+    p.setCursor = function (index) { p.cursorIndex = index; p.placed.push(index) }
+    p.join = function (base, name) { return base + "/" + name }
     p.message = function (text, isError) { p.said.push(text) }
     p.listArea = { primeSettle: function () {} }
     p.backend = {
@@ -75,6 +80,50 @@ function run(check) {
     check("and leaves the cursor where it was", busy.cursorIndex, 7)
     check("and leaves the locked mode standing too", busy.lockedMode, 0o40750)
     check("and leaves an open rename alone, because the listing did not change", busy.renamingIndex, 4)
+
+    // A refresh re-reads the directory under the listing rather than opening another one, so the
+    // rows already drawn, their count and the cursor all stand until the new ones land: nothing
+    // paints an empty frame, and the cursor's index is what the reply puts the cursor back on.
+    var kept = pane()
+    Nav.refresh(kept, "")
+    check("a refresh leaves the rows, the count and the cursor standing",
+          kept.rows.length + "|" + kept.total + "|" + kept.held + "|" + kept.cursorIndex, "1|40|10|7")
+    check("and remembers the cursor's index for the rows reply", kept.pendingCursor, 7)
+    check("and re-reads the directory it is in", kept.sent.join(","), "list /home/gm,fsinfo")
+    check("but still forgets what is indexed by row, because the rows are about to be renumbered",
+          kept.thumbState + "|" + kept.dirSizeState + "|" + kept.trashArmedAt + "|" + kept.cleared,
+          "[object Object]|[object Object]|0|1")
+
+    // A refresh that names a path reveals that row instead, the way rename and new folder do.
+    var named = pane()
+    Nav.refresh(named, "/home/gm/new.txt")
+    check("a refresh with a target reveals the target rather than the old index",
+          named.pendingSelect + "|" + named.pendingCursor, "/home/gm/new.txt|-1")
+
+    // The rows reply applies the index once, clamped to the listing that came back: trashing the
+    // last row leaves the cursor on the new last row, not one past the end.
+    var landed = pane()
+    landed.pendingCursor = 7
+    landed.total = 5
+    Nav.applyPendingSelect(landed)
+    check("the rows reply puts the cursor back, clamped to the rows that came back",
+          landed.placed.join(","), "4")
+    check("and the pending cursor is one shot", landed.pendingCursor, -1)
+    var empty = pane()
+    empty.pendingCursor = 0
+    empty.total = 0
+    Nav.applyPendingSelect(empty)
+    check("an emptied directory asks for row 0 and no lower", empty.placed.join(","), "0")
+    var idle = pane()
+    Nav.applyPendingSelect(idle)
+    check("a reply with nothing pending moves the cursor nowhere", idle.placed.length, 0)
+
+    // A navigation is not a re-read, so a pending cursor a failed refresh left behind must not
+    // land on some row of the next directory opened.
+    var moved = pane()
+    moved.pendingCursor = 7
+    Nav.openWithoutHistory(moved, "/home/gm/Work")
+    check("a new listing forgets a pending cursor with everything else", moved.pendingCursor, -1)
 
     // A keyboard rename reveals the row it renamed; one the pointer committed keeps the row the
     // click chose instead, because a write operation targets the selection ahead of the cursor.

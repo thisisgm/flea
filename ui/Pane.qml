@@ -11,6 +11,7 @@ import "js/Ops.js" as Ops
 import "js/Selection.js" as Selection
 import "js/Sort.js" as Sort
 import "js/Thumbs.js" as Thumbs
+import "js/Trash.js" as Trash
 
 FocusScope {
     id: root
@@ -20,6 +21,8 @@ FocusScope {
     property string path: ""
     // Set once by shell.qml from FLEA_SELECT; applied to the first `rows` this pane receives, then forgotten.
     property string pendingSelect: ""
+    // The listing row the next rows reply puts the cursor back on, or -1; ui/js/Nav.js's refresh sets it so a re-read lands where the operator was, not at the top.
+    property int pendingCursor: -1
     property int total: 0
     property int cursorIndex: 0
     property string listingState: "loading"
@@ -27,8 +30,9 @@ FocusScope {
     property int lockedMode: 0
     // Off by default: dotfiles stay out of every listing until the context menu or "." turns them on.
     property bool showHidden: false
-    // When the first d of the dd pair landed; ui/js/Focus.js reads it and Nav's reset clears it.
+    // When the first d of the dd pair landed; ui/js/Focus.js reads it, Nav's reset clears it, and the rows it names tint until the clock below runs out.
     property double trashArmedAt: 0
+    Timer { interval: Trash.ARM_MS; running: root.trashArmedAt > 0; onTriggered: root.trashArmedAt = 0 }
     // "" off, "typing" while the query line has the keyboard, "results" once a walk was asked for; ui/js/Search.js owns every transition.
     property string searchMode: ""
     // Where the search was started from, which a home-wide walk leaves behind; see ui/js/Search.js.

@@ -51,4 +51,12 @@ function run(check) {
     picked.trashArmedAt = Date.now()
     Trash.arm(picked)
     check("the pair trashes the selection when there is one", picked.trashedIdx.join(","), "1,4")
+
+    // The rows the views tint while the pair is armed are exactly the rows the second d would take.
+    var bare = { cursorIndex: 3, selectionCount: function () { return 0 }, isSelected: function (i) { return false } }
+    check("with nothing selected the cursor row is the one marked",
+          Trash.targeted(bare, 3) + "|" + Trash.targeted(bare, 2), "true|false")
+    var chosen = { cursorIndex: 3, selectionCount: function () { return 2 }, isSelected: function (i) { return i === 1 || i === 4 } }
+    check("with a selection its members are marked and the cursor row is not",
+          Trash.targeted(chosen, 1) + "|" + Trash.targeted(chosen, 4) + "|" + Trash.targeted(chosen, 3), "true|true|false")
 }
