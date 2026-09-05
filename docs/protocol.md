@@ -362,10 +362,14 @@ loss, and the check-then-rename alternative leaves a window in which another pro
 target. Renaming a file to the name it already has is not an error and is not work: it answers `ok` and
 records nothing to undo.
 
-**A rename that cannot remove its source answers `rename-kept`.** Two measured mounts cannot serve
+**A rename that cannot remove a directory source answers `rename-kept`.** Two measured mounts cannot serve
 `RENAME_NOREPLACE`: an `fuse.rclone` directory answers `EINVAL`, and a path under a
 `/run/user/*/gvfs/dav:` WebDAV mount answers `EIO`. On those, the backend builds the new name through the same exclusive copy primitives every
-other write uses and removes the source only once that copy is complete. When the removal fails the
+other write uses and removes the source only once that copy is complete. A file source is removed
+atomically, so a removal that fails there leaves the source whole: the copy is taken back and the
+request answers a plain `rename` error, which is still the answer if taking it back also fails, with
+the message saying so. A directory source is removed with `remove_dir_all`, which
+stops at its first failure, so the
 copy is kept, and the request answers an `error` line whose `where` is `rename-kept`, whose `path` is
 the source, and whose `msg` is the removal's own message; the target is on neither field. Neither
 direction journals the kept copy, so no `undo` removes it: the removal can stop partway, and one error

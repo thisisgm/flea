@@ -635,6 +635,10 @@ number.
 `src/backend/ops.rs` split to `src/backend/renamecompat.rs` at 455: composing PR 35's safe rclone
 rename into the release tree put the rename exception over the 400-line hard cap, so the exception
 and its tests moved to the module that already owned classifying which rename failures need it.
+Both sides re-derived with `wc -l` on the files after that split and its review rounds:
+`src/backend/ops.rs` is 305 and `src/backend/renamecompat.rs` is 382, so both are under the 400 hard
+cap and both are over the 250 soft budget, which `tools/flea-file-budget` warns about and does not
+fail on.
 
 **Every count in this section is a SNAPSHOT, not a live figure, and eleven of the eighteen had
 drifted by 2026-09-01: `src/heap.rs` was claimed at 15 and is 100, `ui/Row.qml` at 166 and is 310,
@@ -2536,9 +2540,20 @@ copy's byte sink is discarded, and with no way to cancel, because its flag is a 
 nothing can set; the loop is the only writer of stdout, so the application is frozen rather than
 slow for the whole transfer. The copied tree also lands with new modification times, since the crate
 has no dependencies and the copy sets none, so a Date Modified column or sort shows when the copy
-ran rather than the file's own history. This is accepted deliberately: the alternative measured on
-real rclone 1.75 was a rename that destroys a raced destination, and a frozen window beats lost
-data. `trash` shells to `gio` twice for the list diff plus once to trash; `duplicate` may copy a
+ran rather than the file's own history. **The alternative to this freeze is not data loss, and any
+sentence saying it is has been wrong.** `duplicate` and `transfer` already spawn and report through
+`Event::Op`, and `rename` could do the same while still building its target through the exclusive
+copy primitives: spawning the copy and refusing to replace a raced destination are independent
+choices, so taking the first has never required giving up the second. Spawning was not taken here
+because a spawn that answers this complaint needs the progress and the cancel the inline copy throws
+away, which turns `rename` from answer-once into started, progress and done and puts it in the
+one-at-a-time `running` slot `do_rename` has never claimed. That is a wire-contract change on the eve
+of a release, on the one unit that has already taken five review rounds, one of which produced a
+data-loss defect, and hard rule 6 would then want every state of that new asynchronous path
+exercised live. Say the cost plainly rather than burying it: for a large rclone
+directory this build is worse than the one before it, which failed the rename with a sentence
+instead of hanging the window. Spawning the copy is the first item of the next release.
+`trash` shells to `gio` twice for the list diff plus once to trash; `duplicate` may copy a
 whole tree; a `transfer` is unbounded. Those three send their results back through `Event::Op`,
 joined onto the loop's receiver exactly the way the thumbnail pool's `Event::Thumb` already is, so
 the loop stays the only writer of stdout.
@@ -2553,12 +2568,20 @@ as `fuse.rclone` in `/proc/self/mountinfo`, and GVFS returns `EIO` for a rename 
 proven to replace even a non-empty target. `renamecompat::rename_path` instead builds the target
 through the existing exclusive copy primitives, removes the source only after the copy completes,
 and uses the same path for undo. A copy failure removes only the partial target this operation
-created and reports a cleanup failure rather than hiding it; a source-removal failure keeps the
-complete target copy and reports the error. Every other filesystem, error and `rename_noreplace`
-caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
+created. **When that removal itself fails, nothing tells the operator what was left behind.** The
+error answers `where` of `rename`, which `ui/js/Errors.js` words as one of its two ordinary rename
+sentences, neither of which mentions a leftover, and which `ui/PaneWire.qml` does not re-read the
+listing on, so the partial tree sits on disk unmentioned until some later listing shows it. The
+honest repair is a distinct wire kind, deferred beside the sibling case R14 already recorded rather
+than added at round six. A source-removal failure answers by the kind of the source: `remove_file`
+is atomic, so a file source that will not go is provably whole and the copy is removed again and the
+error answers `rename`, and if taking the copy back also fails the copy stays and the message says
+so; `remove_dir_all` stops at its first failure, so a directory source keeps the complete target
+copy. Every other filesystem,
+error and `rename_noreplace` caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
-That source-removal failure answers `rename-kept` rather than `rename`, because the rename half
-succeeded. The error line names the source in `path` and carries the removal's own message in `msg`;
+That kept directory copy answers `rename-kept` rather than `rename`, because the rename half
+succeeded and only a directory source can be left a remnant. The error line names the source in `path` and carries the removal's own message in `msg`;
 neither field names the target. `ops::rename` records nothing for it, because only its `Ok` arm
 carries a step list, and `do_undo` never pushes at all, so no undo in either direction removes the
 kept copy: `remove_any` answers with one error and no account of how far `remove_dir_all` got, so the
