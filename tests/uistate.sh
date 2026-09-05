@@ -141,6 +141,23 @@ env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
     XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
 check "a second launch does not migrate again" "$before_migrate" "$(cat "$UI")"
 
+# The window reads ui.json with its own FileView, so the launch settles the file through the schema
+# first: a value this Flea refuses must never be what the first paint draws, and the two front ends
+# must answer the same question the same way.
+fresh
+mkdir -p "$STATE/flea"
+printf '{"columns":["name","size","owner"],"density":"compact","fromANewerFlea":{"a":1}}\n' > "$UI"
+env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+    XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
+check "the launch settles a refused value out of the file" "0" "$(grep -c 'owner' "$UI")"
+check "the settled file carries the shipped columns instead" "1" "$(tr -d ' \n' < "$UI" | grep -c '"columns":\["name","size","date"\]')"
+check "the settle leaves a good key beside it alone" "1" "$(grep -c '"density": "compact"' "$UI")"
+check "the settle keeps a newer Flea's own key" "1" "$(grep -c 'fromANewerFlea' "$UI")"
+settled=$(cat "$UI")
+env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+    XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
+check "a second launch settles to the same bytes" "$settled" "$(cat "$UI")"
+
 # A launch with nothing to migrate leaves ~/.local/state alone, the way a first run always has.
 fresh
 env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \

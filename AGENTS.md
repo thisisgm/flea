@@ -326,6 +326,22 @@ and prints the result. The window reaches it from `ui/ViewState.qml` through a `
 terminal interface, when it is built, submits patches for `view`, `hidden` and `sort` only, because
 scale, menus and places are the window's.
 
+**The window's read is the settled file, and not a raw one.** `main()` calls `Store::settle` before
+it hands off to `qs`: an empty patch through the same lock and the same per-key validation, so a
+value a hand edit or a newer Flea left in `ui.json` has already fallen back to its own default by
+the time `ui/ViewState.qml`'s `FileView` reads it. Without that step the two front ends answer one
+file two ways, because the window's read is a `JSON.parse` and applies no rule of its own. `settle`
+is also where 0.1.3's `view.json` is migrated, since `read()` falls back to it while `ui.json` is
+absent. A launch with neither file writes nothing, the way a first run always has.
+
+**A refused write reaches the operator.** `ui/ViewState.qml` records a patch as stored only when
+`flea --ui-state` exits 0. `ui/js/UiState.js` holds that bookkeeping, and `ui/PaneWire.qml` turns
+the failure into the status bar's one transient sentence through `ui/js/Errors.js`, the same slot
+every other write operation reports in. The status alone is read and not the child's stderr,
+because a `Process`'s own `onExited` can race its `StdioCollector`'s text. A patch that was refused
+is attempted again the next time the same toggle is made, rather than short-circuited by a book
+that already believed it.
+
 **The lock is the sibling `ui.json.lock`.** `File::lock()` is `flock(2)` here: advisory, exclusive
 and cross-process, held across the re-read, the per-key validation, the caller-key merge, the temp
 write and the rename, so a second Flea cannot land between this one's read and its write. Measured
@@ -355,8 +371,8 @@ anything but the old document or the new one.
 `uiScale` to `$XDG_CONFIG_HOME/flea/view.json`, so the handoff's "0.1.3 stored nothing" is wrong.
 `hiddenCols` named what was HIDDEN and `columns` names what is SHOWN, so the migration inverts it;
 `uiScale` is dropped on the operator's ruling, because 0.1.4 stores an Omarchy stop and never a free
-multiplier. `main()` runs the migration once before it hands off to `qs`, so the first paint after an
-upgrade already reads the migrated columns. A `ui.json` that exists is never re-migrated, and
+multiplier. The migration rides `settle` above, so the first paint after an upgrade already reads
+the migrated columns. A `ui.json` that exists means `view.json` is never read again, and
 `view.json` is never written again.
 
 ## Modes
@@ -485,6 +501,9 @@ huge pages" below for what it is worth and what it cost.
   `thumb` and `thumbcancel` out and `thumbed` in alongside `list`, `window` and `sort`.
 - `ui/ViewState.qml` reads `ui.json` once at startup with a blocking `FileView` and writes nothing
   itself: every change goes back out through `flea --ui-state`, see "The state file".
+- `ui/js/UiState.js` is `ViewState`'s writer bookkeeping and nothing else: what the state file is
+  known to hold, what the running writer carries and what waits behind it. It imports no QML, so
+  `tests/js/uistate.js` can redden on a mutation of the rule that only a zero exit proves a save.
 - `ui/Theme.qml` owns the singleton palette, type and spacing tokens from the Omarchy
   theme plus the user override.
 - `ui/Pane.qml` owns one directory view, its integer model, held window, actions, the

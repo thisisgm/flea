@@ -180,10 +180,11 @@ fn main() {
     }
     match paths::ui_dir() {
         Some(ui) => {
-            // Before the window, so the first paint reads the migrated state and not the defaults.
-            match uistore::Store::user().and_then(|store| store.migrate()) {
+            // Before the window, so the first paint reads a validated state file and not whatever
+            // a hand edit or a newer Flea left in it, see AGENTS.md "The state file".
+            match uistore::Store::user().and_then(|store| store.settle()) {
                 Ok(()) => {}
-                Err(e) => eprintln!("flea: the 0.1.3 view state was not migrated ({})", e),
+                Err(e) => eprintln!("flea: the view state was not settled ({})", e),
             }
             exit(gui::exec_qs(&ui, open_path.as_deref(), select_path.as_deref()))
         }

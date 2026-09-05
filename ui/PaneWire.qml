@@ -275,4 +275,12 @@ Item {
         }
     }
 
+    // flea --ui-state is a reply from outside the window too. A refused patch, or a state file it
+    // could not write, means the change is on screen and the file does not have it; nothing else
+    // would ever say so, because the window's own read is taken once before the first frame.
+    Connections {
+        target: ViewState
+        function onSaveFailed() { pane.message(Errors.sentence("state", ""), true) }
+    }
+
 }

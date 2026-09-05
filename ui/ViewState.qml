@@ -2,11 +2,14 @@ pragma Singleton
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "js/UiState.js" as UiState
 
 // The per-user state that outlives a window, `~/.local/state/flea/ui.json`. Read once here with a
 // blocking FileView so the first paint already has it, and never written from QML: every change
 // goes back out through `flea --ui-state`, the one Rust path that takes the lock, validates each
-// key, merges the caller's and renames a temp into place. See AGENTS.md "The state file".
+// key, merges the caller's and renames a temp into place. The file this reads has already been
+// through that same validation, because main() settles it before the window. See AGENTS.md "The
+// state file".
 QtObject {
     id: root
 
@@ -14,7 +17,7 @@ QtObject {
     property var state: ({})
 
     // Mirrors "columns" in src/uischema.rs, and is the only default this front end needs before the
-    // first frame; the Rust side owns every other one and answers with the whole shape.
+    // first frame: it is what a first launch draws, when there is no file to settle and none to read.
     readonly property var defaultColumns: ["name", "size", "date"]
 
     // ui.json names what is SHOWN. ui/Header.qml, ui/Row.qml and ui/ContextMenu.qml all ask the
@@ -46,25 +49,23 @@ QtObject {
         root.save()
     }
 
-    // What the state file already holds, so a save that would change nothing writes nothing:
-    // ui/shell.qml's scale step calls save() too and the state file carries no scale.
-    property string saved: ""
-    property string pending: ""
+    // A patch flea refused, or a state file it could not write. The pane turns it into the status
+    // bar's one sentence: the change is on screen and the file does not have it.
+    signal saveFailed()
+
+    // ui/js/UiState.js's book: what the state file holds, what the writer carries, what waits behind
+    // it. A save that would change nothing writes nothing, because ui/shell.qml's scale step calls
+    // save() too and the state file carries no scale.
+    property var writeBook: UiState.book("")
 
     function save() {
-        var patch = JSON.stringify({ columns: root.columns })
-        if (patch === root.saved)
-            return
-        root.saved = patch
-        // One writer at a time, and the newest patch waits rather than being dropped on the floor.
-        if (patcher.running)
-            root.pending = patch
-        else
-            root.run(patch)
+        var next = UiState.asked(root.writeBook, JSON.stringify({ columns: root.columns }))
+        root.writeBook = next
+        if (next.start.length > 0)
+            root.run(next.start)
     }
 
     function run(patch) {
-        root.pending = ""
         patcher.command = [Quickshell.env("FLEA_BIN") || "flea", "--ui-state", patch]
         patcher.running = true
     }
@@ -82,7 +83,7 @@ QtObject {
         } catch (e) {
             // A file this cannot read is the update path's problem, and it answers with the defaults.
         }
-        root.saved = JSON.stringify({ columns: root.columns })
+        root.writeBook = UiState.book(JSON.stringify({ columns: root.columns }))
     }
 
     // blockLoading, because the first list draws from this: an async read would paint one column
@@ -98,6 +99,13 @@ QtObject {
 
     property var writer: Process {
         id: patcher
-        onExited: if (root.pending.length > 0) root.run(root.pending)
+        onExited: function (exitCode, exitStatus) {
+            var next = UiState.exited(root.writeBook, exitCode)
+            root.writeBook = next
+            if (next.failed)
+                root.saveFailed()
+            if (next.start.length > 0)
+                root.run(next.start)
+        }
     }
 }

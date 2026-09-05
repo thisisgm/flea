@@ -78,10 +78,13 @@ impl Store {
         Ok(next)
     }
 
-    // Once, before the window: 0.1.3's view.json becomes ui.json so the first paint reads the
-    // migrated columns instead of the shipped defaults. A file already here is never re-migrated.
-    pub fn migrate(&self) -> Result<(), String> {
-        if fs::symlink_metadata(&self.file).is_ok() || fs::symlink_metadata(&self.legacy).is_err() {
+    // Before the window, because the window reads this file with its own FileView and applies no
+    // schema of its own: an empty patch rewrites whatever is here through the same per-key
+    // validation a patch gets, so a refused value cannot be what the first paint draws. It is also
+    // where 0.1.3's view.json becomes ui.json, since read() falls back to it while ui.json is
+    // absent, and a ui.json that exists means view.json is never read again.
+    pub fn settle(&self) -> Result<(), String> {
+        if fs::symlink_metadata(&self.file).is_err() && fs::symlink_metadata(&self.legacy).is_err() {
             return Ok(());
         }
         self.update(&Json::Obj(Vec::new())).map(|_| ())
@@ -216,21 +219,42 @@ mod tests {
     fn the_migration_runs_once_and_only_when_there_is_something_to_migrate() {
         let d = TestDir::new("uistore-migrate-once");
         let s = store(&d);
-        s.migrate().expect("nothing to migrate");
+        s.settle().expect("nothing to migrate");
         assert!(!s.file().exists(), "no view.json means no state file is seeded");
         fs::create_dir_all(d.join("config").join("flea")).expect("config dir");
         fs::write(s.legacy(), r#"{"hiddenCols":["kind"],"uiScale":1.4}"#).expect("write");
-        s.migrate().expect("migrate");
+        s.settle().expect("migrate");
         let migrated = s.read();
         let cols: Vec<&str> = migrated.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
         assert_eq!(cols, ["name", "mode", "size", "date"]);
         assert!(!fs::read_to_string(s.file()).expect("state file").contains("uiScale"));
         // A second run must not re-derive over what the user has since changed.
         s.update(&patch(r#"{"columns":["name"]}"#)).expect("user change");
-        s.migrate().expect("second migrate");
+        s.settle().expect("second settle");
         let after = s.read();
         let kept: Vec<&str> = after.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(kept, ["name"], "the second migrate must be a no-op");
+        assert_eq!(kept, ["name"], "the second settle must not re-derive from view.json");
+    }
+
+    // The window applies no schema of its own, so what settle leaves on disk is what the first paint
+    // reads: a value this Flea refuses has to be gone before the FileView ever sees it.
+    #[test]
+    fn a_settle_rewrites_a_refused_value_out_of_the_file_and_keeps_its_neighbours() {
+        let d = TestDir::new("uistore-settle");
+        let s = store(&d);
+        fs::create_dir_all(d.join("state").join("flea")).expect("state dir");
+        fs::write(s.file(), r#"{"columns":["name","size","owner"],"density":"compact","fromANewerFlea":{"a":1}}"#).expect("write");
+        s.settle().expect("settle");
+        let body = fs::read_to_string(s.file()).expect("read back");
+        assert!(!body.contains("owner"), "the refused column must not survive the settle: {}", body);
+        let stored = jsondoc::parse(&body).expect("valid JSON on disk");
+        let cols: Vec<&str> = stored.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
+        assert_eq!(cols, ["name", "size", "date"], "the refused array falls back to the shipped one");
+        assert_eq!(stored.get("density").and_then(Json::as_str), Some("compact"), "a good key beside it stands");
+        assert!(stored.get("fromANewerFlea").is_some(), "a newer Flea's own key still survives");
+        let settled = fs::read_to_string(s.file()).expect("settled");
+        s.settle().expect("second settle");
+        assert_eq!(fs::read_to_string(s.file()).expect("again"), settled, "a settled file settles to itself");
     }
 
     #[test]

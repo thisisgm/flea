@@ -21,6 +21,10 @@ function run(check) {
     check("a read failure says the backend stopped",
           Errors.sentence("read", "EOF"),
           "The backend stopped responding; reopen Flea and try again.")
+    // The state file's own refusal: the change is still on screen, so the sentence says what did not last.
+    check("a refused ui.json write says the setting did not last",
+          Errors.sentence("state", ""),
+          "That setting could not be saved.")
     check("an unknown origin falls back rather than leaking it",
           Errors.sentence("whatever", "/home/gm/secret/path"),
           "That action could not be completed; try again.")
