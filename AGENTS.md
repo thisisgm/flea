@@ -363,9 +363,13 @@ It is one key and not two, so there is nowhere for a free number to be stored.
 
 **The write is a temp plus a rename, never a truncation**, created at mode 0600 in the `open()` call
 inside a directory created at 0700, and a symbolic link at either the file or the lock is refused
-rather than written through. Proven by holding an fd open across an update and reading the old bytes
-back through it, and by a sweep of 120 `SIGKILL`s during the write, none of which left the file as
-anything but the old document or the new one.
+rather than written through. The direct proof is `the_write_replaces_the_file_rather_than_truncating_it`,
+which holds an fd open across an update, reads the old bytes back through it and compares inodes. The
+sweep beside it fires a `SIGKILL` 1 to 9 ms into each of 120 rounds and lands on a live process in 88
+to 102 of them, measured across nine sweeps on this box; no round of the 120 has ever left the file as
+anything but the old document or the new one. The suite prints the count it achieved and asserts only
+a fifth of the rounds, because a faster box kills fewer of them: at a 15 ms budget the same sweep
+killed 3 of 120, which is what the old floor of one kill was letting "120 SIGKILL rounds" be read off.
 
 **0.1.3 did store something, and it is migrated.** `ui/ViewState.qml` wrote `hiddenCols` and
 `uiScale` to `$XDG_CONFIG_HOME/flea/view.json`, so the handoff's "0.1.3 stored nothing" is wrong.
@@ -721,10 +725,13 @@ beneath it, which is why this one states the failure rather than repeating the i
 `src/backend/proto.rs` was 241 lines when this was written, under both budgets: 71 are the wire types,
 the request dispatch and the four one-line responses, the other 170 the test module. It has
 been split twice, each time at the seam that leaves each file a single job. **At 399 of the
-400 hard cap** `src/json.rs` took the whole of this tree's JSON, the field scanner as well
-as the escaper: the scanner is protocol-agnostic by construction, the decoding half of the
+400 hard cap** `src/json.rs` took the whole of what this tree's JSON then was, the field scanner as
+well as the escaper: the scanner is protocol-agnostic by construction, the decoding half of the
 encoder already living there, and the same mutations still redden the four tests that moved
-with it. **At 489, after the dirsize and Kind wave pushed it through the cap**, the rows
+with it. **That is no longer the whole of this tree's JSON**: the state file needed a whole-document
+type, so `src/jsondoc.rs` was written beside it and `json.rs` kept the one-line wire scanner alone,
+which is what its own header comment and the module map at "Module map" both now say. **At 489,
+after the dirsize and Kind wave pushed it through the cap**, the rows
 serialiser moved out to `src/backend/rows.rs`: every other response is one `format!` line,
 and the one that loops, allocates and owns the Kind dictionary was the file's whole growth.
 The old rule that every consumer imports the wire layer from `proto` alone went with it:
@@ -746,6 +753,13 @@ dictionary is its only caller.
 are the test module. It is one job in two directions: pull one
 named field out of one JSON line, and escape one string into one. Nothing here builds or
 validates a document, because the wire is one object per line and never anything else.
+
+`src/jsondoc.rs` is 398 lines by `wc -l`, over the soft budget and 2 lines under the hard cap, with
+its `#[cfg(test)]` at 318, so 317 lines of implementation and 81 of tests. It is one job in two
+directions, the same shape as `json.rs`: a whole JSON document in, and the same document back out
+with its own numbers written the way they were read. **Two lines of headroom is not headroom**: the
+next change here splits the parser off, the way `thumbargv` came out of `thumbspec`, and the seam is
+`parse` against the `Json` type plus `render`, which share only the type.
 
 `src/backend/thumbspec.rs` is 312 lines, over the soft budget and under the hard cap: 190 the
 discovery, the desktop-entry parser and `is_runnable`, the other 122 the test module. Those

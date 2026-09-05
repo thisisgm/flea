@@ -1870,7 +1870,7 @@ case_preview() {
     # seconds, not one: an omarchy-drive ipc round trip costs 190 to 565 ms measured on this box
     # (see the KB's ipc-timing-loops entry), so a one-second clip leaves the poll below one or two
     # samples to land the Playing state in, and this case caught that exact miss before the fix.
-    # Task 22's own Right/Left checks need headroom on both sides of a 5 s seek (Focus.js's
+    # Task 22's own Right/Left checks need headroom on both sides of a 5 s seek (PreviewKeys.js's
     # SEEK_MS) starting from whatever position the round trips above already spent: at three
     # seconds the clip had finished before the checks ran at all, and at eight, Right alone
     # landed within 5 s of the end, clamped to it, and stopped the player before Left ran.
@@ -1955,7 +1955,7 @@ PYEOF
     wait_preview_state playing
     shot preview-audio
 
-    # Left/Right seek 5 s (Focus.js's SEEK_MS), read before the pause/resume dance below spends
+    # Left/Right seek 5 s (PreviewKeys.js's SEEK_MS), read before the pause/resume dance below spends
     # its own several IPC round trips (190 to 565 ms each, see the clip_seconds comment above): an
     # eight-second clip still has room left once this runs, so both directions are unclamped.
     local pos_before pos_after

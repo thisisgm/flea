@@ -206,7 +206,14 @@ while [ "$round" -lt 120 ]; do
   fi
   round=$((round + 1))
 done
-check "the kill sweep actually killed something" "1" "$([ "$kills" -gt 0 ] && echo 1 || echo 0)"
+# A floor of one kill is what "120 SIGKILL rounds" was being read off, and a 15 ms budget kills 3 of
+# 120 and still clears it. The floor is a fifth of the rounds: a magnitude, not the 88 to 102 this
+# box actually reaches, because a faster box finishes more rounds inside the 1 to 9 ms budget and a
+# measured number in an assertion is a red gate waiting for the next machine. The count is printed,
+# so anything said about this sweep is read off the run and not off the floor.
+kill_floor=24
+echo "     the sweep killed $kills of 120 rounds, floor $kill_floor"
+check "the kill sweep killed a fifth of its rounds at least" "1" "$([ "$kills" -ge "$kill_floor" ] && echo 1 || echo 0)"
 check "no kill ever left a partial state file" "0" "$partial"
 
 sandbox_remove "$SANDBOX" || exit 1
