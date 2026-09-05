@@ -39,6 +39,20 @@ fi
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 flea_ui="$repo/ui"
 flea_bin="${FLEA_BIN:-$repo/target/release/flea}"
+# Sample input: let finished = Command::new("gio")
+# Every opener stub below is named from the product's own exec target, the same derivation
+# tests/modes.sh makes: a stub named by hand goes stale the day the target is renamed, and the run
+# then resolves the operator's real launcher instead. That is what left three editor pairs resident
+# on this box, and this suite is the one that did it.
+handoff_in() {
+    grep -ho 'Command::new("[a-z0-9-]\+")' "$1" | cut -d'"' -f2 | sort -u
+}
+open_handoff=$(handoff_in "$repo/src/open.rs")
+# Fail closed rather than write a stub nothing calls, which is the fall-through this prevents: a
+# suite that stubs the wrong name reports green having handed the operator's own launcher a file.
+case "$open_handoff" in
+    ''|*[!a-z0-9-]*) fail "src/open.rs must name exactly one handoff; got '$open_handoff'" ;;
+esac
 bench_dir="${FLEA_BENCH_DIR:-$FIXTURE_ROOT/flea-bench-btrfs}"
 # Every root sits under the fixture root and takes no override, because a root the environment can
 # replace is a root nothing checks: these four are deleted whole on every exit path.
@@ -644,13 +658,14 @@ case_open() {
     local opened="$dir/opened.log"
     : > "$opened"
     # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
-    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio. That name is the mount
+    # tool's own and is spelled by hand here; the stub's name is derived from src/open.rs instead.
     {
       printf '#!/bin/sh\n'
       printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
       printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
-    } > "$dir/bin/gio"
-    chmod +x "$dir/bin/gio"
+    } > "$dir/bin/$open_handoff"
+    chmod +x "$dir/bin/$open_handoff"
 
     local saved_path="$PATH"
     export PATH="$dir/bin:$PATH"
@@ -665,7 +680,7 @@ case_open() {
     wait_path "$dir/subdir"
     omarchy-drive wait ipc -p "$flea_ui" flea state empty --timeout 10 >/dev/null \
         || fail "open: subdir never reached its empty listing, state is $(ipc state)"
-    [[ ! -s "$opened" ]] || fail "l on a directory handed $(cat "$opened") to gio open"
+    [[ ! -s "$opened" ]] || fail "l on a directory handed $(cat "$opened") to $open_handoff open"
     [[ -z "$(ipc lastMessage)" ]] || fail "open: entering the empty subdir said $(ipc lastMessage)"
     key l >/dev/null
     settle
@@ -675,13 +690,13 @@ case_open() {
     [[ "$(ipc lastMessage)" == "Press / to filter this listing by name." ]] \
         || fail "open: unbound q said $(ipc lastMessage), so the empty-row l check has no negative control"
 
-    # Bare l enters a symlink to a directory without handing it to gio open.
+    # Bare l enters a symlink to a directory without handing it to the opener.
     key -k Backspace >/dev/null
     wait_path "$dir"
     seek_row_named linkdir
     key l >/dev/null
     wait_path "$dir/linkdir"
-    [[ ! -s "$opened" ]] || fail "l on a symlink directory handed $(cat "$opened") to gio open"
+    [[ ! -s "$opened" ]] || fail "l on a symlink directory handed $(cat "$opened") to $open_handoff open"
 
     # Return on a symlink to a directory keeps its existing navigation and opener coverage.
     key -k Backspace >/dev/null
@@ -689,7 +704,7 @@ case_open() {
     seek_row_named linkdir
     key -k Return >/dev/null
     wait_path "$dir/linkdir"
-    [[ ! -s "$opened" ]] || fail "Enter on a symlink directory handed $(cat "$opened") to gio open"
+    [[ ! -s "$opened" ]] || fail "Enter on a symlink directory handed $(cat "$opened") to $open_handoff open"
 
     # Return on a symlink to a file still resolves and opens its target.
     key -k Backspace >/dev/null
@@ -719,7 +734,7 @@ case_open() {
     shot open-broken
     [[ -n "$(ipc lastMessage)" ]] || fail "Enter on a broken symlink said nothing"
     [[ "$(ipc path)" == "$dir" ]] || fail "Enter on a broken symlink moved to $(ipc path)"
-    [[ "$(grep -c OPENED "$opened")" == "1" ]] || fail "a broken symlink was handed to gio open"
+    [[ "$(grep -c OPENED "$opened")" == "1" ]] || fail "a broken symlink was handed to $open_handoff open"
     [[ "$(ipc total)" == "7" ]] || fail "the listing did not survive Enter on a broken symlink"
 }
 
@@ -748,13 +763,14 @@ case_openterminal() {
     } > "$dir/bin/flea"
     chmod +x "$dir/bin/flea"
     # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
-    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio. That name is the mount
+    # tool's own and is spelled by hand here; the stub's name is derived from src/open.rs instead.
     {
       printf '#!/bin/sh\n'
       printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
       printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
-    } > "$dir/bin/gio"
-    chmod +x "$dir/bin/gio"
+    } > "$dir/bin/$open_handoff"
+    chmod +x "$dir/bin/$open_handoff"
 
     local saved_path="$PATH"
     export PATH="$dir/bin:$PATH"
@@ -812,7 +828,7 @@ case_openterminal() {
         sleep 0.05
     done
     grep -q "^OPENED $dir/target.txt$" "$opened" \
-        || fail "openterminal: a file open during a terminal launch never reached gio, log is $(cat "$opened")"
+        || fail "openterminal: a file open during a terminal launch never reached $open_handoff, log is $(cat "$opened")"
     wait_terminal "$ran" "$dir" "the terminal launched beside a file open"
     printf 'OPENTERMINAL crossed terminal=%q opened=%q\n' "$(cat "$ran")" "$(cat "$opened")"
     [[ "$(grep -c . "$opened")" == "1" ]] || fail "openterminal: the opener ran twice, log is $(cat "$opened")"
@@ -850,13 +866,14 @@ case_click() {
     local opened="$dir/opened.log"
     : > "$opened"
     # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
-    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio. That name is the mount
+    # tool's own and is spelled by hand here; the stub's name is derived from src/open.rs instead.
     {
       printf '#!/bin/sh\n'
       printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
       printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
-    } > "$dir/bin/gio"
-    chmod +x "$dir/bin/gio"
+    } > "$dir/bin/$open_handoff"
+    chmod +x "$dir/bin/$open_handoff"
 
     local saved_path="$PATH"
     export PATH="$dir/bin:$PATH"
@@ -1998,13 +2015,14 @@ case_preview() {
     local opened="$dir/opened.log"
     : > "$opened"
     # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
-    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio. That name is the mount
+    # tool's own and is spelled by hand here; the stub's name is derived from src/open.rs instead.
     {
       printf '#!/bin/sh\n'
       printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
       printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
-    } > "$dir/bin/gio"
-    chmod +x "$dir/bin/gio"
+    } > "$dir/bin/$open_handoff"
+    chmod +x "$dir/bin/$open_handoff"
     printf 'hello from flea\n' > "$dir/sample.txt"
     printf '# Notes\n\nSome *text*.\n' > "$dir/notes.md"
     truncate -s 2M "$dir/big.txt"
@@ -2968,13 +2986,14 @@ case_taildrop() {
     local opened="$dir/bin/opened.log"
     : > "$opened"
     # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
-    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio. That name is the mount
+    # tool's own and is spelled by hand here; the stub's name is derived from src/open.rs instead.
     {
       printf '#!/bin/sh\n'
       printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
       printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
-    } > "$dir/bin/gio"
-    chmod +x "$dir/bin/gio"
+    } > "$dir/bin/$open_handoff"
+    chmod +x "$dir/bin/$open_handoff"
 
     local first_path="$PATH"
     export PATH="$dir/bin:$PATH"

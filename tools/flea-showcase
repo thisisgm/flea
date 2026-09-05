@@ -62,7 +62,7 @@ evidence=$work/evidence
 flea_log=$work/flea.log
 # Every path the furnishing creates, deepest last, so removal walks it backwards.
 manifest=$work/furnished.list
-# The window's PATH starts here: a gio that logs an open, so a mis-fired open never lands an application on the take.
+# The window's PATH starts here: an opener shim that logs an open, so a mis-fired open never lands an application on the take.
 shim_dir=$work/bin
 # A typed query lands at a reading pace rather than all at once.
 type_ms=90
@@ -96,8 +96,21 @@ fail() {
     exit 1
 }
 
+# Sample input: let finished = Command::new("gio")
+# The shim below is named from the product's own exec target, the derivation tests/modes.sh and
+# tests/ui.sh both make: a shim named by hand goes stale the day the target is renamed, and the take
+# then hands the operator's real launcher a file in the middle of a recording.
+handoff_in() {
+    grep -ho 'Command::new("[a-z0-9-]\+")' "$1" | cut -d'"' -f2 | sort -u
+}
+open_handoff=$(handoff_in "$repo/src/open.rs")
+
 export PATH="$HOME/.local/bin:$PATH"
 command -v omarchy-drive >/dev/null || fail "omarchy-drive is not on PATH"
+# Fail closed rather than write a shim nothing calls, which is the fall-through this prevents.
+case "$open_handoff" in
+    ''|*[!a-z0-9-]*) fail "src/open.rs must name exactly one handoff; got '$open_handoff'" ;;
+esac
 eval "$(omarchy-drive env)"
 
 # omarchy-drive env omits the Qt platform theme, without which no row icon resolves; the same
@@ -332,14 +345,14 @@ fixture_build() {
         furnish_tree "$name" "$HOME/Music/${name##*/}"
     done
     furnish_tree "$stage_src/Projects/Lantern" "$HOME/Projects/Lantern"
-    # The window's gio logs an open instead of opening; every other subcommand is the real one, so
+    # The window's opener logs an open instead of opening; every other subcommand is the real gio, so
     # the rail's own mount calls are untouched. Nothing in the beats opens a file on purpose.
     {
       printf '#!/bin/sh\n'
       printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
       printf 'printf %%s\\\\n "$2" >> "%s/opened.log"\n' "$work"
-    } > "$shim_dir/gio"
-    chmod +x "$shim_dir/gio"
+    } > "$shim_dir/$open_handoff"
+    chmod +x "$shim_dir/$open_handoff"
     printf 'FURNISHED %s paths under %s\n' "$(wc -l < "$manifest")" "${furnished[*]}"
     ls -A "$HOME/Pictures" "$HOME/Documents" "$HOME/Music" "$HOME/Projects"
 }
