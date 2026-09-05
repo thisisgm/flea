@@ -129,7 +129,7 @@ fn usable_with(extensions: &[&CStr]) -> Result<(), String> {
             return Err(format!("vkEnumeratePhysicalDevices answered {listed}"));
         }
         if devices == 0 {
-            return Err(String::from("the loader built an instance and then listed no device"));
+            return Err(String::from("vkEnumeratePhysicalDevices succeeded and listed no device"));
         }
         Ok(())
     }
@@ -149,10 +149,11 @@ mod tests {
         assert!(beside.starts_with("vkCreateInstance answered"), "{beside}");
     }
 
-    // A refusal the operator cannot read is the defect: every arm names its call and what it was asked for.
+    // A refusal the operator cannot read is the defect: every arm names the call or library that refused, and the two that asked for extensions name them.
     #[test]
     fn the_refusal_names_the_call_and_the_extension_it_was_asked_for() {
         let absent = c"VK_KHR_flea_probe_extension_that_cannot_exist";
+        // corner: a working loader lands on the vkCreateInstance arm, so the other five cannot be reached from here.
         let reason = usable_with(&[SURFACE, absent]).unwrap_err();
         assert!(reason.contains("VK_KHR_surface"), "{reason}");
         assert!(reason.contains("VK_KHR_flea_probe_extension_that_cannot_exist"), "{reason}");

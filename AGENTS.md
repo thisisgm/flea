@@ -40,15 +40,15 @@ this tree yet: `flea --tui` says so and exits 2.
    deliver one is given `opengl` before `qs` starts at all, because Quickshell hands
    `QRhi::create` a `QVulkanInstance` it never created and SIGSEGVs there rather than raising
    the scene-graph error the QML arm listens for, issue #14 on a QEMU Virtio GPU. That downgrade
-   is not silent: `usable()` answers with the call that refused and the extensions it was asked
-   for, and `src/gui.rs` prints that as one sentence on stderr, because a 2.4x memory regression
-   the operator cannot see is the defect and not the report of it. The probe is `dlopen` plus
-   `vkCreateInstance` plus `vkEnumeratePhysicalDevices`, and it costs an implicit launch roughly
-   8 ms on this box, so about a quarter of that init advantage is what buys the crash out;
-   dropping the device count would save only 2 of those milliseconds and would stop catching a
-   loader that creates an instance and then lists nothing. A scene-graph failure after launch
-   still relaunches once with OpenGL and drains the failed backend; an explicit
-   `QSG_RHI_BACKEND` is never replaced, and
+   is not silent: `usable()` answers with the call or library that refused, and with the
+   extensions in the two arms that asked for them, and `src/gui.rs` prints that as one sentence
+   on stderr, because a 2.4x memory regression the operator cannot see is the defect and not the
+   report of it. The probe is `dlopen` plus `vkCreateInstance` plus `vkEnumeratePhysicalDevices`,
+   and it costs an implicit launch roughly 8 ms on this box, so about a quarter of that init
+   advantage is what buys the crash out; dropping the device count would save only 2 of those
+   milliseconds and would stop catching a loader that creates an instance and then lists nothing.
+   A scene-graph failure after launch still relaunches once with OpenGL and drains the failed
+   backend; an explicit `QSG_RHI_BACKEND` is never replaced, and
    an exported-but-empty one is absent rather than a choice, the same rule `paths::has_display()`
    applies. What the probe proves is exactly what it asks the loader for: an instance carrying
    `VK_KHR_surface` and the session's own surface extension, `VK_KHR_wayland_surface` here and
