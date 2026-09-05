@@ -11,20 +11,19 @@ pub fn exec_qs(ui: &Path, start: Option<&str>, select: Option<&str>) -> i32 {
     if let Ok(binary) = std::env::current_exe() {
         cmd.env("FLEA_BIN", binary);
     }
-    // Vulkan is Flea's measured fast path, and the probe is what keeps a loader that cannot deliver
-    // it out of QRhi::create, which crashes there instead of raising the error the QML arm listens for.
-    // Empty is absent, the rule paths::has_display() already applies: a wrapper script exporting an unset variable is an accident, not the operator naming a renderer.
+    // Empty is absent, the rule paths::has_display() applies: a wrapper's unset variable is not a choice.
     if std::env::var_os("QSG_RHI_BACKEND").is_some_and(|value| !value.is_empty()) {
         // An explicit choice is the operator's, so it is neither replaced nor offered a retry.
         cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
-    } else if vulkan::usable() {
-        cmd.env("QSG_RHI_BACKEND", "vulkan");
-        // The marker is what permits the QML arm its one retry, and only this implicit choice gets it.
-        cmd.env("FLEA_RENDERER_AUTOMATIC", "1");
-    } else {
-        // OpenGL is where that retry would have gone, so there is nothing left for it to mark.
+    } else if let Err(reason) = vulkan::usable() {
+        // A silent downgrade hides a 2.4x memory regression, so the reason the probe found is said once.
+        eprintln!("flea: Vulkan is unusable, {reason}, so the shell starts on OpenGL");
         cmd.env("QSG_RHI_BACKEND", "opengl");
         cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
+    } else {
+        // Vulkan is the measured fast path, and the marker is what permits the QML arm its one retry.
+        cmd.env("QSG_RHI_BACKEND", "vulkan");
+        cmd.env("FLEA_RENDERER_AUTOMATIC", "1");
     }
     if let Some(path) = start {
         cmd.env("FLEA_PATH", path);

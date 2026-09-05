@@ -1,5 +1,4 @@
-// Quickshell hands QRhi::create a QVulkanInstance it never created, and an unusable loader turns
-// that into a SIGSEGV, so the launcher has to find one before the shell is started at all.
+// Quickshell hands QRhi::create a QVulkanInstance it never created, and an unusable loader SIGSEGVs there.
 use std::ffi::{c_void, CStr, OsStr};
 use std::os::raw::{c_char, c_int};
 use std::ptr::{null, null_mut};
@@ -13,8 +12,7 @@ const VK_SUCCESS: i32 = 0;
 // VkStructureType VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO.
 const INSTANCE_CREATE_INFO: u32 = 1;
 
-// VkInstanceCreateInfo. No application info and no layers; the extension list is the one thing the
-// probe does fill in, because a bare instance is not what Qt asks the loader for.
+// VkInstanceCreateInfo, with no application info and no layers: only the extension list is filled in.
 #[repr(C)]
 struct InstanceCreateInfo {
     s_type: u32,
@@ -27,34 +25,31 @@ struct InstanceCreateInfo {
     pp_enabled_extension_names: *const *const c_char,
 }
 
-// std already links the system libc, so the two symbols are declared here rather than taking a crate.
+// std already links the system libc, so the three symbols are declared here rather than taking a crate.
 extern "C" {
     fn dlopen(file: *const c_char, flags: c_int) -> *mut c_void;
     fn dlsym(handle: *mut c_void, symbol: *const c_char) -> *mut c_void;
+    fn dlerror() -> *mut c_char;
 }
 
-// vkCreateInstance(pCreateInfo, pAllocator, pInstance), vkEnumeratePhysicalDevices(instance,
-// pCount, pDevices) and vkDestroyInstance(instance, pAllocator), each reached through dlsym.
+// vkCreateInstance, vkEnumeratePhysicalDevices and vkDestroyInstance, each reached through dlsym.
 type CreateInstance =
     unsafe extern "C" fn(*const InstanceCreateInfo, *const c_void, *mut *mut c_void) -> i32;
 type EnumeratePhysicalDevices = unsafe extern "C" fn(*mut c_void, *mut u32, *mut *mut c_void) -> i32;
 type DestroyInstance = unsafe extern "C" fn(*mut c_void, *const c_void);
 
-// VK_KHR_surface plus one of the two platform surface extensions below, the pair Qt's Vulkan RHI
-// presents through: QRhi is handed a QVulkanInstance built with them, not a bare one.
+// VK_KHR_surface plus one platform surface extension, the pair Qt's Vulkan RHI presents through.
 const SURFACE: &CStr = c"VK_KHR_surface";
+// libQt6XcbQpa.so.6 and libQt6WaylandClient.so.6 here carry these two and no other surface name.
 const WAYLAND_SURFACE: &CStr = c"VK_KHR_wayland_surface";
 const XCB_SURFACE: &CStr = c"VK_KHR_xcb_surface";
 
-// Only WAYLAND_DISPLAY is read, so a Wayland session wins when both are set: the name has to be the
-// one this session's Qt plugin uses, and libQt6XcbQpa.so.6 and libQt6WaylandClient.so.6 here carry
-// exactly VK_KHR_xcb_surface and VK_KHR_wayland_surface and no other surface name.
+// Only WAYLAND_DISPLAY is read, so a Wayland session wins on a box that has both set.
 fn platform_surface() -> &'static CStr {
     surface_for(std::env::var_os("WAYLAND_DISPLAY").as_deref())
 }
 
-// Split from platform_surface() so a test can ask the rule without setting the variable for every
-// thread beside it, the same split available_on() takes in src/backend/sandbox.rs.
+// Split from platform_surface() so a test can ask the rule without setting the variable for every thread.
 // Sample input: Some("wayland-1"), and None or Some("") for a session that is not Wayland.
 fn surface_for(wayland_display: Option<&OsStr>) -> &'static CStr {
     match wayland_display {
@@ -63,34 +58,51 @@ fn surface_for(wayland_display: Option<&OsStr>) -> &'static CStr {
     }
 }
 
-// True only when this box can really start Vulkan the way Qt starts it: the loader is present, it
-// created an instance carrying the surface extensions QRhi needs, and it reported at least one
-// device. Measured here with every ICD hidden: the loader enumerates 5 instance extensions and no
-// surface one, and vkCreateInstance answers VK_ERROR_INCOMPATIBLE_DRIVER.
-pub fn usable() -> bool {
+// dlerror() is the only thing that names why a load failed, and reading it clears it for the next call.
+unsafe fn dl_reason() -> String {
+    let text = dlerror();
+    if text.is_null() {
+        return String::from("the dynamic loader gave no reason");
+    }
+    CStr::from_ptr(text).to_string_lossy().into_owned()
+}
+
+// One dlsym that names the symbol it could not find, because "unusable" without the name is a dead end.
+unsafe fn entry(library: *mut c_void, symbol: &CStr) -> Result<*mut c_void, String> {
+    let found = dlsym(library, symbol.as_ptr());
+    if found.is_null() {
+        return Err(format!(
+            "libvulkan.so.1 has no {}, {}",
+            symbol.to_string_lossy(),
+            dl_reason()
+        ));
+    }
+    Ok(found)
+}
+
+// Ok only when this box can start Vulkan the way Qt starts it; the error is the sentence the operator reads.
+pub fn usable() -> Result<(), String> {
     usable_with(&[SURFACE, platform_surface()])
 }
 
-// Split from usable() so a test can ask the same question with an extension no loader can offer,
-// which is the only deterministic way here to prove a missing extension really answers false.
-// corner: the handle is never dlclose()d, because this process execs qs a moment later and
-// unloading a driver that was just probed is the fragile path this probe exists to avoid.
-fn usable_with(extensions: &[&CStr]) -> bool {
+// Split from usable() so a test can ask the same question with an extension no loader can offer.
+// corner: the handle is never dlclose()d, because this process execs qs a moment later.
+fn usable_with(extensions: &[&CStr]) -> Result<(), String> {
     let names: Vec<*const c_char> = extensions.iter().map(|e| e.as_ptr()).collect();
+    let asked: Vec<String> = extensions
+        .iter()
+        .map(|e| e.to_string_lossy().into_owned())
+        .collect();
+    let asked = asked.join(" and ");
     unsafe {
         let library = dlopen(LIBVULKAN.as_ptr(), RTLD_NOW);
         if library.is_null() {
-            return false;
+            return Err(format!("libvulkan.so.1 did not load, {}", dl_reason()));
         }
-        let create = dlsym(library, c"vkCreateInstance".as_ptr());
-        let enumerate = dlsym(library, c"vkEnumeratePhysicalDevices".as_ptr());
-        let destroy = dlsym(library, c"vkDestroyInstance".as_ptr());
-        if create.is_null() || enumerate.is_null() || destroy.is_null() {
-            return false;
-        }
-        let create: CreateInstance = std::mem::transmute(create);
-        let enumerate: EnumeratePhysicalDevices = std::mem::transmute(enumerate);
-        let destroy: DestroyInstance = std::mem::transmute(destroy);
+        let create: CreateInstance = std::mem::transmute(entry(library, c"vkCreateInstance")?);
+        let enumerate: EnumeratePhysicalDevices =
+            std::mem::transmute(entry(library, c"vkEnumeratePhysicalDevices")?);
+        let destroy: DestroyInstance = std::mem::transmute(entry(library, c"vkDestroyInstance")?);
 
         let request = InstanceCreateInfo {
             s_type: INSTANCE_CREATE_INFO,
@@ -103,13 +115,23 @@ fn usable_with(extensions: &[&CStr]) -> bool {
             pp_enabled_extension_names: names.as_ptr(),
         };
         let mut instance: *mut c_void = null_mut();
-        if create(&request, null(), &mut instance) != VK_SUCCESS || instance.is_null() {
-            return false;
+        let created = create(&request, null(), &mut instance);
+        if created != VK_SUCCESS {
+            return Err(format!("vkCreateInstance answered {created} for {asked}"));
+        }
+        if instance.is_null() {
+            return Err(format!("vkCreateInstance took {asked} and returned no instance"));
         }
         let mut devices: u32 = 0;
         let listed = enumerate(instance, &mut devices, null_mut());
         destroy(instance, null());
-        listed == VK_SUCCESS && devices > 0
+        if listed != VK_SUCCESS {
+            return Err(format!("vkEnumeratePhysicalDevices answered {listed}"));
+        }
+        if devices == 0 {
+            return Err(String::from("the loader built an instance and then listed no device"));
+        }
+        Ok(())
     }
 }
 
@@ -117,12 +139,23 @@ fn usable_with(extensions: &[&CStr]) -> bool {
 mod tests {
     use super::*;
 
-    // The control the device count alone could not give: an instance the loader cannot build must
-    // read unusable. On a box with no libvulkan at all this passes at dlopen, which is also false.
+    // The error names the call that refused, so this can no longer pass from the dlopen or dlsym branch.
     #[test]
     fn a_required_extension_no_loader_offers_reads_unusable() {
-        assert!(!usable_with(&[c"VK_KHR_flea_probe_extension_that_cannot_exist"]));
-        assert!(!usable_with(&[SURFACE, c"VK_KHR_flea_probe_extension_that_cannot_exist"]));
+        let absent = c"VK_KHR_flea_probe_extension_that_cannot_exist";
+        let alone = usable_with(&[absent]).unwrap_err();
+        assert!(alone.starts_with("vkCreateInstance answered"), "{alone}");
+        let beside = usable_with(&[SURFACE, absent]).unwrap_err();
+        assert!(beside.starts_with("vkCreateInstance answered"), "{beside}");
+    }
+
+    // A refusal the operator cannot read is the defect: every arm names its call and what it was asked for.
+    #[test]
+    fn the_refusal_names_the_call_and_the_extension_it_was_asked_for() {
+        let absent = c"VK_KHR_flea_probe_extension_that_cannot_exist";
+        let reason = usable_with(&[SURFACE, absent]).unwrap_err();
+        assert!(reason.contains("VK_KHR_surface"), "{reason}");
+        assert!(reason.contains("VK_KHR_flea_probe_extension_that_cannot_exist"), "{reason}");
     }
 
     // The session decides which surface extension Qt will want, so the probe must ask for that one.
