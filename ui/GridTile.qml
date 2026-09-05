@@ -4,7 +4,7 @@ import "." as Flea
 import "js/Format.js" as Format
 import "js/Icons.js" as Icons
 
-// One grid cell: the same mark the list row draws, in a larger slot, with the name under it.
+// One grid cell: a square thumb or mark filling the tile, with the name under it.
 Item {
     id: root
 
@@ -13,6 +13,11 @@ Item {
     property bool hovered: false
     property bool selected: false
     property string thumb: ""
+    // Clamped by GridArea so a narrow cell cannot make the slot negative.
+    property int slotSize: Math.max(1, width - 2 * Theme.spacing.gap)
+
+    // A hovered tile (and its name tip) paints above later cells, or the next row covers the tip.
+    z: hover.hovered ? 1 : 0
 
     // A lifted tile is the cursor, the pointer or a selection member, the same ladder Row.qml climbs.
     readonly property bool lifted: root.cursor || root.hovered || root.selected
@@ -39,9 +44,9 @@ Item {
         id: markSlot
         anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
-        anchors.topMargin: Theme.spacing.rowPaddingX
-        width: Theme.grid.iconSize
-        height: Theme.grid.iconSize
+        anchors.topMargin: Theme.spacing.gap
+        width: root.slotSize
+        height: root.slotSize
 
         // A thumbnail is a decoded image and stays one; the glyph beside it is a native mark, and
         // exactly one is visible, chosen the same way ui/Row.qml chooses.
@@ -52,9 +57,10 @@ Item {
             // Format.fileUri, not a concatenation: a cache path can carry a # or a ? and either one
             // silently truncates a plain file:// URL, which is what the hashcache fixture proves.
             source: root.thumb.length > 0 ? Format.fileUri(root.thumb) : ""
+            // Longest side of the photo matches the slot; the other side letterboxes.
             fillMode: Image.PreserveAspectFit
-            sourceSize.width: Theme.grid.iconSize
-            sourceSize.height: Theme.grid.iconSize
+            sourceSize.width: Math.max(1, Math.round(width))
+            sourceSize.height: Math.max(1, Math.round(height))
             asynchronous: true
             cache: false
         }
@@ -62,6 +68,11 @@ Item {
         Flea.Glyph {
             anchors.fill: parent
             visible: !root.thumbDrawn
+            // Glyph.maxSize defaults to the list-row mark, so the slot has to lift it or the path
+            // cannot grow. Stroke is inverted against that scale so a large folder keeps the
+            // original grid-icon weight instead of thickening with the path.
+            maxSize: Math.min(width, height)
+            strokeWidth: Theme.strokeWidth * Theme.grid.iconSize / Math.max(1, Math.min(width, height))
             name: root.row ? Icons.glyphFor(root.row.i) : "file"
             color: root.cursor || root.selected ? Theme.color.accent : Theme.color.muted
         }
