@@ -12,7 +12,8 @@ fn resolved(path: &str) -> Option<PathBuf> {
     std::fs::canonicalize(path).ok()
 }
 
-// xdg-open is the OEM route: omarchy default browser, editor and terminal all configure what it reads.
+// gio open is the OEM route: it asks the desktop database, so a handler declaring Terminal=true is
+// run inside the terminal glib picks, which xdg-open does not do; see AGENTS.md "Opening a file".
 pub fn open(path: &str) -> i32 {
     let target = match resolved(path) {
         Some(p) => p,
@@ -27,8 +28,10 @@ pub fn open(path: &str) -> i32 {
     }
     // The setting is inherited across exec, so this is the last point that can hand it back.
     thp::enable();
-    // corner: spawn and not exec, because xdg-open waits for the program it starts; see AGENTS.md "Opening a file".
-    let started = Command::new("xdg-open")
+    // corner: waited for and not detached, because gio open launches the handler and returns at once;
+    // measured at 10 ms on this box against a handler that then ran for five seconds of its own.
+    let finished = Command::new("gio")
+        .arg("open")
         .arg(&target)
         // The handler outlives us, so an inherited pipe would kill it on its first write; see AGENTS.md "Opening a file".
         .stdin(Stdio::null())
@@ -36,9 +39,14 @@ pub fn open(path: &str) -> i32 {
         .stderr(Stdio::null())
         // Its own process group, so nothing that later kills Flea's group reaches the opened program.
         .process_group(0)
-        .spawn();
-    match started {
-        Ok(_) => 0,
+        .status();
+    match finished {
+        Ok(status) if status.success() => 0,
+        // A launcher that refused, which a spawn nobody waited on used to report as a clean handoff.
+        Ok(_) => {
+            eprintln!("flea: that file could not be opened, check that it still exists");
+            FAILED
+        }
         Err(_) => {
             eprintln!("flea: nothing on this system could be asked to open that file");
             FAILED

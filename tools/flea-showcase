@@ -62,7 +62,7 @@ evidence=$work/evidence
 flea_log=$work/flea.log
 # Every path the furnishing creates, deepest last, so removal walks it backwards.
 manifest=$work/furnished.list
-# The window's PATH starts here: an xdg-open that logs, so a mis-fired open never lands an application on the take.
+# The window's PATH starts here: a gio that logs an open, so a mis-fired open never lands an application on the take.
 shim_dir=$work/bin
 # A typed query lands at a reading pace rather than all at once.
 type_ms=90
@@ -332,9 +332,14 @@ fixture_build() {
         furnish_tree "$name" "$HOME/Music/${name##*/}"
     done
     furnish_tree "$stage_src/Projects/Lantern" "$HOME/Projects/Lantern"
-    # The window's xdg-open logs instead of opening. Nothing in the beats opens a file on purpose.
-    printf '#!/bin/sh\nprintf %%s\\\\n "$1" >> "%s/opened.log"\n' "$work" > "$shim_dir/xdg-open"
-    chmod +x "$shim_dir/xdg-open"
+    # The window's gio logs an open instead of opening; every other subcommand is the real one, so
+    # the rail's own mount calls are untouched. Nothing in the beats opens a file on purpose.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+      printf 'printf %%s\\\\n "$2" >> "%s/opened.log"\n' "$work"
+    } > "$shim_dir/gio"
+    chmod +x "$shim_dir/gio"
     printf 'FURNISHED %s paths under %s\n' "$(wc -l < "$manifest")" "${furnished[*]}"
     ls -A "$HOME/Pictures" "$HOME/Documents" "$HOME/Music" "$HOME/Projects"
 }

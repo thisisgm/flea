@@ -631,8 +631,14 @@ case_open() {
     ln -s "$dir/nowhere" "$dir/broken"
     local opened="$dir/opened.log"
     : > "$opened"
-    printf '#!/bin/sh\nprintf "OPENED %%s\\n" "$1" >> %q\n' "$opened" > "$dir/bin/xdg-open"
-    chmod +x "$dir/bin/xdg-open"
+    # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+      printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
+    } > "$dir/bin/gio"
+    chmod +x "$dir/bin/gio"
 
     local saved_path="$PATH"
     export PATH="$dir/bin:$PATH"
@@ -647,7 +653,7 @@ case_open() {
     wait_path "$dir/subdir"
     omarchy-drive wait ipc -p "$flea_ui" flea state empty --timeout 10 >/dev/null \
         || fail "open: subdir never reached its empty listing, state is $(ipc state)"
-    [[ ! -s "$opened" ]] || fail "l on a directory handed $(cat "$opened") to xdg-open"
+    [[ ! -s "$opened" ]] || fail "l on a directory handed $(cat "$opened") to gio open"
     [[ -z "$(ipc lastMessage)" ]] || fail "open: entering the empty subdir said $(ipc lastMessage)"
     key l >/dev/null
     settle
@@ -657,13 +663,13 @@ case_open() {
     [[ "$(ipc lastMessage)" == "Press / to filter this listing by name." ]] \
         || fail "open: unbound q said $(ipc lastMessage), so the empty-row l check has no negative control"
 
-    # Bare l enters a symlink to a directory without handing it to xdg-open.
+    # Bare l enters a symlink to a directory without handing it to gio open.
     key -k Backspace >/dev/null
     wait_path "$dir"
     seek_row_named linkdir
     key l >/dev/null
     wait_path "$dir/linkdir"
-    [[ ! -s "$opened" ]] || fail "l on a symlink directory handed $(cat "$opened") to xdg-open"
+    [[ ! -s "$opened" ]] || fail "l on a symlink directory handed $(cat "$opened") to gio open"
 
     # Return on a symlink to a directory keeps its existing navigation and opener coverage.
     key -k Backspace >/dev/null
@@ -671,7 +677,7 @@ case_open() {
     seek_row_named linkdir
     key -k Return >/dev/null
     wait_path "$dir/linkdir"
-    [[ ! -s "$opened" ]] || fail "Enter on a symlink directory handed $(cat "$opened") to xdg-open"
+    [[ ! -s "$opened" ]] || fail "Enter on a symlink directory handed $(cat "$opened") to gio open"
 
     # Return on a symlink to a file still resolves and opens its target.
     key -k Backspace >/dev/null
@@ -701,7 +707,7 @@ case_open() {
     shot open-broken
     [[ -n "$(ipc lastMessage)" ]] || fail "Enter on a broken symlink said nothing"
     [[ "$(ipc path)" == "$dir" ]] || fail "Enter on a broken symlink moved to $(ipc path)"
-    [[ "$(grep -c OPENED "$opened")" == "1" ]] || fail "a broken symlink was handed to xdg-open"
+    [[ "$(grep -c OPENED "$opened")" == "1" ]] || fail "a broken symlink was handed to gio open"
     [[ "$(ipc total)" == "7" ]] || fail "the listing did not survive Enter on a broken symlink"
 }
 
@@ -719,8 +725,14 @@ case_click() {
     printf 'gamma\n' > "$dir/gamma.txt"
     local opened="$dir/opened.log"
     : > "$opened"
-    printf '#!/bin/sh\nprintf "OPENED %%s\\n" "$1" >> %q\n' "$opened" > "$dir/bin/xdg-open"
-    chmod +x "$dir/bin/xdg-open"
+    # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+      printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
+    } > "$dir/bin/gio"
+    chmod +x "$dir/bin/gio"
 
     local saved_path="$PATH"
     export PATH="$dir/bin:$PATH"
@@ -1858,11 +1870,17 @@ case_preview() {
     local dir="$fixture_root/preview"
     sandbox_scratch "$dir"
     mkdir -p "$dir/bin"
-    # The double click below opens the row, so notes.md would hit the real xdg-open without this stub, the same hazard case_open already fixed.
+    # The double click below opens the row, so notes.md would hit the real gio open without this stub, the same hazard case_open already fixed.
     local opened="$dir/opened.log"
     : > "$opened"
-    printf '#!/bin/sh\nprintf "OPENED %%s\\n" "$1" >> %q\n' "$opened" > "$dir/bin/xdg-open"
-    chmod +x "$dir/bin/xdg-open"
+    # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+      printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
+    } > "$dir/bin/gio"
+    chmod +x "$dir/bin/gio"
     printf 'hello from flea\n' > "$dir/sample.txt"
     printf '# Notes\n\nSome *text*.\n' > "$dir/notes.md"
     truncate -s 2M "$dir/big.txt"
@@ -1900,7 +1918,7 @@ PYEOF
     export PATH="$dir/bin:$PATH"
     launch "$dir"
     export PATH="$saved_path"
-    # bin/ and opened.log are the xdg-open stub's own fixture entries, alongside the six under test.
+    # bin/ and opened.log are the gio stub's own fixture entries, alongside the six under test.
     wait_listing 8
 
     # A single click must move the cursor and nothing else: no preview, and since 2026-09-02 no open
@@ -2818,15 +2836,21 @@ case_taildrop() {
     mkdir -p "$dir/adir" "$dir/bin"
     printf 'taildrop test payload\n' > "$dir/send-me.txt"
     # The third site of a hazard case_open and case_preview each fixed once. Without this the case
-    # reached the REAL xdg-open on send-me.txt and left an editor running: two were still resident
+    # reached the real opener on send-me.txt and left an editor running: two were still resident
     # eighteen hours later. The stub goes in before the FIRST launch, not before the second, because
     # a stub the earlier half of the case cannot see is not a stub.
     # The log lives inside bin/, whose contents are not listed, so the row count and every click_row
     # index in this case stay exactly as they were.
     local opened="$dir/bin/opened.log"
     : > "$opened"
-    printf '#!/bin/sh\nprintf "OPENED %%s\\n" "$1" >> %q\n' "$opened" > "$dir/bin/xdg-open"
-    chmod +x "$dir/bin/xdg-open"
+    # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+      printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
+    } > "$dir/bin/gio"
+    chmod +x "$dir/bin/gio"
 
     local first_path="$PATH"
     export PATH="$dir/bin:$PATH"

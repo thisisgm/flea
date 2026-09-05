@@ -87,25 +87,50 @@ check "the launched shell has transparent huge pages off" "1" \
 check "the launched shell reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
 sandbox_remove "$D"
 
-# --open resolves the target, refuses a directory, and hands anything else to xdg-open.
+# --open resolves the target, refuses a directory, and hands anything else to gio open, which is
+# the route that reads the desktop database and so honours Terminal=true; see "Opening a file".
 D="$FIXTURE_ROOT/flea-open-test-$$"
 sandbox_make "$D"
-mkdir -p "$D/dir" "$D/bin"
+mkdir -p "$D/dir" "$D/bin" "$D/failbin"
 printf 'hello' > "$D/file.txt"
 ln -s "$D/file.txt" "$D/linkfile"
 ln -s "$D/dir" "$D/linkdir"
 ln -s "$D/nowhere" "$D/broken"
+# The two names an argv bug shows up on, as real files, so what is checked is what the child was
+# handed rather than what a quoting rule promises.
+printf 'hello' > "$D/-dash.txt"
+newline_name=$(printf 'two\nlines.txt')
+printf 'hello' > "$D/$newline_name"
 # Its stdio is detached, so everything it has to say goes to this log rather than to our stdout.
 opened="$D/opened.log"
+# The last argument on its own, because a name with a newline in it cannot be read back off a line.
+last_arg="$D/last-arg"
+# Sample input: gio open /home/flea-sandbox/flea-open-test-123/file.txt
 # No strip-to-paren here: cut reads its OWN stat, comm is bare "cut", and its pgid is the stub's by fork.
-printf '#!/bin/sh\nprintf "FD1 %%s\\n" "$(readlink /proc/$$/fd/1)" >> %q\nexec >> %q 2>&1\nprintf "ARGV %%s\\n" "$@"\nP=$(cut -d" " -f5 /proc/self/stat)\n[ "$$" = "$P" ] && printf "PGID MATCH pid=%%s pgid=%%s\\n" "$$" "$P" || printf "PGID MISMATCH pid=%%s pgid=%%s\\n" "$$" "$P"\ngrep -i "^THP_enabled" /proc/self/status\n' "$opened" "$opened" > "$D/bin/xdg-open"
-chmod +x "$D/bin/xdg-open"
+{
+  printf '#!/bin/sh\n'
+  printf 'printf "FD1 %%s\\n" "$(readlink /proc/$$/fd/1)" >> %q\n' "$opened"
+  printf 'exec >> %q 2>&1\n' "$opened"
+  printf 'printf "PID %%s\\n" "$$"\n'
+  printf 'printf "NARGS %%s\\n" "$#"\n'
+  printf 'printf "ARGV %%s\\n" "$*"\n'
+  printf 'shift $(($# - 1)); printf "%%s" "$1" > %q\n' "$last_arg"
+  printf 'P=$(cut -d" " -f5 /proc/self/stat)\n'
+  printf '[ "$$" = "$P" ] && printf "PGID MATCH pid=%%s pgid=%%s\\n" "$$" "$P" || printf "PGID MISMATCH pid=%%s pgid=%%s\\n" "$$" "$P"\n'
+  printf 'grep -i "^THP_enabled" /proc/self/status\n'
+} > "$D/bin/gio"
+chmod +x "$D/bin/gio"
+# The same handoff, refusing. gio open answers nonzero when it cannot reach a handler, and --open
+# has to report that rather than the 0 a fire-and-forget spawn reports whatever happens next.
+printf '#!/bin/sh\nexit 3\n' > "$D/failbin/gio"
+chmod +x "$D/failbin/gio"
 
 : > "$opened"
 # Quickshell hands flea --open a pipe and closes it, so a pipe is exactly what the handler must not inherit.
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1 | cat >/dev/null; sleep 0.2
 out=$(cat "$opened")
-check "--open hands the file to xdg-open" "1" "$(echo "$out" | grep -c "^ARGV $D/file.txt$")"
+check "--open hands the file to gio open" "1" "$(echo "$out" | grep -c "^ARGV open $D/file.txt$")"
+check "and gio is given the subcommand and the path and nothing else" "1" "$(echo "$out" | grep -c '^NARGS 2$')"
 # A pipe here dies with the flea that made it, and the handler dies with it on its first write.
 check "the opened program got no inherited pipe" "1" "$(echo "$out" | grep -c '^FD1 /dev/null$')"
 check "and the stub reported its first descriptor at all" "1" "$(echo "$out" | grep -c '^FD1 ')"
@@ -115,10 +140,27 @@ check "and the stub reported its process group at all" "1" "$(echo "$out" | grep
 # Nothing disabled huge pages in this process, so 1 is the untouched state and a stray disable would show.
 check "a plain --open leaves huge pages on" "1" "$(echo "$out" | grep -c '^THP_enabled:[[:space:]]*1')"
 check "and the stub reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
+# --open waits for the launcher, so by the time it returns the launcher has been reaped; a pid that
+# is still signalable is a gio left running for the life of the application it started.
+launcher_pid=$(echo "$out" | sed -n 's/^PID //p' | head -1)
+check "the launcher reported a pid at all" "1" "$([ -n "$launcher_pid" ] && echo 1 || echo 0)"
+check "and --open left no launcher behind" "1" "$(kill -0 "$launcher_pid" 2>/dev/null && echo 0 || echo 1)"
 
 : > "$opened"
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/linkfile" >/dev/null 2>&1; sleep 0.2
-check "a symlink to a file is resolved to its target" "1" "$(grep -c "^ARGV $D/file.txt$" "$opened")"
+check "a symlink to a file is resolved to its target" "1" "$(grep -c "^ARGV open $D/file.txt$" "$opened")"
+
+# A leading dash and an embedded newline both survive canonicalization as one absolute argument.
+: > "$opened"; : > "$last_arg"
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/-dash.txt" >/dev/null 2>&1; sleep 0.2
+check "a name starting with a dash is handed over absolute, so it is never read as a flag" \
+  "$D/-dash.txt" "$(cat "$last_arg")"
+check "and it is still exactly two arguments" "1" "$(grep -c '^NARGS 2$' "$opened")"
+: > "$opened"; : > "$last_arg"
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/$newline_name" >/dev/null 2>&1; sleep 0.2
+check "a name with a newline in it arrives whole and unsplit" \
+  "$D/$newline_name" "$(cat "$last_arg")"
+check "and it is still exactly two arguments too" "1" "$(grep -c '^NARGS 2$' "$opened")"
 
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/dir" >/dev/null 2>&1
 check "a directory is refused with its own status" "3" "$?"
@@ -133,10 +175,18 @@ check "and that sentence names the file" "1" "$(echo "$out" | grep -c 'could not
 
 out=$(env PATH=/nonexistent-flea-test-path $BIN --open "$D/file.txt" 2>&1)
 rc=$?
-check "a missing xdg-open is an error status" "2" "$rc"
+check "a missing gio is an error status" "2" "$rc"
 check "and is elided too" "0" "$(echo "$out" | grep -c 'os error')"
 # Without this the pair cannot tell a failed spawn from a --open that was never implemented.
 check "and that sentence names the handler" "1" "$(echo "$out" | grep -c 'nothing on this system could be asked')"
+
+# The launcher's own refusal. A spawn that is never waited on reports 0 here, which is what put a
+# green status on an open that never happened.
+out=$(env PATH="$D/failbin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1)
+rc=$?
+check "a launcher that refuses is an error status, not a green handoff" "2" "$rc"
+check "and its refusal is elided to one sentence" "1" "$(echo "$out" | grep -c 'could not be opened')"
+check "with no errno in it" "0" "$(echo "$out" | grep -c 'os error')"
 
 out=$($BIN --open 2>&1 </dev/null)
 check "--open with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--open')"
@@ -148,7 +198,6 @@ check "--open with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--
 handoff_package() {
   case "$1" in
     gio) printf 'glib2' ;;
-    xdg-open) printf 'xdg-utils' ;;
     xdg-terminal-exec) printf 'xdg-terminal-exec' ;;
     *) printf '' ;;
   esac
@@ -160,6 +209,7 @@ for handoff in $(grep -ho 'Command::new("[a-z0-9-]\+")' src/open.rs src/terminal
 done
 
 # The stub qs is what exec_qs launched, so it inherits huge pages off; --open must hand them back.
+: > "$last_arg"
 printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nexec %s --open %s\n' "$PWD/$BIN" "$D/file.txt" > "$D/bin/qs"
 chmod +x "$D/bin/qs"
 : > "$opened"
@@ -167,6 +217,43 @@ out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $B
 check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP_enabled:[[:space:]]*0')"
 check "and the opened program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"
 sandbox_remove "$D"
+
+# Issue 41. A handler declaring Terminal=true has to be run inside a terminal or it maps no window
+# at all, and which programs need one is the desktop database's judgement, never Flea's. This drives
+# the real gio against an isolated XDG_DATA_HOME and XDG_CONFIG_HOME, so the operator's own MIME
+# state is neither read nor written, and a stub xdg-terminal-exec records whether it was reached.
+T="$FIXTURE_ROOT/flea-terminal-entry-$$"
+sandbox_make "$T"
+mkdir -p "$T/data/applications" "$T/config" "$T/bin"
+terminal_log="$T/ran.log"
+{ printf '#!/bin/sh\n'; printf 'printf "HANDLER %%s\\n" "$*" >> %q\n' "$terminal_log"; } > "$T/bin/flea-t41-handler"
+chmod +x "$T/bin/flea-t41-handler"
+# What glib runs a Terminal=true entry inside; it records the call and then runs the command itself.
+{ printf '#!/bin/sh\n'; printf 'printf "TERMINAL %%s\\n" "$*" >> %q\n' "$terminal_log"; printf 'exec "$@"\n'; } > "$T/bin/xdg-terminal-exec"
+chmod +x "$T/bin/xdg-terminal-exec"
+{
+  printf '[Desktop Entry]\n'
+  printf 'Type=Application\n'
+  printf 'Name=Flea issue 41 handler\n'
+  printf 'Exec=flea-t41-handler %%f\n'
+  printf 'Terminal=true\n'
+  printf 'NoDisplay=true\n'
+  printf 'MimeType=text/plain;\n'
+} > "$T/data/applications/flea-t41.desktop"
+printf '[Default Applications]\ntext/plain=flea-t41.desktop\n' > "$T/config/mimeapps.list"
+printf 'hello\n' > "$T/note.txt"
+# Built if the tool is here and skipped if it is not; the checks below read the run, not this.
+update-desktop-database "$T/data/applications" >/dev/null 2>&1
+: > "$terminal_log"
+env XDG_DATA_HOME="$T/data" XDG_CONFIG_HOME="$T/config" XDG_DATA_DIRS=/usr/share \
+  PATH="$T/bin:/usr/bin:/bin" $BIN --open "$T/note.txt" >/dev/null 2>&1
+rc=$?
+sleep 0.5
+check "a Terminal=true handler is reached at all" "1" "$(grep -c '^HANDLER ' "$terminal_log")"
+check "and it is run inside a terminal, which is the window the operator never saw" "1" \
+  "$(grep -c '^TERMINAL ' "$terminal_log")"
+check "and --open reports the launcher's own success" "0" "$rc"
+sandbox_remove "$T"
 
 # The existing modes must not have moved.
 out=$(printf '{"c":"quit"}\n' | $BIN --backend)

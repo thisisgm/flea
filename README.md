@@ -413,7 +413,7 @@ terminal. `--default` opens no window: it sets the `inode/directory` handler and
 two file-manager keys, and `off` undoes both, see
 [`docs/install.md`](docs/install.md). `--backend`, `--prewarm` and `--open` are the
 internal modes the UI and the benchmarks drive directly; `flea --open <path>` is what Enter
-on a file runs, and it hands the file to `xdg-open` and exits. See `AGENTS.md` for their
+on a file runs, and it hands the file to `gio open` and waits for it. See `AGENTS.md` for their
 contract.
 
 `--select` accepts either a `file://` URI (percent-decoded) or a bare path, opens its

@@ -376,7 +376,7 @@ predates this branch for `--prewarm` and this branch extended it to `--open`. `-
 successful handoff, `2` is anything that could not be opened and carries one elided
 sentence, and `3` means the resolved target is a directory and carries no output at all. A
 directory is refused rather than handed on because `xdg-mime query default inode/directory`
-here is `org.gnome.Nautilus.desktop`, so handing one to `xdg-open` from inside a file
+here is `org.gnome.Nautilus.desktop`, so handing one to the desktop's opener from inside a file
 manager opens a different file manager; the caller navigates instead. See "Opening a file".
 
 `--ui-state` is matched on `args[1]` alone and handles its own shapes: none reads the state file,
@@ -439,7 +439,7 @@ huge pages" below for what it is worth and what it cost.
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
 - `thp.rs` the one `prctl(PR_SET_THP_DISABLE)` declaration, `disable()` and `enable()`.
-- `open.rs` hands one file to `xdg-open`, see "Opening a file".
+- `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
 - `defaults.rs` claims or releases the OS-level default: the desktop-entry install check,
   the `inode/directory` MIME default via `xdg-mime`, and reporting each half, see "Modes".
 - `hyprkeys.rs` adds or removes the additive, markered block in Omarchy's
@@ -1172,9 +1172,14 @@ waits for its consumer.
   the `prctl` is removed and it reddens if the call fails; a second check asserts the stub
   reported at all, so a broken stub cannot be mistaken for a passing gate. See "Transparent
   huge pages" under "Deliberate corners".
-- The `--open` checks inside `./tests/modes.sh` put a stub `xdg-open` on `PATH` that reports
-  its own argv and its own `THP_enabled`, which is what pins symlink resolution and the
-  handoff. The huge page half needs a second stub, because a bare `flea --open` runs in a
+- The `--open` checks inside `./tests/modes.sh` put a stub `gio` on `PATH` that reports
+  its own pid, argv count, argv and `THP_enabled`, which is what pins symlink resolution, the
+  handoff, a name starting with a dash and a name with a newline in it arriving as one absolute
+  argument, and the launcher having been reaped by the time `--open` returns. A second stub in
+  `failbin/` exits `3`, which is the check that `--open` reports a refusal instead of the `0` a
+  detached spawn reported. Issue 41 has its own case beside them, driving the real `gio` against an
+  isolated `XDG_DATA_HOME` and `XDG_CONFIG_HOME` holding one `Terminal=true` entry and a stub
+  `xdg-terminal-exec`, so the operator's own MIME state is never read or written. The huge page half needs a second stub, because a bare `flea --open` runs in a
   process where nothing disabled huge pages, so `thp::enable()` is a no-op there and that
   check cannot tell it from an empty function: the paired case launches `flea --gui` against a
   stub `qs` that reports what it inherited and then execs `flea --open`, and only that one
@@ -1256,7 +1261,8 @@ waits for its consumer.
   one of nine: `cursor`, `terminal`, `open`, `menu`, `colour`, `icons`, `thumbs`, `hashcache`
   and `nosweep`. With no argument it runs all nine and then three whole-run checks, a backend
   drain, a log grep and a cache count, so a clean run prints `0 of 12 checks failed`.
-  - `open` replaced the old `symlink` case. It puts a stub `xdg-open` on `PATH` and asserts
+  - `open` replaced the old `symlink` case. It puts a stub `gio` on `PATH`, which intercepts the
+    `open` subcommand and execs the real `gio` for every other one, and asserts
     all three Enter answers on one listing: a symlink to a file hands the resolved target to
     the handler and does not leave the directory, a symlink to a directory navigates and is
     never handed to the handler, and a broken symlink says one sentence, moves nothing and
@@ -2717,7 +2723,7 @@ both measured to pay nothing for it: `ffmpegthumbnailer` on a fixture clip ran 8
 pages on against 89 to 92 ms off over five interleaved pairs, output byte-identical. A foreign program
 CAN now be launched from the window, because Enter on a file runs `flea --open`, and the undo the
 corner asked for ships with it: `open::open` calls `thp::enable()`, which is
-`prctl(PR_SET_THP_DISABLE, 0, ...)`, in the `flea --open` process before it spawns `xdg-open`, so the
+`prctl(PR_SET_THP_DISABLE, 0, ...)`, in the `flea --open` process before it spawns `gio open`, so the
 opened program inherits huge pages back on. That call lives in `src/open.rs`, after the
 `canonicalize` and after the directory refusal and immediately before the spawn, so a path that
 never reaches a handler never changes the setting, and `src/thp.rs` holds the one `extern "C"`
@@ -2749,11 +2755,14 @@ setting above is inherited by every descendant, so a program launched from QML w
 life with transparent huge pages disabled without ever asking; `open::open` hands the setting back
 before it spawns.
 
-It spawns `xdg-open` and exits, it does not `exec` into it. `/usr/bin/xdg-open` line 977 is
-`env "$command" "$@"` inside `search_desktop_file`, with no `exec` and no `&`, so `xdg-open` blocks
-for the whole life of the application it launched. An `exec` would therefore leave a Flea-descended
-process alive for that whole life, as a child of the `qs` process, which Quickshell may kill when
-Flea quits. `Command::spawn` is still argv-direct exec and never a shell, which is the binding
+It runs `gio open <path>` and waits for that one process, which is not the same as waiting for the
+application. `gio open` asks the desktop database for the handler, launches it and returns: measured
+on this box at 10 ms against a stub handler that then ran for five seconds of its own, with the
+handler still running long after `gio` had been reaped. Waiting is what makes the exit status mean
+anything, and the detached `xdg-open` spawn it replaced answered `0` for a handoff that had not
+happened. It is still a spawn and never an `exec`, because an `exec` would leave a Flea-descended
+process alive for the application's whole life, as a child of the `qs` process, which Quickshell may
+kill when Flea quits. `Command::status` is argv-direct exec and never a shell, which is the binding
 requirement. The child gets `process_group(0)` so that nothing which later kills Flea's process group
 reaches the opened application.
 
@@ -2770,9 +2779,12 @@ which is the error path.
 
 The exit statuses are the whole contract: `0` is a successful handoff, `2` is anything that could not
 be opened and carries one elided sentence on stderr, and `3` means the resolved target is a directory
-and carries no output at all. A directory is refused rather than handed on because
+and carries no output at all. `2` now covers the launcher refusing as well as failing to start: a
+`gio open` that exits nonzero gets `that file could not be opened, check that it still exists`, and a
+`gio` that could not be run at all gets `nothing on this system could be asked to open that file`, so
+the pair still tells a refused open from an unimplemented one. A directory is refused rather than handed on because
 `xdg-mime query default inode/directory` is `org.gnome.Nautilus.desktop` here, so opening one through
-`xdg-open` from inside a file manager opens a different file manager; the caller navigates instead.
+the opener from inside a file manager opens a different file manager; the caller navigates instead.
 `flea --open` with no path and `flea --open a b` both fall through to the unknown-flag branch, which
 names the flag and exits 2.
 
@@ -2784,14 +2796,28 @@ sentence to the status line. `Pane.openCursor` sends a row with `d` true to `ope
 other row to the opener, so a symlink to a directory reaches the opener, comes back 3 and
 navigates; `tests/ui.sh open` asserts all three answers on one listing.
 
-**`xdg-open` ignores `Terminal=true`, and that is the box's XDG configuration rather than Flea's
-to work around.** `search_desktop_file` reads only `Exec`, `Icon` and `Name`, so a handler that
-needs a terminal is run without one. `xdg-mime query default text/plain` is `nvim.desktop` here,
-so Enter on a text file spawns a headless `nvim` that maps no window and that the user never
-sees. The remedy belongs to the operator and it is `omarchy default editor`, which rewrites the
-association. Wrapping the handler in a terminal from inside Flea would mean Flea deciding which
-programs are terminal programs, and that is the judgement the desktop's own database exists to
-make.
+**Issue 41: `xdg-open` does not honour `Terminal=true`, which is why the handoff is `gio open`.**
+`xdg-mime query default text/plain` is `nvim.desktop` here, whose `Exec` is `nvim %F` and whose
+`Terminal` is `true`, and Enter on a text file mapped no window at all. Reproduced against an
+isolated `XDG_DATA_HOME` and `XDG_CONFIG_HOME` carrying one `Terminal=true` entry, so the operator's
+own MIME state was neither read nor written: `xdg-open` exited `3` with
+`no method available for opening`, the handler never ran, no terminal was reached, and `flea --open`
+still exited `0` over it. `gio open` on the same fixture ran the handler inside the stub
+`xdg-terminal-exec` and exited `0`. `glib2` is `2.88.3-1` here and `/usr/lib/libgio-2.0.so` carries
+the `xdg-terminal-exec` string, so `xdg-terminal-exec` is a `depends` entry and not an `optdepends`
+one.
+
+**The entry here used to decline the issue, and its stated remedy was false.** It said the remedy
+belonged to the operator and was `omarchy default editor`, which rewrites the association.
+`/usr/bin/omarchy-default-editor` is 36 lines, contains zero occurrences of `xdg-mime` and zero of
+`mimeapps`, and its one path reference is line 7,
+`editor_file="$HOME/.local/state/omarchy/defaults/editor"`, which lines 33 and 34 are the only
+writer of. It chooses what `omarchy-launch-editor` runs and changes no MIME association at all, so
+it could not have fixed this and never could have.
+
+Flea still decides nothing about which programs are terminal programs. That judgement is the desktop
+database's, `gio open` is how it is asked, and there is no desktop-entry parsing anywhere in
+`src/open.rs`.
 
 ### No type-ahead, and trash is a pair
 
