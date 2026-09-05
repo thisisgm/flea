@@ -44,6 +44,17 @@ else
   exit 1
 fi
 
+# The pointer table's own "does" legend, checked against the rows under it rather than read: it has
+# named an effect no row uses and missed two that rows do, through two rounds of editing that line.
+legend=$(sed -n 's/^# does   *//p' keys.toml | tr ' ' '\n' | sort -u | tr '\n' ' ')
+effects=$(sed -n 's/^does = "\(.*\)"$/\1/p' keys.toml | sort -u | tr '\n' ' ')
+if [ "$legend" = "$effects" ]; then
+  echo "ok   the pointer legend names exactly the effects its own rows use"
+else
+  echo "FAIL the pointer legend reads '$legend' and the rows use '$effects'"
+  exit 1
+fi
+
 if diff -u ui/js/Keymap.js "$tmp"; then
   echo "ok   ui/js/Keymap.js matches keys.toml"
   exit 0

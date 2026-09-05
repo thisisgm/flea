@@ -514,7 +514,7 @@ label = "this sheet"
 #        chrome     ui/ChromeBar.qml's path above the listing, whose segments are their own targets
 # press  the button, then any modifier before it, then "x2" for the second tap of a double click
 # row    which rows the line covers: any, dir, file, renaming, result or crumb
-# does   setCursor open menu toggleSelect extendSelect reveal backOrParent pathBar goToCrumb nothing
+# does   backOrParent commitRename extendSelect goToCrumb menu nothing open pathBar reveal selectOnly toggleSelect
 #
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
 # opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
