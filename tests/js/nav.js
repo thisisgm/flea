@@ -46,6 +46,8 @@ function browsing(history) {
     p.filterTyping = false
     p.path = "/home/gm/Work"
     p.history = history
+    // ui/Pane.qml menuVisible: the pane's own context menu, which covers the listing it was raised over.
+    p.menuVisible = false
     p.open = function (target) { Nav.open(p, target) }
     p.openWithoutHistory = function (target) { Nav.openWithoutHistory(p, target) }
     return p
@@ -136,6 +138,16 @@ function run(check) {
     Nav.mouseBack(busyBack)
     check("and a press during a load keeps the history it would have popped",
           busyBack.history.join(",") + "|" + busyBack.path, "/home/gm|/home/gm/Work")
+    // An open context menu covers the listing and nothing in a navigation closes it, so a press
+    // here left the menu standing over rows from another directory and its next row acted on
+    // whatever had arrived at that index: on Move to Trash that is a different file trashed.
+    var menuUp = browsing(["/home/gm"])
+    menuUp.menuVisible = true
+    Nav.mouseBack(menuUp)
+    check("mouse back behind an open context menu goes nowhere at all",
+          menuUp.path + "|" + menuUp.sent.length, "/home/gm/Work|0")
+    check("and keeps the history entry it would have popped, so the menu's rows stay its own",
+          menuUp.history.join(","), "/home/gm")
 
     // Issue 45: the chrome's path as the pieces a click can land on. The pieces have to concatenate
     // to exactly the one line they replace, or the bar draws something nobody asked for, and each

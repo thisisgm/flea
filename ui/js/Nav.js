@@ -37,6 +37,12 @@ function back(pane) {
 // own left arrow wherever there is somewhere to go back to and the up arrow where there is not, which
 // is the climb the issue asked for. No forward stack, because the canvas draws one arrow and not two.
 function mouseBack(pane) {
+    // The pane's own context menu covers the listing and no navigation closes it, so a press behind
+    // one left the menu standing over another directory's rows and its next row acted on whichever
+    // file had arrived at that index. ui/shell.qml refuses the overlays the window itself holds.
+    if (pane.menuVisible) {
+        return
+    }
     if (pane.history.length > 0) {
         back(pane)
         return
