@@ -49,7 +49,8 @@ pub const SIDEBAR_MAX: f64 = 640.0;
 pub enum Rule {
     Bool,
     Word(&'static [&'static str]),
-    Words(&'static [&'static str]),
+    // columns names what the list row SHOWS, so it holds each column key at most once and name always.
+    Columns,
     Paths,
     // dual.paths is the pair handoff 5a specifies, or the empty array that means nothing remembered.
     Pair,
@@ -102,7 +103,7 @@ pub const UPDATES: &[(&str, Rule)] = &[("check", Rule::Bool), ("channel", Rule::
 pub const SCHEMA: &[(&str, Rule)] = &[
     ("view", Rule::Word(&["list", "columns", "grid", "dual"])),
     ("density", Rule::Word(&["compact", "normal", "comfortable"])),
-    ("columns", Rule::Words(COLUMN_KEYS)),
+    ("columns", Rule::Columns),
     ("addressBar", Rule::Word(&["path", "breadcrumb"])),
     ("sort", Rule::Group(SORT)),
     ("dual", Rule::Group(DUAL)),
@@ -217,6 +218,29 @@ mod tests {
             hidden,
             ["delete", "openwith", "terminal", "moveto", "copyto", "properties", "permissions", "copypath"]
         );
+    }
+
+    // The rules nothing else reached: an exact stop, a fraction of one and never zero, a non-empty path.
+    #[test]
+    fn the_stop_the_opacity_and_the_favourites_rules_each_bite_at_their_own_edge() {
+        let current = crate::uistate::from_file("{}");
+        let takes = |patch: &str| crate::uistate::patched(&current, &jsondoc::parse(patch).expect("patch parses"));
+        for good in [r#"{"display":{"textSize":{"mode":"system"}}}"#, r#"{"display":{"textSize":{"mode":9}}}"#,
+                     r#"{"display":{"opacity":1.0}}"#, r#"{"display":{"opacity":0.5}}"#,
+                     r#"{"places":{"favourites":[]}}"#] {
+            assert!(takes(good).is_ok(), "{} is a value its key takes", good);
+        }
+        for (bad, named) in [(r#"{"display":{"textSize":{"mode":13}}}"#, "display.textSize.mode"),
+                             (r#"{"display":{"textSize":{"mode":14.5}}}"#, "display.textSize.mode"),
+                             (r#"{"display":{"textSize":{"mode":"14"}}}"#, "display.textSize.mode"),
+                             (r#"{"display":{"opacity":0}}"#, "display.opacity"),
+                             (r#"{"display":{"opacity":1.5}}"#, "display.opacity"),
+                             (r#"{"display":{"opacity":"half"}}"#, "display.opacity"),
+                             (r#"{"places":{"favourites":[""]}}"#, "places.favourites"),
+                             (r#"{"places":{"favourites":"/a"}}"#, "places.favourites")] {
+            let message = takes(bad).expect_err("the patch must be refused");
+            assert!(message.contains(named), "{} should name {}, got {}", bad, named, message);
+        }
     }
 
     #[test]

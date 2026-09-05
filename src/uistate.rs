@@ -1,7 +1,7 @@
 // The ui.json merges with no disk in them: read a file onto the defaults, apply one caller patch,
 // and carry 0.1.3's view.json across.
 use crate::jsondoc::{self, Json};
-use crate::uischema::{defaults, Rule, OPTIONAL_COLUMNS, SCHEMA, TEXT_SIZE_STOPS};
+use crate::uischema::{defaults, Rule, COLUMN_KEYS, OPTIONAL_COLUMNS, SCHEMA, TEXT_SIZE_STOPS};
 
 // Never fails: a file this cannot read is a file whose every key falls back to the shipped default.
 pub fn from_file(text: &str) -> Json {
@@ -118,7 +118,7 @@ fn fits(rule: &Rule, value: &Json) -> bool {
     match rule {
         Rule::Bool => value.as_bool().is_some(),
         Rule::Word(words) => value.as_str().map(|s| words.contains(&s)).unwrap_or(false),
-        Rule::Words(words) => every_string(value, |s| words.contains(&s)),
+        Rule::Columns => is_column_set(value),
         Rule::Paths => every_string(value, |s| !s.is_empty()),
         // Handoff 5a stores the two panes or nothing, so a third path is a shape no restore can read.
         Rule::Pair => match value.as_array() {
@@ -144,6 +144,23 @@ fn every_string(value: &Json, ok: impl Fn(&str) -> bool) -> bool {
         Some(items) => items.iter().all(|item| item.as_str().map(&ok).unwrap_or(false)),
         None => false,
     }
+}
+
+// The list row's own set. uischema's columns row says name is never optional and ui/js/Columns.js
+// draws it whatever this holds, so every entry is a column key, each of them once, and name is one.
+fn is_column_set(value: &Json) -> bool {
+    let items = match value.as_array() {
+        Some(items) => items,
+        None => return false,
+    };
+    let mut seen: Vec<&str> = Vec::new();
+    for item in items {
+        match item.as_str() {
+            Some(key) if COLUMN_KEYS.contains(&key) && !seen.contains(&key) => seen.push(key),
+            _ => return false,
+        }
+    }
+    seen.contains(&"name")
 }
 
 // An action id is one of keys.toml's own, and 32 of its 48 are camelCase, so this is the shape of
@@ -304,6 +321,30 @@ mod tests {
                 .get("menu").and_then(|m| m.get("hidden")).and_then(Json::as_array).expect("menu.hidden");
             assert_eq!(fell_back.len(), 8, "{} must cost the key its own default", bad);
         }
+    }
+
+    // Measured through the real singleton: seeded ["name","size","size","date"], one header-menu
+    // "Hide Size" click left the drawn set at name,size,date, so a duplicate costs the user a click.
+    #[test]
+    fn a_columns_array_holds_each_key_once_and_always_name() {
+        let current = from_file("{}");
+        for good in [r#"{"columns":["name"]}"#, r#"{"columns":["name","size","date"]}"#,
+                     r#"{"columns":["kind","name","mode","size","date"]}"#] {
+            let p = jsondoc::parse(good).expect("patch parses");
+            assert!(patched(&current, &p).is_ok(), "{} is a column set", good);
+        }
+        for bad in [r#"{"columns":[]}"#, r#"{"columns":["size","date"]}"#, r#"{"columns":["name","name"]}"#,
+                    r#"{"columns":["name","size","size"]}"#, r#"{"columns":["name","owner"]}"#,
+                    r#"{"columns":"name"}"#, r#"{"columns":["name",1]}"#] {
+            let p = jsondoc::parse(bad).expect("patch parses");
+            let message = patched(&current, &p).expect_err("the patch must be refused");
+            assert!(message.contains("columns"), "{} should name columns, got {}", bad, message);
+        }
+        // A file carrying one costs that key its own default, and the key beside it still stands.
+        let read = from_file(r#"{"columns":["size","size"],"density":"compact"}"#);
+        let cols: Vec<&str> = read.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
+        assert_eq!(cols, ["name", "size", "date"]);
+        assert_eq!(read.get("density").and_then(Json::as_str), Some("compact"));
     }
 
     // hiddenCols named what was hidden; columns names what is shown, so the migration inverts it.
