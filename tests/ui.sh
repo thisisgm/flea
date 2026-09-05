@@ -2765,10 +2765,16 @@ EOS
     settle
     [[ "$(cat "$bookmarks")" == "smb://192.168.1.10/data Homelab"$'\n'"smb://192.168.1.10/isos ISOs Archive" ]] \
         || fail "rename: a mount-only entry did not gain a bookmark line, file now reads: $(cat "$bookmarks")"
-    # The rail still shows gio's own live label for a mounted entry, by design; the new
-    # bookmark line only becomes visible once gio stops reporting it live.
-    [[ "$(ipc networkEntries)" == "isos|network|share|true"$'\n'"Homelab|network|share|false" ]] \
-        || fail "rename: a mounted entry's rail label changed, which should never happen, got $(ipc networkEntries)"
+    # PR #21's rule, which this case used to assert the other way round: the operator's own name wins
+    # on the live row too, or the rename just typed is written to the file and never drawn again.
+    # The live mount still wins the row itself, and its "true" here says so; see ui/js/Mounts.js
+    # "railLabel" and ui/NetworkMounts.qml "rebuild".
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "ISOs Archive|network|share|true"$'\n'"Homelab|network|share|false" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "ISOs Archive|network|share|true"$'\n'"Homelab|network|share|false" ]] \
+        || fail "rename: a mounted entry did not take the name just typed, got $(ipc networkEntries)"
 
     # A poll that finds the same shares must hand the Repeater nothing, or every rail row rebinds on
     # a five second timer and an open editor loses what was typed into it.
@@ -2810,10 +2816,10 @@ EOS
     wait_listing 2
     wait_rail 3
     for _attempt in $(seq 1 100); do
-        [[ "$(ipc networkEntries)" == "isos|network|share|true"$'\n'"Homelab|network|share|false" ]] && break
+        [[ "$(ipc networkEntries)" == "ISOs Archive|network|share|true"$'\n'"Homelab|network|share|false" ]] && break
         sleep 0.05
     done
-    [[ "$(ipc networkEntries)" == "isos|network|share|true"$'\n'"Homelab|network|share|false" ]] \
+    [[ "$(ipc networkEntries)" == "ISOs Archive|network|share|true"$'\n'"Homelab|network|share|false" ]] \
         || fail "rename: the label did not survive a relaunch, got $(ipc networkEntries)"
 
     printf 'RENAME relabel=ok escape=ok empty=ok create-bookmark=ok persists=ok\n'
