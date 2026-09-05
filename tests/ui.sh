@@ -2525,6 +2525,96 @@ EOS
     # A rail row with nothing to release opens no menu at all, rather than an empty frame. Home is
     # the one favourite this fixture home has, and it is not a mount.
     click_rail_row 0 right
+# The deadline over "gio info" and the refusal that says the guard closed. ui/NetworkMounts.qml
+# "openShare" is single flight over two children, and only the mount one was bounded: a "gio info"
+# that never returns left infoProcess.running true and every later share opened in silence for the
+# life of the window. The stub hangs info on one share and answers for the other, so all three of
+# the new behaviours are driven: the busy refusal, the deadline's own sentence, and the second share
+# opening afterwards. Without the bound the first two never appear and the third waits out the stub.
+case_hangshare() {
+    local dir="$fixture_root/hangshare"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/bin"
+    : > "$dir/0-one.txt"
+
+    local good_dir="$fixture_root/hangshare-good"
+    sandbox_remove "$good_dir"
+    mkdir -p "$good_dir"
+    : > "$good_dir/one.txt"
+
+    local hang_uri="smb://stubhost/hang/"
+    local good_uri="smb://stubhost/good/"
+    cat > "$dir/bin/gio" <<EOS
+#!/bin/sh
+if [ "\$1 \$2" = "mount -l" ]; then
+  printf 'Mount(0): hang en stubhost -> $hang_uri\n  Type: GDaemonMount\n'
+  printf 'Mount(1): good en stubhost -> $good_uri\n  Type: GDaemonMount\n'
+  exit 0
+fi
+if [ "\$1" = info ]; then
+  # The dead-server shape ui/NetworkMounts.qml documents: gio info on a location gvfs cannot reach
+  # never returns. exec so the product's own terminate reaches the sleep and leaves nothing behind.
+  [ "\$2" = "$hang_uri" ] && exec sleep 25
+  printf 'local path: %s\n' "$good_dir"
+fi
+exit 0
+EOS
+    chmod +x "$dir/bin/gio"
+
+    local fixture_home="$fixture_root/hangshare-home"
+    fixture_home_make "$fixture_home"
+    local real_home="$HOME" saved_path="$PATH"
+
+    export PATH="$dir/bin:$PATH"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    export PATH="$saved_path"
+    # bin/ is the gio stub's own fixture entry, alongside the one file under test.
+    wait_listing 2
+    wait_rail 3
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "hang|network|share|true"$'\n'"good|network|share|true" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "hang|network|share|true"$'\n'"good|network|share|true" ]] \
+        || fail "hangshare: the two stub mounts did not reach the rail, got $(ipc networkEntries)"
+
+    # Home(0), hang(1), good(2). Opening hang starts the info that never answers.
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "hangshare: Tab did not reach the rail"
+    key g >/dev/null
+    key j >/dev/null
+    settle
+    [[ "$(ipc railCursor)" == "1" ]] || fail "hangshare: expected the rail cursor on hang, got $(ipc railCursor)"
+    key l >/dev/null
+    settle
+
+    # The guard is closed now, and a second share must say so rather than swallow the keypress.
+    key j >/dev/null
+    settle
+    [[ "$(ipc railCursor)" == "2" ]] || fail "hangshare: expected the rail cursor on good, got $(ipc railCursor)"
+    key l >/dev/null
+    wait_message "Another network location is still opening; give it a moment."
+    [[ "$(ipc path)" == "$dir" ]] || fail "hangshare: the refused open navigated to $(ipc path)"
+
+    # And the deadline is what reopens it, with the same sentence a mount that never answers gets.
+    wait_message "That network location did not respond; check the address and try again."
+    key l >/dev/null
+    for _attempt in $(seq 1 200); do
+        [[ "$(ipc path)" == "$good_dir" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc path)" == "$good_dir" ]] \
+        || fail "hangshare: good never opened after the deadline, path is $(ipc path)"
+    [[ "$(ipc total)" == "1" ]] || fail "hangshare: good's own listing did not load, total is $(ipc total)"
+
+    printf 'HANGSHARE busy-refusal=ok deadline=ok next-share-opens=ok\n'
+    kill_flea
+    sandbox_remove "$fixture_home"; sandbox_remove "$good_dir"
+}
+
     settle
     [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "unmount: a favourite opened a menu with nothing in it"
 
@@ -3174,7 +3264,7 @@ cache_snapshot
 trap cleanup EXIT
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network sharebrowser hangshare unmount eject rename renamelife taildrop grid columns operations tabs)
 
 : > "$run_log"
 : > "$flea_log"

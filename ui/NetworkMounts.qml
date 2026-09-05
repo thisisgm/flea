@@ -18,9 +18,9 @@ Item {
     // Fired once ui/NetworkPlaces.qml's write has actually landed, so a caller's reload reads it.
     signal renamed()
 
-    // Hyprland has no secret/auth portal here, so "gio mount" on a share that wants a
-    // credential prompt hangs forever with no stdin to answer it; measured live against the real
-    // NAS. This bounds that hang so the entry fails with a message instead of dying silently.
+    // Hyprland has no secret/auth portal here, so "gio mount" on a share that wants a credential
+    // prompt hangs forever with no stdin to answer it, measured live against the real NAS, and
+    // "gio info" on a location gvfs cannot reach does the same. Each leg of an open gets this bound.
     readonly property int mountTimeoutMs: 15000
     // Issue #36: the gio calls this Service reads output from (info, list, and the listing in
     // ui/MountListing.qml) are pinned to C so their wording cannot be translated; gvfsd's own
@@ -33,9 +33,10 @@ Item {
     // Dropbox panel's Service.qml "statusStdout.text || root._statusOutput" for the same guard.
     property string _infoOutput: ""
     property string _listSharesOutput: ""
-    // Set right before mountTimeout terminates the process, so its own onExited does not also
-    // report a second, redundant failure for the exact same mount attempt.
+    // Set right before mountTimeout terminates that leg's process, so its own onExited does not
+    // also report a second, redundant failure for the exact same open attempt.
     property bool _mountTimedOut: false
+    property bool _infoTimedOut: false
     // Set from "gio mount"'s own exit code and consumed by the "gio info" that follows it, which is
     // what actually decides whether the location is mounted; this only colours the failure message.
     property bool _mountFailed: false
@@ -45,10 +46,8 @@ Item {
 
     onBookmarksTextChanged: root.rebuild()
 
-    // ~/Dropbox does not exist until the stock service is installed and authenticated; this
-    // FileView never reads text(), it only watches the path's own existence flip.
-    // The context menu's own gate for "Move to Dropbox": the same watch the sidebar row uses, because
-    // ~/Dropbox does not exist until the stock service is installed and authenticated.
+    // The gate for "Move to Dropbox" and for the sidebar row: ~/Dropbox exists only once the stock
+    // service is installed and authenticated, so this FileView watches that flip and never reads text().
     readonly property bool dropboxReady: dropboxFile.loaded
 
     FileView {
@@ -118,7 +117,11 @@ Item {
     }
 
     function openShare(uri, alreadyMounted, label) {
-        if (mountProcess.running || infoProcess.running) return
+        if (mountProcess.running || infoProcess.running) {
+            // A guard that returns in silence names nothing at all, and the bound above is 15 s.
+            root.message("Another network location is still opening; give it a moment.", false)
+            return
+        }
         root._pendingUri = uri
         root._pendingLabel = label || ""
         root._mountFailed = false
@@ -134,6 +137,7 @@ Item {
     function runInfo(uri) {
         infoProcess.command = ["gio", "info", uri]
         infoProcess.running = true
+        mountTimeout.restart()
     }
 
     // A server root with no share segment has no FUSE path of its own; see AGENTS.md "A server
@@ -168,9 +172,16 @@ Item {
         interval: root.mountTimeoutMs
         repeat: false
         onTriggered: {
-            if (!mountProcess.running) return
-            root._mountTimedOut = true
-            mountProcess.running = false
+            // Whichever leg of the open is still running is the one that missed the deadline.
+            if (mountProcess.running) {
+                root._mountTimedOut = true
+                mountProcess.running = false
+            } else if (infoProcess.running) {
+                root._infoTimedOut = true
+                infoProcess.running = false
+            } else {
+                return
+            }
             root.message("That network location did not respond; check the address and try again.", true)
         }
     }
@@ -198,9 +209,13 @@ Item {
         environment: root.gioEnvironment
         stdout: StdioCollector { id: infoOut; waitForEnd: true; onStreamFinished: root._infoOutput = text }
         onExited: function (exitCode) {
+            mountTimeout.stop()
             root.pollMounts()
+            var timedOut = root._infoTimedOut
+            root._infoTimedOut = false
             var failed = root._mountFailed
             root._mountFailed = false
+            if (timedOut) return
             var path = Mounts.localPath(String(infoOut.text || root._infoOutput || ""))
             if (exitCode === 0 && path.length > 0) {
                 root.opened(path)
