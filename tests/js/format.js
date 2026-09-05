@@ -11,17 +11,12 @@ function run(check) {
     check("an unknown home leaves every path alone",
           Format.tilde("/home/gm/x", ""), "/home/gm/x")
 
-    // The chrome draws the directory's own name at full contrast and everything above it muted.
-    check("the parent half keeps its trailing separator",
-          Format.parentPart("~/Documents/claude"), "~/Documents/")
-    check("and the leaf is the directory's own name",
+    // ui/js/Tabs.js "label" names a tab after the directory it stands in, which is this and nothing else.
+    check("the leaf is the directory's own name",
           Format.leafPart("~/Documents/claude"), "claude")
-    check("a bare name is all leaf and no parent",
-          Format.parentPart("claude") + "|" + Format.leafPart("claude"), "|claude")
-    check("the root is its own label with no parent half",
-          Format.parentPart("/") + "|" + Format.leafPart("/"), "|/")
-    check("a tilde alone is its own leaf",
-          Format.parentPart("~") + "|" + Format.leafPart("~"), "|~")
+    check("a bare name is all leaf", Format.leafPart("claude"), "claude")
+    check("the root is its own label", Format.leafPart("/"), "/")
+    check("a tilde alone is its own leaf", Format.leafPart("~"), "~")
 
     check("zero bytes", Format.size(0), "0 B")
     check("just under a kilobyte", Format.size(999), "999 B")

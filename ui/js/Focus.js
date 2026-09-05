@@ -1,4 +1,3 @@
-
 .pragma library
 .import "Eject.js" as Eject
 .import "Filter.js" as Filter

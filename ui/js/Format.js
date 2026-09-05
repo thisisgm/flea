@@ -102,13 +102,7 @@ function tilde(path, home) {
     return String(path)
 }
 
-// The chrome draws the directory's own name at full contrast and everything above it muted, so the
-// path splits after its last separator; a root or a bare name has no parent half at all.
-function parentPart(display) {
-    var cut = String(display).lastIndexOf("/")
-    return cut <= 0 ? "" : String(display).substring(0, cut + 1)
-}
-
+// A tab is named after the directory it is standing in, so the label is the path's last segment.
 function leafPart(display) {
     var text = String(display)
     var cut = text.lastIndexOf("/")
