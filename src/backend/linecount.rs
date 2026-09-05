@@ -62,6 +62,7 @@ pub fn count_lines(path: &Path) -> LineCount {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::fifotest::{mkfifo, peek, within, FifoWriter};
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
     use std::path::PathBuf;
@@ -78,33 +79,14 @@ mod tests {
         assert_eq!((denied.lines, denied.partial, denied.failed), (0, false, true), "a file that could not be opened has no count at all");
     }
 
-    fn mkfifo(path: &Path) {
-        let made = std::process::Command::new("mkfifo").arg(path).status().expect("mkfifo");
-        assert!(made.success(), "mkfifo {:?}", path);
-    }
-
     // Counted on a thread with a bound, because the defect under test is an open that never returns.
     fn bounded(path: PathBuf) -> LineCount {
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || { let _ = tx.send(count_lines(&path)); });
-        rx.recv_timeout(std::time::Duration::from_secs(5)).expect("a count must answer within its bound")
+        within("a count", move || count_lines(&path))
     }
 
     fn no_count(path: PathBuf, why: &str) {
         let c = bounded(path);
         assert_eq!((c.lines, c.partial, c.failed), (0, false, true), "{}", why);
-    }
-
-    // Read on a thread too, because a count that wrongly drained the pipe would leave this blocked.
-    fn peek(path: PathBuf) -> Option<Vec<u8>> {
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || {
-            let mut buf = vec![0u8; 64];
-            let n = std::fs::File::open(&path).and_then(|mut f| f.read(&mut buf)).unwrap_or(0);
-            buf.truncate(n);
-            let _ = tx.send(buf);
-        });
-        rx.recv_timeout(std::time::Duration::from_secs(5)).ok()
     }
 
     #[test]
@@ -122,49 +104,24 @@ mod tests {
         no_count(d.join("never-existed"), "a row that vanished still has no count");
         // The guard is this narrow so a real text file is still counted, which is what this file is for.
         assert_eq!(bounded(d.file("real.txt", "a\nb\nc\n")).lines, 3);
-        // And counted through a link to one, which is the case that separates the two candidate
-        // calls: the open follows the link, so symlink_metadata would answer failed on a real file.
+        // And through a link to one, the case that separates the two candidate calls: the open follows it.
         std::os::unix::fs::symlink("real.txt", d.join("toreal")).unwrap();
         let through = bounded(d.join("toreal"));
         assert_eq!((through.lines, through.partial, through.failed), (3, false, false));
-    }
-
-    // A Child is not killed by dropping it, so this is what stops a failed assertion leaving a writer behind.
-    struct FifoWriter(std::process::Child);
-
-    impl Drop for FifoWriter {
-        fn drop(&mut self) {
-            let _ = self.0.kill();
-            let _ = self.0.wait();
-        }
-    }
-
-    // The writer creates this only once its printf has returned, so nothing below measures a half-filled pipe.
-    fn await_written(signal: &Path) {
-        let deadline = std::time::Instant::now() + std::time::Duration::from_secs(10);
-        while !signal.exists() {
-            assert!(std::time::Instant::now() < deadline, "the fifo writer never signalled that its write finished");
-            std::thread::sleep(std::time::Duration::from_millis(2));
-        }
     }
 
     #[test]
     fn a_fifo_that_has_a_writer_keeps_every_byte_a_count_did_not_read() {
         let d = TestDir::new("linecountfed");
         let p = d.join("pipe");
-        let wrote = d.join("wrote");
         mkfifo(&p);
-        // exec 3<> opens both ends at once, the only way a writer sits on a fifo nobody is reading.
-        let mut writer = FifoWriter(std::process::Command::new("sh")
-            .arg("-c").arg(r#"exec 3<>"$0"; printf 'a\nb\nc\n' >&3; : >"$1"; exec sleep 30"#).arg(&p).arg(&wrote)
-            .spawn().expect("fifo writer"));
-        await_written(&wrote);
+        // feeding returns only once the bytes are in the pipe, or this case degenerates into the writerless one.
+        let mut writer = FifoWriter::feeding(&p, "a\nb\nc\n", &d.join("wrote"));
         let counted = bounded(p.clone());
         let left = peek(p);
-        let killed = writer.0.kill().is_ok();
-        let reaped = writer.0.wait().is_ok();
+        let stopped = writer.stop();
         assert_eq!((counted.lines, counted.partial, counted.failed), (0, false, true));
-        assert_eq!(left.as_deref(), Some(&b"a\nb\nc\n"[..]), "a count must never eat a pipe someone else is reading");
-        assert!(killed && reaped, "the writer this test started is killed by its own pid");
+        assert_eq!(left, b"a\nb\nc\n".to_vec(), "a count must never eat a pipe someone else is reading");
+        assert!(stopped, "the writer this test started is killed by its own pid");
     }
 }

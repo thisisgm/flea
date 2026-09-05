@@ -139,6 +139,7 @@ fn webp(b: &[u8]) -> Option<(u32, u32)> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::fifotest::{mkfifo, peek, within, FifoWriter};
     use crate::backend::testdir::TestDir;
     use std::path::PathBuf;
 
@@ -220,16 +221,14 @@ mod tests {
 
     // Measured on a thread with a bound, because the defect under test is an open that never returns.
     fn measured(path: PathBuf) -> Option<(u32, u32)> {
-        let (tx, rx) = std::sync::mpsc::channel();
-        std::thread::spawn(move || { let _ = tx.send(dimensions(&path)); });
-        rx.recv_timeout(std::time::Duration::from_secs(5)).expect("dimensions must answer within its bound")
+        within("dimensions", move || dimensions(&path))
     }
 
     #[test]
     fn nothing_but_a_regular_file_is_ever_opened_to_be_measured() {
         let d = TestDir::new("imagesizekinds");
         let fifo = d.join("pipe");
-        assert!(std::process::Command::new("mkfifo").arg(&fifo).status().expect("mkfifo").success());
+        mkfifo(&fifo);
         assert_eq!(measured(fifo), None, "opening a fifo with no writer never returns");
         std::os::unix::fs::symlink("pipe", d.join("topipe")).unwrap();
         assert_eq!(measured(d.join("topipe")), None, "the open follows the link, so the check has to as well");
@@ -241,9 +240,26 @@ mod tests {
         let png = d.join("shot.png");
         std::fs::write(&png, png_header(1234, 567)).unwrap();
         assert_eq!(measured(png), Some((1234, 567)));
-        // And measured through a link to one, which is the case that separates the two candidate
-        // calls: the open follows the link, so symlink_metadata would refuse a real image too.
+        // And through a link to one, the case that separates the two candidate calls: the open follows it.
         std::os::unix::fs::symlink("shot.png", d.join("toshot")).unwrap();
         assert_eq!(measured(d.join("toshot")), Some((1234, 567)));
+    }
+
+    // A real GIF header, so a drained pipe would answer 8224 by 8481 rather than an unreadable None.
+    const GIF_IN_A_PIPE: &str = "GIF89a  !!";
+
+    #[test]
+    fn a_fifo_that_has_a_writer_keeps_every_byte_a_measurement_did_not_read() {
+        let d = TestDir::new("imagesizefed");
+        let p = d.join("pipe");
+        mkfifo(&p);
+        // feeding returns only once the bytes are in the pipe, or this case degenerates into the writerless one.
+        let mut writer = FifoWriter::feeding(&p, GIF_IN_A_PIPE, &d.join("wrote"));
+        let seen = measured(p.clone());
+        let left = peek(p);
+        let stopped = writer.stop();
+        assert_eq!(seen, None, "a pipe is not a file to measure, whoever is filling it");
+        assert_eq!(left, GIF_IN_A_PIPE.as_bytes(), "a measurement must never eat a pipe someone else is reading");
+        assert!(stopped, "the writer this test started is killed by its own pid");
     }
 }

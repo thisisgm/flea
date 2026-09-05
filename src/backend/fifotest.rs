@@ -7,7 +7,7 @@ use std::process::{Child, Command};
 use std::time::{Duration, Instant};
 
 // Long enough that a loaded box does not fail a working call, short enough that the suite fails rather than hanging.
-const BOUND: Duration = Duration::from_secs(5);
+pub const BOUND: Duration = Duration::from_secs(5);
 // How often the writer's signal file is looked for, which costs nothing next to spawning the shell.
 const POLL: Duration = Duration::from_millis(2);
 
