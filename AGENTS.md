@@ -1725,7 +1725,12 @@ The flags, and why each is there:
 - `--unshare-all` drops every namespace, which is what removes the network.
 - `--die-with-parent` means a wedged decoder cannot outlive the backend.
 - `--new-session` detaches the controlling terminal so the child cannot inject input with
-  `TIOCSTI`.
+  `TIOCSTI`, and it puts bwrap's sandboxed side in a session, and so a process group, of its
+  own. That is what bounds `src/backend/mediaprobe.rs`'s watchdog: measured on the box, the
+  launcher's group holds exactly one process, the `prlimit` that exec'd `bwrap`, while the
+  inner `bwrap` and the decoder share a group of their own, so `kill(-pid)` reaches only the
+  launcher and what ends the decoder is `--die-with-parent` plus the PID namespace dying with
+  it. Both were gone two seconds after the group kill.
 - `--clearenv` empties the environment, so no `LD_PRELOAD`, no `XDG_*`, no session bus.
 - `--ro-bind /usr /usr` and `--ro-bind /etc /etc` give the decoder its libraries and its
   loader configuration, read-only.

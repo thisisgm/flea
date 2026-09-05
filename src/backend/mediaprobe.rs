@@ -107,7 +107,7 @@ fn watchdog(pid: i32, watch: Arc<Watch>) -> std::thread::JoinHandle<()> {
             }
             reaped = watch.wake.wait_timeout(reaped, left).unwrap().0;
         }
-        // Signalled with the lock still held, so no reap can free this pid underneath it; the group holds prlimit and the outer bwrap only, because --new-session puts the sandboxed child in a session of its own and --die-with-parent plus the dying PID namespace is what ends that.
+        // Signalled with the lock still held, so no reap can free this pid underneath it.
         if !*reaped {
             unsafe { kill(-pid, SIGKILL) };
         }
