@@ -2519,8 +2519,8 @@ EOS
     after=$(ipc cursor)
     [[ "$after" != "$before" ]] || fail "unmount: the list stopped taking keys after the rail menu, cursor stuck at $before"
 
-    # PR #21's Remove row, driven at last. Three states reach it and each has its own sentence; this
-    # home has no bookmarks file at all, so the live share the menu is over was never a saved place.
+    # PR #21's Remove row, driven at last: three of the states ui/NetworkMounts.qml "forget" answers
+    # for, each with its own sentence. This home has no bookmarks file, so the live share is unsaved.
     click_rail_row 1 right
     settle
     [[ "$(ipc contextMenuEntries)" == "Unmount|Rename|Remove" ]] \
@@ -2536,8 +2536,8 @@ EOS
     printf 'UNMOUNT menu=ok escape=ok fire=ok no-menu-on-favourite=ok keyboard=ok unsaved=ok\n'
     kill_flea
 
-    # The other two states need a saved place, so the file goes in before the launch that reads it:
-    # one line for the share the stub reports live, one for a place nothing mounts.
+    # The next two need a saved place, so the file goes in before the launch that reads it: one line
+    # for the share the stub reports live, one for a place nothing mounts.
     mkdir -p "$fixture_home/.config/gtk-3.0"
     local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
     printf 'smb://stubhost/stubshare Saved Share\nsmb://stubhost/ghost Ghost Place\n' > "$bookmarks"
