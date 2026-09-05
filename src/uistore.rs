@@ -97,7 +97,7 @@ impl Store {
         }
     }
 
-    // Whether this ui.json is left exactly as it is rather than rewritten through the schema.
+    // Whether this launch's settle leaves ui.json exactly as it is rather than rewriting it.
     fn left_as_it_is(&self) -> bool {
         match fs::read_to_string(&self.file) {
             Ok(text) => match jsondoc::parse(&text) {
@@ -105,8 +105,9 @@ impl Store {
                 // sync_all and the rename measured 6.7 to 18.6 ms a launch here, against 1.3 to 1.7 for one
                 // that only reads.
                 Ok(found) if found.as_object().is_some() => text == jsondoc::render(&uistate::from_file(&text)),
-                // A document this cannot read is the only copy of whatever the operator wrote, and both
-                // front ends already read it as the full default shape, so a rewrite would spend it for nothing.
+                // A settle rewrite would spend the only copy of whatever the operator wrote and close
+                // nothing, because both front ends already read this file as the full default shape.
+                // The settle alone: update() reads those same defaults and does write them back over it.
                 _ => true,
             },
             Err(_) => true,

@@ -94,7 +94,10 @@ fresh
 out=$(flea_ui '{"view":"miller"}' 2>&1); rc=$?
 check "a bad patch value exits 2" "2" "$rc"
 check "a bad patch value names its key" "1" "$(echo "$out" | grep -c 'view')"
-check "a refused patch writes nothing" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
+check "a refused patch writes no state file" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
+# ls -A: update() makes the directory and takes the lock before patched() validates the patch, so a
+# refused one leaves both behind and the state file itself is the only thing it never writes.
+check "a refused patch leaves the directory and the lock it took" "ui.json.lock" "$(ls -A "$STATE/flea" | sort | tr '\n' ' ' | sed 's/ $//')"
 out=$(flea_ui '{"notAKey":1}' 2>&1); rc=$?
 check "an unknown patch key exits 2" "2" "$rc"
 check "an unknown patch key names itself" "1" "$(echo "$out" | grep -c 'notAKey')"
@@ -112,6 +115,29 @@ out=$(flea_ui '{"hidden":true}' 2>&1); rc=$?
 check "a symlink at the target exits 2" "2" "$rc"
 check "a symlink at the target says so" "1" "$(echo "$out" | grep -c 'symbolic link')"
 check "what the link points at is untouched" "planted" "$(cat "$SANDBOX/run/planted.json")"
+# The same link under --gui is the settle that FAILS, and the documented behaviour is that main()
+# prints one line and opens the window anyway on a file it did not validate.
+out=$(env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+      XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null 2>&1)
+check "a failed settle says the view state was not settled" "1" "$(echo "$out" | grep -c 'the view state was not settled')"
+check "and names the link as the reason" "1" "$(echo "$out" | grep -c 'symbolic link')"
+check "and the launch goes on to the window" "1" "$(echo "$out" | grep -c 'could not start the shell')"
+check "and the link still points at untouched bytes" "planted" "$(cat "$SANDBOX/run/planted.json")"
+
+# The other settle failure, and the one nothing drove at all: a state directory this cannot write in.
+fresh
+mkdir -p "$CONFIG/flea"
+printf '{"hiddenCols":["kind"]}\n' > "$CONFIG/flea/view.json"
+chmod 500 "$STATE"
+out=$(env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+      XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null 2>&1)
+check "an unwritable state directory is a settle failure too" "1" "$(echo "$out" | grep -c 'the view state was not settled')"
+check "and that launch also goes on to the window" "1" "$(echo "$out" | grep -c 'could not start the shell')"
+out=$(env XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --ui-state '{"hidden":true}' </dev/null 2>&1); rc=$?
+check "a patch into an unwritable state directory exits 2" "2" "$rc"
+check "and no state file appears under it" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
+# Restored before anything else runs: a 0500 directory is one rm -rf can descend and a later mkdir cannot.
+chmod 700 "$STATE"
 
 # 0.1.3's view.json: hiddenCols named what was hidden, columns names what is shown, uiScale is dropped.
 fresh
@@ -137,9 +163,13 @@ check "the launch got past the migration to the missing shell" "1" "$(echo "$out
 check "the window launch migrated view.json first" "1" "$(tr -d ' \n' < "$UI" | grep -c '"columns":\["name","mode","size","date"\]')"
 check "the launch migration dropped uiScale" "0" "$(grep -c uiScale "$UI")"
 before_migrate=$(cat "$UI")
+before_migrate_ino=$(stat -c '%i' "$UI")
 env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
     XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
 check "a second launch does not migrate again" "$before_migrate" "$(cat "$UI")"
+# view.json is unchanged between the two launches, so a second migration would render these same
+# bytes and the contents alone cannot go red. The inode is what tells a rewrite from no rewrite.
+check "and does not rewrite the file to say so" "$before_migrate_ino" "$(stat -c '%i' "$UI")"
 
 # The window reads ui.json with its own FileView, so the launch settles the file through the schema
 # first: a value this Flea refuses must never be what the first paint draws, and the two front ends
@@ -164,7 +194,8 @@ check "and does not rewrite a file that is already settled" "$settled_ino" "$(st
 
 # A ui.json the settle cannot read is the only copy of whatever the operator wrote, so the launch
 # leaves it exactly as it is: both front ends already read such a file as the full default shape, and
-# a rewrite would spend their settings to close nothing. A trailing comma is the ordinary way in.
+# a settle rewrite would spend their settings to close nothing. A trailing comma is the ordinary way
+# in. That is the settle alone, and the block below pins what the next patch does to the same file.
 fresh
 mkdir -p "$STATE/flea"
 printf '{\n  "columns": ["name", "size"],\n  "density": "compact",\n}\n' > "$UI"
@@ -176,6 +207,28 @@ check "the launch got past the settle to the missing shell" "1" "$(echo "$out" |
 check "a ui.json the settle cannot parse is left byte for byte" "$broken_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
 check "and it is not replaced by a new file either" "$broken_ino" "$(stat -c '%i' "$UI")"
 check "and the read still answers the full default shape" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"
+# The settle preserves the file and update() does not: read() answers the shipped defaults for it, so
+# the first patch the window sends merges onto those and renames a full default document over it.
+# Deliberate, because the window has already said the file was not used and a save has to land, but
+# nothing pinned it, so the next change to update() would have been invisible here.
+out=$(flea_ui '{"hidden":true}' 2>&1); rc=$?
+check "a patch onto that same file exits 0" "0" "$rc"
+check "and does not leave the operator's bytes" "1" "$([ "$(sha256sum "$UI" | cut -d' ' -f1)" != "$broken_sha" ] && echo 1 || echo 0)"
+check "it writes the full default document instead" "17" "$(grep -c '^  "' "$UI")"
+check "so the hand-written key is gone" "1" "$(grep -c '"density": "normal"' "$UI")"
+check "and the patch itself landed" "1" "$(grep -c '"hidden": true' "$UI")"
+
+# A hand-edited number Rust's f64 parse takes and JSON does not is the same case: parse_number
+# refuses the shape, so the document does not read, and the settle leaves it rather than rewriting
+# it into bytes the window's own JSON.parse would then refuse.
+fresh
+mkdir -p "$STATE/flea"
+printf '{"places":{"sidebarWidth":0192},"density":"compact"}\n' > "$UI"
+rust_only_sha=$(sha256sum "$UI" | cut -d' ' -f1)
+env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+    XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
+check "a leading-zero literal is not written back into ui.json" "$rust_only_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
+check "and that file reads as the full default shape" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"density":"normal"')"
 
 # The same for a document that is valid JSON but not the object the merge reads.
 fresh
@@ -246,11 +299,24 @@ while [ "$round" -lt 120 ]; do
   fi
   round=$((round + 1))
 done
+# ls -A, because a suite that audits a directory with ls is blind to the dotfiles in it, and this
+# block asserted the file's contents and the kill count and never listed the directory at all. A
+# SIGKILL between write_new and rename leaves that pid's own temp for good, and tens of the 120
+# rounds do: 47 to 90 across the four runs that added this check, a magnitude and not a number to cite.
+# Nothing reaps them, because the block above holds twelve live temps at once, so no process can tell
+# a peer's temp from a corpse and deleting one in flight is worse than the litter.
+temps=$(ls -A "$STATE/flea" | grep -c '^ui\.json\.[0-9]\+\.tmp$')
+strays=$(ls -A "$STATE/flea" | grep -vc '^ui\.json$\|^ui\.json\.lock$\|^ui\.json\.[0-9]\+\.tmp$')
+echo "     the sweep left $temps temp file(s) behind, one per killed write at most"
+check "the sweep left nothing but ui.json, its lock and killed writers' own temps" "0" "$strays"
+check "and never more temps than there were kills" "1" "$([ "$temps" -le "$kills" ] && echo 1 || echo 0)"
+
 # A floor of one kill is what "120 SIGKILL rounds" was being read off, and a 15 ms budget kills 3 of
 # 120 and still clears it. The floor is a fifth of the rounds: a magnitude, not the 88 to 102 this
-# box actually reaches, because a faster box finishes more rounds inside the 1 to 9 ms budget and a
-# measured number in an assertion is a red gate waiting for the next machine. The count is printed,
-# so anything said about this sweep is read off the run and not off the floor.
+# box reached when the floor was set, nor the 92 to 120 the four runs after it reached, because a
+# faster box finishes more rounds inside the 1 to 9 ms budget and a measured
+# number in an assertion is a red gate waiting for the next machine. The count is printed, so
+# anything said about this sweep is read off the run and not off the floor.
 kill_floor=24
 echo "     the sweep killed $kills of 120 rounds, floor $kill_floor"
 check "the kill sweep killed a fifth of its rounds at least" "1" "$([ "$kills" -ge "$kill_floor" ] && echo 1 || echo 0)"
