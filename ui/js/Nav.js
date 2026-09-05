@@ -26,6 +26,17 @@ function back(pane) {
     pane.openWithoutHistory(target)
 }
 
+// Mouse back is the chrome's left arrow when history exists, and the up arrow otherwise: Nautilus
+// and Explorer bind the button to history, and with none the same press still climbs, which is
+// issue 20. No forward stack: the canvas draws one arrow, not two.
+function mouseBack(pane) {
+    if (pane.history.length > 0) {
+        back(pane)
+        return
+    }
+    parent(pane)
+}
+
 // Everything a fresh listing has to forget. Called by open, by refresh and by the hidden toggle, so
 // the reset is written once and no caller can half-do it.
 function openWithoutHistory(pane, newPath) {

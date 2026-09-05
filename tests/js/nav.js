@@ -86,4 +86,35 @@ function run(check) {
           Nav.renameRefreshTarget(clicked, "/d/new.txt"), "")
     check("and the flag is one shot, so the next rename reveals again",
           Nav.renameRefreshTarget(clicked, "/d/new.txt"), "/d/new.txt")
+
+    // Mouse back is history when there is some, and parent when there is not. The pane's own open
+    // and openWithoutHistory are the same wrappers the window uses, so the two arrows stay one route.
+    function wired() {
+        var p = pane()
+        p.history = []
+        p.path = "/home/gm/Work"
+        p.openWithoutHistory = function (path) { Nav.openWithoutHistory(p, path) }
+        p.open = function (path) { Nav.open(p, path) }
+        return p
+    }
+
+    var remembered = wired()
+    remembered.history = ["/home/gm"]
+    Nav.mouseBack(remembered)
+    check("mouse back with history goes to the remembered directory", remembered.path, "/home/gm")
+    check("and pops that entry, so a second press is not the same place again",
+          remembered.history.join(","), "")
+
+    var climb = wired()
+    Nav.mouseBack(climb)
+    check("mouse back with no history climbs to the parent, the up arrow's own verb",
+          climb.path, "/home/gm")
+    check("and remembers the folder it left, because climbing is a navigation",
+          climb.history.join(","), "/home/gm/Work")
+
+    var rootDir = wired()
+    rootDir.path = "/"
+    Nav.mouseBack(rootDir)
+    check("mouse back at the root with no history stays put", rootDir.path, "/")
+    check("and sends no listing", rootDir.sent.length, 0)
 }

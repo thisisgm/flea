@@ -137,6 +137,7 @@ FocusScope {
     property real fsFree: 0
 
     function goBack() { Nav.back(root) }
+    function mouseBack() { Nav.mouseBack(root) }
 
     // Rename lives in ui/js/Ops.js with the other write operations; ui/List.qml's editor commits through this.
     function commitRename(newName) { Ops.commitRename(root, newName) }
