@@ -232,6 +232,11 @@ Item {
                         font.family: Theme.font.family
                         font.pixelSize: Theme.font.caption
                         textFormat: Text.PlainText
+                        // The box is the strip's height with the glyphs centred in it, because the
+                        // handlers below are the path area's whole gesture and a text-tall box left
+                        // 11 of the strip's 27 px dead, measured at the window.
+                        height: crumbSlot.height
+                        verticalAlignment: Text.AlignVCenter
 
                         HoverHandler {
                             cursorShape: crumb.modelData.last ? Qt.IBeamCursor : Qt.PointingHandCursor
@@ -272,7 +277,8 @@ Item {
             }
 
             // The head that ran off the left, marked where the elided Text drew its own ellipsis; the
-            // fill behind it is the chrome's own colour, because the crumbs slide underneath it.
+            // fill behind it is the chrome's own colour, because the crumbs slide underneath it. It
+            // is the marker's box, and that box is the strip's height for the same reason a crumb's is.
             Rectangle {
                 visible: elision.visible
                 anchors.fill: elision
@@ -292,7 +298,9 @@ Item {
                 id: elision
                 visible: crumbRow.width > crumbSlot.width
                 anchors.left: parent.left
-                anchors.verticalCenter: parent.verticalCenter
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                verticalAlignment: Text.AlignVCenter
                 text: "\u2026"
                 color: Theme.color.muted
                 font.family: Theme.font.family
