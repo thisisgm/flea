@@ -172,7 +172,6 @@ fn cancel_err(path: &Path) -> FleaError {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::backend::fifotest::{mkfifo, within};
     use crate::backend::testdir::TestDir;
     use std::sync::atomic::AtomicBool;
 
@@ -194,26 +193,6 @@ mod tests {
             .expect_err("a symlinked source must not be followed");
         assert_eq!(e.where_, "copy");
         assert!(!d.join("dst.bin").exists(), "and nothing of the target reached the destination");
-    }
-
-    // copy_any routes every kind it can name away from copy_file, so a fifo arriving here was swapped
-    // in after that stat. A plain read-only open of one parks in open(2) until a writer appears.
-    #[test]
-    fn a_source_swapped_to_a_fifo_after_the_stat_is_refused_rather_than_waited_on() {
-        let d = TestDir::new("copyfifoswap");
-        let src = d.join("pipe");
-        mkfifo(&src);
-        let dst = d.join("dst.bin");
-        let target = dst.clone();
-        let e = within("copy_file on a fifo", move || {
-            let flag = AtomicBool::new(false);
-            let mut sink = |_: u64, _: u64| {};
-            let mut p = Progress { cancel: &flag, on_bytes: &mut sink, partial: None };
-            copy_file(&src, &target, 0, &mut p).map_err(|e| e.where_)
-        })
-        .expect_err("a fifo source is refused, not waited on");
-        assert_eq!(e, "copy");
-        assert!(!dst.exists(), "and the refusal lands before the destination is created");
     }
 
     #[test]

@@ -36,7 +36,7 @@ pub fn copy_node(src: &Metadata, dst: &Path) -> Result<(), FleaError> {
 
 #[cfg(test)]
 mod tests {
-    use crate::backend::copyfile::{copy_any, Progress};
+    use crate::backend::copyfile::{copy_any, copy_file, Progress};
     use crate::backend::fifotest::{mkfifo, peek, within, FifoWriter};
     use crate::backend::opsreq::{run_duplicate, OpMsg};
     use crate::backend::testdir::TestDir;
@@ -153,5 +153,24 @@ mod tests {
         copied(src, dst.clone()).expect("copy");
         let mode = dst.symlink_metadata().expect("the copy").permissions().mode() & 0o777;
         assert_eq!(mode, 0o600, "a constant 0666 widens a private fifo that cp -a and rsync -a preserve");
+    }
+    // copy_any routes every kind it can name away from copy_file, so a fifo arriving there was
+    // swapped in after that stat. A plain read-only open of one parks in open(2) until a writer appears.
+    #[test]
+    fn a_source_swapped_to_a_fifo_after_the_stat_is_refused_rather_than_waited_on() {
+        let d = TestDir::new("copyfifoswap");
+        let src = d.join("pipe");
+        mkfifo(&src);
+        let dst = d.join("dst.bin");
+        let target = dst.clone();
+        let e = within("copy_file on a fifo", move || {
+            let flag = AtomicBool::new(false);
+            let mut sink = |_: u64, _: u64| {};
+            let mut p = Progress { cancel: &flag, on_bytes: &mut sink, partial: None };
+            copy_file(&src, &target, 0, &mut p).map_err(|e| e.where_)
+        })
+        .expect_err("a fifo source is refused, not waited on");
+        assert_eq!(e, "copy");
+        assert!(!dst.exists(), "and the refusal lands before the destination is created");
     }
 }

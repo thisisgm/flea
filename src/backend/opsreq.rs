@@ -209,6 +209,7 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
     use crate::backend::undo::Journal;
+    use std::os::unix::fs::PermissionsExt;
     use std::sync::mpsc::{channel, Receiver};
 
     // Drains an operation's channel to its terminal line, which is what every transfer case reads.
@@ -329,14 +330,16 @@ mod tests {
         assert_eq!(errs.len(), 1, "the failure is one item's data, not the operation's");
     }
 
-    // A socket answers ENXIO to open(2) for any uid, so it forces the failure a permission error
-    // would, in whichever order read_dir yields the tree; the entries copied before it stay.
+    // A file with no permission bits answers EACCES to open(2) for every uid but root, so it forces
+    // the failure a real permission error would, in whichever order read_dir yields the tree.
     #[test]
     fn a_copy_that_fails_short_of_a_cancel_records_the_partial_tree_and_undo_removes_it() {
         let d = TestDir::new("transferpartialtree");
         let src = d.dir("tree");
         std::fs::write(src.join("good.txt"), "body").unwrap();
-        let _sock = std::os::unix::net::UnixListener::bind(src.join("sock")).expect("a socket in the source tree");
+        let shut = src.join("shut.txt");
+        std::fs::write(&shut, "body").unwrap();
+        std::fs::set_permissions(&shut, std::fs::Permissions::from_mode(0o000)).unwrap();
         let dest = d.dir("out");
         let (tx, rx) = channel();
         run_transfer(5, false, vec![src.to_string_lossy().to_string()], dest.clone(), Arc::new(AtomicBool::new(false)), tx);

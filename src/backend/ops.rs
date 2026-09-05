@@ -251,15 +251,18 @@ mod tests {
         assert_eq!(std::fs::read_to_string(dst.join("inside.txt")).unwrap(), "body");
     }
 
-    // A socket answers ENXIO to open(2) for any uid, so it forces the failure a permission error would.
+    // A file with no permission bits answers EACCES to open(2) for every uid but root, and no flea
+    // suite runs as root, so it forces the failure a real permission error would.
     #[test]
     fn duplicating_a_tree_that_fails_short_of_the_end_still_records_the_partial_copy() {
         let d = TestDir::new("duppartial");
         let src = d.dir("tree");
         std::fs::write(src.join("inside.txt"), "body").unwrap();
-        let _sock = std::os::unix::net::UnixListener::bind(src.join("sock")).expect("a socket in the source tree");
+        let shut = src.join("shut.txt");
+        std::fs::write(&shut, "body").unwrap();
+        std::fs::set_permissions(&shut, std::fs::Permissions::from_mode(0o000)).unwrap();
         let (outcome, steps) = duplicate(&src);
-        assert!(outcome.is_err(), "the socket cannot be opened, so the tree copy fails");
+        assert!(outcome.is_err(), "the unreadable file cannot be opened, so the tree copy fails");
         let partial = d.join("tree copy");
         assert!(partial.is_dir(), "the failure left what it had copied");
         assert_eq!(steps, vec![Step::Created { path: partial }], "and the journal gets the partial, so undo can remove it");
