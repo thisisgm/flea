@@ -42,7 +42,7 @@ pub mod thumbwrite;
 // File operations and the undo journal they record into.
 pub mod convert;
 pub mod copyfile;
-pub mod copyfifo;
+pub mod copynode;
 pub mod ops;
 pub mod opsdispatch;
 pub mod opsreq;

@@ -1,7 +1,6 @@
 // The copy primitives every transfer is built from: streaming, symlink-preserving, and refusing to overwrite.
 use crate::error::{from_io, FleaError};
 use std::io::{Read, Write};
-use std::os::unix::fs::{FileTypeExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 
@@ -33,12 +32,9 @@ pub fn cancelled(p: &Progress) -> bool {
 
 // Copies one regular file, creating the destination exclusively so an existing file is never destroyed.
 pub fn copy_file(src: &Path, dst: &Path, total: u64, p: &mut Progress) -> Result<(), FleaError> {
-    // O_NOFOLLOW closes a same-uid race: copy_any already sent symlinks to copy_symlink, so a src
-    // that is a symlink here was swapped in after that stat, and it must not be followed.
-    let mut r = std::fs::OpenOptions::new()
-        .read(true)
-        .custom_flags(O_NOFOLLOW)
-        .open(src)
+    // Anything reaching here that is not a regular file was swapped in after copy_any's stat:
+    // O_NOFOLLOW refuses a symlink, and regfile's non-blocking open and fstat refuse every other kind.
+    let mut r = crate::backend::regfile::open_if_regular(src, O_NOFOLLOW)
         .map_err(|e| from_io("copy", &src.to_string_lossy(), &e))?;
     let mut w = std::fs::OpenOptions::new()
         .write(true)
@@ -86,7 +82,8 @@ pub fn copy_symlink(src: &Path, dst: &Path) -> Result<(), FleaError> {
     std::os::unix::fs::symlink(&target, dst).map_err(|e| from_io("copy", &dst.to_string_lossy(), &e))
 }
 
-// Copies a file, a symlink, a fifo or a whole directory tree. The destination must not already exist.
+// Copies a file, a symlink, a whole directory tree, or any other node by recreating it. The
+// destination must not already exist.
 pub fn copy_any(src: &Path, dst: &Path, p: &mut Progress) -> Result<(), FleaError> {
     let meta = src
         .symlink_metadata()
@@ -97,11 +94,12 @@ pub fn copy_any(src: &Path, dst: &Path, p: &mut Progress) -> Result<(), FleaErro
     if meta.is_dir() {
         return copy_dir(src, dst, p);
     }
-    // A fifo is the one type copy_file cannot take: its open blocks until a writer appears, so it is recreated instead.
-    if meta.file_type().is_fifo() {
-        return crate::backend::copyfifo::copy_fifo(dst);
+    if meta.is_file() {
+        return copy_file(src, dst, meta.len(), p);
     }
-    copy_file(src, dst, meta.len(), p)
+    // A fifo, a socket and a device node are the rest, and none of them has contents copy_file could
+    // stream: the fifo's open waits, the socket's fails, and the device's would never end.
+    crate::backend::copynode::copy_node(&meta, dst)
 }
 
 fn copy_dir(src: &Path, dst: &Path, p: &mut Progress) -> Result<(), FleaError> {
@@ -174,6 +172,7 @@ fn cancel_err(path: &Path) -> FleaError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::fifotest::{mkfifo, within};
     use crate::backend::testdir::TestDir;
     use std::sync::atomic::AtomicBool;
 
@@ -195,6 +194,26 @@ mod tests {
             .expect_err("a symlinked source must not be followed");
         assert_eq!(e.where_, "copy");
         assert!(!d.join("dst.bin").exists(), "and nothing of the target reached the destination");
+    }
+
+    // copy_any routes every kind it can name away from copy_file, so a fifo arriving here was swapped
+    // in after that stat. A plain read-only open of one parks in open(2) until a writer appears.
+    #[test]
+    fn a_source_swapped_to_a_fifo_after_the_stat_is_refused_rather_than_waited_on() {
+        let d = TestDir::new("copyfifoswap");
+        let src = d.join("pipe");
+        mkfifo(&src);
+        let dst = d.join("dst.bin");
+        let target = dst.clone();
+        let e = within("copy_file on a fifo", move || {
+            let flag = AtomicBool::new(false);
+            let mut sink = |_: u64, _: u64| {};
+            let mut p = Progress { cancel: &flag, on_bytes: &mut sink, partial: None };
+            copy_file(&src, &target, 0, &mut p).map_err(|e| e.where_)
+        })
+        .expect_err("a fifo source is refused, not waited on");
+        assert_eq!(e, "copy");
+        assert!(!dst.exists(), "and the refusal lands before the destination is created");
     }
 
     #[test]
@@ -332,17 +351,17 @@ mod tests {
         );
     }
 
-    // A directory opens read-only like a file on Linux and then fails the first read with EISDIR,
-    // which is a failure after the destination was created and not before.
+    // /proc/self/mem is S_IFREG and opens fine, and its first read at offset 0 answers EIO, so the
+    // failure lands after the destination was created rather than before.
     #[test]
     fn a_file_copy_that_fails_after_creating_its_destination_reports_the_partial() {
         let d = TestDir::new("copyfilefail");
-        let src = d.dir("not-a-file");
+        let src = std::path::PathBuf::from("/proc/self/mem");
         let dst = d.join("partial.bin");
         let flag = AtomicBool::new(false);
         let mut sink = |_: u64, _: u64| {};
         let mut p = quiet(&flag, &mut sink);
-        let e = copy_file(&src, &dst, 0, &mut p).expect_err("a directory cannot be read as a file");
+        let e = copy_file(&src, &dst, 0, &mut p).expect_err("offset 0 of a mem file is not mapped");
         assert_ne!(e.msg, "cancelled");
         assert!(dst.exists(), "the partial stays: removing it on an error is the cancel path's job only");
         assert_eq!(p.partial, Some(dst));

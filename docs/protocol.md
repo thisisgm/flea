@@ -298,7 +298,9 @@ lines and exactly one `transferitem`, then one `transferdone`.
 `rename(2)`; a cross-filesystem move is a copy followed by removing the source, and the source is only
 removed once the copy is complete, so a process killed mid-move leaves the source intact and a partial
 file at the destination, never the reverse. A symlink is copied as a symlink and never followed. A
-destination that already exists is refused for that item rather than overwritten, because every write
+fifo, a socket or a device node is recreated at the destination with the source's own mode rather than
+opened, because none of them holds contents to stream and an open of one would wait for a writer, fail,
+or never end. A destination that already exists is refused for that item rather than overwritten, because every write
 here creates its target exclusively. Directory recursion is invisible on this wire: the backend walks a
 tree to copy it and the client sees only the top-level item's lines, so the wire's shape does not depend
 on how deep a folder is.

@@ -1,18 +1,19 @@
-// Recreating a fifo at the destination, which is how a copy carries one across without opening it.
+// Recreating a node at the destination, which is how a copy carries a fifo, a socket or a device
+// across without opening one.
 use crate::error::{from_io, FleaError};
 use std::ffi::{c_char, CString};
+use std::fs::Metadata;
+use std::os::unix::fs::MetadataExt;
 use std::path::Path;
 
-// The mode File::create gives the regular files copy_file writes, so a copied fifo is no more permissive.
-const FIFO_MODE: u32 = 0o666;
-
-// std has no wrapper for the call that makes a fifo, so the syscall is declared here as ops.rs declares renameat2.
+// std has no wrapper for the call that makes a node, so the syscall is declared here as ops.rs declares renameat2.
 extern "C" {
-    fn mkfifo(path: *const c_char, mode: u32) -> i32;
+    fn mknod(path: *const c_char, mode: u32, dev: u64) -> i32;
 }
 
-// A fifo is recreated and never opened, because reading one blocks until a writer appears and then until it leaves.
-pub fn copy_fifo(dst: &Path) -> Result<(), FleaError> {
+// A node is recreated and never opened: a fifo's open waits for a writer, a socket's answers ENXIO,
+// and a device would stream until the destination filesystem was full.
+pub fn copy_node(src: &Metadata, dst: &Path) -> Result<(), FleaError> {
     let c_dst = match CString::new(dst.as_os_str().as_encoded_bytes()) {
         Ok(c) => c,
         // corner: a path with an interior NUL cannot reach a syscall, and no listing can produce one.
@@ -24,8 +25,10 @@ pub fn copy_fifo(dst: &Path) -> Result<(), FleaError> {
             })
         }
     };
-    // EEXIST rather than a clobber, the same promise create_new and RENAME_NOREPLACE make elsewhere.
-    if unsafe { mkfifo(c_dst.as_ptr(), FIFO_MODE) } != 0 {
+    // The source's own st_mode carries the kind and the permission bits, so a copy is never wider
+    // than what it copied, and mknod refuses a taken name with EEXIST as create_new does elsewhere.
+    // corner: a device node needs CAP_MKNOD, so an unprivileged copy of one reports EPERM and streams nothing.
+    if unsafe { mknod(c_dst.as_ptr(), src.mode(), src.rdev()) } != 0 {
         return Err(from_io("copy", &dst.to_string_lossy(), &std::io::Error::last_os_error()));
     }
     Ok(())
@@ -37,9 +40,9 @@ mod tests {
     use crate::backend::fifotest::{mkfifo, peek, within, FifoWriter};
     use crate::backend::opsreq::{run_duplicate, OpMsg};
     use crate::backend::testdir::TestDir;
-    use std::os::unix::fs::FileTypeExt;
+    use std::os::unix::fs::{FileTypeExt, PermissionsExt};
     use std::path::{Path, PathBuf};
-    use std::sync::atomic::AtomicBool;
+    use std::sync::atomic::{AtomicBool, Ordering};
 
     // The real path a duplicate takes: opsdispatch spawns this and reads back one OpMsg.
     fn duplicated(path: &Path) -> OpMsg {
@@ -100,5 +103,55 @@ mod tests {
         let e = copied(src, taken.clone()).expect_err("mkfifo must refuse a name that is taken");
         assert!(e.contains("os error 17"), "EEXIST is what refuses it, got {}", e);
         assert_eq!(std::fs::read_to_string(&taken).expect("untouched"), "already here");
+    }
+    // ~/.gnupg and every agent directory hold one, so an ordinary copy meets a socket; opening one
+    // answers ENXIO, which before this failed the whole tree around it.
+    #[test]
+    fn a_socket_in_a_tree_is_carried_across_instead_of_failing_the_copy() {
+        let d = TestDir::new("copysockettree");
+        let tree = d.dir("tree");
+        std::fs::write(tree.join("a.txt"), "a").expect("a.txt");
+        let listener = std::os::unix::net::UnixListener::bind(tree.join("S.agent")).expect("a bound socket");
+        let clone = d.join("tree copy");
+        let outcome = copied(tree, clone.clone());
+        drop(listener);
+        outcome.expect("a socket must not fail the tree around it");
+        assert_eq!(std::fs::read_to_string(clone.join("a.txt")).expect("the file beside it"), "a");
+        let kind = clone.join("S.agent").symlink_metadata().expect("the socket is in the clone").file_type();
+        assert!(kind.is_socket(), "a socket is recreated as a socket, the way cp -a carries one");
+    }
+
+    // Bounded on purpose: /dev/zero never ends and its size reads 0, so streaming it fills the
+    // destination filesystem. The cancel goes in on the first report, capping the run at one CHUNK.
+    // corner: as root mknod recreates the device node instead of failing, and neither answer streams.
+    #[test]
+    fn a_character_device_is_never_streamed_into_the_destination() {
+        let d = TestDir::new("copychardev");
+        let dst = d.join("zero");
+        let flag = AtomicBool::new(false);
+        let mut chunks = 0u32;
+        let mut sink = |_: u64, _: u64| {
+            chunks += 1;
+            flag.store(true, Ordering::Relaxed);
+        };
+        let mut p = Progress { cancel: &flag, on_bytes: &mut sink, partial: None };
+        let _ = copy_any(Path::new("/dev/zero"), &dst, &mut p);
+        assert_eq!(chunks, 0, "a device node is recreated, never read: it has no end and would fill the filesystem");
+        assert!(
+            !dst.symlink_metadata().map(|m| m.file_type().is_file()).unwrap_or(false),
+            "and no regular file of zeroes is written in its place"
+        );
+    }
+
+    #[test]
+    fn a_node_is_recreated_no_wider_than_its_source() {
+        let d = TestDir::new("copyfifomode");
+        let src = d.join("pipe");
+        mkfifo(&src);
+        std::fs::set_permissions(&src, std::fs::Permissions::from_mode(0o600)).expect("a private fifo");
+        let dst = d.join("copied");
+        copied(src, dst.clone()).expect("copy");
+        let mode = dst.symlink_metadata().expect("the copy").permissions().mode() & 0o777;
+        assert_eq!(mode, 0o600, "a constant 0666 widens a private fifo that cp -a and rsync -a preserve");
     }
 }
