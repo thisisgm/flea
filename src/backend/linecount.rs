@@ -122,6 +122,11 @@ mod tests {
         no_count(d.join("never-existed"), "a row that vanished still has no count");
         // The guard is this narrow so a real text file is still counted, which is what this file is for.
         assert_eq!(bounded(d.file("real.txt", "a\nb\nc\n")).lines, 3);
+        // And counted through a link to one, which is the case that separates the two candidate
+        // calls: the open follows the link, so symlink_metadata would answer failed on a real file.
+        std::os::unix::fs::symlink("real.txt", d.join("toreal")).unwrap();
+        let through = bounded(d.join("toreal"));
+        assert_eq!((through.lines, through.partial, through.failed), (3, false, false));
     }
 
     // A Child is not killed by dropping it, so this is what stops a failed assertion leaving a writer behind.

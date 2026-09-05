@@ -241,5 +241,9 @@ mod tests {
         let png = d.join("shot.png");
         std::fs::write(&png, png_header(1234, 567)).unwrap();
         assert_eq!(measured(png), Some((1234, 567)));
+        // And measured through a link to one, which is the case that separates the two candidate
+        // calls: the open follows the link, so symlink_metadata would refuse a real image too.
+        std::os::unix::fs::symlink("shot.png", d.join("toshot")).unwrap();
+        assert_eq!(measured(d.join("toshot")), Some((1234, 567)));
     }
 }
