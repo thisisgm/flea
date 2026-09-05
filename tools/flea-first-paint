@@ -108,8 +108,7 @@ run_once() {
         "$bin" --prewarm "$dir" "$first" "$prewarm_path" || fail "prewarm failed"
     fi
 
-    # The renderer is stated here because src/gui.rs owns that choice and a direct qs launch never
-    # runs it, so both arms would otherwise measure Qt's own default instead of the Vulkan baseline.
+    # The renderer is stated because src/gui.rs owns it and a direct qs launch would take Qt's default.
     if [ "$generate_prewarm" = yes ]; then
         QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PREWARM="$prewarm_path" FLEA_PATH="$dir" FLEA_BIN="$bin" \
             qs -p "$ui" >"$log" 2>&1 &

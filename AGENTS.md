@@ -39,13 +39,16 @@ this tree yet: `flea --tui` says so and exits 2.
    default and initialises 35 ms faster, with identical frame timing. A loader that cannot
    deliver one is given `opengl` before `qs` starts at all, because Quickshell hands
    `QRhi::create` a `QVulkanInstance` it never created and SIGSEGVs there rather than raising
-   the scene-graph error the QML arm listens for, issue #14 on a QEMU Virtio GPU. The probe is
-   `dlopen` plus `vkCreateInstance` plus `vkEnumeratePhysicalDevices`, and it costs an implicit
-   launch roughly 8 to 9 ms on this box, two interleaved batches against a probe-free build, so
-   about a quarter of that init advantage is what buys the crash out; dropping the device count
-   would save only 2 of those milliseconds and would stop catching a loader that creates an
-   instance and then lists nothing. A scene-graph failure after launch still relaunches once
-   with OpenGL and drains the failed backend; an explicit `QSG_RHI_BACKEND` is never replaced, and
+   the scene-graph error the QML arm listens for, issue #14 on a QEMU Virtio GPU. That downgrade
+   is not silent: `usable()` answers with the call that refused and the extensions it was asked
+   for, and `src/gui.rs` prints that as one sentence on stderr, because a 2.4x memory regression
+   the operator cannot see is the defect and not the report of it. The probe is `dlopen` plus
+   `vkCreateInstance` plus `vkEnumeratePhysicalDevices`, and it costs an implicit launch roughly
+   8 ms on this box, so about a quarter of that init advantage is what buys the crash out;
+   dropping the device count would save only 2 of those milliseconds and would stop catching a
+   loader that creates an instance and then lists nothing. A scene-graph failure after launch
+   still relaunches once with OpenGL and drains the failed backend; an explicit
+   `QSG_RHI_BACKEND` is never replaced, and
    an exported-but-empty one is absent rather than a choice, the same rule `paths::has_display()`
    applies. What the probe proves is exactly what it asks the loader for: an instance carrying
    `VK_KHR_surface` and the session's own surface extension, `VK_KHR_wayland_surface` here and
@@ -55,12 +58,24 @@ this tree yet: `flea --tui` says so and exits 2.
    every ICD hidden this loader enumerates 5 instance extensions and no surface one, and
    `vkCreateInstance` answers `VK_ERROR_INCOMPATIBLE_DRIVER`. What it does not prove is that a
    device can present, which an instance-level request cannot ask and this probe never does. The
-   cost is under this instrument: 21 interleaved pairs of the whole implicit launch to a stub `qs`
-   measured 11 to 12 ms in both arms, at 1 ms granularity against a probe that is itself 8 to 9 ms
-   of that same launch.
+   cost is measured against a probe-free build of the same tree, 25 interleaved pairs of the whole
+   implicit launch to a stub `qs`, timed in microseconds: 10.6 to 11.6 ms with the probe against
+   2.6 to 3.2 ms without it, medians about 8 ms apart, so the probe is most of that launch rather
+   than a component hidden inside it. An earlier note here read 11 to 12 ms in both arms, which is
+   wrong: only the probe arm is near that, and a 1 ms instrument resolves this gap eight times over.
+   The retry arm is covered in two halves, because no whole of it can be driven here.
+   `ui/js/Renderer.js` is the decision and the argv, driven by `tests/js/renderer.js`; the signal
+   reaching that decision is driven by `tests/ui.sh renderer`, which starts Qt's GL backend with
+   no EGL vendor file to load. That is the one scene-graph failure found to be raisable on this
+   box: a broken Vulkan loader cannot stand in for it, because it SIGSEGVs instead, which is the
+   whole of issue #14. `view.Window.window` is null while `ui/shell.qml` loads and holds the
+   `QQuickWindow` once it exists, and that same `Connections` was measured receiving
+   `sceneGraphInitialized`, the signal Qt raises at the phase `sceneGraphError` replaces. What no
+   test reaches is the positive arm, a Vulkan failure leaving `QVulkanInstance` valid and failing
+   at `QRhi::create`, which no environment variable here was able to produce.
    **`ui/shell.qml` no longer carries the `//@ pragma DefaultEnv QSG_RHI_BACKEND=vulkan`
    line**, so `src/gui.rs` is the only thing that chooses a renderer for a launch, the one OpenGL
-   relaunch at `ui/shell.qml:30` aside, and a direct `qs -p ui` launch bypasses it entirely:
+   relaunch in `ui/shell.qml` aside, and a direct `qs -p ui` launch bypasses it entirely:
    `tools/flea-first-paint`, `tools/flea-metrics-gate`, `tests/ui.sh`, `tests/drag.sh` and the
    `README.md` dev loop each state `QSG_RHI_BACKEND` for themselves, so their numbers stay on the
    Vulkan baseline they were recorded against.
