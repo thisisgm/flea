@@ -54,7 +54,7 @@ function run(check) {
             searchMode: "typing", searchQuery: query, searchRunning: false, searchScanned: 0,
             searchCancelled: false, path: "/d", showHidden: false, total: 0, held: 0, rows: [],
             kindNames: [], cursorIndex: 0, listingState: "ready", opened: 0, sent: sent,
-            home: "", searchFrom: "", relisted: "",
+            home: "", searchFrom: "", relisted: "", searchHere: false,
             clearSelection: function () {},
             open: function (path) { this.opened += 1 },
             openWithoutHistory: function (path) { this.relisted = path },
@@ -98,6 +98,24 @@ function run(check) {
     Search.close(again)
     check("so esc returns where the operator began, not to the scope",
           again.relisted, "/home/u/Downloads")
+
+    // Issue 30: the scope is chosen on the query line itself rather than in the settings, because it
+    // belongs to this search and not to the application; the strip's own "in <scope>" is the readout,
+    // and nothing is persisted, which is the whole reason this needs no settings row.
+    check("with the scope set to here the walk stays in the pane's own directory",
+          Search.scopeRoot("/home/u/Downloads/deep", "/home/u", true), "/home/u/Downloads/deep")
+    check("and with it off the walk is still the whole home directory",
+          Search.scopeRoot("/home/u/Downloads/deep", "/home/u", false), "/home/u")
+    var here = typing("scr")
+    here.home = "/home/u"
+    here.path = "/home/u/Downloads"
+    Search.typeKey(press(Qt.Key_Tab, "\t"), here)
+    check("tab on the query line points the walk at the directory the pane is in", here.searchHere, true)
+    Search.typeKey(press(Qt.Key_Return, ""), here)
+    check("and the walk goes there instead of to home",
+          here.sent.join(",") + "|" + here.path, "/home/u/Downloads?scr|/home/u/Downloads")
+    Search.typeKey(press(Qt.Key_Backtab, "\t"), here)
+    check("and the key flips back, so home is one press away again", here.searchHere, false)
 
     var blank = typing("")
     Search.typeKey(press(Qt.Key_Return, ""), blank)

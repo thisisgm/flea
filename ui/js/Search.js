@@ -28,7 +28,14 @@ function backspace(root) {
 // inside it, and the pane's own directory otherwise, so a search started on a NAS mount searches
 // that mount rather than silently walking home instead. The backend has no notion of home and
 // walks whatever path this picks, see docs/protocol.md "search".
-function scopeRoot(path, home) {
+//
+// Issue 30 wanted the other one, so here is the operator's own answer: with it set the walk stays
+// where the pane is standing. It is a property of this search and not of the application, which is
+// why it is a key on the query line and not a settings row, and why nothing writes it to ui.json.
+function scopeRoot(path, home, here) {
+    if (here === true) {
+        return path
+    }
     if (home.length === 0) {
         return path
     }
@@ -44,7 +51,7 @@ function run(root) {
         close(root)
         return
     }
-    var scope = scopeRoot(root.path, root.home)
+    var scope = scopeRoot(root.path, root.home, root.searchHere)
     // The scope becomes the pane's path because it is the listing's base: every result name is
     // relative to it, so join, reveal and every per-row facility keep working untouched.
     // A second search started from the results keeps the first one's origin: the pane's path is
@@ -106,6 +113,13 @@ function typeKey(event, root) {
     }
     if (event.key === Qt.Key_Backspace) {
         backspace(root)
+        return true
+    }
+    // Issue 30's control: tab flips the scope between the whole home directory and the one the pane
+    // is standing in. It is a key and not a settings row because it is chosen per search, and the
+    // strip's own "in <scope>" changes under the caret as it is pressed, so the line says which it is.
+    if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
+        root.searchHere = !root.searchHere
         return true
     }
     if (event.text.length === 1 && event.text >= " ") {

@@ -36,6 +36,8 @@ FocusScope {
     // Where the search was started from, which a home-wide walk leaves behind; see ui/js/Search.js.
     property string searchFrom: ""
     property string searchQuery: ""
+    // Issue 30: which scope the next walk takes, flipped by tab on the query line; see ui/js/Search.js.
+    property bool searchHere: false
     property bool searchRunning: false
     property bool searchCancelled: false
     // The query narrowing the listing in place, and whether its line still has the keyboard;
@@ -261,7 +263,7 @@ FocusScope {
         onMenuRequested: function (pos) { menu.openForHeader(pos) }
         searchMode: root.searchMode
         searchQuery: root.searchQuery
-        searchScope: Search.scope(Search.scopeRoot(root.path, root.home), root.home)
+        searchScope: Search.scope(Search.scopeRoot(root.path, root.home, root.searchHere), root.home)
         searchNote: Search.note(root.total, root.searchRunning, root.searchCancelled)
     }
 
