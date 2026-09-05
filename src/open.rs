@@ -12,8 +12,7 @@ fn resolved(path: &str) -> Option<PathBuf> {
     std::fs::canonicalize(path).ok()
 }
 
-// gio open is the OEM route: it asks the desktop database, so a handler declaring Terminal=true is
-// run inside the terminal glib picks, which xdg-open does not do; see AGENTS.md "Opening a file".
+// gio open is the OEM route: it asks the desktop database, so Terminal=true is honoured; see AGENTS.md "Opening a file".
 pub fn open(path: &str) -> i32 {
     let target = match resolved(path) {
         Some(p) => p,
@@ -28,9 +27,7 @@ pub fn open(path: &str) -> i32 {
     }
     // The setting is inherited across exec, so this is the last point that can hand it back.
     thp::enable();
-    // corner: waited for and not detached, because gio open launches the handler and returns at once;
-    // measured in the low tens of milliseconds against this box's own desktop database, with the
-    // handler it started still running long afterwards.
+    // corner: waited for, not detached, and on an archive that wait is a cold handler start; see AGENTS.md "Opening a file".
     let finished = Command::new("gio")
         .arg("open")
         .arg(&target)
@@ -45,7 +42,7 @@ pub fn open(path: &str) -> i32 {
         Ok(status) if status.success() => 0,
         // A launcher that refused, which a spawn nobody waited on used to report as a clean handoff.
         Ok(_) => {
-            eprintln!("flea: that file could not be opened, check that it still exists");
+            eprintln!("flea: gio open refused that file, so no application on this system took it");
             FAILED
         }
         Err(_) => {

@@ -19,8 +19,9 @@ Item {
     // started second rewrite the path the first one's onExited still reports.
     property string terminalCurrent: ""
 
-    // flea --open waits for gio open and not for the application it starts, which lands in the low
-    // tens of milliseconds against this box's own desktop database, so one Process serves every open.
+    // flea --open waits for gio open and not for the application it starts, and that wait is 11 to 15 ms
+    // for an Exec= handler but 0.32 to 0.75 s for a DBusActivatable one, which is what this box's
+    // twenty-five archive types default to, so this guard drops a second Enter for that long in silence.
     function open(path) {
         if (child.running) {
             return
