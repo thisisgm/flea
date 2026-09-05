@@ -10,6 +10,13 @@
 // Every ordinary navigation remembers where it came from. Deliberately no forward stack: the canvas
 // draws one arrow, not two.
 function open(pane, newPath) {
+    // The guard runs before the push for the same reason back()'s runs before the pop: the listing
+    // is refused while one is loading, and by then the entry pushed was a duplicate of the directory
+    // the pane never left, which the next back press then went "back" to.
+    if (pane.listInFlight) {
+        pane.message("A directory is already loading.", false)
+        return
+    }
     if (pane.path.length > 0 && newPath !== pane.path) {
         pane.history = pane.history.concat([pane.path])
     }

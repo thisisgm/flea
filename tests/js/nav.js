@@ -149,6 +149,17 @@ function run(check) {
     check("and keeps the history entry it would have popped, so the menu's rows stay its own",
           menuUp.history.join(","), "/home/gm")
 
+    // open()'s own copy of the guard back() carries. The push happened before openWithoutHistory
+    // could refuse the listing, so a crumb clicked during a load stacked the directory the pane was
+    // already standing in and the next back press navigated to where it already was.
+    var busyOpen = browsing([])
+    busyOpen.listInFlight = true
+    Nav.open(busyOpen, "/home/gm")
+    check("an open refused during a load remembers nothing", busyOpen.history.join(","), "")
+    check("and stays where it is, saying the sentence every refused navigation gives",
+          busyOpen.path + "|" + busyOpen.said.join(""),
+          "/home/gm/Work|A directory is already loading.")
+
     // Issue 45: the chrome's path as the pieces a click can land on. The pieces have to concatenate
     // to exactly the one line they replace, or the bar draws something nobody asked for, and each
     // has to name the directory ui/ChromeBar.qml would hand to pathEntered.
