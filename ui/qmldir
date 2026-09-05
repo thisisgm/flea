@@ -34,6 +34,8 @@ LoadingState 1.0 LoadingState.qml
 NetworkDialog 1.0 NetworkDialog.qml
 NetworkForm 1.0 NetworkForm.qml
 NetworkMounts 1.0 NetworkMounts.qml
+NetworkPlaces 1.0 NetworkPlaces.qml
+MountListing 1.0 MountListing.qml
 FleaMark 1.0 FleaMark.qml
 Opener 1.0 Opener.qml
 Preview 1.0 Preview.qml

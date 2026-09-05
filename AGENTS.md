@@ -3477,7 +3477,8 @@ locale-dependent decisions, not the two the issue named, and each takes a differ
 strings come from two different processes.
 
 **The gio client's own output is pinned, not parsed in every language.** `ui/NetworkMounts.qml` sets
-`readonly property var gioEnvironment: ({ "LC_ALL": "C" })` on all five `Process` objects.
+`readonly property var gioEnvironment: ({ "LC_ALL": "C" })` on its own four `Process` objects and
+hands the same object to `ui/MountListing.qml`, whose listing is the fifth.
 `Process.environment` merges into the inherited environment rather than replacing it, measured live
 on this box (a probe run under `QT_QPA_PLATFORM=offscreen qs -p` printed `LC_ALL=C PATH_SET=yes
 PROBE=yes HOME=/home/gm`), so `PATH` and `HOME` survive and only the locale is added. GNU gettext
@@ -3590,8 +3591,8 @@ row, then `Rename` and `Remove` for any network share, mounted or not. It is del
 and Ctrl+E must keep refusing a row with nothing mounted instead of starting an editor on it.
 `Mounts.release()` dispatches all four actions and takes the rail itself, so `Rename` reaches
 `Sidebar.startRename()` (the same editor `r` already opened) and `Remove` reaches
-`NetworkMounts.forget()`, which drops the line through `Mounts.removeBookmark()` and the blocking
-write `rename()` already uses. A share that is mounted right now stays on the rail as the live mount
+`NetworkMounts.forget()`, which hands `ui/NetworkPlaces.qml` the uri; it drops the line through
+`Mounts.removeBookmark()` and the blocking write `rename()` already uses. A share that is mounted right now stays on the rail as the live mount
 it is until something unmounts it, which is why `Unmount` is still offered beside `Remove`.
 
 **The label on a live row is the bookmark's own.** `ui/js/Mounts.js railLabel(mount, marks)` answers
@@ -3600,7 +3601,7 @@ dedups, and gio's own name only when nothing has saved that share. Without it a 
 mounted share was written to the file and then overwritten on the rail by the next five second poll.
 
 **`Remove` says which of the states the press landed in**, because the row is offered on every share
-whether or not a bookmark exists for it. `ui/NetworkMounts.qml forget(uri)` decides from
+whether or not a bookmark exists for it. `ui/NetworkPlaces.qml forget(uri)` decides from
 `root.bookmarksText`, the same text the rail was built from. No line for that uri and nothing is
 written at all: the bar says `<name> is not a saved place, and stays on the rail until it is
 unmounted.` over a live mount and `<name> is not a saved place.` otherwise. A line that is there is
@@ -3669,15 +3670,16 @@ as "no receivers connected", so signalling its own pid is the only lever left. T
 `Quickshell.execDetached(["kill", String(Quickshell.processId)])`. Closing the window is what a
 user does to quit, so without it the process stayed resident with nothing on screen.
 
-**The NETWORK rail, `8cf5418`, `ui/NetworkMounts.qml`.** `gio mount -l` against a share whose
+**The NETWORK rail, `8cf5418`, now `ui/MountListing.qml`.** `gio mount -l` against a share whose
 server has stopped answering never returns, and nothing bounded it, so `pollMounts` refused every
-later poll and no new mount appeared until the app was restarted. A `listTimeoutMs` of 10000 now
-ends it. `_listTimedOut` gates both the collector's `onStreamFinished` and `onExited`, because a
+later poll and no new mount appeared until the app was restarted. A `timeoutMs` of 10000 now
+ends it. `_timedOut` gates both the collector's `onStreamFinished` and `onExited`, because a
 listing ended that way collected nothing and reading that as "no shares" would empty the rail and
 take Unmount with it exactly when a server is misbehaving; it is cleared when the next listing
 starts and never in `onExited`, so it still reads true while the ended listing's stream drains. A
 re-read asked for mid-listing sets `_pollAgain` and runs when that listing ends, instead of being
-dropped and leaving a just-mounted share to wait out the five second poll.
+dropped and leaving a just-mounted share to wait out the five second poll. All of it moved out of
+`ui/NetworkMounts.qml` unchanged when that file had to make room for the 0.1.4 composition.
 
 **The DEVICES rail, `b28e992`, `ui/DeviceMounts.qml`.** `lsblk` on the same five second poll was
 unbounded too, and one that stopped answering left `poll()` refusing every later listing for the
