@@ -2523,25 +2523,27 @@ so a second concurrent operation would have nowhere to report itself. `rename` a
 neither spawns at all. An `archive` or a `convert` never claims the slot either: `Ops::claim_id` numbers them
 and they run alongside by design, so the cap was never one write of any kind.
 
-**`rename` and `mkdir` run on the loop's thread, the other three spawn.** Each is one syscall, so a
-thread would cost more than the work. `trash` shells to `gio` twice for the list diff plus once to
-trash; `duplicate` may copy a whole tree; a `transfer` is unbounded. Those three send their results back
+**`rename` and `mkdir` run on the loop's thread, the other three spawn.** Both normally take one syscall;
+the measured rclone directory compatibility path copies before removing its source and remains inline.
+`trash` shells to `gio` twice for the list diff plus once to trash; `duplicate` may copy a whole tree;
+a `transfer` is unbounded. Those three send their results back
 through `Event::Op`, joined onto the loop's receiver exactly the way the thumbnail pool's `Event::Thumb`
 already is, so the loop stays the only writer of stdout.
 
 **Every write creates its target exclusively, and this is the module's whole safety story.** A file copy
 opens with `create_new`, a directory copy and a `mkdir` use `create_dir`, a symlink copy uses `symlink`, and a rename
 or a move uses `renameat2` with `RENAME_NOREPLACE`. None of them can destroy a file that is already
-there. One compatibility path is a directory on a mount identified exactly as `fuse.rclone` in
-`/proc/self/mountinfo`: rclone 1.75 returns `EINVAL` for `RENAME_NOREPLACE` even though its ordinary
-directory rename works. `renamecompat.rs` then checks the target for Flea's stable collision message
-and uses `std::fs::rename`; safety at the race boundary comes from rclone's own `operations.DirMove`,
-whose interface refuses an existing destination. This exception is never used for a file because rclone's
-file move deliberately accepts an object to overwrite, or on another filesystem. Mountinfo's escaped
-mount point is decoded and the deepest enclosing mount wins, so a nested non-rclone mount cannot
-inherit the exception. The parser, scope, successful fallback, and occupied-target refusal have Rust
-tests; the original failure and both outcomes were also reproduced through the real backend on the
-operator's `~/google` mount.
+there. Two compatibility paths belong only to inline `rename`, and both copy rather than replace.
+rclone 1.75 returns `EINVAL` for `RENAME_NOREPLACE` on a directory under a mount identified exactly
+as `fuse.rclone` in `/proc/self/mountinfo`, and GVFS returns `EIO` for a rename under a
+`/run/user/*/gvfs/dav:` WebDAV mount. Ordinary rclone directory rename is never used because it was
+proven to replace even a non-empty target. `renamecompat::rename_path` instead builds the target
+through the existing exclusive copy primitives, removes the source only after the copy completes,
+and uses the same path for undo. A copy failure removes only the partial target this operation
+created and reports a cleanup failure rather than hiding it; a source-removal failure keeps the
+complete target copy and reports the error. Every other filesystem, error and `rename_noreplace`
+caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
+enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
 
 **The journal records only what an operation created or moved.** `undo.rs`'s `Step` has exactly four
 shapes: `Moved` (rename back), `Created` (remove it), `MadeDir` (remove it while it is still empty, because

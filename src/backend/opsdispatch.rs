@@ -119,7 +119,7 @@ pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str) {
     thread::spawn(move || run_duplicate(owned, tx));
 }
 
-// One rename(2), so it answers on the calling thread rather than costing a spawn to say the same thing.
+// Rename answers on the calling thread; rclone directory compatibility may copy before removing its source.
 pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str) {
     match ops::rename(Path::new(path), to) {
         Ok((dst, steps)) => {

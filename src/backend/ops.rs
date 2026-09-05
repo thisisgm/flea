@@ -1,5 +1,5 @@
 // Rename, duplicate and mkdir: the three operations that answer once, with no started or progress split.
-use crate::backend::copyfile::{copy_any, remove_any, Progress};
+use crate::backend::copyfile::{copy_any, Progress};
 use crate::backend::renamecompat;
 use crate::backend::undo::Step;
 use crate::error::{from_io, FleaError};
@@ -21,36 +21,6 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> Result<(), FleaError> {
     renamecompat::rename_noreplace(from, to).map_err(|e| from_io("rename", &to.to_string_lossy(), &e))
 }
 
-pub fn rename_noreplace_compatible(from: &Path, to: &Path) -> Result<(), FleaError> {
-    match rename_noreplace(from, to) {
-        Ok(()) => Ok(()),
-        Err(e) if rename_needs_copy(from, &e) => rename_by_copy(from, to),
-        Err(e) => Err(e),
-    }
-}
-
-fn rename_needs_copy(path: &Path, error: &FleaError) -> bool {
-    let text = path.to_string_lossy();
-    text.starts_with("/run/user/") && text.contains("/gvfs/dav:") && error.msg.contains("os error 5")
-}
-
-fn rename_by_copy(from: &Path, to: &Path) -> Result<(), FleaError> {
-    let flag = AtomicBool::new(false);
-    let mut sink = |_: u64, _: u64| {};
-    let mut progress = Progress { cancel: &flag, on_bytes: &mut sink, partial: None };
-    if let Err(error) = copy_any(from, to, &mut progress) {
-        if progress.partial.as_deref() == Some(to) {
-            let _ = remove_any(to);
-        }
-        return Err(error);
-    }
-    if let Err(error) = remove_any(from) {
-        let _ = remove_any(to);
-        return Err(error);
-    }
-    Ok(())
-}
-
 fn named(where_: &str, path: &Path, msg: &str) -> FleaError {
     FleaError {
         where_: where_.to_string(),
@@ -70,7 +40,7 @@ pub fn rename(path: &Path, to_name: &str) -> Result<(PathBuf, Vec<Step>), FleaEr
         // Renaming a file to its own name is not a failure and is not work, so it records nothing.
         return Ok((to, Vec::new()));
     }
-    rename_noreplace_compatible(path, &to)?;
+    renamecompat::rename_path(path, &to)?;
     Ok((to.clone(), vec![Step::Moved { from: path.to_path_buf(), to }]))
 }
 
@@ -174,45 +144,6 @@ mod tests {
     }
 
     #[test]
-    fn only_a_gvfs_webdav_eio_uses_the_streaming_rename_fallback() {
-        let eio = FleaError {
-            where_: "rename".to_string(),
-            path: String::new(),
-            msg: "Input/output error (os error 5)".to_string(),
-        };
-        let denied = FleaError {
-            where_: "rename".to_string(),
-            path: String::new(),
-            msg: "Permission denied (os error 13)".to_string(),
-        };
-        assert!(rename_needs_copy(Path::new("/run/user/1000/gvfs/dav:host=slot,ssl=true/file"), &eio));
-        assert!(!rename_needs_copy(Path::new("/run/user/1000/gvfs/sftp:host=slot/file"), &eio));
-        assert!(!rename_needs_copy(Path::new("/tmp/gvfs/dav:host=fake/file"), &eio));
-        assert!(!rename_needs_copy(Path::new("/run/user/1000/gvfs/dav:host=slot,ssl=true/file"), &denied));
-    }
-
-    #[test]
-    fn webdav_copy_fallback_refuses_to_remove_an_existing_destination() {
-        let d = TestDir::new("webdavrenameclobber");
-        let from = d.file("source.txt", "source body");
-        let to = d.file("target.txt", "target body");
-        rename_by_copy(&from, &to).expect_err("the fallback must refuse an existing destination");
-        assert_eq!(std::fs::read_to_string(&to).unwrap(), "target body");
-        assert_eq!(std::fs::read_to_string(&from).unwrap(), "source body");
-    }
-
-    #[test]
-    fn webdav_copy_fallback_removes_the_partial_it_created() {
-        let d = TestDir::new("webdavrenamepartial");
-        let from = d.dir("source");
-        let _socket = std::os::unix::net::UnixListener::bind(from.join("socket")).unwrap();
-        let to = d.join("target");
-        rename_by_copy(&from, &to).expect_err("the socket makes the fallback copy fail");
-        assert!(!to.exists(), "the fallback removes only its own reported partial");
-        assert!(from.exists(), "the source stays after a failed fallback");
-    }
-
-    #[test]
     fn rename_moves_the_file_and_records_the_step_that_puts_it_back() {
         let d = TestDir::new("rename");
         let from = d.file("before.txt", "body");
@@ -237,6 +168,8 @@ mod tests {
         );
         assert!(from.exists(), "the source is left where it was");
     }
+
+    // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
 
     #[test]
     fn renaming_a_file_to_its_own_name_is_not_work() {
