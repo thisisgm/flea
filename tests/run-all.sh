@@ -11,18 +11,11 @@
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
-# protocol.sh and thumbs.sh drive the real binary, so it has to exist before they are asked
-# anything. They refuse by name rather than reporting failures against a binary that is absent.
-# protocol.sh drives the debug binary and thumbs.sh drives the release one. Building only debug
-# passes in a tree that happens to carry both and fails on a fresh clone.
-if [ ! -x target/debug/flea ]; then
-    printf 'run-all: building target/debug/flea, protocol.sh needs it\n'
-    cargo build -q || { printf 'run-all: cargo build failed, nothing else was run\n' >&2; exit 1; }
-fi
-if [ ! -x target/release/flea ]; then
-    printf 'run-all: building target/release/flea, thumbs.sh needs it\n'
-    cargo build -q --release || { printf 'run-all: release build failed, nothing else was run\n' >&2; exit 1; }
-fi
+# Both are built unconditionally, five suites driving the debug binary and thumbs.sh the release one: the old `[ ! -x <path> ]` guard is satisfied by a stale binary from an older commit, and every suite then reports on a build nobody asked for.
+printf 'run-all: building target/debug/flea, five suites need it\n'
+cargo build -q || { printf 'run-all: cargo build failed, nothing else was run\n' >&2; exit 1; }
+printf 'run-all: building target/release/flea, thumbs.sh needs it\n'
+cargo build -q --release || { printf 'run-all: release build failed, nothing else was run\n' >&2; exit 1; }
 
 headless="js keymap-gen charts budget sandbox ops modes protocol archive thumbs media"
 failed=0
