@@ -56,7 +56,7 @@ key = "L"
 action = "pathBar"
 
 # Opens the default terminal in the directory being shown, through flea --terminal
-# (xdg-terminal-exec --dir=). Ctrl+T is free and mirrors GNOME's own open-in-terminal chord.
+# (xdg-terminal-exec --dir=). Ctrl+T is unbound elsewhere here, and bare t below is tabNew.
 [[ctrl]]
 key = "T"
 action = "openTerminal"

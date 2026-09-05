@@ -19,7 +19,8 @@ Item {
     // started second rewrite the path the first one's onExited still reports.
     property string terminalCurrent: ""
 
-    // flea --open decides and exits in milliseconds, so one Process serves every open.
+    // flea --open waits for gio open and not for the application it starts, which lands in the low
+    // tens of milliseconds against this box's own desktop database, so one Process serves every open.
     function open(path) {
         if (child.running) {
             return
@@ -45,8 +46,8 @@ Item {
     }
 
     // A terminal in the current directory, through flea --terminal so the huge page,
-    // process-group and stdio guards in src/terminal.rs apply. Its own Process, because
-    // flea --open decides and exits in milliseconds and one process serves every open.
+    // process-group and stdio guards in src/terminal.rs apply. Its own Process, so a terminal
+    // launch and a file open in flight cannot take each other's exit status.
     function openTerminal(path) {
         if (terminalChild.running) {
             return

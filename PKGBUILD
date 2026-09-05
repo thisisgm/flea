@@ -8,7 +8,7 @@ arch=('x86_64' 'aarch64')
 license=('MIT')
 # omarchy owns /usr/share/omarchy/shell, which ui/Commons and ui/Ui link into; quickshell owns qs.
 # util-linux ships prlimit, which the thumbnail and archive sandboxes require alongside bubblewrap.
-# xdg-terminal-exec is what --terminal execs and what glib runs a Terminal=true handler inside.
+# xdg-terminal-exec is what --terminal execs, so the topbar's terminal button needs it installed.
 depends=('bubblewrap' 'glib2' 'omarchy' 'quickshell' 'shared-mime-info' 'util-linux' 'xdg-terminal-exec' 'xdg-utils')
 makedepends=('cargo')
 optdepends=('libarchive: archive listing and extraction'

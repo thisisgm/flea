@@ -29,7 +29,8 @@ pub fn open(path: &str) -> i32 {
     // The setting is inherited across exec, so this is the last point that can hand it back.
     thp::enable();
     // corner: waited for and not detached, because gio open launches the handler and returns at once;
-    // measured at 10 ms on this box against a handler that then ran for five seconds of its own.
+    // measured in the low tens of milliseconds against this box's own desktop database, with the
+    // handler it started still running long afterwards.
     let finished = Command::new("gio")
         .arg("open")
         .arg(&target)

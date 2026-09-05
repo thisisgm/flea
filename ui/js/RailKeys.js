@@ -6,7 +6,7 @@
 // What the rail does with a key, split out of Focus.js at its 300-line hard cap the same way
 // ui/js/PreviewKeys.js was: Focus.js decides which surface owns a key, and this is the surface.
 
-// The rail answers seven of the key table's action names and ignores the rest while it has focus.
+// The rail answers ten of the key table's action names and ignores the rest while it has focus.
 function act(action, root, sidebar) {
     switch (action) {
     case "cursorDown": sidebar.cursorIndex = Math.min(sidebar.entries.length - 1, sidebar.cursorIndex + 1); return
