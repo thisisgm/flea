@@ -106,6 +106,36 @@ check "a patch that is not JSON exits 2" "2" "$rc"
 out=$(env XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --ui-state a b </dev/null 2>&1); rc=$?
 check "two arguments is a usage error" "2" "$rc"
 
+# The contract ui/ViewState.qml's Process reads, which is the status and never the child's output:
+# the merged document on stdout at 0, one `flea: ` sentence on stderr at 2, and nothing on the other
+# stream either way. Nothing pinned the split, so a refusal printed to stdout would have passed.
+fresh
+merged=$(flea_ui '{"view":"grid"}' 2>/dev/null); rc=$?
+check "an accepted patch exits 0" "0" "$rc"
+check "an accepted patch prints the document on stdout" "1" "$(echo "$merged" | grep -c '"view": "grid"')"
+check "an accepted patch prints nothing on stderr" "" "$(flea_ui '{"view":"grid"}' 2>&1 >/dev/null)"
+check "a refused patch prints its sentence on stderr" "1" "$(flea_ui '{"view":"miller"}' 2>&1 >/dev/null | grep -c '^flea: ')"
+check "a refused patch prints nothing on stdout" "" "$(flea_ui '{"view":"miller"}' 2>/dev/null)"
+
+# columns names what the list row SHOWS and src/uischema.rs says name is never optional, so an empty
+# array, a subset without name and a duplicate are all refused. Measured through the real singleton:
+# a stored ["name","size","size","date"] left one header-menu "Hide Size" click still drawing size.
+for bad_columns in '{"columns":[]}' '{"columns":["size","date"]}' '{"columns":["name","size","size"]}'; do
+  fresh
+  out=$(flea_ui "$bad_columns" 2>&1); rc=$?
+  check "a columns array that is not a set exits 2: $bad_columns" "2" "$rc"
+  check "and names the key it refused: $bad_columns" "1" "$(echo "$out" | grep -c 'columns')"
+  check "and writes no state file: $bad_columns" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
+done
+
+# A hand edit is not a patch: it costs that one key its own default and the key beside it stands.
+fresh
+mkdir -p "$STATE/flea"
+printf '{"columns":["name","size","size"],"density":"compact"}\n' > "$UI"
+out=$(flea_ui 2>&1)
+check "a duplicated column in the file falls back to the shipped set" "1" "$(echo "$out" | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"
+check "the key beside the refused columns array stands" "1" "$(echo "$out" | grep -c '"density": "compact"')"
+
 # The path is predictable, so a link planted at it is refused and what it points at is untouched.
 fresh
 mkdir -p "$STATE/flea"
@@ -307,7 +337,7 @@ done
 # a peer's temp from a corpse and deleting one in flight is worse than the litter.
 temps=$(ls -A "$STATE/flea" | grep -c '^ui\.json\.[0-9]\+\.tmp$')
 strays=$(ls -A "$STATE/flea" | grep -vc '^ui\.json$\|^ui\.json\.lock$\|^ui\.json\.[0-9]\+\.tmp$')
-echo "     the sweep left $temps temp file(s) behind, one per killed write at most"
+echo "     the sweep left $temps temp file(s) behind, one per round killed inside the write"
 check "the sweep left nothing but ui.json, its lock and killed writers' own temps" "0" "$strays"
 check "and never more temps than there were kills" "1" "$([ "$temps" -le "$kills" ] && echo 1 || echo 0)"
 
@@ -320,6 +350,11 @@ check "and never more temps than there were kills" "1" "$([ "$temps" -le "$kills
 kill_floor=24
 echo "     the sweep killed $kills of 120 rounds, floor $kill_floor"
 check "the kill sweep killed a fifth of its rounds at least" "1" "$([ "$kills" -ge "$kill_floor" ] && echo 1 || echo 0)"
+# The positive control for the line below, which passes vacuously on a sweep that never reached the
+# write: a kill during process startup satisfies kills>0 and enters nothing, while a temp survives
+# only when the kill landed between write_new's exclusive create and the rename, so the count
+# printed above IS the count of rounds killed inside the write window and 0 of them proves nothing.
+check "and a kill landed inside the write window at all" "1" "$([ "$temps" -ge 1 ] && echo 1 || echo 0)"
 check "no kill ever left a partial state file" "0" "$partial"
 
 sandbox_remove "$SANDBOX" || exit 1
