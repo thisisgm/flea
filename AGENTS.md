@@ -802,11 +802,12 @@ what makes the move provable rather than merely asserted.
 which answers a thumbnail URL when the pane holds one for this row and the OEM two-step icon
 lookup otherwise.
 
-`ui/Opener.qml` is 87 lines, well inside both budgets: three `Process` objects, three functions
-(`open`, `openTerminal` and `copyText`) and three signals. `flea --open` waits for `gio open` and
+`ui/Opener.qml` is 92 lines, well inside both budgets: three `Process` objects, three functions
+(`open`, `openTerminal` and `copyText`) and five signals. `flea --open` waits for `gio open` and
 not for the application, which is 11 to 15 ms against an `Exec=` handler but 0.32 to 0.75 s against
 a `DBusActivatable` one, so one process serves every open and a second Enter is dropped for that
-long; this is the only component in the tree that runs `flea --open` or `flea --terminal`.
+long and told to try again; this is the only component in the tree that runs `flea --open` or
+`flea --terminal`.
 
 `ui/js/Thumbs.js` is 77 lines by `wc -l` against a 200-line soft budget, and its suite
 `tests/js/thumbs.js` is 66. It is arithmetic over the row map and nothing else, with no QML
@@ -2826,8 +2827,11 @@ names the flag and exits 2.
 `flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the
 opener's own `onExited` is the whole mapping for this half: `0` says nothing, `3` raises
 `isDirectory` and `Pane` navigates there, and anything else raises `failed` and `Pane` writes one
-sentence to the status line. A second `open()` while that `Process` is running is dropped rather
-than queued, and it is dropped in silence.
+sentence to the status line. That sentence names no cause, because `2` covers all three failures and
+`std::fs::canonicalize` has already disproved the one the window used to blame. A second `open()`
+while that `Process` is running is dropped rather than queued, and the drop raises `busy`, which
+`ui/PaneWire.qml` answers with one plain sentence in the same slot; `openTerminal()`'s guard raises
+`terminalBusy` the same way. The first press stays silent, so only a press that was refused speaks.
 
 **That window is a third of a second on an archive, not the low tens of milliseconds this file used
 to claim.** `gio open` on an `Exec=` entry forks and returns; on a `DBusActivatable` entry it waits
@@ -2840,8 +2844,10 @@ Nautilus already up it is 34 to 48 ms, and the `text/plain` `Exec=` control on t
 11 to 15 ms. Driven against the real window, `Return`, `Down`, `Return` sent as one `wtype` burst
 produced exactly one `gio open` call and an empty status line; the same `Return` on the same row
 after the wait cleared produced the second call, so the drop is the guard and not the driver.
-Bounding the wait, saying something in the status bar, and queueing are all still open; the tree
-does none of them yet. `Pane.openCursor` sends a row with `d` true to `open()` and every
+Saying something in the status bar is what the tree now does. Bounding the wait was declined because
+a deadline above the measured range is a guess and one below it cuts off a legitimate cold start, and
+queueing was declined because it fires an open after the operator gave up and answers a double Enter
+on one archive with two windows. `Pane.openCursor` sends a row with `d` true to `open()` and every
 other row to the opener, so a symlink to a directory reaches the opener, comes back 3 and
 navigates; `tests/ui.sh open` asserts all three answers on one listing.
 
