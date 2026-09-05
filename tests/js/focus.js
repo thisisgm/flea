@@ -56,6 +56,25 @@ function closed() {
     return { active: false, isMedia: false, isPdf: false }
 }
 
+// Only the members Focus.handleKey touches on its way to the terminal chord, and the counter for
+// the one call it must make. The button lives in the chrome above both views, so the chord has to
+// answer from the rail as well as the list rather than being swallowed by whichever view has focus.
+function chromePane(view) {
+    return {
+        focusView: view, viewMode: "list", searchMode: "", filterTyping: false,
+        inputAt: 0, rowsAt: 0, trashArmedAt: 0, asked: 0, said: "", shown: null,
+        preview: closed(),
+        message: function (text, isError) { this.said = text },
+        shareBrowser: { active: false },
+        sidebar: { renameEditor: function () { return null } },
+        renameEditor: function () { return null },
+        // What ui/Pane.qml's own act() does with an action, so a route that reaches the pane's
+        // dispatch instead of the interception is visible here rather than throwing.
+        act: function (action) { Focus.act(action, this) },
+        openTerminal: function () { this.asked += 1 }
+    }
+}
+
 function pdfOpen() {
     return { active: true, isMedia: false, isPdf: true }
 }
@@ -250,4 +269,14 @@ function run(check) {
     Focus.act("menu", bare)
     check("m with no row under the cursor says why instead of swallowing the key",
           bare.opened + "|" + bare.said, "1|No row under the cursor to open a menu on.")
+
+    // PR 34's chord. The topbar button and Ctrl+T raise the same terminal, and the rail owns its own
+    // keys, so the one route both views share is the interception in handleKey above the views.
+    var terminalKey = key(Qt.Key_T, "\u0014", ctrl)
+    var fromList = chromePane("list")
+    check("ctrl t is consumed in the list", Focus.handleKey(terminalKey, fromList, fromList.sidebar), true)
+    check("and opens a terminal there", fromList.asked, 1)
+    var fromRail = chromePane("rail")
+    Focus.handleKey(terminalKey, fromRail, fromRail.sidebar)
+    check("ctrl t opens one from the rail as well", fromRail.asked, 1)
 }

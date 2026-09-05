@@ -128,7 +128,6 @@ function act(action, root) {
     case "sortReverse": Sort.reverse(root); return
     case "addNetwork": root.sidebar.addRequested(); return
     case "eject": Eject.release(root, root.sidebar, false); return
-    case "openTerminal": root.openTerminal(); return
     // Finder's Cmd+1/2/3; the chrome's three buttons write the same property, so they follow.
     case "viewList": root.viewMode = "list"; return
     case "viewColumns": root.viewMode = "columns"; return
