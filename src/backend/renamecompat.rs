@@ -149,20 +149,30 @@ fn unescape(field: &str) -> Vec<u8> {
     let mut out = Vec::with_capacity(bytes.len());
     let mut i = 0;
     while i < bytes.len() {
-        if bytes[i] == b'\\'
-            && i + 3 < bytes.len()
-            && bytes[i + 1..=i + 3]
-                .iter()
-                .all(|b| (b'0'..=b'7').contains(b))
-        {
-            out.push((bytes[i + 1] - b'0') * 64 + (bytes[i + 2] - b'0') * 8 + bytes[i + 3] - b'0');
-            i += 4;
-        } else {
-            out.push(bytes[i]);
-            i += 1;
+        match octal_byte(bytes, i) {
+            Some(byte) => {
+                out.push(byte);
+                i += 4;
+            }
+            None => {
+                out.push(bytes[i]);
+                i += 1;
+            }
         }
     }
     out
+}
+
+// Sample: `\040` is a space. Summed wide and refused above 255, because `\400` overflows a u8 mid-sum.
+fn octal_byte(bytes: &[u8], i: usize) -> Option<u8> {
+    if bytes[i] != b'\\' || i + 3 >= bytes.len() {
+        return None;
+    }
+    let digits = &bytes[i + 1..=i + 3];
+    if !digits.iter().all(|b| (b'0'..=b'7').contains(b)) {
+        return None;
+    }
+    u8::try_from(digits.iter().fold(0u32, |value, b| value * 8 + u32::from(b - b'0'))).ok()
 }
 
 #[cfg(test)]
@@ -196,6 +206,15 @@ mod tests {
     #[test]
     fn malformed_mountinfo_is_ignored() {
         assert_eq!(mount_type_in(Path::new("/home/pi"), "junk\n"), None);
+    }
+
+    // The kernel escapes only \040, \011, \012 and \134, but this is a parser at a trust boundary.
+    #[test]
+    fn an_octal_escape_above_255_is_refused_rather_than_overflowing() {
+        assert_eq!(unescape("\\040"), b" ".to_vec());
+        assert_eq!(unescape("\\134"), b"\\".to_vec());
+        assert_eq!(unescape("\\400"), b"\\400".to_vec());
+        assert_eq!(unescape("\\777"), b"\\777".to_vec());
     }
 
     #[test]
