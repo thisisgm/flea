@@ -100,7 +100,7 @@ function run(check) {
           Protocols.stripDefaultPort("smb://[fe80::1]:445/isos/"), "smb://[fe80::1]/isos/")
     // Every port here is the one ui/NetworkForm.qml prefills for the protocol that builds that
     // scheme, not a second table's idea of it: the old dav row asked about ":80", a port the form
-    // has no way to write, so the one URI it does write went on carrying its port into the rail.
+    // does not prefill, so the one URI it does write went on carrying its port into the rail.
     check("every scheme the form can build knows its own default",
           [Protocols.stripDefaultPort("sftp://h:22/x"), Protocols.stripDefaultPort("ftp://h:21/x"),
            Protocols.stripDefaultPort("ftps://h:21/x"), Protocols.stripDefaultPort("dav://h:443/x"),

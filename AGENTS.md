@@ -3491,8 +3491,11 @@ and a mount's own display name are composed by the daemon, which has its own loc
 `LC_ALL=C` on the client changes neither. The refusal is no longer read at all (above). The display
 name is no longer parsed for the English word "on": `ui/js/Protocols.js shareName(rawLabel, uri)`
 cuts the tail only when it is this URI's own host, which `hostOf(uri)` takes from the authority
-between `://` and the next `/`. Whatever word gvfsd puts between the two halves, in any language, is
-the one whitespace-delimited token before that host.
+between `://` and the next `/`. The one assumption left is that gvfsd's connector is a single
+whitespace-delimited word in whatever language it renders: the cut is
+`head.replace(/\s+\S+\s+$/, "")`, which takes one token, so a translation using two would leave the
+other on the name. A wrong label, and never a wrong destination, because activation navigates on the
+entry's own uri.
 
 **The old rule also mangled labels that had nothing to do with a host**, which no report had named.
 `/^(.*)\s+on\s+\S+$/` never tested that its tail was a host, only that it was a final
@@ -3575,10 +3578,11 @@ scanned for the last `@` in the whole URI: `sftp://u@h:22/inbox@2026` made `2026
 
 **The port.** `ui/js/Protocols.js stripDefaultPort(uri)` finds the authority first, between `://` and
 the next `/`, so a `:` or an `@` in the path is never read as a port or a host, and a bracketed IPv6
-literal cannot match because it ends in `]`. `SCHEME_PORTS` is keyed by scheme, not by the protocol
-name `PORTS` uses, because a bookmarked or gio-reported URI only ever carries a scheme.
-`Mounts.normalize()` runs it, so the dedup key, `ui/NetworkDialog.qml`'s stored bookmark line and
-`Places.relabel`'s matching all agree with what `gio mount -l` reports.
+literal cannot match because it ends in `]`. `defaultPortFor()` derives that port from `PROTOCOLS`,
+`PORTS` and `scheme(p, tls)` rather than from a second table keyed by scheme, because that copy
+disagreed with the form for plain WebDAV: it said 80 where the dialog prefills 443 and writes
+`dav://host:443/path`. `Mounts.normalize()` runs it, so the dedup key, `ui/NetworkDialog.qml`'s
+stored bookmark line and `Places.relabel`'s matching all agree with what `gio mount -l` reports.
 
 **The two rows.** `ui/js/Mounts.js rowMenu(entry)` is what the rail's right click opens: the release
 row, then `Rename` and `Remove` for any network share, mounted or not. It is deliberately not
@@ -3590,9 +3594,40 @@ and Ctrl+E must keep refusing a row with nothing mounted instead of starting an 
 write `rename()` already uses. A share that is mounted right now stays on the rail as the live mount
 it is until something unmounts it, which is why `Unmount` is still offered beside `Remove`.
 
-Not reimplemented: the branch's Add-dialog reuse, which reopens the form prefilled to edit a place's
-URI. That needs a `ui/shell.qml` connection and an `ui/Ipc.qml` reader, and the pinned-places store
-itself is being replaced, so `Rename` is the edit this rail offers today.
+**The label on a live row is the bookmark's own.** `ui/js/Mounts.js railLabel(mount, marks)` answers
+the label of the first bookmark whose normalized uri matches the mount, matched the way `rebuild()`
+dedups, and gio's own name only when nothing has saved that share. Without it a rename typed on a
+mounted share was written to the file and then overwritten on the rail by the next five second poll.
+
+**`Remove` says which of the states the press landed in**, because the row is offered on every share
+whether or not a bookmark exists for it. `ui/NetworkMounts.qml forget(uri)` decides from
+`root.bookmarksText`, the same text the rail was built from. No line for that uri and nothing is
+written at all: the bar says `<name> is not a saved place, and stays on the rail until it is
+unmounted.` over a live mount and `<name> is not a saved place.` otherwise. A line that is there is
+dropped, and the same two shapes read `<name> is forgotten, and stays on the rail until it is
+unmounted.` and `<name> is forgotten.`. The fifth arm is a refusal, and its test is `next === body`
+and not `body.length === 0`: an unread `FileView` answers `""` from `text()`, the reading
+`ui/PreviewLines.qml:35` also relies on, and a stale one answers a body without the line, so either
+way a removal the rail's own text says should drop a line and does not is refused rather than
+written over the file.
+
+`tests/ui.sh case_unmount` drives three of those five sentences across four presses: a live mount
+this home never saved, a saved live mount, a saved place nothing mounts, and a second press on the
+row the first one left behind. Two are not driven. The unmounted `is not a saved place.` form needs
+the row to have left the rail between the right click and the choice, since an unmounted row exists
+only because a bookmark put it there. The refusal needs a `FileView` that has not read, and a
+bookmarks file present at launch has been read by the time a right click reaches a row, which
+`case_rename`'s very first relabel measures.
+
+Not reimplemented, and both are omissions of PR #21 rather than of this rail: the branch's
+Add-dialog reuse, which reopens the form prefilled to edit a place's URI (that needs a
+`ui/shell.qml` connection and an `ui/Ipc.qml` reader, and the pinned-places store itself is being
+replaced, so `Rename` is the edit this rail offers today), and its per-host SFTP collapse.
+`gvfsd-sftp` mounts one connection per host, so `gio` lists `sftp://user@host/` while the bookmark
+is `sftp://user@host/home/tom`; those normalize to different keys and `rebuild()` keeps both rows.
+`stripDefaultPort` cannot collapse them, because the difference is the path and not the port, so the
+fix is a containment rule that changes the dedup contract for every scheme and needs a live gvfsd
+sftp mount to verify.
 
 `case_eject` stubs `lsblk --json` as well, so a removable volume exists at zero privilege with no
 real device anywhere near it. Its negative control is the whole point: the `gio` stub always exits
