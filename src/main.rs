@@ -180,8 +180,8 @@ fn main() {
     }
     match paths::ui_dir() {
         Some(ui) => {
-            // Before the window, so the first paint reads a validated state file and not whatever
-            // a hand edit or a newer Flea left in it, see AGENTS.md "The state file".
+            // Before the window, so the first paint reads what the settle left, see AGENTS.md "The
+            // state file"; it can fail or decline, and the window then opens on a file it did not touch.
             match uistore::Store::user().and_then(|store| store.settle()) {
                 Ok(()) => {}
                 Err(e) => eprintln!("flea: the view state was not settled ({})", e),
