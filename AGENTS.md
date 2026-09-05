@@ -899,6 +899,18 @@ whose segments `ui/ChromeBar.qml` draws as their own click targets through `Nav.
 and undriven rather than as passes; `tests/js/tap.js` holds their counts, which is what stops a
 row being added to the table and reaching nothing at all.
 
+The `Qt.BackButton` binding is proven one layer short of the product, and a release note has to say
+so rather than call it proven. The probe was a standalone Quickshell `FloatingWindow` carrying
+nothing but a `TapHandler`, clicked with `ydotool click 0xC3`: it shows Hyprland delivering that
+button to a Quickshell surface and Qt reporting it as `Qt.BackButton`, and it never loaded the
+shipped tree, whose `ListView`, delegates, rail and overlays all sit under the same handler.
+`grep -rn acceptedButtons ui/*.qml` finds no child that accepts the button, so nothing should take
+it first, but nothing automated covers it either: the `window` row is derived and undriven by
+construction, `tests/ui.sh` has no case for it, and `tools/flea-acceptance --drive` skips a `where`
+with no `pointercase_`. One driven press at the real window closes it: `tests/ui.sh`'s own `launch`
+(`FLEA_PATH=<dir> FLEA_BIN=<binary> qs -p ui`), then `ydotool click 0xC3` with the pointer over the
+listing, reading the path back through the IPC seam.
+
 Its effect field is `does` and not `action`, and that is load bearing. `tools/flea-acceptance`
 derives its whole key checklist with one `sed` for `^action = ` over this file, with no table
 scoping, so an `action =` in a pointer block would put an item on that checklist that no key
