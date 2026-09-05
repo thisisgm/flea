@@ -1699,7 +1699,9 @@ more of it than it ever touches. The original one GiB was set from
 `ffmpegthumbnailer`'s tens of megabytes on the media fixture, which measured the wrong
 thing: issue #17 reported `glycin-thumbnailer` exhausting one GiB on a large ICC-tagged
 JPEG and aborting. What inside `glycin` reserves that much is not measured here and is not
-claimed; the amount is. Driven through the production argv on
+claimed, but it is not the profile: the same 6000x3375 pixels generated with `-strip` abort at
+exactly the same cap as the profiled ones, so PR #39's "the same image without ICC stays below
+it" does not hold on this box. The amount is measured. Driven through the production argv on
 `tests/thumbs.sh`'s own 6000x3375 ICC fixture, `glycin` 2.1.5-2 on this box aborts with
 status 134 at `--as=536870912` and writes a 601-byte PNG at `--as=671088640`, so it wants
 between 512 and 640 MiB for 81 MB of RGBA pixels. **This box therefore does not reproduce

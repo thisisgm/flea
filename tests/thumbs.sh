@@ -56,8 +56,8 @@ check "every requested row was answered" "3" "$(echo "$out" | grep -c '"t":"thum
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0,2]}\n{"c":"quit"}\n' "$D/files" | timeout 120 $BIN --backend)
 check "a cached row is answered without generating it" "2" "$(echo "$out" | grep -cE '"file":"/[^"]*","ms":[0-4]\.[0-9]+}')"
 
-# The issue #17 regression image: a 6000x3375 JPEG carrying a real ICC profile, which is what makes glycin allocate the address space --as bounds; see AGENTS.md "Thumbnail sandbox".
-# The profile bytes are @Yiin's deterministic fixture from PR #39, kept base64 so the tree stays text.
+# The issue #17 regression image, the acceptance's own fixture: 6000x3375 carrying @Yiin's 3144-byte ICC profile from PR #39, kept base64 so the tree stays text.
+# The profile is the reporter's shape and not the cause: measured here, the same pixels stripped of it abort at exactly the same cap; see AGENTS.md "Thumbnail sandbox".
 mkdir -p "$D/icc"
 base64 -d tests/fixtures/srgb-iec61966-2.1.icc.b64 > "$D/srgb.icc"
 magick -size 6000x3375 'gradient:#2b5876-#d6a45f' -profile "$D/srgb.icc" "$D/icc/large.jpg"
