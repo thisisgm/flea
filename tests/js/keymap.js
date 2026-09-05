@@ -116,7 +116,7 @@ function run(check) {
           Keymap.SHEET.map(sheetAction).join("|"),
           Keymap.SHEET.map(function (row) { return row.action }).join("|"))
     check("the sheet is not empty, so the check above has a denominator",
-          Keymap.SHEET.length, 25)
+          Keymap.SHEET.length, 26)
     // A chord shares the row of the key it doubles, so every caret token must resolve to that row's
     // own action, or the sheet advertises a chord bound to something else.
     check("every chord the sheet draws is bound to the action of its own row",
