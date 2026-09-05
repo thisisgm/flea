@@ -723,7 +723,7 @@ the two changes are additive to different halves of one file, so no resolution o
 subjects came out before the merge rather than inside it. `ui/MountListing.qml` is 84 lines and owns
 the five second `gio mount -l` poll, its 10 s bound, the re-read queued mid-listing and the collector
 fallback; the Service keeps one `_mountListing` string and rebuilds on its `listed()` signal.
-`ui/NetworkPlaces.qml` is 64 lines and owns the bookmarks file: the write `FileView`, `rename()`,
+`ui/NetworkPlaces.qml` is 69 lines and owns the bookmarks file: the write `FileView`, `rename()`,
 `forget()`, and the one blocking `write()` those two share. Both cuts shipped as one commit carrying no
 behaviour change, the way `ui/Header.qml` did; what `forget()` writes changed in the commit after it.
 Neither could go into `ui/js/Mounts.js`, which is 299 of its 300 hard cap, or into `tests/js/mounts.js`,
@@ -3224,6 +3224,26 @@ the check happened to make it pass again, which is what pointed at a race rather
 failure. The fix is `bookmarksWrite.waitForJob()` (blocks until the current async operation
 finishes) between `setText()` and the signal that triggers the reload, in both files. Four
 consecutive clean runs after the fix, two of four before it, on the same box.
+
+### An unread FileView drops an empty write
+
+`FileView.setText("")` does nothing at all when the view has never loaded: no truncate, no create,
+and `loaded` stays false, while the same call on a view that has read truncates the file as asked.
+Measured on this box with a four-way probe under `QT_QPA_PLATFORM=offscreen qs -p`, on a path
+created after the view was made: writing `"OTHER\n"` landed and left `loaded` true, writing `""`
+left the file byte-identical and `loaded` false, and it made no difference whether the file had been
+created by another `FileView` in the same process or by an external `sh`. So the trigger is the
+empty body and the unread view, not two views on one path.
+
+This is the whole of a defect `tests/ui.sh case_network` caught: removing the only saved place
+computes an empty body, and the rail's write view has never read when the bookmarks file did not
+exist at launch, so the bar said the place was forgotten while the file kept its line and the row
+came back on the next rebuild. `ui/NetworkPlaces.qml write(body)` reloads first when
+`!bookmarksWrite.loaded`; `reload()` followed by `waitForJob()` loads synchronously, measured the
+same way, after which the empty write truncates. The write view is unread far more often than it
+looks: nothing reloads it, `ui/NetworkDialog.qml` creates the file through its own view, and
+`watchChanges` would not help because a watch set up before its parent directory existed never
+fires.
 
 ### A server root with no share segment mounts, but GVFS gives it no FUSE path
 

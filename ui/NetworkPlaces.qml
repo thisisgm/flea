@@ -54,9 +54,14 @@ Item {
             : entry.label + " is forgotten.", false)
     }
 
-    // waitForJob() blocks until the write actually lands, the same fix AGENTS.md "A FileView write
-    // can race a reload" applies to ui/NetworkDialog.qml's own bookmark write.
+    // waitForJob() blocks until the write lands, the same fix AGENTS.md "A FileView write can race a
+    // reload" applies to ui/NetworkDialog.qml's own write. A view that has never read drops an empty
+    // setText() (AGENTS.md "An unread FileView drops an empty write"), so it is made to read first.
     function write(body) {
+        if (!bookmarksWrite.loaded) {
+            bookmarksWrite.reload()
+            bookmarksWrite.waitForJob()
+        }
         bookmarksWrite.setText(body)
         bookmarksWrite.waitForJob()
         root.wrote()
