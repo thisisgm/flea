@@ -58,6 +58,13 @@ function run(check) {
     check("a location with no FUSE path answers nothing rather than undefined",
           Mounts.localPath('uri: smb://nas/\ntype: directory\n'), "")
     check("no gio output at all answers nothing rather than throwing", Mounts.localPath(""), "")
+    // What the LC_ALL=C pin at ui/NetworkMounts.qml:35 is for, shown rather than assumed: gio's own
+    // wording is the client's, so without the pin the same location answers a line this cannot read
+    // and the share resolves to no folder at all. gvfsd's strings above are the daemon's and stay put.
+    var translated = 'uri: smb://192.168.1.10/isos/\n'
+                   + 'ruta local: /run/user/1000/gvfs/smb-share:server=192.168.1.10,share=isos\n'
+    check("a translated gio info carries no path this can read, which is why gio is pinned to C",
+          Mounts.localPath(translated), "")
 
     // PR #21 (@TomFaulkner): one rail row per share, however the port is spelled. "gio mount -l"
     // never reports a scheme's default port, while the add form spells out the one it prefilled.
