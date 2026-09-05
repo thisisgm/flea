@@ -513,8 +513,8 @@ huge pages" below for what it is worth and what it cost.
 - `ui/Row.qml` renders one row delegate: the icon slot, which a thumbnail replaces in
   place, the PlainText name and the semantic colours.
 - `ui/Opener.qml` is the only component that runs Flea's own opening modes, by running
-  `flea --open`, `flea --terminal` and a one-line `sh` that pipes into `wl-copy`, see
-  "Opening a file".
+  `flea --open`, `flea --terminal` and a one-line `sh` that pipes into `wl-copy`, which is why
+  `wl-clipboard` is a `depends` entry, see "Opening a file".
 - `ui/ContextMenu.qml` is the one pane-owned right-click popup and its single Open action.
 - `ui/StatusBar.qml` renders the path, row counts and transient messages.
 - `ui/TabBar.qml` is the window's tab strip, hidden with no height until a second tab exists.
@@ -802,10 +802,11 @@ what makes the move provable rather than merely asserted.
 which answers a thumbnail URL when the pane holds one for this row and the OEM two-step icon
 lookup otherwise.
 
-`ui/Opener.qml` is 86 lines, well inside both budgets: three `Process` objects, three functions
+`ui/Opener.qml` is 87 lines, well inside both budgets: three `Process` objects, three functions
 (`open`, `openTerminal` and `copyText`) and three signals. `flea --open` waits for `gio open` and
-not for the application, in the low tens of milliseconds, so one process serves every open, and
-this is the only component in the tree that runs `flea --open` or `flea --terminal`.
+not for the application, which is 11 to 15 ms against an `Exec=` handler but 0.32 to 0.75 s against
+a `DBusActivatable` one, so one process serves every open and a second Enter is dropped for that
+long; this is the only component in the tree that runs `flea --open` or `flea --terminal`.
 
 `ui/js/Thumbs.js` is 77 lines by `wc -l` against a 200-line soft budget, and its suite
 `tests/js/thumbs.js` is 66. It is arithmetic over the row map and nothing else, with no QML
@@ -1188,9 +1189,12 @@ waits for its consumer.
 - The `--open` checks inside `./tests/modes.sh` put a stub on `PATH` that reports
   its own pid, argv count, argv and `THP_enabled`, which is what pins symlink resolution, the
   handoff, a name starting with a dash and a name with a newline in it arriving as one absolute
-  argument, and the launcher having been reaped by the time `--open` returns. A second stub in
+  argument. That stub's last write is what the read waits for, so it is exiting whatever `--open`
+  did and the reaped-launcher check on it cannot go red; a third stub in `lingerbin/` writes its pid
+  and then sleeps half a second, which is the arm that can, and it is the shape of the real
+  `DBusActivatable` wait in miniature. A second stub in
   `failbin/` exits `3`, which is the check that `--open` reports a refusal instead of the `0` a
-  detached spawn reported. Both are named from `src/open.rs`'s own `Command::new` target, and the
+  detached spawn reported. All three are named from `src/open.rs`'s own `Command::new` target, and the
   `--terminal` stub from `src/terminal.rs`'s, rather than spelled in the test: when the target moved
   from `xdg-open` to `gio` the hand-written name did not follow, so every `--open` in the block
   resolved the real `/usr/bin/xdg-open` instead, and a stub named from the product cannot drift.
@@ -1208,10 +1212,11 @@ waits for its consumer.
   also raises an `unused import: std::os::unix::process::CommandExt` warning, but **that
   warning is not the guard**: it disappears the moment anything else in the file needs
   `CommandExt`, while the check keeps working.
-- The two `--open` error paths each need a check on the sentence, not just the status, because
+- The three `--open` error paths each need a check on the sentence, not just the status, because
   the unknown-flag branch also exits 2 and also prints no errno: against the pre-Task-4 binary
-  the status and errno checks of both pairs pass unchanged, and only `could not be opened` and
-  `nothing on this system could be asked` tell an implemented `--open` from an absent one.
+  the status and errno checks all pass unchanged, and only `could not be opened`,
+  `gio open refused that file` and `nothing on this system could be asked` tell an implemented
+  `--open` from an absent one.
 - `./tests/budget.sh` asserts `tools/flea-file-budget` itself rejects an oversized
   file and passes a clean tree.
 - `./tools/flea-acceptance` is the everything-works battery, and **its checklist is derived at run
@@ -1275,11 +1280,14 @@ waits for its consumer.
   `remember` evicts at the cap in insertion order. It reddens on a mutation because
   `ui/js/Thumbs.js` imports no QML.
 - `./tests/ui.sh` drives the real window through `omarchy-drive` and takes a case name to run
-  one of nine: `cursor`, `terminal`, `open`, `menu`, `colour`, `icons`, `thumbs`, `hashcache`
-  and `nosweep`. With no argument it runs all nine and then three whole-run checks, a backend
-  drain, a log grep and a cache count, so a clean run prints `0 of 12 checks failed`.
-  - `open` replaced the old `symlink` case. It puts a stub `gio` on `PATH`, which intercepts the
-    `open` subcommand and execs the real `gio` for every other one, and asserts
+  one of the `case_*` functions it defines; the file's own usage line lists them and
+  `grep -c '^case_[a-z]*()' tests/ui.sh` counts them. With no argument it runs all of them and
+  then three whole-run checks, a backend drain, a log grep and a cache count, so a clean run
+  prints `0 of N checks failed`, with N three more than that count. Neither the list nor either
+  number is written out here: both went stale the first time a case was added.
+  - `open` replaced the old `symlink` case. It puts a stub opener on `PATH`, named from
+    `src/open.rs`'s own `Command::new` target the way `tests/modes.sh` names its own, which
+    intercepts the `open` subcommand and execs the real `gio` for every other one, and asserts
     all three Enter answers on one listing: a symlink to a file hands the resolved target to
     the handler and does not leave the directory, a symlink to a directory navigates and is
     never handed to the handler, and a broken symlink says one sentence, moves nothing and
@@ -2778,7 +2786,11 @@ on this box in the low tens of milliseconds against a stub handler that then ran
 of its own, with the handler still running long after `gio` had been reaped. Ten runs against an isolated
 `XDG_DATA_HOME` holding one entry, whose `XDG_DATA_DIRS` was still the box's own 107 system
 entries, and ten more with the operator's 17 user entries on the search path as well, were the
-same 10 to 14 ms, so the size of the database is not what that number is made of. Waiting is what makes the exit status mean
+same 10 to 14 ms, so the size of the database is not what that number is made of. **That whole
+paragraph measures the `Exec=` path and is not a bound on the other one**: a `DBusActivatable` entry
+makes `gio open` wait on the `org.freedesktop.Application.Open` reply instead, which on this box's
+archive default is 0.32 to 0.75 s, and the `ui/Opener.qml` paragraph below carries those numbers.
+Waiting is what makes the exit status mean
 anything, and the detached `xdg-open` spawn it replaced answered `0` for a handoff that had not
 happened. It is still a spawn and never an `exec`, because an `exec` would leave a Flea-descended
 process alive for the application's whole life, as a child of the `qs` process, which Quickshell may
@@ -2799,10 +2811,12 @@ which is the error path.
 
 The exit statuses are the whole contract: `0` is a successful handoff, `2` is anything that could not
 be opened and carries one elided sentence on stderr, and `3` means the resolved target is a directory
-and carries no output at all. `2` now covers the launcher refusing as well as failing to start: a
-`gio open` that exits nonzero gets `that file could not be opened, check that it still exists`, and a
-`gio` that could not be run at all gets `nothing on this system could be asked to open that file`, so
-the pair still tells a refused open from an unimplemented one. A directory is refused rather than handed on because
+and carries no output at all. `2` now covers the launcher refusing as well as failing to start, and the three sentences are
+distinct because `std::fs::canonicalize` has already proved the file is there before `gio` is run at
+all: a path that does not resolve gets `that file could not be opened, check that it still exists`, a
+`gio open` that exits nonzero gets `gio open refused that file, so no application on this system took
+it`, and a `gio` that could not be run at all gets `nothing on this system could be asked to open that
+file`, so the set tells a refused open from an unimplemented one and neither one blames the path. A directory is refused rather than handed on because
 `xdg-mime query default inode/directory` is `org.gnome.Nautilus.desktop` here, so opening one through
 the opener from inside a file manager opens a different file manager; the caller navigates instead.
 `flea --open` with no path and `flea --open a b` both fall through to the unknown-flag branch, which
@@ -2813,7 +2827,21 @@ names the flag and exits 2.
 opener's own `onExited` is the whole mapping for this half: `0` says nothing, `3` raises
 `isDirectory` and `Pane` navigates there, and anything else raises `failed` and `Pane` writes one
 sentence to the status line. A second `open()` while that `Process` is running is dropped rather
-than queued, and the window it is dropped in is the low tens of milliseconds measured above. `Pane.openCursor` sends a row with `d` true to `open()` and every
+than queued, and it is dropped in silence.
+
+**That window is a third of a second on an archive, not the low tens of milliseconds this file used
+to claim.** `gio open` on an `Exec=` entry forks and returns; on a `DBusActivatable` entry it waits
+on the `org.freedesktop.Application.Open` reply instead, which is a cold application start.
+Twenty-five of the twenty-six MIME types `org.gnome.Nautilus.desktop` claims resolve to it as this
+box's default (`gio mime application/zip` and twenty-four more), and an archive is a regular file
+that reaches `.status()` like any other. Measured on this box with Nautilus not running: 463, 317,
+318 and 340 ms idle, and 748, 709 and 707 ms with twenty-four spinners on twelve cores. With
+Nautilus already up it is 34 to 48 ms, and the `text/plain` `Exec=` control on the same harness is
+11 to 15 ms. Driven against the real window, `Return`, `Down`, `Return` sent as one `wtype` burst
+produced exactly one `gio open` call and an empty status line; the same `Return` on the same row
+after the wait cleared produced the second call, so the drop is the guard and not the driver.
+Bounding the wait, saying something in the status bar, and queueing are all still open; the tree
+does none of them yet. `Pane.openCursor` sends a row with `d` true to `open()` and every
 other row to the opener, so a symlink to a directory reaches the opener, comes back 3 and
 navigates; `tests/ui.sh open` asserts all three answers on one listing.
 
