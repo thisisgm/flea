@@ -1,12 +1,24 @@
 // Duration, pixels and sample rate for a media row, which the preview column names and no listing
 // carries. ffprobe reads the container's own header; nothing is decoded and nothing is written.
 use crate::backend::sandbox;
+use std::io::Read;
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::Arc;
 use std::time::Duration;
 
+// std offers no way to kill a child from another thread without owning it, so the signal is declared here rather than taking a crate, the same call metareq.rs makes for its archive watchdog.
+extern "C" {
+    fn kill(pid: i32, sig: i32) -> i32;
+}
+
+const SIGKILL: i32 = 9;
 // A header read on a local file is milliseconds; this is a runaway, not a slow file.
 const PROBE_LIMIT: Duration = Duration::from_secs(5);
+// The watchdog's own wake-up, so the deadline is honoured to a twentieth of a second.
+const WATCHDOG_STEP: Duration = Duration::from_millis(50);
 
 #[derive(Default, PartialEq, Debug)]
 pub struct Media {
@@ -52,13 +64,48 @@ pub fn probe(path: &Path) -> Media {
     let mut cmd = Command::new(&full[0]);
     cmd.args(&full[1..]);
     cmd.stdin(std::process::Stdio::null());
+    cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::null());
-    // corner: prlimit's own --cpu is the real bound; PROBE_LIMIT is named so the constant is not a lie.
-    let _ = PROBE_LIMIT;
-    match cmd.output() {
-        Ok(o) => parse(&String::from_utf8_lossy(&o.stdout)),
-        Err(_) => Media::default(),
+    // Its own group, so the watchdog can end the whole tree in one signal.
+    cmd.process_group(0);
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(_) => return Media::default(),
+    };
+    // prlimit's --cpu cannot bound a probe blocked in open(2) or read(2), because a blocked process burns no CPU at all.
+    let done = Arc::new(AtomicBool::new(false));
+    let watchdog = watchdog(child.id() as i32, Arc::clone(&done));
+    let mut stdout = Vec::new();
+    if let Some(mut pipe) = child.stdout.take() {
+        let _ = pipe.read_to_end(&mut stdout);
     }
+    // The reap runs with the watchdog still armed, because end of stdout says every writer closed it and not that the child exited, and standing the watchdog down first is what leaves that case unbounded.
+    let status = child.wait();
+    done.store(true, Ordering::Relaxed);
+    let _ = watchdog.join();
+    match status {
+        // A probe that did not exit zero was not answering about this file, so its stdout is not a measurement.
+        Ok(s) if s.success() => parse(&String::from_utf8_lossy(&stdout)),
+        _ => Media::default(),
+    }
+}
+
+// One thread, one sleep, one signal, standing down the moment the probe is reaped; the same shape metareq.rs uses to bound an archive listing.
+fn watchdog(pid: i32, done: Arc<AtomicBool>) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let mut waited = Duration::ZERO;
+        while waited < PROBE_LIMIT {
+            if done.load(Ordering::Relaxed) {
+                return;
+            }
+            std::thread::sleep(WATCHDOG_STEP);
+            waited += WATCHDOG_STEP;
+        }
+        // The GROUP, not the pid: ffprobe runs under bwrap and prlimit, so killing the direct child leaves grandchildren holding the pipe open and the read still blocked.
+        if !done.load(Ordering::Relaxed) {
+            unsafe { kill(-pid, SIGKILL) };
+        }
+    })
 }
 
 // Sample input, one key=value per line, streams before the format block:
