@@ -1,3 +1,4 @@
+
 .pragma library
 .import "Eject.js" as Eject
 .import "Filter.js" as Filter
@@ -5,6 +6,7 @@
 .import "Keymap.js" as Keymap
 .import "Mounts.js" as Mounts
 .import "Ops.js" as Ops
+.import "PreviewKeys.js" as PreviewKeys
 .import "Search.js" as Search
 .import "Sort.js" as Sort
 .import "Scale.js" as Scale
@@ -13,9 +15,6 @@
 
 var LIST = "list"
 var RAIL = "rail"
-
-// Left/Right's seek step, Task 22's operator ruling; previewAct is the only reader.
-var SEEK_MS = 5000
 
 // Tab is the only thing that moves focus between views, so the rule lives in one function.
 function next(current) {
@@ -94,7 +93,7 @@ function act(action, root) {
         else if (root.filterTyping || root.filterQuery.length > 0) Filter.close(root)
         else root.escapePressed()
         return
-    case "preview": openPreview(root); return
+    case "preview": PreviewKeys.open(root); return
     case "toggleSelect": root.toggleSelect(); return
     case "extendDown": root.extendSelection(1); return
     case "extendUp": root.extendSelection(-1); return
@@ -146,54 +145,7 @@ function act(action, root) {
     root.message(action + " is not built yet.", false)
 }
 
-// A directory has no preview kind of its own, so Space on one is a silent no-op rather than an error.
-function openPreview(root) {
-    var row = root.rowFor(root.cursorIndex)
-    if (row && !row.d)
-        root.preview.open(root.join(root.path, row.n), row.i, row.s)
-}
-
-// Preview open: j/k move the cursor and the preview follows; escape always closes. Space closes
-// a text or unsupported preview as before, but toggles play/pause on a MEDIA one instead
-// (Task 22's operator ruling: "the idea is our preview is as good or better than Showtime").
-// Any key reveals the media strip, even one that does nothing else, matching "move the mouse or
-// press anything" from the same ruling.
-function previewAct(action, root) {
-    root.preview.revealStrip()
-    switch (action) {
-    case "cursorDown": Filter.moveCursor(root, 1); followPreview(root); return
-    case "cursorUp": Filter.moveCursor(root, -1); followPreview(root); return
-    case "preview":
-        if (root.preview.isMedia) root.preview.togglePlay()
-        else root.preview.close()
-        return
-    case "escape": root.preview.close(); return
-    case "seekBack":
-        if (root.preview.isPdf) root.preview.turnPage(-1)
-        else root.preview.seek(-SEEK_MS)
-        return
-    case "seekForward":
-        if (root.preview.isPdf) root.preview.turnPage(1)
-        else root.preview.seek(SEEK_MS)
-        return
-    // h keeps its own "parent" name from keys.toml; turnPage self-guards, so a media preview
-    // ignores both of these rather than seeking on a key the strip never advertised.
-    case "parent": root.preview.turnPage(-1); return
-    case "pageForward": root.preview.turnPage(1); return
-    case "zoomOut": root.preview.zoomBy(-1); return
-    case "zoomIn": root.preview.zoomBy(1); return
-    case "expand": root.preview.toggleExpand(); return
-    }
-}
-
-// The row under the moved cursor, handed to Preview.follow so a held key settles before it reloads.
-function followPreview(root) {
-    var row = root.rowFor(root.cursorIndex)
-    if (row && !row.d)
-        root.preview.follow(root.join(root.path, row.n), row.i, row.s)
-}
-
-// ui/ShareBrowser.qml's own overlay, the same j/k/open/escape shape previewAct above uses.
+// ui/ShareBrowser.qml's own overlay, the same j/k/open/escape shape PreviewKeys.act uses.
 function shareBrowserAct(action, root) {
     switch (action) {
     case "cursorDown": root.shareBrowser.moveCursor(1); return
@@ -229,7 +181,7 @@ function handleKey(event, root, sidebar) {
         root.trashArmedAt = 0
     }
     if (root.preview.active) {
-        previewAct(action, root)
+        PreviewKeys.act(action, root)
         return true
     }
     if (root.shareBrowser.active) {

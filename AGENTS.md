@@ -459,6 +459,8 @@ huge pages" below for what it is worth and what it cost.
   snapshot carries a cursor and a selection only across a switch that re-lists nothing, because an
   index names a row and a re-read can put a different file behind the same number.
 - `ui/js/Trash.js` is the dd pair's arm-and-fire policy, split out of `Focus.js` at its cap.
+- `ui/js/PreviewKeys.js` is what the preview overlay does with a key, and the 5 s seek step only it
+  reads, split out of `Focus.js` at its cap the second time it reached one.
 - `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` stores it
   and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord itself.
 - `ui/js/PathBar.js` is what a typed path line means: the tilde, the relative name, the
