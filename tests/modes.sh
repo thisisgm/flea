@@ -94,7 +94,6 @@ check "--tui --gui names the conflict" "1" "$(echo "$out" | grep -c 'mutually ex
 # The prctl has to survive exec, so a stub qs reports the kernel's own view of the launched child.
 D="$FIXTURE_ROOT/flea-thp-test-$$"
 sandbox_make "$D"
-# Hand-named, not derived: a renamed qs reaches real quickshell, which this dead WAYLAND_DISPLAY kills with nothing left behind.
 printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status\n' > "$D/qs"
 chmod +x "$D/qs"
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
@@ -107,6 +106,7 @@ sandbox_remove "$D"
 # Each mode's stub is named from that mode's own exec target, because a stub named by hand goes stale
 # the day the target is renamed, and the run then resolves the operator's real launcher instead: that
 # is what left three editors running on this box.
+# Not the qs stubs: a renamed qs reaches real quickshell, which their dead WAYLAND_DISPLAY kills with nothing left behind.
 handoff_in() {
   grep -ho 'Command::new("[a-z0-9-]\+")' "$1" | cut -d'"' -f2 | sort -u
 }
