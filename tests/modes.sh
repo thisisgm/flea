@@ -221,7 +221,11 @@ handoff_package() {
     *) printf '' ;;
   esac
 }
-for handoff in $(grep -ho 'Command::new("[a-z0-9-]\+")' src/open.rs src/terminal.rs | cut -d'"' -f2 | sort -u); do
+handoffs=$(grep -ho 'Command::new("[a-z0-9-]\+")' src/open.rs src/terminal.rs | cut -d'"' -f2 | sort -u)
+# The denominator, because a derived loop over nothing reports green having checked nothing: a
+# renamed file or a handoff name this grep cannot match would otherwise pass in silence.
+check "the two openers hand off to two programs by name" "2" "$(printf '%s\n' "$handoffs" | grep -c .)"
+for handoff in $handoffs; do
   package=$(handoff_package "$handoff")
   check "$handoff is a handoff this suite knows the package for" "1" "$([ -n "$package" ] && echo 1 || echo 0)"
   check "PKGBUILD depends on $package, which ships $handoff" "1" "$(grep -c "^depends=.*'$package'" PKGBUILD)"
