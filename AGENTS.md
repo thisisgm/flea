@@ -1712,13 +1712,13 @@ the reporter's one-GiB abort**: the same fixture and the same argv pass at
 space than ours does, and the headroom is bought on their number and not on this one. **Two
 is the smallest value the ticket records as working**, and it is chosen on that rather than
 on a judgement: issue #17 says increasing `--as` to 2 GiB or omitting it succeeds without
-error, so 2 GiB is the reporter's own known-good number, three times what this box's
-`glycin` was measured to want, and half of what four workers at four GiB could compose. The
-same fixture and argv pass at `--as=2147483648` here too, status 0 and the same 601-byte
-PNG. The reporter proposes 4 to 8 GiB, so two leaves no margin over their range and a
-larger image on their box could reopen the issue; that is accepted, because the rung here
-is the smallest thing that works and the number moves again when somebody brings a
-measurement. It is still finite and still refuses a decompression bomb.
+error, so 2 GiB is the reporter's own known-good number and three times what this box's
+`glycin` was measured to want. The same fixture and argv pass at `--as=2147483648` here
+too, status 0 and the same 601-byte PNG. The reporter proposes 4 to 8 GiB, so two leaves no
+margin over their range and a larger image on their box could reopen the issue; that is
+accepted, because the rung here is the smallest thing that works and the number moves again
+when somebody brings a measurement. It is still finite and still refuses a decompression
+bomb.
 
 The flags, and why each is there:
 
@@ -1901,12 +1901,12 @@ where either is visible. A discriminator keyed on 152 does not exist to be built
 space at 2 GiB, so a memory bomb surfaces as the decoder's own non-zero exit long before the box is
 short: re-measured at the 2 GiB cap, the probe's `as_rlimit_bomb` row is still exit 1, a Python
 `MemoryError` and not a kill. The box carries 19 GiB of RAM and 38 GiB of swap. **The cap bounds
-address space and not resident memory, so it does not net against those 19 GiB**: a decode maps far
-more than it faults in, which is why the 1536 MiB sparse reservation in `sandbox.rs`'s own test
-stays near 13 MB of `VmRSS`, three runs spanning 12936 to 13008 kB. What the cap change moves is
-the composed case, and it moves it in permitted address space: `src/backend/run.rs`'s
-`THUMB_WORKERS` is 4, so four decoders multiply the permitted total to 8 GiB, where at one GiB it
-was 4 and at four GiB it would have been 16. The case
+address space and not resident memory, so it does not net against those 19 GiB**: `sandbox.rs`'s
+own test has the kernel admit the same `PROT_NONE` reservation at 1536 MiB and refuse it at
+3072 MiB while `VmRSS` stays under the test's 256 MiB ceiling, so the cap decided on the mapping
+and not on a resident page. What the cap change moves is the composed case, and it moves it in
+permitted address space: `src/backend/run.rs`'s `THUMB_WORKERS` is 4, so four decoders multiply the
+permitted total to 8 GiB, where at one GiB it was 4 and at four GiB it would have been 16. The case
 that matters is the bomb that faults its pages in instead of reserving them sparsely, because that
 is the only one that turns permitted address space into memory the box has to find. Not run,
 deliberately: four decoders each faulting in a 2 GiB bomb at once is the state this paragraph warns
