@@ -14,15 +14,12 @@ cd "$(dirname "$0")/.." || exit 1
 # protocol.sh and thumbs.sh drive the real binary, so it has to exist before they are asked
 # anything. They refuse by name rather than reporting failures against a binary that is absent.
 # protocol.sh drives the debug binary and thumbs.sh drives the release one. Building only debug
-# passes in a tree that happens to carry both and fails on a fresh clone.
-if [ ! -x target/debug/flea ]; then
-    printf 'run-all: building target/debug/flea, protocol.sh needs it\n'
-    cargo build -q || { printf 'run-all: cargo build failed, nothing else was run\n' >&2; exit 1; }
-fi
-if [ ! -x target/release/flea ]; then
-    printf 'run-all: building target/release/flea, thumbs.sh needs it\n'
-    cargo build -q --release || { printf 'run-all: release build failed, nothing else was run\n' >&2; exit 1; }
-fi
+# passes in a tree that happens to carry both and fails on a fresh clone. Both unconditionally,
+# because an `[ ! -x ]` guard leaves a STALE binary in place and certifies code nobody compiled;
+# cargo decides for itself whether a rebuild is owed, so a current tree pays nothing for asking.
+printf 'run-all: cargo build, both profiles, because two suites drive the real binary\n'
+cargo build -q || { printf 'run-all: cargo build failed, nothing else was run\n' >&2; exit 1; }
+cargo build -q --release || { printf 'run-all: release build failed, nothing else was run\n' >&2; exit 1; }
 
 headless="js keymap-gen charts budget sandbox ops modes protocol uistate uiwriter archive thumbs"
 failed=0
