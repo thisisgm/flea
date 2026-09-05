@@ -1,6 +1,7 @@
 // One bounded line count, which is everything the preview column's "Lines" fact is built from. It
 // sits outside metareq.rs because it shares nothing with the archive, media and subprocess machinery
 // there, and because that file is at its size cap.
+use crate::backend::regfile::open_regular;
 use std::io::Read;
 use std::path::Path;
 
@@ -18,14 +19,10 @@ pub struct LineCount {
 // A file with no trailing newline still has a last line, so the count is newlines plus one for any
 // bytes after the final one; an empty file has no lines at all.
 pub fn count_lines(path: &Path) -> LineCount {
-    // Nothing but a regular file is opened here: a fifo with no writer never returns from open().
-    if !std::fs::metadata(path).map(|m| m.is_file()).unwrap_or(false) {
-        return LineCount { lines: 0, partial: false, failed: true };
-    }
-    let mut f = match std::fs::File::open(path) {
-        Ok(f) => f,
-        // Permission denied, or the row vanished. Either way zero would read as "this file is empty".
-        Err(_) => return LineCount { lines: 0, partial: false, failed: true },
+    let mut f = match open_regular(path) {
+        Some(f) => f,
+        // Denied, not a regular file, or the row vanished. Any of them would read as "empty" at zero.
+        None => return LineCount { lines: 0, partial: false, failed: true },
     };
     let mut buf = vec![0u8; 64 * 1024];
     let mut read: u64 = 0;

@@ -9,6 +9,7 @@ pub mod archivework;
 pub mod mime;
 pub mod fsinfo;
 pub mod icons;
+pub mod regfile;
 pub mod imagesize;
 pub mod kind;
 pub mod linecount;

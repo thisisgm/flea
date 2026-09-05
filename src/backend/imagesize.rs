@@ -1,6 +1,6 @@
 // Pixel dimensions read from a file header, because the preview column names them and the wire does
 // not carry them. Only the first bytes are read: no image is ever decoded to answer this.
-use std::fs::File;
+use crate::backend::regfile::open_regular;
 use std::io::Read;
 use std::path::Path;
 
@@ -15,12 +15,8 @@ const RIFF_MAGIC: &[u8] = b"RIFF";
 const WEBP_MAGIC: &[u8] = b"WEBP";
 
 pub fn dimensions(path: &Path) -> Option<(u32, u32)> {
-    // Nothing but a regular file is opened here: a fifo with no writer never returns from open().
-    if !std::fs::metadata(path).map(|m| m.is_file()).unwrap_or(false) {
-        return None;
-    }
     let mut buf = vec![0u8; PROBE];
-    let mut f = File::open(path).ok()?;
+    let mut f = open_regular(path)?;
     let n = f.read(&mut buf).ok()?;
     buf.truncate(n);
     from_header(&buf)

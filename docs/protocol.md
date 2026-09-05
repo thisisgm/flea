@@ -700,7 +700,7 @@ streamed and counting all of it costs no memory. `names` is capped at the first 
 entries, which is the only part that is bounded: the tile lists those and states the difference as
 its own "+ N more" line.
 
-`lfailed` is true when the file could not be opened for the line count at all, which on this box
+`lfailed` is true when the row produced no count at all, which on this box
 means permission denied, a row that is not a regular file, or a row that vanished between the
 listing and the request. **Nothing but a regular file is ever opened here or for `w` and `h`**, because
 opening a FIFO with no writer never returns: a FIFO, a socket, a device or a directory answers its
