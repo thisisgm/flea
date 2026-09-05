@@ -53,12 +53,18 @@ pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
 }
 
 // WebDAV is decided from the path and errno alone, so an rclone check never reads mountinfo for it.
-pub(crate) fn needs_copy_fallback(from: &Path, error: &io::Error) -> bool {
-    needs_gvfs_webdav_fallback(from, error)
-        || std::fs::read_to_string("/proc/self/mountinfo")
-            .ok()
-            .map(|body| needs_rclone_fallback_in(from, error, &body))
-            .unwrap_or(false)
+fn needs_copy_fallback(from: &Path, error: &io::Error) -> bool {
+    if needs_gvfs_webdav_fallback(from, error) {
+        return true;
+    }
+    // The errno answers first, so an ordinary collision never reads and parses the whole mount table.
+    if error.raw_os_error() != Some(EINVAL) {
+        return false;
+    }
+    std::fs::read_to_string("/proc/self/mountinfo")
+        .ok()
+        .map(|body| needs_rclone_fallback_in(from, error, &body))
+        .unwrap_or(false)
 }
 
 // Sample input, from: "/run/user/1000/gvfs/dav:host=slot,ssl=true/notes.txt"
@@ -94,7 +100,11 @@ fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
         return Err(rename_error(error));
     }
     // A source that will not go away leaves the complete target rather than risking a second destructive removal.
-    remove_any(from).map_err(rename_error)
+    remove_any(from).map_err(|error| FleaError {
+        where_: "rename".to_string(),
+        path: from.to_string_lossy().to_string(),
+        msg: format!("{}; the complete copy is at {}", error.msg, to.to_string_lossy()),
+    })
 }
 
 fn rename_error(mut error: FleaError) -> FleaError {
@@ -222,16 +232,6 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&from).unwrap(), "source body");
     }
     #[test]
-    fn webdav_copy_fallback_removes_the_partial_it_created() {
-        let d = TestDir::new("webdavrenamepartial");
-        let from = d.dir("source");
-        let _socket = std::os::unix::net::UnixListener::bind(from.join("socket")).unwrap();
-        let to = d.join("target");
-        copy_then_remove(&from, &to).expect_err("the socket makes the fallback copy fail");
-        assert!(!to.exists(), "the fallback removes only its own reported partial");
-        assert!(from.exists(), "the source stays after a failed fallback");
-    }
-    #[test]
     fn copied_directory_rename_refuses_an_existing_empty_directory() {
         let d = TestDir::new("copyrenameclobber");
         let source = d.dir("source");
@@ -268,6 +268,7 @@ mod tests {
         assert!(source.join("socket").exists(), "the source remains after a failed copy");
         assert!(!target.exists(), "the failed rename leaves no unjournaled partial target");
     }
+    // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
     #[test]
     fn copied_directory_rename_keeps_the_complete_copy_when_source_removal_fails() {
         let d = TestDir::new("copyrenameremove");
@@ -280,5 +281,20 @@ mod tests {
         assert_eq!(error.where_, "rename");
         assert_eq!(std::fs::read_to_string(source.join("inside.txt")).unwrap(), "body");
         assert_eq!(std::fs::read_to_string(target.join("inside.txt")).unwrap(), "body");
+        assert!(
+            error.msg.contains(&target.to_string_lossy().to_string()),
+            "the error must name the complete copy it left behind, got: {}",
+            error.msg
+        );
+    }
+    #[test]
+    fn the_composed_predicate_answers_for_either_measured_case() {
+        let d = TestDir::new("composedfallback");
+        assert!(needs_copy_fallback(
+            Path::new("/run/user/1000/gvfs/dav:host=x,ssl=true/f"),
+            &io::Error::from_raw_os_error(EIO)
+        ));
+        assert!(!needs_copy_fallback(d.path(), &io::Error::from_raw_os_error(EIO)));
+        assert!(!needs_copy_fallback(d.path(), &io::Error::from_raw_os_error(EEXIST)));
     }
 }

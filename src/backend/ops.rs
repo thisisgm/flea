@@ -169,8 +169,6 @@ mod tests {
         assert!(from.exists(), "the source is left where it was");
     }
 
-    // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
-
     #[test]
     fn renaming_a_file_to_its_own_name_is_not_work() {
         let d = TestDir::new("samename");

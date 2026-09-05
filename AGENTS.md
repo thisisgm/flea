@@ -632,6 +632,10 @@ had gone stale by a whole plan and were re-derived from `wc -l` in Plan 5 Task 5
 touch a file here, re-derive its count from the artefact rather than adjusting the nearest
 number.
 
+`src/backend/ops.rs` split to `src/backend/renamecompat.rs` at 455: composing PR 35's safe rclone
+rename into the release tree put the rename exception over the 400-line hard cap, so the exception
+and its tests moved to the module that already owned classifying which rename failures need it.
+
 **Every count in this section is a SNAPSHOT, not a live figure, and eleven of the eighteen had
 drifted by 2026-09-01: `src/heap.rs` was claimed at 15 and is 100, `ui/Row.qml` at 166 and is 310,
 `ui/Theme.qml` at 264 and is 187.** Nothing was over the hard cap when that was checked; only the
@@ -2523,8 +2527,16 @@ so a second concurrent operation would have nowhere to report itself. `rename` a
 neither spawns at all. An `archive` or a `convert` never claims the slot either: `Ops::claim_id` numbers them
 and they run alongside by design, so the cap was never one write of any kind.
 
-**`rename` and `mkdir` run on the loop's thread, the other three spawn.** Both normally take one syscall;
-the measured rclone directory compatibility path copies before removing its source and remains inline.
+**`rename` and `mkdir` run on the loop's thread, the other three spawn.** Both normally take one syscall,
+but neither compatibility path below is one: an rclone directory rename and a GVFS WebDAV rename both
+copy the whole tree before removing the source, inline on the loop's thread. That is an unbounded
+network transfer in the one place nothing else can run. A 40 GB rclone folder is downloaded and
+re-uploaded through FUSE with no progress, because the copy's byte sink is discarded, and with no way
+to cancel, because its flag is a fresh `AtomicBool` nothing can set; the loop is the only writer of
+stdout, so the application is frozen rather than slow for the whole transfer. The copied tree also
+lands with new modification times, since the crate has no dependencies and the copy sets none, and
+Flea's own listing sorts by mtime. This is accepted deliberately: the alternative measured on real
+rclone 1.75 was a rename that destroys a raced destination, and a frozen window beats lost data.
 `trash` shells to `gio` twice for the list diff plus once to trash; `duplicate` may copy a whole tree;
 a `transfer` is unbounded. Those three send their results back
 through `Event::Op`, joined onto the loop's receiver exactly the way the thumbnail pool's `Event::Thumb`
@@ -2533,7 +2545,7 @@ already is, so the loop stays the only writer of stdout.
 **Every write creates its target exclusively, and this is the module's whole safety story.** A file copy
 opens with `create_new`, a directory copy and a `mkdir` use `create_dir`, a symlink copy uses `symlink`, and a rename
 or a move uses `renameat2` with `RENAME_NOREPLACE`. None of them can destroy a file that is already
-there. Two compatibility paths belong only to inline `rename`, and both copy rather than replace.
+there. Two compatibility paths belong only to `rename` and its undo, and both copy rather than replace.
 rclone 1.75 returns `EINVAL` for `RENAME_NOREPLACE` on a directory under a mount identified exactly
 as `fuse.rclone` in `/proc/self/mountinfo`, and GVFS returns `EIO` for a rename under a
 `/run/user/*/gvfs/dav:` WebDAV mount. Ordinary rclone directory rename is never used because it was
@@ -2544,6 +2556,12 @@ created and reports a cleanup failure rather than hiding it; a source-removal fa
 complete target copy and reports the error. Every other filesystem, error and `rename_noreplace`
 caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
+A source-removal failure leaves a complete copy at the target, and the error names that path so the
+operator knows the duplicate exists; the journal spends the entry either way, because a failed
+reversal that stayed would block every older undo behind a step that keeps failing.
+corner: the copy is not snapshot-isolated, so a source replaced after the copy completes but before
+the source is removed, and a concurrent write into the operation-created partial target, are both
+accepted rather than defended against.
 
 **The journal records only what an operation created or moved.** `undo.rs`'s `Step` has exactly four
 shapes: `Moved` (rename back), `Created` (remove it), `MadeDir` (remove it while it is still empty, because
