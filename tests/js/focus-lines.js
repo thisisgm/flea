@@ -21,6 +21,7 @@ function queryPane() {
     p.searchMode = ""
     p.searchQuery = ""
     p.searchFrom = ""
+    p.searchHere = false
     p.searchRunning = false
     p.searchScanned = 0
     p.searchCancelled = false
@@ -94,16 +95,22 @@ function run(check) {
     // nothing, and the up arrow was untested too. ui/SearchStrip.qml draws the query as a Text with
     // the caret pinned after it, so Home, End, PageUp and PageDown have no caret to move on the line
     // and the listing's own meaning is the only one they can carry: ui/js/Focus.js LEAVES_LINE.
+    // "scr" keeps rows 0, 1, 5 and 6, so the cursor starts on the third of the four and every one
+    // of these five has somewhere different to take it: leaving the line is half the behaviour and
+    // the key still reaching the listing is the other half, which nothing here used to assert.
     var others = [Qt.Key_Up, Qt.Key_Home, Qt.Key_End, Qt.Key_PageUp, Qt.Key_PageDown]
     var handed = []
+    var landed = []
     var committed = []
     for (var i = 0; i < others.length; i++) {
         var narrowed = queryPane()
         narrowed.filterTyping = true
         narrowed.filterQuery = "scr"
         narrowed.refresh()
+        narrowed.cursorIndex = 5
         Focus.handleKey(key(others[i], ""), narrowed, noRail())
         handed.push(narrowed.filterTyping + ":" + narrowed.filterQuery)
+        landed.push(narrowed.cursorIndex)
         var walks = queryPane()
         walks.searchMode = "typing"
         walks.searchQuery = "scr"
@@ -112,6 +119,50 @@ function run(check) {
     }
     check("every other cursor key hands the filter's caret back, with its query left standing",
           handed.join("|"), "false:scr|false:scr|false:scr|false:scr|false:scr")
+    check("and each one then means what it means in the listing, off the row it started on",
+          landed.join("|"), "1|0|6|0|6")
     check("and each commits the search's walk exactly once, the way the down arrow does",
           committed.join("|"), "results:1|results:1|results:1|results:1|results:1")
+
+    // Issue 30's only control is tab on the search's query line, and it was driven straight into
+    // Search.typeKey. Nothing said Focus.handleKey routes Qt.Key_Tab there rather than resolving it
+    // through Keymap to focusNext, which is what the very same key means one state away.
+    var scoping = queryPane()
+    scoping.searchMode = "typing"
+    scoping.searchQuery = "scr"
+    Focus.handleKey(key(Qt.Key_Tab, "\t"), scoping, noRail())
+    check("tab on the search's query line reaches the scope and not the focus switch",
+          scoping.searchHere + "|" + scoping.focusView, "true|list")
+    var switching = queryPane()
+    Focus.handleKey(key(Qt.Key_Tab, "\t"), switching, noRail())
+    check("and with no query line up the same key is the focus switch the sheet draws",
+          switching.searchHere + "|" + switching.focusView, "false|rail")
+
+    // ui/js/Search.js says the scope is a property of the window: close() and reveal() leave
+    // searchHere standing on purpose, so it holds until it is pressed again. That is a claim about
+    // state outliving the search that set it, and it was written in a comment and driven by nothing.
+    var sticky = queryPane()
+    sticky.home = "/d"
+    sticky.path = "/d/sub"
+    sticky.searchMode = "typing"
+    sticky.searchQuery = "scr"
+    Focus.handleKey(key(Qt.Key_Tab, "\t"), sticky, noRail())
+    Focus.handleKey(key(Qt.Key_Escape, ""), sticky, noRail())
+    check("escape off the query line closes the search and leaves the scope where tab put it",
+          sticky.searchMode + "|" + sticky.searchHere, "|true")
+    sticky.searchMode = "typing"
+    sticky.searchQuery = "de"
+    Focus.handleKey(key(Qt.Key_Return, ""), sticky, noRail())
+    check("so the next search walks the pane's own directory with no second press",
+          sticky.walked.join(","), "/d/sub?de")
+    // The denominator: without that flip the same fixture walks home, so the check above is not
+    // reading a scope the pane would have chosen anyway.
+    var wide = queryPane()
+    wide.home = "/d"
+    wide.path = "/d/sub"
+    wide.searchMode = "typing"
+    wide.searchQuery = "de"
+    Focus.handleKey(key(Qt.Key_Return, ""), wide, noRail())
+    check("and a window that never pressed tab still walks the whole home directory",
+          wide.walked.join(","), "/d?de")
 }
