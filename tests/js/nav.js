@@ -117,4 +117,14 @@ function run(check) {
     Nav.mouseBack(rootDir)
     check("mouse back at the root with no history stays put", rootDir.path, "/")
     check("and sends no listing", rootDir.sent.length, 0)
+
+    var loading = wired()
+    loading.history = ["/home/gm"]
+    loading.listInFlight = true
+    Nav.mouseBack(loading)
+    check("mouse back during a load keeps the history it would have popped",
+          loading.history.join(","), "/home/gm")
+    check("and stays in the directory that is still loading", loading.path, "/home/gm/Work")
+    check("and says so", loading.said.join(""), "A directory is already loading.")
+    check("and sends no listing", loading.sent.length, 0)
 }
