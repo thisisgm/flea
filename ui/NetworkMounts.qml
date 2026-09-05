@@ -183,23 +183,34 @@ Item {
 
     // Forgets a saved place, the same blocking write rename() makes just above: a share that is
     // mounted right now stays on the rail as the live mount it is until something unmounts it, so
-    // the bar says which of the two happened rather than leaving Remove looking like a broken key.
+    // the bar names which of the four states the press landed in rather than guessing at one.
     function forget(uri) {
-        var body = bookmarksWrite.text()
-        // A FileView that has not read yet answers "", and writing that back would empty the file.
-        if (String(uri || "").length === 0 || body.length === 0) {
-            root.message("The saved places have not been read yet; try Remove again in a moment.", true)
+        if (String(uri || "").length === 0)
             return
-        }
         var row = Mounts.rowByKey(root.entries, uri)
         var entry = row >= 0 ? root.entries[row] : null
         var name = entry ? entry.label : uri
-        bookmarksWrite.setText(Mounts.removeBookmark(body, uri))
+        var mounted = entry !== null && entry.mounted === true
+        // Remove is offered on every share row (ui/js/Mounts.js "rowMenu"), and the text the rail was
+        // built from is what says whether this one is saved at all; a live mount often is not.
+        if (Mounts.removeBookmark(root.bookmarksText, uri) === root.bookmarksText) {
+            root.message(mounted ? name + " is not a saved place, and stays on the rail until it is unmounted."
+                                 : name + " is not a saved place.", false)
+            return
+        }
+        var body = bookmarksWrite.text()
+        var next = Mounts.removeBookmark(body, uri)
+        // This FileView answers "" until it has read, and the rail's own text says the line is there,
+        // so a body this changes nothing in is a stale read and writing it back would lose the file.
+        if (next === body) {
+            root.message("The saved places have not been read yet; try Remove again in a moment.", true)
+            return
+        }
+        bookmarksWrite.setText(next)
         bookmarksWrite.waitForJob()
         root.renamed()
-        root.message(entry && entry.mounted
-                     ? name + " is forgotten, and stays on the rail until it is unmounted."
-                     : name + " is forgotten.", false)
+        root.message(mounted ? name + " is forgotten, and stays on the rail until it is unmounted."
+                             : name + " is forgotten.", false)
     }
 
     function pollMounts() {

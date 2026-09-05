@@ -2519,7 +2519,84 @@ EOS
     after=$(ipc cursor)
     [[ "$after" != "$before" ]] || fail "unmount: the list stopped taking keys after the rail menu, cursor stuck at $before"
 
-    printf 'UNMOUNT menu=ok escape=ok fire=ok no-menu-on-favourite=ok keyboard=ok\n'
+    # PR #21's Remove row, driven at last. Three states reach it and each has its own sentence; this
+    # home has no bookmarks file at all, so the live share the menu is over was never a saved place.
+    click_rail_row 1 right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Unmount|Rename|Remove" ]] \
+        || fail "unmount: the share's menu is $(ipc contextMenuEntries) before Remove"
+    menu_seek Remove
+    key -k Return >/dev/null
+    wait_message "stubshare is not a saved place, and stays on the rail until it is unmounted."
+    [[ ! -e "$fixture_home/.config/gtk-3.0/bookmarks" ]] \
+        || fail "unmount: Remove on a place nothing saved wrote a bookmarks file"
+    [[ "$(ipc networkEntries)" == "stubshare|network|share|true" ]] \
+        || fail "unmount: Remove took a live mount off the rail, got $(ipc networkEntries)"
+
+    printf 'UNMOUNT menu=ok escape=ok fire=ok no-menu-on-favourite=ok keyboard=ok unsaved=ok\n'
+    kill_flea
+
+    # The other two states need a saved place, so the file goes in before the launch that reads it:
+    # one line for the share the stub reports live, one for a place nothing mounts.
+    mkdir -p "$fixture_home/.config/gtk-3.0"
+    local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
+    printf 'smb://stubhost/stubshare Saved Share\nsmb://stubhost/ghost Ghost Place\n' > "$bookmarks"
+    export PATH="$dir/bin:$PATH"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    export PATH="$saved_path"
+    wait_listing 4
+    wait_rail 3
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "Saved Share|network|share|true"$'\n'"Ghost Place|network|share|false" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "Saved Share|network|share|true"$'\n'"Ghost Place|network|share|false" ]] \
+        || fail "unmount: the two saved places did not reach the rail, got $(ipc networkEntries)"
+
+    # Mounted and saved: the one line goes, the row stays as the live mount it still is, and its name
+    # falls back to gio's own because the bookmark that was winning it is gone.
+    click_rail_row 1 right
+    settle
+    menu_seek Remove
+    key -k Return >/dev/null
+    wait_message "Saved Share is forgotten, and stays on the rail until it is unmounted."
+    [[ "$(cat "$bookmarks")" == "smb://stubhost/ghost Ghost Place" ]] \
+        || fail "unmount: Remove did not drop just its own line, the file reads: $(cat "$bookmarks")"
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "stubshare|network|share|true"$'\n'"Ghost Place|network|share|false" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "stubshare|network|share|true"$'\n'"Ghost Place|network|share|false" ]] \
+        || fail "unmount: the live row kept a name nothing saves any more, got $(ipc networkEntries)"
+
+    # Saved and nothing mounted: the line and the row both go, and no unmount clause is offered.
+    click_rail_row 2 right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Rename|Remove" ]] \
+        || fail "unmount: an unmounted place offers $(ipc contextMenuEntries), not Rename then Remove"
+    menu_seek Remove
+    key -k Return >/dev/null
+    wait_message "Ghost Place is forgotten."
+    [[ -z "$(cat "$bookmarks")" ]] \
+        || fail "unmount: the last saved line survived Remove, the file reads: $(cat "$bookmarks")"
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "stubshare|network|share|true" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "stubshare|network|share|true" ]] \
+        || fail "unmount: the forgotten place stayed on the rail, got $(ipc networkEntries)"
+
+    # The second press on the row that is still there, which is the state one sentence used to blame
+    # on a file nobody had read: the file has been read, and this share is simply not in it.
+    click_rail_row 1 right
+    settle
+    menu_seek Remove
+    key -k Return >/dev/null
+    wait_message "stubshare is not a saved place, and stays on the rail until it is unmounted."
+
+    printf 'UNMOUNT remove saved-mounted=ok saved-only=ok pressed-again=ok\n'
     kill_flea
     sandbox_remove "$fixture_home"
 }
