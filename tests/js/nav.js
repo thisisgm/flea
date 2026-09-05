@@ -17,6 +17,7 @@ function pane() {
         thumbState: "stale",
         dirSizeState: "stale",
         cursorIndex: 7,
+        pendingSelect: "",
         renamingIndex: 4,
         trashArmedAt: 12345,
         listingState: "ready",
@@ -86,4 +87,40 @@ function run(check) {
           Nav.renameRefreshTarget(clicked, "/d/new.txt"), "")
     check("and the flag is one shot, so the next rename reveals again",
           Nav.renameRefreshTarget(clicked, "/d/new.txt"), "/d/new.txt")
+
+    // h climbs the tree and keeps the place: the parent listing selects the directory we left.
+    var up = pane()
+    up.path = "/home/gm/Work"
+    up.opened = []
+    up.open = function (path) { up.opened.push(path) }
+    Nav.parent(up)
+    check("h opens the parent directory", up.opened.join(""), "/home/gm")
+    check("and names the directory it left, so the cursor lands on it",
+          up.pendingSelect, "/home/gm/Work")
+
+    var rootDir = pane()
+    rootDir.path = "/"
+    rootDir.opened = []
+    rootDir.open = function (path) { rootDir.opened.push(path) }
+    Nav.parent(rootDir)
+    check("the root does not climb", rootDir.opened.length, 0)
+    check("and does not plant a select on a climb that did not happen",
+          rootDir.pendingSelect, "")
+
+    var home = pane()
+    home.path = "/home"
+    home.opened = []
+    home.open = function (path) { home.opened.push(path) }
+    Nav.parent(home)
+    check("a child of the root climbs to the root", home.opened.join(""), "/")
+    check("and still names the directory it left", home.pendingSelect, "/home")
+
+    var busyUp = pane()
+    busyUp.listInFlight = true
+    busyUp.path = "/home/gm/Work"
+    busyUp.opened = []
+    busyUp.open = function (path) { busyUp.opened.push(path) }
+    Nav.parent(busyUp)
+    check("a refused climb sends nothing", busyUp.opened.length, 0)
+    check("and plants no select", busyUp.pendingSelect, "")
 }
