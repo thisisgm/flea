@@ -112,12 +112,19 @@ handoff_in() {
 }
 open_handoff=$(handoff_in src/open.rs)
 terminal_handoff=$(handoff_in src/terminal.rs)
+# Sample input: copier.command = ["sh", "-c", "printf '%s' \"$1\" | wl-copy", "_", text]
+# The window has a handoff of its own and it is a pipeline inside an sh -c string, not a Command::new,
+# so it is derived from the pipeline's last word instead; the grep above cannot see a QML caller at all.
+qml_handoff_in() {
+  grep -ho '| [a-z0-9-]\+"' "$1" | cut -d' ' -f2 | tr -d '"' | sort -u
+}
+opener_qml_handoff=$(qml_handoff_in ui/Opener.qml)
 # Fail closed rather than name a stub from an empty or two-name derivation: that stub is one nothing
 # calls, which is the fall-through this exists to prevent, and a check would report it after the fact.
-for derived in "$open_handoff" "$terminal_handoff"; do
+for derived in "$open_handoff" "$terminal_handoff" "$opener_qml_handoff"; do
   case "$derived" in
     ''|*[!a-z0-9-]*)
-      echo "FAIL modes: src/open.rs and src/terminal.rs must each name one handoff; got '$derived'"
+      echo "FAIL modes: src/open.rs, src/terminal.rs and ui/Opener.qml must each name one handoff; got '$derived'"
       exit 1 ;;
   esac
 done
@@ -126,7 +133,7 @@ done
 # the route that reads the desktop database and so honours Terminal=true; see "Opening a file".
 D="$FIXTURE_ROOT/flea-open-test-$$"
 sandbox_make "$D"
-mkdir -p "$D/dir" "$D/bin" "$D/failbin"
+mkdir -p "$D/dir" "$D/bin" "$D/failbin" "$D/lingerbin"
 printf 'hello' > "$D/file.txt"
 ln -s "$D/file.txt" "$D/linkfile"
 ln -s "$D/dir" "$D/linkdir"
@@ -183,6 +190,20 @@ launcher_pid=$(echo "$out" | sed -n 's/^PID //p' | head -1)
 check "the launcher reported a pid at all" "1" "$([ -n "$launcher_pid" ] && echo 1 || echo 0)"
 check "and --open left no launcher behind" "1" "$(kill -0 "$launcher_pid" 2>/dev/null && echo 0 || echo 1)"
 
+# That pair cannot go red on its own: the wait above is for the stub's LAST write, so the stub is
+# exiting whatever --open did. gio open really does outlive its own last write while a DBusActivatable
+# handler starts, measured at 0.32 to 0.75 s on this box, and this stub is that case in miniature.
+# Half a second, because a --open that did not wait reaches the check below in milliseconds.
+linger_s=0.5
+lingered="$D/lingered.log"
+printf '#!/bin/sh\nprintf "PID %%s\\n" "$$" >> %q\nsleep %s\n' "$lingered" "$linger_s" > "$D/lingerbin/$open_handoff"
+chmod +x "$D/lingerbin/$open_handoff"
+PATH="$D/lingerbin:/usr/bin:/bin" $BIN --open "$D/file.txt" >/dev/null 2>&1
+lingering_pid=$(sed -n 's/^PID //p' "$lingered" | head -1)
+check "the lingering launcher reported a pid at all" "1" "$([ -n "$lingering_pid" ] && echo 1 || echo 0)"
+check "and --open waited for a launcher that outlived its own last write" "1" \
+  "$([ -n "$lingering_pid" ] && ! kill -0 "$lingering_pid" 2>/dev/null && echo 1 || echo 0)"
+
 : > "$opened"
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/linkfile" >/dev/null 2>&1
 wait_for_line "$opened" '^THP_enabled'
@@ -225,26 +246,31 @@ check "and that sentence names the handler" "1" "$(echo "$out" | grep -c 'nothin
 out=$(env PATH="$D/failbin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1)
 rc=$?
 check "a launcher that refuses is an error status, not a green handoff" "2" "$rc"
-check "and its refusal is elided to one sentence" "1" "$(echo "$out" | grep -c 'could not be opened')"
+# canonicalize already proved the file is there, so the refusal sentence names the launcher instead.
+check "and its refusal is one sentence naming $open_handoff" "1" \
+  "$(echo "$out" | grep -c "$open_handoff open refused")"
 check "with no errno in it" "0" "$(echo "$out" | grep -c 'os error')"
 
 out=$($BIN --open 2>&1 </dev/null)
 check "--open with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--open')"
 
 # Every program the openers hand off to by name must be shipped by a PKGBUILD dependency, or the
-# package installs and the button it belongs to does nothing at all. The table is here rather than
-# from pacman so the check runs off the box too, and a handoff with no row in it is itself a failure.
+# package installs and the button it belongs to does nothing at all. The three sources are src/open.rs,
+# src/terminal.rs and ui/Opener.qml, derived above; wl-copy shipped undeclared until this check saw it.
+# The table is here rather than from pacman so the check runs off the box too, and a handoff with no
+# row in it is itself a failure.
 handoff_package() {
   case "$1" in
     gio) printf 'glib2' ;;
     xdg-terminal-exec) printf 'xdg-terminal-exec' ;;
+    wl-copy) printf 'wl-clipboard' ;;
     *) printf '' ;;
   esac
 }
-handoffs=$(printf '%s\n%s\n' "$open_handoff" "$terminal_handoff" | sort -u)
+handoffs=$(printf '%s\n%s\n%s\n' "$open_handoff" "$terminal_handoff" "$opener_qml_handoff" | sort -u)
 # The denominator, because a derived loop over nothing reports green having checked nothing: a
 # renamed file or a handoff name this grep cannot match would otherwise pass in silence.
-check "the two openers hand off to two programs by name" "2" "$(printf '%s\n' "$handoffs" | grep -c .)"
+check "the three openers hand off to three programs by name" "3" "$(printf '%s\n' "$handoffs" | grep -c .)"
 for handoff in $handoffs; do
   package=$(handoff_package "$handoff")
   check "$handoff is a handoff this suite knows the package for" "1" "$([ -n "$package" ] && echo 1 || echo 0)"
