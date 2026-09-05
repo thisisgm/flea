@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; no argument runs all thirty-one.
+# Usage: ./tests/ui.sh [cursor|terminal|open|openterminal|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs ...]; no argument runs all thirty-two.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -434,6 +434,18 @@ click_rail_row() {
     omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$button" >/dev/null
 }
 
+# ui/Opener.qml spawns flea --terminal and returns, so the stub's line lands after the key has
+# been answered: waited for, never slept at, and the path it carries is checked here rather than
+# by the caller so a wrong directory reads as a timeout with the log printed.
+wait_terminal() {
+    local log="$1" want="$2" what="$3" waited
+    for waited in $(seq 1 200); do
+        grep -q "^TERMINAL $want$" "$log" && return 0
+        sleep 0.05
+    done
+    fail "openterminal: $what started no terminal in $want, log is $(cat "$log")"
+}
+
 # The status bar clears a transient after 4000 ms and an eject verdict arrives on the rail's own
 # 5000 ms poll, so a sentence that lands after a poll has to be caught as it lands, never slept for.
 wait_message() {
@@ -709,6 +721,118 @@ case_open() {
     [[ "$(ipc path)" == "$dir" ]] || fail "Enter on a broken symlink moved to $(ipc path)"
     [[ "$(grep -c OPENED "$opened")" == "1" ]] || fail "a broken symlink was handed to gio open"
     [[ "$(ipc total)" == "7" ]] || fail "the listing did not survive Enter on a broken symlink"
+}
+
+# PR 34's terminal route. Nothing else in this suite reaches it: before this case, openTerminal,
+# terminalRequested, terminalFailed and --terminal appeared nowhere in this file, so the topbar
+# button, its wiring in ui/shell.qml and the chord's interception in ui/js/Focus.js were all
+# deletable with the display suite still green.
+case_openterminal() {
+    local dir="$fixture_root/openterminal"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/bin"
+    printf 'abc' > "$dir/target.txt"
+    local ran="$dir/ran.log" opened="$dir/opened.log" real_bin="$flea_bin"
+    : > "$ran"
+    : > "$opened"
+    # FLEA_BIN is the backend's binary as well as the opener's, so only --terminal is intercepted
+    # and every other mode execs the real one: a stub that swallowed --backend would leave the
+    # window with no listing to press a key in. The sleep is what makes the single-flight guard and
+    # the two-paths-at-once check observable at all.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = --terminal ] || exec %q "$@"\n' "$real_bin"
+      printf 'sleep 1\n'
+      printf 'printf "TERMINAL %%s\\n" "$2" >> %q\n' "$ran"
+      printf 'exit 0\n'
+    } > "$dir/bin/flea"
+    chmod +x "$dir/bin/flea"
+    # Only the open subcommand is intercepted, so stubbing the opener leaves the gio mount calls
+    # ui/NetworkMounts.qml makes on every launch answering from the real gio.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = open ] || exec /usr/bin/gio "$@"\n'
+      printf 'printf "OPENED %%s\\n" "$2" >> %q\n' "$opened"
+    } > "$dir/bin/gio"
+    chmod +x "$dir/bin/gio"
+
+    local saved_path="$PATH"
+    export PATH="$dir/bin:$PATH"
+    flea_bin="$dir/bin/flea"
+    launch "$dir"
+    export PATH="$saved_path"
+    flea_bin="$real_bin"
+    # bin, opened.log, ran.log, target.txt.
+    wait_listing 4
+
+    # The pointer half: the topbar button, by its glyph, which is the same action the chord raises.
+    click_chrome terminal
+    wait_terminal "$ran" "$dir" "the topbar button"
+    printf 'OPENTERMINAL button log=%q\n' "$(cat "$ran")"
+
+    # The keyboard half, from the list.
+    : > "$ran"
+    hotkey --global ctrl t flea >/dev/null
+    wait_terminal "$ran" "$dir" "ctrl+t in the list"
+
+    # And from the rail, which owns its own keys and would otherwise swallow the chord.
+    : > "$ran"
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "openterminal: tab did not reach the rail"
+    hotkey --global ctrl t flea >/dev/null
+    wait_terminal "$ran" "$dir" "ctrl+t on the rail"
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "list" ]] || fail "openterminal: escape did not return to the list"
+
+    # A second request while the first terminal is still starting is dropped, and the third, once it
+    # has exited, is not: without the second half this check passes for a key that does nothing.
+    : > "$ran"
+    hotkey --global ctrl t flea >/dev/null
+    settle
+    hotkey --global ctrl t flea >/dev/null
+    wait_terminal "$ran" "$dir" "the single-flight guard"
+    sleep 1
+    [[ "$(grep -c . "$ran")" == "1" ]] || fail "openterminal: two terminals were started, log is $(cat "$ran")"
+    : > "$ran"
+    hotkey --global ctrl t flea >/dev/null
+    wait_terminal "$ran" "$dir" "a request after the child exited"
+
+    # Both at once: the terminal child is still sleeping when Enter opens a file, so a shared path or
+    # a shared Process would show up as one of the two logs carrying the other's argument.
+    : > "$ran"
+    : > "$opened"
+    hotkey --global ctrl t flea >/dev/null
+    seek_row_named target.txt
+    key -k Return >/dev/null
+    local waited
+    for waited in $(seq 1 100); do
+        grep -q "^OPENED $dir/target.txt$" "$opened" && break
+        sleep 0.05
+    done
+    grep -q "^OPENED $dir/target.txt$" "$opened" \
+        || fail "openterminal: a file open during a terminal launch never reached gio, log is $(cat "$opened")"
+    wait_terminal "$ran" "$dir" "the terminal launched beside a file open"
+    printf 'OPENTERMINAL crossed terminal=%q opened=%q\n' "$(cat "$ran")" "$(cat "$opened")"
+    [[ "$(grep -c . "$opened")" == "1" ]] || fail "openterminal: the opener ran twice, log is $(cat "$opened")"
+
+    # A nonzero exit reaches the status line as one sentence. The stub is rewritten rather than
+    # relaunched, because a fresh exec reads the file again.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = --terminal ] || exec %q "$@"\n' "$real_bin"
+      printf 'exit 2\n'
+    } > "$dir/bin/flea"
+    chmod +x "$dir/bin/flea"
+    : > "$ran"
+    hotkey --global ctrl t flea >/dev/null
+    wait_message "That directory could not be opened in a terminal; check that it still exists."
+    shot openterminal-failed
+    [[ ! -s "$ran" ]] || fail "openterminal: the failing stub still logged $(cat "$ran")"
+
+    printf 'OPENTERMINAL button=ok list=ok rail=ok single-flight=ok crossed=ok failure=ok\n'
+    kill_flea
 }
 
 # The operator's defect of 2026-09-02, in their own words: "when clicking a single click opens the
@@ -3078,7 +3202,7 @@ cache_snapshot
 trap cleanup EXIT
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open openterminal click menu hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs)
 
 : > "$run_log"
 : > "$flea_log"
