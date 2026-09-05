@@ -7,6 +7,9 @@ import "js/Places.js" as Places
 // The saved places file, lifted out of ui/NetworkMounts.qml: the only writer of
 // ~/.config/gtk-3.0/bookmarks in the Network Service, and every body it writes is derived from
 // "bookmarksText", the same text the rail was built from, so no write can be older than the rail.
+// That answers staleness against the rail and not against this component's own last write, which
+// is ui/Sidebar.qml "reloadBookmarks"'s job: it blocks, so "bookmarksText" already carries a write
+// by the time the edit that caused it returns and a second edit cannot derive from the text before.
 Item {
     id: root
 
@@ -14,7 +17,9 @@ Item {
     property string bookmarksText: ""
 
     signal message(string text, bool isError)
-    // Fired once the write below has actually landed, so a caller's reload reads it, not stale content.
+    // Fired once the write below has actually landed, so a caller's reload reads it, not stale
+    // content. A caller whose reload does not block leaves the next edit deriving from the text
+    // this one replaced, so ui/Sidebar.qml's handler waits for its own job before it returns.
     signal wrote()
 
     // A second FileView on the same path as ui/Sidebar.qml's own read-only watch, the identical

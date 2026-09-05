@@ -448,6 +448,14 @@ wait_message() {
     fail "the status bar never said: $want (the last thing it said was: $seen)"
 }
 
+# Tab toggles between the list and the rail, so a case that does not know which one it is on asks.
+rail_focus() {
+    [[ "$(ipc focusView)" == "rail" ]] && return 0
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "Tab did not reach the rail, focus is $(ipc focusView)"
+}
+
 # Reaches a known row index from wherever the cursor is, without assuming a predicted sort order.
 goto_row() {
     local target="$1" n
@@ -2260,6 +2268,12 @@ case_network() {
     menu_seek Remove
     key -k Return >/dev/null
     wait_message "198.51.100.1 is forgotten."
+    # cat and stat both print nothing for a path that is gone, so existence is asserted separately:
+    # an empty read alone cannot tell a correct removal from a forget that unlinked the file. The
+    # sentence above is what separates a correct removal from the stale write-back this case exists
+    # for, because that one refused with "is not a saved place" instead.
+    [[ -f "$fixture_home/.config/gtk-3.0/bookmarks" ]] \
+        || fail "network: Remove unlinked the bookmarks file instead of rewriting it"
     [[ -z "$(cat "$fixture_home/.config/gtk-3.0/bookmarks")" ]] \
         || fail "network: Remove wrote a body older than the rail, the file reads: $(cat "$fixture_home/.config/gtk-3.0/bookmarks")"
     for _attempt in $(seq 1 100); do
@@ -2269,6 +2283,49 @@ case_network() {
     [[ -z "$(ipc networkEntries)" ]] \
         || fail "network: the forgotten place stayed on the rail, got $(ipc networkEntries)"
     printf 'NETWORK add-then-remove=ok\n'
+
+    # The other half of the same fix, and the half nothing drove: rename() derives its body from
+    # bookmarksText too. The Remove above left ui/NetworkPlaces.qml's write view holding "", the
+    # dialog appends through a view of its own, so a rename taken from the write view would write
+    # one of the two lines below and drop the other. Focus is still on the rail after the menu.
+    local bookmarks="$fixture_home/.config/gtk-3.0/bookmarks"
+    local host
+    for host in 198.51.100.2 198.51.100.3; do
+        # The dialog hands focus back to the list when it closes, so the rail is reached explicitly
+        # rather than assumed: "a" is bound on the rail alone.
+        rail_focus
+        key a >/dev/null
+        settle
+        [[ "$(ipc dialogOpen)" == "true" ]] || fail "network: a from the rail did not reopen the dialog for $host"
+        key "$host" >/dev/null
+        key -k Return >/dev/null
+        settle
+    done
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "198.51.100.2|network|share|false"$'\n'"198.51.100.3|network|share|false" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "198.51.100.2|network|share|false"$'\n'"198.51.100.3|network|share|false" ]] \
+        || fail "network: the two added places did not reach the rail, got $(ipc networkEntries)"
+    rail_focus
+    key g >/dev/null
+    key j >/dev/null
+    settle
+    [[ "$(ipc railCursor)" == "1" ]] || fail "network: cursor did not reach the first added place, it is $(ipc railCursor)"
+    key -k F2 >/dev/null
+    settle
+    key "Second" >/dev/null
+    key -k Return >/dev/null
+    settle
+    [[ "$(grep -c . "$bookmarks")" == "2" ]] \
+        || fail "network: the rename changed the line count, the file reads: $(cat "$bookmarks")"
+    # ui/RenameField.qml preselects the stem alone, and this label's last dot reads as an extension,
+    # so typing over it keeps the ".2": the name written is the name the operator would have seen.
+    grep -q ' Second\.2$' "$bookmarks" \
+        || fail "network: the rename did not write the name just typed, the file reads: $(cat "$bookmarks")"
+    grep -q '198.51.100.3' "$bookmarks" \
+        || fail "network: the rename dropped the line the second Add wrote, the file reads: $(cat "$bookmarks")"
+    printf 'NETWORK rename-after-add=ok\n'
 
     printf 'NETWORK empty=ok a-scoped=ok dialog=ok submit-path=ok keyboard-after=ok\n'
     kill_flea
@@ -2286,7 +2343,10 @@ case_network() {
 # any more, so the stub speaks it in Spanish: issue #36 reported network shares that never open on
 # a non-English box, and a stub that only ever spoke English could not fail for that reason. It
 # answers gio's own "local path" line in Spanish too, unless the caller pinned the C locale the way
-# ui/NetworkMounts.qml "gioEnvironment" does, which is what makes this case that fix's control.
+# ui/NetworkMounts.qml "gioEnvironment" does, which is what makes this case that fix's control:
+# measured, not asserted, by live matrix step 0b, which neutralised the pin and reddened this case
+# twice and greened it twice. A third share fails for real, so the harmless refusal and the genuine
+# failure differ here by their verdict and not by their exit code.
 case_sharebrowser() {
     local dir="$fixture_root/sharebrowser"
     sandbox_scratch "$dir"
@@ -2305,6 +2365,7 @@ case_sharebrowser() {
     local base_uri="smb://stubhost/"
     local share1_uri="smb://stubhost/share1/"
     local share2_uri="smb://stubhost/share2/"
+    local share3_uri="smb://stubhost/share3/"
 
     # A plain dispatcher, not a canned fixture: it answers exactly the four gio subcommands
     # ui/NetworkMounts.qml issues, keyed on the exact uri each entry activates.
@@ -2323,17 +2384,25 @@ case "\$1" in
       echo "gio: \$2: La ubicacion ya esta montada" >&2
       exit 2
     fi
+    if [ "\$2" = "$share3_uri" ]; then
+      # A genuine failure, translated by the same daemon, and the control the already-mounted half
+      # never had: same nonzero exit, opposite verdict, told apart only by the gio info below.
+      echo "gio: \$2: No se pudo conectar con el servidor" >&2
+      exit 1
+    fi
     exit 0
     ;;
   info)
     case "\$2" in
       "$share1_uri") printf '%s: %s\n' "\$local_path_label" "$share1_dir" ;;
       "$share2_uri") printf '%s: %s\n' "\$local_path_label" "$share2_dir" ;;
+      # A location gio could not describe at all: no line, nonzero, which is the whole difference.
+      "$share3_uri") exit 1 ;;
     esac
     exit 0
     ;;
   list)
-    printf 'share1\nshare2\n'
+    printf 'share1\nshare2\nshare3\n'
     exit 0
     ;;
 esac
@@ -2373,7 +2442,7 @@ EOS
         sleep 0.05
     done
     [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: l on the bare root never opened the overlay"
-    [[ "$(ipc shareBrowserEntries)" == "$(printf 'share1\nshare2')" ]] \
+    [[ "$(ipc shareBrowserEntries)" == "$(printf 'share1\nshare2\nshare3')" ]] \
         || fail "sharebrowser: the overlay's own shares over IPC are wrong: $(ipc shareBrowserEntries)"
     [[ "$(ipc path)" == "$dir" ]] || fail "sharebrowser: listing the shares navigated away from $dir"
     shot sharebrowser-open
@@ -2433,98 +2502,29 @@ EOS
         || fail "sharebrowser: the already-mounted quirk was misreported as a failure, path is $(ipc path), message=$(ipc lastMessage)"
     [[ "$(ipc total)" == "2" ]] || fail "sharebrowser: share2's own listing did not load, total is $(ipc total)"
 
-    printf 'SHAREBROWSER list=ok escape=ok mount-open=ok already-mounted-quirk=ok\n'
+    # share3 fails the same way share2 refused, and the opposite thing has to happen: the bar names
+    # the failure and the pane stays where it is. Without this arm a product that read any nonzero
+    # mount exit as the harmless already-mounted case would pass every assertion above.
+    click_rail_row 1 left
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc shareBrowserOpen)" == "true" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: third pointer reactivation of StubNAS did not reopen the overlay"
+    key j >/dev/null
+    key j >/dev/null
+    settle
+    [[ "$(ipc shareBrowserCursor)" == "2" ]] || fail "sharebrowser: cursor did not move to share3, got $(ipc shareBrowserCursor)"
+    key -k Return >/dev/null
+    wait_message "That network location could not be mounted; check the address and try again."
+    [[ "$(ipc path)" == "$share2_dir" ]] \
+        || fail "sharebrowser: a mount that genuinely failed navigated to $(ipc path)"
+
+    printf 'SHAREBROWSER list=ok escape=ok mount-open=ok already-mounted-quirk=ok mount-failure=ok\n'
     kill_flea
     sandbox_remove "$fixture_home"; sandbox_remove "$share1_dir"; sandbox_remove "$share2_dir"
 }
 
-# The rail's own context menu, which is the whole affordance: a release nobody can see is a release
-# nobody has. gio is stubbed so no real unmount ever runs, and the stub logs each call it receives.
-case_unmount() {
-    local dir="$fixture_root/unmount"
-    sandbox_scratch "$dir"
-    mkdir -p "$dir/bin"
-    : > "$dir/0-one.txt"
-    : > "$dir/0-two.txt"
-
-    local unmount_log="$dir/unmount.log"
-    : > "$unmount_log"
-    local share_uri="smb://stubhost/stubshare/"
-    cat > "$dir/bin/gio" <<EOS
-#!/bin/sh
-case "\$1 \$2" in
-  "mount -l")
-    # gvfsd composes this label and translates the word between share and host, so the stub speaks
-    # Spanish here whatever the client locale is: issue #36's third dependency, and its control.
-    printf 'Mount(0): stubshare en stubhost -> $share_uri\n  Type: GDaemonMount\n'
-    exit 0
-    ;;
-  "mount -u")
-    printf 'UNMOUNT %s\n' "\$3" >> "$unmount_log"
-    exit 0
-    ;;
-esac
-exit 0
-EOS
-    chmod +x "$dir/bin/gio"
-
-    local fixture_home="$fixture_root/unmount-home"
-    fixture_home_make "$fixture_home"
-    local real_home="$HOME"
-
-    local saved_path="$PATH"
-    export PATH="$dir/bin:$PATH"
-    export HOME="$fixture_home"
-    launch "$dir"
-    export HOME="$real_home"
-    export PATH="$saved_path"
-    # bin/ and unmount.log are the gio stub's own fixture entries, alongside the two files under test.
-    wait_listing 4
-    for _attempt in $(seq 1 100); do
-        [[ "$(ipc networkEntries)" == "stubshare|network|share|true" ]] && break
-        sleep 0.05
-    done
-    [[ "$(ipc networkEntries)" == "stubshare|network|share|true" ]] \
-        || fail "unmount: the stub mount never appeared live, got $(ipc networkEntries)"
-    [[ "$(ipc themeLoaded)" == "true" ]] || fail "unmount: the fixture home did not load a real theme"
-
-    key -k Tab >/dev/null
-    settle
-    [[ "$(ipc focusView)" == "rail" ]] || fail "unmount: Tab did not reach the rail"
-
-    # Right click raises the menu over the row and nothing else: the release row first, then the two
-    # rows the saved place itself owns, and no unmount has run. The old two-right-click arm is gone,
-    # see ui/Sidebar.qml "openRailMenu" and ui/js/Mounts.js "rowMenu".
-    click_rail_row 1 right
-    settle
-    printf 'UNMOUNT menu visible=%s entries=%s glyphs=%s\n' \
-        "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
-    shot unmount-menu
-    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "unmount: right click opened no menu on the share"
-    [[ "$(ipc contextMenuEntries)" == "Unmount|Rename|Remove" ]] \
-        || fail "unmount: the share's menu is $(ipc contextMenuEntries), not Unmount then Rename then Remove"
-    [[ "$(ipc contextMenuGlyphs)" == "eject|rename|minus" ]] \
-        || fail "unmount: the share's rows draw $(ipc contextMenuGlyphs), not eject, rename and minus"
-    [[ -z "$(cat "$unmount_log")" ]] || fail "unmount: opening the menu already unmounted: $(cat "$unmount_log")"
-
-    # Escape closes it and still nothing has run, which is what makes the menu the confirmation.
-    key -k Escape >/dev/null
-    settle
-    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "unmount: Escape did not close the rail menu"
-    [[ -z "$(cat "$unmount_log")" ]] || fail "unmount: Escape unmounted anyway: $(cat "$unmount_log")"
-
-    # Choosing the row is what unmounts, and the row's key is what says which share, not its index.
-    click_rail_row 1 right
-    settle
-    key -k Return >/dev/null
-    wait_message "Unmounted stubshare."
-    [[ "$(cat "$unmount_log")" == "UNMOUNT $share_uri" ]] \
-        || fail "unmount: the menu row did not unmount $share_uri, log is: $(cat "$unmount_log")"
-    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "unmount: the menu stayed open after its action ran"
-
-    # A rail row with nothing to release opens no menu at all, rather than an empty frame. Home is
-    # the one favourite this fixture home has, and it is not a mount.
-    click_rail_row 0 right
 # The deadline over "gio info" and the refusal that says the guard closed. ui/NetworkMounts.qml
 # "openShare" is single flight over two children, and only the mount one was bounded: a "gio info"
 # that never returns left infoProcess.running true and every later share opened in silence for the
@@ -2615,6 +2615,98 @@ EOS
     sandbox_remove "$fixture_home"; sandbox_remove "$good_dir"
 }
 
+# The rail's own context menu, which is the whole affordance: a release nobody can see is a release
+# nobody has. gio is stubbed so no real unmount ever runs, and the stub logs each call it receives.
+case_unmount() {
+    local dir="$fixture_root/unmount"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/bin"
+    : > "$dir/0-one.txt"
+    : > "$dir/0-two.txt"
+
+    local unmount_log="$dir/unmount.log"
+    : > "$unmount_log"
+    local share_uri="smb://stubhost/stubshare/"
+    cat > "$dir/bin/gio" <<EOS
+#!/bin/sh
+case "\$1 \$2" in
+  "mount -l")
+    # gvfsd composes this label and translates the word between share and host, so the stub speaks
+    # Spanish here whatever the client locale is. What that proves is that the parser is robust to a
+    # translated connector, and nothing about the C pin: live matrix step 0b ran this case in both
+    # arms of the pin and it passed in both, because ui/js/Mounts.js's regex never reads the
+    # connector word, ui/js/Protocols.js "shareName" strips the host plus one word in any language,
+    # and this stub answers no gio info, so localPath() is empty either way. case_sharebrowser is
+    # where the pin reddens, measured twice in the same step.
+    printf 'Mount(0): stubshare en stubhost -> $share_uri\n  Type: GDaemonMount\n'
+    exit 0
+    ;;
+  "mount -u")
+    printf 'UNMOUNT %s\n' "\$3" >> "$unmount_log"
+    exit 0
+    ;;
+esac
+exit 0
+EOS
+    chmod +x "$dir/bin/gio"
+
+    local fixture_home="$fixture_root/unmount-home"
+    fixture_home_make "$fixture_home"
+    local real_home="$HOME"
+
+    local saved_path="$PATH"
+    export PATH="$dir/bin:$PATH"
+    export HOME="$fixture_home"
+    launch "$dir"
+    export HOME="$real_home"
+    export PATH="$saved_path"
+    # bin/ and unmount.log are the gio stub's own fixture entries, alongside the two files under test.
+    wait_listing 4
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "stubshare|network|share|true" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "stubshare|network|share|true" ]] \
+        || fail "unmount: the stub mount never appeared live, got $(ipc networkEntries)"
+    [[ "$(ipc themeLoaded)" == "true" ]] || fail "unmount: the fixture home did not load a real theme"
+
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "unmount: Tab did not reach the rail"
+
+    # Right click raises the menu over the row and nothing else: the release row first, then the two
+    # rows the saved place itself owns, and no unmount has run. The old two-right-click arm is gone,
+    # see ui/Sidebar.qml "openRailMenu" and ui/js/Mounts.js "rowMenu".
+    click_rail_row 1 right
+    settle
+    printf 'UNMOUNT menu visible=%s entries=%s glyphs=%s\n' \
+        "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
+    shot unmount-menu
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "unmount: right click opened no menu on the share"
+    [[ "$(ipc contextMenuEntries)" == "Unmount|Rename|Remove" ]] \
+        || fail "unmount: the share's menu is $(ipc contextMenuEntries), not Unmount then Rename then Remove"
+    [[ "$(ipc contextMenuGlyphs)" == "eject|rename|minus" ]] \
+        || fail "unmount: the share's rows draw $(ipc contextMenuGlyphs), not eject, rename and minus"
+    [[ -z "$(cat "$unmount_log")" ]] || fail "unmount: opening the menu already unmounted: $(cat "$unmount_log")"
+
+    # Escape closes it and still nothing has run, which is what makes the menu the confirmation.
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "unmount: Escape did not close the rail menu"
+    [[ -z "$(cat "$unmount_log")" ]] || fail "unmount: Escape unmounted anyway: $(cat "$unmount_log")"
+
+    # Choosing the row is what unmounts, and the row's key is what says which share, not its index.
+    click_rail_row 1 right
+    settle
+    key -k Return >/dev/null
+    wait_message "Unmounted stubshare."
+    [[ "$(cat "$unmount_log")" == "UNMOUNT $share_uri" ]] \
+        || fail "unmount: the menu row did not unmount $share_uri, log is: $(cat "$unmount_log")"
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "unmount: the menu stayed open after its action ran"
+
+    # A rail row with nothing to release opens no menu at all, rather than an empty frame. Home is
+    # the one favourite this fixture home has, and it is not a mount.
+    click_rail_row 0 right
     settle
     [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "unmount: a favourite opened a menu with nothing in it"
 
@@ -2667,7 +2759,11 @@ EOS
         || fail "unmount: the two saved places did not reach the rail, got $(ipc networkEntries)"
 
     # Mounted and saved: the one line goes, the row stays as the live mount it still is, and its name
-    # falls back to gio's own because the bookmark that was winning it is gone.
+    # falls back to gio's own because the bookmark that was winning it is gone. The stub reports the
+    # share live whatever happens, so the rail cannot show a Remove that also unmounted; the log the
+    # stub keeps is the only thing that can, and it already carries the deliberate unmount above.
+    local unmount_log_before
+    unmount_log_before=$(cat "$unmount_log")
     click_rail_row 1 right
     settle
     menu_seek Remove
@@ -2675,6 +2771,8 @@ EOS
     wait_message "Saved Share is forgotten, and stays on the rail until it is unmounted."
     [[ "$(cat "$bookmarks")" == "smb://stubhost/ghost Ghost Place" ]] \
         || fail "unmount: Remove did not drop just its own line, the file reads: $(cat "$bookmarks")"
+    [[ "$(cat "$unmount_log")" == "$unmount_log_before" ]] \
+        || fail "unmount: Remove also unmounted the share, the log now reads: $(cat "$unmount_log")"
     for _attempt in $(seq 1 100); do
         [[ "$(ipc networkEntries)" == "stubshare|network|share|true"$'\n'"Ghost Place|network|share|false" ]] && break
         sleep 0.05
@@ -2690,6 +2788,7 @@ EOS
     menu_seek Remove
     key -k Return >/dev/null
     wait_message "Ghost Place is forgotten."
+    [[ -f "$bookmarks" ]] || fail "unmount: Remove unlinked the bookmarks file instead of emptying it"
     [[ -z "$(cat "$bookmarks")" ]] \
         || fail "unmount: the last saved line survived Remove, the file reads: $(cat "$bookmarks")"
     for _attempt in $(seq 1 100); do
@@ -2708,6 +2807,9 @@ EOS
     menu_seek Remove
     key -k Return >/dev/null
     wait_message "stubshare is not a saved place, and stays on the rail until it is unmounted."
+    # Both stat and cat print nothing for a path that is gone, so neither assertion below means
+    # anything until the file is known to be there.
+    [[ -f "$bookmarks" ]] || fail "unmount: the refused press unlinked the bookmarks file"
     [[ -z "$(cat "$bookmarks")" ]] \
         || fail "unmount: the refused press wrote to the file, it reads: $(cat "$bookmarks")"
     [[ "$(stat -c %y "$bookmarks")" == "$before_press4" ]] \

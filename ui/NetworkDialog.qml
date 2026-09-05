@@ -60,6 +60,11 @@ Item {
     function appendBookmark(uri, label) {
         // Canonical form, so this line dedups against a later gio-reported mount of the same share.
         var canonical = Mounts.normalize(uri)
+        // This view is not watched, so what it last read is not what the file holds: after the rail
+        // has removed a place in the same session it still carries that line, and appending to it
+        // wrote the removed place straight back. Re-read first, blocking, so the append is an append.
+        bookmarksWrite.reload()
+        bookmarksWrite.waitForJob()
         var body = bookmarksWrite.text()
         if (body.length > 0 && body.charAt(body.length - 1) !== "\n")
             body += "\n"
