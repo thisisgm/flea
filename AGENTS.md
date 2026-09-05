@@ -1682,7 +1682,7 @@ once at startup and prints one line on stderr, so the cause is stated rather tha
 fatal, because listing directories does not need the sandbox. `tests/thumbs.sh` runs the real binary
 with `PATH` pointed at an empty directory and asserts the empty `file`, no cache entry and no marker.
 
-The shape is `prlimit --cpu=30 --as=1073741824 bwrap <flags> <inner>`. **`prlimit` is the
+The shape is `prlimit --cpu=30 --as=4294967296 bwrap <flags> <inner>`. **`prlimit` is the
 outermost program because `bwrap` has no rlimit option**, verified against `bwrap --help`
 on bubblewrap 0.11.2 here. Setting the limits from Rust would need raw `setrlimit`, which
 `std` does not expose and which the zero-dependency rule forbids reaching for through
@@ -1693,9 +1693,14 @@ fork and exec, so the reverse nesting was measured to kill the same spin and to 
 the same `/proc/self/limits`.
 
 The two numbers: `--cpu=30` seconds, because a 1080p decode is well under a second of CPU
-here and 30 s is a runaway rather than a slow file; `--as=1073741824`, one GiB, because
-`ffmpegthumbnailer` peaks in the tens of megabytes on the media fixture and a gigabyte of
-address space is a decompression bomb rather than a big video.
+here and 30 s is a runaway rather than a slow file; `--as=4294967296`, four GiB, because
+address space is virtual rather than resident and a multi-threaded thumbnailer reserves far
+more of it than it ever touches. The original one GiB was set from
+`ffmpegthumbnailer`'s tens of megabytes on the media fixture, which measured the wrong
+thing: issue #17 reported `glycin-thumbnailer` exhausting one GiB on a large ICC-tagged
+JPEG and aborting, because each of its threads reserves a stack and an arena the process
+never faults in. Four GiB is still finite, still refuses a decompression bomb, and is a
+fifth of this box's 19 GiB of RAM before swap.
 
 The flags, and why each is there:
 
@@ -1874,7 +1879,7 @@ and a plain one that does not: **exit 137 for both**, never 152. That is a decom
 file verdict that must record, and it is indistinguishable from the OOM kill at the only layer
 where either is visible. A discriminator keyed on 152 does not exist to be built.
 
-**The premise is close to unreachable here anyway.** The sandbox caps address space at 1 GiB, so a
+**The premise is close to unreachable here anyway.** The sandbox caps address space at 4 GiB, so a
 memory bomb surfaces as the decoder's own non-zero exit long before the box is short: the probe's
 `as_rlimit_bomb` row is exit 1, a Python `MemoryError` and not a kill. The box carries 19 GiB of
 RAM and 38 GiB of swap.
