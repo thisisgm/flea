@@ -303,7 +303,8 @@ launch() {
     kill_flea
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
-    FLEA_PATH="$start_path" FLEA_BIN="$flea_bin" \
+    # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
+    QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$start_path" FLEA_BIN="$flea_bin" \
         setsid nohup qs -p "$flea_ui" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
@@ -1025,7 +1026,8 @@ case_select() {
     kill_flea
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
-    FLEA_PATH="$dir" FLEA_SELECT="$dir/b.txt" FLEA_BIN="$flea_bin" \
+    # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
+    QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$dir" FLEA_SELECT="$dir/b.txt" FLEA_BIN="$flea_bin" \
         setsid nohup qs -p "$flea_ui" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
@@ -1042,7 +1044,8 @@ case_select() {
     kill_flea
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
-    FLEA_PATH="$dir" FLEA_SELECT="$dir/does-not-exist.txt" FLEA_BIN="$flea_bin" \
+    # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
+    QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$dir" FLEA_SELECT="$dir/does-not-exist.txt" FLEA_BIN="$flea_bin" \
         setsid nohup qs -p "$flea_ui" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
@@ -2931,7 +2934,8 @@ EOS
     kill_flea
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
-    PATH="$stub_bin" FLEA_PATH="$dir" FLEA_BIN="$flea_bin" \
+    # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
+    QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" PATH="$stub_bin" FLEA_PATH="$dir" FLEA_BIN="$flea_bin" \
         setsid nohup qs -p "$flea_ui" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null

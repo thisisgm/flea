@@ -2,7 +2,8 @@
 # Diffs the metrics contract against the running app's own seam, key by key, and fails on any drift.
 #   tools/flea-metrics-gate        against a Flea already running from this checkout's ui/
 # Start one first, on a listing of your own making, never a real directory (hard rule 9):
-#   FLEA_PATH=$(mktemp -d) FLEA_BIN=target/release/flea qs -p ui &
+#   QSG_RHI_BACKEND=vulkan FLEA_PATH=$(mktemp -d) FLEA_BIN=target/release/flea qs -p ui &
+# The renderer is named because src/gui.rs owns that choice and a direct qs launch never runs it.
 # Reads the seam and never the source: a theme's shell.toml can pin body-small or row-padding-x, so
 # the only number that counts is the one the app resolved. A token that exists and is spelled right
 # can still be the wrong one, which is the defect this exists to catch.

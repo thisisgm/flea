@@ -427,8 +427,11 @@ opening a window; it exists so the resolution is testable without a display.
 Run the development UI directly, bypassing the launcher, from the repository root:
 
 ```bash
-FLEA_PATH="$HOME" FLEA_BIN="$PWD/target/release/flea" qs -p "$PWD/ui"
+QSG_RHI_BACKEND=vulkan FLEA_PATH="$HOME" FLEA_BIN="$PWD/target/release/flea" qs -p "$PWD/ui"
 ```
+
+`flea --gui` picks the renderer in `src/gui.rs`, so a direct `qs` launch has to name one itself;
+without it Qt takes its own default and the window is not the one the launcher would have started.
 
 The backend protocol is newline-delimited JSON over the child process's stdin and stdout;
 its exact wire shape is documented in [`docs/protocol.md`](docs/protocol.md).
