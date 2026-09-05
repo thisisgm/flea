@@ -46,7 +46,8 @@ fi
 
 # The pointer table's own "does" legend, checked against the rows under it rather than read: it has
 # named an effect no row uses and missed two that rows do, through two rounds of editing that line.
-legend=$(sed -n 's/^# does   *//p' keys.toml | tr ' ' '\n' | sort -u | tr '\n' ' ')
+# grep drops the empty token a trailing space on that line would otherwise sort to the front of.
+legend=$(sed -n 's/^# does   *//p' keys.toml | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' ')
 effects=$(sed -n 's/^does = "\(.*\)"$/\1/p' keys.toml | sort -u | tr '\n' ' ')
 if [ "$legend" = "$effects" ]; then
   echo "ok   the pointer legend names exactly the effects its own rows use"
