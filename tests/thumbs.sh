@@ -64,7 +64,7 @@ if command -v magick >/dev/null; then
   icc_key=$(printf 'file://%s' "$D/icc/large.jpg" | md5sum | cut -d' ' -f1)
   out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"quit"}\n' "$D/icc" | timeout 120 $BIN --backend)
   check "a 20-megapixel decode fits inside the address-space cap" "1" "$(echo "$out" | grep -c '"row":0,"file":"/')"
-  # The positive control on this key and this cache root, without which the negative check below is green whatever they are.
+  # The positive control on this key and this cache root; the corrupt-file case below pins the fail/flea path the negative check names.
   check "and the same key names the thumbnail it published" "1" "$([ -e "$CACHE/large/$icc_key.png" ] && echo 1 || echo 0)"
   check "and records no failure marker against it" "0" "$([ -e "$CACHE/fail/flea/$icc_key.png" ] && echo 1 || echo 0)"
 else
