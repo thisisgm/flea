@@ -716,6 +716,19 @@ cut shipped as its own commit exactly so that no behaviour change could hide ins
 `ui/js/` whole and gained the suite every other file there has, `tests/js/errors.js`, which is
 what makes the move provable rather than merely asserted.
 
+`ui/NetworkMounts.qml` is 249 lines by `wc -l`, one under the soft budget, and it is the third cut of
+that class. It was 343 on its own branch and 400 on the 0.1.4 composition branch, over the same base:
+the two changes are additive to different halves of one file, so no resolution of that merge fitted the
+400 cap, which is a number no branch gate can see because neither branch is over it alone. Two whole
+subjects came out before the merge rather than inside it. `ui/MountListing.qml` is 83 lines and owns
+the five second `gio mount -l` poll, its 10 s bound, the re-read queued mid-listing and the collector
+fallback; the Service keeps one `_mountListing` string and rebuilds on its `listed()` signal.
+`ui/NetworkPlaces.qml` is 64 lines and owns the bookmarks file: the write `FileView`, `rename()`,
+`forget()`, and the one blocking `write()` those two share. Both cuts shipped as one commit carrying no
+behaviour change, the way `ui/Header.qml` did; what `forget()` writes changed in the commit after it.
+Neither could go into `ui/js/Mounts.js`, which is 299 of its 300 hard cap, or into `tests/js/mounts.js`,
+which is exactly 300: the file that owns the subject had no room for a line.
+
 `ui/Row.qml` is 166 lines, under both budgets. It gained the icon `Image` and its
 `sourceSize`, the two read-only aliases the icon checks assert through, and `iconSource`,
 which answers a thumbnail URL when the pane holds one for this row and the OEM two-step icon
@@ -3600,25 +3613,25 @@ the label of the first bookmark whose normalized uri matches the mount, matched 
 dedups, and gio's own name only when nothing has saved that share. Without it a rename typed on a
 mounted share was written to the file and then overwritten on the rail by the next five second poll.
 
-**`Remove` says which of the states the press landed in**, because the row is offered on every share
-whether or not a bookmark exists for it. `ui/NetworkPlaces.qml forget(uri)` decides from
-`root.bookmarksText`, the same text the rail was built from. No line for that uri and nothing is
-written at all: the bar says `<name> is not a saved place, and stays on the rail until it is
-unmounted.` over a live mount and `<name> is not a saved place.` otherwise. A line that is there is
-dropped, and the same two shapes read `<name> is forgotten, and stays on the rail until it is
-unmounted.` and `<name> is forgotten.`. The fifth arm is a refusal, and its test is `next === body`
-and not `body.length === 0`: an unread `FileView` answers `""` from `text()`, the reading
-`ui/PreviewLines.qml:35` also relies on, and a stale one answers a body without the line, so either
-way a removal the rail's own text says should drop a line and does not is refused rather than
-written over the file.
+**`Remove` says which of the three states the press landed in**, because the row is offered on every
+share whether or not a bookmark exists for it. `ui/NetworkPlaces.qml forget(uri)` decides from
+`bookmarksText`, the same text the rail was built from, and the body it writes is derived from that
+same text, so no write this rail makes can be older than the rail. No line for that uri and nothing
+is written at all: the bar says `<name> is not a saved place, and stays on the rail until it is
+unmounted.`, and only a mounted row reaches that arm, because an unmounted row is on the rail
+precisely because that text carries its line. A line that is there is dropped, and the bar reads
+`<name> is forgotten, and stays on the rail until it is unmounted.` over a live mount and
+`<name> is forgotten.` otherwise.
 
-`tests/ui.sh case_unmount` drives three of those five sentences across four presses: a live mount
-this home never saved, a saved live mount, a saved place nothing mounts, and a second press on the
-row the first one left behind. Two are not driven. The unmounted `is not a saved place.` form needs
-the row to have left the rail between the right click and the choice, since an unmounted row exists
-only because a bookmark put it there. The refusal needs a `FileView` that has not read, and a
-bookmarks file present at launch has been read by the time a right click reaches a row, which
-`case_rename`'s very first relabel measures.
+`tests/ui.sh case_unmount` drives all three across four presses: a live mount this home never saved,
+a saved live mount, a saved place nothing mounts, and a second press on the row the first one left
+behind, which also asserts the file's own mtime did not move. `case_network` drives the sequence that
+used to be refused forever: Add through the dialog, then Remove in the same session.
+`ui/NetworkDialog.qml` appends through a `FileView` of its own and nothing reloads the one this
+Service writes with, so a body read back from it was the pre-Add snapshot, `next === body` was true
+and the removal was refused on every retry until a restart. Deriving the body from `bookmarksText`,
+which `ui/shell.qml:158` reloads on that dialog's own `saved()`, is what closed it, and `rename()`
+takes its body from the same place for the same reason.
 
 Not reimplemented, and both are omissions of PR #21 rather than of this rail: the branch's
 Add-dialog reuse, which reopens the form prefilled to edit a place's URI (that needs a

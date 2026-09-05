@@ -2249,6 +2249,27 @@ case_network() {
     [[ "$(ipc dialogOpen)" == "false" ]] \
         || fail "network: escape did not close the dialog after the re-home walk"
 
+    # Remove on the place this session's own dialog added, which is the sequence the rail's own
+    # write used to refuse forever: ui/NetworkDialog.qml appends through its own FileView, and
+    # ui/NetworkPlaces.qml's never reloads, so the body it wrote back was the pre-Add snapshot. The
+    # write is derived from bookmarksText now, the text ui/Sidebar.qml reloads on that dialog's saved().
+    click_rail_row 1 right
+    settle
+    [[ "$(ipc contextMenuEntries)" == "Rename|Remove" ]] \
+        || fail "network: the added place offers $(ipc contextMenuEntries), not Rename then Remove"
+    menu_seek Remove
+    key -k Return >/dev/null
+    wait_message "198.51.100.1 is forgotten."
+    [[ -z "$(cat "$fixture_home/.config/gtk-3.0/bookmarks")" ]] \
+        || fail "network: Remove wrote a body older than the rail, the file reads: $(cat "$fixture_home/.config/gtk-3.0/bookmarks")"
+    for _attempt in $(seq 1 100); do
+        [[ -z "$(ipc networkEntries)" ]] && break
+        sleep 0.05
+    done
+    [[ -z "$(ipc networkEntries)" ]] \
+        || fail "network: the forgotten place stayed on the rail, got $(ipc networkEntries)"
+    printf 'NETWORK add-then-remove=ok\n'
+
     printf 'NETWORK empty=ok a-scoped=ok dialog=ok submit-path=ok keyboard-after=ok\n'
     kill_flea
     sandbox_remove "$fixture_home"
@@ -2588,6 +2609,8 @@ EOS
     [[ "$(ipc networkEntries)" == "stubshare|network|share|true" ]] \
         || fail "unmount: the forgotten place stayed on the rail, got $(ipc networkEntries)"
 
+    local before_press4
+    before_press4=$(stat -c %y "$bookmarks")
     # The second press on the row that is still there, which is the state one sentence used to blame
     # on a file nobody had read: the file has been read, and this share is simply not in it.
     click_rail_row 1 right
@@ -2595,6 +2618,10 @@ EOS
     menu_seek Remove
     key -k Return >/dev/null
     wait_message "stubshare is not a saved place, and stays on the rail until it is unmounted."
+    [[ -z "$(cat "$bookmarks")" ]] \
+        || fail "unmount: the refused press wrote to the file, it reads: $(cat "$bookmarks")"
+    [[ "$(stat -c %y "$bookmarks")" == "$before_press4" ]] \
+        || fail "unmount: the refused press rewrote the file, mtime moved from $before_press4"
 
     printf 'UNMOUNT remove saved-mounted=ok saved-only=ok pressed-again=ok\n'
     kill_flea
