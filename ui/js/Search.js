@@ -30,8 +30,9 @@ function backspace(root) {
 // walks whatever path this picks, see docs/protocol.md "search".
 //
 // Issue 30 wanted the other one, so here is the operator's own answer: with it set the walk stays
-// where the pane is standing. It is a property of this search and not of the application, which is
-// why it is a key on the query line and not a settings row, and why nothing writes it to ui.json.
+// where the pane is standing. It is a property of this window and not of the application: close()
+// and reveal() below leave it alone, so it holds until it is pressed again or the window closes,
+// and nothing writes it to ui.json.
 function scopeRoot(path, home, here) {
     if (here === true) {
         return path
@@ -116,8 +117,8 @@ function typeKey(event, root) {
         return true
     }
     // Issue 30's control: tab flips the scope between the whole home directory and the one the pane
-    // is standing in. It is a key and not a settings row because it is chosen per search, and the
-    // strip's own "in <scope>" changes under the caret as it is pressed, so the line says which it is.
+    // is standing in. It is the only writer, and nothing resets it, so the flip holds for the window;
+    // ui/SearchStrip.qml draws "in <scope>" under the caret, so every search says which one it took.
     if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
         root.searchHere = !root.searchHere
         return true

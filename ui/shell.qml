@@ -205,10 +205,10 @@ ShellRoot {
             }
 
             // Issue 20: the mouse's own back button, taken by the window because no row is being
-            // clicked; ui/js/Nav.js mouseBack is what chooses between the history and the climb, and
-            // it is also what refuses the pane's own context menu. The list below is the overlays
-            // this window holds itself, because a navigation under one of those would leave it
-            // describing a directory that is gone.
+            // clicked; ui/js/Nav.js mouseBack is what chooses between the history and the climb.
+            // The menu's own refusal is in there rather than in the list below because that is the
+            // only place a JavaScript suite can drive it; the list below is the other overlays a
+            // back press must not act behind.
             TapHandler {
                 acceptedButtons: Qt.BackButton
                 onTapped: {
