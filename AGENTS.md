@@ -2573,19 +2573,25 @@ error answers `where` of `rename`, which `ui/js/Errors.js` words as one of its t
 sentences, neither of which mentions a leftover, and which `ui/PaneWire.qml` does not re-read the
 listing on, so the partial tree sits on disk unmentioned until some later listing shows it. The
 honest repair is a distinct wire kind, deferred beside the sibling case R14 already recorded rather
-than added at round six. A source-removal failure answers by the kind of the source: `remove_file`
-is atomic, so a file source that will not go is provably whole and the copy is removed again and the
-error answers `rename`, and if taking the copy back also fails the copy stays and the message says
-so; `remove_dir_all` stops at its first failure, so a directory source keeps the complete target
-copy. Every other filesystem,
+than added at round six. A source-removal failure takes the copy back only on proof
+the source survived whole: a source that still stats as a regular file after the failed removal,
+because `remove_file` is one unlink that either takes effect or does not. That case removes the copy
+again, or reports that it could not, and answers `rename` either way. Every other state keeps the
+complete target copy, because `remove_dir_all` stops at its first failure and a source that no longer
+stats, already gone or unstattable, proves nothing on the flaky mounts this path exists for. **When
+taking the copy back also fails, the copy stays under the new name and nothing tells the operator
+that either.** The error line does carry it in `path`, but `ui/js/Errors.js` words `rename` as one of
+two fixed sentences that reproduce neither `path` nor `msg`, and `ui/PaneWire.qml` does not re-read
+the listing on it, so the duplicate sits on disk unmentioned until some later listing shows it,
+exactly as the partial target above does. Every other filesystem,
 error and `rename_noreplace` caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
-That kept directory copy answers `rename-kept` rather than `rename`, because the rename half
-succeeded and only a directory source can be left a remnant. The error line names the source in `path` and carries the removal's own message in `msg`;
+That kept copy answers `rename-kept` rather than `rename`, because the rename half
+succeeded and the name it came from may be whole, a remnant, or already gone. The error line names the source in `path` and carries the removal's own message in `msg`;
 neither field names the target. `ops::rename` records nothing for it, because only its `Ok` arm
 carries a step list, and `do_undo` never pushes at all, so no undo in either direction removes the
 kept copy: `remove_any` answers with one error and no account of how far `remove_dir_all` got, so the
-source may be whole or a remnant and the backend cannot say which name holds the complete tree.
+source may be whole, a remnant, or already gone, and the backend cannot say which.
 `ui/PaneWire.qml` re-reads the listing on that kind instead, since the pane would otherwise draw one
 row beside a sentence the listing denies. `undo` reverses a rename through the same call and answers
 the same kind, so the sentence names no direction, warns that the name the copy came from may now be

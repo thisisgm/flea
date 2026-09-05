@@ -272,7 +272,7 @@ Item {
                 pane.stateMessage = text
             }
             pane.message(text, true)
-            // Both names may be on disk now and the backend cannot say which is whole, so re-read and select nothing.
+            // The copy is whole and only the name it came from is unknown, so re-read the listing and select nothing.
             if (where === "rename-kept")
                 pane.refresh("")
         }

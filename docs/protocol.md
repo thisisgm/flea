@@ -362,18 +362,20 @@ loss, and the check-then-rename alternative leaves a window in which another pro
 target. Renaming a file to the name it already has is not an error and is not work: it answers `ok` and
 records nothing to undo.
 
-**A rename that cannot remove a directory source answers `rename-kept`.** Two measured mounts cannot serve
+**A rename that cannot prove it removed the source answers `rename-kept`.** Two measured mounts cannot serve
 `RENAME_NOREPLACE`: an `fuse.rclone` directory answers `EINVAL`, and a path under a
 `/run/user/*/gvfs/dav:` WebDAV mount answers `EIO`. On those, the backend builds the new name through the same exclusive copy primitives every
-other write uses and removes the source only once that copy is complete. A file source is removed
-atomically, so a removal that fails there leaves the source whole: the copy is taken back and the
-request answers a plain `rename` error, which is still the answer if taking it back also fails, with
-the message saying so. A directory source is removed with `remove_dir_all`, which
-stops at its first failure, so the
-copy is kept, and the request answers an `error` line whose `where` is `rename-kept`, whose `path` is
+other write uses and removes the source only once that copy is complete. The copy is taken back only on proof the source
+survived whole: a source that still stats as a regular file after the failed removal, since
+`remove_file` is one unlink that either takes effect or does not. That answers a plain `rename`
+error, and so does a failure to take the copy back, in which case the copy stays under the new name
+and that error's `path` is the copy rather than the source. Every other state keeps the copy, a directory source because `remove_dir_all`
+stops at its first failure, and a source that no longer stats because an errno alone cannot tell a
+removal that took effect from one that did not. The request then answers an `error` line whose
+`where` is `rename-kept`, whose `path` is
 the source, and whose `msg` is the removal's own message; the target is on neither field. Neither
 direction journals the kept copy, so no `undo` removes it: the removal can stop partway, and one error
-with no account of how far it got cannot tell a whole source from a remnant. An `undo` reverses a
+with no account of how far it got cannot tell a whole source from a remnant or from one already gone. An `undo` reverses a
 rename through the same call, so a reversal that half succeeds answers this same `where`.
 
 Unlike the three above, this answers on the loop's own thread: the ordinary case is one `renameat2`,
