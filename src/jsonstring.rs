@@ -11,6 +11,7 @@ pub fn parse_string(bytes: &[u8], at: &mut usize) -> Result<String, String> {
     if bytes.get(*at) != Some(&b'"') {
         return Err(format!("a string was expected at byte {}", at));
     }
+    let opened = *at;
     *at += 1;
     let mut out = String::new();
     while let Some(&b) = bytes.get(*at) {
@@ -30,11 +31,11 @@ pub fn parse_string(bytes: &[u8], at: &mut usize) -> Result<String, String> {
             }
         }
     }
-    Err("a string ran to the end of the document".to_string())
+    Err(format!("a string opened at byte {} ran to the end of the document", opened))
 }
 
 fn unescape(bytes: &[u8], at: &mut usize) -> Result<char, String> {
-    let code = *bytes.get(*at).ok_or_else(|| "an escape ran off the end".to_string())?;
+    let code = *bytes.get(*at).ok_or_else(|| format!("an escape ran off the end at byte {}", *at))?;
     *at += 1;
     match code {
         b'"' => Ok('"'),
@@ -63,9 +64,9 @@ fn unescape_hex(bytes: &[u8], at: &mut usize) -> Result<char, String> {
 
 fn hex4(bytes: &[u8], at: &mut usize) -> Result<u32, String> {
     let end = *at + 4;
-    let digits = bytes.get(*at..end).ok_or_else(|| "a short \\u escape".to_string())?;
-    let text = std::str::from_utf8(digits).map_err(|_| "a \\u escape that is not hex".to_string())?;
-    let point = u32::from_str_radix(text, 16).map_err(|_| format!("a \\u escape that is not hex at byte {}", at))?;
+    let digits = bytes.get(*at..end).ok_or_else(|| format!("a short \\u escape at byte {}", *at))?;
+    let text = std::str::from_utf8(digits).map_err(|_| format!("a \\u escape that is not hex at byte {}", *at))?;
+    let point = u32::from_str_radix(text, 16).map_err(|_| format!("a \\u escape that is not hex at byte {}", *at))?;
     *at = end;
     Ok(point)
 }

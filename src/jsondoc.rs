@@ -134,7 +134,7 @@ fn parse_value(bytes: &[u8], at: &mut usize, depth: usize) -> Result<Json, Strin
         return Err(format!("nested past {} levels at byte {}", MAX_DEPTH, at));
     }
     match bytes.get(*at) {
-        None => Err("the document ended before a value".to_string()),
+        None => Err(format!("the document ended before a value at byte {}", at)),
         Some(b'{') => parse_object(bytes, at, depth),
         Some(b'[') => parse_array(bytes, at, depth),
         Some(b'"') => parse_string(bytes, at).map(Json::Str),
@@ -319,11 +319,30 @@ mod tests {
         assert_eq!(parse(&render(&v)).expect("reparse"), v);
     }
 
+    // The whole sentence, not is_err(): a message that names no byte, or names the wrong one, is
+    // what this test's own name promises against and it could not see either before.
     #[test]
     fn malformed_input_is_an_error_naming_where_it_stopped() {
-        for bad in ["", "{", "{\"a\"}", "{\"a\":}", "[1,]", "tru", "{\"a\":1}x", "\"unterminated",
-                    "{\"a\":+5}", "{\"a\":.5}", "{\"a\":1.2.3}", "{\"a\":inf}"] {
-            assert!(parse(bad).is_err(), "{} should not parse", bad);
+        for (bad, message) in [
+            ("", "the document ended before a value at byte 0"),
+            ("{", "a string was expected at byte 1"),
+            ("{\"a\"}", "a colon was expected at byte 4"),
+            ("{\"a\":}", "a value that is not JSON at byte 5"),
+            ("[1,]", "a value that is not JSON at byte 3"),
+            ("tru", "true expected at byte 0"),
+            ("{\"a\":1}x", "trailing text at byte 7"),
+            ("\"unterminated", "a string opened at byte 0 ran to the end of the document"),
+            ("{\"a\":+5}", "a value that is not JSON at byte 5"),
+            ("{\"a\":.5}", "a value that is not JSON at byte 5"),
+            ("{\"a\":1.2.3}", "a value that is not JSON at byte 5"),
+            ("{\"a\":inf}", "a value that is not JSON at byte 5"),
+            ("{\"a\":\"\\q\"}", "an unknown escape at byte 7"),
+            ("{\"a\":\"\\u12\"}", "a \\u escape that is not hex at byte 8"),
+            ("{\"a\":\"\\u\u{20ac}\u{20ac}\"}", "a \\u escape that is not hex at byte 8"),
+            ("{\"a\":\"\\u12", "a short \\u escape at byte 8"),
+            ("{\"a\":\"\\", "an escape ran off the end at byte 7"),
+        ] {
+            assert_eq!(parse(bad).expect_err("should not parse"), message, "{} stopped elsewhere", bad);
         }
     }
 
