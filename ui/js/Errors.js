@@ -35,6 +35,10 @@ function sentence(where, message) {
     if (where === "state") {
         return "That setting could not be saved."
     }
+    // And the other way round: main() left a ui.json it could not read alone, so none of it is used.
+    if (where === "statefile") {
+        return "Your saved settings could not be read, so these are the defaults."
+    }
     if (where === "duplicate") {
         return "That file could not be duplicated."
     }

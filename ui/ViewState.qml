@@ -7,9 +7,10 @@ import "js/UiState.js" as UiState
 // The per-user state that outlives a window, `~/.local/state/flea/ui.json`. Read once here with a
 // blocking FileView so the first paint already has it, and never written from QML: every change
 // goes back out through `flea --ui-state`, the one Rust path that takes the lock, validates each
-// key, merges the caller's and renames a temp into place. The file this reads has already been
-// through that same validation, because main() settles it before the window. See AGENTS.md "The
-// state file".
+// key, merges the caller's and renames a temp into place. main() settles this file before the window,
+// so whenever that settle succeeded on a document it could read, what is read here has already been
+// through that same validation; one it could not read is left alone and lands in the default shape
+// UiState.fromFile answers with. See AGENTS.md "The state file".
 QtObject {
     id: root
 
@@ -53,6 +54,10 @@ QtObject {
     // bar's one sentence: the change is on screen and the file does not have it.
     signal saveFailed()
 
+    // main() leaves a ui.json it cannot read as a JSON object exactly as the operator wrote it, so
+    // what is drawn below is the shipped defaults and ui/PaneWire.qml is where that is said once.
+    property bool unreadable: false
+
     // ui/js/UiState.js's book: what the state file holds, what the writer carries, what waits behind
     // it. A save that would change nothing writes nothing, because ui/shell.qml's scale step calls
     // save() too and the state file carries no scale.
@@ -76,13 +81,9 @@ QtObject {
     Component.onCompleted: root.load(stateFile.text())
 
     function load(text) {
-        try {
-            var parsed = JSON.parse(text)
-            if (parsed && typeof parsed === "object" && !Array.isArray(parsed))
-                root.state = parsed
-        } catch (e) {
-            // A file this cannot read is the update path's problem, and it answers with the defaults.
-        }
+        var read = UiState.fromFile(text)
+        root.state = read.state
+        root.unreadable = read.unreadable
         root.writeBook = UiState.book(JSON.stringify({ columns: root.columns }))
     }
 

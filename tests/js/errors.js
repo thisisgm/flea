@@ -25,6 +25,10 @@ function run(check) {
     check("a refused ui.json write says the setting did not last",
           Errors.sentence("state", ""),
           "That setting could not be saved.")
+    // And the other way round: a ui.json main() could not read is left alone, so nothing in it is used.
+    check("an unreadable ui.json says the defaults are what is on screen",
+          Errors.sentence("statefile", ""),
+          "Your saved settings could not be read, so these are the defaults.")
     check("an unknown origin falls back rather than leaking it",
           Errors.sentence("whatever", "/home/gm/secret/path"),
           "That action could not be completed; try again.")

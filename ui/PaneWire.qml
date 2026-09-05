@@ -283,4 +283,8 @@ Item {
         function onSaveFailed() { pane.message(Errors.sentence("state", ""), true) }
     }
 
+    // The other half of the same seam: main() leaves a ui.json it cannot read exactly as the operator
+    // wrote it, and the window draws the shipped defaults, so this says once that none of it was used.
+    Component.onCompleted: if (ViewState.unreadable) pane.message(Errors.sentence("statefile", ""), true)
+
 }

@@ -59,7 +59,11 @@ impl Store {
         if let Ok(text) = fs::read_to_string(&self.file) {
             return uistate::from_file(&text);
         }
-        // Only while ui.json is absent: once it exists it is the state file and 0.1.3's is never read again.
+        // A ui.json that is there is the state file even when its bytes cannot be read, so 0.1.3's
+        // view.json is read only while there is no ui.json at all.
+        if fs::symlink_metadata(&self.file).is_ok() {
+            return uischema::defaults();
+        }
         match fs::read_to_string(&self.legacy) {
             Ok(text) => uistate::from_view_json(&text),
             Err(_) => uischema::defaults(),
@@ -79,15 +83,13 @@ impl Store {
     }
 
     // Before the window, because the window reads this file with its own FileView and applies no
-    // schema of its own: an empty patch rewrites whatever is here through the same per-key
-    // validation a patch gets, so a refused value cannot be what the first paint draws. It is also
-    // where 0.1.3's view.json becomes ui.json, since read() falls back to it while ui.json is
-    // absent, and a ui.json that exists means view.json is never read again.
+    // schema of its own: an empty patch rewrites a document this can read through the same per-key
+    // validation a patch gets, so a refused value cannot be what the first paint draws, while one it
+    // cannot read is left alone and reads as the full default shape on both sides. It is also where
+    // 0.1.3's view.json becomes ui.json, since read() falls back to it only while ui.json is absent.
     pub fn settle(&self) -> Result<(), String> {
         match fs::symlink_metadata(&self.file) {
-            // A rewrite that would change nothing is not worth the launch: the temp, the sync_all
-            // and the rename cost 8.2 to 8.6 ms a call on this box, against a bare read's 1.2 ms.
-            Ok(here) if here.file_type().is_file() && self.is_settled() => Ok(()),
+            Ok(here) if here.file_type().is_file() && self.left_as_it_is() => Ok(()),
             Ok(_) => self.update(&Json::Obj(Vec::new())).map(|_| ()),
             // A first run with neither file writes nothing, the way a first run always has.
             Err(_) if fs::symlink_metadata(&self.legacy).is_err() => Ok(()),
@@ -95,11 +97,19 @@ impl Store {
         }
     }
 
-    // Whether ui.json already reads back as exactly what a rewrite of it would render.
-    fn is_settled(&self) -> bool {
+    // Whether this ui.json is left exactly as it is rather than rewritten through the schema.
+    fn left_as_it_is(&self) -> bool {
         match fs::read_to_string(&self.file) {
-            Ok(text) => text == jsondoc::render(&uistate::from_file(&text)),
-            Err(_) => false,
+            Ok(text) => match jsondoc::parse(&text) {
+                // A rewrite that would change nothing is not worth the launch: the lock, the temp, the
+                // sync_all and the rename measured 6.7 to 18.6 ms a launch here, against 1.3 to 1.7 for one
+                // that only reads.
+                Ok(found) if found.as_object().is_some() => text == jsondoc::render(&uistate::from_file(&text)),
+                // A document this cannot read is the only copy of whatever the operator wrote, and both
+                // front ends already read it as the full default shape, so a rewrite would spend it for nothing.
+                _ => true,
+            },
+            Err(_) => true,
         }
     }
 

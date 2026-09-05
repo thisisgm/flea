@@ -158,8 +158,45 @@ settled_ino=$(stat -c '%i' "$UI")
 env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
     XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
 check "a second launch settles to the same bytes" "$settled" "$(cat "$UI")"
-# Every launch would otherwise pay the settle's own fsync, 8.2 to 8.6 ms against a read's 1.2 ms.
+# Every launch would otherwise pay the settle's own write, 6.7 to 18.6 ms against 1.3 to 1.7 for a
+# launch that only reads.
 check "and does not rewrite a file that is already settled" "$settled_ino" "$(stat -c '%i' "$UI")"
+
+# A ui.json the settle cannot read is the only copy of whatever the operator wrote, so the launch
+# leaves it exactly as it is: both front ends already read such a file as the full default shape, and
+# a rewrite would spend their settings to close nothing. A trailing comma is the ordinary way in.
+fresh
+mkdir -p "$STATE/flea"
+printf '{\n  "columns": ["name", "size"],\n  "density": "compact",\n}\n' > "$UI"
+broken_sha=$(sha256sum "$UI" | cut -d' ' -f1)
+broken_ino=$(stat -c '%i' "$UI")
+out=$(env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+      XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null 2>&1)
+check "the launch got past the settle to the missing shell" "1" "$(echo "$out" | grep -c 'could not start the shell')"
+check "a ui.json the settle cannot parse is left byte for byte" "$broken_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
+check "and it is not replaced by a new file either" "$broken_ino" "$(stat -c '%i' "$UI")"
+check "and the read still answers the full default shape" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"
+
+# The same for a document that is valid JSON but not the object the merge reads.
+fresh
+mkdir -p "$STATE/flea"
+printf '["name","size"]\n' > "$UI"
+array_sha=$(sha256sum "$UI" | cut -d' ' -f1)
+env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+    XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
+check "a ui.json that is not a JSON object is left byte for byte" "$array_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
+
+# And for one whose bytes are not text at all, which is also the state file: 0.1.3's view.json is
+# neither migrated over it nor read in its place.
+fresh
+mkdir -p "$STATE/flea" "$CONFIG/flea"
+printf '\377\376{"columns":["name"]}\n' > "$UI"
+printf '{"hiddenCols":["date"]}\n' > "$CONFIG/flea/view.json"
+notext_sha=$(sha256sum "$UI" | cut -d' ' -f1)
+env WAYLAND_DISPLAY=flea-uistate-test-display PATH=/nonexistent-flea-test-path \
+    XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --gui </dev/null >/dev/null 2>&1
+check "a ui.json that is not text is left byte for byte" "$notext_sha" "$(sha256sum "$UI" | cut -d' ' -f1)"
+check "and view.json is not read in its place" "1" "$(flea_ui 2>&1 | tr -d ' \n' | grep -c '"columns":\["name","size","date"\]')"
 
 # A launch with nothing to migrate leaves ~/.local/state alone, the way a first run always has.
 fresh

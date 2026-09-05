@@ -4,6 +4,21 @@
 // known to hold, `inflight` is what the running `flea --ui-state` carries, and `pending` is the
 // newest patch waiting behind it. Imports no QML, so tests/js/uistate.js can redden on a mutation.
 
+// The window's own read of ui.json. main() leaves a document it cannot read as a JSON object
+// exactly as the operator wrote it, so `unreadable` is what makes the pane say the file was not used;
+// no file at all is a first launch and says nothing.
+function fromFile(text) {
+    try {
+        var found = JSON.parse(text)
+        if (found && typeof found === "object" && !Array.isArray(found)) {
+            return { state: found, unreadable: false }
+        }
+    } catch (e) {
+        // A hand edit this cannot parse, which is the ordinary way in and is not an error here.
+    }
+    return { state: {}, unreadable: text.length > 0 }
+}
+
 // The book a window starts with: what the file it has just read already holds, and no writer running.
 function book(saved) {
     return { saved: saved || "", inflight: "", pending: "" }

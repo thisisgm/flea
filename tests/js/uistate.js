@@ -44,6 +44,15 @@ function run(check) {
     // Toggling back to what the queue already asks for must not send the same bytes twice.
     check("the queued patch is not sent twice", UiState.asked(queued, THIRD).start, "")
 
+    // The window's own read of the file. main() leaves a ui.json it cannot read as a JSON object
+    // exactly as the operator wrote it, so the window draws the defaults and has to be what says so.
+    check("a document the window can read is read", UiState.fromFile(OLD).state.columns[2], "date")
+    check("and nothing is said about it", UiState.fromFile(OLD).unreadable, false)
+    check("a trailing comma reads as the full default shape", JSON.stringify(UiState.fromFile("{\"columns\":[\"name\"],}").state), "{}")
+    check("and the pane is told to say so", UiState.fromFile("{\"columns\":[\"name\"],}").unreadable, true)
+    check("a document that is not an object is the same", UiState.fromFile("[1,2]").unreadable, true)
+    check("no file at all is a first launch and says nothing", UiState.fromFile("").unreadable, false)
+
     var drained = UiState.exited(queued, 0)
     check("the queued patch starts when the writer exits", drained.start, THIRD)
     check("and the exited writer's own patch is what the file now holds", drained.saved, NEW)
