@@ -1185,12 +1185,15 @@ waits for its consumer.
   the `prctl` is removed and it reddens if the call fails; a second check asserts the stub
   reported at all, so a broken stub cannot be mistaken for a passing gate. See "Transparent
   huge pages" under "Deliberate corners".
-- The `--open` checks inside `./tests/modes.sh` put a stub `gio` on `PATH` that reports
+- The `--open` checks inside `./tests/modes.sh` put a stub on `PATH` that reports
   its own pid, argv count, argv and `THP_enabled`, which is what pins symlink resolution, the
   handoff, a name starting with a dash and a name with a newline in it arriving as one absolute
   argument, and the launcher having been reaped by the time `--open` returns. A second stub in
   `failbin/` exits `3`, which is the check that `--open` reports a refusal instead of the `0` a
-  detached spawn reported. Issue 41 has its own case beside them, driving the real `gio` against an
+  detached spawn reported. Both are named from `src/open.rs`'s own `Command::new` target, and the
+  `--terminal` stub from `src/terminal.rs`'s, rather than spelled in the test: when the target moved
+  from `xdg-open` to `gio` the hand-written name did not follow, so every `--open` in the block
+  resolved the real `/usr/bin/xdg-open` instead, and a stub named from the product cannot drift. Issue 41 has its own case beside them, driving the real `gio` against an
   isolated `XDG_DATA_HOME` and `XDG_CONFIG_HOME` holding one `Terminal=true` entry and a stub
   `xdg-terminal-exec`, so the operator's own MIME state is never read or written. The huge page half needs a second stub, because a bare `flea --open` runs in a
   process where nothing disabled huge pages, so `thp::enable()` is a no-op there and that

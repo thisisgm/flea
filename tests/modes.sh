@@ -102,6 +102,25 @@ check "the launched shell has transparent huge pages off" "1" \
 check "the launched shell reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
 sandbox_remove "$D"
 
+# Sample input: let finished = Command::new("gio")
+# Each mode's stub is named from that mode's own exec target, because a stub named by hand goes stale
+# the day the target is renamed, and the run then reaches the operator's real handler instead: that
+# is what left three editors running on this box.
+handoff_in() {
+  grep -ho 'Command::new("[a-z0-9-]\+")' "$1" | cut -d'"' -f2 | sort -u
+}
+open_handoff=$(handoff_in src/open.rs)
+terminal_handoff=$(handoff_in src/terminal.rs)
+# Fail closed rather than name a stub from an empty or two-name derivation: that stub is one nothing
+# calls, which is the fall-through this exists to prevent, and a check would report it after the fact.
+for derived in "$open_handoff" "$terminal_handoff"; do
+  case "$derived" in
+    ''|*[!a-z0-9-]*)
+      echo "FAIL modes: src/open.rs and src/terminal.rs must each name one handoff; got '$derived'"
+      exit 1 ;;
+  esac
+done
+
 # --open resolves the target, refuses a directory, and hands anything else to gio open, which is
 # the route that reads the desktop database and so honours Terminal=true; see "Opening a file".
 D="$FIXTURE_ROOT/flea-open-test-$$"
@@ -133,12 +152,12 @@ last_arg="$D/last-arg"
   printf 'P=$(cut -d" " -f5 /proc/self/stat)\n'
   printf '[ "$$" = "$P" ] && printf "PGID MATCH pid=%%s pgid=%%s\\n" "$$" "$P" || printf "PGID MISMATCH pid=%%s pgid=%%s\\n" "$$" "$P"\n'
   printf 'grep -i "^THP_enabled" /proc/self/status\n'
-} > "$D/bin/gio"
-chmod +x "$D/bin/gio"
+} > "$D/bin/$open_handoff"
+chmod +x "$D/bin/$open_handoff"
 # The same handoff, refusing. gio open answers nonzero when it cannot reach a handler, and --open
 # has to report that rather than the 0 a fire-and-forget spawn reports whatever happens next.
-printf '#!/bin/sh\nexit 3\n' > "$D/failbin/gio"
-chmod +x "$D/failbin/gio"
+printf '#!/bin/sh\nexit 3\n' > "$D/failbin/$open_handoff"
+chmod +x "$D/failbin/$open_handoff"
 
 : > "$opened"
 # Quickshell hands flea --open a pipe and closes it, so a pipe is exactly what the handler must not inherit.
@@ -211,7 +230,6 @@ check "with no errno in it" "0" "$(echo "$out" | grep -c 'os error')"
 out=$($BIN --open 2>&1 </dev/null)
 check "--open with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--open')"
 
-# Sample input: let started = Command::new("xdg-terminal-exec")
 # Every program the openers hand off to by name must be shipped by a PKGBUILD dependency, or the
 # package installs and the button it belongs to does nothing at all. The table is here rather than
 # from pacman so the check runs off the box too, and a handoff with no row in it is itself a failure.
@@ -222,7 +240,7 @@ handoff_package() {
     *) printf '' ;;
   esac
 }
-handoffs=$(grep -ho 'Command::new("[a-z0-9-]\+")' src/open.rs src/terminal.rs | cut -d'"' -f2 | sort -u)
+handoffs=$(printf '%s\n%s\n' "$open_handoff" "$terminal_handoff" | sort -u)
 # The denominator, because a derived loop over nothing reports green having checked nothing: a
 # renamed file or a handoff name this grep cannot match would otherwise pass in silence.
 check "the two openers hand off to two programs by name" "2" "$(printf '%s\n' "$handoffs" | grep -c .)"
@@ -268,8 +286,8 @@ ran="$D/ran.log"
   printf 'P=$(cut -d" " -f5 /proc/self/stat)\n'
   printf '[ "$$" = "$P" ] && printf "PGID MATCH pid=%%s pgid=%%s\\n" "$$" "$P" || printf "PGID MISMATCH pid=%%s pgid=%%s\\n" "$$" "$P"\n'
   printf 'grep -i "^THP_enabled" /proc/self/status\n'
-} > "$D/bin/xdg-terminal-exec"
-chmod +x "$D/bin/xdg-terminal-exec"
+} > "$D/bin/$terminal_handoff"
+chmod +x "$D/bin/$terminal_handoff"
 
 : > "$ran"
 # Quickshell hands flea --terminal a pipe and closes it, so a pipe is what the terminal must not inherit.
@@ -342,7 +360,8 @@ mkdir -p "$T/data/applications" "$T/config" "$T/bin"
 terminal_log="$T/ran.log"
 { printf '#!/bin/sh\n'; printf 'printf "HANDLER %%s\\n" "$*" >> %q\n' "$terminal_log"; } > "$T/bin/flea-t41-handler"
 chmod +x "$T/bin/flea-t41-handler"
-# What glib runs a Terminal=true entry inside; it records the call and then runs the command itself.
+# What glib runs a Terminal=true entry inside; glib names this one, not src/terminal.rs, so it is
+# not derived, and it records the call and then runs the command itself.
 { printf '#!/bin/sh\n'; printf 'printf "TERMINAL %%s\\n" "$*" >> %q\n' "$terminal_log"; printf 'exec "$@"\n'; } > "$T/bin/xdg-terminal-exec"
 chmod +x "$T/bin/xdg-terminal-exec"
 {
