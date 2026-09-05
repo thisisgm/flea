@@ -13,6 +13,11 @@ Item {
     property bool hovered: false
     property bool selected: false
     property string thumb: ""
+    // Clamped by GridArea so a narrow cell cannot make the slot negative.
+    property int slotSize: Math.max(1, width - 2 * Theme.spacing.gap)
+
+    // A hovered tile (and its name tip) paints above later cells, or the next row covers the tip.
+    z: hover.hovered ? 1 : 0
 
     // A lifted tile is the cursor, the pointer or a selection member, the same ladder Row.qml climbs.
     readonly property bool lifted: root.cursor || root.hovered || root.selected
@@ -37,11 +42,11 @@ Item {
 
     Item {
         id: markSlot
-        anchors.left: parent.left
-        anchors.right: parent.right
+        anchors.horizontalCenter: parent.horizontalCenter
         anchors.top: parent.top
-        anchors.margins: Theme.spacing.gap
-        height: width
+        anchors.topMargin: Theme.spacing.gap
+        width: root.slotSize
+        height: root.slotSize
 
         // A thumbnail is a decoded image and stays one; the glyph beside it is a native mark, and
         // exactly one is visible, chosen the same way ui/Row.qml chooses.

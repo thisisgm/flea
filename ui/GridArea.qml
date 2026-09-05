@@ -22,8 +22,11 @@ GridView {
     readonly property int tileWidth: Math.max(1, Math.floor(root.width / root.columns))
     // Square thumb filling the cell width, less the tile's own gap, then a gap and the caption.
     readonly property int thumbPx: Math.max(1, root.tileWidth - 2 * Theme.spacing.gap)
+    // Two caption lines: the name wraps to maximumLineCount 2, and one line left the second
+    // painting through the tile below.
+    readonly property int captionPx: Math.round(Theme.font.caption * 1.6) * 2
     readonly property int cellHeightPx: root.thumbPx + Theme.spacing.gap
-                                        + Math.round(Theme.font.caption * 1.6)
+                                        + root.captionPx
                                         + Theme.spacing.gap
     readonly property int visibleTileRows: Math.max(1, Math.ceil(root.height / root.cellHeightPx))
 
@@ -45,6 +48,7 @@ GridView {
         hovered: hover.hovered
         selected: root.pane.isSelected(index)
         thumb: Thumbs.fileFor(root.pane.thumbState, index)
+        slotSize: root.thumbPx
 
         HoverHandler {
             id: hover
