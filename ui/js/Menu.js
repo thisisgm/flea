@@ -101,3 +101,14 @@ function headerEntries(hiddenCols, showHidden) {
     out.push(hiddenRow(showHidden))
     return out
 }
+
+// The keyboard's own entrance to the row menu, under the cursor row the way the rail's opens under
+// its own; setCursor first, because a wheel scroll in the grid can leave the cursor off screen.
+// paddingX is ui/Theme.qml's rowPaddingX, passed in because a singleton has no name in a library.
+function openAtCursor(root, menu, paddingX) {
+    root.setCursor(root.cursorIndex)
+    var row = root.visibleItemFor(root.cursorIndex)
+    if (row)
+        menu.openAt(row.mapToItem(null, paddingX, row.height))
+    return row !== null
+}

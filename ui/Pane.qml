@@ -4,6 +4,7 @@ import "." as Flea
 import "js/DirSizes.js" as DirSizes
 import "js/Filter.js" as Filter
 import "js/Focus.js" as Focus
+import "js/Menu.js" as Menu
 import "js/Search.js" as Search
 import "js/Archive.js" as Archive
 import "js/Nav.js" as Nav
@@ -374,15 +375,8 @@ FocusScope {
     function copyShareLink() { wire.shareLink.copy(root.join(root.path, root.cursorRow ? root.cursorRow.n : "")) }
     function sendTaildrop(peerId) { Ops.sendTaildrop(root, wire.taildrop, peerId) }
 
-    // The keyboard's own entrance to the row menu, under the cursor row the way the rail's opens under
-    // its own; setCursor first, because a wheel scroll in the grid can leave the cursor off screen.
-    function openCursorMenu() {
-        root.setCursor(root.cursorIndex)
-        var row = root.visibleItemFor(root.cursorIndex)
-        if (row)
-            menu.openAt(row.mapToItem(null, Theme.spacing.rowPaddingX, row.height))
-        return row !== null
-    }
+    // The keyboard's own entrance to the row menu; the placement itself is ui/js/Menu.js's.
+    function openCursorMenu() { return Menu.openAtCursor(root, menu, Theme.spacing.rowPaddingX) }
 
     Flea.StateMessage {
         anchors.fill: root.listArea

@@ -99,4 +99,24 @@ function runMenu(check) {
           "col:size|col:kind")
     check("the header menu carries the hidden toggle too, below its own rule",
           findEntry(head, "toggleHidden").action, "toggleHidden")
+
+    // The keyboard's own entrance, lifted out of ui/Pane.qml: the cursor row is scrolled into view
+    // first, because a wheel scroll in the grid can leave it off screen, then the frame opens at
+    // that delegate's bottom-left. With nothing under the cursor it opens nothing and answers false.
+    var placed = []
+    var scrolled = []
+    var delegate = { height: 20, mapToItem: function (item, x, y) { return String(item) + ":" + x + "," + y } }
+    var withRow = { cursorIndex: 4,
+                    setCursor: function (index) { scrolled.push(index) },
+                    visibleItemFor: function (index) { return delegate } }
+    check("m scrolls the cursor row into view and opens the frame at its bottom-left",
+          Menu.openAtCursor(withRow, { openAt: function (point) { placed.push(point) } }, 8)
+              + "|" + scrolled.join(",") + "|" + placed.join(","),
+          "true|4|null:8,20")
+    var withoutRow = { cursorIndex: 4,
+                       setCursor: function (index) { scrolled.push(index) },
+                       visibleItemFor: function (index) { return null } }
+    check("and with no delegate under the cursor it opens nothing and answers false",
+          Menu.openAtCursor(withoutRow, { openAt: function (point) { placed.push(point) } }, 8)
+              + "|" + placed.length, "false|1")
 }

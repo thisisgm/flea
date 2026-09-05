@@ -524,6 +524,9 @@ huge pages" below for what it is worth and what it cost.
   reads, split out of `Focus.js` at its cap the second time it reached one.
 - `ui/js/RailKeys.js` is what the rail does with a key, split out of `Focus.js` at its cap the third
   time it reached one; `Focus.handleKey` calls it directly, as it already called `PreviewKeys`.
+- `ui/js/Menu.js` is what either menu holds and where its frame sits: the submenu test, the
+  edge clamp, the listing and header row lists, and `openAtCursor`, the keyboard's own entrance,
+  which came out of `ui/Pane.qml` when PR 34's `openTerminal` would have pushed it past its cap.
 - `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` holds it
   for the window and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord
   itself. It is a session value: the state file stores an Omarchy text-size stop and no multiplier.
@@ -762,13 +765,13 @@ under a deadline and reports `Ran::Succeeded`, `Ran::Failed` or `Ran::NotStarted
 knows about thumbnails, which is why the pool's `JOB_TIMEOUT` stays in `thumbs.rs` and is passed
 in.
 
-`ui/Pane.qml` is 398 lines by `wc -l`, over the soft budget and 2 lines under the hard cap. It stood at
+`ui/Pane.qml` is 391 lines by `wc -l`, over the soft budget and 9 lines under the hard cap. It stood at
 exactly 400 of 400 and could not gain a line, which is why `ui/Header.qml` came out of it
 first and alone, before any behaviour was added; it then took on the settle timer, the
 thumbnail row map, the opener wiring, the input-to-rows stamps and the first-screen settle, and
-still ends under the cap. **There is almost no room left**: the next change of any size lifts a helper into
-`ui/js/Thumbs.js` or takes another band out the way the header went, and does not lift the
-cap. It stays one
+reached 398. **There was almost no room left**, and PR 34's three-line `openTerminal` would have
+put it at 401, so `openCursorMenu`'s body was the helper that went: it is menu placement, and
+`ui/js/Menu.js` already owned where a frame sits when it opens at a point. It stays one
 component because the integer model, held window, list-reply pairing, focus and action
 dispatch share one state owner; splitting them would add a state boundary in the exact
 path that prevents untagged backend replies from crossing directory navigation.
@@ -3263,7 +3266,8 @@ and open a stick somebody only meant to ask about.
 `m` is one action, `menu`, and `ui/js/Focus.js` routes it by focus view. In the rail
 `ui/js/RailKeys.js` `act` calls `raiseMenu`, which asks `Mounts.railMenu` and says
 `<label> has nothing to eject or unmount.` over a row with no
-release. In the listing `act`'s `menu` case calls `ui/Pane.qml` `openCursorMenu`, which scrolls
+release. In the listing `act`'s `menu` case calls `ui/Pane.qml` `openCursorMenu`, whose body is
+`ui/js/Menu.js` `openAtCursor`: it scrolls
 the cursor row into view (a wheel scroll in the grid can leave it off screen), opens the one
 `ContextMenu` at that delegate's bottom-left through `openAt`, and answers whether a delegate was
 there at all; an empty directory, a listing still loading and a filter that hid every row all
