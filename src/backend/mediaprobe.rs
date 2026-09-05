@@ -66,7 +66,7 @@ pub fn probe(path: &Path) -> Media {
     cmd.stdin(std::process::Stdio::null());
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::null());
-    // Its own group, so the watchdog can end the whole tree in one signal.
+    // Its own group, so the watchdog's kill(-pid) has a group to name: a child left in the backend's own group is not a group leader, and -pid would match nothing.
     cmd.process_group(0);
     let mut child = match cmd.spawn() {
         Ok(c) => c,
