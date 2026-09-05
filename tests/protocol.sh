@@ -84,7 +84,9 @@ check "and returns no rows" "0" "$(echo "$out" | sed -n 3p | grep -o '"n":"' | w
 
 out=$(printf '{"c":"list","path":"/definitely/not/here","first":1}\n{"c":"quit"}\n' | $BIN --backend)
 check "a missing path is an error message" "error" "$(echo "$out" | head -1 | grep -oE '"t":"[a-z]+"' | cut -d'"' -f4)"
-check "the error names the operation" "scan" "$(echo "$out" | head -1 | grep -oE '"where":"[a-z]+"' | cut -d'"' -f4)"
+# rename-kept carries a hyphen, and a [a-z]+ class matches no part of such a line at all, so this
+# extractor would answer the empty string for it rather than the value the wire actually sent.
+check "the error names the operation" "scan" "$(echo "$out" | head -1 | grep -oE '"where":"[a-z-]+"' | cut -d'"' -f4)"
 
 printf '{"c":"list","path":"/definitely/not/here","first":1}\n{"c":"quit"}\n' | $BIN --backend >/dev/null
 check "the backend exits 0 even after an error" "0" "$?"

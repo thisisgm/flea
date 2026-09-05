@@ -25,9 +25,11 @@ function sentence(where, message) {
     if (where === "rename") {
         return exists(message) ? "A file with that name is already here." : "That file could not be renamed."
     }
-    // The copy landed and the original would not go away, so the operator has two copies and must be told.
+    // The copy landed and the name it came from would not go away. undo reverses through the same
+    // path, so this says nothing about which direction it was, and remove_dir_all unlinks as it
+    // walks, so it promises nothing about what is left behind either. The refresh shows that.
     if (where === "rename-kept") {
-        return "Renamed, but the original could not be removed, so both copies are here now."
+        return "The copy is complete, but the name it came from could not be fully removed; check it before deleting anything."
     }
     // Deliberately not the capitalised branch: every other mkdir refusal reaches the UI through
     // src/error.rs from_io, which passes std::io::Error::to_string straight through, errno and all.

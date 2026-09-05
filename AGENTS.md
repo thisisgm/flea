@@ -2527,21 +2527,21 @@ so a second concurrent operation would have nowhere to report itself. `rename` a
 neither spawns at all. An `archive` or a `convert` never claims the slot either: `Ops::claim_id` numbers them
 and they run alongside by design, so the cap was never one write of any kind.
 
-**`rename` and `mkdir` run on the loop's thread, the other three spawn.** Both normally take one syscall,
-but neither compatibility path below is one: an rclone directory rename copies the whole tree and a
-GVFS WebDAV rename copies whatever the path is, file or tree, before removing the source, inline on
-the loop's thread. That is an unbounded
-network transfer in the one place nothing else can run. A 40 GB rclone folder is downloaded and
-re-uploaded through FUSE with no progress, because the copy's byte sink is discarded, and with no way
-to cancel, because its flag is a fresh `AtomicBool` nothing can set; the loop is the only writer of
-stdout, so the application is frozen rather than slow for the whole transfer. The copied tree also
-lands with new modification times, since the crate has no dependencies and the copy sets none, so a
-Date Modified column or sort shows when the copy ran rather than the file's own history. This is accepted deliberately: the alternative measured on real
-rclone 1.75 was a rename that destroys a raced destination, and a frozen window beats lost data.
-`trash` shells to `gio` twice for the list diff plus once to trash; `duplicate` may copy a whole tree;
-a `transfer` is unbounded. Those three send their results back
-through `Event::Op`, joined onto the loop's receiver exactly the way the thumbnail pool's `Event::Thumb`
-already is, so the loop stays the only writer of stdout.
+**`rename` and `mkdir` run on the loop's thread, the other three spawn.** Both normally take one
+syscall, but neither compatibility path below is one: an rclone directory rename copies the whole
+tree and a GVFS WebDAV rename copies whatever the path is, file or tree, before removing the source,
+inline on the loop's thread. That is an unbounded network transfer in the one place nothing else can
+run. A 40 GB rclone folder is downloaded and re-uploaded through FUSE with no progress, because the
+copy's byte sink is discarded, and with no way to cancel, because its flag is a fresh `AtomicBool`
+nothing can set; the loop is the only writer of stdout, so the application is frozen rather than
+slow for the whole transfer. The copied tree also lands with new modification times, since the crate
+has no dependencies and the copy sets none, so a Date Modified column or sort shows when the copy
+ran rather than the file's own history. This is accepted deliberately: the alternative measured on
+real rclone 1.75 was a rename that destroys a raced destination, and a frozen window beats lost
+data. `trash` shells to `gio` twice for the list diff plus once to trash; `duplicate` may copy a
+whole tree; a `transfer` is unbounded. Those three send their results back through `Event::Op`,
+joined onto the loop's receiver exactly the way the thumbnail pool's `Event::Thumb` already is, so
+the loop stays the only writer of stdout.
 
 **Every write creates its target exclusively, and this is the module's whole safety story.** A file copy
 opens with `create_new`, a directory copy and a `mkdir` use `create_dir`, a symlink copy uses `symlink`, and a rename
@@ -2558,12 +2558,24 @@ complete target copy and reports the error. Every other filesystem, error and `r
 caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
 That source-removal failure answers `rename-kept` rather than `rename`, because the rename half
-succeeded: the wire carries both paths and the UI says both copies are here now. The journal spends
-its entry either way, because a failed reversal that stayed would block every older undo behind a
-step that keeps failing.
+succeeded. The error line names the source in `path` and carries the removal's own message in `msg`;
+neither field names the target, because the client already holds the name it just sent and `msg` is
+the string `ui/js/Errors.js` pattern matches for a collision. `ops::rename` answers that completed
+copy as a `Step::Created`, the shape `duplicate` already uses for the partial a failure left, and
+`do_rename` pushes the step list whichever way the call went, because the journal drops an empty one
+itself. So undo removes the duplicate, and `ui/PaneWire.qml` re-reads the listing on that kind,
+since the pane would otherwise draw one row beside a sentence the listing denies. `undo` reverses a
+rename through the same call and answers the same kind, so the sentence names neither a direction
+nor the state of what could not be removed, and the refreshed listing is what shows the operator
+which names are on disk. The journal spends its entry either way, because a failed reversal that
+stayed would block every older undo behind a step that keeps failing.
 corner: the copy is not snapshot-isolated, so a source replaced after the copy completes is destroyed
 by the removal that follows, and a concurrent write into the operation-created partial target is lost
 with it; both are accepted rather than defended against.
+corner: `remove_any` removes a directory with `remove_dir_all`, which stops at its first failure, so
+the name a kept copy came from may be left whole, half emptied, or already gone; the sentence
+promises the copy only and tells the operator to check that name before deleting anything, and
+undoing past a half-emptied one removes the complete copy and keeps the remnant.
 
 **The journal records only what an operation created or moved.** `undo.rs`'s `Step` has exactly four
 shapes: `Moved` (rename back), `Created` (remove it), `MadeDir` (remove it while it is still empty, because

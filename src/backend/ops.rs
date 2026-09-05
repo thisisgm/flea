@@ -29,19 +29,25 @@ fn named(where_: &str, path: &Path, msg: &str) -> FleaError {
     }
 }
 
-// Answers with the new path and the step that puts the old name back.
-pub fn rename(path: &Path, to_name: &str) -> Result<(PathBuf, Vec<Step>), FleaError> {
+// Answers the outcome and, either way, the steps it left on disk: the move, or the completed copy
+// a source-removal failure kept at the new name. Duplicate answers in this shape for the same reason.
+pub fn rename(path: &Path, to_name: &str) -> (Result<PathBuf, FleaError>, Vec<Step>) {
     if !valid_name(to_name) {
-        return Err(named("rename", path, "a name cannot be empty, . or .. , or contain a separator"));
+        return (Err(named("rename", path, "a name cannot be empty, . or .. , or contain a separator")), Vec::new());
     }
     let parent = path.parent().unwrap_or(Path::new("/"));
     let to = parent.join(to_name);
     if to == path {
         // Renaming a file to its own name is not a failure and is not work, so it records nothing.
-        return Ok((to, Vec::new()));
+        return (Ok(to), Vec::new());
     }
-    renamecompat::rename_path(path, &to)?;
-    Ok((to.clone(), vec![Step::Moved { from: path.to_path_buf(), to }]))
+    match renamecompat::rename_path(path, &to) {
+        Ok(()) => (Ok(to.clone()), vec![Step::Moved { from: path.to_path_buf(), to }]),
+        Err(error) => {
+            let steps = steps_left(&error, &to);
+            (Err(error), steps)
+        }
+    }
 }
 
 // "backup.tar.zst" becomes "backup.tar copy.zst": Path's own stem and extension split the last dot only, and a dotfile keeps its whole name as the stem.
@@ -82,6 +88,15 @@ pub fn duplicate(path: &Path) -> (Result<PathBuf, FleaError>, Vec<Step>) {
         Ok(()) => (Ok(dst.clone()), vec![Step::Created { path: dst }]),
         Err(e) => (Err(e), p.partial.take().into_iter().map(|path| Step::Created { path }).collect()),
     }
+}
+
+// A rename that half succeeded left its completed copy at the target, which is a path this
+// operation created, so undo removes the duplicate; every other failure left nothing behind.
+fn steps_left(error: &FleaError, to: &Path) -> Vec<Step> {
+    if error.where_ != renamecompat::KEPT {
+        return Vec::new();
+    }
+    vec![Step::Created { path: to.to_path_buf() }]
 }
 
 // A given name is created exactly or refused; an empty one takes the first free default, because a
@@ -127,8 +142,29 @@ fn free_new_folder(parent: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::undo::{Entry, Journal};
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
+
+    // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
+    #[test]
+    fn a_rename_that_kept_its_copy_journals_the_duplicate_so_undo_removes_it() {
+        let d = TestDir::new("renamekeptjournal");
+        let source = d.dir("source");
+        std::fs::write(source.join("inside.txt"), "body").unwrap();
+        std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let target = d.join("target");
+        // renameat2 succeeds on this filesystem, so only an rclone or GVFS mount reaches the
+        // fallback through rename; the primitive is driven directly the way renamecompat's tests do.
+        let error = renamecompat::copy_then_remove(&source, &target).expect_err("source removal must fail");
+        std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(std::fs::read_to_string(target.join("inside.txt")).unwrap(), "body");
+        let mut journal = Journal::new();
+        journal.push(Entry { op: "rename".to_string(), steps: steps_left(&error, &target) });
+        journal.undo().expect("undo must be able to remove the duplicate the kept copy left");
+        assert!(!target.exists(), "undo removed the copy this operation created");
+        assert_eq!(std::fs::read_to_string(source.join("inside.txt")).unwrap(), "body");
+    }
 
     #[test]
     fn a_name_with_a_separator_is_refused_before_any_syscall() {
@@ -147,7 +183,8 @@ mod tests {
     fn rename_moves_the_file_and_records_the_step_that_puts_it_back() {
         let d = TestDir::new("rename");
         let from = d.file("before.txt", "body");
-        let (to, steps) = rename(&from, "after.txt").expect("rename");
+        let (outcome, steps) = rename(&from, "after.txt");
+        let to = outcome.expect("rename");
         assert_eq!(to, d.join("after.txt"));
         assert!(!from.exists());
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "body");
@@ -159,8 +196,10 @@ mod tests {
         let d = TestDir::new("clobber");
         let from = d.file("source.txt", "source body");
         d.file("target.txt", "target body");
-        let err = rename(&from, "target.txt").expect_err("must refuse");
+        let (outcome, steps) = rename(&from, "target.txt");
+        let err = outcome.expect_err("must refuse");
         assert_eq!(err.where_, "rename");
+        assert!(steps.is_empty(), "a refusal created nothing, so undo must have nothing to reverse");
         assert_eq!(
             std::fs::read_to_string(d.join("target.txt")).unwrap(),
             "target body",
@@ -173,7 +212,8 @@ mod tests {
     fn renaming_a_file_to_its_own_name_is_not_work() {
         let d = TestDir::new("samename");
         let from = d.file("same.txt", "body");
-        let (_, steps) = rename(&from, "same.txt").expect("a no-op rename is not an error");
+        let (outcome, steps) = rename(&from, "same.txt");
+        outcome.expect("a no-op rename is not an error");
         assert!(steps.is_empty(), "nothing changed, so undo must have nothing to reverse");
         assert!(from.exists());
     }

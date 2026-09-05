@@ -362,8 +362,19 @@ loss, and the check-then-rename alternative leaves a window in which another pro
 target. Renaming a file to the name it already has is not an error and is not work: it answers `ok` and
 records nothing to undo.
 
-Unlike the three above, this answers on the loop's own thread: it is a single syscall, so spawning a
-thread would cost more than the work.
+**A rename that cannot remove its source answers `rename-kept`.** Two measured mounts cannot serve
+`RENAME_NOREPLACE`: an `fuse.rclone` directory answers `EINVAL`, and a path under a
+`/run/user/*/gvfs/dav:` WebDAV mount answers `EIO`. On those, the backend builds the new name through the same exclusive copy primitives every
+other write uses and removes the source only once that copy is complete. When the removal fails the
+copy is kept, and the request answers an `error` line whose `where` is `rename-kept`, whose `path` is
+the source, and whose `msg` is the removal's own message; the target is on neither field. The kept
+copy is journalled, so an `undo` removes it. An `undo` reverses a rename through the same call, so a
+reversal that half succeeds answers this same `where`.
+
+Unlike the three above, this answers on the loop's own thread: the ordinary case is one `renameat2`,
+which costs less than spawning a thread. The two compatibility paths above are not one syscall and
+run on that same thread, so a directory rename on rclone copies the whole tree inline before it
+answers. See `AGENTS.md`, "Write operations and the undo journal".
 
 ### duplicate
 
@@ -816,7 +827,10 @@ failed to read), `sort` (a `sort` whose key names no order this wire defines; `p
 carries the key as sent), or `read` (the
 stdin stream itself could not be decoded; the loop stops right after emitting this
 line, because the framing cannot be trusted past that point; thumbnail work already
-running is still drained after it, so a `thumbed` line can follow). `error_line`
+running is still drained after it, so a `thumbed` line can follow). The write
+operations answer over the same stdout and name themselves the same way, and
+`rename-kept` (see `rename`) is the only value on this wire that is not one lowercase
+word, so a client matching this field must allow the hyphen. `error_line`
 is also how `flea --prewarm` reports a failure, to stderr rather than over this wire
 protocol. `where` names whichever operation actually failed: a missing or unreadable
 `path` propagates `scan`'s error unchanged, so `where` reads `scan` there too; only a

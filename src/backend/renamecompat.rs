@@ -13,6 +13,8 @@ const RENAME_NOREPLACE: u32 = 1;
 const EINVAL: i32 = 22;
 // GVFS answers a WebDAV rename with EIO instead of refusing it outright.
 const EIO: i32 = 5;
+// The kind a half-succeeded rename answers, read by ops.rs for the journal and by undo.rs for its wording.
+pub(crate) const KEPT: &str = "rename-kept";
 
 extern "C" {
     fn renameat2(
@@ -83,7 +85,7 @@ fn needs_rclone_fallback_in(from: &Path, error: &io::Error, mountinfo: &str) -> 
 }
 
 // The target is built through the exclusive copy primitives, so an existing destination is refused rather than replaced.
-fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
+pub(crate) fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
     let cancel = AtomicBool::new(false);
     let mut sink = |_: u64, _: u64| {};
     let mut progress = Progress { cancel: &cancel, on_bytes: &mut sink, partial: None };
@@ -102,7 +104,7 @@ fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
     // A source that will not go away leaves the complete target rather than risking a second destructive removal.
     // Its own kind, because the rename half succeeded and the UI owes the operator a different sentence.
     remove_any(from).map_err(|error| FleaError {
-        where_: "rename-kept".to_string(),
+        where_: KEPT.to_string(),
         path: from.to_string_lossy().to_string(),
         msg: error.msg,
     })
@@ -279,12 +281,12 @@ mod tests {
         let target = d.join("target");
         let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
         std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o755)).unwrap();
-        assert_eq!(error.where_, "rename-kept", "the half-succeeded rename gets its own kind");
+        assert_eq!(error.where_, KEPT, "the half-succeeded rename gets its own kind");
         assert_eq!(std::fs::read_to_string(source.join("inside.txt")).unwrap(), "body");
         assert_eq!(std::fs::read_to_string(target.join("inside.txt")).unwrap(), "body");
         assert!(
             !error.msg.contains(&target.to_string_lossy().to_string()),
-            "the path belongs on the wire's path field, never inside a message the UI pattern matches"
+            "the target stays out of the message ui/js/Errors.js pattern matches for a collision"
         );
     }
     // The rclone arm reads the real /proc/self/mountinfo, so only needs_rclone_fallback_in, which takes
