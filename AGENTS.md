@@ -5,7 +5,7 @@ P0 is the local browser, and remotes, search and disk operations have since land
 top of it. Encryption and Flea's own terminal interface are later phases and are not in
 this tree yet: `flea --tui` says so and exits 2.
 
-## The five load-bearing rules
+## The seven load-bearing rules
 
 1. **Every per-file operation stays scoped to the viewport.** Icons, MIME sniffing and
    thumbnails all stay inside the visible rows. The whole margin over the field is that
@@ -716,18 +716,20 @@ cut shipped as its own commit exactly so that no behaviour change could hide ins
 `ui/js/` whole and gained the suite every other file there has, `tests/js/errors.js`, which is
 what makes the move provable rather than merely asserted.
 
-`ui/NetworkMounts.qml` is 250 lines by `wc -l`, exactly the soft budget, and it is the third cut of
-that class. It was 343 on its own branch and 400 on the 0.1.4 composition branch, over the same base:
-the two changes are additive to different halves of one file, so no resolution of that merge fitted the
-400 cap, which is a number no branch gate can see because neither branch is over it alone. Two whole
-subjects came out before the merge rather than inside it. `ui/MountListing.qml` is 84 lines and owns
-the five second `gio mount -l` poll, its 10 s bound, the re-read queued mid-listing and the collector
-fallback; the Service keeps one `_mountListing` string and rebuilds on its `listed()` signal.
-`ui/NetworkPlaces.qml` is 69 lines and owns the bookmarks file: the write `FileView`, `rename()`,
-`forget()`, and the one blocking `write()` those two share. Both cuts shipped as one commit carrying no
-behaviour change, the way `ui/Header.qml` did; what `forget()` writes changed in the commit after it.
-Neither could go into `ui/js/Mounts.js`, which is 299 of its 300 hard cap, or into `tests/js/mounts.js`,
-which is exactly 300: the file that owns the subject had no room for a line.
+`ui/NetworkMounts.qml` is 265 lines by `wc -l`, and it is the third cut of that class. It was 343 on
+its own branch and 400 on the 0.1.4 composition branch, over the same base: the two changes are
+additive to different halves of one file, so no resolution of that merge fitted the 400 cap, which is
+a number no branch gate can see because neither branch is over it alone. Two whole subjects came out
+before the merge rather than inside it, which took it to 250, exactly the soft budget; the `gio info`
+deadline below then took it to 265, so the file reports over soft again and has 135 lines left before
+the cap. `ui/MountListing.qml` is 84 lines and owns the five second `gio mount -l`
+poll, its 10 s bound, the re-read queued mid-listing and the collector fallback; the Service keeps one
+`_mountListing` string and rebuilds on its `listed()` signal. `ui/NetworkPlaces.qml` is 74 lines and
+owns the bookmarks file: the write `FileView`, `rename()`, `forget()`, and the one blocking `write()`
+those two share. Both cuts shipped as one commit carrying no behaviour change, the way `ui/Header.qml`
+did; what `forget()` writes changed in the commit after it. Neither could go into `ui/js/Mounts.js` or
+`tests/js/mounts.js`: `rowMenu()`, `railLabel()` and `removeBookmark()` are what took the first to 299
+of its 300 hard cap, the second is exactly 300, and the file that owns the subject was already full.
 
 `ui/Row.qml` is 166 lines, under both budgets. It gained the icon `Image` and its
 `sourceSize`, the two read-only aliases the icon checks assert through, and `iconSource`,
@@ -859,6 +861,12 @@ waits for its consumer.
   of them lived here for three review rounds, one of them predating the whole thumbnail plan,
   because the gate said "build" and nobody ran the other half.
 - `cargo test` runs the unit tests inside every module.
+- **Each `tests/ui.sh` case opens with a paragraph rather than a one-line comment**, and that is
+  deliberate. A case is a fixture, a stub and a sequence, and the part a reader cannot recover from
+  the assertions is what the stub is standing in for and what the case controls for;
+  `case_sharebrowser`'s preamble is twelve lines and `case_hangshare`'s is six. The comments inside
+  a case body stay short. Three review rounds have now raised the preambles against the one-line
+  comment rule, so what the file does is recorded here instead of being re-litigated per round.
 - **`./tests/run-all.sh` is the one command, and it exists because nothing executed any suite
   at all.** Before `96186ff` this tree carried twelve suites, no runner and no CI: every
   cross-reference to a suite, here and in `README.md` and in tool and source comments, was
@@ -3498,7 +3506,8 @@ resolves to an open rather than the "could not be mounted" message.
 **Superseded, issue #36.** That stderr sentence is gvfsd's, and gvfsd translates it, so no client
 locale makes it English and reading it at all was the defect. `isAlreadyMountedQuirk()` and
 `mountProcess`'s `stderr` collector are both gone. `mountProcess.onExited` now records the exit code
-in `_mountFailed` and always runs `gio info`, and the info result is the whole decision: a FUSE path
+in `_mountFailed` and always runs `gio info`, under the same 15 s deadline the mount leg has (see
+"A single-flight guard needs a deadline" below), and the info result is the whole decision: a FUSE path
 opens the share whatever the mount attempt reported, a bare root with a clean `gio info` lists its
 shares, and only a location `gio info` could not describe either reports the mount failure or the
 dead-end sentence. The case still proves the same two behaviours; its stub now speaks Spanish.
@@ -3524,8 +3533,11 @@ wording exists in exactly one place.
 and a mount's own display name are composed by the daemon, which has its own locale, so
 `LC_ALL=C` on the client changes neither. The refusal is no longer read at all (above). The display
 name is no longer parsed for the English word "on": `ui/js/Protocols.js shareName(rawLabel, uri)`
-cuts the tail only when it is this URI's own host, which `hostOf(uri)` takes from the authority
-between `://` and the next `/`. The one assumption left is that gvfsd's connector is a single
+cuts the tail only when it is this URI's own host, which `hostOf(uri)` takes out of the authority
+between `://` and the next `/` by dropping the userinfo at its last `@` and any port after the host,
+so `sftp://user@host/` measures the label against `host` alone. A bracketed IPv6 literal is kept whole,
+brackets included, and a gio label spelling that host without them is therefore never cut: a wrong
+label and never a wrong destination, pinned in `tests/js/network.js`. The one assumption left is that gvfsd's connector is a single
 whitespace-delimited word in whatever language it renders: the cut is
 `head.replace(/\s+\S+\s+$/, "")`, which takes one token, so a translation using two would leave the
 other on the name. A wrong label, and never a wrong destination, because activation navigates on the
@@ -3533,8 +3545,9 @@ entry's own uri.
 
 **The old rule also mangled labels that had nothing to do with a host**, which no report had named.
 `/^(.*)\s+on\s+\S+$/` never tested that its tail was a host, only that it was a final
-whitespace-delimited token, so a mount actually named `backup on tuesday` came out as `backup`; the
-RED run recorded exactly that. Deciding from the URI fixes it and leaves every non-share label alone:
+whitespace-delimited token, so a mount actually named `backup on tuesday` came out as `backup`.
+`tests/js/network.js` drives that exact label, and the pair beside it, `backup on tuesday on nas`,
+is what says the fix cuts a real host and only a real host. Deciding from the URI fixes it and leaves every non-share label alone:
 an MTP phone whose label is `Pixel 7` under `mtp://Google_Pixel_7_1A2B/` keeps its name, because that
 label does not end in that host.
 
@@ -3542,8 +3555,13 @@ label does not end in that host.
 English, so it passed on a Spanish box and would have passed after a fix that changed nothing. Both
 network stubs now speak Spanish: `case_sharebrowser` answers `ruta local` unless the caller pinned
 `LC_ALL=C`, and both its already-mounted refusal and `case_unmount`'s `Mount(0): stubshare en
-stubhost` stay Spanish whatever the client asks for, because gvfsd would. Not one assertion in either
-case changed, so both are that fix's control.
+stubhost` stay Spanish whatever the client asks for, because gvfsd would. Only one of the two is the
+pin's control, and live matrix step 0b measured which: with the pin neutralised `case_sharebrowser`
+reddens on demand and greens on demand, twice each, on `tests/ui.sh`'s own
+`l on share1 never opened` line, while `case_unmount` passes in both arms. It cannot move, because
+its `Mount(0)` line is gvfsd's in both arms, the reader never looks at the connector word, and the
+stub answers no `gio info`. What `case_unmount` proves is that the parser is robust to a translated
+connector, which is worth having and is not a locale control.
 
 ### The Network group's plus mark: a lucide glyph, not a font character
 
@@ -3612,10 +3630,18 @@ scanned for the last `@` in the whole URI: `sftp://u@h:22/inbox@2026` made `2026
 
 **The port.** `ui/js/Protocols.js stripDefaultPort(uri)` finds the authority first, between `://` and
 the next `/`, so a `:` or an `@` in the path is never read as a port or a host, and a bracketed IPv6
-literal cannot match because it ends in `]`. `defaultPortFor()` derives that port from `PROTOCOLS`,
-`PORTS` and `scheme(p, tls)` rather than from a second table keyed by scheme, because that copy
-disagreed with the form for plain WebDAV: it said 80 where the dialog prefills 443 and writes
-`dav://host:443/path`. `Mounts.normalize()` runs it, so the dedup key, `ui/NetworkDialog.qml`'s
+literal cannot match because it ends in `]`. `defaultPortFor()` reads `SCHEME_PORTS`, one row per
+scheme, because the port gio omits belongs to the scheme and not to the protocol the form picked:
+deriving one number from `PORTS` gave `dav` and `davs` the same 443, which stripped a real `:443` off
+a `dav://` URI and left a real `:80` on it, the exact duplicate rail row `stripDefaultPort()` exists
+to remove. Every row is measured against gvfs 1.60.2 on this box by round-tripping each spelling
+through `Gio.File`, the uri mapper `gio mount -l` prints a mount through: it drops smb 445, sftp 22,
+ftp 21, ftps 21 and davs 443, and keeps every other port it is given, so `ftps` is 21 here and not
+IANA's 990. It canonicalises no `nfs` port at all, which is why 2049 is still in the table for the
+other half of the job: it is the port an nfs client uses when the line omits one, so the two
+spellings of one export still make one row. Where the form's prefill is not the scheme's own port,
+`dav://host:443/path`, gio keeps it and the bookmark and the mount already agree.
+`Mounts.normalize()` runs it, so the dedup key, `ui/NetworkDialog.qml`'s
 stored bookmark line and `Places.relabel`'s matching all agree with what `gio mount -l` reports.
 
 **The two rows.** `ui/js/Mounts.js rowMenu(entry)` is what the rail's right click opens: the release
@@ -3652,6 +3678,24 @@ Service writes with, so a body read back from it was the pre-Add snapshot, `next
 and the removal was refused on every retry until a restart. Deriving the body from `bookmarksText`,
 which `ui/shell.qml:158` reloads on that dialog's own `saved()`, is what closed it, and `rename()`
 takes its body from the same place for the same reason.
+
+**Every edit reads the file, and no edit reads a copy of it that has aged.** Two more instances of
+that one defect were measured on this box in the fix round, both of them the mirror of the first,
+and both are why `case_network` now runs an Add after its Remove and a rename after both.
+
+- **Add after Remove put the removed place back.** `ui/NetworkDialog.qml appendBookmark()` read
+  `bookmarksWrite.text()` from a `FileView` that is not watched and had last read before the rail
+  removed a line, so its "append" wrote the whole stale body plus the new line. Driven: Add
+  `198.51.100.1`, Remove it, Add two more, and the rail came back with all three. It re-reads,
+  blocking, before it composes the body.
+- **Two rail edits in one turn put the first one's line back.** `ui/NetworkPlaces.qml` derives every
+  body from `bookmarksText`, which is only newer than the last write if the reload that write caused
+  has landed, and `ui/Sidebar.qml reloadBookmarks()` did not wait for it. Measured through the real
+  `NetworkMounts.forget()` chain with the wiring under test as the only variable: over an
+  asynchronous reload two `forget()` calls in one turn left `smb://nas/one One` in the file, over a
+  blocking one they left it empty. `reloadBookmarks()` blocks now, and `ui/NetworkPlaces.qml`'s own
+  header says which question that answers, because "no write can be older than the rail" was never
+  an answer about this one.
 
 Not reimplemented, and both are omissions of PR #21 rather than of this rail: the branch's
 Add-dialog reuse, which reopens the form prefilled to edit a place's URI (that needs a
@@ -3712,7 +3756,33 @@ take Unmount with it exactly when a server is misbehaving; it is cleared when th
 starts and never in `onExited`, so it still reads true while the ended listing's stream drains. A
 re-read asked for mid-listing sets `_pollAgain` and runs when that listing ends, instead of being
 dropped and leaving a just-mounted share to wait out the five second poll. All of it moved out of
-`ui/NetworkMounts.qml` unchanged when that file had to make room for the 0.1.4 composition.
+`ui/NetworkMounts.qml` behaviour-for-behaviour when that file had to make room for the 0.1.4
+composition; two names are shorter in a file that owns nothing else, `listTimeoutMs` is `timeoutMs`
+and `_listTimedOut` is `_timedOut`, so a grep for the old names finds `ui/DeviceMounts.qml` alone.
+
+### A single-flight guard needs a deadline, and a refusal the user can see
+
+`ui/NetworkMounts.qml openShare()` is single flight over two children and only one of them was
+bounded. `mountProcess` had a 15 s `Timer`; `infoProcess` had nothing, and issue #36's fix made
+`mountProcess.onExited` run `gio info` on **every** exit, the dead-server path included, which is
+exactly where `gio info` never returns. So one hung info left `infoProcess.running` true and the
+guard's bare `return` refused every later share for the life of the window, in silence.
+
+Both halves are fixed. The `mountTimeout` `Timer` is restarted by `runInfo()`, so each leg of an
+open carries the same 15 s bound; whichever leg is still running when it fires is the one it ends,
+`_infoTimedOut` keeps that leg's own `onExited` from reporting a second, contradictory failure, and
+the bar gets the same "did not respond" sentence a hung mount already produced. The guard itself
+now says so too: "Another network location is still opening; give it a moment." `tests/ui.sh`
+`case_hangshare` drives all three against a `gio` stub that hangs `info` on one share and answers
+for the other, and it went red on the guard's own silence before the fix.
+
+The rule this follows, and it holds for anything written after it: **a single-flight guard needs a
+deadline on the thing it guards, and a refusal the user can see.** A guard that returns in silence
+names nothing at all, which is the opposite of an error naming its failing component. Four more
+guards in this tree are still unbounded, `ui/NetworkDialog.qml`'s `dropboxCheck`,
+`ui/ShareLink.qml`'s `sharelink`, `ui/Taildrop.qml`'s `statusProcess` and `ui/Opener.qml`'s
+`copier`. All four are pre-existing, none is a regression of this release, and they are a 0.1.5
+ticket rather than a fifth front in this one.
 
 **The DEVICES rail, `b28e992`, `ui/DeviceMounts.qml`.** `lsblk` on the same five second poll was
 unbounded too, and one that stopped answering left `poll()` refusing every later listing for the
