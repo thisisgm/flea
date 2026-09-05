@@ -864,7 +864,7 @@ waits for its consumer.
 - **Each `tests/ui.sh` case opens with a paragraph rather than a one-line comment**, and that is
   deliberate. A case is a fixture, a stub and a sequence, and the part a reader cannot recover from
   the assertions is what the stub is standing in for and what the case controls for;
-  `case_sharebrowser`'s preamble is twelve lines and `case_hangshare`'s is six. The comments inside
+  `case_sharebrowser`'s preamble is fifteen lines and `case_hangshare`'s is six. The comments inside
   a case body stay short. Three review rounds have now raised the preambles against the one-line
   comment rule, so what the file does is recorded here instead of being re-litigated per round.
 - **`./tests/run-all.sh` is the one command, and it exists because nothing executed any suite
