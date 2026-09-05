@@ -107,10 +107,10 @@ pub(crate) fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> 
     }
 }
 
-// Taking the copy back needs proof the source survived whole, and only a regular file that still stats is that proof.
+// Only a directory's removal can stop partway, so a source that still stats as any other kind is proof it survived whole.
 fn after_failed_removal(from: &Path, to: &Path, error: FleaError) -> FleaError {
     match from.symlink_metadata() {
-        Ok(meta) if meta.file_type().is_file() => undo_the_copy(to, error),
+        Ok(meta) if !meta.is_dir() => undo_the_copy(to, error),
         _ => kept_error(from, error),
     }
 }
@@ -124,7 +124,7 @@ fn kept_error(from: &Path, error: FleaError) -> FleaError {
     }
 }
 
-// The source still stats as a regular file, so it is whole and the copy is a duplicate this operation takes back.
+// The source still stats as a kind remove_any unlinks, so it is whole and the copy is a duplicate this operation takes back.
 fn undo_the_copy(to: &Path, error: FleaError) -> FleaError {
     match remove_any(to) {
         Ok(()) => rename_error(error),
