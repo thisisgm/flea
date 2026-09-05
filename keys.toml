@@ -504,9 +504,10 @@ label = "this sheet"
 #        neighbour  the columns view's parent and child columns, which are peeks with no cursor
 #        rail       ui/SidebarRow.qml: favourites, mounts and network places
 #        window     a press that belongs to no row at all, taken by ui/shell.qml
+#        chrome     ui/ChromeBar.qml's path above the listing, whose segments are their own targets
 # press  the button, then any modifier before it, then "x2" for the second tap of a double click
-# row    which rows the line covers: any, dir, file, renaming or result
-# does   setCursor open menu toggleSelect extendSelect reveal backOrParent nothing
+# row    which rows the line covers: any, dir, file, renaming, result or crumb
+# does   setCursor open menu toggleSelect extendSelect reveal backOrParent pathBar goToCrumb nothing
 #
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
 # opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
@@ -622,6 +623,25 @@ press = "right"
 row = "any"
 does = "nothing"
 label = "a peeked row has no menu"
+
+# Issue 45: the path above the listing is a control now as well as a label. Every segment but the
+# leaf opens its own directory on one tap, through the same pathEntered route the typed bar uses; the
+# leaf is the directory already listed, so it has nowhere of its own to go. The double click that
+# opens the bar is declared beside it because the crumb answers that press too: the tap count alone
+# decides between them, and neither ever runs with the other, which was measured on the box.
+[[pointer]]
+where = "chrome"
+press = "left"
+row = "crumb"
+does = "goToCrumb"
+label = "open the directory that segment of the path names"
+
+[[pointer]]
+where = "chrome"
+press = "left x2"
+row = "any"
+does = "pathBar"
+label = "type the path instead of clicking it"
 
 # Issue 20: the mouse's extra button. It belongs to the window rather than to a row, so it is the one
 # line here with no listing under it; ui/js/Nav.js mouseBack decides, and ui/shell.qml refuses it

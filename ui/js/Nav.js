@@ -148,6 +148,38 @@ function leafOf(path) {
     return cut < 0 || cut === text.length - 1 ? text : text.substring(cut + 1)
 }
 
+// Issue 45: the chrome's path as the pieces a click can land on. text is what is drawn, including
+// the separator that follows it, so the pieces concatenate to exactly the one line they replace;
+// path is the directory the piece names, which is what ui/ChromeBar.qml hands to pathEntered. The
+// home test is ui/js/Search.js scopeRoot's and not Format.tilde's, because Format.tilde writes
+// /home/gmx as "~x" and a crumb built on that would carry a click to /home/gm, another directory.
+function crumbs(path, home) {
+    var text = String(path)
+    var base = String(home)
+    var inHome = base.length > 0 && (text === base || text.indexOf(base + "/") === 0)
+    var display = inHome ? "~" + text.substring(base.length) : text
+    var parts = display.split("/")
+    var walked = inHome ? base : ""
+    // The leading "~" and the leading "/" are each a crumb of their own: one names home and the
+    // other names the root, and neither is a component the split hands back.
+    var out = [{ text: parts.length > 1 ? parts[0] + "/" : parts[0],
+                 path: walked.length > 0 ? walked : "/", last: false }]
+    for (var i = 1; i < parts.length; i++) {
+        if (parts[i].length === 0) {
+            continue
+        }
+        walked = walked + "/" + parts[i]
+        out.push({ text: parts[i] + "/", path: walked, last: false })
+    }
+    // Only a crumb with another after it carries a separator, so the last one gives its own back.
+    var end = out[out.length - 1]
+    if (out.length > 1) {
+        end.text = end.text.substring(0, end.text.length - 1)
+    }
+    end.last = true
+    return out
+}
+
 // Backspace and the chrome's up arrow: the root has no parent, so it is where climbing stops.
 function parent(pane) {
     if (pane.listInFlight) {

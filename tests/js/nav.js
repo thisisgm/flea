@@ -51,6 +51,15 @@ function browsing(history) {
     return p
 }
 
+// The two readings a crumb check makes: what the bar draws, and where each piece would take you.
+function drawn(list) {
+    return list.map(function (c) { return c.text }).join("")
+}
+
+function targets(list) {
+    return list.map(function (c) { return c.path }).join(" ")
+}
+
 function run(check) {
     check("a path's parent is everything above its last separator", Nav.parentOf("/home/gm/Work"), "/home/gm")
     check("a child of the root has the root as its parent", Nav.parentOf("/home"), "/")
@@ -127,6 +136,33 @@ function run(check) {
     Nav.mouseBack(busyBack)
     check("and a press during a load keeps the history it would have popped",
           busyBack.history.join(",") + "|" + busyBack.path, "/home/gm|/home/gm/Work")
+
+    // Issue 45: the chrome's path as the pieces a click can land on. The pieces have to concatenate
+    // to exactly the one line they replace, or the bar draws something nobody asked for, and each
+    // has to name the directory ui/ChromeBar.qml would hand to pathEntered.
+    var under = Nav.crumbs("/home/gm/Work/claude", "/home/gm")
+    check("the crumbs read as the tilde path they replace", drawn(under), "~/Work/claude")
+    check("and each one names the directory it would open",
+          targets(under), "/home/gm /home/gm/Work /home/gm/Work/claude")
+    check("and only the last is the directory the pane is already in",
+          under.map(function (c) { return c.last }).join(","), "false,false,true")
+    var atHome = Nav.crumbs("/home/gm", "/home/gm")
+    check("home itself is one crumb, the bare tilde",
+          drawn(atHome) + "|" + targets(atHome), "~|/home/gm")
+    var outside = Nav.crumbs("/usr/share", "/home/gm")
+    check("a path outside home keeps its leading separator, which is a crumb of its own",
+          drawn(outside) + "|" + targets(outside), "/usr/share|/ /usr /usr/share")
+    var root = Nav.crumbs("/", "/home/gm")
+    check("the root is one crumb and it is the last one",
+          drawn(root) + "|" + targets(root) + "|" + root.length, "/|/|1")
+    var noHome = Nav.crumbs("/home/gm/Work", "")
+    check("with no home in the environment every component is its own crumb",
+          drawn(noHome) + "|" + targets(noHome), "/home/gm/Work|/ /home /home/gm /home/gm/Work")
+    // ui/js/Format.js tilde writes /home/gmx as "~x", which is a wrong label on a line nobody can
+    // click and a wrong destination on one they can, so the crumbs test the separator themselves.
+    var sibling = Nav.crumbs("/home/gmx/deep", "/home/gm")
+    check("a sibling whose name merely starts with home's is outside it, and says so",
+          drawn(sibling) + "|" + targets(sibling), "/home/gmx/deep|/ /home /home/gmx /home/gmx/deep")
 
     // A keyboard rename reveals the row it renamed; one the pointer committed keeps the row the
     // click chose instead, because a write operation targets the selection ahead of the cursor.

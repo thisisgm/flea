@@ -105,15 +105,19 @@ function countWhere(where) {
 function run(check) {
     var rows = Keymap.POINTER
     // The denominator first: an empty table would pass every loop below by having nothing in it.
-    check("the pointer table reached the tests at all", rows.length, 16)
+    check("the pointer table reached the tests at all", rows.length, 18)
     check("the table declares the listing's clicks", countWhere("listing"), 9)
     check("the table declares the neighbour columns' clicks", countWhere("neighbour"), 4)
     check("the table declares the rail's clicks", countWhere("rail"), 2)
     // Issue 20's back button belongs to no row, so it is declared against the window itself and
     // ui/shell.qml is what carries it; there is nothing here for driveListing to press.
     check("the table declares the window's own buttons", countWhere("window"), 1)
-    check("every row lands in one of those four places",
-          countWhere("listing") + countWhere("neighbour") + countWhere("rail") + countWhere("window"),
+    // Issue 45's crumbs are ui/ChromeBar.qml's own targets, above the listing and not in it, so
+    // driveListing has nothing to press for them either.
+    check("the table declares the chrome path's clicks", countWhere("chrome"), 2)
+    check("every row lands in one of those five places",
+          countWhere("listing") + countWhere("neighbour") + countWhere("rail")
+          + countWhere("window") + countWhere("chrome"),
           rows.length)
 
     var drivenListing = 0
