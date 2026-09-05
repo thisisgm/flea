@@ -132,30 +132,6 @@ mod tests {
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
 
-    // corner: runs as a plain user, where a directory with no write bit cannot lose the child it holds.
-    #[test]
-    fn a_rename_that_kept_its_copy_can_leave_a_remnant_where_it_came_from() {
-        let d = TestDir::new("renamekeptremnant");
-        let hold = d.dir("hold");
-        let source = hold.join("source");
-        std::fs::create_dir(&source).unwrap();
-        std::fs::write(source.join("alpha.txt"), "alpha").unwrap();
-        std::fs::write(source.join("beta.txt"), "beta").unwrap();
-        let target = d.join("target");
-        // renameat2 succeeds on this filesystem, so only an rclone or GVFS mount reaches the fallback
-        // through rename; the primitive is driven directly the way renamecompat's tests do, and a parent
-        // with no write bit is what fails the removal after it has already emptied the source.
-        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
-        let error = renamecompat::copy_then_remove(&source, &target).expect_err("source removal must fail");
-        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
-        assert_eq!(error.where_, renamecompat::KEPT, "the half-succeeded rename keeps its own kind");
-        assert!(!source.join("alpha.txt").exists(), "the source lost a child, so it is not the whole copy");
-        // Both files are here and one of them is nowhere else, which is why rename journals no step:
-        // an undo that removed this target would take the only copy of alpha.txt with it.
-        assert_eq!(std::fs::read_to_string(target.join("alpha.txt")).unwrap(), "alpha");
-        assert_eq!(std::fs::read_to_string(target.join("beta.txt")).unwrap(), "beta");
-    }
-
     #[test]
     fn a_name_with_a_separator_is_refused_before_any_syscall() {
         assert!(valid_name("ordinary.txt"));

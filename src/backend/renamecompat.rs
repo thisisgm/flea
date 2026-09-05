@@ -333,6 +333,26 @@ mod tests {
         );
     }
 
+    // corner: runs as a plain user, where a directory with no write bit cannot lose the child it holds.
+    #[test]
+    fn a_kept_copy_can_leave_a_remnant_at_the_name_it_came_from() {
+        let d = TestDir::new("copyrenameremnant");
+        let hold = d.dir("hold");
+        let source = hold.join("source");
+        std::fs::create_dir(&source).unwrap();
+        std::fs::write(source.join("alpha.txt"), "alpha").unwrap();
+        std::fs::write(source.join("beta.txt"), "beta").unwrap();
+        let target = d.join("target");
+        // A parent with no write bit fails the unlink of the source itself, once its children have gone.
+        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
+        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(error.where_, KEPT, "the half-succeeded rename keeps its own kind");
+        assert!(!source.join("alpha.txt").exists(), "the source lost a child, so it is not the whole copy");
+        assert_eq!(std::fs::read_to_string(target.join("alpha.txt")).unwrap(), "alpha");
+        assert_eq!(std::fs::read_to_string(target.join("beta.txt")).unwrap(), "beta");
+    }
+
     // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
     #[test]
     fn a_file_rename_takes_its_copy_back_when_the_source_will_not_go() {
