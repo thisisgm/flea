@@ -180,6 +180,18 @@ Item {
         root.renamed()
     }
 
+    // Forgets a saved place, the same blocking write rename() makes just above: a share that is
+    // mounted right now stays on the rail as the live mount it is until something unmounts it.
+    function forget(uri) {
+        var body = bookmarksWrite.text()
+        // A FileView that has not read yet answers "", and writing that back would empty the file.
+        if (String(uri || "").length === 0 || body.length === 0)
+            return
+        bookmarksWrite.setText(Mounts.removeBookmark(body, uri))
+        bookmarksWrite.waitForJob()
+        root.renamed()
+    }
+
     function pollMounts() {
         if (mountListProcess.running) {
             root._pollAgain = true

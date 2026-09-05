@@ -3560,10 +3560,39 @@ rows, through `ui/Sidebar.qml`'s `railItemFor(index)` (the rail has no `ListView
 Repeater keeps every row instantiated, so this just indexes into whichever group carries it).
 
 `case_unmount` stubs `gio mount -l` to report one fake share as mounted and `gio mount -u` to log
-its own call, and proves that a right click opens one Unmount row drawing the `eject` mark without
-unmounting anything, that Escape closes it with nothing run, that choosing the row unmounts and
-messages "Unmounted \<label\>.", that a favourite opens no menu at all, and that the list still
-takes keys afterwards, which is the focus regression the second-instance bisection above found.
+its own call, and proves that a right click opens `Unmount|Rename|Remove` drawing `eject|rename|minus`
+without unmounting anything, that Escape closes it with nothing run, that choosing the first row
+unmounts and messages "Unmounted \<label\>.", that a favourite opens no menu at all, and that the
+list still takes keys afterwards, which is the focus regression the second-instance bisection found.
+
+### PR #21: rename and remove a saved place, and one rail row per share
+
+`@TomFaulkner`'s branch asked for editing and removing network places and for a share to stop
+appearing twice when its port is spelled two ways. It is reimplemented here rather than merged,
+because the same branch carries a separate connection layer, and because its own `stripDefaultPort`
+scanned for the last `@` in the whole URI: `sftp://u@h:22/inbox@2026` made `2026` the host, kept the
+`:22`, and produced the exact second rail row the function existed to remove.
+
+**The port.** `ui/js/Protocols.js stripDefaultPort(uri)` finds the authority first, between `://` and
+the next `/`, so a `:` or an `@` in the path is never read as a port or a host, and a bracketed IPv6
+literal cannot match because it ends in `]`. `SCHEME_PORTS` is keyed by scheme, not by the protocol
+name `PORTS` uses, because a bookmarked or gio-reported URI only ever carries a scheme.
+`Mounts.normalize()` runs it, so the dedup key, `ui/NetworkDialog.qml`'s stored bookmark line and
+`Places.relabel`'s matching all agree with what `gio mount -l` reports.
+
+**The two rows.** `ui/js/Mounts.js rowMenu(entry)` is what the rail's right click opens: the release
+row, then `Rename` and `Remove` for any network share, mounted or not. It is deliberately not
+`railMenu()`, which stays the release verdict alone, because `ui/js/Eject.js` reads `railMenu()[0]`
+and Ctrl+E must keep refusing a row with nothing mounted instead of starting an editor on it.
+`Mounts.release()` dispatches all four actions and takes the rail itself, so `Rename` reaches
+`Sidebar.startRename()` (the same editor `r` already opened) and `Remove` reaches
+`NetworkMounts.forget()`, which drops the line through `Mounts.removeBookmark()` and the blocking
+write `rename()` already uses. A share that is mounted right now stays on the rail as the live mount
+it is until something unmounts it, which is why `Unmount` is still offered beside `Remove`.
+
+Not reimplemented: the branch's Add-dialog reuse, which reopens the form prefilled to edit a place's
+URI. That needs a `ui/shell.qml` connection and an `ui/Ipc.qml` reader, and the pinned-places store
+itself is being replaced, so `Rename` is the edit this rail offers today.
 
 `case_eject` stubs `lsblk --json` as well, so a removable volume exists at zero privilege with no
 real device anywhere near it. Its negative control is the whole point: the `gio` stub always exits

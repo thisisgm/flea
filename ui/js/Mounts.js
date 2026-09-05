@@ -78,9 +78,10 @@ function decodePath(raw) {
     }
 }
 
-// One canonical form: every trailing slash stripped, except a bare host root, which keeps one.
+// One canonical form: every trailing slash stripped except a bare host root, which keeps one, and
+// a port the scheme would have used anyway dropped, because gio's own listing never reports one.
 function normalize(uri) {
-    var stripped = String(uri || "").replace(/\/+$/, "")
+    var stripped = Protocols.stripDefaultPort(String(uri || "").replace(/\/+$/, ""))
     var bareRoot = /^[a-z][a-z0-9+.-]*:\/\/[^\/]+$/i.test(stripped)
     return bareRoot ? stripped + "/" : stripped
 }
@@ -181,6 +182,18 @@ function railMenu(entry) {
     return []
 }
 
+// What the rail's own right click opens: the release row above, then the two rows a saved place owns
+// whether or not anything mounted it, marked as a removal because forgetting a place trashes
+// nothing. ui/js/Eject.js reads railMenu and never this, so Ctrl+E still refuses an unmounted row.
+function rowMenu(entry) {
+    var rows = railMenu(entry)
+    if (entry && entry.group === "network" && entry.kind === "share") {
+        rows.push({ label: "Rename", action: "rename", glyph: "rename" })
+        rows.push({ label: "Remove", action: "remove", glyph: "minus" })
+    }
+    return rows
+}
+
 // The handle a chosen menu row carries back: a volume's device node, a share's uri, "" for a row
 // with no release. The rail rebuilds on a five second poll, so an index taken when the menu opened
 // can name a different row by the time a row inside it is chosen; a key cannot.
@@ -229,7 +242,7 @@ function raiseMenu(pane, sidebar) {
     var entry = sidebar.entries[sidebar.cursorIndex]
     if (!entry)
         return
-    if (railMenu(entry).length > 0)
+    if (rowMenu(entry).length > 0)
         sidebar.openCursorMenu()
     else
         pane.message(entry.label + " has nothing to eject or unmount.", false)
@@ -238,17 +251,40 @@ function raiseMenu(pane, sidebar) {
 // The rail menu's chosen row, handed the row's key rather than its position: the rail rebuilds on
 // a five second poll, so the index the menu opened over can name a different row by now. A key
 // that no longer names a row does nothing, because the row it named has left the rail already.
-// Both Services re-check the kind themselves; this only resolves which row was meant.
-function release(action, key, devices, mounts, deviceEntries, networkEntries) {
+// Both Services re-check the kind themselves; this only resolves which row was meant, and the rail
+// itself owns the two rows that need no mount at all.
+function release(action, key, devices, mounts, sidebar) {
     if (action === "eject") {
-        var volume = rowByKey(deviceEntries, key)
+        var volume = rowByKey(sidebar.deviceEntries, key)
         if (volume >= 0)
             devices.eject(volume)
         return
     }
-    if (action === "unmount") {
-        var share = rowByKey(networkEntries, key)
-        if (share >= 0)
-            mounts.unmount(share)
+    var share = rowByKey(sidebar.networkEntries, key)
+    if (share < 0)
+        return
+    if (action === "unmount")
+        mounts.unmount(share)
+    else if (action === "rename")
+        sidebar.startRename(sidebar.favoriteEntries.length + share)
+    else if (action === "remove")
+        mounts.forget(sidebar.networkEntries[share].uri)
+}
+
+// Sample input: the operator's own bookmarks file, favourites and network places in one list.
+// smb://192.168.1.10/isos NAS isos
+// Matched normalized, the way Places.relabel matches, so a line spelling out a default port still
+// names the same place as the live mount that omits it.
+function removeBookmark(body, uri) {
+    var target = normalize(uri)
+    var lines = String(body || "").split("\n")
+    var out = []
+    for (var i = 0; i < lines.length; i++) {
+        var space = lines[i].indexOf(" ")
+        var one = space < 0 ? lines[i] : lines[i].substring(0, space)
+        if (target.length > 0 && one.length > 0 && normalize(one) === target)
+            continue
+        out.push(lines[i])
     }
+    return out.join("\n")
 }

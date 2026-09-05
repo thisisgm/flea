@@ -98,6 +98,29 @@ function complete(form) {
     return String(form.host || "").trim().length > 0
 }
 
+// Scheme to default port, one row per scheme "scheme()" above can produce. PORTS is keyed by the
+// protocol the form picked; a bookmarked or gio-reported URI only ever carries the scheme.
+var SCHEME_PORTS = { "smb": 445, "sftp": 22, "ftp": 21, "ftps": 21, "dav": 80, "davs": 443, "nfs": 2049 }
+
+function defaultPortFor(uriScheme) {
+    return SCHEME_PORTS[String(uriScheme || "").toLowerCase()] || 0
+}
+
+// "gio mount -l" never reports a scheme's default port and the add form spells out the one it
+// prefilled, so the same share arrives spelled two ways and must resolve to one rail row. The port
+// is found in the authority alone: a ":" or an "@" further along belongs to the path.
+function stripDefaultPort(uri) {
+    var text = String(uri || "")
+    var auth = authority(text)
+    var tail = ":" + defaultPortFor(schemeOf(text))
+    // A bracketed IPv6 literal ends in "]", so its own trailing digits can never match this tail.
+    if (auth.length === 0 || tail === ":0" || auth.substring(auth.length - tail.length) !== tail)
+        return text
+    var mark = text.indexOf("://") + 3
+    return text.substring(0, mark) + auth.substring(0, auth.length - tail.length)
+        + text.substring(mark + auth.length)
+}
+
 // The scheme a built or bookmarked URI carries, lowercased; "" when the text is not a URI at all.
 function schemeOf(uri) {
     var text = String(uri || "")

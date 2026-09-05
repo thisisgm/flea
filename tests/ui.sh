@@ -2471,18 +2471,19 @@ EOS
     settle
     [[ "$(ipc focusView)" == "rail" ]] || fail "unmount: Tab did not reach the rail"
 
-    # Right click raises the menu over the row and nothing else: one row, named, marked, and no
-    # unmount has run. The old two-right-click arm is gone, see ui/Sidebar.qml "openRailMenu".
+    # Right click raises the menu over the row and nothing else: the release row first, then the two
+    # rows the saved place itself owns, and no unmount has run. The old two-right-click arm is gone,
+    # see ui/Sidebar.qml "openRailMenu" and ui/js/Mounts.js "rowMenu".
     click_rail_row 1 right
     settle
     printf 'UNMOUNT menu visible=%s entries=%s glyphs=%s\n' \
         "$(ipc contextMenuVisible)" "$(ipc contextMenuEntries)" "$(ipc contextMenuGlyphs)"
     shot unmount-menu
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "unmount: right click opened no menu on the share"
-    [[ "$(ipc contextMenuEntries)" == "Unmount" ]] \
-        || fail "unmount: the share's menu is $(ipc contextMenuEntries), not one Unmount row"
-    [[ "$(ipc contextMenuGlyphs)" == "eject" ]] \
-        || fail "unmount: the Unmount row draws $(ipc contextMenuGlyphs), not the eject mark"
+    [[ "$(ipc contextMenuEntries)" == "Unmount|Rename|Remove" ]] \
+        || fail "unmount: the share's menu is $(ipc contextMenuEntries), not Unmount then Rename then Remove"
+    [[ "$(ipc contextMenuGlyphs)" == "eject|rename|minus" ]] \
+        || fail "unmount: the share's rows draw $(ipc contextMenuGlyphs), not eject, rename and minus"
     [[ -z "$(cat "$unmount_log")" ]] || fail "unmount: opening the menu already unmounted: $(cat "$unmount_log")"
 
     # Escape closes it and still nothing has run, which is what makes the menu the confirmation.

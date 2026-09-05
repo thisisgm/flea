@@ -50,4 +50,82 @@ function run(check) {
     check("a location with no FUSE path answers nothing rather than undefined",
           Mounts.localPath('uri: smb://nas/\ntype: directory\n'), "")
     check("no gio output at all answers nothing rather than throwing", Mounts.localPath(""), "")
+
+    // PR #21 (@TomFaulkner): one rail row per share, however the port is spelled. "gio mount -l"
+    // never reports a scheme's default port, while the add form spells out the one it prefilled.
+    check("a default port is not part of the canonical form",
+          Mounts.normalize("smb://nas:445/isos/"), "smb://nas/isos")
+    check("so a bookmark and a live mount of one share resolve to one rail row",
+          Mounts.normalize("smb://nas:445/isos/") === Mounts.normalize("smb://nas/isos/"), true)
+    check("a port the scheme would not have used stays",
+          Mounts.normalize("smb://nas:4450/isos/"), "smb://nas:4450/isos")
+    check("a bare root keeps its own single slash after the port goes",
+          Mounts.normalize("smb://nas:445"), "smb://nas/")
+    // The defect the contribution itself introduced: a lastIndexOf("@") over the whole URI reads a
+    // path's own "@" as the authority, leaves the :22 standing, and answers two rows for one share.
+    check("an at sign further along the path is never read as the authority",
+          Mounts.normalize("sftp://u@h:22/inbox@2026"), "sftp://u@h/inbox@2026")
+
+    check("a bracketed IPv6 host whose own digits end in the port keeps them",
+          Protocols.stripDefaultPort("smb://[fe80::445]/isos/"), "smb://[fe80::445]/isos/")
+    check("but a real port after the bracket goes",
+          Protocols.stripDefaultPort("smb://[fe80::1]:445/isos/"), "smb://[fe80::1]/isos/")
+    check("every scheme the form can build knows its own default",
+          [Protocols.stripDefaultPort("sftp://h:22/x"), Protocols.stripDefaultPort("ftp://h:21/x"),
+           Protocols.stripDefaultPort("ftps://h:21/x"), Protocols.stripDefaultPort("dav://h:80/x"),
+           Protocols.stripDefaultPort("davs://h:443/x"), Protocols.stripDefaultPort("nfs://h:2049/x")].join("|"),
+          "sftp://h/x|ftp://h/x|ftps://h/x|dav://h/x|davs://h/x|nfs://h/x")
+    check("and never drops another scheme's default", Protocols.stripDefaultPort("sftp://h:445/x"), "sftp://h:445/x")
+    check("text that is not a uri at all is left alone", Protocols.stripDefaultPort("/home/gm"), "/home/gm")
+
+    // The rail menu the right click opens, which is not the release verdict ui/js/Eject.js reads:
+    // Ctrl+E must still refuse a row with nothing mounted rather than starting an editor on it.
+    var mounted = { path: "", label: "isos", group: "network", kind: "share", uri: "smb://nas/isos/", mounted: true }
+    var saved = { path: "", label: "NAS", group: "network", kind: "share", uri: "smb://nas/", mounted: false }
+    var volume = { path: "/run/media/gm/128GB", label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true }
+    var favourite = { path: "/home/gm", label: "Home", group: "favorite", kind: "favorite", mounted: false }
+    function labels(rows) { return rows.map(function (r) { return r.label }).join("|") }
+    check("a mounted share releases first, then offers the two the place itself owns",
+          labels(Mounts.rowMenu(mounted)), "Unmount|Rename|Remove")
+    check("and Ctrl+E still reads the release row alone", Mounts.railMenu(mounted)[0].action, "unmount")
+    check("a bookmark nothing has mounted offers the two that need no mount",
+          labels(Mounts.rowMenu(saved)), "Rename|Remove")
+    check("so it opens a menu where it used to open an empty one", Mounts.rowMenu(saved).length, 2)
+    check("but it has nothing to release, so Ctrl+E still says so", Mounts.railMenu(saved).length, 0)
+    check("a removable volume's menu is untouched", labels(Mounts.rowMenu(volume)), "Eject")
+    check("a favourite still opens no menu at all", Mounts.rowMenu(favourite).length, 0)
+    check("no entry at all offers nothing rather than throwing", Mounts.rowMenu(null).length, 0)
+    check("Remove draws the minus mark, because forgetting a place trashes nothing",
+          Mounts.rowMenu(saved)[1].glyph, "minus")
+
+    // A chosen row arrives as its key, never its position: the rail rebuilds on a five second poll.
+    function chose(action, key, entries) {
+        var log = []
+        var sidebar = { favoriteEntries: [favourite], networkEntries: entries, deviceEntries: [volume],
+                        startRename: function (i) { log.push("rename" + i) } }
+        var mounts = { unmount: function (i) { log.push("unmount" + i) },
+                       forget: function (uri) { log.push("forget " + uri) } }
+        var devices = { eject: function (i) { log.push("eject" + i) } }
+        Mounts.release(action, key, devices, mounts, sidebar)
+        return log.join(",")
+    }
+    check("Rename starts the rail's own editor on the row the key names, past the favourites",
+          chose("rename", "smb://nas/", [mounted, saved]), "rename2")
+    check("Remove forgets the place by uri and never by position",
+          chose("remove", "smb://nas/", [mounted, saved]), "forget smb://nas/")
+    check("a key that no longer names a row does nothing at all",
+          chose("remove", "smb://gone/", [mounted, saved]), "")
+    check("Unmount still resolves through the network Service",
+          chose("unmount", "smb://nas/isos/", [mounted, saved]), "unmount0")
+    check("Eject still resolves through the device Service",
+          chose("eject", "/dev/sda1", [mounted, saved]), "eject0")
+
+    // Sample input: the operator's own bookmarks file, favourites and places in one list.
+    var body = "file:///home/gm/Downloads Downloads\nsmb://nas:445/isos NAS isos\nsmb://other/data Other\n"
+    check("the place's own line goes and every other byte stays",
+          Mounts.removeBookmark(body, "smb://nas/isos/"),
+          "file:///home/gm/Downloads Downloads\nsmb://other/data Other\n")
+    check("a uri no line carries changes nothing", Mounts.removeBookmark(body, "smb://gone/x"), body)
+    check("an empty uri never empties the file", Mounts.removeBookmark(body, ""), body)
+    check("no body at all answers nothing rather than throwing", Mounts.removeBookmark("", "smb://nas/isos/"), "")
 }
