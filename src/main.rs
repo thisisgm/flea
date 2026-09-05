@@ -9,6 +9,7 @@ mod jsondoc;
 mod launcher;
 mod open;
 mod paths;
+mod terminal;
 mod thp;
 mod uischema;
 mod uistate;
@@ -101,6 +102,11 @@ fn main() {
     // flea --open <path>
     if args.len() == 3 && args[1] == "--open" {
         exit(open::open(&args[2]));
+    }
+
+    // flea --terminal <dir>
+    if args.len() == 3 && args[1] == "--terminal" {
+        exit(terminal::open_terminal(&args[2]));
     }
 
     // flea --default [off]: the one per-user step pacman cannot own, see docs/install.md.

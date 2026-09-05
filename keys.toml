@@ -55,6 +55,12 @@ action = "addNetwork"
 key = "L"
 action = "pathBar"
 
+# Opens the default terminal in the directory being shown, through flea --terminal
+# (xdg-terminal-exec --dir=). Ctrl+T is free and mirrors GNOME's own open-in-terminal chord.
+[[ctrl]]
+key = "T"
+action = "openTerminal"
+
 [[ctrl]]
 key = "Delete"
 action = "trash"
@@ -475,6 +481,11 @@ label = "context menu"
 keys = "^e"
 action = "eject"
 label = "eject"
+
+[[sheet]]
+keys = "^t"
+action = "openTerminal"
+label = "open terminal"
 
 [[sheet]]
 keys = "^+"

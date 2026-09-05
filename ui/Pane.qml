@@ -223,6 +223,9 @@ FocusScope {
     // A path the caller already resolved, for the columns view's neighbour rows, which have no cursor.
     function openFile(path) { wire.opener.open(path) }
 
+    // A terminal in the directory being shown, through ui/Opener.qml's flea --terminal.
+    function openTerminal() { wire.opener.openTerminal(root.path) }
+
     function openParent() { Nav.parent(root) }
 
     function join(base, name) {

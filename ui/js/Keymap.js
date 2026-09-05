@@ -24,6 +24,7 @@ function lookup(key, text, modifiers) {
         if (key === Qt.Key_E) return "eject"
         if (key === Qt.Key_K) return "addNetwork"
         if (key === Qt.Key_L) return "pathBar"
+        if (key === Qt.Key_T) return "openTerminal"
         if (key === Qt.Key_Delete) return "trash"
         if (key === Qt.Key_Up) return "parent"
         if (key === Qt.Key_Down) return "open"
@@ -120,6 +121,7 @@ var SHEET = [
     { keys: "a", action: "addNetwork", label: "add network place" },
     { keys: "m", action: "menu", label: "context menu" },
     { keys: "^e", action: "eject", label: "eject" },
+    { keys: "^t", action: "openTerminal", label: "open terminal" },
     { keys: "^+", action: "scaleUp", label: "scale up" },
     { keys: "^-", action: "scaleDown", label: "scale down" },
     { keys: "?", action: "keymapSheet", label: "this sheet" },

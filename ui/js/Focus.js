@@ -128,6 +128,7 @@ function act(action, root) {
     case "sortReverse": Sort.reverse(root); return
     case "addNetwork": root.sidebar.addRequested(); return
     case "eject": Eject.release(root, root.sidebar, false); return
+    case "openTerminal": root.openTerminal(); return
     // Finder's Cmd+1/2/3; the chrome's three buttons write the same property, so they follow.
     case "viewList": root.viewMode = "list"; return
     case "viewColumns": root.viewMode = "columns"; return
@@ -253,6 +254,11 @@ function handleKey(event, root, sidebar) {
     // The bar lives in the chrome above both views, so neither owns it; shell.qml holds the field.
     if (action === "pathBar") {
         root.pathBarRequested()
+        return true
+    }
+    // The terminal button lives in the same chrome, so it answers from either view too.
+    if (action === "openTerminal") {
+        root.openTerminal()
         return true
     }
     if (root.focusView === RAIL) {

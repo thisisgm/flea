@@ -29,6 +29,7 @@ Item {
         id: opener
         onFailed: function (path) { pane.message("That file could not be opened; check that it still exists.", true) }
         onIsDirectory: function (path) { pane.open(path) }
+        onTerminalFailed: function (path) { pane.message("That terminal could not be opened; check that it still exists.", true) }
     }
 
     Flea.ShareLink {

@@ -8,11 +8,16 @@ Item {
 
     signal failed(string path)
     signal isDirectory(string path)
+    signal terminalFailed(string path)
 
     // The status src/open.rs returns for a directory, which the caller navigates to instead.
     readonly property int isDirectoryStatus: 3
 
     property string current: ""
+    // The terminal launch's own path: open() and openTerminal() run on separate
+    // Processes guarded only against themselves, so sharing current let whichever
+    // started second rewrite the path the first one's onExited still reports.
+    property string terminalCurrent: ""
 
     // flea --open decides and exits in milliseconds, so one Process serves every open.
     function open(path) {
@@ -36,6 +41,29 @@ Item {
                 return
             }
             root.failed(root.current)
+        }
+    }
+
+    // A terminal in the current directory, through flea --terminal so the huge page,
+    // process-group and stdio guards in src/terminal.rs apply. Its own Process, because
+    // flea --open decides and exits in milliseconds and one process serves every open.
+    function openTerminal(path) {
+        if (terminalChild.running) {
+            return
+        }
+        root.terminalCurrent = path
+        terminalChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--terminal", path]
+        terminalChild.running = true
+    }
+
+    Process {
+        id: terminalChild
+
+        onExited: function (exitCode, exitStatus) {
+            if (exitCode === 0) {
+                return
+            }
+            root.terminalFailed(root.terminalCurrent)
         }
     }
 
