@@ -327,15 +327,30 @@ terminal interface, when it is built, submits patches for `view`, `hidden` and `
 scale, menus and places are the window's.
 
 **The window's read is the settled file, and not a raw one.** `main()` calls `Store::settle` before
-it hands off to `qs`: an empty patch through the same lock and the same per-key validation, so a
-value a hand edit or a newer Flea left in `ui.json` has already fallen back to its own default by
-the time `ui/ViewState.qml`'s `FileView` reads it. Without that step the two front ends answer one
-file two ways, because the window's read is a `JSON.parse` and applies no rule of its own. `settle`
-is also where 0.1.3's `view.json` is migrated, since `read()` falls back to it while `ui.json` is
-absent. A launch with neither file writes nothing, the way a first run always has, and neither does
-one whose `ui.json` already reads back as exactly what a rewrite would render: the temp, the
-`sync_all` and the rename measure 8 to 10 ms a call on this box against a bare read's 1.2 ms, which
-is real money against a 77 ms startup, so the settled case costs a read and stops.
+it hands off to `qs`: an empty patch through the same lock and the same per-key validation, so
+whenever that settle succeeded on a document it could read, a value a hand edit left in a key this
+Flea knows has already fallen back to its own default by the time `ui/ViewState.qml`'s `FileView`
+reads it. A key this Flea does not know is not one of those: `merge` keeps it verbatim, so a newer
+Flea's settings survive the settle rather than falling back to anything. Without the step the two
+front ends answer one file two ways, because the window's read is a `JSON.parse` and applies no rule
+of its own. The settle can fail, on an unwritable state directory or a `ui.json` that is a link, and
+then `main()` prints one line and opens the window anyway on a file it did not validate. `settle` is
+also where 0.1.3's `view.json` is migrated, since `read()` falls back to it only while `ui.json` is
+absent.
+
+**A launch never spends the file to settle it.** A launch with neither file writes nothing, the way
+a first run always has. Neither does one whose `ui.json` already reads back as exactly what a
+rewrite would render, because that rewrite would change nothing: the lock, the temp, the `sync_all`
+and the rename measured 6.7 to 18.6 ms a launch on this box, against 1.3 to 1.7 ms for a launch that
+only reads, which is real money against a 77 ms startup. Both are per-launch times of `flea --gui`
+driven to the missing shell, 100 launches a pass over eight passes of two harnesses that differed
+only in how `ui.json` was reseeded between launches; the read figure has the separately timed reseed
+subtracted, and the write figure's own eight passes spanned that whole 6.7 to 18.6, which is why
+each is a range here and never a number to cite. And neither does a launch whose `ui.json` cannot be
+read as a JSON object at all: that file is the only copy of whatever the operator wrote, both front
+ends already read it as the full default shape, and rewriting it would spend the operator's
+settings to close nothing, so it is left byte for byte and `ui/PaneWire.qml` says once that what is
+on disk was not used.
 
 **A refused write reaches the operator.** `ui/ViewState.qml` records a patch as stored only when
 `flea --ui-state` exits 0. `ui/js/UiState.js` holds that bookkeeping, and `ui/PaneWire.qml` turns
@@ -352,7 +367,8 @@ on the box with the lock taken out, twelve concurrent writers landed 1 of their 
 12 of 12.
 
 **Failure is per key, never per file.** A document that does not parse reads as the full default
-shape rather than throwing. A value a key cannot take costs that key alone, and every other key in
+shape rather than throwing, and is left on disk exactly as it was rather than rewritten into that
+shape. A value a key cannot take costs that key alone, and every other key in
 the file stands. A key this Flea does not know is kept and rewritten as it was read, at the top
 level and inside a nested object, so an older Flea cannot eat a newer one's settings. A patch is the
 other way round: it is checked whole before any of it lands, and one bad key refuses the whole patch
@@ -379,8 +395,8 @@ killed 3 of 120, which is what the old floor of one kill was letting "120 SIGKIL
 `hiddenCols` named what was HIDDEN and `columns` names what is SHOWN, so the migration inverts it;
 `uiScale` is dropped on the operator's ruling, because 0.1.4 stores an Omarchy stop and never a free
 multiplier. The migration rides `settle` above, so the first paint after an upgrade already reads
-the migrated columns. A `ui.json` that exists means `view.json` is never read again, and
-`view.json` is never written again.
+the migrated columns. A `ui.json` that exists means `view.json` is never read again, whether or not
+this Flea can read that `ui.json`'s bytes, and `view.json` is never written again.
 
 ## Modes
 
@@ -763,6 +779,13 @@ directions, the same shape as `json.rs`: a whole JSON document in, and the same 
 with its own numbers written the way they were read. **Two lines of headroom is not headroom**: the
 next change here splits the parser off, the way `thumbargv` came out of `thumbspec`, and the seam is
 `parse` against the `Json` type plus `render`, which share only the type.
+
+`src/uistore.rs` is 393 lines by `wc -l`, over the soft budget and 7 under the hard cap, with its
+`#[cfg(test)]` at 191, so 190 lines of implementation and 203 of tests. Just over half the file is
+that test module because every claim it makes is about a real file, a real symlink, a real lock and
+a real rename, and each of those costs a fixture on disk. The seam for the next change is the four
+write helpers at the bottom, `make_dir`, `take_lock`, `refuse_a_link` and `write_new`, which know
+nothing about `Store` beyond the paths they are handed.
 
 `src/backend/thumbspec.rs` is 312 lines, over the soft budget and under the hard cap: 190 the
 discovery, the desktop-entry parser and `is_runnable`, the other 122 the test module. Those
