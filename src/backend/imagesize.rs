@@ -15,6 +15,10 @@ const RIFF_MAGIC: &[u8] = b"RIFF";
 const WEBP_MAGIC: &[u8] = b"WEBP";
 
 pub fn dimensions(path: &Path) -> Option<(u32, u32)> {
+    // Nothing but a regular file is opened here: a fifo with no writer never returns from open().
+    if !std::fs::metadata(path).map(|m| m.is_file()).unwrap_or(false) {
+        return None;
+    }
     let mut buf = vec![0u8; PROBE];
     let mut f = File::open(path).ok()?;
     let n = f.read(&mut buf).ok()?;
@@ -136,6 +140,7 @@ fn webp(b: &[u8]) -> Option<(u32, u32)> {
 mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
+    use std::path::PathBuf;
 
     fn png_header(w: u32, h: u32) -> Vec<u8> {
         let mut v = Vec::new();
@@ -211,5 +216,30 @@ mod tests {
         assert_eq!(dimensions(&p), Some((1234, 567)));
         assert_eq!(dimensions(&d.join("missing.png")), None);
         assert_eq!(dimensions(&d.file("notes.txt", "plain text")), None);
+    }
+
+    // Measured on a thread with a bound, because the defect under test is an open that never returns.
+    fn measured(path: PathBuf) -> Option<(u32, u32)> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || { let _ = tx.send(dimensions(&path)); });
+        rx.recv_timeout(std::time::Duration::from_secs(5)).expect("dimensions must answer within its bound")
+    }
+
+    #[test]
+    fn nothing_but_a_regular_file_is_ever_opened_to_be_measured() {
+        let d = TestDir::new("imagesizekinds");
+        let fifo = d.join("pipe");
+        assert!(std::process::Command::new("mkfifo").arg(&fifo).status().expect("mkfifo").success());
+        assert_eq!(measured(fifo), None, "opening a fifo with no writer never returns");
+        std::os::unix::fs::symlink("pipe", d.join("topipe")).unwrap();
+        assert_eq!(measured(d.join("topipe")), None, "the open follows the link, so the check has to as well");
+        assert_eq!(measured(d.dir("sub")), None, "a directory has no header to read");
+        let sock = d.join("sock");
+        let _listener = std::os::unix::net::UnixListener::bind(&sock).unwrap();
+        assert_eq!(measured(sock), None, "a socket is not a file to measure");
+        // The guard is this narrow so a real image is still measured, which is what this file is for.
+        let png = d.join("shot.png");
+        std::fs::write(&png, png_header(1234, 567)).unwrap();
+        assert_eq!(measured(png), Some((1234, 567)));
     }
 }

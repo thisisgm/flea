@@ -354,4 +354,41 @@ mod tests {
         assert!(meta_line(4, &m).contains(r#""target":"/tmp/say \"hi\"""#));
         assert!(meta_line(4, &m).starts_with(r#"{"t":"meta","row":4,"w":0,"h":0"#));
     }
+
+    fn mkfifo(path: &std::path::Path) {
+        let made = std::process::Command::new("mkfifo").arg(path).status().expect("mkfifo");
+        assert!(made.success(), "mkfifo {:?}", path);
+    }
+
+    // The real path a meta request takes: run.rs hands spawn these arguments and reads back one OpMsg.
+    fn answered(path: &std::path::Path) -> Option<String> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        spawn(7, path.to_path_buf(), true, false, None, tx);
+        match rx.recv_timeout(std::time::Duration::from_secs(5)) {
+            Ok(OpMsg::Meta { line }) => Some(line),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn a_meta_request_on_a_fifo_answers_rather_than_leaving_the_row_waiting_forever() {
+        let d = TestDir::new("metafifo");
+        let lonely = d.join("lonely");
+        mkfifo(&lonely);
+        let line = answered(&lonely).expect("a fifo with no writer must still answer");
+        assert!(line.contains(r#""w":0,"h":0"#), "{}", line);
+        assert!(line.contains(r#""lines":0,"partial":false,"lfailed":true"#), "{}", line);
+        // exec 3<> opens both ends at once, the only way a writer sits on a fifo nobody is reading.
+        let fed = d.join("fed");
+        mkfifo(&fed);
+        let mut writer = std::process::Command::new("sh")
+            .arg("-c").arg(r#"exec 3<>"$0"; printf 'a\nb\nc\n' >&3; exec sleep 30"#).arg(&fed)
+            .spawn().expect("fifo writer");
+        let answer = answered(&fed);
+        let killed = writer.kill().is_ok();
+        let reaped = writer.wait().is_ok();
+        let line = answer.expect("a fifo with a writer must answer without reading it");
+        assert!(line.contains(r#""lines":0,"partial":false,"lfailed":true"#), "{}", line);
+        assert!(killed && reaped, "the writer this test started is killed by its own pid");
+    }
 }

@@ -701,11 +701,14 @@ entries, which is the only part that is bounded: the tile lists those and states
 its own "+ N more" line.
 
 `lfailed` is true when the file could not be opened for the line count at all, which on this box
-means permission denied or a row that vanished between the listing and the request. It is what tells
-`lines` 0 apart from an empty file, whose `lines` is also 0: zero is a real count, so unlike `mode`
-on an `error` line it cannot carry the failure itself. A row that never asked for a count sends
-`lines` 0 and `lfailed` false, the same as a row whose count really is zero, because nothing was
-attempted; the client knows which kind it asked about.
+means permission denied, a row that is not a regular file, or a row that vanished between the
+listing and the request. **Nothing but a regular file is ever opened here or for `w` and `h`**, because
+opening a FIFO with no writer never returns: a FIFO, a socket, a device or a directory answers its
+`stat` facts with no dimensions and no count, rather than leaving the row waiting forever. It is
+what tells `lines` 0 apart from an empty file, whose `lines` is also 0: zero is a real count, so
+unlike `mode` on an `error` line it cannot carry the failure itself. A row that never asked for a
+count sends `lines` 0 and `lfailed` false, the same as a row whose count really is zero, because
+nothing was attempted; the client knows which kind it asked about.
 
 `afailed` is true when the listing was not completed, which covers a tool that could not read the
 archive and a read that outran its wall-clock budget. **A failed read sends `entries` 0, `unpacked` 0

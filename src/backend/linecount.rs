@@ -18,6 +18,10 @@ pub struct LineCount {
 // A file with no trailing newline still has a last line, so the count is newlines plus one for any
 // bytes after the final one; an empty file has no lines at all.
 pub fn count_lines(path: &Path) -> LineCount {
+    // Nothing but a regular file is opened here: a fifo with no writer never returns from open().
+    if !std::fs::metadata(path).map(|m| m.is_file()).unwrap_or(false) {
+        return LineCount { lines: 0, partial: false, failed: true };
+    }
     let mut f = match std::fs::File::open(path) {
         Ok(f) => f,
         // Permission denied, or the row vanished. Either way zero would read as "this file is empty".
@@ -60,6 +64,7 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
+    use std::path::PathBuf;
 
     #[test]
     fn a_file_that_cannot_be_opened_is_not_an_empty_one() {
@@ -71,5 +76,69 @@ mod tests {
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o600)).unwrap();
         assert_eq!((empty.lines, empty.partial, empty.failed), (0, false, false), "an empty file really has no lines");
         assert_eq!((denied.lines, denied.partial, denied.failed), (0, false, true), "a file that could not be opened has no count at all");
+    }
+
+    fn mkfifo(path: &Path) {
+        let made = std::process::Command::new("mkfifo").arg(path).status().expect("mkfifo");
+        assert!(made.success(), "mkfifo {:?}", path);
+    }
+
+    // Counted on a thread with a bound, because the defect under test is an open that never returns.
+    fn bounded(path: PathBuf) -> LineCount {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || { let _ = tx.send(count_lines(&path)); });
+        rx.recv_timeout(std::time::Duration::from_secs(5)).expect("a count must answer within its bound")
+    }
+
+    fn no_count(path: PathBuf, why: &str) {
+        let c = bounded(path);
+        assert_eq!((c.lines, c.partial, c.failed), (0, false, true), "{}", why);
+    }
+
+    // Read on a thread too, because a count that wrongly drained the pipe would leave this blocked.
+    fn peek(path: PathBuf) -> Option<Vec<u8>> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        std::thread::spawn(move || {
+            let mut buf = vec![0u8; 64];
+            let n = std::fs::File::open(&path).and_then(|mut f| f.read(&mut buf)).unwrap_or(0);
+            buf.truncate(n);
+            let _ = tx.send(buf);
+        });
+        rx.recv_timeout(std::time::Duration::from_secs(5)).ok()
+    }
+
+    #[test]
+    fn nothing_but_a_regular_file_is_ever_opened_for_a_count() {
+        let d = TestDir::new("linecountkinds");
+        let fifo = d.join("pipe");
+        mkfifo(&fifo);
+        no_count(fifo, "opening a fifo with no writer never returns");
+        std::os::unix::fs::symlink("pipe", d.join("topipe")).unwrap();
+        no_count(d.join("topipe"), "the open follows the link, so the check has to as well");
+        no_count(d.dir("sub"), "a directory opens fine and reads EISDIR, which used to answer zero lines");
+        let sock = d.join("sock");
+        let _listener = std::os::unix::net::UnixListener::bind(&sock).unwrap();
+        no_count(sock, "a socket is not a file to count");
+        no_count(d.join("never-existed"), "a row that vanished still has no count");
+        // The guard is this narrow so a real text file is still counted, which is what this file is for.
+        assert_eq!(bounded(d.file("real.txt", "a\nb\nc\n")).lines, 3);
+    }
+
+    #[test]
+    fn a_fifo_that_has_a_writer_keeps_every_byte_a_count_did_not_read() {
+        let d = TestDir::new("linecountfed");
+        let p = d.join("pipe");
+        mkfifo(&p);
+        // exec 3<> opens both ends at once, the only way a writer sits on a fifo nobody is reading.
+        let mut writer = std::process::Command::new("sh")
+            .arg("-c").arg(r#"exec 3<>"$0"; printf 'a\nb\nc\n' >&3; exec sleep 30"#).arg(&p)
+            .spawn().expect("fifo writer");
+        let counted = bounded(p.clone());
+        let left = peek(p);
+        let killed = writer.kill().is_ok();
+        let reaped = writer.wait().is_ok();
+        assert_eq!((counted.lines, counted.partial, counted.failed), (0, false, true));
+        assert_eq!(left.as_deref(), Some(&b"a\nb\nc\n"[..]), "a count must never eat a pipe someone else is reading");
+        assert!(killed && reaped, "the writer this test started is killed by its own pid");
     }
 }
