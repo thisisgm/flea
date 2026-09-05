@@ -13,7 +13,7 @@ const RENAME_NOREPLACE: u32 = 1;
 const EINVAL: i32 = 22;
 // GVFS answers a WebDAV rename with EIO instead of refusing it outright.
 const EIO: i32 = 5;
-// The kind a half-succeeded rename answers, read by ops.rs for the journal and by undo.rs for its wording.
+// The kind a half-succeeded rename answers; ui/js/Errors.js words it and ui/PaneWire.qml refreshes on it.
 pub(crate) const KEPT: &str = "rename-kept";
 
 extern "C" {

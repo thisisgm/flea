@@ -2559,23 +2559,23 @@ caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded a
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
 That source-removal failure answers `rename-kept` rather than `rename`, because the rename half
 succeeded. The error line names the source in `path` and carries the removal's own message in `msg`;
-neither field names the target, because the client already holds the name it just sent and `msg` is
-the string `ui/js/Errors.js` pattern matches for a collision. `ops::rename` answers that completed
-copy as a `Step::Created`, the shape `duplicate` already uses for the partial a failure left, and
-`do_rename` pushes the step list whichever way the call went, because the journal drops an empty one
-itself. So undo removes the duplicate, and `ui/PaneWire.qml` re-reads the listing on that kind,
-since the pane would otherwise draw one row beside a sentence the listing denies. `undo` reverses a
-rename through the same call and answers the same kind, so the sentence names neither a direction
-nor the state of what could not be removed, and the refreshed listing is what shows the operator
-which names are on disk. The journal spends its entry either way, because a failed reversal that
-stayed would block every older undo behind a step that keeps failing.
+neither field names the target. `ops::rename` records nothing for it, because only its `Ok` arm
+carries a step list, and `do_undo` never pushes at all, so no undo in either direction removes the
+kept copy: `remove_any` answers with one error and no account of how far `remove_dir_all` got, so the
+source may be whole or a remnant and the backend cannot say which name holds the complete tree.
+`ui/PaneWire.qml` re-reads the listing on that kind instead, since the pane would otherwise draw one
+row beside a sentence the listing denies. `undo` reverses a rename through the same call and answers
+the same kind, so the sentence names no direction, warns that the name the copy came from may now be
+incomplete, and leaves the refreshed listing to show which names are on disk. The journal spends its
+entry either way, because a failed reversal that stayed would block every older undo behind a step
+that keeps failing.
 corner: the copy is not snapshot-isolated, so a source replaced after the copy completes is destroyed
 by the removal that follows, and a concurrent write into the operation-created partial target is lost
 with it; both are accepted rather than defended against.
 corner: `remove_any` removes a directory with `remove_dir_all`, which stops at its first failure, so
 the name a kept copy came from may be left whole, half emptied, or already gone; the sentence
-promises the copy only and tells the operator to check that name before deleting anything, and
-undoing past a half-emptied one removes the complete copy and keeps the remnant.
+promises the copy only, says that name may now be incomplete, and tells the operator to check it
+before deleting anything. Removing the duplicate is the operator's call, not Ctrl+Z's.
 
 **The journal records only what an operation created or moved.** `undo.rs`'s `Step` has exactly four
 shapes: `Moved` (rename back), `Created` (remove it), `MadeDir` (remove it while it is still empty, because

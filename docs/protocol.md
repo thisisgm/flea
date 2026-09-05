@@ -367,9 +367,10 @@ records nothing to undo.
 `/run/user/*/gvfs/dav:` WebDAV mount answers `EIO`. On those, the backend builds the new name through the same exclusive copy primitives every
 other write uses and removes the source only once that copy is complete. When the removal fails the
 copy is kept, and the request answers an `error` line whose `where` is `rename-kept`, whose `path` is
-the source, and whose `msg` is the removal's own message; the target is on neither field. The kept
-copy is journalled, so an `undo` removes it. An `undo` reverses a rename through the same call, so a
-reversal that half succeeds answers this same `where`.
+the source, and whose `msg` is the removal's own message; the target is on neither field. Neither
+direction journals the kept copy, so no `undo` removes it: the removal can stop partway, and one error
+with no account of how far it got cannot tell a whole source from a remnant. An `undo` reverses a
+rename through the same call, so a reversal that half succeeds answers this same `where`.
 
 Unlike the three above, this answers on the loop's own thread: the ordinary case is one `renameat2`,
 which costs less than spawning a thread. The two compatibility paths above are not one syscall and
@@ -439,7 +440,9 @@ lines whatever `text` says, because the newlines in a bitmap are a number nothin
 `{"c":"undo"}`
 
 Reverses the most recent completed operation and answers one `undone` line naming which kind it was.
-An empty journal, or a reversal that itself fails, answers an `error` line with `where` of `undo`.
+An empty journal answers an `error` line with `where` of `undo`, and so does a reversal that fails
+removing what an operation created or restoring from the trash. A reversal that renames back goes
+through the same call a `rename` does, so its failure answers `rename` or `rename-kept` instead.
 
 **The journal is an in-memory ring of the last 50 completed operations and is not persisted**, so it
 does not survive a restart. Each kind reverses as follows: a rename or a move renames back (still

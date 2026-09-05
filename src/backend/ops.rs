@@ -29,25 +29,21 @@ fn named(where_: &str, path: &Path, msg: &str) -> FleaError {
     }
 }
 
-// Answers the outcome and, either way, the steps it left on disk: the move, or the completed copy
-// a source-removal failure kept at the new name. Duplicate answers in this shape for the same reason.
-pub fn rename(path: &Path, to_name: &str) -> (Result<PathBuf, FleaError>, Vec<Step>) {
+// Answers with the new path and the step that puts the old name back; a failure answers no step at all,
+// the kept copy included, because remove_dir_all stops at its first failure: the name it came from may
+// be a remnant and the target the only complete copy, and none of undo.rs's four steps can tell.
+pub fn rename(path: &Path, to_name: &str) -> Result<(PathBuf, Vec<Step>), FleaError> {
     if !valid_name(to_name) {
-        return (Err(named("rename", path, "a name cannot be empty, . or .. , or contain a separator")), Vec::new());
+        return Err(named("rename", path, "a name cannot be empty, . or .. , or contain a separator"));
     }
     let parent = path.parent().unwrap_or(Path::new("/"));
     let to = parent.join(to_name);
     if to == path {
         // Renaming a file to its own name is not a failure and is not work, so it records nothing.
-        return (Ok(to), Vec::new());
+        return Ok((to, Vec::new()));
     }
-    match renamecompat::rename_path(path, &to) {
-        Ok(()) => (Ok(to.clone()), vec![Step::Moved { from: path.to_path_buf(), to }]),
-        Err(error) => {
-            let steps = steps_left(&error, &to);
-            (Err(error), steps)
-        }
-    }
+    renamecompat::rename_path(path, &to)?;
+    Ok((to.clone(), vec![Step::Moved { from: path.to_path_buf(), to }]))
 }
 
 // "backup.tar.zst" becomes "backup.tar copy.zst": Path's own stem and extension split the last dot only, and a dotfile keeps its whole name as the stem.
@@ -88,15 +84,6 @@ pub fn duplicate(path: &Path) -> (Result<PathBuf, FleaError>, Vec<Step>) {
         Ok(()) => (Ok(dst.clone()), vec![Step::Created { path: dst }]),
         Err(e) => (Err(e), p.partial.take().into_iter().map(|path| Step::Created { path }).collect()),
     }
-}
-
-// A rename that half succeeded left its completed copy at the target, which is a path this
-// operation created, so undo removes the duplicate; every other failure left nothing behind.
-fn steps_left(error: &FleaError, to: &Path) -> Vec<Step> {
-    if error.where_ != renamecompat::KEPT {
-        return Vec::new();
-    }
-    vec![Step::Created { path: to.to_path_buf() }]
 }
 
 // A given name is created exactly or refused; an empty one takes the first free default, because a
@@ -142,28 +129,31 @@ fn free_new_folder(parent: &Path) -> Option<PathBuf> {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use crate::backend::undo::{Entry, Journal};
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
 
-    // corner: runs as a plain user, where a directory without its write bit cannot remove its child.
+    // corner: runs as a plain user, where a directory with no write bit cannot lose the child it holds.
     #[test]
-    fn a_rename_that_kept_its_copy_journals_the_duplicate_so_undo_removes_it() {
-        let d = TestDir::new("renamekeptjournal");
-        let source = d.dir("source");
-        std::fs::write(source.join("inside.txt"), "body").unwrap();
-        std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o555)).unwrap();
+    fn a_rename_that_kept_its_copy_can_leave_a_remnant_where_it_came_from() {
+        let d = TestDir::new("renamekeptremnant");
+        let hold = d.dir("hold");
+        let source = hold.join("source");
+        std::fs::create_dir(&source).unwrap();
+        std::fs::write(source.join("alpha.txt"), "alpha").unwrap();
+        std::fs::write(source.join("beta.txt"), "beta").unwrap();
         let target = d.join("target");
-        // renameat2 succeeds on this filesystem, so only an rclone or GVFS mount reaches the
-        // fallback through rename; the primitive is driven directly the way renamecompat's tests do.
+        // renameat2 succeeds on this filesystem, so only an rclone or GVFS mount reaches the fallback
+        // through rename; the primitive is driven directly the way renamecompat's tests do, and a parent
+        // with no write bit is what fails the removal after it has already emptied the source.
+        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
         let error = renamecompat::copy_then_remove(&source, &target).expect_err("source removal must fail");
-        std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o755)).unwrap();
-        assert_eq!(std::fs::read_to_string(target.join("inside.txt")).unwrap(), "body");
-        let mut journal = Journal::new();
-        journal.push(Entry { op: "rename".to_string(), steps: steps_left(&error, &target) });
-        journal.undo().expect("undo must be able to remove the duplicate the kept copy left");
-        assert!(!target.exists(), "undo removed the copy this operation created");
-        assert_eq!(std::fs::read_to_string(source.join("inside.txt")).unwrap(), "body");
+        std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert_eq!(error.where_, renamecompat::KEPT, "the half-succeeded rename keeps its own kind");
+        assert!(!source.join("alpha.txt").exists(), "the source lost a child, so it is not the whole copy");
+        // Both files are here and one of them is nowhere else, which is why rename journals no step:
+        // an undo that removed this target would take the only copy of alpha.txt with it.
+        assert_eq!(std::fs::read_to_string(target.join("alpha.txt")).unwrap(), "alpha");
+        assert_eq!(std::fs::read_to_string(target.join("beta.txt")).unwrap(), "beta");
     }
 
     #[test]
@@ -183,8 +173,7 @@ mod tests {
     fn rename_moves_the_file_and_records_the_step_that_puts_it_back() {
         let d = TestDir::new("rename");
         let from = d.file("before.txt", "body");
-        let (outcome, steps) = rename(&from, "after.txt");
-        let to = outcome.expect("rename");
+        let (to, steps) = rename(&from, "after.txt").expect("rename");
         assert_eq!(to, d.join("after.txt"));
         assert!(!from.exists());
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "body");
@@ -196,10 +185,8 @@ mod tests {
         let d = TestDir::new("clobber");
         let from = d.file("source.txt", "source body");
         d.file("target.txt", "target body");
-        let (outcome, steps) = rename(&from, "target.txt");
-        let err = outcome.expect_err("must refuse");
+        let err = rename(&from, "target.txt").expect_err("must refuse");
         assert_eq!(err.where_, "rename");
-        assert!(steps.is_empty(), "a refusal created nothing, so undo must have nothing to reverse");
         assert_eq!(
             std::fs::read_to_string(d.join("target.txt")).unwrap(),
             "target body",
@@ -212,8 +199,7 @@ mod tests {
     fn renaming_a_file_to_its_own_name_is_not_work() {
         let d = TestDir::new("samename");
         let from = d.file("same.txt", "body");
-        let (outcome, steps) = rename(&from, "same.txt");
-        outcome.expect("a no-op rename is not an error");
+        let (_, steps) = rename(&from, "same.txt").expect("a no-op rename is not an error");
         assert!(steps.is_empty(), "nothing changed, so undo must have nothing to reverse");
         assert!(from.exists());
     }

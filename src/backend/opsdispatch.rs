@@ -119,14 +119,11 @@ pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str) {
     thread::spawn(move || run_duplicate(owned, tx));
 }
 
-// Rename answers on the calling thread; rclone directory compatibility may copy before removing its
-// source, and a source it cannot remove leaves a copy the journal carries even though the call failed.
+// Rename answers on the calling thread; rclone directory compatibility may copy before removing its source.
 pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str) {
-    let (outcome, steps) = ops::rename(Path::new(path), to);
-    // An empty step list is dropped by the journal itself, so a refused rename still records nothing.
-    ops.journal.push(Entry { op: "rename".to_string(), steps });
-    match outcome {
-        Ok(dst) => {
+    match ops::rename(Path::new(path), to) {
+        Ok((dst, steps)) => {
+            ops.journal.push(Entry { op: "rename".to_string(), steps });
             writeln!(out, "{}", renamed_line(true, &dst.to_string_lossy())).ok();
         }
         Err(e) => {
