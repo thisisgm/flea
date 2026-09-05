@@ -636,9 +636,18 @@ number.
 rename into the release tree put the rename exception over the 400-line hard cap, so the exception
 and its tests moved to the module that already owned classifying which rename failures need it.
 Both sides re-derived with `wc -l` on the files after that split and its review rounds:
-`src/backend/ops.rs` is 305 and `src/backend/renamecompat.rs` is 382, so both are under the 400 hard
-cap and both are over the 250 soft budget, which `tools/flea-file-budget` warns about and does not
+`src/backend/ops.rs` was 305 and `src/backend/renamecompat.rs` was 382, so both were under the 400
+hard cap and both over the 250 soft budget, which `tools/flea-file-budget` warns about and does not
 fail on.
+
+`src/backend/renamecompat.rs` split to `src/backend/mountinfo.rs` at 396: a review round needed one
+more test and the file had four lines left under the hard cap, so `mount_type_in`, the two helpers
+that decode its octal escapes, and the three tests over them moved out. The seam is the parser's own
+subject, which is the filesystem type of the mount that owns a path, decided from a body of text it
+is handed and from nothing about renames; the one line that reads `/proc/self/mountinfo` stays with
+the caller that needs it. Re-derived with `wc -l` after the move and the test it made room for:
+`src/backend/renamecompat.rs` is 325 and `src/backend/mountinfo.rs` is 97, so the parser is under
+both budgets and the rename module is under the hard cap and over the soft one.
 
 **Every count in this section is a SNAPSHOT, not a live figure, and eleven of the eighteen had
 drifted by 2026-09-01: `src/heap.rs` was claimed at 15 and is 100, `ui/Row.qml` at 166 and is 310,
@@ -2574,8 +2583,9 @@ sentences, neither of which mentions a leftover, and which `ui/PaneWire.qml` doe
 listing on, so the partial tree sits on disk unmentioned until some later listing shows it. The
 honest repair is a distinct wire kind, deferred beside the sibling case R14 already recorded rather
 than added at round six. A source-removal failure takes the copy back only on proof
-the source survived whole: a source that still stats as a regular file after the failed removal,
-because `remove_file` is one unlink that either takes effect or does not. That case removes the copy
+the source survived whole: a source that still stats as anything but a directory after the failed
+removal, because `remove_file` removes every other kind with one unlink that either takes effect or
+does not. That case removes the copy
 again, or reports that it could not, and answers `rename` either way. Every other state keeps the
 complete target copy, because `remove_dir_all` stops at its first failure and a source that no longer
 stats, already gone or unstattable, proves nothing on the flaky mounts this path exists for. **When

@@ -362,12 +362,12 @@ loss, and the check-then-rename alternative leaves a window in which another pro
 target. Renaming a file to the name it already has is not an error and is not work: it answers `ok` and
 records nothing to undo.
 
-**A rename that cannot prove it removed the source answers `rename-kept`.** Two measured mounts cannot serve
+**A rename that cannot prove the source survived whole answers `rename-kept`.** Two measured mounts cannot serve
 `RENAME_NOREPLACE`: an `fuse.rclone` directory answers `EINVAL`, and a path under a
 `/run/user/*/gvfs/dav:` WebDAV mount answers `EIO`. On those, the backend builds the new name through the same exclusive copy primitives every
 other write uses and removes the source only once that copy is complete. The copy is taken back only on proof the source
-survived whole: a source that still stats as a regular file after the failed removal, since
-`remove_file` is one unlink that either takes effect or does not. That answers a plain `rename`
+survived whole: a source that still stats as anything but a directory after the failed removal, since
+`remove_file` removes every other kind with one unlink that either takes effect or does not. That answers a plain `rename`
 error, and so does a failure to take the copy back, in which case the copy stays under the new name
 and that error's `path` is the copy rather than the source. Every other state keeps the copy, a directory source because `remove_dir_all`
 stops at its first failure, and a source that no longer stats because an errno alone cannot tell a

@@ -1,4 +1,4 @@
-// Which mount owns a path, and what type that mount is, read out of a /proc/self/mountinfo body the caller supplies.
+// The /proc/self/mountinfo parser: the filesystem type of the mount that owns a path, from a body the caller has read.
 use std::ffi::OsString;
 use std::os::unix::ffi::OsStringExt;
 use std::path::{Path, PathBuf};
