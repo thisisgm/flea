@@ -23,7 +23,7 @@ check() {
 # A handoff that spawns returns before its child has written anything, so the suite waits for the
 # child's own line instead of for a fixed time. The 0.2 s guess it replaced survived 20 runs under
 # twenty-four spinners here and failed 2 of 2 once the child's first write was delayed by 0.4 s, and
-# that is the case that removes the sandbox out from under a handler that has not run. The wait is
+# every failure that run recorded was a check reading a log the child had not written to yet. The wait is
 # bounded and gives up silently: the check that follows reads the same log and fails on the missing line.
 wait_for_line() {
   local file="$1" pattern="$2" waited=0
@@ -94,6 +94,7 @@ check "--tui --gui names the conflict" "1" "$(echo "$out" | grep -c 'mutually ex
 # The prctl has to survive exec, so a stub qs reports the kernel's own view of the launched child.
 D="$FIXTURE_ROOT/flea-thp-test-$$"
 sandbox_make "$D"
+# Hand-named, not derived: a renamed qs reaches real quickshell, which this dead WAYLAND_DISPLAY kills with nothing left behind.
 printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status\n' > "$D/qs"
 chmod +x "$D/qs"
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
@@ -104,7 +105,7 @@ sandbox_remove "$D"
 
 # Sample input: let finished = Command::new("gio")
 # Each mode's stub is named from that mode's own exec target, because a stub named by hand goes stale
-# the day the target is renamed, and the run then reaches the operator's real handler instead: that
+# the day the target is renamed, and the run then resolves the operator's real launcher instead: that
 # is what left three editors running on this box.
 handoff_in() {
   grep -ho 'Command::new("[a-z0-9-]\+")' "$1" | cut -d'"' -f2 | sort -u
@@ -256,8 +257,7 @@ printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nex
 chmod +x "$D/bin/qs"
 : > "$opened"
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
-# src/open.rs:43 waits for the handler, so this record is whole when the chain returns; the wait is
-# kept so every log read in this file has one shape, and it returns at once.
+# src/open.rs:43 waits for the launcher, so the stub's record is whole when the chain returns and this wait returns at once.
 wait_for_line "$opened" '^THP_enabled'
 check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP_enabled:[[:space:]]*0')"
 check "and the opened program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"
