@@ -45,6 +45,13 @@ function run(check) {
     check("and any other rename failure stays generic rather than leaking errno",
           Errors.sentence("rename", "Permission denied (os error 13)"),
           "That file could not be renamed.")
+
+    check("a rename that kept both copies says so, with no path and no errno",
+          Errors.sentence("rename-kept", "Permission denied (os error 13)"),
+          "Renamed, but the original could not be removed, so both copies are here now.")
+    check("that sentence never leaks the errno",
+          Errors.sentence("rename-kept", "Permission denied (os error 13)").indexOf("os error") < 0,
+          true)
     check("a duplicate failure names the operation",
           Errors.sentence("duplicate", "every copy name is taken"),
           "That file could not be duplicated.")

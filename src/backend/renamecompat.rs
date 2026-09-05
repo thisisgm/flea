@@ -100,10 +100,11 @@ fn copy_then_remove(from: &Path, to: &Path) -> Result<(), FleaError> {
         return Err(rename_error(error));
     }
     // A source that will not go away leaves the complete target rather than risking a second destructive removal.
+    // Its own kind, because the rename half succeeded and the UI owes the operator a different sentence.
     remove_any(from).map_err(|error| FleaError {
-        where_: "rename".to_string(),
+        where_: "rename-kept".to_string(),
         path: from.to_string_lossy().to_string(),
-        msg: format!("{}; the complete copy is at {}", error.msg, to.to_string_lossy()),
+        msg: error.msg,
     })
 }
 
@@ -278,17 +279,18 @@ mod tests {
         let target = d.join("target");
         let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
         std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o755)).unwrap();
-        assert_eq!(error.where_, "rename");
+        assert_eq!(error.where_, "rename-kept", "the half-succeeded rename gets its own kind");
         assert_eq!(std::fs::read_to_string(source.join("inside.txt")).unwrap(), "body");
         assert_eq!(std::fs::read_to_string(target.join("inside.txt")).unwrap(), "body");
         assert!(
-            error.msg.contains(&target.to_string_lossy().to_string()),
-            "the error must name the complete copy it left behind, got: {}",
-            error.msg
+            !error.msg.contains(&target.to_string_lossy().to_string()),
+            "the path belongs on the wire's path field, never inside a message the UI pattern matches"
         );
     }
+    // The rclone arm reads the real /proc/self/mountinfo, so only needs_rclone_fallback_in, which takes
+    // an injected table, and the live rclone battery can drive it. This covers the arm a unit test can.
     #[test]
-    fn the_composed_predicate_answers_for_either_measured_case() {
+    fn the_composed_predicate_answers_for_the_webdav_case() {
         let d = TestDir::new("composedfallback");
         assert!(needs_copy_fallback(
             Path::new("/run/user/1000/gvfs/dav:host=x,ssl=true/f"),

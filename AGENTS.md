@@ -2528,14 +2528,15 @@ neither spawns at all. An `archive` or a `convert` never claims the slot either:
 and they run alongside by design, so the cap was never one write of any kind.
 
 **`rename` and `mkdir` run on the loop's thread, the other three spawn.** Both normally take one syscall,
-but neither compatibility path below is one: an rclone directory rename and a GVFS WebDAV rename both
-copy the whole tree before removing the source, inline on the loop's thread. That is an unbounded
+but neither compatibility path below is one: an rclone directory rename copies the whole tree and a
+GVFS WebDAV rename copies whatever the path is, file or tree, before removing the source, inline on
+the loop's thread. That is an unbounded
 network transfer in the one place nothing else can run. A 40 GB rclone folder is downloaded and
 re-uploaded through FUSE with no progress, because the copy's byte sink is discarded, and with no way
 to cancel, because its flag is a fresh `AtomicBool` nothing can set; the loop is the only writer of
 stdout, so the application is frozen rather than slow for the whole transfer. The copied tree also
-lands with new modification times, since the crate has no dependencies and the copy sets none, and
-Flea's own listing sorts by mtime. This is accepted deliberately: the alternative measured on real
+lands with new modification times, since the crate has no dependencies and the copy sets none, so a
+Date Modified column or sort shows when the copy ran rather than the file's own history. This is accepted deliberately: the alternative measured on real
 rclone 1.75 was a rename that destroys a raced destination, and a frozen window beats lost data.
 `trash` shells to `gio` twice for the list diff plus once to trash; `duplicate` may copy a whole tree;
 a `transfer` is unbounded. Those three send their results back
@@ -2556,12 +2557,13 @@ created and reports a cleanup failure rather than hiding it; a source-removal fa
 complete target copy and reports the error. Every other filesystem, error and `rename_noreplace`
 caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
 enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
-A source-removal failure leaves a complete copy at the target, and the error names that path so the
-operator knows the duplicate exists; the journal spends the entry either way, because a failed
-reversal that stayed would block every older undo behind a step that keeps failing.
-corner: the copy is not snapshot-isolated, so a source replaced after the copy completes but before
-the source is removed, and a concurrent write into the operation-created partial target, are both
-accepted rather than defended against.
+That source-removal failure answers `rename-kept` rather than `rename`, because the rename half
+succeeded: the wire carries both paths and the UI says both copies are here now. The journal spends
+its entry either way, because a failed reversal that stayed would block every older undo behind a
+step that keeps failing.
+corner: the copy is not snapshot-isolated, so a source replaced after the copy completes is destroyed
+by the removal that follows, and a concurrent write into the operation-created partial target is lost
+with it; both are accepted rather than defended against.
 
 **The journal records only what an operation created or moved.** `undo.rs`'s `Step` has exactly four
 shapes: `Moved` (rename back), `Created` (remove it), `MadeDir` (remove it while it is still empty, because
