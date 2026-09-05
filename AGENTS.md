@@ -646,9 +646,9 @@ that decode its octal escapes, and the three tests over them moved out. The seam
 subject, which is the filesystem type of the mount that owns a path, decided from a body of text it
 is handed and from nothing about renames; the one line that reads `/proc/self/mountinfo` stays with
 the caller that needs it. Re-derived with `wc -l` after the move and the test it made room for:
-`src/backend/renamecompat.rs` was 325 and `src/backend/mountinfo.rs` 97; a later round pinned two of
-its removal-failure tests to the arm each names and took the rename module to 338, so the parser is
-under both budgets and the rename module is under the hard cap and over the soft one.
+`src/backend/renamecompat.rs` was 325 and `src/backend/mountinfo.rs` 97; later rounds pinned five of
+its tests to the arm each names and took the rename module to 346, so the parser is under both
+budgets and the rename module is under the hard cap and over the soft one.
 
 **Every count in this section is a SNAPSHOT, not a live figure, and eleven of the eighteen had
 drifted by 2026-09-01: `src/heap.rs` was claimed at 15 and is 100, `ui/Row.qml` at 166 and is 310,

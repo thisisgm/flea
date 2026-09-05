@@ -188,7 +188,11 @@ mod tests {
         let d = TestDir::new("webdavrenameclobber");
         let from = d.file("source.txt", "source body");
         let to = d.file("target.txt", "target body");
-        copy_then_remove(&from, &to).expect_err("the fallback must refuse an existing destination");
+        let error = copy_then_remove(&from, &to).expect_err("the fallback must refuse an existing destination");
+        assert!(
+            error.msg.contains(&format!("os error {}", EEXIST)),
+            "the exclusive create's EEXIST is what tells this refusal from any other copy failure"
+        );
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "target body");
         assert_eq!(std::fs::read_to_string(&from).unwrap(), "source body");
     }
@@ -200,6 +204,10 @@ mod tests {
         let target = d.dir("target");
         let error = copy_then_remove(&source, &target).expect_err("must refuse");
         assert_eq!(error.where_, "rename");
+        assert!(
+            error.msg.contains(&format!("os error {}", EEXIST)),
+            "the directory create's EEXIST is what tells this refusal from any other copy failure"
+        );
         assert!(source.join("source.txt").is_file(), "the source tree stays complete");
         assert!(target.is_dir(), "the directory that owned the target name stays in place");
     }
