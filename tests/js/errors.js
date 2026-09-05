@@ -46,9 +46,7 @@ function run(check) {
           Errors.sentence("rename", "Permission denied (os error 13)"),
           "That file could not be renamed.")
 
-    // remove_dir_all stops at its first failure, so a directory source can be left a remnant, and
-    // src/backend/undo.rs reverses a rename through the same call: the sentence promises the copy,
-    // warns that the other name may be incomplete, and names no direction.
+    // The sentence promises the copy, warns the other name may be incomplete, and names no direction.
     check("a rename that kept its copy says so, with no path and no errno",
           Errors.sentence("rename-kept", "Permission denied (os error 13)"),
           "The copy is complete; the name it came from could not be fully removed and may now be incomplete, so check it before deleting anything.")

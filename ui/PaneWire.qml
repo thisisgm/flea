@@ -272,8 +272,7 @@ Item {
                 pane.stateMessage = text
             }
             pane.message(text, true)
-            // The copy landed under the other name, so a listing still holding one row is not true.
-            // The same re-read onTrashed and onUndone make, with no row to put the cursor on.
+            // Both names may be on disk now and the backend cannot say which is whole, so re-read and select nothing.
             if (where === "rename-kept")
                 pane.refresh("")
         }

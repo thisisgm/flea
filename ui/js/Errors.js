@@ -25,9 +25,7 @@ function sentence(where, message) {
     if (where === "rename") {
         return exists(message) ? "A file with that name is already here." : "That file could not be renamed."
     }
-    // The copy landed and the name it came from would not go away. undo reverses through the same
-    // path, so this names no direction; remove_dir_all stops at its first failure, so that name may
-    // be a remnant, which is why src/backend/ops.rs journals no step for an undo to remove.
+    // undo reverses a rename through the same call, so this sentence names no direction.
     if (where === "rename-kept") {
         return "The copy is complete; the name it came from could not be fully removed and may now be incomplete, so check it before deleting anything."
     }

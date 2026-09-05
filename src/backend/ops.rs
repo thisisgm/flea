@@ -29,9 +29,7 @@ fn named(where_: &str, path: &Path, msg: &str) -> FleaError {
     }
 }
 
-// Answers with the new path and the step that puts the old name back; a failure answers no step at all,
-// the kept copy included, because remove_dir_all stops at its first failure: the name it came from may
-// be a remnant and the target the only complete copy, and none of undo.rs's four steps can tell.
+// Answers the new path and the step that puts the old name back; a failure answers no step, a kept copy included, because none of undo.rs's four shapes can say which of the two names is whole.
 pub fn rename(path: &Path, to_name: &str) -> Result<(PathBuf, Vec<Step>), FleaError> {
     if !valid_name(to_name) {
         return Err(named("rename", path, "a name cannot be empty, . or .. , or contain a separator"));

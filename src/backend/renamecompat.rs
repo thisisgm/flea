@@ -368,8 +368,7 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&source).unwrap(), "body");
         assert!(!target.exists(), "the copy is taken back rather than left as an unjournalled duplicate");
     }
-    // The rclone arm reads the real /proc/self/mountinfo, so only needs_rclone_fallback_in, which takes
-    // an injected table, and the live rclone battery can drive it. This covers the arm a unit test can.
+    // The rclone arm reads the real mountinfo, so a unit test drives only the WebDAV arm; the live rclone battery drives the other.
     #[test]
     fn the_composed_predicate_answers_for_the_webdav_case() {
         let d = TestDir::new("composedfallback");
