@@ -202,6 +202,8 @@ function parent(pane) {
     if (pane.path === "/") {
         return
     }
+    // Remember the full path we're leaving, so the cursor lands on it in the parent.
+    pane.pendingSelect = pane.path
     var cut = pane.path.lastIndexOf("/")
     pane.open(cut <= 0 ? "/" : pane.path.substring(0, cut))
 }

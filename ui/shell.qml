@@ -142,6 +142,7 @@ ShellRoot {
                 preview: preview
                 shareBrowser: shareBrowser
                 agentPicker: agentPicker
+                emptyActions: emptyActions
                 keymapSheet: keymapSheet
                 settingsPanel: settingsPanel
                 onMessage: function (text, isError) { bar.say(text, isError) }
@@ -226,7 +227,7 @@ ShellRoot {
                 y: pane.y + pane.listArea.y
                 width: pane.viewMode === "columns" ? pane.columnsArea.columnWidth : pane.listArea.width
                 height: pane.listArea.height
-                visible: pane.listingState === "empty"
+                visible: pane.listingState === "empty" && !emptyActions.active
                 // The design's no-match answer: the search mark over the query it could not find.
                 caption: pane.searchMode === "results" ? "Nothing matches " + pane.searchQuery : ""
                 mark: "search"
@@ -235,6 +236,29 @@ ShellRoot {
                 // shortcut, so it draws only with the Menus section's hints row on.
                 hint: pane.searchMode === "results" ? "Press Escape to clear."
                     : ViewState.keyHints ? "Press Ctrl+Shift+N for a new folder." : ""
+            }
+
+            // Quick actions for empty directories: j/k to navigate, Enter to act.
+            Flea.EmptyActions {
+                id: emptyActions
+                x: pane.listArea.x + (pane.viewMode === "columns" ? pane.columnsArea.columnWidth : 0)
+                y: pane.y + pane.listArea.y
+                width: pane.viewMode === "columns" ? pane.columnsArea.columnWidth : pane.listArea.width
+                height: pane.listArea.height
+                visible: (pane.listingState === "empty" && pane.searchMode.length === 0) || emptyActions.gitCloneMode
+                onClosed: pane.forceActiveFocus()
+                onAction: function (name, dir) { pane.handleEmptyAction(name, dir) }
+                // Auto-open when directory becomes empty (not during search).
+                Connections {
+                    target: pane
+                    function onListingStateChanged() {
+                        if (pane.listingState === "empty" && pane.searchMode.length === 0) {
+                            emptyActions.open(pane.path)
+                        } else {
+                            emptyActions.close()
+                        }
+                    }
+                }
             }
 
             // The loading crawl, same listArea placement; its own hold-off keeps fast listings clean.

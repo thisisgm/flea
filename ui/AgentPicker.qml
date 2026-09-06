@@ -22,7 +22,7 @@ Item {
     function open(dir) {
         root.currentDir = dir
         root.installed = {}
-        root.cursorIndex = -1
+        root.cursorIndex = 0
         root.active = true
         detectNext(0)
     }

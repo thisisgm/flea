@@ -12,9 +12,14 @@ Item {
     // Raised where the two single-flight guards below drop a request, so a swallowed press says so.
     signal busy(string path)
     signal terminalBusy(string path)
+    signal gitCloneDone(string dir, bool success)
 
     // The status src/open.rs returns for a directory, which the caller navigates to instead.
     readonly property int isDirectoryStatus: 3
+
+    // Track if current operation is a git clone.
+    property bool isGitClone: false
+    property string gitCloneDir: ""
 
     property string current: ""
     // The terminal launch's own path: open() and openTerminal() run on separate
@@ -39,6 +44,11 @@ Item {
         id: child
 
         onExited: function (exitCode, exitStatus) {
+            if (root.isGitClone) {
+                root.isGitClone = false
+                root.gitCloneDone(root.gitCloneDir, exitCode === 0)
+                return
+            }
             if (exitCode === 0) {
                 return
             }
@@ -93,6 +103,19 @@ Item {
         }
         root.current = filePath
         child.command = [program, filePath]
+        child.running = true
+    }
+
+    // Git clone a URL into a directory.
+    function gitClone(url, dir) {
+        if (child.running) {
+            root.busy(url)
+            return
+        }
+        root.current = dir
+        root.isGitClone = true
+        root.gitCloneDir = dir
+        child.command = ["sh", "-c", "cd '" + dir + "' && git clone '" + url + "'"]
         child.running = true
     }
 

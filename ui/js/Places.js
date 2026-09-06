@@ -42,8 +42,12 @@ function bookmarks(body) {
 // rail's Icons import stays the rail's own business; see ui/Sidebar.qml's rebuild.
 function favorites(home, dirsText, marksText, glyphFor) {
     var favs = [{ path: home, label: "Home", group: "favorite", kind: "favorite", glyph: glyphFor("Home") }]
+    // Add Trash directory.
+    var trashPath = home + "/.local/share/Trash/files"
+    favs.push({ path: trashPath, label: "Trash", group: "favorite", kind: "favorite", glyph: "trash" })
     var seen = {}
     seen[home] = true
+    seen[trashPath] = true
     var groups = [userDirs(dirsText, home), bookmarks(marksText)]
     for (var g = 0; g < groups.length; g++) {
         for (var i = 0; i < groups[g].length; i++) {

@@ -77,8 +77,30 @@ function act(action, root) {
     case "cursorUp": step(root, -root.cursorStride); return
     case "cursorLeft": step(root, -1); return
     case "cursorRight": step(root, 1); return
-    case "cursorFirst": Filter.setCursorView(root, 0); return
+    case "gridLeft": if (root.viewMode === "grid") step(root, -1); return
+    case "gridRight": if (root.viewMode === "grid") step(root, 1); return
+    case "cursorFirst":
+        // In grid mode, go to first element in current row.
+        if (root.viewMode === "grid" && root.gridColumns) {
+            var cols = root.gridColumns
+            var viewPos = Filter.viewOf(root.shown, root.cursorIndex)
+            var rowStart = Math.floor(viewPos / cols) * cols
+            Filter.setCursorView(root, rowStart)
+        } else {
+            Filter.setCursorView(root, 0)
+        }
+        return
     case "cursorLast": Filter.setCursorView(root, root.shownTotal - 1); return
+    case "rowEnd":
+        // In grid mode, go to last element in current row.
+        if (root.viewMode === "grid" && root.gridColumns) {
+            var cols = root.gridColumns
+            var viewPos = Filter.viewOf(root.shown, root.cursorIndex)
+            var rowStart = Math.floor(viewPos / cols) * cols
+            var rowEnd = Math.min(rowStart + cols - 1, root.shownTotal - 1)
+            Filter.setCursorView(root, rowEnd)
+        }
+        return
     case "pageDown": step(root, Math.max(1, Math.floor(root.visibleRows / 2))); return
     case "pageUp": step(root, -Math.max(1, Math.floor(root.visibleRows / 2))); return
     case "open": root.openCursor(); return
@@ -87,12 +109,14 @@ function act(action, root) {
     // Esc unwinds one thing at a time, and the least destructive first: a running walk, then the
     // search, then the filter (which loses nothing), then the selection, then the transient line.
     case "escape":
-        if (root.searchMode.length > 0) Search.cancel(root)
+        if (root.visualMode) { root.toggleVisualMode() }
+        else if (root.searchMode.length > 0) Search.cancel(root)
         else if (root.filterTyping || root.filterQuery.length > 0) Filter.close(root)
         else root.escapePressed()
         return
     case "preview": PreviewKeys.open(root); return
     case "toggleSelect": root.toggleSelect(); return
+    case "visualMode": root.toggleVisualMode(); return
     case "extendDown": root.extendSelection(1); return
     case "extendUp": root.extendSelection(-1); return
     case "selectAll": root.selectAll(); return
@@ -137,6 +161,8 @@ function act(action, root) {
     case "openAgentPicker": root.openAgentPicker(); return
     case "openAgent": root.openAgent(); return
     case "openVideoEditor": root.openVideoEditor(); return
+    case "gitClone": root.gitClone(); return
+    case "refresh": root.refresh(); return
     }
     // A submenu row fires "<action>:<id>", which is how one signal covers Taildrop and Compress both.
     if (action.indexOf("compress:") === 0) {
@@ -147,6 +173,11 @@ function act(action, root) {
     // click and an aimed menu row cannot come to mean different things.
     if (action.indexOf("sort:") === 0) {
         Sort.column(root, action.substring("sort:".length))
+        return
+    }
+    // In grid mode, w moves right instead of closing tab.
+    if (action === "tabClose" && root.viewMode === "grid") {
+        step(root, 1)
         return
     }
     // Both keys the Tui board drew ahead of their features are built now, so neither answers with
@@ -163,6 +194,11 @@ function act(action, root) {
 // would run the anchor to the far end and take every row between the two with it.
 function step(root, delta) {
     var last = root.shownTotal - 1
+    if (root.visualMode) {
+        // In visual mode, extend selection instead of just moving.
+        root.extendSelection(delta)
+        return
+    }
     if (root.wrapAtEnds !== true || last < 0) {
         Filter.moveCursor(root, delta)
         return
@@ -193,6 +229,28 @@ function agentPickerAct(action, root) {
     case "open": root.agentPicker.activateCursor(); return
     case "escape": root.agentPicker.close(); return
     }
+}
+
+function emptyActionsAct(event, root) {
+    if (root.emptyActions.handleKey(event.key, event.text))
+        return
+    // Esc was handled but emptyActions didn't close - force close.
+    if (!root.emptyActions.active) {
+        root.forceActiveFocus()
+        return
+    }
+    // Fall through to normal actions for shortcuts like A, T, N, C.
+    var action = lookup(event, root)
+    if (action === "cursorDown") { root.emptyActions.moveCursor(1); return }
+    if (action === "cursorUp") { root.emptyActions.moveCursor(-1); return }
+    if (action === "open") { root.emptyActions.activateCursor(); return }
+    if (action === "openAgent") { root.openAgent(); root.emptyActions.close(); return }
+    if (action === "openTerminal") { root.openTerminal(); root.emptyActions.close(); return }
+    if (action === "newFolder") { Ops.newFolder(root); root.emptyActions.close(); return }
+    if (action === "gitClone") { root.gitClone(); return }
+    // h/l navigate even when empty actions are open.
+    if (action === "parent") { root.openParent(); root.emptyActions.close(); return }
+    if (action === "pageForward") { /* l does nothing on empty dir */ return }
 }
 
 // The cursor keys and only those, resolved through the generated table rather than through a second
@@ -251,6 +309,10 @@ function handleKey(event, root, sidebar) {
     }
     if (root.agentPicker && root.agentPicker.active) {
         agentPickerAct(action, root)
+        return true
+    }
+    if (root.emptyActions && root.emptyActions.active) {
+        emptyActionsAct(event, root)
         return true
     }
     if (action === "focusNext") {

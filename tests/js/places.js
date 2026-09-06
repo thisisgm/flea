@@ -88,11 +88,12 @@ function run(check) {
                  + 'smb://192.168.1.10/data NAS\n'
     var favs = Places.favorites("/home/gm", favDirs, favMarks, function (label) { return "mark:" + label })
     check("Home leads the rail and is never parsed out of a file", favs[0].path + "|" + favs[0].label, "/home/gm|Home")
-    check("the XDG dirs follow in file order", favs[1].label + "," + favs[2].label, "Downloads,Documents")
+    check("Trash is second", favs[1].path + "|" + favs[1].label, "/home/gm/.local/share/Trash/files|Trash")
+    check("the XDG dirs follow in file order", favs[2].label + "," + favs[3].label, "Downloads,Documents")
     check("a path already placed keeps its first position and its first label",
-          favs.map(function (e) { return e.label }).join(","), "Home,Downloads,Documents,Media")
-    check("a non-file bookmark never reaches FAVORITES", favs.length, 4)
-    check("every row is tagged as a favourite", favs[3].group + "/" + favs[3].kind, "favorite/favorite")
-    check("the mark is resolved by the caller, so the rail keeps its own Icons import", favs[1].glyph, "mark:Downloads")
-    check("a box with neither file still gets Home", Places.favorites("/home/gm", "", "", function () { return "m" }).length, 1)
+          favs.map(function (e) { return e.label }).join(","), "Home,Trash,Downloads,Documents,Media")
+    check("a non-file bookmark never reaches FAVORITES", favs.length, 5)
+    check("every row is tagged as a favourite", favs[4].group + "/" + favs[4].kind, "favorite/favorite")
+    check("the mark is resolved by the caller, so the rail keeps its own Icons import", favs[2].glyph, "mark:Downloads")
+    check("a box with neither file still gets Home", Places.favorites("/home/gm", "", "", function () { return "m" }).length, 2)
 }

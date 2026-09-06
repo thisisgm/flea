@@ -101,11 +101,17 @@ function lookup(key, text, modifiers) {
     case "g": return "cursorFirst"
     case "G": return "cursorLast"
     case "v": return "toggleSelect"
+    case "V": return "visualMode"
     case "J": return "extendDown"
     case "K": return "extendUp"
     case "h": return "parent"
+    case "b": return "gridLeft"
+    case "0": return "cursorFirst"
+    case "$": return "rowEnd"
     case "A": return "openAgent"
     case "O": return "openVideoEditor"
+    case "C": return "gitClone"
+    case "T": return "openTerminal"
     case "/": return "filter"
     case "f": return "search"
     case "o": return "reveal"
@@ -119,6 +125,7 @@ function lookup(key, text, modifiers) {
     case "P": return "openAgentPicker"
     case "d": return "trashArm"
     case "r": return "rename"
+    case "R": return "refresh"
     case "z": return "undo"
     case "s": return "sortNext"
     case "S": return "sortReverse"
@@ -158,11 +165,14 @@ var HINTS = {
     "extendUp": "K",
     "filter": "/",
     "focusNext": "tab",
+    "gitClone": "C",
+    "gridLeft": "b",
     "keymapSheet": "?",
     "menu": "m",
     "open": "enter",
     "openAgent": "A",
     "openAgentPicker": "P",
+    "openTerminal": "T",
     "openVideoEditor": "O",
     "pageDown": "pagedown",
     "pageForward": "l",
@@ -171,8 +181,10 @@ var HINTS = {
     "paste": "p",
     "pathBar": ":",
     "preview": "space",
+    "refresh": "R",
     "rename": "r",
     "reveal": "o",
+    "rowEnd": "$",
     "search": "f",
     "seekBack": "left",
     "seekForward": "right",
@@ -186,6 +198,7 @@ var HINTS = {
     "trash": "d",
     "trashArm": "d",
     "undo": "z",
+    "visualMode": "V",
     "zoomIn": "+",
     "zoomOut": "-",
 }
@@ -225,6 +238,8 @@ var SHEET = [
     { keys: "O", action: "openVideoEditor", label: "open in omacut" },
     { keys: "A", action: "openAgent", label: "open agent" },
     { keys: "P", action: "openAgentPicker", label: "agent picker" },
+    { keys: "C", action: "gitClone", label: "git clone" },
+    { keys: "R", action: "refresh", label: "refresh" },
     { keys: "^+", action: "textSizeUp", label: "text size up" },
     { keys: "^-", action: "textSizeDown", label: "text size down" },
     { keys: ",", action: "settings", label: "settings" },
