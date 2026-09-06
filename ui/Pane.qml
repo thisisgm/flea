@@ -200,6 +200,7 @@ FocusScope {
 
     // Lifted to Focus.act and Focus.railAct, see ui/js/Focus.js; each just names its own target.
     function act(action) { Focus.act(action, root) }
+    function startKeyboardDrag() { list.startKeyboardDrag() }
     function railAct(action) { Focus.railAct(action, root, sidebar) }
 
     // index is a listing row, which is what every caller outside ui/js/Filter.js holds; the clamp
