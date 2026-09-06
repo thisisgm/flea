@@ -194,6 +194,7 @@ QtObject {
         }
         // The empty-directory mark's own visibility, off the same listingState the overlay binds to.
         function emptyShown(): bool { return root.pane.listingState === "empty" }
+        function gitCloneOpen(): bool { return root.pane.emptyActions && root.pane.emptyActions.gitCloneMode }
         function rowAt(i: int): string {
             var item = root.pane.itemFor(i)
             return item ? item.describe() : "loading"

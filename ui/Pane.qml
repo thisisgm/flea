@@ -258,6 +258,7 @@ FocusScope {
     }
     function handleEmptyAction(name, dir) {
         if (name === "openAgent") { root.openAgent() }
+        else if (name === "openAgentPicker") { root.openAgentPicker() }
         else if (name === "terminal") { root.openTerminal() }
         else if (name === "newFolder") { Ops.newFolder(root) }
         else if (name.indexOf("gitClone:") === 0) {
@@ -288,8 +289,8 @@ FocusScope {
     function gitClone() {
         if (emptyActions) {
             emptyActions.open(root.path)
-            emptyActions.gitCloneMode = true
             emptyActions.gitUrl = ""
+            emptyActions.openGitClone()
         }
     }
 

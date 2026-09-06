@@ -2647,6 +2647,24 @@ case_nosweep() {
 
 # Catches Tab not reaching Focus.next, cursorUp not being wired, or Enter never opening a favourite.
 case_focus() {
+    local empty="$fixture_root/focus-empty"
+    sandbox_scratch "$empty"
+    launch "$empty"
+    wait_listing 0
+    key c >/dev/null
+    settle
+    [[ "$(ipc gitCloneOpen)" == "true" ]] || fail "focus: c did not open git clone input"
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc gitCloneOpen)" == "false" ]] || fail "focus: escape did not leave git clone input"
+    key -k Tab >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "rail" ]] || fail "focus: git clone escape did not return keybindings to the list"
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc focusView)" == "list" ]] || fail "focus: escape did not return from the rail after git clone"
+    kill_flea
+
     local dir="$fixture_root/focus"
     sandbox_scratch "$dir"
     : > "$dir/plain.txt"

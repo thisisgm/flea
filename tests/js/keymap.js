@@ -74,7 +74,7 @@ function run(check) {
               .map(Keymap.hintFor).join(" "),
           "enter x y p r d .")
     check("an action with no key at all leaves the slot blank", Keymap.hintFor("duplicate"), "")
-    check("and so does one reachable only by a chord", Keymap.hintFor("newFolder"), "")
+    check("a bare folder shortcut is advertised", Keymap.hintFor("newFolder"), "N")
     check("Move to Trash advertises the key that arms it, not the Delete beside it",
           Keymap.hintFor("trash"), "d")
     check("a printable character outranks the key code bound to the same action",
@@ -92,6 +92,7 @@ function run(check) {
           "viewList|viewColumns|viewGrid")
     // The one Finder chord not taken: Ctrl+D already pages, with Ctrl+U as its pair.
     check("ctrl d still pages, so Finder's duplicate chord is not taken", Keymap.lookup(Qt.Key_D, "d", ctrl), "pageDown")
+    check("uppercase n makes a folder", Keymap.lookup(Qt.Key_N, "N", none), "newFolder")
     check("ctrl shift n makes a folder", Keymap.lookup(Qt.Key_N, "N", ctrl | shift), "newFolder")
     check("plain ctrl n is nothing, the shift is the chord", Keymap.lookup(Qt.Key_N, "n", ctrl), "")
     check("ctrl shift period shows hidden files, whichever key code the layout delivers",

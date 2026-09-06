@@ -2,7 +2,8 @@ import QtQuick
 import "." as Flea
 import "js/Motion.js" as Motion
 
-// Quick actions shown when a directory is empty: animated logo + rotating text above, actions below.
+// The empty directory's next moves. The quiet EmptyState remains behind this
+// compact card; this item owns only the actionable part of the empty view.
 Item {
     id: root
 
@@ -18,9 +19,6 @@ Item {
 
     visible: root.active || content.opacity > 0
 
-    // When cloning, show "Cloning..." instead of rotating text.
-    readonly property bool cloning: root.gitCloneMode
-
     readonly property var messages: [
         "Nothing here yet",
         "A very tidy directory",
@@ -34,9 +32,9 @@ Item {
     readonly property int rotateMs: 2800
     readonly property color dim: Qt.darker(Theme.color.foreground, 1.4)
 
-    // The five quick actions.
     readonly property var actions: [
         { name: "openAgent", label: "Open Agent", glyph: "terminal", key: "A" },
+        { name: "openAgentPicker", label: "Agent Picker", glyph: "list-filter", key: "P" },
         { name: "gitClone", label: "Git Clone", glyph: "folder-git-2", key: "C" },
         { name: "terminal", label: "Terminal", glyph: "terminal", key: "T" },
         { name: "newFolder", label: "New Folder", glyph: "folder-plus", key: "N" }
@@ -72,37 +70,29 @@ Item {
         var act = root.actions[root.cursorIndex]
         if (act === undefined) return
         if (act.name === "gitClone") {
-            root.gitCloneMode = true
-            root.gitUrl = ""
+            root.openGitClone()
             return
         }
         root.action(act.name, root.currentDir)
         root.close()
     }
 
+    // C reaches this directly; selecting the Git Clone row reaches it too.
+    function openGitClone() {
+        root.gitCloneMode = true
+        gitInput.forceActiveFocus()
+    }
+
     function handleKey(key, text) {
-        if (!root.active) return false
-        if (root.gitCloneMode) {
-            if (key === Qt.Key_Return || key === Qt.Key_Enter) {
-                runGitClone()
-                return true
-            }
-            if (key === Qt.Key_Escape) {
-                root.close()
-                return true
-            }
-            if (key === Qt.Key_Backspace) {
-                root.gitUrl = root.gitUrl.slice(0, -1)
-                return true
-            }
-            if (text.length === 1 && text >= " ") {
-                root.gitUrl += text
-                return true
-            }
-            return false
+        if (!root.active || root.gitCloneMode) return false
+        if (key === Qt.Key_Escape) {
+            root.close()
+            return true
         }
-        if (key === Qt.Key_Escape) { root.close(); return true }
-        if (key === Qt.Key_Return || key === Qt.Key_Enter) { activateCursor(); return true }
+        if (key === Qt.Key_Return || key === Qt.Key_Enter) {
+            root.activateCursor()
+            return true
+        }
         return false
     }
 
@@ -114,30 +104,41 @@ Item {
 
     Rectangle {
         id: content
-        x: 0
-        width: root.width
-        height: root.height
+        anchors.centerIn: parent
+        width: Math.min(420, Math.max(0, root.width - Theme.spacing.rowPaddingX * 4))
+        height: Math.min(root.height - Theme.spacing.gap * 2,
+                         panel.implicitHeight + Theme.spacing.rowPaddingY * 4)
         color: Theme.color.background
-        y: root.active ? 0 : Motion.translateUpPx
+        border.color: Theme.color.muted
+        border.width: Theme.spacing.hairline
+        radius: Theme.spacing.gap
+        clip: true
         opacity: root.active ? 1 : 0
+        scale: root.active ? 1 : 0.96
 
-        Behavior on y {
-            enabled: root.active && !Theme.reducedMotion
-            NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
-        }
         Behavior on opacity {
             enabled: !Theme.reducedMotion
             NumberAnimation {
                 duration: root.active ? Motion.durMs.open : Motion.durMs.close
-                easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.bezierCurve
+            }
+        }
+        Behavior on scale {
+            enabled: !Theme.reducedMotion
+            NumberAnimation {
+                duration: root.active ? Motion.durMs.open : Motion.durMs.close
+                easing.type: Easing.BezierSpline
+                easing.bezierCurve: Motion.bezierCurve
             }
         }
 
         Column {
+            id: panel
             anchors.centerIn: parent
+            width: parent.width - Theme.spacing.rowPaddingX * 4
             spacing: Theme.spacing.gap
 
-            // Animated logo (same as original EmptyState)
             Flea.FleaMark {
                 id: heroMark
                 anchors.horizontalCenter: parent.horizontalCenter
@@ -145,11 +146,10 @@ Item {
                 height: Theme.heroMarkSize
             }
 
-            // Rotating caption (same as original EmptyState)
             Text {
                 id: caption
                 anchors.horizontalCenter: parent.horizontalCenter
-                text: root.cloning ? "CLONING..." : root.messages[root.messageIndex].toUpperCase()
+                text: (root.gitCloneMode ? "Clone into this folder" : root.messages[root.messageIndex]).toUpperCase()
                 color: root.dim
                 font.family: Theme.font.family
                 font.pixelSize: Theme.font.caption
@@ -158,15 +158,14 @@ Item {
                 textFormat: Text.PlainText
             }
 
-            // Git clone input mode
             Rectangle {
                 visible: root.gitCloneMode
-                width: Math.min(400, root.width - Theme.spacing.rowPaddingX * 4)
+                width: parent.width
                 height: Theme.rowHeight + Theme.spacing.rowPaddingY
                 color: "transparent"
-                border.color: Theme.color.muted
-                border.width: 1
-                anchors.horizontalCenter: parent.horizontalCenter
+                border.color: Theme.color.accent
+                border.width: Theme.spacing.hairline
+                radius: Theme.spacing.gap
 
                 TextInput {
                     id: gitInput
@@ -175,14 +174,16 @@ Item {
                     color: Theme.color.foreground
                     font.family: Theme.font.family
                     font.pixelSize: Theme.font.bodySmall
+                    verticalAlignment: TextInput.AlignVCenter
                     text: root.gitUrl
                     cursorVisible: true
-                    focus: root.active && root.gitCloneMode
-                    enabled: root.active && root.gitCloneMode
+                    focus: root.gitCloneMode
                     clip: true
                     Keys.onReturnPressed: root.runGitClone()
                     Keys.onEnterPressed: root.runGitClone()
-                    Keys.onEscapePressed: { root.gitCloneMode = false; root.gitUrl = "" }
+                    Keys.onEscapePressed: {
+                        root.close()
+                    }
                     Keys.onPressed: function (event) {
                         if (event.key === Qt.Key_Backspace) {
                             root.gitUrl = root.gitUrl.slice(0, -1)
@@ -192,68 +193,110 @@ Item {
                     onTextChanged: root.gitUrl = text
                 }
 
-                // Placeholder
                 Text {
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.spacing.rowPaddingX
+                    anchors.verticalCenter: parent.verticalCenter
                     visible: root.gitUrl.length === 0
-                    text: "Paste git URL and press Enter"
+                    text: "Type or paste git URL, then Enter"
                     color: Theme.color.muted
                     font.family: Theme.font.family
                     font.pixelSize: Theme.font.bodySmall
-                    anchors.centerIn: parent
                 }
             }
 
-            // Action list
-            Repeater {
-                model: root.gitCloneMode ? [] : root.actions
-                delegate: Row {
-                    anchors.horizontalCenter: parent.horizontalCenter
-                    spacing: Theme.spacing.gap
+            Column {
+                visible: !root.gitCloneMode
+                width: parent.width
+                spacing: Theme.spacing.hairline
 
-                    Flea.Glyph {
-                        name: modelData.glyph
-                        color: index === root.cursorIndex ? Theme.color.accent : Theme.color.muted
-                        maxSize: Theme.font.bodySmall
-                        width: Theme.font.bodySmall
-                        height: Theme.font.bodySmall
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                Repeater {
+                    model: root.actions
+                    delegate: Rectangle {
+                        width: parent.width
+                        height: Theme.rowHeight
+                        color: index === root.cursorIndex ? Theme.color.surface : "transparent"
+                        border.color: Theme.color.accent
+                        border.width: index === root.cursorIndex ? Theme.spacing.hairline : 0
+                        radius: Theme.spacing.gap
 
-                    Text {
-                        text: modelData.label
-                        font.family: Theme.font.family
-                        font.pixelSize: Theme.font.bodySmall
-                        color: index === root.cursorIndex ? Theme.color.accent : Theme.color.foreground
-                        anchors.verticalCenter: parent.verticalCenter
-                    }
+                        Row {
+                            anchors.fill: parent
+                            anchors.leftMargin: Theme.spacing.rowPaddingX
+                            anchors.rightMargin: Theme.spacing.rowPaddingX
+                            spacing: Theme.spacing.gap
 
-                    Text {
-                        text: modelData.key
-                        font.family: Theme.font.family
-                        font.pixelSize: Theme.font.caption
-                        color: Theme.color.muted
-                        anchors.verticalCenter: parent.verticalCenter
+                            Flea.Glyph {
+                                name: modelData.glyph
+                                color: index === root.cursorIndex ? Theme.color.accent : Theme.color.muted
+                                maxSize: Theme.font.bodySmall
+                                width: Theme.font.bodySmall
+                                height: Theme.font.bodySmall
+                                anchors.verticalCenter: parent.verticalCenter
+                            }
+
+                            Text {
+                                width: parent.width - keyHint.width - Theme.font.bodySmall - Theme.spacing.gap * 2
+                                anchors.verticalCenter: parent.verticalCenter
+                                text: modelData.label
+                                color: index === root.cursorIndex ? Theme.color.accent : Theme.color.foreground
+                                font.family: Theme.font.family
+                                font.pixelSize: Theme.font.bodySmall
+                                elide: Text.ElideRight
+                            }
+
+                            Text {
+                                id: keyHint
+                                anchors.verticalCenter: parent.verticalCenter
+                                visible: modelData.key.length > 0
+                                text: modelData.key
+                                color: Theme.color.muted
+                                font.family: Theme.font.family
+                                font.pixelSize: Theme.font.bodySmall
+                            }
+                        }
+
+                        MouseArea {
+                            anchors.fill: parent
+                            hoverEnabled: true
+                            onEntered: root.cursorIndex = index
+                            onClicked: {
+                                root.cursorIndex = index
+                                root.activateCursor()
+                            }
+                        }
                     }
                 }
             }
 
             Text {
-                visible: !root.gitCloneMode
-                text: "j/k move · Enter select · Esc close"
-                font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
-                color: Theme.color.muted
                 anchors.horizontalCenter: parent.horizontalCenter
+                visible: !root.gitCloneMode
+                text: "C clone · j/k move · Enter select · Esc close"
+                color: Theme.color.muted
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.bodySmall
+            }
+
+            Text {
+                anchors.horizontalCenter: parent.horizontalCenter
+                visible: root.gitCloneMode
+                text: "Esc returns to the action list"
+                color: Theme.color.muted
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.bodySmall
             }
         }
     }
 
-    // Rotating caption timer (same as original EmptyState)
     Timer {
         interval: root.rotateMs
-        running: root.active && !root.cloning && !Theme.reducedMotion
+        running: root.active && !root.gitCloneMode && !Theme.reducedMotion
         repeat: true
-        onTriggered: { fade.restart(); heroMark.replay() }
+        onTriggered: {
+            fade.restart()
+            heroMark.replay()
+        }
     }
 
     SequentialAnimation {

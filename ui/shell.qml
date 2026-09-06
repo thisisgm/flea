@@ -245,8 +245,19 @@ ShellRoot {
                 y: pane.y + pane.listArea.y
                 width: pane.viewMode === "columns" ? pane.columnsArea.columnWidth : pane.listArea.width
                 height: pane.listArea.height
-                visible: (pane.listingState === "empty" && pane.searchMode.length === 0) || emptyActions.gitCloneMode
-                onClosed: pane.forceActiveFocus()
+                visible: (pane.listingState === "empty" && pane.searchMode.length === 0)
+                    || (emptyActions.active && emptyActions.gitCloneMode)
+                function restoreViewFocus() {
+                    if (agentPicker.active)
+                        return
+                    // Explicitly focus the list to restore keyboard navigation.
+                    pane.forceActiveFocus()
+                    var view = pane.viewMode === "list" ? pane.list
+                              : pane.viewMode === "grid" ? pane.grid
+                              : pane.columns
+                    if (view) view.forceActiveFocus()
+                }
+                onClosed: restoreViewFocus()
                 onAction: function (name, dir) { pane.handleEmptyAction(name, dir) }
                 // Auto-open when directory becomes empty (not during search).
                 Connections {

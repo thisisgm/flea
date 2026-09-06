@@ -234,29 +234,31 @@ function agentPickerAct(action, root) {
 
 function emptyActionsAct(event, root) {
     if (root.emptyActions.handleKey(event.key, event.text))
-        return
+        return true
     // Esc was handled but emptyActions didn't close - force close.
     if (!root.emptyActions.active) {
         root.forceActiveFocus()
-        return
+        return true
     }
-    // Fall through to normal actions for shortcuts like A, T, N, C.
+    // Direct shortcuts remain available alongside mouse and list selection.
     var action = lookup(event, root)
-    if (action === "cursorDown") { root.emptyActions.moveCursor(1); return }
-    if (action === "cursorUp") { root.emptyActions.moveCursor(-1); return }
-    if (action === "open") { root.emptyActions.activateCursor(); return }
-    if (action === "openAgent") { root.openAgent(); root.emptyActions.close(); return }
-    if (action === "openTerminal") { root.openTerminal(); root.emptyActions.close(); return }
-    if (action === "newFolder") { Ops.newFolder(root); root.emptyActions.close(); return }
-    if (action === "gitClone") { root.gitClone(); return }
+    if (action === "cursorDown") { root.emptyActions.moveCursor(1); return true }
+    if (action === "cursorUp") { root.emptyActions.moveCursor(-1); return true }
+    if (action === "open") { root.emptyActions.activateCursor(); return true }
+    if (action === "gitClone") { root.gitClone(); return true }
+    if (action === "openAgent") { root.openAgent(); root.emptyActions.close(); return true }
+    if (action === "openAgentPicker") { root.openAgentPicker(); root.emptyActions.close(); return true }
+    if (action === "openTerminal") { root.openTerminal(); root.emptyActions.close(); return true }
+    if (action === "newFolder") { Ops.newFolder(root); root.emptyActions.close(); return true }
     // h/l navigate even when empty actions are open.
-    if (action === "parent") { root.openParent(); root.emptyActions.close(); return }
-    if (action === "pageForward") { /* l does nothing on empty dir */ return }
+    if (action === "parent") { root.openParent(); root.emptyActions.close(); return true }
+    if (action === "pageForward") { /* l does nothing on empty dir */ return true }
     // Tab switches to sidebar without closing the selector.
     if (action === "focusNext") {
         root.focusView = "rail"
-        return
+        return true
     }
+    return false
 }
 
 // The cursor keys and only those, resolved through the generated table rather than through a second
@@ -318,9 +320,18 @@ function handleKey(event, root, sidebar) {
         return true
     }
     // Empty actions only capture keys when focus is on the list, not the rail.
-    if (root.emptyActions && root.emptyActions.active && root.focusView !== RAIL) {
-        emptyActionsAct(event, root)
-        return true
+    if (root.emptyActions && root.emptyActions.active && root.focusView !== RAIL && !root.emptyActions.gitCloneMode) {
+        if (emptyActionsAct(event, root))
+            return true
+        // Keep the card up for keys with no binding, but dismiss it before a
+        // normal global binding (such as lowercase p) runs.
+        if (action.length === 0)
+            return true
+        root.emptyActions.close()
+    }
+    // Git clone mode: let the TextInput handle keys directly.
+    if (root.emptyActions && root.emptyActions.active && root.emptyActions.gitCloneMode) {
+        return false
     }
     if (action === "focusNext") {
         root.focusView = next(root.focusView)

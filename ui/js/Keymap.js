@@ -111,6 +111,7 @@ function lookup(key, text, modifiers) {
     case "A": return "openAgent"
     case "O": return "openVideoEditor"
     case "C": return "gitClone"
+    case "N": return "newFolder"
     case "T": return "openTerminal"
     case "/": return "filter"
     case "f": return "search"
@@ -147,9 +148,7 @@ function lookup(key, text, modifiers) {
 }
 
 // The key ui/MenuRow.qml prints beside a menu row, keyed on the row's own action. Only bare
-// keys are here: an action reachable by a chord alone leaves its row's hint slot empty, which
-// is how Menus.html draws New Folder. Derived from keys.toml, so a hint cannot advertise a key
-// nothing is bound to.
+// keys are here. Derived from keys.toml, so a hint cannot advertise a key nothing is bound to.
 var HINTS = {
     "addNetwork": "a",
     "copy": "y",
@@ -169,6 +168,7 @@ var HINTS = {
     "gridLeft": "b",
     "keymapSheet": "?",
     "menu": "m",
+    "newFolder": "N",
     "open": "enter",
     "openAgent": "A",
     "openAgentPicker": "P",
@@ -226,7 +226,7 @@ var SHEET = [
     { keys: "r", action: "rename", label: "rename" },
     { keys: "dd", action: "trashArm", label: "trash" },
     { keys: "z ^z", action: "undo", label: "undo" },
-    { keys: "^N", action: "newFolder", label: "new folder" },
+    { keys: "N ^N", action: "newFolder", label: "new folder" },
     { keys: "v", action: "toggleSelect", label: "select" },
     { keys: "s", action: "sortNext", label: "sort column" },
     { keys: "S", action: "sortReverse", label: "reverse sort" },
