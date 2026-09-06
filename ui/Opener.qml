@@ -63,8 +63,52 @@ Item {
         terminalChild.running = true
     }
 
+    // The default code agent in the current directory, through flea --agent.
+    function openAgent(path) {
+        if (agentChild.running) {
+            root.terminalBusy(path)
+            return
+        }
+        root.terminalCurrent = path
+        agentChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--agent", path]
+        agentChild.running = true
+    }
+
+    // A specific agent in the given directory, through flea --agent <dir> <agent>.
+    function openAgentWith(agent, dir) {
+        if (agentChild.running) {
+            root.terminalBusy(dir)
+            return
+        }
+        root.terminalCurrent = dir
+        agentChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--agent", dir, agent]
+        agentChild.running = true
+    }
+
+    // Open a file with a specific program.
+    function openWith(program, filePath) {
+        if (child.running) {
+            root.busy(filePath)
+            return
+        }
+        root.current = filePath
+        child.command = [program, filePath]
+        child.running = true
+    }
+
     Process {
         id: terminalChild
+
+        onExited: function (exitCode, exitStatus) {
+            if (exitCode === 0) {
+                return
+            }
+            root.terminalFailed(root.terminalCurrent)
+        }
+    }
+
+    Process {
+        id: agentChild
 
         onExited: function (exitCode, exitStatus) {
             if (exitCode === 0) {

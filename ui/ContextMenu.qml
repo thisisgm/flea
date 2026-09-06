@@ -25,6 +25,7 @@ Item {
     // Whether the cursor row is an archive, and whether it is an image; both decided client-side.
     property bool rowIsArchive: false
     property bool rowIsImage: false
+    property bool rowIsVideo: false
     // Empty until the stock Dropbox service is installed and authenticated, which is what gates the row.
     property string dropboxPath: ""
     // True when the cursor row already lives under ~/Dropbox, where a share link is the useful action.
@@ -97,6 +98,7 @@ Item {
             archiveFormats: root.archiveFormats,
             rowIsArchive: root.rowIsArchive,
             rowIsImage: root.rowIsImage,
+            rowIsVideo: root.rowIsVideo,
             canConvert: root.canConvert,
             // The Menus settings section's stored set; ui/js/Menu.js applyHidden is what reads it.
             hiddenActions: ViewState.menuHidden
@@ -131,6 +133,14 @@ Item {
         root.clearRail()
         root.forHeader = false
         root.hasRow = true
+        root.place(scenePoint)
+    }
+
+    // Called from Menu.js openAtCursor when the cursor row is not visible (empty directory).
+    function openForBackground(scenePoint) {
+        root.clearRail()
+        root.forHeader = false
+        root.hasRow = false
         root.place(scenePoint)
     }
 

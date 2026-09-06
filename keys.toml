@@ -326,6 +326,12 @@ action = "extendUp"
 char = "h"
 action = "parent"
 
+char = "A"
+action = "openAgent"
+
+char = "O"
+action = "openVideoEditor"
+
 # Narrows the rows already listed, in place and with no round trip. ui/js/Focus.js keeps it to the
 # list view, the one the canvas draws a filter in, the same way it keeps addNetwork to the rail.
 [[text]]
@@ -372,6 +378,9 @@ action = "cut"
 [[text]]
 char = "p"
 action = "paste"
+
+char = "P"
+action = "openAgentPicker"
 
 # Two presses, because a single d sat in the middle of the letters a name is typed with and trashed
 # the row on the third keystroke of "Vid". Delete and Ctrl+Delete still go on one press.
@@ -591,6 +600,21 @@ label = "eject"
 keys = "^t"
 action = "openTerminal"
 label = "open terminal"
+
+[[sheet]]
+keys = "O"
+action = "openVideoEditor"
+label = "open in omacut"
+
+[[sheet]]
+keys = "A"
+action = "openAgent"
+label = "open agent"
+
+[[sheet]]
+keys = "P"
+action = "openAgentPicker"
+label = "agent picker"
 
 [[sheet]]
 keys = "^+"

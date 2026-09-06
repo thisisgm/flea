@@ -141,6 +141,7 @@ ShellRoot {
                 backend: backend
                 preview: preview
                 shareBrowser: shareBrowser
+                agentPicker: agentPicker
                 keymapSheet: keymapSheet
                 settingsPanel: settingsPanel
                 onMessage: function (text, isError) { bar.say(text, isError) }
@@ -254,6 +255,17 @@ ShellRoot {
                 height: pane.listArea.height
                 onClosed: pane.forceActiveFocus()
                 onActivated: function (uri, label) { pane.sidebar.mountShare(uri, label) }
+            }
+
+            // Agent picker overlay, same placement pattern as EmptyState and ShareBrowser.
+            Flea.AgentPicker {
+                id: agentPicker
+                x: pane.listArea.x
+                y: pane.y + pane.listArea.y
+                width: pane.listArea.width
+                height: pane.listArea.height
+                onClosed: pane.forceActiveFocus()
+                onLaunched: function (agent, dir) { pane.openAgentWith(agent, dir) }
             }
 
             // Issue 20: the mouse's own back button, taken by the window because no row is being

@@ -134,6 +134,9 @@ function act(action, root) {
     case "newFolder": Ops.newFolder(root); return
     // The directory being shown, not the row: the menu row and the chord both land here.
     case "openTerminal": root.openTerminal(); return
+    case "openAgentPicker": root.openAgentPicker(); return
+    case "openAgent": root.openAgent(); return
+    case "openVideoEditor": root.openVideoEditor(); return
     }
     // A submenu row fires "<action>:<id>", which is how one signal covers Taildrop and Compress both.
     if (action.indexOf("compress:") === 0) {
@@ -180,6 +183,15 @@ function shareBrowserAct(action, root) {
     case "cursorUp": root.shareBrowser.moveCursor(-1); return
     case "open": root.shareBrowser.activateCursor(); return
     case "escape": root.shareBrowser.close(); return
+    }
+}
+
+function agentPickerAct(action, root) {
+    switch (action) {
+    case "cursorDown": root.agentPicker.moveCursor(1); return
+    case "cursorUp": root.agentPicker.moveCursor(-1); return
+    case "open": root.agentPicker.activateCursor(); return
+    case "escape": root.agentPicker.close(); return
     }
 }
 
@@ -235,6 +247,10 @@ function handleKey(event, root, sidebar) {
     }
     if (root.shareBrowser.active) {
         shareBrowserAct(action, root)
+        return true
+    }
+    if (root.agentPicker && root.agentPicker.active) {
+        agentPickerAct(action, root)
         return true
     }
     if (action === "focusNext") {

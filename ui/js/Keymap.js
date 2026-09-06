@@ -104,6 +104,8 @@ function lookup(key, text, modifiers) {
     case "J": return "extendDown"
     case "K": return "extendUp"
     case "h": return "parent"
+    case "A": return "openAgent"
+    case "O": return "openVideoEditor"
     case "/": return "filter"
     case "f": return "search"
     case "o": return "reveal"
@@ -114,6 +116,7 @@ function lookup(key, text, modifiers) {
     case "Y": return "copydirpath"
     case "x": return "cut"
     case "p": return "paste"
+    case "P": return "openAgentPicker"
     case "d": return "trashArm"
     case "r": return "rename"
     case "z": return "undo"
@@ -158,6 +161,9 @@ var HINTS = {
     "keymapSheet": "?",
     "menu": "m",
     "open": "enter",
+    "openAgent": "A",
+    "openAgentPicker": "P",
+    "openVideoEditor": "O",
     "pageDown": "pagedown",
     "pageForward": "l",
     "pageUp": "pageup",
@@ -216,6 +222,9 @@ var SHEET = [
     { keys: "m", action: "menu", label: "context menu" },
     { keys: "^e", action: "eject", label: "eject" },
     { keys: "^t", action: "openTerminal", label: "open terminal" },
+    { keys: "O", action: "openVideoEditor", label: "open in omacut" },
+    { keys: "A", action: "openAgent", label: "open agent" },
+    { keys: "P", action: "openAgentPicker", label: "agent picker" },
     { keys: "^+", action: "textSizeUp", label: "text size up" },
     { keys: "^-", action: "textSizeDown", label: "text size down" },
     { keys: ",", action: "settings", label: "settings" },

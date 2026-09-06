@@ -63,6 +63,8 @@ FocusScope {
     property var preview: null
     // shell.qml's ui/ShareBrowser.qml overlay, wired the same way as preview above.
     property var shareBrowser: null
+    // shell.qml's AgentPicker overlay, wired the same way as shareBrowser above.
+    property var agentPicker: null
     // shell.qml's ui/KeymapSheet.qml, which ? opens from either the list or the rail.
     property var keymapSheet: null
     // shell.qml's ui/SettingsPanel.qml, which the comma key opens from the list and the rail alike, see act() below.
@@ -227,6 +229,17 @@ FocusScope {
 
     // A terminal in the directory being shown, through ui/Opener.qml's flea --terminal.
     function openTerminal() { wire.opener.openTerminal(root.path) }
+    function openAgent() { wire.opener.openAgent(root.path) }
+    function openAgentPicker() { if (agentPicker) agentPicker.open(root.path) }
+    function openAgentWith(agent, dir) { wire.opener.openAgentWith(agent, dir) }
+    function openVideoEditor() {
+        var row = root.rowFor(root.cursorIndex)
+        if (!row || row.d) {
+            root.message("Select a file to open in Omacut.", false)
+            return
+        }
+        wire.opener.openWith("omacut", root.join(root.path, row.n))
+    }
 
     function copyDirPath() { wire.opener.copyText(root.path) }
 
@@ -359,6 +372,7 @@ FocusScope {
         canConvert: root.backend.canConvert
         rowIsArchive: root.cursorRow !== null && !root.cursorRow.d && Archive.isArchive(root.cursorRow.n)
         rowIsImage: root.cursorRow !== null && root.cursorRow.i === "image-x-generic"
+        rowIsVideo: root.cursorRow !== null && root.cursorRow.i === "video-x-generic"
         dropboxPath: sidebar.dropboxReady ? root.home + "/Dropbox" : ""
         // The separator is part of the test, or /home/gm/DropboxBackup would count as inside Dropbox.
         rowInDropbox: root.path === root.home + "/Dropbox" || root.path.indexOf(root.home + "/Dropbox/") === 0
