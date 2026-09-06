@@ -13,6 +13,7 @@ Item {
     signal busy(string path)
     signal terminalBusy(string path)
     signal gitCloneDone(string dir, bool success)
+    signal trashDone(bool success)
 
     // The status src/open.rs returns for a directory, which the caller navigates to instead.
     readonly property int isDirectoryStatus: 3
@@ -20,6 +21,8 @@ Item {
     // Track if current operation is a git clone.
     property bool isGitClone: false
     property string gitCloneDir: ""
+    // Track if current operation is emptying trash.
+    property bool isTrashEmpty: false
 
     property string current: ""
     // The terminal launch's own path: open() and openTerminal() run on separate
@@ -47,6 +50,11 @@ Item {
             if (root.isGitClone) {
                 root.isGitClone = false
                 root.gitCloneDone(root.gitCloneDir, exitCode === 0)
+                return
+            }
+            if (root.isTrashEmpty) {
+                root.isTrashEmpty = false
+                root.trashDone(exitCode === 0)
                 return
             }
             if (exitCode === 0) {
@@ -116,6 +124,18 @@ Item {
         root.isGitClone = true
         root.gitCloneDir = dir
         child.command = ["sh", "-c", "cd '" + dir + "' && git clone '" + url + "'"]
+        child.running = true
+    }
+
+    // Empty the trash directory.
+    function emptyTrash(dir) {
+        if (child.running) {
+            root.busy(dir)
+            return
+        }
+        root.current = dir
+        root.isTrashEmpty = true
+        child.command = ["sh", "-c", "rm -rf '" + dir + "'/*"]
         child.running = true
     }
 

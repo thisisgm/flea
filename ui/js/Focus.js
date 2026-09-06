@@ -163,6 +163,7 @@ function act(action, root) {
     case "openVideoEditor": root.openVideoEditor(); return
     case "gitClone": root.gitClone(); return
     case "refresh": root.refresh(); return
+    case "emptyTrash": root.emptyTrash(); return
     }
     // A submenu row fires "<action>:<id>", which is how one signal covers Taildrop and Compress both.
     if (action.indexOf("compress:") === 0) {
@@ -251,6 +252,11 @@ function emptyActionsAct(event, root) {
     // h/l navigate even when empty actions are open.
     if (action === "parent") { root.openParent(); root.emptyActions.close(); return }
     if (action === "pageForward") { /* l does nothing on empty dir */ return }
+    // Tab switches to sidebar without closing the selector.
+    if (action === "focusNext") {
+        root.focusView = "rail"
+        return
+    }
 }
 
 // The cursor keys and only those, resolved through the generated table rather than through a second
@@ -311,7 +317,8 @@ function handleKey(event, root, sidebar) {
         agentPickerAct(action, root)
         return true
     }
-    if (root.emptyActions && root.emptyActions.active) {
+    // Empty actions only capture keys when focus is on the list, not the rail.
+    if (root.emptyActions && root.emptyActions.active && root.focusView !== RAIL) {
         emptyActionsAct(event, root)
         return true
     }

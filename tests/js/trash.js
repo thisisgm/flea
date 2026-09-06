@@ -12,6 +12,7 @@ function pane() {
         cursorIndex: 3,
         trashedIdx: [],
         said: "",
+        path: "/home/test/files",
         selectedIndices: function () { return [] }
     }
     p.message = function (text, isError) { p.said = text }

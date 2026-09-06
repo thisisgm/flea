@@ -19,6 +19,8 @@ pub enum Request {
     Transfer { op: String, paths: Vec<String>, rows: Vec<usize>, dest: String },
     TransferCancel { id: usize },
     Trash { paths: Vec<String>, rows: Vec<usize> },
+    // Permanently delete files (used in Trash directory).
+    PermanentDelete { paths: Vec<String> },
     Rename { path: String, to: String },
     Duplicate { path: String },
     // One new empty directory inside parent path; an empty name asks for the first free "New Folder".
@@ -82,6 +84,9 @@ pub fn parse_request(line: &str) -> Request {
         Some("trash") => Request::Trash {
             paths: field_str_array(line, "paths"),
             rows: field_usize_array(line, "rows"),
+        },
+        Some("permanentdelete") => Request::PermanentDelete {
+            paths: field_str_array(line, "paths"),
         },
         Some("rename") => Request::Rename {
             path: field_str(line, "path").unwrap_or_default(),

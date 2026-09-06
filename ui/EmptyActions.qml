@@ -177,7 +177,8 @@ Item {
                     font.pixelSize: Theme.font.bodySmall
                     text: root.gitUrl
                     cursorVisible: true
-                    focus: root.gitCloneMode
+                    focus: root.active && root.gitCloneMode
+                    enabled: root.active && root.gitCloneMode
                     clip: true
                     Keys.onReturnPressed: root.runGitClone()
                     Keys.onEnterPressed: root.runGitClone()

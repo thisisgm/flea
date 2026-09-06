@@ -70,7 +70,12 @@ function listingEntries(p) {
     }
     out.push({ separator: true })
     // No confirm anywhere behind this row: the undo journal is the safety, see the operations design.
-    out.push({ label: "Move to Trash", action: "trash", glyph: "trash", danger: true })
+    // In Trash directory, show "Delete Permanently" instead of "Move to Trash".
+    if (p.isTrashDir) {
+        out.push({ label: "Delete Permanently", action: "trash", glyph: "trash", danger: true })
+    } else {
+        out.push({ label: "Move to Trash", action: "trash", glyph: "trash", danger: true })
+    }
     out.push({ separator: true })
     // The tail is the rows that need no row under the cursor. Open in terminal opens the directory
     // being shown rather than the row, which is why it sits here and not above.
@@ -95,6 +100,11 @@ function backgroundEntries(p) {
     out.push({ label: "Sort by", action: "sort", glyph: "sort", submenu: sortEntries() })
     out.push({ label: "Open in terminal", action: "openTerminal", glyph: "terminal" })
     out.push({ label: "Open agent", action: "openAgentPicker", glyph: "terminal" })
+    // Empty Trash option when in Trash directory.
+    if (p.isTrashDir) {
+        out.push({ separator: true })
+        out.push({ label: "Empty Trash", action: "emptyTrash", glyph: "trash" })
+    }
     out.push(hiddenRow(p.showHidden))
     out.push({ separator: true })
     out.push({ label: "Settings", action: "settings", glyph: "sliders" })

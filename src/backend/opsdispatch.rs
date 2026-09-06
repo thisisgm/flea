@@ -1,7 +1,7 @@
 // Dispatch for the five write operations: one runs at a time, because the status bar has one sticky slot for it.
 use crate::backend::ops;
 use crate::backend::opsreq::{
-    duplicated_line, made_line, op_err, renamed_line, run_duplicate, run_transfer, run_trash, trashed_line,
+    deleted_line, duplicated_line, made_line, op_err, renamed_line, run_duplicate, run_transfer, run_trash, trashed_line,
     transferdone_line, transferitem_line, transferprogress_line, transferstarted_line, undone_line, usable_dest,
     OpMsg,
 };
@@ -9,7 +9,7 @@ use crate::backend::listing::Listing;
 use crate::backend::proto::error_line;
 use crate::backend::undo::{Entry, Journal};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
@@ -144,6 +144,15 @@ pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: 
             writeln!(out, "{}", error_line(&e)).ok();
         }
     }
+    out.flush().ok();
+}
+
+// Permanently delete files (used in Trash directory).
+pub(crate) fn do_permanent_delete(out: &mut impl Write, paths: Vec<String>) {
+    let path_bufs: Vec<PathBuf> = paths.iter().map(|p| PathBuf::from(p)).collect();
+    let failed = crate::backend::trash::permanent_delete(&path_bufs);
+    let ok = path_bufs.len() - failed;
+    writeln!(out, "{}", deleted_line(ok, failed)).ok();
     out.flush().ok();
 }
 

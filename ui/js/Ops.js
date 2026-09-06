@@ -150,7 +150,19 @@ function trash(pane) {
     if (idx.length === 0) {
         return
     }
-    pane.backend.trash(idx)
+    // If in Trash directory, permanently delete instead of trashing again.
+    if (pane.path.indexOf("/.local/share/Trash/files") !== -1) {
+        var paths = []
+        for (var i = 0; i < idx.length; i++) {
+            var row = pane.rowFor(idx[i])
+            if (row) paths.push(pane.join(pane.path, row.n))
+        }
+        if (paths.length > 0) {
+            pane.backend.permanentDelete(paths)
+        }
+    } else {
+        pane.backend.trash(idx)
+    }
 }
 
 // The clipboard has to hold absolute paths, because a paste happens in a different directory and the

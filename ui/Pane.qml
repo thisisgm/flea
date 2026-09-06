@@ -19,6 +19,8 @@ FocusScope {
 
     property var backend: null
     property string path: ""
+    // True when the current directory is the Trash directory.
+    readonly property bool isTrashDir: root.path.indexOf("/.local/share/Trash/files") !== -1
     // Set once by shell.qml from FLEA_SELECT; applied to the first `rows` this pane receives, then forgotten.
     property string pendingSelect: ""
     property int total: 0
@@ -265,6 +267,24 @@ FocusScope {
         }
         root.forceActiveFocus()
     }
+    function emptyTrash() {
+        // Safety check: only empty if we're actually in a Trash directory.
+        if (root.path.indexOf("/.local/share/Trash/files") === -1) {
+            root.message("Not in Trash directory.", true)
+            return
+        }
+        root.message("Emptying trash...", false)
+        wire.opener.emptyTrash(root.path)
+    }
+
+    Connections {
+        target: wire.opener
+        function onTrashDone(success) {
+            if (success) {
+                root.refresh()
+            }
+        }
+    }
     function gitClone() {
         if (emptyActions) {
             emptyActions.open(root.path)
@@ -417,6 +437,7 @@ FocusScope {
         rowIsArchive: root.cursorRow !== null && !root.cursorRow.d && Archive.isArchive(root.cursorRow.n)
         rowIsImage: root.cursorRow !== null && root.cursorRow.i === "image-x-generic"
         rowIsVideo: root.cursorRow !== null && root.cursorRow.i === "video-x-generic"
+        isTrashDir: root.path.indexOf("/.local/share/Trash/files") !== -1
         dropboxPath: sidebar.dropboxReady ? root.home + "/Dropbox" : ""
         // The separator is part of the test, or /home/gm/DropboxBackup would count as inside Dropbox.
         rowInDropbox: root.path === root.home + "/Dropbox" || root.path.indexOf(root.home + "/Dropbox/") === 0

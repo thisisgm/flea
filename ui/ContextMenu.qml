@@ -26,6 +26,7 @@ Item {
     property bool rowIsArchive: false
     property bool rowIsImage: false
     property bool rowIsVideo: false
+    property bool isTrashDir: false
     // Empty until the stock Dropbox service is installed and authenticated, which is what gates the row.
     property string dropboxPath: ""
     // True when the cursor row already lives under ~/Dropbox, where a share link is the useful action.
@@ -99,6 +100,7 @@ Item {
             rowIsArchive: root.rowIsArchive,
             rowIsImage: root.rowIsImage,
             rowIsVideo: root.rowIsVideo,
+            isTrashDir: root.isTrashDir,
             canConvert: root.canConvert,
             // The Menus settings section's stored set; ui/js/Menu.js applyHidden is what reads it.
             hiddenActions: ViewState.menuHidden
@@ -129,28 +131,36 @@ Item {
     z: 1
 
     // Takes a point in scene coordinates and keeps the whole menu inside the pane it belongs to.
-    function openAt(scenePoint) {
+    function openAt(scenePoint, pane) {
         root.clearRail()
         root.forHeader = false
         root.hasRow = true
+        if (pane) {
+            root.isTrashDir = pane.isTrashDir ? pane.isTrashDir : false
+            root.showHidden = pane.showHidden ? pane.showHidden : false
+        }
         root.place(scenePoint)
     }
 
     // Called from Menu.js openAtCursor when the cursor row is not visible (empty directory).
-    function openForBackground(scenePoint) {
+    function openForBackground(pane, scenePoint) {
         root.clearRail()
         root.forHeader = false
         root.hasRow = false
+        root.isTrashDir = pane && pane.isTrashDir ? pane.isTrashDir : false
+        root.showHidden = pane && pane.showHidden ? pane.showHidden : false
         root.place(scenePoint)
     }
 
     // The listing's other entrance, from a right click that landed on no row at all: ui/List.qml,
     // ui/GridArea.qml and ui/ColumnPane.qml each answer for their own empty space, and this one
     // instance then draws ui/js/Menu.js backgroundEntries instead of the cursor row's.
-    function openBackground(scenePoint) {
+    function openBackground(pane, scenePoint) {
         root.clearRail()
         root.forHeader = false
         root.hasRow = false
+        root.isTrashDir = pane && pane.isTrashDir ? pane.isTrashDir : false
+        root.showHidden = pane && pane.showHidden ? pane.showHidden : false
         root.place(scenePoint)
     }
 

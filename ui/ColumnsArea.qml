@@ -232,7 +232,7 @@ Item {
             // The list's and the grid's own two routes, reached from the one column whose rows are the pane's listing, so a click means the same thing in all three views.
             onPicked: function (index, tapCount, modifiers) { Tap.tapped(index, tapCount, modifiers, root.pane) }
             onMenuRequested: function (index, eventPoint) { Tap.tappedMenu(index, eventPoint, root.pane, root.menu) }
-            onBackgroundMenuRequested: function (eventPoint) { root.menu.openBackground(eventPoint.scenePosition) }
+            onBackgroundMenuRequested: function (eventPoint) { root.menu.openBackground(root.pane, eventPoint.scenePosition) }
         }
 
         // The cursor row: what is inside it when it is a directory, what it is when it is a file.

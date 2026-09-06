@@ -190,7 +190,7 @@ ListView {
         acceptedButtons: Qt.RightButton
         onTapped: function (eventPoint) {
             if (root.indexAt(root.contentX + eventPoint.position.x, root.contentY + eventPoint.position.y) < 0)
-                root.menu.openBackground(eventPoint.scenePosition)
+                root.menu.openBackground(root.pane, eventPoint.scenePosition)
         }
     }
 
