@@ -119,7 +119,7 @@ pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str) {
     thread::spawn(move || run_duplicate(owned, tx));
 }
 
-// One rename(2), so it answers on the calling thread rather than costing a spawn to say the same thing.
+// Rename answers on the calling thread; rclone directory compatibility may copy before removing its source.
 pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str) {
     match ops::rename(Path::new(path), to) {
         Ok((dst, steps)) => {
@@ -250,6 +250,23 @@ mod tests {
         assert!(text(&buf).contains(r#"{"t":"undone","op":"rename","ok":true}"#));
         assert!(from.exists(), "undo put the old name back");
         assert!(o.journal.is_empty());
+    }
+
+    // Journal::undo propagates with `?` and do_undo hands that error straight to error_line.
+    #[test]
+    fn a_failed_rename_reversal_answers_the_rename_kind_and_not_undo() {
+        let d = TestDir::new("dispatchundorename");
+        let mut o = ops();
+        let from = d.file("before.txt", "body");
+        let mut buf = out();
+        do_rename(&mut buf, &mut o, &from.to_string_lossy(), "after.txt");
+        // Something takes the old name back before the undo, so the reversal's own rename refuses it.
+        d.file("before.txt", "squatter");
+        let mut buf = out();
+        do_undo(&mut buf, &mut o);
+        let line = text(&buf);
+        assert!(line.contains(r#""t":"error","where":"rename""#), "{}", line);
+        assert!(!line.contains(r#""where":"undo""#), "an undo must not re-stamp the kind its step answered");
     }
 
     #[test]

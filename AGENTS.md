@@ -5,7 +5,7 @@ P0 is the local browser, and remotes, search and disk operations have since land
 top of it. Encryption and Flea's own terminal interface are later phases and are not in
 this tree yet: `flea --tui` says so and exits 2.
 
-## The five load-bearing rules
+## The seven load-bearing rules
 
 1. **Every per-file operation stays scoped to the viewport.** Icons, MIME sniffing and
    thumbnails all stay inside the visible rows. The whole margin over the field is that
@@ -33,12 +33,58 @@ this tree yet: `flea --tui` says so and exits 2.
    was rejected as slower and stale-capable; it remains disabled until the wire carries
    the requested path and a new measurement proves a real win.
 
-5. **Vulkan now, lazy multimedia later.** `ui/shell.qml` sets
-   `QSG_RHI_BACKEND=vulkan`, which costs 2.4x less memory than the OpenGL default and
-   initialises 35 ms faster, with identical frame timing. Preview and QtMultimedia
-   are now in the tree and the laziness held: `ui/PreviewMedia.qml` is the only file
-   that imports QtMultimedia, reached through a `Loader` built by the first press of
-   play, because QtMultimedia costs 20 MB before it plays anything.
+5. **Vulkan where the loader can deliver it, lazy multimedia later.** `src/gui.rs` sets
+   `QSG_RHI_BACKEND=vulkan` when the user did not choose a renderer and `src/vulkan.rs` has
+   created a throwaway instance and seen a device, which costs 2.4x less memory than the OpenGL
+   default and initialises 35 ms faster, with identical frame timing. A loader that cannot
+   deliver one is given `opengl` before `qs` starts at all, because Quickshell hands
+   `QRhi::create` a `QVulkanInstance` it never created and SIGSEGVs there rather than raising
+   the scene-graph error the QML arm listens for, issue #14 on a QEMU Virtio GPU. That downgrade
+   is not silent: `usable()` answers with the call or library that refused, and with the
+   extensions in the two arms that asked for them, and `src/gui.rs` prints that as one sentence
+   on stderr, because a 2.4x memory regression the operator cannot see is the defect and not the
+   report of it. The probe is `dlopen` plus `vkCreateInstance` plus `vkEnumeratePhysicalDevices`,
+   and it costs an implicit launch roughly 8 ms on this box, so about a quarter of that init
+   advantage is what buys the crash out; dropping the device count would save only 2 of those
+   milliseconds and would stop catching a loader that creates an instance and then lists nothing.
+   A scene-graph failure after launch still relaunches once with OpenGL and drains the failed
+   backend; an explicit `QSG_RHI_BACKEND` is never replaced, and
+   an exported-but-empty one is absent rather than a choice, the same rule `paths::has_display()`
+   applies. What the probe proves is exactly what it asks the loader for: an instance carrying
+   `VK_KHR_surface` and the session's own surface extension, `VK_KHR_wayland_surface` here and
+   `VK_KHR_xcb_surface` where only `DISPLAY` is set, plus a physical device. Those three names are
+   Qt's own: `libQt6Gui.so.6`, `libQt6XcbQpa.so.6` and `libQt6WaylandClient.so.6` here carry exactly
+   those and no other surface name. The request is not satisfiable without a driver either: with
+   every ICD hidden this loader enumerates 5 instance extensions and no surface one, and
+   `vkCreateInstance` answers `VK_ERROR_INCOMPATIBLE_DRIVER`. What it does not prove is that a
+   device can present, which an instance-level request cannot ask and this probe never does. The
+   cost is measured against a probe-free build of the same tree, 25 interleaved pairs of the whole
+   implicit launch to a stub `qs`, timed in microseconds: 10.6 to 11.6 ms with the probe against
+   2.6 to 3.2 ms without it, medians about 8 ms apart, so the probe is most of that launch rather
+   than a component hidden inside it. An earlier note here read 11 to 12 ms in both arms, which is
+   wrong: only the probe arm is near that, and a 1 ms instrument resolves this gap eight times over.
+   The retry arm is covered in two halves, because no whole of it can be driven here.
+   `ui/js/Renderer.js` is the decision and the argv, driven by `tests/js/renderer.js`; the signal
+   reaching that decision is driven by `tests/ui.sh renderer`, which starts Qt's GL backend with
+   no EGL vendor file to load. That is the one scene-graph failure found to be raisable on this
+   box: a broken Vulkan loader cannot stand in for it, because the shell dies first, which is the
+   whole of issue #14. Measured here with every ICD hidden, `qs` warns `No QVulkanInstance set for
+   QQuickWindow` and exits 255 without raising anything; the SIGSEGV is issue #14's own report on a
+   QEMU Virtio GPU. `view.Window.window` is null while `ui/shell.qml` loads and holds the
+   `QQuickWindow` once it exists, and that same `Connections` was measured receiving
+   `sceneGraphInitialized`, the signal Qt raises at the phase `sceneGraphError` replaces. What no
+   test reaches is the positive arm, a Vulkan failure leaving `QVulkanInstance` valid and failing
+   at `QRhi::create`, which no environment variable here was able to produce.
+   **`ui/shell.qml` no longer carries the `//@ pragma DefaultEnv QSG_RHI_BACKEND=vulkan`
+   line**, so `src/gui.rs` is the only thing that chooses a renderer for a launch, the one OpenGL
+   relaunch in `ui/shell.qml` aside, and a direct `qs -p ui` launch bypasses it entirely:
+   `tools/flea-first-paint`, `tools/flea-metrics-gate`, `tests/ui.sh`, `tests/drag.sh` and the
+   `README.md` dev loop each state `QSG_RHI_BACKEND` for themselves, so their numbers stay on the
+   Vulkan baseline they were recorded against.
+   `tools/flea-field-bench` needs none of that, because it launches `$FLEA_BIN --gui`.
+   Preview and QtMultimedia are now in the tree and the laziness held: `ui/PreviewMedia.qml`
+   is the only file that imports QtMultimedia, reached through a `Loader` built by the first
+   press of play, because QtMultimedia costs 20 MB before it plays anything.
 
 6. **A hidden view is not a free view.** `visible: false` does NOT stop a QML view doing
    model work: it keeps its geometry, stays bound to the listing, and pays per row. All
@@ -313,36 +359,286 @@ unlinking a caller-supplied path is not this function's job even when that path 
 from a broken caller. The exit status is the contract: a caller must check it before
 trusting whatever `dest` currently holds.
 
+## The state file
+
+`~/.local/state/flea/ui.json`, or `$XDG_STATE_HOME/flea/ui.json` when that is set and not empty, is
+the one file Flea writes for itself. `src/uischema.rs` holds the shipped shape and every default,
+copied from the 0.1.4 build handoff; `src/uistate.rs` holds the merges; `src/uistore.rs` holds the
+paths, the lock and the write.
+
+**One update path, and the one front end in this tree goes through it.** `flea --ui-state` prints
+the merged document and writes nothing. `flea --ui-state '<json object>'` merges that patch through
+the lock and prints the result. The window reaches it from `ui/ViewState.qml` through a `Process`;
+the terminal interface is not here yet, as `flea --tui` says by exiting 2, and when it is built it
+will submit patches for `view`, `hidden` and `sort` only, because menus and places are the window's.
+Scale is on neither list: `src/uischema.rs` has no `scale` key at all, it stores an Omarchy text-size
+stop under `display.textSize.mode`, and the multiplier `ui/js/Scale.js` applies is a session value.
+**The streams and the status are the contract**, because
+that `Process` reads the status alone: either shape prints the whole document on stdout and exits 0,
+and every refusal, a patch that is not JSON, a key or value this Flea does not take, a state file it
+could not write, or more than one argument, prints one `flea: ` sentence on stderr, prints nothing
+on stdout at all, and exits 2. Pinned in `tests/uistate.sh`, both streams for each of the four.
+
+**A patch names what that window changed, and nothing else.** `ui/ViewState.qml` holds a second
+document beside the one it draws from, `unsaved`, built by the same two rebuilds and starting empty;
+`patch()` is that document. It used to render a snapshot of all four keys the window owns, and the
+lock cannot save that: the merge in `src/uistate.rs` protects a key the caller leaves OUT, and a
+snapshot names every key explicitly, so a window that changed only the text size wrote its startup
+read of `keys` back over a change another window made after that read. The lock was working
+correctly and the data was still lost. Running the rebuild over both documents is what keeps them
+honest in the other direction too: `changeLeaf` merges a leaf into the group the window DRAWS, so a
+sub-key a newer Flea left in `display` or `menu` stays on screen, and owes the leaf alone, because
+this Flea has no rule for that sub-key and `check()` refuses a whole patch that names one. The owed
+document is a union rather than the newest change alone, so a change made while a writer runs
+coalesces with whatever is queued behind it; a refused write keeps it owed so the next patch carries
+it again. **A write that LANDS takes its own settings back out, leaf by leaf, the moment it exits**,
+and never when the queue happens to drain: waiting for the drain left a setting that was already in
+the file still owed, so it rode along inside the patch queued behind it and overwrote whatever
+another window or the CLI had put there in the meantime, which is the same lost update one step
+later in time. The queued writer is therefore launched with what is owed when it starts rather than
+with the bytes that were waiting, and a setting whose value changed again while the writer that
+carried the old one ran is NOT taken out, because the file does not have the new one. A setter that
+lands the value already held owes nothing at all. `tests/uiwriter.sh` drives two windows over one
+state file both ways round and holds a queued writer at the door while the CLI writes under it, and
+`tests/js/uistate.js` pins the patch bytes.
+
+**The window's read is the settled file, and not a raw one.** `main()` calls `Store::settle` before
+it hands off to `qs`: an empty patch through the same lock and the same per-key validation, so
+whenever that settle succeeded on a document it could read, a value a hand edit left in a key this
+Flea knows has already fallen back to its own default by the time `ui/ViewState.qml`'s `FileView`
+reads it. A key this Flea does not know is not one of those: `merge` keeps it verbatim, so a newer
+Flea's settings survive the settle rather than falling back to anything. Without the step the two
+front ends answer one file two ways, because the window's read is a `JSON.parse` and applies no rule
+of its own. The settle can fail, on an unwritable state directory or a `ui.json` that is a link, and
+then `main()` prints one line and opens the window anyway on a file it did not validate. **The
+migration is `read()`'s and not `settle`'s**: `read()` falls back to `view.json` exactly while
+`ui.json` is absent, so every path that reads reaches it, `flea --ui-state` included. Measured, a
+first `flea --ui-state '{"view":"grid"}'` on a box with `view.json` and no `ui.json` writes the
+migrated columns, the same ones the settle writes, and leaves `view.json` byte for byte. `settle` is
+only where the migration is first written down on a launch that never patches anything.
+
+**A launch never spends the file to settle it.** A launch with neither file writes nothing, the way
+a first run always has. Neither does one whose `ui.json` already reads back as exactly what a
+rewrite would render, because that rewrite would change nothing: the lock, the temp, the `sync_all`
+and the rename measured 6.7 to 18.6 ms a launch on this box, against 1.3 to 1.7 ms for a launch that
+only reads, which is real money against a 77 ms startup. Both are per-launch times of `flea --gui`
+driven to the missing shell, 100 launches a pass over eight passes of two harnesses that differed
+only in how `ui.json` was reseeded between launches; the read figure has the separately timed reseed
+subtracted, and the write figure's own eight passes spanned that whole 6.7 to 18.6, which is why
+each is a range here and never a number to cite. And neither does a launch whose `ui.json` cannot be
+read as a JSON object at all: that file is the only copy of whatever the operator wrote, both front
+ends already read it as the full default shape, and rewriting it would spend the operator's
+settings to close nothing, so it is left byte for byte and `ui/PaneWire.qml` says once that what is
+on disk was not used. **That is the settle and not the file.** `read()` answers the full default
+shape for such a document, so the first patch the window sends merges onto those defaults and
+renames them over the operator's only copy, every hand-written line included. Deliberate, because
+the sentence has already been posted and a save has to land somewhere, and pinned in
+`tests/uistate.sh` so the next change to `update()` is visible rather than silent.
+
+**A `ui.json` whose bytes cannot be read at all is refused, and that is a different case.** The
+paragraph above is a document this can read and cannot parse. A regular `ui.json` whose bytes
+`read()` cannot get at all is the third instance of the data loss this release closed twice
+already: `read()` answers the shipped defaults for it too, and `update()` used to rename those
+defaults over the only copy of what the operator wrote. `chmod 000` is one way in and one
+`sudo flea` is the other, because the rename needs write on the directory and never read on the
+file. `read()` still never fails, because a front end reads it before the first paint; the
+distinction lives in `refuse_a_bad_target`, which `write()` calls before it creates the temp, so a
+link, a device and a file this cannot read are all refused with one sentence naming the path and
+nothing is renamed over any of them. `tests/uistate.sh` pins both ways in, the exit status, the
+sentence and the file byte for byte after, with a first run beside them to prove the guard did not
+close the write that legitimately creates the file; `tests/ui.sh` `settings_read_refused` drives
+the same file through the window, where the operator is told twice, once by `ui/PaneWire.qml` that
+what is on disk was not used and once by the status bar that the setting was not saved.
+
+**A refused write reaches the operator.** `ui/ViewState.qml` records a patch as stored only when
+`flea --ui-state` exits 0. `ui/js/UiState.js` holds that bookkeeping, and `ui/PaneWire.qml` turns
+the failure into the status bar's one transient sentence through `ui/js/Errors.js`, the same slot
+every other write operation reports in. The status alone is read and not the child's stderr,
+because a `Process`'s own `onExited` can race its `StdioCollector`'s text. A patch that was refused
+is attempted again the next time the same toggle is made, rather than short-circuited by a book
+that already believed it. **A writer that never starts is that same refusal.** Measured on
+Quickshell 0.3.1: a `Process` whose program cannot be run emits no `exited` at all, only `running`
+going false, so `ui/ViewState.qml` reads that transition as a status of 2. Without it the patch
+stays in flight for the life of the window, every later change queues behind it unwritten, and the
+one failure this module exists to report is the one it cannot report. A real exit clears the book
+before its own `running` goes false, and a restart inside `onExited` emits no false transition at
+all, so the handler cannot fire for a writer that ran. `tests/uiwriter.sh` drives both.
+
+**The lock is the sibling `ui.json.lock`.** `File::lock()` is `flock(2)` here: advisory, exclusive
+and cross-process, held across the re-read, the per-key validation, the caller-key merge, the temp
+write and the rename, so a second Flea cannot land between this one's read and its write. Measured
+on the box with the lock taken out, twelve concurrent writers landed 1 of their 12 keys; with it in,
+12 of 12. `update()` makes the state directory and takes the lock before `patched()` validates, so a
+patch this Flea refuses leaves both of those behind and only never writes the state file itself. The
+cost is an empty `~/.local/state/flea/` and a lock the next accepted save uses anyway, which is why
+the check says what it leaves rather than the code being moved to leave nothing.
+
+**Failure is per key, and per file only when the document does not parse at all.** That one case
+is per file by construction: a document that does not parse reads as the full default shape rather
+than throwing, and is left on disk exactly as it was rather than rewritten into that shape, so every
+key in it is lost to the read at once. Every other failure costs one key: a value a key cannot take
+costs that key alone, and every other key in the file stands. A key this Flea does not know is kept
+and rewritten as it was read, at the top level and inside a nested object, so an older Flea cannot
+eat a newer one's settings. A patch is the
+other way round: it is checked whole before any of it lands, and one bad key refuses the whole patch
+with a sentence naming it, because a patch comes from Flea and not from a text editor. **A number is
+measured against JSON's own grammar and not Rust's**, because `Json::Num` keeps the literal it was
+read with and writes it straight back: `1.`, `1.e5`, `0192`, `-0192`, `01`, `00` and `-.5` all parse
+as an `f64` and none of them is a JSON number, and accepting one would have let a settle rewrite
+`ui.json` into a document the window's own `JSON.parse` refuses, after which every setting reads as
+default. The shape check is `is_json_number` in `src/jsondoc.rs`, run before the `f64` parse and not
+instead of it: the parse is what bounds the magnitude, since `1e400` is a JSON number and no finite
+`f64`. **A `\u` escape is four hex digits and nothing else**, each digit checked on its own, because
+`u32::from_str_radix` takes a leading `+` for an unsigned type as well and `\u+041` decoded to `A`:
+the same divergence as the number grammar, one escape further in. **Every parse error names a
+byte**, the four that ran off an end included, so a hand edit is answered with a position. It is the
+byte the parse stopped at, except for the six messages that name where the offending token STARTED
+instead, because on those that is the end a reader can act on: a string that runs to the end of the
+document names its opening quote, a number that is not JSON or not UTF-8 names its first character,
+a byte that is not UTF-8 names the first byte of the sequence, and a `\u` escape that is short or
+not hex names the first of its four digits.
+`malformed_input_is_an_error_naming_the_byte_it_is_about` asserts the whole sentence rather than
+`is_err()`, which is all it could see before, and it pins a nonzero offset for each of the two
+messages this branch added, because byte 0 is what a hardcoded format string would print too.
+
+**`columns` names what the list row SHOWS, and it is a set that always holds `name`.** Every entry
+is one of the five column keys, no key appears twice, and `name` is among them, because
+`src/uischema.rs`'s own row says name is never optional and `ui/js/Columns.js` draws it whatever the
+file holds. A duplicate is not harmless: measured through the real `ui/ViewState.qml` singleton, a
+stored `["name","size","size","date"]` left one header-menu "Hide Size" click still drawing
+`name,size,date`, because `toggleColumn` splices the first match and the second still shows the
+column. The header menu offers only the four optional keys onto an array that already carries
+`name`, so no click this window can produce is refused by the rule.
+
+**`wrapAtEnds` is read by the window and by nothing else.** `ui/Pane.qml` exposes it off the
+document `ui/ViewState.qml` already holds, and `ui/js/Focus.js` `step` is its only reader: with the
+key off a cursor step past an end clamps, and with it on a step taken from an end comes round. The
+key exists because issue 27 asked for the wrap, and it ships off because a second operator reported
+that same jump past the top as a bug.
+
+**`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
+a closed list, because a closed list would make this Flea drop an id a newer one hid. It is the
+Menus section's whole visibility state: the panel's master row over the six basic actions is derived
+from the set every time it is drawn, so there is no second value for a hand edit to leave it
+disagreeing with. **An id here is the action id `ui/js/Menu.js` gives the row and never a second
+name for it.** The shipped set named Open in terminal `terminal` while the menu built the row as
+`openTerminal`, so `applyHidden` matched nothing, the row drew in every menu whatever the setting
+said, and the panel carried no switch to say otherwise; both sides now read `openTerminal`.
+
+**`keyHints` is the Menus section's one row that is not an action.** It governs presentation across
+two surfaces: `ui/MenuRow.qml`'s key column, whose width goes with its text so a menu with hints off
+reads exactly as it did before that slot existed, and the tip `ui/shell.qml` draws under an empty
+directory. It ships off. A hint is only ever `ui/js/Keymap.js` `hintFor`, which is generated from
+`keys.toml`, so no surface can advertise a key nothing is bound to, and no chord depends on the
+setting: the keymap is read by `Focus.handleKey` and this value is read by nobody in that path.
+
+**`display.textSize.mode` is `"system"` or one Omarchy stop**, one of 9, 10, 11, 12, 14, 16 and 20.
+It is one key and not two, so there is nowhere for a free number to be stored.
+
+**The write is a temp plus a rename, never a truncation**, created at mode 0600 in the `open()` call
+inside a directory created at 0700, and a symbolic link at either the file or the lock is refused
+rather than written through. **The temp carries the same guarantee and by the same mechanism as
+`src/userfile.rs`**: `write_new` opens `ui.json.<pid>.tmp` with `create_new`, which is
+`O_CREAT | O_EXCL`, so a link or a file planted at that path is an error rather than a redirect, and
+the pid in the name keeps two concurrent writers off each other's temp. The direct proof is
+`the_write_replaces_the_file_rather_than_truncating_it`, which holds an fd open across an update,
+reads the old bytes back through it and compares inodes. The
+sweep beside it fires a `SIGKILL` 1 to 9 ms into each of 120 rounds and lands on a live process in 88
+to 120 of them, measured across nine sweeps on this box and four more with other lanes live on it,
+the second set ranging 92 to 120; no round of the 120 has ever left the file as
+anything but the old document or the new one. The suite prints the count it achieved and asserts only
+a fifth of the rounds, because a faster box kills fewer of them: at a 15 ms budget the same sweep
+killed 3 of 120, which is what the old floor of one kill was letting "120 SIGKILL rounds" be read off.
+A killed round leaves litter: `write()` unlinks only `ui.json.<own pid>.tmp`, so a process killed
+between `write_new` and the rename leaves that temp for good, and tens of the 120 rounds do, 47 to
+90 across the four runs that added the check, which is a magnitude and not a number to cite. Nothing
+reaps them and nothing may: the concurrency block above holds twelve live temps at once, so no
+process can tell a peer's from a corpse, and deleting one in flight is worse than the litter. The
+suite lists the directory with `ls -A` and asserts that every leftover is a killed writer's own temp
+and that there are never more of them than there were kills.
+
+**0.1.3 did store something, and it is migrated.** `ui/ViewState.qml` wrote `hiddenCols` and
+`uiScale` to `$XDG_CONFIG_HOME/flea/view.json`, so the handoff's "0.1.3 stored nothing" is wrong.
+`hiddenCols` named what was HIDDEN and `columns` names what is SHOWN, so the migration inverts it;
+`uiScale` is dropped on the operator's ruling, because 0.1.4 stores an Omarchy stop and never a free
+multiplier. The migration rides `read()` above, so the first paint after an upgrade already reads
+the migrated columns, whether the settle or a `flea --ui-state` patch was what wrote them down. A
+`ui.json` that exists means `view.json` is never read again, whether or not this Flea can read that
+`ui.json`'s bytes, and `view.json` is never written again.
+
 ## Modes
 
 `main.rs` dispatches on argv before anything else runs, but only `--backend` is fully insulated
-from the flag parsing below: it is matched anywhere in argv and always wins. `--prewarm` and
-`--open` are matched only in their exact well-formed shape, `args.len() == 5` and
-`args.len() == 3` with the flag in argv[1], so a MALFORMED one is not caught here at all. It
+from the flag parsing below: it is matched anywhere in argv and always wins. `--prewarm`,
+`--open` and `--terminal` are matched only in their exact well-formed shape, `args.len() == 5`
+for the first and `args.len() == 3` with the flag in argv[1] for the other two, so a MALFORMED one
+is not caught here at all. It
 falls through to the parsing below and leaves by the unknown-flag branch, which names the flag
 and exits 2; `flea --open` with no path and `flea --open a b` are both that case. The looseness
-predates this branch for `--prewarm` and this branch extended it to `--open`. `--open` takes exactly one path and exits with the whole of its contract: `0` is a
+predates this branch for `--prewarm` and this branch extended it to `--open` and `--terminal`. `--open` takes exactly one path and exits with the whole of its contract: `0` is a
 successful handoff, `2` is anything that could not be opened and carries one elided
 sentence, and `3` means the resolved target is a directory and carries no output at all. A
 directory is refused rather than handed on because `xdg-mime query default inode/directory`
-here is `org.gnome.Nautilus.desktop`, so handing one to `xdg-open` from inside a file
+here is `org.gnome.Nautilus.desktop`, so handing one to the desktop's opener from inside a file
 manager opens a different file manager; the caller navigates instead. See "Opening a file".
 
+`--terminal` takes exactly one directory and has a two-value contract: `0` is a successful handoff
+to `xdg-terminal-exec`, and `2` is everything else, carrying one elided sentence on stderr. A path
+that does not resolve and a path that resolves to something other than a directory both answer
+`that directory could not be opened in a terminal, check that it still exists`; a handler that
+could not be run at all answers `nothing on this system could be asked to open a terminal there`,
+so the pair tells a refusal from an unimplemented mode the way `--open`'s does. There is no third
+status: a terminal has no `IS_DIRECTORY` case to report. See "Opening a file".
+
+`--ui-state` is matched on `args[1]` alone and handles its own shapes: none reads the state file,
+one merges that JSON object through the shared update path, and anything more is a usage error. See
+"The state file".
+
 `--default` and `--default off` are matched the same way, in their own exact shape
-(`args.len() == 2`, and `args.len() == 3` with `args[2] == "off"`), dispatching to
-`defaults::claim()` and `defaults::release()`. Unlike `--prewarm` and `--open`, a malformed
-`--default` does not fall through to the unknown-flag branch: a third check catches any argv
-with `args[1] == "--default"` that matched neither shape and names its own usage error,
-`--default takes nothing, or off`, before exiting 2. `claim()` refuses and writes nothing when
-Flea's own desktop entry, `com.thisisgm.flea.desktop` (`defaults::DESKTOP_ID`), is not installed
-under `$XDG_DATA_HOME` (or `~/.local/share`) or any of `$XDG_DATA_DIRS` (default
+(`args.len() == 2`, and `args.len() == 3` with `args[2] == "off"`), dispatching to `main.rs`'s own
+`claim_both()` and `release_both()` rather than straight into `defaults`: a box updating from 0.1.3
+carries a Flea with no chooser routing at all, so one command finishes the job. Unlike `--prewarm`
+and `--open`, a malformed `--default` does not fall through to the unknown-flag branch: a third
+check catches any argv with `args[1] == "--default"` that matched neither shape and names its own
+usage error, `--default takes nothing, or off`, before exiting 2. `defaults::claim()` refuses and
+writes nothing when Flea's own desktop entry, `com.thisisgm.flea.desktop` (`defaults::DESKTOP_ID`),
+is not installed under `$XDG_DATA_HOME` (or `~/.local/share`) or any of `$XDG_DATA_DIRS` (default
 `/usr/local/share:/usr/share`): the packaged entry is the proof the pacman package landed, and
 pointing `xdg-mime` or Hyprland's bindings at an uninstalled binary would be a claim on nothing.
-Past that check it rewrites two independent per-user files through `userfile::replace_file` (see
+Past that check `defaults::claim()` rewrites two independent per-user files through
+`userfile::replace_file` (see
 "Predictable path writes"): the `inode/directory` MIME default via `xdg-mime`, and the
 additive, markered block `hyprkeys::claim()` adds to Omarchy's `~/.config/hypr/bindings.lua` for
-the two file-manager chords. `--default off` reverses both, each half a no-op when it was never
-claimed; either half's failure is reported without blocking the other, see `defaults::report`.
+the two file-manager chords.
+
+**The chooser step is the conditional one and the other two are not.** Past the handler half,
+`claim_both()` asks `chooser::backend_installed()`, and with no `flea.portal` in any portal
+directory it says `no portal backend is installed, so the file chooser step was skipped` on stderr
+and counts that as no failure: that is what a source build gets, because only the pacman package
+installs that file. With one installed it runs `chooser::claim()` too, which writes
+`~/.config/xdg-desktop-portal/portals.conf` and a second markered block in the same
+`~/.config/hypr/bindings.lua`. So a full `--default` touches three files, not two:
+`~/.config/mimeapps.list`, `~/.config/hypr/bindings.lua` and
+`~/.config/xdg-desktop-portal/portals.conf`. **A refused handler claim stops the command there**, so
+the chooser half never writes behind a step that wrote nothing. `release_both()` is
+unconditional and reverses every step, each half a no-op when it was never claimed; no half's
+failure blocks another, see `defaults::report` and `chooser::report`. The `undo both with:` line
+belongs to the invocation and not to a step, so `main.rs` prints it once, after the steps it ran,
+and `--default off` prints none at all.
+
+`--youleftmeforstrata` is a second, undocumented spelling of `--default off`, matched in its own
+exact shape and dispatching to the same `release_both()`. It is deliberately kept out of `usage()`,
+`README.md` and `docs/install.md`, and it is written down here because this file is the internal
+contract: it is state-changing, so anything auditing the mode list has to know it exists.
+
+`--picker` and `--picker off` are matched in the same two exact shapes as `--default`, with the
+same third check naming `--picker takes nothing, or off`, and dispatch to `main.rs`'s
+`claim_picker()` and to `chooser::release()`. `claim_picker()` is `chooser::claim()` plus the
+`undo both with: flea --picker off` line, printed only when there was a backend to claim, and it
+lives there rather than in `chooser` so that `--default` cannot print a second undo line naming a
+command the operator did not run.
+`--pick <reply>` is matched in its own exact shape and is not for people: it is how
+`tools/flea-portal` opens one chooser window. See "The file chooser portal".
 
 What remains chooses between the terminal interface and the window with two
 booleans, `want_tui` and `want_gui`, not an enum: there are four modes total, each dispatched
@@ -375,16 +671,106 @@ calls `prctl(PR_SET_THP_DISABLE)` immediately before that `exec`, because the se
 preserved across `exec` and this is the last point that can hand it to `qs`; see "Transparent
 huge pages" below for what it is worth and what it cost.
 
+## The file chooser portal
+
+Every application that asks the desktop to pick a file goes through the XDG portal, and the dialog
+that opens is whichever backend owns `org.freedesktop.impl.portal.FileChooser`. That is the whole
+reason the Tailscale bar widget raised a GTK dialog in the middle of Omarchy: its Panel calls
+`omarchy-tailscale-send` with no file arguments, that script runs `omarchy-file-select`, and
+`omarchy-file-select` is a 124-line portal client. Nothing about it is Tailscale specific, so
+neither is the answer: Flea implements the backend interface, and every portal caller on the box
+gets the same chooser.
+
+**Three moving parts.**
+
+- `tools/flea-portal` owns the bus name `org.freedesktop.impl.portal.desktop.flea`, exports
+  `FileChooser` at `/org/freedesktop/portal/desktop` and a `Request` object at each request's own
+  handle, turns one call into one JSON request, runs `flea --pick`, and turns the reply into a
+  response code and results. It exits after 30 s with no request open, because D-Bus starts it
+  again on the next call.
+- `flea --pick <reply>` is `gui::pick`: it refuses without `FLEA_PICKER` or a reply path, refuses
+  without a display, resolves the UI with the same `paths::ui_dir()` the window uses, and `exec`s
+  `qs -p <ui>/picker.qml` with the same renderer choice `--gui` makes. One code path chooses Vulkan
+  for both front doors.
+- `ui/picker.qml` is the window. It instantiates the same `Backend`, draws the same `Row` behind a
+  check box, reads the same `Theme` and the same `Places.favorites`, and carries none of the
+  window's operations: a chooser that can rename or delete is a file manager wearing a dialog's
+  clothes. `SendPicker.html` draws that row as the name, a 70 px size and an 80 px date, so
+  `ui/PickerList.qml` hands `Row` `Picker.HIDDEN_COLS` and the chooser never inherits Mode or Kind
+  from `ViewState`, whatever the header menu has switched on for the browser window.
+
+**Recent, and why it is read-only.** `SendPicker.html` draws a Recent row above Home in the rail,
+says the location's own name where the path would be, and draws Parent disabled with the words
+"unavailable in Recent". The history it lists is the desktop's own,
+`$XDG_DATA_HOME/recently-used.xbel` and `~/.local/share` when the session set no data home: Flea
+keeps no history of its own, writes nothing to that file, and reads it only when the location is
+opened. Qt's XML reader does the parsing in `ui/PickerRecent.qml`, because a hand-rolled XBEL
+reader would be a second implementation of a file this application does not own. Every application
+on the box appends to it, so `ui/js/Recent.js` treats a bookmark as untrusted text: only a real
+local `file://` URI with an empty or `localhost` authority becomes a path, a control character in
+the decoded form refuses it, and the read stops at 500 entries. That cap is
+`ui/PickerRecent.qml`'s and not only the rail's: it reads the bookmarks off the model with `data()`
+rather than instantiating one QObject per bookmark, which cost seconds against a fraction of one on
+a 50,000 bookmark history here, a magnitude and not a number to cite. The rows come back from the
+backend through `listpaths`, which stats each path and drops the ones that are gone, so a stale entry is
+removed rather than drawn against a failed stat; the listing's base is `/` and each row is named by
+its path under it, which is why `ui/PickerList.qml` draws a Recent row by its own leaf and
+`Picker.rowPath` answers with the whole path. Recent is a location and never a directory: it is
+named by the token `flea:recent`, which no absolute path can equal, Parent refuses in it, Back
+works out of it, a caller's own `folder` still wins at startup, and a save is not offered it at all
+because a history is not a directory to write into.
+
+**Why the backend is Python.** It is the second non-Rust helper in this tree, after
+`tools/flea-gio-auth`. A portal backend has to own a bus name, export objects, answer calls out of
+order and stay reachable while a window is open; this crate has no dependencies at all, so the Rust
+answer was a hand-rolled D-Bus marshaller. `python-gobject` is what `omarchy-file-select`, the
+client this serves, is already written against, so it is an already-installed dependency rather
+than new code, and the backend is a request-scoped daemon and not a hot path.
+
+**Discovery, measured against xdg-desktop-portal 1.22.1's own source, not its documentation.** The
+backend guide says `.portal` files live in `{DATADIR}/xdg-desktop-portal/portals`, but
+`src/xdp-portal-config.c` `load_installed_portals()` scans `$XDG_DATA_HOME/.../portals` first and
+the data dirs after, so a user-local registration is discovered too; that is what the box test uses
+and what the package path does properly. `load_portal_configurations()` is the other half and works
+differently from the `.portal` scan: it collects EVERY configuration file it finds into an ordered
+list, `$XDG_CONFIG_HOME` first, and `xdp_portal_config_find()` walks that list per interface,
+trying the interface key and then that file's own `default` before moving to the next file. A user
+`portals.conf` naming only `FileChooser` therefore leaves `default=hyprland;gtk` in
+`/usr/share/xdg-desktop-portal/hyprland-portals.conf` answering for everything else, which is why
+`chooser::claim()` writes one key and never a default. Inside one directory a
+`<desktop>-portals.conf` shadows the plain `portals.conf` entirely, so `claim()` refuses with the
+shadowing file named rather than writing a file nothing will read.
+
+**The two exit codes the caller distinguishes, and which of ours map to them.** In
+`omarchy-file-select`, exit 1 is nothing picked, a decision, and `omarchy-tailscale-send` exits 0
+without sending; exit above 1 is a chooser that never opened, a fault, and the caller raises a
+critical notification. Those are CLIENT behaviours and not this backend's interface. What crosses
+the wire is a response code: 0 with `uris`, 1 for the user's own refusal, 2 for everything else.
+xdg-desktop-portal collapses 1 and 2 into the same client exit, so 2 is still the honest answer for
+a request the caller withdrew, a window that died and a chooser that could not open: the pair is
+never mixed at the boundary that can tell them apart. A response that never arrives is the real
+defect, because the client waits 600 s for it, so `flea --pick` refuses loudly before opening
+anything and every path out of `Pick.answer` answers exactly once.
+
+**The reply is a file, not the child's stdout.** `qs` writes its own logs to stdout, so the answer
+travels in a JSON file inside a `mkdtemp` the backend owns and removes. `ui/picker.qml` writes it
+with `FileView` and only kills its own process on `saved()`: the backend reads the file after the
+child exits, and a write still in flight would be a lost answer read as a fault.
+
 ## Module map
 
 - `main.rs` dispatches on argv: `--backend` runs the command loop, `--prewarm <path>
   <first> <dest>` writes the prewarm file, `--open <path>` hands one file to the desktop's
-  handler, `--default [off]` claims or releases the OS-level default, and anything else
+  handler, `--terminal <dir>` opens the configured terminal there, `--default [off]` claims or
+  releases the OS-level default and the chooser routing together, `--picker [off]` claims or
+  releases the desktop's file chooser alone, `--pick <reply>` opens one chooser window for
+  `tools/flea-portal`, and anything else
   opens the window unless explicit `--tui` requests the terminal interface, see "Modes".
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
 - `thp.rs` the one `prctl(PR_SET_THP_DISABLE)` declaration, `disable()` and `enable()`.
-- `open.rs` hands one file to `xdg-open`, see "Opening a file".
+- `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
+- `terminal.rs` hands one directory to `xdg-terminal-exec --dir=` and does not wait, see "Opening a file".
 - `defaults.rs` claims or releases the OS-level default: the desktop-entry install check,
   the `inode/directory` MIME default via `xdg-mime`, and reporting each half, see "Modes".
 - `hyprkeys.rs` adds or removes the additive, markered block in Omarchy's
@@ -392,8 +778,14 @@ huge pages" below for what it is worth and what it cost.
 - `userfile.rs` resolves `$HOME` and `$XDG_CONFIG_HOME` and rewrites a per-user file through
   an exclusive temp plus rename, see "Predictable path writes".
 - `error.rs` the one error type, naming the failing operation and input.
-- `json.rs` the whole of this tree's JSON: read one named field out of a line, escape one string into one.
-- `backend/mod.rs` declares the forty-six backend modules plus the test-only `testdir.rs`, nothing else.
+- `json.rs` the wire's JSON: read one named field out of one line, escape one string into one.
+- `jsondoc.rs` one whole JSON document in and out, which the one-line scanner above deliberately is not.
+- `jsonstring.rs` one JSON string in and one Rust `String` out: the escapes and the surrogate pairs.
+- `uischema.rs` the shipped `ui.json` shape and the rule each key is measured against.
+- `uistate.rs` the `ui.json` merges: a file onto the defaults, one caller patch, and 0.1.3's `view.json`.
+- `uistore.rs` where `ui.json` lives and the one locked, atomic way it is rewritten, see "The state file".
+- `backend/mod.rs` is module declarations and nothing else, the `#[cfg(test)]` ones included. It
+  declares more modules than the list below names, which is the load-bearing ones and not a census.
 - `backend/listing.rs` the arena-backed `Listing`.
 - `backend/aliases.rs` resolves a MIME alias to its canonical name, see "MIME aliases".
 - `backend/scan.rs` phase 1: readdir plus `file_type()`.
@@ -429,6 +821,14 @@ huge pages" below for what it is worth and what it cost.
 - `ui/shell.qml` owns the pragmas, window, startup path and read-only IPC seam.
 - `ui/Backend.qml` is the only QML component that talks to the Rust child, and carries
   `thumb` and `thumbcancel` out and `thumbed` in alongside `list`, `window` and `sort`.
+- `ui/ViewState.qml` reads `ui.json` once at startup with a blocking `FileView` and writes nothing
+  itself: every change, the header menu's columns and all three settings sections alike, goes back
+  out through `flea --ui-state` as a patch naming that change alone, see "The state file".
+- `ui/js/UiState.js` is `ViewState`'s writer bookkeeping and the two pure rebuilds every writer goes
+  through: the newest patch a writer landed, what the running writer carries and what waits behind
+  it, and the key and group rebuilds `ViewState` runs over both the state it draws and the patch it
+  owes. It imports no QML, so
+  `tests/js/uistate.js` can redden on a mutation of the rule that only a zero exit proves a save.
 - `ui/Theme.qml` owns the singleton palette, type and spacing tokens from the Omarchy
   theme plus the user override.
 - `ui/Pane.qml` owns one directory view, its integer model, held window, actions, the
@@ -440,8 +840,9 @@ huge pages" below for what it is worth and what it cost.
   was lifted out of `Pane.qml` at the 400-line hard cap and has no behaviour.
 - `ui/Row.qml` renders one row delegate: the icon slot, which a thumbnail replaces in
   place, the PlainText name and the semantic colours.
-- `ui/Opener.qml` is the only component that launches a foreign program, by running
-  `flea --open`, see "Opening a file".
+- `ui/Opener.qml` is the only component that runs Flea's own opening modes, by running
+  `flea --open`, `flea --terminal` and a one-line `sh` that pipes into `wl-copy`, which is why
+  `wl-clipboard` is a `depends` entry, see "Opening a file".
 - `ui/ContextMenu.qml` is the one pane-owned right-click popup and its single Open action.
 - `ui/StatusBar.qml` renders the path, row counts and transient messages.
 - `ui/TabBar.qml` is the window's tab strip, hidden with no height until a second tab exists.
@@ -459,8 +860,36 @@ huge pages" below for what it is worth and what it cost.
   snapshot carries a cursor and a selection only across a switch that re-lists nothing, because an
   index names a row and a re-read can put a different file behind the same number.
 - `ui/js/Trash.js` is the dd pair's arm-and-fire policy, split out of `Focus.js` at its cap.
-- `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` stores it
-  and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord itself.
+- `ui/js/TextSize.js` is the Display section's text size: the seven stops the SettingsScale board
+  documents, 9, 10, 11, 12, 14, 16 and 20 px, the two modes it names, and the sentence a chord
+  announces. `ui/ViewState.qml` stores `display.textSize` as `{"mode":"system"}` or `{"mode":N}`,
+  which is `src/uischema.rs`'s own rule for that key and the only stored shape, and owns
+  the writers, `ui/Theme.qml` derives its whole token ladder from the size in force, and `keys.toml`
+  aliases `textSizeUp`, `textSizeDown` and `textSizeReset` onto the same three writers, so no
+  surface reads the chord itself and a chord and a row cannot hold two different sizes. The monitor
+  scale is the compositor's: `ui/Theme.qml` reads it once from `hyprctl monitors -j` and the panel
+  shows it read-only, because the board rules that Flea does not step or cycle it.
+- `ui/js/Settings.js` is the settings panel's whole model: the three sections, the context-menu
+  action inventory and its groups, the tri-state master over the six basic actions, which
+  `masterState` derives from `menu.hidden` rather than storing beside it, the Shortcuts group's
+  single `keyHints` row, which is the one check that is not a menu action and so is never in
+  `MENU_GROUPS`, and the row list each section draws. Pure, so `tests/js/settings.js` drives every control without a window.
+  `ui/SettingsPanel.qml` paints what `rows()` returns and owns the panel's two-sided keyboard,
+  `ui/SettingsRail.qml` the section rail and `ui/SettingsRow.qml` one row of the pane.
+- `ui/js/Menu.js` `applyHidden` is the only consumer of the stored hidden set, and it runs at the
+  end of `listingEntries`, so a switched-off action leaves every menu that carried it at once.
+  `open` and `toggleHidden` are refused there as well as drawn locked in the panel, so a
+  hand-edited state file cannot empty the menu.
+- `ui/js/PreviewKeys.js` is what the preview overlay does with a key, and the 5 s seek step only it
+  reads, split out of `Focus.js` at its cap the second time it reached one.
+- `ui/js/RailKeys.js` is what the rail does with a key, split out of `Focus.js` at its cap the third
+  time it reached one; `Focus.handleKey` calls it directly, as it already called `PreviewKeys`.
+- `ui/js/Menu.js` is what either menu holds and where its frame sits: the submenu test, the
+  edge clamp, the listing and header row lists, and `openAtCursor`, the keyboard's own entrance,
+  which came out of `ui/Pane.qml` when PR 34's `openTerminal` would have pushed it past its cap.
+- `ui/js/Scale.js` is the interface scale's step, clamp and sentence; `ui/ViewState.qml` holds it
+  for the window and `ui/Theme.qml` multiplies its own tokens by it, so no surface reads the chord
+  itself. It is a session value: the state file stores an Omarchy text-size stop and no multiplier.
 - `ui/js/PathBar.js` is what a typed path line means: the tilde, the relative name, the
   `file://` URI, the interior `.` and `..`, and what Tab makes of one directory's names. Pure,
   so `tests/js/pathbar.js` drives all of it; the field itself is `ui/ChromeBar.qml`'s.
@@ -625,12 +1054,37 @@ its own decisive axis (the toolchain) made the rest of that measurement moot. `u
 `tools/flea-file-budget` scans `src`, `ui` and `tests` for `.rs`, `.qml` and `.js`
 files. Rust and QML get a 250-line soft budget and a 400-line hard cap; JS gets 200
 soft and 300 hard. Going over the hard cap fails the tool; going over the soft budget
-only warns. The budget is a smell detector, not a target. Every count below is
+only warns. The budget is a smell detector, not a target, and **it is not a reason to refactor a
+stable file**. Three files cross the hard cap purely as arithmetic of a clean merge for 0.1.4, with
+no conflict and no new code: `ui/ChromeBar.qml`, `ui/Sidebar.qml` and `ui/Row.qml`, the last by a
+single line. `ui/NetworkMounts.qml` was a
+third until its own reconciliation extracted `authFailure` to `ui/js/Errors.js` and brought it to
+398, so it is not listed. They
+are listed in `tools/flea-file-budget` as known exceptions so the tool still fails on anything
+else, and each prints its own line rather than being hidden. Every count below is
 `wc -l` on the file, and every test-module count runs from its `#[cfg(test)]` line to
 the end of the file; run the tool rather than trusting these if the two disagree. **Three of them
 had gone stale by a whole plan and were re-derived from `wc -l` in Plan 5 Task 5a**, so when you
 touch a file here, re-derive its count from the artefact rather than adjusting the nearest
 number.
+
+`src/backend/ops.rs` split to `src/backend/renamecompat.rs` at 455: composing PR 35's safe rclone
+rename into the release tree put the rename exception over the 400-line hard cap, so the exception
+and its tests moved to the module that already owned classifying which rename failures need it.
+Both sides re-derived with `wc -l` on the files after that split and its review rounds:
+`src/backend/ops.rs` was 305 and `src/backend/renamecompat.rs` was 382, so both were under the 400
+hard cap and both over the 250 soft budget, which `tools/flea-file-budget` warns about and does not
+fail on.
+
+`src/backend/renamecompat.rs` split to `src/backend/mountinfo.rs` at 396: a review round needed one
+more test and the file had four lines left under the hard cap, so `mount_type_in`, the two helpers
+that decode its octal escapes, and the three tests over them moved out. The seam is the parser's own
+subject, which is the filesystem type of the mount that owns a path, decided from a body of text it
+is handed and from nothing about renames; the one line that reads `/proc/self/mountinfo` stays with
+the caller that needs it. Re-derived with `wc -l` after the move and the test it made room for:
+`src/backend/renamecompat.rs` was 325 and `src/backend/mountinfo.rs` 97; later rounds pinned five of
+its tests to the arm each names and took the rename module to 346, so the parser is under both
+budgets and the rename module is under the hard cap and over the soft one.
 
 **Every count in this section is a SNAPSHOT, not a live figure, and eleven of the eighteen had
 drifted by 2026-09-01: `src/heap.rs` was claimed at 15 and is 100, `ui/Row.qml` at 166 and is 310,
@@ -643,10 +1097,13 @@ beneath it, which is why this one states the failure rather than repeating the i
 `src/backend/proto.rs` was 241 lines when this was written, under both budgets: 71 are the wire types,
 the request dispatch and the four one-line responses, the other 170 the test module. It has
 been split twice, each time at the seam that leaves each file a single job. **At 399 of the
-400 hard cap** `src/json.rs` took the whole of this tree's JSON, the field scanner as well
-as the escaper: the scanner is protocol-agnostic by construction, the decoding half of the
+400 hard cap** `src/json.rs` took the whole of what this tree's JSON then was, the field scanner as
+well as the escaper: the scanner is protocol-agnostic by construction, the decoding half of the
 encoder already living there, and the same mutations still redden the four tests that moved
-with it. **At 489, after the dirsize and Kind wave pushed it through the cap**, the rows
+with it. **That is no longer the whole of this tree's JSON**: the state file needed a whole-document
+type, so `src/jsondoc.rs` was written beside it and `json.rs` kept the one-line wire scanner alone,
+which is what its own header comment and the module map at "Module map" both now say. **At 489,
+after the dirsize and Kind wave pushed it through the cap**, the rows
 serialiser moved out to `src/backend/rows.rs`: every other response is one `format!` line,
 and the one that loops, allocates and owns the Kind dictionary was the file's whole growth.
 The old rule that every consumer imports the wire layer from `proto` alone went with it:
@@ -669,6 +1126,53 @@ are the test module. It is one job in two directions: pull one
 named field out of one JSON line, and escape one string into one. Nothing here builds or
 validates a document, because the wire is one object per line and never anything else.
 
+`src/jsondoc.rs` is 379 lines by `wc -l`, over the soft budget and 21 under the hard cap, with its
+`#[cfg(test)]` at 273, so 272 lines of implementation and 107 of tests. **Those three read 352, 272
+and 271 until this round and all three were one out**: `wc -l` on the commit that wrote them said
+353, the fourth count on this branch read off the shape of an edit rather than off the artefact.
+It is one job in two
+directions, the same shape as `json.rs`: a whole JSON document in, and the same document back out
+with its own numbers written the way they were read. **It stood at 398**, and this register said the
+next change here would split `parse` off from the `Json` type plus `render`. That is not the cut
+that was taken. `jsondoc::parse` is called from 20 sites in four other modules, two of which
+(`uistore.rs` and `uistate.rs`) are themselves over the soft budget, so that split renames 20 lines
+in four files and buys a reader nothing. **That count read 17 until this round**, and it was counted
+off the shape of the source rather than off `grep -o` over `src/`, which is the fourth count on this
+branch to be wrong that way. The string decoder went instead, to `src/jsonstring.rs`: a
+different job on the same bytes, with exactly one caller in this file. `parse` against `render` is
+still the cut if this file needs another one.
+
+`src/jsonstring.rs` is 113 lines by `wc -l`, inside both budgets, with its `#[cfg(test)]` at 92, so
+91 lines of implementation and 22 of tests. It is one job: one JSON string in and one Rust `String`
+out, the `\u` escapes and UTF-16's surrogate pairing, which is the reading half of what `json.rs`'s
+`escape` writes. It came out of `jsondoc.rs` when `parse_number` needed JSON's own number grammar
+and that file had two lines of headroom left; `parse_value` is its only caller.
+
+`src/uischema.rs` is 237 lines by `wc -l`, inside the soft budget, with its `#[cfg(test)]` at 117,
+so 116 lines of implementation and 121 of tests. It is one job: the shipped `ui.json` shape and the
+rule table beside it. Its tests are half the file because each one is a table read back, and the
+rule-edge test lives here rather than in `uistate.rs` because the rules it bites are declared here
+and that file has 37 lines of headroom left. **It stood at 250, exactly at the soft budget**, and
+the five keys that came out are the round's own subject: `display.opacity`, `display.hyprlandIcons`
+and `display.shadows`, which are the compositor's and which Flea mirrors rather than owning a second
+writable copy of, and `language` and `updates`, which nothing in this release reads.
+
+`src/uistore.rs` is 397 lines by `wc -l`, over the soft budget and 3 under the hard cap, with its
+`#[cfg(test)]` at 195, so 194 lines of implementation and 203 of tests. Just over half the file is
+that test module because every claim it makes is about a real file, a real symlink, a real lock and
+a real rename, and each of those costs a fixture on disk. The seam for the next change is the four
+write helpers at the bottom, `make_dir`, `take_lock`, `refuse_a_bad_target` and `write_new`, which
+know nothing about `Store` beyond the paths they are handed.
+
+`src/uistate.rs` is 363 lines by `wc -l`, over the soft budget and 37 under the hard cap, with its
+`#[cfg(test)]` at 188, so 187 lines of implementation and 176 of tests. It is one job in three
+shapes and all three are the same merge: a file onto the shipped defaults, one caller patch onto a
+document, and 0.1.3's `view.json` onto the defaults. They share `merge`, `fits` and the `SCHEMA`
+walk, so cutting `patched` away from `from_file` would put the validator on one side of a file
+boundary and the rule table's only other reader on the other. The seam, if this ever needs one, is
+the value predicates at the bottom, `one_line`, `is_column_set`, `is_action_id` and `is_a_place`,
+which know nothing about a document or a schema.
+
 `src/backend/thumbspec.rs` is 312 lines, over the soft budget and under the hard cap: 190 the
 discovery, the desktop-entry parser and `is_runnable`, the other 122 the test module. Those
 three are one security boundary and are read together, so they stay in one file: splitting the
@@ -687,22 +1191,22 @@ need a real file, a real symlink and a real directory on disk before they prove 
 reader arriving without that context will read the ratio as top heavy; it is the cost of testing
 a boundary against the filesystem rather than against a mock.
 
-`src/backend/child.rs` is 231 lines by `wc -l`, inside both budgets and so not one of the eight
-files the tool warns about, with its `#[cfg(test)]` at line 96, so 95 lines of implementation and
-136 of tests. It runs one argv
+`src/backend/child.rs` is 231 lines by `wc -l`, inside both budgets and so not one of the files the
+tool warns about, with its `#[cfg(test)]` at line 96, so 95 lines of implementation and 136 of
+tests. It runs one argv
 under a deadline and reports `Ran::Succeeded`, `Ran::Failed` or `Ran::NotStarted`. It came out of
 `thumbs.rs` at 397 of the 400 hard cap, and it completes a three-part story each of whose parts is one file:
 `thumbargv` builds the inner argv, `sandbox` wraps it, `child` runs the result. Nothing in it
 knows about thumbnails, which is why the pool's `JOB_TIMEOUT` stays in `thumbs.rs` and is passed
 in.
 
-`ui/Pane.qml` is 398 lines by `wc -l`, over the soft budget and 2 lines under the hard cap. It stood at
+`ui/Pane.qml` is 393 lines by `wc -l`, over the soft budget and 7 lines under the hard cap. It stood at
 exactly 400 of 400 and could not gain a line, which is why `ui/Header.qml` came out of it
 first and alone, before any behaviour was added; it then took on the settle timer, the
 thumbnail row map, the opener wiring, the input-to-rows stamps and the first-screen settle, and
-still ends under the cap. **There is almost no room left**: the next change of any size lifts a helper into
-`ui/js/Thumbs.js` or takes another band out the way the header went, and does not lift the
-cap. It stays one
+reached 398. **There was almost no room left**, and PR 34's three-line `openTerminal` would have
+put it at 401, so `openCursorMenu`'s body was the helper that went: it is menu placement, and
+`ui/js/Menu.js` already owned where a frame sits when it opens at a point. It stays one
 component because the integer model, held window, list-reply pairing, focus and action
 dispatch share one state owner; splitting them would add a state boundary in the exact
 path that prevents untagged backend replies from crossing directory navigation.
@@ -716,14 +1220,32 @@ cut shipped as its own commit exactly so that no behaviour change could hide ins
 `ui/js/` whole and gained the suite every other file there has, `tests/js/errors.js`, which is
 what makes the move provable rather than merely asserted.
 
+`ui/NetworkMounts.qml` is 265 lines by `wc -l`, and it is the third cut of that class. It was 343 on
+its own branch and 400 on the 0.1.4 composition branch, over the same base: the two changes are
+additive to different halves of one file, so no resolution of that merge fitted the 400 cap, which is
+a number no branch gate can see because neither branch is over it alone. Two whole subjects came out
+before the merge rather than inside it, which took it to 250, exactly the soft budget; the `gio info`
+deadline below then took it to 265, so the file reports over soft again and has 135 lines left before
+the cap. `ui/MountListing.qml` is 84 lines and owns the five second `gio mount -l`
+poll, its 10 s bound, the re-read queued mid-listing and the collector fallback; the Service keeps one
+`_mountListing` string and rebuilds on its `listed()` signal. `ui/NetworkPlaces.qml` is 74 lines and
+owns the bookmarks file: the write `FileView`, `rename()`, `forget()`, and the one blocking `write()`
+those two share. Both cuts shipped as one commit carrying no behaviour change, the way `ui/Header.qml`
+did; what `forget()` writes changed in the commit after it. Neither could go into `ui/js/Mounts.js` or
+`tests/js/mounts.js`: `rowMenu()`, `railLabel()` and `removeBookmark()` are what took the first to 299
+of its 300 hard cap, the second is exactly 300, and the file that owns the subject was already full.
+
 `ui/Row.qml` is 166 lines, under both budgets. It gained the icon `Image` and its
 `sourceSize`, the two read-only aliases the icon checks assert through, and `iconSource`,
 which answers a thumbnail URL when the pane holds one for this row and the OEM two-step icon
 lookup otherwise.
 
-`ui/Opener.qml` is 41 lines, well inside both budgets: one `Process`, one `open()` and two
-signals. `flea --open` decides and exits in milliseconds, so one process serves every open,
-and this is the only component in the tree that launches a foreign program.
+`ui/Opener.qml` is 92 lines, well inside both budgets: three `Process` objects, three functions
+(`open`, `openTerminal` and `copyText`) and five signals. `flea --open` waits for `gio open` and
+not for the application, which is 11 to 15 ms against an `Exec=` handler but 0.32 to 0.75 s against
+a `DBusActivatable` one, so one process serves every open and a second Enter is dropped for that
+long and told to try again; this is the only component in the tree that runs `flea --open` or
+`flea --terminal`.
 
 `ui/js/Thumbs.js` is 77 lines by `wc -l` against a 200-line soft budget, and its suite
 `tests/js/thumbs.js` is 66. It is arithmetic over the row map and nothing else, with no QML
@@ -819,12 +1341,41 @@ no second language. Do not restore the `awk`.
 
 A `[[pointer]]` table joined this on 2026-09-02, when a single left click stopped opening a
 row and the second tap started to. It declares what each button, modifier and tap count does
-in the listing, in the columns view's two neighbour columns and in the rail, and the generator
-emits it as `Keymap.POINTER`. `ui/js/Tap.js` is the only code that decides any of it and
-`tests/js/tap.js` drives every listing and neighbour row of the table through that file, so
-neither side can move without the other. `tests/ui.sh` case `click` then drives real clicks at
-the window, which is the half a JavaScript suite cannot reach: it is what says a delegate hands
-`Tap.tapped` the tap count and the modifiers the click actually carried.
+in five places, and the generator emits it as `Keymap.POINTER`: the listing, the columns view's
+two neighbour columns, the rail, the `window` itself and the `chrome`. `ui/js/Tap.js` is the
+only code that decides the first three and `tests/js/tap.js` drives every listing and neighbour
+row of the table through that file, so neither side can move without the other. `tests/ui.sh`
+case `click` then drives real clicks at the window, which is the half a JavaScript suite cannot
+reach: it is what says a delegate hands `Tap.tapped` the tap count and the modifiers the click
+actually carried.
+
+The last two rows landed with issues 20 and 45 and are not `Tap.js`'s. `window` is the mouse's
+back button, which belongs to no row: `ui/shell.qml` carries the handler and `ui/js/Nav.js`
+`mouseBack` decides between the history and the climb. `chrome` is the path above the listing,
+whose segments `ui/ChromeBar.qml` draws as their own click targets through `Nav.crumbs`; the `row`
+column reads `parent` there because the leaf is the directory already listed and answers no single
+click. Neither `where` has a `pointercase_` driver in `tools/flea-acceptance-drive`, so both report
+as derived and undriven in that battery; `tests/js/tap.js` holds their counts and drives neither,
+because both are QML bindings rather than `Tap.js` calls, and **`tests/js` is structurally unable
+to press either one**. `tests/ui.sh` case `click` is what presses them at the real window.
+
+The `Qt.BackButton` binding is now driven at the product, and the probe that used to stand in for it
+is the reason to say what changed. That probe was a standalone Quickshell `FloatingWindow` carrying
+nothing but a `TapHandler`, clicked with `ydotool click 0xC3`: it shows Hyprland delivering that
+button to a Quickshell surface and Qt reporting it as `Qt.BackButton`, and it never loaded the
+shipped tree, whose `ListView`, delegates, rail and overlays all sit under the same handler.
+`grep -rn acceptedButtons ui/*.qml` finds no child that accepts the button, so nothing should take
+it first. `tests/ui.sh` case `click` now closes that gap the way this paragraph said it had to:
+after the crumb press it parks the pointer over a listing row with `omarchy-drive move`, sends
+`ydotool click 0xC3` twice, and reads the path back through the IPC seam both times, so the history
+branch and the climb branch of `mouseBack` are each pressed through the shipped tree. The crumb half
+is pressed the same way, from `crumbCentre`, which is the seam `ui/Ipc.qml` grew for it.
+
+A crumb click costs the platform's own double-click interval before anything happens, and that is
+inherent rather than a defect: `ui/ChromeBar.qml`'s `exclusiveSignals: TapHandler.SingleTap |
+TapHandler.DoubleTap` is what makes the tap count decide, and `singleTapped` cannot fire until the
+interval has expired. One target cannot host both gestures and answer the first one early, so the
+alternative is not a faster click, it is losing the double click that opens the path for editing.
 
 Its effect field is `does` and not `action`, and that is load bearing. `tools/flea-acceptance`
 derives its whole key checklist with one `sed` for `^action = ` over this file, with no table
@@ -833,30 +1384,71 @@ can press. The generator refuses an empty or unreadable `[[pointer]]` table for 
 reason `[digits]` is expanded by hand in that battery: a checklist derived from an empty table
 passes by having nothing in it.
 
+A `[[preset]]` table joined this with the settings panel's Keys section, and it is the whole of
+the Mac/Windows toggle. Each row names the preset it belongs to, the modifier state, the Qt key,
+the chord as the Keys section prints it, the action and a label. The generator emits it twice
+from that one row: as `Keymap.PRESET_KEYS`, which the settings panel lists, and as the if-chain
+inside `Keymap.lookupPreset`, which `lookup()` consults before every shared table. Emitting both
+from one row is what stops the panel advertising a chord the preset does not bind, and emitting
+the binding as a literal `Qt.Key_*` is what keeps it inside the `qml6` probe above.
+
+The live preset is a module-level `var preset` in the generated file, set by `ui/ViewState.qml`'s
+`onKeysPresetChanged`. A `.pragma library` holds one copy per QML engine, so that one assignment
+reaches every caller of `lookup()` with no second wire and no plumbing through `ui/js/Focus.js`
+or `ui/Pane.qml`, both of which sit against their file budget. An unrecognised name clamps to
+`mac`, which is what the shared tables were already written as: Finder's, with Cmd read as Ctrl.
+
+**A preset overlay must never hold a chord the `[[sheet]]` table draws.** The sheet is one static
+array with no preset of its own, so a cap it draws for a Mac-only chord would be wrong for half
+its readers the moment the toggle moved. `tests/js/keymap.js` resolves the whole sheet under both
+presets and fails if any row answers differently.
+
 The tool emits JavaScript only. Plan 6 adds the Rust output together with the terminal key
 type that consumes it; a generated module with no caller is dead code, so the second output
 waits for its consumer.
 
 ## Testing
 
-- **The warning gate is all four cargo invocations**, not two: `cargo build`,
-  `cargo build --release`, `cargo test` and `cargo test --release`, each after a `cargo clean`,
-  each expected to print zero warnings. `cargo build` cannot see anything inside `#[cfg(test)]`,
+- **The warning gate covers `#[cfg(test)]`, which is the point of it.** `cargo build` cannot see
+  anything inside a test module, so a build-only gate hides every unused import and dead helper
+  there; two lived here for three review rounds for exactly that reason. Keep debug and release
+  coverage and keep zero warnings, but **build incrementally**: the `cargo clean` before each of the
+  four invocations was ceremony, not coverage, and cargo decides for itself what needs rebuilding.
+  Do not separately rerun what `./tests/run-all.sh` already covers. `cargo build` cannot see anything inside `#[cfg(test)]`,
   so a two-invocation gate hides every unused import and every dead helper in a test module. Two
   of them lived here for three review rounds, one of them predating the whole thumbnail plan,
   because the gate said "build" and nobody ran the other half.
 - `cargo test` runs the unit tests inside every module.
+- **Each `tests/ui.sh` case opens with a paragraph rather than a one-line comment**, and that is
+  deliberate. A case is a fixture, a stub and a sequence, and the part a reader cannot recover from
+  the assertions is what the stub is standing in for and what the case controls for;
+  `case_sharebrowser`'s preamble is fifteen lines and `case_hangshare`'s is six. The comments inside
+  a case body stay short. Three review rounds have now raised the preambles against the one-line
+  comment rule, so what the file does is recorded here instead of being re-litigated per round.
 - **`./tests/run-all.sh` is the one command, and it exists because nothing executed any suite
   at all.** Before `96186ff` this tree carried twelve suites, no runner and no CI: every
   cross-reference to a suite, here and in `README.md` and in tool and source comments, was
-  prose naming it rather than a line running it, and `PKGBUILD`'s `check()` runs
-  `cargo test --release` alone, which it still does. **`96186ff`'s own message is wrong about
-  this and cannot be rewritten, because the branch is shared:** its subject says nine suites
-  were uninvoked and its body says seven, and the derived answer is zero of twelve. The runner
-  builds both cargo profiles, since `protocol.sh` drives the debug binary and `thumbs.sh` the
-  release one, runs the nine suites that need nothing but a shell, and reads each suite's OWN
-  exit code, never a pipeline's. It then names `ui.sh`, `drag.sh` and `bench.sh` with what each
-  needs, so a suite it cannot run stays visible instead of being forgotten a second time.
+  prose naming it rather than a line running it, and `PKGBUILD`'s `check()` ran
+  `cargo test --release --locked` alone; it now also runs `tests/js.sh` and `tests/keymap-gen.sh`,
+  the only two that need no built binary and locate themselves under makepkg's moved
+  `CARGO_TARGET_DIR`. **`96186ff`'s own message is wrong about this and cannot be rewritten,
+  because the branch is shared:** its subject says nine suites were uninvoked and its body says
+  seven, and the derived answer is zero of the twelve there were
+  then. **The runner builds both cargo profiles unconditionally, and it lost that once.** It
+  built them from `324f321`, and `8eec5fc` replaced an `[ ! -x <path> ]` pair with an
+  unconditional one on measured evidence: the guards were satisfied by a stale binary from an older
+  commit, and the debug and release hashes were unchanged across a whole run-all over edited source.
+  A conflict resolution over `tests/run-all.sh` then kept the union of two `headless=` lists and
+  dropped the `cargo build` pair BOTH sides carried, so it was absent at `a485200` and through the
+  0.1.4 lanes until it was restored. **A guard answers "is there a binary", never "is it this
+  commit's binary"**, which is the defect `39e1737` and `8eec5fc` were both written to close, so the
+  unconditional build is the contract and the per-suite `-x` guards exist only for a suite invoked
+  directly. Seven suites drive the debug binary and `thumbs.sh` the release one. It runs every suite that
+  needs nothing but a shell, and reads each suite's OWN exit code, never a pipeline's.
+  Its own `headless=` list is the inventory of those and its own `not_run` list is the inventory of
+  the rest with what each needs, so this paragraph carries neither a count nor a membership for
+  either list to outgrow. A suite in neither list fails the runner's own audit, so one cannot go
+  uninvoked a second time.
 - **`./tests/drag.sh` is the internal drag's characterisation suite, 9 checks**, and it has to
   be run by hand: no runner invokes it. It was written against the drag's behaviour BEFORE the
   platform-drag rewrite, so it is the net that catches what the rewrite changes, and it earned
@@ -1094,9 +1686,21 @@ waits for its consumer.
   the `prctl` is removed and it reddens if the call fails; a second check asserts the stub
   reported at all, so a broken stub cannot be mistaken for a passing gate. See "Transparent
   huge pages" under "Deliberate corners".
-- The `--open` checks inside `./tests/modes.sh` put a stub `xdg-open` on `PATH` that reports
-  its own argv and its own `THP_enabled`, which is what pins symlink resolution and the
-  handoff. The huge page half needs a second stub, because a bare `flea --open` runs in a
+- The `--open` checks inside `./tests/modes.sh` put a stub on `PATH` that reports
+  its own pid, argv count, argv and `THP_enabled`, which is what pins symlink resolution, the
+  handoff, a name starting with a dash and a name with a newline in it arriving as one absolute
+  argument. That stub's last write is what the read waits for, so it is exiting whatever `--open`
+  did and the reaped-launcher check on it cannot go red; a third stub in `lingerbin/` writes its pid
+  and then sleeps half a second, which is the arm that can, and it is the shape of the real
+  `DBusActivatable` wait in miniature. A second stub in
+  `failbin/` exits `3`, which is the check that `--open` reports a refusal instead of the `0` a
+  detached spawn reported. All three are named from `src/open.rs`'s own `Command::new` target, and the
+  `--terminal` stub from `src/terminal.rs`'s, rather than spelled in the test: when the target moved
+  from `xdg-open` to `gio` the hand-written name did not follow, so every `--open` in the block
+  resolved the real `/usr/bin/xdg-open` instead, and a stub named from the product cannot drift.
+  Issue 41 has its own case beside them, driving the real `gio` against an
+  isolated `XDG_DATA_HOME` and `XDG_CONFIG_HOME` holding one `Terminal=true` entry and a stub
+  `xdg-terminal-exec`, so the operator's own MIME state is never read or written. The huge page half needs a second stub, because a bare `flea --open` runs in a
   process where nothing disabled huge pages, so `thp::enable()` is a no-op there and that
   check cannot tell it from an empty function: the paired case launches `flea --gui` against a
   stub `qs` that reports what it inherited and then execs `flea --open`, and only that one
@@ -1108,10 +1712,11 @@ waits for its consumer.
   also raises an `unused import: std::os::unix::process::CommandExt` warning, but **that
   warning is not the guard**: it disappears the moment anything else in the file needs
   `CommandExt`, while the check keeps working.
-- The two `--open` error paths each need a check on the sentence, not just the status, because
+- The three `--open` error paths each need a check on the sentence, not just the status, because
   the unknown-flag branch also exits 2 and also prints no errno: against the pre-Task-4 binary
-  the status and errno checks of both pairs pass unchanged, and only `could not be opened` and
-  `nothing on this system could be asked` tell an implemented `--open` from an absent one.
+  the status and errno checks all pass unchanged, and only `could not be opened`,
+  `gio open refused that file` and `nothing on this system could be asked` tell an implemented
+  `--open` from an absent one.
 - `./tests/budget.sh` asserts `tools/flea-file-budget` itself rejects an oversized
   file and passes a clean tree.
 - `./tools/flea-acceptance` is the everything-works battery, and **its checklist is derived at run
@@ -1174,11 +1779,25 @@ waits for its consumer.
   states, it drops only rows that are still waiting when they leave the viewport, and
   `remember` evicts at the cap in insertion order. It reddens on a mutation because
   `ui/js/Thumbs.js` imports no QML.
+- `./tests/uiwriter.sh` drives `ui/ViewState.qml`'s writer under a real headless Quickshell, which
+  is the half `tests/js/uistate.js` cannot reach: the book alone never sees a `Process`. It copies
+  the singleton and `ui/js/UiState.js` into its sandbox with a two-line `qmldir` rather than
+  importing `ui/` whole, because a directory import makes Quickshell scan every file in it and warn
+  about the two OEM symlinks a headless run has no session for. It makes two column changes in one
+  turn, so one run drives the start, the queue and the drain, and it drives that twice: once with
+  `FLEA_BIN` at a path that does not exist, where both patches must end refused and the book must
+  drain, and once against `target/debug/flea`, where both must reach `ui.json` and nothing must be
+  reported. Without `ViewState`'s `onRunningChanged` arm the first three checks go red and the
+  second run stays green, which is the exact shape of the defect it was written for.
 - `./tests/ui.sh` drives the real window through `omarchy-drive` and takes a case name to run
-  one of nine: `cursor`, `terminal`, `open`, `menu`, `colour`, `icons`, `thumbs`, `hashcache`
-  and `nosweep`. With no argument it runs all nine and then three whole-run checks, a backend
-  drain, a log grep and a cache count, so a clean run prints `0 of 12 checks failed`.
-  - `open` replaced the old `symlink` case. It puts a stub `xdg-open` on `PATH` and asserts
+  one of the `case_*` functions it defines; the file's own usage line lists them and
+  `grep -c '^case_[a-z]*()' tests/ui.sh` counts them. With no argument it runs all of them and
+  then three whole-run checks, a backend drain, a log grep and a cache count, so a clean run
+  prints `0 of N checks failed`, with N three more than that count. Neither the list nor either
+  number is written out here: both went stale the first time a case was added.
+  - `open` replaced the old `symlink` case. It puts a stub opener on `PATH`, named from
+    `src/open.rs`'s own `Command::new` target the way `tests/modes.sh` names its own, which
+    intercepts the `open` subcommand and execs the real `gio` for every other one, and asserts
     all three Enter answers on one listing: a symlink to a file hands the resolved target to
     the handler and does not leave the directory, a symlink to a directory navigates and is
     never handed to the handler, and a broken symlink says one sentence, moves nothing and
@@ -1682,7 +2301,7 @@ once at startup and prints one line on stderr, so the cause is stated rather tha
 fatal, because listing directories does not need the sandbox. `tests/thumbs.sh` runs the real binary
 with `PATH` pointed at an empty directory and asserts the empty `file`, no cache entry and no marker.
 
-The shape is `prlimit --cpu=30 --as=1073741824 bwrap <flags> <inner>`. **`prlimit` is the
+The shape is `prlimit --cpu=30 --as=2147483648 bwrap <flags> <inner>`. **`prlimit` is the
 outermost program because `bwrap` has no rlimit option**, verified against `bwrap --help`
 on bubblewrap 0.11.2 here. Setting the limits from Rust would need raw `setrlimit`, which
 `std` does not expose and which the zero-dependency rule forbids reaching for through
@@ -1693,16 +2312,42 @@ fork and exec, so the reverse nesting was measured to kill the same spin and to 
 the same `/proc/self/limits`.
 
 The two numbers: `--cpu=30` seconds, because a 1080p decode is well under a second of CPU
-here and 30 s is a runaway rather than a slow file; `--as=1073741824`, one GiB, because
-`ffmpegthumbnailer` peaks in the tens of megabytes on the media fixture and a gigabyte of
-address space is a decompression bomb rather than a big video.
+here and 30 s is a runaway rather than a slow file; `--as=2147483648`, two GiB, because
+`--as` bounds address space and not resident memory, and issue #17's own trace is a
+thumbnailer that could not `mmap` a thread stack. The original one GiB was set from
+`ffmpegthumbnailer`'s tens of megabytes on the media fixture, which measured the wrong
+thing: issue #17 reported `glycin-thumbnailer` exhausting one GiB on a large ICC-tagged
+JPEG and aborting. What inside `glycin` reserves that much is not measured here and is not
+claimed, but it is not the profile: the same 6000x3375 pixels generated with `-strip` abort at
+exactly the same cap as the profiled ones, so PR #39's "the same image without ICC stays below
+it" does not hold on this box. The amount is measured. Driven through the production argv on
+`tests/thumbs.sh`'s own 6000x3375 ICC fixture, `glycin` 2.1.5-2 on this box aborts with
+status 134 at `--as=536870912` and writes a 601-byte PNG at `--as=671088640`, so it wants
+between 512 and 640 MiB for 81 MB of RGBA pixels. **This box therefore does not reproduce
+the reporter's one-GiB abort**: the same fixture and the same argv pass at
+`--as=1073741824` here (status 0, a 601-byte PNG), so their `glycin` wanted more address
+space than ours does, and the headroom is bought on their number and not on this one. **Two
+is the smallest value the ticket records as working**, and it is chosen on that rather than
+on a judgement: issue #17 says increasing `--as` to 2 GiB or omitting it succeeds without
+error, so 2 GiB is the reporter's own known-good number and three times what this box's
+`glycin` was measured to want. The same fixture and argv pass at `--as=2147483648` here
+too, status 0 and the same 601-byte PNG. The reporter proposes 4 to 8 GiB, so two leaves no
+margin over their range and a larger image on their box could reopen the issue; that is
+accepted, because the rung here is the smallest thing that works and the number moves again
+when somebody brings a measurement. It is still finite and still refuses a decompression
+bomb.
 
 The flags, and why each is there:
 
 - `--unshare-all` drops every namespace, which is what removes the network.
 - `--die-with-parent` means a wedged decoder cannot outlive the backend.
 - `--new-session` detaches the controlling terminal so the child cannot inject input with
-  `TIOCSTI`.
+  `TIOCSTI`, and it puts bwrap's sandboxed side in a session, and so a process group, of its
+  own. That is what bounds `src/backend/mediaprobe.rs`'s watchdog: measured on the box, the
+  launcher's group holds exactly one process, the `prlimit` that exec'd `bwrap`, while the
+  inner `bwrap` and the decoder share a group of their own, so `kill(-pid)` reaches only the
+  launcher and what ends the decoder is `--die-with-parent` plus the PID namespace dying with
+  it. Both were gone two seconds after the group kill.
 - `--clearenv` empties the environment, so no `LD_PRELOAD`, no `XDG_*`, no session bus.
 - `--ro-bind /usr /usr` and `--ro-bind /etc /etc` give the decoder its libraries and its
   loader configuration, read-only.
@@ -1743,7 +2388,7 @@ rejected on that number.
 full argv; the canary file outside the output directory survives and a write to it fails
 with `No such file or directory`; `/home` is not visible at all and the root holds only
 `bin dev etc lib lib64 proc sbin tmp usr`; `getent hosts example.com` exits 2 with no
-resolution; `ulimit -v` inside reads 1048576 KiB, so the address-space limit is applied;
+resolution; `ulimit -v` inside reads 2097152 KiB, so the address-space limit is applied;
 and a spin under `--cpu=2` is killed rather than returning 0. **The `sh -c` in those probes
 is a test OF the sandbox, not production code.** Production execs the argv directly, and
 `grep -rn 'sh -c' src/` finds nothing.
@@ -1874,10 +2519,20 @@ and a plain one that does not: **exit 137 for both**, never 152. That is a decom
 file verdict that must record, and it is indistinguishable from the OOM kill at the only layer
 where either is visible. A discriminator keyed on 152 does not exist to be built.
 
-**The premise is close to unreachable here anyway.** The sandbox caps address space at 1 GiB, so a
-memory bomb surfaces as the decoder's own non-zero exit long before the box is short: the probe's
-`as_rlimit_bomb` row is exit 1, a Python `MemoryError` and not a kill. The box carries 19 GiB of
-RAM and 38 GiB of swap.
+**The premise is close to unreachable here anyway, for one decoder.** The sandbox caps address
+space at 2 GiB, so a memory bomb surfaces as the decoder's own non-zero exit long before the box is
+short: re-measured at the 2 GiB cap, the probe's `as_rlimit_bomb` row is still exit 1, a Python
+`MemoryError` and not a kill. The box carries 19 GiB of RAM and 38 GiB of swap. **The cap bounds
+address space and not resident memory, so it does not net against those 19 GiB**: `sandbox.rs`'s
+own test has the kernel admit the same `PROT_NONE` reservation at 1536 MiB and refuse it at
+3072 MiB while `VmRSS` stays under the test's 256 MiB ceiling, so the cap decided on the mapping
+and not on a resident page. What the cap change moves is the composed case, and it moves it in
+permitted address space: `src/backend/run.rs`'s `THUMB_WORKERS` is 4, so four decoders multiply the
+permitted total to 8 GiB, where at one GiB it was 4 and at four GiB it would have been 16. The case
+that matters is the bomb that faults its pages in instead of reserving them sparsely, because that
+is the only one that turns permitted address space into memory the box has to find. Not run,
+deliberately: four decoders each faulting in a 2 GiB bomb at once is the state this paragraph warns
+about, not a test to schedule on the box.
 
 Only a SIGKILL of the sandbox launcher itself arrives as `signal=9`, and that process decodes
 nothing, allocates nothing and burns no CPU, so it can reach neither rlimit; with
@@ -2523,17 +3178,81 @@ so a second concurrent operation would have nowhere to report itself. `rename` a
 neither spawns at all. An `archive` or a `convert` never claims the slot either: `Ops::claim_id` numbers them
 and they run alongside by design, so the cap was never one write of any kind.
 
-**`rename` and `mkdir` run on the loop's thread, the other three spawn.** Each is one syscall, so a
-thread would cost more than the work. `trash` shells to `gio` twice for the list diff plus once to
-trash; `duplicate` may copy a whole tree; a `transfer` is unbounded. Those three send their results back
-through `Event::Op`, joined onto the loop's receiver exactly the way the thumbnail pool's `Event::Thumb`
-already is, so the loop stays the only writer of stdout.
+**`rename` and `mkdir` run on the loop's thread, the other three spawn.** Both normally take one
+syscall, but neither compatibility path below is one: an rclone directory rename copies the whole
+tree and a GVFS WebDAV rename copies whatever the path is, file or tree, before removing the source,
+inline on the loop's thread. That is an unbounded network transfer in the one place nothing else can
+run. A 40 GB rclone folder is downloaded and re-uploaded through FUSE with no progress, because the
+copy's byte sink is discarded, and with no way to cancel, because its flag is a fresh `AtomicBool`
+nothing can set; the loop is the only writer of stdout, so the application is frozen rather than
+slow for the whole transfer. The copied tree also lands with new modification times, since the crate
+has no dependencies and the copy sets none, so a Date Modified column or sort shows when the copy
+ran rather than the file's own history. **The alternative to this freeze is not data loss, and any
+sentence saying it is has been wrong.** `duplicate` and `transfer` already spawn and report through
+`Event::Op`, and `rename` could do the same while still building its target through the exclusive
+copy primitives: spawning the copy and refusing to replace a raced destination are independent
+choices, so taking the first has never required giving up the second. Spawning was not taken here
+because a spawn that answers this complaint needs the progress and the cancel the inline copy throws
+away, which turns `rename` from answer-once into started, progress and done and puts it in the
+one-at-a-time `running` slot `do_rename` has never claimed. That is a wire-contract change on the eve
+of a release, on the one unit that has already taken five review rounds, one of which produced a
+data-loss defect, and hard rule 6 would then want every state of that new asynchronous path
+exercised live. Say the cost plainly rather than burying it: for a large rclone
+directory this build is worse than the one before it, which failed the rename with a sentence
+instead of hanging the window. Spawning the copy is the first item of the next release.
+`trash` shells to `gio` twice for the list diff plus once to trash; `duplicate` may copy a
+whole tree; a `transfer` is unbounded. Those three send their results back through `Event::Op`,
+joined onto the loop's receiver exactly the way the thumbnail pool's `Event::Thumb` already is, so
+the loop stays the only writer of stdout.
 
 **Every write creates its target exclusively, and this is the module's whole safety story.** A file copy
 opens with `create_new`, a directory copy and a `mkdir` use `create_dir`, a symlink copy uses `symlink`, and a rename
 or a move uses `renameat2` with `RENAME_NOREPLACE`. None of them can destroy a file that is already
-there, and none has a check-then-write window another process can slip through. `std::fs::rename`
-silently replaces its target on Unix and is never used here.
+there. Two compatibility paths belong only to `rename` and its undo, and both copy rather than replace.
+rclone 1.75 returns `EINVAL` for `RENAME_NOREPLACE` on a directory under a mount identified exactly
+as `fuse.rclone` in `/proc/self/mountinfo`, and GVFS returns `EIO` for a rename under a
+`/run/user/*/gvfs/dav:` WebDAV mount. Ordinary rclone directory rename is never used because it was
+proven to replace even a non-empty target. `renamecompat::rename_path` instead builds the target
+through the existing exclusive copy primitives, removes the source only after the copy completes,
+and uses the same path for undo. A copy failure removes only the partial target this operation
+created. **When that removal itself fails, nothing tells the operator what was left behind.** The
+error answers `where` of `rename`, which `ui/js/Errors.js` words as one of its two ordinary rename
+sentences, neither of which mentions a leftover, and which `ui/PaneWire.qml` does not re-read the
+listing on, so the partial tree sits on disk unmentioned until some later listing shows it. The
+honest repair is a distinct wire kind, deferred beside the sibling case R14 already recorded rather
+than added at round six. A source-removal failure takes the copy back only on proof
+the source survived whole: a source that still stats as anything but a directory after the failed
+removal, because `remove_file` removes every other kind with one unlink that either takes effect or
+does not. That case removes the copy
+again, or reports that it could not, and answers `rename` either way. Every other state keeps the
+complete target copy, because `remove_dir_all` stops at its first failure and a source that no longer
+stats, already gone or unstattable, proves nothing on the flaky mounts this path exists for. **When
+taking the copy back also fails, the copy stays under the new name and nothing tells the operator
+that either.** The error line does carry it in `path`, but `ui/js/Errors.js` words `rename` as one of
+two fixed sentences that reproduce neither `path` nor `msg`, and `ui/PaneWire.qml` does not re-read
+the listing on it, so the duplicate sits on disk unmentioned until some later listing shows it,
+exactly as the partial target above does. Every other filesystem,
+error and `rename_noreplace` caller stays on the atomic syscall. Mountinfo's escaped mount point is decoded and the deepest
+enclosing mount wins, so a nested non-rclone mount cannot inherit the exception.
+That kept copy answers `rename-kept` rather than `rename`, because the rename half
+succeeded and the name it came from may be whole, a remnant, or already gone. The error line names the source in `path` and carries the removal's own message in `msg`;
+neither field names the target. `ops::rename` records nothing for it, because only its `Ok` arm
+carries a step list, and `do_undo` never pushes at all, so no undo in either direction removes the
+kept copy: `remove_any` answers with one error and no account of how far `remove_dir_all` got, so the
+source may be whole, a remnant, or already gone, and the backend cannot say which.
+`ui/PaneWire.qml` re-reads the listing on that kind instead, since the pane would otherwise draw one
+row beside a sentence the listing denies. `undo` reverses a rename through the same call and answers
+the same kind, so the sentence names no direction, warns that the name the copy came from may now be
+incomplete, and leaves the refreshed listing to show which names are on disk. The journal spends its
+entry either way, because a failed reversal that stayed would block every older undo behind a step
+that keeps failing.
+corner: the copy is not snapshot-isolated, so a source replaced after the copy completes is destroyed
+by the removal that follows, and a concurrent write into the operation-created partial target is lost
+with it; both are accepted rather than defended against.
+corner: `remove_any` removes a directory with `remove_dir_all`, which stops at its first failure, so
+the name a kept copy came from may be left whole, half emptied, or already gone; the sentence
+promises the copy only, says that name may now be incomplete, and tells the operator to check it
+before deleting anything. Removing the duplicate is the operator's call, not Ctrl+Z's.
 
 **The journal records only what an operation created or moved.** `undo.rs`'s `Step` has exactly four
 shapes: `Moved` (rename back), `Created` (remove it), `MadeDir` (remove it while it is still empty, because
@@ -2639,7 +3358,7 @@ both measured to pay nothing for it: `ffmpegthumbnailer` on a fixture clip ran 8
 pages on against 89 to 92 ms off over five interleaved pairs, output byte-identical. A foreign program
 CAN now be launched from the window, because Enter on a file runs `flea --open`, and the undo the
 corner asked for ships with it: `open::open` calls `thp::enable()`, which is
-`prctl(PR_SET_THP_DISABLE, 0, ...)`, in the `flea --open` process before it spawns `xdg-open`, so the
+`prctl(PR_SET_THP_DISABLE, 0, ...)`, in the `flea --open` process before it spawns `gio open`, so the
 opened program inherits huge pages back on. That call lives in `src/open.rs`, after the
 `canonicalize` and after the directory refusal and immediately before the spawn, so a path that
 never reaches a handler never changes the setting, and `src/thp.rs` holds the one `extern "C"`
@@ -2671,11 +3390,21 @@ setting above is inherited by every descendant, so a program launched from QML w
 life with transparent huge pages disabled without ever asking; `open::open` hands the setting back
 before it spawns.
 
-It spawns `xdg-open` and exits, it does not `exec` into it. `/usr/bin/xdg-open` line 977 is
-`env "$command" "$@"` inside `search_desktop_file`, with no `exec` and no `&`, so `xdg-open` blocks
-for the whole life of the application it launched. An `exec` would therefore leave a Flea-descended
-process alive for that whole life, as a child of the `qs` process, which Quickshell may kill when
-Flea quits. `Command::spawn` is still argv-direct exec and never a shell, which is the binding
+It runs `gio open <path>` and waits for that one process, which is not the same as waiting for the
+application. `gio open` asks the desktop database for the handler, launches it and returns: measured
+on this box in the low tens of milliseconds against a stub handler that then ran for five seconds
+of its own, with the handler still running long after `gio` had been reaped. Ten runs against an isolated
+`XDG_DATA_HOME` holding one entry, whose `XDG_DATA_DIRS` was still the box's own 107 system
+entries, and ten more with the operator's 17 user entries on the search path as well, were the
+same 10 to 14 ms, so the size of the database is not what that number is made of. **That whole
+paragraph measures the `Exec=` path and is not a bound on the other one**: a `DBusActivatable` entry
+makes `gio open` wait on the `org.freedesktop.Application.Open` reply instead, which on this box's
+archive default is 0.32 to 0.75 s, and the `ui/Opener.qml` paragraph below carries those numbers.
+Waiting is what makes the exit status mean
+anything, and the detached `xdg-open` spawn it replaced answered `0` for a handoff that had not
+happened. It is still a spawn and never an `exec`, because an `exec` would leave a Flea-descended
+process alive for the application's whole life, as a child of the `qs` process, which Quickshell may
+kill when Flea quits. `Command::status` is argv-direct exec and never a shell, which is the binding
 requirement. The child gets `process_group(0)` so that nothing which later kills Flea's process group
 reaches the opened application.
 
@@ -2692,28 +3421,91 @@ which is the error path.
 
 The exit statuses are the whole contract: `0` is a successful handoff, `2` is anything that could not
 be opened and carries one elided sentence on stderr, and `3` means the resolved target is a directory
-and carries no output at all. A directory is refused rather than handed on because
+and carries no output at all. `2` now covers the launcher refusing as well as failing to start, and the three sentences are
+distinct because `std::fs::canonicalize` has already proved the file is there before `gio` is run at
+all: a path that does not resolve gets `that file could not be opened, check that it still exists`, a
+`gio open` that exits nonzero gets `gio open refused that file, so no application on this system took
+it`, and a `gio` that could not be run at all gets `nothing on this system could be asked to open that
+file`, so the set tells a refused open from an unimplemented one and neither one blames the path. A directory is refused rather than handed on because
 `xdg-mime query default inode/directory` is `org.gnome.Nautilus.desktop` here, so opening one through
-`xdg-open` from inside a file manager opens a different file manager; the caller navigates instead.
+the opener from inside a file manager opens a different file manager; the caller navigates instead.
 `flea --open` with no path and `flea --open a b` both fall through to the unknown-flag branch, which
 names the flag and exits 2.
 
-`ui/Opener.qml` is the window side of that contract and the only component in the tree that
-launches a foreign program. It holds one `Process`, because `flea --open` decides and exits in
-milliseconds, and its `onExited` is the whole mapping: `0` says nothing, `3` raises
+`ui/Opener.qml` is the window side of that contract and the only component in the tree that runs
+`flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the
+opener's own `onExited` is the whole mapping for this half: `0` says nothing, `3` raises
 `isDirectory` and `Pane` navigates there, and anything else raises `failed` and `Pane` writes one
-sentence to the status line. `Pane.openCursor` sends a row with `d` true to `open()` and every
+sentence to the status line. That sentence names no cause, because `2` covers all three failures and
+`std::fs::canonicalize` has already disproved the one the window used to blame. A second `open()`
+while that `Process` is running is dropped rather than queued, and the drop raises `busy`, which
+`ui/PaneWire.qml` answers with one plain sentence in the same slot; `openTerminal()`'s guard raises
+`terminalBusy` the same way. The first press stays silent, so only a press that was refused speaks.
+
+**That window is a third of a second on an archive, not the low tens of milliseconds this file used
+to claim.** `gio open` on an `Exec=` entry forks and returns; on a `DBusActivatable` entry it waits
+on the `org.freedesktop.Application.Open` reply instead, which is a cold application start.
+Twenty-five of the twenty-six MIME types `org.gnome.Nautilus.desktop` claims resolve to it as this
+box's default (`gio mime application/zip` and twenty-four more), and an archive is a regular file
+that reaches `.status()` like any other. Measured on this box with Nautilus not running: 463, 317,
+318 and 340 ms idle, and 748, 709 and 707 ms with twenty-four spinners on twelve cores. With
+Nautilus already up it is 34 to 48 ms, and the `text/plain` `Exec=` control on the same harness is
+11 to 15 ms. Driven against the real window, `Return`, `Down`, `Return` sent as one `wtype` burst
+produced exactly one `gio open` call and an empty status line; the same `Return` on the same row
+after the wait cleared produced the second call, so the drop is the guard and not the driver.
+Saying something in the status bar is what the tree now does. Bounding the wait was declined because
+a deadline above the measured range is a guess and one below it cuts off a legitimate cold start, and
+queueing was declined because it fires an open after the operator gave up and answers a double Enter
+on one archive with two windows. `Pane.openCursor` sends a row with `d` true to `open()` and every
 other row to the opener, so a symlink to a directory reaches the opener, comes back 3 and
 navigates; `tests/ui.sh open` asserts all three answers on one listing.
 
-**`xdg-open` ignores `Terminal=true`, and that is the box's XDG configuration rather than Flea's
-to work around.** `search_desktop_file` reads only `Exec`, `Icon` and `Name`, so a handler that
-needs a terminal is run without one. `xdg-mime query default text/plain` is `nvim.desktop` here,
-so Enter on a text file spawns a headless `nvim` that maps no window and that the user never
-sees. The remedy belongs to the operator and it is `omarchy default editor`, which rewrites the
-association. Wrapping the handler in a terminal from inside Flea would mean Flea deciding which
-programs are terminal programs, and that is the judgement the desktop's own database exists to
-make.
+**Issue 41: `xdg-open` does not honour `Terminal=true`, which is why the handoff is `gio open`.**
+`xdg-mime query default text/plain` is `nvim.desktop` here, whose `Exec` is `nvim %F` and whose
+`Terminal` is `true`, and Enter on a text file mapped no window at all. Reproduced against an
+isolated `XDG_DATA_HOME` and `XDG_CONFIG_HOME` carrying one `Terminal=true` entry, so the operator's
+own MIME state was neither read nor written: `xdg-open` exited `3` with
+`no method available for opening`, the handler never ran, no terminal was reached, and `flea --open`
+still exited `0` over it. `gio open` on the same fixture ran the handler inside the stub
+`xdg-terminal-exec` and exited `0`. `src/terminal.rs` execs `xdg-terminal-exec` by name, which is
+why it is a `depends` entry and not an `optdepends` one; `/usr/lib/libgio-2.0.so` on `glib2
+2.88.3-1` carries that name too, but alongside other terminal names it can fall back to, so glib
+alone would not have required it.
+
+**The entry here used to decline the issue, and its stated remedy was false.** It said the remedy
+belonged to the operator and was `omarchy default editor`, which rewrites the association.
+`/usr/bin/omarchy-default-editor` is 36 lines, contains zero occurrences of `xdg-mime` and zero of
+`mimeapps`, and its one path reference is line 7,
+`editor_file="$HOME/.local/state/omarchy/defaults/editor"`, which lines 33 and 34 are the only
+writer of. It chooses what `omarchy-launch-editor` runs and changes no MIME association at all, so
+it could not have fixed this and never could have.
+
+Flea still decides nothing about which programs are terminal programs. That judgement is the desktop
+database's, `gio open` is how it is asked, and there is no desktop-entry parsing anywhere in
+`src/open.rs`.
+
+**`flea --terminal <dir>` is the same shape for a terminal**, and the topbar's terminal button and
+`Ctrl+T` are its only callers. `src/terminal.rs` canonicalizes the directory the same way, refuses
+anything that is not one, and hands the result to `xdg-terminal-exec` as a single `--dir=` argument
+built as an `OsString`, because `Path::display` would substitute U+FFFD for a byte that is not
+UTF-8. **That `OsString` is load-bearing, and argv is not where the byte comes from.** `main()`
+converts `std::env::args_os()` once above every mode and refuses a non-UTF-8 argument there with one
+sentence and status 2, so no such byte reaches this mode through argv at all. It arrives from the
+filesystem instead: `resolved()` calls `std::fs::canonicalize`, so a UTF-8 argument naming a symlink
+whose target carries a byte that is not UTF-8, and a relative UTF-8 argument resolved against a
+directory that does, both answer a `PathBuf` that is not valid UTF-8. Measured on this box against a
+`target-\377` directory reached through an all-ASCII symlink: the canonical path's last byte is
+`0xFF`, `Path::display` renders it as U+FFFD, and the `OsString` keeps it. It carries the same three
+guards the opener does: `/dev/null` on all three descriptors,
+`process_group(0)`, and `thp::enable()` before the spawn. Unlike `--open` it does not wait, because
+the terminal it starts lives as long as the user keeps it open: it returned with the stub's log
+still empty, against a stub that slept half a second before its first write. `xdg-terminal-exec` is
+the OEM route rather than a terminal name of Flea's own, and `omarchy default terminal` is what
+configures it: that command writes `~/.config/xdg-terminals.list`, one of the config files
+`xdg-terminal-exec` reads, so whatever the operator set is what opens.
+`tests/modes.sh` pins the argument, both refusals, the descriptors, the process group and the huge
+page restore against a stub on `PATH`, and `tests/ui.sh openterminal` drives the button and the
+chord from both views against a logging `FLEA_BIN`.
 
 ### No type-ahead, and trash is a pair
 
@@ -2732,8 +3524,10 @@ sheet draws `dd`, and `tests/js/keymap.js` resolves a doubled cap as that one ch
 ### Theme roles and sources
 
 `Theme.qml`'s `applyColors` assigns only Flea's eight palette roles and ignores unknown
-keys because Omarchy themes contain more roles than Flea uses. Alacritty-derived palettes
-contain neither background ladder key, so the measured surface fallback is `selection`.
+keys because Omarchy themes contain more roles than Flea uses. `color.surface` walks the
+ladder `ThemeRoles.html` specifies, `dark_background` then `background`, because background
+is the neutral fallback when the chrome plane is absent. Alacritty-derived palettes contain
+neither of those two, so the measured surface fallback for them is `selection`, the third rung.
 Shell parsing consumes only `[font]` and `[spacing]` because Flea has no bar, popups,
 tooltip or lock screen.
 
@@ -2868,11 +3662,13 @@ names have twins carrying the same MIME type.
   two rows, the dedupe swallows the second and that row is answered only when the listing is
   replaced or the process drains. Not fixed here, because the fix is the same byte arena and
   it is a whole plan's worth of change through `Listing`, `stat_range` and the wire.
-- `main.rs`: `std::env::args()` panics with exit 101 on a non-UTF8 argv byte, so `flea --open`
-  inherits it and answers none of 0, 2 or 3, but only a shell or a `.desktop` file can produce
-  it and the window cannot, because `scan.rs` goes lossy in phase 1 and `Pane`'s `join` only
-  ever sees that lossy name; same family as the entry above, pre-dating every mode, and the
-  fix is `args_os` across all four modes.
+- `main.rs`: a non-UTF-8 argv byte is refused rather than carried, and that refusal is the corner.
+  `std::env::args_os()` is converted once above every mode, and a byte that is not valid UTF-8
+  answers `flea: <name> is not valid UTF-8, and Flea takes text paths` on stderr with status 2, so
+  `--open`, `--terminal` and a bare path all answer 2 where `std::env::args()` used to panic with
+  101. Only a shell or a `.desktop` file can produce such an argv and the window cannot, because
+  `scan.rs` goes lossy in phase 1 and `Pane`'s `join` only ever sees that lossy name. Opening such a
+  path at all needs the byte arena in the entry above, so this stays a refusal until that lands.
 - `open.rs`: between `canonicalize`, `is_dir` and `spawn` a path that vanishes or is swapped
   for a directory changes the answer, which a concurrent `rm` in the user's own session on
   this single-user machine can produce and which is not exploitable, since no shell and no
@@ -3098,8 +3894,9 @@ lucide glyph is therefore: square the corner arcs, keep the extents. One deliber
 change beyond corners: `music` note heads are squares, not circles, the set's brand tell
 (`file-text`'s three rules are lucide's own, restored with the body). The AE compare
 above no longer applies to recut marks (they differ from source on purpose); the gate is the
-montage eyeball plus a live `qs -p ui` look on the box (bench numbers still come from the
-launcher path, hard rule 7). `rsvg-convert` only
+montage eyeball plus a live `QSG_RHI_BACKEND=vulkan qs -p ui` look on the box, which names the
+renderer but not `FLEA_RENDERER_AUTOMATIC` and so leaves the QML fallback arm disarmed (bench
+numbers still come from the launcher path, hard rule 7). `rsvg-convert` only
 proves a `d` parses; librsvg renders through a bad tail and exits 0, so its exit status is
 not a gate.
 
@@ -3185,9 +3982,11 @@ and open a stick somebody only meant to ask about.
 
 ### m raises the listing's menu too, under the cursor row
 
-`m` is one action, `menu`, and `ui/js/Focus.js` routes it by focus view. In the rail `raiseMenu`
-asks `Mounts.railMenu` and says `<label> has nothing to eject or unmount.` over a row with no
-release. In the listing `act`'s `menu` case calls `ui/Pane.qml` `openCursorMenu`, which scrolls
+`m` is one action, `menu`, and `ui/js/Focus.js` routes it by focus view. In the rail
+`ui/js/RailKeys.js` `act` calls `raiseMenu`, which asks `Mounts.railMenu` and says
+`<label> has nothing to eject or unmount.` over a row with no
+release. In the listing `act`'s `menu` case calls `ui/Pane.qml` `openCursorMenu`, whose body is
+`ui/js/Menu.js` `openAtCursor`: it scrolls
 the cursor row into view (a wheel scroll in the grid can leave it off screen), opens the one
 `ContextMenu` at that delegate's bottom-left through `openAt`, and answers whether a delegate was
 there at all; an empty directory, a listing still loading and a filter that hid every row all
@@ -3211,6 +4010,59 @@ the check happened to make it pass again, which is what pointed at a race rather
 failure. The fix is `bookmarksWrite.waitForJob()` (blocks until the current async operation
 finishes) between `setText()` and the signal that triggers the reload, in both files. Four
 consecutive clean runs after the fix, two of four before it, on the same box.
+
+### An unread FileView drops an empty write
+
+`FileView.setText("")` does nothing at all when the view has never loaded: no truncate, no create,
+and `loaded` stays false, while the same call on a view that has read truncates the file as asked.
+Measured on this box with a four-way probe under `QT_QPA_PLATFORM=offscreen qs -p`, on a path
+created after the view was made: writing `"OTHER\n"` landed and left `loaded` true, writing `""`
+left the file byte-identical and `loaded` false, and it made no difference whether the file had been
+created by another `FileView` in the same process or by an external `sh`. So the trigger is the
+empty body and the unread view, not two views on one path.
+
+This is the whole of a defect `tests/ui.sh case_network` caught: removing the only saved place
+computes an empty body, and the rail's write view has never read when the bookmarks file did not
+exist at launch, so the bar said the place was forgotten while the file kept its line and the row
+came back on the next rebuild. `ui/NetworkPlaces.qml write(body)` reloads first when
+`!bookmarksWrite.loaded`; `reload()` followed by `waitForJob()` loads synchronously, measured the
+same way, after which the empty write truncates. The write view is unread far more often than it
+looks: nothing reloads it, `ui/NetworkDialog.qml` creates the file through its own view, and
+`watchChanges` would not help because a watch set up before its parent directory existed never
+fires.
+
+### A failed FileView read still reports loaded, and empties the text it had
+
+`FileView` has three things that look like a way to ask whether a read worked and none of them is
+one. `waitForJob()` returns `true` for every job it waited on, success or not. `loaded` is
+`isLoadedOrAsync`, so it reads **true** after a permission-denied read and after a read of a path
+that is a directory; only `FileNotFound` leaves it false. And a `reload()` that fails **clears the
+text the view already held**, so `text()` answers `""` where a moment before it answered the file.
+Measured on quickshell 0.3.1 under `QT_QPA_PLATFORM=offscreen qs -p`, one view on one path: a first
+read of a two-line file gave `err=Success textLen=36`, a `chmod 200` and a second `reload()` gave
+`err=PermissionDenied loaded=true textLen=0`, and the append that followed left the file holding one
+line. `onLoadFailed(error)` is the only report there is, and `FileViewError` is
+`Success, Unknown, FileNotFound, PermissionDenied, NotAFile`.
+
+This is the whole of a defect this release's own fix round introduced. `ui/NetworkDialog.qml`
+`appendBookmark()` re-reads before it appends, because a view that is not watched still carries a
+place the rail has since removed; the re-read closed a duplicate-one-line defect and opened a
+delete-the-file one, because a read that failed made `body` empty and the blocking `setText()` that
+followed wrote a bookmarks file containing only the new line. The view records the error in
+`onLoadFailed` now and the append refuses on anything but `Success` or `FileNotFound`, an absent
+file being the one read that is legitimately empty: the dialog stays open over "Saved places could
+not be read, so nothing was written." and nothing is written at all. `tests/ui.sh case_network`
+drives it with the fixture's own bookmarks file at mode 200, and asserts the file byte-for-byte.
+
+The class reaches every body that grows, so it also reached the rail's rename, where nothing in that
+fix round had put it. `ui/NetworkPlaces.qml` `rename()` derived its body from `bookmarksText`, which
+is `ui/Sidebar.qml`'s own watched `FileView.text()` and is emptied by the same failed read, so
+`Places.relabel("", uri, name)` appended the renamed share to nothing and the blocking `setText()`
+wrote a bookmarks file holding that one line. Deriving the body from `bookmarksText` is what makes
+the guard impossible there, so `rename()` reads the file itself and refuses on the same two errors.
+Only a **live mount** reaches this, because the rail draws a saved place from the very text the
+failed read emptied, and the rename arm in `tests/ui.sh case_network` stubs `gio mount -l` for one.
+`forget()` needs no guard: it writes only a body it found the line to remove in, and `""` has none.
 
 ### A server root with no share segment mounts, but GVFS gives it no FUSE path
 
@@ -3462,6 +4314,75 @@ shape-dependent decision. `tests/ui.sh case_sharebrowser` reproduces this with a
 that answers exit 2 plus that exact stderr for its second fixture share, asserting the mount still
 resolves to an open rather than the "could not be mounted" message.
 
+**Superseded, issue #36.** That stderr sentence is gvfsd's, and gvfsd translates it, so no client
+locale makes it English and reading it at all was the defect. `isAlreadyMountedQuirk()` and
+`mountProcess`'s `stderr` collector are both gone. `mountProcess.onExited` now records the exit code
+in `_mountFailed` and always runs `gio info`, under the same 15 s deadline the mount leg has (see
+"A single-flight guard needs a deadline" below), and the info result is the whole decision: a FUSE path
+opens the share whatever the mount attempt reported, a bare root lists its shares, and only a
+location `gio info` could not describe either reports the mount failure or the dead-end sentence.
+The case still proves the same two behaviours; its stub now speaks Spanish.
+
+**The bare-root branch reads no exit code, decided in the 0.1.4 composition.** The round that wrote
+this also gated the listing on `exitCode === 0`, so a server root whose `gio info` refuses would
+never have its shares listed. `gio info` on a reachable root refuses on some servers and answers on
+others, and `tests/ui.sh case_network` drives the refusing shape, so the gate cost the share browser
+those servers. It is gone: the listing leg carries its own deadline (below), which is what the gate
+was really protecting against, and the listing itself is what answers.
+
+### Issue #36: no network decision reads a translated sentence
+
+`@janoguerra` reported that network shares never open on a non-English box. There were three
+locale-dependent decisions, not the two the issue named, and each takes a different fix because the
+strings come from two different processes.
+
+**The gio client's own output is pinned, not parsed in every language.** `ui/NetworkMounts.qml` sets
+`readonly property var gioEnvironment: ({ "LC_ALL": "C" })` on its own five `Process` objects and
+hands the same object to `ui/MountListing.qml`, whose listing is the sixth. Counted off the merged
+file, not remembered: `authProcess` is the fifth, the credentialed leg the 0.1.4 base added, and the
+locale reaches the `gio` its helper runs through the same property.
+`Process.environment` merges into the inherited environment rather than replacing it, measured live
+on this box (a probe run under `QT_QPA_PLATFORM=offscreen qs -p` printed `LC_ALL=C PATH_SET=yes
+PROBE=yes HOME=/home/gm`), so `PATH` and `HOME` survive and only the locale is added. GNU gettext
+ignores `LANGUAGE` whenever the category value is `C` or `POSIX`, so `LC_ALL=C` alone is the whole
+pin. That makes `gio info`'s `local path: ` line deterministic, and `ui/js/Mounts.js localPath(body)`
+is the one resolver that reads it: the product calls it and `tests/js/network.js` drives it, so the
+wording exists in exactly one place.
+
+**gvfsd's strings are not fixable that way, so nothing decides on one.** The already-mounted refusal
+and a mount's own display name are composed by the daemon, which has its own locale, so
+`LC_ALL=C` on the client changes neither. The refusal is no longer read at all (above). The display
+name is no longer parsed for the English word "on": `ui/js/Protocols.js shareName(rawLabel, uri)`
+cuts the tail only when it is this URI's own host, which `hostOf(uri)` takes out of the authority
+between `://` and the next `/` by dropping the userinfo at its last `@` and any port after the host,
+so `sftp://user@host/` measures the label against `host` alone. A bracketed IPv6 literal is kept whole,
+brackets included, and a gio label spelling that host without them is therefore never cut: a wrong
+label and never a wrong destination, pinned in `tests/js/network.js`. The one assumption left is that gvfsd's connector is a single
+whitespace-delimited word in whatever language it renders: the cut is
+`head.replace(/\s+\S+\s+$/, "")`, which takes one token, so a translation using two would leave the
+other on the name. A wrong label, and never a wrong destination, because activation navigates on the
+entry's own uri.
+
+**The old rule also mangled labels that had nothing to do with a host**, which no report had named.
+`/^(.*)\s+on\s+\S+$/` never tested that its tail was a host, only that it was a final
+whitespace-delimited token, so a mount actually named `backup on tuesday` came out as `backup`.
+`tests/js/network.js` drives that exact label, and the pair beside it, `backup on tuesday on nas`,
+is what says the fix cuts a real host and only a real host. Deciding from the URI fixes it and leaves every non-share label alone:
+an MTP phone whose label is `Pixel 7` under `mtp://Google_Pixel_7_1A2B/` keeps its name, because that
+label does not end in that host.
+
+**The suite could not fail before this.** `tests/ui.sh case_sharebrowser`'s `gio` stub hardcoded
+English, so it passed on a Spanish box and would have passed after a fix that changed nothing. Both
+network stubs now speak Spanish: `case_sharebrowser` answers `ruta local` unless the caller pinned
+`LC_ALL=C`, and both its already-mounted refusal and `case_unmount`'s `Mount(0): stubshare en
+stubhost` stay Spanish whatever the client asks for, because gvfsd would. Only one of the two is the
+pin's control, and live matrix step 0b measured which: with the pin neutralised `case_sharebrowser`
+reddens on demand and greens on demand, twice each, on `tests/ui.sh`'s own
+`l on share1 never opened` line, while `case_unmount` passes in both arms. It cannot move, because
+its `Mount(0)` line is gvfsd's in both arms, the reader never looks at the connector word, and the
+stub answers no `gio info`. What `case_unmount` proves is that the parser is robust to a translated
+connector, which is worth having and is not a locale control.
+
 ### The Network group's plus mark: a lucide glyph, not a font character
 
 The operator's own words: the `Text "+"` next to the NETWORK heading "looks more like a christian
@@ -3475,6 +4396,48 @@ glyph's own all-straight-lines conversion got. `ui/Sidebar.qml`'s `addMark` is n
 off `Theme.font.caption`, the same token the NETWORK heading beside it renders at, in place of the
 `Text` element; the click handler and keyboard path (`a` from the rail) are unchanged, since neither
 ever depended on the mark being a `Text` item.
+
+### That plus, and its hit target, sit on the rail's indicator centre line
+
+GM's contract is that the `+` **and its 24 px hit target** share the centre line of the rail's
+right-hand indicators. `ui/SidebarRow.qml`'s `dot` is that line: a `Theme.font.caption`-wide slot
+right-anchored at `Style.spacing.rowPaddingX`. `addMark` used to be a 24 px `Item` right-anchored at
+the same margin with the glyph inside it, which lines the two **right edges** up and not the two
+centres, so the target's centre sat `(Theme.hitMin - caption) / 2` left of the dot's: 6 px at
+`caption = 12`, 8.5 px at `caption = 7`. The glyph and the target are now siblings in the heading
+row. `addGlyph` carries the dot's own anchors, and `addMark` takes its position from the glyph's box
+rather than from an anchor, because a centre anchor quantises an odd size difference: measured at
+`caption = 7`, both `anchors.centerIn` and `anchors.horizontalCenter` applied `(24 - 7) / 2` as 8
+and not 8.5, leaving the two real centres half a pixel apart even where the rounded ones still
+agreed.
+
+The old check could not have caught any of it. `networkMarkGeometry()` measured the **glyph** and
+compared it against an arithmetic slot, `heading.x + heading.width - rowPaddingX - caption / 2`,
+which is term for term what a right-anchored glyph's centre already is: an identity, and it passed
+at all thirteen interface scales it was walked over. `tests/ui.sh` then pinned the same anchoring a
+second time by grepping the source. Both are gone. `networkMarkGeometry()` returns three measured boxes through `ui/shell.qml`'s `boxOf`, the
+ink, the target and the real `dot`, in one coordinate system, and `tests/ui.sh case_netmark` asserts
+their centres agree at Omarchy's seven text sizes, 9, 10, 11, 12, 14, 16 and 20 px, driven through a
+fixture `[font] base-size`, plus both ends of the interface zoom.
+
+**A printed edge is a rounded edge, and a printed centre is not.** `boxOf` rounds `x` and `width`,
+and at text size 9 the target's real box was `[71.344, 95.344)`. Qt Quick's `contains` is
+`x >= 0 && x < width`, so a click at the printed left edge, 71, lands 0.344 px outside and does
+nothing, while 72 and 95, the first and last whole pixels inside the real box, both open the dialog.
+An earlier run read exactly that miss as evidence the box was somewhere else and inferred
+`[136, 160)` from the ink centre; the runtime rectangle was in fact exactly what the source implied.
+`probe_network_mark_target` therefore stays a whole pixel clear of each printed edge in both
+directions, which is true for any fractional part.
+
+The **centre** is the one field that must not round, because the misalignment above is half a pixel
+and 8 and 8.5 are the same integer. The first version of this check rounded all three fields and
+compared the centres with `-eq`, so it passed the very anchor form the fix replaced: re-applying
+`anchors.centerIn: addGlyph` to `addMark` puts the ink centre at `x + 3.5` and the target centre at
+`x + 4`, which `Math.round` maps onto one number. `boxOf` therefore reports the centre as
+`toFixed(3)` and `assert_network_mark_alignment` compares the two with `==` rather than `-eq`, the
+only comparison in the suite that has to see a fraction. Every layout term here is an integer or a
+half, so three decimals is four orders of magnitude of headroom, not a tolerance to tune. The click
+probes read `x` and `width` and are unaffected.
 
 ### The preview strip's play/pause marks
 
@@ -3514,10 +4477,113 @@ rows, through `ui/Sidebar.qml`'s `railItemFor(index)` (the rail has no `ListView
 Repeater keeps every row instantiated, so this just indexes into whichever group carries it).
 
 `case_unmount` stubs `gio mount -l` to report one fake share as mounted and `gio mount -u` to log
-its own call, and proves that a right click opens one Unmount row drawing the `eject` mark without
-unmounting anything, that Escape closes it with nothing run, that choosing the row unmounts and
-messages "Unmounted \<label\>.", that a favourite opens no menu at all, and that the list still
-takes keys afterwards, which is the focus regression the second-instance bisection above found.
+its own call, and proves that a right click opens `Unmount|Rename|Remove` drawing `eject|rename|minus`
+without unmounting anything, that Escape closes it with nothing run, that choosing the first row
+unmounts and messages "Unmounted \<label\>.", that a favourite opens no menu at all, and that the
+list still takes keys afterwards, which is the focus regression the second-instance bisection found.
+
+### PR #21: rename and remove a saved place, and one rail row per share
+
+`@TomFaulkner`'s branch asked for editing and removing network places and for a share to stop
+appearing twice when its port is spelled two ways. It is reimplemented here rather than merged,
+because the same branch carries a separate connection layer, and because its own `stripDefaultPort`
+scanned for the last `@` in the whole URI: `sftp://u@h:22/inbox@2026` made `2026` the host, kept the
+`:22`, and produced the exact second rail row the function existed to remove.
+
+**The port.** `ui/js/Protocols.js stripDefaultPort(uri)` finds the authority first, between `://` and
+the next `/`, so a `:` or an `@` in the path is never read as a port or a host, and a bracketed IPv6
+literal cannot match because it ends in `]`. `defaultPortFor()` reads `SCHEME_PORTS`, one row per
+scheme, because the port gio omits belongs to the scheme and not to the protocol the form picked:
+one number for `dav` and `davs` both stripped a real `:443` off a `dav://` URI and left a real `:80`
+on it, the exact duplicate rail row `stripDefaultPort()` exists to remove. Every row is measured
+against gvfs 1.60.2 and glib2 2.88.3 on this box by round-tripping each spelling through `Gio.File`,
+the uri mapper `gio mount -l` prints a mount through: it drops smb 445, sftp 22, ftp 21, ftps 21,
+dav 80 and davs 443, and keeps every other port it is given, so `ftps` is 21 here and not IANA's
+990, and a `dav://host:443` keeps its 443. It canonicalises no `nfs` port at all, which is why 2049
+is still in the table for the other half of the job: it is the port an nfs client uses when the line
+omits one, so the two spellings of one export still make one row.
+`Mounts.normalize()` runs it, so the dedup key, `ui/NetworkDialog.qml`'s
+stored bookmark line and `Places.relabel`'s matching all agree with what `gio mount -l` reports.
+
+**And the form prefills out of that same table**, which is the half advloop round 2 found still
+open. `SCHEME_PORTS` said `dav` was 80 while `Protocols.defaultPort()` read a second table keyed by
+protocol and prefilled 443 for both WebDAV spellings, so unticking the TLS box built
+`dav://host:443/path`: a port the scheme does not use, offered by the dialog, on the one code path
+that exists to keep the dialog and the dedup agreeing. `defaultPort(protocol, tls)` now returns
+`defaultPortFor(scheme(protocol, tls))` and the protocol-keyed `PORTS` table is gone, so there is
+one table again. `ui/NetworkForm.qml` re-prefills on `onTlsChanged` as well as on `pick()`, because
+the box picks half the scheme and the chip picks the other half; without it the number the chip left
+behind survives the tick. `tests/ui.sh case_network` drives the tick and reads the port back.
+
+**And that prefill has to run before the port, not after**, which the 0.1.4 composition found: the
+base reopens the form on a saved URI, and `NetworkForm.load()` set the port and then the box, so
+`onTlsChanged` overwrote a real `:443` on a `dav://` place with the scheme default. `load()` assigns
+`root.tls` before the port now, so the tick's prefill is the fallback and the saved number wins.
+`tests/ui.sh case_networkauth` reparses both spellings and prints `dav-default=80 dav-explicit=443`.
+
+**The two rows.** `ui/js/Mounts.js rowMenu(entry)` is what the rail's right click opens: the release
+row, then `Rename` and `Remove` for any network share, mounted or not. It is deliberately not
+`railMenu()`, which stays the release verdict alone, because `ui/js/Eject.js` reads `railMenu()[0]`
+and Ctrl+E must keep refusing a row with nothing mounted instead of starting an editor on it.
+`Mounts.release()` dispatches all four actions and takes the rail itself, so `Rename` reaches
+`Sidebar.startRename()` (the same editor `r` already opened) and `Remove` reaches
+`NetworkMounts.forget()`, which hands `ui/NetworkPlaces.qml` the uri; it drops the line through
+`Mounts.removeBookmark()` and the blocking write `rename()` already uses. A share that is mounted right now stays on the rail as the live mount
+it is until something unmounts it, which is why `Unmount` is still offered beside `Remove`.
+
+**The label on a live row is the bookmark's own.** `ui/js/Mounts.js railLabel(mount, marks)` answers
+the label of the first bookmark whose normalized uri matches the mount, matched the way `rebuild()`
+dedups, and gio's own name only when nothing has saved that share. Without it a rename typed on a
+mounted share was written to the file and then overwritten on the rail by the next five second poll.
+
+**`Remove` says which of the three states the press landed in**, because the row is offered on every
+share whether or not a bookmark exists for it. `ui/NetworkPlaces.qml forget(uri)` decides from
+`bookmarksText`, the same text the rail was built from, and the body it writes is derived from that
+same text, so no write this rail makes can be older than the rail. No line for that uri and nothing
+is written at all: the bar says `<name> is not a saved place, and stays on the rail until it is
+unmounted.`, and only a mounted row reaches that arm, because an unmounted row is on the rail
+precisely because that text carries its line. A line that is there is dropped, and the bar reads
+`<name> is forgotten, and stays on the rail until it is unmounted.` over a live mount and
+`<name> is forgotten.` otherwise.
+
+`tests/ui.sh case_unmount` drives all three across four presses: a live mount this home never saved,
+a saved live mount, a saved place nothing mounts, and a second press on the row the first one left
+behind, which also asserts the file's own mtime did not move. `case_network` drives the sequence that
+used to be refused forever: Add through the dialog, then Remove in the same session.
+`ui/NetworkDialog.qml` appends through a `FileView` of its own and nothing reloads the one this
+Service writes with, so a body read back from it was the pre-Add snapshot, `next === body` was true
+and the removal was refused on every retry until a restart. Deriving the body from `bookmarksText`,
+which `ui/shell.qml:158` reloads on that dialog's own `saved()`, is what closed it for `forget()`;
+`rename()` took its body from the same place for the same reason until it had to answer a failed
+read as well, and reads the file itself now (see "A failed FileView read" above).
+
+**Every edit reads the file, and no edit reads a copy of it that has aged.** Two more instances of
+that one defect were measured on this box in the fix round, both of them the mirror of the first,
+and both are why `case_network` now runs an Add after its Remove and a rename after both.
+
+- **Add after Remove put the removed place back.** `ui/NetworkDialog.qml appendBookmark()` read
+  `bookmarksWrite.text()` from a `FileView` that is not watched and had last read before the rail
+  removed a line, so its "append" wrote the whole stale body plus the new line. Driven: Add
+  `198.51.100.1`, Remove it, Add two more, and the rail came back with all three. It re-reads,
+  blocking, before it composes the body.
+- **Two rail edits in one turn put the first one's line back.** `ui/NetworkPlaces.qml` derives
+  `forget()`'s body from `bookmarksText`, which is only newer than the last write if the reload
+  that write caused has landed, and `ui/Sidebar.qml reloadBookmarks()` did not wait for it.
+  Measured through the real `NetworkMounts.forget()` chain with the wiring under test as the only
+  variable: over an asynchronous reload two `forget()` calls in one turn left `smb://nas/one One`
+  in the file, over a blocking one they left it empty. `reloadBookmarks()` blocks now, and
+  `ui/NetworkPlaces.qml`'s own header says which question that answers, because "no removal can be
+  older than the rail" was never an answer about this one.
+
+Not reimplemented, and both are omissions of PR #21 rather than of this rail: the branch's
+Add-dialog reuse, which reopens the form prefilled to edit a place's URI (that needs a
+`ui/shell.qml` connection and an `ui/Ipc.qml` reader, and the pinned-places store itself is being
+replaced, so `Rename` is the edit this rail offers today), and its per-host SFTP collapse.
+`gvfsd-sftp` mounts one connection per host, so `gio` lists `sftp://user@host/` while the bookmark
+is `sftp://user@host/home/tom`; those normalize to different keys and `rebuild()` keeps both rows.
+`stripDefaultPort` cannot collapse them, because the difference is the path and not the port, so the
+fix is a containment rule that changes the dedup contract for every scheme and needs a live gvfsd
+sftp mount to verify.
 
 `case_eject` stubs `lsblk --json` as well, so a removable volume exists at zero privilege with no
 real device anywhere near it. Its negative control is the whole point: the `gio` stub always exits
@@ -3548,6 +4614,12 @@ rewritten and every other line byte-identical, and a name carrying an embedded n
 produces a file with the same line count it started with, the newline gone rather than splitting
 one bookmark into two.
 
+Round 2 of advloop closed a third gap, the asymmetry from the other side: `relabel` read each line
+raw while `Mounts.removeBookmark()` reads it trimmed, so an indented bookmark line was one `Remove`
+could drop and `Rename` could only ever duplicate, appending a second line for a uri the file
+already carried. `relabel` trims first now, the same way, and the line it rewrites loses its
+indentation along with its old label.
+
 ### Flea ends when its last window closes, and a wedged listing no longer freezes the rail
 
 Three fixes on 2026-09-02, one on the way out and two on the rail. None of them had a line here.
@@ -3559,15 +4631,52 @@ as "no receivers connected", so signalling its own pid is the only lever left. T
 `Quickshell.execDetached(["kill", String(Quickshell.processId)])`. Closing the window is what a
 user does to quit, so without it the process stayed resident with nothing on screen.
 
-**The NETWORK rail, `8cf5418`, `ui/NetworkMounts.qml`.** `gio mount -l` against a share whose
+**The NETWORK rail, `8cf5418`, now `ui/MountListing.qml`.** `gio mount -l` against a share whose
 server has stopped answering never returns, and nothing bounded it, so `pollMounts` refused every
-later poll and no new mount appeared until the app was restarted. A `listTimeoutMs` of 10000 now
-ends it. `_listTimedOut` gates both the collector's `onStreamFinished` and `onExited`, because a
+later poll and no new mount appeared until the app was restarted. A `timeoutMs` of 10000 now
+ends it. `_timedOut` gates both the collector's `onStreamFinished` and `onExited`, because a
 listing ended that way collected nothing and reading that as "no shares" would empty the rail and
 take Unmount with it exactly when a server is misbehaving; it is cleared when the next listing
 starts and never in `onExited`, so it still reads true while the ended listing's stream drains. A
 re-read asked for mid-listing sets `_pollAgain` and runs when that listing ends, instead of being
-dropped and leaving a just-mounted share to wait out the five second poll.
+dropped and leaving a just-mounted share to wait out the five second poll. All of it moved out of
+`ui/NetworkMounts.qml` behaviour-for-behaviour when that file had to make room for the 0.1.4
+composition; two names are shorter in a file that owns nothing else, `listTimeoutMs` is `timeoutMs`
+and `_listTimedOut` is `_timedOut`, so a grep for the old names finds `ui/DeviceMounts.qml` alone.
+
+### A single-flight guard needs a deadline, and a refusal the user can see
+
+`ui/NetworkMounts.qml openShare()` is single flight over its children and only one of them was
+bounded. `mountProcess` had a 15 s `Timer`; `infoProcess` had nothing, and issue #36's fix made
+`mountProcess.onExited` run `gio info` on **every** exit, the dead-server path included, which is
+exactly where `gio info` never returns. So one hung info left `infoProcess.running` true and the
+guard's bare `return` refused every later share for the life of the window, in silence.
+
+Both halves are fixed. The `mountTimeout` `Timer` is restarted by `runInfo()`, so each leg of an
+open carries the same 15 s bound; whichever leg is still running when it fires is the one it ends,
+`_infoTimedOut` keeps that leg's own `onExited` from reporting a second, contradictory failure, and
+the bar gets the same "did not respond" sentence a hung mount already produced. The guard itself
+now says so too: "Another network location is still opening; give it a moment." `tests/ui.sh`
+`case_hangshare` drives all three against a `gio` stub that hangs `info` on one share and answers
+for the other, and it went red on the guard's own silence before the fix.
+
+**There are three legs, not two**, which advloop round 2 caught against the very commit subject that
+claimed otherwise. A bare server root ends in `listShares()`, and `gio list` on a server gvfs cannot
+reach hangs exactly the way `gio info` does: it had no `mountTimeout.restart()` and nothing else in
+the chain was left to end it, so the share browser waited for a listing that never came, forever and
+in silence. `listShares()` restarts the same timer, `mountTimeout` gains a third branch and
+`_listSharesTimedOut` its own consume-once flag, and `openShare()`'s guard now counts
+`listSharesProcess.running` too, because otherwise a new open started over a hung listing would
+restart the timer onto itself and leave the listing unbounded again. `case_hangshare` drives it
+against a stub whose bare root's `gio list` hangs; it went red on the deadline that never fired.
+
+The rule this follows, and it holds for anything written after it: **a single-flight guard needs a
+deadline on the thing it guards, and a refusal the user can see.** A guard that returns in silence
+names nothing at all, which is the opposite of an error naming its failing component. Four more
+guards in this tree are still unbounded, `ui/NetworkDialog.qml`'s `dropboxCheck`,
+`ui/ShareLink.qml`'s `sharelink`, `ui/Taildrop.qml`'s `statusProcess` and `ui/Opener.qml`'s
+`copier`. All four are pre-existing, none is a regression of this release, and they are a 0.1.5
+ticket rather than a fifth front in this one.
 
 **The DEVICES rail, `b28e992`, `ui/DeviceMounts.qml`.** `lsblk` on the same five second poll was
 unbounded too, and one that stopped answering left `poll()` refusing every later listing for the

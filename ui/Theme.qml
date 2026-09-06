@@ -7,6 +7,7 @@ import qs.Commons
 import "js/Columns.js" as Columns
 import "js/Contrast.js" as Contrast
 import "js/Palette.js" as Palette
+import "js/TextSize.js" as TextSize
 
 // Flea is its own process, so it plays the role shell.qml plays for the bar: it feeds Color and Style.
 Singleton {
@@ -16,6 +17,17 @@ Singleton {
 
     // True only once colors.toml parsed to a palette, so a test can tell one from a fallback.
     property bool ready: false
+
+    // The size Flea draws at: Omarchy's own unless the Display section pinned an override stop.
+    readonly property int baseSize: TextSize.effective(ViewState.textSize, Style.font.baseSize)
+    readonly property bool overridden: !TextSize.following(ViewState.textSize)
+    // One while following, so every OEM token below is Omarchy's own until an override moves it,
+    // and then moves by the ratio between the pinned stop and Omarchy's size.
+    readonly property real sizeRatio: Style.font.baseSize > 0 ? root.baseSize / Style.font.baseSize : 1
+
+    // The compositor's own monitor scale, which the Display section shows and never steps; 0 until
+    // hyprctl has answered, and the panel says so rather than claiming a number it does not have.
+    property real monitorScale: 0
 
     // A property and not a Motion.js var: a plain library var notifies nothing, so every Behavior
     // reading it would keep whatever it was built with when the compositor's answer arrives.
@@ -44,15 +56,17 @@ Singleton {
 
     readonly property QtObject font: QtObject {
         readonly property string family: Style.font.family
-        readonly property int bodySmall: Math.round(Style.font.bodySmall * ViewState.uiScale)
-        readonly property int caption: Math.round(Style.font.caption * ViewState.uiScale)
+        // Following takes Omarchy's resolved token, so a theme's own font override still wins. An
+        // override runs Style's own fontPx ratios at the pinned stop, which is the same ladder.
+        readonly property int bodySmall: root.overridden ? TextSize.bodySmall(root.baseSize) : Style.font.bodySmall
+        readonly property int caption: root.overridden ? TextSize.caption(root.baseSize) : Style.font.caption
     }
 
     readonly property QtObject spacing: QtObject {
         readonly property int hairline: Style.spacing.hairline
-        readonly property int rowPaddingX: Math.round(Style.spacing.rowPaddingX * ViewState.uiScale)
-        readonly property int rowPaddingY: Math.round(Style.spacing.controlPaddingY * ViewState.uiScale)
-        readonly property int gap: Math.round(Style.spacing.rowGap * ViewState.uiScale)
+        readonly property int rowPaddingX: Math.round(Style.spacing.rowPaddingX * root.sizeRatio)
+        readonly property int rowPaddingY: Math.round(Style.spacing.controlPaddingY * root.sizeRatio)
+        readonly property int gap: Math.round(Style.spacing.rowGap * root.sizeRatio)
     }
 
     // One glyph's advance in a monospace face is every glyph's advance, so this sizes every fixed column.
@@ -69,6 +83,8 @@ Singleton {
         readonly property int mode: Math.round(root.modeChars * glyphMetrics.advanceWidth)
         readonly property int size: Math.round(root.sizeChars * glyphMetrics.advanceWidth)
         readonly property int date: Math.round(root.dateChars * glyphMetrics.advanceWidth)
+        // The send picker's own, anchored the way kind below it is rather than counted in characters.
+        readonly property int pickerDate: Math.round(root.pickerDateBaseWidth * root.font.bodySmall / root.pickerDateBaseBodySmall)
         // Kind text varies too much for a character count, so its base is a pixel width scaled by the same ratio bodySmall already is.
         readonly property int kind: Math.round(root.kindBaseWidth * root.font.bodySmall / 12)
         // Not a column: the floor under the name, which the four above drop one by one to protect.
@@ -87,13 +103,13 @@ Singleton {
     readonly property int heroMarkSize: Math.round(root.font.bodySmall * 3.7)
     // A chrome strip's mark is the OEM's own icon token, the one Ui/Button.qml and the Tailscale and
     // Dropbox bar icons size from: 16 at base-size 14, which is the canvas's chrome mark on every board.
-    readonly property int chromeMarkSize: Math.round(Style.font.icon * ViewState.uiScale)
+    readonly property int chromeMarkSize: Math.round(Style.font.icon * root.sizeRatio)
     // Lucide ships stroke 2 on its 24 unit grid; 1.5 is the operator's tune (Tabler ships 2 as well, see the A/B report).
     readonly property real strokeWidth: 1.5
     // WCAG 2.5.8 floor. Marks stay at their type-scale size; the hit box grows to this.
     readonly property int hitMin: 24
     // Wide enough for "Send with Taildrop" at bodySmall, 257 at base-size 14; ui/ContextMenu.qml draws it.
-    readonly property int menuWidth: Math.round(Style.space(220) * ViewState.uiScale)
+    readonly property int menuWidth: Math.round(Style.space(220) * root.sizeRatio)
 
     // Leading a row gives its text, above and below, before the padding is added.
     readonly property real lineBoxRatio: 1.8
@@ -115,6 +131,9 @@ Singleton {
     readonly property int sizeChars: 9
     // "Yesterday, 23:16", the widest of Format.date's four forms.
     readonly property int dateChars: 16
+    // SendPicker.html draws the chooser's date in an 80px slot, on a board whose base size is 14 and whose bodySmall is therefore 13.
+    readonly property int pickerDateBaseWidth: 80
+    readonly property int pickerDateBaseBodySmall: 13
     // 120px at the OEM's base font size of 12, the Kind column's own anchor, see column.kind above.
     readonly property int kindBaseWidth: 120
     // The name's floor, in the character unit the fixed columns are already written in. Twenty
@@ -126,8 +145,23 @@ Singleton {
     // slot is 46 at base-size 14, and the token wins over the mock, see the icon-language spec.
     readonly property QtObject grid: QtObject {
         readonly property int iconSize: root.iconSize * 2
-        // Wide enough for a name of ordinary length under the mark; the view fits as many as this allows.
-        readonly property int minCellWidth: root.space(150)
+        // GridView.dc.html's own five-column reference viewport: 880 body less 2x40 board padding,
+        // 2x1 window hairline, 2x18 grid padding and 4x8 gap, over five tiles, is 146 at base-size 14.
+        readonly property int minCellWidth: root.space(125)
+    }
+
+    // The Settings board's anatomy, resolved at base-size 14: a border-box panel 560 wide whose two
+    // outer hairlines leave 558 inside, split into a 150 rail and a 408 pane. 480 and 350 are those
+    // two at the OEM's own 12 anchor, so the pair scales once and the rail is what is left over.
+    readonly property QtObject settings: QtObject {
+        readonly property int panelWidth: root.space(480)
+        readonly property int paneWidth: root.space(350)
+        readonly property int railWidth: root.settings.panelWidth - root.settings.paneWidth
+                                         - 2 * root.spacing.hairline
+        // A row's continuation line, its hint and the Display ruler, indents 52 on five settings boards; those are resolved pixels at base-size 14, whose bodySmall is 13, so space() would scale them twice.
+        readonly property int indent: Math.round(52 * root.font.bodySmall / 13)
+        // Settings.dc.html insets the rail column by 10 above its first row and below its last, on that same board.
+        readonly property int railPaddingY: Math.round(10 * root.font.bodySmall / 13)
     }
 
     readonly property QtObject preview: QtObject {
@@ -139,7 +173,8 @@ Singleton {
     // module ViewState). ui/Header.qml and ui/Row.qml each call this with their own width, which
     // anchoring keeps equal, so the header and the rows below it cannot disagree about which
     // columns exist.
-    function columns(width, hidden) {
+    // dateWidth lets the picker afford the date at column.pickerDate, the width it actually draws.
+    function columns(width, hidden, dateWidth) {
         return Columns.set(width, {
             rowPaddingX: root.spacing.rowPaddingX,
             gap: root.spacing.gap,
@@ -147,19 +182,19 @@ Singleton {
             nameMin: root.column.nameMin,
             mode: root.column.mode,
             size: root.column.size,
-            date: root.column.date,
+            date: dateWidth === undefined ? root.column.date : dateWidth,
             kind: root.column.kind
         }, hidden);
     }
 
     // The same set as one string, which is what the seam in ui/Ipc.qml compares across the two.
-    function columnNames(width, hidden) {
-        return Columns.names(root.columns(width, hidden));
+    function columnNames(width, hidden, dateWidth) {
+        return Columns.names(root.columns(width, hidden, dateWidth));
     }
 
-    // Five callers: ConvertDialog, KeymapSheet, NetworkDialog, NetworkForm, TransferCard; every other spacing token above is direct.
+    // Five callers plus the grid and settings tokens above: ConvertDialog, KeymapSheet, NetworkDialog, NetworkForm, TransferCard; every other spacing token is direct.
     function space(px) {
-        return Math.round(Style.space(px) * ViewState.uiScale);
+        return Math.round(Style.space(px) * root.sizeRatio);
     }
 
     // The metrics contract as the app resolves it, one key=value per line in the Blueprint board's
@@ -168,7 +203,7 @@ Singleton {
     function tokens() {
         var t = {
             family: Style.font.resolvedFamily,
-            baseSize: Style.font.baseSize,
+            baseSize: root.baseSize,
             bodySmall: root.font.bodySmall,
             caption: root.font.caption,
             lineBoxRatio: root.lineBoxRatio,
@@ -189,12 +224,18 @@ Singleton {
             columnMode: root.column.mode,
             columnSize: root.column.size,
             columnDate: root.column.date,
+            columnPickerDate: root.column.pickerDate,
             columnKind: root.column.kind,
             menuWidth: root.menuWidth,
             cornerRadius: Style.cornerRadius,
             previewFraction: root.preview.fraction,
             gridIconSize: root.grid.iconSize,
-            gridMinCellWidth: root.grid.minCellWidth
+            gridMinCellWidth: root.grid.minCellWidth,
+            settingsPanelWidth: root.settings.panelWidth,
+            settingsRailWidth: root.settings.railWidth,
+            settingsPaneWidth: root.settings.paneWidth,
+            settingsIndent: root.settings.indent,
+            settingsRailPaddingY: root.settings.railPaddingY
         };
         var lines = [];
         for (var key in t)
@@ -206,8 +247,7 @@ Singleton {
     function applyColors(body) {
         var found = Palette.parse(body);
         var bg = Palette.pick(found, ["background"], root.fallbackColor.background);
-        var surface = Palette.pick(found, ["dark_background", "selection"], root.fallbackColor.surface);
-        // corner: the alacritty-derived colors.toml emits neither background ladder key, so selection is third.
+        var surface = Palette.pick(found, Palette.SURFACE_KEYS, root.fallbackColor.surface);
         root.color.surface = surface;
         // Omarchy palettes are not authored to AA. Flea keeps the hex system and walks L until 4.5:1.
         root.color.muted = Contrast.ensureRatio(
@@ -220,6 +260,19 @@ Singleton {
         // A body that parsed to nothing left every role on its fallback, so the flag says so rather
         // than reporting that the read happened: text() returns "" for a file that is not there.
         root.ready = Palette.isPalette(found);
+    }
+
+    // Sample input: [{"id":0,"name":"DP-1","width":2560,"height":1440,"scale":1.00,"focused":true}]
+    function applyMonitorScale(body) {
+        try {
+            var monitors = JSON.parse(body);
+            for (var i = 0; i < monitors.length; i++) {
+                if (monitors[i].focused === true)
+                    root.monitorScale = monitors[i].scale;
+            }
+        } catch (e) {
+            // hyprctl unreachable, or a shape this build does not know: the row keeps saying so.
+        }
     }
 
     // Sample input: {"option": "animations:enabled", "bool": false, "set": true }
@@ -270,15 +323,31 @@ Singleton {
         }
     }
 
-    // Flea agrees with the compositor rather than carrying its own switch, the rule the corner
-    // radius already follows; FLEA_REDUCED_MOTION is the test override and skips the ask.
+    // Read once, not watched: the Display section reports the compositor's scale and Flea owns no
+    // control that could change it, so there is nothing here for a poll to keep in step with.
     Process {
-        id: motionQuery
-        running: Quickshell.env("FLEA_REDUCED_MOTION") === ""
-        command: ["hyprctl", "getoption", "animations:enabled", "-j"]
+        running: true
+        command: ["hyprctl", "monitors", "-j"]
         stdout: StdioCollector {
             waitForEnd: true
-            onStreamFinished: root.applyReducedMotion(text())
+            // text is a property on this type and not a function, which every other collector in
+            // this tree already reads that way; calling it throws and the row stays unanswered.
+            onStreamFinished: root.applyMonitorScale(text)
+        }
+    }
+
+    // Flea agrees with the compositor rather than carrying its own switch, the rule the corner
+    // radius already follows; FLEA_REDUCED_MOTION is the test override and skips the ask.
+    // Two forms below look like mistakes and are not: Quickshell.env returns null and not "" for
+    // an unset variable, so the guard is a truthiness test, and StdioCollector text is a property
+    // whose call throws. The query is Commons/Style.qml's own decoration:rounding shape.
+    Process {
+        id: motionQuery
+        running: !Quickshell.env("FLEA_REDUCED_MOTION")
+        command: ["hyprctl", "-j", "getoption", "animations:enabled"]
+        stdout: StdioCollector {
+            waitForEnd: true
+            onStreamFinished: root.applyReducedMotion(text)
         }
     }
 }

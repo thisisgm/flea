@@ -56,6 +56,20 @@ check "a rows object follows list even when first is 0" "rows" "$(echo "$out" | 
 check "that rows object is empty" "0" "$(echo "$out" | sed -n 2p | grep -o '"n":"' | wc -l | tr -d ' ')"
 check "directories sort first" "sub" "$(echo "$out" | sed -n 3p | grep -oE '"n":"[^"]+"' | head -1 | cut -d'"' -f4)"
 
+# listpaths: the picker's Recent, a listing built from the client's own list; see docs/protocol.md "listpaths".
+# The order is the client's, a path that is gone is dropped, and every name is relative to the base "/".
+out=$(printf '{"c":"listpaths","paths":["%s/three.txt","%s/gone.txt","%s/sub","%s/empty.txt"],"first":10}\n{"c":"quit"}\n' \
+  "$D" "$D" "$D" "$D" | $BIN --backend)
+check "listpaths drops the path that is gone" "3" "$(echo "$out" | head -1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "listpaths is followed by rows" "rows" "$(echo "$out" | sed -n 2p | grep -oE '"t":"[a-z]+"' | head -1 | cut -d'"' -f4)"
+check "listpaths keeps the client's order and never sorts" "${D#/}/three.txt" \
+  "$(echo "$out" | sed -n 2p | grep -oE '"n":"[^"]+"' | head -1 | cut -d'"' -f4)"
+check "a directory in the list is still marked one" "1" "$(echo "$out" | sed -n 2p | grep -c "\"n\":\"${D#/}/sub\",\"d\":true")"
+check "listpaths reports no sort pass" "0.000" "$(echo "$out" | head -1 | grep -oE '"sort":[0-9.]+' | cut -d: -f2)"
+# A relative path and the root itself are refused: this list is read out of a file every application writes.
+out=$(printf '{"c":"listpaths","paths":["etc/hostname","/",""],"first":10}\n{"c":"quit"}\n' | $BIN --backend)
+check "listpaths refuses a path that is not absolute" "0" "$(echo "$out" | head -1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+
 # Task 11: rows carries a per-response Kind dictionary, read against the box's real freedesktop tables, see docs/protocol.md "rows".
 kind_out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D" | $BIN --backend)
 kind_row=$(echo "$kind_out" | sed -n 2p)
@@ -84,7 +98,8 @@ check "and returns no rows" "0" "$(echo "$out" | sed -n 3p | grep -o '"n":"' | w
 
 out=$(printf '{"c":"list","path":"/definitely/not/here","first":1}\n{"c":"quit"}\n' | $BIN --backend)
 check "a missing path is an error message" "error" "$(echo "$out" | head -1 | grep -oE '"t":"[a-z]+"' | cut -d'"' -f4)"
-check "the error names the operation" "scan" "$(echo "$out" | head -1 | grep -oE '"where":"[a-z]+"' | cut -d'"' -f4)"
+# rename-kept carries a hyphen, so a [a-z]+ class matches no part of that line and yields nothing.
+check "the error names the operation" "scan" "$(echo "$out" | head -1 | grep -oE '"where":"[a-z-]+"' | cut -d'"' -f4)"
 
 printf '{"c":"list","path":"/definitely/not/here","first":1}\n{"c":"quit"}\n' | $BIN --backend >/dev/null
 check "the backend exits 0 even after an error" "0" "$?"
@@ -112,6 +127,16 @@ ln -s "$SD/nowhere" "$SD/brokenlink"
 out=$(printf '{"c":"list","path":"%s","first":5}\n{"c":"quit"}\n' "$SD" | $BIN --backend)
 check "a broken symlink is listed, not dropped" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"brokenlink"')"
 check "a symlink to a directory reports d false" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"linkdir","d":false')"
+# The target the row list draws beside the name, verbatim: absolute stays absolute, relative stays
+# relative, and a broken link still names where it points. See docs/protocol.md "rows".
+ln -s ../elsewhere "$SD/relativelink"
+printf 'abc' > "$SD/plain.txt"
+out=$(printf '{"c":"list","path":"%s","first":9}\n{"c":"quit"}\n' "$SD" | $BIN --backend)
+check "a symlink carries its target" "1" "$(echo "$out" | sed -n 2p | grep -c "\"n\":\"linkdir\",\"d\":false,[^}]*\"l\":\"$SD/realdir\"")"
+check "a broken symlink still names where it points" "1" "$(echo "$out" | sed -n 2p | grep -c "\"n\":\"brokenlink\",[^}]*\"l\":\"$SD/nowhere\"")"
+check "a relative target stays relative" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"relativelink",[^}]*"l":"../elsewhere"')"
+check "a plain file carries no target at all" "0" "$(echo "$out" | sed -n 2p | grep -c '"n":"plain.txt",[^}]*"l":')"
+check "and exactly the three links carry one" "3" "$(echo "$out" | sed -n 2p | grep -o '"l":"' | wc -l | tr -d ' ')"
 sandbox_remove "$SD_SB"
 
 # Directories first is not optional, so the fixture that proves it has to be one the two orders can

@@ -1,5 +1,7 @@
 .pragma library
 
+.import "Format.js" as Format
+
 // The backend sends a freedesktop icon name per row; this is the only place Flea maps one to a mark.
 // Counts re-derived 2026-08-31 from /usr/share/mime/generic-icons on this box, see AGENTS.md "Icons in the row":
 // x-office-document 106, package-x-generic 89, application-x-executable 57, text-x-generic 46,
@@ -31,6 +33,15 @@ var FALLBACK = "file"
 function glyphFor(iconName) {
     var g = GLYPHS[String(iconName)]
     return g ? g : FALLBACK
+}
+
+// A row's mark. The backend resolves a symlink's icon to its target's, so a link to a directory
+// arrives as "folder"; every board draws such a row with the link mark instead, so the mode decides
+// here and the icon name only answers for what the row really is.
+function glyphForRow(iconName, mode) {
+    if (Format.isSymlink(mode))
+        return "symlink"
+    return glyphFor(iconName)
 }
 
 // The sidebar's own set, keyed on the favourite's label (Places.js leaf() or bookmark label),
@@ -76,6 +87,9 @@ var PATHS = {
     "server": "M2 2h20v8H2z M2 14h20v8H2z M6 6L6.01 6 M6 18L6.01 18",
     // The Network group's add mark, replacing a Text "+" the operator read as a Christian cross.
     "plus": "M5 12h14 M12 5v14",
+    // The picker rail's Recent mark, lucide rotate-ccw, the one SendPicker.html itself draws; the
+    // circle is a real curve and stays, and the arrow head is already square on lucide's own grid.
+    "history": "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5",
     // Lucide's hard-drive with its four baked 2 unit corner arcs cut square, which lands the body on
     // (6,4) (18,4) (22,12) (22,20) (2,20) (2,12); the divider and the two LED dots are lucide's own.
     "drive": "M6 4h12l4 8v8H2v-8z M2 12h20 M6 16L6.01 16 M10 16L10.01 16",
@@ -128,7 +142,17 @@ var PATHS = {
     "minus": "M5 12h14",
     "maximize": "M8 3H3v5 M16 3h5v5 M8 21H3v-5 M16 21h5v-5",
     "x": "M6 6l12 12 M18 6 6 18",
-    "sliders": "M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M2 14h4 M10 8h4 M18 16h4"
+    "sliders": "M4 21v-7 M4 10V3 M12 21v-9 M12 8V3 M20 21v-5 M20 12V3 M2 14h4 M10 8h4 M18 16h4",
+    // The background menu's Sort by row, Menus.html's own geometry: three rules shortening to the
+    // right of a bare down arrow. IconSets.html names this mark when it caps the corner radius.
+    "sort": "M11 5h10 M11 9h7 M11 13h4 M7 5v14 M7 19l-3-3 M7 19l3-3",
+    // The three basic clipboard rows the context menu grew with its visibility settings. Lucide's
+    // scissors and clipboard both carry arcs; these are the cut's own square handles and square tray.
+    "scissors": "M5 3l14 14 M19 3L5 17 M2 17h5v5H2z M17 17h5v5h-5z",
+    "copy": "M9 8h12v13H9z M4 16V3h13",
+    "clipboard": "M9 2h6v4H9z M6 4H3v18h18V4h-3 M8 12h8 M8 16h5",
+    // The Keys section's rail mark: the key caps are the same zero-length-line dots the list mark uses.
+    "keyboard": "M2 6h20v12H2z M6 10L6.01 10 M10 10L10.01 10 M14 10L14.01 10 M18 10L18.01 10 M8 14h8"
 }
 
 function pathFor(name) {

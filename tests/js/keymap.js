@@ -13,6 +13,17 @@ function run(check) {
     check("shift G goes last", Keymap.lookup(Qt.Key_G, "G", shift), "cursorLast")
     check("ctrl d is half a page down", Keymap.lookup(Qt.Key_D, "d", ctrl), "pageDown")
     check("ctrl u is half a page up", Keymap.lookup(Qt.Key_U, "u", ctrl), "pageUp")
+
+    // Issue 28: the full-size keyboard's own four, reusing the actions the vim keys already carry so
+    // no new name reaches tools/flea-acceptance's checklist and no second control does the same job.
+    check("home goes to the first row", Keymap.lookup(Qt.Key_Home, "", none), "cursorFirst")
+    check("end goes to the last row", Keymap.lookup(Qt.Key_End, "", none), "cursorLast")
+    check("page down is the page key, not only the chord", Keymap.lookup(Qt.Key_PageDown, "", none), "pageDown")
+    check("page up is the page key, not only the chord", Keymap.lookup(Qt.Key_PageUp, "", none), "pageUp")
+    // The chord pair keeps its own half-page meaning: the page keys joined it rather than replacing it.
+    check("ctrl d still pages, so the page key did not take the chord's action away",
+          Keymap.lookup(Qt.Key_D, "d", ctrl), "pageDown")
+    check("ctrl u still pages too", Keymap.lookup(Qt.Key_U, "u", ctrl), "pageUp")
     check("enter opens", Keymap.lookup(Qt.Key_Return, "", none), "open")
     check("keypad enter opens", Keymap.lookup(Qt.Key_Enter, "", none), "open")
     check("backspace goes up a directory", Keymap.lookup(Qt.Key_Backspace, "", none), "parent")
@@ -54,6 +65,23 @@ function run(check) {
     check("ctrl z undoes", Keymap.lookup(Qt.Key_Z, "\u001a", ctrl), "undo")
     check("ctrl f searches", Keymap.lookup(Qt.Key_F, "\u0006", ctrl), "search")
     check("ctrl e ejects", Keymap.lookup(Qt.Key_E, "\u0005", ctrl), "eject")
+    check("ctrl t opens a terminal here", Keymap.lookup(Qt.Key_T, "\u0014", ctrl), "openTerminal")
+
+    // ui/MenuRow.qml's hint slot. Menus.html draws exactly these seven beside the listing menu's
+    // rows and leaves every other row blank, Duplicate included.
+    check("the listing menu's own hints",
+          ["open", "cut", "copy", "paste", "rename", "trash", "toggleHidden"]
+              .map(Keymap.hintFor).join(" "),
+          "enter x y p r d .")
+    check("an action with no key at all leaves the slot blank", Keymap.hintFor("duplicate"), "")
+    check("and so does one reachable only by a chord", Keymap.hintFor("newFolder"), "")
+    check("Move to Trash advertises the key that arms it, not the Delete beside it",
+          Keymap.hintFor("trash"), "d")
+    check("a printable character outranks the key code bound to the same action",
+          Keymap.hintFor("rename"), "r")
+    check("a row with no action at all is blank", Keymap.hintFor(undefined), "")
+    check("every hint names a key something is really bound to",
+          Object.keys(Keymap.HINTS).filter(function (a) { return Keymap.HINTS[a].length === 0 }).length, 0)
     check("ctrl k connects to a server", Keymap.lookup(Qt.Key_K, "\u000b", ctrl), "addNetwork")
     check("ctrl delete trashes", Keymap.lookup(Qt.Key_Delete, "", ctrl), "trash")
     check("ctrl up goes to the parent", Keymap.lookup(Qt.Key_Up, "", ctrl), "parent")
@@ -77,15 +105,21 @@ function run(check) {
     check("shift plus zooms in", Keymap.lookup(Qt.Key_Plus, "+", shift), "zoomIn")
     check("e expands", Keymap.lookup(Qt.Key_E, "e", none), "expand")
 
+    // The Settings board's own two doors onto the panel, and both are in the shared tables so the
+    // key answers under either preset.
+    check("comma opens settings", Keymap.lookup(Qt.Key_Comma, ",", none), "settings")
+    check("and so does ctrl comma, which is how both presets spell it",
+          Keymap.lookup(Qt.Key_Comma, "", ctrl), "settings")
+
     check("an unbound key is empty", Keymap.lookup(Qt.Key_Q, "q", none), "")
     check("ctrl j is not plain j", Keymap.lookup(Qt.Key_J, "j", ctrl), "")
 
     // Issue 9's pair. Equal and Underscore are the same chords on an unshifted key, bound so the
     // hand gets the scale whichever way the layout reports the keypress.
-    check("ctrl shift plus scales up", Keymap.lookup(Qt.Key_Plus, "", ctrl | shift), "scaleUp")
-    check("ctrl shift equal is the same chord", Keymap.lookup(Qt.Key_Equal, "", ctrl | shift), "scaleUp")
-    check("ctrl shift minus scales down", Keymap.lookup(Qt.Key_Minus, "", ctrl | shift), "scaleDown")
-    check("ctrl shift zero resets", Keymap.lookup(Qt.Key_0, "", ctrl | shift), "scaleReset")
+    check("ctrl shift plus grows the text", Keymap.lookup(Qt.Key_Plus, "", ctrl | shift), "textSizeUp")
+    check("ctrl shift equal is the same chord", Keymap.lookup(Qt.Key_Equal, "", ctrl | shift), "textSizeUp")
+    check("ctrl shift minus shrinks it", Keymap.lookup(Qt.Key_Minus, "", ctrl | shift), "textSizeDown")
+    check("ctrl shift zero follows Omarchy again", Keymap.lookup(Qt.Key_0, "", ctrl | shift), "textSizeReset")
     // Bare minus is the PDF zoom and must not have been taken by the chord above.
     check("bare minus still zooms a PDF out", Keymap.lookup(Qt.Key_Minus, "-", none), "zoomOut")
 
@@ -104,26 +138,79 @@ function run(check) {
           Keymap.SHEET.map(sheetAction).join("|"),
           Keymap.SHEET.map(function (row) { return row.action }).join("|"))
     check("the sheet is not empty, so the check above has a denominator",
-          Keymap.SHEET.length, 26)
+          Keymap.SHEET.length, 30)
     // A chord shares the row of the key it doubles, so every caret token must resolve to that row's
     // own action, or the sheet advertises a chord bound to something else.
     check("every chord the sheet draws is bound to the action of its own row",
           Keymap.SHEET.map(chordActions).join("|"),
           Keymap.SHEET.map(function (row) { return chordTokens(row).map(function () { return row.action }).join("+") }).join("|"))
     check("and the sheet draws chords at all, so that check has a denominator",
-          Keymap.SHEET.filter(function (row) { return chordTokens(row).length > 0 }).length, 10)
+          Keymap.SHEET.filter(function (row) { return chordTokens(row).length > 0 }).length, 11)
     check("slash filters, and the sheet now draws the row for it",
           Keymap.SHEET.filter(function (r) { return r.keys === "/" }).length, 1)
     check("and the sheet draws m, so eject and unmount are not mouse-only affordances",
           Keymap.SHEET.filter(function (r) { return r.keys === "m" }).length, 1)
     check("and the sheet draws l, so browse-forward is discoverable",
           Keymap.SHEET.filter(function (r) { return r.keys === "l" && r.action === "pageForward" }).length, 1)
+    // Issue 30 asked for a way to search the folder the pane is in. It is tab on the query line, so
+    // the sheet has to draw tab or the only control the issue got is one nobody is told about.
+    check("and the sheet draws tab, so the search scope is not an undocumented key",
+          Keymap.SHEET.filter(function (r) { return r.keys === "tab" }).length, 1)
+
+    runSheetStability(check)
+    runPreset(check)
+}
+
+// Every cap the sheet draws is in the shared tables, never in a preset overlay: a sheet advertising
+// a Mac-only chord would be wrong for half its readers the moment the Keys toggle moved. Asked as
+// "does the whole sheet resolve to the same actions under both presets", which is the invariant.
+function runSheetStability(check) {
+    Keymap.setPreset("mac")
+    var keysUnderMac = Keymap.SHEET.map(sheetAction).join("|")
+    var chordsUnderMac = Keymap.SHEET.map(chordActions).join("|")
+    Keymap.setPreset("windows")
+    check("no cap the sheet draws depends on the selected preset",
+          Keymap.SHEET.map(sheetAction).join("|"), keysUnderMac)
+    check("and no chord it draws does either",
+          Keymap.SHEET.map(chordActions).join("|"), chordsUnderMac)
+    Keymap.setPreset("mac")
+}
+
+// The Mac/Windows toggle. lookup() consults the overlay first, so the same call answers differently
+// with the preset moved, and the default is mac because the shared tables were written as Finder's.
+function runPreset(check) {
+    var ctrl = Qt.ControlModifier
+    var shift = Qt.ShiftModifier
+    check("the default preset is mac", Keymap.preset, "mac")
+    check("so Finder's Cmd+1 read as Ctrl+1 picks the list view",
+          Keymap.lookup(Qt.Key_1, "1", ctrl), "viewList")
+    check("and Explorer's Ctrl+H is not bound under it",
+          Keymap.lookup(Qt.Key_H, "\u0008", ctrl), "")
+
+    Keymap.setPreset("windows")
+    check("the Windows preset binds Ctrl+H to the hidden files toggle",
+          Keymap.lookup(Qt.Key_H, "\u0008", ctrl), "toggleHidden")
+    check("and Explorer's own layout chords to the three views",
+          [Keymap.lookup(Qt.Key_1, "", ctrl | shift), Keymap.lookup(Qt.Key_2, "", ctrl | shift),
+           Keymap.lookup(Qt.Key_3, "", ctrl | shift)].join("|"), "viewList|viewColumns|viewGrid")
+    check("Finder's Ctrl+1 goes quiet under it, which is what makes this a preset and not an addition",
+          Keymap.lookup(Qt.Key_1, "1", ctrl), "")
+    check("and so does Connect to Server", Keymap.lookup(Qt.Key_K, "\u000b", ctrl), "")
+    // Everything the two platforms agree on stays in the shared tables and answers under both.
+    check("the shared chords are untouched by the preset",
+          [Keymap.lookup(Qt.Key_C, "\u0003", ctrl), Keymap.lookup(Qt.Key_F2, "", Qt.NoModifier),
+           Keymap.lookup(Qt.Key_Backspace, "", Qt.NoModifier)].join("|"), "copy|rename|parent")
+
+    Keymap.setPreset("marzipan")
+    check("a preset name this build does not have falls back to mac rather than an empty map",
+          Keymap.preset + " " + Keymap.lookup(Qt.Key_1, "1", ctrl), "mac viewList")
+    Keymap.setPreset("mac")
 }
 
 // The three caps that name a key rather than printing one; everything else on the sheet is the
 // character itself, a two-key cap like "j k" is checked on the first of the pair, and a doubled
 // character like "dd" is one key pressed twice, so it resolves as that character.
-var NAMED = { "enter": Qt.Key_Return, "space": Qt.Key_Space, "esc": Qt.Key_Escape }
+var NAMED = { "enter": Qt.Key_Return, "space": Qt.Key_Space, "esc": Qt.Key_Escape, "tab": Qt.Key_Tab }
 // The one shifted character a chord prints; a capital letter after the caret is the other case.
 var SHIFTED = { ">": Qt.Key_Greater, "+": Qt.Key_Plus, "-": Qt.Key_Minus }
 

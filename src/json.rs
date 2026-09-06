@@ -1,4 +1,4 @@
-// The whole of this tree's JSON: read one named field out of one line, and escape one string into one.
+// The wire's JSON: read one named field out of one line, and escape one string into one.
 
 // The short escapes are matched first, so this is the boundary for all the rest.
 const FIRST_PRINTABLE: u32 = 0x20;

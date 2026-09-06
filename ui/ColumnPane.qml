@@ -32,6 +32,9 @@ Item {
     signal picked(int index, int tapCount, int modifiers)
     // The row under a right click. Only the column carrying the pane's own listing answers it, because a peeked column's rows are another directory's and every menu action addresses the pane's cursor.
     signal menuRequested(int index, var eventPoint)
+    // A right click that landed on no row, which only the pane's own column can answer for the same
+    // reason: the background menu acts on the directory being shown and a peek is not that directory.
+    signal backgroundMenuRequested(var eventPoint)
 
     // The listArea contract ui/ColumnsArea.qml drives the middle column through; the view is private.
     function positionViewAtIndex(index, mode) { view.positionViewAtIndex(index, mode) }
@@ -45,6 +48,17 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         reuseItems: true
+
+        // Empty space below the last row, the same rule ui/List.qml carries; pane is what says this
+        // column draws the pane's own listing rather than a peek.
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            onTapped: function (eventPoint) {
+                if (root.pane !== null
+                        && view.indexAt(view.contentX + eventPoint.position.x, view.contentY + eventPoint.position.y) < 0)
+                    root.backgroundMenuRequested(eventPoint)
+            }
+        }
 
         delegate: Flea.ColumnRow {
             required property int index
@@ -94,7 +108,6 @@ Item {
         visible: root.drawsEmpty && root.rows.length === 0 && root.lockedMode < 0
         caption: emptyTile.messages[0]
         mark: "folder"
-        hint: "Press Ctrl+Shift+N for a new folder."
     }
 
     // The cursor can move off screen through the keyboard, so the column follows it.

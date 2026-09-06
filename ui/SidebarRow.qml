@@ -65,11 +65,13 @@ Item {
         sourceComponent: root.modelData.kind === "dropbox" ? dropboxMark : glyphMark
     }
 
+    // ThemeRoles.html gives every rail label and glyph the foreground role, selected rows included:
+    // the cursor reads through the fill and the accent edge above, never by dimming the rows it is not on.
     Component {
         id: glyphMark
         Glyph {
             name: root.modelData.glyph
-            color: root.cursor ? Theme.color.foreground : Theme.color.muted
+            color: Theme.color.foreground
         }
     }
 
@@ -78,7 +80,7 @@ Item {
         id: dropboxMark
         DropboxMark {
             iconSize: Theme.railIconSize
-            color: root.cursor ? Theme.color.foreground : Theme.color.muted
+            color: Theme.color.foreground
         }
     }
 
@@ -90,7 +92,7 @@ Item {
         anchors.rightMargin: Style.spacing.rowGap
         anchors.verticalCenter: parent.verticalCenter
         text: root.modelData.label
-        color: root.cursor ? Theme.color.foreground : Theme.color.muted
+        color: Theme.color.foreground
         font.family: Theme.font.family
         font.pixelSize: Theme.font.bodySmall
         elide: Text.ElideRight
@@ -117,6 +119,8 @@ Item {
     // What the editor holds right now, for tests through ui/Ipc.qml's railRenameEditorText.
     readonly property string editorText: renameField.current
     readonly property bool editorShown: renameField.visible
+    // The rail's real trailing indicator slot, so ui/Ipc.qml measures this dot instead of recomputing it.
+    readonly property Item indicatorSlot: dot
 
     // Every right-aligned mark in the rail is centred in a caption-wide slot, so this dot and the
     // NETWORK header's "+" share one centre line whatever their ink does: align by slot, never by ink.
@@ -126,7 +130,8 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: Style.spacing.rowPaddingX
         anchors.verticalCenter: parent.verticalCenter
-        width: Theme.font.caption
+        // A row with no badge gives the slot back to its label, which is how the canvas fits "minipc . nvme0n1".
+        width: root.showsDot ? Theme.font.caption : 0
         height: Theme.font.caption
 
         // Green once gio mount -l lists it, muted at half strength while it is only a bookmark waiting

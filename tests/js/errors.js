@@ -21,6 +21,14 @@ function run(check) {
     check("a read failure says the backend stopped",
           Errors.sentence("read", "EOF"),
           "The backend stopped responding; reopen Flea and try again.")
+    // The state file's own refusal: the change is still on screen, so the sentence says what did not last.
+    check("a refused ui.json write says the setting did not last",
+          Errors.sentence("state", ""),
+          "That setting could not be saved.")
+    // And the other way round: a ui.json main() could not read is left alone, so nothing in it is used.
+    check("an unreadable ui.json says the defaults are what is on screen",
+          Errors.sentence("statefile", ""),
+          "Your saved settings could not be read, so these are the defaults.")
     check("an unknown origin falls back rather than leaking it",
           Errors.sentence("whatever", "/home/gm/secret/path"),
           "That action could not be completed; try again.")
@@ -45,6 +53,17 @@ function run(check) {
     check("and any other rename failure stays generic rather than leaking errno",
           Errors.sentence("rename", "Permission denied (os error 13)"),
           "That file could not be renamed.")
+
+    // The sentence promises the copy, warns the other name may be incomplete, and names no direction.
+    check("a rename that kept its copy says so, with no path and no errno",
+          Errors.sentence("rename-kept", "Permission denied (os error 13)"),
+          "The copy is complete; the name it came from could not be fully removed and may now be incomplete, so check it before deleting anything.")
+    check("that sentence never leaks the errno",
+          Errors.sentence("rename-kept", "Permission denied (os error 13)").indexOf("os error") < 0,
+          true)
+    check("and it never tells an operator who pressed undo that something was renamed",
+          Errors.sentence("rename-kept", "Permission denied (os error 13)").indexOf("Renamed") < 0,
+          true)
     check("a duplicate failure names the operation",
           Errors.sentence("duplicate", "every copy name is taken"),
           "That file could not be duplicated.")
@@ -124,4 +143,17 @@ function run(check) {
           "That directory could not be read; check the path and try again.")
     check("nothing to say stays nothing, so the surface hides rather than draws a bare mark",
           Errors.paneLine("locked", null, 0), "")
+
+    // The credentialed mount's own sentences, lifted out of ui/NetworkMounts.qml in the 0.1.4
+    // composition: the two codes "timeout" and the shell own, then the two the server owns.
+    check("the helper's own deadline names the host, not the credential",
+          Errors.connectFailure(124, "smb://host/share"), "Connect failed: host did not respond")
+    check("a helper that could not be run at all says so",
+          Errors.connectFailure(127, "smb://host/share"), "Connect failed: authentication helper is unavailable")
+    check("a scheme that negotiates a handshake reads the refusal as one",
+          Errors.connectFailure(1, "davs://host/dav"), "Connect failed: host refused the TLS handshake")
+    check("and every other scheme reads it as the credential",
+          Errors.connectFailure(1, "smb://host/share"), "Connect failed: authentication was refused")
+    check("no uri at all answers rather than throwing",
+          Errors.connectFailure(1, ""), "Connect failed: authentication was refused")
 }

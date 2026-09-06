@@ -21,29 +21,43 @@ directory and hands the window only what fits on screen.
 
 ## Install
 
-Flea is for Omarchy. `omarchy` and `quickshell` are hard dependencies, so it will not install on a
-plain Arch box.
+Flea is built for Omarchy. Preferred commands: `omarchy pkg add flea`, then `omarchy update`; AUR
+path only for `flea-git`.
 
 ```bash
-omarchy pkg aur add flea && flea --default
+omarchy pkg add flea
 ```
 
-That is the whole install, and the last command is the only one you might leave out. Flea is on the
-AUR, so `omarchy pkg aur add` builds and installs it the way it installs anything else, and
-`omarchy update` keeps it current from then on. `flea --default` makes Flea the default file
-manager, the way `omarchy default browser` makes a browser the default: it becomes the handler for
-`inode/directory`, and Omarchy's two file-manager keys, `SUPER + SHIFT + F` and
-`SUPER + ALT + SHIFT + F`, open it instead of Nautilus. It prints what it replaced, and
-`flea --default off` puts both back.
+To make Flea the default file manager:
 
-`sudo pacman -Rns flea` takes the package off again, and pacman's own file list is what makes that
-removal provable. `flea --default` is the one thing pacman does not own, because it is your
-preference and not a file of the package's: run `flea --default off` first, or see
-[`docs/install.md`](docs/install.md) for the two lines it would otherwise leave behind.
+```bash
+flea --default
+```
 
-`flea-git` is the same package built from `main` rather than from the last release, if you would
-rather track it. Building from a clone still works too, and is what the repository's own `PKGBUILD`
-is for: `git clone https://github.com/thisisgm/flea.git && cd flea && makepkg -si`.
+This sets Flea as the `inode/directory` handler, makes Omarchy's two file-manager keys,
+`SUPER + SHIFT + F` and `SUPER + ALT + SHIFT + F`, open it instead of Nautilus, and claims the file
+chooser described below. Run `flea --default off` before `omarchy pkg drop flea` to restore the
+previous handlers and remove it.
+
+To make Flea the file chooser every application opens, the dialog behind `omarchy tailscale send`
+and every Flatpak's Open and Save:
+
+```bash
+flea --picker
+systemctl --user restart xdg-desktop-portal
+```
+
+Flea implements `org.freedesktop.impl.portal.FileChooser`, so this replaces the GTK dialog for every
+portal caller on the box at once. It writes one interface key to
+`~/.config/xdg-desktop-portal/portals.conf` and no default, so screen sharing, screenshots and every
+other portal keep the backend they already had. It also adds one Hyprland rule that gives the chooser
+the same floating treatment Omarchy already gives the GTK one. `flea --picker off` puts both back.
+
+To track `main` instead of releases, use the AUR package:
+
+```bash
+omarchy pkg aur add flea-git
+```
 
 Four optional packages each unlock one feature and nothing else: `libarchive` for archive listing
 and extraction, `7zip` for `.7z` archives, `imagemagick` for image conversion, and `tailscale` for
@@ -58,12 +72,8 @@ and how to undo it by hand, and how the package proves itself.
 omarchy update
 ```
 
-Nothing Flea-specific to remember. `omarchy update` upgrades AUR packages on every run, so Flea
-comes up with the rest of the system, and your `flea --default` choice survives because that is a
-preference and not a file of the package's.
-
-The AUR packages are maintained by [@taxin-404](https://aur.archlinux.org/account/taxin-404), not by
-this repository.
+Flea updates with Omarchy. Your `flea --default` choice survives because it is a preference, not a
+package file.
 
 ## Measured against the field
 
@@ -322,8 +332,8 @@ the name is one typed word away.
   is refused rather than run unconfined.
 - **File operations with an undo journal.** Copy, cut, paste, trash, rename, duplicate,
   compress, extract and convert, each reversible with `z`.
-- **Network and cloud in the rail.** SMB and NFS mounts through `gio`, Taildrop to a peer,
-  and Dropbox as a first-class destination. Local disks and removable volumes group below them
+- **Network and cloud in the rail.** SMB, SFTP, FTPS, WebDAV and NFS mounts through `gio`,
+  Taildrop to a peer, and Dropbox as a first-class destination. Local disks and removable volumes group below them
   under DEVICES, which the screenshots here crop away rather than retouch: that row is labelled
   with the machine's own hostname.
 - **A path bar and directory tabs.** `:` or `Ctrl+L` types a path, with Tab completion over the
@@ -331,9 +341,47 @@ the name is one typed word away.
   one window, and only one listing is ever live.
 - **Columns you choose.** Right click the column titles to hide Mode, Size, Date Modified or
   Kind; the choice outlives the window, and the pane's width still wins over a column it cannot
-  carry. `Ctrl+Shift+Plus` and `Minus` scale the whole interface, `Ctrl+Shift+0` puts it back.
+  carry. `Ctrl+Shift+Plus` and `Minus` walk Flea's text size along Omarchy's own stops,
+  `Ctrl+Shift+0` goes back to following the desktop, and the settings panel's Display section is
+  the same one setting.
+- **A settings panel** on `,` and on the toolbar's sliders button, with three working groups: a text
+  size that follows Omarchy or pins one of its stops; per-action context-menu visibility with one
+  tri-state master over the six basic actions; and a Mac/Windows keyboard preset over that one key
+  table. Nothing else is in it yet.
 - **It looks like Omarchy** because it reads the live palette, the same tokens the shell
   bar uses, and every mark is drawn in the Omarchy cut, which is its own section below.
+
+## Settings
+
+`,` from anywhere in the window, or the sliders button at the right end of the toolbar. Three
+sections, and only three, because a rail row onto a page with no working control is worse than no
+row:
+
+- **Display.** Text size follows Omarchy by default, and that is the whole of it until you switch
+  the row to Override, which pins one of Omarchy's own seven stops: 9, 10, 11, 12, 14, 16 or 20 px.
+  `Ctrl+Shift+Plus` and `Ctrl+Shift+Minus` walk the same stops and `Ctrl+Shift+0` goes back to
+  following, so the chord and the row are one setting and not two. Body text, captions, padding,
+  row height, icon slots and marks all derive from the size in force. The monitor scale and the
+  corner rounding are read-only beside it: Flea shows the compositor's values and never steps one.
+- **Menus.** Every action the context menu can build, switched on or off one at a time, with a
+  tri-state master over Cut, Copy, Paste, Duplicate, Rename and Move to Trash that reads the
+  enabled count, "5 of 6". Open and Show hidden files are listed but locked: a menu that cannot
+  open the row under the cursor is not a menu. A row that leaves takes its separator with it, and
+  the change lands on the menu's next open. Hiding a row never touches its key. Show keyboard hints
+  is the one row here that is not an action: off, which is how it ships, no menu prints the key
+  beside a row and an empty folder offers no tip; on, both appear. Every chord is bound either way.
+- **Keys.** Mac or Windows, over the one `keys.toml` table. Everything the two platforms agree on
+  is shared and answers under both; the preset carries only the chords where they differ, and it
+  rebinds in the window at once. Press `?` for the whole map.
+
+The choices live in `~/.local/state/flea/ui.json`, the one file Flea keeps for itself, beside the
+column set and everything else that outlives a window. The text size is stored as `{"mode":"system"}`
+while it follows Omarchy and `{"mode":16}` once it does not, which is a stop and never a free number.
+Every change goes through `flea --ui-state`, which takes a lock, checks the value and merges it, so a
+setting written here never overwrites one written somewhere else, and a change it could not save is
+reported in the status bar rather than lost quietly. A value this build does not recognise falls back
+on its own without disturbing the rest of the file, and deleting the file puts every section back on
+its default.
 
 ## The Omarchy cut
 
@@ -385,8 +433,8 @@ is one character per kind, upgrading to Nerd Font glyphs where the terminal has 
 - Rust to build the backend. This tree is built and tested against rustc/cargo 1.98.
 - `bubblewrap` for `bwrap` and `util-linux` for `prlimit`, both required for thumbnailing
   as described above. Everything else works without them.
-- `bsdtar` and optionally `7z` for archives, `gio` for network mounts. Each is probed at
-  startup and its absence removes only its own feature.
+- `bsdtar` and optionally `7z` for archives; missing archive helpers are detected at startup.
+  `gvfs`, `gvfs-smb`, `gvfs-dnssd` and `gvfs-nfs` provide the network mount backends.
 - Qt's PDF and Multimedia modules for the preview column, which ship with Qt 6 on this
   platform.
 
@@ -403,18 +451,19 @@ flea [path]                # terminal in a real terminal, a window everywhere el
 flea --gui [path]          # force the window
 flea --tui [path]          # force the terminal interface (not built yet)
 flea --select <uri|path>   # open the containing directory with that entry selected
-flea --default [off]       # become the desktop's default file manager, or stop being it
+flea --default [off]       # become the desktop's default file manager and chooser, or stop
 ```
 
 `--tui` and `--gui` are mutually exclusive. With neither given, `flea` opens the terminal
 interface only when both stdin and stdout are a real terminal, and opens the window
 otherwise, which is the branch a `.desktop` launcher takes since it has no controlling
-terminal. `--default` opens no window: it sets the `inode/directory` handler and Omarchy's
-two file-manager keys, and `off` undoes both, see
-[`docs/install.md`](docs/install.md). `--backend`, `--prewarm` and `--open` are the
+terminal. `--default` opens no window: it sets the `inode/directory` handler, Omarchy's two
+file-manager keys and the file chooser, and `off` undoes every one of them, see
+[`docs/install.md`](docs/install.md). `--backend`, `--prewarm`, `--open` and `--terminal` are the
 internal modes the UI and the benchmarks drive directly; `flea --open <path>` is what Enter
-on a file runs, and it hands the file to `xdg-open` and exits. See `AGENTS.md` for their
-contract.
+on a file runs, and it hands the file to `gio open` and waits for it, while
+`flea --terminal <dir>` is what the topbar's terminal button and `Ctrl+T` run, and it hands the
+directory to `xdg-terminal-exec --dir=`. See `AGENTS.md` for their contract.
 
 `--select` accepts either a `file://` URI (percent-decoded) or a bare path, opens its
 parent directory, and puts the cursor and the selection on that one entry once the
@@ -427,8 +476,14 @@ opening a window; it exists so the resolution is testable without a display.
 Run the development UI directly, bypassing the launcher, from the repository root:
 
 ```bash
-FLEA_PATH="$HOME" FLEA_BIN="$PWD/target/release/flea" qs -p "$PWD/ui"
+QSG_RHI_BACKEND=vulkan FLEA_PATH="$HOME" FLEA_BIN="$PWD/target/release/flea" qs -p "$PWD/ui"
 ```
+
+`flea --gui` picks the renderer in `src/gui.rs`, so a direct `qs` launch has to name one itself;
+without it Qt takes its own default. It is still not the launcher's window: `src/gui.rs` also sets
+`FLEA_RENDERER_AUTOMATIC=1` on that implicit choice, which is what arms the one OpenGL retry in
+`ui/shell.qml`, and the line above deliberately leaves it unset so a scene-graph failure ends the
+dev loop instead of detaching a second process behind it.
 
 The backend protocol is newline-delimited JSON over the child process's stdin and stdout;
 its exact wire shape is documented in [`docs/protocol.md`](docs/protocol.md).
@@ -443,30 +498,35 @@ and the application cannot disagree.
 | `j`, `k`, Down, Up | Move the cursor one row |
 | `g`, `G` | First or last row |
 | Ctrl-d, Ctrl-u | Half a viewport |
-| `h`, Backspace, Ctrl-Up | Parent directory |
+| `h`, Backspace, Ctrl-Up | Parent directory; Ctrl-Up under the Mac preset |
 | `l` | Browse forward: enter a directory, preview a file, page a PDF, or activate a rail/share row; unused in media |
-| Return, Enter, Ctrl-Down | Open a directory, or open a file with the desktop's handler |
+| Return, Enter, Ctrl-Down | Open a directory, or open a file with the desktop's handler; Ctrl-Down under the Mac preset |
 | Space | Quick Look, and close it |
 | Left, Right | Page a PDF, or seek in media |
 | `v` | Toggle selection on the row |
 | `J`, `K`, Shift-Down, Shift-Up | Extend the selection |
 | Ctrl-a | Select all |
 | `/` | Filter the listing in place, in the list view |
-| `f`, Ctrl-f | Search |
+| `f`, Ctrl-f | Search the subtree from home; Tab on the query line points the walk at the folder the pane is in instead, and the strip names the scope it will use |
 | `o` | Reveal the result in its own directory |
 | `y`, `x`, `p`, Ctrl-c, Ctrl-x, Ctrl-v | Copy, cut, paste; the chords are what Omarchy's Super-c, Super-x and Super-v deliver |
-| `dd`, Delete, Ctrl-Delete | Trash. Two presses on the letter, one on the key |
+| `Y` | Copy the route of the directory being shown, for pasting into a terminal |
+| `dd`, Delete, Ctrl-Delete | Trash. Two presses on the letter, one on the key; Ctrl-Delete under the Mac preset |
 | `r`, F2 | Rename |
 | `z`, Ctrl-z | Undo the last operation |
 | Ctrl-Shift-n | New folder |
-| `a`, Ctrl-k | Add a network mount; `a` from the rail, Ctrl-k from either view |
+| `a`, Ctrl-k | Add a network mount; `a` from the rail, Ctrl-k from either view under the Mac preset |
 | Ctrl-e | Eject the rail's device, or the removable volume the listing is inside |
-| Ctrl-1, Ctrl-2, Ctrl-3 | List, columns, grid |
-| Ctrl-Shift-+, Ctrl-Shift-- , Ctrl-Shift-0 | Interface scale up, down, back to the desktop's own |
+| Ctrl-t | Open the configured terminal in the directory being shown; the topbar's terminal button is the same action |
+| Ctrl-1, Ctrl-2, Ctrl-3 | List, columns, grid, under the Mac preset |
+| Ctrl-Shift-1, Ctrl-Shift-2, Ctrl-Shift-3 | The same three, under the Windows preset |
+| Ctrl-h | Show hidden files, under the Windows preset |
+| Ctrl-Shift-+, Ctrl-Shift-- , Ctrl-Shift-0 | Text size up a stop, down a stop, back to following Omarchy |
+| `,`, Ctrl-, | Open the settings panel, from either view |
 | `m` | Open the context menu on the cursor row; in the rail, eject or unmount |
 | `s`, `S` | Step the sort column, reverse the sort |
 | `.`, Ctrl-Shift-. | Show hidden files |
-| Tab | Move focus between the rail and the view |
+| Tab | Move focus between the rail and the view; on a search's query line it picks the scope instead |
 | `t` | Open a new tab at the current folder |
 | `w` | Close the current tab |
 | `1` to `9` | Switch to that tab |
@@ -479,6 +539,13 @@ deliberately not matched: Enter opens rather than renames, because every Linux f
 and the vim table open on Enter and the TUI shares this table (rename is `r` or F2), and Cmd-d
 is not duplicate, because Ctrl-d already pages with Ctrl-u as its pair (duplicate is a menu
 row). The keymap sheet writes a chord as `^c`, and `^N` with a capital means Ctrl-Shift.
+
+`j`, `k` and the arrows stop at the first and the last row. Issue 27 asked for them to come round
+instead, so `"wrapAtEnds": true` in `~/.local/state/flea/ui.json` turns that on: a step taken from
+an end wraps, one that merely overshoots from the middle still stops at the end it was heading for,
+and `J`, `K` and the shifted arrows keep the clamp, because an extend that wrapped would take every
+row between the two ends with it. It ships off, and there is no key and no settings row for it,
+because another operator reported the same jump as a bug.
 
 Clicking a column header sorts by it, and clicking the sorted column reverses it. Name,
 Size and Date Modified are real orders and `s` steps through the three; the two metadata
@@ -499,8 +566,9 @@ because every entry the menu draws describes the row under the pointer. `m` open
 under the cursor row; `j` and `k` step it, and it closes on Escape, on a click outside, on
 scrolling, and when its action runs. The columns view's two neighbour columns are peeks with no cursor of
 their own, so one click there shows a directory in the middle column, the way a column view
-reveals rather than opens, and a file still waits for the second click. The rail is the one
-place a single click opens, as Finder's own sidebar does. `keys.toml` carries the whole table,
+reveals rather than opens, and a file still waits for the second click. The rail is one
+place a single click opens, as Finder's own sidebar does, and a parent segment of the path above
+the listing is the other; the segment the pane is already in is not a target. `keys.toml` carries the whole table,
 its `[[pointer]]` half included.
 
 `/` opens a filter strip under the column header and narrows the rows already listed as
@@ -538,11 +606,15 @@ cargo test                    # unit tests
 ./tests/archive.sh            # archive listing, extract and compress
 ./tests/thumbs.sh             # the release binary against the media fixture
 ./tests/sandbox.sh            # the thumbnail jail and its refusals
+./tests/uistate.sh            # ui.json: the lock, the settle, the migration and a SIGKILL sweep
+./tests/uiwriter.sh           # ViewState's writer under a headless Quickshell
+./tests/charts.sh             # the README's own tables against the bench CSV
 ./tests/ui.sh                 # drives the real window
 ./tests/drag.sh               # the internal drag, through a real pointer on uinput
 ./tests/bench.sh              # the field bench harness itself
 ./tests/budget.sh             # the file-budget tool
 ./tests/keymap-gen.sh         # ui/js/Keymap.js still matches keys.toml
+FLEA_PACKAGE_FILE=/path/to/flea.pkg.tar.zst ./tests/package.sh # real makepkg archive
 ./tools/flea-acceptance       # the everything-works battery
 ./tools/flea-file-budget      # the file budget, against this tree
 ./tools/flea-field-bench      # the cold field run against the other file managers
@@ -550,11 +622,20 @@ cargo test                    # unit tests
 ./tools/flea-bench-report     # a field run's CSV as the tables in this README
 ```
 
-`./tests/run-all.sh` is the one command. It builds both cargo profiles, because `protocol.sh`
-drives the debug binary and `thumbs.sh` the release one, runs the nine suites above that need
-nothing but a shell, and reads each suite's own exit code rather than a pipeline's. It then
-names `ui.sh`, `drag.sh` and `bench.sh` and says what each of the three wants: a display, a
-real pointer, an idle box. There is no CI, and `PKGBUILD`'s `check()` runs `cargo test` alone.
+`./tests/run-all.sh` is the main headless command. It builds both cargo profiles unconditionally,
+because seven suites drive the debug binary and `thumbs.sh` the release one, and an "is there a
+binary" guard is satisfied by a stale one from an older commit. Cargo decides for itself whether a
+rebuild is owed, so a current tree pays nothing for asking. A suite invoked directly still says so
+and stops when it cannot find its binary, rather than reporting every case as a product failure. It
+runs every suite that needs nothing but a shell, and reads each suite's own exit code, not a
+pipeline's.
+It then names the suites it cannot run and says what each needs: `ui.sh` the display, `drag.sh` the
+display and a real pointer through uinput, `picker.sh` the display, a session bus and Flea
+activatable as the chooser backend, `bench.sh` its own benchmark contract, `package.sh` a real
+makepkg archive in `FLEA_PACKAGE_FILE`, and `network-live.sh` live share credentials and the
+approved runtime bundle. A suite in neither of the two lists fails the runner, so one cannot go
+uninvoked again. There is no CI, and `PKGBUILD`'s `check()` runs `cargo test --release --locked`,
+`tests/js.sh` and `tests/keymap-gen.sh`, which are the two that need no built binary.
 
 `tools/flea-acceptance` derives its checklist at run time from the protocol document, the
 key table, the context menu, the design canvas and the sidebar, so it cannot be smaller

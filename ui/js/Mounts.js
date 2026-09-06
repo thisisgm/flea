@@ -1,5 +1,7 @@
 .pragma library
 
+.import "Protocols.js" as Protocols
+
 // Sample input, captured live on the box with one network share mounted (2026-08-31):
 // Drive(0): KBG40ZNS256G NVMe KIOXIA 256GB
 //   Type: GProxyDrive (GProxyVolumeMonitorUDisks2)
@@ -17,15 +19,23 @@ function parseMounts(output) {
         // corner: a local device mount (file://) is Favorites territory, not Network; Places.js skips the inverse.
         if (uri.indexOf("file://") === 0)
             continue
-        out.push({ label: stripHost(m[1]), uri: uri })
+        out.push({ label: Protocols.shareName(m[1], uri), uri: uri })
     }
     return out
 }
 
-// gio's own label carries " on <host>" for a network share; local mounts never do.
-function stripHost(rawLabel) {
-    var m = rawLabel.match(/^(.*)\s+on\s+\S+$/)
-    return m ? m[1] : rawLabel
+// Sample input, "gio info" under the C locale ui/NetworkMounts.qml pins on every gio call:
+// uri: smb://192.168.1.10/isos/
+// local path: /run/user/1000/gvfs/smb-share:server=192.168.1.10,share=isos
+// Only a location GVFS exposes through its FUSE mount prints that line, so "" means there is no
+// browsable folder. One resolver, so the product and tests/js/network.js read the same wording.
+function localPath(body) {
+    var lines = String(body || "").split("\n")
+    for (var i = 0; i < lines.length; i++) {
+        if (lines[i].indexOf("local path: ") === 0)
+            return lines[i].substring("local path: ".length).trim()
+    }
+    return ""
 }
 
 // Sample input: the operator's real bookmarks file, ui/js/Places.js "bookmarks" reads the same lines.
@@ -68,11 +78,21 @@ function decodePath(raw) {
     }
 }
 
-// One canonical form: every trailing slash stripped, except a bare host root, which keeps one.
+// One canonical form: every trailing slash stripped except a bare host root, which keeps one, and
+// a port the scheme would have used anyway dropped, because gio's own listing never reports one.
 function normalize(uri) {
-    var stripped = String(uri || "").replace(/\/+$/, "")
+    var stripped = Protocols.stripDefaultPort(String(uri || "").replace(/\/+$/, ""))
     var bareRoot = /^[a-z][a-z0-9+.-]*:\/\/[^\/]+$/i.test(stripped)
     return bareRoot ? stripped + "/" : stripped
+}
+
+// PR #21: a live mount wins the rail row, and the operator's own bookmark label wins its name, or a
+// rename typed on a mounted share is written to the file and never drawn. Matched the way rebuild dedups.
+function railLabel(mount, marks) {
+    for (var i = 0; i < marks.length; i++) {
+        if (normalize(marks[i].uri) === normalize(mount.uri)) return marks[i].label
+    }
+    return mount.label
 }
 
 // Sample input, captured live on the box with a USB stick plugged in (2026-09-02), from
@@ -171,6 +191,18 @@ function railMenu(entry) {
     return []
 }
 
+// What the rail's own right click opens: the release row above, then the two rows a saved place owns
+// whether or not anything mounted it, marked as a removal because forgetting a place trashes
+// nothing. ui/js/Eject.js reads railMenu and never this, so Ctrl+E still refuses an unmounted row.
+function rowMenu(entry) {
+    var rows = railMenu(entry)
+    if (entry && entry.group === "network" && entry.kind === "share") {
+        rows.push({ label: "Rename", action: "rename", glyph: "rename" })
+        rows.push({ label: "Remove", action: "remove", glyph: "minus" })
+    }
+    return rows
+}
+
 // The handle a chosen menu row carries back: a volume's device node, a share's uri, "" for a row
 // with no release. The rail rebuilds on a five second poll, so an index taken when the menu opened
 // can name a different row by the time a row inside it is chosen; a key cannot.
@@ -219,7 +251,7 @@ function raiseMenu(pane, sidebar) {
     var entry = sidebar.entries[sidebar.cursorIndex]
     if (!entry)
         return
-    if (railMenu(entry).length > 0)
+    if (rowMenu(entry).length > 0)
         sidebar.openCursorMenu()
     else
         pane.message(entry.label + " has nothing to eject or unmount.", false)
@@ -228,17 +260,40 @@ function raiseMenu(pane, sidebar) {
 // The rail menu's chosen row, handed the row's key rather than its position: the rail rebuilds on
 // a five second poll, so the index the menu opened over can name a different row by now. A key
 // that no longer names a row does nothing, because the row it named has left the rail already.
-// Both Services re-check the kind themselves; this only resolves which row was meant.
-function release(action, key, devices, mounts, deviceEntries, networkEntries) {
+// Both Services re-check the kind themselves; this only resolves which row was meant, and the rail
+// itself owns the two rows that need no mount at all.
+function release(action, key, devices, mounts, sidebar) {
     if (action === "eject") {
-        var volume = rowByKey(deviceEntries, key)
+        var volume = rowByKey(sidebar.deviceEntries, key)
         if (volume >= 0)
             devices.eject(volume)
         return
     }
-    if (action === "unmount") {
-        var share = rowByKey(networkEntries, key)
-        if (share >= 0)
-            mounts.unmount(share)
+    var share = rowByKey(sidebar.networkEntries, key)
+    if (share < 0)
+        return
+    if (action === "unmount")
+        mounts.unmount(share)
+    else if (action === "rename")
+        sidebar.startRename(sidebar.favoriteEntries.length + share)
+    else if (action === "remove")
+        mounts.forget(sidebar.networkEntries[share].uri)
+}
+
+// Sample input: the operator's own bookmarks file, favourites and network places in one list.
+// smb://192.168.1.10/isos NAS isos
+// Read off the trimmed line the way nonFileBookmarks reads it, or an indented line is a rail row
+// nothing removes, and normalized the way Places.relabel matches; a kept line is pushed back raw.
+function removeBookmark(body, uri) {
+    var target = normalize(uri)
+    var lines = String(body || "").split("\n")
+    var out = []
+    for (var i = 0; i < lines.length; i++) {
+        var trimmed = lines[i].trim(), space = trimmed.indexOf(" ")
+        var one = space < 0 ? trimmed : trimmed.substring(0, space)
+        if (target.length > 0 && one.length > 0 && normalize(one) === target)
+            continue
+        out.push(lines[i])
     }
+    return out.join("\n")
 }

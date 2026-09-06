@@ -8,7 +8,7 @@ import "js/Places.js" as Places
 
 // The rail is Favorites, Network and Devices, three groups sharing one flat cursor space and one
 // row delegate, ui/SidebarRow.qml. Each group occupies a contiguous run of "entries" in that
-// order, so railAct's plain index math in ui/js/Focus.js needs no change and no existing index
+// order, so RailKeys.act's plain index math in ui/js/RailKeys.js needs no change and no existing index
 // moves. Each group's own sourcing and process management lives in its Service, ui/NetworkMounts.qml
 // and ui/DeviceMounts.qml, the OEM pattern: this file only reads "entries" from them and renders.
 Item {
@@ -41,6 +41,7 @@ Item {
     signal message(string text, bool isError)
     // Bubbled straight from NetworkMounts; shell.qml opens ui/ShareBrowser.qml on this.
     signal sharesListed(string baseUri, string baseLabel, var names)
+    signal networkRetryRequested(string uri, string label, string password, string reason, bool failedConnect)
 
     // The entry index mid-rename, or -1; Network only, see startRename below. ui/SidebarRow.qml
     // reads this to swap its Text for the OEM TextField, and ui/Pane.qml reads it as its own
@@ -51,7 +52,8 @@ Item {
 
     // Sized in characters, because a monospace makes that exact where a pixel constant would be an accident.
     readonly property int widthChars: 18
-    implicitWidth: metrics.advanceWidth * root.widthChars + 2 * Style.spacing.rowPaddingX
+    // The mark and its gap count too, because ui/SidebarRow.qml draws them before the label: without them an 18-character entry elided at 15.
+    implicitWidth: metrics.advanceWidth * root.widthChars + 2 * Style.spacing.rowPaddingX + Theme.railIconSize + Style.spacing.rowGap
 
     TextMetrics {
         id: metrics
@@ -96,6 +98,9 @@ Item {
         onOpened: function (path) { root.opened(path) }
         onMessage: function (text, isError) { root.message(text, isError) }
         onSharesListed: function (baseUri, baseLabel, names) { root.sharesListed(baseUri, baseLabel, names) }
+        onRetryRequested: function (uri, label, password, reason, failedConnect) {
+            root.networkRetryRequested(uri, label, password, reason, failedConnect)
+        }
         // The same race NetworkDialog.qml's own saved() exists for, see AGENTS.md "A FileView
         // write can race a reload fired the moment setText() is called": mounts.rename() already
         // blocked on waitForJob() before this fires, so the reload here reads the write it caused.
@@ -111,18 +116,30 @@ Item {
 
     // ui/NetworkDialog.qml writes this same file; a watch set up before its parent directory
     // existed never fires, so its own saved() signal drives this explicit reload instead.
+    // It blocks, because ui/NetworkPlaces.qml "forget" derives its body from the text this reads:
+    // measured on this box, two rail edits in one turn over an asynchronous reload put the line the
+    // first one removed back, and the second read the pre-write text the first had already replaced.
     function reloadBookmarks() {
         bookmarksFile.reload()
+        bookmarksFile.waitForJob()
+    }
+
+    function saveNetwork(uri, label, password) {
+        mounts.saveLocation(uri, label, password)
+    }
+
+    function networkResult() {
+        return mounts.result
     }
 
     // ui/ShareBrowser.qml's own Enter action calls this with the resolved share uri; not yet one of root.entries, so it goes straight to NetworkMounts's own open-a-share path.
     function mountShare(uri, label) {
-        mounts.openShare(uri, false, label)
+        mounts.openChildShare(uri, label)
     }
 
     // Right click raises the menu over the row, which is the whole affordance: an eject that can
     // only be reached by right-clicking twice is one nobody can see. Which rows offer what lives in
-    // ui/js/Mounts.js "railMenu", because a row with nothing to release must open no menu at all.
+    // ui/js/Mounts.js "rowMenu", because a row with nothing to offer must open no menu at all.
     function openRailMenu(index, scenePosition) {
         root.cancelRename()
         var entry = root.entries[index]
@@ -130,7 +147,7 @@ Item {
             return
         }
         root.cursorIndex = index
-        root.menu.openForRail(Mounts.railKey(entry), Mounts.railMenu(entry), scenePosition)
+        root.menu.openForRail(Mounts.railKey(entry), Mounts.rowMenu(entry), scenePosition)
     }
 
     // The keyboard's own entrance to the same menu, opened under the row the rail cursor is on.
@@ -144,9 +161,9 @@ Item {
     }
 
     // A chosen menu row, arriving with the row's key rather than its position; which row that
-    // names is Mounts.release', so tests/js/mounts.js drives the resolution with no rail.
+    // names is Mounts.release', so tests/js/network.js drives the resolution with no rail.
     function releaseChosen(action, key) {
-        Mounts.release(action, key, devices, mounts, root.deviceEntries, root.networkEntries)
+        Mounts.release(action, key, devices, mounts, root)
     }
 
     Connections {
@@ -246,10 +263,10 @@ Item {
             anchors.right: parent.right
 
             Text {
-                id: favHeading
+                id: placesHeading
                 x: Style.spacing.rowPaddingX
                 bottomPadding: Style.spacing.rowGap
-                text: "FAVORITES"
+                text: "PLACES"
                 color: Theme.color.muted
                 font.family: Theme.font.family
                 font.pixelSize: Theme.font.caption
@@ -276,7 +293,6 @@ Item {
 
             // Self-hides with its list below when gio, the bookmarks file and Dropbox all have nothing to say.
             Item {
-                id: netHeadingRow
                 visible: root.networkEntries.length > 0
                 width: rail.width
                 height: netHeading.implicitHeight + Style.spacing.rowGap
@@ -292,29 +308,29 @@ Item {
                 }
 
                 // A hand-drawn plus, not a Text "+": at caption size the font glyph read as a Christian cross, not a plus. Sized off the heading's own font token.
-                Item {
-                    id: addMark
-                    width: Math.max(Theme.hitMin, Theme.font.caption)
-                    height: Math.max(Theme.hitMin, Theme.font.caption)
+                Glyph {
+                    id: addGlyph
+                    // The rail's trailing indicator slot: caption wide, inset by rowPaddingX, anchored exactly as ui/SidebarRow.qml's dot is.
                     anchors.right: parent.right
                     anchors.rightMargin: Style.spacing.rowPaddingX
                     anchors.verticalCenter: netHeading.verticalCenter
+                    name: "plus"
+                    color: Theme.color.muted
+                    width: Theme.font.caption
+                    height: width
+                }
 
+                // Bigger than the ink it covers, so it centres on the ink's own box, in real pixels: a centre anchor quantises an odd size difference and leaves the two centres half a pixel apart.
+                Item {
+                    id: addMark
+                    width: Math.max(Theme.hitMin, Theme.font.caption)
+                    height: width
+                    x: addGlyph.x + (addGlyph.width - width) / 2
+                    y: addGlyph.y + (addGlyph.height - height) / 2
                     Accessible.role: Accessible.Button
                     Accessible.name: "Add network location"
                     Accessible.onPressAction: root.addRequested()
-
-                    Glyph {
-                        anchors.centerIn: parent
-                        name: "plus"
-                        color: Theme.color.muted
-                        width: Theme.font.caption
-                        height: Theme.font.caption
-                    }
-
-                    TapHandler {
-                        onTapped: root.addRequested()
-                    }
+                    TapHandler { onTapped: root.addRequested() }
                 }
             }
 
@@ -365,6 +381,8 @@ Item {
         }
     }
 
+    // The "+" ink, its hit target and the rail's own indicator dot: the three boxes that share one centre.
+    function networkMarkItems() { var netRow = netRepeater.itemAt(0); return [addGlyph, addMark, netRow ? netRow.indicatorSlot : null] }
     // The rail has no ListView virtualization, so every row already exists; the same itemFor idiom ui/Pane.qml uses for the list, so a test can find a rail row's on-screen box.
     function railItemFor(index) {
         if (index < root.favoriteEntries.length)
@@ -374,7 +392,6 @@ Item {
             return netRepeater.itemAt(rest)
         return devRepeater.itemAt(rest - root.networkEntries.length)
     }
-
     // The one divider in the whole design.
     Rectangle {
         anchors.right: parent.right

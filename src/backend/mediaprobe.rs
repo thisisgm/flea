@@ -1,12 +1,30 @@
 // Duration, pixels and sample rate for a media row, which the preview column names and no listing
 // carries. ffprobe reads the container's own header; nothing is decoded and nothing is written.
 use crate::backend::sandbox;
+use std::io::Read;
+use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
-use std::time::Duration;
+use std::sync::{Arc, Condvar, Mutex};
+use std::time::{Duration, Instant};
 
+// std offers no way to kill a child from another thread without owning it, so the signal is declared here rather than taking a crate, the same call metareq.rs makes for its archive watchdog.
+extern "C" {
+    fn kill(pid: i32, sig: i32) -> i32;
+}
+
+const SIGKILL: i32 = 9;
 // A header read on a local file is milliseconds; this is a runaway, not a slow file.
 const PROBE_LIMIT: Duration = Duration::from_secs(5);
+// Only the path where stdout closed before the child exited polls at all, so this is that case's step and not the common one's.
+const REAP_STEP: Duration = Duration::from_millis(1);
+
+// The one lock the watchdog's kill and the probe's reap both take: waitpid frees the pid, so a kill on the other side of an unsynchronised reap can name a process group the kernel has already handed to somebody else.
+#[derive(Default)]
+struct Watch {
+    reaped: Mutex<bool>,
+    wake: Condvar,
+}
 
 #[derive(Default, PartialEq, Debug)]
 pub struct Media {
@@ -52,12 +70,67 @@ pub fn probe(path: &Path) -> Media {
     let mut cmd = Command::new(&full[0]);
     cmd.args(&full[1..]);
     cmd.stdin(std::process::Stdio::null());
+    cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::null());
-    // corner: prlimit's own --cpu is the real bound; PROBE_LIMIT is named so the constant is not a lie.
-    let _ = PROBE_LIMIT;
-    match cmd.output() {
-        Ok(o) => parse(&String::from_utf8_lossy(&o.stdout)),
-        Err(_) => Media::default(),
+    // Its own group, so the watchdog's kill(-pid) has a group to name: a child left in the backend's own group is not a group leader, and -pid would match nothing.
+    cmd.process_group(0);
+    let mut child = match cmd.spawn() {
+        Ok(c) => c,
+        Err(_) => return Media::default(),
+    };
+    // prlimit's --cpu cannot bound a probe blocked in open(2) or read(2), because a blocked process burns no CPU at all.
+    let watch = Arc::new(Watch::default());
+    let watchdog = watchdog(child.id() as i32, Arc::clone(&watch));
+    let mut stdout = Vec::new();
+    if let Some(mut pipe) = child.stdout.take() {
+        let _ = pipe.read_to_end(&mut stdout);
+    }
+    // The reap runs with the watchdog still armed, because end of stdout says every writer closed it and not that the child exited, and standing the watchdog down first is what leaves that case unbounded.
+    let status = reap(&mut child, &watch);
+    let _ = watchdog.join();
+    match status {
+        // A probe that did not exit zero was not answering about this file, so its stdout is not a measurement.
+        Ok(s) if s.success() => parse(&String::from_utf8_lossy(&stdout)),
+        _ => Media::default(),
+    }
+}
+
+// One thread, one timed wait, one signal, waking the instant the probe is reaped rather than at the end of a sleep; the same shape metareq.rs uses to bound an archive listing.
+fn watchdog(pid: i32, watch: Arc<Watch>) -> std::thread::JoinHandle<()> {
+    std::thread::spawn(move || {
+        let deadline = Instant::now() + PROBE_LIMIT;
+        let mut reaped = watch.reaped.lock().unwrap();
+        while !*reaped {
+            let left = deadline.saturating_duration_since(Instant::now());
+            if left.is_zero() {
+                break;
+            }
+            reaped = watch.wake.wait_timeout(reaped, left).unwrap().0;
+        }
+        // Signalled with the lock still held, so no reap can free this pid underneath it.
+        if !*reaped {
+            unsafe { kill(-pid, SIGKILL) };
+        }
+    })
+}
+
+// try_wait rather than wait, because the lock the watchdog kills under cannot be held across a blocking reap.
+fn reap(child: &mut std::process::Child, watch: &Watch) -> std::io::Result<std::process::ExitStatus> {
+    loop {
+        {
+            let mut reaped = watch.reaped.lock().unwrap();
+            match child.try_wait() {
+                Ok(Some(status)) => {
+                    *reaped = true;
+                    watch.wake.notify_all();
+                    return Ok(status);
+                }
+                // The watchdog stays armed on an error, because nothing was reaped and the child still has to be ended by somebody.
+                Err(e) => return Err(e),
+                Ok(None) => {}
+            }
+        }
+        std::thread::sleep(REAP_STEP);
     }
 }
 

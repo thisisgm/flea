@@ -5,8 +5,10 @@ plain Arch box.
 
 Flea installs as an Arch package, so pacman owns both ends: `makepkg -si` puts it on, `pacman -Rns`
 takes it off, and pacman's own file list is what makes the second claim provable. There is no
-install script here because there is nothing for one to do. The one step pacman cannot own, making
-Flea your default file manager, is a subcommand of the binary, `flea --default`, described below.
+install script here because there is nothing for one to do. The steps pacman cannot own are
+per-user preferences, and they are subcommands of the binary: `flea --default` makes Flea your
+default file manager and routes the desktop's file chooser to it, and `flea --picker` does that
+second half alone. Both are described below.
 
 ## Build and install
 
@@ -34,6 +36,9 @@ uncommitted edits are what gets packaged.
 | `/usr/bin/flea` | the binary, backend and launcher both |
 | `/usr/share/flea/ui/` | the Quickshell UI, which `paths.rs` looks for by `shell.qml` |
 | `/usr/share/flea/ui/Commons`, `/usr/share/flea/ui/Ui` | symlinks into `/usr/share/omarchy/shell/`, reached from QML as `qs.Commons` |
+| `/usr/lib/flea/flea-portal` | the XDG portal backend, which answers `org.freedesktop.impl.portal.FileChooser` |
+| `/usr/share/xdg-desktop-portal/portals/flea.portal` | what registers that backend with xdg-desktop-portal |
+| `/usr/share/dbus-1/services/org.freedesktop.impl.portal.desktop.flea.service` | what D-Bus activates it with |
 | `/usr/share/applications/com.thisisgm.flea.desktop` | the desktop entry |
 | `/usr/share/icons/hicolor/scalable/apps/com.thisisgm.flea.svg` | the icon |
 | `/usr/share/licenses/flea/LICENSE` | the licence |
@@ -67,10 +72,12 @@ kind of thing without a package's help. There is no `omarchy default filemanager
 flea --default
 ```
 
-It does two things, each reported on its own line, and it is honest about state: run it twice and
-the second run says both halves are already Flea's and rewrites nothing. It needs no root, because
-both files are yours, and it takes no argument, because Omarchy's `default` verbs take one rather
-than asking questions and this one has only one thing to set.
+It does three things, each reported on its own line, and it is honest about state: run it twice and
+the second run says every step it ran is already Flea's and rewrites nothing. It needs no root,
+because every file it writes is yours, and it takes no argument, because Omarchy's `default` verbs
+take one to name which program and here the program is Flea. The three files are
+`~/.config/mimeapps.list`, `~/.config/hypr/bindings.lua` and
+`~/.config/xdg-desktop-portal/portals.conf`.
 
 1. **The `inode/directory` handler.** `xdg-mime default com.thisisgm.flea.desktop inode/directory`,
    the stock tool, which writes one line to `~/.config/mimeapps.list`. The line printed names the
@@ -102,6 +109,18 @@ than asking questions and this one has only one thing to set.
    where `hyprctl` cannot be reached, the block is still written and the output says to run
    `hyprctl reload` yourself.
 
+3. **The file chooser.** Everything `flea --picker` does, described in the next section. A box
+   updating from 0.1.3 has a Flea with no chooser routing, and one command should finish the job.
+
+   **This step is the conditional one, and the other two are not.** It needs
+   `flea.portal`, which only the package installs. Run a binary you built with `cargo build` on a
+   box whose installed package predates the chooser, which is every box updating from 0.1.3, and
+   the command prints `flea: no portal backend is installed, so the file chooser step was skipped`
+   and returns having done the first two. On such a box the honest-about-state line above is a
+   claim about those two alone: the chooser was never claimed, so a second run cannot say it is
+   already Flea's. With no Flea package installed at all, step 1 refuses first and nothing is
+   written, because `com.thisisgm.flea.desktop` is the proof the package landed.
+
 Run it from a terminal inside the session, so the keys take effect at once.
 
 ### Undo
@@ -112,14 +131,16 @@ flea --default off
 
 Removes Flea's `inode/directory` line from `~/.config/mimeapps.list`, so the handler falls back to
 whatever the system default is (Nautilus on stock Omarchy), and removes the marked block from
-`~/.config/hypr/bindings.lua` byte for byte, then reloads. If you had pinned another handler in
+`~/.config/hypr/bindings.lua` byte for byte, then reloads, and undoes the file-chooser step exactly
+as `flea --picker off` does. If you had pinned another handler in
 `~/.config/mimeapps.list` before running `flea --default`, the first run printed its id as
 `was <id>`; `xdg-mime default <id> inode/directory` puts that pin back.
 
 ### What `pacman -Rns flea` leaves behind
 
-Everything the package installed goes, as above. The two edits `flea --default` made are per-user
-state, and pacman neither knows nor should know about them, so they stay:
+Everything the package installed goes, as above. The edits `flea --default` made are per-user state,
+and pacman neither knows nor should know about them, so they stay. Its chooser edits are covered by
+the next section:
 
 - `inode/directory=com.thisisgm.flea.desktop` in `~/.config/mimeapps.list`. Inert once the binary
   is gone: `xdg-mime query default` skips an entry whose `Exec` is not on `PATH`, and answered
@@ -134,6 +155,77 @@ The clean order is `flea --default off` before `sudo pacman -Rns flea`, after wh
 to do by hand. `flea --default off` leaves `~/.config/mimeapps.list` in place even when it was the
 one that created it, holding an empty `[Default Applications]` section: the file is the desktop's,
 other tools write to it too, and an empty section is harmless.
+
+## Make Flea the file chooser
+
+Every application that asks the desktop to pick a file, from `omarchy tailscale send` to a Flatpak,
+goes through the XDG portal: it calls `org.freedesktop.portal.FileChooser`, and xdg-desktop-portal
+hands that to whichever backend the configuration prefers. On a stock Omarchy box that is
+xdg-desktop-portal-gtk, which is why a GTK dialog appears in the middle of Omarchy. Installing Flea
+registers a backend; it does not prefer it. That is a per-user preference, so:
+
+```
+flea --picker
+```
+
+writes one key to `~/.config/xdg-desktop-portal/portals.conf`:
+
+```
+[preferred]
+org.freedesktop.impl.portal.FileChooser=flea;gtk
+```
+
+and it writes one more thing, an additive block in `~/.config/hypr/bindings.lua` beside the one
+`flea --default` writes:
+
+```lua
+-- flea --picker: begin. Written by `flea --picker`; `flea --picker off` removes the block whole.
+o.window("com.thisisgm.flea.picker", { tag = "+floating-window" })
+-- flea --picker: end.
+```
+
+That is Omarchy's own treatment for a prompt, not a size Flea invented:
+`/usr/share/omarchy/default/hypr/apps/system.lua` tags `xdg-desktop-portal-gtk`'s windows the same
+way, and Omarchy's tag rules are what then float, centre and size them. The picker carries its own
+app id, `com.thisisgm.flea.picker`, so this rule reaches the chooser and never the file manager
+window. As with the keys, the file is written, `hyprctl reload` runs, `hyprctl configerrors` is read,
+and a config that no longer loads is put back as it was.
+
+**It writes no `default=` line**, and that is the whole design. xdg-desktop-portal
+collects every configuration file it can find into an ordered list, the user's first, and resolves each
+interface through them in turn: an interface this file does not name falls through to the next file,
+which on Omarchy is `/usr/share/xdg-desktop-portal/hyprland-portals.conf` and its `default=hyprland;gtk`.
+So ScreenCast, Screenshot, GlobalShortcuts and InputCapture still resolve to hyprland, and Account,
+Email and DynamicLauncher still resolve to gtk, exactly as before. `gtk` stays behind `flea` on Flea's
+own line for the same reason: if `flea.portal` ever goes missing, there is still a chooser.
+
+xdg-desktop-portal reads its configuration once, at startup, so a live session keeps the old routing
+until it is restarted, which the command's second line says:
+
+```
+systemctl --user restart xdg-desktop-portal
+```
+
+The picker that then opens is Flea: the same rows, icons, theme and keys as the window, with a check
+box in front of every row a caller can receive. Space marks, Enter walks into a directory or submits
+what is marked, Backspace climbs, Escape refuses. Nothing marked and Enter does nothing, because a
+chooser that sends on a stray keypress is worse than one that asks twice.
+
+### Undo
+
+```
+flea --picker off
+```
+
+removes that one key, and removes the file too when the key was all it held, and removes the
+Hyprland block byte for byte. Restart xdg-desktop-portal again and the GTK chooser is back.
+
+### What `pacman -Rns flea` leaves behind
+
+`~/.config/xdg-desktop-portal/portals.conf` is per-user state like `mimeapps.list` above, so it stays.
+With no `flea.portal` installed, xdg-desktop-portal logs that the requested backend does not exist and
+takes the next name on the line, which is `gtk`, so the desktop keeps a working chooser either way.
+The clean order is `flea --picker off` before `sudo pacman -Rns flea`.
 
 ## Why the Exec line reads `flea --gui %f`
 

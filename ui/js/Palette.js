@@ -13,6 +13,10 @@ function parse(body) {
     return found;
 }
 
+// ThemeRoles.html's surface ladder: the chrome plane, then background as the neutral fallback when
+// it is absent, then selection for the alacritty-derived file that emits neither ladder key at all.
+var SURFACE_KEYS = ["dark_background", "background", "selection"];
+
 // The first key the theme actually set wins, and a role no theme models keeps Flea's own colour.
 function pick(found, keys, fallback) {
     for (var i = 0; i < keys.length; i++) {

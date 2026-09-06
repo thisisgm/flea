@@ -1,15 +1,58 @@
 .pragma library
 
 // Generated from keys.toml by tools/flea-keymap-gen. Do not edit.
+// The selected Mac/Windows preset. A .pragma library holds one copy per QML engine, so
+// ui/ViewState.qml sets it once and every caller of lookup() below follows without a
+// second wire; an unknown name falls back to mac rather than leaving the map empty.
+var preset = "mac"
+function setPreset(name) { preset = name === "windows" ? "windows" : "mac" }
+
+// The [[preset]] rows of keys.toml, for ui/SettingsPanel.qml's Keys section. code is the Qt
+// name the overlay below matches on, so a row here and the binding are the same keys.toml row.
+var PRESET_KEYS = [
+    { preset: "mac", ctrl: true, shift: false, code: "Key_1", keys: "ctrl-1", action: "viewList", label: "list view" },
+    { preset: "mac", ctrl: true, shift: false, code: "Key_2", keys: "ctrl-2", action: "viewColumns", label: "columns view" },
+    { preset: "mac", ctrl: true, shift: false, code: "Key_3", keys: "ctrl-3", action: "viewGrid", label: "grid view" },
+    { preset: "mac", ctrl: true, shift: false, code: "Key_Up", keys: "ctrl-up", action: "parent", label: "up one level" },
+    { preset: "mac", ctrl: true, shift: false, code: "Key_Down", keys: "ctrl-down", action: "open", label: "open" },
+    { preset: "mac", ctrl: true, shift: false, code: "Key_Delete", keys: "ctrl-delete", action: "trash", label: "move to trash" },
+    { preset: "mac", ctrl: true, shift: false, code: "Key_K", keys: "ctrl-k", action: "addNetwork", label: "connect to server" },
+    { preset: "windows", ctrl: true, shift: false, code: "Key_H", keys: "ctrl-h", action: "toggleHidden", label: "hidden files" },
+    { preset: "windows", ctrl: true, shift: true, code: "Key_1", keys: "ctrl-shift-1", action: "viewList", label: "list view" },
+    { preset: "windows", ctrl: true, shift: true, code: "Key_2", keys: "ctrl-shift-2", action: "viewColumns", label: "columns view" },
+    { preset: "windows", ctrl: true, shift: true, code: "Key_3", keys: "ctrl-shift-3", action: "viewGrid", label: "grid view" },
+]
+
+// Checked before every shared table, so a preset can claim a chord the shared tables bind.
+function lookupPreset(name, key, text, modifiers) {
+    var ctrl = (modifiers & Qt.ControlModifier) !== 0
+    var shift = (modifiers & Qt.ShiftModifier) !== 0
+    if (name === "mac" && ctrl && !shift && key === Qt.Key_1) return "viewList"
+    if (name === "mac" && ctrl && !shift && key === Qt.Key_2) return "viewColumns"
+    if (name === "mac" && ctrl && !shift && key === Qt.Key_3) return "viewGrid"
+    if (name === "mac" && ctrl && !shift && key === Qt.Key_Up) return "parent"
+    if (name === "mac" && ctrl && !shift && key === Qt.Key_Down) return "open"
+    if (name === "mac" && ctrl && !shift && key === Qt.Key_Delete) return "trash"
+    if (name === "mac" && ctrl && !shift && key === Qt.Key_K) return "addNetwork"
+    if (name === "windows" && ctrl && !shift && key === Qt.Key_H) return "toggleHidden"
+    if (name === "windows" && ctrl && shift && key === Qt.Key_1) return "viewList"
+    if (name === "windows" && ctrl && shift && key === Qt.Key_2) return "viewColumns"
+    if (name === "windows" && ctrl && shift && key === Qt.Key_3) return "viewGrid"
+    return ""
+}
+
 function lookup(key, text, modifiers) {
+    var chosen = lookupPreset(preset, key, text, modifiers)
+    if (chosen.length > 0)
+        return chosen
     if (modifiers & Qt.ControlModifier) {
         if (modifiers & Qt.ShiftModifier) {
             if (key === Qt.Key_N) return "newFolder"
-            if (key === Qt.Key_Plus) return "scaleUp"
-            if (key === Qt.Key_Equal) return "scaleUp"
-            if (key === Qt.Key_Minus) return "scaleDown"
-            if (key === Qt.Key_Underscore) return "scaleDown"
-            if (key === Qt.Key_0) return "scaleReset"
+            if (key === Qt.Key_Plus) return "textSizeUp"
+            if (key === Qt.Key_Equal) return "textSizeUp"
+            if (key === Qt.Key_Minus) return "textSizeDown"
+            if (key === Qt.Key_Underscore) return "textSizeDown"
+            if (key === Qt.Key_0) return "textSizeReset"
             if (key === Qt.Key_Greater) return "toggleHidden"
             if (key === Qt.Key_Period) return "toggleHidden"
         }
@@ -22,14 +65,9 @@ function lookup(key, text, modifiers) {
         if (key === Qt.Key_Z) return "undo"
         if (key === Qt.Key_F) return "search"
         if (key === Qt.Key_E) return "eject"
-        if (key === Qt.Key_K) return "addNetwork"
         if (key === Qt.Key_L) return "pathBar"
-        if (key === Qt.Key_Delete) return "trash"
-        if (key === Qt.Key_Up) return "parent"
-        if (key === Qt.Key_Down) return "open"
-        if (key === Qt.Key_1) return "viewList"
-        if (key === Qt.Key_2) return "viewColumns"
-        if (key === Qt.Key_3) return "viewGrid"
+        if (key === Qt.Key_T) return "openTerminal"
+        if (key === Qt.Key_Comma) return "settings"
         return ""
     }
 
@@ -41,6 +79,10 @@ function lookup(key, text, modifiers) {
     switch (key) {
     case Qt.Key_Down: return "cursorDown"
     case Qt.Key_Up: return "cursorUp"
+    case Qt.Key_Home: return "cursorFirst"
+    case Qt.Key_End: return "cursorLast"
+    case Qt.Key_PageUp: return "pageUp"
+    case Qt.Key_PageDown: return "pageDown"
     case Qt.Key_Return: return "open"
     case Qt.Key_Enter: return "open"
     case Qt.Key_Backspace: return "parent"
@@ -69,6 +111,7 @@ function lookup(key, text, modifiers) {
     case "t": return "tabNew"
     case "w": return "tabClose"
     case "y": return "copy"
+    case "Y": return "copydirpath"
     case "x": return "cut"
     case "p": return "paste"
     case "d": return "trashArm"
@@ -80,6 +123,7 @@ function lookup(key, text, modifiers) {
     case ".": return "toggleHidden"
     case "a": return "addNetwork"
     case "m": return "menu"
+    case ",": return "settings"
     case "?": return "keymapSheet"
     case "-": return "zoomOut"
     case "+": return "zoomIn"
@@ -93,6 +137,60 @@ function lookup(key, text, modifiers) {
     return ""
 }
 
+// The key ui/MenuRow.qml prints beside a menu row, keyed on the row's own action. Only bare
+// keys are here: an action reachable by a chord alone leaves its row's hint slot empty, which
+// is how Menus.html draws New Folder. Derived from keys.toml, so a hint cannot advertise a key
+// nothing is bound to.
+var HINTS = {
+    "addNetwork": "a",
+    "copy": "y",
+    "copydirpath": "Y",
+    "cursorDown": "j",
+    "cursorFirst": "g",
+    "cursorLast": "G",
+    "cursorUp": "k",
+    "cut": "x",
+    "dragExternal": "D",
+    "escape": "escape",
+    "expand": "e",
+    "extendDown": "J",
+    "extendUp": "K",
+    "filter": "/",
+    "focusNext": "tab",
+    "keymapSheet": "?",
+    "menu": "m",
+    "open": "enter",
+    "pageDown": "pagedown",
+    "pageForward": "l",
+    "pageUp": "pageup",
+    "parent": "h",
+    "paste": "p",
+    "pathBar": ":",
+    "preview": "space",
+    "rename": "r",
+    "reveal": "o",
+    "search": "f",
+    "seekBack": "left",
+    "seekForward": "right",
+    "settings": ",",
+    "sortNext": "s",
+    "sortReverse": "S",
+    "tabClose": "w",
+    "tabNew": "t",
+    "toggleHidden": ".",
+    "toggleSelect": "v",
+    "trash": "d",
+    "trashArm": "d",
+    "undo": "z",
+    "zoomIn": "+",
+    "zoomOut": "-",
+}
+
+function hintFor(action) {
+    var k = HINTS[String(action)]
+    return k ? k : ""
+}
+
 // The keymap sheet ui/KeymapSheet.qml draws, from the [[sheet]] table in keys.toml.
 var SHEET = [
     { keys: "j k", action: "cursorDown", label: "move" },
@@ -102,8 +200,10 @@ var SHEET = [
     { keys: "/", action: "filter", label: "filter" },
     { keys: "f", action: "search", label: "find in subtree" },
     { keys: "o", action: "reveal", label: "reveal result" },
+    { keys: "tab", action: "focusNext", label: "search scope, or focus" },
     { keys: ": ^l", action: "pathBar", label: "go to path" },
     { keys: "y ^c", action: "copy", label: "copy" },
+    { keys: "Y", action: "copydirpath", label: "copy folder path" },
     { keys: "x ^x", action: "cut", label: "cut" },
     { keys: "p ^v", action: "paste", label: "paste" },
     { keys: "r", action: "rename", label: "rename" },
@@ -118,8 +218,10 @@ var SHEET = [
     { keys: "a", action: "addNetwork", label: "add network place" },
     { keys: "m", action: "menu", label: "context menu" },
     { keys: "^e", action: "eject", label: "eject" },
-    { keys: "^+", action: "scaleUp", label: "scale up" },
-    { keys: "^-", action: "scaleDown", label: "scale down" },
+    { keys: "^t", action: "openTerminal", label: "open terminal" },
+    { keys: "^+", action: "textSizeUp", label: "text size up" },
+    { keys: "^-", action: "textSizeDown", label: "text size down" },
+    { keys: ",", action: "settings", label: "settings" },
     { keys: "?", action: "keymapSheet", label: "this sheet" },
 ]
 
@@ -139,6 +241,9 @@ var POINTER = [
     { where: "neighbour", press: "left", row: "file", does: "nothing", label: "a file has no contents to reveal" },
     { where: "neighbour", press: "left x2", row: "file", does: "open", label: "open the file" },
     { where: "neighbour", press: "right", row: "any", does: "nothing", label: "a peeked row has no menu" },
+    { where: "chrome", press: "left", row: "parent", does: "goToCrumb", label: "open the directory that segment of the path names" },
+    { where: "chrome", press: "left x2", row: "any", does: "pathBar", label: "type the path instead of clicking it" },
+    { where: "window", press: "back", row: "any", does: "backOrParent", label: "go back through the history, or up a directory when there is none" },
     { where: "rail", press: "left", row: "any", does: "open", label: "open the place" },
     { where: "rail", press: "right", row: "any", does: "menu", label: "eject and unmount" },
 ]

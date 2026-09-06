@@ -50,7 +50,7 @@ Item {
 
         Flea.Glyph {
             anchors.fill: parent
-            name: root.row ? Icons.glyphFor(root.row.i) : "file"
+            name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : "file"
             color: root.cursor ? Theme.color.accent : Theme.color.muted
         }
     }

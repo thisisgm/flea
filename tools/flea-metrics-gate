@@ -2,7 +2,9 @@
 # Diffs the metrics contract against the running app's own seam, key by key, and fails on any drift.
 #   tools/flea-metrics-gate        against a Flea already running from this checkout's ui/
 # Start one first, on a listing of your own making, never a real directory (hard rule 9):
-#   FLEA_PATH=$(mktemp -d) FLEA_BIN=target/release/flea qs -p ui &
+#   QSG_RHI_BACKEND=vulkan FLEA_PATH=$(mktemp -d) FLEA_BIN=target/release/flea qs -p ui &
+# The renderer is named because src/gui.rs owns that choice and a direct qs launch never runs it.
+# FLEA_RENDERER_AUTOMATIC stays unset, so no QML retry can relaunch Flea underneath the gate mid-run.
 # Reads the seam and never the source: a theme's shell.toml can pin body-small or row-padding-x, so
 # the only number that counts is the one the app resolved. A token that exists and is spelled right
 # can still be the wrong one, which is the defect this exists to catch.
@@ -89,12 +91,18 @@ chromeMarkSize|16|Style.font.icon, round(14 x 1.167), the canvas's chrome mark
 columnMode|70|9 ch x 7.8, JetBrainsMono's advance at 13 px
 columnSize|70|9 ch x 7.8
 columnDate|125|16 ch x 7.8
+columnPickerDate|80|80 x 13 / 13, the 80px date slot SendPicker.html draws
 columnKind|130|120 x 13 / 12
 menuWidth|257|space(220)
 cornerRadius|$rounding|hyprctl getoption decoration:rounding, read live above
 previewFraction|0.82|Flea constant, Quick-Look sized inset
 gridIconSize|46|2 x 23
-gridMinCellWidth|175|space(150)"
+gridMinCellWidth|146|space(125), GridView.dc.html's five-column reference viewport over five tiles
+settingsPanelWidth|560|space(480), the Settings board's border-box panel
+settingsRailWidth|150|560 - 408 - 2 outer hairlines
+settingsPaneWidth|408|space(350), the pane inside those hairlines
+settingsIndent|52|52 x 13 / 13, the continuation indent five settings boards draw a hint and the ruler at
+settingsRailPaddingY|10|10 x 13 / 13, the inset Settings.dc.html gives the rail column above its first row"
 
 checked=0
 drift=0

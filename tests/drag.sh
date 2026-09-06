@@ -82,7 +82,8 @@ print("%s %s" % (hits[0]["id"], hits[0]["pid"]))
 }
 ipc() { qs ipc -i "$MYID" call flea "$@" 2>&1; }
 
-HOME="$HOMEDIR" setsid qs -p "$repo/ui" >"$SB/flea.log" 2>&1 &
+# The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
+QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" HOME="$HOMEDIR" setsid qs -p "$repo/ui" >"$SB/flea.log" 2>&1 &
 FLEA_PID=$!
 MYID=""
 MYPID=""

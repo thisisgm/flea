@@ -40,6 +40,12 @@ pub fn replace_file(path: &Path, text: &str) -> Result<(), String> {
     written
 }
 
+// A file this process is creating for the first time: O_EXCL, so a symlink planted at the path is
+// refused rather than followed, and an existing file is a failure and not a silent overwrite.
+pub fn create_file(path: &Path, text: &str) -> Result<(), String> {
+    write_new(path, 0o644, text)
+}
+
 fn write_new(tmp: &Path, mode: u32, text: &str) -> Result<(), String> {
     let mut file = fs::OpenOptions::new()
         .write(true)

@@ -38,6 +38,30 @@ function pane() {
     return p
 }
 
+// A pane that can navigate: the two wrappers ui/Pane.qml carries, so back(), parent() and the mouse
+// button all take the one route into openWithoutHistory rather than a stub that cannot refuse.
+function browsing(history) {
+    var p = pane()
+    p.filterQuery = ""
+    p.filterTyping = false
+    p.path = "/home/gm/Work"
+    p.history = history
+    // ui/Pane.qml menuVisible: the pane's own context menu, which covers the listing it was raised over.
+    p.menuVisible = false
+    p.open = function (target) { Nav.open(p, target) }
+    p.openWithoutHistory = function (target) { Nav.openWithoutHistory(p, target) }
+    return p
+}
+
+// The two readings a crumb check makes: what the bar draws, and where each piece would take you.
+function drawn(list) {
+    return list.map(function (c) { return c.text }).join("")
+}
+
+function targets(list) {
+    return list.map(function (c) { return c.path }).join(" ")
+}
+
 function run(check) {
     check("a path's parent is everything above its last separator", Nav.parentOf("/home/gm/Work"), "/home/gm")
     check("a child of the root has the root as its parent", Nav.parentOf("/home"), "/")
@@ -75,6 +99,93 @@ function run(check) {
     check("and leaves the cursor where it was", busy.cursorIndex, 7)
     check("and leaves the locked mode standing too", busy.lockedMode, 0o40750)
     check("and leaves an open rename alone, because the listing did not change", busy.renamingIndex, 4)
+
+    // The in-flight guard has to run before the pop. openWithoutHistory is what refuses a listing
+    // while one is loading, and by then back() has already shortened the history, so a back taken
+    // during a load threw away the directory it was going to and went nowhere.
+    var loading = browsing(["/home/gm"])
+    loading.listInFlight = true
+    Nav.back(loading)
+    check("a back refused during a load keeps the history entry it was going to",
+          loading.history.join(","), "/home/gm")
+    check("and stays in the directory that is still loading", loading.path, "/home/gm/Work")
+    check("and says so, which is the sentence every refused navigation gives",
+          loading.said.join(""), "A directory is already loading.")
+    check("and sends no listing", loading.sent.length, 0)
+
+    // Issue 20 asked for the mouse's back button to climb. Nautilus and Explorer bind that button to
+    // history, so it goes back where there is somewhere to go back to and climbs where there is not:
+    // one button, both meanings, and no forward stack because the chrome draws one arrow.
+    var remembered = browsing(["/home/gm"])
+    Nav.mouseBack(remembered)
+    check("mouse back with history behind it goes to the remembered directory",
+          remembered.path, "/home/gm")
+    check("and takes that entry off, so a second press is not the same place again",
+          remembered.history.join(","), "")
+    var climbing = browsing([])
+    Nav.mouseBack(climbing)
+    check("mouse back with no history climbs, which is the up arrow's own verb",
+          climbing.path, "/home/gm")
+    check("and remembers the directory it left, because climbing is a navigation",
+          climbing.history.join(","), "/home/gm/Work")
+    var atRoot = browsing([])
+    atRoot.path = "/"
+    Nav.mouseBack(atRoot)
+    check("mouse back at the root with no history stays put and asks for no listing",
+          atRoot.path + "|" + atRoot.sent.length, "/|0")
+    var busyBack = browsing(["/home/gm"])
+    busyBack.listInFlight = true
+    Nav.mouseBack(busyBack)
+    check("and a press during a load keeps the history it would have popped",
+          busyBack.history.join(",") + "|" + busyBack.path, "/home/gm|/home/gm/Work")
+    // An open context menu covers the listing and nothing in a navigation closes it, so a press
+    // here left the menu standing over rows from another directory and its next row acted on
+    // whatever had arrived at that index: on Move to Trash that is a different file trashed.
+    var menuUp = browsing(["/home/gm"])
+    menuUp.menuVisible = true
+    Nav.mouseBack(menuUp)
+    check("mouse back behind an open context menu goes nowhere at all",
+          menuUp.path + "|" + menuUp.sent.length, "/home/gm/Work|0")
+    check("and keeps the history entry it would have popped, so the menu's rows stay its own",
+          menuUp.history.join(","), "/home/gm")
+
+    // open()'s own copy of the guard back() carries. The push happened before openWithoutHistory
+    // could refuse the listing, so a crumb clicked during a load stacked the directory the pane was
+    // already standing in and the next back press navigated to where it already was.
+    var busyOpen = browsing([])
+    busyOpen.listInFlight = true
+    Nav.open(busyOpen, "/home/gm")
+    check("an open refused during a load remembers nothing", busyOpen.history.join(","), "")
+    check("and stays where it is, saying the sentence every refused navigation gives",
+          busyOpen.path + "|" + busyOpen.said.join(""),
+          "/home/gm/Work|A directory is already loading.")
+
+    // Issue 45: the chrome's path as the pieces a click can land on. The pieces have to concatenate
+    // to exactly the one line they replace, or the bar draws something nobody asked for, and each
+    // has to name the directory ui/ChromeBar.qml would hand to pathEntered.
+    var under = Nav.crumbs("/home/gm/Work/claude", "/home/gm")
+    check("the crumbs read as the tilde path they replace", drawn(under), "~/Work/claude")
+    check("and each one names the directory it would open",
+          targets(under), "/home/gm /home/gm/Work /home/gm/Work/claude")
+    check("and only the last is the directory the pane is already in",
+          under.map(function (c) { return c.last }).join(","), "false,false,true")
+    var atHome = Nav.crumbs("/home/gm", "/home/gm")
+    check("home itself is one crumb, the bare tilde",
+          drawn(atHome) + "|" + targets(atHome), "~|/home/gm")
+    var outside = Nav.crumbs("/usr/share", "/home/gm")
+    check("a path outside home keeps its leading separator, which is a crumb of its own",
+          drawn(outside) + "|" + targets(outside), "/usr/share|/ /usr /usr/share")
+    var root = Nav.crumbs("/", "/home/gm")
+    check("the root is one crumb and it is the last one",
+          drawn(root) + "|" + targets(root) + "|" + root.length, "/|/|1")
+    var noHome = Nav.crumbs("/home/gm/Work", "")
+    check("with no home in the environment every component is its own crumb",
+          drawn(noHome) + "|" + targets(noHome), "/home/gm/Work|/ /home /home/gm /home/gm/Work")
+    // ui/js/Format.js tilde writes /home/gmx as "~x", which is a wrong label on a line nobody can
+    // click and a wrong destination on one they can, so the crumbs test the separator themselves.
+    var sibling = Nav.crumbs("/home/gmx/deep", "/home/gm")
+    check("a sibling whose name merely starts with home's is outside it, and says so",
+          drawn(sibling) + "|" + targets(sibling), "/home/gmx/deep|/ /home /home/gmx /home/gmx/deep")
 
     // A keyboard rename reveals the row it renamed; one the pointer committed keeps the row the
     // click chose instead, because a write operation targets the selection ahead of the cursor.

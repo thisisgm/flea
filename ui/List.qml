@@ -53,6 +53,8 @@ ListView {
         // filter the two are different. Everything that leaves this delegate takes the listing one.
         readonly property int listingIndex: Filter.at(root.pane.shown, index)
         width: root.width
+        // FleaWindow.html and Search.html are the two surfaces that end a directory name with a slash.
+        dirSuffix: true
         row: root.pane.rowFor(listingIndex)
         cursor: listingIndex === root.pane.cursorIndex
         hovered: hover.hovered
@@ -183,6 +185,17 @@ ListView {
             font.pixelSize: Theme.font.caption
             elide: Text.ElideRight
             textFormat: Text.PlainText
+        }
+    }
+
+    // Empty space under the last row belongs to the directory, not to a row, so it raises the
+    // background menu. indexAt says the point missed every delegate, which is what leaves a right
+    // click on a row to that row's own handler above.
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: function (eventPoint) {
+            if (root.indexAt(root.contentX + eventPoint.position.x, root.contentY + eventPoint.position.y) < 0)
+                root.menu.openBackground(eventPoint.scenePosition)
         }
     }
 

@@ -13,6 +13,7 @@ use crate::backend::mime::Db;
 use crate::backend::dirsizereq::{queue_dirsizes, walk_one_dirsize};
 use crate::backend::fsinfo::{fsinfo_line, read as read_fsinfo};
 use crate::backend::fsinfo::dev_of;
+use crate::backend::listpaths;
 use crate::backend::proto::{error_line, error_line_with_mode, listed_line, parse_request, paths_line, thumbed_line, Request};
 use crate::backend::rows::rows_line;
 use crate::backend::sandbox;
@@ -221,6 +222,8 @@ fn handle_line(
             }
             out.flush().ok();
         }
+        Request::ListPaths { paths, first } =>
+            listpaths::answer(out, st, pool, tb, &paths, first),
         Request::Window { start, count } => {
             write_window(out, st, start, count, tb);
             out.flush().ok();
@@ -327,7 +330,7 @@ fn handle_line(
 }
 
 // A new row order invalidates every outstanding index, so the queue goes and no result can be reported against the new listing.
-fn forget_rows(st: &mut State, pool: &Pool) {
+pub fn forget_rows(st: &mut State, pool: &Pool) {
     st.outstanding = st.outstanding.saturating_sub(pool.cancel_all().len());
     st.asked.clear();
     // A list or a sort changes which row an index names, the same reason thumbnails clear their map.
@@ -386,7 +389,7 @@ pub fn since(t: Instant) -> f64 {
     t.elapsed().as_secs_f64() * 1000.0
 }
 
-fn write_window(out: &mut impl Write, st: &State, start: usize, count: usize, tb: &Tables) {
+pub fn write_window(out: &mut impl Write, st: &State, start: usize, count: usize, tb: &Tables) {
     let (metas, ms) = stat_range(&st.base, &st.listing, start, count);
     let start = start.min(st.listing.len());
     let mut kinds = tb.kinds.borrow_mut();

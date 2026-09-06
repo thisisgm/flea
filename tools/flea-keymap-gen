@@ -73,6 +73,65 @@ pointer() {
   done < "$src"
 }
 
+# Sample input: a [[preset]] block is 'name = "mac"', then 'mods = "ctrl"', then 'key = "1"', then
+# 'keys = "ctrl-1"', then 'action = "viewList"', then 'label = "list view"', printed tab separated in
+# that order. label is printed last, so it must be written last in the block, the same rule the three
+# above put on their own final field.
+preset() {
+  local inblock=0 name_="" mods="" key="" keys="" action="" name eq value
+  while read -r name eq value || [ -n "$name" ]; do
+    case "$name" in
+      "[[preset]]") inblock=1; name_=""; mods=""; key=""; keys=""; action=""; continue ;;
+      '['*)         inblock=0; continue ;;
+    esac
+    [ "$inblock" = 1 ] || continue
+    value=${value#\"}
+    value=${value%\"}
+    case "$name" in
+      name)   name_=$value ;;
+      mods)   mods=$value ;;
+      key)    key=$value ;;
+      keys)   keys=$value ;;
+      action) action=$value ;;
+      label)  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$name_" "$mods" "$key" "$keys" "$action" "$value" ;;
+    esac
+  done < "$src"
+}
+
+# Sample input: Return. The cap on the key reads "enter", which is what the boards and the [[sheet]]
+# table both print, so the one Qt name that differs from its own cap is spelled out here.
+cap() {
+  local name=$1
+  [ "$name" = Return ] && name=Enter
+  printf '%s\n' "$name" | tr 'A-Z' 'a-z'
+}
+
+# Sample input: "j<tab>cursorDown" from the text table, "Return<tab>open" from the code table,
+# printed as "text<tab>j<tab>cursorDown" and "code<tab>enter<tab>open". Only bare keys: a chord is
+# never a menu hint, because no board draws one beside a row.
+bare_keys() {
+  pairs text char | while IFS=$'\t' read -r c a; do printf 'text\t%s\t%s\n' "$c" "$a"; done
+  pairs code key  | while IFS=$'\t' read -r k a; do printf 'code\t%s\t%s\n' "$(cap "$k")" "$a"; done
+}
+
+# The one key ui/MenuRow.qml prints beside a row's label, for one action, and empty when the action
+# has no bare key at all. A printable character outranks a key code, because that is what Menus.html
+# draws for every bound row it has. A two-press action is bound under its own arm action, which is
+# why Move to Trash advertises d and not the Delete key beside it.
+hint_for() {
+  local want=$1 kind key action rank best="" best_rank=9
+  while IFS=$'\t' read -r kind key action; do
+    rank=9
+    [ "$kind" = text ] && [ "$action" = "$want" ] && rank=1
+    [ "$kind" = text ] && [ "$action" = "${want}Arm" ] && rank=2
+    [ "$kind" = code ] && [ "$action" = "$want" ] && rank=3
+    [ "$rank" -lt "$best_rank" ] || continue
+    best=$key
+    best_rank=$rank
+  done < "$bare_file"
+  printf '%s\n' "$best"
+}
+
 # Sample input: [digits] holds 'from = 1', 'to = 9' and 'prefix = "tab"'; those three names are unique in the file.
 digit() {
   grep "^$1 = " "$src" | cut -d= -f2 | tr -d ' "'
@@ -82,6 +141,19 @@ digit() {
 # passes by having nothing in it, which is exactly what the [digits] blind spot cost this project.
 if [ -z "$(pointer)" ]; then
   echo "flea-keymap-gen: the [[pointer]] table in $src is missing or unreadable" >&2
+  exit 1
+fi
+
+if [ -z "$(preset)" ]; then
+  echo "flea-keymap-gen: the [[preset]] table in $src is missing or unreadable" >&2
+  exit 1
+fi
+
+bare_file=$(mktemp) || { echo "flea-keymap-gen: could not make a scratch file" >&2; exit 1; }
+trap 'rm -f "$bare_file"' EXIT
+bare_keys > "$bare_file"
+if [ ! -s "$bare_file" ]; then
+  echo "flea-keymap-gen: the [[text]] and [[code]] tables in $src are missing or unreadable" >&2
   exit 1
 fi
 
@@ -97,7 +169,36 @@ fi
   echo ".pragma library"
   echo
   echo "// Generated from keys.toml by tools/flea-keymap-gen. Do not edit."
+  echo "// The selected Mac/Windows preset. A .pragma library holds one copy per QML engine, so"
+  echo "// ui/ViewState.qml sets it once and every caller of lookup() below follows without a"
+  echo "// second wire; an unknown name falls back to mac rather than leaving the map empty."
+  echo "var preset = \"mac\""
+  echo "function setPreset(name) { preset = name === \"windows\" ? \"windows\" : \"mac\" }"
+  echo
+  echo "// The [[preset]] rows of keys.toml, for ui/SettingsPanel.qml's Keys section. code is the Qt"
+  echo "// name the overlay below matches on, so a row here and the binding are the same keys.toml row."
+  echo "var PRESET_KEYS = ["
+  preset | while IFS=$'\t' read -r n m k caps a l; do
+    if [ "$m" = ctrlshift ]; then shift_state=true; else shift_state=false; fi
+    echo "    { preset: \"$n\", ctrl: true, shift: $shift_state, code: \"Key_$k\", keys: \"$caps\", action: \"$a\", label: \"$l\" },"
+  done
+  echo "]"
+  echo
+  echo "// Checked before every shared table, so a preset can claim a chord the shared tables bind."
+  echo "function lookupPreset(name, key, text, modifiers) {"
+  echo "    var ctrl = (modifiers & Qt.ControlModifier) !== 0"
+  echo "    var shift = (modifiers & Qt.ShiftModifier) !== 0"
+  preset | while IFS=$'\t' read -r n m k caps a l; do
+    if [ "$m" = ctrlshift ]; then shift_state=shift; else shift_state="!shift"; fi
+    echo "    if (name === \"$n\" && ctrl && $shift_state && key === Qt.Key_$k) return \"$a\""
+  done
+  echo "    return \"\""
+  echo "}"
+  echo
   echo "function lookup(key, text, modifiers) {"
+  echo "    var chosen = lookupPreset(preset, key, text, modifiers)"
+  echo "    if (chosen.length > 0)"
+  echo "        return chosen"
   echo "    if (modifiers & Qt.ControlModifier) {"
   # A shifted chord is checked before the plain ctrl rows and falls through when unmatched, so a
   # ctrl-shift chord nobody bound still reaches the ctrl row for its key.
@@ -136,6 +237,22 @@ fi
   echo "        return \"$prefix\" + text"
   echo "    }"
   echo "    return \"\""
+  echo "}"
+  echo
+  echo "// The key ui/MenuRow.qml prints beside a menu row, keyed on the row's own action. Only bare"
+  echo "// keys are here: an action reachable by a chord alone leaves its row's hint slot empty, which"
+  echo "// is how Menus.html draws New Folder. Derived from keys.toml, so a hint cannot advertise a key"
+  echo "// nothing is bound to."
+  echo "var HINTS = {"
+  cut -f3 "$bare_file" | sort -u | while read -r a; do
+    hint=$(hint_for "$a")
+    [ -n "$hint" ] && echo "    \"$a\": \"$hint\","
+  done
+  echo "}"
+  echo
+  echo "function hintFor(action) {"
+  echo "    var k = HINTS[String(action)]"
+  echo "    return k ? k : \"\""
   echo "}"
   echo
   echo "// The keymap sheet ui/KeymapSheet.qml draws, from the [[sheet]] table in keys.toml."

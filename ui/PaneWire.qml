@@ -27,8 +27,13 @@ Item {
 
     Flea.Opener {
         id: opener
-        onFailed: function (path) { pane.message("That file could not be opened; check that it still exists.", true) }
+        // A dropped request is the app being busy, not a failure, so it takes the plain role.
+        onBusy: function (path) { pane.message("Still opening the last file; try again in a moment.", false) }
+        // canonicalize proved the path before every failure src/open.rs and src/terminal.rs report under their one status, so neither sentence below names a cause.
+        onFailed: function (path) { pane.message("That file could not be opened; nothing on this system took it.", true) }
         onIsDirectory: function (path) { pane.open(path) }
+        onTerminalBusy: function (path) { pane.message("Still opening the last terminal; try again in a moment.", false) }
+        onTerminalFailed: function (path) { pane.message("That directory could not be opened in a terminal; nothing on this system took it.", true) }
     }
 
     Flea.ShareLink {
@@ -272,7 +277,22 @@ Item {
                 pane.stateMessage = text
             }
             pane.message(text, true)
+            // The copy is whole and only the name it came from is unknown, so re-read the listing and select nothing.
+            if (where === "rename-kept")
+                pane.refresh("")
         }
     }
+
+    // flea --ui-state is a reply from outside the window too. A refused patch, or a state file it
+    // could not write, means the change is on screen and the file does not have it; nothing else
+    // would ever say so, because the window's own read is taken once before the first frame.
+    Connections {
+        target: ViewState
+        function onSaveFailed() { pane.message(Errors.sentence("state", ""), true) }
+    }
+
+    // The other half of the same seam: main() leaves a ui.json it cannot read exactly as the operator
+    // wrote it, and the window draws the shipped defaults, so this says once that none of it was used.
+    Component.onCompleted: if (ViewState.unreadable) pane.message(Errors.sentence("statefile", ""), true)
 
 }

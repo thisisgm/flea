@@ -25,11 +25,23 @@ function sentence(where, message) {
     if (where === "rename") {
         return exists(message) ? "A file with that name is already here." : "That file could not be renamed."
     }
+    // undo reverses a rename through the same call, so this sentence names no direction.
+    if (where === "rename-kept") {
+        return "The copy is complete; the name it came from could not be fully removed and may now be incomplete, so check it before deleting anything."
+    }
     // Deliberately not the capitalised branch: every other mkdir refusal reaches the UI through
     // src/error.rs from_io, which passes std::io::Error::to_string straight through, errno and all.
     if (where === "mkdir") {
         return exists(message) ? "A folder or file with that name is already here."
                                : "That folder could not be created."
+    }
+    // The state file: what was asked for is still on screen, so the sentence says what did not last.
+    if (where === "state") {
+        return "That setting could not be saved."
+    }
+    // And the other way round: main() left a ui.json it could not read alone, so none of it is used.
+    if (where === "statefile") {
+        return "Your saved settings could not be read, so these are the defaults."
     }
     if (where === "duplicate") {
         return "That file could not be duplicated."
@@ -102,4 +114,17 @@ function paneLine(state, message, mode) {
     }
     var modeLine = lockedLine(mode)
     return modeLine.length > 0 ? modeLine : fallback
+}
+
+// The one sentence a credentialed mount reaches the user as, lifted here in the 0.1.4 composition
+// so ui/NetworkMounts.qml keeps its budget. "timeout" answers 124 for its own deadline and the shell
+// answers 126 or 127 for a helper it could not run at all; every other code is the server refusing,
+// which reads as the handshake for the schemes that negotiate one.
+function connectFailure(exitCode, uri) {
+    if (exitCode === 124) return "Connect failed: host did not respond"
+    if (exitCode === 126 || exitCode === 127)
+        return "Connect failed: authentication helper is unavailable"
+    if (/^(ftp|ftps|dav|davs):/i.test(String(uri || "")))
+        return "Connect failed: host refused the TLS handshake"
+    return "Connect failed: authentication was refused"
 }

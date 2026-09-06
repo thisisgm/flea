@@ -1,46 +1,24 @@
 // Rename, duplicate and mkdir: the three operations that answer once, with no started or progress split.
 use crate::backend::copyfile::{copy_any, Progress};
+use crate::backend::renamecompat;
 use crate::backend::undo::Step;
 use crate::error::{from_io, FleaError};
-use std::ffi::{c_char, CString};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
 
-// renameat2's dirfd argument meaning "relative to the current directory"; both paths here are absolute, so it is never consulted.
-const AT_FDCWD: i32 = -100;
-// RENAME_NOREPLACE: fail with EEXIST rather than silently destroying whatever is already at the target.
-const RENAME_NOREPLACE: u32 = 1;
 // How many " copy N" names duplicate will try before giving up rather than looping forever.
 const NAME_TRIES: usize = 999;
 // The default a nameless mkdir starts from, then "New Folder 2" and up while the name is taken.
 const NEW_FOLDER: &str = "New Folder";
-
-// std has no wrapper for the flag that makes rename refuse to clobber, so the syscall is declared here rather than taking a crate.
-extern "C" {
-    fn renameat2(olddirfd: i32, oldpath: *const c_char, newdirfd: i32, newpath: *const c_char, flags: u32) -> i32;
-}
 
 // A name from the client is a trust boundary: anything with a separator would move the file out of its own directory.
 pub fn valid_name(name: &str) -> bool {
     !name.is_empty() && name != "." && name != ".." && !name.contains('/') && !name.contains('\0')
 }
 
-// Rename that refuses to overwrite. std::fs::rename silently replaces the target on Unix, which for a file manager is unrecoverable data loss.
+// Rename that refuses to overwrite. std::fs::rename alone can replace a target on Unix.
 pub fn rename_noreplace(from: &Path, to: &Path) -> Result<(), FleaError> {
-    let (c_from, c_to) = match (path_c(from), path_c(to)) {
-        (Some(a), Some(b)) => (a, b),
-        // corner: a path with an interior NUL cannot reach a syscall, and no listing can produce one.
-        _ => return Err(named("rename", to, "path contains an interior NUL")),
-    };
-    let rc = unsafe { renameat2(AT_FDCWD, c_from.as_ptr(), AT_FDCWD, c_to.as_ptr(), RENAME_NOREPLACE) };
-    if rc == 0 {
-        return Ok(());
-    }
-    Err(from_io("rename", &to.to_string_lossy(), &std::io::Error::last_os_error()))
-}
-
-fn path_c(p: &Path) -> Option<CString> {
-    CString::new(p.as_os_str().as_encoded_bytes()).ok()
+    renamecompat::rename_noreplace(from, to).map_err(|e| from_io("rename", &to.to_string_lossy(), &e))
 }
 
 fn named(where_: &str, path: &Path, msg: &str) -> FleaError {
@@ -51,7 +29,7 @@ fn named(where_: &str, path: &Path, msg: &str) -> FleaError {
     }
 }
 
-// Answers with the new path and the step that puts the old name back.
+// Answers the new path and the step that puts the old name back; a failure answers no step, a kept copy included, because none of undo.rs's four shapes can say which of the two names is whole.
 pub fn rename(path: &Path, to_name: &str) -> Result<(PathBuf, Vec<Step>), FleaError> {
     if !valid_name(to_name) {
         return Err(named("rename", path, "a name cannot be empty, . or .. , or contain a separator"));
@@ -62,7 +40,7 @@ pub fn rename(path: &Path, to_name: &str) -> Result<(PathBuf, Vec<Step>), FleaEr
         // Renaming a file to its own name is not a failure and is not work, so it records nothing.
         return Ok((to, Vec::new()));
     }
-    rename_noreplace(path, &to)?;
+    renamecompat::rename_path(path, &to)?;
     Ok((to.clone(), vec![Step::Moved { from: path.to_path_buf(), to }]))
 }
 
@@ -251,15 +229,18 @@ mod tests {
         assert_eq!(std::fs::read_to_string(dst.join("inside.txt")).unwrap(), "body");
     }
 
-    // A socket answers ENXIO to open(2) for any uid, so it forces the failure a permission error would.
+    // A file with no permission bits answers EACCES to open(2) for every uid but root, and no flea
+    // suite runs as root, so it forces the failure a real permission error would.
     #[test]
     fn duplicating_a_tree_that_fails_short_of_the_end_still_records_the_partial_copy() {
         let d = TestDir::new("duppartial");
         let src = d.dir("tree");
         std::fs::write(src.join("inside.txt"), "body").unwrap();
-        let _sock = std::os::unix::net::UnixListener::bind(src.join("sock")).expect("a socket in the source tree");
+        let shut = src.join("shut.txt");
+        std::fs::write(&shut, "body").unwrap();
+        std::fs::set_permissions(&shut, std::fs::Permissions::from_mode(0o000)).unwrap();
         let (outcome, steps) = duplicate(&src);
-        assert!(outcome.is_err(), "the socket cannot be opened, so the tree copy fails");
+        assert!(outcome.is_err(), "the unreadable file cannot be opened, so the tree copy fails");
         let partial = d.join("tree copy");
         assert!(partial.is_dir(), "the failure left what it had copied");
         assert_eq!(steps, vec![Step::Created { path: partial }], "and the journal gets the partial, so undo can remove it");

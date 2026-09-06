@@ -44,6 +44,25 @@ else
   exit 1
 fi
 
+# The pointer table's own "does" legend, checked against the rows under it rather than read: it has
+# named an effect no row uses and missed two that rows do, through two rounds of editing that line.
+# grep drops the empty token a trailing space on that line would otherwise sort to the front of.
+legend=$(sed -n 's/^# does   *//p' keys.toml | tr ' ' '\n' | grep -v '^$' | sort -u | tr '\n' ' ')
+effects=$(sed -n 's/^does = "\(.*\)"$/\1/p' keys.toml | sort -u | tr '\n' ' ')
+# The denominator, because both extractions are sed against a format: shift either line's spelling
+# and that side yields nothing, and with both shifted empty equalled empty and this printed ok.
+effect_count=$(printf '%s' "$effects" | wc -w)
+if [ "$effect_count" -eq 0 ]; then
+  echo "FAIL the pointer rows yielded no 'does' value at all, so the legend check compared nothing"
+  exit 1
+fi
+if [ "$legend" = "$effects" ]; then
+  echo "ok   the pointer legend names exactly the effects its own rows use"
+else
+  echo "FAIL the pointer legend reads '$legend' and the rows use '$effects'"
+  exit 1
+fi
+
 if diff -u ui/js/Keymap.js "$tmp"; then
   echo "ok   ui/js/Keymap.js matches keys.toml"
   exit 0

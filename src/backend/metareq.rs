@@ -205,6 +205,7 @@ pub fn spawn(row: usize, path: std::path::PathBuf, text: bool, media: bool,
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::fifotest::{mkfifo, peek, FifoWriter, BOUND};
     use crate::backend::linecount::LINE_BUDGET;
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
@@ -353,5 +354,36 @@ mod tests {
         m.target = "/tmp/say \"hi\"".to_string();
         assert!(meta_line(4, &m).contains(r#""target":"/tmp/say \"hi\"""#));
         assert!(meta_line(4, &m).starts_with(r#"{"t":"meta","row":4,"w":0,"h":0"#));
+    }
+
+    // The real path a meta request takes: run.rs hands spawn these arguments and reads back one OpMsg.
+    fn answered(path: &std::path::Path) -> Option<String> {
+        let (tx, rx) = std::sync::mpsc::channel();
+        spawn(7, path.to_path_buf(), true, false, None, tx);
+        match rx.recv_timeout(BOUND) {
+            Ok(OpMsg::Meta { line }) => Some(line),
+            _ => None,
+        }
+    }
+
+    #[test]
+    fn a_meta_request_on_a_fifo_answers_rather_than_leaving_the_row_waiting_forever() {
+        let d = TestDir::new("metafifo");
+        let lonely = d.join("lonely");
+        mkfifo(&lonely);
+        let line = answered(&lonely).expect("a fifo with no writer must still answer");
+        assert!(line.contains(r#""w":0,"h":0"#), "{}", line);
+        assert!(line.contains(r#""lines":0,"partial":false,"lfailed":true"#), "{}", line);
+        let fed = d.join("fed");
+        mkfifo(&fed);
+        // feeding returns only once the bytes are in the pipe, or this case degenerates into the writerless one.
+        let mut writer = FifoWriter::feeding(&fed, "a\nb\nc\n", &d.join("wrote"));
+        let answer = answered(&fed);
+        let left = peek(fed);
+        let stopped = writer.stop();
+        let line = answer.expect("a fifo with a writer must answer without reading it");
+        assert!(line.contains(r#""lines":0,"partial":false,"lfailed":true"#), "{}", line);
+        assert_eq!(left, b"a\nb\nc\n".to_vec(), "a meta request must never eat a pipe someone else is reading");
+        assert!(stopped, "the writer this test started is killed by its own pid");
     }
 }

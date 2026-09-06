@@ -38,6 +38,34 @@ re-scanning: `sort` reorders whichever listing `list` last produced and cannot a
 remove rows, so changing `hidden` always means a fresh `list`, which is also what
 clears the cursor and selection back to row 0.
 
+### listpaths
+
+`{"c":"listpaths","paths":[<string>,...],"first":<uint>}`
+
+Example: `{"c":"listpaths","paths":["/home/gm/Pictures/a.png","/home/gm/Downloads"],"first":80}`
+
+Builds a fresh listing out of the paths the client names, replacing the current one, and answers a
+`listed` line followed immediately by a `rows` line covering rows `0..first`, exactly as `list`
+does. The listing's base is `/` and each entry is its absolute path with the leading slash removed,
+so `window`, `thumb`, `paths` and every other per-row facility keep working with no special case
+anywhere; that is the same shape a `search` listing takes, for the same reason. The client splits
+the last `/` itself when it wants to draw a name rather than a path.
+
+**Nothing is sorted.** The order the client sent is the order it gets back, because the one caller
+is the picker's Recent location and its order is the history's own, newest first; a sort by name
+would throw that away. `read` on the `listed` line is the time this build took and `sort` is always
+`0.0`.
+
+**A path that does not exist is dropped, not listed.** The build `lstat`s each one, so a history
+entry whose file has since been deleted never reaches the client, rather than arriving as a row
+whose `p`, `s` and `m` are all 0. A path that is not absolute, and the root itself, are dropped the
+same way: this list is read out of a file every application on the desktop writes, so it is checked
+here rather than trusted. The type recorded in `d` is the link's own, the same rule `list` follows,
+so a symlink to a directory is listed as a file and a symlink to nothing is still an entry.
+
+There is no cancel and no streaming: the build is one `lstat` per path inside the read loop, and the
+one caller sends a few hundred at most.
+
 ### window
 
 `{"c":"window","start":<uint>,"count":<uint>}`
@@ -298,6 +326,10 @@ lines and exactly one `transferitem`, then one `transferdone`.
 `rename(2)`; a cross-filesystem move is a copy followed by removing the source, and the source is only
 removed once the copy is complete, so a process killed mid-move leaves the source intact and a partial
 file at the destination, never the reverse. A symlink is copied as a symlink and never followed. A
+fifo or a socket is recreated at the destination with the source's own mode rather than opened,
+because neither holds contents to stream and an open of one would wait for a writer or fail. A device
+node takes the same path, but creating one needs `CAP_MKNOD`, so an unprivileged copy fails that item
+with `EPERM` instead of recreating it; either way nothing streams from a device that never ends. A
 destination that already exists is refused for that item rather than overwritten, because every write
 here creates its target exclusively. Directory recursion is invisible on this wire: the backend walks a
 tree to copy it and the client sees only the top-level item's lines, so the wire's shape does not depend
@@ -362,8 +394,26 @@ loss, and the check-then-rename alternative leaves a window in which another pro
 target. Renaming a file to the name it already has is not an error and is not work: it answers `ok` and
 records nothing to undo.
 
-Unlike the three above, this answers on the loop's own thread: it is a single syscall, so spawning a
-thread would cost more than the work.
+**A rename that cannot prove the source survived whole answers `rename-kept`.** Two measured mounts cannot serve
+`RENAME_NOREPLACE`: an `fuse.rclone` directory answers `EINVAL`, and a path under a
+`/run/user/*/gvfs/dav:` WebDAV mount answers `EIO`. On those, the backend builds the new name through the same exclusive copy primitives every
+other write uses and removes the source only once that copy is complete. The copy is taken back only on proof the source
+survived whole: a source that still stats as anything but a directory after the failed removal, since
+`remove_file` removes every other kind with one unlink that either takes effect or does not. That answers a plain `rename`
+error, and so does a failure to take the copy back, in which case the copy stays under the new name
+and that error's `path` is the copy rather than the source. Every other state keeps the copy, a directory source because `remove_dir_all`
+stops at its first failure, and a source that no longer stats because an errno alone cannot tell a
+removal that took effect from one that did not. The request then answers an `error` line whose
+`where` is `rename-kept`, whose `path` is
+the source, and whose `msg` is the removal's own message; the target is on neither field. Neither
+direction journals the kept copy, so no `undo` removes it: the removal can stop partway, and one error
+with no account of how far it got cannot tell a whole source from a remnant or from one already gone. An `undo` reverses a
+rename through the same call, so a reversal that half succeeds answers this same `where`.
+
+Unlike the three above, this answers on the loop's own thread: the ordinary case is one `renameat2`,
+which costs less than spawning a thread. The two compatibility paths above are not one syscall and
+run on that same thread, so a directory rename on rclone copies the whole tree inline before it
+answers. See `AGENTS.md`, "Write operations and the undo journal".
 
 ### duplicate
 
@@ -428,7 +478,9 @@ lines whatever `text` says, because the newlines in a bitmap are a number nothin
 `{"c":"undo"}`
 
 Reverses the most recent completed operation and answers one `undone` line naming which kind it was.
-An empty journal, or a reversal that itself fails, answers an `error` line with `where` of `undo`.
+An empty journal answers an `error` line with `where` of `undo`, and so does a reversal that fails
+removing what an operation created or restoring from the trash. A reversal that renames back goes
+through the same call a `rename` does, so its failure answers `rename` or `rename-kept` instead.
 
 **The journal is an in-memory ring of the last 50 completed operations and is not persisted**, so it
 does not survive a restart. Each kind reverses as follows: a rename or a move renames back (still
@@ -482,7 +534,7 @@ where a move was meant is an annoyance and moving where a copy was meant loses t
 
 ### rows
 
-`{"t":"rows","start":<uint>,"rows":[{"n":<string>,"d":<bool>,"s":<uint>,"m":<int>,"p":<uint>,"i":<string>,"t":<bool>,"k":<uint>[,"v":<uint>]},...],"kinds":[<string>,...],"ms":<float>}`
+`{"t":"rows","start":<uint>,"rows":[{"n":<string>,"d":<bool>,"s":<uint>,"m":<int>,"p":<uint>,"i":<string>,"t":<bool>,"k":<uint>[,"l":<string>][,"v":<uint>]},...],"kinds":[<string>,...],"ms":<float>}`
 
 Example:
 `{"t":"rows","start":0,"rows":[{"n":"say \"hi\".txt","d":false,"s":12,"m":1787790423,"p":33188,"i":"text-x-generic","t":false,"k":0},{"n":"photos","d":true,"s":4096,"m":1787790424,"p":16877,"i":"folder","t":false,"k":1,"v":56}],"kinds":["Plain text document","Folder"],"ms":1.250}`
@@ -499,6 +551,16 @@ directory reports `d:false` and carries `S_IFLNK` in `p`), a size in bytes (`s`)
 mtime as a unix timestamp (`m`), a raw `st_mode` (`p`), a freedesktop icon name
 (`i`), a thumbnailable flag (`t`), and a Kind index (`k`, into the envelope's own
 `kinds` array).
+
+**`l` is where a symlink points, and only a symlink row carries it.** It is the link's own bytes,
+verbatim and unresolved, so a relative target stays relative and a broken link still names where it
+points; a `readlink` that fails leaves the field off entirely, the same as any other row. The row it
+sits on is the one that already pays a second stat for its icon, so the extra call lands on the rows
+that were already the exception and on no others, and the scale fixture holds no links at all. A row
+never carries both `l` and `v`: `d` is the link's own type, so a symlink's `d` is `false` and it is
+never the directory row `v` is for. The client draws the target beside the name and the word `link`
+in the size column, because a link's own `st_size` is the length of that target path and not a size
+anyone means.
 
 **`v` is the row's filesystem id, and only a directory row carries it.** A drop destination is
 always a directory, so a file row's device would never be read, and the scale fixture is 100,000
@@ -700,12 +762,20 @@ streamed and counting all of it costs no memory. `names` is capped at the first 
 entries, which is the only part that is bounded: the tile lists those and states the difference as
 its own "+ N more" line.
 
-`lfailed` is true when the file could not be opened for the line count at all, which on this box
-means permission denied or a row that vanished between the listing and the request. It is what tells
-`lines` 0 apart from an empty file, whose `lines` is also 0: zero is a real count, so unlike `mode`
-on an `error` line it cannot carry the failure itself. A row that never asked for a count sends
-`lines` 0 and `lfailed` false, the same as a row whose count really is zero, because nothing was
-attempted; the client knows which kind it asked about.
+`lfailed` is true when the row produced no count at all, which on this box
+means permission denied, a row that is not a regular file, or a row that vanished between the
+listing and the request. **Nothing but a regular file is ever read here or for `w` and `h`**: a
+`stat` refuses every other kind before any open, so a FIFO that `stat` sees is never opened at all
+and its waiting writer is left where it was, and the open behind that stat is `O_NONBLOCK` with a
+second `fstat` on the descriptor, so a row swapped for a FIFO inside that window is closed again
+instead of leaving the row waiting forever. That one open does wake a writer parked in `open(2)`, and
+closing it unread hands that writer an `EPIPE` on its next write if nothing else is reading: it is
+the cost of refusing a swap the `stat` cannot see, not a case the `stat` avoids. A FIFO, a socket, a
+device or a directory answers its `stat` facts with no dimensions and no count. It is what tells
+`lines` 0 apart from an empty file, whose `lines` is also 0: zero is a real count, so
+unlike `mode` on an `error` line it cannot carry the failure itself. A row that never asked for a
+count sends `lines` 0 and `lfailed` false, the same as a row whose count really is zero, because
+nothing was attempted; the client knows which kind it asked about.
 
 `afailed` is true when the listing was not completed, which covers a tool that could not read the
 archive and a read that outran its wall-clock budget. **A failed read sends `entries` 0, `unpacked` 0
@@ -816,7 +886,10 @@ failed to read), `sort` (a `sort` whose key names no order this wire defines; `p
 carries the key as sent), or `read` (the
 stdin stream itself could not be decoded; the loop stops right after emitting this
 line, because the framing cannot be trusted past that point; thumbnail work already
-running is still drained after it, so a `thumbed` line can follow). `error_line`
+running is still drained after it, so a `thumbed` line can follow). The write
+operations answer over the same stdout and name themselves the same way, and
+`rename-kept` (see `rename`) is the only value on this wire that is not one lowercase
+word, so a client matching this field must allow the hyphen. `error_line`
 is also how `flea --prewarm` reports a failure, to stderr rather than over this wire
 protocol. `where` names whichever operation actually failed: a missing or unreadable
 `path` propagates `scan`'s error unchanged, so `where` reads `scan` there too; only a

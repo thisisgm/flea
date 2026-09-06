@@ -61,6 +61,12 @@ function run(check) {
         + 'file:///home/gm/Downloads Downloads\n'
         + 'smb://192.168.1.10/data/ Homelab\n')
 
+    // The asymmetry ui/js/Mounts.js "removeBookmark" does not have: it reads each line off the
+    // trimmed text, so an indented bookmark is one Remove can drop and Rename could only duplicate.
+    check("an indented line is the line that rewrites, not a second line appended",
+        Places.relabel("  smb://192.168.1.10/data NAS\n", "smb://192.168.1.10/data", "Homelab"),
+        "smb://192.168.1.10/data Homelab\n")
+
     // relabel is a trust boundary of its own: an embedded newline must not split one line into two.
     check("an embedded newline in the name cannot fork a new line", Places.relabel(netFile, "smb://192.168.1.10/data", "Home\nlab"),
         'file:///home/gm/Downloads Downloads\n'

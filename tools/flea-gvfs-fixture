@@ -21,7 +21,7 @@ set -u
 # A bookmarks line for it, which is what puts an unmounted row on the rail to activate:
 #   printf '%s FixShare\n' "$(tools/flea-gvfs-fixture uri)" > "$HOME/.config/gtk-3.0/bookmarks"
 #
-# To drive the wedge that ui/NetworkMounts.qml's listTimeoutMs exists for, put a gio on PATH ahead of
+# To drive the wedge that ui/MountListing.qml's timeoutMs exists for, put a gio on PATH ahead of
 # the real one that sleeps on "mount -l" and execs /usr/bin/gio for everything else. The same shape
 # with lsblk drives ui/DeviceMounts.qml. A stub that cannot hang cannot catch a hang, which is why
 # tests/ui.sh case_sharebrowser, whose stub prints nothing for "mount -l", never caught either.

@@ -57,9 +57,11 @@ pub fn rows_line(
         // destination: canDrop requires d true, so a file row's device would never be read. On the
         // 100k scale fixture, which holds no directories at all, this adds nothing whatsoever.
         let dev = if is_dir { format!(r#","v":{}"#, m.dev) } else { String::new() };
+        // Only a symlink carries a target, the same conditional shape v uses, and never both: a symlink's d is false.
+        let link = if m.target.is_empty() { String::new() } else { format!(r#","l":"{}""#, escape(&m.target)) };
         // The icon is escaped like every other field: the escape is the contract, not an optimisation.
         s.push_str(&format!(
-            r#"{{"n":"{}","d":{},"s":{},"m":{},"p":{},"i":"{}","t":{},"k":{}{}}}"#,
+            r#"{{"n":"{}","d":{},"s":{},"m":{},"p":{},"i":"{}","t":{},"k":{}{}{}}}"#,
             escape(name),
             is_dir,
             m.size,
@@ -68,6 +70,7 @@ pub fn rows_line(
             escape(icon),
             can_thumb,
             k,
+            link,
             dev
         ));
     }
@@ -123,8 +126,8 @@ mod tests {
         l.push("say \"hi\".txt", false);
         l.push("sub", true);
         let metas = vec![
-            Meta { size: 12, mtime: 1787790423, mode: 33188, target_is_dir: false, dev: 0 },
-            Meta { size: 4096, mtime: 1787790424, mode: 16877, target_is_dir: false, dev: 42 },
+            Meta { size: 12, mtime: 1787790423, mode: 33188, target_is_dir: false, target: String::new(), dev: 0 },
+            Meta { size: 4096, mtime: 1787790424, mode: 16877, target_is_dir: false, target: String::new(), dev: 42 },
         ];
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         let s = rows_line(&l, &metas, 0, 1.25, &mime, &icons, &aliases, &thumbs, &mut kinds);
@@ -141,10 +144,39 @@ mod tests {
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         let mut l = Listing::new();
         l.push("linkdir", false);
-        let metas = vec![Meta { size: 1, mtime: 2, mode: 0o120777, target_is_dir: true, dev: 0 }];
+        let metas = vec![Meta { size: 1, mtime: 2, mode: 0o120777, target_is_dir: true, target: String::new(), dev: 0 }];
         let line = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
         assert!(line.contains(r#""d":false"#), "d describes the link: {}", line);
         assert!(line.contains(r#""i":"folder""#), "the icon describes the target: {}", line);
+    }
+
+    #[test]
+    fn only_a_symlink_carries_its_target_and_a_plain_row_carries_no_l_at_all() {
+        let (mime, icons, aliases, thumbs, mut kinds) = dbs();
+        let mut l = Listing::new();
+        l.push("shell", false);
+        l.push("notes.txt", false);
+        let metas = vec![
+            Meta { size: 18, mtime: 2, mode: 0o120777, target_is_dir: true,
+                   target: "/usr/share/omarchy".to_string(), dev: 0 },
+            Meta { size: 4, mtime: 5, mode: 33188, target_is_dir: false, target: String::new(), dev: 0 },
+        ];
+        let line = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+        assert!(line.contains(r#""n":"shell","d":false"#), "d still describes the link: {}", line);
+        assert!(line.contains(r#""l":"/usr/share/omarchy""#), "the link carries its target: {}", line);
+        assert_eq!(line.matches(r#""l":"#).count(), 1, "the plain row carries no l: {}", line);
+    }
+
+    #[test]
+    fn a_target_with_a_quote_in_it_is_escaped_like_every_other_field() {
+        let (mime, icons, aliases, thumbs, mut kinds) = dbs();
+        let mut l = Listing::new();
+        l.push("odd", false);
+        let metas = vec![Meta { size: 1, mtime: 2, mode: 0o120777, target_is_dir: false,
+                                target: "say \"hi\"/two\nlines".to_string(), dev: 0 }];
+        let line = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
+        assert_eq!(line.lines().count(), 1, "a newline in a target stays on one line: {}", line);
+        assert!(line.contains(r#""l":"say \"hi\"/two\nlines""#), "{}", line);
     }
 
     #[test]
@@ -154,8 +186,8 @@ mod tests {
         l.push("notes.txt", false);
         // Real st_mode values, because the flag now reads the file type out of the mode.
         let metas = vec![
-            Meta { size: 1, mtime: 2, mode: 33188, target_is_dir: false, dev: 0 },
-            Meta { size: 4, mtime: 5, mode: 33188, target_is_dir: false, dev: 0 },
+            Meta { size: 1, mtime: 2, mode: 33188, target_is_dir: false, target: String::new(), dev: 0 },
+            Meta { size: 4, mtime: 5, mode: 33188, target_is_dir: false, target: String::new(), dev: 0 },
         ];
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         let s = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
@@ -167,7 +199,7 @@ mod tests {
     fn a_newline_in_a_name_stays_on_one_line() {
         let mut l = Listing::new();
         l.push("two\nlines.txt", false);
-        let metas = vec![Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, dev: 0 }];
+        let metas = vec![Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, target: String::new(), dev: 0 }];
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         let s = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
         assert_eq!(s.lines().count(), 1);
@@ -180,7 +212,7 @@ mod tests {
         l.push("zero.txt", false);
         l.push("one.txt", false);
         l.push("two-dir", true);
-        let metas = vec![Meta { size: 7, mtime: 8, mode: 9, target_is_dir: false, dev: 77 }];
+        let metas = vec![Meta { size: 7, mtime: 8, mode: 9, target_is_dir: false, target: String::new(), dev: 77 }];
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         assert_eq!(
             rows_line(&l, &metas, 2, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds),
@@ -194,8 +226,8 @@ mod tests {
         l.push("a.txt", false);
         l.push("b.txt", false);
         let metas = vec![
-            Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, dev: 0 },
-            Meta { size: 4, mtime: 5, mode: 6, target_is_dir: false, dev: 0 },
+            Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, target: String::new(), dev: 0 },
+            Meta { size: 4, mtime: 5, mode: 6, target_is_dir: false, target: String::new(), dev: 0 },
         ];
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         let s = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
@@ -207,7 +239,7 @@ mod tests {
     fn a_type_nothing_can_describe_reads_as_data_and_never_as_an_icon_name() {
         let mut l = Listing::new();
         l.push("thing.zzzznotreal", false);
-        let metas = vec![Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, dev: 0 }];
+        let metas = vec![Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, target: String::new(), dev: 0 }];
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         let s = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
         // No glob matches, so there is no type to describe. The icon ladder still falls to
@@ -222,7 +254,7 @@ mod tests {
     fn a_control_character_in_a_name_is_escaped() {
         let mut l = Listing::new();
         l.push("bell\u{7}tab\ttwo\nlines", false);
-        let metas = vec![Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, dev: 0 }];
+        let metas = vec![Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, target: String::new(), dev: 0 }];
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         let s = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
         assert_eq!(s.lines().count(), 1);
@@ -233,7 +265,7 @@ mod tests {
     fn a_start_past_the_end_emits_no_rows() {
         let mut l = Listing::new();
         l.push("only.txt", false);
-        let metas = vec![Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, dev: 0 }];
+        let metas = vec![Meta { size: 1, mtime: 2, mode: 3, target_is_dir: false, target: String::new(), dev: 0 }];
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         // run.rs clamps start to l.len() before calling rows_line, see docs/protocol.md.
         assert_eq!(
@@ -249,12 +281,12 @@ mod tests {
         let (mime, icons, aliases, thumbs, mut kinds) = dbs();
         // A fifo, a socket, a character device and a vanished row, all carrying a name a thumbnailer declares.
         for mode in [0o010644, 0o140644, 0o020644, 0] {
-            let metas = vec![Meta { size: 1, mtime: 2, mode, target_is_dir: false, dev: 0 }];
+            let metas = vec![Meta { size: 1, mtime: 2, mode, target_is_dir: false, target: String::new(), dev: 0 }];
             let s = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
             assert!(s.contains(r#""i":"image-x-generic","t":false"#), "mode {:o} was offered", mode);
         }
         // The symlink is true, because the request path stats the target before it queues anything.
-        let metas = vec![Meta { size: 1, mtime: 2, mode: 0o120777, target_is_dir: false, dev: 0 }];
+        let metas = vec![Meta { size: 1, mtime: 2, mode: 0o120777, target_is_dir: false, target: String::new(), dev: 0 }];
         let s = rows_line(&l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
         assert!(s.contains(r#""i":"image-x-generic","t":true"#));
     }

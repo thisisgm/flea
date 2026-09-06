@@ -3,6 +3,8 @@ use crate::json::{escape, field_bool, field_str, field_str_array, field_usize, f
 
 pub enum Request {
     List { path: String, first: usize, hidden: bool },
+    // A listing built from paths the client names, in the order it named them; the picker's Recent.
+    ListPaths { paths: Vec<String>, first: usize },
     Window { start: usize, count: usize },
     Sort { by: String, desc: bool },
     Search { path: String, query: String, hidden: bool },
@@ -49,6 +51,7 @@ pub fn parse_request(line: &str) -> Request {
             // A missing hidden is false, so an older client's request still lists dotfile-free.
             hidden: field_bool(line, "hidden"),
         },
+        Some("listpaths") => Request::ListPaths { paths: field_str_array(line, "paths"), first: field_usize(line, "first").unwrap_or(0) },
         Some("window") => Request::Window {
             start: field_usize(line, "start").unwrap_or(0),
             count: field_usize(line, "count").unwrap_or(0),

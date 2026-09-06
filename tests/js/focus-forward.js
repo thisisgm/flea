@@ -1,4 +1,5 @@
 .import "../../ui/js/Focus.js" as Focus
+.import "../../ui/js/PreviewKeys.js" as PreviewKeys
 
 function closed() {
     return { active: false, isMedia: false, isPdf: false }
@@ -102,9 +103,9 @@ function run(check) {
     check("PDF lookup does not inspect the hidden listing", pdf.rowsRead.length, 0)
 
     var reader = pdfPreview()
-    Focus.previewAct("pageForward", { preview: reader })
-    Focus.previewAct("pageForward", { preview: reader })
-    Focus.previewAct("parent", { preview: reader })
+    PreviewKeys.act("pageForward", { preview: reader })
+    PreviewKeys.act("pageForward", { preview: reader })
+    PreviewKeys.act("parent", { preview: reader })
     check("l advances the PDF and h retreats it", reader.page, 1)
 
     var media = pane(null)

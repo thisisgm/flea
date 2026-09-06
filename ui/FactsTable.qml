@@ -10,8 +10,8 @@ Column {
 
     spacing: Theme.spacing.hairline * 3
 
-    // The widest label the twelve states use, so the value column starts at the same place in all of them.
-    readonly property int labelWidth: labelMetrics.width
+    // The widest label the twelve states use, by advanceWidth because width drops the trailing gutter space.
+    readonly property int labelWidth: labelMetrics.advanceWidth
 
     TextMetrics {
         id: labelMetrics

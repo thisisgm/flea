@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
+import "js/Keymap.js" as Keymap
 import "js/Menu.js" as Menu
 
 // One context-menu row: the glyph slot, the label, and the disclosure a submenu row carries.
@@ -29,6 +30,11 @@ Item {
     readonly property bool isSubmenu: Menu.hasSubmenu(root.entry)
     // A danger row takes the theme's error role for both its mark and its label, never a hardcoded red.
     readonly property bool danger: root.entry.danger === true
+    // The key this row's action answers to, right-aligned per Menus.html. Derived from keys.toml
+    // through the generated map, so an unbound action leaves the slot empty rather than guessing.
+    // Empty with the Menus section's hints row off, which takes the slot's width with it.
+    readonly property string hint: root.isSeparator || !ViewState.keyHints
+                                 ? "" : Keymap.hintFor(root.entry.action)
     readonly property color markColor: root.danger ? Theme.color.error
                                      : root.picked ? Theme.color.accent : Theme.color.muted
     readonly property color labelColor: root.danger ? Theme.color.error
@@ -105,7 +111,7 @@ Item {
         visible: !root.isSeparator
         anchors.left: markSlot.right
         anchors.leftMargin: Theme.spacing.gap
-        anchors.right: chevronSlot.left
+        anchors.right: hintText.left
         anchors.rightMargin: Theme.spacing.gap
         anchors.verticalCenter: parent.verticalCenter
         text: root.entry.label !== undefined ? root.entry.label : ""
@@ -114,6 +120,23 @@ Item {
         font.pixelSize: Theme.font.bodySmall
         textFormat: Text.PlainText
         elide: Text.ElideRight
+    }
+
+    // The shortcut hint. An unbound row draws nothing and takes no width, so a menu of unbound rows
+    // reads exactly as it did before this slot existed.
+    Text {
+        id: hintText
+        visible: root.hint.length > 0
+        anchors.right: chevronSlot.left
+        anchors.rightMargin: root.isSubmenu ? Theme.spacing.gap : 0
+        anchors.verticalCenter: parent.verticalCenter
+        text: root.hint
+        // Menus.html paints an enabled row's hint in its label's own ink and keeps muted for the
+        // disabled row's; no menu entry in this tree can be disabled, so every hint follows the label.
+        color: root.labelColor
+        font.family: Theme.font.family
+        font.pixelSize: Theme.font.caption
+        textFormat: Text.PlainText
     }
 
     // The disclosure is a cut glyph, not the "▸" font dingbat the menu used to mix into a path language.

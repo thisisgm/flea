@@ -1,4 +1,5 @@
 .import "../../ui/js/Columns.js" as Columns
+.import "../../ui/js/Picker.js" as Picker
 
 // Below about 659 px of window the four fixed columns claimed the whole row and the filename had a
 // negative slot, so ui/Row.qml drew every column except the one a file manager exists for. These
@@ -11,6 +12,14 @@ var BOX = { rowPaddingX: 14, gap: 9, iconSize: 23, nameMin: 156, mode: 70, size:
 
 // A second set that shares no number with the first, so nothing here can pass on a constant.
 var OTHER = { rowPaddingX: 6, gap: 4, iconSize: 16, nameMin: 100, mode: 40, size: 50, date: 80, kind: 60 }
+
+// The chooser's own tokens: BOX with Theme.column.pickerDate in place of the window's date, which
+// the seam resolves to 80 at base-size 14, SendPicker.html's own slot.
+var PICKER = { rowPaddingX: 14, gap: 9, iconSize: 23, nameMin: 156, mode: 70, size: 70, date: 80, kind: 130 }
+
+// The chooser's list area on this box: Hyprland floats the picker at 875 px and ui/PickerPlaces.qml
+// takes Theme.space(150), 175 px of it, measured off the window Hyprland reported for flea --pick.
+var PICKER_SLOT = 700
 
 // The anchor chain in ui/Row.qml, walked here independently of ui/js/Columns.js: the row, less its
 // padding either side, the mark and the gap after it, and every drawn column with its own gap.
@@ -25,6 +34,7 @@ function nameSlot(width, s, t) {
 
 function run(check) {
     runHidden(check)
+    runPicker(check)
     var f = Columns.floors(BOX)
     // 216 is the name at its floor with no metadata at all: 14 + 23 + 9 + 156 + 14.
     check("mode needs the name's floor plus its own column and gap", f.mode, 295)
@@ -96,6 +106,28 @@ function run(check) {
           "name,mode,size,date,kind")
     check("the name is in the set even when everything else is gone",
           Columns.names({ mode: false, size: false, date: false, kind: false }), "name")
+}
+
+// SendPicker.html draws a chooser row as the name, a 70 px size and an 80 px date, and nothing
+// else, so ui/PickerList.qml hands ui/Row.qml Picker.HIDDEN_COLS instead of the window's own set.
+// Without it the chooser inherited whatever the header menu had switched on for the browser window.
+
+function runPicker(check) {
+    // The negative control: the chooser's slot affords all five, which is what it drew with the
+    // window's set and Mode and Kind switched on.
+    check("the chooser's own slot is wide enough for every column",
+          Columns.names(Columns.set(PICKER_SLOT, PICKER)), "name,mode,size,date,kind")
+    check("the chooser draws the board's three and nothing else",
+          Columns.names(Columns.set(PICKER_SLOT, PICKER, Picker.HIDDEN_COLS)), "name,size,date")
+
+    // Not only at that width: no width brings a column the chooser's board does not have.
+    var everDrawn = false
+    for (var w = 3000; w >= 0; w--) {
+        var s = Columns.set(w, PICKER, Picker.HIDDEN_COLS)
+        if (s.mode || s.kind)
+            everDrawn = true
+    }
+    check("no width at all draws Mode or Kind in the chooser", everDrawn, false)
 }
 
 // The user's own hidden set, subtracted from what the width affords: a hidden column never draws,

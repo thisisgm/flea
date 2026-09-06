@@ -9,11 +9,13 @@ pub mod archivework;
 pub mod mime;
 pub mod fsinfo;
 pub mod icons;
+pub mod regfile;
 pub mod imagesize;
 pub mod kind;
 pub mod linecount;
 pub mod dirsize;
 pub mod dirsizereq;
+pub mod listpaths;
 pub mod scan;
 pub mod fuzzy;
 pub mod search;
@@ -41,11 +43,17 @@ pub mod thumbwrite;
 // File operations and the undo journal they record into.
 pub mod convert;
 pub mod copyfile;
+pub mod copynode;
 pub mod ops;
 pub mod opsdispatch;
 pub mod opsreq;
+mod mountinfo;
+mod renamecompat;
 pub mod trash;
 pub mod undo;
 // Test-only: hard rule 9's sandbox root, so no destructive test names a path outside one.
 #[cfg(test)]
 pub mod testdir;
+// Test-only: the fifo, writer and bound every hang test shares.
+#[cfg(test)]
+pub mod fifotest;

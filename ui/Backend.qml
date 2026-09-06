@@ -86,6 +86,13 @@ Item {
         root.send({ c: "list", path: path, first: first, hidden: hidden })
     }
 
+    // A listing built from the paths named here, in that order and never sorted; see
+    // docs/protocol.md "listpaths". The header's sort mark is left where the caller set it, because
+    // this listing is in neither of the orders that mark can describe.
+    function listPaths(paths, first) {
+        root.send({ c: "listpaths", paths: paths, first: first })
+    }
+
     function window(start, count) {
         root.send({ c: "window", start: start, count: count })
     }

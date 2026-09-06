@@ -86,6 +86,7 @@ Item {
         visible: root.cols.size
         width: root.cols.size ? Theme.column.size : 0
         text: root.title("Size", "size")
+        horizontalAlignment: Text.AlignRight
 
         TapHandler { enabled: root.sortable; onTapped: root.sortRequested("size") }
     }
@@ -98,6 +99,7 @@ Item {
         visible: root.cols.date
         width: root.cols.date ? Theme.column.date : 0
         text: root.title("Date Modified", "mtime")
+        horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
 
         TapHandler { enabled: root.sortable; onTapped: root.sortRequested("mtime") }

@@ -1,7 +1,7 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
-import "js/Format.js" as Format
+import "js/Nav.js" as Nav
 import "js/PathBar.js" as PathBar
 
 // The window's top chrome, per the canvas: where you are on the left, how you are looking at it on
@@ -29,6 +29,8 @@ Item {
     signal editClosed()
     signal completeRequested(string dir, bool hidden)
     signal said(string text)
+    // The settings panel's pointer door, beside the comma key; see ui/shell.qml for the third.
+    signal settingsRequested()
 
     // The path bar: the same strip, typed instead of drawn. ":" and Ctrl+L open it, so does a double
     // click on the path, and it is where the whole of keys.toml's pathBar action lands.
@@ -36,6 +38,10 @@ Item {
     // What the seam reads: the line as it stands, and the box a test double-clicks to open the bar.
     readonly property alias editText: field.text
     readonly property alias pathArea: pathArea
+    // The elided head's own marker, so a test can click the one spot the crumbs slide underneath.
+    readonly property alias elisionMarker: elision
+    // Issue 45's segments as items, so tests/ui.sh can press one the way it presses a tab.
+    readonly property alias crumbItems: crumbs
     // The directory a Tab is waiting on, and the one that came back. Both are keyed by the hidden
     // flag as well as the path, or a Tab on ".conf" would answer off rows peeked without dotfiles in
     // them: the key is what the request asked for and never what the line happens to read later.
@@ -138,25 +144,12 @@ Item {
         }
     }
 
-    // A path reads as the user writes it, so home comes back as a tilde; the leaf is the directory
-    // you are actually in and takes full contrast, everything above it stays muted.
-    readonly property string display: Format.tilde(root.path, root.home)
-
     // A chrome strip, not a data row; see Theme.qml's chromeHeight comment.
     implicitHeight: Theme.chromeHeight
 
     Rectangle {
         anchors.fill: parent
         color: Theme.color.surface
-    }
-
-    Rectangle {
-        anchors.bottom: parent.bottom
-        anchors.left: parent.left
-        anchors.right: parent.right
-        height: Theme.spacing.hairline
-        color: Theme.color.foreground
-        opacity: 0.12
     }
 
     // A test drives these by coordinate, because a glyph button carries no text to find on screen.
@@ -192,43 +185,10 @@ Item {
         }
     }
 
-    // corner: a path is arbitrary text, so PlainText, the same rule every filename on this surface follows.
-    Text {
-        id: pathText
-        visible: !root.editing
-        anchors.left: nav.right
-        anchors.leftMargin: Theme.spacing.gap
-        anchors.right: views.left
-        anchors.rightMargin: Theme.spacing.gap
-        anchors.verticalCenter: parent.verticalCenter
-        color: Theme.color.muted
-        font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        textFormat: Text.PlainText
-        // The tail identifies the directory, so a path too long for the bar elides from its left.
-        elide: Text.ElideLeft
-        text: Format.parentPart(root.display)
-    }
-
-    Text {
-        id: leafText
-        visible: !root.editing
-        anchors.left: pathText.left
-        anchors.leftMargin: Math.min(pathText.contentWidth, pathText.width)
-        anchors.right: views.left
-        anchors.rightMargin: Theme.spacing.gap
-        anchors.verticalCenter: parent.verticalCenter
-        text: Format.leafPart(root.display)
-        color: Theme.color.foreground
-        font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        textFormat: Text.PlainText
-        elide: Text.ElideRight
-    }
-
     // Where the path is drawn is where it is typed. A double click opens the bar, which is the
-    // pointer's half of ":" and Ctrl+L; a single click is left alone, because the path is a label
-    // and not a control, and one that armed on a brush past would be in the way of every other click.
+    // pointer's half of ":" and Ctrl+L. Issue 45 made the segments above the leaf a control as well
+    // as a label: one tap on any of them opens that directory, and the leaf is where the pane
+    // already is, so it stays a label and only the bar answers a click on it.
     Item {
         id: pathArea
         anchors.left: nav.right
@@ -238,13 +198,108 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
-        HoverHandler {
-            cursorShape: Qt.IBeamCursor
-        }
+        // The tail identifies the directory, so a path too long for the bar loses its head: the row
+        // slides left inside a clipped slot, which is the left elision the single Text drew, made of
+        // pieces a click can land on.
+        Item {
+            id: crumbSlot
+            visible: !root.editing
+            anchors.fill: parent
+            clip: true
 
-        TapHandler {
-            acceptedButtons: Qt.LeftButton
-            onDoubleTapped: root.startEdit()
+            Row {
+                id: crumbRow
+                anchors.verticalCenter: parent.verticalCenter
+                x: Math.min(0, crumbSlot.width - crumbRow.width)
+
+                Repeater {
+                    id: crumbs
+                    model: Nav.crumbs(root.path, root.home)
+
+                    // corner: a path is arbitrary text, so PlainText, the same rule every filename on this surface follows.
+                    delegate: Text {
+                        id: crumb
+                        required property var modelData
+                        text: crumb.modelData.text
+                        color: crumb.modelData.last ? Theme.color.foreground : Theme.color.muted
+                        font.family: Theme.font.family
+                        font.pixelSize: Theme.font.caption
+                        textFormat: Text.PlainText
+                        // The box is the strip's height with the glyphs centred in it, because the
+                        // handlers below are the path area's whole gesture and a text-tall box left
+                        // 11 of the strip's 27 px dead, measured at the window.
+                        height: crumbSlot.height
+                        verticalAlignment: Text.AlignVCenter
+
+                        HoverHandler {
+                            cursorShape: crumb.modelData.last ? Qt.IBeamCursor : Qt.PointingHandCursor
+                        }
+
+                        // Both flags together, measured on Qt 6.11.2: one of them alone suppresses
+                        // the other signal instead of waiting, and only the pair makes the tap count
+                        // decide, so a double click types the path rather than also navigating.
+                        // The gesture is on the crumb and not on the strip because a TapHandler on a
+                        // parent item takes the second tap away from the child under the pointer.
+                        TapHandler {
+                            acceptedButtons: Qt.LeftButton
+                            exclusiveSignals: TapHandler.SingleTap | TapHandler.DoubleTap
+                            onSingleTapped: if (!crumb.modelData.last) root.pathEntered(crumb.modelData.path)
+                            onDoubleTapped: root.startEdit()
+                        }
+                    }
+                }
+            }
+
+            // The rest of the line, which names no directory and so keeps the plain caret and the
+            // one gesture the whole strip used to carry. It is empty once the path fills the bar.
+            Item {
+                id: typeArea
+                anchors.left: crumbRow.right
+                anchors.right: parent.right
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+
+                HoverHandler {
+                    cursorShape: Qt.IBeamCursor
+                }
+
+                TapHandler {
+                    acceptedButtons: Qt.LeftButton
+                    onDoubleTapped: root.startEdit()
+                }
+            }
+
+            // The head that ran off the left, marked where the elided Text drew its own ellipsis; the
+            // fill behind it is the chrome's own colour, because the crumbs slide underneath it. It
+            // is the marker's box, and that box is the strip's height for the same reason a crumb's is.
+            Rectangle {
+                visible: elision.visible
+                anchors.fill: elision
+                color: Theme.color.surface
+
+                // The crumbs slide under this fill, so without a gesture of its own a press here
+                // opened whichever one had scrolled behind it, a directory nobody could see. A
+                // MouseArea and not a TapHandler: the default DragThreshold policy takes a passive
+                // grab, so the crumb underneath still tapped, measured on the box.
+                MouseArea {
+                    anchors.fill: parent
+                    onDoubleClicked: root.startEdit()
+                }
+            }
+
+            Text {
+                id: elision
+                visible: crumbRow.width > crumbSlot.width
+                anchors.left: parent.left
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                verticalAlignment: Text.AlignVCenter
+                text: "\u2026"
+                color: Theme.color.muted
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.caption
+                textFormat: Text.PlainText
+            }
         }
 
         // The rename editor's own frame, at chrome scale: the accent says which strip has the
@@ -324,5 +379,31 @@ Item {
                 onActivated: root.viewChosen(modelData)
             }
         }
+
+        // The Settings board draws the sliders button at the right end, past a rule that separates
+        // it from the three view buttons: it changes the window, not the way the listing is drawn.
+        // Row lays its own children out, so the rule takes the strip's height rather than anchoring.
+        Rectangle {
+            width: Theme.spacing.hairline
+            height: Theme.chromeHeight
+            color: Theme.color.muted
+            opacity: 0.4
+        }
+
+        Flea.ChromeButton {
+            glyph: "sliders"
+            onActivated: root.settingsRequested()
+        }
+    }
+
+    // The strip's own bottom edge, declared last so it draws over the path area: the elided head's
+    // opaque fill reaches the same row and used to leave a seven pixel gap in it.
+    Rectangle {
+        anchors.bottom: parent.bottom
+        anchors.left: parent.left
+        anchors.right: parent.right
+        height: Theme.spacing.hairline
+        color: Theme.color.foreground
+        opacity: 0.12
     }
 }

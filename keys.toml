@@ -43,42 +43,22 @@ action = "search"
 key = "E"
 action = "eject"
 
-# Finder's Connect to Server. Unlike bare a, which stays a rail key so the list keeps the letter
-# for type-ahead, the chord costs no letter and opens the dialog from either view.
-[[ctrl]]
-key = "K"
-action = "addNetwork"
-
 # Not a Finder chord: Cmd+Shift+G is Go to Folder there, and Ctrl+Shift+G is nothing on this box.
 # Ctrl+L is what Nautilus, Thunar, Dolphin and every browser bind, so the path bar answers to it too.
 [[ctrl]]
 key = "L"
 action = "pathBar"
 
+# Opens the default terminal in the directory being shown, through flea --terminal
+# (xdg-terminal-exec --dir=). Ctrl+T is unbound elsewhere here, and bare t below is tabNew.
 [[ctrl]]
-key = "Delete"
-action = "trash"
-
+key = "T"
+action = "openTerminal"
+# The settings panel's own chord, spelled ctrl-, by both presets and by every editor that has one;
+# the bare comma below is the key the Settings board draws beside the toolbar's sliders button.
 [[ctrl]]
-key = "Up"
-action = "parent"
-
-[[ctrl]]
-key = "Down"
-action = "open"
-
-# Finder's Cmd+1/2/3; the chrome's three buttons write the same viewMode, so they follow the key.
-[[ctrl]]
-key = "1"
-action = "viewList"
-
-[[ctrl]]
-key = "2"
-action = "viewColumns"
-
-[[ctrl]]
-key = "3"
-action = "viewGrid"
+key = "Comma"
+action = "settings"
 
 # Checked before the plain ctrl rows and falling through when unmatched, so Ctrl+Shift+D still
 # pages. Ctrl+Shift+N is Nautilus's own New Folder and Finder's with Cmd read as Ctrl, and the
@@ -88,27 +68,29 @@ action = "viewGrid"
 key = "N"
 action = "newFolder"
 
-# Issue 9: foot's own zoom chords. Plus and Equal both, because + is Shift+= on this layout and
-# the hand presses the one key either way; 0 resets, so a scale is never a state you are stuck in.
+# Issue 9: foot's own zoom chords, which in foot are a text size and are one here too. They are an
+# alias onto the Display section's own control and its one stored stop, never a second engine. Plus
+# and Equal both, because + is Shift+= on this layout and the hand presses the one key either way;
+# 0 goes back to following Omarchy, so an override is never a state you are stuck in.
 [[ctrlshift]]
 key = "Plus"
-action = "scaleUp"
+action = "textSizeUp"
 
 [[ctrlshift]]
 key = "Equal"
-action = "scaleUp"
+action = "textSizeUp"
 
 [[ctrlshift]]
 key = "Minus"
-action = "scaleDown"
+action = "textSizeDown"
 
 [[ctrlshift]]
 key = "Underscore"
-action = "scaleDown"
+action = "textSizeDown"
 
 [[ctrlshift]]
 key = "0"
-action = "scaleReset"
+action = "textSizeReset"
 
 [[ctrlshift]]
 key = "Greater"
@@ -120,6 +102,109 @@ action = "toggleHidden"
 
 # Shift falls through instead of returning, because shift-modified letters already carry their
 # own capital text (see G below); this table only covers the arrow keys, which carry no text.
+# The Mac and Windows preset overlay, the two-value toggle the Keys settings section switches. It is
+# consulted before every table above, so a preset can claim a chord the shared tables also bind, and
+# a chord listed here is live only while its own preset is selected. Default is mac, which is what
+# the shared tables were already written to (Finder's, with Cmd read as Ctrl), so a box that never
+# opens Settings keeps exactly the map v0.1.3 shipped.
+# mods is "ctrl" for a chord with Control and no Shift, "ctrlshift" for both. keys is what the Keys
+# section prints beside the label, and it is spelled the way SettingsKeys.html spells a chord. Each
+# block writes name, mods, key, keys, action, then label, in that order.
+
+# Finder's own chords, read with Cmd as Ctrl the way Omarchy's universal clipboard already delivers
+# them; ui/js/Keymap.js's shared ctrl table keeps only the chords both platforms agree on.
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "1"
+keys = "ctrl-1"
+action = "viewList"
+label = "list view"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "2"
+keys = "ctrl-2"
+action = "viewColumns"
+label = "columns view"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "3"
+keys = "ctrl-3"
+action = "viewGrid"
+label = "grid view"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "Up"
+keys = "ctrl-up"
+action = "parent"
+label = "up one level"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "Down"
+keys = "ctrl-down"
+action = "open"
+label = "open"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "Delete"
+keys = "ctrl-delete"
+action = "trash"
+label = "move to trash"
+
+# Finder's Connect to Server. Bare a stays a shared key, so the Windows preset loses only the chord.
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "K"
+keys = "ctrl-k"
+action = "addNetwork"
+label = "connect to server"
+
+# Explorer's own chords. Backspace, Delete, F2, Ctrl+A, Ctrl+C/V/X, Ctrl+Z, Ctrl+F and Ctrl+Shift+N
+# are already in the shared tables because Finder and Explorer agree on them; these are the four
+# this product can honour where they differ.
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "H"
+keys = "ctrl-h"
+action = "toggleHidden"
+label = "hidden files"
+
+[[preset]]
+name = "windows"
+mods = "ctrlshift"
+key = "1"
+keys = "ctrl-shift-1"
+action = "viewList"
+label = "list view"
+
+[[preset]]
+name = "windows"
+mods = "ctrlshift"
+key = "2"
+keys = "ctrl-shift-2"
+action = "viewColumns"
+label = "columns view"
+
+[[preset]]
+name = "windows"
+mods = "ctrlshift"
+key = "3"
+keys = "ctrl-shift-3"
+action = "viewGrid"
+label = "grid view"
+
 [[shift]]
 key = "Down"
 action = "extendDown"
@@ -136,6 +221,27 @@ action = "cursorDown"
 [[code]]
 key = "Up"
 action = "cursorUp"
+
+# Issue 28: the full-size keyboard's own four. Every one names an action the vim keys already carry,
+# so ui/js/Focus.js takes them for free and tools/flea-acceptance derives each as its own driven
+# item; Home and End are g and G, the page pair is Ctrl+U and Ctrl+D half a screen each, and the
+# curated sheet below draws none of those eight, so all four of cursorFirst, cursorLast, pageUp and
+# pageDown have no row on it.
+[[code]]
+key = "Home"
+action = "cursorFirst"
+
+[[code]]
+key = "End"
+action = "cursorLast"
+
+[[code]]
+key = "PageUp"
+action = "pageUp"
+
+[[code]]
+key = "PageDown"
+action = "pageDown"
 
 [[code]]
 key = "Return"
@@ -162,9 +268,9 @@ action = "escape"
 key = "Tab"
 action = "focusNext"
 
-# Space already owns "open preview" in the browsing state Focus.act handles, and previewAct
-# reuses the same action name to mean "close" once a preview is open, so there is no free
-# context left for a third meaning; toggling selection uses x instead, see it below.
+# Space already owns "open preview" in the browsing state ui/js/Focus.js act handles, and
+# ui/js/PreviewKeys.js act reuses the same action name to mean "close" or "play/pause" once a
+# preview is open, so there is no free context left for a third meaning; v toggles selection.
 [[code]]
 key = "Space"
 action = "preview"
@@ -254,6 +360,11 @@ action = "tabClose"
 char = "y"
 action = "copy"
 
+# The capital-is-the-variant shape g/G, j/J and s/S already use: y takes the file, Y takes the route.
+[[text]]
+char = "Y"
+action = "copydirpath"
+
 [[text]]
 char = "x"
 action = "cut"
@@ -310,6 +421,13 @@ action = "addNetwork"
 [[text]]
 char = "m"
 action = "menu"
+
+# The Settings board's own key: "," from anywhere in the window, no modifier chord, because
+# Omarchy's universal clipboard consumes SUPER+C/V/X and a settings panel is the last place to
+# fight for one. ui/Pane.qml routes it from the list and from the rail alike.
+[[text]]
+char = ","
+action = "settings"
 
 # The sheet's own key. Shift falls through to the text switch, so ? needs no [[shift]] row.
 [[text]]
@@ -387,6 +505,13 @@ keys = "o"
 action = "reveal"
 label = "reveal result"
 
+# Issue 30 asked for a way to search the folder the pane is in, and tab on the query line is it, so
+# the sheet draws the key here rather than leaving the only control the issue got undocumented.
+[[sheet]]
+keys = "tab"
+action = "focusNext"
+label = "search scope, or focus"
+
 [[sheet]]
 keys = ": ^l"
 action = "pathBar"
@@ -396,6 +521,11 @@ label = "go to path"
 keys = "y ^c"
 action = "copy"
 label = "copy"
+
+[[sheet]]
+keys = "Y"
+action = "copydirpath"
+label = "copy folder path"
 
 [[sheet]]
 keys = "x ^x"
@@ -468,14 +598,24 @@ action = "eject"
 label = "eject"
 
 [[sheet]]
+keys = "^t"
+action = "openTerminal"
+label = "open terminal"
+
+[[sheet]]
 keys = "^+"
-action = "scaleUp"
-label = "scale up"
+action = "textSizeUp"
+label = "text size up"
 
 [[sheet]]
 keys = "^-"
-action = "scaleDown"
-label = "scale down"
+action = "textSizeDown"
+label = "text size down"
+
+[[sheet]]
+keys = ","
+action = "settings"
+label = "settings"
 
 [[sheet]]
 keys = "?"
@@ -494,9 +634,11 @@ label = "this sheet"
 # where  listing    the list view, the grid view, and the columns view's own middle column
 #        neighbour  the columns view's parent and child columns, which are peeks with no cursor
 #        rail       ui/SidebarRow.qml: favourites, mounts and network places
+#        window     a press that belongs to no row at all, taken by ui/shell.qml
+#        chrome     ui/ChromeBar.qml's path above the listing, whose segments are their own targets
 # press  the button, then any modifier before it, then "x2" for the second tap of a double click
-# row    which rows the line covers: any, dir, file, renaming or result
-# does   setCursor open menu toggleSelect extendSelect reveal nothing
+# row    which rows the line covers: any, dir, file, parent, renaming or result
+# does   backOrParent commitRename extendSelect goToCrumb menu nothing open pathBar reveal selectOnly toggleSelect
 #
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
 # opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
@@ -612,6 +754,37 @@ press = "right"
 row = "any"
 does = "nothing"
 label = "a peeked row has no menu"
+
+# Issue 45: the path above the listing is a control now as well as a label. Every segment but the
+# leaf opens its own directory on one tap, through the same pathEntered route the typed bar uses; the
+# leaf is the directory already listed, so it has nowhere of its own to go, and the frozen List view
+# board draws it in the foreground role while every segment above it is muted. The row column reads
+# "parent" for that reason: a row saying "crumb" would promise a press the leaf never answers. The
+# double click that opens the bar is declared beside it because the crumb answers that press too:
+# the tap count alone decides between them, and neither runs with the other, measured on the box.
+[[pointer]]
+where = "chrome"
+press = "left"
+row = "parent"
+does = "goToCrumb"
+label = "open the directory that segment of the path names"
+
+[[pointer]]
+where = "chrome"
+press = "left x2"
+row = "any"
+does = "pathBar"
+label = "type the path instead of clicking it"
+
+# Issue 20: the mouse's extra button. It belongs to the window rather than to a row, so it is the one
+# line here with no listing under it; ui/js/Nav.js mouseBack decides, and ui/shell.qml refuses it
+# behind a dialog, an open preview, the share overlay and any field holding the keyboard.
+[[pointer]]
+where = "window"
+press = "back"
+row = "any"
+does = "backOrParent"
+label = "go back through the history, or up a directory when there is none"
 
 [[pointer]]
 where = "rail"

@@ -14,6 +14,18 @@ function run(check) {
     check("plain text is still a document", Icons.glyphFor("text-plain"), "file-text")
     check("an office document", Icons.glyphFor("x-office-document"), "file-text")
 
+    // FleaWindow.html and GridView.html both draw a symlink row with the link mark, and the backend
+    // resolves a link's icon to its target's, so the mode is what decides and the icon name cannot.
+    var LNK = 0o120777
+    var REG = 0o100644
+    check("a symlink to a directory draws the link mark, not the folder its icon names",
+          Icons.glyphForRow("folder", LNK), "symlink")
+    check("a symlink to a file draws it too", Icons.glyphForRow("text-x-generic", LNK), "symlink")
+    check("a real directory is untouched", Icons.glyphForRow("folder", REG), "folder")
+    check("and so is every other row", Icons.glyphForRow("image-x-generic", REG), "image")
+    check("a row with no mode at all falls back to the icon name",
+          Icons.glyphForRow("text-x-generic", 0), "file-text")
+
     // GM ruled the brand marks are reproduced from the official artwork, not recut, so neither is a
     // cut glyph and neither belongs in PATHS. The recut strings must not come back.
     check("tailscale is not a cut glyph", Icons.PATHS["tailscale"] === undefined, true)
@@ -55,6 +67,10 @@ function run(check) {
     // which on the rail reads as a row of documents where the disks should be.
     drawsItsOwnMark("drive")
 
+    // The picker rail's Recent mark, which reaches ui/PickerPlaces.qml by name and falls into the
+    // same silent trap if PATHS never learns it.
+    drawsItsOwnMark("history")
+
     var sidebarNames = ["house", "download", "file-text", "image", "film", "music", "folder-git-2", "folder"]
     for (var j = 0; j < sidebarNames.length; j++) {
         drawsItsOwnMark(sidebarNames[j])
@@ -81,6 +97,12 @@ function run(check) {
     drawsItsOwnMark("eject")
     check("eject is the recut lucide geometry, not the canvas's own hand variant",
           Icons.pathFor("eject"), "M12 2 22 13H2z M3 17h18v4H3z")
+
+    // The background menu's Sort by row. IconSets.html names this mark and Menus.html draws it, and
+    // its short segments are the reason that board caps the optional corner radius at 0.8.
+    drawsItsOwnMark("sort")
+    check("sort is the board's own geometry, three rules over a bare down arrow",
+          Icons.pathFor("sort"), "M11 5h10 M11 9h7 M11 13h4 M7 5v14 M7 19l-3-3 M7 19l3-3")
 
     // ui/ContextMenu.qml's New Folder row. The mark is drawn on Main.dc.html's specimen sheet with
     // no consumer, and GM's ruling is that recut lucide geometry wins over the board's hand drawing.

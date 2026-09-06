@@ -72,8 +72,10 @@ function relabel(body, path, name) {
     var lines = String(body || "").split("\n")
     var found = false
     for (var i = 0; i < lines.length; i++) {
-        var line = lines[i]
-        if (line.trim().length === 0)
+        // Read off the trimmed line the way Mounts.removeBookmark reads it, or an indented bookmark
+        // is one Remove can drop and this could only ever duplicate.
+        var line = lines[i].trim()
+        if (line.length === 0)
             continue
         var space = line.indexOf(" ")
         var uri = space < 0 ? line : line.substring(0, space)

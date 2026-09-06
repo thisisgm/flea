@@ -62,8 +62,12 @@ Item {
         Flea.Glyph {
             anchors.fill: parent
             visible: !root.thumbDrawn
-            name: root.row ? Icons.glyphFor(root.row.i) : "file"
-            color: root.cursor || root.selected ? Theme.color.accent : Theme.color.muted
+            // The tile is the mark's own slot: without its own ceiling Glyph caps a 46 px tile at the 19 px row mark.
+            maxSize: Theme.grid.iconSize
+            name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : "file"
+            // ThemeRoles.dc.html gives accent the selection fill and edge and foreground the label
+            // and the mark inside it, so the border carries the emphasis and the ink stays readable.
+            color: root.cursor || root.selected ? Theme.color.foreground : Theme.color.muted
         }
     }
 
@@ -80,7 +84,7 @@ Item {
         anchors.rightMargin: Theme.spacing.gap
         horizontalAlignment: Text.AlignHCenter
         text: root.row ? root.row.n : ""
-        color: root.cursor || root.selected ? Theme.color.accent : Theme.color.foreground
+        color: Theme.color.foreground
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
         textFormat: Text.PlainText

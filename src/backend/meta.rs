@@ -8,6 +8,9 @@ pub struct Meta {
     pub mtime: i64,
     pub mode: u32,
     pub target_is_dir: bool,
+    // Where a symlink points, verbatim and unresolved, empty for every other kind of row; see
+    // docs/protocol.md "rows". The link's own bytes, so a relative target stays relative.
+    pub target: String,
     // The filesystem this row lives on, so a drop can tell a move within one volume from a copy
     // across two the way Finder does. Free here: the stat that fills the fields above already read it.
     pub dev: u64,
@@ -34,13 +37,23 @@ pub fn stat_range(base: &Path, l: &Listing, start: usize, count: usize) -> (Vec<
         match base.join(l.name(i)).symlink_metadata() {
             Ok(m) => {
                 // corner: only a symlink pays a second stat, and only so its icon can be a folder; see AGENTS.md "Icons in the row".
-                let target_is_dir = m.file_type().is_symlink()
+                let is_link = m.file_type().is_symlink();
+                let target_is_dir = is_link
                     && base.join(l.name(i)).metadata().map(|t| t.is_dir()).unwrap_or(false);
+                // corner: only a symlink pays the readlink, on the same row that already pays the second stat.
+                let target = if is_link {
+                    std::fs::read_link(base.join(l.name(i)))
+                        .map(|t| t.to_string_lossy().to_string())
+                        .unwrap_or_default()
+                } else {
+                    String::new()
+                };
                 out.push(Meta {
                     size: m.size(),
                     mtime: m.mtime(),
                     mode: m.mode(),
                     target_is_dir,
+                    target,
                     dev: m.dev(),
                 })
             }
@@ -51,6 +64,7 @@ pub fn stat_range(base: &Path, l: &Listing, start: usize, count: usize) -> (Vec<
                 mtime: 0,
                 mode: 0,
                 target_is_dir: false,
+                target: String::new(),
                 dev: 0,
             }),
         }
@@ -189,6 +203,10 @@ mod tests {
         assert!(!metas[2].target_is_dir, "a symlink to a regular file is not a folder");
         assert!(!metas[3].target_is_dir, "a broken symlink resolves to nothing, which is not a folder");
         assert_eq!(metas.iter().filter(|m| m.target_is_dir).count(), 1, "exactly one of the four");
+        assert_eq!(metas[0].target, "", "a real directory has no target and pays no readlink");
+        assert_eq!(metas[1].target, format!("{}/realdir", d), "the link's target is the link's own bytes");
+        assert_eq!(metas[2].target, format!("{}/real.txt", d));
+        assert_eq!(metas[3].target, format!("{}/nowhere", d), "a broken link still names where it points");
         fs::remove_dir_all(&d).unwrap();
     }
 

@@ -17,6 +17,11 @@ ProtocolChip 1.0 ProtocolChip.qml
 DialogField 1.0 DialogField.qml
 ContextMenu 1.0 ContextMenu.qml
 KeymapSheet 1.0 KeymapSheet.qml
+SettingsPanel 1.0 SettingsPanel.qml
+SettingsRail 1.0 SettingsRail.qml
+SettingsRow 1.0 SettingsRow.qml
+SettingsRuler 1.0 SettingsRuler.qml
+SettingsSegment 1.0 SettingsSegment.qml
 MediaStrip 1.0 MediaStrip.qml
 MenuRow 1.0 MenuRow.qml
 RenameField 1.0 RenameField.qml
@@ -34,6 +39,8 @@ LoadingState 1.0 LoadingState.qml
 NetworkDialog 1.0 NetworkDialog.qml
 NetworkForm 1.0 NetworkForm.qml
 NetworkMounts 1.0 NetworkMounts.qml
+NetworkPlaces 1.0 NetworkPlaces.qml
+MountListing 1.0 MountListing.qml
 FleaMark 1.0 FleaMark.qml
 Opener 1.0 Opener.qml
 Preview 1.0 Preview.qml
@@ -42,6 +49,11 @@ PreviewMedia 1.0 PreviewMedia.qml
 PreviewText 1.0 PreviewText.qml
 Row 1.0 Row.qml
 Pane 1.0 Pane.qml
+PickerChrome 1.0 PickerChrome.qml
+PickerList 1.0 PickerList.qml
+PickerPlaces 1.0 PickerPlaces.qml
+PickerRecent 1.0 PickerRecent.qml
+PickerSave 1.0 PickerSave.qml
 PaneWire 1.0 PaneWire.qml
 ShareBrowser 1.0 ShareBrowser.qml
 Sidebar 1.0 Sidebar.qml

@@ -24,6 +24,12 @@ function run(check, suite) {
           Format.date(1793514600, fallNow * 1000), "Today, 01:30")
     check("the evening before fall back is Yesterday",
           Format.date(1793503800, fallNow * 1000), "Yesterday, 23:30")
+
+    // The picker's compact form reads the same local day, because both go through Format.localDay.
+    check("the compact form keeps the repeated hour on today",
+          Format.compactDate(1793514600, fallNow * 1000), "01:30")
+    check("the compact form puts the evening before on yesterday's stamp",
+          Format.compactDate(1793503800, fallNow * 1000), "31 Oct")
 }
 
 function runEdmonton(check) {

@@ -29,7 +29,8 @@ Item {
     property string dropboxPath: ""
     // True when the cursor row already lives under ~/Dropbox, where a share link is the useful action.
     property bool rowInDropbox: false
-    // False on a listing's empty space, where only the two rows that need no row make sense.
+    // False on a listing's empty space, where Menus.html's background column is what opens instead.
+    // openBackground() is its only writer and openAt() puts it back, because one instance serves both.
     property bool hasRow: true
 
     // The rail's own rows when ui/Sidebar.qml raised this menu, empty when the listing did. One
@@ -63,7 +64,7 @@ Item {
     function submenuGlyphs() {
         if (!root.submenuOpen)
             return ""
-        var mark = root.entries[root.openSubmenuRow].action === "taildrop" ? "server" : "archive"
+        var mark = Menu.submenuGlyph(root.entries[root.openSubmenuRow].action)
         var out = []
         for (var i = 0; i < root.submenuEntries.length; i++)
             out.push(mark)
@@ -96,9 +97,15 @@ Item {
             archiveFormats: root.archiveFormats,
             rowIsArchive: root.rowIsArchive,
             rowIsImage: root.rowIsImage,
-            canConvert: root.canConvert
+            canConvert: root.canConvert,
+            // The Menus settings section's stored set; ui/js/Menu.js applyHidden is what reads it.
+            hiddenActions: ViewState.menuHidden
         })
     }
+
+    // The row item at an index, for ui/Ipc.qml: a driven test clicks a menu row without deriving
+    // its geometry from a row count the Menus settings can now change under it.
+    function itemFor(index) { return menuRows.itemAt(index) }
 
     // A separator is never the cursor, so both key steps and the opening cursor skip over one.
     function stepCursor(from, delta) {
@@ -123,6 +130,17 @@ Item {
     function openAt(scenePoint) {
         root.clearRail()
         root.forHeader = false
+        root.hasRow = true
+        root.place(scenePoint)
+    }
+
+    // The listing's other entrance, from a right click that landed on no row at all: ui/List.qml,
+    // ui/GridArea.qml and ui/ColumnPane.qml each answer for their own empty space, and this one
+    // instance then draws ui/js/Menu.js backgroundEntries instead of the cursor row's.
+    function openBackground(scenePoint) {
+        root.clearRail()
+        root.forHeader = false
+        root.hasRow = false
         root.place(scenePoint)
     }
 
@@ -254,6 +272,7 @@ Item {
             y: Theme.spacing.rowPaddingY
 
             Repeater {
+                id: menuRows
                 model: root.entries
                 delegate: Flea.MenuRow {
                     id: row
@@ -301,10 +320,10 @@ Item {
                     required property var modelData
                     required property int index
                     width: peers.width
-                    // A Taildrop peer is a machine and takes the sidebar's own server mark; an archive
-                    // format is a file about to exist and takes the archive mark.
+                    // Which mark a whole flyout draws is ui/js/Menu.js submenuGlyph's to say, so the
+                    // read-back submenuGlyphs() above and the drawn row cannot answer differently.
                     entry: ({ label: subRow.modelData.label, action: "",
-                              glyph: root.entries[root.openSubmenuRow].action === "taildrop" ? "server" : "archive" })
+                              glyph: Menu.submenuGlyph(root.entries[root.openSubmenuRow].action) })
                     current: root.submenuCursor === subRow.index
                     onHoverEntered: root.submenuCursor = subRow.index
                     onActivated: root.chooseSub(subRow.modelData.id)

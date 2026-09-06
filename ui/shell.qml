@@ -1,7 +1,6 @@
 //@ pragma AppId com.thisisgm.flea
 //@ pragma ShellId flea
 //@ pragma NativeTextRendering
-//@ pragma DefaultEnv QSG_RHI_BACKEND=vulkan
 //@ pragma CacheDir $BASE/flea
 
 import Quickshell
@@ -9,8 +8,10 @@ import QtQuick
 import qs.Commons
 import "."
 import "." as Flea
-import "js/Scale.js" as Scale
+import "js/TextSize.js" as TextSize
+import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
+import "js/Renderer.js" as Renderer
 import "js/Search.js" as Search
 
 ShellRoot {
@@ -19,11 +20,42 @@ ShellRoot {
         title: "Flea"
         implicitWidth: 900
         implicitHeight: 600
+        property bool rendererFallbackStarted: false
+
+        function handleSceneGraphError(error, message) {
+            var backendName = Quickshell.env("QSG_RHI_BACKEND")
+            console.warn("graphics backend " + backendName + " failed (" + error + "): " + message)
+            var retry = Renderer.fallbackCommand(backendName, Quickshell.env("FLEA_RENDERER_AUTOMATIC"),
+                                                 Quickshell.env("FLEA_BIN"))
+            if (retry && !rendererFallbackStarted) {
+                rendererFallbackStarted = true
+                Quickshell.execDetached(retry)
+            }
+            backend.quit()
+        }
+
+        // Null while this loads and the QQuickWindow once it exists, which is before the scene graph starts.
+        Connections {
+            target: view.Window.window
+            function onSceneGraphError(error, message) { fleaWindow.handleSceneGraphError(error, message) }
+        }
+
         // Quickshell 0.3.1 has no exit API and Qt.quit() is a no-op, so the shell signals itself.
         // The backend is told first and answers when it has drained: a quit cancels the operation in
         // flight, and a cancelled copy removes its own partial, so closing never leaves a half file.
         Connections { target: Quickshell; function onLastWindowClosed() { backend.quit() } }
         Connections { target: backend; function onQuitReady() { Quickshell.execDetached(["kill", String(Quickshell.processId)]) } }
+
+        // Issue 9's chords, aliased by keys.toml onto the Display section's own text size. The
+        // panel writes ui/ViewState.qml directly and shows the value in the row; a chord has no
+        // readout of its own with the panel shut, so this one adds the status line.
+        function applyTextSize(direction) {
+            if (direction === 0)
+                ViewState.followTextSize()
+            else
+                ViewState.stepTextSize(direction)
+            pane.message(TextSize.announce(ViewState.textSize, ViewState.omarchyBase), false)
+        }
 
         // Every *Centre reader on the IPC seam is this: an item's painted box, reduced to the point a test clicks.
         function centreOf(item) {
@@ -31,6 +63,13 @@ ShellRoot {
                 return ""
             var rect = fleaWindow.itemRect(item)
             return Math.round(rect.x + rect.width / 2) + " " + Math.round(rect.y + rect.height / 2)
+        }
+        // centreOf's sibling, "x width centre": the edges round because a click needs a whole pixel, the centre keeps three decimals because the misalignment it reads is half of one.
+        function boxOf(item) {
+            if (!item)
+                return ""
+            var rect = fleaWindow.itemRect(item)
+            return Math.round(rect.x) + " " + Math.round(rect.width) + " " + (rect.x + rect.width / 2).toFixed(3)
         }
 
         Rectangle {
@@ -74,6 +113,7 @@ ShellRoot {
                 // so completion adds no request type and lands in that view's own cache on the way past.
                 onCompleteRequested: function (dir, hidden) { backend.peek(dir, pane.windowSize, hidden) }
                 onSaid: function (text) { bar.say(text, false) }
+                onSettingsRequested: settingsPanel.open(pane)
             }
 
             // The peek behind Tab. Every peeked line carries the directory and the hidden flag it
@@ -102,18 +142,15 @@ ShellRoot {
                 preview: preview
                 shareBrowser: shareBrowser
                 keymapSheet: keymapSheet
+                settingsPanel: settingsPanel
                 onMessage: function (text, isError) { bar.say(text, isError) }
                 // A running operation's line, which stands until the operation replaces it; see ui/StatusBar.qml.
                 onSticky: function (text) { bar.sticky = text; bar.transfer = pane.transfer }
                 onConvertRequested: function (name) { convertDialog.open(name, pane) }
                 onPathBarRequested: chrome.startEdit()
-                // Issue 9. ViewState persists it and Theme multiplies its own tokens by it, so the
-                // whole window follows without any surface reading the chord itself.
-                onScaleRequested: function (direction) {
-                    ViewState.uiScale = direction === 0 ? 1 : Scale.stepped(ViewState.uiScale, direction)
-                    ViewState.save()
-                    pane.message(Scale.announce(ViewState.uiScale), false)
-                }
+                // Issue 9. ViewState persists the stop and Theme derives its own tokens from it, so
+                // the whole window follows without any surface reading the chord itself.
+                onTextSizeRequested: function (direction) { fleaWindow.applyTextSize(direction) }
                 onOpened: function (path) { shareBrowser.close() }
             }
 
@@ -151,17 +188,31 @@ ShellRoot {
                 anchors.fill: parent
             }
 
+            // The settings panel, reached by the comma key from either view, by the toolbar's sliders
+            // button, and by the third door the Settings board draws: the background menu's own
+            // Settings row, which ui/js/Menu.js backgroundEntries builds and ui/Pane.qml act routes.
+            Flea.SettingsPanel {
+                id: settingsPanel
+                anchors.fill: parent
+            }
+
             Flea.NetworkDialog {
                 id: networkDialog
                 // FocusScope remembers its own last-focused child, list or rail, and restores it.
                 onClosed: pane.forceActiveFocus()
                 onSaved: pane.sidebar.reloadBookmarks()
+                onMountRequested: function (uri, label, password) {
+                    pane.sidebar.saveNetwork(uri, label, password)
+                }
             }
 
             Connections {
                 target: pane.sidebar
                 function onAddRequested() { networkDialog.open() }
                 function onSharesListed(baseUri, baseLabel, names) { shareBrowser.open(baseUri, baseLabel, names) }
+                function onNetworkRetryRequested(uri, label, password, reason, failedConnect) {
+                    networkDialog.openLocation(uri, label, password, reason, failedConnect)
+                }
             }
 
             // The Omarchy mark's one placement: over the list area alone, so the rail stays live.
@@ -178,9 +229,11 @@ ShellRoot {
                 // The design's no-match answer: the search mark over the query it could not find.
                 caption: pane.searchMode === "results" ? "Nothing matches " + pane.searchQuery : ""
                 mark: "search"
-                hint: pane.searchMode === "results"
-                      ? "Press Escape to clear."
-                      : "Press Ctrl+Shift+N for a new folder."
+                // A search that found nothing keeps its own way out, because that sentence is the
+                // state's answer and not an advertisement. The empty directory's next move is a
+                // shortcut, so it draws only with the Menus section's hints row on.
+                hint: pane.searchMode === "results" ? "Press Escape to clear."
+                    : ViewState.keyHints ? "Press Ctrl+Shift+N for a new folder." : ""
             }
 
             // The loading crawl, same listArea placement; its own hold-off keeps fast listings clean.
@@ -203,6 +256,22 @@ ShellRoot {
                 onActivated: function (uri, label) { pane.sidebar.mountShare(uri, label) }
             }
 
+            // Issue 20: the mouse's own back button, taken by the window because no row is being
+            // clicked; ui/js/Nav.js mouseBack is what chooses between the history and the climb.
+            // The menu's own refusal is in there rather than in the list below because that is the
+            // only place a JavaScript suite can drive it; the list below is the other overlays a
+            // back press must not act behind.
+            TapHandler {
+                acceptedButtons: Qt.BackButton
+                onTapped: {
+                    if (chrome.editing || convertDialog.opened || keymapSheet.opened
+                            || networkDialog.opened || shareBrowser.active || preview.active
+                            || pane.renameEditor() !== null || pane.sidebar.renameEditor() !== null)
+                        return
+                    Nav.mouseBack(pane)
+                }
+            }
+
             Component.onCompleted: {
                 var start = Quickshell.env("FLEA_PATH") || Quickshell.env("HOME")
                 // Read once: Pane.applyPendingSelect() forgets it after the first rows response.
@@ -222,6 +291,7 @@ ShellRoot {
         tabBar: tabBar
         convertDialog: convertDialog
         keymapSheet: keymapSheet
+        settingsPanel: settingsPanel
         networkDialog: networkDialog
         shareBrowser: shareBrowser
     }

@@ -3,19 +3,16 @@
 .import "Filter.js" as Filter
 .import "Format.js" as Format
 .import "Keymap.js" as Keymap
-.import "Mounts.js" as Mounts
 .import "Ops.js" as Ops
+.import "PreviewKeys.js" as PreviewKeys
+.import "RailKeys.js" as RailKeys
 .import "Search.js" as Search
 .import "Sort.js" as Sort
-.import "Scale.js" as Scale
 .import "Trash.js" as Trash
 .import "Tabs.js" as Tabs
 
 var LIST = "list"
 var RAIL = "rail"
-
-// Left/Right's seek step, Task 22's operator ruling; previewAct is the only reader.
-var SEEK_MS = 5000
 
 // Tab is the only thing that moves focus between views, so the rule lives in one function.
 function next(current) {
@@ -76,14 +73,14 @@ function act(action, root) {
     // move the cursor sideways, which is not what the key looks like it does.
     // Every one of these moves through what is drawn, not through the listing: with a filter up the
     // two differ, and stepping the listing would land the cursor on a row nothing is showing.
-    case "cursorDown": Filter.moveCursor(root, root.cursorStride); return
-    case "cursorUp": Filter.moveCursor(root, -root.cursorStride); return
-    case "cursorLeft": Filter.moveCursor(root, -1); return
-    case "cursorRight": Filter.moveCursor(root, 1); return
+    case "cursorDown": step(root, root.cursorStride); return
+    case "cursorUp": step(root, -root.cursorStride); return
+    case "cursorLeft": step(root, -1); return
+    case "cursorRight": step(root, 1); return
     case "cursorFirst": Filter.setCursorView(root, 0); return
     case "cursorLast": Filter.setCursorView(root, root.shownTotal - 1); return
-    case "pageDown": Filter.moveCursor(root, Math.max(1, Math.floor(root.visibleRows / 2))); return
-    case "pageUp": Filter.moveCursor(root, -Math.max(1, Math.floor(root.visibleRows / 2))); return
+    case "pageDown": step(root, Math.max(1, Math.floor(root.visibleRows / 2))); return
+    case "pageUp": step(root, -Math.max(1, Math.floor(root.visibleRows / 2))); return
     case "open": root.openCursor(); return
     case "parent": root.openParent(); return
     case "toggleHidden": root.toggleHidden(); return
@@ -94,7 +91,7 @@ function act(action, root) {
         else if (root.filterTyping || root.filterQuery.length > 0) Filter.close(root)
         else root.escapePressed()
         return
-    case "preview": openPreview(root); return
+    case "preview": PreviewKeys.open(root); return
     case "toggleSelect": root.toggleSelect(); return
     case "extendDown": root.extendSelection(1); return
     case "extendUp": root.extendSelection(-1); return
@@ -109,6 +106,7 @@ function act(action, root) {
     case "trash": Ops.trash(root); return
     case "trashArm": Trash.arm(root); return
     case "copy": Ops.clip(root, false); return
+    case "copydirpath": root.copyDirPath(); return
     case "cut": Ops.clip(root, true); return
     case "paste": Ops.paste(root); return
     case "undo": Ops.undo(root); return
@@ -136,10 +134,18 @@ function act(action, root) {
     case "viewColumns": root.viewMode = "columns"; return
     case "viewGrid": root.viewMode = "grid"; return
     case "newFolder": Ops.newFolder(root); return
+    // The directory being shown, not the row: the menu row and the chord both land here.
+    case "openTerminal": root.openTerminal(); return
     }
     // A submenu row fires "<action>:<id>", which is how one signal covers Taildrop and Compress both.
     if (action.indexOf("compress:") === 0) {
         Ops.compress(root, action.substring("compress:".length))
+        return
+    }
+    // The background menu's Sort by flyout, routed to the header click's own function so an aimed
+    // click and an aimed menu row cannot come to mean different things.
+    if (action.indexOf("sort:") === 0) {
+        Sort.column(root, action.substring("sort:".length))
         return
     }
     // Both keys the Tui board drew ahead of their features are built now, so neither answers with
@@ -148,54 +154,28 @@ function act(action, root) {
     root.message(action + " is not built yet.", false)
 }
 
-// A directory has no preview kind of its own, so Space on one is a silent no-op rather than an error.
-function openPreview(root) {
-    var row = root.rowFor(root.cursorIndex)
-    if (row && !row.d)
-        root.preview.open(root.join(root.path, row.n), row.i, row.s)
-}
-
-// Preview open: j/k move the cursor and the preview follows; escape always closes. Space closes
-// a text or unsupported preview as before, but toggles play/pause on a MEDIA one instead
-// (Task 22's operator ruling: "the idea is our preview is as good or better than Showtime").
-// Any key reveals the media strip, even one that does nothing else, matching "move the mouse or
-// press anything" from the same ruling.
-function previewAct(action, root) {
-    root.preview.revealStrip()
-    switch (action) {
-    case "cursorDown": Filter.moveCursor(root, 1); followPreview(root); return
-    case "cursorUp": Filter.moveCursor(root, -1); followPreview(root); return
-    case "preview":
-        if (root.preview.isMedia) root.preview.togglePlay()
-        else root.preview.close()
+// Issue 27: what a cursor key does at an end. The state file's wrapAtEnds is off by default, which
+// is deliberately both answers at once: the operator who reported the jump past the top as a bug
+// keeps the clamp, and the one who asked for it turns the key on. Only a step taken from an end
+// wraps, so a page key overshooting from the middle still stops at the end it was heading for, and
+// the selection keys keep ui/js/Filter.js moveCursor's plain clamp, because an extend that wrapped
+// would run the anchor to the far end and take every row between the two with it.
+function step(root, delta) {
+    var last = root.shownTotal - 1
+    if (root.wrapAtEnds !== true || last < 0) {
+        Filter.moveCursor(root, delta)
         return
-    case "escape": root.preview.close(); return
-    case "seekBack":
-        if (root.preview.isPdf) root.preview.turnPage(-1)
-        else root.preview.seek(-SEEK_MS)
-        return
-    case "seekForward":
-        if (root.preview.isPdf) root.preview.turnPage(1)
-        else root.preview.seek(SEEK_MS)
-        return
-    // h keeps its own "parent" name from keys.toml; turnPage self-guards, so a media preview
-    // ignores both of these rather than seeking on a key the strip never advertised.
-    case "parent": root.preview.turnPage(-1); return
-    case "pageForward": root.preview.turnPage(1); return
-    case "zoomOut": root.preview.zoomBy(-1); return
-    case "zoomIn": root.preview.zoomBy(1); return
-    case "expand": root.preview.toggleExpand(); return
     }
+    var from = Filter.viewOf(root.shown, root.cursorIndex)
+    var to = from + delta
+    if (to < 0)
+        to = from === 0 ? last : 0
+    if (to > last)
+        to = from === last ? 0 : last
+    Filter.setCursorView(root, to)
 }
 
-// The row under the moved cursor, handed to Preview.follow so a held key settles before it reloads.
-function followPreview(root) {
-    var row = root.rowFor(root.cursorIndex)
-    if (row && !row.d)
-        root.preview.follow(root.join(root.path, row.n), row.i, row.s)
-}
-
-// ui/ShareBrowser.qml's own overlay, the same j/k/open/escape shape previewAct above uses.
+// ui/ShareBrowser.qml's own overlay, the same j/k/open/escape shape PreviewKeys.act uses.
 function shareBrowserAct(action, root) {
     switch (action) {
     case "cursorDown": root.shareBrowser.moveCursor(1); return
@@ -203,6 +183,18 @@ function shareBrowserAct(action, root) {
     case "open": root.shareBrowser.activateCursor(); return
     case "escape": root.shareBrowser.close(); return
     }
+}
+
+// The cursor keys and only those, resolved through the generated table rather than through a second
+// list of key codes, which is how issue 28's Home, End and page keys came with issue 12 for free. A
+// printable character is excluded before the lookup, or j and k would leave the line instead of
+// being typed into it.
+var LEAVES_LINE = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp"]
+
+function leavesLine(event) {
+    if (event.text.length === 1 && event.text >= " ")
+        return false
+    return LEAVES_LINE.indexOf(Keymap.lookup(event.key, event.text, event.modifiers)) >= 0
 }
 
 // Lifted whole from Pane.qml's Keys.onPressed, which had grown past its file's 400-line cap; returns whether the key was consumed.
@@ -216,6 +208,15 @@ function handleKey(event, root, sidebar) {
     }
     root.inputAt = Date.now()
     root.rowsAt = 0
+    // Issue 12: a query line owns every key while it has the caret, which swallowed the cursor keys
+    // and left a listing with more than one match unreachable from the keyboard. A cursor key commits
+    // the line the way enter does and then goes on to mean what it means everywhere else: the filter
+    // is left standing over the rows it narrowed, and the search walks once for that press rather
+    // than once per keystroke, which is the sweep the design refused.
+    if ((root.searchMode === Search.TYPING || root.filterTyping) && leavesLine(event)) {
+        if (root.filterTyping) Filter.commit(root)
+        else Search.run(root)
+    }
     // The query line owns every key while it has the caret, the same way the rename field does above.
     if (root.searchMode === Search.TYPING) {
         return Search.typeKey(event, root)
@@ -231,7 +232,7 @@ function handleKey(event, root, sidebar) {
         root.trashArmedAt = 0
     }
     if (root.preview.active) {
-        previewAct(action, root)
+        PreviewKeys.act(action, root)
         return true
     }
     if (root.shareBrowser.active) {
@@ -253,9 +254,9 @@ function handleKey(event, root, sidebar) {
         root.act(action)
         return true
     }
-    // Issue 9: the interface scale belongs to the window, so it answers from either view.
-    if (action.indexOf("scale") === 0) {
-        root.scaleRequested(action === "scaleReset" ? 0 : (action === "scaleUp" ? 1 : -1))
+    // Issue 9: the text size belongs to the window, so it answers from either view.
+    if (action.indexOf("textSize") === 0) {
+        root.textSizeRequested(action === "textSizeReset" ? 0 : (action === "textSizeUp" ? 1 : -1))
         return true
     }
     // The bar lives in the chrome above both views, so neither owns it; shell.qml holds the field.
@@ -263,8 +264,13 @@ function handleKey(event, root, sidebar) {
         root.pathBarRequested()
         return true
     }
+    // These answer from the rail as well as the list, so they are taken before the rail's own keys.
+    if (action === "openTerminal" || action === "settings" || action === "copydirpath") {
+        root.act(action)
+        return true
+    }
     if (root.focusView === RAIL) {
-        root.railAct(action)
+        RailKeys.act(action, root, sidebar)
         return true
     }
     if (action.length > 0 || Keymap.lookup(event.key, event.text, event.modifiers).length > 0) {
@@ -278,25 +284,4 @@ function handleKey(event, root, sidebar) {
         return true
     }
     return false
-}
-
-// The rail answers seven of the key table's action names and ignores the rest while it has focus.
-function railAct(action, root, sidebar) {
-    switch (action) {
-    case "cursorDown": sidebar.cursorIndex = Math.min(sidebar.entries.length - 1, sidebar.cursorIndex + 1); return
-    case "cursorUp": sidebar.cursorIndex = Math.max(0, sidebar.cursorIndex - 1); return
-    // The sheet advertises g and G as first and last row, and the rail is a cursored list too, so
-    // they answered nothing here while every other cursor key worked.
-    case "cursorFirst": sidebar.cursorIndex = 0; return
-    case "cursorLast": sidebar.cursorIndex = Math.max(0, sidebar.entries.length - 1); return
-    // activate(), not a direct opened(path): a Network entry may need mounting first.
-    case "open": if (sidebar.entries.length > 0) sidebar.activate(sidebar.cursorIndex); return
-    case "escape": root.focusView = LIST; return
-    case "addNetwork": sidebar.addRequested(); return
-    // Favorites are not offered: Sidebar.startRename ignores an index outside the Network group.
-    case "rename": sidebar.startRename(sidebar.cursorIndex); return
-    // Eject and Unmount are menu rows, so this opens the menu rather than inventing a second route.
-    case "menu": Mounts.raiseMenu(root, sidebar); return
-    case "eject": Eject.release(root, sidebar, true); return
-    }
 }

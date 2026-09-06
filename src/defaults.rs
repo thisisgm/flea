@@ -19,9 +19,7 @@ pub fn claim() -> i32 {
         );
         return 1;
     }
-    let status = report(claim_mime(), hyprkeys::claim());
-    println!("undo both with: flea --default off");
-    status
+    report(claim_mime(), hyprkeys::claim())
 }
 
 // flea --default off

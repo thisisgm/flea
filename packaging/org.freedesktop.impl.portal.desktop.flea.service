@@ -1,0 +1,3 @@
+[D-BUS Service]
+Name=org.freedesktop.impl.portal.desktop.flea
+Exec=/usr/lib/flea/flea-portal

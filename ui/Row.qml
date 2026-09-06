@@ -24,6 +24,16 @@ Item {
     property bool dropCopying: false
     // A directory's recursive size, resolved by index in List.qml the same way thumb already is; null until it arrives.
     property var dirSize: null
+    // The picker draws a check in front of every row, so its rows start one slot further in; the
+    // window's own rows leave this at zero and are laid out exactly as before.
+    property real leadingSlot: 0
+    // The picker's second difference: SendPicker.html's narrow date column and its compact form.
+    property bool compactDate: false
+    // The window's own third: only FleaWindow.html and Search.html end a directory name with a slash.
+    property bool dirSuffix: false
+    readonly property int dateWidth: root.compactDate ? Theme.column.pickerDate : Theme.column.date
+    // The picker's third: it hides the columns its own board does not draw, and the window's own set stays ViewState's.
+    property var hiddenCols: ViewState.hiddenCols
     // Non-empty while a search or filter is narrowing the listing: the run to paint, and the switch to the search column set.
     property string searchQuery: ""
     // Which of the two is narrowing. A filter keeps the ordinary columns, because its rows are this directory's own and their names are plain names, not paths.
@@ -31,6 +41,11 @@ Item {
     // A search row's name is its path relative to the search root, so the name and location split here; see docs/protocol.md "search".
     readonly property bool searching: !root.filtering && root.searchQuery.length > 0 && root.row !== null && root.row.n.length > 0
     readonly property string displayName: root.row ? (root.searching ? Match.base(root.row.n) : root.row.n) : ""
+    // The name, then this surface's directory slash, then a link's target; never both, a link's d is false.
+    readonly property string dirMark: root.dirSuffix && root.row && root.row.d ? "/" : ""
+    // FleaWindow.html and ThemeRoles.html both spell it "shell -> /usr/share/omarchy".
+    readonly property string linkMark: root.row && root.row.l ? " -> " + root.row.l : ""
+    readonly property string decoratedName: root.displayName + root.dirMark + root.linkMark
     readonly property string locationText: root.searching ? Match.location(root.row.n) : ""
     readonly property var nameRun: Match.run(root.displayName, root.searchQuery)
     // A long name would otherwise hide the location entirely, and the location is what tells two matches apart.
@@ -43,7 +58,7 @@ Item {
     // The columns this row's width affords, and which of them this row is drawing. A column that
     // is not drawn takes neither its width nor its gap, so the chain collapses onto the one to its
     // right and the name takes back the whole of it.
-    readonly property var cols: Theme.columns(root.width, ViewState.hiddenCols)
+    readonly property var cols: Theme.columns(root.width, root.hiddenCols, root.dateWidth)
     readonly property bool modeShown: !root.searching && root.cols.mode
     // The search column set keeps Size and drops the other three, so only this one ignores searching.
     readonly property bool sizeShown: root.cols.size
@@ -65,6 +80,8 @@ Item {
 
     Accessible.role: Accessible.ListItem
     Accessible.name: root.displayName
+    // The compact form drops the clock, so the picker's rows carry the whole stamp here instead; this tree has no tooltip.
+    Accessible.description: root.compactDate && root.row && root.row.m !== null ? Format.date(root.row.m, Date.now()) : ""
 
     Rectangle {
         anchors.fill: parent
@@ -100,7 +117,7 @@ Item {
         id: thumbImage
         visible: root.thumbDrawn
         anchors.left: parent.left
-        anchors.leftMargin: Theme.spacing.rowPaddingX
+        anchors.leftMargin: Theme.spacing.rowPaddingX + root.leadingSlot
         anchors.verticalCenter: parent.verticalCenter
         width: Theme.iconSize
         height: Theme.iconSize
@@ -117,11 +134,11 @@ Item {
         id: icon
         visible: !root.thumbDrawn
         anchors.left: parent.left
-        anchors.leftMargin: Theme.spacing.rowPaddingX
+        anchors.leftMargin: Theme.spacing.rowPaddingX + root.leadingSlot
         anchors.verticalCenter: parent.verticalCenter
         width: Theme.iconSize
         height: Theme.iconSize
-        name: root.row ? Icons.glyphFor(root.row.i) : Icons.FALLBACK
+        name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : Icons.FALLBACK
         color: root.lifted ? Theme.color.foreground : root.dim
     }
 
@@ -166,7 +183,7 @@ Item {
         anchors.right: mode.left
         anchors.rightMargin: root.modeShown ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
-        text: root.displayName
+        text: root.decoratedName
         matchStart: root.nameRun.start
         matchLength: root.nameRun.length
         color: root.nameColor()
@@ -181,7 +198,7 @@ Item {
         anchors.leftMargin: Theme.spacing.gap
         anchors.verticalCenter: parent.verticalCenter
         width: Math.min(implicitWidth, root.searchSlot * root.nameShare)
-        text: root.displayName
+        text: root.decoratedName
         matchStart: root.nameRun.start
         matchLength: root.nameRun.length
         color: root.nameColor()
@@ -230,6 +247,7 @@ Item {
         color: root.cellColor()
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
+        horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
@@ -240,12 +258,12 @@ Item {
         anchors.rightMargin: root.kindShown ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.dateShown && !root.dropTarget
-        width: root.dateShown ? Theme.column.date : 0
-        // null marks a row with no real mtime yet (ui/ShareBrowser.qml's share rows).
-        text: root.row ? (root.row.m === null ? "--" : Format.date(root.row.m, Date.now())) : ""
+        width: root.dateShown ? root.dateWidth : 0
+        text: root.dateText()
         color: root.cellColor()
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
+        horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
@@ -313,13 +331,28 @@ Item {
 
     // A directory's own row.s is its dirent size, not the walk's, so this reads root.dirSize instead, see docs/protocol.md "dirsized".
     function sizeText() {
+        // A link's own st_size is the length of its target path, which is not a size anyone means.
+        if (Format.isSymlink(root.row.p))
+            return "link"
         if (!root.row.d) {
             return Format.size(root.row.s)
         }
         if (!root.dirSize) {
-            return "-"
+            return "·"
         }
         return (root.dirSize.partial ? ">" : "") + Format.size(root.dirSize.bytes)
+    }
+
+    // The window's own four forms, or the picker's compact three; both are cell text and nothing more.
+    function dateText() {
+        if (!root.row) {
+            return ""
+        }
+        // null marks a row with no real mtime yet (ui/ShareBrowser.qml's share rows).
+        if (root.row.m === null) {
+            return "--"
+        }
+        return root.compactDate ? Format.compactDate(root.row.m, Date.now()) : Format.date(root.row.m, Date.now())
     }
 
     // row.k indexes root.kindNames; an index past its bounds (a row held over from an older listing) reads as empty, never a crash.
@@ -353,7 +386,7 @@ Item {
     }
 
     // What this row is drawing right now, for the seam that reads it beside the header's.
-    function columnSet() { return Theme.columnNames(root.width, ViewState.hiddenCols) }
+    function columnSet() { return Theme.columnNames(root.width, root.hiddenCols, root.dateWidth) }
 
     // The same by-key idiom Header.cell uses, so the overflow reader can reach a specific cell.
     function cell(key) {

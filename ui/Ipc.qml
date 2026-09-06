@@ -15,6 +15,7 @@ QtObject {
     property var tabBar: null
     property var convertDialog: null
     property var keymapSheet: null
+    property var settingsPanel: null
     property var networkDialog: null
     property var shareBrowser: null
 
@@ -54,16 +55,27 @@ QtObject {
         // One label per current menu row, joined so a test can assert contents without OCR. A
         // separator has no label of its own and reads as "-", which is what makes the grouping assertable.
         function contextMenuEntries(): string {
-            var entries = root.pane.menuEntries()
+            var entries = root.pane.contextMenu().entries
             var out = []
             for (var i = 0; i < entries.length; i++) {
                 out.push(entries[i].separator === true ? "-" : entries[i].label)
             }
             return out.join("|")
         }
+        // The key each row prints beside its label, in the same order and read off the drawn rows,
+        // so an unbound row's empty slot is assertable and not only the map behind it.
+        function contextMenuHints(): string {
+            var menu = root.pane.contextMenu()
+            var out = []
+            for (var i = 0; i < menu.entries.length; i++) {
+                var item = menu.itemFor(i)
+                out.push(item ? String(item.hint) : "")
+            }
+            return out.join("|")
+        }
         // The glyph each row draws, in the same order, so the "every row is marked" rule is assertable.
         function contextMenuGlyphs(): string {
-            var entries = root.pane.menuEntries()
+            var entries = root.pane.contextMenu().entries
             var out = []
             for (var i = 0; i < entries.length; i++) {
                 // A brand mark has no glyph name, so the reader names the mark instead; a row draws
@@ -74,14 +86,33 @@ QtObject {
             return out.join("|")
         }
         // A peer row names a machine and an archive row a file, so the flyout's mark is its own.
-        function contextMenuSubmenuGlyphs(): string { return root.pane.menuSubmenuGlyphs() }
+        function contextMenuSubmenuGlyphs(): string { return root.pane.contextMenu().submenuGlyphs() }
         // A peer is named by whoever is on the tailnet, so a test reads the name here rather than
-        // knowing it. No separator branch: a flyout holds only Archive.formatEntries or Taildrop
-        // peers, and both build {id, label} rows only.
+        // knowing it. No separator branch: every flyout in the tree builds {id, label} rows only,
+        // whether it came from Archive.formatEntries, Menu.sortEntries or the Taildrop peer list.
         function contextMenuSubmenuEntries(): string {
-            return root.pane.menuSubmenuEntries().map(function (e) { return e.label }).join("|")
+            return root.pane.contextMenu().submenuEntries.map(function (e) { return e.label }).join("|")
         }
         function contextMenuCursor(): int { return root.pane.menuCursor }
+        function settingsOpen(): bool { return root.settingsPanel.opened }
+        function settingsSection(): string { return root.settingsPanel.section }
+        function settingsSide(): string { return root.settingsPanel.side }
+        function settingsCursor(): int { return root.settingsPanel.cursor }
+        // One row per line, kind|label|value, so a test reads what the panel draws without OCR and
+        // the stored value behind each control is assertable from the same string.
+        function settingsRows(): string { return root.settingsPanel.rowsText() }
+        // A menu row's own centre, so a driven click lands on the row a test named rather than on a
+        // pixel derived from a row count the Menus settings section can change under it.
+        function contextMenuRowCentre(i: int): string { return root.fleaWindow.centreOf(root.pane.contextMenu().itemFor(i)) }
+        // Where a driven right click reaches the background menu: the centre of the surface that
+        // answers for the directory being shown, which in the columns view is the pane's own column
+        // and not the peek beside it. An empty directory has no row to aim from, and it is the case
+        // that menu matters most in, so no reader here may derive the point from a row.
+        function listingBackgroundCentre(): string {
+            var area = root.pane.viewMode === "columns" ? root.pane.columnsArea.activeColumn()
+                                                        : root.pane.listArea
+            return root.fleaWindow.centreOf(area)
+        }
         // The row that is its own rename editor, or -1; drives the States artboard's inline rename.
         function renamingIndex(): int { return root.pane.renamingIndex }
         function renameEditorLive(): bool { return root.pane.renameEditor() !== null }
@@ -150,6 +181,12 @@ QtObject {
         function rowIconStatus(i: int): int {
             var item = root.pane.itemFor(i)
             return item ? item.iconStatus : -1
+        }
+        // The name cell's drawn text: the row name plus the surface's own decorations, where
+        // describe() keeps the raw n so every existing rowAt assertion keeps its meaning.
+        function rowNameText(i: int): string {
+            var item = root.pane.itemFor(i)
+            return item ? item.decoratedName : ""
         }
         function rowGlyph(i: int): string {
             var item = root.pane.itemFor(i)
@@ -230,6 +267,24 @@ QtObject {
         function pathBarOpen(): bool { return root.chrome.editing }
         function pathBarText(): string { return String(root.chrome.editText) }
         function pathCentre(): string { return root.fleaWindow.centreOf(root.chrome.pathArea) }
+        // The elision marker, or "" while the whole path fits: the one spot the crumbs slide under.
+        function elisionCentre(): string {
+            return root.chrome.elisionMarker.visible ? root.fleaWindow.centreOf(root.chrome.elisionMarker) : ""
+        }
+        // Issue 45's segments, reached the way tabCentre reaches a tab: a driven press on a real
+        // crumb is the only thing that can tell a bound TapHandler from an unbound one.
+        function crumbCount(): int { return root.chrome.crumbItems.count }
+        // Measured: with the bar open the slot is hidden and a crumb's box is still there, and a path
+        // too long for the bar slides its head clean off the left, so a bare centre aims a driven
+        // click at the desktop. Answering "" for both is what stops a test pressing nothing at all.
+        function crumbCentre(i: int): string {
+            var item = root.chrome.crumbItems.itemAt(i)
+            if (!item || !item.visible)
+                return ""
+            var box = item.mapToItem(root.chrome.pathArea, 0, 0)
+            var inside = box.x >= 0 && box.x + item.width <= root.chrome.pathArea.width
+            return inside ? root.fleaWindow.centreOf(item) : ""
+        }
         // The button's painted box as "WxH": the mark is Theme.chromeMarkSize wide and the hit area is the whole strip tall.
         function chromeButtonSize(glyph: string): string {
             var item = root.chrome.buttonFor(glyph)
@@ -246,6 +301,31 @@ QtObject {
         function networkPort(): string { return root.networkDialog.formPort() }
         function networkUri(): string { return root.networkDialog.formUri() }
         function networkPathLabel(): string { return root.networkDialog.formPathLabel() }
+        function networkTitle(): string { return root.networkDialog.dialogTitle }
+        function networkFields(): string { return root.networkDialog.formFields() }
+        function networkFocus(): string { return root.networkDialog.formFocus() }
+        function networkHostPortWidths(): string { return root.networkDialog.formHostPortWidths() }
+        // Mask state and presence only: the seam never returns password content.
+        function networkPasswordState(): string { return root.networkDialog.formPasswordState() }
+        function networkPasswordEyeCentre(): string { return root.networkDialog.formPasswordEyeCentre() }
+        function networkNote(): string { return root.networkDialog.formNote() }
+        function networkAction(): string { return root.networkDialog.formAction() }
+        function networkStatus(): string { return root.networkDialog.statusText }
+        function networkDialogMetrics(): string { return root.networkDialog.formMetrics() }
+        function networkDialogMetricTargets(): string { return root.networkDialog.formMetricTargets() }
+        // Durable and non-secret, unlike the four-second status-bar transient.
+        function networkResult(): string { return root.pane.sidebar.networkResult() }
+        // The "+" ink, its hit target and the rail's own indicator dot, each "x width centre" in window
+        // coordinates. Three measured rectangles, because a computed slot only restates the anchoring.
+        function networkMarkGeometry(): string {
+            var items = root.pane.sidebar.networkMarkItems()
+            if (!items[0] || !items[1] || !items[2])
+                return ""
+            return [root.fleaWindow.boxOf(items[0]), root.fleaWindow.boxOf(items[1]),
+                root.fleaWindow.boxOf(items[2])].join("|")
+        }
+        // Where a click probe aims: the hit target's own middle, so the probe varies only x.
+        function networkMarkCentre(): string { return root.fleaWindow.centreOf(root.pane.sidebar.networkMarkItems()[1]) }
         // A protocol chip carries a label and no tree, so a test clicks its centre the way it does a row.
         function networkChipCentre(name: string): string { return root.fleaWindow.centreOf(root.networkDialog.formChip(name)) }
         function shareBrowserOpen(): bool { return root.shareBrowser.active }
@@ -262,6 +342,7 @@ QtObject {
             }
             return out.join("\n")
         }
+        function networkStartIndex(): int { return root.pane.sidebar.favoriteEntries.length }
 
         // One line per entry, "label|group|kind|mounted", the same shape networkEntries answers.
         function deviceEntries(): string {

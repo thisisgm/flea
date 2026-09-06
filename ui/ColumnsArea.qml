@@ -86,6 +86,9 @@ Item {
     function restartCoalesce() {}
     function restartSettle() { root.askThumb() }
     function positionViewAtIndex(index, mode) { active.positionViewAtIndex(index - root.pane.held, mode) }
+    // The one column whose rows are the pane's own, for ui/Ipc.qml: the two beside it are peeks and
+    // answer for another directory, so neither is where a background right click belongs.
+    function activeColumn() { return active }
     // The middle column's model is held-relative, unlike the list's and the grid's, so a caller
     // holding an absolute cursor index reaches a delegate through here rather than directly.
     function itemAtIndex(index) { return active.itemAtIndex(index - root.pane.held) }
@@ -229,6 +232,7 @@ Item {
             // The list's and the grid's own two routes, reached from the one column whose rows are the pane's listing, so a click means the same thing in all three views.
             onPicked: function (index, tapCount, modifiers) { Tap.tapped(index, tapCount, modifiers, root.pane) }
             onMenuRequested: function (index, eventPoint) { Tap.tappedMenu(index, eventPoint, root.pane, root.menu) }
+            onBackgroundMenuRequested: function (eventPoint) { root.menu.openBackground(eventPoint.scenePosition) }
         }
 
         // The cursor row: what is inside it when it is a directory, what it is when it is a file.

@@ -7,6 +7,8 @@ set -u
 
 cd "$(dirname "$0")/.." || exit 1
 BIN=./target/debug/flea
+# Without this every case below drives a missing binary and reports the result as a product failure.
+[ -x "$BIN" ] || { echo "archive.sh: $BIN is missing, run cargo build" >&2; exit 1; }
 D="$FIXTURE_ROOT/flea-archive-test-$$"
 fail=0
 

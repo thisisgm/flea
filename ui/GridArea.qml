@@ -60,6 +60,16 @@ GridView {
         }
     }
 
+    // The space past the last tile is the directory's own, the same rule ui/List.qml carries: a
+    // tile's right click belongs to its delegate, and indexAt is what tells the two apart.
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: function (eventPoint) {
+            if (root.indexAt(root.contentX + eventPoint.position.x, root.contentY + eventPoint.position.y) < 0)
+                root.menu.openBackground(eventPoint.scenePosition)
+        }
+    }
+
     onContentYChanged: {
         root.menu.close()
         if (DirSizes.hasPending(root.pane.dirSizeState)) {
