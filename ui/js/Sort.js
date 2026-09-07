@@ -13,6 +13,26 @@
 // refuses every other key by name, and the backend is the one that says so, see ui/js/Errors.js.
 var ORDERS = ["name", "size", "mtime"]
 
+// The row menu's four explicit choices. Unlike a header click, choosing one never toggles based on
+// the current order: the label says the direction it will produce.
+var ROW_CHOICES = [
+    { id: "mtime:desc", label: "Date Modified Desc", key: "mtime", desc: true },
+    { id: "mtime:asc", label: "Date Modified Asc", key: "mtime", desc: false },
+    { id: "name:asc", label: "Name A to Z", key: "name", desc: false },
+    { id: "name:desc", label: "Name Z to A", key: "name", desc: true }
+]
+
+function menuChoice(pane, id) {
+    for (var i = 0; i < ROW_CHOICES.length; i++) {
+        if (ROW_CHOICES[i].id === id) {
+            resort(pane, ROW_CHOICES[i].key, ROW_CHOICES[i].desc)
+            return
+        }
+    }
+    // Background Sort by keeps its existing click-to-toggle column semantics.
+    column(pane, id)
+}
+
 // ui/Header.qml's click. The column already sorted reverses; any other column starts ascending,
 // which is the order the canvas's own header draws beside "Name". Only ORDERS may leave this file.
 function column(pane, key) {
@@ -38,9 +58,14 @@ function reverse(pane) {
 // The request goes out for every key, so the refusal is the backend's alone. Only an order it will
 // really produce moves the recorded one, or the mark would describe a listing that never changed.
 function resort(pane, key, desc) {
+    // Capture this before persistence updates ViewState and therefore a still-bound new Backend.
+    var alreadyShown = pane.backend.sortBy === key && pane.backend.sortDesc === desc
+    if (ORDERS.indexOf(key) >= 0)
+        pane.rememberSort(key, desc)
     // Asking for the order the listing is already in would drop every row-indexed cache and put the
-    // cursor back to redraw the rows already on screen, so it is not asked for at all.
-    if (pane.backend.sortBy === key && pane.backend.sortDesc === desc) {
+    // cursor back to redraw the rows already on screen, so it is not asked for at all. The explicit
+    // choice above is still remembered when a restored tab already happens to show that order.
+    if (alreadyShown) {
         return
     }
     pane.backend.sort(key, desc)

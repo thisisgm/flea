@@ -127,9 +127,11 @@ FocusScope {
     // Read once for the window: the chrome's path and the search strip's scope both shorten with it.
     readonly property string home: Quickshell.env("HOME") || ""
 
-    // "list", "columns" or "grid"; the chrome's own buttons write it and the views read it.
-    property string viewMode: "list"
-    // Only the list view draws a filter, so leaving it takes the filter with it.
+    // "list", "columns" or "grid"; the persisted choice seeds every new pane.
+    property string viewMode: ViewState.viewMode
+    // Only an explicit chrome/key choice is persisted; restoring a tab must not rewrite the preference.
+    function chooseViewMode(mode) { root.viewMode = mode; ViewState.setViewMode(mode) }
+    function rememberSort(key, reverse) { ViewState.setSort(key, reverse) }
     onViewModeChanged: Filter.close(root)
 
     // Directories already visited, newest last, so the chrome's back arrow has somewhere to go.
@@ -354,6 +356,7 @@ FocusScope {
     Flea.ContextMenu {
         id: menu
         showHidden: root.showHidden
+        viewMode: root.viewMode
         taildropPeers: (root.cursorRow && !root.cursorRow.d) ? wire.taildrop.peers : []
         archiveFormats: root.backend.archiveFormats
         canConvert: root.backend.canConvert

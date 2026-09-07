@@ -16,6 +16,7 @@ Item {
     property bool opened: false
     // Driven from ui/Pane.qml's own state, so this file owns no hidden-file logic itself.
     property bool showHidden: false
+    property string viewMode: "list"
     // The application name ui/Opener.qml resolved for the cursor row, shown muted beside "Open".
     // [{id, label}], the reachable Taildrop targets; empty self-hides the whole row, see ui/Taildrop.qml.
     property var taildropPeers: []
@@ -90,6 +91,7 @@ Item {
             return Menu.headerEntries(ViewState.hiddenCols, root.showHidden)
         return Menu.listingEntries({
             showHidden: root.showHidden,
+            viewMode: root.viewMode,
             hasRow: root.hasRow,
             rowInDropbox: root.rowInDropbox,
             dropboxPath: root.dropboxPath,

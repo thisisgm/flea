@@ -22,9 +22,21 @@ QtObject {
     // The whole document, so a later section reads its own key without a second file read.
     property var state: ({})
 
-    // Mirrors "columns" in src/uischema.rs, and is the only default this front end needs before the
-    // first frame: it is what a first launch draws, when there is no file to settle and none to read.
+    // Mirrors the two top-level display keys in src/uischema.rs. These are the first-frame defaults
+    // when there is no file to settle and none to read.
+    readonly property var viewModes: ["list", "columns", "grid"]
+    readonly property string viewMode: root.viewModes.indexOf(root.state.view) >= 0
+                                               ? root.state.view : root.viewModes[0]
     readonly property var defaultColumns: ["name", "size", "date"]
+
+    // The explicit row-menu/header order future panes inherit. ui.json spells the displayed column
+    // "date" while the wire spells its stat field "mtime"; this is the one conversion between them.
+    readonly property var sortKeys: ["name", "size", "date"]
+    readonly property var sortState: root.state.sort || ({})
+    readonly property string sortKey: root.sortKeys.indexOf(root.sortState.key) < 0 ? "name"
+                                      : (root.sortState.key === "date" ? "mtime" : root.sortState.key)
+    readonly property bool sortReverse: root.sortKeys.indexOf(root.sortState.key) >= 0
+                                        && root.sortState.reverse === true
 
     // Mirrors "menu"."hidden" in src/uischema.rs, for the same first launch: six ids this release's
     // menu cannot build, plus Copy path and Open in terminal, which the SettingsMenus board ships
@@ -141,6 +153,18 @@ QtObject {
 
     function setKeysPreset(name) {
         root.changeKey("keys", name)
+    }
+
+    // The chrome buttons and their keyboard twins both change this one persistent display mode.
+    function setViewMode(mode) {
+        if (root.viewModes.indexOf(mode) >= 0)
+            root.changeKey("view", mode)
+    }
+
+    function setSort(key, reverse) {
+        var stored = key === "mtime" ? "date" : key
+        if (root.sortKeys.indexOf(stored) >= 0)
+            root.changeLeaf("sort", { key: stored, reverse: reverse === true })
     }
 
     // Flipped by ui/Pane.qml's onChosen, when a header-menu row answers "col:<key>".

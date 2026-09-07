@@ -47,10 +47,12 @@ Item {
     readonly property bool running: child.running
 
     // What order the current listing is actually in, which is what ui/Header.qml's mark draws.
-    // Only two things move it: list re-sorts by name ascending below, and an accepted sort, which
-    // ui/js/Sort.js records here because it is the one place that knows which keys are accepted.
-    property string sortBy: "name"
-    property bool sortDesc: false
+    // A new backend starts on the persisted choice; explicit sorts and tab restores then own it.
+    property string sortBy: ViewState.sortKey
+    property bool sortDesc: ViewState.sortReverse
+    // A non-default list suppresses its unsorted empty window, sorts, then publishes one real window.
+    property int primeSort: 0
+    property int primeCount: 0
 
     // What the settle gate asserts: how many thumb requests this process has attempted; see AGENTS.md.
     property int thumbRequests: 0
@@ -79,11 +81,12 @@ Item {
     }
 
     function list(path, first, hidden) {
-        // A fresh scan is always name ascending, so every refresh after a write operation puts the
-        // header's mark back rather than leaving it describing the order before the refresh.
-        root.sortBy = "name"
-        root.sortDesc = false
-        root.send({ c: "list", path: path, first: first, hidden: hidden })
+        var custom = root.sortBy !== "name" || root.sortDesc
+        root.primeSort = custom ? 1 : 0
+        root.primeCount = first
+        // A custom order first asks for no rows. receive() waits for that scan to succeed, then sends
+        // sort and window so an unsorted screen never flashes before the persisted one.
+        root.send({ c: "list", path: path, first: custom ? 0 : first, hidden: hidden })
     }
 
     // A listing built from the paths named here, in that order and never sorted; see
@@ -259,10 +262,26 @@ Item {
         }
         if (message.t === "listed") {
             root.dirDev = message.v || 0
+            if (root.primeSort === 1) {
+                root.primeSort = 2
+                root.sort(root.sortBy, root.sortDesc)
+                return
+            }
             root.listed(message.n, message.read, message.sort)
+            if (root.primeSort === 3) {
+                root.primeSort = 4
+                root.window(0, root.primeCount)
+            }
         } else if (message.t === "rows") {
+            if (root.primeSort === 2) {
+                root.primeSort = 3
+                return
+            }
             root.rows(message.start, message.rows, message.ms, message.kinds || [])
+            if (root.primeSort === 4)
+                root.primeSort = 0
         } else if (message.t === "error") {
+            root.primeSort = 0
             root.failed(message.where, message.path, message.msg, message.mode || 0)
         } else if (message.t === "thumbed") {
             root.thumbed(message.row, message.file)

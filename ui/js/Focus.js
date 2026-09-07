@@ -22,8 +22,8 @@ function next(current) {
 // The one lookup Pane.qml's Keys.onPressed calls. "addNetwork" is a rail-only action (the
 // dialog is reached from the rail's own "+" mark), so "a" does nothing in the list;
 // filtering it here, not in Keymap.js, keeps the generated file a pure keys.toml mirror.
-// seekBack/seekForward get the same treatment, scoped to an open MEDIA preview instead of the
-// rail, so Left/Right stay silent everywhere else rather than reaching act()'s "not built yet".
+// seekBack/seekForward are contextual: preview transport first, grid movement second, then the
+// conventional parent/enter-directory pair in the list and columns views.
 function lookup(event, root) {
     var action = Keymap.lookup(event.key, event.text, event.modifiers)
     // Only the bare a is rail-only; Ctrl+K is scoped to neither view and opens the dialog anywhere.
@@ -34,15 +34,21 @@ function lookup(event, root) {
     // It goes quiet while a search owns the header too, the same way the two sort keys do below.
     if (action === "filter")
         return (root.viewMode === "list" && root.searchMode.length === 0) ? action : ""
-    // Left and Right seek inside a media preview and turn the page in a PDF one. With no preview
-    // open they are free, and in the grid they are the only sensible way to move one tile sideways,
-    // so the grid claims them there.
+    // Left and Right seek inside a media preview and turn the page in a PDF one. While browsing,
+    // the grid claims them for tiles; the list and columns views use them to leave or enter a folder.
     if (action === "seekBack" || action === "seekForward") {
         if (root.preview.active && (root.preview.isMedia || root.preview.isPdf))
             return action
+        if (root.focusView !== LIST)
+            return ""
         if (root.viewMode === "grid")
             return action === "seekBack" ? "cursorLeft" : "cursorRight"
-        return ""
+        if (root.viewMode !== "list" && root.viewMode !== "columns")
+            return ""
+        if (action === "seekBack")
+            return "parent"
+        var selected = root.rowFor(root.cursorIndex)
+        return selected && (selected.d || (Format.isSymlink(selected.p) && selected.i === "folder")) ? "open" : ""
     }
     // Minus, plus and e mean nothing outside a PDF. l is h's forward: page, else enter or preview.
     if (action === "zoomOut" || action === "zoomIn" || action === "expand")
@@ -128,9 +134,9 @@ function act(action, root) {
     case "addNetwork": root.sidebar.addRequested(); return
     case "eject": Eject.release(root, root.sidebar, false); return
     // Finder's Cmd+1/2/3; the chrome's three buttons write the same property, so they follow.
-    case "viewList": root.viewMode = "list"; return
-    case "viewColumns": root.viewMode = "columns"; return
-    case "viewGrid": root.viewMode = "grid"; return
+    case "viewList": root.chooseViewMode("list"); return
+    case "viewColumns": root.chooseViewMode("columns"); return
+    case "viewGrid": root.chooseViewMode("grid"); return
     case "newFolder": Ops.newFolder(root); return
     // The directory being shown, not the row: the menu row and the chord both land here.
     case "openTerminal": root.openTerminal(); return
@@ -143,7 +149,7 @@ function act(action, root) {
     // The background menu's Sort by flyout, routed to the header click's own function so an aimed
     // click and an aimed menu row cannot come to mean different things.
     if (action.indexOf("sort:") === 0) {
-        Sort.column(root, action.substring("sort:".length))
+        Sort.menuChoice(root, action.substring("sort:".length))
         return
     }
     // Both keys the Tui board drew ahead of their features are built now, so neither answers with

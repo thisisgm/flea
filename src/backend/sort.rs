@@ -108,19 +108,24 @@ pub fn sort_by_name(l: &mut Listing, desc: bool) -> f64 {
     l.spans.sort_by(|a, b| {
         let an = &names[a.off as usize..(a.off + a.len) as usize];
         let bn = &names[b.off as usize..(b.off + b.len) as usize];
-        match (a.is_dir, b.is_dir) {
-            (true, false) => Ordering::Less,
-            (false, true) => Ordering::Greater,
-            _ => {
-                // desc is the exact reverse of asc, tie-break included. as_bytes is a cast, not a
-                // conversion: the arena is a String, so the spans slice to &str and the comparator
-                // wants bytes.
-                if desc {
-                    name_order(bn.as_bytes(), an.as_bytes())
-                } else {
-                    name_order(an.as_bytes(), bn.as_bytes())
+        match (an.starts_with('.'), bn.starts_with('.')) {
+            // Hidden entries form the tail of the listing in either direction; within the regular
+            // and hidden halves, directories still lead files and names reverse independently.
+            (false, true) => Ordering::Less,
+            (true, false) => Ordering::Greater,
+            _ => match (a.is_dir, b.is_dir) {
+                (true, false) => Ordering::Less,
+                (false, true) => Ordering::Greater,
+                _ => {
+                    // as_bytes is a cast, not a conversion: the arena is a String, so the spans
+                    // slice to &str and the comparator wants bytes.
+                    if desc {
+                        name_order(bn.as_bytes(), an.as_bytes())
+                    } else {
+                        name_order(an.as_bytes(), bn.as_bytes())
+                    }
                 }
-            }
+            },
         }
     });
     l.names = names;
@@ -149,6 +154,22 @@ mod tests {
         assert_eq!(l.name(1), "zzz-dir");
         assert_eq!(l.name(2), "alpha.txt");
         assert_eq!(l.name(3), "zebra.txt");
+    }
+
+    #[test]
+    fn hidden_entries_follow_all_regular_entries_and_keep_directories_first() {
+        let mut l = Listing::new();
+        for (name, dir) in [(".z-file", false), ("z-file", false), (".a-dir", true),
+                            ("a-file", false), ("z-dir", true), (".a-file", false),
+                            ("a-dir", true), (".z-dir", true)] {
+            l.push(name, dir);
+        }
+        sort_by_name(&mut l, false);
+        assert_eq!((0..l.len()).map(|i| l.name(i)).collect::<Vec<_>>(),
+                   ["a-dir", "z-dir", "a-file", "z-file", ".a-dir", ".z-dir", ".a-file", ".z-file"]);
+        sort_by_name(&mut l, true);
+        assert_eq!((0..l.len()).map(|i| l.name(i)).collect::<Vec<_>>(),
+                   ["z-dir", "a-dir", "z-file", "a-file", ".z-dir", ".a-dir", ".z-file", ".a-file"]);
     }
 
     #[test]
@@ -249,8 +270,8 @@ mod tests {
     fn names_with_no_digits_only_digits_and_a_leading_dot_all_order() {
         assert_eq!(ordered(&["zebra", "apple"]), vec!["apple", "zebra"]);
         assert_eq!(ordered(&["10", "9", "1"]), vec!["1", "9", "10"]);
-        // A dot is 0x2e, below every digit and letter, so dotfiles lead exactly as they did.
-        assert_eq!(ordered(&[".b", "a", ".a"]), vec![".a", ".b", "a"]);
+        // The dot still orders names inside the hidden tail; it no longer lifts that tail above a.
+        assert_eq!(ordered(&[".b", "a", ".a"]), vec!["a", ".a", ".b"]);
     }
 
     // A name that is not UTF-8 never reaches this comparator: the arena is a String and scan.rs:16

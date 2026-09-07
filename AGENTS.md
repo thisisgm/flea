@@ -142,8 +142,10 @@ themselves, so `sort_by_name` never touches the arena at all. Offsets are `u32`,
 arena tops out at 4 GiB of names, which no directory reaches but a later search phase
 reusing this arena could.
 
-**The comparator is macOS Finder's, not a byte compare, and it costs about 2.3x.** Three properties
-apply per segment as two names are walked together: a run of digits compares by value so `file_2`
+**The comparator is macOS Finder's, not a byte compare, and it costs about 2.3x.** Its outer key is
+`(is_hidden, is_dir, name)`: regular directories, regular files, hidden directories, hidden files.
+Those four groups stay in that order when names descend; only names inside each group reverse. Three
+properties apply per segment as two names are walked together: a run of digits compares by value so `file_2`
 comes before `file_10`; letters compare case-insensitively so `Apple` sits beside `apple` instead of
 in an upper-case block above it; and leading zeros do not change a value, so `file_01` and `file_1`
 are equal and fall through to a tie-break. **The tie-break is a raw byte compare and it is not
@@ -167,8 +169,8 @@ hundreds of milliseconds. Zero allocation per comparison: `u8::to_ascii_lowercas
 **The name sort is stable on purpose, and `sort_unstable_by` is a measured LOSS here.** Plan 5's
 Task 5b made the substitution, proved it output-identical, and reverted it on time.
 
-The order argument, for whoever revisits this. The comparator's key is `(is_dir, name)`, it
-returns `Equal` only when both fields match, and POSIX gives each entry in a directory a unique
+The order argument, for whoever revisits this. The comparator's key is `(is_hidden, is_dir, name)`, it
+returns `Equal` only when all fields match, and POSIX gives each entry in a directory a unique
 name, so on names that are valid UTF-8 the order is total and the substitution cannot change the
 output. The one hole is that `scan.rs` pushes `file_name().to_string_lossy()`, so two distinct
 non-UTF-8 names in one directory can collide on the same lossy string and tie; see the `scan.rs`
@@ -370,14 +372,34 @@ paths, the lock and the write.
 the merged document and writes nothing. `flea --ui-state '<json object>'` merges that patch through
 the lock and prints the result. The window reaches it from `ui/ViewState.qml` through a `Process`;
 the terminal interface is not here yet, as `flea --tui` says by exiting 2, and when it is built it
-will submit patches for `view`, `hidden` and `sort` only, because menus and places are the window's.
-Scale is on neither list: `src/uischema.rs` has no `scale` key at all, it stores an Omarchy text-size
+will share `view` and submit patches for `hidden` and `sort` too, while menus and places stay the
+window's. Scale is on neither list: `src/uischema.rs` has no `scale` key at all, it stores an Omarchy text-size
 stop under `display.textSize.mode`, and the multiplier `ui/js/Scale.js` applies is a session value.
 **The streams and the status are the contract**, because
 that `Process` reads the status alone: either shape prints the whole document on stdout and exits 0,
 and every refusal, a patch that is not JSON, a key or value this Flea does not take, a state file it
 could not write, or more than one argument, prints one `flea: ` sentence on stderr, prints nothing
 on stdout at all, and exits 2. Pinned in `tests/uistate.sh`, both streams for each of the four.
+
+**The selected display mode is the next pane's default.** `ui/Pane.qml` seeds `viewMode` from
+`ui/ViewState.qml`'s validated `view` key, and the chrome buttons plus their keyboard twins write an
+explicit choice back through the shared patcher. Restoring a tab's own snapshot does not count as a
+choice and does not rewrite the preference. A first launch still writes no file merely to record the
+shipped List default. `tests/uiwriter.sh` proves the no-write first launch and a second process opening
+in the persisted Columns mode; `tests/ui.sh views` drives the actual chrome button and restart.
+
+**An explicit sort is the next pane's order.** Every valid `ui/js/Sort.js` route—List header clicks,
+background sort, and Ranger/Icon's row flyout—calls `Pane.rememberSort` before it checks whether the
+current listing already has that order. The no-op still matters when a restored tab happens to match
+an order the state file does not yet hold. `ui.json` uses its display key `date`, while the backend
+wire uses `mtime`; `ui/ViewState.qml` owns that one conversion and exposes `sortKey`/`sortReverse`.
+A new `ui/Backend.qml` seeds its recorded order from those values. For a non-default order, `list`
+requests an empty initial window, waits for that scan to succeed, then sends `sort` and `window` and
+suppresses the unsorted replies, so no name-ordered screen flashes before the persisted one. A list
+failure sends no sort against the previous directory. Direct assignments in `ui/js/Tabs.js` restore
+a tab without rewriting the preference. `tests/uiwriter.sh` proves a second process reads the stored
+order, `tests/js/sort.js` pins persistence even on a no-op, and `tests/ui.sh columns` and `header`
+drive a restart from the row flyout and List header respectively.
 
 **A patch names what that window changed, and nothing else.** `ui/ViewState.qml` holds a second
 document beside the one it draws from, `unsaved`, built by the same two rebuilds and starting empty;
@@ -3697,6 +3719,13 @@ typing `Vid` toggled the selection on `v`, jumped on `i`, and trashed the row on
 unbound letter now answers `Press / to filter this listing by name.`, which is the filter
 that already narrows the held rows without a walk.
 
+**Left and Right follow the file-manager convention while browsing.** In List and Columns (the
+ranger view), Left opens the parent and Right enters the selected directory; Right over a file does
+nothing. Grid keeps the pair for horizontal tile movement, the rail does not navigate on it, and an
+open media or PDF preview keeps first claim for seeking or page turns. `ui/js/Focus.js` owns that
+context split, `tests/js/focus.js` drives every arm, and `tests/ui.sh views` drives both directory
+round trips through the real window.
+
 Bare `d` is `trashArm`, not `trash`: `ui/js/Trash.js` owns the pair, the first press arms and
 says so, a second inside `Trash.ARM_MS` trashes, and `Focus.handleKey` clears
 `pane.trashArmedAt` for every other action so an arm never survives the key after it. `Delete`
@@ -4176,6 +4205,18 @@ answer false, and the status line says `No row under the cursor to open a menu o
 nothing. Right click and `m` reach the same menu, so a selection is honoured the same way by both.
 `m` stopped being a type-ahead letter for this. The menu's own `keyCatcher` reads
 `Keymap.lookup`, so `j` and `k` step it exactly as Down and Up do, and Space chooses like Enter.
+
+### Ranger and icon rows carry the explicit Sort By flyout
+
+A right click on any row in Columns or Grid puts `Sort By` directly below `Rename`; List keeps its
+smaller row menu. `ui/js/Menu.js` builds the row through the same `submenu` field Compress uses, and
+`ui/js/Sort.js` is the one table behind its four exact choices: Date Modified Desc, Date Modified Asc,
+Name A to Z and Name Z to A. These are explicit orders rather than header toggles, so choosing the
+order already shown is a no-op and never silently reverses it. The flyout emits `sort:<key>:<direction>`;
+`ui/js/Focus.js` hands the suffix to `Sort.menuChoice`, which reaches the same `resort` path as headers
+and keys, clearing every row-indexed cache and selection before requesting the reordered window.
+`tests/js/menu.js` pins placement and labels, `tests/js/sort.js` pins all four wires, and
+`tests/ui.sh columns`/`grid` drive the two real row menus.
 
 ### A FileView write can race a reload fired the moment setText() is called
 

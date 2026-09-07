@@ -347,8 +347,9 @@ the name is one typed word away.
 ## What it does
 
 - **Finder's natural name ordering, directories first.** `file_2` comes before `file_10`,
-  case is ignored, and leading zeros are worth nothing. Directories group ahead of files, in
-  both front ends, and the backend's `list` sorts them that way so no view can disagree.
+  case is ignored, and leading zeros are worth nothing. Regular directories and files come first,
+  then hidden directories and hidden files; reversing names keeps those four groups in place. The backend's
+  `list` owns that order so no view can disagree.
 - **A preview column** for text, images, video and audio, PDF with page navigation, and an
   archive's contents. Video and audio play in place.
 - **Thumbnails from the shared freedesktop cache** the whole desktop reads and writes, for
@@ -359,7 +360,9 @@ the name is one typed word away.
 - **Thumbnailing is mandatory-sandboxed.** Without `bwrap` and `prlimit` on `PATH` the job
   is refused rather than run unconfined.
 - **File operations with an undo journal.** Copy, cut, paste, trash, rename, duplicate,
-  compress, extract and convert, each reversible with `z`.
+  compress, extract and convert, each reversible with `z`. Ranger and icon row menus also put an
+  explicit Date Modified/Name sorting flyout directly below Rename, and that order becomes the
+  default for future panes just like a List header click does.
 - **Network and cloud in the rail.** SMB, SFTP, FTPS, WebDAV and NFS mounts through `gio`,
   Taildrop to a peer, and Dropbox as a first-class destination. Local disks and removable volumes group below them
   under DEVICES, which the screenshots here crop away rather than retouch: that row is labelled

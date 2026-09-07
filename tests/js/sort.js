@@ -17,9 +17,11 @@ function pane(sortBy, sortDesc) {
         cursor: -1,
         cleared: 0,
         said: [],
-        sent: []
+        sent: [],
+        remembered: []
     }
     p.message = function (text, isError) { p.said.push(text) }
+    p.rememberSort = function (key, desc) { p.remembered.push(key + ":" + desc) }
     p.clearSelection = function () { p.cleared += 1 }
     p.setCursor = function (index) { p.cursor = index }
     p.backend = {
@@ -39,6 +41,7 @@ function run(check) {
           same.sent.join(","), "sort name desc,window 0 200")
     check("and the recorded direction flips at once, with no round trip", same.backend.sortDesc, true)
     check("and the recorded column stays name", same.backend.sortBy, "name")
+    check("the explicit header choice is remembered for future panes", same.remembered.join(","), "name:true")
 
     var back = pane("name", true)
     Sort.column(back, "name")
@@ -65,6 +68,14 @@ function run(check) {
     check("and the directory-size cache goes with it", size.dirSizeState === "stale", false)
     check("and the selection and the cursor go with it", size.cleared + "|" + size.cursor, "1|0")
 
+    // A new Backend is still bound to ViewState: persisting updates its recorded properties
+    // synchronously, and that update must not fool resort into thinking no wire request is needed.
+    var bound = pane("name", false)
+    bound.rememberSort = function (key, desc) { bound.backend.sortBy = key; bound.backend.sortDesc = desc }
+    Sort.resort(bound, "size", false)
+    check("persistence cannot swallow the first real sort on a bound backend",
+          bound.sent.join(","), "sort size asc,window 0 200")
+
     var sizeAgain = pane("size", false)
     Sort.column(sizeAgain, "size")
     check("clicking Size while in size order reverses it", sizeAgain.sent.join(","), "sort size desc,window 0 200")
@@ -75,6 +86,23 @@ function run(check) {
     check("a click on Date Modified asks for mtime ascending, not the reverse it would inherit",
           date.sent.join(","), "sort mtime asc,window 0 200")
     check("and the mark moves onto Date Modified", date.backend.sortBy + ":" + date.backend.sortDesc, "mtime:false")
+
+    check("the row menu publishes the four orders and labels it promises",
+          Sort.ROW_CHOICES.map(function (r) { return r.id + "=" + r.label }).join("|"),
+          "mtime:desc=Date Modified Desc|mtime:asc=Date Modified Asc|"
+          + "name:asc=Name A to Z|name:desc=Name Z to A")
+    var choices = pane("size", false)
+    for (var c = 0; c < Sort.ROW_CHOICES.length; c++)
+        Sort.menuChoice(choices, Sort.ROW_CHOICES[c].id)
+    check("the four explicit choices reach the backend with their named directions",
+          choices.sent.join(","),
+          "sort mtime desc,window 0 200,sort mtime asc,window 0 200,"
+          + "sort name asc,window 0 200,sort name desc,window 0 200")
+    var exact = pane("name", true)
+    Sort.menuChoice(exact, "name:desc")
+    check("choosing the order already shown does not toggle it", exact.sent.length, 0)
+    check("but still makes that explicit choice the future-pane default",
+          exact.remembered.join(","), "name:true")
 
     // Mode and Kind are labels, not orders. A click must not look like a sort that then errors.
     var mode = pane("name", true)
