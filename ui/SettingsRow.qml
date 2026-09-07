@@ -137,7 +137,7 @@ Item {
         text: root.row.label || ""
         color: root.isLock ? Theme.color.muted : Theme.color.foreground
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.bodySmall
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
         elide: Text.ElideRight
     }
@@ -166,16 +166,16 @@ Item {
 
         // The master's count, a choice's name and a fact's value are all one thing: the value the
         // row currently holds, drawn on the right the way the boards draw it. A ruler has no label
-        // of its own on the left, so it carries the board's "Effective 14px" reading here instead.
+        // of its own on the left, so it carries the base size here; Reading text reports the body token.
         Text {
             visible: root.kind === "fact" || root.hasSteps || root.kind === "master" || root.isRuler
-            height: Theme.markSize
+            height: Math.max(Theme.markSize, Theme.bodyLineHeight)
             verticalAlignment: Text.AlignVCenter
             text: root.isRuler ? (root.row.label || "") + " " + (root.row.value || "")
                                : (root.row.value || "")
             color: root.hasSteps || root.isRuler ? Theme.color.foreground : Theme.color.muted
             font.family: Theme.font.family
-            font.pixelSize: root.isRuler ? Theme.font.caption : Theme.font.bodySmall
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
         }
 

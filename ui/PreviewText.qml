@@ -47,7 +47,7 @@ Item {
             wrapMode: Text.Wrap
             color: Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.bodySmall
+            font.pixelSize: Theme.font.body
         }
     }
 
@@ -57,7 +57,7 @@ Item {
         text: root.status
         color: Theme.color.muted
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.bodySmall
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
     }
 }

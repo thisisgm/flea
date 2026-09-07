@@ -58,7 +58,7 @@ Item {
     TextMetrics {
         id: metrics
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.bodySmall
+        font.pixelSize: Theme.font.body
         text: "0"
     }
 

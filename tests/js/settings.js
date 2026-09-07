@@ -61,7 +61,7 @@ function runInventory(check) {
 // The Display state ui/SettingsPanel.qml passes in: the stored mode, the size ui/Theme.qml resolved
 // from it, and the two numbers Flea reads off the compositor and never writes.
 function displayState(textSize, baseSize, monitorScale) {
-    return { textSize: textSize, baseSize: baseSize,
+    return { textSize: textSize, baseSize: baseSize, bodySize: baseSize,
              monitorScale: monitorScale === undefined ? 1 : monitorScale, cornerRadius: 8 }
 }
 
@@ -123,28 +123,31 @@ function runRows(check) {
     // The board's Display card: the text-size mode over its effective size, then the compositor's
     // two read-only facts. No monitor-scale control, because Flea does not step or cycle that one.
     check("the Display section is text size, then Scale, then Appearance",
-          kinds(display), "group|choice|ruler|hint|group|fact|hint|group|fact")
+          kinds(display), "group|choice|ruler|fact|hint|group|fact|hint|group|fact")
     check("its one control opens on Follow Omarchy", find(display, "textMode").value,
           "Follow Omarchy")
     // The board draws the mode as both names side by side, so the row names them rather than
     // leaving ui/SettingsRow.qml to invent a second list that could disagree with the writer.
     check("and it names both its values, in the board's own order",
           find(display, "textMode").options.join("|"), "Follow Omarchy|Override")
+    check("the ruler reports the base, not a promise about every label", display[2].label, "Base")
     check("the ruler reports Omarchy's own size", display[2].value, "14px")
+    var custom = displayState(TextSize.follow(), 12); custom.bodySize = 18
+    check("a custom body token is reported separately", Settings.rows("display", custom)[3].value, "18px")
     check("and fills to that stop, five of the seven", display[2].index, 4)
     // An Omarchy size that is not one of the seven still fills the ruler, at the nearest stop below.
     check("a size between two stops fills to the nearer one",
           Settings.rows("display", displayState(TextSize.follow(), 13))[2].index, 3)
     check("the hint names every stop the override can take",
-          display[3].label.indexOf("9, 10, 11, 12, 14, 16, 20 px") >= 0, true)
-    check("the monitor scale is drawn as the compositor reports it", display[5].value, "1x")
+          display[4].label.indexOf("9, 10, 11, 12, 14, 16, 20 px") >= 0, true)
+    check("the monitor scale is drawn as the compositor reports it", display[6].value, "1x")
     check("a fractional one keeps its fraction",
-          Settings.rows("display", displayState(TextSize.follow(), 14, 1.25))[5].value, "1.25x")
+          Settings.rows("display", displayState(TextSize.follow(), 14, 1.25))[6].value, "1.25x")
     check("and an unanswered query says so rather than claiming 1x",
-          Settings.rows("display", displayState(TextSize.follow(), 14, 0))[5].value, "not reported")
+          Settings.rows("display", displayState(TextSize.follow(), 14, 0))[6].value, "not reported")
     check("its hint is the board's own sentence, so no reader expects a control",
-          display[6].label, "Flea follows the compositor value and does not step or cycle it.")
-    check("the rounding Flea mirrors is drawn beside it", display[8].value, "rounding 8")
+          display[7].label, "Flea follows the compositor value and does not step or cycle it.")
+    check("the rounding Flea mirrors is drawn beside it", display[9].value, "rounding 8")
 
     // Switching to Override adds the stop row, and nothing else about the section moves.
     var pinned = Settings.rows("display", displayState({ mode: 16 }, 16))

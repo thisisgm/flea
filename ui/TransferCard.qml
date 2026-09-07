@@ -104,7 +104,7 @@ Item {
                 text: Transfer.head(root.shown)
                 color: Theme.color.foreground
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.bodySmall
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
                 elide: Text.ElideRight
             }
@@ -115,7 +115,7 @@ Item {
             text: Transfer.fileLine(root.shown)
             color: Theme.color.muted
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
             // The middle goes and the extension stays: the extension is what says what the file is.
             elide: Text.ElideMiddle
@@ -181,7 +181,7 @@ Item {
                     text: "Cancel"
                     color: Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.bodySmall
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                 }
 
@@ -202,7 +202,7 @@ Item {
                 text: "Cancelling"
                 color: Theme.color.muted
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.bodySmall
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
             }
         }

@@ -295,7 +295,7 @@ Item {
                     text: root.dialogTitle
                     color: Theme.color.foreground
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.bodySmall
+                    font.pixelSize: Theme.font.body
                     font.weight: Font.Bold
                     textFormat: Text.PlainText
                 }
@@ -328,7 +328,7 @@ Item {
                         text: root.statusText
                         color: Theme.color.error
                         font.family: Theme.font.family
-                        font.pixelSize: Theme.font.caption
+                        font.pixelSize: Theme.font.body
                         wrapMode: Text.Wrap
                         textFormat: Text.PlainText
                     }

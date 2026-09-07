@@ -74,7 +74,7 @@ Item {
                 text: "Output URI · "
                 color: Theme.color.muted
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
             }
 
@@ -83,7 +83,7 @@ Item {
                 text: Format.fileUri(root.outPath)
                 color: Theme.color.muted
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
+                font.pixelSize: Theme.font.body
                 elide: Text.ElideLeft
                 textFormat: Text.PlainText
             }
@@ -97,7 +97,7 @@ Item {
             text: "Refused · " + root.askedName + " · " + Picker.NAME_REFUSED
             color: Theme.color.error
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             elide: Text.ElideRight
             textFormat: Text.PlainText
         }
@@ -108,7 +108,7 @@ Item {
             text: root.picker.saveName + " already exists here · review before continuing"
             color: Theme.color.error
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             elide: Text.ElideRight
             textFormat: Text.PlainText
         }

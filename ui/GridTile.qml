@@ -86,7 +86,7 @@ Item {
         text: root.row ? root.row.n : ""
         color: Theme.color.foreground
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
         wrapMode: Text.Wrap
         maximumLineCount: 2
@@ -112,7 +112,7 @@ Item {
             text: root.row ? root.row.n : ""
             color: Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             wrapMode: Text.Wrap
             textFormat: Text.PlainText
         }

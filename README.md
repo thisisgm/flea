@@ -409,6 +409,10 @@ row:
 The choices live in `~/.local/state/flea/ui.json`, the one file Flea keeps for itself, beside the
 column set and everything else that outlives a window. The text size is stored as `{"mode":"system"}`
 while it follows Omarchy and `{"mode":16}` once it does not, which is a stop and never a free number.
+Normal reading text—filenames, file details, controls and messages—uses Omarchy's regular body
+size, not its smaller variants. Hints and compact section headings remain smaller. Display reports
+**Base** and **Reading text** separately, because a theme can override its body token independently
+of the base size. Monitor scaling is applied by Qt and the compositor, never multiplied in again.
 Every change goes through `flea --ui-state`, which takes a lock, checks the value and merges it, so a
 setting written here never overwrites one written somewhere else, and a change it could not save is
 reported in the status bar rather than lost quietly. A value this build does not recognise falls back

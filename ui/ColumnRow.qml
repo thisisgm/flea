@@ -65,7 +65,7 @@ Item {
         text: root.row ? root.row.n : ""
         color: root.ink
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.bodySmall
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
         elide: Text.ElideRight
     }

@@ -19,7 +19,7 @@ Item {
     readonly property int tabWidth: {
         var n = Math.max(1, root.tabCount)
         var avail = Math.max(0, root.width - Theme.hitMin)
-        var maxW = Math.round(Theme.font.caption * 12) + Theme.hitMin + 2 * Theme.spacing.rowPaddingX
+        var maxW = Math.round(Theme.font.body * 12) + Theme.hitMin + 2 * Theme.spacing.rowPaddingX
         var minW = Theme.hitMin * 3
         return Math.round(Math.max(minW, Math.min(maxW, avail / n)))
     }
@@ -108,7 +108,7 @@ Item {
                     text: tab.title
                     color: tab.current ? Theme.color.foreground : Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                     elide: Text.ElideRight
                 }

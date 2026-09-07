@@ -139,7 +139,7 @@ function focusable(row) {
     return row.kind === "check" || row.kind === "master" || row.kind === "choice"
 }
 
-// state: { textSize, hidden, keyHints, preset, baseSize, monitorScale, cornerRadius, presetKeys }
+// state: { textSize, hidden, keyHints, preset, baseSize, bodySize, monitorScale, cornerRadius, presetKeys }
 function rows(section, state) {
     if (section === "display")
         return displayRows(state)
@@ -161,11 +161,13 @@ function displayRows(state) {
           value: follows ? "Follow Omarchy" : "Override" },
         // The board's seven-stop ruler, the override's own control and the one place the effective
         // size is read; a size Omarchy invented that is not a stop fills to the nearest one.
-        { kind: "ruler", id: "textStop", label: "Effective", value: state.baseSize + "px",
+        { kind: "ruler", id: "textStop", label: "Base", value: state.baseSize + "px",
           stops: TextSize.STOPS, on: !follows,
           index: TextSize.STOPS.indexOf(TextSize.nearest(state.baseSize)) }
     ]
-    out.push({ kind: "hint", label: "Omarchy owns the size until you override it, and an override "
+    out.push({ kind: "fact", label: "Reading text", value: state.bodySize + "px" })
+    out.push({ kind: "hint", label: "Normal text uses Omarchy's body size; hints use smaller text. "
+                                    + "Omarchy owns the size until you override it, and an override "
                                     + "takes one of its own stops, " + TextSize.STOPS.join(", ")
                                     + " px. Ctrl+Shift+Plus and Ctrl+Shift+Minus walk them, and "
                                     + "Ctrl+Shift+0 follows Omarchy again." })

@@ -44,7 +44,7 @@ Item {
             text: root.line
             color: root.locked ? Theme.color.muted : Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.bodySmall
+            font.pixelSize: Theme.font.body
             horizontalAlignment: Text.AlignHCenter
             wrapMode: Text.Wrap
             textFormat: Text.PlainText

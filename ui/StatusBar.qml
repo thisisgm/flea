@@ -154,7 +154,7 @@ Item {
         text: root.searchLine
         color: Theme.color.foreground
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
@@ -171,7 +171,7 @@ Item {
         text: root.countText()
         color: Theme.color.muted
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
@@ -198,7 +198,7 @@ Item {
         // A sticky line is the app saying what it is doing right now, so it reads at full contrast.
         color: root.rightColor()
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
     }
 

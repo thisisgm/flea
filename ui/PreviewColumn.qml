@@ -133,7 +133,7 @@ Item {
                     text: root.frameNote()
                     color: Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                 }
             }
@@ -194,7 +194,7 @@ Item {
                     text: (root.pdfPage() + 1) + " / " + root.pdfPages
                     color: Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                 }
 
@@ -240,7 +240,7 @@ Item {
                     text: root.previewState === Facts.ERROR ? root.failure : "no preview"
                     color: root.previewState === Facts.ERROR ? Theme.color.foreground : Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                 }
             }
@@ -262,7 +262,7 @@ Item {
             text: root.nameText()
             color: Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.bodySmall
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
             elide: Text.ElideRight
         }

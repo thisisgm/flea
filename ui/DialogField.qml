@@ -37,8 +37,8 @@ Item {
         text: root.label.toUpperCase()
         color: Theme.color.muted
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        font.letterSpacing: Theme.font.caption * root.labelSpacing
+        font.pixelSize: Theme.font.body
+        font.letterSpacing: Theme.font.body * root.labelSpacing
         textFormat: Text.PlainText
     }
 
@@ -64,7 +64,7 @@ Item {
             selectionColor: Theme.color.accent
             selectedTextColor: Theme.color.background
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.bodySmall
+            font.pixelSize: Theme.font.body
             clip: true
             // Revealed only while the eye is held, so a shoulder never reads it from a stuck toggle.
             echoMode: root.secret && !reveal.pressed ? TextInput.Password : TextInput.Normal
@@ -80,7 +80,7 @@ Item {
             text: root.placeholder
             color: Theme.color.muted
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.bodySmall
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
             elide: Text.ElideRight
         }

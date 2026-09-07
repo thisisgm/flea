@@ -12,7 +12,7 @@ Item {
     // The meta answer for the archive row, or null before one has arrived.
     property var meta: null
 
-    readonly property real lineHeight: Math.round(Theme.font.caption * Theme.lineBoxRatio)
+    readonly property real lineHeight: Math.max(Theme.bodyLineHeight, Math.round(Theme.font.body * Theme.lineBoxRatio))
     readonly property int shown: Math.max(0, Math.floor(height / lineHeight) - 1)
 
     Column {
@@ -42,7 +42,7 @@ Item {
                     text: modelData.n
                     color: Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                     elide: Text.ElideRight
                 }

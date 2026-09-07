@@ -94,14 +94,14 @@ Item {
         text: root.modelData.label
         color: Theme.color.foreground
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.bodySmall
+        font.pixelSize: Theme.font.body
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
 
     // Same slot as the label above; only one of the two is ever visible. ui/RenameField.qml is the
-    // one editor in the product, so the rail gets rail type, an accent hairline frame and stem-only
-    // preselection where the stock control brought body type, its own 30 px height and a filled ground.
+    // one editor in the product, so display and edit share body type, an accent hairline frame and
+    // stem-only preselection rather than a stock control's independent height and filled ground.
     RenameField {
         id: renameField
         visible: root.renaming
@@ -110,7 +110,8 @@ Item {
         anchors.right: dot.left
         anchors.rightMargin: Style.spacing.rowGap
         anchors.verticalCenter: parent.verticalCenter
-        height: Theme.railRowHeight - 2 * Theme.spacing.rowPaddingY
+        height: Math.max(Theme.bodyLineHeight + 2 * Theme.spacing.hairline,
+                         Theme.railRowHeight - 2 * Theme.spacing.rowPaddingY)
         name: root.modelData.label
         onCommitted: function (newName) { root.renameCommitted(root.index, newName) }
         onAbandoned: root.renameCancelled(root.index)

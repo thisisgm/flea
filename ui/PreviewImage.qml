@@ -64,7 +64,7 @@ Item {
             text: root.status
             color: Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.bodySmall
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
             wrapMode: Text.Wrap
         }
@@ -76,7 +76,7 @@ Item {
             text: root.name
             color: Theme.color.muted
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
             elide: Text.ElideMiddle
         }

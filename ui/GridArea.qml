@@ -19,9 +19,9 @@ GridView {
     // How many tiles fit across, which is what a cursor step down has to move by.
     readonly property int columns: Math.max(1, Math.floor(root.width / Theme.grid.minCellWidth))
     readonly property int tileRows: Math.max(1, Math.ceil(root.pane.total / root.columns))
-    // Mark, one gap, one line of caption, and the padding above and below.
+    // Mark, one gap, both body-text lines the tile can wrap to, and the padding above and below.
     readonly property int cellHeightPx: Theme.grid.iconSize + Theme.spacing.gap
-                                        + Math.round(Theme.font.caption * 1.6)
+                                        + 2 * Theme.bodyLineHeight
                                         + 2 * Theme.spacing.rowPaddingX
     readonly property int visibleTileRows: Math.max(1, Math.ceil(root.height / root.cellHeightPx))
 

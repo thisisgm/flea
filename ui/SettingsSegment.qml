@@ -27,7 +27,7 @@ Row {
 
             // The WCAG floor the Blueprint sets for a compact control, which this row has room for.
             width: name.implicitWidth + 2 * Theme.spacing.gap
-            height: Theme.hitMin
+            height: Math.max(Theme.hitMin, name.implicitHeight + 2 * Theme.spacing.hairline)
             // selectedAccentFill already carries the theme's own selected alpha, as ui/MenuRow.qml has it.
             color: segment.current ? Style.selectedAccentFill : "transparent"
 
@@ -37,7 +37,7 @@ Row {
                 text: segment.modelData
                 color: segment.current ? Theme.color.accent : Theme.color.foreground
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
             }
 

@@ -5528,7 +5528,7 @@ case_settings() {
         || fail "settings: a restart lost the ${pinned_base}px override, it draws at $(token_of baseSize)"
     key , >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"ruler|Effective|${pinned_base}px"* ]] \
+    [[ "$(ipc settingsRows)" == *"ruler|Base|${pinned_base}px"* ]] \
         || fail "settings: a restart brought the panel back on a different stop"
     # settingsRows draws the section the panel is ON and a new process always opens on Display, so
     # the master row is not reachable until the rail has been walked. The master is derived from the
@@ -5722,7 +5722,7 @@ settings_display() {
     omarchy_base=$(token_of baseSize)
     [[ "$(ipc settingsRows)" == *"choice|Text size|Follow Omarchy"* ]] \
         || fail "settings: Display did not open on Follow Omarchy, got $(ipc settingsRows)"
-    [[ "$(ipc settingsRows)" == *"ruler|Effective|${omarchy_base}px"* ]] \
+    [[ "$(ipc settingsRows)" == *"ruler|Base|${omarchy_base}px"* ]] \
         || fail "settings: the ruler does not report Omarchy's own ${omarchy_base}px"
     # Read-only means read-only: the compositor's two rows are facts, and no control sits on them.
     [[ "$(ipc settingsRows)" == *"fact|Scale|"* ]] \
@@ -5740,7 +5740,7 @@ settings_display() {
     settle
     [[ "$(ipc settingsRows)" == *"choice|Text size|Override"* ]] \
         || fail "settings: Enter on the mode row did not reach Override, got $(ipc settingsRows)"
-    [[ "$(ipc settingsRows)" == *"ruler|Effective|${omarchy_base}px"* ]] \
+    [[ "$(ipc settingsRows)" == *"ruler|Base|${omarchy_base}px"* ]] \
         || fail "settings: the override did not start on Omarchy's own stop"
     [[ "$(ipc metrics)" == "$before" ]] \
         || fail "settings: switching to Override moved the type before any step, $before then $(ipc metrics)"
@@ -5766,7 +5766,7 @@ settings_display() {
     settle
     [[ "$(ipc settingsRows)" == *"choice|Text size|Follow Omarchy"* ]] \
         || fail "settings: the mode row did not go back to Follow Omarchy"
-    [[ "$(ipc settingsRows)" == *"ruler|Effective|${omarchy_base}px"* ]] \
+    [[ "$(ipc settingsRows)" == *"ruler|Base|${omarchy_base}px"* ]] \
         || fail "settings: following Omarchy again left the ruler on the override's stop"
     [[ "$(ipc metrics)" == "$before" ]] \
         || fail "settings: following Omarchy again did not put the type back, $before then $(ipc metrics)"
@@ -5790,7 +5790,7 @@ settings_chord_alias() {
         || fail "settings: the chord did not announce its stop, got $(ipc lastMessage)"
     key , >/dev/null
     settle
-    [[ "$(ipc settingsRows)" == *"ruler|Effective|${grown}px"* ]] \
+    [[ "$(ipc settingsRows)" == *"ruler|Base|${grown}px"* ]] \
         || fail "settings: the panel does not show the stop the chord set, got $(ipc settingsRows)"
     key -k Escape >/dev/null
     settle
@@ -5833,6 +5833,9 @@ token_of() {
 # mark is the board's own unrounded number rounded to whole pixels, which is what Theme draws.
 assert_board_row() {
     local want_base="$1" row got
+    [[ "$(token_of body)" == "$want_base" ]] || fail "settings: normal text is not ${want_base}px"
+    [[ "$(ipc settingsRows)" == *"fact|Reading text|${want_base}px"* ]] \
+        || fail "settings: Reading text does not report the body size"
     for row in "9|8|7|5|24|14|12" "10|9|8|5|26|16|13" "11|10|9|6|30|18|15" \
                "12|11|10|6|32|20|16" "14|13|12|7|37|23|19" "16|15|13|8|43|27|22" \
                "20|18|17|10|52|32|26"; do

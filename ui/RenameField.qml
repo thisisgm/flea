@@ -84,7 +84,7 @@ Item {
         selectionColor: Theme.color.accent
         selectedTextColor: Theme.color.background
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.bodySmall
+        font.pixelSize: Theme.font.body
         clip: true
 
         // Both keys are handled and accepted here rather than through onAccepted, because an

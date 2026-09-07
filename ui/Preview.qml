@@ -277,7 +277,7 @@ Item {
                 text: root.path.substring(root.path.lastIndexOf("/") + 1)
                 color: Theme.color.foreground
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.bodySmall
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
                 elide: Text.ElideMiddle
             }
@@ -287,7 +287,7 @@ Item {
                 text: Facts.archiveLine(root.archiveMeta)
                 color: Theme.color.muted
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
             }
 
@@ -321,7 +321,7 @@ Item {
                 text: root.status
                 color: root.archiveFailed ? Theme.color.foreground : Theme.color.muted
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.bodySmall
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
                 wrapMode: Text.Wrap
             }

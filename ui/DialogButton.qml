@@ -46,7 +46,7 @@ Item {
         text: root.label
         color: root.ink
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.bodySmall
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
     }
 

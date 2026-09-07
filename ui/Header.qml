@@ -62,6 +62,7 @@ Item {
         anchors.right: headerMode.left
         anchors.rightMargin: root.cols.mode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
+        fontSize: Theme.font.body
         text: root.title("Name", "name")
         elide: Text.ElideRight
 
@@ -75,6 +76,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.mode
         width: root.cols.mode ? Theme.column.mode : 0
+        fontSize: Theme.font.body
         text: root.title("Mode", "mode")
     }
 
@@ -85,6 +87,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.size
         width: root.cols.size ? Theme.column.size : 0
+        fontSize: Theme.font.body
         text: root.title("Size", "size")
         horizontalAlignment: Text.AlignRight
 
@@ -98,6 +101,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.date
         width: root.cols.date ? Theme.column.date : 0
+        fontSize: Theme.font.body
         text: root.title("Date Modified", "mtime")
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
@@ -112,6 +116,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.kind
         width: root.cols.kind ? Theme.column.kind : 0
+        fontSize: Theme.font.body
         text: root.title("Kind", "kind")
         elide: Text.ElideRight
     }

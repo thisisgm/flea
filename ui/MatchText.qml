@@ -12,7 +12,7 @@ Item {
     property int matchLength: 0
     property color color: Theme.color.foreground
     property color accent: Theme.color.accent
-    property int pixelSize: Theme.font.bodySmall
+    property int pixelSize: Theme.font.body
 
     readonly property bool marked: root.matchStart >= 0 && root.matchLength > 0
     readonly property string before: root.marked ? root.text.substring(0, root.matchStart) : root.text

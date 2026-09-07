@@ -58,7 +58,7 @@ Item {
         text: root.pane.filterQuery
         color: Theme.color.foreground
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.bodySmall
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
     }
 
@@ -70,7 +70,7 @@ Item {
         anchors.leftMargin: Theme.spacing.hairline
         anchors.verticalCenter: parent.verticalCenter
         width: root.caretWidth
-        height: Theme.font.bodySmall
+        height: Theme.font.body
         color: Theme.color.accent
     }
 

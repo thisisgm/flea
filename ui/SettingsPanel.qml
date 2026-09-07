@@ -34,6 +34,7 @@ Item {
         keyHints: ViewState.keyHints,
         preset: ViewState.keysPreset,
         baseSize: Theme.baseSize,
+        bodySize: Theme.font.body,
         monitorScale: Theme.monitorScale,
         cornerRadius: Style.cornerRadius,
         presetKeys: Keymap.PRESET_KEYS
@@ -206,7 +207,7 @@ Item {
                     text: "Settings"
                     color: Theme.color.foreground
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.bodySmall
+                    font.pixelSize: Theme.font.body
                     font.bold: true
                     textFormat: Text.PlainText
                 }

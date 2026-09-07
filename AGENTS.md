@@ -3538,6 +3538,29 @@ itself, and the Rust tests use `TestDir`.
   `text-x-generic`, so the row's icon name alone cannot carry it. It is a display-mode choice
   over an already-text-shaped file, not client-side content sniffing.
 
+### Regular reading text follows Omarchy's body token
+
+Issue 79's typography change adds `Theme.font.body`: `Style.font.body` while following, the pinned
+base size while overriding. Filenames in all views and the picker, metadata, paths, controls,
+editors and messages use it. `bodySmall` and `caption` keep their real meanings; compact headings,
+shortcut annotations and hints stay small. The old design-board tables above are historical rather
+than a reason to shrink primary text. Settings now reports Base and Reading text separately,
+because a theme may override `body` without moving `base-size`.
+
+Icons and padding are not rescaled by this migration. `Theme.bodyLineHeight` reads `FontMetrics`
+and floors row and chrome heights when the actual body font needs more space. Default list density
+is unchanged at the seven size stops in JetBrainsMono; the grid explicitly reserves both lines its
+filename can wrap to. Column widths measure body text, and settings/menu widths account for body
+being larger than the base. A rail rename gets at least the body line height plus its border.
+
+`tests/typography.sh`, registered in `tests/run-all.sh`, loads the real components and Omarchy
+singletons under a sandbox HOME, at device scales 1 and 2. It reads Text/TextInput font properties,
+not just Theme tokens, across follow/pinned stops and independent theme/user body overrides, checks
+layout bounds, and checks that Settings distinguishes base from body. Reverting MatchText's binding
+to bodySmall in an isolated copy makes the filename checks fail even while Theme.tokens stays right.
+This is render-property coverage, not proof of the window's keyboard or compositor behaviour.
+`tools/flea-metrics-gate` retains the old icon/density numbers and records the enlarged text columns.
+
 ### Size formatting matches real GLib, not Finder, and not the design spec's assumed rounding
 
 `ui/js/Format.js`'s `size()` is GLib's SI, one-decimal ladder (`g_format_size`), because storage
