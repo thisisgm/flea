@@ -385,6 +385,43 @@ second_bytes=$(echo "$out" | grep -oE '"bytes":[0-9]+' | sed -n 2p | cut -d: -f2
 check "row 0's answer after the sort is zzz's larger size, not aaa's stale cache entry" "0" "$?"
 sandbox_remove "$SZ_SB"; sandbox_remove "$DZ_SB"
 
+# reclaim: the regenerable-tree walk; see docs/protocol.md "reclaim". A staged run, because the
+# window must be asked for after the terminal line that ranked the rows.
+RC_SB="$FIXTURE_ROOT/flea-reclaim-test-$$"
+RC="$RC_SB/tree"
+sandbox_make "$RC_SB"
+mkdir -p "$RC/proj/node_modules/left-pad" "$RC/rust/target/debug" "$RC/plain"
+printf 'x' > "$RC/proj/node_modules/left-pad/index.js"
+printf '%080d' 0 > "$RC/rust/target/debug/app"
+: > "$RC/plain/notes.txt"
+out=$(dirsize_run "$(printf '{"c":"reclaim","path":"%s"}\n' "$RC")" '{"c":"window","start":0,"count":10}')
+check "a reclaim opens with a listed line of nothing" "0" "$(echo "$out" | head -1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "exactly one terminal reclaimed line answers" "1" "$(echo "$out" | grep -c '"t":"reclaimed"')"
+check "the terminal line counts both matches" "2" "$(echo "$out" | grep '"t":"reclaimed"' | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+win=$(echo "$out" | grep '"t":"rows"' | head -1)
+check "the rows arrive ranked heaviest first" "rust/target" "$(echo "$win" | grep -oE '"n":"[^"]+"' | head -1 | cut -d'"' -f4)"
+check "and a directory that matches nothing is absent from the listing" "0" "$(echo "$win" | grep -c 'plain')"
+sz=$(echo "$win" | grep -oE '"n":"rust/target","d":true,"s":[0-9]+' | head -1 | grep -oE '[0-9]+$')
+[ -n "$sz" ] && [ "$sz" -ge 80 ] 2>/dev/null
+check "the rows object carries the walk's measured bytes in s" "0" "$?"
+# The walk seeded the dirsize cache, so a settled row answers from it instead of walking again.
+out=$(dirsize_run "$(printf '{"c":"reclaim","path":"%s"}\n' "$RC")" '{"c":"dirsize","rows":[0]}')
+check "a row the walk already sized answers from the cache" "1" "$(echo "$out" | grep -c '"t":"dirsized"')"
+cached=$(echo "$out" | grep '"t":"dirsized"' | grep -oE '"bytes":[0-9]+' | cut -d: -f2)
+[ -n "$cached" ] && [ "$cached" -ge 80 ] 2>/dev/null
+check "and the cached answer is the tree's whole size, not its dirent" "0" "$?"
+# A cancel at once still answers the terminal line, marked cancelled, with whatever was found.
+out=$(printf '{"c":"reclaim","path":"%s"}\n{"c":"reclaimcancel"}\n{"c":"quit"}\n' "$RC" | $BIN --backend)
+check "a reclaim cancelled at once answers reclaimed" "1" "$(echo "$out" | grep -c '"t":"reclaimed"')"
+check "and that terminal line says it was cancelled" "1" "$(echo "$out" | grep -c '"cancelled":true')"
+
+# A reclaim on a path that cannot be read finishes at once with nothing rather than failing. Staged
+# like the runs above: a quit sent at once is read before the loop's first tick of the walk.
+out=$(dirsize_run '{"c":"reclaim","path":"/definitely/not/here"}')
+check "a reclaim on a missing root answers reclaimed" "reclaimed" "$(echo "$out" | grep '"t":"reclaimed"' | head -1 | grep -oE '"t":"[a-z]+"' | cut -d'"' -f4)"
+check "and it scanned nothing" "0" "$(echo "$out" | grep '"t":"reclaimed"' | head -1 | grep -oE '"scanned":[0-9]+' | cut -d: -f2)"
+sandbox_remove "$RC_SB"
+
 # A new folder: one mkdir(2), answered like rename and journaled so z removes it; see docs/protocol.md "mkdir".
 MK_SB="$FIXTURE_ROOT/flea-mkdir-test-$$"
 MK="$MK_SB/tree"

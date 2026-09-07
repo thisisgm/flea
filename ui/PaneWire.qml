@@ -4,6 +4,7 @@ import "js/DirSizes.js" as DirSizes
 import "js/Errors.js" as Errors
 import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
+import "js/Reclaim.js" as Reclaim
 import "js/Search.js" as Search
 import "js/Tabs.js" as Tabs
 import "js/Thumbs.js" as Thumbs
@@ -132,6 +133,39 @@ Item {
             // discovery order and every index in it now names another file. A coalesce would not
             // fix that: it asks for a window only on drift, and a full held one drifts on neither edge.
             Search.ranked(pane)
+            pane.listArea.restartSettle()
+        }
+
+        // Sample input: {"t":"reclaiming","n":3,"scanned":8021,"bytes":2040000,"ms":410.200}
+        function onReclaiming(total, scanned, bytes, ms) {
+            if (!pane.reclaimWalk) {
+                return
+            }
+            pane.total = total
+            pane.searchScanned = scanned
+            pane.searchMs = ms
+            pane.reclaimBytes = bytes
+            pane.listingState = Search.listingState(pane, total)
+            // A reclaim rides no first screenful either: the count grows, so the window is asked for as it does.
+            pane.listArea.restartCoalesce()
+            pane.listArea.restartSettle()
+        }
+
+        // Sample input: {"t":"reclaimed","n":9,"scanned":51234,"bytes":12884901888,"ms":41230.500,"cancelled":false}
+        function onReclaimed(total, scanned, bytes, ms, cancelled) {
+            if (!pane.reclaimWalk) {
+                return
+            }
+            pane.searchRunning = false
+            pane.searchCancelled = cancelled
+            pane.total = total
+            pane.searchScanned = scanned
+            pane.searchMs = ms
+            pane.reclaimBytes = bytes
+            pane.listingState = Search.listingState(pane, total)
+            // The rows were ranked immediately before this line, exactly as a search's are, and the
+            // backend seeded its dirsize cache beside the ranking, so the settle's asks answer from it.
+            Reclaim.settled(pane)
             pane.listArea.restartSettle()
         }
 
@@ -266,6 +300,9 @@ Item {
                 pane.held = 0
                 pane.rows = []
                 pane.cursorIndex = 0
+                // A dead backend answers no terminal walk line either, so a running scan's flag
+                // goes with it: otherwise esc would keep cancelling a walk nothing is walking.
+                pane.searchRunning = false
                 // No transferdone is coming from a backend that is gone, and nothing else ends a
                 // running transfer, so the card would crawl over a dead child until the app closed.
                 pane.transfer = Ops.emptyTransfer()

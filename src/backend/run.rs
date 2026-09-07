@@ -22,6 +22,8 @@ use crate::backend::listing::Listing;
 use crate::backend::search::Search;
 use crate::backend::state::{State, Tables};
 use crate::backend::searchreq::{finish_search, step_search};
+use crate::backend::reclaim::Reclaim;
+use crate::backend::reclaimreq::{end_reclaim, step_reclaim};
 use crate::backend::sort::{parse_sort_by, sort_by_name, sort_listing};
 use crate::backend::thumbcache::{default_root, Cache};
 use crate::backend::thumbreq::{cancel_row, forget_one, report_done, thumb_rows};
@@ -126,6 +128,9 @@ pub fn run() -> i32 {
         dirsize_queue: Vec::new(),
         search: None,
         search_reported: Instant::now(),
+        reclaim: None,
+        reclaim_reported: Instant::now(),
+        reclaim_sizes: false,
     };
 
     let (tx, rx) = channel::<Event>();
@@ -145,7 +150,7 @@ pub fn run() -> i32 {
     spawn_reader(tx);
     loop {
         // Idle (nothing queued and no walk running) this is exactly the old blocking recv, see docs/protocol.md "dirsize".
-        let event = if st.dirsize_queue.is_empty() && st.search.is_none() {
+        let event = if st.dirsize_queue.is_empty() && st.search.is_none() && st.reclaim.is_none() {
             match rx.recv() {
                 Ok(e) => e,
                 Err(_) => break,
@@ -200,6 +205,7 @@ fn handle_line(
     match parse_request(line) {
         Request::List { path, first, hidden } => {
             // A new listing replaces whatever the walk was filling, so the walk ends before the scan starts.
+            end_reclaim(out, st, pool, true);
             if finish_search(out, st, true) {
                 forget_rows(st, pool);
             }
@@ -210,6 +216,7 @@ fn handle_line(
                     st.base = PathBuf::from(&path);
                     st.listing = l;
                     forget_rows(st, pool);
+                    st.reclaim_sizes = false;
                     writeln!(out, "{}", listed_line(st.listing.len(), read_ms, sort_ms, dev_of(&st.base))).ok();
                     // Rides along unasked: asking costs a 60 ms round trip at first paint.
                     write_window(out, st, 0, first, tb);
@@ -222,19 +229,27 @@ fn handle_line(
             }
             out.flush().ok();
         }
-        Request::ListPaths { paths, first } =>
-            listpaths::answer(out, st, pool, tb, &paths, first),
+        Request::ListPaths { paths, first } => {
+            // The picker's listing is the walk's to fill no more than any other: the reclaim ends
+            // before it, and its measured-bytes flag goes with the listing it measured.
+            end_reclaim(out, st, pool, true);
+            st.reclaim_sizes = false;
+            listpaths::answer(out, st, pool, tb, &paths, first);
+        }
         Request::Window { start, count } => {
             write_window(out, st, start, count, tb);
             out.flush().ok();
         }
         Request::Search { path, query, hidden } => {
+            // Either walk owns the listing a search replaces, so both end before it starts.
+            end_reclaim(out, st, pool, true);
             if finish_search(out, st, true) {
                 forget_rows(st, pool);
             }
             st.base = PathBuf::from(&path);
             st.listing = Listing::new();
             forget_rows(st, pool);
+            st.reclaim_sizes = false;
             // The client is told at once that its old rows are gone, then the count grows as matches arrive.
             writeln!(out, "{}", listed_line(0, 0.0, 0.0, dev_of(&st.base))).ok();
             st.search = Some(Search::new(&path, &query, hidden));
@@ -246,8 +261,30 @@ fn handle_line(
                 forget_rows(st, pool);
             }
         }
+        Request::Reclaim { path } => {
+            // Either walk owns the listing a reclaim replaces, so both end before it starts.
+            end_reclaim(out, st, pool, true);
+            if finish_search(out, st, true) {
+                forget_rows(st, pool);
+            }
+            st.base = PathBuf::from(&path);
+            st.listing = Listing::new();
+            forget_rows(st, pool);
+            // The same three-part answer a search gives: the client's old rows are gone at once,
+            // the count grows as matches are found and sized, and the terminal line carries the
+            // total itself.
+            writeln!(out, "{}", listed_line(0, 0.0, 0.0, dev_of(&st.base))).ok();
+            st.reclaim = Some(Reclaim::new(&path));
+            st.reclaim_reported = Instant::now();
+            out.flush().ok();
+        }
+        Request::ReclaimCancel => {
+            // Whatever was found stays listed; rows the sizes never covered are sized on demand.
+            end_reclaim(out, st, pool, true);
+        }
         Request::Sort { by, desc } => {
             // The walk owns the listing sort would reorder, so it ends first rather than racing it.
+            end_reclaim(out, st, pool, true);
             if finish_search(out, st, true) {
                 forget_rows(st, pool);
             }
@@ -338,10 +375,15 @@ pub fn forget_rows(st: &mut State, pool: &Pool) {
     st.dirsize_queue.clear();
 }
 
-// dirsize first: its rows are on screen now, while a search walk is work the client asked for and can wait a tick.
+// dirsize first: its rows are on screen now, while a subtree walk is work the client asked for
+// and can wait a tick. At most one of the two walks runs: each request ends the other.
 fn tick_walkers(out: &mut BufWriter<io::Stdout>, st: &mut State, pool: &Pool) {
     if !st.dirsize_queue.is_empty() {
         walk_one_dirsize(out, st);
+        return;
+    }
+    if st.reclaim.is_some() {
+        step_reclaim(out, st, pool);
         return;
     }
     // A finished walk hands back its rows in ranked order, which renames every outstanding index.
@@ -390,8 +432,18 @@ pub fn since(t: Instant) -> f64 {
 }
 
 pub fn write_window(out: &mut impl Write, st: &State, start: usize, count: usize, tb: &Tables) {
-    let (metas, ms) = stat_range(&st.base, &st.listing, start, count);
+    let (mut metas, ms) = stat_range(&st.base, &st.listing, start, count);
     let start = start.min(st.listing.len());
+    // On a reclaim listing the walk has already measured every row's tree, so s carries those
+    // bytes instead of the directory's own dirent size; that is what the scan's views read. A row
+    // the walk never sized (a cancelled walk) keeps its stat.
+    if st.reclaim_sizes {
+        for (i, meta) in metas.iter_mut().enumerate() {
+            if let Some(&(bytes, _)) = st.dirsizes.get(&(start + i)) {
+                meta.size = bytes;
+            }
+        }
+    }
     let mut kinds = tb.kinds.borrow_mut();
     let line = rows_line(&st.listing, &metas, start, ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
     writeln!(out, "{}", line).ok();

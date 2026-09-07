@@ -13,8 +13,12 @@ import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
 import "js/Renderer.js" as Renderer
 import "js/Search.js" as Search
+import "js/Reclaim.js" as Reclaim
 
 ShellRoot {
+    // The reclaim views overlay, b-toggled over the pane's results; hidden again by navigation,
+    // which ends the walk the views draw.
+    property bool reclaimMapOn: false
     FloatingWindow {
         id: fleaWindow
         title: "Flea"
@@ -101,12 +105,20 @@ ShellRoot {
                 canGoUp: pane.canGoUp
                 viewMode: pane.viewMode
                 showHidden: pane.showHidden
+                onViewChosen: function (mode) { pane.viewMode = mode }
+                reclaimActive: pane.reclaimWalk && reclaimMapOn
+                onReclaimRequested: {
+                    if (!pane.reclaimWalk) {
+                        pane.act("reclaim")
+                        reclaimMapOn = true
+                    } else {
+                        reclaimMapOn = !reclaimMapOn
+                    }
+                }
                 onBackRequested: pane.goBack()
                 onUpRequested: pane.openParent()
                 onSearchRequested: pane.act("search")
-                onViewChosen: function (mode) { pane.viewMode = mode }
                 // The path bar's four. The pane navigates and answers for the keyboard exactly as it
-                // does for every other route in, so a path typed and a row opened end the same way.
                 onPathEntered: function (path) { pane.open(path) }
                 onEditClosed: pane.forceActiveFocus()
                 // Tab reads the directory with the same peek the columns view makes of an ancestor,
@@ -151,6 +163,13 @@ ShellRoot {
                 // Issue 9. ViewState persists the stop and Theme derives its own tokens from it, so
                 // the whole window follows without any surface reading the chord itself.
                 onTextSizeRequested: function (direction) { fleaWindow.applyTextSize(direction) }
+                onReclaimMapRequested: {
+                    if (!reclaimMapOn) {
+                        reclaimMapOn = true
+                    } else {
+                        reclaimMap.cycle()
+                    }
+                }
                 onOpened: function (path) { shareBrowser.close() }
             }
 
@@ -168,10 +187,25 @@ ShellRoot {
                 fsFree: pane.fsFree
                 searchRunning: pane.searchRunning
                 searchLine: pane.searchMode === "results"
-                            ? Search.statusLine(pane.searchRunning, pane.total, pane.searchScanned, pane.searchMs)
+                            ? (pane.reclaimWalk
+                               ? Reclaim.statusLine(pane.searchRunning, pane.total, pane.searchScanned, pane.reclaimBytes, pane.searchMs)
+                               : Search.statusLine(pane.searchRunning, pane.total, pane.searchScanned, pane.searchMs))
                             : ""
-                searchKeys: Search.statusKeys(pane.searchRunning)
+                searchKeys: pane.reclaimWalk ? Reclaim.statusKeys(pane.searchRunning) : Search.statusKeys(pane.searchRunning)
                 onTransferCancelRequested: function (id) { backend.transfercancel(id) }
+            }
+
+            // Explicit geometry, not anchors.fill: the component's own pane property shadows the
+            // pane id in that binding and the fill never lands.
+            Flea.ReclaimMap {
+                id: reclaimMap
+                x: pane.x
+                y: pane.y
+                width: pane.width
+                height: pane.height
+                visible: pane.reclaimWalk && reclaimMapOn
+                pane: pane
+                onStageRequested: reclaimMapOn = false
             }
 
             Flea.Preview { id: preview; pane: pane }

@@ -292,6 +292,71 @@ sends this. A row already answered is untouched; only the queue is cleared. No r
 A directory a `dirsizecancel` dropped can be asked for again straight away: cancelling forgets
 the row, so a later `dirsize` for it queues fresh work.
 
+### reclaim
+
+`{"c":"reclaim","path":"<string>"}`
+
+Example: `{"c":"reclaim","path":"/home/gm/Documents"}`
+
+Walks the whole subtree under `path` looking for regenerable directories, sizes each one, and
+answers a listing of the matches ranked heaviest first. The walk is the search walk's own
+machinery with a different matcher: the same three-part answer, the same bounded slices, and a
+result that is a listing like any other, so `window`, `thumb`, `trash` and every per-row
+facility keep working unchanged. Each match is pushed as its path relative to `path`, and
+`path` becomes the listing's base, exactly as a search's is.
+
+**A match is a directory whose base name is exactly one of a fixed set.** The set is build
+systems' and package managers' regenerable trees — `node_modules`, `.next`, `.nuxt`, `.output`,
+`.turbo`, `.parcel-cache`, `target`, `dist`, `build`, `out`, `.venv`, `venv`, `__pycache__`,
+`.pytest_cache`, `.mypy_cache`, `.ruff_cache`, `.gradle`, `.terraform`, `.dart_tool`,
+`.sass-cache`, `coverage` — matched case sensitively and by base name only. A match is reported
+but never descended into: its own size already covers anything nested, and a monorepo's nested
+`node_modules` would otherwise answer twice. There is no hidden flag on a reclaim — `.venv` and
+`__pycache__` are the point, so dot directories are always descended.
+
+Every entry that is not a match and is a directory is descended, with one refusal: a directory
+on another filesystem is never entered, so a scan rooted at a home directory stops at each
+mount rather than reading a network share by accident. A symlink reports its own type, so a
+link named like a target is never matched and never descended, and no loop is possible. An
+unreadable directory is skipped in silence, the same way `search` skips one, and a `path` that
+cannot be read at all finishes at once with nothing.
+
+Each match is sized with the same walk the `dirsize` answer uses, one match per slice so a
+cancel is never behind more than one tree, and a size that ran past that walk's 2000 ms
+deadline is marked partial: a floor, not a wrong exact number. The answers are also seeded into
+the same answered-row cache `dirsize` reads, so a client that asks for the visible rows' sizes
+after the scan is answered from that cache instead of walking every listed tree a second time.
+Rows are ranked by bytes descending, ties by the listing's own name order, when the walk ran to
+its end; a cancelled walk keeps its rows in discovery order, and the rows it never sized are
+sized on demand by `dirsize` like any other directory row.
+
+A window on a reclaim listing carries the walk's own numbers: a directory row's `s` is the
+measured bytes of its tree, not the directory's dirent size, which is what the scan's views read
+and what the `dirsize` cache already answers with. A row the walk never sized — a cancelled
+walk's tail — keeps its stat.
+
+The walk is answered in three parts, the same shapes a `search` answers:
+
+1. One `listed` with `n` of 0, immediately, because the client's old rows are gone the
+   moment the request is read.
+2. `reclaiming` lines carrying the match count, the entries scanned and the bytes sized so
+   far, at most one every 100 ms while the walk runs.
+3. One terminal `reclaimed` line, written after the ranking, carrying the final counts and
+   the bytes total of the rows the walk sized; a walk cancelled mid-sizing reports the bytes
+   it completed, not the total across rows it never sized.
+
+`list`, `sort` and `search` each end a running reclaim before they touch the listing, and
+answer their own lines after the reclaim's terminal `reclaimed`.
+
+### reclaimcancel
+
+`{"c":"reclaimcancel"}`
+
+Stops the running reclaim and answers one `reclaimed` line with `cancelled` true. Whatever the
+walk already found stays in the listing, ranked when every row carried a size and in discovery
+order otherwise, and stays windowable. One reclaim runs at a time, so a cancel can only mean
+that one; a `reclaimcancel` with no walk running does nothing and answers nothing.
+
 ### transfer
 
 `{"c":"transfer","op":"<string>","paths":["<string>",...],"dest":"<string>"}`

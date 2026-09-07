@@ -6,6 +6,7 @@
 .import "Ops.js" as Ops
 .import "PreviewKeys.js" as PreviewKeys
 .import "RailKeys.js" as RailKeys
+.import "Reclaim.js" as Reclaim
 .import "Search.js" as Search
 .import "Sort.js" as Sort
 .import "Trash.js" as Trash
@@ -58,6 +59,9 @@ function lookup(event, root) {
     // reveal only means something on a search result, so o is discarded everywhere else.
     if (action === "reveal" && root.searchMode !== Search.RESULTS)
         return ""
+    // The views draw a scan's results, so b means nothing outside reclaim results.
+    if (action === "reclaimMap" && !root.reclaimWalk)
+        return ""
     // A sort ends the running walk in the backend and the search strip hides the mark that would
     // show it happening, so both sort keys go quiet for as long as a search owns the header.
     if (action === "sortNext" || action === "sortReverse")
@@ -84,10 +88,12 @@ function act(action, root) {
     case "open": root.openCursor(); return
     case "parent": root.openParent(); return
     case "toggleHidden": root.toggleHidden(); return
-    // Esc unwinds one thing at a time, and the least destructive first: a running walk, then the
-    // search, then the filter (which loses nothing), then the selection, then the transient line.
+    // Esc unwinds one thing at a time, and the least destructive first: a running reclaim scan,
+    // then a running search walk, then the search itself, then the filter (which loses nothing),
+    // then the selection, then the transient line.
     case "escape":
-        if (root.searchMode.length > 0) Search.cancel(root)
+        if (root.reclaimWalk) Reclaim.cancel(root)
+        else if (root.searchMode.length > 0) Search.cancel(root)
         else if (root.filterTyping || root.filterQuery.length > 0) Filter.close(root)
         else root.escapePressed()
         return
@@ -99,6 +105,10 @@ function act(action, root) {
     // A walk replaces the listing the filter was narrowing, so the filter goes before the query line
     // does: leaving it up would hide every result that did not happen to match it.
     case "search": Filter.close(root); Search.start(root); return
+    // R weighs the directory the pane stands in: the scan replaces the listing with the
+    // regenerable trees it found, heaviest first, and dd on a row trashes that whole tree.
+    case "reclaim": Filter.close(root); Reclaim.start(root); return
+    case "reclaimMap": root.reclaimMapRequested(); return
     case "filter": Filter.start(root); return
     case "reveal": Search.reveal(root); return
     // The write operations; every one of them is reversible with undo, so none of them confirms.

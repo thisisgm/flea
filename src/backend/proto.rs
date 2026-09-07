@@ -10,6 +10,9 @@ pub enum Request {
     Search { path: String, query: String, hidden: bool },
     // Unlike thumbcancel there is no rows form: one walk runs at a time, so a cancel can only mean that one.
     SearchCancel,
+    // The regenerable-directory walk behind the client's cleanup entry point, one at a time like a search.
+    Reclaim { path: String },
+    ReclaimCancel,
     Thumb { rows: Vec<usize> },
     ThumbCancel { rows: Vec<usize> },
     DirSize { rows: Vec<usize> },
@@ -66,6 +69,8 @@ pub fn parse_request(line: &str) -> Request {
             hidden: field_bool(line, "hidden"),
         },
         Some("searchcancel") => Request::SearchCancel,
+        Some("reclaim") => Request::Reclaim { path: field_str(line, "path").unwrap_or_default() },
+        Some("reclaimcancel") => Request::ReclaimCancel,
         Some("thumb") => Request::Thumb { rows: field_usize_array(line, "rows") },
         Some("thumbcancel") => Request::ThumbCancel { rows: field_usize_array(line, "rows") },
         Some("dirsize") => Request::DirSize { rows: field_usize_array(line, "rows") },
@@ -142,6 +147,20 @@ pub fn searched_line(n: usize, scanned: usize, ms: f64, cancelled: bool) -> Stri
     format!(
         r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":{}}}"#,
         n, scanned, ms, cancelled
+    )
+}
+
+// The streaming progress of a reclaim: matches found, entries scanned and bytes sized so far.
+pub fn reclaiming_line(n: usize, scanned: usize, bytes: u64, ms: f64) -> String {
+    format!(r#"{{"t":"reclaiming","n":{},"scanned":{},"bytes":{},"ms":{:.3}}}"#, n, scanned, bytes, ms)
+}
+
+// The terminal line of a reclaim: n is the row count, bytes the total the rows cover, and
+// cancelled is true when the client stopped the walk or a new listing replaced it.
+pub fn reclaimed_line(n: usize, scanned: usize, bytes: u64, ms: f64, cancelled: bool) -> String {
+    format!(
+        r#"{{"t":"reclaimed","n":{},"scanned":{},"bytes":{},"ms":{:.3},"cancelled":{}}}"#,
+        n, scanned, bytes, ms, cancelled
     )
 }
 

@@ -47,6 +47,10 @@ FocusScope {
     property bool filterTyping: false
     property int searchScanned: 0
     property real searchMs: 0
+    // True when the RESULTS walk is a reclaim scan (R); ui/js/Reclaim.js owns every transition, and b asks shell for the views.
+    property bool reclaimWalk: false
+    property real reclaimBytes: 0
+    signal reclaimMapRequested()
     property bool listInFlight: false
     property bool listedSeen: false
     readonly property bool menuVisible: menu.opened

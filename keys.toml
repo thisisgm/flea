@@ -392,6 +392,20 @@ action = "filter"
 char = "f"
 action = "search"
 
+# R scans the directory the pane stands in for regenerable trees — node_modules, target, the
+# framework build directories — ranks them by size and lists them, where dd trashes a tree and z
+# undoes. The capital-is-the-variant shape g/G and s/S already use: r renames a row, R weighs the
+# directory. ui/js/Reclaim.js owns the scan.
+[[text]]
+char = "R"
+action = "reclaim"
+
+# The scan's views: treemap, folders, sunburst, flame, bubbles, mind map, top sizes, age map.
+# b means nothing outside reclaim results; ui/js/Focus.js drops it everywhere else.
+[[text]]
+char = "b"
+action = "reclaimMap"
+
 # Only means something on a search result, so ui/js/Focus.js drops it everywhere else and o stays type-ahead.
 [[text]]
 char = "o"
@@ -593,9 +607,19 @@ action = "rename"
 label = "rename"
 
 [[sheet]]
+keys = "R"
+action = "reclaim"
+label = "find regenerable trees"
+
+[[sheet]]
 keys = "dd"
 action = "trashArm"
 label = "trash"
+
+[[sheet]]
+keys = "R b"
+action = "reclaim"
+label = "scan trees, then views"
 
 [[sheet]]
 keys = "z ^z"

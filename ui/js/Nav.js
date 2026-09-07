@@ -76,6 +76,9 @@ function openWithoutHistory(pane, newPath) {
     pane.dirSizeState = DirSizes.empty()
     pane.cursorIndex = 0
     pane.trashArmedAt = 0
+    // A reclaim's results were the listing being replaced, so the flag goes with them: the new
+    // listing is an ordinary directory, and a stale terminal line must not re-rank it.
+    pane.reclaimWalk = false
     // The row the editor sat on belongs to the listing being replaced, so the rename goes with it:
     // leaving the index set opened an empty editor over whatever file arrived at that row instead.
     pane.renamingIndex = -1

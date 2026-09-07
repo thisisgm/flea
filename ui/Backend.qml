@@ -16,6 +16,8 @@ Item {
     signal dirSized(int row, real bytes, bool partial)
     signal searching(int total, int scanned, real ms)
     signal searched(int total, int scanned, real ms, bool cancelled)
+    signal reclaiming(int total, int scanned, real bytes, real ms)
+    signal reclaimed(int total, int scanned, real bytes, real ms, bool cancelled)
     // The write operations, see docs/protocol.md; every one of them is reversible with undo.
     signal transferStarted(int id, int n, bool moving)
     signal transferProgress(int id, int index, string name, real bytes, real total)
@@ -109,6 +111,17 @@ Item {
     // No rows form, unlike thumbcancel: one walk runs at a time, so a cancel can only mean that one.
     function searchcancel() {
         root.send({ c: "searchcancel" })
+    }
+
+    // The regenerable-tree walk replaces the current listing with its matches, each named
+    // relative to path; see docs/protocol.md "reclaim".
+    function reclaim(path) {
+        root.send({ c: "reclaim", path: path })
+    }
+
+    // No rows form, one walk at a time, the same rule searchcancel runs on.
+    function reclaimcancel() {
+        root.send({ c: "reclaimcancel" })
     }
 
     // rows, not paths: a client can only build a path for a row inside the window it holds, and a
@@ -239,6 +252,8 @@ Item {
     // Sample input: {"t":"thumbed","row":2,"file":"/home/gm/.cache/thumbnails/large/b98fa4.png","ms":75.823}
     // Sample input: {"t":"dirsized","row":4,"bytes":1048576,"partial":false,"ms":12.500}
     // Sample input: {"t":"searching","n":812,"scanned":41200,"ms":300.114}
+    // Sample input: {"t":"reclaiming","n":812,"scanned":41200,"bytes":3241000,"ms":300.114}
+    // Sample input: {"t":"reclaimed","n":9,"scanned":51234,"bytes":12884901888,"ms":41230.500,"cancelled":false}
     // Sample input: {"t":"transferstarted","id":12,"n":2,"moving":true}
     // Sample input: {"t":"transferprogress","id":12,"index":0,"name":"a.txt","bytes":40000000,"total":120000000}
     // Sample input: {"t":"transferitem","id":12,"index":1,"name":"photos","ok":false,"err":"permission denied"}
@@ -272,6 +287,10 @@ Item {
             root.searching(message.n, message.scanned, message.ms)
         } else if (message.t === "searched") {
             root.searched(message.n, message.scanned, message.ms, message.cancelled)
+        } else if (message.t === "reclaiming") {
+            root.reclaiming(message.n, message.scanned, message.bytes, message.ms)
+        } else if (message.t === "reclaimed") {
+            root.reclaimed(message.n, message.scanned, message.bytes, message.ms, message.cancelled)
         } else if (message.t === "transferstarted") {
             root.transferStarted(message.id, message.n, message.moving)
         } else if (message.t === "transferprogress") {

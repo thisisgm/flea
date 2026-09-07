@@ -111,6 +111,9 @@ var PATHS = {
     // lucide's own folder-plus is the folder body byte for byte plus these two strokes, so the recut
     // body is reused verbatim and only the plus is new; the specimen sheet's 5 unit plus is not it.
     "folder-plus": "M2 20V3h6l2 3h12v14H2z M12 10v6 M9 13h6",
+    // A broom at rest: handle down from the top right, bristle fan along the bottom left.
+    "broom": "M21 3l-8 8 M13 11L4 20 M4 20v-4 M4 20h4 M8 12l4 4",
+
     "trash": "M3 6h18 M8 6V3h8v3 M6 6l1.2 15h9.6L18 6 M10 10v7 M14 10v7",
     // A diamond eye with a square pupil: lucide's own eye is two arcs meeting at points, which the cut squares off.
     "eye": "M12 5 22 12 12 19 2 12z M10 10h4v4h-4z",

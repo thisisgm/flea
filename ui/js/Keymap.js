@@ -119,6 +119,8 @@ function lookup(key, text, modifiers) {
     case "h": return "parent"
     case "/": return "filter"
     case "f": return "search"
+    case "R": return "reclaim"
+    case "b": return "reclaimMap"
     case "o": return "reveal"
     case ":": return "pathBar"
     case "t": return "tabNew"
@@ -178,6 +180,8 @@ var HINTS = {
     "paste": "p",
     "pathBar": ":",
     "preview": "space",
+    "reclaim": "R",
+    "reclaimMap": "b",
     "rename": "r",
     "reveal": "o",
     "search": "f",
@@ -218,7 +222,9 @@ var SHEET = [
     { keys: "x ^x", action: "cut", label: "cut" },
     { keys: "p ^v", action: "paste", label: "paste" },
     { keys: "r", action: "rename", label: "rename" },
+    { keys: "R", action: "reclaim", label: "find regenerable trees" },
     { keys: "dd", action: "trashArm", label: "trash" },
+    { keys: "R b", action: "reclaim", label: "scan trees, then views" },
     { keys: "z ^z", action: "undo", label: "undo" },
     { keys: "^N", action: "newFolder", label: "new folder" },
     { keys: "v", action: "toggleSelect", label: "select" },

@@ -17,10 +17,15 @@ Item {
     property string viewMode: "list"
     // Read by the path bar alone, so a Tab on a dotted leaf peeks the way the listing is set to look.
     property bool showHidden: false
+    // Lit while the reclaim views overlay stands open over the pane's results.
+    property bool reclaimActive: false
 
     signal backRequested()
-    signal upRequested()
     signal searchRequested()
+    signal upRequested()
+    // The reclaim button: one press scans where the pane stands and opens the views over it; a
+    // press on an open views overlay toggles it back to the listing. See ui/js/Reclaim.js.
+    signal reclaimRequested()
     signal viewChosen(string mode)
     // The path bar's four. ui/shell.qml navigates, hands the keyboard back, runs the peek behind Tab
     // and carries what the bar says to the status line, because this file draws the chrome and knows
@@ -380,8 +385,15 @@ Item {
             }
         }
 
+        // The reclaim scan's own door, beside the views it draws: a scan is a way of looking at a
+        // directory, and this is the pointer's half of the R key.
+        Flea.ChromeButton {
+            glyph: "broom"
+            active: root.reclaimActive
+            onActivated: root.reclaimRequested()
+        }
+
         // The Settings board draws the sliders button at the right end, past a rule that separates
-        // it from the three view buttons: it changes the window, not the way the listing is drawn.
         // Row lays its own children out, so the rule takes the strip's height rather than anchoring.
         Rectangle {
             width: Theme.spacing.hairline

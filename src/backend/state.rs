@@ -6,6 +6,7 @@ use crate::backend::kind::Kinds;
 use crate::backend::listing::Listing;
 use crate::backend::mime::Db;
 use crate::backend::search::Search;
+use crate::backend::reclaim::Reclaim;
 use crate::backend::thumbspec::Thumbnailers;
 use std::cell::RefCell;
 use std::collections::HashMap;
@@ -40,5 +41,13 @@ pub struct State {
     pub search: Option<Search>,
     // When the running walk last announced its count, so SEARCH_REPORT can throttle the stream.
     pub search_reported: Instant,
+    // The reclaim walk the loop ticks; None means no reclaim is running. At most one of the two
+    // walks exists: each request ends the other before it touches the listing.
+    pub reclaim: Option<Reclaim>,
+    // When the running reclaim last announced its progress, throttled the same way a search's is.
+    pub reclaim_reported: Instant,
+    // True from a reclaim's terminal line until the next list or search: a window's directory rows
+    // then report the walk's measured bytes in s, the one reading every view of the scan needs.
+    pub reclaim_sizes: bool,
 }
 

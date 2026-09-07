@@ -20,6 +20,8 @@ pub mod scan;
 pub mod fuzzy;
 pub mod search;
 pub mod searchreq;
+pub mod reclaim;
+pub mod reclaimreq;
 pub mod sort;
 pub mod state;
 pub mod mediaprobe;
