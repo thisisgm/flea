@@ -106,6 +106,8 @@ Singleton {
     readonly property int chromeMarkSize: Math.round(Style.font.icon * root.sizeRatio)
     // Lucide ships stroke 2 on its 24 unit grid; 1.5 is the operator's tune (Tabler ships 2 as well, see the A/B report).
     readonly property real strokeWidth: 1.5
+    // The low-contrast hairline under the file header and between ranger columns.
+    readonly property real ruleOpacity: 0.12
     // WCAG 2.5.8 floor. Marks stay at their type-scale size; the hit box grows to this.
     readonly property int hitMin: 24
     // Wide enough for "Send with Taildrop" at bodySmall, 257 at base-size 14; ui/ContextMenu.qml draws it.

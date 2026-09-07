@@ -27,9 +27,11 @@ import "picker.js" as PickerSuite
 import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
 import "railkeys.js" as RailKeysSuite
+import "ranger.js" as RangerSuite
 import "recent.js" as RecentSuite
 import "renderer.js" as RendererSuite
 import "search.js" as SearchSuite
+import "scroll.js" as ScrollSuite
 import "selection.js" as SelectionSuite
 import "settings.js" as SettingsSuite
 import "sort.js" as SortSuite
@@ -68,9 +70,9 @@ Item {
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
             ["picker", PickerSuite],
             ["protocols", ProtocolsSuite], ["railkeys", RailKeysSuite],
-            ["recent", RecentSuite],
+            ["ranger", RangerSuite], ["recent", RecentSuite],
             ["renderer", RendererSuite],
-            ["search", SearchSuite],
+            ["search", SearchSuite], ["scroll", ScrollSuite],
             ["selection", SelectionSuite], ["settings", SettingsSuite],
             ["sort", SortSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["tabs", TabsSuite],

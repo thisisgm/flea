@@ -219,6 +219,7 @@ QtObject {
         }
         function headerLeft(): string { return String(Math.round(root.fleaWindow.itemRect(root.pane.header).x)) }
         function viewMode(): string { return root.pane.viewMode }
+        function columnRules(): string { return root.pane.columnsArea.ruleFacts() }
         // What this box probed: the compress submenu is exactly this and never a fixed list.
         function archiveFormats(): string { return root.backend.archiveFormats.join("|") }
         function canConvert(): bool { return root.backend.canConvert }

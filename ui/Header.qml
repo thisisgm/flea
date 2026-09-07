@@ -17,9 +17,6 @@ Item {
     // the hidden toggle; a left click still sorts, and sortable still gates everything on a search.
     signal menuRequested(var scenePosition)
 
-    // The same hairline lift the status bar uses, so the two rules read alike.
-    readonly property real ruleOpacity: 0.12
-
     // A column header is chrome, not a data row; see Theme.qml's chromeHeight comment.
     // The search's query line takes the header's slot whole, per the design canvas's Search board.
     property string searchMode: ""
@@ -129,7 +126,7 @@ Item {
         anchors.right: parent.right
         height: Theme.spacing.hairline
         color: Theme.color.foreground
-        opacity: root.ruleOpacity
+        opacity: Theme.ruleOpacity
     }
 
     // Two geometric characters the stock monospace has, so the mark scales with the font like the label.

@@ -21,6 +21,8 @@ Item {
     property var pane: null
     // A column that is not the active one reads back.
     property bool dim: false
+    // The first two ranger columns carry the same rule as the file header along their right edge.
+    property bool drawRightRule: false
     // The mode of a denied peek, or -1 when this column's directory was read and its rows are true.
     property int lockedMode: -1
     // Whether zero rows here means empty: false while a peek is still out, because a pending peek answers zero rows too, and false for the pane's own listing, whose empty answer is the hero ui/shell.qml lays over the area.
@@ -39,6 +41,7 @@ Item {
     // The listArea contract ui/ColumnsArea.qml drives the middle column through; the view is private.
     function positionViewAtIndex(index, mode) { view.positionViewAtIndex(index, mode) }
     function itemAtIndex(index) { return view.itemAtIndex(index) }
+    function ruleFacts() { return [rule.visible, rule.width, String(rule.color), rule.opacity, rule.x + rule.width === root.width].join("|") }
 
     ListView {
         id: view
@@ -48,6 +51,8 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         reuseItems: true
+
+        Flea.FastScroll { view: view }
 
         // Empty space below the last row, the same rule ui/List.qml carries; pane is what says this
         // column draws the pane's own listing rather than a peek.
@@ -91,6 +96,18 @@ Item {
                 }
             }
         }
+    }
+
+    Rectangle {
+        id: rule
+        visible: root.drawRightRule
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        anchors.right: parent.right
+        width: Theme.spacing.hairline
+        color: Theme.color.foreground
+        opacity: Theme.ruleOpacity
+        z: 2
     }
 
     // A denied peek answers zero rows, the exact count an empty directory answers, so a locked column draws States.dc.html's Locked tile rather than reading as an empty one.

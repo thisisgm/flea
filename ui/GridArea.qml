@@ -34,6 +34,8 @@ GridView {
     boundsBehavior: Flickable.StopAtBounds
     reuseItems: true
 
+    Flea.FastScroll { view: root }
+
     delegate: Flea.GridTile {
         required property int index
         width: root.cellWidth

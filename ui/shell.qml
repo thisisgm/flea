@@ -221,7 +221,8 @@ ShellRoot {
             // listArea is measured inside pane, which starts below the chrome bar, so pane's own y is added; pane.x is zero.
             Flea.EmptyState {
                 id: emptyState
-                x: pane.listArea.x + (pane.viewMode === "columns" ? pane.columnsArea.columnWidth : 0)
+                x: pane.listArea.x + (pane.viewMode === "columns" && pane.columnsArea.previousVisible
+                                      ? pane.columnsArea.columnWidth : 0)
                 y: pane.y + pane.listArea.y
                 width: pane.viewMode === "columns" ? pane.columnsArea.columnWidth : pane.listArea.width
                 height: pane.listArea.height

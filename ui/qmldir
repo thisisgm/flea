@@ -29,6 +29,7 @@ EmptyState 1.0 EmptyState.qml
 DeviceMounts 1.0 DeviceMounts.qml
 DropboxMark 1.0 DropboxMark.qml
 Glyph 1.0 Glyph.qml
+FastScroll 1.0 FastScroll.qml
 GridTile 1.0 GridTile.qml
 GridArea 1.0 GridArea.qml
 Header 1.0 Header.qml
