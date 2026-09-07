@@ -324,6 +324,9 @@ out=$(printf '{"c":"list","path":"%s","first":10,"hidden":true}\n{"c":"quit"}\n'
 check "hidden true includes both dotfile entries" "5" "$(echo "$out" | head -1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
 check "the dotfile row is present" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotfile"')"
 check "the dot-directory row is present and marked a directory" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotdir","d":true')"
+check "all regular entries lead hidden folders and hidden files" \
+  "sub empty.txt three.txt .dotdir .dotfile" \
+  "$(echo "$out" | sed -n 2p | grep -oE '"n":"[^"]+"' | cut -d'"' -f4 | paste -sd' ' -)"
 
 # Task 16: directory sizes; each argument is one stage, and the walker only gets a turn between stages once stdin drains to empty, see docs/protocol.md "dirsize".
 dirsize_run() {

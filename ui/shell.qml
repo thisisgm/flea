@@ -104,7 +104,7 @@ ShellRoot {
                 onBackRequested: pane.goBack()
                 onUpRequested: pane.openParent()
                 onSearchRequested: pane.act("search")
-                onViewChosen: function (mode) { pane.viewMode = mode }
+                onViewChosen: function (mode) { pane.chooseViewMode(mode) }
                 // The path bar's four. The pane navigates and answers for the keyboard exactly as it
                 // does for every other route in, so a path typed and a row opened end the same way.
                 onPathEntered: function (path) { pane.open(path) }

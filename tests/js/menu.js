@@ -70,7 +70,7 @@ function findEntry(entries, action) {
 
 function runMenu(check) {
     var full = Menu.listingEntries({
-        showHidden: false, hasRow: true, rowInDropbox: false,
+        showHidden: false, viewMode: "list", hasRow: true, rowInDropbox: false,
         dropboxPath: "/home/jw/Dropbox", taildropPeers: [{ id: "x", label: "Box" }],
         archiveFormats: ["zip"], rowIsArchive: false, rowIsImage: false, canConvert: true
     })
@@ -98,6 +98,27 @@ function runMenu(check) {
     // shown in that column alone, so a row menu offering it would be a fourth door the board denies.
     check("no row menu offers a Settings row, because the board gives it to the background alone",
           findEntry(full, "settings").label, undefined)
+    check("the list row menu keeps its compact operation set", findEntry(full, "sort").label, undefined)
+
+    var ranger = Menu.listingEntries({
+        showHidden: false, viewMode: "columns", hasRow: true, rowInDropbox: false,
+        dropboxPath: "", taildropPeers: [], archiveFormats: [],
+        rowIsArchive: false, rowIsImage: false, canConvert: false, hiddenActions: []
+    })
+    var rowSort = findEntry(ranger, "sort")
+    check("ranger puts Sort By directly below Rename",
+          labels(ranger).indexOf("Rename|Sort By") >= 0, true)
+    check("its flyout is the four explicit orders the row menu promises",
+          rowSort.submenu.map(function (e) { return e.id + "=" + e.label }).join("|"),
+          "mtime:desc=Date Modified Desc|mtime:asc=Date Modified Asc|"
+          + "name:asc=Name A to Z|name:desc=Name Z to A")
+    var grid = Menu.listingEntries({
+        showHidden: false, viewMode: "grid", hasRow: true, rowInDropbox: false,
+        dropboxPath: "", taildropPeers: [], archiveFormats: [],
+        rowIsArchive: false, rowIsImage: false, canConvert: false, hiddenActions: []
+    })
+    check("the icon row menu carries the same Sort By flyout",
+          findEntry(grid, "sort").submenu.length, 4)
 
     runBackground(check)
     runHidden(check, full)

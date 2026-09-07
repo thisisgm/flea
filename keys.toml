@@ -280,9 +280,8 @@ action = "preview"
 key = "F2"
 action = "rename"
 
-# Task 22: seeking, reachable only with a MEDIA preview open. ui/js/Focus.js's lookup discards
-# these the same way it already discards addNetwork outside the rail, so Left/Right stay silent
-# everywhere else rather than surfacing act()'s "not built yet" fallback while browsing.
+# Task 22: seeking while a media or PDF preview is open. While browsing, ui/js/Focus.js maps this
+# pair to horizontal grid movement, or to parent/enter-directory in the list and columns views.
 [[code]]
 key = "Left"
 action = "seekBack"

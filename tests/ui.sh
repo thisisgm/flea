@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|renderer|settings ...]; networklive is opt-in.
+# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|views|operations|tabs|openterminal|renderer|settings ...]; networklive is opt-in.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -2038,6 +2038,40 @@ case_columns() {
     settle
     [[ "$(ipc viewMode)" == "columns" ]] || fail "columns: the chrome button did not switch the view"
 
+    # A row menu in ranger mode puts the four explicit orders immediately below Rename. Choosing
+    # one reaches the backend; choosing Name A to Z afterwards restores this case's baseline.
+    click_row 0 right
+    settle
+    [[ "|$(ipc contextMenuEntries)|" == *"|Rename|Sort By|"* ]] \
+        || fail "columns: Sort By is not directly below Rename in $(ipc contextMenuEntries)"
+    menu_seek "Sort By"
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc contextMenuSubmenuEntries)" == "Date Modified Desc|Date Modified Asc|Name A to Z|Name Z to A" ]] \
+        || fail "columns: the row Sort By flyout is $(ipc contextMenuSubmenuEntries)"
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc sortMark)" == "mtime:desc" ]] || fail "columns: Date Modified Desc left $(ipc sortMark)"
+    for _ in $(seq 1 100); do
+        jq -e '.sort.key == "date" and .sort.reverse == true' "$XDG_STATE_HOME/flea/ui.json" >/dev/null 2>&1 && break
+        sleep 0.05
+    done
+    jq -e '.sort.key == "date" and .sort.reverse == true' "$XDG_STATE_HOME/flea/ui.json" >/dev/null 2>&1 \
+        || fail "columns: Date Modified Desc never reached ui.json"
+    launch "$dir"
+    wait_listing 8
+    [[ "$(ipc viewMode)" == "columns" && "$(ipc sortMark)" == "mtime:desc" ]] \
+        || fail "columns: a future ranger pane opened as $(ipc viewMode) with $(ipc sortMark)"
+    click_row 0 right
+    settle
+    menu_seek "Sort By"
+    key -k Return >/dev/null
+    key -k Down >/dev/null
+    key -k Down >/dev/null
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc sortMark)" == "name:asc" ]] || fail "columns: Name A to Z left $(ipc sortMark)"
+
     # Like the grid, a column view has no columns to head, so the strip collapses.
     (( $(ipc headerTop) == $(ipc chromeHeight) )) || fail "columns: the column header did not collapse"
 
@@ -2240,6 +2274,48 @@ case_operations() {
     kill_flea
 }
 
+case_views() {
+    local dir="$fixture_root/views" state_file="$XDG_STATE_HOME/flea/ui.json"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/subdir"
+    printf 'body\n' > "$dir/file.txt"
+
+    launch "$dir"
+    wait_listing 2
+    [[ "$(ipc viewMode)" == "list" ]] || fail "views: a fresh state did not start in list mode"
+    click_chrome columns
+    settle
+    [[ "$(ipc viewMode)" == "columns" ]] || fail "views: the ranger button did not switch the pane"
+    for _ in $(seq 1 100); do
+        grep -q '"view": "columns"' "$state_file" 2>/dev/null && break
+        sleep 0.05
+    done
+    grep -q '"view": "columns"' "$state_file" 2>/dev/null \
+        || fail "views: choosing ranger mode did not persist it to ui.json"
+
+    launch "$dir"
+    wait_listing 2
+    [[ "$(ipc viewMode)" == "columns" ]] \
+        || fail "views: a new pane opened in $(ipc viewMode), not the persisted ranger mode"
+    seek_row_named subdir
+    key -k Right >/dev/null
+    wait_path "$dir/subdir"
+    key -k Left >/dev/null
+    wait_path "$dir"
+    [[ "$(ipc viewMode)" == "columns" ]] || fail "views: ranger arrow navigation changed the display mode"
+
+    click_chrome list
+    settle
+    seek_row_named subdir
+    key -k Right >/dev/null
+    wait_path "$dir/subdir"
+    key -k Left >/dev/null
+    wait_path "$dir"
+    [[ "$(ipc viewMode)" == "list" ]] || fail "views: list arrow navigation changed the display mode"
+    printf 'VIEWS persisted=columns ranger-arrows=ok list-arrows=ok\n'
+    kill_flea
+}
+
 case_grid() {
     local dir="$fixture_root/grid"
     sandbox_scratch "$dir"
@@ -2255,6 +2331,19 @@ case_grid() {
     settle
     [[ "$(ipc viewMode)" == "grid" ]] || fail "grid: the chrome button did not switch the view"
     shot grid-view
+
+    click_row "$(ipc cursor)" right
+    settle
+    [[ "|$(ipc contextMenuEntries)|" == *"|Rename|Sort By|"* ]] \
+        || fail "grid: Sort By is not directly below Rename in $(ipc contextMenuEntries)"
+    menu_seek "Sort By"
+    key -k Return >/dev/null
+    settle
+    [[ "$(ipc contextMenuSubmenuEntries)" == "Date Modified Desc|Date Modified Asc|Name A to Z|Name Z to A" ]] \
+        || fail "grid: the row Sort By flyout is $(ipc contextMenuSubmenuEntries)"
+    key -k Escape >/dev/null
+    key -k Escape >/dev/null
+    settle
 
     # The grid has no columns to head, so its strip collapses and the tiles start under the chrome.
     local header_y chrome_h
@@ -2293,8 +2382,14 @@ case_grid() {
 }
 
 case_header() {
+    local titles mark total
     launch "$repo"
-    local titles mark
+    for _ in $(seq 1 100); do
+        total=$(ipc total 2>/dev/null || printf 0)
+        [[ "$total" -gt 0 && "$(ipc rowAt 0)" != "loading" ]] && break
+        sleep 0.05
+    done
+    [[ "$total" -gt 0 ]] || fail "header: the repository listing never loaded"
     titles=$(ipc headerTitles)
     mark=$(ipc sortMark)
     printf 'HEADER titles=%s mark=%s\n' "$titles" "$mark"
@@ -2316,6 +2411,26 @@ case_header() {
     (( date_x >= size_x + size_w )) || fail "header: date starts at $date_x, before size ends at $((size_x + size_w))"
     (( kind_x >= date_x + date_w )) || fail "header: kind starts at $kind_x, before date ends at $((date_x + date_w))"
 
+    # The real Size header click is an explicit preference, not only a sort of this one listing.
+    local wx wy ww wh header_left header_top state_file="$XDG_STATE_HOME/flea/ui.json"
+    header_left=$(ipc headerLeft)
+    header_top=$(ipc headerTop)
+    read -r wx wy ww wh < <(window_box)
+    omarchy-drive click "$((wx + header_left + size_x + size_w / 2))" \
+                        "$((wy + header_top + $(ipc chromeHeight) / 2))" left >/dev/null
+    settle
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "header: clicking Size left $(ipc sortMark)"
+    for _ in $(seq 1 100); do
+        grep -q '"key": "size"' "$state_file" 2>/dev/null && break
+        sleep 0.05
+    done
+    grep -q '"key": "size"' "$state_file" 2>/dev/null \
+        || fail "header: the Size choice never reached ui.json"
+
+    launch "$repo"
+    wait_listing "$total"
+    [[ "$(ipc sortMark)" == "size:asc" ]] \
+        || fail "header: a future list pane opened in $(ipc sortMark), not persisted size:asc"
     kill_flea
 }
 
@@ -5888,7 +6003,7 @@ cache_snapshot
 trap cleanup EXIT
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open rows click menu background hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs openterminal renderer settings hangshare)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open rows click menu background hidden selection select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns views operations tabs openterminal renderer settings hangshare)
 
 : > "$run_log"
 : > "$flea_log"
@@ -5905,7 +6020,9 @@ for name in "${wanted[@]}"; do
     # precisely because it may fail) would abort that case with no diagnostic. Output goes to a file
     # instead, which reads the same and changes no regime.
     : > "$case_log"
-    if ( trap - EXIT; set -e; "case_$name" ) > "$case_log" 2>&1; then
+    # View mode is persistent now, so every case gets a state home of its own. Without this, cases
+    # that press the chrome buttons would rewrite the operator's real next-launch preference.
+    if ( trap - EXIT; set -e; export XDG_STATE_HOME="$fixture_root/ui-state-$name"; sandbox_scratch "$XDG_STATE_HOME"; "case_$name" ) > "$case_log" 2>&1; then
         cat "$case_log"
         printf 'PASS %s\n' "$name"
     else

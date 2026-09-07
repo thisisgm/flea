@@ -32,8 +32,9 @@ a missing `first` defaults to `0`.
 `hidden` of `false`, or a missing `hidden`, drops every name starting with `.` before
 it ever reaches the listing: the filter runs inside the scan itself, not as a later
 pass over it, so a hidden directory costs nothing beyond the `readdir` entry it was
-always going to read. `hidden` of `true` scans dotfiles in too, ordered the same as
-everything else. There is no separate flag to ask for dotfiles without also
+always going to read. `hidden` of `true` scans dotfiles in too. In the default name order,
+regular directories come first, regular files next, hidden directories after them and hidden files
+last; names remain naturally ordered inside each of those groups. There is no separate flag to ask for dotfiles without also
 re-scanning: `sort` reorders whichever listing `list` last produced and cannot add or
 remove rows, so changing `hidden` always means a fresh `list`, which is also what
 clears the cursor and selection back to row 0.
@@ -86,14 +87,17 @@ Example: `{"c":"sort","by":"size","desc":true}`
 Re-sorts the current listing by `by` and answers a `listed` line. `by` is one of three keys,
 and directories come first under every one of them, in both directions:
 
-- `"name"` works on phase-1 data alone: `read` is `0.0` and `sort` is the sort.
+- `"name"` works on phase-1 data alone: `read` is `0.0` and `sort` is the sort. Its regular half
+  precedes its hidden half in both directions; directories lead files within each, while `desc`
+  reverses names inside each subgroup.
 - `"size"` and `"mtime"` pay the metadata pass first, one `lstat` per row of the whole
   listing split across the cores, then sort. `read` is that pass in milliseconds and `sort`
   is the sort, so the two costs stay readable apart on the wire.
 
-Inside each group the key decides and the name order breaks ties, so two equal sizes list
-the same way every run, and `desc` is the exact reverse of ascending inside the group,
-tie-break included. A size order lists directories by name, because a directory's `st_size`
+Inside each directory/file group the key decides and the name order breaks ties, so two equal sizes
+list the same way every run. Size and mtime descending are the exact reverse inside those groups;
+name descending preserves its regular-before-hidden subgroups and reverses within each, tie-break
+included. A size order lists directories by name, because a directory's `st_size`
 is not a size anyone means; an mtime order lists them by time like everything else. The stat
 is the same `lstat` that `rows` reports `s` and `m` from, so the order always agrees with the
 column, symlinks included, and a row that vanished between the listing and the pass sorts as

@@ -4,12 +4,13 @@
 // Focus.lookup is where a key is discarded for being meaningless in the current state, and a wrong
 // gate there is silent: the key simply does nothing, and no suite but this one would notice.
 
-function pane(preview, viewMode) {
+function pane(preview, viewMode, row) {
     return {
-        focusView: "list",
+        focusView: "list", cursorIndex: 0,
         viewMode: viewMode ? viewMode : "list",
-        searchMode: "",
-        preview: preview
+        searchMode: "", preview: preview,
+        rowFor: function (index) { return row ? row : null },
+        chooseViewMode: function (mode) { this.viewMode = mode }
     }
 }
 
@@ -122,11 +123,18 @@ function run(check) {
     check("e is discarded over a media preview", Focus.lookup(e, pane(mediaOpen())), "")
     check("minus is discarded over a media preview", Focus.lookup(minus, pane(mediaOpen())), "")
 
-    // Left and Right now serve two previews, and must still serve the grid and nothing else.
+    // Preview transport wins; browsing keeps the grid's movement and gives list/columns the common
+    // parent/enter-directory pair without making Right open an ordinary file or act from the rail.
     check("left turns a PDF page", Focus.lookup(left, pane(pdfOpen())), "seekBack")
     check("right turns a PDF page", Focus.lookup(right, pane(pdfOpen())), "seekForward")
     check("left still seeks media", Focus.lookup(left, pane(mediaOpen())), "seekBack")
-    check("left is discarded in the list", Focus.lookup(left, pane(closed())), "")
+    check("left opens the parent from the list", Focus.lookup(left, pane(closed())), "parent")
+    check("right enters a list directory", Focus.lookup(right, pane(closed(), "list", { d: true })), "open")
+    check("left opens the parent from columns", Focus.lookup(left, pane(closed(), "columns")), "parent")
+    check("right enters a columns directory", Focus.lookup(right, pane(closed(), "columns", { d: true })), "open")
+    check("right does not open a list file", Focus.lookup(right, pane(closed(), "list", { d: false, p: 0 })), "")
+    var railArrows = pane(closed(), "list", { d: true }); railArrows.focusView = "rail"
+    check("arrows do not navigate while the rail has focus", Focus.lookup(right, railArrows), "")
     check("left still steps a grid tile", Focus.lookup(left, pane(closed(), "grid")), "cursorLeft")
     check("right still steps a grid tile", Focus.lookup(right, pane(closed(), "grid")), "cursorRight")
 

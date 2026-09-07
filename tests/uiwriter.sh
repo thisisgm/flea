@@ -149,6 +149,39 @@ ShellRoot {
 }
 QML
 
+# The display-mode probe runs twice over one state home: the first process chooses a mode and the
+# second proves a newly opened pane reads that choice from disk rather than falling back to List.
+cat > "$QMLDIR/view.qml" <<'QML'
+import QtQuick
+import Quickshell
+
+ShellRoot {
+    id: root
+    readonly property string chosen: Quickshell.env("PROBE_VIEW") || ""
+    readonly property string chosenSort: Quickshell.env("PROBE_SORT") || ""
+
+    Component.onCompleted: {
+        console.log("PROBE loaded-view=" + ViewState.viewMode)
+        console.log("PROBE loaded-sort=" + ViewState.sortKey + ":" + ViewState.sortReverse)
+        if (root.chosen.length > 0)
+            ViewState.setViewMode(root.chosen)
+        if (root.chosenSort === "mtime-desc")
+            ViewState.setSort("mtime", true)
+    }
+
+    property var settled: Timer {
+        interval: 1000
+        running: true
+        onTriggered: {
+            console.log("PROBE final-view=" + ViewState.viewMode)
+            console.log("PROBE final-sort=" + ViewState.sortKey + ":" + ViewState.sortReverse)
+            console.log("PROBE inflight=[" + ViewState.writeBook.inflight + "]")
+            Qt.quit()
+        }
+    }
+}
+QML
+
 # One window of the two-window case. It loads ui.json at startup and either changes its own setting
 # at once or waits on a trigger file first, which is how the suite makes one window's read older than
 # the other window's write without either of them ever re-reading the file.
@@ -213,6 +246,12 @@ drive() {
       timeout 60 qs -p "$QMLDIR/${2:-probe.qml}" 2>&1
 }
 
+drive_view() {
+  env QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 \
+      XDG_STATE_HOME="$SANDBOX/view-state" FLEA_BIN="$BIN" PROBE_VIEW="$1" PROBE_SORT="${2:-}" \
+      timeout 60 qs -p "$QMLDIR/view.qml" 2>&1
+}
+
 # A writer that cannot start. Quickshell emits no exited for it, so the book has to learn from the
 # only signal there is, and both patches have to end refused rather than one of them stranded.
 out=$(drive /nonexistent/flea-uiwriter-test)
@@ -242,6 +281,24 @@ check "and nothing is left waiting" "1" "$(echo "$out" | grep -c 'PROBE pending=
 state_flat=$(tr -d ' \n' < "$SANDBOX/state/flea/ui.json" 2>/dev/null)
 check "the column change reached the file" "1" "$(echo "$state_flat" | grep -c '"columns":\["name","size","date","kind"\]')"
 check "and the preset beside it did too" "1" "$(echo "$state_flat" | grep -c '"keys":"windows"')"
+
+# The display mode is a top-level state key like columns: choosing Columns (the ranger view) writes
+# it once, and a new process over the same state home starts there without another interaction.
+sandbox_scratch "$SANDBOX/view-state" || exit 1
+out=$(drive_view "")
+check "a first pane starts in list mode" "1" "$(echo "$out" | grep -c 'PROBE loaded-view=list')"
+check "reading the default mode writes no first-run state file" "0" "$([ -e "$SANDBOX/view-state/flea/ui.json" ] && echo 1 || echo 0)"
+out=$(drive_view columns)
+check "choosing ranger mode updates the live state" "1" "$(echo "$out" | grep -c 'PROBE final-view=columns')"
+check "and its writer drains" "1" "$(echo "$out" | grep -c 'PROBE inflight=\[\]')"
+check "the chosen mode reached ui.json" "1" "$(tr -d ' \n' < "$SANDBOX/view-state/flea/ui.json" | grep -c '"view":"columns"')"
+out=$(drive_view "")
+check "a future pane starts in the persisted ranger mode" "1" "$(echo "$out" | grep -c 'PROBE loaded-view=columns')"
+out=$(drive_view "" mtime-desc)
+check "choosing a descending date order updates the live state" "1" "$(echo "$out" | grep -c 'PROBE final-sort=mtime:true')"
+check "the chosen order reached ui.json" "1" "$(tr -d ' \n' < "$SANDBOX/view-state/flea/ui.json" | grep -c '"sort":{"key":"date","reverse":true}')"
+out=$(drive_view "")
+check "a future pane starts in the persisted order" "1" "$(echo "$out" | grep -c 'PROBE loaded-sort=mtime:true')"
 
 # A writer that never started leaves its setting owed: the change after it has to carry both, or the
 # refused one is lost with nothing but a status-bar sentence to say it ever existed.

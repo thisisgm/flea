@@ -39,6 +39,8 @@ function listingEntries(p) {
     out.push({ label: "Paste", action: "paste", glyph: "clipboard" })
     out.push({ label: "Duplicate", action: "duplicate", glyph: "file-plus" })
     out.push({ label: "Rename", action: "rename", glyph: "rename" })
+    if (p.viewMode === "columns" || p.viewMode === "grid")
+        out.push({ label: "Sort By", action: "sort", glyph: "sort", submenu: rowSortEntries() })
     var ops = []
     // The submenu is exactly the table the backend probed, so a box with no tool offers nothing.
     if (p.archiveFormats.length > 0)
@@ -106,6 +108,10 @@ function sortEntries() {
     for (var i = 0; i < Sort.ORDERS.length; i++)
         out.push({ id: Sort.ORDERS[i], label: SORT_LABELS[Sort.ORDERS[i]] })
     return out
+}
+
+function rowSortEntries() {
+    return Sort.ROW_CHOICES.map(function (entry) { return { id: entry.id, label: entry.label } })
 }
 
 // The one mark every row of an open flyout draws, keyed on the row that opened it: a Taildrop peer
