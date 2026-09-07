@@ -1177,6 +1177,20 @@ only partly inside the list, and the rest of it draws over the column header: th
 band, its edge bar and the row's filename all landed on top of the header labels and the header
 rule. `tests/ui.sh cursor` counts the accent pixels in the header band to hold that closed.
 
+**Ranger's first two columns end on the header rule.** `Theme.ruleOpacity` is the one 0.12 value
+`ui/Header.qml` and `ui/ColumnPane.qml` both read; the other two properties are the same
+`Theme.spacing.hairline` and `Theme.color.foreground`. `ui/ColumnsArea.qml` enables the right-edge
+rule on its parent and active columns and leaves the third off. `tests/ui.sh columns` reads all three
+actual rectangles and pins their visibility, thickness, colour, opacity and right-edge placement.
+
+**Ranger becomes two columns at the reference 1097 px window width.** The latest screenshot the
+operator pointed to, `~/Pictures/screenshot-2026-09-06_19-21-40.png`, is 1097 px wide. At that width
+and below, `ui/js/Ranger.js` hides the previous column and divides the listing area between current
+and next; above it, the existing previous/current/next thirds remain. The final column takes the
+integer-division remainder in both layouts, so no gap opens. `ui/shell.qml` moves the empty-current
+hero with the missing previous column, and `tests/js/ranger.js` pins 1097, both sides of it and the
+remainder arithmetic.
+
 **It also sets `reuseItems: true`, and that is safe here only because `ui/Row.qml` has no
 `Component.onCompleted`.** Every property the delegate draws is a binding that reads `index`, so a
 row leaving the small `cacheBuffer` is re-bound rather than destroyed and rebuilt. Imperative

@@ -2163,6 +2163,15 @@ case_columns() {
     settle
     [[ "$(ipc viewMode)" == "columns" ]] || fail "columns: the chrome button did not switch the view"
 
+    # The first two borders reuse the file header's actual hairline, foreground and opacity; the
+    # preview column has none, so a border accidentally drawn around every column fails here.
+    local rule no_rule rules
+    rule="true|$(token_of hairline)|$(ipc themeForeground)|0.12|true"
+    no_rule="false|$(token_of hairline)|$(ipc themeForeground)|0.12|true"
+    rules=$(ipc columnRules)
+    [[ "$rules" == "$rule;$rule;$no_rule" ]] \
+        || fail "columns: ranger borders are $rules, expected $rule;$rule;$no_rule"
+
     # Like the grid, a column view has no columns to head, so the strip collapses.
     (( $(ipc headerTop) == $(ipc chromeHeight) )) || fail "columns: the column header did not collapse"
 

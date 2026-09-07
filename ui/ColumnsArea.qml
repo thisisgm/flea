@@ -3,6 +3,7 @@ import qs.Commons
 import "." as Flea
 import "js/Facts.js" as Facts
 import "js/Nav.js" as Nav
+import "js/Ranger.js" as Ranger
 import "js/Thumbs.js" as Thumbs
 import "js/Tap.js" as Tap
 
@@ -30,9 +31,11 @@ Item {
     readonly property string childPath: root.cursorIsDir
         ? root.pane.join(root.pane.path, root.cursorRow.n) : ""
 
-    // A third of the view for each of the two fixed columns; the third takes the remainder, so
-    // a width that does not divide by three leaves no gap. shell.qml's empty hero takes it too.
-    readonly property int columnWidth: Math.floor(root.width / 3)
+    // At the reference screenshot's width the previous column drops and the other two split its
+    // space. The last column always takes the remainder, so integer division leaves no gap.
+    readonly property var layout: Ranger.layout(root.pane ? root.pane.width : root.width, root.width)
+    readonly property bool previousVisible: root.layout.previousVisible
+    readonly property int columnWidth: root.layout.columnWidth
 
     // A read of peeked that a binding re-evaluates when a peek lands; peekVersion is the trigger.
     function rowsFor(path) {
@@ -130,6 +133,7 @@ Item {
     function pdfPages() { return preview.pdfPages }
     function pdfChevron(dir) { return preview.pdfChevron(dir) }
     function pdfLoaded() { return preview.pdfLoaded() }
+    function ruleFacts() { return parentColumn.ruleFacts() + ";" + active.ruleFacts() + ";" + childColumn.ruleFacts() }
 
     // The kind string the backend already sent for this row, never one the column re-derives.
     function kindName(index) {
@@ -209,8 +213,11 @@ Item {
         // The parent, showing where the current directory sits among its own siblings. Its own row
         // for the current directory is the cursor trail: lifted like a hover, never accented.
         Flea.ColumnPane {
-            width: root.columnWidth
+            id: parentColumn
+            visible: root.previousVisible
+            width: visible ? root.columnWidth : 0
             height: parent.height
+            drawRightRule: true
             rows: root.rowsFor(root.parentPath)
             lockedMode: root.deniedMode(root.parentPath)
             drawsEmpty: root.answered(root.parentPath)
@@ -224,6 +231,7 @@ Item {
             id: active
             width: root.columnWidth
             height: parent.height
+            drawRightRule: true
             rows: root.pane.rows
             offset: root.pane.held
             selectedIndex: root.pane.cursorIndex
@@ -237,10 +245,11 @@ Item {
 
         // The cursor row: what is inside it when it is a directory, what it is when it is a file.
         Item {
-            width: root.width - 2 * root.columnWidth
+            width: root.layout.lastWidth
             height: parent.height
 
             Flea.ColumnPane {
+                id: childColumn
                 anchors.fill: parent
                 visible: root.cursorIsDir
                 rows: root.rowsFor(root.childPath)

@@ -350,7 +350,8 @@ the name is one typed word away.
   case is ignored, and leading zeros are worth nothing. Directories group ahead of files, in
   both front ends, and the backend's `list` sorts them that way so no view can disagree.
 - **A preview column** for text, images, video and audio, PDF with page navigation, and an
-  archive's contents. Video and audio play in place.
+  archive's contents. Video and audio play in place. Ranger drops its previous column at a window
+  width of 1097 px or less, leaving current and next split across the available space.
 - **Thumbnails from the shared freedesktop cache** the whole desktop reads and writes, for
   jpg, png, webp, heic, mp4, webm and mkv. Measured against the field, only thunar matches
   that set; dolphin has no heic and nautilus no mkv. They are asked for only when the list
