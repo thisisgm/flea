@@ -207,6 +207,8 @@ FocusScope {
 
     // Lifted to Focus.act, see ui/js/Focus.js, which routes "settings" here from the list and the rail alike.
     function act(action) { if (action === "settings") { root.settingsPanel.open(root); return } Focus.act(action, root) }
+    function startKeyboardDrag() { list.startKeyboardDrag() }
+    function railAct(action) { Focus.railAct(action, root, sidebar) }
 
     // index is a listing row, which is what every caller outside ui/js/Filter.js holds; the clamp
     // and the scroll both happen in view space, because a filter can be narrowing what is drawn.

@@ -1,8 +1,10 @@
 import QtQuick
+import Quickshell
 import "." as Flea
 import "js/DirSizes.js" as DirSizes
 import "js/Drag.js" as DragOps
 import "js/Filter.js" as Filter
+import "js/Ops.js" as Ops
 import "js/Tap.js" as Tap
 import "js/Thumbs.js" as Thumbs
 
@@ -31,6 +33,9 @@ ListView {
     readonly property string dragKey: DragOps.ROWS_MIME
     // What the lifted rows put on the wire, rebuilt at each lift and cleared with the gesture.
     property var dragMime: ({})
+    // Track pointer position for keyboard drag origin.
+    property real kbPointerX: root.width / 2
+    property real kbPointerY: root.height / 2
 
     focus: true
     model: pane.shownTotal
@@ -275,7 +280,32 @@ ListView {
 
     function dropped(index, copying) { DragOps.drop(root.pane, root.dragRows, index, copying) }
 
-    // The bar's sticky slot belongs to a running transfer, so a drag only borrows it while none runs.
+    // Keyboard-triggered drag: builds file URIs from the selection and starts a Wayland drag.
+    // The compositor delivers the drop to whichever window is under the pointer when released.
+    function startKeyboardDrag() {
+        var indices = root.pane.selectedIndices()
+        if (indices.length === 0) {
+            var row = root.pane.rowFor(root.pane.cursorIndex)
+            if (!row) return
+            indices = [root.pane.cursorIndex]
+        }
+        root.dragRows = indices
+        root.dragCopy = true
+        root.dragMime = DragOps.mimeFor(root.pane, root.dragRows)
+        if (!root.dragMime.hasOwnProperty("text/uri-list")) {
+            root.dragRows = []
+            root.dragMime = ({})
+            root.pane.message("Selection not fully loaded; scroll to load all files first.", false)
+            return
+        }
+        root.pane.message("Dragging " + Ops.items(root.dragRows.length) + "… release over target", false)
+        // On Wayland the drag must start from this window's surface, so teleport the
+        // cursor here first. Two-step: cursor moves, then the drag starts on the next frame.
+        Quickshell.execDetached(["hyprctl", "dispatch", "cursor", "center"])
+        kbDragStep2.start()
+    }
+
+    // Bar's sticky slot belongs to a running transfer, so a drag only borrows it while none runs.
     function say(text) { if (!root.pane.transfer.running) root.pane.sticky(text) }
 
     // One line for the whole gesture, said again whenever the count, the folder under the pointer or
@@ -323,6 +353,44 @@ ListView {
     function primeSettle() { settle.interval = root.pane.firstSettleMs }
     function restartCoalesce() { coalesce.restart() }
     function restartSettle() { settle.restart() }
+
+    // Keyboard-triggered drag: two-step timer.
+    // Step 1 (in startKeyboardDrag): teleport cursor to this window via hyprctl.
+    // Step 2: wait for cursor to arrive, then start the drag from the current pointer position.
+    Timer {
+        id: kbDragStep2
+        interval: 50
+        repeat: false
+        onTriggered: {
+            kbDragAnchor.Drag.mimeData = root.dragMime
+            kbDragAnchor.Drag.proposedAction = Qt.CopyAction
+            kbDragAnchor.x = root.kbPointerX
+            kbDragAnchor.y = root.kbPointerY
+            kbDragAnchor.visible = true
+            kbDragAnchor.Drag.active = true
+            kbDragAnchor.visible = false
+        }
+    }
+
+    // Track the pointer position so the keyboard drag starts from where the cursor actually is.
+    HoverHandler {
+        onPointChanged: {
+            root.kbPointerX = point.position.x
+            root.kbPointerY = point.position.y
+        }
+    }
+
+    // The item Qt hangs the keyboard drag off. Same shape as the delegate ghosts but owned
+    // by the list itself, so its position is in list-local coordinates.
+    Item {
+        id: kbDragAnchor
+        visible: false
+        width: 1
+        height: 1
+        Drag.dragType: Drag.Automatic
+        Drag.supportedActions: Qt.CopyAction
+        Drag.proposedAction: Qt.CopyAction
+    }
 
     // Only the visible rows, only once each, and only after the list has stopped moving.
     function requestThumbs() {

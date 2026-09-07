@@ -434,6 +434,11 @@ action = "paste"
 char = "d"
 action = "trashArm"
 
+# Keyboard-triggered drag: builds file URIs from the selection and starts a Wayland drag
+# so the compositor delivers the drop to whichever window is under the pointer when released.
+char = "D"
+action = "dragExternal"
+
 [[text]]
 char = "r"
 action = "rename"
@@ -596,6 +601,11 @@ label = "rename"
 keys = "dd"
 action = "trashArm"
 label = "trash"
+
+[[sheet]]
+keys = "D"
+action = "dragExternal"
+label = "drag files"
 
 [[sheet]]
 keys = "z ^z"

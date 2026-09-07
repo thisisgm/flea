@@ -120,6 +120,8 @@ function act(action, root) {
     case "extract": Ops.extract(root); return
     case "dropbox": root.moveToDropbox(); return
     case "sharelink": root.copyShareLink(); return
+    // Keyboard-triggered drag: builds file URIs from the selection and starts a Wayland drag.
+    case "dragExternal": root.startKeyboardDrag(); return
     // Convert opens the one popup this whole design has; every other operation answers without one.
     case "convert": root.openConvert(); return
     // The header answers the same two through ui/Pane.qml, so the key and the click share one route.
