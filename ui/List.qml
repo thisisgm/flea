@@ -41,8 +41,6 @@ ListView {
     // Every property the delegate draws is a binding on index, so a row leaving the buffer is re-bound rather than rebuilt.
     reuseItems: true
 
-    Flea.FastScroll { view: root }
-
     delegate: Flea.Row {
         id: cell
         required property int index

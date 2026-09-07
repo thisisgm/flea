@@ -31,7 +31,6 @@ import "ranger.js" as RangerSuite
 import "recent.js" as RecentSuite
 import "renderer.js" as RendererSuite
 import "search.js" as SearchSuite
-import "scroll.js" as ScrollSuite
 import "selection.js" as SelectionSuite
 import "settings.js" as SettingsSuite
 import "sort.js" as SortSuite
@@ -72,7 +71,7 @@ Item {
             ["protocols", ProtocolsSuite], ["railkeys", RailKeysSuite],
             ["ranger", RangerSuite], ["recent", RecentSuite],
             ["renderer", RendererSuite],
-            ["search", SearchSuite], ["scroll", ScrollSuite],
+            ["search", SearchSuite],
             ["selection", SelectionSuite], ["settings", SettingsSuite],
             ["sort", SortSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["tabs", TabsSuite],
