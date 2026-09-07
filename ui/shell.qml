@@ -141,6 +141,8 @@ ShellRoot {
                 backend: backend
                 preview: preview
                 shareBrowser: shareBrowser
+                agentPicker: agentPicker
+                emptyActions: emptyActions
                 keymapSheet: keymapSheet
                 settingsPanel: settingsPanel
                 onMessage: function (text, isError) { bar.say(text, isError) }
@@ -225,7 +227,7 @@ ShellRoot {
                 y: pane.y + pane.listArea.y
                 width: pane.viewMode === "columns" ? pane.columnsArea.columnWidth : pane.listArea.width
                 height: pane.listArea.height
-                visible: pane.listingState === "empty"
+                visible: pane.listingState === "empty" && !emptyActions.active
                 // The design's no-match answer: the search mark over the query it could not find.
                 caption: pane.searchMode === "results" ? "Nothing matches " + pane.searchQuery : ""
                 mark: "search"
@@ -234,6 +236,40 @@ ShellRoot {
                 // shortcut, so it draws only with the Menus section's hints row on.
                 hint: pane.searchMode === "results" ? "Press Escape to clear."
                     : ViewState.keyHints ? "Press Ctrl+Shift+N for a new folder." : ""
+            }
+
+            // Quick actions for empty directories: j/k to navigate, Enter to act.
+            Flea.EmptyActions {
+                id: emptyActions
+                x: pane.listArea.x + (pane.viewMode === "columns" ? pane.columnsArea.columnWidth : 0)
+                y: pane.y + pane.listArea.y
+                width: pane.viewMode === "columns" ? pane.columnsArea.columnWidth : pane.listArea.width
+                height: pane.listArea.height
+                visible: (pane.listingState === "empty" && pane.searchMode.length === 0)
+                    || (emptyActions.active && emptyActions.gitCloneMode)
+                function restoreViewFocus() {
+                    if (agentPicker.active)
+                        return
+                    // Explicitly focus the list to restore keyboard navigation.
+                    pane.forceActiveFocus()
+                    var view = pane.viewMode === "list" ? pane.list
+                              : pane.viewMode === "grid" ? pane.grid
+                              : pane.columns
+                    if (view) view.forceActiveFocus()
+                }
+                onClosed: restoreViewFocus()
+                onAction: function (name, dir) { pane.handleEmptyAction(name, dir) }
+                // Auto-open when directory becomes empty (not during search).
+                Connections {
+                    target: pane
+                    function onListingStateChanged() {
+                        if (pane.listingState === "empty" && pane.searchMode.length === 0) {
+                            emptyActions.open(pane.path)
+                        } else {
+                            emptyActions.close()
+                        }
+                    }
+                }
             }
 
             // The loading crawl, same listArea placement; its own hold-off keeps fast listings clean.
@@ -254,6 +290,17 @@ ShellRoot {
                 height: pane.listArea.height
                 onClosed: pane.forceActiveFocus()
                 onActivated: function (uri, label) { pane.sidebar.mountShare(uri, label) }
+            }
+
+            // Agent picker overlay, same placement pattern as EmptyState and ShareBrowser.
+            Flea.AgentPicker {
+                id: agentPicker
+                x: pane.listArea.x
+                y: pane.y + pane.listArea.y
+                width: pane.listArea.width
+                height: pane.listArea.height
+                onClosed: pane.forceActiveFocus()
+                onLaunched: function (agent, dir) { pane.openAgentWith(agent, dir) }
             }
 
             // Issue 20: the mouse's own back button, taken by the window because no row is being

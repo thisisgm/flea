@@ -54,6 +54,9 @@ function favorites(home, dirsText, marksText, glyphFor) {
             favs.push({ path: e.path, label: e.label, group: "favorite", kind: "favorite", glyph: glyphFor(e.label) })
         }
     }
+    // Add Trash at the end.
+    var trashPath = home + "/.local/share/Trash/files"
+    favs.push({ path: trashPath, label: "Trash", group: "favorite", kind: "favorite", glyph: "trash" })
     return favs
 }
 

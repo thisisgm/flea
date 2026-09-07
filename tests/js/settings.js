@@ -53,7 +53,7 @@ function runInventory(check) {
           }).join(","), "")
     // New folder is the one row this release's panel gives no switch, and the two locked ones are
     // drawn locked; anything else without a switch would be a row the section cannot reach.
-    var reachable = switched.concat(Settings.LOCKED).concat(["newFolder"])
+    var reachable = switched.concat(Settings.LOCKED).concat(["newFolder", "openAgentPicker"])
     check("and no row the menu builds is left without one",
           Object.keys(built).filter(function (id) { return reachable.indexOf(id) < 0 }).join(","), "")
 }

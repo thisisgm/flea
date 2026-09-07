@@ -19,6 +19,8 @@ FocusScope {
 
     property var backend: null
     property string path: ""
+    // True when the current directory is the Trash directory.
+    readonly property bool isTrashDir: root.path.indexOf("/.local/share/Trash/files") !== -1
     // Set once by shell.qml from FLEA_SELECT; applied to the first `rows` this pane receives, then forgotten.
     property string pendingSelect: ""
     property int total: 0
@@ -63,6 +65,10 @@ FocusScope {
     property var preview: null
     // shell.qml's ui/ShareBrowser.qml overlay, wired the same way as preview above.
     property var shareBrowser: null
+    // shell.qml's AgentPicker overlay, wired the same way as shareBrowser above.
+    property var agentPicker: null
+    // shell.qml's EmptyActions overlay for empty directories.
+    property var emptyActions: null
     // shell.qml's ui/KeymapSheet.qml, which ? opens from either the list or the rail.
     property var keymapSheet: null
     // shell.qml's ui/SettingsPanel.qml, which the comma key opens from the list and the rail alike, see act() below.
@@ -93,6 +99,8 @@ FocusScope {
     property int bufferRows: defaultBuffer
     readonly property int buffer: Math.max(minBuffer, Math.min(maxBuffer, bufferRows))
     readonly property int visibleRows: Math.max(1, Math.ceil(list.height / Theme.rowHeight))
+    // Grid columns count, read by Focus.js for row-end navigation.
+    readonly property int gridColumns: viewMode === "grid" ? Math.max(1, Math.floor(listArea.width / Theme.grid.minCellWidth)) : 1
     readonly property int windowSize: visibleRows + 2 * buffer
     readonly property int refetchMargin: 25
     readonly property int cacheRows: 4
@@ -152,10 +160,21 @@ FocusScope {
     property var selection: Selection.create()
     property int selectionVersion: 0
     property int selectionAnchor: 0
+    // Visual mode: when true, cursor movement extends selection (like vim's V).
+    property bool visualMode: false
     function isSelected(index) { return root.selectionVersion >= 0 && root.selection.has(index) }
     function selectionCount() { return root.selectionVersion >= 0 ? root.selection.count() : 0 }
     function selectedIndices() { return root.selectionVersion >= 0 ? root.selection.indices() : [] }
     function toggleSelect() { root.selection.toggle(root.cursorIndex); root.selectionAnchor = root.cursorIndex; root.selectionVersion++ }
+    function toggleVisualMode() {
+        root.visualMode = !root.visualMode
+        if (root.visualMode) {
+            root.selectionAnchor = root.cursorIndex
+            root.message("Visual mode: move to select, V or Esc to exit", false)
+        } else {
+            root.message("", false)
+        }
+    }
     function selectAll() { Filter.selectAll(root); root.selectionVersion++ }
     function clearSelection() { root.selection.clear(); root.selectionVersion++ }
     function extendSelection(delta) { Filter.extend(root, delta) }
@@ -167,7 +186,6 @@ FocusScope {
 
     function applyPendingSelect() { Nav.applyPendingSelect(root) }
     function refresh(selectPath) { Nav.refresh(root, selectPath) }
-
     function open(newPath) { Nav.open(root, newPath) }
 
     function openWithoutHistory(newPath) { Nav.openWithoutHistory(root, newPath) }
@@ -227,6 +245,66 @@ FocusScope {
 
     // A terminal in the directory being shown, through ui/Opener.qml's flea --terminal.
     function openTerminal() { wire.opener.openTerminal(root.path) }
+    function openAgent() { wire.opener.openAgent(root.path) }
+    function openAgentPicker() { if (agentPicker) agentPicker.open(root.path) }
+    function openAgentWith(agent, dir) { wire.opener.openAgentWith(agent, dir) }
+    function openVideoEditor() {
+        var row = root.rowFor(root.cursorIndex)
+        if (!row || row.d) {
+            root.message("Select a file to open in Omacut.", false)
+            return
+        }
+        wire.opener.openWith("omacut", root.join(root.path, row.n))
+    }
+    function handleEmptyAction(name, dir) {
+        if (name === "openAgent") { root.openAgent() }
+        else if (name === "openAgentPicker") { root.openAgentPicker() }
+        else if (name === "terminal") { root.openTerminal() }
+        else if (name === "newFolder") { Ops.newFolder(root) }
+        else if (name.indexOf("gitClone:") === 0) {
+            var url = name.substring(9)
+            root.message("Cloning...", false)
+            wire.opener.gitClone(url, dir)
+        }
+        root.forceActiveFocus()
+    }
+    function emptyTrash() {
+        // Safety check: only empty if we're actually in a Trash directory.
+        if (root.path.indexOf("/.local/share/Trash/files") === -1) {
+            root.message("Not in Trash directory.", true)
+            return
+        }
+        root.message("Emptying trash...", false)
+        wire.opener.emptyTrash(root.path)
+    }
+
+    Connections {
+        target: wire.opener
+        function onTrashDone(success) {
+            if (success) {
+                root.refresh()
+            }
+        }
+    }
+    function gitClone() {
+        if (emptyActions) {
+            emptyActions.open(root.path)
+            emptyActions.gitUrl = ""
+            emptyActions.openGitClone()
+        }
+    }
+
+    Connections {
+        target: wire.opener
+        function onGitCloneDone(dir, success) {
+            if (success) {
+                root.message("Clone complete.", false)
+                root.refresh()
+            } else {
+                root.message("Clone failed.", true)
+            }
+        }
+    }
 
     function copyDirPath() { wire.opener.copyText(root.path) }
 
@@ -359,6 +437,8 @@ FocusScope {
         canConvert: root.backend.canConvert
         rowIsArchive: root.cursorRow !== null && !root.cursorRow.d && Archive.isArchive(root.cursorRow.n)
         rowIsImage: root.cursorRow !== null && root.cursorRow.i === "image-x-generic"
+        rowIsVideo: root.cursorRow !== null && root.cursorRow.i === "video-x-generic"
+        isTrashDir: root.path.indexOf("/.local/share/Trash/files") !== -1
         dropboxPath: sidebar.dropboxReady ? root.home + "/Dropbox" : ""
         // The separator is part of the test, or /home/gm/DropboxBackup would count as inside Dropbox.
         rowInDropbox: root.path === root.home + "/Dropbox" || root.path.indexOf(root.home + "/Dropbox/") === 0

@@ -169,6 +169,13 @@ fn main() {
         usage("--terminal takes one directory");
     }
 
+    // flea --agent <dir> [agent-name]
+    if args.len() >= 3 && args[1] == "--agent" {
+        let dir = &args[2];
+        let agent = if args.len() >= 4 { Some(args[3].as_str()) } else { None };
+        exit(terminal::open_agent(dir, agent));
+    }
+
     // flea --default [off]: both per-user steps pacman cannot own, see docs/install.md.
     if args.len() == 2 && args[1] == "--default" {
         exit(claim_both());

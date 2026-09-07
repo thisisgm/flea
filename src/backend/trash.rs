@@ -74,6 +74,17 @@ pub fn trash(paths: &[PathBuf]) -> (Vec<Entry>, usize) {
     (ok, failed)
 }
 
+// Permanently delete files (used when already in Trash directory).
+pub fn permanent_delete(paths: &[PathBuf]) -> usize {
+    let mut failed = 0;
+    for p in paths {
+        if std::fs::remove_file(p).is_err() {
+            failed += 1;
+        }
+    }
+    failed
+}
+
 // Only an entry that was not already in the trash before this call can be one this call put there.
 fn newest_entry_for(before: &[Entry], after: &[Entry], path: &Path) -> Option<Entry> {
     after

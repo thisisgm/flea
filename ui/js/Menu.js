@@ -48,6 +48,8 @@ function listingEntries(p) {
         ops.push({ label: "Extract", action: "extract", glyph: "archive-out" })
     if (p.canConvert && p.rowIsImage)
         ops.push({ label: "Convert", action: "convert", glyph: "sliders" })
+    if (p.rowIsVideo)
+        ops.push({ label: "Omacut", action: "openVideoEditor", glyph: "film" })
     if (ops.length > 0) {
         out.push({ separator: true })
         for (var i = 0; i < ops.length; i++) out.push(ops[i])
@@ -68,11 +70,17 @@ function listingEntries(p) {
     }
     out.push({ separator: true })
     // No confirm anywhere behind this row: the undo journal is the safety, see the operations design.
-    out.push({ label: "Move to Trash", action: "trash", glyph: "trash", danger: true })
+    // In Trash directory, show "Delete Permanently" instead of "Move to Trash".
+    if (p.isTrashDir) {
+        out.push({ label: "Delete Permanently", action: "trash", glyph: "trash", danger: true })
+    } else {
+        out.push({ label: "Move to Trash", action: "trash", glyph: "trash", danger: true })
+    }
     out.push({ separator: true })
     // The tail is the rows that need no row under the cursor. Open in terminal opens the directory
     // being shown rather than the row, which is why it sits here and not above.
     out.push({ label: "Open in terminal", action: "openTerminal", glyph: "terminal" })
+    out.push({ label: "Open agent", action: "openAgentPicker", glyph: "terminal" })
     out.push({ label: "New folder", action: "newFolder", glyph: "folder-plus" })
     out.push(hiddenRow(p.showHidden))
     return applyHidden(out, p.hiddenActions)
@@ -91,6 +99,12 @@ function backgroundEntries(p) {
     out.push({ separator: true })
     out.push({ label: "Sort by", action: "sort", glyph: "sort", submenu: sortEntries() })
     out.push({ label: "Open in terminal", action: "openTerminal", glyph: "terminal" })
+    out.push({ label: "Open agent", action: "openAgentPicker", glyph: "terminal" })
+    // Empty Trash option when in Trash directory.
+    if (p.isTrashDir) {
+        out.push({ separator: true })
+        out.push({ label: "Empty Trash", action: "emptyTrash", glyph: "trash" })
+    }
     out.push(hiddenRow(p.showHidden))
     out.push({ separator: true })
     out.push({ label: "Settings", action: "settings", glyph: "sliders" })
@@ -191,7 +205,15 @@ function headerEntries(hiddenCols, showHidden) {
 function openAtCursor(root, menu, paddingX) {
     root.setCursor(root.cursorIndex)
     var row = root.visibleItemFor(root.cursorIndex)
-    if (row)
+    if (row) {
         menu.openAt(row.mapToItem(null, paddingX, row.height))
-    return row !== null
+        return true
+    }
+    // Empty directory or row not visible: open the background menu at the top of the list area.
+    var listArea = root.listArea
+    if (listArea) {
+        menu.openForBackground(root, listArea.mapToItem(null, 0, 0))
+        return true
+    }
+    return false
 }

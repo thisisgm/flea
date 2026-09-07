@@ -50,7 +50,7 @@ function tappedMenu(index, eventPoint, root, menu) {
     if (picked.length > 0 && picked.indexOf(index) < 0)
         root.clearSelection()
     root.setCursor(index)
-    menu.openAt(eventPoint.scenePosition)
+    menu.openAt(eventPoint.scenePosition, root)
 }
 
 // A neighbour column in the columns view is a peek with no cursor of its own, so its rows answer a

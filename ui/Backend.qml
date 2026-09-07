@@ -138,6 +138,13 @@ Item {
         root.send({ c: "trash", rows: rows })
     }
 
+    function permanentDelete(paths) {
+        if (paths.length === 0) {
+            return
+        }
+        root.send({ c: "permanentdelete", paths: paths })
+    }
+
     function rename(path, to) {
         root.send({ c: "rename", path: path, to: to })
     }
@@ -290,6 +297,8 @@ Item {
         } else if (message.t === "transferdone") {
             root.transferDone(message.id, message.ok, message.failed, message.skipped, message.cancelled)
         } else if (message.t === "trashed") {
+            root.trashed(message.ok, message.failed)
+        } else if (message.t === "deleted") {
             root.trashed(message.ok, message.failed)
         } else if (message.t === "renamed") {
             root.renamed(message.ok, message.path)

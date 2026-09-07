@@ -12,9 +12,17 @@ Item {
     // Raised where the two single-flight guards below drop a request, so a swallowed press says so.
     signal busy(string path)
     signal terminalBusy(string path)
+    signal gitCloneDone(string dir, bool success)
+    signal trashDone(bool success)
 
     // The status src/open.rs returns for a directory, which the caller navigates to instead.
     readonly property int isDirectoryStatus: 3
+
+    // Track if current operation is a git clone.
+    property bool isGitClone: false
+    property string gitCloneDir: ""
+    // Track if current operation is emptying trash.
+    property bool isTrashEmpty: false
 
     property string current: ""
     // The terminal launch's own path: open() and openTerminal() run on separate
@@ -39,6 +47,16 @@ Item {
         id: child
 
         onExited: function (exitCode, exitStatus) {
+            if (root.isGitClone) {
+                root.isGitClone = false
+                root.gitCloneDone(root.gitCloneDir, exitCode === 0)
+                return
+            }
+            if (root.isTrashEmpty) {
+                root.isTrashEmpty = false
+                root.trashDone(exitCode === 0)
+                return
+            }
             if (exitCode === 0) {
                 return
             }
@@ -63,8 +81,77 @@ Item {
         terminalChild.running = true
     }
 
+    // The default code agent in the current directory, through flea --agent.
+    function openAgent(path) {
+        if (agentChild.running) {
+            root.terminalBusy(path)
+            return
+        }
+        root.terminalCurrent = path
+        agentChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--agent", path]
+        agentChild.running = true
+    }
+
+    // A specific agent in the given directory, through flea --agent <dir> <agent>.
+    function openAgentWith(agent, dir) {
+        if (agentChild.running) {
+            root.terminalBusy(dir)
+            return
+        }
+        root.terminalCurrent = dir
+        agentChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--agent", dir, agent]
+        agentChild.running = true
+    }
+
+    // Open a file with a specific program.
+    function openWith(program, filePath) {
+        if (child.running) {
+            root.busy(filePath)
+            return
+        }
+        root.current = filePath
+        child.command = [program, filePath]
+        child.running = true
+    }
+
+    // Git clone a URL into a directory.
+    function gitClone(url, dir) {
+        if (child.running) {
+            root.busy(url)
+            return
+        }
+        root.current = dir
+        root.isGitClone = true
+        root.gitCloneDir = dir
+        child.command = ["sh", "-c", "cd '" + dir + "' && git clone '" + url + "'"]
+        child.running = true
+    }
+
+    // Empty the trash directory.
+    function emptyTrash(dir) {
+        if (child.running) {
+            root.busy(dir)
+            return
+        }
+        root.current = dir
+        root.isTrashEmpty = true
+        child.command = ["sh", "-c", "rm -rf '" + dir + "'/*"]
+        child.running = true
+    }
+
     Process {
         id: terminalChild
+
+        onExited: function (exitCode, exitStatus) {
+            if (exitCode === 0) {
+                return
+            }
+            root.terminalFailed(root.terminalCurrent)
+        }
+    }
+
+    Process {
+        id: agentChild
 
         onExited: function (exitCode, exitStatus) {
             if (exitCode === 0) {

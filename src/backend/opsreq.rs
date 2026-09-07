@@ -65,6 +65,10 @@ pub fn trashed_line(ok: usize, failed: usize) -> String {
     format!(r#"{{"t":"trashed","ok":{},"failed":{}}}"#, ok, failed)
 }
 
+pub fn deleted_line(ok: usize, failed: usize) -> String {
+    format!(r#"{{"t":"deleted","ok":{},"failed":{}}}"#, ok, failed)
+}
+
 pub fn renamed_line(ok: bool, path: &str) -> String {
     format!(r#"{{"t":"renamed","ok":{},"path":"{}"}}"#, ok, escape(path))
 }

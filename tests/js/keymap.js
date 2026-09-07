@@ -74,7 +74,7 @@ function run(check) {
               .map(Keymap.hintFor).join(" "),
           "enter x y p r d .")
     check("an action with no key at all leaves the slot blank", Keymap.hintFor("duplicate"), "")
-    check("and so does one reachable only by a chord", Keymap.hintFor("newFolder"), "")
+    check("a bare folder shortcut is advertised", Keymap.hintFor("newFolder"), "N")
     check("Move to Trash advertises the key that arms it, not the Delete beside it",
           Keymap.hintFor("trash"), "d")
     check("a printable character outranks the key code bound to the same action",
@@ -96,6 +96,7 @@ function run(check) {
     Keymap.setPreset("default")
     // The one Finder chord not taken: Ctrl+D already pages, with Ctrl+U as its pair.
     check("ctrl d still pages, so Finder's duplicate chord is not taken", Keymap.lookup(Qt.Key_D, "d", ctrl), "pageDown")
+    check("uppercase n makes a folder", Keymap.lookup(Qt.Key_N, "N", none), "newFolder")
     check("ctrl shift n makes a folder", Keymap.lookup(Qt.Key_N, "N", ctrl | shift), "newFolder")
     check("plain ctrl n is nothing, the shift is the chord", Keymap.lookup(Qt.Key_N, "n", ctrl), "")
     check("ctrl shift period shows hidden files, whichever key code the layout delivers",
@@ -142,7 +143,7 @@ function run(check) {
           Keymap.SHEET.map(sheetAction).join("|"),
           Keymap.SHEET.map(function (row) { return row.action }).join("|"))
     check("the sheet is not empty, so the check above has a denominator",
-          Keymap.SHEET.length, 29)
+          Keymap.SHEET.length, 34)
     // A chord shares the row of the key it doubles, so every caret token must resolve to that row's
     // own action, or the sheet advertises a chord bound to something else.
     check("every chord the sheet draws is bound to the action of its own row",

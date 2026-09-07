@@ -114,9 +114,18 @@ function lookup(key, text, modifiers) {
     case "g": return "cursorFirst"
     case "G": return "cursorLast"
     case "v": return "toggleSelect"
+    case "V": return "visualMode"
     case "J": return "extendDown"
     case "K": return "extendUp"
     case "h": return "parent"
+    case "b": return "gridLeft"
+    case "0": return "cursorFirst"
+    case "$": return "rowEnd"
+    case "A": return "openAgent"
+    case "O": return "openVideoEditor"
+    case "C": return "gitClone"
+    case "N": return "newFolder"
+    case "T": return "openTerminal"
     case "/": return "filter"
     case "f": return "search"
     case "o": return "reveal"
@@ -127,8 +136,10 @@ function lookup(key, text, modifiers) {
     case "Y": return "copydirpath"
     case "x": return "cut"
     case "p": return "paste"
+    case "P": return "openAgentPicker"
     case "d": return "trashArm"
     case "r": return "rename"
+    case "R": return "refresh"
     case "z": return "undo"
     case "s": return "sortNext"
     case "S": return "sortReverse"
@@ -150,9 +161,7 @@ function lookup(key, text, modifiers) {
 }
 
 // The key ui/MenuRow.qml prints beside a menu row, keyed on the row's own action. Only bare
-// keys are here: an action reachable by a chord alone leaves its row's hint slot empty, which
-// is how Menus.html draws New Folder. Derived from keys.toml, so a hint cannot advertise a key
-// nothing is bound to.
+// keys are here. Derived from keys.toml, so a hint cannot advertise a key nothing is bound to.
 var HINTS = {
     "addNetwork": "a",
     "copy": "y",
@@ -168,9 +177,16 @@ var HINTS = {
     "extendUp": "K",
     "filter": "/",
     "focusNext": "tab",
+    "gitClone": "C",
+    "gridLeft": "b",
     "keymapSheet": "?",
     "menu": "m",
+    "newFolder": "N",
     "open": "enter",
+    "openAgent": "A",
+    "openAgentPicker": "P",
+    "openTerminal": "T",
+    "openVideoEditor": "O",
     "pageDown": "pagedown",
     "pageForward": "l",
     "pageUp": "pageup",
@@ -178,8 +194,10 @@ var HINTS = {
     "paste": "p",
     "pathBar": ":",
     "preview": "space",
+    "refresh": "R",
     "rename": "r",
     "reveal": "o",
+    "rowEnd": "$",
     "search": "f",
     "seekBack": "left",
     "seekForward": "right",
@@ -193,6 +211,7 @@ var HINTS = {
     "trash": "d",
     "trashArm": "d",
     "undo": "z",
+    "visualMode": "V",
     "zoomIn": "+",
     "zoomOut": "-",
 }
@@ -220,7 +239,7 @@ var SHEET = [
     { keys: "r", action: "rename", label: "rename" },
     { keys: "dd", action: "trashArm", label: "trash" },
     { keys: "z ^z", action: "undo", label: "undo" },
-    { keys: "^N", action: "newFolder", label: "new folder" },
+    { keys: "N ^N", action: "newFolder", label: "new folder" },
     { keys: "v", action: "toggleSelect", label: "select" },
     { keys: "s", action: "sortNext", label: "sort column" },
     { keys: "S", action: "sortReverse", label: "reverse sort" },
@@ -229,6 +248,11 @@ var SHEET = [
     { keys: "m", action: "menu", label: "context menu" },
     { keys: "^e", action: "eject", label: "eject" },
     { keys: "^t", action: "openTerminal", label: "open terminal" },
+    { keys: "O", action: "openVideoEditor", label: "open in omacut" },
+    { keys: "A", action: "openAgent", label: "open agent" },
+    { keys: "P", action: "openAgentPicker", label: "agent picker" },
+    { keys: "C", action: "gitClone", label: "git clone" },
+    { keys: "R", action: "refresh", label: "refresh" },
     { keys: "^+", action: "textSizeUp", label: "text size up" },
     { keys: "^-", action: "textSizeDown", label: "text size down" },
     { keys: ",", action: "settings", label: "settings" },

@@ -369,6 +369,10 @@ action = "cursorLast"
 char = "v"
 action = "toggleSelect"
 
+# V keeps selection mode active (visual mode).
+char = "V"
+action = "visualMode"
+
 [[text]]
 char = "J"
 action = "extendDown"
@@ -380,6 +384,28 @@ action = "extendUp"
 [[text]]
 char = "h"
 action = "parent"
+
+# Grid navigation: b moves left, w moves right (grid-only in Focus.js).
+char = "b"
+action = "gridLeft"
+
+char = "0"
+action = "cursorFirst"
+
+char = "$"
+action = "rowEnd"
+
+char = "A"
+action = "openAgent"
+
+char = "O"
+action = "openVideoEditor"
+
+char = "C"
+action = "gitClone"
+
+char = "T"
+action = "openTerminal"
 
 # Narrows the rows already listed, in place and with no round trip. ui/js/Focus.js keeps it to the
 # list view, the one the canvas draws a filter in, the same way it keeps addNetwork to the rail.
@@ -428,6 +454,9 @@ action = "cut"
 char = "p"
 action = "paste"
 
+char = "P"
+action = "openAgentPicker"
+
 # Two presses, because a single d sat in the middle of the letters a name is typed with and trashed
 # the row on the third keystroke of "Vid". Delete and Ctrl+Delete still go on one press.
 [[text]]
@@ -437,6 +466,9 @@ action = "trashArm"
 [[text]]
 char = "r"
 action = "rename"
+
+char = "R"
+action = "refresh"
 
 # The canvas draws this on the keymap sheet and again in the status line after a trash ("z undoes"),
 # so it is the one key the shipped table was missing rather than a new invention.
@@ -646,6 +678,31 @@ label = "eject"
 keys = "^t"
 action = "openTerminal"
 label = "open terminal"
+
+[[sheet]]
+keys = "O"
+action = "openVideoEditor"
+label = "open in omacut"
+
+[[sheet]]
+keys = "A"
+action = "openAgent"
+label = "open agent"
+
+[[sheet]]
+keys = "P"
+action = "openAgentPicker"
+label = "agent picker"
+
+[[sheet]]
+keys = "C"
+action = "gitClone"
+label = "git clone"
+
+[[sheet]]
+keys = "R"
+action = "refresh"
+label = "refresh"
 
 [[sheet]]
 keys = "^+"
