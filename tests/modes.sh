@@ -219,8 +219,9 @@ for derived in "$open_handoff" "$terminal_handoff" "$opener_qml_handoff"; do
   esac
 done
 
-# --open resolves the target, refuses a directory, and hands anything else to gio open, which is
-# the route that reads the desktop database and so honours Terminal=true; see "Opening a file".
+# --open resolves the target, refuses a directory, runs a +x ELF or AppImage itself, and hands
+# anything else to gio open, which is the route that reads the desktop database and so honours
+# Terminal=true; see "Opening a file".
 D="$FIXTURE_ROOT/flea-open-test-$$"
 sandbox_make "$D"
 mkdir -p "$D/dir" "$D/bin" "$D/failbin" "$D/lingerbin"
@@ -313,6 +314,50 @@ check "a name with a newline in it arrives whole and unsplit" \
   "$D/$newline_name" "$(cat "$last_arg")"
 check "and it is still exactly two arguments too" "1" "$(grep -c '^NARGS 2$' "$opened")"
 
+# A +x ELF or AppImage is the application, not a document: gio open has no handler and refuses.
+# The spawn is not waited for, so the log is the child's, the same wait_for_line the terminal stub uses.
+ran_bin="$D/ran.bin.log"
+{
+  printf '#!/bin/sh\n'
+  printf 'printf "RAN %%s\\n" "$0" >> %q\n' "$ran_bin"
+  printf 'printf "CWD %%s\\n" "$(pwd)" >> %q\n' "$ran_bin"
+  printf 'printf "FD1 %%s\\n" "$(readlink /proc/$$/fd/1)" >> %q\n' "$ran_bin"
+  printf 'P=$(cut -d" " -f5 /proc/self/stat)\n'
+  printf '[ "$$" = "$P" ] && printf "PGID MATCH\\n" >> %q || printf "PGID MISMATCH\\n" >> %q\n' "$ran_bin" "$ran_bin"
+} > "$D/game.AppImage"
+chmod +x "$D/game.AppImage"
+: > "$opened"; : > "$ran_bin"
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/game.AppImage" >/dev/null 2>&1
+wait_for_line "$ran_bin" '^PGID '
+check "a +x AppImage is run directly" "1" "$(grep -c "^RAN $D/game.AppImage$" "$ran_bin")"
+check "and is not handed to gio open" "0" "$(grep -c '^ARGV ' "$opened")"
+check "from its parent directory" "1" "$(grep -c "^CWD $D$" "$ran_bin")"
+check "with no inherited pipe" "1" "$(grep -c '^FD1 /dev/null$' "$ran_bin")"
+check "in its own process group" "1" "$(grep -c '^PGID MATCH$' "$ran_bin")"
+
+cp /usr/bin/true "$D/true.bin"
+chmod +x "$D/true.bin"
+: > "$opened"
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/true.bin" >/dev/null 2>&1
+rc=$?
+check "a +x ELF is a successful handoff" "0" "$rc"
+check "and is not handed to gio open" "0" "$(grep -c '^ARGV ' "$opened")"
+
+printf '#!/bin/sh\nprintf "RAN\\n" >> %q\n' "$ran_bin" > "$D/run.sh"
+chmod +x "$D/run.sh"
+: > "$opened"; : > "$ran_bin"
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/run.sh" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
+check "a +x script is still handed to gio open" "1" "$(grep -c "^ARGV open $D/run.sh$" "$opened")"
+check "and the script itself did not run" "0" "$(grep -c '^RAN$' "$ran_bin")"
+
+cp /usr/bin/true "$D/true-nox"
+chmod a-x "$D/true-nox"
+: > "$opened"
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/true-nox" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
+check "an ELF without execute is still handed to gio open" "1" "$(grep -c "^ARGV open $D/true-nox$" "$opened")"
+
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/dir" >/dev/null 2>&1
 check "a directory is refused with its own status" "3" "$?"
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/linkdir" >/dev/null 2>&1
@@ -373,7 +418,7 @@ printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nex
 chmod +x "$D/bin/qs"
 : > "$opened"
 out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
-# src/open.rs:43 waits for the launcher, so the stub's record is whole when the chain returns and this wait returns at once.
+# src/open.rs:84 waits for the launcher, so the stub's record is whole when the chain returns and this wait returns at once.
 wait_for_line "$opened" '^THP_enabled'
 check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP_enabled:[[:space:]]*0')"
 check "and the opened program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"

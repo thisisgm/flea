@@ -511,7 +511,7 @@ The usage above lists the modes meant to be typed. It deliberately leaves out th
 parts drive: `--backend`, `--prewarm`, `--open`, `--terminal`, `--pick` and `--print-target` are
 all real and all absent from it, so being unlisted says nothing about whether a mode exists.
 `flea --open <path>` is what Enter on a file other than an archive runs, and it hands the file to `gio open` and waits
-for it, while `flea --terminal <dir>` is what the topbar's terminal button and `Ctrl+T` run, and
+for it, except a +x ELF or AppImage which it runs itself, while `flea --terminal <dir>` is what the topbar's terminal button and `Ctrl+T` run, and
 it hands the directory to `xdg-terminal-exec --dir=`. **Both print nothing whatever when they
 succeed**, and exit 0, so silence from one of them is the success case and not a missing mode.
 `flea --pick <reply-file>` is the file chooser's own entry point, run by `tools/flea-portal` for

@@ -967,7 +967,7 @@ this coverage needed no new entry there.
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
 - `thp.rs` the one `prctl(PR_SET_THP_DISABLE)` declaration, `disable()` and `enable()`.
-- `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
+- `open.rs` hands one file to `gio open` and waits for it, or spawns a +x ELF or AppImage and does not wait, see "Opening a file".
 - `terminal.rs` hands one directory to `xdg-terminal-exec --dir=` and does not wait, see "Opening a file".
 - `defaults.rs` claims or releases the OS-level default: the desktop-entry install check,
   the `inode/directory` MIME default via `xdg-mime`, and reporting each half, see "Modes".
@@ -1931,6 +1931,10 @@ waits for its consumer.
   `--terminal` stub from `src/terminal.rs`'s, rather than spelled in the test: when the target moved
   from `xdg-open` to `gio` the hand-written name did not follow, so every `--open` in the block
   resolved the real `/usr/bin/xdg-open` instead, and a stub named from the product cannot drift.
+  A `+x` `.AppImage` shebang logger, a copied `+x` ELF, a `+x` `.sh` and a `-x` ELF sit beside
+  those stubs: the first two must not reach `gio`, the last two must, and the AppImage records
+  its cwd, `/dev/null` stdio and process group because that spawn is a second `Command` whose
+  guards the gio stub cannot see.
   Issue 41 has its own case beside them, driving the real `gio` against an
   isolated `XDG_DATA_HOME` and `XDG_CONFIG_HOME` holding one `Terminal=true` entry and a stub
   `xdg-terminal-exec`, so the operator's own MIME state is never read or written. The huge page half needs a second stub, because a bare `flea --open` runs in a
@@ -3665,6 +3669,16 @@ on an unclaimed box and `com.thisisgm.flea.desktop` once `--default` has claimed
 through the opener from inside a file manager opens a file manager; the caller navigates instead.
 `flea --open` with no path and `flea --open a b` both fall through to the unknown-flag branch, which
 names the flag and exits 2.
+
+A regular file with any execute bit that is an ELF (`\x7fELF`) or whose name ends in `.AppImage`
+(any case) is spawned as itself instead, because `gio open` has no handler for
+`application/x-executable` or `application/vnd.appimage` and refuses. That spawn is the application,
+not a launcher, so it is not waited for: waiting would hold `flea --open` for the program's whole
+life and trip the opener's busy guard. The working directory is the file's parent, which is what
+the other file managers on this box do. A `+x` script that is not an AppImage still goes through
+`gio open`, so a shell script opens in the editor the desktop database names rather than running.
+This is the same class of exception as refusing a directory: `gio open` is the wrong tool, and the
+caller would see nothing useful happen. There is still no desktop-entry parsing in `src/open.rs`.
 
 `ui/Opener.qml` is the window side of that contract and the only component in the tree that runs
 `flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the
