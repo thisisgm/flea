@@ -1,3 +1,4 @@
+use crate::appshelf;
 use crate::thp;
 use std::os::unix::process::CommandExt;
 use std::path::PathBuf;
@@ -27,6 +28,14 @@ pub fn open(path: &str) -> i32 {
     }
     // The setting is inherited across exec, so this is the last point that can hand it back.
     thp::enable();
+    // AppImages and system packages hand off to appshelf when it is installed,
+    // so Omarchy's local application manager reviews them before anything is
+    // installed; see AGENTS.md "Opening a file".
+    if appshelf::handles(&target) {
+        if let Some(status) = appshelf::open(&target) {
+            return status;
+        }
+    }
     // corner: waited for, not detached, and on an archive that wait is a cold handler start; see AGENTS.md "Opening a file".
     let finished = Command::new("gio")
         .arg("open")

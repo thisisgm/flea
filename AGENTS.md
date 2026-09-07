@@ -967,7 +967,10 @@ this coverage needed no new entry there.
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
 - `thp.rs` the one `prctl(PR_SET_THP_DISABLE)` declaration, `disable()` and `enable()`.
-- `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
+- `appshelf.rs` recognizes the four file types AppShelf opens — AppImages and Arch, Debian and
+  RPM packages — and hands one to `appshelf` when it is installed, see "Opening a file".
+- `open.rs` hands one file to `gio open` (or `appshelf` for the types above) and waits for it,
+  see "Opening a file".
 - `terminal.rs` hands one directory to `xdg-terminal-exec --dir=` and does not wait, see "Opening a file".
 - `defaults.rs` claims or releases the OS-level default: the desktop-entry install check,
   the `inode/directory` MIME default via `xdg-mime`, and reporting each half, see "Modes".
@@ -3665,6 +3668,25 @@ on an unclaimed box and `com.thisisgm.flea.desktop` once `--default` has claimed
 through the opener from inside a file manager opens a file manager; the caller navigates instead.
 `flea --open` with no path and `flea --open a b` both fall through to the unknown-flag branch, which
 names the flag and exits 2.
+
+Four kinds of file hand off to `appshelf` when it is available in `PATH`, because AppShelf is
+Omarchy's local application manager and shows the same review window for all of them:
+
+- **AppImages**: the `.AppImage` / `.appimage` extension, or an extensionless binary carrying the
+  Type 2 AppImage magic `\x7fELF` and `AI\x02` at offset 8.
+- **Arch packages**: a name ending `.pkg.tar.zst`, `.pkg.tar.xz`, `.pkg.tar.gz`, `.pkg.tar.bz2`,
+  `.pkg.tar.lzo`, `.pkg.tar.lrz`, `.pkg.tar.lz4`, `.pkg.tar.lz`, `.pkg.tar.Z` or `.pkg.tar`.
+  There is no magic to read — the file is an ordinary compressed tarball — so the name is the whole claim, and `photos.tar.zst` deliberately does not match.
+- **Debian packages**: the `.deb` extension, or an `ar` archive whose first member is
+  `debian-binary`. The `!<arch>\n` magic alone is not enough: a static library is the same
+  container and must keep going to the desktop.
+- **RPM packages**: the `.rpm` extension, or the magic `\xed\xab\xee\xdb`.
+
+`appshelf::open` spawns `appshelf <path>` detached with `Stdio::null()` and runs in its own process
+group, answering `0` on launch. When `appshelf` is not installed, it falls through to `gio open`,
+keeping the default desktop association behavior. Recognition here only has to be a good guess:
+AppShelf reads the file itself and refuses it with its own message if this was wrong, which is why
+none of these checks parse further than the first few bytes.
 
 `ui/Opener.qml` is the window side of that contract and the only component in the tree that runs
 `flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the

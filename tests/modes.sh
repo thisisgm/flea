@@ -313,6 +313,94 @@ check "a name with a newline in it arrives whole and unsplit" \
   "$D/$newline_name" "$(cat "$last_arg")"
 check "and it is still exactly two arguments too" "1" "$(grep -c '^NARGS 2$' "$opened")"
 
+# AppImages hand off to appshelf when installed, and fall back to gio open when absent.
+mkdir -p "$D/appshelfbin"
+appshelf_opened="$D/appshelf-opened.log"
+appshelf_last="$D/appshelf-last"
+{
+  printf '#!/bin/sh\n'
+  printf 'printf "FD1 %%s\\n" "$(readlink /proc/$$/fd/1)" >> %q\n' "$appshelf_opened"
+  printf 'exec >> %q 2>&1\n' "$appshelf_opened"
+  printf 'printf "PID %%s\\n" "$$"\n'
+  printf 'printf "NARGS %%s\\n" "$#"\n'
+  printf 'printf "ARGV %%s\\n" "$*"\n'
+  printf 'shift $(($# - 1)); printf "%%s" "$1" > %q\n' "$appshelf_last"
+  printf 'P=$(cut -d" " -f5 /proc/self/stat)\n'
+  printf '[ "$$" = "$P" ] && printf "PGID MATCH pid=%%s pgid=%%s\\n" "$$" "$P" || printf "PGID MISMATCH pid=%%s pgid=%%s\\n" "$$" "$P"\n'
+  printf 'grep -i "^THP_enabled" /proc/self/status\n'
+} > "$D/appshelfbin/appshelf"
+chmod +x "$D/appshelfbin/appshelf"
+
+appimage_file="$D/sample.AppImage"
+printf '\177ELF\002\001\001\000AI\002\000' > "$appimage_file"
+
+: > "$appshelf_opened"
+PATH="$D/appshelfbin:$D/bin:/usr/bin:/bin" $BIN --open "$appimage_file" >/dev/null 2>&1
+rc=$?
+wait_for_line "$appshelf_opened" '^THP_enabled'
+check "an AppImage hands off to appshelf" "0" "$rc"
+check "appshelf was given the target path" "$appimage_file" "$(cat "$appshelf_last")"
+check "appshelf got no inherited pipe" "1" "$(grep -c '^FD1 /dev/null$' "$appshelf_opened")"
+check "appshelf runs in its own process group" "1" "$(grep -c '^PGID MATCH' "$appshelf_opened")"
+
+# System packages take the same route: AppShelf reviews a .deb, an .rpm and an
+# Arch package before pacman is asked to install anything.
+package_file="$D/hello_2.10-3_amd64.deb"
+printf '!<arch>\ndebian-binary   1700000000  0     0     100644  4         `\n2.0\n' > "$package_file"
+: > "$appshelf_opened"
+PATH="$D/appshelfbin:$D/bin:/usr/bin:/bin" $BIN --open "$package_file" >/dev/null 2>&1
+rc=$?
+wait_for_line "$appshelf_opened" '^THP_enabled'
+check "a .deb hands off to appshelf" "0" "$rc"
+check "appshelf was given the package path" "$package_file" "$(cat "$appshelf_last")"
+
+rpm_file="$D/hello-2.12.1-4.x86_64.rpm"
+printf '\355\253\356\333\003\000\000\000padding' > "$rpm_file"
+: > "$appshelf_opened"
+PATH="$D/appshelfbin:$D/bin:/usr/bin:/bin" $BIN --open "$rpm_file" >/dev/null 2>&1
+wait_for_line "$appshelf_opened" '^THP_enabled'
+check "an .rpm hands off to appshelf" "$rpm_file" "$(cat "$appshelf_last")"
+
+for suffix in zst lrz lz4 lz Z; do
+  arch_file="$D/hello-2.10-3-x86_64.pkg.tar.$suffix"
+  printf 'not really compressed' > "$arch_file"
+  : > "$appshelf_opened"
+  PATH="$D/appshelfbin:$D/bin:/usr/bin:/bin" $BIN --open "$arch_file" >/dev/null 2>&1
+  wait_for_line "$appshelf_opened" '^THP_enabled'
+  check "an Arch .$suffix package hands off to appshelf" "$arch_file" "$(cat "$appshelf_last")"
+done
+
+# Content recognition accepts a complete Debian member name, never a prefix.
+for member in 'debian-binary   ' 'debian-binary/  ' 'debian-binaryx   '; do
+  archive="$D/extensionless-ar"
+  printf '!<arch>\n%s' "$member" > "$archive"
+  : > "$opened"
+  : > "$appshelf_opened"
+  PATH="$D/appshelfbin:$D/bin:/usr/bin:/bin" $BIN --open "$archive" >/dev/null 2>&1
+  if [ "$member" = 'debian-binaryx   ' ]; then
+    wait_for_line "$opened" '^THP_enabled'
+    check "a Debian member prefix falls through to gio" "1" "$(grep -c "^ARGV open $archive$" "$opened")"
+  else
+    wait_for_line "$appshelf_opened" '^THP_enabled'
+    check "a Debian member '$member' hands off to appshelf" "$archive" "$(cat "$appshelf_last")"
+  fi
+done
+
+# An ordinary tarball is not a package, whatever it is compressed with, and it
+# must keep going to the desktop's own archive handler.
+plain_archive="$D/photos.tar.zst"
+printf '\050\265\057\375 not really compressed' > "$plain_archive"
+: > "$opened"
+PATH="$D/appshelfbin:$D/bin:/usr/bin:/bin" $BIN --open "$plain_archive" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
+check "a plain .tar.zst is not offered to appshelf" "1" "$(grep -c "^ARGV open $plain_archive$" "$opened")"
+
+# Without appshelf in PATH, an AppImage falls back to gio open.
+: > "$opened"
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$appimage_file" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
+check "an AppImage falls back to gio open when appshelf is absent" "1" "$(grep -c "^ARGV open $appimage_file$" "$opened")"
+
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/dir" >/dev/null 2>&1
 check "a directory is refused with its own status" "3" "$?"
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/linkdir" >/dev/null 2>&1

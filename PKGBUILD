@@ -30,7 +30,8 @@ optdepends=('libarchive: archive listing and extraction'
             'imagemagick: image conversion'
             'tailscale: Taildrop sharing'
             'ffmpeg: media metadata in the preview column'
-            'dropbox-cli: Dropbox share links')
+            'dropbox-cli: Dropbox share links'
+            'appshelf: open AppImages and .pkg.tar/.deb/.rpm packages through AppShelf')
 # The release profile strips, so a debug package would have nothing to hold.
 options=('!debug')
 # Empty on purpose: with no source array makepkg builds from $startdir, so a clone is the source.

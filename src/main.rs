@@ -1,3 +1,4 @@
+mod appshelf;
 mod backend;
 mod chooser;
 mod defaults;
