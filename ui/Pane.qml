@@ -129,8 +129,12 @@ FocusScope {
     // Read once for the window: the chrome's path and the search strip's scope both shorten with it.
     readonly property string home: Quickshell.env("HOME") || ""
 
-    // "list", "columns" or "grid"; the chrome's own buttons write it and the views read it.
-    property string viewMode: "list"
+    // "list", "columns" or "grid"; the views read it, and the first frame draws the view the last
+    // launch left on. The chrome's buttons and ctrl-1/2/3 both write it through setView, which is
+    // the one change that persists; ui/js/Tabs.js restores a snapshot straight onto the property,
+    // because switching tabs is not choosing a view.
+    property string viewMode: ViewState.view
+    function setView(mode) { root.viewMode = mode; ViewState.setView(mode) }
     // Only the list view draws a filter, so leaving it takes the filter with it.
     onViewModeChanged: Filter.close(root)
 

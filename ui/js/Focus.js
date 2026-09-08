@@ -127,10 +127,11 @@ function act(action, root) {
     case "sortReverse": Sort.reverse(root); return
     case "addNetwork": root.sidebar.addRequested(); return
     case "eject": Eject.release(root, root.sidebar, false); return
-    // Finder's Cmd+1/2/3; the chrome's three buttons write the same property, so they follow.
-    case "viewList": root.viewMode = "list"; return
-    case "viewColumns": root.viewMode = "columns"; return
-    case "viewGrid": root.viewMode = "grid"; return
+    // Finder's Cmd+1/2/3; the chrome's three buttons reach the same Pane.setView, so the chord and
+    // the click persist the one stored view.
+    case "viewList": root.setView("list"); return
+    case "viewColumns": root.setView("columns"); return
+    case "viewGrid": root.setView("grid"); return
     case "newFolder": Ops.newFolder(root); return
     // The directory being shown, not the row: the menu row and the chord both land here.
     case "openTerminal": root.openTerminal(); return
