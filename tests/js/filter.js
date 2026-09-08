@@ -1,4 +1,6 @@
 .import "../../ui/js/Filter.js" as Filter
+.import "../../ui/js/Nav.js" as Nav
+.import "../../ui/js/Ops.js" as Ops
 .import "filterfixture.js" as Fixture
 
 // The fixtures and the stub pane live in filterfixture.js, so this file stays checks.
@@ -129,6 +131,37 @@ function run(check) {
     var none = Fixture.pane("zzz")
     Filter.moveCursor(none, 1)
     check("a filter matching nothing has no row to move to", none.cursorIndex, 0)
+
+    // That cursor stays on a row the filter hides, and the operations that fall back to the cursor
+    // row acted on it: Enter opened it, dd trashed it, y and x took it, and r set the rename guard
+    // with no delegate to draw the editor or clear it. The rule at the top of prune() is that a row
+    // nobody can see is not one to act on, and these hold the cursor row to it.
+    var blind = Fixture.pane("zzz")
+    blind.cursorIndex = 3
+    check("the cursor under a filter that hides it is not a row to act on",
+          Ops.targetIndices(blind).join(","), "")
+    var seen = Fixture.pane("scr")
+    seen.cursorIndex = 5
+    check("and a cursor row the filter shows still is", Ops.targetIndices(seen).join(","), "5")
+    check("with no filter the cursor row is the target it always was",
+          Ops.targetIndices(Fixture.pane("")).join(","), "0")
+    blind.viewMode = "list"
+    blind.renamingIndex = -1
+    blind.rowFor = function (i) { return blind.rows[i] }
+    Ops.startRename(blind)
+    check("r over a hidden cursor row opens no editor", blind.renamingIndex, -1)
+    blind.listInFlight = false
+    blind.said = []
+    blind.message = function (text) { blind.said.push(text) }
+    blind.opened = 0
+    blind.open = function () { blind.opened += 1 }
+    blind.join = function (dir, name) { return dir + "/" + name }
+    blind.path = "/tmp"
+    // Screens, a directory the filter hides: opened, it would navigate away from the filtered listing.
+    blind.cursorIndex = 0
+    Nav.openCursor(blind, null)
+    check("enter over a hidden cursor row says so and opens nothing",
+          blind.said.join("") + "|" + blind.opened, "That row is hidden by the filter.|0")
 
     // The wheel moves the viewport and the cursor follows it, in view positions on both ends.
     var wheel = Fixture.pane("2026")

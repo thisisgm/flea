@@ -2,6 +2,7 @@
 
 .import "Archive.js" as Archive
 .import "Convert.js" as Convert
+.import "Filter.js" as Filter
 .import "Transfer.js" as Transfer
 
 // The clipboard is entirely client-side: the backend knows about a transfer, never about a pending paste.
@@ -81,10 +82,11 @@ function copied(n, moving) {
     return (moving ? "Cut " : "Copied ") + items(n) + ", p pastes."
 }
 
-// Which rows an operation acts on: the selection when there is one, the cursor row otherwise.
+// Which rows an operation acts on: the selection when there is one, else the cursor row while the
+// filter shows it, and nothing otherwise, since the selection has already lost every hidden row.
 function targetIndices(pane) {
     var picked = pane.selectedIndices()
-    return picked.length > 0 ? picked : [pane.cursorIndex]
+    return picked.length > 0 ? picked : Filter.cursorShown(pane) ? [pane.cursorIndex] : []
 }
 
 // Only rows inside the held window can be named as a path, so the caller sends indices instead and
@@ -130,7 +132,7 @@ function startRename(pane) {
         pane.message("Rename needs the list view.", false)
         return
     }
-    if (pane.rowFor(pane.cursorIndex)) {
+    if (Filter.cursorShown(pane) && pane.rowFor(pane.cursorIndex)) {
         pane.renamingIndex = pane.cursorIndex
     }
 }

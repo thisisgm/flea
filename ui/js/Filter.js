@@ -43,6 +43,13 @@ function viewOf(list, row) {
     return list === null ? row : list.indexOf(row)
 }
 
+// Whether the cursor is on a row the filter draws. A query that matches nothing leaves the cursor
+// where it stood, on a row nobody can see, and the operations that fall back to the cursor row read
+// this first: a dd over "Nothing matches" trashed the file under it, the accident prune() exists for.
+function cursorShown(pane) {
+    return viewOf(pane.shown === undefined ? null : pane.shown, pane.cursorIndex) >= 0
+}
+
 // The canvas's own line under the last row it left standing, States.dc.html "Filter active".
 function note(list, loaded, query) {
     if (list === null) {

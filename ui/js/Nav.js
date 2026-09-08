@@ -196,6 +196,10 @@ function openCursor(pane, opener) {
         pane.message("A directory is already loading.", false)
         return
     }
+    if (!Filter.cursorShown(pane)) {
+        pane.message("That row is hidden by the filter.", false)
+        return
+    }
     var row = pane.rowFor(pane.cursorIndex)
     if (!row) {
         pane.message("That row has not loaded yet.", false)
