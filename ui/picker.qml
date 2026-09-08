@@ -279,7 +279,7 @@ ShellRoot {
                 id: places
                 anchors.left: parent.left
                 anchors.top: chrome.bottom
-                anchors.bottom: save.top
+                anchors.bottom: entryField.top
                 home: win.home
                 current: win.path
                 edge: win.edge
@@ -292,9 +292,10 @@ ShellRoot {
                 anchors.left: places.right
                 anchors.right: parent.right
                 anchors.top: chrome.bottom
-                anchors.bottom: save.top
+                anchors.bottom: entryField.top
                 picker: win
                 backend: backend
+                entry: entryField
                 clip: true
                 focus: true
             }
@@ -308,6 +309,17 @@ ShellRoot {
                 visible: win.listingState === "empty"
             }
 
+            // The location field, above the footer in the open modes; a later change teaches the
+            // window what a typed line does, so entered() is only received here for now.
+            Flea.PickerEntry {
+                id: entryField
+                anchors.left: parent.left
+                anchors.right: parent.right
+                anchors.bottom: save.top
+                picker: win
+                onDismissed: list.forceActiveFocus()
+            }
+
             Flea.PickerSave {
                 id: save
                 anchors.left: parent.left
@@ -318,48 +330,12 @@ ShellRoot {
                 onAccepted: win.accept()
             }
 
-            // The footer: what is checked on the left, the keys that act on it on the right.
-            Item {
+            Flea.PickerFooter {
                 id: status
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
-                height: Theme.chromeHeight
-
-                // The footer takes the chrome plane, the same strip the ask above it stands on.
-                Rectangle {
-                    anchors.fill: parent
-                    color: Theme.color.surface
-                }
-
-                Rectangle {
-                    anchors.top: parent.top
-                    width: parent.width
-                    height: Theme.spacing.hairline
-                    color: win.edge
-                }
-
-                Text {
-                    anchors.left: parent.left
-                    anchors.leftMargin: Theme.spacing.rowPaddingX
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: win.message.length > 0 ? win.message : Picker.statusLine(win.marks.length, Picker.totalBytes(win.marks))
-                    color: win.message.length > 0 ? Theme.color.accent : Theme.color.foreground
-                    font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
-                    textFormat: Text.PlainText
-                }
-
-                Text {
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.spacing.rowPaddingX
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: Picker.hints(win.req)
-                    color: Theme.color.foreground
-                    font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
-                    textFormat: Text.PlainText
-                }
+                picker: win
             }
         }
 
@@ -390,6 +366,8 @@ ShellRoot {
             function chip(): int { return win.filterIndex }
             function saveName(): string { return win.saveName }
             function message(): string { return win.message }
+            function entry(): string { return entryField.text }
+            function entryFocused(): int { return entryField.focused ? 1 : 0 }
         }
     }
 }

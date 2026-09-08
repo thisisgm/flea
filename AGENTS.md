@@ -866,6 +866,17 @@ empty, `.`, `..`, slashed or NUL-bearing one is `download`, because the leaf is 
 own dir and nothing else. `flea --pick` sweeps subdirs older than seven days before its window opens
 (`pickercache::sweep_picker_cache`), ignoring every error: a cache that cannot be read is no reason to
 refuse a chooser, and a week is past any application's read.
+**The location field, and why Escape in it is not a cancel.** The open modes carry
+`ui/PickerEntry.qml` above the footer, the chooser's counterpart of `ui/ChromeBar.qml`'s path
+bar: `:` or Ctrl+L in the list hands it the keyboard, Return reports the line through `entered()`
+with the text kept, and `ui/js/PickerEntry.js` says what the line means. Escape there returns the
+keyboard to the list and keeps the text, because the person is editing a location, not leaving
+the chooser; the field accepts both keys itself, as the path bar does: an unaccepted Escape
+climbs to the window's own handler and refuses the request, and Return is accepted so the line
+is read once. Unlike the path bar the strip stays up on blur, because it is a field of the
+window and not an editor raised over one. Save mode keeps `ui/PickerSave.qml`'s Filename field and no
+second one. The `fleapicker` seam reads the field as `entry` and `entryFocused` and acts on
+nothing, so `tests/picker.sh typed` can say where the keyboard is.
 
 ## Show in folder
 

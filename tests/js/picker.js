@@ -46,7 +46,9 @@ function run(check) {
 
     check("nothing checked says so", Picker.statusLine(0, 0), "0 selected")
     check("what is checked and what it weighs", Picker.statusLine(3, 2100000), "3 selected · 2.1 MB")
-    check("the open hints name Space and Enter", Picker.hints(req), "Space select · Enter open/send · Esc cancel")
+    check("the open hints name Space and Enter", Picker.hints(req), "Space select · Enter open/send · : location · Esc cancel")
+    check("a folder request names the location key too", Picker.hints(Picker.request('{"mode":"open","directory":true}')),
+          "Enter open · Space mark folder · : location · Esc cancel")
     check("the save hints name neither", Picker.hints(Picker.request('{"mode":"save"}')), "Enter save · Esc cancel")
 
     var chips = Picker.chips(req)

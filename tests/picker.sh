@@ -330,6 +330,39 @@ case_savename() {
     printf 'savename: a name that would leave the folder is refused from the caller and with a NUL in it, and nothing was answered\n'
 }
 
+# The location field. Driven the way the NUL arm above is, a direct launch, because no portal call
+# is needed to type into it. Three readings carry it: ":" moved the keyboard from the list into the
+# field, the text typed after it is what ipc entry reports, and Escape in the field hands the
+# keyboard back without cancelling, which the still-running process and the kept text both say.
+case_typed() {
+    make_fixture
+    local flea reply
+    flea="$(cd "$(dirname "$0")/.." && pwd)/target/release/flea"
+    [[ -x "$flea" ]] || fail "no built flea at $flea"
+    reply="$fixture/typed-reply.json"
+    FLEA_UI="$(dirname "$picker_config")" \
+        FLEA_PICKER="{\"mode\":\"open\",\"title\":\"$title\",\"folder\":\"$fixture\"}" \
+        "$flea" --pick "$reply" &
+    asker=$!
+    omarchy-drive wait window "$title" --timeout 25 >/dev/null || fail "the typed request raised no picker window"
+    omarchy-drive focus "$title" >/dev/null || fail "the picker window would not take focus"
+    ipc_is_live
+    [[ "$(ipc entryFocused)" == "0" ]] || fail "the field had the keyboard before anyone asked for it"
+    press ':'
+    [[ "$(ipc entryFocused)" == "1" ]] || fail "the colon left the keyboard in the list"
+    press '/tmp'
+    [[ "$(ipc entry)" == "/tmp" ]] || fail "the field holds $(ipc entry), not the typed path"
+    press -k Escape
+    [[ "$(ipc entryFocused)" == "0" ]] || fail "Escape in the field kept the keyboard there"
+    kill -0 "$asker" 2>/dev/null || fail "Escape in the field cancelled the dialog"
+    [[ "$(ipc entry)" == "/tmp" ]] || fail "Escape in the field emptied it to $(ipc entry)"
+    press -k Escape
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == '{"response":1}' ]] || fail "the typed request replied $(cat "$reply")"
+
+    printf 'typed: ":" focuses the location field, the text lands in it, and Escape returns to the list without cancelling\n'
+}
+
 # A chooser that cannot open at all refuses before any window and writes no reply file, which is what
 # tools/flea-portal turns into 2. Both refusals are argv-level, so neither needs the display.
 case_fault() {
@@ -393,12 +426,13 @@ case_taildrop() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick save savename cancel withdrawn died fault
+[[ "$#" -gt 0 ]] || set -- pick save savename typed cancel withdrawn died fault
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
         save) case_save ;;
         savename) case_savename ;;
+        typed) case_typed ;;
         cancel) case_cancel ;;
         withdrawn) case_withdrawn ;;
         died) case_died ;;

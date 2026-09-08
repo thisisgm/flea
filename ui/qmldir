@@ -54,6 +54,8 @@ PreviewText 1.0 PreviewText.qml
 Row 1.0 Row.qml
 Pane 1.0 Pane.qml
 PickerChrome 1.0 PickerChrome.qml
+PickerEntry 1.0 PickerEntry.qml
+PickerFooter 1.0 PickerFooter.qml
 PickerList 1.0 PickerList.qml
 PickerPlaces 1.0 PickerPlaces.qml
 PickerRecent 1.0 PickerRecent.qml
