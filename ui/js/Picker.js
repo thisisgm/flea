@@ -100,7 +100,7 @@ function hints(req) {
         return "Enter save · Esc cancel"
     }
     var pick = req.directory ? "Enter open · Space mark folder" : "Space select · Enter open/send"
-    return pick + " · Esc cancel"
+    return pick + " · : location · Esc cancel"
 }
 
 // The chip row: the caller's filters, then All files, which is always explicit. An empty list is no

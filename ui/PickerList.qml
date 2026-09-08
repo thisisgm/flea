@@ -13,6 +13,8 @@ ListView {
 
     property var picker: null
     property var backend: null
+    // The location strip ":" and Ctrl+L hand the keyboard to, ui/PickerEntry.qml in the window.
+    property var entry: null
 
     readonly property int visibleRows: Math.max(1, Math.ceil(root.height / Theme.rowHeight))
     // Wide enough that a row's box is a check and not a chip; the board's own is one pixel over bodySmall.
@@ -144,6 +146,10 @@ ListView {
             root.moveCursor(root.picker.shownTotal)
         } else if (event.key === Qt.Key_Space) {
             root.picker.toggleMark(root.picker.cursorIndex)
+        } else if (event.text === ":" || (event.key === Qt.Key_L && (event.modifiers & Qt.ControlModifier))) {
+            // Before the bare L below, which walks into the row; the modifier is what tells them apart.
+            if (root.entry)
+                root.entry.takeFocus()
         } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_L) {
             root.picker.activate(root.picker.cursorIndex)
         } else if (event.key === Qt.Key_Backspace || event.key === Qt.Key_H) {
