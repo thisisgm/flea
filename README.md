@@ -142,6 +142,9 @@ PCManFM did not settle in any media run. Results describe this machine and workl
 
 ## Keyboard
 
+Folders can be added to Places from their context menu and removed from either that menu or
+the sidebar. These shortcuts share GTK’s bookmarks file; Home and standard user folders stay fixed.
+
 Press **?** for the full keymap, or **,** to change settings.
 
 | Action | Keys |

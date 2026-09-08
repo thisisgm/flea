@@ -107,6 +107,14 @@ Item {
         onRenamed: root.reloadBookmarks()
     }
 
+    property alias favorites: favorites
+    FavoritePlaces {
+        id: favorites
+        entries: root.favoriteEntries
+        onWrote: root.reloadBookmarks()
+        onMessage: function (text, isError) { root.message(text, isError) }
+    }
+
     // Home is always first and is not in either file, so it is prepended rather than parsed; the
     // merge and its first-position-wins rule are Places.favorites', which tests/js/places.js checks.
     function rebuild() {
@@ -163,6 +171,7 @@ Item {
     // A chosen menu row, arriving with the row's key rather than its position; which row that
     // names is Mounts.release', so tests/js/network.js drives the resolution with no rail.
     function releaseChosen(action, key) {
+        if (action === "removeFavorite") { favorites.edit(key, false); return }
         Mounts.release(action, key, devices, mounts, root)
     }
 

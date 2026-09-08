@@ -365,11 +365,13 @@ FocusScope {
         archiveFormats: root.backend.archiveFormats
         canConvert: root.backend.canConvert
         rowIsArchive: root.cursorRow !== null && !root.cursorRow.d && Archive.isArchive(root.cursorRow.n)
+        favoriteAction: root.cursorRow && root.cursorRow.d ? sidebar.favorites.action(root.join(root.path, root.cursorRow.n)) : ""
         rowIsImage: root.cursorRow !== null && root.cursorRow.i === "image-x-generic"
         dropboxPath: sidebar.dropboxReady ? root.home + "/Dropbox" : ""
         // The separator is part of the test, or /home/gm/DropboxBackup would count as inside Dropbox.
         rowInDropbox: root.path === root.home + "/Dropbox" || root.path.indexOf(root.home + "/Dropbox/") === 0
         onChosen: function (action) {
+            if (action === "addFavorite" || action === "removeFavorite") { sidebar.favorites.edit(root.join(root.path, root.cursorRow.n), action === "addFavorite"); return }
             if (action.indexOf("taildrop:") === 0) { root.sendTaildrop(action.substring("taildrop:".length)); return }
             if (action === "copypath") { wire.opener.copyText(root.path + "/" + root.cursorRow.n); return }
             if (action.indexOf("col:") === 0) { ViewState.toggleColumn(action.substring("col:".length)); return }

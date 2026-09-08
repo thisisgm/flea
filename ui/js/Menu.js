@@ -29,6 +29,9 @@ function listingEntries(p) {
         return applyHidden(backgroundEntries(p), p.hiddenActions)
     var out = []
     out.push({ label: "Open", action: "open", glyph: "folder-open" })
+    if (p.favoriteAction)
+        out.push({ label: p.favoriteAction === "addFavorite" ? "Add to Places" : "Remove from Places",
+                   action: p.favoriteAction, glyph: p.favoriteAction === "addFavorite" ? "folder-plus" : "folder-minus" })
     out.push({ label: "Copy path", action: "copypath", glyph: "file-text" })
     out.push({ separator: true })
     // SettingsMenus.html's six basic rows, in its own order. Cut, Copy and Paste were keyboard

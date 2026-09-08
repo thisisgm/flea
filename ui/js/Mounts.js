@@ -196,6 +196,8 @@ function railMenu(entry) {
 // nothing. ui/js/Eject.js reads railMenu and never this, so Ctrl+E still refuses an unmounted row.
 function rowMenu(entry) {
     var rows = railMenu(entry)
+    if (entry && entry.group === "favorite" && entry.removable === true)
+        rows.push({ label: "Remove from Places", action: "removeFavorite", glyph: "folder-minus" })
     if (entry && entry.group === "network" && entry.kind === "share") {
         rows.push({ label: "Rename", action: "rename", glyph: "rename" })
         rows.push({ label: "Remove", action: "remove", glyph: "minus" })
@@ -203,12 +205,11 @@ function rowMenu(entry) {
     return rows
 }
 
-// The handle a chosen menu row carries back: a volume's device node, a share's uri, "" for a row
-// with no release. The rail rebuilds on a five second poll, so an index taken when the menu opened
-// can name a different row by the time a row inside it is chosen; a key cannot.
+// Menu keys survive rail rebuilds: a device node, share URI or favorite path.
 function railKey(entry) {
     if (!entry)
         return ""
+    if (entry.group === "favorite" && entry.removable === true) return String(entry.path || "")
     if (entry.group === "device" && entry.kind === "volume")
         return String(entry.device || "")
     if (entry.group === "network" && entry.kind === "share")

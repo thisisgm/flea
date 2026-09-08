@@ -43,15 +43,15 @@ function bookmarks(body) {
 function favorites(home, dirsText, marksText, glyphFor) {
     var favs = [{ path: home, label: "Home", group: "favorite", kind: "favorite", glyph: glyphFor("Home") }]
     var seen = {}
-    seen[home] = true
+    seen[localPath(home)] = true
     var groups = [userDirs(dirsText, home), bookmarks(marksText)]
     for (var g = 0; g < groups.length; g++) {
         for (var i = 0; i < groups[g].length; i++) {
-            if (seen[groups[g][i].path])
+            if (seen[localPath(groups[g][i].path)])
                 continue
             var e = groups[g][i]
-            seen[e.path] = true
-            favs.push({ path: e.path, label: e.label, group: "favorite", kind: "favorite", glyph: glyphFor(e.label) })
+            seen[localPath(e.path)] = true
+            favs.push({ path: e.path, label: e.label, group: "favorite", kind: "favorite", glyph: glyphFor(e.label), removable: g === 1 })
         }
     }
     return favs
@@ -90,4 +90,38 @@ function relabel(body, path, name) {
     if (out.length > 0 && out.charAt(out.length - 1) !== "\n")
         out += "\n"
     return out + target + " " + trimmed + "\n"
+}
+
+// Local paths are compared decoded, so alternate URI escapes and trailing slashes cannot duplicate a favorite.
+function localPath(path) {
+    return String(path || "").replace(/\/+$/, "") || "/"
+}
+
+function favoriteAction(entries, path) {
+    if (!path || path.charAt(0) !== "/") return ""
+    for (var i = 0; i < entries.length; i++) {
+        if (localPath(entries[i].path) === localPath(path))
+            return entries[i].removable === true ? "removeFavorite" : ""
+    }
+    return "addFavorite"
+}
+
+function editFavorite(body, path, add) {
+    var target = localPath(path)
+    var lines = String(body || "").split("\n")
+    var found = false
+    var kept = []
+    for (var i = 0; i < lines.length; i++) {
+        var marks = bookmarks(lines[i])
+        if (marks.length && localPath(marks[0].path) === target) {
+            found = true
+            if (!add) continue
+        }
+        kept.push(lines[i])
+    }
+    if (!add) return kept.join("\n")
+    if (found) return String(body || "")
+    var text = String(body || "")
+    if (text.length && text.charAt(text.length - 1) !== "\n") text += "\n"
+    return text + "file://" + target.split("/").map(encodeURIComponent).join("/") + "\n"
 }

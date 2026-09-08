@@ -25,6 +25,7 @@ Item {
     // Whether the cursor row is an archive, and whether it is an image; both decided client-side.
     property bool rowIsArchive: false
     property bool rowIsImage: false
+    property string favoriteAction: ""
     // Empty until the stock Dropbox service is installed and authenticated, which is what gates the row.
     property string dropboxPath: ""
     // True when the cursor row already lives under ~/Dropbox, where a share link is the useful action.
@@ -97,6 +98,7 @@ Item {
             archiveFormats: root.archiveFormats,
             rowIsArchive: root.rowIsArchive,
             rowIsImage: root.rowIsImage,
+            favoriteAction: root.favoriteAction,
             canConvert: root.canConvert,
             // The Menus settings section's stored set; ui/js/Menu.js applyHidden is what reads it.
             hiddenActions: ViewState.menuHidden

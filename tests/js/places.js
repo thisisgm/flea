@@ -95,4 +95,20 @@ function run(check) {
     check("every row is tagged as a favourite", favs[3].group + "/" + favs[3].kind, "favorite/favorite")
     check("the mark is resolved by the caller, so the rail keeps its own Icons import", favs[1].glyph, "mark:Downloads")
     check("a box with neither file still gets Home", Places.favorites("/home/gm", "", "", function () { return "m" }).length, 1)
+
+    check("Home stays fixed", Places.favoriteAction(favs, "/home/gm"), "")
+    check("standard folders stay fixed even when bookmarked", Places.favoriteAction(favs, "/home/gm/Downloads/"), "")
+    check("a saved folder can be removed", Places.favoriteAction(favs, "/srv/media"), "removeFavorite")
+    check("a new folder can be added", Places.favoriteAction(favs, "/srv/projects"), "addFavorite")
+    var unusual = "/srv/My files/#100%?\nnext"
+    var saved = Places.editFavorite(netFile, unusual, true)
+    check("new favorites preserve existing local and network places", saved.indexOf(netFile), 0)
+    check("reserved characters round trip without injecting a bookmark", Places.bookmarks(saved)[1].path, unusual)
+    check("adding twice leaves the file untouched", Places.editFavorite(saved, unusual, true), saved)
+    check("removal preserves all unrelated bytes", Places.editFavorite(saved, unusual, false), netFile)
+    check("alternate escaping and trailing slash do not duplicate a favorite",
+          Places.editFavorite("file:///srv/%6dedia/ Media\n", "/srv/media", true), "file:///srv/%6dedia/ Media\n")
+    check("removal drops every duplicate", Places.editFavorite("file:///srv/media A\nfile:///srv/%6dedia/ B\n" + netFile, "/srv/media", false), netFile)
+    check("adding to a file without a newline preserves the last entry", Places.editFavorite("smb://nas/share NAS", "/srv/media", true), "smb://nas/share NAS\nfile:///srv/media\n")
+    check("the last favorite can be removed", Places.editFavorite("file:///srv/media\n", "/srv/media", false), "")
 }
