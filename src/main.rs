@@ -12,6 +12,7 @@ mod launcher;
 mod oflags;
 mod open;
 mod paths;
+mod pickercache;
 mod terminal;
 mod thp;
 mod uischema;

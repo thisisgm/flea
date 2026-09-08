@@ -1,4 +1,5 @@
 use crate::paths;
+use crate::pickercache;
 use crate::thp;
 use crate::vulkan;
 use std::os::unix::process::CommandExt;
@@ -37,6 +38,8 @@ pub fn pick(reply: &str) -> i32 {
         eprintln!("flea: the shell config is missing, set FLEA_UI or install /usr/share/flea/ui");
         return 2;
     };
+    // Downloads a week old are past any application's read; swept here, before the window opens.
+    pickercache::sweep_picker_cache();
     let mut cmd = qs_command(ui.join("picker.qml"));
     cmd.env("FLEA_PICKER_REPLY", reply);
     exec(cmd)
