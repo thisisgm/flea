@@ -1099,6 +1099,12 @@ this coverage needed no new entry there.
 - `ui/js/PathBar.js` is what a typed path line means: the tilde, the relative name, the
   `file://` URI, the interior `.` and `..`, and what Tab makes of one directory's names. Pure,
   so `tests/js/pathbar.js` drives all of it; the field itself is `ui/ChromeBar.qml`'s.
+- `ui/js/PickerEntry.js` is what a line typed into the chooser's location field means, the
+  Windows filename box's rule: a path or a local `file://` URI resolves through `PathBar.js`, an
+  `http`, `https`, `ftp` or `ftps` URL is a remote to fetch, `smb`, `sftp` or `ssh` is a share to
+  mount, and any other scheme, a `file://` on another host or a NUL is refused with a reason. A
+  colon in the first segment reads as a scheme, so a local `a:b` is typed as `./a:b`. Pure, so
+  `tests/js/pickerentry.js` drives all of it; the field asks the backend what the path is.
 
 ## Where the backend binary comes from
 

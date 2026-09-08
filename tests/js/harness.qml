@@ -24,6 +24,7 @@ import "ops.js" as OpsSuite
 import "palette.js" as PaletteSuite
 import "pathbar.js" as PathBarSuite
 import "picker.js" as PickerSuite
+import "pickerentry.js" as PickerEntrySuite
 import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
 import "railkeys.js" as RailKeysSuite
@@ -68,7 +69,7 @@ Item {
             ["mounts", MountsSuite], ["nav", NavSuite], ["network", NetworkSuite],
             ["ops", OpsSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
-            ["picker", PickerSuite],
+            ["picker", PickerSuite], ["pickerentry", PickerEntrySuite],
             ["protocols", ProtocolsSuite], ["railkeys", RailKeysSuite],
             ["recent", RecentSuite],
             ["renderer", RendererSuite],
