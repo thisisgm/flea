@@ -29,6 +29,11 @@ Item {
         || (root.modelData.group === "device" && root.modelData.kind === "volume")
     // Small and fixed: a status dot is not part of the type or icon scale.
     readonly property int dotSize: 6
+    // An unmounted volume draws a mount arrow in the indicator slot instead of the muted dot:
+    // the dot says "here but idle", the arrow says "pick me and I mount". The slot stays, so
+    // the label never shifts between the two states. Mounted rows keep the dot.
+    readonly property bool showsMountArrow: root.modelData.group === "device" && root.modelData.kind === "volume"
+        && !root.modelData.mounted
     // The canvas's own value for a bookmark nothing has mounted yet.
     readonly property real unmountedOpacity: 0.5
 
@@ -137,11 +142,23 @@ Item {
         // Green once gio mount -l lists it, muted at half strength while it is only a bookmark waiting
         // to be mounted. A square, not a disc: the cut is hard corners, and the canvas draws it square.
         Rectangle {
+            visible: !root.showsMountArrow
             anchors.centerIn: parent
             width: root.dotSize
             height: root.dotSize
             color: root.modelData.mounted ? Theme.color.executable : Theme.color.muted
             opacity: root.modelData.mounted ? 1 : root.unmountedOpacity
+        }
+
+        // The mount affordance for an unmounted volume; the row itself activates on left click,
+        // so this is ink only, never a second tap target.
+        Glyph {
+            visible: root.showsMountArrow
+            anchors.centerIn: parent
+            width: parent.width
+            height: parent.height
+            name: "chevron-right"
+            color: Theme.color.muted
         }
     }
 

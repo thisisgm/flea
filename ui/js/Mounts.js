@@ -101,8 +101,10 @@ function railLabel(mount, marks) {
 //   {"name":"sda","label":null,"mountpoint":null,"rm":true,"size":"116.1G","type":"disk","model":"USB Flash Disk",
 //    "children":[{"name":"sda1","label":"128GB","mountpoint":"/run/media/gm/128GB","rm":true,"size":"116.1G","type":"part","model":null}]}]}
 // Two row kinds come out: one "disk" row for the box's own internal disk, then one "volume" row
-// per removable partition, mounted or not. ui/DeviceMounts.qml turns these into rail entries.
-function parseDevices(body) {
+// per removable partition, mounted or not, plus an internal partition automounted under
+// /run/media/<user> or unmounted with nothing stacked on it. ui/DeviceMounts.qml turns these
+// into rail entries.
+function parseDevices(body, home) {
     var tree
     try {
         tree = JSON.parse(String(body || ""))
@@ -115,7 +117,7 @@ function parseDevices(body) {
     var disk = internalDisk(nodes)
     if (disk)
         out.push(disk)
-    collectVolumes(nodes, "", out)
+    collectVolumes(nodes, "", false, userMedia(home), out)
     return out
 }
 
@@ -135,23 +137,49 @@ function internalDisk(nodes) {
 }
 
 // A removable row is a partition on a removable disk, or a removable disk nobody ever partitioned.
-function collectVolumes(nodes, model, out) {
+function collectVolumes(nodes, model, removable, media, out) {
     for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i]
         var kids = n.children || []
         // Only the disk carries a product name, so it is passed down to its own partitions.
         var own = n.model ? String(n.model) : model
-        if (n.name && n.rm && (n.type === "part" || (n.type === "disk" && kids.length === 0)))
-            out.push(volumeRow(n, own))
-        collectVolumes(kids, own, out)
+        // Newer lsblk reports rm per partition, so a stick's own children can read false while
+        // the disk reads true; the parent's answer covers them the way tran=null already needed.
+        var here = removable || !!n.rm
+        if (n.name && (n.type === "part" || (n.type === "disk" && kids.length === 0))) {
+            if (here)
+                out.push(volumeRow(n, own, true))
+            else if (isInternalVolume(n, kids, media))
+                out.push(volumeRow(n, own, false))
+        }
+        collectVolumes(kids, own, here, media, out)
     }
 }
 
+// An internal partition is a Devices row when the user can open it: automounted under
+// /run/media/<user> by udisks2, which is the Nautilus left-sidebar shape, or unmounted with
+// nothing stacked on top of it. A container with children (LUKS, LVM) is never opened itself,
+// and a system mount anywhere else (/boot, swap) stays off the rail.
+function isInternalVolume(n, kids, media) {
+    var path = n.mountpoint ? String(n.mountpoint) : ""
+    if (path.length > 0)
+        return media.length > 0 && path.indexOf(media) === 0
+    return kids.length === 0 && n.type === "part"
+}
+
+// The udisks2 automount prefix of this session, so one user's media never lists another's.
+// Empty when the home is unknown, and then no internal mount qualifies.
+function userMedia(home) {
+    var cut = String(home || "").lastIndexOf("/")
+    var user = cut < 0 ? String(home || "") : String(home || "").substring(cut + 1)
+    return user.length > 0 ? "/run/media/" + user + "/" : ""
+}
+
 // The label ladder is the filesystem label, then the drive's product name, then the kernel name.
-function volumeRow(n, model) {
+function volumeRow(n, model, removable) {
     var path = n.mountpoint ? String(n.mountpoint) : ""
     var label = n.label ? String(n.label) : (model.length > 0 ? model : String(n.name))
-    return { kind: "volume", label: label, device: "/dev/" + n.name, path: path, mounted: path.length > 0 }
+    return { kind: "volume", label: label, device: "/dev/" + n.name, path: path, mounted: path.length > 0, removable: !!removable }
 }
 
 // Sample input: two arrays of rail entries as ui/NetworkMounts.qml and ui/DeviceMounts.qml build
@@ -173,6 +201,7 @@ function sameEntries(a, b) {
 function sameEntry(x, y) {
     return x.path === y.path && x.label === y.label && x.group === y.group && x.kind === y.kind
         && x.uri === y.uri && x.device === y.device && x.mounted === y.mounted && x.glyph === y.glyph
+        && x.removable === y.removable
 }
 
 // Sample input: one rail entry as ui/DeviceMounts.qml and ui/NetworkMounts.qml build them,
@@ -184,7 +213,7 @@ function sameEntry(x, y) {
 function railMenu(entry) {
     if (!entry || !entry.mounted)
         return []
-    if (entry.group === "device" && entry.kind === "volume")
+    if (entry.group === "device" && entry.kind === "volume" && entry.removable !== false)
         return [{ label: "Eject", action: "eject", glyph: "eject" }]
     if (entry.group === "network" && entry.kind === "share")
         return [{ label: "Unmount", action: "unmount", glyph: "eject" }]

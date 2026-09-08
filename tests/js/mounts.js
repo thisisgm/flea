@@ -297,4 +297,49 @@ function run(check) {
     check("unmount resolves the share's position and never the device Service", released("unmount", "smb://x/isos/"), "u0")
     check("a key that no longer names a row releases nothing", released("eject", "/dev/sdz9"), "")
     check("an action that is neither release does nothing", released("forget", "/dev/sda1"), "")
+
+    // An internal HDD automounted under /run/media, the Nautilus left-sidebar shape: this box's
+    // own sda1, rm=false on both levels, mounted by udisks2 at its UUID path.
+    var internalMedia = '{"blockdevices":['
+              + '{"name":"nvme0n1","label":null,"mountpoint":null,"rm":false,"size":"238.5G","type":"disk","model":"KBG40ZNS256G",'
+              + '"children":[{"name":"nvme0n1p1","label":null,"mountpoint":"/boot","rm":false,"size":"2G","type":"part","model":null}]},'
+              + '{"name":"sda","label":null,"mountpoint":null,"rm":false,"size":"931.5G","type":"disk","model":"WDC WD10SPZX-75Z10T3",'
+              + '"children":[{"name":"sda1","label":null,"mountpoint":"/run/media/gm/3a970f8f-aa74-4889-a80f-10f611ac8623","rm":false,"size":"931.5G","type":"part","model":null}]}'
+              + ']}'
+    var hdd = Mounts.parseDevices(internalMedia, "/home/gm")
+    check("an internal automounted partition is a row", hdd.length, 2)
+    check("the automounted volume reads as mounted", hdd[1].mounted, true)
+    check("the automounted volume opens at its udisks path", hdd[1].path, "/run/media/gm/3a970f8f-aa74-4889-a80f-10f611ac8623")
+    check("an unlabelled automount falls back to the drive's product name", hdd[1].label, "WDC WD10SPZX-75Z10T3")
+    check("an internal volume is tagged not removable", hdd[1].removable, false)
+    check("a removable volume is tagged removable", Mounts.parseDevices(live, "/home/gm")[1].removable, true)
+    check("a /boot partition contributes no row", hdd.map(function (e) { return e.device }).join(","), "/dev/nvme0n1,/dev/sda1")
+    check("without a home no internal mount qualifies", Mounts.parseDevices(internalMedia).length, 1)
+
+    // Unmounted and internal: the state an HDD sits in after an unmount, with an arrow to mount it.
+    var internalIdle = '{"blockdevices":[{"name":"sda","label":null,"mountpoint":null,"rm":false,"size":"931.5G","type":"disk","model":"WDC WD10SPZX-75Z10T3",'
+              + '"children":[{"name":"sda1","label":null,"mountpoint":null,"rm":false,"size":"931.5G","type":"part","model":null}]}]}'
+    var hddIdle = Mounts.parseDevices(internalIdle, "/home/gm")
+    check("an unmounted internal partition is still a row", hddIdle.length, 2)
+    check("it reads as unmounted with no path yet", hddIdle[1].mounted + "|" + hddIdle[1].path, "false|")
+    check("it still carries the device node its mount needs", hddIdle[1].device, "/dev/sda1")
+    check("it is tagged not removable", hddIdle[1].removable, false)
+
+    // Containers and system states never become rows on their own.
+    var luksDisk = '{"blockdevices":[{"name":"nvme0n1","label":null,"mountpoint":null,"rm":false,"size":"238.5G","type":"disk","model":"KBG40ZNS256G",'
+              + '"children":[{"name":"nvme0n1p2","label":null,"mountpoint":null,"rm":false,"size":"236.5G","type":"part","model":null,'
+              + '"children":[{"name":"root","label":null,"mountpoint":"/","rm":false,"size":"236.5G","type":"crypt","model":null}]}]}]}'
+    check("a LUKS container with a stacked child is not a row", Mounts.parseDevices(luksDisk, "/home/gm").length, 1)
+
+    // Only removable media is ever offered eject; an internal volume opens and nothing else.
+    var hddMounted = { label: "WDC WD10SPZX-75Z10T3", group: "device", kind: "volume", device: "/dev/sda1", mounted: true, removable: false }
+    var hddUnmounted = { label: "WDC WD10SPZX-75Z10T3", group: "device", kind: "volume", device: "/dev/sda1", mounted: false, removable: false }
+    check("a mounted internal volume offers nothing, eject is for removable media", Mounts.railMenu(hddMounted).length, 0)
+    check("an unmounted internal volume offers nothing either", Mounts.railMenu(hddUnmounted).length, 0)
+    check("no internal volume is ever offered eject",
+          [hddMounted, hddUnmounted].some(function (e) {
+              return Mounts.railMenu(e).some(function (r) { return r.action === "eject" })
+          }), false)
+    check("a volume that changed removability does not compare equal",
+          Mounts.sameEntries([vol], [{ path: "/run/media/user/128GB", label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true, glyph: "drive", removable: false }]), false)
 }
