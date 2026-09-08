@@ -114,6 +114,22 @@ check "undo names trash as what it reversed" "1" "$(seen '"t":"undone","op":"tra
 check "the file is back with its bytes" "trash me" "$(cat "$D/doomed.txt" 2>/dev/null)"
 stop_backend
 
+echo "--- a path already gone counts as failed, and undo still restores the rest ---"
+# The listing this batch was built from can be stale: the file another program deleted is still a row
+# until the changed line's re-read lands. Counting it as trashed journaled a step with no trash entry,
+# and undo, reversing newest first, stopped on it and left the file that really went in the trash.
+start_backend
+printf 'still here' > "$D/real.txt"
+send "{\"c\":\"trash\",\"paths\":[\"$D/real.txt\",\"$D/already-gone.txt\"]}"
+await '"t":"trashed"' || fail=1
+check "the one on disk went and the one that was not is a failure" "1" "$(seen '"t":"trashed","ok":1,"failed":1')"
+check "the real file is in the trash" "no" "$([ -e "$D/real.txt" ] && echo yes || echo no)"
+send '{"c":"undo"}'
+await '"t":"undone"' || fail=1
+check "undo reverses the trash rather than stopping on the missing path" "1" "$(seen '"t":"undone","op":"trash","ok":true')"
+check "the real file is back with its bytes" "still here" "$(cat "$D/real.txt" 2>/dev/null)"
+stop_backend
+
 echo "--- copy transfer, and undo removes what it created ---"
 start_backend
 printf 'one' > "$D/c1.txt"; printf 'two' > "$D/c2.txt"; mkdir -p "$D/dest"

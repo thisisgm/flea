@@ -837,7 +837,8 @@ Example: `{"t":"trashed","ok":1,"failed":0}`
 
 Counts only. Unlike `transferitem` there is no per-path error text, because trash is one `gio` call for
 the batch and its exit status cannot attribute a failure to a single path; a path that is still on disk
-afterwards is counted in `failed`.
+afterwards is counted in `failed`, and so is one that was not on disk before, which a stale listing can
+name: nothing this call did not do is journaled, so `undo` reverses exactly the `ok` ones.
 
 ### renamed
 

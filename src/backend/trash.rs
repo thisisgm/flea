@@ -46,12 +46,19 @@ pub fn list() -> Vec<Entry> {
 // The URI is captured here rather than looked up later, because gio trash --restore refuses an original
 // path outright and two files trashed from one path both list that same path, so a later lookup is ambiguous.
 pub fn trash(paths: &[PathBuf]) -> (Vec<Entry>, usize) {
-    if paths.is_empty() {
-        return (Vec::new(), 0);
+    // A path that is not on disk before the call is nothing this call trashed, so it is counted failed and
+    // never journaled: read as "gone, so it went" it became a Trashed step with no URI, and undo stopped
+    // on that step and left the rest of the batch in the trash. A stale listing is where such a path
+    // comes from, and the changed line is what refreshes it.
+    let (present, missing): (Vec<&PathBuf>, Vec<&PathBuf>) =
+        paths.iter().partition(|p| p.symlink_metadata().is_ok());
+    let mut failed = missing.len();
+    if present.is_empty() {
+        return (Vec::new(), failed);
     }
     let before = list();
     let mut argv: Vec<String> = vec!["trash".to_string(), "--".to_string()];
-    for p in paths {
+    for p in &present {
         argv.push(p.to_string_lossy().to_string());
     }
     let refs: Vec<&str> = argv.iter().map(|s| s.as_str()).collect();
@@ -59,8 +66,7 @@ pub fn trash(paths: &[PathBuf]) -> (Vec<Entry>, usize) {
     let _ = gio(&refs);
     let after = list();
     let mut ok = Vec::new();
-    let mut failed = 0;
-    for p in paths {
+    for p in present {
         if p.symlink_metadata().is_ok() {
             failed += 1;
             continue;
@@ -103,6 +109,17 @@ fn err(msg: &str) -> FleaError {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::testdir::TestDir;
+
+    // No gio runs for this one, because there is nothing on disk to hand it, so the test needs no trash.
+    #[test]
+    fn a_path_that_was_already_gone_is_a_failure_and_not_a_step_to_undo() {
+        let d = TestDir::new("trashgone");
+        let gone = d.join("never-existed.txt");
+        let (entries, failed) = trash(&[gone.clone(), d.join("nor-this")]);
+        assert!(entries.is_empty(), "nothing this call did not do can be undone");
+        assert_eq!(failed, 2);
+    }
 
     #[test]
     fn a_list_line_splits_on_the_tab_and_keeps_a_path_containing_spaces() {
