@@ -30,8 +30,7 @@ fn cache_root(xdg: Option<OsString>, home: Option<OsString>) -> PathBuf {
 }
 
 // A fresh dir under the picker cache, joined with the URL's leaf: one dir per fetch, so two downloads
-// of the same name never collide. Wired by the fetch request (flea-4xr.4).
-#[allow(dead_code)]
+// of the same name never collide. The fetch request (backend/fetchreq.rs) downloads into it.
 pub fn fetch_dest(leaf: &str) -> io::Result<PathBuf> {
     fetch_dest_in(&picker_cache_dir(), leaf)
 }

@@ -48,6 +48,9 @@ pub mod copynode;
 pub mod ops;
 pub mod opsdispatch;
 pub mod opsreq;
+// The picker's download of a typed URL, a gio copy on a thread keyed by id like archive.
+pub mod fetchreq;
+pub mod fetchprogress;
 mod mountinfo;
 mod renamecompat;
 pub mod trash;

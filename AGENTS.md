@@ -867,6 +867,24 @@ own dir and nothing else. `flea --pick` sweeps subdirs older than seven days bef
 (`pickercache::sweep_picker_cache`), ignoring every error: a cache that cannot be read is no reason to
 refuse a chooser, and a week is past any application's read.
 
+**The download is gio's, on a thread keyed by id.** `fetch {uri}` (`backend/fetchreq.rs`) runs
+`LC_ALL=C gio copy -p <uri> <dest>` in its own process group on a thread numbered by `Ops::claim_id`
+like `archive`, so a fetch never queues behind a transfer or another fetch. gio already carries the
+box's http, ftp and gvfs legs and is a hard dependency for trash, so the crate takes no HTTP code.
+Only `http`, `https`, `ftp`, `ftps` and `file` pass, refused before any tool runs: a share needs a
+mount, and the picker mounts it through the Network rail's own flow and browses the fuse path rather
+than copying it. glib 2.88 prints progress as `Copied 1.2 MB out of 5.0 MB (...)` behind a carriage
+return, with a no-break space before each unit and `0 bytes` for a total the server did not send;
+older glib said `Transferred`. `backend/fetchprogress.rs` accepts both, splits segments on `\r` as
+well as `\n`, and reports at most every 150 ms, the transfer's own beat. A cancel sets the fetch's
+flag, a watcher thread kills the whole group within 50 ms, and the partial file and its dir go with
+it; a non-zero exit removes them too and answers gio's last stderr line. `quit` cancels every fetch
+in flight and waits for its `fetchdone` under the same 25 s drain deadline a transfer gets. Every
+fetch, a refused one included, answers exactly one `fetchstarted` and one `fetchdone`, so the client
+keys the pair on the `id` and never waits on a request that was turned down. `tests/fetch.sh` drives
+`file://` sources through the real binary; the cancel and the failing-tool paths are unit tests with
+a stub whose argv is gio's, because a copy slow enough to cancel needs one.
+
 ## Show in folder
 
 `org.freedesktop.FileManager1` is the interface a desktop's "Show in folder" goes through, and issue
