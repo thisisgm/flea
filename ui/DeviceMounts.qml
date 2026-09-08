@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import Quickshell.Io
 import "js/Mounts.js" as Mounts
 import "js/Eject.js" as Eject
@@ -98,13 +99,13 @@ Item {
     }
 
     function rebuild() {
-        var rows = Mounts.parseDevices(root._listing)
+        var rows = Mounts.parseDevices(root._listing, Quickshell.env("HOME"))
         var out = []
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i]
             var label = r.kind === "disk" ? root.hostLabel(r.label) : r.label
             out.push({ path: r.path, label: label, group: "device", kind: r.kind,
-                       device: r.device, mounted: r.mounted, glyph: "drive" })
+                       device: r.device, mounted: r.mounted, glyph: "drive", removable: r.removable })
         }
         // Same rule as ui/NetworkMounts.qml's: an unchanged poll assigns nothing, see Mounts.sameEntries.
         if (!Mounts.sameEntries(root.entries, out))
