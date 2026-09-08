@@ -858,6 +858,15 @@ travels in a JSON file inside a `mkdtemp` the backend owns and removes. `ui/pick
 with `FileView` and only kills its own process on `saved()`: the backend reads the file after the
 child exits, and a write still in flight would be a lost answer read as a fault.
 
+**A downloaded file outlives the answer.** The reply dir is gone the moment the portal answers,
+and the application reads its chosen file after that, so a file the chooser fetches for a URL lands
+in `$XDG_CACHE_HOME/flea/picker/<8 hex>/<leaf>` (`pickercache::fetch_dest`), one fresh dir per fetch so
+two downloads of one name never meet. The leaf is the URL's percent-decoded last segment, and an
+empty, `.`, `..`, slashed or NUL-bearing one is `download`, because the leaf is one name inside its
+own dir and nothing else. `flea --pick` sweeps subdirs older than seven days before its window opens
+(`pickercache::sweep_picker_cache`), ignoring every error: a cache that cannot be read is no reason to
+refuse a chooser, and a week is past any application's read.
+
 ## Show in folder
 
 `org.freedesktop.FileManager1` is the interface a desktop's "Show in folder" goes through, and issue
