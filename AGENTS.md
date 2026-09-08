@@ -449,7 +449,9 @@ paths, the lock and the write.
 the merged document and writes nothing. `flea --ui-state '<json object>'` merges that patch through
 the lock and prints the result. The window reaches it from `ui/ViewState.qml` through a `Process`;
 the terminal interface is not here yet, as `flea --tui` says by exiting 2, and when it is built it
-will submit patches for `view`, `hidden` and `sort` only, because menus and places are the window's.
+will submit patches for `view`, `hidden` and `sort` only, because menus and places are the window's;
+`view` is shared between the two, and the window's own patch for it is the startup answer described
+below.
 Scale is on neither list: `src/uischema.rs` has no `scale` key at all, it stores an Omarchy text-size
 stop under `display.textSize.mode`, and the multiplier `ui/js/Scale.js` applies is a session value.
 **The streams and the status are the contract**, because
@@ -588,6 +590,15 @@ stored `["name","size","size","date"]` left one header-menu "Hide Size" click st
 `name,size,date`, because `toggleColumn` splices the first match and the second still shows the
 column. The header menu offers only the four optional keys onto an array that already carries
 `name`, so no click this window can produce is refused by the rule.
+
+**`view` stores the listing's view mode, and it is the window's own startup answer.** The chrome's
+three buttons and the ctrl-1/2/3 chords both reach `ui/Pane.qml`'s `setView`, which moves `viewMode`
+and owes the patch through `ui/ViewState.qml`'s `setView`, so the view left on screen is the view
+the next launch opens on; `owe()` sends nothing for the value the window already holds, so a
+repeated chord is not a second write. `ui/js/Tabs.js`'s per-tab snapshot restores a tab's own view
+straight onto the property without a patch, because switching tabs is not choosing a view. A stored
+word this build cannot draw falls back to the list view beside the `columns` rule above; the settle
+has usually already renamed it, and a file this window could not read is drawn as it was read.
 
 **`wrapAtEnds` is read by the window and by nothing else.** `ui/Pane.qml` exposes it off the
 document `ui/ViewState.qml` already holds, and `ui/js/Focus.js` `step` is its only reader: with the
@@ -1026,8 +1037,9 @@ this coverage needed no new entry there.
 - `ui/Backend.qml` is the only QML component that talks to the Rust child, and carries
   `thumb` and `thumbcancel` out and `thumbed` in alongside `list`, `window` and `sort`.
 - `ui/ViewState.qml` reads `ui.json` once at startup with a blocking `FileView` and writes nothing
-  itself: every change, the header menu's columns and all three settings sections alike, goes back
-  out through `flea --ui-state` as a patch naming that change alone, see "The state file".
+  itself: every change, the header menu's columns, the view mode and all three settings sections
+  alike, goes back out through `flea --ui-state` as a patch naming that change alone, see "The state
+  file".
 - `ui/js/UiState.js` is `ViewState`'s writer bookkeeping and the two pure rebuilds every writer goes
   through: the newest patch a writer landed, what the running writer carries and what waits behind
   it, and the key and group rebuilds `ViewState` runs over both the state it draws and the patch it
@@ -1270,7 +1282,9 @@ are listed in `tools/flea-file-budget` as known exceptions so the tool still fai
 else, and each prints its own line rather than being hidden. The view fixes of 2026-09-07 took
 `ui/NetworkDialog.qml`, `ui/Ipc.qml`, `ui/Pane.qml` and `ui/PreviewColumn.qml`, all already at the
 cap, 2 to 6 lines over each (overlay sinks, the column player in its frame, per-view IPC readers,
-the columns thumbnail relay); they are listed the same way, as 0.1.6 exceptions. Every count below is
+the columns thumbnail relay); they are listed the same way, as 0.1.6 exceptions. View persistence
+then took `ui/Pane.qml` to 407 on the same exception (the one `setView` seam) and `ui/ViewState.qml`
+to 265, the latter a soft-budget warning and not a cap case. Every count below is
 `wc -l` on the file, and every test-module count runs from its `#[cfg(test)]` line to
 the end of the file; run the tool rather than trusting these if the two disagree. **Three of them
 had gone stale by a whole plan and were re-derived from `wc -l` in Plan 5 Task 5a**, so when you
@@ -1409,7 +1423,9 @@ under a deadline and reports `Ran::Succeeded`, `Ran::Failed` or `Ran::NotStarted
 knows about thumbnails, which is why the pool's `JOB_TIMEOUT` stays in `thumbs.rs` and is passed
 in.
 
-`ui/Pane.qml` is 393 lines by `wc -l`, over the soft budget and 7 lines under the hard cap. It stood at
+`ui/Pane.qml` is 407 lines by `wc -l`, over the soft budget and 7 over the hard cap, a listed
+exception: the 0.1.6 view fixes put it over first, and view persistence's one seam, `setView` and
+the stored `view` beside it, took it to 407. It stood at
 exactly 400 of 400 and could not gain a line, which is why `ui/Header.qml` came out of it
 first and alone, before any behaviour was added; it then took on the settle timer, the
 thumbnail row map, the opener wiring, the input-to-rows stamps and the first-screen settle, and
