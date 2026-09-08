@@ -49,7 +49,7 @@ Item {
     // guarantees cannot happen until the ended listing is fully done with.
     property bool _listTimedOut: false
 
-    // The internal disk row reads "<host> · <kernel name>" per the canvas, and /etc/hostname is the
+    // The internal disk row reads the hostname alone (GM, 2026-09-08; the canvas drew "<host> · <kernel name>"), and /etc/hostname is the
     // one source for that host name that costs no process.
     FileView {
         id: hostnameFile
@@ -91,9 +91,10 @@ Item {
         }
     }
 
-    function hostPrefix() {
+    // GM's ruling of 2026-09-08: the machine's row is its hostname alone; the kernel name stays the fallback for a box with no hostname, and r.device still names the disk for the actions.
+    function hostLabel(fallback) {
         var host = String(hostnameFile.text() || "").trim()
-        return host.length > 0 ? host + " · " : ""
+        return host.length > 0 ? host : fallback
     }
 
     function rebuild() {
@@ -101,7 +102,7 @@ Item {
         var out = []
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i]
-            var label = r.kind === "disk" ? root.hostPrefix() + r.label : r.label
+            var label = r.kind === "disk" ? root.hostLabel(r.label) : r.label
             out.push({ path: r.path, label: label, group: "device", kind: r.kind,
                        device: r.device, mounted: r.mounted, glyph: "drive" })
         }

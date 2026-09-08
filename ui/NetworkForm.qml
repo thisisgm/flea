@@ -32,6 +32,26 @@ Column {
     readonly property bool complete: Protocols.complete({ host: root.host, port: root.port })
 
     spacing: Style.space(12)
+    // Every row's natural height whether or not the protocol shows it: the form keeps this height
+    // through every chip, so the chips above and the buttons below never move under the pointer,
+    // and a shorter protocol leaves its air under Mounts as rather than a hole between fields.
+    // The three protocol-bound rows count once, as the tallest of them: they never show together.
+    readonly property real tallest: {
+        var swapped = [domainField, nfsNote, tlsRow]
+        var sum = 0
+        var shown = 0
+        for (var i = 0; i < root.children.length; i++) {
+            if (swapped.indexOf(root.children[i]) >= 0)
+                continue
+            sum += root.children[i].implicitHeight
+            shown++
+        }
+        var tallestSwapped = 0
+        for (var j = 0; j < swapped.length; j++)
+            tallestSwapped = Math.max(tallestSwapped, swapped[j].implicitHeight)
+        return sum + tallestSwapped + root.spacing * shown
+    }
+    height: root.tallest
 
     function pick(name) {
         root.protocol = name
@@ -252,8 +272,10 @@ Column {
     }
 
     Text {
+        id: nfsNote
         visible: root.protocol === "NFS"
         width: parent.width
+        height: visible ? implicitHeight : 0
         text: "No credentials: NFS trusts the client host"
         color: Theme.color.muted
         font.family: Theme.font.family
@@ -265,7 +287,8 @@ Column {
         id: tlsRow
         width: parent.width
         visible: root.spec.tls
-        height: visible ? Theme.rowHeight - Theme.spacing.rowPaddingY : 0
+        implicitHeight: Theme.rowHeight - Theme.spacing.rowPaddingY
+        height: visible ? implicitHeight : 0
 
         readonly property bool focused: tlsRow.activeFocus
         signal tabbed(var from, bool back)
@@ -309,6 +332,7 @@ Column {
 
         TapHandler {
             acceptedButtons: Qt.LeftButton
+            gesturePolicy: TapHandler.ReleaseWithinBounds
             onTapped: root.tls = !root.tls
         }
     }

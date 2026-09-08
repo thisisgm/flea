@@ -64,6 +64,13 @@ ShellRoot {
             var rect = fleaWindow.itemRect(item)
             return Math.round(rect.x + rect.width / 2) + " " + Math.round(rect.y + rect.height / 2)
         }
+        // "x y width height" in window pixels, for a test that asserts a card stays inside the window.
+        function rectOf(item) {
+            if (!item)
+                return ""
+            var rect = fleaWindow.itemRect(item)
+            return Math.round(rect.x) + " " + Math.round(rect.y) + " " + Math.round(rect.width) + " " + Math.round(rect.height)
+        }
         // centreOf's sibling, "x width centre": the edges round because a click needs a whole pixel, the centre keeps three decimals because the misalignment it reads is half of one.
         function boxOf(item) {
             if (!item)
@@ -132,6 +139,36 @@ ShellRoot {
                 pane: pane
             }
 
+            // The mark over the list area alone (the middle column in the columns view), declared before
+            // the pane so it paints under the pane's context menu and over this Rectangle's ground: a
+            // negative z put it under that ground and hid it. listArea is pane-relative, so pane.y is added.
+            Flea.EmptyState {
+                id: emptyState
+                // listSlot, not listArea: a lazy view's item sits at its Loader's local origin, and only the slot carries the sidebar and filter offsets.
+                x: pane.listSlot.x + (pane.viewMode === "columns" && pane.columnsArea ? pane.columnsArea.columnWidth : 0)
+                y: pane.y + pane.listSlot.y
+                width: pane.viewMode === "columns" && pane.columnsArea ? pane.columnsArea.columnWidth : pane.listSlot.width
+                height: pane.listSlot.height
+                visible: pane.listingState === "empty"
+                // The design's no-match answer: the search mark over the query it could not find.
+                caption: pane.searchMode === "results" ? "Nothing matches " + pane.searchQuery : ""
+                mark: "search"
+                // A search that found nothing keeps its own way out, because that sentence is the
+                // state's answer and not an advertisement. The empty directory's next move is a
+                // shortcut, so it draws only with the Menus section's hints row on.
+                hint: pane.searchMode === "results" ? "Press Escape to clear."
+                    : ViewState.keyHints ? "Press Ctrl+Shift+N for a new folder." : ""
+            }
+
+            // The loading crawl, same listArea placement; its own hold-off keeps fast listings clean.
+            Flea.LoadingState {
+                x: pane.listSlot.x
+                y: pane.y + pane.listSlot.y
+                width: pane.listSlot.width
+                height: pane.listSlot.height
+                visible: pane.listingState === "loading"
+            }
+
             Flea.Pane {
                 id: pane
                 anchors.left: parent.left
@@ -176,34 +213,68 @@ ShellRoot {
 
             Flea.Preview { id: preview; pane: pane }
 
-            Flea.ConvertDialog {
+            // Every overlay below is built by its first open and kept, see AGENTS.md rule 6: a launch
+            // that never opens one pays neither its compile nor its objects. Each Loader carries the
+            // one or two members its callers read, and ui/Ipc.qml reads the built item or null.
+            // Each Loader carries its item's z, because a z set inside the item orders it only within
+            // the Loader, and the share browser below would otherwise paint over an open card.
+            Loader {
                 id: convertDialog
+                z: 2
                 anchors.fill: parent
-                onAccepted: function (format, strip) { Ops.convert(pane, format, strip) }
+                active: false
+                source: "ConvertDialog.qml"
+                readonly property bool opened: item !== null && item.opened
+                function open(name, holder) { active = true; item.open(name, holder) }
+            }
+            Connections {
+                target: convertDialog.item
+                function onAccepted(format, strip) { Ops.convert(pane, format, strip) }
             }
 
             // The keymap sheet ? opens, over the whole window as the convert popup is.
-            Flea.KeymapSheet {
+            Loader {
                 id: keymapSheet
+                z: 2
                 anchors.fill: parent
+                active: false
+                source: "KeymapSheet.qml"
+                readonly property bool opened: item !== null && item.opened
+                function open(holder) { active = true; item.open(holder) }
             }
 
             // The settings panel, reached by the comma key from either view, by the toolbar's sliders
             // button, and by the third door the Settings board draws: the background menu's own
             // Settings row, which ui/js/Menu.js backgroundEntries builds and ui/Pane.qml act routes.
-            Flea.SettingsPanel {
+            Loader {
                 id: settingsPanel
+                z: 3
                 anchors.fill: parent
+                active: false
+                source: "SettingsPanel.qml"
+                readonly property bool opened: item !== null && item.opened
+                function open(holder) { active = true; item.open(holder) }
             }
 
-            Flea.NetworkDialog {
+            Loader {
                 id: networkDialog
-                // FocusScope remembers its own last-focused child, list or rail, and restores it.
-                onClosed: pane.forceActiveFocus()
-                onSaved: pane.sidebar.reloadBookmarks()
-                onMountRequested: function (uri, label, password) {
-                    pane.sidebar.saveNetwork(uri, label, password)
+                z: 2
+                anchors.fill: parent
+                active: false
+                source: "NetworkDialog.qml"
+                readonly property bool opened: item !== null && item.opened
+                function open() { active = true; item.open() }
+                function openLocation(uri, label, password, reason, failedConnect) {
+                    active = true
+                    item.openLocation(uri, label, password, reason, failedConnect)
                 }
+            }
+            Connections {
+                target: networkDialog.item
+                // FocusScope remembers its own last-focused child, list or rail, and restores it.
+                function onClosed() { pane.forceActiveFocus() }
+                function onSaved() { pane.sidebar.reloadBookmarks() }
+                function onMountRequested(uri, label, password) { pane.sidebar.saveNetwork(uri, label, password) }
             }
 
             Connections {
@@ -215,45 +286,26 @@ ShellRoot {
                 }
             }
 
-            // The Omarchy mark's one placement: over the list area alone, so the rail stays live.
-            // In the columns view that area is all three columns, so the mark takes the middle one:
-            // an empty current directory is that column's answer, not the parent column's.
-            // listArea is measured inside pane, which starts below the chrome bar, so pane's own y is added; pane.x is zero.
-            Flea.EmptyState {
-                id: emptyState
-                x: pane.listArea.x + (pane.viewMode === "columns" ? pane.columnsArea.columnWidth : 0)
-                y: pane.y + pane.listArea.y
-                width: pane.viewMode === "columns" ? pane.columnsArea.columnWidth : pane.listArea.width
-                height: pane.listArea.height
-                visible: pane.listingState === "empty"
-                // The design's no-match answer: the search mark over the query it could not find.
-                caption: pane.searchMode === "results" ? "Nothing matches " + pane.searchQuery : ""
-                mark: "search"
-                // A search that found nothing keeps its own way out, because that sentence is the
-                // state's answer and not an advertisement. The empty directory's next move is a
-                // shortcut, so it draws only with the Menus section's hints row on.
-                hint: pane.searchMode === "results" ? "Press Escape to clear."
-                    : ViewState.keyHints ? "Press Ctrl+Shift+N for a new folder." : ""
-            }
-
-            // The loading crawl, same listArea placement; its own hold-off keeps fast listings clean.
-            Flea.LoadingState {
-                x: pane.listArea.x
-                y: pane.y + pane.listArea.y
-                width: pane.listArea.width
-                height: pane.listArea.height
-                visible: pane.listingState === "loading"
-            }
-
             // A bare Network entry's own shares, same listArea placement as EmptyState above.
-            Flea.ShareBrowser {
+            // An Item fronts this Loader because its callers read active, which is a Loader's own load switch.
+            Item {
                 id: shareBrowser
-                x: pane.listArea.x
-                y: pane.y + pane.listArea.y
-                width: pane.listArea.width
-                height: pane.listArea.height
-                onClosed: pane.forceActiveFocus()
-                onActivated: function (uri, label) { pane.sidebar.mountShare(uri, label) }
+                x: pane.listSlot.x
+                y: pane.y + pane.listSlot.y
+                width: pane.listSlot.width
+                height: pane.listSlot.height
+                readonly property bool active: shareLoader.item !== null && shareLoader.item.active
+                function open(uri, label, names) { shareLoader.active = true; shareLoader.item.open(uri, label, names) }
+                function close() { if (shareLoader.item) shareLoader.item.close() }
+                // ui/js/Focus.js shareBrowserAct's two other verbs, reached only while the overlay is up.
+                function moveCursor(delta) { if (shareLoader.item) shareLoader.item.moveCursor(delta) }
+                function activateCursor() { if (shareLoader.item) shareLoader.item.activateCursor() }
+                Loader { id: shareLoader; anchors.fill: parent; active: false; source: "ShareBrowser.qml" }
+            }
+            Connections {
+                target: shareLoader.item
+                function onClosed() { pane.forceActiveFocus() }
+                function onActivated(uri, label) { pane.sidebar.mountShare(uri, label) }
             }
 
             // Issue 20: the mouse's own back button, taken by the window because no row is being
@@ -289,10 +341,11 @@ ShellRoot {
         backend: backend
         chrome: chrome
         tabBar: tabBar
-        convertDialog: convertDialog
-        keymapSheet: keymapSheet
-        settingsPanel: settingsPanel
-        networkDialog: networkDialog
-        shareBrowser: shareBrowser
+        convertDialog: convertDialog.item
+        keymapSheet: keymapSheet.item
+        settingsPanel: settingsPanel.item
+        networkDialog: networkDialog.item
+        shareBrowser: shareLoader.item
+        emptyState: emptyState
     }
 }

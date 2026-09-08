@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import "." as Flea
 import "js/Keymap.js" as Keymap
 
 // The keymap sheet ? opens, drawn as the Keys panel on Operations.dc.html draws it. Every row comes
@@ -12,6 +13,9 @@ Item {
 
     // The canvas draws this panel at 300 design pixels wide, the same as the convert popup.
     readonly property int sheetWidth: 300
+    readonly property int clampMargin: 8
+    // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
+    readonly property var cardItem: card
     // Two columns, which is what the canvas draws and what keeps the whole map on one panel.
     readonly property int columns: 2
     // A cap is sized from the type scale, never from the text inside it, so every cap is one height.
@@ -53,7 +57,10 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            hoverEnabled: true
             onClicked: root.close()
+            onWheel: function (wheel) { wheel.accepted = true }
         }
     }
 
@@ -61,18 +68,21 @@ Item {
         id: card
         anchors.centerIn: parent
         width: Theme.space(root.sheetWidth)
-        height: body.implicitHeight + 2 * Theme.spacing.rowPaddingX
+        // Clamped to the window; the body scrolls whatever the clamp cut, see ui/CardScroll.qml.
+        height: Math.min(body.wanted + 2 * Theme.spacing.rowPaddingX, root.height - 2 * root.clampMargin)
         color: Theme.color.surface
         border.width: Theme.spacing.hairline
         border.color: Theme.color.muted
         // Mirrors hyprland decoration:rounding, same as ui/ConvertDialog.qml; 0 on a stock box stays square.
         radius: Style.cornerRadius
 
-        Column {
+        Flea.CardScroll {
             id: body
-            x: Theme.spacing.rowPaddingX
-            y: Theme.spacing.rowPaddingX
-            width: parent.width - 2 * Theme.spacing.rowPaddingX
+            anchors.fill: parent
+            anchors.margins: Theme.spacing.rowPaddingX
+
+        Column {
+            width: parent.width
             spacing: Theme.spacing.gap
 
             Text {
@@ -147,6 +157,7 @@ Item {
                 textFormat: Text.PlainText
                 wrapMode: Text.WordWrap
             }
+        }
         }
     }
 

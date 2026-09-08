@@ -149,6 +149,11 @@ Item {
         contentHeight: height * root.zoom
         boundsBehavior: Flickable.StopAtBounds
 
+        Flea.FastScrollHandler {
+            parent: pageFlick
+            flickable: pageFlick
+        }
+
         Rectangle {
             width: pageFlick.contentWidth
             height: pageFlick.contentHeight

@@ -9,6 +9,8 @@ Item {
     id: root
 
     property bool opened: false
+    // The card's title, for ui/Ipc.qml: a driven click on it proves the card swallows what its controls do not.
+    readonly property alias titleItem: title
     property string name: ""
     property Item focusHolder: null
 
@@ -27,6 +29,9 @@ Item {
     })
     // The canvas draws this popup at 300 design pixels wide.
     readonly property int dialogWidth: 300
+    readonly property int clampMargin: 8
+    // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
+    readonly property var cardItem: card
 
     anchors.fill: parent
     visible: root.opened
@@ -72,7 +77,10 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            hoverEnabled: true
             onClicked: root.close()
+            onWheel: function (wheel) { wheel.accepted = true }
         }
     }
 
@@ -80,19 +88,34 @@ Item {
         id: card
         anchors.centerIn: parent
         width: Theme.space(root.dialogWidth)
-        height: body.implicitHeight + 2 * Theme.spacing.rowPaddingX
+        // Clamped to the window; the body scrolls whatever the clamp cut, see ui/CardScroll.qml.
+        height: Math.min(body.wanted + 2 * Theme.spacing.rowPaddingX, root.height - 2 * root.clampMargin)
         color: Theme.color.surface
         border.width: Theme.spacing.hairline
         border.color: Theme.color.muted
         radius: Style.cornerRadius
 
-        Column {
+        // The strip toggle's handler takes a passive grab, so without this sink its press fell
+        // through the card to the ground below, which closed the dialog on release.
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: {}
+            onWheel: function (wheel) { wheel.accepted = true }
+        }
+
+        Flea.CardScroll {
             id: body
+            anchors.fill: parent
+            anchors.topMargin: Theme.spacing.rowPaddingX
+            anchors.bottomMargin: Theme.spacing.rowPaddingX
+
+        Column {
             width: parent.width
-            y: Theme.spacing.rowPaddingX
             spacing: 0
 
             Text {
+                id: title
                 x: Theme.spacing.rowPaddingX
                 width: parent.width - 2 * Theme.spacing.rowPaddingX
                 bottomPadding: Theme.spacing.gap
@@ -174,6 +197,7 @@ Item {
 
                 TapHandler {
                     acceptedButtons: Qt.LeftButton
+                    gesturePolicy: TapHandler.ReleaseWithinBounds
                     onTapped: root.strip = !root.strip
                 }
             }
@@ -206,6 +230,7 @@ Item {
                     onActivated: root.commit()
                 }
             }
+        }
         }
     }
 

@@ -13,6 +13,7 @@ var STOPS = [9, 10, 11, 12, 14, 16, 20]
 // Omarchy's own type ladder, from Commons/Style.qml, whose bodySmall is fontPx(0.917) and caption
 // fontPx(0.833) over the base size. Running the same two ratios at a stop is what makes an override
 // the size Omarchy itself would have drawn, rather than a second ladder that can disagree with it.
+var BODY_RATIO = 1.0
 var BODY_SMALL_RATIO = 0.917
 var CAPTION_RATIO = 0.833
 
@@ -67,6 +68,10 @@ function stepped(stored, omarchyBase, direction) {
 function parse(stored) {
     var px = stored ? Number(stored.mode) : NaN
     return px > 0 ? { mode: nearest(px) } : follow()
+}
+
+function body(base) {
+    return Math.max(1, Math.round(base * BODY_RATIO))
 }
 
 function bodySmall(base) {

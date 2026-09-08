@@ -55,6 +55,7 @@ Item {
     TapHandler {
         id: tap
         acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: if (root.available) root.activated()
     }
 }

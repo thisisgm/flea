@@ -24,6 +24,9 @@ Item {
         return Math.round(Math.max(minW, Math.min(maxW, avail / n)))
     }
 
+    // How long a drag rests on a tab before the tab is selected: long enough to cross it on the way elsewhere.
+    readonly property int hoverSwitchMs: 400
+
     visible: root.open
     implicitHeight: Theme.chromeHeight
     height: visible ? implicitHeight : 0
@@ -74,6 +77,28 @@ Item {
                 Accessible.onPressAction: if (pane) Tabs.selectAt(pane, tab.index)
 
                 HoverHandler { cursorShape: Qt.PointingHandCursor }
+
+                // GM's ruling: a drag resting on a tab selects it so the drop can land in that tab's
+                // listing, and a drop on the tab itself lands there too, by path, see ui/DropInto.qml.
+                Flea.DropInto {
+                    anchors.fill: parent
+                    pane: root.pane
+                    switchesOnHover: true
+                    dest: Tabs.pathAt(root.tabs, root.currentIndex, tab.index, root.path)
+                    // Unknown while the listed reply is still out, because dirDev is then the directory a hover switch just left; unknown makes verbFor copy, never a move that turns into a cross-device delete.
+                    destDev: Tabs.devAt(root.tabs, root.currentIndex, tab.index,
+                                        root.pane && root.pane.backend && !root.pane.listInFlight ? root.pane.backend.dirDev : 0)
+                    // Only an accepted enter arms the switch: Qt emits entered before it reads accepted,
+                    // and a refused drag gets no exited, so the timer would otherwise never stop.
+                    onEntered: function (drag) { if (drag.accepted) hoverSwitch.restart() }
+                    onExited: hoverSwitch.stop()
+                    onDropped: hoverSwitch.stop()
+                }
+                Timer {
+                    id: hoverSwitch
+                    interval: root.hoverSwitchMs
+                    onTriggered: if (root.pane && !tab.current) Tabs.selectAt(root.pane, tab.index)
+                }
 
                 Rectangle {
                     anchors.fill: parent

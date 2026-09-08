@@ -78,26 +78,6 @@ function pathsFromUrls(urls) {
     return paths
 }
 
-// A drop from another application. It sends the same transfer request the internal drop above sends,
-// naming paths instead of rows because the sources are not in this listing, the alternative
-// docs/protocol.md "transfer" documents for that case. So there is no second copy path here, and an
-// external drop inherits the progress card, the status line and undo like any other transfer.
-function dropExternal(pane, urls, index) {
-    var row = pane.rowFor(index)
-    if (!canDrop([], index, row)) {
-        return false
-    }
-    var paths = pathsFromUrls(urls)
-    if (paths.length === 0) {
-        return false
-    }
-    // Always a copy, including from another Flea window, which for v0.1.0 is a foreign source like
-    // any other. A move here would need exactly one side to remove the source, and the drag's own
-    // action cannot decide it: Qt answered Qt::IgnoreAction while the receiver had demonstrably taken
-    // the file, so a source deleting on that answer destroys a file it never delivered.
-    pane.backend.send({ c: "transfer", op: "copy", paths: paths, dest: pane.join(pane.path, row.n) })
-    return true
-}
 
 // The type Flea's own drag carries alongside the uri-list. The compositor hands a window's own
 // platform drag back to that window's own DropAreas, so without a marker an internal move would be
@@ -116,8 +96,36 @@ var INSTANCE = String(Date.now()) + "-" + String(Math.floor(Math.random() * 1000
 // and a drop carrying one but not the other is a state nobody would have written a branch for.
 // The modifier rides here because Drag.supportedActions is the only field another application ever
 // sees, and offering it Qt.MoveAction is what made Chromium report dropEffect move.
-function markerPayload(rows, copy) {
-    return INSTANCE + "\n" + rows.join(",") + "\n" + (copy ? "copy" : "move")
+function markerPayload(rows, copy, source, dev) {
+    return INSTANCE + "\n" + rows.join(",") + "\n" + (copy ? "copy" : "move") + "\n" + String(source || "") + "\n" + String(dev || 0)
+}
+
+// The directory the rows were lifted from, and its filesystem, both baked at the lift: a drop that
+// lands after the listing changed under the drag, which hovering a tab now does, cannot use the row
+// indices any more and resolves by path against these instead.
+function markerSource(payload) {
+    return String(payload).split("\n")[3] || ""
+}
+
+function markerDev(payload) {
+    return Number(String(payload).split("\n")[4]) || 0
+}
+
+// Whether the listing under the drop is still the one the rows were lifted from, which is the only
+// case the by-index transfer is safe in.
+function sameListing(payload, path) {
+    return isOwnDrag(payload) && markerSource(payload) === path
+}
+
+// Whether a drag carries at least one local path, which is what decides a drop resolves by path.
+function hasPaths(urls) {
+    return pathsFromUrls(urls).length > 0
+}
+
+// The by-index drop's gate: only a selection too wide to carry paths takes it, only onto its own
+// listing, and never onto a folder it carries itself.
+function canDropByIndex(marker, path, rows, index) {
+    return sameListing(marker, path) && rows.indexOf(index) < 0
 }
 
 // Whether the marked drag was lifted with ctrl down. Anything carrying no marker answers false,
@@ -154,19 +162,59 @@ function uriFor(path) {
 // Whether the key is present is also what tells the bar the drag cannot leave Flea.
 function mimeFor(pane, rows, copy) {
     var mime = {}
-    mime[ROWS_MIME] = markerPayload(rows, copy)
+    mime[ROWS_MIME] = markerPayload(rows, copy, pane.path, pane.backend ? pane.backend.dirDev : 0)
     var uris = []
+    var paths = []
     for (var i = 0; i < rows.length; i++) {
         var row = pane.rowFor(rows[i])
         if (!row) {
             return mime
         }
-        uris.push(uriFor(pane.join(pane.path, row.n)))
+        paths.push(pane.join(pane.path, row.n))
+        uris.push(uriFor(paths[paths.length - 1]))
     }
     if (uris.length > 0) {
         mime["text/uri-list"] = uris.join("\r\n") + "\r\n"
+        // GM's ruling: a terminal or a text field that takes plain text gets the absolute paths, one a line.
+        mime["text/plain"] = paths.join("\n")
     }
     return mime
+}
+
+// Whether a drop may land in a directory named by path: the listing's own floor, another tab's
+// directory, or a folder row reached after the listing changed under the drag. A drop into the
+// directory the rows came from is nothing to do and is refused; a drag with no uri-list, which is a
+// selection too wide to leave the window, carries no paths to send and is refused too.
+function canDropInto(marker, urls, dest) {
+    if (isOwnDrag(marker) && markerSource(marker) === dest) {
+        return false
+    }
+    var paths = pathsFromUrls(urls)
+    for (var i = 0; i < paths.length; i++) {
+        // A folder into itself or its own subtree: copy_dir would read its own fresh copy until the
+        // disk is full, so the drop is refused here and again in src/backend/opsreq.rs.
+        if (dest === paths[i] || dest.indexOf(paths[i] + "/") === 0) {
+            return false
+        }
+        // An item into the folder it already lives in, which a foreign drag can ask for: a copy onto itself.
+        var slash = paths[i].lastIndexOf("/")
+        if ((slash === 0 ? "/" : paths[i].substring(0, slash)) === dest) {
+            return false
+        }
+    }
+    return paths.length > 0
+}
+
+// The transfer for a drop that resolves by path. verbFor decides move against copy the same way a
+// row drop does, from the marker's own device against the destination's; a drop from anywhere but
+// this window copies, so no source deletes a file on the strength of a drop it did not deliver.
+function dropInto(pane, marker, urls, dest, destDev) {
+    if (!canDropInto(marker, urls, dest)) {
+        return false
+    }
+    var verb = verbFor(isOwnDrag(marker), markerCopying(marker), markerDev(marker), destDev)
+    pane.backend.send({ c: "transfer", op: verb, paths: pathsFromUrls(urls), dest: dest })
+    return true
 }
 
 // THE one place the verb is decided, so the label the operator reads and the request that is sent

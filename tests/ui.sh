@@ -66,8 +66,11 @@ stale_fixture="$FIXTURE_ROOT/flea-ui-stale-$$"
 thumb_rows=200
 # A settle is 120 ms and a round trip through the pool is tens of ms, so a screen has a second.
 thumb_fill_s=20
-# ydotool delivers 200 detents in 0.15 s, so a fling has to be this long to outlast one IPC sample.
+# 1500 detents are 432,000 px at this box's 288 px notch: past the end of the two 200-row cases (thumbs, renamelife) many times over, and about 11,700 of nosweep's 100,000 rows.
 fling_clicks=1500
+# 15 shots 0.2 s apart span one 2800 ms replay of ui/FleaMark.qml's draw, whose mark is lit from about 0.4 s to 2.8 s of it.
+mark_poll_shots=15
+mark_poll_s=0.2
 # The backend's own DRAIN_LIMIT is 25 s, so anything alive past this is wedged rather than draining.
 drain_wait_s=30
 # Hard rule 9 covers writes, not only deletes: an overridable path that is truncated or written into
@@ -542,9 +545,11 @@ fact_labels() {
 
 # Walks the cursor to a row by name, from the top, so no case depends on an index the sort could move.
 seek_row_named() {
-    local want="$1" i
+    local want="$1" i n
+    n=$(ipc total)
+    [[ "$n" =~ ^[0-9]+$ ]] && (( n > 40 )) || n=40
     key g >/dev/null
-    for i in $(seq 1 40); do
+    for i in $(seq 1 "$n"); do
         [[ "$(ipc rowAt "$(ipc cursor)")" == "$want|"* ]] && return 0
         key j >/dev/null
     done
@@ -772,10 +777,11 @@ goto_row() {
 }
 
 # Counts the pixels in one crop that satisfy a channel expression, see AGENTS.md "Testing".
+# The count is printed as a plain integer: magick writes a million pixels as 1.25604e+06, which bash arithmetic refuses.
 count_pixels() {
     local png="$1" geometry="$2" expression="$3"
     magick "$png" -crop "$geometry" +repage -fx "$expression ? 1.0 : 0.0" \
-        -format "%[fx:int(mean*w*h+0.5)]" info:
+        -format "%[fx:int(mean*w*h+0.5)]" info: | awk '{printf "%d\n", $1}'
 }
 
 # Finds a row by name rather than by a predicted sort order, which has been wrong here before.
@@ -856,11 +862,47 @@ wait_thumb_ready() {
     fail "row 0 never drew a ready thumbnail: icon=$icon status=$status"
 }
 
+# Fails closed: the old image goes first, so a capture that fails cannot leave a stale one to score.
 shot() {
-    local name="$1"
+    local name="$1" png="$evidence_dir/$1.png"
     mkdir -p "$evidence_dir"
-    omarchy-drive shot "$evidence_dir/$name.png" flea >/dev/null
-    printf 'SHOT %s\n' "$evidence_dir/$name.png"
+    rm -f "$png"
+    omarchy-drive shot "$png" flea >/dev/null || fail "shot: omarchy-drive shot failed for $name"
+    [[ -s "$png" ]] || fail "shot: $png is missing or empty after a capture that reported success"
+    printf 'SHOT %s\n' "$png"
+}
+
+# Catches the wheel handler losing its wiring, its sign or its rate: one notch over the list moves
+# ListView.contentY by exactly the platform's lines times Theme.scroll.notchPx times the multiplier,
+# 3 x 24 x 4 on this box, and a notch at the top moves nothing and stays inside the bounds.
+case_scroll() {
+    [[ -d "$bench_dir" ]] || fail "the 100,000-file fixture is missing at $bench_dir"
+    launch "$bench_dir"
+    wait_listing 100000
+    settle
+    local wx wy ww wh cx cy before after
+    [[ "$(ipc wheelLines)" == "3" ]] || fail "scroll: the platform reports $(ipc wheelLines) lines a notch, this case assumes 3"
+    read -r wx wy ww wh < <(window_box)
+    read -r cx cy <<< "$(ipc rowCentre 5)"
+    # omarchy-drive scroll takes no point: warp there, then one uinput pixel so Qt sees a pointer frame.
+    hyprctl dispatch "hl.dsp.cursor.move({x = $((wx + cx - 1)), y = $((wy + cy))})" >/dev/null
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 1 -y 0 >/dev/null 2>&1
+    settle
+    before=$(ipc listContentY)
+    [[ "$before" == "0" ]] || fail "scroll: the list did not start at the top, contentY $before"
+    omarchy-drive scroll up 1 >/dev/null
+    settle
+    [[ "$(ipc listContentY)" == "0" ]] || fail "scroll: a notch up at the top moved contentY to $(ipc listContentY)"
+    omarchy-drive scroll down 1 >/dev/null
+    settle
+    after=$(ipc listContentY)
+    [[ "$after" == "288" ]] || fail "scroll: one notch down moved contentY to $after, not 288 (3 lines x 24 px x 4)"
+    omarchy-drive scroll down 2 >/dev/null
+    settle
+    after=$(ipc listContentY)
+    [[ "$after" == "864" ]] || fail "scroll: two more notches moved contentY to $after, not 864"
+    printf 'SCROLL one notch 288, three notches 864, top held at 0\n'
+    shot scroll-three-notches
 }
 
 # Catches removing the cursor clamp from ListView.onContentYChanged in ui/Pane.qml.
@@ -1573,6 +1615,40 @@ case_menu() {
     key k >/dev/null
     settle
     [[ "$(ipc cursor)" == "0" ]] || fail "the list did not take the keyboard back after the menu closed"
+    # The pointer rule, both halves: a menu opened under a resting pointer keeps its first row (0d626ed,
+    # or Enter fires the pointer's row), and a pointer that then moves lights the row it moved onto.
+    # An action row by name: a separator sits at index 2 and disables hover on purpose, so an index alone proves nothing.
+    local rest_x rest_y rest_row
+    key m >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "menu: the m key did not open the menu at the cursor"
+    rest_row=$(menu_row_index "Rename")
+    [[ -n "$rest_row" && "$rest_row" -ge 0 ]] || fail "menu: no Rename row in $(ipc contextMenuEntries)"
+    read -r rest_x rest_y <<< "$(ipc contextMenuRowCentre "$rest_row")"
+    [[ -n "$rest_y" ]] || fail "menu: the menu has no row $rest_row to rest the pointer on"
+    key -k Escape >/dev/null
+    settle
+    read -r wx wy ww wh < <(window_box)
+    # A warp alone reaches Qt as no motion at all, so the one uinput pixel is what makes the pointer rest there.
+    omarchy-drive move "$((wx + rest_x))" "$((wy + rest_y))" >/dev/null
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 1 -y 0 >/dev/null 2>&1
+    settle
+    # m through uinput (evdev 50): the key helper refocuses the window first, and Hyprland warps the cursor on focus without telling Qt.
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool key 50:1 50:0 >/dev/null 2>&1
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "menu: the m key did not reopen the menu under the resting pointer"
+    # The target is proven before the move is judged: the reopened menu's Rename row is where it was, and the pointer is over it.
+    [[ "$(ipc contextMenuRowCentre "$rest_row")" == "$rest_x $rest_y" ]] || fail "menu: the reopened menu put Rename at $(ipc contextMenuRowCentre "$rest_row"), not $rest_x $rest_y"
+    [[ "$(ipc contextMenuRowProbe "$rest_row")" == "true "* ]] || fail "menu: the pointer is not over Rename after the reopen, probe '$(ipc contextMenuRowProbe "$rest_row")'"
+    [[ "$(ipc contextMenuCursor)" == "0" ]] || fail "menu: a menu opened under a resting pointer moved its cursor to row $(ipc contextMenuCursor)"
+    printf 'MENU probe before the move: %s\n' "$(ipc contextMenuRowProbe "$rest_row")"
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 3 -y 0 >/dev/null 2>&1
+    settle
+    printf 'MENU probe after the move: %s\n' "$(ipc contextMenuRowProbe "$rest_row")"
+    [[ "$(ipc contextMenuCursor)" == "$rest_row" ]] || fail "menu: the pointer moved inside row $rest_row (Rename) and the cursor stayed on row $(ipc contextMenuCursor)"
+    printf 'MENU pointer rest=0 moved=%s\n' "$rest_row"
+    key -k Escape >/dev/null
+    settle
     centre=$(ipc rowCentre 0)
     read -r cx cy <<< "$centre"
     read -r wx wy ww wh < <(window_box)
@@ -1724,6 +1800,22 @@ case_background() {
     done
     [[ "$(ipc path)" == "$dir/dest" ]] || fail "background: the case is in $(ipc path), not $dir/dest"
     [[ "$(ipc total)" == "0" ]] || fail "background: $dir/dest listed $(ipc total) rows, not 0"
+    # The mark has to paint, not only be flagged (a z below the view's paint once hid it), and its draw starts blank, so the shot is polled across one replay.
+    local mark lit=0 shots=0 captured=1 png="$evidence_dir/background-empty.png"
+    mark=$(ipc emptyMarkRect)
+    set -- $mark
+    # A stale image at this path from an earlier run would score as a live one, so each shot is a fresh file or a failure.
+    rm -f "$png"
+    for _attempt in $(seq 1 "$mark_poll_shots"); do
+        shots=$_attempt
+        omarchy-drive shot "$png" flea >/dev/null || { captured=0; break; }
+        lit=$(count_pixels "$png" "${3}x${4}+${1}+${2}" "((r+g+b)/3) > 0.25")
+        (( lit > 0 )) && break
+        sleep "$mark_poll_s"
+    done
+    printf 'SHOT %s\nBACKGROUND mark rect=%s lit=%s shots=%s captured=%s\n' "$png" "$mark" "$lit" "$shots" "$captured"
+    (( captured )) || fail "background: omarchy-drive shot failed on shot $shots of $png"
+    (( ! captured || lit > 0 )) || fail "background: the empty mark painted no pixel inside ${3}x${4}+${1}+${2} across $shots shots"
     # The empty listing is also the strongest case for this menu, and it has no row to aim from.
     click_background
     settle
@@ -2352,6 +2444,14 @@ case_operations() {
     [[ "$(ipc convertFormat)" == "jpg" ]] || fail "operations: the popup opened on $(ipc convertFormat)"
     [[ "$(ipc convertStrip)" == "false" ]] \
         || fail "operations: remove-metadata started ticked, which is not least surprise"
+    # Same fall-through as the settings panel: a click on the card's title must not close the popup.
+    local cwx cwy ctx cty
+    read -r cwx cwy _ _ < <(window_box)
+    read -r ctx cty <<< "$(ipc convertTitleCentre)"
+    [[ -n "$cty" ]] || fail "operations: the convert popup has no title to click"
+    omarchy-drive click "$((cwx + ctx))" "$((cwy + cty))" left >/dev/null
+    settle
+    [[ "$(ipc convertOpen)" == "true" ]] || fail "operations: a click on the popup's own title closed it"
     shot operations-convert
     key -k Return >/dev/null
     for _ in $(seq 1 40); do [[ -s "$dir/shot (converted).jpg" ]] && break; sleep 0.25; done
@@ -2563,22 +2663,20 @@ case_thumbs() {
     # The pitch comes off itemRect and not off a Theme token, so a thumbnail that grew its row reddens here.
     [[ "$pitch" == "$row_height" ]] || fail "a thumbnail made the rendered pitch $pitch, not the $row_height the theme asks for"
 
-    # Nothing is requested while the list is moving: the cursor tracks the viewport, so it is the witness.
-    local wx wy ww wh before_requests moved_without_request cursor_a cursor_b scroller
+    # The fling has to move the viewport, or the request bounds below would pass on a list that never scrolled.
+    local wx wy ww wh before_requests moved cursor_a cursor_b
     read -r wx wy ww wh < <(window_box)
     omarchy-drive move "$((wx + ww / 2))" "$((wy + wh / 2))" >/dev/null
     before_requests=$(ipc thumbRequests)
-    moved_without_request=0
-    # Every detent lands before the scroll call returns, so the fling is sampled while it is still being sent.
-    omarchy-drive scroll down "$fling_clicks" >/dev/null &
-    scroller=$!
+    # Read before the fling starts: the list saturates within its first notches, 21 of 1500 here, so a sample taken during it already reads the end.
     cursor_a=$(ipc cursor)
-    wait "$scroller"
+    omarchy-drive scroll down "$fling_clicks" >/dev/null
     sleep 0.5
     cursor_b=$(ipc cursor)
-    [[ "$cursor_b" != "$cursor_a" ]] && moved_without_request=1
-    printf 'THUMBS fling before=%s during_samples=%s after=%s\n' \
-        "$before_requests" "$moved_without_request" "$(ipc thumbRequests)"
+    moved=0
+    [[ "$cursor_b" != "$cursor_a" ]] && moved=1
+    printf 'THUMBS fling before=%s cursor=%s..%s moved=%s after=%s\n' \
+        "$before_requests" "$cursor_a" "$cursor_b" "$moved" "$(ipc thumbRequests)"
     sleep 1
 
     # Every number is read while the window lives and asserted after it dies, so the cache count can go first.
@@ -2603,17 +2701,8 @@ case_thumbs() {
     # And a lower bound, because a settle timer no scroll ever restarts would also issue none at all.
     (( requests - before_requests >= 1 )) \
         || fail "the fling stopped on rows nothing had asked for and settled without asking"
-    # Measured before and after the fling rather than sampled inside it. The sampled form asked to
-    # catch the cursor moving with no request in flight, and could not do so reliably: it read a
-    # settled value and reported zero samples on a fling that had plainly moved 9 rows, which made
-    # the witness unprovable rather than false, and that is worse. Not because the fling is short.
-    # It is 1500 ydotool spawns, and 1500 spawns of /usr/bin/true alone take about 0.8 s here, against
-    # an ipc round trip of a few hundred ms (190 to 565 ms measured, see clip_seconds below), so the
-    # fling outlasts a round trip several times over, as fling_clicks says. Why the sampling window
-    # admitted so few reads is an open question. What the witness still does is the job it was for:
-    # a fling that moves nothing fails here instead of passing quietly, and the "nothing is requested
-    # while moving" property is carried by the request-count bounds above.
-    (( moved_without_request >= 1 )) \
+    # A fling that moves nothing fails here instead of passing quietly; "nothing is requested while moving" is carried by the request-count bounds above.
+    (( moved >= 1 )) \
         || fail "the fling did not move the viewport at all, so the bounds above prove nothing"
     [[ "$(ls -A "$cache_large" | grep -c '^\.flea-')" == "0" ]] || fail "a temp file was left in the shared cache"
 }
@@ -2714,6 +2803,42 @@ case_stale() {
         || fail "the backend never regenerated the thumbnail, so the screen below has nothing new to show"
     (( blue_after > 0 )) || fail "the regenerated thumbnail drew no blue pixel, so the row is showing the old frame"
     (( red_after == 0 )) || fail "the row still draws $red_after red pixels of the thumbnail it replaced"
+
+    # The columns view draws the slot with its own Image, so the same regeneration runs once more under it, back to red.
+    local col_crop red_cols blue_cols
+    switch_view columns
+    for _attempt in $(seq 1 50); do
+        [[ "$(ipc rowThumbReady 0)" == "true" ]] && break
+        sleep 0.1
+    done
+    [[ "$(ipc rowThumbReady 0)" == "true" ]] || fail "columns: the row never decoded its thumbnail"
+    read -r cx cy cw ch <<< "$(ipc rowThumbRect 0)"
+    col_crop="${cw}x${ch}+${cx}+${cy}"
+    shot stale-columns-before
+    blue_cols=$(count_pixels "$evidence_dir/stale-columns-before.png" "$col_crop" "$icon_blue")
+    (( blue_cols > 0 )) || fail "columns: the row draws no blue pixel of the current thumbnail in $col_crop"
+    cp "$src/before.jpg" "$pics/one.jpg"
+    touch -d "@$(( $(date +%s) - 2 * stale_mtime_back_s ))" "$pics/one.jpg"
+    key h >/dev/null
+    wait_path "$stale_fixture/tree"
+    wait_listing 1
+    click_row 0 left --double
+    wait_path "$pics"
+    wait_listing 1
+    for _attempt in $(seq 1 50); do
+        [[ "$(ipc rowThumbReady 0)" == "true" && "$(ipc thumbFile 0)" == "$first_file" ]] && break
+        sleep 0.1
+    done
+    read -r cx cy cw ch <<< "$(ipc rowThumbRect 0)"
+    col_crop="${cw}x${ch}+${cx}+${cy}"
+    shot stale-columns-after
+    red_cols=$(count_pixels "$evidence_dir/stale-columns-after.png" "$col_crop" "$icon_red")
+    blue_cols=$(count_pixels "$evidence_dir/stale-columns-after.png" "$col_crop" "$icon_blue")
+    printf 'STALE columns file=%q red=%s blue=%s\n' "$(ipc thumbFile 0)" "$red_cols" "$blue_cols"
+    [[ "$(ipc thumbFile 0)" == "$first_file" ]] || fail "columns: the regenerated thumbnail landed at a new path, $(ipc thumbFile 0)"
+    (( red_cols > 0 )) || fail "columns: the regenerated thumbnail drew no red pixel, so the row is showing the old frame"
+    (( blue_cols == 0 )) || fail "columns: the row still draws $blue_cols blue pixels of the thumbnail it replaced"
+    switch_view list
     kill_flea
     sandbox_make "$stale_fixture"
 }
@@ -4468,6 +4593,31 @@ EOS
     [[ "$(ipc networkEntries)" == "StubNAS|network|share|false" ]] \
         || fail "sharebrowser: the stub NAS bookmark did not appear, got $(ipc networkEntries)"
 
+    # The overlay's box in the lazy views first: placed on a lazy view's item it sat at the Loader's origin, and that is where the old coordinates put it.
+    local mode
+    for mode in grid columns; do
+        switch_view "$mode"
+        key -k Tab >/dev/null
+        settle
+        key g >/dev/null
+        key j >/dev/null
+        settle
+        key l >/dev/null
+        for _attempt in $(seq 1 100); do
+            [[ "$(ipc shareBrowserOpen)" == "true" ]] && break
+            sleep 0.05
+        done
+        [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: $mode: l on the bare root never opened the overlay"
+        rect_is "$(ipc shareBrowserRect)" $(ipc listAreaRect) 1 \
+            || fail "sharebrowser: $mode: the overlay's box is $(ipc shareBrowserRect), not the listing slot $(ipc listAreaRect)"
+        key -k Escape >/dev/null
+        settle
+        [[ "$(ipc shareBrowserOpen)" == "false" ]] || fail "sharebrowser: $mode: Escape did not close the overlay"
+        key -k Escape >/dev/null
+        settle
+    done
+    switch_view list
+
     # Tab to the rail and l the bare-root entry: it lists shares, it does not open anything.
     key -k Tab >/dev/null
     settle
@@ -4482,6 +4632,8 @@ EOS
         sleep 0.05
     done
     [[ "$(ipc shareBrowserOpen)" == "true" ]] || fail "sharebrowser: l on the bare root never opened the overlay"
+    rect_is "$(ipc shareBrowserRect)" $(ipc listAreaRect) 1 \
+        || fail "sharebrowser: list: the overlay's box is $(ipc shareBrowserRect), not the listing slot $(ipc listAreaRect)"
     [[ "$(ipc shareBrowserEntries)" == "$(printf 'share1\nshare2\nshare3')" ]] \
         || fail "sharebrowser: the overlay's own shares over IPC are wrong: $(ipc shareBrowserEntries)"
     [[ "$(ipc path)" == "$dir" ]] || fail "sharebrowser: listing the shares navigated away from $dir"
@@ -4755,6 +4907,9 @@ EOS
     export HOME="$fixture_home"
     launch "$dir"
     export HOME="$real_home"
+    # GM's ruling of 2026-09-08: the machine's rail row is the bare hostname, no device suffix, so it fits at the body size.
+    [[ "|$(ipc railLabels)|" == *"|$(cat /etc/hostname | tr -d '[:space:]')|"* && "$(ipc railLabels)" != *" · "* ]] \
+        || fail "unmount: the rail's machine row is not the bare hostname: $(ipc railLabels)"
     export PATH="$saved_path"
     # bin/ and unmount.log are the gio stub's own fixture entries, alongside the two files under test.
     wait_listing 4
@@ -5503,6 +5658,11 @@ case_settings() {
     settle
     local pinned_base
     pinned_base=$(token_of baseSize)
+    # Running text draws at the stop itself (GM, 2026-09-07); the row name is the rendered proof, bodySmall stays the geometry token.
+    # rowNamePx reads the list's delegate, so the list has to be the view showing and row 0 a named row.
+    [[ "$(ipc viewMode)" == "list" && "$(ipc rowAt 0)" == *"|"* ]] || fail "settings: the typography proof needs the list view on a named row, got $(ipc viewMode) and '$(ipc rowAt 0)'"
+    [[ "$(ipc bodyPx)" == "$pinned_base" && "$(ipc rowNamePx 0)" == "$pinned_base" ]] \
+        || fail "settings: at the ${pinned_base}px stop the body draws $(ipc bodyPx) and row 0's name $(ipc rowNamePx 0)"
 
     # Restart survival, which is what separates a setting from a session's mood. Every value is
     # asserted in the file the panel wrote, again through the backend that owns it, and again in the
@@ -5557,6 +5717,9 @@ case_settings() {
     # Back to following, so nothing after this case runs at a size it did not ask for.
     key -M ctrl -M shift -k 0 -m shift -m ctrl >/dev/null
     settle
+    # Following, running text is Omarchy's own regular body, which is its base size, and the row name draws it.
+    [[ "$(ipc bodyPx)" == "$(token_of baseSize)" && "$(ipc rowNamePx 0)" == "$(ipc bodyPx)" ]] \
+        || fail "settings: following Omarchy the body draws $(ipc bodyPx) against base $(token_of baseSize), row 0's name $(ipc rowNamePx 0)"
 
     settings_read_refused "$stored" "$dir"
 
@@ -5691,6 +5854,14 @@ settings_doors() {
     omarchy-drive click "$((wx + bx))" "$((wy + by))" left >/dev/null
     settle
     [[ "$(ipc settingsOpen)" == "true" ]] || fail "settings: the sliders button did not open the panel"
+    # The Twitter report: a click on the card fell through to the dimmed ground and closed the panel,
+    # and the next click landed on the listing. The title has no control on it, so it is the plainest spot.
+    local tx ty
+    read -r tx ty <<< "$(ipc settingsTitleCentre)"
+    [[ -n "$ty" ]] || fail "settings: the panel has no title to click"
+    omarchy-drive click "$((wx + tx))" "$((wy + ty))" left >/dev/null
+    settle
+    [[ "$(ipc settingsOpen)" == "true" ]] || fail "settings: a click on the card's own title closed the panel"
     key -k Escape >/dev/null
     settle
 
@@ -5715,9 +5886,15 @@ settings_doors() {
 # until Flea is told otherwise, that an override takes one of seven stops and not a free number, and
 # that the monitor scale is read-only. Every stop is walked and its whole token row is read back off
 # the live seam against the board's own layout table, because the table is the contract.
+# The title's centre with the Display section up: GM's ruling is that the card keeps one place and
+# one height whichever section is up, so the two other sections are read against this.
+settings_title_on_display=""
+
 settings_display() {
     key , >/dev/null
     settle
+    settings_title_on_display=$(ipc settingsTitleCentre)
+    [[ -n "$settings_title_on_display" ]] || fail "settings: the panel has no title to measure"
     local omarchy_base
     omarchy_base=$(token_of baseSize)
     [[ "$(ipc settingsRows)" == *"choice|Text size|Follow Omarchy"* ]] \
@@ -5857,7 +6034,7 @@ assert_monitor_scale_row() {
     live=$(hyprctl monitors -j | jq -r 'map(select(.focused)) | .[0].scale // empty')
     [[ -n "$live" ]] || fail "settings: hyprctl reports no focused monitor, so the row has no contract"
     shown=$(awk -v s="$live" 'BEGIN { printf "%g", s + 0 }')
-    [[ "$(ipc settingsRows)" == *"fact|Scale|${shown}x"* ]] \
+    [[ "$(ipc settingsRows)" == *"fact|Scale|Read-only ${shown}x"* ]] \
         || fail "settings: the Scale row does not show the compositor's ${shown}x, got $(ipc settingsRows)"
 }
 
@@ -5867,6 +6044,8 @@ settings_menus() {
     key , >/dev/null
     settle
     settings_section menus
+    [[ "$(ipc settingsTitleCentre)" == "$settings_title_on_display" ]] \
+        || fail "settings: the card moved when Menus came up, title at $(ipc settingsTitleCentre) against $settings_title_on_display"
     [[ "$(ipc settingsRows)" == *"master|All basic file actions|6 of 6"* ]] \
         || fail "settings: the master row does not start at six of six, got $(ipc settingsRows)"
     shot settings-menus
@@ -5975,6 +6154,8 @@ settings_keys() {
     key , >/dev/null
     settle
     settings_section keys
+    [[ "$(ipc settingsTitleCentre)" == "$settings_title_on_display" ]] \
+        || fail "settings: the card moved when Keys came up, title at $(ipc settingsTitleCentre) against $settings_title_on_display"
     # The shipped preset is "default", which ui/js/Settings.js labels Default and PRESET_KEYS gives
     # ctrl-1 to ctrl-3; a window that starts anywhere else is not the one this checks the toggle on.
     [[ "$(ipc settingsRows)" == *"choice|Keybinding preset|Default"* ]] \
@@ -6020,8 +6201,737 @@ settings_keys() {
 cache_snapshot
 trap cleanup EXIT
 
+# rows_run_under "<x y w h>" <label>: rows other than the parked row 0 lie under the whole card, so a press that runs on moves the cursor.
+rows_run_under() {
+    local card="$1" label="$2" cx cy cw ch visible last first second
+    [[ "$card" =~ ^[0-9]+\ [0-9]+\ [0-9]+\ [0-9]+$ ]] || fail "clickthrough: no card rect for $label, ipc answered [$card]"
+    read -r cx cy cw ch <<< "$card"
+    visible=$(ipc visibleRows)
+    [[ "$visible" =~ ^[1-9][0-9]*$ ]] || fail "clickthrough: no visible row count for $label, ipc answered [$visible]"
+    last=$(ipc rowCentre $(( visible - 1 )))
+    first=$(ipc rowCentre 0)
+    second=$(ipc rowCentre 1)
+    [[ "$last" =~ ^[0-9]+\ [0-9]+$ && "$first" =~ ^[0-9]+\ [0-9]+$ && "$second" =~ ^[0-9]+\ [0-9]+$ ]] \
+        || fail "clickthrough: no row centres for $label (row $(( visible - 1 )) [$last], row 0 [$first], row 1 [$second])"
+    [[ "${last#* }" -gt $(( cy + ch )) ]] || fail "clickthrough: the list does not run under $label (last visible row centre y ${last#* }, card bottom $(( cy + ch )))"
+    # The seam between rows 0 and 1 is the bottom of the parked row, and it must clear the card's top edge.
+    [[ $(( (${first#* } + ${second#* }) / 2 )) -lt "$cy" ]] \
+        || fail "clickthrough: the parked row 0 reaches under $label (rows 0 and 1 centres y ${first#* } ${second#* }, card top $cy)"
+}
+
+# The cursor parks on row 0 above the card, so a press that runs on from an overlay control to any row beneath moves it.
+case_clickthrough() {
+    local dir="$fixture_root/clickthrough"
+    sandbox_scratch "$dir"
+    local i
+    for i in $(seq -w 1 40); do : > "$dir/f$i.txt"; done
+    launch "$dir"
+    wait_listing 40
+    local parked; parked=$(ipc cursor)
+    [[ "$parked" == "0" ]] || fail "clickthrough: the cursor did not start on row 0, it is on $parked"
+
+    key -k Tab >/dev/null
+    settle
+    key a >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "true" ]] || fail "clickthrough: the rail's a key did not open the network dialog"
+    local p
+    for p in SFTP FTPS WebDAV NFS SMB; do
+        rows_run_under "$(ipc networkCardRect)" "the network card"
+        click_chip "$p"
+        settle
+        [[ "$(ipc networkProtocol)" == "$p" ]] || fail "clickthrough: the $p chip did not take its click, protocol is $(ipc networkProtocol)"
+        [[ "$(ipc cursor)" == "$parked" && "$(ipc path)" == "$dir" ]] \
+            || fail "clickthrough: the $p chip click reached the pane beneath, cursor $(ipc cursor), path $(ipc path)"
+    done
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "false" ]] || fail "clickthrough: Escape did not close the network dialog"
+    key -k Escape >/dev/null
+    settle
+
+    key , >/dev/null
+    settle
+    [[ "$(ipc settingsOpen)" == "true" ]] || fail "clickthrough: the comma key did not open settings"
+    local section centre cx cy wx wy
+    for section in keys menus display; do
+        rows_run_under "$(ipc settingsCardRect)" "the settings card"
+        centre=$(ipc settingsRailRowCentre "$section")
+        [[ -n "$centre" ]] || fail "clickthrough: the settings rail has no $section row"
+        read -r cx cy <<< "$centre"
+        read -r wx wy _ww _wh < <(window_box)
+        omarchy-drive click "$((cx + wx))" "$((cy + wy))" >/dev/null
+        settle
+        [[ "$(ipc settingsSection)" == "$section" ]] || fail "clickthrough: the $section rail row did not take its click, section is $(ipc settingsSection)"
+        [[ "$(ipc cursor)" == "$parked" && "$(ipc path)" == "$dir" ]] \
+            || fail "clickthrough: the $section rail row click reached the pane beneath, cursor $(ipc cursor), path $(ipc path)"
+    done
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc settingsOpen)" == "false" ]] || fail "clickthrough: Escape did not close settings"
+    printf 'CLICKTHROUGH chips=ok rail=ok cursor=%s\n' "$parked"
+    kill_flea
+}
+
+# The wheel over an open overlay stays with the overlay: the listing beneath a menu, a card or a
+# sheet never scrolls. Each ground swallows the wheel the way it swallows a click (ui/ContextMenu.qml
+# and the four card files), so the list's contentY is the witness.
+case_wheelunder() {
+    local dir="$fixture_root/wheelunder"
+    sandbox_scratch "$dir"
+    local i
+    for i in $(seq -w 1 80); do : > "$dir/f$i.txt"; done
+    launch "$dir"
+    wait_listing 80
+    local wx wy ww wh cx cy
+    read -r wx wy ww wh < <(window_box)
+    read -r cx cy <<< "$(ipc rowCentre 5)"
+    omarchy-drive move "$((wx + cx))" "$((wy + cy))" >/dev/null
+    # The control: with nothing open the same wheel moves the list, so a still list below is not a lost wheel.
+    omarchy-drive scroll down 3 >/dev/null
+    settle
+    [[ "$(ipc listContentY)" != "0" ]] || fail "wheelunder: three notches with nothing open left contentY at 0, so the wheel is not reaching the list"
+    key -k Home >/dev/null
+    settle
+    [[ "$(ipc listContentY)" == "0" ]] || fail "wheelunder: Home did not bring contentY back to 0, it is $(ipc listContentY)"
+
+    wheel_holds() {
+        local what="$1" reader="$2"
+        omarchy-drive scroll down 3 >/dev/null
+        settle
+        [[ "$(ipc listContentY)" == "0" ]] || fail "wheelunder: three notches under $what scrolled the listing to contentY $(ipc listContentY)"
+        [[ "$(ipc "$reader")" == "true" ]] || fail "wheelunder: the wheel closed $what"
+    }
+    # 80 rows leave no ground, so the menu is opened on row 5 itself: the same overlay, and the wheel under it is the question.
+    read -r cx cy <<< "$(ipc rowCentre 5)"
+    omarchy-drive click "$((wx + cx))" "$((wy + cy))" right >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "wheelunder: the right click on row 5 opened no menu"
+    wheel_holds "the context menu" contextMenuVisible
+    key -k Escape >/dev/null
+    settle
+    key , >/dev/null
+    settle
+    [[ "$(ipc settingsOpen)" == "true" ]] || fail "wheelunder: the comma key did not open settings"
+    wheel_holds "the settings card" settingsOpen
+    key -k Escape >/dev/null
+    settle
+    key '?' >/dev/null
+    settle
+    [[ "$(ipc keymapSheetOpen)" == "true" ]] || fail "wheelunder: the ? key did not open the keymap sheet"
+    wheel_holds "the keymap sheet" keymapSheetOpen
+    key -k Escape >/dev/null
+    settle
+    key -k Tab >/dev/null
+    settle
+    key a >/dev/null
+    settle
+    [[ "$(ipc dialogOpen)" == "true" ]] || fail "wheelunder: the rail's a key did not open the network dialog"
+    wheel_holds "the network dialog" dialogOpen
+    key -k Escape >/dev/null
+    settle
+    key -k Escape >/dev/null
+    settle
+    printf 'WHEELUNDER menu=ok settings=ok keymap=ok network=ok\n'
+    kill_flea
+}
+
+# A pointer warp sends no motion to Qt (hyprland cursor.move carries no wl_pointer frame), so hover needs the one uinput pixel the scroll case uses.
+hover_row() {
+    local cx cy wx wy
+    read -r cx cy <<< "$(ipc rowCentre "$1")"
+    [[ -n "$cy" ]] || fail "hover_row: row $1 has no centre"
+    read -r wx wy _ww _wh < <(window_box)
+    omarchy-drive move "$((wx + cx))" "$((wy + cy))" >/dev/null
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 1 -y 0 >/dev/null 2>&1
+}
+
+# ctrl-1 list, ctrl-2 columns, ctrl-3 grid, per keys.toml; the reader proves the switch landed.
+switch_view() {
+    local want="$1" chord
+    case "$want" in list) chord=1 ;; columns) chord=2 ;; grid) chord=3 ;; esac
+    key -M ctrl -k "$chord" -m ctrl >/dev/null
+    settle
+    [[ "$(ipc viewMode)" == "$want" ]] || fail "switch_view: ctrl-$chord left the view on $(ipc viewMode), not $want"
+}
+
+# rect_is "x y w h" ex ey ew eh tol: every edge of the box within tol pixels of the expected one.
+rect_is() {
+    local x y w h d
+    read -r x y w h <<< "$1"
+    [[ -n "$h" ]] || return 1
+    for d in $((x - $2)) $((y - $3)) $((w - $4)) $((h - $5)); do
+        (( ${d#-} <= $6 )) || return 1
+    done
+}
+
+# A click at row i's height just right of the settings card: on the ground, and inside the row in every view (the middle column runs 200 px past the card).
+click_row_edge() {
+    local rx ry rw rh cx cy cw ch wx wy
+    read -r rx ry rw rh <<< "$(ipc rowRect "$1")"
+    [[ -n "$rh" ]] || fail "click_row_edge: row $1 has no box"
+    read -r cx cy cw ch <<< "$(ipc settingsCardRect)"
+    [[ -n "$ch" ]] || fail "click_row_edge: no settings card to click beside"
+    read -r wx wy _ww _wh < <(window_box)
+    omarchy-drive click "$((wx + cx + cw + 20))" "$((wy + ry + rh / 2))" "$2" >/dev/null
+}
+
+# Lit pixels inside a window-relative "x y w h", the count every painted-mark check reads.
+lit_in_rect() {
+    local png="$1"
+    shift
+    [[ -n "${4:-}" ]] || { echo 0; return; }
+    count_pixels "$png" "${3}x${4}+${1}+${2}" "((r+g+b)/3) > 0.25"
+}
+
+# The media fixture's rows and a shared fresh layout for the two per-view cases below.
+views_fixture() {
+    local dir="$1" media="$FIXTURE_ROOT/flea-media-btrfs" i
+    [[ -d "$media" ]] || fail "the media fixture is missing at $media"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/empty" "$dir/sub"
+    : > "$dir/sub/s1.txt"; : > "$dir/sub/s2.txt"; : > "$dir/sub/s3.txt"
+    cp "$media/clip_1006.mp4" "$dir/a-clip.mp4"
+    cp "$media/clip_1007.mp4" "$dir/b-clip.mp4"
+    cp "$(ls "$media"/*.png | head -1)" "$dir/c-pic.png"
+    cp "$(ls "$media"/*.jpg | head -1)" "$dir/d-pic.jpg"
+    # 400, because the grid holds about 200 tiles a screen and the wheel control needs a second one.
+    for i in $(seq -w 1 400); do : > "$dir/t$i.txt"; done
+}
+
+# GM's manual test of 0.1.6 found every one of these in a view the suite never drove: rows lifting
+# and scrolling under an open menu or card, a click outside the menu selecting the row beneath, and
+# a right click on a card running on to the row under it. Every check runs in all three views.
+case_overlays() {
+    local dir="$fixture_root/overlays" mode n cx cy wx wy
+    views_fixture "$dir"
+    launch "$dir"
+    wait_listing 406
+    for mode in grid list columns; do
+        switch_view "$mode"
+        key -k Home >/dev/null
+        settle
+        n=$(( $(ipc visibleRows) - 3 ))
+        [[ "$mode" == "columns" ]] && n=8
+        [[ -n "$(ipc rowRect "$n")" ]] || fail "$mode: row $n has no box, the reader answers nothing here"
+        hover_row "$n"
+        settle
+        [[ "$(ipc rowHovered "$n")" == "true" ]] || fail "$mode: hover over row $n with nothing open did not lift it, so the checks below prove nothing"
+        omarchy-drive scroll down 3 >/dev/null
+        settle
+        [[ "$(ipc viewContentY)" != "0" ]] || fail "$mode: three notches with nothing open left the view at 0, so the wheel checks below prove nothing"
+        key -k Home >/dev/null
+        settle
+        [[ "$(ipc viewContentY)" == "0" ]] || fail "$mode: Home did not bring the view back to 0, it is $(ipc viewContentY)"
+        click_row 2 right
+        settle
+        [[ "$(ipc contextMenuVisible)" == "true" && "$(ipc cursor)" == "2" ]] || fail "$mode: a right click on row 2 opened no menu (visible $(ipc contextMenuVisible), cursor $(ipc cursor))"
+        hover_row "$n"
+        settle
+        [[ "$(ipc rowHovered "$n")" == "false" ]] || fail "$mode: row $n lifted under the open menu"
+        omarchy-drive scroll down 3 >/dev/null
+        settle
+        [[ "$(ipc viewContentY)" == "0" && "$(ipc contextMenuVisible)" == "true" ]] || fail "$mode: the wheel under the menu moved the view to $(ipc viewContentY) (menu $(ipc contextMenuVisible))"
+        click_row "$n" left
+        settle
+        [[ "$(ipc contextMenuVisible)" == "false" && "$(ipc cursor)" == "2" ]] || fail "$mode: the click outside the menu left it $(ipc contextMenuVisible) and moved the cursor to $(ipc cursor)"
+        key -k Home >/dev/null
+        settle
+        key , >/dev/null
+        settle
+        [[ "$(ipc settingsOpen)" == "true" ]] || fail "$mode: the comma key did not open settings"
+        hover_row "$n"
+        settle
+        [[ "$(ipc rowHovered "$n")" == "false" ]] || fail "$mode: row $n lifted under the settings card"
+        omarchy-drive scroll down 3 >/dev/null
+        settle
+        [[ "$(ipc viewContentY)" == "0" && "$(ipc settingsOpen)" == "true" ]] || fail "$mode: the wheel under settings moved the view to $(ipc viewContentY)"
+        read -r cx cy _cw _ch <<< "$(ipc settingsCardRect)"
+        read -r wx wy _ww _wh < <(window_box)
+        omarchy-drive click "$((wx + cx + 40))" "$((wy + cy + 40))" right >/dev/null
+        settle
+        [[ "$(ipc settingsOpen)" == "true" && "$(ipc contextMenuVisible)" == "false" && "$(ipc cursor)" == "0" ]] \
+            || fail "$mode: a right click on the card body: settings $(ipc settingsOpen), menu $(ipc contextMenuVisible), cursor $(ipc cursor)"
+        click_row_edge "$n" right
+        settle
+        [[ "$(ipc settingsOpen)" == "false" && "$(ipc contextMenuVisible)" == "false" && "$(ipc cursor)" == "0" ]] \
+            || fail "$mode: a right click on the ground: settings $(ipc settingsOpen), menu $(ipc contextMenuVisible), cursor $(ipc cursor)"
+        key , >/dev/null
+        settle
+        click_row_edge "$n" left
+        settle
+        [[ "$(ipc settingsOpen)" == "false" && "$(ipc cursor)" == "0" ]] || fail "$mode: a left click on the ground left settings $(ipc settingsOpen) and the cursor on $(ipc cursor)"
+        printf 'OVERLAYS %s menu=ok settings=ok\n' "$mode"
+    done
+    kill_flea
+}
+
+# The same manual test: thumbnails, the empty hero, the peeked column's menu and video playback, per
+# view. Each view enters its own uncached copy of the fixture through the UI, so it acquires its own
+# thumbnails rather than reading ones another view warmed.
+case_views() {
+    # Four fixtures directly inside the sandbox root, which is what its guard allows; the fourth is the
+    # grid again after the columns view, so a column kept alive under the grid is proven to plan nothing.
+    local root="$fixture_root" pass mode dir r lit fx fy fw fh sx sy sw sh cx cy wx wy p1 p2 p3 p4 changed before i
+    for pass in grid list columns again; do views_fixture "$root/views-$pass"; done
+    # 44 fillers sort ahead of the fixtures, as the battery's own case directories do, so the seek has to walk past its old 40-row cap.
+    for i in $(seq -w 1 44); do mkdir -p "$root/a-filler-$i"; done
+    launch "$root"
+    wait_listing "$(ls "$root" | wc -l)"
+    for pass in grid list columns again; do
+        dir="$root/views-$pass"
+        mode=$pass
+        [[ "$pass" == "again" ]] && mode=grid
+        # Sought in the list, where j walks one row; the grid's j walks a tile row. The target view is on before Return.
+        switch_view list
+        seek_row_named "views-$pass"
+        switch_view "$mode"
+        key -k Return >/dev/null
+        wait_listing 406
+        [[ "$(ipc path)" == "$dir" ]] || fail "$mode: Return on the $mode row opened $(ipc path)"
+        key -k Home >/dev/null
+        settle
+        sleep 2
+        shot "views-$mode-thumbs"
+        # Directories sort first, so the fixture's four media files are rows 2 to 5 in this order.
+        local names=(a-clip.mp4 b-clip.mp4 c-pic.png d-pic.jpg)
+        for r in 2 3 4 5; do
+            [[ "$(ipc rowAt "$r")" == "${names[r - 2]}|"* ]] || fail "$mode: row $r is $(ipc rowAt "$r" | cut -d'|' -f1), not ${names[r - 2]}"
+            [[ "$(ipc rowThumbReady "$r")" == "true" ]] || fail "$mode: row $r ($(ipc rowAt "$r" | cut -d'|' -f1)) has no decoded thumbnail"
+            lit=$(lit_in_rect "$evidence_dir/views-$mode-thumbs.png" $(ipc rowThumbRect "$r"))
+            (( lit > 30 )) || fail "$mode: row $r's thumbnail box painted $lit lit pixels"
+        done
+        if [[ "$mode" == "columns" ]]; then
+            # The child column's hero: polled across one draw, the way case_background polls the pane's own.
+            lit=0
+            for _attempt in $(seq 1 "$mark_poll_shots"); do
+                shot views-child-hero
+                lit=$(lit_in_rect "$evidence_dir/views-child-hero.png" $(ipc columnChildMarkRect))
+                (( lit > 0 )) && break
+                sleep "$mark_poll_s"
+            done
+            (( lit > 0 )) || fail "columns: the child column's hero painted nothing (state $(ipc columnChildEmpty))"
+            key j >/dev/null
+            settle
+            read -r fx fy <<< "$(ipc columnChildRowCentre 1)"
+            [[ -n "$fy" ]] || fail "columns: the child column shows no row 1 for sub"
+            read -r wx wy _ww _wh < <(window_box)
+            omarchy-drive click "$((wx + fx))" "$((wy + fy))" right >/dev/null
+            sleep 1
+            [[ "$(ipc path)" == "$dir/sub" && "$(ipc rowAt "$(ipc cursor)")" == s2.txt\|* && "$(ipc contextMenuVisible)" == "true" ]] \
+                || fail "columns: a right click on a peeked row: path $(ipc path), cursor row $(ipc rowAt "$(ipc cursor)" | cut -d'|' -f1), menu $(ipc contextMenuVisible)"
+            key -k Escape >/dev/null
+            settle
+            key -k Backspace >/dev/null
+            sleep 1
+            [[ "$(ipc path)" == "$dir" ]] || fail "columns: Backspace did not return to the fixture, path $(ipc path)"
+            seek_row_named "c-pic.png"
+            # Ready, not shown: thumbShown is true while the picture still loads. Polled the way the thumbnail rows are.
+            for _attempt in $(seq 1 30); do
+                [[ "$(ipc columnFrameReady)" == "true" ]] && break
+                sleep 0.1
+            done
+            [[ "$(ipc previewColumnState)" == "image" && "$(ipc columnFrameReady)" == "true" ]] || fail "columns: the cursor on c-pic.png shows $(ipc previewColumnState), frame ready $(ipc columnFrameReady), thumb shown $(ipc columnThumbShown)"
+            shot views-columns-frame
+            # Inset past the border and the hairline, so the frame's own outline cannot light the count.
+            read -r fx fy fw fh <<< "$(ipc columnFrameRect)"
+            lit=$(lit_in_rect "$evidence_dir/views-columns-frame.png" "$((fx + 6))" "$((fy + 6))" "$((fw - 12))" "$((fh - 12))")
+            (( lit > 200 )) || fail "columns: the preview frame's interior painted $lit lit pixels for c-pic.png"
+            seek_row_named "a-clip.mp4"
+            sleep 1
+            [[ "$(ipc previewColumnState)" == "video" ]] || fail "columns: the cursor on a-clip.mp4 shows $(ipc previewColumnState)"
+            read -r fx fy fw fh <<< "$(ipc columnFrameRect)"
+            (( fw > 0 && fh > 0 )) || fail "columns: the frame has no box"
+            read -r cx cy <<< "$(ipc columnPlayCentre)"
+            omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+            sleep 1.2
+            p1=$(ipc columnMediaPosition)
+            shot views-video-1
+            sleep 1.5
+            p2=$(ipc columnMediaPosition)
+            shot views-video-2
+            [[ "$(ipc columnMediaPlaying)" == "true" && "$(ipc columnPlayerLoaded)" == "true" ]] || fail "columns: play left playing $(ipc columnMediaPlaying), player $(ipc columnPlayerLoaded)"
+            (( p2 > p1 )) || fail "columns: the position did not advance, $p1 then $p2"
+            # The fixture clip is colour bars with a moving line about 750 px long, so a moved line differs by thousands of pixels and a frozen frame by none.
+            changed=$(magick \( "$evidence_dir/views-video-1.png" -crop "${fw}x${fh}+${fx}+${fy}" +repage \) \
+                \( "$evidence_dir/views-video-2.png" -crop "${fw}x${fh}+${fx}+${fy}" +repage \) \
+                -compose difference -composite -threshold 10% -format "%[fx:int(mean*w*h+0.5)]" info:)
+            (( changed > 1000 )) || fail "columns: the video frame changed $changed pixels in 1.5 s of playback"
+            omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+            sleep 0.8
+            p3=$(ipc columnMediaPosition)
+            sleep 1
+            p4=$(ipc columnMediaPosition)
+            [[ "$(ipc columnMediaPlaying)" == "false" && "$p3" == "$p4" ]] || fail "columns: pause left playing $(ipc columnMediaPlaying), position $p3 then $p4"
+            # Select all keeps the cursor and the path, so the only thing that can end the player is the strip going away.
+            before="$(ipc cursor)|$(ipc path)"
+            key -M ctrl -k a -m ctrl >/dev/null
+            settle
+            [[ "$(ipc cursor)|$(ipc path)" == "$before" ]] || fail "columns: select all moved the cursor or the path, $before to $(ipc cursor)|$(ipc path)"
+            [[ "$(ipc previewColumnState)" == "multi" && "$(ipc columnPlayerLoaded)" == "false" ]] || fail "columns: a multi-selection left the player $(ipc columnPlayerLoaded) in state $(ipc previewColumnState)"
+            key -k Escape >/dev/null
+            settle
+            [[ "$(ipc previewColumnState)" == "video" && "$(ipc columnPlayerLoaded)" == "false" ]] || fail "columns: back on the video with $(ipc columnPlayerLoaded) player, state $(ipc previewColumnState)"
+            omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+            sleep 1
+            key j >/dev/null
+            sleep 1
+            [[ "$(ipc columnPlayerLoaded)" == "false" ]] || fail "columns: moving the cursor away left a player behind"
+            printf 'VIEWS columns hero=%s play=%s..%s changed=%s\n' "$lit" "$p1" "$p2" "$changed"
+        fi
+        key -k Home >/dev/null
+        settle
+        key -k Return >/dev/null
+        settle
+        [[ "$(ipc path)" == "$dir/empty" && "$(ipc emptyShown)" == "true" ]] || fail "$mode: Return on row 0 did not enter the empty directory ($(ipc path), empty $(ipc emptyShown))"
+        lit=0
+        for _attempt in $(seq 1 "$mark_poll_shots"); do
+            shot "views-$mode-empty"
+            lit=$(lit_in_rect "$evidence_dir/views-$mode-empty.png" $(ipc emptyMarkRect))
+            (( lit > 0 )) && break
+            sleep "$mark_poll_s"
+        done
+        (( lit > 0 )) || fail "$mode: the empty directory's hero painted nothing"
+        # Its box is the listing slot exactly, the middle column in the columns view: a lazy view's item reports a local origin, and the hero placed on it once drew over the sidebar, still inside a wide slot.
+        read -r sx sy sw sh <<< "$(ipc listAreaRect)"
+        local ex=$sx ew=$sw
+        [[ "$mode" == "columns" ]] && { ex=$((sx + sw / 3)); ew=$((sw / 3)); }
+        rect_is "$(ipc emptyStateRect)" "$ex" "$sy" "$ew" "$sh" 1 \
+            || fail "$mode: the hero's box is $(ipc emptyStateRect), not the slot $ex $sy $ew $sh"
+        key -k Backspace >/dev/null
+        sleep 1
+        key -k Backspace >/dev/null
+        sleep 1
+        [[ "$(ipc path)" == "$root" ]] || fail "$mode: two Backspaces did not return to the root, path $(ipc path)"
+        printf 'VIEWS %s thumbs=ok hero=%s\n' "$pass" "$lit"
+    done
+    kill_flea
+}
+
+# One row per format family the preview classifies, all in the columns view's own frame, judged on
+# what the frame draws: decoded pixels, lines, member names, pages, an advancing position, the sentence.
+formats_fixture() {
+    local dir="$1" media="$FIXTURE_ROOT/flea-media-btrfs"
+    [[ -d "$media" ]] || fail "the media fixture is missing at $media"
+    sandbox_scratch "$dir"
+    cp "$(ls "$media"/*.jpg | head -1)" "$dir/p.jpg"
+    cp "$(ls "$media"/*.png | head -1)" "$dir/p.png"
+    cp "$(ls "$media"/*.webp | head -1)" "$dir/p.webp"
+    cp "$(ls "$media"/*.heic | head -1)" "$dir/p.heic"
+    cp "$media/clip_1006.mp4" "$dir/v.mp4"
+    cp "$(ls "$media"/*.mkv | head -1)" "$dir/v.mkv"
+    cp "$(ls "$media"/*.webm | head -1)" "$dir/v.webm"
+    python3 - "$dir/tone.wav" 15 <<'PYEOF'
+import sys, wave, struct, math
+sample_rate = 44100
+seconds = int(sys.argv[2])
+with wave.open(sys.argv[1], "w") as f:
+    f.setnchannels(1)
+    f.setsampwidth(2)
+    f.setframerate(sample_rate)
+    for i in range(sample_rate * seconds):
+        f.writeframesraw(struct.pack("<h", int(16000 * math.sin(2 * math.pi * 440 * i / sample_rate))))
+PYEOF
+    magick \( -size 400x560 xc:white -fill black -draw "rectangle 40,40 120,80" \) \
+           \( -size 400x560 xc:white -fill black -draw "rectangle 40,40 360,520" \) "$dir/manual.pdf"
+    head -c 200 "$dir/manual.pdf" > "$dir/broken.pdf"
+    printf 'hello from flea\nsecond line\n' > "$dir/sample.txt"
+    printf '# Notes\n\nSome *text*.\n' > "$dir/notes.md"
+    : > "$dir/empty.txt"
+    head -c 1100000 /dev/zero | tr '\0' 'x' > "$dir/big.txt"
+    printf 'fn main() {\n    println!("hi");\n}\n' > "$dir/main.rs"
+    printf '{"a": 1}\n' > "$dir/data.json"
+    ( cd "$dir" && bsdtar -a -cf a.zip sample.txt notes.md && bsdtar --zstd -cf b.tar.zst sample.txt main.rs )
+    # A valid archive with no members: the end-of-central-directory record alone, 22 bytes.
+    { printf 'PK\005\006'; head -c 18 /dev/zero; } > "$dir/empty.zip"
+    head -c 4096 /dev/urandom > "$dir/corrupt.zip"
+    ln -s "$dir/sample.txt" "$dir/link-file"
+    mkdir -p "$dir/subdir"
+    ln -s "$dir/subdir" "$dir/link-dir"
+    ln -s "$dir/nowhere-at-all" "$dir/link-broken"
+    cp "$dir/p.jpg" "$dir/shut.jpg"
+    chmod 000 "$dir/shut.jpg"
+    head -c 4096 /dev/urandom > "$dir/core.dump"
+}
+
+# Moves the cursor onto a row by name and waits for the column's state to settle on the family expected.
+column_expect() {
+    local name="$1" want="$2" _attempt
+    seek_row_named "$name"
+    for _attempt in $(seq 1 40); do
+        [[ "$(ipc previewColumnState)" == "$want" ]] && return 0
+        sleep 0.1
+    done
+    fail "formats: $name shows $(ipc previewColumnState), not $want (failure '$(ipc columnFailure)')"
+}
+
+# Prints one number, so the shot's own narration goes to stderr rather than into the caller's count.
+column_frame_lit() {
+    local fx fy fw fh
+    read -r fx fy fw fh <<< "$(ipc columnFrameRect)"
+    shot "formats-$1" >&2
+    lit_in_rect "$evidence_dir/formats-$1.png" "$((fx + 6))" "$((fy + 6))" "$((fw - 12))" "$((fh - 12))"
+}
+
+case_formats() {
+    local dir="$fixture_root/formats" name lit p1 p2 wx wy cx cy _attempt
+    formats_fixture "$dir"
+    launch "$dir"
+    wait_listing 26
+    switch_view columns
+    read -r wx wy _ww _wh < <(window_box)
+    for name in p.jpg p.png p.webp p.heic; do
+        column_expect "$name" image
+        for _attempt in $(seq 1 40); do [[ "$(ipc columnFrameReady)" == "true" ]] && break; sleep 0.1; done
+        [[ "$(ipc columnFrameReady)" == "true" ]] || fail "formats: $name never decoded in the frame"
+        lit=$(column_frame_lit "$name")
+        (( lit > 200 )) || fail "formats: $name's frame interior painted $lit lit pixels"
+    done
+    for name in v.mp4 v.mkv v.webm; do
+        column_expect "$name" video
+        for _attempt in $(seq 1 40); do [[ "$(ipc columnFrameReady)" == "true" ]] && break; sleep 0.1; done
+        [[ "$(ipc columnFrameReady)" == "true" ]] || fail "formats: $name's first frame never decoded"
+        read -r cx cy <<< "$(ipc columnPlayCentre)"
+        omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+        sleep 1.2
+        p1=$(ipc columnMediaPosition)
+        sleep 1
+        p2=$(ipc columnMediaPosition)
+        [[ "$(ipc columnMediaPlaying)" == "true" ]] && (( p2 > p1 )) || fail "formats: $name did not play, playing $(ipc columnMediaPlaying), position $p1 then $p2"
+    done
+    column_expect tone.wav audio
+    read -r cx cy <<< "$(ipc columnPlayCentre)"
+    omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+    sleep 1.2
+    p1=$(ipc columnMediaPosition)
+    sleep 1
+    p2=$(ipc columnMediaPosition)
+    (( p2 > p1 )) || fail "formats: tone.wav did not play, position $p1 then $p2"
+    column_expect manual.pdf pdf
+    for _attempt in $(seq 1 40); do [[ "$(ipc columnPdfLoaded)" == "true" && "$(ipc columnPdfPages)" == "2" ]] && break; sleep 0.1; done
+    [[ "$(ipc columnPdfPages)" == "2" && "$(ipc columnPdfPage)" == "0" ]] || fail "formats: manual.pdf shows $(ipc columnPdfPages) pages, page $(ipc columnPdfPage)"
+    lit=$(column_frame_lit manual-p1)
+    (( lit > 200 )) || fail "formats: manual.pdf's first page painted $lit lit pixels"
+    read -r cx cy <<< "$(ipc columnChevronCentre right)"
+    omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+    settle
+    [[ "$(ipc columnPdfPage)" == "1" ]] || fail "formats: the right chevron left manual.pdf on page $(ipc columnPdfPage)"
+    omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+    settle
+    [[ "$(ipc columnPdfPage)" == "1" ]] || fail "formats: the right chevron went past the last page to $(ipc columnPdfPage)"
+    column_expect broken.pdf error
+    [[ "$(ipc columnFailure)" == "This file could not be read." ]] || fail "formats: broken.pdf's sentence is '$(ipc columnFailure)'"
+    column_expect sample.txt text
+    for _attempt in $(seq 1 40); do [[ "$(ipc columnTextLines)" == "hello from flea|"* ]] && break; sleep 0.1; done
+    [[ "$(ipc columnTextLines)" == "hello from flea|second line"* ]] || fail "formats: sample.txt's lines read '$(ipc columnTextLines)'"
+    shot formats-sample-lines
+    lit=$(lit_in_rect "$evidence_dir/formats-sample-lines.png" $(ipc columnLinesRect))
+    (( lit > 50 )) || fail "formats: sample.txt's lines box painted $lit lit pixels"
+    column_expect notes.md text
+    for _attempt in $(seq 1 40); do [[ "$(ipc columnTextLines)" == "# Notes"* ]] && break; sleep 0.1; done
+    [[ "$(ipc columnTextLines)" == "# Notes"* ]] || fail "formats: notes.md's lines read '$(ipc columnTextLines)'"
+    column_expect empty.txt text
+    column_expect big.txt text
+    for _attempt in $(seq 1 40); do [[ "$(ipc columnTextLines)" == "too large" ]] && break; sleep 0.1; done
+    [[ "$(ipc columnTextLines)" == "too large" ]] || fail "formats: big.txt read '$(ipc columnTextLines | cut -c1-40)', not the too-large answer"
+    column_expect main.rs code
+    for _attempt in $(seq 1 40); do [[ "$(ipc columnTextLines)" == "fn main() {"* ]] && break; sleep 0.1; done
+    [[ "$(ipc columnTextLines)" == "fn main() {"* ]] || fail "formats: main.rs's lines read '$(ipc columnTextLines)'"
+    column_expect data.json code
+    column_expect a.zip archive
+    for _attempt in $(seq 1 40); do [[ "$(ipc columnArchiveNames)" == *"sample.txt"* ]] && break; sleep 0.1; done
+    [[ "$(ipc columnArchiveNames)" == *"sample.txt"* && "$(ipc columnArchiveNames)" == *"notes.md"* ]] || fail "formats: a.zip's members read '$(ipc columnArchiveNames)'"
+    shot formats-zip-members
+    lit=$(lit_in_rect "$evidence_dir/formats-zip-members.png" $(ipc columnArchiveRect))
+    (( lit > 50 )) || fail "formats: a.zip's member box painted $lit lit pixels"
+    column_expect b.tar.zst archive
+    for _attempt in $(seq 1 40); do [[ "$(ipc columnArchiveNames)" == *"main.rs"* ]] && break; sleep 0.1; done
+    [[ "$(ipc columnArchiveNames)" == *"main.rs"* ]] || fail "formats: b.tar.zst's members read '$(ipc columnArchiveNames)'"
+    column_expect empty.zip archive
+    sleep 0.5
+    [[ "$(ipc columnArchiveNames)" == "" && "$(ipc columnFailure)" == "" ]] || fail "formats: the empty archive reads members '$(ipc columnArchiveNames)', failure '$(ipc columnFailure)'"
+    column_expect corrupt.zip error
+    [[ "$(ipc columnFailure)" == "This archive could not be read." ]] || fail "formats: corrupt.zip's sentence is '$(ipc columnFailure)'"
+    column_expect link-file symlink
+    column_expect link-dir symlink
+    column_expect link-broken symlink
+    column_expect core.dump unsupported
+    column_expect shut.jpg image
+    sleep 1
+    [[ "$(ipc columnFrameReady)" == "false" && "$(ipc columnThumbShown)" == "false" ]] || fail "formats: an unreadable image reports frame ready $(ipc columnFrameReady), thumb shown $(ipc columnThumbShown)"
+    key -M ctrl -k a -m ctrl >/dev/null
+    settle
+    [[ "$(ipc previewColumnState)" == "multi" ]] || fail "formats: select all shows $(ipc previewColumnState), not multi"
+    key -k Escape >/dev/null
+    settle
+    printf 'FORMATS images=4 videos=3 audio=1 pdf=2 text=4 code=2 archives=4 links=3 error=1 unsupported=1 multi=1\n'
+    kill_flea
+}
+
+# Lit pixels inside the preview's content box, inset past any border; the name and floor are the caller's.
+preview_surface_lit() {
+    local tag="$1" floor="$2" what="$3" sx sy sw sh lit
+    read -r sx sy sw sh <<< "$(ipc previewSurfaceRect)"
+    [[ -n "$sh" ]] && (( sw > 12 && sh > 12 )) || fail "previewviews: $what has no box on screen ('$(ipc previewSurfaceRect)')"
+    shot "previewviews-$tag" >&2
+    lit=$(lit_in_rect "$evidence_dir/previewviews-$tag.png" "$((sx + 6))" "$((sy + 6))" "$((sw - 12))" "$((sh - 12))")
+    (( lit > floor )) || fail "previewviews: $what painted $lit lit pixels inside its box"
+}
+
+# The shared Space preview entered from each view on the same rows, judged on content, with the
+# lifetimes GM's review named: a column player dies on a view switch and yields to Space.
+case_previewviews() {
+    local dir="$fixture_root/previewviews" mode name wx wy cx cy fx fy fw fh p1 p2 changed _attempt
+    formats_fixture "$dir"
+    launch "$dir"
+    wait_listing 26
+    read -r wx wy _ww _wh < <(window_box)
+    for mode in list grid columns; do
+        switch_view list
+        goto_row "$(row_index_of p.jpg)"
+        switch_view "$mode"
+        key -k space >/dev/null
+        for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "image" ]] && break; sleep 0.1; done
+        [[ "$(ipc previewOpen)" == "true" && "$(ipc previewKind)" == "image" && "$(ipc previewState)" == "image" ]] \
+            || fail "$mode: Space on p.jpg: open $(ipc previewOpen), kind $(ipc previewKind), state $(ipc previewState)"
+        key -k Escape >/dev/null
+        settle
+        [[ "$(ipc previewOpen)" == "false" ]] || fail "$mode: Escape did not close the preview"
+        switch_view list
+        goto_row "$(row_index_of manual.pdf)"
+        switch_view "$mode"
+        key -k space >/dev/null
+        for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "pdf" ]] && break; sleep 0.1; done
+        [[ "$(ipc previewKind)" == "pdf" && "$(ipc previewState)" == "pdf" && "$(ipc previewPdfPage)" == "0" ]] \
+            || fail "$mode: Space on manual.pdf: kind $(ipc previewKind), state $(ipc previewState), page $(ipc previewPdfPage)"
+        key -k Right >/dev/null
+        settle
+        key -k Right >/dev/null
+        settle
+        [[ "$(ipc previewPdfPage)" == "1" ]] || fail "$mode: two Rights left manual.pdf on page $(ipc previewPdfPage), not the last page 1"
+        key -k Escape >/dev/null
+        settle
+        switch_view list
+        goto_row "$(row_index_of broken.pdf)"
+        switch_view "$mode"
+        key -k space >/dev/null
+        for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "This file could not be read." ]] && break; sleep 0.1; done
+        [[ "$(ipc previewState)" == "This file could not be read." ]] || fail "$mode: Space on broken.pdf reads '$(ipc previewState)'"
+        key -k Escape >/dev/null
+        settle
+        switch_view list
+        goto_row "$(row_index_of a.zip)"
+        switch_view "$mode"
+        key -k space >/dev/null
+        for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "archive" ]] && break; sleep 0.1; done
+        [[ "$(ipc previewKind)" == "archive" && "$(ipc previewState)" == "archive" && "$(ipc previewArchiveNames)" == *"sample.txt"* ]] \
+            || fail "$mode: Space on a.zip: kind $(ipc previewKind), state $(ipc previewState), members '$(ipc previewArchiveNames)'"
+        preview_surface_lit "$mode-zip" 50 "a.zip's members"
+        key -k Escape >/dev/null
+        settle
+        # The three other image formats through the original file, not a cached thumbnail: PreviewImage reads the file itself.
+        for name in p.png p.webp p.heic; do
+            switch_view list
+            goto_row "$(row_index_of "$name")"
+            switch_view "$mode"
+            key -k space >/dev/null
+            for _attempt in $(seq 1 60); do [[ "$(ipc previewState)" == "image" ]] && break; sleep 0.1; done
+            [[ "$(ipc previewKind)" == "image" && "$(ipc previewState)" == "image" ]] || fail "$mode: Space on $name: kind $(ipc previewKind), state $(ipc previewState)"
+            preview_surface_lit "$mode-$name" 200 "$name's picture"
+            key -k Escape >/dev/null
+            settle
+        done
+        for name in sample.txt main.rs; do
+            switch_view list
+            goto_row "$(row_index_of "$name")"
+            switch_view "$mode"
+            key -k space >/dev/null
+            for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "text" ]] && break; sleep 0.1; done
+            [[ "$(ipc previewKind)" == "text" && "$(ipc previewText)" == *"$([[ $name == sample.txt ]] && echo 'hello from flea' || echo 'fn main')"* ]] \
+                || fail "$mode: Space on $name: kind $(ipc previewKind), state $(ipc previewState), text '$(ipc previewText | cut -c1-40)'"
+            preview_surface_lit "$mode-$name" 50 "$name's text"
+            key -k Escape >/dev/null
+            settle
+        done
+        # Audio and the three video containers: a player exists, its position advances, the picture moves, and Escape empties the loader.
+        for name in tone.wav v.mp4 v.mkv v.webm; do
+            switch_view list
+            goto_row "$(row_index_of "$name")"
+            switch_view "$mode"
+            key -k space >/dev/null
+            for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "playing" ]] && break; sleep 0.1; done
+            [[ "$(ipc previewMediaLoaded)" == "true" && "$(ipc previewState)" == "playing" ]] || fail "$mode: Space on $name: loaded $(ipc previewMediaLoaded), state $(ipc previewState)"
+            sleep 0.8
+            p1=$(ipc previewPosition)
+            shot "previewviews-$mode-$name-1"
+            sleep 1.2
+            p2=$(ipc previewPosition)
+            shot "previewviews-$mode-$name-2"
+            (( p2 > p1 )) || fail "$mode: $name's position did not advance, $p1 then $p2"
+            if [[ "$name" != tone.wav ]]; then
+                read -r fx fy fw fh <<< "$(ipc previewSurfaceRect)"
+                (( fw > 0 && fh > 0 )) || fail "$mode: $name's picture has no box"
+                changed=$(magick \( "$evidence_dir/previewviews-$mode-$name-1.png" -crop "${fw}x${fh}+${fx}+${fy}" +repage \) \
+                    \( "$evidence_dir/previewviews-$mode-$name-2.png" -crop "${fw}x${fh}+${fx}+${fy}" +repage \) \
+                    -compose difference -composite -threshold 10% -format "%[fx:int(mean*w*h+0.5)]" info:)
+                (( changed > 1000 )) || fail "$mode: $name's picture changed $changed pixels in 1.2 s of playback"
+            fi
+            key -k Escape >/dev/null
+            settle
+            [[ "$(ipc previewOpen)" == "false" && "$(ipc previewMediaLoaded)" == "false" ]] || fail "$mode: after Escape on $name, open $(ipc previewOpen), media loaded $(ipc previewMediaLoaded)"
+        done
+        # Bad then good in the image reader: an unreadable picture, then two rows up to a readable one.
+        switch_view list
+        goto_row "$(row_index_of shut.jpg)"
+        switch_view "$mode"
+        key -k space >/dev/null
+        for _attempt in $(seq 1 40); do [[ "$(ipc previewState)" == "This image could not be read." ]] && break; sleep 0.1; done
+        [[ "$(ipc previewState)" == "This image could not be read." ]] || fail "$mode: Space on shut.jpg reads '$(ipc previewState)'"
+        key k >/dev/null
+        key k >/dev/null
+        for _attempt in $(seq 1 60); do [[ "$(ipc previewState)" == "image" ]] && break; sleep 0.1; done
+        [[ "$(ipc previewState)" == "image" ]] || fail "$mode: the preview did not recover from shut.jpg to p.webp, state $(ipc previewState)"
+        preview_surface_lit "$mode-recovered" 200 "the recovered picture"
+        key -k Escape >/dev/null
+        settle
+        printf 'PREVIEWVIEWS %s image=4 pdf=ok error=ok archive=ok text=2 media=4 recovery=ok\n' "$mode"
+    done
+    # The column player and the two things that must end it: another view, and Space on the same file.
+    switch_view list
+    goto_row "$(row_index_of v.mp4)"
+    switch_view columns
+    sleep 1
+    [[ "$(ipc previewColumnState)" == "video" ]] || fail "previewviews: the cursor on v.mp4 shows $(ipc previewColumnState)"
+    read -r cx cy <<< "$(ipc columnPlayCentre)"
+    omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+    sleep 1.2
+    [[ "$(ipc columnMediaPlaying)" == "true" ]] || fail "previewviews: play did not start in the column"
+    switch_view list
+    settle
+    [[ "$(ipc columnPlayerLoaded)" == "false" ]] || fail "previewviews: the column player survived a switch to the list"
+    switch_view columns
+    sleep 1
+    [[ "$(ipc columnPlayerLoaded)" == "false" ]] || fail "previewviews: a player came back with the view without a press"
+    omarchy-drive click "$((wx + cx))" "$((wy + cy))" left >/dev/null
+    sleep 1.2
+    [[ "$(ipc columnMediaPlaying)" == "true" ]] || fail "previewviews: play did not restart in the column"
+    key -k space >/dev/null
+    for _attempt in $(seq 1 40); do [[ "$(ipc previewKind)" == "video" ]] && break; sleep 0.1; done
+    sleep 1
+    p1=$(ipc previewPosition)
+    sleep 1
+    p2=$(ipc previewPosition)
+    [[ "$(ipc previewOpen)" == "true" && "$(ipc previewKind)" == "video" ]] && (( p2 > p1 )) || fail "previewviews: Space over the playing column: open $(ipc previewOpen), kind $(ipc previewKind), position $p1 then $p2"
+    [[ "$(ipc columnPlayerLoaded)" == "false" ]] || fail "previewviews: the column kept its player under the Space preview"
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc previewOpen)" == "false" && "$(ipc columnPlayerLoaded)" == "false" ]] || fail "previewviews: after Escape, preview $(ipc previewOpen), column player $(ipc columnPlayerLoaded)"
+    printf 'PREVIEWVIEWS lifetimes=ok\n'
+    kill_flea
+}
+
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs openterminal renderer settings hangshare)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare)
 
 : > "$run_log"
 : > "$flea_log"
@@ -6070,7 +6980,12 @@ printf '\nLOG_CHECK_BEGIN %s\n' "$run_log"
 # The reader has no -q, so it drains the pipe and takes no SIGPIPE; pipefail then reports its own
 # status, which is what says whether anything but that one line matched.
 expected_warning="inotify_add_watch($fixture_root/network-home/.config/gtk-3.0/bookmarks) failed: (Permission denied)"
-if grep -F -v "$expected_warning" "$run_log" | grep -E 'WARN|ERROR|TypeError|ReferenceError|Cannot open'; then
+# Qt Multimedia's ffmpeg backend saying VAAPI zero-copy needs an OpenGL RHI; Flea runs Vulkan, the backend falls back, and case_views proves the frames still change.
+vaapi_warning="VAAPITextureConverter: No rhi or non openGL based RHI"
+# case_formats and case_previewviews open a file with no permission bits on purpose; Qt names it, and this run's fixture path is the whole match.
+unreadable_warning="$fixture_root/formats/shut.jpg"
+unreadable_warning2="$fixture_root/previewviews/shut.jpg"
+if grep -F -v -e "$expected_warning" -e "$vaapi_warning" -e "$unreadable_warning" -e "$unreadable_warning2" "$run_log" | grep -E 'WARN|ERROR|TypeError|ReferenceError|Cannot open'; then
     printf 'FAIL log\n'
     failures=$((failures + 1))
 fi

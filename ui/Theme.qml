@@ -58,7 +58,7 @@ Singleton {
         readonly property string family: Style.font.family
         // Following takes Omarchy's resolved token, so a theme's own font override still wins. An
         // override runs Style's own fontPx ratios at the pinned stop, which is the same ladder.
-        readonly property int body: root.overridden ? root.baseSize : Style.font.body
+        readonly property int body: root.overridden ? TextSize.body(root.baseSize) : Style.font.body
         readonly property int bodySmall: root.overridden ? TextSize.bodySmall(root.baseSize) : Style.font.bodySmall
         readonly property int caption: root.overridden ? TextSize.caption(root.baseSize) : Style.font.caption
     }
@@ -111,6 +111,12 @@ Singleton {
     readonly property real strokeWidth: 1.5
     // WCAG 2.5.8 floor. Marks stay at their type-scale size; the hit box grows to this.
     readonly property int hitMin: 24
+    // The wheel, see ui/FastScrollHandler.qml: a notch is the platform's lines times notchPx times the
+    // multiplier, and a touchpad's pixels move one to one. PR 16's pair, 4x calibrated on Omarchy Spotify.
+    readonly property QtObject scroll: QtObject {
+        readonly property int notchPx: 24
+        readonly property real multiplier: 4
+    }
     // Budget an action plus its shortcut in monospace characters; longer labels still elide.
     readonly property int menuTextChars: 26
     readonly property int menuWidth: Math.max(root.space(220), Math.ceil(root.menuTextChars * glyphMetrics.advanceWidth)

@@ -45,6 +45,7 @@ done
 not_run="
 ui|needs the display, and refuses beside a Flea it did not start
 drag|needs the display and a real pointer through uinput
+cardsizes|needs the display, a real pointer through uinput, and Hyprland to resize the window
 bench|is a separate headless benchmark-contract suite
 package|needs a real makepkg archive in FLEA_PACKAGE_FILE
 picker|needs the display, a session bus, and Flea activatable as the FileChooser backend

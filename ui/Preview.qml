@@ -30,6 +30,18 @@ Item {
     property var archiveMeta: null
     property int archiveRow: -1
     readonly property bool archiveFailed: root.isArchive && root.archiveMeta !== null && root.archiveMeta.archiveFailed === true
+    // For ui/Ipc.qml: the item drawing this kind's content, whether a player exists, and what the text and archive panes hold.
+    function surfaceItem() {
+        if (root.isImage) return imageLoader.item
+        if (root.isMedia) return mediaLoader.item
+        if (root.isPdf) return pdfLoader.item
+        if (root.isArchive) return archivePane
+        if (root.kind === "text") return textPane.bodyItem
+        return null
+    }
+    function mediaLoaded() { return mediaLoader.item !== null }
+    function textShown() { return textPane.shownText() }
+    function archiveNames() { return root.archiveMeta && root.archiveMeta.names ? root.archiveMeta.names.map(function (e) { return e.n }).join("|") : "" }
     readonly property bool pdfExpanded: root.isPdf && pdfLoader.item !== null && pdfLoader.item.expanded
     // The PDF surface itself, null when no document is loaded: ui/Ipc.qml's zoom and expand
     // readers answer "" for that, so an unmeasured state can never read as a real value.
@@ -54,6 +66,8 @@ Item {
     property int pendingSize: 0
     // The settle idiom Pane's own thumbnail request reuses: a held j/k costs zero reloads until the cursor rests.
     readonly property int followSettleMs: 120
+    // The same dim ui/SettingsPanel.qml lays over the listing.
+    readonly property real groundOpacity: 0.5
 
     // Read through to PreviewMedia so this file never has to import QtMultimedia itself; 0 before
     // the loader has produced an item, same shape root.status already uses.
@@ -192,9 +206,23 @@ Item {
         onPositionChanged: root.revealStrip()
     }
 
+    // PdfViewer.html and MediaPlayer.html draw a pane with its own edge; on the surface colour alone the
+    // inset vanished into the listing behind it, whose rows and columns showed all round.
+    Rectangle {
+        anchors.fill: parent
+        color: Theme.color.background
+        opacity: root.active ? root.groundOpacity : 0
+        Behavior on opacity {
+            enabled: !Theme.reducedMotion
+            NumberAnimation { duration: root.active ? Motion.durMs.open : Motion.durMs.close }
+        }
+    }
+
     Rectangle {
         id: surface
         anchors.centerIn: parent
+        border.width: Theme.spacing.hairline
+        border.color: Theme.color.muted
         // Open rises into place; close does not translate (enabled: root.active), only fades,
         // faster than the open animation. root.active itself already flipped above, synchronously.
         anchors.verticalCenterOffset: root.active ? 0 : Motion.translateUpPx
@@ -266,6 +294,7 @@ Item {
 
         // The canvas's Archive tile at Quick Look size: the name, the count the index gave, then the entries.
         Column {
+            id: archivePane
             anchors.fill: parent
             anchors.margins: Theme.spacing.rowPaddingX
             spacing: Theme.spacing.gap

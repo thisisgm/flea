@@ -146,6 +146,9 @@ Item {
     readonly property alias iconUrl: thumbImage.source
     // Whether it actually opened, because a URL a test can read is not proof that Qt could load it.
     readonly property alias iconStatus: thumbImage.status
+    readonly property int namePx: name.pixelSize
+    // The thumbnail's own box, for ui/Ipc.qml's rowThumbRect: pixels are counted inside it and not in the name.
+    readonly property Item thumbItem: thumbImage
     // The glyph name actually bound, the same alias idiom as iconUrl, for the icon-path test case.
     readonly property alias glyphName: icon.name
 

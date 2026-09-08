@@ -21,6 +21,8 @@ FocusScope {
     property string path: ""
     // Set once by shell.qml from FLEA_SELECT; applied to the first `rows` this pane receives, then forgotten.
     property string pendingSelect: ""
+    // Set with pendingSelect by a right click on a peeked column row: the menu opens on the row once it is the cursor.
+    property bool pendingMenu: false
     property int total: 0
     property int cursorIndex: 0
     property string listingState: "loading"
@@ -277,12 +279,15 @@ FocusScope {
     // The two views share the same slot, the same rows and the same cursor; only one is ever up, and
     // listArea points at whichever it is, so every caller of restartSettle stays view-agnostic and
     // shell.qml lays the empty-state overlay over the right one.
-    readonly property var listArea: root.viewMode === "grid" ? grid
-                                  : root.viewMode === "columns" ? columns : list
+    // The list stands in for a view still being built, so no binding on listArea ever reads null.
+    readonly property var listArea: root.viewMode === "grid" && gridLoader.item ? gridLoader.item
+                                  : root.viewMode === "columns" && columnsLoader.item ? columnsLoader.item : list
     // How far a cursor step down moves: one row in the list, one row of tiles in the grid.
-    // The columns view's own preview, exposed so a test can assert its facts without OCR.
-    readonly property var columnsArea: columns
-    readonly property int cursorStride: root.viewMode === "grid" ? grid.columns : 1
+    // The columns view's own preview, exposed so a test can assert its facts without OCR; null until built.
+    readonly property var columnsArea: columnsLoader.item
+    // Where the view sits, for an anchor: a Loader's item is no sibling of anything here, its Loader is.
+    readonly property Item listSlot: root.viewMode === "grid" ? gridLoader : root.viewMode === "columns" ? columnsLoader : list
+    readonly property int cursorStride: root.viewMode === "grid" && gridLoader.item ? gridLoader.item.columns : 1
 
     Flea.FilterStrip {
         id: filterStrip
@@ -292,38 +297,40 @@ FocusScope {
         pane: root
     }
 
-    Flea.ColumnsArea {
-        id: columns
-        visible: root.viewMode === "columns"
+    // A hidden view is not a free view, see AGENTS.md rule 6: each of these two is built by its first
+    // switch and kept, so a launch in the list view pays for one view's rows and marks, not three.
+    property bool columnsBuilt: false
+    property bool gridBuilt: false
+    // setSource, not source: the view reads pane in its own bindings, so it has to hold one from birth.
+    Loader {
+        id: columnsLoader
+        active: root.viewMode === "columns" || root.columnsBuilt
         focus: root.viewMode === "columns"
-        anchors.top: filterStrip.bottom
-        anchors.left: sidebar.right
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        pane: root
-        menu: menu
-        Keys.onPressed: function (event) { event.accepted = Focus.handleKey(event, root, sidebar) }
+        anchors { top: filterStrip.bottom; left: sidebar.right; right: parent.right; bottom: parent.bottom }
+        Component.onCompleted: setSource("ColumnsArea.qml", { pane: root, menu: menu, focus: true })
+        onLoaded: { root.columnsBuilt = true; item.visible = Qt.binding(function () { return root.viewMode === "columns" }) }
     }
 
-    Flea.GridArea {
-        id: grid
-        visible: root.viewMode === "grid"
-        // Both views default to focus true, so the one that is not up has to give it back explicitly:
-        // a hidden item holding focus swallows every key the visible one should have had.
+    Loader {
+        id: gridLoader
+        active: root.viewMode === "grid" || root.gridBuilt
         focus: root.viewMode === "grid"
-        anchors.top: filterStrip.bottom
-        anchors.left: sidebar.right
-        anchors.right: parent.right
-        anchors.bottom: parent.bottom
-        pane: root
-        menu: menu
-        onThumbsApplied: function (work) { root.thumbState = Thumbs.applied(root.thumbState, work) }
-        onDirSizesApplied: function (ask) { root.dirSizeState = DirSizes.applied(root.dirSizeState, ask) }
-        onDirSizesCancelled: root.dirSizeState = DirSizes.cancelled(root.dirSizeState)
+        anchors { top: filterStrip.bottom; left: sidebar.right; right: parent.right; bottom: parent.bottom }
+        Component.onCompleted: setSource("GridArea.qml", { pane: root, menu: menu })
+        onLoaded: { root.gridBuilt = true; item.visible = Qt.binding(function () { return root.viewMode === "grid" }) }
+    }
 
-        // The same seam the list carries: whichever view is up owns the keyboard, and Focus.handleKey
-        // is the one route either of them takes.
-        Keys.onPressed: function (event) { event.accepted = Focus.handleKey(event, root, sidebar) }
+    // The grid's plans land the way the list's do below: it computes, and only the pane writes the two states.
+    Connections {
+        target: columnsLoader.item
+        function onThumbsApplied(work) { root.thumbState = Thumbs.applied(root.thumbState, work) }
+    }
+
+    Connections {
+        target: gridLoader.item
+        function onThumbsApplied(work) { root.thumbState = Thumbs.applied(root.thumbState, work) }
+        function onDirSizesApplied(ask) { root.dirSizeState = DirSizes.applied(root.dirSizeState, ask) }
+        function onDirSizesCancelled() { root.dirSizeState = DirSizes.cancelled(root.dirSizeState) }
     }
 
     Flea.List {
@@ -384,7 +391,7 @@ FocusScope {
     function openCursorMenu() { return Menu.openAtCursor(root, menu, Theme.spacing.rowPaddingX) }
 
     Flea.StateMessage {
-        anchors.fill: root.listArea
+        anchors.fill: root.listSlot
         anchors.leftMargin: Theme.spacing.rowPaddingX
         anchors.rightMargin: Theme.spacing.rowPaddingX
         message: root.stateMessage

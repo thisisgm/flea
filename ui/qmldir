@@ -18,6 +18,7 @@ DialogField 1.0 DialogField.qml
 ContextMenu 1.0 ContextMenu.qml
 KeymapSheet 1.0 KeymapSheet.qml
 SettingsPanel 1.0 SettingsPanel.qml
+SettingsPane 1.0 SettingsPane.qml
 SettingsRail 1.0 SettingsRail.qml
 SettingsRow 1.0 SettingsRow.qml
 SettingsRuler 1.0 SettingsRuler.qml
@@ -26,8 +27,11 @@ MediaStrip 1.0 MediaStrip.qml
 MenuRow 1.0 MenuRow.qml
 RenameField 1.0 RenameField.qml
 EmptyState 1.0 EmptyState.qml
+FastScrollHandler 1.0 FastScrollHandler.qml
+CardScroll 1.0 CardScroll.qml
 DeviceMounts 1.0 DeviceMounts.qml
 DropboxMark 1.0 DropboxMark.qml
+DropInto 1.0 DropInto.qml
 Glyph 1.0 Glyph.qml
 GridTile 1.0 GridTile.qml
 GridArea 1.0 GridArea.qml

@@ -107,6 +107,7 @@ function renameRefreshTarget(pane, path) {
 // top. It is not a navigation, so it never touches the history.
 function refresh(pane, selectPath) {
     pane.pendingSelect = selectPath ? selectPath : ""
+    pane.pendingMenu = false
     pane.openWithoutHistory(pane.path)
 }
 
@@ -177,9 +178,15 @@ function applyPendingSelect(pane) {
             pane.selection.only(index)
             pane.selectionAnchor = index
             pane.selectionVersion++
+            if (pane.pendingMenu) {
+                pane.pendingMenu = false
+                pane.openCursorMenu()
+            }
             return
         }
     }
+    // The row is not in this listing, so the intent behind it must not fire on some later match.
+    pane.pendingMenu = false
 }
 
 // Enter on the cursor row: a directory navigates, an archive opens Flea's own view, anything else

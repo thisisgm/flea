@@ -12,6 +12,8 @@ Item {
     property string mark: ""
     // Sentence case, not uppercased: the rotating caption is OEM all-caps; this is the next action.
     property string hint: ""
+    // The hero mark alone, for ui/Ipc.qml's painted-pixel count: the hint would light the wider rectangle.
+    readonly property alias markItem: heroMark
     // Sentence case, matching the OEM's activePhrases; caption.text below uppercases at render, like PanelHero, not in the source.
     readonly property var messages: [
         "Nothing here yet",

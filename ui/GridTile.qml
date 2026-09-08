@@ -19,6 +19,9 @@ Item {
     // A thumbnail path is not a thumbnail: the cache file can be evicted between the pane's answer
     // and the decode, and a tile whose Image failed to load has to be marked by its kind instead.
     readonly property bool thumbDrawn: root.thumb.length > 0 && tileThumb.status !== Image.Error
+    // The same alias ui/Row.qml carries, so ui/Ipc.qml's rowThumbReady answers for a tile too.
+    readonly property alias iconStatus: tileThumb.status
+    readonly property Item thumbItem: tileThumb
 
     Accessible.role: Accessible.ListItem
     Accessible.name: root.row ? root.row.n : ""

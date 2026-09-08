@@ -16,7 +16,18 @@ Column {
 
     signal chosen(string id)
 
+    // The row for a section id, so a driven click can land on it: tests/ui.sh clickthrough.
+    function itemFor(id) {
+        for (var i = 0; i < rows.count; i++) {
+            var row = rows.itemAt(i)
+            if (row && row.modelData.id === id)
+                return row
+        }
+        return null
+    }
+
     Repeater {
+        id: rows
         model: Settings.SECTIONS
 
         delegate: Item {
@@ -80,6 +91,7 @@ Column {
             }
 
             TapHandler {
+                gesturePolicy: TapHandler.ReleaseWithinBounds
                 onTapped: root.chosen(railRow.modelData.id)
             }
         }

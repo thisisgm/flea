@@ -56,7 +56,8 @@ function tappedMenu(index, eventPoint, root, menu) {
 // A neighbour column in the columns view is a peek with no cursor of its own, so its rows answer a
 // verb rather than acting. One tap on a directory makes it the pane's listing, which is the column
 // view's own reveal and not an open; only a second tap opens a file. A peeked row belongs to another
-// directory and every menu action addresses the pane's cursor, so a right click there has no menu.
+// directory and every menu action addresses the pane's cursor, so a right click there is routed by
+// ColumnPane to menuOnNeighbour before this is asked.
 function tappedColumn(row, button, tapCount) {
     if (!row || button === Qt.RightButton)
         return ""

@@ -26,9 +26,18 @@ Item {
     // The Menus board's work-area clamp: a floating surface never renders taller than its bounds
     // less this margin, and the pane scrolls inside that while the rail stays put.
     readonly property int clampMargin: 8
+    // GM's ruling for mouse users: the card keeps one height whichever section is up, so the rail and
+    // the rows never move under the pointer on a switch; a taller section scrolls inside it. The
+    // height is the median section's, so no section sits in a card mostly empty; see ui/SettingsPane.qml.
+    readonly property int chromeAndBorder: Theme.chromeHeight + 2 * Theme.spacing.hairline
     readonly property real groundOpacity: 0.5
+    // The card's title, for ui/Ipc.qml: a driven click on it proves the card swallows what its controls do not.
+    readonly property alias titleItem: title
+    // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
+    readonly property var cardItem: card
 
-    readonly property var rows: Settings.rows(root.section, {
+    // Everything ui/js/Settings.js rows() reads, built once here for the keyboard's rows and the pane's.
+    readonly property var settingsState: ({
         textSize: ViewState.textSize,
         hidden: ViewState.menuHidden,
         keyHints: ViewState.keyHints,
@@ -39,6 +48,7 @@ Item {
         cornerRadius: Style.cornerRadius,
         presetKeys: Keymap.PRESET_KEYS
     })
+    readonly property var rows: Settings.rows(root.section, root.settingsState)
 
     // What a test reads instead of running OCR over the panel, the same idiom ui/KeymapSheet.qml's
     // rows() uses: one row per line, its kind, its wording and whatever value it currently holds.
@@ -70,7 +80,7 @@ Item {
     function showSection(id) {
         root.section = id
         root.cursor = Settings.firstRow(root.rows)
-        flick.contentY = 0
+        pane.contentY = 0
     }
 
     // Enter and Space both land here. A choice steps rather than opening a menu of its own, because
@@ -142,17 +152,9 @@ Item {
         root.showCursor()
     }
 
-    // The Column inside the Flickable holds rows of two different heights, so the visible window is
-    // moved onto the row itself rather than derived from an index times a row height.
-    function showCursor() {
-        var item = rowItems.itemAt(root.cursor)
-        if (!item)
-            return
-        if (item.y < flick.contentY)
-            flick.contentY = item.y
-        else if (item.y + item.height > flick.contentY + flick.height)
-            flick.contentY = item.y + item.height - flick.height
-    }
+    function showCursor() { pane.showCursor(root.cursor) }
+    function railItemFor(id) { return rail.itemFor(id) }
+    function paneScroll() { return Math.round(pane.contentHeight) + "|" + Math.round(pane.height) }
 
     anchors.fill: parent
     visible: root.opened
@@ -166,7 +168,10 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            hoverEnabled: true
             onClicked: root.close()
+            onWheel: function (wheel) { wheel.accepted = true }
         }
     }
 
@@ -176,16 +181,24 @@ Item {
         width: root.panelWidth
         // Each side carries its own inset, above the first row and below the last, the way
         // Settings.dc.html gives the rail column a 10 of its own and the pane the row padding.
-        height: Math.min(Theme.chromeHeight + 2 * Theme.spacing.hairline
-                         + Math.max(rail.implicitHeight + 2 * Theme.settings.railPaddingY,
-                                    pane.implicitHeight + 2 * Theme.spacing.rowPaddingY),
-                         root.height - root.clampMargin)
+        height: Math.min(root.chromeAndBorder + Math.max(rail.implicitHeight + 2 * Theme.settings.railPaddingY,
+                                                          pane.tallest + 2 * Theme.spacing.rowPaddingY),
+                         root.height - 2 * root.clampMargin)
         color: Theme.color.surface
         border.width: Theme.spacing.hairline
         border.color: Theme.color.muted
         // Mirrors hyprland decoration:rounding, same as ui/KeymapSheet.qml; 0 on a stock box stays square.
         radius: Style.cornerRadius
         clip: true
+
+        // The control handlers above take passive grabs, so without this sink a press on a row fell
+        // through the card to the ground below, which closed the panel on release.
+        MouseArea {
+            anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            onClicked: {}
+            onWheel: function (wheel) { wheel.accepted = true }
+        }
 
         // The board's border-box panel: the card's own border is the two outer hairlines, so the
         // 558 they leave is what the chrome, the rail and the pane are laid out inside.
@@ -201,6 +214,7 @@ Item {
                 height: Theme.chromeHeight
 
                 Text {
+                    id: title
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.spacing.rowPaddingX
                     anchors.verticalCenter: parent.verticalCenter
@@ -239,6 +253,7 @@ Item {
 
                     TapHandler {
                         acceptedButtons: Qt.LeftButton
+                        gesturePolicy: TapHandler.ReleaseWithinBounds
                         onTapped: root.close()
                     }
                 }
@@ -289,50 +304,20 @@ Item {
                 opacity: 0.4
             }
 
-            Flickable {
-                id: flick
+            Flea.SettingsPane {
+                id: pane
                 anchors.left: rail.right
                 anchors.right: parent.right
                 anchors.top: chrome.bottom
                 anchors.bottom: parent.bottom
                 anchors.topMargin: Theme.spacing.rowPaddingY
-                contentWidth: width
-                contentHeight: pane.implicitHeight
-                clip: true
-                boundsBehavior: Flickable.StopAtBounds
-
-                Column {
-                    id: pane
-                    width: flick.width
-
-                    Repeater {
-                        id: rowItems
-                        model: root.rows
-
-                        delegate: Flea.SettingsRow {
-                            required property var modelData
-                            required property int index
-                            width: pane.width
-                            row: modelData
-                            current: root.side === "pane" && root.cursor === index
-                            onActivated: {
-                                root.side = "pane"
-                                root.cursor = index
-                                root.activate(index)
-                            }
-                            onStepped: function (direction) {
-                                root.side = "pane"
-                                root.cursor = index
-                                root.stepRowValue(index, direction)
-                            }
-                            onStopPicked: function (stop) {
-                                root.side = "pane"
-                                root.cursor = index
-                                root.pickRowStop(index, stop)
-                            }
-                        }
-                    }
-                }
+                section: root.section
+                values: root.settingsState
+                cursor: root.cursor
+                side: root.side
+                onActivated: function (index) { root.side = "pane"; root.cursor = index; root.activate(index) }
+                onStepped: function (index, direction) { root.side = "pane"; root.cursor = index; root.stepRowValue(index, direction) }
+                onStopPicked: function (index, stop) { root.side = "pane"; root.cursor = index; root.pickRowStop(index, stop) }
             }
         }
     }

@@ -160,6 +160,7 @@ Item {
 
             TapHandler {
                 enabled: root.hasSteps
+                gesturePolicy: TapHandler.ReleaseWithinBounds
                 onTapped: root.stepped(-1)
             }
         }
@@ -175,7 +176,7 @@ Item {
                                : (root.row.value || "")
             color: root.hasSteps || root.isRuler ? Theme.color.foreground : Theme.color.muted
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.body
+            font.pixelSize: root.isRuler ? Theme.font.caption : Theme.font.body
             textFormat: Text.PlainText
         }
 
@@ -195,6 +196,7 @@ Item {
 
             TapHandler {
                 enabled: root.hasSteps
+                gesturePolicy: TapHandler.ReleaseWithinBounds
                 onTapped: root.stepped(1)
             }
         }
@@ -237,6 +239,7 @@ Item {
         enabled: !root.isGroup && !root.isHint && !root.isLock && !root.hasSteps
                  && !root.hasSegment && !root.isRuler
         acceptedButtons: Qt.LeftButton
+        gesturePolicy: TapHandler.ReleaseWithinBounds
         onTapped: root.activated()
     }
 }

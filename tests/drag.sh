@@ -31,10 +31,14 @@ note() { printf '     %s\n' "$*"; }
 check() { if [ "$2" = "$3" ]; then ok "$1"; else bad "$1"; note "expected [$3]"; note "got      [$2]"; fi; }
 
 cleanup() {
+  # R7 stops the backend it owns; a stopped process ignores TERM until it is continued.
+  [ -n "${BACKEND_PID:-}" ] && kill -CONT "$BACKEND_PID" 2>/dev/null
   [ -n "${FLEA_PID:-}" ] && kill -- -"$FLEA_PID" 2>/dev/null
   [ -n "${FLEA_PID:-}" ] && kill "$FLEA_PID" 2>/dev/null
   sleep 0.5
   sandbox_remove "$SB" 2>/dev/null
+  # R7's tmpfs root: its own mktemp, its own marker, and the pattern checked again before the delete.
+  case "${XDEV:-}" in /dev/shm/flea-drag-xdev-*) [ -f "$XDEV/$SANDBOX_MARKER" ] && rm -rf -- "$XDEV" ;; esac
 }
 trap cleanup EXIT
 
@@ -43,6 +47,8 @@ sandbox_make "$SB"
 mkdir -p "$HOMEDIR/.local/state/omarchy" "$HOMEDIR/aaa" "$HOMEDIR/bbb"
 ln -sfn "$HOME/.local/state/omarchy/current" "$HOMEDIR/.local/state/omarchy/current"
 for f in r1a r1b r2 r3 r4; do printf '%s payload\n' "$f" > "$HOMEDIR/$f.txt"; done
+# R6 shows hidden files in a second tab on the same directory, so every index below this one shifts.
+printf 'hidden\n' > "$HOMEDIR/.r0hidden"
 
 # ---------------------------------------------------------------- pointer
 warp() { hyprctl dispatch "hl.dsp.cursor.move({x = $1, y = $2})" >/dev/null; }
@@ -233,6 +239,153 @@ release; sleep 0.8
 check "a release over empty space transfers nothing" \
       "$([ -e "$HOMEDIR/r1b.txt" ] && echo kept || echo GONE)" "kept"
 
+# ---------------------------------------------------------------- R5
+echo
+echo "== R5: a drag resting on a tab selects it, and the drop lands on that tab's floor =="
+# GM's ruling. The second tab is walked into bbb through the path bar, the first tab is shown again,
+# then r1a.txt is lifted, rested on the second tab past ui/TabBar.qml's hoverSwitchMs, and released
+# on the empty floor under the rows. The marker resolves the drop by path, because after the switch
+# the row indices name bbb's own rows; a same-filesystem move is what a plain drag means.
+export PATH="$HOME/.local/bin:$PATH"
+omarchy-drive key --window flea t >/dev/null 2>&1; sleep 0.5
+omarchy-drive key --window flea : >/dev/null 2>&1; sleep 0.3
+omarchy-drive key --window flea "$HOMEDIR/bbb" >/dev/null 2>&1; sleep 0.2
+omarchy-drive key --window flea -k Return >/dev/null 2>&1; sleep 0.6
+check "the second tab shows bbb" "$(ipc path)" "$HOMEDIR/bbb"
+omarchy-drive key --window flea 1 >/dev/null 2>&1; sleep 0.6
+check "and the first tab is the home listing again" "$(ipc path)" "$HOMEDIR"
+set -- $(screen_centre r1a.txt); sx=$1; sy=$2
+set -- $(ipc tabCentre 1); tx=$(( WX + $1 )); ty=$(( WY + $2 ))
+warp "$sx" "$sy"; sleep 0.4
+press; sleep 0.3
+# The rest outlives the switch by a second: the pressed row's delegate is released by the re-list
+# while the drag still runs, and the QDrag used to die with it (quickshell SIGSEGV, 2026-09-07).
+glide_to "$tx" "$ty"; sleep 1.6
+check "resting on the second tab selected it" "$(ipc tabIndex)" "1"
+glide_to "$tx" $(( WY + 700 )); sleep 0.6
+release; sleep 0.6
+wait_for "$HOMEDIR/bbb/r1a.txt" present
+check "the file landed on the second tab's floor" \
+      "$([ -e "$HOMEDIR/bbb/r1a.txt" ] && echo bbb || echo missing)" "bbb"
+check "as a move, so the source is gone" \
+      "$([ -e "$HOMEDIR/r1a.txt" ] && echo still-there || echo moved)" "moved"
+check "and the window survived the drop" "$(ipc total >/dev/null 2>&1 && echo alive || echo gone)" "alive"
+
+# ---------------------------------------------------------------- R6
+echo
+echo "== R6: a tab on the same directory re-lists under the drag, and the drop still names the lifted file =="
+# R5 left bbb's tab current, so the home tab is selected first and a third tab is opened from it; that
+# tab shows hidden files, where .local, aaa and bbb sort ahead of .r0hidden and every text row shifts.
+# A drop resolved by the lifted index would move the row now sitting there; by path it moves r1b.txt.
+omarchy-drive key --window flea 1 >/dev/null 2>&1; sleep 0.6
+check "the home tab is current again" "$(ipc path)" "$HOMEDIR"
+omarchy-drive key --window flea t >/dev/null 2>&1; sleep 0.8
+omarchy-drive key --window flea . >/dev/null 2>&1
+for i in $(seq 1 40); do [ "$(ipc showHidden)" = "true" ] && [ -n "$(rowidx .r0hidden)" ] && break; sleep 0.1; done
+# .cache and .local are the window's own, so the dotfile's row is pinned as after every folder, not a number.
+hidden_row=$(rowidx .r0hidden || echo none)
+check "the third tab lists the hidden file" "$([ "$hidden_row" != none ] && echo listed || echo missing)" "listed"
+check "and every folder sorts ahead of it" "$([ "$(rowidx aaa)" -lt "$hidden_row" ] && [ "$(rowidx bbb)" -lt "$hidden_row" ] && echo yes || echo no)" "yes"
+check "so aaa is no longer row 0 on this tab" "$([ "$(rowidx aaa)" -gt 0 ] && echo shifted || echo same)" "shifted"
+# aaa's centre is read here, on the tab the drop lands on, under whatever dotdirs sort ahead of it.
+set -- $(screen_centre aaa); fx=$1; fy=$2
+omarchy-drive key --window flea 1 >/dev/null 2>&1; sleep 0.8
+check "and the home tab does not" "$(rowidx .r0hidden || echo none)" "none"
+# Escape drops the restored selection; aaa already holds R3's copy, so the drop is judged by its delta.
+omarchy-drive key --window flea -k Escape >/dev/null 2>&1; sleep 0.3
+aaa_before=$(ls -A "$HOMEDIR/aaa" | tr '\n' ' ')
+set -- $(screen_centre r1b.txt); sx=$1; sy=$2
+set -- $(ipc tabCentre 2); tx=$(( WX + $1 )); ty=$(( WY + $2 ))
+warp "$sx" "$sy"; sleep 0.4
+press; sleep 0.3
+glide_to "$tx" "$ty"; sleep 1.2
+check "resting on the same-directory tab selected it" "$(ipc tabIndex)" "2"
+glide_to "$fx" "$fy"; sleep 0.6
+release; sleep 0.6
+wait_for "$HOMEDIR/aaa/r1b.txt" present
+check "the lifted file landed in the folder under the drop" \
+      "$([ -e "$HOMEDIR/aaa/r1b.txt" ] && echo aaa || echo missing)" "aaa"
+check "and no other file moved" "$(ls -A "$HOMEDIR/aaa" | grep -vxF r1b.txt | tr '\n' ' ')" "$aaa_before"
+check "and the window survived" "$(ipc total >/dev/null 2>&1 && echo alive || echo gone)" "alive"
+# ---------------------------------------------------------------- R7
+echo
+echo "== R7: a drop on a tab whose listing is still out is a copy, never a cross-device move =="
+# ui/TabBar.qml reads the destination device as unknown while pane.listInFlight, because dirDev is then
+# the directory the hover switch just left; with a tmpfs tab the stale device made the drop a move, and
+# a move across devices copies and then deletes the source. The window is held open, not raced: the
+# suite's own backend is stopped before the switch, so the listing it asks for cannot come back until
+# the drop has been taken, and the backend is continued only then.
+XDEV=$(mktemp -d /dev/shm/flea-drag-xdev-XXXXXX)
+: > "$XDEV/$SANDBOX_MARKER"
+mkdir -p "$XDEV/big/dest"
+check "the tmpfs root is another filesystem than the fixture" \
+      "$([ "$(stat -c %d "$XDEV")" != "$(stat -c %d "$HOMEDIR")" ] && echo other || echo same)" "other"
+printf 'r7 payload\n' > "$HOMEDIR/r7.txt"
+# R6 left the third tab current; it is walked into the tmpfs directory through the path bar, as R5 walked into bbb.
+check "the third tab is current" "$(ipc tabIndex)" "2"
+omarchy-drive key --window flea : >/dev/null 2>&1; sleep 0.3
+omarchy-drive key --window flea "$XDEV/big" >/dev/null 2>&1; sleep 0.2
+omarchy-drive key --window flea -k Return >/dev/null 2>&1
+for i in $(seq 1 40); do [ "$(ipc path)" = "$XDEV/big" ] && [ "$(ipc listInFlight)" = false ] && break; sleep 0.25; done
+check "the third tab lists the tmpfs directory" "$(ipc path)" "$XDEV/big"
+omarchy-drive key --window flea 1 >/dev/null 2>&1; sleep 0.8
+check "the home tab is current again" "$(ipc path)" "$HOMEDIR"
+for i in $(seq 1 40); do rowidx r7.txt >/dev/null 2>&1 && break; sleep 0.25; done
+# The one backend this suite owns: the instance's child running FLEA_BIN --backend, ui/Backend.qml's command.
+BACKEND_PID=""
+for p in $(pgrep -P "$MYPID"); do
+  [ "$(tr '\0' ' ' < "/proc/$p/cmdline" 2>/dev/null)" = "$FLEA_BIN --backend " ] && BACKEND_PID=$p
+done
+check "the suite found the one backend it owns" "$([ -n "$BACKEND_PID" ] && echo found || echo none)" "found"
+set -- $(screen_centre r7.txt); sx=$1; sy=$2
+set -- $(ipc tabCentre 2); tx=$(( WX + $1 )); ty=$(( WY + $2 ))
+warp "$sx" "$sy"; sleep 0.4
+press; sleep 0.3
+kill -STOP "$BACKEND_PID"
+glide_to "$tx" "$ty"
+for i in $(seq 1 40); do [ "$(ipc tabIndex)" = 2 ] && [ "$(ipc listInFlight)" = true ] && break; sleep 0.1; done
+check "resting on the tmpfs tab selected it" "$(ipc tabIndex)" "2"
+check "and its listing is out against the stopped backend" "$(ipc listInFlight)" "true"
+release; sleep 0.5
+check "the drop was taken with the listing still out" "$(ipc listInFlight)" "true"
+check "and the backend was still stopped at that point" "$(cut -d' ' -f3 "/proc/$BACKEND_PID/stat")" "T"
+kill -CONT "$BACKEND_PID"
+wait_for "$XDEV/big/r7.txt" present
+check "the file landed on the tmpfs tab" \
+      "$([ -e "$XDEV/big/r7.txt" ] && echo landed || echo missing)" "landed"
+check "byte for byte" "$(cmp -s "$HOMEDIR/r7.txt" "$XDEV/big/r7.txt" && echo same || echo differs)" "same"
+check "as a copy, so the source survives" \
+      "$([ -e "$HOMEDIR/r7.txt" ] && echo kept || echo GONE)" "kept"
+check "and the window survived" "$(ipc total >/dev/null 2>&1 && echo alive || echo gone)" "alive"
+
+# ---------------------------------------------------------------- R8
+echo
+echo "== R8: the line over a folder on another filesystem says copy, and the drop is one =="
+# ui/List.qml's verbAt reads the source device off the marker, stamped at the lift: after the hover
+# switch the pane's own dirDev is the destination's, and read from there the line said move over a
+# folder the drop would copy into. The same dragCopy drives the row's "copy here" badge.
+printf 'r8 payload\n' > "$HOMEDIR/r8.txt"
+omarchy-drive key --window flea 1 >/dev/null 2>&1; sleep 0.8
+check "the home tab is current" "$(ipc path)" "$HOMEDIR"
+for i in $(seq 1 40); do rowidx r8.txt >/dev/null 2>&1 && break; sleep 0.25; done
+set -- $(screen_centre r8.txt); sx=$1; sy=$2
+set -- $(ipc tabCentre 2); tx=$(( WX + $1 )); ty=$(( WY + $2 ))
+warp "$sx" "$sy"; sleep 0.4
+press; sleep 0.3
+glide_to "$tx" "$ty"
+for i in $(seq 1 40); do [ "$(ipc path)" = "$XDEV/big" ] && [ "$(ipc listInFlight)" = false ] && rowidx dest >/dev/null 2>&1 && break; sleep 0.1; done
+check "resting on the tmpfs tab listed it in full" "$(ipc path)" "$XDEV/big"
+set -- $(screen_centre dest); fx=$1; fy=$2
+glide_to "$fx" "$fy"; sleep 0.6
+check "the line over the folder says copy" "$(ipc stickyMessage)" "Copy 1 item to dest"
+release; sleep 0.6
+wait_for "$XDEV/big/dest/r8.txt" present
+check "the file landed in that folder" \
+      "$([ -e "$XDEV/big/dest/r8.txt" ] && echo landed || echo missing)" "landed"
+check "byte for byte" "$(cmp -s "$HOMEDIR/r8.txt" "$XDEV/big/dest/r8.txt" && echo same || echo differs)" "same"
+check "as a copy, so the source survives" \
+      "$([ -e "$HOMEDIR/r8.txt" ] && echo kept || echo GONE)" "kept"
+check "and the window survived" "$(ipc total >/dev/null 2>&1 && echo alive || echo gone)" "alive"
 echo
 echo "$((pass + fail)) checks, $fail failed"
 [ "$fail" = 0 ] || exit 1

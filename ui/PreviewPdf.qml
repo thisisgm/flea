@@ -45,6 +45,17 @@ Item {
         source: root.active && root.path.length > 0 ? Format.fileUri(root.path) : ""
     }
 
+    // The page's own paper under the raster: on this box a rendered page can arrive with text drawn
+    // and no background, and the dark frame showed through it. Paper is the document's, not a theme
+    // role, so the colour is a constant; visible only with the page, so a loading document draws none.
+    Rectangle {
+        anchors.centerIn: parent
+        visible: page.visible
+        width: page.width
+        height: page.height
+        color: "#ffffff"
+    }
+
     // The page is the only light surface in the app, which is exactly what the canvas draws.
     PdfPageImage {
         id: page

@@ -47,6 +47,7 @@ Row {
 
             TapHandler {
                 acceptedButtons: Qt.LeftButton
+                gesturePolicy: TapHandler.ReleaseWithinBounds
                 onTapped: if (!segment.current) root.picked(segment.index)
             }
         }

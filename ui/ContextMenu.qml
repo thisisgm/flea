@@ -247,10 +247,13 @@ Item {
         entry: ({ separator: true })
     }
 
+    // The ground owns every pointer event outside the rows: hover stops here, the wheel is swallowed, and the click that closes is taken on release so the row beneath never sees a press the close would have handed it.
     MouseArea {
         anchors.fill: parent
         acceptedButtons: Qt.LeftButton | Qt.RightButton
-        onPressed: root.close()
+        hoverEnabled: true
+        onClicked: root.close()
+        onWheel: function (wheel) { wheel.accepted = true }
     }
 
     Rectangle {
@@ -282,6 +285,7 @@ Item {
                     entry: row.modelData
                     compact: root.forRail
                     current: !root.submenuOpen && root.cursor === row.index
+                    onPointerMoved: root.cursor = row.index
                     onActivated: {
                         if (Menu.hasSubmenu(row.modelData))
                             root.openSubmenu(row.index)
@@ -324,6 +328,7 @@ Item {
                     entry: ({ label: subRow.modelData.label, action: "",
                               glyph: Menu.submenuGlyph(root.entries[root.openSubmenuRow].action) })
                     current: root.submenuCursor === subRow.index
+                    onPointerMoved: root.submenuCursor = subRow.index
                     onActivated: root.chooseSub(subRow.modelData.id)
                 }
             }

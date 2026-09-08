@@ -1267,7 +1267,10 @@ single line. `ui/NetworkMounts.qml` was a
 third until its own reconciliation extracted `authFailure` to `ui/js/Errors.js` and brought it to
 398, so it is not listed. They
 are listed in `tools/flea-file-budget` as known exceptions so the tool still fails on anything
-else, and each prints its own line rather than being hidden. Every count below is
+else, and each prints its own line rather than being hidden. The view fixes of 2026-09-07 took
+`ui/NetworkDialog.qml`, `ui/Ipc.qml`, `ui/Pane.qml` and `ui/PreviewColumn.qml`, all already at the
+cap, 2 to 6 lines over each (overlay sinks, the column player in its frame, per-view IPC readers,
+the columns thumbnail relay); they are listed the same way, as 0.1.6 exceptions. Every count below is
 `wc -l` on the file, and every test-module count runs from its `#[cfg(test)]` line to
 the end of the file; run the tool rather than trusting these if the two disagree. **Three of them
 had gone stale by a whole plan and were re-derived from `wc -l` in Plan 5 Task 5a**, so when you

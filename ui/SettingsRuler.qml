@@ -53,6 +53,7 @@ Item {
             TapHandler {
                 enabled: root.active
                 acceptedButtons: Qt.LeftButton
+                gesturePolicy: TapHandler.ReleaseWithinBounds
                 onTapped: root.picked(tick.modelData)
             }
         }

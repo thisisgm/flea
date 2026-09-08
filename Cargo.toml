@@ -1,6 +1,6 @@
 [package]
 name = "flea"
-version = "0.1.5"
+version = "0.1.6"
 edition = "2021"
 # src/vulkan.rs uses c"..." literals, stabilised in 1.77; without this the error names rustc, not flea.
 rust-version = "1.77"

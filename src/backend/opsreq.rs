@@ -102,6 +102,9 @@ fn base_name(p: &Path) -> String {
     p.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default()
 }
 
+pub const INTO_ITSELF: &str = "cannot move or copy a folder into itself";
+pub const ALREADY_THERE: &str = "already in that folder";
+
 // Copy or move, one top-level item at a time, reporting each item's own terminal line as it lands.
 pub fn run_transfer(
     id: usize,
@@ -114,6 +117,9 @@ pub fn run_transfer(
     let mut steps: Vec<Step> = Vec::new();
     let (mut ok, mut failed, mut skipped) = (0usize, 0usize, 0usize);
     let mut was_cancelled = false;
+    // Resolved once: a destination reached through a symlinked directory names the same inode under
+    // another string, and the per-item guards below compare against this rather than the raw path.
+    let dest_real = dest.canonicalize().unwrap_or_else(|_| dest.clone());
     for (index, raw) in paths.iter().enumerate() {
         if cancel.load(Ordering::Relaxed) {
             was_cancelled = true;
@@ -123,6 +129,27 @@ pub fn run_transfer(
         let src = PathBuf::from(raw);
         let name = base_name(&src);
         let dst = dest.join(&name);
+        // A symlink is copied or moved as the link itself (copy_any, move_any), so it holds nothing and its target's tree is not its own; only a real directory can contain the destination.
+        let src_is_link = src.symlink_metadata().map(|m| m.file_type().is_symlink()).unwrap_or(false);
+        let src_real = if src_is_link { src.clone() } else { src.canonicalize().unwrap_or_else(|_| src.clone()) };
+        // A folder into itself or its own subtree: copy_dir would read its own fresh copy until the disk
+        // is full, so the refusal ui/js/Drag.js canDropInto makes is made again here, per item.
+        if !src_is_link && dest_real.starts_with(&src_real) {
+            failed += 1;
+            let _ = tx.send(OpMsg::Item { id, index, name, ok: false, err: INTO_ITSELF.to_string() });
+            continue;
+        }
+        // Where the entry itself lives, link or not: its parent resolved, plus its own name.
+        let src_here = match src.parent() {
+            Some(parent) => parent.canonicalize().unwrap_or_else(|_| parent.to_path_buf()).join(&name),
+            None => src.clone(),
+        };
+        // An item dropped into the folder it already lives in: copy_file would truncate it onto itself.
+        if dst == src || dest_real.join(&name) == src_here {
+            failed += 1;
+            let _ = tx.send(OpMsg::Item { id, index, name, ok: false, err: ALREADY_THERE.to_string() });
+            continue;
+        }
         match one_item(id, index, &name, moving, &src, &dst, &cancel, &tx, &mut steps) {
             Ok(()) => {
                 ok += 1;
@@ -205,187 +232,4 @@ pub fn run_duplicate(path: String, tx: Sender<OpMsg>) {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use crate::backend::testdir::TestDir;
-    use crate::backend::undo::Journal;
-    use std::os::unix::fs::PermissionsExt;
-    use std::sync::mpsc::{channel, Receiver};
-
-    // Drains an operation's channel to its terminal line, which is what every transfer case reads.
-    fn done_line(rx: Receiver<OpMsg>) -> (usize, usize, usize, bool, Entry) {
-        let mut done = None;
-        for msg in rx.iter() {
-            if let OpMsg::TransferDone { ok, failed, skipped, cancelled, entry, .. } = msg {
-                done = Some((ok, failed, skipped, cancelled, entry));
-            }
-        }
-        done.expect("a terminal line")
-    }
-
-    #[test]
-    fn a_successful_item_line_carries_no_err_field_at_all() {
-        let line = transferitem_line(12, 0, "a.txt", true, "");
-        assert_eq!(line, r#"{"t":"transferitem","id":12,"index":0,"name":"a.txt","ok":true}"#);
-        assert!(!line.contains("err"));
-    }
-
-    #[test]
-    fn a_failed_item_line_carries_its_reason_escaped() {
-        let line = transferitem_line(12, 1, "say \"hi\".txt", false, "permission denied");
-        assert!(line.contains(r#""ok":false"#));
-        assert!(line.contains(r#""err":"permission denied""#));
-        assert!(line.contains(r#"say \"hi\".txt"#), "a name is escaped like every other string on this wire");
-    }
-
-    #[test]
-    fn every_operation_line_matches_the_shape_the_operations_design_names() {
-        assert_eq!(transferstarted_line(12, 2, false), r#"{"t":"transferstarted","id":12,"n":2,"moving":false}"#);
-        assert_eq!(transferstarted_line(12, 2, true), r#"{"t":"transferstarted","id":12,"n":2,"moving":true}"#);
-        assert_eq!(
-            transferprogress_line(12, 0, "a.txt", 40000000, 120000000),
-            r#"{"t":"transferprogress","id":12,"index":0,"name":"a.txt","bytes":40000000,"total":120000000}"#
-        );
-        assert_eq!(
-            transferdone_line(12, 1, 1, 0, false),
-            r#"{"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":false}"#
-        );
-        assert_eq!(trashed_line(1, 0), r#"{"t":"trashed","ok":1,"failed":0}"#);
-        assert_eq!(renamed_line(true, "/home/gm/new.txt"), r#"{"t":"renamed","ok":true,"path":"/home/gm/new.txt"}"#);
-        assert_eq!(
-            duplicated_line(true, "/home/gm/photo copy.jpg"),
-            r#"{"t":"duplicated","ok":true,"path":"/home/gm/photo copy.jpg"}"#
-        );
-        assert_eq!(made_line(true, "/home/gm/New Folder"), r#"{"t":"made","ok":true,"path":"/home/gm/New Folder"}"#);
-        assert_eq!(undone_line("move", true), r#"{"t":"undone","op":"move","ok":true}"#);
-    }
-
-    #[test]
-    fn a_destination_that_is_not_an_existing_directory_is_refused_before_any_item_is_touched() {
-        let d = TestDir::new("dest");
-        assert!(usable_dest(&d.path().to_string_lossy()).is_ok());
-        let file = d.file("not-a-dir.txt", "body");
-        assert_eq!(
-            usable_dest(&file.to_string_lossy()).unwrap_err().msg,
-            "the destination is not a directory"
-        );
-        assert!(usable_dest("relative/path").is_err(), "a relative destination is never resolved here");
-        assert!(usable_dest(&d.join("missing").to_string_lossy()).is_err(), "Flea does not create the destination");
-    }
-
-    #[test]
-    fn a_copy_transfer_records_only_what_it_created_and_leaves_the_sources() {
-        let d = TestDir::new("transfercopy");
-        let src = d.file("a.txt", "body");
-        let dest = d.dir("out");
-        let (tx, rx) = channel();
-        run_transfer(1, false, vec![src.to_string_lossy().to_string()], dest.clone(), Arc::new(AtomicBool::new(false)), tx);
-        assert!(src.exists(), "a copy leaves its source");
-        assert_eq!(std::fs::read_to_string(dest.join("a.txt")).unwrap(), "body");
-        let (ok, failed, _, _, entry) = done_line(rx);
-        assert_eq!((ok, failed), (1, 0));
-        assert_eq!(entry.op, "copy");
-        assert_eq!(entry.steps, vec![Step::Created { path: dest.join("a.txt") }]);
-    }
-
-    #[test]
-    fn a_move_transfer_records_where_each_item_came_from() {
-        let d = TestDir::new("transfermove");
-        let src = d.file("b.txt", "body");
-        let dest = d.dir("out");
-        let (tx, rx) = channel();
-        run_transfer(2, true, vec![src.to_string_lossy().to_string()], dest.clone(), Arc::new(AtomicBool::new(false)), tx);
-        assert!(!src.exists(), "a move leaves nothing at the source");
-        let (_, _, _, _, entry) = done_line(rx);
-        assert_eq!(entry.op, "move");
-        assert_eq!(entry.steps, vec![Step::Moved { from: src, to: dest.join("b.txt") }]);
-    }
-
-    #[test]
-    fn one_failing_item_is_data_and_the_batch_carries_on() {
-        let d = TestDir::new("transferpartial");
-        let good = d.file("good.txt", "body");
-        let missing = d.join("never-existed.txt");
-        let dest = d.dir("out");
-        let (tx, rx) = channel();
-        run_transfer(
-            3,
-            false,
-            vec![missing.to_string_lossy().to_string(), good.to_string_lossy().to_string()],
-            dest.clone(),
-            Arc::new(AtomicBool::new(false)),
-            tx,
-        );
-        assert!(dest.join("good.txt").exists(), "the item after the failure still ran");
-        let mut counts = None;
-        let mut errs = Vec::new();
-        for msg in rx.iter() {
-            match msg {
-                OpMsg::TransferDone { ok, failed, .. } => counts = Some((ok, failed)),
-                OpMsg::Item { ok: false, err, .. } => errs.push(err),
-                _ => {}
-            }
-        }
-        assert_eq!(counts, Some((1, 1)));
-        assert_eq!(errs.len(), 1, "the failure is one item's data, not the operation's");
-    }
-
-    // A file with no permission bits answers EACCES to open(2) for every uid but root, so it forces
-    // the failure a permission error would, in whichever order read_dir yields; what was copied stays.
-    #[test]
-    fn a_copy_that_fails_short_of_a_cancel_records_the_partial_tree_and_undo_removes_it() {
-        let d = TestDir::new("transferpartialtree");
-        let src = d.dir("tree");
-        std::fs::write(src.join("good.txt"), "body").unwrap();
-        let shut = src.join("shut.txt");
-        std::fs::write(&shut, "body").unwrap();
-        std::fs::set_permissions(&shut, std::fs::Permissions::from_mode(0o000)).unwrap();
-        let dest = d.dir("out");
-        let (tx, rx) = channel();
-        run_transfer(5, false, vec![src.to_string_lossy().to_string()], dest.clone(), Arc::new(AtomicBool::new(false)), tx);
-        let (ok, failed, _, cancelled, entry) = done_line(rx);
-        assert_eq!((ok, failed, cancelled), (0, 1, false));
-        let partial = dest.join("tree");
-        assert!(partial.is_dir(), "a failure that is not a cancel leaves what it copied");
-        assert_eq!(entry.steps, vec![Step::Created { path: partial.clone() }], "the partial tree is journaled");
-        let mut j = Journal::new();
-        j.push(entry);
-        assert_eq!(j.undo().expect("undo"), "copy");
-        assert!(!partial.exists(), "undo removed the partial tree");
-        assert!(src.join("good.txt").exists(), "and left the source alone");
-    }
-
-    #[test]
-    fn a_copy_refused_at_an_existing_destination_records_nothing_to_undo() {
-        let d = TestDir::new("transferclobber");
-        let src = d.file("a.txt", "new");
-        let dest = d.dir("out");
-        std::fs::write(dest.join("a.txt"), "already here").unwrap();
-        let (tx, rx) = channel();
-        run_transfer(6, false, vec![src.to_string_lossy().to_string()], dest.clone(), Arc::new(AtomicBool::new(false)), tx);
-        let (_, failed, _, _, entry) = done_line(rx);
-        assert_eq!(failed, 1);
-        assert!(entry.steps.is_empty(), "undo must never remove what the user already had");
-        assert_eq!(std::fs::read_to_string(dest.join("a.txt")).unwrap(), "already here");
-    }
-
-    #[test]
-    fn a_cancelled_transfer_skips_the_rest_and_says_so() {
-        let d = TestDir::new("transfercancel");
-        let a = d.file("a.txt", "one");
-        let b = d.file("b.txt", "two");
-        let dest = d.dir("out");
-        let (tx, rx) = channel();
-        run_transfer(
-            4,
-            false,
-            vec![a.to_string_lossy().to_string(), b.to_string_lossy().to_string()],
-            dest.clone(),
-            Arc::new(AtomicBool::new(true)),
-            tx,
-        );
-        let (ok, _, skipped, cancelled, _) = done_line(rx);
-        assert_eq!((ok, skipped, cancelled), (0, 2, true));
-        assert!(!dest.join("a.txt").exists(), "a cancel before the first item copies nothing");
-    }
-}
+mod tests;

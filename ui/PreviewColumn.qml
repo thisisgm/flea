@@ -25,6 +25,11 @@ Item {
     // duration, so browsing a folder of clips builds no MediaPlayer at all: it costs nothing, makes
     // no sound, and stops QtMultimedia logging a teardown warning on every cursor move.
     property bool wantsPlayback: false
+    // The shared Space preview, handed in by ui/ColumnsArea.qml: one file plays in one place.
+    property bool overlayOpen: false
+    // Where a player may exist at all: this column on screen, no overlay over it, and a strip to drive it; losing any of them ends the play intent.
+    readonly property bool playerAllowed: root.visible && !root.overlayOpen && mediaLoader.active
+    onPlayerAllowedChanged: if (!root.playerAllowed) root.wantsPlayback = false
 
     // A new row is a new subject, so whatever was playing stops being this column's business, and
     // the player it needed is torn down with it.
@@ -68,6 +73,12 @@ Item {
     readonly property bool thumbDrawn: root.thumb.length > 0 ? frameThumb.status !== Image.Error
                                                              : frameThumb.status === Image.Ready
     readonly property bool thumbShown: root.wantsThumb && root.thumbDrawn
+    // For ui/Ipc.qml's columnFrameRect: the box a playing video's pixels must change inside.
+    readonly property Item frameItem: frame
+    readonly property Item linesItem: lines
+    readonly property Item archiveItem: archivePane
+    // Ready is the decoded picture on screen; thumbShown is already true while it loads.
+    readonly property alias frameStatus: frameThumb.status
     // The two states whose picture is the thumbnail; audio's mark is what that state draws when it works.
     readonly property bool picturesFromThumb: root.previewState === Facts.IMAGE || root.previewState === Facts.VIDEO
 
@@ -97,7 +108,7 @@ Item {
                 id: frameThumb
                 anchors.fill: parent
                 anchors.margins: Theme.spacing.hairline
-                visible: root.thumbShown
+                visible: root.thumbShown && !playerLoader.visible
                 source: root.frameSource()
                 fillMode: Image.PreserveAspectFit
                 asynchronous: true
@@ -106,6 +117,24 @@ Item {
                 // which can be the whole camera file, takes the ceiling ui/PreviewImage.qml sets.
                 sourceSize.width: root.thumb.length > 0 ? 0 : Math.max(1, Math.round(width))
                 sourceSize.height: root.thumb.length > 0 ? 0 : Math.max(1, Math.round(height))
+            }
+
+            // The player, in the frame it paints into; built by the first press of play and not before, and by source rather than type, because QtMultimedia costs 20 MB on import alone.
+            Loader {
+                id: playerLoader
+                anchors.fill: parent
+                anchors.margins: Theme.spacing.hairline
+                active: root.wantsPlayback && root.playerAllowed
+                visible: active && root.previewState === Facts.VIDEO
+                source: "PreviewMedia.qml"
+                onLoaded: {
+                    item.path = Qt.binding(function () { return root.path })
+                    item.kind = Qt.binding(function () {
+                        return root.previewState === Facts.VIDEO ? "video" : "audio"
+                    })
+                    // It exists because play was pressed, so it starts.
+                    item.autoStart = true
+                }
             }
 
             // The kind's mark, and the one line saying why it is standing in. A frame with neither is
@@ -208,6 +237,7 @@ Item {
 
             // The canvas's Archive tile: the first entries by name, then the count it could not show.
             Flea.PreviewArchive {
+                id: archivePane
                 anchors.fill: parent
                 anchors.margins: Theme.spacing.gap
                 visible: root.previewState === Facts.ARCHIVE && root.meta !== null
@@ -282,26 +312,7 @@ Item {
             readonly property real position: playerLoader.item ? playerLoader.item.position : 0
             readonly property var strip: strip
 
-            // Built by the first press of play and not before, so QtMultimedia is never imported by
-            // browsing alone. The probe's duration is what gives the strip a scale until then.
-            Loader {
-                id: playerLoader
-                anchors.fill: parent
-                visible: false
-                active: root.wantsPlayback
-                // source, not sourceComponent: QtMultimedia costs 20 MB on import alone, and naming
-                // the type here would load it whether or not play was ever pressed.
-                source: "PreviewMedia.qml"
-                onLoaded: {
-                    item.path = Qt.binding(function () { return root.path })
-                    item.kind = Qt.binding(function () {
-                        return root.previewState === Facts.VIDEO ? "video" : "audio"
-                    })
-                    // It exists because play was pressed, so it starts.
-                    item.autoStart = true
-                }
-            }
-
+            // The player is playerLoader in the frame above; the probe's duration gives the strip a scale until it exists.
             Flea.MediaStrip {
                 id: strip
                 anchors.fill: parent
@@ -332,6 +343,12 @@ Item {
     function mediaPlaying() { return mediaLoader.item ? mediaLoader.item.playing : false }
     function mediaPosition() { return mediaLoader.item ? mediaLoader.item.position : 0 }
     function mediaStripItem() { return mediaLoader.item ? mediaLoader.item.strip : null }
+    // Whether a player object exists at all, for the teardown check; playing false alone would mask one that survived.
+    function playerLoaded() { return playerLoader.item !== null }
+    // What the text, archive and failure surfaces actually draw, for ui/Ipc.qml: the lines, the member names, the sentence.
+    function textLines() { return lines.tooLarge ? "too large" : lines.lines.join("|") }
+    function archiveNames() { return root.meta && root.meta.names ? root.meta.names.map(function (e) { return e.n }).join("|") : "" }
+    function failureText() { return root.failure }
 
     // A multi-selection describes a count, not a file, so it names the count instead of a name.
     function nameText() {

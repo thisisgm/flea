@@ -19,6 +19,11 @@ Item {
     property bool retrying: false
     property bool failedConnect: false
     readonly property string dialogTitle: root.baseTitle() + (root.failedConnect ? ", failed connect" : "")
+    // The card keeps this much window above and below it when the window is shorter than the card.
+    readonly property int clampMargin: 8
+    // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
+    readonly property var cardItem: card
+    readonly property var bodyItem: body
 
     signal closed()
     // Sidebar's own bookmarksFile FileView never watched a directory absent at its own
@@ -37,10 +42,7 @@ Item {
         root.retrying = false
         root.failedConnect = false
         form.reset()
-        root.checkDropbox()
-        root.opened = true
-        // The host is the one field the form actually needs, so it takes the caret on open.
-        form.focusHost()
+        root.present()
     }
 
     function openLocation(uri, label, password, reason, failed) {
@@ -48,8 +50,15 @@ Item {
         root.statusText = reason || ""
         root.retrying = true
         root.failedConnect = failed === true
+        root.present()
+    }
+
+    // The card is kept between opens, so a body scrolled last time would open scrolled.
+    function present() {
+        body.contentY = 0
         root.checkDropbox()
         root.opened = true
+        // The host is the one field the form actually needs, so it takes the caret on open.
         form.focusHost()
     }
 
@@ -138,6 +147,8 @@ Item {
     // The canvas labels this "Connect and save" on every protocol card, and it is the accurate name: the save mounts as well as writing the bookmark.
     function formAction() { return root.retrying ? "Retry" : "Connect and save" }
     function formMetrics() { return Math.round(card.padding) + "|" + Math.round(content.spacing) }
+    // "contentY|contentHeight|height" of the scrolling body, so a test sees the clamp and the scroll.
+    function bodyScroll() { return Math.round(body.contentY) + "|" + Math.round(body.contentHeight) + "|" + Math.round(body.height) }
     function formMetricTargets() { return Style.space(16) + "|" + Style.space(12) }
 
     function baseTitle() {
@@ -238,7 +249,10 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            hoverEnabled: true
             onClicked: root.close()
+            onWheel: function (wheel) { wheel.accepted = true }
         }
     }
 
@@ -246,7 +260,8 @@ Item {
     BorderSurface {
         id: card
         width: Theme.space(380)
-        height: content.implicitHeight + contentTopInset + contentBottomInset
+        // Clamped to the window; the body scrolls whatever the clamp cut, see ui/CardScroll.qml.
+        height: Math.min(body.wanted + contentTopInset + contentBottomInset, root.height - 2 * root.clampMargin)
         anchors.centerIn: parent
         // Open rises into place; close does not translate (enabled: root.opened only), only fades,
         // faster than the open animation. root.opened itself already flipped above, synchronously.
@@ -273,17 +288,22 @@ Item {
 
         MouseArea {
             anchors.fill: parent
+            acceptedButtons: Qt.LeftButton | Qt.RightButton
             onClicked: {}
+            onWheel: function (wheel) { wheel.accepted = true }
         }
+
+        Flea.CardScroll {
+            id: body
+            anchors.fill: parent
+            anchors.topMargin: card.contentTopInset
+            anchors.bottomMargin: card.contentBottomInset
+            anchors.leftMargin: card.contentLeftInset
+            anchors.rightMargin: card.contentRightInset
 
         Column {
             id: content
-            anchors.top: parent.top
-            anchors.left: parent.left
-            anchors.right: parent.right
-            anchors.topMargin: card.contentTopInset
-            anchors.leftMargin: card.contentLeftInset
-            anchors.rightMargin: card.contentRightInset
+            width: parent.width
             // Outer rhythm and each section's own header-to-content gap read exact off tailscale/dropbox Panel.qml.
             spacing: Style.space(12)
 
@@ -311,12 +331,14 @@ Item {
                     }
                 }
 
+                // The slot is always there, two caption lines tall, so an error appearing never moves the buttons.
                 Row {
-                    visible: root.statusText.length > 0
                     width: parent.width
+                    height: Theme.rowHeight
                     spacing: Theme.spacing.gap
 
                     Flea.Glyph {
+                        visible: root.statusText.length > 0
                         width: Theme.font.caption
                         height: Theme.font.caption
                         name: "alert"
@@ -330,6 +352,8 @@ Item {
                         font.family: Theme.font.family
                         font.pixelSize: Theme.font.body
                         wrapMode: Text.Wrap
+                        maximumLineCount: 2
+                        elide: Text.ElideRight
                         textFormat: Text.PlainText
                     }
                 }
@@ -372,6 +396,7 @@ Item {
                     onActivated: root.installDropbox()
                 }
             }
+        }
         }
     }
 }

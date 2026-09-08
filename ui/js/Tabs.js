@@ -30,7 +30,9 @@ function snapshot(pane, path) {
         showHidden: pane.showHidden,
         selected: elsewhere ? [] : pane.selectedIndices().slice(),
         sortBy: pane.backend.sortBy,
-        sortDesc: pane.backend.sortDesc
+        sortDesc: pane.backend.sortDesc,
+        // The directory's filesystem, so a drop on this tab while another shows decides move against copy.
+        dev: elsewhere ? 0 : pane.backend.dirDev
     }
 }
 
@@ -64,6 +66,13 @@ function pathAt(tabs, index, i, currentPath) {
     if (i === index)
         return currentPath
     return tabs && tabs.items && tabs.items[i] ? tabs.items[i].path : ""
+}
+
+// The tab's filesystem the same way, 0 when unknown, which ui/js/Drag.js verbFor reads as copy.
+function devAt(tabs, index, i, currentDev) {
+    if (i === index)
+        return currentDev
+    return tabs && tabs.items && tabs.items[i] ? Number(tabs.items[i].dev) || 0 : 0
 }
 
 function labels(pane) {

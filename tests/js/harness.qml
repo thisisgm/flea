@@ -29,6 +29,7 @@ import "protocols.js" as ProtocolsSuite
 import "railkeys.js" as RailKeysSuite
 import "recent.js" as RecentSuite
 import "renderer.js" as RendererSuite
+import "scroll.js" as ScrollSuite
 import "search.js" as SearchSuite
 import "selection.js" as SelectionSuite
 import "settings.js" as SettingsSuite
@@ -71,7 +72,7 @@ Item {
             ["protocols", ProtocolsSuite], ["railkeys", RailKeysSuite],
             ["recent", RecentSuite],
             ["renderer", RendererSuite],
-            ["search", SearchSuite],
+            ["scroll", ScrollSuite], ["search", SearchSuite],
             ["selection", SelectionSuite], ["settings", SettingsSuite],
             ["sort", SortSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["tabs", TabsSuite],

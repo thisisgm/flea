@@ -305,6 +305,8 @@ for row in "${ENTRANT_ROWS[@]}"; do
       # The one unpackaged rival. A tag is what a user installs, so the tag is what the row records
       # and a bare sha is called out as not being a release.
       desc=$(git -C "$STRATA_SRC" describe --tags --always 2>/dev/null)
+      # The prose below names the tag the row records, so the two cannot drift apart.
+      strata_tag=$desc
       when=$(git -C "$STRATA_SRC" log -1 --format=%cs 2>/dev/null)
       note=""
       case $desc in
@@ -331,7 +333,7 @@ for row in "${ENTRANT_ROWS[@]}"; do
 done
 say '```'
 say ""
-say "strata is the one entrant pacman did not install. It is built here from the v0.6.1 tag in a"
+say "strata is the one entrant pacman did not install. It is built here from the ${strata_tag:-unknown} tag in a"
 say "local checkout. **The project also publishes a prebuilt x86_64 binary for that tag and it was"
 say "not used**: this harness does not download and execute a third-party binary unattended, and"
 say "every packaged entrant is itself built from source by the distribution, so building from the"

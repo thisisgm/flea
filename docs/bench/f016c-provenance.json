@@ -1,0 +1,17 @@
+{
+  "measured_commit": "f8751aa2768679aba216d8d451669709ec9b6837",
+  "released_commit": "784da4692e1594dfa99cc7de841c8a3cb3b5a7e2",
+  "identical_tree": "921b1c26ce5c3763de24cf2b815cd9bf9edf40a6",
+  "files": {
+    "f016c-scale": {
+      "csv_sha256": "456bbf0dde895319ea7c7934c3fa39bf3c8743159b4ec5a2478cfca5ee1d6f33",
+      "original_manifest_sha256": "80939e3462047fbef8068349d7dd0f2b70390a5444464b41ed9da89dea8c1d1a",
+      "public_manifest_sha256": "0993b6c2f075deb108fffb46d5615ca5f9c1c419760b001da22c44b6750d362f"
+    },
+    "f016c-media": {
+      "csv_sha256": "a94138320451370f4d0786203b9e2276216c40c44a31e11eac1c1b14f815b5e2",
+      "original_manifest_sha256": "b77d0c45dfaa55b38b9200aebab6593537a8e28401a2085c52159da66e0a295d",
+      "public_manifest_sha256": "f668f5fcbb462b6080006120d58bdb18949efcaa210ac2a655724453a3109b6c"
+    }
+  }
+}

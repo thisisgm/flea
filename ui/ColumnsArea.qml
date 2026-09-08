@@ -2,6 +2,7 @@ import QtQuick
 import qs.Commons
 import "." as Flea
 import "js/Facts.js" as Facts
+import "js/Focus.js" as Focus
 import "js/Nav.js" as Nav
 import "js/Thumbs.js" as Thumbs
 import "js/Tap.js" as Tap
@@ -14,6 +15,10 @@ Item {
 
     property var pane: null
     property var menu: null
+    // The active column's thumbnail plan, relayed for ui/Pane.qml to write, the grid's own contract.
+    signal thumbsApplied(var work)
+    // Whichever view is up owns the keyboard, and Focus.handleKey is the one route all three take.
+    Keys.onPressed: function (event) { event.accepted = Focus.handleKey(event, root.pane, root.pane.sidebar) }
 
     // path -> the rows a peek answered for it. Cleared whenever the pane moves, because a stale
     // column is worse than an empty one.
@@ -79,12 +84,10 @@ Item {
                                   kind === Facts.ARCHIVE)
     }
 
-    // The listArea contract every caller of the pane's own navigation uses. A column view has no
-    // scrolling viewport of its own to plan work for: the only per-row cost it pays is one thumbnail
-    // for the row the preview column is actually drawing.
+    // The listArea contract every caller of the pane's own navigation uses: the listing's column plans its own viewport's thumbnails, the way the list and the grid do.
     function primeSettle() {}
     function restartCoalesce() {}
-    function restartSettle() { root.askThumb() }
+    function restartSettle() { active.restartSettle() }
     function positionViewAtIndex(index, mode) { active.positionViewAtIndex(index - root.pane.held, mode) }
     // The one column whose rows are the pane's own, for ui/Ipc.qml: the two beside it are peeks and
     // answer for another directory, so neither is where a background right click belongs.
@@ -92,9 +95,31 @@ Item {
     // The middle column's model is held-relative, unlike the list's and the grid's, so a caller
     // holding an absolute cursor index reaches a delegate through here rather than directly.
     function itemAtIndex(index) { return active.itemAtIndex(index - root.pane.held) }
+    function activeContentY() { return active.contentY() }
 
     // A neighbour column's row, which the pane has no cursor on: a directory becomes the pane's own
     // listing, which is this view's reveal, and a file goes to the opener.
+    // The peek's directory becomes the listing; Nav.applyPendingSelect puts the cursor on the row and opens the menu once the rows land.
+    function menuOnNeighbour(base, name) {
+        root.pane.pendingSelect = root.pane.join(base, name)
+        root.pane.pendingMenu = true
+        root.pane.open(base)
+    }
+
+    // For ui/Ipc.qml: the peek columns' rows and the child column's empty tile, which pane.visibleItemFor cannot reach.
+    function parentItemAt(index) { return parentColumn.itemAtIndex(index) }
+    function childItemAt(index) { return childColumn.itemAtIndex(index) }
+    function childEmptyItem() { return childColumn.emptyItem }
+    function frameItem() { return preview.frameItem }
+    function playerLoaded() { return preview.playerLoaded() }
+    function thumbShown() { return preview.thumbShown }
+    function frameReady() { return preview.frameStatus === Image.Ready }
+    function textLines() { return preview.textLines() }
+    function linesItem() { return preview.linesItem }
+    function archiveItem() { return preview.archiveItem }
+    function archiveNames() { return preview.archiveNames() }
+    function failureText() { return preview.failureText() }
+
     function activateNeighbour(base, name, isDir) {
         var target = root.pane.join(base, name)
         if (isDir)
@@ -103,12 +128,7 @@ Item {
             root.pane.openFile(target)
     }
 
-    function askThumb() {
-        var row = root.cursorRow
-        if (!row || row.d || row.t !== true)
-            return
-        root.pane.backend.thumb([root.pane.cursorIndex])
-    }
+    function askThumb() { active.restartSettle() }
 
     // "Kind=MPEG-4 video|Duration=1:12|...", so a test reads the preview column's own table.
     function factsLine() {
@@ -209,6 +229,7 @@ Item {
         // The parent, showing where the current directory sits among its own siblings. Its own row
         // for the current directory is the cursor trail: lifted like a hover, never accented.
         Flea.ColumnPane {
+            id: parentColumn
             width: root.columnWidth
             height: parent.height
             rows: root.rowsFor(root.parentPath)
@@ -217,6 +238,7 @@ Item {
             liftedName: Nav.leafOf(root.pane.path)
             dim: true
             onActivated: function (name, isDir) { root.activateNeighbour(root.parentPath, name, isDir) }
+            onNeighbourMenuRequested: function (name) { root.menuOnNeighbour(root.parentPath, name) }
         }
 
         // The pane's own listing, which is why this column and only this one takes the accent.
@@ -233,6 +255,7 @@ Item {
             onPicked: function (index, tapCount, modifiers) { Tap.tapped(index, tapCount, modifiers, root.pane) }
             onMenuRequested: function (index, eventPoint) { Tap.tappedMenu(index, eventPoint, root.pane, root.menu) }
             onBackgroundMenuRequested: function (eventPoint) { root.menu.openBackground(eventPoint.scenePosition) }
+            onThumbsApplied: function (work) { root.thumbsApplied(work) }
         }
 
         // The cursor row: what is inside it when it is a directory, what it is when it is a file.
@@ -241,12 +264,14 @@ Item {
             height: parent.height
 
             Flea.ColumnPane {
+                id: childColumn
                 anchors.fill: parent
                 visible: root.cursorIsDir
                 rows: root.rowsFor(root.childPath)
                 lockedMode: root.deniedMode(root.childPath)
                 drawsEmpty: root.answered(root.childPath)
                 onActivated: function (name, isDir) { root.activateNeighbour(root.childPath, name, isDir) }
+                onNeighbourMenuRequested: function (name) { root.menuOnNeighbour(root.childPath, name) }
             }
 
             Flea.PreviewColumn {
@@ -257,6 +282,7 @@ Item {
                 meta: root.cursorMeta
                 kindName: root.kindName(root.pane.cursorIndex)
                 thumb: root.pane.thumbFor(root.pane.cursorIndex)
+                overlayOpen: root.pane.preview.active
                 noThumbComing: Thumbs.refused(root.pane.thumbState, root.pane.cursorIndex)
                                || (root.cursorRow !== null && root.cursorRow.t !== true)
                 selectionCount: root.pane.selectionCount()
