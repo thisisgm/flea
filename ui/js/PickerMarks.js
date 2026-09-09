@@ -1,5 +1,7 @@
 .pragma library
 
+.import "Picker.js" as Picker
+
 // What the chooser's check boxes hold and how a key or a click changes it. A mark is a path and
 // its size, never a row number; ui/js/Picker.js weighs and answers the list this builds.
 
@@ -49,6 +51,15 @@ function select(marks, path, bytes, multiple) {
     var out = marks.slice()
     out.push({ path: path, bytes: bytes })
     return out
+}
+
+// Return. Explicit marks win; without one, a file under the cursor is the answer. Recent keeps its
+// explicit-mark rule, and a directory is opened by PickerState before this point.
+function answer(marks, location, row) {
+    if (marks.length > 0) {
+        return Picker.paths(marks)
+    }
+    return row && !row.d && !Picker.isRecent(location) ? [Picker.rowPath(location, row.n)] : []
 }
 
 // Shift+click. Every unmarked row from the anchor to the clicked one joins the marks, in that

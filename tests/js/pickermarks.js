@@ -23,6 +23,20 @@ function run(check) {
     check("select never unmarks in multiple mode", Picker.totalBytes(Marks.select(many, "/x/b.png", 20, true)), 30)
     check("toggle still clears its own in single mode", Picker.paths(Marks.toggle(one, "/x/a.png", 10, false)).length, 0)
 
+    // Return prefers explicit marks. With none, a file under the cursor is the one answer.
+    var cursorFile = { n: "c.png", d: false }
+    check("marks win over the cursor fallback",
+          Marks.answer(many, "/x", cursorFile).join(","), "/x/a.png,/x/b.png")
+    check("an unmarked cursor file is the answer",
+          Marks.answer([], "/x", cursorFile).join(","), "/x/c.png")
+    check("an explicit Recent mark is still the answer",
+          Marks.answer([{ path: "/home/gm/c.png", bytes: 1 }], Picker.RECENT,
+                       { n: "home/gm/c.png", d: false }).join(","), "/home/gm/c.png")
+    check("an unmarked Recent cursor file is not an answer",
+          Marks.answer([], Picker.RECENT, { n: "home/gm/c.png", d: false }).length, 0)
+    check("a cursor directory is not an answer", Marks.answer([], "/x", { n: "sub", d: true }).length, 0)
+    check("no cursor row is not an answer", Marks.answer([], "/x", null).length, 0)
+
     // Shift+click hands the range of drawn rows from the anchor to the click, anchor first.
     var a = { path: "/x/a.png", bytes: 10 }
     var b = { path: "/x/b.png", bytes: 20 }
