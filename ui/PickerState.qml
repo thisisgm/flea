@@ -99,6 +99,12 @@ QtObject {
     // The current trash request's paths. Its reply carries counts only, so cleanup uses this snapshot.
     property var trashPending: []
     property int renamingIndex: -1
+    // The old identity stays until success can move a mark to the path the backend returns.
+    property string renameFromPath: ""
+    // The listing that sent the write. Recent is a token, so the source file's parent cannot name it.
+    property string renameListingPath: ""
+    // A click-away commit keeps the row the pointer chose, named across the async reply by path.
+    property string renamePointerPath: ""
     property string renameOnArrival: ""
     property var transfer: Ops.emptyTransfer()
     // ui/Pane.qml's cap, seven screens of answered rows, so a policy bug costs memory slowly.
@@ -117,8 +123,8 @@ QtObject {
     function paste() { PickerOps.paste(root) }
     // A row's identity, which in Recent is the row's own path and never a join onto the token.
     function join(base, name) { return Picker.rowPath(base, name) }
-    function message(text, isError) { root.say(text) }
-    function sticky(text) { root.say(text, true) }
+    function message(text, isError) { root.footer.say(text, false, isError) }
+    function sticky(text) { root.footer.sticky = text }
     // Sort.resort clears a selection because a reorder rebinds every index. A mark is a path and
     // survives a reorder the way it survives Back, so there is nothing here to clear.
     function clearSelection() {}
@@ -131,6 +137,16 @@ QtObject {
     function showRow(view) { root.list.positionViewAtIndex(view, ListView.Contain) }
     // The re-read after one of the picker's own writes; see ui/js/PickerOps.js refresh.
     function refresh(selectPath) { PickerOps.refresh(root, selectPath) }
+    function startRename() {
+        if (root.renameFromPath.length === 0)
+            Ops.startRename(root)
+    }
+    function commitRename(newName) {
+        var row = root.rowFor(root.renamingIndex)
+        root.renameFromPath = row ? root.join(root.path, row.n) : ""
+        root.renameListingPath = root.path
+        Ops.commitRename(root, newName)
+    }
 
     function rowFor(index) {
         var at = index - root.held
@@ -152,6 +168,8 @@ QtObject {
         root.rows = []
         root.cursorIndex = 0
         root.markAnchor = -1
+        // The editor belongs to the listing being replaced. Its index must not name a new row.
+        root.renamingIndex = -1
         // A filter narrows the rows already listed, so a new listing is what forgets it, ui/js/Nav.js's rule.
         Filter.close(root)
         root.thumbState = Thumbs.empty()
@@ -274,7 +292,7 @@ QtObject {
 
     // A held message stays until the next say: the share legs can take their whole deadline.
     function say(text, hold) {
-        root.footer.say(text, hold)
+        root.footer.say(text, hold, false)
     }
 
     // The keyboard back on the listing, whichever surface it was in: a click on a row or a place

@@ -78,6 +78,7 @@ ListView {
         readonly property bool isMarked: cell.markable && Marks.marked(root.picker.marks, cell.rowPath)
         // The drawn row, for the seam that reads its column set beside the header's.
         readonly property var rowItem: drawn
+        readonly property bool renaming: drawn.renaming
 
         width: root.width
         height: Theme.rowHeight
@@ -109,6 +110,9 @@ ListView {
             cursor: cell.listingIndex === root.picker.cursorIndex
             hovered: hover.hovered
             kindNames: root.picker.kindNames
+            renaming: cell.listingIndex === root.picker.renamingIndex
+            onRenameCommitted: function (newName) { root.picker.commitRename(newName) }
+            onRenameAbandoned: root.picker.renamingIndex = -1
         }
 
         Rectangle {
@@ -145,9 +149,11 @@ ListView {
             // two marking modifiers, neither ever opens, and only the first tap of one counts, so a
             // held double click marks once instead of toggling itself back off.
             onTapped: function (eventPoint, button) {
+                var mods = tap.point.modifiers
+                if (!(mods & (Qt.ControlModifier | Qt.ShiftModifier)))
+                    root.commitOpenRename(cell.listingIndex)
                 root.picker.cursorIndex = cell.listingIndex
                 root.picker.focusList()
-                var mods = tap.point.modifiers
                 if (mods & Qt.ControlModifier) {
                     if (tap.tapCount === 1)
                         root.picker.toggleMark(cell.listingIndex)
@@ -235,6 +241,26 @@ ListView {
             return ""
         var rect = root.picker.itemRect(item)
         return Math.round(rect.x + rect.width / 2) + " " + Math.round(rect.y + rect.height / 2)
+    }
+
+    // The editor is on the drawn Row, not its picker-only wrapper. A released row answers null even
+    // if its old listing index still stands in state, so the keyboard can recover.
+    function renameEditor() {
+        if (root.picker.renamingIndex < 0)
+            return null
+        var item = root.itemAtIndex(Filter.viewOf(root.picker.shown, root.picker.renamingIndex))
+        return item && item.renaming ? item.rowItem : null
+    }
+
+    // A plain click commits the field before focus and the cursor move to the clicked row.
+    function commitOpenRename(pointerIndex) {
+        var editor = root.renameEditor()
+        if (!editor)
+            return
+        var row = root.picker.rowFor(pointerIndex)
+        root.picker.renamePointerPath = row ? Picker.rowPath(root.picker.path, row.n) : ""
+        if (!editor.commitEditor())
+            root.picker.renamePointerPath = ""
     }
 
     // Both ends are view positions, because a filter chip makes the listing rows between them a set.

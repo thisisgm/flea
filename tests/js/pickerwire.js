@@ -21,6 +21,9 @@ function stubState(over) {
         trashPending: [],
         transfer: Ops.emptyTransfer(),
         renameOnArrival: "",
+        renameFromPath: "",
+        renameListingPath: "",
+        renamePointerPath: "",
         renamingIndex: -1,
         listingState: "ready",
         relisted: "",
@@ -69,9 +72,23 @@ function run(check) {
     check("and still re-reads", s.relisted, "/d")
 
     // ---- renamed, made, duplicated, undone: each re-read seats the path the write produced ----
-    s = stubState({})
+    s = stubState({ renameFromPath: "/d/c.png", renameListingPath: "/d",
+                    marks: [{ path: "/d/c.png", bytes: 30 }] })
     Wire.renamed(s, true, "/d/b.png")
     check("renamed seats the new name", s.relisted + " " + s.seated, "/d /d/b.png")
+    check("renamed moves a mark to the new path", Picker.paths(s.marks).join(","), "/d/b.png")
+    check("renamed spends the source path", s.renameFromPath, "")
+    s = stubState({ renameFromPath: "/d/c.png", renameListingPath: "/d", renamePointerPath: "/d/d.txt" })
+    Wire.renamed(s, true, "/d/b.png")
+    check("a click-away rename keeps the row the pointer chose", s.relisted + " " + s.seated, "/d /d/d.txt")
+    check("the click-away path is one shot", s.renamePointerPath, "")
+    s = stubState({ path: "/e", renameFromPath: "/d/c.png", renameListingPath: "/d",
+                    renamePointerPath: "/d/d.txt" })
+    Wire.renamed(s, true, "/d/b.png")
+    check("a rename reply after navigation does not re-read the new directory", s.relisted, "")
+    s = stubState({ path: "recent", renameFromPath: "/d/c.png", renameListingPath: "recent" })
+    Wire.renamed(s, true, "/d/b.png")
+    check("a rename from Recent refreshes that listing", s.relisted + " " + s.seated, "recent /d/b.png")
     s = stubState({})
     Wire.made(s, true, "/d/New Folder")
     check("made remembers the folder for the editor", s.renameOnArrival, "/d/New Folder")
@@ -138,21 +155,28 @@ function run(check) {
     s = stubState({ transfer: Ops.started(3, false, 1) })
     Wire.failed(s, "read", "")
     check("a backend that stopped ends the transfer", s.transfer.id, 0)
+    check("and clears the transfer's sticky line", s.stuck[s.stuck.length - 1], "")
     check("and empties the listing", s.listingState, "empty")
-    s = stubState({ renameOnArrival: "/d/sub" })
+    s = stubState({ renameOnArrival: "/d/sub", renameFromPath: "/d/c.png",
+                    renameListingPath: "/d", renamePointerPath: "/d/d.txt" })
     Wire.failed(s, "rename", "File exists")
     check("a refused rename takes the sentence", s.said.join("|"), "A file with that name is already here.")
     check("and leaves the listing standing", s.listingState, "ready")
     check("and the armed editor waiting", s.renameOnArrival, "/d/sub")
     check("and re-reads nothing", s.relisted, "")
+    check("and drops all pending rename state",
+          s.renameFromPath + ":" + s.renameListingPath + ":" + s.renamePointerPath, "::")
     s = stubState({ trashPending: ["/d/a.png"] })
     Wire.failed(s, "trash", "another file operation is running")
     check("a refused trash releases its pending path snapshot", s.trashPending.length, 0)
     s = stubState({ listingState: "loading" })
     Wire.failed(s, "mkdir", "")
     check("a failure while loading empties the listing", s.listingState, "empty")
-    s = stubState({})
+    s = stubState({ renameListingPath: "/d" })
     Wire.failed(s, "rename-kept", "")
     check("rename-kept re-reads and seats nothing", s.relisted + " " + s.seated, "/d null")
     check("rename-kept says the long sentence", s.said[0].indexOf("The copy is complete") === 0, true)
+    s = stubState({ path: "/e", renameListingPath: "/d" })
+    Wire.failed(s, "rename-kept", "")
+    check("a late rename-kept failure does not re-read the new directory", s.relisted, "")
 }

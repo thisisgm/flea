@@ -1,5 +1,7 @@
 .import "../../ui/js/PickerOps.js" as PickerOps
 .import "../../ui/js/Picker.js" as Picker
+.import "../../ui/js/PickerWire.js" as Wire
+.import "../../ui/js/Ops.js" as Ops
 
 // A stub in the shape of tests/js/ops.js's windowedPane: the chooser holds a window of four rows
 // starting at listing index 2 out of a listing of ten, so a mark can sit before, inside or past it.
@@ -26,11 +28,15 @@ function stubState(over) {
         relisted: "",
         seated: null,
         said: [],
+        stuck: [],
+        errors: [],
+        transfer: Ops.emptyTransfer(),
         sent: [],
         backend: { send: function (request) { state.sent.push(request) } },
         trashPending: [],
         rowFor: function (i) { return (i - 2 < 0 || i - 2 >= rows.length) ? null : rows[i - 2] },
-        message: function (text) { state.said.push(text) },
+        message: function (text, isError) { state.said.push(text); state.errors.push(isError) },
+        sticky: function (text) { state.stuck.push(text) },
         open: function (next) { state.history = state.history.concat([state.path]); state.path = next },
         openWithoutHistory: function (next) { state.relisted = next },
         navigate: { seat: function (path) { state.seated = path } }
@@ -171,4 +177,17 @@ function run(check) {
     s = stubState({ req: { multiple: false }, folderMode: true })
     PickerOps.selectAll(s)
     check("a single-folder request says folder", s.said.join("|"), "The caller takes one folder only.")
+
+    // ---- transfer footer: each wire model uses the browser's own line builders exactly ----
+    s = stubState({})
+    Wire.transferStarted(s, 7, 3, false)
+    check("a started transfer shows Ops.progressLine", s.stuck[0], Ops.progressLine(s.transfer))
+    Wire.transferProgress(s, 7, 0, "a.txt", 50, 100)
+    check("a sampled transfer shows Ops.progressLine", s.stuck[1], Ops.progressLine(s.transfer))
+    Wire.transferItem(s, 7, 0, "a.txt")
+    check("an item-done transfer shows Ops.progressLine", s.stuck[2], Ops.progressLine(s.transfer))
+    var finished = Ops.transferDone(s.transfer, 3, 0, false)
+    Wire.transferDone(s, 7, 3, 0, 0, false)
+    check("a finished transfer shows Ops.transferDone", s.said[0], finished)
+    check("a finished transfer clears the sticky slot", s.stuck[s.stuck.length - 1], "")
 }

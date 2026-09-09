@@ -106,6 +106,19 @@ function dropMarks(state, paths) {
     state.marks = kept
 }
 
+// A marked file keeps its identity after a successful rename. Without this replacement the picker
+// can later return the old path, which no longer exists.
+function renameMark(state, from, to) {
+    if (!from || !to)
+        return
+    var next = []
+    for (var m = 0; m < state.marks.length; m++) {
+        var mark = state.marks[m]
+        next.push(mark.path === from ? { path: to, bytes: mark.bytes } : mark)
+    }
+    state.marks = next
+}
+
 // Ctrl+A. Every markable row that is drawn joins the marks: what the chip hides stays out, the way
 // ui/js/Filter.js selectAll takes the matches alone, and only the held window can be read. A
 // request for one item has nothing to select all, and says so rather than marking the last row,
