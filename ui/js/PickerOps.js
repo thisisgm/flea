@@ -45,6 +45,23 @@ function pathsFor(state) {
     return row ? [Picker.rowPath(state.path, row.n)] : []
 }
 
+// Paths, not listing indices: marks can stand outside the held window, and the backend's path form
+// can still name every one. The reply drops the same paths before it re-reads the directory.
+function trash(state) {
+    // The backend permits one file operation. A second trash can be refused before the first reply,
+    // whose count-only shape cannot identify its request, so never put two trash requests in flight.
+    if (state.trashPending.length > 0) {
+        return
+    }
+    var paths = pathsFor(state)
+    if (paths.length === 0) {
+        return
+    }
+    // The reply carries no paths. Keep this exact set so mark or cursor changes cannot alter cleanup.
+    state.trashPending = paths.slice()
+    state.backend.send({ c: "trash", paths: paths })
+}
+
 // A trash or a move took these paths off the disk, so the marks naming them come off the list:
 // a mark is an identity, and an identity that is gone cannot be sent to the caller.
 function dropMarks(state, paths) {

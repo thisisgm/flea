@@ -1,5 +1,6 @@
 .pragma library
 
+.import "Ops.js" as Ops
 .import "Picker.js" as Picker
 .import "PickerKeys.js" as PickerKeys
 .import "Sort.js" as Sort
@@ -9,9 +10,9 @@
 // without a window.
 
 // The rows ui/js/Menu.js draws that no picker verb answers yet, each with the name the footer
-// prints, ui/js/PickerKeys.js SHARED's own rule for a chord. Open, Copy path and Duplicate are
-// menu rows and not key table actions, so they are named here and not there.
-var UNBUILT = { open: "Open", copypath: "Copy path", duplicate: "Duplicate" }
+// prints, ui/js/PickerKeys.js SHARED's own rule for a chord. Open and Copy path are menu rows
+// and not key table actions, so they are named here and not there.
+var UNBUILT = { open: "Open", copypath: "Copy path" }
 
 // A right click on a row, ui/js/Tap.js tappedMenu for marks. Pressed on a marked row the menu
 // addresses every mark standing in this directory; pressed on an unmarked one those marks drop
@@ -36,6 +37,9 @@ function aim(state, index) {
     if (standing.length > 0 && !onMark)
         state.dropMarks(standing)
     state.setCursor(index)
+    // The menu restores the focus it found. Put both logical and Qt focus on the list first, so
+    // Ctrl+Z after Move to Trash reaches the operation journal instead of a text field's undo.
+    state.focusList()
     return true
 }
 
@@ -54,6 +58,13 @@ function route(action, state, ops, columns) {
     }
     if (action in UNBUILT) {
         state.message(UNBUILT[action] + " is not built in the chooser yet.", false)
+        return
+    }
+    // Duplicate has no key (Ctrl+D pages in keys.toml), so it is the one row that does not pass
+    // through the key table. ui/js/Ops.js duplicate unmodified: the cursor row alone, never the
+    // marks, one {c:"duplicate",path} line; ui/PickerWire.qml seats the copy when the reply lands.
+    if (action === "duplicate") {
+        Ops.duplicate(state)
         return
     }
     PickerKeys.act(action, state, ops)

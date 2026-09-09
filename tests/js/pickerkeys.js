@@ -15,8 +15,17 @@ function stubState(over) {
         filterQuery: "",
         filterTyping: false,
         renameFromPath: "",
+        path: "/d",
+        marks: [],
+        rows: [{ n: "a.txt", d: false, s: 1 }],
+        trashPending: [],
         calls: [],
         said: [],
+        backend: {
+            send: function (request) { state.calls.push("send " + JSON.stringify(request)) },
+            undo: function () { state.calls.push("undo") }
+        },
+        rowFor: function (i) { return i === state.cursorIndex ? state.rows[0] : null },
         fetcher: { cancel: function () { state.calls.push("stopFetch") } },
         cancel: function () { state.calls.push("cancel") },
         toggleMark: function (i) { state.calls.push("mark " + i) },
@@ -83,7 +92,16 @@ function run(check) {
     check("ctrl x cuts", look(Qt.Key_X, "x", ctrl), "cut")
     check("ctrl v pastes", look(Qt.Key_V, "v", ctrl), "paste")
     check("ctrl a selects all", look(Qt.Key_A, "a", ctrl), "selectAll")
-    check("delete trashes", look(Qt.Key_Delete), "trash")
+    var deletePreset = Keymap.preset
+    var deleteResults = []
+    var presets = ["default", "vim", "mac", "windows"]
+    for (var p = 0; p < presets.length; p++) {
+        Keymap.setPreset(presets[p])
+        deleteResults.push(look(Qt.Key_Delete) + "/" + look(Qt.Key_Delete, "", ctrl))
+    }
+    Keymap.setPreset(deletePreset)
+    check("delete and ctrl delete trash under every preset",
+          deleteResults.join("|"), "trash/trash|trash/trash|trash/trash|trash/trash")
     check("f2 renames", look(Qt.Key_F2), "rename")
     check("ctrl shift n makes a folder", look(Qt.Key_N, "N", ctrl | shift), "newFolder")
     check("ctrl t opens a terminal", look(Qt.Key_T, "t", ctrl), "openTerminal")
@@ -138,8 +156,10 @@ function run(check) {
     PickerKeys.act("toggleHidden", state, ops)
     PickerKeys.act("selectAll", state, ops)
     PickerKeys.act("rename", state, ops)
+    PickerKeys.act("trash", state, ops)
+    PickerKeys.act("undo", state, ops)
     check("the state verbs land on the state", state.calls.join(","),
-          "cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll,rename")
+          'cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll,rename,send {"c":"trash","paths":["/d/a.txt"]},undo')
     var pendingRename = stubState({ renameFromPath: "/d/a.txt" })
     PickerKeys.act("rename", pendingRename, ops)
     check("a second rename cannot replace the source of an async reply", pendingRename.calls.length, 0)
@@ -171,7 +191,7 @@ function run(check) {
     check("an unbuilt shared action says so", state.said.join(""), "Copy is not built in the chooser yet.")
     PickerKeys.act("settings", state, ops)
     check("an action outside the allowlist says nothing", state.said.length, 1)
-    check("the state is untouched by either", state.calls.length, 9)
+    check("the state is untouched by either", state.calls.length, 11)
     // The hidden toggle is built: a . reaches the state through handle and says nothing in the footer.
     var dotted = stubState()
     check("dot through handle flips hidden", PickerKeys.handle(press(Qt.Key_Period, "."), dotted, ops), "toggleHidden")

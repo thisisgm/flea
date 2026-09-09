@@ -1,3 +1,4 @@
+.import "../../ui/js/Picker.js" as Picker
 .import "../../ui/js/PickerMenu.js" as PickerMenu
 
 // ui/js/PickerMenu.js: where a right click aims the chooser's menu and where a chosen row goes,
@@ -20,16 +21,21 @@ function stubState(over) {
         filterTyping: false,
         focusView: "list",
         renameFromPath: "",
+        trashPending: [],
         calls: [],
         said: [],
         backend: {
             sortBy: "name", sortDesc: false,
             sort: function (key, desc) { state.calls.push("sort " + key + " " + desc) },
-            window: function (start, size) { state.calls.push("window " + start) }
+            window: function (start, size) { state.calls.push("window " + start) },
+            duplicate: function (path) { state.calls.push("duplicate " + path) },
+            send: function (request) { state.calls.push("send " + JSON.stringify(request)) }
         },
         rowFor: function (index) { return index >= 0 && index < state.rows.length ? state.rows[index] : null },
+        join: function (base, name) { return Picker.rowPath(base, name) },
         dropMarks: function (paths) { state.calls.push("drop " + paths.join(",")) },
         setCursor: function (index) { state.cursorIndex = index; state.calls.push("cursor " + index) },
+        focusList: function () { state.focusView = "list"; state.calls.push("focus") },
         clearSelection: function () {},
         cancel: function () { state.calls.push("cancel") },
         startRename: function () { state.calls.push("rename") },
@@ -53,18 +59,18 @@ function run(check) {
     // ---- aim: ui/js/Tap.js tappedMenu's rule for marks ----
     var onMarked = stubState({ marks: [a, b] })
     check("a right click on a marked row keeps every mark and moves the cursor there",
-          PickerMenu.aim(onMarked, 1) + "|" + onMarked.calls.join(";"), "true|cursor 1")
+          PickerMenu.aim(onMarked, 1) + "|" + onMarked.calls.join(";"), "true|cursor 1;focus")
     var offMarked = stubState({ marks: [a, elsewhere] })
     check("a right click outside the marks drops this directory's marks and leaves another's",
           PickerMenu.aim(offMarked, 2) + "|" + offMarked.calls.join(";"),
-          "true|drop /home/jw/docs/a.txt;cursor 2")
+          "true|drop /home/jw/docs/a.txt;cursor 2;focus")
     var none = stubState()
     check("with no mark standing the row only takes the cursor",
-          PickerMenu.aim(none, 2) + "|" + none.calls.join(";"), "true|cursor 2")
+          PickerMenu.aim(none, 2) + "|" + none.calls.join(";"), "true|cursor 2;focus")
     var recent = stubState({ path: "recent", recent: true, marks: [a],
                              rows: [{ n: "/home/jw/docs/b.txt", d: false, s: 2 }] })
     check("in Recent no mark's parent is the token, so nothing drops",
-          PickerMenu.aim(recent, 0) + "|" + recent.calls.join(";"), "true|cursor 0")
+          PickerMenu.aim(recent, 0) + "|" + recent.calls.join(";"), "true|cursor 0;focus")
     var gone = stubState({ marks: [a] })
     check("a right click past the held rows aims at nothing and touches nothing",
           PickerMenu.aim(gone, 7) + "|" + gone.calls.length, "false|0")
@@ -88,10 +94,9 @@ function run(check) {
     var ops = stubOps()
     PickerMenu.route("open", unbuilt, ops, columns)
     PickerMenu.route("copypath", unbuilt, ops, columns)
-    PickerMenu.route("duplicate", unbuilt, ops, columns)
     check("the rows no picker verb answers yet say so in the footer, each by its own name",
           unbuilt.said.join("|"),
-          "Open is not built in the chooser yet.|Copy path is not built in the chooser yet.|Duplicate is not built in the chooser yet.")
+          "Open is not built in the chooser yet.|Copy path is not built in the chooser yet.")
     PickerMenu.route("cancel", unbuilt, ops, columns)
     check("every other row takes the key table's own route through PickerKeys.act",
           unbuilt.calls.join(";"), "cancel")
@@ -101,6 +106,21 @@ function run(check) {
     check("Rename takes the same state route from the menu as from F2",
           unbuilt.calls[unbuilt.calls.length - 1], "rename")
     PickerMenu.route("trash", unbuilt, ops, columns)
-    check("a shared action with no verb yet still answers through the key table's line",
-          unbuilt.said[unbuilt.said.length - 1], "Move to Trash is not built in the chooser yet.")
+    check("the danger row sends the cursor path through the key route",
+          unbuilt.calls[unbuilt.calls.length - 1],
+          'send {"c":"trash","paths":["/home/jw/docs/a.txt"]}')
+
+    // ---- duplicate: ui/js/Ops.js duplicate over the chooser, the cursor row alone ----
+    var dup = stubState({ marks: [a, b], cursorIndex: 2 })
+    PickerMenu.route("duplicate", dup, stubOps(), columns)
+    check("Duplicate sends the cursor row's path and never the marks",
+          dup.calls.join(";") + "|" + dup.said.length, "duplicate /home/jw/docs/c.txt|0")
+    var dupRecent = stubState({ path: Picker.RECENT, recent: true, cursorIndex: 0,
+                                rows: [{ n: "home/jw/docs/b.txt", d: false, s: 2 }] })
+    PickerMenu.route("duplicate", dupRecent, stubOps(), columns)
+    check("in Recent the row's own absolute path is what goes out",
+          dupRecent.calls.join(";"), "duplicate /home/jw/docs/b.txt")
+    var dupEmpty = stubState({ rows: [], cursorIndex: 0 })
+    PickerMenu.route("duplicate", dupEmpty, stubOps(), columns)
+    check("with no row under the cursor nothing is sent", dupEmpty.calls.length, 0)
 }

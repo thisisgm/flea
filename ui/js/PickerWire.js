@@ -12,14 +12,16 @@
 // chooser and the browser can never word the same operation two different ways.
 
 // A trashed line carries counts and no paths, so the paths it took are read off the state before
-// the refresh replaces the rows: the same set Ops.trash sent, the marks held in this window or the
+// the refresh replaces the rows: the same set PickerOps.trash sent, the marks held here or the
 // cursor row alone. corner: a batch that half failed loses the marks on the rows that stayed too;
 // the line says how many failed, and a row that stayed can be marked again.
 function trashed(state, ok, failed) {
+    var paths = state.trashPending
+    state.trashPending = []
     state.sticky("")
     state.message(Ops.trashed(ok, failed), ok === 0)
     if (ok > 0) {
-        PickerOps.dropMarks(state, Ops.targetPaths(state, Ops.targetIndices(state)))
+        PickerOps.dropMarks(state, paths)
     }
     PickerOps.refresh(state, "")
 }
@@ -126,6 +128,9 @@ function failed(state, where, msg) {
     }
     var terminal = where === "backend" || where === "read"
     var listing = terminal || where === "scan"
+    if (where === "trash" || terminal) {
+        state.trashPending = []
+    }
     // Only these mean the refresh will never deliver rows, so an armed editor would wait forever.
     if (listing) {
         state.renameOnArrival = ""
