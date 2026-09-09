@@ -837,10 +837,13 @@ row aims the menu through `ui/js/PickerMenu.js` `aim`, `ui/js/Tap.js` `tappedMen
 an unmarked row the marks standing in that directory drop, so the menu never describes one row
 while Move to Trash takes others. A right click under the last row draws the background column.
 Every chosen row routes through `route` there: `col:` and `sort:` split off as `ui/Pane.qml` splits
-them, `sort:` reaches `ui/js/Sort.js` `column` as the header click does and refuses in Recent, and
-everything else takes `ui/js/PickerKeys.js` `act`, the chord's own route, so a row and its key
-cannot come to mean two things. `tests/js/menu.js` pins both row sets and `tests/js/pickermenu.js`
-the aim and the routing; `tests/picker.sh menu` drives the window.
+them, `sort:` reaches `ui/js/Sort.js` `column` as the header click does and refuses in Recent, Duplicate
+goes straight to `ui/js/Ops.js` `duplicate` because it has no key (Ctrl+D pages), and everything
+else takes `ui/js/PickerKeys.js` `act`, the chord's own route, so a row and its key cannot come to
+mean two things. Duplicate takes the cursor row alone, whatever is marked, and `ui/PickerWire.qml`
+seats the copy and prints "Duplicated to <name> · z undoes" when the reply lands. `tests/js/menu.js`
+pins both row sets and `tests/js/pickermenu.js` the aim and the routing; `tests/picker.sh menu` and
+`tests/picker.sh duplicate` drive the window.
 
 **Filters, and whose they are.** The chip row draws the caller's filters when it sent any, with
 All files after them, and the caller's `current_filter` or its first filter active: an application
