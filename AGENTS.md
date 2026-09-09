@@ -887,9 +887,15 @@ rows drawn between the two ends, `Filter.between` over the chip's set or the hel
 from the rows the window holds: a row scrolled out of that window was never on screen as part of
 the range. `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle` and
 `markRange`; Shift never unmarks, and in a single request the range is the clicked row, toggled
-the way Space toggles it. The picker reads no `keys.toml` row for either, because the portal's
-window carries no keymap of its own. The seam's `rowCentre` answers a drawn row's centre so
-`tests/picker.sh click` can aim omarchy-drive at it, the same read `ui/Ipc.qml` makes.
+the way Space toggles it. The picker reads `keys.toml` only through `ui/js/PickerKeys.js`'s
+allowlist: its own verbs answer first, Space, Enter, `l`, Backspace, `h`, `:`, Ctrl+L, Escape and
+Alt+Left, so the browser's preview, page-forward and trash-arm meanings for those keys never
+reach it; then `Keymap.lookup` answers for the shared operations alone, copy, cut, paste, select
+all, trash, rename, new folder, open terminal, copy folder path, undo, hidden files, filter and
+focus, so a preset's rebinding such as the windows preset's Ctrl+H applies to the chooser too.
+Any other action is refused and the event stays unaccepted. The seam's `rowCentre` answers a
+drawn row's centre so `tests/picker.sh click` can aim omarchy-drive at it, the same read
+`ui/Ipc.qml` makes.
 
 **What a typed line does, and why it is peeked first.** `ui/PickerNavigate.qml` carries out what
 `ui/js/PickerNavigate.js` decides about the line `entered()` reports, the Windows filename box's
@@ -1255,6 +1261,10 @@ this coverage needed no new entry there.
 - `ui/js/PickerMarks.js` is the chooser's marks: a path and its size, never a row number, and
   what Space, Ctrl+click and Shift+click do to the list. Pure, so `tests/js/pickermarks.js`
   drives all of it; `ui/picker.qml` holds the anchor and `ui/PickerList.qml` walks the range.
+- `ui/js/PickerKeys.js` is what the chooser does with a key: its own verbs first, then the shared
+  operations `keys.toml` binds, through an allowlist, and `act`, the dispatcher every picker
+  operation joins. Pure, so `tests/js/pickerkeys.js` drives all of it; `ui/PickerList.qml`'s
+  `Keys.onPressed` is one call to `handle`.
 - `ui/js/ShareUrl.js` is what a typed share URL is to gvfs: the root `gio mount` takes, the rest
   walked on the FUSE path, the two gio command lines and why a mount gave no folder. Pure, so
   `tests/js/shareurl.js` drives all of it; `ui/ShareResolve.qml` runs the legs it names.
