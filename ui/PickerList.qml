@@ -73,6 +73,8 @@ ListView {
         // through the tree and never an answer, so it carries no box at all.
         readonly property bool markable: cell.row !== null && cell.row.d === root.picker.folderMode
         readonly property bool isMarked: cell.markable && Marks.marked(root.picker.marks, cell.rowPath)
+        // The drawn row, for the seam that reads its column set beside the header's.
+        readonly property var rowItem: drawn
 
         width: root.width
         height: Theme.rowHeight
@@ -94,6 +96,7 @@ ListView {
         }
 
         Flea.Row {
+            id: drawn
             anchors.fill: parent
             leadingSlot: root.checkSize + Theme.spacing.gap
             compactDate: true
