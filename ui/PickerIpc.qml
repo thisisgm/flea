@@ -18,6 +18,7 @@ QtObject {
     property var chrome: null
     property var places: null
     property var header: null
+    property var menu: null
 
     // A drawn item's painted box reduced to the point a test clicks, the same read rowCentre makes.
     function centreOf(item) {
@@ -75,6 +76,22 @@ QtObject {
         function columnSet(index: int): string {
             var item = root.list.itemAtIndex(Filter.viewOf(root.state.shown, index))
             return root.header.columnSet() + "|" + (item ? item.rowItem.columnSet() : "")
+        }
+        // The menu's readers, as ui/Ipc.qml has them: whether it is up, its rows as labels with "-"
+        // for a rule, the open flyout's rows, and the row the keyboard is on.
+        function contextMenuVisible(): bool { return root.menu.opened }
+        function contextMenuEntries(): string {
+            return root.menu.entries.map(function (e) { return e.separator === true ? "-" : e.label }).join("|")
+        }
+        function contextMenuSubmenuEntries(): string { return root.menu.submenuEntries.map(function (e) { return e.label }).join("|") }
+        function menuCursor(): int { return root.menu.cursor }
+        // A point on the list under its last row, where a right click raises the background column,
+        // or "" when the rows fill the list and there is no such point.
+        function emptyCentre(): string {
+            var rect = root.state.itemRect(root.list)
+            if (root.list.contentHeight >= rect.height)
+                return ""
+            return Math.round(rect.x + rect.width / 2) + " " + Math.round(rect.y + (root.list.contentHeight + rect.height) / 2)
         }
         // The nav strip's segments as their drawn texts, "" while Recent draws its label instead.
         function crumbs(): string { return root.chrome.crumbs.visible ? root.chrome.crumbs.model.map(function (c) { return c.text }).join(",") : "" }

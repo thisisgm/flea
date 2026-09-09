@@ -32,6 +32,8 @@ Item {
     // False on a listing's empty space, where Menus.html's background column is what opens instead.
     // openBackground() is its only writer and openAt() puts it back, because one instance serves both.
     property bool hasRow: true
+    // The Menus settings section's stored set, ui/js/Menu.js applyHidden's input; ui/PickerMenu.qml hands in its own.
+    property var hiddenActions: ViewState.menuHidden
 
     // The rail's own rows when ui/Sidebar.qml raised this menu, empty when the listing did. One
     // instance serves both: a second one in this tree takes the keyboard from the list, see AGENTS.md.
@@ -98,8 +100,7 @@ Item {
             rowIsArchive: root.rowIsArchive,
             rowIsImage: root.rowIsImage,
             canConvert: root.canConvert,
-            // The Menus settings section's stored set; ui/js/Menu.js applyHidden is what reads it.
-            hiddenActions: ViewState.menuHidden
+            hiddenActions: root.hiddenActions
         })
     }
 
