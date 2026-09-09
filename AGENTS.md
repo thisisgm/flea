@@ -829,14 +829,13 @@ gets the same chooser.
   without a display, resolves the UI with the same `paths::ui_dir()` the window uses, and `exec`s
   `qs -p <ui>/picker.qml` with the same renderer choice `--gui` makes. One code path chooses Vulkan
   for both front doors.
-- `ui/picker.qml` is the window. It instantiates the same `Backend`, draws the same `Row` behind a
-  check box, reads the same `Theme` and the same `Places.favorites`, and carries the window's
-  operations except archive, convert, taildrop and dropbox, by user decision 2026-09-09: every OS
-  dialog can make a folder, rename or trash a row while it is up, so this one does, through
-  `ui/PickerMenu.qml` and the keys `ui/js/PickerKeys.js` admits. `SendPicker.html` draws that row
-  as the name, a 70 px size and an 80 px date, so `ui/PickerList.qml` hands `Row`
-  `Picker.HIDDEN_COLS` and the chooser never inherits Mode or Kind from `ViewState`, whatever the
-  header menu has switched on for the browser window.
+- `ui/picker.qml` is the window. It uses the same `Backend`, `Row`, `Theme` and `Places.favorites`.
+  The picker supports Open, Copy path, Cut, Copy, Paste, Duplicate and Rename. It also supports
+  Move to Trash, Open in terminal, New folder, Select all, Sort by and drag out. It excludes
+  archive, convert, taildrop and Dropbox, by user decision 2026-09-09. `ui/PickerMenu.qml` and
+  `ui/js/PickerKeys.js` route those actions. `ui/PickerList.qml` draws the same columns as its header.
+  Both windows share later column choices through `ViewState`. Name, Size and Date are the picker's
+  first-launch fallback.
 
 **The menu, and the four families it lacks.** `ui/PickerMenu.qml` is one `ui/ContextMenu.qml`
 over `ui/PickerState.qml`, and it feeds `archiveFormats: []`, `canConvert: false`,
@@ -857,10 +856,9 @@ seats the copy and prints "Duplicated to <name> · z undoes" when the reply land
 pins both row sets and `tests/js/pickermenu.js` the aim and the routing; `tests/picker.sh menu` and
 `tests/picker.sh duplicate` drive the window.
 
-**Filters, and whose they are.** The chip row draws the caller's filters when it sent any, with
-All files after them, and the caller's `current_filter` or its first filter active: an application
-that sent filters sees exactly the dialog it asked for, and no pill it did not send. Most callers
-send none, so a chooser with no chips at all was the common case; for those,
+**Filters, and whose they are.** The chip row draws the caller's filters first, then All files.
+The caller's `current_filter`, or its first filter, starts active. A caller filter stops all config
+filters from loading into that dialog. Most callers send none, so those dialogs use the config.
 `ui/PickerFilters.qml` reads `$XDG_CONFIG_HOME/flea/filters.toml` (`~/.config` when the session set
 no config home) once at start, blocking like `ui/ViewState.qml` so the first frame has the row, and
 `Picker.chips` draws All files first and active, then one pill per `[[filter]]` table, so nothing is
@@ -981,6 +979,8 @@ anchor is `ui/PickerState.qml`'s `markAnchor`, the listing index the last Space,
 Ctrl+click addressed. A Shift+click before any mark uses its own row alone. The run is the rows drawn
 between the two ends, `Filter.between` over the chip's set or the held window, read from the rows
 the window holds: a row scrolled out of that window was never on screen as part of the range.
+Return opens a directory under the cursor in every request mode. In file mode, it sends the marks
+or falls back to the cursor file. In folder mode with no mark, it sends the folder shown.
 `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle`, `select` and
 `markRange`; `select` is the plain click, it sets and never clears; Shift never unmarks, and in a
 single request the range is the clicked row, toggled the way Space toggles it. The picker reads
@@ -993,6 +993,12 @@ focus, so a preset's rebinding such as the windows preset's Ctrl+H applies to th
 Any other action is refused and the event stays unaccepted. The seam's `rowCentre` answers a
 drawn row's centre so `tests/picker.sh click` can aim omarchy-drive at it, the same read
 `ui/Ipc.qml` makes.
+
+**`/` filters the rows already held.** `ui/js/PickerKeys.js` starts `ui/FilterStrip.qml`, and each
+typed character narrows the picker's held window through `ui/js/Filter.js`. It sends no backend
+request. The strip says when only part of a large listing was loaded. Enter leaves the filter in
+place and returns the keyboard to the list; Escape clears it. A pill and a typed filter intersect,
+and a fresh listing clears only the typed filter.
 
 **Tab into the rail.** `ui/PickerState.qml`'s `focusView` takes the two values `ui/js/Focus.js`
 names, `list` and `rail`, and Tab is the one key that swaps them, the browser's own rule. While
@@ -1012,19 +1018,22 @@ the keyboard is in the list; `ui/SidebarRow.qml` draws it in the resting fill un
 the keyboard. The seam's `focusView` and `railCursor` readers are what `tests/picker.sh rail`
 reads.
 
-**The column header is the window's own.** `ui/picker.qml` draws `ui/Header.qml` over the list at
-the same width the rows take, so the two resolve one column set from one `Theme.columns` call.
-The header took two knobs for it, `hiddenCols` and `dateWidth`, which are the two `ui/Row.qml`
-already had: the picker hands it `PickerState.hiddenCols` and `Theme.column.pickerDate`, the window
-leaves both at their defaults, and `leadingSlot` moves the Name title past the check box.
-`PickerState.hiddenCols` uses `Picker.HIDDEN_COLS` only while the shared set equals the schema
-default; another stored set comes from `ViewState.hiddenCols`. A click
-goes through `ui/js/Sort.js` `column` on `ui/PickerState.qml`, which is why that object carries
-`thumbState`, `dirSizeState`, `clearSelection` and `setCursor`; marks are paths and survive the
-reorder, so `clearSelection` there does nothing. Recent is the history's own order and `listpaths`
-takes no sort, so a click over Recent asks for nothing. `titles()` now names the columns drawn
-rather than all five, so the reader reads the same line in both windows. The seam's `headerTitles`,
-`sortMark`, `headerCellRect`, `headerCentre` and `columnSet` are what `tests/picker.sh header` reads.
+**The column header is the window's own.** `ui/picker.qml` draws `ui/Header.qml` over the list.
+Both have the same width, so they resolve the same columns. The picker passes
+`PickerState.hiddenCols`, `Theme.column.pickerDate` and a `leadingSlot` for the check box.
+`PickerState.hiddenCols` uses `Picker.HIDDEN_COLS` while the shared set equals the schema default.
+Any other stored set comes from `ViewState.hiddenCols`.
+
+A right click opens the shared `ui/PickerMenu.qml` with one checkbox per column. The menu stays open
+while columns change, and Name stays checked. Both windows write the same `columns` key in `ui.json`.
+An already open process does not reload that key. A later process reads it at startup.
+
+A left click calls `ui/js/Sort.js` `column` with `ui/PickerState.qml`. The state carries the caches
+and cursor methods that `Sort.js` needs. Marks use paths, so they survive a reorder. Recent keeps
+the history's order, and `listpaths` takes no sort. An accepted order writes the shared `sort` key
+in `ui.json`. Both windows read that order at startup. `titles()` reports only the visible columns.
+The seam exposes `headerTitles`, `sortMark`, `headerCellRect`, `headerCentre` and `columnSet`.
+`tests/picker.sh header` reads them.
 
 **Hidden files, and why the toggle is a re-read.** `.` in the list, and whatever `keys.toml` binds
 to `toggleHidden` through the allowlist, so the windows preset's Ctrl+H, flips
@@ -1336,8 +1345,14 @@ this coverage needed no new entry there.
   `renamingIndex`, `setCursor`, `refresh` and the rest), so those files run in the chooser
   unmodified; `ui/js/PickerOps.js` is where a mark, which is a path, becomes a listing index
   and back, and where Select all and the refresh after a write are decided.
+- `ui/PickerWire.qml` receives every backend reply for the chooser. It sorts fresh listings into
+  the stored order, seats rows after writes, records thumbnails and owns the chooser's `Opener`.
 - `ui/PickerIpc.qml` is the `fleapicker` seam `tests/picker.sh` drives, the read-only shape of
   `ui/Ipc.qml` for the chooser: it reports `PickerState` and never acts.
+- `ui/PickerMenu.qml` adapts the shared `ui/ContextMenu.qml` to `PickerState`. It removes archive,
+  convert, taildrop, Dropbox and Settings rows, and routes listing, sort and column actions.
+- `ui/CrumbRow.qml` draws clickable path segments for `ui/ChromeBar.qml` and `ui/PickerChrome.qml`.
+  Each owner handles the path it emits.
 - `ui/Header.qml` renders the column header band and its rule, and owns nothing else: it
   was lifted out of `Pane.qml` at the 400-line hard cap and has no behaviour.
 - `ui/Row.qml` renders one row delegate: the icon slot, which a thumbnail replaces in
@@ -1345,7 +1360,8 @@ this coverage needed no new entry there.
 - `ui/Opener.qml` is the only component that runs Flea's own opening modes, by running
   `flea --open`, `flea --terminal` and a one-line `sh` that pipes into `wl-copy`, which is why
   `wl-clipboard` is a `depends` entry, see "Opening a file".
-- `ui/ContextMenu.qml` is the one pane-owned right-click popup and its single Open action.
+- `ui/ContextMenu.qml` is the shared popup for browser and picker listing rows, header columns and
+  rail rows. Its caller supplies the entries and handles the chosen action.
 - `ui/StatusBar.qml` renders the path, row counts and transient messages.
 - `ui/TabBar.qml` is the window's tab strip, hidden with no height until a second tab exists.
 - `ui/ChromeBar.qml` renders the top chrome, and owns the path bar: the same strip typed into
