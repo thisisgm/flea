@@ -39,5 +39,6 @@ QtObject {
         function entryFocused(): int { return root.entry.focused ? 1 : 0 }
         function saveFocused(): int { return root.save.focused ? 1 : 0 }
         function rowCentre(index: int): string { return root.list.rowCentre(index) }
+        function dragRows(): string { return root.list.dragRows.join(",") }
     }
 }
