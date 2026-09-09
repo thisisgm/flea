@@ -60,7 +60,8 @@ fn scan_dir(dir: &Path, prefix: &str, table: &mut HashMap<String, PathBuf>, dept
             // not take a file the earlier one already owns; within one dir the scan's own later
             // entry then wins, which is g_hash_table_insert's rule inside one table.
             table.entry(format!("{prefix}{name}")).or_insert(path);
-        } else if std::fs::metadata(&path).map(|m| m.is_dir()).unwrap_or(false) {
+        } else {
+            // Everything else is descended into and told apart by read_dir failing on a plain file, which follows symlinks the way g_file_test does and stats nothing.
             scan_dir(&path, &format!("{prefix}{name}-"), table, depth - 1);
         }
     }
@@ -183,7 +184,7 @@ pub fn all() -> Vec<AppEntry> {
             icon: facts.icon.unwrap_or_default(),
         });
     }
-    out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()).then_with(|| a.id.cmp(&b.id)));
+    out.sort_by_cached_key(|a| (a.name.to_lowercase(), a.id.clone()));
     out
 }
 
