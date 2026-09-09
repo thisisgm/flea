@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|crumbs|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -291,6 +291,63 @@ case_crumbs() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "crumbs: the caller exited 0 after a cancel"
     printf 'crumbs: a parent segment walks and Back returns, the leaf is a label, Recent draws its name alone\n'
+}
+
+# The rail from the keyboard: Tab moves the focus reader to the rail, the arrows move its own cursor,
+# Enter opens the cursor row and hands the keyboard back, Escape hands it back without cancelling,
+# and Tab reaches the rail again once the list has walked somewhere else. The rail's first two rows
+# are Recent and Home in every open request, see ui/PickerPlaces.qml, so the cursor's stops are known.
+case_rail() {
+    make_fixture
+    start_client --multiple
+    walk_to_fixture
+    ipc_is_live
+    [[ "$(ipc focusView)" == "list" ]] || fail "rail: the keyboard started in $(ipc focusView), not the list"
+    press -k Tab
+    sleep 0.3
+    [[ "$(ipc focusView)" == "rail" ]] || fail "rail: Tab left the keyboard in $(ipc focusView)"
+    press -k Home
+    sleep 0.2
+    [[ "$(ipc railCursor)" == "0" ]] || fail "rail: Home left the rail cursor at $(ipc railCursor)"
+    press -k Down
+    sleep 0.2
+    [[ "$(ipc railCursor)" == "1" ]] || fail "rail: Down moved the rail cursor to $(ipc railCursor), not 1"
+    press -k Up
+    sleep 0.2
+    [[ "$(ipc railCursor)" == "0" ]] || fail "rail: Up moved the rail cursor to $(ipc railCursor), not 0"
+    press -k Up
+    sleep 0.2
+    [[ "$(ipc railCursor)" == "0" ]] || fail "rail: Up past the first row left the cursor at $(ipc railCursor)"
+    # The list's cursor did not move: the arrows reached the rail alone.
+    [[ "$(ipc cursorName)" == "alpha.txt" ]] || fail "rail: the arrows moved the list cursor to $(ipc cursorName)"
+    press -k Escape
+    sleep 0.3
+    [[ "$(ipc focusView)" == "list" ]] || fail "rail: Escape left the keyboard in $(ipc focusView)"
+    kill -0 "$client" 2>/dev/null || fail "rail: Escape in the rail cancelled the dialog"
+    [[ "$(ipc path)" == "$fixture" ]] || fail "rail: Escape moved the picker to $(ipc path)"
+    press -k Tab
+    sleep 0.3
+    press -k Down
+    sleep 0.2
+    press -k Return
+    sleep 1
+    [[ "$(ipc path)" == "$HOME" ]] || fail "rail: Enter on Home opened $(ipc path), not $HOME"
+    [[ "$(ipc focusView)" == "list" ]] || fail "rail: Enter on a place left the keyboard in $(ipc focusView)"
+    [[ "$(ipc railCursor)" == "1" ]] || fail "rail: after opening Home the rail cursor sits at $(ipc railCursor), not on Home"
+    # The keyboard is in the list again: Down moves the list cursor and not the rail's.
+    press -k Down
+    sleep 0.2
+    [[ "$(ipc cursor)" == "1" ]] || fail "rail: after Enter the list cursor is at $(ipc cursor), so Down reached the rail"
+    [[ "$(ipc railCursor)" == "1" ]] || fail "rail: after Enter Down still moved the rail cursor to $(ipc railCursor)"
+    press -k Tab
+    sleep 0.3
+    [[ "$(ipc focusView)" == "rail" ]] || fail "rail: Tab after a navigation left the keyboard in $(ipc focusView)"
+    press -k Escape
+    sleep 0.3
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "rail: the caller exited 0 after a cancel"
+    printf 'rail: Tab reaches the rail, the arrows walk it, Enter opens and returns, Escape returns without cancelling\n'
 }
 
 case_cancel() {
@@ -857,12 +914,13 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click crumbs save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills
+[[ "$#" -gt 0 ]] || set -- pick click crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
         click) case_click ;;
         crumbs) case_crumbs ;;
+        rail) case_rail ;;
         save) case_save ;;
         savename) case_savename ;;
         typed) case_typed ;;

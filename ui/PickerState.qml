@@ -26,6 +26,8 @@ QtObject {
     property var navigate: null
     property var fetcher: null
     property var list: null
+    // The rail, for the keys ui/js/RailKeys.js moves through it while focusView is "rail".
+    property var places: null
 
     readonly property var req: Picker.request(Quickshell.env("FLEA_PICKER"))
     readonly property string home: Quickshell.env("HOME")
@@ -82,7 +84,9 @@ QtObject {
     // ui/js/PickerOps.js turns the marks into listing indices and back. The rest is what a pane
     // holds that no chooser move reads yet, at the value a fresh ui/Pane.qml starts with.
     readonly property string viewMode: "list"
-    readonly property string focusView: "list"
+    // Which surface the keys reach, "list" or "rail", the two values ui/js/Focus.js names; Tab
+    // swaps them and the rail's Escape and Enter write "list" back, see ui/js/PickerKeys.js.
+    property string focusView: "list"
     property string filterQuery: ""
     property bool filterTyping: false
     property bool showHidden: false
@@ -219,11 +223,12 @@ QtObject {
 
     // The one write out of this process. The window closes only once the reply file is on disk,
     // because tools/flea-portal reads it after this process exits and a lost write is a fault.
+    // The active chip goes with a pick, so a caller that offered filters learns which one held.
     function finish(response, list) {
         if (root.answered)
             return
         // Built before the flag is set, so a throw here leaves the window answerable rather than shut.
-        var text = Picker.reply(response, list)
+        var text = Picker.reply(response, list, root.filter)
         root.fetcher.drop()
         root.answered = true
         root.window.replyFile.setText(text)
@@ -232,6 +237,13 @@ QtObject {
     // A held message stays until the next say: the share legs can take their whole deadline.
     function say(text, hold) {
         root.footer.say(text, hold)
+    }
+
+    // The keyboard back on the listing, whichever surface it was in: a click on a row or a place
+    // moves the focus the way the browser's does, and not only the Qt focus item.
+    function focusList() {
+        root.focusView = "list"
+        root.list.forceActiveFocus()
     }
 
     // ui/PickerList.qml's rowCentre needs a drawn item's painted box, which only the window has.

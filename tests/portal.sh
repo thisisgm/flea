@@ -51,19 +51,24 @@ sandbox_make "$dir"
 mkdir -p "$dir/run" "$dir/folder"
 
 capture="$dir/request.json"
+answer="$dir/answer.json"
 # The picker the backend spawns, standing in for the window: it records the request the backend
-# built and writes the reply the backend reads back. 1 is the user's own refusal, which carries no
-# URI, so every case here stays about the request and not about the answer.
+# built and writes the reply the backend reads back. The reply is the answer file when a case put
+# one there, else 1, the user's own refusal, which carries no URI and keeps a case about the request.
 cat > "$dir/flea" <<'STUB'
 #!/bin/sh
 printf '%s' "$FLEA_PICKER" > "$FLEA_PORTAL_CAPTURE"
-printf '{"response":1}' > "$2"
+if [ -f "$FLEA_PORTAL_ANSWER" ]; then
+    cat "$FLEA_PORTAL_ANSWER" > "$2"
+else
+    printf '{"response":1}' > "$2"
+fi
 STUB
 chmod +x "$dir/flea"
 
 # XDG_RUNTIME_DIR is where the backend's own mkdtemp goes, so it is pointed inside the sandbox.
-env FLEA_BIN="$dir/flea" FLEA_PORTAL_CAPTURE="$capture" XDG_RUNTIME_DIR="$dir/run" \
-    python3 "$backend" > "$dir/portal.log" 2>&1 &
+env FLEA_BIN="$dir/flea" FLEA_PORTAL_CAPTURE="$capture" FLEA_PORTAL_ANSWER="$answer" \
+    XDG_RUNTIME_DIR="$dir/run" python3 "$backend" > "$dir/portal.log" 2>&1 &
 portal=$!
 
 fail=0
@@ -79,7 +84,7 @@ check() {
   fi
 }
 
-out=$(env FLEA_PORTAL_CAPTURE="$capture" FLEA_PORTAL_FOLDER="$dir/folder" python3 - <<'ASK'
+out=$(env FLEA_PORTAL_CAPTURE="$capture" FLEA_PORTAL_FOLDER="$dir/folder" FLEA_PORTAL_ANSWER="$answer" python3 - <<'ASK'
 import json
 import os
 import sys
@@ -99,6 +104,7 @@ READY_TIMEOUT_SEC = 15
 
 capture = os.environ["FLEA_PORTAL_CAPTURE"]
 folder = os.environ["FLEA_PORTAL_FOLDER"]
+answer = os.environ["FLEA_PORTAL_ANSWER"]
 bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
 
 
@@ -119,7 +125,8 @@ while not owns_the_name():
 
 
 # One request: the capture is emptied first, so what is read back is this call's own and never the
-# one before it. Returns the response code, or "unanswered" for the reply that never arrived.
+# one before it. Returns the response code, or "unanswered" for the reply that never arrived, the
+# request the stub saw, and the results the caller was handed.
 def ask(method, options, token):
     with open(capture, "w"):
         pass
@@ -129,12 +136,33 @@ def ask(method, options, token):
                               GLib.Variant("(osssa{sv})", (handle, "portal.sh", "", "portal.sh", options)),
                               None, Gio.DBusCallFlags.NONE, CALL_TIMEOUT_MS, None)
     except GLib.Error:
-        return "unanswered", {}
+        return "unanswered", {}, {}
+    code, results = reply.unpack()
     try:
         with open(capture, "r", encoding="utf-8") as handle_file:
-            return str(reply.unpack()[0]), json.load(handle_file)
+            return str(code), json.load(handle_file), results
     except (OSError, ValueError):
-        return str(reply.unpack()[0]), {}
+        return str(code), {}, results
+
+
+# The stub answers with this reply for the calls made until forget_answer().
+def set_answer(reply):
+    with open(answer, "w", encoding="utf-8") as handle_file:
+        json.dump(reply, handle_file)
+
+
+def forget_answer():
+    if os.path.exists(answer):
+        os.remove(answer)
+
+
+# A current_filter result as one line: the label, then each rule as tag:value.
+def said_filter(results):
+    picked = results.get("current_filter")
+    if picked is None:
+        return "(none)"
+    label, rules = picked
+    return "%s %s" % (label, ",".join("%d:%s" % (tag, rule) for tag, rule in rules))
 
 
 def said(value):
@@ -145,21 +173,38 @@ def bytestring(text):
     return GLib.Variant("ay", text.encode("utf-8") + b"\0")
 
 
-code, req = ask("OpenFile", {"current_folder": bytestring(folder)}, "open")
+code, req, results = ask("OpenFile", {"current_folder": bytestring(folder)}, "open")
 print("open %s %s" % (code, said(req.get("folder", ""))))
+print("cancel %s" % said(",".join(sorted(results))))
 
-code, req = ask("SaveFile", {"current_folder": bytestring(folder),
+code, req, _ = ask("SaveFile", {"current_folder": bytestring(folder),
                              "current_file": bytestring(folder + "/notes.md")}, "save")
 print("save %s %s %s" % (code, said(req.get("folder", "")), said(req.get("file", ""))))
 
-code, req = ask("SaveFiles", {"current_folder": bytestring(folder),
+code, req, _ = ask("SaveFiles", {"current_folder": bytestring(folder),
                               "files": GLib.Variant("aay", [b"one.txt\0", b"two.txt\0"])}, "savefiles")
 print("savefiles %s %s" % (code, said(",".join(req.get("files", [])))))
 
 # A shape that is neither bytes nor a list of them is refused rather than guessed at, so the picker
 # opens where it would have anyway instead of somewhere the caller never named.
-code, req = ask("OpenFile", {"current_folder": GLib.Variant("s", "/etc")}, "refused")
+code, req, _ = ask("OpenFile", {"current_folder": GLib.Variant("s", "/etc")}, "refused")
 print("refused %s %s" % (code, said(req.get("folder", ""))))
+
+# A pick under one of the caller's filters: the caller is told which one held, as the one
+# (sa(us)) current_filter result, with globs tagged 0 and mime types tagged 1.
+filters = GLib.Variant("a(sa(us))", [("Images", [(0, "*.png"), (1, "image/jpeg")]),
+                                    ("Text", [(0, "*.txt")])])
+set_answer({"response": 0, "uris": ["file://" + folder + "/a.png"],
+            "current_filter": {"label": "Images", "globs": ["*.png"], "mimes": ["image/jpeg"]}})
+code, req, results = ask("OpenFile", {"current_folder": bytestring(folder), "filters": filters}, "picked")
+print("picked %s %s | %s" % (code, said(",".join(results.get("uris", []))), said_filter(results)))
+
+# A filter with no rule narrows nothing, so the backend drops it rather than echoing it.
+set_answer({"response": 0, "uris": ["file://" + folder + "/a.png"],
+            "current_filter": {"label": "Nothing", "globs": [], "mimes": []}})
+code, req, results = ask("OpenFile", {"current_folder": bytestring(folder)}, "ruleless")
+print("ruleless %s %s" % (code, said_filter(results)))
+forget_answer()
 ASK
 )
 
@@ -170,6 +215,10 @@ check "OpenFile decodes current_folder" "open 1 $dir/folder" "$(line open)"
 check "SaveFile decodes current_folder and current_file" "save 1 $dir/folder $dir/folder/notes.md" "$(line save)"
 check "SaveFiles answers its caller and decodes files" "savefiles 1 one.txt,two.txt" "$(line savefiles)"
 check "a current_folder that is not a bytestring is refused" "refused 1 (none)" "$(line refused)"
+check "a cancel returns neither uris nor current_filter" "cancel (none)" "$(line cancel)"
+check "a pick under a filter echoes it as current_filter" \
+    "picked 0 file://$dir/folder/a.png | Images 0:*.png,1:image/jpeg" "$(line picked)"
+check "a filter with no rule is not echoed" "ruleless 0 (none)" "$(line ruleless)"
 # The backend elides what it cannot do to a sentence, so a traceback in its log is a defect of its own.
 check "the backend raised nothing" "0" "$(grep -c 'Traceback' "$dir/portal.log")"
 
