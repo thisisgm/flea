@@ -493,7 +493,7 @@ rm -rf "$HANDLERS"
 APPS="$SB/applications"
 mkdir -p "$APPS/applications" "$APPS/home" "$APPS/cfg" "$APPS/fixture"
 printf '[Desktop Entry]\nType=Application\nName=Probe Viewer\nExec=true %%f\n' > "$APPS/applications/probe-viewer.desktop"
-printf '[Desktop Entry]\nType=Application\nName=Zebra\nExec=true %%f\n' > "$APPS/applications/zebra.desktop"
+printf '[Desktop Entry]\nType=Application\nName=Zebra\nExec=true %%f\nIcon=utilities-terminal\n' > "$APPS/applications/zebra.desktop"
 printf '[Desktop Entry]\nType=Application\nName=Hidden App\nExec=true %%f\nNoDisplay=true\n' > "$APPS/applications/hidden-app.desktop"
 printf '[Desktop Entry]\nType=Application\nName=GNOME Only\nExec=true %%f\nOnlyShowIn=GNOME;\n' > "$APPS/applications/gnome-only.desktop"
 printf '[Desktop Entry]\nType=Application\nName=No Program\nExec=true %%f\nTryExec=/flea/no-such-bin\n' > "$APPS/applications/no-program.desktop"
@@ -501,8 +501,8 @@ printf '[Desktop Entry]\nType=Link\nName=A Link\nExec=true %%f\n' > "$APPS/appli
 printf '[Desktop Entry]\nType=Application\nName=Aardvark\nExec=true %%f\n' > "$APPS/applications/aardvark.desktop"
 out=$( ( printf '{"c":"applications"}\n'
         sleep 1 ) | env XDG_DATA_HOME="$APPS/home" XDG_DATA_DIRS="$APPS" "$BIN" --backend | grep '"t":"applications"' | sed 's/,"ms":[0-9.]*}/}/')
-check "the applications list is the showable entries, sorted by their own name, ids riding" \
-  "{\"t\":\"applications\",\"apps\":[{\"name\":\"Aardvark\",\"path\":\"$APPS/applications/aardvark.desktop\",\"id\":\"aardvark.desktop\"},{\"name\":\"Probe Viewer\",\"path\":\"$APPS/applications/probe-viewer.desktop\",\"id\":\"probe-viewer.desktop\"},{\"name\":\"Zebra\",\"path\":\"$APPS/applications/zebra.desktop\",\"id\":\"zebra.desktop\"}]}" \
+check "the applications list is the showable entries, sorted by their own name, ids and icons riding" \
+  "{\"t\":\"applications\",\"apps\":[{\"name\":\"Aardvark\",\"path\":\"$APPS/applications/aardvark.desktop\",\"id\":\"aardvark.desktop\",\"icon\":\"\"},{\"name\":\"Probe Viewer\",\"path\":\"$APPS/applications/probe-viewer.desktop\",\"id\":\"probe-viewer.desktop\",\"icon\":\"\"},{\"name\":\"Zebra\",\"path\":\"$APPS/applications/zebra.desktop\",\"id\":\"zebra.desktop\",\"icon\":\"utilities-terminal\"}]}" \
   "$out"
 check "the box's own applications leaked nothing in, so exactly three answered" \
   "3" "$(echo "$out" | grep -o '"name":"' | wc -l | tr -d ' ')"

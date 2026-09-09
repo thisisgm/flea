@@ -1,6 +1,8 @@
 import QtQuick
+import Quickshell
 import qs.Commons
 import "." as Flea
+import "js/Format.js" as Format
 import "js/Keymap.js" as Keymap
 import "js/Menu.js" as Menu
 
@@ -51,6 +53,18 @@ Item {
     // The rail's mark slot is its icon size, exactly as ui/SidebarRow.qml sizes its own.
     readonly property int slotSize: root.compact ? Theme.railIconSize : Theme.markSize
 
+    // The desktop entry's own Icon=, resolved the row's own two ways: a theme name through
+    // Quickshell's icon provider, an absolute path as a file URL, and the generic application
+    // icon when the theme carries neither. Empty keeps the cut glyph in the slot above.
+    property string icon: ""
+    readonly property string iconSource: {
+        if (root.icon.length === 0)
+            return ""
+        if (root.icon.charAt(0) === "/")
+            return Format.fileUri(root.icon)
+        return Quickshell.iconPath(root.icon, true) || Quickshell.iconPath("application-x-generic", true)
+    }
+
     height: root.isSeparator ? root.separatorHeight
           : (root.compact ? Theme.railRowHeight : Theme.rowHeight)
 
@@ -85,13 +99,27 @@ Item {
         width: root.slotSize
         height: root.slotSize
 
-        // A brand mark is a reproduction and takes its own component; every other row is a cut glyph.
-        Flea.Glyph {
-            anchors.fill: parent
-            visible: root.entry.mark === undefined
-            name: root.entry.glyph !== undefined ? root.entry.glyph : "file"
-            color: root.markColor
-        }
+    // A brand mark is a reproduction and takes its own component; every other row is a cut glyph.
+    Flea.Glyph {
+        anchors.fill: parent
+        visible: root.entry.mark === undefined && root.iconSource.length === 0
+        name: root.entry.glyph !== undefined ? root.entry.glyph : "file"
+        color: root.markColor
+    }
+
+    // A desktop application's own Icon=, drawn when the theme or the entry's absolute path can
+    // serve it, and the cut glyph above when neither can. Only the Open with dialog's rows set
+    // icon today, so every other menu draws exactly as it did.
+    Image {
+        anchors.fill: parent
+        visible: root.iconSource.length > 0
+        source: root.iconSource
+        sourceSize.width: root.slotSize
+        sourceSize.height: root.slotSize
+        fillMode: Image.PreserveAspectFit
+        // A synchronous decode on the UI thread would land inside the dialog's open.
+        asynchronous: true
+    }
 
         Flea.TailscaleMark {
             anchors.centerIn: parent

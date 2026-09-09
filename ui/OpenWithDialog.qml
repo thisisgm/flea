@@ -34,7 +34,6 @@ Item {
     signal closed()
 
     readonly property int dialogWidth: 380
-    readonly property int listHeight: 7 * Theme.rowHeight
     readonly property int clampMargin: 8
 
     anchors.fill: parent
@@ -75,6 +74,10 @@ Item {
         root.shown = out
         if (root.cursor >= out.length)
             root.cursor = Math.max(0, out.length - 1)
+        // A narrowed list can leave the viewport scrolled past its own content, which Flickable
+        // only corrects on the next drag; a filter that answers two rows must draw them, not air.
+        if (list.contentY > list.contentHeight - list.height)
+            list.contentY = Math.max(0, list.contentHeight - list.height)
     }
 
     function moveCursor(delta) {
@@ -89,7 +92,7 @@ Item {
         root.cursor = next
         var row = repeater.itemAt(root.cursor)
         if (row)
-            body.reveal(row)
+            list.reveal(row)
     }
 
     // One launch of the picked application through the pane's own opener, and — only when the
@@ -125,8 +128,17 @@ Item {
         id: card
         anchors.centerIn: parent
         width: Theme.space(root.dialogWidth)
-        height: Math.min(title.height + rule.height + searchRow.height + root.listHeight
-                         + alwaysRow.height + buttonsRow.height + 4 * Theme.spacing.rowPaddingX,
+        readonly property int pad: Theme.spacing.rowPaddingX
+        // How many rows the list claims before the card clamps to the window; a shorter window
+        // gives the list less, never the controls below it.
+        readonly property int rowsShown: 7
+        // The card claims that many rows and clamps to the window; the chrome above and the
+        // controls below are fixed, and the list viewport takes whatever the clamped card leaves
+        // between them. That is what pins the buttons to the bottom: the first cut laid the whole
+        // body out as one column, and its unclipped delegates painted the rows nine and up
+        // straight over the always box and the buttons.
+        height: Math.min(card.pad + topCol.height + Theme.spacing.gap + root.rowsShown * Theme.rowHeight
+                         + Theme.spacing.gap + bottomCol.height + card.pad,
                          root.height - 2 * root.clampMargin)
         color: Theme.color.surface
         border.width: Theme.spacing.hairline
@@ -141,214 +153,226 @@ Item {
             onWheel: function (wheel) { wheel.accepted = true }
         }
 
-        Flea.CardScroll {
-            id: body
-            anchors.fill: parent
-            anchors.margins: Theme.spacing.rowPaddingX
+        Column {
+            id: topCol
+            x: card.pad
+            y: card.pad
+            width: parent.width - 2 * card.pad
+            spacing: 0
 
-            Column {
+            Text {
+                id: title
                 width: parent.width
-                spacing: 0
+                bottomPadding: Theme.spacing.gap
+                text: "Open with"
+                color: Theme.color.foreground
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.body
+                font.bold: true
+                textFormat: Text.PlainText
+            }
+
+            Rectangle {
+                width: parent.width
+                height: Theme.spacing.hairline
+                color: Theme.color.muted
+                opacity: 0.4
+            }
+
+            // The search line, the dialog's whole filter. Every key that is not one of the
+            // four stays text: the field owns the keyboard, which is what a search field is.
+            Item {
+                width: parent.width
+                height: Theme.rowHeight
 
                 Text {
-                    id: title
-                    width: parent.width
-                    bottomPadding: Theme.spacing.gap
-                    text: "Open with"
+                    id: searchMark
+                    anchors.left: parent.left
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.markSize
+                    text: "/"
+                    color: Theme.color.muted
+                    font.family: Theme.font.family
+                    font.pixelSize: Theme.font.body
+                }
+
+                TextInput {
+                    id: field
+                    anchors.left: searchMark.right
+                    anchors.leftMargin: Theme.spacing.gap
+                    anchors.right: parent.right
+                    anchors.verticalCenter: parent.verticalCenter
                     color: Theme.color.foreground
                     font.family: Theme.font.family
                     font.pixelSize: Theme.font.body
-                    font.bold: true
-                    textFormat: Text.PlainText
+                    clip: true
+                    selectByMouse: true
+                    text: root.search
+                    onTextChanged: {
+                        if (!root.opened)
+                            return
+                        root.search = text
+                        root.refilter()
+                    }
+
+                    Keys.onPressed: function (event) {
+                        if (event.key === Qt.Key_Escape) { root.close(); event.accepted = true; return }
+                        if (event.key === Qt.Key_Down) { root.moveCursor(1); event.accepted = true; return }
+                        if (event.key === Qt.Key_Up) { root.moveCursor(-1); event.accepted = true; return }
+                        if (event.key === Qt.Key_PageDown) { root.moveCursor(10); event.accepted = true; return }
+                        if (event.key === Qt.Key_PageUp) { root.moveCursor(-10); event.accepted = true; return }
+                        if (event.key === Qt.Key_Space) {
+                            // A space belongs to the filter first, so the always box is only
+                            // toggled from an empty line, where there is nothing left to type.
+                            if (field.text.length === 0) { root.always = !root.always; event.accepted = true }
+                            return
+                        }
+                        if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { root.commit(); event.accepted = true }
+                    }
                 }
 
-                Rectangle {
-                    id: rule
-                    width: parent.width
-                    height: Theme.spacing.hairline
+                Flea.Glyph {
+                    anchors.right: parent.right
+                    anchors.rightMargin: Theme.spacing.gap
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.font.caption
+                    height: Theme.font.caption
+                    visible: root.search.length > 0
+                    name: "x"
                     color: Theme.color.muted
-                    opacity: 0.4
-                }
-
-                // The search line, the dialog's whole filter. Every key that is not one of the
-                // four stays text: the field owns the keyboard, which is what a search field is.
-                Item {
-                    id: searchRow
-                    width: parent.width
-                    height: Theme.rowHeight
-
-                    Text {
-                        id: searchMark
-                        anchors.left: parent.left
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Theme.markSize
-                        text: "/"
-                        color: Theme.color.muted
-                        font.family: Theme.font.family
-                        font.pixelSize: Theme.font.body
-                    }
-
-                    TextInput {
-                        id: field
-                        anchors.left: searchMark.right
-                        anchors.leftMargin: Theme.spacing.gap
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        color: Theme.color.foreground
-                        font.family: Theme.font.family
-                        font.pixelSize: Theme.font.body
-                        clip: true
-                        selectByMouse: true
-                        text: root.search
-                        onTextChanged: {
-                            if (!root.opened)
-                                return
-                            root.search = text
-                            root.refilter()
-                        }
-
-                        Keys.onPressed: function (event) {
-                            if (event.key === Qt.Key_Escape) { root.close(); event.accepted = true; return }
-                            if (event.key === Qt.Key_Down) { root.moveCursor(1); event.accepted = true; return }
-                            if (event.key === Qt.Key_Up) { root.moveCursor(-1); event.accepted = true; return }
-                            if (event.key === Qt.Key_PageDown) { root.moveCursor(10); event.accepted = true; return }
-                            if (event.key === Qt.Key_PageUp) { root.moveCursor(-10); event.accepted = true; return }
-                            if (event.key === Qt.Key_Space) {
-                                // A space belongs to the filter first, so the always box is only
-                                // toggled from an empty line, where there is nothing left to type.
-                                if (field.text.length === 0) { root.always = !root.always; event.accepted = true }
-                                return
-                            }
-                            if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) { root.commit(); event.accepted = true }
-                        }
-                    }
-
-                    Flea.Glyph {
-                        anchors.right: parent.right
-                        anchors.rightMargin: Theme.spacing.gap
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Theme.font.caption
-                        height: Theme.font.caption
-                        visible: root.search.length > 0
-                        name: "x"
-                        color: Theme.color.muted
-
-                        TapHandler {
-                            acceptedButtons: Qt.LeftButton
-                            onTapped: { field.text = ""; field.forceActiveFocus() }
-                        }
-                    }
-                }
-
-                // The list itself, its height fixed so the card holds its shape across filters.
-                Item {
-                    width: parent.width
-                    height: Math.min(root.listHeight, root.shown.length * Theme.rowHeight)
-
-                    Column {
-                        id: rows
-                        width: parent.width
-
-                        Repeater {
-                            id: repeater
-                            model: root.shown
-
-                            delegate: Flea.MenuRow {
-                                required property var modelData
-                                required property int index
-                                width: rows.width
-                                entry: ({ label: modelData.name, glyph: "app-window" })
-                                current: root.cursor === index
-                                onActivated: { root.cursor = index; root.commit() }
-                            }
-                        }
-                    }
-
-                    // No match is a state and not an absence: the pane's own empty answer names the
-                    // query, and this one does the same in the same register.
-                    Text {
-                        anchors.centerIn: parent
-                        visible: root.shown.length === 0
-                        text: root.search.length > 0 ? "No application matches " + root.search + "."
-                                                     : "No application on this system can be offered."
-                        color: Theme.color.muted
-                        font.family: Theme.font.family
-                        font.pixelSize: Theme.font.caption
-                        textFormat: Text.PlainText
-                    }
-                }
-
-                Rectangle {
-                    width: parent.width
-                    height: Theme.spacing.hairline
-                    color: Theme.color.muted
-                    opacity: 0.4
-                }
-
-                // The always box, drawn the convert popup's toggle is drawn: a 24-grid square with
-                // the check glyph inside it when it is ticked. The write it stands for is the
-                // default for the row's own type, named here by the Kind the listing shows.
-                Item {
-                    id: alwaysRow
-                    width: parent.width
-                    height: Theme.rowHeight
-
-                    Rectangle {
-                        id: box
-                        anchors.left: parent.left
-                        anchors.leftMargin: Theme.spacing.rowPaddingX
-                        anchors.verticalCenter: parent.verticalCenter
-                        width: Theme.font.caption
-                        height: Theme.font.caption
-                        color: "transparent"
-                        border.width: Theme.spacing.hairline * 2
-                        border.color: root.always ? Theme.color.accent : Theme.color.muted
-
-                        Flea.Glyph {
-                            anchors.fill: parent
-                            visible: root.always
-                            name: "check"
-                            color: Theme.color.accent
-                        }
-                    }
-
-                    Text {
-                        anchors.left: box.right
-                        anchors.leftMargin: Theme.spacing.gap
-                        anchors.right: parent.right
-                        anchors.verticalCenter: parent.verticalCenter
-                        text: root.kind.length > 0 ? "Always use this application for " + root.kind + " files"
-                                                   : "Always use this application for this kind of file"
-                        color: Theme.color.foreground
-                        font.family: Theme.font.family
-                        font.pixelSize: Theme.font.body
-                        textFormat: Text.PlainText
-                        elide: Text.ElideRight
-                    }
 
                     TapHandler {
                         acceptedButtons: Qt.LeftButton
-                        gesturePolicy: TapHandler.ReleaseWithinBounds
-                        onTapped: root.always = !root.always
+                        onTapped: { field.text = ""; field.forceActiveFocus() }
+                    }
+                }
+            }
+        }
+
+        // The list's own viewport: a clipped, wheel-scrollable band whose height is the clamped
+        // card's remainder, so scrolling never reaches the controls and the controls never
+        // reach the list. This is the one scroll surface the dialog has.
+        Flea.CardScroll {
+            id: list
+            x: card.pad
+            y: card.pad + topCol.height + Theme.spacing.gap
+            width: parent.width - 2 * card.pad
+            height: Math.max(2 * Theme.rowHeight,
+                             card.height - card.pad - bottomCol.height - Theme.spacing.gap - y)
+
+            Column {
+                id: rows
+                width: parent.width
+
+                Repeater {
+                    id: repeater
+                    model: root.shown
+
+                    delegate: Flea.MenuRow {
+                        required property var modelData
+                        required property int index
+                        width: rows.width
+                        entry: ({ label: modelData.name, glyph: "app-window" })
+                        // The entry's own Icon=, the theme's icon in the row's mark slot and the
+                        // cut glyph only when the theme carries neither it nor the generic one.
+                        icon: modelData.icon || ""
+                        current: root.cursor === index
+                        onActivated: { root.cursor = index; root.commit() }
+                    }
+                }
+            }
+
+            // No match is a state and not an absence: the pane's own empty answer names the
+            // query, and this one does the same in the same register.
+            Text {
+                anchors.centerIn: parent
+                visible: root.shown.length === 0
+                text: root.search.length > 0 ? "No application matches " + root.search + "."
+                                             : "No application on this system can be offered."
+                color: Theme.color.muted
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.caption
+                textFormat: Text.PlainText
+            }
+        }
+
+        Column {
+            id: bottomCol
+            x: card.pad
+            width: parent.width - 2 * card.pad
+            anchors.bottom: parent.bottom
+            anchors.bottomMargin: card.pad
+            spacing: 0
+
+            Rectangle {
+                width: parent.width
+                height: Theme.spacing.hairline
+                color: Theme.color.muted
+                opacity: 0.4
+            }
+
+            // The always box, drawn the convert popup's toggle is drawn: a 24-grid square with
+            // the check glyph inside it when it is ticked. The write it stands for is the
+            // default for the row's own type, named here by the Kind the listing shows.
+            Item {
+                id: alwaysRow
+                width: parent.width
+                height: Theme.rowHeight
+
+                Rectangle {
+                    id: box
+                    anchors.left: parent.left
+                    anchors.leftMargin: Theme.spacing.rowPaddingX
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.font.caption
+                    height: Theme.font.caption
+                    color: "transparent"
+                    border.width: Theme.spacing.hairline * 2
+                    border.color: root.always ? Theme.color.accent : Theme.color.muted
+
+                    Flea.Glyph {
+                        anchors.fill: parent
+                        visible: root.always
+                        name: "check"
+                        color: Theme.color.accent
                     }
                 }
 
-                Row {
-                    id: buttonsRow
+                Text {
+                    anchors.left: box.right
+                    anchors.leftMargin: Theme.spacing.gap
                     anchors.right: parent.right
-                    anchors.rightMargin: Theme.spacing.rowPaddingX
-                    spacing: Theme.spacing.gap
+                    anchors.verticalCenter: parent.verticalCenter
+                    text: root.kind.length > 0 ? "Always use this application for " + root.kind + " files"
+                                               : "Always use this application for this kind of file"
+                    color: Theme.color.foreground
+                    font.family: Theme.font.family
+                    font.pixelSize: Theme.font.body
+                    textFormat: Text.PlainText
+                    elide: Text.ElideRight
+                }
 
-                    Flea.DialogButton {
-                        label: "Cancel"
-                        onActivated: root.close()
-                    }
+                TapHandler {
+                    acceptedButtons: Qt.LeftButton
+                    gesturePolicy: TapHandler.ReleaseWithinBounds
+                    onTapped: root.always = !root.always
+                }
+            }
 
-                    Flea.DialogButton {
-                        label: "Open"
-                        primary: true
-                        onActivated: root.commit()
-                    }
+            Row {
+                anchors.right: parent.right
+                anchors.rightMargin: Theme.spacing.rowPaddingX
+                spacing: Theme.spacing.gap
+
+                Flea.DialogButton {
+                    label: "Cancel"
+                    onActivated: root.close()
+                }
+
+                Flea.DialogButton {
+                    label: "Open"
+                    primary: true
+                    onActivated: root.commit()
                 }
             }
         }

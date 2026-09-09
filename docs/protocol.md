@@ -914,16 +914,19 @@ something else without writing it anywhere.
 
 ### applications
 
-`{"t":"applications","apps":[{"name":"<string>","path":"<string>","id":"<string>"},...],"ms":<float>}`
+`{"t":"applications","apps":[{"name":"<string>","path":"<string>","id":"<string>","icon":"<string>"},...],"ms":<float>}`
 
 Example:
-`{"t":"applications","apps":[{"name":"Image Viewer","path":"/usr/share/applications/org.gnome.eog.desktop","id":"org.gnome.eog.desktop"}],"ms":1.234}`
+`{"t":"applications","apps":[{"name":"Image Viewer","path":"/usr/share/applications/org.gnome.eog.desktop","id":"org.gnome.eog.desktop","icon":"org.gnome.eog"}],"ms":1.234}`
 
 Answers the `applications` request with one entry per installed, showable application, sorted
 by `name`. `path` is the desktop entry file `flea --openwith` launches, resolved the way the
 registered list resolves its own ids, and `id` is that same file's desktop id, which is what
-the `setdefault` write takes: the two spellings of one application, one per door. `ms` is the
-scan to three decimal places.
+the `setdefault` write takes: the two spellings of one application, one per door. `icon` is
+the entry's own `Icon=` verbatim, empty when it wrote none; the client resolves it against the
+icon theme, an absolute path serving as a file URL, and falls back to its own glyph when the
+theme carries neither it nor the generic application icon. `ms` is the scan to three decimal
+places.
 
 ### defaulted
 

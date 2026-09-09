@@ -3792,6 +3792,15 @@ the always box only from an empty line, and Escape closes having written nothing
 asked for once per open and re-asked on the next one, so an application installed while the
 window stood is on the list without a restart.
 
+**The list scrolls in its own band, and the buttons are pinned because of it.** The first cut
+laid title, list, always box and buttons out as one column inside one scroll, and a column
+lays out by its children's own heights while painting its delegates wherever they land: with
+more applications than the card held, the rows painted straight over the always box and the
+buttons. The card now fixes the chrome above and the controls below and gives the list
+viewport whatever the clamped card leaves between them, which is the only scroll surface the
+dialog has; the icons ride the entry's own `Icon=` through the applications line and draw in
+`ui/MenuRow.qml`'s mark slot, empty on every other caller, so no other menu changed.
+
 **That window is a third of a second on an archive, not the low tens of milliseconds this file used
 to claim.** `gio open` on an `Exec=` entry forks and returns; on a `DBusActivatable` entry it waits
 on the `org.freedesktop.Application.Open` reply instead, which is a cold application start.

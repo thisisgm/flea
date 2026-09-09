@@ -10,11 +10,13 @@ use std::collections::HashMap;
 use std::path::{Path, PathBuf};
 
 // One installed, launchable, showable application: the display name its entry carries, the file
-// `gio launch` takes, and the id `gio mime <type> <id>` takes when the operator asks for always.
+// `gio launch` takes, the id `gio mime <type> <id>` takes when the operator asks for always, and
+// the Icon= the dialog's rows draw, empty when the entry wrote none.
 pub struct AppEntry {
     pub name: String,
     pub path: String,
     pub id: String,
+    pub icon: String,
 }
 
 // The applications dirs the id resolution scans, user data first. This is g_get_user_data_dir and
@@ -74,6 +76,7 @@ pub(crate) fn entry_name(text: &str) -> Option<String> {
 // first group header is an action's, and no action's key can make the entry itself launchable.
 pub(crate) struct Facts {
     pub name: Option<String>,
+    pub icon: Option<String>,
     pub type_: Option<String>,
     pub hidden: bool,
     pub no_display: bool,
@@ -85,7 +88,7 @@ pub(crate) struct Facts {
 
 pub(crate) fn facts_of(text: &str) -> Facts {
     let mut facts = Facts {
-        name: None, type_: None, hidden: false, no_display: false,
+        name: None, icon: None, type_: None, hidden: false, no_display: false,
         try_exec: None, exec: None, only_show_in: None, not_show_in: None,
     };
     let mut in_entry = false;
@@ -106,6 +109,7 @@ pub(crate) fn facts_of(text: &str) -> Facts {
         };
         match key {
             "Name" if facts.name.is_none() => facts.name = Some(value.to_string()),
+            "Icon" if facts.icon.is_none() => facts.icon = Some(value.to_string()),
             "Type" => facts.type_ = Some(value.to_string()),
             "Hidden" => facts.hidden = value == "true",
             "NoDisplay" => facts.no_display = value == "true",
@@ -178,7 +182,12 @@ pub fn all() -> Vec<AppEntry> {
             continue;
         }
         let name = facts.name.unwrap_or_else(|| id.trim_end_matches(".desktop").to_string());
-        out.push(AppEntry { name, path: path.to_string_lossy().to_string(), id: id.clone() });
+        out.push(AppEntry {
+            name,
+            path: path.to_string_lossy().to_string(),
+            id: id.clone(),
+            icon: facts.icon.unwrap_or_default(),
+        });
     }
     out.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()).then_with(|| a.id.cmp(&b.id)));
     out
@@ -190,10 +199,11 @@ pub fn applications_line(apps: &[AppEntry], ms: f64) -> String {
         .iter()
         .map(|a| {
             format!(
-                r#"{{"name":"{}","path":"{}","id":"{}"}}"#,
+                r#"{{"name":"{}","path":"{}","id":"{}","icon":"{}"}}"#,
                 escape(&a.name),
                 escape(&a.path),
-                escape(&a.id)
+                escape(&a.id),
+                escape(&a.icon)
             )
         })
         .collect();
@@ -276,7 +286,7 @@ mod tests {
         let d = TestDir::new("appscanall");
         d.dir("user/applications");
         d.dir("sys/applications");
-        std::fs::write(d.join("user/applications/zview.desktop"), "[Desktop Entry]\nName=Zed View\nExec=z %f\n").unwrap();
+        std::fs::write(d.join("user/applications/zview.desktop"), "[Desktop Entry]\nName=Zed View\nExec=z %f\nIcon=utilities-terminal\n").unwrap();
         std::fs::write(d.join("sys/applications/aview.desktop"), "[Desktop Entry]\nName=Apple Viewer\nExec=a %f\n").unwrap();
         // The same id in a later dir of the ladder is the earlier dir's file, the resolution rule.
         std::fs::write(d.join("sys/applications/zview.desktop"), "[Desktop Entry]\nName=Sys Copy\nExec=z2 %f\n").unwrap();
@@ -296,6 +306,7 @@ mod tests {
                 name: facts.name.unwrap_or_else(|| id.trim_end_matches(".desktop").to_string()),
                 path: path.to_string_lossy().to_string(),
                 id: id.clone(),
+                icon: facts.icon.unwrap_or_default(),
             });
         }
         apps.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()).then_with(|| a.id.cmp(&b.id)));
@@ -303,6 +314,8 @@ mod tests {
         assert_eq!(names, ["Apple Viewer", "Konsole", "Zed View"], "ladder order wins and the sort is by name");
         assert_eq!(apps[2].id, "zview.desktop");
         assert!(apps[2].path.ends_with("user/applications/zview.desktop"));
+        assert_eq!(apps[2].icon, "utilities-terminal", "the entry's own Icon= rides the row");
+        assert_eq!(apps[0].icon, "", "an entry that wrote no Icon= answers an empty one");
         assert_eq!(apps[1].id, "kde4-konsole.desktop");
     }
 
@@ -323,13 +336,13 @@ mod tests {
     #[test]
     fn the_line_escapes_every_string_field_like_the_registered_one() {
         let apps = vec![
-            AppEntry { name: "say \"hi\"".to_string(), path: "/tmp/a \"b\".desktop".to_string(), id: "a.desktop".to_string() },
-            AppEntry { name: "Viewer".to_string(), path: "/usr/share/applications/v.desktop".to_string(), id: "v.desktop".to_string() },
+            AppEntry { name: "say \"hi\"".to_string(), path: "/tmp/a \"b\".desktop".to_string(), id: "a.desktop".to_string(), icon: "say \"hi\"".to_string() },
+            AppEntry { name: "Viewer".to_string(), path: "/usr/share/applications/v.desktop".to_string(), id: "v.desktop".to_string(), icon: String::new() },
         ];
         let line = applications_line(&apps, 1.5);
         assert!(line.starts_with(r#"{"t":"applications","apps":["#), "{}", line);
-        assert!(line.contains(r#"{"name":"say \"hi\"","path":"/tmp/a \"b\".desktop","id":"a.desktop"}"#), "{}", line);
-        assert!(line.ends_with(r#"{"name":"Viewer","path":"/usr/share/applications/v.desktop","id":"v.desktop"}],"ms":1.500}"#), "{}", line);
+        assert!(line.contains(r#"{"name":"say \"hi\"","path":"/tmp/a \"b\".desktop","id":"a.desktop","icon":"say \"hi\""}"#), "{}", line);
+        assert!(line.ends_with(r#"{"name":"Viewer","path":"/usr/share/applications/v.desktop","id":"v.desktop","icon":""}],"ms":1.500}"#), "{}", line);
         assert_eq!(applications_line(&[], 0.0), r#"{"t":"applications","apps":[],"ms":0.000}"#);
     }
 }
