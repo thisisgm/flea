@@ -60,6 +60,21 @@ function run(check) {
     check("an unknown current_filter falls back to the first", Picker.currentChip(Picker.request('{"filters":[{"label":"A"}],"current":"Z"}')), 0)
     check("no filters has no active chip", Picker.currentChip(Picker.request("{}")), -1)
 
+    // The user's own pills from filters.toml, which only a caller that sent no filters ever sees.
+    var config = [{ name: "", globs: ["*.jpg", "*.jpeg"], mimes: [] }, { name: "Documents", globs: ["*.odt"], mimes: [] }]
+    var own = Picker.chips(Picker.request("{}"), config)
+    check("no app filters and a config draws All files first", own[0].label + " " + own[0].index, "All files -1")
+    check("then one pill per config filter, labelled by extension", own[1].label + "|" + own[2].label, ".jpg (.jpg, .jpeg)|Documents")
+    check("config pills index the config list", own[1].index + "," + own[2].index, "0,1")
+    check("All files starts active over config pills", Picker.currentChip(Picker.request("{}")), -1)
+    check("the config list is what those indices read", Picker.filterList(Picker.request("{}"), config)[1].name, "Documents")
+    var withApp = Picker.chips(req, config)
+    check("app filters present: the config is ignored", withApp.length, 3)
+    check("and today's chip list is unchanged", withApp[0].label + "|" + withApp[2].label + " " + withApp[2].index, "Images|All files -1")
+    check("the app's own list is what its indices read", Picker.filterList(req, config), req.filters)
+    check("neither app nor config filters is no chip row", Picker.chips(Picker.request("{}"), []).length, 0)
+    check("no config at all reads as none", Picker.chips(Picker.request("{}"), undefined).length, 0)
+
     var images = req.filters[0]
     check("a glob matches", Picker.matchesFilter("shot.png", images), true)
     check("a glob matches whatever the case is", Picker.matchesFilter("SHOT.PNG", images), true)

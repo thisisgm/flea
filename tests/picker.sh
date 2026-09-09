@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|taildrop]; typed_share and taildrop are opt-in.
+# Usage: ./tests/picker.sh [pick|click|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|taildrop]; typed_share and taildrop are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -464,6 +464,45 @@ case_typed() {
     printf 'typed: ":" focuses the location field, the text lands in it, and Escape returns to the list without cancelling\n'
 }
 
+# The user's own pills, from filters.toml under a config home the case owns: a caller that sent no
+# filters draws All files first and active, then one pill per table labelled by extension; a caller
+# that sent filters sees its own row and never a config pill. Both dialogs are refused, so no answer.
+case_pills() {
+    make_fixture
+    local flea reply
+    flea="$(cd "$(dirname "$0")/.." && pwd)/target/release/flea"
+    [[ -x "$flea" ]] || fail "no built flea at $flea"
+    mkdir -p "$fixture/config/flea"
+    printf '[[filter]]\nglobs = ["*.jpg", "*.jpeg"]\n\n[[filter]]\nname = "Text"\nglobs = ["*.txt"]\n' > "$fixture/config/flea/filters.toml"
+    reply="$fixture/pills-reply.json"
+    XDG_CONFIG_HOME="$fixture/config" FLEA_UI="$(dirname "$picker_config")" \
+        FLEA_PICKER="{\"mode\":\"open\",\"title\":\"$title\",\"folder\":\"$fixture\"}" \
+        "$flea" --pick "$reply" &
+    asker=$!
+    omarchy-drive wait window "$title" --timeout 25 >/dev/null || fail "the pills request raised no picker window"
+    omarchy-drive focus "$title" >/dev/null || fail "the picker window would not take focus"
+    ipc_is_live
+    [[ "$(ipc chips)" == "All files,.jpg (.jpg, .jpeg),Text" ]] || fail "the config drew the chips $(ipc chips)"
+    [[ "$(ipc chip)" == "-1" ]] || fail "All files was not the active chip, chip $(ipc chip) was"
+    [[ "$(ipc shownTotal)" == "$(ipc total)" ]] || fail "All files hid rows: $(ipc shownTotal) of $(ipc total) shown"
+    press -k Escape
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == '{"response":1}' ]] || fail "the pills request replied $(cat "$reply")"
+
+    XDG_CONFIG_HOME="$fixture/config" FLEA_UI="$(dirname "$picker_config")" \
+        FLEA_PICKER="{\"mode\":\"open\",\"title\":\"$title\",\"folder\":\"$fixture\",\"filters\":[{\"label\":\"Images\",\"globs\":[\"*.png\"],\"mimes\":[]}]}" \
+        "$flea" --pick "$reply" &
+    asker=$!
+    omarchy-drive wait window "$title" --timeout 25 >/dev/null || fail "the filtered request raised no picker window"
+    omarchy-drive focus "$title" >/dev/null || fail "the picker window would not take focus"
+    ipc_is_live
+    [[ "$(ipc chips)" == "Images,All files" ]] || fail "a caller's filters drew the chips $(ipc chips)"
+    [[ "$(ipc chip)" == "0" ]] || fail "the caller's first filter was not active, chip $(ipc chip) was"
+    press -k Escape
+    wait "$asker"; asker=0
+    printf 'pills: a caller with no filters gets All files and the config pills, a caller with filters gets only its own\n'
+}
+
 # Starts the picker on the fixture directly, the way case_typed does, and leaves it to the caller
 # to type and to end. asker holds the process; reply names the file it answers into.
 start_typed() {
@@ -662,7 +701,7 @@ case_taildrop() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click save savename typed typed_dir typed_file typed_url cancel withdrawn died fault
+[[ "$#" -gt 0 ]] || set -- pick click save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -678,6 +717,7 @@ for name in "$@"; do
         withdrawn) case_withdrawn ;;
         died) case_died ;;
         fault) case_fault ;;
+        pills) case_pills ;;
         taildrop) case_taildrop ;;
         *) fail "no case named $name" ;;
     esac

@@ -18,7 +18,7 @@ Item {
     signal chipChosen(int index)
 
     readonly property var req: root.picker.req
-    readonly property var chips: Picker.chips(root.req)
+    readonly property var chips: root.picker.chips
 
     readonly property color edge: root.picker.edge
 
@@ -221,7 +221,7 @@ Item {
             textFormat: Text.PlainText
         }
 
-        // The caller's filters, and All files beside them; a request with no filters draws no chips.
+        // The caller's filters and All files, or All files and the user's own; neither draws no chips.
         Row {
             id: types
             anchors.right: parent.right
