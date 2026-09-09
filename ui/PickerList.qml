@@ -112,7 +112,7 @@ ListView {
             // held double click marks once instead of toggling itself back off.
             onTapped: function (eventPoint, button) {
                 root.picker.cursorIndex = cell.listingIndex
-                root.forceActiveFocus()
+                root.picker.focusList()
                 var mods = tap.point.modifiers
                 if (mods & Qt.ControlModifier) {
                     if (tap.tapCount === 1)

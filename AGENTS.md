@@ -920,6 +920,24 @@ Any other action is refused and the event stays unaccepted. The seam's `rowCentr
 drawn row's centre so `tests/picker.sh click` can aim omarchy-drive at it, the same read
 `ui/Ipc.qml` makes.
 
+**Tab into the rail.** `ui/PickerState.qml`'s `focusView` takes the two values `ui/js/Focus.js`
+names, `list` and `rail`, and Tab is the one key that swaps them, the browser's own rule. While
+it is `rail`, `ui/js/PickerKeys.js` answers from a third table instead of the two above: Down,
+Up, `j`, `k`, Home, End, Enter and Escape become the six `ui/js/RailKeys.js` actions a chooser's
+rail can carry, `cursorDown`, `cursorUp`, `cursorFirst`, `cursorLast`, `open` and `escape`, and
+`act` hands them to `RailKeys.act` unmodified over `ui/PickerPlaces.qml`, which exposes the three
+members `ui/Sidebar.qml` does, `entries`, `cursorIndex` and `activate`. The other four rail
+actions, `addNetwork`, `rename`, `menu` and `eject`, reach members only the sidebar has, so the
+rail table never names them; nor does it name Space or any shared operation, so nothing marks or
+moves a list row the person is not looking at. Escape writes `focusView` back to `list` without
+cancelling; Enter goes through the rail's `activate`, whose `chosen` handler in `ui/picker.qml`
+opens the place and calls `focusList`, which is also what a click on a row, a crumb or a place
+does, so the two focus notions never drift apart. The rail's cursor follows the folder the list
+is standing in when that folder is one of its places, so the rail still says where you are while
+the keyboard is in the list; `ui/SidebarRow.qml` draws it in the resting fill until the rail has
+the keyboard. The seam's `focusView` and `railCursor` readers are what `tests/picker.sh rail`
+reads.
+
 **What a typed line does, and why it is peeked first.** `ui/PickerNavigate.qml` carries out what
 `ui/js/PickerNavigate.js` decides about the line `entered()` reports, the Windows filename box's
 rules: a folder opens, the box clears and the list has the keyboard; a file opens its parent with

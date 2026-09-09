@@ -22,6 +22,13 @@ Item {
     // The rail's drawn rows, for the seam: a test aims a click at a row by the entry it draws.
     readonly property alias rail: rail
 
+    // The rail's own cursor, the row Tab's arrow keys move and Enter opens, and whether the
+    // keyboard is in the rail, which is how ui/SidebarRow.qml tells a resting cursor from a live one.
+    // The keys reach it through ui/js/RailKeys.js, read unmodified, so the members it touches carry
+    // the names ui/Sidebar.qml gives them: cursorIndex, entries, activate.
+    property int cursorIndex: 0
+    property bool focused: false
+
     // SendPicker.html draws Recent above Home, and a save has no history to write into, so the one
     // mode that cannot use the location does not offer it.
     property bool offerRecent: true
@@ -35,6 +42,26 @@ Item {
     }]
     readonly property var entries: (root.offerRecent ? root.recentRow : [])
         .concat(Places.favorites(root.home, root.dirsText, root.marksText, Icons.sidebarGlyphFor))
+
+    // Clamped on the aggregate, ui/Sidebar.qml's own rule: a bookmarks file read after the cursor
+    // sat past its end would leave it on a row the rail does not draw.
+    onEntriesChanged: root.cursorIndex = Math.max(0, Math.min(root.entries.length - 1, root.cursorIndex))
+
+    // The cursor rests on the place the list is standing in, so the rail still says where you are;
+    // a folder outside every place leaves the cursor where it was rather than nowhere.
+    onCurrentChanged: {
+        for (var i = 0; i < root.entries.length; i++) {
+            if (root.entries[i].path === root.current) {
+                root.cursorIndex = i
+                return
+            }
+        }
+    }
+
+    function activate(index) {
+        root.cursorIndex = index
+        root.chosen(root.entries[index].path)
+    }
 
     implicitWidth: Theme.space(150)
 
@@ -61,9 +88,9 @@ Item {
         // index and modelData are required on ui/SidebarRow.qml itself, so the view fills them;
         // redeclaring them here left the delegate uninitialised and the rail drew nothing.
         delegate: Flea.SidebarRow {
-            cursor: modelData.path === root.current
-            focused: false
-            onActivated: function (at) { root.chosen(root.entries[at].path) }
+            cursor: index === root.cursorIndex
+            focused: root.focused
+            onActivated: function (at) { root.activate(at) }
         }
     }
 

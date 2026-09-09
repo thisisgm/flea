@@ -1,12 +1,19 @@
 .pragma library
 
 .import "Keymap.js" as Keymap
+.import "RailKeys.js" as RailKeys
 
 // What the chooser does with a key. Two tables, in order: the picker's own verbs, which were an
 // if-chain in ui/PickerList.qml, and then keys.toml through ui/js/Keymap.js for the operations the
 // picker shares with the browser window, so a preset's rebinding (the windows preset's Ctrl+H)
-// applies here too. Any other key answers "" and the event stays unaccepted. Pure, so
-// tests/js/pickerkeys.js drives lookup, act and handle.
+// applies here too. Any other key answers "" and the event stays unaccepted. Tab swaps the surface
+// the keys reach, and while it is the rail a third table below answers instead of the two. Pure,
+// so tests/js/pickerkeys.js drives lookup, act and handle.
+
+// ui/js/Focus.js's two surface names, written out because importing it would pull the browser's
+// whole key dispatch, ui/js/Ops.js included, into a chooser that carries none of it.
+var LIST = "list"
+var RAIL = "rail"
 
 // The shared actions the picker takes from the key table, each with the name the footer prints
 // while its verb is not built yet. An action outside this table never reaches act.
@@ -18,6 +25,8 @@ var SHARED = {
 }
 
 function lookup(event, state) {
+    if (state.focusView === RAIL)
+        return railVerb(event)
     var own = ownVerb(event, state)
     if (own.length > 0)
         return own
@@ -50,10 +59,39 @@ function ownVerb(event, state) {
     return event.text === ":" ? "location" : ""
 }
 
+// The rail's keys, the six of ui/js/RailKeys.js's ten actions a chooser's rail can answer: the
+// other four rename, mount and eject through members only ui/Sidebar.qml has. Tab still swaps
+// back through the key table, and anything else is nobody's while the rail has the keyboard, so
+// Space cannot mark a list row the person is not looking at. Home and End are named as the list
+// names them, and j and k walk the rail as they walk the list.
+function railVerb(event) {
+    switch (event.key) {
+    case Qt.Key_Down: case Qt.Key_J: return "cursorDown"
+    case Qt.Key_Up: case Qt.Key_K: return "cursorUp"
+    case Qt.Key_Home: return "cursorFirst"
+    case Qt.Key_End: return "cursorLast"
+    case Qt.Key_Return: case Qt.Key_Enter: return "open"
+    case Qt.Key_Escape: return "escape"
+    }
+    return Keymap.lookup(event.key, event.text, event.modifiers) === "focusNext" ? "focusNext" : ""
+}
+
 // The dispatcher. state is ui/PickerState.qml; ops is ui/PickerList.qml, for the cursor moves
 // that need the viewport and the field ":" hands the keyboard to. A shared action with no verb
 // here yet says so in the footer, so a key never falls silent.
 function act(action, state, ops) {
+    // Tab, ui/js/Focus.js's own rule: the only key that moves between the two surfaces.
+    if (action === "focusNext") {
+        state.focusView = state.focusView === LIST ? RAIL : LIST
+        return
+    }
+    // The rail answers through RailKeys unmodified, on the members ui/PickerPlaces.qml shares with
+    // ui/Sidebar.qml; escape writes focusView back to the list and open goes through the rail's own
+    // activate, whose chosen handler in ui/picker.qml returns the keyboard to the list too.
+    if (state.focusView === RAIL) {
+        RailKeys.act(action, state, state.places)
+        return
+    }
     switch (action) {
     case "cancel": state.cancel(); return
     case "stopFetch": state.fetcher.cancel(); return

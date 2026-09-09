@@ -80,4 +80,33 @@ function run(check) {
     RailKeys.act("eject", favouriteRail, favouriteRail.sidebar)
     check("ctrl e on a favourite says why, and releases nothing",
           favouriteRail.sidebar.released.length + "|" + favouriteRail.said, "0|Home has nothing to eject or unmount.")
+
+    // The chooser's rail, ui/PickerPlaces.qml: the same three members ui/Sidebar.qml exposes and
+    // nothing else, driven through the six actions ui/js/PickerKeys.js lets through. Its activate
+    // reports the row's path the way the rail's chosen signal does, and clamps like the rail's own
+    // onEntriesChanged does, so a cursor past the last row lands on it and never beyond.
+    var recent = { label: "Recent", group: "favorite", kind: "favorite", path: "recent:" }
+    var picked = []
+    var places = { entries: [recent, home], cursorIndex: 0,
+                   activate: function (i) { this.cursorIndex = i; picked.push(this.entries[i].path) } }
+    var chooser = { focusView: "rail" }
+    RailKeys.act("cursorDown", chooser, places)
+    check("down steps the picker rail", places.cursorIndex, 1)
+    RailKeys.act("cursorDown", chooser, places)
+    check("and stops at its last row", places.cursorIndex, 1)
+    RailKeys.act("cursorUp", chooser, places)
+    RailKeys.act("cursorUp", chooser, places)
+    check("up stops at its first row", places.cursorIndex, 0)
+    RailKeys.act("cursorLast", chooser, places)
+    check("end goes to the last row", places.cursorIndex, 1)
+    RailKeys.act("cursorFirst", chooser, places)
+    check("home goes to the first row", places.cursorIndex, 0)
+    RailKeys.act("open", chooser, places)
+    check("enter opens the cursor row through the rail's own activate", picked.join(","), "recent:")
+    check("and the keyboard stays where it was until the window answers chosen", chooser.focusView, "rail")
+    RailKeys.act("escape", chooser, places)
+    check("escape hands the keyboard back to the list", chooser.focusView, "list")
+    var bare = { entries: [], cursorIndex: 0, activate: function () { picked.push("nothing") } }
+    RailKeys.act("open", chooser, bare)
+    check("enter on a rail with no rows opens nothing", picked.length, 1)
 }

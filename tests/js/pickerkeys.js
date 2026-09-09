@@ -148,4 +148,42 @@ function run(check) {
     PickerKeys.act("settings", state, ops)
     check("an action outside the allowlist says nothing", state.said.length, 1)
     check("the state is untouched by either", state.calls.length, 6)
+
+    // ---- the rail: Tab swaps the surface, and the rail's six keys answer while it has the keyboard ----
+    var railed = stubState({ focusView: "list", places: { entries: [1, 2, 3], cursorIndex: 0, opened: [],
+                             activate: function (i) { this.opened.push(i) } } })
+    PickerKeys.act("focusNext", railed, ops)
+    check("tab takes the keyboard to the rail", railed.focusView, "rail")
+    function railLook(key, text, modifiers) { return PickerKeys.lookup(press(key, text, modifiers), railed) }
+    check("down walks the rail", railLook(Qt.Key_Down), "cursorDown")
+    check("j walks the rail", railLook(Qt.Key_J, "j"), "cursorDown")
+    check("up walks the rail", railLook(Qt.Key_Up), "cursorUp")
+    check("k walks the rail", railLook(Qt.Key_K, "k"), "cursorUp")
+    check("home is the rail's first row", railLook(Qt.Key_Home), "cursorFirst")
+    check("end is the rail's last row", railLook(Qt.Key_End), "cursorLast")
+    check("return opens the rail row", railLook(Qt.Key_Return), "open")
+    check("keypad enter opens the rail row", railLook(Qt.Key_Enter), "open")
+    check("escape leaves the rail", railLook(Qt.Key_Escape), "escape")
+    check("tab still swaps back", railLook(Qt.Key_Tab), "focusNext")
+    // Sidebar-only members: a rename, a mount dialog, a menu and an eject reach nothing in the
+    // chooser's rail, and neither does the list's own Space, so the rail never marks a row unseen.
+    check("a is not add network in the rail", railLook(Qt.Key_A, "a"), "")
+    check("f2 is not a rail rename", railLook(Qt.Key_F2), "")
+    check("m is not a rail menu", railLook(Qt.Key_M, "m"), "")
+    check("ctrl e is not a rail eject", railLook(Qt.Key_E, "e", ctrl), "")
+    check("space marks nothing from the rail", railLook(Qt.Key_Space, " "), "")
+    check("ctrl c copies nothing from the rail", railLook(Qt.Key_C, "c", ctrl), "")
+    var railMoves = stubOps()
+    PickerKeys.act("cursorDown", railed, railMoves)
+    PickerKeys.act("cursorLast", railed, railMoves)
+    check("the rail's cursor keys move the rail and never the list",
+          railed.places.cursorIndex + "|" + railMoves.moved.length, "2|0")
+    PickerKeys.act("open", railed, railMoves)
+    check("open activates the rail's cursor row", railed.places.opened.join(","), "2")
+    check("and touches no list verb", railed.calls.length, 0)
+    PickerKeys.act("escape", railed, railMoves)
+    check("escape returns the keyboard to the list without cancelling", railed.focusView + "|" + railed.calls.length, "list|0")
+    PickerKeys.act("focusNext", railed, railMoves)
+    PickerKeys.act("focusNext", railed, railMoves)
+    check("two tabs come back to the list", railed.focusView, "list")
 }
