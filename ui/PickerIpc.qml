@@ -89,6 +89,13 @@ QtObject {
         function contextMenuEntries(): string {
             return root.menu.entries.map(function (e) { return e.separator === true ? "-" : e.label }).join("|")
         }
+        function contextMenuChecks(): string {
+            var out = []
+            for (var i = 0; i < root.menu.entries.length; i++)
+                if (root.menu.entries[i].checked !== undefined)
+                    out.push(root.menu.entries[i].checked ? "1" : "0")
+            return out.join("|")
+        }
         // The hints the active menu rows draw, read from each delegate so this checks the binding.
         function contextMenuHints(): string {
             var out = []

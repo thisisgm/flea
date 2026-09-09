@@ -372,9 +372,9 @@ wait_row() {
     fail "row $index reads $(ipc rowAt "$index"), not $want, under $(ipc sortMark)"
 }
 
-# The column header over the listing is the window's own ui/Header.qml at the picker's column set,
-# so it heads Name, Size and Date Modified and no column the rows do not draw, and the two resolve
-# one set from one width. A click on Size sorts by size ascending, a second one reverses it, and
+# The column header over the listing is the window's own ui/Header.qml at the picker's column set.
+# The header menu reads the same set, and a tick updates both the header and rows without closing it.
+# A click on Size sorts by size ascending, a second one reverses it, and
 # the rows really reorder: gamma.bin is the one file over a line long, so it is last ascending and
 # first descending, after the directory, which the backend keeps first in both directions.
 case_header() {
@@ -382,12 +382,41 @@ case_header() {
     sandbox_make "$fixture/sub"
     start_client
     walk_to_fixture
-    local titles mark columns
+    local titles mark columns centre initial_checks name_on mode_on size_on date_on kind_on step
+    local initial_columns base_titles base_columns changed_columns header_columns row_columns
+
+    # Make Size available for the sort checks without assuming the user's saved column set. Keep
+    # the starting set so the case can restore the shared setting before it closes the picker.
+    centre=$(ipc headerCentre name)
+    click_centre "$centre" right || fail "could not right-click the picker header"
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "a right click over the picker header opened no menu"
+    [[ "$(ipc contextMenuEntries)" == "Name|Mode|Size|Date Modified|Kind|-|Show hidden files" ]] \
+        || fail "the picker column menu reads $(ipc contextMenuEntries)"
+    initial_checks=$(ipc contextMenuChecks)
+    IFS='|' read -r name_on mode_on size_on date_on kind_on <<< "$initial_checks"
+    [[ "$initial_checks" =~ ^1\|[01]\|[01]\|[01]\|[01]$ ]] || fail "the picker column ticks read $initial_checks"
+    initial_columns=$(ipc columnSet 0)
+    press -k Down; press -k Down
+    if [[ "$size_on" == 0 ]]; then
+        press -k Return
+        sleep 0.3
+    fi
+    press -k Down
+    if [[ "$date_on" == 0 ]]; then
+        press -k Return
+        sleep 0.3
+    fi
+    press -k Escape
+
     titles=$(ipc headerTitles); mark=$(ipc sortMark); columns=$(ipc columnSet 0)
     printf 'HEADER titles=%s mark=%s columns=%s\n' "$titles" "$mark" "$columns"
-    [[ "$titles" == "Name|Size|Date Modified" ]] || fail "the picker's header titles are $titles"
+    [[ "$titles" == *"Size"* && "$titles" == *"Date Modified"* ]] \
+        || fail "the picker's header lacks Size or Date Modified: $titles"
     [[ "$mark" == "name:asc" ]] || fail "the sort mark starts at $mark"
-    [[ "$columns" == "name,size,date|name,size,date" ]] || fail "the header and row 0 draw $columns"
+    IFS='|' read -r header_columns row_columns <<< "$columns"
+    [[ "$header_columns" == "$row_columns" && ",$header_columns," == *",size,"* ]] \
+        || fail "the header and row 0 draw $columns"
     [[ "$(ipc rowAt 0)" == "sub" && "$(ipc rowAt 1)" == "alpha.txt" ]] \
         || fail "name ascending lists $(ipc rowAt 0),$(ipc rowAt 1) first"
     press -k Down
@@ -406,10 +435,64 @@ case_header() {
     # Date Modified sends mtime, the protocol's own key, and starts ascending whatever Size was in.
     click_header date
     [[ "$(ipc sortMark)" == "mtime:asc" ]] || fail "a click on Date Modified left the mark at $(ipc sortMark)"
+
+    # Normalize Kind off, test that ticking it adds the column to the menu, header and row, then put
+    # both columns back exactly as this case found them.
+    press ':'
+    [[ "$(ipc entryFocused)" == 1 ]] || fail "the location field did not take focus before the header menu"
+    centre=$(ipc headerCentre name)
+    click_centre "$centre" right || fail "could not right-click the picker header"
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "a right click over the picker header opened no menu"
+    for step in 1 2 3 4; do press -k Down; done
+    if [[ "$kind_on" == 1 ]]; then
+        press -k Return
+        sleep 0.3
+    fi
+    [[ "$(ipc contextMenuChecks)" == *"|0" ]] || fail "Kind did not start the test unticked: $(ipc contextMenuChecks)"
+    base_titles=$(ipc headerTitles)
+    base_columns=$(ipc columnSet 0)
+    press -k Return
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "ticking Kind closed the picker column menu"
+    [[ "$(ipc contextMenuChecks)" == *"|1" ]] || fail "the Kind tick reads $(ipc contextMenuChecks)"
+    [[ "$(ipc headerTitles)" == *"Kind" ]] || fail "ticking Kind left the header at $(ipc headerTitles)"
+    changed_columns=$(ipc columnSet 0)
+    IFS='|' read -r header_columns row_columns <<< "$changed_columns"
+    [[ "$header_columns" == "$row_columns" && ",$header_columns," == *",kind,"* ]] \
+        || fail "ticking Kind left the header and row at $changed_columns"
+    press -k Return
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "unticking Kind closed the picker column menu"
+    [[ "$(ipc headerTitles)" == "$base_titles" && "$(ipc columnSet 0)" == "$base_columns" ]] \
+        || fail "unticking Kind did not restore $base_titles and $base_columns"
+    if [[ "$kind_on" == 1 ]]; then
+        press -k Return
+        sleep 0.3
+    fi
+    if [[ "$date_on" == 0 ]]; then
+        press -k Up; press -k Return
+        sleep 0.3
+    fi
+    if [[ "$size_on" == 0 ]]; then
+        press -k Up
+        [[ "$date_on" == 1 ]] && press -k Up
+        press -k Return
+        sleep 0.3
+    fi
+    [[ "$(ipc contextMenuChecks)" == "$initial_checks" ]] || fail "the test restored ticks as $(ipc contextMenuChecks), not $initial_checks"
+    [[ "$(ipc columnSet 0)" == "$initial_columns" ]] || fail "the test restored columns as $(ipc columnSet 0), not $initial_columns"
+    printf 'HEADER menu=%s checks=%s columns=%s\n' "$(ipc contextMenuEntries)" "$initial_checks" "$changed_columns"
+    press -k Escape
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "Escape left the picker column menu open"
+    [[ "$(ipc entryFocused)" == 1 ]] || fail "the picker column menu did not restore the location field's focus"
+    press -k Escape
+    [[ "$(ipc entryFocused)" == 0 ]] || fail "Escape did not return focus from the location field to the list"
     press -k Escape
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "the caller exited 0 after a cancel"
-    printf 'header: Name, Size and Date Modified head the picker, and a click sorts the rows\n'
+    printf 'header: clicks sort, and the column menu changes the picker without closing\n'
 }
 
 # The right click's menu in the chooser, ui/PickerMenu.qml. On a row it draws the row column with

@@ -22,6 +22,12 @@ function run(check) {
     check("a request with nothing in it is not multiple", empty.multiple, false)
     check("an absent mode is never save", Picker.request('{"mode":"nonsense"}').mode, "open")
 
+    var defaultColumns = ["name", "size", "date"]
+    check("the schema default uses the picker's hidden columns",
+          Picker.hiddenColumns(defaultColumns.slice(), defaultColumns, ["kind"]).join(","), "mode,kind")
+    check("another stored set uses the shared hidden columns",
+          Picker.hiddenColumns(["name", "date", "kind"], defaultColumns, ["mode", "size"]).join(","), "mode,size")
+
     check("the caller's title wins", Picker.title(req), "Send to unraid")
     check("a titleless open says what the window is for", Picker.title(Picker.request("{}")), "Choose file")
     check("a titleless directory request says folder", Picker.title(Picker.request('{"directory":true}')), "Choose folder")

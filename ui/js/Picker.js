@@ -24,8 +24,9 @@ function isRecent(location) {
 }
 
 // SendPicker.html draws a chooser row as the name, a 70px size and an 80px date, so the two columns
-// the window's rows also carry are hidden here at every width rather than at some of them.
+// the window's rows also carry are its schema-default hidden set, not a second stored state.
 var HIDDEN_COLS = ["mode", "kind"]
+function hiddenColumns(columns, defaults, shared) { return JSON.stringify(columns) === JSON.stringify(defaults) ? HIDDEN_COLS : shared }
 
 // Every field defaulted, because a request that arrived short must still open a window.
 function request(text) {
