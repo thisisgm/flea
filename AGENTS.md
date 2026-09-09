@@ -962,6 +962,20 @@ the keyboard is in the list; `ui/SidebarRow.qml` draws it in the resting fill un
 the keyboard. The seam's `focusView` and `railCursor` readers are what `tests/picker.sh rail`
 reads.
 
+**Hidden files, and why the toggle is a re-read.** `.` in the list, and whatever `keys.toml` binds
+to `toggleHidden` through the allowlist, so the windows preset's Ctrl+H, flips
+`ui/PickerState.qml`'s `showHidden` and lists the standing directory again with it, `ui/Pane.qml`'s
+own rule: the backend never sent the dotfiles, so there is nothing client-side to unhide, and the
+list call is the one place the flag is read. The re-read goes through `PickerOps.refresh`, the
+route a rename takes, so the cursor is put back on its row by path once the rows arrive; a cursor
+on a dotfile the toggle hides lands on row 0, as after any other listing. A mark is a path and
+stands through both re-reads, and a standing filter is forgotten the way a new listing forgets it.
+The flag is the window's and survives every walk, so a parent opened with dotfiles on lists them
+too. Recent is a history and not a scan, so the key does nothing there and the flag stays as it
+was; the location and save fields own the keyboard while they have it, so the key types a dot
+there and reaches nothing. The seam reads it as `hidden`, and `tests/picker.sh hidden` drives the
+two re-reads, the walk and the Recent refusal.
+
 **What a typed line does, and why it is peeked first.** `ui/PickerNavigate.qml` carries out what
 `ui/js/PickerNavigate.js` decides about the line `entered()` reports, the Windows filename box's
 rules: a folder opens, the box clears and the list has the keyboard; a file opens its parent with
@@ -972,7 +986,7 @@ included so a dotfile resolves, because a typed path is a claim about the disk a
 the only proof; the root is peeked itself and the current directory needs none. A peek carries at
 most `PEEK_CAP` names, so a leaf missing from a directory larger than that is unknown rather than
 absent: the parent opens and the footer says which rows were read. The window's listing holds a
-window of rows and lists without dotfiles, so a file past its first window is asked for at the
+window of rows and lists without dotfiles unless `.` turned them on, so a file past its first window is asked for at the
 index the peek implies, the shown rows ahead of it in the same scan and sort; a stale peek for
 another parent or a rows response for another directory is never read as the line's answer. A
 remote URL leaves through `remoteEntered` for `ui/PickerFetch.qml` and a share through `shareEntered`
