@@ -116,8 +116,9 @@ function runMenu(check) {
           labels(head), "Name|Mode|Size|Date Modified|Kind|-|Show hidden files")
     check("each column row is checked exactly when its column is drawn",
           flags("checked"), "true|true|false|true|true")
-    check("Name is checked and carries no toggle action, because it never hides",
-          head[0].checked + "|" + head[0].action, "true|undefined")
+    check("Name is checked and disabled, because it never hides",
+          head[0].checked + "|" + head[0].enabled + "|" + head[0].action,
+          "true|false|undefined")
     check("every column row keeps the menu open, so several boxes can be ticked in one visit",
           flags("keepOpen"), "true|true|true|true|true")
     check("the four optional rows still answer col:<key>",

@@ -175,7 +175,9 @@ function headerEntries(hiddenCols, showHidden) {
     for (var i = 0; i < COLUMNS.length; i++) {
         var key = COLUMNS[i][0]
         var row = { label: COLUMNS[i][1], checked: !hidden[key], keepOpen: true }
-        if (key !== "name")
+        if (key === "name")
+            row.enabled = false
+        else
             row.action = "col:" + key
         out.push(row)
     }

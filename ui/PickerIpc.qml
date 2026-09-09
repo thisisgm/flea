@@ -108,6 +108,10 @@ QtObject {
             }
             return out.join("|")
         }
+        function contextMenuAccessibility(index: int): string {
+            var item = root.menu.itemFor(index)
+            return item ? item.accessibleProbe() : ""
+        }
         function contextMenuSubmenuEntries(): string { return root.menu.submenuEntries.map(function (e) { return e.label }).join("|") }
         function menuCursor(): int { return root.menu.cursor }
         // A point on the list under its last row, where a right click raises the background column,
