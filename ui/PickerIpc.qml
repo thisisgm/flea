@@ -1,5 +1,6 @@
 import QtQuick
 import Quickshell.Io
+import "js/Filter.js" as Filter
 import "js/Picker.js" as Picker
 
 // The seam tests/picker.sh drives, the same read-only shape ui/Ipc.qml has for the window: it
@@ -16,6 +17,7 @@ QtObject {
     property var list: null
     property var chrome: null
     property var places: null
+    property var header: null
 
     // A drawn item's painted box reduced to the point a test clicks, the same read rowCentre makes.
     function centreOf(item) {
@@ -59,6 +61,22 @@ QtObject {
         function thumbRequests(): int { return root.state.backend.thumbRequests }
         function thumbFile(index: int): string { return root.list.thumbFor(index) }
         function dragRows(): string { return root.list.dragRows.join(",") }
+        // The header's readers, as ui/Ipc.qml has them, and the centre a test aims a sort click at.
+        function headerTitles(): string { return root.header.titles() }
+        function sortMark(): string { return root.header.sortBy + ":" + (root.header.sortDesc ? "desc" : "asc") }
+        function headerCellRect(name: string): string {
+            var item = root.header.cell(name)
+            return item ? Math.round(item.x) + "|" + Math.round(item.width) : ""
+        }
+        function headerCentre(name: string): string {
+            var item = root.header.cell(name)
+            return item ? root.centreOf(item) : ""
+        }
+        // The header's drawn columns beside a listing row's, both resolved through Theme.columns.
+        function columnSet(index: int): string {
+            var item = root.list.itemAtIndex(Filter.viewOf(root.state.shown, index))
+            return root.header.columnSet() + "|" + (item ? item.rowItem.columnSet() : "")
+        }
         // The nav strip's segments as their drawn texts, "" while Recent draws its label instead.
         function crumbs(): string { return root.chrome.crumbs.visible ? root.chrome.crumbs.model.map(function (c) { return c.text }).join(",") : "" }
         function crumbCount(): int { return root.chrome.crumbs.visible ? root.chrome.crumbs.items.count : 0 }

@@ -962,6 +962,18 @@ the keyboard is in the list; `ui/SidebarRow.qml` draws it in the resting fill un
 the keyboard. The seam's `focusView` and `railCursor` readers are what `tests/picker.sh rail`
 reads.
 
+**The column header is the window's own.** `ui/picker.qml` draws `ui/Header.qml` over the list at
+the same width the rows take, so the two resolve one column set from one `Theme.columns` call.
+The header took two knobs for it, `hiddenCols` and `dateWidth`, which are the two `ui/Row.qml`
+already had: the picker hands it `Picker.HIDDEN_COLS` and `Theme.column.pickerDate`, the window
+leaves both at their defaults, and `leadingSlot` moves the Name title past the check box. A click
+goes through `ui/js/Sort.js` `column` on `ui/PickerState.qml`, which is why that object carries
+`thumbState`, `dirSizeState`, `clearSelection` and `setCursor`; marks are paths and survive the
+reorder, so `clearSelection` there does nothing. Recent is the history's own order and `listpaths`
+takes no sort, so a click over Recent asks for nothing. `titles()` now names the columns drawn
+rather than all five, so the reader reads the same line in both windows. The seam's `headerTitles`,
+`sortMark`, `headerCellRect`, `headerCentre` and `columnSet` are what `tests/picker.sh header` reads.
+
 **Hidden files, and why the toggle is a re-read.** `.` in the list, and whatever `keys.toml` binds
 to `toggleHidden` through the allowlist, so the windows preset's Ctrl+H, flips
 `ui/PickerState.qml`'s `showHidden` and lists the standing directory again with it, `ui/Pane.qml`'s

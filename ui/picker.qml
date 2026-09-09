@@ -11,6 +11,7 @@ import QtQuick
 import qs.Commons
 import "." as Flea
 import "js/Picker.js" as Picker
+import "js/Sort.js" as Sort
 
 // One portal request, one window: the org.freedesktop.impl.portal.FileChooser dialog every caller on
 // the box gets, opened by flea --pick and answered through the reply file tools/flea-portal reads.
@@ -156,13 +157,29 @@ ShellRoot {
                 onChosen: function (path) { state.open(path); state.focusList() }
             }
 
-            // The browser's own query line, over the list alone: it reads state as its pane and
-            // collapses to nothing while no filter is up, so the rows start under the chrome.
+            // The window's own column header at the picker's column set, over the same width the
+            // rows take, so the two resolve one set. A click sorts through ui/js/Sort.js as the
+            // window's does; Recent is the history's own order, so a click there asks for nothing.
+            Flea.Header {
+                id: header
+                anchors.left: places.right
+                anchors.right: parent.right
+                anchors.top: chrome.bottom
+                sortBy: backend.sortBy
+                sortDesc: backend.sortDesc
+                hiddenCols: Picker.HIDDEN_COLS
+                dateWidth: Theme.column.pickerDate
+                leadingSlot: list.checkSize + Theme.spacing.gap
+                onSortRequested: function (key) { if (!state.recent) Sort.column(state, key) }
+            }
+
+            // The browser's own query line, under the header as the window stacks it: it reads
+            // state as its pane and collapses to nothing while no filter is up.
             Flea.FilterStrip {
                 id: filterStrip
                 anchors.left: places.right
                 anchors.right: parent.right
-                anchors.top: chrome.bottom
+                anchors.top: header.bottom
                 pane: state
             }
 
@@ -240,6 +257,7 @@ ShellRoot {
             entry: entryField
             save: save
             list: list
+            header: header
         }
     }
 }

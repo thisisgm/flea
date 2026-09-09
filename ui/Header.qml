@@ -34,7 +34,13 @@ Item {
     // The columns this width affords, less the ones the user has hidden (qs module ViewState).
     // ui/Row.qml resolves its own from a width anchoring keeps
     // equal to this one, so the header can never head a column no row below it is drawing.
-    readonly property var cols: Theme.columns(root.width, ViewState.hiddenCols)
+    // hiddenCols and dateWidth are ui/Row.qml's own two knobs, so the header over the picker's
+    // list resolves the set its rows do, at the narrow date they draw; the window leaves both.
+    property var hiddenCols: ViewState.hiddenCols
+    property real dateWidth: Theme.column.date
+    // The picker draws a check before every name, so its Name title starts one slot further in.
+    property real leadingSlot: 0
+    readonly property var cols: Theme.columns(root.width, root.hiddenCols, root.dateWidth)
 
     implicitHeight: Theme.chromeHeight
 
@@ -58,7 +64,7 @@ Item {
     PanelSectionHeader {
         id: headerName
         anchors.left: parent.left
-        anchors.leftMargin: Theme.spacing.rowPaddingX
+        anchors.leftMargin: Theme.spacing.rowPaddingX + root.leadingSlot
         anchors.right: headerMode.left
         anchors.rightMargin: root.cols.mode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
@@ -97,7 +103,7 @@ Item {
         anchors.rightMargin: root.cols.kind ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.date
-        width: root.cols.date ? Theme.column.date : 0
+        width: root.cols.date ? root.dateWidth : 0
         text: root.title("Date Modified", "mtime")
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
@@ -140,13 +146,19 @@ Item {
         return label + " " + (root.sortDesc ? "▾" : "▴")
     }
 
-    // What the header case reads, built from the same values the header renders.
+    // What the header case reads: the titles of the columns drawn right now, in their order, so a
+    // column the menu unticks or the picker hides leaves the line the way it leaves the strip.
     function titles() {
-        return "Name|Mode|Size|Date Modified|Kind"
+        var out = ["Name"]
+        if (root.cols.mode) out.push("Mode")
+        if (root.cols.size) out.push("Size")
+        if (root.cols.date) out.push("Date Modified")
+        if (root.cols.kind) out.push("Kind")
+        return out.join("|")
     }
 
     // What the header is drawing right now, for the seam that reads it beside a row's.
-    function columnSet() { return Theme.columnNames(root.width, ViewState.hiddenCols) }
+    function columnSet() { return Theme.columnNames(root.width, root.hiddenCols, root.dateWidth) }
 
     // The one lookup the geometry reader needs, the same by-key idiom Pane.itemFor uses for rows.
     function cell(key) {
