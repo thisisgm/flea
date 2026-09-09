@@ -907,6 +907,18 @@ another parent or a rows response for another directory is never read as the lin
 remote or share URL is only handed on through `remoteEntered` and `shareEntered` until the fetch
 and mount changes land. `tests/picker.sh typed_dir` and `typed_file` drive both rules on the display.
 
+**The save box takes a path too.** A Filename holding a separator, or starting with `~`, is a path
+and not a name, the Windows save dialog's rule, and `ui/js/PickerSaveName.js` decides it with the
+same `classify` and the same peek of the parent: a folder opens and the box clears, a file opens
+its parent and leaves its leaf as the name whether or not the file exists, because a save names a
+file that may not be there yet, and the collision line then warns as it always did. A missing
+parent is what the footer names, since the file need not exist. A URL is refused with `Save needs
+a local path`: a save answers a local URI and there is nothing to download. The caller's own
+`current_name` is never read this way; it is adopted only when it is a filename, as before, and
+the strip still shows it refused. The keyboard stays in the box after either step so the next
+Return saves, and `:` in the list reaches it as it reaches the location field in the open modes;
+the `fleapicker` seam reads `saveFocused` for it. `tests/picker.sh savename` drives the three steps.
+
 **The download is gio's, on a thread keyed by id.** `fetch {uri}` (`backend/fetchreq.rs`) runs
 `LC_ALL=C gio copy -p <uri> <dest>` in its own process group on a thread numbered by `Ops::claim_id`
 like `archive`, so a fetch never queues behind a transfer or another fetch. gio already carries the
