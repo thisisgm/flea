@@ -1,6 +1,7 @@
 .pragma library
 
 .import "Format.js" as Format
+.import "PickerFilters.js" as Filters
 
 // The portal request tools/flea-portal puts in FLEA_PICKER, and the answer ui/picker.qml writes
 // back. Everything here is pure so tests/js/picker.js can drive it without a window.
@@ -130,23 +131,6 @@ function currentChip(req) {
     return 0
 }
 
-// Sample input: "*.tar.gz" becomes /^.*\.tar\.gz$/i. Every other character is taken literally, so a
-// filename with a bracket in it cannot turn the caller's glob into a character class.
-function globToRegExp(glob) {
-    var out = ""
-    for (var i = 0; i < glob.length; i++) {
-        var c = glob.charAt(i)
-        if (c === "*") {
-            out += ".*"
-        } else if (c === "?") {
-            out += "."
-        } else {
-            out += c.replace(/[.\\+^$[\]{}()|\/-]/g, "\\$&")
-        }
-    }
-    return new RegExp("^" + out + "$", "i")
-}
-
 // A filter narrows what is easy to find; it never rejects. A filter carrying only mime rules cannot
 // be answered by a listing row, which knows an icon name and not a mime type, so it narrows nothing.
 function matchesFilter(name, filter) {
@@ -154,7 +138,7 @@ function matchesFilter(name, filter) {
         return true
     }
     for (var i = 0; i < filter.globs.length; i++) {
-        if (globToRegExp(String(filter.globs[i])).test(name)) {
+        if (Filters.globToRegExp(String(filter.globs[i])).test(name)) {
             return true
         }
     }
