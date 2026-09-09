@@ -92,6 +92,10 @@ QtObject {
     property string filterQuery: ""
     property bool filterTyping: false
     property bool showHidden: false
+    // One columns key serves both windows. The chooser's fixed set is only the first-launch fallback;
+    // after any other stored set, this process follows the shared state it read at startup.
+    readonly property var hiddenCols: Picker.hiddenColumns(ViewState.columns, ViewState.defaultColumns,
+                                                            ViewState.hiddenCols)
     // Absolute paths for cut and copy. This clipboard belongs to this process, not the system.
     property var clipboard: Ops.emptyClipboard()
     property var clipPending: null

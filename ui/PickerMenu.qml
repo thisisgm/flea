@@ -15,6 +15,7 @@ Flea.ContextMenu {
     property var list: null
 
     showHidden: root.picker !== null && root.picker.showHidden
+    hiddenCols: root.picker !== null ? root.picker.hiddenCols : ViewState.hiddenCols
     archiveFormats: []
     canConvert: false
     taildropPeers: []

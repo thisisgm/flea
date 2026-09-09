@@ -104,7 +104,7 @@ ListView {
             anchors.fill: parent
             leadingSlot: root.checkSize + Theme.spacing.gap
             compactDate: true
-            hiddenCols: Picker.HIDDEN_COLS
+            hiddenCols: root.picker.hiddenCols
             row: cell.shownRow
             thumb: root.thumbFor(cell.listingIndex)
             cursor: cell.listingIndex === root.picker.cursorIndex

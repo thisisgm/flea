@@ -169,10 +169,11 @@ ShellRoot {
                 anchors.top: chrome.bottom
                 sortBy: backend.sortBy
                 sortDesc: backend.sortDesc
-                hiddenCols: Picker.HIDDEN_COLS
+                hiddenCols: state.hiddenCols
                 dateWidth: Theme.column.pickerDate
                 leadingSlot: list.checkSize + Theme.spacing.gap
                 onSortRequested: function (key) { if (!state.recent) Sort.column(state, key) }
+                onMenuRequested: function (pos) { menu.openForHeader(pos) }
             }
 
             // The browser's own query line, under the header as the window stacks it: it reads

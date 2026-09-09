@@ -34,6 +34,7 @@ Item {
     property bool hasRow: true
     // The Menus settings section's stored set, ui/js/Menu.js applyHidden's input; ui/PickerMenu.qml hands in its own.
     property var hiddenActions: ViewState.menuHidden
+    property var hiddenCols: ViewState.hiddenCols
     // A caller can replace hints without changing the shared key map.
     property var hintFor: Keymap.hintFor
 
@@ -91,7 +92,7 @@ Item {
         if (root.forRail)
             return root.railEntries
         if (root.forHeader)
-            return Menu.headerEntries(ViewState.hiddenCols, root.showHidden)
+            return Menu.headerEntries(root.hiddenCols, root.showHidden)
         return Menu.listingEntries({
             showHidden: root.showHidden,
             hasRow: root.hasRow,
@@ -183,7 +184,8 @@ Item {
         root.cursor = root.firstRow()
         root.openSubmenuRow = -1
         root.submenuCursor = 0
-        root.focusHolder = root.focusedSibling()
+        root.focusHolder = root.Window.window && root.Window.window.activeFocusItem
+                         ? root.Window.window.activeFocusItem : root.focusedSibling()
         root.opened = true
         keyCatcher.forceActiveFocus()
     }

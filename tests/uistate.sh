@@ -165,6 +165,13 @@ check "a patch that is not JSON prints nothing on stdout" "" "$(flea_ui 'not jso
 check "two arguments prints its sentence on stderr" "1" "$(flea_ui a b 2>&1 >/dev/null | grep -c '^flea: ')"
 check "two arguments prints nothing on stdout" "" "$(flea_ui a b 2>/dev/null)"
 
+# The picker header writes this patch through ViewState.toggleColumn. It uses the shared columns key,
+# and Rule::Columns accepts Kind beside the shipped picker set.
+fresh
+out=$(flea_ui '{"columns":["name","size","date","kind"]}' 2>&1); rc=$?
+check "the picker column patch exits 0" "0" "$rc"
+check "the picker column patch lands under columns" "1" "$(tr -d ' \n' < "$UI" | grep -c '"columns":\["name","size","date","kind"\]')"
+
 # columns names what the list row SHOWS and src/uischema.rs says name is never optional, so an empty
 # array, a subset without name and a duplicate are all refused. Measured through the real singleton:
 # a stored ["name","size","size","date"] left one header-menu "Hide Size" click still drawing size.

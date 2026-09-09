@@ -588,7 +588,9 @@ stored `["name","size","size","date"]` left one header-menu "Hide Size" click st
 `name,size,date`, because `toggleColumn` splices the first match and the second still shows the
 column. The header menu's Name row is a permanently checked box with no action, so only the four
 optional keys reach `toggleColumn`, onto an array that already carries `name`, and no click this
-window can produce is refused by the rule.
+window can produce is refused by the rule. The main window and picker write this same key. Each
+process reads it once because `ViewState` uses `watchChanges: false`, so a change does not reach an
+already-open window in the other process. The next window reads it at startup.
 
 **`wrapAtEnds` is read by the window and by nothing else.** `ui/Pane.qml` exposes it off the
 document `ui/ViewState.qml` already holds, and `ui/js/Focus.js` `step` is its only reader: with the
@@ -999,8 +1001,10 @@ reads.
 **The column header is the window's own.** `ui/picker.qml` draws `ui/Header.qml` over the list at
 the same width the rows take, so the two resolve one column set from one `Theme.columns` call.
 The header took two knobs for it, `hiddenCols` and `dateWidth`, which are the two `ui/Row.qml`
-already had: the picker hands it `Picker.HIDDEN_COLS` and `Theme.column.pickerDate`, the window
-leaves both at their defaults, and `leadingSlot` moves the Name title past the check box. A click
+already had: the picker hands it `PickerState.hiddenCols` and `Theme.column.pickerDate`, the window
+leaves both at their defaults, and `leadingSlot` moves the Name title past the check box.
+`PickerState.hiddenCols` uses `Picker.HIDDEN_COLS` only while the shared set equals the schema
+default; another stored set comes from `ViewState.hiddenCols`. A click
 goes through `ui/js/Sort.js` `column` on `ui/PickerState.qml`, which is why that object carries
 `thumbState`, `dirSizeState`, `clearSelection` and `setCursor`; marks are paths and survive the
 reorder, so `clearSelection` there does nothing. Recent is the history's own order and `listpaths`
@@ -4581,16 +4585,17 @@ nothing. Right click and `m` reach the same menu, so a selection is honoured the
 
 ### The header menu is a checkbox list that stays open
 
-A right click over the column titles opens the pane's one `ContextMenu` on `ui/js/Menu.js`
+A right click over the column titles opens the window's one `ContextMenu` on `ui/js/Menu.js`
 `headerEntries`: one row per column (Name, Mode, Size, Date Modified, Kind), each carrying
 `checked` and `keepOpen`, then the rule and the hidden-files toggle. `ui/MenuRow.qml` draws an
 entry with `checked` as the box `ui/PickerList.qml` draws beside a markable row, at `Theme.markSize`
 so the label's indent is the glyph row's. `choose()` takes the entry, not its action, and skips
-`close()` on a `keepOpen` row; `entries` is a live binding over `ViewState.hiddenCols`, so the
+`close()` on a `keepOpen` row; `entries` is a live binding over the caller's `hiddenCols`, so the
 box redraws in place after `toggleColumn` and several columns can be switched in one visit, the
 way every OS dialog's column menu works. Name is checked and has no action at all, because
 `ui/js/Columns.js` never drops it; choosing it keeps the menu open and changes nothing.
-`tests/ui.sh header` clicks Size twice and reads `headerTitles` between, with the menu still up.
+The main window uses `ViewState.hiddenCols`; the picker passes its shared-state fallback.
+`tests/ui.sh header` clicks Size twice. `tests/picker.sh header` toggles Kind and restores it.
 
 ### A FileView write can race a reload fired the moment setText() is called
 
