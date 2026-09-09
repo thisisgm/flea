@@ -1,7 +1,6 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
-import "js/Format.js" as Format
 import "js/Picker.js" as Picker
 
 // The picker's two chrome strips: what was asked for and the two answers on top, where the list is
@@ -16,11 +15,15 @@ Item {
     signal backRequested()
     signal upRequested()
     signal chipChosen(int index)
+    signal crumbChosen(string path)
 
     readonly property var req: root.picker.req
     readonly property var chips: root.picker.chips
 
     readonly property color edge: root.picker.edge
+    // What the nav strip says, for the seam: the segments, or the label Recent draws instead.
+    readonly property alias crumbs: crumbRow
+    readonly property string locationLabel: location.visible ? location.text : ""
 
     implicitHeight: ask.height + where.height
 
@@ -205,15 +208,33 @@ Item {
             }
         }
 
+        // Issue 45's segments, the same control ui/ChromeBar.qml draws: a tap on a segment above the
+        // leaf walks there, and the leaf is where the list already stands. Recent is a location and
+        // not a path, so the strip says the location's own name and draws no segments; a tilde form
+        // of the token would be a path the window is not standing in.
+        Flea.CrumbRow {
+            id: crumbRow
+            visible: !root.picker.recent
+            anchors.left: moves.right
+            anchors.leftMargin: Theme.spacing.gap
+            anchors.right: types.left
+            anchors.rightMargin: Theme.spacing.gap
+            anchors.top: parent.top
+            anchors.bottom: parent.bottom
+            path: root.picker.path
+            home: root.picker.home
+            onCrumbChosen: function (path) { root.crumbChosen(path) }
+        }
+
         Text {
+            id: location
+            visible: root.picker.recent
             anchors.left: moves.right
             anchors.leftMargin: Theme.spacing.gap
             anchors.right: types.left
             anchors.rightMargin: Theme.spacing.gap
             anchors.verticalCenter: parent.verticalCenter
-            // Recent is a location and not a path, so the strip says the location's own name; a
-            // tilde form of the token would be a path the window is not standing in.
-            text: root.picker.recent ? Picker.RECENT_LABEL : Format.tilde(root.picker.path, root.picker.home)
+            text: Picker.RECENT_LABEL
             color: Theme.color.foreground
             font.family: Theme.font.family
             font.pixelSize: Theme.font.caption

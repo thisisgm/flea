@@ -4,6 +4,7 @@ singleton ViewState 1.0 ViewState.qml
 Backend 1.0 Backend.qml
 ChromeBar 1.0 ChromeBar.qml
 ChromeButton 1.0 ChromeButton.qml
+CrumbRow 1.0 CrumbRow.qml
 ColumnsArea 1.0 ColumnsArea.qml
 ColumnPane 1.0 ColumnPane.qml
 ColumnRow 1.0 ColumnRow.qml
@@ -67,6 +68,7 @@ PickerSave 1.0 PickerSave.qml
 PickerShare 1.0 PickerShare.qml
 PickerState 1.0 PickerState.qml
 PaneWire 1.0 PaneWire.qml
+PickerWire 1.0 PickerWire.qml
 ShareBrowser 1.0 ShareBrowser.qml
 Sidebar 1.0 Sidebar.qml
 SidebarRow 1.0 SidebarRow.qml

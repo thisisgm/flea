@@ -810,8 +810,14 @@ no config home) once at start, blocking like `ui/ViewState.qml` so the first fra
 hidden the caller did not ask to hide. `ui/js/PickerFilters.js` is the parser, a line scanner in
 the spirit of `ui/js/Palette.js` and not a TOML reader: `globs` is required and a table without one
 is skipped, `name` and `mimes` are optional, and a table without a name is labelled by extension the
-Windows way, `.jpg (.jpg, .jpeg)`. Nothing ships a default file, because a default pill is a filter
-the user never wrote. The example every reader should be able to write from:
+Windows way, `.jpg (.jpg, .jpeg)`. A filter's globs match a row's name and its mime rules match the
+row's icon class, ANDed, so a filter carrying both narrows to the intersection. A row carries the
+freedesktop icon name and never its MIME type, so a class rule like `image/*` matches an
+`image-x-generic` row, `*/*` matches every file, and an exact subtype like `image/jpeg` matches
+nothing: no row can confirm it, and only an optional per-row mime field computed in
+`src/backend/rows.rs` could, at a per-row wire cost the hot path refuses. A directory stands under
+every filter. Nothing ships a default file, because a default pill is a filter the user never
+wrote. The example every reader should be able to write from:
 
 ```toml
 [[filter]]
@@ -1459,11 +1465,12 @@ its own decisive axis (the toolchain) made the rest of that measurement moot. `u
 files. Rust and QML get a 250-line soft budget and a 400-line hard cap; JS gets 200
 soft and 300 hard. Going over the hard cap fails the tool; going over the soft budget
 only warns. The budget is a smell detector, not a target, and **it is not a reason to refactor a
-stable file**. Three files cross the hard cap purely as arithmetic of a clean merge for 0.1.4, with
+stable file**. Three files crossed the hard cap purely as arithmetic of a clean merge for 0.1.4, with
 no conflict and no new code: `ui/ChromeBar.qml`, `ui/Sidebar.qml` and `ui/Row.qml`, the last by a
 single line. `ui/NetworkMounts.qml` was a
-third until its own reconciliation extracted `authFailure` to `ui/js/Errors.js` and brought it to
-398, so it is not listed. They
+fourth until its own reconciliation extracted `authFailure` to `ui/js/Errors.js` and brought it to
+398, so it is not listed; `ui/ChromeBar.qml` left the list the same way when the picker epic moved
+its crumbs to `ui/CrumbRow.qml`, so two remain. They
 are listed in `tools/flea-file-budget` as known exceptions so the tool still fails on anything
 else, and each prints its own line rather than being hidden. The view fixes of 2026-09-07 took
 `ui/NetworkDialog.qml`, `ui/Ipc.qml`, `ui/Pane.qml` and `ui/PreviewColumn.qml`, all already at the
@@ -1759,7 +1766,8 @@ actually carried.
 The last two rows landed with issues 20 and 45 and are not `Tap.js`'s. `window` is the mouse's
 back button, which belongs to no row: `ui/shell.qml` carries the handler and `ui/js/Nav.js`
 `mouseBack` decides between the history and the climb. `chrome` is the path above the listing,
-whose segments `ui/ChromeBar.qml` draws as their own click targets through `Nav.crumbs`; the `row`
+whose segments `ui/CrumbRow.qml` draws as their own click targets through `Nav.crumbs`, for
+`ui/ChromeBar.qml` and for the picker's nav strip alike; the `row`
 column reads `parent` there because the leaf is the directory already listed and answers no single
 click. Neither `where` has a `pointercase_` driver in `tools/flea-acceptance-drive`, so both report
 as derived and undriven in that battery; `tests/js/tap.js` holds their counts and drives neither,
