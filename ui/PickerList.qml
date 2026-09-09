@@ -9,10 +9,11 @@ import "js/PickerKeys.js" as PickerKeys
 import "js/PickerMarks.js" as Marks
 import "js/Thumbs.js" as Thumbs
 
-// The picker's listing: ui/Row.qml drawn behind a check box, the keys that move through it, and the
-// drag that carries rows out to another application. The window's own ui/List.qml is not reused: it
-// selects rows by index where the chooser marks by path, so the pieces are drawn again over the marks.
-// The one part the chooser shares with it, the thumbnail settle, is repeated below.
+// The picker's listing: ui/Row.qml drawn behind a check box, the keys that move through it, the
+// right click that raises the window's operations, and the drag that carries rows out to another
+// application. The window's own ui/List.qml is not reused: it selects rows by index where the
+// chooser marks by path, so the pieces are drawn again over the marks. The one part the chooser
+// shares with it, the thumbnail settle, is repeated below.
 ListView {
     id: root
 
@@ -20,6 +21,8 @@ ListView {
     property var backend: null
     // The location strip ":" and Ctrl+L hand the keyboard to, ui/PickerEntry.qml in the window.
     property var entry: null
+    // ui/PickerMenu.qml, raised by a right click on a row or on the space under the last one.
+    property var menu: null
 
     // The listing rows a drag out carries, and what they put on the wire, built at the lift and
     // cleared with the gesture. There is no drop side: nothing lands in a chooser. ui/js/Drag.js decides.
@@ -163,6 +166,13 @@ ListView {
             }
         }
 
+        // Right click, ui/js/Tap.js tappedMenu's twin: the row takes the cursor and the menu opens
+        // over it. Which marks it then means is ui/js/PickerMenu.js aim's to say.
+        TapHandler {
+            acceptedButtons: Qt.RightButton
+            onTapped: function (eventPoint) { root.menu.openOnRow(cell.listingIndex, eventPoint.scenePosition) }
+        }
+
         // A press that moves past the threshold lifts the row and cancels the tap above. The grab
         // ends nothing: the compositor owns the gesture once the platform drag has started, so the
         // end is the ghost's dragFinished.
@@ -261,6 +271,16 @@ ListView {
 
     // ui/js/PickerKeys.js: the picker's own verbs, then keys.toml through its allowlist.
     Keys.onPressed: function (event) { PickerKeys.handle(event, root.picker, root) }
+
+    // Empty space under the last row belongs to the directory and not to a row, ui/List.qml's rule:
+    // a right click indexAt says missed every delegate raises the background column instead.
+    TapHandler {
+        acceptedButtons: Qt.RightButton
+        onTapped: function (eventPoint) {
+            if (root.indexAt(root.contentX + eventPoint.position.x, root.contentY + eventPoint.position.y) < 0)
+                root.menu.openBackground(eventPoint.scenePosition)
+        }
+    }
 
     // A query drops the view back to its first row without moving contentY afterwards, so closing
     // it can leave the viewport over rows the held window no longer covers; the drift check runs

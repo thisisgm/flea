@@ -61,6 +61,7 @@ PickerFilters 1.0 PickerFilters.qml
 PickerFooter 1.0 PickerFooter.qml
 PickerIpc 1.0 PickerIpc.qml
 PickerList 1.0 PickerList.qml
+PickerMenu 1.0 PickerMenu.qml
 PickerNavigate 1.0 PickerNavigate.qml
 PickerPlaces 1.0 PickerPlaces.qml
 PickerRecent 1.0 PickerRecent.qml

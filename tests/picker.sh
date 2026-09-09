@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|click|menu|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -337,6 +337,78 @@ case_header() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "the caller exited 0 after a cancel"
     printf 'header: Name, Size and Date Modified head the picker, and a click sorts the rows\n'
+}
+
+# The right click's menu in the chooser, ui/PickerMenu.qml. On a row it draws the row column with
+# the four families the picker lacks gone and no Settings; a right click outside the marks drops
+# them, ui/js/Tap.js's rule, so the menu never describes one row while Trash would take others.
+# On the space under the last row it draws the background column, and Sort by -> Size there
+# reorders the rows as the header's click does. In Recent the same flyout says so and moves nothing.
+case_menu() {
+    make_fixture
+    sandbox_make "$fixture/sub"
+    start_client --multiple
+    walk_to_fixture
+    ipc_is_live
+    local alpha beta empty
+    alpha=$(row_named alpha.txt); beta=$(row_named beta.txt)
+    click_row "$alpha" left --mods ctrl
+    [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "menu: ctrl+click marked $(ipc marks)"
+    click_row "$beta" right
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "menu: a right click on a row opened no menu"
+    [[ "$(ipc cursor)" == "$beta" ]] || fail "menu: the right click left the cursor on $(ipc cursor)"
+    [[ -z "$(ipc marks)" ]] || fail "menu: a right click outside the marks left $(ipc marks) standing"
+    [[ "$(ipc contextMenuEntries)" == "Open|Copy path|-|Cut|Copy|Paste|Duplicate|Rename|-|Move to Trash|-|Open in terminal|New folder|Show hidden files" ]] \
+        || fail "menu: the row menu draws $(ipc contextMenuEntries)"
+    printf 'MENU row=%s\n' "$(ipc contextMenuEntries)"
+    press -k Escape
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "menu: Escape left the menu open"
+    kill -0 "$client" 2>/dev/null || fail "menu: Escape in the menu cancelled the dialog"
+    empty=$(ipc emptyCentre)
+    [[ -n "$empty" ]] || fail "menu: the list has no empty space under $(ipc total) rows"
+    click_centre "$empty" right || fail "could not right-click the space under the rows"
+    sleep 0.3
+    [[ "$(ipc contextMenuEntries)" == "New folder|-|Paste|Select all|-|Sort by|Open in terminal|Show hidden files" ]] \
+        || fail "menu: the background menu draws $(ipc contextMenuEntries)"
+    # New folder, Paste, Select all, Sort by: three steps over two rules, then the flyout, then Size.
+    press -k Down; press -k Down; press -k Down
+    sleep 0.2
+    [[ "$(ipc menuCursor)" == "5" ]] || fail "menu: three Downs put the menu cursor at $(ipc menuCursor), not on Sort by"
+    press -k Return
+    sleep 0.2
+    [[ "$(ipc contextMenuSubmenuEntries)" == "Name|Size|Date Modified" ]] || fail "menu: Sort by opened $(ipc contextMenuSubmenuEntries)"
+    press -k Down
+    press -k Return
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "menu: choosing an order left the menu open"
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "menu: Sort by Size left the mark at $(ipc sortMark)"
+    wait_row 3 gamma.bin
+    [[ "$(ipc cursor)" == "0" ]] || fail "menu: the re-sort left the cursor on row $(ipc cursor)"
+    printf 'MENU sorted=%s row3=%s\n' "$(ipc sortMark)" "$(ipc rowAt 3)"
+    # Recent: the same flyout refuses in the footer and the mark stands. The history may fill the
+    # list on a busy box, and then there is no empty space to aim at, so the leg says so and stops.
+    click_place Recent
+    sleep 1
+    [[ "$(ipc recent)" == "true" ]] || fail "menu: the Recent row opened $(ipc path)"
+    empty=$(ipc emptyCentre)
+    if [[ -n "$empty" ]]; then
+        click_centre "$empty" right || fail "could not right-click the space under Recent's rows"
+        sleep 0.3
+        press -k Down; press -k Down; press -k Down; press -k Return
+        sleep 0.2
+        press -k Down; press -k Return
+        sleep 0.3
+        [[ "$(ipc message)" == "Recent keeps the history's own order." ]] || fail "menu: Sort by in Recent said '$(ipc message)'"
+        [[ "$(ipc sortMark)" == "size:asc" ]] || fail "menu: Sort by in Recent moved the mark to $(ipc sortMark)"
+    else
+        printf 'MENU recent fills the list, so its Sort by refusal was not driven\n'
+    fi
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "menu: the caller exited 0 after a cancel"
+    printf 'menu: a right click draws the row menu or the background one, and Sort by reorders the rows\n'
 }
 
 # Issue 45's segments in the chooser, and the board's Back behind them: a tap on a segment above
@@ -1154,12 +1226,13 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall click crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall click menu crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
         selectall) case_selectall ;;
         click) case_click ;;
+        menu) case_menu ;;
         crumbs) case_crumbs ;;
         rail) case_rail ;;
         save) case_save ;;

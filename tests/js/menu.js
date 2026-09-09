@@ -101,6 +101,7 @@ function runMenu(check) {
 
     runBackground(check)
     runHidden(check, full)
+    runPicker(check)
 
     // ui/Header.qml's own rows, on a right click over the column titles: one checkbox per column,
     // Name included and permanently ticked, each keeping the menu open, then the hidden toggle.
@@ -236,4 +237,40 @@ function runHidden(check, full) {
           Menu.applyHidden([{ action: "a", label: "A" }, { separator: true },
                             { action: "b", label: "B" }, { separator: true },
                             { action: "c", label: "C" }], ["b"]).length, 3)
+}
+
+// The chooser's own menu, ui/PickerMenu.qml. The four families the picker does not carry are fed
+// as absent, archiveFormats [], canConvert false, taildropPeers [], dropboxPath "", so their rows
+// self-hide with no switch in this file, and Settings leaves by name, the one row the background
+// column draws unconditionally. What stands is every row the chooser answers, and no rule is left
+// leading, trailing or doubled by the rows that went.
+function runPicker(check) {
+    function picker(hasRow, over) {
+        var p = { showHidden: false, hasRow: hasRow, rowInDropbox: false, dropboxPath: "",
+                  taildropPeers: [], archiveFormats: [], rowIsArchive: false, rowIsImage: false,
+                  canConvert: false, hiddenActions: ["settings"] }
+        for (var key in over)
+            p[key] = over[key]
+        return Menu.listingEntries(p)
+    }
+    function rulesClean(entries) {
+        var text = labels(entries)
+        return text.indexOf("-|-") < 0 && text.indexOf("-|") !== 0 && text.lastIndexOf("|-") !== text.length - 2
+    }
+    var row = picker(true)
+    check("the picker's row menu is the browser's minus archive, convert, taildrop and dropbox",
+          labels(row),
+          "Open|Copy path|-|Cut|Copy|Paste|Duplicate|Rename|-|Move to Trash|-|Open in terminal|New folder|Show hidden files")
+    check("and the rules around the families that went are gone with them", rulesClean(row), true)
+    var back = picker(false)
+    check("the picker's background menu is the board's column without Settings",
+          labels(back), "New folder|-|Paste|Select all|-|Sort by|Open in terminal|Show hidden files")
+    check("and the rule that divided Settings off went with it", rulesClean(back), true)
+    check("neither menu offers Settings, because a chooser has no panel to open",
+          findEntry(row, "settings").label + "|" + findEntry(back, "settings").label, "undefined|undefined")
+    // An image row with no converter installed is still no Convert row: the capability gates it.
+    check("an image under the cursor draws no Convert row while canConvert is false",
+          findEntry(picker(true, { rowIsImage: true }), "convert").label, undefined)
+    check("Sort by still carries the three orders, so the picker's flyout is the browser's",
+          findEntry(back, "sort").submenu.map(function (e) { return e.id }).join("|"), "name|size|mtime")
 }
