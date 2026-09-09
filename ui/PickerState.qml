@@ -98,6 +98,12 @@ QtObject {
     // The current trash request's paths. Its reply carries counts only, so cleanup uses this snapshot.
     property var trashPending: []
     property int renamingIndex: -1
+    // The old identity stays until success can move a mark to the path the backend returns.
+    property string renameFromPath: ""
+    // The listing that sent the write. Recent is a token, so the source file's parent cannot name it.
+    property string renameListingPath: ""
+    // A click-away commit keeps the row the pointer chose, named across the async reply by path.
+    property string renamePointerPath: ""
     property string renameOnArrival: ""
     property var transfer: Ops.emptyTransfer()
     // ui/Pane.qml's cap, seven screens of answered rows, so a policy bug costs memory slowly.
@@ -128,6 +134,16 @@ QtObject {
     function showRow(view) { root.list.positionViewAtIndex(view, ListView.Contain) }
     // The re-read after one of the picker's own writes; see ui/js/PickerOps.js refresh.
     function refresh(selectPath) { PickerOps.refresh(root, selectPath) }
+    function startRename() {
+        if (root.renameFromPath.length === 0)
+            Ops.startRename(root)
+    }
+    function commitRename(newName) {
+        var row = root.rowFor(root.renamingIndex)
+        root.renameFromPath = row ? root.join(root.path, row.n) : ""
+        root.renameListingPath = root.path
+        Ops.commitRename(root, newName)
+    }
 
     function rowFor(index) {
         var at = index - root.held
@@ -149,6 +165,8 @@ QtObject {
         root.rows = []
         root.cursorIndex = 0
         root.markAnchor = -1
+        // The editor belongs to the listing being replaced. Its index must not name a new row.
+        root.renamingIndex = -1
         // A filter narrows the rows already listed, so a new listing is what forgets it, ui/js/Nav.js's rule.
         Filter.close(root)
         root.thumbState = Thumbs.empty()
