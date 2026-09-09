@@ -96,6 +96,23 @@ If you previously pinned another directory handler, restore that handler explici
   <img src="docs/images/pdf.png" alt="PDF preview with page navigation">
 </p>
 
+## File chooser filters
+
+Apps that send their own file filters get those as pills, and only those. For apps that send none,
+Flea reads `~/.config/flea/filters.toml` and draws **All files** first, then one pill per table.
+A table needs `globs`; `name` and `mimes` are optional, and a table without a name is labelled by
+its extensions, like `.jpg (.jpg, .jpeg)`. No file means no pills.
+
+```toml
+[[filter]]
+globs = ["*.jpg", "*.jpeg"]
+mimes = ["image/*"]
+
+[[filter]]
+name = "Documents"
+globs = ["*.doc", "*.docx", "*.odt"]
+```
+
 ## Performance
 
 Measured on **8 September 2026**, using the source tree released as **0.1.6**.

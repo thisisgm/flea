@@ -25,6 +25,8 @@ QtObject {
     property string pendingSelect: ""
     property string pendingParent: ""
     property int pendingStart: 0
+    // Whether the landing marks the row, which select's does and seat's below does not.
+    property bool pendingMark: true
     // Whether the peek in flight is the save box's, whose answer ui/js/PickerSaveName.js decides.
     property bool awaitingSave: false
 
@@ -147,6 +149,7 @@ QtObject {
     // rows, so when the row lies past the first one the window around it is asked for as well, at
     // the index the peek said, and the response that starts there is the one read.
     function select(parent, path, at) {
+        root.pendingMark = true
         root.pendingSelect = path
         root.pendingParent = parent
         root.pendingStart = Navigate.windowStart(at, root.picker.windowSize)
@@ -164,6 +167,17 @@ QtObject {
         if (root.pendingStart > 0) {
             root.backend.window(root.pendingStart, root.picker.windowSize)
         }
+    }
+
+    // The refresh after one of the picker's own writes, ui/js/PickerOps.js refresh, puts the cursor
+    // back on the path the write produced. Unlike select it marks nothing and flips no chip: a mark
+    // has to be seen, a cursor put back after a rename need not be. The re-read answers from row 0,
+    // so a row past the first window is left alone in silence rather than said to be missing.
+    function seat(path) {
+        root.pendingMark = false
+        root.pendingSelect = path
+        root.pendingParent = root.picker.path
+        root.pendingStart = 0
     }
 
     // Called by the window from every rows response. The target is found in whichever response
@@ -188,18 +202,25 @@ QtObject {
             return
         }
         root.pendingSelect = ""
-        root.picker.say(Navigate.NOT_LISTED)
+        if (root.pendingMark) {
+            root.picker.say(Navigate.NOT_LISTED)
+        }
     }
 
     // The mark is the typed file alone, the box's own rule; the text stays in the field so a second
     // Return on it accepts. A chip that hides the row gives way to All files, so the mark is seen.
     function landOn(index, path) {
-        var row = root.picker.rowFor(index)
         root.picker.cursorIndex = index
-        root.picker.marks = [{ path: path, bytes: row.s }]
-        root.picker.markAnchor = index
+        if (root.pendingMark) {
+            var row = root.picker.rowFor(index)
+            root.picker.marks = [{ path: path, bytes: row.s }]
+            root.picker.markAnchor = index
+        }
         var view = Filter.viewOf(root.picker.shown, index)
         if (view < 0) {
+            if (!root.pendingMark) {
+                return
+            }
             root.picker.filterIndex = -1
             view = index
         }

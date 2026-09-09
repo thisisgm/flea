@@ -4,6 +4,7 @@ import "." as Flea
 import "js/Filter.js" as Filter
 import "js/Match.js" as Match
 import "js/Picker.js" as Picker
+import "js/PickerKeys.js" as PickerKeys
 import "js/PickerMarks.js" as Marks
 
 // The picker's listing: ui/Row.qml drawn behind a check box, and the keys that move through it. The
@@ -172,38 +173,8 @@ ListView {
         root.positionViewAtIndex(to, ListView.Contain)
     }
 
-    Keys.onPressed: function (event) {
-        event.accepted = true
-        if (event.key === Qt.Key_Escape) {
-            root.picker.cancel()
-        } else if (event.key === Qt.Key_Down || event.key === Qt.Key_J) {
-            root.moveCursor(1)
-        } else if (event.key === Qt.Key_Up || event.key === Qt.Key_K) {
-            root.moveCursor(-1)
-        } else if (event.key === Qt.Key_PageDown) {
-            root.moveCursor(root.visibleRows)
-        } else if (event.key === Qt.Key_PageUp) {
-            root.moveCursor(-root.visibleRows)
-        } else if (event.key === Qt.Key_Home) {
-            root.moveCursor(-root.picker.shownTotal)
-        } else if (event.key === Qt.Key_End) {
-            root.moveCursor(root.picker.shownTotal)
-        } else if (event.key === Qt.Key_Space) {
-            root.picker.toggleMark(root.picker.cursorIndex)
-        } else if (event.text === ":" || (event.key === Qt.Key_L && (event.modifiers & Qt.ControlModifier))) {
-            // Before the bare L below, which walks into the row; the modifier is what tells them apart.
-            if (root.entry)
-                root.entry.takeFocus()
-        } else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_L) {
-            root.picker.activate(root.picker.cursorIndex)
-        } else if (event.key === Qt.Key_Backspace || event.key === Qt.Key_H) {
-            root.picker.goUp()
-        } else if (event.key === Qt.Key_Left && (event.modifiers & Qt.AltModifier)) {
-            root.picker.goBack()
-        } else {
-            event.accepted = false
-        }
-    }
+    // ui/js/PickerKeys.js: the picker's own verbs, then keys.toml through its allowlist.
+    Keys.onPressed: function (event) { PickerKeys.handle(event, root.picker, root) }
 
     // The listing is a window around the viewport, not the directory, so scrolling refetches. Same
     // shape as ui/List.qml's own drift check, minus the thumbnail and directory-size planners.

@@ -38,6 +38,7 @@ QtObject {
         function recent(): bool { return root.state.recent }
         function accept(): string { return Picker.acceptLabel(root.state.req, root.state.marks.length) }
         function chip(): int { return root.state.filterIndex }
+        function chips(): string { return root.state.chips.map(function (c) { return c.label }).join(",") }
         function saveName(): string { return root.state.saveName }
         function message(): string { return root.footer.message }
         function fetching(): int { return root.fetcher.fetching ? 1 : 0 }

@@ -104,21 +104,42 @@ function hints(req) {
     return pick + " · : location · Esc cancel"
 }
 
-// The chip row: the caller's filters, then All files, which is always explicit. An empty list is no
-// row at all, because a chooser with one chip is a chooser with nothing to choose between.
-function chips(req) {
-    if (req.filters.length === 0) {
+// The filters the chips stand for: the caller's when it sent any, else the user's own from
+// ~/.config/flea/filters.toml (ui/PickerFilters.qml). An app that sent filters never sees a config
+// pill, so its dialog is exactly the one it asked for.
+function filterList(req, config) {
+    if (req.filters.length > 0) {
+        return req.filters
+    }
+    return Array.isArray(config) ? config : []
+}
+
+// The chip row. The caller's filters come first and All files after them, because the caller's
+// first is what it wants active. Config pills come after All files, which stands first and active,
+// so nothing is hidden the caller did not ask to hide; they are labelled by extension the Windows
+// way. An empty list is no row at all, because a chooser with one chip has nothing to choose between.
+function chips(req, config) {
+    var out = []
+    if (req.filters.length > 0) {
+        for (var i = 0; i < req.filters.length; i++) {
+            out.push({ label: String(req.filters[i].label || ""), index: i })
+        }
+        out.push({ label: ALL_FILES, index: -1 })
+        return out
+    }
+    var own = filterList(req, config)
+    if (own.length === 0) {
         return []
     }
-    var out = []
-    for (var i = 0; i < req.filters.length; i++) {
-        out.push({ label: String(req.filters[i].label || ""), index: i })
-    }
     out.push({ label: ALL_FILES, index: -1 })
+    for (var j = 0; j < own.length; j++) {
+        out.push({ label: Filters.labelFor(own[j]), index: j })
+    }
     return out
 }
 
 // Which chip starts active: the caller's current_filter when it names one of them, else the first.
+// A caller that sent none starts on All files, whatever config pills stand beside it.
 function currentChip(req) {
     if (req.filters.length === 0) {
         return -1

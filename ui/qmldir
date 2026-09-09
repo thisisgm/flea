@@ -57,6 +57,7 @@ Pane 1.0 Pane.qml
 PickerChrome 1.0 PickerChrome.qml
 PickerEntry 1.0 PickerEntry.qml
 PickerFetch 1.0 PickerFetch.qml
+PickerFilters 1.0 PickerFilters.qml
 PickerFooter 1.0 PickerFooter.qml
 PickerIpc 1.0 PickerIpc.qml
 PickerList 1.0 PickerList.qml

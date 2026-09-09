@@ -800,6 +800,29 @@ gets the same chooser.
   `ui/PickerList.qml` hands `Row` `Picker.HIDDEN_COLS` and the chooser never inherits Mode or Kind
   from `ViewState`, whatever the header menu has switched on for the browser window.
 
+**Filters, and whose they are.** The chip row draws the caller's filters when it sent any, with
+All files after them, and the caller's `current_filter` or its first filter active: an application
+that sent filters sees exactly the dialog it asked for, and no pill it did not send. Most callers
+send none, so a chooser with no chips at all was the common case; for those,
+`ui/PickerFilters.qml` reads `$XDG_CONFIG_HOME/flea/filters.toml` (`~/.config` when the session set
+no config home) once at start, blocking like `ui/ViewState.qml` so the first frame has the row, and
+`Picker.chips` draws All files first and active, then one pill per `[[filter]]` table, so nothing is
+hidden the caller did not ask to hide. `ui/js/PickerFilters.js` is the parser, a line scanner in
+the spirit of `ui/js/Palette.js` and not a TOML reader: `globs` is required and a table without one
+is skipped, `name` and `mimes` are optional, and a table without a name is labelled by extension the
+Windows way, `.jpg (.jpg, .jpeg)`. Nothing ships a default file, because a default pill is a filter
+the user never wrote. The example every reader should be able to write from:
+
+```toml
+[[filter]]
+globs = ["*.jpg", "*.jpeg"]
+mimes = ["image/*"]
+
+[[filter]]
+name = "Documents"
+globs = ["*.doc", "*.docx", "*.odt"]
+```
+
 **Recent, and why it is read-only.** `SendPicker.html` draws a Recent row above Home in the rail,
 says the location's own name where the path would be, and draws Parent disabled with the words
 "unavailable in Recent". The history it lists is the desktop's own,
@@ -887,9 +910,15 @@ rows drawn between the two ends, `Filter.between` over the chip's set or the hel
 from the rows the window holds: a row scrolled out of that window was never on screen as part of
 the range. `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle` and
 `markRange`; Shift never unmarks, and in a single request the range is the clicked row, toggled
-the way Space toggles it. The picker reads no `keys.toml` row for either, because the portal's
-window carries no keymap of its own. The seam's `rowCentre` answers a drawn row's centre so
-`tests/picker.sh click` can aim omarchy-drive at it, the same read `ui/Ipc.qml` makes.
+the way Space toggles it. The picker reads `keys.toml` only through `ui/js/PickerKeys.js`'s
+allowlist: its own verbs answer first, Space, Enter, `l`, Backspace, `h`, `:`, Ctrl+L, Escape and
+Alt+Left, so the browser's preview, page-forward and trash-arm meanings for those keys never
+reach it; then `Keymap.lookup` answers for the shared operations alone, copy, cut, paste, select
+all, trash, rename, new folder, open terminal, copy folder path, undo, hidden files, filter and
+focus, so a preset's rebinding such as the windows preset's Ctrl+H applies to the chooser too.
+Any other action is refused and the event stays unaccepted. The seam's `rowCentre` answers a
+drawn row's centre so `tests/picker.sh click` can aim omarchy-drive at it, the same read
+`ui/Ipc.qml` makes.
 
 **What a typed line does, and why it is peeked first.** `ui/PickerNavigate.qml` carries out what
 `ui/js/PickerNavigate.js` decides about the line `entered()` reports, the Windows filename box's
@@ -1182,7 +1211,11 @@ this coverage needed no new entry there.
   path, the held rows, the cursor, the marks, the history, the save name) and every move on it
   (open, back, up, mark, activate, accept, cancel, finish), and writes only through the window,
   backend, footer, navigator and fetcher `ui/picker.qml` hands in. Every `ui/Picker*.qml` child
-  takes it as its `picker`.
+  takes it as its `picker`. It also carries the pane-shaped surface `ui/js/Ops.js`, `Sort.js`
+  and `Drag.js` read (`selectedIndices`, `rowFor`, `join`, `message`, `sticky`, `clipboard`,
+  `renamingIndex`, `setCursor`, `refresh` and the rest), so those files run in the chooser
+  unmodified; `ui/js/PickerOps.js` is where a mark, which is a path, becomes a listing index
+  and back, and where Select all and the refresh after a write are decided.
 - `ui/PickerIpc.qml` is the `fleapicker` seam `tests/picker.sh` drives, the read-only shape of
   `ui/Ipc.qml` for the chooser: it reports `PickerState` and never acts.
 - `ui/Header.qml` renders the column header band and its rule, and owns nothing else: it
@@ -1251,6 +1284,10 @@ this coverage needed no new entry there.
 - `ui/js/PickerMarks.js` is the chooser's marks: a path and its size, never a row number, and
   what Space, Ctrl+click and Shift+click do to the list. Pure, so `tests/js/pickermarks.js`
   drives all of it; `ui/picker.qml` holds the anchor and `ui/PickerList.qml` walks the range.
+- `ui/js/PickerKeys.js` is what the chooser does with a key: its own verbs first, then the shared
+  operations `keys.toml` binds, through an allowlist, and `act`, the dispatcher every picker
+  operation joins. Pure, so `tests/js/pickerkeys.js` drives all of it; `ui/PickerList.qml`'s
+  `Keys.onPressed` is one call to `handle`.
 - `ui/js/ShareUrl.js` is what a typed share URL is to gvfs: the root `gio mount` takes, the rest
   walked on the FUSE path, the two gio command lines and why a mount gave no folder. Pure, so
   `tests/js/shareurl.js` drives all of it; `ui/ShareResolve.qml` runs the legs it names.
