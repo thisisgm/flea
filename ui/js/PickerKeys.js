@@ -17,7 +17,8 @@ var LIST = "list"
 var RAIL = "rail"
 
 // The shared actions the picker takes from the key table, each with the name the footer prints
-// while its verb is not built yet; toggleHidden has one. An action outside this table never reaches act.
+// while its verb is not built yet; toggleHidden and selectAll have one. An action outside this
+// table never reaches act.
 var SHARED = {
     copy: "Copy", cut: "Cut", paste: "Paste", selectAll: "Select all", trash: "Move to Trash",
     rename: "Rename", newFolder: "New folder", openTerminal: "Open in terminal",
@@ -112,6 +113,8 @@ function act(action, state, ops) {
     case "parent": state.goUp(); return
     case "back": state.goBack(); return
     case "toggleHidden": state.toggleHidden(); return
+    // Ctrl+A and the menu's Select all row, ui/js/PickerOps.js selectAll through the state.
+    case "selectAll": state.selectAll(); return
     }
     if (action in SHARED)
         state.message(SHARED[action] + " is not built in the chooser yet.", false)
