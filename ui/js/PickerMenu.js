@@ -37,6 +37,9 @@ function aim(state, index) {
     if (standing.length > 0 && !onMark)
         state.dropMarks(standing)
     state.setCursor(index)
+    // The menu restores the focus it found. Put both logical and Qt focus on the list first, so
+    // Ctrl+Z after Move to Trash reaches the operation journal instead of a text field's undo.
+    state.focusList()
     return true
 }
 

@@ -95,6 +95,8 @@ QtObject {
     property var clipboard: Ops.emptyClipboard()
     property var clipPending: null
     property var pathsPending: null
+    // The current trash request's paths. Its reply carries counts only, so cleanup uses this snapshot.
+    property var trashPending: []
     property int renamingIndex: -1
     property string renameOnArrival: ""
     property var transfer: Ops.emptyTransfer()

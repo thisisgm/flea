@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|menu|duplicate|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|click|menu|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -469,6 +469,54 @@ case_duplicate() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "duplicate: the caller exited 0 after a cancel"
     printf 'duplicate: the menu row copies the cursor row alone, seats the copy, and Ctrl+Z takes it back\n'
+}
+
+# Move to Trash takes every marked path. The reply clears those marks and re-reads the directory.
+# Ctrl+Z uses this process's undo journal and restores the two files.
+case_trash() {
+    make_fixture
+    start_client --multiple
+    walk_to_fixture
+    ipc_is_live
+    local alpha beta marks step
+    alpha=$(row_named alpha.txt); beta=$(row_named beta.txt)
+    marks="$fixture/alpha.txt,$fixture/beta.txt"
+    click_row "$alpha" left --mods ctrl
+    click_row "$beta" left --mods ctrl
+    [[ "$(ipc marks)" == "$marks" ]] || fail "trash: two ctrl+clicks marked $(ipc marks)"
+    press -k Delete
+    for step in $(seq 1 40); do
+        [[ ! -e "$fixture/alpha.txt" && ! -e "$fixture/beta.txt" ]] && break
+        sleep 0.1
+    done
+    [[ ! -e "$fixture/alpha.txt" && ! -e "$fixture/beta.txt" ]] \
+        || fail "trash: Delete left a marked file on disk"
+    for step in $(seq 1 40); do
+        [[ "$(ipc total)" == "1" ]] && break
+        sleep 0.1
+    done
+    [[ "$(ipc total)" == "1" ]] || fail "trash: the refreshed listing counts $(ipc total) rows, not 1"
+    [[ -z "$(ipc marks)" ]] || fail "trash: the reply left $(ipc marks) marked"
+    [[ "$(ipc message)" == "Moved 2 items to Trash · z undoes" ]] \
+        || fail "trash: the footer says '$(ipc message)'"
+    press -k z --mods ctrl
+    for step in $(seq 1 40); do
+        [[ -e "$fixture/alpha.txt" && -e "$fixture/beta.txt" ]] && break
+        sleep 0.1
+    done
+    [[ -e "$fixture/alpha.txt" && -e "$fixture/beta.txt" ]] \
+        || fail "trash: Ctrl+Z did not restore both files"
+    for step in $(seq 1 40); do
+        [[ "$(ipc total)" == "3" ]] && break
+        sleep 0.1
+    done
+    [[ "$(ipc total)" == "3" ]] || fail "trash: after undo the listing counts $(ipc total) rows, not 3"
+    [[ "$(ipc message)" == "Put it back from Trash." ]] \
+        || fail "trash: undo left the footer saying '$(ipc message)'"
+    printf 'trash: Delete moves every mark to Trash, and Ctrl+Z restores them\n'
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "trash: the caller exited 0 after a cancel"
 }
 
 # Issue 45's segments in the chooser, and the board's Back behind them: a tap on a segment above
@@ -1286,7 +1334,7 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall click menu duplicate crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall click menu duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -1294,6 +1342,7 @@ for name in "$@"; do
         click) case_click ;;
         menu) case_menu ;;
         duplicate) case_duplicate ;;
+        trash) case_trash ;;
         crumbs) case_crumbs ;;
         rail) case_rail ;;
         save) case_save ;;

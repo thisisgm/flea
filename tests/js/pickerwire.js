@@ -18,6 +18,7 @@ function stubState(over) {
         rows: rows,
         cursorIndex: 4,
         marks: [],
+        trashPending: [],
         transfer: Ops.emptyTransfer(),
         renameOnArrival: "",
         renamingIndex: -1,
@@ -43,20 +44,27 @@ function stubState(over) {
 
 function run(check) {
     // ---- trashed: the line, the marks the trash took, and a re-read that seats nothing ----
-    var s = stubState({ marks: [{ path: "/d/c.png", bytes: 30 }, { path: "/d/a.png", bytes: 10 }, { path: "/e/a.png", bytes: 10 }] })
+    var s = stubState({
+        marks: [{ path: "/d/c.png", bytes: 30 }, { path: "/d/z.png", bytes: 99 },
+                { path: "/d/a.png", bytes: 10 }, { path: "/e/a.png", bytes: 10 }],
+        trashPending: ["/d/z.png", "/d/a.png"]
+    })
     Wire.trashed(s, 2, 0)
     check("trashed says the browser's own line", s.said.join("|"), "Moved 2 items to Trash · z undoes")
     check("a trash that took something is not an error", s.errors[0], false)
-    check("the marks the trash took leave the list", Picker.paths(s.marks).join(","), "/e/a.png")
+    check("the request's marks leave the list, while a newer cursor mark stands",
+          Picker.paths(s.marks).join(","), "/d/c.png,/e/a.png")
+    check("the reply spends its pending path snapshot", s.trashPending.length, 0)
     check("trashed clears the sticky line first", s.stuck.join("|"), "")
     check("trashed re-reads the directory", s.relisted, "/d")
     check("trashed seats nothing", s.seated, null)
-    s = stubState({ marks: [{ path: "/e/a.png", bytes: 10 }] })
+    s = stubState({ marks: [{ path: "/e/a.png", bytes: 10 }], trashPending: ["/d/c.png"] })
     Wire.trashed(s, 1, 0)
     check("with no mark here the cursor row was trashed and the marks stand", Picker.paths(s.marks).join(","), "/e/a.png")
-    s = stubState({ marks: [{ path: "/d/a.png", bytes: 10 }] })
+    s = stubState({ marks: [{ path: "/d/a.png", bytes: 10 }], trashPending: ["/d/a.png"] })
     Wire.trashed(s, 0, 1)
     check("a trash that took nothing keeps its marks", Picker.paths(s.marks).join(","), "/d/a.png")
+    check("a failed trash still spends its pending snapshot", s.trashPending.length, 0)
     check("and says so in the error role", s.said.join("|") + ":" + s.errors[0], "That item could not be moved to Trash.:true")
     check("and still re-reads", s.relisted, "/d")
 
@@ -137,6 +145,9 @@ function run(check) {
     check("and leaves the listing standing", s.listingState, "ready")
     check("and the armed editor waiting", s.renameOnArrival, "/d/sub")
     check("and re-reads nothing", s.relisted, "")
+    s = stubState({ trashPending: ["/d/a.png"] })
+    Wire.failed(s, "trash", "another file operation is running")
+    check("a refused trash releases its pending path snapshot", s.trashPending.length, 0)
     s = stubState({ listingState: "loading" })
     Wire.failed(s, "mkdir", "")
     check("a failure while loading empties the listing", s.listingState, "empty")
