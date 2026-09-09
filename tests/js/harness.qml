@@ -29,6 +29,7 @@ import "pickerfetch.js" as PickerFetchSuite
 import "pickerfilters.js" as PickerFiltersSuite
 import "pickermarks.js" as PickerMarksSuite
 import "pickernavigate.js" as PickerNavigateSuite
+import "pickerops.js" as PickerOpsSuite
 import "pickersavename.js" as PickerSaveNameSuite
 import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
@@ -77,7 +78,7 @@ Item {
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
             ["picker", PickerSuite], ["pickerentry", PickerEntrySuite], ["pickermarks", PickerMarksSuite],
             ["pickerfetch", PickerFetchSuite], ["pickerfilters", PickerFiltersSuite],
-            ["pickernavigate", PickerNavigateSuite],
+            ["pickernavigate", PickerNavigateSuite], ["pickerops", PickerOpsSuite],
             ["pickersavename", PickerSaveNameSuite],
             ["protocols", ProtocolsSuite], ["railkeys", RailKeysSuite],
             ["recent", RecentSuite],

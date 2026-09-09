@@ -2,8 +2,13 @@ import Quickshell
 import QtQuick
 import qs.Commons
 import "." as Flea
+import "js/DirSizes.js" as DirSizes
+import "js/Filter.js" as Filter
+import "js/Ops.js" as Ops
 import "js/Picker.js" as Picker
 import "js/PickerMarks.js" as Marks
+import "js/PickerOps.js" as PickerOps
+import "js/Thumbs.js" as Thumbs
 
 // The chooser's state and the moves on it, lifted out of ui/picker.qml at the 400-line cap. The
 // inverse of ui/PaneWire.qml: this owns the state and writes only through the collaborators the
@@ -72,6 +77,44 @@ QtObject {
 
     // Exactly one answer leaves this window, whichever way it is asked for.
     property bool answered: false
+
+    // ---- the pane ui/js/Ops.js, Sort.js and Drag.js read, so they run here unmodified ----
+    // ui/js/PickerOps.js turns the marks into listing indices and back. The rest is what a pane
+    // holds that no chooser move reads yet, at the value a fresh ui/Pane.qml starts with.
+    readonly property string viewMode: "list"
+    readonly property string focusView: "list"
+    property string filterQuery: ""
+    property bool filterTyping: false
+    property bool showHidden: false
+    property var clipboard: Ops.emptyClipboard()
+    property var clipPending: null
+    property var pathsPending: null
+    property int renamingIndex: -1
+    property string renameOnArrival: ""
+    property var transfer: Ops.emptyTransfer()
+    property var thumbState: Thumbs.empty()
+    property var dirSizeState: DirSizes.empty()
+
+    function selectedIndices() { return PickerOps.indicesFor(root) }
+    function pathsFor() { return PickerOps.pathsFor(root) }
+    function dropMarks(paths) { PickerOps.dropMarks(root, paths) }
+    function selectAll() { PickerOps.selectAll(root) }
+    // A row's identity, which in Recent is the row's own path and never a join onto the token.
+    function join(base, name) { return Picker.rowPath(base, name) }
+    function message(text, isError) { root.say(text) }
+    function sticky(text) { root.say(text, true) }
+    // Sort.resort clears a selection because a reorder rebinds every index. A mark is a path and
+    // survives a reorder the way it survives Back, so there is nothing here to clear.
+    function clearSelection() {}
+    function setCursor(index) {
+        root.cursorIndex = index
+        var view = Filter.viewOf(root.shown, index)
+        if (view >= 0)
+            root.showRow(view)
+    }
+    function showRow(view) { root.list.positionViewAtIndex(view, ListView.Contain) }
+    // The re-read after one of the picker's own writes; see ui/js/PickerOps.js refresh.
+    function refresh(selectPath) { PickerOps.refresh(root, selectPath) }
 
     function rowFor(index) {
         var at = index - root.held

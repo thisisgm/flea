@@ -178,6 +178,18 @@ for bad_columns in '{"columns":[]}' '{"columns":["size","date"]}' '{"columns":["
   check "and leaves only the lock it took: $bad_columns" "ui.json.lock" "$(ls -A "$STATE/flea" | sort | tr '\n' ' ' | sed 's/ $//')"
 done
 
+# sort.key is the wire's vocabulary: "mtime" lands, the column's "date" and the refused "kind" do not.
+fresh
+out=$(flea_ui '{"sort":{"key":"mtime"}}' 2>&1); rc=$?
+check "a sort key the wire takes exits 0" "0" "$rc"
+check "a sort key the wire takes is written" "1" "$(tr -d ' \n' < "$UI" | grep -c '"key":"mtime"')"
+for bad_sort in '{"sort":{"key":"date"}}' '{"sort":{"key":"kind"}}'; do
+  fresh
+  out=$(flea_ui "$bad_sort" 2>&1); rc=$?
+  check "a sort key the wire refuses exits 2: $bad_sort" "2" "$rc"
+  check "and names sort.key: $bad_sort" "1" "$(echo "$out" | grep -c 'sort.key')"
+done
+
 # A hand edit is not a patch: it costs that one key its own default and the key beside it stands.
 fresh
 mkdir -p "$STATE/flea"
