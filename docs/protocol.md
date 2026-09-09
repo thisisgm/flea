@@ -495,7 +495,9 @@ program is the default (see "Opening a file" in `AGENTS.md`). The registry gio r
 the XDG data ladder, so an answer is only as current as that ladder; it is re-asked per menu
 open rather than cached, so a change another program makes is picked up on the next open.
 
-Every request gets exactly one `handlers` line. A directory row and a name no glob matched
+Every ask for a row the listing holds gets exactly one `handlers` line; the out-of-range rows
+above are the exception and answer nothing, so a client waits on one only for a `row` it has
+seen in the listing. A directory row and a name no glob matched
 answer an empty `apps` on the spot, without spawning `gio`, because a directory navigates
 instead of opening and an unidentified name has no registry entry; the client needs the line
 all the same, so a slot asked and never answered cannot strand the row. A type with registered

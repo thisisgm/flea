@@ -660,8 +660,9 @@ the migrated columns, whether the settle or a `flea --ui-state` patch was what w
 
 `main.rs` dispatches on argv before anything else runs, but only `--backend` is fully insulated
 from the flag parsing below: it is matched anywhere in argv and always wins. `--prewarm`,
-`--open`, `--openwith` and `--terminal` are matched only in their exact well-formed shape, `args.len() == 5`
-for the first and `args.len() == 3` with the flag in argv[1] for the other two, so a MALFORMED one
+`--open`, `--openwith` and `--terminal` are matched only in their exact well-formed shape:
+`args.len() == 5` for `--prewarm`, `args.len() == 3` with the flag in argv[1] for `--open` and
+`--terminal`, and `args.len() == 4` with the flag in argv[1] for `--openwith`, so a MALFORMED one
 is not caught here at all. It
 falls through to the parsing below and leaves by the unknown-flag branch, which names the flag
 and exits 2; `flea --open` with no path and `flea --open a b` are both that case. The looseness
@@ -3766,9 +3767,10 @@ by `ui/shell.qml` over the pane the way the convert popup is and reached through
 whole installed set whether the row's type names them or not, with `src/backend/appscan.rs`'s
 showability filter standing in for `g_app_info_should_show`: `Type=Application` or no `Type`,
 no `Hidden`, no `NoDisplay`, a runnable `TryExec`, and `OnlyShowIn`/`NotShowIn` judged against
-every colon-separated name of `XDG_CURRENT_DESKTOP`. The dialog keeps gio's registered order
-where gio names the app and sorts by the entry's own `Name=` case-insensitively where it does
-not, because a dialog's list is a display order and not the registry's per-type judgement.
+every colon-separated name of `XDG_CURRENT_DESKTOP`. The dialog's one order is
+`appscan::all()`'s flat sort, the entry's own `Name=` case-insensitively with the id breaking
+ties, and gio's registered order is nowhere in it: the registry's per-type judgement is the
+flyout's to draw, and a dialog listing every application is not making that judgement.
 
 **The flyout stays a one-off and the dialog carries the box.** The tail row's id is the literal
 `dialog`, which is not a valid desktop entry path, so no entry id can collide with it, and it
