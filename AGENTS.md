@@ -1178,6 +1178,13 @@ this coverage needed no new entry there.
   `ui/Taildrop.qml`); it writes through the pane handed in and owns only the state a reply needs
   before the pane has a row for it: the folder a `made` line will open an editor on, and the
   watched re-read's debt, timer and cursor anchor, see "The open directory is watched".
+- `ui/PickerState.qml` is the chooser's counterpart, inverted: it owns the picker's state (the
+  path, the held rows, the cursor, the marks, the history, the save name) and every move on it
+  (open, back, up, mark, activate, accept, cancel, finish), and writes only through the window,
+  backend, footer, navigator and fetcher `ui/picker.qml` hands in. Every `ui/Picker*.qml` child
+  takes it as its `picker`.
+- `ui/PickerIpc.qml` is the `fleapicker` seam `tests/picker.sh` drives, the read-only shape of
+  `ui/Ipc.qml` for the chooser: it reports `PickerState` and never acts.
 - `ui/Header.qml` renders the column header band and its rule, and owns nothing else: it
   was lifted out of `Pane.qml` at the 400-line hard cap and has no behaviour.
 - `ui/Row.qml` renders one row delegate: the icon slot, which a thumbnail replaces in
