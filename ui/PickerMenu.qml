@@ -20,6 +20,7 @@ Flea.ContextMenu {
     taildropPeers: []
     dropboxPath: ""
     rowInDropbox: false
+    hintFor: PickerMenu.hintFor
     // Not the Menus settings section's stored set: that section is the browser window's, and the
     // chooser draws every row it can answer, Open in terminal included where the shipped set hides it.
     hiddenActions: ["settings"]

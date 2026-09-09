@@ -55,6 +55,33 @@ function pathsFor(state) {
     return row ? [Picker.rowPath(state.path, row.n)] : []
 }
 
+// The picker already holds absolute paths, so its process-local clipboard needs no backend reply.
+function clip(state, moving) {
+    var paths = pathsFor(state)
+    if (paths.length === 0) {
+        return
+    }
+    state.clipboard = { paths: paths, moving: moving }
+    state.message(Ops.copied(paths.length, moving).replace("p pastes.", "Ctrl+V pastes."), false)
+}
+
+// Recent has no destination directory. A cut spends its clipboard and only removes its own marks.
+function paste(state) {
+    if (!state.clipboard || state.clipboard.paths.length === 0) {
+        state.message("Nothing to paste. Use Ctrl+C or Ctrl+X.", false)
+        return
+    }
+    if (state.recent) {
+        state.message("Recent is not a folder. Open a folder to paste.", false)
+        return
+    }
+    var clip = { paths: state.clipboard.paths.slice(0), moving: state.clipboard.moving }
+    Ops.paste(state)
+    if (clip.moving) {
+        dropMarks(state, clip.paths)
+    }
+}
+
 // Paths, not listing indices: marks can stand outside the held window, and the backend's path form
 // can still name every one. The reply drops the same paths before it re-reads the directory.
 function trash(state) {

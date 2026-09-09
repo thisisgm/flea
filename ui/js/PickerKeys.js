@@ -35,6 +35,9 @@ function lookup(event, state) {
     if (own.length > 0)
         return own
     var shared = Keymap.lookup(event.key, event.text, event.modifiers)
+    if ((shared === "copy" || shared === "cut" || shared === "paste")
+            && event.modifiers !== Qt.ControlModifier)
+        return ""
     return shared in SHARED ? shared : ""
 }
 
@@ -121,6 +124,9 @@ function act(action, state, ops) {
     case "toggleHidden": state.toggleHidden(); return
     // Ctrl+A and the menu's Select all row, ui/js/PickerOps.js selectAll through the state.
     case "selectAll": state.selectAll(); return
+    case "copy": state.clip(false); return
+    case "cut": state.clip(true); return
+    case "paste": state.paste(); return
     // One source path owns the async reply. A second editor cannot replace it while that write runs.
     case "rename": if (state.renameFromPath.length === 0) state.startRename(); return
     case "newFolder": state.newFolder(); return
