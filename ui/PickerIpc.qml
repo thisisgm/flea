@@ -49,6 +49,10 @@ QtObject {
         function entryFocused(): int { return root.entry.focused ? 1 : 0 }
         function saveFocused(): int { return root.save.focused ? 1 : 0 }
         function rowCentre(index: int): string { return root.list.rowCentre(index) }
+        function visibleRows(): int { return root.list.visibleRows }
+        // The settle gate's two reads, as ui/Ipc.qml has them: requests attempted, and a row's cached file.
+        function thumbRequests(): int { return root.state.backend.thumbRequests }
+        function thumbFile(index: int): string { return root.list.thumbFor(index) }
         // The nav strip's segments as their drawn texts, "" while Recent draws its label instead.
         function crumbs(): string { return root.chrome.crumbs.visible ? root.chrome.crumbs.model.map(function (c) { return c.text }).join(",") : "" }
         function crumbCount(): int { return root.chrome.crumbs.visible ? root.chrome.crumbs.items.count : 0 }
