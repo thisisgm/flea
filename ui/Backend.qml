@@ -39,6 +39,10 @@ Item {
     signal archiveDone(int id, bool ok, bool verified, string err)
     signal convertStarted(int id)
     signal convertDone(int id, bool ok, string path, string err)
+    // uri echoes the request, because the picker sends a fetch from a field the user may be editing again.
+    signal fetchStarted(int id, string uri)
+    signal fetchProgress(int id, real bytes, real total)
+    signal fetchDone(int id, bool ok, string path, string err)
     // The shell's exit gate: the backend has drained and this process can end.
     signal quitReady()
 
@@ -195,6 +199,15 @@ Item {
         root.send({ c: "convert", path: path, dest: dest, strip: strip })
     }
 
+    // A fetch is keyed by its own id like an archive, so it never waits on a transfer, see docs/protocol.md "fetch".
+    function fetch(uri) {
+        root.send({ c: "fetch", uri: uri })
+    }
+
+    function fetchCancel(id) {
+        root.send({ c: "fetchcancel", id: id })
+    }
+
     function thumb(rows) {
         if (rows.length === 0) {
             return
@@ -320,6 +333,13 @@ Item {
             root.convertStarted(message.id)
         } else if (message.t === "convertdone") {
             root.convertDone(message.id, message.ok, message.path || "", message.err || "")
+        } else if (message.t === "fetchstarted") {
+            root.fetchStarted(message.id, message.uri || "")
+        } else if (message.t === "fetchprogress") {
+            root.fetchProgress(message.id, message.bytes, message.total)
+        } else if (message.t === "fetchdone") {
+            // path rides only on a success and err only on a failure, so each falls back to empty.
+            root.fetchDone(message.id, message.ok === true, message.path || "", message.err || "")
         }
     }
 
