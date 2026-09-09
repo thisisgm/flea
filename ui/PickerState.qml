@@ -104,6 +104,8 @@ QtObject {
     property string renameListingPath: ""
     // A click-away commit keeps the row the pointer chose, named across the async reply by path.
     property string renamePointerPath: ""
+    // The directory that sent a pending mkdir. A late reply must not refresh another location.
+    property string mkdirListingPath: ""
     property string renameOnArrival: ""
     property var transfer: Ops.emptyTransfer()
     // ui/Pane.qml's cap, seven screens of answered rows, so a policy bug costs memory slowly.
@@ -118,6 +120,7 @@ QtObject {
     function pathsFor() { return PickerOps.pathsFor(root) }
     function dropMarks(paths) { PickerOps.dropMarks(root, paths) }
     function selectAll() { PickerOps.selectAll(root) }
+    function newFolder() { PickerOps.newFolder(root) }
     // A row's identity, which in Recent is the row's own path and never a join onto the token.
     function join(base, name) { return Picker.rowPath(base, name) }
     function message(text, isError) { root.say(text) }

@@ -35,6 +35,7 @@ function stubState(over) {
         toggleHidden: function () { state.calls.push("hidden") },
         selectAll: function () { state.calls.push("selectAll") },
         startRename: function () { state.calls.push("rename") },
+        newFolder: function () { state.calls.push("newFolder") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over) {
@@ -156,10 +157,11 @@ function run(check) {
     PickerKeys.act("toggleHidden", state, ops)
     PickerKeys.act("selectAll", state, ops)
     PickerKeys.act("rename", state, ops)
+    PickerKeys.act("newFolder", state, ops)
     PickerKeys.act("trash", state, ops)
     PickerKeys.act("undo", state, ops)
     check("the state verbs land on the state", state.calls.join(","),
-          'cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll,rename,send {"c":"trash","paths":["/d/a.txt"]},undo')
+          'cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll,rename,newFolder,send {"c":"trash","paths":["/d/a.txt"]},undo')
     var pendingRename = stubState({ renameFromPath: "/d/a.txt" })
     PickerKeys.act("rename", pendingRename, ops)
     check("a second rename cannot replace the source of an async reply", pendingRename.calls.length, 0)
@@ -191,7 +193,7 @@ function run(check) {
     check("an unbuilt shared action says so", state.said.join(""), "Copy is not built in the chooser yet.")
     PickerKeys.act("settings", state, ops)
     check("an action outside the allowlist says nothing", state.said.length, 1)
-    check("the state is untouched by either", state.calls.length, 11)
+    check("the state is untouched by either", state.calls.length, 12)
     // The hidden toggle is built: a . reaches the state through handle and says nothing in the footer.
     var dotted = stubState()
     check("dot through handle flips hidden", PickerKeys.handle(press(Qt.Key_Period, "."), dotted, ops), "toggleHidden")
