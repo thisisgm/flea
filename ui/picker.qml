@@ -12,7 +12,6 @@ import qs.Commons
 import "." as Flea
 import "js/Picker.js" as Picker
 import "js/PickerMarks.js" as Marks
-import "js/PickerSaveName.js" as SaveName
 
 // One portal request, one window: the org.freedesktop.impl.portal.FileChooser dialog every caller on
 // the box gets, opened by flea --pick and answered through the reply file tools/flea-portal reads.
@@ -39,7 +38,6 @@ ShellRoot {
         property var kindNames: []
         property int cursorIndex: 0
         property string listingState: "loading"
-        property string message: ""
 
         // The checked identities, each a path and its size, so Back and Parent cannot rebind one.
         property var marks: []
@@ -69,6 +67,7 @@ ShellRoot {
 
         readonly property bool saving: win.req.mode === "save"
         readonly property bool folderMode: win.req.directory || win.req.mode === "savefiles"
+        readonly property bool fetching: fetcher.fetching
         readonly property int windowSize: list.visibleRows + 60
 
         // Exactly one answer leaves this window, whichever way it is asked for.
@@ -146,21 +145,11 @@ ShellRoot {
         }
 
         function accept() {
+            if (win.fetching)
+                return
+            // The save box's line is a name or a path; ui/PickerNavigate.qml says, walks or answers.
             if (win.saving) {
-                if (win.saveName.length === 0) {
-                    win.say("Name the file before saving it")
-                    return
-                }
-                // A separator or a leading "~" makes the name a path, which walks or lands, never answers.
-                if (SaveName.isPath(win.saveName)) {
-                    navigate.enterSave(win.saveName)
-                    return
-                }
-                if (!Picker.validName(win.saveName)) {
-                    win.say(Picker.NAME_REFUSED)
-                    return
-                }
-                win.finish(Picker.RESPONSE_OK, [Picker.join(win.path, win.saveName)])
+                navigate.acceptSave(win.saveName)
                 return
             }
             // A folder request with nothing checked takes the directory the window is standing in,
@@ -192,19 +181,13 @@ ShellRoot {
                 return
             // Built before the flag is set, so a throw here leaves the window answerable rather than shut.
             var text = Picker.reply(response, list)
+            fetcher.drop()
             win.answered = true
             replyFile.setText(text)
         }
 
         function say(text) {
-            win.message = text
-            messageLife.restart()
-        }
-
-        Timer {
-            id: messageLife
-            interval: 4000
-            onTriggered: win.message = ""
+            status.say(text)
         }
 
         FileView {
@@ -274,14 +257,23 @@ ShellRoot {
             backend: backend
             entry: entryField
             list: list
+            onRemoteEntered: function (answer) { fetcher.enter(answer) }
+        }
+
+        // A typed URL is downloaded to the picker cache and answered as that file, see ui/PickerFetch.qml.
+        Flea.PickerFetch {
+            id: fetcher
+            picker: win
+            backend: backend
         }
 
         Rectangle {
             anchors.fill: parent
             color: Theme.color.background
             focus: true
-            // The save field takes the keyboard from the list, and Escape has to refuse from there too.
-            Keys.onEscapePressed: win.cancel()
+            // The save field takes the keyboard from the list, and Escape has to refuse from there too;
+            // a fetch in flight takes the key first, so Escape then cancels the download, not the dialog.
+            Keys.onEscapePressed: if (!fetcher.takeEscape()) win.cancel()
 
             Flea.PickerChrome {
                 id: chrome
@@ -339,7 +331,7 @@ ShellRoot {
                 anchors.bottom: save.top
                 picker: win
                 onEntered: function (text) { navigate.enter(text) }
-                onDismissed: list.forceActiveFocus()
+                onDismissed: { fetcher.takeEscape(); list.forceActiveFocus() }
             }
 
             Flea.PickerSave {
@@ -358,6 +350,7 @@ ShellRoot {
                 anchors.right: parent.right
                 anchors.bottom: parent.bottom
                 picker: win
+                fetch: fetcher
             }
         }
 
@@ -387,7 +380,9 @@ ShellRoot {
             function accept(): string { return Picker.acceptLabel(win.req, win.marks.length) }
             function chip(): int { return win.filterIndex }
             function saveName(): string { return win.saveName }
-            function message(): string { return win.message }
+            function message(): string { return status.message }
+            function fetching(): int { return fetcher.fetching ? 1 : 0 }
+            function fetchLine(): string { return fetcher.line }
             function entry(): string { return entryField.text }
             function entryFocused(): int { return entryField.focused ? 1 : 0 }
             function saveFocused(): int { return save.focused ? 1 : 0 }

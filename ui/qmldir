@@ -55,6 +55,7 @@ Row 1.0 Row.qml
 Pane 1.0 Pane.qml
 PickerChrome 1.0 PickerChrome.qml
 PickerEntry 1.0 PickerEntry.qml
+PickerFetch 1.0 PickerFetch.qml
 PickerFooter 1.0 PickerFooter.qml
 PickerList 1.0 PickerList.qml
 PickerNavigate 1.0 PickerNavigate.qml

@@ -152,6 +152,8 @@ Item {
                 height: Theme.hitMin + 2 * Theme.spacing.hairline
                 label: Picker.acceptLabel(root.req, root.picker.marks.length)
                 primary: true
+                // A download in flight is the answer being built, so Accept stands down until it lands.
+                available: !root.picker.fetching
                 onPressed: root.acceptRequested()
             }
         }

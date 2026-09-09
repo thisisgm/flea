@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|save|savename|typed|typed_dir|typed_file|cancel|withdrawn|died|fault|taildrop]; taildrop is opt-in.
+# Usage: ./tests/picker.sh [pick|click|save|savename|typed|typed_dir|typed_file|typed_url|cancel|withdrawn|died|fault|taildrop]; taildrop is opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 set -u
@@ -34,6 +34,8 @@ client=0
 # A case that fails partway must not leave its window standing: the next case's ipc reaches the
 # oldest instance on the same config path, so a leaked window answers for the one under test.
 asker=0
+# The loopback http server the typed_url case starts in the fixture, ended with the rest.
+server=0
 
 ipc() {
     timeout 5 omarchy-drive ipc -p "$picker_config" fleapicker "$@" 2>/dev/null
@@ -54,6 +56,9 @@ cleanup() {
         omarchy-drive key --window "$title" -k Escape >/dev/null 2>&1
         sleep 1
         kill "$asker" 2>/dev/null
+    fi
+    if [[ "$server" != 0 ]] && kill -0 "$server" 2>/dev/null; then
+        kill "$server" 2>/dev/null
     fi
     sandbox_remove "$fixture"
 }
@@ -526,6 +531,42 @@ case_typed_file() {
     printf 'typed_file: a missing path is refused in the footer, a typed file is marked in its parent, and a second Return answers it\n'
 }
 
+# A typed URL is downloaded and the application gets the file, never the URL: the Windows file
+# dialog's rule. python's own http.server serves the fixture on a loopback port it picks, the URL of
+# alpha.txt is typed, and the reply has to name a file under the picker cache with the same bytes.
+# The download stays in the cache, as it does for a real caller; the sweep at a later --pick takes it.
+case_typed_url() {
+    make_fixture
+    local reply port step uri cache
+    (cd "$fixture" && exec python3 -u -m http.server --bind 127.0.0.1 0) > "$fixture/server.out" 2>&1 &
+    server=$!
+    port=""
+    for step in $(seq 1 50); do
+        port=$(sed -n 's/^Serving HTTP on 127\.0\.0\.1 port \([0-9]*\) .*/\1/p' "$fixture/server.out" | head -1)
+        [[ -n "$port" ]] && break
+        sleep 0.2
+    done
+    [[ -n "$port" ]] || fail "http.server never said which port it bound: $(cat "$fixture/server.out")"
+    start_typed typed_url
+    press ':'
+    press "http://127.0.0.1:$port/alpha.txt"
+    press -k Return
+    for step in $(seq 1 60); do
+        [[ -s "$reply" ]] && break
+        sleep 0.5
+    done
+    [[ -s "$reply" ]] || fail "the typed URL never answered; the footer says: $(ipc message) / $(ipc fetchLine)"
+    wait "$asker"; asker=0
+    uri=$(python3 -c 'import json, sys, urllib.parse
+d = json.load(open(sys.argv[1]))
+sys.exit(1) if d.get("response") != 0 or len(d.get("uris", [])) != 1 else print(urllib.parse.unquote(d["uris"][0]))' "$reply") \
+        || fail "the typed_url request replied $(cat "$reply")"
+    cache="${XDG_CACHE_HOME:-$HOME/.cache}/flea/picker/"
+    [[ "$uri" == "file://$cache"* ]] || fail "the answer $uri is not a file under $cache"
+    cmp -s "${uri#file://}" "$fixture/alpha.txt" || fail "the fetched file ${uri#file://} differs from alpha.txt"
+    printf 'typed_url: a typed URL is fetched into the picker cache and the caller gets the file as %s\n' "$uri"
+}
+
 # A chooser that cannot open at all refuses before any window and writes no reply file, which is what
 # tools/flea-portal turns into 2. Both refusals are argv-level, so neither needs the display.
 case_fault() {
@@ -589,7 +630,7 @@ case_taildrop() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click save savename typed typed_dir typed_file cancel withdrawn died fault
+[[ "$#" -gt 0 ]] || set -- pick click save savename typed typed_dir typed_file typed_url cancel withdrawn died fault
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -599,6 +640,7 @@ for name in "$@"; do
         typed) case_typed ;;
         typed_dir) case_typed_dir ;;
         typed_file) case_typed_file ;;
+        typed_url) case_typed_url ;;
         cancel) case_cancel ;;
         withdrawn) case_withdrawn ;;
         died) case_died ;;

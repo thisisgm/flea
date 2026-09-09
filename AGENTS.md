@@ -938,6 +938,23 @@ keys the pair on the `id` and never waits on a request that was turned down. `te
 `file://` sources through the real binary; the cancel and the failing-tool paths are unit tests with
 a stub whose argv is gio's, because a copy slow enough to cancel needs one.
 
+**A typed URL is fetched and the application gets the file.** `ui/PickerFetch.qml` takes the
+`remote` answer `ui/PickerNavigate.qml` hands on and sends `fetch`, the Windows file dialog's rule
+for a URL in the filename box: the dialog downloads and the caller never sees the URL. A folder
+request, a save and a URL with a trailing slash are refused in the footer before any request goes
+out, because none of them can take one downloaded file. One fetch is in flight at a time and a
+second Return during it is nothing rather than a queue; `fetchstarted` is matched on the echoed URL
+because the id is not known before it, and every later line by that id. While it runs the footer's
+left slot says `Fetching <leaf>` with gio's bytes and a slim bar on its top rule, indeterminate
+while the total is 0, and Accept stands down. Escape from the list or the field cancels the fetch
+and not the dialog, the footer says `Cancelled` when the backend's own `fetchdone` confirms it,
+and only the next Escape refuses the dialog; `finish` by any door cancels a fetch still running
+first, so no download outlives its window. A success answers the cache path through `finish`, the
+same door a marked file takes, so the reply is a `file://` URI; a failure says gio's line and leaves
+the dialog open. `ui/js/PickerFetch.js` holds the words and the arithmetic, and the footer owns
+the four-second message since this change, because `ui/picker.qml` sits at its cap.
+`tests/picker.sh typed_url` drives it on the display against `python3 -m http.server` on loopback.
+
 **The location field, read as one rule.** Everything a typed line can do runs through one gate in
 one order. `ui/js/PickerEntry.js` `classify` names the line first and nothing else reads it raw:
 `empty`, `local` for a path or a `file://` URI, `remote` for `http`, `https`, `ftp` and `ftps`,
@@ -1215,6 +1232,9 @@ this coverage needed no new entry there.
 - `ui/js/PickerNavigate.js` is what the chooser does about that line: the step before the
   backend is asked, the verdict on the peek's rows, and where the file's row sits in the listing.
   Pure, so `tests/js/pickernavigate.js` drives all of it; `ui/PickerNavigate.qml` acts on the steps.
+- `ui/js/PickerFetch.js` is what the chooser says while a typed URL downloads and why one is refused
+  before the request: the footer's line, the bar's fraction, the failure's words. Pure, so
+  `tests/js/pickerfetch.js` drives all of it; `ui/PickerFetch.qml` runs the fetch on the backend.
 
 ## Where the backend binary comes from
 
