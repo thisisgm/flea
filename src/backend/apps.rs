@@ -9,7 +9,7 @@ use crate::backend::proto::error_line;
 use crate::error::FleaError;
 use crate::json::escape;
 use std::collections::HashMap;
-use std::io::Write;
+use std::io::{Read, Write};
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -107,7 +107,7 @@ fn gio_run(args: &[&str]) -> Option<std::process::Output> {
     cmd.stdout(std::process::Stdio::piped());
     cmd.stderr(std::process::Stdio::piped());
     cmd.process_group(0);
-    let child = cmd.spawn().ok()?;
+    let mut child = cmd.spawn().ok()?;
     let pid = child.id() as i32;
     let done = Arc::new(AtomicBool::new(false));
     let watchdog = {
@@ -127,9 +127,26 @@ fn gio_run(args: &[&str]) -> Option<std::process::Output> {
             }
         })
     };
-    let output = child.wait_with_output().ok();
-    done.store(true, Ordering::Relaxed);
-    let _ = watchdog.join();
+    let output = {
+        // wait_with_output would reap the child before done could stand the watchdog down, and a
+        // kill delivered past the reap is a signal at a pid the kernel may have handed out again.
+        // The pipes drain on this thread instead, the child staying unreaped until the wait
+        // below, so a deadline kill cannot miss it: the ordering metareq.rs's own watchdog is
+        // shaped around. A child still holding a pipe stalls its read, which the deadline kill
+        // unblocks.
+        let mut stdout = Vec::new();
+        let mut stderr = Vec::new();
+        if let Some(mut pipe) = child.stdout.take() {
+            let _ = pipe.read_to_end(&mut stdout);
+        }
+        if let Some(mut pipe) = child.stderr.take() {
+            let _ = pipe.read_to_end(&mut stderr);
+        }
+        let status = child.wait().ok();
+        done.store(true, Ordering::Relaxed);
+        let _ = watchdog.join();
+        status.map(|status| std::process::Output { status, stdout, stderr })
+    };
     output
 }
 
