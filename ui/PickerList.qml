@@ -7,10 +7,12 @@ import "js/Match.js" as Match
 import "js/Picker.js" as Picker
 import "js/PickerKeys.js" as PickerKeys
 import "js/PickerMarks.js" as Marks
+import "js/Thumbs.js" as Thumbs
 
 // The picker's listing: ui/Row.qml drawn behind a check box, the keys that move through it, and the
 // drag that carries rows out to another application. The window's own ui/List.qml is not reused: it
 // selects rows by index where the chooser marks by path, so the pieces are drawn again over the marks.
+// The one part the chooser shares with it, the thumbnail settle, is repeated below.
 ListView {
     id: root
 
@@ -25,6 +27,9 @@ ListView {
     property var dragMime: ({})
 
     readonly property int visibleRows: Math.max(1, Math.ceil(root.height / Theme.rowHeight))
+    // ui/Pane.qml's two settle intervals, see AGENTS.md "Thumbnail requests in the GUI".
+    readonly property int firstSettleMs: 70
+    readonly property int settleMs: 120
     // Wide enough that a row's box is a check and not a chip; the board's own is one pixel over bodySmall.
     readonly property int checkSize: Theme.font.bodySmall
 
@@ -94,6 +99,7 @@ ListView {
             compactDate: true
             hiddenCols: Picker.HIDDEN_COLS
             row: cell.shownRow
+            thumb: root.thumbFor(cell.listingIndex)
             cursor: cell.listingIndex === root.picker.cursorIndex
             hovered: hover.hovered
             kindNames: root.picker.kindNames
@@ -232,8 +238,9 @@ ListView {
     Keys.onPressed: function (event) { PickerKeys.handle(event, root.picker, root) }
 
     // The listing is a window around the viewport, not the directory, so scrolling refetches. Same
-    // shape as ui/List.qml's own drift check, minus the thumbnail and directory-size planners.
-    onContentYChanged: coalesce.restart()
+    // shape as ui/List.qml's own drift check, minus the directory-size planner.
+    onContentYChanged: { coalesce.restart(); settle.restart() }
+    onVisibleRowsChanged: settle.restart()
 
     Timer {
         id: coalesce
@@ -253,5 +260,49 @@ ListView {
             var start = Math.max(0, firstVisible - root.picker.windowSize / 4)
             root.backend.window(Math.floor(start), root.picker.windowSize)
         }
+    }
+
+    // ui/List.qml's settle: every scroll, arriving window of rows and viewport change pushes it out,
+    // so a fling issues no request until the list has stopped. A new listing starts it back at 70.
+    Timer {
+        id: settle
+        interval: root.firstSettleMs
+        onTriggered: root.requestThumbs()
+    }
+
+    Connections {
+        target: root.backend
+        function onRows(start, items, ms, kinds) { settle.restart() }
+    }
+
+    Connections {
+        target: root.picker
+        // A chip swap redraws the screen without a scroll, so it is a settle too.
+        function onShownChanged() { settle.restart() }
+        function onListingStateChanged() {
+            if (root.picker.listingState === "loading")
+                settle.interval = root.firstSettleMs
+        }
+    }
+
+    // Only the visible rows, only once each, and only after the list has stopped moving.
+    function requestThumbs() {
+        var picker = root.picker
+        if (picker.shownTotal === 0 || picker.listingState === "loading")
+            return
+        var view = Thumbs.viewport(root.contentY, Theme.rowHeight, root.visibleRows, picker.shownTotal)
+        // A chip narrows the viewport to a set and not a run: the run it spans is what the planner
+        // gets and Filter.cut takes back every row inside that run the chip is hiding.
+        var span = Filter.span(picker.shown, view.first, view.last)
+        var work = Filter.cut(Thumbs.plan(picker.thumbState, picker.rows, picker.held, span.first, span.last), picker.shown)
+        root.backend.thumbcancel(work.drop)
+        root.backend.thumb(work.ask)
+        if (work.ask.length > 0)
+            settle.interval = root.settleMs
+        picker.thumbState = Thumbs.applied(picker.thumbState, work)
+    }
+
+    function thumbFor(index) {
+        return Thumbs.fileFor(root.picker.thumbState, index)
     }
 }

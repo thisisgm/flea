@@ -1,6 +1,7 @@
 import QtQuick
 import "js/Ops.js" as Ops
 import "js/PickerWire.js" as Wire
+import "js/Thumbs.js" as Thumbs
 
 // Every operation reply the backend sends the chooser lands here, ui/PaneWire.qml's handlers for
 // the state ui/PickerState.qml holds. It owns nothing and writes only through that state, and each
@@ -36,6 +37,13 @@ QtObject {
         function onTransferItem(id, index, name, ok, err) { Wire.transferItem(root.picker, id, index, name) }
         function onTransferDone(id, ok, failed, skipped, cancelled) {
             Wire.transferDone(root.picker, id, ok, failed, skipped, cancelled)
+        }
+
+        // A thumbed line for the previous listing is still in the pipe when open() clears the map,
+        // the same guard ui/PaneWire.qml makes on the pane's listInFlight.
+        function onThumbed(row, file) {
+            if (root.picker.listingState !== "loading")
+                root.picker.thumbState = Thumbs.remember(root.picker.thumbState, row, file, root.picker.thumbCap)
         }
 
         function onFailed(where, input, msg, mode) { Wire.failed(root.picker, where, msg) }

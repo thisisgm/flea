@@ -3406,6 +3406,16 @@ not, is corroboration and not the gate. `tests/ui.sh nosweep` asserts a full tra
 100,000-file fixture leaves the request count at zero and the shared cache the size it started.
 120 ms is a feel decision, confirmed on the box against 60 ms and 250 ms rather than measured.
 
+**The chooser repeats the settle rather than sharing it.** `ui/PickerList.qml` carries its own
+`settle` Timer at the same two intervals, restarted by its scroll, by every `rows` line and by a
+viewport change, and its `requestThumbs` is `ui/List.qml`'s line for line over `ui/PickerState.qml`:
+`Thumbs.viewport`, `Filter.span` and `Filter.cut` against the chip's `shown`, then `thumb` and
+`thumbcancel`. `ui/PickerWire.qml` records `thumbed` lines with `Thumbs.remember` while the listing
+is not `loading`, and `open()` empties the map, so a line for the listing just left is dropped.
+`ui/List.qml` was not lifted into the chooser because everything else in it is a drag, a rename or
+a context menu the chooser hosts differently. `tests/picker.sh thumbs` holds the same bound as
+`tests/ui.sh thumbs`: one request for the first screen, at most two after a fling.
+
 **The first screen races the compositor's resize, and `firstSettleMs` exists to lose that race on
 purpose.** Flea's `FloatingWindow` declares `implicitHeight: 600` at `ui/shell.qml:18`, Hyprland
 then tiles it to the full screen, and the viewport a request would name depends on which of the two

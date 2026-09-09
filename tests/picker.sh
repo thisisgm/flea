@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -853,6 +853,61 @@ case_taildrop() {
     printf 'taildrop: the stock plugin raised Flea, and the caller sent %s to %s\n' "$sent" "$peer"
 }
 
+# The window's thumbnail rule in the chooser, tests/ui.sh thumbs without the cache count: one settle
+# after the first window names the visible rows in one request, and a fling issues none while the
+# list moves. The fixture is one generated image copied thumb_rows times, so every row is thumbnailable.
+thumb_rows=200
+case_thumbs() {
+    command -v magick >/dev/null || fail "ImageMagick is needed to make the image fixture"
+    sandbox_make "$fixture"
+    magick -size 96x64 xc:navy "$fixture/p000.png"
+    local i
+    for i in $(seq 1 $((thumb_rows - 1))); do
+        cp -f "$fixture/p000.png" "$fixture/$(printf 'p%03d.png' "$i")"
+    done
+    start_client --multiple
+    walk_to_fixture
+    ipc_is_live
+    # The walk's own listings settled on text rows, which are never asked for, so this listing's
+    # first request is the first request the process makes.
+    local waited
+    for waited in $(seq 1 200); do
+        [[ -n "$(ipc thumbFile 0)" ]] && break
+        sleep 0.05
+    done
+    local cache="${XDG_CACHE_HOME:-$HOME/.cache}/thumbnails"
+    printf 'THUMBS requests=%s file0=%q file1=%q\n' "$(ipc thumbRequests)" "$(ipc thumbFile 0)" "$(ipc thumbFile 1)"
+    [[ "$(ipc thumbRequests)" == "1" ]] || fail "the first screen took $(ipc thumbRequests) requests, not one"
+    [[ "$(ipc thumbFile 0)" == "$cache/"*.png ]] || fail "row 0 has no cached thumbnail: $(ipc thumbFile 0)"
+    # The first row past the screen is built by the cache buffer and was never asked for.
+    local screen_rows
+    screen_rows=$(ipc visibleRows)
+    (( screen_rows < thumb_rows )) || fail "the window shows all $thumb_rows rows, so nothing can scroll"
+    [[ -z "$(ipc thumbFile "$screen_rows")" ]] || fail "row $screen_rows was never on screen and holds $(ipc thumbFile "$screen_rows")"
+
+    # A fling: at most two requests may follow it, the settle and one straddled refetch, which is
+    # the gate tests/ui.sh thumbs holds; a request per scrolled frame blows past it. The count read
+    # right after the scroll is corroboration, not the gate: the list saturates within its first
+    # notches, so a sample taken during it may already read the settled end.
+    local cx cy wx wy before cursor_a cursor_b during after
+    read -r cx cy <<< "$(ipc rowCentre 1)"
+    read -r wx wy < <(omarchy-drive windows --json | jq -r --arg t "$title" '.windows[] | select(.title == $t) | "\(.at[0]) \(.at[1])"')
+    [[ -n "${wx:-}" ]] || fail "no window named $title to scroll in"
+    omarchy-drive move "$((cx + wx))" "$((cy + wy))" >/dev/null
+    before=$(ipc thumbRequests)
+    cursor_a=$(ipc cursor)
+    omarchy-drive scroll down 40 >/dev/null
+    during=$(ipc thumbRequests)
+    sleep 1
+    cursor_b=$(ipc cursor)
+    after=$(ipc thumbRequests)
+    printf 'THUMBS fling before=%s during=%s after=%s cursor=%s..%s\n' "$before" "$during" "$after" "$cursor_a" "$cursor_b"
+    [[ "$cursor_b" != "$cursor_a" ]] || fail "the fling never moved the list, so the request bound proves nothing"
+    (( after - before <= 2 )) || fail "one fling issued $(( after - before )) requests"
+    press -k Escape
+    wait_for_client
+    printf 'thumbs: one request for the first screen, none during a fling, %s after it\n' "$(( after - before ))"
+
 # Opt-in, like tests/drag.sh: a real pointer through uinput, which is the only motion Qt sees as a
 # drag, and a second window on the screen. A row is lifted out of the chooser and dropped on the
 # floor of a browser window standing in the fixture's dest folder. The browser reads the drag as
@@ -914,7 +969,7 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills
+[[ "$#" -gt 0 ]] || set -- pick click crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -933,6 +988,7 @@ for name in "$@"; do
         died) case_died ;;
         fault) case_fault ;;
         pills) case_pills ;;
+        thumbs) case_thumbs ;;
         taildrop) case_taildrop ;;
         dragout) case_dragout ;;
         *) fail "no case named $name" ;;
