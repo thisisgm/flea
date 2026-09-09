@@ -159,6 +159,7 @@ Press **?** for the full keymap, or **,** to change settings.
 | New tab / close tab / switch tab | `t` / `w` / `1`–`9` |
 | Open terminal / context menu | `Ctrl+T` / `m` |
 | Show hidden files | `.` |
+| Type a path or URL in the picker | `:` or `Ctrl+L` |
 
 The Windows preset uses `Ctrl+Shift+1/2/3` for views. Menu visibility does not disable shortcuts.
 See [the full key table](keys.toml) for preset bindings and pointer actions.
