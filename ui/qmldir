@@ -57,12 +57,14 @@ PickerChrome 1.0 PickerChrome.qml
 PickerEntry 1.0 PickerEntry.qml
 PickerFetch 1.0 PickerFetch.qml
 PickerFooter 1.0 PickerFooter.qml
+PickerIpc 1.0 PickerIpc.qml
 PickerList 1.0 PickerList.qml
 PickerNavigate 1.0 PickerNavigate.qml
 PickerPlaces 1.0 PickerPlaces.qml
 PickerRecent 1.0 PickerRecent.qml
 PickerSave 1.0 PickerSave.qml
 PickerShare 1.0 PickerShare.qml
+PickerState 1.0 PickerState.qml
 PaneWire 1.0 PaneWire.qml
 ShareBrowser 1.0 ShareBrowser.qml
 Sidebar 1.0 Sidebar.qml
