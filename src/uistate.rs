@@ -294,6 +294,22 @@ mod tests {
         assert!(patched(&current, &Json::Str("nope".to_string())).is_err());
     }
 
+    // sort.key is what Sort.js sends on the wire, so it is "mtime" and never the column's "date" nor
+    // "kind", a key docs/protocol.md refuses. A stored "date" from an older rule reads back as default.
+    #[test]
+    fn sort_key_speaks_the_wire_vocabulary() {
+        let current = from_file("{}");
+        let ok = patched(&current, &jsondoc::parse(r#"{"sort":{"key":"mtime"}}"#).expect("patch")).expect("mtime is accepted");
+        assert_eq!(ok.get("sort").and_then(|s| s.get("key")).and_then(Json::as_str), Some("mtime"));
+        for bad in [r#"{"sort":{"key":"date"}}"#, r#"{"sort":{"key":"kind"}}"#] {
+            let message = patched(&current, &jsondoc::parse(bad).expect("patch")).expect_err("refused");
+            assert!(message.contains("sort.key"), "{} should name sort.key, got {}", bad, message);
+        }
+        let stale = from_file(r#"{"sort":{"key":"date","reverse":true}}"#);
+        assert_eq!(stale.get("sort").and_then(|s| s.get("key")).and_then(Json::as_str), Some("name"));
+        assert_eq!(stale.get("sort").and_then(|s| s.get("reverse")).and_then(Json::as_bool), Some(true));
+    }
+
     // Handoff section 5a: "dual": { "paths": [left, right], "focus": 0 }, and an empty array means
     // no dual-pane locations have been remembered. Three paths is a shape the restore cannot read.
     #[test]

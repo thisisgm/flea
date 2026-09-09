@@ -58,7 +58,8 @@ pub enum Rule {
 
 pub const COLUMN_KEYS: &[&str] = &["name", "mode", "size", "date", "kind"];
 
-pub const SORT: &[(&str, Rule)] = &[("key", Rule::Word(&["name", "size", "date", "kind"])), ("reverse", Rule::Bool)];
+// The three orders the wire's `sort` request takes (docs/protocol.md): "mtime", never the column's "date".
+pub const SORT: &[(&str, Rule)] = &[("key", Rule::Word(&["name", "size", "mtime"])), ("reverse", Rule::Bool)];
 
 pub const DUAL: &[(&str, Rule)] = &[("paths", Rule::Pair), ("focus", Rule::Count(0.0, 1.0))];
 
