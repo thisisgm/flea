@@ -87,11 +87,10 @@ ShellRoot {
                 navigate.rowsArrived()
             }
             onPeeked: function (path, hidden, total, rows, readFailed) { navigate.peeked(path, hidden, total, rows, readFailed) }
-            onFailed: function (where, input, msg, mode) {
-                state.listingState = "empty"
-                state.say(msg)
-            }
         }
+
+        // The operation replies, and the failures: trashed, renamed, made and the rest, see ui/PickerWire.qml.
+        Flea.PickerWire { picker: state }
 
         // The history the Recent location lists, read only when that location is opened. The listing
         // is the client's own order, so the backend is asked for these paths and never to sort them.
