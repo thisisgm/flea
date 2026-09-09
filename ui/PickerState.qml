@@ -43,6 +43,9 @@ QtObject {
     property var kindNames: []
     property int cursorIndex: 0
     property string listingState: "loading"
+    // A fresh scan is being sorted into the stored order, ui/PaneWire.qml's resortOwed: the
+    // name-ordered rows that rode along with it are dropped, and only the sort's listed lets rows in.
+    property bool resortOwed: false
 
     // The checked identities, each a path and its size, so Back and Parent cannot rebind one.
     property var marks: []

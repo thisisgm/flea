@@ -78,23 +78,13 @@ ShellRoot {
         // exactly as ui/shell.qml does, once the backend says it has drained.
         Connections { target: backend; function onQuitReady() { Quickshell.execDetached(["kill", String(Quickshell.processId)]) } }
 
+        // The listing and operation replies land in ui/PickerWire.qml; a peek is a typed line's
+        // question and goes straight to the navigator that asked it.
         Flea.Backend {
             id: backend
-
-            onListed: function (n, readMs, sortMs) {
-                state.total = n
-                state.listingState = n === 0 ? "empty" : "ready"
-            }
-            onRows: function (start, items, ms, kinds) {
-                state.held = start
-                state.rows = items
-                state.kindNames = kinds
-                navigate.rowsArrived()
-            }
             onPeeked: function (path, hidden, total, rows, readFailed) { navigate.peeked(path, hidden, total, rows, readFailed) }
         }
 
-        // The operation replies, and the failures: trashed, renamed, made and the rest, see ui/PickerWire.qml.
         Flea.PickerWire { id: wire; picker: state }
 
         // The history the Recent location lists, read only when that location is opened. The listing

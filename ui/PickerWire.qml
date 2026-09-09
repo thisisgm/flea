@@ -4,11 +4,11 @@ import "js/Ops.js" as Ops
 import "js/PickerWire.js" as Wire
 import "js/Thumbs.js" as Thumbs
 
-// Every operation reply the backend sends the chooser lands here, ui/PaneWire.qml's handlers for
-// the state ui/PickerState.qml holds. It owns the chooser's opener and writes replies through that
-// state. Each backend handler is one call into ui/js/Wire.js, so tests/js/pickerops.js runs them
-// without a window. The listing replies stay in ui/picker.qml, which seats the cursor on the row a refresh
-// asked for; the one rows handler below reads that landing to arm the rename editor.
+// Every reply the backend sends the chooser lands here, ui/PaneWire.qml's handlers for the state
+// ui/PickerState.qml holds. It owns the chooser's opener and writes replies through that state.
+// Each backend handler is one call into ui/js/PickerWire.js, so tests/js/pickerwire.js runs them
+// without a window. The listing replies sort a fresh scan into the stored order before its rows
+// show, seat the cursor on the row a refresh asked for, and then arm the rename editor over it.
 QtObject {
     id: root
 
@@ -28,10 +28,13 @@ QtObject {
     property Connections replies: Connections {
         target: root.picker ? root.picker.backend : null
 
-        // The window's own onRows has run by now: an inline handler connects when its object is
-        // created and a Connections when the tree completes, and Qt delivers in connection order.
-        // Were that ever reversed the guard in armRename would miss the editor, never misplace it.
-        function onRows(start, items, ms, kinds) { Wire.armRename(root.picker) }
+        function onListed(n, readMs, sortMs) { Wire.listed(root.picker, n) }
+        // The landing ui/PickerNavigate.qml makes inside rows is what armRename reads, so the editor
+        // is armed only over rows the state took; rows a pending sort is about to replace arm nothing.
+        function onRows(start, items, ms, kinds) {
+            if (Wire.rows(root.picker, start, items, kinds))
+                Wire.armRename(root.picker)
+        }
 
         function onTrashed(ok, failed) { Wire.trashed(root.picker, ok, failed) }
         function onRenamed(ok, path) { Wire.renamed(root.picker, ok, path) }

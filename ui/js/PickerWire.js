@@ -11,6 +11,40 @@
 // runs every reply without a window. The lines come from ui/js/Ops.js's own builders, so the
 // chooser and the browser can never word the same operation two different ways.
 
+// The listed line, ui/PaneWire.qml's rule for the stored order. A scan answers name ascending
+// (docs/protocol.md "list"), so a listing loading into any other order asks for it once the scan
+// has answered, never beside the list: a failed scan would reorder the old listing. rows below
+// drops the rows that rode along; the sort's own listed ends the debt. Recent is never re-sorted.
+function listed(state, total) {
+    var backend = state.backend
+    if (state.resortOwed) {
+        state.resortOwed = false
+    } else if (state.listingState === "loading" && !state.recent
+               && (backend.sortBy !== "name" || backend.sortDesc)) {
+        state.resortOwed = true
+        state.total = total
+        backend.sort(backend.sortBy, backend.sortDesc)
+        // sort emits no rows of its own, so the reordered window is asked for here.
+        backend.window(0, state.windowSize)
+        return
+    }
+    state.total = total
+    state.listingState = total === 0 ? "empty" : "ready"
+}
+
+// The rows line. Rows a pending sort is about to replace never reach the state, so the cursor a
+// refresh seats by path lands on the sorted rows only. Reports whether the rows were taken.
+function rows(state, start, items, kinds) {
+    if (state.resortOwed) {
+        return false
+    }
+    state.held = start
+    state.rows = items
+    state.kindNames = kinds
+    state.navigate.rowsArrived()
+    return true
+}
+
 // A trashed line carries counts and no paths, so the paths it took are read off the state before
 // the refresh replaces the rows: the same set PickerOps.trash sent, the marks held here or the
 // cursor row alone. corner: a batch that half failed loses the marks on the rows that stayed too;
@@ -128,6 +162,14 @@ function failed(state, where, msg) {
     // A refused sort changes nothing in the backend, so it changes nothing here: a plain notice.
     if (where === "sort") {
         state.message(Errors.sentence(where, msg), false)
+        // corner: a refused follow-up, unreachable while ViewState checks the key against Sort.ORDERS.
+        // The window asked for beside the sort still answers, so the name-ordered rows come back.
+        if (state.resortOwed) {
+            state.resortOwed = false
+            state.backend.sortBy = "name"
+            state.backend.sortDesc = false
+            state.listingState = state.total === 0 ? "empty" : "ready"
+        }
         return
     }
     var terminal = where === "backend" || where === "read"
