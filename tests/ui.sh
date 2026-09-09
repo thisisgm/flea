@@ -2541,6 +2541,39 @@ case_header() {
     (( date_x >= size_x + size_w )) || fail "header: date starts at $date_x, before size ends at $((size_x + size_w))"
     (( kind_x >= date_x + date_w )) || fail "header: kind starts at $kind_x, before date ends at $((date_x + date_w))"
 
+    # The column menu: a right click over the titles opens one checkbox row per column, and a tick
+    # leaves the menu open, so the header can be read with the box still on screen. Size goes and
+    # comes back on two clicks of the same row, which also puts the state file back as it was.
+    local header_x header_y header_h wx wy ww wh size_row size_cx size_cy
+    header_x=$(ipc headerLeft)
+    header_y=$(ipc headerTop)
+    header_h=$(ipc chromeHeight)
+    read -r wx wy ww wh < <(window_box)
+    omarchy-drive click "$((wx + header_x + size_x + size_w / 2))" "$((wy + header_y + header_h / 2))" right >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "header: a right click over the titles opened no menu"
+    [[ "$(ipc contextMenuEntries)" == "Name|Mode|Size|Date Modified|Kind|-|Show hidden files" ]] \
+        || fail "header: the column menu reads $(ipc contextMenuEntries)"
+    shot header-menu
+    size_row=$(menu_row_index Size) || fail "header: the column menu has no Size row"
+    read -r size_cx size_cy <<< "$(ipc contextMenuRowCentre "$size_row")"
+    [[ -n "$size_cy" ]] || fail "header: the Size row has no on-screen centre"
+    omarchy-drive click "$((wx + size_cx))" "$((wy + size_cy))" left >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "header: ticking Size closed the menu"
+    [[ "$(ipc headerTitles)" == "Name|Mode|Date Modified|Kind" ]] \
+        || fail "header: with Size unticked the titles read $(ipc headerTitles)"
+    shot header-menu-size-off
+    omarchy-drive click "$((wx + size_cx))" "$((wy + size_cy))" left >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "header: ticking Size again closed the menu"
+    [[ "$(ipc headerTitles)" == "Name|Mode|Size|Date Modified|Kind" ]] \
+        || fail "header: with Size ticked back the titles read $(ipc headerTitles)"
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "header: Escape left the column menu open"
+    printf 'HEADER column-menu=ok size-off=ok size-on=ok\n'
+
     kill_flea
 }
 

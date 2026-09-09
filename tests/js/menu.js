@@ -102,17 +102,30 @@ function runMenu(check) {
     runBackground(check)
     runHidden(check, full)
 
-    // ui/Header.qml's own rows, on a right click over the column titles. Four toggles, flipping
-    // labels, each answering "col:<key>"; Name is absent because it never hides.
-    var head = Menu.headerEntries([], false)
-    check("the header menu offers the four optional columns, flipping labels when hidden",
-          labels(Menu.headerEntries(["size"], false)),
-          "Hide Mode|Show Size|Hide Date Modified|Hide Kind|-|Show hidden files")
-    check("every column row answers col:<key>",
-          findEntry(head, "col:size").action + "|" + findEntry(head, "col:kind").action,
-          "col:size|col:kind")
-    check("the header menu carries the hidden toggle too, below its own rule",
-          findEntry(head, "toggleHidden").action, "toggleHidden")
+    // ui/Header.qml's own rows, on a right click over the column titles: one checkbox per column,
+    // Name included and permanently ticked, each keeping the menu open, then the hidden toggle.
+    var head = Menu.headerEntries(["size"], false)
+    function flags(field) {
+        var out = []
+        for (var i = 0; i < 5; i++)
+            out.push(String(head[i][field]))
+        return out.join("|")
+    }
+    check("the header menu names all five columns, then its rule and the hidden toggle",
+          labels(head), "Name|Mode|Size|Date Modified|Kind|-|Show hidden files")
+    check("each column row is checked exactly when its column is drawn",
+          flags("checked"), "true|true|false|true|true")
+    check("Name is checked and carries no toggle action, because it never hides",
+          head[0].checked + "|" + head[0].action, "true|undefined")
+    check("every column row keeps the menu open, so several boxes can be ticked in one visit",
+          flags("keepOpen"), "true|true|true|true|true")
+    check("the four optional rows still answer col:<key>",
+          findEntry(head, "col:mode").label + "|" + findEntry(head, "col:size").action + "|"
+          + findEntry(head, "col:date").action + "|" + findEntry(head, "col:kind").action,
+          "Mode|col:size|col:date|col:kind")
+    check("the hidden toggle is a verb row below the rule, not a checkbox",
+          findEntry(head, "toggleHidden").action + "|" + findEntry(head, "toggleHidden").checked,
+          "toggleHidden|undefined")
 
     // The keyboard's own entrance, lifted out of ui/Pane.qml: the cursor row is scrolled into view
     // first, because a wheel scroll in the grid can leave it off screen, then the frame opens at

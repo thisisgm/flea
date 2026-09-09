@@ -8,7 +8,7 @@ import "js/Menu.js" as Menu
 Item {
     id: root
 
-    // {label, action, glyph, danger?, submenu?} or {separator: true}; see ui/ContextMenu.qml's buildEntries.
+    // {label, action, glyph, danger?, submenu?, checked?, keepOpen?} or {separator: true}; see ui/ContextMenu.qml's buildEntries.
     property var entry: ({})
     property bool current: false
     // A pick list's chosen row, drawn as the canvas draws the convert popup and the share list:
@@ -32,6 +32,8 @@ Item {
     readonly property bool isSubmenu: Menu.hasSubmenu(root.entry)
     // A danger row takes the theme's error role for both its mark and its label, never a hardcoded red.
     readonly property bool danger: root.entry.danger === true
+    // A checkbox row: the mark slot draws a box, ticked or not, in place of a glyph.
+    readonly property bool isCheckbox: root.entry.checked !== undefined
     // The key this row's action answers to, right-aligned per Menus.html. Derived from keys.toml
     // through the generated map, so an unbound action leaves the slot empty rather than guessing.
     // Empty with the Menus section's hints row off, which takes the slot's width with it.
@@ -88,9 +90,27 @@ Item {
         // A brand mark is a reproduction and takes its own component; every other row is a cut glyph.
         Flea.Glyph {
             anchors.fill: parent
-            visible: root.entry.mark === undefined
+            visible: root.entry.mark === undefined && !root.isCheckbox
             name: root.entry.glyph !== undefined ? root.entry.glyph : "file"
             color: root.markColor
+        }
+
+        // The box ui/PickerList.qml draws beside a markable row, at the slot's size so the label's
+        // indent is the same on a checkbox row as on a glyph row.
+        Rectangle {
+            anchors.fill: parent
+            visible: root.isCheckbox
+            color: "transparent"
+            border.width: Theme.spacing.hairline * 2
+            border.color: root.entry.checked ? Theme.color.accent : Theme.color.muted
+
+            Flea.Glyph {
+                anchors.fill: parent
+                visible: root.entry.checked === true
+                name: "check"
+                maxSize: root.slotSize
+                color: Theme.color.accent
+            }
         }
 
         Flea.TailscaleMark {

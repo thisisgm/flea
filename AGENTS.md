@@ -586,8 +586,9 @@ is one of the five column keys, no key appears twice, and `name` is among them, 
 file holds. A duplicate is not harmless: measured through the real `ui/ViewState.qml` singleton, a
 stored `["name","size","size","date"]` left one header-menu "Hide Size" click still drawing
 `name,size,date`, because `toggleColumn` splices the first match and the second still shows the
-column. The header menu offers only the four optional keys onto an array that already carries
-`name`, so no click this window can produce is refused by the rule.
+column. The header menu's Name row is a permanently checked box with no action, so only the four
+optional keys reach `toggleColumn`, onto an array that already carries `name`, and no click this
+window can produce is refused by the rule.
 
 **`wrapAtEnds` is read by the window and by nothing else.** `ui/Pane.qml` exposes it off the
 document `ui/ViewState.qml` already holds, and `ui/js/Focus.js` `step` is its only reader: with the
@@ -4506,6 +4507,19 @@ answer false, and the status line says `No row under the cursor to open a menu o
 nothing. Right click and `m` reach the same menu, so a selection is honoured the same way by both.
 `m` stopped being a type-ahead letter for this. The menu's own `keyCatcher` reads
 `Keymap.lookup`, so `j` and `k` step it exactly as Down and Up do, and Space chooses like Enter.
+
+### The header menu is a checkbox list that stays open
+
+A right click over the column titles opens the pane's one `ContextMenu` on `ui/js/Menu.js`
+`headerEntries`: one row per column (Name, Mode, Size, Date Modified, Kind), each carrying
+`checked` and `keepOpen`, then the rule and the hidden-files toggle. `ui/MenuRow.qml` draws an
+entry with `checked` as the box `ui/PickerList.qml` draws beside a markable row, at `Theme.markSize`
+so the label's indent is the glyph row's. `choose()` takes the entry, not its action, and skips
+`close()` on a `keepOpen` row; `entries` is a live binding over `ViewState.hiddenCols`, so the
+box redraws in place after `toggleColumn` and several columns can be switched in one visit, the
+way every OS dialog's column menu works. Name is checked and has no action at all, because
+`ui/js/Columns.js` never drops it; choosing it keeps the menu open and changes nothing.
+`tests/ui.sh header` clicks Size twice and reads `headerTitles` between, with the menu still up.
 
 ### A FileView write can race a reload fired the moment setText() is called
 
