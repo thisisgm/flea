@@ -27,6 +27,10 @@ pub enum OpMsg {
     // The applications one row can be opened with, for the context menu's Open With; a gio mime is
     // a subprocess for the same reason, and it claims the slot no more than meta does.
     Handlers { line: String },
+    // The Open with dialog's two asks, which ride the same channel for the same reason: the
+    // installed applications list, and the "always" write's terminal line.
+    Applications { line: String },
+    Defaulted { line: String },
 }
 
 // moving is the verb the request actually resolved to, so the client names the operation from the

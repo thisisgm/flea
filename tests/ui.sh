@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|openwith|renderer|settings|viewpersist ...]; networklive is opt-in.
+# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|openwith|openwithdialog|renderer|settings|viewpersist ...]; networklive is opt-in.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -1467,6 +1467,116 @@ case_openwith() {
 
     if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
     kill_flea
+}
+
+# The Open with dialog: the flyout's tail row opens it, its list is the whole installed set, the
+# search line filters it, the always box writes the default, and Open launches the picked
+# application through the flyout's own stub. The stub intercepts --openwith only, so the launch
+# half is proved from the same log the flyout case uses; the write half is proved through the
+# seeded XDG_CONFIG_HOME, which is where gio writes the user's own mimeapps.list. The dialog
+# drives its keyboard through the search field, which owns the window's keys while it is up.
+case_openwithdialog() {
+    local dir="$fixture_root/openwithdialog" real_state="${XDG_STATE_HOME-}"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/bin"
+    : > "$dir/photo.png"
+    : > "$dir/notes.txt"
+    local ran="$dir/ran.log" real_bin="$flea_bin"
+    : > "$ran"
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = --openwith ] || exec %q "$@"\n' "$real_bin"
+      printf 'printf "OPENWITH %%s %%s\\n" "$3" "$4" >> %q\n' "$ran"
+      printf 'exit 0\n'
+    } > "$dir/bin/flea"
+    chmod +x "$dir/bin/flea"
+    # A config home of the case's own, so the always write lands where the case can read it back
+    # and never in the operator's own ~/.config; gio derives the mimeapps.list path from it.
+    local cfg="$dir/cfg"
+    mkdir -p "$cfg"
+    seed_ui_state "$fixture_root/openwithdialog-state" "{\"menu\":{\"hidden\":$menu_shipped}}"
+    local saved_path="$PATH" saved_cfg="${XDG_CONFIG_HOME-}"
+    export PATH="$dir/bin:$PATH"
+    export XDG_CONFIG_HOME="$cfg"
+    flea_bin="$dir/bin/flea"
+    launch "$dir"
+    export PATH="$saved_path"
+    export XDG_CONFIG_HOME="$saved_cfg"
+    flea_bin="$real_bin"
+    wait_listing 2
+
+    # The tail row opens the dialog. The list is the box's real installed set, so only its shape
+    # is asserted: non-empty, filtered/total reported by the seam, cursor at the first row.
+    click_row 1 right
+    settle
+    local _attempt
+    for _attempt in $(seq 1 40); do [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] && break; sleep 0.05; done
+    menu_seek "Open with"
+    key -k Return >/dev/null
+    settle
+    key -k Down >/dev/null
+    key -k Return >/dev/null
+    for _attempt in $(seq 1 100); do [[ "$(ipc openWithDialogOpen)" == "true" ]] && break; sleep 0.05; done
+    [[ "$(ipc openWithDialogOpen)" == "true" ]] || fail "openwithdialog: the tail row never opened the dialog"
+    local rows
+    rows=$(ipc openWithDialogRows)
+    [[ "$rows" == *"always=false"* ]] || fail "openwithdialog: the always box did not ship off, got $rows"
+    [[ "$rows" == "0/"* ]] || fail "openwithdialog: the cursor did not open at the first row, got $rows"
+    shot openwithdialog-open
+
+    # The search line narrows the list and resets the cursor, the pane's own filter shape.
+    key "View" >/dev/null
+    settle
+    local filtered
+    filtered=$(ipc openWithDialogRows)
+    [[ "$filtered" != "$rows" ]] || fail "openwithdialog: typing left the list unfiltered, got $filtered"
+    [[ "$(ipc openWithDialogSearch)" == "View" ]] || fail "openwithdialog: the search line did not take the text"
+    key -k BackSpace >/dev/null; key -k BackSpace >/dev/null; key -k BackSpace >/dev/null; key -k BackSpace >/dev/null
+    settle
+    [[ "$(ipc openWithDialogRows)" == "$rows" ]] || fail "openwithdialog: an empty search line did not put the whole list back"
+
+    # The always box, then Open: one launch through the stub, and the default written for the row's
+    # own type into the seeded config home. The Kind the box shows rides the row's k, so the label
+    # is not asserted; the write is.
+    key -k Space >/dev/null
+    settle
+    [[ "$(ipc openWithDialogRows)" == *"always=true"* ]] || fail "openwithdialog: Space did not tick the always box"
+    key -k Return >/dev/null
+    local waited
+    for waited in $(seq 1 100); do grep -q "^OPENWITH " "$ran" && break; sleep 0.05; done
+    grep -q "^OPENWITH $dir/photo.png [^ ]*\.desktop$" "$ran" \
+        || fail "openwithdialog: the launch never reached the stub, log is $(cat "$ran")"
+    grep -q 'image/png=' "$cfg/mimeapps.list" \
+        || fail "openwithdialog: the always write never landed, config holds $(cat "$cfg/mimeapps.list" 2>/dev/null)"
+    [[ "$(grep -c . "$ran")" == "1" ]] || fail "openwithdialog: the launch ran twice, log is $(cat "$ran")"
+    for waited in $(seq 1 100); do [[ "$(ipc openWithDialogOpen)" == "false" ]] && break; sleep 0.05; done
+    [[ "$(ipc openWithDialogOpen)" == "false" ]] || fail "openwithdialog: the dialog stayed open after Open"
+
+    # Escape closes without writing: the count of mimeapps lines is frozen, and the launch count too.
+    local lines_before
+    lines_before=$(grep -c . "$cfg/mimeapps.list")
+    click_row 1 right
+    settle
+    for _attempt in $(seq 1 40); do [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] && break; sleep 0.05; done
+    menu_seek "Open with"
+    key -k Return >/dev/null
+    settle
+    key -k Down >/dev/null
+    key -k Return >/dev/null
+    for _attempt in $(seq 1 100); do [[ "$(ipc openWithDialogOpen)" == "true" ]] && break; sleep 0.05; done
+    key -k Escape >/dev/null
+    settle
+    [[ "$(ipc openWithDialogOpen)" == "false" ]] || fail "openwithdialog: Escape did not close the dialog"
+    [[ "$(grep -c . "$cfg/mimeapps.list")" == "$lines_before" ]] || fail "openwithdialog: Escape wrote to the config anyway"
+    [[ "$(grep -c . "$ran")" == "1" ]] || fail "openwithdialog: Escape launched the app anyway, log is $(cat "$ran")"
+
+    # The listing takes keys again, which is the focus handback the other overlays prove: home to
+    # row 0, then one step, and the cursor answers through the seam it is read through everywhere.
+    key g >/dev/null
+    settle
+    key j >/dev/null
+    settle
+    [[ "$(ipc cursor)" == "1" ]] || fail "openwithdialog: the list stopped taking keys after the dialog closed"
 }
 
 # The operator's defect of 2026-09-02, in their own words: "when clicking a single click opens the

@@ -76,6 +76,10 @@ FocusScope {
     signal sticky(string text)
     // The one popup, hosted in shell.qml beside the network dialog rather than inside the pane.
     signal convertRequested(string name)
+    // The Open with flyout's tail row: shell.qml hosts the dialog over the pane's listing, the way
+    // the convert popup above is hosted; kind is the row's Kind description, which is the wording
+    // the "always" box shows, because the client is never given the type behind it.
+    signal openWithDialogRequested(string path, string kind)
     signal pathBarRequested()  // ":" and Ctrl+L; the bar is chrome, so shell.qml opens it as it does the popup above
     signal textSizeRequested(int direction)  // issue 9's zoom pair, +1, -1 or 0 to follow Omarchy again; the size is the window's
 
@@ -376,7 +380,18 @@ FocusScope {
         rowInDropbox: root.path === root.home + "/Dropbox" || root.path.indexOf(root.home + "/Dropbox/") === 0
         onChosen: function (action) {
             if (action.indexOf("taildrop:") === 0) { root.sendTaildrop(action.substring("taildrop:".length)); return }
-            if (action.indexOf("openwith:") === 0) { root.openWith(action.substring("openwith:".length)); return }
+            if (action.indexOf("openwith:") === 0) {
+                var picked = action.substring("openwith:".length)
+                // The flyout's tail row asks for the whole installed list; every other id is a
+                // desktop entry path and launches that application once, nothing written anywhere.
+                if (picked === "dialog") {
+                    var row = root.cursorRow
+                    root.openWithDialogRequested(row ? root.join(root.path, row.n) : "", row ? String(root.kindNames[row.k] || "") : "")
+                    return
+                }
+                root.openWith(picked)
+                return
+            }
             if (action === "copypath") { wire.opener.copyText(root.path + "/" + root.cursorRow.n); return }
             if (action.indexOf("col:") === 0) { ViewState.toggleColumn(action.substring("col:".length)); return }
             root.act(action)
@@ -405,9 +420,15 @@ FocusScope {
     function askOpenWith() { wire.askOpenWith() }
 
     // The Open with flyout's chosen entry: one launch of the picked application, and nothing
-    // written anywhere, which is what makes it an override rather than a default.
+    // written anywhere, which is what makes it an override rather than a default. The dialog's
+    // launch takes its own path through openWithPath, so it cannot name a row the cursor has since
+    // left, and it is a route, not a mechanism: ui/OpenWithDialog.qml and the same opener do the rest.
     function openWith(desktop) {
-        wire.opener.openWith(root.join(root.path, root.cursorRow ? root.cursorRow.n : ""), desktop)
+        root.openWithPath(root.join(root.path, root.cursorRow ? root.cursorRow.n : ""), desktop)
+    }
+
+    function openWithPath(path, desktop) {
+        wire.opener.openWith(path, desktop)
     }
 
     Flea.StateMessage {

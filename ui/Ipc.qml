@@ -14,6 +14,7 @@ QtObject {
     property var chrome: null
     property var tabBar: null
     property var convertDialog: null
+    property var openWithDialog: null
     property var keymapSheet: null
     property var settingsPanel: null
     property var networkDialog: null
@@ -288,6 +289,16 @@ QtObject {
         function canConvert(): bool { return root.backend.canConvert }
         // The one popup in the design, so a test can assert it opened and what it would write.
         function convertOpen(): bool { return root.convertDialog ? root.convertDialog.opened : false }
+        // The Open with dialog's own facts, so a test asserts it opened, what it filtered and what
+        // it holds, without OCR: filtered/total rows, the cursor, the always box and the search line.
+        function openWithDialogOpen(): bool { return root.openWithDialog ? root.openWithDialog.opened : false }
+        function openWithDialogRows(): string {
+            return root.openWithDialog ? root.openWithDialog.shown.length + "/" + root.openWithDialog.apps.length
+                   + " @" + root.openWithDialog.cursor + " always=" + root.openWithDialog.always : ""
+        }
+        function openWithDialogSearch(): string { return root.openWithDialog ? root.openWithDialog.search : "" }
+        function openWithDialogKind(): string { return root.openWithDialog ? root.openWithDialog.kind : "" }
+        function openWithDialogCardRect(): string { return root.openWithDialog ? root.fleaWindow.rectOf(root.openWithDialog.cardItem) : "" }
         function keymapSheetOpen(): bool { return root.keymapSheet ? root.keymapSheet.opened : false }
         // One row per line, "<cap> <wording>", so a test asserts the sheet without OCR.
         function keymapSheetRows(): string { return root.keymapSheet ? root.keymapSheet.rows() : "" }

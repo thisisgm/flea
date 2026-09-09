@@ -505,6 +505,64 @@ by a 10 s deadline that answers empty on a wedged `gio`.
 Answers may arrive out of order, because an inline empty answer can land beside an in-flight
 subprocess answer in either order; the `row` field is what pairs a reply with its ask.
 
+### applications
+
+`{"c":"applications"}`
+
+Example: `{"c":"applications"}`
+
+Asks for **every installed, showable application** on the XDG applications ladder, which is
+what the Open with dialog draws: the flyout's list is one type's registered few, and the
+dialog's is the whole list whether the row's type names them or not, the Windows and Nautilus
+surface. One ask per dialog open; nothing prefetches it, and the scan is what answers rather
+than a cached table, so an application installed while the window was open is on the next
+open's list.
+
+**Showability is gio's own rule**, `g_app_info_should_show`, applied to the entry's
+`[Desktop Entry]` group alone: `Type=Application` or no `Type` at all, no `Hidden`, no
+`NoDisplay`, `TryExec` (when written) a runnable program, and `OnlyShowIn`/`NotShowIn`
+judged against every colon-separated name of `XDG_CURRENT_DESKTOP`, empty when the session
+does not say. An entry with no `Name=` or no `Exec=` is dropped as malformed; the id-stem
+fallback the registered list carries is for ids gio itself named, and the dialog's list is
+not that list. The scan is the same walk the id resolution runs, so a subdirectory's name
+prefixes its files' ids exactly as it does there.
+
+The order is this table's own decision and not gio's: sorted by the entry's `Name=`,
+case-insensitively, ties on the id, so `apple` sits beside `Apple` and the order does not
+depend on a scan order POSIX does not specify.
+
+Answers on a thread the way `handlers` answers. **A `quit` that lands while a scan or a write
+is in flight drops the reply, not the work**: the drain counts thumbnails and write
+operations, and these ride the same channel uncounted. The `gio` child is detached, so a
+`setdefault` write completes anyway; only the line nobody reads any more is lost.
+
+### setdefault
+
+`{"c":"setdefault","path":"<string>","id":"<string>"}`
+
+Example: `{"c":"setdefault","path":"/home/gm/photo.png","id":"org.gnome.eog.desktop"}`
+
+The dialog's "always" write: names the **default handler** for the file's type, and the next
+plain Open runs it. `path` is the file the dialog opened for and `id` is a desktop entry id,
+which is what `gio mime <type> <id>` takes. The write is deliberately **a path request and
+not a row request**, the same rule the other writes follow: a write outlives the listing it
+started from, and a row index would name a different file by the time the reply landed. The
+type is resolved from the path's own name through the same globs2 table every listing
+consults, so no listing is read at all and a listing change cannot retarget the write.
+
+The write is one `LC_ALL=C gio mime <type> <id>` spawn, answered on a thread: gio validates
+the id against the desktop database, writes the user's own `mimeapps.list` through GLib (both
+`[Default Applications]` and `[Added Associations]`), and no file of Flea's is touched and no
+default is read back to be second-guessed. `LC_ALL=C gio mime`'s own output is not read.
+
+A name no glob matched has no type, so there is no default to set, and the answer is an
+`error` line with `where` of `setdefault` carrying the path; a handler id gio refuses (an id
+not on the applications ladder, or an entry without `Type=Application`, which its loader
+requires) answers the same kind with gio's own sentence in `msg`. A success answers the
+`defaulted` line below and nothing else; the previous default is not journaled, so this is
+the one write `undo` does not reverse, and the sentence the dialog shows says what the next
+open will do.
+
 ### undo
 
 `{"c":"undo"}`
@@ -853,6 +911,27 @@ construction.
 The answer is **the registered list whole**, the default included and unmarked: the plain
 Open row already answers the default, and `flea --openwith` exists precisely to launch
 something else without writing it anywhere.
+
+### applications
+
+`{"t":"applications","apps":[{"name":"<string>","path":"<string>","id":"<string>"},...],"ms":<float>}`
+
+Example:
+`{"t":"applications","apps":[{"name":"Image Viewer","path":"/usr/share/applications/org.gnome.eog.desktop","id":"org.gnome.eog.desktop"}],"ms":1.234}`
+
+Answers the `applications` request with one entry per installed, showable application, sorted
+by `name`. `path` is the desktop entry file `flea --openwith` launches, resolved the way the
+registered list resolves its own ids, and `id` is that same file's desktop id, which is what
+the `setdefault` write takes: the two spellings of one application, one per door. `ms` is the
+scan to three decimal places.
+
+### defaulted
+
+`{"t":"defaulted","ok":true}`
+
+Answers one `setdefault` request that succeeded. There is no failure shape: a refused write
+answers an `error` line with `where` of `setdefault` instead, because the client words the
+two differently and the reply's shape should not have to say which it is.
 
 ### transferprogress
 

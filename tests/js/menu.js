@@ -84,7 +84,7 @@ function runMenu(check) {
           Menu.openWithEntries([{ name: "Image Viewer", path: "/usr/share/applications/org.gnome.eog.desktop" },
                                 { name: "say \"hi\"", path: "/tmp/say \"hi\".desktop" }])
               .map(function (e) { return e.id + "=" + e.label }).join("|"),
-          "/usr/share/applications/org.gnome.eog.desktop=Image Viewer|/tmp/say \"hi\".desktop=say \"hi\"")
+          "/usr/share/applications/org.gnome.eog.desktop=Image Viewer|/tmp/say \"hi\".desktop=say \"hi\"|dialog=Another application…")
     check("the row leaves with the applications, which is the pending state too",
           Menu.listingEntries({ showHidden: false, hasRow: true, rowInDropbox: false,
                                 dropboxPath: "", taildropPeers: [], archiveFormats: [],

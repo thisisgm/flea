@@ -294,20 +294,11 @@ fn handle_line(
                 spawn_meta(row, st.base.join(st.listing.name(row)), text, media, want, ops.tx.clone())
             }
         }
-        // The applications one row can be opened with. A directory navigates instead of opening, so
-        // it answers an empty list on the spot, and so does a name no glob matched; both cost the
-        // client its one line, so a slot asked and never answered cannot strand the row.
-        Request::Handlers { row } => {
-            let t = Instant::now();
-            if row < st.listing.len() {
-                let name = st.listing.name(row);
-                let mime = if st.listing.is_dir(row) { None } else { tb.mime.lookup(name).map(|m| tb.aliases.canonical(m).to_string()) };
-                match mime {
-                    Some(mime) => apps::spawn(row, mime, ops.tx.clone()),
-                    None => say(out, &apps::handlers_line(row, &[], since(t))),
-                }
-            }
-        }
+        // The open-with family's whole dispatch is apps.rs's; run.rs was at its cap when the
+        // dialog's two asks joined the one the flyout already had.
+        Request::Handlers { row } => apps::run_handlers(out, &ops.tx, row, &st.listing, &tb.mime, &tb.aliases),
+        Request::Applications => apps::run_applications(ops.tx.clone()),
+        Request::SetDefault { path, id } => apps::run_set_default(out, &ops.tx, &path, &id, &tb.mime, &tb.aliases),
         Request::Paths { rows } =>
             say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
         Request::Quit => return Control::Quit,

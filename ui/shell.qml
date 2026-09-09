@@ -184,6 +184,7 @@ ShellRoot {
                 // A running operation's line, which stands until the operation replaces it; see ui/StatusBar.qml.
                 onSticky: function (text) { bar.sticky = text; bar.transfer = pane.transfer }
                 onConvertRequested: function (name) { convertDialog.open(name, pane) }
+                onOpenWithDialogRequested: function (path, kind) { openWithDialog.open(path, kind, pane) }
                 onPathBarRequested: chrome.startEdit()
                 // Issue 9. ViewState persists the stop and Theme derives its own tokens from it, so
                 // the whole window follows without any surface reading the chord itself.
@@ -230,6 +231,22 @@ ShellRoot {
             Connections {
                 target: convertDialog.item
                 function onAccepted(format, strip) { Ops.convert(pane, format, strip) }
+            }
+
+            // The Open with dialog: the flyout's tail row opens it over the pane, the way the
+            // convert popup above is hosted, and its launch and write both go through the pane.
+            Loader {
+                id: openWithDialog
+                z: 2
+                anchors.fill: parent
+                active: false
+                source: "OpenWithDialog.qml"
+                readonly property bool opened: item !== null && item.opened
+                function open(path, kind, holder) { active = true; item.open(path, kind, holder) }
+            }
+            Connections {
+                target: openWithDialog.item
+                function onClosed() { pane.forceActiveFocus() }
             }
 
             // The keymap sheet ? opens, over the whole window as the convert popup is.
@@ -316,7 +333,7 @@ ShellRoot {
             TapHandler {
                 acceptedButtons: Qt.BackButton
                 onTapped: {
-                    if (chrome.editing || convertDialog.opened || keymapSheet.opened
+                    if (chrome.editing || convertDialog.opened || openWithDialog.opened || keymapSheet.opened
                             || networkDialog.opened || shareBrowser.active || preview.active
                             || pane.renameEditor() !== null || pane.sidebar.renameEditor() !== null)
                         return
@@ -342,6 +359,7 @@ ShellRoot {
         chrome: chrome
         tabBar: tabBar
         convertDialog: convertDialog.item
+        openWithDialog: openWithDialog.item
         keymapSheet: keymapSheet.item
         settingsPanel: settingsPanel.item
         networkDialog: networkDialog.item

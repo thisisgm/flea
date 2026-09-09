@@ -1,11 +1,15 @@
 // The desktop's own applications database, read through gio the way the plain Open handoff reaches
 // it. Flea decides nothing about which programs open a type: that judgement is gio's, and this
 // module only asks it and then resolves the ids it names to launchable desktop entry files. Like
-// thumb and meta, a type is looked at only when a client asked for one row.
+// thumb and meta, a type is looked at only when a client asked for one row. The installed-apps
+// table this module consumes is appscan.rs's; here only the per-type question gio answers lives.
+use crate::backend::appscan::{self, entry_name, table_of};
 use crate::backend::opsreq::OpMsg;
+use crate::backend::proto::error_line;
+use crate::error::FleaError;
 use crate::json::escape;
-use crate::userfile;
 use std::collections::HashMap;
+use std::io::Write;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -31,13 +35,6 @@ extern "C" {
     fn kill(pid: i32, sig: i32) -> i32;
 }
 
-// The applications dirs the id resolution scans, user data first. This is g_get_user_data_dir and
-// g_get_system_data_dirs in the order gio resolves ids in, which is the same ladder userfile.rs
-// already walks for install proofs.
-fn applications_dirs() -> Vec<PathBuf> {
-    userfile::data_dirs().into_iter().map(|d| d.join("applications")).collect()
-}
-
 // The one structural fact the parse reads: every app id `LC_ALL=C gio mime` prints arrives
 // tab-indented, in both of its sections, and the recommended section is a subset of the registered
 // one, so first-occurrence dedupe gives the registered list in gio's own precedence order. No
@@ -58,78 +55,11 @@ pub fn parse_registered(output: &str) -> Vec<String> {
     out
 }
 
-// The id→file map gio builds: one recursive scan per applications dir, where a subdirectory's name
-// becomes a "name-" prefix on every .desktop it holds, so applications/kde4/konsole.desktop is the
-// file for the id kde4-konsole.desktop. Within one dir the last scan wins, and across dirs the
-// first dir carrying the id wins, which is g_hash_table_insert inside g_dir_read_name order.
-// The id→file map gio builds: one recursive scan per applications dir, where a subdirectory's name
-// becomes a "name-" prefix on every .desktop it holds, so applications/kde4/konsole.desktop is the
-// file for the id kde4-konsole.desktop. Across dirs the first dir carrying the id wins, which is
-// gio's own per-dir tables walked in ladder order.
-pub fn table_of(dirs: &[PathBuf]) -> HashMap<String, PathBuf> {
-    let mut table: HashMap<String, PathBuf> = HashMap::new();
-    for dir in dirs {
-        scan_dir(dir, "", &mut table, SCAN_DEPTH);
-    }
-    table
-}
-
 // One scan serves every id, so a type with eleven handlers costs the scan once, not eleven times.
 fn from_table(id: &str, table: &HashMap<String, PathBuf>) -> Option<(PathBuf, String)> {
     let path = table.get(id)?;
     let name = std::fs::read_to_string(path).ok().and_then(|text| entry_name(&text));
     Some((path.clone(), name.unwrap_or_else(|| id.trim_end_matches(".desktop").to_string())))
-}
-
-// glib's own scan has no bound; this one stops here, because a symlinked loop inside an
-// applications dir would otherwise recurse until the stack did, and sixteen levels is deeper than
-// any applications tree on any box this ships to.
-const SCAN_DEPTH: u8 = 16;
-
-fn scan_dir(dir: &Path, prefix: &str, table: &mut HashMap<String, PathBuf>, depth: u8) {
-    if depth == 0 {
-        return;
-    }
-    let read = match std::fs::read_dir(dir) {
-        Ok(r) => r,
-        Err(_) => return,
-    };
-    for item in read.flatten() {
-        let path = item.path();
-        let name = item.file_name().to_string_lossy().to_string();
-        if name.ends_with(".desktop") {
-            // Only a dir the id is not already in inserts, because a later dir in the ladder must
-            // not take a file the earlier one already owns; within one dir the scan's own later
-            // entry then wins, which is g_hash_table_insert's rule inside one table.
-            table.entry(format!("{prefix}{name}")).or_insert(path);
-        } else if std::fs::metadata(&path).map(|m| m.is_dir()).unwrap_or(false) {
-            scan_dir(&path, &format!("{prefix}{name}-"), table, depth - 1);
-        }
-    }
-}
-
-// The Name= of the desktop entry's own group, untranslated, which is the name LC_ALL=C gio shows
-// too. Reading stops at the next group header, so a [Desktop Action]'s own Name never wins.
-fn entry_name(text: &str) -> Option<String> {
-    let mut in_entry = false;
-    for line in text.lines() {
-        if line.starts_with('[') {
-            if in_entry {
-                return None;
-            }
-            in_entry = line.trim() == "[Desktop Entry]";
-            continue;
-        }
-        if in_entry {
-            if let Some(value) = line.strip_prefix("Name=") {
-                let value = value.trim();
-                if !value.is_empty() {
-                    return Some(value.to_string());
-                }
-            }
-        }
-    }
-    None
 }
 
 // One launchable application per id gio named, in gio's order; an id whose desktop file has
@@ -139,7 +69,7 @@ pub fn list(mime_type: &str) -> Vec<App> {
         Some(output) => output,
         None => return Vec::new(),
     };
-    let table = table_of(&applications_dirs());
+    let table = table_of(&appscan::applications_dirs());
     parse_registered(&output)
         .into_iter()
         .filter_map(|id| {
@@ -154,19 +84,17 @@ pub fn list(mime_type: &str) -> Vec<App> {
 // gio is the desktop's registry, not a decoder over untrusted bytes: the only input is a MIME type
 // from the shared globs2 table, and plain Open already trusts this same database. No sandbox, like
 // every other gio call this codebase makes; the deadline is the only guard a child needs here.
-fn gio_mime(mime_type: &str) -> Option<String> {
-    let child = std::process::Command::new("gio")
-        .arg("mime")
-        .arg(mime_type)
-        // The parse reads only tab-indented lines, so the locale cannot change the answer, but the
-        // pin costs nothing and keeps the whole output byte-stable while it is being read.
-        .env("LC_ALL", "C")
-        .stdin(std::process::Stdio::null())
-        .stdout(std::process::Stdio::piped())
-        .stderr(std::process::Stdio::null())
-        .process_group(0)
-        .spawn()
-        .ok()?;
+fn gio_run(args: &[&str]) -> Option<std::process::Output> {
+    let mut cmd = std::process::Command::new("gio");
+    cmd.args(args);
+    // The parse reads only tab-indented lines, so the locale cannot change the answer, but the
+    // pin costs nothing and keeps the whole output byte-stable while it is being read.
+    cmd.env("LC_ALL", "C");
+    cmd.stdin(std::process::Stdio::null());
+    cmd.stdout(std::process::Stdio::piped());
+    cmd.stderr(std::process::Stdio::piped());
+    cmd.process_group(0);
+    let child = cmd.spawn().ok()?;
     let pid = child.id() as i32;
     let done = Arc::new(AtomicBool::new(false));
     let watchdog = {
@@ -189,9 +117,31 @@ fn gio_mime(mime_type: &str) -> Option<String> {
     let output = child.wait_with_output().ok();
     done.store(true, Ordering::Relaxed);
     let _ = watchdog.join();
-    match output {
-        Some(o) if o.status.success() => Some(String::from_utf8_lossy(&o.stdout).into_owned()),
-        _ => None,
+    output
+}
+
+fn gio_mime(mime_type: &str) -> Option<String> {
+    let output = gio_run(&["mime", mime_type])?;
+    if output.status.success() {
+        Some(String::from_utf8_lossy(&output.stdout).into_owned())
+    } else {
+        None
+    }
+}
+
+// The "always" write: one gio mime spawn names the handler the default for the type. gio validates
+// the id against the desktop database itself and writes the user's own mimeapps.list through GLib,
+// so no file of Flea's is touched, no default is read back to be second-guessed, and a refused
+// handler is the tool's own refusal carried to the client in the error line.
+pub fn set_default(mime_type: &str, id: &str) -> Result<(), FleaError> {
+    let refusal = "gio could not be asked to set the default";
+    match gio_run(&["mime", mime_type, id]) {
+        Some(o) if o.status.success() => Ok(()),
+        Some(o) => {
+            let msg = String::from_utf8_lossy(&o.stderr).trim().to_string();
+            Err(FleaError { where_: "setdefault".to_string(), path: String::new(), msg: if msg.is_empty() { refusal.to_string() } else { msg } })
+        }
+        None => Err(FleaError { where_: "setdefault".to_string(), path: String::new(), msg: refusal.to_string() }),
     }
 }
 
@@ -213,6 +163,74 @@ pub fn spawn(row: usize, mime_type: String, tx: std::sync::mpsc::Sender<OpMsg>) 
         let ms = started.elapsed().as_secs_f64() * 1000.0;
         let _ = tx.send(OpMsg::Handlers { line: handlers_line(row, &apps, ms) });
     });
+}
+
+// The write answers the same way: on a thread, with the gio refusal carried inside the line when
+// there is one. A defaulted line is success only; a failure is an error line whose where is the
+// request's own, so ui/js/Errors.js words it in one place.
+pub fn spawn_set_default(mime_type: String, id: String, tx: std::sync::mpsc::Sender<OpMsg>) {
+    std::thread::spawn(move || {
+        let line = match set_default(&mime_type, &id) {
+            Ok(()) => r#"{"t":"defaulted","ok":true}"#.to_string(),
+            Err(e) => error_line(&e),
+        };
+        let _ = tx.send(OpMsg::Defaulted { line });
+    });
+}
+
+// The loop's own dispatch for the open-with family, moved here from run.rs because the module owns
+// the whole subject and run.rs was at its cap: handlers resolves one row's type and answers the
+// ask, applications lists the desktop's installed applications, and setdefault resolves the type
+// from the path's own name — a write names paths, not rows, so a listing change cannot retarget it.
+pub fn run_handlers(
+    out: &mut impl Write,
+    tx: &std::sync::mpsc::Sender<OpMsg>,
+    row: usize,
+    listing: &crate::backend::listing::Listing,
+    mime: &crate::backend::mime::Db,
+    aliases: &crate::backend::aliases::Aliases,
+) {
+    let t = std::time::Instant::now();
+    if row < listing.len() {
+        let name = listing.name(row);
+        let mime = if listing.is_dir(row) { None } else { mime.lookup(name).map(|m| aliases.canonical(m).to_string()) };
+        // A directory navigates instead of opening, so it answers an empty list on the spot, and
+        // so does a name no glob matched; both cost the client its one line, so a slot asked and
+        // never answered cannot strand the row.
+        match mime {
+            Some(mime) => spawn(row, mime, tx.clone()),
+            None => say(out, &handlers_line(row, &[], since(t))),
+        }
+    }
+}
+
+pub fn run_applications(tx: std::sync::mpsc::Sender<OpMsg>) {
+    appscan::spawn_all(tx);
+}
+
+pub fn run_set_default(
+    out: &mut impl Write,
+    tx: &std::sync::mpsc::Sender<OpMsg>,
+    path: &str,
+    id: &str,
+    mime: &crate::backend::mime::Db,
+    aliases: &crate::backend::aliases::Aliases,
+) {
+    let name = Path::new(path).file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+    // No glob matched, or the name is empty: nothing about that file is a type, so there is no
+    // default to set and the client is told rather than left waiting for a reply that is not coming.
+    match mime.lookup(&name).map(|m| aliases.canonical(m).to_string()) {
+        Some(mime_type) => spawn_set_default(mime_type, id.to_string(), tx.clone()),
+        None => say(out, &error_line(&FleaError { where_: "setdefault".to_string(), path: path.to_string(), msg: "that file has no file type this desktop names".to_string() })),
+    }
+}
+
+fn say(out: &mut impl Write, line: &str) {
+    writeln!(out, "{}", line).ok();
+}
+
+fn since(t: std::time::Instant) -> f64 {
+    t.elapsed().as_secs_f64() * 1000.0
 }
 
 #[cfg(test)]

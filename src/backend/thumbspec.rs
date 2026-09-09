@@ -166,7 +166,7 @@ fn tokenise(line: &str) -> Vec<String> {
 }
 
 // A program that is not a regular executable file is refused, because the search path includes a user-writable directory.
-fn is_runnable(program: &str) -> bool {
+pub(crate) fn is_runnable(program: &str) -> bool {
     use std::os::unix::fs::PermissionsExt;
     const ANY_EXECUTE_BIT: u32 = 0o111;
     let candidates: Vec<PathBuf> = if program.contains('/') {

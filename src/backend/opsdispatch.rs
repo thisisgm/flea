@@ -181,6 +181,13 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
         OpMsg::Handlers { line } => {
             writeln!(out, "{}", line).ok();
         }
+        // The dialog's asks ride the same channel and claim the slot no more than meta does.
+        OpMsg::Applications { line } => {
+            writeln!(out, "{}", line).ok();
+        }
+        OpMsg::Defaulted { line } => {
+            writeln!(out, "{}", line).ok();
+        }
         OpMsg::Duplicated { ok, path, err, entry } => {
             ops.journal.push(entry);
             ops.running = None;

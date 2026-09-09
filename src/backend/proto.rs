@@ -32,6 +32,13 @@ pub enum Request {
     // The applications one row can be opened with, for the context menu's Open With; one row, only
     // when a client asked, the same no-sweep rule meta follows.
     Handlers { row: usize },
+    // Every installed, showable application, for the Open with dialog's whole list; see
+    // docs/protocol.md "applications".
+    Applications,
+    // The dialog's "always" write: path is the file the dialog opened for and id is the desktop
+    // entry id, so the backend resolves the type from the path's own name and a listing change
+    // cannot retarget the write; see docs/protocol.md "setdefault".
+    SetDefault { path: String, id: String },
     // The status bar's filesystem line for the directory the pane is on.
     FsInfo,
     // A read-only look at a directory that is not the current listing; the columns view's ancestors.
@@ -124,6 +131,11 @@ pub fn parse_request(line: &str) -> Request {
             archive: field_bool(line, "archive"),
         },
         Some("handlers") => Request::Handlers { row: field_usize(line, "row").unwrap_or(0) },
+        Some("applications") => Request::Applications,
+        Some("setdefault") => Request::SetDefault {
+            path: field_str(line, "path").unwrap_or_default(),
+            id: field_str(line, "id").unwrap_or_default(),
+        },
         Some("quit") => Request::Quit,
         _ => Request::Unknown,
     }

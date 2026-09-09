@@ -49,6 +49,11 @@ function sentence(where, message) {
     if (where === "trash") {
         return "That could not be moved to Trash."
     }
+    // The Open with dialog's "always" write. gio refused it, so the default is what it was; the
+    // launch itself already happened through its own mode and is not this sentence's business.
+    if (where === "setdefault") {
+        return "The default application could not be changed; this file still opens the way it did."
+    }
     if (where === "transfer" || where === "archive" || where === "convert") {
         return capitalised(message)
     }

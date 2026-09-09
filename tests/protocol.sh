@@ -485,6 +485,51 @@ check "a row past the end of the listing answers nothing, the same rule meta fol
   "0" "$(echo "$out" | grep -c '"t":"handlers"')"
 rm -rf "$HANDLERS"
 
+# applications: the Open with dialog's whole list, every installed showable application rather than
+# one type's registered few. The same planted ladder answers it, plus entries planted for the
+# showability rules gio's own AppChooser applies: NoDisplay, an OnlyShowIn naming a desktop this
+# fixture does not carry, and a TryExec naming nothing. The sorted order is this table's own
+# decision, by the entry's own Name, and the ids ride so the always write can name its handler.
+APPS="$SB/applications"
+mkdir -p "$APPS/applications" "$APPS/home" "$APPS/cfg" "$APPS/fixture"
+printf '[Desktop Entry]\nType=Application\nName=Probe Viewer\nExec=true %%f\n' > "$APPS/applications/probe-viewer.desktop"
+printf '[Desktop Entry]\nType=Application\nName=Zebra\nExec=true %%f\n' > "$APPS/applications/zebra.desktop"
+printf '[Desktop Entry]\nType=Application\nName=Hidden App\nExec=true %%f\nNoDisplay=true\n' > "$APPS/applications/hidden-app.desktop"
+printf '[Desktop Entry]\nType=Application\nName=GNOME Only\nExec=true %%f\nOnlyShowIn=GNOME;\n' > "$APPS/applications/gnome-only.desktop"
+printf '[Desktop Entry]\nType=Application\nName=No Program\nExec=true %%f\nTryExec=/flea/no-such-bin\n' > "$APPS/applications/no-program.desktop"
+printf '[Desktop Entry]\nType=Link\nName=A Link\nExec=true %%f\n' > "$APPS/applications/a-link.desktop"
+printf '[Desktop Entry]\nType=Application\nName=Aardvark\nExec=true %%f\n' > "$APPS/applications/aardvark.desktop"
+out=$( ( printf '{"c":"applications"}\n'
+        sleep 1 ) | env XDG_DATA_HOME="$APPS/home" XDG_DATA_DIRS="$APPS" "$BIN" --backend | grep '"t":"applications"' | sed 's/,"ms":[0-9.]*}/}/')
+check "the applications list is the showable entries, sorted by their own name, ids riding" \
+  "{\"t\":\"applications\",\"apps\":[{\"name\":\"Aardvark\",\"path\":\"$APPS/applications/aardvark.desktop\",\"id\":\"aardvark.desktop\"},{\"name\":\"Probe Viewer\",\"path\":\"$APPS/applications/probe-viewer.desktop\",\"id\":\"probe-viewer.desktop\"},{\"name\":\"Zebra\",\"path\":\"$APPS/applications/zebra.desktop\",\"id\":\"zebra.desktop\"}]}" \
+  "$out"
+check "the box's own applications leaked nothing in, so exactly three answered" \
+  "3" "$(echo "$out" | grep -o '"name":"' | wc -l | tr -d ' ')"
+
+# setdefault: the dialog's always write, one gio spawn that names the handler the default for the
+# row's type. The type is resolved from the path's own name, so the request carries no row and no
+# listing is consulted; the write lands in the sandboxed XDG_CONFIG_HOME this env hands gio, which
+# is read back here byte for byte so the write is proved, not the reply alone.
+sdef_run() {
+  ( printf '{"c":"setdefault","path":"%s/fixture/%s","id":"%s"}\n' "$APPS" "$2" "$3"
+    sleep 1 ) | env XDG_DATA_HOME="$APPS/home" XDG_DATA_DIRS="$APPS" XDG_CONFIG_HOME="$APPS/cfg" HOME="$APPS/home" "$BIN" --backend
+}
+out=$(sdef_run p.png p.png probe-viewer.desktop | grep '"t":"defaulted"')
+check "an always write for a globbed name answers the defaulted line" \
+  '{"t":"defaulted","ok":true}' "$out"
+check "and the default really landed in the sandboxed mimeapps.list" \
+  "image/png=probe-viewer.desktop" "$(grep -o 'image/png=probe-viewer.desktop' "$APPS/cfg/mimeapps.list" | head -1)"
+out=$(sdef_run p.png p.png no-such.desktop | grep '"where":"setdefault"')
+check "a refused handler id answers the request's own error kind, because gio validates the id" \
+  "setdefault" "$(echo "$out" | grep -oE '"where":"[^"]+"' | cut -d'"' -f4)"
+out=$(sdef_run mystery.xyz mystery.xyz probe-viewer.desktop | grep '"where":"setdefault"')
+check "a name no glob matched answers no type, so there is no default to set" \
+  "setdefault" "$(echo "$out" | grep -oE '"where":"[^"]+"' | cut -d'"' -f4)"
+check "and that refusal carried the path the request named" \
+  "$APPS/fixture/mystery.xyz" "$(echo "$out" | grep -oE '"path":"[^"]*"' | cut -d'"' -f4)"
+rm -rf "$APPS"
+
 # Issue 68: the listed directory is watched, so a change made from outside answers a changed line.
 # The only unsolicited line on the wire, so every case here is driven by a real create, rename or
 # delete landing between two requests rather than by a request asking for it.

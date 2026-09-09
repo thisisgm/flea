@@ -26,6 +26,7 @@ SettingsSegment 1.0 SettingsSegment.qml
 MediaStrip 1.0 MediaStrip.qml
 MenuRow 1.0 MenuRow.qml
 RenameField 1.0 RenameField.qml
+OpenWithDialog 1.0 OpenWithDialog.qml
 EmptyState 1.0 EmptyState.qml
 FastScrollHandler 1.0 FastScrollHandler.qml
 CardScroll 1.0 CardScroll.qml

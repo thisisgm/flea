@@ -1025,8 +1025,9 @@ this coverage needed no new entry there.
   consumers are shared: a response line with exactly one consuming request module lives in that
   module instead, the seam proto.rs was cut at when it stood at 399 of the 400 hard cap.
 - `backend/apps.rs` the desktop's own applications database, read through `LC_ALL=C gio mime`,
-  with the applications-dir scan that turns an id into the file `--openwith` launches; see
-  "Opening a file".
+  with the loop's dispatch for the open-with family and the "always" write; see "Opening a file".
+- `backend/appscan.rs` the installed-applications scan: the id→file table and the showability
+  filter that stands in for `g_app_info_should_show`, see "Opening a file".
 - `backend/rows.rs` serialises one window of rows and its per-response Kind dictionary.
 - `backend/thumbreq.rs` the thumbnail request policy: cache lookup, queueing, cancel and
   result reporting, see "Thumbnail requests".
@@ -3757,6 +3758,39 @@ built the row, so `openwith` left `src/uischema.rs`'s DEFAULTS and the row is vi
 shipped defaults. An operator whose `ui.json` was written by an earlier build still carries
 the id in their stored set, and the Settings section's new "Open with" switch is the way back
 out, which is why the switch exists and is not a locked row.
+
+**The dialog is the Windows and Nautilus surface, and it is the one place a default is
+written.** The flyout's tail row, `Another application…`, opens `ui/OpenWithDialog.qml`, hosted
+by `ui/shell.qml` over the pane the way the convert popup is and reached through
+`Pane.openWithDialogRequested(path, kind)`. Its list is the `applications` wire request, the
+whole installed set whether the row's type names them or not, with `src/backend/appscan.rs`'s
+showability filter standing in for `g_app_info_should_show`: `Type=Application` or no `Type`,
+no `Hidden`, no `NoDisplay`, a runnable `TryExec`, and `OnlyShowIn`/`NotShowIn` judged against
+every colon-separated name of `XDG_CURRENT_DESKTOP`. The dialog keeps gio's registered order
+where gio names the app and sorts by the entry's own `Name=` case-insensitively where it does
+not, because a dialog's list is a display order and not the registry's per-type judgement.
+
+**The flyout stays a one-off and the dialog carries the box.** The tail row's id is the literal
+`dialog`, which is not a valid desktop entry path, so no entry id can collide with it. Choosing
+an application there launches it through the same `openWithPath` the flyout's own rows reach —
+the launch is the flyout's act, and the dialog adds exactly one thing, the "always" box. Ticked,
+one `setdefault` write rides beside the launch: the backend resolves the type from the path's
+own name, the same globs2 table every listing consults, so the request carries no row index and
+a listing change cannot retarget it, and one `LC_ALL=C gio mime <type> <id>` spawn writes the
+user's own `mimeapps.list` through GLib, default and added association both. **No default is
+read back**, because `gio mime`'s set form validates the id itself and answers non-zero on a
+refusal; the previous default is not journaled, so this is the one write `undo` does not
+reverse, and the dialog's success sentence says what the next open will do rather than what
+the old one was. The write's failure lands through the generic error path with `where` of
+`setdefault`, one sentence in `ui/js/Errors.js`.
+
+**The dialog's own keys are the search field's.** The field owns the window's keys while the
+dialog is up: typing filters by name case-insensitively and resets the cursor, because a
+cursor at forty rows of the whole list names another application the moment the list narrows
+to two; Up/Down/PageUp/PageDown step the cursor, Enter commits the row under it, Space toggles
+the always box only from an empty line, and Escape closes having written nothing. The list is
+asked for once per open and re-asked on the next one, so an application installed while the
+window stood is on the list without a restart.
 
 **That window is a third of a second on an archive, not the low tens of milliseconds this file used
 to claim.** `gio open` on an `Exec=` entry forks and returns; on a `DBusActivatable` entry it waits
