@@ -920,6 +920,21 @@ the strip still shows it refused. The keyboard stays in the box after either ste
 Return saves, and `:` in the list reaches it as it reaches the location field in the open modes;
 the `fleapicker` seam reads `saveFocused` for it. `tests/picker.sh savename` drives the three steps.
 
+**A typed share is mounted, never copied.** An `smb`, `sftp` or `ssh` line is the Network rail's
+open with the field as its row: `ui/PickerShare.qml` splits it with `ui/js/ShareUrl.js` into the
+root gio mounts, the share for `smb` and the host for `sftp`, and the rest, then `ui/ShareResolve.qml`
+runs the rail's two legs, `gio mount` and `gio info`, each under the rail's 15 s deadline and the C
+locale, with the info leg the judge of whether anything is mounted. The FUSE path it answers has
+the rest joined on and is handed to `ui/PickerNavigate.qml` as if it had been typed, so the same
+peek, open and select apply and Return answers the FUSE path, which the document portal exports for
+a sandboxed caller. No password is asked for: a mount refused with gio's credential wording says
+to add it under Network first, where `ui/NetworkMounts.qml` holds the form, and a share the rail
+already mounted is found by the info leg whatever the mount leg said. A server root with no share
+names nothing gvfs can hand a folder for and is refused before any leg runs; save mode refuses the
+line outright. The footer holds "Connecting to" until the legs answer, and a second line typed
+meanwhile is refused as busy rather than handed the first one's deadline. `tests/share-resolve.sh`
+drives the legs headless against a gio stub; `tests/picker.sh typed_share` walks a real share.
+
 **The download is gio's, on a thread keyed by id.** `fetch {uri}` (`backend/fetchreq.rs`) runs
 `LC_ALL=C gio copy -p <uri> <dest>` in its own process group on a thread numbered by `Ops::claim_id`
 like `archive`, so a fetch never queues behind a transfer or another fetch. gio already carries the
@@ -1229,6 +1244,9 @@ this coverage needed no new entry there.
 - `ui/js/PickerMarks.js` is the chooser's marks: a path and its size, never a row number, and
   what Space, Ctrl+click and Shift+click do to the list. Pure, so `tests/js/pickermarks.js`
   drives all of it; `ui/picker.qml` holds the anchor and `ui/PickerList.qml` walks the range.
+- `ui/js/ShareUrl.js` is what a typed share URL is to gvfs: the root `gio mount` takes, the rest
+  walked on the FUSE path, the two gio command lines and why a mount gave no folder. Pure, so
+  `tests/js/shareurl.js` drives all of it; `ui/ShareResolve.qml` runs the legs it names.
 - `ui/js/PickerNavigate.js` is what the chooser does about that line: the step before the
   backend is asked, the verdict on the peek's rows, and where the file's row sits in the listing.
   Pure, so `tests/js/pickernavigate.js` drives all of it; `ui/PickerNavigate.qml` acts on the steps.

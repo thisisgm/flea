@@ -12,12 +12,15 @@ Item {
     property var fetch: null
 
     // The window's one-line notice. It lives four seconds, long enough to read and short enough
-    // that a stale refusal never sits under a later action.
+    // that a stale refusal never sits under a later action. A held one stays until the next say:
+    // the share legs can take their whole deadline, and the line says so until they answer.
     property string message: ""
 
-    function say(text) {
+    function say(text, hold) {
         root.message = text
-        life.restart()
+        life.stop()
+        if (hold !== true)
+            life.restart()
     }
 
     readonly property bool fetching: root.fetch !== null && root.fetch.fetching

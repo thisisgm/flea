@@ -38,6 +38,7 @@ import "scroll.js" as ScrollSuite
 import "search.js" as SearchSuite
 import "selection.js" as SelectionSuite
 import "settings.js" as SettingsSuite
+import "shareurl.js" as ShareUrlSuite
 import "sort.js" as SortSuite
 import "taildrop.js" as TaildropSuite
 import "textsize.js" as TextSizeSuite
@@ -80,7 +81,7 @@ Item {
             ["recent", RecentSuite],
             ["renderer", RendererSuite],
             ["scroll", ScrollSuite], ["search", SearchSuite],
-            ["selection", SelectionSuite], ["settings", SettingsSuite],
+            ["selection", SelectionSuite], ["settings", SettingsSuite], ["shareurl", ShareUrlSuite],
             ["sort", SortSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["tabs", TabsSuite],
             ["thumbs", ThumbsSuite], ["uistate", UiStateSuite],

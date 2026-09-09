@@ -186,8 +186,9 @@ ShellRoot {
             replyFile.setText(text)
         }
 
-        function say(text) {
-            status.say(text)
+        // A held message stays until the next say: the share legs can take their whole deadline.
+        function say(text, hold) {
+            status.say(text, hold)
         }
 
         FileView {
@@ -266,6 +267,9 @@ ShellRoot {
             picker: win
             backend: backend
         }
+
+        // A typed share URL: mounted at its root, then walked on its FUSE path through navigate.
+        Flea.PickerShare { picker: win; navigate: navigate }
 
         Rectangle {
             anchors.fill: parent

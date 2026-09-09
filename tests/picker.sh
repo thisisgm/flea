@@ -3,9 +3,10 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|save|savename|typed|typed_dir|typed_file|typed_url|cancel|withdrawn|died|fault|taildrop]; taildrop is opt-in.
+# Usage: ./tests/picker.sh [pick|click|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|taildrop]; typed_share and taildrop are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
+# FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -567,6 +568,37 @@ sys.exit(1) if d.get("response") != 0 or len(d.get("uris", [])) != 1 else print(
     printf 'typed_url: a typed URL is fetched into the picker cache and the caller gets the file as %s\n' "$uri"
 }
 
+# Opt-in: a typed share URL is mounted through gvfs and walked on its FUSE path, so the file is
+# marked in its FUSE directory and a second Return answers that path. It needs a share nobody on
+# the box has to be told the password for, so it runs only when one is named.
+case_typed_share() {
+    local url="${FLEA_PICKER_SHARE:-}"
+    [[ -n "$url" ]] || fail "typed_share needs FLEA_PICKER_SHARE, a file on a share this box can mount anonymously"
+    make_fixture
+    local reply leaf
+    leaf="${url##*/}"
+    start_typed typed_share
+    press ':'
+    press "$url"
+    press -k Return
+    local n
+    for ((n = 0; n < 20; n++)); do
+        [[ "$(ipc cursorName)" == "$leaf" ]] && break
+        sleep 1
+    done
+    [[ "$(ipc cursorName)" == "$leaf" ]] || fail "the cursor is on $(ipc cursorName), not the typed file; the footer says $(ipc message)"
+    [[ "$(ipc path)" == /run/user/*/gvfs/* ]] || fail "the typed share URL moved the picker to $(ipc path), not a gvfs path"
+    [[ "$(ipc marks)" == "$(ipc path)/$leaf" ]] || fail "the marks are $(ipc marks), not the typed file"
+    [[ "$(ipc entry)" == "$url" ]] || fail "the field lost the URL: $(ipc entry)"
+    local fuse
+    fuse="$(ipc path)/$leaf"
+    press -k Return
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == "{\"response\":0,\"uris\":[\"file://$fuse\"]}" ]] \
+        || fail "the typed_share request replied $(cat "$reply")"
+    printf 'typed_share: a typed share URL is mounted, the file is marked on its FUSE path, and a second Return answers it\n'
+}
+
 # A chooser that cannot open at all refuses before any window and writes no reply file, which is what
 # tools/flea-portal turns into 2. Both refusals are argv-level, so neither needs the display.
 case_fault() {
@@ -641,6 +673,7 @@ for name in "$@"; do
         typed_dir) case_typed_dir ;;
         typed_file) case_typed_file ;;
         typed_url) case_typed_url ;;
+        typed_share) case_typed_share ;;
         cancel) case_cancel ;;
         withdrawn) case_withdrawn ;;
         died) case_died ;;
