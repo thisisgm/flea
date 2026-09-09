@@ -18,9 +18,9 @@
 var LIST = "list"
 var RAIL = "rail"
 
-// The shared actions the picker takes from the key table, each with the name the footer prints
-// while its verb is not built yet; toggleHidden and selectAll have one. An action outside this
-// table never reaches act.
+// The shared actions the picker takes from the key table, each with the name it carries in the
+// footer and the menu. Every one has its verb in act below. An action outside this table never
+// reaches act.
 var SHARED = {
     copy: "Copy", cut: "Cut", paste: "Paste", selectAll: "Select all", trash: "Move to Trash",
     rename: "Rename", newFolder: "New folder", openTerminal: "Open in terminal",
@@ -147,8 +147,6 @@ function act(action, state, ops) {
     case "trash": PickerOps.trash(state); return
     case "undo": Ops.undo(state); return
     }
-    if (action in SHARED)
-        state.message(SHARED[action] + " is not built in the chooser yet.", false)
 }
 
 // ui/js/Focus.js's LEAVES_LINE, resolved through the picker's own table: a cursor key commits the

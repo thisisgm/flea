@@ -222,12 +222,10 @@ function run(check) {
     check("the swallowed key is accepted", swallowed.accepted, true)
     check("and no list action runs behind the editor", editing.calls.length, 0)
 
-    // A shared action with no verb yet says so, so a key the sheet advertises never falls silent.
-    PickerKeys.act("openTerminal", state, ops)
-    check("an unbuilt shared action says so", state.said.join(""), "Open in terminal is not built in the chooser yet.")
+    // Every shared action has its verb now. An action outside the allowlist says nothing and does nothing.
     PickerKeys.act("settings", state, ops)
-    check("an action outside the allowlist says nothing", state.said.length, 1)
-    check("the state is untouched by either", state.calls.length, 15)
+    check("an action outside the allowlist says nothing", state.said.length, 0)
+    check("and leaves the state untouched", state.calls.length, 15)
     // The hidden toggle is built: a . reaches the state through handle and says nothing in the footer.
     var dotted = stubState()
     check("dot through handle flips hidden", PickerKeys.handle(press(Qt.Key_Period, "."), dotted, ops), "toggleHidden")
