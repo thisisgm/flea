@@ -9,7 +9,6 @@ import "js/Search.js" as Search
 import "js/Archive.js" as Archive
 import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
-import "js/OpenWith.js" as OpenWith
 import "js/Selection.js" as Selection
 import "js/Sort.js" as Sort
 import "js/Thumbs.js" as Thumbs
@@ -396,11 +395,14 @@ FocusScope {
 
     // The keyboard's own entrance to the row menu; the placement itself is ui/js/Menu.js's. The
     // Open with ask goes first, so its answer is in flight while the menu opens; the pointer's
-    // entrance asks the same way inside ui/js/Tap.js.
+    // entrance asks the same way through askOpenWith below.
     function openCursorMenu() {
-        OpenWith.ask(root)
+        wire.askOpenWith()
         return Menu.openAtCursor(root, menu, Theme.spacing.rowPaddingX)
     }
+
+    // The pointer's entrance reaches the ask through ui/js/Tap.js; the slot itself is the wire's.
+    function askOpenWith() { wire.askOpenWith() }
 
     // The Open with flyout's chosen entry: one launch of the picked application, and nothing
     // written anywhere, which is what makes it an override rather than a default.

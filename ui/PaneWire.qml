@@ -59,10 +59,12 @@ Item {
     // row is the listing row the answer belongs to and apps is that answer, empty until it lands,
     // which is also the no-applications state. ui/js/Menu.js's row shows only when apps is
     // non-empty for the cursor row, and every listed reply clears both, because a row index names
-    // a different file afterwards. The ask is ui/js/OpenWith.js's, reached from the two menu-open
-    // entrances (the pointer's, through ui/js/Tap.js, and m's, through openCursorMenu).
+    // a different file afterwards. The ask is ui/js/OpenWith.js's, and this is the one entrance
+    // both menu-open routes reach (the pointer's, through ui/Pane.qml's delegate, and m's direct).
     property int openWithRow: -1
     property var openWithApps: []
+
+    function askOpenWith() { OpenWith.ask(root) }
 
     Flea.Opener {
         id: opener
@@ -236,7 +238,7 @@ Item {
         // The slot write is ui/js/OpenWith.js's, which drops a late answer for a row the menu left.
         function onHandlers(row, apps) {
             if (!pane.listInFlight)
-                OpenWith.answered(pane, row, apps)
+                OpenWith.answered(root, row, apps)
         }
 
         // A dirsized line for the previous listing is still in the pipe when open() clears the map.

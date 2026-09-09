@@ -22,9 +22,9 @@ function pane() {
         selectedIndices: function () { return this.picked },
         clearSelection: function () { this.picked = []; this.did.push("clearSelection") },
         setCursor: function (i) { this.cursor = i; this.did.push("setCursor") },
-        // ui/js/OpenWith.js ask() writes its own slot off the pane, so the fake carries the two
-        // reads it makes: the cursor row it judges, and the state it would clear or ask through.
-        cursorRow: null, openWithRow: -1, openWithApps: [], backend: { askHandlers: function () {} },
+        // The Open with ask rides the menu-open path through this delegate; the suite records it so
+        // a right click that stopped asking is visible rather than silent.
+        askOpenWith: function () { this.did.push("askOpenWith") },
         toggleSelectAt: function (i) { this.cursor = i; this.did.push("toggleSelect") },
         extendSelectionTo: function (i) { this.cursor = i; this.did.push("extendSelect") },
         act: function (action) { this.did.push(action) }
@@ -81,7 +81,7 @@ function driveListing(row) {
         Tap.tappedMenu(2, eventPoint(), sink, raised)
         if (raised.at !== "7,9")
             return "the menu opened at " + raised.at
-        return sink.did.join(",") === "setCursor" ? "menu" : verbOf(sink.did)
+        return sink.did.join(",") === "setCursor,askOpenWith" ? "menu" : verbOf(sink.did)
     }
     for (var t = 1; t <= p.taps; t++)
         Tap.tapped(2, t, p.modifiers, sink)

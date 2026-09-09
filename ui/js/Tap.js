@@ -1,6 +1,5 @@
 .pragma library
 
-.import "OpenWith.js" as OpenWith
 .import "Search.js" as Search
 
 // The pointer contract, declared in keys.toml's [[pointer]] table and decided here and nowhere
@@ -52,8 +51,8 @@ function tappedMenu(index, eventPoint, root, menu) {
         root.clearSelection()
     root.setCursor(index)
     // The cursor row is the menu's row now, so this is where the Open with answer is asked for; it
-    // lands while the menu is opening and its row appears then, see ui/js/OpenWith.js.
-    OpenWith.ask(root)
+    // lands while the menu is opening and its row appears then, see ui/PaneWire.qml askOpenWith.
+    root.askOpenWith()
     menu.openAt(eventPoint.scenePosition)
 }
 
