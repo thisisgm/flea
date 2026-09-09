@@ -15,8 +15,10 @@ import "js/Sort.js" as Sort
 
 // One portal request, one window: the org.freedesktop.impl.portal.FileChooser dialog every caller on
 // the box gets, opened by flea --pick and answered through the reply file tools/flea-portal reads.
-// The same Backend, Row, Theme and places the browser window draws with, and none of its operations:
-// a chooser that can rename or delete is a file manager wearing a dialog's clothes.
+// The same Backend, Row, Theme and places the browser window draws with, and its operations too,
+// except archive, convert, taildrop and dropbox (user decision 2026-09-09): every OS dialog can make
+// a folder, rename or trash a row while it is up, so this one does, through ui/PickerMenu.qml and
+// the keys ui/js/PickerKeys.js admits.
 ShellRoot {
     FloatingWindow {
         id: win
@@ -191,6 +193,7 @@ ShellRoot {
                 anchors.bottom: entryField.top
                 picker: state
                 backend: backend
+                menu: menu
                 // ":" takes the keyboard to whichever field the mode draws.
                 entry: state.saving ? save : entryField
                 clip: true
@@ -227,6 +230,15 @@ ShellRoot {
                 onAccepted: state.accept()
             }
 
+            // The right click's menu, over the whole window so a frame near the bottom clamps up
+            // into view, and a sibling of the list, because a closing menu hands the keyboard back
+            // to whichever sibling held it.
+            Flea.PickerMenu {
+                id: menu
+                picker: state
+                list: list
+            }
+
             Flea.PickerFooter {
                 id: status
                 anchors.left: parent.left
@@ -258,6 +270,7 @@ ShellRoot {
             save: save
             list: list
             header: header
+            menu: menu
         }
     }
 }

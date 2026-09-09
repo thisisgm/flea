@@ -818,11 +818,29 @@ gets the same chooser.
   `qs -p <ui>/picker.qml` with the same renderer choice `--gui` makes. One code path chooses Vulkan
   for both front doors.
 - `ui/picker.qml` is the window. It instantiates the same `Backend`, draws the same `Row` behind a
-  check box, reads the same `Theme` and the same `Places.favorites`, and carries none of the
-  window's operations: a chooser that can rename or delete is a file manager wearing a dialog's
-  clothes. `SendPicker.html` draws that row as the name, a 70 px size and an 80 px date, so
-  `ui/PickerList.qml` hands `Row` `Picker.HIDDEN_COLS` and the chooser never inherits Mode or Kind
-  from `ViewState`, whatever the header menu has switched on for the browser window.
+  check box, reads the same `Theme` and the same `Places.favorites`, and carries the window's
+  operations except archive, convert, taildrop and dropbox, by user decision 2026-09-09: every OS
+  dialog can make a folder, rename or trash a row while it is up, so this one does, through
+  `ui/PickerMenu.qml` and the keys `ui/js/PickerKeys.js` admits. `SendPicker.html` draws that row
+  as the name, a 70 px size and an 80 px date, so `ui/PickerList.qml` hands `Row`
+  `Picker.HIDDEN_COLS` and the chooser never inherits Mode or Kind from `ViewState`, whatever the
+  header menu has switched on for the browser window.
+
+**The menu, and the four families it lacks.** `ui/PickerMenu.qml` is one `ui/ContextMenu.qml`
+over `ui/PickerState.qml`, and it feeds `archiveFormats: []`, `canConvert: false`,
+`taildropPeers: []`, `dropboxPath: ""` and `rowInDropbox: false`, so `ui/js/Menu.js` hides
+Compress, Extract, Convert, Taildrop, Dropbox and the share link itself, with no picker switch in
+that file. Settings leaves by name through `hiddenActions: ["settings"]`, the one row the
+background column draws unconditionally, and that set is not the Menus settings section's: that
+section is the browser window's, and the chooser draws every row it can answer. A right click on a
+row aims the menu through `ui/js/PickerMenu.js` `aim`, `ui/js/Tap.js` `tappedMenu` for marks: on
+an unmarked row the marks standing in that directory drop, so the menu never describes one row
+while Move to Trash takes others. A right click under the last row draws the background column.
+Every chosen row routes through `route` there: `col:` and `sort:` split off as `ui/Pane.qml` splits
+them, `sort:` reaches `ui/js/Sort.js` `column` as the header click does and refuses in Recent, and
+everything else takes `ui/js/PickerKeys.js` `act`, the chord's own route, so a row and its key
+cannot come to mean two things. `tests/js/menu.js` pins both row sets and `tests/js/pickermenu.js`
+the aim and the routing; `tests/picker.sh menu` drives the window.
 
 **Filters, and whose they are.** The chip row draws the caller's filters when it sent any, with
 All files after them, and the caller's `current_filter` or its first filter active: an application
