@@ -24,6 +24,9 @@ function stubState(over) {
         relisted: "",
         seated: null,
         said: [],
+        sent: [],
+        trashPending: [],
+        backend: { send: function (request) { state.sent.push(JSON.stringify(request)) } },
         rowFor: function (i) { return (i - 2 < 0 || i - 2 >= rows.length) ? null : rows[i - 2] },
         message: function (text) { state.said.push(text) },
         open: function (next) { state.history = state.history.concat([state.path]); state.path = next },
@@ -57,6 +60,26 @@ function run(check) {
     check("a cursor past the window answers nothing", PickerOps.pathsFor(stubState({ cursorIndex: 9 })).length, 0)
     s = stubState({ path: Picker.RECENT, marks: [{ path: "/d/a.png", bytes: 10 }] })
     check("in Recent the cursor row's own path answers", PickerOps.pathsFor(s).join(","), "/c.png")
+
+    // ---- trash: absolute paths, including a mark outside the held window ----
+    s = stubState({ marks: [{ path: "/d/z.png", bytes: 99 }, { path: "/e/a.png", bytes: 10 }, { path: "/d/a.png", bytes: 10 }] })
+    PickerOps.trash(s)
+    check("trash sends every mark in this directory as an absolute path",
+          s.sent.join("|"), '{"c":"trash","paths":["/d/z.png","/d/a.png"]}')
+    check("trash keeps the exact paths for its count-only reply",
+          JSON.stringify(s.trashPending), '["/d/z.png","/d/a.png"]')
+    s.marks = [{ path: "/d/d.txt", bytes: 40 }]
+    PickerOps.trash(s)
+    check("a second trash waits because count-only replies cannot identify requests",
+          s.sent.length + "|" + JSON.stringify(s.trashPending),
+          '1|["/d/z.png","/d/a.png"]')
+    s = stubState({ trashPending: [] })
+    PickerOps.trash(s)
+    check("trash falls back to the cursor row", s.sent.join("|"),
+          '{"c":"trash","paths":["/d/c.png"]}')
+    s = stubState({ cursorIndex: 9 })
+    PickerOps.trash(s)
+    check("trash sends nothing without a target", s.sent.length, 0)
 
     // ---- refresh: a re-read, never a history entry ----
     s = stubState({ history: ["/"] })

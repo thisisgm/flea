@@ -2,6 +2,8 @@
 
 .import "Filter.js" as Filter
 .import "Keymap.js" as Keymap
+.import "Ops.js" as Ops
+.import "PickerOps.js" as PickerOps
 .import "RailKeys.js" as RailKeys
 
 // What the chooser does with a key. Two tables, in order: the picker's own verbs, which were an
@@ -43,6 +45,10 @@ function lookup(event, state) {
 function ownVerb(event, state) {
     var key = event.key
     var mods = event.modifiers
+    // Both platform delete chords are fixed picker verbs. Ctrl+Delete otherwise exists only in
+    // the mac preset, while an OS picker must accept it under every preset.
+    if (key === Qt.Key_Delete && (mods === Qt.NoModifier || mods === Qt.ControlModifier))
+        return "trash"
     if (mods & Qt.ControlModifier)
         return key === Qt.Key_L ? "location" : ""
     if (key === Qt.Key_Left)
@@ -115,6 +121,8 @@ function act(action, state, ops) {
     case "toggleHidden": state.toggleHidden(); return
     // Ctrl+A and the menu's Select all row, ui/js/PickerOps.js selectAll through the state.
     case "selectAll": state.selectAll(); return
+    case "trash": PickerOps.trash(state); return
+    case "undo": Ops.undo(state); return
     }
     if (action in SHARED)
         state.message(SHARED[action] + " is not built in the chooser yet.", false)
