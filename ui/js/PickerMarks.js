@@ -36,6 +36,21 @@ function toggle(marks, path, bytes, multiple) {
     return out
 }
 
+// A plain click. Single mode replaces the set with this one mark; multiple mode adds it when it is
+// absent. Nothing ever comes off: clicking the row that is already checked in a single request
+// keeps it checked, so Return still has something to submit. Space and Ctrl+click use toggle.
+function select(marks, path, bytes, multiple) {
+    if (!multiple) {
+        return [{ path: path, bytes: bytes }]
+    }
+    if (marked(marks, path)) {
+        return marks
+    }
+    var out = marks.slice()
+    out.push({ path: path, bytes: bytes })
+    return out
+}
+
 // Shift+click. Every unmarked row from the anchor to the clicked one joins the marks, in that
 // order, and a row already checked stays checked once: nothing comes off under Shift. In single
 // mode the range is the clicked row alone, so it toggles the way Space does.

@@ -932,8 +932,8 @@ itself back off. The anchor is `ui/picker.qml`'s `markAnchor`, the listing index
 Ctrl+click toggled, and a Shift+click before any toggle marks its own row alone. The run is the
 rows drawn between the two ends, `Filter.between` over the chip's set or the held window, read
 from the rows the window holds: a row scrolled out of that window was never on screen as part of
-the range. `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle` and
-`markRange`; Shift never unmarks, and in a single request the range is the clicked row, toggled
+the range. `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle`, `select`
+and `markRange`; `select` is the plain click, it sets and never clears; Shift never unmarks, and in a single request the range is the clicked row, toggled
 the way Space toggles it. The picker reads `keys.toml` only through `ui/js/PickerKeys.js`'s
 allowlist: its own verbs answer first, Space, Enter, `l`, Backspace, `h`, `:`, Ctrl+L, Escape and
 Alt+Left, so the browser's preview, page-forward and trash-arm meanings for those keys never
@@ -1350,8 +1350,9 @@ this coverage needed no new entry there.
   colon in the first segment reads as a scheme, so a local `a:b` is typed as `./a:b`. Pure, so
   `tests/js/pickerentry.js` drives all of it; the field asks the backend what the path is.
 - `ui/js/PickerMarks.js` is the chooser's marks: a path and its size, never a row number, and
-  what Space, Ctrl+click and Shift+click do to the list. Pure, so `tests/js/pickermarks.js`
-  drives all of it; `ui/picker.qml` holds the anchor and `ui/PickerList.qml` walks the range.
+  what Space, a plain click, Ctrl+click and Shift+click do to the list: `toggle` flips, `select`
+  sets and never clears, `markRange` extends. Pure, so `tests/js/pickermarks.js` drives all of
+  it; `ui/PickerState.qml` holds the anchor and `ui/PickerList.qml` walks the range.
 - `ui/js/PickerKeys.js` is what the chooser does with a key: its own verbs first, then the shared
   operations `keys.toml` binds, through an allowlist, and `act`, the dispatcher every picker
   operation joins. Pure, so `tests/js/pickerkeys.js` drives all of it; `ui/PickerList.qml`'s

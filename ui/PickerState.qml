@@ -200,6 +200,16 @@ QtObject {
         root.markAnchor = index
     }
 
+    // A plain click. The same markable rule as Space, but the mark is set and never cleared, so a
+    // click on the row already checked in a single request leaves it checked.
+    function selectMark(index) {
+        var row = root.rowFor(index)
+        if (!row || row.d !== root.folderMode)
+            return
+        root.marks = Marks.select(root.marks, Picker.rowPath(root.path, row.n), row.s, root.req.multiple)
+        root.markAnchor = index
+    }
+
     // Enter. A directory is always walked into, even in the folder request the board draws it
     // marked in, and a file submits what is checked: nothing checked is nothing to submit, which
     // is the board's own rule and what keeps a stray Enter from sending.
