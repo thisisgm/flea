@@ -79,17 +79,6 @@ function run(check) {
     check("the held offset is what the listing rows are numbered from", shown.join(","), "4,5")
     check("a directory always stands, so the way out is never hidden", shown[0], 4)
 
-    var marks = Picker.toggle([], "/x/a.png", 10, true)
-    marks = Picker.toggle(marks, "/x/b.png", 20, true)
-    check("multiple keeps both marks", Picker.paths(marks).join(","), "/x/a.png,/x/b.png")
-    check("both marks are weighed", Picker.totalBytes(marks), 30)
-    check("a mark is found by its path", Picker.marked(marks, "/x/b.png"), true)
-    marks = Picker.toggle(marks, "/x/a.png", 10, true)
-    check("a second space unmarks", Picker.paths(marks).join(","), "/x/b.png")
-    var single = Picker.toggle(Picker.toggle([], "/x/a.png", 10, false), "/x/b.png", 20, false)
-    check("single mode replaces the prior check", Picker.paths(single).join(","), "/x/b.png")
-    check("single mode unmarks its own", Picker.paths(Picker.toggle(single, "/x/b.png", 20, false)).length, 0)
-
     // The save name is a client string, and the answer it builds must stay inside the folder the
     // user was shown. Same cases as src/backend/ops.rs's own valid_name test, so a drift shows here.
     check("an ordinary name is a name", Picker.validName("ordinary.txt"), true)

@@ -137,6 +137,7 @@ QtObject {
         var row = root.picker.rowFor(index)
         root.picker.cursorIndex = index
         root.picker.marks = [{ path: path, bytes: row.s }]
+        root.picker.markAnchor = index
         var view = Filter.viewOf(root.picker.shown, index)
         if (view < 0) {
             root.picker.filterIndex = -1
