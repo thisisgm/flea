@@ -87,12 +87,35 @@ function defaultAccept(req) {
     return "Open"
 }
 
-// The footer's left half: what is checked, and what it weighs.
+// The selection clause: what is checked, and what it weighs.
 function statusLine(count, bytes) {
     if (count === 0) {
         return "0 selected"
     }
     return count + " selected · " + Format.size(bytes)
+}
+
+// How many rows the listing holds, in ui/StatusBar.qml's words. Nothing while it loads: a count
+// of a listing that has not arrived would be a zero that is not true.
+function countText(listingState, total) {
+    if (listingState === "empty") {
+        return "empty"
+    }
+    if (listingState !== "ready") {
+        return ""
+    }
+    return total + (total === 1 ? " item" : " items")
+}
+
+// The footer's left half at rest: the count, then the selection clause only while something is
+// checked, the idiom the bar uses. The total is the listing's own and never the shown one, which
+// shownRows takes from the held window alone and so would undercount a large directory under a chip.
+function footerLine(listingState, total, count, bytes) {
+    var base = countText(listingState, total)
+    if (count === 0) {
+        return base
+    }
+    return base.length > 0 ? base + "   " + statusLine(count, bytes) : statusLine(count, bytes)
 }
 
 // The footer's right half, which says only the keys this mode actually answers.

@@ -128,11 +128,14 @@ case_pick() {
     start_client --multiple
     walk_to_fixture
     [[ "$(ipc cursorName)" == "alpha.txt" ]] || fail "the cursor landed on $(ipc cursorName), not the first row"
+    [[ "$(ipc count)" == "3 items" ]] || fail "the footer counts the fixture as: $(ipc count)"
     press -k space
     [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "space marked $(ipc marks)"
     press -k Down
     press -k space
     [[ "$(ipc marks)" == "$fixture/alpha.txt,$fixture/beta.txt" ]] || fail "the second mark left $(ipc marks)"
+    # The count stays and the selection clause joins it: the two fixture files weigh 44 bytes.
+    [[ "$(ipc count)" == "3 items   2 selected · 44 B" ]] || fail "the footer says $(ipc count) with two marked"
     press -k Return
     wait_for_client
     [[ "$client_status" == 0 ]] || fail "the caller exited $client_status with $(cat "$fixture/client.err")"
@@ -907,6 +910,7 @@ case_thumbs() {
     press -k Escape
     wait_for_client
     printf 'thumbs: one request for the first screen, none during a fling, %s after it\n' "$(( after - before ))"
+}
 
 # Opt-in, like tests/drag.sh: a real pointer through uinput, which is the only motion Qt sees as a
 # drag, and a second window on the screen. A row is lifted out of the chooser and dropped on the
