@@ -621,6 +621,16 @@ to name ascending on every `list()`, so the order died on the first Return and o
 a write. `tests/ui.sh sortkept` is the proof, round trip and re-read both. `listpaths` is untouched:
 the mark stays where its caller left it, as before.
 
+**The chooser opens in the stored order the same way.** `flea --pick` is its own process with its
+own `Backend`, and `ViewState` is a singleton read before the first paint, so `list()` has already
+set the mark by the time `ui/PickerWire.qml`'s `listed` handler runs. That handler is
+`ui/js/PickerWire.js` `listed`: a scan loading into any order but name ascending owes a follow-up
+`sort` and a `window(0)`, `resortOwed` on `ui/PickerState.qml` holds the debt, and `rows` drops the
+name-ordered rows that rode along, so the row a refresh seats by path and the rename editor armed
+over it land on the sorted rows only. Recent is `listpaths` and is never re-sorted. The header's
+click writes the order back through `Sort.column`, the window's own path. `tests/js/pickerwire.js`
+runs the handlers; `tests/picker.sh sortkept` is the display proof.
+
 **`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
 a closed list, because a closed list would make this Flea drop an id a newer one hid. It is the
 Menus section's whole visibility state: the panel's master row over the six basic actions is derived

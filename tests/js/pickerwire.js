@@ -14,8 +14,17 @@ function stubState(over) {
     ]
     var state = {
         path: "/d",
+        total: 4,
         held: 2,
         rows: rows,
+        kindNames: [],
+        recent: false,
+        resortOwed: false,
+        windowSize: 70,
+        landed: 0,
+        backend: { sortBy: "name", sortDesc: false, sent: [],
+                   sort: function (by, desc) { state.backend.sent.push("sort " + by + (desc ? " desc" : " asc")) },
+                   window: function (start, count) { state.backend.sent.push("window " + start + " " + count) } },
         cursorIndex: 4,
         marks: [],
         trashPending: [],
@@ -38,7 +47,7 @@ function stubState(over) {
         message: function (text, isError) { state.said.push(text); state.errors.push(isError) },
         sticky: function (text) { state.stuck.push(text) },
         openWithoutHistory: function (next) { state.relisted = next },
-        navigate: { seat: function (path) { state.seated = path } }
+        navigate: { seat: function (path) { state.seated = path }, rowsArrived: function () { state.landed += 1 } }
     }
     for (var key in over) {
         state[key] = over[key]
@@ -47,8 +56,40 @@ function stubState(over) {
 }
 
 function run(check) {
+    // ---- listed and rows: a scan loading into the stored order is sorted before its rows show ----
+    var s = stubState({ listingState: "loading", total: 0, rows: [], held: 0 })
+    Wire.listed(s, 3)
+    check("a name-ascending scan is ready on its own listed line", s.listingState + ":" + s.total, "ready:3")
+    check("and asks the backend for nothing", s.backend.sent.join("|"), "")
+    check("its rows are taken and seat the landing",
+          Wire.rows(s, 0, [{ n: "a", d: false, s: 1 }], ["k"]) + ":" + s.rows.length + ":" + s.kindNames[0] + ":" + s.landed,
+          "true:1:k:1")
+    Wire.listed(s, 0)
+    check("an empty scan is empty", s.listingState, "empty")
+    s = stubState({ listingState: "loading", total: 0, rows: [], held: 0 })
+    s.backend.sortBy = "size"; s.backend.sortDesc = true
+    Wire.listed(s, 3)
+    check("a scan under a stored size order owes a sort", s.resortOwed, true)
+    check("and asks for that order and its window, never beside the list",
+          s.backend.sent.join("|"), "sort size desc|window 0 70")
+    check("the count is known while the rows are still loading", s.total + ":" + s.listingState, "3:loading")
+    check("the name-ordered rows that rode along are dropped",
+          Wire.rows(s, 0, [{ n: "a", d: false, s: 1 }], ["k"]) + ":" + s.rows.length + ":" + s.landed, "false:0:0")
+    Wire.listed(s, 3)
+    check("the sort's own listed line pays the debt", s.resortOwed + ":" + s.listingState, "false:ready")
+    check("and asks for nothing more", s.backend.sent.length, 2)
+    check("the sorted rows are taken", Wire.rows(s, 0, [{ n: "a", d: false, s: 1 }], ["k"]) + ":" + s.landed, "true:1")
+    s = stubState({ listingState: "loading", recent: true })
+    s.backend.sortBy = "mtime"
+    Wire.listed(s, 5)
+    check("Recent is never re-sorted", s.resortOwed + ":" + s.backend.sent.length + ":" + s.listingState, "false:0:ready")
+    s = stubState({ listingState: "ready" })
+    s.backend.sortBy = "size"
+    Wire.listed(s, 4)
+    check("a header click's own listed line under a standing listing is no scan", s.resortOwed + ":" + s.backend.sent.length, "false:0")
+
     // ---- trashed: the line, the marks the trash took, and a re-read that seats nothing ----
-    var s = stubState({
+    s = stubState({
         marks: [{ path: "/d/c.png", bytes: 30 }, { path: "/d/z.png", bytes: 99 },
                 { path: "/d/a.png", bytes: 10 }, { path: "/e/a.png", bytes: 10 }],
         trashPending: ["/d/z.png", "/d/a.png"]
@@ -152,6 +193,13 @@ function run(check) {
     Wire.failed(s, "sort", "unknown key")
     check("a refused sort is a plain notice", s.said.join("|") + ":" + s.errors[0], "Sorting by that column is not available.:false")
     check("and leaves the listing standing", s.listingState, "ready")
+    check("and the mark where it was", s.backend.sortBy + ":" + s.resortOwed, "name:false")
+    s = stubState({ listingState: "loading", resortOwed: true, total: 3 })
+    s.backend.sortBy = "size"
+    Wire.failed(s, "sort", "unknown key")
+    check("a refused follow-up sort releases the debt and falls back to name ascending",
+          s.resortOwed + ":" + s.backend.sortBy + ":" + s.backend.sortDesc + ":" + s.listingState, "false:name:false:ready")
+    check("without asking for anything: the window sent beside the sort still answers", s.backend.sent.length, 0)
     s = stubState({ renameOnArrival: "/d/sub", transfer: Ops.started(3, false, 1) })
     Wire.failed(s, "scan", "permission denied")
     check("a scan failure says the backend's own line", s.said.join("|"), "permission denied")

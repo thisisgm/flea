@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|selectall|copypaste|pasteprogress|click|menu|opener|rename|newfolder|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|selectall|copypaste|pasteprogress|click|menu|opener|rename|newfolder|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|sortkept|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -1444,6 +1444,96 @@ case_hidden() {
     printf 'hidden: . lists the dotfiles and again lists without them, the cursor and mark stand, the flag survives a walk, Recent ignores it\n'
 }
 
+# The stored order, tests/ui.sh sortkept's proof for the chooser: ui/PickerWire.qml sorts every fresh
+# scan into ui.json's sort key before its rows show, so a picker opened under a size order lists in
+# it, keeps it across a walk into a folder and back, seats a refresh's cursor by path on the sorted
+# rows, and leaves Recent in the history's own order. A header click writes the order back through
+# the same ui/js/Sort.js path the window uses. The state file is the case's own, never the operator's.
+sortkept_rows() {
+    local i n out=""
+    n=$(ipc total)
+    for ((i = 0; i < n; i++)); do
+        out+="${out:+,}$(ipc rowAt "$i")"
+    done
+    printf '%s' "$out"
+}
+
+wait_rows() {
+    local want="$1" step
+    for step in $(seq 1 40); do
+        [[ "$(ipc state)" == "ready" && "$(sortkept_rows)" == "$want" ]] && return
+        sleep 0.1
+    done
+    fail "sortkept: $2 reads $(sortkept_rows), not $want, under $(ipc sortMark)"
+}
+
+case_sortkept() {
+    local state="$fixture/state" flea reply real_state="${XDG_STATE_HOME-}"
+    sandbox_make "$fixture"
+    mkdir -p "$fixture/sub"
+    # Sizes that reverse the name order, so the two orders never agree by accident.
+    head -c 3000 /dev/zero > "$fixture/big.txt"
+    head -c 200 /dev/zero > "$fixture/mid.txt"
+    head -c 1 /dev/zero > "$fixture/tiny.txt"
+    head -c 50 /dev/zero > "$fixture/sub/inner.txt"
+    flea="$(cd "$(dirname "$0")/.." && pwd)/target/release/flea"
+    [[ -x "$flea" ]] || fail "no built flea at $flea"
+    env XDG_STATE_HOME="$state" "$flea" --ui-state '{"sort":{"key":"size","reverse":false}}' >/dev/null \
+        || fail "sortkept: the seeding write through flea --ui-state failed"
+    export XDG_STATE_HOME="$state"
+    start_typed sortkept
+    wait_rows "sub,tiny.txt,mid.txt,big.txt" "the size order the state file holds"
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "sortkept: the chooser opened under $(ipc sortMark)"
+    [[ "$(ipc cursor)" == "0" ]] || fail "sortkept: the opening listing left the cursor on row $(ipc cursor)"
+    # Into the folder and back up. Each listing is a fresh scan, so each is sorted again.
+    press -k Return
+    sleep 0.5
+    [[ "$(ipc path)" == "$fixture/sub" ]] || fail "sortkept: Return did not open sub, the picker is at $(ipc path)"
+    wait_rows "inner.txt" "the folder's listing"
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "sortkept: opening sub put the mark at $(ipc sortMark)"
+    press -k BackSpace
+    sleep 0.5
+    [[ "$(ipc path)" == "$fixture" ]] || fail "sortkept: BackSpace left the picker at $(ipc path)"
+    wait_rows "sub,tiny.txt,mid.txt,big.txt" "the size order after the round trip"
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "sortkept: coming back put the mark at $(ipc sortMark)"
+    # A refresh puts the cursor back by path on the sorted rows: big.txt is row 1 by name, row 3 by size.
+    press -k End
+    [[ "$(ipc cursorName)" == "big.txt" ]] || fail "sortkept: End landed on $(ipc cursorName), not big.txt"
+    press '.'
+    sleep 1
+    wait_rows "sub,tiny.txt,mid.txt,big.txt" "the size order after the . re-read"
+    [[ "$(ipc cursorName)" == "big.txt" && "$(ipc cursor)" == "3" ]] \
+        || fail "sortkept: the re-read put the cursor on $(ipc cursorName) at row $(ipc cursor), not big.txt at 3"
+    printf 'SORTKEPT mark=%s rows=%s cursor=%s\n' "$(ipc sortMark)" "$(sortkept_rows)" "$(ipc cursorName)"
+    # Recent is the history's own order: the mark stands where it was and nothing is asked to sort.
+    press -k Tab
+    sleep 0.3
+    press -k Home
+    press -k Return
+    sleep 1
+    [[ "$(ipc recent)" == "true" ]] || fail "sortkept: the rail's first row did not open Recent, the picker is at $(ipc path)"
+    [[ "$(ipc state)" != "loading" ]] || fail "sortkept: Recent never finished loading"
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "sortkept: Recent moved the mark to $(ipc sortMark)"
+    # Back in the fixture, a header click on Name writes name ascending to the case's own state file.
+    press -k Tab
+    sleep 0.3
+    press -k End
+    press -k Return
+    sleep 1
+    [[ "$(ipc path)" == "$fixture" ]] || fail "sortkept: the rail did not return to the fixture, the picker is at $(ipc path)"
+    wait_rows "sub,tiny.txt,mid.txt,big.txt" "the size order back from Recent"
+    click_header name
+    wait_rows "sub,big.txt,mid.txt,tiny.txt" "the name order the header click asked for"
+    [[ "$(ipc sortMark)" == "name:asc" ]] || fail "sortkept: the Name click left the mark at $(ipc sortMark)"
+    jq -e '.sort.key == "name" and .sort.reverse == false' "$state/flea/ui.json" >/dev/null \
+        || fail "sortkept: the header click did not store the name order, the file holds $(cat "$state/flea/ui.json")"
+    press -k Escape
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == '{"response":1}' ]] || fail "the sortkept request replied $(cat "$reply")"
+    if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
+    printf 'sortkept: the chooser opens in the stored order, keeps it across a walk and a re-read, leaves Recent alone, and its header writes it back\n'
+}
+
 # Starts the picker on the fixture directly, the way case_typed does, and leaves it to the caller
 # to type and to end. asker holds the process; reply names the file it answers into.
 start_typed() {
@@ -1758,7 +1848,7 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall copypaste pasteprogress click menu opener rename newfolder duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall copypaste pasteprogress click menu opener rename newfolder duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden sortkept thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -1789,6 +1879,7 @@ for name in "$@"; do
         filter) case_filter ;;
         header) case_header ;;
         hidden) case_hidden ;;
+        sortkept) case_sortkept ;;
         thumbs) case_thumbs ;;
         taildrop) case_taildrop ;;
         dragout) case_dragout ;;
