@@ -53,6 +53,7 @@ QtObject {
         // The settle gate's two reads, as ui/Ipc.qml has them: requests attempted, and a row's cached file.
         function thumbRequests(): int { return root.state.backend.thumbRequests }
         function thumbFile(index: int): string { return root.list.thumbFor(index) }
+        function dragRows(): string { return root.list.dragRows.join(",") }
         // The nav strip's segments as their drawn texts, "" while Recent draws its label instead.
         function crumbs(): string { return root.chrome.crumbs.visible ? root.chrome.crumbs.model.map(function (c) { return c.text }).join(",") : "" }
         function crumbCount(): int { return root.chrome.crumbs.visible ? root.chrome.crumbs.items.count : 0 }

@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
+import "js/Drag.js" as DragOps
 import "js/Filter.js" as Filter
 import "js/Match.js" as Match
 import "js/Picker.js" as Picker
@@ -8,9 +9,10 @@ import "js/PickerKeys.js" as PickerKeys
 import "js/PickerMarks.js" as Marks
 import "js/Thumbs.js" as Thumbs
 
-// The picker's listing: ui/Row.qml drawn behind a check box, and the keys that move through it. The
-// window's own ui/List.qml is not reused, because every line of it that is not layout is a drag, a
-// rename or a context menu; the one part the chooser shares, the thumbnail settle, is repeated below.
+// The picker's listing: ui/Row.qml drawn behind a check box, the keys that move through it, and the
+// drag that carries rows out to another application. The window's own ui/List.qml is not reused: it
+// selects rows by index where the chooser marks by path, so the pieces are drawn again over the marks.
+// The one part the chooser shares with it, the thumbnail settle, is repeated below.
 ListView {
     id: root
 
@@ -18,6 +20,11 @@ ListView {
     property var backend: null
     // The location strip ":" and Ctrl+L hand the keyboard to, ui/PickerEntry.qml in the window.
     property var entry: null
+
+    // The listing rows a drag out carries, and what they put on the wire, built at the lift and
+    // cleared with the gesture. There is no drop side: nothing lands in a chooser. ui/js/Drag.js decides.
+    property var dragRows: []
+    property var dragMime: ({})
 
     readonly property int visibleRows: Math.max(1, Math.ceil(root.height / Theme.rowHeight))
     // ui/Pane.qml's two settle intervals, see AGENTS.md "Thumbnail requests in the GUI".
@@ -32,6 +39,22 @@ ListView {
     highlightMoveDuration: 0
     reuseItems: true
     cacheBuffer: Theme.rowHeight * 4
+
+    // The item Qt hangs the platform drag off, on the view and never in a delegate: a tab hover switch
+    // re-lists mid-drag and releases the pressed row, and a QDrag parented there died inside its own
+    // exec while the compositor still asked it for data (quickshell SIGSEGV, 2026-09-07). No drag image.
+    Item {
+        id: ghost
+        Drag.dragType: Drag.Automatic
+        // Copy alone, because supportedActions is the only one of these another application ever
+        // sees: offering Qt.MoveAction told Chromium the drop was a move, which Google's uploader
+        // refuses, and liftEnded removes nothing so it was a promise Flea cannot keep.
+        Drag.supportedActions: Qt.CopyAction
+        Drag.proposedAction: Qt.CopyAction
+        Drag.mimeData: root.dragMime
+        // The one end of the gesture: exec has returned, whatever became of the row that lifted it.
+        Drag.onDragFinished: root.liftEnded(ghost)
+    }
 
     delegate: Item {
         id: cell
@@ -136,6 +159,39 @@ ListView {
                     root.picker.open(cell.rowPath)
             }
         }
+
+        // A press that moves past the threshold lifts the row and cancels the tap above. The grab
+        // ends nothing: the compositor owns the gesture once the platform drag has started, so the
+        // end is the ghost's dragFinished.
+        DragHandler {
+            id: lift
+            target: null
+            // The list is a Flickable and would take the grab past its own threshold; without ApprovesTakeOverByItems it cannot.
+            grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.CanTakeOverFromHandlersOfDifferentType | PointerHandler.ApprovesTakeOverByHandlersOfSameType
+            onActiveChanged: if (active) root.liftBegan(cell.listingIndex, ghost)
+        }
+    }
+
+    // The drag out: the marks when the pressed row is one of them, that row alone otherwise, the
+    // rule ui/js/Drag.js carried gives the window. A drag out is always a copy, the one action the
+    // ghost advertises, so the marker bakes copy and the footer's line carries no ctrl hint. The
+    // note follows the payload: no uri-list on the wire means no other application can take it.
+    function liftBegan(index, ghost) {
+        root.dragRows = DragOps.carried(root.picker, index)
+        root.dragMime = DragOps.mimeFor(root.picker, root.dragRows, true)
+        root.picker.sticky(DragOps.line(root.dragRows.length, "", true)
+                           + DragOps.reachNote(root.dragMime.hasOwnProperty("text/uri-list")))
+        // Automatic starts the platform drag on this assignment and does not return until the drop,
+        // so everything the gesture needs is already set above.
+        ghost.Drag.active = true
+    }
+
+    // The platform drag has already finished inside liftBegan, so this only clears the gesture's own state.
+    function liftEnded(ghost) {
+        ghost.Drag.active = false
+        root.dragRows = []
+        root.dragMime = ({})
+        root.picker.sticky("")
     }
 
     // Shift+click. The rows drawn from the anchor to this one, or this one alone before any toggle,

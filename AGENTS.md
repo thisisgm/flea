@@ -887,6 +887,13 @@ travels in a JSON file inside a `mkdtemp` the backend owns and removes. `ui/pick
 with `FileView` and only kills its own process on `saved()`: the backend reads the file after the
 child exits, and a write still in flight would be a lost answer read as a fault.
 
+**A pick says which filter held.** A success carries `current_filter` beside `uris`: the label
+the active chip showed and its rules, which `tools/flea-portal` returns as one `(sa(us))`, globs
+tagged 0 and mime types 1, the inverse of the `a(sa(us))` `filters` option it decoded on the way in.
+The label is the caller's own or the one a `filters.toml` pill drew, so an application that offered
+filters learns which one the user picked under. All files is no filter and a filter with no rule
+narrows nothing, so neither is echoed, and a refusal carries nothing at all.
+
 **A downloaded file outlives the answer.** The reply dir is gone the moment the portal answers,
 and the application reads its chosen file after that, so a file the chooser fetches for a URL lands
 in `$XDG_CACHE_HOME/flea/picker/<8 hex>/<leaf>` (`pickercache::fetch_dest`), one fresh dir per fetch so

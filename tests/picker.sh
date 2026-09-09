@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|thumbs|taildrop]; typed_share and taildrop are opt-in.
+# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -907,6 +907,65 @@ case_thumbs() {
     press -k Escape
     wait_for_client
     printf 'thumbs: one request for the first screen, none during a fling, %s after it\n' "$(( after - before ))"
+
+# Opt-in, like tests/drag.sh: a real pointer through uinput, which is the only motion Qt sees as a
+# drag, and a second window on the screen. A row is lifted out of the chooser and dropped on the
+# floor of a browser window standing in the fixture's dest folder. The browser reads the drag as
+# foreign, because the marker names another process, so the drop is a copy by path: the file lands
+# in dest byte for byte and the chooser's own row survives. The seam is read mid-gesture, inside
+# the nested loop the platform drag runs, for the rows it carries and the footer's line.
+case_dragout() {
+    make_fixture
+    sandbox_make "$fixture/dest"
+    command -v ydotool >/dev/null || fail "dragout needs ydotool, the uinput pointer tests/drag.sh drives"
+    local flea browser alpha centre cx cy wx wy bx by bw bh px py mid step
+    flea="$(cd "$(dirname "$0")/.." && pwd)/target/release/flea"
+    [[ -x "$flea" ]] || fail "no built flea at $flea"
+    export YDOTOOL_SOCKET="${YDOTOOL_SOCKET:-$XDG_RUNTIME_DIR/.ydotool_socket}"
+    # The drop target first, so the chooser tiles beside it and the pointer has two windows to cross.
+    # flea execs qs, so the window's pid is this one, and the window is found by it and never by class alone.
+    FLEA_UI="$(dirname "$picker_config")" setsid "$flea" "$fixture/dest" > "$fixture/browser.log" 2>&1 &
+    browser=$!
+    for step in $(seq 1 50); do
+        read -r bx by bw bh < <(hyprctl clients -j | jq -r --argjson p "$browser" '.[] | select(.pid == $p) | "\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"' | head -1)
+        [[ -n "${bx:-}" ]] && break
+        sleep 0.2
+    done
+    [[ -n "${bx:-}" ]] || { kill "$browser" 2>/dev/null; fail "no browser window came up on $fixture/dest"; }
+    start_client --multiple
+    walk_to_fixture
+    alpha=$(row_named alpha.txt)
+    centre=$(ipc rowCentre "$alpha")
+    read -r cx cy <<< "$centre"
+    read -r wx wy < <(omarchy-drive windows --json | jq -r --arg t "$title" '.windows[] | select(.title == $t) | "\(.at[0]) \(.at[1])"')
+    [[ -n "${wx:-}" ]] || { kill "$browser" 2>/dev/null; fail "no window named $title to lift from"; }
+    # The warp only places the pointer; the lift and the glide are uinput, which carries frames.
+    hyprctl dispatch "hl.dsp.cursor.move({x = $((cx + wx)), y = $((cy + wy))})" >/dev/null; sleep 0.4
+    ydotool click 0x40 >/dev/null 2>&1; sleep 0.3
+    ydotool mousemove -x 12 -y 12 >/dev/null 2>&1; sleep 0.6
+    # The seam answers inside the drag's nested loop, as tests/drag.sh R4 reads the window's own line.
+    mid="$(ipc dragRows)|$(ipc message)"
+    # Half the remaining distance a step, re-read each time: libinput accelerates relative motion.
+    for step in $(seq 1 24); do
+        read -r px py < <(hyprctl cursorpos | tr -d ',')
+        local tx=$((bx + bw / 2)) ty=$((by + bh * 4 / 5)) dx dy
+        dx=$((tx - px)); dy=$((ty - py))
+        [[ ${dx#-} -le 4 && ${dy#-} -le 4 ]] && break
+        ydotool mousemove -x $((dx / 2)) -y $((dy / 2)) >/dev/null 2>&1; sleep 0.05
+    done
+    sleep 0.5
+    ydotool click 0x80 >/dev/null 2>&1; sleep 0.8
+    for step in $(seq 1 40); do [[ -e "$fixture/dest/alpha.txt" ]] && break; sleep 0.25; done
+    kill "$browser" 2>/dev/null
+    [[ "$mid" == "$alpha|Copy 1 item to a folder" ]] || fail "mid-drag the seam read [$mid], not [$alpha|Copy 1 item to a folder]"
+    [[ -e "$fixture/dest/alpha.txt" ]] || fail "the row never landed in $fixture/dest"
+    cmp -s "$fixture/alpha.txt" "$fixture/dest/alpha.txt" || fail "the landed file differs from alpha.txt"
+    [[ -e "$fixture/alpha.txt" ]] || fail "a drag out moved alpha.txt instead of copying it"
+    [[ -z "$(ipc dragRows)" ]] || fail "the gesture left dragRows at $(ipc dragRows)"
+    [[ -z "$(ipc message)" ]] || fail "the gesture left the footer saying $(ipc message)"
+    press -k Escape
+    wait_for_client
+    printf 'dragout: a row lifted out of the chooser lands in another window as a copy, and the chooser survives\n'
 }
 
 backend_is_flea
@@ -931,6 +990,7 @@ for name in "$@"; do
         pills) case_pills ;;
         thumbs) case_thumbs ;;
         taildrop) case_taildrop ;;
+        dragout) case_dragout ;;
         *) fail "no case named $name" ;;
     esac
 done
