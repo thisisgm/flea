@@ -1,5 +1,6 @@
 .pragma library
 .import "Picker.js" as Picker
+.import "PickerMarks.js" as Marks
 
 // What the chooser does with a line its location field reported, and nothing about the window:
 // ui/js/PickerEntry.js says what the line is, this says what to do about it. The rules are the
@@ -55,7 +56,7 @@ function plan(answer, current, marks, folderMode) {
     if (answer.kind !== "local") {
         return { step: answer.kind, answer: answer }
     }
-    if (!folderMode && !answer.wantsDir && Picker.marked(marks, answer.path)) {
+    if (!folderMode && !answer.wantsDir && Marks.marked(marks, answer.path)) {
         return { step: "accept" }
     }
     if (answer.path === current) {
