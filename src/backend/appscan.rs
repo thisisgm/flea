@@ -29,8 +29,9 @@ pub(crate) fn applications_dirs() -> Vec<PathBuf> {
 // The id→file map gio builds: one recursive scan per applications dir, where a subdirectory's name
 // becomes a "name-" prefix on every .desktop it holds, so applications/kde4/konsole.desktop is the
 // file for the id kde4-konsole.desktop. Across dirs the first dir carrying the id wins, which is
-// gio's own per-dir tables walked in ladder order; within one dir the scan's own later entry wins,
-// which is g_hash_table_insert's rule inside one table.
+// gio's own per-dir tables walked in ladder order; within one dir the first name in sorted order
+// wins, because read_dir answers in no defined order and the flat file and the prefixed subdir
+// that carry one id must resolve to the same file every run.
 pub(crate) fn table_of(dirs: &[PathBuf]) -> HashMap<String, PathBuf> {
     let mut table: HashMap<String, PathBuf> = HashMap::new();
     for dir in dirs {
@@ -52,13 +53,16 @@ fn scan_dir(dir: &Path, prefix: &str, table: &mut HashMap<String, PathBuf>, dept
         Ok(r) => r,
         Err(_) => return,
     };
-    for item in read.flatten() {
+    // Sorted by name before the table sees them, because readdir order is no order: the winner
+    // of two files carrying one id must not be readdir's coin flip.
+    let mut items: Vec<_> = read.flatten().collect();
+    items.sort_by_cached_key(|item| item.file_name());
+    for item in items {
         let path = item.path();
         let name = item.file_name().to_string_lossy().to_string();
         if name.ends_with(".desktop") {
             // Only a dir the id is not already in inserts, because a later dir in the ladder must
-            // not take a file the earlier one already owns; within one dir the scan's own later
-            // entry then wins, which is g_hash_table_insert's rule inside one table.
+            // not take a file the earlier one already owns.
             table.entry(format!("{prefix}{name}")).or_insert(path);
         } else {
             // Everything else is descended into and told apart by read_dir failing on a plain file, which follows symlinks the way g_file_test does and stats nothing.
@@ -312,6 +316,19 @@ mod tests {
         assert_eq!(apps[2].icon, "utilities-terminal", "the entry's own Icon= rides the row");
         assert_eq!(apps[0].icon, "", "an entry that wrote no Icon= answers an empty one");
         assert_eq!(apps[1].id, "kde4-konsole.desktop");
+    }
+
+    #[test]
+    fn two_files_carrying_one_id_in_one_dir_resolve_to_the_sorted_first() {
+        let d = TestDir::new("appscollide");
+        d.dir("share/applications/kde4");
+        std::fs::write(d.join("share/applications/kde4-konsole.desktop"), "[Desktop Entry]\nName=Flat\n").unwrap();
+        std::fs::write(d.join("share/applications/kde4/konsole.desktop"), "[Desktop Entry]\nName=Sub\n").unwrap();
+        // "kde4" sorts before "kde4-konsole.desktop", so the subdir's file is the one the table
+        // holds; the assertion pins sorted order, because readdir is a coin flip between them.
+        let path = table_of(&[d.join("share/applications")])["kde4-konsole.desktop"]
+            .to_string_lossy().to_string();
+        assert!(path.ends_with("kde4/konsole.desktop"), "{}", path);
     }
 
     #[test]
