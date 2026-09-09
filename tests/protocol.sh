@@ -454,7 +454,7 @@ check "and no job was started for it" "0" "$(echo "$out" | grep -c '"t":"archive
 # to the operator's own ~/.local/share, whose mimeapps.list would answer imv.desktop into the list.
 HANDLERS="$SB/handlers"
 mkdir -p "$HANDLERS/applications/sub" "$HANDLERS/home" "$HANDLERS/fixture/afolder"
-printf '[Desktop Entry]\nType=Application\nName=Probe Viewer\nExec=true %%f\n' > "$HANDLERS/applications/probe-viewer.desktop"
+printf '[Desktop Entry]\nType=Application\nName=Probe Viewer\nExec=true %%f\nIcon=utilities-terminal\n' > "$HANDLERS/applications/probe-viewer.desktop"
 printf '[Desktop Entry]\nType=Application\nName=Probe Editor\nExec=true %%f\n' > "$HANDLERS/applications/sub/probe-editor.desktop"
 printf '[MIME Cache]\nimage/png=probe-viewer.desktop;sub-probe-editor.desktop;\n[Default Applications]\nimage/png=probe-viewer.desktop;\n' > "$HANDLERS/applications/mimeinfo.cache"
 printf 'x' > "$HANDLERS/fixture/photo.png"
@@ -467,8 +467,8 @@ handlers_out() {
     printf '{"c":"quit"}\n' ) | env XDG_DATA_HOME="$HANDLERS/home" XDG_DATA_DIRS="$HANDLERS" "$BIN" --backend
 }
 out=$(handlers_out 2 | grep '"t":"handlers"' | sed 's/,"ms":[0-9.]*}/}/')
-check "a file row answers both planted applications, in gio's own order" \
-  "{\"t\":\"handlers\",\"row\":2,\"apps\":[{\"name\":\"Probe Viewer\",\"path\":\"$HANDLERS/applications/probe-viewer.desktop\"},{\"name\":\"Probe Editor\",\"path\":\"$HANDLERS/applications/sub/probe-editor.desktop\"}]}" \
+check "a file row answers both planted applications, in gio's own order, icons riding" \
+  "{\"t\":\"handlers\",\"row\":2,\"apps\":[{\"name\":\"Probe Viewer\",\"path\":\"$HANDLERS/applications/probe-viewer.desktop\",\"icon\":\"utilities-terminal\"},{\"name\":\"Probe Editor\",\"path\":\"$HANDLERS/applications/sub/probe-editor.desktop\",\"icon\":\"\"}]}" \
   "$out"
 check "the box's own registry leaked nothing in, so exactly two applications answered" \
   "2" "$(echo "$out" | grep -o '"name":"' | wc -l | tr -d ' ')"

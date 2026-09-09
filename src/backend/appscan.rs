@@ -66,12 +66,6 @@ fn scan_dir(dir: &Path, prefix: &str, table: &mut HashMap<String, PathBuf>, dept
     }
 }
 
-// The Name= of the desktop entry's own group, untranslated, which is the name LC_ALL=C gio shows
-// too. Reading stops at the next group header, so a [Desktop Action]'s own Name never wins.
-pub(crate) fn entry_name(text: &str) -> Option<String> {
-    facts_of(text).name
-}
-
 // The facts the showability rule reads, out of the [Desktop Entry] group alone. A key after the
 // first group header is an action's, and no action's key can make the entry itself launchable.
 pub(crate) struct Facts {

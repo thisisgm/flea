@@ -107,16 +107,17 @@ function backgroundEntries(p) {
 var SORT_LABELS = { name: "Name", size: "Size", mtime: "Date Modified" }
 
 // The Open With flyout, mapped straight off the wire's apps: the entry id is the desktop entry path
-// the launch mode takes, and the label is the application's own Name. No default is marked and no
-// row is reordered: gio's own registry order is the desktop's judgement, and plain Open already
-// answers the default. The tail row is the Windows one: an application the registry does not
-// already name, chosen from the desktop's whole installed list in the Open with dialog, under
-// its own separator so the registered few and the whole-installed-list door read apart. "dialog"
-// is not a path, so no entry id can collide with it.
+// the launch mode takes, the label is the application's own Name, and the icon is the entry's own
+// Icon= for the mark slot, the themed icon drawn over the flyout's cut glyph when the theme serves
+// it. No default is marked and no row is reordered: gio's own registry order is the desktop's
+// judgement, and plain Open already answers the default. The tail row is the Windows one: an
+// application the registry does not already name, chosen from the desktop's whole installed list
+// in the Open with dialog, under its own separator so the registered few and the door read apart.
+// "dialog" is not a path, so no entry id can collide with it.
 function openWithEntries(apps) {
     var out = []
     for (var i = 0; i < apps.length; i++)
-        out.push({ id: apps[i].path, label: apps[i].name })
+        out.push({ id: apps[i].path, label: apps[i].name, icon: apps[i].icon || "" })
     out.push({ separator: true })
     out.push({ id: "dialog", label: "Another application…" })
     return out
@@ -131,14 +132,10 @@ function sortEntries() {
 
 // The one mark every row of an open flyout draws, keyed on the row that opened it: a Taildrop peer
 // is a machine, a sort order is the row above it, and an application is the window it will open in.
+var SUBMENU_GLYPHS = { taildrop: "server", sort: "sort", openwith: "app-window" }
+
 function submenuGlyph(action) {
-    if (action === "taildrop")
-        return "server"
-    if (action === "sort")
-        return "sort"
-    if (action === "openwith")
-        return "app-window"
-    return "archive"
+    return SUBMENU_GLYPHS[action] || "archive"
 }
 
 // The visibility consumer SettingsMenus.html specifies, and the only reader of the stored hidden

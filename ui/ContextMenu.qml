@@ -108,13 +108,11 @@ Item {
     }
 
     // The row item at an index, for ui/Ipc.qml: a driven test clicks a menu row without deriving
-    // its geometry from a row count the Menus settings can now change under it.
+    // its geometry from a row count the Menus settings can change under it.
     function itemFor(index) { return menuRows.itemAt(index) }
 
-    // A separator is never the cursor, so both key steps and the opening cursor skip over one —
-    // the same rule over the menu's entries and over the open flyout's, whose tail separator
-    // divides the registered few from the whole-installed-list door, and neither a key nor a
-    // Return may land on it.
+    // A separator is never the cursor: both key steps and the opening cursor skip over one, over
+    // the menu's entries and over the flyout's, whose tail separator is never itself selectable.
     function stepOver(entries, from, delta) {
         var i = from + delta
         while (i >= 0 && i < entries.length) {
@@ -129,9 +127,8 @@ Item {
 
     function stepSubmenu(from, delta) { return root.stepOver(root.submenuEntries, from, delta) }
 
-    function firstRow() {
-        return root.entries.length > 0 && root.entries[0].separator === true ? root.stepCursor(0, 1) : 0
-    }
+    // A leading separator opens past itself, the same skip the steps apply.
+    function firstRow() { return root.entries.length > 0 ? root.stepOver(root.entries, -1, 1) : 0 }
 
     anchors.fill: parent
     visible: root.opened
@@ -334,10 +331,13 @@ Item {
                     required property var modelData
                     required property int index
                     width: peers.width
-                    // Which mark a whole flyout draws is ui/js/Menu.js submenuGlyph's to say, so the
-                    // read-back submenuGlyphs() above and the drawn row cannot answer differently.
-                    entry: ({ label: subRow.modelData.label, action: "",
-                              glyph: Menu.submenuGlyph(root.entries[root.openSubmenuRow].action) })
+                    // The entry is rebuilt with the flyout's own mark, but a separator must pass
+                    // through whole: dropping the flag drew the Open with flyout's tail separator
+                    // as an ordinary empty row, hoverable and selectable.
+                    entry: subRow.modelData.separator === true ? ({ separator: true })
+                          : ({ label: subRow.modelData.label, action: "",
+                              glyph: Menu.submenuGlyph(root.entries[root.openSubmenuRow].action),
+                              icon: subRow.modelData.icon || "" })
                     current: root.submenuCursor === subRow.index
                     onPointerMoved: root.submenuCursor = subRow.index
                     onActivated: root.chooseSub(subRow.modelData.id)

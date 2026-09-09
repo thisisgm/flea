@@ -3,7 +3,7 @@
 // module only asks it and then resolves the ids it names to launchable desktop entry files. Like
 // thumb and meta, a type is looked at only when a client asked for one row. The installed-apps
 // table this module consumes is appscan.rs's; here only the per-type question gio answers lives.
-use crate::backend::appscan::{self, entry_name, table_of};
+use crate::backend::appscan::{self, table_of};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::proto::error_line;
 use crate::error::FleaError;
@@ -16,11 +16,13 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::Arc;
 use std::time::Duration;
 
-// One application one row can be opened with: the desktop entry file gio launch takes, and the
-// display name its own Name= carries.
+// One application one row can be opened with: the desktop entry file gio launch takes, the
+// display name its own Name= carries, and the Icon= the flyout's rows draw, empty when the
+// entry wrote none.
 pub struct App {
     pub label: String,
     pub path: String,
+    pub icon: String,
 }
 
 // gio mime answers in about 17 ms warm here; this bounds a wedged gio the way every other child
@@ -56,10 +58,20 @@ pub fn parse_registered(output: &str) -> Vec<String> {
 }
 
 // One scan serves every id, so a type with eleven handlers costs the scan once, not eleven times.
-fn from_table(id: &str, table: &HashMap<String, PathBuf>) -> Option<(PathBuf, String)> {
+fn from_table(id: &str, table: &HashMap<String, PathBuf>) -> Option<(PathBuf, String, String)> {
     let path = table.get(id)?;
-    let name = std::fs::read_to_string(path).ok().and_then(|text| entry_name(&text));
-    Some((path.clone(), name.unwrap_or_else(|| id.trim_end_matches(".desktop").to_string())))
+    let (name, icon) = match std::fs::read_to_string(path) {
+        Ok(text) => {
+            let facts = appscan::facts_of(&text);
+            (facts.name, facts.icon.unwrap_or_default())
+        }
+        Err(_) => (None, String::new()),
+    };
+    Some((
+        path.clone(),
+        name.unwrap_or_else(|| id.trim_end_matches(".desktop").to_string()),
+        icon,
+    ))
 }
 
 // One launchable application per id gio named, in gio's order; an id whose desktop file has
@@ -73,9 +85,10 @@ pub fn list(mime_type: &str) -> Vec<App> {
     parse_registered(&output)
         .into_iter()
         .filter_map(|id| {
-            from_table(&id, &table).map(|(path, label)| App {
+            from_table(&id, &table).map(|(path, label, icon)| App {
                 label,
                 path: path.to_string_lossy().to_string(),
+                icon,
             })
         })
         .collect()
@@ -149,7 +162,14 @@ pub fn set_default(mime_type: &str, id: &str) -> Result<(), FleaError> {
 pub fn handlers_line(row: usize, apps: &[App], ms: f64) -> String {
     let apps: Vec<String> = apps
         .iter()
-        .map(|a| format!(r#"{{"name":"{}","path":"{}"}}"#, escape(&a.label), escape(&a.path)))
+        .map(|a| {
+            format!(
+                r#"{{"name":"{}","path":"{}","icon":"{}"}}"#,
+                escape(&a.label),
+                escape(&a.path),
+                escape(&a.icon)
+            )
+        })
         .collect();
     format!(r#"{{"t":"handlers","row":{},"apps":[{}],"ms":{:.3}}}"#, row, apps.join(","), ms)
 }
@@ -275,7 +295,7 @@ mod tests {
         let d = TestDir::new("appsflat");
         d.dir("share/applications");
         std::fs::write(d.join("share/applications/probe.desktop"), "[Desktop Entry]\nName=Probe\nExec=true %f\n").unwrap();
-        let (path, label) = from_table("probe.desktop", &table_of(&[d.join("share/applications")])).expect("the flat id resolves");
+        let (path, label, _) = from_table("probe.desktop", &table_of(&[d.join("share/applications")])).expect("the flat id resolves");
         assert!(path.ends_with("probe.desktop"), "{}", path.display());
         assert_eq!(label, "Probe");
     }
@@ -285,7 +305,7 @@ mod tests {
         let d = TestDir::new("appssub");
         d.dir("share/applications/kde4");
         std::fs::write(d.join("share/applications/kde4/konsole.desktop"), "[Desktop Entry]\nName=Konsole\n").unwrap();
-        let (path, label) = from_table("kde4-konsole.desktop", &table_of(&[d.join("share/applications")])).expect("the prefixed id resolves");
+        let (path, label, _) = from_table("kde4-konsole.desktop", &table_of(&[d.join("share/applications")])).expect("the prefixed id resolves");
         assert!(path.ends_with("kde4/konsole.desktop"), "{}", path.display());
         assert_eq!(label, "Konsole");
     }
@@ -297,7 +317,7 @@ mod tests {
         d.dir("system/applications");
         std::fs::write(d.join("user/applications/both.desktop"), "[Desktop Entry]\nName=User one\n").unwrap();
         std::fs::write(d.join("system/applications/both.desktop"), "[Desktop Entry]\nName=System two\n").unwrap();
-        let (_, label) = from_table("both.desktop", &table_of(&[d.join("user/applications"), d.join("system/applications")])).expect("resolves");
+        let (_, label, _) = from_table("both.desktop", &table_of(&[d.join("user/applications"), d.join("system/applications")])).expect("resolves");
         assert_eq!(label, "User one", "the user data dir outranks the system one");
         assert!(from_table("gone.desktop", &table_of(&[d.join("user/applications")])).is_none(), "an id with no file answers nothing");
     }
@@ -307,8 +327,9 @@ mod tests {
         let d = TestDir::new("appsnolabel");
         d.dir("share/applications");
         std::fs::write(d.join("share/applications/bare.desktop"), "[Desktop Entry]\nExec=true %f\n").unwrap();
-        let (_, label) = from_table("bare.desktop", &table_of(&[d.join("share/applications")])).expect("resolves");
+        let (_, label, icon) = from_table("bare.desktop", &table_of(&[d.join("share/applications")])).expect("resolves");
         assert_eq!(label, "bare");
+        assert_eq!(icon, "", "an entry that wrote no Icon= answers an empty one");
     }
 
     #[test]
@@ -320,20 +341,20 @@ mod tests {
             "[Desktop Entry]\nName=The entry\nExec=true %f\n\n[Desktop Action one]\nName=The action\nExec=true\n",
         )
         .unwrap();
-        let (_, label) = from_table("acted.desktop", &table_of(&[d.join("share/applications")])).expect("resolves");
+        let (_, label, _) = from_table("acted.desktop", &table_of(&[d.join("share/applications")])).expect("resolves");
         assert_eq!(label, "The entry");
     }
 
     #[test]
     fn the_line_escapes_a_name_and_a_path_like_every_other_string_on_this_wire() {
         let apps = vec![
-            App { label: "say \"hi\"".to_string(), path: "/tmp/say \"hi\".desktop".to_string() },
-            App { label: "Viewer".to_string(), path: "/usr/share/applications/v.desktop".to_string() },
+            App { label: "say \"hi\"".to_string(), path: "/tmp/say \"hi\".desktop".to_string(), icon: "say \"hi\"".to_string() },
+            App { label: "Viewer".to_string(), path: "/usr/share/applications/v.desktop".to_string(), icon: String::new() },
         ];
         let line = handlers_line(2, &apps, 1.5);
         assert!(line.starts_with(r#"{"t":"handlers","row":2,"apps":["#), "{}", line);
-        assert!(line.contains(r#"{"name":"say \"hi\"","path":"/tmp/say \"hi\".desktop"}"#), "{}", line);
-        assert!(line.ends_with(r#"{"name":"Viewer","path":"/usr/share/applications/v.desktop"}],"ms":1.500}"#), "{}", line);
+        assert!(line.contains(r#"{"name":"say \"hi\"","path":"/tmp/say \"hi\".desktop","icon":"say \"hi\""}"#), "{}", line);
+        assert!(line.ends_with(r#"{"name":"Viewer","path":"/usr/share/applications/v.desktop","icon":""}],"ms":1.500}"#), "{}", line);
         assert_eq!(handlers_line(0, &[], 0.0), r#"{"t":"handlers","row":0,"apps":[],"ms":0.000}"#);
     }
 

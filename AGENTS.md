@@ -3771,7 +3771,11 @@ where gio names the app and sorts by the entry's own `Name=` case-insensitively 
 not, because a dialog's list is a display order and not the registry's per-type judgement.
 
 **The flyout stays a one-off and the dialog carries the box.** The tail row's id is the literal
-`dialog`, which is not a valid desktop entry path, so no entry id can collide with it. Choosing
+`dialog`, which is not a valid desktop entry path, so no entry id can collide with it, and it
+sits under its own separator, which the flyout's delegate must pass through whole: dropping the
+flag drew an ordinary empty row there, hoverable and selectable. The registered rows draw the
+entry's own `Icon=` in the mark slot, the themed icon over the flyout's cut glyph, exactly what
+the applications line's own icons do in the dialog. Choosing
 an application there launches it through the same `openWithPath` the flyout's own rows reach —
 the launch is the flyout's act, and the dialog adds exactly one thing, the "always" box. Ticked,
 one `setdefault` write rides beside the launch: the backend resolves the type from the path's

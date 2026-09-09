@@ -883,10 +883,10 @@ no local account carries answers the empty string, never the number dressed as a
 
 ### handlers
 
-`{"t":"handlers","row":<uint>,"apps":[{"name":"<string>","path":"<string>"},...],"ms":<float>}`
+`{"t":"handlers","row":<uint>,"apps":[{"name":"<string>","path":"<string>","icon":"<string>"},...],"ms":<float>}`
 
 Example:
-`{"t":"handlers","row":2,"apps":[{"name":"Image Viewer","path":"/usr/share/applications/org.gnome.eog.desktop"}],"ms":51.051}`
+`{"t":"handlers","row":2,"apps":[{"name":"Image Viewer","path":"/usr/share/applications/org.gnome.eog.desktop","icon":"org.gnome.eog"}],"ms":51.051}`
 
 Answers one row of one `handlers` request. `row` is the index that was asked for, `apps` is
 one entry per registered application in gio's own precedence order, and `ms` is the whole
@@ -899,7 +899,9 @@ desktop entry path the launch takes, resolved the way gio resolves a desktop id:
 scan of each applications dir on the XDG data ladder, user data first, where a subdirectory's
 name becomes a `name-` prefix, so `kde4/konsole.desktop` is the file for the id
 `kde4-konsole.desktop`. The first dir carrying an id wins. An id whose file has vanished since
-the registry answered is dropped, which is what gio's own resolution does too.
+the registry answered is dropped, which is what gio's own resolution does too. `icon` is the
+entry's own `Icon=` verbatim, empty when it wrote none, for the flyout row's mark slot; the
+client resolves it against the icon theme exactly as the `applications` line's own icon is.
 
 **The parse reads no header wording.** `LC_ALL=C gio mime` prints one line naming the default,
 then tab-indented ids under a registered header, then more under a recommended one, and the
