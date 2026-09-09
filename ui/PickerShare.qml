@@ -57,7 +57,7 @@ Item {
                 root.picker.say(message, true)
                 return
             }
-            root.picker.say(message)
+            root.picker.message(message, true)
         }
     }
 }

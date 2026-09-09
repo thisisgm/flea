@@ -1,5 +1,6 @@
 import QtQuick
 import "js/Ops.js" as Ops
+import "js/PickerA11y.js" as A11y
 import "js/Picker.js" as Picker
 import "js/Transfer.js" as Transfer
 
@@ -21,9 +22,24 @@ Item {
     // An operation's line does not expire while that operation still owns it.
     property string sticky: ""
 
+    // The last spoken line is also the test seam. Progress has separate memory for each operation.
+    property string announcement: ""
+    property bool announcementIsError: false
+    property var transferAnnouncement: A11y.emptyProgress()
+    property var fetchAnnouncement: A11y.emptyProgress()
+
+    function announceNow(update) {
+        if (update.text.length === 0)
+            return
+        root.announcement = update.text
+        root.announcementIsError = update.assertive
+        notice.speak(update.text, update.assertive)
+    }
+
     function say(text, hold, isError) {
-        root.message = text
         root.messageIsError = isError === true
+        root.message = text
+        root.announceNow(A11y.notice(text, root.messageIsError))
         life.stop()
         if (hold !== true)
             life.restart()
@@ -34,6 +50,7 @@ Item {
     onTransferringChanged: if (root.transferring) root.say("", false, false)
 
     readonly property bool fetching: root.fetch !== null && root.fetch.fetching
+    readonly property real fetchFraction: root.fetching ? root.fetch.fraction : 0
     readonly property bool transferring: root.picker !== null && root.picker.transfer.running
     readonly property string transferLine: root.transferring
         ? Ops.progressLine(root.picker.transfer) : ""
@@ -52,6 +69,29 @@ Item {
     // The left slot's own line, what it says once no message and no download outranks it.
     readonly property string standing: Picker.footerLine(root.picker.listingState, root.picker.total,
         root.picker.marks.length, Picker.totalBytes(root.picker.marks))
+
+    function updateTransferAnnouncement() {
+        var key = root.transferring ? "transfer:" + root.picker.transfer.id : ""
+        root.transferAnnouncement = A11y.progress(root.transferAnnouncement, key,
+                                                  root.transferLine, root.transferFraction)
+        root.announceNow(A11y.notice(root.transferAnnouncement.text, false))
+    }
+
+    function updateFetchAnnouncement() {
+        root.fetchAnnouncement = A11y.progress(root.fetchAnnouncement, root.fetching ? "fetch" : "",
+                                               root.fetching ? root.fetch.line : "", root.fetchFraction)
+        root.announceNow(A11y.notice(root.fetchAnnouncement.text, false))
+    }
+
+    onTransferLineChanged: root.updateTransferAnnouncement()
+    onTransferFractionChanged: root.updateTransferAnnouncement()
+    onFetchingChanged: {
+        if (root.fetching)
+            Qt.callLater(root.updateFetchAnnouncement)
+        else
+            root.fetchAnnouncement = A11y.emptyProgress()
+    }
+    onFetchFractionChanged: if (root.fetching) root.updateFetchAnnouncement()
 
     height: Theme.chromeHeight
 
@@ -121,6 +161,9 @@ Item {
 
     Text {
         id: notice
+        function speak(text, assertive) {
+            Accessible.announce(text, assertive ? Accessible.Assertive : Accessible.Polite)
+        }
         anchors.left: parent.left
         anchors.leftMargin: Theme.spacing.rowPaddingX
         anchors.right: hints.left

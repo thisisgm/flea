@@ -205,7 +205,7 @@ case_pasteprogress() {
     make_fixture
     sandbox_scratch "$fixture/bulk"
     sandbox_scratch "$fixture/dest"
-    local i row step line="" progress result
+    local i row step line="" progress result spoken=""
     for i in $(seq 1 20000); do
         printf x > "$fixture/bulk/$i"
     done
@@ -229,6 +229,14 @@ case_pasteprogress() {
     progress="$line"
     [[ "$(ipc message)" == "$line" ]] \
         || fail "pasteprogress: the old copy notice hid the live transfer line"
+    for step in $(seq 1 20); do
+        spoken=$(ipc announcement)
+        [[ "$spoken" == Copying* ]] && break
+        sleep 0.05
+    done
+    [[ "$spoken" == Copying* ]] || fail "pasteprogress: the screen reader got '$spoken'"
+    [[ "$(ipc announcementIsError)" == "false" ]] \
+        || fail "pasteprogress: ordinary progress used assertive urgency"
     for step in $(seq 1 80); do
         line=$(ipc transferLine)
         [[ -z "$line" ]] && break
@@ -238,6 +246,8 @@ case_pasteprogress() {
     result=$(ipc message)
     [[ "$result" == "Copied 1 item · z undoes" ]] \
         || fail "pasteprogress: the finished footer said '$result'"
+    [[ "$(ipc announcement)" == "$result" ]] \
+        || fail "pasteprogress: completion was not the last live announcement"
     [[ -e "$fixture/dest/bulk/20000" ]] || fail "pasteprogress: the copy did not finish"
     [[ -e "$fixture/bulk/20000" ]] || fail "pasteprogress: the copy removed its source"
     press -k Escape
@@ -719,7 +729,7 @@ case_rename() {
     make_fixture
     start_client --multiple
     walk_to_fixture
-    local alpha beta gamma step
+    local alpha beta gamma row step
     alpha=$(row_named alpha.txt); beta=$(row_named beta.txt); gamma=$(row_named gamma.bin)
 
     press -k F2
@@ -759,6 +769,24 @@ case_rename() {
     done
     [[ -e "$fixture/clicked.txt" && ! -e "$fixture/renamed.txt" ]] || fail "rename: click-away did not commit"
     [[ "$(ipc cursorName)" == "gamma.bin" ]] || fail "rename: click-away moved the cursor to $(ipc cursorName)"
+
+    # beta.txt already exists. The refused rename stays visible and reaches the assertive live path.
+    row=$(row_named clicked.txt)
+    press -k Home
+    while [[ "$(ipc cursor)" != "$row" ]]; do press -k Down; done
+    press -k F2
+    press 'beta'
+    press -k Return
+    for step in $(seq 1 20); do
+        [[ "$(ipc message)" == "A file with that name is already here." ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc announcement)" == "A file with that name is already here." ]] \
+        || fail "rename: the refusal was not announced"
+    [[ "$(ipc announcementIsError)" == "true" ]] \
+        || fail "rename: the refusal did not use assertive urgency"
+    [[ -e "$fixture/clicked.txt" && -e "$fixture/beta.txt" ]] \
+        || fail "rename: the refused rename changed a file"
     press -k Escape
     wait_for_client
     printf 'rename: F2 and the menu edit a stem, Return and click-away commit, and Escape restores the list\n'
@@ -1518,7 +1546,7 @@ case_typed_file() {
 # The download stays in the cache, as it does for a real caller; the sweep at a later --pick takes it.
 case_typed_url() {
     make_fixture
-    local reply port step uri cache
+    local reply port step uri cache failed_url failed_line n
     (cd "$fixture" && exec python3 -u -m http.server --bind 127.0.0.1 0) > "$fixture/server.out" 2>&1 &
     server=$!
     port=""
@@ -1530,6 +1558,22 @@ case_typed_url() {
     [[ -n "$port" ]] || fail "http.server never said which port it bound: $(cat "$fixture/server.out")"
     start_typed typed_url
     press ':'
+    failed_url="http://127.0.0.1:$port/missing.txt"
+    press "$failed_url"
+    press -k Return
+    for step in $(seq 1 60); do
+        [[ "$(ipc fetching)" == "0" && -n "$(ipc message)" ]] && break
+        sleep 0.1
+    done
+    failed_line=$(ipc message)
+    [[ -n "$failed_line" ]] || fail "the failed URL left no footer message"
+    [[ "$(ipc announcement)" == "$failed_line" ]] \
+        || fail "the failed URL was not the last live announcement"
+    [[ "$(ipc announcementIsError)" == "true" ]] \
+        || fail "the failed URL did not use assertive urgency"
+    [[ ! -s "$reply" ]] || fail "the failed URL answered the caller with $(cat "$reply")"
+    press ':'
+    for ((n = 0; n < ${#failed_url}; n++)); do press -k BackSpace; done
     press "http://127.0.0.1:$port/alpha.txt"
     press -k Return
     for step in $(seq 1 60); do

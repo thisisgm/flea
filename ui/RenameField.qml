@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import "js/PickerA11y.js" as PickerA11y
 
 // The row becoming its own editor, per the States artboard: an accent frame around the name, the
 // extension muted inside that frame, enter commits and escape abandons.
@@ -86,6 +87,9 @@ Item {
         font.family: Theme.font.family
         font.pixelSize: Theme.font.body
         clip: true
+        Accessible.role: Accessible.EditableText
+        // The label keeps the target while the value changes, so a screen reader names both jobs.
+        Accessible.name: PickerA11y.renameLabel(root.name)
 
         // Both keys are handled and accepted here rather than through onAccepted, because an
         // unaccepted Return goes on to the list's own Keys handler, which reads it as "open" and

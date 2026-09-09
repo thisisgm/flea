@@ -50,6 +50,8 @@ QtObject {
         function saveName(): string { return root.state.saveName }
         function message(): string { return root.footer.noticeLine }
         function transferLine(): string { return root.footer.transferLine }
+        function announcement(): string { return root.footer.announcement }
+        function announcementIsError(): bool { return root.footer.announcementIsError }
         // The footer's standing line, the count and selection a message or a download would cover.
         function count(): string { return root.footer.standing }
         function fetching(): int { return root.fetcher.fetching ? 1 : 0 }

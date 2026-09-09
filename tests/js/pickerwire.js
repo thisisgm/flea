@@ -71,6 +71,9 @@ function run(check) {
     check("a failed trash still spends its pending snapshot", s.trashPending.length, 0)
     check("and says so in the error role", s.said.join("|") + ":" + s.errors[0], "That item could not be moved to Trash.:true")
     check("and still re-reads", s.relisted, "/d")
+    s = stubState({ trashPending: ["/d/a.png", "/d/c.png"] })
+    Wire.trashed(s, 1, 1)
+    check("a partial trash failure is still an error", s.errors[0], true)
 
     // ---- renamed, made, duplicated, undone: each re-read seats the path the write produced ----
     s = stubState({ renameFromPath: "/d/c.png", renameListingPath: "/d",
@@ -130,6 +133,9 @@ function run(check) {
     s = stubState({ transfer: Ops.started(2, true, 2) })
     Wire.transferDone(s, 2, 0, 2, 0, false)
     check("a transfer that moved nothing is an error", s.errors[0] + ":" + s.said[0], "true:Moved 0 items, 2 failed")
+    s = stubState({ transfer: Ops.started(3, false, 2) })
+    Wire.transferDone(s, 3, 1, 1, 0, false)
+    check("a partial transfer failure is still an error", s.errors[0], true)
 
     // ---- armRename: the editor opens only on the row the cursor really landed on ----
     s = stubState({ renameOnArrival: "/d/sub", cursorIndex: 3 })
