@@ -596,6 +596,16 @@ key off a cursor step past an end clamps, and with it on a step taken from an en
 key exists because issue 27 asked for the wrap, and it ships off because a second operator reported
 that same jump past the top as a bug.
 
+**`sort` is written by `ui/js/Sort.js` `resort` and by nothing else.** `ui/ViewState.qml` exposes
+it as `sortKey` and `sortReverse` and takes it through `setSort`, but the caller is `resort`, because
+that is the one place that knows which keys the backend accepts (`ORDERS`): the request goes out for
+every key and the backend's refusal is its own, and only an order the backend will really produce
+moves the backend's mark, so the same gate stores it. A `.pragma library` cannot import the singleton
+and `ui/js/Focus.js` hands `s`, `S` and the header click only the pane, so `ViewState` registers
+itself with `Sort.setStore` when it loads, the way it pushes its preset into `ui/js/Keymap.js`. A
+window that could sort before it has read `ViewState` would record on the backend alone; both windows
+read it before their first listing.
+
 **`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
 a closed list, because a closed list would make this Flea drop an id a newer one hid. It is the
 Menus section's whole visibility state: the panel's master row over the six basic actions is derived

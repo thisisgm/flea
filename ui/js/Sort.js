@@ -6,7 +6,16 @@
 // What the header's click and the s and S keys do, taking ui/Pane.qml's root the way Nav.js and
 // Ops.js do: the pane holds the state, this holds what the state does. ui/Backend.qml records the
 // order the listing is actually in, because list re-sorts by name ascending and only this file
-// changes it after that.
+// changes it after that. ui/ViewState.qml records the same order for the next window to come back
+// to, and it is written from here for the same reason: this is the one file that knows which keys
+// the backend accepts, so only an order the backend will really produce is ever stored.
+
+// Where the accepted order is remembered, the way ui/js/Keymap.js holds its preset: a library cannot
+// import the ui/ViewState.qml singleton, and ui/js/Focus.js hands s, S and the header click only the
+// pane, so ViewState registers itself when it loads. Until then, and in the suites that drive the
+// keys with no state file, the backend's own mark is the only record.
+var store = null
+function setStore(viewState) { store = viewState }
 
 // The orders the backend can actually produce, in the order s steps through them, and the only keys
 // that may move the recorded order. It is not the list of what gets refused: docs/protocol.md "sort"
@@ -49,6 +58,8 @@ function resort(pane, key, desc) {
     }
     pane.backend.sortBy = key
     pane.backend.sortDesc = desc
+    if (store)
+        store.setSort(key, desc)
     // A reorder moves every row, so the caches keyed by a row index are as stale as a new listing's,
     // and a selection of row indices would silently come to name different files.
     pane.thumbState = Thumbs.empty()
