@@ -1,9 +1,10 @@
 import QtQuick
 import "js/Picker.js" as Picker
 
-// The footer: what is checked on the left, the keys that act on it on the right. A message from
-// the window takes the left slot in the accent while it lives, and a download in flight takes it
-// for as long as it runs, with a slim bar along the top rule for how far along it is.
+// The footer: how many rows the listing holds and what is checked on the left, the keys that act
+// on it on the right. A message from the window takes the left slot in the accent while it lives,
+// and a download in flight takes it for as long as it runs, with a slim bar along the top rule
+// for how far along it is.
 Item {
     id: root
 
@@ -24,6 +25,10 @@ Item {
     }
 
     readonly property bool fetching: root.fetch !== null && root.fetch.fetching
+
+    // The left slot's own line, what it says once no message and no download outranks it.
+    readonly property string standing: Picker.footerLine(root.picker.listingState, root.picker.total,
+        root.picker.marks.length, Picker.totalBytes(root.picker.marks))
 
     height: Theme.chromeHeight
 
@@ -90,7 +95,7 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         text: root.message.length > 0 ? root.message
             : root.fetching ? root.fetch.line
-            : Picker.statusLine(root.picker.marks.length, Picker.totalBytes(root.picker.marks))
+            : root.standing
         color: root.message.length > 0 || root.fetching ? Theme.color.accent : Theme.color.foreground
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption

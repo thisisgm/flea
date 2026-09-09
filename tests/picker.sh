@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|header|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -128,11 +128,14 @@ case_pick() {
     start_client --multiple
     walk_to_fixture
     [[ "$(ipc cursorName)" == "alpha.txt" ]] || fail "the cursor landed on $(ipc cursorName), not the first row"
+    [[ "$(ipc count)" == "3 items" ]] || fail "the footer counts the fixture as: $(ipc count)"
     press -k space
     [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "space marked $(ipc marks)"
     press -k Down
     press -k space
     [[ "$(ipc marks)" == "$fixture/alpha.txt,$fixture/beta.txt" ]] || fail "the second mark left $(ipc marks)"
+    # The count stays and the selection clause joins it: the two fixture files weigh 44 bytes.
+    [[ "$(ipc count)" == "3 items   2 selected · 44 B" ]] || fail "the footer says $(ipc count) with two marked"
     press -k Return
     wait_for_client
     [[ "$client_status" == 0 ]] || fail "the caller exited $client_status with $(cat "$fixture/client.err")"
@@ -715,6 +718,42 @@ case_pills() {
     printf 'pills: a caller with no filters gets All files and the config pills, a caller with filters gets only its own\n'
 }
 
+# "/" opens the browser's query line over the listing and every key goes into it until Enter hands
+# the keyboard back with the filter standing; Escape then unwinds the filter before the dialog. A
+# mark is a path, so one made before the filter is still there after it.
+case_filter() {
+    make_fixture
+    local reply
+    start_typed filter
+    [[ "$(ipc total)" == "3" ]] || fail "the fixture listed $(ipc total) rows, not 3"
+    [[ "$(ipc cursorName)" == "alpha.txt" ]] || fail "the cursor started on $(ipc cursorName), not alpha.txt"
+    press -k space
+    [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "Space marked $(ipc marks), not alpha.txt"
+    [[ "$(ipc filterTyping)" == "0" ]] || fail "the query line had the caret before anyone pressed /"
+    press '/'
+    [[ "$(ipc filterTyping)" == "1" ]] || fail "/ did not open the query line"
+    press 't'
+    [[ "$(ipc filterQuery)" == "t" ]] || fail "the query line holds $(ipc filterQuery), not the typed t"
+    [[ "$(ipc shownTotal)" == "2" ]] || fail "t left $(ipc shownTotal) rows standing, not the two .txt rows"
+    [[ "$(ipc total)" == "3" ]] || fail "the filter changed the listing itself to $(ipc total) rows"
+    press -k Return
+    [[ "$(ipc filterTyping)" == "0" ]] || fail "Return left the caret in the query line"
+    [[ "$(ipc filterQuery)" == "t" ]] || fail "Return dropped the query to $(ipc filterQuery)"
+    [[ "$(ipc shownTotal)" == "2" ]] || fail "Return widened the rows back to $(ipc shownTotal)"
+    kill -0 "$asker" 2>/dev/null || fail "Return in the query line answered the dialog"
+    press -k Down
+    [[ "$(ipc cursorName)" == "beta.txt" ]] || fail "Down after the commit moved the cursor to $(ipc cursorName), not beta.txt"
+    [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "the mark did not survive the filter: $(ipc marks)"
+    press -k Escape
+    [[ "$(ipc filterQuery)" == "" ]] || fail "Escape left the query standing as $(ipc filterQuery)"
+    [[ "$(ipc shownTotal)" == "3" ]] || fail "Escape did not widen the rows back: $(ipc shownTotal) shown"
+    kill -0 "$asker" 2>/dev/null || fail "the first Escape cancelled the dialog instead of the filter"
+    press -k Escape
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == '{"response":1}' ]] || fail "the filter request replied $(cat "$reply")"
+    printf 'filter: / opens the query line, typing narrows the rows, Return leaves the filter standing, Escape clears it and then cancels\n'
+}
+
 # Starts the picker on the fixture directly, the way case_typed does, and leaves it to the caller
 # to type and to end. asker holds the process; reply names the file it answers into.
 start_typed() {
@@ -1048,6 +1087,7 @@ for name in "$@"; do
         died) case_died ;;
         fault) case_fault ;;
         pills) case_pills ;;
+        filter) case_filter ;;
         header) case_header ;;
         thumbs) case_thumbs ;;
         taildrop) case_taildrop ;;

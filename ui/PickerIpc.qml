@@ -42,9 +42,13 @@ QtObject {
         function recent(): bool { return root.state.recent }
         function accept(): string { return Picker.acceptLabel(root.state.req, root.state.marks.length) }
         function chip(): int { return root.state.filterIndex }
+        function filterQuery(): string { return root.state.filterQuery }
+        function filterTyping(): int { return root.state.filterTyping ? 1 : 0 }
         function chips(): string { return root.state.chips.map(function (c) { return c.label }).join(",") }
         function saveName(): string { return root.state.saveName }
         function message(): string { return root.footer.message }
+        // The footer's standing line, the count and selection a message or a download would cover.
+        function count(): string { return root.footer.standing }
         function fetching(): int { return root.fetcher.fetching ? 1 : 0 }
         function fetchLine(): string { return root.fetcher.line }
         function entry(): string { return root.entry.text }

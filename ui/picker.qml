@@ -173,11 +173,21 @@ ShellRoot {
                 onSortRequested: function (key) { if (!state.recent) Sort.column(state, key) }
             }
 
+            // The browser's own query line, under the header as the window stacks it: it reads
+            // state as its pane and collapses to nothing while no filter is up.
+            Flea.FilterStrip {
+                id: filterStrip
+                anchors.left: places.right
+                anchors.right: parent.right
+                anchors.top: header.bottom
+                pane: state
+            }
+
             Flea.PickerList {
                 id: list
                 anchors.left: places.right
                 anchors.right: parent.right
-                anchors.top: header.bottom
+                anchors.top: filterStrip.bottom
                 anchors.bottom: entryField.top
                 picker: state
                 backend: backend
