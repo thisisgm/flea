@@ -1,5 +1,6 @@
 .pragma library
 
+.import "Keymap.js" as Keymap
 .import "Ops.js" as Ops
 .import "Picker.js" as Picker
 .import "PickerKeys.js" as PickerKeys
@@ -9,6 +10,13 @@
 // and where a chosen row goes. Pure over ui/PickerState.qml, so tests/js/pickermenu.js drives both
 // without a window.
 
+function hintFor(action) {
+    if (action === "cut") return "Ctrl+X"
+    if (action === "copy") return "Ctrl+C"
+    if (action === "paste") return "Ctrl+V"
+    if (action === "trash") return "Delete"
+    return Keymap.hintFor(action)
+}
 // A right click on a row, ui/js/Tap.js tappedMenu for marks. Pressed on a marked row the menu
 // addresses every mark standing in this directory; pressed on an unmarked one those marks drop
 // and the row alone is what Cut and Move to Trash then act on, ui/js/PickerOps.js pathsFor's

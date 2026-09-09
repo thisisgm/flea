@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|selectall|pasteprogress|click|menu|opener|rename|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|selectall|copypaste|pasteprogress|click|menu|opener|rename|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -170,6 +170,33 @@ case_selectall() {
     press -k Escape
     wait_for_client
     printf 'selectall: ctrl+a marks every drawn file in a multiple request and refuses in a single one\n'
+}
+
+# Copy keeps its source and can paste after the picker walks into another directory.
+case_copypaste() {
+    make_fixture
+    sandbox_make "$fixture/dest"
+    start_client
+    walk_to_fixture
+    while [[ "$(ipc cursorName)" != "alpha.txt" ]]; do
+        press -k Down
+    done
+    press -k c --mods ctrl
+    press -k Home
+    [[ "$(ipc cursorName)" == "dest" ]] || fail "Home landed on $(ipc cursorName), not dest"
+    press -k Return
+    press -k v --mods ctrl
+    local step
+    for step in $(seq 1 40); do
+        [[ -e "$fixture/dest/alpha.txt" ]] && break
+        sleep 0.25
+    done
+    [[ -e "$fixture/dest/alpha.txt" ]] || fail "Ctrl+V did not copy alpha.txt into dest"
+    [[ -e "$fixture/alpha.txt" ]] || fail "copy removed the source alpha.txt"
+    cmp -s "$fixture/alpha.txt" "$fixture/dest/alpha.txt" || fail "the pasted alpha.txt differs from its source"
+    press -k Escape
+    wait_for_client
+    printf 'copypaste: ctrl+c then ctrl+v copied alpha.txt into dest and kept its source\n'
 }
 
 # A directory tree keeps the copy alive long enough to read its progress line. This is the
@@ -396,7 +423,7 @@ case_menu() {
     start_client --multiple
     walk_to_fixture
     ipc_is_live
-    local alpha beta empty
+    local alpha beta empty hints hint_state
     alpha=$(row_named alpha.txt); beta=$(row_named beta.txt)
     click_row "$alpha" left --mods ctrl
     [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "menu: ctrl+click marked $(ipc marks)"
@@ -407,7 +434,17 @@ case_menu() {
     [[ -z "$(ipc marks)" ]] || fail "menu: a right click outside the marks left $(ipc marks) standing"
     [[ "$(ipc contextMenuEntries)" == "Open|Copy path|-|Cut|Copy|Paste|Duplicate|Rename|-|Move to Trash|-|Open in terminal|New folder|Show hidden files" ]] \
         || fail "menu: the row menu draws $(ipc contextMenuEntries)"
-    printf 'MENU row=%s\n' "$(ipc contextMenuEntries)"
+    hints=$(ipc contextMenuHints)
+    hint_state=$(ipc keyHints)
+    if [[ "$hint_state" == "true" ]]; then
+        [[ "$hints" == "enter|||Ctrl+X|Ctrl+C|Ctrl+V||r||Delete||||." ]] \
+            || fail "menu: the enabled row menu hints are $hints"
+    elif [[ "$hint_state" == "false" ]]; then
+        [[ -z "${hints//|/}" ]] || fail "menu: disabled row menu hints are $hints"
+    else
+        fail "menu: keyHints answered $hint_state"
+    fi
+    printf 'MENU row=%s hints=%s\n' "$(ipc contextMenuEntries)" "$hints"
     press -k Escape
     sleep 0.3
     [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "menu: Escape left the menu open"
@@ -1518,11 +1555,12 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall pasteprogress click menu opener rename duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall copypaste pasteprogress click menu opener rename duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
         selectall) case_selectall ;;
+        copypaste) case_copypaste ;;
         pasteprogress) case_pasteprogress ;;
         click) case_click ;;
         menu) case_menu ;;

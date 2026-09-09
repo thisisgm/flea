@@ -38,7 +38,7 @@ QtObject {
         function onMade(ok, path) { Wire.made(root.picker, ok, path) }
         function onDuplicated(ok, path) { Wire.duplicated(root.picker, ok, path) }
         function onUndone(op, ok) { Wire.undone(root.picker, op, ok) }
-        // The answer to Ops.clip's askPaths; nothing reaches the clipboard until this lands.
+        // Picker copy needs no path reply. Keep the generic reply route for future picker operations.
         function onPaths(list) { Ops.pathsResolved(root.picker, list) }
 
         function onTransferStarted(id, n, moving) { Wire.transferStarted(root.picker, id, n, moving) }

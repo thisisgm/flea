@@ -94,6 +94,7 @@ QtObject {
     property string filterQuery: ""
     property bool filterTyping: false
     property bool showHidden: false
+    // Absolute paths for cut and copy. This clipboard belongs to this process, not the system.
     property var clipboard: Ops.emptyClipboard()
     property var clipPending: null
     property var pathsPending: null
@@ -120,6 +121,8 @@ QtObject {
     function pathsFor() { return PickerOps.pathsFor(root) }
     function dropMarks(paths) { PickerOps.dropMarks(root, paths) }
     function selectAll() { PickerOps.selectAll(root) }
+    function clip(moving) { PickerOps.clip(root, moving) }
+    function paste() { PickerOps.paste(root) }
     // A row's identity, which in Recent is the row's own path and never a join onto the token.
     function join(base, name) { return Picker.rowPath(base, name) }
     function message(text, isError) { root.footer.say(text, false, isError) }
