@@ -134,4 +134,18 @@ function run(check) {
     check("a pick answers with its URIs", Picker.reply(0, ["/home/gm/a.txt"]),
           '{"response":0,"uris":["file:///home/gm/a.txt"]}')
     check("a refusal answers with no URI at all", Picker.reply(1, ["/home/gm/a.txt"]), '{"response":1}')
+
+    // The caller learns which of its filters held; it learns nothing from All files or a refusal.
+    var images = { label: "Images", globs: ["*.png"], mimes: ["image/jpeg"] }
+    check("a pick under a caller's filter echoes it", Picker.reply(0, ["/home/gm/a.png"], images),
+          '{"response":0,"uris":["file:///home/gm/a.png"],"current_filter":{"label":"Images","globs":["*.png"],"mimes":["image/jpeg"]}}')
+    check("a refusal under a filter still says nothing", Picker.reply(1, ["/home/gm/a.png"], images), '{"response":1}')
+    check("All files echoes no filter", Picker.reply(0, ["/home/gm/a.png"], null),
+          '{"response":0,"uris":["file:///home/gm/a.png"]}')
+    check("a config pill is echoed under the label it showed",
+          JSON.parse(Picker.reply(0, ["/home/gm/a.jpg"], { name: "", globs: ["*.jpg", "*.jpeg"], mimes: [] })).current_filter.label,
+          ".jpg (.jpg, .jpeg)")
+    check("a filter with no rule is dropped",
+          Picker.reply(0, ["/home/gm/a.png"], { label: "Nothing", globs: [], mimes: [] }),
+          '{"response":0,"uris":["file:///home/gm/a.png"]}')
 }

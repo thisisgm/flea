@@ -136,6 +136,26 @@ def filters_option(options, key):
     return out
 
 
+def string_list(value):
+    if not isinstance(value, list):
+        return []
+    return [item for item in value if isinstance(item, str)]
+
+
+# The filter the picker answered under, as the one (sa(us)) the portal's current_filter result
+# carries: the inverse of filters_option for a single entry. A filter with no rule narrows nothing,
+# so it is dropped rather than echoed.
+def filter_result(picked):
+    if not isinstance(picked, dict) or not isinstance(picked.get("label"), str):
+        return None
+    globs = string_list(picked.get("globs"))
+    mimes = string_list(picked.get("mimes"))
+    if not globs and not mimes:
+        return None
+    rules = [(0, rule) for rule in globs] + [(1, rule) for rule in mimes]
+    return GLib.Variant("(sa(us))", (picked["label"], rules))
+
+
 def current_filter_label(options):
     value = options.get("current_filter")
     if not isinstance(value, tuple) or len(value) != 2:
@@ -205,7 +225,8 @@ class Pick:
             say("the picker exited without an answer, so the request is a fault and not a refusal")
             self.answer(RESPONSE_OTHER, [])
             return
-        self.answer(answer.get("response", RESPONSE_OTHER), answer.get("uris", []))
+        self.answer(answer.get("response", RESPONSE_OTHER), answer.get("uris", []),
+                    answer.get("current_filter"))
 
     def read_reply(self):
         try:
@@ -217,7 +238,7 @@ class Pick:
             return None
         return answer
 
-    def answer(self, response, uris):
+    def answer(self, response, uris, current_filter=None):
         if self.answered:
             return
         self.answered = True
@@ -225,6 +246,9 @@ class Pick:
         # Only a success carries URIs, and xdg-desktop-portal drops anything that is not a file URI.
         if response == RESPONSE_OK:
             results["uris"] = GLib.Variant("as", [uri for uri in uris if isinstance(uri, str) and uri.startswith("file://")])
+            picked = filter_result(current_filter)
+            if picked is not None:
+                results["current_filter"] = picked
         self.invocation.return_value(GLib.Variant("(ua{sv})", (response, results)))
         self.service.finished(self)
 

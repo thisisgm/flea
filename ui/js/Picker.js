@@ -232,10 +232,31 @@ function uris(list) {
     return out
 }
 
-// What tools/flea-portal reads out of the reply file. A refusal carries no URI at all.
-function reply(response, list) {
+// The filter a pick was made under, as the portal's current_filter result: the caller's own label
+// or the one a config pill shows, with its rules. All files is no filter and a filter with no rule
+// narrows nothing, so neither is echoed; the caller would learn nothing from either.
+function pickedFilter(filter) {
+    if (!filter) {
+        return null
+    }
+    var globs = Array.isArray(filter.globs) ? filter.globs.map(String) : []
+    var mimes = Array.isArray(filter.mimes) ? filter.mimes.map(String) : []
+    if (globs.length + mimes.length === 0) {
+        return null
+    }
+    var label = filter.label ? String(filter.label) : Filters.labelFor(filter)
+    return { label: label, globs: globs, mimes: mimes }
+}
+
+// What tools/flea-portal reads out of the reply file. A refusal carries no URI and no filter.
+function reply(response, list, filter) {
     if (response !== RESPONSE_OK) {
         return JSON.stringify({ response: response })
     }
-    return JSON.stringify({ response: RESPONSE_OK, uris: uris(list) })
+    var out = { response: RESPONSE_OK, uris: uris(list) }
+    var picked = pickedFilter(filter)
+    if (picked) {
+        out.current_filter = picked
+    }
+    return JSON.stringify(out)
 }
