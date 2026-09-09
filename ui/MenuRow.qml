@@ -8,9 +8,10 @@ import "js/Menu.js" as Menu
 Item {
     id: root
 
-    // {label, action, glyph, danger?, submenu?, checked?, keepOpen?} or {separator: true}; see ui/ContextMenu.qml's buildEntries.
+    // {label, action, glyph, danger?, submenu?, checked?, enabled?, keepOpen?} or {separator: true}; see ui/ContextMenu.qml's buildEntries.
     property var entry: ({})
     property bool current: false
+    property bool accessibleCurrent: root.current
     property var hintFor: Keymap.hintFor
     // A pick list's chosen row, drawn as the canvas draws the convert popup and the share list:
     // accent ink over an accent tint, where a plain menu row only takes the foreground lift below.
@@ -54,8 +55,26 @@ Item {
     // The rail's mark slot is its icon size, exactly as ui/SidebarRow.qml sizes its own.
     readonly property int slotSize: root.compact ? Theme.railIconSize : Theme.markSize
 
+    enabled: root.entry.enabled !== false
     height: root.isSeparator ? root.separatorHeight
           : (root.compact ? Theme.railRowHeight : Theme.rowHeight)
+
+    Accessible.role: root.isSeparator ? Accessible.Separator : Accessible.MenuItem
+    Accessible.name: root.isSeparator ? "" : (root.entry.label || "")
+    Accessible.description: root.isSubmenu ? "Has submenu" : ""
+    Accessible.checkable: root.isCheckbox
+    Accessible.checked: root.entry.checked === true
+    Accessible.focusable: !root.isSeparator
+    Accessible.focused: root.Accessible.focusable && root.accessibleCurrent
+    Accessible.onPressAction: if (!root.isSeparator && root.enabled) root.activated()
+
+    // A read-only UI-test seam. Quickshell exposes no accessibility children through AT-SPI.
+    function accessibleProbe() {
+        var role = root.Accessible.role === Accessible.Separator ? "separator" : "menuitem"
+        return role + "|" + root.Accessible.name + "|" + root.Accessible.description + "|"
+            + root.Accessible.checkable + "|" + root.Accessible.checked + "|" + root.enabled + "|"
+            + root.Accessible.focusable + "|" + root.Accessible.focused
+    }
 
     Rectangle {
         anchors.fill: parent
@@ -154,8 +173,7 @@ Item {
         anchors.rightMargin: root.isSubmenu ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         text: root.hint
-        // Menus.html paints an enabled row's hint in its label's own ink and keeps muted for the
-        // disabled row's; no menu entry in this tree can be disabled, so every hint follows the label.
+        // Hints follow their label's ink. The disabled Name row has no action and therefore no hint.
         color: root.labelColor
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption

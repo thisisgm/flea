@@ -111,6 +111,7 @@ Item {
                     // the row it is over, which is what ui/Row.qml did here before.
                     picked: shareRow.index === root.cursorIndex
                     current: shareRow.hovered
+                    accessibleCurrent: shareRow.index === root.cursorIndex
                     onActivated: {
                         root.cursorIndex = shareRow.index
                         root.activateCursor()

@@ -493,12 +493,18 @@ case_header() {
     click_centre "$centre" right || fail "could not right-click the picker header"
     sleep 0.3
     [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "a right click over the picker header opened no menu"
+    [[ "$(ipc contextMenuAccessibility 0)" == "menuitem|Name||true|true|false|true|true" ]] \
+        || fail "the fixed Name column accessibility is $(ipc contextMenuAccessibility 0)"
+    [[ "$(ipc contextMenuAccessibility 2)" == "menuitem|Size||true|true|true|true|false" ]] \
+        || fail "the Size checkbox accessibility is $(ipc contextMenuAccessibility 2)"
     for step in 1 2 3 4; do press -k Down; done
     if [[ "$kind_on" == 1 ]]; then
         press -k Return
         sleep 0.3
     fi
     [[ "$(ipc contextMenuChecks)" == *"|0" ]] || fail "Kind did not start the test unticked: $(ipc contextMenuChecks)"
+    [[ "$(ipc contextMenuAccessibility 4)" == "menuitem|Kind||true|false|true|true|true" ]] \
+        || fail "the unticked Kind accessibility is $(ipc contextMenuAccessibility 4)"
     base_titles=$(ipc headerTitles)
     base_columns=$(ipc columnSet 0)
     press -k Return
@@ -566,6 +572,10 @@ case_menu() {
     [[ -z "$(ipc marks)" ]] || fail "menu: a right click outside the marks left $(ipc marks) standing"
     [[ "$(ipc contextMenuEntries)" == "Open|Copy path|-|Cut|Copy|Paste|Duplicate|Rename|-|Move to Trash|-|Open in terminal|New folder|Show hidden files" ]] \
         || fail "menu: the row menu draws $(ipc contextMenuEntries)"
+    [[ "$(ipc contextMenuAccessibility 0)" == "menuitem|Open||false|false|true|true|true" ]] \
+        || fail "menu: Open accessibility is $(ipc contextMenuAccessibility 0)"
+    [[ "$(ipc contextMenuAccessibility 2)" == "separator|||false|false|true|false|false" ]] \
+        || fail "menu: separator accessibility is $(ipc contextMenuAccessibility 2)"
     hints=$(ipc contextMenuHints)
     hint_state=$(ipc keyHints)
     if [[ "$hint_state" == "true" ]]; then
@@ -587,6 +597,8 @@ case_menu() {
     sleep 0.3
     [[ "$(ipc contextMenuEntries)" == "New folder|-|Paste|Select all|-|Sort by|Open in terminal|Show hidden files" ]] \
         || fail "menu: the background menu draws $(ipc contextMenuEntries)"
+    [[ "$(ipc contextMenuAccessibility 5)" == "menuitem|Sort by|Has submenu|false|false|true|true|false" ]] \
+        || fail "menu: Sort by accessibility is $(ipc contextMenuAccessibility 5)"
     # New folder, Paste, Select all, Sort by: three steps over two rules, then the flyout, then Size.
     press -k Down; press -k Down; press -k Down
     sleep 0.2
