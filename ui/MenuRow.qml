@@ -11,6 +11,7 @@ Item {
     // {label, action, glyph, danger?, submenu?, checked?, keepOpen?} or {separator: true}; see ui/ContextMenu.qml's buildEntries.
     property var entry: ({})
     property bool current: false
+    property var hintFor: Keymap.hintFor
     // A pick list's chosen row, drawn as the canvas draws the convert popup and the share list:
     // accent ink over an accent tint, where a plain menu row only takes the foreground lift below.
     property bool picked: false
@@ -38,7 +39,7 @@ Item {
     // through the generated map, so an unbound action leaves the slot empty rather than guessing.
     // Empty with the Menus section's hints row off, which takes the slot's width with it.
     readonly property string hint: root.isSeparator || !ViewState.keyHints
-                                 ? "" : Keymap.hintFor(root.entry.action)
+                                 ? "" : root.hintFor(root.entry.action)
     readonly property color markColor: root.danger ? Theme.color.error
                                      : root.picked ? Theme.color.accent : Theme.color.muted
     readonly property color labelColor: root.danger ? Theme.color.error

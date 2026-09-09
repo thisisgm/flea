@@ -1,5 +1,6 @@
 .pragma library
 
+.import "Keymap.js" as Keymap
 .import "Ops.js" as Ops
 .import "Picker.js" as Picker
 .import "PickerKeys.js" as PickerKeys
@@ -13,6 +14,14 @@
 // prints, ui/js/PickerKeys.js SHARED's own rule for a chord. Open and Copy path are menu rows
 // and not key table actions, so they are named here and not there.
 var UNBUILT = { open: "Open", copypath: "Copy path" }
+
+function hintFor(action) {
+    if (action === "cut") return "Ctrl+X"
+    if (action === "copy") return "Ctrl+C"
+    if (action === "paste") return "Ctrl+V"
+    if (action === "trash") return "Delete"
+    return Keymap.hintFor(action)
+}
 
 // A right click on a row, ui/js/Tap.js tappedMenu for marks. Pressed on a marked row the menu
 // addresses every mark standing in this directory; pressed on an unmarked one those marks drop
