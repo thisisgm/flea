@@ -12,7 +12,6 @@ import qs.Commons
 import "." as Flea
 import "js/Picker.js" as Picker
 import "js/PickerMarks.js" as Marks
-import "js/PickerSaveName.js" as SaveName
 
 // One portal request, one window: the org.freedesktop.impl.portal.FileChooser dialog every caller on
 // the box gets, opened by flea --pick and answered through the reply file tools/flea-portal reads.
@@ -148,21 +147,9 @@ ShellRoot {
         function accept() {
             if (win.fetching)
                 return
+            // The save box's line is a name or a path; ui/PickerNavigate.qml says, walks or answers.
             if (win.saving) {
-                if (win.saveName.length === 0) {
-                    win.say("Name the file before saving it")
-                    return
-                }
-                // A separator or a leading "~" makes the name a path, which walks or lands, never answers.
-                if (SaveName.isPath(win.saveName)) {
-                    navigate.enterSave(win.saveName)
-                    return
-                }
-                if (!Picker.validName(win.saveName)) {
-                    win.say(Picker.NAME_REFUSED)
-                    return
-                }
-                win.finish(Picker.RESPONSE_OK, [Picker.join(win.path, win.saveName)])
+                navigate.acceptSave(win.saveName)
                 return
             }
             // A folder request with nothing checked takes the directory the window is standing in,
