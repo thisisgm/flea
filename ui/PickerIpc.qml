@@ -62,6 +62,10 @@ QtObject {
         function thumbRequests(): int { return root.state.backend.thumbRequests }
         function thumbFile(index: int): string { return root.list.thumbFor(index) }
         function dragRows(): string { return root.list.dragRows.join(",") }
+        function renameEditorText(): string {
+            var editor = root.list.renameEditor()
+            return editor ? editor.editorText : ""
+        }
         // The header's readers, as ui/Ipc.qml has them, and the centre a test aims a sort click at.
         function headerTitles(): string { return root.header.titles() }
         function sortMark(): string { return root.header.sortBy + ":" + (root.header.sortDesc ? "desc" : "asc") }

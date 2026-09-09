@@ -20,6 +20,7 @@ function stubState(over) {
         filterQuery: "",
         filterTyping: false,
         focusView: "list",
+        renameFromPath: "",
         trashPending: [],
         calls: [],
         said: [],
@@ -37,6 +38,7 @@ function stubState(over) {
         focusList: function () { state.focusView = "list"; state.calls.push("focus") },
         clearSelection: function () {},
         cancel: function () { state.calls.push("cancel") },
+        startRename: function () { state.calls.push("rename") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over)
@@ -100,6 +102,9 @@ function run(check) {
           unbuilt.calls.join(";"), "cancel")
     PickerMenu.route("cursorDown", unbuilt, ops, columns)
     check("and reaches the list's ops the way a key does", ops.moved.join(","), "1")
+    PickerMenu.route("rename", unbuilt, ops, columns)
+    check("Rename takes the same state route from the menu as from F2",
+          unbuilt.calls[unbuilt.calls.length - 1], "rename")
     PickerMenu.route("trash", unbuilt, ops, columns)
     check("the danger row sends the cursor path through the key route",
           unbuilt.calls[unbuilt.calls.length - 1],

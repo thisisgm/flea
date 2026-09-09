@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|menu|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|selectall|click|menu|rename|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -409,6 +409,57 @@ case_menu() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "menu: the caller exited 0 after a cancel"
     printf 'menu: a right click draws the row menu or the background one, and Sort by reorders the rows\n'
+}
+
+# F2 and the menu open the row's own editor. The stem starts selected, Return writes the new name,
+# and Escape gives the next key back to the list. A plain click commits before it moves the cursor.
+case_rename() {
+    make_fixture
+    start_client --multiple
+    walk_to_fixture
+    local alpha beta gamma step
+    alpha=$(row_named alpha.txt); beta=$(row_named beta.txt); gamma=$(row_named gamma.bin)
+
+    press -k F2
+    [[ "$(ipc renameEditorText)" == "alpha.txt" ]] || fail "rename: F2 opened with $(ipc renameEditorText)"
+    press 'abandoned'
+    [[ "$(ipc renameEditorText)" == "abandoned.txt" ]] || fail "rename: the stem was not selected, field $(ipc renameEditorText)"
+    press -k Escape
+    [[ -e "$fixture/alpha.txt" && ! -e "$fixture/abandoned.txt" ]] || fail "rename: Escape changed the file"
+    press -k Down
+    [[ "$(ipc cursor)" == "$beta" ]] || fail "rename: the key after Escape left the cursor on $(ipc cursor)"
+
+    click_row "$alpha" right
+    for step in 1 2 3 4 5 6; do press -k Down; done
+    press -k Return
+    [[ "$(ipc renameEditorText)" == "alpha.txt" ]] || fail "rename: the menu opened with $(ipc renameEditorText)"
+    press -k Escape
+
+    press -k space
+    press -k F2
+    press 'renamed'
+    [[ "$(ipc renameEditorText)" == "renamed.txt" ]] || fail "rename: the field holds $(ipc renameEditorText)"
+    press -k Return
+    for step in $(seq 1 40); do
+        [[ -e "$fixture/renamed.txt" && "$(ipc cursorName)" == "renamed.txt" ]] && break
+        sleep 0.1
+    done
+    [[ -e "$fixture/renamed.txt" && ! -e "$fixture/alpha.txt" ]] || fail "rename: Return did not rename alpha.txt"
+    [[ "$(ipc cursorName)" == "renamed.txt" ]] || fail "rename: the cursor landed on $(ipc cursorName)"
+    [[ "$(ipc marks)" == "$fixture/renamed.txt" ]] || fail "rename: the mark still names $(ipc marks)"
+
+    press -k F2
+    press 'clicked'
+    click_row "$gamma" left
+    for step in $(seq 1 40); do
+        [[ -e "$fixture/clicked.txt" && "$(ipc cursorName)" == "gamma.bin" ]] && break
+        sleep 0.1
+    done
+    [[ -e "$fixture/clicked.txt" && ! -e "$fixture/renamed.txt" ]] || fail "rename: click-away did not commit"
+    [[ "$(ipc cursorName)" == "gamma.bin" ]] || fail "rename: click-away moved the cursor to $(ipc cursorName)"
+    press -k Escape
+    wait_for_client
+    printf 'rename: F2 and the menu edit a stem, Return and click-away commit, and Escape restores the list\n'
 }
 
 # The row menu's Duplicate is ui/js/Ops.js duplicate over the chooser: the cursor row alone goes
@@ -1334,13 +1385,14 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall click menu duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall click menu rename duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
         selectall) case_selectall ;;
         click) case_click ;;
         menu) case_menu ;;
+        rename) case_rename ;;
         duplicate) case_duplicate ;;
         trash) case_trash ;;
         crumbs) case_crumbs ;;
