@@ -383,7 +383,47 @@ case_savename() {
     wait "$asker"; asker=0
     [[ "$(cat "$reply")" == '{"response":1}' ]] || fail "the NUL request replied $(cat "$reply")"
 
-    printf 'savename: a name that would leave the folder is refused from the caller and with a NUL in it, and nothing was answered\n'
+    # A path the user types is the save dialog's own grammar, not a traversal: ":" moves the keyboard
+    # into the Filename box, a folder with its trailing slash opens and clears the box, a file path
+    # opens its parent and leaves the leaf as the name, and a second Return answers that leaf under
+    # the folder now shown. A URL is refused in the footer with the dialog left open.
+    reply="$fixture/path-reply.json"
+    FLEA_UI="$(dirname "$picker_config")" \
+        FLEA_PICKER="{\"mode\":\"save\",\"title\":\"$title\",\"folder\":\"$fixture\",\"name\":\"x.txt\"}" \
+        "$flea" --pick "$reply" &
+    asker=$!
+    omarchy-drive wait window "$title" --timeout 25 >/dev/null || fail "the path request raised no picker window"
+    omarchy-drive focus "$title" >/dev/null || fail "the picker window would not take focus"
+    ipc_is_live
+    [[ "$(ipc saveName)" == "x.txt" ]] || fail "the save field holds $(ipc saveName), not the caller's name"
+    press ':'
+    [[ "$(ipc saveFocused)" == "1" ]] || fail "the colon left the keyboard outside the save field"
+    press -k BackSpace; press -k BackSpace; press -k BackSpace; press -k BackSpace; press -k BackSpace
+    press 'https://example.org/a.txt'
+    press -k Return
+    sleep 1
+    [[ "$(ipc message)" == "Save needs a local path" ]] || fail "a URL in the save field said $(ipc message)"
+    kill -0 "$asker" 2>/dev/null || fail "a URL in the save field ended the dialog"
+    local typed="https://example.org/a.txt" n
+    for ((n = 0; n < ${#typed}; n++)); do press -k BackSpace; done
+    press "$(dirname "$fixture")/"
+    press -k Return
+    sleep 1
+    [[ "$(ipc path)" == "$(dirname "$fixture")" ]] || fail "the typed folder left the picker at $(ipc path)"
+    [[ -z "$(ipc saveName)" ]] || fail "the save field still holds $(ipc saveName) after the folder opened"
+    [[ "$(ipc saveFocused)" == "1" ]] || fail "the keyboard left the save field after the folder opened"
+    press "$fixture/new.txt"
+    press -k Return
+    sleep 1
+    [[ "$(ipc path)" == "$fixture" ]] || fail "the typed file path left the picker at $(ipc path)"
+    [[ "$(ipc saveName)" == "new.txt" ]] || fail "the save field holds $(ipc saveName), not the typed leaf"
+    press -k Return
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == "{\"response\":0,\"uris\":[\"file://$fixture/new.txt\"]}" ]] \
+        || fail "the path request replied $(cat "$reply")"
+    [[ ! -e "$fixture/new.txt" ]] || fail "the chooser wrote the file itself, which is the caller's to do"
+
+    printf 'savename: a name that would leave the folder is refused from the caller and with a NUL in it, and a typed path walks or lands\n'
 }
 
 # The location field. Driven the way the NUL arm above is, a direct launch, because no portal call

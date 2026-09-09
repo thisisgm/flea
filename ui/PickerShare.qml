@@ -38,6 +38,12 @@ Item {
         resolver.resolve(url.root)
     }
 
+    // Wired here rather than in ui/picker.qml, which is at its line cap.
+    Connections {
+        target: root.navigate
+        function onShareEntered(answer) { root.enter(answer) }
+    }
+
     Flea.ShareResolve {
         id: resolver
         onResolved: function (shareRoot, localPath) {

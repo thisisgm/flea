@@ -904,8 +904,21 @@ absent: the parent opens and the footer says which rows were read. The window's 
 window of rows and lists without dotfiles, so a file past its first window is asked for at the
 index the peek implies, the shown rows ahead of it in the same scan and sort; a stale peek for
 another parent or a rows response for another directory is never read as the line's answer. A
-remote or share URL is only handed on through `remoteEntered` and `shareEntered` until the fetch
-and mount changes land. `tests/picker.sh typed_dir` and `typed_file` drive both rules on the display.
+remote URL leaves through `remoteEntered` for `ui/PickerFetch.qml` and a share through `shareEntered`
+for `ui/PickerShare.qml`; the paragraphs below say what each does with it. `tests/picker.sh typed_dir`
+and `typed_file` drive both local rules on the display.
+
+**The save box takes a path too.** A Filename holding a separator, or starting with `~`, is a path
+and not a name, the Windows save dialog's rule, and `ui/js/PickerSaveName.js` decides it with the
+same `classify` and the same peek of the parent: a folder opens and the box clears, a file opens
+its parent and leaves its leaf as the name whether or not the file exists, because a save names a
+file that may not be there yet, and the collision line then warns as it always did. A missing
+parent is what the footer names, since the file need not exist. A URL is refused with `Save needs
+a local path`: a save answers a local URI and there is nothing to download. The caller's own
+`current_name` is never read this way; it is adopted only when it is a filename, as before, and
+the strip still shows it refused. The keyboard stays in the box after either step so the next
+Return saves, and `:` in the list reaches it as it reaches the location field in the open modes;
+the `fleapicker` seam reads `saveFocused` for it. `tests/picker.sh savename` drives the three steps.
 
 **A typed share is mounted, never copied.** An `smb`, `sftp` or `ssh` line is the Network rail's
 open with the field as its row: `ui/PickerShare.qml` splits it with `ui/js/ShareUrl.js` into the
@@ -939,6 +952,30 @@ fetch, a refused one included, answers exactly one `fetchstarted` and one `fetch
 keys the pair on the `id` and never waits on a request that was turned down. `tests/fetch.sh` drives
 `file://` sources through the real binary; the cancel and the failing-tool paths are unit tests with
 a stub whose argv is gio's, because a copy slow enough to cancel needs one.
+
+**The location field, read as one rule.** Everything a typed line can do runs through one gate in
+one order. `ui/js/PickerEntry.js` `classify` names the line first and nothing else reads it raw:
+`empty`, `local` for a path or a `file://` URI, `remote` for `http`, `https`, `ftp` and `ftps`,
+`share` for `smb`, `sftp` and its gvfs alias `ssh`, and `refused` with a reason the footer can say.
+The scheme test comes before `PathBar.resolve`, which knows no schemes and would make `<cwd>/http://x`
+of a URL. A `local` line is never opened or picked on the strength of its text: the parent is peeked
+first, hidden rows included, and only that listing decides between a folder to walk into and a file
+to land on. The peek carries at most `PEEK_ROWS` names and the window holds only its first
+`windowSize` rows, so a leaf past the window is asked for at the index the peek implies rather than
+declared missing, and a leaf absent from a directory larger than the cap is reported as rows unread,
+not as a file that is not there. Escape is read in that order too: a fetch in flight takes it and is
+cancelled with the dialog left open, the field takes it next and hands the keyboard back to the list
+with the text kept, and only an Escape neither wanted climbs to the window and refuses the request.
+A `remote` line is downloaded and never shown, the Windows dialog's rule for a URL in the filename
+box: `gio copy -p` writes it to `$XDG_CACHE_HOME/flea/picker/<8 hex>/<leaf>`, outside the reply dir
+the portal removes when it answers, and `flea --pick` sweeps dirs older than seven days before its
+window opens, so the cache is bounded without a daemon. A `share` line is mounted and never copied:
+gvfs already exposes the mount as a FUSE path the document portal can hand a sandboxed caller, and
+browsing that path gives the line the same peek, open and select a local path gets, where a copy
+would have to download a share to pick one file from it. Save mode takes the path half of this and
+none of the URL half: `ui/js/PickerSaveName.js` classifies with the same function and peeks the same
+parent, and refuses every URL, because a save answers a local URI to write into and there is nothing
+to download for it.
 
 ## Show in folder
 
