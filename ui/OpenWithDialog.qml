@@ -28,6 +28,9 @@ Item {
     // Unchecked by default, the convert popup's own reason: a default written silently is a
     // setting the operator did not ask for. Space or the click toggles it.
     property bool always: false
+    // The Kind the in-flight write was made for, captured at commit: the reply lands after the
+    // close, and a dialog opened meanwhile for another file must not rename the write's kind.
+    property string defaultedKind: ""
 
     signal closed()
 
@@ -109,8 +112,10 @@ Item {
         var path = root.filePath
         root.close()
         root.holder.openWithPath(path, app.path)
-        if (root.always && root.holder.backend)
+        if (root.always && root.holder.backend) {
+            root.defaultedKind = root.kind
             root.holder.backend.setDefault(path, app.id)
+        }
     }
 
     // A dimmed ground, and a click on it is a cancel, the same shape the convert popup uses.
@@ -410,10 +415,14 @@ Item {
             root.refilter()
         }
         // The write's terminal line; a refusal is an error line whose where ui/js/Errors.js words
-        // and the pane's generic landing shows, carrying the dialog's own Kind.
+        // and the pane's generic landing shows. The Kind the sentence names is the one the write
+        // was committed for, not whatever the dialog may be open on by the time gio answers.
         function onDefaulted(ok) {
-            if (ok)
-                root.holder.message("The default for " + root.kind + " files changed; the next open uses the chosen application.", false)
+            if (!ok)
+                return
+            var kind = root.defaultedKind
+            root.holder.message(kind.length > 0 ? "The default for " + kind + " files changed; the next open uses the chosen application."
+                                                : "The default for this kind of file changed; the next open uses the chosen application.", false)
         }
     }
 }
