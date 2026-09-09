@@ -24,10 +24,11 @@ while IFS= read -r file; do
   hard=${budgets#* }
   lines=$(wc -l < "$file")
   if [ "$lines" -gt "$hard" ]; then
-    # 0.1.4: three files cross the cap as arithmetic of a clean merge, no conflict and no new code.
-    # Named so an unrelated breach still fails, and so each stays visible rather than silently passing.
+    # 0.1.4: three files crossed the cap as arithmetic of a clean merge, no conflict and no new code;
+    # ui/ChromeBar.qml left the list when its crumbs moved to ui/CrumbRow.qml. Named so an
+    # unrelated breach still fails, and so each stays visible rather than silently passing.
     case "$file" in
-      */ui/ChromeBar.qml|*/ui/Sidebar.qml|*/ui/Row.qml|ui/ChromeBar.qml|ui/Sidebar.qml|ui/Row.qml)
+      */ui/Sidebar.qml|*/ui/Row.qml|ui/Sidebar.qml|ui/Row.qml)
         echo "KNOWN CAP EXCEPTION  $file: $lines lines, cap $hard (0.1.4 merge arithmetic)"
         continue ;;
     esac

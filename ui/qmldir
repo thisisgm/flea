@@ -4,6 +4,7 @@ singleton ViewState 1.0 ViewState.qml
 Backend 1.0 Backend.qml
 ChromeBar 1.0 ChromeBar.qml
 ChromeButton 1.0 ChromeButton.qml
+CrumbRow 1.0 CrumbRow.qml
 ColumnsArea 1.0 ColumnsArea.qml
 ColumnPane 1.0 ColumnPane.qml
 ColumnRow 1.0 ColumnRow.qml

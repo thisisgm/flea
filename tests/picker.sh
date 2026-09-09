@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|taildrop]; typed_share and taildrop are opt-in.
+# Usage: ./tests/picker.sh [pick|click|crumbs|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|taildrop]; typed_share and taildrop are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -142,18 +142,71 @@ case_pick() {
     printf 'pick: the caller exited 0 with both paths\n'
 }
 
-# A drawn row's centre in screen pixels: the seam answers window pixels, and the floating window's
-# own origin is added, the same sum tests/ui.sh's click_row makes for the tiled one.
-click_row() {
-    local index="$1"; shift
-    local centre cx cy wx wy
-    centre=$(ipc rowCentre "$index")
-    [[ -n "$centre" ]] || fail "row $index has no on-screen centre"
+# A drawn item's centre in screen pixels: the seam answers window pixels, and the floating window's
+# own origin is added, the same sum tests/ui.sh's click_row makes for the tiled one. The centre is
+# read by the caller, because each seam reader names its own kind of item and its own emptiness.
+click_centre() {
+    local centre="$1"; shift
+    local cx cy wx wy
     read -r cx cy <<< "$centre"
     read -r wx wy < <(omarchy-drive windows --json | jq -r --arg t "$title" '.windows[] | select(.title == $t) | "\(.at[0]) \(.at[1])"')
     [[ -n "${wx:-}" ]] || fail "no window named $title to click in"
-    # Everything after the index goes straight to omarchy-drive: the button, --double, --mods.
-    omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$@" >/dev/null || fail "could not click row $index"
+    # Everything after the centre goes straight to omarchy-drive: the button, --double, --mods.
+    omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$@" >/dev/null
+}
+
+click_row() {
+    local index="$1"; shift
+    local centre
+    centre=$(ipc rowCentre "$index")
+    [[ -n "$centre" ]] || fail "row $index has no on-screen centre"
+    click_centre "$centre" "$@" || fail "could not click row $index"
+}
+
+# A segment of the nav strip, by its index in the crumbs the strip draws; see ui/CrumbRow.qml.
+click_crumb() {
+    local centre
+    centre=$(ipc crumbCentre "$1")
+    [[ -n "$centre" ]] || fail "crumb $1 has no on-screen centre"
+    click_centre "$centre" || fail "could not click crumb $1"
+}
+
+# A rail row, by the label it draws: Recent is a location and not a path, so the rail is its only door.
+click_place() {
+    local centre
+    centre=$(ipc placeCentre "$1")
+    [[ -n "$centre" ]] || fail "the rail draws no row labelled $1"
+    click_centre "$centre" || fail "could not click the rail row $1"
+}
+
+# Opens the directory row with this name from the keyboard alone: the cursor steps to it, Enter walks in.
+open_named() {
+    local step=0
+    while [[ "$(ipc cursorName)" != "$1" ]]; do
+        step=$((step + 1))
+        [[ "$step" -le 200 ]] || fail "no row named $1 under $(ipc path)"
+        press -k Down
+    done
+    press -k Return
+    sleep 0.5
+}
+
+# The nav strip's segments for a path, joined the way the crumbs reader joins them: what
+# ui/js/Nav.js crumbs draws, "~/" or "/" first, then every component with its separator, the leaf bare.
+crumb_texts() {
+    local rel="$1" parts out="" i
+    if [[ "$rel" == "$HOME" || "$rel" == "$HOME/"* ]]; then
+        rel="~${rel#"$HOME"}"
+    fi
+    IFS=/ read -r -a parts <<< "$rel"
+    for ((i = 0; i < ${#parts[@]}; i++)); do
+        if (( i < ${#parts[@]} - 1 )); then
+            out+="${parts[i]}/,"
+        else
+            out+="${parts[i]}"
+        fi
+    done
+    printf '%s' "$out"
 }
 
 # The listing index of the row with this name, so a click can be aimed without assuming the sort.
@@ -195,6 +248,49 @@ case_click() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "the caller exited 0 after a cancel"
     printf 'click: ctrl+click toggles a row, shift+click marks the run, and neither opens\n'
+}
+
+# Issue 45's segments in the chooser, and the board's Back behind them: a tap on a segment above
+# the leaf walks there, which is a move Back undoes; the leaf is a label and answers nothing; Recent
+# is a location and not a path, so the strip draws its name and no segments there.
+case_crumbs() {
+    make_fixture
+    sandbox_make "$fixture/sub/deeper"
+    start_client --multiple
+    walk_to_fixture
+    open_named sub
+    open_named deeper
+    local deep="$fixture/sub/deeper" count
+    [[ "$(ipc path)" == "$deep" ]] || fail "crumbs: the picker is at $(ipc path), not $deep"
+    [[ "$(ipc crumbs)" == "$(crumb_texts "$deep")" ]] \
+        || fail "crumbs: the strip drew $(ipc crumbs), not $(crumb_texts "$deep")"
+    [[ -z "$(ipc locationLabel)" ]] || fail "crumbs: a directory drew the label $(ipc locationLabel) beside its segments"
+    count=$(ipc crumbCount)
+    (( count >= 3 )) || fail "crumbs: the strip drew $count segments, too few to press a parent"
+    # A segment's single tap waits out the double-tap interval, see ui/CrumbRow.qml
+    # "exclusiveSignals", so every reading after a tap is taken well after it rather than on top of it.
+    click_crumb $((count - 1))
+    sleep 1
+    [[ "$(ipc path)" == "$deep" ]] || fail "crumbs: a tap on the leaf went to $(ipc path)"
+    click_crumb $((count - 2))
+    sleep 1
+    [[ "$(ipc path)" == "$fixture/sub" ]] || fail "crumbs: a tap on the parent segment went to $(ipc path), not $fixture/sub"
+    [[ "$(ipc crumbs)" == "$(crumb_texts "$fixture/sub")" ]] \
+        || fail "crumbs: after the tap the strip drew $(ipc crumbs), not $(crumb_texts "$fixture/sub")"
+    # The tap was pushed onto the history the way Parent is, so Back returns to the leaf it left.
+    press -M alt -k Left -m alt
+    sleep 0.5
+    [[ "$(ipc path)" == "$deep" ]] || fail "crumbs: Back after the segment tap went to $(ipc path), not $deep"
+    click_place Recent
+    sleep 1
+    [[ "$(ipc recent)" == "true" ]] || fail "crumbs: the Recent row opened $(ipc path)"
+    [[ "$(ipc locationLabel)" == "Recent" ]] || fail "crumbs: Recent drew the label $(ipc locationLabel)"
+    [[ -z "$(ipc crumbs)" ]] || fail "crumbs: Recent drew the segments $(ipc crumbs)"
+    [[ "$(ipc crumbCount)" == "0" ]] || fail "crumbs: Recent drew $(ipc crumbCount) segments"
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "crumbs: the caller exited 0 after a cancel"
+    printf 'crumbs: a parent segment walks and Back returns, the leaf is a label, Recent draws its name alone\n'
 }
 
 case_cancel() {
@@ -701,11 +797,12 @@ case_taildrop() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills
+[[ "$#" -gt 0 ]] || set -- pick click crumbs save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
         click) case_click ;;
+        crumbs) case_crumbs ;;
         save) case_save ;;
         savename) case_savename ;;
         typed) case_typed ;;
