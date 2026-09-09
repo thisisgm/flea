@@ -24,6 +24,7 @@ import "ops.js" as OpsSuite
 import "palette.js" as PaletteSuite
 import "pathbar.js" as PathBarSuite
 import "picker.js" as PickerSuite
+import "pickera11y.js" as PickerA11ySuite
 import "pickerentry.js" as PickerEntrySuite
 import "pickerfetch.js" as PickerFetchSuite
 import "pickerfilters.js" as PickerFiltersSuite
@@ -80,7 +81,8 @@ Item {
             ["mounts", MountsSuite], ["nav", NavSuite], ["network", NetworkSuite],
             ["ops", OpsSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
-            ["picker", PickerSuite], ["pickerentry", PickerEntrySuite], ["pickermarks", PickerMarksSuite],
+            ["picker", PickerSuite], ["pickera11y", PickerA11ySuite],
+            ["pickerentry", PickerEntrySuite], ["pickermarks", PickerMarksSuite],
             ["pickerfetch", PickerFetchSuite], ["pickerfilters", PickerFiltersSuite],
             ["pickerkeys", PickerKeysSuite], ["pickerfilterkeys", PickerFilterKeysSuite],
             ["pickermenu", PickerMenuSuite],

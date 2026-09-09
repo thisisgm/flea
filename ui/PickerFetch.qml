@@ -103,7 +103,7 @@ QtObject {
             root.picker.finish(Picker.RESPONSE_OK, [path])
             return
         }
-        root.picker.say(Fetch.failure(err))
+        root.picker.message(Fetch.failure(err), true)
     }
 
     Component.onCompleted: {

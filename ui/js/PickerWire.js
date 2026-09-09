@@ -53,7 +53,7 @@ function trashed(state, ok, failed) {
     var paths = state.trashPending
     state.trashPending = []
     state.sticky("")
-    state.message(Ops.trashed(ok, failed), ok === 0)
+    state.message(Ops.trashed(ok, failed), failed > 0)
     if (ok > 0) {
         PickerOps.dropMarks(state, paths)
     }
@@ -129,7 +129,7 @@ function transferDone(state, id, ok, failed, skipped, cancelled) {
     var line = Ops.transferDone(state.transfer, ok, failed, cancelled)
     state.transfer = Ops.emptyTransfer()
     state.sticky("")
-    state.message(line, failed > 0 && ok === 0)
+    state.message(line, failed > 0)
     PickerOps.refresh(state, "")
 }
 
