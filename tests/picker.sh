@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|save|savename|cancel|withdrawn|died|fault|taildrop]; taildrop is opt-in.
+# Usage: ./tests/picker.sh [pick|click|save|savename|typed|cancel|withdrawn|died|fault|taildrop]; taildrop is opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 set -u
@@ -134,6 +134,61 @@ case_pick() {
     want=$(printf '%s\n%s' "$fixture/alpha.txt" "$fixture/beta.txt")
     [[ "$(cat "$fixture/picked.txt")" == "$want" ]] || fail "the caller received $(cat "$fixture/picked.txt")"
     printf 'pick: the caller exited 0 with both paths\n'
+}
+
+# A drawn row's centre in screen pixels: the seam answers window pixels, and the floating window's
+# own origin is added, the same sum tests/ui.sh's click_row makes for the tiled one.
+click_row() {
+    local index="$1"; shift
+    local centre cx cy wx wy
+    centre=$(ipc rowCentre "$index")
+    [[ -n "$centre" ]] || fail "row $index has no on-screen centre"
+    read -r cx cy <<< "$centre"
+    read -r wx wy < <(omarchy-drive windows --json | jq -r --arg t "$title" '.windows[] | select(.title == $t) | "\(.at[0]) \(.at[1])"')
+    [[ -n "${wx:-}" ]] || fail "no window named $title to click in"
+    # Everything after the index goes straight to omarchy-drive: the button, --double, --mods.
+    omarchy-drive click "$((cx + wx))" "$((cy + wy))" "$@" >/dev/null || fail "could not click row $index"
+}
+
+# The listing index of the row with this name, so a click can be aimed without assuming the sort.
+row_named() {
+    local i total
+    total=$(ipc total)
+    for ((i = 0; i < total; i++)); do
+        if [[ "$(ipc rowAt "$i")" == "$1" ]]; then
+            printf '%s' "$i"
+            return
+        fi
+    done
+    fail "no row named $1 under $(ipc path)"
+}
+
+# Finder's two marking modifiers on the chooser's rows: Ctrl toggles the row and Shift marks the
+# run from the last toggled row, and neither opens anything, whatever the tap count.
+case_click() {
+    make_fixture
+    sandbox_make "$fixture/sub"
+    start_client --multiple
+    walk_to_fixture
+    local alpha beta gamma sub
+    alpha=$(row_named alpha.txt); beta=$(row_named beta.txt); gamma=$(row_named gamma.bin); sub=$(row_named sub)
+    click_row "$alpha" left --mods ctrl
+    [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "ctrl+click marked $(ipc marks)"
+    click_row "$beta" left --mods ctrl
+    [[ "$(ipc marks)" == "$fixture/alpha.txt,$fixture/beta.txt" ]] || fail "the second ctrl+click left $(ipc marks)"
+    [[ "$(ipc cursor)" == "$beta" ]] || fail "ctrl+click left the cursor on $(ipc cursor)"
+    click_row "$beta" left --mods ctrl
+    [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "a ctrl+click on a marked row left $(ipc marks)"
+    click_row "$gamma" left --mods shift
+    [[ "$(ipc marks)" == "$fixture/alpha.txt,$fixture/beta.txt,$fixture/gamma.bin" ]] \
+        || fail "shift+click from beta to gamma left $(ipc marks)"
+    # A modifier never opens: the held double click on a directory row stays in this folder.
+    click_row "$sub" left --mods ctrl --double
+    [[ "$(ipc path)" == "$fixture" ]] || fail "a ctrl-held double click opened $(ipc path)"
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "the caller exited 0 after a cancel"
+    printf 'click: ctrl+click toggles a row, shift+click marks the run, and neither opens\n'
 }
 
 case_cancel() {
@@ -426,10 +481,11 @@ case_taildrop() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick save savename typed cancel withdrawn died fault
+[[ "$#" -gt 0 ]] || set -- pick click save savename typed cancel withdrawn died fault
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
+        click) case_click ;;
         save) case_save ;;
         savename) case_savename ;;
         typed) case_typed ;;

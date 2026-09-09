@@ -177,39 +177,6 @@ function shownRows(rows, held, filter) {
     return out
 }
 
-// A mark is a path, never a row number: the board's rule is that a checked identity survives Back
-// and Parent, and a row number rebinds to whatever else lands in that position.
-function marked(marks, path) {
-    for (var i = 0; i < marks.length; i++) {
-        if (marks[i].path === path) {
-            return true
-        }
-    }
-    return false
-}
-
-// Space. In single mode the new mark replaces the old one, which is the board's "Space replaces the
-// prior check"; unmarking what is already marked always wins, so a second Space clears it.
-function toggle(marks, path, bytes, multiple) {
-    var out = []
-    var found = false
-    for (var i = 0; i < marks.length; i++) {
-        if (marks[i].path === path) {
-            found = true
-            continue
-        }
-        out.push(marks[i])
-    }
-    if (found) {
-        return multiple ? out : []
-    }
-    if (!multiple) {
-        return [{ path: path, bytes: bytes }]
-    }
-    out.push({ path: path, bytes: bytes })
-    return out
-}
-
 function totalBytes(marks) {
     var sum = 0
     for (var i = 0; i < marks.length; i++) {
