@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|click|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -251,6 +251,65 @@ case_click() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "the caller exited 0 after a cancel"
     printf 'click: ctrl+click toggles a row, shift+click marks the run, and neither opens\n'
+}
+
+# A header title, by its column key, the same aim click_row takes at a row.
+click_header() {
+    local centre
+    centre=$(ipc headerCentre "$1")
+    [[ -n "$centre" ]] || fail "the header draws no $1 column"
+    click_centre "$centre" || fail "could not click the $1 title"
+}
+
+# The rows after a sort arrive with the reordered window, not with the click, so a reading of
+# row 0 right after the click would describe the order before it.
+wait_row() {
+    local index="$1" want="$2" step
+    for step in $(seq 1 40); do
+        [[ "$(ipc rowAt "$index")" == "$want" ]] && return
+        sleep 0.1
+    done
+    fail "row $index reads $(ipc rowAt "$index"), not $want, under $(ipc sortMark)"
+}
+
+# The column header over the listing is the window's own ui/Header.qml at the picker's column set,
+# so it heads Name, Size and Date Modified and no column the rows do not draw, and the two resolve
+# one set from one width. A click on Size sorts by size ascending, a second one reverses it, and
+# the rows really reorder: gamma.bin is the one file over a line long, so it is last ascending and
+# first descending, after the directory, which the backend keeps first in both directions.
+case_header() {
+    make_fixture
+    sandbox_make "$fixture/sub"
+    start_client
+    walk_to_fixture
+    local titles mark columns
+    titles=$(ipc headerTitles); mark=$(ipc sortMark); columns=$(ipc columnSet 0)
+    printf 'HEADER titles=%s mark=%s columns=%s\n' "$titles" "$mark" "$columns"
+    [[ "$titles" == "Name|Size|Date Modified" ]] || fail "the picker's header titles are $titles"
+    [[ "$mark" == "name:asc" ]] || fail "the sort mark starts at $mark"
+    [[ "$columns" == "name,size,date|name,size,date" ]] || fail "the header and row 0 draw $columns"
+    [[ "$(ipc rowAt 0)" == "sub" && "$(ipc rowAt 1)" == "alpha.txt" ]] \
+        || fail "name ascending lists $(ipc rowAt 0),$(ipc rowAt 1) first"
+    press -k Down
+    click_header size
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "a click on Size left the mark at $(ipc sortMark)"
+    wait_row 3 gamma.bin
+    [[ "$(ipc rowAt 0)" == "sub" && "$(ipc rowAt 1)" == "alpha.txt" ]] \
+        || fail "size ascending lists $(ipc rowAt 0),$(ipc rowAt 1) first"
+    [[ "$(ipc cursor)" == "0" ]] || fail "a re-sort left the cursor on row $(ipc cursor)"
+    click_header size
+    [[ "$(ipc sortMark)" == "size:desc" ]] || fail "a second click on Size left the mark at $(ipc sortMark)"
+    wait_row 1 gamma.bin
+    [[ "$(ipc rowAt 0)" == "sub" && "$(ipc rowAt 3)" == "alpha.txt" ]] \
+        || fail "size descending lists $(ipc rowAt 0) first and $(ipc rowAt 3) last"
+    printf 'HEADER sorted=%s row1=%s\n' "$(ipc sortMark)" "$(ipc rowAt 1)"
+    # Date Modified sends mtime, the protocol's own key, and starts ascending whatever Size was in.
+    click_header date
+    [[ "$(ipc sortMark)" == "mtime:asc" ]] || fail "a click on Date Modified left the mark at $(ipc sortMark)"
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "the caller exited 0 after a cancel"
+    printf 'header: Name, Size and Date Modified head the picker, and a click sorts the rows\n'
 }
 
 # Issue 45's segments in the chooser, and the board's Back behind them: a tap on a segment above
@@ -1009,7 +1068,7 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills thumbs
+[[ "$#" -gt 0 ]] || set -- pick click crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills header thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -1029,6 +1088,7 @@ for name in "$@"; do
         fault) case_fault ;;
         pills) case_pills ;;
         filter) case_filter ;;
+        header) case_header ;;
         thumbs) case_thumbs ;;
         taildrop) case_taildrop ;;
         dragout) case_dragout ;;
