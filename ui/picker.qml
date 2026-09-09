@@ -11,6 +11,7 @@ import QtQuick
 import qs.Commons
 import "." as Flea
 import "js/Picker.js" as Picker
+import "js/PickerMarks.js" as Marks
 
 // One portal request, one window: the org.freedesktop.impl.portal.FileChooser dialog every caller on
 // the box gets, opened by flea --pick and answered through the reply file tools/flea-portal reads.
@@ -41,6 +42,8 @@ ShellRoot {
 
         // The checked identities, each a path and its size, so Back and Parent cannot rebind one.
         property var marks: []
+        // The listing row the last Space or Ctrl+click toggled, where a Shift+click's range starts.
+        property int markAnchor: -1
         // Which chip is active: an index into the caller's filters, or -1 for All files.
         property int filterIndex: Picker.currentChip(win.req)
         readonly property var filter: win.filterIndex >= 0 ? win.req.filters[win.filterIndex] : null
@@ -89,6 +92,7 @@ ShellRoot {
             win.held = 0
             win.rows = []
             win.cursorIndex = 0
+            win.markAnchor = -1
             win.listingState = "loading"
             if (Picker.isRecent(next)) {
                 recents.refresh()
@@ -122,7 +126,8 @@ ShellRoot {
             var row = win.rowFor(index)
             if (!row || row.d !== win.folderMode)
                 return
-            win.marks = Picker.toggle(win.marks, Picker.rowPath(win.path, row.n), row.s, win.req.multiple)
+            win.marks = Marks.toggle(win.marks, Picker.rowPath(win.path, row.n), row.s, win.req.multiple)
+            win.markAnchor = index
         }
 
         // Enter. A directory is always walked into, even in the folder request the board draws it
@@ -368,6 +373,7 @@ ShellRoot {
             function message(): string { return win.message }
             function entry(): string { return entryField.text }
             function entryFocused(): int { return entryField.focused ? 1 : 0 }
+            function rowCentre(index: int): string { return list.rowCentre(index) }
         }
     }
 }

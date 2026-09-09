@@ -877,6 +877,19 @@ is read once. Unlike the path bar the strip stays up on blur, because it is a fi
 window and not an editor raised over one. Save mode keeps `ui/PickerSave.qml`'s Filename field and no
 second one. The `fleapicker` seam reads the field as `entry` and `entryFocused` and acts on
 nothing, so `tests/picker.sh typed` can say where the keyboard is.
+**Ctrl+click and Shift+click, and where the anchor lives.** The chooser's rows take Finder's two
+marking modifiers, the rule `ui/js/Tap.js` gives the browser window: Ctrl toggles the row and
+Shift marks the run from the last toggled row to this one, neither ever opens, and only the first
+tap of a held double click counts, so a Ctrl-held double click marks once instead of toggling
+itself back off. The anchor is `ui/picker.qml`'s `markAnchor`, the listing index the last Space or
+Ctrl+click toggled, and a Shift+click before any toggle marks its own row alone. The run is the
+rows drawn between the two ends, `Filter.between` over the chip's set or the held window, read
+from the rows the window holds: a row scrolled out of that window was never on screen as part of
+the range. `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle` and
+`markRange`; Shift never unmarks, and in a single request the range is the clicked row, toggled
+the way Space toggles it. The picker reads no `keys.toml` row for either, because the portal's
+window carries no keymap of its own. The seam's `rowCentre` answers a drawn row's centre so
+`tests/picker.sh click` can aim omarchy-drive at it, the same read `ui/Ipc.qml` makes.
 
 **The download is gio's, on a thread keyed by id.** `fetch {uri}` (`backend/fetchreq.rs`) runs
 `LC_ALL=C gio copy -p <uri> <dest>` in its own process group on a thread numbered by `Ops::claim_id`
@@ -1143,6 +1156,9 @@ this coverage needed no new entry there.
   mount, and any other scheme, a `file://` on another host or a NUL is refused with a reason. A
   colon in the first segment reads as a scheme, so a local `a:b` is typed as `./a:b`. Pure, so
   `tests/js/pickerentry.js` drives all of it; the field asks the backend what the path is.
+- `ui/js/PickerMarks.js` is the chooser's marks: a path and its size, never a row number, and
+  what Space, Ctrl+click and Shift+click do to the list. Pure, so `tests/js/pickermarks.js`
+  drives all of it; `ui/picker.qml` holds the anchor and `ui/PickerList.qml` walks the range.
 
 ## Where the backend binary comes from
 

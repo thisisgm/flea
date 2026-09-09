@@ -4,6 +4,7 @@ import "." as Flea
 import "js/Filter.js" as Filter
 import "js/Match.js" as Match
 import "js/Picker.js" as Picker
+import "js/PickerMarks.js" as Marks
 
 // The picker's listing: ui/Row.qml drawn behind a check box, and the keys that move through it. The
 // window's own ui/List.qml is not reused, because every line of it that is not layout is a drag, a
@@ -43,7 +44,7 @@ ListView {
         // A file request marks files and a folder request marks folders; the other kind is a way
         // through the tree and never an answer, so it carries no box at all.
         readonly property bool markable: cell.row !== null && cell.row.d === root.picker.folderMode
-        readonly property bool isMarked: cell.markable && Picker.marked(root.picker.marks, cell.rowPath)
+        readonly property bool isMarked: cell.markable && Marks.marked(root.picker.marks, cell.rowPath)
 
         width: root.width
         height: Theme.rowHeight
@@ -105,10 +106,23 @@ ListView {
             acceptedButtons: Qt.LeftButton
             // ui/js/Tap.js's rule, one tap selects and the second opens, with the chooser's one
             // difference: the second tap on a file marks it and never sends, because a double click
-            // that hands a file to the caller is a send nobody asked for.
+            // that hands a file to the caller is a send nobody asked for. Ctrl and Shift are Finder's
+            // two marking modifiers, neither ever opens, and only the first tap of one counts, so a
+            // held double click marks once instead of toggling itself back off.
             onTapped: function (eventPoint, button) {
                 root.picker.cursorIndex = cell.listingIndex
                 root.forceActiveFocus()
+                var mods = tap.point.modifiers
+                if (mods & Qt.ControlModifier) {
+                    if (tap.tapCount === 1)
+                        root.picker.toggleMark(cell.listingIndex)
+                    return
+                }
+                if (mods & Qt.ShiftModifier) {
+                    if (tap.tapCount === 1)
+                        root.markRange(cell.listingIndex)
+                    return
+                }
                 var onBox = box.visible && eventPoint.position.x <= box.x + box.width + Theme.spacing.gap
                 if (onBox || (tap.tapCount === 2 && cell.markable))
                     root.picker.toggleMark(cell.listingIndex)
@@ -116,6 +130,36 @@ ListView {
                     root.picker.open(cell.rowPath)
             }
         }
+    }
+
+    // Shift+click. The rows drawn from the anchor to this one, or this one alone before any toggle,
+    // each read from the held window: a row scrolled out of it is not on screen and was never part
+    // of what the person saw as the range. The anchor stays where it was, as the cursor moves.
+    function markRange(index) {
+        var picker = root.picker
+        var from = picker.markAnchor >= 0 ? picker.markAnchor : index
+        var onScreen = picker.shown !== null ? picker.shown : picker.rows.map(function (_, i) { return picker.held + i })
+        var drawn = Filter.between(onScreen, from, index)
+        if (from > index)
+            drawn.reverse()
+        var rows = []
+        for (var i = 0; i < drawn.length; i++) {
+            var row = picker.rowFor(drawn[i])
+            if (row && row.d === picker.folderMode)
+                rows.push({ path: Picker.rowPath(picker.path, row.n), bytes: row.s })
+        }
+        picker.marks = Marks.markRange(picker.marks, rows, picker.req.multiple)
+        picker.cursorIndex = index
+    }
+
+    // The fleapicker seam's rowCentre: a drawn row's painted box reduced to the point a test clicks,
+    // the same read ui/Ipc.qml makes through ui/shell.qml's centreOf.
+    function rowCentre(index) {
+        var item = root.itemAtIndex(Filter.viewOf(root.picker.shown, index))
+        if (!item)
+            return ""
+        var rect = root.picker.itemRect(item)
+        return Math.round(rect.x + rect.width / 2) + " " + Math.round(rect.y + rect.height / 2)
     }
 
     // Both ends are view positions, because a filter chip makes the listing rows between them a set.
