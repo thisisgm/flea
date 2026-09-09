@@ -606,6 +606,19 @@ itself with `Sort.setStore` when it loads, the way it pushes its preset into `ui
 window that could sort before it has read `ViewState` would record on the backend alone; both windows
 read it before their first listing.
 
+**A fresh listing comes back in the stored order, and `list` never resets the mark.** `list` answers
+name ascending (`docs/protocol.md` "list"), so `ui/Backend.qml` `list()` sets `sortBy`/`sortDesc`
+from `ViewState.sortKey`/`sortReverse` and `ui/PaneWire.qml`'s `listed` handler asks for that order
+with a follow-up `sort` and a `window(0)` the moment the scan has answered, never beside the `list`,
+because a scan that fails would leave the old listing to be reordered instead. Until the sort's own
+`listed` line lands, `listedSeen` stays false and `onRows` drops the name-ordered rows that rode along
+with the scan, so the anchor of a watched re-read, a pending selection and a tab's cursor are all
+applied to the sorted rows and never to an index from the other order; a watched re-read's second
+window is asked for again after the sort for the same reason. `Backend.qml` used to set the mark back
+to name ascending on every `list()`, so the order died on the first Return and on every refresh after
+a write. `tests/ui.sh sortkept` is the proof, round trip and re-read both. `listpaths` is untouched:
+the mark stays where its caller left it, as before.
+
 **`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
 a closed list, because a closed list would make this Flea drop an id a newer one hid. It is the
 Menus section's whole visibility state: the panel's master row over the six basic actions is derived
