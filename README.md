@@ -98,8 +98,9 @@ If you previously pinned another directory handler, restore that handler explici
 
 ## File chooser filters
 
-Apps that send their own file filters get those as pills, and only those. For apps that send none,
-Flea reads `~/.config/flea/filters.toml` and draws **All files** first, then one pill per table.
+Apps that send file filters get those as pills, followed by **All files**. Flea does not mix in your
+config filters. For apps that send no filters, Flea reads `~/.config/flea/filters.toml`. It draws
+**All files** first, then one pill per table.
 A table needs `globs`; `name` and `mimes` are optional, and a table without a name is labelled by
 its extensions, like `.jpg (.jpg, .jpeg)`. No file means no pills.
 
@@ -166,17 +167,18 @@ Press **?** for the full keymap, or **,** to change settings.
 | Move / parent / enter | `j` `k` / `h` / `l` |
 | Open with the default app | `Enter` |
 | Quick Look | `Space` |
-| Select / extend selection | `v` / `Shift` + arrows |
+| Select / extend selection / select all | `v` / `Shift` + arrows / `Ctrl+A` |
 | Copy / cut / paste | `y` `x` `p`, or `Ctrl+C` `Ctrl+X` `Ctrl+V` |
 | Rename / trash / undo | `r` or `F2` / `dd` or `Delete` / `z` |
 | New folder | `Ctrl+Shift+N` |
 | Search / filter the list | `f` / `/` |
 | Enter a path | `:` or `Ctrl+L` |
 | List / columns / grid | `Ctrl+1` / `Ctrl+2` / `Ctrl+3` |
-| New tab / close tab / switch tab | `t` / `w` / `1`–`9` |
+| New tab / close tab / switch tab | `t` / `w` / `1`-`9` |
 | Open terminal / context menu | `Ctrl+T` / `m` |
 | Show hidden files | `.` |
 | Type a path or URL in the picker | `:` or `Ctrl+L` |
+| Switch between the picker list and rail | `Tab` |
 
 The Windows preset uses `Ctrl+Shift+1/2/3` for views. Menu visibility does not disable shortcuts.
 See [the full key table](keys.toml) for preset bindings and pointer actions.
