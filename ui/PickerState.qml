@@ -255,8 +255,7 @@ QtObject {
     }
 
     // Enter. A directory is always walked into, even in the folder request the board draws it
-    // marked in, and a file submits what is checked: nothing checked is nothing to submit, which
-    // is the board's own rule and what keeps a stray Enter from sending.
+    // marked in. A file submits the marks, or itself when nothing is marked outside Recent.
     function activate(index) {
         var row = root.rowFor(index)
         if (!row)
@@ -287,11 +286,12 @@ QtObject {
             root.finish(Picker.RESPONSE_OK, [root.path])
             return
         }
-        if (root.marks.length === 0) {
-            root.say("Press Space to select a file first")
+        var paths = Marks.answer(root.marks, root.path, root.rowFor(root.cursorIndex))
+        if (paths.length === 0) {
+            root.say("Select a file first")
             return
         }
-        root.finish(Picker.RESPONSE_OK, Picker.paths(root.marks))
+        root.finish(Picker.RESPONSE_OK, paths)
     }
 
     function cancel() {

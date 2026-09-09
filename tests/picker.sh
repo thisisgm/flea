@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|selectall|copypaste|pasteprogress|click|menu|opener|rename|newfolder|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|sortkept|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|cursor|selectall|copypaste|pasteprogress|click|menu|opener|rename|newfolder|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|sortkept|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -143,6 +143,88 @@ case_pick() {
     want=$(printf '%s\n%s' "$fixture/alpha.txt" "$fixture/beta.txt")
     [[ "$(cat "$fixture/picked.txt")" == "$want" ]] || fail "the caller received $(cat "$fixture/picked.txt")"
     printf 'pick: the caller exited 0 with both paths\n'
+}
+
+# Return sends the file under the cursor when no mark stands. An explicit mark still wins, a
+# directory still opens, and a folder request still answers with the directory on screen.
+case_cursor() {
+    make_fixture
+    sandbox_make "$fixture/sub"
+    local alpha sub step flea reply
+
+    start_client
+    walk_to_fixture
+    alpha=$(row_named alpha.txt)
+    click_row "$alpha" left
+    press -k Return
+    wait_for_client
+    [[ "$client_status" == 0 ]] || fail "the marked cursor file exited $client_status"
+    [[ "$(cat "$fixture/picked.txt")" == "$fixture/alpha.txt" ]] \
+        || fail "the marked cursor file answered $(cat "$fixture/picked.txt")"
+
+    start_client --multiple
+    walk_to_fixture
+    step=0
+    while [[ "$(ipc cursorName)" != "alpha.txt" ]]; do
+        step=$((step + 1))
+        [[ "$step" -le 200 ]] || fail "no cursor row named alpha.txt under $(ipc path)"
+        press -k Down
+    done
+    [[ -z "$(ipc marks)" ]] || fail "the cursor fallback started with marks $(ipc marks)"
+    press -k Return
+    wait_for_client
+    [[ "$client_status" == 0 ]] || fail "the unmarked cursor file exited $client_status"
+    [[ "$(cat "$fixture/picked.txt")" == "$fixture/alpha.txt" ]] \
+        || fail "the unmarked cursor file answered $(cat "$fixture/picked.txt")"
+
+    start_client
+    walk_to_fixture
+    sub=$(row_named sub)
+    click_row "$sub" left
+    press -k Return
+    sleep 0.5
+    [[ "$(ipc path)" == "$fixture/sub" ]] || fail "Return on a directory opened $(ipc path)"
+    press -k Escape
+    wait_for_client
+
+    start_client --directory
+    walk_to_fixture
+    step=0
+    while [[ "$(ipc cursorName)" != "alpha.txt" ]]; do
+        step=$((step + 1))
+        [[ "$step" -le 200 ]] || fail "no cursor row named alpha.txt under $(ipc path)"
+        press -k Down
+    done
+    press -k Return
+    wait_for_client
+    [[ "$client_status" == 0 ]] || fail "the folder request exited $client_status"
+    [[ "$(cat "$fixture/picked.txt")" == "$fixture" ]] \
+        || fail "the folder request answered $(cat "$fixture/picked.txt")"
+
+    mkdir -p "$fixture/data"
+    printf '<?xml version="1.0"?><xbel version="1.0"><bookmark href="file://%s" visited="2026-09-10T00:00:00Z"/></xbel>\n' \
+        "$fixture/alpha.txt" > "$fixture/data/recently-used.xbel"
+    flea="$(cd "$(dirname "$0")/.." && pwd)/target/release/flea"
+    reply="$fixture/recent-reply.json"
+    XDG_DATA_HOME="$fixture/data" FLEA_UI="$(dirname "$picker_config")" \
+        FLEA_PICKER="{\"mode\":\"open\",\"title\":\"$title\",\"folder\":\"$fixture\"}" \
+        "$flea" --pick "$reply" &
+    asker=$!
+    omarchy-drive wait window "$title" --timeout 25 >/dev/null \
+        || fail "the Recent cursor request raised no picker window"
+    omarchy-drive focus "$title" >/dev/null || fail "the Recent cursor request did not take focus"
+    ipc_is_live
+    click_place Recent
+    sleep 0.5
+    [[ "$(ipc total)" == 1 ]] || fail "the Recent cursor request listed $(ipc total) rows"
+    press -k Return
+    [[ "$(ipc message)" == "Select a file first" ]] \
+        || fail "the unmarked Recent cursor said $(ipc message)"
+    kill -0 "$asker" 2>/dev/null || fail "the unmarked Recent cursor answered the request"
+    press -k Escape
+    wait "$asker"; asker=0
+
+    printf 'cursor: Return sends the cursor file, opens a directory, and keeps folder and Recent rules\n'
 }
 
 # Ctrl+A marks every file the listing draws in a multiple request, and the Open button counts them.
@@ -1848,10 +1930,11 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall copypaste pasteprogress click menu opener rename newfolder duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden sortkept thumbs
+[[ "$#" -gt 0 ]] || set -- pick cursor selectall copypaste pasteprogress click menu opener rename newfolder duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden sortkept thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
+        cursor) case_cursor ;;
         selectall) case_selectall ;;
         copypaste) case_copypaste ;;
         pasteprogress) case_pasteprogress ;;
