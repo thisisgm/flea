@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|menu|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|click|menu|duplicate|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -382,6 +382,66 @@ case_menu() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "menu: the caller exited 0 after a cancel"
     printf 'menu: a right click draws the row menu or the background one, and Sort by reorders the rows\n'
+}
+
+# The row menu's Duplicate is ui/js/Ops.js duplicate over the chooser: the cursor row alone goes
+# out while two marks stand, the backend answers with the first free "<name> copy<ext>", the reply
+# seats the cursor on the copy and the footer says so, and Ctrl+Z takes the copy back off the disk
+# through this process's own undo journal. Duplicate has no key, so the menu is the only way in:
+# Open, Copy path, then Cut, Copy, Paste, Duplicate is five Downs over one rule.
+case_duplicate() {
+    make_fixture
+    start_client --multiple
+    walk_to_fixture
+    ipc_is_live
+    local alpha beta copy step marks
+    alpha=$(row_named alpha.txt); beta=$(row_named beta.txt)
+    marks="$fixture/alpha.txt,$fixture/beta.txt"
+    click_row "$alpha" left --mods ctrl
+    click_row "$beta" left --mods ctrl
+    [[ "$(ipc marks)" == "$marks" ]] || fail "duplicate: two ctrl+clicks marked $(ipc marks)"
+    click_row "$alpha" right
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "duplicate: a right click on alpha.txt opened no menu"
+    [[ "$(ipc cursor)" == "$alpha" ]] || fail "duplicate: the right click left the cursor on $(ipc cursor)"
+    [[ "$(ipc marks)" == "$marks" ]] || fail "duplicate: a right click on a marked row left $(ipc marks) standing"
+    press -k Down; press -k Down; press -k Down; press -k Down; press -k Down
+    sleep 0.2
+    [[ "$(ipc menuCursor)" == "6" ]] || fail "duplicate: five Downs put the menu cursor at $(ipc menuCursor), not on Duplicate"
+    press -k Return
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "false" ]] || fail "duplicate: choosing Duplicate left the menu open"
+    for step in $(seq 1 40); do
+        [[ -e "$fixture/alpha copy.txt" ]] && break
+        sleep 0.1
+    done
+    [[ -e "$fixture/alpha copy.txt" ]] || fail "duplicate: no alpha copy.txt appeared in $fixture"
+    [[ ! -e "$fixture/beta copy.txt" ]] || fail "duplicate: the marked beta.txt was duplicated too"
+    cmp -s "$fixture/alpha.txt" "$fixture/alpha copy.txt" || fail "duplicate: alpha copy.txt does not read as alpha.txt"
+    sleep 0.5
+    copy=$(row_named "alpha copy.txt")
+    [[ "$(ipc cursorName)" == "alpha copy.txt" ]] || fail "duplicate: the re-read seated the cursor on $(ipc cursorName), not the copy"
+    [[ "$(ipc message)" == "Duplicated to alpha copy.txt · z undoes" ]] || fail "duplicate: the footer says '$(ipc message)'"
+    [[ "$(ipc total)" == "4" ]] || fail "duplicate: the listing counts $(ipc total) rows, not 4"
+    [[ "$(ipc marks)" == "$marks" ]] || fail "duplicate: the re-read left $(ipc marks) marked; a mark is a path and stands"
+    printf 'DUPLICATE row=%s cursor=%s message=%s\n' "$copy" "$(ipc cursorName)" "$(ipc message)"
+    # The undo key is the key table's Ctrl+Z, flea-1ng.27's verb; until it lands the footer says so.
+    press -k z --mods ctrl
+    for step in $(seq 1 40); do
+        [[ ! -e "$fixture/alpha copy.txt" ]] && break
+        sleep 0.1
+    done
+    [[ ! -e "$fixture/alpha copy.txt" ]] || fail "duplicate: Ctrl+Z left alpha copy.txt on the disk, footer '$(ipc message)'"
+    for step in $(seq 1 40); do
+        [[ "$(ipc total)" == "3" ]] && break
+        sleep 0.1
+    done
+    [[ "$(ipc total)" == "3" ]] || fail "duplicate: after the undo the listing counts $(ipc total) rows, not 3"
+    printf 'DUPLICATE undone total=%s\n' "$(ipc total)"
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "duplicate: the caller exited 0 after a cancel"
+    printf 'duplicate: the menu row copies the cursor row alone, seats the copy, and Ctrl+Z takes it back\n'
 }
 
 # Issue 45's segments in the chooser, and the board's Back behind them: a tap on a segment above
@@ -1199,12 +1259,13 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click menu crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick click menu duplicate crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
         click) case_click ;;
         menu) case_menu ;;
+        duplicate) case_duplicate ;;
         crumbs) case_crumbs ;;
         rail) case_rail ;;
         save) case_save ;;

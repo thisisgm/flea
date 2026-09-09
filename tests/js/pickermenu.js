@@ -1,3 +1,4 @@
+.import "../../ui/js/Picker.js" as Picker
 .import "../../ui/js/PickerMenu.js" as PickerMenu
 
 // ui/js/PickerMenu.js: where a right click aims the chooser's menu and where a chosen row goes,
@@ -24,9 +25,11 @@ function stubState(over) {
         backend: {
             sortBy: "name", sortDesc: false,
             sort: function (key, desc) { state.calls.push("sort " + key + " " + desc) },
-            window: function (start, size) { state.calls.push("window " + start) }
+            window: function (start, size) { state.calls.push("window " + start) },
+            duplicate: function (path) { state.calls.push("duplicate " + path) }
         },
         rowFor: function (index) { return index >= 0 && index < state.rows.length ? state.rows[index] : null },
+        join: function (base, name) { return Picker.rowPath(base, name) },
         dropMarks: function (paths) { state.calls.push("drop " + paths.join(",")) },
         setCursor: function (index) { state.cursorIndex = index; state.calls.push("cursor " + index) },
         clearSelection: function () {},
@@ -86,10 +89,9 @@ function run(check) {
     var ops = stubOps()
     PickerMenu.route("open", unbuilt, ops, columns)
     PickerMenu.route("copypath", unbuilt, ops, columns)
-    PickerMenu.route("duplicate", unbuilt, ops, columns)
     check("the rows no picker verb answers yet say so in the footer, each by its own name",
           unbuilt.said.join("|"),
-          "Open is not built in the chooser yet.|Copy path is not built in the chooser yet.|Duplicate is not built in the chooser yet.")
+          "Open is not built in the chooser yet.|Copy path is not built in the chooser yet.")
     PickerMenu.route("cancel", unbuilt, ops, columns)
     check("every other row takes the key table's own route through PickerKeys.act",
           unbuilt.calls.join(";"), "cancel")
@@ -98,4 +100,18 @@ function run(check) {
     PickerMenu.route("trash", unbuilt, ops, columns)
     check("a shared action with no verb yet still answers through the key table's line",
           unbuilt.said[unbuilt.said.length - 1], "Move to Trash is not built in the chooser yet.")
+
+    // ---- duplicate: ui/js/Ops.js duplicate over the chooser, the cursor row alone ----
+    var dup = stubState({ marks: [a, b], cursorIndex: 2 })
+    PickerMenu.route("duplicate", dup, stubOps(), columns)
+    check("Duplicate sends the cursor row's path and never the marks",
+          dup.calls.join(";") + "|" + dup.said.length, "duplicate /home/jw/docs/c.txt|0")
+    var dupRecent = stubState({ path: Picker.RECENT, recent: true, cursorIndex: 0,
+                                rows: [{ n: "home/jw/docs/b.txt", d: false, s: 2 }] })
+    PickerMenu.route("duplicate", dupRecent, stubOps(), columns)
+    check("in Recent the row's own absolute path is what goes out",
+          dupRecent.calls.join(";"), "duplicate /home/jw/docs/b.txt")
+    var dupEmpty = stubState({ rows: [], cursorIndex: 0 })
+    PickerMenu.route("duplicate", dupEmpty, stubOps(), columns)
+    check("with no row under the cursor nothing is sent", dupEmpty.calls.length, 0)
 }
