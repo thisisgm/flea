@@ -1,17 +1,28 @@
 import QtQuick
+import "." as Flea
 import "js/Ops.js" as Ops
 import "js/PickerWire.js" as Wire
 import "js/Thumbs.js" as Thumbs
 
 // Every operation reply the backend sends the chooser lands here, ui/PaneWire.qml's handlers for
-// the state ui/PickerState.qml holds. It owns nothing and writes only through that state, and each
-// handler is one call into ui/js/Wire.js, so tests/js/pickerops.js runs the replies without a
-// window. The listing replies stay in ui/picker.qml, which seats the cursor on the row a refresh
+// the state ui/PickerState.qml holds. It owns the chooser's opener and writes replies through that
+// state. Each backend handler is one call into ui/js/Wire.js, so tests/js/pickerops.js runs them
+// without a window. The listing replies stay in ui/picker.qml, which seats the cursor on the row a refresh
 // asked for; the one rows handler below reads that landing to arm the rename editor.
 QtObject {
     id: root
 
     property var picker: null
+
+    // The chooser shares the browser's opener, but opening a file never answers its portal request.
+    // A directory handed to Open comes back through isDirectory and becomes the listing instead.
+    readonly property Flea.Opener opener: Flea.Opener {
+        onBusy: function (path) { root.picker.message("Still opening the last file; try again in a moment.", false) }
+        onFailed: function (path) { root.picker.message("That file could not be opened; nothing on this system took it.", true) }
+        onIsDirectory: function (path) { root.picker.open(path) }
+        onTerminalBusy: function (path) { root.picker.message("Still opening the last terminal; try again in a moment.", false) }
+        onTerminalFailed: function (path) { root.picker.message("That directory could not be opened in a terminal; nothing on this system took it.", true) }
+    }
 
     // The wrapper holds the picker because a Connections owns only its handlers.
     property Connections replies: Connections {

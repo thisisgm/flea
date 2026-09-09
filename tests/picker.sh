@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|selectall|pasteprogress|click|menu|rename|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|selectall|pasteprogress|click|menu|opener|rename|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -455,6 +455,93 @@ case_menu() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "menu: the caller exited 0 after a cancel"
     printf 'menu: a right click draws the row menu or the background one, and Sort by reorders the rows\n'
+}
+
+# The chooser's Opener routes menu actions without answering the portal. Copy path puts the row's
+# absolute path on the system clipboard, both menu shapes offer the directory terminal action, and
+# Ctrl+T raises another desktop window while the caller and picker remain alive.
+case_opener() {
+    command -v wl-paste >/dev/null || fail "opener needs wl-paste to read the system clipboard"
+    make_fixture
+    sandbox_make "$fixture/sub"
+    start_client --multiple
+    walk_to_fixture
+    ipc_is_live
+    local alpha empty copied step before_windows terminal_window terminal_label opened_window
+    alpha=$(row_named alpha.txt)
+
+    click_row "$alpha" right
+    sleep 0.3
+    [[ "|$(ipc contextMenuEntries)|" == *"|Open in terminal|"* ]] \
+        || fail "opener: the row menu offers no Open in terminal entry: $(ipc contextMenuEntries)"
+    # Open is row 0 and Copy path is row 1.
+    press -k Down
+    press -k Return
+    copied=""
+    for step in $(seq 1 40); do
+        copied=$(wl-paste 2>/dev/null || true)
+        [[ "$copied" == "$fixture/alpha.txt" ]] && break
+        sleep 0.1
+    done
+    [[ "$copied" == "$fixture/alpha.txt" ]] \
+        || fail "opener: Copy path put '$copied' on the clipboard"
+
+    empty=$(ipc emptyCentre)
+    [[ -n "$empty" ]] || fail "opener: the list has no empty space under $(ipc total) rows"
+    click_centre "$empty" right || fail "opener: could not right-click the space under the rows"
+    sleep 0.3
+    [[ "|$(ipc contextMenuEntries)|" == *"|Open in terminal|"* ]] \
+        || fail "opener: the empty menu offers no Open in terminal entry: $(ipc contextMenuEntries)"
+    press -k Escape
+
+    local sub
+    sub=$(row_named sub)
+    click_row "$sub" right
+    sleep 0.3
+    press -k Return
+    for step in $(seq 1 40); do
+        [[ "$(ipc path)" == "$fixture/sub" ]] && break
+        sleep 0.1
+    done
+    [[ "$(ipc path)" == "$fixture/sub" ]] || fail "opener: Open did not enter $fixture/sub"
+    kill -0 "$client" 2>/dev/null || fail "opener: opening a folder answered the portal request"
+    press -k BackSpace
+    for step in $(seq 1 40); do
+        [[ "$(ipc path)" == "$fixture" ]] && break
+        sleep 0.1
+    done
+    [[ "$(ipc path)" == "$fixture" ]] || fail "opener: Backspace returned to $(ipc path)"
+
+    before_windows="$fixture/windows.before"
+    hyprctl clients -j | jq -r '.[].address' | sort -u > "$before_windows"
+    press -k t --mods ctrl
+    terminal_window=""
+    for step in $(seq 1 100); do
+        terminal_window=$(comm -13 "$before_windows" <(hyprctl clients -j | jq -r '.[].address' | sort -u) | head -1)
+        [[ -n "$terminal_window" ]] && break
+        sleep 0.1
+    done
+    [[ -n "$terminal_window" ]] || fail "opener: Ctrl+T raised no new desktop window"
+    terminal_label=$(hyprctl clients -j | jq -r --arg a "$terminal_window" '.[] | select(.address == $a) | "\(.class)|\(.title)"')
+    kill -0 "$client" 2>/dev/null || fail "opener: Ctrl+T ended the portal caller"
+    ipc_is_live
+    hyprctl dispatch closewindow "address:$terminal_window" >/dev/null 2>&1 || true
+    omarchy-drive focus "$title" >/dev/null || fail "opener: the picker would not retake focus"
+
+    hyprctl clients -j | jq -r '.[].address' | sort -u > "$before_windows"
+    click_row "$alpha" right
+    sleep 0.3
+    press -k Return
+    sleep 0.5
+    kill -0 "$client" 2>/dev/null || fail "opener: Open answered the portal request"
+    ipc_is_live
+    opened_window=$(comm -13 "$before_windows" <(hyprctl clients -j | jq -r '.[].address' | sort -u) | head -1)
+    [[ -z "$opened_window" ]] || hyprctl dispatch closewindow "address:$opened_window" >/dev/null 2>&1 || true
+    omarchy-drive focus "$title" >/dev/null || fail "opener: the picker would not retake focus after Open"
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "opener: the caller exited 0 after a cancel"
+    printf 'opener: copied=%s terminal=%s, and Open left the portal caller alive\n' "$copied" "$terminal_label"
 }
 
 # F2 and the menu open the row's own editor. The stem starts selected, Return writes the new name,
@@ -1431,7 +1518,7 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall pasteprogress click menu rename duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall pasteprogress click menu opener rename duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -1439,6 +1526,7 @@ for name in "$@"; do
         pasteprogress) case_pasteprogress ;;
         click) case_click ;;
         menu) case_menu ;;
+        opener) case_opener ;;
         rename) case_rename ;;
         duplicate) case_duplicate ;;
         trash) case_trash ;;

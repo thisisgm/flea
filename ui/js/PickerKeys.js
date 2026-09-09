@@ -83,7 +83,8 @@ function railVerb(event) {
     case Qt.Key_Return: case Qt.Key_Enter: return "open"
     case Qt.Key_Escape: return "escape"
     }
-    return Keymap.lookup(event.key, event.text, event.modifiers) === "focusNext" ? "focusNext" : ""
+    var action = Keymap.lookup(event.key, event.text, event.modifiers)
+    return action === "focusNext" || action === "openTerminal" || action === "copydirpath" ? action : ""
 }
 
 // The dispatcher. state is ui/PickerState.qml; ops is ui/PickerList.qml, for the cursor moves
@@ -93,6 +94,19 @@ function act(action, state, ops) {
     // Tab, ui/js/Focus.js's own rule: the only key that moves between the two surfaces.
     if (action === "focusNext") {
         state.focusView = state.focusView === LIST ? RAIL : LIST
+        return
+    }
+    // These belong to the directory the window shows, so the list and the rail both answer them.
+    // Recent is a history token and must never be handed to an external process or the clipboard.
+    if (action === "openTerminal") {
+        state.openTerminal()
+        return
+    }
+    if (action === "copydirpath") {
+        if (state.recent)
+            state.message("Recent has no folder path to copy.", false)
+        else
+            state.copyText(state.path)
         return
     }
     // The rail answers through RailKeys unmodified, on the members ui/PickerPlaces.qml shares with
