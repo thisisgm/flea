@@ -35,14 +35,14 @@ if [ ! -x "$BIN" ]; then
   exit 1
 fi
 
-# The singleton and the four libraries it imports are copied rather than imported: importing ui/ as
+# The singleton and its JavaScript import closure are copied rather than imported: importing ui/ as
 # a directory makes Quickshell scan every file in it and warn about the two OEM symlinks this test
 # has no session for. Commons is one of those two, and ViewState reads Omarchy's own base size from
 # it, so this root gets that link alone rather than the whole directory.
 sandbox_make "$SANDBOX" || exit 1
 mkdir -p "$QMLDIR/js" || exit 1
 cp ui/ViewState.qml "$QMLDIR/ViewState.qml" || exit 1
-for lib in UiState Settings TextSize Keymap; do
+for lib in UiState Settings TextSize Keymap Sort DirSizes Thumbs; do
   cp "ui/js/$lib.js" "$QMLDIR/js/$lib.js" || exit 1
 done
 ln -sfn /usr/share/omarchy/shell/Commons "$QMLDIR/Commons" || exit 1
