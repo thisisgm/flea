@@ -44,7 +44,7 @@ QtObject {
 
     // The checked identities, each a path and its size, so Back and Parent cannot rebind one.
     property var marks: []
-    // The listing row the last Space or Ctrl+click toggled, where a Shift+click's range starts.
+    // The listing row the last Space, plain click or Ctrl+click addressed, where Shift starts.
     property int markAnchor: -1
     // The user's own pills, from ~/.config/flea/filters.toml, drawn only for a caller that sent none.
     readonly property var config: Flea.PickerFilters {}

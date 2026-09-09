@@ -143,12 +143,9 @@ ListView {
         TapHandler {
             id: tap
             acceptedButtons: Qt.LeftButton
-            // ui/js/Tap.js's rule, one tap selects and the second opens, with the chooser's one
-            // difference: the second tap on a file marks it and never sends, because a double click
-            // that hands a file to the caller is a send nobody asked for. Ctrl and Shift are Finder's
-            // two marking modifiers, neither ever opens, and only the first tap of one counts, so a
-            // held double click marks once instead of toggling itself back off.
-            onTapped: function (eventPoint, button) {
+            // One tap marks the whole row. A second tap opens a directory after undoing that tap's
+            // folder mark; it never sends a file. Ctrl and Shift mark only on the first tap.
+            onTapped: function () {
                 var mods = tap.point.modifiers
                 if (!(mods & (Qt.ControlModifier | Qt.ShiftModifier)))
                     root.commitOpenRename(cell.listingIndex)
@@ -164,11 +161,16 @@ ListView {
                         root.markRange(cell.listingIndex)
                     return
                 }
-                var onBox = box.visible && eventPoint.position.x <= box.x + box.width + Theme.spacing.gap
-                if (onBox || (tap.tapCount === 2 && cell.markable))
-                    root.picker.toggleMark(cell.listingIndex)
-                else if (tap.tapCount === 2 && cell.row && cell.row.d)
+                if (tap.tapCount === 1) {
+                    if (cell.markable)
+                        root.picker.selectMark(cell.listingIndex)
+                    return
+                }
+                if (tap.tapCount === 2 && cell.row && cell.row.d) {
+                    if (cell.markable)
+                        root.picker.toggleMark(cell.listingIndex)
                     root.picker.open(cell.rowPath)
+                }
             }
         }
 

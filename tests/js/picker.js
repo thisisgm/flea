@@ -62,9 +62,9 @@ function run(check) {
     check("a selection follows the count", Picker.footerLine("ready", 3, 2, 2100000), "3 items   2 selected · 2.1 MB")
     check("an empty listing draws no selection clause", Picker.footerLine("empty", 0, 0, 0), "empty")
     check("marks outlive a listing still loading", Picker.footerLine("loading", 0, 2, 2100000), "2 selected · 2.1 MB")
-    check("the open hints name Space and Enter", Picker.hints(req), "Space select · Enter open/send · : location · Esc cancel")
+    check("the open hints distinguish Click and Space", Picker.hints(req), "Click select · Space toggle · Enter open/send · : location · Esc cancel")
     check("a folder request names the location key too", Picker.hints(Picker.request('{"mode":"open","directory":true}')),
-          "Enter open · Space mark folder · : location · Esc cancel")
+          "Enter open · Click mark folder · Space toggle · : location · Esc cancel")
     check("the save hints name neither", Picker.hints(Picker.request('{"mode":"save"}')), "Enter save · Esc cancel")
 
     var chips = Picker.chips(req)

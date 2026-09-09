@@ -960,17 +960,21 @@ is read once. Unlike the path bar the strip stays up on blur, because it is a fi
 window and not an editor raised over one. Save mode keeps `ui/PickerSave.qml`'s Filename field and no
 second one. The `fleapicker` seam reads the field as `entry` and `entryFocused` and acts on
 nothing, so `tests/picker.sh typed` can say where the keyboard is.
-**Ctrl+click and Shift+click, and where the anchor lives.** The chooser's rows take Finder's two
-marking modifiers, the rule `ui/js/Tap.js` gives the browser window: Ctrl toggles the row and
-Shift marks the run from the last toggled row to this one, neither ever opens, and only the first
-tap of a held double click counts, so a Ctrl-held double click marks once instead of toggling
-itself back off. The anchor is `ui/picker.qml`'s `markAnchor`, the listing index the last Space or
-Ctrl+click toggled, and a Shift+click before any toggle marks its own row alone. The run is the
-rows drawn between the two ends, `Filter.between` over the chip's set or the held window, read
-from the rows the window holds: a row scrolled out of that window was never on screen as part of
-the range. `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle`, `select`
-and `markRange`; `select` is the plain click, it sets and never clears; Shift never unmarks, and in a single request the range is the clicked row, toggled
-the way Space toggles it. The picker reads `keys.toml` only through `ui/js/PickerKeys.js`'s
+**Click marking, double click opening, and where the anchor lives.** A plain click on any part of a
+markable row sets its mark. It never clears a mark that already stands. A double click on a
+directory opens it in file and folder requests alike; in a folder request, its second tap toggles
+the first tap's folder mark off before the listing changes. A double click on a file stops after
+the first tap marks it and never answers the portal. Ctrl and Shift keep Finder's two marking
+modifiers from `ui/js/Tap.js`: Ctrl toggles the row and Shift marks the run from the last addressed
+row to this one. Neither modifier opens, and only the first tap of a held double click counts. The
+anchor is `ui/PickerState.qml`'s `markAnchor`, the listing index the last Space, plain click, or
+Ctrl+click addressed. A Shift+click before any mark uses its own row alone. The run is the rows drawn
+between the two ends, `Filter.between` over the chip's set or the held window, read from the rows
+the window holds: a row scrolled out of that window was never on screen as part of the range.
+`ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle`, `select` and
+`markRange`; `select` is the plain click, it sets and never clears; Shift never unmarks, and in a
+single request the range is the clicked row, toggled the way Space toggles it. The picker reads
+`keys.toml` only through `ui/js/PickerKeys.js`'s
 allowlist: its own verbs answer first, Space, Enter, `l`, Backspace, `h`, `:`, Ctrl+L, Escape and
 Alt+Left, so the browser's preview, page-forward and trash-arm meanings for those keys never
 reach it; then `Keymap.lookup` answers for the shared operations alone, copy, cut, paste, select
