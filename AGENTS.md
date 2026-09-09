@@ -1182,7 +1182,11 @@ this coverage needed no new entry there.
   path, the held rows, the cursor, the marks, the history, the save name) and every move on it
   (open, back, up, mark, activate, accept, cancel, finish), and writes only through the window,
   backend, footer, navigator and fetcher `ui/picker.qml` hands in. Every `ui/Picker*.qml` child
-  takes it as its `picker`.
+  takes it as its `picker`. It also carries the pane-shaped surface `ui/js/Ops.js`, `Sort.js`
+  and `Drag.js` read (`selectedIndices`, `rowFor`, `join`, `message`, `sticky`, `clipboard`,
+  `renamingIndex`, `setCursor`, `refresh` and the rest), so those files run in the chooser
+  unmodified; `ui/js/PickerOps.js` is where a mark, which is a path, becomes a listing index
+  and back, and where Select all and the refresh after a write are decided.
 - `ui/PickerIpc.qml` is the `fleapicker` seam `tests/picker.sh` drives, the read-only shape of
   `ui/Ipc.qml` for the chooser: it reports `PickerState` and never acts.
 - `ui/Header.qml` renders the column header band and its rule, and owns nothing else: it
