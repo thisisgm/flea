@@ -145,6 +145,33 @@ case_pick() {
     printf 'pick: the caller exited 0 with both paths\n'
 }
 
+# Ctrl+A marks every file the listing draws in a multiple request, and the Open button counts them.
+# A single request has nothing to select all: the marks stay empty and the footer says why.
+case_selectall() {
+    make_fixture
+    start_client --multiple
+    walk_to_fixture
+    [[ "$(ipc accept)" == "Open" ]] || fail "the button read $(ipc accept) before anything was marked"
+    press -k a --mods ctrl
+    [[ "$(ipc marks)" == "$fixture/alpha.txt,$fixture/beta.txt,$fixture/gamma.bin" ]] || fail "ctrl+a marked $(ipc marks)"
+    [[ "$(ipc accept)" == "Open 3" ]] || fail "the button read $(ipc accept) with three marked"
+    [[ "$(ipc count)" == "3 items   3 selected"* ]] || fail "the footer says $(ipc count) with three marked"
+    press -k Return
+    wait_for_client
+    [[ "$client_status" == 0 ]] || fail "the caller exited $client_status with $(cat "$fixture/client.err")"
+    local want
+    want=$(printf '%s\n%s\n%s' "$fixture/alpha.txt" "$fixture/beta.txt" "$fixture/gamma.bin")
+    [[ "$(cat "$fixture/picked.txt")" == "$want" ]] || fail "the caller received $(cat "$fixture/picked.txt")"
+    start_client
+    walk_to_fixture
+    press -k a --mods ctrl
+    [[ -z "$(ipc marks)" ]] || fail "ctrl+a in a single request marked $(ipc marks)"
+    [[ "$(ipc message)" == "The caller takes one file only." ]] || fail "the footer said: $(ipc message)"
+    press -k Escape
+    wait_for_client
+    printf 'selectall: ctrl+a marks every drawn file in a multiple request and refuses in a single one\n'
+}
+
 # A drawn item's centre in screen pixels: the seam answers window pixels, and the floating window's
 # own origin is added, the same sum tests/ui.sh's click_row makes for the tiled one. The centre is
 # read by the caller, because each seam reader names its own kind of item and its own emptiness.
@@ -1199,10 +1226,11 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click menu crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall click menu crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
+        selectall) case_selectall ;;
         click) case_click ;;
         menu) case_menu ;;
         crumbs) case_crumbs ;;
