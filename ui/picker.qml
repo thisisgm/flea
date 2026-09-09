@@ -241,7 +241,9 @@ ShellRoot {
                 win.held = start
                 win.rows = items
                 win.kindNames = kinds
+                navigate.rowsArrived()
             }
+            onPeeked: function (path, hidden, total, rows, readFailed) { navigate.peeked(path, hidden, total, rows, readFailed) }
             onFailed: function (where, input, msg, mode) {
                 win.listingState = "empty"
                 win.say(msg)
@@ -253,6 +255,16 @@ ShellRoot {
         Flea.PickerRecent {
             id: recents
             onRefreshed: if (win.recent) backend.listPaths(recents.paths, win.windowSize)
+        }
+
+        // What a typed line does: a folder opens, a file is selected in its parent, and the rest is
+        // refused in the footer. It asks the backend before it opens anything; see ui/PickerNavigate.qml.
+        Flea.PickerNavigate {
+            id: navigate
+            picker: win
+            backend: backend
+            entry: entryField
+            list: list
         }
 
         Rectangle {
@@ -309,14 +321,14 @@ ShellRoot {
                 visible: win.listingState === "empty"
             }
 
-            // The location field, above the footer in the open modes; a later change teaches the
-            // window what a typed line does, so entered() is only received here for now.
+            // The location field, above the footer in the open modes.
             Flea.PickerEntry {
                 id: entryField
                 anchors.left: parent.left
                 anchors.right: parent.right
                 anchors.bottom: save.top
                 picker: win
+                onEntered: function (text) { navigate.enter(text) }
                 onDismissed: list.forceActiveFocus()
             }
 
