@@ -192,9 +192,12 @@ ShellRoot {
             replyFile.setText(text)
         }
 
-        function say(text) {
+        // A held message stays until the next say: the share legs can take their whole deadline.
+        function say(text, hold) {
             win.message = text
-            messageLife.restart()
+            messageLife.stop()
+            if (hold !== true)
+                messageLife.restart()
         }
 
         Timer {
@@ -270,7 +273,11 @@ ShellRoot {
             backend: backend
             entry: entryField
             list: list
+            onShareEntered: function (answer) { share.enter(answer) }
         }
+
+        // A typed share URL: mounted at its root, then walked on its FUSE path through navigate.
+        Flea.PickerShare { id: share; picker: win; navigate: navigate }
 
         Rectangle {
             anchors.fill: parent

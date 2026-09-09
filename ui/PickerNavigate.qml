@@ -24,14 +24,23 @@ QtObject {
     property string pendingParent: ""
     property int pendingStart: 0
 
-    // A URL the later changes fetch or mount; until then the window only says so.
+    // A URL the later changes fetch; until then the window only says so.
     signal remoteEntered(var answer)
+    // An smb, sftp or ssh URL, which ui/PickerShare.qml mounts and hands back through act.
     signal shareEntered(var answer)
 
     function enter(text) {
         // Recent is a history and not a directory, so a relative name resolves against home there.
         var current = root.picker.recent ? root.picker.home : root.picker.path
-        var answer = PickerEntry.classify(text, current, root.picker.home)
+        root.act(PickerEntry.classify(text, current, root.picker.home))
+    }
+
+    function refusal(reason) {
+        return Navigate.refusal(reason)
+    }
+
+    // A classified line, from the field or from ui/PickerShare.qml once a share's FUSE path is known.
+    function act(answer) {
         var step = Navigate.plan(answer, root.picker.path, root.picker.marks, root.picker.folderMode)
         if (step.step === "say") {
             root.picker.say(step.message)
@@ -39,7 +48,6 @@ QtObject {
             root.picker.say(Navigate.NOT_YET)
             root.remoteEntered(answer)
         } else if (step.step === "share") {
-            root.picker.say(Navigate.NOT_YET)
             root.shareEntered(answer)
         } else if (step.step === "accept") {
             root.picker.accept()
