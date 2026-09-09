@@ -53,9 +53,9 @@ Item {
 
     readonly property bool running: child.running
 
-    // What order the current listing is actually in, which is what ui/Header.qml's mark draws.
-    // Only two things move it: list re-sorts by name ascending below, and an accepted sort, which
-    // ui/js/Sort.js records here because it is the one place that knows which keys are accepted.
+    // What order the listing is in, or is about to be in, which is what ui/Header.qml's mark draws.
+    // list sets it to the stored order and ui/PaneWire.qml sorts the fresh scan into it; an accepted
+    // sort moves it through ui/js/Sort.js, the one place that knows which keys are accepted.
     property string sortBy: "name"
     property bool sortDesc: false
 
@@ -90,10 +90,10 @@ Item {
 
     function list(path, first, hidden) {
         root.listRequests += 1
-        // A fresh scan is always name ascending, so every refresh after a write operation puts the
-        // header's mark back rather than leaving it describing the order before the refresh.
-        root.sortBy = "name"
-        root.sortDesc = false
+        // A fresh scan answers name ascending (docs/protocol.md "list"), so the mark says where the
+        // listing is going: ui/PaneWire.qml's listed handler asks for any other order at once.
+        root.sortBy = ViewState.sortKey
+        root.sortDesc = ViewState.sortReverse
         root.send({ c: "list", path: path, first: first, hidden: hidden })
     }
 

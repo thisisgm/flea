@@ -13,6 +13,16 @@ function run(check) {
     check("single mode replaces the prior check", Picker.paths(single).join(","), "/x/b.png")
     check("single mode unmarks its own", Picker.paths(Marks.toggle(single, "/x/b.png", 20, false)).length, 0)
 
+    // A plain click sets the mark and never clears it.
+    var one = Marks.select([], "/x/a.png", 10, false)
+    check("select on the marked row in single mode keeps it", Picker.paths(Marks.select(one, "/x/a.png", 10, false)).join(","), "/x/a.png")
+    check("select replaces a different mark in single mode", Picker.paths(Marks.select(one, "/x/b.png", 20, false)).join(","), "/x/b.png")
+    var many = Marks.select(Marks.select([], "/x/a.png", 10, true), "/x/b.png", 20, true)
+    check("select adds in multiple mode", Picker.paths(many).join(","), "/x/a.png,/x/b.png")
+    check("select never duplicates in multiple mode", Picker.paths(Marks.select(many, "/x/a.png", 10, true)).join(","), "/x/a.png,/x/b.png")
+    check("select never unmarks in multiple mode", Picker.totalBytes(Marks.select(many, "/x/b.png", 20, true)), 30)
+    check("toggle still clears its own in single mode", Picker.paths(Marks.toggle(one, "/x/a.png", 10, false)).length, 0)
+
     // Shift+click hands the range of drawn rows from the anchor to the click, anchor first.
     var a = { path: "/x/a.png", bytes: 10 }
     var b = { path: "/x/b.png", bytes: 20 }

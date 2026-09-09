@@ -22,6 +22,7 @@ function stubState(over) {
         activate: function (i) { state.calls.push("activate " + i) },
         goUp: function () { state.calls.push("parent") },
         goBack: function () { state.calls.push("back") },
+        toggleHidden: function () { state.calls.push("hidden") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over) {
@@ -130,7 +131,8 @@ function run(check) {
     PickerKeys.act("activate", state, ops)
     PickerKeys.act("parent", state, ops)
     PickerKeys.act("back", state, ops)
-    check("the state verbs land on the state", state.calls.join(","), "cancel,stopFetch,mark 4,activate 4,parent,back")
+    PickerKeys.act("toggleHidden", state, ops)
+    check("the state verbs land on the state", state.calls.join(","), "cancel,stopFetch,mark 4,activate 4,parent,back,hidden")
     PickerKeys.act("cursorDown", state, ops)
     PickerKeys.act("cursorUp", state, ops)
     PickerKeys.act("pageDown", state, ops)
@@ -149,7 +151,11 @@ function run(check) {
     check("an unbuilt shared action says so", state.said.join(""), "Copy is not built in the chooser yet.")
     PickerKeys.act("settings", state, ops)
     check("an action outside the allowlist says nothing", state.said.length, 1)
-    check("the state is untouched by either", state.calls.length, 6)
+    check("the state is untouched by either", state.calls.length, 7)
+    // The hidden toggle is built: a . reaches the state through handle and says nothing in the footer.
+    var dotted = stubState()
+    check("dot through handle flips hidden", PickerKeys.handle(press(Qt.Key_Period, "."), dotted, ops), "toggleHidden")
+    check("and lands on the state in silence", dotted.calls.join(",") + "|" + dotted.said.length, "hidden|0")
 
     // ---- the rail: Tab swaps the surface, and the rail's six keys answer while it has the keyboard ----
     var railed = stubState({ focusView: "list", places: { entries: [1, 2, 3], cursorIndex: 0, opened: [],

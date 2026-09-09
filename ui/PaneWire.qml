@@ -39,6 +39,8 @@ Item {
     property bool stale: false
     // What the cursor sat on across a watched re-read, or null; ui/js/Nav.js owns both ends of it.
     property var anchor: null
+    // A fresh listing is being sorted into the stored order; only the sort's listed lets rows through.
+    property bool resortOwed: false
     // One burst of writes is one re-read: the timer absorbs later notifications instead of being
     // restarted by them, so a directory under continuous change settles rather than never firing.
     readonly property int watchMs: 400
@@ -129,6 +131,21 @@ Item {
 
         function onListed(total, readMs, sortMs) {
             if (pane.listInFlight) {
+                // A fresh scan is name ascending, so any other stored order is asked for once the scan
+                // has answered, or a failed scan would reorder the old listing. The rows riding along
+                // stay behind onRows's gate, so the anchor, the pending selection and a tab's cursor
+                // land on the sorted rows only; Nav.js openWithoutHistory did the rest of Sort.js resort.
+                if (!root.resortOwed && (pane.backend.sortBy !== "name" || pane.backend.sortDesc)) {
+                    root.resortOwed = true
+                    pane.total = total
+                    pane.backend.sort(pane.backend.sortBy, pane.backend.sortDesc)
+                    pane.backend.window(0, pane.windowSize)
+                    // The window a watched re-read asked for beside its list went the same way.
+                    if (root.anchor && root.anchor.path === pane.path && root.anchor.start > 0)
+                        pane.backend.window(root.anchor.start, pane.windowSize)
+                    return
+                }
+                root.resortOwed = false
                 pane.listedSeen = true
             }
             pane.total = total
@@ -274,8 +291,9 @@ Item {
         }
 
         // Sample input: {"t":"made","ok":true,"path":"/home/gm/Pictures/New Folder"}
-        // The same refresh onRenamed does, which is also what puts the order back to name ascending
-        // and drops any filter, so the new row is never sorted or filtered out of sight.
+        // The same refresh onRenamed does, which is also what drops any filter, so the new row is never
+        // filtered out of sight. It can still sort out of the first window: under an mtime order in a
+        // directory deeper than one window the new folder lands past it, and no editor opens.
         function onMade(ok, path) {
             root.renameOnArrival = path
             pane.message(Ops.made(path), false)
@@ -326,8 +344,17 @@ Item {
             // plain role, never the error role, which is for a listing that stopped being true.
             if (where === "sort") {
                 pane.message(text, false)
+                // corner: a refused follow-up, unreachable while ViewState checks the key against Sort.ORDERS.
+                if (root.resortOwed) {
+                    root.resortOwed = false
+                    pane.backend.sortBy = "name"
+                    pane.backend.sortDesc = false
+                    pane.listedSeen = true
+                    pane.listingState = pane.total === 0 ? "empty" : "ready"
+                }
                 return
             }
+            root.resortOwed = false
             pane.listInFlight = false
             pane.listedSeen = false
             // Neither the child nor its stream comes back, so the listing it produced stops being true.

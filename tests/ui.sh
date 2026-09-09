@@ -1766,9 +1766,8 @@ case_background() {
     [[ "$(ipc sortMark)" == "size:asc" ]] \
         || fail "background: Sort by Size left the listing in $(ipc sortMark)"
     # And back to the order this case found, which the steps below read row numbers against. It is a
-    # literal and not a saved reading because ui/Backend.qml sets sortBy to name and sortDesc to
-    # false on every list and nothing writes the order to ui.json, so name ascending is what every
-    # window starts in; the flip above lives and dies with this window.
+    # literal because the state file this case seeded holds no sort key, so name ascending is what
+    # the window started in; the flip above went into that file and comes back out here.
     menu_click "Sort by" name
     [[ "$(ipc sortMark)" == "name:asc" ]] \
         || fail "background: Sort by Name left the listing in $(ipc sortMark)"
@@ -2515,6 +2514,84 @@ case_grid() {
     (( $(ipc cursor) == start + 1 )) \
         || fail "grid: after switching back the list did not take one step, so focus stayed with the grid"
     kill_flea
+}
+
+# The stored order survives navigation: ui/Backend.qml list once put the mark back to name ascending
+# on every listing, so a size order died on the first Return. Now the mark says the stored order and
+# ui/PaneWire.qml sorts every fresh scan into it, with the name-ordered rows kept off the screen.
+sortkept_names() {
+    local i n out=""
+    n=$(ipc total)
+    for ((i = 0; i < n; i++)); do
+        out+="${out:+,}$(ipc rowAt "$i" | cut -d'|' -f1)"
+    done
+    printf '%s' "$out"
+}
+
+sortkept_names_are() {
+    local got
+    got=$(sortkept_names)
+    [[ "$got" == "$1" ]] || fail "sortkept: $2 reads $got, not $1"
+}
+
+case_sortkept() {
+    local dir="$fixture_root/sortkept" state="$fixture_root/sortkept-state"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/sub"
+    # Sizes that reverse the name order, so the two orders never agree by accident.
+    head -c 3000 /dev/zero > "$dir/big.txt"
+    head -c 200 /dev/zero > "$dir/mid.txt"
+    head -c 1 /dev/zero > "$dir/tiny.txt"
+    head -c 50 /dev/zero > "$dir/sub/inner.txt"
+    # A state home of its own: s writes the order, and hard rule 9 keeps that off the operator's file.
+    local real_state="${XDG_STATE_HOME-}"
+    seed_ui_state "$state" '{}'
+    launch "$dir"
+    wait_listing 4
+    [[ "$(ipc sortMark)" == "name:asc" ]] || fail "sortkept: an empty state file opened in $(ipc sortMark)"
+    sortkept_names_are "sub,big.txt,mid.txt,tiny.txt" "the name order before s"
+
+    key s >/dev/null
+    settle
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "sortkept: s left the mark at $(ipc sortMark)"
+    sortkept_names_are "sub,tiny.txt,mid.txt,big.txt" "the size order s asked for"
+    jq -e '.sort.key == "size" and .sort.reverse == false' "$state/flea/ui.json" >/dev/null \
+        || fail "sortkept: s did not store the size order, the file holds $(cat "$state/flea/ui.json")"
+
+    # Into a directory and back. Each way is one list, and the follow-up sort and its window are not
+    # listings, so the counter the settle gate reads grows by exactly two.
+    local before
+    before=$(ipc listRequests)
+    seek_row_named sub
+    key -k Return >/dev/null
+    wait_path "$dir/sub"
+    wait_listing 1
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "sortkept: opening sub put the mark at $(ipc sortMark)"
+    key -k Backspace >/dev/null
+    wait_path "$dir"
+    wait_listing 4
+    settle
+    printf 'SORTKEPT back mark=%s rows=%s lists=%s\n' \
+        "$(ipc sortMark)" "$(sortkept_names)" "$(( $(ipc listRequests) - before ))"
+    shot sortkept
+    [[ "$(ipc sortMark)" == "size:asc" ]] || fail "sortkept: coming back put the mark at $(ipc sortMark)"
+    sortkept_names_are "sub,tiny.txt,mid.txt,big.txt" "the size order after the round trip"
+    (( $(ipc listRequests) - before == 2 )) \
+        || fail "sortkept: the round trip cost $(( $(ipc listRequests) - before )) listings, not 2"
+
+    # A watched re-read puts the cursor back by name on the sorted rows, not on the name-ordered rows
+    # the list rode along: big.txt is row 1 by name and row 4 by size once new.txt lands above it.
+    seek_row_named big.txt
+    head -c 100 /dev/zero > "$dir/new.txt"
+    omarchy-drive wait ipc -p "$flea_ui" flea total 5 --timeout 15 >/dev/null \
+        || fail "sortkept: the listing stayed at $(ipc total) rows after an outside create"
+    settle
+    printf 'SORTKEPT reread rows=%s cursor=%s\n' "$(sortkept_names)" "$(ipc rowAt "$(ipc cursor)")"
+    sortkept_names_are "sub,tiny.txt,new.txt,mid.txt,big.txt" "the size order after the re-read"
+    [[ "$(ipc rowAt "$(ipc cursor)")" == "big.txt|"* ]] \
+        || fail "sortkept: the re-read put the cursor on $(ipc rowAt "$(ipc cursor)"), not big.txt"
+    kill_flea
+    if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
 }
 
 case_header() {
@@ -6961,7 +7038,7 @@ case_previewviews() {
 }
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header sortkept overflow focus preview network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare)
 
 : > "$run_log"
 : > "$flea_log"

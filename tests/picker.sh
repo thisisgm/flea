@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|menu|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|click|menu|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -826,6 +826,65 @@ case_filter() {
     printf 'filter: / opens the query line, typing narrows the rows, Return leaves the filter standing, Escape clears it and then cancels\n'
 }
 
+# "." lists the standing directory again with its dotfiles and again without: the rows are the
+# backend's own scan and never a client-side filter, so total moves and the dotfile gains and loses
+# a row. The cursor goes back on its row by name and a mark is a path, so both stand through the
+# re-reads; the flag survives a walk to the parent; in Recent the key does nothing at all.
+case_hidden() {
+    make_fixture
+    printf 'dot\n' > "$fixture/.quiet"
+    local reply i
+    start_typed hidden
+    [[ "$(ipc hidden)" == "0" ]] || fail "the chooser started with hidden files on"
+    [[ "$(ipc total)" == "3" ]] || fail "the fixture listed $(ipc total) rows, not the 3 without the dotfile"
+    press -k Down
+    press -k space
+    [[ "$(ipc marks)" == "$fixture/beta.txt" ]] || fail "Space marked $(ipc marks), not beta.txt"
+    press '.'
+    sleep 1
+    [[ "$(ipc hidden)" == "1" ]] || fail ". did not turn hidden files on"
+    [[ "$(ipc total)" == "4" ]] || fail ". listed $(ipc total) rows, not the 4 with the dotfile"
+    row_named .quiet >/dev/null
+    [[ "$(ipc cursorName)" == "beta.txt" ]] || fail "the re-read moved the cursor to $(ipc cursorName), not back on beta.txt"
+    [[ "$(ipc marks)" == "$fixture/beta.txt" ]] || fail "the mark did not survive the re-read: $(ipc marks)"
+    press -k BackSpace
+    sleep 1
+    [[ "$(ipc path)" == "$(dirname "$fixture")" ]] || fail "Backspace left the picker at $(ipc path)"
+    [[ "$(ipc hidden)" == "1" ]] || fail "the parent walk turned hidden files off"
+    # Back down the way walk_to_fixture climbs: the parent's listing seats the cursor on row 0.
+    i=0
+    while [[ "$(ipc cursorName)" != "${fixture##*/}" ]]; do
+        i=$((i + 1))
+        [[ "$i" -le 200 ]] || fail "no row named ${fixture##*/} under $(ipc path)"
+        press -k Down
+    done
+    press -k Return
+    sleep 1
+    [[ "$(ipc path)" == "$fixture" ]] || fail "Return did not walk back into the fixture, the picker is at $(ipc path)"
+    [[ "$(ipc total)" == "4" ]] || fail "the fixture listed $(ipc total) rows on the way back, not 4"
+    press '.'
+    sleep 1
+    [[ "$(ipc hidden)" == "0" ]] || fail "a second . did not turn hidden files off"
+    [[ "$(ipc total)" == "3" ]] || fail "the second . listed $(ipc total) rows, not 3"
+    for ((i = 0; i < 3; i++)); do
+        [[ "$(ipc rowAt "$i")" != ".quiet" ]] || fail "the dotfile still has a row at $i with hidden files off"
+    done
+    # Recent: the rail's first row, reached the way case_rail reaches it; the key answers nothing there.
+    press -k Tab
+    sleep 0.3
+    press -k Home
+    press -k Return
+    sleep 1
+    [[ "$(ipc recent)" == "true" ]] || fail "the rail's first row did not open Recent, the picker is at $(ipc path)"
+    press '.'
+    sleep 0.5
+    [[ "$(ipc hidden)" == "0" ]] || fail ". in Recent flipped hidden files to $(ipc hidden)"
+    press -k Escape
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == '{"response":1}' ]] || fail "the hidden request replied $(cat "$reply")"
+    printf 'hidden: . lists the dotfiles and again lists without them, the cursor and mark stand, the flag survives a walk, Recent ignores it\n'
+}
+
 # Starts the picker on the fixture directly, the way case_typed does, and leaves it to the caller
 # to type and to end. asker holds the process; reply names the file it answers into.
 start_typed() {
@@ -1140,7 +1199,7 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click menu crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills header thumbs
+[[ "$#" -gt 0 ]] || set -- pick click menu crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -1162,6 +1221,7 @@ for name in "$@"; do
         pills) case_pills ;;
         filter) case_filter ;;
         header) case_header ;;
+        hidden) case_hidden ;;
         thumbs) case_thumbs ;;
         taildrop) case_taildrop ;;
         dragout) case_dragout ;;

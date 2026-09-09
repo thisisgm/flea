@@ -606,6 +606,19 @@ itself with `Sort.setStore` when it loads, the way it pushes its preset into `ui
 window that could sort before it has read `ViewState` would record on the backend alone; both windows
 read it before their first listing.
 
+**A fresh listing comes back in the stored order, and `list` never resets the mark.** `list` answers
+name ascending (`docs/protocol.md` "list"), so `ui/Backend.qml` `list()` sets `sortBy`/`sortDesc`
+from `ViewState.sortKey`/`sortReverse` and `ui/PaneWire.qml`'s `listed` handler asks for that order
+with a follow-up `sort` and a `window(0)` the moment the scan has answered, never beside the `list`,
+because a scan that fails would leave the old listing to be reordered instead. Until the sort's own
+`listed` line lands, `listedSeen` stays false and `onRows` drops the name-ordered rows that rode along
+with the scan, so the anchor of a watched re-read, a pending selection and a tab's cursor are all
+applied to the sorted rows and never to an index from the other order; a watched re-read's second
+window is asked for again after the sort for the same reason. `Backend.qml` used to set the mark back
+to name ascending on every `list()`, so the order died on the first Return and on every refresh after
+a write. `tests/ui.sh sortkept` is the proof, round trip and re-read both. `listpaths` is untouched:
+the mark stays where its caller left it, as before.
+
 **`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
 a closed list, because a closed list would make this Flea drop an id a newer one hid. It is the
 Menus section's whole visibility state: the panel's master row over the six basic actions is derived
@@ -950,8 +963,8 @@ itself back off. The anchor is `ui/picker.qml`'s `markAnchor`, the listing index
 Ctrl+click toggled, and a Shift+click before any toggle marks its own row alone. The run is the
 rows drawn between the two ends, `Filter.between` over the chip's set or the held window, read
 from the rows the window holds: a row scrolled out of that window was never on screen as part of
-the range. `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle` and
-`markRange`; Shift never unmarks, and in a single request the range is the clicked row, toggled
+the range. `ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle`, `select`
+and `markRange`; `select` is the plain click, it sets and never clears; Shift never unmarks, and in a single request the range is the clicked row, toggled
 the way Space toggles it. The picker reads `keys.toml` only through `ui/js/PickerKeys.js`'s
 allowlist: its own verbs answer first, Space, Enter, `l`, Backspace, `h`, `:`, Ctrl+L, Escape and
 Alt+Left, so the browser's preview, page-forward and trash-arm meanings for those keys never
@@ -992,6 +1005,20 @@ takes no sort, so a click over Recent asks for nothing. `titles()` now names the
 rather than all five, so the reader reads the same line in both windows. The seam's `headerTitles`,
 `sortMark`, `headerCellRect`, `headerCentre` and `columnSet` are what `tests/picker.sh header` reads.
 
+**Hidden files, and why the toggle is a re-read.** `.` in the list, and whatever `keys.toml` binds
+to `toggleHidden` through the allowlist, so the windows preset's Ctrl+H, flips
+`ui/PickerState.qml`'s `showHidden` and lists the standing directory again with it, `ui/Pane.qml`'s
+own rule: the backend never sent the dotfiles, so there is nothing client-side to unhide, and the
+list call is the one place the flag is read. The re-read goes through `PickerOps.refresh`, the
+route a rename takes, so the cursor is put back on its row by path once the rows arrive; a cursor
+on a dotfile the toggle hides lands on row 0, as after any other listing. A mark is a path and
+stands through both re-reads, and a standing filter is forgotten the way a new listing forgets it.
+The flag is the window's and survives every walk, so a parent opened with dotfiles on lists them
+too. Recent is a history and not a scan, so the key does nothing there and the flag stays as it
+was; the location and save fields own the keyboard while they have it, so the key types a dot
+there and reaches nothing. The seam reads it as `hidden`, and `tests/picker.sh hidden` drives the
+two re-reads, the walk and the Recent refusal.
+
 **What a typed line does, and why it is peeked first.** `ui/PickerNavigate.qml` carries out what
 `ui/js/PickerNavigate.js` decides about the line `entered()` reports, the Windows filename box's
 rules: a folder opens, the box clears and the list has the keyboard; a file opens its parent with
@@ -1002,7 +1029,7 @@ included so a dotfile resolves, because a typed path is a claim about the disk a
 the only proof; the root is peeked itself and the current directory needs none. A peek carries at
 most `PEEK_CAP` names, so a leaf missing from a directory larger than that is unknown rather than
 absent: the parent opens and the footer says which rows were read. The window's listing holds a
-window of rows and lists without dotfiles, so a file past its first window is asked for at the
+window of rows and lists without dotfiles unless `.` turned them on, so a file past its first window is asked for at the
 index the peek implies, the shown rows ahead of it in the same scan and sort; a stale peek for
 another parent or a rows response for another directory is never read as the line's answer. A
 remote URL leaves through `remoteEntered` for `ui/PickerFetch.qml` and a share through `shareEntered`
@@ -1354,8 +1381,9 @@ this coverage needed no new entry there.
   colon in the first segment reads as a scheme, so a local `a:b` is typed as `./a:b`. Pure, so
   `tests/js/pickerentry.js` drives all of it; the field asks the backend what the path is.
 - `ui/js/PickerMarks.js` is the chooser's marks: a path and its size, never a row number, and
-  what Space, Ctrl+click and Shift+click do to the list. Pure, so `tests/js/pickermarks.js`
-  drives all of it; `ui/picker.qml` holds the anchor and `ui/PickerList.qml` walks the range.
+  what Space, a plain click, Ctrl+click and Shift+click do to the list: `toggle` flips, `select`
+  sets and never clears, `markRange` extends. Pure, so `tests/js/pickermarks.js` drives all of
+  it; `ui/PickerState.qml` holds the anchor and `ui/PickerList.qml` walks the range.
 - `ui/js/PickerKeys.js` is what the chooser does with a key: its own verbs first, then the shared
   operations `keys.toml` binds, through an allowlist, and `act`, the dispatcher every picker
   operation joins. Pure, so `tests/js/pickerkeys.js` drives all of it; `ui/PickerList.qml`'s
