@@ -31,6 +31,8 @@ QtObject {
         function total(): int { return root.state.total }
         function shownTotal(): int { return root.state.shownTotal }
         function cursor(): int { return root.state.cursorIndex }
+        function focusView(): string { return root.state.focusView }
+        function railCursor(): int { return root.places.cursorIndex }
         function marks(): string { return Picker.paths(root.state.marks).join(",") }
         function rowAt(index: int): string { var row = root.state.rowFor(index); return row ? row.n : "" }
         function cursorName(): string { return root.state.rowFor(root.state.cursorIndex) ? root.state.rowFor(root.state.cursorIndex).n : "" }

@@ -39,6 +39,7 @@ ShellRoot {
             navigate: navigate
             fetcher: fetcher
             list: list
+            places: places
         }
 
         FileView {
@@ -139,7 +140,7 @@ ShellRoot {
                 onBackRequested: state.goBack()
                 onUpRequested: state.goUp()
                 onChipChosen: function (index) { state.filterIndex = index }
-                onCrumbChosen: function (path) { state.open(path); list.forceActiveFocus() }
+                onCrumbChosen: function (path) { state.open(path); state.focusList() }
             }
 
             Flea.PickerPlaces {
@@ -151,7 +152,8 @@ ShellRoot {
                 current: state.path
                 edge: state.edge
                 offerRecent: !state.saving
-                onChosen: function (path) { state.open(path); list.forceActiveFocus() }
+                focused: state.focusView === "rail"
+                onChosen: function (path) { state.open(path); state.focusList() }
             }
 
             Flea.PickerList {
