@@ -21,9 +21,13 @@ function stubState(over) {
         folderMode: false,
         req: { multiple: true },
         history: [],
+        recent: false,
+        clipboard: { paths: [], moving: false },
         relisted: "",
         seated: null,
         said: [],
+        sent: [],
+        backend: { send: function (request) { state.sent.push(request) } },
         rowFor: function (i) { return (i - 2 < 0 || i - 2 >= rows.length) ? null : rows[i - 2] },
         message: function (text) { state.said.push(text) },
         open: function (next) { state.history = state.history.concat([state.path]); state.path = next },
@@ -57,6 +61,57 @@ function run(check) {
     check("a cursor past the window answers nothing", PickerOps.pathsFor(stubState({ cursorIndex: 9 })).length, 0)
     s = stubState({ path: Picker.RECENT, marks: [{ path: "/d/a.png", bytes: 10 }] })
     check("in Recent the cursor row's own path answers", PickerOps.pathsFor(s).join(","), "/c.png")
+
+    // ---- clip and paste: absolute paths stay in this process and transfer to the current folder ----
+    s = stubState({ cursorIndex: 9, clipboard: { paths: ["/old.txt"], moving: false } })
+    var oldClipboard = s.clipboard
+    PickerOps.clip(s, true)
+    check("clipping with no target changes nothing", s.clipboard === oldClipboard, true)
+    check("clipping with no target says nothing", s.said.length, 0)
+
+    s = stubState({ marks: [{ path: "/d/a.png", bytes: 10 }] })
+    PickerOps.clip(s, false)
+    check("copy stores the absolute paths", s.clipboard.paths.join(",") + "|" + s.clipboard.moving,
+          "/d/a.png|false")
+    check("copy adapts the shared wording to the picker key", s.said.join(""),
+          "Copied 1 item, Ctrl+V pastes.")
+    s.path = "/d/sub"
+    PickerOps.paste(s)
+    s.path = "/d/other"
+    PickerOps.paste(s)
+    check("copy pastes twice into the current folders",
+          s.sent[0].op + "|" + s.sent[0].paths.join(",") + "|" + s.sent[0].dest + ";"
+          + s.sent[1].op + "|" + s.sent[1].dest,
+          "copy|/d/a.png|/d/sub;copy|/d/other")
+    check("copy stays on the clipboard", s.clipboard.paths.join(",") + "|" + s.clipboard.moving,
+          "/d/a.png|false")
+
+    s = stubState({ marks: [{ path: "/d/a.png", bytes: 10 }, { path: "/d/c.png", bytes: 30 },
+                            { path: "/e/keep.png", bytes: 90 }] })
+    PickerOps.clip(s, true)
+    check("cut adapts the shared wording before paste", s.said.join(""),
+          "Cut 2 items, Ctrl+V pastes.")
+    s.path = "/d/sub"
+    PickerOps.paste(s)
+    check("cut pastes a move into the current folder",
+          s.sent[0].op + "|" + s.sent[0].paths.join(",") + "|" + s.sent[0].dest,
+          "move|/d/a.png,/d/c.png|/d/sub")
+    check("a pasted cut empties the clipboard", s.clipboard.paths.length + "|" + s.clipboard.moving,
+          "0|false")
+    check("a pasted cut drops its marks and keeps unrelated marks", Picker.paths(s.marks).join(","),
+          "/e/keep.png")
+
+    s = stubState({ cursorIndex: 9 })
+    PickerOps.paste(s)
+    check("an empty paste sends nothing", s.sent.length, 0)
+    check("an empty paste names the picker keys", s.said.join(""),
+          "Nothing to paste. Use Ctrl+C or Ctrl+X.")
+    s = stubState({ recent: true, path: Picker.RECENT,
+                    clipboard: { paths: ["/d/a.png"], moving: false } })
+    PickerOps.paste(s)
+    check("Recent paste sends nothing", s.sent.length, 0)
+    check("Recent paste explains the missing destination", s.said.join(""),
+          "Recent is not a folder. Open a folder to paste.")
 
     // ---- refresh: a re-read, never a history entry ----
     s = stubState({ history: ["/"] })

@@ -84,6 +84,15 @@ QtObject {
         function contextMenuEntries(): string {
             return root.menu.entries.map(function (e) { return e.separator === true ? "-" : e.label }).join("|")
         }
+        // The hints the active menu rows draw, read from each delegate so this checks the binding.
+        function contextMenuHints(): string {
+            var out = []
+            for (var i = 0; i < root.menu.entries.length; i++) {
+                var item = root.menu.itemFor(i)
+                out.push(item ? String(item.hint) : "")
+            }
+            return out.join("|")
+        }
         function contextMenuSubmenuEntries(): string { return root.menu.submenuEntries.map(function (e) { return e.label }).join("|") }
         function menuCursor(): int { return root.menu.cursor }
         // A point on the list under its last row, where a right click raises the background column,

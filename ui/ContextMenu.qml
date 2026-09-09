@@ -34,6 +34,8 @@ Item {
     property bool hasRow: true
     // The Menus settings section's stored set, ui/js/Menu.js applyHidden's input; ui/PickerMenu.qml hands in its own.
     property var hiddenActions: ViewState.menuHidden
+    // A caller can replace hints without changing the shared key map.
+    property var hintFor: Keymap.hintFor
 
     // The rail's own rows when ui/Sidebar.qml raised this menu, empty when the listing did. One
     // instance serves both: a second one in this tree takes the keyboard from the list, see AGENTS.md.
@@ -288,6 +290,7 @@ Item {
                     required property int index
                     width: rows.width
                     entry: row.modelData
+                    hintFor: root.hintFor
                     compact: root.forRail
                     current: !root.submenuOpen && root.cursor === row.index
                     onPointerMoved: root.cursor = row.index
@@ -328,6 +331,7 @@ Item {
                     required property var modelData
                     required property int index
                     width: peers.width
+                    hintFor: root.hintFor
                     // Which mark a whole flyout draws is ui/js/Menu.js submenuGlyph's to say, so the
                     // read-back submenuGlyphs() above and the drawn row cannot answer differently.
                     entry: ({ label: subRow.modelData.label, action: "",

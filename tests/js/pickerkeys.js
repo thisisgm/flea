@@ -24,6 +24,8 @@ function stubState(over) {
         goBack: function () { state.calls.push("back") },
         toggleHidden: function () { state.calls.push("hidden") },
         selectAll: function () { state.calls.push("selectAll") },
+        clip: function (moving) { state.calls.push("clip " + moving) },
+        paste: function () { state.calls.push("paste") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over) {
@@ -79,6 +81,15 @@ function run(check) {
     check("ctrl c copies", look(Qt.Key_C, "c", ctrl), "copy")
     check("ctrl x cuts", look(Qt.Key_X, "x", ctrl), "cut")
     check("ctrl v pastes", look(Qt.Key_V, "v", ctrl), "paste")
+    check("bare y does not copy", look(Qt.Key_Y, "y", none), "")
+    check("bare x does not cut", look(Qt.Key_X, "x", none), "")
+    check("bare p does not paste", look(Qt.Key_P, "p", none), "")
+    check("ctrl shift does not reach clipboard actions",
+          [look(Qt.Key_C, "C", ctrl | shift), look(Qt.Key_X, "X", ctrl | shift),
+           look(Qt.Key_V, "V", ctrl | shift)].join("|"), "||")
+    check("ctrl alt does not reach clipboard actions",
+          [look(Qt.Key_C, "c", ctrl | alt), look(Qt.Key_X, "x", ctrl | alt),
+           look(Qt.Key_V, "v", ctrl | alt)].join("|"), "||")
     check("ctrl a selects all", look(Qt.Key_A, "a", ctrl), "selectAll")
     check("delete trashes", look(Qt.Key_Delete), "trash")
     check("f2 renames", look(Qt.Key_F2), "rename")
@@ -134,8 +145,11 @@ function run(check) {
     PickerKeys.act("back", state, ops)
     PickerKeys.act("toggleHidden", state, ops)
     PickerKeys.act("selectAll", state, ops)
+    PickerKeys.act("copy", state, ops)
+    PickerKeys.act("cut", state, ops)
+    PickerKeys.act("paste", state, ops)
     check("the state verbs land on the state", state.calls.join(","),
-          "cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll")
+          "cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll,clip false,clip true,paste")
     PickerKeys.act("cursorDown", state, ops)
     PickerKeys.act("cursorUp", state, ops)
     PickerKeys.act("pageDown", state, ops)
@@ -150,11 +164,11 @@ function run(check) {
     check("no verb spoke in the footer", state.said.length, 0)
 
     // A shared action with no verb yet says so, so a key the sheet advertises never falls silent.
-    PickerKeys.act("copy", state, ops)
-    check("an unbuilt shared action says so", state.said.join(""), "Copy is not built in the chooser yet.")
+    PickerKeys.act("trash", state, ops)
+    check("an unbuilt shared action says so", state.said.join(""), "Move to Trash is not built in the chooser yet.")
     PickerKeys.act("settings", state, ops)
     check("an action outside the allowlist says nothing", state.said.length, 1)
-    check("the state is untouched by either", state.calls.length, 8)
+    check("the state is untouched by either", state.calls.length, 11)
     // The hidden toggle is built: a . reaches the state through handle and says nothing in the footer.
     var dotted = stubState()
     check("dot through handle flips hidden", PickerKeys.handle(press(Qt.Key_Period, "."), dotted, ops), "toggleHidden")

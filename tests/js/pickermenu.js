@@ -31,6 +31,8 @@ function stubState(over) {
         setCursor: function (index) { state.cursorIndex = index; state.calls.push("cursor " + index) },
         clearSelection: function () {},
         cancel: function () { state.calls.push("cancel") },
+        clip: function (moving) { state.calls.push("clip " + moving) },
+        paste: function () { state.calls.push("paste") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over)
@@ -47,6 +49,11 @@ function run(check) {
     var a = { path: "/home/jw/docs/a.txt", bytes: 1 }
     var b = { path: "/home/jw/docs/b.txt", bytes: 2 }
     var elsewhere = { path: "/home/jw/pics/z.png", bytes: 9 }
+
+    check("picker clipboard rows show their accepted chords",
+          ["cut", "copy", "paste"].map(PickerMenu.hintFor).join("|"), "Ctrl+X|Ctrl+C|Ctrl+V")
+    check("picker menu keeps the shared hints for other actions",
+          ["open", "rename", "trash", "duplicate"].map(PickerMenu.hintFor).join("|"), "enter|r|d|")
 
     // ---- aim: ui/js/Tap.js tappedMenu's rule for marks ----
     var onMarked = stubState({ marks: [a, b] })
@@ -82,6 +89,12 @@ function run(check) {
           "Recent keeps the history's own order.|0")
     PickerMenu.route("col:size", stubState(), stubOps(), columns)
     check("col: toggles the column through the store handed in", toggled.join(","), "size")
+    var clipboardRows = stubState()
+    PickerMenu.route("cut", clipboardRows, stubOps(), columns)
+    PickerMenu.route("copy", clipboardRows, stubOps(), columns)
+    PickerMenu.route("paste", clipboardRows, stubOps(), columns)
+    check("the clipboard menu rows route to the state", clipboardRows.calls.join(";"),
+          "clip true;clip false;paste")
     var unbuilt = stubState()
     var ops = stubOps()
     PickerMenu.route("open", unbuilt, ops, columns)
