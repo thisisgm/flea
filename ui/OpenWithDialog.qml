@@ -3,9 +3,8 @@ import qs.Commons
 import "." as Flea
 
 // The Open with dialog: the desktop's whole installed list, searched, with the "always" box the
-// flyout deliberately does not carry. The flyout is the one-off override; this is the Windows
-// and Nautilus surface, and its one write is the default. Hosted by ui/shell.qml over the pane,
-// the way the convert popup is.
+// flyout deliberately does not carry; its one write is the default. Hosted by ui/shell.qml over
+// the pane, the way the convert popup is.
 Item {
     id: root
 
@@ -60,7 +59,7 @@ Item {
             root.holder.forceActiveFocus()
     }
 
-    // The search's own window: a case-insensitive name match, the pane's own filter shape. A
+    // The search's own window: a case-insensitive name match, the pane's own filter shape; a
     // refilter resets the cursor, because a cursor at 40 rows names another application once
     // the list narrows.
     function refilter() {
@@ -73,7 +72,7 @@ Item {
         root.shown = out
         if (root.cursor >= out.length)
             root.cursor = Math.max(0, out.length - 1)
-        // A narrowed list can leave the viewport scrolled past its own content; the filter that
+        // A narrowed list can leave the viewport scrolled past its content; the filter that
         // answers two rows must draw them, not air.
         if (list.contentY > list.contentHeight - list.height)
             list.contentY = Math.max(0, list.contentHeight - list.height)
@@ -90,8 +89,8 @@ Item {
     }
 
     // One launch through the pane's opener, and — only when the always box says so — one
-    // default written for the type the backend resolves from the path. The launch is the
-    // flyout's act; the write is the only thing the dialog adds.
+    // default written for the type the backend resolves from the path; the write is the only
+    // thing the dialog adds beyond the flyout's own act.
     function commit() {
         var app = root.shown[root.cursor]
         if (!app || !root.holder)
@@ -171,8 +170,7 @@ Item {
                 opacity: 0.4
             }
 
-            // The search line, the dialog's whole filter; every key that is not one of the
-            // four stays text, because the field owns the keyboard.
+            // The dialog's whole filter; every other key stays text, the field owning the keyboard.
             Item {
                 width: parent.width
                 height: Theme.rowHeight
@@ -252,8 +250,7 @@ Item {
                 }
             }
 
-        // The list's own viewport: a clipped, wheel-scrollable band whose height is the clamped
-        // card's remainder, so the list scrolls in its own band and never behind the controls.
+        // The list's own viewport: a clipped band whose height is the clamped card's remainder.
         Flea.CardScroll {
             id: list
             x: card.pad
@@ -275,8 +272,8 @@ Item {
                         required property int index
                         width: rows.width
                         entry: ({ label: modelData.name, glyph: "app-window" })
-                        // The entry's own Icon=, the theme's icon in the mark slot and the cut glyph
-                        // only when the theme carries neither it nor the generic one.
+                        // The entry's own Icon=; the cut glyph only when the theme carries neither it nor
+                        // the generic one.
                         icon: modelData.icon || ""
                         current: root.cursor === index
                         onActivated: { root.cursor = index; root.commit() }
@@ -284,9 +281,13 @@ Item {
                 }
             }
 
-            // No match is a state and not an absence, in the pane's own register.
+            // No match is a state, in the pane's own register; one long line centered in a
+            // clipped viewport cut its ends as the filter grew, so the message wraps.
             Text {
                 anchors.centerIn: parent
+                width: parent.width - 2 * Theme.spacing.rowPaddingX
+                horizontalAlignment: Text.AlignHCenter
+                wrapMode: Text.Wrap
                 visible: root.shown.length === 0
                 text: root.search.length > 0 ? "No application matches " + root.search + "."
                                              : "No application on this system can be offered."
@@ -312,8 +313,8 @@ Item {
                 opacity: 0.4
             }
 
-            // The always box, drawn the convert popup's toggle is drawn; the write it stands
-            // for is the default for the row's own type, named by the Kind the listing shows.
+            // The always box, the convert popup's toggle; the write it stands for is the default
+            // for the row's type, named by the listing's Kind.
             Item {
                 id: alwaysRow
                 width: parent.width
@@ -381,17 +382,16 @@ Item {
         }
     }
 
-    // The wire's answer lands here, the same per-view reader the columns view is. The plain list
-    // is kept beside the filtered one, so an empty line puts every row back without a second ask.
+    // The wire's answer lands here, the columns view's own per-view reader; the plain list kept
+    // beside the filtered one puts every row back on an empty line without a second ask.
     Connections {
         target: root.holder ? root.holder.backend : null
         function onApplications(apps) {
             root.apps = apps || []
             root.refilter()
         }
-        // The write's terminal line; a refusal is an error line whose where ui/js/Errors.js
-        // words and the pane's generic landing shows. The sentence carries the Kind the dialog
-        // opened with, which is why it is written here and not in the wire's own landing.
+        // The write's terminal line; a refusal is an error line whose where ui/js/Errors.js words
+        // and the pane's generic landing shows. The sentence carries the dialog's own Kind.
         function onDefaulted(ok) {
             if (ok)
                 root.holder.message("The default for " + root.kind + " files changed; the next open uses the chosen application.", false)
