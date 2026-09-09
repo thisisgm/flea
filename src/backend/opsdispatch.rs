@@ -8,6 +8,7 @@ use crate::backend::opsreq::{
 use crate::backend::listing::Listing;
 use crate::backend::proto::error_line;
 use crate::backend::undo::{Entry, Journal};
+use std::collections::HashMap;
 use std::io::Write;
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -23,11 +24,13 @@ pub(crate) struct Ops {
     pub running: Option<usize>,
     pub cancel: Arc<AtomicBool>,
     pub tx: Sender<OpMsg>,
+    // One cancel flag per fetch in flight, keyed by id; a fetch never takes the transfer's slot.
+    pub fetches: HashMap<usize, Arc<AtomicBool>>,
 }
 
 impl Ops {
     pub fn new(tx: Sender<OpMsg>) -> Ops {
-        Ops { journal: Journal::new(), next_id: 1, running: None, cancel: Arc::new(AtomicBool::new(false)), tx }
+        Ops { journal: Journal::new(), next_id: 1, running: None, cancel: Arc::new(AtomicBool::new(false)), tx, fetches: HashMap::new() }
     }
 
     // An id with no slot claimed: archive and convert are id-keyed and run concurrently by design,
@@ -176,6 +179,10 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
         }
         // Meta never claims the operation slot, so it does not clear it either.
         OpMsg::Meta { line } => {
+            writeln!(out, "{}", line).ok();
+        }
+        OpMsg::FetchDone { id, line } => {
+            ops.fetches.remove(&id);
             writeln!(out, "{}", line).ok();
         }
         OpMsg::Duplicated { ok, path, err, entry } => {

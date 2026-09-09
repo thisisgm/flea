@@ -503,6 +503,49 @@ there. The steps of one operation reverse
 newest first, and a step that fails stops the rest rather than leaving the operation half-reversed with
 nothing recording which half.
 
+### fetch
+
+`{"c":"fetch","uri":"<string>"}`
+
+Example: `{"c":"fetch","uri":"https://example.org/reports/q3.pdf"}`
+
+Downloads one URL into the picker cache and answers with the local path, so a URL typed into the
+file chooser's location field can be returned to the application as a file. The scheme must be one
+of `http`, `https`, `ftp`, `ftps` or `file`; anything else, including `smb`, `sftp` and `ssh`, is
+refused before any tool runs, because a share needs a mount and the picker mounts it through its own
+Network flow and browses the fuse path rather than copying it. `file` is on the list for tests and
+costs nothing to allow.
+
+The copy is `LC_ALL=C gio copy -p <uri> <dest>` on a thread of its own, in its own process group.
+gio already carries this box's http, ftp and gvfs legs and is a hard dependency for trash, so the
+crate takes no HTTP code. `dest` is `$XDG_CACHE_HOME/flea/picker/<8 hex>/<leaf>`, one fresh dir per
+fetch so two downloads of one name never meet; the leaf is the URL's percent-decoded last segment,
+without query or fragment, and `download` when there is none. The file outlives the answer: the
+portal removes its reply dir the moment it answers, and the application reads the chosen file after
+that.
+
+**Like `archive`, a fetch is keyed by its own `id` and never takes the one-at-a-time slot** a
+`transfer` holds, so a fetch runs beside a transfer and beside another fetch.
+
+The answer is exactly one `fetchstarted`, a bounded stream of `fetchprogress`, and exactly one
+`fetchdone`. **A refused request answers the same pair**, `fetchstarted` then `fetchdone` with `ok`
+false, so a client keys the pair on the `id` and never waits on a request that was turned down.
+
+### fetchcancel
+
+`{"c":"fetchcancel","id":<uint>}`
+
+Example: `{"c":"fetchcancel","id":7}`
+
+Cancels the fetch `id` names and does nothing otherwise, so a cancel aimed at a fetch that already
+finished can never reach the one after it. There is no response line of its own: the fetch answers
+with its own `fetchdone` carrying `ok` false and `err` of `cancelled`.
+
+**The tool is killed rather than allowed to finish, and the partial file and its dir are removed**,
+because a half-downloaded file in the cache is not a result anyone asked for. A `quit`, or stdin
+closing, cancels every fetch in flight the same way and waits for each terminal line under the same
+bounded drain a transfer gets, so shutting down mid-download leaves nothing behind either.
+
 ### quit
 
 `{"c":"quit"}`
@@ -828,6 +871,44 @@ Example: `{"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":
 
 The whole operation's terminal line. `skipped` counts items a cancel reached before they started;
 `cancelled` is true when a `transfercancel`, a `quit` or stdin closing ended it early.
+
+### fetchstarted
+
+`{"t":"fetchstarted","id":<uint>,"uri":"<string>"}`
+
+Example: `{"t":"fetchstarted","id":7,"uri":"https://example.org/reports/q3.pdf"}`
+
+`id` names this fetch for the life of the process and is what `fetchcancel` takes. `uri` echoes the
+request, because the picker sends the fetch from a text field the user may already be editing again.
+
+### fetchprogress
+
+`{"t":"fetchprogress","id":<uint>,"bytes":<uint>,"total":<uint>}`
+
+Example: `{"t":"fetchprogress","id":7,"bytes":1200000,"total":5000000}`
+
+Throttled to at most one line per 150 ms, so a small or fast download may emit none at all before its
+terminal line; that is correct and not a missing message. `total` is 0 when the server did not say
+how long the body is, the same rule `transferprogress` uses for a directory, and a client renders
+that as indeterminate.
+
+**The figures are gio's own, not a byte count.** `gio copy -p` prints `Copied 1.2 MB out of 5.0 MB`
+in decimal units rounded to one place, and this line carries those two numbers scaled back to bytes,
+so `bytes` can land a little above or below the true count and can equal `total` before the last
+byte arrives. A progress bar is what they are for.
+
+### fetchdone
+
+`{"t":"fetchdone","id":<uint>,"ok":true,"path":"<string>"}`
+`{"t":"fetchdone","id":<uint>,"ok":false,"err":"<string>"}`
+
+Example: `{"t":"fetchdone","id":7,"ok":true,"path":"/home/gm/.cache/flea/picker/3f9a1c07/q3.pdf"}`
+Example: `{"t":"fetchdone","id":7,"ok":false,"err":"gio: https://example.org/gone.pdf: HTTP Error: Not Found"}`
+
+The fetch's terminal line. `path` rides only on a success and `err` only on a failure, so neither
+form carries an empty field to reason about. On a failure `err` is gio's last stderr line, a refused
+scheme's own sentence, or `cancelled`, and the partial file and its dir are already gone when the
+line is written.
 
 ### trashed
 

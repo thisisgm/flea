@@ -7,6 +7,9 @@ pub enum Request {
     ListPaths { paths: Vec<String>, first: usize },
     Window { start: usize, count: usize },
     Sort { by: String, desc: bool },
+    // The picker's download of a typed URL into its cache, keyed by id like archive; see docs/protocol.md "fetch".
+    Fetch { uri: String },
+    FetchCancel { id: usize },
     Search { path: String, query: String, hidden: bool },
     // Unlike thumbcancel there is no rows form: one walk runs at a time, so a cancel can only mean that one.
     SearchCancel,
@@ -52,14 +55,10 @@ pub fn parse_request(line: &str) -> Request {
             hidden: field_bool(line, "hidden"),
         },
         Some("listpaths") => Request::ListPaths { paths: field_str_array(line, "paths"), first: field_usize(line, "first").unwrap_or(0) },
-        Some("window") => Request::Window {
-            start: field_usize(line, "start").unwrap_or(0),
-            count: field_usize(line, "count").unwrap_or(0),
-        },
-        Some("sort") => Request::Sort {
-            by: field_str(line, "by").unwrap_or_default(),
-            desc: field_bool(line, "desc"),
-        },
+        Some("window") => Request::Window { start: field_usize(line, "start").unwrap_or(0), count: field_usize(line, "count").unwrap_or(0) },
+        Some("sort") => Request::Sort { by: field_str(line, "by").unwrap_or_default(), desc: field_bool(line, "desc") },
+        Some("fetch") => Request::Fetch { uri: field_str(line, "uri").unwrap_or_default() },
+        Some("fetchcancel") => Request::FetchCancel { id: field_usize(line, "id").unwrap_or(0) },
         Some("search") => Request::Search {
             path: field_str(line, "path").unwrap_or_default(),
             query: field_str(line, "query").unwrap_or_default(),

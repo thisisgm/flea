@@ -12,7 +12,8 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 // One progress line per item at most this often, so a fast copy of a small file may emit none at all.
-const PROGRESS_EVERY: Duration = Duration::from_millis(150);
+// A fetch's gio progress is throttled to the same beat.
+pub const PROGRESS_EVERY: Duration = Duration::from_millis(150);
 
 // What an operation thread sends back, joined onto the same receiver every other event already arrives on.
 pub enum OpMsg {
@@ -24,6 +25,8 @@ pub enum OpMsg {
     // Not an operation: meta rides this channel because a media probe is a subprocess and the loop
     // must not wait on one. Nothing about it claims the one-at-a-time slot.
     Meta { line: String },
+    // A fetch's terminal line, named by id so the dispatcher can forget the cancel flag it held for it.
+    FetchDone { id: usize, line: String },
 }
 
 // moving is the verb the request actually resolved to, so the client names the operation from the

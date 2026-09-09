@@ -5,6 +5,7 @@ use crate::backend::meta::stat_range;
 use crate::backend::archive::Formats;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
+use crate::backend::fetchreq::{cancel_fetch, start_fetch};
 use crate::backend::peek::peek_line;
 use crate::backend::metareq::spawn as spawn_meta;
 use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, Ops};
@@ -267,6 +268,9 @@ fn handle_line(
             start_transfer(out, ops, &op, named, &dest)
         }
         Request::TransferCancel { id } => cancel_transfer(ops, id),
+        // The picker's download; refused, queued and cancelled by fetchreq, never through the transfer slot.
+        Request::Fetch { uri } => start_fetch(out, ops, &uri),
+        Request::FetchCancel { id } => cancel_fetch(ops, id),
         Request::Trash { paths, rows } => {
             let named = resolve_rows(paths, &rows, &st.base, &st.listing);
             start_trash(out, ops, named)
@@ -338,7 +342,12 @@ fn drain(
     if ops.running.is_some() {
         ops.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
     }
-    while st.outstanding > 0 || ops.running.is_some() {
+    // A fetch in flight is cancelled the same way and its fetchdone awaited: the kill lands within
+    // 50 ms and the partial file leaves the picker cache with it.
+    for flag in ops.fetches.values() {
+        flag.store(true, std::sync::atomic::Ordering::Relaxed);
+    }
+    while st.outstanding > 0 || ops.running.is_some() || !ops.fetches.is_empty() {
         match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
             Ok(Event::Thumb(d)) => report_done(out, st, d),
             Ok(Event::Op(m)) => report_op(out, ops, m),
