@@ -48,7 +48,8 @@ QtObject {
         function filterTyping(): int { return root.state.filterTyping ? 1 : 0 }
         function chips(): string { return root.state.chips.map(function (c) { return c.label }).join(",") }
         function saveName(): string { return root.state.saveName }
-        function message(): string { return root.footer.message }
+        function message(): string { return root.footer.noticeLine }
+        function transferLine(): string { return root.footer.transferLine }
         // The footer's standing line, the count and selection a message or a download would cover.
         function count(): string { return root.footer.standing }
         function fetching(): int { return root.fetcher.fetching ? 1 : 0 }
