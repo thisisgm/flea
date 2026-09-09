@@ -7,15 +7,19 @@
 
 // The byte sample for the item in flight. done is the count already finished, so it stays where it
 // was: a sample fills the item in, it does not complete it.
+//
+// Every field is restated here rather than copied, so a field added to the transfer is dropped the
+// moment the first sample lands unless it is named. `kind` was: the transfer started as
+// remote-to-remote, and reverted to generic wording on its own first progress update.
 function sampled(t, index, name, bytes, total) {
     return { id: t.id, moving: t.moving, n: t.n, index: index, name: name, running: t.running,
-             done: index, bytes: bytes, total: total }
+             done: index, bytes: bytes, total: total, kind: t.kind }
 }
 
 // That item's own terminal line: it counts whole from here, and its byte sample is spent.
 function itemDone(t, index, name) {
     return { id: t.id, moving: t.moving, n: t.n, index: index, name: name, running: t.running,
-             done: index + 1, bytes: 0, total: 0 }
+             done: index + 1, bytes: 0, total: 0, kind: t.kind }
 }
 
 // The card's headline, the count with no name in it: the card gives the name a row of its own, and

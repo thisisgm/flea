@@ -11,7 +11,6 @@ function run(check) {
     check("one item is singular and two are not",
           Ops.items(1) + " / " + Ops.items(2) + " / " + Ops.items(0),
           "1 item / 2 items / 0 items")
-
     // The canvas's own line, drawn on the Operations artboard: "Copying 2 of 5, photo.heic".
     check("a copy in flight reads the way the canvas draws it",
           Ops.progressLine({ moving: false, n: 5, index: 1, name: "photo.heic" }),
@@ -19,6 +18,15 @@ function run(check) {
     check("a move says so instead",
           Ops.progressLine({ moving: true, n: 5, index: 1, name: "photo.heic" }),
           "Moving 2 of 5, photo.heic")
+    check("a remote-to-remote transfer says what crosses the wire",
+          Ops.progressLine({ moving: false, n: 2, index: 0, name: "photo.heic", kind: "remote-to-remote" }),
+          "Copying between remote hosts 1 of 2, photo.heic")
+    check("a remote-to-remote move uses the matching verb",
+          Ops.progressLine({ moving: true, n: 2, index: 0, name: "photo.heic", kind: "remote-to-remote" }),
+          "Moving between remote hosts 1 of 2, photo.heic")
+    var pending = { pendingTransferKind: "remote-to-remote" }
+    Ops.clearPendingKind(pending, "transfer")
+    check("a transfer refused before start cannot leak its kind", pending.pendingTransferKind, "local")
     // A directory item reports no name until its first line arrives, and the count still reads.
     check("an item with no name yet still counts",
           Ops.progressLine({ moving: false, n: 2, index: 0, name: "" }),
@@ -281,6 +289,24 @@ function run(check) {
     check("and it keeps the id the cancel button has to name",
           flight.id + " " + flight.running,
           "12 true")
+    // The wire rebuilds the transfer on every sample, so a field it forgets to name is gone from
+    // the first progress update onward. This one is the whole point of the classification: it
+    // survived `started` and vanished the moment bytes began arriving.
+    var remote = Transfer.sampled(Ops.started(13, false, 2, "remote-to-remote"), 0, "photo.heic", 1, 2)
+    check("a sample keeps the transfer remote-to-remote",
+          Ops.progressLine(remote),
+          "Copying between remote hosts 1 of 2, photo.heic")
+    check("and so does the item line that ends it",
+          Ops.progressLine(Transfer.itemDone(remote, 0, "photo.heic")),
+          "Copying between remote hosts 1 of 2, photo.heic")
+    var remoteMove = Transfer.sampled(Ops.started(14, true, 2, "remote-to-remote"), 0, "photo.heic", 1, 2)
+    check("a sampled remote move keeps its verb too",
+          Ops.progressLine(remoteMove),
+          "Moving between remote hosts 1 of 2, photo.heic")
+    check("a local transfer is still worded plainly through a sample",
+          Ops.progressLine(Transfer.sampled(Ops.started(15, false, 2), 0, "photo.heic", 1, 2)),
+          "Copying 1 of 2, photo.heic")
+
     var landed = Transfer.itemDone(flight, 8, "panel-demo.mp4")
     check("an item's own terminal line counts it whole and spends its byte sample",
           landed.done + " " + landed.bytes + " " + landed.total,

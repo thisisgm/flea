@@ -28,6 +28,7 @@ import "places.js" as PlacesSuite
 import "protocols.js" as ProtocolsSuite
 import "railkeys.js" as RailKeysSuite
 import "recent.js" as RecentSuite
+import "remote.js" as RemoteSuite
 import "renderer.js" as RendererSuite
 import "scroll.js" as ScrollSuite
 import "search.js" as SearchSuite
@@ -70,7 +71,7 @@ Item {
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
             ["picker", PickerSuite],
             ["protocols", ProtocolsSuite], ["railkeys", RailKeysSuite],
-            ["recent", RecentSuite],
+            ["recent", RecentSuite], ["remote", RemoteSuite],
             ["renderer", RendererSuite],
             ["scroll", ScrollSuite], ["search", SearchSuite],
             ["selection", SelectionSuite], ["settings", SettingsSuite],
