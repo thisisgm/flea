@@ -111,16 +111,23 @@ Item {
     // its geometry from a row count the Menus settings can now change under it.
     function itemFor(index) { return menuRows.itemAt(index) }
 
-    // A separator is never the cursor, so both key steps and the opening cursor skip over one.
-    function stepCursor(from, delta) {
+    // A separator is never the cursor, so both key steps and the opening cursor skip over one —
+    // the same rule over the menu's entries and over the open flyout's, whose tail separator
+    // divides the registered few from the whole-installed-list door, and neither a key nor a
+    // Return may land on it.
+    function stepOver(entries, from, delta) {
         var i = from + delta
-        while (i >= 0 && i < root.entries.length) {
-            if (root.entries[i].separator !== true)
+        while (i >= 0 && i < entries.length) {
+            if (entries[i].separator !== true)
                 return i
             i += delta
         }
         return from
     }
+
+    function stepCursor(from, delta) { return root.stepOver(root.entries, from, delta) }
+
+    function stepSubmenu(from, delta) { return root.stepOver(root.submenuEntries, from, delta) }
 
     function firstRow() {
         return root.entries.length > 0 && root.entries[0].separator === true ? root.stepCursor(0, 1) : 0
@@ -359,7 +366,7 @@ Item {
             }
             if (action === "cursorDown") {
                 if (root.submenuOpen)
-                    root.submenuCursor = Math.min(root.submenuEntries.length - 1, root.submenuCursor + 1)
+                    root.submenuCursor = root.stepSubmenu(root.submenuCursor, 1)
                 else
                     root.cursor = root.stepCursor(root.cursor, 1)
                 event.accepted = true
@@ -367,7 +374,7 @@ Item {
             }
             if (action === "cursorUp") {
                 if (root.submenuOpen)
-                    root.submenuCursor = Math.max(0, root.submenuCursor - 1)
+                    root.submenuCursor = root.stepSubmenu(root.submenuCursor, -1)
                 else
                     root.cursor = root.stepCursor(root.cursor, -1)
                 event.accepted = true

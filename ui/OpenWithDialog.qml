@@ -317,7 +317,9 @@ Item {
             Item {
                 id: alwaysRow
                 width: parent.width
-                height: Theme.rowHeight
+                // The label wraps to what the card's width makes of it, so the row is as tall as
+                // it really is rather than one row with the rest elided away.
+                height: Math.max(Theme.rowHeight, alwaysLabel.implicitHeight + Theme.spacing.gap)
 
                 Rectangle {
                     id: box
@@ -339,6 +341,7 @@ Item {
                 }
 
                 Text {
+                    id: alwaysLabel
                     anchors.left: box.right
                     anchors.leftMargin: Theme.spacing.gap
                     anchors.right: parent.right
@@ -349,7 +352,7 @@ Item {
                     font.family: Theme.font.family
                     font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
-                    elide: Text.ElideRight
+                    wrapMode: Text.Wrap
                 }
 
                 TapHandler {

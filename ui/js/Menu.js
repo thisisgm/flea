@@ -110,12 +110,14 @@ var SORT_LABELS = { name: "Name", size: "Size", mtime: "Date Modified" }
 // the launch mode takes, and the label is the application's own Name. No default is marked and no
 // row is reordered: gio's own registry order is the desktop's judgement, and plain Open already
 // answers the default. The tail row is the Windows one: an application the registry does not
-// already name, chosen from the desktop's whole installed list in the Open with dialog. "dialog"
+// already name, chosen from the desktop's whole installed list in the Open with dialog, under
+// its own separator so the registered few and the whole-installed-list door read apart. "dialog"
 // is not a path, so no entry id can collide with it.
 function openWithEntries(apps) {
     var out = []
     for (var i = 0; i < apps.length; i++)
         out.push({ id: apps[i].path, label: apps[i].name })
+    out.push({ separator: true })
     out.push({ id: "dialog", label: "Another application…" })
     return out
 }

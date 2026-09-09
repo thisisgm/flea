@@ -1514,7 +1514,12 @@ case_openwithdialog() {
     menu_seek "Open with"
     key -k Return >/dev/null
     settle
-    key -k Down >/dev/null
+    # The dialog row is the flyout's tail, under every registered application and the separator
+    # that divides them, so the steps are counted off the read-back rather than guessed.
+    local tail
+    tail=$(ipc contextMenuSubmenuEntries | awk -F'|' '{print NF-1}')
+    local _down
+    for _down in $(seq 1 "$tail"); do key -k Down >/dev/null; done
     key -k Return >/dev/null
     for _attempt in $(seq 1 100); do [[ "$(ipc openWithDialogOpen)" == "true" ]] && break; sleep 0.05; done
     [[ "$(ipc openWithDialogOpen)" == "true" ]] || fail "openwithdialog: the tail row never opened the dialog"
@@ -1561,7 +1566,8 @@ case_openwithdialog() {
     menu_seek "Open with"
     key -k Return >/dev/null
     settle
-    key -k Down >/dev/null
+    tail=$(ipc contextMenuSubmenuEntries | awk -F'|' '{print NF-1}')
+    for _down in $(seq 1 "$tail"); do key -k Down >/dev/null; done
     key -k Return >/dev/null
     for _attempt in $(seq 1 100); do [[ "$(ipc openWithDialogOpen)" == "true" ]] && break; sleep 0.05; done
     key -k Escape >/dev/null
