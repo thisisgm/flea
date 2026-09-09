@@ -5,10 +5,11 @@
 
 // What the header's click and the s and S keys do, taking ui/Pane.qml's root the way Nav.js and
 // Ops.js do: the pane holds the state, this holds what the state does. ui/Backend.qml records the
-// order the listing is actually in, because list re-sorts by name ascending and only this file
-// changes it after that. ui/ViewState.qml records the same order for the next window to come back
-// to, and it is written from here for the same reason: this is the one file that knows which keys
-// the backend accepts, so only an order the backend will really produce is ever stored.
+// order the listing is in: list sets it to the stored order, which ui/PaneWire.qml sorts the fresh
+// scan into, and only this file changes it after that. ui/ViewState.qml records the same order for
+// the next listing to come back to, and it is written from here for the same reason: this is the one
+// file that knows which keys the backend accepts, so only an order the backend will really produce
+// is ever stored.
 
 // Where the accepted order is remembered, the way ui/js/Keymap.js holds its preset: a library cannot
 // import the ui/ViewState.qml singleton, and ui/js/Focus.js hands s, S and the header click only the
