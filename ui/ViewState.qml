@@ -5,6 +5,7 @@ import Quickshell.Io
 import qs.Commons
 import "js/Keymap.js" as Keymap
 import "js/Settings.js" as Settings
+import "js/Sort.js" as Sort
 import "js/TextSize.js" as TextSize
 import "js/UiState.js" as UiState
 
@@ -72,6 +73,13 @@ QtObject {
     // first value, Default, which is what SettingsKeys.html says a missing or unknown name means.
     readonly property string keysPreset: Settings.contains(Settings.PRESETS, root.state.keys)
                                          ? root.state.keys : Settings.PRESETS[0]
+
+    // The listing order a window comes back to, `sort` in src/uischema.rs, in the wire's own words.
+    // ui/js/Sort.js resort is setSort's only caller: it alone knows which orders the backend accepts.
+    readonly property var sort: root.state.sort || ({})
+    readonly property string sortKey: Sort.ORDERS.indexOf(root.sort.key) >= 0 ? root.sort.key : Sort.ORDERS[0]
+    readonly property bool sortReverse: root.sort.reverse === true
+    function setSort(key, desc) { root.changeLeaf("sort", { key: key, reverse: desc }) }
 
     // The generated table holds the live preset, so this is the whole wire between the stored value
     // and every lookup: it fires on load and on a settings change alike, and rebinds in this process.
@@ -197,7 +205,7 @@ QtObject {
     // The read is taken here and not in the FileView's onLoaded, which was measured on the box
     // arriving after the first property read; blockLoading is what makes text() answer inside this
     // call, so the stored columns are in the first frame instead of replacing it.
-    Component.onCompleted: root.load(stateFile.text())
+    Component.onCompleted: { Sort.setStore(root); root.load(stateFile.text()) }
 
     function load(text) {
         var read = UiState.fromFile(text)

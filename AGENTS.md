@@ -596,6 +596,16 @@ key off a cursor step past an end clamps, and with it on a step taken from an en
 key exists because issue 27 asked for the wrap, and it ships off because a second operator reported
 that same jump past the top as a bug.
 
+**`sort` is written by `ui/js/Sort.js` `resort` and by nothing else.** `ui/ViewState.qml` exposes
+it as `sortKey` and `sortReverse` and takes it through `setSort`, but the caller is `resort`, because
+that is the one place that knows which keys the backend accepts (`ORDERS`): the request goes out for
+every key and the backend's refusal is its own, and only an order the backend will really produce
+moves the backend's mark, so the same gate stores it. A `.pragma library` cannot import the singleton
+and `ui/js/Focus.js` hands `s`, `S` and the header click only the pane, so `ViewState` registers
+itself with `Sort.setStore` when it loads, the way it pushes its preset into `ui/js/Keymap.js`. A
+window that could sort before it has read `ViewState` would record on the backend alone; both windows
+read it before their first listing.
+
 **`menu.hidden` stores what is hidden**, and its rule is deliberately open, an action id rather than
 a closed list, because a closed list would make this Flea drop an id a newer one hid. It is the
 Menus section's whole visibility state: the panel's master row over the six basic actions is derived
@@ -3405,6 +3415,16 @@ timer no scroll restarts. Its sampling loop, which watches the cursor move while
 not, is corroboration and not the gate. `tests/ui.sh nosweep` asserts a full traversal of the
 100,000-file fixture leaves the request count at zero and the shared cache the size it started.
 120 ms is a feel decision, confirmed on the box against 60 ms and 250 ms rather than measured.
+
+**The chooser repeats the settle rather than sharing it.** `ui/PickerList.qml` carries its own
+`settle` Timer at the same two intervals, restarted by its scroll, by every `rows` line and by a
+viewport change, and its `requestThumbs` is `ui/List.qml`'s line for line over `ui/PickerState.qml`:
+`Thumbs.viewport`, `Filter.span` and `Filter.cut` against the chip's `shown`, then `thumb` and
+`thumbcancel`. `ui/PickerWire.qml` records `thumbed` lines with `Thumbs.remember` while the listing
+is not `loading`, and `open()` empties the map, so a line for the listing just left is dropped.
+`ui/List.qml` was not lifted into the chooser because everything else in it is a drag, a rename or
+a context menu the chooser hosts differently. `tests/picker.sh thumbs` holds the same bound as
+`tests/ui.sh thumbs`: one request for the first screen, at most two after a fling.
 
 **The first screen races the compositor's resize, and `firstSettleMs` exists to lose that race on
 purpose.** Flea's `FloatingWindow` declares `implicitHeight: 600` at `ui/shell.qml:18`, Hyprland

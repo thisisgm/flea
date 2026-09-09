@@ -98,6 +98,8 @@ QtObject {
     property int renamingIndex: -1
     property string renameOnArrival: ""
     property var transfer: Ops.emptyTransfer()
+    // ui/Pane.qml's cap, seven screens of answered rows, so a policy bug costs memory slowly.
+    readonly property int thumbCap: 240
     property var thumbState: Thumbs.empty()
     property var dirSizeState: DirSizes.empty()
 
@@ -147,6 +149,7 @@ QtObject {
         root.markAnchor = -1
         // A filter narrows the rows already listed, so a new listing is what forgets it, ui/js/Nav.js's rule.
         Filter.close(root)
+        root.thumbState = Thumbs.empty()
         root.listingState = "loading"
         if (Picker.isRecent(next)) {
             root.recents.refresh()

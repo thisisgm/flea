@@ -47,6 +47,15 @@ function run(check) {
 
     check("nothing checked says so", Picker.statusLine(0, 0), "0 selected")
     check("what is checked and what it weighs", Picker.statusLine(3, 2100000), "3 selected · 2.1 MB")
+    // The standing line counts the listing in the bar's words, and says nothing of an empty selection.
+    check("a listing still loading is not counted", Picker.countText("loading", 0), "")
+    check("an empty listing says so", Picker.countText("empty", 0), "empty")
+    check("one row is an item", Picker.countText("ready", 1), "1 item")
+    check("many rows are items", Picker.countText("ready", 240), "240 items")
+    check("nothing checked draws the count alone", Picker.footerLine("ready", 3, 0, 0), "3 items")
+    check("a selection follows the count", Picker.footerLine("ready", 3, 2, 2100000), "3 items   2 selected · 2.1 MB")
+    check("an empty listing draws no selection clause", Picker.footerLine("empty", 0, 0, 0), "empty")
+    check("marks outlive a listing still loading", Picker.footerLine("loading", 0, 2, 2100000), "2 selected · 2.1 MB")
     check("the open hints name Space and Enter", Picker.hints(req), "Space select · Enter open/send · : location · Esc cancel")
     check("a folder request names the location key too", Picker.hints(Picker.request('{"mode":"open","directory":true}')),
           "Enter open · Space mark folder · : location · Esc cancel")

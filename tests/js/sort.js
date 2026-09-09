@@ -133,4 +133,35 @@ function run(check) {
     Sort.next(stray)
     check("s from an order that is not in the list still lands on name",
           stray.sent.join(","), "sort name asc,window 0 200")
+
+    // ui/ViewState.qml registers itself as the store, and resort is its only writer. The contract is
+    // that only an order the backend accepted is ever stored, and the backend's mark and the stored
+    // order move together: the same gate, the same key, the same direction.
+    var store = { stored: [] }
+    store.setSort = function (key, desc) { store.stored.push(key + ":" + desc) }
+    Sort.setStore(store)
+    var kept = pane("name", false)
+    Sort.column(kept, "mtime")
+    check("an accepted order is stored with the backend's mark", store.stored.join(","), "mtime:false")
+    check("and the backend still hears it first", kept.sent.join(","), "sort mtime asc,window 0 200")
+    Sort.column(kept, "mtime")
+    check("its reverse is stored as the same key, reversed", store.stored.join(","), "mtime:false,mtime:true")
+
+    var refused = pane("name", false)
+    Sort.resort(refused, "kind", false)
+    check("an order outside ORDERS goes out on the wire, for the backend's own refusal",
+          refused.sent.join(","), "sort kind asc")
+    check("and moves neither the backend's mark nor the store",
+          refused.backend.sortBy + "|" + store.stored.length, "name|2")
+
+    var held = pane("size", true)
+    Sort.resort(held, "size", true)
+    check("the order already shown is not stored again either", store.stored.length, 2)
+
+    // .pragma library state outlives this suite, so the stub does not leak into the ones after it.
+    Sort.setStore(null)
+    var alone = pane("name", false)
+    Sort.next(alone)
+    check("with no store attached the backend's mark is the only record",
+          alone.backend.sortBy + "|" + store.stored.length, "size|2")
 }

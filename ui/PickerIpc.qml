@@ -45,12 +45,18 @@ QtObject {
         function chips(): string { return root.state.chips.map(function (c) { return c.label }).join(",") }
         function saveName(): string { return root.state.saveName }
         function message(): string { return root.footer.message }
+        // The footer's standing line, the count and selection a message or a download would cover.
+        function count(): string { return root.footer.standing }
         function fetching(): int { return root.fetcher.fetching ? 1 : 0 }
         function fetchLine(): string { return root.fetcher.line }
         function entry(): string { return root.entry.text }
         function entryFocused(): int { return root.entry.focused ? 1 : 0 }
         function saveFocused(): int { return root.save.focused ? 1 : 0 }
         function rowCentre(index: int): string { return root.list.rowCentre(index) }
+        function visibleRows(): int { return root.list.visibleRows }
+        // The settle gate's two reads, as ui/Ipc.qml has them: requests attempted, and a row's cached file.
+        function thumbRequests(): int { return root.state.backend.thumbRequests }
+        function thumbFile(index: int): string { return root.list.thumbFor(index) }
         function dragRows(): string { return root.list.dragRows.join(",") }
         // The nav strip's segments as their drawn texts, "" while Recent draws its label instead.
         function crumbs(): string { return root.chrome.crumbs.visible ? root.chrome.crumbs.model.map(function (c) { return c.text }).join(",") : "" }
