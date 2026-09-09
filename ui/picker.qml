@@ -43,6 +43,7 @@ ShellRoot {
             fetcher: fetcher
             list: list
             places: places
+            opener: wire.opener
         }
 
         FileView {
@@ -94,7 +95,7 @@ ShellRoot {
         }
 
         // The operation replies, and the failures: trashed, renamed, made and the rest, see ui/PickerWire.qml.
-        Flea.PickerWire { picker: state }
+        Flea.PickerWire { id: wire; picker: state }
 
         // The history the Recent location lists, read only when that location is opened. The listing
         // is the client's own order, so the backend is asked for these paths and never to sort them.

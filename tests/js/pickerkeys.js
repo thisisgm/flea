@@ -16,6 +16,7 @@ function stubState(over) {
         filterTyping: false,
         renameFromPath: "",
         path: "/d",
+        recent: false,
         marks: [],
         rows: [{ n: "a.txt", d: false, s: 1 }],
         trashPending: [],
@@ -33,6 +34,13 @@ function stubState(over) {
         goUp: function () { state.calls.push("parent") },
         goBack: function () { state.calls.push("back") },
         toggleHidden: function () { state.calls.push("hidden") },
+        openTerminal: function () {
+            if (state.recent)
+                state.message("Recent is not a directory.", false)
+            else
+                state.calls.push("terminal")
+        },
+        copyText: function (text) { state.calls.push("copyText " + text) },
         selectAll: function () { state.calls.push("selectAll") },
         clip: function (moving) { state.calls.push("clip " + moving) },
         paste: function () { state.calls.push("paste") },
@@ -192,6 +200,18 @@ function run(check) {
     check("and without a field it does nothing", ops.focused, 1)
     check("no verb spoke in the footer", state.said.length, 0)
 
+    var listGlobals = stubState()
+    PickerKeys.act("openTerminal", listGlobals, ops)
+    PickerKeys.act("copydirpath", listGlobals, ops)
+    check("the list opens a terminal and copies the directory shown",
+          listGlobals.calls.join(";"), "terminal;copyText /d")
+    var recentGlobals = stubState({ path: "flea:recent", recent: true })
+    PickerKeys.act("openTerminal", recentGlobals, ops)
+    PickerKeys.act("copydirpath", recentGlobals, ops)
+    check("Recent refuses both actions that require a shown directory",
+          recentGlobals.calls.length + "|" + recentGlobals.said.join("|"),
+          "0|Recent is not a directory.|Recent has no folder path to copy.")
+
     // A live editor owns every key. The guard asks the drawn editor, not the state index, because a
     // released delegate can leave no field to receive Escape or hand the keyboard back.
     var editing = stubState()
@@ -229,6 +249,8 @@ function run(check) {
     check("keypad enter opens the rail row", railLook(Qt.Key_Enter), "open")
     check("escape leaves the rail", railLook(Qt.Key_Escape), "escape")
     check("tab still swaps back", railLook(Qt.Key_Tab), "focusNext")
+    check("ctrl t opens the shown directory from the rail", railLook(Qt.Key_T, "t", ctrl), "openTerminal")
+    check("shift y copies the shown directory from the rail", railLook(Qt.Key_Y, "Y", shift), "copydirpath")
     // Sidebar-only members: a rename, a mount dialog, a menu and an eject reach nothing in the
     // chooser's rail, and neither does the list's own Space, so the rail never marks a row unseen.
     check("a is not add network in the rail", railLook(Qt.Key_A, "a"), "")
@@ -250,4 +272,10 @@ function run(check) {
     PickerKeys.act("focusNext", railed, railMoves)
     PickerKeys.act("focusNext", railed, railMoves)
     check("two tabs come back to the list", railed.focusView, "list")
+    railed.focusView = "rail"
+    PickerKeys.act("openTerminal", railed, railMoves)
+    PickerKeys.act("copydirpath", railed, railMoves)
+    check("the rail's global actions bypass its own row dispatcher",
+          railed.calls.join(";") + "|" + railed.places.opened.join(","),
+          "terminal;copyText /d|2")
 }

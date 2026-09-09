@@ -86,6 +86,7 @@ QtObject {
         // The menu's readers, as ui/Ipc.qml has them: whether it is up, its rows as labels with "-"
         // for a rule, the open flyout's rows, and the row the keyboard is on.
         function contextMenuVisible(): bool { return root.menu.opened }
+        function keyHints(): bool { return ViewState.keyHints }
         function contextMenuEntries(): string {
             return root.menu.entries.map(function (e) { return e.separator === true ? "-" : e.label }).join("|")
         }

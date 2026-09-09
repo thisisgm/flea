@@ -38,6 +38,10 @@ function stubState(over) {
         focusList: function () { state.focusView = "list"; state.calls.push("focus") },
         clearSelection: function () {},
         cancel: function () { state.calls.push("cancel") },
+        activate: function (index) { state.calls.push("activate " + index) },
+        finish: function () { state.calls.push("finish") },
+        openFile: function (path) { state.calls.push("open " + path) },
+        copyText: function (text) { state.calls.push("copyText " + text) },
         clip: function (moving) { state.calls.push("clip " + moving) },
         paste: function () { state.calls.push("paste") },
         startRename: function () { state.calls.push("rename") },
@@ -84,7 +88,7 @@ function run(check) {
     check("a right click past the held rows aims at nothing and touches nothing",
           PickerMenu.aim(gone, 7) + "|" + gone.calls.length, "false|0")
 
-    // ---- route: the prefixes, the unbuilt rows, and the key table's own path ----
+    // ---- route: the prefixes, the row opener, and the key table's own path ----
     var toggled = []
     var columns = { toggleColumn: function (key) { toggled.push(key) } }
     var sorted = stubState()
@@ -105,27 +109,36 @@ function run(check) {
     PickerMenu.route("paste", clipboardRows, stubOps(), columns)
     check("the clipboard menu rows route to the state", clipboardRows.calls.join(";"),
           "clip true;clip false;paste")
-    var unbuilt = stubState()
     var ops = stubOps()
-    PickerMenu.route("open", unbuilt, ops, columns)
-    PickerMenu.route("copypath", unbuilt, ops, columns)
-    check("the rows no picker verb answers yet say so in the footer, each by its own name",
-          unbuilt.said.join("|"),
-          "Open is not built in the chooser yet.|Copy path is not built in the chooser yet.")
-    PickerMenu.route("cancel", unbuilt, ops, columns)
+    var openedRoot = stubState({ path: "/", rows: [{ n: "etc", d: true, s: 0 }] })
+    PickerMenu.route("open", openedRoot, ops, columns)
+    check("Open at the root hands the absolute row path to the opener and never submits",
+          openedRoot.calls.join(";") + "|" + openedRoot.said.length, "open /etc|0")
+    var copiedRecent = stubState({ path: Picker.RECENT, recent: true,
+                                   rows: [{ n: "home/jw/docs/b.txt", d: false, s: 2 }] })
+    PickerMenu.route("copypath", copiedRecent, ops, columns)
+    check("Copy path in Recent copies the row's own absolute path",
+          copiedRecent.calls.join(";") + "|" + copiedRecent.said.length,
+          "copyText /home/jw/docs/b.txt|0")
+    var emptyRow = stubState({ rows: [] })
+    PickerMenu.route("open", emptyRow, ops, columns)
+    PickerMenu.route("copypath", emptyRow, ops, columns)
+    check("Open and Copy path do nothing without a cursor row", emptyRow.calls.length, 0)
+    var routed = stubState()
+    PickerMenu.route("cancel", routed, ops, columns)
     check("every other row takes the key table's own route through PickerKeys.act",
-          unbuilt.calls.join(";"), "cancel")
-    PickerMenu.route("cursorDown", unbuilt, ops, columns)
+          routed.calls.join(";"), "cancel")
+    PickerMenu.route("cursorDown", routed, ops, columns)
     check("and reaches the list's ops the way a key does", ops.moved.join(","), "1")
-    PickerMenu.route("rename", unbuilt, ops, columns)
+    PickerMenu.route("rename", routed, ops, columns)
     check("Rename takes the same state route from the menu as from F2",
-          unbuilt.calls[unbuilt.calls.length - 1], "rename")
-    PickerMenu.route("newFolder", unbuilt, ops, columns)
+          routed.calls[routed.calls.length - 1], "rename")
+    PickerMenu.route("newFolder", routed, ops, columns)
     check("both New folder menu rows take the shared key route",
-          unbuilt.calls[unbuilt.calls.length - 1], "newFolder")
-    PickerMenu.route("trash", unbuilt, ops, columns)
+          routed.calls[routed.calls.length - 1], "newFolder")
+    PickerMenu.route("trash", routed, ops, columns)
     check("the danger row sends the cursor path through the key route",
-          unbuilt.calls[unbuilt.calls.length - 1],
+          routed.calls[routed.calls.length - 1],
           'send {"c":"trash","paths":["/home/jw/docs/a.txt"]}')
 
     // ---- duplicate: ui/js/Ops.js duplicate over the chooser, the cursor row alone ----

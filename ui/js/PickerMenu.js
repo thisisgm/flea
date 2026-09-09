@@ -10,11 +10,6 @@
 // and where a chosen row goes. Pure over ui/PickerState.qml, so tests/js/pickermenu.js drives both
 // without a window.
 
-// The rows ui/js/Menu.js draws that no picker verb answers yet, each with the name the footer
-// prints, ui/js/PickerKeys.js SHARED's own rule for a chord. Open and Copy path are menu rows
-// and not key table actions, so they are named here and not there.
-var UNBUILT = { open: "Open", copypath: "Copy path" }
-
 function hintFor(action) {
     if (action === "cut") return "Ctrl+X"
     if (action === "copy") return "Ctrl+C"
@@ -22,7 +17,6 @@ function hintFor(action) {
     if (action === "trash") return "Delete"
     return Keymap.hintFor(action)
 }
-
 // A right click on a row, ui/js/Tap.js tappedMenu for marks. Pressed on a marked row the menu
 // addresses every mark standing in this directory; pressed on an unmarked one those marks drop
 // and the row alone is what Cut and Move to Trash then act on, ui/js/PickerOps.js pathsFor's
@@ -65,8 +59,17 @@ function route(action, state, ops, columns) {
         sortBy(state, action.substring("sort:".length))
         return
     }
-    if (action in UNBUILT) {
-        state.message(UNBUILT[action] + " is not built in the chooser yet.", false)
+    // Open and Copy path address the cursor row alone. In Recent join resolves the row's own path,
+    // and at / it does not add a second slash. Neither action submits the portal request.
+    if (action === "open" || action === "copypath") {
+        var row = state.rowFor(state.cursorIndex)
+        if (!row)
+            return
+        var path = state.join(state.path, row.n)
+        if (action === "open")
+            state.openFile(path)
+        else
+            state.copyText(path)
         return
     }
     // Duplicate has no key (Ctrl+D pages in keys.toml), so it is the one row that does not pass

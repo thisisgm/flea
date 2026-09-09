@@ -28,6 +28,8 @@ QtObject {
     property var list: null
     // The rail, for the keys ui/js/RailKeys.js moves through it while focusView is "rail".
     property var places: null
+    // ui/PickerWire.qml owns the processes. This state only names the actions they perform.
+    property var opener: null
 
     readonly property var req: Picker.request(Quickshell.env("FLEA_PICKER"))
     readonly property string home: Quickshell.env("HOME")
@@ -144,6 +146,15 @@ QtObject {
     function showRow(view) { root.list.positionViewAtIndex(view, ListView.Contain) }
     // The re-read after one of the picker's own writes; see ui/js/PickerOps.js refresh.
     function refresh(selectPath) { PickerOps.refresh(root, selectPath) }
+    function openFile(path) { root.opener.open(path) }
+    function openTerminal() {
+        if (root.recent) {
+            root.message("Recent is not a directory.", false)
+            return
+        }
+        root.opener.openTerminal(root.path)
+    }
+    function copyText(text) { root.opener.copyText(text) }
     function startRename() {
         if (root.renameFromPath.length === 0)
             Ops.startRename(root)
