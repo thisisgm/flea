@@ -128,12 +128,16 @@ fn gio_run(args: &[&str]) -> Option<std::process::Output> {
         })
     };
     let output = {
-        // wait_with_output would reap the child before done could stand the watchdog down, and a
-        // kill delivered past the reap is a signal at a pid the kernel may have handed out again.
-        // The pipes drain on this thread instead, the child staying unreaped until the wait
-        // below, so a deadline kill cannot miss it: the ordering metareq.rs's own watchdog is
-        // shaped around. A child still holding a pipe stalls its read, which the deadline kill
-        // unblocks.
+        // The reap has to be the LAST thing that happens to the child. wait_with_output would
+        // have reaped it before done could stand the watchdog down, and the first cut here made
+        // the same mistake one step later: the wait sat before the store, and a deadline
+        // expiring in that window still delivered SIGKILL at a pid the kernel was free to have
+        // handed out again. The order below is the one metareq.rs's own watchdog is shaped
+        // around: the pipes drain, done stands the watchdog down, join returns only once any
+        // kill it decided on is finished, and the child is unreaped through all of it — a kill
+        // at a zombie is a no-op whose pid cannot be reused — so the wait that reaps cannot
+        // race the kill it would lose to. A child still holding a pipe stalls its drain, which
+        // the deadline kill unblocks.
         let mut stdout = Vec::new();
         let mut stderr = Vec::new();
         if let Some(mut pipe) = child.stdout.take() {
@@ -142,9 +146,9 @@ fn gio_run(args: &[&str]) -> Option<std::process::Output> {
         if let Some(mut pipe) = child.stderr.take() {
             let _ = pipe.read_to_end(&mut stderr);
         }
-        let status = child.wait().ok();
         done.store(true, Ordering::Relaxed);
         let _ = watchdog.join();
+        let status = child.wait().ok();
         status.map(|status| std::process::Output { status, stdout, stderr })
     };
     output
