@@ -1,7 +1,6 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
-import "js/Nav.js" as Nav
 import "js/PathBar.js" as PathBar
 
 // The window's top chrome, per the canvas: where you are on the left, how you are looking at it on
@@ -41,7 +40,7 @@ Item {
     // The elided head's own marker, so a test can click the one spot the crumbs slide underneath.
     readonly property alias elisionMarker: elision
     // Issue 45's segments as items, so tests/ui.sh can press one the way it presses a tab.
-    readonly property alias crumbItems: crumbs
+    readonly property alias crumbItems: crumbRow.items
     // The directory a Tab is waiting on, and the one that came back. Both are keyed by the hidden
     // flag as well as the path, or a Tab on ".conf" would answer off rows peeked without dotfiles in
     // them: the key is what the request asked for and never what the line happens to read later.
@@ -198,56 +197,23 @@ Item {
         anchors.top: parent.top
         anchors.bottom: parent.bottom
 
-        // The tail identifies the directory, so a path too long for the bar loses its head: the row
-        // slides left inside a clipped slot, which is the left elision the single Text drew, made of
-        // pieces a click can land on.
+        // Issue 45's segments, the control ui/CrumbRow.qml draws for both windows. The slot is what
+        // hides them while the bar is up; the row sizes itself to the pieces so the typing area
+        // below starts where the path ends, and slides its head off the left once it overflows.
         Item {
             id: crumbSlot
             visible: !root.editing
             anchors.fill: parent
-            clip: true
 
-            Row {
+            Flea.CrumbRow {
                 id: crumbRow
-                anchors.verticalCenter: parent.verticalCenter
-                x: Math.min(0, crumbSlot.width - crumbRow.width)
-
-                Repeater {
-                    id: crumbs
-                    model: Nav.crumbs(root.path, root.home)
-
-                    // corner: a path is arbitrary text, so PlainText, the same rule every filename on this surface follows.
-                    delegate: Text {
-                        id: crumb
-                        required property var modelData
-                        text: crumb.modelData.text
-                        color: crumb.modelData.last ? Theme.color.foreground : Theme.color.muted
-                        font.family: Theme.font.family
-                        font.pixelSize: Theme.font.caption
-                        textFormat: Text.PlainText
-                        // The box is the strip's height with the glyphs centred in it, because the
-                        // handlers below are the path area's whole gesture and a text-tall box left
-                        // 11 of the strip's 27 px dead, measured at the window.
-                        height: crumbSlot.height
-                        verticalAlignment: Text.AlignVCenter
-
-                        HoverHandler {
-                            cursorShape: crumb.modelData.last ? Qt.IBeamCursor : Qt.PointingHandCursor
-                        }
-
-                        // Both flags together, measured on Qt 6.11.2: one of them alone suppresses
-                        // the other signal instead of waiting, and only the pair makes the tap count
-                        // decide, so a double click types the path rather than also navigating.
-                        // The gesture is on the crumb and not on the strip because a TapHandler on a
-                        // parent item takes the second tap away from the child under the pointer.
-                        TapHandler {
-                            acceptedButtons: Qt.LeftButton
-                            exclusiveSignals: TapHandler.SingleTap | TapHandler.DoubleTap
-                            onSingleTapped: if (!crumb.modelData.last) root.pathEntered(crumb.modelData.path)
-                            onDoubleTapped: root.startEdit()
-                        }
-                    }
-                }
+                anchors.top: parent.top
+                anchors.bottom: parent.bottom
+                width: Math.min(implicitWidth, crumbSlot.width)
+                path: root.path
+                home: root.home
+                onCrumbChosen: function (path) { root.pathEntered(path) }
+                onDoubleTapped: root.startEdit()
             }
 
             // The rest of the line, which names no directory and so keeps the plain caret and the
@@ -289,7 +255,7 @@ Item {
 
             Text {
                 id: elision
-                visible: crumbRow.width > crumbSlot.width
+                visible: crumbRow.overflowing
                 anchors.left: parent.left
                 anchors.top: parent.top
                 anchors.bottom: parent.bottom

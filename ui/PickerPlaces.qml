@@ -19,6 +19,9 @@ Item {
 
     signal chosen(string path)
 
+    // The rail's drawn rows, for the seam: a test aims a click at a row by the entry it draws.
+    readonly property alias rail: rail
+
     // SendPicker.html draws Recent above Home, and a save has no history to write into, so the one
     // mode that cannot use the location does not offer it.
     property bool offerRecent: true

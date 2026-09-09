@@ -140,6 +140,7 @@ ShellRoot {
                 onBackRequested: state.goBack()
                 onUpRequested: state.goUp()
                 onChipChosen: function (index) { state.filterIndex = index }
+                onCrumbChosen: function (path) { state.open(path); list.forceActiveFocus() }
             }
 
             Flea.PickerPlaces {
@@ -221,6 +222,8 @@ ShellRoot {
         // The seam tests/picker.sh drives, see ui/PickerIpc.qml.
         Flea.PickerIpc {
             state: state
+            chrome: chrome
+            places: places
             footer: status
             fetcher: fetcher
             entry: entryField
