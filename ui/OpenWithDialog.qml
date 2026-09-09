@@ -15,8 +15,8 @@ Item {
     property string filePath: ""
     property string kind: ""
     property var holder: null
-    // The card, for ui/Ipc.qml the way the convert popup exposes its own. var, not Item:
-    // BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
+    // The card, for ui/Ipc.qml the convert popup's way. var, not Item: BorderSurface is a qs.Ui
+    // type qmllint cannot resolve, and Item would read as incompatible.
     readonly property var cardItem: card
 
     // The wire's answer, and the search's window over it. The list is asked once per open;
@@ -61,7 +61,7 @@ Item {
 
     // The search's own window: a case-insensitive name match, the pane's own filter shape; a
     // refilter resets the cursor, because a cursor at 40 rows names another application once
-    // the list narrows.
+    // the list narrows to two.
     function refilter() {
         var text = root.search.toLowerCase()
         var out = []
@@ -72,8 +72,8 @@ Item {
         root.shown = out
         if (root.cursor >= out.length)
             root.cursor = Math.max(0, out.length - 1)
-        // A narrowed list can leave the viewport scrolled past its content; the filter that
-        // answers two rows must draw them, not air.
+        // A narrowed list can leave the viewport scrolled past its content; two matching rows
+        // must draw, not air.
         if (list.contentY > list.contentHeight - list.height)
             list.contentY = Math.max(0, list.contentHeight - list.height)
     }
@@ -89,7 +89,7 @@ Item {
     }
 
     // One launch through the pane's opener, and — only when the always box says so — one
-    // default written for the type the backend resolves from the path; the write is the only
+    // default written for the type the backend resolves from the path. The write is the only
     // thing the dialog adds beyond the flyout's own act.
     function commit() {
         var app = root.shown[root.cursor]
@@ -251,38 +251,43 @@ Item {
             }
 
         // The list's own viewport: a clipped band whose height is the clamped card's remainder.
-        Flea.CardScroll {
-            id: list
+        // The no-match state floats over it: inside the scroll content it centered in an empty
+        // content item and cut itself on the viewport's top edge.
+        Item {
+            id: listArea
             x: card.pad
             y: card.pad + topCol.height + Theme.spacing.gap
             width: parent.width - 2 * card.pad
             height: Math.max(2 * Theme.rowHeight,
                              card.height - card.pad - bottomCol.height - Theme.spacing.gap - y)
 
-            Column {
-                id: rows
-                width: parent.width
+            Flea.CardScroll {
+                id: list
+                anchors.fill: parent
 
-                Repeater {
-                    id: repeater
-                    model: root.shown
+                Column {
+                    id: rows
+                    width: parent.width
 
-                    delegate: Flea.MenuRow {
-                        required property var modelData
-                        required property int index
-                        width: rows.width
-                        entry: ({ label: modelData.name, glyph: "app-window" })
-                        // The entry's own Icon=; the cut glyph only when the theme carries neither it nor
-                        // the generic one.
-                        icon: modelData.icon || ""
-                        current: root.cursor === index
-                        onActivated: { root.cursor = index; root.commit() }
+                    Repeater {
+                        id: repeater
+                        model: root.shown
+
+                        delegate: Flea.MenuRow {
+                            required property var modelData
+                            required property int index
+                            width: rows.width
+                            // The entry's own Icon= rides the entry; the cut glyph only when the theme
+                            // carries neither it nor the generic one.
+                            entry: ({ label: modelData.name, glyph: "app-window", icon: modelData.icon || "" })
+                            current: root.cursor === index
+                            onActivated: { root.cursor = index; root.commit() }
+                        }
                     }
                 }
             }
 
-            // No match is a state, in the pane's own register; one long line centered in a
-            // clipped viewport cut its ends as the filter grew, so the message wraps.
+            // No match is a state, in the pane's own register.
             Text {
                 anchors.centerIn: parent
                 width: parent.width - 2 * Theme.spacing.rowPaddingX
@@ -313,8 +318,7 @@ Item {
                 opacity: 0.4
             }
 
-            // The always box, the convert popup's toggle; the write it stands for is the default
-            // for the row's type, named by the listing's Kind.
+            // The always box, convert popup's toggle; the write is the row type's default.
             Item {
                 id: alwaysRow
                 width: parent.width
@@ -383,7 +387,7 @@ Item {
     }
 
     // The wire's answer lands here, the columns view's own per-view reader; the plain list kept
-    // beside the filtered one puts every row back on an empty line without a second ask.
+    // beside the filtered one restores every row on an empty line without a second ask.
     Connections {
         target: root.holder ? root.holder.backend : null
         function onApplications(apps) {
@@ -391,7 +395,7 @@ Item {
             root.refilter()
         }
         // The write's terminal line; a refusal is an error line whose where ui/js/Errors.js words
-        // and the pane's generic landing shows. The sentence carries the dialog's own Kind.
+        // and the pane's generic landing shows, carrying the dialog's own Kind.
         function onDefaulted(ok) {
             if (ok)
                 root.holder.message("The default for " + root.kind + " files changed; the next open uses the chosen application.", false)

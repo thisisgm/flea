@@ -10,7 +10,7 @@ import "js/Menu.js" as Menu
 Item {
     id: root
 
-    // {label, action, glyph, danger?, submenu?} or {separator: true}; see ui/ContextMenu.qml's buildEntries.
+    // {label, action, glyph, danger?, submenu?, icon?} or {separator: true}; see ui/ContextMenu.qml's buildEntries.
     property var entry: ({})
     property bool current: false
     // A pick list's chosen row, drawn as the canvas draws the convert popup and the share list:
@@ -53,16 +53,16 @@ Item {
     // The rail's mark slot is its icon size, exactly as ui/SidebarRow.qml sizes its own.
     readonly property int slotSize: root.compact ? Theme.railIconSize : Theme.markSize
 
-    // The desktop entry's own Icon=, resolved the row's own two ways: a theme name through
-    // Quickshell's icon provider, an absolute path as a file URL, and the generic application
-    // icon when the theme carries neither. Empty keeps the cut glyph in the slot above.
-    property string icon: ""
+    // The desktop entry's own Icon=, carried on the entry itself, resolved the row's own two
+    // ways: a theme name through Quickshell's icon provider, an absolute path as a file URL,
+    // and the generic application icon when the theme carries neither. Empty keeps the glyph.
+    readonly property string entryIcon: typeof root.entry.icon === "string" ? root.entry.icon : ""
     readonly property string iconSource: {
-        if (root.icon.length === 0)
+        if (root.entryIcon.length === 0)
             return ""
-        if (root.icon.charAt(0) === "/")
-            return Format.fileUri(root.icon)
-        return Quickshell.iconPath(root.icon, true) || Quickshell.iconPath("application-x-generic", true)
+        if (root.entryIcon.charAt(0) === "/")
+            return Format.fileUri(root.entryIcon)
+        return Quickshell.iconPath(root.entryIcon, true) || Quickshell.iconPath("application-x-generic", true)
     }
 
     height: root.isSeparator ? root.separatorHeight

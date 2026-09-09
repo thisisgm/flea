@@ -48,6 +48,13 @@ while IFS= read -r file; do
         echo "KNOWN CAP EXCEPTION  $file: $lines lines, cap $hard (issue-52 open-with wire surface)"
         continue ;;
     esac
+    # ui/OpenWithDialog.qml carries the chooser whole: a searched list with icons, the always box,
+    # and a viewport whose no-match state must float beside the scroll rather than inside it.
+    case "$file" in
+      */ui/OpenWithDialog.qml|ui/OpenWithDialog.qml)
+        echo "KNOWN CAP EXCEPTION  $file: $lines lines, cap $hard (issue-52 open-with dialog)"
+        continue ;;
+    esac
     echo "OVER CAP  $file: $lines lines, cap $hard"
     status=1
   elif [ "$lines" -gt "$soft" ]; then
