@@ -14,6 +14,8 @@ function stubState(over) {
     ]
     var state = {
         path: "/d",
+        recent: false,
+        mkdirListingPath: "",
         held: 2,
         total: 10,
         rows: rows,
@@ -32,8 +34,11 @@ function stubState(over) {
         errors: [],
         transfer: Ops.emptyTransfer(),
         sent: [],
-        backend: { send: function (request) { state.sent.push(request) } },
         trashPending: [],
+        backend: {
+            send: function (request) { state.sent.push(request) },
+            mkdir: function (path) { state.sent.push("mkdir " + path) }
+        },
         rowFor: function (i) { return (i - 2 < 0 || i - 2 >= rows.length) ? null : rows[i - 2] },
         message: function (text, isError) { state.said.push(text); state.errors.push(isError) },
         sticky: function (text) { state.stuck.push(text) },
@@ -48,8 +53,20 @@ function stubState(over) {
 }
 
 function run(check) {
+    // ---- newFolder: the directory token never reaches the local mkdir backend ----
+    var s = stubState({})
+    PickerOps.newFolder(s)
+    check("a new folder leaves its name to the backend and remembers its directory",
+          s.sent.join("|") + "|" + s.mkdirListingPath, "mkdir /d|/d")
+    PickerOps.newFolder(s)
+    check("a second new folder waits for the first reply", s.sent.length, 1)
+    s = stubState({ path: Picker.RECENT, recent: true })
+    PickerOps.newFolder(s)
+    check("Recent cannot become a mkdir parent or change the footer",
+          s.sent.length + "|" + s.said.length + "|" + s.mkdirListingPath, "0|0|")
+
     // ---- indicesFor: a mark is a path, and only a row the window holds can give it an index ----
-    var s = stubState({ marks: [{ path: "/d/c.png", bytes: 30 }, { path: "/d/a.png", bytes: 10 }] })
+    s = stubState({ marks: [{ path: "/d/c.png", bytes: 30 }, { path: "/d/a.png", bytes: 10 }] })
     check("marks in this directory resolve to ascending listing indices",
           PickerOps.indicesFor(s).join(","), "2,4")
     s = stubState({ marks: [{ path: "/d/a.png", bytes: 10 }, { path: "/e/a.png", bytes: 10 }] })

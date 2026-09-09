@@ -41,6 +41,7 @@ function stubState(over) {
         clip: function (moving) { state.calls.push("clip " + moving) },
         paste: function () { state.calls.push("paste") },
         startRename: function () { state.calls.push("rename") },
+        newFolder: function () { state.calls.push("newFolder") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over)
@@ -119,6 +120,9 @@ function run(check) {
     PickerMenu.route("rename", unbuilt, ops, columns)
     check("Rename takes the same state route from the menu as from F2",
           unbuilt.calls[unbuilt.calls.length - 1], "rename")
+    PickerMenu.route("newFolder", unbuilt, ops, columns)
+    check("both New folder menu rows take the shared key route",
+          unbuilt.calls[unbuilt.calls.length - 1], "newFolder")
     PickerMenu.route("trash", unbuilt, ops, columns)
     check("the danger row sends the cursor path through the key route",
           unbuilt.calls[unbuilt.calls.length - 1],

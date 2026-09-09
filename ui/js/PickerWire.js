@@ -45,6 +45,10 @@ function renamed(state, ok, path) {
 // The new folder has no row until the refresh lands, so armRename opens the editor on the rows
 // reply that carries it rather than here. The path is remembered whole, never as an index.
 function made(state, ok, path) {
+    var listing = state.mkdirListingPath
+    state.mkdirListingPath = ""
+    if (!listing || listing !== state.path)
+        return
     state.renameOnArrival = path
     state.message(Ops.made(path), false)
     PickerOps.refresh(state, path)
@@ -127,6 +131,8 @@ function failed(state, where, msg) {
         return
     }
     var terminal = where === "backend" || where === "read"
+    if (where === "mkdir" || terminal)
+        state.mkdirListingPath = ""
     var listing = terminal || where === "scan"
     if (where === "trash" || terminal) {
         state.trashPending = []

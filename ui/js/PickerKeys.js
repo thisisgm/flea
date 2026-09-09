@@ -129,6 +129,7 @@ function act(action, state, ops) {
     case "paste": state.paste(); return
     // One source path owns the async reply. A second editor cannot replace it while that write runs.
     case "rename": if (state.renameFromPath.length === 0) state.startRename(); return
+    case "newFolder": state.newFolder(); return
     case "trash": PickerOps.trash(state); return
     case "undo": Ops.undo(state); return
     }

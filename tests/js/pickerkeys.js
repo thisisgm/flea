@@ -37,6 +37,7 @@ function stubState(over) {
         clip: function (moving) { state.calls.push("clip " + moving) },
         paste: function () { state.calls.push("paste") },
         startRename: function () { state.calls.push("rename") },
+        newFolder: function () { state.calls.push("newFolder") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over) {
@@ -170,10 +171,11 @@ function run(check) {
     PickerKeys.act("cut", state, ops)
     PickerKeys.act("paste", state, ops)
     PickerKeys.act("rename", state, ops)
+    PickerKeys.act("newFolder", state, ops)
     PickerKeys.act("trash", state, ops)
     PickerKeys.act("undo", state, ops)
     check("the state verbs land on the state", state.calls.join(","),
-          'cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll,clip false,clip true,paste,rename,send {"c":"trash","paths":["/d/a.txt"]},undo')
+          'cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll,clip false,clip true,paste,rename,newFolder,send {"c":"trash","paths":["/d/a.txt"]},undo')
     var pendingRename = stubState({ renameFromPath: "/d/a.txt" })
     PickerKeys.act("rename", pendingRename, ops)
     check("a second rename cannot replace the source of an async reply", pendingRename.calls.length, 0)
@@ -201,11 +203,11 @@ function run(check) {
     check("and no list action runs behind the editor", editing.calls.length, 0)
 
     // A shared action with no verb yet says so, so a key the sheet advertises never falls silent.
-    PickerKeys.act("newFolder", state, ops)
-    check("an unbuilt shared action says so", state.said.join(""), "New folder is not built in the chooser yet.")
+    PickerKeys.act("openTerminal", state, ops)
+    check("an unbuilt shared action says so", state.said.join(""), "Open in terminal is not built in the chooser yet.")
     PickerKeys.act("settings", state, ops)
     check("an action outside the allowlist says nothing", state.said.length, 1)
-    check("the state is untouched by either", state.calls.length, 14)
+    check("the state is untouched by either", state.calls.length, 15)
     // The hidden toggle is built: a . reaches the state through handle and says nothing in the footer.
     var dotted = stubState()
     check("dot through handle flips hidden", PickerKeys.handle(press(Qt.Key_Period, "."), dotted, ops), "toggleHidden")

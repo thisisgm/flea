@@ -6,8 +6,17 @@
 
 // How the chooser's marks meet ui/js/Ops.js, Sort.js and Drag.js, which read a pane. Those files
 // name rows by listing index and a mark is a path, so this is where a mark becomes an index and an
-// index becomes a path again. ui/PickerState.qml calls these and holds the state; nothing here
-// touches the backend or a window.
+// index becomes a path again. ui/PickerState.qml calls these and holds the state; this owns no
+// backend or window.
+
+// Recent is a history token, not a directory. The browser never stands on such a token, so the
+// chooser guards it here before the shared operation can send it as a mkdir parent.
+function newFolder(state) {
+    if (state.recent || state.mkdirListingPath.length > 0)
+        return
+    state.mkdirListingPath = state.path
+    Ops.newFolder(state)
+}
 
 // The listing indices of the marks standing in this directory, ascending. A mark is resolved
 // against the rows the window holds, [held, held + rows.length): a mark on a row outside that

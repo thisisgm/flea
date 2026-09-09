@@ -24,6 +24,7 @@ function stubState(over) {
         renameFromPath: "",
         renameListingPath: "",
         renamePointerPath: "",
+        mkdirListingPath: "",
         renamingIndex: -1,
         listingState: "ready",
         relisted: "",
@@ -89,11 +90,16 @@ function run(check) {
     s = stubState({ path: "recent", renameFromPath: "/d/c.png", renameListingPath: "recent" })
     Wire.renamed(s, true, "/d/b.png")
     check("a rename from Recent refreshes that listing", s.relisted + " " + s.seated, "recent /d/b.png")
-    s = stubState({})
+    s = stubState({ mkdirListingPath: "/d" })
     Wire.made(s, true, "/d/New Folder")
     check("made remembers the folder for the editor", s.renameOnArrival, "/d/New Folder")
     check("made says the created line", s.said.join("|"), "Created New Folder · z undoes")
     check("made seats the folder", s.seated, "/d/New Folder")
+    check("made spends the source listing", s.mkdirListingPath, "")
+    s = stubState({ path: "/e", mkdirListingPath: "/d" })
+    Wire.made(s, true, "/d/New Folder")
+    check("a made reply after navigation does not re-read the new directory",
+          s.relisted + "|" + s.said.length + "|" + s.renameOnArrival, "|0|")
     s = stubState({})
     Wire.duplicated(s, true, "/d/a copy.png")
     check("duplicated says the leaf", s.said.join("|"), "Duplicated to a copy.png · z undoes")
@@ -169,9 +175,10 @@ function run(check) {
     s = stubState({ trashPending: ["/d/a.png"] })
     Wire.failed(s, "trash", "another file operation is running")
     check("a refused trash releases its pending path snapshot", s.trashPending.length, 0)
-    s = stubState({ listingState: "loading" })
+    s = stubState({ listingState: "loading", mkdirListingPath: "/d" })
     Wire.failed(s, "mkdir", "")
     check("a failure while loading empties the listing", s.listingState, "empty")
+    check("a mkdir failure releases the source listing", s.mkdirListingPath, "")
     s = stubState({ renameListingPath: "/d" })
     Wire.failed(s, "rename-kept", "")
     check("rename-kept re-reads and seats nothing", s.relisted + " " + s.seated, "/d null")

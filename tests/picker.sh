@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|selectall|copypaste|pasteprogress|click|menu|rename|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|selectall|copypaste|pasteprogress|click|menu|rename|newfolder|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -536,6 +536,77 @@ case_rename() {
     press -k Escape
     wait_for_client
     printf 'rename: F2 and the menu edit a stem, Return and click-away commit, and Escape restores the list\n'
+}
+
+# Ctrl+Shift+N leaves naming to the backend. Its reply seats the new row and opens the same editor
+# F2 uses. Escape returns the keyboard to the list before Ctrl+Z reaches the operation journal.
+# A second picker asks for folders and proves the new directory can be marked there.
+case_newfolder() {
+    make_fixture
+    start_client --multiple
+    walk_to_fixture
+    local alpha empty step
+    press -k n --mods ctrl,shift
+    for step in $(seq 1 40); do
+        [[ -d "$fixture/New Folder" && "$(ipc renameEditorText)" == "New Folder" ]] && break
+        sleep 0.1
+    done
+    [[ -d "$fixture/New Folder" ]] || fail "newfolder: Ctrl+Shift+N created no New Folder"
+    [[ "$(ipc cursorName)" == "New Folder" ]] || fail "newfolder: the cursor landed on $(ipc cursorName)"
+    [[ "$(ipc renameEditorText)" == "New Folder" ]] || fail "newfolder: the editor holds $(ipc renameEditorText)"
+    [[ "$(ipc message)" == "Created New Folder · z undoes" ]] || fail "newfolder: the footer says '$(ipc message)'"
+    press -k Escape
+    press -k z --mods ctrl
+    for step in $(seq 1 40); do
+        [[ ! -e "$fixture/New Folder" && "$(ipc total)" == "3" ]] && break
+        sleep 0.1
+    done
+    [[ ! -e "$fixture/New Folder" ]] || fail "newfolder: Ctrl+Z left New Folder on disk"
+
+    # The row menu reaches the same action. Open, Copy path, Cut, Copy, Paste, Duplicate, Rename,
+    # Move to Trash, Open in terminal, then New folder is nine cursor steps past the first row.
+    alpha=$(row_named alpha.txt)
+    click_row "$alpha" right
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "newfolder: the row menu did not open"
+    for step in $(seq 1 9); do press -k Down; done
+    press -k Return
+    for step in $(seq 1 40); do
+        [[ -d "$fixture/New Folder" && "$(ipc renameEditorText)" == "New Folder" ]] && break
+        sleep 0.1
+    done
+    [[ -d "$fixture/New Folder" ]] || fail "newfolder: the row menu created no New Folder"
+    press -k Escape
+    press -k z --mods ctrl
+    for step in $(seq 1 40); do
+        [[ ! -e "$fixture/New Folder" && "$(ipc total)" == "3" ]] && break
+        sleep 0.1
+    done
+    [[ ! -e "$fixture/New Folder" ]] || fail "newfolder: undo left the row-menu folder on disk"
+    press -k Escape
+    wait_for_client
+
+    start_client --directory
+    walk_to_fixture
+    empty=$(ipc emptyCentre)
+    [[ -n "$empty" ]] || fail "newfolder: the folder request has no background menu target"
+    click_centre "$empty" right || fail "newfolder: could not open the background menu"
+    sleep 0.3
+    [[ "$(ipc contextMenuVisible)" == "true" ]] || fail "newfolder: the background menu did not open"
+    press -k Return
+    for step in $(seq 1 40); do
+        [[ -d "$fixture/New Folder" && "$(ipc renameEditorText)" == "New Folder" ]] && break
+        sleep 0.1
+    done
+    [[ -d "$fixture/New Folder" ]] || fail "newfolder: the background menu created no New Folder"
+    [[ "$(ipc cursorName)" == "New Folder" ]] || fail "newfolder: the folder request seated $(ipc cursorName)"
+    press -k Escape
+    press -k space
+    [[ "$(ipc marks)" == "$fixture/New Folder" ]] || fail "newfolder: the new directory was not markable, marks $(ipc marks)"
+    press -k Escape
+    wait_for_client
+    [[ "$client_status" != 0 ]] || fail "newfolder: the caller exited 0 after a cancel"
+    printf 'newfolder: the key and both menus create, seat and edit a folder, undo removes it, and folder mode can mark it\n'
 }
 
 # The row menu's Duplicate is ui/js/Ops.js duplicate over the chooser: the cursor row alone goes
@@ -1461,7 +1532,7 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall copypaste pasteprogress click menu rename duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall copypaste pasteprogress click menu rename newfolder duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -1471,6 +1542,7 @@ for name in "$@"; do
         click) case_click ;;
         menu) case_menu ;;
         rename) case_rename ;;
+        newfolder) case_newfolder ;;
         duplicate) case_duplicate ;;
         trash) case_trash ;;
         crumbs) case_crumbs ;;
