@@ -891,6 +891,22 @@ the way Space toggles it. The picker reads no `keys.toml` row for either, becaus
 window carries no keymap of its own. The seam's `rowCentre` answers a drawn row's centre so
 `tests/picker.sh click` can aim omarchy-drive at it, the same read `ui/Ipc.qml` makes.
 
+**What a typed line does, and why it is peeked first.** `ui/PickerNavigate.qml` carries out what
+`ui/js/PickerNavigate.js` decides about the line `entered()` reports, the Windows filename box's
+rules: a folder opens, the box clears and the list has the keyboard; a file opens its parent with
+the cursor on it and it alone marked, the text kept so Return on the same line accepts; a missing
+path, a file with a trailing slash or a file in a folder request is refused in the footer with the
+dialog left open. Nothing opens or selects before the backend has peeked the parent, hidden rows
+included so a dotfile resolves, because a typed path is a claim about the disk and the listing is
+the only proof; the root is peeked itself and the current directory needs none. A peek carries at
+most `PEEK_CAP` names, so a leaf missing from a directory larger than that is unknown rather than
+absent: the parent opens and the footer says which rows were read. The window's listing holds a
+window of rows and lists without dotfiles, so a file past its first window is asked for at the
+index the peek implies, the shown rows ahead of it in the same scan and sort; a stale peek for
+another parent or a rows response for another directory is never read as the line's answer. A
+remote or share URL is only handed on through `remoteEntered` and `shareEntered` until the fetch
+and mount changes land. `tests/picker.sh typed_dir` and `typed_file` drive both rules on the display.
+
 **The download is gio's, on a thread keyed by id.** `fetch {uri}` (`backend/fetchreq.rs`) runs
 `LC_ALL=C gio copy -p <uri> <dest>` in its own process group on a thread numbered by `Ops::claim_id`
 like `archive`, so a fetch never queues behind a transfer or another fetch. gio already carries the
@@ -1159,6 +1175,9 @@ this coverage needed no new entry there.
 - `ui/js/PickerMarks.js` is the chooser's marks: a path and its size, never a row number, and
   what Space, Ctrl+click and Shift+click do to the list. Pure, so `tests/js/pickermarks.js`
   drives all of it; `ui/picker.qml` holds the anchor and `ui/PickerList.qml` walks the range.
+- `ui/js/PickerNavigate.js` is what the chooser does about that line: the step before the
+  backend is asked, the verdict on the peek's rows, and where the file's row sits in the listing.
+  Pure, so `tests/js/pickernavigate.js` drives all of it; `ui/PickerNavigate.qml` acts on the steps.
 
 ## Where the backend binary comes from
 
