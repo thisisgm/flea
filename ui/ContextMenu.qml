@@ -43,8 +43,8 @@ Item {
     signal railChosen(string action, string key)
 
     // ui/Header.qml's own entrance, the third face of this one instance: openForHeader() flips the
-    // entries to ui/js/Menu.js headerEntries (the column toggles and the hidden toggle, built from
-    // qs module ViewState's hidden columns and the pane's showHidden), and every row flows back
+    // entries to ui/js/Menu.js headerEntries (one checkbox per column and the hidden toggle, built
+    // from qs module ViewState's hidden columns and the pane's showHidden), and every row flows back
     // through chosen() like the listing's own. A row's chosen verb routes by prefix in ui/Pane.qml.
     property bool forHeader: false
     function openForHeader(scenePoint) {
@@ -207,16 +207,20 @@ Item {
     }
 
     // The menu closes before the action runs, so it never hangs over the listing that action opened.
-    function choose(action) {
+    // A keepOpen row (the header's checkboxes) stays open instead: entries is a live binding, so
+    // the box redraws from the new state. A row with no action, Name, only keeps the menu open.
+    function choose(entry) {
         // Both read before close(), which is what clears them.
         var key = root.railKey
         var rail = root.forRail
-        root.close()
+        if (entry.keepOpen !== true)
+            root.close()
         if (rail) {
-            root.railChosen(action, key)
+            root.railChosen(entry.action, key)
             return
         }
-        root.chosen(action)
+        if (entry.action !== undefined)
+            root.chosen(entry.action)
     }
 
     // One signal covers every submenu: the row's own action, a colon, and the entry chosen inside it.
@@ -290,7 +294,7 @@ Item {
                         if (Menu.hasSubmenu(row.modelData))
                             root.openSubmenu(row.index)
                         else
-                            root.choose(row.modelData.action)
+                            root.choose(row.modelData)
                     }
                 }
             }
@@ -379,7 +383,7 @@ Item {
                     if (Menu.hasSubmenu(entry))
                         root.openSubmenu(root.cursor)
                     else if (entry && entry.separator !== true)
-                        root.choose(entry.action)
+                        root.choose(entry)
                 }
                 event.accepted = true
             }
