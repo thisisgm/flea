@@ -155,7 +155,20 @@ QtObject {
             root.recents.refresh()
             return
         }
-        root.backend.list(next, root.windowSize, false)
+        root.backend.list(next, root.windowSize, root.showHidden)
+    }
+
+    // The . key, ui/Pane.qml's rule: the flag flips and the standing directory is listed again,
+    // because the backend never sent the dotfiles and there is nothing here to unhide client-side.
+    // The cursor goes back on its row by path through the refresh route, a mark being a path too;
+    // a cursor on a dotfile the toggle hides lands on row 0, as after any other listing. Recent is
+    // a history and not a scan, so there the key does nothing and the flag stands as it was.
+    function toggleHidden() {
+        if (root.recent)
+            return
+        root.showHidden = !root.showHidden
+        var row = root.rowFor(root.cursorIndex)
+        root.refresh(row ? Picker.rowPath(root.path, row.n) : "")
     }
 
     // A property var does not notify on an in-place mutation, so history is reassigned, never popped.

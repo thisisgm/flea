@@ -40,6 +40,7 @@ QtObject {
         function cursorName(): string { return root.state.rowFor(root.state.cursorIndex) ? root.state.rowFor(root.state.cursorIndex).n : "" }
         function state(): string { return root.state.listingState }
         function recent(): bool { return root.state.recent }
+        function hidden(): int { return root.state.showHidden ? 1 : 0 }
         function accept(): string { return Picker.acceptLabel(root.state.req, root.state.marks.length) }
         function chip(): int { return root.state.filterIndex }
         function filterQuery(): string { return root.state.filterQuery }
