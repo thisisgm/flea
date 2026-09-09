@@ -44,10 +44,16 @@ Item {
         root.holder = holder
         root.search = ""
         root.always = false
+        root.cursor = 0
+        // The field's text is written directly, the way typing does, so the binding that carried
+        // the last session's query is gone and only an explicit reset clears it.
+        field.text = ""
         root.refilter()
+        // Opened before the ask, so an answer the backend already has lands in a dialog that
+        // accepts it rather than being dropped as late.
+        root.opened = true
         if (holder && holder.backend)
             holder.backend.askApplications()
-        root.opened = true
         field.forceActiveFocus()
     }
 
@@ -55,6 +61,11 @@ Item {
         if (!root.opened)
             return
         root.opened = false
+        // The Connections below outlive the close, because the defaulted line lands after it when
+        // the always box rode the launch; the list does not. Every application's delegate and
+        // icon held for the search is dropped here, or they ride hidden until the window closes.
+        root.apps = []
+        root.shown = []
         if (root.holder)
             root.holder.forceActiveFocus()
     }
@@ -72,10 +83,12 @@ Item {
         root.shown = out
         if (root.cursor >= out.length)
             root.cursor = Math.max(0, out.length - 1)
-        // A narrowed list can leave the viewport scrolled past its content; two matching rows
-        // must draw, not air.
-        if (list.contentY > list.contentHeight - list.height)
-            list.contentY = Math.max(0, list.contentHeight - list.height)
+        // A narrowed list can leave the viewport scrolled past its content; the cursor's own row
+        // is the reference, so a refilter always lands the view back on what is selected.
+        if (root.shown.length > 0)
+            list.positionViewAtIndex(root.cursor, ListView.Contain)
+        else
+            list.contentY = 0
     }
 
     function moveCursor(delta) {
@@ -83,9 +96,7 @@ Item {
         if (n === 0)
             return
         root.cursor = Math.max(0, Math.min(n - 1, root.cursor + delta))
-        var row = repeater.itemAt(root.cursor)
-        if (row)
-            list.reveal(row)
+        list.positionViewAtIndex(root.cursor, ListView.Contain)
     }
 
     // One launch through the pane's opener, and — only when the always box says so — one
@@ -251,8 +262,11 @@ Item {
             }
 
         // The list's own viewport: a clipped band whose height is the clamped card's remainder.
-        // The no-match state floats over it: inside the scroll content it centered in an empty
-        // content item and cut itself on the viewport's top edge.
+        // The model is the shown count and never the list itself — the pane's own rule — so only
+        // the viewport's few delegates exist and a keystroke of search re-binds those instead of
+        // destroying and rebuilding every application's row and icon. The no-match state floats
+        // over it: inside the scroll content it centered in an empty content item and cut itself
+        // on the viewport's top edge.
         Item {
             id: listArea
             x: card.pad
@@ -261,29 +275,26 @@ Item {
             height: Math.max(2 * Theme.rowHeight,
                              card.height - card.pad - bottomCol.height - Theme.spacing.gap - y)
 
-            Flea.CardScroll {
+            ListView {
                 id: list
                 anchors.fill: parent
+                clip: true
+                model: root.shown.length
+                boundsBehavior: Flickable.StopAtBounds
 
-                Column {
-                    id: rows
-                    width: parent.width
+                Flea.FastScrollHandler {
+                    flickable: list
+                }
 
-                    Repeater {
-                        id: repeater
-                        model: root.shown
-
-                        delegate: Flea.MenuRow {
-                            required property var modelData
-                            required property int index
-                            width: rows.width
-                            // The entry's own Icon= rides the entry; the cut glyph only when the theme
-                            // carries neither it nor the generic one.
-                            entry: ({ label: modelData.name, glyph: "app-window", icon: modelData.icon || "" })
-                            current: root.cursor === index
-                            onActivated: { root.cursor = index; root.commit() }
-                        }
-                    }
+                delegate: Flea.MenuRow {
+                    required property int index
+                    width: list.width
+                    // The entry's own Icon= rides the entry; the cut glyph only when the theme
+                    // carries neither it nor the generic one.
+                    entry: root.shown[index] ? { label: root.shown[index].name, glyph: "app-window",
+                                                 icon: root.shown[index].icon || "" } : ({})
+                    current: root.cursor === index
+                    onActivated: { root.cursor = index; root.commit() }
                 }
             }
 
@@ -387,10 +398,14 @@ Item {
     }
 
     // The wire's answer lands here, the columns view's own per-view reader; the plain list kept
-    // beside the filtered one restores every row on an empty line without a second ask.
+    // beside the filtered one restores every row on an empty line without a second ask. A reply
+    // that outlives its close is dropped, the flyout's own rule for a late answer, because close
+    // emptied the list and a hidden dialog must not rebuild it.
     Connections {
         target: root.holder ? root.holder.backend : null
         function onApplications(apps) {
+            if (!root.opened)
+                return
             root.apps = apps || []
             root.refilter()
         }
