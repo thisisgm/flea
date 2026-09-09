@@ -36,7 +36,6 @@ QtObject {
         if (step.step === "say") {
             root.picker.say(step.message)
         } else if (step.step === "remote") {
-            root.picker.say(Navigate.NOT_YET)
             root.remoteEntered(answer)
         } else if (step.step === "share") {
             root.picker.say(Navigate.NOT_YET)
