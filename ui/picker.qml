@@ -156,11 +156,21 @@ ShellRoot {
                 onChosen: function (path) { state.open(path); state.focusList() }
             }
 
+            // The browser's own query line, over the list alone: it reads state as its pane and
+            // collapses to nothing while no filter is up, so the rows start under the chrome.
+            Flea.FilterStrip {
+                id: filterStrip
+                anchors.left: places.right
+                anchors.right: parent.right
+                anchors.top: chrome.bottom
+                pane: state
+            }
+
             Flea.PickerList {
                 id: list
                 anchors.left: places.right
                 anchors.right: parent.right
-                anchors.top: chrome.bottom
+                anchors.top: filterStrip.bottom
                 anchors.bottom: entryField.top
                 picker: state
                 backend: backend

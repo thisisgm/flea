@@ -198,6 +198,20 @@ function shownRows(rows, held, filter) {
     return out
 }
 
+// The rows both the chip and the typed query leave standing, in the backend's order: each list is
+// an ascending subsequence of the held window, so what both hold is one too, and directories stay
+// ahead of files the way they arrived. Either list alone answers when the other narrows nothing.
+function narrow(byChip, byQuery) {
+    if (byChip === null || byQuery === null) {
+        return byChip === null ? byQuery : byChip
+    }
+    var keep = {}
+    for (var i = 0; i < byQuery.length; i++) {
+        keep[byQuery[i]] = true
+    }
+    return byChip.filter(function (row) { return keep[row] === true })
+}
+
 function totalBytes(marks) {
     var sum = 0
     for (var i = 0; i < marks.length; i++) {

@@ -12,6 +12,8 @@ function stubState(over) {
         fetching: false,
         cursorIndex: 4,
         shownTotal: 9,
+        filterQuery: "",
+        filterTyping: false,
         calls: [],
         said: [],
         fetcher: { cancel: function () { state.calls.push("stopFetch") } },
