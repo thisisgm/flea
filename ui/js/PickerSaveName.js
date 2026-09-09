@@ -12,6 +12,23 @@
 
 var NEEDS_LOCAL = "Save needs a local path"
 var PATH_HINT = "Path · Return opens the folder, or lands the name in it"
+var EMPTY_NAME = "Name the file before saving it"
+
+// Return in the box. Answers one of: say {message}; enter, a path plan takes from here;
+// save {path}, the file the dialog answers with.
+function accept(name, current) {
+    var text = String(name)
+    if (text.length === 0) {
+        return { step: "say", message: EMPTY_NAME }
+    }
+    if (isPath(text)) {
+        return { step: "enter" }
+    }
+    if (!Picker.validName(text)) {
+        return { step: "say", message: Picker.NAME_REFUSED }
+    }
+    return { step: "save", path: Picker.join(current, text) }
+}
 
 // A plain name is saved as it is; a path goes through classify before anything opens.
 function isPath(name) {
