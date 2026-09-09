@@ -219,11 +219,12 @@ QtObject {
 
     // The one write out of this process. The window closes only once the reply file is on disk,
     // because tools/flea-portal reads it after this process exits and a lost write is a fault.
+    // The active chip goes with a pick, so a caller that offered filters learns which one held.
     function finish(response, list) {
         if (root.answered)
             return
         // Built before the flag is set, so a throw here leaves the window answerable rather than shut.
-        var text = Picker.reply(response, list)
+        var text = Picker.reply(response, list, root.filter)
         root.fetcher.drop()
         root.answered = true
         root.window.replyFile.setText(text)
