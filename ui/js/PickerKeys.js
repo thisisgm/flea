@@ -1,5 +1,6 @@
 .pragma library
 
+.import "Filter.js" as Filter
 .import "Keymap.js" as Keymap
 .import "RailKeys.js" as RailKeys
 
@@ -35,8 +36,9 @@ function lookup(event, state) {
 }
 
 // The picker's own keys. A Ctrl chord belongs to the key table except Ctrl+L, so the windows
-// preset's Ctrl+H reaches toggleHidden instead of the bare h below. Escape while a fetch is in
-// flight stops the download and not the dialog, ui/picker.qml's own rule for the same key.
+// preset's Ctrl+H reaches toggleHidden instead of the bare h below. Escape unwinds one thing at a
+// time, the least destructive first: a fetch in flight, then a standing filter (which loses
+// nothing), then the dialog, ui/picker.qml's fetch-then-field-then-window order.
 function ownVerb(event, state) {
     var key = event.key
     var mods = event.modifiers
@@ -45,7 +47,8 @@ function ownVerb(event, state) {
     if (key === Qt.Key_Left)
         return (mods & Qt.AltModifier) ? "back" : ""
     switch (key) {
-    case Qt.Key_Escape: return state.fetching ? "stopFetch" : "cancel"
+    case Qt.Key_Escape:
+        return state.fetching ? "stopFetch" : state.filterQuery.length > 0 ? "filterClose" : "cancel"
     case Qt.Key_Down: case Qt.Key_J: return "cursorDown"
     case Qt.Key_Up: case Qt.Key_K: return "cursorUp"
     case Qt.Key_PageDown: return "pageDown"
@@ -93,6 +96,8 @@ function act(action, state, ops) {
         return
     }
     switch (action) {
+    case "filter": Filter.start(state); return
+    case "filterClose": Filter.close(state); return
     case "cancel": state.cancel(); return
     case "stopFetch": state.fetcher.cancel(); return
     case "cursorDown": ops.moveCursor(1); return
@@ -111,9 +116,40 @@ function act(action, state, ops) {
         state.message(SHARED[action] + " is not built in the chooser yet.", false)
 }
 
+// ui/js/Focus.js's LEAVES_LINE, resolved through the picker's own table: a cursor key commits the
+// query line the way Enter does and then goes on to mean what it means everywhere else. A printable
+// character is excluded before the lookup, or j and k would leave the line instead of being typed.
+var LEAVES_LINE = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp"]
+
+function leavesLine(event, state) {
+    if (event.text.length === 1 && event.text >= " ")
+        return false
+    return LEAVES_LINE.indexOf(ownVerb(event, state)) >= 0
+}
+
+// Filter.apply seats a cursor the query hid on the query's first match, which the chip can still
+// hide: the chooser's shown is the two met, so the cursor lands on the first row both leave standing.
+function settle(state) {
+    var list = state.shown
+    if (list !== null && list.length > 0 && Filter.viewOf(list, state.cursorIndex) < 0)
+        state.setCursor(list[0])
+}
+
 // ui/PickerList.qml's Keys.onPressed: a key that resolves is accepted and acted on, and any other
 // stays unaccepted so the window above still sees it. Answers the action for the caller's log.
+// The filter's query line owns every key while it has the caret, ui/js/Focus.js's rule, so nothing
+// below it, Escape included, sees a key until Enter or a cursor key hands the keyboard back.
 function handle(event, state, ops) {
+    if (state.filterTyping) {
+        if (leavesLine(event, state)) {
+            Filter.commit(state)
+        } else {
+            event.accepted = true
+            Filter.typeKey(event, state)
+            settle(state)
+            return "filter"
+        }
+    }
     var action = lookup(event, state)
     if (action.length === 0)
         return ""

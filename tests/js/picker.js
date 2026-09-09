@@ -1,4 +1,5 @@
 .import "../../ui/js/Picker.js" as Picker
+.import "../../ui/js/Filter.js" as Filter
 
 function run(check) {
     // The shape tools/flea-portal writes for an OpenFile with two filters, taken from its request_for().
@@ -103,6 +104,26 @@ function run(check) {
     check("a directory always stands, so the way out is never hidden", shown[0], 4)
     check("a mime-only chip keeps the directory and the rows of its class", Picker.shownRows(rows, 0, { globs: [], mimes: ["image/*"] }).join(","), "0,1")
     check("both legs keep only the rows both confirm", Picker.shownRows(rows, 0, { globs: ["*.png"], mimes: ["image/*"] }).join(","), "0,1")
+
+    // The chip's rows and the typed query's rows meet in narrow: a subsequence of the chip list,
+    // strictly ascending, so the backend's order and its directories-first grouping hold.
+    var byChip = Picker.shownRows(rows, 4, images)
+    var byQuery = Filter.shown(rows, 4, "c")
+    check("the query alone would keep the rows named with a c", byQuery.join(","), "7")
+    var both = Picker.narrow(byChip, byQuery)
+    check("what both keep is what is shown", both.join(","), "7")
+    check("an empty query shows the chip list unchanged", Picker.narrow(byChip, Filter.shown(rows, 4, "")), byChip)
+    check("no chip shows the query's list unchanged", Picker.narrow(null, byQuery), byQuery)
+    check("neither narrows nothing", Picker.narrow(null, null), null)
+    var pics = [{ n: "pics", d: true, s: 0, i: "folder" }, { n: "a.png", d: false, s: 10, i: "image-x-generic" },
+                { n: "pic.md", d: false, s: 20, i: "text-x-generic" }, { n: "pic.png", d: false, s: 30, i: "image-x-generic" }]
+    var picChip = Picker.shownRows(pics, 4, images)
+    var wide = Picker.narrow(picChip, Filter.shown(pics, 4, "pic"))
+    check("the meeting is a subsequence of the chip list", wide.join(",") + "|" + picChip.join(","), "4,7|4,5,7")
+    check("and strictly ascending", wide.every(function (r, i) { return i === 0 || r > wide[i - 1] }), true)
+    check("so the directory still comes first", pics[wide[0] - 4].d, true)
+    check("a query the chip's rows never match shows nothing, and that is still a filter",
+          Picker.narrow(byChip, Filter.shown(rows, 4, "b.md")).length, 0)
 
     // The save name is a client string, and the answer it builds must stay inside the folder the
     // user was shown. Same cases as src/backend/ops.rs's own valid_name test, so a drift shows here.

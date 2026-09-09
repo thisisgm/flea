@@ -228,8 +228,38 @@ ListView {
         root.positionViewAtIndex(to, ListView.Contain)
     }
 
+    // ui/List.qml's own line under the last row the query left standing: caption type, muted, and
+    // gone with the query. A chip alone says nothing here; the pill row already shows what narrows.
+    footer: Item {
+        width: root.width
+        height: note.text.length > 0 ? Theme.chromeHeight : 0
+
+        Text {
+            id: note
+            anchors.fill: parent
+            anchors.leftMargin: Theme.spacing.rowPaddingX
+            anchors.rightMargin: Theme.spacing.rowPaddingX
+            verticalAlignment: Text.AlignVCenter
+            text: root.picker.filterQuery.length > 0
+                ? Filter.note(root.picker.shown, root.picker.rows.length, root.picker.filterQuery) : ""
+            color: Theme.color.muted
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            elide: Text.ElideRight
+            textFormat: Text.PlainText
+        }
+    }
+
     // ui/js/PickerKeys.js: the picker's own verbs, then keys.toml through its allowlist.
     Keys.onPressed: function (event) { PickerKeys.handle(event, root.picker, root) }
+
+    // A query drops the view back to its first row without moving contentY afterwards, so closing
+    // it can leave the viewport over rows the held window no longer covers; the drift check runs
+    // again on every change of the query rather than only on a scroll.
+    Connections {
+        target: root.picker
+        function onFilterQueryChanged() { coalesce.restart() }
+    }
 
     // The listing is a window around the viewport, not the directory, so scrolling refetches. Same
     // shape as ui/List.qml's own drift check, minus the thumbnail and directory-size planners.

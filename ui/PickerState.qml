@@ -53,7 +53,9 @@ QtObject {
     // Which chip is active: an index into filters, or -1 for All files.
     property int filterIndex: Picker.currentChip(root.req)
     readonly property var filter: root.filterIndex >= 0 ? root.filters[root.filterIndex] : null
-    readonly property var shown: Picker.shownRows(root.rows, root.held, root.filter)
+    // The chip's rows and the typed query's rows, met in ui/js/Picker.js narrow; either alone otherwise.
+    readonly property var shown: Picker.narrow(Picker.shownRows(root.rows, root.held, root.filter),
+                                               Filter.shown(root.rows, root.held, root.filterQuery))
     readonly property int shownTotal: root.shown === null ? root.total : root.shown.length
 
     // Where Back goes, and it only ever goes back: Parent is its own button and pushes here too.
@@ -99,7 +101,10 @@ QtObject {
     property var thumbState: Thumbs.empty()
     property var dirSizeState: DirSizes.empty()
 
-    function selectedIndices() { return PickerOps.indicesFor(root) }
+    // Filter.apply prunes what a keystroke hides out of the selection through this, toggling each
+    // row on a selection object the chooser does not have. A mark is a path, so nothing here can
+    // rebind or vanish; while the query line is typed the answer is empty and the prune is a no-op.
+    function selectedIndices() { return root.filterTyping ? [] : PickerOps.indicesFor(root) }
     function pathsFor() { return PickerOps.pathsFor(root) }
     function dropMarks(paths) { PickerOps.dropMarks(root, paths) }
     function selectAll() { PickerOps.selectAll(root) }
@@ -140,6 +145,8 @@ QtObject {
         root.rows = []
         root.cursorIndex = 0
         root.markAnchor = -1
+        // A filter narrows the rows already listed, so a new listing is what forgets it, ui/js/Nav.js's rule.
+        Filter.close(root)
         root.listingState = "loading"
         if (Picker.isRecent(next)) {
             root.recents.refresh()
