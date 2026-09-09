@@ -57,6 +57,7 @@ PickerChrome 1.0 PickerChrome.qml
 PickerEntry 1.0 PickerEntry.qml
 PickerFooter 1.0 PickerFooter.qml
 PickerList 1.0 PickerList.qml
+PickerNavigate 1.0 PickerNavigate.qml
 PickerPlaces 1.0 PickerPlaces.qml
 PickerRecent 1.0 PickerRecent.qml
 PickerSave 1.0 PickerSave.qml

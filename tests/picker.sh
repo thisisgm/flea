@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|click|save|savename|typed|cancel|withdrawn|died|fault|taildrop]; taildrop is opt-in.
+# Usage: ./tests/picker.sh [pick|click|save|savename|typed|typed_dir|typed_file|cancel|withdrawn|died|fault|taildrop]; taildrop is opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 set -u
@@ -418,6 +418,74 @@ case_typed() {
     printf 'typed: ":" focuses the location field, the text lands in it, and Escape returns to the list without cancelling\n'
 }
 
+# Starts the picker on the fixture directly, the way case_typed does, and leaves it to the caller
+# to type and to end. asker holds the process; reply names the file it answers into.
+start_typed() {
+    local flea
+    flea="$(cd "$(dirname "$0")/.." && pwd)/target/release/flea"
+    [[ -x "$flea" ]] || fail "no built flea at $flea"
+    reply="$fixture/$1-reply.json"
+    FLEA_UI="$(dirname "$picker_config")" \
+        FLEA_PICKER="{\"mode\":\"open\",\"title\":\"$title\",\"folder\":\"$fixture\"}" \
+        "$flea" --pick "$reply" &
+    asker=$!
+    omarchy-drive wait window "$title" --timeout 25 >/dev/null || fail "the $1 request raised no picker window"
+    omarchy-drive focus "$title" >/dev/null || fail "the picker window would not take focus"
+    ipc_is_live
+}
+
+# A typed folder is walked into, the box clears and the keyboard goes back to the list: the Windows
+# filename box's rule for a directory. The parent of the fixture is typed with its trailing slash,
+# which is how the line says "this is a directory"; the dialog is then refused so nothing is answered.
+case_typed_dir() {
+    make_fixture
+    local reply
+    start_typed typed_dir
+    press ':'
+    press "$(dirname "$fixture")/"
+    press -k Return
+    sleep 1
+    [[ "$(ipc path)" == "$(dirname "$fixture")" ]] || fail "the typed folder left the picker at $(ipc path)"
+    [[ -z "$(ipc entry)" ]] || fail "the field still holds $(ipc entry) after the folder opened"
+    [[ "$(ipc entryFocused)" == "0" ]] || fail "the keyboard stayed in the field after the folder opened"
+    press -k Escape
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == '{"response":1}' ]] || fail "the typed_dir request replied $(cat "$reply")"
+    printf 'typed_dir: a typed folder opens, the field clears and the list has the keyboard\n'
+}
+
+# A typed file is selected in its parent: the cursor lands on it, it is the one mark, the text stays
+# in the field, and Return on the same text again is the answer. A missing path first, which says so
+# in the footer and leaves the dialog open, so the two are told apart by the reply arriving only once.
+case_typed_file() {
+    make_fixture
+    local reply
+    start_typed typed_file
+    press ':'
+    press "$fixture/nothing.txt"
+    press -k Return
+    sleep 1
+    [[ "$(ipc message)" == "Not found: $fixture/nothing.txt" ]] || fail "a missing path said $(ipc message)"
+    kill -0 "$asker" 2>/dev/null || fail "a missing path ended the dialog"
+    press -k Escape
+    press ':'
+    # The field kept the refused line, so it is cleared from the end before the real path goes in.
+    local typed="$fixture/nothing.txt" n
+    for ((n = 0; n < ${#typed}; n++)); do press -k BackSpace; done
+    press "$fixture/beta.txt"
+    press -k Return
+    sleep 1
+    [[ "$(ipc path)" == "$fixture" ]] || fail "the typed file moved the picker to $(ipc path)"
+    [[ "$(ipc cursorName)" == "beta.txt" ]] || fail "the cursor is on $(ipc cursorName), not the typed file"
+    [[ "$(ipc marks)" == "$fixture/beta.txt" ]] || fail "the marks are $(ipc marks), not the typed file"
+    [[ "$(ipc entry)" == "$fixture/beta.txt" ]] || fail "the field lost the file name: $(ipc entry)"
+    press -k Return
+    wait "$asker"; asker=0
+    [[ "$(cat "$reply")" == "{\"response\":0,\"uris\":[\"file://$fixture/beta.txt\"]}" ]] \
+        || fail "the typed_file request replied $(cat "$reply")"
+    printf 'typed_file: a missing path is refused in the footer, a typed file is marked in its parent, and a second Return answers it\n'
+}
+
 # A chooser that cannot open at all refuses before any window and writes no reply file, which is what
 # tools/flea-portal turns into 2. Both refusals are argv-level, so neither needs the display.
 case_fault() {
@@ -481,7 +549,7 @@ case_taildrop() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick click save savename typed cancel withdrawn died fault
+[[ "$#" -gt 0 ]] || set -- pick click save savename typed typed_dir typed_file cancel withdrawn died fault
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
@@ -489,6 +557,8 @@ for name in "$@"; do
         save) case_save ;;
         savename) case_savename ;;
         typed) case_typed ;;
+        typed_dir) case_typed_dir ;;
+        typed_file) case_typed_file ;;
         cancel) case_cancel ;;
         withdrawn) case_withdrawn ;;
         died) case_died ;;
