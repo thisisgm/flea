@@ -151,8 +151,8 @@ function isHidden(hiddenActions, action) {
     return false
 }
 
-// The one state toggle either menu draws. The label flips with the state, the house pattern
-// (ui/MenuRow.qml draws no checkmark), and the verb is the key's own.
+// The one state toggle either menu draws. The label flips with the state, the house pattern for
+// a verb row (a checkbox is a column's, see headerEntries), and the verb is the key's own.
 function hiddenRow(showHidden) {
     return {
         label: showHidden ? "Hide hidden files" : "Show hidden files",
@@ -161,24 +161,23 @@ function hiddenRow(showHidden) {
     }
 }
 
-// ui/Header.qml's own rows, on a right click over the column titles. Name is not among them: it is
-// the one column a file manager cannot do without (see ui/js/Columns.js), so it is never hidden and
-// never offered. A hidden column reads "Show", a drawn one "Hide", the flip the state rows use.
+// ui/Header.qml's own rows, on a right click over the column titles: one checkbox row per column,
+// every OS dialog's shape, and each keeps the menu open (keepOpen) so several boxes can be ticked
+// in one visit. Name is the one column a file manager cannot do without (see ui/js/Columns.js), so
+// its box is permanently checked and the row carries no action at all.
+var COLUMNS = [["name", "Name"], ["mode", "Mode"], ["size", "Size"], ["date", "Date Modified"], ["kind", "Kind"]]
+
 function headerEntries(hiddenCols, showHidden) {
     var out = []
     var hidden = {}
     for (var h = 0; h < hiddenCols.length; h++)
         hidden[hiddenCols[h]] = true
-    var columns = [["mode", "Mode"], ["size", "Size"], ["date", "Date Modified"], ["kind", "Kind"]]
-    var glyphs = { mode: "lock", size: "drive", date: "download", kind: "type" }
-    for (var i = 0; i < columns.length; i++) {
-        var key = columns[i][0]
-        var shown = !hidden[key]
-        out.push({
-            label: shown ? "Hide " + columns[i][1] : "Show " + columns[i][1],
-            action: "col:" + key,
-            glyph: glyphs[key]
-        })
+    for (var i = 0; i < COLUMNS.length; i++) {
+        var key = COLUMNS[i][0]
+        var row = { label: COLUMNS[i][1], checked: !hidden[key], keepOpen: true }
+        if (key !== "name")
+            row.action = "col:" + key
+        out.push(row)
     }
     out.push({ separator: true })
     out.push(hiddenRow(showHidden))
