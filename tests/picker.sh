@@ -3,7 +3,7 @@
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
 # unless Flea is the backend, so it checks that first.
-# Usage: ./tests/picker.sh [pick|selectall|click|menu|rename|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
+# Usage: ./tests/picker.sh [pick|selectall|pasteprogress|click|menu|rename|duplicate|trash|crumbs|rail|save|savename|typed|typed_dir|typed_file|typed_url|typed_share|cancel|withdrawn|died|fault|pills|filter|header|hidden|thumbs|taildrop|dragout]; typed_share, taildrop and dragout are opt-in.
 # FLEA_PICKER_CONFIG names the running picker's qs config path, which is the packaged one by default.
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 # FLEA_PICKER_SHARE names a file on a reachable share, as smb://host/share/dir/name, for typed_share.
@@ -170,6 +170,52 @@ case_selectall() {
     press -k Escape
     wait_for_client
     printf 'selectall: ctrl+a marks every drawn file in a multiple request and refuses in a single one\n'
+}
+
+# A directory tree keeps the copy alive long enough to read its progress line. This is the
+# copypaste case's path through Ctrl+C and Ctrl+V, with the footer sampled before transferdone.
+case_pasteprogress() {
+    make_fixture
+    sandbox_scratch "$fixture/bulk"
+    sandbox_scratch "$fixture/dest"
+    local i row step line="" progress result
+    for i in $(seq 1 20000); do
+        printf x > "$fixture/bulk/$i"
+    done
+    start_client
+    walk_to_fixture
+    row=$(row_named bulk)
+    while [[ "$(ipc cursor)" != "$row" ]]; do press -k Down; done
+    press -k c --mods ctrl
+    row=$(row_named dest)
+    while [[ "$(ipc cursor)" != "$row" ]]; do press -k Down; done
+    press -k Return
+    sleep 0.2
+    press -k v --mods ctrl
+    for step in $(seq 1 20); do
+        line=$(ipc transferLine)
+        [[ -n "$line" ]] && break
+        sleep 0.05
+    done
+    [[ -n "$line" ]] || fail "pasteprogress: no footer line appeared while the copy ran"
+    [[ "$line" == Copying* ]] || fail "pasteprogress: the footer said '$line'"
+    progress="$line"
+    [[ "$(ipc message)" == "$line" ]] \
+        || fail "pasteprogress: the old copy notice hid the live transfer line"
+    for step in $(seq 1 80); do
+        line=$(ipc transferLine)
+        [[ -z "$line" ]] && break
+        sleep 0.05
+    done
+    [[ -z "$line" ]] || fail "pasteprogress: the transfer did not finish"
+    result=$(ipc message)
+    [[ "$result" == "Copied 1 item · z undoes" ]] \
+        || fail "pasteprogress: the finished footer said '$result'"
+    [[ -e "$fixture/dest/bulk/20000" ]] || fail "pasteprogress: the copy did not finish"
+    [[ -e "$fixture/bulk/20000" ]] || fail "pasteprogress: the copy removed its source"
+    press -k Escape
+    wait_for_client
+    printf 'pasteprogress: ctrl+v showed %s while it copied the directory\n' "$progress"
 }
 
 # A drawn item's centre in screen pixels: the seam answers window pixels, and the floating window's
@@ -1385,11 +1431,12 @@ case_dragout() {
 }
 
 backend_is_flea
-[[ "$#" -gt 0 ]] || set -- pick selectall click menu rename duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
+[[ "$#" -gt 0 ]] || set -- pick selectall pasteprogress click menu rename duplicate trash crumbs rail save savename typed typed_dir typed_file typed_url cancel withdrawn died fault pills filter header hidden thumbs
 for name in "$@"; do
     case "$name" in
         pick) case_pick ;;
         selectall) case_selectall ;;
+        pasteprogress) case_pasteprogress ;;
         click) case_click ;;
         menu) case_menu ;;
         rename) case_rename ;;

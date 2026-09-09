@@ -120,8 +120,8 @@ QtObject {
     function selectAll() { PickerOps.selectAll(root) }
     // A row's identity, which in Recent is the row's own path and never a join onto the token.
     function join(base, name) { return Picker.rowPath(base, name) }
-    function message(text, isError) { root.say(text) }
-    function sticky(text) { root.say(text, true) }
+    function message(text, isError) { root.footer.say(text, false, isError) }
+    function sticky(text) { root.footer.sticky = text }
     // Sort.resort clears a selection because a reorder rebinds every index. A mark is a path and
     // survives a reorder the way it survives Back, so there is nothing here to clear.
     function clearSelection() {}
@@ -289,7 +289,7 @@ QtObject {
 
     // A held message stays until the next say: the share legs can take their whole deadline.
     function say(text, hold) {
-        root.footer.say(text, hold)
+        root.footer.say(text, hold, false)
     }
 
     // The keyboard back on the listing, whichever surface it was in: a click on a row or a place

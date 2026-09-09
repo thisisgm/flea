@@ -138,6 +138,7 @@ function failed(state, where, msg) {
     // No transferdone is coming from a backend that is gone, and nothing else ends a transfer.
     if (terminal) {
         state.transfer = Ops.emptyTransfer()
+        state.sticky("")
     }
     if (listing || state.listingState === "loading") {
         state.listingState = "empty"

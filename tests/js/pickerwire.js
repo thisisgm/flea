@@ -155,6 +155,7 @@ function run(check) {
     s = stubState({ transfer: Ops.started(3, false, 1) })
     Wire.failed(s, "read", "")
     check("a backend that stopped ends the transfer", s.transfer.id, 0)
+    check("and clears the transfer's sticky line", s.stuck[s.stuck.length - 1], "")
     check("and empties the listing", s.listingState, "empty")
     s = stubState({ renameOnArrival: "/d/sub", renameFromPath: "/d/c.png",
                     renameListingPath: "/d", renamePointerPath: "/d/d.txt" })
