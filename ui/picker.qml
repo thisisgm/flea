@@ -12,6 +12,7 @@ import qs.Commons
 import "." as Flea
 import "js/Picker.js" as Picker
 import "js/PickerMarks.js" as Marks
+import "js/PickerSaveName.js" as SaveName
 
 // One portal request, one window: the org.freedesktop.impl.portal.FileChooser dialog every caller on
 // the box gets, opened by flea --pick and answered through the reply file tools/flea-portal reads.
@@ -152,8 +153,11 @@ ShellRoot {
                     win.say("Name the file before saving it")
                     return
                 }
-                // The answer has to name the folder the user was shown, so a typed separator is
-                // refused here rather than rewritten: a rewrite would send a path nobody approved.
+                // A separator or a leading "~" makes the name a path, which walks or lands, never answers.
+                if (SaveName.isPath(win.saveName)) {
+                    navigate.enterSave(win.saveName)
+                    return
+                }
                 if (!Picker.validName(win.saveName)) {
                     win.say(Picker.NAME_REFUSED)
                     return
@@ -317,7 +321,8 @@ ShellRoot {
                 anchors.bottom: entryField.top
                 picker: win
                 backend: backend
-                entry: entryField
+                // ":" takes the keyboard to whichever field the mode draws.
+                entry: win.saving ? save : entryField
                 clip: true
                 focus: true
             }
@@ -393,6 +398,7 @@ ShellRoot {
             function fetchLine(): string { return fetcher.line }
             function entry(): string { return entryField.text }
             function entryFocused(): int { return entryField.focused ? 1 : 0 }
+            function saveFocused(): int { return save.focused ? 1 : 0 }
             function rowCentre(index: int): string { return list.rowCentre(index) }
         }
     }

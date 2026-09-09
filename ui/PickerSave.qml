@@ -2,11 +2,14 @@ import QtQuick
 import "." as Flea
 import "js/Format.js" as Format
 import "js/Picker.js" as Picker
+import "js/PickerSaveName.js" as SaveName
 
 // SaveFile's own strip: the name, where that name lands, and a warning when this directory already
 // holds it. The board's rule is that the caller owns the WRITE, which is why a collision is said
 // rather than refused; it says nothing about where this window may point, and answering with a path
 // outside the folder the user was shown is not the caller's to license, so such a name is refused.
+// A path the user types is another matter: it is the save dialog's own grammar, and Return walks it
+// through ui/PickerNavigate.qml before anything is answered.
 Item {
     id: root
 
@@ -16,12 +19,15 @@ Item {
     signal accepted()
 
     readonly property string outPath: Picker.join(root.picker.path, root.picker.saveName)
+    // A path in the box, which Return walks rather than answers; the caller's own name never is one.
+    readonly property bool typedPath: root.picker.saveName.length > 0 && SaveName.isPath(root.picker.saveName)
     // Which name this strip is talking about: what is in the field, or the caller's own suggestion
     // when the field is empty because ui/picker.qml refused that suggestion instead of adopting it.
     readonly property string askedName: root.picker.saveName.length > 0 ? root.picker.saveName
                                                                         : root.picker.req.name
     // A name nobody has supplied yet is not a refusal, so the accept path is what asks for one.
-    readonly property bool refused: root.askedName.length > 0 && !Picker.validName(root.askedName)
+    readonly property bool refused: !root.typedPath && root.askedName.length > 0
+                                    && !Picker.validName(root.askedName)
     // Only the rows the listing has actually sent can be compared, so a name past the held window
     // goes unwarned. The alternative is a stat this window has no request for, and the callback
     // hands the caller a URI either way.
@@ -33,6 +39,12 @@ Item {
                 return true
         }
         return false
+    }
+
+    readonly property bool focused: field.focused
+
+    function takeFocus() {
+        field.takeFocus()
     }
 
     visible: root.picker.saving
@@ -67,7 +79,7 @@ Item {
         // elision eats the path and never the word saying what the path is.
         Row {
             width: parent.width
-            visible: !root.refused
+            visible: !root.refused && !root.typedPath
 
             Text {
                 id: uriLabel
@@ -87,6 +99,18 @@ Item {
                 elide: Text.ElideLeft
                 textFormat: Text.PlainText
             }
+        }
+
+        // What a typed path does on Return, in place of a URI that would be wrong for it.
+        Text {
+            width: parent.width
+            visible: root.typedPath
+            text: SaveName.PATH_HINT
+            color: Theme.color.muted
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            elide: Text.ElideRight
+            textFormat: Text.PlainText
         }
 
         // Why there is no URI to show. This one elides its TAIL: a name that leaves the folder says

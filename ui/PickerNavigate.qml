@@ -2,6 +2,7 @@ import QtQuick
 import "js/Filter.js" as Filter
 import "js/PickerEntry.js" as PickerEntry
 import "js/PickerNavigate.js" as Navigate
+import "js/PickerSaveName.js" as SaveName
 
 // What the window does with a line ui/PickerEntry.qml reported: the Windows filename box's rules,
 // decided in ui/js/PickerNavigate.js and carried out here against the window, its backend and its
@@ -23,6 +24,8 @@ QtObject {
     property string pendingSelect: ""
     property string pendingParent: ""
     property int pendingStart: 0
+    // Whether the peek in flight is the save box's, whose answer ui/js/PickerSaveName.js decides.
+    property bool awaitingSave: false
 
     // A URL the later changes fetch or mount; until then the window only says so.
     signal remoteEntered(var answer)
@@ -48,7 +51,38 @@ QtObject {
             root.awaiting = step.path
             root.awaitingParent = step.parent
             root.awaitingDir = answer.wantsDir
+            root.awaitingSave = false
             root.backend.peek(step.parent, Navigate.PEEK_ROWS, true)
+        }
+    }
+
+    // The save box's own line, the same grammar with the save dialog's rules: a folder opens and
+    // the box clears, a file opens its parent and leaves its leaf as the name, and the keyboard
+    // stays in the box either way so the next Return saves. The same awaiting fields hold the
+    // peek, so a stale answer is thrown away the same way.
+    function enterSave(text) {
+        var step = SaveName.plan(text, root.picker.path, root.picker.home)
+        if (step.step === "say") {
+            root.picker.say(step.message)
+        } else if (step.step === "peek") {
+            root.awaiting = step.path
+            root.awaitingParent = step.parent
+            root.awaitingDir = step.wantsDir
+            root.awaitingSave = true
+            root.backend.peek(step.parent, Navigate.PEEK_ROWS, true)
+        }
+    }
+
+    function savePeeked(target, peeked) {
+        var step = SaveName.verdict(target, root.awaitingDir, peeked)
+        if (step.step === "say") {
+            root.picker.say(step.message)
+        } else if (step.step === "open") {
+            root.picker.open(step.path)
+            root.picker.saveName = ""
+        } else if (step.step === "name") {
+            root.picker.open(step.parent)
+            root.picker.saveName = step.name
         }
     }
 
@@ -59,6 +93,11 @@ QtObject {
         }
         var target = root.awaiting
         root.awaiting = ""
+        if (root.awaitingSave) {
+            root.awaitingSave = false
+            root.savePeeked(target, { total: total, rows: rows, readFailed: readFailed })
+            return
+        }
         var step = Navigate.verdict(target, root.awaitingDir, root.picker.folderMode,
                                     { total: total, rows: rows, readFailed: readFailed })
         if (step.step === "say") {
@@ -136,6 +175,7 @@ QtObject {
         var row = root.picker.rowFor(index)
         root.picker.cursorIndex = index
         root.picker.marks = [{ path: path, bytes: row.s }]
+        root.picker.markAnchor = index
         var view = Filter.viewOf(root.picker.shown, index)
         if (view < 0) {
             root.picker.filterIndex = -1
