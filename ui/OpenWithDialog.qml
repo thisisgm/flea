@@ -3,32 +3,31 @@ import qs.Commons
 import "." as Flea
 
 // The Open with dialog: the desktop's whole installed list, searched, with the "always" box the
-// flyout deliberately does not carry. The flyout is the one-off override; this is the Windows and
-// Nautilus surface, and its one write is the default, which is why it opens for one file and
-// never for a selection. Hosted by ui/shell.qml over the pane, the way the convert popup is.
+// flyout deliberately does not carry. The flyout is the one-off override; this is the Windows
+// and Nautilus surface, and its one write is the default. Hosted by ui/shell.qml over the pane,
+// the way the convert popup is.
 Item {
     id: root
 
     property bool opened: false
     // The file the dialog opened for, the row's Kind description for the always label, and the
-    // holder everything else is reached through: the pane's own opener for the launch and the
-    // pane's backend for the list and the write.
+    // holder the rest is reached through: the pane's opener for the launch, its backend for the
+    // list and the write.
     property string filePath: ""
     property string kind: ""
     property var holder: null
-    // The card's title, for ui/Ipc.qml, the way the convert popup exposes its own.
-    readonly property alias titleItem: title
-    // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
+    // The card, for ui/Ipc.qml the way the convert popup exposes its own. var, not Item:
+    // BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
     readonly property var cardItem: card
 
-    // The wire's answer, and the search's window over it. The list is asked for once per open;
-    // a second open asks again, because applications are installed while the window is open.
+    // The wire's answer, and the search's window over it. The list is asked once per open;
+    // a second open asks again, because applications install while the window is open.
     property var apps: []
     property var shown: []
     property string search: ""
     property int cursor: 0
-    // Unchecked by default, the same reason the convert popup's strip toggle is: a default written
-    // silently is a setting the operator did not ask for. Space or the click toggles it.
+    // Unchecked by default, the convert popup's own reason: a default written silently is a
+    // setting the operator did not ask for. Space or the click toggles it.
     property bool always: false
 
     signal closed()
@@ -62,8 +61,8 @@ Item {
     }
 
     // The search's own window: a case-insensitive name match, the pane's own filter shape. A
-    // refilter resets the cursor, because a cursor at 40 rows of an unfiltered list names another
-    // application the moment the list narrows to two.
+    // refilter resets the cursor, because a cursor at 40 rows names another application once
+    // the list narrows.
     function refilter() {
         var text = root.search.toLowerCase()
         var out = []
@@ -74,8 +73,8 @@ Item {
         root.shown = out
         if (root.cursor >= out.length)
             root.cursor = Math.max(0, out.length - 1)
-        // A narrowed list can leave the viewport scrolled past its own content, which Flickable
-        // only corrects on the next drag; a filter that answers two rows must draw them, not air.
+        // A narrowed list can leave the viewport scrolled past its own content; the filter that
+        // answers two rows must draw them, not air.
         if (list.contentY > list.contentHeight - list.height)
             list.contentY = Math.max(0, list.contentHeight - list.height)
     }
@@ -84,20 +83,15 @@ Item {
         var n = root.shown.length
         if (n === 0)
             return
-        var next = root.cursor + delta
-        if (next < 0)
-            next = 0
-        if (next > n - 1)
-            next = n - 1
-        root.cursor = next
+        root.cursor = Math.max(0, Math.min(n - 1, root.cursor + delta))
         var row = repeater.itemAt(root.cursor)
         if (row)
             list.reveal(row)
     }
 
-    // One launch of the picked application through the pane's own opener, and — only when the
-    // always box says so — one default written for the type the backend resolves from the path.
-    // The launch is the flyout's own act; the write is the only thing the dialog adds.
+    // One launch through the pane's opener, and — only when the always box says so — one
+    // default written for the type the backend resolves from the path. The launch is the
+    // flyout's act; the write is the only thing the dialog adds.
     function commit() {
         var app = root.shown[root.cursor]
         if (!app || !root.holder)
@@ -130,14 +124,12 @@ Item {
         width: Theme.space(root.dialogWidth)
         readonly property int pad: Theme.spacing.rowPaddingX
         // How many rows the list claims before the card clamps to the window; a shorter window
-        // gives the list less, never the controls below it.
+        // gives the list less, never the controls below it. The chrome above and the controls
+        // below are fixed, and the list viewport takes whatever the clamped card leaves between
+        // them — the first cut laid the whole body out as one column, and its unclipped
+        // delegates painted the later rows straight over the controls.
         readonly property int rowsShown: 7
-        // The card claims that many rows and clamps to the window; the chrome above and the
-        // controls below are fixed, and the list viewport takes whatever the clamped card leaves
-        // between them. That is what pins the buttons to the bottom: the first cut laid the whole
-        // body out as one column, and its unclipped delegates painted the rows nine and up
-        // straight over the always box and the buttons.
-        height: Math.min(card.pad + topCol.height + Theme.spacing.gap + root.rowsShown * Theme.rowHeight
+        height: Math.min(card.pad + topCol.height + Theme.spacing.gap + card.rowsShown * Theme.rowHeight
                          + Theme.spacing.gap + bottomCol.height + card.pad,
                          root.height - 2 * root.clampMargin)
         color: Theme.color.surface
@@ -179,21 +171,20 @@ Item {
                 opacity: 0.4
             }
 
-            // The search line, the dialog's whole filter. Every key that is not one of the
-            // four stays text: the field owns the keyboard, which is what a search field is.
+            // The search line, the dialog's whole filter; every key that is not one of the
+            // four stays text, because the field owns the keyboard.
             Item {
                 width: parent.width
                 height: Theme.rowHeight
 
-                Text {
+                Flea.Glyph {
                     id: searchMark
                     anchors.left: parent.left
                     anchors.verticalCenter: parent.verticalCenter
                     width: Theme.markSize
-                    text: "/"
+                    height: Theme.markSize
+                    name: "search"
                     color: Theme.color.muted
-                    font.family: Theme.font.family
-                    font.pixelSize: Theme.font.body
                 }
 
                 TextInput {
@@ -231,27 +222,38 @@ Item {
                     }
                 }
 
-                Flea.Glyph {
-                    anchors.right: parent.right
-                    anchors.rightMargin: Theme.spacing.gap
-                    anchors.verticalCenter: parent.verticalCenter
-                    width: Theme.font.caption
-                    height: Theme.font.caption
-                    visible: root.search.length > 0
-                    name: "x"
-                    color: Theme.color.muted
+                    Flea.Glyph {
+                        anchors.right: parent.right
+                        anchors.rightMargin: Theme.spacing.gap
+                        anchors.verticalCenter: parent.verticalCenter
+                        width: Theme.font.caption
+                        height: Theme.font.caption
+                        visible: root.search.length > 0
+                        name: "x"
+                        color: Theme.color.muted
 
-                    TapHandler {
-                        acceptedButtons: Qt.LeftButton
-                        onTapped: { field.text = ""; field.forceActiveFocus() }
+                        TapHandler {
+                            acceptedButtons: Qt.LeftButton
+                            onTapped: { field.text = ""; field.forceActiveFocus() }
+                        }
                     }
                 }
+
+                // The file the dialog is choosing for, the way Nautilus's chooser names it.
+                Text {
+                    width: parent.width
+                    bottomPadding: Theme.spacing.gap
+                    text: "Choose an application to open " + root.filePath.substring(root.filePath.lastIndexOf("/") + 1) + " with"
+                    color: Theme.color.muted
+                    font.family: Theme.font.family
+                    font.pixelSize: Theme.font.caption
+                    textFormat: Text.PlainText
+                    elide: Text.ElideMiddle
+                }
             }
-        }
 
         // The list's own viewport: a clipped, wheel-scrollable band whose height is the clamped
-        // card's remainder, so scrolling never reaches the controls and the controls never
-        // reach the list. This is the one scroll surface the dialog has.
+        // card's remainder, so the list scrolls in its own band and never behind the controls.
         Flea.CardScroll {
             id: list
             x: card.pad
@@ -273,8 +275,8 @@ Item {
                         required property int index
                         width: rows.width
                         entry: ({ label: modelData.name, glyph: "app-window" })
-                        // The entry's own Icon=, the theme's icon in the row's mark slot and the
-                        // cut glyph only when the theme carries neither it nor the generic one.
+                        // The entry's own Icon=, the theme's icon in the mark slot and the cut glyph
+                        // only when the theme carries neither it nor the generic one.
                         icon: modelData.icon || ""
                         current: root.cursor === index
                         onActivated: { root.cursor = index; root.commit() }
@@ -282,8 +284,7 @@ Item {
                 }
             }
 
-            // No match is a state and not an absence: the pane's own empty answer names the
-            // query, and this one does the same in the same register.
+            // No match is a state and not an absence, in the pane's own register.
             Text {
                 anchors.centerIn: parent
                 visible: root.shown.length === 0
@@ -311,9 +312,8 @@ Item {
                 opacity: 0.4
             }
 
-            // The always box, drawn the convert popup's toggle is drawn: a 24-grid square with
-            // the check glyph inside it when it is ticked. The write it stands for is the
-            // default for the row's own type, named here by the Kind the listing shows.
+            // The always box, drawn the convert popup's toggle is drawn; the write it stands
+            // for is the default for the row's own type, named by the Kind the listing shows.
             Item {
                 id: alwaysRow
                 width: parent.width
@@ -378,18 +378,17 @@ Item {
         }
     }
 
-    // The wire's answer lands here, the same per-view reader the columns view is: the dialog asked
-    // for the list and this is the one surface that draws it. The plain list is kept as well as
-    // the filtered one, so clearing the search line puts back every row without a second ask.
+    // The wire's answer lands here, the same per-view reader the columns view is. The plain list
+    // is kept beside the filtered one, so an empty line puts every row back without a second ask.
     Connections {
         target: root.holder ? root.holder.backend : null
         function onApplications(apps) {
             root.apps = apps || []
             root.refilter()
         }
-        // The write's own terminal line. The success sentence carries the application and the Kind
-        // the dialog opened with; a refusal is an error line whose where is the request's own, so
-        // ui/js/Errors.js words it and the pane's generic error landing shows it.
+        // The write's terminal line; a refusal is an error line whose where ui/js/Errors.js
+        // words and the pane's generic landing shows. The sentence carries the Kind the dialog
+        // opened with, which is why it is written here and not in the wire's own landing.
         function onDefaulted(ok) {
             if (ok)
                 root.holder.message("The default for " + root.kind + " files changed; the next open uses the chosen application.", false)
