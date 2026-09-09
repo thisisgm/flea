@@ -19,6 +19,7 @@ function stubState(over) {
         filterQuery: "",
         filterTyping: false,
         focusView: "list",
+        renameFromPath: "",
         calls: [],
         said: [],
         backend: {
@@ -31,6 +32,7 @@ function stubState(over) {
         setCursor: function (index) { state.cursorIndex = index; state.calls.push("cursor " + index) },
         clearSelection: function () {},
         cancel: function () { state.calls.push("cancel") },
+        startRename: function () { state.calls.push("rename") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over)
@@ -95,6 +97,9 @@ function run(check) {
           unbuilt.calls.join(";"), "cancel")
     PickerMenu.route("cursorDown", unbuilt, ops, columns)
     check("and reaches the list's ops the way a key does", ops.moved.join(","), "1")
+    PickerMenu.route("rename", unbuilt, ops, columns)
+    check("Rename takes the same state route from the menu as from F2",
+          unbuilt.calls[unbuilt.calls.length - 1], "rename")
     PickerMenu.route("trash", unbuilt, ops, columns)
     check("a shared action with no verb yet still answers through the key table's line",
           unbuilt.said[unbuilt.said.length - 1], "Move to Trash is not built in the chooser yet.")

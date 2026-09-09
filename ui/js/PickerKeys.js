@@ -115,6 +115,8 @@ function act(action, state, ops) {
     case "toggleHidden": state.toggleHidden(); return
     // Ctrl+A and the menu's Select all row, ui/js/PickerOps.js selectAll through the state.
     case "selectAll": state.selectAll(); return
+    // One source path owns the async reply. A second editor cannot replace it while that write runs.
+    case "rename": if (state.renameFromPath.length === 0) state.startRename(); return
     }
     if (action in SHARED)
         state.message(SHARED[action] + " is not built in the chooser yet.", false)
@@ -144,6 +146,12 @@ function settle(state) {
 // The filter's query line owns every key while it has the caret, ui/js/Focus.js's rule, so nothing
 // below it, Escape included, sees a key until Enter or a cursor key hands the keyboard back.
 function handle(event, state, ops) {
+    // A live field owns every key. The index alone is not enough because a released delegate can
+    // leave it set with no editor able to return the keyboard to the list.
+    if (ops.renameEditor() !== null) {
+        event.accepted = true
+        return "rename"
+    }
     if (state.filterTyping) {
         if (leavesLine(event, state)) {
             Filter.commit(state)

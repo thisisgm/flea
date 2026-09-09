@@ -1,7 +1,6 @@
 .pragma library
 
 .import "Errors.js" as Errors
-.import "Nav.js" as Nav
 .import "Ops.js" as Ops
 .import "Picker.js" as Picker
 .import "PickerOps.js" as PickerOps
@@ -25,10 +24,20 @@ function trashed(state, ok, failed) {
     PickerOps.refresh(state, "")
 }
 
-// The listing is re-read with the new name under the cursor; the chooser has no pointer-committed
-// rename yet, so Nav.renameRefreshTarget always answers the path.
 function renamed(state, ok, path) {
-    PickerOps.refresh(state, Nav.renameRefreshTarget(state, path))
+    var source = state.renameFromPath
+    var listing = state.renameListingPath
+    var pointer = state.renamePointerPath
+    if (ok)
+        PickerOps.renameMark(state, source, path)
+    state.renameFromPath = ""
+    state.renameListingPath = ""
+    state.renamePointerPath = ""
+    // The reply belongs to the listing that sent it. This also names Recent, whose token is not the
+    // parent of any source row. A later navigation must not re-read its new location.
+    if (!source || listing !== state.path)
+        return
+    PickerOps.refresh(state, pointer && pointer !== source ? pointer : path)
 }
 
 // The new folder has no row until the refresh lands, so armRename opens the editor on the rows
@@ -104,6 +113,12 @@ function armRename(state) {
 // blank the listing the way they always did. The operations, new here, take ui/js/Errors.js's
 // sentences and leave the listing standing: a refused rename changes no row.
 function failed(state, where, msg) {
+    var renameListing = state.renameListingPath
+    if (where === "rename" || where === "rename-kept") {
+        state.renameFromPath = ""
+        state.renameListingPath = ""
+        state.renamePointerPath = ""
+    }
     // A refused sort changes nothing in the backend, so it changes nothing here: a plain notice.
     if (where === "sort") {
         state.message(Errors.sentence(where, msg), false)
@@ -124,7 +139,7 @@ function failed(state, where, msg) {
     }
     state.message(listing ? msg : Errors.sentence(where, msg), true)
     // The copy is whole and only the name it came from is unknown: re-read and select nothing.
-    if (where === "rename-kept") {
+    if (where === "rename-kept" && renameListing === state.path) {
         PickerOps.refresh(state, "")
     }
 }

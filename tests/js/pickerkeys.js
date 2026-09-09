@@ -14,6 +14,7 @@ function stubState(over) {
         shownTotal: 9,
         filterQuery: "",
         filterTyping: false,
+        renameFromPath: "",
         calls: [],
         said: [],
         fetcher: { cancel: function () { state.calls.push("stopFetch") } },
@@ -24,6 +25,7 @@ function stubState(over) {
         goBack: function () { state.calls.push("back") },
         toggleHidden: function () { state.calls.push("hidden") },
         selectAll: function () { state.calls.push("selectAll") },
+        startRename: function () { state.calls.push("rename") },
         message: function (text) { state.said.push(text) }
     }
     for (var key in over) {
@@ -39,6 +41,7 @@ function stubOps() {
         moved: [],
         focused: 0,
         moveCursor: function (delta) { ops.moved.push(delta) },
+        renameEditor: function () { return null },
         entry: { takeFocus: function () { ops.focused += 1 } }
     }
     return ops
@@ -134,8 +137,12 @@ function run(check) {
     PickerKeys.act("back", state, ops)
     PickerKeys.act("toggleHidden", state, ops)
     PickerKeys.act("selectAll", state, ops)
+    PickerKeys.act("rename", state, ops)
     check("the state verbs land on the state", state.calls.join(","),
-          "cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll")
+          "cancel,stopFetch,mark 4,activate 4,parent,back,hidden,selectAll,rename")
+    var pendingRename = stubState({ renameFromPath: "/d/a.txt" })
+    PickerKeys.act("rename", pendingRename, ops)
+    check("a second rename cannot replace the source of an async reply", pendingRename.calls.length, 0)
     PickerKeys.act("cursorDown", state, ops)
     PickerKeys.act("cursorUp", state, ops)
     PickerKeys.act("pageDown", state, ops)
@@ -149,12 +156,22 @@ function run(check) {
     check("and without a field it does nothing", ops.focused, 1)
     check("no verb spoke in the footer", state.said.length, 0)
 
+    // A live editor owns every key. The guard asks the drawn editor, not the state index, because a
+    // released delegate can leave no field to receive Escape or hand the keyboard back.
+    var editing = stubState()
+    var editingOps = stubOps()
+    editingOps.renameEditor = function () { return {} }
+    var swallowed = press(Qt.Key_Escape)
+    check("a live rename editor swallows Escape", PickerKeys.handle(swallowed, editing, editingOps), "rename")
+    check("the swallowed key is accepted", swallowed.accepted, true)
+    check("and no list action runs behind the editor", editing.calls.length, 0)
+
     // A shared action with no verb yet says so, so a key the sheet advertises never falls silent.
     PickerKeys.act("copy", state, ops)
     check("an unbuilt shared action says so", state.said.join(""), "Copy is not built in the chooser yet.")
     PickerKeys.act("settings", state, ops)
     check("an action outside the allowlist says nothing", state.said.length, 1)
-    check("the state is untouched by either", state.calls.length, 8)
+    check("the state is untouched by either", state.calls.length, 9)
     // The hidden toggle is built: a . reaches the state through handle and says nothing in the footer.
     var dotted = stubState()
     check("dot through handle flips hidden", PickerKeys.handle(press(Qt.Key_Period, "."), dotted, ops), "toggleHidden")
