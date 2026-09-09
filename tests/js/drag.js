@@ -1,4 +1,6 @@
 .import "../../ui/js/Drag.js" as Drag
+.import "../../ui/js/Picker.js" as Picker
+.import "../../ui/js/PickerOps.js" as PickerOps
 
 // The gesture's decisions, with the pane stubbed the way tests/js/ops.js stubs it: what a drag
 // carries, what may take it, what the row and the bar say, and the one request a drop sends.
@@ -242,4 +244,45 @@ function run(check) {
     Drag.dropInto(pane(fromOtherFlea, [], rows), "some-other-flea\n0\nmove\n/x\n56", ["file:///x/a.txt"], "/d/omarchy", 56)
     check("a drop from another Flea window copies, like any other foreign source",
           fromOtherFlea.length === 1 ? fromOtherFlea[0].op : "nothing sent", "copy")
+
+    // The chooser's drag out, against ui/PickerState.qml's pane surface: marks are paths, and
+    // ui/js/PickerOps.js turns them into the listing indices carried reads. The window holds three
+    // rows from listing index 2; ui/PickerList.qml lifts with copy, the one action it advertises.
+    var heldRows = [{ n: "sub", d: true, s: 0 }, { n: "a.txt", d: false, s: 1 }, { n: "b.txt", d: false, s: 2 }]
+    var chooser = {
+        path: "/pick", held: 2, rows: heldRows,
+        marks: [{ path: "/pick/a.txt", bytes: 1 }, { path: "/pick/b.txt", bytes: 2 }],
+        backend: { dirDev: 9 },
+        rowFor: function (i) { return (i - 2 < 0 || i - 2 >= heldRows.length) ? null : heldRows[i - 2] },
+        join: function (base, name) { return Picker.rowPath(base, name) },
+        selectedIndices: function () { return PickerOps.indicesFor(chooser) }
+    }
+    check("a lift on a marked row carries every mark the window holds", String(Drag.carried(chooser, 3)), "3,4")
+    check("a lift on an unmarked row carries that row alone", String(Drag.carried(chooser, 2)), "2")
+    var out = Drag.mimeFor(chooser, Drag.carried(chooser, 3), true)
+    check("the chooser's marker names this instance", Drag.isOwnDrag(out[Drag.ROWS_MIME]), true)
+    check("and the directory the rows were lifted from", Drag.markerSource(out[Drag.ROWS_MIME]), "/pick")
+    check("and that directory's filesystem", Drag.markerDev(out[Drag.ROWS_MIME]), 9)
+    check("a drag out is baked as a copy", Drag.markerCopying(out[Drag.ROWS_MIME]), true)
+    check("every carried row resolved, so the uri-list is on the wire",
+          out["text/uri-list"], "file:///pick/a.txt\r\nfile:///pick/b.txt\r\n")
+    check("with the plain paths beside it", out["text/plain"], "/pick/a.txt\n/pick/b.txt")
+    check("and the footer says a copy with no ctrl hint and no limit",
+          Drag.line(2, "", true) + Drag.reachNote(out.hasOwnProperty("text/uri-list")), "Copy 2 items to a folder")
+    var past = Drag.mimeFor(chooser, [3, 4, 7], true)
+    check("a carried row past the held window drops the uri-list", past.hasOwnProperty("text/uri-list"), false)
+    check("and the plain text with it", past.hasOwnProperty("text/plain"), false)
+    check("while the marker still carries the whole selection", past[Drag.ROWS_MIME].split("\n")[1], "3,4,7")
+    check("and the footer says the drag cannot leave",
+          Drag.line(3, "", true) + Drag.reachNote(past.hasOwnProperty("text/uri-list")),
+          "Copy 3 items to a folder · too wide to drag out")
+    // In Recent a row is named by its path under "/", so join answers that path and never the token.
+    var recentRows = [{ n: "home/y/notes.md", d: false, s: 5 }]
+    var recent = {
+        path: Picker.RECENT, held: 0, rows: recentRows, marks: [], backend: { dirDev: 0 },
+        rowFor: function (i) { return i === 0 ? recentRows[0] : null },
+        join: function (base, name) { return Picker.rowPath(base, name) },
+        selectedIndices: function () { return [] }
+    }
+    check("a Recent row is carried by its own path", Drag.mimeFor(recent, [0], true)["text/plain"], "/home/y/notes.md")
 }

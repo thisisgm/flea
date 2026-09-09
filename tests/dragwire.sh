@@ -18,19 +18,21 @@ code_of() { sed -e 's://.*::' "$1"; }
 # Sample input, ui/List.qml: '            Drag.supportedActions: Qt.CopyAction'
 advertised=$(for f in ui/*.qml; do code_of "$f" | grep -H --label="$f" -n 'Drag\.supportedActions'; done)
 
-count=$(printf '%s' "$advertised" | grep -c . )
-if [ "$count" -eq 1 ]; then
-    ok "exactly one view advertises a drag: $(printf '%s' "$advertised" | cut -d: -f1)"
+# Two views lift a row: the window's list and the picker's, each on a ghost of the same shape.
+views=$(printf '%s\n' "$advertised" | cut -d: -f1 | sort | tr '\n' ' ')
+if [ "$views" = "ui/List.qml ui/PickerList.qml " ]; then
+    ok "exactly the two views advertise a drag: $views"
 else
-    bad "expected exactly 1 Drag.supportedActions in ui/, found $count"
+    bad "expected Drag.supportedActions in ui/List.qml and ui/PickerList.qml only, found: $views"
     printf '%s\n' "$advertised" | sed 's/^/     /'
 fi
 
 # Qt hands effectAllowed straight from this, so anything but Copy alone tells the receiver it may move.
-if printf '%s' "$advertised" | grep -q 'Drag\.supportedActions:[[:space:]]*Qt\.CopyAction[[:space:]]*$'; then
-    ok "the advertised action is Qt.CopyAction alone"
+wider=$(printf '%s\n' "$advertised" | grep -v 'Drag\.supportedActions:[[:space:]]*Qt\.CopyAction[[:space:]]*$')
+if [ -z "$wider" ]; then
+    ok "every advertised action is Qt.CopyAction alone"
 else
-    bad "Drag.supportedActions must be exactly Qt.CopyAction, got: $(printf '%s' "$advertised" | cut -d: -f3-)"
+    bad "Drag.supportedActions must be exactly Qt.CopyAction, got: $(printf '%s' "$wider" | cut -d: -f3-)"
 fi
 
 # Move ranks above Copy, so Chromium prefers it the moment it is offered.
