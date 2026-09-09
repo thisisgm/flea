@@ -810,8 +810,14 @@ no config home) once at start, blocking like `ui/ViewState.qml` so the first fra
 hidden the caller did not ask to hide. `ui/js/PickerFilters.js` is the parser, a line scanner in
 the spirit of `ui/js/Palette.js` and not a TOML reader: `globs` is required and a table without one
 is skipped, `name` and `mimes` are optional, and a table without a name is labelled by extension the
-Windows way, `.jpg (.jpg, .jpeg)`. Nothing ships a default file, because a default pill is a filter
-the user never wrote. The example every reader should be able to write from:
+Windows way, `.jpg (.jpg, .jpeg)`. A filter's globs match a row's name and its mime rules match the
+row's icon class, ANDed, so a filter carrying both narrows to the intersection. A row carries the
+freedesktop icon name and never its MIME type, so a class rule like `image/*` matches an
+`image-x-generic` row, `*/*` matches every file, and an exact subtype like `image/jpeg` matches
+nothing: no row can confirm it, and only an optional per-row mime field computed in
+`src/backend/rows.rs` could, at a per-row wire cost the hot path refuses. A directory stands under
+every filter. Nothing ships a default file, because a default pill is a filter the user never
+wrote. The example every reader should be able to write from:
 
 ```toml
 [[filter]]

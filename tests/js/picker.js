@@ -75,24 +75,34 @@ function run(check) {
     check("neither app nor config filters is no chip row", Picker.chips(Picker.request("{}"), []).length, 0)
     check("no config at all reads as none", Picker.chips(Picker.request("{}"), undefined).length, 0)
 
+    // A filter takes the whole row: globs read its name and mime rules its icon name.
+    function file(name, icon) { return { n: name, d: false, i: icon || "text-x-generic" } }
     var images = req.filters[0]
-    check("a glob matches", Picker.matchesFilter("shot.png", images), true)
-    check("a glob matches whatever the case is", Picker.matchesFilter("SHOT.PNG", images), true)
-    check("a name outside the globs does not match", Picker.matchesFilter("notes.md", images), false)
-    check("a two part suffix matches", Picker.matchesFilter("x.tar.gz", { globs: ["*.tar.gz"] }), true)
+    check("a glob matches", Picker.matchesFilter(file("shot.png", "image-x-generic"), images), true)
+    check("a glob matches whatever the case is", Picker.matchesFilter(file("SHOT.PNG", "image-x-generic"), images), true)
+    check("a name outside the globs does not match", Picker.matchesFilter(file("notes.md"), images), false)
+    check("a two part suffix matches", Picker.matchesFilter(file("x.tar.gz"), { globs: ["*.tar.gz"] }), true)
     // The glob is the caller's, so its punctuation is escaped rather than compiled into a class.
-    check("a bracket in a glob is literal", Picker.matchesFilter("a[b].png", { globs: ["a[b].png"] }), true)
-    check("a bracket glob does not become a character class", Picker.matchesFilter("ab.png", { globs: ["a[b].png"] }), false)
-    check("a dot is not any character", Picker.matchesFilter("axpng", { globs: ["*.png"] }), false)
-    check("a question mark is one character", Picker.matchesFilter("ab.png", { globs: ["a?.png"] }), true)
-    // A listing row knows an icon name and not a mime type, so a mime-only filter narrows nothing.
-    check("a filter with only mime rules narrows nothing", Picker.matchesFilter("notes.md", req.filters[1]), true)
+    check("a bracket in a glob is literal", Picker.matchesFilter(file("a[b].png"), { globs: ["a[b].png"] }), true)
+    check("a bracket glob does not become a character class", Picker.matchesFilter(file("ab.png"), { globs: ["a[b].png"] }), false)
+    check("a dot is not any character", Picker.matchesFilter(file("axpng"), { globs: ["*.png"] }), false)
+    check("a question mark is one character", Picker.matchesFilter(file("ab.png"), { globs: ["a?.png"] }), true)
+    // Mime rules narrow by the class the icon name confirms; an exact subtype no row can confirm
+    // is unmatched, so the caller's text/plain rule lets no file through.
+    check("a class rule matches an image row", Picker.matchesFilter(file("shot.png", "image-x-generic"), { globs: [], mimes: ["image/*"] }), true)
+    check("a class rule does not match a text row", Picker.matchesFilter(file("notes.md"), { globs: [], mimes: ["image/*"] }), false)
+    check("an exact subtype rule does not falsely match", Picker.matchesFilter(file("notes.txt"), req.filters[1]), false)
+    check("globs plus mimes narrow to the intersection", Picker.matchesFilter(file("shot.png"), { globs: ["*.png"], mimes: ["image/*"] }), false)
+    check("a directory stands under every filter", Picker.matchesFilter({ n: "sub", d: true, i: "folder" }, req.filters[1]), true)
 
-    var rows = [{ n: "sub", d: true, s: 0 }, { n: "a.png", d: false, s: 10 }, { n: "b.md", d: false, s: 20 }]
+    var rows = [{ n: "sub", d: true, s: 0, i: "folder" }, { n: "a.png", d: false, s: 10, i: "image-x-generic" },
+                { n: "b.md", d: false, s: 20, i: "text-x-generic" }, { n: "c.png", d: false, s: 30, i: "text-x-generic" }]
     check("no chip narrows nothing at all", Picker.shownRows(rows, 0, null), null)
     var shown = Picker.shownRows(rows, 4, images)
-    check("the held offset is what the listing rows are numbered from", shown.join(","), "4,5")
+    check("the held offset is what the listing rows are numbered from", shown.join(","), "4,5,7")
     check("a directory always stands, so the way out is never hidden", shown[0], 4)
+    check("a mime-only chip keeps the directory and the rows of its class", Picker.shownRows(rows, 0, { globs: [], mimes: ["image/*"] }).join(","), "0,1")
+    check("both legs keep only the rows both confirm", Picker.shownRows(rows, 0, { globs: ["*.png"], mimes: ["image/*"] }).join(","), "0,1")
 
     // The save name is a client string, and the answer it builds must stay inside the folder the
     // user was shown. Same cases as src/backend/ops.rs's own valid_name test, so a drift shows here.

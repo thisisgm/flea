@@ -152,18 +152,11 @@ function currentChip(req) {
     return 0
 }
 
-// A filter narrows what is easy to find; it never rejects. A filter carrying only mime rules cannot
-// be answered by a listing row, which knows an icon name and not a mime type, so it narrows nothing.
-function matchesFilter(name, filter) {
-    if (!filter || !Array.isArray(filter.globs) || filter.globs.length === 0) {
-        return true
-    }
-    for (var i = 0; i < filter.globs.length; i++) {
-        if (Filters.globToRegExp(String(filter.globs[i])).test(name)) {
-            return true
-        }
-    }
-    return false
+// A filter narrows what is easy to find; it never rejects. Globs match the row's name and mime
+// rules its icon class, both legs ANDed, so a filter carrying both narrows to the intersection.
+// ui/js/PickerFilters.js matchesRow holds the rules and says what an icon name can confirm.
+function matchesFilter(row, filter) {
+    return Filters.matchesRow(row, filter)
 }
 
 // The listing rows a chip leaves standing, in the backend's own order, or null when nothing is
@@ -175,7 +168,7 @@ function shownRows(rows, held, filter) {
     }
     var out = []
     for (var i = 0; i < rows.length; i++) {
-        if (rows[i].d === true || matchesFilter(rows[i].n, filter)) {
+        if (rows[i].d === true || matchesFilter(rows[i], filter)) {
             out.push(held + i)
         }
     }
