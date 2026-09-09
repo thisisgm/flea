@@ -29,7 +29,10 @@ function runInventory(check) {
             showHidden: false, hasRow: true, dropboxPath: "/home/jw/Dropbox",
             taildropPeers: [{ id: "x", label: "Box" }], archiveFormats: ["zip"], canConvert: true,
             rowInDropbox: shapes[s].rowInDropbox, rowIsArchive: shapes[s].rowIsArchive,
-            rowIsImage: shapes[s].rowIsImage, hiddenActions: []
+            rowIsImage: shapes[s].rowIsImage, hiddenActions: [],
+            // The Open With row is in only when a row's applications are, which is what the menu
+            // draws and what the panel's own row is checked against.
+            openWithApps: [{ name: "Image Viewer", path: "/usr/share/applications/org.gnome.eog.desktop" }]
         })
         for (var i = 0; i < rows.length; i++) {
             if (rows[i].separator === true)
@@ -169,7 +172,7 @@ function runRows(check) {
           find(menus, "paste").on, false)
     check("and an enabled one is checked", find(menus, "copy").on, true)
     check("every toggleable action the listing menu can build has a row, plus the hints row",
-          menus.filter(function (r) { return r.kind === "check" }).length, 15)
+          menus.filter(function (r) { return r.kind === "check" }).length, 16)
     // The one check that is not a menu action: it says how every row is drawn, not whether it is.
     check("the hints row is a check of its own, off until it is switched on",
           find(menus, "keyHints").label + "|" + find(menus, "keyHints").on,

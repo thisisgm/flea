@@ -16,7 +16,6 @@ Item {
     property bool opened: false
     // Driven from ui/Pane.qml's own state, so this file owns no hidden-file logic itself.
     property bool showHidden: false
-    // The application name ui/Opener.qml resolved for the cursor row, shown muted beside "Open".
     // [{id, label}], the reachable Taildrop targets; empty self-hides the whole row, see ui/Taildrop.qml.
     property var taildropPeers: []
     // The archive formats this box actually probed, and whether a converter is installed at all.
@@ -27,6 +26,10 @@ Item {
     property bool rowIsImage: false
     // Empty until the stock Dropbox service is installed and authenticated, which is what gates the row.
     property string dropboxPath: ""
+    // The applications the backend registered for the cursor row's type, one fetch behind the
+    // cursor; empty until that answer lands, which is also the no-applications state. ui/js/Menu.js
+    // puts its row under Open, because both answer what opens the file under the cursor.
+    property var openWithApps: []
     // True when the cursor row already lives under ~/Dropbox, where a share link is the useful action.
     property bool rowInDropbox: false
     // False on a listing's empty space, where Menus.html's background column is what opens instead.
@@ -98,6 +101,7 @@ Item {
             rowIsArchive: root.rowIsArchive,
             rowIsImage: root.rowIsImage,
             canConvert: root.canConvert,
+            openWithApps: root.openWithApps,
             // The Menus settings section's stored set; ui/js/Menu.js applyHidden is what reads it.
             hiddenActions: ViewState.menuHidden
         })

@@ -29,6 +29,9 @@ pub enum Request {
     Paths { rows: Vec<usize> },
     // The preview column's own extras for one row: pixels, line count, symlink target.
     Meta { row: usize, text: bool, media: bool, archive: bool },
+    // The applications one row can be opened with, for the context menu's Open With; one row, only
+    // when a client asked, the same no-sweep rule meta follows.
+    Handlers { row: usize },
     // The status bar's filesystem line for the directory the pane is on.
     FsInfo,
     // A read-only look at a directory that is not the current listing; the columns view's ancestors.
@@ -120,6 +123,7 @@ pub fn parse_request(line: &str) -> Request {
             media: field_bool(line, "media"),
             archive: field_bool(line, "archive"),
         },
+        Some("handlers") => Request::Handlers { row: field_usize(line, "row").unwrap_or(0) },
         Some("quit") => Request::Quit,
         _ => Request::Unknown,
     }
@@ -132,27 +136,9 @@ pub fn listed_line(n: usize, read_ms: f64, sort_ms: f64, dev: u64) -> String {
     )
 }
 
-// The streaming progress of a search: its own type rather than a listed line, because a mid-walk update is not a fresh listing and carries no read or sort timing.
-pub fn searching_line(n: usize, scanned: usize, ms: f64) -> String {
-    format!(r#"{{"t":"searching","n":{},"scanned":{},"ms":{:.3}}}"#, n, scanned, ms)
-}
-
-// The terminal line of a search: cancelled is true when the client stopped the walk or a new listing replaced it.
-pub fn searched_line(n: usize, scanned: usize, ms: f64, cancelled: bool) -> String {
-    format!(
-        r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":{}}}"#,
-        n, scanned, ms, cancelled
-    )
-}
-
 // The file is empty rather than absent on failure, so a client never waits forever for a row that will not arrive.
 pub fn thumbed_line(row: usize, file: &str, ms: f64) -> String {
     format!(r#"{{"t":"thumbed","row":{},"file":"{}","ms":{:.3}}}"#, row, escape(file), ms)
-}
-
-// partial is true when the 2000 ms deadline cut the walk short, see docs/protocol.md "dirsized".
-pub fn dirsized_line(row: usize, bytes: u64, partial: bool, ms: f64) -> String {
-    format!(r#"{{"t":"dirsized","row":{},"bytes":{},"partial":{},"ms":{:.3}}}"#, row, bytes, partial, ms)
 }
 
 // Sample output: {"t":"paths","paths":["/home/gm/a.txt","/home/gm/b.txt"]}
@@ -352,19 +338,6 @@ mod tests {
         );
         // The empty file is the whole failure form on this wire, so a client never waits forever.
         assert_eq!(thumbed_line(0, "", 0.0), r#"{"t":"thumbed","row":0,"file":"","ms":0.000}"#);
-    }
-
-    #[test]
-    fn emits_a_dirsized_line_complete_and_partial() {
-        assert_eq!(
-            dirsized_line(4, 1048576, false, 12.5),
-            r#"{"t":"dirsized","row":4,"bytes":1048576,"partial":false,"ms":12.500}"#
-        );
-        // partial:true is a floor, not a wrong exact number; the cell renders it with a leading ">".
-        assert_eq!(
-            dirsized_line(9, 200, true, 2000.0),
-            r#"{"t":"dirsized","row":9,"bytes":200,"partial":true,"ms":2000.000}"#
-        );
     }
 
     #[test]

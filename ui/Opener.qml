@@ -12,6 +12,10 @@ Item {
     // Raised where the two single-flight guards below drop a request, so a swallowed press says so.
     signal busy(string path)
     signal terminalBusy(string path)
+    // The Open With handoff's own pair, kept apart from open()'s for the same reason the terminal's
+    // is: three launches on one Process would hand whichever started second the first one's exit.
+    signal openWithFailed(string path)
+    signal openWithBusy(string path)
 
     // The status src/open.rs returns for a directory, which the caller navigates to instead.
     readonly property int isDirectoryStatus: 3
@@ -21,6 +25,8 @@ Item {
     // Processes guarded only against themselves, so sharing current let whichever
     // started second rewrite the path the first one's onExited still reports.
     property string terminalCurrent: ""
+    // The same rule for Open With: its own path, its own Process, its own guard.
+    property string openWithCurrent: ""
 
     // flea --open waits for gio open and not for the application it starts, and that wait is 11 to 15 ms
     // for an Exec= handler but 0.32 to 0.75 s for a DBusActivatable one, which is what this box's
@@ -61,6 +67,30 @@ Item {
         root.terminalCurrent = path
         terminalChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--terminal", path]
         terminalChild.running = true
+    }
+
+    // Issue 52's one-off override: flea --openwith runs gio launch on the desktop entry the
+    // flyout named and writes no default anywhere. Its own Process and guard, for the same reason
+    // the terminal's is its own.
+    function openWith(path, desktop) {
+        if (openWithChild.running) {
+            root.openWithBusy(path)
+            return
+        }
+        root.openWithCurrent = path
+        openWithChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--openwith", path, desktop]
+        openWithChild.running = true
+    }
+
+    Process {
+        id: openWithChild
+
+        onExited: function (exitCode, exitStatus) {
+            if (exitCode === 0) {
+                return
+            }
+            root.openWithFailed(root.openWithCurrent)
+        }
     }
 
     Process {

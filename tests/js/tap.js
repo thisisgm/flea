@@ -22,6 +22,9 @@ function pane() {
         selectedIndices: function () { return this.picked },
         clearSelection: function () { this.picked = []; this.did.push("clearSelection") },
         setCursor: function (i) { this.cursor = i; this.did.push("setCursor") },
+        // ui/js/OpenWith.js ask() writes its own slot off the pane, so the fake carries the two
+        // reads it makes: the cursor row it judges, and the state it would clear or ask through.
+        cursorRow: null, openWithRow: -1, openWithApps: [], backend: { askHandlers: function () {} },
         toggleSelectAt: function (i) { this.cursor = i; this.did.push("toggleSelect") },
         extendSelectionTo: function (i) { this.cursor = i; this.did.push("extendSelect") },
         act: function (action) { this.did.push(action) }

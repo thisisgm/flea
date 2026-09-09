@@ -1453,6 +1453,39 @@ menucase_compress() {
   changed_from "the row count" "$before" "$after"
 }
 
+# The flyout's rows are the desktop's own registered applications, so this case asserts the row, the
+# wait it is honestly owed (the answer is a subprocess away from the menu opening) and the flyout
+# opening with something in it. The choice itself is not this battery's to fire: it launches a real
+# application outside any sandbox this tool holds, and tests/ui.sh case_openwith drives it against a
+# stub instead, which is why the case closes the flyout and the menu rather than choosing.
+menucase_openwith() {
+  local apps attempt
+  reset_state || return 1
+  seek_row_named a-note.txt || return 1
+  mapfile -t menuc < <(first_chord menu)
+  k "${menuc[@]}"; settle
+  [ "$(ipc contextMenuVisible)" = true ] || { WHY="the menu did not open on a-note.txt"; return 1; }
+  for attempt in $(seq 1 40); do
+    [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] && break
+    sleep 0.05
+  done
+  case "$(ipc contextMenuEntries)" in
+    *"Open with"*) ;;
+    *) WHY="the box's registry named no application for text/plain, so the row is not offered"
+       return 2 ;;
+  esac
+  menu_seek_label "[Open with]" >/dev/null || return 1
+  menu_activate; settle
+  apps=$(ipc contextMenuSubmenuEntries)
+  [ -n "$apps" ] || { WHY="the flyout opened empty"; return 1; }
+  printf 'CAPTURED the Open with flyout: %s\n' "$apps"
+  mapfile -t esc < <(chord_args code Escape)
+  k "${esc[@]}"; settle
+  [ -z "$(ipc contextMenuSubmenuEntries)" ] || { WHY="escape did not close the flyout"; return 1; }
+  k "${esc[@]}"; settle
+  [ "$(ipc contextMenuVisible)" = false ] || { WHY="escape did not close the menu"; return 1; }
+}
+
 drive_menu_action() {
   local action=$1 rc
   case $action in

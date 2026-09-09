@@ -72,9 +72,26 @@ function runMenu(check) {
     var full = Menu.listingEntries({
         showHidden: false, hasRow: true, rowInDropbox: false,
         dropboxPath: "/home/jw/Dropbox", taildropPeers: [{ id: "x", label: "Box" }],
-        archiveFormats: ["zip"], rowIsArchive: false, rowIsImage: false, canConvert: true
+        archiveFormats: ["zip"], rowIsArchive: false, rowIsImage: false, canConvert: true,
+        openWithApps: [{ name: "Image Viewer", path: "/usr/share/applications/org.gnome.eog.desktop" }]
     })
     check("the listing menu opens with the row's own Open", full[0].label, "Open")
+    // Issue 52: the row sits directly under Open, because both answer what opens the file under the
+    // cursor; empty apps leave it out, which is the pending state as much as the no-applications one.
+    check("Open With sits under Open when the row's applications are in",
+          full[1].label + "|" + Menu.hasSubmenu(full[1]), "Open with|true")
+    check("and its flyout carries one entry per application, the path as the id and the Name as the label",
+          Menu.openWithEntries([{ name: "Image Viewer", path: "/usr/share/applications/org.gnome.eog.desktop" },
+                                { name: "say \"hi\"", path: "/tmp/say \"hi\".desktop" }])
+              .map(function (e) { return e.id + "=" + e.label }).join("|"),
+          "/usr/share/applications/org.gnome.eog.desktop=Image Viewer|/tmp/say \"hi\".desktop=say \"hi\"")
+    check("the row leaves with the applications, which is the pending state too",
+          Menu.listingEntries({ showHidden: false, hasRow: true, rowInDropbox: false,
+                                dropboxPath: "", taildropPeers: [], archiveFormats: [],
+                                rowIsArchive: false, rowIsImage: false, canConvert: true,
+                                openWithApps: [] })[1].label, "Copy path")
+    check("the flyout takes the app-window mark, and the row its own",
+          Menu.submenuGlyph("openwith") + "|" + findEntry(full, "openwith").glyph, "app-window|app-window")
     check("Copy path sits beside Open", findEntry(full, "copypath").label, "Copy path")
     // SettingsMenus.html's six basic rows, in its own order. Cut, Copy and Paste were keyboard-only
     // until the Menus section grew a switch for each, and a switch over a row no menu draws is a mock.
@@ -146,8 +163,10 @@ function runBackground(check) {
                                      hiddenActions: hiddenActions })
     }
     // src/uischema.rs ships Open in terminal switched off, which is the state the board draws.
+    // openwith left the shipped set when issue 52 built its row, so the shipped background menu is
+    // the board's column without it.
     check("the background menu at the shipped defaults is the board's own column",
-          labels(background(["delete", "openwith", "openTerminal", "moveto", "copyto",
+          labels(background(["delete", "openTerminal", "moveto", "copyto",
                              "properties", "permissions", "copypath"])),
           "New folder|-|Paste|Select all|-|Sort by|Show hidden files|-|Settings")
     check("and switching Open in terminal on puts it back beside the hidden toggle",
@@ -185,6 +204,7 @@ function runHidden(check, full) {
             showHidden: false, hasRow: true, rowInDropbox: false,
             dropboxPath: "/home/jw/Dropbox", taildropPeers: [{ id: "x", label: "Box" }],
             archiveFormats: ["zip"], rowIsArchive: false, rowIsImage: false, canConvert: true,
+            openWithApps: [{ name: "Image Viewer", path: "/usr/share/applications/org.gnome.eog.desktop" }],
             hiddenActions: hiddenActions
         }))
     }
@@ -192,16 +212,16 @@ function runHidden(check, full) {
     check("an undefined set is the same as an empty one", menu(undefined), labels(full))
     check("one hidden action loses its row and nothing else",
           menu(["paste"]),
-          "Open|Copy path|-|Cut|Copy|Duplicate|Rename|-|Compress|-|Send with Taildrop|"
+          "Open|Open with|Copy path|-|Cut|Copy|Duplicate|Rename|-|Compress|-|Send with Taildrop|"
           + "Move to Dropbox|-|Move to Trash|-|Open in terminal|New folder|Show hidden files")
     // A group that loses every member loses its separator too, which is the board's own rule and
     // the reason the answer below has three rules and not six.
     check("a group emptied by the settings takes its rule with it",
           menu(["cut", "copy", "paste", "duplicate", "rename", "trash", "copypath"]),
-          "Open|-|Compress|-|Send with Taildrop|Move to Dropbox|-|Open in terminal|New folder|Show hidden files")
+          "Open|Open with|-|Compress|-|Send with Taildrop|Move to Dropbox|-|Open in terminal|New folder|Show hidden files")
     check("hiding everything hideable still leaves the two locked rows and New folder",
           menu(["cut", "copy", "paste", "duplicate", "rename", "trash", "copypath", "openTerminal",
-                "compress", "taildrop", "dropbox", "open", "toggleHidden"]),
+                "compress", "taildrop", "dropbox", "openwith", "open", "toggleHidden"]),
           "Open|-|New folder|Show hidden files")
     // The shipped set named this row "terminal" while the menu built it as "openTerminal", so the
     // switch missed it and every menu drew it. The id the panel stores is the action id, as it is

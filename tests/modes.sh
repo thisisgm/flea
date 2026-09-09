@@ -379,6 +379,120 @@ check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP
 check "and the opened program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"
 sandbox_remove "$D"
 
+# --openwith resolves the target the same way --open does, refuses a directory, and hands the file
+# to gio launch beside the desktop entry the Open with menu named. One-off by construction: the
+# launch writes no default anywhere, which is what makes it an override rather than a setting; see
+# AGENTS.md "Opening a file". Every guard --open carries is pinned here again, because the mode is
+# a second copy of the spawn, not a parameter of it.
+D="$FIXTURE_ROOT/flea-openwith-test-$$"
+sandbox_make "$D"
+mkdir -p "$D/dir" "$D/bin" "$D/failbin" "$D/lingerbin"
+printf 'hello' > "$D/file.txt"
+ln -s "$D/file.txt" "$D/linkfile"
+ln -s "$D/dir" "$D/linkdir"
+ln -s "$D/nowhere" "$D/broken"
+printf 'hello' > "$D/-dash.txt"
+newline_name=$(printf 'two\nlines.txt')
+printf 'hello' > "$D/$newline_name"
+# The desktop entry arg, which stands in for a path the backend resolved out of the applications
+# dirs: absolute, real, and inside the sandbox it is.
+printf '[Desktop Entry]\nType=Application\nName=Stub\nExec=true %%f\n' > "$D/stub.desktop"
+opened="$D/opened.log"
+last_arg="$D/last-arg"
+# Sample input: gio launch <desktop entry> <file>, three arguments in that order.
+{
+  printf '#!/bin/sh\n'
+  printf 'printf "FD1 %%s\\n" "$(readlink /proc/$$/fd/1)" >> %q\n' "$opened"
+  printf 'exec >> %q 2>&1\n' "$opened"
+  printf 'printf "PID %%s\\n" "$$"\n'
+  printf 'printf "NARGS %%s\\n" "$#"\n'
+  printf 'printf "ARGV %%s\\n" "$*"\n'
+  printf 'shift $(($# - 1)); printf "%%s" "$1" > %q\n' "$last_arg"
+  printf 'P=$(cut -d" " -f5 /proc/self/stat)\n'
+  printf '[ "$$" = "$P" ] && printf "PGID MATCH\\n" || printf "PGID MISMATCH\\n"\n'
+  printf 'grep -i "^THP_enabled" /proc/self/status\n'
+} > "$D/bin/$open_handoff"
+chmod +x "$D/bin/$open_handoff"
+printf '#!/bin/sh\nexit 3\n' > "$D/failbin/$open_handoff"
+chmod +x "$D/failbin/$open_handoff"
+
+: > "$opened"
+PATH="$D/bin:/usr/bin:/bin" $BIN --openwith "$D/file.txt" "$D/stub.desktop" 2>&1 | cat >/dev/null
+wait_for_line "$opened" '^THP_enabled'
+out=$(cat "$opened")
+check "--openwith hands the file and the entry to gio launch" "1" \
+  "$(echo "$out" | grep -c "^ARGV launch $D/stub.desktop $D/file.txt$")"
+check "and gio is given the subcommand and two paths and nothing else" "1" "$(echo "$out" | grep -c '^NARGS 3$')"
+check "the launched handoff got no inherited pipe" "1" "$(echo "$out" | grep -c '^FD1 /dev/null$')"
+check "and leads its own process group" "1" "$(echo "$out" | grep -c '^PGID MATCH')"
+# Nothing disabled huge pages in this process, so 1 is the untouched state, as for plain --open.
+check "a plain --openwith leaves huge pages on" "1" "$(echo "$out" | grep -c '^THP_enabled:[[:space:]]*1')"
+launcher_pid=$(echo "$out" | sed -n 's/^PID //p' | head -1)
+check "the launcher reported a pid at all" "1" "$([ -n "$launcher_pid" ] && echo 1 || echo 0)"
+check "and left no launcher behind" "1" "$([ -n "$launcher_pid" ] && ! kill -0 "$launcher_pid" 2>/dev/null && echo 1 || echo 0)"
+
+: > "$opened"
+PATH="$D/bin:/usr/bin:/bin" $BIN --openwith "$D/linkfile" "$D/stub.desktop" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
+check "a symlink to a file is resolved to its target" "1" "$(grep -c "^ARGV launch $D/stub.desktop $D/file.txt$" "$opened")"
+
+: > "$opened"; : > "$last_arg"
+PATH="$D/bin:/usr/bin:/bin" $BIN --openwith "$D/-dash.txt" "$D/stub.desktop" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
+check "a name starting with a dash is handed over absolute, so it is never read as a flag" \
+  "$D/-dash.txt" "$(cat "$last_arg")"
+: > "$opened"; : > "$last_arg"
+PATH="$D/bin:/usr/bin:/bin" $BIN --openwith "$D/$newline_name" "$D/stub.desktop" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
+check "a name with a newline in it arrives whole and unsplit" \
+  "$D/$newline_name" "$(cat "$last_arg")"
+
+PATH="$D/bin:/usr/bin:/bin" $BIN --openwith "$D/dir" "$D/stub.desktop" >/dev/null 2>&1
+check "a directory is refused with its own status" "3" "$?"
+PATH="$D/bin:/usr/bin:/bin" $BIN --openwith "$D/linkdir" "$D/stub.desktop" >/dev/null 2>&1
+check "and so is a symlink to one" "3" "$?"
+
+out=$(PATH="$D/bin:/usr/bin:/bin" $BIN --openwith "$D/broken" "$D/stub.desktop" 2>&1)
+rc=$?
+check "a broken symlink is an error status" "2" "$rc"
+check "and one sentence naming the file" "1" "$(echo "$out" | grep -c 'could not be opened')"
+
+# The menu only ever names entries the backend resolved to absolute paths, so a relative one here
+# is a client bug rather than a path to resolve: gio would read it against a cwd no caller knows.
+out=$(PATH="$D/bin:/usr/bin:/bin" $BIN --openwith "$D/file.txt" stub.desktop 2>&1)
+rc=$?
+check "a relative desktop entry path is refused" "2" "$rc"
+check "and the sentence names the absolute rule" "1" "$(echo "$out" | grep -c 'must be named by an absolute desktop entry path')"
+
+out=$(env PATH=/nonexistent-flea-test-path $BIN --openwith "$D/file.txt" "$D/stub.desktop" 2>&1)
+rc=$?
+check "a missing gio is an error status" "2" "$rc"
+check "and that sentence names the handoff" "1" "$(echo "$out" | grep -c 'nothing on this system could be asked')"
+
+# The launcher's own refusal: gio launch refuses a desktop entry it cannot load or a program it
+# cannot start, and the mode reports that instead of a green handoff.
+out=$(env PATH="$D/failbin:/usr/bin:/bin" $BIN --openwith "$D/file.txt" "$D/stub.desktop" 2>&1)
+rc=$?
+check "a launch that refuses is an error status, not a green handoff" "2" "$rc"
+check "and its refusal names gio launch" "1" "$(echo "$out" | grep -c 'gio launch refused')"
+
+out=$($BIN --openwith "$D/file.txt" 2>&1 </dev/null)
+check "--openwith with one argument is a usage error" "1" "$(echo "$out" | grep -c -- '--openwith')"
+
+# The paired case, the same shape --open's is: the stub qs inherits huge pages off from the
+# launcher, and --openwith hands them back before it spawns, because a program launched from Flea
+# must not spend its whole life in a system-wide setting Flea changed.
+: > "$last_arg"
+printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nexec %s --openwith %s %s\n' \
+  "$PWD/$BIN" "$D/file.txt" "$D/stub.desktop" > "$D/bin/qs"
+chmod +x "$D/bin/qs"
+: > "$opened"
+out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+wait_for_line "$opened" '^THP_enabled'
+check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP_enabled:[[:space:]]*0')"
+check "and the launched application got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"
+sandbox_remove "$D"
+
 # --terminal resolves the directory, refuses anything that is not one, and hands the canonical path
 # to xdg-terminal-exec as one --dir= argument. src/terminal.rs is its own copy of the stdio, process
 # group and huge page guards --open carries, so each one is pinned here rather than assumed to have

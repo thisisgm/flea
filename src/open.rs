@@ -1,6 +1,6 @@
 use crate::thp;
 use std::os::unix::process::CommandExt;
-use std::path::PathBuf;
+use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
 // The exit statuses ui/Opener.qml reads. 0 is a successful handoff and needs no name.
@@ -43,6 +43,49 @@ pub fn open(path: &str) -> i32 {
         // A launcher that refused, which a spawn nobody waited on used to report as a clean handoff.
         Ok(_) => {
             eprintln!("flea: gio open refused that file, so no application on this system took it");
+            FAILED
+        }
+        Err(_) => {
+            eprintln!("flea: nothing on this system could be asked to open that file");
+            FAILED
+        }
+    }
+}
+
+// The Open With handoff: gio launch runs the desktop entry the context menu named, once, and writes
+// no default anywhere; the operator picks an app and the desktop's own registry is untouched.
+pub fn open_with(path: &str, desktop: &str) -> i32 {
+    let target = match resolved(path) {
+        Some(p) => p,
+        None => {
+            eprintln!("flea: that file could not be opened, check that it still exists");
+            return FAILED;
+        }
+    };
+    if target.is_dir() {
+        return IS_DIRECTORY;
+    }
+    // The backend hands the menu absolute paths it resolved from the applications dirs itself, so a
+    // relative one is a client bug rather than input to resolve: gio would read it against this
+    // process's cwd, which no caller knows.
+    if !Path::new(desktop).is_absolute() {
+        eprintln!("flea: the application to open with must be named by an absolute desktop entry path");
+        return FAILED;
+    }
+    thp::enable();
+    let finished = Command::new("gio")
+        .arg("launch")
+        .arg(desktop)
+        .arg(&target)
+        .stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null())
+        .process_group(0)
+        .status();
+    match finished {
+        Ok(status) if status.success() => 0,
+        Ok(_) => {
+            eprintln!("flea: gio launch refused that application, so nothing was opened with it");
             FAILED
         }
         Err(_) => {

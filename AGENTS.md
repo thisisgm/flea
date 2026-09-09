@@ -660,7 +660,7 @@ the migrated columns, whether the settle or a `flea --ui-state` patch was what w
 
 `main.rs` dispatches on argv before anything else runs, but only `--backend` is fully insulated
 from the flag parsing below: it is matched anywhere in argv and always wins. `--prewarm`,
-`--open` and `--terminal` are matched only in their exact well-formed shape, `args.len() == 5`
+`--open`, `--openwith` and `--terminal` are matched only in their exact well-formed shape, `args.len() == 5`
 for the first and `args.len() == 3` with the flag in argv[1] for the other two, so a MALFORMED one
 is not caught here at all. It
 falls through to the parsing below and leaves by the unknown-flag branch, which names the flag
@@ -965,7 +965,9 @@ this coverage needed no new entry there.
 
 - `main.rs` dispatches on argv, and this is every flag it matches: `--backend` runs the command
   loop, `--prewarm <path> <first> <dest>` writes the prewarm file, `--open <path>` hands one file
-  to the desktop's handler, `--terminal <dir>` opens the configured terminal there,
+  to the desktop's handler, `--openwith <path> <desktop entry>` launches the application the
+  Open with menu picked, once, and writes no default anywhere, `--terminal <dir>` opens the
+  configured terminal there,
   `--default [off]` claims or releases the OS-level default, the "Show in folder" registration and
   the chooser routing together,
   `--youleftmeforstrata` is the undocumented second spelling of `--default off`, `--picker [off]`
@@ -978,7 +980,8 @@ this coverage needed no new entry there.
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
 - `thp.rs` the one `prctl(PR_SET_THP_DISABLE)` declaration, `disable()` and `enable()`.
-- `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
+- `open.rs` hands one file to `gio open` and waits for it, and one file to `gio launch` beside a
+  desktop entry the menu named, both waited for, see "Opening a file".
 - `terminal.rs` hands one directory to `xdg-terminal-exec --dir=` and does not wait, see "Opening a file".
 - `defaults.rs` claims or releases the OS-level default: the desktop-entry install check,
   the `inode/directory` MIME default via `xdg-mime`, and reporting each half, see "Modes".
@@ -1018,7 +1021,12 @@ this coverage needed no new entry there.
 - `backend/child.rs` runs one argv under a deadline and says whether it succeeded, failed or
   never started, which is the whole of what decides a `fail/` marker, see "Thumbnail pool".
 - `backend/thumbs.rs` the bounded, cancellable thumbnail pool, see "Thumbnail pool".
-- `backend/proto.rs` the wire types, the request dispatch and the one-line responses.
+- `backend/proto.rs` the wire types and the request dispatch, plus the one-line responses whose
+  consumers are shared: a response line with exactly one consuming request module lives in that
+  module instead, the seam proto.rs was cut at when it stood at 399 of the 400 hard cap.
+- `backend/apps.rs` the desktop's own applications database, read through `LC_ALL=C gio mime`,
+  with the applications-dir scan that turns an id into the file `--openwith` launches; see
+  "Opening a file".
 - `backend/rows.rs` serialises one window of rows and its per-response Kind dictionary.
 - `backend/thumbreq.rs` the thumbnail request policy: cache lookup, queueing, cancel and
   result reporting, see "Thumbnail requests".
@@ -1052,8 +1060,9 @@ this coverage needed no new entry there.
 - `ui/PaneWire.qml` is where every reply from outside the window lands: the backend's, and
   those of the three foreign programs the pane runs (`ui/Opener.qml`, `ui/ShareLink.qml`,
   `ui/Taildrop.qml`); it writes through the pane handed in and owns only the state a reply needs
-  before the pane has a row for it: the folder a `made` line will open an editor on, and the
-  watched re-read's debt, timer and cursor anchor, see "The open directory is watched".
+  before the pane has a row for it: the folder a `made` line will open an editor on, the watched
+  re-read's debt, timer and cursor anchor, see "The open directory is watched", and the Open
+  with slot, whose ask and answer are `ui/js/OpenWith.js`'s.
 - `ui/Header.qml` renders the column header band and its rule, and owns nothing else: it
   was lifted out of `Pane.qml` at the 400-line hard cap and has no behaviour.
 - `ui/Row.qml` renders one row delegate: the icon slot, which a thumbnail replaces in
@@ -1102,6 +1111,9 @@ this coverage needed no new entry there.
   reads, split out of `Focus.js` at its cap the second time it reached one.
 - `ui/js/RailKeys.js` is what the rail does with a key, split out of `Focus.js` at its cap the third
   time it reached one; `Focus.handleKey` calls it directly, as it already called `PreviewKeys`.
+- `ui/js/OpenWith.js` is the context menu's Open with slot: the ask a menu-open fires and the
+  answer's slot write, both pure over the pane, so `tests/js/openwith.js` drives them without a
+  window; `ui/PaneWire.qml` holds the state they read and write.
 - `ui/js/Menu.js` is what either menu holds and where its frame sits: the submenu test, the
   edge clamp, the listing and header row lists, and `openAtCursor`, the keyboard's own entrance,
   which came out of `ui/Pane.qml` when PR 34's `openTerminal` would have pushed it past its cap.
@@ -1333,7 +1345,13 @@ The old rule that every consumer imports the wire layer from `proto` alone went 
 `run.rs` and `prewarm.rs` now import `rows_line` from `rows` and everything else from
 `proto`, the same shape as the `thumbspec`/`thumbargv` split. Ten serialiser tests and the
 literal-database `dbs()` helper moved with `rows_line` unchanged; the request and one-line
-response tests stayed.
+response tests stayed. **At 399 again, on the eve of the handlers request**, the cut was the
+one the module map now states: a response line with exactly one consuming request module
+lives in that module. `dirsized_line` moved to `dirsizereq.rs` and `searching_line` and
+`searched_line` to `searchreq.rs`, which already imported them as their only consumers, with
+the dirsized test moving beside its function; `thumbed_line` stayed, because run.rs's drain
+names it beside thumbreq, and so does `listed_line`, which prewarm.rs writes too. That took
+the file to 368 and left the handlers request two lines and a comment of room.
 
 `src/backend/rows.rs` is 251 lines by `wc -l`, one over the soft budget and well under the
 hard cap: 88 are `rows_line` and its Kind dictionary, the other 163 the test module. It is
@@ -1465,12 +1483,12 @@ of its 300 hard cap, the second is exactly 300, and the file that owns the subje
 which answers a thumbnail URL when the pane holds one for this row and the OEM two-step icon
 lookup otherwise.
 
-`ui/Opener.qml` is 92 lines, well inside both budgets: three `Process` objects, three functions
-(`open`, `openTerminal` and `copyText`) and five signals. `flea --open` waits for `gio open` and
+`ui/Opener.qml` is 130 lines by `wc -l`, well inside both budgets: four `Process` objects, four
+functions (`open`, `openTerminal`, `openWith` and `copyText`) and seven signals. `flea --open` waits for `gio open` and
 not for the application, which is 11 to 15 ms against an `Exec=` handler but 0.32 to 0.75 s against
 a `DBusActivatable` one, so one process serves every open and a second Enter is dropped for that
-long and told to try again; this is the only component in the tree that runs `flea --open` or
-`flea --terminal`.
+long and told to try again; this is the only component in the tree that runs `flea --open`,
+`flea --openwith` or `flea --terminal`.
 
 `ui/js/Thumbs.js` is 77 lines by `wc -l` against a 200-line soft budget, and its suite
 `tests/js/thumbs.js` is 66. It is arithmetic over the row map and nothing else, with no QML
@@ -1976,7 +1994,7 @@ waits for its consumer.
   `keys.toml` (the `[digits]` range included, which binds nine keys no `action =` line names), every
   entry in `ui/ContextMenu.qml`, every artboard in the design canvas, every sidebar entry kind, and
   every SUPER chord in Omarchy's own `bindings/clipboard.lua`. A derivation that comes back empty is
-  a hard failure, because an empty checklist passes. The 18 requests are **driven live** through the
+  a hard failure, because an empty checklist passes. The requests are **driven live** through the
   real backend, each in a directory of its own because rename, trash and duplicate mutate, and they
   need no display. Keys, menu entries and the Omarchy chords need a real window, so `--drive` opens
   one and presses everything in a single pass: this box has one Hyprland session and several lanes
@@ -3694,6 +3712,51 @@ sentence to the status line. That sentence names no cause, because `2` covers al
 while that `Process` is running is dropped rather than queued, and the drop raises `busy`, which
 `ui/PaneWire.qml` answers with one plain sentence in the same slot; `openTerminal()`'s guard raises
 `terminalBusy` the same way. The first press stays silent, so only a press that was refused speaks.
+
+**Issue 52: Open with, the one-off override.** Enter and the Open row reach the single default
+handler; the context menu's Open with flyout reaches the rest, and choosing one runs
+`flea --openwith <file> <desktop entry>`, which is `gio launch` with the same three guards
+`--open` carries — canonicalize, `/dev/null` on all three descriptors, its own process group —
+plus `thp::enable()` before the spawn, waited for so the exit status means a handoff. **It
+writes no default anywhere**: the operator picks an application and the desktop's registry is
+untouched, which is what makes it an override and not a setting, and there is no third exit
+status to set one. The relative-desktop-entry refusal is the one guard `--open` has no twin
+for: the menu only ever names entries the backend resolved to absolute paths out of the
+applications dirs, so a relative one is a client bug rather than a path to resolve, and gio
+would read it against a cwd no caller knows.
+
+**The list behind the flyout is the `handlers` wire request**, and the registry it reads is
+gio's, because Flea decides nothing about which programs open a type. `src/backend/apps.rs`
+spawns `LC_ALL=C gio mime <type>` on a thread per request, bounded at 10 s, and parses the
+output structurally: every tab-indented line is an app id, the recommended section's ids are
+a subset of the registered ones, and first-occurrence dedupe gives the registered list in
+gio's own precedence order, so **no header wording is read at all** and no client locale can
+change the answer — the pin `LC_ALL=C` bought for the network shares is bought here too, but
+the parse does not need it. The ids then resolve to files by the same recursive scan gio
+runs, subdirectory names becoming `name-` prefixes, first applications dir on the XDG ladder
+winning; `Name=` comes from the desktop entry itself, untranslated, falling back to the id
+stem. The registered list ships whole, the default included and unmarked, because plain Open
+already answers the default and marking it would mean parsing the one wording-shaped line the
+parse otherwise avoids.
+
+**The ask is scoped to a menu opening on a row.** `ui/js/OpenWith.js`'s `ask` fires from the
+two menu-open entrances (the pointer's, through ui/js/Tap.js, and `m`'s, through
+`openCursorMenu`) and never from a cursor move: a row nobody opened a menu on is never
+looked at, the same no-sweep rule the thumbnail pool has. The answer lands in one slot keyed
+by the row it was asked for, so a second menu over the same row costs the wire nothing, and
+`ui/PaneWire.qml`'s `onListed` clears the slot, because a new listing reassigns what a row
+index names. A directory row and a name no glob matched answer an empty list on the spot, so
+a slot asked and never answered cannot strand the row. The row appears mid-menu — the answer
+is one subprocess away from the menu opening — and the frame re-clamps on its height change,
+which is the machinery `place()` already carries for a menu whose model changes after it
+opened.
+
+**The visibility story is the shipped hidden set.** `menu.hidden` carried `openwith` since
+the state file's first ship, as one of the canvas rows this tree could not build; issue 52
+built the row, so `openwith` left `src/uischema.rs`'s DEFAULTS and the row is visible at the
+shipped defaults. An operator whose `ui.json` was written by an earlier build still carries
+the id in their stored set, and the Settings section's new "Open with" switch is the way back
+out, which is why the switch exists and is not a locked row.
 
 **That window is a third of a second on an archive, not the low tens of milliseconds this file used
 to claim.** `gio open` on an `Exec=` entry forks and returns; on a `DBusActivatable` entry it waits

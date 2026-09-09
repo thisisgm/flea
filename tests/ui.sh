@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|renderer|settings|viewpersist ...]; networklive is opt-in.
+# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|openwith|renderer|settings|viewpersist ...]; networklive is opt-in.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -343,11 +343,11 @@ seed_ui_state() {
 }
 
 # The shipped menu.hidden set less Open in terminal, so a case can drive that row without changing
-# any other row of the menu; src/uischema.rs DEFAULTS is where the eight come from.
-terminal_shown='["delete","openwith","moveto","copyto","properties","permissions","copypath"]'
+# any other row of the menu; src/uischema.rs DEFAULTS is where the seven come from.
+terminal_shown='["delete","moveto","copyto","properties","permissions","copypath"]'
 # The shipped set whole, from the same DEFAULTS. A case asserting a menu's exact row list seeds this
 # rather than reading whatever the operator has switched off in the Menus section.
-menu_shipped='["delete","openwith","openTerminal","moveto","copyto","properties","permissions","copypath"]'
+menu_shipped='["delete","openTerminal","moveto","copyto","properties","permissions","copypath"]'
 
 launch() {
     local start_path="$1"
@@ -1327,6 +1327,144 @@ case_openterminal() {
     [[ ! -s "$ran" ]] || fail "openterminal: the failing stub still logged $(cat "$ran")"
 
     printf 'OPENTERMINAL menu=ok list=ok rail=ok single-flight=ok crossed=ok failure=ok\n'
+    if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
+    kill_flea
+}
+
+# Issue 52's Open with row. The stub flea is the shape case_openterminal established: FLEA_BIN is
+# the backend's binary as well as the opener's, so only --openwith is intercepted and every other
+# mode execs the real one, which is what keeps the launch assertable without starting a real
+# application on the operator's desktop. The applications the flyout names are this box's real
+# registry, so the case asserts the shape of what is chosen (an absolute .desktop path beside the
+# file) and never which application it is. The request count is the second half: the ask is scoped
+# to a menu opening on a row, so two menus over one row cost the wire one request and a directory
+# row costs none, which only the count can say.
+case_openwith() {
+    local dir="$fixture_root/openwith" real_state="${XDG_STATE_HOME-}"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/subdir" "$dir/bin"
+    : > "$dir/photo.png"
+    : > "$dir/second.png"
+    local ran="$dir/ran.log" real_bin="$flea_bin"
+    : > "$ran"
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = --openwith ] || exec %q "$@"\n' "$real_bin"
+      printf 'printf "OPENWITH %%s %%s\\n" "$3" "$4" >> %q\n' "$ran"
+      printf 'exit 0\n'
+    } > "$dir/bin/flea"
+    chmod +x "$dir/bin/flea"
+    # Open with ships visible at the shipped defaults, which is the point of the set change, so the
+    # case seeds the shipped set rather than reading whatever the operator's own ui.json hides.
+    seed_ui_state "$fixture_root/openwith-state" "{\"menu\":{\"hidden\":$menu_shipped}}"
+    local saved_path="$PATH"
+    export PATH="$dir/bin:$PATH"
+    flea_bin="$dir/bin/flea"
+    launch "$dir"
+    export PATH="$saved_path"
+    flea_bin="$real_bin"
+    wait_listing 3
+    [[ "$(ipc handlersRequests)" == "0" ]] || fail "openwith: the launch already cost $(ipc handlersRequests) handler requests"
+
+    # The pointer half: the menu opens on the row and the flyout row arrives when the answer does,
+    # which is a bounded wait rather than a settle, because the answer is a subprocess away.
+    click_row 1 right
+    settle
+    local _attempt
+    for _attempt in $(seq 1 40); do [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] && break; sleep 0.05; done
+    [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] \
+        || fail "openwith: the menu offers no Open with row after the answer, got $(ipc contextMenuEntries)"
+    [[ "$(ipc handlersRequests)" == "1" ]] || fail "openwith: one menu open cost $(ipc handlersRequests) handler requests"
+    shot openwith-menu
+
+    # The flyout half: open it, read its entries, and choose the first one, which is the launch the
+    # stub logs. The entries are the box's real registry, so only their shape is asserted.
+    menu_seek "Open with"
+    key -k Return >/dev/null
+    settle
+    local apps
+    apps=$(ipc contextMenuSubmenuEntries)
+    [[ -n "$apps" ]] || fail "openwith: the flyout opened empty, so no application is offered"
+    printf 'OPENWITH flyout=%q\n' "$apps"
+    key -k Return >/dev/null
+    local waited
+    for waited in $(seq 1 100); do grep -q "^OPENWITH " "$ran" && break; sleep 0.05; done
+    grep -q "^OPENWITH $dir/photo.png [^ ]*\.desktop$" "$ran" \
+        || fail "openwith: the launch never reached the stub, log is $(cat "$ran")"
+    [[ "$(grep -c . "$ran")" == "1" ]] || fail "openwith: the launch ran twice, log is $(cat "$ran")"
+
+    # The cache half: reopening the menu over the same row answers from the slot, so the count
+    # stays at one; a different row asks afresh and the count moves to two.
+    click_row 1 right
+    settle
+    for _attempt in $(seq 1 40); do [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] && break; sleep 0.05; done
+    [[ "$(ipc handlersRequests)" == "1" ]] || fail "openwith: a second menu over the same row cost $(ipc handlersRequests) handler requests"
+    key -k Escape >/dev/null
+    settle
+    click_row 2 right
+    settle
+    for _attempt in $(seq 1 40); do [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] && break; sleep 0.05; done
+    [[ "$(ipc handlersRequests)" == "2" ]] || fail "openwith: a menu over another row cost $(ipc handlersRequests) handler requests"
+    key -k Escape >/dev/null
+    settle
+
+    # A directory row: the row never appears and the ask never fires, because a directory
+    # navigates instead of opening and the slot is cleared rather than asked.
+    click_row 0 right
+    settle
+    for _attempt in $(seq 1 10); do [[ "$(ipc contextMenuEntries)" != *"Open with"* ]] && break; sleep 0.05; done
+    [[ "$(ipc contextMenuEntries)" != *"Open with"* ]] \
+        || fail "openwith: a directory row offers an Open with row: $(ipc contextMenuEntries)"
+    [[ "$(ipc handlersRequests)" == "2" ]] || fail "openwith: a directory row cost $(ipc handlersRequests) handler requests"
+    key -k Escape >/dev/null
+    settle
+
+    # The single-flight guard: the stub rewritten to sleep makes a second press inside the wait
+    # land on a running launch, which is dropped and announced, and only one launch is logged.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = --openwith ] || exec %q "$@"\n' "$real_bin"
+      printf 'printf "OPENWITH %%s %%s\\n" "$3" "$4" >> %q\n' "$ran"
+      printf 'sleep 1\n'
+      printf 'exit 0\n'
+    } > "$dir/bin/flea"
+    chmod +x "$dir/bin/flea"
+    : > "$ran"
+    click_row 1 right
+    settle
+    for _attempt in $(seq 1 40); do [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] && break; sleep 0.05; done
+    menu_seek "Open with"
+    key -k Return >/dev/null
+    settle
+    key -k Return >/dev/null
+    settle
+    key -k Return >/dev/null
+    settle
+    wait_message "Still opening the last application; try again in a moment."
+    sleep 1.2
+    [[ "$(grep -c . "$ran")" == "1" ]] || fail "openwith: two launches were started, log is $(cat "$ran")"
+
+    # The refusal: a nonzero exit reaches the status line as one sentence, and the failing stub
+    # logged nothing, so the pair cannot pass on a launch that happened.
+    {
+      printf '#!/bin/sh\n'
+      printf '[ "$1" = --openwith ] || exec %q "$@"\n' "$real_bin"
+      printf 'exit 2\n'
+    } > "$dir/bin/flea"
+    chmod +x "$dir/bin/flea"
+    : > "$ran"
+    click_row 1 right
+    settle
+    for _attempt in $(seq 1 40); do [[ "$(ipc contextMenuEntries)" == *"Open with"* ]] && break; sleep 0.05; done
+    menu_seek "Open with"
+    key -k Return >/dev/null
+    settle
+    key -k Return >/dev/null
+    settle
+    wait_message "That application could not be opened with that file; nothing was started."
+    shot openwith-failed
+    [[ ! -s "$ran" ]] || fail "openwith: the failing stub still logged $(cat "$ran")"
+
     if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
     kill_flea
 }
@@ -6991,7 +7129,7 @@ case_previewviews() {
 }
 
 declare -a wanted=("$@")
-    [[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare viewpersist)
+    [[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop grid columns operations tabs openterminal openwith renderer settings clickthrough wheelunder overlays views formats previewviews hangshare viewpersist)
 
 : > "$run_log"
 : > "$flea_log"

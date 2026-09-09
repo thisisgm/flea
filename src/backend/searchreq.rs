@@ -1,9 +1,21 @@
 // The wire side of a search: the loop hands it a slice of walking and it decides what to say, the way thumbreq answers thumb.
-use crate::backend::proto::{searched_line, searching_line};
 use crate::backend::run::since;
 use crate::backend::state::State;
 use std::io::{self, BufWriter, Write};
 use std::time::{Duration, Instant};
+
+// The streaming progress of a search: its own type rather than a listed line, because a mid-walk update is not a fresh listing and carries no read or sort timing.
+pub fn searching_line(n: usize, scanned: usize, ms: f64) -> String {
+    format!(r#"{{"t":"searching","n":{},"scanned":{},"ms":{:.3}}}"#, n, scanned, ms)
+}
+
+// The terminal line of a search: cancelled is true when the client stopped the walk or a new listing replaced it.
+pub fn searched_line(n: usize, scanned: usize, ms: f64, cancelled: bool) -> String {
+    format!(
+        r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":{}}}"#,
+        n, scanned, ms, cancelled
+    )
+}
 
 // A streaming search announces its growing count no more often than this, so a fast walk cannot flood the client's parser.
 const SEARCH_REPORT: Duration = Duration::from_millis(100);

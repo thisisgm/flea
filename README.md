@@ -148,6 +148,7 @@ Press **?** for the full keymap, or **,** to change settings.
 |---|---|
 | Move / parent / enter | `j` `k` / `h` / `l` |
 | Open with the default app | `Enter` |
+| Open with a specific app | `m` → *Open with* |
 | Quick Look | `Space` |
 | Select / extend selection | `v` / `Shift` + arrows |
 | Copy / cut / paste | `y` `x` `p`, or `Ctrl+C` `Ctrl+X` `Ctrl+V` |

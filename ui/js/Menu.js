@@ -29,6 +29,11 @@ function listingEntries(p) {
         return applyHidden(backgroundEntries(p), p.hiddenActions)
     var out = []
     out.push({ label: "Open", action: "open", glyph: "folder-open" })
+    // Issue 52: the desktop's registered handlers for the row's type, asked for one row when the
+    // menu opens. Empty until the backend answers, so an absent row is the pending or the
+    // no-applications state alike; the row then never shifts anything above Open.
+    if (p.openWithApps.length > 0)
+        out.push({ label: "Open with", action: "openwith", glyph: "app-window", submenu: openWithEntries(p.openWithApps) })
     out.push({ label: "Copy path", action: "copypath", glyph: "file-text" })
     out.push({ separator: true })
     // SettingsMenus.html's six basic rows, in its own order. Cut, Copy and Paste were keyboard
@@ -101,6 +106,17 @@ function backgroundEntries(p) {
 // backend really produces; a fourth key would earn a refusal instead of a listing.
 var SORT_LABELS = { name: "Name", size: "Size", mtime: "Date Modified" }
 
+// The Open With flyout, mapped straight off the wire's apps: the entry id is the desktop entry path
+// the launch mode takes, and the label is the application's own Name. No default is marked and no
+// row is reordered: gio's own registry order is the desktop's judgement, and plain Open already
+// answers the default.
+function openWithEntries(apps) {
+    var out = []
+    for (var i = 0; i < apps.length; i++)
+        out.push({ id: apps[i].path, label: apps[i].name })
+    return out
+}
+
 function sortEntries() {
     var out = []
     for (var i = 0; i < Sort.ORDERS.length; i++)
@@ -109,12 +125,14 @@ function sortEntries() {
 }
 
 // The one mark every row of an open flyout draws, keyed on the row that opened it: a Taildrop peer
-// is a machine, a sort order is the row above it, and an archive format is a file about to exist.
+// is a machine, a sort order is the row above it, and an application is the window it will open in.
 function submenuGlyph(action) {
     if (action === "taildrop")
         return "server"
     if (action === "sort")
         return "sort"
+    if (action === "openwith")
+        return "app-window"
     return "archive"
 }
 

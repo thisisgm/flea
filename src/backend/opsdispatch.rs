@@ -178,6 +178,9 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
         OpMsg::Meta { line } => {
             writeln!(out, "{}", line).ok();
         }
+        OpMsg::Handlers { line } => {
+            writeln!(out, "{}", line).ok();
+        }
         OpMsg::Duplicated { ok, path, err, entry } => {
             ops.journal.push(entry);
             ops.running = None;

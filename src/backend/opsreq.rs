@@ -24,6 +24,9 @@ pub enum OpMsg {
     // Not an operation: meta rides this channel because a media probe is a subprocess and the loop
     // must not wait on one. Nothing about it claims the one-at-a-time slot.
     Meta { line: String },
+    // The applications one row can be opened with, for the context menu's Open With; a gio mime is
+    // a subprocess for the same reason, and it claims the slot no more than meta does.
+    Handlers { line: String },
 }
 
 // moving is the verb the request actually resolved to, so the client names the operation from the

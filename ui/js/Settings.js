@@ -31,7 +31,7 @@ var BASIC = ["cut", "copy", "paste", "duplicate", "rename", "trash"]
 // cannot draw is absent rather than switched off: a toggle over a row no menu has is a mock control.
 var MENU_GROUPS = [
     { label: "Basic file actions", master: true, ids: BASIC },
-    { label: "Open and inspect", master: false, ids: ["openTerminal", "copypath"] },
+    { label: "Open and inspect", master: false, ids: ["openwith", "openTerminal", "copypath"] },
     { label: "Extras", master: false,
       ids: ["compress", "extract", "convert", "taildrop", "dropbox", "sharelink"] }
 ]
@@ -44,6 +44,7 @@ var LOCKED = ["open", "toggleHidden"]
 var LABELS = {
     cut: "Cut", copy: "Copy", paste: "Paste", duplicate: "Duplicate", rename: "Rename",
     trash: "Move to Trash", openTerminal: "Open in terminal", copypath: "Copy path",
+    openwith: "Open with",
     compress: "Compress", extract: "Extract",
     convert: "Convert", taildrop: "Send with Taildrop", dropbox: "Move to Dropbox",
     sharelink: "Copy share link", open: "Open", toggleHidden: "Show hidden files"
@@ -58,7 +59,8 @@ var PRESET_LABELS = { "default": "Default", vim: "Vim", mac: "Mac", windows: "Wi
 // ui/js/Menu.js's own glyphs by action id, which tests/js/settings.js asserts the two agree on.
 var GLYPHS = {
     cut: "scissors", copy: "copy", paste: "clipboard", duplicate: "file-plus", rename: "rename",
-    trash: "trash", openTerminal: "terminal", copypath: "file-text", compress: "archive",
+    trash: "trash", openTerminal: "terminal", copypath: "file-text", openwith: "app-window",
+    compress: "archive",
     extract: "archive-out",
     convert: "sliders", sharelink: "network", open: "folder-open", toggleHidden: "eye"
 }

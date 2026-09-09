@@ -30,8 +30,9 @@ pub fn data_home() -> Result<PathBuf, String> {
 }
 
 // The XDG lookup both install proofs read: the data home first, then every data dir, whose own
-// default already names /usr/share, where pacman puts a package's files.
-fn data_dirs() -> Vec<PathBuf> {
+// default already names /usr/share, where pacman puts a package's files. apps.rs resolves desktop
+// entry ids over the same ladder, in the same order gio's own resolution walks it.
+pub fn data_dirs() -> Vec<PathBuf> {
     let mut dirs: Vec<PathBuf> = Vec::new();
     if let Ok(h) = data_home() {
         dirs.push(h);

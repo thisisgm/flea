@@ -260,6 +260,9 @@ QtObject {
         function thumbRequests(): int { return root.backend.thumbRequests }
         function dirSizeRequests(): int { return root.backend.dirSizeRequests }
         function listRequests(): int { return root.backend.listRequests }
+        // The menu-open handlers ask, the same counting idiom: a second menu over the same row must
+        // cost the wire nothing, which only a count of attempts can say; see tests/ui.sh openwith.
+        function handlersRequests(): int { return root.backend.handlersRequests }
         function thumbFile(i: int): string { return root.pane.thumbFor(i) }
         function rowCentre(i: int): string { return root.pane.rowFor(i) ? root.fleaWindow.centreOf(root.pane.visibleItemFor(i)) : "" }
         // The same lookup as rowCentre, but for the preview's own seek slider, so a test can drive

@@ -444,6 +444,47 @@ check "an archive op that names neither is refused by name" "op must be compress
 check "and the refusal names the op it was given" "bogus" "$(echo "$out" | grep -oE '"path":"[^"]*"' | head -1 | cut -d'"' -f4)"
 check "and no job was started for it" "0" "$(echo "$out" | grep -c '"t":"archivestarted"')"
 
+# handlers: the applications one row can be opened with, for the context menu's Open With. The
+# registry the answer reads is the desktop's own, through `LC_ALL=C gio mime`, which walks the XDG
+# data ladder; so this case hands the binary a ladder of its own, one applications dir with two
+# planted entries and the cache that names them for image/png, and the whole answer is deterministic.
+# The type half comes from this box's own /usr/share/mime/globs2, which no environment variable
+# redirects, so the row is named photo.png and its type is image/png on every box. XDG_DATA_HOME is
+# a real empty dir, because gio reads the user data dir first and an empty variable would fall back
+# to the operator's own ~/.local/share, whose mimeapps.list would answer imv.desktop into the list.
+HANDLERS="$SB/handlers"
+mkdir -p "$HANDLERS/applications/sub" "$HANDLERS/home" "$HANDLERS/fixture/afolder"
+printf '[Desktop Entry]\nType=Application\nName=Probe Viewer\nExec=true %%f\n' > "$HANDLERS/applications/probe-viewer.desktop"
+printf '[Desktop Entry]\nType=Application\nName=Probe Editor\nExec=true %%f\n' > "$HANDLERS/applications/sub/probe-editor.desktop"
+printf '[MIME Cache]\nimage/png=probe-viewer.desktop;sub-probe-editor.desktop;\n[Default Applications]\nimage/png=probe-viewer.desktop;\n' > "$HANDLERS/applications/mimeinfo.cache"
+printf 'x' > "$HANDLERS/fixture/photo.png"
+printf 'x' > "$HANDLERS/fixture/notes.zzz"
+# The ms field is a measurement and the answer's shape is the contract, so it is elided before the
+# two are compared. Directories sort first, so the listing reads afolder, notes.zzz, photo.png.
+handlers_out() {
+  ( printf '{"c":"list","path":"%s","first":4}\n{"c":"handlers","row":%s}\n' "$HANDLERS/fixture" "$1"
+    sleep 1
+    printf '{"c":"quit"}\n' ) | env XDG_DATA_HOME="$HANDLERS/home" XDG_DATA_DIRS="$HANDLERS" "$BIN" --backend
+}
+out=$(handlers_out 2 | grep '"t":"handlers"' | sed 's/,"ms":[0-9.]*}/}/')
+check "a file row answers both planted applications, in gio's own order" \
+  "{\"t\":\"handlers\",\"row\":2,\"apps\":[{\"name\":\"Probe Viewer\",\"path\":\"$HANDLERS/applications/probe-viewer.desktop\"},{\"name\":\"Probe Editor\",\"path\":\"$HANDLERS/applications/sub/probe-editor.desktop\"}]}" \
+  "$out"
+check "the box's own registry leaked nothing in, so exactly two applications answered" \
+  "2" "$(echo "$out" | grep -o '"name":"' | wc -l | tr -d ' ')"
+out=$(handlers_out 1 | grep '"t":"handlers"' | sed 's/,"ms":[0-9.]*}/,"ms":X}/')
+check "a name no glob matched answers an empty list on the spot" \
+  '{"t":"handlers","row":1,"apps":[],"ms":X}' "$out"
+out=$(handlers_out 0 | grep '"t":"handlers"' | sed 's/,"ms":[0-9.]*}/,"ms":X}/')
+check "a directory row answers an empty list, because directories navigate instead of opening" \
+  '{"t":"handlers","row":0,"apps":[],"ms":X}' "$out"
+out=$( ( printf '{"c":"list","path":"%s","first":4}\n{"c":"handlers","row":99}\n' "$HANDLERS/fixture"
+        sleep 1
+        printf '{"c":"quit"}\n' ) | env XDG_DATA_HOME="$HANDLERS/home" XDG_DATA_DIRS="$HANDLERS" "$BIN" --backend )
+check "a row past the end of the listing answers nothing, the same rule meta follows" \
+  "0" "$(echo "$out" | grep -c '"t":"handlers"')"
+rm -rf "$HANDLERS"
+
 # Issue 68: the listed directory is watched, so a change made from outside answers a changed line.
 # The only unsolicited line on the wire, so every case here is driven by a real create, rename or
 # delete landing between two requests rather than by a request asking for it.

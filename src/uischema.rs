@@ -27,7 +27,7 @@ pub const DEFAULTS: &str = r#"{
   },
   "keys": "default",
   "display": { "textSize": { "mode": "system" } },
-  "menu": { "hidden": ["delete", "openwith", "openTerminal",
+  "menu": { "hidden": ["delete", "openTerminal",
             "moveto", "copyto", "properties", "permissions", "copypath"] }
 }"#;
 
@@ -196,7 +196,7 @@ mod tests {
 
     // menu.hidden stores what is hidden, so an action added later is visible without a migration.
     #[test]
-    fn menu_hidden_holds_the_eight_shipped_ids_and_nothing_else() {
+    fn menu_hidden_holds_the_seven_shipped_ids_and_nothing_else() {
         let d = defaults();
         let hidden: Vec<&str> = d
             .get("menu")
@@ -206,9 +206,11 @@ mod tests {
             .iter()
             .filter_map(Json::as_str)
             .collect();
+        // openwith was in the shipped set while the menu had no row for it; issue 52 built the row,
+        // so the shipped default now shows it and only an operator's own stored set can hide it.
         assert_eq!(
             hidden,
-            ["delete", "openwith", "openTerminal", "moveto", "copyto", "properties", "permissions", "copypath"]
+            ["delete", "openTerminal", "moveto", "copyto", "properties", "permissions", "copypath"]
         );
     }
 

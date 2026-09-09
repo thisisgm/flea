@@ -28,6 +28,8 @@ Item {
     signal undone(string op, bool ok)
     signal paths(var list)
     signal meta(int row, int w, int h, real durationMs, int sampleRate, int entries, real unpacked, bool archiveFailed, var names, real lines, bool partial, bool linesFailed, string target, bool targetDir, string owner)
+    // The applications one row can be opened with, for the context menu's Open With; see docs/protocol.md "handlers".
+    signal handlers(int row, var apps)
     signal fsInfo(string fs, real free)
     // The one line no request asked for: the directory the current listing came from changed under
     // it. path is that directory, so a pane that has since moved can ignore it; see docs/protocol.md.
@@ -62,6 +64,9 @@ Item {
     // Same idiom again, for the watched re-read: a debt owed by the directory the pane has left must
     // cost the one it arrived in no listing at all, which only a count can say; see tests/ui.sh watch.
     property int listRequests: 0
+    // Same idiom again, for the menu-open handlers ask: a second menu over the same row must cost
+    // the wire nothing, which only a count of attempts can say; see tests/ui.sh openwith.
+    property int handlersRequests: 0
 
     // A write before the child is spawned is dropped silently, so an early request waits here.
     property var pending: []
@@ -168,6 +173,14 @@ Item {
         root.send({ c: "meta", row: row, text: text, media: media, archive: archive })
     }
 
+    // The applications one row can be opened with; asked by a menu opening on that row, never on a
+    // cursor move. The row is named by index because only the backend knows the type, and the client
+    // is never given it.
+    function askHandlers(row) {
+        root.handlersRequests += 1
+        root.send({ c: "handlers", row: row })
+    }
+
     function askFsInfo() {
         root.send({ c: "fsinfo" })
     }
@@ -244,6 +257,7 @@ Item {
 
     // Sample input: {"t":"rows","start":0,"rows":[{"n":"a.txt","d":false,"s":3,"m":1787790423,"p":33188,"i":"text-x-generic","t":false,"k":0}],"kinds":["Plain text document"],"ms":1.250}
     // Sample input: {"t":"thumbed","row":2,"file":"/home/gm/.cache/thumbnails/large/b98fa4.png","ms":75.823}
+    // Sample input: {"t":"handlers","row":2,"apps":[{"name":"Image Viewer","path":"/usr/share/applications/org.gnome.eog.desktop"}],"ms":51.051}
     // Sample input: {"t":"dirsized","row":4,"bytes":1048576,"partial":false,"ms":12.500}
     // Sample input: {"t":"changed","path":"/home/gm/Downloads"}
     // Sample input: {"t":"searching","n":812,"scanned":41200,"ms":300.114}
@@ -303,6 +317,8 @@ Item {
             root.paths(message.paths || [])
         } else if (message.t === "meta") {
             root.meta(message.row, message.w, message.h, message.ms, message.rate, message.entries, message.unpacked, message.afailed, message.names, message.lines, message.partial, message.lfailed === true, message.target, message.targetdir, message.owner || "")
+        } else if (message.t === "handlers") {
+            root.handlers(message.row, message.apps || [])
         } else if (message.t === "fsinfo") {
             root.fsInfo(message.fs, message.free)
         } else if (message.t === "changed") {

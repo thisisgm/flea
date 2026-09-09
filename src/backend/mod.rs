@@ -1,5 +1,6 @@
 pub mod listing;
 pub mod aliases;
+pub mod apps;
 pub mod archive;
 pub mod archivelist;
 pub mod archiveops;

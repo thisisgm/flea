@@ -28,8 +28,9 @@ QtObject {
 
     // Mirrors "menu"."hidden" in src/uischema.rs, for the same first launch: six ids this release's
     // menu cannot build, plus Copy path and Open in terminal, which the SettingsMenus board ships
-    // switched off. Every id here is an action ui/js/Menu.js gives a row, or will give one.
-    readonly property var defaultMenuHidden: ["delete", "openwith", "openTerminal", "moveto",
+    // switched off. Every id here is an action ui/js/Menu.js gives a row, or will give one;
+    // openwith left this set when issue 52 built its row.
+    readonly property var defaultMenuHidden: ["delete", "openTerminal", "moveto",
                                               "copyto", "properties", "permissions", "copypath"]
 
     // ui.json names what is SHOWN. ui/Header.qml, ui/Row.qml and ui/ContextMenu.qml all ask the

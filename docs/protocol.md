@@ -476,6 +476,35 @@ asks for a line count, `media` for a duration and sample rate, `archive` for the
 something, so none is inferred here. A file whose header parses as an image is never counted for
 lines whatever `text` says, because the newlines in a bitmap are a number nothing should be shown.
 
+### handlers
+
+`{"c":"handlers","row":<uint>}`
+
+Example: `{"c":"handlers","row":2}`
+
+Asks for the applications registered for **one row's** MIME type, which is what the context
+menu's Open with flyout draws. Like `meta`, this is a per-row extra a listing row does not
+carry, for **one row that a client actually asked for**, and the only caller asks it when a
+menu opens on that row: nothing prefetches it for a cursor move, and a row nobody opened a
+menu on is never looked at. A `row` outside the current listing is dropped in silence, the
+same rule `meta` follows.
+
+The answer's registry is the desktop's own, read through `LC_ALL=C gio mime <type>`: Flea
+decides nothing about which programs open a type, the same way it decides nothing about which
+program is the default (see "Opening a file" in `AGENTS.md`). The registry gio reads lives on
+the XDG data ladder, so an answer is only as current as that ladder; it is re-asked per menu
+open rather than cached, so a change another program makes is picked up on the next open.
+
+Every request gets exactly one `handlers` line. A directory row and a name no glob matched
+answer an empty `apps` on the spot, without spawning `gio`, because a directory navigates
+instead of opening and an unidentified name has no registry entry; the client needs the line
+all the same, so a slot asked and never answered cannot strand the row. A type with registered
+applications costs one `gio` subprocess, answered on a thread the way `meta` answers, bounded
+by a 10 s deadline that answers empty on a wedged `gio`.
+
+Answers may arrive out of order, because an inline empty answer can land beside an in-flight
+subprocess answer in either order; the `row` field is what pairs a reply with its ask.
+
 ### undo
 
 `{"c":"undo"}`
@@ -793,6 +822,37 @@ column's mark can follow the target the way a listing row's does.
 its row does), resolved from `/etc/passwd` alone and never through `getpwuid`: that call goes through
 NSS and can wait on a network directory, and the meta thread must never hang the column on one. A uid
 no local account carries answers the empty string, never the number dressed as a name.
+
+### handlers
+
+`{"t":"handlers","row":<uint>,"apps":[{"name":"<string>","path":"<string>"},...],"ms":<float>}`
+
+Example:
+`{"t":"handlers","row":2,"apps":[{"name":"Image Viewer","path":"/usr/share/applications/org.gnome.eog.desktop"}],"ms":51.051}`
+
+Answers one row of one `handlers` request. `row` is the index that was asked for, `apps` is
+one entry per registered application in gio's own precedence order, and `ms` is the whole
+request to three decimal places: the lookup for an answered-on-the-spot row, or the `gio`
+subprocess plus the id resolution for a generated one.
+
+`name` is the desktop entry's own `Name=`, read untranslated, which is the name `LC_ALL=C`
+shows; a file with no `Name=` answers its id minus the `.desktop`. `path` is the absolute
+desktop entry path the launch takes, resolved the way gio resolves a desktop id: a recursive
+scan of each applications dir on the XDG data ladder, user data first, where a subdirectory's
+name becomes a `name-` prefix, so `kde4/konsole.desktop` is the file for the id
+`kde4-konsole.desktop`. The first dir carrying an id wins. An id whose file has vanished since
+the registry answered is dropped, which is what gio's own resolution does too.
+
+**The parse reads no header wording.** `LC_ALL=C gio mime` prints one line naming the default,
+then tab-indented ids under a registered header, then more under a recommended one, and the
+recommended ids are a subset of the registered ones; so the parse reads only the
+tab-indented lines and dedupes on first occurrence, and no client locale can change the
+answer. The pin gio's output needed for the network shares is not needed here by
+construction.
+
+The answer is **the registered list whole**, the default included and unmarked: the plain
+Open row already answers the default, and `flea --openwith` exists precisely to launch
+something else without writing it anywhere.
 
 ### transferprogress
 

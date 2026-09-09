@@ -3,6 +3,7 @@ import "." as Flea
 import "js/DirSizes.js" as DirSizes
 import "js/Errors.js" as Errors
 import "js/Nav.js" as Nav
+import "js/OpenWith.js" as OpenWith
 import "js/Ops.js" as Ops
 import "js/Search.js" as Search
 import "js/Tabs.js" as Tabs
@@ -54,6 +55,15 @@ Item {
     readonly property alias shareLink: shareLink
     readonly property alias taildrop: taildrop
 
+    // The applications the cursor row can be opened with, one menu-open fetch behind the cursor:
+    // row is the listing row the answer belongs to and apps is that answer, empty until it lands,
+    // which is also the no-applications state. ui/js/Menu.js's row shows only when apps is
+    // non-empty for the cursor row, and every listed reply clears both, because a row index names
+    // a different file afterwards. The ask is ui/js/OpenWith.js's, reached from the two menu-open
+    // entrances (the pointer's, through ui/js/Tap.js, and m's, through openCursorMenu).
+    property int openWithRow: -1
+    property var openWithApps: []
+
     Flea.Opener {
         id: opener
         // A dropped request is the app being busy, not a failure, so it takes the plain role.
@@ -63,6 +73,10 @@ Item {
         onIsDirectory: function (path) { pane.open(path) }
         onTerminalBusy: function (path) { pane.message("Still opening the last terminal; try again in a moment.", false) }
         onTerminalFailed: function (path) { pane.message("That directory could not be opened in a terminal; nothing on this system took it.", true) }
+        // The override's own pair; nothing was written anywhere by a refused launch, so the
+        // sentence says what did not happen rather than blaming the file.
+        onOpenWithBusy: function (path) { pane.message("Still opening the last application; try again in a moment.", false) }
+        onOpenWithFailed: function (path) { pane.message("That application could not be opened with that file; nothing was started.", true) }
     }
 
     Flea.ShareLink {
@@ -132,6 +146,10 @@ Item {
                 pane.listedSeen = true
             }
             pane.total = total
+            // A new listing reassigns what every row index names, so the slot's cached answer
+            // would describe a different file; a watched re-read clears it the same way.
+            root.openWithRow = -1
+            root.openWithApps = []
             // A search's opening listed line is the walk starting, not a directory that came back empty.
             if (pane.searchMode === Search.RESULTS) {
                 pane.listingState = Search.listingState(pane, total)
@@ -212,6 +230,13 @@ Item {
         function onThumbed(row, file) {
             if (!pane.listInFlight)
                 pane.thumbState = Thumbs.remember(pane.thumbState, row, file, pane.thumbCap)
+        }
+
+        // Sample input: {"t":"handlers","row":2,"apps":[{"name":"Image Viewer","path":"/usr/share/applications/org.gnome.eog.desktop"}],"ms":51.051}
+        // The slot write is ui/js/OpenWith.js's, which drops a late answer for a row the menu left.
+        function onHandlers(row, apps) {
+            if (!pane.listInFlight)
+                OpenWith.answered(pane, row, apps)
         }
 
         // A dirsized line for the previous listing is still in the pipe when open() clears the map.

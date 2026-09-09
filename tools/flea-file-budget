@@ -32,9 +32,12 @@ while IFS= read -r file; do
         continue ;;
     esac
     # 0.1.6: four files at the cap took 2 to 6 lines each from the view fixes of 2026-09-07 (overlay sinks, the column player in its frame, the per-view IPC readers, the columns thumbnail relay); a split for a count is not owed, see AGENTS.md "File budget".
+    # ui/Pane.qml then took the issue-52 openwith seam (one menu binding, one chosen-prefix arm, one
+    # launch delegate and the ask beside openCursorMenu), which is listed separately because a
+    # feature growth on an exception file is not the same fact as the merge arithmetic that made it one.
     case "$file" in
       */ui/NetworkDialog.qml|*/ui/Ipc.qml|*/ui/Pane.qml|*/ui/PreviewColumn.qml|ui/NetworkDialog.qml|ui/Ipc.qml|ui/Pane.qml|ui/PreviewColumn.qml)
-        echo "KNOWN CAP EXCEPTION  $file: $lines lines, cap $hard (0.1.6 view fixes)"
+        echo "KNOWN CAP EXCEPTION  $file: $lines lines, cap $hard (0.1.6 view fixes + issue-52 openwith)"
         continue ;;
     esac
     echo "OVER CAP  $file: $lines lines, cap $hard"

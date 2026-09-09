@@ -6,6 +6,7 @@ use crate::backend::archive::Formats;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
 use crate::backend::peek::peek_line;
+use crate::backend::apps;
 use crate::backend::metareq::spawn as spawn_meta;
 use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, Ops};
 use crate::backend::opsreq::OpMsg;
@@ -291,6 +292,20 @@ fn handle_line(
             if row < st.listing.len() {
                 let want = if archive { Some(Arc::clone(&tb.formats)) } else { None };
                 spawn_meta(row, st.base.join(st.listing.name(row)), text, media, want, ops.tx.clone())
+            }
+        }
+        // The applications one row can be opened with. A directory navigates instead of opening, so
+        // it answers an empty list on the spot, and so does a name no glob matched; both cost the
+        // client its one line, so a slot asked and never answered cannot strand the row.
+        Request::Handlers { row } => {
+            let t = Instant::now();
+            if row < st.listing.len() {
+                let name = st.listing.name(row);
+                let mime = if st.listing.is_dir(row) { None } else { tb.mime.lookup(name).map(|m| tb.aliases.canonical(m).to_string()) };
+                match mime {
+                    Some(mime) => apps::spawn(row, mime, ops.tx.clone()),
+                    None => say(out, &apps::handlers_line(row, &[], since(t))),
+                }
             }
         }
         Request::Paths { rows } =>

@@ -334,7 +334,7 @@ mod tests {
             let read = from_file(bad);
             let fell_back = read
                 .get("menu").and_then(|m| m.get("hidden")).and_then(Json::as_array).expect("menu.hidden");
-            assert_eq!(fell_back.len(), 8, "{} must cost the key its own default", bad);
+            assert_eq!(fell_back.len(), 7, "{} must cost the key its own default", bad);
         }
     }
 

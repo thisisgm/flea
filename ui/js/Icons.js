@@ -152,7 +152,10 @@ var PATHS = {
     "copy": "M9 8h12v13H9z M4 16V3h13",
     "clipboard": "M9 2h6v4H9z M6 4H3v18h18V4h-3 M8 12h8 M8 16h5",
     // The Keys section's rail mark: the key caps are the same zero-length-line dots the list mark uses.
-    "keyboard": "M2 6h20v12H2z M6 10L6.01 10 M10 10L10.01 10 M14 10L14.01 10 M18 10L18.01 10 M8 14h8"
+    "keyboard": "M2 6h20v12H2z M6 10L6.01 10 M10 10L10.01 10 M14 10L14.01 10 M18 10L18.01 10 M8 14h8",
+    // The Open With row's own mark, lucide app-window with its baked rx=2 corner arcs cut square;
+    // the title bar and the two window buttons are lucide's own.
+    "app-window": "M2 4h20v16H2z M2 8h20 M6 4v4 M10 4v4"
 }
 
 function pathFor(name) {

@@ -9,6 +9,7 @@ import "js/Search.js" as Search
 import "js/Archive.js" as Archive
 import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
+import "js/OpenWith.js" as OpenWith
 import "js/Selection.js" as Selection
 import "js/Sort.js" as Sort
 import "js/Thumbs.js" as Thumbs
@@ -370,11 +371,13 @@ FocusScope {
         canConvert: root.backend.canConvert
         rowIsArchive: root.cursorRow !== null && !root.cursorRow.d && Archive.isArchive(root.cursorRow.n)
         rowIsImage: root.cursorRow !== null && root.cursorRow.i === "image-x-generic"
+        openWithApps: wire.openWithApps
         dropboxPath: sidebar.dropboxReady ? root.home + "/Dropbox" : ""
         // The separator is part of the test, or /home/gm/DropboxBackup would count as inside Dropbox.
         rowInDropbox: root.path === root.home + "/Dropbox" || root.path.indexOf(root.home + "/Dropbox/") === 0
         onChosen: function (action) {
             if (action.indexOf("taildrop:") === 0) { root.sendTaildrop(action.substring("taildrop:".length)); return }
+            if (action.indexOf("openwith:") === 0) { root.openWith(action.substring("openwith:".length)); return }
             if (action === "copypath") { wire.opener.copyText(root.path + "/" + root.cursorRow.n); return }
             if (action.indexOf("col:") === 0) { ViewState.toggleColumn(action.substring("col:".length)); return }
             root.act(action)
@@ -391,8 +394,19 @@ FocusScope {
     function copyShareLink() { wire.shareLink.copy(root.join(root.path, root.cursorRow ? root.cursorRow.n : "")) }
     function sendTaildrop(peerId) { Ops.sendTaildrop(root, wire.taildrop, peerId) }
 
-    // The keyboard's own entrance to the row menu; the placement itself is ui/js/Menu.js's.
-    function openCursorMenu() { return Menu.openAtCursor(root, menu, Theme.spacing.rowPaddingX) }
+    // The keyboard's own entrance to the row menu; the placement itself is ui/js/Menu.js's. The
+    // Open with ask goes first, so its answer is in flight while the menu opens; the pointer's
+    // entrance asks the same way inside ui/js/Tap.js.
+    function openCursorMenu() {
+        OpenWith.ask(root)
+        return Menu.openAtCursor(root, menu, Theme.spacing.rowPaddingX)
+    }
+
+    // The Open with flyout's chosen entry: one launch of the picked application, and nothing
+    // written anywhere, which is what makes it an override rather than a default.
+    function openWith(desktop) {
+        wire.opener.openWith(root.join(root.path, root.cursorRow ? root.cursorRow.n : ""), desktop)
+    }
 
     Flea.StateMessage {
         anchors.fill: root.listSlot

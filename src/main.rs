@@ -169,6 +169,15 @@ fn main() {
         usage("--terminal takes one directory");
     }
 
+    // flea --openwith <path> <desktop entry>: the context menu's one-off override, which launches
+    // the picked application and writes no default anywhere; see AGENTS.md "Opening a file".
+    if args.len() == 4 && args[1] == "--openwith" {
+        exit(open::open_with(&args[2], &args[3]));
+    }
+    if args.get(1).map(String::as_str) == Some("--openwith") {
+        usage("--openwith takes a file and a desktop entry");
+    }
+
     // flea --default [off]: both per-user steps pacman cannot own, see docs/install.md.
     if args.len() == 2 && args[1] == "--default" {
         exit(claim_both());
