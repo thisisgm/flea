@@ -800,6 +800,29 @@ gets the same chooser.
   `ui/PickerList.qml` hands `Row` `Picker.HIDDEN_COLS` and the chooser never inherits Mode or Kind
   from `ViewState`, whatever the header menu has switched on for the browser window.
 
+**Filters, and whose they are.** The chip row draws the caller's filters when it sent any, with
+All files after them, and the caller's `current_filter` or its first filter active: an application
+that sent filters sees exactly the dialog it asked for, and no pill it did not send. Most callers
+send none, so a chooser with no chips at all was the common case; for those,
+`ui/PickerFilters.qml` reads `$XDG_CONFIG_HOME/flea/filters.toml` (`~/.config` when the session set
+no config home) once at start, blocking like `ui/ViewState.qml` so the first frame has the row, and
+`Picker.chips` draws All files first and active, then one pill per `[[filter]]` table, so nothing is
+hidden the caller did not ask to hide. `ui/js/PickerFilters.js` is the parser, a line scanner in
+the spirit of `ui/js/Palette.js` and not a TOML reader: `globs` is required and a table without one
+is skipped, `name` and `mimes` are optional, and a table without a name is labelled by extension the
+Windows way, `.jpg (.jpg, .jpeg)`. Nothing ships a default file, because a default pill is a filter
+the user never wrote. The example every reader should be able to write from:
+
+```toml
+[[filter]]
+globs = ["*.jpg", "*.jpeg"]
+mimes = ["image/*"]
+
+[[filter]]
+name = "Documents"
+globs = ["*.doc", "*.docx", "*.odt"]
+```
+
 **Recent, and why it is read-only.** `SendPicker.html` draws a Recent row above Home in the rail,
 says the location's own name where the path would be, and draws Parent disabled with the words
 "unavailable in Recent". The history it lists is the desktop's own,

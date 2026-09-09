@@ -1,6 +1,7 @@
 import Quickshell
 import QtQuick
 import qs.Commons
+import "." as Flea
 import "js/Picker.js" as Picker
 import "js/PickerMarks.js" as Marks
 
@@ -38,9 +39,13 @@ QtObject {
     property var marks: []
     // The listing row the last Space or Ctrl+click toggled, where a Shift+click's range starts.
     property int markAnchor: -1
-    // Which chip is active: an index into the caller's filters, or -1 for All files.
+    // The user's own pills, from ~/.config/flea/filters.toml, drawn only for a caller that sent none.
+    readonly property var config: Flea.PickerFilters {}
+    readonly property var filters: Picker.filterList(root.req, root.config.filters)
+    readonly property var chips: Picker.chips(root.req, root.config.filters)
+    // Which chip is active: an index into filters, or -1 for All files.
     property int filterIndex: Picker.currentChip(root.req)
-    readonly property var filter: root.filterIndex >= 0 ? root.req.filters[root.filterIndex] : null
+    readonly property var filter: root.filterIndex >= 0 ? root.filters[root.filterIndex] : null
     readonly property var shown: Picker.shownRows(root.rows, root.held, root.filter)
     readonly property int shownTotal: root.shown === null ? root.total : root.shown.length
 
