@@ -17,22 +17,23 @@ const FETCH_FALLBACK_LEAF: &str = "download";
 // Two fetches in one process must not share a dir, and the crate takes no dependency to name one.
 static FETCH_SEQ: AtomicU64 = AtomicU64::new(0);
 
-pub fn picker_cache_dir() -> PathBuf {
-    cache_root(std::env::var_os("XDG_CACHE_HOME"), std::env::var_os("HOME")).join(PICKER_CACHE_DIR)
+pub fn picker_cache_dir() -> Option<PathBuf> {
+    cache_root(std::env::var_os("XDG_CACHE_HOME"), std::env::var_os("HOME")).map(|root| root.join(PICKER_CACHE_DIR))
 }
 
 // The XDG rule thumbcache::default_root follows: an empty XDG_CACHE_HOME is unset, HOME/.cache is next.
-fn cache_root(xdg: Option<OsString>, home: Option<OsString>) -> PathBuf {
+// No /tmp fallback: a shared, predictable dir is where another user can plant a download.
+fn cache_root(xdg: Option<OsString>, home: Option<OsString>) -> Option<PathBuf> {
     xdg.map(PathBuf::from)
         .filter(|p| !p.as_os_str().is_empty())
         .or_else(|| home.map(|h| PathBuf::from(h).join(HOME_CACHE_DIR)))
-        .unwrap_or_else(|| PathBuf::from("/tmp"))
 }
 
 // A fresh dir under the picker cache, joined with the URL's leaf: one dir per fetch, so two downloads
 // of the same name never collide. The fetch request (backend/fetchreq.rs) downloads into it.
 pub fn fetch_dest(leaf: &str) -> io::Result<PathBuf> {
-    fetch_dest_in(&picker_cache_dir(), leaf)
+    let root = picker_cache_dir().ok_or_else(|| io::Error::other("no cache directory: set XDG_CACHE_HOME or HOME"))?;
+    fetch_dest_in(&root, leaf)
 }
 
 fn fetch_dest_in(root: &Path, leaf: &str) -> io::Result<PathBuf> {
@@ -78,7 +79,9 @@ fn safe_leaf(leaf: &str) -> String {
 // to refuse a chooser.
 pub fn sweep_picker_cache() {
     let cutoff = SystemTime::now().checked_sub(PICKER_CACHE_KEEP).unwrap_or(UNIX_EPOCH);
-    sweep_older_than(&picker_cache_dir(), cutoff);
+    if let Some(dir) = picker_cache_dir() {
+        sweep_older_than(&dir, cutoff);
+    }
 }
 
 // Removes every subdir whose mtime is before the cutoff. Only dirs: a stray file is not this module's.
@@ -107,11 +110,12 @@ mod tests {
     #[test]
     fn the_picker_cache_follows_xdg_cache_home_then_home() {
         let d = |s: &str| Some(OsString::from(s));
-        assert_eq!(cache_root(None, d("/home/u")), PathBuf::from("/home/u/.cache"));
-        assert_eq!(cache_root(d(""), d("/home/u")), PathBuf::from("/home/u/.cache"));
-        assert_eq!(cache_root(d("/var/cache/u"), d("/home/u")), PathBuf::from("/var/cache/u"));
-        assert_eq!(cache_root(None, None), PathBuf::from("/tmp"));
-        assert!(picker_cache_dir().ends_with("flea/picker"));
+        assert_eq!(cache_root(None, d("/home/u")), Some(PathBuf::from("/home/u/.cache")));
+        assert_eq!(cache_root(d(""), d("/home/u")), Some(PathBuf::from("/home/u/.cache")));
+        assert_eq!(cache_root(d("/var/cache/u"), d("/home/u")), Some(PathBuf::from("/var/cache/u")));
+        // Neither set is no cache at all, never a shared /tmp another user can seed.
+        assert_eq!(cache_root(None, None), None);
+        assert!(picker_cache_dir().is_some_and(|p| p.ends_with("flea/picker")));
     }
 
     #[test]
