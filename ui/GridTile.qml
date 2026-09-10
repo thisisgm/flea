@@ -16,6 +16,8 @@ Item {
     property bool dropTarget: false
     property bool dropCopying: false
     property string thumb: ""
+    // The first d of the pair landed and the second would take this tile; GridArea.qml's delegate binds it through Trash.targeted.
+    property bool armed: false
     property bool renaming: false
     property var renamePane: null
     readonly property string editorText: editor.current
@@ -26,7 +28,7 @@ Item {
     function commitEditor() { return editor.commit() }
 
     // A lifted tile is the cursor, the pointer or a selection member, the same ladder Row.qml climbs.
-    readonly property bool lifted: root.cursor || root.hovered || root.selected
+    readonly property bool lifted: root.cursor || root.hovered || root.selected || root.armed
     // A thumbnail path is not a thumbnail: the cache file can be evicted between the pane's answer
     // and the decode, and a tile whose Image failed to load has to be marked by its kind instead.
     readonly property bool thumbDrawn: root.thumb.length > 0 && tileThumb.status !== Image.Error
@@ -41,13 +43,16 @@ Item {
     Rectangle {
         anchors.fill: parent
         anchors.margins: Theme.spacing.hairline
-        color: root.cursor ? Style.selectedAccentFill
+        // An armed tile takes the error role over the whole ladder, the same frame Row.qml draws
+        // over an armed row: the outline is the only edge a tile has to carry it.
+        color: root.armed ? Util.alpha(Theme.color.error, Style.hoverFillAlpha)
+             : root.cursor ? Style.selectedAccentFill
              : root.selected ? Style.selectionFill
              : root.hovered ? Style.hoverFill
              : "transparent"
         // Only the cursor gets a frame; marked tiles retain their separate fill.
-        border.width: root.cursor ? Theme.spacing.hairline : 0
-        border.color: Theme.color.accent
+        border.width: root.cursor || root.armed ? Theme.spacing.hairline : 0
+        border.color: root.armed ? Theme.color.error : Theme.color.accent
     }
 
     Rectangle {
@@ -90,7 +95,7 @@ Item {
             name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : "file"
             // ThemeRoles.dc.html gives accent the selection fill and edge and foreground the label
             // and the mark inside it, so the border carries the emphasis and the ink stays readable.
-            color: root.cursor || root.selected ? Theme.color.foreground : Theme.color.muted
+            color: root.armed ? Theme.color.error : root.cursor || root.selected ? Theme.color.foreground : Theme.color.muted
         }
     }
 
@@ -109,7 +114,7 @@ Item {
         height: root.dropTarget ? Theme.grid.captionLineHeight : Theme.grid.captionHeight
         horizontalAlignment: Text.AlignHCenter
         text: root.row ? root.row.n : ""
-        color: Theme.color.foreground
+        color: root.armed ? Theme.color.error : Theme.color.foreground
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
         textFormat: Text.PlainText

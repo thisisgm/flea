@@ -170,6 +170,8 @@ function trash(pane, menuId) {
     if (idx.length === 0) {
         return
     }
+    // The reply lands the cursor on this row: the one asked for, not wherever the cursor is by then.
+    pane.trashedFirst = idx[0]
     pane.backend.trash(idx, menuId)
 }
 

@@ -5,6 +5,7 @@ import "js/Filter.js" as Filter
 import "js/Focus.js" as Focus
 import "js/Tap.js" as Tap
 import "js/Thumbs.js" as Thumbs
+import "js/Trash.js" as Trash
 
 // The grid view. Same rows, same marks, same thumbnails as the list; only the geometry differs, so
 // the viewport maths is the list's own with a tile row standing in for a text row.
@@ -95,6 +96,7 @@ GridView {
         cursor: listingIndex === root.pane.cursorIndex
         hovered: hover.hovered
         selected: root.pane.isSelected(listingIndex)
+        armed: root.pane.trashArmedAt > 0 && Trash.targeted(root.pane, listingIndex)
         dropTarget: dragSession.dropIndex >= 0 && listingIndex === dragSession.dropIndex
         dropCopying: dragSession.dragCopy
         thumb: Thumbs.allowed(row, ViewState.thumbnailMode) ? Thumbs.fileFor(root.pane.thumbState, listingIndex) : ""

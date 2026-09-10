@@ -13,6 +13,7 @@ import "js/Ops.js" as Ops
 import "js/Selection.js" as Selection
 import "js/Sort.js" as Sort
 import "js/Thumbs.js" as Thumbs
+import "js/Trash.js" as Trash
 
 FocusScope {
     id: root
@@ -22,6 +23,8 @@ FocusScope {
     property string path: ""
     // Set once by shell.qml from FLEA_SELECT; applied to the first `rows` this pane receives, then forgotten.
     property string pendingSelect: ""
+    // The listing row the next rows reply puts the cursor back on, or -1; ui/js/Nav.js's refresh sets it so a re-read lands where the operator was, not at the top.
+    property int pendingCursor: -1
     // Set with pendingSelect by a right click on a peeked column row: the menu opens on the row once it is the cursor.
     property bool pendingMenu: false
     property int total: 0
@@ -33,8 +36,13 @@ FocusScope {
     property bool showHidden: ViewState.state.hidden === true
     // Issue 27's state-file key: with it on a cursor step past an end comes round; ui/js/Focus.js step is the only reader.
     readonly property bool wrapAtEnds: ViewState.state.wrapAtEnds === true
-    // When the first d of the dd pair landed; ui/js/Focus.js reads it and Nav's reset clears it.
+    // When the first d of the dd pair landed; ui/js/Focus.js reads it, Nav's reset clears it, and the rows it names tint until the clock below runs out.
     property double trashArmedAt: 0
+    // The first index a trash request went out with, or -1; ui/js/Ops.js writes it and onTrashed in ui/PaneWire.qml reads it once, so a cursor moved while the backend worked does not decide where it lands.
+    property int trashedFirst: -1
+    // The clock is driven from the stamp's change rather than bound to it: a fresh stamp over a stale one keeps a bound running true, and the old deadline would clear the new arm.
+    Timer { id: armClock; interval: Trash.ARM_MS; onTriggered: root.trashArmedAt = 0 }
+    onTrashArmedAtChanged: trashArmedAt > 0 ? armClock.restart() : armClock.stop()
     property string keySequence: ""
     property string keySequenceIdentity: ""
     // "" off, "typing" while the query line has the keyboard, "results" once a walk was asked for; ui/js/Search.js owns every transition.
