@@ -31,6 +31,12 @@ Item {
             root.picker.say(root.navigate.refusal(url.reason))
             return
         }
+        // Refused before the rest is replaced: the resolver refuses a second line on its own, but
+        // by then the first line's answer would join on the second line's rest.
+        if (resolver.busy()) {
+            root.picker.say(ShareUrl.BUSY, true)
+            return
+        }
         root._rest = url.rest
         // Held rather than timed: the legs can take their whole deadline, and the footer says so
         // until they answer.

@@ -98,21 +98,35 @@ function labelFor(filter) {
     return exts[0] + " (" + exts.join(", ") + ")"
 }
 
-// Sample input: "*.tar.gz" becomes /^.*\.tar\.gz$/i. Every other character is taken literally, so a
-// filename with a bracket in it cannot turn the caller's glob into a character class.
-function globToRegExp(glob) {
-    var out = ""
-    for (var i = 0; i < glob.length; i++) {
-        var c = glob.charAt(i)
-        if (c === "*") {
-            out += ".*"
-        } else if (c === "?") {
-            out += "."
+// Whether one glob matches the name, case aside: "*" is any run, "?" is one character, and every
+// other character is itself, so a bracket in a glob is never a character class. Two pointers that
+// return to the last star, never a RegExp: the glob is the portal caller's, and one like
+// "*a*a*a*a*b" backtracks a RegExp exponentially on a name it misses, once per row on the UI thread.
+function matchesGlob(name, glob) {
+    var n = String(name).toLowerCase()
+    var g = String(glob).toLowerCase()
+    var i = 0
+    var j = 0
+    var star = -1
+    var mark = 0
+    while (i < n.length) {
+        if (j < g.length && (g.charAt(j) === "?" || g.charAt(j) === n.charAt(i))) {
+            i++
+            j++
+        } else if (j < g.length && g.charAt(j) === "*") {
+            star = j++
+            mark = i
+        } else if (star >= 0) {
+            j = star + 1
+            i = ++mark
         } else {
-            out += c.replace(/[.\\+^$[\]{}()|\/-]/g, "\\$&")
+            return false
         }
     }
-    return new RegExp("^" + out + "$", "i")
+    while (j < g.length && g.charAt(j) === "*") {
+        j++
+    }
+    return j === g.length
 }
 
 // Any glob matching the name; no globs at all is no glob leg.
@@ -121,7 +135,7 @@ function matchesGlobs(name, globs) {
         return true
     }
     for (var i = 0; i < globs.length; i++) {
-        if (globToRegExp(String(globs[i])).test(name)) {
+        if (matchesGlob(name, globs[i])) {
             return true
         }
     }
@@ -140,24 +154,27 @@ function iconClass(icon) {
 }
 
 // Any mime rule the icon can confirm; no rules at all is no mime leg. A class rule like image/*
-// matches by class, */* matches everything, and an exact subtype like image/jpeg is unmatched,
-// because no row can confirm it. An optional per-row "y" mime field computed in
-// src/backend/rows.rs would lift that, at a wire cost per row the hot path refuses.
+// matches by class and */* matches everything. An exact subtype like image/jpeg does not narrow:
+// no row can confirm it, so a filter of exact subtypes alone hides nothing rather than every file.
+// An optional per-row "y" mime field computed in src/backend/rows.rs would lift that, at a wire
+// cost per row the hot path refuses.
 function matchesMimes(icon, mimes) {
     if (!Array.isArray(mimes) || mimes.length === 0) {
         return true
     }
     var cls = iconClass(icon)
+    var confirmable = false
     for (var i = 0; i < mimes.length; i++) {
         var parts = String(mimes[i]).split("/")
         if (parts.length !== 2 || parts[1] !== "*") {
             continue
         }
+        confirmable = true
         if (parts[0] === "*" || (cls !== "" && parts[0] === cls)) {
             return true
         }
     }
-    return false
+    return !confirmable
 }
 
 // Whether a listing row stands under a filter: globs on the name AND mime rules on the icon class,

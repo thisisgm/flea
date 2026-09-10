@@ -59,9 +59,13 @@ function run(check) {
     check("a glob matches whatever the case is", Filters.matchesGlobs("SHOT.PNG", ["*.png"]), true)
     check("a name outside the globs does not match", Filters.matchesGlobs("notes.md", ["*.png"]), false)
     check("no globs is no glob leg", Filters.matchesGlobs("notes.md", []), true)
-    check("a bracket in a glob is literal", Filters.globToRegExp("a[b].png").test("a[b].png"), true)
-    check("a bracket glob does not become a character class", Filters.globToRegExp("a[b].png").test("ab.png"), false)
-    check("a question mark is one character", Filters.globToRegExp("a?.png").test("ab.png"), true)
+    check("a bracket in a glob is literal", Filters.matchesGlobs("a[b].png", ["a[b].png"]), true)
+    check("a bracket glob does not become a character class", Filters.matchesGlobs("ab.png", ["a[b].png"]), false)
+    check("a question mark is one character", Filters.matchesGlobs("ab.png", ["a?.png"]), true)
+    check("a two part suffix matches", Filters.matchesGlobs("a.tar.gz", ["*.tar.gz"]), true)
+    check("and nothing past it", Filters.matchesGlobs("a.tar.gzx", ["*.tar.gz"]), false)
+    check("a star-heavy glob misses a long name without blowing up",
+          Filters.matchesGlobs(new Array(61).join("a"), ["*a*a*a*a*a*a*a*a*b"]), false)
 
     // The mime leg: a row knows an icon name, so only the class of a rule can be confirmed.
     var image = { n: "shot.png", d: false, i: "image-x-generic" }
@@ -73,7 +77,10 @@ function run(check) {
     check("image/* does not match a text row", Filters.matchesRow(text, { globs: [], mimes: ["image/*"] }), false)
     check("application/* matches the generic application icon", Filters.matchesRow(pdf, { globs: [], mimes: ["application/*"] }), true)
     check("an office icon confirms no class", Filters.matchesRow(office, { globs: [], mimes: ["application/*"] }), false)
-    check("an exact subtype no row can confirm is unmatched", Filters.matchesRow(image, { globs: [], mimes: ["image/jpeg"] }), false)
+    check("image/* matches a named image icon", Filters.matchesMimes("image-jpeg", ["image/*"]), true)
+    check("an exact subtype no row can confirm does not narrow", Filters.matchesRow(image, { globs: [], mimes: ["image/jpeg"] }), true)
+    check("exact subtypes alone hide nothing", Filters.matchesRow(text, { globs: [], mimes: ["text/plain"] }), true)
+    check("a class rule beside an exact subtype still narrows", Filters.matchesRow(text, { globs: [], mimes: ["text/plain", "image/*"] }), false)
     check("*/* matches every file", Filters.matchesRow(office, { globs: [], mimes: ["*/*"] }), true)
     check("any one rule of several is enough", Filters.matchesRow(text, { globs: [], mimes: ["image/*", "text/*"] }), true)
 

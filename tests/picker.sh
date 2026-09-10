@@ -37,6 +37,8 @@ client=0
 asker=0
 # The loopback http server the typed_url case starts in the fixture, ended with the rest.
 server=0
+# The browser window the dragout case drops on, script-level so a fail before its kill still ends it.
+browser=0
 
 ipc() {
     timeout 5 omarchy-drive ipc -p "$picker_config" fleapicker "$@" 2>/dev/null
@@ -60,6 +62,9 @@ cleanup() {
     fi
     if [[ "$server" != 0 ]] && kill -0 "$server" 2>/dev/null; then
         kill "$server" 2>/dev/null
+    fi
+    if [[ "$browser" != 0 ]] && kill -0 "$browser" 2>/dev/null; then
+        kill "$browser" 2>/dev/null
     fi
     sandbox_remove "$fixture"
 }
@@ -1935,7 +1940,7 @@ case_dragout() {
     make_fixture
     sandbox_make "$fixture/dest"
     command -v ydotool >/dev/null || fail "dragout needs ydotool, the uinput pointer tests/drag.sh drives"
-    local flea browser alpha centre cx cy wx wy bx by bw bh px py mid step
+    local flea alpha centre cx cy wx wy bx by bw bh px py mid step
     flea="$(cd "$(dirname "$0")/.." && pwd)/target/release/flea"
     [[ -x "$flea" ]] || fail "no built flea at $flea"
     export YDOTOOL_SOCKET="${YDOTOOL_SOCKET:-$XDG_RUNTIME_DIR/.ydotool_socket}"
@@ -1948,14 +1953,14 @@ case_dragout() {
         [[ -n "${bx:-}" ]] && break
         sleep 0.2
     done
-    [[ -n "${bx:-}" ]] || { kill "$browser" 2>/dev/null; fail "no browser window came up on $fixture/dest"; }
+    [[ -n "${bx:-}" ]] || fail "no browser window came up on $fixture/dest"
     start_client --multiple
     walk_to_fixture
     alpha=$(row_named alpha.txt)
     centre=$(ipc rowCentre "$alpha")
     read -r cx cy <<< "$centre"
     read -r wx wy < <(omarchy-drive windows --json | jq -r --arg t "$title" '.windows[] | select(.title == $t) | "\(.at[0]) \(.at[1])"')
-    [[ -n "${wx:-}" ]] || { kill "$browser" 2>/dev/null; fail "no window named $title to lift from"; }
+    [[ -n "${wx:-}" ]] || fail "no window named $title to lift from"
     # The warp only places the pointer; the lift and the glide are uinput, which carries frames.
     hyprctl dispatch "hl.dsp.cursor.move({x = $((cx + wx)), y = $((cy + wy))})" >/dev/null; sleep 0.4
     ydotool click 0x40 >/dev/null 2>&1; sleep 0.3
@@ -1974,6 +1979,7 @@ case_dragout() {
     ydotool click 0x80 >/dev/null 2>&1; sleep 0.8
     for step in $(seq 1 40); do [[ -e "$fixture/dest/alpha.txt" ]] && break; sleep 0.25; done
     kill "$browser" 2>/dev/null
+    browser=0
     [[ "$mid" == "$alpha|Copy 1 item to a folder" ]] || fail "mid-drag the seam read [$mid], not [$alpha|Copy 1 item to a folder]"
     [[ -e "$fixture/dest/alpha.txt" ]] || fail "the row never landed in $fixture/dest"
     cmp -s "$fixture/alpha.txt" "$fixture/dest/alpha.txt" || fail "the landed file differs from alpha.txt"

@@ -104,10 +104,10 @@ function run(check) {
     check("a dot is not any character", Picker.matchesFilter(file("axpng"), { globs: ["*.png"] }), false)
     check("a question mark is one character", Picker.matchesFilter(file("ab.png"), { globs: ["a?.png"] }), true)
     // Mime rules narrow by the class the icon name confirms; an exact subtype no row can confirm
-    // is unmatched, so the caller's text/plain rule lets no file through.
+    // does not narrow, so the caller's text/plain rule hides no file rather than every file.
     check("a class rule matches an image row", Picker.matchesFilter(file("shot.png", "image-x-generic"), { globs: [], mimes: ["image/*"] }), true)
     check("a class rule does not match a text row", Picker.matchesFilter(file("notes.md"), { globs: [], mimes: ["image/*"] }), false)
-    check("an exact subtype rule does not falsely match", Picker.matchesFilter(file("notes.txt"), req.filters[1]), false)
+    check("an exact subtype rule alone does not narrow", Picker.matchesFilter(file("notes.txt"), req.filters[1]), true)
     check("globs plus mimes narrow to the intersection", Picker.matchesFilter(file("shot.png"), { globs: ["*.png"], mimes: ["image/*"] }), false)
     check("a directory stands under every filter", Picker.matchesFilter({ n: "sub", d: true, i: "folder" }, req.filters[1]), true)
 

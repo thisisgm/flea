@@ -70,8 +70,11 @@ function classify(text, current, home) {
         return refused("scheme")
     }
     rest = rest.substring(2)
-    // A URL with nothing after its slashes names no host; "file://" alone is the root and stays.
-    if (rest.length === 0 && scheme !== "file") {
+    // The authority is what stands before the first "/", "?" or "#". A URL with none names no host,
+    // so "http:///file" is refused with "http://"; "file://" alone is the root and stays.
+    var stop = rest.search(/[\/?#]/)
+    var authority = stop < 0 ? rest : rest.substring(0, stop)
+    if (authority.length === 0 && scheme !== "file") {
         return refused("host")
     }
     if (scheme === "file") {

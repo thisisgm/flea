@@ -44,12 +44,18 @@ Item {
         .concat(Places.favorites(root.home, root.dirsText, root.marksText, Icons.sidebarGlyphFor))
 
     // Clamped on the aggregate, ui/Sidebar.qml's own rule: a bookmarks file read after the cursor
-    // sat past its end would leave it on a row the rail does not draw.
-    onEntriesChanged: root.cursorIndex = Math.max(0, Math.min(root.entries.length - 1, root.cursorIndex))
+    // sat past its end would leave it on a row the rail does not draw. Then seated again: the two
+    // files load after the first current, so the place it names is only found once they land.
+    onEntriesChanged: {
+        root.cursorIndex = Math.max(0, Math.min(root.entries.length - 1, root.cursorIndex))
+        root.syncCursor()
+    }
+
+    onCurrentChanged: root.syncCursor()
 
     // The cursor rests on the place the list is standing in, so the rail still says where you are;
     // a folder outside every place leaves the cursor where it was rather than nowhere.
-    onCurrentChanged: {
+    function syncCursor() {
         for (var i = 0; i < root.entries.length; i++) {
             if (root.entries[i].path === root.current) {
                 root.cursorIndex = i
