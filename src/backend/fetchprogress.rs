@@ -50,7 +50,7 @@ pub fn read_progress(out: impl Read, mut report: impl FnMut(u64, u64)) {
             let Some((bytes, total)) = parse_progress(&String::from_utf8_lossy(&segment)) else {
                 continue;
             };
-            if last.is_none_or(|t| t.elapsed() >= PROGRESS_EVERY) {
+            if !last.is_some_and(|t| t.elapsed() < PROGRESS_EVERY) {
                 report(bytes, total);
                 last = Some(Instant::now());
             }
