@@ -4,7 +4,7 @@
 // flag: the client is given the icon name and never the MIME type, so this is the whole mechanism.
 
 // Longest form first, so ".tar.gz" is matched before ".gz" could be.
-var EXTENSIONS = [".tar.zst", ".tar.bz2", ".tar.gz", ".tar.xz", ".tgz", ".tar", ".zip", ".7z"]
+var EXTENSIONS = [".tar.zst", ".tar.bz2", ".tar.gz", ".tar.xz", ".tgz", ".tar", ".zip", ".7z", ".rar"]
 
 function isArchive(name) {
     var lower = String(name).toLowerCase()

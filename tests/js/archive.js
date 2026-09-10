@@ -6,16 +6,16 @@ function run(check) {
           Archive.isArchive("backup.tar.gz") + "|" + Archive.extractDir("backup.tar.gz"),
           "true|backup")
     check("every form the table names is an archive",
-          [".zip", ".7z", ".tgz", ".tar", ".tar.xz", ".tar.zst", ".tar.bz2"].map(function (e) {
+          [".zip", ".7z", ".rar", ".tgz", ".tar", ".tar.xz", ".tar.zst", ".tar.bz2"].map(function (e) {
               return Archive.isArchive("x" + e)
           }).join(","),
-          "true,true,true,true,true,true,true")
+          "true,true,true,true,true,true,true,true")
     check("and nothing else is",
           Archive.isArchive("notes.txt") + "|" + Archive.isArchive("x.zipper") + "|" + Archive.isArchive("zip"),
           "false|false|false")
     check("an extract unpacks into the archive's own name with the extension taken off",
-          Archive.extractDir("photos.zip") + "|" + Archive.extractDir("backup.tar.zst"),
-          "photos|backup")
+          Archive.extractDir("photos.zip") + "|" + Archive.extractDir("backup.tar.zst") + "|" + Archive.extractDir("movie.rar"),
+          "photos|backup|movie")
     check("a name with no archive extension is its own directory name",
           Archive.extractDir("plain"), "plain")
 
