@@ -21,7 +21,7 @@ Item {
     signal transferProgress(int id, int index, string name, real bytes, real total)
     signal transferItem(int id, int index, string name, bool ok, string err)
     signal transferDone(int id, int ok, int failed, int skipped, bool cancelled)
-    signal trashed(int ok, int failed)
+    signal trashed(int ok, int failed, var kept)
     signal renamed(bool ok, string path)
     signal made(bool ok, string path)
     signal duplicated(bool ok, string path)
@@ -35,6 +35,7 @@ Item {
     // readFailed tells a zero-row answer apart from an empty directory; mode is that directory's own, 0 when the stat failed too.
     // hidden is the flag the request carried, echoed by the backend: two clients peek this wire, so path alone does not say whose reply this is.
     signal peeked(string path, bool hidden, int total, var rows, bool readFailed, int mode)
+    signal located(string path, int index)
     signal archiveStarted(int id)
     signal archiveDone(int id, bool ok, bool verified, string err)
     signal convertStarted(int id)
@@ -53,9 +54,8 @@ Item {
 
     readonly property bool running: child.running
 
-    // What order the listing is in, or is about to be in, which is what ui/Header.qml's mark draws.
-    // list sets it to the stored order and ui/PaneWire.qml sorts the fresh scan into it; an accepted
-    // sort moves it through ui/js/Sort.js, the one place that knows which keys are accepted.
+    // The order the listing is in or is about to be in, which ui/Header.qml's mark draws. list sets the
+    // stored order, ui/PaneWire.qml sorts the fresh scan into it, and ui/js/Sort.js alone knows the keys.
     property string sortBy: "name"
     property bool sortDesc: false
 
@@ -181,6 +181,9 @@ Item {
         root.send({ c: "peek", path: path, first: first, hidden: hidden })
     }
 
+    // Where a path sits in the listing under the sort in force, -1 when no row has it; changes nothing, see docs/protocol.md "locate".
+    function locate(path) { root.send({ c: "locate", path: path }) }
+
     function askFormats() {
         root.send({ c: "formats" })
     }
@@ -303,7 +306,7 @@ Item {
         } else if (message.t === "transferdone") {
             root.transferDone(message.id, message.ok, message.failed, message.skipped, message.cancelled)
         } else if (message.t === "trashed") {
-            root.trashed(message.ok, message.failed)
+            root.trashed(message.ok, message.failed, message.kept || [])
         } else if (message.t === "renamed") {
             root.renamed(message.ok, message.path)
         } else if (message.t === "made") {
@@ -322,6 +325,8 @@ Item {
             root.changed(message.path || "")
         } else if (message.t === "peeked") {
             root.peeked(message.path, message.hidden === true, message.n, message.rows || [], message.failed === true, message.mode || 0)
+        } else if (message.t === "located") {
+            root.located(message.path, message.index)
         } else if (message.t === "formats") {
             root.archiveFormats = message.archive || []
             root.canConvert = message.convert === true

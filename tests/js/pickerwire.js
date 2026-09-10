@@ -112,9 +112,12 @@ function run(check) {
     check("a failed trash still spends its pending snapshot", s.trashPending.length, 0)
     check("and says so in the error role", s.said.join("|") + ":" + s.errors[0], "That item could not be moved to Trash.:true")
     check("and still re-reads", s.relisted, "/d")
-    s = stubState({ trashPending: ["/d/a.png", "/d/c.png"] })
-    Wire.trashed(s, 1, 1)
+    s = stubState({ marks: [{ path: "/d/a.png", bytes: 10 }, { path: "/d/c.png", bytes: 30 }],
+                    trashPending: ["/d/a.png", "/d/c.png"] })
+    Wire.trashed(s, 1, 1, ["/d/c.png"])
     check("a partial trash failure is still an error", s.errors[0], true)
+    check("and the row that stayed keeps its mark", Picker.paths(s.marks).join(","), "/d/c.png")
+    check("and the row that went loses it", Picker.paths(s.marks).indexOf("/d/a.png"), -1)
 
     // ---- renamed, made, duplicated, undone: each re-read seats the path the write produced ----
     s = stubState({ renameFromPath: "/d/c.png", renameListingPath: "/d",
@@ -206,17 +209,19 @@ function run(check) {
     check("a refused follow-up sort releases the debt and falls back to name ascending",
           s.resortOwed + ":" + s.backend.sortBy + ":" + s.backend.sortDesc + ":" + s.listingState, "false:name:false:ready")
     check("without asking for anything: the window sent beside the sort still answers", s.backend.sent.length, 0)
-    s = stubState({ renameOnArrival: "/d/sub", transfer: Ops.started(3, false, 1) })
+    s = stubState({ renameOnArrival: "/d/sub", resortOwed: true, transfer: Ops.started(3, false, 1) })
     Wire.failed(s, "scan", "permission denied")
     check("a scan failure says the backend's own line", s.said.join("|"), "permission denied")
     check("and empties the listing", s.listingState, "empty")
     check("and drops the armed editor", s.renameOnArrival, "")
+    check("and releases a sort still owed, so the next rows are taken", s.resortOwed, false)
     check("a scan failure leaves a running transfer alone", s.transfer.id, 3)
-    s = stubState({ transfer: Ops.started(3, false, 1) })
+    s = stubState({ resortOwed: true, transfer: Ops.started(3, false, 1) })
     Wire.failed(s, "read", "")
     check("a backend that stopped ends the transfer", s.transfer.id, 0)
     check("and clears the transfer's sticky line", s.stuck[s.stuck.length - 1], "")
     check("and empties the listing", s.listingState, "empty")
+    check("and releases a sort still owed", s.resortOwed, false)
     s = stubState({ renameOnArrival: "/d/sub", renameFromPath: "/d/c.png",
                     renameListingPath: "/d", renamePointerPath: "/d/d.txt" })
     Wire.failed(s, "rename", "File exists")

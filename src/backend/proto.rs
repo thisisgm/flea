@@ -36,6 +36,8 @@ pub enum Request {
     FsInfo,
     // A read-only look at a directory that is not the current listing; the columns view's ancestors.
     Peek { path: String, first: usize, hidden: bool },
+    // Which row of the current listing, under whatever sort is in force, a typed path names.
+    Locate { path: String },
     // op is "compress" or "extract"; a compress names paths and a format, an extract names one path.
     Archive { op: String, paths: Vec<String>, path: String, dest: String, format: String },
     Convert { path: String, dest: String, strip: bool },
@@ -113,6 +115,7 @@ pub fn parse_request(line: &str) -> Request {
             first: field_usize(line, "first").unwrap_or(0),
             hidden: field_bool(line, "hidden"),
         },
+        Some("locate") => Request::Locate { path: field_str(line, "path").unwrap_or_default() },
         Some("meta") => Request::Meta {
             row: field_usize(line, "row").unwrap_or(0),
             text: field_bool(line, "text"),
@@ -125,10 +128,7 @@ pub fn parse_request(line: &str) -> Request {
 }
 
 pub fn listed_line(n: usize, read_ms: f64, sort_ms: f64, dev: u64) -> String {
-    format!(
-        r#"{{"t":"listed","n":{},"read":{:.3},"sort":{:.3},"v":{}}}"#,
-        n, read_ms, sort_ms, dev
-    )
+    format!(r#"{{"t":"listed","n":{},"read":{:.3},"sort":{:.3},"v":{}}}"#, n, read_ms, sort_ms, dev)
 }
 
 // The streaming progress of a search: its own type rather than a listed line, because a mid-walk update is not a fresh listing and carries no read or sort timing.
@@ -138,10 +138,7 @@ pub fn searching_line(n: usize, scanned: usize, ms: f64) -> String {
 
 // The terminal line of a search: cancelled is true when the client stopped the walk or a new listing replaced it.
 pub fn searched_line(n: usize, scanned: usize, ms: f64, cancelled: bool) -> String {
-    format!(
-        r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":{}}}"#,
-        n, scanned, ms, cancelled
-    )
+    format!(r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":{}}}"#, n, scanned, ms, cancelled)
 }
 
 // The file is empty rather than absent on failure, so a client never waits forever for a row that will not arrive.
@@ -169,13 +166,13 @@ pub fn paths_line(paths: &[String]) -> String {
     out
 }
 
+// index is -1 when no row has the path, so "not here" can never be read as row 0.
+pub fn located_line(path: &str, index: i64) -> String {
+    format!(r#"{{"t":"located","path":"{}","index":{}}}"#, escape(path), index)
+}
+
 pub fn error_line(e: &FleaError) -> String {
-    format!(
-        r#"{{"t":"error","where":"{}","path":"{}","msg":"{}"}}"#,
-        escape(&e.where_),
-        escape(&e.path),
-        escape(&e.msg)
-    )
+    format!(r#"{{"t":"error","where":"{}","path":"{}","msg":"{}"}}"#, escape(&e.where_), escape(&e.path), escape(&e.msg))
 }
 
 // A denied listing is the only failure a pane draws more than a sentence for: States.dc.html gives
@@ -185,13 +182,7 @@ pub fn error_line_with_mode(e: &FleaError, mode: u32) -> String {
     if mode == 0 {
         return error_line(e);
     }
-    format!(
-        r#"{{"t":"error","where":"{}","path":"{}","msg":"{}","mode":{}}}"#,
-        escape(&e.where_),
-        escape(&e.path),
-        escape(&e.msg),
-        mode
-    )
+    format!(r#"{{"t":"error","where":"{}","path":"{}","msg":"{}","mode":{}}}"#, escape(&e.where_), escape(&e.path), escape(&e.msg), mode)
 }
 
 #[cfg(test)]
@@ -245,6 +236,13 @@ mod tests {
             paths_line(&["/home/gm/a.txt".to_string(), "/home/gm/say \"hi\".txt".to_string()]),
             r#"{"t":"paths","paths":["/home/gm/a.txt","/home/gm/say \"hi\".txt"]}"#
         );
+    }
+
+    #[test]
+    fn a_locate_request_carries_its_path_and_the_reply_names_the_row_or_minus_one() {
+        assert!(matches!(parse_request(r#"{"c":"locate","path":"/home/gm/a.txt"}"#), Request::Locate { path } if path == "/home/gm/a.txt"));
+        assert_eq!(located_line("/home/gm/a.txt", 4), r#"{"t":"located","path":"/home/gm/a.txt","index":4}"#);
+        assert_eq!(located_line("/home/gm/say \"hi\".txt", -1), r#"{"t":"located","path":"/home/gm/say \"hi\".txt","index":-1}"#);
     }
 
     #[test]

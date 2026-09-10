@@ -522,7 +522,8 @@ crate takes no HTTP code. `dest` is `$XDG_CACHE_HOME/flea/picker/<8 hex>/<leaf>`
 fetch so two downloads of one name never meet; the leaf is the URL's percent-decoded last segment,
 without query or fragment, and `download` when there is none. The file outlives the answer: the
 portal removes its reply dir the moment it answers, and the application reads the chosen file after
-that.
+that. With neither `XDG_CACHE_HOME` nor `HOME` set there is no cache at all, and the fetch answers
+`fetchdone` with `ok` false rather than falling back to a `/tmp` another user can seed.
 
 **Like `archive`, a fetch is keyed by its own `id` and never takes the one-at-a-time slot** a
 `transfer` holds, so a fetch runs beside a transfer and beside another fetch.
@@ -545,6 +546,20 @@ with its own `fetchdone` carrying `ok` false and `err` of `cancelled`.
 because a half-downloaded file in the cache is not a result anyone asked for. A `quit`, or stdin
 closing, cancels every fetch in flight the same way and waits for each terminal line under the same
 bounded drain a transfer gets, so shutting down mid-download leaves nothing behind either.
+
+### locate
+
+`{"c":"locate","path":"<string>"}`
+
+Example: `{"c":"locate","path":"/home/gm/report.pdf"}`
+
+Answers one `located` line naming the row of the current listing whose full path is `path`, under
+whatever `sort` is in force, so a chooser can put the cursor on a typed file without re-listing or
+guessing the order. `path` is compared as the listing's base joined with each row's name, so it must
+be the absolute path the listing itself would produce; a relative path or a symlink alias never matches.
+
+**Never touches the listing**, like `peek`: no `listed` or `rows` follows, and every outstanding row
+index stays valid.
 
 ### quit
 
@@ -910,15 +925,31 @@ form carries an empty field to reason about. On a failure `err` is gio's last st
 scheme's own sentence, or `cancelled`, and the partial file and its dir are already gone when the
 line is written.
 
+### located
+
+`{"t":"located","path":"<string>","index":<int>}`
+
+Example: `{"t":"located","path":"/home/gm/report.pdf","index":42}`
+Example: `{"t":"located","path":"/home/gm/gone.pdf","index":-1}`
+
+`path` echoes the request, because a chooser may have sent another `locate` before this one answered.
+`index` is the row in the current listing, valid until the next `list`, `sort` or `search` renames
+every index, and `-1` when no row has that path or no listing stands. A `-1` is an answer, not an
+`error`: a typed path that is not in this directory is the normal case, and the chooser decides what
+to do with it.
+
 ### trashed
 
-`{"t":"trashed","ok":<uint>,"failed":<uint>}`
+`{"t":"trashed","ok":<uint>,"failed":<uint>,"kept":["<string>",...]}`
 
-Example: `{"t":"trashed","ok":1,"failed":0}`
+Example: `{"t":"trashed","ok":1,"failed":0,"kept":[]}`
+Example: `{"t":"trashed","ok":1,"failed":1,"kept":["/home/gm/busy.txt"]}`
 
-Counts only. Unlike `transferitem` there is no per-path error text, because trash is one `gio` call for
-the batch and its exit status cannot attribute a failure to a single path; a path that is still on disk
-afterwards is counted in `failed`.
+Counts plus the paths that stayed. Unlike `transferitem` there is no per-path error text, because trash
+is one `gio` call for the batch and its exit status cannot attribute a failure to a single path; a path
+that is still on disk afterwards is counted in `failed` and listed in `kept`, in request order, so a
+chooser can keep exactly those marks rather than dropping the whole selection. `kept` is `[]` when
+every path went, never absent.
 
 ### renamed
 

@@ -27,8 +27,13 @@ QtObject {
     property int pendingStart: 0
     // Whether the landing marks the row, which select's does and seat's below does not.
     property bool pendingMark: true
-    // Whether the peek in flight is the save box's, whose answer ui/js/PickerSaveName.js decides.
+    // Whether a rows line without the target asks the backend where it sits, which select's does
+    // once and seat's never; cleared as the locate goes out, so a second rows line sends none.
+    property bool pendingLocate: false
+    // Whether the peek in flight is the save box's, whose answer ui/js/PickerSaveName.js decides,
+    // and whether it is the box's probe of the target itself rather than of its parent.
     property bool awaitingSave: false
+    property bool awaitingProbe: false
 
     // A URL the later changes fetch; until then the window only says so.
     signal remoteEntered(var answer)
@@ -80,6 +85,7 @@ QtObject {
             root.awaitingParent = step.parent
             root.awaitingDir = step.wantsDir
             root.awaitingSave = true
+            root.awaitingProbe = false
             root.backend.peek(step.parent, Navigate.PEEK_ROWS, true)
         }
     }
@@ -97,8 +103,13 @@ QtObject {
         }
     }
 
+    // The parent's peek answered, or the probe of the target it asked for when the peek could not
+    // say whether the leaf is a folder: one row of the target itself tells a directory from a file
+    // or nothing, and ui/js/PickerSaveName.js probed reads the answer.
     function savePeeked(target, peeked) {
-        var step = SaveName.verdict(target, root.awaitingDir, peeked)
+        var step = root.awaitingProbe ? SaveName.probed(target, root.awaitingDir, peeked.readFailed)
+                                      : SaveName.verdict(target, root.awaitingDir, peeked)
+        root.awaitingProbe = false
         if (step.step === "say") {
             root.picker.say(step.message)
         } else if (step.step === "open") {
@@ -107,6 +118,12 @@ QtObject {
         } else if (step.step === "name") {
             root.picker.open(step.parent)
             root.picker.saveName = step.name
+        } else if (step.step === "peekTarget") {
+            root.awaiting = step.path
+            root.awaitingParent = step.path
+            root.awaitingSave = true
+            root.awaitingProbe = true
+            root.backend.peek(step.path, 1, true)
         }
     }
 
@@ -134,7 +151,7 @@ QtObject {
             root.landed()
             root.picker.say(step.message)
         } else if (step.step === "select") {
-            root.select(step.parent, step.path, step.at)
+            root.select(step.parent, step.path)
         }
     }
 
@@ -146,13 +163,15 @@ QtObject {
 
     // The file's row is landed on in the rows the window holds when it is standing in the parent
     // already, and otherwise once the parent's listing arrives. A listing holds only a window of
-    // rows, so when the row lies past the first one the window around it is asked for as well, at
-    // the index the peek said, and the response that starts there is the one read.
-    function select(parent, path, at) {
+    // rows and may stand in a size or date sort the peek knows nothing of, so a row the held rows
+    // lack is asked of the backend's locate, and the window around the index it answers is the
+    // one read.
+    function select(parent, path) {
         root.pendingMark = true
+        root.pendingLocate = true
         root.pendingSelect = path
         root.pendingParent = parent
-        root.pendingStart = Navigate.windowStart(at, root.picker.windowSize)
+        root.pendingStart = 0
         if (parent === root.picker.path) {
             var index = Navigate.indexOf(root.picker.rows, root.picker.held, root.picker.path, path)
             if (index >= 0) {
@@ -160,12 +179,32 @@ QtObject {
                 root.landOn(index, path)
                 return
             }
-            root.backend.window(root.pendingStart, root.picker.windowSize)
+            root.locate()
             return
         }
         root.picker.open(parent)
-        if (root.pendingStart > 0) {
-            root.backend.window(root.pendingStart, root.picker.windowSize)
+    }
+
+    // pendingStart is off any window while the locate is out, so a rows line meanwhile only waits.
+    function locate() {
+        root.pendingLocate = false
+        root.pendingStart = -1
+        root.backend.locate(root.pendingSelect)
+    }
+
+    // The located line, routed here by ui/PickerWire.qml. The window around the index is asked for;
+    // rowsArrived then lands on the row, or gives up when that window arrives without it.
+    function located(path, index) {
+        if (root.pendingSelect.length === 0) {
+            return
+        }
+        var step = Navigate.located(path, index, root.pendingSelect, root.picker.windowSize)
+        if (step.step === "say") {
+            root.pendingSelect = ""
+            root.picker.say(step.message)
+        } else if (step.step === "window") {
+            root.pendingStart = step.start
+            root.backend.window(step.start, root.picker.windowSize)
         }
     }
 
@@ -175,14 +214,16 @@ QtObject {
     // so a row past the first window is left alone in silence rather than said to be missing.
     function seat(path) {
         root.pendingMark = false
+        root.pendingLocate = false
         root.pendingSelect = path
         root.pendingParent = root.picker.path
         root.pendingStart = 0
     }
 
     // Called by the window from every rows response. The target is found in whichever response
-    // holds it, given up on when the window asked for arrives without it, and dropped when the
-    // window has moved to another directory, so a later listing never re-reveals it.
+    // holds it, located once when the first response lacks it, given up on when the window asked
+    // for arrives without it, and dropped when the window has moved to another directory, so a
+    // later listing never re-reveals it.
     function rowsArrived() {
         if (root.pendingSelect.length === 0) {
             return
@@ -198,12 +239,14 @@ QtObject {
             root.landOn(index, target)
             return
         }
-        if (root.picker.held !== root.pendingStart) {
-            return
-        }
-        root.pendingSelect = ""
-        if (root.pendingMark) {
-            root.picker.say(Navigate.NOT_LISTED)
+        var step = Navigate.missing(root.pendingLocate, root.picker.held, root.pendingStart)
+        if (step.step === "locate") {
+            root.locate()
+        } else if (step.step === "giveUp") {
+            root.pendingSelect = ""
+            if (root.pendingMark) {
+                root.picker.say(Navigate.NOT_LISTED)
+            }
         }
     }
 

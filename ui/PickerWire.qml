@@ -35,8 +35,10 @@ QtObject {
             if (Wire.rows(root.picker, start, items, kinds))
                 Wire.armRename(root.picker)
         }
+        // A located line answers the typed file ui/PickerNavigate.qml is landing on, like a peek does.
+        function onLocated(path, index) { root.picker.navigate.located(path, index) }
 
-        function onTrashed(ok, failed) { Wire.trashed(root.picker, ok, failed) }
+        function onTrashed(ok, failed, kept) { Wire.trashed(root.picker, ok, failed, kept) }
         function onRenamed(ok, path) { Wire.renamed(root.picker, ok, path) }
         function onMade(ok, path) { Wire.made(root.picker, ok, path) }
         function onDuplicated(ok, path) { Wire.duplicated(root.picker, ok, path) }

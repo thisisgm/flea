@@ -99,6 +99,21 @@ function trash(state) {
     state.backend.send({ c: "trash", paths: paths })
 }
 
+// The paths a batch took: the ones sent minus the ones the reply says stayed on disk.
+function without(paths, kept) {
+    var stayed = {}
+    for (var k = 0; k < kept.length; k++) {
+        stayed[kept[k]] = true
+    }
+    var went = []
+    for (var p = 0; p < paths.length; p++) {
+        if (stayed[paths[p]] !== true) {
+            went.push(paths[p])
+        }
+    }
+    return went
+}
+
 // A trash or a move took these paths off the disk, so the marks naming them come off the list:
 // a mark is an identity, and an identity that is gone cannot be sent to the caller.
 function dropMarks(state, paths) {

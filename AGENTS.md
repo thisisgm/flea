@@ -1059,8 +1059,9 @@ included so a dotfile resolves, because a typed path is a claim about the disk a
 the only proof; the root is peeked itself and the current directory needs none. A peek carries at
 most `PEEK_CAP` names, so a leaf missing from a directory larger than that is unknown rather than
 absent: the parent opens and the footer says which rows were read. The window's listing holds a
-window of rows and lists without dotfiles unless `.` turned them on, so a file past its first window is asked for at the
-index the peek implies, the shown rows ahead of it in the same scan and sort; a stale peek for
+window of rows and may stand in a size or date sort the name-sorted peek knows nothing of, so a
+file the held rows lack is asked of the backend's `locate` once, and the window around the index
+it answers is the one read; `-1` says the listing has no such row. A stale peek for
 another parent or a rows response for another directory is never read as the line's answer. A
 remote URL leaves through `remoteEntered` for `ui/PickerFetch.qml` and a share through `shareEntered`
 for `ui/PickerShare.qml`; the paragraphs below say what each does with it. `tests/picker.sh typed_dir`
@@ -1071,7 +1072,9 @@ and not a name, the Windows save dialog's rule, and `ui/js/PickerSaveName.js` de
 same `classify` and the same peek of the parent: a folder opens and the box clears, a file opens
 its parent and leaves its leaf as the name whether or not the file exists, because a save names a
 file that may not be there yet, and the collision line then warns as it always did. A missing
-parent is what the footer names, since the file need not exist. A URL is refused with `Save needs
+parent is what the footer names, since the file need not exist. A leaf past the parent's peeked
+rows may still be a folder, so the target is peeked itself before it is taken for a name: a peek
+that reads opens it, one that fails leaves the leaf as the name. A URL is refused with `Save needs
 a local path`: a save answers a local URI and there is nothing to download. The caller's own
 `current_name` is never read this way; it is adopted only when it is a filename, as before, and
 the strip still shows it refused. The keyboard stays in the box after either step so the next

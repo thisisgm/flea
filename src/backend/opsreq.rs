@@ -20,7 +20,8 @@ pub enum OpMsg {
     Progress { id: usize, index: usize, name: String, bytes: u64, total: u64 },
     Item { id: usize, index: usize, name: String, ok: bool, err: String },
     TransferDone { id: usize, ok: usize, failed: usize, skipped: usize, cancelled: bool, entry: Entry },
-    Trashed { ok: usize, failed: usize, entry: Entry },
+    // kept is every path still on disk after the batch, in request order; its length is the failed count.
+    Trashed { ok: usize, kept: Vec<String>, entry: Entry },
     Duplicated { ok: bool, path: String, err: String, entry: Entry },
     // Not an operation: meta rides this channel because a media probe is a subprocess and the loop
     // must not wait on one. Nothing about it claims the one-at-a-time slot.
@@ -64,8 +65,19 @@ pub fn transferdone_line(id: usize, ok: usize, failed: usize, skipped: usize, ca
     )
 }
 
-pub fn trashed_line(ok: usize, failed: usize) -> String {
-    format!(r#"{{"t":"trashed","ok":{},"failed":{}}}"#, ok, failed)
+// kept names the failed paths, so a chooser can tell which marks to keep rather than dropping them all.
+pub fn trashed_line(ok: usize, kept: &[String]) -> String {
+    let mut out = format!(r#"{{"t":"trashed","ok":{},"failed":{},"kept":["#, ok, kept.len());
+    for (i, p) in kept.iter().enumerate() {
+        if i > 0 {
+            out.push(',');
+        }
+        out.push('"');
+        out.push_str(&escape(p));
+        out.push('"');
+    }
+    out.push_str("]}");
+    out
 }
 
 pub fn renamed_line(ok: bool, path: &str) -> String {
@@ -216,11 +228,12 @@ fn one_item(
 
 pub fn run_trash(paths: Vec<String>, tx: Sender<OpMsg>) {
     let owned: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
-    let (entries, failed) = trash::trash(&owned);
+    let (entries, kept) = trash::trash(&owned);
     let ok = entries.len();
+    let kept = kept.iter().map(|p| p.to_string_lossy().to_string()).collect();
     let steps = entries.into_iter().map(Step::Trashed).collect();
     let entry = Entry { op: "trash".to_string(), steps };
-    let _ = tx.send(OpMsg::Trashed { ok, failed, entry });
+    let _ = tx.send(OpMsg::Trashed { ok, kept, entry });
 }
 
 pub fn run_duplicate(path: String, tx: Sender<OpMsg>) {

@@ -84,14 +84,19 @@ function run(check) {
     var recent = [{ n: "home/gm/a.txt", d: false }]
     check("a Recent row is its whole path", Navigate.indexOf(recent, 0, "flea:recent", "/home/gm/a.txt"), 0)
 
-    // Where the row will sit in the listing, which shows no dotfile: the peek's order minus those.
-    var peek = [{ n: ".git", d: true }, { n: "src", d: true }, { n: ".env", d: false },
-                { n: "a.txt", d: false }, { n: "b.txt", d: false }]
-    check("a select carries the listing index",
-          verdict("/p/b.txt", false, false, { total: 5, readFailed: false, rows: peek }).at, 2)
-    check("the dotfiles ahead do not count", Navigate.listingIndex(peek, "a.txt"), 1)
-    check("the first row is 0", Navigate.listingIndex(peek, ".git"), 0)
-    check("a name not peeked is -1", Navigate.listingIndex(peek, "zz"), -1)
+    // Where the row sits is the backend's to say: the peek is name-sorted and the listing may not
+    // be, so a select carries no index and a rows line without the target asks for one, once.
+    check("a select carries no index", verdict("/p/b.txt", false, false, ETC).at, undefined)
+    check("a rows line without the target locates it", Navigate.missing(true, 0, 0).step, "locate")
+    check("a second rows line while the locate is out waits", Navigate.missing(false, 0, -1).step, "wait")
+    check("a window short of the one asked for waits", Navigate.missing(false, 0, 225).step, "wait")
+    check("the window asked for without the row gives up", Navigate.missing(false, 225, 225).step, "giveUp")
+    check("a located line for another path is nothing",
+          Navigate.located("/p/a.txt", 3, "/p/b.txt", 100).step, "nothing")
+    check("a located -1 is not listed", Navigate.located("/p/b.txt", -1, "/p/b.txt", 100).step, "say")
+    check("and says so", Navigate.located("/p/b.txt", -1, "/p/b.txt", 100).message, Navigate.NOT_LISTED)
+    check("a located row asks for its window", Navigate.located("/p/b.txt", 250, "/p/b.txt", 100).step, "window")
+    check("a quarter window ahead", Navigate.located("/p/b.txt", 250, "/p/b.txt", 100).start, 225)
     check("a row inside the first window needs no other", Navigate.windowStart(10, 80), 0)
     check("a row past it is asked for a quarter window ahead", Navigate.windowStart(200, 80), 180)
     check("the peek asks for the backend's whole cap", Navigate.PEEK_ROWS, 512)

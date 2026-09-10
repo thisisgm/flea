@@ -76,8 +76,9 @@ function rowNamed(rows, name) {
 }
 
 // The step after the parent's peek answered. rows carry a name and the directory bit and nothing
-// else, which is all this needs. Answers one of: open {path}; select {parent, path}; say {message};
-// openSay {parent, message}.
+// else, which is all this needs: the peek is name-sorted and the listing may not be, so where the
+// row sits is the backend's locate's to say, never the peek's. Answers one of: open {path};
+// select {parent, path}; say {message}; openSay {parent, message}.
 function verdict(target, wantsDir, folderMode, peeked) {
     if (peeked.readFailed) {
         return { step: "say", message: notFound(target) }
@@ -104,22 +105,33 @@ function verdict(target, wantsDir, folderMode, peeked) {
     if (folderMode) {
         return { step: "say", message: CHOOSE_FOLDER }
     }
-    return { step: "select", parent: parent, path: target, at: listingIndex(peeked.rows, leafOf(target)) }
+    return { step: "select", parent: parent, path: target }
 }
 
-// Where the leaf sits in the window's own listing, which is the peek's order without the dotfiles:
-// the same scan and the same name sort answer both, so the shown rows ahead of it are its index.
-function listingIndex(rows, name) {
-    var at = 0
-    for (var i = 0; i < rows.length; i++) {
-        if (rows[i].n === name) {
-            return at
-        }
-        if (rows[i].n.charAt(0) !== ".") {
-            at += 1
-        }
+// A rows line that arrived without the pending target. The backend is asked where the row sits,
+// once: a locate sent after the listing settled sees the sort in force, and the rows it then asks
+// for are the ones read. Answers one of: locate; wait; giveUp.
+function missing(canLocate, held, pendingStart) {
+    if (canLocate) {
+        return { step: "locate" }
     }
-    return -1
+    if (held !== pendingStart) {
+        return { step: "wait" }
+    }
+    return { step: "giveUp" }
+}
+
+// The located line. One for another path is not this target's answer. An index below zero means
+// the listing has no row with that path, the same fact giveUp says. Answers one of: nothing;
+// say {message}; window {start}.
+function located(path, index, target, windowSize) {
+    if (path !== target) {
+        return { step: "nothing" }
+    }
+    if (index < 0) {
+        return { step: "say", message: NOT_LISTED }
+    }
+    return { step: "window", start: windowStart(index, windowSize) }
 }
 
 // The rows window that holds an index, a quarter window ahead of it as the list's own drift refetch

@@ -45,17 +45,16 @@ function rows(state, start, items, kinds) {
     return true
 }
 
-// A trashed line carries counts and no paths, so the paths it took are read off the state before
-// the refresh replaces the rows: the same set PickerOps.trash sent, the marks held here or the
-// cursor row alone. corner: a batch that half failed loses the marks on the rows that stayed too;
-// the line says how many failed, and a row that stayed can be marked again.
-function trashed(state, ok, failed) {
+// A trashed line carries the counts and the paths still on disk (docs/protocol.md "trashed"), so
+// the paths it took are the ones PickerOps.trash sent minus those: the marks held here or the
+// cursor row alone. A row that stayed keeps its mark, so the answer never names a file that went.
+function trashed(state, ok, failed, kept) {
     var paths = state.trashPending
     state.trashPending = []
     state.sticky("")
     state.message(Ops.trashed(ok, failed), failed > 0)
     if (ok > 0) {
-        PickerOps.dropMarks(state, paths)
+        PickerOps.dropMarks(state, PickerOps.without(paths, kept || []))
     }
     PickerOps.refresh(state, "")
 }
@@ -179,9 +178,11 @@ function failed(state, where, msg) {
     if (where === "trash" || terminal) {
         state.trashPending = []
     }
-    // Only these mean the refresh will never deliver rows, so an armed editor would wait forever.
+    // Only these mean the refresh will never deliver rows, so an armed editor would wait forever,
+    // and a sort still owed would have rows() refuse the next listing's rows.
     if (listing) {
         state.renameOnArrival = ""
+        state.resortOwed = false
     }
     // No transferdone is coming from a backend that is gone, and nothing else ends a transfer.
     if (terminal) {

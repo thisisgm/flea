@@ -45,9 +45,10 @@ pub fn list() -> Vec<Entry> {
 
 // The URI is captured here rather than looked up later, because gio trash --restore refuses an original
 // path outright and two files trashed from one path both list that same path, so a later lookup is ambiguous.
-pub fn trash(paths: &[PathBuf]) -> (Vec<Entry>, usize) {
+// The second half is the paths still on disk afterwards, in request order, so a client keeps their marks.
+pub fn trash(paths: &[PathBuf]) -> (Vec<Entry>, Vec<PathBuf>) {
     if paths.is_empty() {
-        return (Vec::new(), 0);
+        return (Vec::new(), Vec::new());
     }
     let before = list();
     let mut argv: Vec<String> = vec!["trash".to_string(), "--".to_string()];
@@ -59,10 +60,10 @@ pub fn trash(paths: &[PathBuf]) -> (Vec<Entry>, usize) {
     let _ = gio(&refs);
     let after = list();
     let mut ok = Vec::new();
-    let mut failed = 0;
+    let mut kept = Vec::new();
     for p in paths {
         if p.symlink_metadata().is_ok() {
-            failed += 1;
+            kept.push(p.clone());
             continue;
         }
         match newest_entry_for(&before, &after, p) {
@@ -71,7 +72,7 @@ pub fn trash(paths: &[PathBuf]) -> (Vec<Entry>, usize) {
             None => ok.push(Entry { original: p.clone(), uri: String::new() }),
         }
     }
-    (ok, failed)
+    (ok, kept)
 }
 
 // Only an entry that was not already in the trash before this call can be one this call put there.
@@ -144,8 +145,8 @@ mod tests {
 
     #[test]
     fn trashing_nothing_runs_no_subprocess_and_reports_nothing() {
-        let (ok, failed) = trash(&[]);
+        let (ok, kept) = trash(&[]);
         assert!(ok.is_empty());
-        assert_eq!(failed, 0);
+        assert!(kept.is_empty());
     }
 }

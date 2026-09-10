@@ -16,7 +16,7 @@ use crate::backend::events::{spawn_forwarder, spawn_op_forwarder, spawn_reader, 
 use crate::backend::fsinfo::{fsinfo_line, read as read_fsinfo};
 use crate::backend::fsinfo::dev_of;
 use crate::backend::listpaths;
-use crate::backend::proto::{error_line, error_line_with_mode, listed_line, parse_request, paths_line, thumbed_line, Request};
+use crate::backend::proto::{error_line, error_line_with_mode, listed_line, located_line, parse_request, paths_line, thumbed_line, Request};
 use crate::backend::rows::rows_line;
 use crate::backend::sandbox;
 use crate::backend::scan::{mode_of, scan};
@@ -282,6 +282,12 @@ fn handle_line(
         // Never touches st.listing, which is the whole point: a column is not the pane's own listing.
         Request::Peek { path, first, hidden } =>
             say(out, &peek_line(&path, first, hidden, &tb.mime, &tb.icons)),
+        // A scan in listing order, so the index is the row under whatever sort is in force.
+        Request::Locate { path } => {
+            let want = Path::new(&path);
+            let index = (0..st.listing.len()).find(|&i| st.base.join(st.listing.name(i)) == want);
+            say(out, &located_line(&path, index.map_or(-1, |i| i as i64)));
+        }
         // A compress names absolute paths and no path; an extract names the one archive in path.
         Request::Archive { op, paths, path, dest, format } => start_archive(
             out, ops, Arc::clone(&tb.formats), &op,

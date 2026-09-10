@@ -43,7 +43,12 @@ fn every_operation_line_matches_the_shape_the_operations_design_names() {
         transferdone_line(12, 1, 1, 0, false),
         r#"{"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":false}"#
     );
-    assert_eq!(trashed_line(1, 0), r#"{"t":"trashed","ok":1,"failed":0}"#);
+    assert_eq!(trashed_line(1, &[]), r#"{"t":"trashed","ok":1,"failed":0,"kept":[]}"#);
+    // A kept path is escaped like every other string on this wire, and failed is the array's length.
+    assert_eq!(
+        trashed_line(1, &["/home/gm/busy.txt".to_string(), "/home/gm/say \"hi\".txt".to_string()]),
+        r#"{"t":"trashed","ok":1,"failed":2,"kept":["/home/gm/busy.txt","/home/gm/say \"hi\".txt"]}"#
+    );
     assert_eq!(renamed_line(true, "/home/gm/new.txt"), r#"{"t":"renamed","ok":true,"path":"/home/gm/new.txt"}"#);
     assert_eq!(
         duplicated_line(true, "/home/gm/photo copy.jpg"),

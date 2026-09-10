@@ -52,7 +52,7 @@ function plan(name, current, home) {
 }
 
 // The step after the parent's peek answered. Answers one of: say {message}; open {path};
-// name {parent, name}.
+// name {parent, name}; peekTarget {path}, the target's own probe below reads.
 function verdict(target, wantsDir, peeked) {
     var parent = target === "/" ? "/" : Picker.parentOf(target)
     // The file need not exist, so the missing thing is the parent, and that is what the footer names.
@@ -67,10 +67,26 @@ function verdict(target, wantsDir, peeked) {
     if (row !== null && row.d) {
         return { step: "open", path: target }
     }
+    // corner: a peek carries only the first rows of a large directory, so a leaf missing from them
+    // may still be a folder; the target is peeked itself before it is taken for a new name.
+    if (row === null && peeked.total > peeked.rows.length) {
+        return { step: "peekTarget", path: target }
+    }
     if (wantsDir) {
         return { step: "say", message: row === null ? Navigate.notFound(target) : Navigate.NOT_FOLDER }
     }
-    // corner: a peek carries only the first rows of a large directory, so a folder past them is
-    // taken for a new name; the caller then hears a folder's URI and refuses the write itself.
     return { step: "name", parent: parent, name: leaf }
+}
+
+// The step after the target's own peek answered. A directory reads, so it opens; a file or
+// nothing fails to, so the leaf is the name as it would have been had the parent's peek held it.
+// Answers one of: open {path}; name {parent, name}; say {message}.
+function probed(target, wantsDir, readFailed) {
+    if (!readFailed) {
+        return { step: "open", path: target }
+    }
+    if (wantsDir) {
+        return { step: "say", message: Navigate.notFound(target) }
+    }
+    return { step: "name", parent: Picker.parentOf(target), name: Navigate.leafOf(target) }
 }

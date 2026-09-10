@@ -172,10 +172,10 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
             ops.running = None;
             writeln!(out, "{}", transferdone_line(id, ok, failed, skipped, cancelled)).ok();
         }
-        OpMsg::Trashed { ok, failed, entry } => {
+        OpMsg::Trashed { ok, kept, entry } => {
             ops.journal.push(entry);
             ops.running = None;
-            writeln!(out, "{}", trashed_line(ok, failed)).ok();
+            writeln!(out, "{}", trashed_line(ok, &kept)).ok();
         }
         // Meta never claims the operation slot, so it does not clear it either.
         OpMsg::Meta { line } => {
@@ -331,11 +331,11 @@ mod tests {
         report_op(
             &mut buf,
             &mut o,
-            OpMsg::Trashed { ok: 1, failed: 0, entry: Entry { op: "trash".to_string(), steps: vec![Step::Created { path: "/x".into() }] } },
+            OpMsg::Trashed { ok: 1, kept: vec!["/y".to_string()], entry: Entry { op: "trash".to_string(), steps: vec![Step::Created { path: "/x".into() }] } },
         );
         assert!(o.running.is_none(), "the cap would otherwise refuse every operation for the rest of the session");
         assert_eq!(o.journal.len(), 1);
-        assert_eq!(text(&buf).trim(), r#"{"t":"trashed","ok":1,"failed":0}"#);
+        assert_eq!(text(&buf).trim(), r#"{"t":"trashed","ok":1,"failed":1,"kept":["/y"]}"#);
     }
 
     #[test]
