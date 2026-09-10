@@ -98,8 +98,8 @@ If you previously pinned another directory handler, restore that handler explici
 
 ## File chooser filters
 
-Apps that send file filters get those as pills, followed by **All files**. Flea does not mix in your
-config filters. For apps that send no filters, Flea reads `~/.config/flea/filters.toml`. It draws
+Apps that send file filters get those as pills, followed by **All files** unless one of theirs
+already matches everything. Flea does not mix in your config filters. For apps that send no filters, Flea reads `~/.config/flea/filters.toml`. It draws
 **All files** first, then one pill per table.
 A table needs `globs`; `name` and `mimes` are optional, and a table without a name is labelled by
 its extensions, like `.jpg (.jpg, .jpeg)`. No file means no pills.

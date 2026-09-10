@@ -234,8 +234,9 @@ QtObject {
             root.open(up)
     }
 
-    // Space. A directory is markable only when the request asked for one, and a file only when
-    // it did not: the board draws no check at all on the rows the caller cannot receive.
+    // Space, a plain click and Ctrl+click. A directory is markable only when the request asked
+    // for one, and a file only when it did not: the board draws no check at all on the rows the
+    // caller cannot receive. A row clicked with its check on loses it, in both dialog kinds.
     function toggleMark(index) {
         var row = root.rowFor(index)
         if (!row || row.d !== root.folderMode)
@@ -244,14 +245,13 @@ QtObject {
         root.markAnchor = index
     }
 
-    // A plain click. The same markable rule as Space, but the mark is set and never cleared, so a
-    // click on the row already checked in a single request leaves it checked.
-    function selectMark(index) {
+    // The second tap of a double click on a folder: the mark comes off before the folder opens, so
+    // the walk in leaves no check behind, whether the first tap set that mark or undid an older one.
+    function unmark(index) {
         var row = root.rowFor(index)
-        if (!row || row.d !== root.folderMode)
+        if (!row)
             return
-        root.marks = Marks.select(root.marks, Picker.rowPath(root.path, row.n), row.s, root.req.multiple)
-        root.markAnchor = index
+        root.marks = Marks.unmark(root.marks, Picker.rowPath(root.path, row.n))
     }
 
     // Enter. A directory is always walked into, even in the folder request the board draws it

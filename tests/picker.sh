@@ -428,8 +428,9 @@ case_click() {
     make_fixture
     sandbox_make "$fixture/sub"
 
-    # A repeated plain click is two separate clicks here, not one double click. It keeps the mark
-    # in a single-file request. A double click on a file marks it but never answers the caller.
+    # A row is its check box: a plain click toggles. A repeated plain click is two separate clicks
+    # here, not one double click, so it takes the mark off again, in a single-file request too.
+    # A double click on a file marks it but never answers the caller.
     start_client
     walk_to_fixture
     local alpha beta gamma sub
@@ -438,7 +439,11 @@ case_click() {
     [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "plain click marked $(ipc marks)"
     sleep 1
     click_row "$alpha" left
-    [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "a repeated plain click left $(ipc marks)"
+    [[ -z "$(ipc marks)" ]] || fail "a repeated plain click left $(ipc marks) marked"
+    [[ "$(ipc cursor)" == "$alpha" ]] || fail "the unmarking click left the cursor on $(ipc cursor)"
+    sleep 1
+    click_row "$alpha" left
+    [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "a third plain click left $(ipc marks)"
     sleep 1
     click_row "$beta" left --double
     sleep 0.5
@@ -449,12 +454,20 @@ case_click() {
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "the caller exited 0 after a file double click and cancel"
 
-    # In file mode a directory carries no mark, but its second tap still opens it.
+    # In multiple mode a plain click adds and keeps the others, and a click on a marked row takes
+    # it off. A directory carries no mark in file mode, but its second tap still opens it.
     start_client --multiple
     walk_to_fixture
-    alpha=$(row_named alpha.txt); sub=$(row_named sub)
+    alpha=$(row_named alpha.txt); beta=$(row_named beta.txt); sub=$(row_named sub)
     click_row "$alpha" left
     [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "a plain click in multiple mode marked $(ipc marks)"
+    sleep 1
+    click_row "$beta" left
+    [[ "$(ipc marks)" == "$fixture/alpha.txt,$fixture/beta.txt" ]] || fail "a second plain click in multiple mode left $(ipc marks)"
+    sleep 1
+    click_row "$beta" left
+    [[ "$(ipc marks)" == "$fixture/alpha.txt" ]] || fail "a plain click on a marked row in multiple mode left $(ipc marks)"
+    sleep 1
     click_row "$sub" left --double
     sleep 0.5
     [[ "$(ipc path)" == "$fixture/sub" ]] || fail "a directory double click opened $(ipc path) in multiple mode"
@@ -462,7 +475,8 @@ case_click() {
     press -k Escape
     wait_for_client
 
-    # In folder mode the first tap marks the directory. The second removes that mark before opening.
+    # In folder mode the first tap toggles the directory's mark. The second takes the mark off
+    # before opening, whether the first tap set it or cleared a mark that already stood.
     start_client --directory
     walk_to_fixture
     sub=$(row_named sub)
@@ -473,6 +487,18 @@ case_click() {
     sleep 0.5
     [[ "$(ipc path)" == "$fixture/sub" ]] || fail "a directory double click opened $(ipc path) in folder mode"
     [[ -z "$(ipc marks)" ]] || fail "the folder double click left $(ipc marks) marked"
+    press -k Escape
+    wait_for_client
+    start_client --directory
+    walk_to_fixture
+    sub=$(row_named sub)
+    click_row "$sub" left --mods ctrl
+    [[ "$(ipc marks)" == "$fixture/sub" ]] || fail "ctrl+click on the folder row marked $(ipc marks)"
+    sleep 1
+    click_row "$sub" left --double
+    sleep 0.5
+    [[ "$(ipc path)" == "$fixture/sub" ]] || fail "a double click on a marked folder opened $(ipc path)"
+    [[ -z "$(ipc marks)" ]] || fail "the double click on a marked folder left $(ipc marks) marked"
     press -k Escape
     wait_for_client
 
@@ -490,13 +516,20 @@ case_click() {
     click_row "$gamma" left --mods shift
     [[ "$(ipc marks)" == "$fixture/alpha.txt,$fixture/beta.txt,$fixture/gamma.bin" ]] \
         || fail "shift+click from beta to gamma left $(ipc marks)"
+    # The anchor is still beta. A run that is all marked already comes off under Shift; a run with
+    # an unmarked row in it is marked whole.
+    click_row "$alpha" left --mods shift
+    [[ "$(ipc marks)" == "$fixture/gamma.bin" ]] || fail "shift+click over an all-marked run left $(ipc marks)"
+    click_row "$alpha" left --mods shift
+    [[ "$(ipc marks)" == "$fixture/gamma.bin,$fixture/beta.txt,$fixture/alpha.txt" ]] \
+        || fail "shift+click over a cleared run left $(ipc marks)"
     # A modifier never opens: the held double click on a directory row stays in this folder.
     click_row "$sub" left --mods ctrl --double
     [[ "$(ipc path)" == "$fixture" ]] || fail "a ctrl-held double click opened $(ipc path)"
     press -k Escape
     wait_for_client
     [[ "$client_status" != 0 ]] || fail "the caller exited 0 after a cancel"
-    printf 'click: plain clicks mark, directory double clicks open, and modifiers keep their rules\n'
+    printf 'click: plain clicks toggle, directory double clicks open, and modifiers keep their rules\n'
 }
 
 # A header title, by its column key, the same aim click_row takes at a row.

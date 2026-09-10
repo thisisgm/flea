@@ -242,7 +242,8 @@ Item {
             textFormat: Text.PlainText
         }
 
-        // The caller's filters and All files, or All files and the user's own; neither draws no chips.
+        // The caller's filters and All files, unless one of theirs already matches everything, or All
+        // files and the user's own; neither draws no chips.
         Row {
             id: types
             anchors.right: parent.right

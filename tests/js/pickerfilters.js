@@ -59,13 +59,40 @@ function run(check) {
     check("a glob matches whatever the case is", Filters.matchesGlobs("SHOT.PNG", ["*.png"]), true)
     check("a name outside the globs does not match", Filters.matchesGlobs("notes.md", ["*.png"]), false)
     check("no globs is no glob leg", Filters.matchesGlobs("notes.md", []), true)
-    check("a bracket in a glob is literal", Filters.matchesGlobs("a[b].png", ["a[b].png"]), true)
-    check("a bracket glob does not become a character class", Filters.matchesGlobs("ab.png", ["a[b].png"]), false)
+    check("a bracket class is one character out of its set", Filters.matchesGlobs("ab.png", ["a[bc].png"]), true)
+    check("a class takes one character only", Filters.matchesGlobs("abb.png", ["a[b].png"]), false)
+    check("a class misses a character outside it", Filters.matchesGlobs("ad.png", ["a[bc].png"]), false)
+    check("a class range runs by character code", Filters.matchesGlobs("frame_07.jpg", ["frame_[0-9][0-9].jpg"]), true)
+    check("a class range misses outside it", Filters.matchesGlobs("frame_a7.jpg", ["frame_[0-9][0-9].jpg"]), false)
+    check("a leading ! takes the complement", Filters.matchesGlobs("ad.png", ["a[!bc].png"]), true)
+    check("a leading ^ takes the complement too", Filters.matchesGlobs("ab.png", ["a[^bc].png"]), false)
+    check("a ] first in a class is a member", Filters.matchesGlobs("a].png", ["a[]b].png"]), true)
+    check("a - last in a class is itself", Filters.matchesGlobs("a-.png", ["a[b-].png"]), true)
+    check("a bracket no ] closes is its own text", Filters.matchesGlobs("a[b.png", ["a[b.png"]), true)
+    check("a star returns to try a class again", Filters.matchesGlobs("x.jpg.jpg", ["*.[jJ][pP][gG]"]), true)
     check("a question mark is one character", Filters.matchesGlobs("ab.png", ["a?.png"]), true)
     check("a two part suffix matches", Filters.matchesGlobs("a.tar.gz", ["*.tar.gz"]), true)
     check("and nothing past it", Filters.matchesGlobs("a.tar.gzx", ["*.tar.gz"]), false)
     check("a star-heavy glob misses a long name without blowing up",
           Filters.matchesGlobs(new Array(61).join("a"), ["*a*a*a*a*a*a*a*a*b"]), false)
+
+    // flea-8kv: Chromium's <input accept="image/*"> sends "Image Files" as one glob per extension
+    // with every letter as a two case class and no mime rule at all (ui/shell_dialogs/
+    // select_file_dialog_linux_portal.cc, BuildFilterSet); "All Files" is the one glob "*.*".
+    var chromium = { label: "Image Files", globs: ["*.[jJ][pP][gG]", "*.[jJ][pP][eE][gG]", "*.[pP][nN][gG]"], mimes: [] }
+    var frame = { n: "frame_01.jpg", d: false, s: 1, m: 2, p: 33188, i: "image-x-generic", t: true, k: 0 }
+    check("Chromium's Image Files filter shows a jpg row", Filters.matchesRow(frame, chromium), true)
+    check("a nameless Chromium glob labels as its extension", Filters.labelFor({ globs: ["*.[jJ][pP][gG]", "*.[jJ][pP][eE][gG]"] }), ".jpg (.jpg, .jpeg)")
+    check("and a jpg row in upper case", Filters.matchesRow({ n: "FRAME_01.JPG", d: false, i: "image-x-generic" }, chromium), true)
+    check("and a jpeg row", Filters.matchesRow({ n: "shot.JPeG", d: false, i: "image-x-generic" }, chromium), true)
+    check("and hides a text row", Filters.matchesRow({ n: "notes.txt", d: false, i: "text-x-generic" }, chromium), false)
+    check("Chromium's All Files filter shows the row", Filters.matchesRow(frame, { label: "All Files", globs: ["*.*"], mimes: [] }), true)
+    check("an upper case glob matches a lower case name", Filters.matchesRow(frame, { globs: ["*.JPG"], mimes: [] }), true)
+    check("a name with a space matches", Filters.matchesGlobs("my photo.jpg", ["*.jpg"]), true)
+    check("a glob with a space is its own text", Filters.matchesGlobs("my photo.jpg", ["my *.jpg"]), true)
+    check("a brace glob is its own text, as no portal backend expands one", Filters.matchesGlobs("a.jpg", ["*.{jpg,png}"]), false)
+    check("image/* beside Chromium's globs still shows a thumbnailed jpg row",
+          Filters.matchesRow(frame, { globs: chromium.globs, mimes: ["image/*"] }), true)
 
     // The mime leg: a row knows an icon name, so only the class of a rule can be confirmed.
     var image = { n: "shot.png", d: false, i: "image-x-generic" }

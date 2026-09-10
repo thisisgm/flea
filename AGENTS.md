@@ -856,8 +856,12 @@ seats the copy and prints "Duplicated to <name> · z undoes" when the reply land
 pins both row sets and `tests/js/pickermenu.js` the aim and the routing; `tests/picker.sh menu` and
 `tests/picker.sh duplicate` drive the window.
 
-**Filters, and whose they are.** The chip row draws the caller's filters first, then All files.
-The caller's `current_filter`, or its first filter, starts active. A caller filter stops all config
+**Filters, and whose they are.** The chip row draws the caller's filters first, then All files,
+unless a caller filter already matches everything: no rule, a glob `*` or `*.*`, or a mime `*/*`
+(`PickerFilters.matchesAll`). That filter is the All files pill under the caller's own label, so
+Chromium's "Image Files" and "All Files" draw two pills and not three; it narrows nothing, and a
+pick under it is echoed as the caller's filter. The caller's `current_filter`, or its first
+filter, starts active. A caller filter stops all config
 filters from loading into that dialog. Most callers send none, so those dialogs use the config.
 `ui/PickerFilters.qml` reads `$XDG_CONFIG_HOME/flea/filters.toml` (`~/.config` when the session set
 no config home) once at start, blocking like `ui/ViewState.qml` so the first frame has the row, and
@@ -968,22 +972,27 @@ is read once. Unlike the path bar the strip stays up on blur, because it is a fi
 window and not an editor raised over one. Save mode keeps `ui/PickerSave.qml`'s Filename field and no
 second one. The `fleapicker` seam reads the field as `entry` and `entryFocused` and acts on
 nothing, so `tests/picker.sh typed` can say where the keyboard is.
-**Click marking, double click opening, and where the anchor lives.** A plain click on any part of a
-markable row sets its mark. It never clears a mark that already stands. A double click on a
-directory opens it in file and folder requests alike; in a folder request, its second tap toggles
-the first tap's folder mark off before the listing changes. A double click on a file stops after
-the first tap marks it and never answers the portal. Ctrl and Shift keep Finder's two marking
-modifiers from `ui/js/Tap.js`: Ctrl toggles the row and Shift marks the run from the last addressed
-row to this one. Neither modifier opens, and only the first tap of a held double click counts. The
+**Click marking, double click opening, and where the anchor lives.** A markable row is its own
+check box: a plain click on any part of it toggles the mark, the way Space does. An unmarked row
+takes a mark, kept beside the others in a multiple request and replacing the one mark in a single
+request; a marked row loses it in both. A double click on a directory opens it in file and folder
+requests alike; in a folder request, its second tap takes the mark off before the listing changes,
+whether the first tap set it or cleared one that stood. A double click on a file stops after the
+first tap toggles it and never answers the portal. Ctrl and Shift keep Finder's two marking
+modifiers from `ui/js/Tap.js`: Ctrl toggles the row and Shift addresses the run from the last
+addressed row to this one, marking it whole unless every markable row in it is marked already, in
+which case the run comes off. Neither modifier opens, and only the first tap of a held double click counts. The
 anchor is `ui/PickerState.qml`'s `markAnchor`, the listing index the last Space, plain click, or
 Ctrl+click addressed. A Shift+click before any mark uses its own row alone. The run is the rows drawn
 between the two ends, `Filter.between` over the chip's set or the held window, read from the rows
 the window holds: a row scrolled out of that window was never on screen as part of the range.
 Return opens a directory under the cursor in every request mode. In file mode, it sends the marks
 or falls back to the cursor file. In folder mode with no mark, it sends the folder shown.
-`ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle`, `select` and
-`markRange`; `select` is the plain click, it sets and never clears; Shift never unmarks, and in a
-single request the range is the clicked row, toggled the way Space toggles it. The picker reads
+`ui/js/PickerMarks.js` holds what the check boxes hold, `marked`, `toggle`, `unmark`,
+`markRange` and `toggleRange`; `toggle` is Space, the plain click and Ctrl+click alike, `unmark`
+is the folder double click's second tap, `markRange` is Ctrl+A and only ever adds, `toggleRange`
+is Shift+click; in a single request the range is the clicked row, toggled the way Space toggles
+it. The picker reads
 `keys.toml` only through `ui/js/PickerKeys.js`'s
 allowlist: its own verbs answer first, Space, Enter, `l`, Backspace, `h`, `:`, Ctrl+L, Escape and
 Alt+Left, so the browser's preview, page-forward and trash-arm meanings for those keys never
@@ -1421,8 +1430,8 @@ this coverage needed no new entry there.
   colon in the first segment reads as a scheme, so a local `a:b` is typed as `./a:b`. Pure, so
   `tests/js/pickerentry.js` drives all of it; the field asks the backend what the path is.
 - `ui/js/PickerMarks.js` is the chooser's marks: a path and its size, never a row number, and
-  what Space, a plain click, Ctrl+click and Shift+click do to the list: `toggle` flips, `select`
-  sets and never clears, `markRange` extends. Pure, so `tests/js/pickermarks.js` drives all of
+  what Space, a plain click, Ctrl+click, Ctrl+A and Shift+click do to the list: `toggle` flips,
+  `unmark` clears, `markRange` extends, `toggleRange` extends or clears. Pure, so `tests/js/pickermarks.js` drives all of
   it; `ui/PickerState.qml` holds the anchor and `ui/PickerList.qml` walks the range.
 - `ui/js/PickerKeys.js` is what the chooser does with a key: its own verbs first, then the shared
   operations `keys.toml` binds, through an allowlist, and `act`, the dispatcher every picker

@@ -62,9 +62,9 @@ function run(check) {
     check("a selection follows the count", Picker.footerLine("ready", 3, 2, 2100000), "3 items   2 selected · 2.1 MB")
     check("an empty listing draws no selection clause", Picker.footerLine("empty", 0, 0, 0), "empty")
     check("marks outlive a listing still loading", Picker.footerLine("loading", 0, 2, 2100000), "2 selected · 2.1 MB")
-    check("the open hints distinguish Click and Space", Picker.hints(req), "Click select · Space toggle · Enter open/send · : location · Esc cancel")
+    check("the open hints say Click and Space both toggle", Picker.hints(req), "Click/Space toggle · Enter open/send · : location · Esc cancel")
     check("a folder request names the location key too", Picker.hints(Picker.request('{"mode":"open","directory":true}')),
-          "Enter open · Click mark folder · Space toggle · : location · Esc cancel")
+          "Enter open · Click/Space toggle folder · : location · Esc cancel")
     check("the save hints name neither", Picker.hints(Picker.request('{"mode":"save"}')), "Enter save · Esc cancel")
 
     var chips = Picker.chips(req)
@@ -91,6 +91,18 @@ function run(check) {
     check("neither app nor config filters is no chip row", Picker.chips(Picker.request("{}"), []).length, 0)
     check("no config at all reads as none", Picker.chips(Picker.request("{}"), undefined).length, 0)
 
+    // A caller's all-matching filter is its own All files pill: Chromium's "Image Files" and "All
+    // Files" draw two pills, not three, and the caller's wording and index win.
+    function sent(list) { return Picker.chips(Picker.request(JSON.stringify({ filters: list })), config) }
+    function labels(list) { return list.map(function (chip) { return chip.label + ":" + chip.index }).join("|") }
+    check("a sent * filter is the All files pill", labels(sent([{ label: "Image Files", globs: ["*.jpg"] }, { label: "All Files", globs: ["*"] }])),
+          "Image Files:0|All Files:1")
+    check("a sent */* filter is too", labels(sent([{ label: "Image Files", mimes: ["image/*"] }, { label: "All Files", mimes: ["*/*"] }])),
+          "Image Files:0|All Files:1")
+    check("*.* and no rule at all are too", sent([{ label: "Any", globs: ["*.*"] }]).length + sent([{ label: "Any" }]).length, 2)
+    check("a narrowing filter alone still gets All files", labels(sent([{ label: "Image Files", globs: ["*.jpg"] }])), "Image Files:0|All files:-1")
+    check("a sent all-matching chip narrows nothing", Picker.shownRows([file("Makefile")], 0, { label: "All Files", globs: ["*.*"] }), null)
+
     // A filter takes the whole row: globs read its name and mime rules its icon name.
     function file(name, icon) { return { n: name, d: false, i: icon || "text-x-generic" } }
     var images = req.filters[0]
@@ -99,8 +111,8 @@ function run(check) {
     check("a name outside the globs does not match", Picker.matchesFilter(file("notes.md"), images), false)
     check("a two part suffix matches", Picker.matchesFilter(file("x.tar.gz"), { globs: ["*.tar.gz"] }), true)
     // The glob is the caller's, so its punctuation is escaped rather than compiled into a class.
-    check("a bracket in a glob is literal", Picker.matchesFilter(file("a[b].png"), { globs: ["a[b].png"] }), true)
-    check("a bracket glob does not become a character class", Picker.matchesFilter(file("ab.png"), { globs: ["a[b].png"] }), false)
+    check("a bracket class in a glob is one of its set", Picker.matchesFilter(file("ab.png"), { globs: ["a[b].png"] }), true)
+    check("Chromium's two case class matches a jpg", Picker.matchesFilter(file("frame_01.jpg"), { globs: ["*.[jJ][pP][gG]"] }), true)
     check("a dot is not any character", Picker.matchesFilter(file("axpng"), { globs: ["*.png"] }), false)
     check("a question mark is one character", Picker.matchesFilter(file("ab.png"), { globs: ["a?.png"] }), true)
     // Mime rules narrow by the class the icon name confirms; an exact subtype no row can confirm
@@ -181,6 +193,8 @@ function run(check) {
     check("a config pill is echoed under the label it showed",
           JSON.parse(Picker.reply(0, ["/home/gm/a.jpg"], { name: "", globs: ["*.jpg", "*.jpeg"], mimes: [] })).current_filter.label,
           ".jpg (.jpg, .jpeg)")
+    check("a caller's own All files is echoed, so it gets its index back",
+          JSON.parse(Picker.reply(0, ["/home/gm/a.png"], { label: "All Files", globs: ["*"], mimes: [] })).current_filter.label, "All Files")
     check("a filter with no rule is dropped",
           Picker.reply(0, ["/home/gm/a.png"], { label: "Nothing", globs: [], mimes: [] }),
           '{"response":0,"uris":["file:///home/gm/a.png"]}')

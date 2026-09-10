@@ -143,8 +143,8 @@ ListView {
         TapHandler {
             id: tap
             acceptedButtons: Qt.LeftButton
-            // One tap marks the whole row. A second tap opens a directory after undoing that tap's
-            // folder mark; it never sends a file. Ctrl and Shift mark only on the first tap.
+            // The whole row is its check box: one tap toggles the mark. A second tap opens a
+            // directory, with its mark off; it never sends a file. Ctrl and Shift act on the first tap.
             onTapped: function () {
                 var mods = tap.point.modifiers
                 if (!(mods & (Qt.ControlModifier | Qt.ShiftModifier)))
@@ -162,13 +162,11 @@ ListView {
                     return
                 }
                 if (tap.tapCount === 1) {
-                    if (cell.markable)
-                        root.picker.selectMark(cell.listingIndex)
+                    root.picker.toggleMark(cell.listingIndex)
                     return
                 }
                 if (tap.tapCount === 2 && cell.row && cell.row.d) {
-                    if (cell.markable)
-                        root.picker.toggleMark(cell.listingIndex)
+                    root.picker.unmark(cell.listingIndex)
                     root.picker.open(cell.rowPath)
                 }
             }
@@ -218,6 +216,7 @@ ListView {
     // Shift+click. The rows drawn from the anchor to this one, or this one alone before any toggle,
     // each read from the held window: a row scrolled out of it is not on screen and was never part
     // of what the person saw as the range. The anchor stays where it was, as the cursor moves.
+    // ui/js/PickerMarks.js toggleRange says whether the run marks or, when all of it is, unmarks.
     function markRange(index) {
         var picker = root.picker
         var from = picker.markAnchor >= 0 ? picker.markAnchor : index
@@ -231,7 +230,7 @@ ListView {
             if (row && row.d === picker.folderMode)
                 rows.push({ path: Picker.rowPath(picker.path, row.n), bytes: row.s })
         }
-        picker.marks = Marks.markRange(picker.marks, rows, picker.req.multiple)
+        picker.marks = Marks.toggleRange(picker.marks, rows, picker.req.multiple)
         picker.cursorIndex = index
     }
 

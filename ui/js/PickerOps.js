@@ -166,7 +166,7 @@ function selectAll(state) {
             rows.push({ path: Picker.rowPath(state.path, row.n), bytes: row.s })
         }
     }
-    state.marks = Marks.markRange(state.marks, rows, true)
+    state.marks = Marks.markRange(state.marks, rows)
 }
 
 // The re-read after one of the picker's own writes, ui/js/Nav.js refresh for the chooser. The

@@ -124,7 +124,7 @@ function hints(req) {
     if (req.mode === "save") {
         return "Enter save · Esc cancel"
     }
-    var pick = req.directory ? "Enter open · Click mark folder · Space toggle" : "Click select · Space toggle · Enter open/send"
+    var pick = req.directory ? "Enter open · Click/Space toggle folder" : "Click/Space toggle · Enter open/send"
     return pick + " · : location · Esc cancel"
 }
 
@@ -139,16 +139,22 @@ function filterList(req, config) {
 }
 
 // The chip row. The caller's filters come first and All files after them, because the caller's
-// first is what it wants active. Config pills come after All files, which stands first and active,
-// so nothing is hidden the caller did not ask to hide; they are labelled by extension the Windows
-// way. An empty list is no row at all, because a chooser with one chip has nothing to choose between.
+// first is what it wants active. A caller filter that already matches everything, Chromium's
+// "All Files", is that pill under the caller's own label, so no second one is drawn. Config pills
+// come after All files, which stands first and active, so nothing is hidden the caller did not ask
+// to hide; they are labelled by extension the Windows way. An empty list is no row at all, because
+// a chooser with one chip has nothing to choose between.
 function chips(req, config) {
     var out = []
     if (req.filters.length > 0) {
+        var sentAll = false
         for (var i = 0; i < req.filters.length; i++) {
             out.push({ label: String(req.filters[i].label || ""), index: i })
+            sentAll = sentAll || Filters.matchesAll(req.filters[i])
         }
-        out.push({ label: ALL_FILES, index: -1 })
+        if (!sentAll) {
+            out.push({ label: ALL_FILES, index: -1 })
+        }
         return out
     }
     var own = filterList(req, config)
@@ -184,10 +190,11 @@ function matchesFilter(row, filter) {
 }
 
 // The listing rows a chip leaves standing, in the backend's own order, or null when nothing is
-// narrowing. Directories always stand: a filter that hides the way out of a directory is a trap.
-// Same two index spaces as ui/js/Filter.js, and ui/js/Filter.js at() and viewOf() convert them.
+// narrowing: no chip, or a caller's own all-matching one, which is All files under its label.
+// Directories always stand: a filter that hides the way out of a directory is a trap. Same two
+// index spaces as ui/js/Filter.js, and ui/js/Filter.js at() and viewOf() convert them.
 function shownRows(rows, held, filter) {
-    if (!filter) {
+    if (!filter || Filters.matchesAll(filter)) {
         return null
     }
     var out = []
@@ -214,19 +221,11 @@ function narrow(byChip, byQuery) {
 }
 
 function totalBytes(marks) {
-    var sum = 0
-    for (var i = 0; i < marks.length; i++) {
-        sum += marks[i].bytes
-    }
-    return sum
+    return marks.reduce(function (sum, mark) { return sum + mark.bytes }, 0)
 }
 
 function paths(marks) {
-    var out = []
-    for (var i = 0; i < marks.length; i++) {
-        out.push(marks[i].path)
-    }
-    return out
+    return marks.map(function (mark) { return mark.path })
 }
 
 // The save name is the one filename a client hands this window, so it is a trust boundary and it

@@ -73,7 +73,10 @@ function keep(out, table) {
 // IMG_*.jpg both say .jpg and docs/*.tar.gz says .tar.gz. A glob asking for none, like "Makefile" or
 // "photo.*", is its own text.
 function extensionOf(glob) {
-    var text = String(glob)
+    // Chromium spells each letter as a case pair, "*.[jJ][pP][gG]"; the label reads it as ".jpg".
+    var text = String(glob).replace(/\[([a-z])([a-z])\]/gi, function (whole, a, b) {
+        return a.toLowerCase() === b.toLowerCase() ? a : whole
+    })
     var mark = Math.max(text.lastIndexOf("*"), text.lastIndexOf("/"))
     var dot = text.indexOf(".", mark + 1)
     return dot < 0 ? text : text.slice(dot).toLowerCase()
@@ -98,10 +101,22 @@ function labelFor(filter) {
     return exts[0] + " (" + exts.join(", ") + ")"
 }
 
-// Whether one glob matches the name, case aside: "*" is any run, "?" is one character, and every
-// other character is itself, so a bracket in a glob is never a character class. Two pointers that
-// return to the last star, never a RegExp: the glob is the portal caller's, and one like
-// "*a*a*a*a*b" backtracks a RegExp exponentially on a name it misses, once per row on the UI thread.
+// Whether a filter lets every file through: no rule at all, a glob "*" or "*.*", or a mime "*/*".
+// Chromium sends "All Files" as "*" beside "Image Files", so such a filter is the caller's own All
+// files pill and the chooser draws no second one; ui/js/Picker.js chips and shownRows read this.
+function matchesAll(filter) {
+    var globs = Array.isArray(filter.globs) ? filter.globs.map(String) : []
+    var mimes = Array.isArray(filter.mimes) ? filter.mimes.map(String) : []
+    if (globs.length + mimes.length === 0) {
+        return true
+    }
+    return globs.indexOf("*") >= 0 || globs.indexOf("*.*") >= 0 || mimes.indexOf("*/*") >= 0
+}
+
+// Whether one glob matches the name, case aside: "*" is any run, "?" is one character, "[...]" is
+// one character out of a set, and every other character is itself. Two pointers that return to the
+// last star, never a RegExp: the glob is the portal caller's, and one like "*a*a*a*a*b" backtracks
+// a RegExp exponentially on a name it misses, once per row on the UI thread.
 function matchesGlob(name, glob) {
     var n = String(name).toLowerCase()
     var g = String(glob).toLowerCase()
@@ -110,9 +125,10 @@ function matchesGlob(name, glob) {
     var star = -1
     var mark = 0
     while (i < n.length) {
-        if (j < g.length && (g.charAt(j) === "?" || g.charAt(j) === n.charAt(i))) {
+        var next = j < g.length && g.charAt(j) !== "*" ? takeOne(g, j, n.charAt(i)) : -1
+        if (next >= 0) {
             i++
-            j++
+            j = next
         } else if (j < g.length && g.charAt(j) === "*") {
             star = j++
             mark = i
@@ -127,6 +143,59 @@ function matchesGlob(name, glob) {
         j++
     }
     return j === g.length
+}
+
+// The index past the glob element at j once it takes the character c, or -1 when it does not: "?"
+// takes any, "[...]" takes one of its set, anything else takes itself. Chromium sends a jpg as
+// "*.[jJ][pP][gG]", the portal spec's own way to match any case, so a bracket is a class; one no
+// "]" closes is its own text, as in fnmatch.
+function takeOne(g, j, c) {
+    var head = g.charAt(j)
+    if (head === "?") {
+        return j + 1
+    }
+    if (head !== "[") {
+        return head === c ? j + 1 : -1
+    }
+    var end = classEnd(g, j)
+    if (end < 0) {
+        return c === "[" ? j + 1 : -1
+    }
+    return inClass(g, j + 1, end, c) ? end + 1 : -1
+}
+
+// The index of the "]" closing the class opened at j, or -1 when none does. A "]" right after the
+// "[" or after a leading "!" or "^" is a member, not the close.
+function classEnd(g, j) {
+    var k = j + 1
+    if (g.charAt(k) === "!" || g.charAt(k) === "^") {
+        k++
+    }
+    if (g.charAt(k) === "]") {
+        k++
+    }
+    return g.indexOf("]", k)
+}
+
+// Whether c is in the class body g[from, end): "a-z" is a range by character code, a "-" first or
+// last is itself, and a leading "!" or "^" takes the complement.
+function inClass(g, from, end, c) {
+    var k = from
+    var negate = g.charAt(k) === "!" || g.charAt(k) === "^"
+    if (negate) {
+        k++
+    }
+    var hit = false
+    while (k < end) {
+        if (k + 2 < end && g.charAt(k + 1) === "-") {
+            hit = hit || (g.charAt(k) <= c && c <= g.charAt(k + 2))
+            k += 3
+        } else {
+            hit = hit || g.charAt(k) === c
+            k++
+        }
+    }
+    return hit !== negate
 }
 
 // Any glob matching the name; no globs at all is no glob leg.
