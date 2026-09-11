@@ -53,6 +53,7 @@ Item {
         keyHints: ViewState.keyHints,
         preset: ViewState.keysPreset,
         baseSize: Theme.baseSize,
+        bodySize: Theme.font.body,
         monitorScale: Theme.monitorScale,
         cornerRadius: Style.cornerRadius,
         presetKeys: Keymap.PRESET_KEYS

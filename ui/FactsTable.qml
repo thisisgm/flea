@@ -1,6 +1,6 @@
 import QtQuick
 
-// The caption-type table under every preview state's frame, one label and value pair a row. Every
+// The regular-body table under every preview state's frame, one label and value pair a row. Every
 // value starts at the same x in all twelve states, which is what makes them read as one anatomy.
 Column {
     id: root
@@ -16,7 +16,7 @@ Column {
     TextMetrics {
         id: labelMetrics
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         text: "Points at "
     }
 
@@ -26,7 +26,7 @@ Column {
         delegate: Item {
             required property var modelData
             width: root.width
-            height: Math.round(Theme.font.caption * 1.5)
+            height: Math.max(Theme.bodyLineHeight, Math.round(Theme.font.body * 1.5))
 
             Text {
                 id: factLabel
@@ -35,7 +35,7 @@ Column {
                 text: modelData.label
                 color: Theme.color.muted
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
             }
 
@@ -45,7 +45,7 @@ Column {
                 text: modelData.value
                 color: Theme.color.foreground
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
                 elide: Text.ElideRight
             }

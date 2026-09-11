@@ -84,7 +84,7 @@ Item {
             text: control.label
             color: control.ink
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
         }
 
@@ -226,7 +226,7 @@ Item {
             text: root.picker.recent ? Picker.RECENT_LABEL : Format.tilde(root.picker.path, root.picker.home)
             color: Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             elide: Text.ElideLeft
             textFormat: Text.PlainText
         }

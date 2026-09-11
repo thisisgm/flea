@@ -54,7 +54,7 @@ Item {
         text: root.label
         color: root.picked ? Theme.color.accent : Theme.color.muted
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
     }
 

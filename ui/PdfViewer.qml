@@ -112,7 +112,7 @@ Item {
             text: root.path.substring(root.path.lastIndexOf("/") + 1)
             color: Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
             elide: Text.ElideRight
         }
@@ -126,7 +126,7 @@ Item {
             text: (root.page + 1) + " / " + root.pageCount
             color: Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
         }
 
@@ -233,7 +233,7 @@ Item {
             text: "This file could not be read."
             color: Theme.color.foreground
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             textFormat: Text.PlainText
             wrapMode: Text.Wrap
         }
@@ -279,7 +279,7 @@ Item {
                 text: "page " + (root.page + 1)
                 color: Theme.color.foreground
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
             }
 

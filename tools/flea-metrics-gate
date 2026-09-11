@@ -73,8 +73,9 @@ mark_contract=$(python3 -c 'print(13 * 1.45)') || exit 1
 # key|contract value|derivation. The four column widths depend on the family, which is why family is first.
 contract="family|JetBrainsMono Nerd Font|fc-match monospace, Style.font.resolvedFamily
 baseSize|14|[font] base-size in the user's shell.toml, layered over the theme's
-body|14|round(14 x 1.0), Style.font.body, what running text draws at
-bodySmall|13|round(14 x 0.917)
+body|14|Style.font.body, regular reading text
+bodyLineHeight|19|ceil(FontMetrics.height) at body 14px in JetBrainsMono
+bodySmall|13|round(14 x 0.917), retained for icon sizing
 caption|12|round(14 x 0.833)
 lineBoxRatio|1.8|Flea constant, leading above and below
 rowPaddingX|14|space(12)
@@ -91,12 +92,12 @@ railRowHeight|29|round(37 x 0.78)
 railIconSize|15|29 - 2 x 7
 chromeHeight|27|round(37 x 0.72)
 chromeMarkSize|16|Style.font.icon, round(14 x 1.167), the canvas's chrome mark
-columnMode|70|9 ch x 7.8, JetBrainsMono's advance at 13 px
-columnSize|70|9 ch x 7.8
-columnDate|125|16 ch x 7.8
-columnPickerDate|80|80 x 13 / 13, the 80px date slot SendPicker.html draws
-columnKind|130|120 x 13 / 12
-menuWidth|257|space(220)
+columnMode|76|9 ch x 8.390625, JetBrainsMono's measured advance at 14 px
+columnSize|76|9 ch x 8.390625
+columnDate|134|16 ch x 8.390625
+columnPickerDate|86|80 x 14 / 13, enlarged for regular body text
+columnKind|140|120 x 14 / 12
+menuWidth|293|ceil(26 ch x 8.390625) + 19 mark + 28 padding + 27 gaps
 cornerRadius|$rounding|hyprctl getoption decoration:rounding, read live above
 previewFraction|0.82|Flea constant, Quick-Look sized inset
 gridIconSize|46|2 x 23

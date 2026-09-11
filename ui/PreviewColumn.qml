@@ -172,7 +172,7 @@ Item {
                     text: root.frameNote()
                     color: Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                 }
             }
@@ -254,7 +254,7 @@ Item {
                     text: root.previewState === Facts.ERROR ? root.failure : "no preview"
                     color: root.previewState === Facts.ERROR ? Theme.color.foreground : Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                 }
             }

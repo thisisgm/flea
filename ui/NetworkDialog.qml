@@ -397,7 +397,7 @@ Item {
                         text: root.statusText
                         color: Theme.color.error
                         font.family: Theme.font.family
-                        font.pixelSize: Theme.font.caption
+                        font.pixelSize: Theme.font.body
                         wrapMode: Text.Wrap
                         maximumLineCount: 2
                         elide: Text.ElideRight

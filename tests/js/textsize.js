@@ -6,7 +6,8 @@
 
 // The board's "02 Historical layout projection across documented stops" table, verbatim:
 // base, bodySmall, caption, paddingY, rowHeight, iconSize, mark. paddingY, rowHeight, iconSize and
-// mark are ui/Theme.qml's, so they are composed here from the same formulas that file uses.
+// mark are the retained density/icon ladder. Body text now uses the base size; Theme additionally
+// floors row height at the real font's line height, which tests/typography.sh exercises in QML.
 var BOARD = [
     { base: 9, bodySmall: 8, caption: 7, paddingY: 5, rowHeight: 24, iconSize: 14, mark: 11.60 },
     { base: 10, bodySmall: 9, caption: 8, paddingY: 5, rowHeight: 26, iconSize: 16, mark: 13.05 },
@@ -128,7 +129,7 @@ function runStored(check) {
 function runBoardTable(check) {
     for (var i = 0; i < BOARD.length; i++) {
         var row = BOARD[i]
-        check("the board's " + row.base + "px row draws body text at " + row.bodySmall,
+        check("the board's " + row.base + "px row retains the small token at " + row.bodySmall,
               TextSize.bodySmall(row.base), row.bodySmall)
         check("and its caption at " + row.caption, TextSize.caption(row.base), row.caption)
 

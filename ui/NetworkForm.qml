@@ -369,7 +369,7 @@ Column {
                     text: root.uri
                     color: Theme.color.muted
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                 }
             }

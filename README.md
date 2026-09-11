@@ -137,6 +137,12 @@ PCManFM did not settle in any media run. Results describe this machine and workl
 [Method](docs/benchmarks.md) · [Run details and TUI results](docs/bench/results-0.1.6.md) ·
 [Scale CSV](docs/bench/f016c-scale.csv) · [Media CSV](docs/bench/f016c-media.csv)
 
+## Settings
+
+Press **,** to open Display, Menus and Keys. Text size follows Omarchy by default; Override pins one of its seven stops: 9, 10, 11, 12, 14, 16 or 20 px.
+
+Normal reading text—filenames, file details, controls and messages—uses Omarchy's regular body size. Hints and compact section headings remain smaller. Display reports **Base** and **Reading text** separately: a theme's body-token override changes reading text and the geometry needed to fit it, without rescaling captions, padding, icon slots or marks. Monitor scaling is applied by Qt and the compositor, never multiplied in again.
+
 ## Keyboard
 
 Press **?** for the full keymap, or **,** to change settings.

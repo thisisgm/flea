@@ -47,7 +47,7 @@ Item {
     TextMetrics {
         id: gutterMetrics
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         text: "00 "
     }
 
@@ -73,7 +73,7 @@ Item {
                     color: Theme.color.muted
                     opacity: 0.6
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                 }
 
@@ -82,7 +82,7 @@ Item {
                     text: "  " + modelData
                     color: Theme.color.foreground
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
+                    font.pixelSize: Theme.font.body
                     textFormat: Text.PlainText
                     // One line per row, never wrapped: the canvas shows the file's own line breaks.
                     elide: Text.ElideRight

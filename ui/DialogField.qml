@@ -37,8 +37,8 @@ Item {
         text: root.label.toUpperCase()
         color: Theme.color.muted
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        font.letterSpacing: Theme.font.caption * root.labelSpacing
+        font.pixelSize: Theme.font.body
+        font.letterSpacing: Theme.font.body * root.labelSpacing
         textFormat: Text.PlainText
     }
 

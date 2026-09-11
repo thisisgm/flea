@@ -308,7 +308,7 @@ Item {
 
         // The master's count, a choice's name and a fact's value are all one thing: the value the
         // row currently holds, drawn on the right the way the boards draw it. A ruler has no label
-        // of its own on the left, so it carries the board's "Effective 14px" reading here instead.
+        // of its own on the left, so it carries the base size here; Reading text reports the body token.
         Text {
             visible: root.kind === "fact" || root.kind === "action" || root.hasSteps || root.kind === "master" || root.isRuler
             height: Theme.markSize

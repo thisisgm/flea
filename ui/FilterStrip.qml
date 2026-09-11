@@ -70,7 +70,7 @@ Item {
         anchors.leftMargin: Theme.spacing.hairline
         anchors.verticalCenter: parent.verticalCenter
         width: root.caretWidth
-        height: Theme.font.bodySmall
+        height: Theme.font.body
         color: Theme.color.accent
     }
 

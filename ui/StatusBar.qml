@@ -167,7 +167,7 @@ Item {
         text: root.countText()
         color: Theme.color.foreground
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
@@ -182,7 +182,7 @@ Item {
         text: root.secondaryText
         color: Theme.color.muted
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }

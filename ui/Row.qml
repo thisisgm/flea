@@ -225,7 +225,7 @@ Item {
         text: root.locationText
         color: root.cellColor()
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         elide: Text.ElideLeft
         textFormat: Text.PlainText
     }
@@ -240,7 +240,7 @@ Item {
         text: root.row ? Format.permissions(root.row.p) : ""
         color: root.cellColor()
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
@@ -255,7 +255,7 @@ Item {
         text: root.row ? root.sizeText() : ""
         color: root.cellColor()
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
         textFormat: Text.PlainText
@@ -271,7 +271,7 @@ Item {
         text: root.dateText()
         color: root.cellColor()
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
         textFormat: Text.PlainText
@@ -287,7 +287,7 @@ Item {
         text: root.row ? root.kindText() : ""
         color: root.cellColor()
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
@@ -301,7 +301,7 @@ Item {
         text: DragOps.label(root.dropCopying)
         color: Theme.color.accent
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
+        font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
     }
 

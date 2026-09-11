@@ -242,7 +242,7 @@ Item {
                         text: crumb.modelData.text
                         color: crumb.modelData.last ? Theme.color.foreground : Theme.color.muted
                         font.family: Theme.font.family
-                        font.pixelSize: Theme.font.caption
+                        font.pixelSize: Theme.font.body
                         textFormat: Text.PlainText
                         // The box is the strip's height with the glyphs centred in it, because the
                         // handlers below are the path area's whole gesture and a text-tall box left
@@ -316,7 +316,7 @@ Item {
                 text: "\u2026"
                 color: Theme.color.muted
                 font.family: Theme.font.family
-                font.pixelSize: Theme.font.caption
+                font.pixelSize: Theme.font.body
                 textFormat: Text.PlainText
             }
         }
@@ -348,7 +348,7 @@ Item {
             selectionColor: Theme.color.accent
             selectedTextColor: Theme.color.background
             font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
+            font.pixelSize: Theme.font.body
             clip: true
 
             // Every one of these is handled and accepted here, for the reason ui/RenameField.qml

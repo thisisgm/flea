@@ -57,7 +57,6 @@ Singleton {
         readonly property string family: Style.font.family
         // Following takes Omarchy's resolved token, so a theme's own font override still wins. An
         // override runs Style's own fontPx ratios at the pinned stop, which is the same ladder.
-        // Running text draws at Omarchy's regular body (GM, 2026-09-07); bodySmall stays the geometry token every row and mark is sized from.
         readonly property int body: root.overridden ? TextSize.body(root.baseSize) : Style.font.body
         readonly property int bodySmall: root.overridden ? TextSize.bodySmall(root.baseSize) : Style.font.bodySmall
         readonly property int caption: root.overridden ? TextSize.caption(root.baseSize) : Style.font.caption
@@ -76,9 +75,12 @@ Singleton {
     TextMetrics {
         id: glyphMetrics
         font.family: Style.font.family
-        font.pixelSize: root.font.bodySmall
+        font.pixelSize: root.font.body
         text: "0"
     }
+
+    FontMetrics { id: bodyMetrics; font.family: root.font.family; font.pixelSize: root.font.body }
+    readonly property int bodyLineHeight: Math.ceil(bodyMetrics.height)
 
     // The header and every row read these, so the two cannot drift apart.
     readonly property QtObject column: QtObject {
@@ -87,9 +89,9 @@ Singleton {
         readonly property int size: Math.round(root.sizeChars * glyphMetrics.advanceWidth)
         readonly property int date: Math.round(root.dateChars * glyphMetrics.advanceWidth)
         // The send picker's own, anchored the way kind below it is rather than counted in characters.
-        readonly property int pickerDate: Math.round(root.pickerDateBaseWidth * root.font.bodySmall / root.pickerDateBaseBodySmall)
-        // Kind text varies too much for a character count, so its base is a pixel width scaled by the same ratio bodySmall already is.
-        readonly property int kind: Math.round(root.kindBaseWidth * root.font.bodySmall / 12)
+        readonly property int pickerDate: Math.round(root.pickerDateBaseWidth * root.font.body / root.pickerDateBaseText)
+        // Kind varies too much for a character count; scale its width with the text it contains.
+        readonly property int kind: Math.round(root.kindBaseWidth * root.font.body / 12)
         // Not a column: the floor under the name, which the four above drop one by one to protect.
         readonly property int nameMin: Math.round(root.nameMinChars * glyphMetrics.advanceWidth)
     }
@@ -118,8 +120,10 @@ Singleton {
         readonly property int notchPx: 24
         readonly property real multiplier: 4
     }
-    // Wide enough for "Send with Taildrop" at bodySmall, 257 at base-size 14; ui/ContextMenu.qml draws it.
-    readonly property int menuWidth: Math.round(Style.space(220) * root.sizeRatio)
+    // Budget an action plus its shortcut in monospace characters; longer labels still elide.
+    readonly property int menuTextChars: 26
+    readonly property int menuWidth: Math.max(root.space(220), Math.ceil(root.menuTextChars * glyphMetrics.advanceWidth)
+                                            + root.markSize + 2 * spacing.rowPaddingX + 3 * spacing.gap)
 
     // Leading a row gives its text, above and below, before the padding is added.
     readonly property real lineBoxRatio: 1.8
@@ -128,22 +132,25 @@ Singleton {
     // reference (qui's rail rows sit around 0.85 of its list row, Finder's around 0.75), so the
     // rail gets its own row height and icon slot instead of borrowing the list's directly.
     readonly property real railRowRatio: 0.78
-    readonly property int railRowHeight: Math.round(root.rowHeight * root.railRowRatio)
-    readonly property int railIconSize: root.railRowHeight - 2 * root.spacing.rowPaddingY
+    readonly property int railRowHeight: Math.max(Math.round(root.rowHeight * root.railRowRatio),
+                                                 root.bodyLineHeight + 2 * spacing.hairline)
+    readonly property int railIconSize: Math.round((root.iconSize + 2 * spacing.rowPaddingY) * root.railRowRatio)
+                                       - 2 * spacing.rowPaddingY
 
     // The header and status bar are thin chrome strips, not data rows (Finder's own header sits
     // well under its row height); this keeps both denser than a list row without a pixel constant.
     readonly property real chromeRowRatio: 0.72
-    readonly property int chromeHeight: Math.round(root.rowHeight * root.chromeRowRatio)
+    readonly property int chromeHeight: Math.max(Math.round(root.rowHeight * root.chromeRowRatio),
+                                                root.bodyLineHeight + 2 * spacing.hairline)
     // "rwxrwxrwx", Format.permissions is always exactly this wide.
     readonly property int modeChars: 9
     // "1000.0 kB": the SI ladder's tier-boundary rounding is one char wider than "999.9 kB".
     readonly property int sizeChars: 9
     // "Yesterday, 23:16", the widest of Format.date's four forms.
     readonly property int dateChars: 16
-    // SendPicker.html draws the chooser's date in an 80px slot, on a board whose base size is 14 and whose bodySmall is therefore 13.
+    // The chooser's original 80px date slot was anchored at 13px; it now follows regular body text.
     readonly property int pickerDateBaseWidth: 80
-    readonly property int pickerDateBaseBodySmall: 13
+    readonly property int pickerDateBaseText: 13
     // 120px at the OEM's base font size of 12, the Kind column's own anchor, see column.kind above.
     readonly property int kindBaseWidth: 120
     // The name's floor, in the character unit the fixed columns are already written in. Twenty
@@ -234,6 +241,7 @@ Singleton {
             family: Style.font.resolvedFamily,
             baseSize: root.baseSize,
             body: root.font.body,
+            bodyLineHeight: root.bodyLineHeight,
             bodySmall: root.font.bodySmall,
             caption: root.font.caption,
             lineBoxRatio: root.lineBoxRatio,
