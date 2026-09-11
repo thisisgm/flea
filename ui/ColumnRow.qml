@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
+import "js/Drag.js" as DragOps
 import "js/Icons.js" as Icons
 import "js/Format.js" as Format
 
@@ -26,6 +27,8 @@ Item {
     // An ancestor column that is not on the trail reads back, so its text drops to muted.
     property bool dim: false
     property bool hovered: false
+    property bool dropTarget: false
+    property bool dropCopying: false
 
     // Truthiness, like the two readers below: ui/ColumnPane.qml hands this rows[index] raw, so a
     // listing that shrank leaves a surviving delegate holding undefined, which is not null.
@@ -34,17 +37,33 @@ Item {
                                 : root.dim ? Theme.color.muted
                                 : Theme.color.foreground
 
-    implicitHeight: Theme.rowHeight
+    // One height for every row: ui/ColumnPane.qml draws the editor over the row rather than inside
+    // it, so no row grows and the overlay's own y is plain arithmetic on this height.
+    implicitHeight: Theme.fileRowHeight
 
     Rectangle {
         anchors.fill: parent
-        // The ladder ui/Row.qml climbs, and for its reason: selectionFill is the OEM's fifth rung,
-        // kept visually distinct from the cursor's own selectedFill so a member reads apart from it.
-        color: root.cursor ? Style.selectedFill
+        // Match the active listing's cursor and marked-selection roles.
+        color: root.cursor ? Style.selectedAccentFill
              : root.selected ? Style.selectionFill
              : root.lifted ? Style.hoverFill
              : root.hovered ? Style.hoverFill
              : "transparent"
+    }
+
+    Rectangle {
+        anchors.fill: parent
+        visible: root.dropTarget
+        color: Util.alpha(Theme.color.accent, Style.hoverFillAlpha)
+        border.width: Theme.spacing.hairline
+        border.color: Theme.color.accent
+    }
+
+    Rectangle {
+        visible: root.cursor
+        width: Theme.spacing.hairline * 2
+        height: parent.height
+        color: Theme.color.accent
     }
 
     Item {
@@ -98,14 +117,25 @@ Item {
         anchors.right: parent.right
         anchors.rightMargin: Theme.spacing.rowPaddingX
         anchors.verticalCenter: parent.verticalCenter
-        width: root.showChevron ? Theme.font.caption : 0
-        height: Theme.font.caption
+        width: root.dropTarget ? dropLabel.implicitWidth : root.showChevron ? Theme.font.caption : 0
+        height: root.dropTarget ? dropLabel.implicitHeight : Theme.font.caption
 
         Flea.Glyph {
             anchors.fill: parent
-            visible: root.showChevron
+            visible: root.showChevron && !root.dropTarget
             name: "chevron-right"
             color: root.cursor ? Theme.color.accent : Theme.color.muted
+        }
+
+        Text {
+            id: dropLabel
+            anchors.centerIn: parent
+            visible: root.dropTarget
+            text: DragOps.label(root.dropCopying)
+            color: Theme.color.accent
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            textFormat: Text.PlainText
         }
     }
 

@@ -8,20 +8,18 @@
 // The byte sample for the item in flight. done is the count already finished, so it stays where it
 // was: a sample fills the item in, it does not complete it.
 function sampled(t, index, name, bytes, total) {
-    return { id: t.id, moving: t.moving, n: t.n, index: index, name: name, running: t.running,
-             done: index, bytes: bytes, total: total }
+    return Object.assign({}, t, {index: index, name: name, done: index, bytes: bytes, total: total})
 }
 
 // That item's own terminal line: it counts whole from here, and its byte sample is spent.
 function itemDone(t, index, name) {
-    return { id: t.id, moving: t.moving, n: t.n, index: index, name: name, running: t.running,
-             done: index + 1, bytes: 0, total: 0 }
+    return Object.assign({}, t, {index: index, name: name, done: index + 1, bytes: 0, total: 0})
 }
 
 // The card's headline, the count with no name in it: the card gives the name a row of its own, and
 // ui/js/Ops.js builds the status bar's one-line form from this same string.
 function head(t) {
-    return (t.moving ? "Moving " : "Copying ") + (t.index + 1) + " of " + t.n
+    return (t.redo ? "Redoing " + t.redo + " " : t.moving ? "Moving " : "Copying ") + (t.index + 1) + " of " + t.n
 }
 
 // The card's second row: the item in flight and how big it is. total is 0 for a directory, whose

@@ -21,6 +21,7 @@ function pane() {
         commitOpenRename: function () { if (this.renamingIndex >= 0) this.did.push("commitRename") },
         selectedIndices: function () { return this.picked },
         clearSelection: function () { this.picked = []; this.did.push("clearSelection") },
+        selectOnly: function (i) { this.picked = [i]; this.cursor = i; this.did.push("selectOnly") },
         setCursor: function (i) { this.cursor = i; this.did.push("setCursor") },
         toggleSelectAt: function (i) { this.cursor = i; this.did.push("toggleSelect") },
         extendSelectionTo: function (i) { this.cursor = i; this.did.push("extendSelect") },
@@ -53,10 +54,10 @@ function press(text) {
 function verbOf(did) {
     var tape = did.join(",")
     if (tape === "") return "nothing"
-    if (tape === "clearSelection,setCursor") return "selectOnly"
-    if (tape === "commitRename,clearSelection,setCursor") return "commitRename"
-    if (tape === "clearSelection,setCursor,clearSelection,setCursor,open") return "open"
-    if (tape === "clearSelection,setCursor,clearSelection,setCursor,reveal") return "reveal"
+    if (tape === "selectOnly") return "selectOnly"
+    if (tape === "commitRename,selectOnly") return "commitRename"
+    if (tape === "selectOnly,selectOnly,open") return "open"
+    if (tape === "selectOnly,selectOnly,reveal") return "reveal"
     if (tape === "toggleSelect") return "toggleSelect"
     if (tape === "extendSelect") return "extendSelect"
     return tape
@@ -142,15 +143,20 @@ function run(check) {
     Tap.tapped(4, 1, Qt.NoModifier, single)
     check("one left tap opens nothing", single.did.indexOf("open"), -1)
     check("and it does move the cursor to the row it landed on", single.cursor, 4)
-    check("and it drops the selection first, so the next shift+click has a visible anchor",
-          single.did.join(","), "clearSelection,setCursor")
+    check("and it marks only that row", single.selectedIndices().join(","), "4")
+    single.picked = [1, 2, 3]
+    Tap.tapped(4, 1, Qt.NoModifier, single)
+    check("a plain tap replaces every old mark with its one row", single.selectedIndices().join(","), "4")
+    var stale = pane()
+    Tap.tapped(-1, 1, Qt.NoModifier, stale)
+    check("a recycled delegate cannot select a negative row", stale.did.length, 0)
 
     // The second tap is what opens, and the cursor it opens is the one the first tap set.
     var double_ = pane()
     Tap.tapped(4, 1, Qt.NoModifier, double_)
     Tap.tapped(4, 2, Qt.NoModifier, double_)
     check("the second tap opens", double_.did.join(","),
-          "clearSelection,setCursor,clearSelection,setCursor,open")
+          "selectOnly,selectOnly,open")
 
     // A triple click is one open and not two: tapCount keeps counting while the taps keep coming.
     var triple = pane()
@@ -166,7 +172,7 @@ function run(check) {
     Tap.tapped(4, 1, Qt.NoModifier, result)
     Tap.tapped(4, 2, Qt.NoModifier, result)
     check("a double click on a search result reveals it instead of opening it",
-          result.did.join(","), "clearSelection,setCursor,clearSelection,setCursor,reveal")
+          result.did.join(","), "selectOnly,selectOnly,reveal")
 
     // Right click sets the cursor to the row under the pointer. Setting the cursor is NOT on its own
     // what makes every menu action address that row: ui/ContextMenu.qml builds every entry it draws

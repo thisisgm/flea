@@ -180,6 +180,7 @@ pub fn write_marker(path: &Path, uri: &str, mtime: i64) -> std::io::Result<()> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::testdir::TestDir;
     use crate::backend::thumbcache::png_text;
 
     const FIXTURE_MTIME: i64 = 1787790423;
@@ -216,8 +217,7 @@ mod tests {
 
     #[test]
     fn a_stamp_leaves_exactly_one_of_each_key_it_owns() {
-        let dir = std::env::temp_dir().join(format!("flea-restamp-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = TestDir::new("restamp");
         let p = dir.join("theirs.png");
         // What ffmpegthumbnailer actually writes on this box: its own Thumb::URI and Thumb::MTime, plus keys nobody else owns.
         let theirs = insert_after_ihdr(
@@ -232,7 +232,6 @@ mod tests {
         std::fs::write(&p, &theirs).unwrap();
         stamp(&p, "file:///ours.mp4", FIXTURE_MTIME).unwrap();
         let bytes = std::fs::read(&p).unwrap();
-        std::fs::remove_dir_all(&dir).ok();
         assert_eq!(occurrences(&bytes, "Thumb::URI"), 1, "two Thumb::URI survived one stamp");
         assert_eq!(occurrences(&bytes, "Thumb::MTime"), 1);
         assert_eq!(occurrences(&bytes, "Software"), 1);
@@ -247,9 +246,8 @@ mod tests {
 
     #[test]
     fn the_sweep_takes_this_process_temps_and_leaves_everything_else() {
-        let dir = std::env::temp_dir().join(format!("flea-sweep-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
-        let mine = exclusive_temp(&dir).unwrap();
+        let dir = TestDir::new("sweep");
+        let mine = exclusive_temp(dir.path()).unwrap();
         // A published entry, another process's in-flight temp, and another application's dotfile must all survive.
         let published = dir.join("d41d8cd98f00b204e9800998ecf8427e.png");
         let other_pid = dir.join(".flea-1-0011223344556677.png");
@@ -257,22 +255,20 @@ mod tests {
         for p in [&published, &other_pid, &other_app] {
             std::fs::write(p, b"").unwrap();
         }
-        sweep_own_temps(&dir);
+        dir.assert_contains(dir.path());
+        sweep_own_temps(dir.path());
         let gone = !mine.exists();
         let kept = published.exists() && other_pid.exists() && other_app.exists();
-        std::fs::remove_dir_all(&dir).ok();
         assert!(gone, "the sweep left this process's own temp behind");
         assert!(kept, "the sweep removed a file it did not create");
     }
 
     #[test]
     fn a_stamped_png_reads_back_through_the_cache_parser() {
-        let dir = std::env::temp_dir().join(format!("flea-thumbwrite-{}", std::process::id()));
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = TestDir::new("thumbwrite");
         let p = dir.join("m.png");
         write_marker(&p, "file:///tmp/a%20b.jpg", FIXTURE_MTIME).unwrap();
         let bytes = std::fs::read(&p).unwrap();
-        std::fs::remove_dir_all(&dir).ok();
         assert_eq!(png_text(&bytes, "Thumb::URI"), Some("file:///tmp/a%20b.jpg".to_string()));
         assert_eq!(png_text(&bytes, "Thumb::MTime"), Some(FIXTURE_MTIME.to_string()));
         assert_eq!(png_text(&bytes, "Software"), Some(SOFTWARE.to_string()));

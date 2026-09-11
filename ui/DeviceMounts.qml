@@ -13,6 +13,9 @@ Item {
 
     signal opened(string path)
     signal message(string text, bool isError)
+    // The verdict this surface last posted, so a newer one replaces it and nothing else.
+    signal forgetMessage(string text)
+    property string _lastVerdict: ""
 
     // lsblk costs 5 ms on this box where gio mount -l costs 513 ms, so the rail's own five second
     // rhythm carries this too rather than earning a slower clock of its own.
@@ -104,7 +107,7 @@ Item {
             var r = rows[i]
             var label = r.kind === "disk" ? root.hostLabel(r.label) : r.label
             out.push({ path: r.path, label: label, group: "device", kind: r.kind,
-                       device: r.device, mounted: r.mounted, glyph: "drive" })
+                       device: r.device, mounted: r.mounted, size: r.size, glyph: "drive" })
         }
         // Same rule as ui/NetworkMounts.qml's: an unchanged poll assigns nothing, see Mounts.sameEntries.
         if (!Mounts.sameEntries(root.entries, out))
@@ -190,6 +193,11 @@ Item {
         ejectVerdictTimeout.stop()
         var s = Eject.sentence(verdict, root._ejectLabel, others)
         root._ejectDevice = ""
+        // The newest verdict about this device is the true one, so it replaces the last one rather
+        // than queueing behind it: a refusal is an error and stands until dismissed, and without
+        // this the operator ejected the stick and went on reading "still mounted".
+        root.forgetMessage(root._lastVerdict)
+        root._lastVerdict = s.text
         root.message(s.text, s.isError)
     }
 
@@ -214,7 +222,7 @@ Item {
 
     Process {
         id: listProcess
-        command: ["lsblk", "--json", "-o", "NAME,LABEL,MOUNTPOINT,RM,SIZE,TYPE,MODEL"]
+        command: ["lsblk", "--bytes", "--json", "-o", "NAME,LABEL,MOUNTPOINT,RM,SIZE,TYPE,MODEL"]
         stdout: StdioCollector {
             id: listOut
             waitForEnd: true

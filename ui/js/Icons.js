@@ -67,8 +67,13 @@ function sidebarGlyphFor(label) {
 // per mark on its native 24 unit grid, recut to the Omarchy edge: baked rounded corners became
 // hard corners, real curves stayed; see AGENTS.md "Lucide path data", "The Omarchy cut".
 var PATHS = {
+    "info": "M12 11v6 M12 7h.01 M22 12a10 10 0 1 1-20 0a10 10 0 1 1 20 0",
+    "star": "M12 2l2.9 6.6 7.1.6-5.4 4.7 1.6 7L12 17.3l-6.2 3.6 1.6-7L2 9.2l7.1-.6z",
+    "globe": "M2 12h20 M12 2a15 15 0 0 1 0 20 M12 2a15 15 0 0 0 0 20 M22 12a10 10 0 1 1-20 0a10 10 0 1 1 20 0",
+
     "file": "M4 22V2h10l6 6v14H4z M14 2v6h6",
     "folder": "M2 20V3h6l2 3h12v14H2z",
+    "folders-first": "M2 12V4h6l2 2h12v6H2z M2 17h20 M2 21h20",
     "file-text": "M4 22V2h10l6 6v14H4z M14 2v6h6 M8 9h2 M8 13h8 M8 17h8",
     "code": "M16 18l6-6-6-6 M8 6l-6 6 6 6",
     "image": "M3 3h18v18H3z M7 9A2 2 0 1 0 11 9A2 2 0 1 0 7 9Z M21 15l-3-3L6 21",
@@ -106,6 +111,9 @@ var PATHS = {
     // The context menu's own seven marks, added with the operations surface that draws them.
     // The canvas's own open folder, which keeps the closed folder's back panel byte for byte.
     "folder-open": "M2 20V3h6l2 3h12v3 M22 11l-2.5 9H2l2.5-9z",
+    // OpenWith.html draws this window for the Open with row, its tail row and an app the theme cannot name.
+    "app-window": "M3 4h18v16H3z M3 9h18 M6 6.5h.01 M9 6.5h.01",
+    "undo": "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5",
     "rename": "M3 21l1-4L17 4l3 3L7 20l-4 1z M14 7l3 3",
     "file-plus": "M6 22V2h8l4 4v16H6z M14 2v4h4 M12 11v6 M9 14h6",
     // lucide's own folder-plus is the folder body byte for byte plus these two strokes, so the recut
@@ -124,7 +132,9 @@ var PATHS = {
     // The bullets are lucide's own zero-length-line technique, which SquareCap draws as square dots.
     "list": "M8 6h13 M8 12h13 M8 18h13 M3 6L3.01 6 M3 12L3.01 12 M3 18L3.01 18",
     "columns": "M3 3h18v18H3z M9 3v18 M15 3v18",
-    "grid": "M3 3h7v7H3z M14 3h7v7h-7z M14 14h7v7h-7z M3 14h7v7H3z",
+    "preview": "M3 3h18v18H3z M15 3v18",
+    "dual": "M3 4h8v16H3z M13 4h8v16h-8z",
+    "grid": "M3 3h8v8H3z M13 3h8v8h-8z M3 13h8v8H3z M13 13h8v8h-8z",
     // The preview column's own two, taken from the canvas's icon table rather than recut from lucide.
     "symlink": "M7 17L17 7 M8 7h9v9",
     // The dot is the zero-length-line technique again, which SquareCap draws square.

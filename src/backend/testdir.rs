@@ -13,6 +13,23 @@ const MIN_COMPONENTS: usize = 3;
 // Two tests in one process must not collide, and this crate takes no dependency that would generate a suffix.
 static NEXT: AtomicUsize = AtomicUsize::new(0);
 
+fn canonical_temp_root_allowed(root: &Path, home: &Path) -> bool {
+    root.is_absolute() && home.is_absolute()
+        && root.components().count() >= MIN_COMPONENTS - 1
+        && !root.starts_with(home)
+}
+
+fn temporary_root() -> Option<PathBuf> {
+    let root = std::env::temp_dir();
+    let home = PathBuf::from(std::env::var_os("HOME")?);
+    if !root.is_absolute() || !home.is_absolute() {
+        return None;
+    }
+    let root = root.canonicalize().ok()?;
+    let home = home.canonicalize().ok()?;
+    (root.is_dir() && home.is_dir() && canonical_temp_root_allowed(&root, &home)).then_some(root)
+}
+
 // Created by the test itself, removed on drop, and only ever removable while its marker is inside it.
 pub struct TestDir {
     path: PathBuf,
@@ -23,7 +40,9 @@ impl TestDir {
     pub fn new(tag: &str) -> TestDir {
         let n = NEXT.fetch_add(1, Ordering::Relaxed);
         let name = format!("{}{}-{}-{}", PREFIX, tag, std::process::id(), n);
-        let path = std::env::temp_dir().join(name);
+        let root = temporary_root().unwrap_or_else(|| panic!(
+            "test temporary root {} must resolve to an absolute directory outside HOME", std::env::temp_dir().display()));
+        let path = root.join(name);
         std::fs::create_dir(&path).expect("test sandbox could not be created");
         let mut marker = std::fs::File::create(path.join(MARKER)).expect("test sandbox marker");
         marker.write_all(b"flea test sandbox\n").expect("test sandbox marker");
@@ -32,6 +51,14 @@ impl TestDir {
 
     pub fn path(&self) -> &Path {
         &self.path
+    }
+
+    pub fn assert_contains(&self, path: &Path) {
+        assert!(removable(&self.path), "test sandbox is not owned: {}", self.path.display());
+        assert!(!path.as_os_str().is_empty() && path.is_absolute()
+            && path.starts_with(&self.path)
+            && !path.components().any(|part| part == std::path::Component::ParentDir),
+            "test path escapes sandbox: {}", path.display());
     }
 
     // Every test that names a file inside its sandbox goes through here, so no test builds a path by hand.
@@ -60,7 +87,8 @@ pub fn removable(path: &Path) -> bool {
     if path.components().count() < MIN_COMPONENTS {
         return false;
     }
-    if !path.starts_with(std::env::temp_dir()) {
+    let Some(root) = temporary_root() else { return false; };
+    if !path.starts_with(root) || path.components().any(|part| part == std::path::Component::ParentDir) {
         return false;
     }
     match path.file_name().and_then(|n| n.to_str()) {
@@ -83,11 +111,33 @@ mod tests {
     use super::*;
 
     #[test]
+    fn temporary_roots_never_include_home_or_its_descendants() {
+        let home = Path::new("/home/gm");
+        assert!(canonical_temp_root_allowed(Path::new("/tmp"), home));
+        assert!(canonical_temp_root_allowed(Path::new("/private/tmp"), Path::new("/Users/gm")));
+        for path in ["/home/gm", "/home/gm/Work", "/home/gm/.config", "/home/gm/.local", "/home/gm/.cache", "/home/gm/tmp", "/home/gm/tmp/nested", "/", "", "relative"] {
+            assert!(!canonical_temp_root_allowed(Path::new(path), home), "unsafe temporary root: {}", path);
+        }
+        assert!(!canonical_temp_root_allowed(Path::new("/tmp"), Path::new("relative")));
+        assert!(!canonical_temp_root_allowed(Path::new("/tmp"), Path::new("/")));
+    }
+
+    #[test]
     fn a_sandbox_carries_its_marker_and_is_removable() {
         let d = TestDir::new("guard");
         assert!(d.path().is_dir());
         assert!(d.path().join(MARKER).is_file());
         assert!(removable(d.path()));
+    }
+
+    #[test]
+    fn containment_refuses_empty_relative_outside_and_parent_paths() {
+        let d = TestDir::new("containment");
+        d.assert_contains(d.path());
+        d.assert_contains(&d.join("missing/child"));
+        for path in [PathBuf::new(), PathBuf::from("relative"), PathBuf::from("/"), d.join("../outside")] {
+            assert!(std::panic::catch_unwind(|| d.assert_contains(&path)).is_err());
+        }
     }
 
     #[test]
@@ -104,10 +154,8 @@ mod tests {
         // A relative path can be anything the caller's cwd makes it, so it never qualifies.
         assert!(!removable(Path::new("flea-test-relative")));
         // Right shape, right place, no marker.
-        let bare = std::env::temp_dir().join(format!("{}bare-{}", PREFIX, std::process::id()));
-        std::fs::create_dir_all(&bare).expect("bare");
+        let bare = outside.dir(&format!("{}bare", PREFIX));
         assert!(!removable(&bare));
-        std::fs::remove_dir(&bare).expect("bare cleanup");
     }
 
     #[test]

@@ -4,14 +4,14 @@ import "." as Flea
 import "js/Ops.js" as Ops
 import "js/Transfer.js" as Transfer
 
-// The copy-progress card: the crawling spiral, the count, the file in flight with its size, a
-// square-ended bar and Cancel. It owns the transfer while it runs and ui/StatusBar.qml keeps the
-// result the transfer ends with, so the same sentence is never drawn in two places at once.
+// The released transfer card remains the pointer cancellation surface above the informational footer.
 Item {
     id: root
 
     // ui/js/Ops.js's transfer, reassigned on every wire line; running false is what hides the card.
     property var transfer: Ops.emptyTransfer()
+    property var owner: null
+    readonly property var cancelItem: cancelButton
     signal cancelRequested(int id)
 
     // Everything drawn comes off this sample rather than straight off the wire, because thirty
@@ -41,15 +41,12 @@ Item {
     height: root.implicitHeight
 
     onTransferChanged: {
-        // A new transfer is not the one that was cancelled, so the button comes back with it.
-        if (root.transfer.id !== root.shown.id) {
-            root.cancelling = false
-        }
         // The first sample and the last are published at once; the ones between wait for the beat.
-        if (!root.transfer.running || !root.shown.running) {
+        if (!root.transfer.running || !root.shown.running || root.transfer.id !== root.shown.id) {
             root.shown = root.transfer
         }
     }
+    onOwnerChanged: root.shown = root.transfer
 
     Timer {
         interval: root.publishMs
@@ -59,8 +56,15 @@ Item {
     }
 
     function cancel() {
-        root.cancelling = true
-        root.cancelRequested(root.shown.id)
+        if (!root.transfer.running || root.cancelling) return
+        root.cancelRequested(root.transfer.id)
+    }
+
+    MouseArea {
+        anchors.fill: parent
+        hoverEnabled: true
+        acceptedButtons: Qt.AllButtons
+        onWheel: function(wheel) { wheel.accepted = true }
     }
 
     Rectangle {
@@ -155,6 +159,10 @@ Item {
             Rectangle {
                 id: cancelButton
                 visible: !root.cancelling
+                enabled: visible
+                Accessible.role: Accessible.Button
+                Accessible.name: "Cancel transfer"
+                Accessible.onPressAction: root.cancel()
                 anchors.right: parent.right
                 width: 2 * Theme.spacing.gap + mark.width + Theme.spacing.gap + label.implicitWidth
                 height: label.implicitHeight + Theme.spacing.gap + 2 * Theme.spacing.hairline

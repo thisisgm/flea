@@ -129,18 +129,14 @@ fn copy_dir_entries(src: &Path, dst: &Path, p: &mut Progress) -> Result<(), Flea
 
 // Same filesystem is a rename; a different one is copy-then-remove, and the source only goes once the copy is complete.
 pub fn move_any(src: &Path, dst: &Path, p: &mut Progress) -> Result<(), FleaError> {
-    match crate::backend::ops::rename_noreplace(src, dst) {
+    match crate::backend::renamecompat::rename_noreplace(src, dst) {
         Ok(()) => Ok(()),
-        Err(e) if e.msg.contains("os error 18") || is_exdev(&e) => {
+        Err(e) if e.raw_os_error() == Some(EXDEV) => {
             copy_any(src, dst, p)?;
             remove_any(src)
         }
-        Err(e) => Err(e),
+        Err(e) => Err(from_io("rename", &dst.to_string_lossy(), &e)),
     }
-}
-
-fn is_exdev(e: &FleaError) -> bool {
-    e.msg.contains(&format!("os error {}", EXDEV))
 }
 
 pub fn remove_any(path: &Path) -> Result<(), FleaError> {
@@ -252,6 +248,7 @@ mod tests {
         let src = d.file("big.bin", &"x".repeat(CHUNK * 3));
         let flag = AtomicBool::new(true);
         let mut sink = |_: u64, _: u64| {};
+        d.assert_contains(&d.join("partial.bin"));
         let e = copy_any(&src, &d.join("partial.bin"), &mut quiet(&flag, &mut sink)).expect_err("cancelled");
         assert_eq!(e.msg, "cancelled");
         assert!(!d.join("partial.bin").exists(), "a half-written destination is not a result");
@@ -280,6 +277,7 @@ mod tests {
                     .collect();
             }
         };
+        d.assert_contains(&clone);
         let e = copy_any(&src, &clone, &mut quiet(&flag, &mut sink)).expect_err("cancelled");
         assert_eq!(e.msg, "cancelled");
         assert_eq!(
@@ -366,6 +364,8 @@ mod tests {
         let src = d.file("moving.txt", "body");
         let flag = AtomicBool::new(false);
         let mut sink = |_: u64, _: u64| {};
+        d.assert_contains(&src);
+        d.assert_contains(&d.join("moved.txt"));
         move_any(&src, &d.join("moved.txt"), &mut quiet(&flag, &mut sink)).expect("move");
         assert!(!src.exists());
         assert_eq!(std::fs::read_to_string(d.join("moved.txt")).unwrap(), "body");
@@ -378,7 +378,12 @@ mod tests {
         d.file("b.txt", "destination");
         let flag = AtomicBool::new(false);
         let mut sink = |_: u64, _: u64| {};
-        move_any(&src, &d.join("b.txt"), &mut quiet(&flag, &mut sink)).expect_err("must refuse");
+        d.assert_contains(&src);
+        d.assert_contains(&d.join("b.txt"));
+        let error = move_any(&src, &d.join("b.txt"), &mut quiet(&flag, &mut sink)).expect_err("must refuse");
+        assert_eq!(error.where_, "rename");
+        assert_eq!(error.path, d.join("b.txt").to_string_lossy());
+        assert_eq!(error.msg, "already exists");
         assert!(src.exists(), "the source is untouched when the move is refused");
         assert_eq!(std::fs::read_to_string(d.join("b.txt")).unwrap(), "destination");
     }

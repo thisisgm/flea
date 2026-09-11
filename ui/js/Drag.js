@@ -125,7 +125,7 @@ function hasPaths(urls) {
 // The by-index drop's gate: only a selection too wide to carry paths takes it, only onto its own
 // listing, and never onto a folder it carries itself.
 function canDropByIndex(marker, path, rows, index) {
-    return sameListing(marker, path) && rows.indexOf(index) < 0
+    return rows.length > 0 && sameListing(marker, path) && rows.indexOf(index) < 0
 }
 
 // Whether the marked drag was lifted with ctrl down. Anything carrying no marker answers false,
@@ -245,4 +245,20 @@ function verbFor(own, ctrlHeld, srcDev, destDev) {
 // which beats a drop that silently does nothing over another window.
 function reachNote(canLeave) {
     return canLeave ? "" : " · too wide to drag out"
+}
+
+// Sample marker: "<instance>\n1,3\nmove\n/source\n42"; feedback never becomes destination row indices.
+function feedbackFor(marker, urls) {
+    var fields = String(marker).split("\n")
+    var own = fields[0] === INSTANCE
+    var paths = pathsFromUrls(urls)
+    return { own: own, copy: fields[2] === "copy", dev: Number(fields[4]) || 0,
+             count: own && fields[1] ? fields[1].split(",").length : paths.length,
+             canLeave: paths.length > 0 }
+}
+
+function feedbackLine(feedback, name, destDev) {
+    if (!feedback || feedback.count === 0) return ""
+    return line(feedback.count, name, verbFor(feedback.own, feedback.copy, feedback.dev, destDev) === "copy")
+        + reachNote(feedback.canLeave)
 }

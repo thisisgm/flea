@@ -112,7 +112,7 @@ mod tests {
         mkfifo(&src);
         let taken = d.file("taken", "already here");
         let e = copied(src, taken.clone()).expect_err("mkfifo must refuse a name that is taken");
-        assert!(e.contains("os error 17"), "EEXIST is what refuses it, got {}", e);
+        assert_eq!(e, "already exists", "EEXIST is what refuses it");
         assert_eq!(std::fs::read_to_string(&taken).expect("untouched"), "already here");
     }
 

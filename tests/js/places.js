@@ -1,6 +1,44 @@
 .import "../../ui/js/Places.js" as Places
 
 function run(check) {
+    var home = {group: "home", kind: "home", path: "/home/test"}
+    var trash = {group: "trash", kind: "trash", path: "trash:///", count: 1}
+    var network = {group: "network", kind: "share", uri: "smb://host/data", mounted: false}
+    var device = {group: "device", kind: "disk", device: "/dev/nvme0n1", path: "/"}
+    var a = {group: "favourite", kind: "favourite", original: {label: "A", path: "/a"}}
+    var b = {group: "favourite", kind: "favourite", original: {label: "B", path: "/a"}}
+    var oldRail = [home, trash, a, network, device]
+    var expandedRail = [home, trash, a, b, network, device]
+    check("a Favorite addition preserves the Network target", Places.railCursorAfter(oldRail, expandedRail, 3), 4)
+    check("a Favorite removal preserves the Device target", Places.railCursorAfter(expandedRail, oldRail, 5), 4)
+    check("reordering Favorites keeps their distinct original labels", Places.railCursorAfter([a, b], [b, a], 0), 1)
+    check("an unchanged duplicate occurrence stays selected", Places.railCursorAfter([a, a, b], [b, a, a], 1), 2)
+    check("removing an identical duplicate invalidates its ambiguous selection", Places.railCursorAfter([a, a, b], [a, b], 0), -1)
+    check("adding an identical duplicate does not guess an occurrence", Places.railCursorAfter([a, b], [a, a, b], 0), -1)
+    check("removing the selected row clears the rail cursor", Places.railCursorAfter(oldRail, [home, trash, a, device], 3), -1)
+    check("a cleared cursor stays cleared through another refresh", Places.railCursorAfter([], oldRail, -1), -1)
+    check("the first arriving rail retains its initial Home cursor", Places.railCursorAfter([], oldRail, 0), 0)
+    check("mount state and count changes do not change identity", Places.railCursorAfter([trash, network],
+        [{group: "trash", kind: "trash", path: "trash:///", count: 2},
+         {group: "network", kind: "share", uri: network.uri, mounted: true, path: "/run/gvfs/data"}], 1), 1)
+    check("a moved rename target no longer has its old index", Places.railCursorAfter(oldRail, expandedRail, 3) === 3, false)
+    var records = [{ label: "A", path: "/a" }, { label: "Again", path: "/a" }, 17, { label: "", path: "bad" }]
+    var stored = Places.storedEntries(records, "/home/test")
+    check("Flea keeps duplicate paths", stored.length, 4)
+    check("Flea preserves each duplicate label", stored[1].label, "Again")
+    check("invalid favourite remains identifiable", stored[2].original, 17)
+    check("invalid favourite is marked", stored[2].error.length > 0, true)
+    check("an invalid original value keeps its identifying label", stored[2].label, "17")
+    check("empty invalid Favorite label follows the ruled spelling", stored[3].label, "Invalid favorite")
+    check("invalid Favorite refusal follows the ruled spelling", stored[2].error, "invalid favorite record")
+    check("new favourites starts empty", Places.storedEntries([], "/home/test").length, 0)
+    check("sidebar width clamps low", Places.sidebarWidth(0), 160)
+    check("sidebar width clamps high", Places.sidebarWidth(999), 256)
+    check("sidebar width snaps to nearer stop", Places.sidebarWidth(231), 224)
+    check("bad width type falls back", Places.sidebarWidth("224"), 192)
+    check("tilde expands only for consumption", Places.storedEntries([{label:"Home",path:"~/docs"}], "/home/test")[0].path, "/home/test/docs")
+    check("stored tilde stays intact", Places.storedEntries([{label:"Home",path:"~/docs"}], "/home/test")[0].storedPath, "~/docs")
+
     var dirs = 'XDG_DESKTOP_DIR="$HOME/"\n'
              + 'XDG_DOWNLOAD_DIR="$HOME/Downloads"\n'
              + 'XDG_DOCUMENTS_DIR="$HOME/Documents"\n'

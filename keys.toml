@@ -192,7 +192,8 @@ keys = "ctrl-3"
 action = "viewGrid"
 label = "grid view"
 
-[[preset]]
+[[preset]]# Historical Ctrl navigation aliases remain additive.
+
 name = "mac"
 mods = "ctrl"
 key = "Up"
@@ -200,7 +201,8 @@ keys = "ctrl-up"
 action = "parent"
 label = "up one level"
 
-[[preset]]
+[[preset]]# Historical Ctrl navigation aliases remain additive.
+
 name = "mac"
 mods = "ctrl"
 key = "Down"
@@ -208,7 +210,8 @@ keys = "ctrl-down"
 action = "open"
 label = "open"
 
-[[preset]]
+[[preset]]# Historical Ctrl navigation aliases remain additive.
+
 name = "mac"
 mods = "ctrl"
 key = "Delete"
@@ -411,6 +414,7 @@ action = "tabNew"
 char = "w"
 action = "tabClose"
 
+
 [[text]]
 char = "y"
 action = "copy"
@@ -433,6 +437,7 @@ action = "paste"
 [[text]]
 char = "d"
 action = "trashArm"
+keys = "dd"
 
 [[text]]
 char = "r"
@@ -844,3 +849,778 @@ press = "right"
 row = "any"
 does = "menu"
 label = "eject and unmount"
+
+
+# Current Desktop SettingsKeys/KeyAudit routes.
+# mods=text compares the produced character; other modifiers match exactly.
+# Comma-separated contexts share controls only where focus scopes cannot overlap.
+
+[[preset]]
+name = "default"
+mods = "ctrl"
+key = "N"
+keys = "ctrl-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "ctrl"
+key = "N"
+keys = "ctrl-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "N"
+keys = "ctrl-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "T"
+keys = "ctrl-t"
+action = "tabNew"
+label = "new tab"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "T"
+keys = "ctrl-t"
+action = "tabNew"
+label = "new tab"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "shift"
+key = "Delete"
+keys = "shift-delete"
+action = "deletePermanently"
+label = "delete permanently"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "shift"
+key = "Delete"
+keys = "shift-delete"
+action = "deletePermanently"
+label = "delete permanently"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "alt"
+key = "P"
+keys = "alt-p"
+action = "togglePreview"
+label = "toggle preview column"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Space"
+keys = "ctrl-space"
+action = "loadPreview"
+label = "load selected into column"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "W"
+keys = "ctrl-w"
+action = "tabClose"
+label = "close tab"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "PageDown"
+keys = "ctrl-pagedown"
+action = "tabNext"
+label = "next tab"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "PageUp"
+keys = "ctrl-pageup"
+action = "tabPrevious"
+label = "previous tab"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Tab"
+keys = "ctrl-tab"
+action = "focusPreview"
+label = "focus preview / list"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Insert"
+keys = "ctrl-insert"
+action = "copy"
+label = "copy"
+frontend = "tui"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Insert"
+keys = "shift-insert"
+action = "paste"
+label = "paste"
+frontend = "tui"
+context = "listing"
+
+[[preset]]
+name = "default"
+mods = "text"
+key = "H"
+keys = "h"
+action = "historyBack"
+label = "history back"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "H"
+keys = "h"
+action = "historyBack"
+label = "history back"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "default"
+mods = "text"
+key = "L"
+keys = "l"
+action = "historyForward"
+label = "history forward"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "L"
+keys = "l"
+action = "historyForward"
+label = "history forward"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "y"
+keys = "yy"
+action = "copyArm"
+label = "copy"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "d"
+keys = "dd"
+action = "cutArm"
+label = "cut"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "p"
+keys = "pp"
+action = "pasteArm"
+label = "paste"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "g"
+keys = "gg"
+action = "cursorFirstArm"
+label = "first row"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "D"
+keys = "D"
+action = "trash"
+label = "move to Trash"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "u"
+keys = "u"
+action = "undo"
+label = "undo"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "vim"
+mods = "text"
+key = "l"
+keys = "l"
+action = "open"
+label = "open"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "none"
+key = "Return"
+keys = "enter"
+action = "rename"
+label = "rename"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "none"
+key = "Enter"
+keys = "enter"
+action = "rename"
+label = "rename"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "none"
+key = "Left"
+keys = "left"
+action = "parent"
+label = "up one level"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "none"
+key = "Right"
+keys = "right"
+action = "open"
+label = "open"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "ctrl"
+key = "X"
+keys = "ctrl-x"
+action = ""
+label = "Control+X is inert"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "C"
+keys = "super-c"
+action = "copy"
+label = "copy"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "V"
+keys = "super-v"
+action = "paste"
+label = "paste"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "superalt"
+key = "V"
+keys = "superalt-v"
+action = "movePaste"
+label = "move copied items here"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "D"
+keys = "super-d"
+action = "duplicate"
+label = "duplicate"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "Z"
+keys = "super-z"
+action = "undo"
+label = "undo"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "supershift"
+key = "Z"
+keys = "supershift-z"
+action = "redo"
+label = "redo"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "A"
+keys = "super-a"
+action = "selectAll"
+label = "select all"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "I"
+keys = "super-i"
+action = "properties"
+label = "get info"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "N"
+keys = "super-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "BracketLeft"
+keys = "super-bracketleft"
+action = "historyBack"
+label = "history back"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "super"
+key = "BracketRight"
+keys = "super-bracketright"
+action = "historyForward"
+label = "history forward"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "supershift"
+key = "Period"
+keys = "supershift-period"
+action = "toggleHidden"
+label = "hidden files"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "mac"
+mods = "supershift"
+key = "Greater"
+keys = "supershift-greater"
+action = "toggleHidden"
+label = "hidden files"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "D"
+keys = "ctrl-d"
+action = "trash"
+label = "move to Trash"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "ctrl"
+key = "Y"
+keys = "ctrl-y"
+action = "redo"
+label = "redo"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Return"
+keys = "alt-return"
+action = "properties"
+label = "properties"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Enter"
+keys = "alt-enter"
+action = "properties"
+label = "properties"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Left"
+keys = "alt-left"
+action = "historyBack"
+label = "history back"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Right"
+keys = "alt-right"
+action = "historyForward"
+label = "history forward"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "windows"
+mods = "alt"
+key = "Up"
+keys = "alt-up"
+action = "parent"
+label = "up one level"
+frontend = "all"
+context = "listing"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Escape"
+keys = "escape"
+action = "escape"
+label = "escape"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Menu"
+keys = "menu"
+action = "menu"
+label = "context menu"
+frontend = "all"
+context = "listing,rail"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "F10"
+keys = "shift-f10"
+action = "menu"
+label = "context menu"
+frontend = "all"
+context = "listing,rail"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Down"
+keys = "down"
+action = "cursorDown"
+label = "cursorDown"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Up"
+keys = "up"
+action = "cursorUp"
+label = "cursorUp"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "j"
+keys = "j"
+action = "cursorDown"
+label = "cursorDown"
+frontend = "all"
+context = "rail,menu,panel,preview,media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "k"
+keys = "k"
+action = "cursorUp"
+label = "cursorUp"
+frontend = "all"
+context = "rail,menu,panel,preview,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Return"
+keys = "return"
+action = "open"
+label = "open"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Enter"
+keys = "enter"
+action = "open"
+label = "open"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Space"
+keys = "space"
+action = "preview"
+label = "preview"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Tab"
+keys = "tab"
+action = "focusNext"
+label = "focusNext"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Tab"
+keys = "shift-tab"
+action = "focusPrevious"
+label = "focusPrevious"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "shift"
+key = "Backtab"
+keys = "shift-backtab"
+action = "focusPrevious"
+label = "focusPrevious"
+frontend = "all"
+context = "rail,menu,panel,preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Right"
+keys = "right"
+action = "menuRight"
+label = "menuRight"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Left"
+keys = "left"
+action = "parent"
+label = "parent"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "l"
+keys = "l"
+action = "menuRight"
+label = "menuRight"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "h"
+keys = "h"
+action = "parent"
+label = "parent"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "Tab"
+keys = "ctrl-tab"
+action = "focusPreview"
+label = "focus listing"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Left"
+keys = "left"
+action = "seekBack"
+label = "seekBack"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Right"
+keys = "right"
+action = "seekForward"
+label = "seekForward"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "h"
+keys = "h"
+action = "seekBack"
+label = "seekBack"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "l"
+keys = "l"
+action = "pageForward"
+label = "pageForward"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "-"
+keys = "-"
+action = "zoomOut"
+label = "zoomOut"
+frontend = "all"
+context = "pdf"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "+"
+keys = "+"
+action = "zoomIn"
+label = "zoomIn"
+frontend = "all"
+context = "pdf"
+
+[[preset]]
+name = "all"
+mods = "text"
+key = "e"
+keys = "e"
+action = "expand"
+label = "expand"
+frontend = "all"
+context = "pdf"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "Escape"
+keys = "escape"
+action = "escape"
+label = "close editor"
+frontend = "all"
+context = "editor"

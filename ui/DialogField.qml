@@ -69,7 +69,7 @@ Item {
             // Revealed only while the eye is held, so a shoulder never reads it from a stuck toggle.
             echoMode: root.secret && !reveal.pressed ? TextInput.Password : TextInput.Normal
             onAccepted: root.accepted()
-            Keys.onTabPressed: root.tabbed(root, false)
+            Keys.onTabPressed: function(event) { root.tabbed(root, (event.modifiers & Qt.ShiftModifier) !== 0) }
             Keys.onBacktabPressed: root.tabbed(root, true)
         }
 

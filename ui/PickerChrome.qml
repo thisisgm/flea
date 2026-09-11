@@ -35,6 +35,13 @@ Item {
         property bool primary: false
         property bool recessed: false
         property bool available: true
+        enabled: available
+        activeFocusOnTab: available
+        Keys.onTabPressed: function(event) { root.picker.stepFocus(control, (event.modifiers & Qt.ShiftModifier) !== 0) }
+        Keys.onBacktabPressed: root.picker.stepFocus(control, true)
+        Keys.onReturnPressed: if (control.available) control.pressed()
+        Keys.onEnterPressed: if (control.available) control.pressed()
+        Keys.onSpacePressed: if (control.available) control.pressed()
 
         signal pressed()
 
@@ -58,7 +65,7 @@ Item {
             anchors.fill: parent
             color: control.recessed ? Theme.color.surface : "transparent"
             border.width: Theme.spacing.hairline
-            border.color: control.primary ? Theme.color.accent : root.edge
+            border.color: control.available && (control.primary || control.activeFocus) ? Theme.color.accent : root.edge
         }
 
         Flea.Glyph {
@@ -81,12 +88,12 @@ Item {
             textFormat: Text.PlainText
         }
 
-        HoverHandler { cursorShape: Qt.PointingHandCursor }
+        HoverHandler { cursorShape: control.available ? Qt.PointingHandCursor : Qt.ArrowCursor }
 
         TapHandler {
             id: press
             acceptedButtons: Qt.LeftButton
-            onTapped: if (control.available) control.pressed()
+            onTapped: if (control.available) { control.forceActiveFocus(Qt.MouseFocusReason); control.pressed() }
         }
     }
 
@@ -143,15 +150,18 @@ Item {
 
             // The board's chrome button is its hit box plus the hairline frame around it, 26 at base-size 14.
             Framed {
+                id: cancelButton
                 height: Theme.hitMin + 2 * Theme.spacing.hairline
                 label: "Cancel"
                 onPressed: root.cancelRequested()
             }
 
             Framed {
+                id: acceptButton
                 height: Theme.hitMin + 2 * Theme.spacing.hairline
                 label: Picker.acceptLabel(root.req, root.picker.marks.length)
                 primary: true
+                available: root.picker.canAccept
                 onPressed: root.acceptRequested()
             }
         }
@@ -188,17 +198,19 @@ Item {
             spacing: Theme.spacing.gap
 
             Framed {
+                id: backButton
                 glyph: "arrow-left"
                 name: "Back"
-                available: root.picker.history.length > 0
+                available: !root.picker.backendUnavailable && root.picker.history.length > 0 && !root.picker.submitting
                 onPressed: root.backRequested()
             }
 
             Framed {
+                id: upButton
                 glyph: "arrow-up"
                 name: root.picker.recent ? "Parent folder unavailable in Recent" : "Parent folder"
                 // The board's own rule, drawn as its disabled Up: a history has no directory above it.
-                available: !root.picker.recent && Picker.parentOf(root.picker.path) !== root.picker.path
+                available: !root.picker.backendUnavailable && !root.picker.submitting && !root.picker.recent && Picker.parentOf(root.picker.path) !== root.picker.path
                 onPressed: root.upRequested()
             }
         }
@@ -220,25 +232,54 @@ Item {
         }
 
         // The caller's filters, and All files beside them; a request with no filters draws no chips.
-        Row {
+        Flickable {
             id: types
             anchors.right: parent.right
             anchors.rightMargin: Theme.spacing.rowPaddingX
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.spacing.hairline * 4
+            width: Math.min(chipRow.width, Math.max(0, (where.width - moves.width - 3 * Theme.spacing.rowPaddingX) / 2))
+            height: Theme.hitMin
+            contentWidth: chipRow.width
+            contentHeight: height
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.HorizontalFlick
+            clip: true
+            Flea.FastScrollHandler { flickable: types }
 
-            Repeater {
-                model: root.chips
+            function reveal(item) {
+                if (item.x < contentX) contentX = item.x
+                else if (item.x + item.width > contentX + width) contentX = item.x + item.width - width
+            }
 
-                Framed {
-                    required property var modelData
-                    label: modelData.label
-                    primary: modelData.index === root.picker.filterIndex
-                    // The board sets the active chip on the recessed plane, so it reads as pressed in.
-                    recessed: modelData.index === root.picker.filterIndex
-                    onPressed: root.chipChosen(modelData.index)
+            Row {
+                id: chipRow
+                spacing: Theme.spacing.hairline * 4
+
+                Repeater {
+                    id: chipRepeater
+                    model: root.chips
+
+                    Framed {
+                        required property var modelData
+                        label: modelData.label
+                        primary: modelData.index === root.picker.filterIndex
+                        available: !root.picker.backendUnavailable && !root.picker.submitting
+                        onActiveFocusChanged: if (activeFocus) types.reveal(this)
+                        // The board sets the active chip on the recessed plane, so it reads as pressed in.
+                        recessed: modelData.index === root.picker.filterIndex
+                        onPressed: root.chipChosen(modelData.index)
+                    }
                 }
             }
         }
+    }
+
+    function focusItems() {
+        var items = [cancelButton, acceptButton, backButton, upButton]
+        for (var i = 0; i < chipRepeater.count; i++) items.push(chipRepeater.itemAt(i))
+        return items
+    }
+    function controls() {
+        return root.focusItems().map(function(item) { return root.picker.control(item.name, item, item.available) })
     }
 }

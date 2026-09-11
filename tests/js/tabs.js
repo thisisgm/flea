@@ -162,6 +162,55 @@ function run(check) {
     Tabs.applyPending(born)
     check("the pending cursor lands once rows arrive", born.cursorIndex, 4)
 
+    var cycling = pane("/tmp/first")
+    Tabs.openNew(cycling)
+    cycling.path = "/tmp/second"
+    cycling.cursorIndex = 7
+    cycling.viewMode = "grid"
+    cycling.showHidden = true
+    cycling.backend.sortBy = "size"
+    cycling.backend.sortDesc = true
+    Tabs.act("tabNext", cycling)
+    check("next wraps from the last tab to the first", Tabs.currentIndex(cycling), 0)
+    check("next opens the first tab's directory", cycling.path, "/tmp/first")
+    check("the tab left behind retains its live cursor, view and hidden preference",
+          cycling.tabs.items[1].cursorIndex + "|" + cycling.tabs.items[1].viewMode + "|" + cycling.tabs.items[1].showHidden,
+          "7|grid|true")
+    Tabs.applyPending(cycling)
+    Tabs.applyPending(cycling)
+    check("next restores the target cursor and sorting after its listing arrives",
+          cycling.cursorIndex + "|" + cycling.backend.sortBy + "|" + cycling.backend.sortDesc, "4|name|false")
+    Tabs.act("tabPrevious", cycling)
+    check("previous wraps from the first tab to the last", Tabs.currentIndex(cycling), 1)
+    check("previous restores the second tab's directory, view and hidden preference",
+          cycling.path + "|" + cycling.viewMode + "|" + cycling.showHidden, "/tmp/second|grid|true")
+    Tabs.applyPending(cycling)
+    Tabs.applyPending(cycling)
+    check("previous restores the second tab's cursor and sorting",
+          cycling.cursorIndex + "|" + cycling.backend.sortBy + "|" + cycling.backend.sortDesc, "7|size|true")
+    Tabs.act("tabPrevious", cycling)
+    check("previous steps backward before wrapping", Tabs.currentIndex(cycling), 0)
+    Tabs.act("tabNext", cycling)
+    check("next steps forward before wrapping", Tabs.currentIndex(cycling), 1)
+    cycling.listInFlight = true
+    var heldTabs = cycling.tabs
+    Tabs.act("tabPrevious", cycling)
+    Tabs.act("tabNext", cycling)
+    check("both cycle directions retain tab ownership while a listing is loading", cycling.tabs === heldTabs, true)
+    check("both loading refusals explain why the key did not switch",
+          cycling.said.join("|"), "A directory is already loading.|A directory is already loading.")
+
+    var single = pane("/tmp/only")
+    single.preview.active = true
+    single.filterQuery = "keep"
+    single.selection.toggle(2)
+    Tabs.act("tabNext", single)
+    Tabs.act("tabPrevious", single)
+    check("cycling the only tab does not create tab state or relist", single.tabs === null && single.listed.length === 0, true)
+    check("cycling the only tab preserves its preview, filter, cursor and selection",
+          single.preview.active + "|" + single.filterQuery + "|" + single.cursorIndex + "|" + single.selectedIndices().join(","),
+          "true|keep|4|2")
+
     var missing = pane()
     Tabs.act("tab3", missing)
     check("a digit with no such tab says so in words", missing.said.join(""), "No tab 3.")

@@ -105,7 +105,7 @@ function sentence(v, label, others) {
     if (v === "mounted") {
         var rest = others || []
         if (rest.length === 0)
-            return { text: label + " could not be ejected; it is still mounted, close anything using it and try again.", isError: true }
+            return { text: label + " is still mounted; close what is using it.", isError: true }
         var tail = rest.length > 1 ? " are still mounted, eject those instead." : " is still mounted, eject that instead."
         return { text: label + " could not be ejected; " + rest.join(", ") + " on the same drive" + tail, isError: true }
     }
@@ -119,7 +119,7 @@ function sentence(v, label, others) {
 function release(root, sidebar, fromRail) {
     var entry = fromRail ? sidebar.entries[sidebar.cursorIndex] : Mounts.holding(sidebar.entries, root.path)
     if (!entry) {
-        root.message("This directory is not inside a removable volume, so there is nothing to eject.", false)
+        root.message("This is not inside a removable volume.", false)
         return
     }
     var rows = Mounts.railMenu(entry)

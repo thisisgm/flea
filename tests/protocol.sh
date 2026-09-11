@@ -166,30 +166,42 @@ check "ascending name sort groups the directories ahead of a file that sorts bet
 check "descending name sort keeps that grouping, and reverses only inside it" \
   "11 1 2" "$(grouping_order name true)"
 
-# The refusal ui/js/Sort.js now reports instead of predicting. The two sentences are different facts
-# and the UI captions them differently, so both are pinned here rather than only the error type.
-# Sample input: {"t":"error","where":"sort","path":"kind","msg":"no such sort key; send name, size or mtime"}
+# Kind order must differ from name order; filename MIME lookup needs no image decoding.
+KIND="$GR_SB/kind"
+mkdir -p "$KIND"
+printf 'text' > "$KIND/a.txt"
+printf 'image fixture' > "$KIND/z.png"
+out=$(printf '{"c":"list","path":"%s","first":0}\n{"c":"sort","by":"kind","desc":false}\n{"c":"window","start":0,"count":10}\n{"c":"quit"}\n' "$KIND" | "$BIN" --backend)
+check "Kind is a supported sort and answers a listing" \
+  "listed" "$(echo "$out" | sed -n 3p | grep -oE '"t":"[a-z]+"' | cut -d'"' -f4)"
+check "Kind orders image/png before text/plain rather than sorting their names" \
+  "z.png a.txt" "$(echo "$out" | sed -n 4p | row_names)"
+
+# Sample input: {"t":"error","where":"sort","path":"mode","msg":"no such sort key; send name, size, mtime or kind"}
 sort_reply() {
   printf '{"c":"list","path":"%s","first":0}\n%s\n{"c":"quit"}\n' "$GR" "$1" | $BIN --backend | sed -n 3p
 }
 
-kind_reply=$(sort_reply '{"c":"sort","by":"kind","desc":false}')
+unknown_reply=$(sort_reply '{"c":"sort","by":"mode","desc":false}')
 check "a header column that is no sort key is refused, not answered as name order" \
-  "error" "$(echo "$kind_reply" | grep -oE '"t":"[a-z]+"' | cut -d'"' -f4)"
+  "error" "$(echo "$unknown_reply" | grep -oE '"t":"[a-z]+"' | cut -d'"' -f4)"
 check "and the refusal names the key it refused" \
-  "kind" "$(echo "$kind_reply" | grep -oE '"path":"[a-z]*"' | cut -d'"' -f4)"
-check "and it is the no-such-key sentence, not the metadata-pass one" \
-  "no such sort key; send name, size or mtime" "$(echo "$kind_reply" | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
+  "mode" "$(echo "$unknown_reply" | grep -oE '"path":"[a-z]*"' | cut -d'"' -f4)"
+check "and the refusal names every supported sort key" \
+  "no such sort key; send name, size, mtime or kind" "$(echo "$unknown_reply" | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
 
 nokey_reply=$(sort_reply '{"c":"sort","desc":false}')
 check "a sort with no by at all is refused by the same sentence" \
-  "no such sort key; send name, size or mtime" "$(echo "$nokey_reply" | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
+  "no such sort key; send name, size, mtime or kind" "$(echo "$nokey_reply" | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
 check "and its refusal carries back the empty key it was sent" \
   '"path":""' "$(echo "$nokey_reply" | grep -o '"path":""')"
 
-# The whole point of refusing rather than answering: the grouped order the listing already had stays.
-check "a refused sort leaves the listing in the order it already had" \
-  "1 11 2" "$(grouping_order kind false)"
+# A silent fallback to name ascending would undo this descending order.
+for request in '{"c":"sort","by":"mode"}' '{"c":"sort"}'; do
+  out=$(printf '{"c":"list","path":"%s","first":0}\n{"c":"sort","by":"name","desc":true}\n%s\n{"c":"window","start":0,"count":10}\n{"c":"quit"}\n' "$GR" "$request" | "$BIN" --backend)
+  check "a refused sort keeps the previous descending order: $request" \
+    "11 1 2" "$(echo "$out" | sed -n 5p | row_names)"
+done
 
 # Size and mtime go through the metadata pass and must keep the grouping. Each key is made to
 # disagree with the others: 2 is the larger file and the oldest entry, 3 the smaller and the
@@ -412,9 +424,9 @@ for bad in 'a/b' '.' '..'; do
   check "a name of $bad is refused before any syscall" "a name cannot be . or .., or contain a separator" "$(mkdir_refusal "$bad")"
 done
 long=$(head -c 256 /dev/zero | tr '\0' a)
-check "a name past NAME_MAX carries the OS sentence" "File name too long (os error 36)" "$(mkdir_refusal "$long")"
+check "a name past NAME_MAX names the cause in words" "file name is too long" "$(mkdir_refusal "$long")"
 check "a relative parent is refused" "a parent must be an absolute path" "$(printf '{"c":"mkdir","path":"relative","name":"x"}\n{"c":"quit"}\n' | $BIN --backend | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
-check "a parent that vanished since the listing carries the OS sentence" "No such file or directory (os error 2)" "$(printf '{"c":"mkdir","path":"%s/gone","name":"x"}\n{"c":"quit"}\n' "$MK" | $BIN --backend | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
+check "a parent that vanished since the listing names the cause in words" "file or folder not found" "$(printf '{"c":"mkdir","path":"%s/gone","name":"x"}\n{"c":"quit"}\n' "$MK" | $BIN --backend | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
 check "no refusal made anything" "$before" "$(ls -A "$MK" | wc -l | tr -d ' ')"
 
 # A name of only spaces is legal, the same as it is for rename; the field trims, the wire does not.
@@ -425,7 +437,7 @@ check "a name of only spaces is created as sent" "yes" "$([ -d "$MK/   " ] && ec
 mkdir -p "$MK/locked"; chmod 0555 "$MK/locked"
 out=$(printf '{"c":"mkdir","path":"%s/locked","name":"x"}\n{"c":"quit"}\n' "$MK" | $BIN --backend)
 chmod 0755 "$MK/locked"
-check "a parent the user cannot write answers permission denied honestly" "Permission denied (os error 13)" "$(echo "$out" | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
+check "a parent the user cannot write answers permission denied honestly" "permission denied" "$(echo "$out" | grep -oE '"msg":"[^"]+"' | cut -d'"' -f4)"
 
 # Undo, in the one process that holds the journal: an empty new folder goes, a filled one stays.
 out=$(printf '{"c":"mkdir","path":"%s","name":"empty"}\n{"c":"undo"}\n{"c":"quit"}\n' "$MK" | $BIN --backend)

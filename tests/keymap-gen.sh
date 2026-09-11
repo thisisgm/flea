@@ -3,18 +3,15 @@
 set -u
 cd "$(dirname "$0")/.." || exit 1
 
-tmp=$(mktemp)
-probe_dir=$(mktemp -d)
-# Same check budget.sh carries, because a finding on one instance is a finding on the class: GNU
-# mktemp honours a relative TMPDIR verbatim, so both paths are checked absolute and two components
-# deep before the trap that deletes them is installed.
-for p in "$tmp" "$probe_dir"; do
-  case $p in
-    /*/*) ;;
-    *) echo "FAIL: mktemp gave '$p', which is not an absolute path two components deep"; exit 1 ;;
-  esac
-done
-trap 'rm -f "$tmp"; rm -rf "$probe_dir"' EXIT
+probe_dir=$(mktemp -d /tmp/flea-keymap.XXXXXXXX) || exit 1
+tmp=$probe_dir/Keymap.js
+cleanup() {
+  # The test owns this mktemp root; every deletion must still pass its absolute-path guard.
+  case "$probe_dir" in /tmp/flea-keymap.?*) ;; *) return 1 ;; esac
+  local path=$probe_dir
+  case "$path" in "$probe_dir"|"$probe_dir"/*) rm -rf -- "$path" ;; *) return 1 ;; esac
+}
+trap cleanup EXIT
 
 ./tools/flea-keymap-gen "$tmp" || { echo "FAIL the generator did not run"; exit 1; }
 

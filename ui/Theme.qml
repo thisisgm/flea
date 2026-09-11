@@ -38,7 +38,6 @@ Singleton {
     readonly property var fallbackColor: ({
         background: "#101315",
         surface: "#181825",
-        muted: "#707880",
         symlink: "#94e2d5",
         executable: "#a6e3a1"
     })
@@ -46,7 +45,7 @@ Singleton {
     readonly property QtObject color: QtObject {
         readonly property color background: Color.background
         readonly property color foreground: Color.foreground
-        property color muted: root.fallbackColor.muted
+        property color muted: Qt.darker(Color.foreground, 1.4)
         readonly property color accent: Color.accent
         readonly property color error: Color.urgent
         property color surface: root.fallbackColor.surface
@@ -62,6 +61,8 @@ Singleton {
         readonly property int bodySmall: root.overridden ? TextSize.bodySmall(root.baseSize) : Style.font.bodySmall
         readonly property int caption: root.overridden ? TextSize.caption(root.baseSize) : Style.font.caption
     }
+
+    readonly property real densityRatio: ViewState.density === "compact" ? 0.5 : ViewState.density === "comfortable" ? 1.5 : 1
 
     readonly property QtObject spacing: QtObject {
         readonly property int hairline: Style.spacing.hairline
@@ -95,11 +96,13 @@ Singleton {
         readonly property int nameMin: Math.round(root.nameMinChars * glyphMetrics.advanceWidth)
     }
 
-    // Keep the existing density and icons unless the actual reading font needs a taller row.
-    readonly property int rowHeight: Math.max(root.iconSize, root.bodyLineHeight) + 2 * spacing.rowPaddingY
-    readonly property int iconSize: Math.round(font.bodySmall * lineBoxRatio)
+    // Row height follows the font so it scales with omarchy display text size.
+    readonly property int rowHeight: Math.round(font.bodySmall * lineBoxRatio) + 2 * spacing.rowPaddingY
+    readonly property int fileRowHeight: Math.round(font.bodySmall * lineBoxRatio) + 2 * Math.round(spacing.rowPaddingY * densityRatio)
+    // The icon slot is the row's text line box, so an icon can never change the row height.
+    readonly property int iconSize: root.rowHeight - 2 * root.spacing.rowPaddingY
     // A mark is sized from the type scale, never from its slot: 19, the canvas's own M.mark, is the row and menu one.
-    readonly property int markSize: Math.round(root.font.bodySmall * 1.45)
+    readonly property real markSize: root.font.bodySmall * 1.45
     // A mark standing alone takes its own step of the same scale: States.dc.html draws Locked and Error at 40.
     readonly property int stateMarkSize: Math.round(root.font.bodySmall * 3.1)
     // The brand moment, the empty hero and the loading crawl: 48, which is 6/5 of stateMarkSize on the same board.
@@ -107,8 +110,8 @@ Singleton {
     // A chrome strip's mark is the OEM's own icon token, the one Ui/Button.qml and the Tailscale and
     // Dropbox bar icons size from: 16 at base-size 14, which is the canvas's chrome mark on every board.
     readonly property int chromeMarkSize: Math.round(Style.font.icon * root.sizeRatio)
-    // Lucide ships stroke 2 on its 24 unit grid; 1.5 is the operator's tune (Tabler ships 2 as well, see the A/B report).
-    readonly property real strokeWidth: 1.5
+    // The boards use one two-unit stroke on the shared 24-unit glyph grid.
+    readonly property real strokeWidth: 2
     // WCAG 2.5.8 floor. Marks stay at their type-scale size; the hit box grows to this.
     readonly property int hitMin: 24
     // The wheel, see ui/FastScrollHandler.qml: a notch is the platform's lines times notchPx times the
@@ -155,26 +158,42 @@ Singleton {
     // /usr/share/applications and this repo whole, and every further two buys under five points.
     readonly property int nameMinChars: 20
 
+    // DualPane specifies these slots at bodySmall 13; mark, gap and padding remain shared tokens.
+    readonly property QtObject dualColumn: QtObject {
+        readonly property real size: 70 * root.font.bodySmall / 13
+        readonly property real date: 125 * root.font.bodySmall / 13
+        readonly property real nameMin: 180 * root.font.bodySmall / 13
+    }
+
+    function dualColumns(width, hidden) {
+        return Columns.dualSet(width, {rowPaddingX: root.spacing.rowPaddingX, gap: root.spacing.gap,
+            iconSize: root.markSize, nameMin: root.dualColumn.nameMin,
+            size: root.dualColumn.size, date: root.dualColumn.date}, hidden)
+    }
+
     // The grid view's own two numbers. The canvas calls it a "48 px slot"; twice the list's own mark
     // slot is 46 at base-size 14, and the token wins over the mock, see the icon-language spec.
     readonly property QtObject grid: QtObject {
         readonly property int iconSize: root.iconSize * 2
+        // GridView.html reserves two caption lines, each 15px at the 11px caption token.
+        readonly property real captionLineHeight: root.font.caption * 15 / 11
+        readonly property real captionHeight: 2 * captionLineHeight
         // GridView.dc.html's own five-column reference viewport: 880 body less 2x40 board padding,
         // 2x1 window hairline, 2x18 grid padding and 4x8 gap, over five tiles, is 146 at base-size 14.
         readonly property int minCellWidth: root.space(125)
     }
 
+    // GM's September 8 sizing override gives dialog cards more room without enlarging context menus.
+    readonly property real dialogWidthRatio: 9 / 8
+
     // The Settings board's anatomy, resolved at base-size 14: a border-box panel 560 wide whose two
     // outer hairlines leave 558 inside, split into a 150 rail and a 408 pane. 480 and 350 are those
     // two at the OEM's own 12 anchor, so the pair scales once and the rail is what is left over.
     readonly property QtObject settings: QtObject {
-        readonly property int panelWidth: railWidth + paneWidth + 2 * root.spacing.hairline
-        // Token overrides can enlarge body without moving base-size or any space() value.
-        readonly property int paneWidth: Math.max(root.space(350), Math.ceil(45 * glyphMetrics.advanceWidth)
-                                                  + 2 * root.spacing.rowPaddingX)
-        readonly property int railWidth: Math.max(root.space(480) - root.space(350) - 2 * root.spacing.hairline,
-                                                  Math.ceil(7 * glyphMetrics.advanceWidth) + root.railIconSize
-                                                  + 2 * root.spacing.rowPaddingX + root.spacing.gap)
+        readonly property int panelWidth: Math.round(root.space(480) * root.dialogWidthRatio)
+        readonly property int paneWidth: Math.round(root.space(350) * root.dialogWidthRatio)
+        readonly property int railWidth: root.settings.panelWidth - root.settings.paneWidth
+                                         - 2 * root.spacing.hairline
         // A row's continuation line, its hint and the Display ruler, indents 52 on five settings boards; those are resolved pixels at base-size 14, whose bodySmall is 13, so space() would scale them twice.
         readonly property int indent: Math.round(52 * root.font.bodySmall / 13)
         // Settings.dc.html insets the rail column by 10 above its first row and below its last, on that same board.
@@ -268,14 +287,12 @@ Singleton {
         var bg = Palette.pick(found, ["background"], root.fallbackColor.background);
         var surface = Palette.pick(found, Palette.SURFACE_KEYS, root.fallbackColor.surface);
         root.color.surface = surface;
-        // Omarchy palettes are not authored to AA. Flea keeps the hex system and walks L until 4.5:1.
-        root.color.muted = Contrast.ensureRatio(
-            Contrast.ensureRatio(Palette.pick(found, ["muted"], root.fallbackColor.muted), bg, 4.5), surface, 4.5);
+        Color.loadColors(body);
+        root.color.muted = Palette.pick(found, ["muted"], Qt.darker(Color.foreground, 1.4));
         root.color.symlink = Contrast.ensureRatio(
             Palette.pick(found, ["cyan", "color6"], root.fallbackColor.symlink), bg, 4.5);
         root.color.executable = Contrast.ensureRatio(
             Palette.pick(found, ["green", "color2"], root.fallbackColor.executable), bg, 4.5);
-        Color.loadColors(body);
         // A body that parsed to nothing left every role on its fallback, so the flag says so rather
         // than reporting that the read happened: text() returns "" for a file that is not there.
         root.ready = Palette.isPalette(found);

@@ -57,7 +57,7 @@ function run(check) {
     // The sentence promises the copy, warns the other name may be incomplete, and names no direction.
     check("a rename that kept its copy says so, with no path and no errno",
           Errors.sentence("rename-kept", "Permission denied (os error 13)"),
-          "The copy is complete; the name it came from could not be fully removed and may now be incomplete, so check it before deleting anything.")
+          "Copied, but the old name was only partly removed. Check it.")
     check("that sentence never leaks the errno",
           Errors.sentence("rename-kept", "Permission denied (os error 13)").indexOf("os error") < 0,
           true)

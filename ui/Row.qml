@@ -11,6 +11,10 @@ Item {
 
     property var row: null
     property bool cursor: false
+    property bool paneFocused: true
+    property bool dualMode: false
+    readonly property real markSlot: root.dualMode ? Theme.markSize : Theme.iconSize
+    readonly property real sizeWidth: root.dualMode ? Theme.dualColumn.size : Theme.column.size
     property bool hovered: false
     property string thumb: ""
     property bool selected: false
@@ -18,6 +22,7 @@ Item {
     property var kindNames: []
     // The row is its own rename editor while this is true, per the States artboard.
     property bool renaming: false
+    property var renamePane: null
     // The folder under a drag right now, per States.dc.html "Drop target"; List.qml's delegate binds it.
     property bool dropTarget: false
     // Whether that drop would copy, so the label can say which; the status bar says the rest.
@@ -29,9 +34,10 @@ Item {
     property real leadingSlot: 0
     // The picker's second difference: SendPicker.html's narrow date column and its compact form.
     property bool compactDate: false
+    property bool foregroundMetadata: false
     // The window's own third: only FleaWindow.html and Search.html end a directory name with a slash.
     property bool dirSuffix: false
-    readonly property int dateWidth: root.compactDate ? Theme.column.pickerDate : Theme.column.date
+    readonly property real dateWidth: root.dualMode ? Theme.dualColumn.date : root.compactDate ? Theme.column.pickerDate : Theme.column.date
     // The picker's third: it hides the columns its own board does not draw, and the window's own set stays ViewState's.
     property var hiddenCols: ViewState.hiddenCols
     // Non-empty while a search or filter is narrowing the listing: the run to paint, and the switch to the search column set.
@@ -52,13 +58,13 @@ Item {
     readonly property real nameShare: 0.66
     // What the name and location share: the row minus its padding, the mark, the gap between the
     // two of them, and the size column while it is still being drawn.
-    readonly property real searchSlot: Math.max(0, root.width - 2 * Theme.spacing.rowPaddingX - Theme.iconSize - 2 * Theme.spacing.gap
-                                                - (root.sizeShown ? Theme.column.size + Theme.spacing.gap : 0))
+    readonly property real searchSlot: Math.max(0, root.width - 2 * Theme.spacing.rowPaddingX - root.markSlot - 2 * Theme.spacing.gap
+                                                - (root.sizeShown ? root.sizeWidth + Theme.spacing.gap : 0))
 
     // The columns this row's width affords, and which of them this row is drawing. A column that
     // is not drawn takes neither its width nor its gap, so the chain collapses onto the one to its
     // right and the name takes back the whole of it.
-    readonly property var cols: Theme.columns(root.width, root.hiddenCols, root.dateWidth)
+    readonly property var cols: root.dualMode ? Theme.dualColumns(root.width, root.hiddenCols) : Theme.columns(root.width, root.hiddenCols, root.dateWidth)
     readonly property bool modeShown: !root.searching && root.cols.mode
     // The search column set keeps Size and drops the other three, so only this one ignores searching.
     readonly property bool sizeShown: root.cols.size
@@ -67,15 +73,13 @@ Item {
 
     // A lifted row is the cursor, the pointer, or a selection member; all three take the same fill treatment, per qui Minimal.
     property bool lifted: root.cursor || root.hovered || root.selected || root.dropTarget
-    // The zebra is the OEM normal fill, which is the lightest rung of the same ladder.
-    property bool alternate: false
     // The OEM derives its secondary ink from the foreground rather than reading a separate palette key.
     readonly property color dim: Qt.darker(Theme.color.foreground, 1.4)
     // A thumbnail path is not a thumbnail: the cache file can be evicted between the pane's answer
     // and the decode, and a row whose Image failed to load has to be marked by its kind instead.
     readonly property bool thumbDrawn: root.thumb.length > 0 && thumbImage.status !== Image.Error
 
-    implicitHeight: Theme.rowHeight
+    implicitHeight: root.renaming ? Math.max(Theme.fileRowHeight, editor.implicitHeight + 2 * Theme.spacing.rowPaddingY) : Theme.fileRowHeight
     implicitWidth: parent ? parent.width : 0
 
     Accessible.role: Accessible.ListItem
@@ -85,11 +89,10 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        // selectionFill is the OEM's fifth rung, kept visually distinct from the cursor's selectedFill.
-        color: root.cursor ? Style.selectedFill
-             : root.selected ? Style.selectionFill
+        // The cursor uses accent ink; marked rows keep the OEM's distinct selection rung.
+        color: root.cursor && root.paneFocused ? Style.selectedAccentFill
+             : root.selected && root.paneFocused ? Style.selectionFill
              : root.hovered ? Style.hoverFill
-             : root.alternate ? Style.normalFill
              : "transparent"
     }
 
@@ -98,7 +101,7 @@ Item {
         visible: root.cursor
         width: Theme.spacing.hairline * 2
         height: parent.height
-        color: Theme.color.accent
+        color: root.paneFocused ? Theme.color.accent : Theme.color.muted
     }
 
     // The drop frame: the board's hairline of accent inset in the row over a faint accent wash, the
@@ -119,11 +122,11 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: Theme.spacing.rowPaddingX + root.leadingSlot
         anchors.verticalCenter: parent.verticalCenter
-        width: Theme.iconSize
-        height: Theme.iconSize
+        width: root.markSlot
+        height: root.markSlot
         // Sized on purpose, see AGENTS.md "The thumbnail decode arm": it caps the themed icon and saves 158 KB a thumbnail.
-        sourceSize.width: Theme.iconSize
-        sourceSize.height: Theme.iconSize
+        sourceSize.width: root.markSlot
+        sourceSize.height: root.markSlot
         fillMode: Image.PreserveAspectFit
         // A synchronous decode on the UI thread would land inside a scrolled frame.
         asynchronous: true
@@ -136,10 +139,11 @@ Item {
         anchors.left: parent.left
         anchors.leftMargin: Theme.spacing.rowPaddingX + root.leadingSlot
         anchors.verticalCenter: parent.verticalCenter
-        width: Theme.iconSize
-        height: Theme.iconSize
+        width: root.markSlot
+        height: root.markSlot
         name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : Icons.FALLBACK
-        color: root.lifted ? Theme.color.foreground : root.dim
+        color: root.dualMode ? (root.cursor && root.paneFocused ? Theme.color.accent : Theme.color.muted)
+            : root.lifted ? Theme.color.foreground : root.dim
     }
 
     // What the row actually draws, so a test catches the binding being cut and not only the lookup.
@@ -158,6 +162,7 @@ Item {
 
     // What the editor holds right now, for tests/ui.sh through ui/Ipc.qml's renameEditorText.
     readonly property string editorText: editor.current
+    readonly property Item editorField: editor
 
     signal renameCommitted(string newName)
     signal renameAbandoned()
@@ -171,8 +176,9 @@ Item {
         anchors.right: mode.left
         anchors.rightMargin: root.modeShown ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
-        height: Theme.rowHeight - 2 * Theme.spacing.rowPaddingY
-        name: root.row ? root.row.n : ""
+        height: implicitHeight
+        pane: root.renamePane
+        name: root.displayName
         onCommitted: function (newName) { root.renameCommitted(newName) }
         onAbandoned: root.renameAbandoned()
     }
@@ -214,7 +220,7 @@ Item {
         anchors.left: searchName.right
         anchors.leftMargin: Theme.spacing.gap
         anchors.right: size.left
-        anchors.rightMargin: root.sizeShown ? Theme.spacing.gap : 0
+        anchors.rightMargin: root.sizeShown && !root.dualMode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         text: root.locationText
         color: root.cellColor()
@@ -227,7 +233,7 @@ Item {
     Text {
         id: mode
         anchors.right: size.left
-        anchors.rightMargin: root.sizeShown ? Theme.spacing.gap : 0
+        anchors.rightMargin: root.sizeShown && !root.dualMode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.modeShown && !root.dropTarget
         width: root.modeShown ? Theme.column.mode : 0
@@ -242,10 +248,10 @@ Item {
     Text {
         id: size
         anchors.right: modified.left
-        anchors.rightMargin: root.dateShown ? Theme.spacing.gap : 0
+        anchors.rightMargin: root.dateShown && !root.dualMode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.sizeShown && !root.dropTarget
-        width: root.sizeShown ? Theme.column.size : 0
+        width: root.sizeShown ? root.sizeWidth : 0
         text: root.row ? root.sizeText() : ""
         color: root.cellColor()
         font.family: Theme.font.family
@@ -329,7 +335,7 @@ Item {
 
     // A lifted row is a surface the theme never modelled, so its text takes the strongest ink; see the plan's Task 2 table.
     function cellColor() {
-        return root.lifted ? Theme.color.foreground : root.dim
+        return root.lifted || root.foregroundMetadata ? Theme.color.foreground : root.dim
     }
 
     // A directory's own row.s is its dirent size, not the walk's, so this reads root.dirSize instead, see docs/protocol.md "dirsized".

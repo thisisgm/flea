@@ -1,7 +1,7 @@
 // The ui.json merges with no disk in them: read a file onto the defaults, apply one caller patch,
 // and carry 0.1.3's view.json across.
 use crate::jsondoc::{self, Json};
-use crate::uischema::{defaults, Rule, COLUMN_KEYS, OPTIONAL_COLUMNS, SCHEMA, TEXT_SIZE_STOPS};
+use crate::uischema::{defaults, Rule, COLUMN_KEYS, OPTIONAL_COLUMNS, SCHEMA, TEXT_SIZE_STOPS, SIDEBAR_STOPS};
 
 // Never fails: a file this cannot read is a file whose every key falls back to the shipped default.
 pub fn from_file(text: &str) -> Json {
@@ -77,7 +77,7 @@ fn apply(current: &Json, patch: &Json, schema: &[(&str, Rule)]) -> Json {
         let held = out.iter().find(|(k, _)| k == key).map(|(_, v)| v.clone());
         let next = match (group, held) {
             (Some(sub), Some(existing)) => apply(&existing, value, sub),
-            _ => value.clone(),
+            _ => normalized(schema.iter().find(|(name, _)| name == key).map(|(_, rule)| rule), value),
         };
         match out.iter_mut().find(|(k, _)| k == key) {
             Some(slot) => slot.1 = next,
@@ -100,7 +100,7 @@ fn merge(default: &Json, found: &Json, schema: &[(&str, Rule)]) -> Json {
             None => fallback,
             Some(value) => match rule {
                 Rule::Group(sub) => merge(&fallback, value, sub),
-                _ if fits(rule, value) => value.clone(),
+                _ if fits(rule, value) => normalized(Some(rule), value),
                 _ => fallback,
             },
         };
@@ -114,12 +114,25 @@ fn merge(default: &Json, found: &Json, schema: &[(&str, Rule)]) -> Json {
     Json::Obj(out)
 }
 
+fn normalized(rule: Option<&Rule>, value: &Json) -> Json {
+    if matches!(rule, Some(Rule::SidebarWidth)) {
+        let requested = value.as_f64().unwrap_or(192.0);
+        let mut nearest = SIDEBAR_STOPS[0];
+        for stop in SIDEBAR_STOPS {
+            if (stop - requested).abs() < (nearest - requested).abs() { nearest = stop; }
+        }
+        return Json::Num(format!("{}", nearest));
+    }
+    value.clone()
+}
+
 fn fits(rule: &Rule, value: &Json) -> bool {
     match rule {
         Rule::Bool => value.as_bool().is_some(),
         Rule::Word(words) => value.as_str().map(|s| words.contains(&s)).unwrap_or(false),
         Rule::Columns => is_column_set(value),
-        Rule::Paths => every_string(value, |s| !s.is_empty()),
+        Rule::Favourites => value.as_array().is_some(),
+        Rule::SidebarWidth => value.as_f64().is_some_and(f64::is_finite),
         // Handoff 5a stores the two panes or nothing, so a third path is a shape no restore can read.
         Rule::Pair => match value.as_array() {
             Some(items) => (items.is_empty() || items.len() == 2) && every_string(value, is_a_place),
@@ -196,6 +209,17 @@ mod tests {
 
 
     #[test]
+    fn favourite_records_survive_and_width_snaps_independently() {
+        let text = r#"{"places":{"favourites":[{"label":"","path":"relative"},17,"legacy",{"label":"A","path":"/a"},{"label":"A","path":"/a"}],"sidebarWidth":999}}"#;
+        let original = jsondoc::parse(text).unwrap();
+        let state = from_file(text);
+        assert_eq!(state.get("places").unwrap().get("favourites"), original.get("places").unwrap().get("favourites"));
+        assert_eq!(state.get("places").unwrap().get("sidebarWidth").unwrap().as_f64(), Some(256.0));
+        let invalid = from_file(r#"{"places":{"sidebarWidth":"wide"}}"#);
+        assert_eq!(invalid.get("places").unwrap().get("sidebarWidth").unwrap().as_f64(), Some(192.0));
+    }
+
+    #[test]
     fn a_malformed_file_returns_the_full_default_shape_rather_than_throwing() {
         for bad in ["{oops", "", "[]", "\"a string\"", "{\"view\": }"] {
             assert_eq!(text(&from_file(bad)), text(&defaults()), "{} should read as the defaults", bad);
@@ -229,7 +253,7 @@ mod tests {
         let places = merged.get("places").expect("places");
         assert_eq!(places.get("showHome").and_then(Json::as_bool), Some(true));
         assert_eq!(places.get("showTrash").and_then(Json::as_bool), Some(false));
-        assert_eq!(places.get("sidebarWidth").and_then(Json::as_f64), Some(192.0));
+        assert_eq!(places.get("sidebarWidth").and_then(Json::as_f64), Some(160.0));
     }
 
     #[test]
@@ -265,7 +289,7 @@ mod tests {
         let tui = jsondoc::parse(r#"{"view":"columns","hidden":true,"sort":{"key":"size"}}"#).expect("tui");
         let after_gui = patched(&from_file("{}"), &gui).expect("gui patch");
         let after_both = patched(&after_gui, &tui).expect("tui patch");
-        assert_eq!(after_both.get("places").and_then(|p| p.get("sidebarWidth")).and_then(Json::as_f64), Some(240.0));
+        assert_eq!(after_both.get("places").and_then(|p| p.get("sidebarWidth")).and_then(Json::as_f64), Some(224.0));
         let hidden = after_both.get("menu").and_then(|m| m.get("hidden")).and_then(Json::as_array).expect("menu.hidden");
         assert_eq!(hidden.iter().filter_map(Json::as_str).collect::<Vec<&str>>(), ["paste"]);
         assert_eq!(after_both.get("view").and_then(Json::as_str), Some("columns"));
@@ -281,8 +305,6 @@ mod tests {
         let current = from_file("{}");
         for (patch, named) in [
             (r#"{"view":"miller"}"#, "view"),
-            // The dual group is stored for a newer Flea, but this one cannot draw that view.
-            (r#"{"view":"dual"}"#, "view"),
             (r#"{"places":{"sidebarWidth":"wide"}}"#, "places.sidebarWidth"),
             (r#"{"notAKey":1}"#, "notAKey"),
             (r#"{"menu":{"nope":1}}"#, "menu.nope"),
@@ -298,6 +320,9 @@ mod tests {
     // no dual-pane locations have been remembered. Three paths is a shape the restore cannot read.
     #[test]
     fn dual_paths_is_two_places_or_none_and_never_a_relative_name() {
+        let enabled = jsondoc::parse(r#"{"view":"dual","dual":{"paths":["/tmp/left","/tmp/right"],"focus":1}}"#).expect("dual patch");
+        let restored = patched(&from_file("{}"), &enabled).expect("dual view is implemented");
+        assert_eq!(restored.get("view").and_then(Json::as_str), Some("dual"));
         let current = from_file("{}");
         for good in [r#"{"dual":{"paths":[]}}"#, r#"{"dual":{"paths":["/home/gm","/tmp"]}}"#,
                      r#"{"dual":{"paths":["smb://nas/share","/run/user/1000/gvfs/x"]}}"#] {
@@ -329,12 +354,15 @@ mod tests {
             .iter().filter_map(Json::as_str).collect();
         assert_eq!(hidden, ["delete", "newFolder", "copy-path", "copy_path"]);
         // Still bounded: anything that is not an id costs the key its own default, as it always did.
+        let shipped = crate::uischema::defaults();
+        let shipped = shipped
+            .get("menu").and_then(|m| m.get("hidden")).and_then(Json::as_array).expect("shipped menu.hidden").len();
         for bad in [r#"{"menu":{"hidden":["delete","rm -rf /"]}}"#, r#"{"menu":{"hidden":["delete",""]}}"#,
                     r#"{"menu":{"hidden":["delete","a/b"]}}"#, r#"{"menu":{"hidden":["delete",1]}}"#] {
             let read = from_file(bad);
             let fell_back = read
                 .get("menu").and_then(|m| m.get("hidden")).and_then(Json::as_array).expect("menu.hidden");
-            assert_eq!(fell_back.len(), 8, "{} must cost the key its own default", bad);
+            assert_eq!(fell_back.len(), shipped, "{} must cost the key its own default", bad);
         }
     }
 

@@ -1,4 +1,6 @@
 .import "../../ui/js/Filter.js" as Filter
+.import "../../ui/js/Thumbs.js" as Thumbs
+.import "../../ui/js/DirSizes.js" as DirSizes
 .import "filterfixture.js" as Fixture
 
 // The fixtures and the stub pane live in filterfixture.js, so this file stays checks.
@@ -58,8 +60,35 @@ function run(check) {
           Filter.keep([1, 2, 3, 5], mixed).join(","), "1,5")
     check("with no filter a request passes through untouched", Filter.keep([1, 2, 3], null).join(","), "1,2,3")
     check("a thumbnail plan is cut on its asks and keeps its drops",
-          JSON.stringify(Filter.cut({ ask: [1, 3, 5], drop: [9] }, mixed)),
+          JSON.stringify(Filter.cut({ ask: [1, 3, 5], drop: [9] }, mixed, Thumbs.empty())),
           JSON.stringify({ ask: [1, 5], drop: [9] }))
+    var thumbnailState = Thumbs.applied(Thumbs.empty(), {ask: [400, 401, 403, 405, 406], drop: []})
+    thumbnailState = Thumbs.remember(thumbnailState, 403, "/cache/403.png", 240)
+    var sparse = [401, 405]
+    var sparseRows = [{t: true}, {t: true}, {d: true}, {t: true}, {d: true}, {t: true}, {t: true}]
+    var sparseSpan = Filter.span(sparse, 0, 1)
+    var pendingPlan = Thumbs.plan(thumbnailState, sparseRows, 400, sparseSpan.first, sparseSpan.last)
+    var narrowedPlan = Filter.cut(pendingPlan, sparse, thumbnailState)
+    check("a narrowed viewport cancels every hidden pending thumbnail, including gaps between matches",
+          narrowedPlan.drop.join(","), "400,406")
+    var hiddenInside = Thumbs.applied(Thumbs.empty(), {ask: [401, 403, 405], drop: []})
+    check("a pending thumbnail between visible matches is cancelled before it decodes offscreen",
+          Filter.cut({ask: [], drop: []}, sparse, hiddenInside).drop.join(","), "403")
+    check("an already scheduled cancellation is not duplicated by the filter",
+          Filter.cut({ask: [], drop: [403]}, sparse, hiddenInside).drop.join(","), "403")
+    check("completed thumbnails stay cached when the filter hides them",
+          narrowedPlan.drop.indexOf(403), -1)
+    check("zero matches cancels all pending thumbnails without inventing requests",
+          JSON.stringify(Filter.cut({ask: [], drop: []}, [], hiddenInside)),
+          JSON.stringify({ask: [], drop: [401, 403, 405]}))
+    check("clearing the filter leaves the ordinary viewport cancellation plan intact",
+          JSON.stringify(Filter.cut({ask: [400], drop: [406]}, null, hiddenInside)),
+          JSON.stringify({ask: [400], drop: [406]}))
+    check("sparse filtered tile requests retain backend row identities",
+          Filter.cut(Thumbs.plan(Thumbs.empty(), sparseRows, 400, sparseSpan.first, sparseSpan.last), sparse, Thumbs.empty()).ask.join(","),
+          "401,405")
+    check("directory-size requests exclude directories hidden between filtered tiles",
+          Filter.keep(DirSizes.plan(DirSizes.empty(), sparseRows, 400, sparseSpan.first, sparseSpan.last), sparse).length, 0)
     // A filtered viewport covers a set, not a run, so the range-shaped planners in ui/js/Thumbs.js
     // and ui/js/DirSizes.js get the run it spans and cut() takes back what they over-asked for.
     check("a view range spans the listing rows at its ends",

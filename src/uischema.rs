@@ -18,7 +18,7 @@ pub const DEFAULTS: &str = r#"{
     "favourites": [],
     "showHome": true, "showNetwork": true,
     "showDevices": true, "showTrash": true,
-    "driveSize": true, "sidebarWidth": 192
+    "driveSize": false, "trashCount": false, "sidebarWidth": 192
   },
   "preview": {
     "column": true, "loadOn": "automatic",
@@ -26,8 +26,8 @@ pub const DEFAULTS: &str = r#"{
     "ctrlZoom": true
   },
   "keys": "default",
-  "display": { "textSize": { "mode": "system" } },
-  "menu": { "hidden": ["delete", "openwith", "openTerminal",
+  "display": { "textSize": { "mode": "system" }, "hyprlandIcons": false },
+  "menu": { "hidden": ["delete", "openTerminal",
             "moveto", "copyto", "properties", "permissions", "copypath"] }
 }"#;
 
@@ -37,8 +37,7 @@ pub const OPTIONAL_COLUMNS: [&str; 4] = ["mode", "size", "date", "kind"];
 // Omarchy's own textSizeStops, so an override can never land on a size the OEM panel could not produce.
 pub const TEXT_SIZE_STOPS: [f64; 7] = [9.0, 10.0, 11.0, 12.0, 14.0, 16.0, 20.0];
 // A rail narrower than a mark plus a label is not a rail, and one wider than this is a second pane.
-pub const SIDEBAR_MIN: f64 = 120.0;
-pub const SIDEBAR_MAX: f64 = 640.0;
+pub const SIDEBAR_STOPS: [f64; 4] = [160.0, 192.0, 224.0, 256.0];
 
 // What a value has to be for the key to keep it. A key that fails its rule falls back to its default.
 pub enum Rule {
@@ -46,7 +45,8 @@ pub enum Rule {
     Word(&'static [&'static str]),
     // columns names what the list row SHOWS, so it holds each column key at most once and name always.
     Columns,
-    Paths,
+    Favourites,
+    SidebarWidth,
     // dual.paths is the pair handoff 5a specifies, or the empty array that means nothing remembered.
     Pair,
     // menu.hidden is deliberately open: a closed list would make this Flea drop an id a newer one hid.
@@ -63,13 +63,14 @@ pub const SORT: &[(&str, Rule)] = &[("key", Rule::Word(&["name", "size", "date",
 pub const DUAL: &[(&str, Rule)] = &[("paths", Rule::Pair), ("focus", Rule::Count(0.0, 1.0))];
 
 pub const PLACES: &[(&str, Rule)] = &[
-    ("favourites", Rule::Paths),
+    ("favourites", Rule::Favourites),
     ("showHome", Rule::Bool),
     ("showNetwork", Rule::Bool),
     ("showDevices", Rule::Bool),
     ("showTrash", Rule::Bool),
     ("driveSize", Rule::Bool),
-    ("sidebarWidth", Rule::Count(SIDEBAR_MIN, SIDEBAR_MAX)),
+    ("trashCount", Rule::Bool),
+    ("sidebarWidth", Rule::SidebarWidth),
 ];
 
 pub const PREVIEW: &[(&str, Rule)] = &[
@@ -85,15 +86,14 @@ pub const TEXT_SIZE: &[(&str, Rule)] = &[("mode", Rule::TextSize)];
 
 // textSize alone. Window opacity, icon theme and shadows are the compositor's, and Flea mirrors it
 // rather than carrying a second writable copy of a setting Hyprland already owns.
-pub const DISPLAY: &[(&str, Rule)] = &[("textSize", Rule::Group(TEXT_SIZE))];
+pub const DISPLAY: &[(&str, Rule)] = &[("textSize", Rule::Group(TEXT_SIZE)), ("hyprlandIcons", Rule::Bool)];
 
 // hidden is the whole of the Menus section's state: the master row SettingsMenus draws over the six
 // basic actions derives from it by masterState in ui/js/Settings.js, and cannot disagree with it.
 pub const MENU: &[(&str, Rule)] = &[("hidden", Rule::Ids)];
 
 pub const SCHEMA: &[(&str, Rule)] = &[
-    // No "dual": every view in ui/Pane.qml gates on an exact match, so a stored "dual" draws nothing.
-    ("view", Rule::Word(&["list", "columns", "grid"])),
+    ("view", Rule::Word(&["list", "columns", "grid", "dual"])),
     ("density", Rule::Word(&["compact", "normal", "comfortable"])),
     ("columns", Rule::Columns),
     ("addressBar", Rule::Word(&["path", "breadcrumb"])),
@@ -184,12 +184,14 @@ mod tests {
         assert_eq!(d.get("dual").and_then(|s| s.get("paths")).and_then(Json::as_array).map(<[Json]>::len), Some(0));
         assert_eq!(d.get("dual").and_then(|s| s.get("focus")).and_then(Json::as_f64), Some(0.0));
         assert_eq!(d.get("places").and_then(|p| p.get("sidebarWidth")).and_then(Json::as_f64), Some(192.0));
+        assert_eq!(d.get("places").and_then(|p| p.get("driveSize")).and_then(Json::as_bool), Some(false));
+        assert_eq!(d.get("places").and_then(|p| p.get("trashCount")).and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("preview").and_then(|p| p.get("loadOn")).and_then(Json::as_str), Some("automatic"));
         assert_eq!(d.get("preview").and_then(|p| p.get("thumbnails")).and_then(Json::as_str), Some("media"));
         assert_eq!(d.get("preview").and_then(|p| p.get("thumbSize")).and_then(Json::as_str), Some("medium"));
         assert_eq!(d.get("display").and_then(|p| p.get("textSize")).and_then(|t| t.get("mode")).and_then(Json::as_str), Some("system"));
         let display: Vec<&str> = d.get("display").and_then(Json::as_object).expect("display").iter().map(|(k, _)| k.as_str()).collect();
-        assert_eq!(display, ["textSize"], "the compositor owns opacity, icons and shadows");
+        assert_eq!(display, ["textSize", "hyprlandIcons"], "the compositor owns opacity, icons and shadows");
         let menu: Vec<&str> = d.get("menu").and_then(Json::as_object).expect("menu").iter().map(|(k, _)| k.as_str()).collect();
         assert_eq!(menu, ["hidden"], "the master row is derived from menu.hidden, not stored beside it");
     }
@@ -208,7 +210,7 @@ mod tests {
             .collect();
         assert_eq!(
             hidden,
-            ["delete", "openwith", "openTerminal", "moveto", "copyto", "properties", "permissions", "copypath"]
+            ["delete", "openTerminal", "moveto", "copyto", "properties", "permissions", "copypath"]
         );
     }
 
@@ -220,7 +222,9 @@ mod tests {
         for good in [r#"{"display":{"textSize":{"mode":"system"}}}"#, r#"{"display":{"textSize":{"mode":9}}}"#,
                      r#"{"keys":"default"}"#, r#"{"keys":"vim"}"#,
                      r#"{"keys":"mac"}"#, r#"{"keys":"windows"}"#,
-                     r#"{"places":{"favourites":[]}}"#] {
+                     r#"{"places":{"favourites":[]}}"#,
+                     r#"{"places":{"driveSize":true,"trashCount":true}}"#,
+                     r#"{"places":{"driveSize":false,"trashCount":false}}"#] {
             assert!(takes(good).is_ok(), "{} is a value its key takes", good);
         }
         for (bad, named) in [(r#"{"display":{"textSize":{"mode":13}}}"#, "display.textSize.mode"),
@@ -232,8 +236,9 @@ mod tests {
                              (r#"{"menu":{"basic":false}}"#, "menu.basic"),
                              (r#"{"keys":"emacs"}"#, "keys"),
                              (r#"{"language":"en"}"#, "language"),
-                             (r#"{"places":{"favourites":[""]}}"#, "places.favourites"),
-                             (r#"{"places":{"favourites":"/a"}}"#, "places.favourites")] {
+                             (r#"{"places":{"favourites":"/a"}}"#, "places.favourites"),
+                             (r#"{"places":{"driveSize":1}}"#, "places.driveSize"),
+                             (r#"{"places":{"trashCount":"true"}}"#, "places.trashCount")] {
             let message = takes(bad).expect_err("the patch must be refused");
             assert!(message.contains(named), "{} should name {}, got {}", bad, named, message);
         }

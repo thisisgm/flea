@@ -46,7 +46,8 @@ function request(text) {
         name: String(read.name || ""),
         files: Array.isArray(read.files) ? read.files : [],
         filters: Array.isArray(read.filters) ? read.filters : [],
-        current: String(read.current || "")
+        current: String(read.current || ""),
+        currentIndex: typeof read.currentIndex === "number" ? read.currentIndex : -1
     }
 }
 
@@ -122,59 +123,13 @@ function currentChip(req) {
     if (req.filters.length === 0) {
         return -1
     }
+    if (req.currentIndex >= 0 && req.currentIndex < req.filters.length) return req.currentIndex
     for (var i = 0; i < req.filters.length; i++) {
         if (String(req.filters[i].label || "") === req.current) {
             return i
         }
     }
     return 0
-}
-
-// Sample input: "*.tar.gz" becomes /^.*\.tar\.gz$/i. Every other character is taken literally, so a
-// filename with a bracket in it cannot turn the caller's glob into a character class.
-function globToRegExp(glob) {
-    var out = ""
-    for (var i = 0; i < glob.length; i++) {
-        var c = glob.charAt(i)
-        if (c === "*") {
-            out += ".*"
-        } else if (c === "?") {
-            out += "."
-        } else {
-            out += c.replace(/[.\\+^$[\]{}()|\/-]/g, "\\$&")
-        }
-    }
-    return new RegExp("^" + out + "$", "i")
-}
-
-// A filter narrows what is easy to find; it never rejects. A filter carrying only mime rules cannot
-// be answered by a listing row, which knows an icon name and not a mime type, so it narrows nothing.
-function matchesFilter(name, filter) {
-    if (!filter || !Array.isArray(filter.globs) || filter.globs.length === 0) {
-        return true
-    }
-    for (var i = 0; i < filter.globs.length; i++) {
-        if (globToRegExp(String(filter.globs[i])).test(name)) {
-            return true
-        }
-    }
-    return false
-}
-
-// The listing rows a chip leaves standing, in the backend's own order, or null when nothing is
-// narrowing. Directories always stand: a filter that hides the way out of a directory is a trap.
-// Same two index spaces as ui/js/Filter.js, and ui/js/Filter.js at() and viewOf() convert them.
-function shownRows(rows, held, filter) {
-    if (!filter) {
-        return null
-    }
-    var out = []
-    for (var i = 0; i < rows.length; i++) {
-        if (rows[i].d === true || matchesFilter(rows[i].n, filter)) {
-            out.push(held + i)
-        }
-    }
-    return out
 }
 
 // A mark is a path, never a row number: the board's rule is that a checked identity survives Back
@@ -186,28 +141,6 @@ function marked(marks, path) {
         }
     }
     return false
-}
-
-// Space. In single mode the new mark replaces the old one, which is the board's "Space replaces the
-// prior check"; unmarking what is already marked always wins, so a second Space clears it.
-function toggle(marks, path, bytes, multiple) {
-    var out = []
-    var found = false
-    for (var i = 0; i < marks.length; i++) {
-        if (marks[i].path === path) {
-            found = true
-            continue
-        }
-        out.push(marks[i])
-    }
-    if (found) {
-        return multiple ? out : []
-    }
-    if (!multiple) {
-        return [{ path: path, bytes: bytes }]
-    }
-    out.push({ path: path, bytes: bytes })
-    return out
 }
 
 function totalBytes(marks) {
@@ -224,6 +157,13 @@ function paths(marks) {
         out.push(marks[i].path)
     }
     return out
+}
+
+function reviewedMarks(previous, reviewed) {
+    return reviewed.map(function(item) {
+        var old = previous.find(function(mark) { return mark.path === item.path })
+        return {path: item.path, bytes: item.bytes, uri: old && old.uri ? old.uri : Format.fileUri(item.path)}
+    })
 }
 
 // The save name is the one filename a client hands this window, so it is a trust boundary and it
@@ -249,6 +189,10 @@ function rowPath(location, name) {
     return isRecent(location) ? "/" + name : join(location, name)
 }
 
+function directory(row) {
+    return !!row && (row.d === true || (Format.isSymlink(row.p) && row.i === "folder"))
+}
+
 function parentOf(path) {
     var cut = String(path).lastIndexOf("/")
     if (cut <= 0) {
@@ -268,9 +212,13 @@ function uris(list) {
 }
 
 // What tools/flea-portal reads out of the reply file. A refusal carries no URI at all.
-function reply(response, list) {
+function reply(response, list, filterIndex) {
     if (response !== RESPONSE_OK) {
         return JSON.stringify({ response: response })
     }
-    return JSON.stringify({ response: RESPONSE_OK, uris: uris(list) })
+    var answer = { response: RESPONSE_OK, uris: list.map(function(item) {
+        return typeof item === "string" ? Format.fileUri(item) : item.uri
+    }) }
+    if (typeof filterIndex === "number") answer.filter = filterIndex
+    return JSON.stringify(answer)
 }

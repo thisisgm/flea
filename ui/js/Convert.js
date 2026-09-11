@@ -40,3 +40,13 @@ function defaultFormat(name) {
     }
     return FORMATS[0]
 }
+
+function destination(source, format) {
+    var parent = source.path.substring(0, source.path.lastIndexOf("/") + 1)
+    return parent + destName(source.name, format)
+}
+
+function matchesReply(source, requestId, reply) {
+    return source !== null && reply.requestId === requestId
+            && reply.source === source.path
+}

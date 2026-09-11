@@ -1,6 +1,7 @@
 .pragma library
 
 .import "Match.js" as Match
+.import "Thumbs.js" as Thumbs
 
 // The filter narrows the listing already on screen: no walk, no round trip, and every row it keeps
 // is one the backend has already sent. ui/js/Search.js is its bigger sibling, which walks the
@@ -99,10 +100,21 @@ function keep(asked, list) {
     return out
 }
 
-// A thumbnail plan's asks cut the same way. The drops are left whole: a row asked for before the
-// filter hid it is one the backend should stop working on, not one to keep.
-function cut(work, list) {
-    return { ask: keep(work.ask, list), drop: work.drop }
+// A pending thumbnail can be hidden inside the planner's span as well as outside its viewport.
+function cut(work, list, state) {
+    var drop = work.drop.slice()
+    if (list !== null) {
+        var drawn = {}
+        for (var i = 0; i < list.length; i++) drawn[list[i]] = true
+        var dropping = {}
+        for (var j = 0; j < drop.length; j++) dropping[drop[j]] = true
+        for (var key in state.file) {
+            var row = Number(key)
+            if (state.file[key] === Thumbs.ASKED && drawn[row] !== true && dropping[row] !== true)
+                drop.push(row)
+        }
+    }
+    return { ask: keep(work.ask, list), drop: drop }
 }
 
 // The listing rows a view range covers, for the two planners that take a first and a last.

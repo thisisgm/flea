@@ -1,45 +1,81 @@
 import Quickshell.Io
 import QtQuick
 
-// dropbox-cli prints one line, the URL, and it goes to the clipboard the same way the Tailscale
-// panel's own copyToClipboard does. No Rust: this is a QML Process call and nothing else.
 Item {
     id: root
 
     signal copied(string url)
-    signal failed()
+    signal failed(string reason)
 
     property string pending: ""
+    property string pendingUrl: ""
+    property bool _shareAwaitingStart: false
+    property bool _clipboardAwaitingStart: false
+    property string _shareOutput: ""
 
     function copy(path) {
-        if (path.length === 0 || sharelink.running)
+        if (pending.length > 0) {
+            root.failed("A share link is still being copied; try again when it finishes.")
             return
+        }
+        if (typeof path !== "string" || path.charAt(0) !== "/" || path.indexOf("\u0000") >= 0) {
+            root.failed("Share link needs an absolute file path.")
+            return
+        }
         root.pending = path
+        root._shareOutput = ""
+        root._shareAwaitingStart = true
+        // DropboxCommand bounds each socket operation itself; a total deadline would shorten that contract.
         sharelink.command = ["dropbox-cli", "sharelink", path]
         sharelink.running = true
     }
 
+    function finish(reason) {
+        if (pending.length === 0) return
+        var url = pendingUrl
+        pending = ""
+        pendingUrl = ""
+        _shareAwaitingStart = false
+        _clipboardAwaitingStart = false
+        if (reason) root.failed(reason)
+        else root.copied(url)
+    }
+
     Process {
         id: sharelink
-        stdout: StdioCollector { id: out }
+        stdout: StdioCollector { id: out; waitForEnd: true; onStreamFinished: root._shareOutput = text }
+        onStarted: root._shareAwaitingStart = false
+        onRunningChanged: {
+            if (root._shareAwaitingStart && !running)
+                root.finish("The Dropbox share link helper could not start.")
+        }
 
         onExited: function (exitCode) {
-            var url = out.text.trim()
-            // dropbox-cli prints its own diagnosis and does not always exit non-zero, so the answer
-            // is judged by what it printed rather than by the status alone.
-            if (exitCode !== 0 || url.indexOf("http") !== 0) {
-                root.failed()
+            root._shareAwaitingStart = false
+            if (root.pending.length === 0) return
+            var url = (out.text || root._shareOutput).trim()
+            // Sample output: https://www.dropbox.com/s/example/file.txt?dl=0; exit-zero error text is not a URL.
+            if (exitCode !== 0 || !/^https?:\/\/[^/\s?#]+(?:[/?#][^\s]*)?$/.test(url)) {
+                root.finish("Dropbox could not make a share link for that file.")
                 return
             }
-            // argv-direct, no shell: wl-copy takes the text as an argument, so a URL holding
-            // $(...) or backticks can never reach a shell to be expanded.
+            root.pendingUrl = url
+            root._clipboardAwaitingStart = true
             copyToClipboard.command = ["wl-copy", url]
             copyToClipboard.running = true
-            root.copied(url)
         }
     }
 
     Process {
         id: copyToClipboard
+        onStarted: root._clipboardAwaitingStart = false
+        onRunningChanged: {
+            if (root._clipboardAwaitingStart && !running)
+                root.finish("The clipboard helper could not start; the share link was not copied.")
+        }
+        onExited: function(exitCode) {
+            root._clipboardAwaitingStart = false
+            root.finish(exitCode === 0 ? "" : "The share link could not be copied to the clipboard.")
+        }
     }
 }

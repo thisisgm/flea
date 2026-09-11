@@ -16,28 +16,36 @@ pub enum Request {
     // Unlike thumbcancel, there is no rows form: it always cancels everything in flight, see docs/protocol.md "dirsizecancel".
     DirSizeCancel,
     // The five write operations and their cancel, per the operations design's own wire.
-    Transfer { op: String, paths: Vec<String>, rows: Vec<usize>, dest: String },
+    Transfer { op: String, paths: Vec<String>, rows: Vec<usize>, dest: String, menu_id: usize },
     TransferCancel { id: usize },
-    Trash { paths: Vec<String>, rows: Vec<usize> },
-    Rename { path: String, to: String },
-    Duplicate { path: String },
+    Trash { paths: Vec<String>, rows: Vec<usize>, menu_id: usize },
+    Rename { path: String, to: String, menu_id: usize },
+    Duplicate { path: String, menu_id: usize },
     // One new empty directory inside parent path; an empty name asks for the first free "New Folder".
     MkDir { path: String, name: String },
+    NewFile { path: String, name: String, id: usize },
     Undo,
+    Redo,
     // Resolves row indices to absolute paths, which is what lets a client hold a clipboard for a
     // selection wider than the window it renders; see docs/protocol.md "paths".
     Paths { rows: Vec<usize> },
+    Locate { path: String },
+    LocateMany { paths: Vec<String>, id: usize, menu_id: usize, transfer_id: usize },
     // The preview column's own extras for one row: pixels, line count, symlink target.
-    Meta { row: usize, text: bool, media: bool, archive: bool },
+    Meta { row: usize, text: bool, media: bool, archive: bool, token: usize },
     // The status bar's filesystem line for the directory the pane is on.
     FsInfo,
     // A read-only look at a directory that is not the current listing; the columns view's ancestors.
-    Peek { path: String, first: usize, hidden: bool },
+    Peek { path: String, first: usize, hidden: bool, focus: String },
     // op is "compress" or "extract"; a compress names paths and a format, an extract names one path.
-    Archive { op: String, paths: Vec<String>, path: String, dest: String, format: String },
-    Convert { path: String, dest: String, strip: bool },
+    Archive { op: String, paths: Vec<String>, path: String, dest: String, format: String, menu_id: usize },
+    Convert { path: String, dest: String, strip: bool, menu_id: usize, request_id: usize, check: bool },
     // Which archive formats this box actually offers, and whether a converter is installed at all.
-    Formats,
+    Formats { id: usize },
+    Permissions { line: String },
+    Picker { line: String },
+    MenuAction { line: String, rows: Vec<usize> },
+    TrashBrowse { line: String },
     Quit,
     Unknown,
 }
@@ -45,6 +53,10 @@ pub enum Request {
 // Sample input: {"c":"list","path":"/home/gm","first":350,"hidden":false}
 pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
+        Some("trashbrowse") => Request::TrashBrowse { line: line.to_string() },
+        Some("permissions") => Request::Permissions { line: line.to_string() },
+        Some("picker") => Request::Picker { line: line.to_string() },
+        Some("menuaction") => Request::MenuAction { line: line.to_string(), rows: field_usize_array(line, "rows") },
         Some("list") => Request::List {
             path: field_str(line, "path").unwrap_or_default(),
             first: field_usize(line, "first").unwrap_or(0),
@@ -77,25 +89,41 @@ pub fn parse_request(line: &str) -> Request {
             // The client can only name rows inside the window it holds, so a wide selection is sent as indices instead.
             rows: field_usize_array(line, "rows"),
             dest: field_str(line, "dest").unwrap_or_default(),
+            menu_id: field_usize(line, "menuId").unwrap_or(0),
         },
         Some("transfercancel") => Request::TransferCancel { id: field_usize(line, "id").unwrap_or(0) },
         Some("trash") => Request::Trash {
             paths: field_str_array(line, "paths"),
             rows: field_usize_array(line, "rows"),
+            menu_id: field_usize(line, "menuId").unwrap_or(0),
         },
         Some("rename") => Request::Rename {
             path: field_str(line, "path").unwrap_or_default(),
             to: field_str(line, "to").unwrap_or_default(),
+            menu_id: field_usize(line, "menuId").unwrap_or(0),
         },
-        Some("duplicate") => Request::Duplicate { path: field_str(line, "path").unwrap_or_default() },
+        Some("duplicate") => Request::Duplicate { path: field_str(line, "path").unwrap_or_default(), menu_id: field_usize(line, "menuId").unwrap_or(0) },
         Some("mkdir") => Request::MkDir {
             path: field_str(line, "path").unwrap_or_default(),
             name: field_str(line, "name").unwrap_or_default(),
         },
+        Some("newfile") => Request::NewFile {
+            path: field_str(line, "path").unwrap_or_default(),
+            name: field_str(line, "name").unwrap_or_default(),
+            id: field_usize(line, "id").unwrap_or(0),
+        },
         Some("undo") => Request::Undo,
+        Some("redo") => Request::Redo,
         Some("paths") => Request::Paths { rows: field_usize_array(line, "rows") },
+        Some("locate") => match field_str(line, "path") {
+            Some(path) => Request::Locate { path },
+            None => Request::LocateMany { paths: field_str_array(line, "paths"),
+                id: field_usize(line, "id").unwrap_or(0), menu_id: field_usize(line, "menuId").unwrap_or(0),
+                transfer_id: field_usize(line, "transferId").unwrap_or(0) },
+        },
         Some("fsinfo") => Request::FsInfo,
         Some("archive") => Request::Archive {
+            menu_id: field_usize(line, "menuId").unwrap_or(0),
             // Anything that is not "compress" is an extract, so a malformed op never writes an archive.
             op: field_str(line, "op").unwrap_or_default(),
             paths: field_str_array(line, "paths"),
@@ -104,17 +132,22 @@ pub fn parse_request(line: &str) -> Request {
             format: field_str(line, "format").unwrap_or_default(),
         },
         Some("convert") => Request::Convert {
+            request_id: field_usize(line, "requestId").unwrap_or(0),
+            check: field_bool(line, "check"),
+            menu_id: field_usize(line, "menuId").unwrap_or(0),
             path: field_str(line, "path").unwrap_or_default(),
             dest: field_str(line, "dest").unwrap_or_default(),
             strip: field_bool(line, "strip"),
         },
-        Some("formats") => Request::Formats,
+        Some("formats") => Request::Formats { id: field_usize(line, "id").unwrap_or(0) },
         Some("peek") => Request::Peek {
             path: field_str(line, "path").unwrap_or_default(),
             first: field_usize(line, "first").unwrap_or(0),
             hidden: field_bool(line, "hidden"),
+            focus: field_str(line, "focus").unwrap_or_default(),
         },
         Some("meta") => Request::Meta {
+            token: field_usize(line, "token").unwrap_or(0),
             row: field_usize(line, "row").unwrap_or(0),
             text: field_bool(line, "text"),
             media: field_bool(line, "media"),
@@ -123,6 +156,19 @@ pub fn parse_request(line: &str) -> Request {
         Some("quit") => Request::Quit,
         _ => Request::Unknown,
     }
+}
+
+pub fn located_line(directory: &str, path: &str, index: Option<usize>) -> String {
+    let index = index.map(|value| value.to_string()).unwrap_or_else(|| "-1".into());
+    format!(r#"{{"t":"located","directory":"{}","path":"{}","index":{}}}"#,
+        escape(directory), escape(path), index)
+}
+
+pub fn located_many_line(directory: &str, id: usize, transfer_id: usize, matches: &[(&str, usize)], error: Option<&str>) -> String {
+    let matches: Vec<_> = matches.iter().map(|(path, index)|
+        format!(r#"{{"path":"{}","index":{}}}"#, escape(path), index)).collect();
+    format!(r#"{{"t":"located","directory":"{}","id":{},"transferId":{},"matches":[{}],"ok":{},"error":"{}"}}"#,
+        escape(directory), id, transfer_id, matches.join(","), error.is_none(), escape(error.unwrap_or_default()))
 }
 
 pub fn listed_line(n: usize, read_ms: f64, sort_ms: f64, dev: u64) -> String {
@@ -198,6 +244,27 @@ pub fn error_line_with_mode(e: &FleaError, mode: u32) -> String {
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn locate_preserves_request_identity_and_reports_absence() {
+        assert!(matches!(parse_request(r#"{"c":"locate","path":"/a/file"}"#), Request::Locate { path } if path == "/a/file"));
+        assert_eq!(located_line("/a", "/a/file", Some(3)), r#"{"t":"located","directory":"/a","path":"/a/file","index":3}"#);
+        assert_eq!(located_line("/a", "/a/\"\n", None), r#"{"t":"located","directory":"/a","path":"/a/\"\n","index":-1}"#);
+        assert!(matches!(parse_request(r#"{"c":"locate","paths":["/a/file"],"id":2,"menuId":7}"#),
+            Request::LocateMany { paths, id: 2, menu_id: 7, transfer_id: 0 } if paths == ["/a/file"]));
+        assert!(matches!(parse_request(r#"{"c":"locate","paths":["/a/file"],"transferId":12}"#),
+            Request::LocateMany { paths, id: 0, menu_id: 0, transfer_id: 12 } if paths == ["/a/file"]));
+        assert_eq!(located_many_line("/a", 2, 0, &[("/a/\"\n", 3)], None),
+            r#"{"t":"located","directory":"/a","id":2,"transferId":0,"matches":[{"path":"/a/\"\n","index":3}],"ok":true,"error":""}"#);
+    }
+
+    #[test]
+    fn convert_preserves_probe_and_caller_identity_without_changing_legacy_activation() {
+        assert!(matches!(parse_request(r#"{"c":"convert","path":"/a.png","dest":"/a.jpg","strip":true,"menuId":7,"requestId":29,"check":true}"#),
+            Request::Convert { path, dest, strip: true, menu_id: 7, request_id: 29, check: true } if path == "/a.png" && dest == "/a.jpg"));
+        assert!(matches!(parse_request(r#"{"c":"convert","path":"/a.png","dest":"/a.jpg"}"#),
+            Request::Convert { strip: false, menu_id: 0, request_id: 0, check: false, .. }));
+    }
 
     #[test]
     fn parses_each_request_shape() {

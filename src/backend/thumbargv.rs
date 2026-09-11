@@ -26,6 +26,7 @@ pub fn argv(spec: &Spec, input: &Path, output: &Path, size: u32) -> Option<(Path
 mod tests {
     use super::*;
     use crate::backend::aliases::Aliases;
+    use crate::backend::testdir::TestDir;
     use crate::backend::thumbspec::Thumbnailers;
 
     // A table of exactly one spec, so a test names the Exec line it is substituting and nothing else.
@@ -35,22 +36,16 @@ mod tests {
         Thumbnailers::from_entries(&[("t.thumbnailer".to_string(), body)], &aliases)
     }
 
-    fn dir_for(tag: &str) -> PathBuf {
-        std::env::temp_dir().join(format!("flea-thumbargv-{}-{}", tag, std::process::id()))
-    }
-
     #[test]
     fn every_placeholder_substitutes_and_a_hostile_name_stays_one_argument() {
         let a = Aliases::from_str("");
         let t = spec_for("/bin/sh -i %i -u %u -o %o -s %s");
         let s = t.for_mime("image/jpeg", &a).unwrap();
         // The file has to exist, or this would prove the refusal path and say nothing about substitution.
-        let dir = dir_for("hostile");
-        std::fs::create_dir_all(&dir).unwrap();
+        let dir = TestDir::new("thumbargv-hostile");
         let hostile = dir.join("a; rm -rf b.jpg");
         std::fs::write(&hostile, b"").unwrap();
         let got = argv(s, &hostile, Path::new("/tmp/out.png"), 256);
-        std::fs::remove_dir_all(&dir).unwrap();
         let (_abs, got) = got.unwrap();
         assert_eq!(got[0], "/bin/sh");
         assert!(got[2].starts_with('/'));
@@ -67,12 +62,11 @@ mod tests {
         let a = Aliases::from_str("");
         let t = spec_for("/bin/sh %u %o");
         let s = t.for_mime("image/jpeg", &a).unwrap();
-        let dir = dir_for("uri");
+        let dir = TestDir::new("thumbargv-uri");
         std::fs::create_dir_all(dir.join("real")).unwrap();
         std::fs::write(dir.join("real/pic.jpg"), b"").unwrap();
         std::os::unix::fs::symlink(dir.join("real"), dir.join("link")).unwrap();
         let got = argv(s, &dir.join("link/pic.jpg"), Path::new("/tmp/o.png"), 256);
-        std::fs::remove_dir_all(&dir).unwrap();
         let (abs, got) = got.unwrap();
         // The sandbox binds abs, so a %u naming the link sends the child at a path that does not exist inside the namespace.
         assert!(got[1].contains("/real/pic.jpg"), "%u kept the path that was asked for: {}", got[1]);
@@ -106,12 +100,11 @@ mod tests {
         let a = Aliases::from_str("");
         let t = spec_for("/bin/sh %i %o");
         let s = t.for_mime("image/jpeg", &a).unwrap();
-        let dir = dir_for("link");
+        let dir = TestDir::new("thumbargv-link");
         std::fs::create_dir_all(dir.join("real")).unwrap();
         std::fs::write(dir.join("real/clip.jpg"), b"").unwrap();
         std::os::unix::fs::symlink(dir.join("real"), dir.join("link")).unwrap();
         let got = argv(s, &dir.join("link/clip.jpg"), Path::new("/tmp/o.png"), 256);
-        std::fs::remove_dir_all(&dir).unwrap();
         let (abs, got) = got.unwrap();
         // The sandbox binds this path, so it must be the same string the child is handed, not the one the caller passed in.
         assert_eq!(abs.to_string_lossy(), got[1]);

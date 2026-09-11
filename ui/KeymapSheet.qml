@@ -10,16 +10,48 @@ Item {
 
     property bool opened: false
     property Item focusHolder: null
+    readonly property var sheet: Keymap.sheetFor(ViewState.keysPreset, "gui", root.focusHolder ? root.focusHolder.dualMode : false)
 
-    // The canvas draws this panel at 300 design pixels wide, the same as the convert popup.
-    readonly property int sheetWidth: 300
+    // The canvas drew this panel at 300, the convert popup's width, beside four illustrative rows.
+    // The real sheet is sixty rows whose chords run to eighteen characters: at 300 a cap took the
+    // whole half-cell, the wording beside it elided to a single ellipsis, and the two columns
+    // overprinted each other. 480 is the Open with card's own anchor and leaves both room.
+    readonly property int sheetWidth: 480
     readonly property int clampMargin: 8
     // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
     readonly property var cardItem: card
-    // Two columns, which is what the canvas draws and what keeps the whole map on one panel.
-    readonly property int columns: 2
     // A cap is sized from the type scale, never from the text inside it, so every cap is one height.
     readonly property int capSize: Theme.markSize
+
+    // One cap column for the whole sheet, measured off the widest chord this preset spells. Sizing
+    // each cap to its own text left every wording starting on a different x, and a wide chord took
+    // the cell whole and drew across the column beside it.
+    readonly property string widestCap: {
+        var out = ""
+        for (var i = 0; i < root.sheet.length; i++)
+            if (root.sheet[i].keys.length > out.length) out = root.sheet[i].keys
+        return out
+    }
+    readonly property int capWidth: Math.max(root.capSize, Math.ceil(capMetrics.width) + Theme.spacing.gap)
+    // The narrowest wording worth drawing beside a cap. A preset whose chords are wide enough to
+    // leave less than this takes one column and scrolls, rather than two columns of elided stubs.
+    readonly property int cellFloor: root.capWidth + Theme.spacing.gap + Math.ceil(labelFloor.width)
+    // Two columns is what the canvas draws, and what keeps the whole map on one panel where it fits.
+    readonly property int columns: body.width >= 2 * root.cellFloor + Theme.spacing.rowPaddingX ? 2 : 1
+
+    TextMetrics {
+        id: capMetrics
+        font.family: Theme.font.family
+        font.pixelSize: Theme.font.caption
+        text: root.widestCap
+    }
+
+    TextMetrics {
+        id: labelFloor
+        font.family: Theme.font.family
+        font.pixelSize: Theme.font.caption
+        text: "extend down"
+    }
     readonly property real groundOpacity: 0.5
 
     anchors.fill: parent
@@ -44,8 +76,8 @@ Item {
     // menuEntries() uses: one row per line, the cap and the wording it is drawn beside.
     function rows() {
         var out = []
-        for (var i = 0; i < Keymap.SHEET.length; i++)
-            out.push(Keymap.SHEET[i].keys + " " + Keymap.SHEET[i].label)
+        for (var i = 0; i < root.sheet.length; i++)
+            out.push(root.sheet[i].keys + " " + root.sheet[i].label)
         return out.join("\n")
     }
 
@@ -67,7 +99,7 @@ Item {
     Rectangle {
         id: card
         anchors.centerIn: parent
-        width: Theme.space(root.sheetWidth)
+        width: Math.max(0, Math.min(Theme.space(root.sheetWidth) * Theme.dialogWidthRatio, root.width - 2 * root.clampMargin))
         // Clamped to the window; the body scrolls whatever the clamp cut, see ui/CardScroll.qml.
         height: Math.min(body.wanted + 2 * Theme.spacing.rowPaddingX, root.height - 2 * root.clampMargin)
         color: Theme.color.surface
@@ -100,21 +132,23 @@ Item {
                 columnSpacing: Theme.spacing.rowPaddingX
 
                 Repeater {
-                    model: Keymap.SHEET
+                    model: root.sheet
 
                     delegate: Item {
                         id: entry
                         required property var modelData
                         // Equal halves, so the second column starts on one x the whole way down.
-                        width: (body.width - Theme.spacing.rowPaddingX) / root.columns
+                        width: (body.width - (root.columns - 1) * Theme.spacing.rowPaddingX) / root.columns
                         height: root.capSize
+                        // Nothing this cell draws may reach the cell beside it, whatever it holds.
+                        clip: true
 
                         Rectangle {
                             id: capBox
                             anchors.left: parent.left
                             anchors.verticalCenter: parent.verticalCenter
-                            // A two-key cap like "j k" is wider than one square, never taller.
-                            width: Math.max(root.capSize, cap.implicitWidth + Theme.spacing.gap)
+                            // The sheet's own cap column, never this row's text: see root.capWidth.
+                            width: root.capWidth
                             height: root.capSize
                             color: "transparent"
                             border.width: Theme.spacing.hairline
@@ -122,12 +156,16 @@ Item {
 
                             Text {
                                 id: cap
-                                anchors.centerIn: parent
+                                anchors.fill: parent
+                                anchors.margins: Theme.spacing.hairline
+                                horizontalAlignment: Text.AlignHCenter
+                                verticalAlignment: Text.AlignVCenter
                                 text: entry.modelData.keys
                                 color: Theme.color.foreground
                                 font.family: Theme.font.family
                                 font.pixelSize: Theme.font.caption
                                 textFormat: Text.PlainText
+                                elide: Text.ElideRight
                             }
                         }
 

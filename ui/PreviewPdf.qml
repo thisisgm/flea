@@ -31,6 +31,7 @@ Item {
 
     // A new document starts at its first page, whatever page the last one was left on.
     onPathChanged: root.page = 0
+    onPageCountChanged: if (root.pageCount > 0) root.page = Math.min(root.page, root.pageCount - 1)
 
     function turn(delta) {
         if (root.pageCount <= 0)

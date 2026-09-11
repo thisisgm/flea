@@ -44,8 +44,15 @@ function set(width, t, hidden) {
     }
 }
 
-// The drawn set as one string, in the order the columns are laid out, so a test can read the
-// header's and a row's off the same seam and compare them.
+// DualPane protects its name floor without reserving absent Mode and Kind columns.
+function dualSet(width, t, hidden) {
+    var base = 2 * t.rowPaddingX + t.iconSize + t.gap + t.nameMin
+    var showSize = (hidden || []).indexOf("size") < 0 && width >= base + t.size
+    var showDate = (hidden || []).indexOf("date") < 0
+        && width >= base + (showSize ? t.size : 0) + t.date
+    return {mode: false, kind: false, size: showSize, date: showDate}
+}
+
 function names(s) {
     var out = ["name"]
     for (var i = DROP_ORDER.length - 1; i >= 0; i--) {

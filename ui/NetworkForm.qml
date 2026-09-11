@@ -294,7 +294,7 @@ Column {
         signal tabbed(var from, bool back)
         function takeFocus() { tlsRow.forceActiveFocus() }
         onTabbed: function (from, back) { root.step(from, back ? -1 : 1) }
-        Keys.onTabPressed: tlsRow.tabbed(tlsRow, false)
+        Keys.onTabPressed: function(event) { tlsRow.tabbed(tlsRow, (event.modifiers & Qt.ShiftModifier) !== 0) }
         Keys.onBacktabPressed: tlsRow.tabbed(tlsRow, true)
         Keys.onReturnPressed: root.tls = !root.tls
         Keys.onEnterPressed: root.tls = !root.tls

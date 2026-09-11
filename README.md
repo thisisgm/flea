@@ -50,9 +50,6 @@ Update through Omarchy:
 omarchy update
 ```
 
-**0.1.6 is on GitHub.** OPR updates are waiting on
-[omarchy-pkgs#340](https://github.com/omacom/omarchy-pkgs/pull/340).
-
 <details>
 <summary>File chooser only, development package and removal</summary>
 

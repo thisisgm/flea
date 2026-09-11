@@ -22,8 +22,10 @@ pub fn scan(path: &str, hidden: bool) -> Result<(Listing, f64), FleaError> {
         if !hidden && name.starts_with('.') {
             continue;
         }
-        let is_dir = entry.file_type().map(|f| f.is_dir()).unwrap_or(false);
-        l.push(&name, is_dir);
+        let file_type = entry.file_type().ok();
+        let index = l.len();
+        l.push(&name, file_type.is_some_and(|kind| kind.is_dir()));
+        l.spans[index].is_symlink = file_type.is_some_and(|kind| kind.is_symlink());
     }
     Ok((l, t.elapsed().as_secs_f64() * 1000.0))
 }
@@ -42,23 +44,17 @@ pub fn mode_of(path: &str) -> u32 {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::testdir::TestDir;
     use std::fs;
     use std::os::unix::fs::PermissionsExt;
 
-    fn temp_dir(tag: &str) -> String {
-        let d = format!("/tmp/flea-scan-{}-{}", tag, std::process::id());
-        let _ = fs::remove_dir_all(&d);
-        fs::create_dir_all(&d).unwrap();
-        d
-    }
-
     #[test]
     fn reads_files_and_marks_directories() {
-        let d = temp_dir("basic");
-        fs::write(format!("{}/a.txt", d), "").unwrap();
-        fs::create_dir(format!("{}/sub", d)).unwrap();
+        let d = TestDir::new("scan-basic");
+        d.file("a.txt", "");
+        d.dir("sub");
 
-        let (l, _) = scan(&d, false).unwrap();
+        let (l, _) = scan(d.path().to_str().unwrap(), false).unwrap();
         assert_eq!(l.len(), 2);
 
         let mut seen_file = false;
@@ -73,63 +69,65 @@ mod tests {
         }
         assert!(seen_file, "expected a.txt as a file");
         assert!(seen_dir, "expected sub as a directory");
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn an_empty_directory_yields_an_empty_listing() {
-        let d = temp_dir("empty");
-        let (l, _) = scan(&d, false).unwrap();
+        let d = TestDir::new("scan-empty");
+        let empty = d.dir("empty");
+        let (l, _) = scan(empty.to_str().unwrap(), false).unwrap();
         assert_eq!(l.len(), 0);
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn a_missing_directory_is_an_error_naming_the_path() {
-        let e = scan("/definitely/not/here", false).unwrap_err();
+        let d = TestDir::new("scan-missing");
+        let missing = d.join("missing");
+        let path = missing.to_str().unwrap();
+        let e = scan(path, false).unwrap_err();
         assert_eq!(e.where_, "scan");
-        assert_eq!(e.path, "/definitely/not/here");
+        assert_eq!(e.path, path);
         assert!(!e.msg.is_empty());
     }
 
     #[test]
     fn a_directory_that_cannot_be_listed_still_answers_its_own_mode() {
-        let d = temp_dir("mode");
-        let locked = format!("{}/locked", d);
-        fs::create_dir(&locked).unwrap();
+        let d = TestDir::new("scan-mode");
+        let locked = d.dir("locked");
         // Write and enter, never read: opendir is refused while stat still answers.
         fs::set_permissions(&locked, fs::Permissions::from_mode(0o300)).unwrap();
 
-        assert!(scan(&locked, false).is_err(), "a directory with no read bit cannot be listed");
-        let mode = mode_of(&locked);
+        let listed = scan(locked.to_str().unwrap(), false);
+        let mode = mode_of(locked.to_str().unwrap());
+        fs::set_permissions(&locked, fs::Permissions::from_mode(0o700)).unwrap();
+
+        assert!(listed.is_err(), "a directory with no read bit cannot be listed");
         assert_eq!(mode & 0o777, 0o300, "the stat answered the permission bits, got {:o}", mode);
         assert_eq!(mode & 0o170000, 0o040000, "and the file-type bits say directory, got {:o}", mode);
-
-        fs::set_permissions(&locked, fs::Permissions::from_mode(0o700)).unwrap();
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn a_path_that_cannot_be_stat_at_all_answers_zero() {
-        assert_eq!(mode_of("/definitely/not/here"), 0);
+        let d = TestDir::new("scan-missing-mode");
+        assert_eq!(mode_of(d.join("missing").to_str().unwrap()), 0);
     }
 
     #[test]
     fn a_dotfile_is_skipped_by_default_and_listed_when_hidden_is_true() {
-        let d = temp_dir("hidden");
-        fs::write(format!("{}/.dotfile", d), "").unwrap();
-        fs::create_dir(format!("{}/.dotdir", d)).unwrap();
-        fs::write(format!("{}/plain.txt", d), "").unwrap();
+        let d = TestDir::new("scan-hidden");
+        let listing = d.dir("listing");
+        d.file("listing/.dotfile", "");
+        d.dir("listing/.dotdir");
+        d.file("listing/plain.txt", "");
 
-        let (visible, _) = scan(&d, false).unwrap();
+        let (visible, _) = scan(listing.to_str().unwrap(), false).unwrap();
         assert_eq!(visible.len(), 1);
         assert_eq!(visible.name(0), "plain.txt");
 
-        let (all, _) = scan(&d, true).unwrap();
+        let (all, _) = scan(listing.to_str().unwrap(), true).unwrap();
         assert_eq!(all.len(), 3);
         let mut names: Vec<&str> = (0..all.len()).map(|i| all.name(i)).collect();
         names.sort();
         assert_eq!(names, [".dotdir", ".dotfile", "plain.txt"]);
-        fs::remove_dir_all(&d).unwrap();
     }
 }

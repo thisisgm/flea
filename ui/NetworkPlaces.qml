@@ -5,18 +5,14 @@ import "js/Mounts.js" as Mounts
 import "js/Places.js" as Places
 
 // The saved places file, lifted out of ui/NetworkMounts.qml: the only writer of
-// ~/.config/gtk-3.0/bookmarks in the Network Service. "forget" derives its body from
-// "bookmarksText", the same text the rail was built from, so no removal can be older than the rail,
-// and a body it cannot find the line in writes nothing at all. "rename" reads the file itself,
-// because a body that grows needs to know the read behind it worked and the rail's text cannot say.
-// Staleness of that text against this component's own last write is ui/Sidebar.qml
-// "reloadBookmarks"'s job: it blocks, so "bookmarksText" already carries a write by the time the
-// edit that caused it returns and a second "forget" cannot derive from the text before.
+// ~/.config/gtk-3.0/bookmarks in the Network Service. Both edits read the file itself before they
+// rewrite it, never the rail's own text: another application replaces this file by temp-and-rename,
+// so a body derived from a watched read can be a version behind and would drop the lines that
+// writer had just added. A read that fails refuses the edit rather than writing a shorter file.
 Item {
     id: root
 
     property var entries: []
-    property string bookmarksText: ""
 
     signal message(string text, bool isError)
     // Fired once the write below has actually landed, so a caller's reload reads it, not stale
@@ -34,6 +30,10 @@ Item {
         // answers true for every job, both measured on quickshell 0.3.1.
         property int readError: FileViewError.Success
         onLoadFailed: function (error) { bookmarksWrite.readError = error }
+        // A refused write is the only report this makes; without it a read-only gtk-3.0 answered
+        // "NAS is forgotten" while the row came straight back from the unchanged file.
+        property int writeError: FileViewError.Success
+        onSaveFailed: function (error) { bookmarksWrite.writeError = error }
     }
 
     // Rewrites uri's own label, or appends a bookmark for it if it was only ever a live mount;
@@ -65,15 +65,27 @@ Item {
         if (row < 0)
             return
         var entry = root.entries[row]
-        var next = Mounts.removeBookmark(root.bookmarksText, uri)
+        // The file, not the cached text, for rename()'s own reason one function up: an external
+        // writer replaces this file by temp-and-rename, and rewriting a stale body would drop the
+        // bookmarks that writer had just added.
+        bookmarksWrite.readError = FileViewError.Success
+        bookmarksWrite.reload()
+        bookmarksWrite.waitForJob()
+        if (bookmarksWrite.readError !== FileViewError.Success
+                && bookmarksWrite.readError !== FileViewError.FileNotFound) {
+            root.message("Saved places could not be read, so nothing was forgotten.", true)
+            return
+        }
+        var current = bookmarksWrite.text()
+        var next = Mounts.removeBookmark(current, uri)
         // Remove is offered on every share row (ui/js/Mounts.js "rowMenu"), and the text the rail was
         // built from is what says whether this one is saved at all; a live mount often is not. Only a
         // mounted row can reach this: an unmounted one is on the rail because that text has its line.
-        if (next === root.bookmarksText) {
+        if (next === current) {
             root.message(entry.label + " is not a saved place, and stays on the rail until it is unmounted.", false)
             return
         }
-        root.write(next)
+        if (!root.write(next)) return
         root.message(entry.mounted === true
             ? entry.label + " is forgotten, and stays on the rail until it is unmounted."
             : entry.label + " is forgotten.", false)
@@ -87,8 +99,14 @@ Item {
             bookmarksWrite.reload()
             bookmarksWrite.waitForJob()
         }
+        bookmarksWrite.writeError = FileViewError.Success
         bookmarksWrite.setText(body)
         bookmarksWrite.waitForJob()
+        if (bookmarksWrite.writeError !== FileViewError.Success) {
+            root.message("Saved places could not be written.", true)
+            return false
+        }
         root.wrote()
+        return true
     }
 }

@@ -1,28 +1,7 @@
 #!/usr/bin/env bash
-# The everything-works battery. Its checklist is DERIVED at run time from the five sources that
-# define what this product is, never written from memory, so a key or a request added tomorrow shows
-# up here as an item nobody drives rather than as nothing at all.
-#
-#   docs/protocol.md      every request the wire accepts
-#   keys.toml             every action the key table binds
-#   ui/js/Menu.js         every context menu entry
-#   canvas.json           every artboard the design defines
-#   keys.toml [[pointer]]  every click the pointer contract declares
-#   tests/*.sh            every suite, and whether anything executable names it
-#   ui/*.qml              every sidebar entry kind
-#   clipboard.lua         every Omarchy SUPER chord that must keep working inside Flea
-#
-# Requests are driven live through the real backend against a sandbox this script creates, and need
-# no display. Keys, menu entries and the Omarchy chords need a real window, so they are driven only
-# under --drive: this box has one Hyprland session and several lanes queue for it, so one invocation
-# presses everything rather than an exploratory loop. Without --drive they report UNDRIVEN, which is
-# the honest state for a run that pressed nothing.
-#
-# Artboards and sidebar kinds are still derived and not driven. A key whose effect no reader outside
-# the app can see is reported UNDRIVEN with the reason and the one line that would fix it, never
-# given a check that would pass on a dead app.
-#
-# Hard rule 9: every write and delete is inside a sandbox made by tools/flea-sandbox-guard.
+# Derive current requirements and drive owned native fixtures; required UNDRIVEN rows exit 2.
+# --inventory is read-only. Native runs require the controller's FLEA_SOURCE_SHA and FLEA_BINARY_SHA256.
+# The 30-board manifest identifies design authority; native screenshots still require inspection.
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 REPO=$PWD
@@ -31,26 +10,22 @@ REPO=$PWD
 . "$REPO/tools/flea-acceptance-drive"
 
 DRIVE=0
+INVENTORY=0
 # A named group after --drive runs only that group, so confirming one fix costs minutes rather than
 # a whole display slot. Groups: key menu omarchy pointer.
 DRIVE_GROUPS=""
 case "${1:-}" in
-  --drive) DRIVE=1; shift; DRIVE_GROUPS="$*" ;;
+  --drive)
+    DRIVE=1; shift
+    drive_validate_groups "$@" || exit 2
+    DRIVE_GROUPS="$*" ;;
+  --inventory) INVENTORY=1 ;;
   "") ;;
-  *) printf 'usage: %s [--drive [key|menu|omarchy|pointer ...]]\n' "$0" >&2; exit 2 ;;
+  *) printf 'usage: %s [--inventory|--drive [key|menu|omarchy|pointer ...]]\n' "$0" >&2; exit 2 ;;
 esac
 
-BIN=${BIN:-$REPO/target/release/flea}
-# The design canvas is the artboard list's only source and it lives in the omarchy repo, which is on
-# the Mac. A read-only copy is kept beside this checkout on the box; both are tried and the failure
-# names what is missing rather than skipping the group, because a battery that quietly drops a group
-# reports a smaller checklist as a complete one.
-for cand in "${CANVAS:-}" \
-            "$REPO/../flea-canvas/canvas.json" \
-            "$HOME/Documents/claude/omarchy/docs/reference/flea-canvas/canvas.json"; do
-  [ -n "$cand" ] && [ -f "$cand" ] && { CANVAS=$cand; break; }
-done
-SB="$FIXTURE_ROOT/flea-acceptance-$$"
+BIN=${FLEA_BIN:-${BIN:-$REPO/target/release/flea}}
+BOARD_MANIFEST="$REPO/.superpowers/flea/design-completion-20260908/references/SHA256SUMS"
 # Long enough for a worker to answer on a four-file directory, short enough that seventeen of them
 # is not a coffee break.
 ASYNC_WAIT_S=${ASYNC_WAIT_S:-1.5}
@@ -85,27 +60,6 @@ derive_responses() {
   sed -n '/^## Responses/,$p' "$REPO/docs/protocol.md" | sed -n 's/^### //p'
 }
 
-# Sample input, keys.toml: 'action = "pageDown"', plus the [digits] table below.
-derive_key_actions() {
-  { sed -n 's/^action = "\(.*\)"$/\1/p' "$REPO/keys.toml"
-    derive_digit_actions; } | LC_ALL=C sort -u
-}
-
-# [digits] binds the printable digits from..to to prefix1..prefixN through the generated
-# ui/js/Keymap.js, so nine keys are bound that no 'action =' line names. A derivation that misses
-# them reports a shorter checklist as a complete one, which is the one thing this battery must not do.
-# Sample input, keys.toml: [digits] holds 'from = 1', 'to = 9' and 'prefix = "tab"'.
-derive_digit_actions() {
-  local from to prefix n
-  from=$(sed -n 's/^from = \([0-9]*\)$/\1/p' "$REPO/keys.toml")
-  to=$(sed -n 's/^to = \([0-9]*\)$/\1/p' "$REPO/keys.toml")
-  prefix=$(sed -n 's/^prefix = "\(.*\)"$/\1/p' "$REPO/keys.toml")
-  [ -n "$from" ] && [ -n "$to" ] && [ -n "$prefix" ] || return 0
-  for n in $(seq "$from" "$to"); do
-    printf '%s%s\n' "$prefix" "$n"
-  done
-}
-
 # Sample input, ui/js/Menu.js: 'var columns = [["mode", "Mode"], ["size", "Size"], ["date", "Date Modified"], ["kind", "Kind"]]'
 derive_header_keys() {
   sed -n '/^[[:space:]]*var columns = \[\[/p' "$REPO/ui/js/Menu.js" \
@@ -134,18 +88,25 @@ validate_header_keys() {
   done
 }
 
-# Sample input, ui/js/Menu.js: 'out.push({ label: "Rename", action: "rename", glyph: "rename" })'
-derive_menu_actions() {
-  { sed -n 's/.*action: "\([a-zA-Z][a-zA-Z]*\)".*/\1/p' "$REPO/ui/js/Menu.js"
-    for key in "${HEADER_KEYS[@]}"; do
-      printf 'col:%s\n' "$key"
-    done
-  } | LC_ALL=C sort -u
-}
-
-# Sample input, canvas.json: '      "file": "FleaWindow.dc.html",'
+# Sample manifest row: '<64 lowercase hex characters>  Window.html'.
 derive_artboards() {
-  sed -n 's/.*"file": "\(.*\.dc\.html\)".*/\1/p' "$CANVAS" | LC_ALL=C sort -u
+  python3 - "$BOARD_MANIFEST" "${FLEA_BOARD_DIR:-}" <<'PY'
+import hashlib, pathlib, re, sys
+manifest, directory = pathlib.Path(sys.argv[1]), sys.argv[2]
+rows = manifest.read_text().splitlines()
+names = set()
+for row in rows:
+    match = re.fullmatch(r'([0-9a-f]{64})  ([A-Za-z0-9_-]+\.html)', row)
+    if not match or match[2] in names:
+        raise SystemExit('invalid or duplicate current board manifest row: ' + row)
+    digest, name = match.groups()
+    names.add(name)
+    if directory and hashlib.sha256((pathlib.Path(directory) / name).read_bytes()).hexdigest() != digest:
+        raise SystemExit('authoritative board changed: ' + name)
+    print(name + '|' + digest)
+if len(names) != 30:
+    raise SystemExit('current board manifest must contain exactly 30 immutable HTML boards')
+PY
 }
 
 # Every suite in tests/, which is a derivation from the directory itself so a suite added tomorrow
@@ -237,13 +198,14 @@ emit_body() {
 # honest coverage of the request and not of the cancellation.
 drive_cancel() {
   local name=$1 body=$2 out dir
-  dir=$(fresh_dir "$name")
+  dir=$(fresh_dir "$name") || die "cannot create request fixture: $name"
   body=${body//@SB@/$dir}
   out=$( { printf '{"c":"list","path":"%s","first":8,"hidden":true}\n' "$dir"
            emit_body "$body"
            sleep "$ASYNC_WAIT_S"
            printf '{"c":"window","start":0,"count":2}\n'
-           printf '{"c":"quit"}\n'; } | "$BIN" --backend 2>&1 )
+           printf '{"c":"quit"}\n'; } | "$BIN" --backend 2>&1 ) \
+    || { bad request "$name" "backend pipeline failed: $out"; return; }
   case $out in
     *'"t":"error"'*)
       bad request "$name" "the backend answered error: $(printf '%s' "$out" | grep -m1 '"t":"error"')"
@@ -260,14 +222,15 @@ drive_request() {
   # Its own directory per request, because rename and trash and duplicate MUTATE: the first shape of
   # this shared one sandbox, rename moved a.txt out from under duplicate, and duplicate reported an
   # error that was the battery's fault and looked like the product's.
-  dir=$(fresh_dir "$name")
+  dir=$(fresh_dir "$name") || die "cannot create request fixture: $name"
   body=${body//@SB@/$dir}
   # The sleep is the whole reason search, dirsize and meta failed here first: they answer from a
   # worker, and a quit typed immediately behind the request closes the backend before the answer.
   out=$( { printf '{"c":"list","path":"%s","first":8,"hidden":true}\n' "$dir"
            emit_body "$body"
            sleep "$ASYNC_WAIT_S"
-           printf '{"c":"quit"}\n'; } | "$BIN" --backend 2>&1 )
+           printf '{"c":"quit"}\n'; } | "$BIN" --backend 2>&1 ) \
+    || { bad request "$name" "backend pipeline failed: $out"; return; }
   case $out in
     *'"t":"error"'*)
       bad request "$name" "the backend answered error: $(printf '%s' "$out" | grep -m1 '"t":"error"')"
@@ -284,10 +247,11 @@ drive_request() {
 # only that the first list was answered, which is not a test of quit at all.
 drive_quit() {
   local out n dir
-  dir=$(fresh_dir quit)
+  dir=$(fresh_dir quit) || die "cannot create request fixture: quit"
   out=$( { printf '{"c":"list","path":"%s","first":8,"hidden":true}\n' "$dir"
            printf '{"c":"quit"}\n'
-           printf '{"c":"list","path":"%s","first":8,"hidden":true}\n' "$dir"; } | "$BIN" --backend 2>&1 )
+           printf '{"c":"list","path":"%s","first":8,"hidden":true}\n' "$dir"; } | "$BIN" --backend 2>&1 ) \
+    || { bad request quit "backend pipeline failed: $out"; return; }
   n=$(printf '%s\n' "$out" | grep -c '"t":"listed"')
   if [ "$n" = 1 ]; then
     pass request quit
@@ -298,40 +262,67 @@ drive_quit() {
 
 # ---- setup -------------------------------------------------------------------------------------
 
+if [[ "$INVENTORY" == 1 ]]; then
+  derive_bindings && derive_menu_actions && derive_artboards
+  exit $?
+fi
+
 mapfile -t HEADER_KEYS < <(derive_header_keys)
 validate_header_keys "${HEADER_KEYS[@]}"
 [ -x "$BIN" ] || die "$BIN is missing, so run cargo build --release first"
 [ -f "$REPO/docs/protocol.md" ] || die "docs/protocol.md is missing, so the request list cannot be derived"
-[ -n "${CANVAS:-}" ] && [ -f "$CANVAS" ] \
-  || die "no canvas.json found beside the checkout or in the omarchy repo, so the artboard list cannot be derived; rsync docs/superpowers/specs/assets/flea-canvas/ to \$REPO/../flea-canvas/"
+[ -r "$BOARD_MANIFEST" ] || die "current 30-board SHA256 manifest is missing: $BOARD_MANIFEST"
 
-[ -r "$OMARCHY_CLIPBOARD_LUA" ] \
-  || die "$OMARCHY_CLIPBOARD_LUA is missing, so the Omarchy chord list cannot be derived"
+if [[ "$DRIVE" == 0 ]] || drive_wants omarchy; then
+  [ -r "$OMARCHY_CLIPBOARD_LUA" ] || die "$OMARCHY_CLIPBOARD_LUA is missing, so the Omarchy chord list cannot be derived"
+fi
 
-sandbox_make "$SB"
+sandbox_root_ok
+[[ -d "$FIXTURE_ROOT" && -f "$FIXTURE_ROOT/$SANDBOX_MARKER" ]] || die "fixture parent requires its own marker: $FIXTURE_ROOT"
+SB=$(mktemp -d "$FIXTURE_ROOT/flea-acceptance.XXXXXXXX") || die "could not create owned acceptance sandbox"
+SB=$(realpath -e "$SB") || die "acceptance sandbox cannot be resolved"
+printf 'Flea native acceptance\n' > "$SB/$SANDBOX_MARKER"
+DRIVE_EVIDENCE="$SB/evidence"
+drive_guard "$DRIVE_EVIDENCE"
+mkdir "$DRIVE_EVIDENCE" || die "could not create acceptance evidence directory"
 # The fixture the drive lists, inside the sandbox but a scratch of its own, so the guard's marker
 # file stays up on $SB and never appears in a listing whose row count a check asserts.
 DRIVE_FIXTURE="$SB/drive"
 # The window goes before the sandbox it is listing does, or the teardown deletes a tree a live
 # backend is still walking.
-trap 'drive_stop; sandbox_remove "$SB"' EXIT INT TERM
+acceptance_exit_status=0
+trap 'acceptance_exit_status=$?; trap - EXIT; drive_stop "$acceptance_exit_status"; exit $?' EXIT
+trap 'exit 130' INT
+trap 'exit 143' HUP TERM
+drive_private_state
+BIN=$(realpath -e "$BIN") || die "candidate binary cannot be resolved"
+drive_provenance
+python3 "$REPO/tools/flea-keymap-gen" "$SB/Keymap.js" "$REPO/keys.toml" || die "keymap regeneration failed"
+cmp -s "$SB/Keymap.js" "$REPO/ui/js/Keymap.js" || die "generated Keymap.js differs from keys.toml; regenerate before native use"
+BINDINGS="$SB/bindings"
+derive_bindings > "$BINDINGS" || die "key matrix derivation failed"
+[[ -s "$BINDINGS" ]] || die "derived no key rows"
+derive_artboards > "$SB/boards" || die "current board authority check failed"
+if [[ "$DRIVE" == 1 ]]; then drive_session_setup; fi
+drive_private_trash
 
 # The same starting shape for every request, built fresh so no driver can see another's writes.
 fresh_dir() {
   local d="$SB/$1"
-  rm -rf "$d"
-  mkdir -p "$d/dest" "$d/sub"
-  printf 'alpha' > "$d/a.txt"
-  printf 'beta' > "$d/b.txt"
+  drive_guard "$d"
+  sandbox_scratch "$d"
+  mkdir -p "$d/dest" "$d/sub" || return 1
+  printf 'alpha' > "$d/a.txt" || return 1
+  printf 'beta' > "$d/b.txt" || return 1
   printf '%s' "$d"
 }
 
 echo "flea-acceptance, checklist derived at $(date -Is)"
-drive_provenance
 echo
 
 # ---- requests, driven --------------------------------------------------------------------------
 
+if [[ "$DRIVE" == 0 ]]; then
 mapfile -t REQUESTS < <(derive_requests)
 require_list "requests from docs/protocol.md" "${#REQUESTS[@]}"
 mapfile -t RESPONSES < <(derive_responses)
@@ -364,23 +355,26 @@ for name in "${REQUESTS[@]}"; do
     *) drive_request "$name" "$want" "$body" ;;
   esac
 done
+fi
 
 # ---- the four groups this battery derives and does not yet drive ---------------------------------
 
 echo
 # Every derivation, not only the two the request loop needed: an empty list here is a broken
 # derivation and it would report as a clean run with nothing in it.
-mapfile -t KEY_ACTIONS < <(derive_key_actions)
-require_list "key actions from keys.toml" "${#KEY_ACTIONS[@]}"
+mapfile -t KEY_ROWS < "$BINDINGS"
+require_list "key matrix rows from Keymap.js" "${#KEY_ROWS[@]}"
 mapfile -t MENU_ACTIONS < <(derive_menu_actions)
 require_list "menu actions from ui/js/Menu.js" "${#MENU_ACTIONS[@]}"
-mapfile -t ARTBOARDS < <(derive_artboards)
-require_list "artboards from canvas.json" "${#ARTBOARDS[@]}"
+mapfile -t ARTBOARDS < "$SB/boards"
+require_list "artboards from current SHA256 manifest" "${#ARTBOARDS[@]}"
 mapfile -t SIDEBAR_KINDS < <(derive_sidebar_kinds)
 require_list "sidebar entry kinds from ui/" "${#SIDEBAR_KINDS[@]}"
 
-mapfile -t OMARCHY_CHORDS < <(derive_omarchy_clipboard_binds)
-require_list "Omarchy chords from $OMARCHY_CLIPBOARD_LUA" "${#OMARCHY_CHORDS[@]}"
+if [[ "$DRIVE" == 0 ]] || drive_wants omarchy; then
+  mapfile -t OMARCHY_CHORDS < <(derive_omarchy_clipboard_binds)
+  require_list "Omarchy chords from $OMARCHY_CLIPBOARD_LUA" "${#OMARCHY_CHORDS[@]}"
+fi
 mapfile -t POINTER_ROWS < <(derive_pointer)
 require_list "pointer rows from keys.toml" "${#POINTER_ROWS[@]}"
 mapfile -t SUITES < <(derive_suites)
@@ -389,7 +383,7 @@ require_list "test suites from tests/" "${#SUITES[@]}"
 if [ "$DRIVE" = 1 ]; then
   drive_all
 else
-  for a in "${KEY_ACTIONS[@]}"; do
+  for a in "${KEY_ROWS[@]}"; do
     skip key "$a" "bound in keys.toml; --drive presses it on a real window"
   done
   for a in "${MENU_ACTIONS[@]}"; do
@@ -408,6 +402,7 @@ fi
 # Reported whether or not --drive ran: this group is about what runs the product's own tests, and
 # nothing here runs them. Making this battery the runner would triple its headless time and the
 # suites build their own sandboxes, so that is a recommendation and not a change made at release.
+if [[ -z "$DRIVE_GROUPS" ]]; then
 for a in "${SUITES[@]}"; do
   named=$(suite_named_by "$a")
   if [ -z "$named" ]; then
@@ -416,14 +411,16 @@ for a in "${SUITES[@]}"; do
     skip suite "$a" "named by ${named% }, which is not proof it is run; this repo has no runner script and no CI"
   fi
 done
-for a in $(derive_artboards); do
-  skip artboard "$a" "an artboard in canvas.json, not driven here"
+for a in "${ARTBOARDS[@]}"; do
+  skip artboard "$a" "native specimen matching and inspection are recorded separately in coverage.md"
 done
 for a in $(derive_sidebar_kinds); do
   skip sidebar "$a" "a sidebar entry kind in ui/, not driven here"
 done
+fi
 
 echo
 printf 'flea-acceptance: %s passed, %s failed, %s derived but undriven\n' "$PASSED" "$FAILED" "$UNDRIVEN"
 [ "$FAILED" -eq 0 ] || exit 1
+[ "$UNDRIVEN" -eq 0 ] || exit 2
 exit 0

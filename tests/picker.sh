@@ -8,6 +8,9 @@
 # FLEA_PICKER_EVIDENCE names a directory the caller owns for the taildrop case's screenshot.
 set -u
 set -o pipefail
+if [[ "${1:-native}" == native ]]; then
+    exec python3 "$(dirname "$0")/picker-native.py" "${@:2}"
+fi
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
 . "$(dirname "$0")/../tools/flea-sandbox-guard"
 

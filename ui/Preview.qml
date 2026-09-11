@@ -143,6 +143,7 @@ Item {
         imageLoader.source = ""
         root.archiveMeta = null
         root.archiveRow = -1
+        if (root.pane) root.pane.listArea.forceActiveFocus()
     }
 
     function load(newPath, newIcon, newSize) {
@@ -284,6 +285,7 @@ Item {
             onLoaded: {
                 item.path = Qt.binding(function () { return root.path })
                 item.active = true
+                item.forceActiveFocus()
             }
         }
 

@@ -118,6 +118,7 @@ function run(check) {
     check("a wide drag drops by index on its own listing", Drag.canDropByIndex(wire[Drag.ROWS_MIME], "/d", [0, 2], 1), true)
     check("but not onto a folder it carries", Drag.canDropByIndex(wire[Drag.ROWS_MIME], "/d", [0, 2], 0), false)
     check("and never on another listing", Drag.canDropByIndex(wire[Drag.ROWS_MIME], "/e", [0, 2], 1), false)
+    check("nor in a view that does not own the lifted indices", Drag.canDropByIndex(wire[Drag.ROWS_MIME], "/d", [], 1), false)
     var onFile = []
     check("a drop on a file sends nothing", Drag.drop(pane(onFile, [], rows), [2], 3, false), false)
     check("a drop on a row that is not loaded sends nothing", Drag.drop(pane(onFile, [], rows), [2], 9, false), false)
@@ -242,4 +243,27 @@ function run(check) {
     Drag.dropInto(pane(fromOtherFlea, [], rows), "some-other-flea\n0\nmove\n/x\n56", ["file:///x/a.txt"], "/d/omarchy", 56)
     check("a drop from another Flea window copies, like any other foreign source",
           fromOtherFlea.length === 1 ? fromOtherFlea[0].op : "nothing sent", "copy")
+
+    var feedback = Drag.feedbackFor(Drag.markerPayload([1, 3], false, "/source", 56),
+        ["file:///source/a.txt", "file:///source/link"])
+    check("a different view reads the full carried count from the marker", feedback.count, 2)
+    check("target feedback follows same-device move", Drag.feedbackLine(feedback, "folder", 56),
+        "Move 2 items to folder · ctrl at lift copies")
+    check("target feedback follows cross-device copy", Drag.feedbackLine(feedback, "folder", 32),
+        "Copy 2 items to folder")
+    check("an unknown destination is described as copy", Drag.feedbackLine(feedback, "folder", 0),
+        "Copy 2 items to folder")
+    check("leaving a target restores the source gesture's generic line", Drag.feedbackLine(feedback, "", feedback.dev),
+        "Move 2 items to a folder · ctrl at lift copies")
+    var wideFeedback = Drag.feedbackFor(Drag.markerPayload([1, 3, 5], false, "/source", 56), [])
+    check("a wide payload keeps its whole count in another view", wideFeedback.count, 3)
+    check("wide feedback never promises external reach", Drag.feedbackLine(wideFeedback, "folder", 56),
+        "Move 3 items to folder · ctrl at lift copies · too wide to drag out")
+    var foreignFeedback = Drag.feedbackFor("other\n0,1,2\nmove\n/source\n56", ["file:///source/a.txt"])
+    check("foreign feedback counts actual paths, never foreign row indices", foreignFeedback.count, 1)
+    check("foreign feedback copies on the same device", Drag.feedbackLine(foreignFeedback, "folder", 56),
+        "Copy 1 item to folder")
+    check("a pathless foreign payload has no live feedback", Drag.feedbackLine(Drag.feedbackFor("", []), "folder", 56), "")
+    check("ctrl survives the feedback handoff", Drag.feedbackLine(Drag.feedbackFor(
+        Drag.markerPayload([1], true, "/source", 56), ["file:///source/a.txt"]), "folder", 56), "Copy 1 item to folder")
 }

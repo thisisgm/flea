@@ -47,8 +47,12 @@ pub fn pick(reply: &str) -> i32 {
 fn qs_command(target: PathBuf) -> Command {
     let mut cmd = Command::new("qs");
     cmd.arg("-p").arg(target);
-    if let Ok(binary) = std::env::current_exe() {
-        cmd.env("FLEA_BIN", binary);
+    // An explicit choice is the operator's, the same rule FLEA_UI and QSG_RHI_BACKEND follow here.
+    // map_or, not is_none_or: that method landed in 1.82 and Cargo.toml declares a 1.77 floor.
+    if std::env::var_os("FLEA_BIN").map_or(true, |value| value.is_empty()) {
+        if let Ok(binary) = std::env::current_exe() {
+            cmd.env("FLEA_BIN", binary);
+        }
     }
     // Empty is absent, the rule paths::has_display() applies: a wrapper's unset variable is not a choice.
     if std::env::var_os("QSG_RHI_BACKEND").is_some_and(|value| !value.is_empty()) {

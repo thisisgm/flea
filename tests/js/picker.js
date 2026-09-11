@@ -43,6 +43,8 @@ function run(check) {
     check("a row in a directory joins onto it", Picker.rowPath("/home/gm", "a.png"), "/home/gm/a.png")
     check("a row in Recent is its own path", Picker.rowPath(Picker.RECENT, "home/gm/Pictures/a.png"), "/home/gm/Pictures/a.png")
     check("a row at the root still joins once", Picker.rowPath("/", "etc"), "/etc")
+    check("a symlink directory remains navigable without changing link identity", Picker.directory({d:false,p:0o120777,i:"folder"}), true)
+    check("a regular file with a folder-like name stays a file", Picker.directory({d:false,p:0o100644,i:"folder"}), false)
 
     check("nothing checked says so", Picker.statusLine(0, 0), "0 selected")
     check("what is checked and what it weighs", Picker.statusLine(3, 2100000), "3 selected · 2.1 MB")
@@ -57,36 +59,19 @@ function run(check) {
     check("current_filter chooses the active chip", Picker.currentChip(req), 0)
     check("an unknown current_filter falls back to the first", Picker.currentChip(Picker.request('{"filters":[{"label":"A"}],"current":"Z"}')), 0)
     check("no filters has no active chip", Picker.currentChip(Picker.request("{}")), -1)
+    check("duplicate filter labels keep the caller's rule identity", Picker.currentChip(Picker.request('{"filters":[{"label":"A"},{"label":"A"}],"current":"A","currentIndex":1}')), 1)
 
-    var images = req.filters[0]
-    check("a glob matches", Picker.matchesFilter("shot.png", images), true)
-    check("a glob matches whatever the case is", Picker.matchesFilter("SHOT.PNG", images), true)
-    check("a name outside the globs does not match", Picker.matchesFilter("notes.md", images), false)
-    check("a two part suffix matches", Picker.matchesFilter("x.tar.gz", { globs: ["*.tar.gz"] }), true)
-    // The glob is the caller's, so its punctuation is escaped rather than compiled into a class.
-    check("a bracket in a glob is literal", Picker.matchesFilter("a[b].png", { globs: ["a[b].png"] }), true)
-    check("a bracket glob does not become a character class", Picker.matchesFilter("ab.png", { globs: ["a[b].png"] }), false)
-    check("a dot is not any character", Picker.matchesFilter("axpng", { globs: ["*.png"] }), false)
-    check("a question mark is one character", Picker.matchesFilter("ab.png", { globs: ["a?.png"] }), true)
-    // A listing row knows an icon name and not a mime type, so a mime-only filter narrows nothing.
-    check("a filter with only mime rules narrows nothing", Picker.matchesFilter("notes.md", req.filters[1]), true)
-
-    var rows = [{ n: "sub", d: true, s: 0 }, { n: "a.png", d: false, s: 10 }, { n: "b.md", d: false, s: 20 }]
-    check("no chip narrows nothing at all", Picker.shownRows(rows, 0, null), null)
-    var shown = Picker.shownRows(rows, 4, images)
-    check("the held offset is what the listing rows are numbered from", shown.join(","), "4,5")
-    check("a directory always stands, so the way out is never hidden", shown[0], 4)
-
-    var marks = Picker.toggle([], "/x/a.png", 10, true)
-    marks = Picker.toggle(marks, "/x/b.png", 20, true)
-    check("multiple keeps both marks", Picker.paths(marks).join(","), "/x/a.png,/x/b.png")
-    check("both marks are weighed", Picker.totalBytes(marks), 30)
+    var marks = Picker.reviewedMarks([], [{path: "/x/a #.png", bytes: 10}, {path: "/x/b.png", bytes: 20}])
+    check("reviewed marks retain order", Picker.paths(marks).join(","), "/x/a #.png,/x/b.png")
+    check("reviewed byte totals are live", Picker.totalBytes(marks), 30)
     check("a mark is found by its path", Picker.marked(marks, "/x/b.png"), true)
-    marks = Picker.toggle(marks, "/x/a.png", 10, true)
-    check("a second space unmarks", Picker.paths(marks).join(","), "/x/b.png")
-    var single = Picker.toggle(Picker.toggle([], "/x/a.png", 10, false), "/x/b.png", 20, false)
-    check("single mode replaces the prior check", Picker.paths(single).join(","), "/x/b.png")
-    check("single mode unmarks its own", Picker.paths(Picker.toggle(single, "/x/b.png", 20, false)).length, 0)
+    check("a reviewed path gets one URI encoding", marks[0].uri, "file:///x/a%20%23.png")
+    marks = Picker.reviewedMarks(marks, [{path: "/x/a #.png", bytes: 15}])
+    check("removed identities leave the result", marks.length, 1)
+    check("review updates the bytes", marks[0].bytes, 15)
+    check("review preserves the original URI", marks[0].uri, "file:///x/a%20%23.png")
+    check("reply carries retained URI and selected filter", Picker.reply(0, marks, 1),
+          '{"response":0,"uris":["file:///x/a%20%23.png"],"filter":1}')
 
     // The save name is a client string, and the answer it builds must stay inside the folder the
     // user was shown. Same cases as src/backend/ops.rs's own valid_name test, so a drift shows here.

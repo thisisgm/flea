@@ -95,11 +95,7 @@ function railLabel(mount, marks) {
     return mount.label
 }
 
-// Sample input, captured live on the box with a USB stick plugged in (2026-09-02), from
-// lsblk --json -o NAME,LABEL,MOUNTPOINT,RM,SIZE,TYPE,MODEL:
-// {"blockdevices":[
-//   {"name":"sda","label":null,"mountpoint":null,"rm":true,"size":"116.1G","type":"disk","model":"USB Flash Disk",
-//    "children":[{"name":"sda1","label":"128GB","mountpoint":"/run/media/gm/128GB","rm":true,"size":"116.1G","type":"part","model":null}]}]}
+// Sample lsblk --bytes --json row: {"name":"sda1","label":"128GB","mountpoint":"/run/media/gm/128GB","rm":true,"size":124656812032,"type":"part","model":null}.
 // Two row kinds come out: one "disk" row for the box's own internal disk, then one "volume" row
 // per removable partition, mounted or not. ui/DeviceMounts.qml turns these into rail entries.
 function parseDevices(body) {
@@ -129,7 +125,7 @@ function internalDisk(nodes) {
         // zram and loop devices are type "disk" too, and neither is a disk anyone browses.
         if (/^(zram|loop)/.test(String(n.name)))
             continue
-        return { kind: "disk", label: String(n.name), device: "/dev/" + n.name, path: "/", mounted: true }
+        return { kind: "disk", label: String(n.name), device: "/dev/" + n.name, path: "/", mounted: true, size: deviceBytes(n.size) }
     }
     return null
 }
@@ -151,7 +147,12 @@ function collectVolumes(nodes, model, out) {
 function volumeRow(n, model) {
     var path = n.mountpoint ? String(n.mountpoint) : ""
     var label = n.label ? String(n.label) : (model.length > 0 ? model : String(n.name))
-    return { kind: "volume", label: label, device: "/dev/" + n.name, path: path, mounted: path.length > 0 }
+    return { kind: "volume", label: label, device: "/dev/" + n.name, path: path, mounted: path.length > 0, size: deviceBytes(n.size) }
+}
+
+// An unavailable or malformed capacity stays absent; only the delegate formats valid byte counts.
+function deviceBytes(value) {
+    return Number.isSafeInteger(value) && value >= 0 ? value : null
 }
 
 // Sample input: two arrays of rail entries as ui/NetworkMounts.qml and ui/DeviceMounts.qml build
@@ -172,7 +173,7 @@ function sameEntries(a, b) {
 // The two shapes differ only in uri against device, and an absent field is undefined on both sides.
 function sameEntry(x, y) {
     return x.path === y.path && x.label === y.label && x.group === y.group && x.kind === y.kind
-        && x.uri === y.uri && x.device === y.device && x.mounted === y.mounted && x.glyph === y.glyph
+        && x.uri === y.uri && x.device === y.device && x.mounted === y.mounted && x.glyph === y.glyph && x.size === y.size && x.editable === y.editable
 }
 
 // Sample input: one rail entry as ui/DeviceMounts.qml and ui/NetworkMounts.qml build them,
@@ -195,8 +196,9 @@ function railMenu(entry) {
 // whether or not anything mounted it, marked as a removal because forgetting a place trashes
 // nothing. ui/js/Eject.js reads railMenu and never this, so Ctrl+E still refuses an unmounted row.
 function rowMenu(entry) {
+    if (entry && entry.kind === "favourite") return [{ label: "Remove", action: "removeFavourite", glyph: "minus" }]
     var rows = railMenu(entry)
-    if (entry && entry.group === "network" && entry.kind === "share") {
+    if (entry && entry.group === "network" && entry.kind === "share" && entry.editable !== false) {
         rows.push({ label: "Rename", action: "rename", glyph: "rename" })
         rows.push({ label: "Remove", action: "remove", glyph: "minus" })
     }
@@ -275,7 +277,7 @@ function release(action, key, devices, mounts, sidebar) {
     if (action === "unmount")
         mounts.unmount(share)
     else if (action === "rename")
-        sidebar.startRename(sidebar.favoriteEntries.length + share)
+        sidebar.startRename(sidebar.placesEntries.length + share)
     else if (action === "remove")
         mounts.forget(sidebar.networkEntries[share].uri)
 }

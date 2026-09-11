@@ -137,6 +137,7 @@ pub fn png_text(bytes: &[u8], key: &str) -> Option<String> {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::testdir::TestDir;
     use std::path::Path;
 
     #[test]
@@ -270,10 +271,9 @@ mod tests {
         png
     }
 
-    // Returns the root alongside the result so the caller deletes it before asserting, which frees it on the failing path too.
-    fn lookup_fixture(tag: &str, fail_at: Option<i64>, large_at: Option<i64>, ask: i64) -> (PathBuf, Hit) {
-        let root = std::env::temp_dir().join(format!("flea-thumbcache-{}-{}", tag, std::process::id()));
-        let c = Cache::at(root.clone());
+    fn lookup_fixture(tag: &str, fail_at: Option<i64>, large_at: Option<i64>, ask: i64) -> (TestDir, Hit) {
+        let root = TestDir::new(tag);
+        let c = Cache::at(root.path().to_path_buf());
         let uri = uri_for(Path::new(FIXTURE_SRC));
         for (entry, stamp) in [(c.fail_path(&uri), fail_at), (c.large_path(&uri), large_at)] {
             if let Some(mtime) = stamp {
@@ -281,28 +281,25 @@ mod tests {
                 std::fs::write(&entry, stamped_png(mtime)).unwrap();
             }
         }
-        (root.clone(), c.lookup(Path::new(FIXTURE_SRC), ask))
+        (root, c.lookup(Path::new(FIXTURE_SRC), ask))
     }
 
     #[test]
     fn a_recorded_failure_wins_over_a_present_thumbnail() {
-        let (root, hit) = lookup_fixture("order", Some(7), Some(7), 7);
-        std::fs::remove_dir_all(&root).unwrap();
+        let (_root, hit) = lookup_fixture("thumbcache-order", Some(7), Some(7), 7);
         assert!(matches!(hit, Hit::Failed));
     }
 
     #[test]
     fn a_thumbnail_stamped_with_another_mtime_is_a_miss() {
-        let (root, hit) = lookup_fixture("stale", None, Some(7), 8);
-        std::fs::remove_dir_all(&root).unwrap();
+        let (_root, hit) = lookup_fixture("thumbcache-stale", None, Some(7), 8);
         assert!(matches!(hit, Hit::Miss));
     }
 
     #[test]
     fn a_matching_thumbnail_is_ready_and_names_its_file() {
-        let (root, hit) = lookup_fixture("ready", None, Some(7), 7);
-        let want = Cache::at(root.clone()).large_path(&uri_for(Path::new(FIXTURE_SRC)));
-        std::fs::remove_dir_all(&root).unwrap();
+        let (root, hit) = lookup_fixture("thumbcache-ready", None, Some(7), 7);
+        let want = Cache::at(root.path().to_path_buf()).large_path(&uri_for(Path::new(FIXTURE_SRC)));
         let got = match hit {
             Hit::Ready(p) => Some(p),
             _ => None,

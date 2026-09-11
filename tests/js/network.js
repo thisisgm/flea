@@ -173,7 +173,7 @@ function run(check) {
     // A chosen row arrives as its key, never its position: the rail rebuilds on a five second poll.
     function chose(action, key, entries) {
         var log = []
-        var sidebar = { favoriteEntries: [favourite], networkEntries: entries, deviceEntries: [volume],
+        var sidebar = { placesEntries: [favourite, { kind: "trash" }], networkEntries: entries, deviceEntries: [volume],
                         startRename: function (i) { log.push("rename" + i) } }
         var mounts = { unmount: function (i) { log.push("unmount" + i) },
                        forget: function (uri) { log.push("forget " + uri) } }
@@ -181,10 +181,8 @@ function run(check) {
         Mounts.release(action, key, devices, mounts, sidebar)
         return log.join(",")
     }
-    // ui/Sidebar.qml "entries" concatenates favourites, then network, then devices, so a network
-    // row's rail index is past the favourites alone and no device row can sit above it.
-    check("Rename starts the rail's own editor on the row the key names, past the favourites",
-          chose("rename", "smb://nas/", [mounted, saved]), "rename2")
+    check("Rename resolves the network row past Places, including Trash",
+          chose("rename", "smb://nas/", [mounted, saved]), "rename3")
     check("Remove forgets the place by uri and never by position",
           chose("remove", "smb://nas/", [mounted, saved]), "forget smb://nas/")
     check("a key that no longer names a row does nothing at all",
