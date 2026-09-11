@@ -91,7 +91,11 @@ function currentIndex(pane) {
     return pane.tabs ? pane.tabs.index : 0
 }
 
+// Answers whether the rows on screen were a search's results, because clearing the search leaves
+// them there: every caller that then lands on the very directory the walk was scoped to has to
+// re-list it, or the walk's rows stay up under an ordinary header with nothing to ever refresh them.
 function dropOverlay(pane) {
+    var results = pane.searchMode === "results"
     if (pane.searchMode.length > 0) {
         if (pane.searchRunning)
             pane.backend.searchcancel()
@@ -103,6 +107,7 @@ function dropOverlay(pane) {
         pane.searchScanned = 0
     }
     Filter.close(pane)
+    return results
 }
 
 function closePreview(pane) {
@@ -135,8 +140,10 @@ function restoreSelection(pane, selected) {
         pane.selectionVersion++
 }
 
-function apply(pane, item) {
-    var same = pane.path === item.path && pane.showHidden === item.showHidden
+// relist forces the listing even when the tab names the path the pane is on, for a pane whose rows
+// are a search's and not that directory's.
+function apply(pane, item, relist) {
+    var same = !relist && pane.path === item.path && pane.showHidden === item.showHidden
     pane.history = item.history.slice()
     pane.forwardHistory = (item.forwardHistory || []).slice()
     pane.viewMode = item.viewMode
@@ -201,15 +208,16 @@ function openNew(pane) {
     }
     var here = restingPath(pane)
     closePreview(pane)
-    dropOverlay(pane)
+    var searched = dropOverlay(pane)
     var items = currentItems(pane, here)
     var index = currentIndex(pane)
     items[index] = snapshot(pane, here)
     items.push(snapshot(pane, here))
     pane.tabs = pack(items, items.length - 1)
     // dropOverlay clears the search but leaves the pane on the scope it walked, so the new tab has
-    // to land on the path it just recorded; this is what Escape out of a search already does.
-    if (pane.path !== here)
+    // to land on the path it just recorded; this is what Escape out of a search already does. A
+    // walk scoped to that same path leaves its rows on the pane, so it is re-listed as well.
+    if (pane.path !== here || searched)
         pane.openWithoutHistory(here)
 }
 
@@ -226,10 +234,10 @@ function selectAt(pane, i) {
     if (i === index)
         return
     closePreview(pane)
-    dropOverlay(pane)
+    var searched = dropOverlay(pane)
     items[index] = snapshot(pane, here)
     pane.tabs = pack(items, i)
-    apply(pane, items[i])
+    apply(pane, items[i], searched)
 }
 
 function closeAt(pane, i) {
@@ -253,9 +261,9 @@ function closeAt(pane, i) {
         next = Math.min(i, items.length - 1)
     if (i === index) {
         closePreview(pane)
-        dropOverlay(pane)
+        var searched = dropOverlay(pane)
         pane.tabs = pack(items, next)
-        apply(pane, items[next])
+        apply(pane, items[next], searched)
     } else {
         pane.tabs = pack(items, next)
     }

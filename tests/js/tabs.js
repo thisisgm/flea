@@ -60,6 +60,35 @@ function run(check) {
     check("carrying no cursor from the search's own listing", searching.tabs.items[1].cursorIndex, 0)
     check("and no selection from it either", searching.tabs.items[1].selected.length, 0)
 
+    // A search begun in home walks home, so the scope IS where the user was: dropOverlay cleared the
+    // search and the path test found nothing to re-list, and the walk's rows stayed up under the new
+    // tab's ordinary header, with the watch dropped for the search so nothing ever refreshed them.
+    var scoped = pane("/home/gm")
+    scoped.searchMode = "results"
+    scoped.searchFrom = "/home/gm"
+    Tabs.openNew(scoped)
+    check("a tab opened from a search scoped to where the user was still re-lists that directory",
+          scoped.listed.join(","), "/home/gm")
+    var toScope = pane("/home/gm")
+    toScope.searchMode = "results"
+    toScope.searchFrom = "/home/gm/Downloads"
+    toScope.tabs = { items: [{ path: "/home/gm", history: [], cursorIndex: 0, viewMode: "list",
+                               showHidden: false, selected: [], sortBy: "name", sortDesc: false },
+                             { path: "/home/gm/Downloads" }],
+                     index: 1, pendingCursor: -1, pendingSortBy: "", pendingSortDesc: false }
+    Tabs.selectAt(toScope, 0)
+    check("switching to a tab on the search's own scope re-lists it rather than keeping the walk's rows",
+          toScope.listed.join(","), "/home/gm")
+    var closing = pane("/home/gm")
+    closing.searchMode = "results"
+    closing.searchFrom = "/home/gm/Downloads"
+    closing.tabs = { items: [{ path: "/home/gm", history: [], cursorIndex: 0, viewMode: "list",
+                               showHidden: false, selected: [], sortBy: "name", sortDesc: false },
+                             { path: "/home/gm/Downloads" }],
+                     index: 1, pendingCursor: -1, pendingSortBy: "", pendingSortDesc: false }
+    Tabs.closeAt(closing, 1)
+    check("and so does closing a searching tab onto one", closing.listed.join(","), "/home/gm")
+
     var plain = pane("/tmp/here")
     Tabs.openNew(plain)
     check("an ordinary listing opens its tab on its own path", plain.tabs.items[1].path, "/tmp/here")
