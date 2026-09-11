@@ -79,6 +79,32 @@ function run(check) {
     check("a volume with a mountpoint reads as mounted", d[1].mounted, true)
     check("a loop device is not a device row", d.map(function (e) { return e.label }).join(","), "nvme0n1,128GB")
 
+    // A USB bridge that reports rm=false: a WD My Passport (rm=false, hotplug=true, tran=usb,
+    // subsystems=block:scsi:usb:pci) whose partition carries tran=null and no direct external
+    // signal of its own, so its row proves the parent's answer is inherited.
+    var bridge = '{"blockdevices":['
+               + '{"name":"sda","label":null,"mountpoint":null,"rm":false,"hotplug":true,"tran":"usb","subsystems":"block:scsi:usb:pci","size":"931.5G","type":"disk","model":"WDC WD10JMVW-11AJGS4",'
+               + '"children":[{"name":"sda1","label":"Hardsk Ario","mountpoint":"/mnt/Hardsk-Ario","rm":false,"hotplug":false,"tran":null,"subsystems":"block:scsi:pci","size":"931.5G","type":"part","model":null}]},'
+               + '{"name":"nvme0n1","label":null,"mountpoint":null,"rm":false,"hotplug":false,"tran":"nvme","subsystems":"block:nvme:pci","size":"476.9G","type":"disk","model":"SKHynix_HFS512GEJ9X164N"}'
+               + ']}'
+    var b = Mounts.parseDevices(bridge)
+    check("a USB bridge with rm=false still yields its volume", b.length, 2)
+    check("the internal row stays on the NVMe, not the USB disk", b[0].device, "/dev/nvme0n1")
+    check("the bridged volume takes the filesystem label", b[1].label, "Hardsk Ario")
+    check("the bridged volume carries its device node for gio", b[1].device, "/dev/sda1")
+    check("a bridged volume carries the mountpoint lsblk reported", b[1].path, "/mnt/Hardsk-Ario")
+    check("a bridged volume with a mountpoint reads as mounted", b[1].mounted, true)
+
+    // Bare hotplug is no signal: a hot-swap SATA internal reports hotplug=true with tran=sata
+    // and no usb anywhere, so it stays an internal candidate and grows no ejectable volumes.
+    var sataHotplug = '{"blockdevices":['
+               + '{"name":"sda","label":null,"mountpoint":null,"rm":false,"hotplug":true,"tran":"sata","subsystems":"block:scsi:pci","size":"1T","type":"disk","model":"Internal SATA",'
+               + '"children":[{"name":"sda1","label":null,"mountpoint":"/data","rm":false,"hotplug":false,"tran":"sata","subsystems":"block:scsi:pci","size":"1T","type":"part","model":null}]}'
+               + ']}'
+    var h = Mounts.parseDevices(sataHotplug)
+    check("a hotplug SATA internal is still the internal disk", h.length, 1)
+    check("and it keeps the internal kind, never a volume", h[0].kind, "disk")
+
     // No devices at all: the rail self-hides on this, so it must be an empty list and never a throw.
     check("empty lsblk output parses to nothing", Mounts.parseDevices("").length, 0)
     check("garbage lsblk output parses to nothing", Mounts.parseDevices("not json at all\n").length, 0)

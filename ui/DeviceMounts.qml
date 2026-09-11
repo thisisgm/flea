@@ -222,7 +222,7 @@ Item {
 
     Process {
         id: listProcess
-        command: ["lsblk", "--bytes", "--json", "-o", "NAME,LABEL,MOUNTPOINT,RM,SIZE,TYPE,MODEL"]
+        command: ["lsblk", "--bytes", "--json", "-o", "NAME,LABEL,MOUNTPOINT,RM,TRAN,SUBSYSTEMS,SIZE,TYPE,MODEL"]
         stdout: StdioCollector {
             id: listOut
             waitForEnd: true
