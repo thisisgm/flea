@@ -46,7 +46,9 @@ Item {
     // A changed rail is a changed row under any open editor, so the rename is void: the poll rebinds
     // its delegates in place, and an editor left standing came up empty over a different share.
     onNetworkEntriesChanged: root.cancelRename()
-    readonly property var deviceEntries: root.placesState.showDevices === false ? [] : devices.entries
+    // Phones ride the DEVICES group behind the block devices: a plugged phone is a device to the
+    // person holding it, whatever transport gvfs speaks to reach it.
+    readonly property var deviceEntries: root.placesState.showDevices === false ? [] : devices.entries.concat(phones.entries)
     readonly property var entries: root.placesEntries.concat(root.networkEntries, root.deviceEntries)
 
     // Reconcile only the aggregate; evaluating entries from a group's change handler re-enters its binding.
@@ -119,6 +121,15 @@ Item {
         onOpened: function (path) { root.opened(path) }
         onMessage: function (text, isError) { root.message(text, isError) }
         onForgetMessage: function (text) { root.forgetMessage(text) }
+    }
+
+    // Lists and unmounts only: activate() below routes a phone's mount-and-open through the same
+    // openShare leg a share rides, and the re-poll after an unmount is the listing's own.
+    PhoneMounts {
+        id: phones
+        listingText: mounts.mountListing
+        onMessage: function (text, isError) { root.message(text, isError) }
+        onReleased: mounts.pollMounts()
     }
 
     NetworkMounts {
@@ -251,7 +262,18 @@ Item {
         if (entry.kind === "trash") { root.trashRequested(); return }
         var rest = index - root.placesEntries.length
         if (rest < root.networkEntries.length) mounts.activate(rest)
+        // A phone mounts, resolves and opens the way a share does, so its activation is openShare's;
+        // phone rows sit after the block devices, so the device Service's own indices are unmoved.
+        else if (entry.kind === "phone") mounts.openShare(entry.uri, entry.mounted, entry.label)
         else devices.activate(rest - root.networkEntries.length)
+    }
+
+    // Mounts.release hands the phone action back here, because the phone Service is this rail's own
+    // child: the key re-resolves against the live list, the same stale-index rule every release has.
+    function releasePhone(key) {
+        var row = Mounts.rowByKey(phones.entries, key)
+        if (row >= 0)
+            phones.unmount(row)
     }
 
     // Network only: neither a favourite nor a device has a bookmark line of its own shape for

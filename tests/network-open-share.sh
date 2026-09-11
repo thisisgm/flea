@@ -21,7 +21,7 @@ list_started="$test_root/list-started"
 cat > "$test_root/bin/gio" <<'EOS'
 #!/bin/sh
 case "$1 $2" in
-  "mount -l") exit 0 ;;
+  "mount -li") exit 0 ;;
   "info smb://first/") exit 0 ;;
   "list smb://first/")
     : > "$FLEA_TEST_LIST_STARTED"

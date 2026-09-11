@@ -3855,7 +3855,7 @@ case "\$*" in
 "info --attributes=trash::item-count trash:///"|"monitor --dir=trash:///") exec /usr/bin/gio "\$@" ;;
 esac
 case "\$1 \${2:-}" in
-"mount -l") exit 0 ;;
+"mount -li") exit 0 ;;
 "mount nfs://cancel.test/export")
     : > "$fake_root/cancel-started"
     read release < "$fake_root/mount-release"
@@ -4619,7 +4619,7 @@ case_networkauth() {
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
 case "\$1 \${2:-}" in
-"mount -l")
+"mount -li")
     if [ -s "$state/mounted" ]; then
         uri=\$(cat "$state/mounted")
         printf 'Mount(0): auth-test -> %s\n' "\$uri"
@@ -4994,7 +4994,7 @@ case_networktimeout() {
 
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
-if [ "\$1 \$2" != "mount -l" ]; then
+if [ "\$1 \$2" != "mount -li" ]; then
   exec /usr/bin/gio "\$@"
 fi
 count=\$(cat "$calls")
@@ -5500,7 +5500,7 @@ case_hangshare() {
 # Every call is logged, because a case that hangs on purpose has no other way to say which leg it
 # reached; the fail messages below quote it. Same idea as case_unmount's own stub log.
 printf '%s\n' "\$*" >> "$dir/bin/calls"
-if [ "\$1 \$2" = "mount -l" ]; then
+if [ "\$1 \$2" = "mount -li" ]; then
   printf 'Mount(0): hang en stubhost -> $hang_uri\n  Type: GDaemonMount\n'
   printf 'Mount(1): good en stubhost -> $good_uri\n  Type: GDaemonMount\n'
   exit 0
@@ -5634,7 +5634,7 @@ case_unmount() {
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
 case "\$1 \$2" in
-  "mount -l")
+  "mount -li")
     # gvfsd composes this label and translates the word between share and host, so the stub speaks
     # Spanish here whatever the client locale is. What that proves is that the parser is robust to a
     # translated connector, and nothing about the C pin: live matrix step 0b ran this case in both
@@ -5978,7 +5978,7 @@ case_rename() {
     cat > "$dir/bin/gio" <<EOS
 #!/bin/sh
 case "\$1 \$2" in
-  "mount -l") cat "$dir/bin/gio-out"; exit 0 ;;
+  "mount -li") cat "$dir/bin/gio-out"; exit 0 ;;
 esac
 exit 0
 EOS

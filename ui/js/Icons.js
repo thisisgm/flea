@@ -98,6 +98,9 @@ var PATHS = {
     // Lucide's hard-drive with its four baked 2 unit corner arcs cut square, which lands the body on
     // (6,4) (18,4) (22,12) (22,20) (2,20) (2,12); the divider and the two LED dots are lucide's own.
     "drive": "M6 4h12l4 8v8H2v-8z M2 12h20 M6 16L6.01 16 M10 16L10.01 16",
+    // The DEVICES rail's phone mark, lucide's smartphone with its rx=2 body rect cut square the way
+    // drive's arcs were; the home-button dot is lucide's own near-zero line, drawn as server's are.
+    "smartphone": "M5 2h14v20H5z M12 18L12.01 18",
     // The rail menu's release mark, the shelf's "for: unmount": lucide's triangle corner arcs
     // extend to (12, 2.09) (22.32, 13) (1.68, 13) and snap to grid, its rx=1 bar rect squares off.
     "eject": "M12 2 22 13H2z M3 17h18v4H3z",

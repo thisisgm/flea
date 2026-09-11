@@ -24,6 +24,7 @@ import "network.js" as NetworkSuite
 import "ops.js" as OpsSuite
 import "palette.js" as PaletteSuite
 import "pathbar.js" as PathBarSuite
+import "phones.js" as PhonesSuite
 import "picker.js" as PickerSuite
 import "previewkeys.js" as PreviewKeysSuite
 import "places.js" as PlacesSuite
@@ -74,6 +75,7 @@ Item {
             ["mounts", MountsSuite], ["nav", NavSuite], ["network", NetworkSuite],
             ["openwith", OpenWithSuite], ["ops", OpsSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
+            ["phones", PhonesSuite],
             ["picker", PickerSuite],
             ["previewkeys", PreviewKeysSuite],
             ["protocols", ProtocolsSuite], ["railkeys", RailKeysSuite],

@@ -16,11 +16,11 @@ ln -s "$PWD/ui/MountListing.qml" "$test_root/config/MountListing.qml"
 ln -s "$PWD/tests/mount-listing.qml" "$test_root/config/shell.qml"
 poll_count="$test_root/poll-count"
 
-# One share on the first "gio mount -l" and nothing after that, which is what a share being
+# One share on the first "gio mount -li" and nothing after that, which is what a share being
 # unmounted between two polls looks like: no output at all, and still exit 0.
 cat > "$test_root/bin/gio" <<'EOS'
 #!/bin/sh
-[ "$1 $2" = "mount -l" ] || exit 64
+[ "$1 $2" = "mount -li" ] || exit 64
 count=$(cat "$FLEA_TEST_POLL_COUNT" 2>/dev/null || echo 0)
 echo $((count + 1)) > "$FLEA_TEST_POLL_COUNT"
 [ "$count" -eq 0 ] || exit 0

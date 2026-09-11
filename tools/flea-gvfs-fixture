@@ -22,9 +22,9 @@ set -u
 #   printf '%s FixShare\n' "$(tools/flea-gvfs-fixture uri)" > "$HOME/.config/gtk-3.0/bookmarks"
 #
 # To drive the wedge that ui/MountListing.qml's timeoutMs exists for, put a gio on PATH ahead of
-# the real one that sleeps on "mount -l" and execs /usr/bin/gio for everything else. The same shape
+# the real one that sleeps on "mount -li" and execs /usr/bin/gio for everything else. The same shape
 # with lsblk drives ui/DeviceMounts.qml. A stub that cannot hang cannot catch a hang, which is why
-# tests/ui.sh case_sharebrowser, whose stub prints nothing for "mount -l", never caught either.
+# tests/ui.sh case_sharebrowser, whose stub prints nothing for "mount -li", never caught either.
 
 dir=${DIR:-$FIXTURE_ROOT/flea-gvfs-fixture}
 # gio reports the archive host double-encoded, and only that form round trips through mount and

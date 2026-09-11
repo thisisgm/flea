@@ -21,9 +21,13 @@ function run(check) {
     var onTuesdayOnNas = 'Mount(0): backup on tuesday on nas -> smb://nas/backup%20on%20tuesday/\n'
     check("and loses only the host when it really is share-on-host",
           Mounts.parseMounts(onTuesdayOnNas)[0].label, "backup on tuesday")
+    // A phone's shadow mount is DEVICES territory: ui/js/Phones.js builds its row off the volume
+    // block, so parseMounts skips the uri the way it already skips file://.
     var phone = 'Mount(0): Pixel 7 -> mtp://Google_Pixel_7_1A2B/\n'
+    check("an mtp mount is a phone row's shadow, not a share", Mounts.parseMounts(phone).length, 0)
+    var mediaLibrary = 'Mount(0): media library -> dav://nas.local/media/\n'
     check("a label that is not share-on-host keeps the name gio gave it",
-          Mounts.parseMounts(phone)[0].label, "Pixel 7")
+          Mounts.parseMounts(mediaLibrary)[0].label, "media library")
     var bareRoot = 'Mount(0): nas -> smb://nas/\n'
     check("a server root's own name is never cut down to nothing",
           Mounts.parseMounts(bareRoot)[0].label, "nas")

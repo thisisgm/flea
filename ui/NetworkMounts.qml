@@ -41,6 +41,9 @@ Item {
     // is why nothing below decides anything on one.
     readonly property var gioEnvironment: ({ "LC_ALL": "C" })
     property string _mountListing: ""
+    // The listing, readable by name: ui/PhoneMounts.qml builds its phone rows off the same five
+    // second poll rather than walking the gvfs volume monitors a second time.
+    readonly property alias mountListing: root._mountListing
     property string _pendingUri: ""
     // OEM collectors cache finished output because onExited can race their text property.
     property string _infoOutput: ""
@@ -172,7 +175,7 @@ Item {
         }
     }
 
-    // The five second "gio mount -l" poll is ui/MountListing.qml's: this Service reads its listing
+    // The five second "gio mount -li" poll is ui/MountListing.qml's: this Service reads its listing
     // and asks for a re-read through pollMounts() below.
     MountListing {
         id: listing

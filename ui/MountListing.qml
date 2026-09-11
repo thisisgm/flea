@@ -1,9 +1,12 @@
 import QtQuick
 import Quickshell.Io
 
-// The five second "gio mount -l" poll, lifted out of ui/NetworkMounts.qml whole so that file has
+// The five second "gio mount -li" poll, lifted out of ui/NetworkMounts.qml whole so that file has
 // room in the 0.1.4 composition. The Service reads "text" when "listed" fires, and its own
 // pollMounts() is the only thing outside this file that calls poll().
+// -i rides along for ui/js/Phones.js: a phone volume's activation_root and can_mount print only
+// under it, and the flag is free, measured 506 ms for both spellings over three interleaved runs
+// on this box, because the cost is walking the volume monitors and not the printing.
 Item {
     id: root
 
@@ -67,7 +70,7 @@ Item {
     Process {
         id: listProcess
         environment: root.environment
-        command: ["gio", "mount", "-l"]
+        command: ["gio", "mount", "-li"]
         stdout: StdioCollector { id: listOut; waitForEnd: true; onStreamFinished: if (!root._timedOut) root._output = listOut.text }
         onExited: function () {
             listTimeout.stop()
