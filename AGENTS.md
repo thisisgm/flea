@@ -36,7 +36,21 @@ this tree yet: `flea --tui` says so and exits 2.
 5. **Vulkan where the loader can deliver it, lazy multimedia later.** `src/gui.rs` sets
    `QSG_RHI_BACKEND=vulkan` when the user did not choose a renderer and `src/vulkan.rs` has
    created a throwaway instance and seen a device, which costs 2.4x less memory than the OpenGL
-   default and initialises 35 ms faster, with identical frame timing. A loader that cannot
+   default and initialises 35 ms faster, with identical frame timing. The same probe now reads
+   each device's PCI id and matches it against `/sys/class/drm` connectors whose `status` is
+   `connected`. When Vulkan lists both a display GPU and one that owns no connector, Flea sets
+   `VK_DRIVER_FILES` and `VK_ICD_FILENAMES` to the ICD whose `library_path` belongs to the
+   display GPU. That is the hybrid-GPU blank window: Hyprland compositing on NVIDIA while Qt
+   opens Intel, which presents a mapped window with no buffer. An index pin (`QT_VK_PHYSICAL_DEVICE_INDEX`)
+   cannot be used: this box enumerates NVIDIA then Intel to `vkEnumeratePhysicalDevices` and
+   Intel then NVIDIA to QRhi, so the index Flea would hand Qt is the other GPU. Restricting the
+   ICD list does not care about order. Forcing the NVIDIA ICD on every NVIDIA laptop would blank
+   classic Optimus, where the compositor sits on Intel and the connected connector is Intel's.
+   An explicit `VK_DRIVER_FILES` or `VK_ICD_FILENAMES` is the operator's, and an exported-but-empty
+   one is absent, the same rule `QSG_RHI_BACKEND` follows. The pin is said once on stderr, because
+   a silent device change is the defect the OpenGL downgrade already refused to hide. A box whose
+   every Vulkan device owns a connected connector, or that has no DRM connectors at all, leaves
+   the loader's default and says nothing. A loader that cannot
    deliver one is given `opengl` before `qs` starts at all, because Quickshell hands
    `QRhi::create` a `QVulkanInstance` it never created and SIGSEGVs there rather than raising
    the scene-graph error the QML arm listens for, issue #14 on a QEMU Virtio GPU. That downgrade
