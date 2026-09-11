@@ -1,9 +1,11 @@
 use std::os::unix::fs::MetadataExt;
 use std::path::Path;
-use std::time::{Duration, Instant};
+use std::time::Instant;
+#[cfg(test)]
+use std::time::Duration;
 
 // A directory over this deadline answers with what it saw, marked partial: a floor, not a wrong exact number.
-const DEADLINE_MS: u64 = 2000;
+pub(super) const DEADLINE_MS: u64 = 2000;
 
 pub struct DirSize {
     pub bytes: u64,
@@ -11,11 +13,17 @@ pub struct DirSize {
 }
 
 // walk_until is the testable core: a test passes an already-past deadline to force partial without waiting 2000 ms.
+#[cfg(test)]
 pub fn walk(path: &Path) -> DirSize {
     walk_until(path, Instant::now() + Duration::from_millis(DEADLINE_MS))
 }
 
 pub fn walk_until(path: &Path, deadline: Instant) -> DirSize {
+    walk_cancellable(path, deadline, &|| false)
+}
+
+pub fn walk_cancellable(path: &Path, deadline: Instant, cancelled: &impl Fn() -> bool) -> DirSize {
+    if cancelled() { return DirSize { bytes: 0, partial: true }; }
     let mut bytes = 0u64;
     let mut partial = false;
     // The target's own directory entry counts too, matching what `du -s` reports for the directory itself.
@@ -23,13 +31,13 @@ pub fn walk_until(path: &Path, deadline: Instant) -> DirSize {
         Ok(meta) => bytes += meta.size(),
         Err(_) => partial = true,
     }
-    walk_into(path, deadline, &mut bytes, &mut partial);
+    walk_into(path, deadline, &mut bytes, &mut partial, cancelled);
     DirSize { bytes, partial }
 }
 
 // Recursion, not an explicit stack: a tree deep enough to blow it is not a shape this one box produces.
-fn walk_into(path: &Path, deadline: Instant, bytes: &mut u64, partial: &mut bool) {
-    if Instant::now() >= deadline {
+fn walk_into(path: &Path, deadline: Instant, bytes: &mut u64, partial: &mut bool, cancelled: &impl Fn() -> bool) {
+    if cancelled() || Instant::now() >= deadline {
         *partial = true;
         return;
     }
@@ -42,7 +50,7 @@ fn walk_into(path: &Path, deadline: Instant, bytes: &mut u64, partial: &mut bool
         }
     };
     for entry in entries {
-        if Instant::now() >= deadline {
+        if cancelled() || Instant::now() >= deadline {
             *partial = true;
             return;
         }
@@ -79,7 +87,7 @@ fn walk_into(path: &Path, deadline: Instant, bytes: &mut u64, partial: &mut bool
         };
         *bytes += meta.size();
         if file_type.is_dir() {
-            walk_into(&entry.path(), deadline, bytes, partial);
+            walk_into(&entry.path(), deadline, bytes, partial, cancelled);
         }
     }
 }
@@ -96,6 +104,28 @@ mod tests {
         let sandbox = TestDir::new(tag);
         let tree = sandbox.dir("tree");
         (sandbox, tree)
+    }
+
+    #[test]
+    fn cancellation_is_checked_again_during_traversal() {
+        let d = TestDir::new("dirsize-cancel-midwalk");
+        d.file("payload", "not counted");
+        let calls = std::cell::Cell::new(0);
+        let result = walk_cancellable(d.path(), Instant::now() + Duration::from_secs(2), &|| {
+            calls.set(calls.get() + 1);
+            calls.get() >= 3
+        });
+        assert!(result.partial);
+        assert_eq!(result.bytes, d.path().symlink_metadata().unwrap().size());
+    }
+
+    #[test]
+    fn cancellation_stops_a_walk_before_reading_the_directory() {
+        let d = TestDir::new("dirsize-cancel");
+        d.file("payload", "not counted");
+        let result = walk_cancellable(d.path(), Instant::now() + Duration::from_secs(2), &|| true);
+        assert!(result.partial);
+        assert_eq!(result.bytes, 0);
     }
 
     #[test]

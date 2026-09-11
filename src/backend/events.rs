@@ -11,6 +11,7 @@ use std::thread;
 pub enum Event {
     Request(String),
     Thumb(Done),
+    DirSize(crate::backend::dirsizeworker::Done),
     // A write operation's own thread reports here, so the loop stays the only writer of stdout.
     Op(OpMsg),
     // The watch descriptor that saw it, so a burst belonging to the directory the client has already

@@ -36,6 +36,7 @@ pub struct State {
     pub dirsizes: HashMap<usize, (u64, bool)>,
     // Rows still to walk, one at a time; dirsizecancel empties this without touching dirsizes.
     pub dirsize_queue: Vec<usize>,
+    pub dirsize_worker: super::dirsizeworker::Worker,
     // The subtree walk the loop ticks; None means no search is running.
     pub search: Option<Search>,
     // When the running walk last announced its count, so SEARCH_REPORT can throttle the stream.

@@ -14,6 +14,10 @@ if [ ! -x "$BIN" ]; then
     printf 'protocol.sh: build it (cargo build) or set BIN to one; refusing to report on nothing\n' >&2
     exit 1
 fi
+if ! command -v cc >/dev/null 2>&1; then
+    echo 'protocol.sh: cc is required to build the directory-size syscall barrier' >&2
+    exit 1
+fi
 # The sandbox is the parent and the listing is a directory inside it, because the guard's marker is
 # a real dotfile and this suite asserts what a hidden:true listing contains.
 SB="$FIXTURE_ROOT/flea-proto-test-$$"
@@ -337,7 +341,7 @@ check "hidden true includes both dotfile entries" "5" "$(echo "$out" | head -1 |
 check "the dotfile row is present" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotfile"')"
 check "the dot-directory row is present and marked a directory" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotdir","d":true')"
 
-# Task 16: directory sizes; each argument is one stage, and the walker only gets a turn between stages once stdin drains to empty, see docs/protocol.md "dirsize".
+# Directory sizes: each argument is one stage; pacing allows asynchronous replies between stages.
 dirsize_run() {
   ( for stage in "$@"; do
       # $(...) strips a stage's trailing newline, so it comes back here or the next stage glues onto this one's last line.
@@ -374,7 +378,7 @@ out=$(dirsize_run \
     "$(printf '{"c":"dirsize","rows":[0]}\n')")
 check "a repeated ask for an already-answered row still answers" "2" "$(echo "$out" | grep -c '"t":"dirsized"')"
 
-# dirsizecancel carries no rows and drops everything queued; no pacing here on purpose, so the row is cancelled before the walker could ever get a turn.
+# A queued cancellation suppresses the result even if the worker has already picked up the row.
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n{"c":"dirsizecancel"}\n{"c":"quit"}\n' "$DZ" | $BIN --backend)
 check "a row cancelled before it was walked is never answered" "0" "$(echo "$out" | grep -c '"t":"dirsized"')"
 
@@ -611,6 +615,14 @@ check_changed "and two changes after that re-list are both answered" "$out" 2 4
 out=$(watch_run "$WT" burst_of_creates)
 check_changed "a hundred creates answer a handful of changed lines, not a hundred" "$out" 1 10
 sandbox_remove "$WT_SB"
+
+# A test-only opendir barrier pins a real size worker until the parent releases it. These
+# requests must finish while it is blocked; no sleeps or tree-size guesses choose the race.
+ASYNC_SB="$FIXTURE_ROOT/flea-dirsize-async-$$"
+sandbox_make "$ASYNC_SB"
+python3 tests/dirsize-async.py "$ASYNC_SB" "$BIN"
+check "running size jobs allow cancel, list, sort and quit without stale replies" "0" "$?"
+sandbox_remove "$ASYNC_SB"
 
 # No per-key cleanup: the cache is inside the sandbox, so it goes when the sandbox does.
 sandbox_remove "$SB"
