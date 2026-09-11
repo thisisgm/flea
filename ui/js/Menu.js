@@ -32,6 +32,7 @@ var INVENTORY = [
     ["compress", "Compress", "archive", "F", "archive"],
     ["extract", "Extract", "archive-out", "F", "archive"],
     ["convert", "Convert", "sliders", "F", "archive"],
+    ["localsend", "Send via LocalSend", "network", "F", "share"],
     ["taildrop", "Send with Taildrop", "tailscale", "F", "share"],
     ["dropbox", "Move to Dropbox", "dropbox", "F", "share"],
     ["sharelink", "Copy Share Link", "network", "F", "share"],
@@ -107,6 +108,7 @@ function availableEntry(e, p, kind) {
     }
     if (e.action === "extract" && !(p.rowIsArchive && p.canExtract === true && count === 1)) return false
     if (e.action === "convert" && !(p.rowIsImage && p.canConvert && count === 1)) return false
+    if (e.action === "localsend" && !p.canLocalSend) return false
     // OpenWith.html: the desktop's current default is first and carries the muted caption "default"
     // in the hint slot, the registry order follows it, and the tail row sits under its own
     // separator with the app-window glyph. The row self-hides when the registry names nothing.

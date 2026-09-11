@@ -18,6 +18,7 @@ import "keymap.js" as KeymapSuite
 import "match.js" as MatchSuite
 import "menu.js" as MenuSuite
 import "openwith.js" as OpenWithSuite
+import "localsend.js" as LocalSendSuite
 import "mounts.js" as MountsSuite
 import "nav.js" as NavSuite
 import "network.js" as NetworkSuite
@@ -70,7 +71,7 @@ Item {
             ["focus", FocusSuite], ["focus-forward", FocusForwardSuite],
             ["focus-lines", FocusLinesSuite], ["focus-wrap", FocusWrapSuite],
             ["format", FormatSuite], ["icons", IconsSuite],
-            ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite],
+            ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite], ["localsend", LocalSendSuite],
             ["mounts", MountsSuite], ["nav", NavSuite], ["network", NetworkSuite],
             ["openwith", OpenWithSuite], ["ops", OpsSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],

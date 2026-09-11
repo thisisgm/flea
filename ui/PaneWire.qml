@@ -4,6 +4,7 @@ import "js/DirSizes.js" as DirSizes
 import "js/Errors.js" as Errors
 import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
+import "js/LocalSend.js" as LocalSendJs
 import "js/Search.js" as Search
 import "js/Tabs.js" as Tabs
 import "js/Thumbs.js" as Thumbs
@@ -58,6 +59,11 @@ Item {
     readonly property alias opener: opener
     readonly property alias shareLink: shareLink
     readonly property alias taildrop: taildrop
+    readonly property alias localSend: localSend
+
+    function sendLocalSend() { if (localSend.available) LocalSendJs.request(pane) }
+
+    Flea.LocalSend { id: localSend }
 
     Flea.Opener {
         id: opener
@@ -393,6 +399,7 @@ Item {
 
         // The answer to Ops.clip's askPaths; nothing reaches the clipboard until this lands.
         function onPaths(list) {
+            if (LocalSendJs.resolved(pane, list, localSend.send)) return
             Ops.pathsResolved(pane, list)
         }
 

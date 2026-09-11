@@ -33,7 +33,7 @@ var MENU_GROUPS = [
     { label: "Open and inspect", master: false,
       ids: ["openwith", "openTerminal", "moveto", "copyto", "properties", "permissions", "copypath"] },
     { label: "Extras", master: false,
-      ids: ["compress", "extract", "convert", "taildrop", "dropbox", "sharelink"] }
+      ids: ["compress", "extract", "convert", "localsend", "taildrop", "dropbox", "sharelink"] }
 ]
 
 // Open and Show hidden files draw the lock mark instead of a box, and the board says why: a menu
@@ -42,6 +42,7 @@ var MENU_GROUPS = [
 var LOCKED = ["open", "toggleHidden"]
 
 var LABELS = {
+    localsend: "Send via LocalSend",
     cut: "Cut", copy: "Copy", paste: "Paste", duplicate: "Duplicate", rename: "Rename",
     trash: "Move to Trash", openTerminal: "Open in terminal", copypath: "Copy path", permissions: "Permissions",
     delete: "Delete permanently", openwith: "Open with", moveto: "Move to", copyto: "Copy to", properties: "Properties",
@@ -58,6 +59,7 @@ var PRESET_LABELS = { "default": "Default", vim: "Vim", mac: "Mac", windows: "Wi
 // Every board row carries a left mark, and a switch wears the mark of the row it governs: these are
 // ui/js/Menu.js's own glyphs by action id, which tests/js/settings.js asserts the two agree on.
 var GLYPHS = {
+    localsend: "network",
     cut: "scissors", copy: "copy", paste: "clipboard", duplicate: "file-plus", rename: "rename",
     trash: "trash", openTerminal: "terminal", copypath: "file-text", permissions: "lock", compress: "archive",
     delete: "trash", openwith: "app-window", moveto: "folder-plus", copyto: "copy", properties: "info",

@@ -29,6 +29,7 @@ Item {
     property bool canConvert: false
     property bool canExtract: false
     property bool clipboardAvailable: false
+    property bool canLocalSend: false
     // Whether the cursor row is an archive, and whether it is an image; both decided client-side.
     property bool rowIsArchive: false
     property bool rowIsImage: false
@@ -136,6 +137,7 @@ Item {
             openWithLoaded: root.openWithLoaded,
             rowMode: root.rowMode,
             selectionCount: root.selectionCount,
+            canLocalSend: root.canLocalSend,
             // The Menus settings section's stored set; ui/js/Menu.js applyHidden is what reads it.
             hiddenActions: ViewState.menuHidden
         })

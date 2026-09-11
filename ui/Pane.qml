@@ -313,6 +313,7 @@ FocusScope {
         Focus.act(action, root, menuId, paths)
     }
     function performMenu(action, menuId, paths) {
+        if (action === "localsend") { wire.sendLocalSend(); return }
         if (action.indexOf("taildrop:") === 0) { root.sendTaildrop(action.substring("taildrop:".length), paths && paths.length === 1 ? paths[0] : ""); return }
         if (action === "sharelink") { root.copyShareLink(paths && paths.length === 1 ? paths[0] : ""); return }
         if (action === "copypath") { wire.opener.copyText(paths && paths.length ? paths[0] : root.join(root.path, root.cursorRow.n)); return }
@@ -585,6 +586,7 @@ FocusScope {
         openWithLoaded: menuActions.openWithLoaded
         selectionIdentity: root.menuSelectionIdentity
         clipboardAvailable: root.clipboard.paths.length > 0
+        canLocalSend: wire.localSend.available
         onSnapshotRequested: menuActions.snapshot()
         onRefused: function(reason) { root.message(reason, true) }
         rowIsArchive: root.cursorRow !== null && !root.cursorRow.d && Archive.isArchive(root.cursorRow.n)
