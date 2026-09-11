@@ -90,6 +90,39 @@ function run(check) {
           moved.tabs.pendingSelected === undefined, true)
     check("and it did re-list, which is what clears the selection", moved.listed.join(","), "/tmp/b")
 
+    // The same directory in two tabs is the one switch that re-lists nothing, and the selection was
+    // restored on the strength of that alone. Two things renumber the rows underneath a hidden tab:
+    // the other tab holding a different order, and a re-read, a dd in the other tab or the watch's
+    // own, while it was hidden. Backend.listRequests counts the second; the sort is the first.
+    function twin(order) {
+        var p = pane("/tmp/same")
+        p.backend.listRequests = 7
+        p.thumbState = "warm"
+        p.dirSizeState = "warm"
+        p.selection.toggle(2)
+        p.selection.toggle(3)
+        p.tabs = { items: [{ path: "/tmp/same", history: [], cursorIndex: 4, viewMode: "list", showHidden: false,
+                             selected: [2, 3], listed: 7, sortBy: order, sortDesc: false },
+                           { path: "/tmp/same" }],
+                   index: 1, pendingCursor: -1, pendingSortBy: "", pendingSortDesc: false }
+        return p
+    }
+    var kept = twin("name")
+    Tabs.selectAt(kept, 0)
+    check("a switch to the same directory, same order, nothing re-read, restores the selection",
+          kept.selectedIndices().join(",") + "|" + kept.listed.length, "2,3|0")
+    var reread = twin("name")
+    reread.backend.listRequests = 8
+    Tabs.selectAt(reread, 0)
+    check("but one re-read while the tab was hidden has renumbered the rows, so it carries none",
+          reread.selectedIndices().join(","), "")
+    var reordered = twin("size")
+    Tabs.selectAt(reordered, 0)
+    check("a switch that re-sorts the same directory drops the selection, as Sort.resort does",
+          reordered.selectedIndices().join(",") + "|" + reordered.sorted.join(","), "|size:false")
+    check("and the caches keyed by row index with it",
+          typeof reordered.thumbState === "string" || typeof reordered.dirSizeState === "string", false)
+
     // F3 and F4: a refusal and a background close must each cost the user nothing else.
     var full = pane("/tmp/full")
     var nine = []

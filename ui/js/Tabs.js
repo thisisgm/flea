@@ -1,7 +1,9 @@
 .pragma library
 
+.import "DirSizes.js" as DirSizes
 .import "Filter.js" as Filter
 .import "Format.js" as Format
+.import "Thumbs.js" as Thumbs
 
 // Hidden tabs are snapshots, so the pane and backend still own only one listing.
 // The nine-tab cap matches TUI's direct digit selection; GUI shortcuts cycle through the same state.
@@ -29,6 +31,8 @@ function snapshot(pane, path) {
         viewMode: pane.viewMode,
         showHidden: pane.showHidden,
         selected: elsewhere ? [] : pane.selectedIndices().slice(),
+        // Which listing those indices were made on: a re-read while the tab is hidden renumbers them.
+        listed: Number(pane.backend.listRequests) || 0,
         sortBy: pane.backend.sortBy,
         sortDesc: pane.backend.sortDesc,
         // The directory's filesystem, so a drop on this tab while another shows decides move against copy.
@@ -146,14 +150,23 @@ function apply(pane, item) {
             pane.backend.sort(item.sortBy, item.sortDesc)
             pane.backend.sortBy = item.sortBy
             pane.backend.sortDesc = item.sortDesc
+            // The reset Sort.resort runs for the same reorder: every row moves, so the caches keyed by
+            // a row index are stale and a selection of row indices would come to name other files.
+            pane.thumbState = Thumbs.empty()
+            pane.dirSizeState = DirSizes.empty()
+            pane.clearSelection()
             pane.backend.window(0, pane.windowSize)
             pane.tabs.pendingCursor = item.cursorIndex
             return
         }
-        // The one switch that re-reads nothing, so the rows behind these indices are the rows the
-        // selection was made on and restoring it is safe. Every other path below drops it.
         pane.setCursor(item.cursorIndex)
-        restoreSelection(pane, item.selected)
+        // The rows behind these indices are the rows the selection was made on only while nothing has
+        // re-read the directory since: a delete in the other tab, or the watch's own re-read, shifts
+        // every index below the change, and a selection restored over that names other files.
+        if ((Number(pane.backend.listRequests) || 0) === (Number(item.listed) || 0))
+            restoreSelection(pane, item.selected)
+        else
+            pane.clearSelection()
         return
     }
     pane.tabs.pendingCursor = item.cursorIndex
