@@ -18,10 +18,10 @@ function separated(rows) {
 }
 function run(check) {
     var file = Menu.listingEntries(state({}))
-    check("Menus and Places inventory has 30 actions", Menu.INVENTORY.length, 30)
+    check("Menus and Places inventory has 31 actions", Menu.INVENTORY.length, 31)
     check("Open with uses the authoritative cut geometry", Icons.pathFor("app-window"), "M3 4h18v16H3z M3 9h18 M6 6.5h.01 M9 6.5h.01")
     check("Restore all uses the authoritative undo geometry", Icons.pathFor("undo"), "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5")
-    check("inventory storage ids are unique", Object.keys(Menu.INVENTORY.reduce(function (out, row) { out[row[0]] = true; return out }, {})).length, 30)
+    check("inventory storage ids are unique", Object.keys(Menu.INVENTORY.reduce(function (out, row) { out[row[0]] = true; return out }, {})).length, 31)
     check("default image menu matches Menus specimen", actions(file),
           "open,openWith,cut,copy,paste,duplicate,rename,compress,convert,taildrop,dropbox,trash,addFavourite,toggleHidden")
     check("empty clipboard leaves Paste visible and disabled", entry(file, "paste").disabled, true)
@@ -105,4 +105,14 @@ function run(check) {
     check("missing entry has no submenu", Menu.hasSubmenu(undefined), false)
     check("header keeps required Name column outside toggles", actions(Menu.headerEntries([], false)), "col:mode,col:size,col:date,col:kind,toggleHidden")
     check("sort submenu uses real backend order ids", Menu.sortEntries().map(function (r) { return r.id }).join(","), "name,size,mtime,kind")
+    check("LocalSend is absent when not installed", entry(file, "localsend").action, undefined)
+    var localOn = Menu.listingEntries(state({ canLocalSend: true }))
+    check("installed LocalSend offers a direct action", entry(localOn, "localsend").label, "Send via LocalSend")
+    check("LocalSend sits with the other share actions", actions(localOn),
+          "open,openWith,cut,copy,paste,duplicate,rename,compress,convert,localsend,taildrop,dropbox,trash,addFavourite,toggleHidden")
+    check("LocalSend leaves recipient selection to its app", Menu.hasSubmenu(entry(localOn, "localsend")), false)
+    check("LocalSend respects the user's menu preference",
+          entry(Menu.listingEntries(state({ canLocalSend: true, hiddenActions: ["localsend"] })), "localsend").action, undefined)
+    check("LocalSend is not offered on empty space",
+          entry(Menu.listingEntries(state({ canLocalSend: true, hasRow: false })), "localsend").action, undefined)
 }

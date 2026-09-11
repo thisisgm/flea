@@ -27,7 +27,7 @@ Large directories stay responsive: the window loads rows and requests thumbnails
 - **Three views.** List, columns and grid, with tabs and natural filename sorting.
 - **Quick Look.** Press Space for images, PDFs, text, media and archive contents.
 - **File operations.** Copy, move, rename, trash, compress and extract, with an undo journal.
-- **Network and sharing.** SMB, SFTP, FTPS, WebDAV, NFS, Dropbox and Taildrop.
+- **Network and sharing.** SMB, SFTP, FTPS, WebDAV, NFS, Dropbox, Taildrop and LocalSend.
 - **Desktop integration.** Default file manager, “Show in folder” and Open/Save dialogs.
 - **Your settings.** Omarchy text sizes, configurable menus and Default, Vim, Mac or Windows keys.
 

@@ -29,7 +29,8 @@ function runInventory(check) {
         var rows = Menu.listingEntries({
             showHidden: false, hasRow: true, dropboxPath: "/home/jw/Dropbox",
             taildropPeers: [{ id: "x", label: "Box" }], taildropInstalled: true, dropboxInstalled: true,
-            archiveFormats: ["zip"], canConvert: true, canExtract: true, selectionCount: 1, rowMode: 0o100644,
+            archiveFormats: ["zip"], canConvert: true, canExtract: true, canLocalSend: true,
+            selectionCount: 1, rowMode: 0o100644,
             rowInDropbox: shapes[s].rowInDropbox, rowIsArchive: shapes[s].rowIsArchive,
             rowIsImage: shapes[s].rowIsImage, hiddenActions: []
         })
@@ -53,7 +54,7 @@ function runInventory(check) {
               var mine = Settings.GLYPHS[id] !== undefined ? Settings.GLYPHS[id] : Settings.MARKS[id]
               return mine === undefined || mine !== builtMark[id]
           }).join(","), "")
-    // SettingsPlaces section 02 adds the listing Favorite action; SettingsMenus keeps its 20 switches and Menus' New folder has none.
+    // SettingsPlaces section 02 adds the listing Favorite action; SettingsMenus keeps its 21 switches and Menus' New folder has none.
     var reachable = switched.concat(Settings.LOCKED).concat(["newFolder", "addFavourite"])
     check("no other menu action is omitted from the board's switch inventory",
           Object.keys(built).filter(function (id) { return reachable.indexOf(id) < 0 }).join(","), "")
@@ -159,6 +160,7 @@ function runRows(check) {
           find(display, "textStop").on, false)
 
     var menus = Settings.rows("menus", { hidden: ["paste"] })
+    check("LocalSend has a menu visibility toggle", find(menus, "localsend").label, "Send via LocalSend")
     check("the Menus section leads with the master row under its own heading",
           kinds(menus).indexOf("group|master|check") === 0, true)
     check("the master's count is drawn beside it", menus[1].value, "5 of 6")
@@ -169,10 +171,10 @@ function runRows(check) {
     check("a hidden action's row is drawn unchecked, not dropped",
           find(menus, "paste").on, false)
     check("and an enabled one is checked", find(menus, "copy").on, true)
-    check("the current menu controls include Permissions and the retained hints preference",
+    check("the current menu controls include Permissions, LocalSend and the retained hints preference",
           menus.filter(function (r) { return r.kind === "check" })
                .map(function (r) { return r.id }).join(","),
-          "cut,copy,paste,duplicate,rename,trash,delete,openwith,openTerminal,moveto,copyto,properties,permissions,copypath,compress,extract,convert,taildrop,dropbox,sharelink,keyHints")
+          "cut,copy,paste,duplicate,rename,trash,delete,openwith,openTerminal,moveto,copyto,properties,permissions,copypath,compress,extract,convert,localsend,taildrop,dropbox,sharelink,keyHints")
     // The one check that is not a menu action: it says how every row is drawn, not whether it is.
     // GM's ruling of 2026-09-10 turns it off by default, with the rail's own detail rows, and
     // src/uischema.rs stores that default, so an absent preference reads off and not on.
@@ -267,7 +269,7 @@ function runPresets(check) {
     }
     check("preset check denominator covers all effective bindings", total > 100, true)
     var menuRows = Settings.menuRows([], true)
-    check("SettingsMenus contains exactly 20 action switches", menuRows.filter(function (r) { return r.kind === "check" && r.id !== "keyHints" }).length, 20)
+    check("SettingsMenus contains exactly 21 action switches", menuRows.filter(function (r) { return r.kind === "check" && r.id !== "keyHints" }).length, 21)
     check("Delete permanently is visually destructive", find(menuRows, "delete").role, "error")
     check("Delete permanently explains its default", find(menuRows, "delete").value, "off by default")
 }

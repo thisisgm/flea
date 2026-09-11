@@ -181,6 +181,7 @@ function clip(pane, moving, paths) {
         pane.message(copied(paths.length, moving), false)
         return
     }
+    if (pane.pathsPending || pane.clipPending != null) { pane.message("Still resolving the last selection; try again in a moment.", false); return }
     var idx = targetIndices(pane)
     if (idx.length === 0) {
         return
@@ -253,6 +254,7 @@ function sendTaildrop(pane, taildrop, peerId, path) {
 // One row compresses under its own name, several under the directory holding them; the name is free
 // before the request goes out, and the backend refuses a destination that appeared meanwhile anyway.
 function compress(pane, format) {
+    if (pane.pathsPending || pane.clipPending != null) { pane.message("Still resolving the last selection; try again in a moment.", false); return }
     var idx = targetIndices(pane)
     if (idx.length === 0) {
         return

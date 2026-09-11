@@ -148,6 +148,10 @@ Loader {
         // OpenWith.html rule 2: the flyout is a one-off override that writes nothing, so a chosen
         // application launches through the same registry op the dialog submits, and the tail row is
         // the only way into the dialog, which stays the one place a default is written.
+        if (action === "localsend") {
+            pane.performMenu(action)
+            return
+        }
         if (action.indexOf("openWith:") === 0) {
             var chosen = action.substring("openWith:".length)
             if (chosen === Menu.OPEN_WITH_OTHER) { root.show("openWith"); return }

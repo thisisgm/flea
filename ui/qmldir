@@ -74,6 +74,7 @@ SelectionBand 1.0 SelectionBand.qml
 TabBar 1.0 TabBar.qml
 TransferCard 1.0 TransferCard.qml
 Taildrop 1.0 Taildrop.qml
+LocalSend 1.0 LocalSend.qml
 FactsTable 1.0 FactsTable.qml
 KindStack 1.0 KindStack.qml
 AboutFacts 1.0 AboutFacts.qml
