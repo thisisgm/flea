@@ -10,7 +10,7 @@ use crate::backend::metareq::spawn as spawn_meta;
 use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::mime::Db;
-use crate::backend::dirsizereq::{queue_dirsizes, walk_one_dirsize};
+use crate::backend::dirsizereq::{queue_dirsizes, start_next, report_done as report_dirsize};
 use crate::backend::events::{spawn_forwarder, spawn_op_forwarder, spawn_reader, Event};
 use crate::backend::fsinfo::{fsinfo_line, read as read_fsinfo};
 use crate::backend::fsinfo::dev_of;
@@ -67,6 +67,7 @@ pub fn run() -> i32 {
         kinds: RefCell::new(Kinds::new()),
         formats: Arc::new(Formats::probe()),
     };
+    let (tx, rx) = channel::<Event>();
     let mut st = State {
         listing: Listing::new(),
         base: PathBuf::new(),
@@ -74,15 +75,13 @@ pub fn run() -> i32 {
         outstanding: 0,
         dirsizes: HashMap::new(),
         dirsize_queue: Vec::new(),
+        dirsize_worker: super::dirsizeworker::Worker::new(tx.clone()),
         search: None,
         search_reported: Instant::now(),
     };
-
-    let (tx, rx) = channel::<Event>();
     let (results, done) = channel::<Done>();
     let (op_tx, op_rx) = channel::<OpMsg>();
     let mut ops = Ops::new(op_tx);
-    // The pool shares this process's one parse of both tables rather than reading the same two files again.
     let pool = Pool::new(THUMB_WORKERS, results, default_root(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
     let cache = Cache::new();
     // Every thumbnail job fails closed without these two, so the reason is said once here rather than never; see AGENTS.md "Thumbnail sandbox".
@@ -96,8 +95,9 @@ pub fn run() -> i32 {
     // Armed before the first request, so no listing is ever answered with nothing watching it.
     let mut watch = Watch::start(tx);
     loop {
-        // Idle (nothing queued and no walk running) this is exactly the old blocking recv, see docs/protocol.md "dirsize".
-        let event = if st.dirsize_queue.is_empty() && st.search.is_none() {
+        start_next(&mut st);
+        // Size results wake this receiver; only search still needs idle ticks.
+        let event = if st.search.is_none() {
             match rx.recv() {
                 Ok(e) => e,
                 Err(_) => break,
@@ -105,7 +105,7 @@ pub fn run() -> i32 {
         } else {
             match rx.try_recv() {
                 Ok(e) => e,
-                // No event waiting, so it is the walker's turn; looping back lets a meanwhile dirsizecancel be seen before the next row.
+                // Search takes one bounded step before checking requests again.
                 Err(TryRecvError::Empty) => {
                     tick_walkers(&mut out, &mut st, &pool);
                     continue;
@@ -120,6 +120,7 @@ pub fn run() -> i32 {
                 }
             }
             Event::Thumb(d) => report_done(&mut out, &mut st, d),
+            Event::DirSize(d) => report_dirsize(&mut out, &mut st, d),
             // The one line no client asked for, and only ever for the directory being listed now.
             Event::Changed(wd) => {
                 if watch.is_current(wd) {
@@ -136,6 +137,7 @@ pub fn run() -> i32 {
             Event::Closed => break,
         }
     }
+    st.dirsize_worker.cancel();
     drain(&mut out, &mut st, &mut ops, &rx, &pool, &cache);
     0
 }
@@ -282,6 +284,7 @@ fn handle_line(
         // No rows form: a stale row from a scrolled-past viewport would delay the rows the new one wants, see docs/protocol.md "dirsizecancel".
         Request::DirSizeCancel => {
             st.dirsize_queue.clear();
+            st.dirsize_worker.cancel();
         }
         Request::Transfer { op, paths, rows, dest, menu_id } => {
             if menu_id != 0 {
@@ -363,14 +366,11 @@ pub fn forget_rows(st: &mut State, pool: &Pool) {
     // A list or a sort changes which row an index names, the same reason thumbnails clear their map.
     st.dirsizes.clear();
     st.dirsize_queue.clear();
+    st.dirsize_worker.cancel();
 }
 
-// dirsize first: its rows are on screen now, while a search walk is work the client asked for and can wait a tick.
+// Search advances only when the request channel is idle.
 fn tick_walkers(out: &mut BufWriter<io::Stdout>, st: &mut State, pool: &Pool) {
-    if !st.dirsize_queue.is_empty() {
-        walk_one_dirsize(out, st);
-        return;
-    }
     // A finished walk hands back its rows in ranked order, which renames every outstanding index.
     if step_search(out, st) {
         forget_rows(st, pool);

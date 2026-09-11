@@ -74,3 +74,5 @@ pub mod fifotest;
 // Test-only: the one probe that says whether this box can actually run the bwrap jail.
 #[cfg(test)]
 pub mod sandboxprobe;
+
+pub mod dirsizeworker;
