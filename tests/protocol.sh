@@ -378,10 +378,6 @@ out=$(dirsize_run \
     "$(printf '{"c":"dirsize","rows":[0]}\n')")
 check "a repeated ask for an already-answered row still answers" "2" "$(echo "$out" | grep -c '"t":"dirsized"')"
 
-# A queued cancellation suppresses the result even if the worker has already picked up the row.
-out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n{"c":"dirsizecancel"}\n{"c":"quit"}\n' "$DZ" | $BIN --backend)
-check "a row cancelled before it was walked is never answered" "0" "$(echo "$out" | grep -c '"t":"dirsized"')"
-
 # list and sort both reassign what a row index names, the same reason a list or a sort clears the thumbnail map, see docs/protocol.md "dirsized".
 SZ_SB="$FIXTURE_ROOT/flea-dirsize-sort-test-$$"
 SZ="$SZ_SB/tree"

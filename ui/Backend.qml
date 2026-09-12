@@ -48,7 +48,7 @@ Item {
     signal changed(string path)
     // readFailed tells a zero-row answer apart from an empty directory; mode is that directory's own, 0 when the stat failed too.
     // hidden is the flag the request carried, echoed by the backend: two clients peek this wire, so path alone does not say whose reply this is.
-    signal peeked(string path, bool hidden, int total, var rows, bool readFailed, int mode)
+    signal peeked(string path, bool hidden, bool sizes, int total, var rows, bool readFailed, int mode)
     signal archiveStarted(int id)
     signal archiveDone(int id, bool ok, bool verified, string err)
     signal convertChecked(var message)
@@ -210,8 +210,8 @@ Item {
     }
 
     // A read-only look at a directory that is not the current listing; see docs/protocol.md "peek".
-    function peek(path, first, hidden) {
-        root.send({ c: "peek", path: path, first: first, hidden: hidden })
+    function peek(path, first, hidden, sizes) {
+        root.send({ c: "peek", path: path, first: first, hidden: hidden, sizes: sizes === true })
     }
 
     function askFormats() {
@@ -362,7 +362,7 @@ Item {
         } else if (message.t === "changed") {
             root.changed(message.path || "")
         } else if (message.t === "peeked") {
-            root.peeked(message.path, message.hidden === true, message.n, message.rows || [], message.failed === true, message.mode || 0)
+            root.peeked(message.path, message.hidden === true, message.sizes === true, message.n, message.rows || [], message.failed === true, message.mode || 0)
         } else if (message.t === "formats") {
             root.archiveFormats = message.archive || []
             root.canConvert = message.convert === true

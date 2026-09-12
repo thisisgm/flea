@@ -57,9 +57,10 @@ Item {
     }
 
     function ask(path) {
-        if (path.length === 0 || root.peeked[path])
+        if (!root.visible || path.length === 0 || root.peeked[path])
             return
-        root.pane.backend.peek(path, root.pane.windowSize, root.pane.showHidden)
+        root.pane.backend.peek(path, root.pane.windowSize, root.pane.showHidden,
+            ViewState.hiddenCols.indexOf("size") < 0)
     }
 
     // Both neighbours are asked for on every move; ask() is a no-op for one already answered.
@@ -180,9 +181,10 @@ Item {
     Connections {
         target: root.pane.backend
 
-        // hidden is the request's own flag, echoed; this view asks with the listing's and has only
-        // ever one answer per path, so it reads the rows and lets the path bar do the correlating.
-        function onPeeked(path, hidden, total, rows, readFailed, mode) {
+        // hidden and sizes are echoed, so the path bar's cheaper completion reply cannot replace
+        // the column's rows while sizes are visible.
+        function onPeeked(path, hidden, sizes, total, rows, readFailed, mode) {
+            if (hidden !== root.pane.showHidden || sizes !== (ViewState.hiddenCols.indexOf("size") < 0)) return
             var next = root.peeked
             next[path] = rows
             root.peeked = next
@@ -192,6 +194,15 @@ Item {
                 root.denials = locked
             }
             root.peekVersion += 1
+        }
+    }
+
+    Connections {
+        target: ViewState
+        function onHiddenColsChanged() {
+            root.peeked = ({})
+            root.peekVersion += 1
+            if (root.visible) root.refreshNeighbours()
         }
     }
 

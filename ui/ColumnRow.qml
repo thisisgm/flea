@@ -160,6 +160,8 @@ Item {
     function sizeText() {
         if (!root.row)
             return ""
+        if (Format.isSymlink(root.row.p))
+            return "link"
         if (!root.row.d)
             return root.row.s === undefined ? "" : Format.size(root.row.s)
         if (root.dirSize)
