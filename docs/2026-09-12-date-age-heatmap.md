@@ -7,25 +7,48 @@ Proposal. v-next, written 2026-09-12 against `main` @ `c6a0149` (the v0.2.1 tag)
 alternative — it is recorded below as the deferred design, because two of its findings
 still govern the column's cost.
 
+Revised the same day: **the derived date↔age default is withdrawn.** The age column
+joins the toggles as an ordinary optional column; whether the panel says the fact twice
+is carried by the shipped default set alone, not by a rule coupling two toggles.
+
+Revised again the same day: **the operator locked the four product decisions this file
+left open, and overrode one recommendation.** The shipped default is
+`name,size,date,age` — `date` stays on — over this file’s `age`-in-place-of-`date`
+recommendation; the full palette ring replaces the `accent` → `muted` interpolation;
+one shared repaint tick replaces the coarse ramp; and `age` is drawn in dual-pane mode
+too. The fifth open item, placement, is settled by this file’s own arithmetic below.
+
 Every code path and count below was read from the tree, not from memory. Nothing is
 implemented.
 
 ## Outcome in one sentence
 
-A fifth optional column that draws each row's age, tinted by recency, ordered by the
-`mtime` the backend already produces — with the date cell as its **derived default**, so
-the column adds a rendering without adding a cell that says something new.
+A fifth optional column that draws each row’s age, tinted by recency, ordered by the
+`mtime` the backend already produces — shipped on by default beside the date cell
+(today’s set plus `age`), tinted with the full palette ring, repainted by one shared
+tick, and drawn in dual—pane mode too.
 
 ## The design
 
 `age` joins the optional columns, and the columns algebra it must not break is the bulk
-of the work. One rule keeps the new column from being the redundant cell its own users
-complain about (One Commander's: *"There is already the date column so I don't need file
-age"*): **the age column is the age rendering of the date fact, so it defaults on when
-`date` is off and off when `date` is on.** A user shows one or the other; neither is
-forced. This is not new machinery — `ui/js/Settings.js:318` already serves exactly this
-shape as the Address bar choice (`path` | `breadcrumb`, one surface, two renderings),
-and `ui/ViewState.qml:119` stores it.
+of the work. It joins as an ordinary member: one key in
+`ViewState.hiddenCols`'s `optional` list (`ui/ViewState.qml:42`), one row in
+`ui/js/Menu.js`'s toggle list, one entry in `DROP_ORDER`. Nothing about the pair
+`date`/`age` is special — each is independently toggleable, as `mode`, `size` and
+`kind` already are.
+
+The One Commander complaint (*"There is already the date column so I don’t need file
+age"*) is answered by the **shipped default**, not a rule — and the operator’s answer
+is to ship both: the default set is today’s plus `age`, so the out-of-box panel does
+carry the fact twice, in its two renderings, by choice and not by oversight. A user who
+agrees with the complaint turns `date` off; the panel permits both-on because the
+toggles are independent, which is the machinery every column already shares. A default
+is one choice in `src/uischema.rs`’s `DEFAULTS` and its mirrors; a coupling rule would
+be a hidden dependency no other column pair has, and it would not even prevent the
+redundancy it aims at — the panel permits both-on either way. An earlier revision of
+this file proposed the coupled default, after `Settings.js:318`’s `path` |
+`breadcrumb` choice; that precedent is one surface with a radio between two renderings
+of itself, not two independent toggles, and the proposal is withdrawn.
 
 The tint is the feature that was actually asked for. The age text alone is what `date`
 already gives in absolute form.
@@ -40,12 +63,13 @@ The skill's rule is census, not sample. Everything below is a real caller, found
 | `ui/Theme.qml` | `column.age` width token, from an `ageChars` count | `column` at :84, `dateChars: 16` at :156 |
 | `ui/Header.qml` | a fifth `PanelSectionHeader`, its `cell()` case, its `titles()`, its width binding | `headerDate` at :99, `titles()` at :151 |
 | `ui/Row.qml` | a fifth cell, its `ageShown`/`ageWidth`/`ageText()` | the `size`/`modified` cells at :249, :265 |
-| `ui/ViewState.qml` | `hiddenCols`'s `optional` list; the derived-default rule | `optional` at :42 |
+| `ui/ViewState.qml` | `hiddenCols`'s `optional` list; `defaultColumns` if the shipped set moves | `optional` at :42, `defaultColumns` at :27 |
 | `ui/js/Menu.js` | the columns toggle list and its glyph | `headerEntries` at :230, list at :235, glyphs at :236 |
-| `src/uischema.rs` | **two** constants, not one | `OPTIONAL_COLUMNS: [&str; 4]` at :41, `COLUMN_KEYS` at :67 |
+| `src/uischema.rs` | **two** constants and the shipped default | `OPTIONAL_COLUMNS: [&str; 4]` at :41, `COLUMN_KEYS` at :67, `DEFAULTS`'s `columns` at :8 |
 | `src/uistate.rs` | iterates `OPTIONAL_COLUMNS` to rebuild `columns` | at :23 |
 | `ui/Ipc.qml` | nothing new — `columnSet`/`headerTitles` read through `Header`, so they follow | :454, :465 |
 | `tests/js/columns.js` | 13 of 34 checks pin an exact column string, e.g. `"name,mode,size,date,kind"` | :55, :61, :110 |
+| `tests/js/menu.js` | pins `headerEntries`' action list verbatim, so a fifth toggle reddens it | `"col:mode,col:size,col:date,col:kind,toggleHidden"` at :106 |
 | `tests/ui.sh` | `case_header` asserts the title literal verbatim | :2919 |
 
 **Sorting needs no new key.** `ui/js/Sort.js:14`'s `ORDERS` already carries `mtime`, and
@@ -66,15 +90,15 @@ clearly. Each of these is a real constraint with a stated resolution, not a hedg
    as exact pixel values (`507`, `373`, `294`, `646`, `647`) — so the new drop position is
    a decision that reddens those tests deliberately, not by accident. **Placement does
    not matter to the tint**: the ramp is per-cell, so whether `age` sits before or after
-   `date` changes the arithmetic and not the feature. Recommend `age` drops first (it is
-   the rendering with a derived default, so it is the most disposable), which keeps
-   `date`'s floor exactly where it is today and confines the churn to the new key.
+   `date` changes the arithmetic and not the feature. Recommend `age` drops first, which
+   keeps `date`'s floor exactly where it is today and confines the churn to the new key.
 
 2. **`dualSet` is a second, hand-written width path.** `Columns.dualSet()` does not use
    `floors()` at all — it computes `base` and adds `size` then `date` explicitly. A fifth
-   column is either added there by hand or left out of dual mode. Leaving it out is the
-   smaller change and is visible (`dualSet` already returns `mode: false, kind: false`),
-   but it is a decision: an age column that exists in one view and not the other.
+   column is either added there by hand or left out of dual mode. **Resolved: added.**
+   The operator locked `age` into dual-pane, so `dualSet()` gains its explicit term and
+   both layouts draw the same column set; the smaller change — an age column that
+   exists in one view and not the other — is recorded as declined.
 
 3. **The header title literal is asserted verbatim.** `ui/Header.qml:151` returns
    `"Name|Mode|Size|Date Modified|Kind"` and `tests/ui.sh:2919` compares the string
@@ -84,12 +108,13 @@ clearly. Each of these is a real constraint with a stated resolution, not a hedg
 
 ## The crux this proposal lands on
 
-Two surfaces would be worse than one, so the age column and the date column must not be
-independently toggleable into showing the same fact twice. The crux is a single derived
-predicate over the existing store: the age column's default is a function of whether
-`date` is shown, and a user who turns both on has made a choice the panel permits and the
-feature does not need. That is one rule in `ViewState.hiddenCols`, not a new setting and
-not a new stored field.
+The columns algebra is the crux, and it is already written: every optional column is one
+key in one stored array, subtracted from what the width affords, and `age` joins it as a
+plain member. The default set carries the operator’s choice — both renderings on out of
+the box — and a user who wants the fact once turns either cell off. An earlier revision
+coupled the two defaults with a derived predicate; it is withdrawn, because no other
+column pair behaves that way and the coupling did not prevent the both-on state it was
+aimed at.
 
 ## Derived before built
 
@@ -113,18 +138,22 @@ the stat pass. So:
    `text: root.dateText()` is a plain binding and there is no `repeat: true` timer in
    `ui/List.qml`, `ui/Pane.qml`, `ui/Row.qml` or `ui/shell.qml`. Rows repaint on a
    listing, a scroll or a selection, never on the clock. A whole-days ramp barely
-   notices; the screenshot's `4'` and `1 h 19'` can sit visibly wrong on an idle window.
-   Either the ramp stays coarse, or one shared low-rate tick is introduced — the latter
-   is a new mechanism and therefore a decision.
+   notices; the screenshot’s `4'` and `1 h 19'` can sit visibly wrong on an idle window.
+   **Resolved: one shared low-rate tick.** The operator chose the correct repaint over
+   the coarse ramp; the tick is a new mechanism in a tree that has none, it must be one
+   timer for the whole panel rather than one per row, and its rate is chosen against the
+   formatter’s finest band.
 3. **The formatter.** `Format.date` is absolute and `Format.duration` is a media clock;
    neither is an age. New function, with its own bands (`4'`, `1 h 19'`, `20 h`, `5 d`,
    `26 d`) and the `m === null` row that must render `--` and tint nothing
    (`ui/Row.qml:360`).
-4. **The ramp.** `Theme.color` exposes `background foreground accent error muted`
-   `surface symlink executable`, and derives `muted` rather than reading a palette key.
-   The cheap, house-consistent version interpolates `accent` → `muted`; the full ring in
-   the screenshot needs `Palette.js` to surface `red yellow green cyan blue` and needs a
-   colorblind-safe answer plus a fallback for every theme that models no palette.
+4. **The ramp: the full palette ring, as locked.** `Theme.color` exposes `background
+   foreground accent error muted` `surface symlink executable`, and derives `muted`
+   rather than reading a palette key. The ring needs `Palette.js` to surface
+   `red yellow green cyan blue` — its parser already collects whatever keys a theme’s
+   `colors.toml` sets, but nothing in the tree queries a ring key today — plus a
+   colorblind-safe answer and a fallback for every theme that models no palette. The
+   cheap, house-consistent `accent` → `muted` interpolation is recorded as declined.
 
 ## Decision record
 
@@ -133,33 +162,49 @@ Locked by the operator this session:
 - **Model A: a real age column**, not a tint on the date cell.
 - **The column is tinted by recency** — that is the feature, and the age text alone is
   only what `date` already gives.
+— **DualLocked by the operator this session:
 
-Locked by this document's own analysis (factual, not chosen):
+- **Model A: a real age column**, not a tint on the date cell.
+- **The column is tinted by recency** —pane shows it** — `dualSet()` gains the term; the smaller change, an age
+  column that exists in one view and not the other, is declined.
+- **The tint is the full palette ring** — `red yellow green cyan blue` as the screenshot
+  drew it, not the `accent` → `muted` interpolation.
+- **One shared low-rate tick** owns the repaint, not a coarse ramp left to redraws.
+- **The default set is today’s plus `age`** — `name,size,date,age`, with `date` left on,
+  over this file’s `name,mode,size,kind,age` recommendation and the carries-the-fact-once
+  rationale that came with it.
+
+Locked by this document’s own analysis (factual, not chosen):
 
 - The age is derived from `row.m` at draw time; nothing new is stored.
 - No backend, protocol, or metadata change. No new sort key — `mtime` already orders it.
-- `ui/Row.qml`'s budget is a precondition, not a detail.
+- `ui/Row.qml`’s budget is a precondition, not a detail.
+- `age` is an ordinary toggle — the same machinery as `mode`/`size`/`date`/`kind`, no
+  coupling with `date`.
+— **`age` drops first.** Placement does not matter to the tint, and first keeps
+  `date`’s floor exactly where it is today, confining the churn to the new key. The
+  pinned boundaries in `tests/js/columns.js` redden deliberately either way.
 
-Open — these remain product decisions:
-
-1. **Where `age` drops.** Recommended first, to keep `date`'s floor unchanged; this
-   reddens pinned boundaries in `tests/js/columns.js` either way.
-2. **In dual-pane mode or not.** `dualSet` is a separate width path; either is defensible
-   and leaving it out is smaller.
-3. **The ramp's extent.** One interpolated hue (`accent` → `muted`), or the full
-   palette ring with a colorblind-safe answer and a no-palette fallback.
-4. **The repaint question in cost 2**: a coarse ramp accepted as-is, or one shared tick.
-5. **The age column's default.** Recommended derived from `date` (on when `date` is off),
-   which is what stops the redundancy. A stored, independent default is the alternative.
+The overridden recommendations are recorded, not erased: the both-renderings default
+supersedes the “carries the fact once” outcome this file first argued for, and the One
+Commander complaint is answered by the off switch rather than the default. The default
+set is shipped in `DEFAULTS` (`src/uischema.rs:8`) and mirrored in `ui/ViewState.qml:27`,
+`ui/js/Settings.js:309` and `:385`, and pinned by the Rust tests (`src/uistore.rs:324`,
+`src/uistate.rs:395`, `src/uischema.rs:206`; `tests/uistate.sh:61` samples the QML line) —
+appending `age` moves all of them.
 
 ## Verification plan
 
 - `tests/js/format.js` drives the new formatter's bands and the `null` row.
 - `tests/js/columns.js` is **expected to change** — the pinned sets gain the key; the new
   boundaries are asserted deliberately.
+- `tests/js/menu.js` is **expected to change** — `:106` pins `headerEntries`' action
+  list verbatim and the list gains `col:age`.
 - A ramp test at both ends and the middle, one color per band.
 - `./tests/run-all.sh` for the headless suites. `tests/ui.sh case_header` — the verbatim
   title assertion — **cannot run here** (no `omarchy-drive`) and must run on the
   maintainer's box. The same gap the open PR #127 reports.
 - Live read-back against a directory spanning the bands, by screenshot, because a color
-  assertion in a unit test does not prove the row drew it.
+  assertion in a unit test does not prove the row drew it. The same read-back is the
+  tick’s test: a row held idle across a band boundary changes its text and tint with no
+  listing, scroll or selection to repaint it.
