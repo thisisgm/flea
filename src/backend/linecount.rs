@@ -46,7 +46,14 @@ pub fn count_lines(path: &Path) -> LineCount {
         }
         read += n as u64;
         if read >= LINE_BUDGET {
-            return LineCount { lines: newlines, partial: true, failed: false };
+            // Reaching the budget is not passing it: a file of exactly the budget has been read whole,
+            // and calling it partial dropped its last line and stated the count as a floor for nothing.
+            // One more byte asked for is what tells the two apart.
+            let mut one = [0u8; 1];
+            match f.read(&mut one) {
+                Ok(0) => break,
+                _ => return LineCount { lines: newlines, partial: true, failed: false },
+            }
         }
     }
     if !any {
@@ -63,6 +70,20 @@ mod tests {
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
     use std::path::PathBuf;
+
+    #[test]
+    fn a_file_of_exactly_the_budget_is_counted_whole_and_one_past_it_is_a_floor() {
+        let d = TestDir::new("linecountbudget");
+        // One line, ended by a newline on the budget's last byte: read whole, so nothing is a floor.
+        let mut body = vec![b'a'; LINE_BUDGET as usize - 1];
+        body.push(b'\n');
+        let c = count_lines(&d.file("whole.txt", std::str::from_utf8(&body).unwrap()));
+        assert_eq!((c.lines, c.partial, c.failed), (1, false, false), "the budget reached is not the budget passed");
+        // The same, then a chunk and a byte more the count never reads, so its one line is a floor.
+        body.resize(body.len() + 64 * 1024 + 1, b'b');
+        let c = count_lines(&d.file("over.txt", std::str::from_utf8(&body).unwrap()));
+        assert_eq!((c.lines, c.partial, c.failed), (1, true, false));
+    }
 
     #[test]
     fn a_file_that_cannot_be_opened_is_not_an_empty_one() {
