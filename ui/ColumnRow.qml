@@ -5,8 +5,7 @@ import "js/Drag.js" as DragOps
 import "js/Icons.js" as Icons
 import "js/Format.js" as Format
 
-// One row of a Miller column: a mark, a name, and the chevron a chosen directory carries. Simpler
-// than a list row on purpose, because a column has no size, date, mode or kind to draw.
+// One row of a Miller column: a mark, a name, a compact size, and the chevron a chosen directory carries.
 Item {
     id: root
 
@@ -29,6 +28,9 @@ Item {
     property bool hovered: false
     property bool dropTarget: false
     property bool dropCopying: false
+    // Recursive only for the pane's own directory rows; neighbouring columns never block on a tree walk.
+    property var dirSize: null
+    property bool showPendingSize: false
 
     // Truthiness, like the two readers below: ui/ColumnPane.qml hands this rows[index] raw, so a
     // listing that shrank leaves a surviving delegate holding undefined, which is not null.
@@ -98,9 +100,10 @@ Item {
 
     // corner: a filename is arbitrary text, so PlainText, the same rule every name on this surface follows.
     Text {
+        id: nameLabel
         anchors.left: markSlot.right
         anchors.leftMargin: Theme.spacing.gap
-        anchors.right: chevronSlot.left
+        anchors.right: sizeLabel.left
         anchors.rightMargin: Theme.spacing.gap
         anchors.verticalCenter: parent.verticalCenter
         text: root.row ? root.row.n : ""
@@ -109,6 +112,19 @@ Item {
         font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
         elide: Text.ElideRight
+    }
+
+    Text {
+        id: sizeLabel
+        anchors.right: chevronSlot.left
+        anchors.rightMargin: text.length > 0 ? Theme.spacing.gap : 0
+        anchors.verticalCenter: parent.verticalCenter
+        width: text.length > 0 ? implicitWidth : 0
+        text: ViewState.hiddenCols.indexOf("size") < 0 ? root.sizeText() : ""
+        color: root.cursor ? Theme.color.accent : Theme.color.muted
+        font.family: Theme.font.family
+        font.pixelSize: Theme.font.caption
+        textFormat: Text.PlainText
     }
 
     // Only a chosen directory carries it: it says the column to the right is showing what is inside.
@@ -140,6 +156,18 @@ Item {
     }
 
     readonly property bool showChevron: root.isDir && (root.cursor || root.lifted)
+
+    function sizeText() {
+        if (!root.row)
+            return ""
+        if (Format.isSymlink(root.row.p))
+            return "link"
+        if (!root.row.d)
+            return root.row.s === undefined ? "" : Format.size(root.row.s)
+        if (root.dirSize)
+            return (root.dirSize.partial ? ">" : "") + Format.size(root.dirSize.bytes)
+        return root.showPendingSize ? "·" : ""
+    }
 
     HoverHandler {
         id: hover

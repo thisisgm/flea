@@ -1014,8 +1014,10 @@ this coverage needed no new entry there.
 - `backend/run.rs` the command loop, see "Thumbnail requests". stdin is read on its own
   thread and the pool answers on its own channel, and a forwarder thread joins the two, so
   client requests and worker results arrive on one `recv`, because `std` has no `select`.
-- `backend/events.rs` the `Event` those sources arrive as, and the three threads that join them
-  onto the loop's one channel. It came out of `run.rs` at 398 of the 400 hard cap, and it is one
+- `backend/dirsizeworker.rs` runs one cancellable size job at a time, with generation-checked
+  replies and an explicit 16 MiB stack for the recursive walker. Navigation never joins it.
+- `backend/events.rs` the `Event` those sources arrive as, and the forwarding threads that join
+  them onto the loop's one channel. It came out of `run.rs` at 398 of the 400 hard cap, and it is one
   job: how work reaches the loop, as against what the loop does with it.
 - `backend/watch.rs` the one inotify watch on the directory the current listing came from, its
   reader thread and the `changed` line it answers with, see "The open directory is watched".
@@ -1475,8 +1477,8 @@ implementation stays one file because the URI builder, the digest-named paths an
 matching entries the rest of the desktop wrote, and the tests that pin that against a real
 entry have to see all three.
 
-`src/backend/run.rs` is 327 lines by `wc -l`, over the soft budget and under the hard cap, and has
-no test module at all: it is the command loop, the dirsize walk and the window writes, and every
+`src/backend/run.rs` is 425 lines by `wc -l`, already over the hard cap before this change, and has
+no test module at all: it is the command loop and the window writes, and every
 one of its behaviours is proved through the real binary by `tests/protocol.sh` and
 `tests/thumbs.sh`. The two small structs it carries, `Tables` for the four databases read
 once per process and `State` for everything the loop mutates, exist so a handler takes six

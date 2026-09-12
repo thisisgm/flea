@@ -17,6 +17,8 @@ Item {
     property var menu: null
     // The active column's thumbnail plan, relayed for ui/Pane.qml to write, the grid's own contract.
     signal thumbsApplied(var work)
+    signal dirSizesApplied(var ask)
+    signal dirSizesCancelled()
     // Whichever view is up owns the keyboard, and Focus.handleKey is the one route all three take.
     Keys.onPressed: function (event) { event.accepted = Focus.handleKey(event, root.pane, root.pane.sidebar) }
 
@@ -55,9 +57,10 @@ Item {
     }
 
     function ask(path) {
-        if (path.length === 0 || root.peeked[path])
+        if (!root.visible || path.length === 0 || root.peeked[path])
             return
-        root.pane.backend.peek(path, root.pane.windowSize, root.pane.showHidden)
+        root.pane.backend.peek(path, root.pane.windowSize, root.pane.showHidden,
+            ViewState.hiddenCols.indexOf("size") < 0)
     }
 
     // Both neighbours are asked for on every move; ask() is a no-op for one already answered.
@@ -178,9 +181,10 @@ Item {
     Connections {
         target: root.pane.backend
 
-        // hidden is the request's own flag, echoed; this view asks with the listing's and has only
-        // ever one answer per path, so it reads the rows and lets the path bar do the correlating.
-        function onPeeked(path, hidden, total, rows, readFailed, mode) {
+        // hidden and sizes are echoed, so the path bar's cheaper completion reply cannot replace
+        // the column's rows while sizes are visible.
+        function onPeeked(path, hidden, sizes, total, rows, readFailed, mode) {
+            if (hidden !== root.pane.showHidden || sizes !== (ViewState.hiddenCols.indexOf("size") < 0)) return
             var next = root.peeked
             next[path] = rows
             root.peeked = next
@@ -190,6 +194,15 @@ Item {
                 root.denials = locked
             }
             root.peekVersion += 1
+        }
+    }
+
+    Connections {
+        target: ViewState
+        function onHiddenColsChanged() {
+            root.peeked = ({})
+            root.peekVersion += 1
+            if (root.visible) root.refreshNeighbours()
         }
     }
 
@@ -236,6 +249,8 @@ Item {
             onMenuRequested: function (index, eventPoint) { Tap.tappedMenu(index, eventPoint, root.pane, root.menu) }
             onBackgroundMenuRequested: function (eventPoint) { root.menu.openBackground(eventPoint.scenePosition) }
             onThumbsApplied: function (work) { root.thumbsApplied(work) }
+            onDirSizesApplied: function (ask) { root.dirSizesApplied(ask) }
+            onDirSizesCancelled: root.dirSizesCancelled()
         }
 
         // The cursor row: what is inside it when it is a directory, what it is when it is a file.

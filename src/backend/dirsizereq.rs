@@ -1,10 +1,8 @@
-// The dirsize queue and its one-at-a-time walker, kept beside the loop rather than inside it.
-use crate::backend::dirsize;
+// Viewport size requests, worker scheduling and generation-checked result publication.
+use crate::backend::dirsizeworker::Done;
 use crate::backend::proto::dirsized_line;
-use crate::backend::run::since;
 use crate::backend::state::State;
 use std::io::{self, BufWriter, Write};
-use std::time::Instant;
 
 // Answered rows are re-answered at once, matching thumb's own cache-hit shape; only a directory can be asked for.
 pub fn queue_dirsizes(out: &mut BufWriter<io::Stdout>, st: &mut State, rows: &[usize]) {
@@ -16,7 +14,7 @@ pub fn queue_dirsizes(out: &mut BufWriter<io::Stdout>, st: &mut State, rows: &[u
             writeln!(out, "{}", dirsized_line(row, bytes, partial, 0.0)).ok();
             continue;
         }
-        if st.dirsize_queue.contains(&row) {
+        if st.dirsize_queue.contains(&row) || st.dirsize_worker.contains(row) {
             continue;
         }
         st.dirsize_queue.push(row);
@@ -24,18 +22,20 @@ pub fn queue_dirsizes(out: &mut BufWriter<io::Stdout>, st: &mut State, rows: &[u
     out.flush().ok();
 }
 
-// One directory per call: no thread pool, so this is the whole of "one at a time" from AGENTS.md.
-pub fn walk_one_dirsize(out: &mut BufWriter<io::Stdout>, st: &mut State) {
-    let row = st.dirsize_queue.remove(0);
-    if row >= st.listing.len() {
-        return;
+// The event loop submits at most one job; cancellation never adds another worker.
+pub fn start_next(st: &mut State) {
+    while !st.dirsize_worker.busy() && !st.dirsize_queue.is_empty() {
+        let row = st.dirsize_queue.remove(0);
+        if row < st.listing.len() {
+            st.dirsize_worker.start(row, st.base.join(st.listing.name(row)));
+        }
     }
-    let path = st.base.join(st.listing.name(row));
-    let t = Instant::now();
-    let result = dirsize::walk(&path);
-    let ms = since(t);
-    st.dirsizes.insert(row, (result.bytes, result.partial));
-    writeln!(out, "{}", dirsized_line(row, result.bytes, result.partial, ms)).ok();
-    out.flush().ok();
 }
 
+pub fn report_done(out: &mut impl Write, st: &mut State, done: Done) {
+    if !st.dirsize_worker.accept(&done) { return; }
+    let result = done.result;
+    st.dirsizes.insert(done.row, (result.bytes, result.partial));
+    writeln!(out, "{}", dirsized_line(done.row, result.bytes, result.partial, done.ms)).ok();
+    out.flush().ok();
+}

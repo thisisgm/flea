@@ -345,12 +345,14 @@ per row that names a directory. **This is the only thing that ever walks a direc
 for size**, the same rule `thumb` follows for thumbnails: a row no client named is never
 walked. A row that is not a directory, or past the end of the listing, is skipped in silence.
 
-Unlike `thumb`, there is no thread pool: the backend walks one directory at a time, inline in
-the same event loop that answers every other request. Between each directory it rechecks for a
-newer request (in particular `dirsizecancel`) before starting the next, so a walker never blocks
-the loop for longer than one directory's own 2000&nbsp;ms deadline. A row already answered for
-the current listing answers again at once from that cache; a row already queued costs nothing
-extra.
+One persistent background worker walks one directory at a time. The event loop remains
+available for navigation while a walk runs. A list, sort or `dirsizecancel` invalidates
+unfinished size work using a generation counter. Cancelled or stale replies cannot populate
+the current listing's cache. Cancellation and the 2000 ms deadline are checked between
+filesystem calls; a blocked filesystem call may delay further sizes but never holds up the
+navigation event loop. No replacement worker is spawned while the old one is still busy.
+A row already answered for the current listing answers again from its cache; a row already
+queued or running costs nothing extra.
 
 **What the shipped client sends.** `ui/List.qml` sends `dirsize` only when the list settles, the
 same 120&nbsp;ms timer `thumb` already waits on, so a fling issues nothing at all. One request
@@ -360,10 +362,10 @@ names only the directory rows currently visible and not already known.
 
 `{"c":"dirsizecancel"}`
 
-Drops every directory row still queued to be walked. Unlike `thumbcancel`, there is no rows
+Drops every directory row still queued and cancels the running walk cooperatively. Unlike `thumbcancel`, there is no rows
 form: the walker is one at a time, so a stale row left over from a scrolled-past viewport would
 delay the row the new viewport actually wants, and the client always means "everything" when it
-sends this. A row already answered is untouched; only the queue is cleared. No response line.
+sends this. A row already answered is untouched; queued and unfinished work is discarded. No response line.
 
 A directory a `dirsizecancel` dropped can be asked for again straight away: cancelling forgets
 the row, so a later `dirsize` for it queues fresh work.
@@ -1051,13 +1053,13 @@ failed carries `"failed":true`, with `"mode":<uint>` beside it under the same ru
 uses, so a column can tell an unreadable directory from an empty one instead of drawing both as the
 empty state. A `peeked` line that succeeded carries neither field, whatever `n` is.
 
-Two more `peek` fields are worth naming for the same reason. Every `peeked` line, failed or not,
-echoes the `hidden` its request carried, because two clients read this wire at once: `ui/ColumnsArea.qml`
+Three more `peek` fields are worth naming for the same reason. Every `peeked` line, failed or not,
+echoes the `hidden` and `sizes` booleans its request carried, because two clients read this wire at once: `ui/ColumnsArea.qml`
 peeks the pane's ancestors with the listing's own flag, and the path bar's Tab peeks with whatever
-the typed leaf asks for. `path` alone cannot tell one client's reply from the other's, and `path`
-plus `hidden` can, which is all the correlation either needs: the same pair answers the same rows,
-so no request id has to be threaded through. A client that ignores the field reads the line exactly
-as it did before.
+the typed leaf asks for. `sizes:true` adds `s` to regular-file rows and `p` identifies symlinks so
+the client draws `link` instead of their target-path length; directories remain phase 1. A false or
+missing `sizes` performs no metadata reads. `path`, `hidden` and `sizes` are therefore the reply's
+correlation key. A client that ignores the fields still reads the line as it did before.
 
 ## Known gaps
 

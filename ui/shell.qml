@@ -170,7 +170,7 @@ ShellRoot {
                 onEditClosed: view.currentPane.forceActiveFocus()
                 // Tab reads the directory with the same peek the columns view makes of an ancestor,
                 // so completion adds no request type and lands in that view's own cache on the way past.
-                onCompleteRequested: function (dir, hidden) { view.currentPane.backend.peek(dir, view.currentPane.windowSize, hidden) }
+                onCompleteRequested: function (dir, hidden) { view.currentPane.backend.peek(dir, view.currentPane.windowSize, hidden, false) }
                 onSaid: function (text) { bar.say(text, false) }
                 onSettingsRequested: settingsPanel.open(view.currentPane)
             }
@@ -180,7 +180,7 @@ ShellRoot {
             // peeks the same wire for the primaryPane's ancestors, goes on taking its own.
             Connections {
                 target: view.currentPane.backend
-                function onPeeked(path, hidden, total, rows, readFailed, mode) { chrome.completeWith(path, hidden, rows) }
+                function onPeeked(path, hidden, sizes, total, rows, readFailed, mode) { if (!sizes) chrome.completeWith(path, hidden, rows) }
             }
 
             Flea.TabBar {
