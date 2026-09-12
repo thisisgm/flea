@@ -505,15 +505,15 @@ FocusScope {
     Connections {
         target: columnsLoader.item
         function onThumbsApplied(work) { root.thumbState = Thumbs.applied(root.thumbState, work) }
+        function onDirSizesApplied(ask) { root.dirSizeState = DirSizes.applied(root.dirSizeState, ask) }
+        function onDirSizesCancelled() { root.dirSizeState = DirSizes.cancelled(root.dirSizeState) }
     }
-
     Connections {
         target: gridLoader.item
         function onThumbsApplied(work) { root.thumbState = Thumbs.applied(root.thumbState, work) }
         function onDirSizesApplied(ask) { root.dirSizeState = DirSizes.applied(root.dirSizeState, ask) }
         function onDirSizesCancelled() { root.dirSizeState = DirSizes.cancelled(root.dirSizeState) }
     }
-
     readonly property int previewIndex: root.viewMode === "columns" && columnsLoader.item ? columnsLoader.item.previewIndex : -1
     readonly property var previewColumnItem: root.viewMode === "columns" && columnsLoader.item ? columnsLoader.item.previewColumn : null
     function loadSelectionPreview() {

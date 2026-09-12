@@ -6,13 +6,14 @@ use crate::backend::mime::Db;
 use crate::backend::scan::{mode_of, scan};
 use crate::backend::sort::sort_by_name;
 use crate::json::escape;
+use std::path::Path;
 
 // A column draws what fits on screen, so a peek at a huge directory is capped rather than streamed.
 pub const PEEK_CAP: usize = 512;
 
-// Phase 1 only: a column row draws a mark and a name, so no row here is ever stat'd. That is what
-// makes a peek cheap enough to run once per ancestor on every directory change.
-// corner: a symlink therefore draws its own mark rather than its target's, unlike a listing row.
+// Directories stay phase 1 only: recursively sizing a neighbouring column would block navigation.
+// Visible files get one lstat so the column can draw their useful size; the response is capped to
+// the viewport and symlinks are not followed.
 pub fn peek_line(path: &str, first: usize, hidden: bool, focus: &str, mime: &Db, icons: &Names) -> String {
     let (mut listing, _read_ms) = match scan(path, hidden) {
         Ok(v) => v,
@@ -40,12 +41,13 @@ pub fn peek_line(path: &str, first: usize, hidden: bool, focus: &str, mime: &Db,
         }
         let name = listing.name(i);
         let dir = listing.is_dir(i);
-        // Mode 0, because no row here is stat'd; the execute-bit fallback for an application type
-        // therefore resolves to the generic mark rather than the executable one in a column.
+        // Mode 0: the file stat below is for size only, so an executable still gets the generic mark.
         let icon = icons.icon_for(mime.lookup(name), dir, 0);
+        let size = (!dir).then(|| std::fs::symlink_metadata(Path::new(path).join(name)).ok())
+            .flatten().map(|meta| format!(r#","s":{}"#, meta.len())).unwrap_or_default();
         out.push_str(&format!(
-            r#"{{"n":"{}","d":{},"i":"{}"}}"#,
-            escape(name), dir, escape(icon)
+            r#"{{"n":"{}","d":{},"i":"{}"{}}}"#,
+            escape(name), dir, escape(icon), size
         ));
     }
     out.push_str("]}");
@@ -92,6 +94,7 @@ mod tests {
         assert!(sub < txt, "directories sort first, the same as a listing");
         assert!(line.contains(r#""n":"sub","d":true,"i":"folder""#));
         assert!(line.contains(r#""n":"a.txt","d":false"#));
+        assert!(line.contains(r#""n":"a.txt","d":false,"i":"text-x-generic","s":4"#), "got {}", line);
     }
 
     #[test]

@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
+import "js/DirSizes.js" as DirSizes
 import "js/Filter.js" as Filter
 import "js/Tap.js" as Tap
 import "js/Thumbs.js" as Thumbs
@@ -39,6 +40,8 @@ Item {
     signal neighbourMenuRequested(string name)
     // The thumbnail plan for this column's viewport, computed here and written by the pane, the grid's own contract.
     signal thumbsApplied(var work)
+    signal dirSizesApplied(var ask)
+    signal dirSizesCancelled()
 
     // The listArea contract ui/ColumnsArea.qml drives the middle column through; the view is private.
     function positionViewAtIndex(index, mode) { view.positionViewAtIndex(index, mode) }
@@ -90,9 +93,33 @@ Item {
         root.thumbsApplied(work)
     }
 
+    function requestDirSizes() {
+        if (root.pane === null || !root.visible || ViewState.hiddenCols.indexOf("size") >= 0
+                || root.pane.shownTotal === 0 || root.pane.listInFlight)
+            return
+        var range = root.visibleRange()
+        var span = Filter.span(root.pane.shown, range.first, range.last)
+        var ask = Filter.keep(DirSizes.plan(root.pane.dirSizeState, root.pane.rows, root.pane.held,
+            span.first, span.last), root.pane.shown)
+        if (ask.length > 0) {
+            root.pane.backend.dirsize(ask)
+            settle.interval = root.pane.settleMs
+        }
+        root.dirSizesApplied(ask)
+    }
+
     Connections {
         target: ViewState
         function onThumbnailModeChanged() { if (root.visible) settle.restart() }
+        function onHiddenColsChanged() {
+            if (!root.visible || root.pane === null) return
+            if (ViewState.hiddenCols.indexOf("size") >= 0 && DirSizes.hasPending(root.pane.dirSizeState)) {
+                root.pane.backend.dirsizecancel()
+                root.dirSizesCancelled()
+            } else {
+                settle.restart()
+            }
+        }
     }
 
     Timer {
@@ -106,7 +133,7 @@ Item {
         id: settle
         interval: root.pane ? root.pane.settleMs : 120
         repeat: false
-        onTriggered: root.requestThumbs()
+        onTriggered: { root.requestThumbs(); root.requestDirSizes() }
     }
     onRowsChanged: if (root.pane !== null) settle.restart()
     onVisibleChanged: if (root.visible && root.pane !== null) { coalesce.restart(); settle.restart() }
@@ -133,7 +160,14 @@ Item {
         model: root.pane ? root.pane.shownTotal : root.rows.length
         clip: true
         boundsBehavior: Flickable.StopAtBounds
-        onContentYChanged: if (root.pane !== null) { coalesce.start(); settle.restart() }
+        onContentYChanged: if (root.pane !== null) {
+            if (DirSizes.hasPending(root.pane.dirSizeState)) {
+                root.pane.backend.dirsizecancel()
+                root.dirSizesCancelled()
+            }
+            coalesce.start()
+            settle.restart()
+        }
         reuseItems: true
 
         // G7 needs an empty press target below the final row even when a long column fills the viewport.
@@ -173,6 +207,8 @@ Item {
             // hands that back as undefined; every row reader in the tree tests against a real null.
             row: root.pane ? root.pane.rowFor(listingIndex) : root.rows[index] !== undefined ? root.rows[index] : null
             thumb: root.pane !== null && Thumbs.allowed(row, ViewState.thumbnailMode) ? root.pane.thumbFor(listingIndex) : ""
+            dirSize: root.pane !== null ? DirSizes.sizeFor(root.pane.dirSizeState, listingIndex) : null
+            showPendingSize: root.pane !== null && !!row && row.d === true
             cursor: root.selectedIndex >= 0 && listingIndex === root.selectedIndex
             // The list and the grid both mark a selection member apart from the cursor; so does this.
             selected: root.pane !== null && root.pane.isSelected(listingIndex)

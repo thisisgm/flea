@@ -17,6 +17,8 @@ Item {
     property var menu: null
     // The active column's thumbnail plan, relayed for ui/Pane.qml to write, the grid's own contract.
     signal thumbsApplied(var work)
+    signal dirSizesApplied(var ask)
+    signal dirSizesCancelled()
     // Whichever view is up owns the keyboard, and Focus.handleKey is the one route all three take.
     Keys.onPressed: function (event) { event.accepted = Focus.handleKey(event, root.pane, root.pane.sidebar) }
 
@@ -236,6 +238,8 @@ Item {
             onMenuRequested: function (index, eventPoint) { Tap.tappedMenu(index, eventPoint, root.pane, root.menu) }
             onBackgroundMenuRequested: function (eventPoint) { root.menu.openBackground(eventPoint.scenePosition) }
             onThumbsApplied: function (work) { root.thumbsApplied(work) }
+            onDirSizesApplied: function (ask) { root.dirSizesApplied(ask) }
+            onDirSizesCancelled: root.dirSizesCancelled()
         }
 
         // The cursor row: what is inside it when it is a directory, what it is when it is a file.
