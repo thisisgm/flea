@@ -85,6 +85,31 @@ function run(check) {
     check("the window's date is untouched by the picker's",
           Format.date(new Date(2025, 7, 21, 10, 0).getTime() / 1000, fromTwentySix), "21 Aug 2025")
 
+    // The age column's own clock, with fixed instants throughout, never Date.now().
+    var ageNow = new Date(2026, 8, 12, 12, 0).getTime()
+    check("a future mtime reads as now, never negative",
+          Format.age(ageNow / 1000 + 50, ageNow), "now")
+    check("the first minute is now", Format.age(ageNow / 1000 - 30, ageNow), "now")
+    check("minutes are prime marked", Format.age(ageNow / 1000 - 4 * 60, ageNow), "4'")
+    check("fifty-nine minutes keeps its prime", Format.age(ageNow / 1000 - 59 * 60, ageNow), "59'")
+    check("a whole hour drops the minutes", Format.age(ageNow / 1000 - 3600, ageNow), "1 h")
+    check("an hour and nineteen minutes carries both", Format.age(ageNow / 1000 - 79 * 60, ageNow), "1 h 19'")
+    check("twenty hours is hours alone", Format.age(ageNow / 1000 - 20 * 3600, ageNow), "20 h")
+    check("a day is days", Format.age(ageNow / 1000 - 5 * 86400, ageNow), "5 d")
+    check("twenty-six days is still days", Format.age(ageNow / 1000 - 26 * 86400, ageNow), "26 d")
+    check("a year is years", Format.age(ageNow / 1000 - 370 * 86400, ageNow), "1 y")
+    check("the widest form is the seven characters the column is cut for",
+          Format.age(ageNow / 1000 - 79 * 60, ageNow).length, 7)
+
+    // The tint's six rungs, on the same fixed instants. The red rung is the "now" band exactly.
+    check("the first minute is the red band", Format.ageBand(ageNow / 1000 - 30, ageNow), 0)
+    check("the rest of the hour is orange", Format.ageBand(ageNow / 1000 - 4 * 60, ageNow), 1)
+    check("the first day is yellow", Format.ageBand(ageNow / 1000 - 3600, ageNow), 2)
+    check("the first week is green", Format.ageBand(ageNow / 1000 - 86400, ageNow), 3)
+    check("the first month is cyan", Format.ageBand(ageNow / 1000 - 604800, ageNow), 4)
+    check("a month out is blue", Format.ageBand(ageNow / 1000 - 2592000, ageNow), 5)
+    check("a future mtime tints as the newest band", Format.ageBand(ageNow / 1000 + 60, ageNow), 0)
+
     check("a regular file 644", Format.permissions(33188), "rw-r--r--")
     check("a directory 755", Format.permissions(16877), "rwxr-xr-x")
     check("a symlink 777", Format.permissions(41471), "rwxrwxrwx")

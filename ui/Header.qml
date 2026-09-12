@@ -111,8 +111,8 @@ Item {
 
     PanelSectionHeader {
         id: headerKind
-        anchors.right: parent.right
-        anchors.rightMargin: Theme.spacing.rowPaddingX
+        anchors.right: headerAge.left
+        anchors.rightMargin: root.cols.age && !root.dualMode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.kind
         width: root.cols.kind ? Theme.column.kind : 0
@@ -120,6 +120,21 @@ Item {
         elide: Text.ElideRight
 
         TapHandler { enabled: root.sortable; onTapped: root.sortRequested("kind") }
+    }
+
+    // The age column is a rendering of the mtime order the Date Modified header already sends, so
+    // it sorts by the same key and no new order exists behind it.
+    PanelSectionHeader {
+        id: headerAge
+        anchors.right: parent.right
+        anchors.rightMargin: Theme.spacing.rowPaddingX
+        anchors.verticalCenter: parent.verticalCenter
+        visible: root.cols.age
+        width: root.cols.age ? (root.dualMode ? Age.dualWidth : Age.width) : 0
+        text: root.title("Age", "mtime")
+        elide: Text.ElideRight
+
+        TapHandler { enabled: root.sortable; onTapped: root.sortRequested("mtime") }
     }
 
     // The header is chrome, but it is the chrome the columns belong to, so its right click is where
@@ -148,11 +163,11 @@ Item {
 
     // What the header case reads, built from the same values the header renders.
     function titles() {
-        return "Name|Mode|Size|Date Modified|Kind"
+        return "Name|Mode|Size|Date Modified|Kind|Age"
     }
 
     // What the header is drawing right now, for the seam that reads it beside a row's.
-    function columnSet() { return root.dualMode ? ["name"].concat(root.cols.size ? ["size"] : []).concat(root.cols.date ? ["date"] : []).join(",") : Theme.columnNames(root.width, root.hiddenCols) }
+    function columnSet() { return root.dualMode ? ["name"].concat(root.cols.size ? ["size"] : []).concat(root.cols.date ? ["date"] : []).concat(root.cols.age ? ["age"] : []).join(",") : Theme.columnNames(root.width, root.hiddenCols) }
 
     // The one lookup the geometry reader needs, the same by-key idiom Pane.itemFor uses for rows.
     function cell(key) {
@@ -162,6 +177,7 @@ Item {
         case "size": return headerSize
         case "date": return headerDate
         case "kind": return headerKind
+        case "age": return headerAge
         }
         return null
     }

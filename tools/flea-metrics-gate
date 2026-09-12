@@ -96,6 +96,7 @@ columnSize|70|9 ch x 7.8
 columnDate|125|16 ch x 7.8
 columnPickerDate|80|80 x 13 / 13, the 80px date slot SendPicker.html draws
 columnKind|130|120 x 13 / 12
+columnAge|55|7 ch x 7.8, Format.age's widest form, the 1 h 19' clock
 menuWidth|257|space(220)
 cornerRadius|$rounding|hyprctl getoption decoration:rounding, read live above
 previewFraction|0.82|Flea constant, Quick-Look sized inset

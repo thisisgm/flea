@@ -5,7 +5,7 @@ use crate::jsondoc::{self, Json};
 pub const DEFAULTS: &str = r#"{
   "view": "list",
   "density": "normal",
-  "columns": ["name", "size", "date"],
+  "columns": ["name", "size", "date", "age"],
   "addressBar": "breadcrumb",
   "sort": { "key": "name", "reverse": false },
   "dual": { "paths": [], "focus": 0 },
@@ -38,7 +38,7 @@ pub const DEFAULTS: &str = r#"{
 }"#;
 
 // The list row's optional columns in the order ui/js/Columns.js lays them out; name is never optional.
-pub const OPTIONAL_COLUMNS: [&str; 4] = ["mode", "size", "date", "kind"];
+pub const OPTIONAL_COLUMNS: [&str; 5] = ["mode", "size", "date", "kind", "age"];
 
 // Omarchy's own textSizeStops, so an override can never land on a size the OEM panel could not produce.
 pub const TEXT_SIZE_STOPS: [f64; 7] = [9.0, 10.0, 11.0, 12.0, 14.0, 16.0, 20.0];
@@ -64,7 +64,7 @@ pub enum Rule {
     Group(&'static [(&'static str, Rule)]),
 }
 
-pub const COLUMN_KEYS: &[&str] = &["name", "mode", "size", "date", "kind"];
+pub const COLUMN_KEYS: &[&str] = &["name", "mode", "size", "date", "kind", "age"];
 
 pub const SORT: &[(&str, Rule)] = &[("key", Rule::Word(&["name", "size", "date", "kind"])), ("reverse", Rule::Bool)];
 
@@ -203,7 +203,7 @@ mod tests {
         assert_eq!(d.get("trashAutoEmpty").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("trashSweptOn").and_then(Json::as_f64), Some(0.0));
         let cols: Vec<&str> = d.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(cols, ["name", "size", "date"]);
+        assert_eq!(cols, ["name", "size", "date", "age"]);
         assert_eq!(d.get("sort").and_then(|s| s.get("key")).and_then(Json::as_str), Some("name"));
         assert_eq!(d.get("sort").and_then(|s| s.get("reverse")).and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("dual").and_then(|s| s.get("paths")).and_then(Json::as_array).map(<[Json]>::len), Some(0));

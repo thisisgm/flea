@@ -2916,7 +2916,7 @@ case_header() {
     mark=$(ipc sortMark)
     printf 'HEADER titles=%s mark=%s\n' "$titles" "$mark"
     shot header
-    [[ "$titles" == "Name|Mode|Size|Date Modified|Kind" ]] || fail "header: titles are $titles"
+    [[ "$titles" == "Name|Mode|Size|Date Modified|Kind|Age" ]] || fail "header: titles are $titles"
     [[ "$mark" == "name:asc" ]] || fail "header: the sort mark reads $mark"
 
     # Gaps are anchored constants, so this only guards the wiring; overflow is guarded per cell in case_overflow.

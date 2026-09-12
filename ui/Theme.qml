@@ -174,7 +174,7 @@ Singleton {
     function dualColumns(width, hidden) {
         return Columns.dualSet(width, {rowPaddingX: root.spacing.rowPaddingX, gap: root.spacing.gap,
             iconSize: root.markSize, nameMin: root.dualColumn.nameMin,
-            size: root.dualColumn.size, date: root.dualColumn.date}, hidden)
+            size: root.dualColumn.size, date: root.dualColumn.date, age: Age.dualWidth}, hidden)
     }
 
     // The grid view's own two numbers. The canvas calls it a "48 px slot"; twice the list's own mark
@@ -225,7 +225,8 @@ Singleton {
             mode: root.column.mode,
             size: root.column.size,
             date: dateWidth === undefined ? root.column.date : dateWidth,
-            kind: root.column.kind
+            kind: root.column.kind,
+            age: Age.width
         }, hidden);
     }
 
@@ -269,6 +270,7 @@ Singleton {
             columnDate: root.column.date,
             columnPickerDate: root.column.pickerDate,
             columnKind: root.column.kind,
+            columnAge: Age.width,
             menuWidth: root.menuWidth,
             cornerRadius: Style.cornerRadius,
             previewFraction: root.preview.fraction,

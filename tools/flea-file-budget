@@ -45,7 +45,6 @@ ui/Pane.qml 663
 ui/PaneWire.qml 481
 ui/PermissionsDialog.qml 426
 ui/PreviewColumn.qml 463
-ui/Row.qml 410
 ui/SettingsPanel.qml 517
 ui/SettingsRow.qml 409
 ui/Sidebar.qml 535

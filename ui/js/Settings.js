@@ -306,7 +306,7 @@ function choice(id, label, glyph, values, labels, value, segmented) {
 function viewRows(state) {
     var data = state.data || {}
     var sort = data.sort || {}
-    var columns = data.columns || ["name", "size", "date"]
+    var columns = data.columns || ["name", "size", "date", "age"]
     return [
         { kind: "group", label: "View" },
         choice("view", "Last-used view", undefined, ["list", "columns", "grid", "dual"],
@@ -382,11 +382,11 @@ function aboutRows(facts) {
 }
 
 function columnRows(state) {
-    var columns = (state.data || {}).columns || ["name", "size", "date"]
+    var columns = (state.data || {}).columns || ["name", "size", "date", "age"]
     var rows = [{ kind: "group", label: "Columns" }, { kind: "lock", label: "Name", glyph: "file" }]
-    for (var i = 0; i < 4; i++) {
-        var id = ["mode", "size", "date", "kind"][i]
-        rows.push({ kind: "check", id: "column:" + id, label: ["Mode", "Size", "Date", "Kind"][i], on: columns.indexOf(id) >= 0 })
+    for (var i = 0; i < 5; i++) {
+        var id = ["mode", "size", "date", "kind", "age"][i]
+        rows.push({ kind: "check", id: "column:" + id, label: ["Mode", "Size", "Date", "Kind", "Age"][i], on: columns.indexOf(id) >= 0 })
     }
     rows.push({ kind: "action", id: "backView", label: "Back to View", value: "Back" })
     return rows
