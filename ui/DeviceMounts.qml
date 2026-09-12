@@ -12,6 +12,11 @@ Item {
 
     property var entries: []
 
+    // The Rail setting "Places > Unmounted drives"; off unless the operator switched it on, so a
+    // box with spare EFI and recovery partitions keeps them out of the rail until asked for.
+    property bool showUnmounted: false
+    onShowUnmountedChanged: root.rebuild()
+
     signal opened(string path)
     signal message(string text, bool isError)
     // The verdict this surface last posted, so a newer one replaces it and nothing else.
@@ -102,7 +107,7 @@ Item {
     }
 
     function rebuild() {
-        var rows = Devices.parseDevices(root._listing)
+        var rows = Devices.parseDevices(root._listing, root.showUnmounted)
         var out = []
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i]

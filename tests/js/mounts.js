@@ -118,8 +118,8 @@ function run(check) {
     check("the disk row is the one that carries /, not the one lsblk listed first", order[0].device, "/dev/nvme0n1")
     check("and the other internal drive is a volume row beside it", order[1].path, "/mnt/data")
 
-    // An internal partition nothing mounted stays out: a spare EFI or recovery partition is not a
-    // place to browse, and Flea offers no way to mount one.
+    // An internal partition nothing mounted stays out by default: a spare EFI or recovery partition
+    // is not a place to browse, and mounting one takes the Places > Rail toggle below.
     var spare = '{"blockdevices":['
               + '{"name":"nvme0n1","path":"/dev/nvme0n1","label":null,"mountpoints":[null],"rm":false,"size":256060514304,"type":"disk","model":"KBG40ZNS256G",'
               + '"children":[{"name":"nvme0n1p1","path":"/dev/nvme0n1p1","label":null,"mountpoints":["/"],"rm":false,"size":256060514304,"type":"part","model":null}]},'
@@ -127,6 +127,17 @@ function run(check) {
               + '"children":[{"name":"sdb1","path":"/dev/sdb1","label":"RECOVERY","mountpoints":[null],"rm":false,"size":2000398934016,"type":"part","model":null}]}'
               + ']}'
     check("an unmounted internal partition is not a row", Devices.parseDevices(spare).length, 1)
+
+    // The Places > Rail toggle "Unmounted drives" switches on exactly those rows: an internal data
+    // drive that nothing has mounted becomes a click-to-mount rail row, remounted every poll.
+    var shown = Devices.parseDevices(spare, true)
+    check("the Unmounted drives toggle adds the unmounted internal partition", shown.length, 2)
+    check("the toggled-on row takes the filesystem label", shown[1].label, "RECOVERY")
+    check("the toggled-on row names its device node for gio", shown[1].device, "/dev/sdb1")
+    check("the toggled-on row has no mountpoint to open yet", shown[1].path, "")
+    check("the toggled-on row reads as unmounted", shown[1].mounted, false)
+    check("and stays un-ejectable while nothing mounted it",
+          Mounts.railMenu({ group: "device", kind: "volume", mounted: false, removable: false }).length, 0)
 
     // Swap is not a mountpoint anyone can open, so a swap partition on a second drive is not a row
     // either, even though lsblk lists "[SWAP]" in the same column as a real path.
@@ -137,6 +148,7 @@ function run(check) {
                  + '"children":[{"name":"sdb1","path":"/dev/sdb1","label":null,"mountpoints":["[SWAP]"],"rm":false,"size":17179869184,"type":"part","model":null}]}'
                  + ']}'
     check("a swap partition on another drive is not a row", Devices.parseDevices(swapDisk).length, 1)
+    check("and stays out even with the toggle on", Devices.parseDevices(swapDisk, true).length, 1)
 
     // Only a leaf is a volume. An encrypted stick lists the partition and the unlocked crypt under
     // it, and emitting both would put one drive in the rail twice.

@@ -48,7 +48,7 @@ rail_details_native() {
     rail_assert_details false 0
     settings_open_key; settle
     settings_section places
-    ipc settingsModel | jq -e '.[0].label == "Favorites" and ([.[-3:][] | .label] == ["Show drive size", "Show Trash count", "Sidebar width"])' >/dev/null \
+    ipc settingsModel | jq -e '.[0].label == "Favorites" and ([.[-6:-2][] | .label] == ["Show drive size", "Unmounted drives", "Show Trash count", "Sidebar width"])' >/dev/null \
         || fail "rail: Places labels/control order differ from the ruled board"
     trash_shot settings-places-details-off
     for flag in driveSize trashCount; do

@@ -410,6 +410,7 @@ function placesRows(state) {
     }
     rows.push({ kind: "group", label: "Rail" })
     rows.push({ kind: "check", id: "places.driveSize", label: "Show drive size", glyph: "drive", on: data.driveSize === true })
+    rows.push({ kind: "check", id: "places.showUnmounted", label: "Unmounted drives", caption: "shows internal data drives", glyph: "drive", on: data.showUnmounted === true })
     rows.push({ kind: "check", id: "places.trashCount", label: "Show Trash count", glyph: "trash", on: data.trashCount === true })
     rows.push(choice("places.sidebarWidth", "Sidebar width", "maximize", Places.WIDTH_STOPS,
         ["160 px", "192 px", "224 px", "256 px"], Places.sidebarWidth(data.sidebarWidth)))

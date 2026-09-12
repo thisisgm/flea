@@ -24,6 +24,7 @@ pub const DEFAULTS: &str = r#"{
     "favourites": [],
     "showHome": true, "showNetwork": true,
     "showDevices": true, "showTrash": true,
+    "showUnmounted": false,
     "driveSize": false, "trashCount": false, "sidebarWidth": 192
   },
   "preview": {
@@ -76,6 +77,7 @@ pub const PLACES: &[(&str, Rule)] = &[
     ("showNetwork", Rule::Bool),
     ("showDevices", Rule::Bool),
     ("showTrash", Rule::Bool),
+    ("showUnmounted", Rule::Bool),
     ("driveSize", Rule::Bool),
     ("trashCount", Rule::Bool),
     ("sidebarWidth", Rule::SidebarWidth),

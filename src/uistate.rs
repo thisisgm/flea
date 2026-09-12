@@ -262,6 +262,20 @@ mod tests {
         assert_eq!(places.get("sidebarWidth").and_then(Json::as_f64), Some(160.0));
     }
 
+    // The Places > Rail toggle: an unmounted internal drive only earns a rail row when the operator
+    // asks for it, so the shipped default is off and the key accepts the Bool a settings patch sends.
+    #[test]
+    fn the_unmounted_drives_toggle_defaults_off_and_round_trips_a_bool_patch() {
+        let fresh = from_file("{}");
+        assert_eq!(fresh.get("places").and_then(|p| p.get("showUnmounted")).and_then(Json::as_bool), Some(false));
+        let jibberish = from_file(r#"{"places":{"showUnmounted":"yes"}}"#);
+        assert_eq!(jibberish.get("places").and_then(|p| p.get("showUnmounted")).and_then(Json::as_bool), Some(false));
+        let next = patched(&fresh, &jsondoc::parse(r#"{"places":{"showUnmounted":true}}"#).expect("patch")).expect("patch applies");
+        assert_eq!(next.get("places").and_then(|p| p.get("showUnmounted")).and_then(Json::as_bool), Some(true));
+        let back = patched(&next, &jsondoc::parse(r#"{"places":{"showUnmounted":false}}"#).expect("patch")).expect("patch applies");
+        assert_eq!(back.get("places").and_then(|p| p.get("showUnmounted")).and_then(Json::as_bool), Some(false));
+    }
+
     #[test]
     fn an_unknown_key_is_kept_and_rewritten_untouched_at_both_levels() {
         let merged = from_file(r#"{"fromANewerFlea":{"a":[1,"two"]},"places":{"newLeaf":7}}"#);
