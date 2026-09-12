@@ -1,4 +1,4 @@
-// Linux's atomic no-clobber rename, plus the two measured mounts that need a safe caller-owned copy fallback.
+// Linux's atomic no-clobber rename, plus the copy fallback for a rename that crosses filesystems and for the two measured mounts that refuse one.
 use crate::backend::copyfile::{copy_any, remove_any, Progress};
 use crate::backend::mountinfo::mount_type_in;
 use crate::error::{from_io, FleaError};
@@ -11,6 +11,8 @@ use std::sync::atomic::AtomicBool;
 const AT_FDCWD: i32 = -100;
 const RENAME_NOREPLACE: u32 = 1;
 const EINVAL: i32 = 22;
+// What a rename across filesystems answers: a move undone off a USB stick or tmpfs reaches here with it.
+const EXDEV: i32 = 18;
 // GVFS answers a WebDAV rename with EIO instead of refusing it outright.
 const EIO: i32 = 5;
 const EXDEV: i32 = 18;
@@ -57,6 +59,11 @@ pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
 
 // WebDAV is decided from the path and errno alone, so an rclone check never reads mountinfo for it.
 fn needs_copy_fallback(from: &Path, error: &io::Error) -> bool {
+    // copyfile.rs's move_any already copies and removes on EXDEV going out; undo comes back through here,
+    // so without this arm a move onto another filesystem answered "Invalid cross-device link" and stayed.
+    if error.raw_os_error() == Some(EXDEV) {
+        return true;
+    }
     if needs_gvfs_webdav_fallback(from, error) {
         return true;
     }
@@ -365,5 +372,15 @@ mod tests {
         ));
         assert!(!needs_copy_fallback(d.path(), &io::Error::from_raw_os_error(EIO)));
         assert!(!needs_copy_fallback(d.path(), &io::Error::from_raw_os_error(EEXIST)));
+    }
+    // The two filesystems a cross-device undo needs are not something a unit test can make, so the errno
+    // is what is pinned here and tests/ops.sh drives the whole reversal between tmpfs and the fixture root.
+    #[test]
+    fn a_rename_across_filesystems_takes_the_copy_fallback_on_every_mount() {
+        let d = TestDir::new("exdevfallback");
+        let exdev = io::Error::from_raw_os_error(EXDEV);
+        assert!(needs_copy_fallback(d.path(), &exdev), "a plain directory on an ordinary mount");
+        assert!(needs_copy_fallback(&d.file("file.txt", "body"), &exdev), "a file too");
+        assert!(!needs_copy_fallback(d.path(), &io::Error::from_raw_os_error(EACCES)));
     }
 }

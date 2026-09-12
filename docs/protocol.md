@@ -560,7 +560,8 @@ through the same call a `rename` does, so its failure answers `rename` or `renam
 
 **The journal is an in-memory ring of the last 50 completed operations and is not persisted**, so it
 does not survive a restart. Each kind reverses as follows: a rename or a move renames back (still
-refusing to clobber, because something may occupy the old name by now), a copy or a duplicate removes
+refusing to clobber, because something may occupy the old name by now; a move that crossed filesystems
+copies back and then removes, the way it went out), a copy or a duplicate removes
 what that operation created, and a trash restores through `gio trash --restore` using the URI captured
 when it was trashed. A `mkdir` removes the folder it made only while it is still empty: a folder the
 user has filled since is theirs, so that reversal answers an `error` line, leaves it and its contents in

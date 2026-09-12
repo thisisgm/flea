@@ -15,6 +15,9 @@ cleanup() {
   exec 3>&- 2>/dev/null
   [ -n "${BACKEND_PID:-}" ] && kill "$BACKEND_PID" 2>/dev/null
   sandbox_remove "$D"
+  # The cross-device scenario's tmpfs root, the same shape tests/drag.sh R7 uses: its own mktemp, its own
+  # marker, and the pattern checked again before the delete, because it lives outside the fixture root.
+  case "${XDEV:-}" in /dev/shm/flea-ops-xdev-*) [ -f "$XDEV/$SANDBOX_MARKER" ] && rm -rf -- "$XDEV" ;; esac
 }
 trap cleanup EXIT
 
@@ -143,6 +146,34 @@ send '{"c":"undo"}'
 await '"t":"undone"' || fail=1
 check "undo put it back where it came from" "moving" "$(cat "$D/m.txt" 2>/dev/null)"
 check "the destination copy is gone" "no" "$([ -e "$D/dest/m.txt" ] && echo yes || echo no)"
+stop_backend
+
+echo "--- a move across filesystems, and undo brings it back across them ---"
+# A move onto another filesystem is a copy and a remove, and undo has to come back the same way: the
+# journal reverses a move through the rename call, and before its EXDEV arm the reversal answered
+# "Invalid cross-device link" and spent the entry, so a move onto a USB stick or tmpfs could never be
+# undone. The fixture root is a real disk and /dev/shm is tmpfs, which is the pair drag.sh R7 relies on
+# too; the device check is what says this scenario measured a crossing rather than a same-disk rename.
+start_backend
+XDEV=$(mktemp -d /dev/shm/flea-ops-xdev-XXXXXX)
+: > "$XDEV/$SANDBOX_MARKER"
+mkdir -p "$XDEV/dest"
+check "the tmpfs root is another filesystem than the fixture" \
+      "$([ "$(stat -c %d "$XDEV")" != "$(stat -c %d "$D")" ] && echo other || echo same)" "other"
+printf 'crossing' > "$D/xm.txt"
+mkdir -p "$D/xdir/nested"; printf 'inside' > "$D/xdir/nested/in.txt"
+send "{\"c\":\"transfer\",\"op\":\"move\",\"paths\":[\"$D/xm.txt\",\"$D/xdir\"],\"dest\":\"$XDEV/dest\"}"
+await '"t":"transferdone"' || fail=1
+check "both items moved" "1" "$(seen '"ok":2,"failed":0,"skipped":0')"
+check "the file source is gone" "no" "$([ -e "$D/xm.txt" ] && echo yes || echo no)"
+check "the tree arrived whole" "inside" "$(cat "$XDEV/dest/xdir/nested/in.txt" 2>/dev/null)"
+send '{"c":"undo"}'
+await '"t":"undone"' || fail=1
+check "undo names the move it reversed" "1" "$(seen '"t":"undone","op":"move","ok":true')"
+check "no reversal answered a rename error" "0" "$(seen '"where":"rename"')"
+check "the file is back with its bytes" "crossing" "$(cat "$D/xm.txt" 2>/dev/null)"
+check "the tree is back with its bytes" "inside" "$(cat "$D/xdir/nested/in.txt" 2>/dev/null)"
+check "the destination copies are gone" "no" "$([ -e "$XDEV/dest/xm.txt" ] || [ -e "$XDEV/dest/xdir" ] && echo yes || echo no)"
 stop_backend
 
 echo "--- one failing item is data, and the batch carries on ---"
