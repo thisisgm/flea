@@ -112,11 +112,14 @@ function duration(ms) {
 
 // The scope reads as the user writes it, so the home prefix comes back as a tilde. Both the search
 // strip and the window chrome draw a path through this, so the rule has one definition.
+// The test is on whole components: /home/gmx is a sibling of /home/gm and not inside it, and as a
+// bare prefix test this wrote it as "~x", so the tab strip and the search scope named it as home's.
 function tilde(path, home) {
-    if (home.length > 0 && String(path).indexOf(home) === 0) {
-        return "~" + String(path).substring(home.length)
+    var text = String(path)
+    if (home.length > 0 && (text === home || text.indexOf(home + "/") === 0)) {
+        return "~" + text.substring(home.length)
     }
-    return String(path)
+    return text
 }
 
 // A tab is named after the directory it is standing in, so the label is the path's last segment.

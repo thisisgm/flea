@@ -10,6 +10,11 @@ function run(check) {
           Format.tilde("/usr/share/omarchy", "/home/gm"), "/usr/share/omarchy")
     check("an unknown home leaves every path alone",
           Format.tilde("/home/gm/x", ""), "/home/gm/x")
+    // Nav.crumbs already made this test on whole components and said why; the tab strip and the
+    // search scope came through here and wrote the sibling as home's.
+    check("a sibling whose name merely starts with home's is not under home",
+          Format.tilde("/home/gmx", "/home/gm"), "/home/gmx")
+    check("and neither is its child", Format.tilde("/home/gmx/Work", "/home/gm"), "/home/gmx/Work")
 
     // ui/js/Tabs.js "label" names a tab after the directory it stands in, which is this and nothing else.
     check("the leaf is the directory's own name",
