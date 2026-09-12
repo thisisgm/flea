@@ -1170,6 +1170,26 @@ load-bearing tree-wide (Theme, NetworkDialog, SidebarRow, ContextMenu and Previe
 for Style and Color), so an `omarchy update` reshaping it is a standing, tracked risk rather
 than a rule any one file breaks.
 
+**The window has no title bar, so `ui/WindowDrag.qml` is the pointer's.** `ui/shell.qml` asks the
+compositor for no decorations and draws its chrome itself, so nothing in the tree ever sent an
+`xdg_toplevel.move` and the window could be moved only on the compositor's own bind, which a
+pointer user does not find. The component is a `DragHandler` with `target: null`, declared over
+`ui/ChromeBar.qml`'s strip and calling `startSystemMove()` past its threshold, which is exactly
+what a title bar does. **A handler and not an `Item` with a `MouseArea`**, for the reason
+`ui/RowDrag.qml` gives: a handler claims the grab only when the point travels, so a press that
+does not move stays the button, crumb or path under it, where an overlay would have had to take
+those clicks and give them back. `target: null` because the move belongs to the window and not to
+any item here, and the window is reached through Quickshell's attached `Window.window`, the route
+`ui/CardScroll.qml` and `ui/Ipc.qml` already take, so no window is threaded through the caller's
+property list. It stands down while the caller's path bar is open, because that editor's own
+press-and-travel selects the text in it. **Dragging a tiled window pops it out of the layout and
+re-tiles it on release**, which is Hyprland's own rule for a client move request: its
+`DragController` sets `m_draggingTiled` and `dragEnd` calls `changeFloatingMode` on it, so the
+pop-out is the compositor's and not this component's, and a floating window drags and stays.
+Verified against the running compositor with real `ydotool` input, sampling the window mid-drag:
+a drag on the chrome detaches it and tracks the pointer, a plain click still opens Settings, and
+a drag inside the open path editor leaves the window where it was.
+
 ## How the list renders
 
 `ui/Pane.qml`'s `ListView` sets `clip: true` because the top row of a wheel-scrolled viewport is

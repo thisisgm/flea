@@ -157,6 +157,9 @@ Item {
         color: Theme.color.surface
     }
 
+    // The pointer's title bar, over the whole strip; see ui/WindowDrag.qml for why it is a handler.
+    Flea.WindowDrag { anchors.fill: parent; editing: root.editing }
+
     // A test drives these by coordinate, because a glyph button carries no text to find on screen.
     function buttonFor(glyph) {
         var groups = [nav, views]
@@ -258,11 +261,8 @@ Item {
                             cursorShape: crumb.modelData.last ? Qt.IBeamCursor : Qt.PointingHandCursor
                         }
 
-                        // Both flags together, measured on Qt 6.11.2: one of them alone suppresses
-                        // the other signal instead of waiting, and only the pair makes the tap count
-                        // decide, so a double click types the path rather than also navigating.
-                        // The gesture is on the crumb and not on the strip because a TapHandler on a
-                        // parent item takes the second tap away from the child under the pointer.
+                        // Both flags together, measured on Qt 6.11.2: one alone suppresses the other signal instead of waiting, and only the pair makes the tap count decide; see AGENTS.md "Testing".
+                        // The gesture is on the crumb and not on the strip because a TapHandler on a parent item takes the second tap away from the child under the pointer.
                         TapHandler {
                             acceptedButtons: Qt.LeftButton
                             exclusiveSignals: TapHandler.SingleTap | TapHandler.DoubleTap
