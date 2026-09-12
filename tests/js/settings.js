@@ -276,18 +276,20 @@ function runCompletionRows(check) {
     var places = Settings.rows("places", {})
     check("Places spells the manager group Favorites", places[0].label, "Favorites")
     check("optional rail details default off", [find(places, "places.driveSize").on, find(places, "places.trashCount").on].join(","), "false,false")
-    check("the Rail controls follow the ruled order", places.slice(-5, -2).map(function (row) { return row.label }).join("|"), "Show drive size|Show Trash count|Sidebar width")
+    check("the Rail controls follow the ruled order", places.slice(-6, -3).map(function (row) { return row.label }).join("|"), "Show drive size|Unmounted drives|Show Trash count")
     // The 30 day sweep's own row, at the foot of Places under its own eyebrow. Off unless ui.json
     // says otherwise, which is the whole of GM's opt-in ruling as the panel sees it.
     check("Places ends with the Trash group and its one row",
-          places.slice(-2).map(function (row) { return row.label }).join("|"),
-          "Trash|Empty after 30 days")
+          places.slice(-3).map(function (row) { return row.label }).join("|"),
+          "Sidebar width|Trash|Empty after 30 days")
     check("the sweep is off on a fresh install", find(places, "trashAutoEmpty").on, false)
     check("and says what it does and how often", find(places, "trashAutoEmpty").caption, "permanently")
     check("a ui.json that switched it on reads back on",
           find(Settings.rows("places", { data: { trashAutoEmpty: true } }), "trashAutoEmpty").on, true)
     var detailedPlaces = Settings.rows("places", { data: { places: { driveSize: true, trashCount: true } } })
     check("both rail detail controls reflect persisted on values", [find(detailedPlaces, "places.driveSize").on, find(detailedPlaces, "places.trashCount").on].join(","), "true,true")
+    check("the Unmounted drives row reflects the persisted toggle",
+          find(Settings.rows("places", { data: { places: { showUnmounted: true } } }), "places.showUnmounted").on, true)
     var state = { data: { view: "grid", density: "compact", columns: ["name", "kind"],
         preview: { column: false, loadOn: "manual", thumbnails: "off", thumbSize: "xlarge", ctrlZoom: false } } }
     var view = Settings.rows("view", state)

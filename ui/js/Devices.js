@@ -9,7 +9,7 @@
 //  "size":124656812032,"type":"part","model":null}.
 // Two row kinds come out: one "disk" row for the disk that carries /, then one "volume" row for each
 // volume on every other disk. ui/DeviceMounts.qml turns these into rail entries.
-function parseDevices(body) {
+function parseDevices(body, showUnmounted) {
     var tree
     try {
         tree = JSON.parse(String(body || ""))
@@ -29,7 +29,7 @@ function parseDevices(body) {
         // what puts a second internal drive in the rail (operator, 2026-09-11: only sticks appeared).
         if (!nodes[i].name || nodes[i] === system || isPseudo(nodes[i].name))
             continue
-        collectVolumes([nodes[i]], "", out)
+        collectVolumes([nodes[i]], "", out, showUnmounted)
     }
     return out
 }
@@ -67,8 +67,9 @@ function holdsRoot(node) {
 
 // A volume earns a rail row when it is removable, which is a stick whether or not anything mounted
 // it, or when it is mounted, which is every internal drive the operator actually uses. An unmounted
-// internal partition stays out: a box's spare EFI and recovery partitions are not places to browse.
-function collectVolumes(nodes, model, out) {
+// internal partition stays out unless the operator asked for it: a box's spare EFI and recovery
+// partitions are not places to browse, and a swap partition is never a directory anyone opens.
+function collectVolumes(nodes, model, out, showUnmounted) {
     for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i]
         var kids = n.children || []
@@ -76,10 +77,23 @@ function collectVolumes(nodes, model, out) {
         var own = n.model ? String(n.model) : model
         // Only a leaf is a volume. A partition holding a LUKS container is not what mounts, its crypt
         // child is, and emitting both would put one drive in the rail twice.
-        if (n.name && kids.length === 0 && (n.rm === true || mountOf(n).length > 0))
+        var include = n.rm === true || mountOf(n).length > 0
+            || (showUnmounted === true && !swapOf(n))
+        if (n.name && kids.length === 0 && include)
             out.push(volumeRow(n, own))
-        collectVolumes(kids, own, out)
+        collectVolumes(kids, own, out, showUnmounted)
     }
+}
+
+// Swap appears in the same mountpoints column as a real path, as "[SWAP]", and an unmounted swap
+// partition must not become a click-to-mount row just because the operator switched the toggle on.
+function swapOf(node) {
+    var points = node.mountpoints || []
+    for (var i = 0; i < points.length; i++) {
+        if (points[i] === "[SWAP]")
+            return true
+    }
+    return false
 }
 
 // Sample: ["/home", "/var/log", "/"] for one btrfs device with several subvolumes mounted, ["[SWAP]"]
