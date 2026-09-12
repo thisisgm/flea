@@ -260,4 +260,21 @@ function run(check) {
           pending.sorted.join(",") + "|" + pending.cursorIndex, "size:true|4")
     Tabs.applyPending(pending)
     check("the next rows reply restores the cursor", pending.cursorIndex, 9)
+
+    // A switch that re-lists records the tab's order as pending, and a fresh listing is already name
+    // ascending, which is the order most tabs record: left pending because it matched, it reverted
+    // the user's next sort on the rows reply that answered it, and only the second press stuck.
+    var settled = pane("/home/gm/a")
+    Tabs.act("tabNew", settled)
+    settled.path = "/home/gm/b"
+    Tabs.act("tab1", settled)
+    check("a switch that re-lists records the tab's own order", settled.tabs.pendingSortBy, "name")
+    Tabs.applyPending(settled)
+    check("an order the fresh listing already has is spent by the first rows reply, not asked for",
+          settled.tabs.pendingSortBy + "|" + settled.sorted.join(","), "|")
+    check("and the cursor is restored on that same reply", settled.cursorIndex, 4)
+    settled.backend.sortBy = "size"
+    settled.backend.sortDesc = true
+    Tabs.applyPending(settled)
+    check("so the user's own sort survives the rows reply that answers it", settled.sorted.join(","), "")
 }

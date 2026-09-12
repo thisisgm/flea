@@ -167,17 +167,20 @@ function applyPending(pane) {
     if (!pane.tabs)
         return
     var t = pane.tabs
-    if (t.pendingSortBy && t.pendingSortBy.length > 0
-            && pane.backend
-            && (pane.backend.sortBy !== t.pendingSortBy || pane.backend.sortDesc !== t.pendingSortDesc)) {
+    // The pending order is spent on the first rows reply whether or not it has to be asked for: a
+    // fresh listing is name ascending, so a tab recorded in that order was left pending for the life
+    // of the tab, and the user's next sort was reverted to name by the rows reply that answered it.
+    if (t.pendingSortBy && t.pendingSortBy.length > 0 && pane.backend) {
         var by = t.pendingSortBy
         var desc = t.pendingSortDesc
         t.pendingSortBy = ""
-        pane.backend.sort(by, desc)
-        pane.backend.sortBy = by
-        pane.backend.sortDesc = desc
-        pane.backend.window(0, pane.windowSize)
-        return
+        if (pane.backend.sortBy !== by || pane.backend.sortDesc !== desc) {
+            pane.backend.sort(by, desc)
+            pane.backend.sortBy = by
+            pane.backend.sortDesc = desc
+            pane.backend.window(0, pane.windowSize)
+            return
+        }
     }
     if (t.pendingCursor >= 0) {
         var last = pane.total > 0 ? pane.total - 1 : 0
