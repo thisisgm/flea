@@ -392,7 +392,7 @@ mod tests {
         // A file carrying one costs that key its own default, and the key beside it still stands.
         let read = from_file(r#"{"columns":["size","size"],"density":"compact"}"#);
         let cols: Vec<&str> = read.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(cols, ["name", "size", "date"]);
+        assert_eq!(cols, ["name", "size", "date", "age"]);
         assert_eq!(read.get("density").and_then(Json::as_str), Some("compact"));
     }
 
@@ -401,13 +401,13 @@ mod tests {
     fn the_view_json_migration_carries_hiddencols_across_and_drops_uiscale() {
         let migrated = from_view_json(r#"{"hiddenCols":["kind","mode"],"uiScale":1.4}"#);
         let cols: Vec<&str> = migrated.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(cols, ["name", "size", "date"]);
+        assert_eq!(cols, ["name", "size", "date", "age"]);
         assert!(migrated.get("uiScale").is_none(), "uiScale is dropped, not carried");
         assert_eq!(text(&from_view_json(r#"{"hiddenCols":[]}"#)).contains("\"kind\""), true);
         let nothing_hidden = from_view_json(r#"{"hiddenCols":[]}"#);
         let all: Vec<&str> = nothing_hidden
             .get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(all, ["name", "mode", "size", "date", "kind"]);
+        assert_eq!(all, ["name", "mode", "size", "date", "kind", "age"]);
         assert_eq!(text(&from_view_json("{oops")), text(&defaults()));
     }
 

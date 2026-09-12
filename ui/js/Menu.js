@@ -232,8 +232,8 @@ function headerEntries(hiddenCols, showHidden) {
     var hidden = {}
     for (var h = 0; h < hiddenCols.length; h++)
         hidden[hiddenCols[h]] = true
-    var columns = [["mode", "Mode"], ["size", "Size"], ["date", "Date Modified"], ["kind", "Kind"]]
-    var glyphs = { mode: "lock", size: "drive", date: "download", kind: "type" }
+    var columns = [["mode", "Mode"], ["size", "Size"], ["date", "Date Modified"], ["kind", "Kind"], ["age", "Age"]]
+    var glyphs = { mode: "lock", size: "drive", date: "download", kind: "type", age: "history" }
     for (var i = 0; i < columns.length; i++) {
         var key = columns[i][0]
         var shown = !hidden[key]

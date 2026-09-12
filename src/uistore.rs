@@ -321,14 +321,14 @@ mod tests {
         fs::write(s.legacy(), r#"{"hiddenCols":["kind","mode"],"uiScale":1.4}"#).expect("write");
         let read = s.read();
         let cols: Vec<&str> = read.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(cols, ["name", "size", "date"]);
+        assert_eq!(cols, ["name", "size", "date", "age"]);
         assert!(read.get("uiScale").is_none());
         // Once ui.json exists it is the only state file, and view.json is never read again.
         s.update(&patch(r#"{"view":"grid"}"#)).expect("update");
         fs::write(s.legacy(), r#"{"hiddenCols":["size","date","kind","mode"]}"#).expect("rewrite");
         let reread = s.read();
         let after: Vec<&str> = reread.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(after, ["name", "size", "date"]);
+        assert_eq!(after, ["name", "size", "date", "age"]);
     }
 
     #[test]
@@ -342,7 +342,7 @@ mod tests {
         s.settle().expect("migrate");
         let migrated = s.read();
         let cols: Vec<&str> = migrated.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(cols, ["name", "mode", "size", "date"]);
+        assert_eq!(cols, ["name", "mode", "size", "date", "age"]);
         assert!(!fs::read_to_string(s.file()).expect("state file").contains("uiScale"));
         // A second run must not re-derive over what the user has since changed.
         s.update(&patch(r#"{"columns":["name"]}"#)).expect("user change");
@@ -365,7 +365,7 @@ mod tests {
         assert!(!body.contains("owner"), "the refused column must not survive the settle: {}", body);
         let stored = jsondoc::parse(&body).expect("valid JSON on disk");
         let cols: Vec<&str> = stored.get("columns").and_then(Json::as_array).expect("columns").iter().filter_map(Json::as_str).collect();
-        assert_eq!(cols, ["name", "size", "date"], "the refused array falls back to the shipped one");
+        assert_eq!(cols, ["name", "size", "date", "age"], "the refused array falls back to the shipped one");
         assert_eq!(stored.get("density").and_then(Json::as_str), Some("compact"), "a good key beside it stands");
         assert!(stored.get("fromANewerFlea").is_some(), "a newer Flea's own key still survives");
         let settled = fs::read_to_string(s.file()).expect("settled");

@@ -193,6 +193,34 @@ set is shipped in `DEFAULTS` (`src/uischema.rs:8`) and mirrored in `ui/ViewState
 `src/uistate.rs:395`, `src/uischema.rs:206`; `tests/uistate.sh:61` samples the QML line) —
 appending `age` moves all of them.
 
+## Shipped, 2026-09-12 (same day)
+
+The operator's corrections during the live read-back, recorded in the order they were made:
+
+1. **The ramp is absolute, not theme-read.** The first implementation read the ring from the
+   theme's palette keys with a contrast walk and ANSI aliases — the full-palette-ring choice
+   above, built as specified — and it was bloat: a second JS file, its own suite, HSL floors,
+   all to paint five words. Deleted. `ui/Age.qml` holds six literal colours, and the theme
+   affects nothing.
+2. **Six rungs, with orange.** The five-colour ring read as missing a step between red and
+   yellow. The hour band splits at the minute mark: red is the first minute (the "now" band
+   exactly), orange the rest of the hour, yellow the day, green the week, cyan the month, blue
+   everything older — so every boundary below the day is a boundary the age text draws too.
+3. **Saturation is not negotiable.** The everforest rungs were pastels and read as one grey
+   band; the absolute ramp is vivid by construction.
+
+What shipped beside the ramp: `Format.age`/`ageBand` (pure, `tests/js/format.js`), `ui/Age.qml`
+(the 30 s shared tick, the widths, the ramp), `ui/RowCells.qml` (the five cells extracted whole
+from `ui/Row.qml`, which lands at 346 and leaves the budget ledger's over-cap list entirely),
+`age` first in `DROP_ORDER` with every pre-existing floor unchanged, `age` in `dualSet` behind
+`date`, `Picker.HIDDEN_COLS` extended so the chooser never draws it, `ColumnAge=55` in the
+metrics contract, the `col:age` toggle with the history glyph, and the shipped default set
+`name,size,date,age`. Verified: 3114 JS checks, 28 state tests, budget gate green, and the
+live read-back on the compositor — the operator's own eyes on the running window, the one
+verification a colour assertion cannot substitute for. `tests/ui.sh case_header` and the
+metrics gate still need the maintainer's box (`omarchy-drive` is not public; same gap as
+PR #127).
+
 ## Verification plan
 
 - `tests/js/format.js` drives the new formatter's bands and the `null` row.

@@ -76,7 +76,7 @@ assert ['moveto', 'moveTo', 'Move to', 'file'] in rows
 assert ['openwith', 'openWith', 'Open with', 'file'] in rows
 assert {row[3] for row in rows if row[0] == 'open'} == {'file', 'trash'}
 assert {row[3] for row in rows if row[0] == 'paste'} == {'file', 'background'}
-assert {row[0] for row in rows if row[3] == 'header'} == {'col:mode', 'col:size', 'col:date', 'col:kind'}
+assert {row[0] for row in rows if row[3] == 'header'} == {'col:mode', 'col:size', 'col:date', 'col:kind', 'col:age'}
 print('ACCEPTANCE_MENU ids=30 header=4 context_rows=' + str(len(rows)))
 PY
 mkdir -p "$SB/broken-menu/ui/js"

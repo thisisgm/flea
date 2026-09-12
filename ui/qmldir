@@ -1,6 +1,7 @@
 module flea
 singleton Theme 1.0 Theme.qml
 singleton ViewState 1.0 ViewState.qml
+singleton Age 1.0 Age.qml
 Backend 1.0 Backend.qml
 ChromeAction 1.0 ChromeAction.qml
 ChromeBar 1.0 ChromeBar.qml
@@ -55,6 +56,7 @@ PreviewArchive 1.0 PreviewArchive.qml
 PreviewMedia 1.0 PreviewMedia.qml
 PreviewText 1.0 PreviewText.qml
 Row 1.0 Row.qml
+RowCells 1.0 RowCells.qml
 Pane 1.0 Pane.qml
 PickerChrome 1.0 PickerChrome.qml
 PickerList 1.0 PickerList.qml

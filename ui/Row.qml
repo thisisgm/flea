@@ -3,6 +3,7 @@ import qs.Commons
 import "js/Drag.js" as DragOps
 import "js/Format.js" as Format
 import "js/Icons.js" as Icons
+import "js/Columns.js" as Columns
 import "js/Match.js" as Match
 import "." as Flea
 
@@ -15,6 +16,7 @@ Item {
     property bool dualMode: false
     readonly property real markSlot: root.dualMode ? Theme.markSize : Theme.iconSize
     readonly property real sizeWidth: root.dualMode ? Theme.dualColumn.size : Theme.column.size
+    readonly property real ageWidth: root.dualMode ? Age.dualWidth : Age.width
     property bool hovered: false
     property string thumb: ""
     property bool selected: false
@@ -65,11 +67,49 @@ Item {
     // is not drawn takes neither its width nor its gap, so the chain collapses onto the one to its
     // right and the name takes back the whole of it.
     readonly property var cols: root.dualMode ? Theme.dualColumns(root.width, root.hiddenCols) : Theme.columns(root.width, root.hiddenCols, root.dateWidth)
-    readonly property bool modeShown: !root.searching && root.cols.mode
-    // The search column set keeps Size and drops the other three, so only this one ignores searching.
-    readonly property bool sizeShown: root.cols.size
-    readonly property bool dateShown: !root.searching && root.cols.date
-    readonly property bool kindShown: !root.searching && root.cols.kind
+    // The five metadata cells, their shown flags and their text functions live in ui/RowCells.qml,
+    // extracted so this row could carry a fifth column inside its recorded budget.
+    readonly property alias modeShown: cells.modeShown
+    // The search column set keeps Size and drops the other four, so only this one ignores searching.
+    readonly property alias sizeShown: cells.sizeShown
+    readonly property alias dateShown: cells.dateShown
+    readonly property alias kindShown: cells.kindShown
+    readonly property alias ageShown: cells.ageShown
+    // What the drawn cells claim from the row's right edge, over the same tokens Theme.columns
+    // resolves, so the cells item spans exactly the chain it anchors inside itself.
+    readonly property var cellTokens: ({
+        rowPaddingX: Theme.spacing.rowPaddingX, gap: Theme.spacing.gap,
+        mode: Theme.column.mode, size: root.sizeWidth, date: root.dateWidth,
+        kind: Theme.column.kind, age: root.ageWidth
+    })
+    readonly property var dualCellTokens: ({
+        rowPaddingX: Theme.spacing.rowPaddingX, gap: Theme.spacing.gap,
+        mode: 0, size: Theme.dualColumn.size, date: Theme.dualColumn.date,
+        kind: 0, age: Age.dualWidth
+    })
+    readonly property real cellsWidth: Columns.drawnWidth({
+        mode: cells.modeShown, size: cells.sizeShown, date: cells.dateShown,
+        kind: cells.kindShown, age: cells.ageShown
+    }, root.dualMode ? root.dualCellTokens : root.cellTokens, root.dualMode)
+    RowCells {
+        id: cells
+        anchors.right: parent.right
+        anchors.top: parent.top
+        anchors.bottom: parent.bottom
+        width: root.cellsWidth
+        row: root.row
+        cols: root.cols
+        dualMode: root.dualMode
+        searching: root.searching
+        dropTarget: root.dropTarget
+        lifted: root.lifted
+        foregroundMetadata: root.foregroundMetadata
+        sizeWidth: root.sizeWidth
+        dateWidth: root.dateWidth
+        dirSize: root.dirSize
+        compactDate: root.compactDate
+        kindNames: root.kindNames
+    }
 
     // A lifted row is the cursor, the pointer, or a selection member; all three take the same fill treatment, per qui Minimal.
     property bool lifted: root.cursor || root.hovered || root.selected || root.dropTarget
@@ -173,7 +213,7 @@ Item {
         visible: root.renaming
         anchors.left: icon.right
         anchors.leftMargin: Theme.spacing.gap
-        anchors.right: mode.left
+        anchors.right: cells.left
         anchors.rightMargin: root.modeShown ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         height: implicitHeight
@@ -189,7 +229,9 @@ Item {
         visible: !root.searching && !root.renaming
         anchors.left: icon.right
         anchors.leftMargin: Theme.spacing.gap
-        anchors.right: mode.left
+        // The metadata cells anchor the row's right edge inside ui/RowCells.qml, whose left edge is
+        // the mode cell's own, so the name keeps exactly the slot it had.
+        anchors.right: cells.left
         anchors.rightMargin: root.modeShown ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         text: root.decoratedName
@@ -219,76 +261,17 @@ Item {
         visible: root.searching
         anchors.left: searchName.right
         anchors.leftMargin: Theme.spacing.gap
-        anchors.right: size.left
-        anchors.rightMargin: root.sizeShown && !root.dualMode ? Theme.spacing.gap : 0
+        // Size is the only cell a search row draws, so its left edge is the row's right padding
+        // plus the size column and its own gap, and the location ends there.
+        anchors.right: parent.right
+        anchors.rightMargin: Theme.spacing.rowPaddingX + (root.sizeShown && !root.dualMode ? root.sizeWidth + Theme.spacing.gap : 0)
         anchors.verticalCenter: parent.verticalCenter
         text: root.locationText
-        color: root.cellColor()
+        // The search row keeps no metadata cells but Size, so this one colour is the row's own.
+        color: root.lifted || root.foregroundMetadata ? Theme.color.foreground : root.dim
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
         elide: Text.ElideLeft
-        textFormat: Text.PlainText
-    }
-
-    Text {
-        id: mode
-        anchors.right: size.left
-        anchors.rightMargin: root.sizeShown && !root.dualMode ? Theme.spacing.gap : 0
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.modeShown && !root.dropTarget
-        width: root.modeShown ? Theme.column.mode : 0
-        text: root.row ? Format.permissions(root.row.p) : ""
-        color: root.cellColor()
-        font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        elide: Text.ElideRight
-        textFormat: Text.PlainText
-    }
-
-    Text {
-        id: size
-        anchors.right: modified.left
-        anchors.rightMargin: root.dateShown && !root.dualMode ? Theme.spacing.gap : 0
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.sizeShown && !root.dropTarget
-        width: root.sizeShown ? root.sizeWidth : 0
-        text: root.row ? root.sizeText() : ""
-        color: root.cellColor()
-        font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        horizontalAlignment: Text.AlignRight
-        elide: Text.ElideRight
-        textFormat: Text.PlainText
-    }
-
-    Text {
-        id: modified
-        anchors.right: kind.left
-        anchors.rightMargin: root.kindShown ? Theme.spacing.gap : 0
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.dateShown && !root.dropTarget
-        width: root.dateShown ? root.dateWidth : 0
-        text: root.dateText()
-        color: root.cellColor()
-        font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        horizontalAlignment: Text.AlignRight
-        elide: Text.ElideRight
-        textFormat: Text.PlainText
-    }
-
-    Text {
-        id: kind
-        anchors.right: parent.right
-        anchors.rightMargin: Theme.spacing.rowPaddingX
-        anchors.verticalCenter: parent.verticalCenter
-        visible: root.kindShown && !root.dropTarget
-        width: root.kindShown ? Theme.column.kind : 0
-        text: root.row ? root.kindText() : ""
-        color: root.cellColor()
-        font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        elide: Text.ElideRight
         textFormat: Text.PlainText
     }
 
@@ -333,46 +316,6 @@ Item {
         return Format.fileUri(root.thumb) + "?m=" + root.row.m
     }
 
-    // A lifted row is a surface the theme never modelled, so its text takes the strongest ink; see the plan's Task 2 table.
-    function cellColor() {
-        return root.lifted || root.foregroundMetadata ? Theme.color.foreground : root.dim
-    }
-
-    // A directory's own row.s is its dirent size, not the walk's, so this reads root.dirSize instead, see docs/protocol.md "dirsized".
-    function sizeText() {
-        // A link's own st_size is the length of its target path, which is not a size anyone means.
-        if (Format.isSymlink(root.row.p))
-            return "link"
-        if (!root.row.d) {
-            return Format.size(root.row.s)
-        }
-        if (!root.dirSize) {
-            return "·"
-        }
-        return (root.dirSize.partial ? ">" : "") + Format.size(root.dirSize.bytes)
-    }
-
-    // The window's own four forms, or the picker's compact three; both are cell text and nothing more.
-    function dateText() {
-        if (!root.row) {
-            return ""
-        }
-        // null marks a row with no real mtime yet (ui/ShareBrowser.qml's share rows).
-        if (root.row.m === null) {
-            return "--"
-        }
-        return root.compactDate ? Format.compactDate(root.row.m, Date.now()) : Format.date(root.row.m, Date.now())
-    }
-
-    // row.k indexes root.kindNames; an index past its bounds (a row held over from an older listing) reads as empty, never a crash.
-    function kindText() {
-        if (!root.row || root.row.k === undefined) {
-            return ""
-        }
-        var text = root.kindNames[root.row.k]
-        return text !== undefined ? text : ""
-    }
-
     // Semantic colour is reserved for symlink and executable, and a lifted row gives it up for contrast.
     function nameColor() {
         if (!root.row) {
@@ -399,12 +342,6 @@ Item {
 
     // The same by-key idiom Header.cell uses, so the overflow reader can reach a specific cell.
     function cell(key) {
-        switch (key) {
-        case "mode": return mode
-        case "size": return size
-        case "date": return modified
-        case "kind": return kind
-        }
-        return null
+        return cells.cell(key)
     }
 }

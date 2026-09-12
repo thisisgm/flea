@@ -66,6 +66,52 @@ function compactDate(mtime, nowMs) {
     return d.getFullYear() === now.getFullYear() ? stamp : stamp + " '" + pad(d.getFullYear() % 100)
 }
 
+// The age column's own clock, the one the date column is not: how long ago, in the bands the
+// screenshot drew -- minutes prime-marked the way a media clock marks seconds, hours with their
+// minutes beside them, then whole days and whole years. A future mtime reads as now rather than
+// negative, because a clock the panel repaints on its own tick must never run backwards.
+function age(mtime, nowMs) {
+    var seconds = Math.max(0, nowMs / 1000 - mtime)
+    if (seconds < 60)
+        return "now"
+    var minutes = Math.floor(seconds / 60)
+    if (minutes < 60)
+        return minutes + "'"
+    var hours = Math.floor(minutes / 60)
+    if (hours < 24)
+        return minutes % 60 > 0 ? hours + " h " + (minutes % 60) + "'" : hours + " h"
+    var days = Math.floor(hours / 24)
+    if (days < 365)
+        return days + " d"
+    return Math.floor(days / 365) + " y"
+}
+
+// The tint's six rungs: the first minute, the first hour, the first day, the first week, the
+// first month, and everything older. The first rung is the clock's own "now" band, so red means
+// now exactly; every boundary below the day is a boundary the age text draws too. Above it, the
+// boundaries the text cannot see -- 7 d against 30 d inside one "N d" form -- are the tint's own,
+// so the colour carries a granularity the text does not.
+var AGE_MINUTE = 60
+var AGE_HOUR = 3600
+var AGE_DAY = 86400
+var AGE_WEEK = 604800
+var AGE_MONTH = 2592000
+
+function ageBand(mtime, nowMs) {
+    var seconds = Math.max(0, nowMs / 1000 - mtime)
+    if (seconds < AGE_MINUTE)
+        return 0
+    if (seconds < AGE_HOUR)
+        return 1
+    if (seconds < AGE_DAY)
+        return 2
+    if (seconds < AGE_WEEK)
+        return 3
+    if (seconds < AGE_MONTH)
+        return 4
+    return 5
+}
+
 // The low nine bits of st_mode, read three at a time.
 var PERMISSION_BITS = 9
 var TRIAD = "rwx"
