@@ -8,6 +8,7 @@ Item {
     id: root
 
     property var pane: null
+    enabled: root.pane !== null && root.pane.enabled
 
     // pane.tabs is a replaced JS object, so these bindings have to read it directly; a helper
     // call alone would not re-run when t opens a second tab.

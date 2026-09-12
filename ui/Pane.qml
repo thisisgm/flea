@@ -17,7 +17,7 @@ import "js/Thumbs.js" as Thumbs
 FocusScope {
     id: root
     focus: true
-
+    enabled: !root.settingsPanel || !root.settingsPanel.opened
     property var backend: null
     property string path: ""
     // Set once by shell.qml from FLEA_SELECT; applied to the first `rows` this pane receives, then forgotten.
