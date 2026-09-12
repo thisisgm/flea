@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|renderer|settings ...]; networklive is opt-in.
+# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|renderer|settings|viewpersist ...]; networklive is opt-in.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -7774,6 +7774,69 @@ case_views() {
     kill_flea
 }
 
+# The view the window is left on is the view the next launch opens on. The ctrl-1/2/3 chords and
+# the chrome's three buttons both reach ViewState.setView, so both must reach ui.json, a
+# restart must read it back without a click, and a hand-edited view word this build cannot draw
+# must come up as the list view rather than a pane nothing shows. XDG_STATE_HOME points inside the
+# fixture root for the whole case, so nothing here can write the operator's own ui.json; hard
+# rule 9 covers writes and not only deletes.
+case_viewpersist() {
+    local dir="$fixture_root/viewpersist"
+    local state="$fixture_root/viewpersist-state"
+    sandbox_scratch "$dir"
+    sandbox_scratch "$state"
+    : > "$dir/a.txt"
+    : > "$dir/b.txt"
+    local real_state="${XDG_STATE_HOME-}"
+    export XDG_STATE_HOME="$state"
+    local stored="$state/flea/ui.json"
+
+    launch "$dir"
+    wait_listing 2
+    [[ "$(ipc viewMode)" == "list" ]] || fail "viewpersist: a first launch opened on $(ipc viewMode), not list"
+
+    # The chord. switch_view proves the screen; the file line proves the write behind it.
+    switch_view columns
+    [[ -f "$stored" ]] || fail "viewpersist: the ctrl-2 chord wrote no state file at $stored"
+    grep -q '"view": "columns"' "$stored" \
+        || fail "viewpersist: the chord left the file holding $(cat "$stored" 2>/dev/null || printf nothing)"
+
+    kill_flea
+    launch "$dir"
+    wait_listing 2
+    [[ "$(ipc viewMode)" == "columns" ]] \
+        || fail "viewpersist: a restart opened on $(ipc viewMode), not the stored columns"
+
+    # The chrome button, the other entrance, from the view the restart came up on.
+    click_chrome grid
+    settle
+    [[ "$(ipc viewMode)" == "grid" ]] || fail "viewpersist: the grid button left $(ipc viewMode)"
+    grep -q '"view": "grid"' "$stored" \
+        || fail "viewpersist: the button left the file holding $(cat "$stored" 2>/dev/null || printf nothing)"
+
+    kill_flea
+    launch "$dir"
+    wait_listing 2
+    [[ "$(ipc viewMode)" == "grid" ]] \
+        || fail "viewpersist: the second restart opened on $(ipc viewMode), not the stored grid"
+
+    # A word the schema does not know reaches the window only past the settle, which rewrites it
+    # back to the default; the window draws the list view either way, because anything else is a
+    # pane nothing shows. The written-back file is the settle's own proof.
+    printf '{"view":"banana"}\n' > "$stored"
+    kill_flea
+    launch "$dir"
+    wait_listing 2
+    [[ "$(ipc viewMode)" == "list" ]] \
+        || fail "viewpersist: an unknown view word opened as $(ipc viewMode), not list"
+    grep -q '"view": "list"' "$stored" \
+        || fail "viewpersist: the settle did not rename the unknown view back to list"
+
+    printf 'VIEWPERSIST chord=ok restart=ok button=ok fallback=ok\n'
+    if [[ -n "$real_state" ]]; then export XDG_STATE_HOME="$real_state"; else unset XDG_STATE_HOME; fi
+    kill_flea
+}
+
 # One row per format family the preview classifies, all in the columns view's own frame, judged on
 # what the frame draws: decoded pixels, lines, member names, pages, an advancing position, the sentence.
 formats_fixture() {
@@ -8115,7 +8178,7 @@ case_previewviews() {
 . "$repo/tests/ui-convert-design.sh"
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign viewpersist)
 
 : > "$run_log"
 : > "$flea_log"

@@ -163,7 +163,7 @@ ShellRoot {
                 onSearchRequested: view.currentPane.act("search")
                 onFilterRequested: view.currentPane.act("filter")
                 onSortRequested: view.currentPane.act("sortNext")
-                onViewChosen: function (mode) { ViewState.changeKey("view", mode) }
+                onViewChosen: function (mode) { view.currentPane.chooseView(mode) }
                 // The path bar's four. The primaryPane navigates and answers for the keyboard exactly as it
                 // does for every other route in, so a path typed and a row opened end the same way.
                 onPathEntered: function (path) { view.currentPane.open(path) }

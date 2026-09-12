@@ -8,6 +8,7 @@ function pane(path) {
         history: ["/home/gm"],
         cursorIndex: 4,
         viewMode: "list",
+        holdView: false,
         showHidden: false,
         searchMode: "",
         searchFrom: "",
@@ -184,6 +185,7 @@ function run(check) {
     check("previous wraps from the first tab to the last", Tabs.currentIndex(cycling), 1)
     check("previous restores the second tab's directory, view and hidden preference",
           cycling.path + "|" + cycling.viewMode + "|" + cycling.showHidden, "/tmp/second|grid|true")
+    check("and holds that view against the stored default until chooseView", cycling.holdView, true)
     Tabs.applyPending(cycling)
     Tabs.applyPending(cycling)
     check("previous restores the second tab's cursor and sorting",

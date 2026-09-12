@@ -47,6 +47,14 @@ QtObject {
         return out
     }
 
+    // The listing's view, "view" in src/uischema.rs, which ui/Pane.qml draws for the first frame so
+    // the view left on screen is the view the next launch opens on. A word a hand edit left that
+    // this Flea cannot draw falls back to the list the way an unparsable columns set falls back
+    // above; the settle has usually already renamed it, but a file this window could not read is
+    // drawn as it was read.
+    readonly property string view: Settings.contains(["list", "columns", "grid"], root.state.view)
+                                   ? root.state.view : "list"
+
     // The Display section's text size, `display.textSize` in src/uischema.rs: {"mode":"system"}
     // follows Omarchy and is the default, and an override pins one of TextSize.js's seven stops as
     // {"mode":N}. ui/Theme.qml is the only consumer, and the monitor scale beside it in the panel is
@@ -200,6 +208,13 @@ QtObject {
 
     function setKeysPreset(name) {
         root.changeKey("keys", name)
+    }
+
+    // The view's one writer: chooseView (ctrl-1/2/3) and the chrome's buttons both land here, so
+    // the two entrances cannot persist two different answers. owe() sends nothing for a value the
+    // window already holds, so a repeated chord is not a patch.
+    function setView(mode) {
+        root.changeKey("view", mode)
     }
 
     // Flipped by ui/Pane.qml's onChosen, when a header-menu row answers "col:<key>".

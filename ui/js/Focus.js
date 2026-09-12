@@ -143,7 +143,7 @@ function act(action, root, menuId, paths) {
     case "sortReverse": Sort.reverse(root); return
     case "addNetwork": root.sidebar.addRequested(); return
     case "eject": Eject.release(root, root.sidebar, false); return
-    // Finder's Cmd+1/2/3; the chrome's three buttons write the same property, so they follow.
+    // Finder's Cmd+1/2/3; the chrome's three buttons write the same key, so they persist together.
     case "viewList": root.chooseView("list"); return
     case "viewColumns": root.chooseView("columns"); return
     case "viewGrid": root.chooseView("grid"); return

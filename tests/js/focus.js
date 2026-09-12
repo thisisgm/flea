@@ -264,14 +264,20 @@ function run(check) {
     Focus.act("addNetwork", dialled)
     check("and act opens it through the rail's own signal", dialled.sidebar.asked, 1)
 
-    // Finder's Cmd+1/2/3: the same property the chrome's three buttons write, so they follow.
+    // Finder's Cmd+1/2/3: the same chooseView the chrome's three buttons call, so the chord and
+    // the click persist the one stored view. The mock records what reaches it, because a chord
+    // that switched the view on screen without calling chooseView would otherwise pass this suite.
     var viewed = listPane(true)
+    viewed.persisted = []
+    viewed.chooseView = function (mode) { this.viewMode = mode; this.persisted.push(mode) }
     Focus.act("viewGrid", viewed)
     var grid = viewed.viewMode
     Focus.act("viewColumns", viewed)
     var cols = viewed.viewMode
     Focus.act("viewList", viewed)
-    check("ctrl 3, 2 and 1 pick the grid, the columns and the list", grid + "|" + cols + "|" + viewed.viewMode, "grid|columns|list")
+    check("ctrl 3, 2 and 1 pick the grid, the columns and the list, through chooseView each time",
+          grid + "|" + cols + "|" + viewed.viewMode + "|" + viewed.persisted.join("|"),
+          "grid|columns|list|grid|columns|list")
 
     // The seam itself. A case that only messaged was indistinguishable from a wired one on this
     // side of the suite, which is how the whole feature stayed unreachable through a green run, so
