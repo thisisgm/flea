@@ -470,8 +470,8 @@ loss, and the check-then-rename alternative leaves a window in which another pro
 target. Renaming a file to the name it already has is not an error and is not work: it answers `ok` and
 records nothing to undo.
 
-**A rename that cannot prove the source survived whole answers `rename-kept`.** Two measured mounts cannot serve
-`RENAME_NOREPLACE`: an `fuse.rclone` directory answers `EINVAL`, and a path under a
+**A rename that cannot prove the source survived whole answers `rename-kept`.** Measured mounts that cannot serve
+`RENAME_NOREPLACE` include `fuse.rclone` directories and `fuse.megafs` paths, which answer `EINVAL`, and a path under a
 `/run/user/*/gvfs/dav:` WebDAV mount answers `EIO`. On those, the backend builds the new name through the same exclusive copy primitives every
 other write uses and removes the source only once that copy is complete. The copy is taken back only on proof the source
 survived whole: a source that still stats as anything but a directory after the failed removal, since
@@ -487,8 +487,8 @@ with no account of how far it got cannot tell a whole source from a remnant or f
 rename through the same call, so a reversal that half succeeds answers this same `where`.
 
 Unlike the three above, this answers on the loop's own thread: the ordinary case is one `renameat2`,
-which costs less than spawning a thread. The two compatibility paths above are not one syscall and
-run on that same thread, so a directory rename on rclone copies the whole tree inline before it
+which costs less than spawning a thread. The compatibility paths above are not one syscall and
+run on that same thread, so a directory rename on rclone or MEGA copies the whole tree inline before it
 answers. See `AGENTS.md`, "Write operations and the undo journal".
 
 ### duplicate

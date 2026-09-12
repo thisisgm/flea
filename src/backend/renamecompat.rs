@@ -1,4 +1,4 @@
-// Linux's atomic no-clobber rename, plus the two measured mounts that need a safe caller-owned copy fallback.
+// Linux's atomic no-clobber rename, plus the measured mounts that need a safe caller-owned copy fallback.
 use crate::backend::copyfile::{copy_any, remove_any, Progress};
 use crate::backend::mountinfo::mount_type_in;
 use crate::error::{from_io, FleaError};
@@ -27,7 +27,7 @@ extern "C" {
     ) -> i32;
 }
 
-// rclone rejects directory RENAME_NOREPLACE; callers that can safely copy and remove handle that case themselves.
+// Some FUSE mounts reject directory RENAME_NOREPLACE; callers that can safely copy and remove handle that case themselves.
 pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
     let c_from = path_c(from)?;
     let c_to = path_c(to)?;
@@ -55,7 +55,7 @@ pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
     }
 }
 
-// WebDAV is decided from the path and errno alone, so an rclone check never reads mountinfo for it.
+// WebDAV is decided from the path and errno alone, so a FUSE check never reads mountinfo for it.
 fn needs_copy_fallback(from: &Path, error: &io::Error) -> bool {
     if needs_gvfs_webdav_fallback(from, error) {
         return true;
@@ -66,7 +66,7 @@ fn needs_copy_fallback(from: &Path, error: &io::Error) -> bool {
     }
     std::fs::read_to_string("/proc/self/mountinfo")
         .ok()
-        .map(|body| needs_rclone_fallback_in(from, error, &body))
+        .map(|body| needs_fuse_fallback_in(from, error, &body))
         .unwrap_or(false)
 }
 
@@ -76,13 +76,18 @@ fn needs_gvfs_webdav_fallback(from: &Path, error: &io::Error) -> bool {
     error.raw_os_error() == Some(EIO) && text.starts_with("/run/user/") && text.contains("/gvfs/dav:")
 }
 
-fn needs_rclone_fallback_in(from: &Path, error: &io::Error, mountinfo: &str) -> bool {
-    error.raw_os_error() == Some(EINVAL)
-        && from
+fn needs_fuse_fallback_in(from: &Path, error: &io::Error, mountinfo: &str) -> bool {
+    if error.raw_os_error() != Some(EINVAL) {
+        return false;
+    }
+    match mount_type_in(from, mountinfo).as_deref() {
+        Some("fuse.megafs") => true,
+        Some("fuse.rclone") => from
             .symlink_metadata()
             .map(|meta| meta.file_type().is_dir())
-            .unwrap_or(false)
-        && mount_type_in(from, mountinfo).as_deref() == Some("fuse.rclone")
+            .unwrap_or(false),
+        _ => false,
+    }
 }
 
 // The target is built through the exclusive copy primitives, so an existing destination is refused rather than replaced.
@@ -158,21 +163,27 @@ mod tests {
     const ENOENT: i32 = 2;
 
     #[test]
-    fn copy_fallback_scope_is_only_an_einval_directory_on_rclone() {
-        let d = TestDir::new("rclonerenamescope");
+    fn copy_fallback_scope_matches_each_measured_fuse_mount() {
+        let d = TestDir::new("fuserenamescope");
         let file = d.file("file", "body");
         let directory = d.dir("directory");
         let rclone = format!(
             "1 0 0:1 / {} rw - fuse.rclone remote: rw\n",
             d.path().display()
         );
+        let megafs = format!(
+            "1 0 0:2 / {} rw - fuse.megafs megafs rw\n",
+            d.path().display()
+        );
         let ext4 = format!("1 0 8:1 / {} rw - ext4 /dev/a rw\n", d.path().display());
         let invalid = io::Error::from_raw_os_error(EINVAL);
         let exists = io::Error::from_raw_os_error(EEXIST);
-        assert!(needs_rclone_fallback_in(&directory, &invalid, &rclone));
-        assert!(!needs_rclone_fallback_in(&file, &invalid, &rclone));
-        assert!(!needs_rclone_fallback_in(&directory, &invalid, &ext4));
-        assert!(!needs_rclone_fallback_in(&directory, &exists, &rclone));
+        assert!(needs_fuse_fallback_in(&directory, &invalid, &rclone));
+        assert!(needs_fuse_fallback_in(&directory, &invalid, &megafs));
+        assert!(needs_fuse_fallback_in(&file, &invalid, &megafs));
+        assert!(!needs_fuse_fallback_in(&file, &invalid, &rclone));
+        assert!(!needs_fuse_fallback_in(&directory, &invalid, &ext4));
+        assert!(!needs_fuse_fallback_in(&directory, &exists, &rclone));
         assert_eq!(std::fs::read_to_string(file).unwrap(), "body");
     }
     #[test]
@@ -355,7 +366,7 @@ mod tests {
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "body", "the only complete copy stays on disk");
         assert_eq!(error.where_, KEPT, "a source that proves nothing keeps the copy");
     }
-    // The rclone arm reads the real mountinfo, so a unit test drives only the WebDAV arm; the live rclone battery drives the other.
+    // The FUSE arm reads the real mountinfo, so a unit test drives only the WebDAV arm; live mount batteries drive the other.
     #[test]
     fn the_composed_predicate_answers_for_the_webdav_case() {
         let d = TestDir::new("composedfallback");
