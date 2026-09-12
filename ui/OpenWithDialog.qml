@@ -323,6 +323,11 @@ Item {
                     boundsBehavior: Flickable.StopAtBounds
                     activeFocusOnTab: false
                     Keys.forwardTo: [keys]
+                    Flea.ViewportScrollBar {
+                        parent: list
+                        anchors { top: list.top; right: list.right }
+                        flickable: list
+                    }
 
                     delegate: Item {
                         id: row
@@ -391,18 +396,6 @@ Item {
                     wrapMode: Text.Wrap
                 }
 
-                // The fade that says the viewport cut the list, drawn in the card's own ground.
-                Rectangle {
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.bottom: parent.bottom
-                    height: Theme.spacing.gap
-                    visible: list.contentHeight > list.height && list.contentY < list.contentHeight - list.height - 1
-                    gradient: Gradient {
-                        GradientStop { position: 0; color: Qt.rgba(Theme.color.surface.r, Theme.color.surface.g, Theme.color.surface.b, 0) }
-                        GradientStop { position: 1; color: Theme.color.surface }
-                    }
-                }
             }
 
             // Rule 7: the Convert board's checkbox row, drawn at this board's own 14 unit frame.

@@ -52,6 +52,12 @@ Flickable {
         flickable: root
     }
 
+    Flea.ViewportScrollBar {
+        parent: root
+        anchors { top: root.top; right: root.right }
+        flickable: root
+    }
+
     // The row item at an index of the chosen section, or null before the columns exist.
     function rowItem(index) { return root.current ? root.current.rows.itemAt(index) : null }
 

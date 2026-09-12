@@ -66,7 +66,6 @@ FocusScope {
     anchors.fill: parent
     visible: opened
     onActiveFocusChanged: if (!activeFocus) root.trashArmedAt = 0
-
     function send(op, fields) {
         var message = fields || {}
         message.c = "trashbrowse"
@@ -423,6 +422,7 @@ FocusScope {
                 }
             }
             Flea.FastScrollHandler { flickable: listing }
+            Flea.ViewportScrollBar { parent: listing; anchors.top: listing.top; anchors.right: listing.right; flickable: listing }
             delegate: Rectangle {
                 id: itemRow
                 required property int index

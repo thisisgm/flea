@@ -1051,6 +1051,71 @@ case_scroll() {
     shot scroll-three-notches
 }
 
+# The scrollbar is a viewport control over the integer model, not a second model: a short listing
+# draws none, a scale listing draws one, and a real track press moves the same ListView whose wheel
+# path drives window refetch. Switching views then proves the shared control reached all three
+# directory surfaces rather than being painted only over the default list.
+case_scrollbar() {
+    local dir="$fixture_root/scrollbar" state wx wy ww wh sx sy sw sh before after handle travel ratio
+    [[ -d "$bench_dir" ]] || fail "scrollbar: the 100,000-file fixture is missing at $bench_dir"
+    sandbox_scratch "$dir"
+    : > "$dir/only.txt"
+    launch "$dir"
+    wait_listing 1
+    state=$(ipc scrollbarState)
+    jq -e '.visible == false' <<< "$state" >/dev/null \
+        || fail "scrollbar: a one-row folder draws a scrollbar: $state"
+
+    launch "$bench_dir"
+    wait_listing 100000
+    click_chrome list
+    settle
+    state=$(ipc scrollbarState)
+    jq -e '.visible == true and .handle >= 24 and .content > .viewport and .offset == 0' <<< "$state" >/dev/null \
+        || fail "scrollbar: the scale listing has no usable top handle: $state"
+    read -r sx sy sw sh <<< "$(jq -r '.rect' <<< "$state")"
+    read -r wx wy ww wh < <(window_box) || fail "scrollbar: native window coordinates unavailable"
+    before=$(ipc listContentY)
+    omarchy-drive click "$((wx + sx + sw / 2))" "$((wy + sy + sh - 2))" left >/dev/null
+    settle
+    after=$(ipc listContentY)
+    (( after > before )) || fail "scrollbar: a track press left contentY at $after"
+    (( after <= $(jq -r '.viewport * 1.1 | ceil' <<< "$state") )) \
+        || fail "scrollbar: one track press jumped farther than one page, to $after"
+
+    key -k Home >/dev/null
+    settle
+    [[ "$(ipc listContentY)" == 0 ]] || fail "scrollbar: the track press stole keyboard focus"
+    state=$(ipc scrollbarState)
+    handle=$(jq -r '.handle | floor' <<< "$state")
+    travel=$(( (sh - handle) / 2 ))
+    hyprctl dispatch "hl.dsp.cursor.move({x = $((wx + sx + sw / 2 - 1)), y = $((wy + sy + handle / 2))})" >/dev/null
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 1 -y 0 >/dev/null 2>&1
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x40 >/dev/null 2>&1 \
+        || fail "scrollbar: pointer press failed"
+    if ! YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool mousemove -x 0 -y "$travel" >/dev/null 2>&1; then
+        YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 || true
+        fail "scrollbar: pointer drag failed"
+    fi
+    YDOTOOL_SOCKET="$XDG_RUNTIME_DIR/.ydotool_socket" ydotool click 0x80 >/dev/null 2>&1 \
+        || fail "scrollbar: pointer release failed"
+    settle
+    state=$(ipc scrollbarState)
+    ratio=$(jq -r '.offset / ((.rect | split(" ")[3] | tonumber) - .handle)' <<< "$state")
+    jq -e '. >= 0.45 and . <= 0.55' <<< "$ratio" >/dev/null \
+        || fail "scrollbar: a midpoint drag landed at track ratio $ratio: $state"
+
+    click_chrome grid
+    settle
+    jq -e '.visible == true' <<< "$(ipc scrollbarState)" >/dev/null \
+        || fail "scrollbar: the scale grid has no scrollbar"
+    click_chrome columns
+    settle
+    jq -e '.visible == true' <<< "$(ipc scrollbarState)" >/dev/null \
+        || fail "scrollbar: the scale Miller column has no scrollbar"
+    printf 'SCROLLBAR short=hidden scale=visible track=page drag=middle views=list,grid,columns\n'
+}
+
 # Catches removing the cursor clamp from ListView.onContentYChanged in ui/Pane.qml.
 case_cursor() {
     [[ -d "$bench_dir" ]] || fail "the 100,000-file fixture is missing at $bench_dir"
@@ -8115,7 +8180,7 @@ case_previewviews() {
 . "$repo/tests/ui-convert-design.sh"
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign)
 
 : > "$run_log"
 : > "$flea_log"

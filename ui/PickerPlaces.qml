@@ -61,6 +61,11 @@ Item {
         currentIndex: 0
         onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
         Flea.FastScrollHandler { flickable: rail }
+        Flea.ViewportScrollBar {
+            parent: rail
+            anchors { top: rail.top; right: rail.right }
+            flickable: rail
+        }
         Keys.onTabPressed: function(event) { root.picker.stepFocus(rail, (event.modifiers & Qt.ShiftModifier) !== 0) }
         Keys.onBacktabPressed: root.picker.stepFocus(rail, true)
         Keys.onPressed: function(event) {

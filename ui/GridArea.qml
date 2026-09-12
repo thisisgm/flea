@@ -70,6 +70,15 @@ GridView {
         ctrlWheelAction: function (wheel) { return root.zoomWheel(wheel) }
     }
 
+    readonly property alias scrollBar: verticalScroll
+    Flea.ViewportScrollBar {
+        id: verticalScroll
+        parent: root
+        anchors { top: root.top; right: root.right }
+        flickable: root
+        ctrlWheelAction: function (wheel) { return root.zoomWheel(wheel) }
+    }
+
     Flea.SelectionBand {
         parent: root
         pane: root.pane

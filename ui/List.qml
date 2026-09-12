@@ -33,6 +33,14 @@ ListView {
         flickable: root
     }
 
+    readonly property alias scrollBar: verticalScroll
+    Flea.ViewportScrollBar {
+        id: verticalScroll
+        parent: root
+        anchors { top: root.top; right: root.right }
+        flickable: root
+    }
+
     Flea.SelectionBand {
         parent: root
         pane: root.pane

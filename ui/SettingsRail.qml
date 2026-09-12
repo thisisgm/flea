@@ -37,6 +37,12 @@ Flickable {
         flickable: root
     }
 
+    Flea.ViewportScrollBar {
+        parent: root
+        anchors { top: root.top; right: root.right }
+        flickable: root
+    }
+
     signal chosen(string id)
 
     // The row for a section id, so a driven click can land on it: tests/ui.sh clickthrough.

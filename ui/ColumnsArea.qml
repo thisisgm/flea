@@ -80,6 +80,7 @@ Item {
     // The one column whose rows are the pane's own, for ui/Ipc.qml: the two beside it are peeks and
     // answer for another directory, so neither is where a background right click belongs.
     function activeColumn() { return active }
+    readonly property var scrollBar: active.scrollBar
     // All active views accept a view position; the pane maps filtered listing indices before calling.
     function itemAtIndex(index) { return active.itemAtIndex(index) }
     function activeContentY() { return active.contentY() }

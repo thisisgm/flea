@@ -400,27 +400,6 @@ Item {
             }
         }
         }
-        Rectangle {
-            anchors.top: parent.top
-            width: parent.width
-            height: Theme.spacing.gap
-            visible: scroll.contentY > 0
-            gradient: Gradient {
-                GradientStop { position: 0; color: Theme.color.surface }
-                GradientStop { position: 1; color: Qt.rgba(Theme.color.surface.r, Theme.color.surface.g, Theme.color.surface.b, 0) }
-            }
-        }
-        Rectangle {
-            anchors.bottom: parent.bottom
-            width: parent.width
-            height: Theme.spacing.gap
-            visible: scroll.contentY + scroll.height < scroll.contentHeight
-            rotation: 180
-            gradient: Gradient {
-                GradientStop { position: 0; color: Theme.color.surface }
-                GradientStop { position: 1; color: Qt.rgba(Theme.color.surface.r, Theme.color.surface.g, Theme.color.surface.b, 0) }
-            }
-        }
     }
 
     // The flyout: a second frame beside whichever row opened it, only while one has.

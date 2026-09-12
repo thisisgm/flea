@@ -555,8 +555,8 @@ QtObject {
             return item ? item.describe() : "loading"
         }
         function visibleRows(): int { return root.pane.visibleRows }
-        // The list's scroll position and the platform's lines per notch, for tests/ui.sh scroll.
         function listContentY(): int { return Math.round(root.pane.listArea.contentY) }
+        function scrollbarState(): string { var bar = root.pane.listArea.scrollBar; return bar ? JSON.stringify({visible: bar.visible, rect: root.fleaWindow.rectOf(bar), handle: bar.handleLength, offset: bar.handleOffset, content: bar.contentLength, viewport: bar.viewportLength}) : "{}" }
         function wheelLines(): int { return Application.styleHints.wheelScrollLines }
         function thumbRequests(): int { return root.backend.thumbRequests }
         function dirSizeRequests(): int { return root.backend.dirSizeRequests }

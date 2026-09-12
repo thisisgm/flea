@@ -2,11 +2,11 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import qs.Commons
+import "." as Flea
 import "js/Icons.js" as Icons
 import "js/Mounts.js" as Mounts
 import "js/Menu.js" as Menu
 import "js/Places.js" as Places
-
 // Places, Favorites, Network and Devices share one flat cursor in visual order.
 Item {
     id: root
@@ -341,7 +341,7 @@ Item {
             parent: scroller
             flickable: scroller
         }
-
+        Flea.ViewportScrollBar { parent: scroller; anchors.top: scroller.top; anchors.right: scroller.right; flickable: scroller }
         Column {
             id: rail
             anchors.top: parent.top

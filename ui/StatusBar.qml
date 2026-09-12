@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import "." as Flea
 import "js/Format.js" as Format
 import "js/Ops.js" as Ops
 import "js/Status.js" as Status
@@ -235,6 +236,11 @@ Item {
         clip: true
         boundsBehavior: Flickable.StopAtBounds
         onVisibleChanged: contentY = 0
+        Flea.ViewportScrollBar {
+            parent: detailView
+            anchors { top: detailView.top; right: detailView.right }
+            flickable: detailView
+        }
         Text {
             id: detailText
             x: Theme.spacing.rowPaddingX

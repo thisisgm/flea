@@ -196,7 +196,6 @@ Item {
                 size: root.row ? root.row.s : 0
                 numbered: root.previewState === Facts.CODE
             }
-
             // The PDF's own page, which is the frame's whole content for that state. QtPdf is
             // reached only through this Loader, so a folder with no PDF in it never opens one.
             Flickable {
@@ -209,6 +208,7 @@ Item {
                 contentHeight: height * root.pdfZoom
                 boundsBehavior: Flickable.StopAtBounds
                 Flea.FastScrollHandler { flickable: pdfFlick }
+                Flea.ViewportScrollBars { parent: pdfFlick; flickable: pdfFlick }
                 Loader {
                     id: pdfLoader
                     width: pdfFlick.contentWidth

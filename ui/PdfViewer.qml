@@ -197,6 +197,11 @@ Item {
             flickable: pageFlick
         }
 
+        Flea.ViewportScrollBars {
+            parent: pageFlick
+            flickable: pageFlick
+        }
+
         Rectangle {
             width: pageFlick.contentWidth
             height: pageFlick.contentHeight
