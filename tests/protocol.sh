@@ -70,6 +70,18 @@ check "listpaths reports no sort pass" "0.000" "$(echo "$out" | head -1 | grep -
 out=$(printf '{"c":"listpaths","paths":["etc/hostname","/",""],"first":10}\n{"c":"quit"}\n' | $BIN --backend)
 check "listpaths refuses a path that is not absolute" "0" "$(echo "$out" | head -1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
 
+# A search row is a path relative to the base, and its kind is read from the name at the end of it.
+# The lookup took the whole path and its by-name table never matched one: sub/Makefile answered Data
+# where list answered Makefile build file for the same file, so the two listings are held to one answer.
+: > "$D/sub/Makefile"
+listed_kind=$(printf '{"c":"list","path":"%s/sub","first":10}\n{"c":"quit"}\n' "$D" | $BIN --backend | sed -n 2p | grep -o '"kinds":\[[^]]*\]')
+searched_kind=$( ( printf '{"c":"search","path":"%s","query":"makefile","hidden":false}\n' "$D"
+                   sleep 0.6
+                   printf '{"c":"window","start":0,"count":10}\n{"c":"quit"}\n' ) | $BIN --backend | grep -o '"n":"sub/Makefile".*"kinds":\[[^]]*\]' | grep -o '"kinds":\[[^]]*\]')
+check "list gives the nested Makefile a kind of its own, not Data" "0" "$(echo "$listed_kind" | grep -c '"Data"')"
+check "a search row carries the kind list gives the same file" "$listed_kind" "$searched_kind"
+rm -f "$D/sub/Makefile"
+
 # Task 11: rows carries a per-response Kind dictionary, read against the box's real freedesktop tables, see docs/protocol.md "rows".
 kind_out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D" | $BIN --backend)
 kind_row=$(echo "$kind_out" | sed -n 2p)

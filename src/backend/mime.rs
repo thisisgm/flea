@@ -70,8 +70,12 @@ impl Db {
         Db { by_suffix_cs, by_suffix, by_name_cs, by_name }
     }
 
-    // Takes a file name, never a path: a directory component must not be read as an extension.
+    // Answers for the last component alone. A search or listpaths row is a path relative to the listing's
+    // base, and looked up whole the by-name tables never matched it: src/Makefile listed as Data and
+    // src/CMakeLists.txt as Plain text document, while a directory component's dot could offer a suffix
+    // of its own and a hidden file below the base could stop reading as hidden.
     pub fn lookup(&self, name: &str) -> Option<&str> {
+        let name = name.rsplit('/').next().unwrap_or(name);
         let lower = name.to_lowercase();
         if let Some((_, mime)) = self.by_name_cs.get(name) {
             return Some(mime);
@@ -135,6 +139,17 @@ mod tests {
         assert_eq!(d.lookup("notes.txt"), Some("text/plain"));
         assert_eq!(d.lookup("clip.mp4"), Some("video/mp4"));
         assert_eq!(d.lookup("paper.pdf"), Some("application/pdf"));
+    }
+
+    // A search row is "src/Makefile" and a listpaths row "home/gm/notes.txt": the name is the last component.
+    #[test]
+    fn a_relative_path_is_looked_up_by_its_last_component() {
+        let d = db();
+        assert_eq!(d.lookup("src/makefile"), Some("text/x-makefile"), "the by-name table sees the name");
+        assert_eq!(d.lookup("deep/er/holiday.jpg"), Some("image/jpeg"));
+        assert_eq!(d.lookup("v1.2/noextension"), None, "a directory's dot is not an extension");
+        assert_eq!(d.lookup("src/.jpg"), None, "a hidden file below the base is still hidden");
+        assert_eq!(d.lookup("photos.jpg/readme"), None);
     }
 
     #[test]
