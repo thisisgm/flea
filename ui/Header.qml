@@ -112,7 +112,7 @@ Item {
     PanelSectionHeader {
         id: headerKind
         anchors.right: headerAge.left
-        anchors.rightMargin: root.cols.age ? Theme.spacing.gap : 0
+        anchors.rightMargin: root.cols.age && !root.dualMode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.kind
         width: root.cols.kind ? Theme.column.kind : 0
@@ -130,7 +130,7 @@ Item {
         anchors.rightMargin: Theme.spacing.rowPaddingX
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.age
-        width: root.cols.age ? Age.width : 0
+        width: root.cols.age ? (root.dualMode ? Age.dualWidth : Age.width) : 0
         text: root.title("Age", "mtime")
         elide: Text.ElideRight
 

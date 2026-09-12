@@ -162,10 +162,7 @@ Locked by the operator this session:
 - **Model A: a real age column**, not a tint on the date cell.
 - **The column is tinted by recency** — that is the feature, and the age text alone is
   only what `date` already gives.
-— **DualLocked by the operator this session:
-
-- **Model A: a real age column**, not a tint on the date cell.
-- **The column is tinted by recency** —pane shows it** — `dualSet()` gains the term; the smaller change, an age
+- **Dual-pane shows it** — `dualSet()` gains the term; the smaller change, an age
   column that exists in one view and not the other, is declined.
 - **The tint is the full palette ring** — `red yellow green cyan blue` as the screenshot
   drew it, not the `accent` → `muted` interpolation.
@@ -181,7 +178,7 @@ Locked by this document’s own analysis (factual, not chosen):
 - `ui/Row.qml`’s budget is a precondition, not a detail.
 - `age` is an ordinary toggle — the same machinery as `mode`/`size`/`date`/`kind`, no
   coupling with `date`.
-— **`age` drops first.** Placement does not matter to the tint, and first keeps
+- **`age` drops first.** Placement does not matter to the tint, and first keeps
   `date`’s floor exactly where it is today, confining the churn to the new key. The
   pinned boundaries in `tests/js/columns.js` redden deliberately either way.
 

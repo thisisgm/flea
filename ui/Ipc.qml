@@ -430,7 +430,7 @@ QtObject {
         }
         function rowCellColor(i: int): string {
             var item = root.pane.itemFor(i)
-            return item ? String(item.cells.cellColor()) : ""
+            return item ? String(item.cellColor()) : ""
         }
         // Binds the actual defect: an eliding cell's content stays inside width; a broken one does not.
         function rowCellOverflow(i: int): string {

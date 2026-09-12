@@ -344,4 +344,10 @@ Item {
     function cell(key) {
         return cells.cell(key)
     }
+
+    // The cells' own ink, delegated so ui/Ipc.qml's rowCellColor reads the row rather
+    // than reaching into it: the seam is the row's face, and cells is an implementation.
+    function cellColor() {
+        return cells.cellColor()
+    }
 }

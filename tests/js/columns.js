@@ -123,6 +123,21 @@ function run(check) {
     check("and keeps the name above its own floor there too",
           nameSlot(g.kind, Columns.set(g.kind, OTHER), OTHER) >= OTHER.nameMin, true)
 
+    // drawnWidth walks the same anchor chain ui/RowCells.qml draws, so its gap count must
+    // survive hidden cells: a hidden cell keeps its anchor slot and the margin beside it
+    // still draws, so the count is of drawn cells other than mode, not of predecessor flags.
+    // The default set (kind and mode hidden) is the case the row ships in.
+    check("drawnWidth counts the gap a hidden kind leaves between date and age",
+          Columns.drawnWidth({ mode: false, size: false, date: true, kind: false, age: true }, BOX, false), 212)
+    check("and the default set, kind and mode hidden, counts every drawn boundary",
+          Columns.drawnWidth({ mode: false, size: true, date: true, kind: false, age: true }, BOX, false), 291)
+    check("a lone age still draws the margin beside its hidden anchor",
+          Columns.drawnWidth({ mode: false, size: false, date: false, kind: false, age: true }, BOX, false), 78)
+    check("every column shown is the sum of the widths and four gaps",
+          Columns.drawnWidth({ mode: true, size: true, date: true, kind: true, age: true }, BOX, false), 500)
+    check("dual draws no gaps at all",
+          Columns.drawnWidth({ mode: false, size: true, date: true, kind: false, age: true }, BOX, true), 264)
+
     // The seam ui/Ipc.qml reads is this string, and the header and a row must produce the same one.
     check("the set names the columns left to right, not in drop order",
           Columns.names({ mode: true, size: true, date: true, kind: true, age: true }),

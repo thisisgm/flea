@@ -66,11 +66,20 @@ function dualSet(width, t, hidden) {
 // name and its editor to it. s is the SHOWN set (not the afforded one), so a search row, which
 // keeps Size alone, claims only what it draws.
 function drawnWidth(s, t, dual) {
-    var used = t.rowPaddingX + (s.age ? t.age : 0)
-    if (s.kind) used += t.kind + (s.age && !dual ? t.gap : 0)
-    if (s.date) used += t.date + (s.kind && !dual ? t.gap : 0)
-    if (s.size) used += t.size + (s.date && !dual ? t.gap : 0)
-    if (s.mode) used += t.mode + (s.size && !dual ? t.gap : 0)
+    var used = t.rowPaddingX
+    var shown = 0
+    if (s.mode) { used += t.mode; shown++ }
+    if (s.size) { used += t.size; shown++ }
+    if (s.date) { used += t.date; shown++ }
+    if (s.kind) { used += t.kind; shown++ }
+    if (s.age) { used += t.age; shown++ }
+    // A gap belongs to the boundary between two drawn cells, and a hidden cell between
+    // two drawn ones keeps its anchor slot at zero width while the margin beside it
+    // still draws -- so the gap count is of drawn cells other than the leftmost (mode)
+    // and not of predecessor flags. Dual draws no gaps at all: every margin there
+    // gates on !dualMode, and kind, which alone does not, is never shown in dual.
+    if (!dual)
+        used += (shown - (s.mode ? 1 : 0)) * t.gap
     return used
 }
 
