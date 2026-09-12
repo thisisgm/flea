@@ -44,38 +44,18 @@ fn value_start(line: &str, key: &str) -> Option<usize> {
     None
 }
 
-// Sample input: "/tmp/two\nlines" or "café", the value only, quotes included.
+// Sample input: "/tmp/two\nlines" or "café", the value only, quotes included. The string itself is
+// read by src/jsonstring.rs, the one reader the whole-document side already has, so a \ud83d\udcc1
+// pair lands as the one character it names on this wire too: this scanner had its own copy of the
+// escapes that answered None to any surrogate, and a path holding one then read as absent, which
+// listed "" and trashed nothing without an error line to say so.
 pub fn field_str(line: &str, key: &str) -> Option<String> {
     let start = value_start(line, key)?;
     let rest = line[start..].trim_start();
     if !rest.starts_with('"') {
         return None;
     }
-    let mut out = String::new();
-    let mut chars = rest[1..].chars();
-    while let Some(c) = chars.next() {
-        match c {
-            '"' => return Some(out),
-            '\\' => match chars.next() {
-                Some('n') => out.push('\n'),
-                Some('r') => out.push('\r'),
-                Some('t') => out.push('\t'),
-                Some('b') => out.push('\u{8}'),
-                Some('f') => out.push('\u{c}'),
-                Some('u') => {
-                    let hex: String = chars.by_ref().take(4).collect();
-                    match u32::from_str_radix(&hex, 16).ok().and_then(char::from_u32) {
-                        Some(u) => out.push(u),
-                        None => return None,
-                    }
-                }
-                Some(other) => out.push(other),
-                None => return None,
-            },
-            c => out.push(c),
-        }
-    }
-    None
+    crate::jsonstring::parse_string(rest.as_bytes(), &mut 0).ok()
 }
 
 pub fn field_usize(line: &str, key: &str) -> Option<usize> {
@@ -196,6 +176,23 @@ mod tests {
             field_str(line, "path").as_deref(),
             Some("a\"b\\c/d\u{8}e\u{c}f\ng\rh\tiAj")
         );
+    }
+
+    // Python's json.dumps defaults to ensure_ascii, so a path holding a non-BMP character reaches this
+    // wire as a surrogate pair from any client but the QML one; it has to name the same file it would
+    // raw, and a pair inside an array element has to keep that element rather than drop it.
+    #[test]
+    fn a_surrogate_pair_on_the_wire_is_one_character_and_the_field_is_not_lost() {
+        let line = r#"{"c":"list","path":"/home/gm/\ud83d\udcc1 Work","first":1}"#;
+        assert_eq!(field_str(line, "path").as_deref(), Some("/home/gm/\u{1F4C1} Work"));
+        let line = r#"{"c":"trash","paths":["/a","/home/gm/\ud83d\udcc1.txt","/z"]}"#;
+        assert_eq!(
+            field_str_array(line, "paths"),
+            vec!["/a".to_string(), "/home/gm/\u{1F4C1}.txt".to_string(), "/z".to_string()],
+            "the element with the pair is kept in its place"
+        );
+        // A half with no partner is the replacement character, the same answer the document reader gives.
+        assert_eq!(field_str(r#"{"path":"\ud83dx"}"#, "path").as_deref(), Some("\u{FFFD}x"));
     }
 
     #[test]

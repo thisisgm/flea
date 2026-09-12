@@ -1,5 +1,6 @@
-// One JSON string in and one Rust String out: the escapes, and UTF-16's surrogate pairs, which
-// only src/jsondoc.rs's whole-document reader needs. The other direction is src/json.rs's escape.
+// One JSON string in and one Rust String out: the escapes, and UTF-16's surrogate pairs. Both readers
+// come through here, src/jsondoc.rs's whole document and src/json.rs's one field off the wire, so the
+// two cannot disagree on what a valid string means. The other direction is src/json.rs's escape.
 
 // UTF-16's surrogate halves, which are not scalar values and only mean anything as a pair.
 const HIGH_FIRST: u32 = 0xd800;
