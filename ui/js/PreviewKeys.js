@@ -56,6 +56,9 @@ function act(action, root) {
     case "playPause":
         if (root.preview.isMedia) root.preview.togglePlay()
         return
+    case "toggleMute":
+        if (root.preview.isMedia) root.preview.muted = !root.preview.muted
+        return
     case "escape": root.preview.close(); return
     case "seekBack":
         if (root.preview.isPdf) root.preview.turnPage(-1)

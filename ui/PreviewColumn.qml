@@ -12,7 +12,6 @@ Item {
     id: root
 
     property var row: null
-    // The meta reply's own fields, whatever ui/Backend.qml's meta signal carries; null until it arrives.
     property var meta: null
     property string kindName: ""
     property string thumb: ""
@@ -20,7 +19,6 @@ Item {
     property bool noThumbComing: false
     property int selectionCount: 0
     property var selectedRows: []
-    // The row's own absolute path, which the PDF page needs and nothing else here does.
     property string path: ""
     property int pdfControlIndex: -1
     property real pdfZoom: 1
@@ -33,6 +31,7 @@ Item {
     // duration, so browsing a folder of clips builds no MediaPlayer at all: it costs nothing, makes
     // no sound, and stops QtMultimedia logging a teardown warning on every cursor move.
     property bool wantsPlayback: false
+    property bool muted: false
     // The shared Space preview, handed in by ui/ColumnsArea.qml: one file plays in one place.
     property bool overlayOpen: false
     // Where a player may exist at all: this column on screen, no overlay over it, and a strip to drive it; losing any of them ends the play intent.
@@ -89,10 +88,8 @@ Item {
     readonly property Item archiveItem: archivePane
     // Ready is the decoded picture on screen; thumbShown is already true while it loads.
     readonly property alias frameStatus: frameThumb.status
-    // The two states whose picture is the thumbnail; audio's mark is what that state draws when it works.
     readonly property bool picturesFromThumb: root.previewState === Facts.IMAGE || root.previewState === Facts.VIDEO
 
-    // One mark per kind in the selection, front-most first; ui/KindStack.qml stacks them.
     readonly property var multiMarks: root.previewState === Facts.MULTI
         ? Facts.multiMarks(root.selectedRows) : []
 
@@ -138,6 +135,7 @@ Item {
                 visible: active && root.previewState === Facts.VIDEO
                 source: "PreviewMedia.qml"
                 onLoaded: {
+                    item.muted = Qt.binding(function () { return root.muted })
                     item.path = Qt.binding(function () { return root.path })
                     item.kind = Qt.binding(function () {
                         return root.previewState === Facts.VIDEO ? "video" : "audio"
@@ -358,6 +356,7 @@ Item {
                 id: strip
                 anchors.fill: parent
                 playing: transport.playing
+                muted: root.muted
                 position: transport.position
                 duration: transport.position > 0 && playerLoader.item && playerLoader.item.duration > 0
                           ? playerLoader.item.duration
@@ -368,6 +367,7 @@ Item {
                     else if (playerLoader.item)
                         playerLoader.item.togglePlay()
                 }
+                onMuteToggled: root.muted = !root.muted
                 onSeeked: function (ms) { if (playerLoader.item) playerLoader.item.seekTo(ms) }
             }
         }

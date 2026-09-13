@@ -1463,6 +1463,16 @@ context = "media"
 [[preset]]
 name = "all"
 mods = "text"
+key = "m"
+keys = "m"
+action = "toggleMute"
+label = "Mute / unmute"
+frontend = "gui"
+context = "media"
+
+[[preset]]
+name = "all"
+mods = "text"
 key = "k"
 keys = "k"
 action = "cursorUp"

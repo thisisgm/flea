@@ -9,6 +9,7 @@ Item {
     id: root
 
     property bool playing: false
+    property bool muted: false
     property real position: 0
     property real duration: 0
 
@@ -17,6 +18,7 @@ Item {
     property bool framed: true
 
     signal toggled()
+    signal muteToggled()
     signal seeked(real ms)
     // Any contact at all, so a host that hides this over a video can re-arm its own timer.
     signal touched()
@@ -56,6 +58,7 @@ Item {
     // A test clicks the mark itself rather than guessing at an offset inside the strip; seekItem is
     // the same seam for the track, which ui/shell.qml's previewSliderCentre reads through.
     readonly property var playItem: playSlot
+    readonly property var muteItem: muteButton
     readonly property var seekItem: track
 
     Item {
@@ -87,9 +90,25 @@ Item {
         }
     }
 
+    Flea.ChromeButton {
+        id: muteButton
+        anchors.left: playSlot.right
+        anchors.leftMargin: Theme.spacing.gap
+        anchors.verticalCenter: parent.verticalCenter
+        width: playSlot.width
+        height: playSlot.height
+        glyphSize: Theme.font.bodySmall
+        restingColor: Theme.color.foreground
+        glyph: root.muted ? "volume-x" : "volume-2"
+        accessName: root.muted ? "Unmute" : "Mute"
+        Accessible.checkable: true
+        Accessible.checked: root.muted
+        onActivated: { root.touched(); root.muteToggled() }
+    }
+
     Item {
         id: track
-        anchors.left: playSlot.right
+        anchors.left: muteButton.right
         anchors.leftMargin: Theme.spacing.gap
         anchors.right: clock.left
         anchors.rightMargin: Theme.spacing.gap

@@ -93,6 +93,9 @@ If you previously pinned another directory handler, restore that handler explici
   <img src="docs/images/pdf.png" alt="PDF preview with page navigation">
 </p>
 
+For audio and video previews, click the speaker button to mute or unmute. In the Space preview,
+`m` toggles mute and `p` toggles playback. Mute stays applied while switching files in the same preview.
+
 ## Performance
 
 Measured on **8 September 2026**, using the source tree released as **0.1.6**.

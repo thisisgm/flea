@@ -32,6 +32,7 @@ function run(check) {
         var pane = { closed: 0, played: 0 }
         pane.preview = {
             isMedia: kind === "audio" || kind === "video",
+            muted: false,
             isPdf: kind === "pdf",
             revealStrip: function () {},
             close: function () { pane.closed += 1 },
@@ -45,6 +46,17 @@ function run(check) {
         check("space closes a " + kind + " preview", open.closed, 1)
         check("and plays nothing on a " + kind + " preview", open.played, 0)
     }
+    for (var mediaKind of ["audio", "video"]) {
+        var media = previewPane(mediaKind)
+        PreviewKeys.act("toggleMute", media)
+        check("m mutes a " + mediaKind + " preview without pausing or closing it", media.preview.muted && media.played === 0 && media.closed === 0, true)
+        PreviewKeys.act("toggleMute", media)
+        check("m unmutes a " + mediaKind + " preview", media.preview.muted, false)
+    }
+    var image = previewPane("image")
+    PreviewKeys.act("toggleMute", image)
+    check("mute does not change a non-media preview", image.preview.muted, false)
+
     // Escape still closes, because a preview must never need a particular key to leave it.
     var escaped = previewPane("video")
     PreviewKeys.act("escape", escaped)

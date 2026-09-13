@@ -147,8 +147,7 @@ function bindingRows(name, frontend) {
 function hintFor(action) {
     return HINTS[action] || ""
 }
-// How wide a cap may get before a second spelling stops earning its place. The sheet draws two
-// columns of a 300 unit card, so a cap past this elides and the wording beside it has nowhere to go.
+// The sheet's 300-unit card needs room for both the key cap and its label.
 var SHEET_CAP_BUDGET = 16
 
 // An action id is not wording. A row the base sheet does not name printed its own identifier, so the

@@ -79,6 +79,7 @@ var PRESET_KEYS = [
     {"mods":"none","key":"Up","keys":"up","action":"cursorUp","label":"cursorUp","frontend":"all","context":"rail,menu,panel,preview,pdf,media","preset":"all","code":"Key_Up","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_Up,"mask":(0)},
     {"mods":"text","key":"j","keys":"j","action":"cursorDown","label":"cursorDown","frontend":"all","context":"rail,menu,panel,preview,media","preset":"all","code":"","text":"j","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":0,"mask":(0)},
     {"mods":"text","key":"p","keys":"p","action":"playPause","label":"playPause","frontend":"all","context":"media","preset":"all","code":"","text":"p","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":0,"mask":(0)},
+    {"mods":"text","key":"m","keys":"m","action":"toggleMute","label":"Mute / unmute","frontend":"gui","context":"media","preset":"all","code":"","text":"m","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":0,"mask":(0)},
     {"mods":"text","key":"k","keys":"k","action":"cursorUp","label":"cursorUp","frontend":"all","context":"rail,menu,panel,preview,media","preset":"all","code":"","text":"k","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":0,"mask":(0)},
     {"mods":"none","key":"Return","keys":"return","action":"open","label":"open","frontend":"all","context":"rail,menu,panel,preview,pdf,media","preset":"all","code":"Key_Return","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_Return,"mask":(0)},
     {"mods":"none","key":"Enter","keys":"enter","action":"open","label":"open","frontend":"all","context":"rail,menu,panel,preview,pdf,media","preset":"all","code":"Key_Enter","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_Enter,"mask":(0)},
@@ -236,8 +237,7 @@ function bindingRows(name, frontend) {
 function hintFor(action) {
     return HINTS[action] || ""
 }
-// How wide a cap may get before a second spelling stops earning its place. The sheet draws two
-// columns of a 300 unit card, so a cap past this elides and the wording beside it has nowhere to go.
+// The sheet's 300-unit card needs room for both the key cap and its label.
 var SHEET_CAP_BUDGET = 16
 
 // An action id is not wording. A row the base sheet does not name printed its own identifier, so the

@@ -16,6 +16,7 @@ Item {
     z: 1
 
     property bool active: false
+    property bool muted: false
     // shell.qml wires the pane in: the archive pane asks the backend about the cursor row and nothing else here reads it.
     property var pane: null
     property string path: ""
@@ -51,6 +52,7 @@ Item {
     readonly property alias stripVisible: mediaStrip.visible
     // fleaWindow.itemRect needs the real Item, the same seam rowCentre already reads through pane.
     readonly property var seekSlider: mediaStrip.seekItem
+    readonly property var muteButton: mediaStrip.muteItem
     readonly property string status: {
         if (!root.active) return ""
         if (root.isMedia) return mediaLoader.item ? mediaLoader.item.status : "loading"
@@ -269,6 +271,7 @@ Item {
             id: mediaLoader
             anchors.fill: parent
             onLoaded: {
+                item.muted = Qt.binding(function () { return root.muted })
                 item.path = Qt.binding(function () { return root.path })
                 item.kind = Qt.binding(function () { return root.kind })
                 item.size = Qt.binding(function () { return root.size })
@@ -380,9 +383,11 @@ Item {
             anchors.bottom: parent.bottom
             framed: false
             playing: root.status === "playing"
+            muted: root.muted
             position: root.position
             duration: root.duration
             onToggled: root.togglePlay()
+            onMuteToggled: root.muted = !root.muted
             onSeeked: function (ms) { root.seekTo(ms) }
             onTouched: root.revealStrip()
         }

@@ -147,6 +147,9 @@ var PATHS = {
     "network": "M9 2h6v6H9z M2 16h6v6H2z M16 16h6v6h-6z M12 8v4 M5 16v-4h14v4",
     // The convert popup's checkbox mark.
     "check": "M4 12l6 6L20 6",
+    // Speaker corners follow the set's square cut; the sound waves stay curved.
+    "volume-2": "M11 4 6 8H2v8h4l5 4z M16 9a5 5 0 0 1 0 6 M19.364 18.364a9 9 0 0 0 0-12.728",
+    "volume-x": "M11 4 6 8H2v8h4l5 4z M16.5 14.5l5-5 M16.5 9.5l5 5",
     // The PDF viewer's own three, recut sharp like the rest of the set; "maximize" is lucide's
     // name for the mark the canvas calls expand.
     "minus": "M5 12h14",
