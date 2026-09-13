@@ -257,7 +257,7 @@ places_concurrent() (
         hyprctl -j clients | jq -er --arg address "$address" '.[] | select(.address == $address) | [.at[0],.at[1],.size[0],.size[1]] | join(" ")'
     }
     places_use "$second_id" "$second_pid"
-    wait_listing 3
+    wait_listing 4
     places_wait_records "$expected"
     places_use "$first_id" "$first_pid"
     settings_open_key; settle
@@ -334,6 +334,9 @@ places_concurrent() (
         expected=$(jq -c '.[0:-1]' <<< "$expected")
         places_wait_records "$expected"
     }
+    places_use "$second_id" "$second_pid"
+    key -M ctrl -k l -m ctrl "$dir/listing/Gamma" -k Return >/dev/null
+    wait_path "$dir/listing/Gamma"; wait_listing 0
     local group target original_target target_path
     for group in network device; do
         places_use "$first_id" "$first_pid"
@@ -350,7 +353,7 @@ places_concurrent() (
         key h >/dev/null
         places_require_store
         key -k Return >/dev/null; settle
-        expected=$(jq -c --arg path "$dir/listing/Beta" '. + [{label:"Beta",path:$path}]' <<< "$expected")
+        expected=$(jq -c --arg path "$dir/listing/Gamma" '. + [{label:"Gamma",path:$path}]' <<< "$expected")
         places_wait_records "$expected"
         places_use "$first_id" "$first_pid"
         places_wait_records "$expected"
@@ -367,7 +370,7 @@ places_concurrent() (
             permissions_expect state ready
             permissions_expect listInFlight false
             key -M ctrl -k l -m ctrl "$dir/listing" -k Return >/dev/null
-            wait_path "$dir/listing"; wait_listing 3
+            wait_path "$dir/listing"; wait_listing 4
         fi
     done
     target=$(ipc railEntries | jq -er 'to_entries | map(select(.value.kind == "favourite")) | .[-1].key')
@@ -386,7 +389,7 @@ places_concurrent() (
 places_external_failure() {
     local dir="$1" expected doc="$XDG_STATE_HOME/flea/ui.json" attempt mode
     expected=$(jq -c '.places.favourites' "$doc")
-    launch "$dir/listing"; wait_listing 3
+    launch "$dir/listing"; wait_listing 4
     places_wait_records "$expected"
     cp "$doc" "$dir/live-store.original"
     places_require_store
@@ -489,14 +492,14 @@ places_external_failure() {
 case_settingsplaces() {
     local dir="$fixture_root/settingsplaces" records expected initial index attempt
     sandbox_scratch "$dir"
-    mkdir -p "$dir/listing/Alpha" "$dir/listing/Beta" "$dir/state/flea" "$dir/config/gtk-3.0" "$dir/data"
+    mkdir -p "$dir/listing/Alpha" "$dir/listing/Beta" "$dir/listing/Gamma" "$dir/state/flea" "$dir/config/gtk-3.0" "$dir/data"
     printf 'listing fixture\n' > "$dir/listing/proof.txt"
     export XDG_STATE_HOME="$dir/state" XDG_CONFIG_HOME="$dir/config" XDG_DATA_HOME="$dir/data" FLEA_UI="$flea_ui"
     printf 'file://%s GTK label preserved\ninvalid GTK entry\n' "$dir/listing/Alpha" > "$dir/config/gtk-3.0/bookmarks"
     cp "$dir/config/gtk-3.0/bookmarks" "$dir/bookmarks.original"
     printf '%s\n' '{"keys":"default","view":"list","places":{"favourites":[]}}' > "$dir/state/flea/ui.json"
     launch "$dir/listing"
-    wait_listing 3
+    wait_listing 4
     places_wait_records '[]'
     settings_open_key; settle
     settings_section places
@@ -512,7 +515,7 @@ case_settingsplaces() {
     initial=$(jq -cn --arg path "$dir/listing" '[{label:"listing",path:$path}]')
     places_wait_records "$initial"
     key -k Return >/dev/null; settle
-    expected=$(jq -c '. + .' <<< "$initial")
+    expected="$initial"
     places_wait_records "$expected"
     key -k Escape >/dev/null; settle
 
@@ -523,6 +526,18 @@ case_settingsplaces() {
     key -k Return >/dev/null; settle
     expected=$(jq -c --arg path "$dir/listing/Alpha" '. + [{label:"Alpha",path:$path}]' <<< "$expected")
     places_wait_records "$expected"
+    click_row "$(ipc cursor)" right; settle
+    ipc contextMenuModel | jq -e 'any(.[]; .action == "addFavourite" and .label == "Favorited" and .glyph == "star" and .filled == true and .disabled == true)' >/dev/null \
+        || fail "places: saved folder must show disabled Favorited with a filled star"
+    places_click_menu Favorited
+    places_wait_records "$expected"
+    shot places-favorited
+    key -k Escape >/dev/null; settle
+    seek_row_named Gamma
+    click_row "$(ipc cursor)" right; settle
+    places_click_menu 'Add to Favorites'
+    expected=$(jq -c --arg path "$dir/listing/Gamma" '. + [{label:"Gamma",path:$path}]' <<< "$expected")
+    places_wait_records "$expected"
     seek_row_named proof.txt
     click_row "$(ipc cursor)" right
     settle
@@ -532,9 +547,11 @@ case_settingsplaces() {
     places_wait_records "$expected"
     key -k Escape >/dev/null; settle
     click_background; settle
-    places_click_menu 'Add to Favorites'
-    expected=$(jq -c --arg path "$dir/listing" '. + [{label:"listing",path:$path}]' <<< "$expected")
+    ipc contextMenuModel | jq -e 'any(.[]; .action == "addFavourite" and .label == "Favorited" and .filled == true and .disabled == true)' >/dev/null \
+        || fail "places: saved current folder can still be added through the background menu"
+    places_click_menu Favorited
     places_wait_records "$expected"
+    key -k Escape >/dev/null; settle
     shot places-listing-add
 
     settings_open_key; settle
@@ -586,7 +603,7 @@ case_settingsplaces() {
     places_click_menu Remove
     expected=$(jq -c 'del(.[0])' <<< "$expected")
     places_wait_records "$expected"
-    launch "$dir/listing"; wait_listing 3
+    launch "$dir/listing"; wait_listing 4
     places_wait_records "$expected"
     cmp "$dir/bookmarks.original" "$dir/config/gtk-3.0/bookmarks" \
         || fail "places: native manager rewrote GTK bookmarks"
@@ -618,7 +635,7 @@ case_settingsplaces() {
     records=$(jq -cn --arg path "$dir/listing/Alpha" --arg missing "$dir/missing" \
         '[{label:"  Original <label>  ",path:$path},{label:"Second label",path:$path},{label:"Unavailable",path:$missing},{label:"Relative",path:"relative"},17,{label:"Network URI",path:"smb://unavailable.invalid/share"}]')
     jq -cn --argjson records "$records" '{keys:"default",view:"list",places:{favourites:$records},unrelated:{retain:true}}' > "$dir/state/flea/ui.json"
-    launch "$dir/listing"; wait_listing 3
+    launch "$dir/listing"; wait_listing 4
     places_wait_records "$records"
     settings_open_key; settle
     settings_section places
@@ -652,15 +669,15 @@ case_settingsplaces() {
     wait_listing 0
     settings_focus_row favouriteActions
     key h >/dev/null; key -k Return >/dev/null; settle
-    expected=$(jq -c --arg path "$dir/listing/Alpha" '. + [{label:"Alpha",path:$path}]' <<< "$records")
+    expected="$records"
     places_wait_records "$expected"
     key -k Escape >/dev/null; settle
-    launch "$dir/listing"; wait_listing 3
+    launch "$dir/listing"; wait_listing 4
     places_wait_records "$expected"
     jq -e '.unrelated.retain == true' "$dir/state/flea/ui.json" >/dev/null || fail "places: favourites edits dropped unrelated preferences"
     cmp "$dir/bookmarks.original" "$dir/config/gtk-3.0/bookmarks" || fail "places: original GTK bytes changed"
     places_concurrent "$dir" "$expected" || fail "places: concurrent-window proof failed"
     places_external_failure "$dir"
-    printf 'PLACES original-records duplicates panel/listing/rail keyboard pointer-drag invalid-retention restart=ok\n'
+    printf 'PLACES original-records retained-duplicates duplicate-add-noop favorited-menu panel/listing/rail keyboard pointer-drag invalid-retention restart=ok\n'
     kill_flea
 }

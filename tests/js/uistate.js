@@ -73,6 +73,9 @@ function run(check) {
     var a = {label:"A", path:"/a"}, b = {label:"B", path:"/b"}, c = {label:"C", path:"/c"}
     var before = [a, b], ownAdd = UiState.favouritesAfter(before, {op:"add", record:c})
     check("own add expects every original sibling plus its new record", JSON.stringify(ownAdd), JSON.stringify([a, b, c]))
+    check("adding a saved location predicts no new record", JSON.stringify(UiState.favouritesAfter(before, {op:"add", record:{label:"Again", path:"/a/"}})), JSON.stringify(before))
+    check("adding an expanded home location predicts no new record", UiState.favouritesAfter([{label:"Docs", path:"~/docs"}],
+          {op:"add", record:{label:"Documents", path:"/home/test/docs"}}, "/home/test").length, 1)
     check("a concurrent removal in the successful response is still external", JSON.stringify(ownAdd) === JSON.stringify([b, c]), false)
     check("own reorder preserves records and predicts their new order", JSON.stringify(UiState.favouritesAfter(before, {op:"move", index:1, to:0})), JSON.stringify([b, a]))
     check("own removal predicts only its captured index removal", JSON.stringify(UiState.favouritesAfter(before, {op:"remove", index:0})), JSON.stringify([b]))

@@ -3,6 +3,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Io
 import "js/UiState.js" as UiState
+import "js/Places.js" as Places
 
 // All callers share one operation writer; the Rust updater locks and re-reads before editing.
 QtObject {
@@ -31,7 +32,7 @@ QtObject {
         writer.errorText = ""
         writer.requestId = requestId || ""
         writer.beforeRecords = root.records
-        writer.expectedRecords = UiState.favouritesAfter(root.records, operation)
+        writer.expectedRecords = UiState.favouritesAfter(root.records, operation, Quickshell.env("HOME"))
         root.operationActive = true
         writer.command = [Quickshell.env("FLEA_BIN") || "flea", "--favourites", JSON.stringify(operation)]
         writer.pending = true
@@ -40,6 +41,9 @@ QtObject {
     }
     function add(path, label, requestId) {
         return root.apply({ op: "add", record: { label: label, path: path } }, requestId)
+    }
+    function contains(path) {
+        return Places.containsFavourite(root.records, path, Quickshell.env("HOME"))
     }
     function remove(index) {
         return root.apply({ op: "remove", index: index, expected: root.records })

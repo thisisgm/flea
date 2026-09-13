@@ -9,6 +9,7 @@ Item {
 
     property string name: "file"
     property color color: "transparent"
+    property bool filled: false
     // Lucide draws on a 24 unit grid, so every path in Icons.js is in those units.
     readonly property real grid: 24
     // The mark's ceiling. Default is the row and menu mark; a surface drawing a mark alone passes its own.
@@ -32,7 +33,7 @@ Item {
 
         ShapePath {
             strokeColor: root.color
-            fillColor: "transparent"
+            fillColor: root.filled ? root.color : "transparent"
             strokeWidth: root.strokeWidth
             // The Omarchy cut: square caps and mitered joins, the edge of the brand spiral; Icons.js paths are redrawn sharp to match.
             capStyle: ViewState.hyprlandIcons && Style.cornerRadius > 0 ? ShapePath.RoundCap : ShapePath.SquareCap

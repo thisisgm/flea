@@ -38,6 +38,13 @@ function run(check) {
     check("missing metadata cannot be pinned", entry(Menu.listingEntries(state({ rowMode: undefined })), "addFavourite").disabled, true)
     check("background pins the current folder without selected rows", entry(Menu.listingEntries(state({ hasRow: false, selectionCount: 0 })), "addFavourite").disabled, undefined)
     check("direct background builder ignores row eligibility", entry(Menu.backgroundEntries(state({})), "addFavourite").disabled, undefined)
+    var favourited = entry(Menu.listingEntries(state({ rowMode: 0o040755, favourited: true })), "addFavourite")
+    check("saved directory displays a disabled Favorited row with a filled star",
+          [favourited.label, favourited.glyph, favourited.filled, favourited.disabled].join("|"), "Favorited|star|true|true")
+    check("saved background folder also displays Favorited", entry(Menu.backgroundEntries(state({ favourited: true })), "addFavourite").label, "Favorited")
+    check("Favorites waits for the captured path", entry(Menu.listingEntries(state({ rowMode: 0o040755, favouritePending: true })), "addFavourite").disabled, true)
+    check("new folders retain the outline star", entry(Menu.listingEntries(state({ rowMode: 0o040755 })), "addFavourite").filled, undefined)
+    check("multi-selection never claims every row is favorited", entry(Menu.listingEntries(state({ selectionCount: 2, favourited: true })), "addFavourite").label, "Add to Favorites")
     check("empty Trash retains both disabled actions", actions(Menu.trashEntries(0, false)), "open,restoreAll,emptyTrash")
     check("empty Trash disables restore", entry(Menu.trashEntries(0, false), "restoreAll").disabled, true)
     check("empty Trash disables empty", entry(Menu.trashEntries(0, false), "emptyTrash").disabled, true)

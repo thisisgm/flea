@@ -129,6 +129,21 @@ function storedEntries(records, home) {
     return out
 }
 
+// Compare saved locations without statting paths or rewriting the user's original records.
+function favouritePath(path, home) {
+    if (typeof path !== "string" || !path.length) return ""
+    if (path === "~") path = home || path
+    else if (path.indexOf("~/") === 0 && home) path = home + path.substring(1)
+    return path.replace(/\/+$/, "") || "/"
+}
+
+function containsFavourite(records, path, home) {
+    var target = favouritePath(path, home)
+    return target.length > 0 && records.some(function (record) {
+        return record && favouritePath(record.path, home) === target
+    })
+}
+
 function homeEntries(home, dirsText, glyphFor) {
     var entries = [{ label: "Home", path: home }].concat(userDirs(dirsText, home))
     return entries.map(function (entry) {

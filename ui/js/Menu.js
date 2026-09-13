@@ -92,7 +92,12 @@ function buildEntries(kind, p) {
 function availableEntry(e, p, kind) {
     var count = p.selectionCount === undefined ? 1 : p.selectionCount
     if (e.action === "addFavourite" && kind === "F")
-        e.disabled = count !== 1 || ((Number(p.rowMode) || 0) & 0o170000) !== 0o040000
+        e.disabled = p.favouritePending === true || count !== 1 || ((Number(p.rowMode) || 0) & 0o170000) !== 0o040000
+    if (e.action === "addFavourite" && p.favourited === true && (kind !== "F" || count === 1)) {
+        e.label = "Favorited"
+        e.filled = true
+        e.disabled = true
+    }
     if (e.action === "paste") e.disabled = p.clipboardAvailable !== true
     if (["duplicate", "rename", "properties"].indexOf(e.action) >= 0)
         e.disabled = count !== 1

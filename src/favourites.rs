@@ -111,6 +111,17 @@ pub fn changed(state: &Json, operation: &Json) -> Result<Json, String> {
                     "favorite path must be absolute, ~/ relative, or a supported URI".into(),
                 );
             }
+            let home = std::env::var("HOME").unwrap_or_default();
+            let target = favourite_path(path, &home);
+            if current.iter().any(|saved| {
+                saved
+                    .get("path")
+                    .and_then(Json::as_str)
+                    .filter(|path| !path.is_empty())
+                    .is_some_and(|path| favourite_path(path, &home) == target)
+            }) {
+                return Ok(state.clone());
+            }
             next.push(record.clone());
         }
         Some(action @ ("remove" | "move" | "rename")) => {
@@ -162,6 +173,21 @@ pub fn changed(state: &Json, operation: &Json) -> Result<Json, String> {
     )
 }
 
+// Match the UI's saved-location comparison; no filesystem traversal or record normalization.
+fn favourite_path(path: &str, home: &str) -> String {
+    let expanded = if !home.is_empty() && (path == "~" || path.starts_with("~/")) {
+        format!("{}{}", home, &path[1..])
+    } else {
+        path.into()
+    };
+    let trimmed = expanded.trim_end_matches('/');
+    if trimmed.is_empty() {
+        "/".into()
+    } else {
+        trimmed.into()
+    }
+}
+
 fn index_value(operation: &Json, key: &str) -> Result<usize, String> {
     let value = operation
         .get(key)
@@ -208,7 +234,7 @@ mod tests {
     }
 
     #[test]
-    fn simultaneous_appends_merge_under_the_existing_state_lock() {
+    fn simultaneous_adds_of_one_path_land_once_under_the_existing_state_lock() {
         let sandbox = crate::backend::testdir::TestDir::new("favourites-concurrent");
         let store = uistore::Store::at(&sandbox.dir("state"), &sandbox.dir("config"));
         std::thread::scope(|scope| {
@@ -237,18 +263,24 @@ mod tests {
                 .as_array()
                 .unwrap()
                 .len(),
-            4
+            1
         );
     }
 
     #[test]
-    fn append_preserves_duplicates_invalid_records_and_unrelated_state() {
+    fn adding_a_saved_path_preserves_original_records_and_unrelated_state() {
         let state = uistate::from_file(
-            r#"{"hidden":true,"places":{"favourites":[{"label":"A","path":"/a"},17,{"label":"","path":"bad"}]}}"#,
+            r#"{"hidden":true,"places":{"favourites":[{"label":"Original","path":"/a"},{"label":"Duplicate","path":"/a"},17,{"label":"","path":"bad"}]}}"#,
         );
         let next = changed(
             &state,
             &parse(r#"{"op":"add","record":{"label":"A","path":"/a"}}"#),
+        )
+        .unwrap();
+        assert_eq!(next, state);
+        let next = changed(
+            &state,
+            &parse(r#"{"op":"add","record":{"label":"B","path":"/b"}}"#),
         )
         .unwrap();
         let rows = next
@@ -258,10 +290,28 @@ mod tests {
             .unwrap()
             .as_array()
             .unwrap();
-        assert_eq!(rows.len(), 4);
-        assert_eq!(rows[0], rows[3]);
-        assert_eq!(rows[1], Json::Num("17".into()));
+        assert_eq!(rows.len(), 5);
+        assert_eq!(rows[2], Json::Num("17".into()));
         assert_eq!(next.get("hidden"), Some(&Json::Bool(true)));
+    }
+
+    #[test]
+    fn saved_path_matching_expands_home_and_ignores_trailing_slashes() {
+        assert_eq!(
+            favourite_path("~/Downloads/", "/home/test"),
+            "/home/test/Downloads"
+        );
+        assert_eq!(favourite_path("~", "/home/test"), "/home/test");
+        assert_eq!(favourite_path("/", "/home/test"), "/");
+        let state = uistate::from_file(r#"{"places":{"favourites":[{"label":"A","path":"/a/"}]}}"#);
+        assert_eq!(
+            changed(
+                &state,
+                &parse(r#"{"op":"add","record":{"label":"Renamed","path":"/a"}}"#)
+            )
+            .unwrap(),
+            state
+        );
     }
 
     #[test]

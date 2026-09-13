@@ -86,6 +86,9 @@ Identity checks compare the device, inode and file type at the worker boundary; 
 batch handoff. These checks do not make subsequent external-helper filesystem operations
 atomic. Omitting `menuId` preserves the existing keyboard and protocol entry paths.
 
+The menu snapshot reply includes `count`, the first item's file-type bits in `mode`, and `path`
+for a single selected item. A multi-selection returns an empty `path`.
+
 `{"c":"menuaction","op":"snapshot","id":4,"rows":[0,2]}` captures the selected identities
 from the active listing. `prepareDelete` with that `id` reviews the captured trees and returns a
 fresh `token`, selected `count`, and total `bytes`. `checkDelete` with the `id` and `token` returns

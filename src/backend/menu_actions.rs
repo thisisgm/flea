@@ -134,7 +134,6 @@ struct Snapshot {
     provider_destination: Option<Selected>,
     provider_transfer: bool,
 }
-
 // The lock must already be held when cancellation is checked, or close can be followed by a stale publication.
 fn publish_snapshot(mut published: MutexGuard<'_, Snapshot>, state: Snapshot, cancel: &Cancellation) {
     if cancel.check().is_ok() { *published = state; }
@@ -173,7 +172,6 @@ pub(crate) fn validate_sources(items: Option<&[Selected]>, paths: &[PathBuf]) ->
     Ok(())
 }
 impl Snapshot {
-    // Sample input: {"c":"menuaction","op":"snapshot","id":3}; paths are resolved from the active listing by run.rs.
     fn handle_request(&mut self, line: &str, paths: Vec<String>, cursor: Option<&str>, registry: &Registry, cancel: &Cancellation) -> String {
         let id = field_usize(line, "id").unwrap_or(0);
         let op = field_str(line, "op").unwrap_or_default();
@@ -191,7 +189,9 @@ impl Snapshot {
                     self.cursor = cursor.map(Selected::inspect).transpose()?;
                     self.items = items;
                     self.id = id;
-                    Ok(format!(r#""count":{}"#, self.items.len()))
+                    let item = &self.items[0];
+                    let path = if self.items.len() == 1 { escape(&item.path.to_string_lossy()) } else { String::new() };
+                    Ok(format!(r#""count":{},"mode":{},"path":"{}""#, self.items.len(), item.kind, path))
                 })
             }
         } else if op == "close" {
@@ -357,7 +357,6 @@ mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::symlink;
-
     #[test]
     fn cancellation_at_publication_cannot_resurrect_a_closed_snapshot() {
         let published = Mutex::new(Snapshot::default());
@@ -403,7 +402,7 @@ mod tests {
         let folder = d.dir("folder");
         let mut snapshot = Snapshot::default();
         let paths = vec![path.to_string_lossy().into(), folder.to_string_lossy().into()];
-        snapshot.handle(r#"{"op":"snapshot","id":5}"#, paths);
+        assert_eq!(field_str(&snapshot.handle(r#"{"op":"snapshot","id":5}"#, paths), "path").as_deref(), Some(""));
         let first = snapshot.handle(r#"{"op":"prepareDelete","id":5}"#, vec![]);
         let old_token = field_usize(&first, "token").unwrap();
         d.file("folder/new", "new child");
@@ -447,7 +446,8 @@ mod tests {
         let sandbox = TestDir::new("menu-snapshot");
         let path = sandbox.file("item", "original");
         let mut snapshot = Snapshot::default();
-        assert!(snapshot.handle(r#"{"op":"snapshot","id":3}"#, vec![path.to_string_lossy().into()]).contains(r#""ok":true"#));
+        let captured = snapshot.handle(r#"{"op":"snapshot","id":3}"#, vec![path.to_string_lossy().into()]);
+        assert_eq!(field_str(&captured, "path").as_deref(), path.to_str());
         assert!(snapshot.handle(r#"{"op":"activate","id":3,"action":"addFavourite"}"#, vec![]).contains(&format!(r#""paths":["{}"]"#, path.display())));
         assert!(snapshot.handle(r#"{"op":"validate","id":2}"#, vec![]).contains("expired"));
         let moved = sandbox.join("old");

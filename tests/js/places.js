@@ -24,7 +24,7 @@ function run(check) {
     check("a moved rename target no longer has its old index", Places.railCursorAfter(oldRail, expandedRail, 3) === 3, false)
     var records = [{ label: "A", path: "/a" }, { label: "Again", path: "/a" }, 17, { label: "", path: "bad" }]
     var stored = Places.storedEntries(records, "/home/test")
-    check("Flea keeps duplicate paths", stored.length, 4)
+    check("Flea keeps previously saved duplicate paths", stored.length, 4)
     check("Flea preserves each duplicate label", stored[1].label, "Again")
     check("invalid favourite remains identifiable", stored[2].original, 17)
     check("invalid favourite is marked", stored[2].error.length > 0, true)
@@ -38,6 +38,12 @@ function run(check) {
     check("bad width type falls back", Places.sidebarWidth("224"), 192)
     check("tilde expands only for consumption", Places.storedEntries([{label:"Home",path:"~/docs"}], "/home/test")[0].path, "/home/test/docs")
     check("stored tilde stays intact", Places.storedEntries([{label:"Home",path:"~/docs"}], "/home/test")[0].storedPath, "~/docs")
+    var saved = [{label:"Downloads",path:"~/Downloads/"}, {label:"Original label",path:"/other"}, 17, {path:""}]
+    check("favorite matching expands home and ignores trailing slashes", Places.containsFavourite(saved, "/home/test/Downloads", "/home/test"), true)
+    check("favorite matching uses the path rather than its label", Places.containsFavourite(saved, "/other/", "/home/test"), true)
+    check("a different folder is not favorited", Places.containsFavourite(saved, "/home/test/Downloads-old", "/home/test"), false)
+    check("invalid empty paths cannot match the filesystem root", Places.containsFavourite(saved, "/", "/home/test"), false)
+    check("the filesystem root matches itself", Places.containsFavourite([{path:"/"}], "/", "/home/test"), true)
 
     var dirs = 'XDG_DESKTOP_DIR="$HOME/"\n'
              + 'XDG_DOWNLOAD_DIR="$HOME/Downloads"\n'

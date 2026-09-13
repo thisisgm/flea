@@ -265,6 +265,8 @@ Loader {
                     // No installed flag: the flyout draws the registry alone, and asking for the
                     // whole catalogue here walked every applications directory on every right-click.
                     root.pane.backend.send({c: "menuaction", op: "applications", id: root.requestId})
+                root.pane.contextMenu().snapshot = root.ready ? message : ({})
+                root.pane.contextMenu().refreshProviderRows()
                 root.finishProviders()
                 return
             }

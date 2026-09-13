@@ -6795,18 +6795,12 @@ settings_places() {
     key -k Return >/dev/null; settle
     settings_wait_value '.places.favourites | length == 1'
     key -k Return >/dev/null; settle
-    settings_wait_value '.places.favourites | length == 2'
-    ipc uiSettings | jq -e --arg path "$dir" '.places.favourites | length == 2 and all(.[]; .path == $path)' >/dev/null \
-        || fail "settings: Add current folder did not preserve duplicate paths"
+    settings_wait_value '.places.favourites | length == 1'
+    ipc uiSettings | jq -e --arg path "$dir" '.places.favourites | length == 1 and .[0].path == $path' >/dev/null \
+        || fail "settings: Add current folder created a duplicate path"
     settings_focus_row favourite:0
-    key -M shift -k j -m shift >/dev/null; settle
-    [[ "$(ipc settingsCursor)" == "2" ]] || fail "settings: Shift+J did not keep focus on the moved favourite"
     settings_focus_row favouriteActions
     key l >/dev/null; key -k Return >/dev/null; settle
-    settings_wait_value '.places.favourites | length == 1'
-    settings_focus_row favourite:0
-    settings_focus_row favouriteActions
-    key -k Return >/dev/null; settle
     settings_wait_value '.places.favourites == []'
     for flag in showHome showNetwork showDevices showTrash; do
         settings_click_control "places.$flag"

@@ -564,7 +564,6 @@ FocusScope {
         anchors { top: parent.top; left: railLoader.right; right: parent.right; bottom: parent.bottom }
     }
 
-    // Directory cursors retain the installed provider with its explicit file-only reason.
     readonly property var cursorRow: root.rowFor(root.cursorIndex)
     readonly property alias taildropService: wire.taildrop
     readonly property var dropboxService: root.sidebar ? root.sidebar.providerService : null
@@ -584,6 +583,7 @@ FocusScope {
             ? root.backend.extraction.sevenZip : root.backend.extraction.archive
         rowMode: root.permissionSelection() ? root.permissionSelection().p : 0
         selectionCount: Ops.targetIndices(root).length
+        backgroundPath: root.path
         openWithApps: menuActions.openWithApps
         openWithLoaded: menuActions.openWithLoaded
         selectionIdentity: root.menuSelectionIdentity

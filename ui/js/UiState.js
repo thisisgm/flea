@@ -1,4 +1,5 @@
 .pragma library
+.import "Places.js" as Places
 
 // ui/ViewState.qml's one-writer bookkeeping, and nothing else: `saved` is the newest patch a writer
 // landed, `inflight` is what the running `flea --ui-state` carries, and `pending` is the newest patch
@@ -34,9 +35,9 @@ function refreshedFavourites(state, text) {
 }
 
 // Compare a save with this window's intent, because the writer response can include concurrent edits.
-function favouritesAfter(records, operation) {
+function favouritesAfter(records, operation, home) {
     var next = records.slice()
-    if (operation.op === "add") next.push(operation.record)
+    if (operation.op === "add" && !Places.containsFavourite(records, operation.record.path, home)) next.push(operation.record)
     else if (operation.op === "remove") next.splice(operation.index, 1)
     else if (operation.op === "move") next.splice(operation.to, 0, next.splice(operation.index, 1)[0])
     else if (operation.op === "rename") next[operation.index] = Object.assign({}, next[operation.index], { label: operation.label })

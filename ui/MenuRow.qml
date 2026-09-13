@@ -116,6 +116,7 @@ Item {
             visible: root.entry.mark === undefined && !appMark.visible
             name: root.entry.glyph !== undefined ? root.entry.glyph : "file"
             color: root.markColor
+            filled: root.entry.filled === true
         }
 
         // The theme that cannot name the entry leaves the glyph above standing in its muted role.

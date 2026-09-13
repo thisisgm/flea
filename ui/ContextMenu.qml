@@ -16,19 +16,17 @@ Item {
     signal snapshotRequested()
 
     property bool opened: false
-    // Driven from ui/Pane.qml's own state, so this file owns no hidden-file logic itself.
+    property var snapshot: ({})
     property bool showHidden: false
-    // The application name ui/Opener.qml resolved for the cursor row, shown muted beside "Open".
-    // [{id, label}], the reachable Taildrop targets; installed providers keep their disabled reason.
     property var taildropPeers: []
     property bool taildropInstalled: false
     property string taildropReason: ""
     property bool providersRefreshing: false
-    // The archive formats this box actually probed, and whether a converter is installed at all.
     property var archiveFormats: []
     property bool canConvert: false
     property bool canExtract: false
     property bool clipboardAvailable: false
+    property string backgroundPath: ""
     // Whether the cursor row is an archive, and whether it is an image; both decided client-side.
     property bool rowIsArchive: false
     property bool rowIsImage: false
@@ -118,6 +116,8 @@ Item {
         return Menu.listingEntries({
             showHidden: root.showHidden,
             hasRow: root.hasRow,
+            favourited: Favourites.contains(root.hasRow ? root.snapshot.path : root.backgroundPath),
+            favouritePending: root.hasRow && !root.snapshot.path,
             rowInDropbox: root.rowInDropbox,
             dropboxPath: root.dropboxPath,
             dropboxInstalled: root.dropboxInstalled,
@@ -141,8 +141,7 @@ Item {
         })
     }
 
-    // The row item at an index, for ui/Ipc.qml: a driven test clicks a menu row without deriving
-    // its geometry from a row count the Menus settings can now change under it.
+    // IPC uses the actual menu row geometry, including user-configured visibility.
     function itemFor(index) { return menuRows.itemAt(index) }
     function submenuItemFor(index) { return subRows.itemAt(index) }
     readonly property var frameItem: frame
@@ -237,6 +236,7 @@ Item {
         var point = root.mapFromItem(null, scenePoint)
         root.placeX = point.x
         root.placeY = point.y
+        root.snapshot = ({})
         root.entries = root.buildEntries()
         root.openedIdentity = root.selectionIdentity
         scroll.contentY = 0
@@ -305,6 +305,7 @@ Item {
         root.submenuCursor = selection.submenuCursor
         Qt.callLater(function() { if (root.opened) scroll.reveal(menuRows.itemAt(root.cursor)) })
     }
+    Connections { target: Favourites; function onRecordsChanged() { root.refreshProviderRows() } }
 
     // Rebuild only to validate; rows stay fixed while the menu is open under the pointer.
     function validateChoice(action, subId) {
@@ -423,7 +424,6 @@ Item {
         }
     }
 
-    // The flyout: a second frame beside whichever row opened it, only while one has.
     Rectangle {
         id: flyout
         visible: root.submenuOpen

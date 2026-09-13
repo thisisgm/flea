@@ -31,6 +31,10 @@ Large directories stay responsive: the window loads rows and requests thumbnails
 - **Desktop integration.** Default file manager, “Show in folder” and Open/Save dialogs.
 - **Your settings.** Omarchy text sizes, configurable menus and Default, Vim, Mac or Windows keys.
 
+Add a folder to Favorites from its context menu or the listing background. Saved folders show
+**Favorited** with a filled star; adding the same path again leaves its original entry unchanged.
+Existing duplicate entries remain available to remove individually.
+
 ## Install
 
 ```bash
