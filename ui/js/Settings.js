@@ -1,5 +1,6 @@
 .pragma library
 .import "TextSize.js" as TextSize
+.import "ThumbSize.js" as ThumbSize
 .import "Places.js" as Places
 .import "Keymap.js" as Keymap
 
@@ -344,10 +345,10 @@ function previewRows(state) {
     var load = choice("preview.loadOn", "Load", "eye", ["automatic", "manual"],
                       ["Automatic", "Manual"], data.loadOn || "automatic", true)
     load.indented = true
-    var size = choice("preview.thumbSize", "Thumbnail size", "maximize", ["small", "medium", "large", "xlarge"],
-                      ["Small", "Medium", "Large", "Extra large"], data.thumbSize || "medium")
+    var size = choice("preview.thumbSize", "Thumbnail size", "maximize", ThumbSize.NAMES,
+                      ThumbSize.LABELS, ThumbSize.parse(data.thumbSize))
     size.indented = true
-    size.caption = [48, 64, 96, 128][Math.max(0, size.values.indexOf(size.selected))] + " px"
+    size.caption = ThumbSize.caption(size.selected)
     return [
         { kind: "group", label: "Preview column" },
         { kind: "check", id: "preview.column", label: "Preview column", glyph: "columns", on: data.column !== false },

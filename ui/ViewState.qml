@@ -6,6 +6,7 @@ import qs.Commons
 import "js/Keymap.js" as Keymap
 import "js/Settings.js" as Settings
 import "js/TextSize.js" as TextSize
+import "js/ThumbSize.js" as ThumbSize
 import "js/UiState.js" as UiState
 
 // The per-user state that outlives a window, `~/.local/state/flea/ui.json`. Read once here with a
@@ -112,8 +113,8 @@ QtObject {
     readonly property bool previewColumn: root.preview.column !== false
     readonly property bool previewAutomatic: root.preview.loadOn !== "manual"
     readonly property string thumbnailMode: root.preview.thumbnails || "media"
-    readonly property string thumbnailSize: root.preview.thumbSize || "medium"
-    readonly property int thumbnailPixels: ({ small: 48, medium: 64, large: 96, xlarge: 128 })[root.thumbnailSize] || 64
+    readonly property string thumbnailSize: ThumbSize.parse(root.preview.thumbSize)
+    readonly property int thumbnailPixels: ThumbSize.pixels(root.thumbnailSize)
     readonly property bool ctrlZoom: root.preview.ctrlZoom !== false
     readonly property string density: root.state.density || "normal"
     readonly property string addressBar: root.state.addressBar || "breadcrumb"
@@ -173,6 +174,16 @@ QtObject {
 
     function stepTextSize(direction) {
         root.setTextSize(TextSize.stepped(root.textSize, root.omarchyBase, direction))
+    }
+
+    // Preview > Thumbnail size. ui/shell.qml routes keys.toml's thumbSizeUp, thumbSizeDown and
+    // thumbSizeReset into the same three, so a chord, Ctrl+scroll and the settings row cannot
+    // hold two different sizes. Reset is the schema default, medium, not the floor.
+    function stepThumbSize(direction) {
+        if (direction === 0)
+            root.changeSetting("preview.thumbSize", ThumbSize.DEFAULT)
+        else
+            root.changeSetting("preview.thumbSize", ThumbSize.step(root.thumbnailSize, direction))
     }
 
     function toggleTextFollow() {

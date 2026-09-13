@@ -4,6 +4,7 @@ import "js/DirSizes.js" as DirSizes
 import "js/Filter.js" as Filter
 import "js/Focus.js" as Focus
 import "js/Tap.js" as Tap
+import "js/ThumbSize.js" as ThumbSize
 import "js/Thumbs.js" as Thumbs
 
 // The grid view. Same rows, same marks, same thumbnails as the list; only the geometry differs, so
@@ -25,9 +26,7 @@ GridView {
         var steps = root.zoomTravel > 0 ? Math.floor(root.zoomTravel) : Math.ceil(root.zoomTravel)
         if (steps !== 0) {
             root.zoomTravel -= steps
-            var sizes = ["small", "medium", "large", "xlarge"]
-            var next = Math.max(0, Math.min(sizes.length - 1, sizes.indexOf(ViewState.thumbnailSize) + steps))
-            ViewState.changeSetting("preview.thumbSize", sizes[next])
+            ViewState.changeSetting("preview.thumbSize", ThumbSize.step(ViewState.thumbnailSize, steps))
         }
         return true
     }

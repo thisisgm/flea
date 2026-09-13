@@ -8,7 +8,9 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parent.parent
 PRESETS = ('default', 'vim', 'mac', 'windows')
 MODS = {'none': (), 'text': (), 'ctrl': ('Control',), 'shift': ('Shift',),
-        'ctrlshift': ('Control', 'Shift'), 'alt': ('Alt',), 'super': ('Meta',),
+        'ctrlshift': ('Control', 'Shift'), 'alt': ('Alt',),
+        'ctrlalt': ('Control', 'Alt'), 'ctrlaltshift': ('Control', 'Alt', 'Shift'),
+        'super': ('Meta',),
         'supershift': ('Meta', 'Shift'), 'superalt': ('Meta', 'Alt')}
 CONTEXTS = ('listing', 'rail', 'menu', 'panel', 'preview', 'pdf', 'media', 'editor', 'all')
 FRONTENDS = ('all', 'gui', 'tui')
@@ -26,6 +28,7 @@ def caps(mods, key):
     if mods == 'text':
         return key
     prefix = {'none': '', 'text': '', 'ctrlshift': 'ctrl-shift-',
+              'ctrlalt': 'ctrl-alt-', 'ctrlaltshift': 'ctrl-alt-shift-',
               'supershift': 'super-shift-', 'superalt': 'super-alt-'}.get(mods, mods + '-')
     name = {'Return': 'enter', 'BracketLeft': '[', 'BracketRight': ']', 'Period': '.'}.get(key, key.lower())
     return prefix + name
@@ -52,7 +55,8 @@ def generate(data):
                 fail(f"the {row['name']} preset claims {row['keys']} twice, for {previous['action']} and {row['action']} in {row['context']} ({row['frontend']})")
         bindings.append(row)
     shared = []
-    for kind, field, mods in [('ctrlshift', 'key', 'ctrlshift'), ('ctrl', 'key', 'ctrl'),
+    for kind, field, mods in [('ctrlshift', 'key', 'ctrlshift'), ('ctrlalt', 'key', 'ctrlalt'),
+                              ('ctrlaltshift', 'key', 'ctrlaltshift'), ('ctrl', 'key', 'ctrl'),
                               ('shift', 'key', 'shift'), ('code', 'key', 'none'), ('text', 'char', 'text')]:
         seen = {}
         for row in data.get(kind, []):

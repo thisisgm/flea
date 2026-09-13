@@ -92,6 +92,55 @@ action = "textSizeDown"
 key = "0"
 action = "textSizeReset"
 
+# Grid thumbnail size, a separate engine from Issue 9's text size. Ctrl+Shift+/- is already
+# textSize; on a US layout Ctrl++ is that same chord. Ctrl+Alt is free, and Equal/Minus cover
+# the unshifted keys while Plus/Underscore cover the shifted ones the same way text size does.
+# 0 restores medium, the schema default, rather than the floor.
+[[ctrlalt]]
+key = "Plus"
+keys = "alt-+"
+action = "thumbSizeUp"
+
+[[ctrlalt]]
+key = "Equal"
+keys = "alt-+"
+action = "thumbSizeUp"
+
+[[ctrlalt]]
+key = "Minus"
+keys = "alt--"
+action = "thumbSizeDown"
+
+[[ctrlalt]]
+key = "Underscore"
+keys = "alt--"
+action = "thumbSizeDown"
+
+[[ctrlalt]]
+key = "0"
+keys = "alt-0"
+action = "thumbSizeReset"
+
+[[ctrlaltshift]]
+key = "Plus"
+keys = "alt-+"
+action = "thumbSizeUp"
+
+[[ctrlaltshift]]
+key = "Equal"
+keys = "alt-+"
+action = "thumbSizeUp"
+
+[[ctrlaltshift]]
+key = "Minus"
+keys = "alt--"
+action = "thumbSizeDown"
+
+[[ctrlaltshift]]
+key = "Underscore"
+keys = "alt--"
+action = "thumbSizeDown"
+
 [[ctrlshift]]
 key = "Greater"
 action = "toggleHidden"
@@ -661,6 +710,16 @@ label = "text size up"
 keys = "^-"
 action = "textSizeDown"
 label = "text size down"
+
+[[sheet]]
+keys = "alt-+"
+action = "thumbSizeUp"
+label = "thumbnail size up"
+
+[[sheet]]
+keys = "alt--"
+action = "thumbSizeDown"
+label = "thumbnail size down"
 
 [[sheet]]
 keys = ","

@@ -85,7 +85,7 @@ pub const PREVIEW: &[(&str, Rule)] = &[
     ("column", Rule::Bool),
     ("loadOn", Rule::Word(&["automatic", "manual"])),
     ("thumbnails", Rule::Word(&["off", "images", "media"])),
-    ("thumbSize", Rule::Word(&["small", "medium", "large", "xlarge"])),
+    ("thumbSize", Rule::Word(&["small", "medium", "large", "xlarge", "xxlarge", "huge"])),
     ("ctrlZoom", Rule::Bool),
 ];
 
@@ -249,10 +249,14 @@ mod tests {
                      r#"{"keys":"mac"}"#, r#"{"keys":"windows"}"#,
                      r#"{"places":{"favourites":[]}}"#,
                      r#"{"places":{"driveSize":true,"trashCount":true}}"#,
-                     r#"{"places":{"driveSize":false,"trashCount":false}}"#] {
+                     r#"{"places":{"driveSize":false,"trashCount":false}}"#,
+                     r#"{"preview":{"thumbSize":"xlarge"}}"#,
+                     r#"{"preview":{"thumbSize":"xxlarge"}}"#,
+                     r#"{"preview":{"thumbSize":"huge"}}"#] {
             assert!(takes(good).is_ok(), "{} is a value its key takes", good);
         }
         for (bad, named) in [(r#"{"display":{"textSize":{"mode":13}}}"#, "display.textSize.mode"),
+                             (r#"{"preview":{"thumbSize":"enormous"}}"#, "preview.thumbSize"),
                              (r#"{"display":{"textSize":{"mode":14.5}}}"#, "display.textSize.mode"),
                              (r#"{"display":{"textSize":{"mode":"14"}}}"#, "display.textSize.mode"),
                              (r#"{"display":{"textSize":{"mode":"override"}}}"#, "display.textSize.mode"),

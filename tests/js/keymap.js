@@ -35,6 +35,12 @@ function run(check) {
         key(preset, "2", "", preset === "windows" ? ctrl | shift : ctrl, "viewColumns")
         key(preset, "3", "", preset === "windows" ? ctrl | shift : ctrl, "viewGrid")
         key(preset, "Comma", "", ctrl, "settings")
+        key(preset, "Equal", "", ctrl | alt, "thumbSizeUp")
+        key(preset, "Plus", "", ctrl | alt | shift, "thumbSizeUp")
+        key(preset, "Minus", "", ctrl | alt, "thumbSizeDown")
+        key(preset, "0", "", ctrl | alt, "thumbSizeReset")
+        key(preset, "Equal", "", ctrl | shift, "textSizeUp")
+        key(preset, "Minus", "", ctrl | shift, "textSizeDown")
         for (var f = 0; f < 2; f++) {
             var frontend = ["gui", "tui"][f]
             var menuContexts = ["listing", "rail", "menu", "panel", "preview", "pdf", "media", "editor"]
