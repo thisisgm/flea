@@ -322,17 +322,19 @@ function runCompletionRows(check) {
     var preview = Settings.rows("preview", state)
     check("preview visibility is independent of loading", find(preview, "preview.column").on, false)
     check("manual preview reports the stored load mode", find(preview, "preview.loadOn").value, "Manual")
-    check("all four thumbnail display stops remain available", find(preview, "preview.thumbSize").values.join(","), "small,medium,large,xlarge")
+    check("all six thumbnail display stops remain available", find(preview, "preview.thumbSize").values.join(","), "small,medium,large,xlarge,xxlarge,huge")
     check("thumbnail source policy remains separate", find(preview, "preview.thumbnails").selected, "off")
     check("ctrl zoom can be disabled", find(preview, "preview.ctrlZoom").on, false)
+    check("thumbnail memory cache is off unless stored on", find(preview, "preview.thumbCache").on, false)
+    check("thumbnail generation stays on the default four workers", find(preview, "preview.thumbSpeed").selected, "default")
     check("only dependent preview controls are indented", preview.filter(function (row) { return row.indented }).map(function (row) {
         return row.id
-    }).join(","), "preview.loadOn,preview.thumbSize,preview.ctrlZoom")
-    var sizes = ["small", "medium", "large", "xlarge"]
+    }).join(","), "preview.loadOn,preview.thumbSize,preview.ctrlZoom,preview.thumbCache,preview.thumbSpeed")
+    var sizes = ["small", "medium", "large", "xlarge", "xxlarge", "huge"]
     check("thumbnail pixels are live captions separate from each named stop", sizes.map(function (size) {
         var row = find(Settings.rows("preview", { data: { preview: { thumbSize: size } } }), "preview.thumbSize")
         return row.caption + "|" + row.value
-    }).join(","), "48 px|Small,64 px|Medium,96 px|Large,128 px|Extra large")
+    }).join(","), "48 px|Small,64 px|Medium,96 px|Large,128 px|Extra large,192 px|XX-large,256 px|Huge")
     check("preview footer explains the active loading mode", preview[preview.length - 1].label + "|" + preview[preview.length - 1].footer,
           "Ctrl+Space loads the current selection.|true")
     var about = Settings.rows("about", { about: { version: "0.1.6", handler: "flea.desktop" } })

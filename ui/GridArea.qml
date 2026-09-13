@@ -4,6 +4,7 @@ import "js/DirSizes.js" as DirSizes
 import "js/Filter.js" as Filter
 import "js/Focus.js" as Focus
 import "js/Tap.js" as Tap
+import "js/ThumbSize.js" as ThumbSize
 import "js/Thumbs.js" as Thumbs
 
 // The grid view. Same rows, same marks, same thumbnails as the list; only the geometry differs, so
@@ -25,9 +26,7 @@ GridView {
         var steps = root.zoomTravel > 0 ? Math.floor(root.zoomTravel) : Math.ceil(root.zoomTravel)
         if (steps !== 0) {
             root.zoomTravel -= steps
-            var sizes = ["small", "medium", "large", "xlarge"]
-            var next = Math.max(0, Math.min(sizes.length - 1, sizes.indexOf(ViewState.thumbnailSize) + steps))
-            ViewState.changeSetting("preview.thumbSize", sizes[next])
+            ViewState.changeSetting("preview.thumbSize", ThumbSize.step(ViewState.thumbnailSize, steps))
         }
         return true
     }
@@ -162,6 +161,8 @@ GridView {
             root.pane.backend.dirsizecancel()
             root.dirSizesCancelled()
         }
+        root.pane.cancelPendingThumbs()
+        thumbPulse.restart()
         coalesce.start()
         settle.restart()
     }
@@ -175,9 +176,17 @@ GridView {
         onTriggered: root.requestIfDrifted()
     }
 
+    // Cache hits should not wait for the 220 ms generate settle; this is one frame after motion.
+    Timer {
+        id: thumbPulse
+        interval: root.pane.coalesceMs
+        repeat: false
+        onTriggered: root.requestThumbs()
+    }
+
     Timer {
         id: settle
-        interval: root.pane.settleMs
+        interval: root.pane.firstSettleMs
         repeat: false
         onTriggered: { root.requestThumbs(); root.requestDirSizes() }
     }
@@ -250,6 +259,8 @@ GridView {
         work.drop = work.drop.filter(function (index) { return index !== root.pane.previewIndex })
         root.pane.backend.thumbcancel(work.drop)
         root.pane.backend.thumb(work.ask)
+        if (work.ask.length > 0)
+            settle.interval = root.pane.gridSettleMs
         root.thumbsApplied(work)
     }
 

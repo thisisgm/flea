@@ -42,6 +42,7 @@ import "permissions.js" as PermissionsSuite
 import "trashdates.js" as TrashDatesSuite
 import "taildrop.js" as TaildropSuite
 import "textsize.js" as TextSizeSuite
+import "thumbsize.js" as ThumbSizeSuite
 import "trash.js" as TrashSuite
 import "tap.js" as TapSuite
 import "marquee.js" as MarqueeSuite
@@ -83,6 +84,7 @@ Item {
             ["scroll", ScrollSuite], ["search", SearchSuite],
             ["selection", SelectionSuite], ["settings", SettingsSuite],
             ["sort", SortSuite], ["startup", StartupSuite], ["trashdates", TrashDatesSuite], ["permissions", PermissionsSuite], ["status", StatusSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
+            ["thumbsize", ThumbSizeSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["marquee", MarqueeSuite], ["tabs", TabsSuite],
             ["thumbs", ThumbsSuite], ["uistate", UiStateSuite],
             ["watch", WatchSuite]

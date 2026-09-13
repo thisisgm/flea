@@ -4,7 +4,11 @@ use std::path::{Path, PathBuf};
 // This application's name in the shared cache's fail/ namespace, per the freedesktop thumbnail spec.
 const APP_NAME: &str = "flea";
 const LARGE_DIR: &str = "large";
+const XLARGE_DIR: &str = "x-large";
+const NORMAL_DIR: &str = "normal";
 const FAIL_DIR: &str = "fail";
+// Flea writes large/; Nautilus 50 often writes x-large. Hits in any of these skip evince.
+const LOOKUP_DIRS: [&str; 3] = [LARGE_DIR, XLARGE_DIR, NORMAL_DIR];
 const CACHE_DIR: &str = "thumbnails";
 const HOME_CACHE_DIR: &str = ".cache";
 // The bytes GLib leaves literal in a file URI, measured here across every printable ASCII byte, plus the "/" that separates components and is structure; see AGENTS.md "Thumbnail cache".
@@ -54,6 +58,10 @@ impl Cache {
         self.large_dir().join(format!("{}.png", md5::hex(uri.as_bytes())))
     }
 
+    fn size_path(&self, dir: &str, uri: &str) -> PathBuf {
+        self.root.join(dir).join(format!("{}.png", md5::hex(uri.as_bytes())))
+    }
+
     pub fn fail_path(&self, uri: &str) -> PathBuf {
         self.root
             .join(FAIL_DIR)
@@ -70,10 +78,12 @@ impl Cache {
                 return Hit::Failed;
             }
         }
-        let large = self.large_path(&uri);
-        if let Ok(bytes) = std::fs::read(&large) {
-            if stamped_mtime(&bytes) == Some(mtime) {
-                return Hit::Ready(large);
+        for dir in LOOKUP_DIRS {
+            let path = self.size_path(dir, &uri);
+            if let Ok(bytes) = std::fs::read(&path) {
+                if stamped_mtime(&bytes) == Some(mtime) {
+                    return Hit::Ready(path);
+                }
             }
         }
         Hit::Miss
@@ -305,5 +315,20 @@ mod tests {
             _ => None,
         };
         assert_eq!(got, Some(want));
+    }
+
+    #[test]
+    fn an_x_large_hit_counts_when_large_is_missing() {
+        let root = TestDir::new("thumbcache-xlarge");
+        let c = Cache::at(root.path().to_path_buf());
+        let uri = uri_for(Path::new(FIXTURE_SRC));
+        let path = c.size_path(XLARGE_DIR, &uri);
+        std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+        std::fs::write(&path, stamped_png(7)).unwrap();
+        let got = match c.lookup(Path::new(FIXTURE_SRC), 7) {
+            Hit::Ready(p) => Some(p),
+            _ => None,
+        };
+        assert_eq!(got, Some(path));
     }
 }

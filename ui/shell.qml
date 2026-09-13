@@ -9,6 +9,7 @@ import qs.Commons
 import "."
 import "." as Flea
 import "js/TextSize.js" as TextSize
+import "js/ThumbSize.js" as ThumbSize
 import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
 import "js/Renderer.js" as Renderer
@@ -56,6 +57,11 @@ ShellRoot {
             else
                 ViewState.stepTextSize(direction)
             view.currentPane.message(TextSize.announce(ViewState.textSize, ViewState.omarchyBase), false)
+        }
+
+        function applyThumbSize(direction) {
+            ViewState.stepThumbSize(direction)
+            view.currentPane.message(ThumbSize.announce(ViewState.thumbnailSize), false)
         }
 
         // Every *Centre reader on the IPC seam is this: an item's painted box, reduced to the point a test clicks.
@@ -222,6 +228,7 @@ ShellRoot {
                 // Issue 9. ViewState persists the stop and Theme derives its own tokens from it, so
                 // the whole window follows without any surface reading the chord itself.
                 onTextSizeRequested: function (direction) { fleaWindow.applyTextSize(direction) }
+                onThumbSizeRequested: function (direction) { fleaWindow.applyThumbSize(direction) }
                 onOpened: function (path) { if (shareBrowser.owner === primaryPane) shareBrowser.close() }
             }
 
@@ -265,6 +272,7 @@ ShellRoot {
                         onPermissionsRequested: function(path) { permissionsDialog.open(path, otherPane) }
                         onPathBarRequested: chrome.startEdit()
                         onTextSizeRequested: function(direction) { fleaWindow.applyTextSize(direction) }
+                        onThumbSizeRequested: function(direction) { fleaWindow.applyThumbSize(direction) }
                         onOpened: if (otherPane.shareBrowser.owner === otherPane) otherPane.shareBrowser.close()
                     }
                 }

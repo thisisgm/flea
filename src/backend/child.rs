@@ -1,4 +1,5 @@
 use std::os::fd::{AsRawFd, FromRawFd, OwnedFd};
+use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::time::{Duration, Instant};
 
 // poll(2) POLLIN, which for a pidfd is raised exactly once, when the child exits.
@@ -22,13 +23,31 @@ struct PollFd {
 extern "C" {
     fn pidfd_open(pid: i32, flags: u32) -> i32;
     fn poll(fds: *mut PollFd, nfds: usize, timeout: i32) -> i32;
+    fn kill(pid: i32, sig: i32) -> i32;
 }
+
+const SIGKILL: i32 = 9;
 
 // A fork that failed under memory pressure says nothing about the file, so a child that never started is kept apart from one that ran and failed.
 pub enum Ran {
     Succeeded,
     Failed,
     NotStarted,
+    // A viewport that moved on, never a verdict on the file, so fail/ is not written.
+    Cancelled,
+}
+
+// SIGKILL the pid and its process group: bwrap --new-session is a new leader, and --die-with-parent
+// only fires if that leader actually dies. pid 0 is "not spawned yet" and is not a kill target.
+pub fn kill_pid(pid: u32) {
+    if pid == 0 {
+        return;
+    }
+    let p = pid as i32;
+    unsafe {
+        kill(p, SIGKILL);
+        kill(-p, SIGKILL);
+    }
 }
 
 // The deadline and both syscall failures have to end the child, and only the caller knows what its ending means.
@@ -38,7 +57,19 @@ fn kill_and_reap(child: &mut std::process::Child) {
 }
 
 // thumbargv builds the inner argv and sandbox wraps it; this runs the result and reports which of the three things happened.
+#[cfg(test)]
 pub fn run_with_timeout(full: &[String], limit: Duration) -> Ran {
+    let cancel = AtomicBool::new(false);
+    let pid = AtomicU32::new(0);
+    run_cancellable(full, limit, &cancel, &pid)
+}
+
+// The pool's cancel path: the flag is what distinguishes a killed child from a decoder failure, and
+// the pid is what lets another thread wake this poll by killing the child.
+pub fn run_cancellable(full: &[String], limit: Duration, cancel: &AtomicBool, pid_slot: &AtomicU32) -> Ran {
+    if cancel.load(Ordering::Acquire) {
+        return Ran::Cancelled;
+    }
     let mut cmd = std::process::Command::new(&full[0]);
     cmd.args(&full[1..]);
     cmd.stdin(std::process::Stdio::null());
@@ -48,17 +79,29 @@ pub fn run_with_timeout(full: &[String], limit: Duration) -> Ran {
         Ok(c) => c,
         Err(_) => return Ran::NotStarted,
     };
+    pid_slot.store(child.id(), Ordering::Release);
+    if cancel.load(Ordering::Acquire) {
+        kill_and_reap(&mut child);
+        pid_slot.store(0, Ordering::Release);
+        return Ran::Cancelled;
+    }
     // A child that exited before this line is a zombie std has not waited on, so the pid is still ours and cannot have been reused.
     let raw = unsafe { pidfd_open(child.id() as i32, 0) };
     if raw < 0 {
         // corner: a descriptor this process could not open is the machine's fault and never the file's, so no marker is recorded, see AGENTS.md "Thumbnail pool".
         kill_and_reap(&mut child);
+        pid_slot.store(0, Ordering::Release);
         return Ran::NotStarted;
     }
     // OwnedFd closes on Drop, so every path out of this function releases the descriptor without anyone remembering to.
     let pidfd = unsafe { OwnedFd::from_raw_fd(raw) };
     let deadline = Instant::now() + limit;
     loop {
+        if cancel.load(Ordering::Acquire) {
+            kill_and_reap(&mut child);
+            pid_slot.store(0, Ordering::Release);
+            return Ran::Cancelled;
+        }
         let left = deadline.saturating_duration_since(Instant::now());
         // Rounded up, not truncated, so a sub-millisecond remainder is waited out instead of truncating to a zero-timeout poll; left is recomputed against the fixed deadline every round, so nothing accumulates.
         let ms = left.as_nanos().div_ceil(NS_PER_MS).min(i32::MAX as u128) as i32;
@@ -70,13 +113,20 @@ pub fn run_with_timeout(full: &[String], limit: Duration) -> Ran {
         if ready == 0 {
             // A decoder still running at the deadline is one of the two paths that record a marker, the other being a non-zero exit.
             kill_and_reap(&mut child);
+            pid_slot.store(0, Ordering::Release);
             return Ran::Failed;
         }
         // corner: a ready descriptor with no POLLIN cannot happen for a pidfd and a poll error is the machine's, so neither judges the file, see AGENTS.md "Thumbnail pool".
         if ready > 0 || std::io::Error::last_os_error().raw_os_error() != Some(EINTR) {
             kill_and_reap(&mut child);
+            pid_slot.store(0, Ordering::Release);
             return Ran::NotStarted;
         }
+    }
+    pid_slot.store(0, Ordering::Release);
+    if cancel.load(Ordering::Acquire) {
+        let _ = child.wait();
+        return Ran::Cancelled;
     }
     // poll says only that the child exited, so the status itself still comes from wait.
     verdict(&mut child)

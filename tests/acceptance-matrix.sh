@@ -96,7 +96,7 @@ drive_validate_groups key menu omarchy pointer
 for key in Backtab BracketLeft BracketRight End Equal F10 Home Insert Menu Minus PageDown PageUp Plus Underscore; do
   [[ -n "$(keysym_for "$key")" ]] || die "missing delivery mapping: $key"
 done
-for modifier in none ctrl shift ctrlshift alt super supershift superalt; do
+for modifier in none ctrl shift ctrlshift alt ctrlalt ctrlaltshift super supershift superalt; do
   [[ -n "$(chord_args "$modifier" A)" ]] || die "missing modifier delivery: $modifier"
 done
 if keysym_for InventedKey; then die "unknown key was silently mapped"; fi

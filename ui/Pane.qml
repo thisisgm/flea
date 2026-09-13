@@ -102,6 +102,7 @@ FocusScope {
     signal permissionsRequested(string path)
     signal pathBarRequested()  // ":" and Ctrl+L; the bar is chrome, so shell.qml opens it as it does the popup above
     signal textSizeRequested(int direction)  // issue 9's zoom pair, +1, -1 or 0 to follow Omarchy again; the size is the window's
+    signal thumbSizeRequested(int direction)  // Preview thumbnail size, +1, -1 or 0 to restore medium; not text size
 
     // The window covers [held, held + rows.length) and nothing outside it is in memory.
     property int held: 0
@@ -125,6 +126,8 @@ FocusScope {
     readonly property int coalesceMs: 16
     // A settle, not a stream: a fling must issue no request at all, see AGENTS.md "Thumbnail requests in the GUI".
     readonly property int settleMs: 120
+    // Grid wheel bursts look idle at 120 ms; PDF thumbnailers started then outlive the next fling.
+    readonly property int gridSettleMs: 220
     // The first screen's settle only has to outlast the compositor's resize, see AGENTS.md "Thumbnail requests in the GUI".
     readonly property int firstSettleMs: 70
     // Seven screens of history at this row height, so a policy bug costs memory slowly, not without limit.
@@ -302,6 +305,16 @@ FocusScope {
 
     // shell.qml's IPC thumbFile reader calls this; the lookup lives with the thumbnail machinery in ui/List.qml.
     function thumbFor(index) { return list.thumbFor(index) }
+
+    // Dir-sizes already cancel on every contentY; thumbs used to wait for settle, so a fast PDF
+    // scroll left four evince children rendering pages the viewport had left.
+    function cancelPendingThumbs() {
+        var drop = Thumbs.pending(root.thumbState).filter(function (index) { return index !== root.previewIndex })
+        if (drop.length === 0)
+            return
+        root.backend.thumbcancel(drop)
+        root.thumbState = Thumbs.applied(root.thumbState, { ask: [], drop: drop })
+    }
 
     // Lifted to Focus.act, see ui/js/Focus.js, which routes "settings" here from the list and the rail alike.
     function act(action, menuId, paths) {

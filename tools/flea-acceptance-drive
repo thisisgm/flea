@@ -362,6 +362,8 @@ chord_args() {
     shift)     printf -- '-M\nshift\n-k\n%s\n-m\nshift\n' "$sym" ;;
     code|none) printf -- '-k\n%s\n' "$sym" ;;
     alt)       printf -- '-M\nalt\n-k\n%s\n-m\nalt\n' "$sym" ;;
+    ctrlalt)   printf -- '-M\nctrl\n-M\nalt\n-k\n%s\n-m\nalt\n-m\nctrl\n' "$sym" ;;
+    ctrlaltshift) printf -- '-M\nctrl\n-M\nalt\n-M\nshift\n-k\n%s\n-m\nshift\n-m\nalt\n-m\nctrl\n' "$sym" ;;
     super)     printf -- '-M\nlogo\n-k\n%s\n-m\nlogo\n' "$sym" ;;
     supershift) printf -- '-M\nlogo\n-M\nshift\n-k\n%s\n-m\nshift\n-m\nlogo\n' "$sym" ;;
     superalt)  printf -- '-M\nlogo\n-M\nalt\n-k\n%s\n-m\nalt\n-m\nlogo\n' "$sym" ;;
@@ -374,6 +376,8 @@ chord_label() {
   case $1 in
     ctrl) printf '^%s' "$2" ;;
     ctrlshift) printf '^S-%s' "$2" ;;
+    ctrlalt) printf '^A-%s' "$2" ;;
+    ctrlaltshift) printf '^AS-%s' "$2" ;;
     shift) printf 'S-%s' "$2" ;;
     code) printf '<%s>' "$2" ;;
     *) printf '%s' "$2" ;;

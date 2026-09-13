@@ -1,18 +1,22 @@
 use crate::backend::aliases::Aliases;
-use crate::backend::child::{run_with_timeout, Ran};
+use crate::backend::child::{kill_pid, run_cancellable, Ran};
 use crate::backend::sandbox;
 use crate::backend::thumbargv::argv;
 use crate::backend::thumbcache::{uri_for, Cache};
 use crate::backend::thumbspec::Thumbnailers;
 use crate::backend::thumbwrite::{exclusive_temp, stamp, write_marker};
-use std::collections::VecDeque;
+use std::collections::{HashMap, VecDeque};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicBool, AtomicU32, AtomicU64, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::{Arc, Condvar, Mutex, OnceLock};
 use std::time::{Duration, Instant};
 
 // A viewport holds about 35 rows, so a queue twice that absorbs one fast scroll without unbounded growth.
 pub const MAX_QUEUE: usize = 70;
+// Shipped concurrency. Fast mode may run up to FAST_WORKERS; extra threads wait on the cap.
+pub const DEFAULT_WORKERS: usize = 4;
+pub const FAST_WORKERS: usize = 8;
 // The freedesktop "large" size, which is what this box's cache holds.
 pub const THUMB_SIZE: u32 = 256;
 // A decoder that has not answered in this long is hung, and a hung child starves the pool.
@@ -24,6 +28,8 @@ pub struct Job {
     pub mime: String,
     // None unless FLEA_THUMB_TRACE is set, so an untraced job carries no marks; see AGENTS.md "Thumbnail trace".
     pub trace: Option<Trace>,
+    // Distinguishes a killed worker from a later ask of the same path, so a stale Done cannot land on the new row.
+    pub epoch: u64,
 }
 
 // Every mark is a delta from the one Instant taken at submit, so the four durations sum to the job's whole life.
@@ -49,6 +55,7 @@ pub fn trace(row: usize) -> Option<Trace> {
 pub enum Outcome {
     Ready(PathBuf),
     Failed,
+    Cancelled,
 }
 
 pub struct Done {
@@ -56,6 +63,7 @@ pub struct Done {
     pub result: Outcome,
     pub ms: f64,
     pub trace: Option<Trace>,
+    pub epoch: u64,
 }
 
 // Parsed once by the caller and shared from here, so no worker ever opens these files and four workers never read one of them four times.
@@ -65,10 +73,22 @@ struct Tables {
     cache: Cache,
 }
 
-type Shared = Arc<(Mutex<VecDeque<Job>>, Condvar)>;
+struct Running {
+    cancel: AtomicBool,
+    pid: AtomicU32,
+}
+
+struct PoolState {
+    queue: VecDeque<Job>,
+    running: HashMap<(PathBuf, u64), Arc<Running>>,
+    max_running: usize,
+}
+
+type Shared = Arc<(Mutex<PoolState>, Condvar)>;
 
 pub struct Pool {
     inner: Shared,
+    epochs: AtomicU64,
 }
 
 impl Pool {
@@ -78,71 +98,110 @@ impl Pool {
     }
 
     fn start(workers: usize, results: Sender<Done>, tables: Tables) -> Pool {
-        let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
+        let spawn = FAST_WORKERS.max(1);
+        let inner: Shared = Arc::new((Mutex::new(PoolState {
+            queue: VecDeque::new(),
+            running: HashMap::new(),
+            max_running: workers.max(1).min(spawn),
+        }), Condvar::new()));
         let tables = Arc::new(tables);
-        for _ in 0..workers.max(1) {
+        for _ in 0..spawn {
             let inner = Arc::clone(&inner);
             let tables = Arc::clone(&tables);
             let results = results.clone();
             std::thread::spawn(move || worker(inner, results, tables));
         }
-        Pool { inner }
+        Pool { inner, epochs: AtomicU64::new(1) }
+    }
+
+    pub fn set_fast(&self, fast: bool) {
+        let n = if fast {
+            std::thread::available_parallelism().map(|n| n.get()).unwrap_or(FAST_WORKERS).clamp(1, FAST_WORKERS)
+        } else {
+            DEFAULT_WORKERS
+        };
+        let (lock, cv) = &*self.inner;
+        lock.lock().unwrap().max_running = n;
+        cv.notify_all();
+    }
+
+    pub fn next_epoch(&self) -> u64 {
+        self.epochs.fetch_add(1, Ordering::Relaxed)
     }
 
     // Returns the jobs it dropped to make room, so a caller can unmap and answer the rows that will now never report.
     pub fn submit(&self, mut job: Job) -> Vec<Job> {
+        if job.epoch == 0 {
+            job.epoch = self.epochs.fetch_add(1, Ordering::Relaxed);
+        }
         let (lock, cv) = &*self.inner;
-        let mut q = lock.lock().unwrap();
+        let mut st = lock.lock().unwrap();
         let mut dropped = Vec::new();
-        // The oldest job is the one furthest from the viewport, so it is the one to drop.
-        while q.len() >= MAX_QUEUE {
-            match q.pop_front() {
+        // Newest work is the current viewport, so it goes to the front; the oldest is furthest away and is what we drop.
+        while st.queue.len() >= MAX_QUEUE {
+            match st.queue.pop_back() {
                 Some(j) => dropped.push(j),
                 None => break,
             }
         }
         // The depth at submit is the number of jobs already ahead of this one, which is what says whether the workers were starved.
         if let Some(t) = job.trace.as_mut() {
-            t.depth = q.len();
+            t.depth = st.queue.len();
         }
-        q.push_back(job);
+        st.queue.push_front(job);
         cv.notify_one();
         dropped
     }
 
-    // Returns the queued jobs it removed; a job already inside a worker is never one of them and still reports.
+    // Queued jobs are returned so the caller can unmap them. A child already rendering is left
+    // running so its PNG lands in the shared cache; listing change uses cancel_all, which does kill.
     pub fn cancel(&self, path: &Path) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
-        let mut q = lock.lock().unwrap();
-        let (dropped, kept): (Vec<Job>, Vec<Job>) = q.drain(..).partition(|j| j.path == path);
-        *q = kept.into();
+        let mut st = lock.lock().unwrap();
+        let (dropped, kept): (Vec<Job>, Vec<Job>) = st.queue.drain(..).partition(|j| j.path == path);
+        st.queue = kept.into();
         dropped
     }
 
     // Taken and cleared under one lock, because a caller that read the queue first could race a worker's own pop.
     pub fn cancel_all(&self) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
-        let mut q = lock.lock().unwrap();
-        q.drain(..).collect()
+        let mut st = lock.lock().unwrap();
+        let dropped: Vec<Job> = st.queue.drain(..).collect();
+        kill_running(&mut st.running, |_, _| true);
+        dropped
     }
 
     #[cfg(test)]
     fn pending(&self) -> usize {
         let (lock, _cv) = &*self.inner;
-        lock.lock().unwrap().len()
+        lock.lock().unwrap().queue.len()
+    }
+}
+
+fn kill_running(running: &mut HashMap<(PathBuf, u64), Arc<Running>>, want: impl Fn(&Path, u64) -> bool) {
+    for ((path, epoch), slot) in running.iter() {
+        if want(path, *epoch) {
+            slot.cancel.store(true, Ordering::Release);
+            kill_pid(slot.pid.load(Ordering::Acquire));
+        }
     }
 }
 
 fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
     loop {
+        let running = Arc::new(Running { cancel: AtomicBool::new(false), pid: AtomicU32::new(0) });
         let mut job = {
             let (lock, cv) = &*inner;
-            let mut q = lock.lock().unwrap();
-            while q.is_empty() {
-                q = cv.wait(q).unwrap();
+            let mut st = lock.lock().unwrap();
+            while st.queue.is_empty() || st.running.len() >= st.max_running {
+                st = cv.wait(st).unwrap();
             }
-            match q.pop_front() {
-                Some(j) => j,
+            match st.queue.pop_front() {
+                Some(j) => {
+                    st.running.insert((j.path.clone(), j.epoch), Arc::clone(&running));
+                    j
+                }
                 None => continue,
             }
         };
@@ -150,15 +209,20 @@ fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
             t.popped = t.at.elapsed();
         }
         let started = Instant::now();
-        let outcome = run_one(&tables, &mut job);
+        let outcome = run_one(&tables, &mut job, &running);
+        {
+            let (lock, cv) = &*inner;
+            lock.lock().unwrap().running.remove(&(job.path.clone(), job.epoch));
+            cv.notify_all();
+        }
         let ms = started.elapsed().as_secs_f64() * 1000.0;
-        if results.send(Done { path: job.path, result: outcome, ms, trace: job.trace }).is_err() {
+        if results.send(Done { path: job.path, result: outcome, ms, trace: job.trace, epoch: job.epoch }).is_err() {
             return;
         }
     }
 }
 
-fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
+fn run_one(tables: &Tables, job: &mut Job, running: &Running) -> Outcome {
     let spec = match tables.specs.for_mime(&job.mime, &tables.aliases) {
         Some(s) => s,
         None => return Outcome::Failed,
@@ -191,7 +255,7 @@ fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
     if let Some(t) = job.trace.as_mut() {
         t.spawned = t.at.elapsed();
     }
-    let ran = run_with_timeout(&full, JOB_TIMEOUT);
+    let ran = run_cancellable(&full, JOB_TIMEOUT, &running.cancel, &running.pid);
     if let Some(t) = job.trace.as_mut() {
         t.exited = t.at.elapsed();
     }
@@ -199,6 +263,10 @@ fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
         Ran::Succeeded if wrote_something(&temp) => {}
         // corner: a child that never started is the machine's fault, not the file's, so it is not recorded in fail/; see AGENTS.md "Thumbnail pool".
         Ran::NotStarted => return discard(&temp),
+        Ran::Cancelled => {
+            let _ = std::fs::remove_file(&temp);
+            return Outcome::Cancelled;
+        }
         // corner: glycin exits 0 on bytes it cannot decode, so an empty output is the decoder's verdict on the file; see AGENTS.md "Thumbnail pool".
         Ran::Succeeded | Ran::Failed => {
             record_failure(&tables.cache, &key_uri, job.mtime);
@@ -261,8 +329,8 @@ mod tests {
         fn new(tag: &str, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Self {
             let sandbox = TestDir::new(tag);
             sandbox.assert_contains(sandbox.path());
-            let inner = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
-            let pool = Pool { inner: Arc::clone(&inner) };
+            let inner = Arc::new((Mutex::new(PoolState { queue: VecDeque::new(), running: HashMap::new(), max_running: 1 }), Condvar::new()));
+            let pool = Pool { inner: Arc::clone(&inner), epochs: AtomicU64::new(1) };
             let tables = Arc::new(Tables { aliases, specs, cache: Cache::at(sandbox.path().to_path_buf()) });
             let (sender, receiver) = channel();
             let worker = std::thread::spawn(move || worker(inner, sender, tables));
@@ -283,7 +351,7 @@ mod tests {
     }
 
     fn job(path: &str) -> Job {
-        Job { path: PathBuf::from(path), mtime: 0, mime: "image/jpeg".to_string(), trace: None }
+        Job { path: PathBuf::from(path), mtime: 0, mime: "image/jpeg".to_string(), trace: None, epoch: 0 }
     }
 
     // Returns a pool whose one worker is already inside a ten minute child, so the queue can only change by the caller's own hand.
@@ -337,6 +405,18 @@ mod tests {
         assert!(result.is_err());
         assert!(!root.exists(), "the joined fixture left its sandbox behind");
         assert!(!pin_running(&format!("{}.{}", pin_seconds, std::process::id())), "the pin child outlived its sandbox");
+    }
+
+    #[test]
+    fn a_running_job_keeps_running_on_cancel() {
+        if crate::backend::sandboxprobe::skipped() { return; }
+        let pin_seconds = 605;
+        let fixture = pinned("thumbs-keep-running", pin_seconds);
+        fixture.pool.cancel(&PathBuf::from("/usr/bin/sleep"));
+        assert_eq!(fixture.pool.pending(), 0, "cancel left a queued copy");
+        assert!(pin_running(&format!("{}.{}", pin_seconds, std::process::id())), "cancel killed a child that should fill the cache");
+        let seen = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_millis(400));
+        assert!(seen.is_err(), "a still-running child reported as if it had been killed");
     }
 
     #[test]
@@ -409,11 +489,11 @@ mod tests {
         let src = fixture.sandbox.join("in.png");
         // A real thumbnailer needs a real image, and the fail marker writer already makes the smallest valid one.
         write_marker(&src, "file:///input", 0).unwrap();
-        fixture.pool.submit(Job { path: src.clone(), mtime: FIXTURE_MTIME, mime: "image/png".to_string(), trace: None });
+        fixture.pool.submit(Job { path: src.clone(), mtime: FIXTURE_MTIME, mime: "image/png".to_string(), trace: None, epoch: 0 });
         let done = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_secs(30)).expect("no result");
         let out = match done.result {
             Outcome::Ready(p) => p,
-            Outcome::Failed => panic!("a real thumbnailer failed on a valid png"),
+            Outcome::Failed | Outcome::Cancelled => panic!("a real thumbnailer failed on a valid png"),
         };
         let bytes = std::fs::read(&out).unwrap();
         let published = std::fs::read_dir(fixture.sandbox.join("large")).unwrap().count();

@@ -309,6 +309,10 @@ function handleKey(event, root, sidebar) {
         root.textSizeRequested(action === "textSizeReset" ? 0 : (action === "textSizeUp" ? 1 : -1))
         return true
     }
+    if (action.indexOf("thumbSize") === 0) {
+        root.thumbSizeRequested(action === "thumbSizeReset" ? 0 : (action === "thumbSizeUp" ? 1 : -1))
+        return true
+    }
     // The bar lives in the chrome above both views, so neither owns it; shell.qml holds the field.
     if (action === "pathBar") {
         root.pathBarRequested()

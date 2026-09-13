@@ -12,6 +12,8 @@ pub enum Request {
     SearchCancel,
     Thumb { rows: Vec<usize> },
     ThumbCancel { rows: Vec<usize> },
+    // Preview > Thumbnail generation: default is four workers, fast is up to eight.
+    ThumbSpeed { fast: bool },
     DirSize { rows: Vec<usize> },
     // Unlike thumbcancel, there is no rows form: it always cancels everything in flight, see docs/protocol.md "dirsizecancel".
     DirSizeCancel,
@@ -80,6 +82,7 @@ pub fn parse_request(line: &str) -> Request {
         Some("searchcancel") => Request::SearchCancel,
         Some("thumb") => Request::Thumb { rows: field_usize_array(line, "rows") },
         Some("thumbcancel") => Request::ThumbCancel { rows: field_usize_array(line, "rows") },
+        Some("thumbspeed") => Request::ThumbSpeed { fast: field_str(line, "speed").as_deref() == Some("fast") },
         Some("dirsize") => Request::DirSize { rows: field_usize_array(line, "rows") },
         Some("dirsizecancel") => Request::DirSizeCancel,
         Some("transfer") => Request::Transfer {

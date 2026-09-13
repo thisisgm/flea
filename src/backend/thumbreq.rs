@@ -11,7 +11,7 @@ use std::time::{Duration, Instant};
 // A cancelled row is never answered, so dropping its mapping is the whole of what a later request for it needs.
 pub(crate) fn forget_one(st: &mut State, path: &Path) {
     st.outstanding = st.outstanding.saturating_sub(1);
-    if let Some(at) = st.asked.iter().position(|(p, _)| p == path) {
+    if let Some(at) = st.asked.iter().position(|(p, _, _)| p == path) {
         st.asked.remove(at);
     }
 }
@@ -72,45 +72,53 @@ fn queue_row(
     mime: String,
 ) {
     // A mapped path already has a job for this listing, so a repeated row costs a worker nothing; see AGENTS.md "Thumbnail requests".
-    if st.asked.iter().any(|(p, _)| *p == path) {
+    if st.asked.iter().any(|(p, _, _)| *p == path) {
         return;
     }
-    st.asked.push((path.clone(), row));
+    let epoch = pool.next_epoch();
+    st.asked.push((path.clone(), row, epoch));
     st.outstanding += 1;
     // A job the pool dropped to make room will never report, so its row is unmapped and answered here rather than at shutdown.
-    for job in pool.submit(Job { path, mtime, mime, trace: trace(row) }) {
+    for job in pool.submit(Job { path, mtime, mime, trace: trace(row), epoch }) {
         st.outstanding = st.outstanding.saturating_sub(1);
-        if let Some(at) = st.asked.iter().position(|(p, _)| *p == job.path) {
+        if let Some(at) = st.asked.iter().position(|(p, _, e)| *p == job.path && *e == job.epoch) {
             let dropped_row = st.asked.remove(at).1;
             writeln!(out, "{}", thumbed_line(dropped_row, "", 0.0)).ok();
         }
     }
 }
 
-// A job already inside a worker cannot be cancelled, so its row stays mapped until it reports.
+// Queued jobs are unmapped here and never report. A running child is left to finish so the PNG
+// lands in the shared cache; report_done drops it if the row was already forgotten.
 pub(crate) fn cancel_row(st: &mut State, pool: &Pool, row: usize) {
-    let at = match st.asked.iter().position(|(_, r)| *r == row) {
+    let at = match st.asked.iter().position(|(_, r, _)| *r == row) {
         Some(i) => i,
         None => return,
     };
-    let dropped = pool.cancel(&st.asked[at].0);
-    if dropped.is_empty() {
-        return;
-    }
-    st.outstanding = st.outstanding.saturating_sub(dropped.len());
+    let path = st.asked[at].0.clone();
+    let dropped = pool.cancel(&path);
     st.asked.remove(at);
+    if !dropped.is_empty() {
+        st.outstanding = st.outstanding.saturating_sub(dropped.len());
+    }
 }
 
 // A result whose path is no longer mapped belongs to a superseded listing and is dropped, never reported against the current one.
 pub(crate) fn report_done(out: &mut BufWriter<io::Stdout>, st: &mut State, done: Done) {
     st.outstanding = st.outstanding.saturating_sub(1);
-    let row = match st.asked.iter().position(|(p, _)| *p == done.path) {
+    if matches!(done.result, Outcome::Cancelled) {
+        if let Some(at) = st.asked.iter().position(|(p, _, e)| *p == done.path && *e == done.epoch) {
+            st.asked.remove(at);
+        }
+        return;
+    }
+    let row = match st.asked.iter().position(|(p, _, e)| *p == done.path && *e == done.epoch) {
         Some(i) => st.asked.remove(i).1,
         None => return,
     };
     let file = match done.result {
         Outcome::Ready(p) => p.to_string_lossy().into_owned(),
-        Outcome::Failed => String::new(),
+        Outcome::Failed | Outcome::Cancelled => String::new(),
     };
     writeln!(out, "{}", thumbed_line(row, &file, done.ms)).ok();
     out.flush().ok();
