@@ -14,6 +14,11 @@ ListView {
     property var picker: null
     property var backend: null
 
+    // Whether the listing shows the directory's dotfiles. The backend never sends what a request
+    // did not ask for, so the window re-reads the standing directory when this flips; `.` and the
+    // preset's toggleHidden chord are the two ways in, and the flag survives every walk.
+    property bool showHidden: false
+
     readonly property int visibleRows: Math.max(1, Math.ceil(root.height / Theme.rowHeight))
     // The board's content-box dimensions exclude the border; QML Rectangle dimensions include it.
     readonly property int checkInnerSize: Theme.font.bodySmall + Theme.spacing.hairline
@@ -164,6 +169,10 @@ ListView {
             root.picker.goUp()
         } else if (action === "historyBack") {
             root.picker.goBack()
+        } else if (action === "toggleHidden") {
+            root.showHidden = !root.showHidden
+            if (root.picker.path.length > 0)
+                root.picker.openWithoutHistory(root.picker.path)
         } else {
             event.accepted = false
         }

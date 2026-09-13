@@ -251,8 +251,9 @@ systemctl --user restart xdg-desktop-portal
 
 The picker that then opens is Flea: the same rows, icons, theme and keys as the window, with a check
 box in front of every row a caller can receive. Space marks, Enter walks into a directory or submits
-what is marked, Backspace climbs, Escape refuses. Nothing marked and Enter does nothing, because a
-chooser that sends on a stray keypress is worse than one that asks twice.
+what is marked, Backspace climbs, Escape refuses. `.` shows and hides the directory's dotfiles, the
+same re-read the window makes; a preset's toggleHidden chord does the same. Nothing marked and Enter
+does nothing, because a chooser that sends on a stray keypress is worse than one that asks twice.
 
 ### Undo
 
