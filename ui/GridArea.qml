@@ -162,6 +162,7 @@ GridView {
             root.dirSizesCancelled()
         }
         root.pane.cancelPendingThumbs()
+        thumbPulse.restart()
         coalesce.start()
         settle.restart()
     }
@@ -173,6 +174,14 @@ GridView {
         interval: root.pane.coalesceMs
         repeat: false
         onTriggered: root.requestIfDrifted()
+    }
+
+    // Cache hits should not wait for the 220 ms generate settle; this is one frame after motion.
+    Timer {
+        id: thumbPulse
+        interval: root.pane.coalesceMs
+        repeat: false
+        onTriggered: root.requestThumbs()
     }
 
     Timer {

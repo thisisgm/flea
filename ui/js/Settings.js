@@ -349,6 +349,10 @@ function previewRows(state) {
                       ThumbSize.LABELS, ThumbSize.parse(data.thumbSize))
     size.indented = true
     size.caption = ThumbSize.caption(size.selected)
+    var speed = choice("preview.thumbSpeed", "Thumbnail generation", "cpu", ["default", "fast"],
+                       ["Default", "Fast"], data.thumbSpeed === "fast" ? "fast" : "default")
+    speed.indented = true
+    speed.caption = speed.selected === "fast" ? "Up to eight at once" : "Four at once"
     return [
         { kind: "group", label: "Preview column" },
         { kind: "check", id: "preview.column", label: "Preview column", glyph: "columns", on: data.column !== false },
@@ -358,6 +362,8 @@ function previewRows(state) {
                ["Off", "Images", "Images and video"], data.thumbnails || "media"),
         size,
         { kind: "check", id: "preview.ctrlZoom", label: "Zoom with ctrl and scroll", indented: true, on: data.ctrlZoom !== false },
+        { kind: "check", id: "preview.thumbCache", label: "Keep thumbnails in memory", glyph: "hard-drive", indented: true, on: data.thumbCache === true },
+        speed,
         { kind: "hint", footer: true, role: "foreground", label: data.loadOn === "manual" ? "Ctrl+Space loads the current selection." : "Automatic follows keyboard or pointer selection." }
     ]
 }

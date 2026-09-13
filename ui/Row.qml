@@ -130,6 +130,7 @@ Item {
         fillMode: Image.PreserveAspectFit
         // A synchronous decode on the UI thread would land inside a scrolled frame.
         asynchronous: true
+        cache: ViewState.thumbCache
         source: root.iconSource()
     }
 

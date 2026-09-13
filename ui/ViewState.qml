@@ -116,6 +116,8 @@ QtObject {
     readonly property string thumbnailSize: ThumbSize.parse(root.preview.thumbSize)
     readonly property int thumbnailPixels: ThumbSize.pixels(root.thumbnailSize)
     readonly property bool ctrlZoom: root.preview.ctrlZoom !== false
+    readonly property bool thumbCache: root.preview.thumbCache === true
+    readonly property string thumbSpeed: root.preview.thumbSpeed === "fast" ? "fast" : "default"
     readonly property string density: root.state.density || "normal"
     readonly property string addressBar: root.state.addressBar || "breadcrumb"
     readonly property bool hyprlandIcons: root.display.hyprlandIcons === true

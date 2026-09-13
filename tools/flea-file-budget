@@ -18,9 +18,9 @@ src/backend/menu_registry.rs 563
 src/backend/metareq.rs 404
 src/backend/opsdispatch.rs 536
 src/backend/opsreq/tests.rs 424
-src/backend/proto.rs 466
-src/backend/run.rs 425
-src/backend/thumbs.rs 489
+src/backend/proto.rs 469
+src/backend/run.rs 428
+src/backend/thumbs.rs 506
 src/backend/trashbrowse.rs 698
 src/backend/trashdelete.rs 895
 src/tui/actions.rs 999
@@ -32,8 +32,8 @@ src/uistore.rs 483
 tests/js/focus.js 374
 tests/js/mounts.js 383
 tests/js/ops.js 384
-tests/js/settings.js 346
-ui/Backend.qml 435
+tests/js/settings.js 348
+ui/Backend.qml 445
 ui/ChromeBar.qml 448
 ui/ContextMenu.qml 534
 ui/ConvertDialog.qml 440
@@ -45,7 +45,7 @@ ui/Pane.qml 676
 ui/PaneWire.qml 481
 ui/PermissionsDialog.qml 426
 ui/PreviewColumn.qml 463
-ui/Row.qml 410
+ui/Row.qml 411
 ui/SettingsPanel.qml 517
 ui/SettingsRow.qml 409
 ui/Sidebar.qml 535
@@ -54,7 +54,7 @@ ui/js/Filter.js 301
 ui/js/Focus.js 342
 ui/js/Keymap.js 319
 ui/js/Ops.js 331
-ui/js/Settings.js 424
+ui/js/Settings.js 430
 ui/picker.qml 635
 ui/shell.qml 540"
 

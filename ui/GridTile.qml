@@ -74,12 +74,12 @@ Item {
             visible: root.thumbDrawn
             // Format.fileUri, not a concatenation: a cache path can carry a # or a ? and either one
             // silently truncates a plain file:// URL, which is what the hashcache fixture proves.
-            source: root.thumb.length > 0 ? Format.fileUri(root.thumb) : ""
+            source: root.thumb.length > 0 ? Format.fileUri(root.thumb) + (root.row ? "?m=" + root.row.m : "") : ""
             fillMode: Image.PreserveAspectFit
             sourceSize.width: ViewState.thumbnailPixels
             sourceSize.height: ViewState.thumbnailPixels
             asynchronous: true
-            cache: false
+            cache: ViewState.thumbCache
         }
 
         Flea.Glyph {

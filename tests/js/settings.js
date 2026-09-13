@@ -325,9 +325,11 @@ function runCompletionRows(check) {
     check("all six thumbnail display stops remain available", find(preview, "preview.thumbSize").values.join(","), "small,medium,large,xlarge,xxlarge,huge")
     check("thumbnail source policy remains separate", find(preview, "preview.thumbnails").selected, "off")
     check("ctrl zoom can be disabled", find(preview, "preview.ctrlZoom").on, false)
+    check("thumbnail memory cache is off unless stored on", find(preview, "preview.thumbCache").on, false)
+    check("thumbnail generation stays on the default four workers", find(preview, "preview.thumbSpeed").selected, "default")
     check("only dependent preview controls are indented", preview.filter(function (row) { return row.indented }).map(function (row) {
         return row.id
-    }).join(","), "preview.loadOn,preview.thumbSize,preview.ctrlZoom")
+    }).join(","), "preview.loadOn,preview.thumbSize,preview.ctrlZoom,preview.thumbCache,preview.thumbSpeed")
     var sizes = ["small", "medium", "large", "xlarge", "xxlarge", "huge"]
     check("thumbnail pixels are live captions separate from each named stop", sizes.map(function (size) {
         var row = find(Settings.rows("preview", { data: { preview: { thumbSize: size } } }), "preview.thumbSize")

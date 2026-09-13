@@ -88,8 +88,8 @@ fn queue_row(
     }
 }
 
-// Queued jobs are unmapped here and never report. A running child is killed and still reports Done,
-// which report_done drops because the row is already gone.
+// Queued jobs are unmapped here and never report. A running child is left to finish so the PNG
+// lands in the shared cache; report_done drops it if the row was already forgotten.
 pub(crate) fn cancel_row(st: &mut State, pool: &Pool, row: usize) {
     let at = match st.asked.iter().position(|(_, r, _)| *r == row) {
         Some(i) => i,

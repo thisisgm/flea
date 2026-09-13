@@ -14,6 +14,9 @@ use std::time::{Duration, Instant};
 
 // A viewport holds about 35 rows, so a queue twice that absorbs one fast scroll without unbounded growth.
 pub const MAX_QUEUE: usize = 70;
+// Shipped concurrency. Fast mode may run up to FAST_WORKERS; extra threads wait on the cap.
+pub const DEFAULT_WORKERS: usize = 4;
+pub const FAST_WORKERS: usize = 8;
 // The freedesktop "large" size, which is what this box's cache holds.
 pub const THUMB_SIZE: u32 = 256;
 // A decoder that has not answered in this long is hung, and a hung child starves the pool.
@@ -78,6 +81,7 @@ struct Running {
 struct PoolState {
     queue: VecDeque<Job>,
     running: HashMap<(PathBuf, u64), Arc<Running>>,
+    max_running: usize,
 }
 
 type Shared = Arc<(Mutex<PoolState>, Condvar)>;
@@ -94,15 +98,31 @@ impl Pool {
     }
 
     fn start(workers: usize, results: Sender<Done>, tables: Tables) -> Pool {
-        let inner: Shared = Arc::new((Mutex::new(PoolState { queue: VecDeque::new(), running: HashMap::new() }), Condvar::new()));
+        let spawn = FAST_WORKERS.max(1);
+        let inner: Shared = Arc::new((Mutex::new(PoolState {
+            queue: VecDeque::new(),
+            running: HashMap::new(),
+            max_running: workers.max(1).min(spawn),
+        }), Condvar::new()));
         let tables = Arc::new(tables);
-        for _ in 0..workers.max(1) {
+        for _ in 0..spawn {
             let inner = Arc::clone(&inner);
             let tables = Arc::clone(&tables);
             let results = results.clone();
             std::thread::spawn(move || worker(inner, results, tables));
         }
         Pool { inner, epochs: AtomicU64::new(1) }
+    }
+
+    pub fn set_fast(&self, fast: bool) {
+        let n = if fast {
+            std::thread::available_parallelism().map(|n| n.get()).unwrap_or(FAST_WORKERS).clamp(1, FAST_WORKERS)
+        } else {
+            DEFAULT_WORKERS
+        };
+        let (lock, cv) = &*self.inner;
+        lock.lock().unwrap().max_running = n;
+        cv.notify_all();
     }
 
     pub fn next_epoch(&self) -> u64 {
@@ -133,14 +153,13 @@ impl Pool {
         dropped
     }
 
-    // Queued jobs are returned so the caller can unmap them. A running child is killed and still
-    // reports Done; that Done is dropped if the caller already unmapped the row.
+    // Queued jobs are returned so the caller can unmap them. A child already rendering is left
+    // running so its PNG lands in the shared cache; listing change uses cancel_all, which does kill.
     pub fn cancel(&self, path: &Path) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
         let mut st = lock.lock().unwrap();
         let (dropped, kept): (Vec<Job>, Vec<Job>) = st.queue.drain(..).partition(|j| j.path == path);
         st.queue = kept.into();
-        kill_running(&mut st.running, |p, _| p == path);
         dropped
     }
 
@@ -171,30 +190,30 @@ fn kill_running(running: &mut HashMap<(PathBuf, u64), Arc<Running>>, want: impl 
 
 fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
     loop {
+        let running = Arc::new(Running { cancel: AtomicBool::new(false), pid: AtomicU32::new(0) });
         let mut job = {
             let (lock, cv) = &*inner;
             let mut st = lock.lock().unwrap();
-            while st.queue.is_empty() {
+            while st.queue.is_empty() || st.running.len() >= st.max_running {
                 st = cv.wait(st).unwrap();
             }
             match st.queue.pop_front() {
-                Some(j) => j,
+                Some(j) => {
+                    st.running.insert((j.path.clone(), j.epoch), Arc::clone(&running));
+                    j
+                }
                 None => continue,
             }
         };
         if let Some(t) = job.trace.as_mut() {
             t.popped = t.at.elapsed();
         }
-        let running = Arc::new(Running { cancel: AtomicBool::new(false), pid: AtomicU32::new(0) });
-        {
-            let (lock, _) = &*inner;
-            lock.lock().unwrap().running.insert((job.path.clone(), job.epoch), Arc::clone(&running));
-        }
         let started = Instant::now();
         let outcome = run_one(&tables, &mut job, &running);
         {
-            let (lock, _) = &*inner;
+            let (lock, cv) = &*inner;
             lock.lock().unwrap().running.remove(&(job.path.clone(), job.epoch));
+            cv.notify_all();
         }
         let ms = started.elapsed().as_secs_f64() * 1000.0;
         if results.send(Done { path: job.path, result: outcome, ms, trace: job.trace, epoch: job.epoch }).is_err() {
@@ -310,7 +329,7 @@ mod tests {
         fn new(tag: &str, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Self {
             let sandbox = TestDir::new(tag);
             sandbox.assert_contains(sandbox.path());
-            let inner = Arc::new((Mutex::new(PoolState { queue: VecDeque::new(), running: HashMap::new() }), Condvar::new()));
+            let inner = Arc::new((Mutex::new(PoolState { queue: VecDeque::new(), running: HashMap::new(), max_running: 1 }), Condvar::new()));
             let pool = Pool { inner: Arc::clone(&inner), epochs: AtomicU64::new(1) };
             let tables = Arc::new(Tables { aliases, specs, cache: Cache::at(sandbox.path().to_path_buf()) });
             let (sender, receiver) = channel();
@@ -389,17 +408,15 @@ mod tests {
     }
 
     #[test]
-    fn a_running_job_is_killed_on_cancel() {
+    fn a_running_job_keeps_running_on_cancel() {
         if crate::backend::sandboxprobe::skipped() { return; }
         let pin_seconds = 605;
-        let fixture = pinned("thumbs-kill-running", pin_seconds);
-        let started = Instant::now();
+        let fixture = pinned("thumbs-keep-running", pin_seconds);
         fixture.pool.cancel(&PathBuf::from("/usr/bin/sleep"));
-        let done = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_secs(2)).expect("killed job never reported");
-        assert!(matches!(done.result, Outcome::Cancelled), "a killed child was recorded as a decoder failure");
-        assert!(started.elapsed() < Duration::from_secs(2), "the pin child was not killed");
-        assert!(!pin_running(&format!("{}.{}", pin_seconds, std::process::id())), "the pin child outlived cancel");
-        assert!(!fixture.sandbox.join("fail").exists(), "a cancelled render wrote fail/");
+        assert_eq!(fixture.pool.pending(), 0, "cancel left a queued copy");
+        assert!(pin_running(&format!("{}.{}", pin_seconds, std::process::id())), "cancel killed a child that should fill the cache");
+        let seen = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_millis(400));
+        assert!(seen.is_err(), "a still-running child reported as if it had been killed");
     }
 
     #[test]

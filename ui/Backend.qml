@@ -250,6 +250,10 @@ Item {
         root.send({ c: "thumbcancel", rows: rows })
     }
 
+    function setThumbSpeed(speed) {
+        root.send({ c: "thumbspeed", speed: speed || "default" })
+    }
+
     function dirsize(rows) {
         if (rows.length === 0) {
             return
@@ -407,6 +411,7 @@ Item {
             root.queueing = false
             // Asked once per process: which formats exist cannot change while the backend runs.
             root.askFormats()
+            root.setThumbSpeed(ViewState.thumbSpeed)
             for (var i = 0; i < root.pending.length; i++) {
                 child.write(root.pending[i])
             }
@@ -431,5 +436,10 @@ Item {
             }
             root.failed("backend", "", "the backend exited with code " + exitCode, 0)
         }
+    }
+
+    Connections {
+        target: ViewState
+        function onThumbSpeedChanged() { root.setThumbSpeed(ViewState.thumbSpeed) }
     }
 }

@@ -26,7 +26,7 @@ use crate::backend::searchreq::{finish_search, step_search};
 use crate::backend::ordering;
 use crate::backend::thumbcache::{default_root, Cache};
 use crate::backend::thumbreq::{cancel_row, forget_one, report_done, thumb_rows};
-use crate::backend::thumbs::{Done, Pool};
+use crate::backend::thumbs::{Done, Pool, DEFAULT_WORKERS};
 use crate::backend::thumbwrite::sweep_own_temps;
 use crate::backend::watch::{changed_line, Watch};
 use crate::backend::thumbspec::Thumbnailers;
@@ -40,8 +40,8 @@ use std::sync::mpsc::{channel, Receiver, TryRecvError};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-// Wider pools settle sooner and answer input later, and 4 is the widest that costs neither the first thumbnail nor the scroll; see AGENTS.md "Thumbnail requests".
-const THUMB_WORKERS: usize = 4;
+// Shipped concurrency is four; Preview > Thumbnail generation Fast raises it at runtime.
+const THUMB_WORKERS: usize = DEFAULT_WORKERS;
 // The whole shutdown budget: a running job is killed at the pool's own 20 s deadline, so waiting longer than that can never cut one short.
 const DRAIN_LIMIT: Duration = Duration::from_secs(25);
 
@@ -263,6 +263,9 @@ fn handle_line(
         Request::Thumb { rows } => {
             thumb_rows(out, &rows, st, tb, pool, cache);
             out.flush().ok();
+        }
+        Request::ThumbSpeed { fast } => {
+            pool.set_fast(fast);
         }
         Request::ThumbCancel { rows } => {
             if rows.is_empty() {
