@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|renderer|settings ...]; networklive is opt-in.
+# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|ctrlclick|menu|hidden|selection|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|renderer|settings ...]; networklive is opt-in.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -1543,6 +1543,8 @@ case_click() {
 
     # Ctrl and shift are Finder's selection modifiers, and neither ever opens.
     : > "$opened"
+    # The double click left the cursor on alpha with nothing marked, which is alpha selected, so the
+    # ctrl+click adds gamma to it rather than replacing it; case_ctrlclick drives that rule whole.
     click_row 4 left --mods ctrl
     settle
     [[ "$(ipc selectedIndices)" == "2,4" ]] || fail "click: ctrl+click selected '$(ipc selectedIndices)', not rows 2,4"
@@ -1732,6 +1734,58 @@ case_click() {
     printf 'CLICK back-climb path=%q\n' "$(ipc path)"
     [[ "$(ipc path)" == "$up" ]] || fail "click: the back button with no history left went to $(ipc path), not $up"
     kill_flea
+}
+
+# Ctrl+click after a plain click, in all three views. The plain click leaves the set empty with the
+# cursor on its row, which every write operation and shift+click read as "that row is the selection";
+# the ctrl+click used to replace it and now adds to it, keys.toml [[pointer]] "add the row to the
+# selection". ui/js/Filter.js toggleRow decides it and tests/js/filter.js checks the arithmetic; this
+# is the half that proves each view's delegate hands the real click there.
+case_ctrlclick() {
+    local dir="$fixture_root/ctrlclick"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/subdir"
+    printf 'alpha\n' > "$dir/alpha.txt"
+    printf 'beta\n' > "$dir/beta.txt"
+    printf 'gamma\n' > "$dir/gamma.txt"
+    launch "$dir"
+    # Measured row order: subdir, alpha.txt, beta.txt, gamma.txt.
+    wait_listing 4
+    local view
+    for view in list grid columns; do
+        if [[ "$view" != list ]]; then
+            click_chrome "$view"
+            settle
+            [[ "$(ipc viewMode)" == "$view" ]] || fail "ctrlclick: the chrome did not switch to the $view"
+        fi
+        # A plain click on alpha, then ctrl+click on gamma: both stay selected and the cursor moves.
+        click_row 1 left
+        settle
+        [[ "$(ipc selectionCount)" == "0" ]] \
+            || fail "ctrlclick: a plain click in the $view left $(ipc selectionCount) rows selected"
+        click_row 3 left --mods ctrl
+        settle
+        printf 'CTRLCLICK %s indices=%s cursor=%s\n' "$view" "$(ipc selectedIndices)" "$(ipc cursor)"
+        shot "ctrlclick-$view"
+        [[ "$(ipc selectedIndices)" == "1,3" ]] \
+            || fail "ctrlclick: in the $view ctrl+click selected '$(ipc selectedIndices)', not 1,3"
+        [[ "$(ipc cursor)" == "3" ]] || fail "ctrlclick: in the $view the cursor is $(ipc cursor), not 3"
+        # The anchor is the ctrl+clicked row, so a shift+click from it runs 2,3 and never back to 1.
+        click_row 2 left --mods shift
+        settle
+        [[ "$(ipc selectedIndices)" == "2,3" ]] \
+            || fail "ctrlclick: in the $view shift+click selected '$(ipc selectedIndices)', not 2,3"
+        # Ctrl+click on the cursor row itself with nothing marked marks it, once.
+        click_row 2 left
+        settle
+        click_row 2 left --mods ctrl
+        settle
+        [[ "$(ipc selectedIndices)" == "2" ]] \
+            || fail "ctrlclick: in the $view ctrl+click on the cursor row selected '$(ipc selectedIndices)', not 2"
+        # Leaves the set empty, so the next view starts from the same state as this one did.
+        click_row 2 left
+        settle
+    done
 }
 
 # Catches narrowing the delegate TapHandler back to Qt.LeftButton in ui/Pane.qml.
@@ -8115,7 +8169,7 @@ case_previewviews() {
 . "$repo/tests/ui-convert-design.sh"
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click ctrlclick menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign)
 
 : > "$run_log"
 : > "$flea_log"

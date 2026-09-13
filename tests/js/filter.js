@@ -222,6 +222,23 @@ function run(check) {
     Filter.extend(chainPlain, 1)
     check("with no filter it is still a plain one-row range", Fixture.picks(chainPlain), "2,3")
 
+    // Ctrl+click whole: an empty set means the cursor row is the selection, so it joins first.
+    var joined = Fixture.pane()
+    joined.cursorIndex = 2
+    Filter.toggleRow(joined, 4)
+    check("ctrl click on another row keeps the cursor row in the selection", Fixture.picks(joined), "2,4")
+    check("and the cursor moved to the clicked row", joined.cursorIndex, 4)
+    check("and the anchor is the clicked row", joined.selectionAnchor, 4)
+    var held = Fixture.pane()
+    held.cursorIndex = 1
+    held.selection.toggle(1)
+    Filter.toggleRow(held, 4)
+    check("a set already holding the cursor row keeps it, marked once", Fixture.picks(held), "1,4")
+    var same = Fixture.pane()
+    same.cursorIndex = 3
+    Filter.toggleRow(same, 3)
+    check("ctrl click on the cursor row with nothing selected marks it once", Fixture.picks(same), "3")
+
     // A sort is a backend reorder: the same rows arrive in another order and the query is untouched.
     var sortFirst = Filter.shown(Fixture.reversed(), 0, "scr")
     check("sorting first and filtering after keeps the sorted order", sortFirst.join(","), "1,2,3,4")

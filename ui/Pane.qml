@@ -245,7 +245,7 @@ FocusScope {
     }
     function extendSelection(delta) { Filter.extend(root, delta) }
     // Ctrl+click and shift+click, the mouse's twins of v and shift+j/k; see keys.toml's [[pointer]].
-    function toggleSelectAt(index) { root.setCursor(index); root.toggleSelect() }
+    function toggleSelectAt(index) { Filter.toggleRow(root, index) }
     function extendSelectionTo(index) { Filter.extendToRow(root, index) }
     // Named escapePressed, not escape, which collides with the JS global URI function; clears an active selection first, see keys.toml.
     function escapePressed() { if (root.selection.count() > 0) { root.clearSelection(); return }; root.message("", false) }

@@ -265,6 +265,17 @@ function extendToRow(pane, index) {
     pane.selectionVersion += 1
 }
 
+// Ctrl+click, v's mouse twin. An empty set means the cursor row is selected, so it joins first.
+function toggleRow(pane, index) {
+    if (pane.selection.count() === 0 && pane.cursorIndex !== index) {
+        pane.selection.toggle(pane.cursorIndex)
+    }
+    setCursor(pane, index)
+    pane.selection.toggle(index)
+    pane.selectionAnchor = index
+    pane.selectionVersion += 1
+}
+
 // The rows drawn between the cursor and the anchor, which extend() above is the only caller of.
 function extendTo(pane, anchor) {
     if (pane.shown === null) {
