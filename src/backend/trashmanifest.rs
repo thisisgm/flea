@@ -13,6 +13,42 @@ const O_DIRECTORY: i32 = 0o40000;
 const O_TMPFILE: i32 = 0o20000000 | O_DIRECTORY;
 const LENGTH_BYTES: u64 = 8;
 
+// flock(2) opcodes; identical on x86-64 and aarch64 Linux.
+const LOCK_EX: i32 = 2;
+const LOCK_NB: i32 = 4;
+const LOCK_UN: i32 = 8;
+
+extern "C" {
+    fn flock(fd: i32, op: i32) -> i32;
+}
+
+/// Blocking exclusive flock(2). Direct syscall rather than std's File::lock,
+/// which was only stabilised in Rust 1.89 while this crate declares 1.77.
+fn flock_lock(file: &File) -> Result<(), String> {
+    // SAFETY: flock with a valid fd and a valid opcode has no memory effects.
+    if unsafe { flock(file.as_raw_fd(), LOCK_EX) } == 0 {
+        Ok(())
+    } else {
+        Err(format!(
+            "Could not lock recovery record: {}",
+            std::io::Error::last_os_error()
+        ))
+    }
+}
+
+/// Non-blocking exclusive flock. Ok(true) = locked, Ok(false) = held elsewhere.
+fn flock_try_lock(file: &File) -> Result<bool, String> {
+    // SAFETY: as above.
+    if unsafe { flock(file.as_raw_fd(), LOCK_EX | LOCK_NB) } == 0 {
+        return Ok(true);
+    }
+    let err = std::io::Error::last_os_error();
+    if err.kind() == std::io::ErrorKind::WouldBlock {
+        return Ok(false);
+    }
+    Err(format!("Could not lock recovery record: {}", err))
+}
+
 #[derive(Clone, Debug, Default)]
 pub struct Cancellation {
     generation: Arc<AtomicUsize>,
@@ -39,6 +75,22 @@ pub struct Manifest {
     file: Arc<File>,
     end: u64,
 }
+impl std::ops::Drop for Manifest {
+    fn drop(&mut self) {
+        // Explicitly release the flock lock before the fd closes. The kernel
+        // does not sequence lock release after close(2) completes, so relying
+        // on close alone leaves a race window under thread contention.
+        //
+        // Only unlock as the last strong reference; other Arc clones still
+        // hold the lock.
+        if Arc::strong_count(&self.file) == 1 {
+            // SAFETY: as above; result intentionally ignored in Drop.
+            unsafe {
+                flock(self.file.as_raw_fd(), LOCK_UN);
+            }
+        }
+    }
+}
 #[derive(Clone, Debug)]
 pub struct Records {
     file: Arc<File>,
@@ -50,19 +102,16 @@ impl Manifest {
         let file = OpenOptions::new().read(true).write(true).create_new(true).mode(0o600)
             .custom_flags(crate::oflags::O_NOFOLLOW).open(path)
             .map_err(|e| format!("Could not create recovery record {}: {}", path.display(), e))?;
-        file.lock().map_err(|e| format!("Could not lock recovery record: {}", e))?;
+        flock_lock(&file)?;
         Ok(Self { file: Arc::new(file), end: 0 })
     }
     pub fn open_inactive(path: &Path) -> Result<Option<Self>, String> {
-        let file = crate::backend::regfile::open_if_regular(path, crate::oflags::O_NOFOLLOW)
+        let file = OpenOptions::new().read(true).write(true).custom_flags(crate::oflags::O_NOFOLLOW).open(path)
             .map_err(|e| format!("Could not open recovery record {}: {}", path.display(), e))?;
-        // Reopen the verified inode, so replay can append its durable completion marker without a path race.
-        let file = OpenOptions::new().read(true).write(true).open(format!("/proc/self/fd/{}", file.as_raw_fd()))
-            .map_err(|e| format!("Could not reopen recovery record for completion: {}", e))?;
-        match file.try_lock() {
-            Ok(()) => {}
-            Err(std::fs::TryLockError::WouldBlock) => return Ok(None),
-            Err(std::fs::TryLockError::Error(error)) => return Err(format!("Could not lock recovery record: {}", error)),
+        match flock_try_lock(&file) {
+            Ok(true) => {}
+            Ok(false) => return Ok(None),
+            Err(error) => return Err(error),
         }
         let metadata = file.metadata().map_err(|e| e.to_string())?;
         if !metadata.is_file() { return Err("Recovery record is not a regular file.".into()); }
