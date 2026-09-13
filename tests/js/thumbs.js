@@ -31,6 +31,7 @@ function run(check) {
     check("nothing is cancelled on a first pass", work.drop.length, 0)
 
     s = Thumbs.applied(s, work)
+    check("pending names every waiting row", Thumbs.pending(s).sort().join(","), "10,11,13")
     check("a row already asked is not asked twice", Thumbs.plan(s, rows, 10, 10, 13).ask.length, 0)
     check("a row asked and still waiting reports no file", Thumbs.fileFor(s, 10), "")
 
@@ -40,6 +41,7 @@ function run(check) {
 
     s = Thumbs.applied(s, work)
     check("a cancelled row leaves the order too", s.order.length, 1)
+    check("pending after cancel is the row still asked", Thumbs.pending(s).join(","), "13")
     check("a cancelled row can be asked for again", Thumbs.plan(s, rows, 10, 10, 13).ask.join(","), "10,11")
 
     s = Thumbs.remember(s, 13, "/cache/13.png", 240)

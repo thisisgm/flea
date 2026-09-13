@@ -406,7 +406,7 @@ fn drain(
         sweep_own_temps(&cache.large_dir());
     }
     // corner: a row the deadline cut short is answered empty rather than left unanswered, see AGENTS.md "Thumbnail requests".
-    for (_, row) in std::mem::take(&mut st.asked) {
+    for (_, row, _) in std::mem::take(&mut st.asked) {
         writeln!(out, "{}", thumbed_line(row, "", 0.0)).ok();
     }
     out.flush().ok();

@@ -150,6 +150,7 @@ ListView {
             root.pane.backend.dirsizecancel()
             root.dirSizesCancelled()
         }
+        root.pane.cancelPendingThumbs()
         coalesce.start()
         settle.restart()
     }

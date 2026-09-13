@@ -30,7 +30,7 @@ pub struct State {
     pub listing: Listing,
     pub base: PathBuf,
     // Only the rows a client named, so this never grows with the directory; see AGENTS.md "Thumbnail requests".
-    pub asked: Vec<(PathBuf, usize)>,
+    pub asked: Vec<(PathBuf, usize, u64)>,
     pub outstanding: usize,
     // Answered directory rows, kept until the next list or sort reassigns what a row index names.
     pub dirsizes: HashMap<usize, (u64, bool)>,

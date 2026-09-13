@@ -161,6 +161,7 @@ GridView {
             root.pane.backend.dirsizecancel()
             root.dirSizesCancelled()
         }
+        root.pane.cancelPendingThumbs()
         coalesce.start()
         settle.restart()
     }
@@ -176,7 +177,7 @@ GridView {
 
     Timer {
         id: settle
-        interval: root.pane.settleMs
+        interval: root.pane.firstSettleMs
         repeat: false
         onTriggered: { root.requestThumbs(); root.requestDirSizes() }
     }
@@ -249,6 +250,8 @@ GridView {
         work.drop = work.drop.filter(function (index) { return index !== root.pane.previewIndex })
         root.pane.backend.thumbcancel(work.drop)
         root.pane.backend.thumb(work.ask)
+        if (work.ask.length > 0)
+            settle.interval = root.pane.gridSettleMs
         root.thumbsApplied(work)
     }
 

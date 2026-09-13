@@ -20,7 +20,7 @@ src/backend/opsdispatch.rs 536
 src/backend/opsreq/tests.rs 424
 src/backend/proto.rs 466
 src/backend/run.rs 425
-src/backend/thumbs.rs 426
+src/backend/thumbs.rs 489
 src/backend/trashbrowse.rs 698
 src/backend/trashdelete.rs 895
 src/tui/actions.rs 999
@@ -41,7 +41,7 @@ ui/Ipc.qml 762
 ui/NetworkDialog.qml 449
 ui/NetworkMounts.qml 557
 ui/OpenWithDialog.qml 583
-ui/Pane.qml 664
+ui/Pane.qml 676
 ui/PaneWire.qml 481
 ui/PermissionsDialog.qml 426
 ui/PreviewColumn.qml 463

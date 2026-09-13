@@ -78,6 +78,17 @@ function fileFor(state, row) {
     return typeof value === "string" ? value : ""
 }
 
+// Rows still waiting on a child. Scroll cancels these so a pause cannot leave a backlog of PDFs.
+function pending(state) {
+    var drop = []
+    for (var key in state.file) {
+        if (state.file[key] === ASKED) {
+            drop.push(Number(key))
+        }
+    }
+    return drop
+}
+
 // Answered with nothing, which is not the same as not answered yet. A thumbnailer that could not
 // read the file reports an empty name, and only once that has arrived is it honest to say so.
 function refused(state, row) {
