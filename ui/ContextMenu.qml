@@ -16,15 +16,12 @@ Item {
     signal snapshotRequested()
 
     property bool opened: false
-    // Driven from ui/Pane.qml's own state, so this file owns no hidden-file logic itself.
+    property var snapshot: ({})
     property bool showHidden: false
-    // The application name ui/Opener.qml resolved for the cursor row, shown muted beside "Open".
-    // [{id, label}], the reachable Taildrop targets; installed providers keep their disabled reason.
     property var taildropPeers: []
     property bool taildropInstalled: false
     property string taildropReason: ""
     property bool providersRefreshing: false
-    // The archive formats this box actually probed, and whether a converter is installed at all.
     property var archiveFormats: []
     property bool canConvert: false
     property bool canExtract: false
@@ -48,6 +45,8 @@ Item {
     property bool hasRow: true
     property string selectionIdentity: ""
     property string openedIdentity: ""
+    property string targetPath: ""
+    readonly property string targetIdentity: root.targetPath || root.selectionIdentity
     // The owner intersects the live monitor work area with this application's viewport.
     property rect workArea: Qt.rect(0, 0, root.width, root.height)
     readonly property real workAreaInset: Theme.space(4)
@@ -61,12 +60,10 @@ Item {
     readonly property bool forRail: root.railEntries.length > 0
     signal railChosen(string action, string key)
 
-    // ui/Header.qml's own entrance, the third face of this one instance: openForHeader() flips the
-    // entries to ui/js/Menu.js headerEntries (the column toggles and the hidden toggle, built from
-    // qs module ViewState's hidden columns and the pane's showHidden), and every row flows back
-    // through chosen() like the listing's own. A row's chosen verb routes by prefix in ui/Pane.qml.
+    // Header actions share this menu and route through chosen() by action prefix.
     property bool forHeader: false
     function openForHeader(scenePoint) {
+        root.targetPath = ""
         root.forHeader = true
         root.place(scenePoint)
     }
@@ -105,12 +102,9 @@ Item {
     // The row list this menu currently offers; a test reads this back through shell.qml's IPC.
     property var entries: []
 
-    // The construction lives in ui/js/Menu.js now, so the rows are unit-testable without a window:
-    // listingEntries(p) builds the listing's rows from the pane's state, headerEntries() the column
-    // titles' own rows on a right click (see ui/Header.qml), and this file only routes between them.
+    // Menu.js builds file and header entries; the sidebar supplies its special mount actions.
     function buildEntries() {
-        // Which release a rail row offers is the rail's knowledge, not the listing's, so the rail
-        // hands its rows in already built; see ui/js/Mounts.js "railMenu".
+        // Mount actions belong to the rail, independent of the listing selection.
         if (root.forRail)
             return root.railEntries
         if (root.forHeader)
@@ -127,15 +121,15 @@ Item {
             taildropReason: root.taildropReason,
             providersRefreshing: root.providersRefreshing,
             archiveFormats: root.archiveFormats,
-            rowIsArchive: root.rowIsArchive,
-            rowIsImage: root.rowIsImage,
+            rowIsArchive: !root.targetPath && root.rowIsArchive,
+            rowIsImage: !root.targetPath && root.rowIsImage,
             canConvert: root.canConvert,
             canExtract: root.canExtract,
             clipboardAvailable: root.clipboardAvailable,
             openWithApps: root.openWithApps,
             openWithLoaded: root.openWithLoaded,
-            rowMode: root.rowMode,
-            selectionCount: root.selectionCount,
+            rowMode: root.targetPath ? (root.snapshot.mode || 0) : root.rowMode,
+            selectionCount: root.targetPath ? (root.snapshot.count || 0) : root.selectionCount,
             // The Menus settings section's stored set; ui/js/Menu.js applyHidden is what reads it.
             hiddenActions: ViewState.menuHidden
         })
@@ -179,17 +173,17 @@ Item {
     z: 1
 
     // Takes a point in scene coordinates and keeps the whole menu inside the pane it belongs to.
-    function openAt(scenePoint) {
+    function openAt(scenePoint, path) {
+        root.targetPath = path || ""
         root.clearRail()
         root.forHeader = false
         root.hasRow = true
         root.place(scenePoint)
     }
 
-    // The listing's other entrance, from a right click that landed on no row at all: ui/List.qml,
-    // ui/GridArea.qml and ui/ColumnPane.qml each answer for their own empty space, and this one
-    // instance then draws ui/js/Menu.js backgroundEntries instead of the cursor row's.
+    // Empty listing space uses the current directory rather than a selected item.
     function openBackground(scenePoint) {
+        root.targetPath = ""
         root.clearRail()
         root.forHeader = false
         root.hasRow = false
@@ -199,6 +193,7 @@ Item {
     // ui/Sidebar.qml's own entrance to this same menu: the rail hands in its rows and the key that
     // names the row they came from, and a rail row with nothing to release opens no menu at all.
     function openForRail(key, entries, scenePoint) {
+        root.targetPath = ""
         if (!entries || entries.length === 0)
             return
         root.railKey = key
@@ -237,8 +232,9 @@ Item {
         var point = root.mapFromItem(null, scenePoint)
         root.placeX = point.x
         root.placeY = point.y
+        root.snapshot = ({})
         root.entries = root.buildEntries()
-        root.openedIdentity = root.selectionIdentity
+        root.openedIdentity = root.targetIdentity
         scroll.contentY = 0
         root.clampFrame()
         root.cursor = root.firstRow()
@@ -309,7 +305,7 @@ Item {
     // Rebuild only to validate; rows stay fixed while the menu is open under the pointer.
     function validateChoice(action, subId) {
         var identityChanged = !root.forRail && !root.forHeader && root.hasRow
-                              && root.openedIdentity !== root.selectionIdentity
+                              && root.openedIdentity !== root.targetIdentity
         var live = root.buildEntries()
         for (var i = 0; !identityChanged && i < live.length; i++) {
             var entry = live[i]

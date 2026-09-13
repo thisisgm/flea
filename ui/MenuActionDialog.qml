@@ -12,16 +12,19 @@ FocusScope {
     property string action: ""
     property int requestId: 0
     property string folder: ""
+    property string renameSource: ""
+    property string renameDestination: ""
     property var facts: ({})
     property string errorText: ""
     property bool busy: false
     property bool committing: false
     property bool checkPending: false
     property Item focusHolder: null
-    readonly property bool inputAction: action === "newFile" || action === "moveTo" || action === "copyTo"
+    readonly property bool nameAction: action === "newFile" || action === "rename"
+    readonly property bool inputAction: nameAction || action === "moveTo" || action === "copyTo"
     readonly property bool deletionActive: action === "deletePermanently" && committing
     readonly property bool canSubmit: !busy && inputAction && field.text.length > 0
-    readonly property string title: ({moveTo: "Move to", copyTo: "Copy to", properties: "Properties", newFile: "New File", deletePermanently: "Delete permanently"})[action] || ""
+    readonly property string title: ({moveTo: "Move to", copyTo: "Copy to", properties: "Properties", newFile: "New File", rename: "Rename", deletePermanently: "Delete permanently"})[action] || ""
     readonly property var cardItem: card
     readonly property var confirmationItem: confirmation
     readonly property var closeItem: closeFocus
@@ -33,10 +36,18 @@ FocusScope {
     signal deleted(var message)
     signal closed()
 
+    function seedRename(path) {
+        renameSource = path
+        field.text = path.substring(path.lastIndexOf("/") + 1)
+        field.selectAll()
+    }
+
     function open(operation, identity, parentPath, holder) {
         action = operation
         requestId = identity
         folder = parentPath
+        renameSource = ""
+        renameDestination = ""
         focusHolder = holder
         facts = ({})
         errorText = ""
@@ -54,7 +65,7 @@ FocusScope {
     // Two dialogs share the one request id, so this one answers only for the ops it asked for:
     // routing an Open with reply in here closed a Properties card that had just opened over it.
     readonly property var ownedOps: ["properties", "prepareDelete", "refreshDelete", "checkDelete",
-                                     "delete", "validate", "newFile", ""]
+                                     "delete", "validate", "newFile", "rename", ""]
     function receive(message) {
         if ((!opened && !deletionActive) || message.id !== requestId || message.op === "close") return
         if (root.ownedOps.indexOf(message.op === undefined ? "" : message.op) < 0) return
@@ -86,7 +97,7 @@ FocusScope {
         close()
     }
     function close() {
-        if (!opened || busy && committing && action === "newFile") return
+        if (!opened || busy && committing && nameAction) return
         finish()
     }
     function finish() {
@@ -118,11 +129,11 @@ FocusScope {
     }
     function submit() {
         if (!canSubmit) return
-        if (action !== "newFile" && field.text.charAt(0) !== "/") {
+        if (!nameAction && field.text.charAt(0) !== "/") {
             errorText = "Enter an absolute destination folder."
             return
         }
-        if (action === "newFile" && (field.text === "." || field.text === ".." || field.text.indexOf("/") >= 0)) {
+        if (nameAction && (field.text === "." || field.text === ".." || field.text.indexOf("/") >= 0 || field.text.indexOf("\u0000") >= 0)) {
             errorText = "Enter one filename without a path separator."
             return
         }
@@ -131,7 +142,10 @@ FocusScope {
         busy = true
         committing = true
         errorText = ""
-        if (action === "newFile") requested({c: "newfile", op: "newFile", id: requestId, path: folder, name: field.text})
+        if (action === "rename") {
+            renameDestination = folder.replace(/\/$/, "") + "/" + field.text
+            requested({c: "rename", path: renameSource, to: field.text, menuId: requestId})
+        } else if (action === "newFile") requested({c: "newfile", op: "newFile", id: requestId, path: folder, name: field.text})
         else requested({c: "menuaction", op: "validate", id: requestId, action: action, dest: field.text})
     }
     // Each focusable child routes Tab here before Qt can move focus outside the card.
@@ -197,7 +211,7 @@ FocusScope {
                 Text {
                     width: parent.width
                     visible: root.inputAction
-                    text: root.action === "newFile" ? "Name" : "Destination folder"
+                    text: root.nameAction ? "Name" : "Destination folder"
                     textFormat: Text.PlainText
                     color: Theme.color.foreground
                     font { family: Theme.font.family; pixelSize: Theme.font.body }
@@ -221,7 +235,7 @@ FocusScope {
                         enabled: !root.busy
                         clip: true
                         selectByMouse: true
-                        Accessible.name: root.action === "newFile" ? "Filename" : "Destination folder"
+                        Accessible.name: root.nameAction ? "Filename" : "Destination folder"
                         Keys.onTabPressed: function(event) { root.stepFocus((event.modifiers & Qt.ShiftModifier) !== 0) }
                         Keys.onBacktabPressed: root.stepFocus(true)
                         Keys.onReturnPressed: root.submit()
@@ -261,7 +275,7 @@ FocusScope {
                         id: closeFocus
                         width: closeButton.implicitWidth
                         height: closeButton.implicitHeight
-                        activeFocusOnTab: !(root.busy && root.committing && root.action === "newFile")
+                        activeFocusOnTab: !(root.busy && root.committing && root.nameAction)
                         Keys.onTabPressed: function(event) { root.stepFocus((event.modifiers & Qt.ShiftModifier) !== 0) }
                         Keys.onBacktabPressed: root.stepFocus(true)
                         Keys.onReturnPressed: root.close()
@@ -278,7 +292,7 @@ FocusScope {
                         Keys.onBacktabPressed: root.stepFocus(true)
                         Keys.onReturnPressed: root.submit()
                         Keys.onSpacePressed: root.submit()
-                        Flea.DialogButton { id: submitButton; label: root.action === "newFile" ? "Create" : root.action === "moveTo" ? "Move" : "Copy"; primary: parent.activeFocus; available: root.canSubmit; onActivated: root.submit() }
+                        Flea.DialogButton { id: submitButton; label: root.action === "rename" ? "Rename" : root.action === "newFile" ? "Create" : root.action === "moveTo" ? "Move" : "Copy"; primary: parent.activeFocus; available: root.canSubmit; onActivated: root.submit() }
                     }
                 }
             }

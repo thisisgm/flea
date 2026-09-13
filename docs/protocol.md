@@ -86,8 +86,14 @@ Identity checks compare the device, inode and file type at the worker boundary; 
 batch handoff. These checks do not make subsequent external-helper filesystem operations
 atomic. Omitting `menuId` preserves the existing keyboard and protocol entry paths.
 
+The menu snapshot reply includes `count`, the first item's file-type bits in `mode`, and `path`
+for a single selected item. A multi-selection returns an empty `path`.
+
 `{"c":"menuaction","op":"snapshot","id":4,"rows":[0,2]}` captures the selected identities
-from the active listing. `prepareDelete` with that `id` reviews the captured trees and returns a
+from the active listing. For a Places folder, `"path":"/home/user/Downloads"` instead captures
+that absolute path, independently of the listing and any selected rows. An explicit path takes
+precedence over `rows` and `cursor`; a missing or invalid path fails without falling back to them.
+`prepareDelete` with that `id` reviews the captured trees and returns a
 fresh `token`, selected `count`, and total `bytes`. `checkDelete` with the `id` and `token` returns
 `valid` without mutating files. A changed set requires `refreshDelete`: it reviews only the same
 captured paths, drops missing paths, captures replacement identities, and issues a fresh token.

@@ -24,6 +24,7 @@ import "network.js" as NetworkSuite
 import "ops.js" as OpsSuite
 import "palette.js" as PaletteSuite
 import "pathbar.js" as PathBarSuite
+import "pathmenu.js" as PathMenuSuite
 import "picker.js" as PickerSuite
 import "previewkeys.js" as PreviewKeysSuite
 import "places.js" as PlacesSuite
@@ -73,7 +74,7 @@ Item {
             ["format", FormatSuite], ["icons", IconsSuite],
             ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite],
             ["mounts", MountsSuite], ["nav", NavSuite], ["network", NetworkSuite],
-            ["openwith", OpenWithSuite], ["ops", OpsSuite],
+            ["openwith", OpenWithSuite], ["ops", OpsSuite], ["pathmenu", PathMenuSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
             ["picker", PickerSuite],
             ["previewkeys", PreviewKeysSuite],

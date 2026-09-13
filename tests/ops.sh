@@ -174,5 +174,51 @@ check "the destination file is untouched by the refused copy" "already here" "$(
 stop_backend
 
 echo
+# Places menus capture a folder while another directory is listed. Exercise Copy and Rename
+# through that snapshot, then replace the folder and prove that its replacement is refused.
+echo "--- Places folder menu is independent of the active listing ---"
+start_backend
+mkdir -p "$D/places/Downloads" "$D/listing"
+printf 'keep' > "$D/listing/unrelated.txt"
+printf 'download' > "$D/places/Downloads/file.txt"
+send "{\"c\":\"list\",\"path\":\"$D/listing\",\"first\":5}"
+await '"t":"rows"' || fail=1
+send "{\"c\":\"menuaction\",\"op\":\"snapshot\",\"id\":41,\"path\":\"$D/places/Downloads\",\"rows\":[0],\"cursor\":0}"
+await '"op":"snapshot"' || fail=1
+check "snapshot inspects the Places folder instead of the listed file" "1" "$(seen '"op":"snapshot","ok":true,"count":1,"mode":16384')"
+send '{"c":"menuaction","op":"activate","id":41,"action":"copy"}'
+await '"op":"activate"' || fail=1
+check "Copy returns only the clicked Places folder" "1" "$(seen "\"paths\":\[\"$D/places/Downloads\"\]")"
+send "{\"c\":\"rename\",\"path\":\"$D/places/Downloads\",\"to\":\"Renamed\",\"menuId\":41}"
+await '"t":"renamed"' || fail=1
+check "Rename uses the captured Places folder" "download" "$(cat "$D/places/Renamed/file.txt" 2>/dev/null)"
+check "Rename leaves the unrelated listed file alone" "keep" "$(cat "$D/listing/unrelated.txt")"
+stop_backend
+
+echo "--- a replaced Places folder is refused ---"
+start_backend
+mkdir -p "$D/Downloads"
+send "{\"c\":\"menuaction\",\"op\":\"snapshot\",\"id\":42,\"path\":\"$D/Downloads\"}"
+await '"op":"snapshot"' || fail=1
+mv "$D/Downloads" "$D/original"
+mkdir "$D/Downloads"
+send "{\"c\":\"rename\",\"path\":\"$D/Downloads\",\"to\":\"wrong\",\"menuId\":42}"
+await '"where":"rename"' || fail=1
+check "replacement inode cannot inherit the menu's rename" "1" "$(seen 'Selected item changed')"
+check "replacement folder remains in place" "yes" "$([ -d "$D/Downloads" ] && echo yes || echo no)"
+check "no rename destination was created" "no" "$([ -e "$D/wrong" ] && echo yes || echo no)"
+stop_backend
+
+echo "--- a missing Places target never falls back to the listing ---"
+start_backend
+mkdir "$D/listing"
+printf 'keep' > "$D/listing/unrelated.txt"
+send "{\"c\":\"list\",\"path\":\"$D/listing\",\"first\":5}"
+await '"t":"rows"' || fail=1
+send "{\"c\":\"menuaction\",\"op\":\"snapshot\",\"id\":43,\"path\":\"$D/missing\",\"rows\":[0]}"
+await '"op":"snapshot"' || fail=1
+check "missing path refuses snapshot despite a valid listing row" "1" "$(seen '"op":"snapshot","ok":false')"
+stop_backend
+
 if [ "$fail" = 0 ]; then echo "ops.sh: all checks passed"; else echo "ops.sh: FAILURES above"; fi
 exit "$fail"

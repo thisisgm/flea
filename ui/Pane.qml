@@ -365,7 +365,7 @@ FocusScope {
     function openFile(path) { wire.opener.open(path) }
 
     // A terminal in the directory being shown, through ui/Opener.qml's flea --terminal.
-    function openTerminal() { wire.opener.openTerminal(root.path) }
+    function openTerminal(path) { wire.opener.openTerminal(path || root.path) }
 
     function newWindow() { Quickshell.execDetached([Quickshell.env("FLEA_BIN") || "flea", root.path]) }
 
@@ -575,7 +575,7 @@ FocusScope {
         focusOwner: root.listArea
         showHidden: root.showHidden
         providersRefreshing: menuActions.providersRefreshing
-        taildropPeers: (root.cursorRow && !root.cursorRow.d) ? wire.taildrop.peers : []
+        taildropPeers: (!menu.targetPath && root.cursorRow && !root.cursorRow.d) ? wire.taildrop.peers : []
         taildropInstalled: !root.backend.providers.taildrop || root.backend.providers.taildrop.installed !== false
         taildropReason: root.cursorRow && root.cursorRow.d ? "Taildrop sends files only" : wire.taildrop.reason
         archiveFormats: root.backend.archiveFormats
@@ -595,8 +595,8 @@ FocusScope {
         dropboxInstalled: !root.backend.providers.dropbox || root.backend.providers.dropbox.installed !== false
         dropboxPath: root.dropboxService && root.dropboxService.dropboxReady ? root.dropboxService.dropboxPath : ""
         dropboxReason: root.dropboxService ? root.dropboxService.dropboxReason : "Dropbox service unavailable"
-        rowInDropbox: root.dropboxService && root.cursorRow
-            && Dropbox.contains(root.dropboxService.dropboxPath, root.join(root.path, root.cursorRow.n))
+        rowInDropbox: root.dropboxService && (menu.targetPath || root.cursorRow)
+            && Dropbox.contains(root.dropboxService.dropboxPath, menu.targetPath || root.join(root.path, root.cursorRow.n))
         onChosen: function (action) {
             menuActions.activate(action, menu.hasRow && !menu.forHeader)
         }

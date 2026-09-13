@@ -163,9 +163,10 @@ fn handle_line(
             ops.picker.get_or_insert_with(|| super::picker::Picker::new(replies)).request(line);
         }
         Request::MenuAction { line, rows } => {
-            let paths = resolve_rows(Vec::new(), &rows, &st.base, &st.listing);
-            let cursor = crate::json::field_usize(&line, "cursor").map(|index|
-                resolve_rows(Vec::new(), &[index], &st.base, &st.listing).into_iter().next().unwrap_or_default());
+            let target = crate::json::field_str(&line, "path");
+            let paths = resolve_rows(target.iter().cloned().collect(), &rows, &st.base, &st.listing);
+            let cursor = target.or_else(|| crate::json::field_usize(&line, "cursor").map(|index|
+                resolve_rows(Vec::new(), &[index], &st.base, &st.listing).into_iter().next().unwrap_or_default()));
             super::opsdispatch::request_menu_action(out, ops, line, paths, cursor);
         }
         Request::TrashBrowse { line } => {
@@ -173,7 +174,6 @@ fn handle_line(
             ops.trashbrowser.get_or_insert_with(|| super::trashbrowse::TrashBrowser::new(replies)).request(line);
         }
         Request::List { path, first, hidden } => {
-            // A new listing replaces whatever the walk was filling, so the walk ends before the scan starts.
             if finish_search(out, st, true) {
                 forget_rows(st, pool);
             }

@@ -1,6 +1,7 @@
 import QtQuick
 import "js/Menu.js" as Menu
 import "js/Ops.js" as Ops
+import "js/PathMenu.js" as PathMenu
 
 Loader {
     id: root
@@ -15,6 +16,8 @@ Loader {
     readonly property bool deleting: item !== null && item.deletionActive
     property int requestId: 0
     property string identity: ""
+    property string targetPath: ""
+    readonly property string selectionIdentity: root.targetPath || root.pane.menuSelectionIdentity
     property string folder: ""
     property bool ready: false
     property string pendingAction: ""
@@ -82,21 +85,23 @@ Loader {
     // rows, when the caller has one: a keyboard rename acts on the cursor, and Ops.targetIndices
     // answers with the selection whenever there is one, so the snapshot covered rows the rename was
     // never going to touch and the backend refused the cursor's own path as "not in the selection".
-    function snapshot(rows) {
+    function snapshot(rows, path) {
         if (deleting || survivorId) return
         requestId++
         ready = false
         pendingAction = ""
         pendingActivation = false
         activationUsed = false
-        identity = pane.menuSelectionIdentity
-        folder = pane.path
+        targetPath = path === undefined ? pane.contextMenu().targetPath : path
+        identity = selectionIdentity
+        folder = targetPath ? PathMenu.parent(targetPath) : pane.path
         // The registry belongs to the row that was snapshotted. Carrying the last row's answer over
         // offered one file's applications for another, and kept the self-hide rule from ever firing.
         openWithApps = []
         openWithLoaded = false
-        pane.backend.send({c: "menuaction", op: "snapshot", id: requestId,
-            rows: rows !== undefined ? rows : Ops.targetIndices(pane), cursor: pane.cursorIndex})
+        pane.backend.send(targetPath ? {c: "menuaction", op: "snapshot", id: requestId, path: targetPath}
+            : {c: "menuaction", op: "snapshot", id: requestId,
+               rows: rows !== undefined ? rows : Ops.targetIndices(pane), cursor: pane.cursorIndex})
     }
     function open(action, menuId) {
         if (opened) return
@@ -104,6 +109,7 @@ Loader {
         if (deleting || survivorId) { pane.message("The deletion is still finishing.", false); return }
         if (action === "newFile") {
             requestId++
+            targetPath = ""
             folder = pane.path
             show(action)
             return
@@ -111,8 +117,8 @@ Loader {
         // The row the editor will open over, captured now: the cursor can move between this request
         // and its reply, and the editor used to open over wherever it had got to by then.
         if (action === "rename" && !menuId) pendingRenameIndex = pane.cursorIndex
-        if (!requestId || identity !== pane.menuSelectionIdentity || (action === "rename" && !menuId))
-            snapshot(action === "rename" && !menuId ? [pane.cursorIndex] : undefined)
+        if (!requestId || identity !== selectionIdentity || (!menuId && (targetPath || action === "rename")))
+            snapshot(action === "rename" && !menuId ? [pane.cursorIndex] : undefined, menuId ? undefined : "")
         pendingAction = action
         pendingActivation = false
         if (ready) show(action)
@@ -127,7 +133,7 @@ Loader {
         }
         if (activationUsed) return
         if (deleting || survivorId) { pane.message("The deletion is still finishing.", false); return }
-        if (!requestId || identity !== pane.menuSelectionIdentity) {
+        if (!requestId || identity !== selectionIdentity) {
             pane.message("Selected items changed; reopen the menu.", true)
             return
         }
@@ -160,10 +166,11 @@ Loader {
     }
     function show(action) {
         pendingAction = ""
-        if (action === "rename") { Ops.startRename(pane, requestId, pendingRenameIndex); pendingRenameIndex = -1; return }
+        if (action === "rename" && !targetPath) { Ops.startRename(pane, requestId, pendingRenameIndex); pendingRenameIndex = -1; return }
         dialogFor = action
         active = true
         item.open(action, requestId, folder, pane.listArea)
+        if (action === "rename") item.seedRename(targetPath)
     }
     function addFavourite(path) {
         Favourites.add(path, path.split("/").filter(function (part) { return part.length > 0 }).pop() || "/")
@@ -203,6 +210,17 @@ Loader {
     }
     Connections {
         target: root.pane.backend
+        function onRenamed(ok, path) {
+            if (!root.item || root.item.action !== "rename" || !root.item.committing || path !== root.item.renameDestination) return
+            var source = root.item.renameSource
+            root.item.receive({id: root.requestId, op: "rename", ok: ok})
+            if (ok) {
+                if (root.pane.path === source || root.pane.path.indexOf(source + "/") === 0)
+                    root.pane.open(path + root.pane.path.substring(source.length))
+                else if (root.pane.path === PathMenu.parent(source)) root.pane.refresh(path)
+                root.pane.message("Renamed to " + Ops.leaf(path) + Ops.UNDO_HINT, false)
+            }
+        }
         function onFormatsResult(message) {
             if (!root.providersRefreshing || message.id !== root.providerFormatsId) return
             root.providerFacts = message.providers || {}
@@ -250,7 +268,7 @@ Loader {
                 return
             }
             if (message.op === "snapshot") {
-                root.ready = message.ok === true && root.identity === root.pane.menuSelectionIdentity
+                root.ready = message.ok === true && root.identity === root.selectionIdentity
                 if (!root.ready) {
                     root.pendingAction = ""
                     root.pendingActivation = false
@@ -265,11 +283,13 @@ Loader {
                     // No installed flag: the flyout draws the registry alone, and asking for the
                     // whole catalogue here walked every applications directory on every right-click.
                     root.pane.backend.send({c: "menuaction", op: "applications", id: root.requestId})
+                root.pane.contextMenu().snapshot = root.ready ? message : ({})
+                root.pane.contextMenu().refreshProviderRows()
                 root.finishProviders()
                 return
             }
             if (message.op === "activate") {
-                if (!message.ok || root.identity !== root.pane.menuSelectionIdentity) {
+                if (!message.ok || root.identity !== root.selectionIdentity) {
                     root.pane.message(message.error || "Selected items changed; reopen the menu.", true)
                     return
                 }
@@ -280,13 +300,25 @@ Loader {
                     if (action === "addFavourite") {
                         if (!message.paths || message.paths.length !== 1) { root.pane.message("The selected folder could not be read.", true); return }
                         root.addFavourite(message.paths[0])
-                    } else root.pane.performMenu(message.action, message.id, message.paths)
+                    } else if (!root.targetPath || !PathMenu.perform(root.pane, message.action, message.id, root.targetPath))
+                        root.pane.performMenu(message.action, message.id, message.paths)
                 }
                 return
             }
             if (root.item) root.item.receive(message)
         }
         function onFailed(where, input, message, mode) {
+            if (root.item && root.item.action === "rename" && root.item.committing) {
+                var source = root.item.renameSource, destination = root.item.renameDestination
+                var terminal = where === "backend" || where === "read"
+                if (terminal || input === source || input === destination || (where === "rename" && !input)
+                        || input.indexOf(source + "/") === 0 || input.indexOf(destination + "/") === 0) {
+                    if (where === "rename-kept" || (where === "journal" && input === destination)) {
+                        root.item.finish()
+                        root.pane.refresh()
+                    } else root.item.receive({id: root.requestId, op: "rename", ok: false, error: message})
+                }
+            }
             if (where !== "backend") return
             root.survivorId = 0
             root.survivors = []

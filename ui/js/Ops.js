@@ -207,13 +207,13 @@ function archiveDoneLine(verified) {
                     : "Extracted. The archive index could not be read, so this was not verified."
 }
 
-function paste(pane) {
+function paste(pane, destination) {
     var clip = pane.clipboard
     if (!clip || clip.paths.length === 0) {
         pane.message("There is nothing to paste; y copies and x cuts.", false)
         return
     }
-    pane.backend.send({ c: "transfer", op: clip.moving ? "move" : "copy", paths: clip.paths, dest: pane.path })
+    pane.backend.send({ c: "transfer", op: clip.moving ? "move" : "copy", paths: clip.paths, dest: destination || pane.path })
     // A cut is spent by its paste; a copy stays on the clipboard so it can be pasted again.
     if (clip.moving) {
         pane.clipboard = emptyClipboard()
@@ -263,8 +263,7 @@ function compress(pane, format) {
     pane.backend.askPaths(idx)
 }
 
-// The answer to the askPaths above, and the only place an archive request is built.
-function compressResolved(pane, list, format, menuId) {
+function compressResolved(pane, list, format, menuId, destination) {
     if (list.length === 0) {
         return
     }
@@ -272,8 +271,9 @@ function compressResolved(pane, list, format, menuId) {
     for (var i = 0; i < list.length; i++) {
         names.push(leaf(list[i]))
     }
-    var stem = Archive.archiveStem(names, leaf(pane.path))
-    pane.backend.compress(list, pane.join(pane.path, stem + "." + format), format, menuId)
+    var folder = destination || pane.path
+    var stem = Archive.archiveStem(names, leaf(folder))
+    pane.backend.compress(list, pane.join(folder, stem + "." + format), format, menuId)
     pane.sticky("Compressing " + items(list.length) + " to ." + format)
 }
 

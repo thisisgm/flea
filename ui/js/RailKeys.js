@@ -26,7 +26,7 @@ function act(action, root, sidebar) {
     case "rename": sidebar.startRename(sidebar.cursorIndex); return
     // Eject and Unmount are menu rows, so this opens the menu rather than inventing a second route.
     case "menu":
-        if (sidebar.entries[sidebar.cursorIndex] && sidebar.entries[sidebar.cursorIndex].kind === "trash") sidebar.openCursorMenu()
+        if (sidebar.entries[sidebar.cursorIndex] && ["home", "trash"].indexOf(sidebar.entries[sidebar.cursorIndex].kind) >= 0) sidebar.openCursorMenu()
         else Mounts.raiseMenu(root, sidebar)
         return
     case "eject": Eject.release(root, sidebar, true); return

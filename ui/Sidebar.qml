@@ -176,9 +176,7 @@ Item {
         mounts.openChildShare(uri, label, origin)
     }
 
-    // Right click raises the menu over the row, which is the whole affordance: an eject that can
-    // only be reached by right-clicking twice is one nobody can see. Which rows offer what lives in
-    // ui/js/Mounts.js "rowMenu", because a row with nothing to offer must open no menu at all.
+    // Places use the folder menu with an explicit target; mount rows keep their own actions.
     function openRailMenu(index, scenePosition) {
         root.cancelRename()
         var entry = root.entries[index]
@@ -186,6 +184,7 @@ Item {
             return
         }
         root.cursorIndex = index
+        if (entry.kind === "home") { root.menu.openAt(scenePosition, entry.path); return }
         if (entry.kind === "trash") {
             root.menu.openForRail("trash", Menu.trashEntries(root.trashCount, false), scenePosition)
             return
@@ -369,6 +368,7 @@ Item {
                     cursor: index === root.cursorIndex
                     focused: root.focused
                     onActivated: function (idx) { root.activate(idx) }
+                    onMenuRequested: function(idx, pos) { root.openRailMenu(idx, pos) }
                 }
             }
             Repeater {
