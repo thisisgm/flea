@@ -2,6 +2,23 @@
 .import "../../ui/js/Transfer.js" as Transfer
 
 function run(check) {
+    var sent = [], messages = []
+    var sender = {reason: "Peer went offline", send: function(id, paths) { return false }, labelFor: function() { return "Laptop" }}
+    var pane = {cursorIndex: 2, path: "/fixture", rowFor: function() { return {n: "source", d: false} },
+        join: function(base, name) { return base + "/" + name }, message: function(text, failed) { messages.push([text, failed]) }}
+    Ops.sendTaildrop(pane, sender, "peer", "/captured/source")
+    // The reason is a shared token both front ends read; the bar names its subject, as the TUI does.
+    check("a refused Taildrop dispatch names the subject and its cause", JSON.stringify(messages),
+          JSON.stringify([["Taildrop \u00b7 Peer went offline", true]]))
+    messages = []
+    sender.send = function(id, paths) { sent.push([id, paths]); return true }
+    Ops.sendTaildrop(pane, sender, "peer", "/captured/source")
+    check("Taildrop uses the backend-validated cursor path", JSON.stringify(sent), JSON.stringify([["peer", ["/captured/source"]]]))
+    check("accepted Taildrop dispatch is identified as sending", JSON.stringify(messages), JSON.stringify([["Sending source to Laptop.", false]]))
+    messages = []
+    Ops.sendTaildrop(pane, sender, "peer")
+    check("an absent validated cursor path is refused", JSON.stringify(messages), JSON.stringify([["Cursor source was not validated; reopen the menu.", true]]))
+    check("missing validation cannot fall back to a live cursor file", sent.length, 1)
     // Two kinds of success, and the operator has to be able to tell them apart.
     check("a verified extract says so plainly", Ops.archiveDoneLine(true), "Archive written.")
     check("and an unverified one says what was not checked",
@@ -12,37 +29,49 @@ function run(check) {
           Ops.items(1) + " / " + Ops.items(2) + " / " + Ops.items(0),
           "1 item / 2 items / 0 items")
 
-    // The canvas's own line, drawn on the Operations artboard: "Copying 2 of 5, photo.heic".
+    // The Operations board separates its live item name with a middle dot.
     check("a copy in flight reads the way the canvas draws it",
           Ops.progressLine({ moving: false, n: 5, index: 1, name: "photo.heic" }),
-          "Copying 2 of 5, photo.heic")
+          "Copying 2 of 5 · photo.heic")
     check("a move says so instead",
           Ops.progressLine({ moving: true, n: 5, index: 1, name: "photo.heic" }),
-          "Moving 2 of 5, photo.heic")
+          "Moving 2 of 5 · photo.heic")
     // A directory item reports no name until its first line arrives, and the count still reads.
     check("an item with no name yet still counts",
           Ops.progressLine({ moving: false, n: 2, index: 0, name: "" }),
           "Copying 1 of 2")
 
     check("a finished copy names its own reversal",
-          Ops.transferDone({ moving: false }, 2, 0, false),
+          Ops.transferDone({ moving: false, n: 2 }, 2, 0, 0, false),
           "Copied 2 items · z undoes")
     check("a finished move says moved",
-          Ops.transferDone({ moving: true }, 1, 0, false),
+          Ops.transferDone({ moving: true, n: 1 }, 1, 0, 0, false),
           "Moved 1 item · z undoes")
     check("a partial failure reports both halves and is still undoable",
-          Ops.transferDone({ moving: false }, 1, 1, false),
-          "Copied 1 item, 1 failed · z undoes")
+          Ops.transferDone({ moving: false, n: 2 }, 1, 1, 0, false),
+          "Copied 1 of 2 · 1 failed · z undoes")
     // Nothing landed, so there is nothing for z to reverse and the line does not offer it.
     check("a transfer where every item failed does not offer an undo",
-          Ops.transferDone({ moving: false }, 0, 2, false),
-          "Copied 0 items, 2 failed")
-    check("a cancel that copied nothing says only that",
-          Ops.transferDone({ moving: false }, 0, 0, true),
-          "Cancelled.")
+          Ops.transferDone({ moving: false, n: 2 }, 0, 2, 0, false),
+          "Copied 0 of 2 · 2 failed")
+    check("a cancel that copied nothing reports skipped sources",
+          Ops.transferDone({ moving: false, n: 2 }, 0, 0, 2, true),
+          "Copied 0 of 2 · 2 skipped · cancelled")
     check("a cancel that copied something still offers the undo",
-          Ops.transferDone({ moving: false }, 3, 0, true),
-          "Cancelled after 3 items · z undoes")
+          Ops.transferDone({ moving: false, n: 5 }, 3, 0, 2, true),
+          "Copied 3 of 5 · 2 skipped · cancelled · z undoes")
+    check("mixed outcomes retain the board's complete count inventory",
+          Ops.transferDone({ moving: false, n: 5 }, 2, 1, 2, false),
+          "Copied 2 of 5 · 1 failed · 2 skipped · z undoes")
+    check("a named failure retains the backend cause",
+          Ops.transferFailure({ moving: true }, "photo.heic", "disk full"),
+          "Move failed: photo.heic · disk full")
+    check("no located retry match makes no selection claim", Ops.retrySelectionLine([]), "")
+    check("one verified retry match uses the board's filename wording",
+          Ops.retrySelectionLine([{path: "/source/c.txt", index: 2}]), "c.txt selected for retry")
+    check("multiple verified retry matches report their actual selected count",
+          Ops.retrySelectionLine([{path: "/source/c.txt", index: 2}, {path: "/source/d.txt", index: 3}]),
+          "2 items selected for retry")
 
     // The canvas draws this one verbatim on the Operations artboard's status strip.
     check("trash reads exactly as the canvas draws it",
@@ -106,8 +135,8 @@ function run(check) {
                 send: function (msg) { sent.push(msg) },
                 askPaths: function (rows) { sent.push({ c: "paths", rows: rows }) },
                 mkdir: function (path) { sent.push({ c: "mkdir", path: path }) },
-                compress: function (paths, dest, format) {
-                    sent.push({ c: "archive", paths: paths, dest: dest, format: format })
+                compress: function (paths, dest, format, menuId) {
+                    sent.push({ c: "archive", paths: paths, dest: dest, format: format, menuId: menuId })
                 }
             },
             message: function () {},
@@ -171,17 +200,42 @@ function run(check) {
           String(zipPane.pathsPending),
           "null")
 
+    var captured = ["/d/captured.txt", "/d/second.txt"]
+    var capturedRequests = []
+    var capturedPane = windowedPane(capturedRequests)
+    Ops.clip(capturedPane, true, captured)
+    check("a menu clipboard action retains captured paths without resolving the current listing",
+          capturedPane.clipboard.paths.join(",") + "|" + capturedPane.clipboard.moving + "|" + capturedRequests.length,
+          "/d/captured.txt,/d/second.txt|true|0")
+    Ops.compressResolved(capturedPane, captured, "zip", 31)
+    check("compression carries the captured paths and menu identity into the worker",
+          capturedRequests[0].paths.join(",") + "|" + capturedRequests[0].menuId,
+          "/d/captured.txt,/d/second.txt|31")
+    Ops.moveToDropbox(capturedPane, "/dropbox", 32)
+    check("Dropbox transfer retains the menu identity alongside the full selection",
+          capturedRequests[1].menuId + "|" + capturedRequests[1].rows.length, "32|40")
+
     var t = Ops.started(12, true, 3)
     check("a started transfer carries its id, its direction and its count",
           t.id + "/" + t.moving + "/" + t.n + "/" + t.running,
           "12/true/3/true")
+    var redo = Object.assign({}, t, { redo: "move" })
+    var redoSample = Transfer.sampled(redo, 1, "photo.heic", 50, 100)
+    var redoDone = Transfer.itemDone(redoSample, 1, "photo.heic")
+    check("redo progress keeps its operation identity through samples and completions",
+          Transfer.head(redoSample) + "/" + redoDone.redo + "/" + redoDone.done,
+          "Redoing move 2 of 3/move/2")
+    check("progress creates a new sample without changing the prior state", redo.index, 0)
 
-    // Rename lives here with the other write operations. The editor opens only over a row the
-    // client holds, and a commit reads the row before clearing the index, since clearing closes it.
+    // Rename keeps its captured source and editor until the backend accepts the write.
     function renamePane(cursor, renaming, renamed, viewMode) {
         var p = windowedPane([])
         p.cursorIndex = cursor
         p.renamingIndex = renaming
+        p.renameRequest = null
+        Object.defineProperty(p, "renamePending", {get: function() { return p.renameRequest !== null }})
+        p.renameError = ""
+        p.setCursor = function(index) { p.cursorIndex = index }
         p.viewMode = viewMode ? viewMode : "list"
         p.said = ""
         p.message = function (text) { p.said = text }
@@ -194,25 +248,64 @@ function run(check) {
     var unheld = renamePane(9, -1, [])
     Ops.startRename(unheld)
     check("r on a row outside the held window opens nothing", unheld.renamingIndex, -1)
-    // Neither the grid nor the columns draws a row editor, so a rename started there would set the
-    // guard in ui/js/Focus.js with nothing left to clear it and swallow every key after it.
     var gridded = renamePane(2, -1, [], "grid")
     Ops.startRename(gridded)
-    check("r in the grid opens no editor and says why",
-          gridded.renamingIndex + "|" + gridded.said, "-1|Rename needs the list view.")
+    check("r in the grid opens the same editor", gridded.renamingIndex, 2)
+    // The columns view draws the editor over its active column, see ui/ColumnPane.qml's own corner.
     var columned = renamePane(2, -1, [], "columns")
     Ops.startRename(columned)
-    check("r in the columns view opens no editor either", columned.renamingIndex, -1)
+    check("r in the columns view opens the same editor", columned.renamingIndex + "|" + columned.said, "2|")
     var renamed = []
     var committing = renamePane(0, 3, renamed)
     Ops.commitRename(committing, "g3")
-    check("a commit renames the row that was being edited and closes the editor",
-          renamed.join(",") + "|" + committing.renamingIndex, "/d/f3>g3|-1")
+    check("a commit retains the editor while the write is pending",
+          renamed.join(",") + "|" + committing.renamingIndex + "|" + committing.renamePending, "/d/f3>g3|3|true")
+    Ops.commitRename(committing, "again")
+    check("a repeated commit sends no second write", renamed.length, 1)
     var stale = []
     var gone = renamePane(0, 7, stale)
     Ops.commitRename(gone, "x")
-    check("a commit over a row the window no longer holds sends nothing and still closes",
-          stale.length + "|" + gone.renamingIndex, "0|-1")
+    check("a missing source cannot send a write or discard the draft",
+          stale.length + "|" + gone.renamingIndex + "|" + gone.renameError, "0|7|Item changed; reopen Rename.")
+    for (var invalid of ["", ".", "..", "a/b", "a\u0000b"]) {
+        var refusedWrites = [], refused = renamePane(2, 2, refusedWrites)
+        Ops.commitRename(refused, invalid)
+        check("invalid basename retains editor and explains refusal: " + JSON.stringify(invalid),
+              refusedWrites.length + "|" + refused.renamingIndex + "|" + refused.renamePending + "|" + (refused.renameError.length > 0), "0|2|false|true")
+    }
+    var menuRename = renamePane(2, -1, [])
+    var renameIdentity = 0
+    menuRename.backend.rename = function (from, to, menuId) { renameIdentity = menuId }
+    Ops.startRename(menuRename, 33)
+    check("menu rename retains its identity for the editor lifetime", menuRename.renameMenuId, 33)
+    Ops.commitRename(menuRename, "renamed.txt")
+    check("committing retains the captured menu identity", renameIdentity, 33)
+
+    var operationIds = []
+    var convertedArguments = null
+    var menuPane = windowedPane([])
+    menuPane.backend.duplicate = function (path, id) { operationIds.push("duplicate:" + id) }
+    menuPane.backend.trash = function (rows, id) { operationIds.push("trash:" + id) }
+    menuPane.backend.extract = function (path, dest, id) { operationIds.push("extract:" + id) }
+    menuPane.backend.convertImage = function (path, dest, strip, id, requestId) {
+        operationIds.push("convert:" + id)
+        convertedArguments = {path: path, dest: dest, requestId: requestId}
+    }
+    menuPane.convertRequested = function () {}
+    Ops.duplicate(menuPane, 34)
+    Ops.trash(menuPane, 35)
+    Ops.extract(menuPane, 36)
+    Ops.openConvert(menuPane, 37)
+    var conversion = menuPane.convertSource
+    var convertedSource = conversion.path
+    menuPane.path = "/different-directory"
+    Ops.convert(menuPane, conversion, "png", false, 73)
+    check("menu mutations forward the selected identity to their operation workers",
+          operationIds.join(","), "duplicate:34,trash:35,extract:36,convert:37")
+    check("conversion sends its original source after navigation", convertedArguments.path, convertedSource)
+    check("conversion sends its captured output directory", convertedArguments.dest.indexOf("/different-directory/"), -1)
+    check("conversion keeps its menu identity for the complete dialog lifetime", menuPane.convertSource.menuId, 37)
+    check("conversion retains the caller's operation identity", menuPane.convertSource.requestId, 73)
 
     // ---- the new folder, the one operation whose name the backend chooses ----
 
@@ -241,7 +334,7 @@ function run(check) {
     // The status bar's own line is built from the same headline, so the two cannot drift apart.
     check("the status line is that headline plus the name",
           Ops.progressLine({ moving: false, n: 23, index: 8, name: "panel-demo.mp4" }),
-          "Copying 9 of 23, panel-demo.mp4")
+          "Copying 9 of 23 · panel-demo.mp4")
 
     check("the card names the file under way and how big it is",
           Transfer.fileLine({ name: "panel-demo.mp4", total: 48000000 }),

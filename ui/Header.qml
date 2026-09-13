@@ -8,6 +8,9 @@ Item {
 
     property string sortBy: "name"
     property bool sortDesc: false
+    property bool dualMode: false
+    readonly property real sizeWidth: root.dualMode ? Theme.dualColumn.size : Theme.column.size
+    readonly property real dateWidth: root.dualMode ? Theme.dualColumn.date : Theme.column.date
 
     // The click ui/js/Sort.js answers. The header owns no sort state, so it only says which column
     // was hit; the key is the protocol's own, which is why Date Modified sends "mtime".
@@ -34,7 +37,8 @@ Item {
     // The columns this width affords, less the ones the user has hidden (qs module ViewState).
     // ui/Row.qml resolves its own from a width anchoring keeps
     // equal to this one, so the header can never head a column no row below it is drawing.
-    readonly property var cols: Theme.columns(root.width, ViewState.hiddenCols)
+    property var hiddenCols: ViewState.hiddenCols
+    readonly property var cols: root.dualMode ? Theme.dualColumns(root.width, root.hiddenCols) : Theme.columns(root.width, root.hiddenCols)
 
     implicitHeight: Theme.chromeHeight
 
@@ -58,7 +62,7 @@ Item {
     PanelSectionHeader {
         id: headerName
         anchors.left: parent.left
-        anchors.leftMargin: Theme.spacing.rowPaddingX
+        anchors.leftMargin: Theme.spacing.rowPaddingX + (root.dualMode ? Theme.markSize + Theme.spacing.gap : 0)
         anchors.right: headerMode.left
         anchors.rightMargin: root.cols.mode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
@@ -71,7 +75,7 @@ Item {
     PanelSectionHeader {
         id: headerMode
         anchors.right: headerSize.left
-        anchors.rightMargin: root.cols.size ? Theme.spacing.gap : 0
+        anchors.rightMargin: root.cols.size && !root.dualMode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.mode
         width: root.cols.mode ? Theme.column.mode : 0
@@ -81,10 +85,10 @@ Item {
     PanelSectionHeader {
         id: headerSize
         anchors.right: headerDate.left
-        anchors.rightMargin: root.cols.date ? Theme.spacing.gap : 0
+        anchors.rightMargin: root.cols.date && !root.dualMode ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.size
-        width: root.cols.size ? Theme.column.size : 0
+        width: root.cols.size ? root.sizeWidth : 0
         text: root.title("Size", "size")
         horizontalAlignment: Text.AlignRight
 
@@ -97,7 +101,7 @@ Item {
         anchors.rightMargin: root.cols.kind ? Theme.spacing.gap : 0
         anchors.verticalCenter: parent.verticalCenter
         visible: root.cols.date
-        width: root.cols.date ? Theme.column.date : 0
+        width: root.cols.date ? root.dateWidth : 0
         text: root.title("Date Modified", "mtime")
         horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
@@ -114,6 +118,8 @@ Item {
         width: root.cols.kind ? Theme.column.kind : 0
         text: root.title("Kind", "kind")
         elide: Text.ElideRight
+
+        TapHandler { enabled: root.sortable; onTapped: root.sortRequested("kind") }
     }
 
     // The header is chrome, but it is the chrome the columns belong to, so its right click is where
@@ -146,7 +152,7 @@ Item {
     }
 
     // What the header is drawing right now, for the seam that reads it beside a row's.
-    function columnSet() { return Theme.columnNames(root.width, ViewState.hiddenCols) }
+    function columnSet() { return root.dualMode ? ["name"].concat(root.cols.size ? ["size"] : []).concat(root.cols.date ? ["date"] : []).join(",") : Theme.columnNames(root.width, root.hiddenCols) }
 
     // The one lookup the geometry reader needs, the same by-key idiom Pane.itemFor uses for rows.
     function cell(key) {

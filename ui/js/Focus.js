@@ -19,21 +19,29 @@ function next(current) {
     return current === LIST ? RAIL : LIST
 }
 
+function shareBrowserHere(root) {
+    return !!(root.shareBrowser && root.shareBrowser.active && (!root.shareBrowser.owner || root.shareBrowser.owner === root))
+}
+
 // The one lookup Pane.qml's Keys.onPressed calls. "addNetwork" is a rail-only action (the
 // dialog is reached from the rail's own "+" mark), so "a" does nothing in the list;
 // filtering it here, not in Keymap.js, keeps the generated file a pure keys.toml mirror.
 // seekBack/seekForward get the same treatment, scoped to an open MEDIA preview instead of the
 // rail, so Left/Right stay silent everywhere else rather than reaching act()'s "not built yet".
 function lookup(event, root) {
-    var action = Keymap.lookup(event.key, event.text, event.modifiers)
-    // Only the bare a is rail-only; Ctrl+K is scoped to neither view and opens the dialog anywhere.
-    if (action === "addNetwork" && root.focusView !== RAIL && !(event.modifiers & Qt.ControlModifier))
-        return ""
-    // A filter narrows rows already on screen, which is the list view's own job: the GridView and
-    // Columns boards draw no filter, so / is dropped there rather than narrowing a view nothing shows.
-    // It goes quiet while a search owns the header too, the same way the two sort keys do below.
+    var context = root.preview.active ? (root.preview.isPdf ? "pdf" : root.preview.isMedia ? "media" : "preview")
+                  : shareBrowserHere(root) ? "menu" : root.focusView === RAIL ? "rail" : "listing"
+    // Grid arrows address visual neighbours even when the preset uses them to open folders in List.
+    if (context === "listing" && root.viewMode === "grid" && event.modifiers === Qt.NoModifier) {
+        if (event.key === Qt.Key_Left) return "cursorLeft"
+        if (event.key === Qt.Key_Right) return "cursorRight"
+    }
+    var action = Keymap.lookup(event.key, event.text, event.modifiers, context)
+    // The share listing borrows the menu context for j/k/enter, but it has no submenu to step into.
+    if (action === "menuRight" && shareBrowserHere(root)) return "open"
+    // List and Grid filter held rows; search owns the header while its results are active.
     if (action === "filter")
-        return (root.viewMode === "list" && root.searchMode.length === 0) ? action : ""
+        return (root.viewMode !== "columns" && root.searchMode.length === 0) ? action : ""
     // Left and Right seek inside a media preview and turn the page in a PDF one. With no preview
     // open they are free, and in the grid they are the only sensible way to move one tile sideways,
     // so the grid claims them there.
@@ -50,7 +58,7 @@ function lookup(event, root) {
     if (action === "pageForward") {
         if (root.preview.active)
             return root.preview.isPdf ? action : ""
-        if (root.shareBrowser.active || root.focusView === RAIL)
+        if (shareBrowserHere(root) || root.focusView === RAIL)
             return "open"
         var row = root.rowFor(root.cursorIndex)
         return row && (row.d || (Format.isSymlink(row.p) && row.i === "folder")) ? "open" : (row ? "preview" : "")
@@ -67,14 +75,11 @@ function lookup(event, root) {
 
 // Lifted from Pane.qml's Keys.onPressed: the map holds the keys, this holds the behaviour.
 // Takes the Pane root because every case is a method call or a property read on it.
-function act(action, root) {
+function act(action, root, menuId, paths) {
     switch (action) {
-    // One row in the list, one row of tiles in the grid: a grid that stepped linearly on Down would
-    // move the cursor sideways, which is not what the key looks like it does.
-    // Every one of these moves through what is drawn, not through the listing: with a filter up the
-    // two differ, and stepping the listing would land the cursor on a row nothing is showing.
-    case "cursorDown": step(root, root.cursorStride); return
-    case "cursorUp": step(root, -root.cursorStride); return
+    // Letter bindings follow item order; physical grid arrows use gridArrow's visual neighbours.
+    case "cursorDown": step(root, 1); return
+    case "cursorUp": step(root, -1); return
     case "cursorLeft": step(root, -1); return
     case "cursorRight": step(root, 1); return
     case "cursorFirst": Filter.setCursorView(root, 0); return
@@ -83,12 +88,18 @@ function act(action, root) {
     case "pageUp": step(root, -Math.max(1, Math.floor(root.visibleRows / 2))); return
     case "open": root.openCursor(); return
     case "parent": root.openParent(); return
+    case "historyBack": root.goBack(); return
+    case "historyForward": root.goForward(); return
+    case "togglePreview": root.togglePreviewColumn(); return
+    case "loadPreview": root.loadSelectionPreview(); return
+    case "focusPreview": root.focusPreviewColumn(); return
+    case "windowNew": root.newWindow(); return
     case "toggleHidden": root.toggleHidden(); return
-    // Esc unwinds one thing at a time, and the least destructive first: a running walk, then the
-    // search, then the filter (which loses nothing), then the selection, then the transient line.
+    // Popups handle Escape first; the focused listing then unwinds filter, search, status and marks.
     case "escape":
-        if (root.searchMode.length > 0) Search.cancel(root)
-        else if (root.filterTyping || root.filterQuery.length > 0) Filter.close(root)
+        if (root.filterTyping || root.filterQuery.length > 0) Filter.close(root)
+        else if (root.searchMode.length > 0 && root.focusView === LIST) Search.cancel(root)
+        else if (root.statusBar && root.statusBar.escapePressed()) return
         else root.escapePressed()
         return
     case "preview": PreviewKeys.open(root); return
@@ -102,42 +113,48 @@ function act(action, root) {
     case "filter": Filter.start(root); return
     case "reveal": Search.reveal(root); return
     // The write operations; every one of them is reversible with undo, so none of them confirms.
-    case "duplicate": Ops.duplicate(root); return
-    case "trash": Ops.trash(root); return
+    case "duplicate": Ops.duplicate(root, menuId); return
+    case "trash": Ops.trash(root, menuId); return
     case "trashArm": Trash.arm(root); return
-    case "copy": Ops.clip(root, false); return
+    case "copy": Ops.clip(root, false, paths); return
     case "copydirpath": root.copyDirPath(); return
-    case "cut": Ops.clip(root, true); return
+    case "cut": Ops.clip(root, true, paths); return
     case "paste": Ops.paste(root); return
+    case "movePaste":
+        if (root.clipboard.paths.length === 0) { root.message("The clipboard is empty.", false); return }
+        root.backend.send({c: "transfer", op: "move", paths: root.clipboard.paths, dest: root.path})
+        root.clipboard = Ops.emptyClipboard()
+        return
     case "undo": Ops.undo(root); return
-    case "rename": Ops.startRename(root); return
+    case "redo": root.backend.send({c: "redo"}); return
     // m. Mounts.raiseMenu says why a favourite has no menu; here the pane says whether a row was
     // under the cursor at all, and an empty or fully filtered listing gets the sentence, not silence.
     case "menu":
         if (!root.openCursorMenu())
             root.message("No row under the cursor to open a menu on.", false)
         return
-    case "extract": Ops.extract(root); return
-    case "dropbox": root.moveToDropbox(); return
+    case "extract": Ops.extract(root, menuId); return
+    case "dropbox": root.moveToDropbox(menuId); return
     case "sharelink": root.copyShareLink(); return
     // Convert opens the one popup this whole design has; every other operation answers without one.
-    case "convert": root.openConvert(); return
+    case "convert": root.openConvert(menuId); return
     // The header answers the same two through ui/Pane.qml, so the key and the click share one route.
     case "sortNext": Sort.next(root); return
     case "sortReverse": Sort.reverse(root); return
     case "addNetwork": root.sidebar.addRequested(); return
     case "eject": Eject.release(root, root.sidebar, false); return
     // Finder's Cmd+1/2/3; the chrome's three buttons write the same property, so they follow.
-    case "viewList": root.viewMode = "list"; return
-    case "viewColumns": root.viewMode = "columns"; return
-    case "viewGrid": root.viewMode = "grid"; return
+    case "viewList": root.chooseView("list"); return
+    case "viewColumns": root.chooseView("columns"); return
+    case "viewGrid": root.chooseView("grid"); return
     case "newFolder": Ops.newFolder(root); return
     // The directory being shown, not the row: the menu row and the chord both land here.
     case "openTerminal": root.openTerminal(); return
     }
     // A submenu row fires "<action>:<id>", which is how one signal covers Taildrop and Compress both.
     if (action.indexOf("compress:") === 0) {
-        Ops.compress(root, action.substring("compress:".length))
+        if (paths) Ops.compressResolved(root, paths, action.substring("compress:".length), menuId)
+        else Ops.compress(root, action.substring("compress:".length))
         return
     }
     // The background menu's Sort by flyout, routed to the header click's own function so an aimed
@@ -152,12 +169,26 @@ function act(action, root) {
     root.message(action + " is not built yet.", false)
 }
 
-// Issue 27: what a cursor key does at an end. The state file's wrapAtEnds is off by default, which
-// is deliberately both answers at once: the operator who reported the jump past the top as a bug
-// keeps the clamp, and the one who asked for it turns the key on. Only a step taken from an end
-// wraps, so a page key overshooting from the middle still stops at the end it was heading for, and
-// the selection keys keep ui/js/Filter.js moveCursor's plain clamp, because an extend that wrapped
-// would run the anchor to the far end and take every row between the two with it.
+// Arrows require an existing visual cell, even when item-order navigation wraps at the ends.
+function gridArrow(event, action, root) {
+    if (root.viewMode !== "grid") return false
+    var columns = root.cursorStride
+    var delta = event.key === Qt.Key_Down && (action === "cursorDown" || action === "extendDown") ? columns
+              : event.key === Qt.Key_Up && (action === "cursorUp" || action === "extendUp") ? -columns
+              : event.key === Qt.Key_Left && action === "cursorLeft" ? -1
+              : event.key === Qt.Key_Right && action === "cursorRight" ? 1 : 0
+    if (!delta) return false
+    var index = Filter.viewOf(root.shown, root.cursorIndex)
+    var nextIndex = index + delta
+    if (nextIndex < 0 || nextIndex >= root.shownTotal
+            || (event.key === Qt.Key_Left && index % columns === 0)
+            || (event.key === Qt.Key_Right && nextIndex % columns === 0)) return true
+    if (action === "extendDown" || action === "extendUp") root.extendSelection(delta)
+    else Filter.moveCursor(root, delta)
+    return true
+}
+
+// Only a step from an end wraps; page overshoots and selection extensions retain their clamps.
 function step(root, delta) {
     var last = root.shownTotal - 1
     if (root.wrapAtEnds !== true || last < 0) {
@@ -195,8 +226,23 @@ function leavesLine(event) {
     return LEAVES_LINE.indexOf(Keymap.lookup(event.key, event.text, event.modifiers)) >= 0
 }
 
+// Vim pairs are consecutive inputs on the same selection; pointer or navigation changes disarm them.
+function sequenceAction(action, root) {
+    var pairs = { copyArm: "copy", cutArm: "cut", pasteArm: "paste", cursorFirstArm: "cursorFirst" }
+    var stamp = JSON.stringify([root.path, root.cursorIndex, root.selectionVersion, root.viewMode])
+    var paired = pairs[action] && root.keySequence === action && root.keySequenceIdentity === stamp
+    root.keySequence = paired || !pairs[action] ? "" : action
+    root.keySequenceIdentity = paired || !pairs[action] ? "" : stamp
+    return paired ? pairs[action] : pairs[action] ? "" : action
+}
+
 // Lifted whole from Pane.qml's Keys.onPressed, which had grown past its file's 400-line cap; returns whether the key was consumed.
 function handleKey(event, root, sidebar) {
+    if (root.selectionBand) {
+        if (event.key === Qt.Key_Escape)
+            root.selectionBand.cancel()
+        return true
+    }
     // Guards a key that reaches the list before a rename field's own focus transfer lands, the OEM's
     // "blocked:" lesson; the row editor and the rail's own field both need it. The index alone is not
     // asked, because an editor released by a scroll or hidden by a view change left it set with
@@ -224,6 +270,7 @@ function handleKey(event, root, sidebar) {
         return Filter.typeKey(event, root)
     }
     var action = lookup(event, root)
+    action = sequenceAction(action, root)
     // Anything that is not the second d of the pair disarms it, so an arm never outlives the key
     // after it; ui/js/Trash.js re-stamps on its own, which is why it reads the stamp before writing.
     if (action !== "trashArm") {
@@ -233,12 +280,17 @@ function handleKey(event, root, sidebar) {
         PreviewKeys.act(action, root)
         return true
     }
-    if (root.shareBrowser.active) {
+    if (shareBrowserHere(root)) {
         shareBrowserAct(action, root)
         return true
     }
-    if (action === "focusNext") {
-        root.focusView = next(root.focusView)
+    if (action === "focusNext" || action === "focusPrevious") {
+        if (root.dualMode && root.focusView === LIST) root.switchPane()
+        else root.focusView = next(root.focusView)
+        return true
+    }
+    if (action === "focusPreview") {
+        if (!root.dualMode) root.focusPreviewColumn()
         return true
     }
     // The sheet is global, unlike addNetwork, so it answers from the rail as well as the list. It
@@ -271,6 +323,7 @@ function handleKey(event, root, sidebar) {
         RailKeys.act(action, root, sidebar)
         return true
     }
+    if (gridArrow(event, action, root)) return true
     if (action.length > 0 || Keymap.lookup(event.key, event.text, event.modifiers).length > 0) {
         if (action.length > 0) root.act(action)
         return true

@@ -1,4 +1,5 @@
 import QtQuick
+import Quickshell
 import qs.Commons
 import "." as Flea
 import "js/Keymap.js" as Keymap
@@ -12,10 +13,13 @@ Item {
 
     property bool opened: false
     property Item focusHolder: null
-    // "keys", "display" or "menus"; the panel opens on Display because that is the promise it
-    // carries, and the rail keeps the boards' own relative order around it.
-    property string section: "display"
+    // Reopening keeps the last section selected in this process.
+    property string section: "view"
     property int cursor: 0
+    property int selectedFavourite: -1
+    property int favouriteActionIndex: 0
+    property int favouriteMoveTarget: -1
+    property bool favouriteActionPending: false
     // "rail" or "pane", which side Tab last gave the cursor to.
     property string side: "pane"
 
@@ -26,10 +30,9 @@ Item {
     // The Menus board's work-area clamp: a floating surface never renders taller than its bounds
     // less this margin, and the pane scrolls inside that while the rail stays put.
     readonly property int clampMargin: 8
-    // GM's ruling for mouse users: the card keeps one height whichever section is up, so the rail and
-    // the rows never move under the pointer on a switch; a taller section scrolls inside it. The
-    // height is the median section's, so no section sits in a card mostly empty; see ui/SettingsPane.qml.
+    // GM's compact-card ruling keeps View's measured size across sections, clamped to the window.
     readonly property int chromeAndBorder: Theme.chromeHeight + 2 * Theme.spacing.hairline
+    readonly property int paneBottomPadding: Math.round(8 * Theme.font.bodySmall / 13)
     readonly property real groundOpacity: 0.5
     // The card's title, for ui/Ipc.qml: a driven click on it proves the card swallows what its controls do not.
     readonly property alias titleItem: title
@@ -38,6 +41,13 @@ Item {
 
     // Everything ui/js/Settings.js rows() reads, built once here for the keyboard's rows and the pane's.
     readonly property var settingsState: ({
+        data: ViewState.state,
+        home: Quickshell.env("HOME"),
+        favouriteStatuses: Favourites.statuses,
+        selectedFavourite: root.selectedFavourite,
+        favouriteAction: root.favouriteActionIndex,
+        about: aboutFacts.facts,
+        saveStatus: ViewState.saveStatus,
         textSize: ViewState.textSize,
         hidden: ViewState.menuHidden,
         keyHints: ViewState.keyHints,
@@ -64,6 +74,7 @@ Item {
         root.focusHolder = holder
         root.cursor = Settings.firstRow(root.rows)
         root.side = "pane"
+        pane.contentY = 0
         root.opened = true
         keys.forceActiveFocus()
     }
@@ -88,7 +99,37 @@ Item {
         var row = root.rows[index]
         if (!row || !Settings.focusable(row))
             return
-        // The hints row is the one check that is not a menu action, so it has a writer of its own.
+        if (row.kind === "favourite") {
+            root.selectedFavourite = row.favouriteIndex
+            if (root.focusHolder && root.focusHolder.sidebar) root.focusHolder.sidebar.openFavourite(row.favouriteIndex)
+            return
+        }
+        if (row.kind === "favouriteActions") { root.favouriteAction(root.favouriteActionIndex); return }
+        if (row.id === "columns") { root.showSection("columns"); return }
+        // The folder the panel was opened over, which is the pane behind it: the same folder the
+        // Places section's own "Add current folder" row takes, and the only one on screen to mean.
+        if (row.id === "startFolder") {
+            if (root.focusHolder) ViewState.setStartFolder(root.focusHolder.path)
+            return
+        }
+        if (row.id === "backView") { root.showSection("view"); return }
+        if (row.id === "keyboardSheet") {
+            var holder = root.focusHolder
+            root.close()
+            if (holder && holder.keymapSheet) holder.keymapSheet.open(holder)
+            return
+        }
+        if (row.id === "reportIssue" || row.id === "support") {
+            Qt.openUrlExternally(row.id === "support" ? "https://buymeacoffee.com/thisisgm"
+                                                     : "https://github.com/thisisgm/flea/issues")
+            return
+        }
+        if (row.id.indexOf("column:") === 0) { ViewState.toggleColumn(row.id.substring(7)); return }
+        if (row.kind === "check" && root.section !== "menus") {
+            ViewState.changeSetting(row.id, !row.on)
+            return
+        }
+        // Menu checks share their visibility writer; other sections write their own leaves.
         if (row.id === "keyHints")
             ViewState.toggleKeyHints()
         else if (row.kind === "check")
@@ -105,6 +146,9 @@ Item {
         var row = root.rows[index]
         if (!row || !Settings.focusable(row))
             return
+        if (row.kind === "favouriteActions") {
+            root.favouriteActionIndex = Math.max(0, Math.min(1, root.favouriteActionIndex + direction)); return
+        }
         if (row.id === "textMode") {
             ViewState.toggleTextFollow()
             return
@@ -116,6 +160,12 @@ Item {
         // A check or a master is toggled by activate(), never walked, so h and l stop here.
         if (row.kind !== "choice")
             return
+        if (row.values !== undefined) {
+            var index = row.values.indexOf(row.selected)
+            var target = (index + direction + row.values.length) % row.values.length
+            ViewState.changeSetting(row.id, row.values[target])
+            return
+        }
         var at = Settings.PRESETS.indexOf(ViewState.keysPreset)
         var next = (at + direction + Settings.PRESETS.length) % Settings.PRESETS.length
         ViewState.setKeysPreset(Settings.PRESETS[next])
@@ -123,14 +173,29 @@ Item {
 
     // A tick on the ruler names a stop outright. It lands in the same ViewState writer stepTextSize
     // itself calls, so a click, an h and a Ctrl+Shift+Plus cannot leave two different sizes stored.
+    function favouriteAction(action) {
+        if (action === 0 && root.focusHolder) {
+            var path = root.focusHolder.path
+            var label = path.substring(path.lastIndexOf("/") + 1) || path
+            root.favouriteActionPending = Favourites.add(path, label)
+        } else if (action === 1 && root.selectedFavourite >= 0) {
+            root.favouriteActionPending = Favourites.remove(root.selectedFavourite)
+        }
+    }
+
     function pickRowStop(index, stop) {
         var row = root.rows[index]
         if (!row || !Settings.focusable(row))
             return
+        if (row.kind === "favouriteActions") { root.favouriteAction(stop); return }
         // A segment names the value it was clicked on where the ruler names a stop, so both arrive
         // here addressed by index and the row decides which writer that index belongs to.
         if (row.id === "textMode") {
             ViewState.toggleTextFollow()
+            return
+        }
+        if (row.values !== undefined) {
+            ViewState.changeSetting(row.id, row.values[stop])
             return
         }
         if (row.kind === "choice") {
@@ -148,12 +213,26 @@ Item {
             return
         }
         root.cursor = Settings.stepRow(root.rows, root.cursor, delta)
+        if (root.rows[root.cursor] && root.rows[root.cursor].kind === "favourite")
+            root.selectedFavourite = root.rows[root.cursor].favouriteIndex
         root.showCursor()
     }
 
     function showCursor() { pane.showCursor(root.cursor) }
+    function sectionsText() { return JSON.stringify(Settings.SECTIONS) }
+    function rowItemForId(id) {
+        for (var i = 0; i < root.rows.length; i++) {
+            if (root.rows[i].id === id) return pane.rowItem(i)
+        }
+        return null
+    }
     function railItemFor(id) { return rail.itemFor(id) }
     function paneScroll() { return Math.round(pane.contentHeight) + "|" + Math.round(pane.height) }
+    function scrollState() {
+        return JSON.stringify({compactHeight: pane.compactHeight,
+            pane: {y: pane.contentY, height: pane.height, contentHeight: pane.contentHeight},
+            rail: {y: rail.contentY, height: rail.height, contentHeight: rail.contentHeight}})
+    }
 
     anchors.fill: parent
     visible: root.opened
@@ -177,12 +256,11 @@ Item {
     Rectangle {
         id: card
         anchors.centerIn: parent
-        width: root.panelWidth
-        // Each side carries its own inset, above the first row and below the last, the way
-        // Settings.dc.html gives the rail column a 10 of its own and the pane the row padding.
+        width: Math.min(root.panelWidth, Math.max(0, root.width - 2 * root.clampMargin))
+        // Settings.html gives the rail and pane separate vertical insets.
         height: Math.min(root.chromeAndBorder + Math.max(rail.implicitHeight + 2 * Theme.settings.railPaddingY,
-                                                          pane.tallest + 2 * Theme.spacing.rowPaddingY),
-                         root.height - 2 * root.clampMargin)
+                                                          pane.compactHeight + root.paneBottomPadding),
+                         Math.max(0, root.height - 2 * root.clampMargin))
         color: Theme.color.surface
         border.width: Theme.spacing.hairline
         border.color: Theme.color.muted
@@ -212,15 +290,26 @@ Item {
                 anchors.top: parent.top
                 height: Theme.chromeHeight
 
-                Text {
-                    id: title
+                Flea.Glyph {
+                    id: titleMark
                     anchors.left: parent.left
                     anchors.leftMargin: Theme.spacing.rowPaddingX
+                    anchors.verticalCenter: parent.verticalCenter
+                    width: Theme.chromeMarkSize
+                    height: width
+                    name: "sliders"
+                    color: Theme.color.accent
+                }
+
+                Text {
+                    id: title
+                    anchors.left: titleMark.right
+                    anchors.leftMargin: Theme.spacing.gap
                     anchors.verticalCenter: parent.verticalCenter
                     text: "Settings"
                     color: Theme.color.foreground
                     font.family: Theme.font.family
-                    font.pixelSize: Theme.font.body
+                    font.pixelSize: Theme.font.caption
                     font.bold: true
                     textFormat: Text.PlainText
                 }
@@ -283,8 +372,10 @@ Item {
                 anchors.left: parent.left
                 anchors.top: chrome.bottom
                 anchors.topMargin: Theme.settings.railPaddingY
+                anchors.bottom: parent.bottom
+                anchors.bottomMargin: Theme.settings.railPaddingY
                 width: root.railWidth
-                section: root.section
+                section: root.section === "columns" ? "view" : root.section
                 focused: root.side === "rail"
                 onChosen: function (id) {
                     root.side = "rail"
@@ -309,17 +400,65 @@ Item {
                 anchors.right: parent.right
                 anchors.top: chrome.bottom
                 anchors.bottom: parent.bottom
-                anchors.topMargin: Theme.spacing.rowPaddingY
+                anchors.bottomMargin: root.paneBottomPadding
                 section: root.section
                 values: root.settingsState
                 cursor: root.cursor
                 side: root.side
+                onPointerMoved: function (index) {
+                    root.side = "pane"; root.cursor = index
+                    if (root.rows[index].kind === "favourite") root.selectedFavourite = root.rows[index].favouriteIndex
+                }
+                onFavouriteMoved: function (index, to) {
+                    if (Favourites.move(root.rows[index].favouriteIndex, to)) root.favouriteMoveTarget = to
+                }
                 onActivated: function (index) { root.side = "pane"; root.cursor = index; root.activate(index) }
                 onStepped: function (index, direction) { root.side = "pane"; root.cursor = index; root.stepRowValue(index, direction) }
                 onStopPicked: function (index, stop) { root.side = "pane"; root.cursor = index; root.pickRowStop(index, stop) }
             }
         }
     }
+
+    Connections {
+        target: Favourites
+        function onExternalChanged(previousCount) {
+            var wasFavourite = root.cursor > 0 && root.cursor <= previousCount + 1
+            root.selectedFavourite = -1
+            root.favouriteMoveTarget = -1
+            root.favouriteActionPending = false
+            if (root.opened && root.section === "places") {
+                if (wasFavourite) {
+                    for (var i = 0; i < root.rows.length; i++) {
+                        if (root.rows[i].id === "favouriteActions") root.cursor = i
+                    }
+                } else if (root.cursor > previousCount + 1) {
+                    root.cursor += Favourites.records.length - previousCount
+                }
+                root.showCursor()
+            }
+        }
+        function onWrote() {
+            if (root.favouriteActionPending) {
+                root.favouriteActionPending = false
+                root.selectedFavourite = Math.min(root.selectedFavourite, Favourites.records.length - 1)
+                if (root.opened && root.section === "places") {
+                    // Adding or removing a row moves the buttons; keep their keyboard focus by identity.
+                    for (var i = 0; i < root.rows.length; i++) {
+                        if (root.rows[i].id === "favouriteActions") root.cursor = i
+                    }
+                    root.showCursor()
+                }
+            }
+            if (root.favouriteMoveTarget < 0) return
+            root.selectedFavourite = root.favouriteMoveTarget
+            root.cursor = root.favouriteMoveTarget + 1
+            root.favouriteMoveTarget = -1
+            root.showCursor()
+        }
+        function onFailed(message) { root.favouriteMoveTarget = -1; root.favouriteActionPending = false }
+    }
+
+    Flea.AboutFacts { id: aboutFacts; active: root.opened && root.section === "about" }
 
     Item {
         id: keys
@@ -334,6 +473,14 @@ Item {
             }
             if (event.key === Qt.Key_Tab || event.key === Qt.Key_Backtab) {
                 root.side = root.side === "rail" ? "pane" : "rail"
+                return
+            }
+            var row = root.rows[root.cursor]
+            if (root.side === "pane" && row && row.kind === "favourite" && (event.modifiers & Qt.ShiftModifier)
+                    && (event.key === Qt.Key_J || event.key === Qt.Key_K)) {
+                var direction = event.key === Qt.Key_J ? 1 : -1
+                var to = Math.max(0, Math.min(Favourites.records.length - 1, row.favouriteIndex + direction))
+                if (to !== row.favouriteIndex && Favourites.move(row.favouriteIndex, to)) root.favouriteMoveTarget = to
                 return
             }
             if (event.key === Qt.Key_Down || event.text === "j") {
@@ -359,7 +506,8 @@ Item {
             if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter || event.key === Qt.Key_Space) {
                 if (root.side === "rail")
                     root.side = "pane"
-                else
+                else if (event.key !== Qt.Key_Space || (root.rows[root.cursor] &&
+                         (root.rows[root.cursor].kind === "check" || root.rows[root.cursor].kind === "master")))
                     root.activate(root.cursor)
             }
             // Every other key stops here: an open panel that let one through would move the cursor

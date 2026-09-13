@@ -143,6 +143,7 @@ Item {
         imageLoader.source = ""
         root.archiveMeta = null
         root.archiveRow = -1
+        if (root.pane) root.pane.listArea.forceActiveFocus()
     }
 
     function load(newPath, newIcon, newSize) {
@@ -202,7 +203,13 @@ Item {
         acceptedButtons: Qt.LeftButton | Qt.RightButton
         hoverEnabled: true
         // A click behind the overlay would otherwise silently move the cursor, or open the menu on it.
-        onClicked: {}
+        // A left click on the ground closes, Quick Look's own rule and the operator's (2026-09-11);
+        // the surface is every pane's own territory, so only the area outside it is clicking away.
+        // A right click still only gets swallowed: the listing's menu must not open through the overlay.
+        onClicked: function (mouse) {
+            if (mouse.button === Qt.LeftButton && !surface.contains(surface.mapFromItem(root, mouse.x, mouse.y)))
+                root.close()
+        }
         onPositionChanged: root.revealStrip()
     }
 
@@ -284,6 +291,7 @@ Item {
             onLoaded: {
                 item.path = Qt.binding(function () { return root.path })
                 item.active = true
+                item.forceActiveFocus()
             }
         }
 

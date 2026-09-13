@@ -10,6 +10,11 @@ function run(check) {
               return Archive.isArchive("x" + e)
           }).join(","),
           "true,true,true,true,true,true,true")
+    // Flea reads rar and writes none: the row offers Extract, and src/backend/archive.rs never puts
+    // rar in the compress submenu because nothing in the Arch repositories writes one.
+    check("a rar is an archive, whatever case it is spelled in",
+          Archive.isArchive("holiday.rar") + "|" + Archive.isArchive("HOLIDAY.RAR"), "true|true")
+    check("and an extract unpacks it under its own name", Archive.extractDir("holiday.rar"), "holiday")
     check("and nothing else is",
           Archive.isArchive("notes.txt") + "|" + Archive.isArchive("x.zipper") + "|" + Archive.isArchive("zip"),
           "false|false|false")
@@ -47,4 +52,15 @@ function run(check) {
     check("the format that starts picked is never the one the file already is",
           Convert.defaultFormat("shot.jpg") + "|" + Convert.defaultFormat("shot.png"),
           "png|jpg")
+    var source = {path: "/pictures/album.with.dots/photo.png", name: "photo.png", menuId: 17}
+    check("the output keeps the captured full source directory",
+          Convert.destination(source, "jpg"), "/pictures/album.with.dots/photo (converted).jpg")
+    check("a root source has one output separator",
+          Convert.destination({path: "/photo.png", name: "photo.png"}, "webp"), "/photo (converted).webp")
+    check("an attributed reply matches the captured source",
+          Convert.matchesReply(source, 5, {requestId: 5, source: source.path}), true)
+    check("an older format probe cannot replace the current result",
+          Convert.matchesReply(source, 6, {requestId: 5, source: source.path}), false)
+    check("another source cannot complete this dialog even with the same request id",
+          Convert.matchesReply(source, 5, {requestId: 5, source: "/elsewhere/photo.png"}), false)
 }

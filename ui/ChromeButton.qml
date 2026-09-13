@@ -2,20 +2,22 @@ import QtQuick
 import qs.Commons
 import "." as Flea
 
-// One glyph button in the window chrome: muted at rest, accent when it names the current view, and
-// dimmed when there is nowhere for it to go.
+// Chrome uses muted ink; active and focused controls use the accent.
 Item {
     id: root
 
     property string glyph: "file"
     property bool active: false
+    property bool keyboardFocused: false
+    property color restingColor: Theme.color.muted
+    property real glyphSize: Theme.chromeMarkSize
 
     signal activated()
 
     // A control with nowhere to go still occupies its slot, so the bar never reflows as history changes.
-    readonly property real disabledOpacity: 0.35
+    property real disabledOpacity: 1
 
-    readonly property string accessName: {
+    property string accessName: {
         if (root.glyph === "arrow-left")
             return "Back"
         if (root.glyph === "arrow-up")
@@ -40,6 +42,16 @@ Item {
     Accessible.name: root.accessName
     Accessible.onPressAction: if (root.enabled) root.activated()
 
+    Rectangle {
+        anchors.centerIn: parent
+        width: Theme.hitMin
+        height: Theme.hitMin
+        visible: root.keyboardFocused
+        color: "transparent"
+        border.width: Theme.spacing.hairline
+        border.color: Theme.color.accent
+    }
+
     Behavior on scale {
         enabled: !Theme.reducedMotion
         NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
@@ -47,10 +59,10 @@ Item {
 
     Flea.Glyph {
         anchors.centerIn: parent
-        width: Theme.chromeMarkSize
-        height: Theme.chromeMarkSize
+        width: root.glyphSize
+        height: root.glyphSize
         name: root.glyph
-        color: root.active ? Theme.color.accent : Theme.color.muted
+        color: !root.enabled ? Theme.color.muted : root.active || root.keyboardFocused ? Theme.color.accent : root.restingColor
         opacity: root.enabled ? 1 : root.disabledOpacity
     }
 

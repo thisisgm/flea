@@ -13,9 +13,11 @@ mod oflags;
 mod open;
 mod paths;
 mod terminal;
+mod tui;
 mod thp;
 mod uischema;
 mod uistate;
+mod favourites;
 mod uistore;
 mod userfile;
 mod vulkan;
@@ -212,6 +214,10 @@ fn main() {
         exit(ui_state(&args));
     }
 
+    if args.get(1).map(String::as_str) == Some("--favourites") {
+        exit(favourites::command(&args));
+    }
+
     let mut want_tui = false;
     let mut want_gui = false;
     let mut print_target = false;
@@ -256,15 +262,14 @@ fn main() {
         None => (start, None),
     };
 
-    // Keep the tty check on explicit --tui so a future implementation cannot write escape codes into a pipeline.
+    // Explicit terminal mode never writes escape codes into a pipeline.
     let interactive = std::io::stdin().is_terminal() && std::io::stdout().is_terminal();
     if want_tui {
         if !interactive {
             eprintln!("flea: the terminal interface needs a terminal on stdin and stdout");
             exit(2);
         }
-        eprintln!("flea: the terminal interface is not built yet, use --gui");
-        exit(2);
+        exit(tui::run(open_path.as_deref(), select_path.as_deref()));
     }
 
     if !paths::has_display() {

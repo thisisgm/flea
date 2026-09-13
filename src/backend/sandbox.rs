@@ -6,7 +6,7 @@ const BWRAP: &str = "bwrap";
 const PRLIMIT: &str = "prlimit";
 // A 1080p decode is well under a second of CPU here, so 30 s is a runaway, not a slow file.
 const CPU_SECONDS: u32 = 30;
-// Issue #17 reports glycin exhausting 1 GiB of address space on a large ICC-tagged JPEG and aborting, which this box does not reproduce, so the cap is 2 GiB: the smallest value the ticket records as working, still finite, and virtual rather than resident.
+// Issue #17 reports glycin exhausting 1 GiB of address space on a large ICC-tagged JPEG and aborting, which this box does not reproduce, so the cap is 2 GiB: the smallest value the ticket records as working, still finite, and virtual rather than resident. What actually consumed it is the arena reservation capped above, not the image.
 const ADDRESS_SPACE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
 
 // /bin, /sbin, /lib and /lib64 are all symlinks into usr on this box, so binding /usr covers them.
@@ -15,6 +15,14 @@ const BWRAP_FLAGS: &[&str] = &[
     "--die-with-parent",
     "--new-session",
     "--clearenv",
+    // Issue #17, CoreyH's second report: glibc gives each thread that mallocs its own arena and
+    // reserves 64 MiB of address space for it whatever it uses, up to eight per core. The tools in
+    // here thread on the core count, so a 32-core box reserves the whole 2 GiB cap in arenas alone
+    // and the next thread stack cannot map: glycin aborts, and ImageMagick dies with nothing on
+    // stderr. Capping the arenas is what removes those reservations; the tools keep their threads.
+    "--setenv",
+    "MALLOC_ARENA_MAX",
+    "2",
     "--ro-bind",
     "/usr",
     "/usr",

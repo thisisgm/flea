@@ -81,7 +81,7 @@ def tile(x, y, name, d):
     if d is not None:
         out.append(
             '  <g transform="translate(%.1f,%.1f) scale(%.4f)" fill="none" stroke="%s" '
-            'stroke-width="1.5" stroke-linecap="square" stroke-linejoin="miter"><path d="%s"/></g>'
+            'stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="%s"/></g>'
             % (mx, my, scale, INK, d)
         )
         out.append(

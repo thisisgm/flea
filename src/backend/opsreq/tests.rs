@@ -24,6 +24,80 @@ fn a_successful_item_line_carries_no_err_field_at_all() {
 }
 
 #[test]
+fn a_dropbox_destination_replaced_before_worker_start_never_receives_the_source() {
+    use crate::backend::menu_actions::Selected;
+    let sandbox = TestDir::new("dropbox-worker-identity");
+    let source = sandbox.file("source", "keep");
+    let source_identity = ItemIdentity::record(&source.symlink_metadata().unwrap());
+    let selected_source = Selected::inspect(source.to_str().unwrap()).unwrap();
+    let destination = sandbox.dir("Dropbox");
+    let captured = Selected::inspect(destination.to_str().unwrap()).unwrap();
+    sandbox.assert_contains(&destination);
+    std::fs::rename(&destination, sandbox.join("original-dropbox")).unwrap();
+    sandbox.dir("Dropbox");
+    let (tx, rx) = channel();
+    sandbox.assert_contains(&source);
+    sandbox.assert_contains(&destination);
+    run_transfer_checked(1, true, vec![source.to_string_lossy().into()], destination.clone(),
+        Arc::new(AtomicBool::new(false)), tx, Some(vec![selected_source.clone()]), Some(captured.clone()));
+    let results: Vec<_> = rx.iter().collect();
+    assert!(results.iter().any(|message| matches!(message, OpMsg::Item {ok: false, err, ..} if err.contains("Dropbox account folder changed"))));
+    assert!(results.iter().any(|message| matches!(message, OpMsg::TransferDone {ok: 0, failed: 1, entry, retry, ..}
+        if entry.steps.is_empty() && retry == &vec![(source.clone(), source_identity.clone())])));
+    assert_eq!(std::fs::read_to_string(&source).unwrap(), "keep");
+    assert!(!destination.join("source").exists());
+    sandbox.assert_contains(&source);
+    std::fs::rename(&source, sandbox.join("original-source")).unwrap();
+    sandbox.file("source", "replacement");
+    let (tx, rx) = channel();
+    sandbox.assert_contains(&source);
+    sandbox.assert_contains(&destination);
+    run_transfer_checked(2, true, vec![source.to_string_lossy().into()], destination.clone(),
+        Arc::new(AtomicBool::new(false)), tx, Some(vec![selected_source]), Some(captured));
+    assert!(rx.iter().any(|message| matches!(message, OpMsg::TransferDone {ok: 0, failed: 1, retry, ..} if retry.is_empty())));
+    assert_eq!(std::fs::read_to_string(source).unwrap(), "replacement");
+    assert!(!destination.join("source").exists());
+}
+
+#[test]
+fn menu_workers_refuse_replacement_sources_before_helpers_or_mutations() {
+    use crate::backend::menu_actions::{validate_sources, Selected};
+    let d = TestDir::new("menu-workers-identity");
+    let path = d.file("source.txt", "original");
+    let outside_selection = d.file("other.txt", "other");
+    let captured = vec![Selected::inspect(path.to_str().unwrap()).unwrap()];
+    assert!(validate_sources(Some(&captured), std::slice::from_ref(&outside_selection)).is_err());
+    assert!(d.path().is_absolute() && d.path().join(".flea-test-sandbox").is_file());
+    assert!(path.is_absolute() && path.starts_with(d.path()));
+    std::fs::rename(&path, d.join("original-moved")).unwrap();
+    d.file("source.txt", "replacement");
+    let (tx, rx) = channel();
+    run_duplicate_checked(path.to_string_lossy().into(), tx, Some(captured.clone()));
+    let OpMsg::Duplicated { ok, err, entry, .. } = rx.recv().unwrap() else { panic!("duplicate terminal result"); };
+    assert!(!ok && err.contains("changed") && entry.steps.is_empty());
+    assert!(path.is_absolute() && path.starts_with(d.path()));
+    let (tx, rx) = channel();
+    run_trash(vec![path.to_string_lossy().into()], tx, Some(captured.clone()));
+    let results: Vec<_> = rx.iter().collect();
+    assert!(results.iter().any(|message| matches!(message, OpMsg::Meta { line } if line.contains("changed"))));
+    assert!(results.iter().any(|message| matches!(message, OpMsg::Trashed { ok: 0, failed: 1, entry } if entry.steps.is_empty())));
+    let destination = d.join("output.zip");
+    assert!(destination.is_absolute() && destination.starts_with(d.path()));
+    let (tx, rx) = channel();
+    crate::backend::archivereq::run_archive(1, true, vec![path.to_string_lossy().into()], "zip".into(), PathBuf::new(),
+        destination.clone(), &crate::backend::archive::Formats::from_tools(false, false), tx, Some(captured.clone()));
+    let OpMsg::Meta { line } = rx.recv().unwrap() else { panic!("archive terminal result"); };
+    assert!(line.contains(r#""ok":false"#) && line.contains("changed"));
+    let (tx, rx) = channel();
+    crate::backend::archivereq::run_convert(2, 0, path.clone(), destination.clone(), false, tx, Some(captured));
+    let OpMsg::Meta { line } = rx.recv().unwrap() else { panic!("convert terminal result"); };
+    assert!(line.contains(r#""ok":false"#) && line.contains("changed"));
+    assert!(!destination.exists());
+    assert_eq!(std::fs::read_to_string(path).unwrap(), "replacement");
+    assert_eq!(std::fs::read_to_string(outside_selection).unwrap(), "other");
+}
+
+#[test]
 fn a_failed_item_line_carries_its_reason_escaped() {
     let line = transferitem_line(12, 1, "say \"hi\".txt", false, "permission denied");
     assert!(line.contains(r#""ok":false"#));
@@ -40,8 +114,8 @@ fn every_operation_line_matches_the_shape_the_operations_design_names() {
         r#"{"t":"transferprogress","id":12,"index":0,"name":"a.txt","bytes":40000000,"total":120000000}"#
     );
     assert_eq!(
-        transferdone_line(12, 1, 1, 0, false),
-        r#"{"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":false}"#
+        transferdone_line(12, 1, 1, 0, false, &[]),
+        r#"{"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":false,"retryPaths":[]}"#
     );
     assert_eq!(trashed_line(1, 0), r#"{"t":"trashed","ok":1,"failed":0}"#);
     assert_eq!(renamed_line(true, "/home/gm/new.txt"), r#"{"t":"renamed","ok":true,"path":"/home/gm/new.txt"}"#);
@@ -67,7 +141,12 @@ fn a_destination_that_is_not_an_existing_directory_is_refused_before_any_item_is
         "a destination must be an absolute path",
         "a relative destination is never resolved here"
     );
-    assert!(usable_dest(&d.join("missing").to_string_lossy()).is_err(), "Flea does not create the destination");
+    let missing = d.join("missing");
+    let error = usable_dest(&missing.to_string_lossy()).unwrap_err();
+    assert_eq!(error.where_, "transfer");
+    assert_eq!(error.path, missing.to_string_lossy());
+    assert_eq!(error.msg, "file or folder not found");
+    assert!(!missing.exists(), "Flea does not create the destination");
 }
 
 #[test]
@@ -160,7 +239,7 @@ fn a_link_to_a_folder_lands_inside_that_folder_as_a_link_while_the_folder_itself
     let landed = out.join("link");
     assert!(landed.symlink_metadata().unwrap().file_type().is_symlink(), "what landed is a link, not a copy of the tree");
     assert_eq!(std::fs::read_link(&landed).unwrap(), real, "and it still points where the source pointed");
-    assert_eq!(entry.steps, vec![Step::Created { path: landed.clone() }]);
+    assert_eq!(entry.steps, vec![undo::copied(&link, &landed, ItemIdentity::inspect(&link).unwrap()).unwrap()]);
     let (tx, rx) = channel();
     run_transfer(2, false, vec![real.to_string_lossy().to_string()], out.clone(), Arc::new(AtomicBool::new(false)), tx);
     assert_eq!(refusal(rx).3, INTO_ITSELF, "the real folder into its own subtree is still refused");
@@ -183,7 +262,7 @@ fn a_copy_transfer_records_only_what_it_created_and_leaves_the_sources() {
     let (ok, failed, _, _, entry) = done_line(rx);
     assert_eq!((ok, failed), (1, 0));
     assert_eq!(entry.op, "copy");
-    assert_eq!(entry.steps, vec![Step::Created { path: dest.join("a.txt") }]);
+    assert_eq!(entry.steps, vec![undo::copied(&src, &dest.join("a.txt"), ItemIdentity::inspect(&src).unwrap()).unwrap()]);
 }
 
 #[test]
@@ -196,7 +275,8 @@ fn a_move_transfer_records_where_each_item_came_from() {
     assert!(!src.exists(), "a move leaves nothing at the source");
     let (_, _, _, _, entry) = done_line(rx);
     assert_eq!(entry.op, "move");
-    assert_eq!(entry.steps, vec![Step::Moved { from: src, to: dest.join("b.txt") }]);
+    assert!(matches!(&entry.steps[..], [Step::Moved { from, to, after, .. }]
+        if from == &src && to == &dest.join("b.txt") && after == &ItemIdentity::inspect(to).unwrap()));
 }
 
 #[test]
@@ -220,12 +300,13 @@ fn one_failing_item_is_data_and_the_batch_carries_on() {
     for msg in rx.iter() {
         match msg {
             OpMsg::TransferDone { ok, failed, .. } => counts = Some((ok, failed)),
-            OpMsg::Item { ok: false, err, .. } => errs.push(err),
+            OpMsg::Item { id, index, name, ok: false, err } => errs.push((id, index, name, err)),
             _ => {}
         }
     }
     assert_eq!(counts, Some((1, 1)));
-    assert_eq!(errs.len(), 1, "the failure is one item's data, not the operation's");
+    assert_eq!(errs, vec![(3, 0, "never-existed.txt".into(), "file or folder not found".into())],
+        "the plain failure cause retains its operation and item identity");
 }
 
 // A file with no permission bits answers EACCES to open(2) for every uid but root, so it forces
@@ -245,7 +326,7 @@ fn a_copy_that_fails_short_of_a_cancel_records_the_partial_tree_and_undo_removes
     assert_eq!((ok, failed, cancelled), (0, 1, false));
     let partial = dest.join("tree");
     assert!(partial.is_dir(), "a failure that is not a cancel leaves what it copied");
-    assert_eq!(entry.steps, vec![Step::Created { path: partial.clone() }], "the partial tree is journaled");
+    assert_eq!(entry.steps, vec![undo::copied(&src, &partial, ItemIdentity::inspect(&src).unwrap()).unwrap()], "the partial tree is journaled");
     let mut j = Journal::new();
     j.push(entry);
     assert_eq!(j.undo().expect("undo"), "copy");
@@ -282,7 +363,62 @@ fn a_cancelled_transfer_skips_the_rest_and_says_so() {
         Arc::new(AtomicBool::new(true)),
         tx,
     );
-    let (ok, _, skipped, cancelled, _) = done_line(rx);
-    assert_eq!((ok, skipped, cancelled), (0, 2, true));
+    let (ok, failed, skipped, cancelled, _) = done_line(rx);
+    assert_eq!((ok, failed, skipped, cancelled), (0, 0, 2, true));
     assert!(!dest.join("a.txt").exists(), "a cancel before the first item copies nothing");
+}
+
+#[test]
+fn failed_transfer_retry_retains_only_original_sources_after_permission_repair() {
+    let d = TestDir::new("transfer-retry");
+    let failed_source = d.file("failed.txt", "original");
+    let good = d.file("good.txt", "copied");
+    let dest = d.dir("out");
+    let collision = d.file("out/failed.txt", "occupied");
+    let (tx, rx) = channel();
+    run_transfer(9, false, vec![failed_source.to_string_lossy().into(), good.to_string_lossy().into()],
+        dest.clone(), Arc::new(AtomicBool::new(false)), tx);
+    let retry = rx.into_iter().find_map(|message| match message {
+        OpMsg::TransferDone { ok, failed, skipped, cancelled, retry, .. } => {
+            assert_eq!((ok, failed, skipped, cancelled), (1, 1, 0, false));
+            Some(retry)
+        }
+        _ => None,
+    }).expect("transfer terminal event");
+    assert_eq!(retry.len(), 1);
+    assert_eq!(retry[0].0, failed_source);
+    std::fs::set_permissions(&failed_source, std::fs::Permissions::from_mode(0o600)).unwrap();
+    let mut matches = vec![(failed_source.to_str().unwrap(), 3), (collision.to_str().unwrap(), 4), (good.to_str().unwrap(), 5)];
+    retain_retry(&retry, &mut matches);
+    assert_eq!(matches, vec![(failed_source.to_str().unwrap(), 3)]);
+    let line = transferdone_line(9, 1, 1, 0, false, &retry);
+    assert_eq!(crate::json::field_str_array(&line, "retryPaths"), [failed_source.to_string_lossy().into_owned()]);
+    assert_eq!(std::fs::read_to_string(&collision).unwrap(), "occupied");
+    assert_eq!(std::fs::read_to_string(dest.join("good.txt")).unwrap(), "copied");
+
+    assert!(failed_source.is_absolute() && failed_source.starts_with(d.path()) && d.path().join(".flea-test-sandbox").is_file());
+    std::fs::rename(&failed_source, d.join("original-moved.txt")).unwrap();
+    d.file("failed.txt", "replacement");
+    let mut replaced = vec![(failed_source.to_str().unwrap(), 3)];
+    retain_retry(&retry, &mut replaced);
+    assert!(replaced.is_empty(), "a replacement at the failed name is never selected for retry");
+    assert_eq!(std::fs::read_to_string(&failed_source).unwrap(), "replacement");
+}
+
+#[test]
+fn retry_preserves_a_symlink_identity_without_following_its_target() {
+    let d = TestDir::new("transfer-retry-link");
+    let target = d.file("target.txt", "first target");
+    let link = d.join("link");
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+    let retry = vec![(link.clone(), ItemIdentity::inspect(&link).unwrap())];
+    std::fs::write(&target, "changed target").unwrap();
+    let mut matches = vec![(link.to_str().unwrap(), 2)];
+    retain_retry(&retry, &mut matches);
+    assert_eq!(matches.len(), 1);
+    assert!(link.is_absolute() && link.starts_with(d.path()) && d.path().join(".flea-test-sandbox").is_file());
+    std::fs::rename(&link, d.join("original-link")).unwrap();
+    std::os::unix::fs::symlink(&target, &link).unwrap();
+    retain_retry(&retry, &mut matches);
+    assert!(matches.is_empty());
 }

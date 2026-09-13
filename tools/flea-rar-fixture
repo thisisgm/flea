@@ -1,0 +1,43 @@
+#!/usr/bin/env python3
+"""Write a minimal RAR 4 archive holding one stored (uncompressed) file.
+
+Flea reads rar and cannot write one: the only tool on Linux that writes rar is WinRAR's own, which
+is not free software and is in no Arch repository, so tests/archive.sh has nothing to build a
+fixture with. This is enough of the format to make a real one. The readers check the CRCs
+themselves, so an archive 7z and bsdtar both list and extract correctly is valid by construction.
+
+Usage: flea-rar-fixture <out.rar> <name inside it> <its contents>
+"""
+import binascii, struct, sys
+
+def block_crc(body):
+    # RAR's header CRC is the low 16 bits of the CRC32 over the block from its TYPE byte onwards.
+    return binascii.crc32(body) & 0xFFFF
+
+def main(out_path, name, payload):
+    data = payload.encode()
+    marker = bytes([0x52, 0x61, 0x72, 0x21, 0x1A, 0x07, 0x00])
+
+    # MAIN_HEAD: type 0x73, flags 0x0000, size 13, then two reserved fields.
+    main_body = struct.pack('<BHH', 0x73, 0x0000, 13) + struct.pack('<HI', 0, 0)
+    main_block = struct.pack('<H', block_crc(main_body)) + main_body
+
+    name_bytes = name.encode()
+    # FILE_HEAD: type 0x74, flags 0x8000 (LONG_BLOCK, so PACK_SIZE counts), method 0x30 (stored).
+    head_size = 32 + len(name_bytes)
+    file_body = struct.pack('<BHH', 0x74, 0x8000, head_size)
+    file_body += struct.pack('<II', len(data), len(data))
+    file_body += struct.pack('<B', 3)                      # host os: unix
+    file_body += struct.pack('<I', binascii.crc32(data) & 0xFFFFFFFF)
+    file_body += struct.pack('<I', 0x5A21A800)             # dos time, an arbitrary valid stamp
+    file_body += struct.pack('<BB', 20, 0x30)              # needs rar 2.0, stored
+    file_body += struct.pack('<H', len(name_bytes))
+    file_body += struct.pack('<I', 0x81A4)                 # unix mode 0644
+    file_body += name_bytes
+    file_block = struct.pack('<H', block_crc(file_body)) + file_body
+
+    with open(out_path, 'wb') as f:
+        f.write(marker + main_block + file_block + data)
+
+if __name__ == '__main__':
+    main(sys.argv[1], sys.argv[2], sys.argv[3])

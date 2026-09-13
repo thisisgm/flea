@@ -2,6 +2,7 @@ import QtQuick
 import "." as Flea
 import "js/DirSizes.js" as DirSizes
 import "js/Errors.js" as Errors
+import "js/Anchor.js" as Anchor
 import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
 import "js/Search.js" as Search
@@ -19,14 +20,14 @@ Item {
 
     // The listing's floor as a drop target, under the rows: a drop past the last row, or one a file
     // row refused, lands in the directory being shown. Declared first in ui/Pane.qml, so it sits below.
-    // corner: the list view only. Grid tiles and columns have no row targets yet, so a folder tile
-    // would land its drop beside itself, and a search listing's path is the walk scope, not a row's home.
+    // Columns owns its narrower active floor; a search listing's path is the walk scope, not a row's home.
     Flea.DropInto {
         x: root.pane ? root.pane.listSlot.x : 0
         y: root.pane ? root.pane.listSlot.y : 0
         width: root.pane ? root.pane.listSlot.width : 0
         height: root.pane ? root.pane.listSlot.height : 0
-        enabled: root.pane !== null && root.pane.viewMode === "list" && root.pane.searchMode === ""
+        enabled: root.pane !== null && !root.pane.trash.opened && root.pane.searchMode === ""
+                 && (root.pane.viewMode === "list" || root.pane.viewMode === "grid")
         pane: root.pane
         dest: root.pane ? root.pane.path : ""
         // Unknown until the listed reply lands, because dirDev is still the directory being left.
@@ -37,17 +38,22 @@ Item {
     property string renameOnArrival: ""
     // A watched change landed while one of the states below owned the rows, so the re-read is owed.
     property bool stale: false
-    // What the cursor sat on across a watched re-read, or null; ui/js/Nav.js owns both ends of it.
+    // What the cursor sat on across a re-read, or null; ui/js/Anchor.js owns both ends of it.
     property var anchor: null
+    property int retryId: 0
+    property var retryPaths: []
+    property string retryFolder: ""
+    property string retryListing: ""
+    property string retrySelectionText: ""
     // One burst of writes is one re-read: the timer absorbs later notifications instead of being
     // restarted by them, so a directory under continuous change settles rather than never firing.
     readonly property int watchMs: 400
     // A re-read replaces every row, so it waits for the states that name a row by index or hold one
     // open: an editor, the menu over a row, a filter being typed, a search listing, a selection whose
     // indices would name other files afterwards, and a list already in flight.
-    readonly property bool watchBusy: !pane || pane.listInFlight || pane.renamingIndex >= 0
-            || pane.menuVisible || pane.filterTyping || pane.searchMode.length > 0
-            || pane.selectionCount() > 0
+    readonly property bool watchBusy: !pane || pane.listInFlight || pane.renamingIndex >= 0 || pane.renamePending
+            || pane.menuVisible || pane.menuActions.opened || pane.filterTyping || pane.searchMode.length > 0
+            || pane.selectionCount() > 0 || pane.selectionBand !== null
     // ui/Pane.qml reaches the three through these: openCursor takes the opener, the menu reads the
     // Taildrop peers, and the two share actions call the other two.
     readonly property alias opener: opener
@@ -59,24 +65,20 @@ Item {
         // A dropped request is the app being busy, not a failure, so it takes the plain role.
         onBusy: function (path) { pane.message("Still opening the last file; try again in a moment.", false) }
         // canonicalize proved the path before every failure src/open.rs and src/terminal.rs report under their one status, so neither sentence below names a cause.
-        onFailed: function (path) { pane.message("That file could not be opened; nothing on this system took it.", true) }
+        onFailed: function (path) { pane.message("No application on this system opened that file.", true) }
         onIsDirectory: function (path) { pane.open(path) }
         onTerminalBusy: function (path) { pane.message("Still opening the last terminal; try again in a moment.", false) }
-        onTerminalFailed: function (path) { pane.message("That directory could not be opened in a terminal; nothing on this system took it.", true) }
+        onTerminalFailed: function (path) { pane.message("No terminal on this system opened that directory.", true) }
     }
 
     Flea.ShareLink {
         id: shareLink
         onCopied: pane.message("Share link copied to the clipboard.", false)
-        onFailed: pane.message("Dropbox could not make a share link for that file.", true)
+        onFailed: function(reason) { pane.message(reason, true) }
     }
 
     Flea.Taildrop {
         id: taildrop
-        // Fetched once per session start, not per right click: peers change on the scale of
-        // minutes, not the scale of opening a context menu, and refreshing on open would make
-        // the menu's own height (and the clamp openAt applies) depend on an async reply.
-        Component.onCompleted: refresh()
     }
 
     // The owed re-read, run when nothing is holding the rows. A refusal keeps the debt rather than
@@ -85,7 +87,7 @@ Item {
         if (root.watchBusy)
             return
         root.stale = false
-        root.anchor = Nav.refreshWatched(pane)
+        root.anchor = Anchor.watched(pane)
     }
 
     // The owed re-read goes through the timer rather than straight out of this handler: reading
@@ -108,26 +110,48 @@ Item {
             root.stale = false
             root.anchor = null
             watchSettle.stop()
+            root.retryId = 0
+            root.retryPaths = []
         }
+        function onMenuSelectionIdentityChanged() { root.retrySelectionText = "" }
+        function onListInFlightChanged() { if (!pane.listInFlight) root.locateRetry() }
     }
 
-    // Only when the cursor really landed on the folder that was made: on a listing wider than the
-    // window the refresh may not hold that row at all, and ui/RenameField.qml lives in ui/Row.qml
-    // alone, so the other two views would arm an editor nothing draws and never disarm it.
+    function locateRetry() {
+        if (!root.retryId || root.retryListing || pane.listInFlight || pane.searchRunning) return
+        if (pane.path !== root.retryFolder) { root.retryId = 0; root.retryPaths = []; return }
+        root.retryListing = pane.menuSelectionIdentity
+        pane.backend.send({c: "locate", paths: root.retryPaths, transferId: root.retryId})
+    }
+
+    // Only arm an editor after the new folder's actual row arrives in the held window.
     function openRenameOnArrival() {
         if (root.renameOnArrival.length === 0)
             return
         var target = root.renameOnArrival
         root.renameOnArrival = ""
         var row = pane.rowFor(pane.cursorIndex)
-        if (pane.viewMode === "list" && row && pane.join(pane.path, row.n) === target)
-            pane.renamingIndex = pane.cursorIndex
+        if (row && pane.join(pane.path, row.n) === target)
+            pane.act("rename")
+    }
+
+    function refreshRename(request, selected) {
+        if (pane.path !== request.folder) return
+        if (pane.listInFlight || pane.searchMode.length > 0) { root.stale = true; return }
+        root.stale = false
+        watchSettle.stop()
+        pane.refresh(selected)
     }
 
     Connections {
         target: pane.backend
 
         function onListed(total, readMs, sortMs) {
+            if (!pane.dualMode && !pane.listInFlight && pane.searchMode.length === 0) {
+                ViewState.changeLeaf("sort", { key: pane.backend.sortBy === "mtime" ? "date" : pane.backend.sortBy,
+                                             reverse: pane.backend.sortDesc })
+                pane.appliedListingPreferences = pane.listingPreferences
+            }
             if (pane.listInFlight) {
                 pane.listedSeen = true
             }
@@ -155,14 +179,31 @@ Item {
             if (pane.rowsAt === 0 && pane.inputAt > 0 && pane.rowFor(pane.cursorIndex))
                 pane.rowsAt = Date.now()
             pane.applyPendingSelect()
-            root.anchor = Nav.applyAnchor(pane, root.anchor)
+            root.anchor = Anchor.apply(pane, root.anchor)
             Tabs.applyPending(pane)
-            root.openRenameOnArrival()
             pane.listArea.restartSettle()
             if (pane.listInFlight) {
                 pane.listInFlight = false
                 pane.listedSeen = false
             }
+            root.locateRetry()
+            root.openRenameOnArrival()
+        }
+
+        function onLocated(message) {
+            if (!root.retryId || message.transferId !== root.retryId) return
+            root.retryId = 0
+            root.retryPaths = []
+            if (message.directory !== pane.path || pane.path !== root.retryFolder
+                    || root.retryListing !== pane.menuSelectionIdentity || pane.listInFlight) return
+            if (!message.ok) { pane.message(message.error, true); return }
+            var matches = message.matches || []
+            if (!matches.length) return
+            pane.selection.clear()
+            for (var i = 0; i < matches.length; i++) pane.selection.toggle(matches[i].index)
+            pane.selectionVersion++
+            pane.setCursor(matches[0].index)
+            root.retrySelectionText = Ops.retrySelectionLine(matches)
         }
 
         // Sample input: {"t":"searching","n":812,"scanned":41200,"ms":300.114}
@@ -203,6 +244,7 @@ Item {
             // A notification for a directory the pane has already left says nothing about this one.
             if (path !== pane.path)
                 return
+            root.retrySelectionText = ""
             root.stale = true
             if (!watchSettle.running)
                 watchSettle.start()
@@ -224,6 +266,9 @@ Item {
         // The verb comes off the wire, never off the clipboard: paste spends a cut before this line
         // arrives, and a Dropbox move never touches the clipboard at all.
         function onTransferStarted(id, n, moving) {
+            root.retryId = 0
+            root.retryPaths = []
+            root.retrySelectionText = ""
             pane.transfer = Ops.started(id, moving, n)
             pane.sticky(Ops.progressLine(pane.transfer))
         }
@@ -239,38 +284,58 @@ Item {
             pane.sticky(Ops.progressLine(pane.transfer))
         }
 
-        // The item's own terminal line: it advances the sticky count, and a failure is data, not a dialog.
+        // One named failure per transfer owns the status slot until acknowledged; later failures remain in its summary.
         function onTransferItem(id, index, name, ok, err) {
             if (id !== pane.transfer.id) {
                 return
             }
-            pane.transfer = Transfer.itemDone(pane.transfer, index, name)
+            var firstFailure = !ok && err !== "cancelled" && !pane.transfer.failureReported
+            pane.transfer = Object.assign(Transfer.itemDone(pane.transfer, index, name),
+                                          { failureReported: pane.transfer.failureReported || firstFailure })
+            if (firstFailure)
+                pane.message(Ops.transferFailure(pane.transfer, name, err), true)
             pane.sticky(Ops.progressLine(pane.transfer))
         }
 
         // Sample input: {"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":false}
-        function onTransferDone(id, ok, failed, skipped, cancelled) {
+        function onTransferDone(id, ok, failed, skipped, cancelled, retryPaths) {
             if (id !== pane.transfer.id) {
                 return
             }
-            var line = Ops.transferDone(pane.transfer, ok, failed, cancelled)
+            var line = Ops.transferDone(pane.transfer, ok, failed, skipped, cancelled)
+            var unreportedFailure = failed > 1 || (failed > 0 && !pane.transfer.failureReported)
             pane.transfer = Ops.emptyTransfer()
             pane.sticky("")
-            pane.message(line, failed > 0 && ok === 0)
-            pane.refresh("")
+            pane.message(line, unreportedFailure)
+            if (unreportedFailure) pane.message(line, false)
+            root.retryId = retryPaths.length ? id : 0
+            root.retryPaths = retryPaths
+            root.retryFolder = pane.path
+            root.retryListing = ""
+            if (pane.searchMode === Search.RESULTS) {
+                root.stale = true
+                root.locateRetry()
+            } else pane.refresh("")
         }
 
+        // The listing is read again with the cursor left where the deleted rows were, and the row
+        // that took their place selected, so the next delete needs no mouse. The whole selection is
+        // gone from disk, so there is nothing to carry over but the position.
         function onTrashed(ok, failed) {
             pane.sticky("")
             pane.message(Ops.trashed(ok, failed), ok === 0)
             pane.clearSelection()
-            pane.refresh("")
+            root.anchor = Anchor.afterDelete(pane)
         }
 
         // The listing is re-read with the new name selected, so the row the operator was on stays
         // under the cursor; a rename the pointer committed keeps the pointer's own row instead.
         function onRenamed(ok, path) {
-            pane.refresh(Nav.renameRefreshTarget(pane, path))
+            var request = pane.renameRequest
+            if (!request || path !== request.destination) return
+            pane.renameRequest = null
+            pane.renamingIndex = -1
+            root.refreshRename(request, Nav.renameRefreshTarget(pane, path))
         }
 
         // Sample input: {"t":"made","ok":true,"path":"/home/gm/Pictures/New Folder"}
@@ -293,6 +358,19 @@ Item {
             pane.refresh("")
         }
 
+        function onRedoStarted(id, n, op) {
+            var next = Ops.started(id, false, n)
+            next.redo = op
+            pane.transfer = next
+            pane.sticky(Ops.progressLine(next))
+        }
+        function onRedone(op, ok) {
+            pane.transfer = Ops.emptyTransfer()
+            pane.sticky("")
+            pane.message("Redid the " + op + Ops.UNDO_HINT, false)
+            pane.refresh("")
+        }
+
         // A success nobody could check must not read as one that was checked, so the unverified
         // extract says so in the same slot rather than in a dialog.
         function onArchiveDone(id, ok, verified, err) {
@@ -301,10 +379,14 @@ Item {
             pane.refresh("")
         }
 
-        function onConvertDone(id, ok, path, err) {
+        function onConvertDone(id, ok, path, err, requestId, source, collision) {
+            if (requestId && (!pane.convertSource || pane.convertSource.requestId !== requestId || pane.convertSource.path !== source)) return
             pane.sticky("")
-            pane.message(ok ? "Converted to " + Ops.leaf(path) + "." : Errors.sentence("convert", err), !ok)
-            pane.refresh(ok ? path : "")
+            pane.message(ok ? "Converted to " + Ops.leaf(path) + "." : collision ? err : Errors.sentence("convert", err), !ok)
+            if (ok) {
+                if (pane.searchMode === Search.RESULTS) root.stale = true
+                else pane.refresh(path)
+            }
         }
 
         // One statfs per directory, so the status bar's right half is refreshed by navigation alone.
@@ -322,6 +404,31 @@ Item {
             // A listing that failed cannot seat the row a peeked right click asked for, so its menu intent dies here.
             pane.pendingMenu = false
             var text = Errors.sentence(where, message)
+            var terminal = where === "backend" || where === "read"
+            var request = pane.renameRequest
+            var renamePath = request && (input === request.source || input === request.destination
+                || (where === "rename" && (input.length === 0 || input.indexOf(request.source + "/") === 0
+                    || input.indexOf(request.destination + "/") === 0)))
+            if (request && (terminal || (renamePath && ["rename", "journal", "rename-kept"].indexOf(where) >= 0))) {
+                pane.renameRequest = null
+                pane.renameKeepsPointerRow = false
+                if (terminal) {
+                    text = "Backend stopped; rename outcome unknown."
+                } else if (where === "rename-kept" || (where === "journal" && input === request.destination)) {
+                    // A destination-side journal failure happens after the filesystem rename succeeded.
+                    pane.renamingIndex = -1
+                    if (where === "journal") text = Errors.capitalised("renamed, but Undo was not recorded: " + message)
+                    pane.message(text, true)
+                    root.refreshRename(request, where === "journal" ? request.destination : "")
+                    return
+                } else {
+                    var reason = Errors.exists(message) ? Ops.leaf(request.destination) + " already exists." : Errors.capitalised(message)
+                    if (pane.renamingIndex >= 0) pane.renameError = reason
+                    else pane.message(reason, true)
+                    return
+                }
+            }
+            if (where === "redo") { pane.transfer = Ops.emptyTransfer(); pane.sticky("") }
             // A refused sort changes nothing in the backend, so it changes nothing here: a notice in the
             // plain role, never the error role, which is for a listing that stopped being true.
             if (where === "sort") {
@@ -331,12 +438,13 @@ Item {
             pane.listInFlight = false
             pane.listedSeen = false
             // Neither the child nor its stream comes back, so the listing it produced stops being true.
-            var terminal = where === "backend" || where === "read"
             // Only these two mean the refresh will never deliver rows. An editor left armed past that
             // would open over whatever row the cursor happens to hold in some later listing.
             if (terminal || where === "scan")
                 root.renameOnArrival = ""
             if (terminal) {
+                pane.renamingIndex = -1
+                root.retrySelectionText = ""
                 pane.total = 0
                 pane.held = 0
                 pane.rows = []

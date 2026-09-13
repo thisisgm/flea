@@ -2,6 +2,7 @@ module flea
 singleton Theme 1.0 Theme.qml
 singleton ViewState 1.0 ViewState.qml
 Backend 1.0 Backend.qml
+ChromeAction 1.0 ChromeAction.qml
 ChromeBar 1.0 ChromeBar.qml
 ChromeButton 1.0 ChromeButton.qml
 ColumnsArea 1.0 ColumnsArea.qml
@@ -32,6 +33,8 @@ CardScroll 1.0 CardScroll.qml
 DeviceMounts 1.0 DeviceMounts.qml
 DropboxMark 1.0 DropboxMark.qml
 DropInto 1.0 DropInto.qml
+FileDrag 1.0 FileDrag.qml
+RowDrag 1.0 RowDrag.qml
 Glyph 1.0 Glyph.qml
 GridTile 1.0 GridTile.qml
 GridArea 1.0 GridArea.qml
@@ -68,8 +71,20 @@ ShareLink 1.0 ShareLink.qml
 StateMessage 1.0 StateMessage.qml
 TailscaleMark 1.0 TailscaleMark.qml
 StatusBar 1.0 StatusBar.qml
+SelectionBand 1.0 SelectionBand.qml
 TabBar 1.0 TabBar.qml
 TransferCard 1.0 TransferCard.qml
 Taildrop 1.0 Taildrop.qml
 FactsTable 1.0 FactsTable.qml
 KindStack 1.0 KindStack.qml
+AboutFacts 1.0 AboutFacts.qml
+SelectionPreview 1.0 SelectionPreview.qml
+PermissionsDialog 1.0 PermissionsDialog.qml
+singleton Favourites 1.0 Favourites.qml
+SettingsFavourite 1.0 SettingsFavourite.qml
+TrashView 1.0 TrashView.qml
+TrashConfirm 1.0 TrashConfirm.qml
+TrashMonitor 1.0 TrashMonitor.qml
+TrashHost 1.0 TrashHost.qml
+PaneMenuActions 1.0 PaneMenuActions.qml
+MenuActionDialog 1.0 MenuActionDialog.qml

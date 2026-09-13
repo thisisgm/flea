@@ -1,7 +1,7 @@
 // Rename, duplicate and mkdir: the three operations that answer once, with no started or progress split.
 use crate::backend::copyfile::{copy_any, Progress};
 use crate::backend::renamecompat;
-use crate::backend::undo::Step;
+use crate::backend::undo::{self, ItemIdentity, Step};
 use crate::error::{from_io, FleaError};
 use std::path::{Path, PathBuf};
 use std::sync::atomic::AtomicBool;
@@ -40,8 +40,9 @@ pub fn rename(path: &Path, to_name: &str) -> Result<(PathBuf, Vec<Step>), FleaEr
         // Renaming a file to its own name is not a failure and is not work, so it records nothing.
         return Ok((to, Vec::new()));
     }
+    let before = ItemIdentity::inspect(path)?;
     renamecompat::rename_path(path, &to)?;
-    Ok((to.clone(), vec![Step::Moved { from: path.to_path_buf(), to }]))
+    Ok((to.clone(), vec![undo::moved(path, &to, before)?]))
 }
 
 // "backup.tar.zst" becomes "backup.tar copy.zst": Path's own stem and extension split the last dot only, and a dotfile keeps its whole name as the stem.
@@ -71,6 +72,10 @@ pub fn free_copy_path(original: &Path, word: &str) -> Option<PathBuf> {
 // A same-directory copy, which for a directory row is the whole tree; cancellation belongs to transfers, so this one runs to its end.
 // Answers the outcome and, either way, the steps it left on disk: the copy, or the partial a failure left for undo to remove.
 pub fn duplicate(path: &Path) -> (Result<PathBuf, FleaError>, Vec<Step>) {
+    let source = match ItemIdentity::inspect(path) {
+        Ok(identity) => identity,
+        Err(error) => return (Err(error), Vec::new()),
+    };
     let dst = match free_copy_path(path, "copy") {
         Some(d) => d,
         None => return (Err(named("duplicate", path, "every copy name for this file is already taken")), Vec::new()),
@@ -79,8 +84,20 @@ pub fn duplicate(path: &Path) -> (Result<PathBuf, FleaError>, Vec<Step>) {
     let mut sink = |_: u64, _: u64| {};
     let mut p = Progress { cancel: &flag, on_bytes: &mut sink, partial: None };
     match copy_any(path, &dst, &mut p) {
-        Ok(()) => (Ok(dst.clone()), vec![Step::Created { path: dst }]),
-        Err(e) => (Err(e), p.partial.take().into_iter().map(|path| Step::Created { path }).collect()),
+        Ok(()) => match undo::copied(path, &dst, source) {
+            Ok(step) => (Ok(dst), vec![step]),
+            Err(error) => (Err(error), Vec::new()),
+        },
+        Err(mut error) => {
+            let mut steps = Vec::new();
+            if let Some(partial) = p.partial.take() {
+                match undo::copied(path, &partial, source) {
+                    Ok(step) => steps.push(step),
+                    Err(record) => error.msg.push_str(&format!("; could not journal partial copy {}: {}", partial.display(), record.msg)),
+                }
+            }
+            (Err(error), steps)
+        }
     }
 }
 
@@ -102,7 +119,7 @@ pub fn mkdir(parent: &Path, name: &str) -> Result<(PathBuf, Vec<Step>), FleaErro
         return Err(named("mkdir", parent, "a name cannot be . or .., or contain a separator"));
     };
     match std::fs::create_dir(&dir) {
-        Ok(()) => Ok((dir.clone(), vec![Step::MadeDir { path: dir }])),
+        Ok(()) => Ok((dir.clone(), vec![Step::MadeDir { path: dir.clone(), identity: ItemIdentity::inspect(&dir)? }])),
         // create_dir, never create_dir_all: a name already taken is a collision and must never merge.
         Err(e) if e.kind() == std::io::ErrorKind::AlreadyExists => {
             Err(named("mkdir", &dir, "a folder or file with that name already exists"))
@@ -151,7 +168,8 @@ mod tests {
         assert_eq!(to, d.join("after.txt"));
         assert!(!from.exists());
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "body");
-        assert_eq!(steps, vec![Step::Moved { from: from.clone(), to }]);
+        assert!(matches!(&steps[..], [Step::Moved { from: original, to: destination, after, .. }]
+            if original == &from && destination == &to && after == &ItemIdentity::inspect(&to).unwrap()));
     }
 
     #[test]
@@ -215,7 +233,7 @@ mod tests {
         assert_eq!(dst, d.join("photo copy.jpg"));
         assert_eq!(std::fs::read_to_string(&dst).unwrap(), "pixels");
         assert!(original.exists(), "the original is untouched");
-        assert_eq!(steps, vec![Step::Created { path: dst }]);
+        assert_eq!(steps, vec![undo::copied(&original, &dst, ItemIdentity::inspect(&original).unwrap()).unwrap()]);
     }
 
     #[test]
@@ -243,7 +261,7 @@ mod tests {
         assert!(outcome.is_err(), "the unreadable file cannot be opened, so the tree copy fails");
         let partial = d.join("tree copy");
         assert!(partial.is_dir(), "the failure left what it had copied");
-        assert_eq!(steps, vec![Step::Created { path: partial }], "and the journal gets the partial, so undo can remove it");
+        assert_eq!(steps, vec![undo::copied(&src, &partial, ItemIdentity::inspect(&src).unwrap()).unwrap()], "and the journal gets the partial, so undo can remove it");
     }
 
     #[test]
@@ -252,7 +270,7 @@ mod tests {
         let (made, steps) = mkdir(d.path(), "photos").expect("mkdir");
         assert_eq!(made, d.join("photos"));
         assert!(made.is_dir());
-        assert_eq!(steps, vec![Step::MadeDir { path: made }]);
+        assert_eq!(steps, vec![Step::MadeDir { path: made.clone(), identity: ItemIdentity::inspect(&made).unwrap() }]);
     }
 
     #[test]
@@ -293,16 +311,16 @@ mod tests {
 
     // corner: runs as a plain user, where a directory without its write bit refuses a new entry.
     #[test]
-    fn mkdir_under_a_vanished_or_unwritable_parent_carries_the_os_sentence() {
+    fn mkdir_under_a_vanished_or_unwritable_parent_names_the_cause() {
         let d = TestDir::new("mkdirparent");
         let err = mkdir(&d.join("gone"), "x").expect_err("no parent");
         assert_eq!(err.where_, "mkdir");
-        assert!(err.msg.starts_with("No such file or directory"), "{}", err.msg);
+        assert_eq!(err.msg, "file or folder not found");
         let locked = d.dir("locked");
         std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).unwrap();
         let err = mkdir(&locked, "x").expect_err("denied");
         std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
-        assert!(err.msg.starts_with("Permission denied"), "{}", err.msg);
+        assert_eq!(err.msg, "permission denied");
         assert!(!locked.join("x").exists());
     }
 }

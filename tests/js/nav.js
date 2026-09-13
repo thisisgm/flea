@@ -46,6 +46,7 @@ function browsing(history) {
     p.filterTyping = false
     p.path = "/home/gm/Work"
     p.history = history
+    p.forwardHistory = []
     // ui/Pane.qml menuVisible: the pane's own context menu, which covers the listing it was raised over.
     p.menuVisible = false
     p.open = function (target) { Nav.open(p, target) }
@@ -76,6 +77,24 @@ function targets(list) {
 }
 
 function run(check) {
+    var travel = browsing(["/home/gm"])
+    Nav.back(travel)
+    check("back preserves the departed directory for forward", travel.forwardHistory.join("|"), "/home/gm/Work")
+    Nav.forward(travel)
+    check("forward while loading preserves the destination", travel.forwardHistory.length, 1)
+    travel.listInFlight = false
+    Nav.forward(travel)
+    check("forward returns to the departed directory", travel.path, "/home/gm/Work")
+    check("forward restores back history", travel.history.join("|"), "/home/gm")
+    travel.listInFlight = false
+    Nav.back(travel)
+    travel.listInFlight = false
+    Nav.open(travel, travel.path)
+    check("refresh preserves forward history", travel.forwardHistory.length, 1)
+    travel.listInFlight = false
+    Nav.open(travel, "/tmp")
+    check("new navigation discards the old forward branch", travel.forwardHistory.length, 0)
+
     check("a path's parent is everything above its last separator", Nav.parentOf("/home/gm/Work"), "/home/gm")
     check("a child of the root has the root as its parent", Nav.parentOf("/home"), "/")
     check("the root is its own parent, which is where climbing stops", Nav.parentOf("/"), "/")

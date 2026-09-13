@@ -12,6 +12,7 @@ function run(check) {
     runCursor(check)
     runPresets(check)
     runInventory(check)
+    runCompletionRows(check)
 }
 
 // No mock controls: every id the Menus section can switch is an action ui/js/Menu.js really builds,
@@ -27,15 +28,16 @@ function runInventory(check) {
     for (var s = 0; s < shapes.length; s++) {
         var rows = Menu.listingEntries({
             showHidden: false, hasRow: true, dropboxPath: "/home/jw/Dropbox",
-            taildropPeers: [{ id: "x", label: "Box" }], archiveFormats: ["zip"], canConvert: true,
+            taildropPeers: [{ id: "x", label: "Box" }], taildropInstalled: true, dropboxInstalled: true,
+            archiveFormats: ["zip"], canConvert: true, canExtract: true, selectionCount: 1, rowMode: 0o100644,
             rowInDropbox: shapes[s].rowInDropbox, rowIsArchive: shapes[s].rowIsArchive,
             rowIsImage: shapes[s].rowIsImage, hiddenActions: []
         })
         for (var i = 0; i < rows.length; i++) {
             if (rows[i].separator === true)
                 continue
-            built[rows[i].action] = rows[i].label
-            builtMark[rows[i].action] = rows[i].glyph !== undefined ? rows[i].glyph : rows[i].mark
+            built[rows[i].id || rows[i].action] = rows[i].label
+            builtMark[rows[i].id || rows[i].action] = rows[i].glyph !== undefined ? rows[i].glyph : rows[i].mark
         }
     }
     var switched = []
@@ -51,10 +53,9 @@ function runInventory(check) {
               var mine = Settings.GLYPHS[id] !== undefined ? Settings.GLYPHS[id] : Settings.MARKS[id]
               return mine === undefined || mine !== builtMark[id]
           }).join(","), "")
-    // New folder is the one row this release's panel gives no switch, and the two locked ones are
-    // drawn locked; anything else without a switch would be a row the section cannot reach.
-    var reachable = switched.concat(Settings.LOCKED).concat(["newFolder"])
-    check("and no row the menu builds is left without one",
+    // SettingsPlaces section 02 adds the listing Favorite action; SettingsMenus keeps its 20 switches and Menus' New folder has none.
+    var reachable = switched.concat(Settings.LOCKED).concat(["newFolder", "addFavourite"])
+    check("no other menu action is omitted from the board's switch inventory",
           Object.keys(built).filter(function (id) { return reachable.indexOf(id) < 0 }).join(","), "")
 }
 
@@ -123,7 +124,7 @@ function runRows(check) {
     // The board's Display card: the text-size mode over its effective size, then the compositor's
     // two read-only facts. No monitor-scale control, because Flea does not step or cycle that one.
     check("the Display section is text size, then Scale, then Appearance",
-          kinds(display), "group|choice|ruler|hint|group|fact|hint|group|fact")
+          kinds(display), "group|choice|ruler|hint|group|fact|hint|group|check")
     check("its one control opens on Follow Omarchy", find(display, "textMode").value,
           "Follow Omarchy")
     // The board draws the mode as both names side by side, so the row names them rather than
@@ -144,7 +145,7 @@ function runRows(check) {
           Settings.rows("display", displayState(TextSize.follow(), 14, 0))[5].value, "not reported")
     check("its hint is the board's own sentence, so no reader expects a control",
           display[6].label, "Flea follows the compositor value and does not step or cycle it.")
-    check("the rounding Flea mirrors is drawn beside it", display[8].value, "rounding 8")
+    check("the board icon override defaults off", display[8].id + "|" + display[8].on, "display.hyprlandIcons|false")
 
     // Switching to Override adds the stop row, and nothing else about the section moves.
     var pinned = Settings.rows("display", displayState({ mode: 16 }, 16))
@@ -168,14 +169,20 @@ function runRows(check) {
     check("a hidden action's row is drawn unchecked, not dropped",
           find(menus, "paste").on, false)
     check("and an enabled one is checked", find(menus, "copy").on, true)
-    check("every toggleable action the listing menu can build has a row, plus the hints row",
-          menus.filter(function (r) { return r.kind === "check" }).length, 15)
+    check("the current menu controls include Permissions and the retained hints preference",
+          menus.filter(function (r) { return r.kind === "check" })
+               .map(function (r) { return r.id }).join(","),
+          "cut,copy,paste,duplicate,rename,trash,delete,openwith,openTerminal,moveto,copyto,properties,permissions,copypath,compress,extract,convert,taildrop,dropbox,sharelink,keyHints")
     // The one check that is not a menu action: it says how every row is drawn, not whether it is.
-    check("the hints row is a check of its own, off until it is switched on",
+    // GM's ruling of 2026-09-10 turns it off by default, with the rail's own detail rows, and
+    // src/uischema.rs stores that default, so an absent preference reads off and not on.
+    check("the hints row defaults off, as GM ruled over the boards",
           find(menus, "keyHints").label + "|" + find(menus, "keyHints").on,
           "Show keyboard hints|false")
     check("and it reads the value it is given",
           find(Settings.rows("menus", { hidden: [], keyHints: true }), "keyHints").on, true)
+    check("an explicitly disabled hints preference stays off",
+          find(Settings.rows("menus", { hidden: [], keyHints: false }), "keyHints").on, false)
     // Open in terminal was drawn by every menu with no way to switch it off, because the shipped
     // hidden set named it "terminal" and ui/js/Menu.js builds the row as "openTerminal".
     check("Open in terminal is a switch like any other action row",
@@ -217,78 +224,123 @@ function runCursor(check) {
     check("the Display section's only control is where its cursor opens",
           Settings.firstRow(display), 1)
     check("and no read-only fact below it takes the cursor",
-          Settings.stepRow(display, 1, 1), 1)
+          Settings.stepRow(display, 1, 1), 8)
     var pinned = Settings.rows("display", displayState({ mode: 16 }, 16))
     check("an override gives the cursor a second stop to walk to",
           Settings.stepRow(pinned, 1, 1), 2)
     check("and the compositor's rows still take none",
-          Settings.stepRow(pinned, 2, 1), 2)
+          Settings.stepRow(pinned, 2, 1), 8)
 }
 
 // SettingsKeys.html's four-value chooser over the one key table. Each row the Keys section lists is
 // resolved back through the generated overlay, so a listed chord cannot advertise a binding the
 // preset lacks, and every one of the four claims a chord rather than drawing a heading over nothing.
 function runPresets(check) {
-    check("the chooser offers the board's four presets, in its own order",
-          Settings.PRESETS.join(","), "default,vim,mac,windows")
-    check("each is named for the panel",
-          Settings.PRESETS.map(function (id) { return Settings.PRESET_LABELS[id] }).join(","),
-          "Default,Vim,Mac,Windows")
-    // ui/ViewState.qml resolves an unrecognised stored name to PRESETS[0], so the order carries the
-    // board's rule that a missing or unknown value falls back to Default and not to Mac.
-    check("and the first is Default, which is what an unrecognised stored name falls back to",
-          Settings.PRESETS[0], "default")
-    var claiming = {}
-    for (var c = 0; c < Keymap.PRESET_KEYS.length; c++)
-        claiming[Keymap.PRESET_KEYS[c].preset] = true
-    check("every preset in the chooser claims a chord of its own, which is GM's ruling of 2026-09-06",
-          Settings.PRESETS.map(function (id) { return claiming[id] === true }).join(","),
-          "true,true,true,true")
-    var listed = 0
-    for (var i = 0; i < Keymap.PRESET_KEYS.length; i++) {
-        var row = Keymap.PRESET_KEYS[i]
-        var mods = (row.ctrl ? Qt.ControlModifier : 0) | (row.shift ? Qt.ShiftModifier : 0)
-        check("the Keys section's " + row.preset + " row " + row.keys + " is really bound",
-              Keymap.lookupPreset(row.preset, Qt[row.code], "", mods), row.action)
-        listed += 1
+    check("preset chooser preserves authoritative order", Settings.PRESETS.join(","), "default,vim,mac,windows")
+    check("preset chooser labels remain explicit", Settings.PRESETS.map(function (id) { return Settings.PRESET_LABELS[id] }).join(","), "Default,Vim,Mac,Windows")
+    check("missing preset resolves to Default", Settings.PRESETS[0], "default")
+    var total = 0
+    for (var i = 0; i < Settings.PRESETS.length; i++) {
+        var preset = Settings.PRESETS[i]
+        var section = Settings.rows("keys", { preset: preset })
+        var table = Keymap.bindingRows(preset, "gui")
+        check(preset + " section uses its selected label", section[1].value, Settings.PRESET_LABELS[preset])
+        var preview = find(section, "keyPreview")
+        check(preset + " section shows the six board examples", preview.items.length, 6)
+        check(preset + " examples never take keyboard focus", Settings.focusable(preview), false)
+        var primary = { default: "y,p,dd", vim: "yy,pp,D", mac: "super-c,super-v,delete", windows: "ctrl-c,ctrl-v,delete" }
+        check(preset + " preview uses its primary bindings", preview.items.slice(3).map(function (r) { return r.keys }).join(","), primary[preset])
+        check(preset + " enter label follows its actual action", preview.items[1].label,
+              Keymap.lookupFor(preset, Qt.Key_Return, "", 0, "listing", "gui"))
+        for (var p = 3; p < preview.items.length; p++) {
+            var item = preview.items[p]
+            check(preset + " preview chord exists: " + item.keys, table.some(function (r) {
+                return r.keys === item.keys && Keymap.actionGroup(r.action) === item.label
+            }), true)
+        }
+        check(preset + " section contains actual bindings", table.length > 20, true)
+        for (var j = 0; j < table.length; j++) {
+            var row = table[j]
+            check(preset + " advertised " + row.keys + " binding", Keymap.lookupFor(preset, row.keycode, row.text, row.mask, "listing", "gui"), row.action)
+            total++
+        }
     }
-    check("and the table is not empty, so the check above has a denominator", listed > 0, true)
-    check("a mac chord is dead under the Windows preset",
-          Keymap.lookupPreset("windows", Qt.Key_1, "", Qt.ControlModifier), "")
-    check("and a Windows chord is dead under Mac",
-          Keymap.lookupPreset("mac", Qt.Key_H, "", Qt.ControlModifier), "")
-    check("Default and Vim spell view switching the way Mac does, and claim nothing else",
-          [Keymap.lookupPreset("default", Qt.Key_1, "", Qt.ControlModifier),
-           Keymap.lookupPreset("default", Qt.Key_H, "", Qt.ControlModifier),
-           Keymap.lookupPreset("vim", Qt.Key_1, "", Qt.ControlModifier)].join("|"),
-          "viewList||viewList")
+    check("preset check denominator covers all effective bindings", total > 100, true)
+    var menuRows = Settings.menuRows([], true)
+    check("SettingsMenus contains exactly 20 action switches", menuRows.filter(function (r) { return r.kind === "check" && r.id !== "keyHints" }).length, 20)
+    check("Delete permanently is visually destructive", find(menuRows, "delete").role, "error")
+    check("Delete permanently explains its default", find(menuRows, "delete").value, "off by default")
+}
 
-    // The five actions the overlay governs that no preset needs a chord for, asked under every one
-    // of the four: an overlay row can shadow a shared key, so "the shared table carries it" is a
-    // claim to check per preset rather than once. The three views have no shared key at all and are
-    // checked in tests/js/keymap.js, where every preset's own spelling of them is resolved.
-    var reach = []
-    var opened = Keymap.preset
-    for (var q = 0; q < Settings.PRESETS.length; q++) {
-        Keymap.setPreset(Settings.PRESETS[q])
-        reach.push([Keymap.lookup(Qt.Key_Backspace, "", Qt.NoModifier),
-                    Keymap.lookup(Qt.Key_Return, "", Qt.NoModifier),
-                    Keymap.lookup(Qt.Key_Delete, "", Qt.NoModifier),
-                    Keymap.lookup(Qt.Key_Period, ".", Qt.NoModifier),
-                    Keymap.lookup(Qt.Key_A, "a", Qt.NoModifier)].join("|"))
-    }
-    Keymap.setPreset(opened)
-    check("every preset reaches the overlay's other five actions on a shared key",
-          reach.join(" / "),
-          "parent|open|trash|toggleHidden|addNetwork / parent|open|trash|toggleHidden|addNetwork / "
-          + "parent|open|trash|toggleHidden|addNetwork / parent|open|trash|toggleHidden|addNetwork")
+function runCompletionRows(check) {
+    var places = Settings.rows("places", {})
+    check("Places spells the manager group Favorites", places[0].label, "Favorites")
+    check("optional rail details default off", [find(places, "places.driveSize").on, find(places, "places.trashCount").on].join(","), "false,false")
+    check("the Rail controls follow the ruled order", places.slice(-5, -2).map(function (row) { return row.label }).join("|"), "Show drive size|Show Trash count|Sidebar width")
+    // The 30 day sweep's own row, at the foot of Places under its own eyebrow. Off unless ui.json
+    // says otherwise, which is the whole of GM's opt-in ruling as the panel sees it.
+    check("Places ends with the Trash group and its one row",
+          places.slice(-2).map(function (row) { return row.label }).join("|"),
+          "Trash|Empty after 30 days")
+    check("the sweep is off on a fresh install", find(places, "trashAutoEmpty").on, false)
+    check("and says what it does and how often", find(places, "trashAutoEmpty").caption, "permanently")
+    check("a ui.json that switched it on reads back on",
+          find(Settings.rows("places", { data: { trashAutoEmpty: true } }), "trashAutoEmpty").on, true)
+    var detailedPlaces = Settings.rows("places", { data: { places: { driveSize: true, trashCount: true } } })
+    check("both rail detail controls reflect persisted on values", [find(detailedPlaces, "places.driveSize").on, find(detailedPlaces, "places.trashCount").on].join(","), "true,true")
+    var state = { data: { view: "grid", density: "compact", columns: ["name", "kind"],
+        preview: { column: false, loadOn: "manual", thumbnails: "off", thumbSize: "xlarge", ctrlZoom: false } } }
+    var view = Settings.rows("view", state)
+    check("View displays the persisted view", find(view, "view").selected, "grid")
+    check("View preserves optional column choices", find(view, "columns").value, "Name, Kind")
+    check("View density uses schema values", find(view, "density").selected, "compact")
+    check("Folders first uses its distinct ordering mark", find(view, "foldersFirst").glyph, "folders-first")
+    check("Preview rail mark differs from the three-column view", Settings.SECTIONS[Settings.sectionIndex("preview")].glyph, "preview")
+    check("grouping explains the categories before it is enabled", find(view, "groupByKind").caption, "folders, photos, files")
+    check("wrapping explains the boundary before it is enabled", find(view, "wrapAtEnds").caption, "arrow-up at the top")
+    check("save feedback is a separate footer", view[view.length - 1].footer, true)
 
-    var section = function (id) { return Settings.rows("keys", { preset: id, presetKeys: Keymap.PRESET_KEYS }) }
-    var chords = function (rows) { return rows.filter(function (r) { return r.kind === "fact" }).length }
-    check("the Keys section names each preset the way the chooser does",
-          [section("default")[1].value, section("vim")[1].value, section("mac")[1].value,
-           section("windows")[1].value].join(","), "Default,Vim,Mac,Windows")
-    check("each preset lists every chord it claims, and none of them lists an empty group",
-          [chords(section("default")), chords(section("vim")), chords(section("mac")),
-           chords(section("windows"))].join(","), "3,3,7,4")
+    // Settings > View > Opening, which is where a window and a new tab begin. ui/js/Startup.js turns
+    // the values into a path and tests/js/startup.js drives that; this is only what the panel draws.
+    var opening = Settings.rows("view", {})
+    check("Opening defaults to home", find(opening, "startIn").selected, "home")
+    check("and its three values are the ones the schema allows",
+          find(opening, "startIn").values.join(","), "home,last,folder")
+    check("a chosen folder that was never chosen invites the operator to pick one",
+          find(opening, "startFolder").value, "Use this folder")
+    check("new tabs default to the folder the pane is on", find(opening, "newTab").selected, "current")
+    check("and the tab values are the schema's own",
+          find(opening, "newTab").values.join(","), "current,home,start")
+    var opened = Settings.rows("view", { data: { startIn: "folder", startFolder: "/home/gm/Work", newTab: "home" } })
+    check("a chosen folder is named by its own path", find(opened, "startFolder").value, "/home/gm/Work")
+    check("and the mode beside it reads back", find(opened, "startIn").selected, "folder")
+    check("the tab setting reads back too", find(opened, "newTab").selected, "home")
+    check("the save failure keeps its message and error role",
+          Settings.rows("view", { saveStatus: "Could not save settings" }).slice(-1).map(function (row) {
+              return row.label + "|" + row.role + "|" + row.footer
+          }).join(""), "Could not save settings|error|true")
+    var preview = Settings.rows("preview", state)
+    check("preview visibility is independent of loading", find(preview, "preview.column").on, false)
+    check("manual preview reports the stored load mode", find(preview, "preview.loadOn").value, "Manual")
+    check("all four thumbnail display stops remain available", find(preview, "preview.thumbSize").values.join(","), "small,medium,large,xlarge")
+    check("thumbnail source policy remains separate", find(preview, "preview.thumbnails").selected, "off")
+    check("ctrl zoom can be disabled", find(preview, "preview.ctrlZoom").on, false)
+    check("only dependent preview controls are indented", preview.filter(function (row) { return row.indented }).map(function (row) {
+        return row.id
+    }).join(","), "preview.loadOn,preview.thumbSize,preview.ctrlZoom")
+    var sizes = ["small", "medium", "large", "xlarge"]
+    check("thumbnail pixels are live captions separate from each named stop", sizes.map(function (size) {
+        var row = find(Settings.rows("preview", { data: { preview: { thumbSize: size } } }), "preview.thumbSize")
+        return row.caption + "|" + row.value
+    }).join(","), "48 px|Small,64 px|Medium,96 px|Large,128 px|Extra large")
+    check("preview footer explains the active loading mode", preview[preview.length - 1].label + "|" + preview[preview.length - 1].footer,
+          "Ctrl+Space loads the current selection.|true")
+    var about = Settings.rows("about", { about: { version: "0.1.6", handler: "flea.desktop" } })
+    check("About version comes from supplied binary facts", about[1].value, "0.1.6")
+    check("unreported builds never repeat a specimen commit", about[2].value, "Not recorded in this build")
+    check("passive About metadata takes no focus", Settings.focusable(about[1]), false)
+    check("About support routes are keyboard actions", Settings.focusable(find(about, "support")), true)
+    var columns = Settings.columnRows(state)
+    check("Name cannot be removed", columns[1].kind, "lock")
+    check("optional kind reflects persisted columns", find(columns, "column:kind").on, true)
 }

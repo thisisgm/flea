@@ -39,7 +39,7 @@ function ejectPane(path, entries, cursor) {
 }
 
 function run(check) {
-    var volume = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true }
+    var volume = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true, removable: true }
     var home = { label: "Home", group: "favorite", kind: "favorite", path: "/home/user" }
 
     // The rail is a cursored list, so g and G mean there what the sheet says they mean. Both
@@ -71,7 +71,7 @@ function run(check) {
 
     // Finder's Cmd+E on the rail's own cursor row. The release goes through the same releaseChosen a
     // chosen menu row takes, carrying the row's key and not its index.
-    var stick = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", path: "/run/media/user/128GB", mounted: true }
+    var stick = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", path: "/run/media/user/128GB", mounted: true, removable: true }
     var ejecting = ejectPane("/home/user", [home, stick], 1)
     RailKeys.act("eject", ejecting, ejecting.sidebar)
     check("ctrl e in the rail ejects the cursor row by its key",

@@ -117,15 +117,12 @@ mod tests {
     use super::*;
     use crate::backend::listing::Listing;
     use crate::backend::testdir::TestDir;
-    use std::fs;
     use std::os::unix::fs::symlink;
 
-    fn fixture(tag: &str) -> (String, Listing) {
-        let d = format!("/tmp/flea-meta-{}-{}", tag, std::process::id());
-        let _ = fs::remove_dir_all(&d);
-        fs::create_dir_all(&d).unwrap();
-        fs::write(format!("{}/three.txt", d), "abc").unwrap();
-        fs::write(format!("{}/empty.txt", d), "").unwrap();
+    fn fixture(tag: &str) -> (TestDir, Listing) {
+        let d = TestDir::new(tag);
+        d.file("three.txt", "abc");
+        d.file("empty.txt", "");
         let mut l = Listing::new();
         l.push("three.txt", false);
         l.push("empty.txt", false);
@@ -135,28 +132,26 @@ mod tests {
     #[test]
     fn returns_size_for_each_row_in_the_range() {
         let (d, l) = fixture("range");
-        let (metas, _) = stat_range(Path::new(&d), &l, 0, 2);
+        let (metas, _) = stat_range(d.path(), &l, 0, 2);
         assert_eq!(metas.len(), 2);
         assert_eq!(metas[0].size, 3);
         assert_eq!(metas[1].size, 0);
         assert!(metas[0].mtime > 0);
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn a_range_past_the_end_is_clamped_not_a_panic() {
         let (d, l) = fixture("clamp");
-        let (metas, _) = stat_range(Path::new(&d), &l, 1, 500);
+        let (metas, _) = stat_range(d.path(), &l, 1, 500);
         assert_eq!(metas.len(), 1);
-        let (metas, _) = stat_range(Path::new(&d), &l, 99, 10);
+        let (metas, _) = stat_range(d.path(), &l, 99, 10);
         assert!(metas.is_empty());
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn only_a_regular_file_or_a_symlink_is_offered_as_thumbnailable() {
         let (d, l) = fixture("mode");
-        let (metas, _) = stat_range(Path::new(&d), &l, 0, 1);
+        let (metas, _) = stat_range(d.path(), &l, 0, 1);
         assert!(thumbnailable(metas[0].mode), "a regular file must be offered");
         assert!(thumbnailable(0o120777), "a symlink is stat'd when it is asked for");
         assert!(!thumbnailable(0o010644), "a fifo blocks a decoder for its whole timeout");
@@ -164,39 +159,36 @@ mod tests {
         assert!(!thumbnailable(0o020644), "a character device is not a file to decode");
         assert!(!thumbnailable(0o040755), "a directory has no thumbnail");
         assert!(!thumbnailable(0), "a row that vanished reports mode 0");
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn a_row_that_vanished_reports_zeroes_instead_of_failing() {
         let (d, mut l) = fixture("vanished");
         l.push("never-existed.txt", false);
-        let (metas, _) = stat_range(Path::new(&d), &l, 0, 3);
+        let (metas, _) = stat_range(d.path(), &l, 0, 3);
         assert_eq!(metas.len(), 3);
         assert_eq!(metas[2].size, 0);
         assert_eq!(metas[2].mode, 0);
         // The claim mode 0 rests on: a row that was stat'd can never answer 0, so the two never blur.
         assert_ne!(metas[0].mode, 0, "a real row always carries its file-type bits");
         assert_ne!(metas[1].mode, 0, "including the empty file, whose size really is 0");
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn only_a_symlink_whose_target_is_a_directory_reports_target_is_dir() {
-        let d = format!("/tmp/flea-meta-{}-{}", "linktarget", std::process::id());
-        let _ = fs::remove_dir_all(&d);
-        fs::create_dir_all(format!("{}/realdir", d)).unwrap();
-        fs::write(format!("{}/real.txt", d), "abc").unwrap();
-        symlink(format!("{}/realdir", d), format!("{}/linkdir", d)).unwrap();
-        symlink(format!("{}/real.txt", d), format!("{}/linkfile", d)).unwrap();
-        symlink(format!("{}/nowhere", d), format!("{}/brokenlink", d)).unwrap();
+        let d = TestDir::new("linktarget");
+        d.dir("realdir");
+        d.file("real.txt", "abc");
+        symlink(d.join("realdir"), d.join("linkdir")).unwrap();
+        symlink(d.join("real.txt"), d.join("linkfile")).unwrap();
+        symlink(d.join("nowhere"), d.join("brokenlink")).unwrap();
         let mut l = Listing::new();
         // Pushed in the order stat_range answers in, which is the listing's order and not a sort.
         l.push("realdir", true);
         l.push("linkdir", false);
         l.push("linkfile", false);
         l.push("brokenlink", false);
-        let (metas, _) = stat_range(Path::new(&d), &l, 0, 4);
+        let (metas, _) = stat_range(d.path(), &l, 0, 4);
         assert_eq!(metas.len(), 4);
         assert!(!metas[0].target_is_dir, "a real directory is not a symlink to one, so is_dir already covers it");
         assert!(metas[1].target_is_dir, "a symlink to a directory is the one row that draws as a folder");
@@ -204,10 +196,9 @@ mod tests {
         assert!(!metas[3].target_is_dir, "a broken symlink resolves to nothing, which is not a folder");
         assert_eq!(metas.iter().filter(|m| m.target_is_dir).count(), 1, "exactly one of the four");
         assert_eq!(metas[0].target, "", "a real directory has no target and pays no readlink");
-        assert_eq!(metas[1].target, format!("{}/realdir", d), "the link's target is the link's own bytes");
-        assert_eq!(metas[2].target, format!("{}/real.txt", d));
-        assert_eq!(metas[3].target, format!("{}/nowhere", d), "a broken link still names where it points");
-        fs::remove_dir_all(&d).unwrap();
+        assert_eq!(metas[1].target, d.join("realdir").to_string_lossy(), "the link's target is the link's own bytes");
+        assert_eq!(metas[2].target, d.join("real.txt").to_string_lossy());
+        assert_eq!(metas[3].target, d.join("nowhere").to_string_lossy(), "a broken link still names where it points");
     }
 
     #[test]

@@ -87,83 +87,77 @@ fn walk_into(path: &Path, deadline: Instant, bytes: &mut u64, partial: &mut bool
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::testdir::TestDir;
     use std::fs;
     use std::os::unix::fs::symlink;
     use std::os::unix::fs::PermissionsExt;
 
-    fn fixture(tag: &str) -> String {
-        let d = format!("/tmp/flea-dirsize-{}-{}", tag, std::process::id());
-        let _ = fs::remove_dir_all(&d);
-        fs::create_dir_all(&d).unwrap();
-        d
+    fn fixture(tag: &str) -> (TestDir, std::path::PathBuf) {
+        let sandbox = TestDir::new(tag);
+        let tree = sandbox.dir("tree");
+        (sandbox, tree)
     }
 
     #[test]
     fn an_empty_directory_counts_only_its_own_entry() {
-        let d = fixture("empty");
-        let result = walk(Path::new(&d));
+        let (_sandbox, d) = fixture("dirsize-empty");
+        let result = walk(&d);
         let own = fs::symlink_metadata(&d).unwrap().size();
         assert_eq!(result.bytes, own);
         assert!(!result.partial);
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn files_and_nested_directories_sum_together() {
-        let d = fixture("nested");
-        fs::write(format!("{}/a.txt", d), "abc").unwrap();
-        fs::create_dir(format!("{}/sub", d)).unwrap();
-        fs::write(format!("{}/sub/b.txt", d), "de").unwrap();
-        let result = walk(Path::new(&d));
+        let (_sandbox, d) = fixture("dirsize-nested");
+        fs::write(d.join("a.txt"), "abc").unwrap();
+        fs::create_dir(d.join("sub")).unwrap();
+        fs::write(d.join("sub/b.txt"), "de").unwrap();
+        let result = walk(&d);
         let expected = fs::symlink_metadata(&d).unwrap().size()
-            + fs::symlink_metadata(format!("{}/a.txt", d)).unwrap().size()
-            + fs::symlink_metadata(format!("{}/sub", d)).unwrap().size()
-            + fs::symlink_metadata(format!("{}/sub/b.txt", d)).unwrap().size();
+            + fs::symlink_metadata(d.join("a.txt")).unwrap().size()
+            + fs::symlink_metadata(d.join("sub")).unwrap().size()
+            + fs::symlink_metadata(d.join("sub/b.txt")).unwrap().size();
         assert_eq!(result.bytes, expected);
         assert!(!result.partial);
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn a_symlink_is_not_followed() {
         // The target lives outside the walked tree, so a followed link is the only way its 100,000 bytes could ever show up.
-        let d = fixture("symlink");
-        let target = fixture("symlink-target");
-        fs::write(format!("{}/huge.bin", target), vec![0u8; 100_000]).unwrap();
-        symlink(&target, format!("{}/link", d)).unwrap();
-        let result = walk(Path::new(&d));
+        let (_sandbox, d) = fixture("dirsize-symlink");
+        let (_target_sandbox, target) = fixture("dirsize-symlink-target");
+        fs::write(target.join("huge.bin"), vec![0u8; 100_000]).unwrap();
+        symlink(&target, d.join("link")).unwrap();
+        let result = walk(&d);
         let expected = fs::symlink_metadata(&d).unwrap().size()
-            + fs::symlink_metadata(format!("{}/link", d)).unwrap().size();
+            + fs::symlink_metadata(d.join("link")).unwrap().size();
         assert_eq!(result.bytes, expected);
         assert!(result.bytes < 100_000, "the symlink's own small size counts, not the target it points at");
-        fs::remove_dir_all(&d).unwrap();
-        fs::remove_dir_all(&target).unwrap();
     }
 
     #[test]
     fn an_expired_deadline_marks_partial_and_keeps_what_it_saw() {
-        let d = fixture("deadline");
-        fs::write(format!("{}/a.txt", d), "abc").unwrap();
+        let (_sandbox, d) = fixture("dirsize-deadline");
+        fs::write(d.join("a.txt"), "abc").unwrap();
         let past = Instant::now() - Duration::from_secs(1);
-        let result = walk_until(Path::new(&d), past);
+        let result = walk_until(&d, past);
         assert!(result.partial);
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]
     fn a_permission_denied_subtree_adds_what_it_saw_and_marks_partial() {
-        let d = fixture("denied");
-        fs::write(format!("{}/visible.txt", d), "abc").unwrap();
-        fs::create_dir(format!("{}/locked", d)).unwrap();
-        fs::write(format!("{}/locked/hidden.txt", d), "xyz").unwrap();
-        fs::set_permissions(format!("{}/locked", d), fs::Permissions::from_mode(0o000)).unwrap();
-        let result = walk(Path::new(&d));
+        let (_sandbox, d) = fixture("dirsize-denied");
+        fs::write(d.join("visible.txt"), "abc").unwrap();
+        fs::create_dir(d.join("locked")).unwrap();
+        fs::write(d.join("locked/hidden.txt"), "xyz").unwrap();
+        fs::set_permissions(d.join("locked"), fs::Permissions::from_mode(0o000)).unwrap();
+        let result = walk(&d);
+        fs::set_permissions(d.join("locked"), fs::Permissions::from_mode(0o755)).unwrap();
         assert!(result.partial, "a subtree it could not read must mark partial");
         let expected_min = fs::symlink_metadata(&d).unwrap().size()
-            + fs::symlink_metadata(format!("{}/visible.txt", d)).unwrap().size();
+            + fs::symlink_metadata(d.join("visible.txt")).unwrap().size();
         assert!(result.bytes >= expected_min, "what the walk could see must still be counted");
-        fs::set_permissions(format!("{}/locked", d), fs::Permissions::from_mode(0o755)).unwrap();
-        fs::remove_dir_all(&d).unwrap();
     }
 
     #[test]

@@ -1,0 +1,46 @@
+id,run,mapped_ms,settled_ms,pss_kb,cpu_s,child_pss_kb,thumbs_n,pss_anon_kb,uss_kb,drm_kb,thumbs_by_dir,cpu_tree_s,thumbs_by_format,ranked,preview_ms
+flea,1,786,2471,105737,0.97,2106,36,70380,81844,281596,fail=0;large=36,1.18,heic=0;jpg=0;mkv=6;mp4=24;png=0;txt=0;webm=6;webp=0;unknown=0,yes,-
+nautilus,1,857,16955,176704,9.21,0,541,83384,166860,180104,fail=0;large=541,12.54,heic=13;jpg=0;mkv=0;mp4=400;png=14;txt=0;webm=100;webp=14;unknown=0,yes,-
+thunar,1,503,12880,42130,7.22,0,221,17936,36952,0,fail=0;large=0;normal=221,7.22,heic=0;jpg=0;mkv=37;mp4=148;png=0;txt=0;webm=36;webp=0;unknown=0,yes,-
+pcmanfm,1,384,-1,39498,39.10,0,604,16380,27364,0,fail=0;large=0;normal=604,90.19,heic=0;jpg=0;mkv=0;mp4=400;png=104;txt=0;webm=100;webp=0;unknown=0,yes,-
+nemo,1,780,2851,55096,2.36,0,60,29544,42776,0,fail=0;large=60,5.44,heic=0;jpg=45;mkv=0;mp4=0;png=0;txt=0;webm=0;webp=15;unknown=0,yes,-
+dolphin,1,674,14277,101191,3.37,0,552,19572,57168,0,fail=0;large=0;normal=552,68.18,heic=0;jpg=50;mkv=84;mp4=335;png=0;txt=0;webm=83;webp=0;unknown=0,yes,-
+strata,1,610,7836,89223,1.94,0,205,58784,84476,122384,fail=0;large=205,2.31,heic=0;jpg=0;mkv=34;mp4=137;png=0;txt=0;webm=34;webp=0;unknown=0,yes,-
+yazi,1,271,10863,47320,0.41,0,n/a,30700,47008,0,fail=0;large=0,22.21,n/a,n/a: tui in kitty,732
+mc,1,273,852,5660,0.04,0,n/a,3584,5304,0,fail=0;large=0,0.04,n/a,n/a: tui in kitty,-1
+broot,1,291,513,4812,0.01,0,n/a,1328,4704,0,fail=0;large=0,0.01,n/a,n/a: tui in kitty,-1
+nnn,1,292,599,2714,0.03,0,n/a,2056,2516,0,fail=0;large=0,0.03,n/a,n/a: tui in kitty,715
+lf,1,272,1811,72794,1.05,0,n/a,69776,70572,0,fail=0;large=0,1.05,n/a,n/a: tui in kitty,744
+ranger,1,272,1050,28888,0.31,0,n/a,26252,27040,0,fail=0;large=0,0.32,n/a,n/a: tui in kitty,1113
+xplr,1,275,587,13819,0.17,0,n/a,9164,13756,0,fail=0;large=0,0.17,n/a,n/a: tui in kitty,-1
+superfile,1,317,1161,157149,0.43,0,n/a,142584,157048,0,fail=0;large=0,0.88,n/a,n/a: tui in kitty,727
+flea,2,804,2553,105003,1.01,2182,36,69836,81044,277496,fail=0;large=36,1.23,heic=0;jpg=0;mkv=6;mp4=24;png=0;txt=0;webm=6;webp=0;unknown=0,yes,-
+nautilus,2,804,16949,176058,9.23,0,541,82888,166200,180104,fail=0;large=541,12.58,heic=13;jpg=0;mkv=0;mp4=400;png=14;txt=0;webm=100;webp=14;unknown=0,yes,-
+thunar,2,534,12733,42167,7.13,0,221,17948,37016,0,fail=0;large=0;normal=221,7.13,heic=0;jpg=0;mkv=37;mp4=148;png=0;txt=0;webm=36;webp=0;unknown=0,yes,-
+pcmanfm,2,389,-1,40164,39.24,0,606,17052,28000,0,fail=0;large=0;normal=606,90.43,heic=0;jpg=0;mkv=0;mp4=400;png=106;txt=0;webm=100;webp=0;unknown=0,yes,-
+nemo,2,870,3758,55009,2.29,0,60,29424,42620,0,fail=0;large=60,5.25,heic=0;jpg=45;mkv=0;mp4=0;png=0;txt=0;webm=0;webp=15;unknown=0,yes,-
+dolphin,2,687,14368,104523,3.33,0,552,41864,82928,0,fail=0;large=0;normal=552,68.58,heic=0;jpg=50;mkv=84;mp4=335;png=0;txt=0;webm=83;webp=0;unknown=0,yes,-
+strata,2,592,7777,89470,1.93,0,205,59028,84796,122384,fail=0;large=205,2.30,heic=0;jpg=0;mkv=34;mp4=137;png=0;txt=0;webm=34;webp=0;unknown=0,yes,-
+yazi,2,275,1744,52392,0.32,0,n/a,35908,52092,0,fail=0;large=0,1.12,n/a,n/a: tui in kitty,746
+mc,2,273,856,5655,0.04,0,n/a,3588,5268,0,fail=0;large=0,0.04,n/a,n/a: tui in kitty,-1
+broot,2,295,500,4670,0.01,0,n/a,1328,4548,0,fail=0;large=0,0.01,n/a,n/a: tui in kitty,-1
+nnn,2,293,612,2712,0.03,0,n/a,2060,2532,0,fail=0;large=0,0.03,n/a,n/a: tui in kitty,713
+lf,2,274,1823,70712,1.05,0,n/a,67752,68508,0,fail=0;large=0,1.05,n/a,n/a: tui in kitty,763
+ranger,2,275,997,28853,0.30,0,n/a,26080,26880,0,fail=0;large=0,0.30,n/a,n/a: tui in kitty,1124
+xplr,2,272,598,14255,0.17,0,n/a,9180,14180,0,fail=0;large=0,0.17,n/a,n/a: tui in kitty,-1
+superfile,2,289,1166,157276,0.39,0,n/a,142612,157172,0,fail=0;large=0,0.60,n/a,n/a: tui in kitty,-1
+flea,3,794,2488,105406,1.00,2210,36,69872,81356,281596,fail=0;large=36,1.23,heic=0;jpg=0;mkv=6;mp4=24;png=0;txt=0;webm=6;webp=0;unknown=0,yes,-
+nautilus,3,874,16919,176506,9.23,0,541,83196,166600,180104,fail=0;large=541,12.53,heic=13;jpg=0;mkv=0;mp4=400;png=14;txt=0;webm=100;webp=14;unknown=0,yes,-
+thunar,3,567,12893,42137,7.25,0,221,17864,36948,0,fail=0;large=0;normal=221,7.25,heic=0;jpg=0;mkv=37;mp4=148;png=0;txt=0;webm=36;webp=0;unknown=0,yes,-
+pcmanfm,3,390,-1,39834,38.77,0,603,16604,27676,0,fail=0;large=0;normal=603,89.65,heic=0;jpg=0;mkv=0;mp4=400;png=103;txt=0;webm=100;webp=0;unknown=0,yes,-
+nemo,3,788,3359,54751,2.20,0,60,29340,42448,0,fail=0;large=60,5.15,heic=0;jpg=45;mkv=0;mp4=0;png=0;txt=0;webm=0;webp=15;unknown=0,yes,-
+dolphin,3,682,14145,88481,3.28,0,552,41716,65076,0,fail=0;large=0;normal=552,67.83,heic=0;jpg=50;mkv=84;mp4=335;png=0;txt=0;webm=83;webp=0;unknown=0,yes,-
+strata,3,643,7825,89310,1.99,0,205,59044,84580,122384,fail=0;large=205,2.37,heic=0;jpg=0;mkv=34;mp4=137;png=0;txt=0;webm=34;webp=0;unknown=0,yes,-
+yazi,3,293,1756,50190,0.30,0,n/a,33468,49920,0,fail=0;large=0,1.09,n/a,n/a: tui in kitty,755
+mc,3,274,898,5660,0.05,0,n/a,3588,5296,0,fail=0;large=0,0.05,n/a,n/a: tui in kitty,-1
+broot,3,297,514,4656,0.01,0,n/a,1328,4528,0,fail=0;large=0,0.01,n/a,n/a: tui in kitty,-1
+nnn,3,290,501,2703,0.02,0,n/a,2060,2512,0,fail=0;large=0,0.02,n/a,n/a: tui in kitty,724
+lf,3,276,1827,72770,1.07,0,n/a,69920,70432,0,fail=0;large=0,1.07,n/a,n/a: tui in kitty,731
+ranger,3,258,1027,28911,0.31,0,n/a,26088,26900,0,fail=0;large=0,0.32,n/a,n/a: tui in kitty,1108
+xplr,3,272,602,13888,0.18,0,n/a,9124,13816,0,fail=0;large=0,0.18,n/a,n/a: tui in kitty,-1
+superfile,3,305,1156,157160,0.42,0,n/a,142576,157056,0,fail=0;large=0,0.88,n/a,n/a: tui in kitty,746

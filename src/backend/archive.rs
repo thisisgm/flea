@@ -28,6 +28,9 @@ impl Formats {
         Formats::from_tools(on_path(BSDTAR), on_path(SEVENZIP))
     }
 
+    // Nothing writes rar here: WinRAR's own tool is the only thing on Linux that does, it is not free
+    // software and it is in no Arch repository, so the compress submenu cannot offer it. Reading one
+    // is separate and needs neither that tool nor a flag, see extract_argv below.
     pub fn from_tools(have_bsdtar: bool, have_7z: bool) -> Formats {
         let mut names = Vec::new();
         if have_bsdtar {
@@ -84,7 +87,9 @@ impl Formats {
     // Extraction is chosen by what the archive is, not by what the caller says it is.
     pub fn extract_argv(&self, archive: &Path, dest: &Path) -> Option<Vec<String>> {
         let name = archive.to_string_lossy().to_lowercase();
-        if name.ends_with(".7z") {
+        // A rar is read by 7z where it is installed, whose rar and rar5 readers are the reference
+        // ones, and by libarchive otherwise; neither needs the nonfree tool that writes them.
+        if name.ends_with(".7z") || (name.ends_with(".rar") && self.have_7z) {
             if !self.have_7z {
                 return None;
             }
@@ -117,7 +122,9 @@ impl Formats {
     // The argv that lists an archive without extracting a byte of it.
     pub fn list_argv(&self, archive: &Path) -> Option<(Vec<String>, ListSpec)> {
         let name = archive.to_string_lossy().to_lowercase();
-        if name.ends_with(".7z") {
+        // The same choice extract_argv makes, so an index and the extract that follows it are read
+        // by one tool and a name in the preview is a name the extract will actually write.
+        if name.ends_with(".7z") || (name.ends_with(".rar") && self.have_7z) {
             if !self.have_7z {
                 return None;
             }
@@ -151,6 +158,29 @@ mod tests {
         assert!(no_seven.offers("tar.zst"));
         let nothing = Formats::from_tools(false, false);
         assert!(nothing.names().is_empty(), "with no tool at all the whole entry self-hides");
+    }
+
+    // Flea reads rar and writes none. 7z's own rar and rar5 readers are the reference ones, so they
+    // are preferred where 7z is installed; libarchive reads both too and is the fallback.
+    #[test]
+    fn a_rar_is_read_by_7z_where_it_is_installed_and_by_libarchive_where_it_is_not() {
+        let both = Formats::from_tools(true, true);
+        let seven = both.extract_argv(Path::new("/x/holiday.rar"), Path::new("/dest")).unwrap();
+        assert_eq!(seven[0], "7z");
+        let (listed, _) = both.list_argv(Path::new("/x/holiday.rar")).unwrap();
+        assert_eq!(listed[0], "7z", "the index and the extract must agree on the tool");
+        let tar_only = Formats::from_tools(true, false);
+        let fallback = tar_only.extract_argv(Path::new("/x/holiday.rar"), Path::new("/dest")).unwrap();
+        assert_eq!(fallback[0], "bsdtar");
+        let (fallback_list, _) = tar_only.list_argv(Path::new("/x/holiday.rar")).unwrap();
+        assert_eq!(fallback_list[0], "bsdtar");
+        // Upper case reaches the same reader: the name is lowercased before it is matched.
+        assert_eq!(both.extract_argv(Path::new("/x/HOLIDAY.RAR"), Path::new("/d")).unwrap()[0], "7z");
+        // No tool at all reads nothing, rather than building an argv for a program that is absent.
+        assert!(Formats::from_tools(false, false).extract_argv(Path::new("/x/a.rar"), Path::new("/d")).is_none());
+        // And rar is never offered as something to write, on any box.
+        assert!(!both.offers("rar"));
+        assert!(!both.names().iter().any(|n| n == "rar"));
     }
 
     #[test]

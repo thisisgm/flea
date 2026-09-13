@@ -13,6 +13,7 @@ const RENAME_NOREPLACE: u32 = 1;
 const EINVAL: i32 = 22;
 // GVFS answers a WebDAV rename with EIO instead of refusing it outright.
 const EIO: i32 = 5;
+const EXDEV: i32 = 18;
 // The kind a half-succeeded rename answers; ui/js/Errors.js words it and ui/PaneWire.qml refreshes on it.
 pub(crate) const KEPT: &str = "rename-kept";
 
@@ -49,7 +50,7 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
 pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
     match rename_noreplace(from, to) {
         Ok(()) => Ok(()),
-        Err(error) if needs_copy_fallback(from, &error) => copy_then_remove(from, to),
+        Err(error) if error.raw_os_error() == Some(EXDEV) || needs_copy_fallback(from, &error) => copy_then_remove(from, to),
         Err(error) => Err(from_io("rename", &to.to_string_lossy(), &error)),
     }
 }
@@ -188,9 +189,11 @@ mod tests {
         let d = TestDir::new("webdavrenameclobber");
         let from = d.file("source.txt", "source body");
         let to = d.file("target.txt", "target body");
+        d.assert_contains(&from);
+        d.assert_contains(&to);
         let error = copy_then_remove(&from, &to).expect_err("the fallback must refuse an existing destination");
-        assert!(
-            error.msg.contains(&format!("os error {}", EEXIST)),
+        assert_eq!(
+            error.msg, "already exists",
             "the exclusive create's EEXIST is what tells this refusal from any other copy failure"
         );
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "target body");
@@ -202,10 +205,12 @@ mod tests {
         let source = d.dir("source");
         std::fs::write(source.join("source.txt"), "source body").unwrap();
         let target = d.dir("target");
+        d.assert_contains(&source);
+        d.assert_contains(&target);
         let error = copy_then_remove(&source, &target).expect_err("must refuse");
         assert_eq!(error.where_, "rename");
-        assert!(
-            error.msg.contains(&format!("os error {}", EEXIST)),
+        assert_eq!(
+            error.msg, "already exists",
             "the directory create's EEXIST is what tells this refusal from any other copy failure"
         );
         assert!(source.join("source.txt").is_file(), "the source tree stays complete");
@@ -219,10 +224,14 @@ mod tests {
         std::fs::create_dir(&nested).unwrap();
         std::fs::write(nested.join("inside.txt"), "body").unwrap();
         let target = d.join("target");
+        d.assert_contains(&source);
+        d.assert_contains(&target);
         copy_then_remove(&source, &target).expect("rename by exclusive copy");
         assert!(!source.exists());
         assert_eq!(std::fs::read_to_string(target.join("nested/inside.txt")).unwrap(), "body");
 
+        d.assert_contains(&source);
+        d.assert_contains(&target);
         copy_then_remove(&target, &source).expect("undo by exclusive copy");
         assert!(!target.exists());
         assert_eq!(std::fs::read_to_string(source.join("nested/inside.txt")).unwrap(), "body");
@@ -237,6 +246,8 @@ mod tests {
         std::fs::write(&child, "body").unwrap();
         std::fs::set_permissions(&child, std::fs::Permissions::from_mode(0o000)).unwrap();
         let target = d.join("target");
+        d.assert_contains(&source);
+        d.assert_contains(&target);
         let error = copy_then_remove(&source, &target).expect_err("an unreadable child cannot be copied");
         assert!(child.exists(), "the source remains after a failed copy");
         assert!(!target.exists(), "the failed rename leaves no unjournaled partial target");
@@ -254,6 +265,8 @@ mod tests {
         std::fs::write(source.join("inside.txt"), "body").unwrap();
         std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o555)).unwrap();
         let target = d.join("target");
+        d.assert_contains(&source);
+        d.assert_contains(&target);
         let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
         std::fs::set_permissions(&source, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert_eq!(error.where_, KEPT, "the half-succeeded rename gets its own kind");
@@ -277,6 +290,8 @@ mod tests {
         let target = d.join("target");
         // A parent with no write bit fails the unlink of the source itself, once its children have gone.
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
+        d.assert_contains(&source);
+        d.assert_contains(&target);
         let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert_eq!(error.where_, KEPT, "the half-succeeded rename keeps its own kind");
@@ -294,11 +309,13 @@ mod tests {
         std::fs::write(&source, "body").unwrap();
         let target = d.join("target.txt");
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
+        d.assert_contains(&source);
+        d.assert_contains(&target);
         let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert_eq!(error.where_, "rename", "remove_file is atomic, so the source is provably whole");
-        assert!(
-            error.msg.contains(&format!("os error {}", EACCES)),
+        assert_eq!(
+            error.msg, "permission denied",
             "the removal's EACCES is what tells this arm from a copy failure, which answers rename too"
         );
         assert_eq!(std::fs::read_to_string(&source).unwrap(), "body");
@@ -315,11 +332,13 @@ mod tests {
         std::os::unix::fs::symlink(&payload, &source).unwrap();
         let target = d.join("target");
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o555)).unwrap();
+        d.assert_contains(&source);
+        d.assert_contains(&target);
         let error = copy_then_remove(&source, &target).expect_err("source removal must fail");
         std::fs::set_permissions(&hold, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert_eq!(error.where_, "rename", "one unlink removes a symlink too, so the source is provably whole");
-        assert!(
-            error.msg.contains(&format!("os error {}", EACCES)),
+        assert_eq!(
+            error.msg, "permission denied",
             "the removal's EACCES is what tells this arm from a copy failure, which answers rename too"
         );
         assert_eq!(std::fs::read_link(&source).unwrap(), payload);

@@ -42,7 +42,10 @@ fi
 sandbox_make "$SANDBOX" || exit 1
 mkdir -p "$QMLDIR/js" || exit 1
 cp ui/ViewState.qml "$QMLDIR/ViewState.qml" || exit 1
-for lib in UiState Settings TextSize Keymap; do
+# The transitive set, not just what ViewState.qml names: Settings.js imports Places.js, which
+# imports Mounts.js, which imports Protocols.js. Copying only the four ViewState names left the
+# singleton unloadable, so every probe below printed nothing and every check read it as a failure.
+for lib in UiState Settings TextSize Keymap Places Mounts Protocols; do
   cp "ui/js/$lib.js" "$QMLDIR/js/$lib.js" || exit 1
 done
 ln -sfn /usr/share/omarchy/shell/Commons "$QMLDIR/Commons" || exit 1

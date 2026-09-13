@@ -95,65 +95,6 @@ function railLabel(mount, marks) {
     return mount.label
 }
 
-// Sample input, captured live on the box with a USB stick plugged in (2026-09-02), from
-// lsblk --json -o NAME,LABEL,MOUNTPOINT,RM,SIZE,TYPE,MODEL:
-// {"blockdevices":[
-//   {"name":"sda","label":null,"mountpoint":null,"rm":true,"size":"116.1G","type":"disk","model":"USB Flash Disk",
-//    "children":[{"name":"sda1","label":"128GB","mountpoint":"/run/media/gm/128GB","rm":true,"size":"116.1G","type":"part","model":null}]}]}
-// Two row kinds come out: one "disk" row for the box's own internal disk, then one "volume" row
-// per removable partition, mounted or not. ui/DeviceMounts.qml turns these into rail entries.
-function parseDevices(body) {
-    var tree
-    try {
-        tree = JSON.parse(String(body || ""))
-    } catch (e) {
-        // A parse failure returns the empty shape rather than throwing, so the rail self-hides.
-        return []
-    }
-    var nodes = (tree && tree.blockdevices) || []
-    var out = []
-    var disk = internalDisk(nodes)
-    if (disk)
-        out.push(disk)
-    collectVolumes(nodes, "", out)
-    return out
-}
-
-// corner: one internal disk on this box, so the first non-removable disk is "the" disk and its row means "/".
-function internalDisk(nodes) {
-    for (var i = 0; i < nodes.length; i++) {
-        var n = nodes[i]
-        // lsblk on this box reports rm as a JSON boolean, measured 2026-09-02.
-        if (!n.name || n.type !== "disk" || n.rm)
-            continue
-        // zram and loop devices are type "disk" too, and neither is a disk anyone browses.
-        if (/^(zram|loop)/.test(String(n.name)))
-            continue
-        return { kind: "disk", label: String(n.name), device: "/dev/" + n.name, path: "/", mounted: true }
-    }
-    return null
-}
-
-// A removable row is a partition on a removable disk, or a removable disk nobody ever partitioned.
-function collectVolumes(nodes, model, out) {
-    for (var i = 0; i < nodes.length; i++) {
-        var n = nodes[i]
-        var kids = n.children || []
-        // Only the disk carries a product name, so it is passed down to its own partitions.
-        var own = n.model ? String(n.model) : model
-        if (n.name && n.rm && (n.type === "part" || (n.type === "disk" && kids.length === 0)))
-            out.push(volumeRow(n, own))
-        collectVolumes(kids, own, out)
-    }
-}
-
-// The label ladder is the filesystem label, then the drive's product name, then the kernel name.
-function volumeRow(n, model) {
-    var path = n.mountpoint ? String(n.mountpoint) : ""
-    var label = n.label ? String(n.label) : (model.length > 0 ? model : String(n.name))
-    return { kind: "volume", label: label, device: "/dev/" + n.name, path: path, mounted: path.length > 0 }
-}
-
 // Sample input: two arrays of rail entries as ui/NetworkMounts.qml and ui/DeviceMounts.qml build
 // them, [{path:"", label:"NAS", group:"network", kind:"share", uri:"smb://example.com/data",
 // mounted:false, glyph:"server"}]. A poll that found no change must not assign a fresh array: the
@@ -173,18 +114,21 @@ function sameEntries(a, b) {
 function sameEntry(x, y) {
     return x.path === y.path && x.label === y.label && x.group === y.group && x.kind === y.kind
         && x.uri === y.uri && x.device === y.device && x.mounted === y.mounted && x.glyph === y.glyph
+        && x.size === y.size && x.editable === y.editable && x.removable === y.removable
 }
 
 // Sample input: one rail entry as ui/DeviceMounts.qml and ui/NetworkMounts.qml build them,
-// {label:"128GB", group:"device", kind:"volume", device:"/dev/sda1", mounted:true}.
+// {label:"128GB", group:"device", kind:"volume", device:"/dev/sda1", mounted:true, removable:true}.
 // A removable volume ejects and a mounted network share unmounts; every other rail row offers
 // neither and opens no menu. The kind is read here, never re-derived: the internal disk reads as
 // mounted too, the Dropbox row is a local folder the stock service owns, and a favourite is not a
 // mount. gio's -f is offered nowhere: forcing an unmount over an open write is how data is lost.
+// An internal drive is a volume row as well now, and it is the removable flag that keeps Eject off
+// it: a fixed disk is somewhere to browse, not something to pull out.
 function railMenu(entry) {
     if (!entry || !entry.mounted)
         return []
-    if (entry.group === "device" && entry.kind === "volume")
+    if (entry.group === "device" && entry.kind === "volume" && entry.removable === true)
         return [{ label: "Eject", action: "eject", glyph: "eject" }]
     if (entry.group === "network" && entry.kind === "share")
         return [{ label: "Unmount", action: "unmount", glyph: "eject" }]
@@ -195,8 +139,9 @@ function railMenu(entry) {
 // whether or not anything mounted it, marked as a removal because forgetting a place trashes
 // nothing. ui/js/Eject.js reads railMenu and never this, so Ctrl+E still refuses an unmounted row.
 function rowMenu(entry) {
+    if (entry && entry.kind === "favourite") return [{ label: "Remove", action: "removeFavourite", glyph: "minus" }]
     var rows = railMenu(entry)
-    if (entry && entry.group === "network" && entry.kind === "share") {
+    if (entry && entry.group === "network" && entry.kind === "share" && entry.editable !== false) {
         rows.push({ label: "Rename", action: "rename", glyph: "rename" })
         rows.push({ label: "Remove", action: "remove", glyph: "minus" })
     }
@@ -275,7 +220,7 @@ function release(action, key, devices, mounts, sidebar) {
     if (action === "unmount")
         mounts.unmount(share)
     else if (action === "rename")
-        sidebar.startRename(sidebar.favoriteEntries.length + share)
+        sidebar.startRename(sidebar.placesEntries.length + share)
     else if (action === "remove")
         mounts.forget(sidebar.networkEntries[share].uri)
 }

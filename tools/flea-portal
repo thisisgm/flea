@@ -15,6 +15,7 @@ import os
 import shutil
 import sys
 import tempfile
+from urllib.parse import unquote_to_bytes, urlsplit
 
 import gi
 
@@ -130,6 +131,10 @@ def filters_option(options, key):
         if not isinstance(entry, tuple) or len(entry) != 2:
             continue
         label, rules = entry
+        if not isinstance(label, str) or not isinstance(rules, list):
+            continue
+        rules = [rule for rule in rules if isinstance(rule, tuple) and len(rule) == 2
+                 and type(rule[0]) is int and isinstance(rule[1], str)]
         globs = [rule[1] for rule in rules if rule[0] == 0]
         mimes = [rule[1] for rule in rules if rule[0] == 1]
         out.append({"label": label, "globs": globs, "mimes": mimes})
@@ -147,7 +152,8 @@ def request_for(method, title, app_id, options):
     # One shape for all three methods: the picker reads mode and ignores the fields that mode has no use for.
     mode = {"OpenFile": "open", "SaveFile": "save", "SaveFiles": "savefiles"}[method]
     files = options.get("files")
-    return {
+    filters = options.get("filters")
+    request = {
         "mode": mode,
         "title": title,
         "app": app_id,
@@ -160,7 +166,12 @@ def request_for(method, title, app_id, options):
         "files": [bytestring(name) for name in files] if isinstance(files, list) else [],
         "filters": filters_option(options, "filters"),
         "current": current_filter_label(options),
+        "currentIndex": next((index for index, value in enumerate(filters if isinstance(filters, list) else [])
+                              if value == options.get("current_filter")), -1),
     }
+    if mode == "save" and os.path.isabs(request["file"]):
+        request["folder"], request["name"] = os.path.split(request["file"])
+    return request
 
 
 class Pick:
@@ -205,7 +216,18 @@ class Pick:
             say("the picker exited without an answer, so the request is a fault and not a refusal")
             self.answer(RESPONSE_OTHER, [])
             return
-        self.answer(answer.get("response", RESPONSE_OTHER), answer.get("uris", []))
+        response, uris = answer.get("response"), answer.get("uris", [])
+        if type(response) is not int or response not in (RESPONSE_OK, RESPONSE_CANCELLED):
+            self.answer(RESPONSE_OTHER, [])
+            return
+        if response == RESPONSE_OK and (not isinstance(uris, list) or not uris or not all(valid_uri(uri) for uri in uris)):
+            self.answer(RESPONSE_OTHER, [])
+            return
+        index = answer.get("filter", -1)
+        if type(index) is not int or index < -1 or index >= len(self.request["filters"]):
+            self.answer(RESPONSE_OTHER, [])
+            return
+        self.answer(response, uris, index)
 
     def read_reply(self):
         try:
@@ -217,14 +239,19 @@ class Pick:
             return None
         return answer
 
-    def answer(self, response, uris):
+    def answer(self, response, uris, filter_index=None):
         if self.answered:
             return
         self.answered = True
         results = {}
         # Only a success carries URIs, and xdg-desktop-portal drops anything that is not a file URI.
         if response == RESPONSE_OK:
-            results["uris"] = GLib.Variant("as", [uri for uri in uris if isinstance(uri, str) and uri.startswith("file://")])
+            results["uris"] = GLib.Variant("as", uris)
+            filters = self.request["filters"]
+            if filters:
+                chosen = filters[filter_index] if type(filter_index) is int and 0 <= filter_index < len(filters) else {"label": "All files", "globs": ["*"], "mimes": []}
+                rules = [(0, glob) for glob in chosen["globs"]] + [(1, mime) for mime in chosen["mimes"]]
+                results["current_filter"] = GLib.Variant("(sa(us))", (chosen["label"], rules))
         self.invocation.return_value(GLib.Variant("(ua{sv})", (response, results)))
         self.service.finished(self)
 
@@ -237,7 +264,26 @@ class Pick:
             self.answer(RESPONSE_OTHER, [])
 
     def clean(self):
-        shutil.rmtree(self.dir, ignore_errors=True)
+        try:
+            shutil.rmtree(self.dir)
+        except OSError as error:
+            say("could not remove picker runtime directory %s (%s)" % (self.dir, error))
+
+
+def valid_uri(uri):
+    if not isinstance(uri, str) or any(ord(char) <= 32 or ord(char) == 127 for char in uri):
+        return False
+    try:
+        parsed = urlsplit(uri)
+    except ValueError:
+        return False
+    if parsed.scheme != "file" or parsed.netloc or not parsed.path.startswith("/") or parsed.query or parsed.fragment:
+        return False
+    # A literal percent is encoded by the picker; malformed escapes and encoded NUL cannot name its reviewed file.
+    for suffix in parsed.path.split("%")[1:]:
+        if len(suffix) < 2 or any(char not in "0123456789abcdefABCDEF" for char in suffix[:2]):
+            return False
+    return b"\0" not in unquote_to_bytes(parsed.path)
 
 
 class Service:
@@ -275,10 +321,20 @@ class Service:
             invocation.return_dbus_error("org.freedesktop.DBus.Error.UnknownMethod", "flea-portal answers FileChooser only")
             return
         handle, app_id, _parent, title, options = params.unpack()
-        pick = Pick(self, handle, invocation, request_for(method, title, app_id, options))
+        if handle in self.picks:
+            invocation.return_value(GLib.Variant("(ua{sv})", (RESPONSE_OTHER, {})))
+            return
+        try:
+            pick = Pick(self, handle, invocation, request_for(method, title, app_id, options))
+            pick.registration = connection.register_object(handle, self.request_info, self.on_call, None, None)
+        except (OSError, GLib.Error) as error:
+            say("could not prepare picker request (%s)" % error)
+            if "pick" in locals():
+                pick.clean()
+            invocation.return_value(GLib.Variant("(ua{sv})", (RESPONSE_OTHER, {})))
+            return
         self.picks[handle] = pick
         # Exported before the window opens, because a caller can withdraw a request it just made.
-        pick.registration = connection.register_object(handle, self.request_info, self.on_call, None, None)
         self.cancel_idle_exit()
         pick.start()
 

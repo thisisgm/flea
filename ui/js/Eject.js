@@ -5,8 +5,8 @@
 // Sample input: the lsblk --json body ui/js/Mounts.js "parseDevices" reads, taken again after
 // gio mount -e returned for /dev/sda1:
 // {"blockdevices":[
-//   {"name":"sda","label":null,"mountpoint":null,"rm":true,"size":"116.1G","type":"disk","model":"USB Flash Disk",
-//    "children":[{"name":"sda1","label":"128GB","mountpoint":null,"rm":true,"size":"116.1G","type":"part","model":null}]}]}
+//   {"name":"sda","path":"/dev/sda","label":null,"mountpoints":[null],"rm":true,"size":"116.1G","type":"disk","model":"USB Flash Disk",
+//    "children":[{"name":"sda1","path":"/dev/sda1","label":"128GB","mountpoints":[null],"rm":true,"size":"116.1G","type":"part","model":null}]}]}
 // The sda entry is then either gone, or still listed with every mountpoint under it null.
 // gio's exit code is never the witness: it has been 0 over a volume that stayed mounted.
 // "safe" when nothing under the disk that carries the device is mounted, "mounted" when anything
@@ -44,9 +44,12 @@ function diskOf(body, device) {
     return null
 }
 
-// Both sides of every comparison here come from lsblk's own NAME column, see Mounts.js "volumeRow".
+// Both sides of every comparison here come from lsblk's own NAME column. volumeRow carries lsblk's
+// PATH now, and a device-mapper volume's path is /dev/mapper/<name>, so the leaf is what is read.
 function kernelName(device) {
-    return String(device || "").replace(/^\/dev\//, "")
+    var text = String(device || "")
+    var cut = text.lastIndexOf("/")
+    return cut < 0 ? text : text.substring(cut + 1)
 }
 
 function holds(node, name) {
@@ -60,9 +63,20 @@ function holds(node, name) {
     return false
 }
 
-// lsblk writes "[SWAP]" as the mountpoint of active swap, which is in use like any other mount.
+// lsblk writes "[SWAP]" as a mountpoint of active swap, which is in use like any other mount. This
+// asks whether anything holds the volume at all, which is not Mounts.js mountOf's question: that one
+// answers where to browse, and swap is nowhere.
+function inUse(node) {
+    var points = node.mountpoints || []
+    for (var i = 0; i < points.length; i++) {
+        if (points[i] !== null && String(points[i]).length > 0)
+            return true
+    }
+    return false
+}
+
 function anyMounted(node) {
-    if (node.mountpoint)
+    if (inUse(node))
         return true
     var kids = node.children || []
     for (var i = 0; i < kids.length; i++) {
@@ -90,7 +104,7 @@ function blockers(body, device) {
 }
 
 function collectMounted(node, out) {
-    if (node.mountpoint)
+    if (inUse(node))
         out.push({ name: String(node.name), label: node.label ? String(node.label) : String(node.name) })
     var kids = node.children || []
     for (var i = 0; i < kids.length; i++)
@@ -105,7 +119,7 @@ function sentence(v, label, others) {
     if (v === "mounted") {
         var rest = others || []
         if (rest.length === 0)
-            return { text: label + " could not be ejected; it is still mounted, close anything using it and try again.", isError: true }
+            return { text: label + " is still mounted; close what is using it.", isError: true }
         var tail = rest.length > 1 ? " are still mounted, eject those instead." : " is still mounted, eject that instead."
         return { text: label + " could not be ejected; " + rest.join(", ") + " on the same drive" + tail, isError: true }
     }
@@ -119,7 +133,7 @@ function sentence(v, label, others) {
 function release(root, sidebar, fromRail) {
     var entry = fromRail ? sidebar.entries[sidebar.cursorIndex] : Mounts.holding(sidebar.entries, root.path)
     if (!entry) {
-        root.message("This directory is not inside a removable volume, so there is nothing to eject.", false)
+        root.message("This is not inside a removable volume.", false)
         return
     }
     var rows = Mounts.railMenu(entry)

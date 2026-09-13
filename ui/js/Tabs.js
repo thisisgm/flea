@@ -2,10 +2,10 @@
 
 .import "Filter.js" as Filter
 .import "Format.js" as Format
+.import "Startup.js" as Startup
 
-// Directory tabs in one window. The pane and the backend still hold one listing: a hidden tab is a
-// snapshot, not a second view, because a hidden view is not a free view. t, w and 1-9 are already
-// in keys.toml; this file is what they do. Nine is the cap because those digits are the jump keys.
+// Hidden tabs are snapshots, so the pane and backend still own only one listing.
+// The nine-tab cap matches TUI's direct digit selection; GUI shortcuts cycle through the same state.
 
 var MAX = 9
 
@@ -25,6 +25,7 @@ function snapshot(pane, path) {
     return {
         path: where,
         history: pane.history.slice(),
+        forwardHistory: (pane.forwardHistory || []).slice(),
         cursorIndex: elsewhere ? 0 : pane.cursorIndex,
         viewMode: pane.viewMode,
         showHidden: pane.showHidden,
@@ -138,6 +139,7 @@ function restoreSelection(pane, selected) {
 function apply(pane, item) {
     var same = pane.path === item.path && pane.showHidden === item.showHidden
     pane.history = item.history.slice()
+    pane.forwardHistory = (item.forwardHistory || []).slice()
     pane.viewMode = item.viewMode
     pane.showHidden = item.showHidden
     if (same) {
@@ -201,15 +203,18 @@ function openNew(pane) {
     var here = restingPath(pane)
     closePreview(pane)
     dropOverlay(pane)
+    // Settings > View > Opening decides where the new tab lands; it cloned the current folder before
+    // 0.2.1 and that is still the default. The tab the operator leaves keeps the path it was on.
+    var target = Startup.newTabPath(pane.uiState, here, pane.home)
     var items = currentItems(pane, here)
     var index = currentIndex(pane)
     items[index] = snapshot(pane, here)
-    items.push(snapshot(pane, here))
+    items.push(snapshot(pane, target))
     pane.tabs = pack(items, items.length - 1)
     // dropOverlay clears the search but leaves the pane on the scope it walked, so the new tab has
     // to land on the path it just recorded; this is what Escape out of a search already does.
-    if (pane.path !== here)
-        pane.openWithoutHistory(here)
+    if (pane.path !== target)
+        pane.openWithoutHistory(target)
 }
 
 function selectAt(pane, i) {
@@ -261,6 +266,12 @@ function closeAt(pane, i) {
 }
 
 function act(action, pane) {
+    if (action === "tabNext" || action === "tabPrevious") {
+        var total = count(pane)
+        var direction = action === "tabNext" ? 1 : -1
+        selectAt(pane, (currentIndex(pane) + total + direction) % total)
+        return
+    }
     if (action === "tabNew") {
         openNew(pane)
         return

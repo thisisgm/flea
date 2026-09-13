@@ -2,6 +2,7 @@ import QtQuick
 import qs.Commons
 import "js/Format.js" as Format
 import "js/Ops.js" as Ops
+import "js/Status.js" as Status
 
 Item {
     id: root
@@ -11,147 +12,159 @@ Item {
     property int cursorIndex: 0
     property string listingState: "loading"
     property int selectionCount: 0
-    // The filesystem under the current directory, from the backend's own statfs; empty draws nothing.
     property string fsName: ""
     property real fsFree: 0
-
-    property string transient_: ""
-    property bool transientIsError: false
-
-    // A running operation's line, which unlike transient_ does not time out: it stands until the
-    // operation ends and replaces it with its own result. Compress, extract, convert and the
-    // Dropbox move have no card and say what they are doing here.
-    property string sticky: ""
-
-    // The transfer the card draws, pushed in by whoever owns the scene. The card owns the transfer
-    // while it runs and this bar keeps the result it ends with, so the two halves of one operation
-    // are never said twice at once; left idle, which is what it is until ui/shell.qml binds it.
-    property var transfer: Ops.emptyTransfer()
-    signal transferCancelRequested(int id)
-
-    // The card takes the transfer's own line off this bar while it runs; every other sticky
-    // operation keeps it, because none of them has a card.
-    readonly property bool stickyHere: root.sticky.length > 0 && !root.transfer.running
-
-    // The search's own two halves, the lines the design canvas draws; empty means the bar is its normal self.
+    property string notice: ""
+    property var errors: []
+    readonly property string transient_: root.errors.length ? root.errors[0].text : root.notice
+    readonly property string errorDetail: root.errors.length ? root.errors[0].detail : ""
+    readonly property var stripItem: background
+    readonly property var transferCard: cardLoader.item
+    readonly property var countsItem: counts
+    readonly property var primaryItem: primary
+    readonly property var secondaryItem: secondary
+    readonly property bool transientIsError: root.errors.length > 0
+    property var activities: []
+    property var dragFeedbackOwner: null
+    readonly property var activity: root.activities.length ? root.activities[0] : null
+    readonly property string sticky: root.activity ? root.activity.text : ""
+    readonly property var transfer: root.activity ? root.activity.transfer : Ops.emptyTransfer()
+    readonly property var transferOwner: root.activity ? root.activity.owner : null
+    readonly property bool stickyHere: root.sticky.length > 0
     property string searchLine: ""
     property string searchKeys: ""
+    property string retryLine: ""
     property bool searchRunning: false
     readonly property bool searching: root.searchLine.length > 0
-    // Operations.dc.html and Search.dc.html both draw the bar's crawl at 14, the base size, two above the caption the bar's text is set in.
     readonly property int spiralSize: Style.font.body
-
     readonly property int messageMs: 4000
     readonly property real ruleOpacity: 0.12
+    readonly property bool hasUndo: !root.transientIsError && !root.stickyHere && !root.searching
+                                    && root.notice.indexOf(Ops.UNDO_HINT) >= 0
+    readonly property string keyHint: root.transientIsError ? "esc dismisses"
+        : root.transfer.running ? (root.activity.cancelling ? "cancelling" : "esc cancels")
+        : root.searchRunning ? "esc cancels" : root.searching ? root.searchKeys
+        : root.hasUndo ? "z undoes" : ""
+    readonly property string secondaryText: [root.keyHint,
+        root.transientIsError && root.stickyHere ? root.sticky : "",
+        root.activities.slice(1).map(function (entry) { return entry.text }).join(" · "),
+        (root.transientIsError || root.stickyHere) && root.searching ? root.searchText() : "",
+        root.transientIsError ? "" : root.retryLine]
+        .filter(function (s) { return s.length > 0 }).map(function (s) { return " · " + s }).join("")
+    readonly property real slotWidth: Math.max(0, root.width - Theme.spacing.rowPaddingX
+        - counts.x - counts.width - 3 * Theme.spacing.gap - root.spiralSize)
+    readonly property real hintWidth: hintMetrics.width
+    signal transferCancelRequested(int id)
+    implicitHeight: Theme.chromeHeight + detailView.height
 
-    // A status strip is chrome, not a data row; see Theme.qml's chromeHeight comment.
-    implicitHeight: Theme.chromeHeight
-
-    function say(text, isError) {
-        root.transient_ = text
-        root.transientIsError = isError
-        // Errors and the undo hint stay until the next line or Escape. A 4 s toast was the only
-        // place many failures were explained, and z undoes is easy to miss if it vanishes.
-        if (!text || isError || text.indexOf(Ops.UNDO_HINT) >= 0) {
-            clear.stop()
+    // Completion messages cannot acknowledge a failure; each error requires its own dismissal.
+    function say(text, isError, detail) {
+        if (!text) { root.dismiss(); return }
+        if (isError) {
+            root.errors = root.errors.concat([{text: text, detail: detail || ""}])
             return
         }
-        clear.restart()
+        root.notice = text
+        root.syncNoticeTimer()
     }
 
-    // The end of an operation: the sticky line goes and its result takes the ordinary transient slot.
-    function settle(text, isError) {
-        root.sticky = ""
-        root.say(text, isError)
+    // A surface replacing its own standing verdict names the one it is replacing. say("") dismisses
+    // the head of the queue, which is somebody else's error whenever more than one is waiting.
+    function forget(text) {
+        if (!text) return
+        root.errors = root.errors.filter(function (entry) { return entry.text !== text })
     }
 
-    // The canvas's own left half: how many rows there are, and how many of them are picked.
+    function dismiss() {
+        if (root.errors.length) root.errors = root.errors.slice(1)
+        else root.notice = ""
+    }
+
+    function cancelTransfer() {
+        var next = Status.cancelActivity(root.activities)
+        if (next === root.activities) return
+        root.activities = next
+        root.transferCancelRequested(root.transfer.id)
+    }
+
+    function escapePressed() {
+        if (root.transientIsError) { root.dismiss(); return true }
+        if (root.transfer.running) { root.cancelTransfer(); return true }
+        return false
+    }
+
+    function setActivity(owner, text, transfer) {
+        root.activities = Status.activityChanged(root.activities, owner, transfer.running ? Ops.progressLine(transfer) : text, transfer)
+    }
+
+    // A completion hidden by an error or live activity keeps its full display time after acknowledgement.
+    function syncNoticeTimer() {
+        if (root.notice && !root.transientIsError && !root.stickyHere && !root.searching
+                && root.notice.indexOf(Ops.UNDO_HINT) < 0)
+            clear.restart()
+        else clear.stop()
+    }
+    onTransientIsErrorChanged: root.syncNoticeTimer()
+    onStickyHereChanged: root.syncNoticeTimer()
+    onSearchingChanged: root.syncNoticeTimer()
+
+    function itemText() {
+        if (root.listingState === "empty") return "empty"
+        if (root.listingState === "error" || root.listingState === "locked") return "unavailable"
+        if (root.listingState !== "ready") return ""
+        return root.total + (root.total === 1 ? " item" : " items")
+    }
+
     function countText() {
-        if (root.listingState === "empty") {
-            return "empty"
-        }
-        if (root.listingState === "error" || root.listingState === "locked") {
-            return "unavailable"
-        }
-        if (root.listingState === "ready") {
-            var base = root.total + (root.total === 1 ? " item" : " items")
-            // Say nothing about the selection while it is empty, the same idiom the rest of the bar uses.
-            return root.selectionCount > 0 ? base + "   " + root.selectionCount + " selected" : base
-        }
-        return ""
+        var base = root.itemText()
+        return root.listingState === "ready" && root.selectionCount > 0
+            ? base + " · " + root.selectionCount + " selected" : base
     }
 
-    // The canvas's own right half: "btrfs · 412 GB free". A filesystem the backend could not read
-    // draws nothing rather than a zero, because a wrong number is worse than no number.
     function fsText() {
-        if (root.fsName.length === 0) {
-            return ""
-        }
-        return root.fsName + " · " + Format.size(root.fsFree) + " free"
+        return root.fsName.length ? root.fsName + " · " + Format.size(root.fsFree) + " free" : ""
     }
 
-    // A running operation outranks the transient slot, which outranks the standing count.
+    function searchText() { return "Search: " + root.searchLine.replace(/^Searching, /, "") }
+
+    function slot() {
+        return { transient: root.transient_, transientIsError: root.transientIsError,
+                 searching: root.searching, searchKeys: root.searchText(),
+                 stickyHere: root.stickyHere, sticky: root.sticky, fsText: root.fsText() }
+    }
+
     function rightText() {
-        if (root.searching) {
-            return root.searchKeys
-        }
-        if (root.stickyHere) {
-            return root.sticky
-        }
-        return root.transient_.length > 0 ? root.transient_ : root.fsText()
+        var text = Status.rightText(root.slot())
+        return root.hasUndo ? text.replace(Ops.UNDO_HINT, "") : text
     }
+    function rightColor() { return Theme.color[Status.rightRole(root.slot())] }
 
-    function rightColor() {
-        if (!root.searching && root.stickyHere) {
-            return Theme.color.foreground
-        }
-        if (root.transient_.length > 0 && root.transientIsError) {
-            return Theme.color.error
-        }
-        return Theme.color.muted
-    }
+    Timer { id: clear; interval: root.messageMs; onTriggered: root.notice = "" }
 
-    Timer {
-        id: clear
-        interval: root.messageMs
-        repeat: false
-        onTriggered: root.transient_ = ""
-    }
+    Item { id: strip; width: parent.width; height: Theme.chromeHeight }
 
     Rectangle {
-        anchors.fill: parent
+        id: background
+        width: parent.width
+        height: Theme.chromeHeight
         color: Theme.color.surface
+        border.width: 0
     }
 
     Rectangle {
-        anchors.top: parent.top
-        anchors.left: parent.left
-        anchors.right: parent.right
+        width: parent.width
         height: Theme.spacing.hairline
         color: Theme.color.foreground
         opacity: root.ruleOpacity
     }
 
-    // The crawl only turns while the walk does, and it is the status bar's own transfer-mark slot.
-    Spinner {
-        id: crawl
-        visible: root.searching && root.searchRunning
+    Text {
+        id: counts
         anchors.left: parent.left
         anchors.leftMargin: Theme.spacing.rowPaddingX
-        anchors.verticalCenter: parent.verticalCenter
-        width: root.spiralSize
-        height: root.spiralSize
-        color: Theme.color.muted
-    }
-
-    Text {
-        visible: root.searching
-        anchors.left: root.searchRunning ? crawl.right : parent.left
-        anchors.leftMargin: root.searchRunning ? Theme.spacing.gap : Theme.spacing.rowPaddingX
-        anchors.right: right.left
-        anchors.rightMargin: Theme.spacing.gap
-        anchors.verticalCenter: parent.verticalCenter
-        text: root.searchLine
+        anchors.verticalCenter: strip.verticalCenter
+        width: Math.min(implicitWidth, root.width / 4)
+        text: root.countText()
         color: Theme.color.foreground
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
@@ -159,16 +172,14 @@ Item {
         textFormat: Text.PlainText
     }
 
-    // The path used to live here; the canvas gives that job to the window chrome and this half to
-    // the counts, so the two halves of the bar say what there is and what there is room for.
     Text {
-        visible: !root.searching
-        anchors.left: parent.left
-        anchors.leftMargin: Theme.spacing.rowPaddingX
-        anchors.right: right.left
-        anchors.rightMargin: Theme.spacing.gap
-        anchors.verticalCenter: parent.verticalCenter
-        text: root.countText()
+        id: secondary
+        anchors.right: parent.right
+        anchors.rightMargin: Theme.spacing.rowPaddingX
+        anchors.verticalCenter: strip.verticalCenter
+        width: Math.min(implicitWidth, Math.max(0, root.slotWidth
+            - Math.min(primary.implicitWidth, Math.max(0, root.slotWidth - hintMetrics.width))))
+        text: root.secondaryText
         color: Theme.color.muted
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
@@ -176,41 +187,81 @@ Item {
         textFormat: Text.PlainText
     }
 
-    // The transfer mark: the same crawl the search walk draws, in the transient slot rather than the
-    // left one, and it appears and disappears with the sticky line so nothing else in the bar moves.
+    TextMetrics {
+        id: hintMetrics
+        font: secondary.font
+        text: root.keyHint.length ? " · " + root.keyHint
+            + (root.secondaryText !== " · " + root.keyHint ? " · …" : "") : ""
+    }
+
+    Text {
+        id: primary
+        anchors.right: secondary.left
+        anchors.verticalCenter: strip.verticalCenter
+        width: Math.min(implicitWidth, Math.max(0, root.slotWidth - secondary.width))
+        text: root.rightText()
+        color: root.rightColor()
+        font.family: Theme.font.family
+        font.pixelSize: Theme.font.caption
+        elide: Text.ElideMiddle
+        textFormat: Text.PlainText
+    }
+
     Spinner {
-        id: transferMark
-        visible: root.stickyHere && !root.searching
-        anchors.right: right.left
+        visible: !root.transientIsError && (root.stickyHere || root.searchRunning)
+        anchors.right: primary.left
         anchors.rightMargin: Theme.spacing.gap
-        anchors.verticalCenter: parent.verticalCenter
+        anchors.verticalCenter: strip.verticalCenter
         width: root.spiralSize
         height: root.spiralSize
         color: Theme.color.muted
     }
 
-    Text {
-        id: right
-        anchors.right: parent.right
-        anchors.rightMargin: Theme.spacing.rowPaddingX
-        anchors.verticalCenter: parent.verticalCenter
-        text: root.rightText()
-        // A sticky line is the app saying what it is doing right now, so it reads at full contrast.
-        color: root.rightColor()
-        font.family: Theme.font.family
-        font.pixelSize: Theme.font.caption
-        textFormat: Text.PlainText
+    Rectangle {
+        x: detailView.x; y: detailView.y
+        width: detailView.width; height: detailView.height
+        visible: detailView.visible
+        color: Theme.color.surface
+        border.width: 0
+    }
+    Flickable {
+        id: detailView
+        y: Theme.chromeHeight
+        width: parent.width
+        visible: root.errorDetail.length > 0
+        height: visible ? Math.min(contentHeight, root.parent ? root.parent.height / 3 : contentHeight) : 0
+        contentWidth: width
+        contentHeight: detailText.implicitHeight + 2 * Theme.spacing.rowPaddingY
+        clip: true
+        boundsBehavior: Flickable.StopAtBounds
+        onVisibleChanged: contentY = 0
+        Text {
+            id: detailText
+            x: Theme.spacing.rowPaddingX
+            y: Theme.spacing.rowPaddingY
+            width: parent.width - 2 * Theme.spacing.rowPaddingX
+            text: root.errorDetail
+            color: Theme.color.error
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            wrapMode: Text.Wrap
+            textFormat: Text.PlainText
+        }
     }
 
-    // Bottom right of the window and above this strip, which is the operator's own placement. It is
-    // a child of the bar rather than of the window because a bar is not a clipping item, so a child
-    // anchored past its top edge both draws and takes clicks over the listing.
-    TransferCard {
+    Loader {
+        id: cardLoader
+        active: root.transfer.running
         anchors.right: parent.right
         anchors.rightMargin: Theme.spacing.rowPaddingX
         anchors.bottom: parent.top
         anchors.bottomMargin: Theme.spacing.gap
-        transfer: root.transfer
-        onCancelRequested: function (id) { root.transferCancelRequested(id) }
+        sourceComponent: TransferCard {
+            width: Math.min(implicitWidth, Math.max(0, root.width - 2 * Theme.spacing.rowPaddingX))
+            transfer: root.transfer
+            owner: root.transferOwner
+            cancelling: root.activity ? root.activity.cancelling : false
+            onCancelRequested: root.cancelTransfer()
+        }
     }
 }

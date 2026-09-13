@@ -32,7 +32,9 @@ pub fn listing_of(paths: &[String]) -> (Listing, f64) {
         // The link's own type, the same rule scan() reads off d_type: a symlink to a directory is
         // listed as a file, and a symlink to nothing is still an entry the user put here.
         let Ok(meta) = fs::symlink_metadata(path) else { continue };
+        let index = l.len();
         l.push(name, meta.is_dir());
+        l.spans[index].is_symlink = meta.file_type().is_symlink();
     }
     (l, t.elapsed().as_secs_f64() * 1000.0)
 }
@@ -45,10 +47,12 @@ pub fn answer(
     tb: &Tables,
     paths: &[String],
     first: usize,
+    line: &str,
 ) {
     // A new listing replaces whatever the walk was filling, so the walk ends before the build starts.
     finish_search(out, st, true);
-    let (l, read_ms) = listing_of(paths);
+    let (mut l, read_ms) = listing_of(paths);
+    super::picker::filter_listing(&mut l, &tb.mime, line);
     // base and listing only move together, exactly as a list moves them.
     st.base = PathBuf::from(BASE);
     st.listing = l;

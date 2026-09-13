@@ -1,7 +1,6 @@
 import QtQuick
 import "." as Flea
 import "js/DirSizes.js" as DirSizes
-import "js/Drag.js" as DragOps
 import "js/Filter.js" as Filter
 import "js/Tap.js" as Tap
 import "js/Thumbs.js" as Thumbs
@@ -20,22 +19,10 @@ ListView {
     signal dirSizesApplied(var ask)
     signal dirSizesCancelled()
 
-    // The drag in flight: the listing rows it carries, the folder row under it and whether ctrl is
-    // making it a copy. Every row's frame and label bind to these, so they live on the view rather
-    // than the delegate, and Pane.qml, at its line cap, holds none of it. ui/js/Drag.js decides.
-    property var dragRows: []
-    property int dropIndex: -1
-    property bool dragCopy: false
-    // The type Flea's own drag carries, so a drop can tell it from a foreign one: the compositor
-    // hands this window's own platform drag back to these same DropAreas.
-    readonly property string dragKey: DragOps.ROWS_MIME
-    // What the lifted rows put on the wire, rebuilt at each lift and cleared with the gesture.
-    property var dragMime: ({})
-
     focus: true
     model: pane.shownTotal
     clip: true
-    cacheBuffer: Theme.rowHeight * pane.cacheRows
+    cacheBuffer: Theme.fileRowHeight * pane.cacheRows
     boundsBehavior: Flickable.StopAtBounds
     highlightMoveDuration: 0
     // Every property the delegate draws is a binding on index, so a row leaving the buffer is re-bound rather than rebuilt.
@@ -46,20 +33,15 @@ ListView {
         flickable: root
     }
 
-    // The item Qt hangs the platform drag off, on the view and never in a delegate: a tab hover switch
-    // re-lists mid-drag and releases the pressed row, and a QDrag parented there died inside its own
-    // exec while the compositor still asked it for data (quickshell SIGSEGV, 2026-09-07). No drag image.
-    Item {
-        id: ghost
-        Drag.dragType: Drag.Automatic
-        // Copy alone, because supportedActions is the only one of these another application ever
-        // sees: offering Qt.MoveAction told Chromium the drop was a move, which Google's uploader
-        // refuses, and liftEnded removes nothing so it was a promise Flea cannot keep.
-        Drag.supportedActions: Qt.CopyAction
-        Drag.proposedAction: Qt.CopyAction
-        Drag.mimeData: root.dragMime
-        // The one end of the gesture: exec has returned, whatever became of the row that lifted it.
-        Drag.onDragFinished: root.liftEnded(ghost)
+    Flea.SelectionBand {
+        parent: root
+        pane: root.pane
+        flickable: root
+    }
+
+    Flea.FileDrag {
+        id: dragSession
+        pane: root.pane
     }
 
     delegate: Flea.Row {
@@ -73,10 +55,11 @@ ListView {
         dirSuffix: true
         row: root.pane.rowFor(listingIndex)
         cursor: listingIndex === root.pane.cursorIndex
+        paneFocused: root.pane.paneFocused
+        dualMode: root.pane.dualMode
+        hiddenCols: root.pane.dualMode ? ["mode", "kind"].concat(ViewState.hiddenCols) : ViewState.hiddenCols
         hovered: hover.hovered
         thumb: root.thumbFor(listingIndex)
-        // The zebra follows the drawn position, so a narrowed listing still alternates row by row.
-        alternate: index % 2 === 1
         selected: root.pane.isSelected(listingIndex)
         kindNames: root.pane.kindNames
         dirSize: root.dirSizeFor(listingIndex)
@@ -85,19 +68,22 @@ ListView {
         searchQuery: root.pane.searchMode.length > 0 ? root.pane.searchQuery : root.pane.filterQuery
         filtering: root.pane.shown !== null
         renaming: listingIndex === root.pane.renamingIndex
+        renamePane: root.pane
         // -1 is also what Filter.at answers for a stale delegate, so an idle list must never light one.
-        dropTarget: root.dropIndex >= 0 && listingIndex === root.dropIndex
-        dropCopying: root.dragCopy
+        dropTarget: dragSession.dropIndex >= 0 && listingIndex === dragSession.dropIndex
+        dropCopying: dragSession.dragCopy
 
         onRenameCommitted: function (newName) { root.pane.commitRename(newName) }
         onRenameAbandoned: root.pane.renamingIndex = -1
 
         HoverHandler {
             id: hover
+            enabled: root.pane.selectionBand === null
         }
 
         TapHandler {
             id: tap
+            enabled: !cell.renaming
             acceptedButtons: Qt.LeftButton | Qt.RightButton
             onTapped: function (eventPoint, button) {
                 if (button === Qt.RightButton)
@@ -107,60 +93,10 @@ ListView {
             }
         }
 
-        // A press that moves past the threshold lifts the row and cancels the tap above. The grab
-        // ends nothing: the compositor owns the gesture once the platform drag has started, and a tab
-        // hover switch can release this very delegate mid-drag, so the end is the ghost's dragFinished.
-        DragHandler {
-            id: lift
-            target: null
-            // The list is a Flickable and would take the grab past its own threshold; without ApprovesTakeOverByItems it cannot.
-            grabPermissions: PointerHandler.CanTakeOverFromItems | PointerHandler.CanTakeOverFromHandlersOfDifferentType | PointerHandler.ApprovesTakeOverByHandlersOfSameType
-            onActiveChanged: if (active) root.liftBegan(cell.listingIndex, ghost, lift.centroid)
-            onCentroidChanged: if (active) root.liftMoved(lift.centroid)
-        }
-
-        DropArea {
-            anchors.fill: parent
-            // The second key is how a drag from another application arrives: a DropArea matches an
-            // external drag on its mime types, so naming the type here is the whole of accepting one.
-            keys: [root.dragKey, "text/uri-list"]
-            onEntered: function (drag) {
-                var marker = drag.getDataAsString(root.dragKey)
-                // By path whenever the drag carries paths, by row index only for a selection too wide
-                // to: an index is only safe while nothing re-lists, and a tab hover switch does.
-                var ok = cell.row && cell.row.d === true
-                if (ok)
-                    ok = DragOps.hasPaths(drag.urls)
-                       ? DragOps.canDropInto(marker, drag.urls, root.pane.join(root.pane.path, cell.row.n))
-                       : DragOps.canDropByIndex(marker, root.pane.path, root.dragRows, cell.listingIndex)
-                if (!ok) {
-                    drag.accepted = false
-                    return
-                }
-                root.dragCopy = root.verbAt(marker, cell.row) === "copy"
-                root.dropIndex = cell.listingIndex
-            }
-            onPositionChanged: function (drag) {
-                if (root.dropIndex === cell.listingIndex)
-                    root.dragCopy = root.verbAt(drag.getDataAsString(root.dragKey), cell.row) === "copy"
-            }
-            onExited: {
-                if (root.dropIndex === cell.listingIndex) root.dropIndex = -1
-                // Only an external drag leaves this set with no lift to clear it: the internal one owns
-                // the flag while it holds rows, and liftEnded is what resets it there.
-                if (root.dragRows.length === 0) root.dragCopy = false
-            }
-            onDropped: function (drop) {
-                var marker = drop.getDataAsString(root.dragKey)
-                // Same split as onEntered; ui/js/Drag.js dropInto decides the verb from the marker.
-                if (DragOps.hasPaths(drop.urls))
-                    DragOps.dropInto(root.pane, marker, drop.urls, root.pane.join(root.pane.path, cell.row.n), cell.row.v)
-                else if (DragOps.sameListing(marker, root.pane.path))
-                    root.dropped(cell.listingIndex, root.verbAt(marker, cell.row) === "copy")
-                root.dropIndex = -1
-                root.dragCopy = false
-                drop.accept(Qt.CopyAction)
-            }
+        Flea.RowDrag {
+            session: dragSession
+            listingIndex: cell.listingIndex
+            row: cell.row
         }
     }
 
@@ -198,9 +134,14 @@ ListView {
 
     onContentYChanged: {
         // The wheel moves the view and not the cursor, so the cursor follows the viewport here.
-        var first = Math.floor(root.contentY / Theme.rowHeight)
+        var first = Math.floor(root.contentY / Theme.fileRowHeight)
         var last = Math.min(root.pane.shownTotal - 1, first + root.pane.visibleRows - 1)
-        if (last >= first) {
+        if (root.pane.renamingIndex >= 0) {
+            var range = root.visibleRange()
+            first = range.first
+            last = range.last
+        }
+        if (last >= first && root.pane.selectionBand === null) {
             root.cursorClamped(first, last)
         }
         root.menu.close()
@@ -209,98 +150,21 @@ ListView {
             root.pane.backend.dirsizecancel()
             root.dirSizesCancelled()
         }
-        coalesce.restart()
+        coalesce.start()
         settle.restart()
     }
 
-    // The drag begins once the pointer is past the threshold; the ghost goes under it first, because
-    // Drag.start() delivers its enter at the ghost's own position.
-    function liftBegan(index, ghost, centroid) {
-        root.dragRows = DragOps.carried(root.pane, index)
-        root.dropIndex = -1
-        root.liftMoved(centroid)
-        root.dragMime = DragOps.mimeFor(root.pane, root.dragRows, root.dragCopy)
-        // Automatic starts the platform drag on this assignment and does not return until the drop,
-        // so everything the gesture needs is already set above. The drop lands in a DropArea, this
-        // window's own or another application's, while this line blocks.
-        ghost.Drag.active = true
+    function visibleRange() {
+        var fallback = Thumbs.viewport(root.contentY, Theme.fileRowHeight, root.pane.visibleRows, root.pane.shownTotal)
+        // The retained error caption expands one row; query actual delegates while it is present.
+        if (root.pane.renamingIndex >= 0) {
+            var first = root.indexAt(0, root.contentY)
+            var last = root.indexAt(0, root.contentY + root.height - 1)
+            first = first < 0 ? fallback.first : first
+            return {first: first, last: last < 0 ? Math.min(root.count - 1, first + root.pane.visibleRows) : last}
+        }
+        return fallback
     }
-
-    // Only the modifier survives here: the platform drag takes its position from the pointer, and
-    // once it starts the compositor owns the pointer and this stops being called at all. It is also
-    // the last reading of ctrl the gesture gets, so mimeFor bakes what it leaves behind into the marker.
-    function liftMoved(centroid) {
-        root.dragCopy = DragOps.copying(centroid.modifiers)
-    }
-
-    // The one place a drop event becomes a verb, so enter, move and drop cannot disagree. Both of
-    // the things verbFor needs to know about the source come off the marker: which window sent the
-    // drag, and whether ctrl was down when it did.
-    // The source device is the marker's, stamped when the drag began: after a tab hover switch the pane's own dirDev is the destination's.
-    function verbAt(marker, row) {
-        return DragOps.verbFor(DragOps.isOwnDrag(marker), DragOps.markerCopying(marker),
-                               DragOps.markerDev(marker), row ? row.v : 0)
-    }
-
-    // The delegate drawing the editor, or null when the row was released past the cache buffer,
-    // never built, or rebuilt under a listing that no longer holds it. renamingIndex is a listing
-    // row and itemAtIndex wants a view position, and a filter makes those different.
-    function renameEditor() {
-        if (root.pane.renamingIndex < 0)
-            return null
-        var item = root.itemAtIndex(Filter.viewOf(root.pane.shown, root.pane.renamingIndex))
-        return item && item.renaming ? item : null
-    }
-
-    // The row drawing the editor owns its text, so it is asked to commit rather than the pane
-    // guessing a name.
-    function commitOpenRename() {
-        var item = root.renameEditor()
-        if (!item)
-            return
-        // The pointer chose a row of its own, so the rename's reply must reveal nothing over it. Set
-        // before the commit because the backend's reply is what reads it, and taken back when the
-        // editor abandoned instead: a leaked flag made the next rename drop the cursor to the top.
-        root.pane.renameKeepsPointerRow = true
-        if (!item.commitEditor())
-            root.pane.renameKeepsPointerRow = false
-    }
-
-    // The platform drag has already finished inside liftBegan and the compositor decided whether a
-    // drop happened, so this only clears the gesture's own state.
-    function liftEnded(ghost) {
-        ghost.Drag.active = false
-        root.dragRows = []
-        root.dragMime = ({})
-        root.dropIndex = -1
-        root.dragCopy = false
-        root.say("")
-    }
-
-    function dropped(index, copying) { DragOps.drop(root.pane, root.dragRows, index, copying) }
-
-    // The bar's sticky slot belongs to a running transfer, so a drag only borrows it while none runs.
-    function say(text) { if (!root.pane.transfer.running) root.pane.sticky(text) }
-
-    // One line for the whole gesture, said again whenever the count, the folder under the pointer or
-    // the verb moves. The row is looked up here and not through a bound property: a binding on
-    // dropIndex is not yet refreshed inside onDropIndexChanged, and the line read "to a folder"
-    // over a folder whose frame was already up.
-    function sayDrag() {
-        if (root.dragRows.length === 0)
-            return
-        var row = root.pane.rowFor(root.dropIndex)
-        // The note follows the payload itself, so the bar can never promise a reach the wire does not
-        // carry: no uri-list on the drag means no other application can take it.
-        root.say(DragOps.line(root.dragRows.length, row ? row.n : "", root.dragCopy)
-                 + DragOps.reachNote(root.dragMime.hasOwnProperty("text/uri-list")))
-    }
-    onDragRowsChanged: root.sayDrag()
-    // dragMime is built after dragRows inside liftBegan, so the line above would otherwise be said
-    // once against the previous gesture's payload and never corrected.
-    onDragMimeChanged: root.sayDrag()
-    onDropIndexChanged: root.sayDrag()
-    onDragCopyChanged: root.sayDrag()
 
     // Pane's own open() and its Connections.onRows reach these two through the wrapper functions below.
     Timer {
@@ -310,10 +174,29 @@ ListView {
         onTriggered: root.requestIfDrifted()
     }
 
-    // A fast listing beats the compositor's resize, so a viewport change restarts the settle exactly like a scroll does.
+    // Resize and filter changes can change the visible work without moving contentY.
     Connections {
         target: root.pane
         function onVisibleRowsChanged() { settle.restart() }
+        function onFilterQueryChanged() {
+            if (!root.visible) return
+            var work = Filter.cut({ask: [], drop: []}, root.pane.shown, root.pane.thumbState)
+            work.drop = work.drop.filter(function(index) { return index !== root.pane.previewIndex })
+            if (work.drop.length > 0) {
+                root.pane.backend.thumbcancel(work.drop)
+                root.thumbsApplied(work)
+            }
+            if (DirSizes.hasPending(root.pane.dirSizeState)) {
+                root.pane.backend.dirsizecancel()
+                root.dirSizesCancelled()
+            }
+            settle.restart()
+        }
+    }
+
+    Connections {
+        target: ViewState
+        function onThumbnailModeChanged() { if (root.visible) settle.restart() }
     }
 
     Timer {
@@ -330,13 +213,14 @@ ListView {
 
     // Only the visible rows, only once each, and only after the list has stopped moving.
     function requestThumbs() {
-        if (root.pane.shownTotal === 0 || root.pane.listInFlight)
+        if (!root.visible || root.pane.listInFlight)
             return
-        var view = Thumbs.viewport(root.contentY, Theme.rowHeight, root.pane.visibleRows, root.pane.shownTotal)
+        var view = root.visibleRange()
         // A filtered viewport covers a set and not a run, so the run it spans is what the planner
         // gets and Filter.cut takes back every row inside that run the filter is hiding.
         var span = Filter.span(root.pane.shown, view.first, view.last)
-        var work = Filter.cut(Thumbs.plan(root.pane.thumbState, root.pane.rows, root.pane.held, span.first, span.last), root.pane.shown)
+        var work = Filter.cut(Thumbs.plan(root.pane.thumbState, root.pane.rows, root.pane.held, span.first, span.last, ViewState.thumbnailMode), root.pane.shown, root.pane.thumbState)
+        work.drop = work.drop.filter(function (index) { return index !== root.pane.previewIndex })
         root.pane.backend.thumbcancel(work.drop)
         root.pane.backend.thumb(work.ask)
         // The short first settle latches to the fling debounce only once a request has actually gone out.
@@ -346,7 +230,7 @@ ListView {
     }
 
     function thumbFor(index) {
-        return Thumbs.fileFor(root.pane.thumbState, index)
+        return Thumbs.allowed(root.pane.rowFor(index), ViewState.thumbnailMode) ? Thumbs.fileFor(root.pane.thumbState, index) : ""
     }
 
     function dirSizeFor(index) {
@@ -355,12 +239,12 @@ ListView {
 
     // Same idiom as requestThumbs, minus a cancel: onContentYChanged already sent it, see above.
     function requestDirSizes() {
-        if (root.pane.shownTotal === 0 || root.pane.listInFlight)
+        if (!root.visible || root.pane.shownTotal === 0 || root.pane.listInFlight)
             return
         // Thumbs.viewport() is reused: it takes no thumb-specific state, only geometry.
-        var view = Thumbs.viewport(root.contentY, Theme.rowHeight, root.pane.visibleRows, root.pane.shownTotal)
+        var view = root.visibleRange()
         var span = Filter.span(root.pane.shown, view.first, view.last)
-        var ask = Filter.keep(DirSizes.plan(root.pane.dirSizeState, root.pane.rows, root.pane.held, span.first, span.last), root.pane.shown)
+        var ask = Filter.keep(DirSizes.plan(root.pane.dirSizeState, root.pane.rows, root.pane.held, span.first, span.last, ViewState.thumbnailMode), root.pane.shown)
         if (ask.length > 0) {
             root.pane.backend.dirsize(ask)
             settle.interval = root.pane.settleMs
@@ -374,8 +258,13 @@ ListView {
         // window request goes out while one stands, which is what "no round trip" means here.
         if (root.pane.total === 0 || root.pane.shown !== null)
             return
-        var firstVisible = Math.floor(root.contentY / Theme.rowHeight)
+        var firstVisible = Math.floor(root.contentY / Theme.fileRowHeight)
         var lastVisible = firstVisible + root.pane.visibleRows
+        if (root.pane.renamingIndex >= 0) {
+            var range = root.visibleRange()
+            firstVisible = range.first
+            lastVisible = range.last + 1
+        }
         if (root.pane.rows.length === 0) {
             root.requestAround(firstVisible)
             return

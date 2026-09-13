@@ -70,31 +70,18 @@ Item {
 
     // One row, only when the preview column is actually the surface showing: the same no-sweep rule
     // thumb and dirsize already follow.
-    function askMeta() {
-        root.cursorMeta = null
-        var row = root.cursorRow
-        if (!row || row.d)
-            return
-        // The same question the column asks, not the icon alone: a .md carries the office icon and
-        // is still text, so an icon-only read would leave its Lines row empty.
-        var kind = Facts.state(row, 1, false, "", root.kindName(root.pane.cursorIndex))
-        root.pane.backend.askMeta(root.pane.cursorIndex,
-                                  kind === Facts.TEXT || kind === Facts.CODE,
-                                  kind === Facts.VIDEO || kind === Facts.AUDIO,
-                                  kind === Facts.ARCHIVE)
-    }
+    function askMeta() { preview.followSelection() }
 
     // The listArea contract every caller of the pane's own navigation uses: the listing's column plans its own viewport's thumbnails, the way the list and the grid do.
-    function primeSettle() {}
-    function restartCoalesce() {}
+    function primeSettle() { active.primeSettle() }
+    function restartCoalesce() { active.restartCoalesce() }
     function restartSettle() { active.restartSettle() }
-    function positionViewAtIndex(index, mode) { active.positionViewAtIndex(index - root.pane.held, mode) }
+    function positionViewAtIndex(index, mode) { active.positionViewAtIndex(index, mode) }
     // The one column whose rows are the pane's own, for ui/Ipc.qml: the two beside it are peeks and
     // answer for another directory, so neither is where a background right click belongs.
     function activeColumn() { return active }
-    // The middle column's model is held-relative, unlike the list's and the grid's, so a caller
-    // holding an absolute cursor index reaches a delegate through here rather than directly.
-    function itemAtIndex(index) { return active.itemAtIndex(index - root.pane.held) }
+    // All active views accept a view position; the pane maps filtered listing indices before calling.
+    function itemAtIndex(index) { return active.itemAtIndex(index) }
     function activeContentY() { return active.contentY() }
 
     // A neighbour column's row, which the pane has no cursor on: a directory becomes the pane's own
@@ -112,6 +99,7 @@ Item {
     function childEmptyItem() { return childColumn.emptyItem }
     function frameItem() { return preview.frameItem }
     function playerLoaded() { return preview.playerLoaded() }
+    readonly property int previewIndex: preview.visible ? preview.loadedIndex : -1
     function thumbShown() { return preview.thumbShown }
     function frameReady() { return preview.frameStatus === Image.Ready }
     function textLines() { return preview.textLines() }
@@ -129,6 +117,8 @@ Item {
     }
 
     function askThumb() { active.restartSettle() }
+    function loadSelection() { preview.loadSelection() }
+    function focusPreview() { if (preview.visible) preview.forceActiveFocus() }
 
     // "Kind=MPEG-4 video|Duration=1:12|...", so a test reads the preview column's own table.
     function factsLine() {
@@ -147,6 +137,7 @@ Item {
     function mediaPosition() { return preview.mediaPosition() }
     function mediaStrip() { return preview.mediaStripItem() }
     function pdfPage() { return preview.pdfPage() }
+    readonly property alias previewColumn: preview
     function pdfPages() { return preview.pdfPages }
     function pdfChevron(dir) { return preview.pdfChevron(dir) }
     function pdfLoaded() { return preview.pdfLoaded() }
@@ -186,16 +177,6 @@ Item {
 
     Connections {
         target: root.pane.backend
-
-        function onMeta(row, w, h, durationMs, sampleRate, entries, unpacked, archiveFailed, names, lines, partial, linesFailed, target, targetDir, owner) {
-            if (row === root.pane.cursorIndex) {
-                root.cursorMeta = { w: w, h: h, durationMs: durationMs, sampleRate: sampleRate,
-                                    entries: entries, unpacked: unpacked,
-                                    archiveFailed: archiveFailed, names: names,
-                                    lines: lines, partial: partial, linesFailed: linesFailed,
-                                    target: target, targetDir: targetDir, owner: owner }
-            }
-        }
 
         // hidden is the request's own flag, echoed; this view asks with the listing's and has only
         // ever one answer per path, so it reads the rows and lets the path bar do the correlating.
@@ -247,12 +228,11 @@ Item {
             width: root.columnWidth
             height: parent.height
             rows: root.pane.rows
-            offset: root.pane.held
             selectedIndex: root.pane.cursorIndex
             // Only this column's rows are the pane's own, so only it can paint the pane's selection.
             pane: root.pane
             // The list's and the grid's own two routes, reached from the one column whose rows are the pane's listing, so a click means the same thing in all three views.
-            onPicked: function (index, tapCount, modifiers) { Tap.tapped(index, tapCount, modifiers, root.pane) }
+            onPicked: function (index, tapCount, modifiers) { Tap.tappedMiddle(index, tapCount, modifiers, root.pane) }
             onMenuRequested: function (index, eventPoint) { Tap.tappedMenu(index, eventPoint, root.pane, root.menu) }
             onBackgroundMenuRequested: function (eventPoint) { root.menu.openBackground(eventPoint.scenePosition) }
             onThumbsApplied: function (work) { root.thumbsApplied(work) }
@@ -274,20 +254,12 @@ Item {
                 onNeighbourMenuRequested: function (name) { root.menuOnNeighbour(root.childPath, name) }
             }
 
-            Flea.PreviewColumn {
+            Flea.SelectionPreview {
                 id: preview
                 anchors.fill: parent
-                visible: !root.cursorIsDir
-                row: root.cursorRow
-                meta: root.cursorMeta
-                kindName: root.kindName(root.pane.cursorIndex)
-                thumb: root.pane.thumbFor(root.pane.cursorIndex)
-                overlayOpen: root.pane.preview.active
-                noThumbComing: Thumbs.refused(root.pane.thumbState, root.pane.cursorIndex)
-                               || (root.cursorRow !== null && root.cursorRow.t !== true)
-                selectionCount: root.pane.selectionCount()
-                selectedRows: root.selectedRowObjects()
-                path: root.cursorRow ? root.pane.join(root.pane.path, root.cursorRow.n) : ""
+                visible: root.cursorRow !== null && !root.cursorIsDir && ViewState.previewColumn
+                pane: root.pane
+                onThumbsApplied: function (work) { root.thumbsApplied(work) }
             }
         }
     }

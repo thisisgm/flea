@@ -18,11 +18,16 @@ Item {
     readonly property real brandStroke: 2
     // QML dash units are strokeWidth multiples, so the whole mark is this many dashes long.
     readonly property real markDashes: root.markUnits / root.brandStroke
+    readonly property bool settled: !draw.running && stroke.dashOffset === 0 && root.opacity === 1
 
     // Repaints the mark from blank. EmptyState calls this off the caption's own timer so the two run
     // on one beat; a second timer in here would drift against that one and read as sloppy.
     function replay() {
-        draw.restart()
+        if (Theme.reducedMotion) {
+            draw.stop()
+            stroke.dashOffset = 0
+            root.opacity = 1
+        } else draw.restart()
     }
 
     Shape {
@@ -71,7 +76,11 @@ Item {
     }
 
     // The draw is the entrance as well as the loop, so it runs on every appearance; Item.visible reads effective visibility, so a hidden ancestor holds it back too.
-    onVisibleChanged: if (root.visible) draw.restart(); else draw.stop()
+    onVisibleChanged: if (root.visible) root.replay(); else draw.stop()
     // visible can already be true at creation, and onVisibleChanged never fires for that.
-    Component.onCompleted: if (root.visible) draw.restart()
+    Component.onCompleted: if (root.visible) root.replay()
+    Connections {
+        target: Theme
+        function onReducedMotionChanged() { if (Theme.reducedMotion) root.replay() }
+    }
 }

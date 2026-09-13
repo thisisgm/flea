@@ -1,4 +1,5 @@
 .import "../../ui/js/Taildrop.js" as Taildrop
+.import "../../ui/js/Dropbox.js" as Dropbox
 
 function run(check) {
     // The `tailscale status --json` shape, five branches; every name and id here is synthetic.
@@ -37,4 +38,39 @@ function run(check) {
     var found = Taildrop.byId(peers, "nodekey:owned")
     check("byId finds the right peer", found.label, "laptop")
     check("byId misses cleanly", Taildrop.byId(peers, "nope"), null)
+    check("JSON null is not a peer list", Taildrop.parsePeers("null").length, 0)
+    check("failed status keeps its diagnostic", Taildrop.status("", 1, "Permission denied").reason, "Permission denied")
+    check("malformed status is distinct from no peers", Taildrop.status("not json", 0, "").reason, "invalid status")
+    check("signed out is retained as a reason", Taildrop.status('{"BackendState":"NeedsLogin"}', 0, "").reason, "signed out")
+    check("stopped is retained as a reason", Taildrop.status('{"BackendState":"Stopped"}', 0, "").reason, "stopped")
+    check("running without file sharing cannot send", Taildrop.status('{"BackendState":"Running","Self":{}}', 0, "").peers.length, 0)
+    var ready = JSON.parse(status)
+    ready.BackendState = "Running"
+    ready.Self.Capabilities = ["https://tailscale.com/cap/file-sharing"]
+    check("ready status carries real eligible targets", Taildrop.status(JSON.stringify(ready), 0, "").peers.length, 2)
+    ready.Peer = {}
+    check("empty installed provider names the empty state", Taildrop.status(JSON.stringify(ready), 0, "").reason, "no peers")
+    check("missing Dropbox account is signed out", Dropbox.account("", "").reason, "Dropbox is signed out")
+    check("Dropbox account read errors are preserved", Dropbox.account("", "Permission denied").reason, "Permission denied")
+    check("invalid account JSON is an explicit error", Dropbox.account("{", "").reason, "Dropbox account metadata is invalid")
+    check("personal Dropbox precedes business", Dropbox.account('{"personal":{"path":"/custom/personal/"},"business":{"path":"/custom/business"}}', "").path, "/custom/personal")
+    check("business-only Dropbox keeps its actual path", Dropbox.account('{"business":{"path":"/custom/business"}}', "").path, "/custom/business")
+    check("relative account path is refused", Dropbox.account('{"personal":{"path":"relative"}}', "").path, "")
+    check("invalid first account does not silently switch accounts", Dropbox.account('{"personal":{},"business":{"path":"/other"}}', "").path, "")
+    check("Dropbox account root is eligible", Dropbox.contains("/custom/Dropbox", "/custom/Dropbox"), true)
+    check("a direct Dropbox child is eligible", Dropbox.contains("/custom/Dropbox", "/custom/Dropbox/file.txt"), true)
+    check("an ancestor Search result retains Dropbox membership", Dropbox.contains("/custom/Dropbox", "/custom" + "/Dropbox/nested/file.txt"), true)
+    check("a prefix sibling is outside Dropbox", Dropbox.contains("/custom/Dropbox", "/custom/Dropbox-old/file.txt"), false)
+    check("the Dropbox ancestor is outside the account", Dropbox.contains("/custom/Dropbox", "/custom"), false)
+    check("an absent account grants no membership", Dropbox.contains("", "/custom/file.txt"), false)
+    check("a relative account grants no membership", Dropbox.contains("custom/Dropbox", "custom/Dropbox/file.txt"), false)
+    check("a missing cursor grants no membership", Dropbox.contains("/custom/Dropbox", ""), false)
+    check("normal Dropbox status is ready", Dropbox.status("Up to date", 0, ""), "")
+    check("Dropbox exit-zero stopped text is not readiness", Dropbox.status("Dropbox isn't running!", 0, ""), "Dropbox isn't running!")
+    check("Dropbox CLI Idle is a ready daemon response", Dropbox.status("Idle", 0, ""), "")
+    check("Dropbox CLI exit-zero unresponsive error is not readiness", Dropbox.status("Dropbox isn't responding!", 0, ""), "Dropbox isn't responding!")
+    check("Dropbox CLI exit-zero daemon EOF is not readiness", Dropbox.status("Dropbox daemon stopped.", 0, ""), "Dropbox daemon stopped.")
+    check("Dropbox CLI command error is not readiness", Dropbox.status("Couldn't get status: daemon isn't responding", 0, ""), "Couldn't get status: daemon isn't responding")
+    check("empty Dropbox status is explicit", Dropbox.status("", 0, ""), "Dropbox returned empty status")
+    check("failed Dropbox status preserves stderr", Dropbox.status("", 1, "Permission denied"), "Permission denied")
 }

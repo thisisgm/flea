@@ -3,8 +3,10 @@
 // Which rows get an Extract, and what a new archive is called. The backend never sends an is-archive
 // flag: the client is given the icon name and never the MIME type, so this is the whole mechanism.
 
-// Longest form first, so ".tar.gz" is matched before ".gz" could be.
-var EXTENSIONS = [".tar.zst", ".tar.bz2", ".tar.gz", ".tar.xz", ".tgz", ".tar", ".zip", ".7z"]
+// Longest form first, so ".tar.gz" is matched before ".gz" could be. Flea reads rar and cannot write
+// one, so .rar is here, where Extract is decided, and never in the compress submenu, which is the
+// table src/backend/archive.rs probed.
+var EXTENSIONS = [".tar.zst", ".tar.bz2", ".tar.gz", ".tar.xz", ".tgz", ".tar", ".zip", ".7z", ".rar"]
 
 function isArchive(name) {
     var lower = String(name).toLowerCase()

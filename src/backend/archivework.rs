@@ -57,12 +57,15 @@ impl Drop for Work {
 
 // The tools print their own diagnosis on stderr and do not always exit non-zero, so success is read
 // off the filesystem: the file the job was told to produce either exists afterwards or it does not.
-pub fn run_boxed(inner: Vec<String>, read_only: &Path, writable: &Path) -> Result<(), FleaError> {
+// what names the operation this jail is running, because the same jail runs the archive tools and
+// the image converter: reporting every one of them as "archive" told an operator converting a PNG
+// that the archive tool had failed.
+pub fn run_boxed(what: &str, inner: Vec<String>, read_only: &Path, writable: &Path) -> Result<(), FleaError> {
     // Fail closed: the jail is the only containment for these tools, so a missing bwrap or prlimit
     // refuses the job rather than running it unsandboxed, the same rule thumbs.rs already follows.
     if !sandbox::available() {
         let tool = inner.first().map_or("", |s| s.as_str());
-        return Err(op_err("archive", tool, "the sandbox is unavailable: bwrap or prlimit is not on PATH"));
+        return Err(op_err(what, tool, "the sandbox is unavailable: bwrap or prlimit is not on PATH"));
     }
     let full = sandbox::wrap(&inner, read_only, writable);
     let out = Command::new(&full[0])
@@ -70,12 +73,13 @@ pub fn run_boxed(inner: Vec<String>, read_only: &Path, writable: &Path) -> Resul
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::null())
         .output()
-        .map_err(|e| from_io("archive", &full[0], &e))?;
+        .map_err(|e| from_io(what, &full[0], &e))?;
     if out.status.success() {
         return Ok(());
     }
     let text = String::from_utf8_lossy(&out.stderr);
-    Err(op_err("archive", "", text.lines().last().unwrap_or("the archive tool failed")))
+    let fallback = format!("the {} tool failed", what);
+    Err(op_err(what, "", text.lines().last().unwrap_or(&fallback)))
 }
 
 

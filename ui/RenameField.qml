@@ -13,6 +13,13 @@ Item {
     id: root
 
     property string name: ""
+    property var pane: null
+    readonly property string errorText: pane ? pane.renameError : ""
+    readonly property bool pending: pane ? pane.renamePending : false
+    readonly property real errorHeight: errorText.length > 0 ? errorLabel.implicitHeight + Theme.spacing.gap : 0
+    readonly property real fieldHeight: height - errorHeight
+    readonly property alias inputItem: field
+    implicitHeight: Theme.rowHeight - 2 * Theme.spacing.rowPaddingY + errorHeight
 
     signal committed(string newName)
     signal abandoned()
@@ -32,21 +39,25 @@ Item {
         field.select(0, cut > 0 ? cut : root.name.length)
     }
 
-    // A commit that changes nothing, or empties the name, is an abandon: the backend would answer
-    // "not work" for the first and refuse the second, and neither is worth a round trip. The name is
-    // trimmed the way ui/Sidebar.qml already trims the rail's, because Enter on three spaces
-    // otherwise creates a file named three spaces. Answers whether a commit actually happened.
+    // File validation belongs to the pane; rail labels retain their existing empty-submit behavior.
     function commit() {
+        if (root.pending) return false
         var next = field.text.trim()
-        // The untrimmed text is compared too, so Enter on an unmodified padded name is still the
-        // abandon this says it is rather than a silent rename to the trimmed form.
-        if (next.length === 0 || field.text === root.name || next === root.name) {
+        if ((!root.pane && next.length === 0) || field.text === root.name || next === root.name) {
             root.abandoned()
             return false
         }
         root.committed(next)
         return true
     }
+
+    function revealError() {
+        if (!root.visible || !root.pane || root.errorText.length === 0) return
+        root.pane.setCursor(root.pane.renamingIndex)
+        field.forceActiveFocus()
+    }
+    // Let the expanded row and Grid cell height settle before containing the complete error editor.
+    onErrorTextChanged: if (root.visible && root.errorText.length > 0) Qt.callLater(root.revealError)
 
     // The editor arms itself rather than leaving it to each row that draws one: an Item built with
     // visible already true writes true over true and emits no visibleChanged, so a delegate
@@ -64,19 +75,24 @@ Item {
         // The enclosing ListView is a focus scope and remembers this field as its focused child, so
         // giving up what begin() took is what lets the scope itself take the keys again.
         field.focus = false
+        // Escape and focus loss both refuse to abandon an in-flight rename; a row scrolled out of the
+        // cache buffer or a view switch is the same case, and it was throwing the draft away.
+        if (root.pending) return
         root.abandoned()
     }
 
     Rectangle {
-        anchors.fill: parent
+        width: parent.width
+        height: root.fieldHeight
         color: Theme.color.background
         border.width: Theme.spacing.hairline
-        border.color: Theme.color.accent
+        border.color: root.errorText.length > 0 ? Theme.color.error : Theme.color.accent
     }
 
     TextInput {
         id: field
-        anchors.fill: parent
+        anchors { left: parent.left; right: parent.right; top: parent.top }
+        height: root.fieldHeight
         anchors.leftMargin: Theme.spacing.gap
         anchors.rightMargin: Theme.spacing.gap
         verticalAlignment: TextInput.AlignVCenter
@@ -86,13 +102,14 @@ Item {
         font.family: Theme.font.family
         font.pixelSize: Theme.font.body
         clip: true
+        readOnly: root.pending
 
         // Both keys are handled and accepted here rather than through onAccepted, because an
         // unaccepted Return goes on to the list's own Keys handler, which reads it as "open" and
         // tries to open the row under a name the rename has just taken away.
         Keys.onPressed: function (event) {
             if (event.key === Qt.Key_Escape) {
-                root.abandoned()
+                if (!root.pending) root.abandoned()
                 event.accepted = true
                 return
             }
@@ -105,7 +122,20 @@ Item {
         // Losing Qt focus while the editor is up abandons, which is the rail's own field and the
         // context menu, which takes focus as it opens. A click on another row never lands here,
         // because a TapHandler moves no focus; ui/js/Tap.js commits that case explicitly.
-        onActiveFocusChanged: if (!activeFocus && root.visible) root.abandoned()
+        onActiveFocusChanged: if (!activeFocus && root.visible && !root.pending) root.abandoned()
+    }
+
+    Text {
+        id: errorLabel
+        anchors { top: field.bottom; left: parent.left; right: parent.right }
+        anchors.topMargin: Theme.spacing.gap
+        visible: root.errorText.length > 0
+        text: root.errorText
+        color: Theme.color.error
+        font.family: Theme.font.family
+        font.pixelSize: Theme.font.caption
+        textFormat: Text.PlainText
+        wrapMode: Text.Wrap
     }
 
     // The extension, painted over the field's own copy of it. It stands down only when a selection
@@ -114,7 +144,12 @@ Item {
     Item {
         id: mutedExtension
         visible: root.extension.length > 0 && field.selectionEnd <= root.stemEnd
-        x: field.x + field.positionToRectangle(root.stemEnd).x
+        // contentWidth is read so this re-evaluates once the field has laid the new text out.
+        // positionToRectangle is a method, so nothing re-runs it on its own, and begin() assigns the
+        // text and selects the stem in one go: the boundary was measured against the layout before
+        // that text existed, came back 0, and the patch covered the stem instead of the extension.
+        // Every view drew a rename as a bare ".txt" until the first keystroke moved the selection.
+        x: field.contentWidth >= 0 ? field.x + field.positionToRectangle(root.stemEnd).x : field.x
         y: field.y
         width: Math.max(0, field.width - (x - field.x))
         height: field.height

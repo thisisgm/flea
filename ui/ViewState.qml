@@ -29,7 +29,9 @@ QtObject {
     // Mirrors "menu"."hidden" in src/uischema.rs, for the same first launch: six ids this release's
     // menu cannot build, plus Copy path and Open in terminal, which the SettingsMenus board ships
     // switched off. Every id here is an action ui/js/Menu.js gives a row, or will give one.
-    readonly property var defaultMenuHidden: ["delete", "openwith", "openTerminal", "moveto",
+    // Mirrors src/uischema.rs DEFAULTS menu.hidden exactly; the two drifted once and a fresh
+    // ui.json then hid a row the shipped schema shows.
+    readonly property var defaultMenuHidden: ["delete", "openTerminal", "moveto",
                                               "copyto", "properties", "permissions", "copypath"]
 
     // ui.json names what is SHOWN. ui/Header.qml, ui/Row.qml and ui/ContextMenu.qml all ask the
@@ -66,6 +68,9 @@ QtObject {
     // The Menus section's "Show keyboard hints" row, `keyHints` in src/uischema.rs. It draws the key
     // beside every menu row and the tip under an empty directory, and it binds no key of its own:
     // every chord answers whether this is on or off.
+    // === true, not !== false: an absent key is off, which is what src/uischema.rs stores and what
+    // driveSize and trashCount beside it already read. The other way round drew hints from a state
+    // file that never named them.
     readonly property bool keyHints: root.state.keyHints === true
 
     // The Keys section's four-value chooser over the one generated key table, falling back to its
@@ -95,11 +100,65 @@ QtObject {
     // value already on screen owes nothing, so a chord clamped at the end of its range writes nothing.
     function owe(key, next, owed) {
         var before = JSON.stringify(root.state[key])
-        root.state = next
         if (JSON.stringify(next[key]) === before)
             return
+        root.state = next
         root.unsaved = owed
+        root.saveStatus = "Saving…"
         root.save()
+    }
+
+    readonly property var preview: root.state.preview || ({})
+    readonly property bool previewColumn: root.preview.column !== false
+    readonly property bool previewAutomatic: root.preview.loadOn !== "manual"
+    readonly property string thumbnailMode: root.preview.thumbnails || "media"
+    readonly property string thumbnailSize: root.preview.thumbSize || "medium"
+    readonly property int thumbnailPixels: ({ small: 48, medium: 64, large: 96, xlarge: 128 })[root.thumbnailSize] || 64
+    readonly property bool ctrlZoom: root.preview.ctrlZoom !== false
+    readonly property string density: root.state.density || "normal"
+    readonly property string addressBar: root.state.addressBar || "breadcrumb"
+    readonly property bool hyprlandIcons: root.display.hyprlandIcons === true
+    property string saveStatus: "Saved · applied in this process"
+
+    // Settings > View > Opening. ui/js/Startup.js is what turns these into a path; nothing else reads
+    // them, so the panel and the two openers can never disagree about where a window or a tab begins.
+    readonly property string startFolder: root.state.startFolder || ""
+
+    // Settings > Places > Trash. The sweep reads both; ui/TrashHost.qml is its only driver.
+    readonly property bool trashAutoEmpty: root.state.trashAutoEmpty === true
+    readonly property int trashSweptOn: root.state.trashSweptOn || 0
+
+    // Written by the sweep when it finishes, so the next launch on the same day does not run it
+    // again. A sweep that failed records nothing and is retried on the next launch.
+    function recordTrashSweep(day) {
+        root.changeKey("trashSweptOn", day)
+    }
+
+    // The chosen folder is set from the folder the panel was opened over, which is the same idiom the
+    // Places section's "Add current folder" uses; choosing one is also what selects that mode.
+    function setStartFolder(path) {
+        root.changeKey("startIn", "folder")
+        root.changeKey("startFolder", String(path || ""))
+    }
+
+    // Written as the pane moves, never by a control. "Last folder" would otherwise have nothing to
+    // return to, and the pair ui/shell.qml already remembers for the dual view covers only that view.
+    function rememberLastPath(path) {
+        if (root.state.lastPath === path)
+            return
+        root.changeKey("lastPath", String(path || ""))
+    }
+
+    // Setting ids name either one top-level key or one leaf of an existing group.
+    function changeSetting(id, value) {
+        var parts = id.split(".")
+        if (parts.length === 1) {
+            root.changeKey(id, value)
+        } else {
+            var leaf = {}
+            leaf[parts[1]] = value
+            root.changeLeaf(parts[0], leaf)
+        }
     }
 
     // The Display section's writers. ui/shell.qml routes keys.toml's textSizeUp, textSizeDown and
@@ -157,12 +216,15 @@ QtObject {
     // A patch flea refused, or a state file it could not write. The pane turns it into the status
     // bar's one sentence: the change is on screen and the file does not have it.
     signal saveFailed()
+    signal favouritesReadFailed(string message)
+    property string favouritesReadError: ""
 
     // The settings on screen are not the ones on disk: main() left a ui.json it cannot read as a
     // JSON object exactly as the operator wrote it, or the read below failed outright. Either way
     // what is drawn is the shipped defaults, and ui/PaneWire.qml is where that is said once. Only
     // ever set true, because the read that would clear it is the one that could not be taken.
     property bool unreadable: false
+    property bool initialReadComplete: false
 
     // What this window has changed and no write has landed for yet, in the shape of a ui.json patch.
     // A write that lands takes its own settings out of it leaf by leaf, so a refused one keeps its
@@ -197,13 +259,28 @@ QtObject {
     // The read is taken here and not in the FileView's onLoaded, which was measured on the box
     // arriving after the first property read; blockLoading is what makes text() answer inside this
     // call, so the stored columns are in the first frame instead of replacing it.
-    Component.onCompleted: root.load(stateFile.text())
+    Component.onCompleted: { root.load(stateFile.text()); root.initialReadComplete = true }
 
     function load(text) {
         var read = UiState.fromFile(text)
         root.state = read.state
         if (read.unreadable)
             root.unreadable = true
+    }
+    function syncFavourites(text) {
+        var read = UiState.refreshedFavourites(root.state, text)
+        if (read.error && read.error !== root.favouritesReadError) root.favouritesReadFailed(read.error)
+        root.favouritesReadError = read.error
+        if (read.state !== root.state) root.state = read.state
+        return read.error.length === 0
+    }
+    function refreshFavourites() {
+        stateFile.reload()
+        // blockLoading covers only the first read; a reload otherwise returns the previous document.
+        stateFile.waitForJob()
+        if (!stateFile.loaded || root.favouritesReadError.length > 0) return false
+        var text = stateFile.text()
+        return root.syncFavourites(text)
     }
 
     // blockLoading, because the first list draws from this: an async read would paint one column
@@ -213,12 +290,22 @@ QtObject {
         path: (Quickshell.env("XDG_STATE_HOME") && Quickshell.env("XDG_STATE_HOME").length > 0
                ? Quickshell.env("XDG_STATE_HOME") : Quickshell.env("HOME") + "/.local/state") + "/flea/ui.json"
         blockLoading: true
-        watchChanges: false
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            root.favouritesReadError = ""
+            if (root.initialReadComplete) root.syncFavourites(text())
+        }
         printErrors: false
         // A file that is not there is a first launch and says nothing; anything else is a file this
         // window could not read and is about to draw the defaults over, which is the unchecked-read
         // defect ui/NetworkDialog.qml already carried once and must not be repeated here.
-        onLoadFailed: function (error) { if (error !== FileViewError.FileNotFound) root.unreadable = true }
+        onLoadFailed: function (error) {
+            if (error === FileViewError.FileNotFound && !root.initialReadComplete) return
+            if (!root.initialReadComplete) root.unreadable = true
+            root.favouritesReadError = "Favorites not refreshed: ui.json unreadable; kept the old entries."
+            root.favouritesReadFailed(root.favouritesReadError)
+        }
     }
 
     // The writer answered, with its own status or with 2 for one that never started: the same refusal
@@ -226,6 +313,8 @@ QtObject {
     function wrote(exitCode) {
         // Taken out before the patch below is built, so a writer queued behind this one launches with
         // what is still owed and not with the settings this one has just stored.
+        root.saveStatus = exitCode === 0 ? "Saved · applied in this process"
+            : "Could not save settings · changes apply to this session only"
         if (exitCode === 0)
             root.unsaved = UiState.acknowledged(root.unsaved, root.writeBook.inflight)
         var next = UiState.exited(root.writeBook, exitCode, root.patch())

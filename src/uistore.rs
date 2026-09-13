@@ -72,10 +72,14 @@ impl Store {
     // The lock is held across the re-read, the validation, the merge, the temp write and the rename,
     // so a second Flea cannot land between this one's read and its write.
     pub fn update(&self, patch: &Json) -> Result<Json, String> {
+        self.transform(|state| uistate::patched(state, patch))
+    }
+
+    pub fn transform(&self, change: impl FnOnce(&Json) -> Result<Json, String>) -> Result<Json, String> {
         let dir = self.file.parent().ok_or_else(|| format!("{} has no directory to write in", self.file.display()))?;
         make_dir(dir)?;
         let lock = take_lock(&self.lock)?;
-        let next = uistate::patched(&self.read(), patch)?;
+        let next = change(&self.read())?;
         self.write(&next)?;
         lock.unlock().map_err(|e| format!("{} could not be unlocked ({:?})", self.lock.display(), e.kind()))?;
         Ok(next)
@@ -113,19 +117,19 @@ impl Store {
         }
     }
 
-    // AGENTS.md "Predictable path writes": unlink this pid's own leftover, create exclusively, rename last.
     fn write(&self, value: &Json) -> Result<(), String> {
-        refuse_a_bad_target(&self.file)?;
-        let tmp = PathBuf::from(format!("{}.{}.tmp", self.file.display(), std::process::id()));
-        let _ = fs::remove_file(&tmp);
-        let written = write_new(&tmp, &jsondoc::render(value)).and_then(|()| {
-            fs::rename(&tmp, &self.file)
-                .map_err(|e| format!("{} could not replace {} ({:?})", tmp.display(), self.file.display(), e.kind()))
-        });
-        if written.is_err() {
-            let _ = fs::remove_file(&tmp);
+        if let Some(text) = read_write_target(&self.file)? {
+            if !matches!(jsondoc::parse(&text), Ok(found) if found.as_object().is_some()) {
+                let backup = self.file.with_file_name("ui.json.broken");
+                read_write_target(&backup)?;
+                replace(&backup, &text)?;
+                // The backup must survive a crash before the only original is replaced.
+                let dir = backup.parent().ok_or("ui.json.broken has no directory")?;
+                fs::File::open(dir).and_then(|file| file.sync_all())
+                    .map_err(|e| format!("{} backup could not be synced ({:?}); state file was not written", backup.display(), e.kind()))?;
+            }
         }
-        written
+        replace(&self.file, &jsondoc::render(value))
     }
 }
 
@@ -165,7 +169,7 @@ fn take_lock(path: &Path) -> Result<fs::File, String> {
 
 // The state file's path is predictable and its bytes are the operator's only copy, so a link, a
 // device and a file this cannot read are all refused rather than renamed over.
-fn refuse_a_bad_target(path: &Path) -> Result<(), String> {
+fn read_write_target(path: &Path) -> Result<Option<String>, String> {
     match fs::symlink_metadata(path) {
         Ok(meta) if meta.file_type().is_symlink() => {
             Err(format!("{} is a symbolic link, so the state file was not written", path.display()))
@@ -174,9 +178,25 @@ fn refuse_a_bad_target(path: &Path) -> Result<(), String> {
             Err(format!("{} is not a regular file, so the state file was not written", path.display()))
         }
         // read() answers the shipped defaults for bytes it cannot read, so this rename would put a default document over whatever the operator wrote.
-        Ok(_) if fs::read_to_string(path).is_err() => Err(format!("{} could not be read, so the state file was not written", path.display())),
-        _ => Ok(()),
+        Ok(_) => fs::read_to_string(path).map(Some)
+            .map_err(|_| format!("{} could not be read, so the state file was not written", path.display())),
+        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) => Err(format!("{} could not be inspected ({:?}), so the state file was not written", path.display(), error.kind())),
     }
+}
+
+// AGENTS.md "Predictable path writes": unlink this pid's own leftover, create exclusively, rename last.
+fn replace(path: &Path, text: &str) -> Result<(), String> {
+    let tmp = PathBuf::from(format!("{}.{}.tmp", path.display(), std::process::id()));
+    let _ = fs::remove_file(&tmp);
+    let written = write_new(&tmp, text).and_then(|()| {
+        fs::rename(&tmp, path)
+            .map_err(|e| format!("{} could not replace {} ({:?})", tmp.display(), path.display(), e.kind()))
+    });
+    if written.is_err() {
+        let _ = fs::remove_file(&tmp);
+    }
+    written
 }
 
 fn write_new(tmp: &Path, text: &str) -> Result<(), String> {
@@ -224,6 +244,73 @@ mod tests {
         fs::create_dir_all(s.file().parent().expect("parent")).expect("state dir");
         fs::write(s.file(), "{ this is not json").expect("write");
         assert_eq!(jsondoc::render(&s.read()), jsondoc::render(&defaults()));
+    }
+
+    #[test]
+    fn malformed_recovery_atomically_keeps_one_exact_backup() {
+        let d = TestDir::new("uistore-backup");
+        let s = store(&d);
+        d.assert_contains(s.file());
+        s.update(&patch(r#"{"hidden":true}"#)).expect("seed");
+        let backup = s.file().with_file_name("ui.json.broken");
+        assert!(!backup.exists(), "valid writes do not create a backup");
+        let mut previous = "previous malformed state".to_string();
+        fs::write(s.file(), &previous).expect("first malformed state");
+        s.update(&patch(r#"{"hidden":true}"#)).expect("create first backup");
+        assert_eq!(fs::read_to_string(&backup).expect("first backup"), previous);
+        for original in ["{\"places\":\n", "", "17\n", "[1]\n", "{\"label\":\"caf\u{e9}\"\n"] {
+            fs::write(s.file(), original).expect("malformed state");
+            s.settle().expect("startup retains original");
+            assert_eq!(fs::read_to_string(s.file()).expect("original"), original);
+            assert_eq!(fs::read_to_string(&backup).expect("old backup"), previous);
+            assert!(s.update(&patch(r#"{"notASetting":true}"#)).is_err());
+            assert_eq!(fs::read_to_string(&backup).expect("refused patch backup"), previous);
+            let mut held = fs::File::open(&backup).expect("hold old backup");
+            s.update(&patch(r#"{"hidden":true}"#)).expect("native writer recovery");
+            assert_eq!(fs::read_to_string(&backup).expect("exact backup"), original);
+            let mut held_bytes = String::new();
+            held.read_to_string(&mut held_bytes).expect("read held backup");
+            assert_eq!(held_bytes, previous, "backup replacement must not truncate old inode");
+            assert_eq!(fs::metadata(&backup).expect("backup mode").permissions().mode() & 0o777, 0o600);
+            assert_eq!(s.read().get("hidden").and_then(Json::as_bool), Some(true));
+            s.update(&patch(r#"{"hidden":false}"#)).expect("valid later write");
+            assert_eq!(fs::read_to_string(&backup).expect("backup survives valid write"), original);
+            previous = original.to_string();
+        }
+        let mut files: Vec<_> = fs::read_dir(backup.parent().expect("parent")).expect("directory")
+            .map(|entry| entry.expect("entry").file_name().to_string_lossy().into_owned()).collect();
+        files.sort();
+        assert_eq!(files, ["ui.json", "ui.json.broken", "ui.json.lock"]);
+    }
+
+    #[test]
+    fn unavailable_backup_preserves_original_and_previous_backup() {
+        for blocked in ["directory", "symlink", "temporary"] {
+            let d = TestDir::new("uistore-backup-refusal");
+            let s = store(&d);
+            d.assert_contains(s.file());
+            s.update(&patch(r#"{"hidden":true}"#)).expect("seed");
+            let original = "{\"places\":\n";
+            fs::write(s.file(), original).expect("malformed state");
+            let backup = s.file().with_file_name("ui.json.broken");
+            let kept = d.file("previous-backup", "previous original bytes");
+            match blocked {
+                "directory" => fs::create_dir(&backup).expect("blocked backup"),
+                "symlink" => std::os::unix::fs::symlink(&kept, &backup).expect("linked backup"),
+                _ => {
+                    fs::copy(&kept, &backup).expect("prior backup");
+                    let tmp = PathBuf::from(format!("{}.{}.tmp", backup.display(), std::process::id()));
+                    fs::create_dir(tmp).expect("blocked exclusive temp");
+                }
+            }
+            let error = s.update(&patch(r#"{"hidden":true}"#)).expect_err("backup must succeed first");
+            assert!(error.contains("ui.json.broken"), "{}: {}", blocked, error);
+            assert_eq!(fs::read_to_string(s.file()).expect("untouched original"), original);
+            assert_eq!(fs::read_to_string(&kept).expect("kept target"), "previous original bytes");
+            if blocked != "directory" {
+                assert_eq!(fs::read_to_string(&backup).expect("untouched backup"), "previous original bytes");
+            }
+        }
     }
 
     #[test]

@@ -4,6 +4,7 @@ import "." as Flea
 import "js/Facts.js" as Facts
 import "js/Format.js" as Format
 import "js/Icons.js" as Icons
+import "js/PreviewKeys.js" as PreviewKeys
 
 // The columns view's last pane when a file is picked. One anatomy for all twelve states the canvas
 // draws: a frame, an optional transport, the name, and a caption-type table of facts under it.
@@ -21,6 +22,13 @@ Item {
     property var selectedRows: []
     // The row's own absolute path, which the PDF page needs and nothing else here does.
     property string path: ""
+    property int pdfControlIndex: -1
+    property real pdfZoom: 1
+    readonly property real pdfScrollY: pdfFlick.contentY
+    readonly property var pdfFrameItem: frame
+    readonly property var pdfToolbarItem: pdfToolbar
+    readonly property var pdfControls: [pagePrev, pageNext, pdfZoomOut, pdfZoomIn, pdfExpand]
+    signal expandRequested()
     // No player exists until the operator presses play. The strip draws from the probe's own
     // duration, so browsing a folder of clips builds no MediaPlayer at all: it costs nothing, makes
     // no sound, and stops QtMultimedia logging a teardown warning on every cursor move.
@@ -33,7 +41,9 @@ Item {
 
     // A new row is a new subject, so whatever was playing stops being this column's business, and
     // the player it needed is torn down with it.
-    onPathChanged: root.wantsPlayback = false
+    onPathChanged: { root.wantsPlayback = false; root.pdfZoom = 1; root.pdfControlIndex = -1 }
+    onActiveFocusChanged: if (root.activeFocus && root.pdfPages > 0 && root.pdfControlIndex < 0)
+        PreviewKeys.pdfAction("focusNext", root)
 
     // What the row itself is, before Loading or Error can override it. The readers below are built
     // from this and never from previewState: an error that switched its own reader off would clear
@@ -181,7 +191,7 @@ Item {
                 anchors.fill: parent
                 anchors.margins: Theme.spacing.hairline
                 visible: root.previewState === Facts.TEXT || root.previewState === Facts.CODE
-                active: root.rowState === Facts.TEXT || root.rowState === Facts.CODE
+                active: root.visible && (root.rowState === Facts.TEXT || root.rowState === Facts.CODE)
                 path: root.path
                 size: root.row ? root.row.s : 0
                 numbered: root.previewState === Facts.CODE
@@ -189,49 +199,23 @@ Item {
 
             // The PDF's own page, which is the frame's whole content for that state. QtPdf is
             // reached only through this Loader, so a folder with no PDF in it never opens one.
-            Loader {
-                id: pdfLoader
+            Flickable {
+                id: pdfFlick
                 anchors.fill: parent
                 anchors.margins: Theme.spacing.hairline
                 visible: root.previewState === Facts.PDF
-                // source, not sourceComponent: naming the type in this document is a compile-time
-                // reference, so the plugin loads whether or not the Loader is ever active. This is
-                // the form ui/Preview.qml:103 already proved for QtMultimedia.
-                active: root.rowState === Facts.PDF
-                source: "PreviewPdf.qml"
-                onLoaded: { item.path = Qt.binding(function () { return root.path }); item.active = true }
-            }
-
-            // The canvas's PdfViewer draws "3 / 51" and a chevron each side; a column that showed
-            // page one of fifty-one with no way past it would be pretending the document is one page.
-            Row {
-                anchors.horizontalCenter: parent.horizontalCenter
-                anchors.bottom: parent.bottom
-                anchors.bottomMargin: Theme.spacing.gap
-                spacing: Theme.spacing.gap
-                visible: root.previewState === Facts.PDF && root.pdfPages > 1
-
-                Flea.ChromeButton {
-                    id: pagePrev
-                    glyph: "chevron-left"
-                    enabled: root.pdfPage() > 0
-                    onActivated: root.turnPage(-1)
-                }
-
-                Text {
-                    anchors.verticalCenter: parent.verticalCenter
-                    text: (root.pdfPage() + 1) + " / " + root.pdfPages
-                    color: Theme.color.muted
-                    font.family: Theme.font.family
-                    font.pixelSize: Theme.font.caption
-                    textFormat: Text.PlainText
-                }
-
-                Flea.ChromeButton {
-                    id: pageNext
-                    glyph: "chevron-right"
-                    enabled: root.pdfPage() + 1 < root.pdfPages
-                    onActivated: root.turnPage(1)
+                clip: true
+                contentWidth: width * root.pdfZoom
+                contentHeight: height * root.pdfZoom
+                boundsBehavior: Flickable.StopAtBounds
+                Flea.FastScrollHandler { flickable: pdfFlick }
+                Loader {
+                    id: pdfLoader
+                    width: pdfFlick.contentWidth
+                    height: pdfFlick.contentHeight
+                    active: root.visible && root.rowState === Facts.PDF
+                    source: "PreviewPdf.qml"
+                    onLoaded: { item.path = Qt.binding(function () { return root.path }); item.active = true }
                 }
             }
 
@@ -276,13 +260,70 @@ Item {
             }
         }
 
+        // PDF controls stay outside the page frame, including when a narrow column wraps them.
+        Flow {
+            id: pdfToolbar
+            width: Math.min(pagePrev.width * root.pdfControls.length + pageLabel.width + spacing * root.pdfControls.length,
+                parent.width)
+            anchors.horizontalCenter: parent.horizontalCenter
+            spacing: Theme.spacing.gap
+            visible: root.previewState === Facts.PDF && root.pdfPages > 0
+
+            Flea.ChromeButton {
+                id: pagePrev
+                glyph: "chevron-left"
+                keyboardFocused: root.activeFocus && root.pdfControlIndex === 0
+                enabled: root.pdfPage() > 0
+                onActivated: root.turnPage(-1)
+            }
+
+            Text {
+                id: pageLabel
+                height: pagePrev.height
+                verticalAlignment: Text.AlignVCenter
+                text: (root.pdfPage() + 1) + " / " + root.pdfPages
+                color: Theme.color.muted
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.caption
+                textFormat: Text.PlainText
+            }
+
+            Flea.ChromeButton {
+                id: pageNext
+                glyph: "chevron-right"
+                keyboardFocused: root.activeFocus && root.pdfControlIndex === 1
+                enabled: root.pdfPage() + 1 < root.pdfPages
+                onActivated: root.turnPage(1)
+            }
+            Flea.ChromeButton {
+                id: pdfZoomOut
+                glyph: "minus"
+                enabled: root.pdfZoom > 1
+                keyboardFocused: root.activeFocus && root.pdfControlIndex === 2
+                onActivated: root.zoomBy(-1)
+            }
+            Flea.ChromeButton {
+                id: pdfZoomIn
+                glyph: "plus"
+                enabled: root.pdfZoom < 4
+                keyboardFocused: root.activeFocus && root.pdfControlIndex === 3
+                onActivated: root.zoomBy(1)
+            }
+            Flea.ChromeButton {
+                id: pdfExpand
+                glyph: "maximize"
+                keyboardFocused: root.activeFocus && root.pdfControlIndex === 4
+                onActivated: root.toggleExpand()
+            }
+        }
+
         // A media file adds the transport strip under the frame, which is what the canvas draws on
         // its Video and Audio tiles. QtMultimedia is reached only through this Loader, on demand.
         Loader {
             id: mediaLoader
             width: parent.width
             height: active ? Theme.chromeHeight : 0
-            active: root.previewState === Facts.VIDEO || root.previewState === Facts.AUDIO
+            active: root.visible && (root.previewState === Facts.VIDEO || root.previewState === Facts.AUDIO)
             sourceComponent: mediaTransport
         }
 
@@ -335,6 +376,12 @@ Item {
     // Which page the frame is on, and the turn the chevrons make; both read back over IPC too.
     function pdfPage() { return pdfLoader.item ? pdfLoader.item.page : 0 }
     function turnPage(delta) { if (pdfLoader.item) pdfLoader.item.turn(delta) }
+    function zoomBy(steps) { root.pdfZoom = Math.max(1, Math.min(4, root.pdfZoom + steps * 0.25)) }
+    function toggleExpand() { root.expandRequested() }
+    function scrollPage(delta) {
+        pdfFlick.contentY = Math.max(0, Math.min(pdfFlick.contentHeight - pdfFlick.height,
+            pdfFlick.contentY + delta * Theme.rowHeight))
+    }
     function pdfChevron(dir) { return dir === "left" ? pagePrev : pageNext }
     // Whether a PdfDocument exists at all, which is what makes the Loader worth having.
     function pdfLoaded() { return pdfLoader.item !== null }
@@ -381,6 +428,7 @@ Item {
 
     // The cache file while there is one, then the image itself once the backend says none is coming.
     function frameSource() {
+        if (!root.visible) return ""
         if (root.thumb.length > 0)
             return Format.fileUri(root.thumb)
         if (root.noThumbComing && root.previewState === Facts.IMAGE && root.path.length > 0)

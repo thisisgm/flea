@@ -18,7 +18,7 @@ function sentence(where, message) {
         return "The backend stopped responding; reopen Flea and try again."
     }
     // The write operations say what they were doing, because the operator is about to try it again.
-    if (where === "undo") {
+    if (where === "undo" || where === "redo") {
         // The empty journal is the common case and the backend's own sentence is already the right one.
         return capitalised(message)
     }
@@ -27,7 +27,7 @@ function sentence(where, message) {
     }
     // undo reverses a rename through the same call, so this sentence names no direction.
     if (where === "rename-kept") {
-        return "The copy is complete; the name it came from could not be fully removed and may now be incomplete, so check it before deleting anything."
+        return "Copied, but the old name was only partly removed. Check it."
     }
     // Deliberately not the capitalised branch: every other mkdir refusal reaches the UI through
     // src/error.rs from_io, which passes std::io::Error::to_string straight through, errno and all.

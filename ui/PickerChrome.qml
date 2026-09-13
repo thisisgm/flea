@@ -24,8 +24,10 @@ Item {
 
     implicitHeight: ask.height + where.height
 
-    // The board's framed chrome control: a hairline square around a mark, or a hairline box around
-    // a word. Only the accent frame, the recessed ground and which of the two it holds ever differ.
+    // The picker's chrome control: a mark, or a word. GM's 2026-09-11 ruling moved its frame off the
+    // divider's ink, which ui/picker.qml's own comment says the board drew both in: a frame and a
+    // rule in one ink are one line, and the controls dissolved into the chrome as the scale dropped.
+    // The frame carries the role, muted or accent, and the wash inside it carries the state.
     component Framed: Item {
         id: control
 
@@ -33,8 +35,14 @@ Item {
         property string label: ""
         property string name: control.label
         property bool primary: false
-        property bool recessed: false
         property bool available: true
+        enabled: available
+        activeFocusOnTab: available
+        Keys.onTabPressed: function(event) { root.picker.stepFocus(control, (event.modifiers & Qt.ShiftModifier) !== 0) }
+        Keys.onBacktabPressed: root.picker.stepFocus(control, true)
+        Keys.onReturnPressed: if (control.available) control.pressed()
+        Keys.onEnterPressed: if (control.available) control.pressed()
+        Keys.onSpacePressed: if (control.available) control.pressed()
 
         signal pressed()
 
@@ -54,11 +62,24 @@ Item {
             NumberAnimation { duration: 150; easing.type: Easing.OutQuad }
         }
 
+        // Muted is the resting frame of a neutral control, the role ThemeRoles.html gives an inactive
+        // one, and an unavailable control stays there: a frame may recede only when the control is
+        // inert. ui/DialogButton.qml has drawn its own frames this way all along.
+        readonly property color frame: control.available && control.primary
+            ? Theme.color.accent : Theme.color.muted
+
+        // The primary control carries its wash at rest, because it is the one action the request is
+        // asking for; every other control earns one under the pointer or the keyboard.
+        readonly property real wash: !control.available ? 0
+            : (control.activeFocus || press.pressed) ? Theme.washActive
+            : hover.hovered ? Theme.washHover
+            : control.primary ? Theme.washActive : 0
+
         Rectangle {
             anchors.fill: parent
-            color: control.recessed ? Theme.color.surface : "transparent"
+            color: Qt.alpha(control.ink, control.wash)
             border.width: Theme.spacing.hairline
-            border.color: control.primary ? Theme.color.accent : root.edge
+            border.color: control.frame
         }
 
         Flea.Glyph {
@@ -81,12 +102,15 @@ Item {
             textFormat: Text.PlainText
         }
 
-        HoverHandler { cursorShape: Qt.PointingHandCursor }
+        HoverHandler {
+            id: hover
+            cursorShape: control.available ? Qt.PointingHandCursor : Qt.ArrowCursor
+        }
 
         TapHandler {
             id: press
             acceptedButtons: Qt.LeftButton
-            onTapped: if (control.available) control.pressed()
+            onTapped: if (control.available) { control.forceActiveFocus(Qt.MouseFocusReason); control.pressed() }
         }
     }
 
@@ -143,15 +167,18 @@ Item {
 
             // The board's chrome button is its hit box plus the hairline frame around it, 26 at base-size 14.
             Framed {
+                id: cancelButton
                 height: Theme.hitMin + 2 * Theme.spacing.hairline
                 label: "Cancel"
                 onPressed: root.cancelRequested()
             }
 
             Framed {
+                id: acceptButton
                 height: Theme.hitMin + 2 * Theme.spacing.hairline
                 label: Picker.acceptLabel(root.req, root.picker.marks.length)
                 primary: true
+                available: root.picker.canAccept
                 onPressed: root.acceptRequested()
             }
         }
@@ -188,17 +215,19 @@ Item {
             spacing: Theme.spacing.gap
 
             Framed {
+                id: backButton
                 glyph: "arrow-left"
                 name: "Back"
-                available: root.picker.history.length > 0
+                available: !root.picker.backendUnavailable && root.picker.history.length > 0 && !root.picker.submitting
                 onPressed: root.backRequested()
             }
 
             Framed {
+                id: upButton
                 glyph: "arrow-up"
                 name: root.picker.recent ? "Parent folder unavailable in Recent" : "Parent folder"
                 // The board's own rule, drawn as its disabled Up: a history has no directory above it.
-                available: !root.picker.recent && Picker.parentOf(root.picker.path) !== root.picker.path
+                available: !root.picker.backendUnavailable && !root.picker.submitting && !root.picker.recent && Picker.parentOf(root.picker.path) !== root.picker.path
                 onPressed: root.upRequested()
             }
         }
@@ -220,25 +249,55 @@ Item {
         }
 
         // The caller's filters, and All files beside them; a request with no filters draws no chips.
-        Row {
+        Flickable {
             id: types
             anchors.right: parent.right
             anchors.rightMargin: Theme.spacing.rowPaddingX
             anchors.verticalCenter: parent.verticalCenter
-            spacing: Theme.spacing.hairline * 4
+            width: Math.min(chipRow.width, Math.max(0, (where.width - moves.width - 3 * Theme.spacing.rowPaddingX) / 2))
+            height: Theme.hitMin
+            contentWidth: chipRow.width
+            contentHeight: height
+            boundsBehavior: Flickable.StopAtBounds
+            flickableDirection: Flickable.HorizontalFlick
+            clip: true
+            Flea.FastScrollHandler { flickable: types }
 
-            Repeater {
-                model: root.chips
+            function reveal(item) {
+                if (item.x < contentX) contentX = item.x
+                else if (item.x + item.width > contentX + width) contentX = item.x + item.width - width
+            }
 
-                Framed {
-                    required property var modelData
-                    label: modelData.label
-                    primary: modelData.index === root.picker.filterIndex
-                    // The board sets the active chip on the recessed plane, so it reads as pressed in.
-                    recessed: modelData.index === root.picker.filterIndex
-                    onPressed: root.chipChosen(modelData.index)
+            Row {
+                id: chipRow
+                spacing: Theme.spacing.hairline * 4
+
+                Repeater {
+                    id: chipRepeater
+                    model: root.chips
+
+                    Framed {
+                        required property var modelData
+                        label: modelData.label
+                        primary: modelData.index === root.picker.filterIndex
+                        available: !root.picker.backendUnavailable && !root.picker.submitting
+                        onActiveFocusChanged: if (activeFocus) types.reveal(this)
+                        // The chosen chip is accent ink over the accent wash, which makes it the same
+                        // control the Settings segmented chooser already draws; its recessed plane
+                        // went with the frames.
+                        onPressed: root.chipChosen(modelData.index)
+                    }
                 }
             }
         }
+    }
+
+    function focusItems() {
+        var items = [cancelButton, acceptButton, backButton, upButton]
+        for (var i = 0; i < chipRepeater.count; i++) items.push(chipRepeater.itemAt(i))
+        return items
+    }
+    function controls() {
+        return root.focusItems().map(function(item) { return root.picker.control(item.name, item, item.available) })
     }
 }

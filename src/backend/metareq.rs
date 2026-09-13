@@ -193,11 +193,19 @@ pub fn meta_line(row: usize, m: &Meta) -> String {
     )
 }
 
+// The caller token identifies the exact request even when a new listing reuses the row index.
+pub fn meta_reply(row: usize, meta: &Meta, token: usize) -> String {
+    let mut line = meta_line(row, meta);
+    line.pop();
+    line.push_str(&format!(",\"token\":{}}}", token));
+    line
+}
+
 // Answers on a thread, because a media row costs an ffprobe and the loop waits on nothing.
 pub fn spawn(row: usize, path: std::path::PathBuf, text: bool, media: bool,
-             archive: Option<std::sync::Arc<Formats>>, tx: std::sync::mpsc::Sender<OpMsg>) {
+             archive: Option<std::sync::Arc<Formats>>, token: usize, tx: std::sync::mpsc::Sender<OpMsg>) {
     std::thread::spawn(move || {
-        let line = meta_line(row, &read(&path, text, media, archive.as_deref()));
+        let line = meta_reply(row, &read(&path, text, media, archive.as_deref()), token);
         let _ = tx.send(OpMsg::Meta { line });
     });
 }
@@ -205,6 +213,13 @@ pub fn spawn(row: usize, path: std::path::PathBuf, text: bool, media: bool,
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn metadata_echoes_request_identity() {
+        let line = meta_reply(4, &Meta::empty(), 27);
+        assert!(line.ends_with(",\"token\":27}"));
+        assert!(crate::jsondoc::parse(&line).is_ok());
+    }
     use crate::backend::fifotest::{mkfifo, peek, FifoWriter, BOUND};
     use crate::backend::linecount::LINE_BUDGET;
     use crate::backend::testdir::TestDir;
@@ -359,7 +374,7 @@ mod tests {
     // The real path a meta request takes: run.rs hands spawn these arguments and reads back one OpMsg.
     fn answered(path: &std::path::Path) -> Option<String> {
         let (tx, rx) = std::sync::mpsc::channel();
-        spawn(7, path.to_path_buf(), true, false, None, tx);
+        spawn(7, path.to_path_buf(), true, false, None, 0, tx);
         match rx.recv_timeout(BOUND) {
             Ok(OpMsg::Meta { line }) => Some(line),
             _ => None,

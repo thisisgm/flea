@@ -8,6 +8,7 @@ MouseArea {
     id: root
 
     required property var flickable
+    property var ctrlWheelAction: null
 
     anchors.fill: parent
     acceptedButtons: Qt.NoButton
@@ -19,6 +20,10 @@ MouseArea {
     }
 
     onWheel: function (wheel) {
+        if ((wheel.modifiers & Qt.ControlModifier) && root.ctrlWheelAction !== null) {
+            wheel.accepted = root.ctrlWheelAction(wheel)
+            if (wheel.accepted) return
+        }
         var down = root.scrollDistance(wheel.pixelDelta.y, wheel.angleDelta.y)
         var across = root.scrollDistance(wheel.pixelDelta.x, wheel.angleDelta.x)
         if ((down === 0 && across === 0) || !root.flickable.interactive) {

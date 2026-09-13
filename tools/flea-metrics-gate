@@ -68,6 +68,8 @@ if [ -z "$rounding" ]; then
   exit 1
 fi
 
+# The mark retains the unrounded type-scale product, including its IEEE-754 representation.
+mark_contract=$(python3 -c 'print(13 * 1.45)') || exit 1
 # key|contract value|derivation. The four column widths depend on the family, which is why family is first.
 contract="family|JetBrainsMono Nerd Font|fc-match monospace, Style.font.resolvedFamily
 baseSize|14|[font] base-size in the user's shell.toml, layered over the theme's
@@ -81,10 +83,10 @@ gap|9|space(8)
 hairline|1|space(1)
 rowHeight|37|round(13 x 1.8) + 2 x 7
 iconSize|23|37 - 2 x 7
-markSize|19|round(13 x 1.45)
+markSize|$mark_contract|13 x 1.45, the preserved unrounded mark token
 stateMarkSize|40|round(13 x 3.1), the Locked and Error mark States.dc.html draws
 heroMarkSize|48|round(13 x 3.7), the empty hero and the loading crawl States.dc.html draws
-strokeWidth|1.5|the operator's glyph stroke on lucide's 24 unit grid
+strokeWidth|2|the overseer boards' shared stroke on the 24 unit glyph grid
 railRowHeight|29|round(37 x 0.78)
 railIconSize|15|29 - 2 x 7
 chromeHeight|27|round(37 x 0.72)
@@ -99,9 +101,9 @@ cornerRadius|$rounding|hyprctl getoption decoration:rounding, read live above
 previewFraction|0.82|Flea constant, Quick-Look sized inset
 gridIconSize|46|2 x 23
 gridMinCellWidth|146|space(125), GridView.dc.html's five-column reference viewport over five tiles
-settingsPanelWidth|560|space(480), the Settings board's border-box panel
-settingsRailWidth|150|560 - 408 - 2 outer hairlines
-settingsPaneWidth|408|space(350), the pane inside those hairlines
+settingsPanelWidth|630|round(space(480) x 9/8), GM's roomier SettingsView board
+settingsRailWidth|169|630 - 459 - 2 outer hairlines, SettingsView rule 1
+settingsPaneWidth|459|round(space(350) x 9/8), GM's roomier Settings pane
 settingsIndent|52|52 x 13 / 13, the continuation indent five settings boards draw a hint and the ruler at
 settingsRailPaddingY|10|10 x 13 / 13, the inset Settings.dc.html gives the rail column above its first row"
 

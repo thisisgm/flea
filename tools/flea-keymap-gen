@@ -1,302 +1,232 @@
-#!/bin/bash
-# Writes ui/js/Keymap.js from keys.toml, see AGENTS.md "The key table is generated".
-set -u
-cd "$(dirname "$0")/.." || exit 1
+#!/usr/bin/env python3
+"""Generate Qt bindings from the same TOML table embedded by the TUI."""
+import json
+import sys
+import tomllib
+from pathlib import Path
 
-# The second argument is the table to read, so tests/keymap-gen.sh can point the conflict guard
-# below at a deliberately broken copy without editing the one this repo ships.
-out=${1:-ui/js/Keymap.js}
-src=${2:-keys.toml}
+ROOT = Path(__file__).resolve().parent.parent
+PRESETS = ('default', 'vim', 'mac', 'windows')
+MODS = {'none': (), 'text': (), 'ctrl': ('Control',), 'shift': ('Shift',),
+        'ctrlshift': ('Control', 'Shift'), 'alt': ('Alt',), 'super': ('Meta',),
+        'supershift': ('Meta', 'Shift'), 'superalt': ('Meta', 'Alt')}
+CONTEXTS = ('listing', 'rail', 'menu', 'panel', 'preview', 'pdf', 'media', 'editor', 'all')
+FRONTENDS = ('all', 'gui', 'tui')
 
-[ -f "$src" ] || { echo "flea-keymap-gen: $src is missing" >&2; exit 1; }
 
-# Sample input: a [[text]] block is 'char = "j"' then 'action = "cursorDown"', printed as 'j<tab>cursorDown'.
-pairs() {
-  local want="[[$1]]" field="$2"
-  local inblock=0 key="" name eq value
-  while read -r name eq value || [ -n "$name" ]; do
-    case "$name" in
-      "$want") inblock=1; key=""; continue ;;
-      '['*)    inblock=0; continue ;;
-    esac
-    [ "$inblock" = 1 ] || continue
-    value=${value#\"}
-    value=${value%\"}
-    case "$name" in
-      "$field") key=$value ;;
-      action)   printf '%s\t%s\n' "$key" "$value" ;;
-    esac
-  done < "$src"
+def fail(message):
+    raise ValueError(message)
+
+
+def scope_overlap(a, b):
+    return bool(set(a.split(',')) & set(b.split(','))) or a == 'all' or b == 'all'
+
+
+def caps(mods, key):
+    if mods == 'text':
+        return key
+    prefix = {'none': '', 'text': '', 'ctrlshift': 'ctrl-shift-',
+              'supershift': 'super-shift-', 'superalt': 'super-alt-'}.get(mods, mods + '-')
+    name = {'Return': 'enter', 'BracketLeft': '[', 'BracketRight': ']', 'Period': '.'}.get(key, key.lower())
+    return prefix + name
+
+
+def generate(data):
+    for required in ('preset', 'sheet', 'pointer', 'digits'):
+        if not data.get(required):
+            fail(f'the {required} table is missing or empty')
+    bindings = []
+    for row in data['preset']:
+        row = dict(row)
+        row.setdefault('context', 'listing')
+        row.setdefault('frontend', 'all')
+        if row.get('name') not in PRESETS + ('all',) or row.get('mods') not in MODS:
+            fail(f'invalid preset or modifiers: {row}')
+        if any(c not in CONTEXTS for c in row['context'].split(',')) or row['frontend'] not in FRONTENDS:
+            fail(f'invalid binding context or frontend: {row}')
+        if not isinstance(row.get('key'), str) or not row['key'] or 'action' not in row:
+            fail(f'incomplete preset binding: {row}')
+        for previous in bindings:
+            same = all(row[k] == previous[k] for k in ('name', 'mods', 'key'))
+            if same and scope_overlap(row['context'], previous['context']) and scope_overlap(row['frontend'], previous['frontend']):
+                fail(f"the {row['name']} preset claims {row['keys']} twice, for {previous['action']} and {row['action']} in {row['context']} ({row['frontend']})")
+        bindings.append(row)
+    shared = []
+    for kind, field, mods in [('ctrlshift', 'key', 'ctrlshift'), ('ctrl', 'key', 'ctrl'),
+                              ('shift', 'key', 'shift'), ('code', 'key', 'none'), ('text', 'char', 'text')]:
+        seen = {}
+        for row in data.get(kind, []):
+            key = row[field]
+            if key in seen:
+                fail(f'shared listing key {caps(mods, key)} claims {seen[key]} and {row["action"]}')
+            seen[key] = row['action']
+            shared.append(dict(name='all', mods=mods, key=key, keys=row.get('keys', caps(mods, key)),
+                               action=row['action'], context='listing', frontend='all'))
+    lines = ['.pragma library', '', '// Generated from keys.toml by tools/flea-keymap-gen. Do not edit.']
+    def emit(name, value):
+        lines.append('var ' + name + ' = ' + json.dumps(value, ensure_ascii=True, separators=(',', ':')))
+    emit('PRESETS', PRESETS)
+    emit('preset', 'default')
+    def table(name, rows):
+        lines.append('var ' + name + ' = [')
+        for row in rows:
+            obj = dict(row)
+            obj['preset'] = obj.pop('name')
+            obj['code'] = 'Key_' + obj['key'] if obj['mods'] != 'text' else ''
+            obj['text'] = obj['key'] if obj['mods'] == 'text' else ''
+            for flag, token in [('ctrl', 'Control'), ('shift', 'Shift'), ('alt', 'Alt'), ('super', 'Meta')]:
+                obj[flag] = token in MODS[obj['mods']]
+            encoded = json.dumps(obj, ensure_ascii=True, separators=(',', ':'))
+            keycode = '0' if not obj['code'] else 'Qt.' + obj['code']
+            mask = ' | '.join('Qt.' + token + 'Modifier' for token in MODS[obj['mods']]) or '0'
+            lines.append('    ' + encoded[:-1] + ',"keycode":' + keycode + ',"mask":(' + mask + ')},')
+        lines.append(']')
+    table('PRESET_KEYS', bindings)
+    table('SHARED_KEYS', shared)
+    emit('POINTER', data['pointer'])
+    emit('BASE_SHEET', data['sheet'])
+    emit('DIGITS', data['digits'])
+    lines.append(r'''
+function applies(row, context, frontend) {
+    return (row.context.split(",").indexOf(context) >= 0 || row.context === "all")
+           && (row.frontend === frontend || row.frontend === "all")
+}
+function matches(row, key, text, modifiers) {
+    var mask = modifiers & (Qt.ControlModifier | Qt.ShiftModifier | Qt.AltModifier | Qt.MetaModifier)
+    if (row.mods === "text")
+        return (mask & ~Qt.ShiftModifier) === 0 && text === row.text
+    return mask === row.mask && key === row.keycode
+}
+// A matching empty action suppresses fallback, as Mac Ctrl+X requires.
+function presetMatch(name, key, text, modifiers, context, frontend) {
+    for (var pass = 0; pass < 2; pass++) {
+        for (var i = 0; i < PRESET_KEYS.length; i++) {
+            var row = PRESET_KEYS[i]
+            if (row.preset !== (pass === 0 ? name : "all")) continue
+            if (applies(row, context, frontend) && matches(row, key, text, modifiers)) return row
+        }
+    }
+    return null
+}
+function lookupPreset(name, key, text, modifiers, context, frontend) {
+    var row = presetMatch(name, key, text, modifiers, context || "listing", frontend || "gui")
+    return row ? row.action : ""
+}
+function lookupFor(name, key, text, modifiers, context, frontend) {
+    context = context || "listing"
+    frontend = frontend || "gui"
+    var row = presetMatch(name, key, text, modifiers, context, frontend)
+    if (row) return row.action
+    if (context !== "listing" && context !== "rail") return ""
+    for (var i = 0; i < SHARED_KEYS.length; i++) {
+        if (matches(SHARED_KEYS[i], key, text, modifiers)) return SHARED_KEYS[i].action
+    }
+    if (frontend === "tui" && modifiers === 0 && text >= String(DIGITS.from) && text <= String(DIGITS.to))
+        return DIGITS.prefix + text
+    return ""
+}
+function lookup(key, text, modifiers, context, frontend) {
+    return lookupFor(preset, key, text, modifiers, context, frontend)
+}
+function actionGroup(action) {
+    var arms = { copyArm: "copy", cutArm: "cut", pasteArm: "paste", cursorFirstArm: "cursorFirst", trashArm: "trash" }
+    return arms[action] || action
+}
+function bindingRows(name, frontend) {
+    var rows = [], candidates = PRESET_KEYS.concat(SHARED_KEYS)
+    for (var i = 0; i < candidates.length; i++) {
+        var row = candidates[i]
+        if (row.preset !== "all" && row.preset !== name) continue
+        if (!applies(row, "listing", frontend || "gui") || !row.action) continue
+        if (lookupFor(name, row.keycode, row.text, row.mask, "listing", frontend || "gui") !== row.action) continue
+        var duplicate = rows.some(function (kept) { return kept.keys === row.keys && kept.action === row.action })
+        if (!duplicate) rows.push(row)
+    }
+    return rows
+}
+function hintFor(action) {
+    return HINTS[action] || ""
+}
+// How wide a cap may get before a second spelling stops earning its place. The sheet draws two
+// columns of a 300 unit card, so a cap past this elides and the wording beside it has nowhere to go.
+var SHEET_CAP_BUDGET = 16
+
+// An action id is not wording. A row the base sheet does not name printed its own identifier, so the
+// pane advertised "pageDown" and "textSizeReset" beside sentences like "hidden files".
+function spelledOut(action) {
+    return String(action).replace(/([a-z0-9])([A-Z])/g, "$1 $2").toLowerCase()
 }
 
-# Sample input: a [[sheet]] block is 'keys = "j k"', then 'action = "cursorDown"', then
-# 'label = "move"', printed as 'j k<tab>cursorDown<tab>move'. label is printed last, so it must be
-# written last in the block, the same rule pairs() above puts on action.
-sheet() {
-  local inblock=0 keys="" action="" name eq value
-  while read -r name eq value || [ -n "$name" ]; do
-    case "$name" in
-      "[[sheet]]") inblock=1; keys=""; action=""; continue ;;
-      '['*)        inblock=0; continue ;;
-    esac
-    [ "$inblock" = 1 ] || continue
-    value=${value#\"}
-    value=${value%\"}
-    case "$name" in
-      keys)   keys=$value ;;
-      action) action=$value ;;
-      label)  printf '%s\t%s\t%s\n' "$keys" "$action" "$value" ;;
-    esac
-  done < "$src"
+// Which spelling speaks for an action: the preset's own before an inherited one, and a plain key
+// before a chord. setPreset ranks the menu hint the same way, so the sheet and the menus agree.
+function capRank(row, preset) {
+    return (row.preset === preset ? 0 : 2) + (row.mods === "text" ? 0 : 1)
 }
 
-# Sample input: a [[pointer]] block is 'where = "neighbour"', then 'press = "left x2"', then
-# 'row = "file"', then 'does = "open"', then 'label = "open the file"', printed tab separated in that
-# order.
-# label is printed last, so it must be written last in the block, the same rule the two above put on
-# their own final field.
-pointer() {
-  local inblock=0 where="" press="" row="" does="" name eq value
-  while read -r name eq value || [ -n "$name" ]; do
-    case "$name" in
-      "[[pointer]]") inblock=1; where=""; press=""; row=""; does=""; continue ;;
-      '['*)          inblock=0; continue ;;
-    esac
-    [ "$inblock" = 1 ] || continue
-    value=${value#\"}
-    value=${value%\"}
-    case "$name" in
-      where) where=$value ;;
-      press) press=$value ;;
-      row)   row=$value ;;
-      does)  does=$value ;;
-      label) printf '%s\t%s\t%s\t%s\t%s\n' "$where" "$press" "$row" "$does" "$value" ;;
-    esac
-  done < "$src"
+function sheetFor(name, frontend, dual) {
+    var result = [], groups = {}, rows = bindingRows(name, frontend || "gui")
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i], action = actionGroup(row.action)
+        var group = groups[action]
+        if (!group) {
+            var label = row.label || spelledOut(action)
+            for (var j = 0; j < BASE_SHEET.length; j++)
+                if (actionGroup(BASE_SHEET[j].action) === action) label = BASE_SHEET[j].label
+            group = { action: action, label: label, keys: "", context: "listing", spellings: [] }
+            result.push(group)
+            groups[action] = group
+        }
+        group.spellings.push(row)
+    }
+    // One cap names one key. Joining every spelling an action answers to built caps of 40 characters
+    // on the default preset and 78 on mac, wider than the whole card, so the pane drew them across
+    // the column beside it. The best spelling always shows, a second only while both still fit.
+    for (var g = 0; g < result.length; g++) {
+        var spellings = result[g].spellings.slice()
+        spellings.sort(function (left, right) { return capRank(left, name) - capRank(right, name) })
+        var keys = spellings.length ? spellings[0].keys : ""
+        for (var k = 1; k < spellings.length; k++) {
+            var both = keys + " / " + spellings[k].keys
+            if (spellings[k].keys === keys || both.length > SHEET_CAP_BUDGET) continue
+            keys = both
+            break
+        }
+        result[g].keys = keys
+        delete result[g].spellings
+    }
+    if (dual && groups.focusNext) {
+        groups.focusNext.keys = "tab"
+        groups.focusNext.label = "focus other pane"
+    }
+    return result
 }
-
-# Sample input: a [[preset]] block is 'name = "mac"', then 'mods = "ctrl"', then 'key = "1"', then
-# 'keys = "ctrl-1"', then 'action = "viewList"', then 'label = "list view"', printed tab separated in
-# that order. label is printed last, so it must be written last in the block, the same rule the three
-# above put on their own final field.
-preset() {
-  local inblock=0 name_="" mods="" key="" keys="" action="" name eq value
-  while read -r name eq value || [ -n "$name" ]; do
-    case "$name" in
-      "[[preset]]") inblock=1; name_=""; mods=""; key=""; keys=""; action=""; continue ;;
-      '['*)         inblock=0; continue ;;
-    esac
-    [ "$inblock" = 1 ] || continue
-    value=${value#\"}
-    value=${value%\"}
-    case "$name" in
-      name)   name_=$value ;;
-      mods)   mods=$value ;;
-      key)    key=$value ;;
-      keys)   keys=$value ;;
-      action) action=$value ;;
-      label)  printf '%s\t%s\t%s\t%s\t%s\t%s\n' "$name_" "$mods" "$key" "$keys" "$action" "$value" ;;
-    esac
-  done < "$src"
+function setPreset(name) {
+    preset = PRESETS.indexOf(name) >= 0 ? name : "default"
+    SHEET = sheetFor(preset, "gui")
+    HINTS = {}
+    var ranks = {}, rows = bindingRows(preset, "gui")
+    for (var i = 0; i < rows.length; i++) {
+        var row = rows[i]
+        if (row.mods !== "text" && row.mods !== "none") continue
+        var action = actionGroup(row.action), rank = (row.preset === preset ? 0 : 2) + (row.mods === "text" ? 0 : 1)
+        if (ranks[action] !== undefined && ranks[action] <= rank) continue
+        // A menu hint is the key the operator presses: Menus.html and the OpenWith overseer board
+        // both draw Move to Trash with d. The full dd chord stays on the keymap sheet below.
+        HINTS[action] = row.mods === "text" ? row.key : row.keys
+        ranks[action] = rank
+    }
 }
+var SHEET = []
+var HINTS = {}
+setPreset("default")
+''')
+    return '\n'.join(lines).rstrip()
 
-# Sample input: preset() prints 'mac<tab>ctrl<tab>1<tab>ctrl-1<tab>viewList<tab>list view'. This is
-# SettingsKeys.html's "Conflicts fail the build": one preset claiming a chord twice writes two rows
-# into lookupPreset's if-chain and lets the first silently win. The key is the preset with the
-# modifier state and the Qt key, never the printed chord, because that is what the if-chain matches.
-# Two presets may hold the same chord, because only one of them is ever live.
-preset_conflict() {
-  local duplicate want_name want_mods want_key chord actions n m k caps a l
-  duplicate=$(preset | cut -f1,2,3 | LC_ALL=C sort | uniq -d | head -1)
-  [ -n "$duplicate" ] || return 0
-  IFS=$'\t' read -r want_name want_mods want_key <<< "$duplicate"
-  chord=""
-  actions=""
-  while IFS=$'\t' read -r n m k caps a l; do
-    [ "$n" = "$want_name" ] && [ "$m" = "$want_mods" ] && [ "$k" = "$want_key" ] || continue
-    [ -n "$chord" ] || chord=$caps
-    if [ -z "$actions" ]; then
-      actions=$a
-    else
-      actions="$actions and $a"
-    fi
-  done < <(preset)
-  echo "flea-keymap-gen: the $want_name preset claims $chord twice, for $actions" >&2
-  return 1
-}
 
-# Sample input: Return. The cap on the key reads "enter", which is what the boards and the [[sheet]]
-# table both print, so the one Qt name that differs from its own cap is spelled out here.
-cap() {
-  local name=$1
-  [ "$name" = Return ] && name=Enter
-  printf '%s\n' "$name" | tr 'A-Z' 'a-z'
-}
-
-# Sample input: "j<tab>cursorDown" from the text table, "Return<tab>open" from the code table,
-# printed as "text<tab>j<tab>cursorDown" and "code<tab>enter<tab>open". Only bare keys: a chord is
-# never a menu hint, because no board draws one beside a row.
-bare_keys() {
-  pairs text char | while IFS=$'\t' read -r c a; do printf 'text\t%s\t%s\n' "$c" "$a"; done
-  pairs code key  | while IFS=$'\t' read -r k a; do printf 'code\t%s\t%s\n' "$(cap "$k")" "$a"; done
-}
-
-# The one key ui/MenuRow.qml prints beside a row's label, for one action, and empty when the action
-# has no bare key at all. A printable character outranks a key code, because that is what Menus.html
-# draws for every bound row it has. A two-press action is bound under its own arm action, which is
-# why Move to Trash advertises d and not the Delete key beside it.
-hint_for() {
-  local want=$1 kind key action rank best="" best_rank=9
-  while IFS=$'\t' read -r kind key action; do
-    rank=9
-    [ "$kind" = text ] && [ "$action" = "$want" ] && rank=1
-    [ "$kind" = text ] && [ "$action" = "${want}Arm" ] && rank=2
-    [ "$kind" = code ] && [ "$action" = "$want" ] && rank=3
-    [ "$rank" -lt "$best_rank" ] || continue
-    best=$key
-    best_rank=$rank
-  done < "$bare_file"
-  printf '%s\n' "$best"
-}
-
-# Sample input: [digits] holds 'from = 1', 'to = 9' and 'prefix = "tab"'; those three names are unique in the file.
-digit() {
-  grep "^$1 = " "$src" | cut -d= -f2 | tr -d ' "'
-}
-
-# An empty table would generate an empty POINTER array, and a checklist derived from an empty array
-# passes by having nothing in it, which is exactly what the [digits] blind spot cost this project.
-if [ -z "$(pointer)" ]; then
-  echo "flea-keymap-gen: the [[pointer]] table in $src is missing or unreadable" >&2
-  exit 1
-fi
-
-if [ -z "$(preset)" ]; then
-  echo "flea-keymap-gen: the [[preset]] table in $src is missing or unreadable" >&2
-  exit 1
-fi
-
-preset_conflict || exit 1
-
-bare_file=$(mktemp) || { echo "flea-keymap-gen: could not make a scratch file" >&2; exit 1; }
-trap 'rm -f "$bare_file"' EXIT
-bare_keys > "$bare_file"
-if [ ! -s "$bare_file" ]; then
-  echo "flea-keymap-gen: the [[text]] and [[code]] tables in $src are missing or unreadable" >&2
-  exit 1
-fi
-
-from=$(digit from)
-to=$(digit to)
-prefix=$(digit prefix)
-if [ -z "$from" ] || [ -z "$to" ] || [ -z "$prefix" ]; then
-  echo "flea-keymap-gen: the [digits] table in $src is incomplete" >&2
-  exit 1
-fi
-
-{
-  echo ".pragma library"
-  echo
-  echo "// Generated from keys.toml by tools/flea-keymap-gen. Do not edit."
-  echo "// The selected keybinding preset. A .pragma library holds one copy per QML engine, so"
-  echo "// ui/ViewState.qml sets it once and every caller of lookup() below follows without a"
-  echo "// second wire; it is also the validator, resolving a stored name this build does not"
-  echo "// have to default before it gets here, because an unknown name matches no overlay row."
-  echo "var preset = \"default\""
-  echo "function setPreset(name) { preset = name }"
-  echo
-  echo "// The [[preset]] rows of keys.toml, for ui/SettingsPanel.qml's Keys section. code is the Qt"
-  echo "// name the overlay below matches on, so a row here and the binding are the same keys.toml row."
-  echo "var PRESET_KEYS = ["
-  preset | while IFS=$'\t' read -r n m k caps a l; do
-    if [ "$m" = ctrlshift ]; then shift_state=true; else shift_state=false; fi
-    echo "    { preset: \"$n\", ctrl: true, shift: $shift_state, code: \"Key_$k\", keys: \"$caps\", action: \"$a\", label: \"$l\" },"
-  done
-  echo "]"
-  echo
-  echo "// Checked before every shared table, so a preset can claim a chord the shared tables bind."
-  echo "function lookupPreset(name, key, text, modifiers) {"
-  echo "    var ctrl = (modifiers & Qt.ControlModifier) !== 0"
-  echo "    var shift = (modifiers & Qt.ShiftModifier) !== 0"
-  preset | while IFS=$'\t' read -r n m k caps a l; do
-    if [ "$m" = ctrlshift ]; then shift_state=shift; else shift_state="!shift"; fi
-    echo "    if (name === \"$n\" && ctrl && $shift_state && key === Qt.Key_$k) return \"$a\""
-  done
-  echo "    return \"\""
-  echo "}"
-  echo
-  echo "function lookup(key, text, modifiers) {"
-  echo "    var chosen = lookupPreset(preset, key, text, modifiers)"
-  echo "    if (chosen.length > 0)"
-  echo "        return chosen"
-  echo "    if (modifiers & Qt.ControlModifier) {"
-  # A shifted chord is checked before the plain ctrl rows and falls through when unmatched, so a
-  # ctrl-shift chord nobody bound still reaches the ctrl row for its key.
-  echo "        if (modifiers & Qt.ShiftModifier) {"
-  pairs ctrlshift key | while IFS=$'\t' read -r k a; do
-    echo "            if (key === Qt.Key_$k) return \"$a\""
-  done
-  echo "        }"
-  pairs ctrl key | while IFS=$'\t' read -r k a; do
-    echo "        if (key === Qt.Key_$k) return \"$a\""
-  done
-  echo "        return \"\""
-  echo "    }"
-  echo
-  # No early return here, unlike ctrl above: a shift-modified letter is already distinguished by
-  # its own capital text (see keys.toml), so an unmatched shift+key falls through to that switch.
-  echo "    if (modifiers & Qt.ShiftModifier) {"
-  pairs shift key | while IFS=$'\t' read -r k a; do
-    echo "        if (key === Qt.Key_$k) return \"$a\""
-  done
-  echo "    }"
-  echo
-  echo "    switch (key) {"
-  pairs code key | while IFS=$'\t' read -r k a; do
-    echo "    case Qt.Key_$k: return \"$a\""
-  done
-  echo "    }"
-  echo
-  echo "    switch (text) {"
-  pairs text char | while IFS=$'\t' read -r c a; do
-    echo "    case \"$c\": return \"$a\""
-  done
-  echo "    }"
-  echo
-  echo "    if (text >= \"$from\" && text <= \"$to\") {"
-  echo "        return \"$prefix\" + text"
-  echo "    }"
-  echo "    return \"\""
-  echo "}"
-  echo
-  echo "// The key ui/MenuRow.qml prints beside a menu row, keyed on the row's own action. Only bare"
-  echo "// keys are here: an action reachable by a chord alone leaves its row's hint slot empty, which"
-  echo "// is how Menus.html draws New Folder. Derived from keys.toml, so a hint cannot advertise a key"
-  echo "// nothing is bound to."
-  echo "var HINTS = {"
-  cut -f3 "$bare_file" | sort -u | while read -r a; do
-    hint=$(hint_for "$a")
-    [ -n "$hint" ] && echo "    \"$a\": \"$hint\","
-  done
-  echo "}"
-  echo
-  echo "function hintFor(action) {"
-  echo "    var k = HINTS[String(action)]"
-  echo "    return k ? k : \"\""
-  echo "}"
-  echo
-  echo "// The keymap sheet ui/KeymapSheet.qml draws, from the [[sheet]] table in keys.toml."
-  echo "var SHEET = ["
-  sheet | while IFS=$'\t' read -r k a l; do
-    echo "    { keys: \"$k\", action: \"$a\", label: \"$l\" },"
-  done
-  echo "]"
-  echo
-  echo "// The pointer contract, from the [[pointer]] table in keys.toml. ui/js/Tap.js is what makes"
-  echo "// it true and tests/js/tap.js is what holds the two together."
-  echo "var POINTER = ["
-  pointer | while IFS=$'\t' read -r w p r d l; do
-    echo "    { where: \"$w\", press: \"$p\", row: \"$r\", does: \"$d\", label: \"$l\" },"
-  done
-  echo "]"
-} > "$out"
+try:
+    target = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'ui/js/Keymap.js'
+    source = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / 'keys.toml'
+    target.write_text(generate(tomllib.loads(source.read_text())) + '\n')
+except (OSError, ValueError, KeyError) as error:
+    print(f'flea-keymap-gen: {error}', file=sys.stderr)
+    sys.exit(1)

@@ -94,6 +94,19 @@ for format in $round_trip_formats; do
   stop_backend
 done
 
+# Flea reads rar and writes none, so this direction alone is exercised, and the fixture is built by
+# hand because nothing in the Arch repositories writes a rar. tools/flea-rar-fixture is that builder.
+echo "--- a rar extracts, through whichever reader this box has ---"
+start_backend
+./tools/flea-rar-fixture "$D/holiday.rar" "hello.txt" "hello from a rar" \
+  || { echo "FAIL the rar fixture could not be built"; fail=1; }
+send "{\"c\":\"archive\",\"op\":\"extract\",\"path\":\"$D/holiday.rar\",\"dest\":\"$D/back-rar\"}"
+await '"t":"archivedone"' || fail=1
+check "a rar extracted without error" "1" "$(seen '"t":"archivedone","id":1,"ok":true')"
+check "and its index was readable, so the extract was verified" "1" "$(seen '"id":1,"ok":true,"verified":true')"
+check "the rar round trip kept the file" "hello from a rar" "$(cat "$D/back-rar/hello.txt" 2>/dev/null)"
+stop_backend
+
 echo "--- a destination already there is refused, both directions ---"
 start_backend
 printf 'already here' > "$D/taken.zip"
@@ -140,7 +153,10 @@ check "the fixture really carries the metadata to be stripped" "1" "$before"
 start_backend
 send "{\"c\":\"convert\",\"path\":\"$D/shot.png\",\"dest\":\"$D/shot (converted).jpg\",\"strip\":false}"
 await '"t":"convertdone"' || fail=1
-check "a convert answers with the path it wrote" "1" "$(seen '"t":"convertdone","id":1,"ok":true')"
+# The reply carries requestId and source between id and ok, so a literal run of the three never
+# matched and this had been asserting nothing since those fields were added. Matched field by field.
+check "a convert answers with the path it wrote" "1" \
+  "$(grep -c -E '"t":"convertdone","id":1,.*"ok":true.*"path":"[^"]*shot \(converted\).jpg"' "$D/out" | tr -d ' ')"
 check "and the jpeg is on disk" "JPEG" "$(magick identify -format '%m' "$D/shot (converted).jpg" 2>/dev/null)"
 check "the source is untouched" "PNG" "$(magick identify -format '%m' "$D/shot.png" 2>/dev/null)"
 send "{\"c\":\"convert\",\"path\":\"$D/tagged.png\",\"dest\":\"$D/tagged (stripped).png\",\"strip\":true}"

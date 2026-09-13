@@ -220,40 +220,6 @@ mod tests {
     // O_NONBLOCK, so a watch this test killed fails it by answering nothing rather than by hanging.
     const IN_NONBLOCK: c_int = 0x800;
 
-    // Made with create_dir, which fails rather than adopting a directory that was already there, so the
-    // removal below can only ever reach a path that did not exist a moment earlier; see AGENTS.md.
-    struct Sandbox(std::path::PathBuf);
-
-    impl Sandbox {
-        fn new(name: &str) -> Sandbox {
-            let unique = std::time::SystemTime::now()
-                .duration_since(std::time::UNIX_EPOCH)
-                .map(|d| d.as_nanos())
-                .unwrap_or(0);
-            let dir = std::env::temp_dir()
-                .join(format!("flea-watch-{}-{}-{}", std::process::id(), name, unique));
-            std::fs::create_dir(&dir).expect("a directory no other run already held");
-            Sandbox(dir)
-        }
-    }
-
-    impl Drop for Sandbox {
-        fn drop(&mut self) {
-            // Checked in the test and not in the reviewer's head: absolute, under the temp root, named.
-            let ours = self.0.is_absolute()
-                && self.0.starts_with(std::env::temp_dir())
-                && self.0.file_name().map_or(false, |n| n.to_string_lossy().starts_with("flea-watch-"));
-            if !ours {
-                eprintln!("flea test: refusing to remove {}", self.0.display());
-                return;
-            }
-            // Not a panic: this runs while a failing test is already unwinding, and two would abort.
-            if let Err(e) = std::fs::remove_dir_all(&self.0) {
-                eprintln!("flea test: {} was left behind: {}", self.0.display(), e);
-            }
-        }
-    }
-
     // Sample input: wd 1, mask 0x00000100, cookie 0, len 16, then "NEWFILE.txt\0\0\0\0\0".
     fn carries_a_create(buf: &[u8], wd: c_int) -> bool {
         let mut at = 0;
@@ -292,20 +258,20 @@ mod tests {
     // run at fd -1, where drop_one makes no syscall and the guard therefore has nothing to show.
     #[test]
     fn an_abandoned_re_list_of_the_same_folder_keeps_its_watch() {
-        let sandbox = Sandbox::new("abandon");
+        let sandbox = crate::backend::testdir::TestDir::new("watch-abandon");
         let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
         assert!(fd >= 0, "this box has no inotify to test with");
         let mut w = Watch { fd, wd: -1, incoming: -1 };
-        w.begin(&sandbox.0);
+        w.begin(sandbox.path());
         w.commit();
         let live = w.wd;
         assert!(live >= 0, "the sandbox could not be watched");
 
-        w.begin(&sandbox.0);
+        w.begin(sandbox.path());
         assert_eq!(w.incoming, live, "a re-list of one inode aliases onto the descriptor it has");
         w.abandon();
 
-        std::fs::write(sandbox.0.join("after-an-abandoned-relist.txt"), b"x").expect("a file in the sandbox");
+        sandbox.file("after-an-abandoned-relist.txt", "x");
         assert!(saw_a_create(fd, live), "the abandoned re-list took the open folder's watch with it");
     }
 

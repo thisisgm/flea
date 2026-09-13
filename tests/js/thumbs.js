@@ -6,6 +6,23 @@ function heldRows() {
 }
 
 function run(check) {
+    check("off skips every thumbnail source", Thumbs.allowed({ t: true, i: "image-x-generic" }, "off"), false)
+    check("images excludes video sources", Thumbs.allowed({ t: true, i: "video-x-generic" }, "images"), false)
+    check("images retains image sources", Thumbs.allowed({ t: true, i: "image-x-generic" }, "images"), true)
+    check("media retains eligible video sources", Thumbs.allowed({ t: true, i: "video-x-generic" }, "media"), true)
+    var policyRows = [{ t: true, i: "image-x-generic" }, { t: true, i: "video-x-generic" }, { t: true, i: "video-x-generic" }]
+    var pending = Thumbs.applied(Thumbs.empty(), {ask: [400, 401, 402], drop: []})
+    pending = Thumbs.remember(pending, 402, "/cache/402.png", 240)
+    var imagesOnly = Thumbs.plan(pending, policyRows, 400, 400, 402, "images")
+    check("switching to images cancels pending visible video without cancelling images or completed work", imagesOnly.drop.join(","), "401")
+    pending = Thumbs.applied(pending, imagesOnly)
+    var disabled = Thumbs.plan(pending, policyRows, 400, 400, 402, "off")
+    check("switching off cancels the remaining pending visible image", disabled.drop.join(","), "400")
+    check("switching off never starts replacement work", disabled.ask.length, 0)
+    pending = Thumbs.applied(pending, disabled)
+    check("policy changes preserve completed cached thumbnails", Thumbs.fileFor(pending, 402), "/cache/402.png")
+    check("reenabling media requests cancelled work without regenerating completed work",
+          Thumbs.plan(pending, policyRows, 400, 400, 402, "media").ask.join(","), "400,401")
     var rows = heldRows()
     var s = Thumbs.empty()
 

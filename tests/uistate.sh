@@ -50,7 +50,7 @@ out=$(flea_ui 2>&1); rc=$?
 check "a read exits 0" "0" "$rc"
 check "a read answers the shipped view" "1" "$(echo "$out" | grep -c '"view": "list"')"
 check "a read answers the shipped menu.hidden" "1" "$(echo "$out" | grep -c '"copypath"')"
-check "a read answers every top-level key" "16" "$(echo "$out" | grep -c '^  "')"
+check "a read answers every top-level key" "22" "$(echo "$out" | grep -c '^  "')"
 check "a read leaves no state file behind" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
 
 # The window paints a first launch before any file exists, so the two fallbacks it holds have to be
@@ -95,8 +95,10 @@ out=$(flea_ui '{"view":"grid","places":{"sidebarWidth":240}}' 2>&1); rc=$?
 check "a patch exits 0" "0" "$rc"
 check "a patch prints the stored view" "1" "$(echo "$out" | grep -c '"view": "grid"')"
 check "a patch writes the file" "1" "$([ -f "$UI" ] && echo 1 || echo 0)"
-check "the stored file carries the patched width" "1" "$(grep -c '"sidebarWidth": 240' "$UI")"
-check "the stored file keeps every other key" "16" "$(grep -c '^  "' "$UI")"
+# 240 is not a stop, so src/uistate.rs Rule::SidebarWidth snaps it down to 224: this asserted the
+# raw number and had been failing since the snap was written, which is why it pins the snap now.
+check "the stored file carries the patched width, snapped to a stop" "1" "$(grep -c '"sidebarWidth": 224' "$UI")"
+check "the stored file keeps every other key" "22" "$(grep -c '^  "' "$UI")"
 check "the state file is owner only" "600" "$(stat -c '%a' "$UI")"
 check "the state directory is owner only" "700" "$(stat -c '%a' "$STATE/flea")"
 # ls -A: ui.json and its lock, and no temp file left behind by the rename.
@@ -296,7 +298,7 @@ check "and the read still answers the full default shape" "1" "$(flea_ui 2>&1 | 
 out=$(flea_ui '{"hidden":true}' 2>&1); rc=$?
 check "a patch onto that same file exits 0" "0" "$rc"
 check "and does not leave the operator's bytes" "1" "$([ "$(sha256sum "$UI" | cut -d' ' -f1)" != "$broken_sha" ] && echo 1 || echo 0)"
-check "it writes the full default document instead" "16" "$(grep -c '^  "' "$UI")"
+check "it writes the full default document instead" "22" "$(grep -c '^  "' "$UI")"
 check "so the hand-written key is gone" "1" "$(grep -c '"density": "normal"' "$UI")"
 check "and the patch itself landed" "1" "$(grep -c '"hidden": true' "$UI")"
 

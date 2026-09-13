@@ -153,7 +153,7 @@ function run(check) {
     // Ctrl+E must still refuse a row with nothing mounted rather than starting an editor on it.
     var mounted = { path: "", label: "isos", group: "network", kind: "share", uri: "smb://nas/isos/", mounted: true }
     var saved = { path: "", label: "NAS", group: "network", kind: "share", uri: "smb://nas/", mounted: false }
-    var volume = { path: "/run/media/gm/128GB", label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true }
+    var volume = { path: "/run/media/gm/128GB", label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", mounted: true, removable: true }
     var favourite = { path: "/home/gm", label: "Home", group: "favorite", kind: "favorite", mounted: false }
     function labels(rows) { return rows.map(function (r) { return r.label }).join("|") }
     check("a mounted share releases first, then offers the two the place itself owns",
@@ -173,7 +173,7 @@ function run(check) {
     // A chosen row arrives as its key, never its position: the rail rebuilds on a five second poll.
     function chose(action, key, entries) {
         var log = []
-        var sidebar = { favoriteEntries: [favourite], networkEntries: entries, deviceEntries: [volume],
+        var sidebar = { placesEntries: [favourite, { kind: "trash" }], networkEntries: entries, deviceEntries: [volume],
                         startRename: function (i) { log.push("rename" + i) } }
         var mounts = { unmount: function (i) { log.push("unmount" + i) },
                        forget: function (uri) { log.push("forget " + uri) } }
@@ -181,10 +181,8 @@ function run(check) {
         Mounts.release(action, key, devices, mounts, sidebar)
         return log.join(",")
     }
-    // ui/Sidebar.qml "entries" concatenates favourites, then network, then devices, so a network
-    // row's rail index is past the favourites alone and no device row can sit above it.
-    check("Rename starts the rail's own editor on the row the key names, past the favourites",
-          chose("rename", "smb://nas/", [mounted, saved]), "rename2")
+    check("Rename resolves the network row past Places, including Trash",
+          chose("rename", "smb://nas/", [mounted, saved]), "rename3")
     check("Remove forgets the place by uri and never by position",
           chose("remove", "smb://nas/", [mounted, saved]), "forget smb://nas/")
     check("a key that no longer names a row does nothing at all",

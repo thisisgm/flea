@@ -56,6 +56,28 @@ function run(check) {
     check("and the pane is told to say so", UiState.fromFile("{\"columns\":[\"name\"],}").unreadable, true)
     check("a document that is not an object is the same", UiState.fromFile("[1,2]").unreadable, true)
     check("no file at all is a first launch and says nothing", UiState.fromFile("").unreadable, false)
+    var favouritesDraft = { view: "columns", places: { sidebarWidth: 256, favourites: [{ label: "Before", path: "/before" }] } }
+    var refresh = UiState.refreshedFavourites(favouritesDraft, '{"view":"grid","places":{"sidebarWidth":160,"favourites":[17,{"label":"New","path":"/new"},{"label":"New","path":"/new"}]}}')
+    check("external favourites preserve invalid and duplicate originals", JSON.stringify(refresh.state.places.favourites), '[17,{"label":"New","path":"/new"},{"label":"New","path":"/new"}]')
+    check("external favourites leave the active view alone", refresh.state.view, "columns")
+    check("external favourites leave other Places drafts alone", refresh.state.places.sidebarWidth, 256)
+    check("refresh does not mutate its input", favouritesDraft.places.favourites[0].label, "Before")
+    check("malformed external bytes retain visible records", UiState.refreshedFavourites(favouritesDraft, '{').state, favouritesDraft)
+    check("malformed external bytes report a read error", UiState.refreshedFavourites(favouritesDraft, '{').error.length > 0, true)
+    check("empty live bytes retain visible records", UiState.refreshedFavourites(favouritesDraft, '').state, favouritesDraft)
+    check("empty live bytes report a read error", UiState.refreshedFavourites(favouritesDraft, '').error.length > 0, true)
+    check("nonarray external favourites retain visible records", UiState.refreshedFavourites(favouritesDraft, '{"places":{"favourites":17}}').state, favouritesDraft)
+    check("malformed Places group retains visible records", UiState.refreshedFavourites(favouritesDraft, '{"places":[]}').state, favouritesDraft)
+    check("missing favourites group is the empty new store", UiState.refreshedFavourites(favouritesDraft, '{}').state.places.favourites.length, 0)
+    check("unchanged favourites keep the existing state object", UiState.refreshedFavourites(favouritesDraft, JSON.stringify(favouritesDraft)).state, favouritesDraft)
+    var a = {label:"A", path:"/a"}, b = {label:"B", path:"/b"}, c = {label:"C", path:"/c"}
+    var before = [a, b], ownAdd = UiState.favouritesAfter(before, {op:"add", record:c})
+    check("own add expects every original sibling plus its new record", JSON.stringify(ownAdd), JSON.stringify([a, b, c]))
+    check("a concurrent removal in the successful response is still external", JSON.stringify(ownAdd) === JSON.stringify([b, c]), false)
+    check("own reorder preserves records and predicts their new order", JSON.stringify(UiState.favouritesAfter(before, {op:"move", index:1, to:0})), JSON.stringify([b, a]))
+    check("own removal predicts only its captured index removal", JSON.stringify(UiState.favouritesAfter(before, {op:"remove", index:0})), JSON.stringify([b]))
+    check("own relabel preserves its stored path", JSON.stringify(UiState.favouritesAfter(before, {op:"rename", index:1, label:"Renamed"})), JSON.stringify([a, {label:"Renamed", path:"/b"}]))
+    check("expected operation never mutates the held records", JSON.stringify(before), JSON.stringify([a, b]))
 
     // The document the window holds, rebuilt rather than mutated: a var property notifies on
     // assignment and not on a reach-in, and a whole-group assignment would take one writer's half

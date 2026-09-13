@@ -8,8 +8,7 @@
 // Where the pane has been and how it gets back, taking ui/Pane.qml's root the way Search.js and
 // Ops.js do: the pane holds the state, this holds what the state does.
 
-// Every ordinary navigation remembers where it came from. Deliberately no forward stack: the canvas
-// draws one arrow, not two.
+// A new destination discards the forward branch; refreshing the same directory preserves it.
 function open(pane, newPath) {
     // The guard runs before the push for the same reason back()'s runs before the pop: the listing
     // is refused while one is loading, and by then the entry pushed was a duplicate of the directory
@@ -20,6 +19,7 @@ function open(pane, newPath) {
     }
     if (pane.path.length > 0 && newPath !== pane.path) {
         pane.history = pane.history.concat([pane.path])
+        pane.forwardHistory = []
     }
     pane.openWithoutHistory(newPath)
 }
@@ -36,14 +36,25 @@ function back(pane) {
         return
     }
     var target = pane.history[pane.history.length - 1]
+    pane.forwardHistory = (pane.forwardHistory || []).concat([pane.path])
     // The pop happens before the open, because open() is what would otherwise push it straight back on.
     pane.history = pane.history.slice(0, pane.history.length - 1)
     pane.openWithoutHistory(target)
 }
 
-// Issue 20: the mouse's back button. Nautilus and Explorer bind it to history, so it is the chrome's
-// own left arrow wherever there is somewhere to go back to and the up arrow where there is not, which
-// is the climb the issue asked for. No forward stack, because the canvas draws one arrow and not two.
+function forward(pane) {
+    if (!pane.forwardHistory || pane.forwardHistory.length === 0) return
+    if (pane.listInFlight) {
+        pane.message("A directory is already loading.", false)
+        return
+    }
+    var target = pane.forwardHistory[pane.forwardHistory.length - 1]
+    pane.history = pane.history.concat([pane.path])
+    pane.forwardHistory = pane.forwardHistory.slice(0, -1)
+    pane.openWithoutHistory(target)
+}
+
+// The mouse back button follows history, or climbs when no history exists.
 function mouseBack(pane) {
     // The pane's own context menu covers the listing and no navigation closes it, so a press behind
     // one left the menu standing over another directory's rows and its next row acted on whichever
@@ -86,6 +97,7 @@ function openWithoutHistory(pane, newPath) {
     pane.lockedMode = 0
     pane.clearSelection()
     pane.listArea.primeSettle()
+    pane.appliedListingPreferences = pane.listingPreferences
     pane.backend.list(newPath, pane.windowSize, pane.showHidden)
     // One statfs per directory, not per row: the bar's right half only changes when the pane moves.
     pane.backend.askFsInfo()
@@ -109,58 +121,6 @@ function refresh(pane, selectPath) {
     pane.pendingSelect = selectPath ? selectPath : ""
     pane.pendingMenu = false
     pane.openWithoutHistory(pane.path)
-}
-
-// A change another program made under the open listing, unlike refresh() above which follows Flea's
-// own write. The rows are read again and the cursor is put back on the file it was on by name,
-// because a create above it renumbers every row below and a listing that jumped back to the top
-// would move the user while they were reading it. Returns the anchor applyAnchor() resolves, or null.
-function refreshWatched(pane) {
-    if (pane.listInFlight) {
-        return null
-    }
-    var row = pane.rowFor(pane.cursorIndex)
-    // The path rides along because the anchor can outlive one rows reply: a navigation between the
-    // two below would otherwise put this directory's cursor row onto the next directory's listing.
-    var anchor = { name: row ? String(row.n) : "", index: pane.cursorIndex, start: pane.held, path: pane.path }
-    var query = pane.filterQuery
-    pane.openWithoutHistory(pane.path)
-    // A filter narrows the rows the pane holds rather than choosing which directory it holds, so it
-    // survives a re-read of the same directory; every other caller of openWithoutHistory drops it.
-    pane.filterQuery = query
-    // The re-read answers from row 0, so a cursor deep in a large directory needs its own window back
-    // before the anchor's name can be looked for anywhere near where it was.
-    if (anchor.start > 0) {
-        pane.backend.window(anchor.start, pane.windowSize)
-    }
-    return anchor
-}
-
-// Runs on each rows reply while an anchor stands. The name can arrive in the listing's own first
-// window or in the one asked for above, so a miss in the first is not yet a miss. A name that is
-// gone from both leaves the old index, which keeps the view where the user left it.
-function applyAnchor(pane, anchor) {
-    if (!anchor) {
-        return null
-    }
-    if (pane.path !== anchor.path) {
-        return null
-    }
-    for (var i = 0; i < pane.rows.length; i++) {
-        if (String(pane.rows[i].n) === anchor.name) {
-            pane.setCursor(pane.held + i)
-            return null
-        }
-    }
-    // Still the first window rather than the one asked for above, so keep waiting, but only while that
-    // window can still exist: a listing that shrank past the offset comes back clamped to row 0 instead.
-    if (anchor.start > 0 && pane.held === 0 && pane.total > anchor.start) {
-        return anchor
-    }
-    if (pane.total > 0) {
-        pane.setCursor(Math.min(anchor.index, pane.total - 1))
-    }
-    return null
 }
 
 // Only the first rows response looks for the target, then it is forgotten either way, so a later

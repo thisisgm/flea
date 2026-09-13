@@ -29,22 +29,29 @@ function started(id, moving, n) {
              done: 0, bytes: 0, total: 0 }
 }
 
-// The canvas's own line: "Copying 2 of 5, photo.heic". The count comes from the card's own
-// headline so the bar and the card can never word the same operation two different ways.
+// The count comes from the card's headline so both surfaces name the same progress sample.
 function progressLine(t) {
-    return t.name.length > 0 ? Transfer.head(t) + ", " + t.name : Transfer.head(t)
+    return t.name.length > 0 ? Transfer.head(t) + " · " + t.name : Transfer.head(t)
 }
 
-function transferDone(t, ok, failed, cancelled) {
-    if (cancelled) {
-        return ok > 0 ? "Cancelled after " + items(ok) + UNDO_HINT : "Cancelled."
-    }
+function transferDone(t, ok, failed, skipped, cancelled) {
     var verb = t.moving ? "Moved " : "Copied "
-    if (failed > 0) {
-        var line = verb + items(ok) + ", " + failed + " failed"
-        return ok > 0 ? line + UNDO_HINT : line
-    }
-    return verb + items(ok) + UNDO_HINT
+    var partial = failed > 0 || skipped > 0 || cancelled
+    var line = verb + (partial ? ok + " of " + t.n : items(ok))
+    if (failed > 0) line += " · " + failed + " failed"
+    if (skipped > 0) line += " · " + skipped + " skipped"
+    if (cancelled) line += " · cancelled"
+    return line + (ok > 0 ? UNDO_HINT : "")
+}
+
+function transferFailure(t, name, error) {
+    return (t.moving ? "Move" : "Copy") + " failed: " + name + " · " + error
+}
+
+// Only the identity-checked locate reply supplies these selected retry matches.
+function retrySelectionLine(matches) {
+    if (!matches.length) return ""
+    return (matches.length === 1 ? leaf(matches[0].path) : items(matches.length)) + " selected for retry"
 }
 
 // The canvas draws this one verbatim: "Moved 4 items to Trash · z undoes".
@@ -109,12 +116,12 @@ function leaf(path) {
 // ---- the actions, each taking the pane the way Search.js's own do ----
 
 // Duplicate acts on the cursor row alone: the operations design gives it one path, not a batch.
-function duplicate(pane) {
+function duplicate(pane, menuId) {
     var row = pane.rowFor(pane.cursorIndex)
     if (!row) {
         return
     }
-    pane.backend.duplicate(pane.join(pane.path, row.n))
+    pane.backend.duplicate(pane.join(pane.path, row.n), menuId)
 }
 
 // No name field: the backend answers with the first free "New Folder", so there is no retry loop.
@@ -122,40 +129,58 @@ function newFolder(pane) {
     pane.backend.mkdir(pane.path)
 }
 
-// r on a row the client holds opens the editor over that row's name column. Only ui/Row.qml draws
-// one, so a rename started in the grid or the columns would set ui/js/Focus.js's guard with nothing
-// left to ever clear it, and every later key would be swallowed for the life of the window.
-function startRename(pane) {
-    if (pane.viewMode !== "list") {
-        pane.message("Rename needs the list view.", false)
-        return
-    }
-    if (pane.rowFor(pane.cursorIndex)) {
-        pane.renamingIndex = pane.cursorIndex
+// Every view draws the same inline editor: the list and the grid inside the row, the columns view
+// over its active column, see ui/ColumnPane.qml's own corner.
+function startRename(pane, menuId, index) {
+    if (pane.renamePending) return
+    // The row the request named, not wherever the cursor has reached by the time the reply lands.
+    var at = index !== undefined && index >= 0 ? index : pane.cursorIndex
+    var row = pane.rowFor(at)
+    if (row) {
+        pane.setCursor(at)
+        pane.renameError = ""
+        pane.renameSource = pane.join(pane.path, row.n)
+        pane.renameMenuId = menuId || 0
+        pane.renamingIndex = at
     }
 }
 
-// The row is read before the index is cleared, because clearing it is what closes the editor.
+// Closing before acceptance loses the draft on a refused write; only success or Escape closes it.
 function commitRename(pane, newName) {
+    if (pane.renamePending) return
     var row = pane.rowFor(pane.renamingIndex)
-    pane.renamingIndex = -1
-    if (row) {
-        pane.backend.rename(pane.join(pane.path, row.n), newName)
+    if (!row) {
+        pane.renameError = "Item changed; reopen Rename."
+        return
     }
+    if (!newName.length || newName === "." || newName === ".." || newName.indexOf("/") >= 0 || newName.indexOf("\u0000") >= 0) {
+        pane.renameError = "A name cannot be empty, . or .., or contain /."
+        return
+    }
+    pane.renameError = ""
+    var source = pane.renameSource || pane.join(pane.path, row.n)
+    // The request survives a hidden/reused editor so a late reply cannot finish another rename.
+    pane.renameRequest = {source: source, destination: source.substring(0, source.lastIndexOf("/") + 1) + newName, folder: pane.path}
+    pane.backend.rename(source, newName, pane.renameMenuId || 0)
 }
 
 // Indices, not paths: trash acts on the listing that is up right now, so the backend resolves them.
-function trash(pane) {
+function trash(pane, menuId) {
     var idx = targetIndices(pane)
     if (idx.length === 0) {
         return
     }
-    pane.backend.trash(idx)
+    pane.backend.trash(idx, menuId)
 }
 
 // The clipboard has to hold absolute paths, because a paste happens in a different directory and the
 // listing those indices belonged to is gone by then. The backend resolves them while it still can.
-function clip(pane, moving) {
+function clip(pane, moving, paths) {
+    if (paths) {
+        pane.clipboard = {paths: paths, moving: moving}
+        pane.message(copied(paths.length, moving), false)
+        return
+    }
     var idx = targetIndices(pane)
     if (idx.length === 0) {
         return
@@ -201,15 +226,26 @@ function undo(pane) {
 
 // Sending the cursor row alone rather than the whole selection is Task 9's own scope; row.d is
 // defensive, because the menu already empties its peer list for a directory cursor.
-function sendTaildrop(pane, taildrop, peerId) {
+function sendTaildrop(pane, taildrop, peerId, path) {
+    if (typeof path !== "string" || path.charAt(0) !== "/") {
+        pane.message("Cursor source was not validated; reopen the menu.", true)
+        return
+    }
     var row = pane.rowFor(pane.cursorIndex)
     if (!row || row.d) {
         return
     }
-    taildrop.send(peerId, [pane.join(pane.path, row.n)])
+    if (taildrop.send(peerId, [path]) === false) {
+        // The reason is one shared token: the menu, both front ends and the probes all read it, and
+        // the TUI draws it as "taildrop · signed out". The bar names the subject the same way rather
+        // than printing a bare fragment beside errors that are sentences.
+        pane.message(taildrop.reason ? "Taildrop · " + taildrop.reason
+                                     : "That Taildrop peer is no longer available.", true)
+        return
+    }
     // The dispatch is the only result Flea itself ever knows; success or failure is the OEM script's
     // own desktop notification, see the operations design section 4.1.
-    pane.message("Sending " + row.n + " to " + taildrop.labelFor(peerId) + ".", false)
+    pane.message("Sending " + leaf(path) + " to " + taildrop.labelFor(peerId) + ".", false)
 }
 
 // ---- archives and convert, whose menu rows are only offered when a tool for them exists ----
@@ -228,7 +264,7 @@ function compress(pane, format) {
 }
 
 // The answer to the askPaths above, and the only place an archive request is built.
-function compressResolved(pane, list, format) {
+function compressResolved(pane, list, format, menuId) {
     if (list.length === 0) {
         return
     }
@@ -237,7 +273,7 @@ function compressResolved(pane, list, format) {
         names.push(leaf(list[i]))
     }
     var stem = Archive.archiveStem(names, leaf(pane.path))
-    pane.backend.compress(list, pane.join(pane.path, stem + "." + format), format)
+    pane.backend.compress(list, pane.join(pane.path, stem + "." + format), format, menuId)
     pane.sticky("Compressing " + items(list.length) + " to ." + format)
 }
 
@@ -254,37 +290,34 @@ function pathsResolved(pane, list) {
 }
 
 // Extract unpacks beside the archive, into a directory named after it.
-function extract(pane) {
+function extract(pane, menuId) {
     var row = pane.rowFor(pane.cursorIndex)
     if (!row) {
         return
     }
     var path = pane.join(pane.path, row.n)
-    pane.backend.extract(path, pane.join(pane.path, Archive.extractDir(row.n)))
+    pane.backend.extract(path, pane.join(pane.path, Archive.extractDir(row.n)), menuId)
     pane.sticky("Extracting " + row.n)
 }
 
 // A directory has nothing to convert, so the popup never opens on one.
-function openConvert(pane) {
+function openConvert(pane, menuId) {
     var row = pane.rowFor(pane.cursorIndex)
     if (row && !row.d) {
+        pane.convertSource = {path: pane.join(pane.path, row.n), name: leaf(row.n), menuId: menuId || 0}
         pane.convertRequested(row.n)
     }
 }
 
-function convert(pane, format, strip) {
-    var row = pane.rowFor(pane.cursorIndex)
-    if (!row) {
-        return
-    }
-    pane.backend.convertImage(pane.join(pane.path, row.n),
-                              pane.join(pane.path, Convert.destName(row.n, format)), strip)
-    pane.sticky("Converting " + row.n + " to ." + format)
+function convert(pane, source, format, strip, requestId) {
+    pane.convertSource = Object.assign({}, source, {requestId: requestId})
+    pane.sticky("Converting " + source.name + " to ." + format)
+    pane.backend.convertImage(source.path, Convert.destination(source, format), strip, source.menuId, requestId, false)
 }
 
 // Move to Dropbox is the transfer request with a destination filled in, which is the concrete case
 // where "does this need to exist at all" answers no: no new wire, no new Rust.
-function moveToDropbox(pane, dropboxPath) {
+function moveToDropbox(pane, dropboxPath, menuId) {
     var idx = targetIndices(pane)
     if (idx.length === 0 || dropboxPath.length === 0) {
         return
@@ -293,6 +326,6 @@ function moveToDropbox(pane, dropboxPath) {
     // operator cut or copied earlier would lose it with no way back.
     // Rows, not paths: a selection reaches past the window the client holds, and targetPaths drops
     // every index outside it in silence, so a wide move relocated a few files and abandoned the rest.
-    pane.backend.send({ c: "transfer", op: "move", rows: idx, dest: dropboxPath })
+    pane.backend.send({ c: "transfer", op: "move", rows: idx, dest: dropboxPath, menuId: menuId || 0 })
     pane.sticky("Moving " + items(idx.length) + " to Dropbox")
 }

@@ -8,6 +8,30 @@
 // Left/Right's seek step, Task 22's operator ruling; act is the only reader.
 var SEEK_MS = 5000
 
+function pdfAction(action, viewer) {
+    var controls = viewer.pdfControls
+    if (action === "focusNext" || action === "focusPrevious") {
+        var step = action === "focusPrevious" ? -1 : 1
+        var next = viewer.pdfControlIndex
+        if (next < 0) next = step > 0 ? -1 : 0
+        for (var i = 0; i < controls.length; i++) {
+            next = (next + step + controls.length) % controls.length
+            if (controls[next].enabled && controls[next].visible) {
+                viewer.pdfControlIndex = next
+                break
+            }
+        }
+    } else if (action === "open" || action === "preview") {
+        var control = controls[viewer.pdfControlIndex]
+        if (control && control.enabled && control.visible) control.activated()
+    } else if (action === "seekBack" || action === "parent") viewer.turnPage(-1)
+    else if (action === "seekForward" || action === "pageForward") viewer.turnPage(1)
+    else if (action === "zoomOut") viewer.zoomBy(-1)
+    else if (action === "zoomIn") viewer.zoomBy(1)
+    else if (action === "expand") viewer.toggleExpand()
+    else if (action === "cursorDown" || action === "cursorUp") viewer.scrollPage(action === "cursorDown" ? 1 : -1)
+}
+
 // A directory has no preview kind of its own, so Space on one is a silent no-op rather than an error.
 function open(root) {
     var row = root.rowFor(root.cursorIndex)
@@ -15,9 +39,10 @@ function open(root) {
         root.preview.open(root.join(root.path, row.n), row.i, row.s)
 }
 
-// Preview open: j/k move the cursor and the preview follows; escape always closes. Space closes
-// a text or unsupported preview as before, but toggles play/pause on a MEDIA one instead
-// (Task 22's operator ruling: "the idea is our preview is as good or better than Showtime").
+// Preview open: j/k move the cursor and the preview follows; escape always closes, and so does a
+// second space, on every kind including media (GM, 2026-09-11: "pressing space a second time should
+// close the preview, just like Finder does"). That reverses Task 22, which had space toggle
+// play/pause on a media preview; the strip's own play control still does that with the pointer.
 // Any key reveals the media strip, even one that does nothing else, matching "move the mouse or
 // press anything" from the same ruling.
 function act(action, root) {
@@ -25,9 +50,11 @@ function act(action, root) {
     switch (action) {
     case "cursorDown": Filter.moveCursor(root, 1); follow(root); return
     case "cursorUp": Filter.moveCursor(root, -1); follow(root); return
-    case "preview":
+    case "preview": root.preview.close(); return
+    // Space closes every kind now, so playback has its own key; it self-guards, because p reaches
+    // this only in the media context and a still image has nothing to play.
+    case "playPause":
         if (root.preview.isMedia) root.preview.togglePlay()
-        else root.preview.close()
         return
     case "escape": root.preview.close(); return
     case "seekBack":

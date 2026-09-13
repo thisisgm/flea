@@ -15,12 +15,17 @@ Item {
     property bool canGoUp: false
     // "list", "columns" or "grid"; the button naming the current one takes the accent.
     property string viewMode: "list"
+    property bool showPath: true
     // Read by the path bar alone, so a Tab on a dotted leaf peeks the way the listing is set to look.
     property bool showHidden: false
+    property bool canFilter: false
+    property bool canSort: false
 
     signal backRequested()
     signal upRequested()
     signal searchRequested()
+    signal filterRequested()
+    signal sortRequested()
     signal viewChosen(string mode)
     // The path bar's four. ui/shell.qml navigates, hands the keyboard back, runs the peek behind Tab
     // and carries what the bar says to the status line, because this file draws the chrome and knows
@@ -197,13 +202,31 @@ Item {
         anchors.rightMargin: Theme.spacing.gap
         anchors.top: parent.top
         anchors.bottom: parent.bottom
+        // The strip draws its own rule along that bottom edge, so the content stops above it: without
+        // this the rename editor's frame sat two pixels clear of the strip's top and one of its rule,
+        // which is the same unequal margin the Trash chrome's control had.
+        anchors.bottomMargin: Theme.spacing.hairline
 
         // The tail identifies the directory, so a path too long for the bar loses its head: the row
         // slides left inside a clipped slot, which is the left elision the single Text drew, made of
         // pieces a click can land on.
+        Text {
+            anchors.fill: parent
+            visible: !root.editing && root.showPath && ViewState.addressBar === "path"
+            text: root.home && (root.path === root.home || root.path.indexOf(root.home + "/") === 0)
+                  ? "~" + root.path.substring(root.home.length) : root.path
+            color: Theme.color.foreground
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            verticalAlignment: Text.AlignVCenter
+            elide: Text.ElideLeft
+            textFormat: Text.PlainText
+            TapHandler { onDoubleTapped: root.startEdit() }
+        }
+
         Item {
             id: crumbSlot
-            visible: !root.editing
+            visible: !root.editing && root.showPath && ViewState.addressBar === "breadcrumb"
             anchors.fill: parent
             clip: true
 
@@ -366,12 +389,29 @@ Item {
         spacing: Theme.spacing.gap
 
         Flea.ChromeButton {
+            visible: root.viewMode !== "grid"
             glyph: "search"
             onActivated: root.searchRequested()
         }
 
+        Flea.ChromeButton {
+            visible: root.viewMode === "grid"
+            enabled: root.canFilter
+            glyph: "filter"
+            accessName: "Filter"
+            onActivated: root.filterRequested()
+        }
+
+        Flea.ChromeButton {
+            visible: root.viewMode === "grid"
+            enabled: root.canSort
+            glyph: "sort"
+            accessName: "Sort"
+            onActivated: root.sortRequested()
+        }
+
         Repeater {
-            model: ["list", "columns", "grid"]
+            model: ["list", "columns", "grid", "dual"]
             delegate: Flea.ChromeButton {
                 required property string modelData
                 glyph: modelData
@@ -380,14 +420,13 @@ Item {
             }
         }
 
-        // The Settings board draws the sliders button at the right end, past a rule that separates
-        // it from the three view buttons: it changes the window, not the way the listing is drawn.
-        // Row lays its own children out, so the rule takes the strip's height rather than anchoring.
+        // Row owns horizontal placement; the short Settings divider stays vertically centered.
         Rectangle {
             width: Theme.spacing.hairline
-            height: Theme.chromeHeight
-            color: Theme.color.muted
-            opacity: 0.4
+            height: Theme.chromeMarkSize - Theme.spacing.hairline
+            y: (parent.height - height) / 2
+            color: Theme.color.foreground
+            opacity: 0.12
         }
 
         Flea.ChromeButton {

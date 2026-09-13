@@ -9,6 +9,7 @@ function pane(preview, viewMode) {
     return {
         focusView: "list",
         viewMode: viewMode ? viewMode : "list",
+        chooseView: function (mode) { this.viewMode = mode },
         searchMode: "",
         preview: preview
     }
@@ -131,6 +132,40 @@ function run(check) {
     check("left still steps a grid tile", Focus.lookup(left, pane(closed(), "grid")), "cursorLeft")
     check("right still steps a grid tile", Focus.lookup(right, pane(closed(), "grid")), "cursorRight")
 
+    var gridPane = Fixture.pane()
+    gridPane.viewMode = "grid"
+    gridPane.cursorStride = 3
+    gridPane.wrapAtEnds = true
+    gridPane.cursorIndex = 2
+    Focus.act("cursorDown", gridPane)
+    check("grid j follows row-major order across a row boundary", gridPane.cursorIndex, 3)
+    Focus.act("cursorUp", gridPane)
+    check("grid k follows the previous item", gridPane.cursorIndex, 2)
+    check("grid j is not a physical arrow", Focus.gridArrow(key(Qt.Key_J, "j", none), "cursorDown", gridPane), false)
+    for (var move of [
+        [Qt.Key_Right, "cursorRight", 2, 2], [Qt.Key_Left, "cursorLeft", 3, 3],
+        [Qt.Key_Down, "cursorDown", 2, 5], [Qt.Key_Down, "cursorDown", 5, 5],
+        [Qt.Key_Down, "cursorDown", 3, 6], [Qt.Key_Up, "cursorUp", 6, 3],
+        [Qt.Key_Up, "cursorUp", 0, 0], [Qt.Key_Right, "cursorRight", 6, 6]
+    ]) {
+        gridPane.cursorIndex = move[2]
+        Focus.gridArrow(key(move[0], "", none), move[1], gridPane)
+        check("grid visual neighbour from " + move[2] + " with " + move[1], gridPane.cursorIndex, move[3])
+    }
+    gridPane.cursorStride = 2
+    gridPane.cursorIndex = 3
+    Focus.gridArrow(key(Qt.Key_Down, "", none), "cursorDown", gridPane)
+    check("grid arrows use the reflowed column count", gridPane.cursorIndex, 5)
+
+    gridPane.filterQuery = "screen"
+    gridPane.refresh()
+    gridPane.cursorIndex = 0
+    gridPane.cursorStride = 2
+    Focus.gridArrow(key(Qt.Key_Down, "", none), "cursorDown", gridPane)
+    check("filtered grid arrows address visible cells", gridPane.cursorIndex, 6)
+    Focus.gridArrow(key(Qt.Key_Right, "", none), "cursorRight", gridPane)
+    check("filtered final row has no right cell", gridPane.cursorIndex, 6)
+
     // Nothing in keys.toml is bound ahead of its feature now: lookup hands both actions through
     // and handleKey routes each above the views, so neither answers with a sentence any more.
     var colon = key(Qt.Key_Colon, ":", shift)
@@ -138,11 +173,10 @@ function run(check) {
     var newTab = key(Qt.Key_T, "t", none)
     check("t resolves to a new tab", Focus.lookup(newTab, pane(closed())), "tabNew")
 
-    // The filter narrows rows already on screen, which only the list view draws; the GridView and
-    // Columns boards draw no filter, so / is dropped there rather than narrowing a view nothing shows.
+    // GridView includes Filter in its chrome; both supported views narrow their held rows.
     var slash = key(Qt.Key_Slash, "/", none)
     check("slash opens the filter in the list view", Focus.lookup(slash, pane(closed())), "filter")
-    check("slash is discarded in the grid", Focus.lookup(slash, pane(closed(), "grid")), "")
+    check("slash opens the filter in the grid view", Focus.lookup(slash, pane(closed(), "grid")), "filter")
     check("slash is discarded in the columns view", Focus.lookup(slash, pane(closed(), "columns")), "")
     // A walk replaces the listing a filter would be narrowing, and its strip covers the header, so
     // / goes quiet there exactly as s and S do.
@@ -176,6 +210,22 @@ function run(check) {
     Focus.act("escape", typing)
     check("esc while the query line has the caret closes it", typing.filterTyping, false)
 
+    var activeStatus = escaper("needle", 0)
+    var statusEscapes = 0
+    activeStatus.statusBar = {escapePressed: function () { statusEscapes += 1; return true }}
+    activeStatus.searchMode = "results"
+    activeStatus.searchRunning = true
+    Focus.act("escape", activeStatus)
+    check("filter consumes Escape before search or transfer", activeStatus.filterQuery + "|" + activeStatus.cancelled + "|" + statusEscapes, "|0|0")
+    Focus.act("escape", activeStatus)
+    check("focused search consumes Escape before transfer", activeStatus.cancelled + "|" + statusEscapes, "1|0")
+    activeStatus.searchMode = ""
+    Focus.act("escape", activeStatus)
+    check("status consumes Escape before marks", statusEscapes + "|" + activeStatus.retreated, "1|0")
+    activeStatus.statusBar.escapePressed = function () { return false }
+    Focus.act("escape", activeStatus)
+    check("idle status lets Escape clear marks", activeStatus.retreated, 1)
+
     // The search strip covers the header whole, so its mark cannot be seen moving, and a sort ends
     // the walk in the backend. Both keys go silent while a search is up rather than cancelling one
     // from a key the sheet never advertised there.
@@ -193,14 +243,22 @@ function run(check) {
     check("m raises the menu while the rail has focus", Focus.lookup(m, railPane()), "menu")
     check("m raises the menu in the list too, so the row menu has a key", Focus.lookup(m, pane(closed())), "menu")
 
-    // Finder's Cmd+K with Cmd read as Ctrl opens the dialog from either view; the bare a stays a rail
-    // key, because in the list the letter is not bound at all. Ctrl+K is the Mac preset's own chord,
-    // so the preset is named here rather than assumed: the map opens on Default, which claims none.
+    // Ctrl+K opens the dialog from either view, and so does the bare a: keys.toml promised "either the
+    // list or the rail" from the first commit while Focus.js made it rail-only (GM, 2026-09-11).
+    // Ctrl+K is the Mac preset's chord, so the preset is named rather than assumed.
     var ctrl = Qt.ControlModifier
     Keymap.setPreset("mac")
     check("ctrl k connects to a server from the list", Focus.lookup(key(Qt.Key_K, "\u000b", ctrl), pane(closed())), "addNetwork")
+    check("Mac List Right still opens the cursor", Focus.lookup(right, pane(closed())), "open")
+    check("Mac List Left still opens the parent", Focus.lookup(left, pane(closed())), "parent")
+    for (var preset of Keymap.PRESETS) {
+        Keymap.setPreset(preset)
+        check(preset + " Grid Left moves between tiles", Focus.lookup(left, pane(closed(), "grid")), "cursorLeft")
+        check(preset + " Grid Right moves between tiles", Focus.lookup(right, pane(closed(), "grid")), "cursorRight")
+        check(preset + " Grid PDF Right keeps page navigation", Focus.lookup(right, pane(pdfOpen(), "grid")), "seekForward")
+    }
     Keymap.setPreset("default")
-    check("bare a is still nothing in the list", Focus.lookup(key(Qt.Key_A, "a", none), pane(closed())), "")
+    check("bare a adds a network place from the list too", Focus.lookup(key(Qt.Key_A, "a", none), pane(closed())), "addNetwork")
     var dialled = listPane(true)
     dialled.sidebar = { asked: 0, addRequested: function () { this.asked += 1 } }
     Focus.act("addNetwork", dialled)
@@ -229,7 +287,7 @@ function run(check) {
     // Finder's Cmd+E in a listing: the removable volume the listing is inside, whose verdict is
     // Mounts.railMenu's, released through the same releaseChosen a chosen menu row takes. The rail's
     // own half of the key is ui/js/RailKeys.js's, and tests/js/railkeys.js drives it.
-    var stick = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", path: "/run/media/user/128GB", mounted: true }
+    var stick = { label: "128GB", group: "device", kind: "volume", device: "/dev/sda1", path: "/run/media/user/128GB", mounted: true, removable: true }
     var inside = ejectPane("list", "/run/media/user/128GB/photos", [home, stick], 0)
     Focus.act("eject", inside)
     check("ctrl e in a listing inside the volume ejects that volume, whatever the rail cursor is on",
@@ -238,7 +296,7 @@ function run(check) {
     Focus.act("eject", outside)
     check("ctrl e in a listing on the internal disk says so, even with the rail cursor on the stick",
           outside.sidebar.released.length + "|" + outside.said,
-          "0|This directory is not inside a removable volume, so there is nothing to eject.")
+          "0|This is not inside a removable volume.")
 
     // The listing's m goes through the pane, which says whether a delegate was under the cursor; an
     // empty directory and a filter that hides every row both get the sentence rather than silence.
@@ -266,6 +324,34 @@ function run(check) {
     Focus.act("openTerminal", fromMenu)
     check("the menu row reaches the same terminal through act", fromMenu.asked + "|" + fromMenu.said, "1|")
 
+    var menu = listPane(true)
+    var menuRequests = []
+    menu.path = "/d"
+    menu.cursorIndex = 0
+    menu.rowFor = function () { return {n: "selected.txt"} }
+    menu.selectedIndices = function () { return [] }
+    menu.join = function (parent, name) { return parent + "/" + name }
+    menu.sticky = function () {}
+    menu.backend = {
+        duplicate: function (path, id) { menuRequests.push("duplicate:" + id) },
+        trash: function (rows, id) { menuRequests.push("trash:" + id) },
+        extract: function (path, dest, id) { menuRequests.push("extract:" + id) },
+        compress: function (paths, dest, format, id) { menuRequests.push(paths.join(",") + ":" + id) }
+    }
+    menu.moveToDropbox = function (id) { menuRequests.push("dropbox:" + id) }
+    menu.openConvert = function (id) { menuRequests.push("convert:" + id) }
+    var selectedPaths = ["/d/captured.txt", "/d/second.txt"]
+    Focus.act("copy", menu, 42, selectedPaths)
+    check("menu dispatch copies the captured paths without another asynchronous lookup",
+          menu.clipboard.paths.join(",") + "|" + menu.clipboard.moving, "/d/captured.txt,/d/second.txt|false")
+    Focus.act("cut", menu, 42, selectedPaths)
+    check("menu cut keeps the captured paths and move intent", menu.clipboard.moving, true)
+    for (var action of ["duplicate", "trash", "extract", "dropbox", "convert", "compress:zip"])
+        Focus.act(action, menu, 42, selectedPaths)
+    check("menu dispatch keeps the identity through each mutation consumer",
+          menuRequests.join("|"),
+          "duplicate:42|trash:42|extract:42|dropbox:42|convert:42|/d/captured.txt,/d/second.txt:42")
+
     // Y copies root.path, the same thing Ctrl+T opens a terminal on, so it answers from the rail
     // too; without the interception RailKeys.act ate it and the key did nothing and said nothing.
     var copyKey = key(Qt.Key_Y, "Y", shift)
@@ -275,4 +361,14 @@ function run(check) {
     var copyRail = chromePane("rail")
     Focus.handleKey(copyKey, copyRail, copyRail.sidebar)
     check("Y copies the folder path from the rail as well", copyRail.copied, 1)
+
+    var shareOwner = chromePane("list")
+    var otherPane = chromePane("list")
+    var sharedBrowser = {active: true, owner: shareOwner}
+    shareOwner.shareBrowser = sharedBrowser
+    otherPane.shareBrowser = sharedBrowser
+    check("a share listing belongs to the pane that requested it", Focus.shareBrowserHere(shareOwner), true)
+    check("another pane keeps its own key context while the shared listing is open", Focus.shareBrowserHere(otherPane), false)
+    sharedBrowser.active = false
+    check("closing the share listing releases its owner's keys", Focus.shareBrowserHere(shareOwner), false)
 }

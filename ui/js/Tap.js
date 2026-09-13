@@ -13,6 +13,7 @@
 
 // The listing: the list view, the grid view, and the columns view's own middle column.
 function tapped(index, tapCount, modifiers, root) {
+    if (index < 0) return
     // Finder's two selection modifiers. Neither ever opens, and only the first tap of one counts,
     // so a modified double click selects once instead of toggling itself back off.
     if (modifiers & Qt.ControlModifier) {
@@ -23,19 +24,46 @@ function tapped(index, tapCount, modifiers, root) {
         if (tapCount === 1) root.extendSelectionTo(index)
         return
     }
+    // What a tap means is the search's to say, not this file's: on a result the operator's ruling is
+    // that it takes you to the file rather than launching it, and ui/js/Search.js activateAction
+    // answers "open" everywhere else. A result answers on the first tap (2026-09-11), so the reveal
+    // has already moved the pane by the time a second one arrives and that tap belongs to another
+    // directory's row: it selects nothing and reveals nothing, tappedColumn's rule for its own reveal.
+    var verb = Search.activateAction(root)
+    if (verb === "reveal" && tapCount !== 1)
+        return
     // Finder commits an open inline rename when you click away, and the field's own text is what
     // lands. It goes first so the write happens before the selection moves under it.
     root.commitOpenRename()
     // The plain tap replaces the selection with this row, Finder's rule: leaving the old one
     // standing would extend the next shift+click from an anchor nothing on screen names, and every
     // write operation targets the selection ahead of the cursor row.
-    root.clearSelection()
-    root.setCursor(index)
-    // What the second tap means is the search's to say, not this file's: on a result the operator's
-    // ruling is that it takes you to the file rather than launching it, and ui/js/Search.js
-    // activateAction answers "open" everywhere else. It was written for this call and had none.
-    if (tapCount === 2)
-        root.act(Search.activateAction(root))
+    root.selectOnly(index)
+    if (tapCount === 2 || verb === "reveal")
+        root.act(verb)
+}
+
+// The columns view's own middle column, and ui/ColumnsArea.qml is its only caller, which is what
+// keeps this out of the list and the grid. Its two neighbour columns already go into a directory on
+// one tap, and the operator's 2026-09-11 ruling is that the column holding the cursor does the same,
+// which is Finder's column view. A directory alone: everything else is an ordinary listing tap and
+// reads tapped() above, so a file still opens on the second tap and a modifier still only selects.
+function tappedMiddle(index, tapCount, modifiers, root) {
+    var row = index >= 0 ? root.rowFor(index) : null
+    var plain = (modifiers & (Qt.ControlModifier | Qt.ShiftModifier)) === 0
+    if (!row || !row.d || !plain) {
+        tapped(index, tapCount, modifiers, root)
+        return
+    }
+    // The first tap moved the pane, so a second one is another directory's row, the same reason
+    // tappedColumn refuses to reveal a neighbour twice.
+    if (tapCount !== 1)
+        return
+    root.commitOpenRename()
+    root.selectOnly(index)
+    // A directory listed as a search result is still a result, so the one decision point answers here
+    // too: it reveals rather than opening, exactly as the same row does in the list view.
+    root.act(Search.activateAction(root))
 }
 
 // Right click, in all three views: the row under the pointer takes the cursor and the menu opens there.

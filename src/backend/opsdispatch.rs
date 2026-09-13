@@ -1,15 +1,15 @@
 // Dispatch for the five write operations: one runs at a time, because the status bar has one sticky slot for it.
 use crate::backend::ops;
 use crate::backend::opsreq::{
-    duplicated_line, made_line, op_err, renamed_line, run_duplicate, run_transfer, run_trash, trashed_line,
+    duplicated_line, made_line, op_err, renamed_line, run_duplicate_checked, run_transfer_checked, run_trash, trashed_line,
     transferdone_line, transferitem_line, transferprogress_line, transferstarted_line, undone_line, usable_dest,
     OpMsg,
 };
 use crate::backend::listing::Listing;
 use crate::backend::proto::error_line;
-use crate::backend::undo::{Entry, Journal};
+use crate::backend::undo::{Entry, ItemIdentity, Journal};
 use std::io::Write;
-use std::path::Path;
+use std::path::{Path, PathBuf};
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
@@ -18,6 +18,11 @@ use std::thread;
 // Everything the write operations own, kept apart from the listing state they never touch.
 pub(crate) struct Ops {
     pub journal: Journal,
+    pub permissions: super::permissions::Permissions,
+    pub picker: Option<super::picker::Picker>,
+    pub menuactions: Option<super::menu_actions::MenuActions>,
+    pub trashbrowser: Option<super::trashbrowse::TrashBrowser>,
+    pub transfer_retry: (usize, Vec<(PathBuf, ItemIdentity)>),
     pub next_id: usize,
     // The id of the operation on the thread, or None when none is running; the cap is one at a time.
     pub running: Option<usize>,
@@ -27,7 +32,8 @@ pub(crate) struct Ops {
 
 impl Ops {
     pub fn new(tx: Sender<OpMsg>) -> Ops {
-        Ops { journal: Journal::new(), next_id: 1, running: None, cancel: Arc::new(AtomicBool::new(false)), tx }
+        Ops { journal: Journal::new(), permissions: super::permissions::Permissions::default(), picker: None, menuactions: None, trashbrowser: None,
+              transfer_retry: (0, Vec::new()), next_id: 1, running: None, cancel: Arc::new(AtomicBool::new(false)), tx }
     }
 
     // An id with no slot claimed: archive and convert are id-keyed and run concurrently by design,
@@ -69,6 +75,38 @@ pub(crate) fn resolve_rows(paths: Vec<String>, rows: &[usize], base: &Path, list
 }
 
 pub(crate) fn start_transfer(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str) {
+    start_transfer_checked(out, ops, op, paths, dest, None, None)
+}
+
+pub(crate) fn request_menu_action(out: &mut impl Write, ops: &mut Ops, line: String, paths: Vec<String>, cursor: Option<String>) {
+    let deleting = crate::json::field_str(&line, "op").as_deref() == Some("delete");
+    if deleting && ops.running.is_some() {
+        writeln!(out, "{}", super::menu_actions::response(&line, Err("An operation is already running.".into()))).ok();
+        out.flush().ok();
+        return;
+    }
+    let replies = ops.tx.clone();
+    let accepted = ops.menuactions.get_or_insert_with(|| super::menu_actions::MenuActions::new(replies)).request(line, paths, cursor);
+    if deleting && accepted { ops.claim(); }
+}
+
+pub(crate) fn start_menu_transfer(out: &mut impl Write, ops: &mut Ops, op: &str, id: usize, dest: &str) {
+    let result = ops.menuactions.as_ref().ok_or_else(|| "Menu selection expired; reopen the menu.".to_string())
+        .and_then(|menu| Ok((menu.selection(id)?, menu.provider_destination(id, Path::new(dest))?)));
+    match result {
+        Ok((items, destination)) => {
+            let paths = items.iter().map(|item| item.path.to_string_lossy().into()).collect();
+            start_transfer_checked(out, ops, op, paths, dest, Some(items), destination);
+        }
+        Err(message) => {
+            writeln!(out, "{}", error_line(&op_err("transfer", "", &message))).ok();
+            out.flush().ok();
+        }
+    }
+}
+
+fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str,
+                          selection: Option<Vec<super::menu_actions::Selected>>, destination: Option<super::menu_actions::Selected>) {
     if ops.running.is_some() {
         busy(out, "transfer");
         return;
@@ -84,11 +122,12 @@ pub(crate) fn start_transfer(out: &mut impl Write, ops: &mut Ops, op: &str, path
     // Anything that is not exactly "move" is a copy, so a malformed op can never remove a source.
     let moving = op == "move";
     let n = paths.len();
+    ops.transfer_retry = (0, Vec::new());
     let (id, cancel) = ops.claim();
     writeln!(out, "{}", transferstarted_line(id, n, moving)).ok();
     out.flush().ok();
     let tx = ops.tx.clone();
-    thread::spawn(move || run_transfer(id, moving, paths, dest, cancel, tx));
+    thread::spawn(move || run_transfer_checked(id, moving, paths, dest, cancel, tx, selection, destination));
 }
 
 // No response line of its own: the running operation answers with its own terminal transferdone.
@@ -98,29 +137,56 @@ pub(crate) fn cancel_transfer(ops: &Ops, id: usize) {
     }
 }
 
-pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>) {
+pub(crate) fn menu_sources(ops: &Ops, id: usize) -> Result<Option<Vec<super::menu_actions::Selected>>, String> {
+    if id == 0 { return Ok(None); }
+    ops.menuactions.as_ref().ok_or_else(|| "Menu selection expired; reopen the menu.".to_string())
+        .and_then(|menu| menu.selection(id)).map(Some)
+}
+
+pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>, menu_id: usize) {
     if ops.running.is_some() {
         busy(out, "trash");
         return;
     }
+    let selection = match menu_sources(ops, menu_id) {
+        Ok(selection) => selection,
+        Err(message) => { writeln!(out, "{}", error_line(&op_err("trash", "", &message))).ok(); out.flush().ok(); return; }
+    };
     ops.claim();
     let tx = ops.tx.clone();
-    thread::spawn(move || run_trash(paths, tx));
+    thread::spawn(move || run_trash(paths, tx, selection));
 }
 
-pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str) {
+pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str, menu_id: usize) {
     if ops.running.is_some() {
         busy(out, "duplicate");
         return;
     }
+    let selection = match menu_sources(ops, menu_id) {
+        Ok(selection) => selection,
+        Err(message) => { writeln!(out, "{}", error_line(&op_err("duplicate", path, &message))).ok(); out.flush().ok(); return; }
+    };
     ops.claim();
     let tx = ops.tx.clone();
     let owned = path.to_string();
-    thread::spawn(move || run_duplicate(owned, tx));
+    thread::spawn(move || run_duplicate_checked(owned, tx, selection));
 }
 
 // Rename answers on the calling thread; rclone directory compatibility may copy before removing its source.
+pub(crate) fn do_menu_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str, id: usize) {
+    let checked = ops.menuactions.as_ref().ok_or_else(|| "Menu selection expired; reopen the menu.".to_string())
+        .and_then(|menu| menu.selected_path(id, Path::new(path)))
+        .and_then(|item| item.current());
+    if let Err(error) = checked {
+        writeln!(out, "{}", error_line(&op_err("rename", path, &error))).ok();
+        out.flush().ok();
+        return;
+    }
+    do_rename(out, ops, path, to);
+}
+
 pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str) {
+    if ops.running.is_some() { busy(out, "rename"); return; }
     match ops::rename(Path::new(path), to) {
         Ok((dst, steps)) => {
             ops.journal.push(Entry { op: "rename".to_string(), steps });
@@ -135,6 +201,7 @@ pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &st
 
 // One mkdir(2), so like rename it answers on the calling thread and never takes the operation slot.
 pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str) {
+    if ops.running.is_some() { busy(out, "mkdir"); return; }
     match ops::mkdir(Path::new(parent), name) {
         Ok((dir, steps)) => {
             ops.journal.push(Entry { op: "mkdir".to_string(), steps });
@@ -148,6 +215,7 @@ pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: 
 }
 
 pub(crate) fn do_undo(out: &mut impl Write, ops: &mut Ops) {
+    if ops.running.is_some() { busy(out, "undo"); return; }
     match ops.journal.undo() {
         Ok(op) => writeln!(out, "{}", undone_line(&op, true)).ok(),
         Err(e) => writeln!(out, "{}", error_line(&e)).ok(),
@@ -155,19 +223,61 @@ pub(crate) fn do_undo(out: &mut impl Write, ops: &mut Ops) {
     out.flush().ok();
 }
 
+pub(crate) fn do_newfile(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, id: usize) {
+    if ops.running.is_some() {
+        let request = format!(r#"{{"op":"newFile","id":{}}}"#, id);
+        writeln!(out, "{}", super::menu_actions::response(&request, Err("An operation is already running.".into()))).ok();
+        out.flush().ok();
+        return;
+    }
+    let result = super::menu_actions::create_file(Path::new(parent), name).map(|(path, identity)| {
+        ops.journal.push(Entry { op: "newfile".into(), steps: vec![super::undo::Step::MadeFile { path: path.clone(), identity }] });
+        format!(r#""path":"{}""#, crate::json::escape(&path.to_string_lossy()))
+    });
+    let request = format!(r#"{{"op":"newFile","id":{}}}"#, id);
+    writeln!(out, "{}", super::menu_actions::response(&request, result)).ok();
+    out.flush().ok();
+}
+
+pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
+    if ops.running.is_some() { busy(out, "redo"); return; }
+    let (op, n) = match ops.journal.redo_info() {
+        Ok(info) => info,
+        Err(error) => {
+            writeln!(out, "{}", error_line(&error)).ok();
+            out.flush().ok();
+            return;
+        }
+    };
+    let (id, cancel) = ops.claim();
+    let mut journal = std::mem::replace(&mut ops.journal, Journal::new());
+    writeln!(out, r#"{{"t":"redostarted","id":{},"n":{},"op":"{}"}}"#, id, n, crate::json::escape(&op)).ok();
+    out.flush().ok();
+    let tx = ops.tx.clone();
+    thread::spawn(move || {
+        let result = journal.redo(id, &cancel, &tx);
+        let _ = tx.send(OpMsg::RedoDone { journal, result });
+    });
+}
+
 // Every message an operation thread sends, written out and, when terminal, recorded in the journal.
 pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
     match msg {
+        OpMsg::MenuDeleteDone { line } => {
+            ops.running = None;
+            writeln!(out, "{}", line).ok();
+        }
         OpMsg::Progress { id, index, name, bytes, total } => {
             writeln!(out, "{}", transferprogress_line(id, index, &name, bytes, total)).ok();
         }
         OpMsg::Item { id, index, name, ok, err } => {
             writeln!(out, "{}", transferitem_line(id, index, &name, ok, &err)).ok();
         }
-        OpMsg::TransferDone { id, ok, failed, skipped, cancelled, entry } => {
+        OpMsg::TransferDone { id, ok, failed, skipped, cancelled, entry, retry } => {
             ops.journal.push(entry);
             ops.running = None;
-            writeln!(out, "{}", transferdone_line(id, ok, failed, skipped, cancelled)).ok();
+            ops.transfer_retry = (id, retry);
+            writeln!(out, "{}", transferdone_line(id, ok, failed, skipped, cancelled, &ops.transfer_retry.1)).ok();
         }
         OpMsg::Trashed { ok, failed, entry } => {
             ops.journal.push(entry);
@@ -186,6 +296,14 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
             } else {
                 writeln!(out, "{}", error_line(&op_err("duplicate", "", &err))).ok();
             }
+        }
+        OpMsg::RedoDone { journal, result } => {
+            ops.journal = journal;
+            ops.running = None;
+            match result {
+                Ok(op) => writeln!(out, r#"{{"t":"redone","op":"{}","ok":true}}"#, crate::json::escape(&op)).ok(),
+                Err(error) => writeln!(out, "{}", error_line(&error)).ok(),
+            };
         }
     }
     out.flush().ok();
@@ -233,6 +351,63 @@ mod tests {
         assert!(!flag.load(Ordering::Relaxed), "a stale id must not cancel the live operation");
         cancel_transfer(&o, id);
         assert!(flag.load(Ordering::Relaxed));
+    }
+
+    #[test]
+    fn permanent_delete_owns_the_mutation_slot_and_releases_it_on_refusal() {
+        let (tx, rx) = channel();
+        let mut o = Ops::new(tx);
+        let mut buf = out();
+        o.claim();
+        request_menu_action(&mut buf, &mut o, r#"{"op":"delete","id":5,"token":1}"#.into(), vec![], None);
+        assert!(text(&buf).contains(r#""op":"delete","ok":false"#));
+        assert!(text(&buf).contains("already running"));
+        assert!(o.menuactions.is_none(), "busy refusal must not start a competing service");
+        o.running = None;
+        buf.clear();
+        request_menu_action(&mut buf, &mut o, r#"{"op":"delete","id":5,"token":1}"#.into(), vec![], None);
+        assert!(o.running.is_some());
+        let message = rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap();
+        assert!(matches!(&message, OpMsg::MenuDeleteDone { .. }));
+        report_op(&mut buf, &mut o, message);
+        assert!(o.running.is_none());
+        assert!(text(&buf).contains("expired"));
+    }
+
+    #[test]
+    fn menu_rename_checks_only_the_requested_captured_identity() {
+        let d = TestDir::new("menu-rename");
+        let first = d.file("first", "first");
+        let second = d.file("second", "second");
+        let foreign = d.file("foreign", "foreign");
+        let (tx, rx) = channel();
+        let mut o = Ops::new(tx.clone());
+        let menu = super::super::menu_actions::MenuActions::new(tx);
+        menu.request(r#"{"op":"snapshot","id":5}"#.into(), vec![first.to_string_lossy().into(), second.to_string_lossy().into()], None);
+        let OpMsg::Meta { line } = rx.recv_timeout(std::time::Duration::from_secs(5)).unwrap() else { panic!("snapshot reply"); };
+        assert!(line.contains(r#""ok":true"#));
+        o.menuactions = Some(menu);
+        for path in [&first, &second, &foreign] { assert!(path.is_absolute() && path.starts_with(d.path())); }
+        let mut buf = out();
+        do_menu_rename(&mut buf, &mut o, &first.to_string_lossy(), "first-renamed", 5);
+        assert!(text(&buf).contains(r#""t":"renamed","ok":true"#));
+        buf.clear();
+        do_menu_rename(&mut buf, &mut o, &second.to_string_lossy(), "second-renamed", 5);
+        assert!(text(&buf).contains(r#""t":"renamed","ok":true"#), "a prior successful rename must not invalidate the next captured item");
+        assert_eq!(o.journal.len(), 2);
+        buf.clear();
+        do_menu_rename(&mut buf, &mut o, &foreign.to_string_lossy(), "wrong", 5);
+        assert!(text(&buf).contains("not in the menu selection"));
+        d.file("first", "replacement");
+        buf.clear();
+        do_menu_rename(&mut buf, &mut o, &first.to_string_lossy(), "wrong", 5);
+        assert!(text(&buf).contains("Selected item changed"));
+        assert_eq!(std::fs::read_to_string(&first).unwrap(), "replacement");
+        assert_eq!(std::fs::read_to_string(&foreign).unwrap(), "foreign");
+        buf.clear();
+        do_menu_rename(&mut buf, &mut o, &first.to_string_lossy(), "wrong", 4);
+        assert!(text(&buf).contains("expired"));
+        assert!(!d.join("wrong").exists());
     }
 
     #[test]
@@ -310,7 +485,7 @@ mod tests {
         let mut o = ops();
         o.claim();
         let mut buf = out();
-        start_trash(&mut buf, &mut o, vec![d.file("a.txt", "a").to_string_lossy().to_string()]);
+        start_trash(&mut buf, &mut o, vec![d.file("a.txt", "a").to_string_lossy().to_string()], 0);
         assert!(text(&buf).contains("an operation is already running"));
         assert!(d.join("a.txt").exists(), "the refused operation touched nothing");
     }

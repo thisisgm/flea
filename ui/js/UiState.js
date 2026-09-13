@@ -20,6 +20,29 @@ function fromFile(text) {
     return { state: {}, unreadable: text.length > 0 }
 }
 
+// External favourites update independently of this window's settings drafts and pending patches.
+function refreshedFavourites(state, text) {
+    var read = fromFile(text)
+    var places = read.state.places
+    if (text.length === 0 || read.unreadable || (places !== undefined && (!places || typeof places !== "object" || Array.isArray(places)))
+            || (places && places.favourites !== undefined && !Array.isArray(places.favourites)))
+        return { state: state, error: "Favorites could not be refreshed: invalid ui.json; previous entries kept." }
+    var records = places && places.favourites || []
+    if (JSON.stringify((state.places || {}).favourites || []) === JSON.stringify(records))
+        return { state: state, error: "" }
+    return { state: withGroup(state, "places", { favourites: records }), error: "" }
+}
+
+// Compare a save with this window's intent, because the writer response can include concurrent edits.
+function favouritesAfter(records, operation) {
+    var next = records.slice()
+    if (operation.op === "add") next.push(operation.record)
+    else if (operation.op === "remove") next.splice(operation.index, 1)
+    else if (operation.op === "move") next.splice(operation.to, 0, next.splice(operation.index, 1)[0])
+    else if (operation.op === "rename") next[operation.index] = Object.assign({}, next[operation.index], { label: operation.label })
+    return next
+}
+
 // A copy of the document with one top-level key replaced, and the nested version of the same. QML
 // notifies on assignment and not on a mutation, so every writer rebuilds rather than reaching in;
 // the nested one merges into the group beside it, because a whole-group assignment would take the

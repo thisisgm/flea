@@ -7,7 +7,7 @@ use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
 use crate::backend::peek::peek_line;
 use crate::backend::metareq::spawn as spawn_meta;
-use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, Ops};
+use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::mime::Db;
 use crate::backend::dirsizereq::{queue_dirsizes, walk_one_dirsize};
@@ -23,7 +23,7 @@ use crate::backend::listing::Listing;
 use crate::backend::search::Search;
 use crate::backend::state::{State, Tables};
 use crate::backend::searchreq::{finish_search, step_search};
-use crate::backend::sort::{parse_sort_by, sort_by_name, sort_listing};
+use crate::backend::ordering;
 use crate::backend::thumbcache::{default_root, Cache};
 use crate::backend::thumbreq::{cancel_row, forget_one, report_done, thumb_rows};
 use crate::backend::thumbs::{Done, Pool};
@@ -157,6 +157,21 @@ fn handle_line(
     watch: &mut Watch,
 ) -> Control {
     match parse_request(line) {
+        Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
+        Request::Picker { line } => {
+            let replies = ops.tx.clone();
+            ops.picker.get_or_insert_with(|| super::picker::Picker::new(replies)).request(line);
+        }
+        Request::MenuAction { line, rows } => {
+            let paths = resolve_rows(Vec::new(), &rows, &st.base, &st.listing);
+            let cursor = crate::json::field_usize(&line, "cursor").map(|index|
+                resolve_rows(Vec::new(), &[index], &st.base, &st.listing).into_iter().next().unwrap_or_default());
+            super::opsdispatch::request_menu_action(out, ops, line, paths, cursor);
+        }
+        Request::TrashBrowse { line } => {
+            let replies = ops.tx.clone();
+            ops.trashbrowser.get_or_insert_with(|| super::trashbrowse::TrashBrowser::new(replies)).request(line);
+        }
         Request::List { path, first, hidden } => {
             // A new listing replaces whatever the walk was filling, so the walk ends before the scan starts.
             if finish_search(out, st, true) {
@@ -166,7 +181,15 @@ fn handle_line(
             watch.begin(Path::new(&path));
             match scan(&path, hidden) {
                 Ok((mut l, read_ms)) => {
-                    let sort_ms = sort_by_name(&mut l, false);
+                    super::picker::filter_listing(&mut l, &tb.mime, line);
+                    let (pass_ms, sort_ms) = match ordering::request(&mut l, Path::new(&path), &tb.mime, line) {
+                        Ok(timing) => timing,
+                        Err(msg) => {
+                            watch.abandon();
+                            say(out, &error_line(&FleaError { where_: "sort".into(), path: path.clone(), msg: msg.into() }));
+                            return Control::Continue;
+                        }
+                    };
                     // base and listing only move together, so a failed list cannot mix them.
                     st.base = PathBuf::from(&path);
                     st.listing = l;
@@ -176,7 +199,7 @@ fn handle_line(
                     if watch.refused() {
                         eprintln!("flea: {} will not follow outside changes, inotify refused a watch on it", path);
                     }
-                    writeln!(out, "{}", listed_line(st.listing.len(), read_ms, sort_ms, dev_of(&st.base))).ok();
+                    writeln!(out, "{}", listed_line(st.listing.len(), read_ms + pass_ms, sort_ms, dev_of(&st.base))).ok();
                     // Rides along unasked: asking costs a 60 ms round trip at first paint.
                     write_window(out, st, 0, first, tb);
                 }
@@ -193,7 +216,7 @@ fn handle_line(
         // A set of named paths is not a directory, so the watch stops rather than following its base.
         Request::ListPaths { paths, first } => {
             watch.stop();
-            listpaths::answer(out, st, pool, tb, &paths, first)
+            listpaths::answer(out, st, pool, tb, &paths, first, line)
         }
         Request::Window { start, count } => {
             write_window(out, st, start, count, tb);
@@ -219,20 +242,18 @@ fn handle_line(
                 forget_rows(st, pool);
             }
         }
-        Request::Sort { by, desc } => {
+        Request::Sort { by, desc: _ } => {
             // The walk owns the listing sort would reorder, so it ends first rather than racing it.
             if finish_search(out, st, true) {
                 forget_rows(st, pool);
             }
             // A key that names no order is refused by name, so a client's sort mark can only describe the order it got.
-            match parse_sort_by(&by) {
+            match ordering::request(&mut st.listing, &st.base, &tb.mime, line) {
                 Err(msg) => {
                     let e = FleaError { where_: "sort".to_string(), path: by.clone(), msg: msg.to_string() };
                     writeln!(out, "{}", error_line(&e)).ok();
                 }
-                Ok(order) => {
-                    // read carries the metadata pass here, 0.0 for name; see docs/protocol.md "listed".
-                    let (pass_ms, sort_ms) = sort_listing(&mut st.listing, &st.base, order, desc);
+                Ok((pass_ms, sort_ms)) => {
                     forget_rows(st, pool);
                     writeln!(out, "{}", listed_line(st.listing.len(), pass_ms, sort_ms, dev_of(&st.base))).ok();
                 }
@@ -262,39 +283,72 @@ fn handle_line(
         Request::DirSizeCancel => {
             st.dirsize_queue.clear();
         }
-        Request::Transfer { op, paths, rows, dest } => {
-            let named = resolve_rows(paths, &rows, &st.base, &st.listing);
-            start_transfer(out, ops, &op, named, &dest)
+        Request::Transfer { op, paths, rows, dest, menu_id } => {
+            if menu_id != 0 {
+                start_menu_transfer(out, ops, &op, menu_id, &dest)
+            } else {
+                let named = resolve_rows(paths, &rows, &st.base, &st.listing);
+                start_transfer(out, ops, &op, named, &dest)
+            }
         }
         Request::TransferCancel { id } => cancel_transfer(ops, id),
-        Request::Trash { paths, rows } => {
+        Request::Trash { paths, rows, menu_id } => {
             let named = resolve_rows(paths, &rows, &st.base, &st.listing);
-            start_trash(out, ops, named)
+            start_trash(out, ops, named, menu_id)
         }
-        Request::Rename { path, to } => do_rename(out, ops, &path, &to),
+        Request::Rename { path, to, menu_id } => {
+            if menu_id == 0 { do_rename(out, ops, &path, &to); }
+            else { super::opsdispatch::do_menu_rename(out, ops, &path, &to, menu_id); }
+        }
         Request::MkDir { path, name } => do_mkdir(out, ops, &path, &name),
-        Request::Duplicate { path } => start_duplicate(out, ops, &path),
+        Request::NewFile { path, name, id } => do_newfile(out, ops, &path, &name, id),
+        Request::Duplicate { path, menu_id } => start_duplicate(out, ops, &path, menu_id),
         Request::Undo => do_undo(out, ops),
+        Request::Redo => start_redo(out, ops),
         // Never touches st.listing, which is the whole point: a column is not the pane's own listing.
-        Request::Peek { path, first, hidden } =>
-            say(out, &peek_line(&path, first, hidden, &tb.mime, &tb.icons)),
+        Request::Peek { path, first, hidden, focus } =>
+            say(out, &peek_line(&path, first, hidden, &focus, &tb.mime, &tb.icons)),
         // A compress names absolute paths and no path; an extract names the one archive in path.
-        Request::Archive { op, paths, path, dest, format } => start_archive(
+        Request::Archive { op, paths, path, dest, format, menu_id } => start_archive(
             out, ops, Arc::clone(&tb.formats), &op,
-            paths, format, PathBuf::from(&path), PathBuf::from(&dest)),
-        Request::Convert { path, dest, strip } =>
-            start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip),
-        Request::Formats => say(out, &formats_line(&tb.formats, convert::available())),
+            paths, format, PathBuf::from(&path), PathBuf::from(&dest), menu_id),
+        Request::Convert { path, dest, strip, menu_id, request_id, check } =>
+            start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip, menu_id, request_id, check),
+        Request::Formats { id } => {
+            let mut line = formats_line(&tb.formats, convert::available());
+            line.insert_str(line.len() - 1, &format!(r#", "id":{},"providers":{}"#, id, super::providers::facts()));
+            say(out, &line);
+        }
         Request::FsInfo => say(out, &fsinfo_line(&read_fsinfo(&st.base))),
         // One row, only when a client asked: the same no-sweep rule thumb and dirsize already follow.
-        Request::Meta { row, text, media, archive } => {
+        Request::Meta { row, text, media, archive, token } => {
             if row < st.listing.len() {
                 let want = if archive { Some(Arc::clone(&tb.formats)) } else { None };
-                spawn_meta(row, st.base.join(st.listing.name(row)), text, media, want, ops.tx.clone())
+                spawn_meta(row, st.base.join(st.listing.name(row)), text, media, want, token, ops.tx.clone())
             }
         }
         Request::Paths { rows } =>
             say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
+        Request::Locate { path } => {
+            let index = st.listing.index_of(&st.base, Path::new(&path));
+            say(out, &super::proto::located_line(&st.base.to_string_lossy(), &path, index));
+        }
+        Request::LocateMany { paths, id, menu_id, transfer_id } => {
+            let mut matches = st.listing.indices_of(&st.base, &paths);
+            let error = if transfer_id > 0 {
+                if ops.transfer_retry.0 != transfer_id {
+                    Some("Transfer retry identities expired; select the items again.".to_string())
+                } else {
+                    super::opsreq::retain_retry(&ops.transfer_retry.1, &mut matches);
+                    None
+                }
+            } else if menu_id == 0 { None } else {
+                ops.menuactions.as_ref().ok_or_else(|| "Deletion survivor identities expired; select the items again.".to_string())
+                    .and_then(|menu| menu.retain_survivors(menu_id, &mut matches)).err()
+            };
+            if error.is_some() { matches.clear(); }
+            say(out, &super::proto::located_many_line(&st.base.to_string_lossy(), id, transfer_id, &matches, error.as_deref()));
+        }
         Request::Quit => return Control::Quit,
         // corner: an unrecognised line is answered with silence, see AGENTS.md.
         Request::Unknown => {}

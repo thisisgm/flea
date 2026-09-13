@@ -139,7 +139,11 @@ out=$(env FLEA_BIN=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/b
 check "the launched shell has transparent huge pages off" "1" \
   "$(echo "$out" | grep -c 'THP_enabled:[[:space:]]*0')"
 check "the launched shell reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
-check "the launched shell uses this Flea binary" "FLEA_BIN $BIN_REAL" \
+# 24003ab made an explicit FLEA_BIN the operator's choice, the rule FLEA_UI and QSG_RHI_BACKEND
+# already follow, and this check was left asserting the behaviour that commit replaced. The launch
+# above sets one deliberately, so the operator's own value is what must reach the shell; the unset
+# case further down is the one that derives the running binary.
+check "an explicit FLEA_BIN is the operator's, and reaches the shell" "FLEA_BIN stale" \
   "$(echo "$out" | grep '^FLEA_BIN ')"
 check "the automatic renderer starts with Vulkan" "1" "$(echo "$out" | grep -c '^RENDERER vulkan$')"
 check "the automatic renderer permits one fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC 1$')"

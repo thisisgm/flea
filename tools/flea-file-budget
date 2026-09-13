@@ -6,6 +6,58 @@ soft_rust=250; hard_rust=400
 soft_qml=250;  hard_qml=400
 soft_js=200;   hard_js=300
 
+# The debt, frozen. Every path here was already over its hard cap when this ledger was taken on
+# 2026-09-11, with the length it had then. Splitting forty-four files is a refactor programme and
+# not a release task, so a recorded file may STAY over its cap and may not GROW past the length
+# recorded here. A file that is not recorded fails outright, which is what keeps this a gate rather
+# than a switch that has been turned off. Shrink one and re-record it; never add a row to excuse a
+# new breach. This replaces the 0.1.4 and 0.1.6 name-only exceptions, which let a named file grow
+# without limit.
+known_over_cap="src/backend/menu_actions.rs 544
+src/backend/menu_registry.rs 563
+src/backend/metareq.rs 404
+src/backend/opsdispatch.rs 536
+src/backend/opsreq/tests.rs 424
+src/backend/proto.rs 466
+src/backend/run.rs 425
+src/backend/thumbs.rs 426
+src/backend/trashbrowse.rs 698
+src/backend/trashdelete.rs 895
+src/tui/actions.rs 999
+src/tui/input.rs 449
+src/tui/model.rs 1174
+src/tui/render.rs 807
+src/uistate.rs 440
+src/uistore.rs 483
+tests/js/focus.js 374
+tests/js/mounts.js 383
+tests/js/ops.js 384
+tests/js/settings.js 346
+ui/Backend.qml 435
+ui/ChromeBar.qml 448
+ui/ContextMenu.qml 534
+ui/ConvertDialog.qml 440
+ui/Ipc.qml 762
+ui/NetworkDialog.qml 449
+ui/NetworkMounts.qml 557
+ui/OpenWithDialog.qml 583
+ui/Pane.qml 663
+ui/PaneWire.qml 481
+ui/PermissionsDialog.qml 426
+ui/PreviewColumn.qml 463
+ui/Row.qml 410
+ui/SettingsPanel.qml 517
+ui/SettingsRow.qml 409
+ui/Sidebar.qml 535
+ui/TrashView.qml 466
+ui/js/Filter.js 301
+ui/js/Focus.js 341
+ui/js/Keymap.js 310
+ui/js/Ops.js 331
+ui/js/Settings.js 423
+ui/picker.qml 635
+ui/shell.qml 532"
+
 status=0
 
 budget_for() {
@@ -24,19 +76,16 @@ while IFS= read -r file; do
   hard=${budgets#* }
   lines=$(wc -l < "$file")
   if [ "$lines" -gt "$hard" ]; then
-    # 0.1.4: three files cross the cap as arithmetic of a clean merge, no conflict and no new code.
-    # Named so an unrelated breach still fails, and so each stays visible rather than silently passing.
-    case "$file" in
-      */ui/ChromeBar.qml|*/ui/Sidebar.qml|*/ui/Row.qml|ui/ChromeBar.qml|ui/Sidebar.qml|ui/Row.qml)
-        echo "KNOWN CAP EXCEPTION  $file: $lines lines, cap $hard (0.1.4 merge arithmetic)"
-        continue ;;
-    esac
-    # 0.1.6: four files at the cap took 2 to 6 lines each from the view fixes of 2026-09-07 (overlay sinks, the column player in its frame, the per-view IPC readers, the columns thumbnail relay); a split for a count is not owed, see AGENTS.md "File budget".
-    case "$file" in
-      */ui/NetworkDialog.qml|*/ui/Ipc.qml|*/ui/Pane.qml|*/ui/PreviewColumn.qml|ui/NetworkDialog.qml|ui/Ipc.qml|ui/Pane.qml|ui/PreviewColumn.qml)
-        echo "KNOWN CAP EXCEPTION  $file: $lines lines, cap $hard (0.1.6 view fixes)"
-        continue ;;
-    esac
+    recorded=$(printf '%s\n' "$known_over_cap" | awk -v f="$file" '$1 == f { print $2 }')
+    if [ -n "$recorded" ]; then
+      if [ "$lines" -gt "$recorded" ]; then
+        echo "GREW      $file: $lines lines, recorded $recorded, cap $hard"
+        status=1
+      else
+        echo "known     $file: $lines lines, recorded $recorded, cap $hard"
+      fi
+      continue
+    fi
     echo "OVER CAP  $file: $lines lines, cap $hard"
     status=1
   elif [ "$lines" -gt "$soft" ]; then

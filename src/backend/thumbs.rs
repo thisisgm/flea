@@ -77,14 +77,6 @@ impl Pool {
         Pool::start(workers, results, Tables { aliases, specs, cache: Cache::at(root) })
     }
 
-    // A test names its own thumbnailers, because no shipped one can be made to hang on demand.
-    #[cfg(test)]
-    fn with_specs(workers: usize, results: Sender<Done>, root: PathBuf, entries: &[(String, String)]) -> Pool {
-        let aliases = Arc::new(Aliases::load());
-        let specs = Arc::new(Thumbnailers::from_entries(entries, &aliases));
-        Pool::start(workers, results, Tables { aliases, specs, cache: Cache::at(root) })
-    }
-
     fn start(workers: usize, results: Sender<Done>, tables: Tables) -> Pool {
         let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
         let tables = Arc::new(tables);
@@ -250,15 +242,44 @@ fn record_failure(cache: &Cache, uri: &str, mtime: i64) {
 #[cfg(test)]
 mod tests {
     use super::*;
+    use crate::backend::testdir::TestDir;
     use crate::backend::thumbcache::png_text;
     use std::sync::mpsc::{channel, Receiver};
+    use std::thread::JoinHandle;
 
     const MISSING: &str = "/definitely/not/here.jpg";
     const FIXTURE_MTIME: i64 = 1787790423;
 
-    // Every test roots its cache under its own directory, so the operator's shared cache is never written.
-    fn root(tag: &str) -> PathBuf {
-        std::env::temp_dir().join(format!("flea-thumbs-{}-{}", tag, std::process::id()))
+    struct TestPool {
+        sandbox: TestDir,
+        pool: Pool,
+        receiver: Option<Receiver<Done>>,
+        worker: Option<JoinHandle<()>>,
+    }
+
+    impl TestPool {
+        fn new(tag: &str, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Self {
+            let sandbox = TestDir::new(tag);
+            sandbox.assert_contains(sandbox.path());
+            let inner = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
+            let pool = Pool { inner: Arc::clone(&inner) };
+            let tables = Arc::new(Tables { aliases, specs, cache: Cache::at(sandbox.path().to_path_buf()) });
+            let (sender, receiver) = channel();
+            let worker = std::thread::spawn(move || worker(inner, sender, tables));
+            Self { sandbox, pool, receiver: Some(receiver), worker: Some(worker) }
+        }
+    }
+
+    impl Drop for TestPool {
+        fn drop(&mut self) {
+            self.pool.cancel_all();
+            drop(self.receiver.take());
+            // A closed receiver ends the real worker; an unsupported MIME wakes an idle one without filesystem work.
+            self.pool.submit(Job { mime: String::new(), ..job(MISSING) });
+            if self.worker.take().unwrap().join().is_err() && !std::thread::panicking() {
+                panic!("thumbnail test worker panicked");
+            }
+        }
     }
 
     fn job(path: &str) -> Job {
@@ -266,9 +287,7 @@ mod tests {
     }
 
     // Returns a pool whose one worker is already inside a ten minute child, so the queue can only change by the caller's own hand.
-    fn pinned(tag: &str, base: u32) -> (PathBuf, Pool, Receiver<Done>) {
-        let (tx, rx) = channel();
-        let dir = root(tag);
+    fn pinned(tag: &str, base: u32) -> TestPool {
         // A duration nothing else on the box shares, so the gate below cannot be satisfied by another test's child or another suite's.
         let seconds = format!("{}.{}", base, std::process::id());
         let body = format!(
@@ -276,19 +295,19 @@ mod tests {
             seconds
         );
         let entries = [("pin.thumbnailer".to_string(), body)];
-        let pool = Pool::with_specs(1, tx, dir.clone(), &entries);
-        // The pin's input only has to canonicalise, and it sits outside the cache root so the teardown cannot race the worker.
-        pool.submit(job("/usr/bin/sleep"));
+        let aliases = Arc::new(Aliases::load());
+        let specs = Arc::new(Thumbnailers::from_entries(&entries, &aliases));
+        let fixture = TestPool::new(tag, aliases, specs);
+        fixture.pool.submit(job("/usr/bin/sleep"));
         for _ in 0..400 {
             if pin_running(&seconds) {
                 break;
             }
             std::thread::sleep(Duration::from_millis(5));
         }
-        // The child has exec'd, which it can only do after bwrap made every bind, so removing the temp afterwards cannot fail the job.
         assert!(pin_running(&seconds), "the pin child never started");
-        assert_eq!(pool.pending(), 0);
-        (dir, pool, rx)
+        assert_eq!(fixture.pool.pending(), 0);
+        fixture
     }
 
     // Sample input, /proc/<pid>/cmdline for the pin: the program and its one argument, NUL terminated, which is an exact match and not a prefix of bwrap's own argv.
@@ -306,37 +325,53 @@ mod tests {
     }
 
     #[test]
+    fn an_unwinding_fixture_joins_its_worker_before_removing_the_sandbox() {
+        if crate::backend::sandboxprobe::skipped() { return; }
+        let pin_seconds = 604;
+        let fixture = pinned("thumbs-unwind", pin_seconds);
+        let root = fixture.sandbox.path().to_path_buf();
+        let result = std::panic::catch_unwind(std::panic::AssertUnwindSafe(move || {
+            let _fixture = fixture;
+            panic!("exercise thumbnail fixture unwinding");
+        }));
+        assert!(result.is_err());
+        assert!(!root.exists(), "the joined fixture left its sandbox behind");
+        assert!(!pin_running(&format!("{}.{}", pin_seconds, std::process::id())), "the pin child outlived its sandbox");
+    }
+
+    #[test]
     fn a_cancelled_job_never_runs() {
         if crate::backend::sandboxprobe::skipped() { return; }
-        let (dir, pool, rx) = pinned("cancel", 601);
+        let fixture = pinned("thumbs-cancel", 601);
+        let pool = &fixture.pool;
         pool.submit(job(MISSING));
         assert_eq!(pool.pending(), 1);
         pool.cancel(&PathBuf::from(MISSING));
         assert_eq!(pool.pending(), 0, "cancel left the job in the queue");
         // A cancelled job produces no Done at all, so a short wait must time out.
-        let seen = rx.recv_timeout(Duration::from_millis(500));
-        std::fs::remove_dir_all(&dir).ok();
+        let seen = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_millis(500));
         assert!(seen.is_err(), "a job reported when none should have");
     }
 
     #[test]
     fn cancel_all_empties_the_queue() {
         if crate::backend::sandboxprobe::skipped() { return; }
-        let (dir, pool, _rx) = pinned("cancelall", 602);
+        let fixture = pinned("thumbs-cancelall", 602);
+        let pool = &fixture.pool;
         for i in 0..8 {
             pool.submit(job(&format!("/definitely/not/here-{}.jpg", i)));
         }
         assert_eq!(pool.pending(), 8);
         pool.cancel_all();
         let left = pool.pending();
-        std::fs::remove_dir_all(&dir).ok();
         assert_eq!(left, 0);
     }
 
     #[test]
     fn the_queue_is_bounded_and_drops_the_oldest_rather_than_growing() {
         if crate::backend::sandboxprobe::skipped() { return; }
-        let (dir, pool, _rx) = pinned("bounded", 603);
+        let fixture = pinned("thumbs-bounded", 603);
+        let pool = &fixture.pool;
         for i in 0..(MAX_QUEUE * 2) {
             pool.submit(job(&format!("/definitely/not/here-{}.jpg", i)));
         }
@@ -346,24 +381,21 @@ mod tests {
         assert_eq!(pool.pending(), MAX_QUEUE);
         pool.cancel(&PathBuf::from(format!("/definitely/not/here-{}.jpg", MAX_QUEUE * 2 - 1)));
         let left = pool.pending();
-        std::fs::remove_dir_all(&dir).ok();
         assert_eq!(left, MAX_QUEUE - 1);
     }
 
     #[test]
     fn a_missing_input_reports_failed_rather_than_hanging() {
-        let (tx, rx) = channel();
-        let dir = root("missing");
         let aliases = Arc::new(Aliases::load());
-        let pool = Pool::new(1, tx, dir.clone(), Arc::clone(&aliases), Arc::new(Thumbnailers::load(&aliases)));
-        pool.submit(job(MISSING));
-        let done = rx.recv_timeout(Duration::from_secs(10)).expect("no result");
+        let specs = Arc::new(Thumbnailers::load(&aliases));
+        let fixture = TestPool::new("thumbs-missing", aliases, specs);
+        fixture.pool.submit(job(MISSING));
+        let done = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_secs(10)).expect("no result");
         assert_eq!(done.path, PathBuf::from(MISSING));
         assert!(matches!(done.result, Outcome::Failed));
         // A vanished input is not a broken file, so nothing is recorded and no temp is left behind.
-        let recorded = dir.join("fail").exists();
-        let left = std::fs::read_dir(dir.join("large")).unwrap().count();
-        std::fs::remove_dir_all(&dir).ok();
+        let recorded = fixture.sandbox.join("fail").exists();
+        let left = std::fs::read_dir(fixture.sandbox.join("large")).unwrap().count();
         assert!(!recorded, "a vanished input was recorded in fail/");
         assert_eq!(left, 0, "a temp file survived a failed job");
     }
@@ -371,24 +403,21 @@ mod tests {
     #[test]
     fn a_real_file_round_trips_to_a_stamped_cache_entry() {
         if crate::backend::sandboxprobe::skipped() { return; }
-        let (tx, rx) = channel();
-        let dir = root("roundtrip");
-        std::fs::create_dir_all(&dir).unwrap();
-        let src = dir.join("in.png");
+        let aliases = Arc::new(Aliases::load());
+        let specs = Arc::new(Thumbnailers::load(&aliases));
+        let fixture = TestPool::new("thumbs-roundtrip", aliases, specs);
+        let src = fixture.sandbox.join("in.png");
         // A real thumbnailer needs a real image, and the fail marker writer already makes the smallest valid one.
         write_marker(&src, "file:///input", 0).unwrap();
-        let aliases = Arc::new(Aliases::load());
-        let pool = Pool::new(1, tx, dir.clone(), Arc::clone(&aliases), Arc::new(Thumbnailers::load(&aliases)));
-        pool.submit(Job { path: src.clone(), mtime: FIXTURE_MTIME, mime: "image/png".to_string(), trace: None });
-        let done = rx.recv_timeout(Duration::from_secs(30)).expect("no result");
+        fixture.pool.submit(Job { path: src.clone(), mtime: FIXTURE_MTIME, mime: "image/png".to_string(), trace: None });
+        let done = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_secs(30)).expect("no result");
         let out = match done.result {
             Outcome::Ready(p) => p,
             Outcome::Failed => panic!("a real thumbnailer failed on a valid png"),
         };
         let bytes = std::fs::read(&out).unwrap();
-        let published = std::fs::read_dir(dir.join("large")).unwrap().count();
-        let want = Cache::at(dir.clone()).large_path(&uri_for(&src));
-        std::fs::remove_dir_all(&dir).ok();
+        let published = std::fs::read_dir(fixture.sandbox.join("large")).unwrap().count();
+        let want = Cache::at(fixture.sandbox.path().to_path_buf()).large_path(&uri_for(&src));
         assert_eq!(out, want);
         assert_eq!(png_text(&bytes, "Thumb::URI"), Some(uri_for(&src)));
         assert_eq!(png_text(&bytes, "Thumb::MTime"), Some(FIXTURE_MTIME.to_string()));

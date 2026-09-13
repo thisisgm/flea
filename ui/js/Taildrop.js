@@ -18,6 +18,7 @@ function parsePeers(raw) {
     } catch (e) {
         return []
     }
+    if (!data || typeof data !== "object" || Array.isArray(data)) return []
     var selfUserId = String((data.Self && data.Self.UserID) || "")
     var rawPeers = (data && data.Peer) || {}
     var out = []
@@ -36,6 +37,23 @@ function parsePeers(raw) {
     }
     out.sort(function (a, b) { return a.label.localeCompare(b.label) })
     return out
+}
+
+// Sample input: {"BackendState":"Running","Self":{"CapMap":{"https://tailscale.com/cap/file-sharing":[]}},"Peer":{}}.
+function status(raw, exitCode, error) {
+    if (exitCode !== 0) return { peers: [], reason: String(error || "Tailscale status failed.").trim() }
+    var data
+    try { data = JSON.parse(raw) } catch (e) { return { peers: [], reason: "invalid status" } }
+    if (!data || typeof data !== "object") return { peers: [], reason: "invalid status" }
+    if (data.BackendState === "NeedsLogin") return { peers: [], reason: "signed out" }
+    if (data.BackendState !== "Running") return { peers: [], reason: String(data.BackendState || "unavailable").toLowerCase() }
+    var self = data.Self || {}, capability = "https://tailscale.com/cap/file-sharing"
+    var capabilities = Array.isArray(self.Capabilities) ? self.Capabilities : []
+    if (!(self.CapMap && self.CapMap[capability] !== undefined)
+            && capabilities.indexOf(capability) < 0)
+        return { peers: [], reason: "disabled for this account" }
+    var peers = parsePeers(raw)
+    return { peers: peers, reason: peers.length ? "" : "no peers" }
 }
 
 // A specific TaildropTarget wins outright; 0 (unset) falls back to "do we own it too".

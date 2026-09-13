@@ -1,10 +1,6 @@
 .import "../../ui/js/Sort.js" as Sort
 
-// Sort.column is what ui/Header.qml's click reaches and Sort.next/Sort.reverse are s and S. Nothing
-// else in ui/ reaches ui/Backend.qml's sort(), so a wrong gate here is the whole feature.
-// What the real backend does per column is asserted in tests/protocol.sh: name, size and mtime are
-// reordered with directories first in both directions, and mode and kind come back an error naming
-// the key. The header no longer asks for those two, so a click here must send nothing.
+// Header clicks and the s/S keys share this path; tests/protocol.sh checks the resulting backend order.
 
 // Only the members the sort path touches. The backend stub records the wire in order, because sort
 // before window is the protocol's own rule and a window sent first would read the old order's rows.
@@ -76,7 +72,7 @@ function run(check) {
           date.sent.join(","), "sort mtime asc,window 0 200")
     check("and the mark moves onto Date Modified", date.backend.sortBy + ":" + date.backend.sortDesc, "mtime:false")
 
-    // Mode and Kind are labels, not orders. A click must not look like a sort that then errors.
+    // Mode is a label, not an order, so it cannot clear selection or send a request.
     var mode = pane("name", true)
     Sort.column(mode, "mode")
     check("a click on Mode sends nothing", mode.sent.join(","), "")
@@ -85,13 +81,18 @@ function run(check) {
 
     var kind = pane("size", false)
     Sort.column(kind, "kind")
-    check("a click on Kind sends nothing either", kind.sent.join(","), "")
-    check("and the mark stays on the order the listing is really in", kind.backend.sortBy, "size")
-    check("and the thumbnail cache is kept, because no row moved", kind.thumbState, "stale")
+    check("a click on Kind asks for kind ascending, then the reordered window",
+          kind.sent.join(","), "sort kind asc,window 0 200")
+    check("and the mark moves onto Kind", kind.backend.sortBy + ":" + kind.backend.sortDesc, "kind:false")
+    check("and Kind invalidates the thumbnail cache", kind.thumbState === "stale", false)
+    check("and Kind invalidates the directory-size cache", kind.dirSizeState === "stale", false)
+    check("and Kind resets selection and cursor", kind.cleared + "|" + kind.cursor, "1|0")
 
-    // s steps to the next order the backend can produce, always ascending, and wraps: name, size,
-    // mtime, name. The column and the direction are separate choices, so s from a reversed name
-    // listing lands on size ascending rather than on name ascending.
+    var kindAgain = pane("kind", false)
+    Sort.column(kindAgain, "kind")
+    check("clicking Kind while in kind order reverses it", kindAgain.sent.join(","), "sort kind desc,window 0 200")
+
+    // The cycle is name, size, mtime, kind; every new order starts ascending.
     var next = pane("name", true)
     Sort.next(next)
     check("s from name steps to size, ascending", next.sent.join(","), "sort size asc,window 0 200")
@@ -101,9 +102,10 @@ function run(check) {
     Sort.next(walked)
     Sort.next(walked)
     Sort.next(walked)
-    check("three presses walk size, mtime and back to name",
+    Sort.next(walked)
+    check("four presses walk size, mtime, kind and back to name",
           walked.sent.join(","),
-          "sort size asc,window 0 200,sort mtime asc,window 0 200,sort name asc,window 0 200")
+          "sort size asc,window 0 200,sort mtime asc,window 0 200,sort kind asc,window 0 200,sort name asc,window 0 200")
     check("and s says nothing of its own now that every step is a real order", walked.said.length, 0)
 
     // S reverses whichever order the listing is in, the capital-is-the-variant pair g/G and j/J use.
@@ -111,6 +113,10 @@ function run(check) {
     Sort.reverse(reverse)
     check("S reverses the current order", reverse.sent.join(","), "sort mtime desc,window 0 200")
     check("S records the reverse", reverse.backend.sortDesc, true)
+
+    var reverseKind = pane("kind", true)
+    Sort.reverse(reverseKind)
+    check("S also reverses Kind", reverseKind.sent.join(","), "sort kind asc,window 0 200")
 
     // Asking for the order the listing is already in would drop every cache and the cursor to redraw
     // the same rows, so it is not asked for at all.
@@ -129,7 +135,7 @@ function run(check) {
           "sort name desc,window 0 200,sort name asc,window 0 200")
 
     // corner: a recorded order this list does not hold cannot wedge s; it wraps to the first one.
-    var stray = pane("kind", true)
+    var stray = pane("unknown", true)
     Sort.next(stray)
     check("s from an order that is not in the list still lands on name",
           stray.sent.join(","), "sort name asc,window 0 200")

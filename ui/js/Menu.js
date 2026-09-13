@@ -3,103 +3,166 @@
 .import "Archive.js" as Archive
 .import "Sort.js" as Sort
 
-// The one definition of a submenu row, shared by ui/MenuRow.qml and ui/ContextMenu.qml. The two
-// carried their own copies and drifted: the row drew no disclosure at all for want of this.
-
-// A submenu row carries its flyout's own entries in this field, so the test is that the field is
-// present, never that it is true.
+// Submenus carry an entry array, including an empty array while a provider is unavailable.
 function hasSubmenu(entry) {
     return entry !== undefined && entry !== null && entry.submenu !== undefined
 }
 
-// Where one edge of a menu frame sits when it opens at this point: far enough back that the whole
-// frame stays inside its bounds, and never off the near edge. A frame larger than its bounds pins
-// to the near edge and its far end is cut, which no menu built on this box reaches.
+// Flip at the far edge first, then shift only when neither side fits.
 function clamp(point, size, bounds) {
-    return Math.max(0, Math.min(bounds - size, point))
+    var start = point + size <= bounds ? point : point - size
+    return Math.max(0, Math.min(Math.max(0, bounds - size), start))
 }
 
-// The listing's rows, built from the pane's state in one object so the construction can live here
-// and carry its own suite, tests/js/menu.js. Copy path sits beside Open because both answer
-// "where is this and what runs on it".
-function listingEntries(p) {
-    // Empty space is its own menu and not a shortened row menu: Menus.html draws the background
-    // column with its own rows in its own order, so the two are built apart and filtered alike.
-    if (!p.hasRow)
-        return applyHidden(backgroundEntries(p), p.hiddenActions)
-    var out = []
-    out.push({ label: "Open", action: "open", glyph: "folder-open" })
-    out.push({ label: "Copy path", action: "copypath", glyph: "file-text" })
-    out.push({ separator: true })
-    // SettingsMenus.html's six basic rows, in its own order. Cut, Copy and Paste were keyboard
-    // only until the Menus section grew a switch for each of them, and a switch over a row no
-    // menu draws is a mock control. Paste answers with a sentence on an empty clipboard.
-    out.push({ label: "Cut", action: "cut", glyph: "scissors" })
-    out.push({ label: "Copy", action: "copy", glyph: "copy" })
-    out.push({ label: "Paste", action: "paste", glyph: "clipboard" })
-    out.push({ label: "Duplicate", action: "duplicate", glyph: "file-plus" })
-    out.push({ label: "Rename", action: "rename", glyph: "rename" })
-    var ops = []
-    // The submenu is exactly the table the backend probed, so a box with no tool offers nothing.
-    if (p.archiveFormats.length > 0)
-        ops.push({ label: "Compress", action: "compress", glyph: "archive",
-                   submenu: Archive.formatEntries(p.archiveFormats) })
-    if (p.rowIsArchive)
-        ops.push({ label: "Extract", action: "extract", glyph: "archive-out" })
-    if (p.canConvert && p.rowIsImage)
-        ops.push({ label: "Convert", action: "convert", glyph: "sliders" })
-    if (ops.length > 0) {
-        out.push({ separator: true })
-        for (var i = 0; i < ops.length; i++) out.push(ops[i])
+// The flyout's tail row, which is the only way into the dialog; ui/PaneMenuActions.qml reads it.
+var OPEN_WITH_OTHER = "__another__"
+
+// SettingsMenus and SettingsPlaces share one order; F=file/folder, B=background, T=Trash rail.
+var INVENTORY = [
+    ["open", "Open", "folder-open", "FT", "open"],
+    ["openwith", "Open with", "app-window", "F", "open", "openWith"],
+    ["newFolder", "New Folder", "folder-plus", "B", "open"],
+    ["newFile", "New File", "file-plus", "B", "open"],
+    ["cut", "Cut", "scissors", "F", "basic"],
+    ["copy", "Copy", "copy", "F", "basic"],
+    ["paste", "Paste", "clipboard", "FB", "basic"],
+    ["duplicate", "Duplicate", "file-plus", "F", "basic"],
+    ["rename", "Rename", "rename", "F", "basic"],
+    ["selectAll", "Select all", "check", "B", "basic"],
+    ["compress", "Compress", "archive", "F", "archive"],
+    ["extract", "Extract", "archive-out", "F", "archive"],
+    ["convert", "Convert", "sliders", "F", "archive"],
+    ["taildrop", "Send with Taildrop", "tailscale", "F", "share"],
+    ["dropbox", "Move to Dropbox", "dropbox", "F", "share"],
+    ["sharelink", "Copy Share Link", "network", "F", "share"],
+    ["trash", "Move to Trash", "trash", "F", "trash"],
+    ["delete", "Delete permanently", "trash", "F", "trash", "deletePermanently"],
+    ["openTerminal", "Open in terminal", "terminal", "FB", "inspect"],
+    ["moveto", "Move to", "folder-plus", "F", "inspect", "moveTo"],
+    ["copyto", "Copy to", "copy", "F", "inspect", "copyTo"],
+    ["properties", "Properties", "info", "F", "inspect"],
+    ["permissions", "Permissions", "lock", "F", "inspect"],
+    ["copypath", "Copy path", "file-text", "F", "inspect"],
+    ["addFavourite", "Add to Favorites", "star", "FB", "inspect"],
+    ["sort", "Sort by", "sort", "B", "view"],
+    ["toggleHidden", "Show hidden files", "eye", "FB", "view"],
+    ["settings", "Settings", "sliders", "B", "settings"],
+    ["restoreAll", "Restore all", "undo", "T", "restore"],
+    ["emptyTrash", "Empty Trash", "trash", "T", "empty"]
+]
+
+function listingEntries(p) { return buildEntries(p.hasRow ? "F" : "B", p) }
+function backgroundEntries(p) { return buildEntries("B", p) }
+function trashEntries(total, busy) { return buildEntries("T", { trashTotal: total, busy: busy }) }
+
+// Preserve action and peer identity when refreshed capabilities change the inventory beneath the keyboard cursor.
+function refreshedCursor(previous, next, cursor, submenuRow, submenuCursor) {
+    var action = previous[cursor] ? previous[cursor].action : ""
+    var selected = action ? next.findIndex(function(entry) { return entry.action === action }) : -1
+    if (selected < 0) {
+        selected = Math.min(Math.max(0, cursor), next.length - 1)
+        while (selected < next.length && selected >= 0 && (next[selected].separator || next[selected].disabled)) selected++
+        if (selected === next.length) {
+            selected--
+            while (selected >= 0 && (next[selected].separator || next[selected].disabled)) selected--
+        }
     }
-    var share = []
-    if (p.taildropPeers.length > 0)
-        share.push({ label: "Send with Taildrop", action: "taildrop", mark: "tailscale",
-                     submenu: p.taildropPeers })
-    // Moving a file into the folder it already lives in is not an action, so the row hides there.
-    if (p.dropboxPath.length > 0 && !p.rowInDropbox)
-        share.push({ label: "Move to Dropbox", action: "dropbox", mark: "dropbox" })
-    // A share link is inherently per file, so it appears only for a row already in Dropbox.
-    if (p.rowInDropbox)
-        share.push({ label: "Copy share link", action: "sharelink", glyph: "network" })
-    if (share.length > 0) {
-        out.push({ separator: true })
-        for (var s = 0; s < share.length; s++) out.push(share[s])
-    }
-    out.push({ separator: true })
-    // No confirm anywhere behind this row: the undo journal is the safety, see the operations design.
-    out.push({ label: "Move to Trash", action: "trash", glyph: "trash", danger: true })
-    out.push({ separator: true })
-    // The tail is the rows that need no row under the cursor. Open in terminal opens the directory
-    // being shown rather than the row, which is why it sits here and not above.
-    out.push({ label: "Open in terminal", action: "openTerminal", glyph: "terminal" })
-    out.push({ label: "New folder", action: "newFolder", glyph: "folder-plus" })
-    out.push(hiddenRow(p.showHidden))
-    return applyHidden(out, p.hiddenActions)
+    var oldSubmenu = previous[submenuRow]
+    var subRow = oldSubmenu ? next.findIndex(function(entry) { return entry.action === oldSubmenu.action }) : -1
+    var sub = subRow >= 0 ? next[subRow] : null
+    var oldTarget = oldSubmenu && oldSubmenu.submenu ? oldSubmenu.submenu[submenuCursor] : null
+    var target = sub && !sub.disabled && oldTarget ? (sub.submenu || []).findIndex(function(entry) { return entry.id === oldTarget.id && !entry.disabled }) : -1
+    return { cursor: selected, submenuRow: target >= 0 ? subRow : -1, submenuCursor: Math.max(0, target) }
 }
 
-// Menus.html's background column, drawn on a right click that landed on no row: the directory's
-// own actions, in the board's order and with its rules. Its New File row is not built, because
-// this release's backend has mkdir and no create-empty-file of any kind, and a row that cannot
-// work is not a row. The same hiddenActions set filters it, so a switch is never per menu.
-function backgroundEntries(p) {
-    var out = []
-    out.push({ label: "New folder", action: "newFolder", glyph: "folder-plus" })
-    out.push({ separator: true })
-    out.push({ label: "Paste", action: "paste", glyph: "clipboard" })
-    out.push({ label: "Select all", action: "selectAll", glyph: "check" })
-    out.push({ separator: true })
-    out.push({ label: "Sort by", action: "sort", glyph: "sort", submenu: sortEntries() })
-    out.push({ label: "Open in terminal", action: "openTerminal", glyph: "terminal" })
-    out.push(hiddenRow(p.showHidden))
-    out.push({ separator: true })
-    out.push({ label: "Settings", action: "settings", glyph: "sliders" })
+function buildEntries(kind, p) {
+    var out = [], group = ""
+    for (var i = 0; i < INVENTORY.length; i++) {
+        var spec = INVENTORY[i]
+        if (spec[3].indexOf(kind) < 0 || isHidden(p.hiddenActions, spec[0])) continue
+        var entry = { id: spec[0], action: spec[5] || spec[0], label: spec[1], glyph: spec[2] }
+        if (!availableEntry(entry, p, kind)) continue
+        if (out.length && group !== spec[4]) out.push({ separator: true })
+        group = spec[4]
+        out.push(entry)
+    }
     return out
 }
 
+function availableEntry(e, p, kind) {
+    var count = p.selectionCount === undefined ? 1 : p.selectionCount
+    if (e.action === "addFavourite" && kind === "F")
+        e.disabled = count !== 1 || ((Number(p.rowMode) || 0) & 0o170000) !== 0o040000
+    if (e.action === "paste") e.disabled = p.clipboardAvailable !== true
+    if (["duplicate", "rename", "properties"].indexOf(e.action) >= 0)
+        e.disabled = count !== 1
+    if (e.action === "permissions") {
+        var permission = permissionsEntry(p.rowMode, count)
+        e.disabled = permission.disabled
+        e.hint = permission.hint
+    }
+    if (e.action === "compress") {
+        if (!(p.archiveFormats || []).length) return false
+        e.submenu = Archive.formatEntries(p.archiveFormats)
+    }
+    if (e.action === "extract" && !(p.rowIsArchive && p.canExtract === true && count === 1)) return false
+    if (e.action === "convert" && !(p.rowIsImage && p.canConvert && count === 1)) return false
+    // OpenWith.html: the desktop's current default is first and carries the muted caption "default"
+    // in the hint slot, the registry order follows it, and the tail row sits under its own
+    // separator with the app-window glyph. The row self-hides when the registry names nothing.
+    if (e.action === "openWith") {
+        if (p.openWithLoaded === true && !(p.openWithApps || []).length) return false
+        var apps = p.openWithApps || []
+        var rows = apps.map(function (app) {
+            return { id: app.id, label: app.label, icon: app.icon || "",
+                     hint: app.default === true ? "default" : "" }
+        })
+        if (rows.length) rows.push({ separator: true })
+        rows.push({ id: OPEN_WITH_OTHER, label: "Another application\u2026", glyph: "app-window" })
+        e.submenu = rows
+        e.disabled = count !== 1
+    }
+    if (e.action === "taildrop") {
+        if (!p.taildropInstalled) return false
+        e.mark = "tailscale"
+        delete e.glyph
+        e.submenu = p.taildropPeers || []
+        e.disabled = p.providersRefreshing === true || !e.submenu.length
+        // The row says it cannot answer by being red, not by carrying the reason: a sentence here
+        // widened the menu past its own frame while the providers were still being read.
+        if (e.disabled && p.providersRefreshing !== true) e.errored = true
+    }
+    if (e.action === "dropbox" || e.action === "sharelink") {
+        if (!p.dropboxInstalled || (e.action === "dropbox" ? p.rowInDropbox : !p.rowInDropbox)) return false
+        e.disabled = p.providersRefreshing === true || !p.dropboxPath
+        if (e.action === "dropbox") { e.mark = "dropbox"; delete e.glyph }
+        if (e.disabled && p.providersRefreshing !== true) e.errored = true
+    }
+    if (e.action === "sort") e.submenu = sortEntries()
+    if (e.action === "toggleHidden") {
+        var hidden = hiddenRow(p.showHidden)
+        e.label = hidden.label
+        e.glyph = hidden.glyph
+    }
+    if (e.action === "restoreAll" || e.action === "emptyTrash") e.disabled = !(p.trashTotal > 0) || p.busy === true
+    if (["trash", "deletePermanently", "emptyTrash"].indexOf(e.action) >= 0) e.danger = true
+    return true
+}
+
+// The mode describes the selected object itself, so a symlink never grants access to its unseen target.
+function permissionsEntry(mode, count) {
+    var kind = (Number(mode) || 0) & 0o170000
+    var single = count === 1
+    var allowed = single && (kind === 0o100000 || kind === 0o040000)
+    return { label: "Permissions", action: "permissions", glyph: "lock", disabled: !allowed,
+             hint: !single ? "Unavailable" : kind === 0o120000 ? "Symlink target not changed" : allowed ? "" : "Unavailable",
+             hintWrap: true }
+}
+
+
 // The Sort by flyout, built from ui/js/Sort.js's own ORDERS so it can only ever offer an order the
 // backend really produces; a fourth key would earn a refusal instead of a listing.
-var SORT_LABELS = { name: "Name", size: "Size", mtime: "Date Modified" }
+var SORT_LABELS = { name: "Name", size: "Size", mtime: "Date Modified", kind: "Kind" }
 
 function sortEntries() {
     var out = []
@@ -131,7 +194,7 @@ function applyHidden(entries, hiddenActions) {
                 kept.push(entry)
             continue
         }
-        if (!isHidden(hiddenActions, entry.action))
+        if (!isHidden(hiddenActions, entry.id || entry.action))
             kept.push(entry)
     }
     while (kept.length > 0 && kept[kept.length - 1].separator === true)

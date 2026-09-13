@@ -57,12 +57,12 @@ capture="$dir/request.json"
 cat > "$dir/flea" <<'STUB'
 #!/bin/sh
 printf '%s' "$FLEA_PICKER" > "$FLEA_PORTAL_CAPTURE"
-printf '{"response":1}' > "$2"
+cat "$FLEA_PORTAL_ANSWER" > "$2"
 STUB
 chmod +x "$dir/flea"
 
 # XDG_RUNTIME_DIR is where the backend's own mkdtemp goes, so it is pointed inside the sandbox.
-env FLEA_BIN="$dir/flea" FLEA_PORTAL_CAPTURE="$capture" XDG_RUNTIME_DIR="$dir/run" \
+env FLEA_BIN="$dir/flea" FLEA_PORTAL_CAPTURE="$capture" FLEA_PORTAL_ANSWER="$dir/answer.json" XDG_RUNTIME_DIR="$dir/run" \
     python3 "$backend" > "$dir/portal.log" 2>&1 &
 portal=$!
 
@@ -99,7 +99,16 @@ READY_TIMEOUT_SEC = 15
 
 capture = os.environ["FLEA_PORTAL_CAPTURE"]
 folder = os.environ["FLEA_PORTAL_FOLDER"]
+fixture = os.path.dirname(folder)
+last_results = {}
 bus = Gio.bus_get_sync(Gio.BusType.SESSION, None)
+
+
+def guard(path):
+    assert path and os.path.isabs(path)
+    assert os.path.isfile(os.path.join(fixture, ".flea-test-sandbox"))
+    assert os.path.commonpath([os.path.realpath(path), fixture]) == fixture and os.path.realpath(path) != fixture
+    return path
 
 
 def owns_the_name():
@@ -120,8 +129,12 @@ while not owns_the_name():
 
 # One request: the capture is emptied first, so what is read back is this call's own and never the
 # one before it. Returns the response code, or "unanswered" for the reply that never arrived.
-def ask(method, options, token):
-    with open(capture, "w"):
+def ask(method, options, token, answer=None):
+    global last_results
+    guard(os.path.join(fixture, "run"))
+    with open(guard(os.path.join(fixture, "answer.json")), "w") as output:
+        json.dump({"response": 1} if answer is None else answer, output)
+    with open(guard(capture), "w"):
         pass
     handle = "%s/request/fleaportaltest/%s" % (OBJECT_PATH, token)
     try:
@@ -130,6 +143,7 @@ def ask(method, options, token):
                               None, Gio.DBusCallFlags.NONE, CALL_TIMEOUT_MS, None)
     except GLib.Error:
         return "unanswered", {}
+    last_results = reply.unpack()[1]
     try:
         with open(capture, "r", encoding="utf-8") as handle_file:
             return str(reply.unpack()[0]), json.load(handle_file)
@@ -160,16 +174,59 @@ print("savefiles %s %s" % (code, said(",".join(req.get("files", [])))))
 # opens where it would have anyway instead of somewhere the caller never named.
 code, req = ask("OpenFile", {"current_folder": GLib.Variant("s", "/etc")}, "refused")
 print("refused %s %s" % (code, said(req.get("folder", ""))))
+
+filters = [("Same label", [(0, "*.png")]), ("Same label", [(1, "text/plain")])]
+options = {"filters": GLib.Variant("a(sa(us))", filters), "current_filter": GLib.Variant("(sa(us))", filters[1])}
+uri = "file://" + folder + "/name%20%23.txt"
+code, req = ask("OpenFile", options, "filters", {"response": 0, "uris": [uri], "filter": 1})
+print("filters %s %s %s %s" % (code, req.get("currentIndex"), last_results.get("uris") == [uri], last_results.get("current_filter") == filters[1]))
+code, req = ask("OpenFile", options, "allfiles", {"response": 0, "uris": [uri], "filter": -1})
+print("allfiles %s %s" % (code, last_results.get("current_filter") == ("All files", [(0, "*")])))
+code, req = ask("OpenFile", options, "cancel", {"response": 1, "uris": [uri]})
+print("cancel %s %s" % (code, last_results == {}))
+for token, answer in [
+    ("empty", {"response": 0, "uris": []}),
+    ("badcode", {"response": True, "uris": [uri]}),
+    ("missing", {}),
+    ("badfilter", {"response": 0, "uris": [uri], "filter": 8}),
+    ("remote", {"response": 0, "uris": ["file://remote/a"]}),
+    ("nul", {"response": 0, "uris": ["file:///a%00b"]}),
+    ("escape", {"response": 0, "uris": ["file:///a%xy"]}),
+    ("rawspace", {"response": 0, "uris": ["file:///a b"]}),
+]:
+    code, req = ask("OpenFile", {}, token, answer)
+    print("%s %s %s" % (token, code, last_results == {}))
+
+os.rename(guard(os.path.join(fixture, "flea")), guard(os.path.join(fixture, "flea-away")))
+try:
+    code, req = ask("OpenFile", {}, "launcher")
+    print("launcher %s %s" % (code, last_results == {}))
+finally:
+    os.rename(guard(os.path.join(fixture, "flea-away")), guard(os.path.join(fixture, "flea")))
+os.rename(guard(os.path.join(fixture, "run")), guard(os.path.join(fixture, "run-away")))
+try:
+    code, req = ask("OpenFile", {}, "runtime")
+    print("runtime %s %s" % (code, last_results == {}))
+finally:
+    os.rename(guard(os.path.join(fixture, "run-away")), guard(os.path.join(fixture, "run")))
 ASK
 )
+ask_status=$?
 
 line() { printf '%s\n' "$out" | grep "^$1 " | head -1; }
 
 check "the backend owned its name" "0" "$(printf '%s\n' "$out" | grep -c '^ready never$')"
+check "the D-Bus driver completed" "0" "$ask_status"
 check "OpenFile decodes current_folder" "open 1 $dir/folder" "$(line open)"
 check "SaveFile decodes current_folder and current_file" "save 1 $dir/folder $dir/folder/notes.md" "$(line save)"
 check "SaveFiles answers its caller and decodes files" "savefiles 1 one.txt,two.txt" "$(line savefiles)"
 check "a current_folder that is not a bytestring is refused" "refused 1 (none)" "$(line refused)"
+check "filter identity and reviewed URI round-trip" "filters 0 1 True True" "$(line filters)"
+check "All files is explicit in callback" "allfiles 0 True" "$(line allfiles)"
+check "cancelled callback contains no results" "cancel 1 True" "$(line cancel)"
+for refused in empty badcode missing badfilter remote nul escape rawspace launcher runtime; do
+    check "$refused fails closed" "$refused 2 True" "$(line "$refused")"
+done
 # The backend elides what it cannot do to a sentence, so a traceback in its log is a defect of its own.
 check "the backend raised nothing" "0" "$(grep -c 'Traceback' "$dir/portal.log")"
 
