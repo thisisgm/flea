@@ -74,8 +74,8 @@ function lookup(event, root) {
 }
 
 // Lifted from Pane.qml's Keys.onPressed: the map holds the keys, this holds the behaviour.
-// Takes the Pane root because every case is a method call or a property read on it.
 function act(action, root, menuId, paths) {
+    if (root.desktop && root.desktop.act(action)) return
     switch (action) {
     // Letter bindings follow item order; physical grid arrows use gridArrow's visual neighbours.
     case "cursorDown": step(root, 1); return
@@ -309,13 +309,13 @@ function handleKey(event, root, sidebar) {
         root.textSizeRequested(action === "textSizeReset" ? 0 : (action === "textSizeUp" ? 1 : -1))
         return true
     }
-    // The bar lives in the chrome above both views, so neither owns it; shell.qml holds the field.
     if (action === "pathBar") {
-        root.pathBarRequested()
+        root.pathBarRequested("")
         return true
     }
     // These answer from the rail as well as the list, so they are taken before the rail's own keys.
-    if (action === "openTerminal" || action === "settings" || action === "copydirpath") {
+    if (Keymap.preset === "nautilus" && root.desktop && root.desktop.act(action)) return true
+    if (action === "openTerminal" || action === "settings" || action === "copydirpath" || action === "toggleHidden") {
         root.act(action)
         return true
     }
@@ -328,6 +328,7 @@ function handleKey(event, root, sidebar) {
         if (action.length > 0) root.act(action)
         return true
     }
+    if (Keymap.preset === "nautilus" && root.desktop && root.desktop.typeAhead(event)) return true
     // An unbound printable key used to jump to a name, which only half worked because most letters
     // are bound, and taught a habit that reached d and trashed the row. It names the filter instead.
     if (root.shown === null && event.text.length === 1 && event.text >= " ") {

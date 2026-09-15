@@ -200,7 +200,7 @@ function runRows(check) {
     // The board draws all four on the control, and SettingsRow needs options.length > 1 to draw a
     // segment at all, so a chevron here is the defect: it names one value and hides the other three.
     check("the preset row draws all four as a segment, in the chooser's own order",
-          (keys[1].options || []).join("|"), "Default|Vim|Mac|Windows")
+          (keys[1].options || []).join("|"), "Default|Vim|Mac|Windows|Nautilus")
     check("the Windows preset is shown by name too",
           Settings.rows("keys", { preset: "windows", presetKeys: Keymap.PRESET_KEYS })[1].value,
           "Windows")
@@ -236,8 +236,8 @@ function runCursor(check) {
 // resolved back through the generated overlay, so a listed chord cannot advertise a binding the
 // preset lacks, and every one of the four claims a chord rather than drawing a heading over nothing.
 function runPresets(check) {
-    check("preset chooser preserves authoritative order", Settings.PRESETS.join(","), "default,vim,mac,windows")
-    check("preset chooser labels remain explicit", Settings.PRESETS.map(function (id) { return Settings.PRESET_LABELS[id] }).join(","), "Default,Vim,Mac,Windows")
+    check("preset chooser preserves authoritative order", Settings.PRESETS.join(","), "default,vim,mac,windows,nautilus")
+    check("preset chooser labels remain explicit", Settings.PRESETS.map(function (id) { return Settings.PRESET_LABELS[id] }).join(","), "Default,Vim,Mac,Windows,Nautilus")
     check("missing preset resolves to Default", Settings.PRESETS[0], "default")
     var total = 0
     for (var i = 0; i < Settings.PRESETS.length; i++) {
@@ -248,7 +248,7 @@ function runPresets(check) {
         var preview = find(section, "keyPreview")
         check(preset + " section shows the six board examples", preview.items.length, 6)
         check(preset + " examples never take keyboard focus", Settings.focusable(preview), false)
-        var primary = { default: "y,p,dd", vim: "yy,pp,D", mac: "super-c,super-v,delete", windows: "ctrl-c,ctrl-v,delete" }
+        var primary = { default: "y,p,dd", vim: "yy,pp,D", mac: "super-c,super-v,delete", windows: "ctrl-c,ctrl-v,delete", nautilus: "ctrl-c,ctrl-v,delete" }
         check(preset + " preview uses its primary bindings", preview.items.slice(3).map(function (r) { return r.keys }).join(","), primary[preset])
         check(preset + " enter label follows its actual action", preview.items[1].label,
               Keymap.lookupFor(preset, Qt.Key_Return, "", 0, "listing", "gui"))

@@ -23,7 +23,7 @@ run() {
   local suite_args=()
   local out code
   [ -n "${2:-}" ] && suite_args=(-- "$2")
-  out=$(TZ="$1" QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 timeout 120 qml6 tests/js/harness.qml "${suite_args[@]}" 2>&1)
+  out=$(TZ="$1" QT_QPA_PLATFORM=offscreen QT_FORCE_STDERR_LOGGING=1 timeout 120 qml6 "${3:-tests/js/harness.qml}" "${suite_args[@]}" 2>&1)
   code=$?
   echo "$out"
   if [ "$code" = 124 ]; then
@@ -55,3 +55,15 @@ run "$normal_timezone"
 # Reporter cases run under Edmonton, while DST-only fixtures run under New York.
 run America/Edmonton edmonton
 run America/New_York dst
+
+# Copy the unchanged component without the app's qmldir, whose singletons require Quickshell.
+# The offscreen clipboard is private to this process; the operator's Wayland clipboard is untouched.
+clipboard_probe=$(mktemp -d /tmp/flea-query-clipboard.XXXXXXXX) || exit 1
+cleanup_clipboard_probe() {
+  case "$clipboard_probe" in /tmp/flea-query-clipboard.?*) rm -rf -- "$clipboard_probe" ;; *) return 1 ;; esac
+}
+trap cleanup_clipboard_probe EXIT
+mkdir "$clipboard_probe/js" || exit 1
+cp ui/QueryClipboard.qml tests/queryclipboard.qml "$clipboard_probe/" || exit 1
+cp ui/js/*.js "$clipboard_probe/js/" || exit 1
+run "$normal_timezone" "" "$clipboard_probe/queryclipboard.qml"

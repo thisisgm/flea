@@ -9,6 +9,7 @@ function run(check) {
     }
     for (var i = 0; i < Keymap.PRESETS.length; i++) {
         var preset = Keymap.PRESETS[i]
+        if (preset === "nautilus") continue // Nautilus has its own compatibility assertions below.
         key(preset, "Down", "", none, "cursorDown")
         key(preset, "Up", "", none, "cursorUp")
         key(preset, "Space", " ", none, "preview")
@@ -74,6 +75,8 @@ function run(check) {
         key(preset, "Return", "", none, "open", "pdf")
         key(preset, "Return", "", none, "", "editor")
     }
+    key("default", "H", "", ctrl, "toggleHidden")
+    key("default", "H", "", ctrl, "toggleHidden", "rail")
     key("default", "Return", "", none, "open")
     key("default", "Backspace", "", none, "parent")
     key("default", "H", "H", shift, "historyBack")

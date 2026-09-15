@@ -982,9 +982,22 @@ kernel removes the watch along with it and reports that removal whatever the mas
 and a listing does not draw a partial size, so a row's size follows the writer closing the file
 rather than the writer writing to it.
 
-**One burst is one line.** The event payload is read only far enough to name its watch descriptor,
-never for which file moved, and the reader then pauses 100 ms before reading again, so a directory
-being rewritten costs one `changed` line per 100 ms rather than one per file. Anything the kernel
+**Hidden entries follow the listing's policy.** When the last successful `list` used `hidden:false`,
+a burst affecting only dot-prefixed names emits nothing. A mixed burst still emits one line, as
+does a structural event about the watched directory itself. Renames between hidden and visible names
+therefore still refresh. A failed listing keeps the previous watch and its hidden-file policy.
+
+**Repeated attribute notifications do not imply a changed listing.** `chmod` emits `IN_ATTRIB`
+even when it reapplies the current mode. For attribute-only events, compare the affected entry's
+symlink metadata: device/inode, mode, owner/group, link count, size and nanosecond modification
+time. Access time and change time alone do not alter the displayed row. The first observation or
+an unreadable entry refreshes conservatively. Up to 256 observed names are remembered, without
+scanning the directory to seed the cache. Re-listing the same watch preserves these observations;
+navigation to another watch or stopping the watch discards them. This also covers attribute
+notifications about the watched directory itself. Other event types still notify normally.
+
+**One burst is one line.** The event payload supplies its watch descriptor, mask and entry name. The reader then pauses 100 ms before reading
+again, so a directory being rewritten costs one `changed` line per 100 ms rather than one per file. Anything the kernel
 drops in that window costs nothing, because every event in a burst says the same thing to a client
 that re-reads the whole directory anyway.
 

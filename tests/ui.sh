@@ -8113,6 +8113,7 @@ case_previewviews() {
 . "$repo/tests/ui-preview-policy.sh"
 . "$repo/tests/ui-operations-design.sh"
 . "$repo/tests/ui-convert-design.sh"
+. "$repo/tests/ui-nautilus.sh"
 
 declare -a wanted=("$@")
 [[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll terminal open rows click menu background hidden selection watch select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign)

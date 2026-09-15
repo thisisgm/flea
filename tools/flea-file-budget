@@ -51,8 +51,7 @@ ui/SettingsRow.qml 409
 ui/Sidebar.qml 535
 ui/TrashView.qml 466
 ui/js/Filter.js 301
-ui/js/Focus.js 341
-ui/js/Keymap.js 310
+ui/js/Focus.js 339
 ui/js/Ops.js 331
 ui/js/Settings.js 423
 ui/picker.qml 635

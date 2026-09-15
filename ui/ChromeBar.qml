@@ -55,16 +55,16 @@ Item {
     property string cachedKey: ""
     property var cachedNames: []
 
-    function startEdit() {
+    function startEdit(startText) {
         if (root.editing) {
             return
         }
         root.editing = true
         // The trailing slash is what makes typing a child the natural next keystroke, and the line
         // opens selected, so a name typed straight away replaces it instead of joining onto it.
-        field.text = root.path === "/" ? "/" : root.path + "/"
+        field.text = startText || (root.path === "/" ? "/" : root.path + "/")
         field.forceActiveFocus()
-        field.selectAll()
+        if (startText) field.cursorPosition = field.text.length; else field.selectAll()
     }
 
     function closeEdit() {

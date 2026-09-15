@@ -1,4 +1,5 @@
 pub mod listing;
+mod watchattrs;
 pub mod aliases;
 pub mod archive;
 pub mod archivelist;

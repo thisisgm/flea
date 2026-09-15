@@ -470,7 +470,7 @@ printf 'a' > "$WT/alpha.txt"
 watch_run() {
   local dir="$1"
   shift
-  ( printf '{"c":"list","path":"%s","first":10}\n' "$dir"
+  ( printf '{"c":"list","path":"%s","first":10,"hidden":%s}\n' "$dir" "${WATCH_HIDDEN:-false}"
     sleep 0.4
     "$@"
     sleep 0.6
@@ -498,6 +498,46 @@ burst_of_creates() {
 out=$(watch_run "$WT" touch "$WT/created.txt")
 check_changed "a create from outside answers a changed line" "$out" 1 3
 check "and that line names the directory being listed" "$WT" "$(echo "$out" | grep '"t":"changed"' | head -1 | grep -oE '"path":"[^"]*"' | cut -d'"' -f4)"
+
+# Home can receive continuous IN_ATTRIB events on .local. A listing hiding that entry must not
+# repeatedly clear its rows and restart every directory-size walk. With hidden files shown the
+# same event matters, and renaming across the visibility boundary must still refresh either way.
+mkdir "$WT/.local"
+out=$(watch_run "$WT" chmod 0700 "$WT/.local")
+check_changed "hidden directory attributes do not refresh a listing hiding dotfiles" "$out" 0 0
+out=$(WATCH_HIDDEN=true watch_run "$WT" chmod 0750 "$WT/.local")
+check_changed "hidden directory attributes refresh when dotfiles are shown" "$out" 1 3
+out=$(watch_run "$WT" touch "$WT/.hidden.txt")
+check_changed "a hidden create and close-write do not refresh a listing hiding dotfiles" "$out" 0 0
+out=$(watch_run "$WT" mv "$WT/.hidden.txt" "$WT/revealed.txt")
+check_changed "renaming a hidden file to a visible name refreshes" "$out" 1 3
+out=$(watch_run "$WT" mv "$WT/revealed.txt" "$WT/.hidden.txt")
+check_changed "renaming a visible file to a hidden name refreshes" "$out" 1 3
+out=$(watch_run "$WT" rm "$WT/.hidden.txt")
+check_changed "a hidden delete does not refresh a listing hiding dotfiles" "$out" 0 0
+
+# Reproduce the loop with hidden files ON: chmod emits IN_ATTRIB even when the mode is unchanged.
+# A real attribute change is still reported, and its remembered attributes survive the re-list
+# that the GUI performs in response. Otherwise each cycle forgets the previous observation.
+out=$( ( printf '{"c":"list","path":"%s","first":10,"hidden":true}\n' "$WT"
+         sleep 0.4
+         chmod 0700 "$WT/.local"
+         sleep 0.4
+         printf '{"c":"list","path":"%s","first":10,"hidden":true}\n' "$WT"
+         sleep 0.4
+         for _ in $(seq 1 8); do chmod 0700 "$WT/.local"; sleep 0.15; done
+         sleep 0.4
+         printf '{"c":"quit"}\n' ) | $BIN --backend)
+check_changed "repeated unchanged attributes do not restart a hidden-inclusive listing" "$out" 1 1
+
+out=$( ( printf '{"c":"list","path":"%s","first":10,"hidden":true}\n' "$WT"
+         sleep 0.4
+         chmod 0750 "$WT/.local"
+         sleep 0.4
+         chmod 0700 "$WT/.local"
+         sleep 0.4
+         printf '{"c":"quit"}\n' ) | $BIN --backend)
+check_changed "real hidden-directory mode changes are both reported" "$out" 2 2
 check "and the listing itself is not re-sent, because the client asks for that" "1" "$(echo "$out" | grep -c '"t":"listed"')"
 
 out=$(watch_run "$WT" mv "$WT/created.txt" "$WT/renamed.txt")

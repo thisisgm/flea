@@ -155,8 +155,10 @@ Press **?** for the full keymap, or **,** to change settings.
 | List / columns / grid | `Ctrl+1` / `Ctrl+2` / `Ctrl+3` |
 | New tab / close tab / switch tab | `t` / `w` / `1`–`9` |
 | Open terminal / context menu | `Ctrl+T` / `m` |
-| Show hidden files | `.` |
+| Show hidden files | `.` or `Ctrl+H` |
 
+Choose **Settings → Keys → Nautilus** for GNOME Files shortcuts, including `Ctrl+T` for a new tab,
+`Ctrl+1/2` for list/grid and `Alt` navigation. See [Nautilus shortcuts and differences](docs/nautilus-shortcuts.md).
 The Windows preset uses `Ctrl+Shift+1/2/3` for views. Menu visibility does not disable shortcuts.
 See [the full key table](keys.toml) for preset bindings and pointer actions.
 

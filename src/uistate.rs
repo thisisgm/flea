@@ -244,7 +244,7 @@ mod tests {
     #[test]
     fn a_stored_preset_this_build_cannot_honour_reads_back_as_default() {
         assert_eq!(from_file("{}").get("keys").and_then(Json::as_str), Some("default"));
-        for stored in ["default", "vim", "mac", "windows"] {
+        for stored in ["default", "vim", "mac", "windows", "nautilus"] {
             let kept = from_file(&format!(r#"{{"keys":"{}"}}"#, stored));
             assert_eq!(kept.get("keys").and_then(Json::as_str), Some(stored), "{} is a shipped preset", stored);
         }

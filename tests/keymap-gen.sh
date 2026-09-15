@@ -52,7 +52,7 @@ fi
   echo "import QtQuick"
   echo "Item { Component.onCompleted: {"
   echo "    var bad = []"
-  grep -o 'Qt\.Key_[A-Za-z0-9_]*' "$tmp" | sort -u | while read -r name; do
+  grep -h -o 'Qt\.Key_[A-Za-z0-9_]*' "$tmp" "$probe_dir/KeyBindings.js" | sort -u | while read -r name; do
     echo "    if ($name === undefined) bad.push(\"$name\")"
   done
   echo "    for (var i = 0; i < bad.length; i++) console.log(\"FAIL \" + bad[i] + \" is not a Qt key\")"
@@ -87,7 +87,7 @@ else
   exit 1
 fi
 
-if diff -u ui/js/Keymap.js "$tmp"; then
+if diff -u ui/js/Keymap.js "$tmp" && diff -u ui/js/KeyBindings.js "$probe_dir/KeyBindings.js"; then
   echo "ok   ui/js/Keymap.js matches keys.toml"
   exit 0
 fi

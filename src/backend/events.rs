@@ -14,8 +14,8 @@ pub enum Event {
     // A write operation's own thread reports here, so the loop stays the only writer of stdout.
     Op(OpMsg),
     // The watch descriptor that saw it, so a burst belonging to the directory the client has already
-    // left is dropped rather than answered for the new one; see src/backend/watch.rs.
-    Changed(i32),
+    // left is dropped, plus whether the burst affected a non-hidden name; see watch.rs.
+    Changed(super::watch::Change),
     ReadError(FleaError),
     Closed,
 }

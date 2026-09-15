@@ -1,5 +1,5 @@
 .pragma library
-
+.import "QueryKeys.js" as QueryKeys
 .import "DirSizes.js" as DirSizes
 .import "Format.js" as Format
 .import "Thumbs.js" as Thumbs
@@ -104,6 +104,7 @@ function close(root) {
 // characters extend it, backspace shortens it, enter commits the walk and escape abandons it.
 // Nothing else reaches the list while the caret is up, so every key answers consumed.
 function typeKey(event, root) {
+    if (QueryKeys.paste(event, root)) return true
     if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
         run(root)
         return true

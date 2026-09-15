@@ -1,8 +1,10 @@
 // The listed directory, watched so an outside change reaches the client; see docs/protocol.md.
 use crate::backend::events::Event;
 use crate::json::escape;
+use super::watchattrs::AttributeCache;
 use std::io;
-use std::ffi::{c_char, c_int, c_void, CString};
+use std::ffi::{c_char, c_int, c_void, CString, OsString};
+use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
 use std::sync::mpsc::Sender;
 use std::thread;
@@ -34,6 +36,19 @@ const COALESCE: Duration = Duration::from_millis(100);
 // A batch size and not a limit: the kernel's own drop is at max_queued_events, which this misses.
 const BUF: usize = 8192;
 
+// A burst can touch hidden names only, or include an entry the normal listing shows.
+#[derive(Debug, PartialEq)]
+pub struct Change {
+    wd: i32,
+    visible: bool,
+    hidden: bool,
+    attributes: Vec<OsString>,
+}
+
+impl Change {
+    fn new(wd: i32) -> Self { Self { wd, visible: false, hidden: false, attributes: Vec::new() } }
+}
+
 extern "C" {
     fn inotify_init1(flags: c_int) -> c_int;
     fn inotify_add_watch(fd: c_int, path: *const c_char, mask: u32) -> c_int;
@@ -46,6 +61,8 @@ pub struct Watch {
     fd: c_int,
     wd: c_int,
     incoming: c_int,
+    hidden: bool,
+    attributes: AttributeCache,
 }
 
 impl Watch {
@@ -54,10 +71,14 @@ impl Watch {
         let fd = unsafe { inotify_init1(IN_CLOEXEC) };
         if fd < 0 {
             eprintln!("flea: the open folder will not follow outside changes, inotify is unavailable");
-            return Watch { fd: -1, wd: -1, incoming: -1 };
+            return Watch::new(-1);
         }
         thread::spawn(move || pump(fd, tx));
-        Watch { fd, wd: -1, incoming: -1 }
+        Watch::new(fd)
+    }
+
+    fn new(fd: c_int) -> Self {
+        Self { fd, wd: -1, incoming: -1, hidden: false, attributes: AttributeCache::default() }
     }
 
     // Armed beside the current watch, so a scan that fails costs the open folder nothing.
@@ -67,12 +88,14 @@ impl Watch {
     }
 
     // A re-list answers the descriptor the folder already had, so dropping it would unwatch it.
-    pub fn commit(&mut self) {
+    pub fn commit(&mut self, hidden: bool) {
         if self.incoming != self.wd {
             self.drop_one(self.wd);
+            self.attributes = AttributeCache::default();
         }
         self.wd = self.incoming;
         self.incoming = -1;
+        self.hidden = hidden;
     }
 
     // The scan failed, so the listing did not move and neither does its watch, aliased or not.
@@ -90,6 +113,7 @@ impl Watch {
         }
         self.wd = -1;
         self.incoming = -1;
+        self.attributes = AttributeCache::default();
     }
 
     // A directory that cannot be watched is not an error the client can act on: it listed fine.
@@ -118,6 +142,17 @@ impl Watch {
     pub fn is_current(&self, wd: i32) -> bool {
         self.wd >= 0 && wd == self.wd
     }
+
+    pub fn should_refresh(&mut self, change: &Change, directory: &Path) -> bool {
+        if !self.is_current(change.wd) { return false; }
+        let mut refresh = change.visible || (self.hidden && change.hidden);
+        for name in &change.attributes {
+            if self.hidden || !name.as_bytes().starts_with(b".") {
+                refresh |= self.attributes.changed(directory, name);
+            }
+        }
+        refresh
+    }
 }
 
 // Sample input: wd 1, mask 0x00000100, cookie 0, len 16, then "NEWFILE.txt\0\0\0\0\0".
@@ -138,8 +173,8 @@ fn pump(fd: c_int, tx: Sender<Event>) {
         if n == 0 {
             return;
         }
-        for wd in descriptors(&buf[..n as usize]) {
-            if tx.send(Event::Changed(wd)).is_err() {
+        for change in descriptors(&buf[..n as usize]) {
+            if tx.send(Event::Changed(change)).is_err() {
                 return;
             }
         }
@@ -147,15 +182,28 @@ fn pump(fd: c_int, tx: Sender<Event>) {
     }
 }
 
-// Which watches this burst touched, each once; nothing past the descriptor is ever read.
-fn descriptors(buf: &[u8]) -> Vec<i32> {
-    let mut out: Vec<i32> = Vec::new();
+// Each watch once; one visible name in a mixed burst must survive hidden-name filtering.
+fn descriptors(buf: &[u8]) -> Vec<Change> {
+    let mut out: Vec<Change> = Vec::new();
     let mut at = 0;
     while at + EVENT_HEADER <= buf.len() {
         let wd = i32::from_ne_bytes([buf[at], buf[at + 1], buf[at + 2], buf[at + 3]]);
+        let mask = u32::from_ne_bytes([buf[at + 4], buf[at + 5], buf[at + 6], buf[at + 7]]);
         let len = u32::from_ne_bytes([buf[at + 12], buf[at + 13], buf[at + 14], buf[at + 15]]) as usize;
-        if !out.contains(&wd) {
-            out.push(wd);
+        if !out.iter().any(|change| change.wd == wd) { out.push(Change::new(wd)); }
+        let change = out.iter_mut().find(|change| change.wd == wd).unwrap();
+        let name = buf.get(at + EVENT_HEADER..at + EVENT_HEADER + len).unwrap_or(&[]);
+        let name = name.split(|byte| *byte == 0).next().unwrap_or(&[]);
+        // An empty attribute name means the watched directory itself; other self-events refresh.
+        if mask & MASK == IN_ATTRIB {
+            let name = std::ffi::OsStr::from_bytes(name).to_owned();
+            if !change.attributes.contains(&name) { change.attributes.push(name); }
+        } else if name.is_empty() {
+            change.visible = true;
+        } else if name.starts_with(b".") {
+            change.hidden = true;
+        } else {
+            change.visible = true;
         }
         // The condition above is the bound that keeps this indexing inside the slice.
         at += EVENT_HEADER + len;
@@ -169,135 +217,5 @@ pub fn changed_line(path: &Path) -> String {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    // Sample input: two events on watch 3, one carrying a 16 byte name and one carrying none.
-    fn event(wd: i32, name: &[u8]) -> Vec<u8> {
-        let mut out = Vec::new();
-        out.extend_from_slice(&wd.to_ne_bytes());
-        out.extend_from_slice(&IN_CREATE.to_ne_bytes());
-        out.extend_from_slice(&0u32.to_ne_bytes());
-        out.extend_from_slice(&(name.len() as u32).to_ne_bytes());
-        out.extend_from_slice(name);
-        out
-    }
-
-    #[test]
-    fn one_event_names_its_watch() {
-        assert_eq!(descriptors(&event(3, b"a.txt\0\0\0")), vec![3]);
-    }
-
-    #[test]
-    fn a_burst_names_each_watch_once() {
-        let mut buf = event(3, b"a.txt\0\0\0");
-        buf.extend(event(3, b""));
-        buf.extend(event(4, b"b.txt\0\0\0"));
-        assert_eq!(descriptors(&buf), vec![3, 4]);
-    }
-
-    // Not a shape inotify produces: it pins the bound, so a length running past the slice cannot panic.
-    #[test]
-    fn a_truncated_tail_ends_the_walk() {
-        let mut buf = event(3, b"a.txt\0\0\0");
-        buf.extend(event(4, b"this name did not fit"));
-        buf.truncate(buf.len() - 4);
-        assert_eq!(descriptors(&buf), vec![3, 4]);
-    }
-
-    #[test]
-    fn a_short_buffer_names_nothing() {
-        assert_eq!(descriptors(&[0u8; 8]), Vec::<i32>::new());
-    }
-
-    #[test]
-    fn nothing_is_current_before_a_directory_is_followed() {
-        let w = Watch { fd: -1, wd: -1, incoming: -1 };
-        assert!(!w.is_current(-1));
-        assert!(!w.is_current(1));
-    }
-
-    // O_NONBLOCK, so a watch this test killed fails it by answering nothing rather than by hanging.
-    const IN_NONBLOCK: c_int = 0x800;
-
-    // Sample input: wd 1, mask 0x00000100, cookie 0, len 16, then "NEWFILE.txt\0\0\0\0\0".
-    fn carries_a_create(buf: &[u8], wd: c_int) -> bool {
-        let mut at = 0;
-        while at + EVENT_HEADER <= buf.len() {
-            let this = i32::from_ne_bytes([buf[at], buf[at + 1], buf[at + 2], buf[at + 3]]);
-            let mask = u32::from_ne_bytes([buf[at + 4], buf[at + 5], buf[at + 6], buf[at + 7]]);
-            let len = u32::from_ne_bytes([buf[at + 12], buf[at + 13], buf[at + 14], buf[at + 15]]) as usize;
-            // The mask and not the descriptor, because a removed watch's own IN_IGNORED carries it too.
-            if this == wd && (mask & IN_CREATE) != 0 {
-                return true;
-            }
-            at += EVENT_HEADER + len;
-        }
-        false
-    }
-
-    // Two seconds all told, which is the kernel queueing being slow rather than the watch being gone.
-    const TRIES: usize = 200;
-    const BETWEEN_TRIES: Duration = Duration::from_millis(10);
-
-    // The kernel queues on its own schedule, so this reads until the create lands or the tries run out.
-    fn saw_a_create(fd: c_int, wd: c_int) -> bool {
-        let mut buf = [0u8; BUF];
-        for _ in 0..TRIES {
-            let n = unsafe { read(fd, buf.as_mut_ptr() as *mut c_void, BUF) };
-            if n > 0 && carries_a_create(&buf[..n as usize], wd) {
-                return true;
-            }
-            thread::sleep(BETWEEN_TRIES);
-        }
-        false
-    }
-
-    // inotify_add_watch answers the descriptor the folder already holds, so an abandoned re-list of the
-    // directory on screen must not remove it. This one carries a real descriptor because the two below
-    // run at fd -1, where drop_one makes no syscall and the guard therefore has nothing to show.
-    #[test]
-    fn an_abandoned_re_list_of_the_same_folder_keeps_its_watch() {
-        let sandbox = crate::backend::testdir::TestDir::new("watch-abandon");
-        let fd = unsafe { inotify_init1(IN_CLOEXEC | IN_NONBLOCK) };
-        assert!(fd >= 0, "this box has no inotify to test with");
-        let mut w = Watch { fd, wd: -1, incoming: -1 };
-        w.begin(sandbox.path());
-        w.commit();
-        let live = w.wd;
-        assert!(live >= 0, "the sandbox could not be watched");
-
-        w.begin(sandbox.path());
-        assert_eq!(w.incoming, live, "a re-list of one inode aliases onto the descriptor it has");
-        w.abandon();
-
-        sandbox.file("after-an-abandoned-relist.txt", "x");
-        assert!(saw_a_create(fd, live), "the abandoned re-list took the open folder's watch with it");
-    }
-
-    // No descriptor in these two, so they pin the bookkeeping alone; the one above pins the syscall.
-    #[test]
-    fn an_abandoned_scan_leaves_the_current_watch_alone() {
-        let mut w = Watch { fd: -1, wd: 7, incoming: -1 };
-        w.begin(Path::new("/tmp"));
-        w.abandon();
-        assert!(w.is_current(7));
-    }
-
-    // And one that succeeds hands the listing over to the descriptor the scan was armed with.
-    #[test]
-    fn a_committed_scan_takes_over_from_the_old_watch() {
-        let mut w = Watch { fd: -1, wd: 7, incoming: 9 };
-        w.commit();
-        assert!(w.is_current(9));
-        assert!(!w.is_current(7));
-    }
-
-    #[test]
-    fn the_changed_line_names_its_directory() {
-        assert_eq!(
-            changed_line(Path::new("/tmp/a \"b\"")),
-            r#"{"t":"changed","path":"/tmp/a \"b\""}"#
-        );
-    }
-}
+#[path = "watch_tests.rs"]
+mod tests;

@@ -121,8 +121,8 @@ pub fn run() -> i32 {
             }
             Event::Thumb(d) => report_done(&mut out, &mut st, d),
             // The one line no client asked for, and only ever for the directory being listed now.
-            Event::Changed(wd) => {
-                if watch.is_current(wd) {
+            Event::Changed(change) => {
+                if watch.should_refresh(&change, &st.base) {
                     say(&mut out, &changed_line(&st.base));
                 }
             }
@@ -193,7 +193,7 @@ fn handle_line(
                     // base and listing only move together, so a failed list cannot mix them.
                     st.base = PathBuf::from(&path);
                     st.listing = l;
-                    watch.commit();
+                    watch.commit(hidden);
                     forget_rows(st, pool);
                     // Said once per listing, because a folder nobody can watch goes stale in silence.
                     if watch.refused() {

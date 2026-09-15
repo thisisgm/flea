@@ -1,5 +1,5 @@
 .pragma library
-
+.import "QueryKeys.js" as QueryKeys
 .import "Match.js" as Match
 .import "Thumbs.js" as Thumbs
 
@@ -278,9 +278,9 @@ function extendTo(pane, anchor) {
     }
 }
 
-// The query line's own keys while it has the caret, the shape ui/js/Search.js typeKey uses for the
-// search's. Enter commits, escape abandons, backspace shortens, every printable character narrows.
+// Query keys: paste inserts text; Enter commits, Escape abandons, typing narrows.
 function typeKey(event, pane) {
+    if (QueryKeys.paste(event, pane)) return true
     if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) {
         commit(pane)
         return true

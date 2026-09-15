@@ -6,7 +6,7 @@ import tomllib
 from pathlib import Path
 
 ROOT = Path(__file__).resolve().parent.parent
-PRESETS = ('default', 'vim', 'mac', 'windows')
+PRESETS = ('default', 'vim', 'mac', 'windows', 'nautilus')
 MODS = {'none': (), 'text': (), 'ctrl': ('Control',), 'shift': ('Shift',),
         'ctrlshift': ('Control', 'Shift'), 'alt': ('Alt',), 'super': ('Meta',),
         'supershift': ('Meta', 'Shift'), 'superalt': ('Meta', 'Alt')}
@@ -66,7 +66,6 @@ def generate(data):
     def emit(name, value):
         lines.append('var ' + name + ' = ' + json.dumps(value, ensure_ascii=True, separators=(',', ':')))
     emit('PRESETS', PRESETS)
-    emit('preset', 'default')
     def table(name, rows):
         lines.append('var ' + name + ' = [')
         for row in rows:
@@ -86,6 +85,10 @@ def generate(data):
     emit('POINTER', data['pointer'])
     emit('BASE_SHEET', data['sheet'])
     emit('DIGITS', data['digits'])
+    data_text = '\n'.join(lines).rstrip() + '\n'
+    lines = ['.pragma library', '.import \"KeyBindings.js\" as Bindings', '', '// Generated from keys.toml by tools/flea-keymap-gen. Do not edit.', 'var preset = \"default\"']
+    for name in ('PRESETS', 'PRESET_KEYS', 'SHARED_KEYS', 'POINTER', 'BASE_SHEET', 'DIGITS'):
+        lines.append('var ' + name + ' = Bindings.' + name)
     lines.append(r'''
 function applies(row, context, frontend) {
     return (row.context.split(",").indexOf(context) >= 0 || row.context === "all")
@@ -119,6 +122,7 @@ function lookupFor(name, key, text, modifiers, context, frontend) {
     if (row) return row.action
     if (context !== "listing" && context !== "rail") return ""
     for (var i = 0; i < SHARED_KEYS.length; i++) {
+        if (name === "nautilus" && frontend === "gui" && SHARED_KEYS[i].mods === "text") continue
         if (matches(SHARED_KEYS[i], key, text, modifiers)) return SHARED_KEYS[i].action
     }
     if (frontend === "tui" && modifiers === 0 && text >= String(DIGITS.from) && text <= String(DIGITS.to))
@@ -220,13 +224,15 @@ var SHEET = []
 var HINTS = {}
 setPreset("default")
 ''')
-    return '\n'.join(lines).rstrip()
+    return '\n'.join(lines).rstrip() + '\n', data_text
 
 
 try:
     target = Path(sys.argv[1]) if len(sys.argv) > 1 else ROOT / 'ui/js/Keymap.js'
     source = Path(sys.argv[2]) if len(sys.argv) > 2 else ROOT / 'keys.toml'
-    target.write_text(generate(tomllib.loads(source.read_text())) + '\n')
+    keymap, bindings = generate(tomllib.loads(source.read_text()))
+    target.write_text(keymap)
+    target.with_name('KeyBindings.js').write_text(bindings)
 except (OSError, ValueError, KeyError) as error:
     print(f'flea-keymap-gen: {error}', file=sys.stderr)
     sys.exit(1)

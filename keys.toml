@@ -10,6 +10,10 @@ key = "U"
 action = "pageUp"
 
 [[ctrl]]
+key = "H"
+action = "toggleHidden"
+
+[[ctrl]]
 key = "A"
 action = "selectAll"
 
@@ -1659,3 +1663,475 @@ action = "escape"
 label = "close editor"
 frontend = "all"
 context = "editor"
+
+# GNOME Files (Nautilus) equivalents for Flea's GUI. See docs/nautilus-shortcuts.md.
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "1"
+keys = "ctrl-1"
+action = "viewList"
+label = "list view"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "2"
+keys = "ctrl-2"
+action = "viewGrid"
+label = "grid view"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "3"
+keys = "ctrl-3"
+action = "viewColumns"
+label = "columns view"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "T"
+keys = "ctrl-t"
+action = "tabNew"
+label = "new tab"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "N"
+keys = "ctrl-n"
+action = "windowNew"
+label = "new window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "O"
+keys = "ctrl-o"
+action = "open"
+label = "open"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "I"
+keys = "ctrl-i"
+action = "properties"
+label = "properties"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "Return"
+keys = "alt-enter"
+action = "properties"
+label = "properties"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "Enter"
+keys = "alt-enter"
+action = "properties"
+label = "properties"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrlshift"
+key = "Z"
+keys = "ctrl-shift-z"
+action = "redo"
+label = "redo"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "shift"
+key = "Delete"
+keys = "shift-delete"
+action = "deletePermanently"
+label = "delete permanently"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "Left"
+keys = "alt-left"
+action = "historyBack"
+label = "back"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "Right"
+keys = "alt-right"
+action = "historyForward"
+label = "forward"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "Up"
+keys = "alt-up"
+action = "parent"
+label = "up one level"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "Down"
+keys = "alt-down"
+action = "open"
+label = "open"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "Period"
+keys = "ctrl-."
+action = "openTerminal"
+label = "open terminal"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "none"
+key = "F5"
+keys = "f5"
+action = "refresh"
+label = "refresh"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "R"
+keys = "ctrl-r"
+action = "refresh"
+label = "refresh"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "Home"
+keys = "alt-home"
+action = "home"
+label = "home folder"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "D"
+keys = "ctrl-d"
+action = "bookmark"
+label = "bookmark folder"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "F"
+keys = "ctrl-f"
+action = "searchCurrent"
+label = "search current folder"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrlshift"
+key = "F"
+keys = "ctrl-shift-f"
+action = "searchEverywhere"
+label = "search home"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "Plus"
+keys = "ctrl-plus"
+action = "textSizeUp"
+label = "zoom in"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "Equal"
+keys = "ctrl-equal"
+action = "textSizeUp"
+label = "zoom in"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "Minus"
+keys = "ctrl-minus"
+action = "textSizeDown"
+label = "zoom out"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "0"
+keys = "ctrl-0"
+action = "textSizeReset"
+label = "reset zoom"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrlshift"
+key = "Question"
+keys = "ctrl-?"
+action = "keymapSheet"
+label = "keyboard shortcuts"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrlshift"
+key = "Slash"
+keys = "ctrl-shift-slash"
+action = "keymapSheet"
+label = "keyboard shortcuts"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "W"
+keys = "ctrl-w"
+action = "closeTabOrWindow"
+label = "close tab or window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "Q"
+keys = "ctrl-q"
+action = "closeWindow"
+label = "close window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "Return"
+keys = "ctrl-enter"
+action = "openTab"
+label = "open in new tab"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "Enter"
+keys = "ctrl-enter"
+action = "openTab"
+label = "open in new tab"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "shift"
+key = "Return"
+keys = "shift-enter"
+action = "openWindow"
+label = "open in new window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "shift"
+key = "Enter"
+keys = "shift-enter"
+action = "openWindow"
+label = "open in new window"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrlshift"
+key = "I"
+keys = "ctrl-shift-i"
+action = "invertSelection"
+label = "invert selection"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "ctrl"
+key = "Space"
+keys = "ctrl-space"
+action = "toggleSelect"
+label = "toggle selection"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "1"
+keys = "alt-1"
+action = "tab1"
+label = "tab 1"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "2"
+keys = "alt-2"
+action = "tab2"
+label = "tab 2"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "3"
+keys = "alt-3"
+action = "tab3"
+label = "tab 3"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "4"
+keys = "alt-4"
+action = "tab4"
+label = "tab 4"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "5"
+keys = "alt-5"
+action = "tab5"
+label = "tab 5"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "6"
+keys = "alt-6"
+action = "tab6"
+label = "tab 6"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "7"
+keys = "alt-7"
+action = "tab7"
+label = "tab 7"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "8"
+keys = "alt-8"
+action = "tab8"
+label = "tab 8"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "alt"
+key = "9"
+keys = "alt-9"
+action = "tab9"
+label = "tab 9"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "text"
+key = "/"
+keys = "/"
+action = "locationRoot"
+label = "location from root"
+frontend = "gui"
+context = "listing,rail"
+
+[[preset]]
+name = "nautilus"
+mods = "text"
+key = "~"
+keys = "~"
+action = "locationHome"
+label = "location from home"
+frontend = "gui"
+context = "listing,rail"

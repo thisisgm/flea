@@ -17,12 +17,12 @@ import "js/Thumbs.js" as Thumbs
 FocusScope {
     id: root
     focus: true
-
+    readonly property QtObject queryClipboard: Flea.QueryClipboard { pane: root }
     property var backend: null
+    readonly property QtObject desktop: Flea.DesktopActions { pane: root }
     property string path: ""
     // Set once by shell.qml from FLEA_SELECT; applied to the first `rows` this pane receives, then forgotten.
     property string pendingSelect: ""
-    // Set with pendingSelect by a right click on a peeked column row: the menu opens on the row once it is the cursor.
     property bool pendingMenu: false
     property int total: 0
     property int cursorIndex: 0
@@ -100,7 +100,7 @@ FocusScope {
     // The one popup, hosted in shell.qml beside the network dialog rather than inside the pane.
     signal convertRequested(string name)
     signal permissionsRequested(string path)
-    signal pathBarRequested()  // ":" and Ctrl+L; the bar is chrome, so shell.qml opens it as it does the popup above
+    signal pathBarRequested(string startText)
     signal textSizeRequested(int direction)  // issue 9's zoom pair, +1, -1 or 0 to follow Omarchy again; the size is the window's
 
     // The window covers [held, held + rows.length) and nothing outside it is in memory.
@@ -367,7 +367,7 @@ FocusScope {
     // A terminal in the directory being shown, through ui/Opener.qml's flea --terminal.
     function openTerminal() { wire.opener.openTerminal(root.path) }
 
-    function newWindow() { Quickshell.execDetached([Quickshell.env("FLEA_BIN") || "flea", root.path]) }
+    function newWindow(path) { Quickshell.execDetached([Quickshell.env("FLEA_BIN") || "flea", path || root.path]) }
 
     function copyDirPath() { wire.opener.copyText(root.path) }
 
@@ -424,7 +424,7 @@ FocusScope {
             height: Theme.spacing.hairline
             color: Theme.color.muted
         }
-        TapHandler { onDoubleTapped: root.pathBarRequested() }
+        TapHandler { onDoubleTapped: root.pathBarRequested("") }
     }
 
     PointHandler {

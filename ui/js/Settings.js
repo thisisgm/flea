@@ -52,8 +52,8 @@ var LABELS = {
 
 // The four values of the Keys row, in SettingsKeys.html's own chooser order. The first is what a
 // missing or unrecognised stored name resolves to, which that board says is Default.
-var PRESETS = ["default", "vim", "mac", "windows"]
-var PRESET_LABELS = { "default": "Default", vim: "Vim", mac: "Mac", windows: "Windows" }
+var PRESETS = ["default", "vim", "mac", "windows", "nautilus"]
+var PRESET_LABELS = { "default": "Default", vim: "Vim", mac: "Mac", windows: "Windows", nautilus: "Nautilus" }
 
 // Every board row carries a left mark, and a switch wears the mark of the row it governs: these are
 // ui/js/Menu.js's own glyphs by action id, which tests/js/settings.js asserts the two agree on.
@@ -253,8 +253,8 @@ function keyPreview(preset) {
     var actions = ["copy", "paste", "trash"]
     for (var i = 0; i < actions.length; i++) {
         var action = actions[i]
-        var mods = preset === "mac" ? "super" : preset === "windows" ? "ctrl" : "text"
-        if (action === "trash" && (preset === "mac" || preset === "windows")) mods = "none"
+        var mods = preset === "mac" ? "super" : (preset === "windows" || preset === "nautilus") ? "ctrl" : "text"
+        if (action === "trash" && (preset === "mac" || preset === "windows" || preset === "nautilus")) mods = "none"
         for (var j = 0; j < bindings.length; j++) {
             var binding = bindings[j]
             if (Keymap.actionGroup(binding.action) === action && binding.mods === mods) {
@@ -272,7 +272,7 @@ function keyRows(state) {
         { kind: "choice", id: "preset", label: "Keybinding preset", glyph: "keyboard",
           options: PRESETS.map(function (p) { return PRESET_LABELS[p] }),
           value: PRESET_LABELS[state.preset] || state.preset },
-        { kind: "hint", label: "Default \u00b7 Vim \u00b7 Mac \u00b7 Windows" },
+        { kind: "hint", label: PRESETS.map(function (p) { return PRESET_LABELS[p] }).join(" \u00b7 ") },
         { kind: "group", label: "This preset" },
         { kind: "keyPreview", id: "keyPreview", items: keyPreview(state.preset) }
     ]

@@ -218,7 +218,7 @@ ShellRoot {
                 onSticky: function (text) { bar.setActivity(primaryPane, text, primaryPane.transfer) }
                 onConvertRequested: function (name) { convertDialog.open(name, primaryPane) }
                 onPermissionsRequested: function (path) { permissionsDialog.open(path, primaryPane) }
-                onPathBarRequested: chrome.startEdit()
+                onPathBarRequested: function (startText) { chrome.startEdit(startText) }
                 // Issue 9. ViewState persists the stop and Theme derives its own tokens from it, so
                 // the whole window follows without any surface reading the chord itself.
                 onTextSizeRequested: function (direction) { fleaWindow.applyTextSize(direction) }
@@ -263,7 +263,7 @@ ShellRoot {
                         onSticky: function(text) { bar.setActivity(otherPane, text, otherPane.transfer) }
                         onConvertRequested: function(name) { convertDialog.open(name, otherPane) }
                         onPermissionsRequested: function(path) { permissionsDialog.open(path, otherPane) }
-                        onPathBarRequested: chrome.startEdit()
+                        onPathBarRequested: function (startText) { chrome.startEdit(startText) }
                         onTextSizeRequested: function(direction) { fleaWindow.applyTextSize(direction) }
                         onOpened: if (otherPane.shareBrowser.owner === otherPane) otherPane.shareBrowser.close()
                     }

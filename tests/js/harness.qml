@@ -15,6 +15,7 @@ import "focus-wrap.js" as FocusWrapSuite
 import "format.js" as FormatSuite
 import "icons.js" as IconsSuite
 import "keymap.js" as KeymapSuite
+import "desktopkeys.js" as DesktopKeysSuite
 import "match.js" as MatchSuite
 import "menu.js" as MenuSuite
 import "openwith.js" as OpenWithSuite
@@ -33,6 +34,7 @@ import "recent.js" as RecentSuite
 import "renderer.js" as RendererSuite
 import "scroll.js" as ScrollSuite
 import "search.js" as SearchSuite
+import "querykeys.js" as QueryKeysSuite
 import "selection.js" as SelectionSuite
 import "settings.js" as SettingsSuite
 import "sort.js" as SortSuite
@@ -71,7 +73,7 @@ Item {
             ["focus", FocusSuite], ["focus-forward", FocusForwardSuite],
             ["focus-lines", FocusLinesSuite], ["focus-wrap", FocusWrapSuite],
             ["format", FormatSuite], ["icons", IconsSuite],
-            ["keymap", KeymapSuite], ["match", MatchSuite], ["menu", MenuSuite],
+            ["keymap", KeymapSuite], ["desktopkeys", DesktopKeysSuite], ["match", MatchSuite], ["menu", MenuSuite],
             ["mounts", MountsSuite], ["nav", NavSuite], ["network", NetworkSuite],
             ["openwith", OpenWithSuite], ["ops", OpsSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite],
@@ -80,7 +82,7 @@ Item {
             ["protocols", ProtocolsSuite], ["railkeys", RailKeysSuite],
             ["recent", RecentSuite],
             ["renderer", RendererSuite],
-            ["scroll", ScrollSuite], ["search", SearchSuite],
+            ["scroll", ScrollSuite], ["search", SearchSuite], ["querykeys", QueryKeysSuite],
             ["selection", SelectionSuite], ["settings", SettingsSuite],
             ["sort", SortSuite], ["startup", StartupSuite], ["trashdates", TrashDatesSuite], ["permissions", PermissionsSuite], ["status", StatusSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["marquee", MarqueeSuite], ["tabs", TabsSuite],
