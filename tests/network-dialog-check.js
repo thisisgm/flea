@@ -146,10 +146,14 @@ const panePaths = [];
 const paneA = {open(value) { panePaths.push(['A', value]); }};
 const paneB = {open(value) { panePaths.push(['B', value]); }};
 const originService = {origin: paneA, result: 'idle', message() {}, pollMounts() {}, remember() {},
-    completed() {}, passwordFor: () => '', credentialed: () => false,
+    completed() {}, passwordFor: () => '',
     opened(value, origin) { paneContext.onNetworkOpened(value, origin); },
     runInfo() { originContext.infoProcess.running = true; }};
-const originContext = vm.createContext({root: originService, Mounts: {normalize: uri => uri, localPath: () => '/fixture/mounted'},
+// Both predicates live in ui/js/Mounts.js now, so the stub that stands in for it carries them; the
+// values are the ones this fixture has always driven: nothing here takes a password.
+const originContext = vm.createContext({root: originService,
+    Mounts: {normalize: uri => uri, localPath: () => '/fixture/mounted',
+             credentialed: () => false, keyless: () => false},
     mountProcess: {running: false}, authProcess: {running: false}, infoProcess: {running: false},
     listSharesProcess: {running: false}, mountTimeout: {stop() {}, restart() {}}, infoOut: {text: 'local path: /fixture/mounted'}});
 install(originContext, serviceSource, ['openShare', 'openChildShare', 'finishRequest']);

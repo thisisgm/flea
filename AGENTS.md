@@ -4601,6 +4601,82 @@ others, and `tests/ui.sh case_network` drives the refusing shape, so the gate co
 those servers. It is gone: the listing leg carries its own deadline (below), which is what the gate
 was really protecting against, and the listing itself is what answers.
 
+### A public key mounts sftp, and a password is asked only after a mount has failed
+
+**The defect, in 0.2.1 as shipped.** A saved `sftp://user@host` place could never be opened with a
+key. `openShare` gated the mount on `credentialed(uri)`, true for any `sftp://...@`, so with no
+password in the process map it set `result = "missing-credential"` and raised the dialog saying
+"Enter the password to mount this location." **before `gio` was ever run**: no key, no agent and no
+`~/.ssh` could get a hearing. Typing one did not rescue it either, because the credentialed leg runs
+`/usr/lib/flea/flea-gio-auth`, and that helper exits 1 when the mount succeeds without ever asking
+(`if {!$password_sent && [lindex $result 3] == 0} { exit 1 }`), so a key that authenticated anyway
+came back as a refusal and `failMount` then forgot the password.
+
+**Why sftp is the exception.** gvfs's sftp backend is not libssh, it is the ssh binary: measured on
+this box, `gvfsd-sftp` execs `ssh -oForwardX11 no -oForwardAgent no -oPermitLocalCommand no
+-oClearAllForwardings yes -oProtocol 2 -oNoHostAuthenticationForLocalhost yes -oControlMaster auto
+-oControlPath=/run/user/1000/gvfsd-sftp/%C -l tom -s nas.test sftp`, with a pty. So
+everything ssh can do without a password a Flea mount can do too: a key in `~/.ssh`, an agent, and
+`ssh_config`'s `User`, `HostName` and `IdentityFile`. smb, ftp and dav have no such source, which is
+why the split is on the scheme and not on a preference. `Mounts.keyless()` names it, and it sits
+beside `Mounts.credentialed()` in `ui/js/Mounts.js`, where both are pure URI predicates with
+`tests/js/network.js` coverage: `credentialed` says a password may be GIVEN, `keyless` says one may
+not be NEEDED, and an sftp place with no remembered password now takes the plain `gio mount` leg.
+
+**The password is still asked for, just later.** A refused mount is the only evidence that a
+password is what is missing, so that is when it is requested: `infoProcess.onExited` answers
+`failed` with `Mounts.keyless(uri) && Mounts.credentialed(uri)` through `failMount`'s new `missing`
+argument, which is what makes the two routes into the dialog one behaviour — same
+`missing-credential` result, same "Enter the password" sentence, same populated Retry, and the
+secret is never forgotten, because a keyless attempt that failed is not a server refusing one. The
+extra leg is cheap and it does not hang: measured against the real NAS with a user no key of ours
+authorizes, `gio mount sftp://nosuchuser@nas.test/` with stdin on `/dev/null` and
+no tty exits **2 in 171 ms**, printing `Authentication Required` and `Password:`. So a host that
+wants a password costs one failed attempt, not the 15 s deadline.
+
+**That check runs BEFORE the bare-root listing, and the order is the fix CodeRabbit caught in
+review.** `isBareRoot()` matches `sftp://user@host/` as well as `sftp://user@host` — which is the
+shape of this box's own saved server root — so with the check below it, a password-protected server
+root fell into `listShares()`, failed there, and ended on "Connect failed: location has no
+browsable folder" with the prompt unreachable: a listing of a root gvfs could not mount cannot
+authenticate either. Phase 3 of `tests/network-keyless.qml` opens exactly that shape against a stub
+whose `mount`, `info` and `list` all refuse, and asserting the bare-root half first would print
+`NETWORK_KEYLESS FAIL retry=sftp://ask@slot.test/ reason=Connect failed: location has no browsable
+folder password= phase=3`.
+
+**A remembered password is a fallback for sftp, not a first resort.** `openShare` used to enter the
+credentialed leg whenever `passwordFor(uri)` was non-empty, so an sftp place with a password in the
+session map never reached the keyless attempt at all — and because the helper exits 1 when the mount
+succeeds without asking, a remembered password turned a place a key opens into "Connect failed:
+authentication was refused" and then forgot the secret. Caught by CodeRabbit in review; the gate is
+now `!Mounts.keyless(uri) && (password.length > 0 || Mounts.credentialed(uri))`, so sftp always
+tries the key first. What a password-authenticated sftp place pays for that is one extra Enter: its
+keyless attempt is refused first, and the retry dialog opens **already populated**, because
+`failMount` is handed `root.passwordFor(root._pendingUri)` and passes it to `retryRequested`. Phase 4
+of the suite proves a key still opens a place a password is remembered for, and phase 5 proves the
+refused one comes back with `password=fixture-secret` rather than empty. Reverting the gate prints
+`NETWORK_KEYLESS FAIL retry=sftp://key@slot.test/home reason=Connect failed: authentication was
+refused password=fixture-secret phase=4`.
+
+**The workaround, for a box running 0.2.1 today.** Drop the `user@` from the bookmark line, so the
+URI is `sftp://nas.test/home/tom` instead of `sftp://tom@...`: `credentialed` is
+false for it, the plain leg runs, and ssh supplies the user from `ssh_config` (or from the local
+login name). Verified end to end on this box: the mount succeeds on the key, `gio info` answers
+`local path: /run/user/1000/gvfs/sftp:host=nas.test/home/tom`, and the rail row
+opens. This box's own bookmarks file had also accumulated three identical `sftp://tom@nas.test/ nas
+root` lines, which the rail dedupes on the normalized uri but which no writer should have produced.
+
+**The gate is `tests/network-keyless.sh` and `tests/network-keyless.qml`**, run by
+`./tests/run-all.sh`. They drive real `Quickshell.Process` instances against a stub `gio` whose
+plain `mount` succeeds for one sftp place and exits 2 for another, and assert three things: a
+passwordless place opens with no `retryRequested` at all, a place whose mount was refused asks with
+exactly `Enter the password to mount this location.` and no password, and the credential helper is
+never launched either way — its stub writes to a log the suite asserts is empty. Stubbing
+`Mounts.keyless()` to `return false` reddens both that suite and five checks in
+`tests/js/network.js`, and the failure is the reported symptom verbatim:
+`NETWORK_KEYLESS FAIL retry=sftp://key@slot.test/home reason=Enter the password to mount this
+location. password= phase=1`.
+
 ### Issue #36: no network decision reads a translated sentence
 
 `@janoguerra` reported that network shares never open on a non-English box. There were three

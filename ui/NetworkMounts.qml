@@ -245,10 +245,6 @@ Item {
         root.opened(e.path, root.origin)
     }
 
-    function credentialed(uri) {
-        return /^(smb|sftp|ftp|ftps|dav|davs):\/\/[^\/]*@/i.test(String(uri || ""))
-    }
-
     function passwordFor(uri) {
         return root._passwords[Mounts.normalize(uri)] || ""
     }
@@ -304,13 +300,14 @@ Item {
             root.runInfo(uri)
             return
         }
-        if (authenticated === true || root.credentialed(uri)) {
-            var password = request.password || root.passwordFor(uri)
+        var password = request.password || root.passwordFor(uri)
+        // A remembered password is a fallback for sftp, never a first resort: Mounts.keyless.
+        if (authenticated === true || (!Mounts.keyless(uri)
+                && (password.length > 0 || Mounts.credentialed(uri)))) {
             if (password.length === 0) {
                 root.result = "missing-credential"
-                var reason = "Enter the password to mount this location."
-                if (!root.finishRequest(false, reason))
-                    root.retryRequested(uri, root._pendingLabel, "", reason, false, root._pendingOrigin)
+                if (!root.finishRequest(false, "Enter the password to mount this location."))
+                    root.retryRequested(uri, root._pendingLabel, "", "Enter the password to mount this location.", false, root._pendingOrigin)
                 return
             }
             root._pendingPassword = password
@@ -339,9 +336,9 @@ Item {
     // refused says the server itself turned the credential down. Only that invalidates it: a helper
     // that could not start and a host that never answered say nothing about the password, and the
     // reopened dialog has to be populated from it exactly as 0.1.6 populated it.
-    function failMount(reason, password, refused) {
+    function failMount(reason, password, refused, missing) {
         root._pendingPassword = ""
-        root.result = "failed"
+        root.result = missing === true ? "missing-credential" : "failed"
         root.message(reason, true)
         var attempted = password || root._requestPassword
         // Keeping a refused secret meant every later click on that location replayed it with no
@@ -349,7 +346,8 @@ Item {
         if (refused === true) root.forgetPassword(root._pendingUri)
         else if (attempted.length > 0) root.remember(root._pendingUri, attempted)
         if (!root.finishRequest(false, reason))
-            root.retryRequested(root._pendingUri, root._pendingLabel, attempted, reason, true, root._pendingOrigin)
+            root.retryRequested(root._pendingUri, root._pendingLabel, attempted, reason,
+                                missing !== true, root._pendingOrigin)
     }
 
     function finishRequest(success, reason) {
@@ -505,16 +503,18 @@ Item {
                 root.opened(path, root._pendingOrigin)
                 return
             }
+            if (failed) {
+                // The keyless attempt just failed, and a bare-root listing cannot authenticate.
+                var ask = Mounts.keyless(root._pendingUri) && Mounts.credentialed(root._pendingUri)
+                root.failMount(ask ? "Enter the password to mount this location."
+                        : "Connect failed: network location was refused", root.passwordFor(root._pendingUri), false, ask)
+                return
+            }
             // A server root has no FUSE path of its own, so its shares are listed instead, and the
-            // exit code is not read for that: gio describes a reachable root on some servers and
-            // refuses on others, and the listing that follows is what answers either way.
+            // exit code is not read: gio refuses on some servers and answers on others.
             if (root.isBareRoot(root._pendingUri)) {
                 root.result = "resolving"
                 root.listShares(root._pendingUri)
-                return
-            }
-            if (failed) {
-                root.failMount("Connect failed: network location was refused", "")
                 return
             }
             root.failMount("Connect failed: location has no browsable folder", root.passwordFor(root._pendingUri))

@@ -206,4 +206,21 @@ function run(check) {
           Mounts.removeBookmark("  smb://nas/isos NAS\n", "smb://nas/isos"), "")
     check("an empty uri never empties the file", Mounts.removeBookmark(body, ""), body)
     check("no body at all answers nothing rather than throwing", Mounts.removeBookmark("", "smb://nas/isos/"), "")
+
+    // The two predicates that decide whether a password is demanded before a mount is attempted:
+    // credentialed says one may be given, keyless says one may not be needed at all. A public key
+    // opening a saved sftp place is the whole reason they differ; see AGENTS.md.
+    check("a user in the authority is what makes a place able to take a password",
+          Mounts.credentialed("sftp://tom@nas.test/home"), true)
+    check("and an sftp place without one has no password to belong to",
+          Mounts.credentialed("sftp://nas.test/home"), false)
+    check("every credentialed scheme but sftp has no keyless route to try first",
+          ["smb://tom@nas.test/data", "ftp://tom@nas.test/", "davs://tom@nas.test/d"].map(
+              function (uri) { return Mounts.keyless(uri) }).join("|"), "false|false|false")
+    check("sftp is the one scheme a key or an agent can answer, with or without a user",
+          [Mounts.keyless("sftp://tom@nas.test/home"), Mounts.keyless("sftp://nas.test/")].join("|"),
+          "true|true")
+    check("a scheme that is not network at all answers neither",
+          [Mounts.credentialed("file:///home/tom"), Mounts.keyless("file:///home/tom")].join("|"),
+          "false|false")
 }
