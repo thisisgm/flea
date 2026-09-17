@@ -1,6 +1,7 @@
 use crate::paths;
 use crate::thp;
 use crate::vulkan;
+use std::ffi::OsStr;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
@@ -58,17 +59,54 @@ fn qs_command(target: PathBuf) -> Command {
     if std::env::var_os("QSG_RHI_BACKEND").is_some_and(|value| !value.is_empty()) {
         // An explicit choice is the operator's, so it is neither replaced nor offered a retry.
         cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
-    } else if let Err(reason) = vulkan::usable() {
-        // A silent downgrade hides a 2.4x memory regression, so the reason the probe found is said once.
-        eprintln!("flea: Vulkan is unusable, {reason}, so the shell starts on OpenGL");
-        cmd.env("QSG_RHI_BACKEND", "opengl");
-        cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
+        // Vulkan on a hybrid GPU still has to present on the compositor's device; pinning is not a renderer change.
+        if std::env::var_os("QSG_RHI_BACKEND").as_deref() == Some(OsStr::new("vulkan")) {
+            pin_display_icd(&mut cmd, None);
+        }
     } else {
-        // Vulkan is the measured fast path, and the marker is what permits the QML arm its one retry.
-        cmd.env("QSG_RHI_BACKEND", "vulkan");
-        cmd.env("FLEA_RENDERER_AUTOMATIC", "1");
+        match vulkan::usable() {
+            Err(reason) => {
+                // A silent downgrade hides a 2.4x memory regression, so the reason the probe found is said once.
+                eprintln!("flea: Vulkan is unusable, {reason}, so the shell starts on OpenGL");
+                cmd.env("QSG_RHI_BACKEND", "opengl");
+                cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
+            }
+            Ok(devices) => {
+                // Vulkan is the measured fast path, and the marker is what permits the QML arm its one retry.
+                cmd.env("QSG_RHI_BACKEND", "vulkan");
+                cmd.env("FLEA_RENDERER_AUTOMATIC", "1");
+                pin_display_icd(&mut cmd, Some(&devices));
+            }
+        }
     }
     cmd
+}
+
+// VK_DRIVER_FILES / VK_ICD_FILENAMES are the loader's; an explicit value is the operator's.
+// Empty is absent, the same rule QSG_RHI_BACKEND follows. The probe is reused when the automatic
+// arm already ran it, so a hybrid launch does not pay for Vulkan twice.
+fn pin_display_icd(cmd: &mut Command, already: Option<&[(u32, u32)]>) {
+    if std::env::var_os("VK_DRIVER_FILES").is_some_and(|value| !value.is_empty())
+        || std::env::var_os("VK_ICD_FILENAMES").is_some_and(|value| !value.is_empty())
+    {
+        return;
+    }
+    let owned;
+    let devices = match already {
+        Some(devices) => devices,
+        None => match vulkan::usable() {
+            Ok(devices) => {
+                owned = devices;
+                owned.as_slice()
+            }
+            Err(_) => return,
+        },
+    };
+    if let Some(icd) = vulkan::display_icd(devices) {
+        eprintln!("flea: Vulkan sees a GPU with no display, so the shell starts on the display GPU");
+        cmd.env("VK_DRIVER_FILES", &icd);
+        cmd.env("VK_ICD_FILENAMES", &icd);
+    }
 }
 
 fn exec(mut cmd: Command) -> i32 {

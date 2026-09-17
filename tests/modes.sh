@@ -11,7 +11,7 @@ BIN=./target/debug/flea
 # current_exe() answers with the kernel's own resolved path, so the expectation is resolved the same way.
 BIN_REAL=$(readlink -f "$BIN")
 # An operator exporting any of these would answer for src/gui.rs, which is the thing under test here.
-unset QSG_RHI_BACKEND FLEA_RENDERER_AUTOMATIC VK_DRIVER_FILES VK_ICD_FILENAMES
+unset QSG_RHI_BACKEND FLEA_RENDERER_AUTOMATIC QT_VK_PHYSICAL_DEVICE_INDEX VK_DRIVER_FILES VK_ICD_FILENAMES
 fail=0
 
 check() {
@@ -130,6 +130,7 @@ grep -i "^THP_enabled" /proc/self/status
 printf 'FLEA_BIN %s\n' "$FLEA_BIN"
 printf 'RENDERER %s\n' "$QSG_RHI_BACKEND"
 printf 'AUTOMATIC %s\n' "${FLEA_RENDERER_AUTOMATIC-unset}"
+printf 'ICD %s\n' "${VK_ICD_FILENAMES-unset}"
 printf 'ARGV %s\n' "$*"
 printf 'FLEA_PATH %s\n' "${FLEA_PATH-unset}"
 printf 'FLEA_SELECT %s\n' "${FLEA_SELECT-unset}"
@@ -149,6 +150,16 @@ check "the automatic renderer starts with Vulkan" "1" "$(echo "$out" | grep -c '
 check "the automatic renderer permits one fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC 1$')"
 # The downgrade below says why, so its silence here is what proves this arm took the probe's other branch.
 check "a loader that can deliver Vulkan says nothing" "0" "$(echo "$out" | grep -c 'Vulkan is unusable')"
+# Hybrid: Vulkan lists a GPU with no connector. A pin is a sentence plus an ICD path; single-GPU boxes set neither.
+if echo "$out" | grep -q 'GPU with no display'; then
+  check "a display-GPU pin names an ICD" "1" "$(echo "$out" | grep -c '^ICD /.*\.json')"
+  check "and does not leave the ICD list unset" "0" "$(echo "$out" | grep -c '^ICD unset$')"
+else
+  check "a box whose every Vulkan device can present leaves the loader's ICD list" "1" "$(echo "$out" | grep -c '^ICD unset$')"
+fi
+out=$(env VK_ICD_FILENAMES=/tmp/flea-operator-icd.json WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+check "an explicit ICD list is preserved" "1" "$(echo "$out" | grep -c '^ICD /tmp/flea-operator-icd.json$')"
+check "and an explicit ICD list is not announced as a pin" "0" "$(echo "$out" | grep -c 'GPU with no display')"
 out=$(env QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an explicit renderer is preserved" "1" "$(echo "$out" | grep -c '^RENDERER opengl$')"
 check "an explicit renderer cannot trigger fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC unset$')"
