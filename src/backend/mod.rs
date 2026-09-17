@@ -65,7 +65,7 @@ pub mod ops;
 pub mod opscancel;
 pub mod opsdispatch;
 pub mod opsreq;
-mod mountinfo;
+mod checkedrename;
 mod renamecompat;
 pub mod trash;
 pub mod undo;

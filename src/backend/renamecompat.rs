@@ -1,6 +1,5 @@
-// Linux's atomic no-clobber rename, plus the measured mounts that need a safe caller-owned copy fallback.
+// Atomic no-clobber rename, a checked native retry, and cross-device copy fallback.
 use crate::backend::copyfile::{copy_any, remove_any, Progress};
-use crate::backend::mountinfo::mount_type_in;
 use crate::error::{from_io, FleaError};
 use std::ffi::{c_char, CString};
 use std::io;
@@ -10,9 +9,6 @@ use std::sync::atomic::AtomicBool;
 // Both paths passed here are absolute, so renameat2 never consults AT_FDCWD.
 const AT_FDCWD: i32 = -100;
 const RENAME_NOREPLACE: u32 = 1;
-const EINVAL: i32 = 22;
-// GVFS answers a WebDAV rename with EIO instead of refusing it outright.
-const EIO: i32 = 5;
 const EXDEV: i32 = 18;
 // The kind a half-succeeded rename answers; ui/js/Errors.js words it and ui/PaneWire.qml refreshes on it.
 pub(crate) const KEPT: &str = "rename-kept";
@@ -27,7 +23,7 @@ extern "C" {
     ) -> i32;
 }
 
-// Some FUSE mounts reject directory RENAME_NOREPLACE; callers that can safely copy and remove handle that case themselves.
+// Unsupported flags permit a checked retry, which can overwrite a destination created after the check.
 pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
     let c_from = path_c(from)?;
     let c_to = path_c(to)?;
@@ -43,50 +39,19 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
     if rc == 0 {
         return Ok(());
     }
-    Err(io::Error::last_os_error())
+    let error = io::Error::last_os_error();
+    crate::backend::checkedrename::fallback(from, to, error)
 }
 
-// Rename uses the atomic syscall everywhere except a measured fallback, which copies exclusively before removing the source.
 pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
-    match rename_noreplace(from, to) {
+    finish_rename(from, to, rename_noreplace(from, to))
+}
+
+fn finish_rename(from: &Path, to: &Path, result: io::Result<()>) -> Result<(), FleaError> {
+    match result {
         Ok(()) => Ok(()),
-        Err(error) if error.raw_os_error() == Some(EXDEV) || needs_copy_fallback(from, &error) => copy_then_remove(from, to),
+        Err(error) if error.raw_os_error() == Some(EXDEV) => copy_then_remove(from, to),
         Err(error) => Err(from_io("rename", &to.to_string_lossy(), &error)),
-    }
-}
-
-// WebDAV is decided from the path and errno alone, so a FUSE check never reads mountinfo for it.
-fn needs_copy_fallback(from: &Path, error: &io::Error) -> bool {
-    if needs_gvfs_webdav_fallback(from, error) {
-        return true;
-    }
-    // The errno answers first, so an ordinary collision never reads and parses the whole mount table.
-    if error.raw_os_error() != Some(EINVAL) {
-        return false;
-    }
-    std::fs::read_to_string("/proc/self/mountinfo")
-        .ok()
-        .map(|body| needs_fuse_fallback_in(from, error, &body))
-        .unwrap_or(false)
-}
-
-// Sample input, from: "/run/user/1000/gvfs/dav:host=slot,ssl=true/notes.txt"
-fn needs_gvfs_webdav_fallback(from: &Path, error: &io::Error) -> bool {
-    let text = from.to_string_lossy();
-    error.raw_os_error() == Some(EIO) && text.starts_with("/run/user/") && text.contains("/gvfs/dav:")
-}
-
-fn needs_fuse_fallback_in(from: &Path, error: &io::Error, mountinfo: &str) -> bool {
-    if error.raw_os_error() != Some(EINVAL) {
-        return false;
-    }
-    match mount_type_in(from, mountinfo).as_deref() {
-        Some("fuse.megafs") => true,
-        Some("fuse.rclone") => from
-            .symlink_metadata()
-            .map(|meta| meta.file_type().is_dir())
-            .unwrap_or(false),
-        _ => false,
     }
 }
 
@@ -158,51 +123,33 @@ mod tests {
     use crate::backend::testdir::TestDir;
     use std::os::unix::fs::PermissionsExt;
 
-    const EEXIST: i32 = 17;
-    const EACCES: i32 = 13;
     const ENOENT: i32 = 2;
 
     #[test]
-    fn copy_fallback_scope_matches_each_measured_fuse_mount() {
-        let d = TestDir::new("fuserenamescope");
-        let file = d.file("file", "body");
-        let directory = d.dir("directory");
-        let rclone = format!(
-            "1 0 0:1 / {} rw - fuse.rclone remote: rw\n",
-            d.path().display()
-        );
-        let megafs = format!(
-            "1 0 0:2 / {} rw - fuse.megafs megafs rw\n",
-            d.path().display()
-        );
-        let ext4 = format!("1 0 8:1 / {} rw - ext4 /dev/a rw\n", d.path().display());
-        let invalid = io::Error::from_raw_os_error(EINVAL);
-        let exists = io::Error::from_raw_os_error(EEXIST);
-        assert!(needs_fuse_fallback_in(&directory, &invalid, &rclone));
-        assert!(needs_fuse_fallback_in(&directory, &invalid, &megafs));
-        assert!(needs_fuse_fallback_in(&file, &invalid, &megafs));
-        assert!(!needs_fuse_fallback_in(&file, &invalid, &rclone));
-        assert!(!needs_fuse_fallback_in(&directory, &invalid, &ext4));
-        assert!(!needs_fuse_fallback_in(&directory, &exists, &rclone));
-        assert_eq!(std::fs::read_to_string(file).unwrap(), "body");
+    fn only_cross_device_failure_copies_after_the_native_attempt() {
+        let sandbox = TestDir::new("renamecopypolicy");
+        let source = sandbox.file("source", "body");
+        let target = sandbox.join("target");
+        for errno in [1, 2, 5, 13, 17, 20, 22, 28, 30, 38, 95] {
+            let error = finish_rename(&source, &target, Err(io::Error::from_raw_os_error(errno)))
+                .expect_err("native failures must not start a copy");
+            assert_eq!(error.where_, "rename");
+            assert_eq!(std::fs::read_to_string(&source).unwrap(), "body");
+            assert!(!target.exists());
+        }
+        finish_rename(&source, &target, Err(io::Error::from_raw_os_error(EXDEV))).unwrap();
+        assert!(!source.exists());
+        assert_eq!(std::fs::read_to_string(target).unwrap(), "body");
     }
     #[test]
-    fn only_a_gvfs_webdav_eio_uses_the_copy_fallback() {
-        let eio = io::Error::from_raw_os_error(EIO);
-        let denied = io::Error::from_raw_os_error(EACCES);
-        assert!(needs_gvfs_webdav_fallback(Path::new("/run/user/1000/gvfs/dav:host=slot,ssl=true/file"), &eio));
-        assert!(!needs_gvfs_webdav_fallback(Path::new("/run/user/1000/gvfs/sftp:host=slot/file"), &eio));
-        assert!(!needs_gvfs_webdav_fallback(Path::new("/tmp/gvfs/dav:host=fake/file"), &eio));
-        assert!(!needs_gvfs_webdav_fallback(Path::new("/run/user/1000/gvfs/dav:host=slot,ssl=true/file"), &denied));
-    }
-    #[test]
-    fn webdav_copy_fallback_refuses_to_remove_an_existing_destination() {
+    fn cross_device_copy_fallback_refuses_to_remove_an_existing_destination() {
         let d = TestDir::new("webdavrenameclobber");
         let from = d.file("source.txt", "source body");
         let to = d.file("target.txt", "target body");
         d.assert_contains(&from);
         d.assert_contains(&to);
-        let error = copy_then_remove(&from, &to).expect_err("the fallback must refuse an existing destination");
+        let error = finish_rename(&from, &to, Err(io::Error::from_raw_os_error(EXDEV)))
+            .expect_err("the fallback must refuse an existing destination");
         assert_eq!(
             error.msg, "already exists",
             "the exclusive create's EEXIST is what tells this refusal from any other copy failure"
@@ -365,16 +312,5 @@ mod tests {
         let error = after_failed_removal(&from, &to, removal);
         assert_eq!(std::fs::read_to_string(&to).unwrap(), "body", "the only complete copy stays on disk");
         assert_eq!(error.where_, KEPT, "a source that proves nothing keeps the copy");
-    }
-    // The FUSE arm reads the real mountinfo, so a unit test drives only the WebDAV arm; live mount batteries drive the other.
-    #[test]
-    fn the_composed_predicate_answers_for_the_webdav_case() {
-        let d = TestDir::new("composedfallback");
-        assert!(needs_copy_fallback(
-            Path::new("/run/user/1000/gvfs/dav:host=x,ssl=true/f"),
-            &io::Error::from_raw_os_error(EIO)
-        ));
-        assert!(!needs_copy_fallback(d.path(), &io::Error::from_raw_os_error(EIO)));
-        assert!(!needs_copy_fallback(d.path(), &io::Error::from_raw_os_error(EEXIST)));
     }
 }

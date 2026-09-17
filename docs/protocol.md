@@ -407,7 +407,8 @@ because neither holds contents to stream and an open of one would wait for a wri
 node takes the same path, but creating one needs `CAP_MKNOD`, so an unprivileged copy fails that item
 with `EPERM` instead of recreating it; either way nothing streams from a device that never ends. A
 destination that already exists is refused for that item rather than overwritten, because every write
-here creates its target exclusively. Directory recursion is invisible on this wire: the backend walks a
+here creates its target exclusively, except the checked native move described under `rename` below.
+Directory recursion is invisible on this wire: the backend walks a
 tree to copy it and the client sees only the top-level item's lines, so the wire's shape does not depend
 on how deep a folder is.
 
@@ -464,15 +465,26 @@ Renames one file within its own directory and answers one `renamed` line. `to` i
 path: an empty `to`, `.`, `..`, or anything containing `/` or an interior NUL is refused with an `error`
 line before any syscall runs, because a separator would move the file out of its own directory.
 
-**The rename refuses to overwrite.** It runs `renameat2` with `RENAME_NOREPLACE` rather than
-`rename(2)`, which on Unix silently replaces the target; for a file manager that is unrecoverable data
-loss, and the check-then-rename alternative leaves a window in which another process can create the
-target. Renaming a file to the name it already has is not an error and is not work: it answers `ok` and
+**The rename refuses existing destinations.** It first runs `renameat2` with `RENAME_NOREPLACE`,
+which atomically refuses a collision. Renaming a file to the name it already has is not an error and is not work: it answers `ok` and
 records nothing to undo.
 
-**A rename that cannot prove the source survived whole answers `rename-kept`.** Measured mounts that cannot serve
-`RENAME_NOREPLACE` include `fuse.rclone` directories and `fuse.megafs` paths, which answer `EINVAL`, and a path under a
-`/run/user/*/gvfs/dav:` WebDAV mount answers `EIO`. On those, the backend builds the new name through the same exclusive copy primitives every
+**Unsupported atomic no-overwrite uses a checked native rename, independent of the provider.**
+`ENOSYS`, `EOPNOTSUPP`, or `EINVAL` from `renameat2(RENAME_NOREPLACE)` enables this fallback.
+`EINVAL` can also mean an invalid operation: it permits a retry, not a copy, and the native rename
+must still succeed. The backend checks the destination with
+`symlink_metadata` (`lstat`), refuses every existing entry including a dangling symlink, and refuses
+lookup errors other than not-found. An absent destination permits ordinary `rename`, avoiding the
+recursive download/upload that a copy fallback can incur. This policy applies to files, directories,
+same-filesystem moves, undo and archive publication through their shared rename helper. It offers no overwrite prompt.
+The check and rename are **not atomic**: another writer can create the destination after the check
+and have it replaced. This is the compatibility tradeoff, not a no-clobber guarantee against
+concurrent writers. A cross-filesystem move still uses copy-then-remove on `EXDEV`. Other errors,
+including `EIO` and a native rename's `EINVAL`, fail rather than starting a recursive copy.
+There are no mount-name exceptions: rclone follows the same rule, and WebDAV `EIO` is now a refusal.
+
+**A copied rename that cannot prove the source survived whole answers `rename-kept`.** On `EXDEV`,
+the backend builds the new name through the same exclusive copy primitives every
 other write uses and removes the source only once that copy is complete. The copy is taken back only on proof the source
 survived whole: a source that still stats as anything but a directory after the failed removal, since
 `remove_file` removes every other kind with one unlink that either takes effect or does not. That answers a plain `rename`
@@ -488,8 +500,8 @@ rename through the same call, so a reversal that half succeeds answers this same
 
 Unlike the three above, this answers on the loop's own thread: the ordinary case is one `renameat2`,
 which costs less than spawning a thread. The compatibility paths above are not one syscall and
-run on that same thread, so a directory rename on rclone or MEGA copies the whole tree inline before it
-answers. See `AGENTS.md`, "Write operations and the undo journal".
+run on that same thread. Only an `EXDEV` rename or undo copies the whole tree inline before it answers;
+the older provider-specific copy policy described in `AGENTS.md` no longer applies.
 
 ### duplicate
 
