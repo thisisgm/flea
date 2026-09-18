@@ -11,6 +11,21 @@ default file manager, puts it in front of the other file managers for "Show in f
 the desktop's file chooser to it, and `flea --picker` does that last part alone. Both are described
 below.
 
+## From the AUR
+
+Two packages, one file list. `flea` builds the tagged source on your machine and runs the suite
+there, which on a laptop or an aarch64 box is a long wait; `flea-bin` installs the binary the
+release workflow built and tested on a machine of your architecture, and takes seconds:
+
+```
+omarchy pkg aur add flea-bin
+```
+
+The two conflict, so pacman swaps one for the other rather than leaving both half-installed, and
+both are removed the same way. What lands on disk is the table below in either case: `flea-bin`'s
+`package()` is `flea`'s, read from a tarball instead of a build directory, and the release workflow
+refuses a tag where the two have drifted. [docs/release.md](release.md) is how that tarball is made.
+
 ## Build and install
 
 ```

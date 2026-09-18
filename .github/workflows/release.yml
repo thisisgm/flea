@@ -1,0 +1,282 @@
+name: Release
+
+# A vX.Y.Z tag is a release. This builds and tests Flea natively on x86_64 and on aarch64, stages the
+# two tarballs flea-bin installs from, attaches them to the tag's GitHub release, proves
+# packaging/flea-bin/PKGBUILD against the assets it just published, and pushes flea-bin to the AUR
+# when the AUR_SSH_KEY secret is set. Without the secret every job still runs and the push alone is
+# skipped with a warning, so the workflow is complete on a fork. docs/release.md is the operator's
+# side of this file: what to tag, how to set the secret up once, and how to do each step by hand.
+on:
+  push:
+    tags: ['v*']
+  workflow_dispatch:
+    inputs:
+      ref:
+        description: 'Existing vX.Y.Z tag to build again'
+        required: true
+
+permissions:
+  contents: read
+
+concurrency:
+  group: release-${{ inputs.ref || github.ref_name }}
+  cancel-in-progress: false
+
+env:
+  RELEASE_REF: ${{ inputs.ref || github.ref_name }}
+
+jobs:
+  # Nothing downstream may publish a version the tree does not agree on. The tag, Cargo.toml and
+  # both PKGBUILDs have to say the same X.Y.Z, and flea-bin has to declare the runtime closure and
+  # install the file set that flea does, so the two PKGBUILDs are compared line for line here.
+  verify:
+    runs-on: ubuntu-24.04
+    timeout-minutes: 5
+    outputs:
+      version: ${{ steps.check.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          # Tags are needed to prove a workflow_dispatch ref is a real tag and not a branch name.
+          fetch-depth: 0
+          persist-credentials: false
+
+      - id: check
+        name: The tag, Cargo.toml and both PKGBUILDs agree
+        run: |
+          set -euo pipefail
+          ref="$RELEASE_REF"
+          [[ "$ref" =~ ^v[0-9]+\.[0-9]+\.[0-9]+$ ]] || {
+            echo "::error::'$ref' is not a vX.Y.Z tag; releases build exact version tags only"; exit 1; }
+          version="${ref#v}"
+          git rev-parse -q --verify "refs/tags/$ref" >/dev/null \
+            || { echo "::error::tag '$ref' does not exist"; exit 1; }
+
+          fail=0
+          check() { # check <what> <actual> <expected>
+            if [ "$2" != "$3" ]; then
+              echo "::error::$1 is '$2' but the tag says '$3'"; fail=1
+            fi
+          }
+          check "Cargo.toml version" \
+            "$(grep -m1 '^version = ' Cargo.toml | cut -d'"' -f2)" "$version"
+          check "PKGBUILD pkgver" \
+            "$(grep -m1 '^pkgver=' PKGBUILD | cut -d= -f2)" "$version"
+          check "packaging/flea-bin/PKGBUILD pkgver" \
+            "$(grep -m1 '^pkgver=' packaging/flea-bin/PKGBUILD | cut -d= -f2)" "$version"
+
+          # The runtime closure is the source PKGBUILD's, reason for reason; flea-bin has to name the
+          # same packages. Both files are this tree's own, so sourcing them is what makepkg does.
+          closure() {
+            bash -c 'source "$1"; printf "%s\n" "depends:" "${depends[@]}" "optdepends:" "${optdepends[@]}"' _ "$1"
+          }
+          if ! diff <(closure PKGBUILD) <(closure packaging/flea-bin/PKGBUILD); then
+            echo "::error::packaging/flea-bin/PKGBUILD's depends or optdepends differ from PKGBUILD's"; fail=1
+          fi
+
+          # And the same file set: package() in both is one body, differing only in where the binary
+          # is read from, so with the cd and the binary line removed the two have to be identical.
+          body() { sed -n '/^package() {/,/^}/p' "$1" | grep -v -E '^  cd |/usr/bin/flea"$'; }
+          if ! diff <(body PKGBUILD) <(body packaging/flea-bin/PKGBUILD); then
+            echo "::error::packaging/flea-bin/PKGBUILD's package() has drifted from PKGBUILD's"; fail=1
+          fi
+
+          [ "$fail" -eq 0 ] || exit 1
+          echo "version=$version" >> "$GITHUB_OUTPUT"
+          echo "verified $ref"
+
+  # One native runner per architecture: the aarch64 leg is a real aarch64 machine, so it runs the
+  # same test suite the x86_64 leg does instead of cross-compiling a binary nothing exercised.
+  # Flea has no crate dependencies and links only glibc and gcc-libs, so an Ubuntu 24.04 build runs
+  # on Arch, whose glibc is never older than the runner's.
+  build:
+    needs: verify
+    strategy:
+      fail-fast: false
+      matrix:
+        include:
+          - arch: x86_64
+            runner: ubuntu-24.04
+          - arch: aarch64
+            runner: ubuntu-24.04-arm
+    runs-on: ${{ matrix.runner }}
+    timeout-minutes: 30
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+      ARCH: ${{ matrix.arch }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+
+      # Pinned to a master commit, not to the stable branch: dtolnay recreates the version branches
+      # on every toolchain release, so a commit pinned from one is orphaned by the next.
+      - uses: dtolnay/rust-toolchain@02cb101ec7c40f2c49e1d9714d64511d8e1b74de # master, 2026-09-12
+        with:
+          toolchain: stable
+
+      # The suite shells out to bsdtar for the archive cases and to gio for the mount cases, and
+      # src/vulkan.rs's tests dlopen libvulkan.so.1 to drive the probe against a loader with no ICD.
+      # The rest of what it calls is coreutils. The permission cases need a non-root user, which the
+      # hosted runner is; a root container skips the read bit and fails sixteen of them.
+      - name: Install what the test suite shells out to
+        run: |
+          set -eu
+          sudo apt-get update -o Acquire::Retries=3
+          sudo apt-get install -y -o Acquire::Retries=3 libarchive-tools libglib2.0-bin libvulkan1
+
+      # The Rust half of the source PKGBUILD's check(). Its other half, tests/js.sh and
+      # tests/keymap-gen.sh, runs under qml6, which Ubuntu does not ship on PATH, and js.sh reads an
+      # installed Omarchy besides; both stay with the Arch box that builds the source package.
+      - name: Test
+        run: cargo test --release --locked
+
+      - name: Build
+        run: cargo build --release --locked
+
+      - name: Stage the flea-bin tarball
+        run: packaging/flea-bin-tarball target/release/flea "$VERSION" "$ARCH" dist
+
+      - uses: actions/upload-artifact@043fb46d1a93c77aae656e7c1c64a875d1fc6a0a # v7.0.1
+        with:
+          name: flea-bin-${{ matrix.arch }}
+          path: dist/*
+          if-no-files-found: error
+
+  # The release is created if the tag has none, from docs/release-notes-X.Y.Z.md when the tree
+  # carries one. A release that already exists, written by hand or by an earlier run, keeps its notes
+  # and its other assets: only the two tarballs and their sidecars are replaced.
+  release:
+    needs: [verify, build]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 10
+    permissions:
+      contents: write
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+
+      - name: The artifacts still match their sidecars
+        run: cd dist && sha256sum -c ./*.sha256
+
+      - name: Create the release or attach to it
+        env:
+          GH_TOKEN: ${{ github.token }}
+        run: |
+          set -euo pipefail
+          tag="$RELEASE_REF"
+          if gh release view "$tag" --repo "$GITHUB_REPOSITORY" >/dev/null 2>&1; then
+            gh release upload "$tag" dist/* --repo "$GITHUB_REPOSITORY" --clobber
+            echo "attached the flea-bin tarballs and sidecars to the existing $tag release"
+          else
+            notes="docs/release-notes-$VERSION.md"
+            if [ -f "$notes" ]; then
+              gh release create "$tag" dist/* --repo "$GITHUB_REPOSITORY" --title "$tag" --verify-tag --notes-file "$notes"
+            else
+              gh release create "$tag" dist/* --repo "$GITHUB_REPOSITORY" --title "$tag" --verify-tag --generate-notes
+            fi
+            echo "created the $tag release"
+          fi
+
+  # The PKGBUILD that reaches the AUR is proved first, against the assets the release job just
+  # published: makepkg in an Arch container downloads them, checks the pinned checksums and builds
+  # the package for both architectures, and the two file lists have to be one list. The push itself
+  # needs the AUR_SSH_KEY secret and is skipped, not failed, without it.
+  publish-aur:
+    needs: [verify, release]
+    runs-on: ubuntu-24.04
+    timeout-minutes: 15
+    env:
+      VERSION: ${{ needs.verify.outputs.version }}
+    steps:
+      - uses: actions/checkout@3d3c42e5aac5ba805825da76410c181273ba90b1 # v7.0.1
+        with:
+          ref: ${{ inputs.ref || github.ref }}
+          persist-credentials: false
+
+      - uses: actions/download-artifact@3e5f45b2cfb9172054b4087a40e8e0b5a5461e7c # v8.0.1
+        with:
+          path: dist
+          merge-multiple: true
+
+      # The tree's PKGBUILD says SKIP so that a version bump is one line; the AUR gets real hashes.
+      - name: Pin the checksums
+        run: |
+          set -euo pipefail
+          x86=$(cut -d' ' -f1 "dist/flea-v$VERSION-linux-x86_64.tar.gz.sha256")
+          arm=$(cut -d' ' -f1 "dist/flea-v$VERSION-linux-aarch64.tar.gz.sha256")
+          [[ "$x86" =~ ^[0-9a-f]{64}$ && "$arm" =~ ^[0-9a-f]{64}$ ]] || { echo "::error::malformed sidecar"; exit 1; }
+          sed -i "s/^sha256sums_x86_64=.*/sha256sums_x86_64=('$x86')/" packaging/flea-bin/PKGBUILD
+          sed -i "s/^sha256sums_aarch64=.*/sha256sums_aarch64=('$arm')/" packaging/flea-bin/PKGBUILD
+          if grep -q "'SKIP'" packaging/flea-bin/PKGBUILD; then
+            echo "::error::a SKIP survived pinning; the AUR never receives one"; exit 1
+          fi
+          grep '^sha256sums_' packaging/flea-bin/PKGBUILD
+
+      - name: Prove the PKGBUILD against the published release
+        run: |
+          set -euo pipefail
+          docker run --rm -v "$PWD/packaging/flea-bin:/pkg:ro" -e "VERSION=$VERSION" archlinux:base-devel bash -euo pipefail -c '
+            useradd -m build
+            cp -r /pkg /home/build/pkg && chown -R build /home/build/pkg
+            cd /home/build/pkg
+            # makepkg refuses root, and the aarch64 build is the same package() run under a
+            # makepkg.conf that says aarch64: package() only installs files, so the host arch is moot.
+            sed "s/^CARCH=.*/CARCH=\"aarch64\"/; s/^CHOST=.*/CHOST=\"aarch64-unknown-linux-gnu\"/" /etc/makepkg.conf > /home/build/makepkg-aarch64.conf
+            su build -c "makepkg --nodeps --noconfirm --clean"
+            su build -c "makepkg --nodeps --noconfirm --clean --config /home/build/makepkg-aarch64.conf"
+            su build -c "makepkg --printsrcinfo" | tee .SRCINFO
+            list() { bsdtar -tf "$1" | grep -v "^\." | sort; }
+            list "flea-bin-$VERSION-1-x86_64.pkg.tar.zst" > x86_64.list
+            list "flea-bin-$VERSION-1-aarch64.pkg.tar.zst" > aarch64.list
+            diff x86_64.list aarch64.list
+            grep -qx "usr/bin/flea" x86_64.list
+            grep -qx "usr/share/flea/ui/shell.qml" x86_64.list
+            echo "flea-bin $VERSION packages $(wc -l < x86_64.list) paths on both architectures"
+          '
+
+      - id: aur
+        name: Read the maintainer and decide whether the AUR push runs
+        env:
+          AUR_SSH_KEY: ${{ secrets.AUR_SSH_KEY }}
+        run: |
+          set -euo pipefail
+          # The commit on the AUR is signed off by the PKGBUILD's own Maintainer line.
+          line=$(sed -n 's/^# Maintainer: //p' packaging/flea-bin/PKGBUILD | head -n1)
+          name=${line% <*}
+          email=${line##*<}; email=${email%>}
+          [ -n "$name" ] && [ -n "$email" ] || { echo "::error::no '# Maintainer: Name <email>' line in packaging/flea-bin/PKGBUILD"; exit 1; }
+          echo "name=$name" >> "$GITHUB_OUTPUT"
+          echo "email=$email" >> "$GITHUB_OUTPUT"
+          if [ -z "$AUR_SSH_KEY" ]; then
+            echo "push=false" >> "$GITHUB_OUTPUT"
+            echo "::warning title=AUR push skipped::the AUR_SSH_KEY secret is not set; docs/release.md says how to set it up once"
+          else
+            echo "push=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      # Runs in its own Arch container: regenerates .SRCINFO with makepkg, commits PKGBUILD and
+      # .SRCINFO, and pushes over SSH. Pinned to a commit because it is handed the AUR private key.
+      - name: Push flea-bin to the AUR
+        if: steps.aur.outputs.push == 'true'
+        uses: KSXGitHub/github-actions-deploy-aur@084b0d9b15415bf9cdb65d44dad1efe37a354050 # v4.2.0
+        with:
+          pkgname: flea-bin
+          pkgbuild: ./packaging/flea-bin/PKGBUILD
+          commit_username: ${{ steps.aur.outputs.name }}
+          commit_email: ${{ steps.aur.outputs.email }}
+          ssh_private_key: ${{ secrets.AUR_SSH_KEY }}
+          commit_message: flea-bin ${{ env.RELEASE_REF }}
+          ssh_keyscan_types: rsa,ecdsa,ed25519
+          force_push: 'false'

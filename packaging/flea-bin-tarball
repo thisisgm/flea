@@ -1,0 +1,85 @@
+#!/bin/bash
+# Stages the tarball flea-bin installs from: one release binary beside the exact data files the
+# PKGBUILD's package() installs, under a directory named for the version and the architecture.
+#   packaging/flea-bin-tarball <binary> <version> <arch> <outdir>
+# Writes <outdir>/flea-v<version>-linux-<arch>.tar.gz and a .sha256 sidecar in sha256sum's layout,
+# and prints both paths. The tarball unpacks to flea-<version>-linux-<arch>/ with the binary at its
+# root and tools/, packaging/, ui/, shelf/ and LICENSE laid out as they are in this tree, so
+# packaging/flea-bin/PKGBUILD's package() is the source PKGBUILD's package() with one line changed:
+# the binary is read from the tarball's root instead of target/release/.
+# .github/workflows/release.yml runs this once per architecture on a native runner; it also runs by
+# hand on a box that has built target/release/flea, which is how the tarball is proved locally.
+set -eu
+
+if [ "$#" -ne 4 ]; then
+  echo "flea-bin-tarball: expected <binary> <version> <arch> <outdir>" >&2
+  exit 2
+fi
+binary=$1
+version=$2
+arch=$3
+outdir=$4
+
+here=$(cd "$(dirname "$0")" && pwd)
+repo=$(dirname "$here")
+
+# The same expression the release workflow holds the tag to: a glob's * is not limited to digits,
+# so it let 1x.2.3 and 1.2.3.4 through to the binary's own answer further down.
+if [[ ! "$version" =~ ^[0-9]+\.[0-9]+\.[0-9]+$ ]]; then
+  echo "flea-bin-tarball: version '$version' is not X.Y.Z" >&2
+  exit 2
+fi
+
+# The ELF machine field is the proof that the aarch64 leg did not package an x86_64 binary, or the
+# reverse: e_machine sits at offset 18, little-endian, 0x3e for x86_64 and 0xb7 for aarch64.
+case "$arch" in
+  x86_64) want_machine="3e 00" ;;
+  aarch64) want_machine="b7 00" ;;
+  *) echo "flea-bin-tarball: arch '$arch' is not x86_64 or aarch64" >&2; exit 2 ;;
+esac
+[ -x "$binary" ] || { echo "flea-bin-tarball: '$binary' is not an executable file" >&2; exit 1; }
+[ "$(head -c 4 "$binary" | tr -d '\0')" = $'\x7fELF' ] || {
+  echo "flea-bin-tarball: '$binary' is not an ELF binary" >&2; exit 1; }
+machine=$(od -An -tx1 -j18 -N2 "$binary" | tr -s ' ' | sed 's/^ //; s/ $//')
+[ "$machine" = "$want_machine" ] || {
+  echo "flea-bin-tarball: '$binary' has e_machine '$machine', which is not $arch" >&2; exit 1; }
+
+# The version the binary prints is the version the tarball claims. Both workflow legs build on a
+# native runner, so the binary runs where it is staged; by hand, stage a cross-built binary inside a
+# container of its own architecture, which is where its dynamic loader is.
+printed=$("$binary" --version) || { echo "flea-bin-tarball: '$binary --version' failed" >&2; exit 1; }
+[ "$printed" = "$version" ] || {
+  echo "flea-bin-tarball: the binary prints '$printed', the tarball says '$version'" >&2; exit 1; }
+
+name="flea-$version-linux-$arch"
+tarball="flea-v$version-linux-$arch.tar.gz"
+stage=$(mktemp -d "${TMPDIR:-/tmp}/flea-bin-tarball.XXXXXX")
+cleanup() { rm -rf -- "$stage"; }
+trap cleanup EXIT
+root="$stage/$name"
+
+# The file set is the source PKGBUILD's package(), path for path. A file added there without being
+# added here is a flea-bin that installs less than flea, so both PKGBUILDs' package() bodies are
+# also compared in the release workflow's verify job.
+install -Dm755 "$binary" "$root/flea"
+install -Dm644 "$repo/LICENSE" -t "$root"
+install -Dm755 "$repo/tools/flea-gio-auth" "$repo/tools/flea-portal" "$repo/tools/flea-filemanager1" -t "$root/tools"
+install -Dm644 "$repo/packaging/flea.portal" \
+  "$repo/packaging/org.freedesktop.impl.portal.desktop.flea.service" \
+  "$repo/packaging/com.thisisgm.flea.FileManager1.service" \
+  "$repo/packaging/com.thisisgm.flea.desktop" \
+  "$repo/packaging/com.thisisgm.flea.svg" -t "$root/packaging"
+install -Dm644 "$repo/ui/qmldir" "$repo"/ui/*.qml -t "$root/ui"
+install -Dm644 "$repo"/ui/js/*.js -t "$root/ui/js"
+install -Dm644 "$repo/shelf/manifest.json" "$repo/shelf/README.md" "$repo"/shelf/*.qml "$repo"/shelf/*.js -t "$root/shelf"
+
+# Owner, order and mtime are fixed so the same tree and binary produce the same bytes: the commit
+# date when this is a checkout, SOURCE_DATE_EPOCH when the caller sets one, now otherwise.
+mtime=${SOURCE_DATE_EPOCH:-$(git -C "$repo" log -1 --format=%ct 2>/dev/null || date +%s)}
+mkdir -p "$outdir"
+tar --create --gzip --file "$outdir/$tarball" --directory "$stage" \
+  --owner=0 --group=0 --numeric-owner --sort=name --mtime="@$mtime" "$name"
+(cd "$outdir" && sha256sum "$tarball" > "$tarball.sha256")
+
+echo "$outdir/$tarball"
+echo "$outdir/$tarball.sha256"

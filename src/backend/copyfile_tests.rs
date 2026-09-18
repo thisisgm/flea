@@ -214,7 +214,10 @@ fn a_cancelled_directory_copy_removes_the_part_it_already_wrote() {
 }
 
 // The second entry's destination is taken from under it while the first is still streaming, so
-// the failure is a create that collides and not a cancel, whichever order read_dir yields.
+// the failure is a create that collides and not a cancel, whichever order read_dir yields. A tree
+// copy reports against the tree's running total, not the file's size, so the file being cut is the
+// one destination that exists when the first bytes land; the other one is the one to take. Reading
+// the size off the callback found it only on tmpfs, where read_dir yields the newer name first.
 #[test]
 fn a_directory_copy_that_fails_short_of_a_cancel_keeps_the_tree_and_reports_it() {
     let d = TestDir::new("copydirfail");
@@ -224,12 +227,12 @@ fn a_directory_copy_that_fails_short_of_a_cancel_keeps_the_tree_and_reports_it()
     let clone = d.join("clone");
     let flag = AtomicBool::new(false);
     let mut planted = false;
-    let mut sink = |_done: u64, total: u64| {
+    let mut sink = |_done: u64, _total: u64| {
         if planted {
             return;
         }
         planted = true;
-        let other = if total == 8 { "b.bin" } else { "a.bin" };
+        let other = if clone.join("a.bin").exists() { "b.bin" } else { "a.bin" };
         std::fs::write(clone.join(other), "stray").unwrap();
     };
     let mut p = quiet(&flag, &mut sink);

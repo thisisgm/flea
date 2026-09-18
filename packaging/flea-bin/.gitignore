@@ -1,0 +1,6 @@
+# makepkg run in this directory by hand, as docs/release.md describes, leaves these behind.
+/src/
+/pkg/
+/*.tar.gz
+/*.pkg.tar.*
+/.SRCINFO
