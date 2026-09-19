@@ -1,0 +1,26 @@
+.import "../../ui/js/Cloud.js" as Cloud
+
+function run(check) {
+    check("navigation within a mount keeps a stable row", Cloud.navigating({state:"idle",mount:"/Cloud"}, "/Cloud/sub").state, "checking")
+    check("same-mount navigation does not carry an idle claim", Cloud.navigating({state:"idle",mount:"/Cloud"}, "/Cloud").state, "checking")
+    check("a sibling is not within the old mount", Cloud.navigating({state:"idle",mount:"/Cloud"}, "/Cloud-other").state, "local")
+    check("errors still expose active work", Cloud.line({state:"error",mount:"/Cloud",uploading:2,queued:3}), "Cloud (whole mount) · Upload cache error · 2 uploading · 3 queued")
+    check("local paths have no cloud row", Cloud.line(Cloud.empty()), "")
+    check("empty queue does not claim synced", Cloud.line({state:"idle",mount:"/Cloud"}), "Cloud (whole mount) · No pending uploads")
+    check("unconfigured is not idle", Cloud.line({state:"unavailable",mount:"/Cloud"}), "Cloud (whole mount) · Upload status unavailable")
+    check("pending is not transferred", Cloud.line({state:"pending",mount:"/Cloud",queued:2}), "Cloud (whole mount) · Waiting to upload · 2 queued")
+    check("bytes describe active files only", Cloud.line({state:"uploading",mount:"/Cloud",uploading:1,queued:2,progressKnown:true,bytes:1000,total:5000,speed:500}), "Cloud (whole mount) · Uploading 1 file(s) · 1.0 kB / 5.0 kB · 500 B/s · 2 queued")
+    check("unknown progress does not print zero", Cloud.line({state:"uploading",mount:"/Cloud",uploading:1,queued:0}), "Cloud (whole mount) · Uploading 1 file(s)")
+    check("retry remains visible", Cloud.line({state:"retrying",mount:"/Cloud",retrying:1}), "Cloud (whole mount) · Retrying 1 upload(s)")
+    check("error remains visible", Cloud.line({state:"error",mount:"/Cloud",reason:"Cache full"}), "Cloud (whole mount) · Cache full")
+    check("malformed output cannot mean idle", Cloud.decode("garbage", "/Cloud").state, "unavailable")
+    check("wrong path is not accepted", Cloud.decode('{"state":"idle","path":"/Other","mount":"/Other"}', "/Cloud").state, "unavailable")
+    check("unknown state is refused", Cloud.decode('{"state":"synced","path":"/Cloud","mount":"/Cloud"}', "/Cloud").state, "unavailable")
+    check("valid probe is accepted", Cloud.decode('{"state":"idle","path":"/Cloud","mount":"/Cloud"}', "/Cloud").state, "idle")
+    check("path changes drop old output", Cloud.accepts(2, 1, "/New", "/Old"), false)
+    check("A to B to A still drops old output", Cloud.accepts(3, 1, "/A", "/A"), false)
+    check("current generation is accepted", Cloud.accepts(3, 3, "/A", "/A"), true)
+    check("local polling is infrequent", Cloud.interval({state:"local"}), 30000)
+    check("active polling is prompt", Cloud.interval({state:"uploading"}), 1000)
+    check("idle polling is bounded", Cloud.interval({state:"idle"}), 5000)
+}

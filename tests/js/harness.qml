@@ -1,4 +1,5 @@
 import QtQuick
+import "cloud.js" as CloudSuite
 import "archive.js" as ArchiveSuite
 import "columns.js" as ColumnsSuite
 import "contrast.js" as ContrastSuite
@@ -81,6 +82,7 @@ Item {
         }
 
         var suites = [
+            ["cloud", CloudSuite],
             ["archive", ArchiveSuite], ["columns", ColumnsSuite], ["contrast", ContrastSuite],
             ["dirsizes", DirSizesSuite], ["drag", DragSuite], ["dst", DstSuite],
             ["edmonton", DstSuite],

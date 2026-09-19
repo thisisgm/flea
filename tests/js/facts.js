@@ -21,6 +21,15 @@ function run(check) {
         return "(no such row)"
     }
 
+    var folder = {n: "photos", d: true, s: 0, m: mtime, p: 16877, i: "folder"}
+    check("directory preview never presents the entry's zero size as contents",
+          valueOf(Facts.facts(Facts.UNSUPPORTED, folder, null, "Folder"), "Size"), "Not calculated")
+    folder.s = 4096
+    check("local directory preview does not present inode bytes as contents either",
+          valueOf(Facts.facts(Facts.LOADING, folder, null, "Folder"), "Size"), "Not calculated")
+    check("a mixed selection cannot claim a complete sum of folder contents",
+          valueOf(Facts.multiFacts([folder, row("text-x-generic", 42)], 2), "Combined"), "Not calculated")
+
     check("an icon name classifies the state without the column re-deriving one",
           Kinds.kindState("image-x-generic") + "|" + Kinds.kindState("video-x-generic")
           + "|" + Kinds.kindState("audio-x-generic") + "|" + Kinds.kindState("text-x-script")

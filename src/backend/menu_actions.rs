@@ -269,16 +269,7 @@ impl Snapshot {
         let item = &self.items[0];
         let meta = item.current()?;
         match op {
-            "properties" => {
-                let kind = if meta.file_type().is_symlink() { "Symbolic link" } else if meta.is_dir() { "Directory" }
-                           else if meta.is_file() { "File" } else { "Special file" };
-                let target = if meta.file_type().is_symlink() {
-                    std::fs::read_link(&item.path).map_err(|e| format!("Could not read symlink: {}.", e))?.to_string_lossy().to_string()
-                } else { String::new() };
-                Ok(format!(r#""path":"{}","kind":"{}","directory":{},"symlink":{},"target":"{}","bytes":{},"modified":{},"mode":"{:04o}","owner":"{}","uid":{},"gid":{}"#,
-                    escape(&item.path.to_string_lossy()), kind, meta.is_dir(), meta.file_type().is_symlink(), escape(&target),
-                    meta.len(), meta.mtime(), meta.mode() & 0o7777, escape(&super::owner::name(meta.uid())), meta.uid(), meta.gid()))
-            }
+            "properties" => super::properties::fields(&item.path, &meta),
             "applications" => {
                 let found = menu_registry::catalogue(registry, &item.path, field_bool(line, "installed"), cancel)?;
                 Ok(format!(r#""applications":[{}],"installed":[{}],"mime":"{}","kind":"{}","path":"{}""#,
@@ -540,5 +531,14 @@ mod tests {
         assert_eq!(field_str(&line, "target"), Some(target.to_string_lossy().into()));
         snapshot.handle(r#"{"op":"close","id":9}"#, vec![]);
         assert!(snapshot.handle(r#"{"op":"properties","id":9}"#, vec![]).contains("expired"));
+    }
+    #[test]
+    fn directory_properties_pass_through_the_snapshot_reply() {
+        let sandbox = TestDir::new("menu-directory");
+        let mut snapshot = Snapshot::default();
+        snapshot.handle(r#"{"op":"snapshot","id":9}"#, vec![sandbox.dir("folder").to_string_lossy().into()]);
+        let reply = snapshot.handle(r#"{"op":"properties","id":9}"#, vec![]);
+        assert!(field_bool(&reply, "ok") && field_bool(&reply, "directory"));
+        assert!(field_str(&reply, "filesystem").is_some_and(|name| !name.is_empty()));
     }
 }

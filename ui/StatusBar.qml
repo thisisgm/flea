@@ -77,7 +77,11 @@ Item {
     readonly property real zoneWidth: Math.round(root.zoneSpan / 3)
     readonly property real hintWidth: hintMetrics.width
     signal transferCancelRequested(int id)
-    implicitHeight: Theme.chromeHeight + detailView.height
+    readonly property bool localTransferRunning: root.transfer.running
+    onLocalTransferRunningChanged: if (!localTransferRunning) cloud.refresh()
+    readonly property var cloudState: ({snapshot: cloud.snapshot, text: cloud.statusText, visible: cloud.visible})
+    implicitHeight: Theme.chromeHeight + cloud.height + detailView.height
+    CloudStatus { id: cloud; path: root.path; y: Theme.chromeHeight; width: parent.width }
 
     // Completion messages cannot acknowledge a failure; each error requires its own dismissal.
     function say(text, isError, detail) {
@@ -275,7 +279,7 @@ Item {
     }
     Flickable {
         id: detailView
-        y: Theme.chromeHeight
+        y: Theme.chromeHeight + cloud.height
         width: parent.width
         visible: root.errorDetail.length > 0
         height: visible ? Math.min(contentHeight, root.parent ? root.parent.height / 3 : contentHeight) : 0

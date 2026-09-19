@@ -174,7 +174,7 @@ function stateRows(st, row, meta, kindName, extra) {
         e = Object.assign({}, e, { entries: e.entries || a.entries, unpacked: e.unpacked || a.unpacked })
     }
     // The three rows every ordinary settled kind opens with, so a second selection lands each answer on the line the first one used; Preview board rule 1.
-    var head = [pair("Kind", kindName), pair("Size", Format.size(row.s)),
+    var head = [pair("Kind", kindName), pair("Size", Format.rowSize(row)),
                 pair("Modified", Format.date(row.m))]
     switch (st) {
     case IMAGE:
@@ -197,9 +197,9 @@ function stateRows(st, row, meta, kindName, extra) {
                 pair("Points at", meta && meta.targetDir ? "Folder" : "File"),
                 pair("Mode", Format.permissions(row.p))]
     case LOADING:
-        return [pair("Kind", kindName), pair("Size", Format.size(row.s)), pair("State", "loading")]
+        return [pair("Kind", kindName), pair("Size", Format.rowSize(row)), pair("State", "loading")]
     case ERROR:
-        return [pair("Kind", kindName), pair("Size", Format.size(row.s)),
+        return [pair("Kind", kindName), pair("Size", Format.rowSize(row)),
                 pair("Mode", Format.permissions(row.p)), pair("Owner", e.owner || "")]
     }
     // Unsupported, which is also where a kind whose facts are a later plan lands until it arrives.
@@ -218,7 +218,7 @@ function archiveFact(e) {
 // codebase refuses everywhere, so the numbers become floors and say so rather than undercounting.
 function multiFacts(rows, selectionCount) {
     var groups = kindGroups(rows)
-    var bytes = 0
+    var bytes = 0, hasDirectories = false
     var newest = 0
     var oldest = 0
     var counted = 0
@@ -228,12 +228,13 @@ function multiFacts(rows, selectionCount) {
             continue
         }
         counted++
-        bytes += r.s
+        if (r.d) hasDirectories = true
+        else bytes += r.s
         if (newest === 0 || r.m > newest) { newest = r.m }
         if (oldest === 0 || r.m < oldest) { oldest = r.m }
     }
     var floor = (selectionCount !== undefined && selectionCount > counted) ? "> " : ""
-    return filled([pair("Kinds", kindSummary(groups, floor)), pair("Combined", floor + Format.size(bytes)),
+    return filled([pair("Kinds", kindSummary(groups, floor)), pair("Combined", hasDirectories ? "Not calculated" : floor + Format.size(bytes)),
             pair("Newest", newest > 0 ? floor + Format.date(newest) : ""),
             pair("Oldest", oldest > 0 ? floor + Format.date(oldest) : "")])
 }
