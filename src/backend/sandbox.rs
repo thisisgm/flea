@@ -23,6 +23,19 @@ const BWRAP_FLAGS: &[&str] = &[
     "--setenv",
     "MALLOC_ARENA_MAX",
     "2",
+    // Issue #156: --clearenv leaves the jail in the POSIX locale, and bsdtar refuses to convert a
+    // UTF-8 member name into it. Measured on this box, a tar.gz holding café.txt, документ.txt and
+    // 日本語.txt: three "Pathname can't be converted from UTF-8 to current locale" lines and exit 1,
+    // though every file lands with correct bytes. run_boxed reads that status as a failed extract
+    // and reports the last stderr line, "Error exit delayed from previous errors", which names
+    // neither the locale nor the file. The same jail with LC_ALL set exits 0 on the same archive.
+    // wrap_readonly carries it for the same reason: bsdtar -tvf prints \346\227\245 octal escapes
+    // without it, so the archive index shows mangled names to an operator who never extracts.
+    // C.UTF-8 rather than the caller's LANG: glibc builds it in, `locale -a` lists it inside the
+    // jail with only /usr and /etc bound, and it cannot carry a setting from outside the boundary.
+    "--setenv",
+    "LC_ALL",
+    "C.UTF-8",
     "--ro-bind",
     "/usr",
     "/usr",
@@ -170,6 +183,17 @@ print("over=" + reserve(OVER_MIB))
         let got = wrap(&inner(), Path::new("/in/a.mp4"), Path::new("/out"));
         let tail = &got[got.len() - inner().len()..];
         assert_eq!(tail, inner().as_slice());
+    }
+
+    // Issue #156. Both wrappers are asserted because the defect had two faces: the writable jail
+    // failed the extract, and the read-only one mangled the listing the preview pane shows.
+    #[test]
+    fn both_jails_pin_a_utf8_locale() {
+        for got in [wrap(&inner(), Path::new("/in/a.mp4"), Path::new("/out")),
+                    wrap_readonly(&inner(), Path::new("/in/a.mp4"))] {
+            assert!(got.join(" ").contains("--setenv LC_ALL C.UTF-8"),
+                    "without it bsdtar cannot convert a UTF-8 member name and exits 1");
+        }
     }
 
     #[test]

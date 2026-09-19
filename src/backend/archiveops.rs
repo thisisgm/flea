@@ -327,6 +327,33 @@ mod tests {
         assert!(!dest.exists(), "no destination is published for a job that produced nothing");
     }
 
+    // Issue #156, and the live half of it: the static assertion in sandbox.rs proves the flag is in
+    // the argv, and only a real extract proves bsdtar accepts what the flag buys. The names are the
+    // three the report was measured on, one per script family, because a Latin-1-representable name
+    // alone would have passed against a jail that had fallen back to a non-UTF-8 eight-bit locale.
+    // The files land with correct bytes either way: the defect is the status, so the assertion is
+    // that extract returns Ok, not that the destination holds them.
+    #[test]
+    fn an_archive_whose_members_are_not_ascii_extracts() {
+        if crate::backend::sandboxprobe::skipped() { return; }
+        let d = TestDir::new("archutf8");
+        let formats = Formats::from_tools(true, true);
+        let src = d.dir("src");
+        for name in ["café.txt", "документ.txt", "日本語.txt"] {
+            d.file(&format!("src/{}", name), "x");
+        }
+        let archive = d.join("utf8.tar.gz");
+        let made = std::process::Command::new("bsdtar")
+            .args(["-a", "-c", "-f", &archive.to_string_lossy(), "-C", &src.to_string_lossy(), "."])
+            .status();
+        if !made.map(|s| s.success()).unwrap_or(false) {
+            return;
+        }
+        let dest = d.join("out");
+        extract(&formats, &archive, &dest).expect("a UTF-8 member name is not an extract failure");
+        assert_eq!(std::fs::read_dir(&dest).unwrap().count(), 3, "and all three members arrive");
+    }
+
     #[test]
     fn a_compress_derives_its_parent_and_names_from_absolute_paths() {
         let (parent, names) = split_paths(&["/home/gm/a.txt".to_string(), "/home/gm/sub".to_string()]).unwrap();
