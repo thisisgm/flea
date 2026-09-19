@@ -226,7 +226,7 @@ function openCursor(pane, opener) {
             pane.thumbState && pane.thumbState.file ? Thumbs.fileFor(pane.thumbState, pane.cursorIndex) : "")
         return
     }
-    opener.open(path)
+    opener.open(path, row)
 }
 
 // The folder the Locked tile names, for its own menu and every row that menu offers: the
