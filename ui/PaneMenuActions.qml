@@ -5,15 +5,14 @@ import "." as Flea
 import "js/LocalSend.js" as LocalSendJs
 import "js/Menu.js" as Menu
 import "js/Ops.js" as Ops
-
 Loader {
     id: root
     required property var pane
-
+    readonly property alias cloudUpload: cloudUpload
+    Flea.CloudUploadHost { id: cloudUpload }
     // Directive 71: the only thing that knows about LocalSend, the way ui/Taildrop.qml is for the
     // other one. The work is the backend's, which drives localsend-cli on a pty of its own.
     readonly property alias localSend: localSend
-
     Flea.LocalSend {
         id: localSend
         backend: root.pane.backend
@@ -60,6 +59,7 @@ Loader {
         if (action.indexOf("runScript:") === 0) { Flea.Scripts.run(action.substring("runScript:".length), paths || []); return }
         if (action.indexOf("localsend:") === 0) { LocalSendJs.send(root.pane, localSend, root.pane.backend.providers.localsend, action.substring("localsend:".length), root.targets(paths)); return }
         if (action.indexOf("taildrop:") === 0) { root.pane.sendTaildrop(action.substring("taildrop:".length), root.targets(paths).length === 1 ? root.targets(paths)[0] : ""); return }
+        if (action === "cloudUpload") { cloudUpload.open(paths, root.pane.listArea); return }
         if (action === "addToShelf") { root.shelve(root.targets(paths)); return }
         if (action === "sharelink") { root.pane.copyShareLink(paths && paths.length === 1 ? paths[0] : ""); return }
         if (action === "copypath") { root.pane.opener.copyText(paths && paths.length ? paths[0] : root.pane.join(root.pane.path, root.pane.cursorRow.n)); return }
@@ -77,7 +77,7 @@ Loader {
     // OpenWith.html rule 4: Open with owns its own card, so the shared dialog is not asked to be one.
     property string dialogFor: ""
     source: root.dialogFor === "openWith" ? "OpenWithDialog.qml" : "MenuActionDialog.qml"
-    readonly property bool opened: item !== null && item.opened
+    readonly property bool opened: cloudUpload.opened || (item !== null && item.opened)
     readonly property bool deleting: item !== null && item.deletionActive
     property int requestId: 0
     property string identity: ""
@@ -361,7 +361,7 @@ Loader {
             root.pendingAction = ""
             root.pendingActivation = false
             root.providersRefreshing = false
-            if (root.opened || root.deleting) root.item.receive({id: root.requestId, op: root.deleting ? "delete" : "", ok: false, error: message})
+            if (root.item && (root.opened || root.deleting)) root.item.receive({id: root.requestId, op: root.deleting ? "delete" : "", ok: false, error: message})
         }
     }
     Connections {

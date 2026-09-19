@@ -1,5 +1,4 @@
 .pragma library
-
 .import "Archive.js" as Archive
 .import "Sort.js" as Sort
 
@@ -38,6 +37,7 @@ var INVENTORY = [
     // The shelf leads the send group: it is Flea's own destination and the other two are somebody
     // else's. Governed by the Enable shelf switch in Settings, Menus, so off is absent and not grey.
     ["shelf", "Add to shelf", "file", "F", "share", "addToShelf"],
+    ["cloudUpload", "Upload to cloud…", "network", "F", "share"],
     ["taildrop", "Send with Taildrop", "tailscale", "F", "share"],
     // MenuAdditions rule 1: between Taildrop and Dropbox, present only while a localsend binary is
     // on PATH, and carrying its own reproduced mark rather than a cut glyph.
@@ -113,7 +113,7 @@ function availableEntry(e, p, kind) {
     if (e.action === "addFavourite" && kind === "F")
         e.disabled = count !== 1 || ((Number(p.rowMode) || 0) & 0o170000) !== 0o040000
     if (e.action === "paste") e.disabled = p.clipboardAvailable !== true
-    if (["duplicate", "rename", "properties"].indexOf(e.action) >= 0)
+    if (["duplicate", "rename", "properties", "cloudUpload"].indexOf(e.action) >= 0)
         e.disabled = count !== 1
     if (e.action === "permissions") {
         var permission = permissionsEntry(p.rowMode, count)

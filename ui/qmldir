@@ -103,3 +103,7 @@ TrashHost 1.0 TrashHost.qml
 PaneMenuActions 1.0 PaneMenuActions.qml
 PaneStates 1.0 PaneStates.qml
 MenuActionDialog 1.0 MenuActionDialog.qml
+
+CloudUploadJob 1.0 CloudUploadJob.qml
+CloudUploadDialog 1.0 CloudUploadDialog.qml
+CloudUploadHost 1.0 CloudUploadHost.qml

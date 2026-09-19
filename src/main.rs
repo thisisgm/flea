@@ -1,4 +1,5 @@
 mod backend;
+mod cloudcopy;
 mod chooser;
 mod defaults;
 mod error;
@@ -150,6 +151,16 @@ fn main() {
             exit(2);
         }
     };
+
+    // Cloud arguments are data: a relative folder named --backend is not a mode switch.
+    if args.get(1).map(String::as_str) == Some("--cloud-targets") {
+        if args.len() != 2 { usage("--cloud-targets takes no arguments"); }
+        exit(cloudcopy::targets());
+    }
+    if args.get(1).map(String::as_str) == Some("--cloud-copy") {
+        if args.len() != 5 { usage("--cloud-copy takes target id, relative folder and absolute source"); }
+        exit(cloudcopy::run(&args[2], &args[3], &args[4]));
+    }
 
     // Bare, so a script can read it without parsing. Checked before every other mode: the only
     // way to tell which Flea is installed is to ask it, and updates here are a manual git pull.

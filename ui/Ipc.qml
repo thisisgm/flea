@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell.Io
 import qs.Commons
 import "js/Tabs.js" as Tabs
-
 // The seam the tests drive, see AGENTS.md "Testing". Read-only: it reports, never acts.
 QtObject {
     id: root
@@ -39,6 +38,7 @@ QtObject {
     // The wrapper holds the references because an IpcHandler marshals every property it owns.
     property IpcHandler seam: IpcHandler {
         target: "flea"
+        function cloudUploadState(): string { return JSON.stringify(root.pane.menuActions.cloudUpload.snapshot) }
         function ready(): bool { return true }
         function themeLoaded(): bool { return Theme.ready }
         function themeForeground(): string { return String(Theme.color.foreground) }
