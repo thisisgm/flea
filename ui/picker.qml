@@ -52,7 +52,6 @@ ShellRoot {
         readonly property int shownTotal: win.total
         onFilterChanged: if (win.path.length) win.openWithoutHistory(win.path)
 
-        // Where Back goes, and it only ever goes back: Parent is its own button and pushes here too.
         property var history: []
         // The save mode's own name, which starts as the caller's suggestion only when that
         // suggestion is a filename: tools/flea-portal passes current_name through verbatim, so a
@@ -99,15 +98,14 @@ ShellRoot {
         }
 
         function open(next) {
-            if (win.submitting || next === win.path)
-                return
-            if (win.path.length > 0)
-                win.history = win.history.concat([win.path])
+            if (win.submitting || next === win.path) return
+            if (win.path.length > 0) win.history = win.history.concat([win.path])
             win.openWithoutHistory(next)
         }
 
         function openWithoutHistory(next) {
             if (win.backendUnavailable) return
+            listing.clear()
             if (shares.item) shares.item.close()
             win.path = next
             win.total = 0
@@ -126,8 +124,8 @@ ShellRoot {
         }
 
         function requestListing(request) {
-            win.pendingListings++
-            backend.send(Object.assign(request, win.filterRequest()))
+            win.pendingListings = 1
+            listing.request(Object.assign(request, win.filterRequest()))
         }
 
         function filterRequest() {
@@ -161,7 +159,7 @@ ShellRoot {
             win.saveRequest = win.check({op: "save", folder: win.path, name: win.saveName})
         }
 
-        // A property var does not notify on an in-place mutation, so history is reassigned, never popped.
+        // Reassign history so property var notifies.
         function goBack() {
             if (shares.item && shares.item.active) { shares.item.close(); return }
             if (win.submitting || win.history.length === 0)
@@ -247,8 +245,7 @@ ShellRoot {
             win.finish(Picker.RESPONSE_CANCELLED, [])
         }
 
-        // The one write out of this process. The window closes only once the reply file is on disk,
-        // because tools/flea-portal reads it after this process exits and a lost write is a fault.
+        // The portal reads this reply after exit, so its atomic write must finish before teardown.
         function finish(response, list) {
             if (win.answered)
                 return
@@ -280,18 +277,15 @@ ShellRoot {
             // The reply file does not exist until this window writes it, and a preload read of a
             // path that is not there is not an error worth a line; onSaveFailed below is.
             printErrors: false
-            // Sequenced on saved(), never on setText() returning: the answer has to be readable
-            // before this process ends, and Quickshell writes it on its own thread. The backend is
-            // told next, ui/shell.qml's own exit gate, so no listing child outlives this window.
-            onSaved: backend.quit()
+            // Only the persisted reply releases the caller; both read-only children are reaped first.
+            onSaved: lifecycle.quit()
             onSaveFailed: {
                 console.warn("the portal reply could not be written, so the request fails rather than reporting a refusal")
-                backend.quit()
+                lifecycle.quit()
             }
         }
 
-        // Closing the window is a refusal, the board's own rule, and it takes the same path a
-        // pressed Cancel does. A window closed after an answer is the answer's own teardown.
+        // A window-manager close takes the same refusal path as Cancel.
         Connections {
             target: Quickshell
             function onLastWindowClosed() {
@@ -301,18 +295,25 @@ ShellRoot {
             }
         }
 
-        // Quickshell 0.3.1 has no exit API and Qt.quit() is a no-op, so the window signals itself,
-        // exactly as ui/shell.qml does, once the backend says it has drained.
-        Connections { target: backend; function onQuitReady() { Quickshell.execDetached(["kill", String(Quickshell.processId)]) } }
+        // The saved reply can leave once both chooser-owned read processes have exited.
+        Flea.PickerLifecycle {
+            id: lifecycle; checks: backend; listing: listing
+            onStopped: Quickshell.execDetached(["kill", String(Quickshell.processId)])
+        }
+        Flea.PickerListing {
+            id: listing
+            onFailed: function(reason) { backend.failed("scan", win.path, reason, 0) }
+            onMessage: function(message) { backend.receive(JSON.stringify(message)) }
+        }
 
         Flea.Backend {
             id: backend
+            pickerOnly: true
 
             onListed: function (n, readMs, sortMs) {
                 if (win.backendUnavailable) return
-                win.pendingListings = Math.max(0, win.pendingListings - 1)
-                win.receivingLatestListing = win.pendingListings === 0
-                if (!win.receivingLatestListing) return
+                win.pendingListings = 0
+                win.receivingLatestListing = true
                 win.total = n
                 win.listingState = n === 0 ? "empty" : "ready"
             }
@@ -339,8 +340,7 @@ ShellRoot {
                     return
                 }
                 if (where === "scan" || where === "sort") {
-                    win.pendingListings = Math.max(0, win.pendingListings - 1)
-                    if (win.pendingListings > 0) return
+                    win.pendingListings = 0
                 }
                 win.listingState = "empty"
                 win.say(msg, true)
@@ -428,7 +428,7 @@ ShellRoot {
                 anchors.top: chrome.bottom
                 anchors.bottom: save.top
                 picker: win
-                backend: backend
+                backend: listing
                 clip: true
                 focus: true
                 enabled: !win.submitting && !win.backendUnavailable

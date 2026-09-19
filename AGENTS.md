@@ -800,6 +800,15 @@ gets the same chooser.
   `ui/PickerList.qml` hands `Row` `Picker.HIDDEN_COLS` and the chooser never inherits Mode or Kind
   from `ViewState`, whatever the header menu has switched on for the browser window.
 
+**Stalled chooser listings.** `PickerListing.qml` owns a separate read-only backend for list,
+listpaths and window. Navigation invalidates its output immediately, kills and reaps that worker,
+then starts only the latest request with a fresh stdout parser. The chooser's other `Backend`
+opts into `pickerOnly`: only picker checks and capability reads may be sent, and shutdown can
+terminate a stuck identity check without touching a file-manager write backend. `PickerLifecycle`
+waits for both workers only after the reply file has been saved. `tests/picker-stall.sh` drives
+blocked FIFO reads, latest-navigation recovery, incomplete stale output, early cancellation,
+failed spawn and process reaping under offscreen Quickshell; it needs no production mount.
+
 **Recent, and why it is read-only.** `SendPicker.html` draws a Recent row above Home in the rail,
 says the location's own name where the path would be, and draws Parent disabled with the words
 "unavailable in Recent". The history it lists is the desktop's own,

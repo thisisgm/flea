@@ -103,3 +103,5 @@ TrashHost 1.0 TrashHost.qml
 PaneMenuActions 1.0 PaneMenuActions.qml
 PaneStates 1.0 PaneStates.qml
 MenuActionDialog 1.0 MenuActionDialog.qml
+PickerListing 1.0 PickerListing.qml
+PickerLifecycle 1.0 PickerLifecycle.qml

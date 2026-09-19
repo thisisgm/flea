@@ -101,9 +101,12 @@ Item {
 
     // A quit is in flight, so the child's exit is the end the shell asked for, not a failure.
     property bool quitting: false
+    // Only the portal chooser opts in: it has no filesystem write operations to drain.
+    property bool pickerOnly: false
 
     // Everything the UI sends goes through here, so the protocol has exactly one author.
     function send(object) {
+        if (root.pickerOnly && object.c !== "picker" && object.c !== "formats") return
         var line = JSON.stringify(object) + "\n"
         if (root.queueing) {
             root.pending.push(line)
@@ -280,6 +283,12 @@ Item {
             return
         }
         root.quitting = true
+        if (root.pickerOnly) {
+            root.pending = []
+            if (child.running) child.signal(9)
+            else root.quitReady()
+            return
+        }
         // Before the child is up a quit would only join the pending queue and never be written,
         // and nothing can be in flight yet, so there is nothing to drain and the shell goes now.
         if (root.queueing || !child.running) {
@@ -337,6 +346,7 @@ Item {
         }
 
         onStarted: {
+            if (root.pickerOnly && root.quitting) { child.signal(9); return }
             root.queueing = false
             // Asked once per process: which formats exist cannot change while the backend runs.
             root.askFormats()
@@ -351,7 +361,10 @@ Item {
             if (root.queueing && !child.running) {
                 root.queueing = false
                 root.pending = []
-                root.failed("backend", "", "the backend could not be started", 0)
+                // FailedToStart has no exited signal. A chooser already cancelling still owes its
+                // lifecycle an answer; a started child clears queueing and must be reaped in exited.
+                if (root.pickerOnly && root.quitting) root.quitReady()
+                else root.failed("backend", "", "the backend could not be started", 0)
             }
         }
 

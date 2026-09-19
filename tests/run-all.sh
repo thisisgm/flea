@@ -43,6 +43,7 @@ done
 # Named, not run: each needs something this script cannot assume it has. One list, read twice: it
 # is printed here and it is what the audit below checks, so a suite cannot be quietly excluded.
 not_run="
+picker-stall|needs Quickshell; runs offscreen read-only worker cancellation tests
 ui|needs the display, and refuses beside a Flea it did not start
 drag|needs the display and a real pointer through uinput
 cardsizes|needs the display, a real pointer through uinput, and Hyprland to resize the window
