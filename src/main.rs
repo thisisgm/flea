@@ -12,6 +12,7 @@ mod launcher;
 mod oflags;
 mod open;
 mod paths;
+mod program;
 mod terminal;
 mod tui;
 mod thp;
@@ -187,6 +188,14 @@ fn main() {
     }
     if args.get(1).map(String::as_str) == Some("--open") {
         usage("--open takes one path");
+    }
+
+    // flea --run <path>
+    if args.len() == 3 && args[1] == "--run" {
+        exit(program::run(&args[2]));
+    }
+    if args.get(1).map(String::as_str) == Some("--run") {
+        usage("--run takes one path");
     }
 
     // flea --terminal <dir>

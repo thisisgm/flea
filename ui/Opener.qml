@@ -9,18 +9,33 @@ Item {
     signal failed(string path)
     signal isDirectory(string path)
     signal terminalFailed(string path)
-    // Raised where the two single-flight guards below drop a request, so a swallowed press says so.
+    // notExecutable is the one refusal the operator can act on, so the bar names the bit for it.
+    signal runFailed(string path, bool notExecutable)
+    // Raised where the three single-flight guards below drop a request, so a swallowed press says so.
     signal busy(string path)
     signal terminalBusy(string path)
+    signal runBusy(string path)
 
     // The status src/open.rs returns for a directory, which the caller navigates to instead.
     readonly property int isDirectoryStatus: 3
+    // The status src/program.rs returns for a file carrying no execute bit, which the window says
+    // in its own words rather than passing the mode's sentence on.
+    readonly property int notExecutableStatus: 4
+    // Long enough that nothing healthy meets it: everything flea --run does after canonicalize is a
+    // spawn that returns, and canonicalize is the one call that can hang, inside a dead network
+    // mount. The same bound ui/NetworkMounts.qml gives a leg of an open, and for the same reason.
+    readonly property int runDeadlineMs: 15000
 
     property string current: ""
     // The terminal launch's own path: open() and openTerminal() run on separate
     // Processes guarded only against themselves, so sharing current let whichever
     // started second rewrite the path the first one's onExited still reports.
     property string terminalCurrent: ""
+    // The run launch's own path, for the same reason terminalCurrent is the terminal's.
+    property string runCurrent: ""
+    // Set by the deadline so the leg it ended cannot report a second, contradictory failure, the
+    // rule ui/NetworkMounts.qml's _infoTimedOut follows; see AGENTS.md "A single-flight guard".
+    property bool runTimedOut: false
 
     // flea --open waits for gio open and not for the application it starts, and that wait is 11 to 15 ms
     // for an Exec= handler but 0.32 to 0.75 s for a DBusActivatable one, which is what this box's
@@ -47,6 +62,44 @@ Item {
                 return
             }
             root.failed(root.current)
+        }
+    }
+
+    // Starting a program is not opening a file: flea --open asks the desktop database for a handler
+    // and nothing on a stock box claims an AppImage, so Enter on one answered with the opener's own
+    // refusal. Its own Process, so a run and an open in flight cannot take each other's exit status.
+    function run(path) {
+        if (runChild.running) {
+            root.runBusy(path)
+            return
+        }
+        root.runCurrent = path
+        root.runTimedOut = false
+        runChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--run", path]
+        runChild.running = true
+        runDeadline.restart()
+    }
+
+    Process {
+        id: runChild
+
+        onExited: function (exitCode, exitStatus) {
+            runDeadline.stop()
+            if (root.runTimedOut || exitCode === 0) {
+                return
+            }
+            root.runFailed(root.runCurrent, exitCode === root.notExecutableStatus)
+        }
+    }
+
+    Timer {
+        id: runDeadline
+        interval: root.runDeadlineMs
+        // Ending the guard, not the program: by now it has either started or was never going to.
+        onTriggered: {
+            root.runTimedOut = true
+            runChild.running = false
+            root.runFailed(root.runCurrent, false)
         }
     }
 

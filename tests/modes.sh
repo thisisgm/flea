@@ -383,6 +383,119 @@ check "the shell inherited huge pages off" "1" "$(echo "$out" | grep -c '^QS THP
 check "and the opened program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$opened")"
 sandbox_remove "$D"
 
+# --run starts the file itself, and there is no handoff binary between Flea and it: the stub below IS
+# the program, so every line it writes is what the kernel handed the thing Flea started rather than
+# what a launcher passed on. It carries src/open.rs's three guards and src/terminal.rs's spawn, so
+# each is pinned here rather than assumed to have travelled with the code, plus the two refusals only
+# this mode has: a file with no execute bit, and one the kernel will not exec; see "Running a program".
+D="$FIXTURE_ROOT/flea-run-test-$$"
+sandbox_make "$D"
+mkdir -p "$D/folder" "$D/dir"
+started="$D/started.log"
+# Its stdio is detached, so everything the program has to say goes to this log, not to our stdout.
+# No strip-to-paren here: cut reads its OWN stat, comm is bare "cut", and its pgid is the stub's by fork.
+{
+  printf '#!/bin/sh\n'
+  printf 'printf "FD1 %%s\\n" "$(readlink /proc/$$/fd/1)" >> %q\n' "$started"
+  printf 'exec >> %q 2>&1\n' "$started"
+  printf 'printf "ARGV0 %%s\\n" "$0"\n'
+  printf 'printf "NARGS %%s\\n" "$#"\n'
+  printf 'printf "PWD %%s\\n" "$PWD"\n'
+  printf 'P=$(cut -d" " -f5 /proc/self/stat)\n'
+  printf '[ "$$" = "$P" ] && printf "PGID MATCH pid=%%s pgid=%%s\\n" "$$" "$P" || printf "PGID MISMATCH pid=%%s pgid=%%s\\n" "$$" "$P"\n'
+  printf 'grep -i "^THP_enabled" /proc/self/status\n'
+} > "$D/folder/program"
+chmod +x "$D/folder/program"
+ln -s "$D/folder/program" "$D/link-to-program"
+printf 'hello' > "$D/plain.txt"
+# The bit is set and the kernel still refuses it: no shebang and no ELF header is what a renamed
+# document looks like, and a spawn nobody waited on would report that as a started program.
+printf 'not a program at all\n' > "$D/notaprogram"
+chmod +x "$D/notaprogram"
+mkfifo "$D/pipe"
+chmod +x "$D/pipe"
+
+: > "$started"
+# Quickshell hands flea --run a pipe and closes it, so a pipe is what the program must not inherit.
+PATH=/usr/bin:/bin $BIN --run "$D/folder/program" 2>&1 | cat >/dev/null
+# --run spawns and returns without waiting, the way --terminal does, so the whole record arrives
+# after it has exited and THP_enabled is the stub's last line.
+wait_for_line "$started" '^THP_enabled'
+out=$(cat "$started")
+check "--run starts the file itself, named by its canonical path" "1" "$(echo "$out" | grep -c "^ARGV0 $D/folder/program$")"
+check "and it is given no arguments at all" "1" "$(echo "$out" | grep -c '^NARGS 0$')"
+# A program dropped in a folder looks for what sits beside it, and Flea's own working directory is
+# wherever Flea was started from, which is nothing to do with it.
+check "and it runs in its own folder" "1" "$(echo "$out" | grep -c "^PWD $D/folder$")"
+# A pipe here dies with the flea that made it, and the program dies with it on its first write.
+check "the started program got no inherited pipe" "1" "$(echo "$out" | grep -c '^FD1 /dev/null$')"
+check "and the stub reported its first descriptor at all" "1" "$(echo "$out" | grep -c '^FD1 ')"
+# Field five of /proc/self/stat is the process group; it equals the pid only after setpgid(0, 0).
+check "the started program leads its own process group" "1" "$(echo "$out" | grep -c '^PGID MATCH')"
+check "and the stub reported its process group at all" "1" "$(echo "$out" | grep -c '^PGID ')"
+# Nothing disabled huge pages in this process, so 1 is the untouched state and a stray disable would show.
+check "a plain --run leaves huge pages on" "1" "$(echo "$out" | grep -c '^THP_enabled:[[:space:]]*1')"
+check "and the stub reported its THP state at all" "1" "$(echo "$out" | grep -c 'THP_enabled')"
+
+: > "$started"
+PATH=/usr/bin:/bin $BIN --run "$D/link-to-program" >/dev/null 2>&1
+check "a symlink to a program is a started program" "0" "$?"
+wait_for_line "$started" '^THP_enabled'
+check "and it is resolved to its target before it is started" "1" "$(grep -c "^ARGV0 $D/folder/program$" "$started")"
+
+: > "$started"
+out=$(PATH=/usr/bin:/bin $BIN --run "$D/plain.txt" 2>&1)
+rc=$?
+check "a file with no execute bit has its own status" "4" "$rc"
+check "and one sentence, naming the bit rather than the file" "1" "$(echo "$out" | grep -c 'no execute bit')"
+check "with no errno in it" "0" "$(echo "$out" | grep -c 'os error')"
+# Flea never sets that bit to satisfy itself: marking a download executable is the operator's
+# decision, and the Permissions dialog is where they make it.
+check "and the refused file is left exactly as it was" "-rw-r--r--" "$(stat -c '%A' "$D/plain.txt")"
+check "and nothing was started" "0" "$(grep -c . "$started")"
+
+out=$(PATH=/usr/bin:/bin $BIN --run "$D/pipe" 2>&1)
+rc=$?
+check "a fifo carrying an execute bit is not a program either" "4" "$rc"
+check "and its sentence says so" "1" "$(echo "$out" | grep -c 'not a program')"
+
+out=$(PATH=/usr/bin:/bin $BIN --run "$D/notaprogram" 2>&1)
+rc=$?
+check "a file the kernel will not exec is an error status, not a green launch" "2" "$rc"
+check "and is elided too" "0" "$(echo "$out" | grep -c 'os error')"
+check "and that sentence names the program" "1" "$(echo "$out" | grep -c 'could not be started')"
+
+PATH=/usr/bin:/bin $BIN --run "$D/dir" >/dev/null 2>&1
+check "a directory is refused with the same status --open gives one" "3" "$?"
+out=$(PATH=/usr/bin:/bin $BIN --run "$D/dir" 2>&1)
+check "and says nothing at all, the way --open does not" "0" "$(echo "$out" | grep -c .)"
+
+out=$(PATH=/usr/bin:/bin $BIN --run "$D/nowhere" 2>&1)
+rc=$?
+check "a path that resolves to nothing is an error status" "2" "$rc"
+check "and it is one sentence with no errno" "0" "$(echo "$out" | grep -c 'os error')"
+check "and that sentence names the file" "1" "$(echo "$out" | grep -c 'still exists')"
+
+out=$($BIN --run 2>&1 </dev/null)
+check "--run with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--run')"
+: > "$started"
+out=$($BIN --run "$D/folder/program" "$D/plain.txt" 2>&1 </dev/null)
+check "and so is --run with two" "1" "$(echo "$out" | grep -c -- '--run')"
+# A usage error that had started the first path anyway would be a launch nobody wrote a command line for.
+check "and neither path was started" "0" "$(grep -c . "$started")"
+
+# The stub qs is what exec_qs launched, so it inherits huge pages off; --run must hand them back the
+# way --open does, and a program that ran its whole life without them never asked for that.
+mkdir -p "$D/bin"
+printf '#!/bin/sh\ngrep -i "^THP_enabled" /proc/self/status | sed "s/^/QS /"\nexec %s --run %s\n' "$PWD/$BIN" "$D/folder/program" > "$D/bin/qs"
+chmod +x "$D/bin/qs"
+: > "$started"
+out=$(env WAYLAND_DISPLAY=flea-modes-test-display PATH="$D/bin:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+wait_for_line "$started" '^THP_enabled'
+check "the shell inherited huge pages off for the run too" "1" "$(echo "$out" | grep -c '^QS THP_enabled:[[:space:]]*0')"
+check "and the started program got them back" "1" "$(grep -c '^THP_enabled:[[:space:]]*1' "$started")"
+sandbox_remove "$D"
+
 # --terminal resolves the directory, refuses anything that is not one, and hands the canonical path
 # to xdg-terminal-exec as one --dir= argument. src/terminal.rs is its own copy of the stdio, process
 # group and huge page guards --open carries, so each one is pinned here rather than assumed to have
