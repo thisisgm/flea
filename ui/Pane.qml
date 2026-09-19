@@ -620,6 +620,16 @@ FocusScope {
         }
     }
 
+    // ui/PaneWire.qml carries the opener's other sentences and sits on its recorded line budget, so
+    // the run's own land here, beside the pane's; see AGENTS.md "File budget".
+    Connections {
+        target: wire.opener
+        function onRunFailed(path, notExecutable) {
+            root.message(notExecutable ? "That file is no longer marked executable." : "That program could not be started.", true)
+        }
+        function onRunBusy(path) { root.message("Still starting the last program; try again in a moment.", false) }
+    }
+
     Flea.PaneMenuActions {
         id: menuActions
         parent: root.overlayParent || root

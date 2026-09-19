@@ -81,6 +81,20 @@ function isExecutable(mode) {
     return (mode & ANY_EXECUTE_BIT) !== 0
 }
 
+var S_IFREG = 0o100000
+
+// A regular file, which is the only kind Flea will start: a directory's execute bit is the right to
+// enter it, and a device or a socket carrying one is not a program either.
+function isRegularFile(mode) {
+    return (mode & S_IFMT) === S_IFREG
+}
+
+// The whole of what makes a row a program, and src/program.rs asks the same question of the same
+// three bits before it spawns anything, so the window cannot offer to start what the mode refuses.
+function isRunnable(mode) {
+    return isRegularFile(mode) && isExecutable(mode)
+}
+
 // Shared by Row.qml's iconSource and PreviewMedia.qml's player source: encodeURI leaves # and ?
 // literal, which Qt then reads as a URL fragment or query rather than path bytes.
 function fileUri(path) {
