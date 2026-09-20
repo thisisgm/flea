@@ -57,6 +57,17 @@ out=$(env -u WAYLAND_DISPLAY -u DISPLAY $BIN --gui --version 2>&1 >/dev/null </d
 check "--version after another flag is refused too" "2" "$rc"
 check "--version is still read before the other modes" "1" "$(echo "$out" | grep -c 'version takes nothing')"
 
+# The bounded status helper stays headless and never launches the GUI.
+out=$($BIN --cloud-status / 2>&1 </dev/null); rc=$?
+check "cloud status exits zero with a JSON verdict" "0" "$rc"
+check "local cloud probe returns local" "1" "$(echo "$out" | grep -c '"state":"local"')"
+out=$($BIN --cloud-status 2>&1 >/dev/null </dev/null); rc=$?
+check "cloud status missing path is usage error" "2" "$rc"
+out=$($BIN --cloud-status / extra 2>&1 >/dev/null </dev/null); rc=$?
+check "cloud status extra arguments are refused" "2" "$rc"
+out=$($BIN --cloud-status relative 2>&1 </dev/null)
+check "relative cloud path cannot claim idle" "1" "$(echo "$out" | grep -c '"state":"unavailable"')"
+
 # --pick refuses before any window and writes no reply, and an exported-but-empty request is absent
 # the way an empty display is: a wrapper's unset variable must not open a chooser with no request.
 D="$FIXTURE_ROOT/flea-pick-test-$$"

@@ -137,8 +137,7 @@ Item {
     function sizeText() {
         if (Format.isSymlink(root.row.p)) return "link"
         if (!root.row.d) return Format.size(root.row.s)
-        if (!root.dirSize) return "·"
-        return (root.dirSize.partial ? ">" : "") + Format.size(root.dirSize.bytes)
+        return Format.directorySize(root.dirSize)
     }
 
     // Only a chosen directory carries it: it says the column to the right is showing what is inside.

@@ -1011,17 +1011,7 @@ impl Model {
                 } else if text(&value, "op") == "snapshot" {
                     wire.send(vec![("c", word("menuaction")), ("op", word("properties")), ("id", number(self.action_id))])?;
                 } else if text(&value, "op") == "properties" {
-                    let mut facts = vec![
-                        text(&value, "path").into(),
-                        format!("Kind · {}", text(&value, "kind")),
-                        format!("Size · {}", super::render::bytes(count(&value, "bytes"))),
-                        format!("Modified · {}", super::render::modified(value.get("modified").and_then(Json::as_f64).unwrap_or(0.0) as i64)),
-                        format!("Permissions · {}", text(&value, "mode")),
-                        format!("Owner · {} ({})", text(&value, "owner"), count(&value, "uid")),
-                        format!("Group · {}", count(&value, "gid")),
-                    ];
-                    if flag(&value, "symlink") { facts.push(format!("Target · {}", text(&value, "target"))); }
-                    self.properties = Some(facts);
+                    self.properties = Some(super::properties::rows(&value));
                 }
             }
             "error" => {

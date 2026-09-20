@@ -5,26 +5,38 @@ use std::path::{Path, PathBuf};
 
 // Sample: `2 1 0:9 / /home/pi/My\040Drive rw - fuse.rclone remote: rw`; longest enclosing mount wins after octal unescaping.
 pub(crate) fn mount_type_in(path: &Path, body: &str) -> Option<String> {
-    let mut best: Option<(usize, String)> = None;
+    mount_in(path, body).map(|mount| mount.kind)
+}
+
+pub(crate) struct Mount {
+    pub path: PathBuf,
+    pub kind: String,
+    pub source: String,
+}
+
+pub(crate) fn mount_in(path: &Path, body: &str) -> Option<Mount> {
+    let mut best: Option<(usize, Mount)> = None;
     for line in body.lines() {
         let fields: Vec<&str> = line.split_whitespace().collect();
         let split = match fields.iter().position(|field| *field == "-") {
             Some(value) => value,
             None => continue,
         };
-        if fields.len() <= split + 1 || fields.len() < 5 {
+        if fields.len() <= split + 2 || fields.len() < 5 {
             continue;
         }
         let mount = PathBuf::from(OsString::from_vec(unescape(fields[4])));
         if !path.starts_with(&mount) {
             continue;
         }
+        let Ok(source) = String::from_utf8(unescape(fields[split + 2])) else { continue; };
         let depth = mount.components().count();
         if best.as_ref().map(|(old, _)| depth >= *old).unwrap_or(true) {
-            best = Some((depth, fields[split + 1].to_string()));
+            best = Some((depth, Mount { path: mount, kind: fields[split + 1].to_string(),
+                source }));
         }
     }
-    best.map(|(_, kind)| kind)
+    best.map(|(_, mount)| mount)
 }
 
 fn unescape(field: &str) -> Vec<u8> {
@@ -67,6 +79,9 @@ mod tests {
         let info = "1 0 8:1 / / rw - ext4 /dev/a rw\n\
                     2 1 0:9 / /home/pi/My\\040Drive rw - fuse.rclone remote: rw\n\
                     3 2 0:10 / /home/pi/My\\040Drive/nested rw - tmpfs tmpfs rw\n";
+        let mount = mount_in(Path::new("/home/pi/My Drive/file"), info).unwrap();
+        assert_eq!(mount.path, Path::new("/home/pi/My Drive"));
+        assert_eq!(mount.source, "remote:");
         assert_eq!(
             mount_type_in(Path::new("/home/pi/My Drive/file"), info).as_deref(),
             Some("fuse.rclone")

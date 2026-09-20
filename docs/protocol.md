@@ -72,6 +72,17 @@ or replacement of the pending request, and fetch metadata only for the visible w
 
 ### menuaction identity and deletion
 
+`{"c":"menuaction","op":"properties","id":4}` describes the single captured item.
+`bytes` retains its `lstat` meaning for compatibility: for a `directory:true` entry it is
+**not** the recursive contents size. GUI and TUI Properties display `Not calculated` for
+directories; the list's independent `dirsized` replies still provide recursive sizes.
+The additive `filesystem` string identifies the enclosing mount from Linux mountinfo,
+or is empty when it cannot be identified. Parent aliases are resolved without following
+the selected symlink itself. `fuse.rclone` identifies rclone, not its provider or upload
+state. No recursive walk, rclone process, credential read, or status API request is made
+by Properties. Its upload-status notice must not be interpreted as a pending upload or
+as successful synchronization.
+
 `{"c":"menuaction","op":"activate","id":4,"action":"duplicate"}` revalidates the
 selection captured by `snapshot` before the GUI dispatches a selected-item menu action.
 The response echoes `id`, `op`, and `action`, with `ok` and `error`. Only clipboard, Copy Path,

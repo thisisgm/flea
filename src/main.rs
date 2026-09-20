@@ -1,4 +1,5 @@
 mod backend;
+mod cloud;
 mod chooser;
 mod defaults;
 mod error;
@@ -80,6 +81,7 @@ fn usage(message: &str) -> ! {
     eprintln!("       flea --picker [off]");
     eprintln!("       flea --ui-state [<json patch>]");
     eprintln!("       flea --version");
+    eprintln!("       flea --cloud-status <absolute path>");
     exit(2)
 }
 
@@ -164,6 +166,11 @@ fn main() {
 
     if args.iter().any(|a| a == "--backend") {
         exit(backend::run::run());
+    }
+
+    if args.get(1).map(String::as_str) == Some("--cloud-status") {
+        if args.len() != 3 { usage("--cloud-status takes one absolute path"); }
+        exit(cloud::run(PathBuf::from(&args[2])));
     }
 
     // flea --prewarm <path> <count> <dest>

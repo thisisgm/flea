@@ -229,17 +229,17 @@ FocusScope {
                     model: root.action === "properties" && root.facts.ok ? [
                         ["Path", root.facts.path],
                         ["Type", root.facts.kind],
-                        ["Size", Format.size(root.facts.bytes) + " (" + root.facts.bytes + " bytes)"],
+                        ["Size", Format.propertySize(root.facts)],
                         ["Modified", Format.date(root.facts.modified)],
                         ["Permissions", root.facts.mode],
                         ["Owner", (root.facts.owner || "Unknown") + " (uid " + root.facts.uid + ")"],
                         ["Group", "gid " + root.facts.gid]
-                    ].concat(root.facts.symlink ? [["Link target", root.facts.target]] : []) : []
+                    ].concat(root.facts.symlink ? [["Link target", root.facts.target]] : [], Format.storageFacts(root.facts)) : []
                     Column {
                         required property var modelData
                         width: body.width
                         Text { width: parent.width; text: parent.modelData[0]; textFormat: Text.PlainText; color: Theme.color.muted; font { family: Theme.font.family; pixelSize: Theme.font.caption } }
-                        Text { width: parent.width; text: parent.modelData[1]; textFormat: Text.PlainText; wrapMode: Text.WrapAnywhere; color: Theme.color.foreground; font { family: Theme.font.family; pixelSize: Theme.font.body } }
+                        Text { width: parent.width; text: parent.modelData[1]; textFormat: Text.PlainText; wrapMode: Text.WrapAtWordBoundaryOrAnywhere; color: Theme.color.foreground; font { family: Theme.font.family; pixelSize: Theme.font.body } }
                     }
                 }
                 Text {

@@ -342,10 +342,7 @@ Item {
         if (!root.row.d) {
             return Format.size(root.row.s)
         }
-        if (!root.dirSize) {
-            return "·"
-        }
-        return (root.dirSize.partial ? ">" : "") + Format.size(root.dirSize.bytes)
+        return Format.directorySize(root.dirSize)
     }
 
     // The window's one stamp, or the picker's compact three; both are cell text and nothing more.

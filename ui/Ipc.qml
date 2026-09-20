@@ -2,7 +2,6 @@ import QtQuick
 import Quickshell.Io
 import qs.Commons
 import "js/Tabs.js" as Tabs
-
 // The seam the tests drive, see AGENTS.md "Testing". Read-only: it reports, never acts.
 QtObject {
     id: root
@@ -105,6 +104,7 @@ QtObject {
         function statusSecondary(): string { return root.bar.secondaryText }
         function statusError(): bool { return root.bar.transientIsError }
         function statusDetail(): string { return root.bar.errorDetail }
+        function cloudStatusState(): string { return JSON.stringify(root.bar.cloudState) }
         function statusActivityState(): string {
             var card = root.bar.transferCard
             return JSON.stringify({activities: root.bar.activities.map(function(activity) {

@@ -11,6 +11,7 @@ mod media;
 mod model;
 mod pdf;
 mod preview;
+mod properties;
 mod render;
 mod taildrop;
 mod terminal;
