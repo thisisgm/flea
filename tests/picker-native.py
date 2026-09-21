@@ -654,6 +654,9 @@ def test_sorting():
     scrolled.key("-k", "End")
     scrolled.until("the viewport left the top", lambda state: state["held"] > 0)
     scrolled.key("s")
+    # A sort is refused while a listing is loading, so S sent on the heels of s can be dropped.
+    scrolled.until("the first sort lands before the second is asked for",
+                   lambda state: state["sortBy"] == "size" and not state["sortDesc"] and state["state"] == "ready")
     scrolled.key("S")
     scrolled.until("a sort returns the viewport and the cursor to the first row",
                    lambda state: state["sortBy"] == "size" and state["sortDesc"] and state["held"] == 0
