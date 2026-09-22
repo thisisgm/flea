@@ -86,6 +86,19 @@ function run(check) {
     check("mode 644 is not executable", Format.isExecutable(33188), false)
     check("a vanished row is not executable", Format.isExecutable(0), false)
 
+    // What Enter reads before it starts a program, and what src/program.rs stats before it spawns
+    // one: the same three bits on the same mode, on a file and on nothing else.
+    check("a regular file with an owner execute bit is runnable", Format.isRunnable(0o100755), true)
+    check("a group or other bit alone is one too, because that is what the kernel reads",
+          Format.isRunnable(0o100111), true)
+    check("a regular file with no execute bit is not", Format.isRunnable(0o100644), false)
+    // A directory's execute bit is the right to enter it, which is why the kind is asked first.
+    check("a directory is not runnable however it is moded", Format.isRunnable(0o040755), false)
+    check("nor is a symlink, which canonicalize resolves before anything is started",
+          Format.isRunnable(0o120777), false)
+    check("nor is a character device with every bit set", Format.isRunnable(0o020777), false)
+    check("a vanished row is not runnable", Format.isRunnable(0), false)
+
     // Issue 67, jesedv: the yanked path is quoted unless a shell reads every character as itself.
     check("a path a shell reads as one word is handed over as it is",
           Format.shellQuoted("/home/gm/Work-2.0_final"), "/home/gm/Work-2.0_final")

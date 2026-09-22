@@ -2,6 +2,7 @@
 
 .import "DirSizes.js" as DirSizes
 .import "Filter.js" as Filter
+.import "Format.js" as Format
 .import "Kinds.js" as Kinds
 .import "Thumbs.js" as Thumbs
 
@@ -178,6 +179,17 @@ function openCursor(pane, opener) {
     // Handing an archive on opens another file manager, and this is ui/Preview.qml's own classifier.
     if (Kinds.quickLookKind(row.i, path) === Kinds.ARCHIVE) {
         pane.preview.open(path, row.i, row.s, pane.kindNames[row.k] || "")
+        return
+    }
+    // An execute bit on a regular file is the operator's own statement that it is a program, and the
+    // desktop database has nothing to say about it: an AppImage resolves to application-x-executable
+    // in generic-icons here, which no handler claims, so Enter on one reached gio open and came back
+    // refused. The listing has already said so in the row's own colour, ui/Row.qml reading this same
+    // function, so the key follows what the row shows rather than asking a question over it.
+    // A .desktop entry is the exception the desktop itself owns, because only it can read the Exec
+    // line inside, and it reaches the opener like any other file.
+    if (Format.isRunnable(row.p) && !/\.desktop$/i.test(row.n)) {
+        opener.run(path)
         return
     }
     opener.open(path)

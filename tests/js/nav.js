@@ -62,15 +62,17 @@ function browsing(history) {
 }
 
 // What Enter did with one row, as one line: the directory it navigated to, the preview it opened,
-// and the path it handed the opener. Exactly one of the three may be filled for any row.
+// the path it handed the opener, and the path it handed the runner. Exactly one of the four may be
+// filled for any row.
 function entered(row) {
     var p = pane()
-    var went = ["", "", ""]
+    var went = ["", "", "", ""]
     p.rowFor = function (index) { return row }
     p.join = function (base, name) { return base + "/" + name }
     p.open = function (target) { went[0] = target }
     p.preview = { open: function (path, icon, size) { went[1] = path + " " + icon + " " + size } }
-    Nav.openCursor(p, { open: function (path) { went[2] = path } })
+    Nav.openCursor(p, { open: function (path) { went[2] = path },
+                        run: function (path) { went[3] = path } })
     return went.join("|")
 }
 
@@ -220,12 +222,41 @@ function run(check) {
     // The operator's 0.1.4 ruling: Enter on an archive opens Flea's own view rather than handing the
     // file to this box's default for every archive type it can name, which is Nautilus.
     check("Enter on an archive opens Flea's own preview and launches nothing",
-          entered({ n: "backup.zip", i: "package-x-generic", s: 4096 }),
-          "|/home/gm/backup.zip package-x-generic 4096|")
+          entered({ n: "backup.zip", i: "package-x-generic", s: 4096, p: 0o100644 }),
+          "|/home/gm/backup.zip package-x-generic 4096||")
     // The two answers that must not move, or the archive route would be a rewrite rather than a route.
     check("a directory still navigates and every other row still goes to the opener",
-          entered({ n: "Work", d: true }) + " / " + entered({ n: "notes.txt", i: "text-x-generic", s: 12 }),
-          "/home/gm/Work|| / ||/home/gm/notes.txt")
+          entered({ n: "Work", d: true, p: 0o040755 }) + " / "
+          + entered({ n: "notes.txt", i: "text-x-generic", s: 12, p: 0o100644 }),
+          "/home/gm/Work||| / ||/home/gm/notes.txt|")
+
+    // A file the operator has marked executable is a program, and the desktop database has no
+    // handler for one: an AppImage is application-x-executable in generic-icons here, so the opener
+    // could only come back refused. The row is already drawn in the executable colour off this same
+    // mode, so Enter follows what the listing shows.
+    check("Enter on an executable file starts it rather than asking the desktop to open it",
+          entered({ n: "pcsx2.AppImage", i: "application-x-executable", s: 110086648, p: 0o100755 }),
+          "|||/home/gm/pcsx2.AppImage")
+    check("and the same file without the bit is still the desktop's to open",
+          entered({ n: "pcsx2.AppImage", i: "application-x-executable", s: 110086648, p: 0o100644 }),
+          "||/home/gm/pcsx2.AppImage|")
+    // A script is a program the same way, which is the whole of what the execute bit says.
+    check("an executable script is started too",
+          entered({ n: "backup.sh", i: "text-x-script", s: 240, p: 0o100755 }),
+          "|||/home/gm/backup.sh")
+    // The one exception: only the desktop can read the Exec line inside a .desktop entry, so one
+    // reaches the opener however it is moded.
+    check("an executable desktop entry stays with the desktop",
+          entered({ n: "steam.desktop", i: "application-x-desktop", s: 500, p: 0o100755 }),
+          "||/home/gm/steam.desktop|")
+    // The 0.1.4 archive ruling is untouched: the kind is read before the mode, so a marked archive
+    // still opens Flea's own view rather than being handed to the kernel.
+    check("an archive the operator marked executable still opens the preview",
+          entered({ n: "backup.zip", i: "package-x-generic", s: 4096, p: 0o100755 }),
+          "|/home/gm/backup.zip package-x-generic 4096||")
+    // A directory's execute bit is the right to enter it and was never a program's.
+    check("and a directory still navigates rather than being started",
+          entered({ n: "Work", d: true, p: 0o040755 }), "/home/gm/Work|||")
 
     // h climbs the tree and keeps the place: the parent listing selects the directory we left.
     var up = pane()
