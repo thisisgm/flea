@@ -1588,6 +1588,16 @@ keycase_copydirpath() {
   changed_to "copied directory path" "$before" "$after" "$DRIVE_FIXTURE"
 }
 
+keycase_copypath() {
+  reset_state && seek_row_named a-note.txt || return 1
+  local before after
+  drive_action copydirpath || return 1
+  before=$(wl-paste --no-newline) || { WHY="clipboard cannot be observed"; return 2; }
+  k "$@"; settle
+  after=$(wl-paste --no-newline) || return 1
+  changed_to "copied file path" "$before" "$after" "$DRIVE_FIXTURE/a-note.txt"
+}
+
 drive_arm() {
   local action=$1 final=$2 row=$3 before after
   shift 3

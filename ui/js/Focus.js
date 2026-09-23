@@ -122,6 +122,7 @@ function act(action, root, menuId, paths) {
     case "trashArm": Trash.arm(root); return
     case "copy": Ops.clip(root, false, paths); return
     case "copydirpath": root.copyDirPath(); return
+    case "copypath": root.menuActions.copyPath(); return
     case "cut": Ops.clip(root, true, paths); return
     case "paste": Ops.paste(root); return
     case "movePaste":

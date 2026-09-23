@@ -325,6 +325,12 @@ function run(check) {
           menuRequests.join("|"),
           "duplicate:42|trash:42|extract:42|dropbox:42|convert:42|/d/captured.txt,/d/second.txt:42")
 
+    var pathPane = listPane(true)
+    pathPane.requests = 0
+    pathPane.menuActions = {copyPath: function () { pathPane.requests += 1 }}
+    Focus.act("copypath", pathPane)
+    check("copy path delegates selection resolution to the menu backend", pathPane.requests, 1)
+
     // Y copies root.path, the same thing Ctrl+T opens a terminal on, so it answers from the rail
     // too; without the interception RailKeys.act ate it and the key did nothing and said nothing.
     var copyKey = key(Qt.Key_Y, "Y", shift)

@@ -74,6 +74,11 @@ action = "settings"
 key = "N"
 action = "newFolder"
 
+# Copies the first selected file's absolute path, or the row under the cursor.
+[[ctrlshift]]
+key = "C"
+action = "copypath"
+
 # Issue 9: foot's own zoom chords, which in foot are a text size and are one here too. They are an
 # alias onto the Display section's own control and its one stored stop, never a second engine. Plus
 # and Equal both, because + is Shift+= on this layout and the hand presses the one key either way;
@@ -534,7 +539,7 @@ look = ["viewList", "viewColumns", "viewGrid", "togglePreview", "loadPreview", "
         "textSizeReset", "keymapSheet"]
 find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
-          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "toggleSelect",
+          "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copypath", "toggleSelect",
           "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
           "openTerminal", "settings"]
 
@@ -615,6 +620,11 @@ label = "copy"
 keys = "Y"
 action = "copydirpath"
 label = "folder path"
+
+[[sheet]]
+keys = "^C"
+action = "copypath"
+label = "file path"
 
 [[sheet]]
 keys = "x ^x"

@@ -89,6 +89,8 @@ Loader {
     property string pendingAction: ""
     property bool pendingActivation: false
     property bool activationUsed: false
+    property bool copyingPath: false
+    property var afterCopyPath: null
     // Which row a keyboard rename was asked for, so its reply cannot open the editor over another.
     property int pendingRenameIndex: -1
     property int launchingId: 0
@@ -151,9 +153,10 @@ Loader {
     // rows, when the caller has one: a keyboard rename acts on the cursor, and Ops.targetIndices
     // answers with the selection whenever there is one, so the snapshot covered rows the rename was
     // never going to touch and the backend refused the cursor's own path as "not in the selection".
-    function snapshot(rows) {
+    function snapshot(rows, cursor) {
         if (deleting || survivorId) return
         requestId++
+        copyingPath = false
         ready = false
         pendingAction = ""
         pendingActivation = false
@@ -165,12 +168,32 @@ Loader {
         openWithApps = []
         openWithLoaded = false
         pane.backend.send({c: "menuaction", op: "snapshot", id: requestId,
-            rows: rows !== undefined ? rows : Ops.targetIndices(pane), cursor: pane.cursorIndex})
+            rows: rows !== undefined ? rows : Ops.targetIndices(pane), cursor: cursor !== undefined ? cursor : pane.cursorIndex})
+    }
+    function copyPath() {
+        if (opened) return
+        if (deleting || survivorId) { pane.message("The deletion is still finishing.", false); return }
+        var indices = Ops.targetIndices(pane)
+        if (indices.length === 0) { Ops.sayNoTarget(pane); return }
+        if (copyingPath || afterCopyPath) {
+            afterCopyPath = { copy: true }
+            copyingPath = false
+            return
+        }
+        snapshot([indices[0]], indices[0])
+        providersRefreshing = false
+        copyingPath = true
     }
     function open(action, menuId) {
         if (opened) return
         if (action === "rename" && pane.renamePending) { pane.message("Rename is still finishing.", false); return }
         if (deleting || survivorId) { pane.message("The deletion is still finishing.", false); return }
+        // Wait for the old reply before sending a fresh snapshot; the backend bounds its queue.
+        if (copyingPath || afterCopyPath) {
+            afterCopyPath = { action: action, menuId: menuId }
+            copyingPath = false
+            return
+        }
         if (action === "newFile") {
             requestId++
             folder = pane.path
@@ -305,6 +328,15 @@ Loader {
                 }
             }
             if (message.id !== root.requestId) return
+            if (root.afterCopyPath && (message.op === "snapshot" || message.op === "activate")) {
+                var next = root.afterCopyPath
+                root.afterCopyPath = null
+                root.ready = false
+                root.identity = ""
+                if (next.copy) root.copyPath()
+                else root.open(next.action, next.menuId)
+                return
+            }
             if (message.op === "applications") {
                 // Both readers want it: the flyout's registry, and an open dialog that asked for it.
                 if (root.item) root.item.receive(message)
@@ -322,11 +354,14 @@ Loader {
             if (message.op === "snapshot") {
                 root.ready = message.ok === true && root.identity === root.pane.menuSelectionIdentity
                 if (!root.ready) {
+                    root.copyingPath = false
                     root.pendingAction = ""
                     root.pendingActivation = false
                     root.providersRefreshing = false
                     root.identity = ""
                     root.pane.message(message.error || "Selected items changed; reopen the menu.", true)
+                } else if (root.copyingPath) {
+                    root.pane.backend.send({c: "menuaction", op: "activate", id: message.id, action: "copypath"})
                 } else if (root.pendingAction) {
                     if (root.pendingActivation) root.validateActivation()
                     else root.show(root.pendingAction)
@@ -339,6 +374,22 @@ Loader {
                 return
             }
             if (message.op === "activate") {
+                if (root.copyingPath) {
+                    var selectionChanged = root.identity !== root.pane.menuSelectionIdentity
+                    root.copyingPath = false
+                    root.ready = false
+                    root.identity = ""
+                    if (!message.ok || selectionChanged) {
+                        root.pane.message(message.error || "Selected items changed; reopen the menu.", true)
+                        return
+                    }
+                    if (message.action !== "copypath" || !message.paths || message.paths.length !== 1) {
+                        root.pane.message("The selected path could not be read.", true)
+                        return
+                    }
+                    root.pane.performMenu("copypath", message.id, message.paths)
+                    return
+                }
                 if (!message.ok || root.identity !== root.pane.menuSelectionIdentity) {
                     root.pane.message(message.error || "Selected items changed; reopen the menu.", true)
                     return
@@ -362,6 +413,8 @@ Loader {
             root.survivors = []
             root.ready = false
             root.identity = ""
+            root.copyingPath = false
+            root.afterCopyPath = null
             root.pendingAction = ""
             root.pendingActivation = false
             root.providersRefreshing = false

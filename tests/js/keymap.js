@@ -45,6 +45,8 @@ function run(check) {
             }
         }
         key(preset, "N", "", ctrl | shift, "newFolder")
+        key(preset, "C", "", ctrl, "copy")
+        key(preset, "C", "", ctrl | shift, "copypath")
         key(preset, "Q", "q", alt, "")
         key(preset, "J", "j", meta, "")
         key(preset, "D", "D", ctrl | shift, "")

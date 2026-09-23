@@ -1420,6 +1420,11 @@ had gone stale by a whole plan and were re-derived from `wc -l` in Plan 5 Task 5
 touch a file here, re-derive its count from the artefact rather than adjusting the nearest
 number.
 
+The Copy path shortcut keeps its snapshot and activation replies in the existing
+`ui/PaneMenuActions.qml` owner, raising that file's recorded ceiling from 404 to
+457 lines. The generated `ui/js/Keymap.js` gains one line, from 310 to 311. Both
+ceilings were re-derived with `wc -l`; the global caps remain unchanged.
+
 `src/vulkan.rs` is 0.3.2's own exception, recorded rather than split. PR119's display-GPU pin took
 it from 472 to 604 lines, the growth being `icd_for_displays`, `display_pin` and the tests that
 drive a hybrid tree this box cannot produce. The file has one subject, which is what Vulkan can be

@@ -195,6 +195,7 @@ Press **?** for the full keymap, or **,** to change settings.
 | Quick Look | `Space` |
 | Select / extend selection | `v` / `Shift` + arrows |
 | Copy / cut / paste | `y` `x` `p`, or `Ctrl+C` `Ctrl+X` `Ctrl+V` |
+| Copy selected file path | `Ctrl+Shift+C` |
 | Rename / trash / undo | `r` or `F2` / `dd` or `Delete` / `z` |
 | New folder | `Ctrl+Shift+N` |
 | Search / filter the list | `f` / `/` |

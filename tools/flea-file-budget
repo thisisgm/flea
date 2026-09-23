@@ -41,7 +41,7 @@ ui/NetworkDialog.qml 449
 ui/NetworkMounts.qml 557
 ui/OpenWithDialog.qml 583
 ui/Pane.qml 640
-ui/PaneMenuActions.qml 404
+ui/PaneMenuActions.qml 457
 ui/PaneWire.qml 485
 ui/PermissionsDialog.qml 426
 ui/PickerWindow.qml 632
@@ -54,7 +54,7 @@ ui/TrashView.qml 466
 ui/WindowBody.qml 481
 ui/js/Filter.js 301
 ui/js/Focus.js 341
-ui/js/Keymap.js 310
+ui/js/Keymap.js 311
 ui/js/Ops.js 331
 ui/js/Settings.js 427"
 
