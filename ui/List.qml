@@ -122,7 +122,9 @@ ListView {
     TapHandler {
         acceptedButtons: Qt.RightButton
         onTapped: function (eventPoint) {
-            if (root.indexAt(root.contentX + eventPoint.position.x, root.contentY + eventPoint.position.y) < 0)
+            // indexAt takes content coordinates; the handler's position is already scrolled.
+            var point = root.contentItem.mapFromItem(null, eventPoint.scenePosition)
+            if (root.indexAt(point.x, point.y) < 0)
                 root.menu.openBackground(eventPoint.scenePosition)
         }
     }

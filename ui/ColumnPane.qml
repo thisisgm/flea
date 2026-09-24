@@ -184,8 +184,10 @@ Item {
         TapHandler {
             acceptedButtons: Qt.RightButton
             onTapped: function (eventPoint) {
+                // indexAt takes content coordinates; the handler's position is already scrolled.
+                var point = view.contentItem.mapFromItem(null, eventPoint.scenePosition)
                 if (root.pane !== null
-                        && view.indexAt(view.contentX + eventPoint.position.x, view.contentY + eventPoint.position.y) < 0)
+                        && view.indexAt(point.x, point.y) < 0)
                     root.backgroundMenuRequested(eventPoint)
             }
         }
