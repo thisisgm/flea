@@ -3068,6 +3068,50 @@ EOS
     sandbox_remove "$fixture_home"
 }
 
+# F5, the re-read a selection does not defer. The watch holds a change back while a selection
+# stands, which is the stale listing the operator reported on 2026-09-24; F5 is the operator deciding
+# not to wait. Catches deleting the F5 row from keys.toml, the refresh case from ui/js/Focus.js, or the
+# anchor or the paid debt from ui/PaneWire.qml refreshNow. The first check is the control: if the watch
+# did not hold the change, F5 would be proving nothing.
+case_refresh() {
+    local dir="$fixture_root/refresh"
+    sandbox_scratch "$dir"
+    printf 'a\n' > "$dir/alpha.txt"
+    printf 'b\n' > "$dir/beta.txt"
+    printf 'c\n' > "$dir/gamma.txt"
+    launch "$dir"
+    wait_listing 3
+    goto_row 2
+    [[ "$(ipc rowAt "$(ipc cursor)")" == gamma.txt\|* ]] || fail "refresh: the cursor did not start on gamma.txt"
+    key v >/dev/null
+    settle
+    [[ "$(ipc selectionCount)" == "1" ]] || fail "refresh: v did not select the cursor row"
+    printf 'n\n' > "$dir/AAA-arrived.txt"
+    sleep 2
+    [[ "$(ipc total)" == "3" ]] \
+        || fail "refresh: the watch re-read to $(ipc total) rows under a selection, so F5 is not what is tested"
+
+    local before after
+    before=$(ipc listRequests)
+    key -k F5 >/dev/null
+    omarchy-drive wait ipc -p "$flea_ui" flea total 4 --timeout 15 >/dev/null \
+        || fail "refresh: F5 left the listing at $(ipc total) rows"
+    settle
+    # A second listing would be the watch paying a debt F5 already paid, about 400 ms after the first.
+    sleep 1.5
+    after=$(ipc listRequests)
+    printf 'REFRESH total=%s lists=%s->%s cursor=%q selected=%s\n' \
+        "$(ipc total)" "$before" "$after" "$(ipc rowAt "$(ipc cursor)")" "$(ipc selectionCount)"
+    shot refresh-after-f5
+    [[ "$(ipc rowAt "$(ipc cursor)")" == gamma.txt\|* ]] \
+        || fail "refresh: a create above the cursor moved it to $(ipc rowAt "$(ipc cursor)")"
+    [[ "$(ipc selectionCount)" == "0" ]] || fail "refresh: F5 kept a selection over renumbered rows"
+    (( after == before + 1 )) \
+        || fail "refresh: F5 cost $(( after - before )) listings, so the watch paid its debt a second time"
+    assert_window
+    kill_flea
+}
+
 # Mirrors the two env vars src/gui.rs sets from a resolved --select; tests/modes.sh covers the resolution itself.
 case_select() {
     local dir="$fixture_root/select"
@@ -9981,7 +10025,7 @@ case_previewviews() {
 . "$repo/tests/ui-transfer-live.sh"
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click ctrlclick viewrestart dd collide sortrestart duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden selection watch optical select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings makedefault clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign noblank transferlive)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click ctrlclick viewrestart dd collide sortrestart duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden selection watch refresh optical select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings makedefault clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign noblank transferlive)
 
 : > "$run_log"
 : > "$flea_log"

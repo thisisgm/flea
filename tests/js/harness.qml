@@ -69,6 +69,7 @@ import "shelfmodel.js" as ShelfModelSuite
 import "thumbs.js" as ThumbsSuite
 import "uistate.js" as UiStateSuite
 import "update.js" as UpdateSuite
+import "refresh.js" as RefreshSuite
 import "watch.js" as WatchSuite
 
 Item {
@@ -107,7 +108,7 @@ Item {
             ["sort", SortSuite], ["swap", SwapSuite], ["startup", StartupSuite], ["trashdates", TrashDatesSuite], ["permissions", PermissionsSuite], ["status", StatusSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["marquee", MarqueeSuite], ["tabs", TabsSuite], ["tabs-switch", TabsSwitchSuite], ["shelfmodel", ShelfModelSuite],
             ["themes", ThemesSuite], ["thumbs", ThumbsSuite], ["transfer", TransferSuite], ["uistate", UiStateSuite], ["update", UpdateSuite],
-            ["watch", WatchSuite]
+            ["refresh", RefreshSuite], ["watch", WatchSuite]
         ]
         var argv = Qt.application.arguments
         var only = ""

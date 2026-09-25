@@ -38,6 +38,9 @@ function run(check) {
         key(preset, "2", "", preset === "windows" ? ctrl | shift : ctrl, "viewColumns")
         key(preset, "3", "", preset === "windows" ? ctrl | shift : ctrl, "viewGrid")
         key(preset, "Comma", "", ctrl, "settings")
+        // The window re-reads on F5; the terminal interface has no refresh case, so F5 stays unbound there.
+        key(preset, "F5", "", none, "refresh")
+        key(preset, "F5", "", none, "", "listing", "tui")
         for (var f = 0; f < 2; f++) {
             var frontend = ["gui", "tui"][f]
             var menuContexts = ["listing", "rail", "menu", "panel", "preview", "pdf", "media", "editor"]

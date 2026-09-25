@@ -242,8 +242,15 @@ from before the navigation and requires exactly one listing for it.
 **// corner: this is the local kernel's view of one directory.** A change another machine makes to an
 NFS or SMB share raises no inotify event here, so a network mount is exactly as live as it was
 before. So is a box whose inotify instance limit is exhausted, which says so once on stderr and then
-never sends the line. `IN_MODIFY` is deliberately not in the mask: it fires on every `write(2)` and a
-listing does not draw a partial size, so a row's size follows `IN_CLOSE_WRITE` instead.
+never sends the line. **F5 is the re-read a selection does not defer**: `ui/js/Anchor.js` `manual` runs
+the same anchored re-read, and of everything `busy()` waits for it lifts only the selection, which it
+clears rather than re-points. That makes it how a network mount, or a listing held behind a selection,
+is read again in place. A rename still finishing or a collision card still open refuses it with a
+sentence, because each answer still to come names a row by index, and search results re-run their
+query. The empty-space menu's Refresh row is the same action. It is the window's alone, because the
+terminal interface has no refresh case yet.
+`IN_MODIFY` is deliberately not in the mask: it fires on every `write(2)` and a listing does not draw
+a partial size, so a row's size follows `IN_CLOSE_WRITE` instead.
 
 **Flea's own writes pay for one extra scan.** A rename, mkdir, trash or transfer already calls
 `pane.refresh()`, and the watch answers for the same write about 400 ms later, so the directory is

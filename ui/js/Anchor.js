@@ -1,7 +1,8 @@
 .pragma library
+.import "Search.js" as Search
 
-// Re-reading the open listing without moving the user off it. Two callers with one mechanism: a
-// change another program made under the listing (ui/PaneWire.qml's watch) and Flea's own delete.
+// Re-reading the open listing without moving the user off it. Three callers with one mechanism: a
+// change another program made under the listing (ui/PaneWire.qml's watch), F5 and Flea's own delete.
 // Split out of ui/js/Nav.js, which sits at the 300-line JS cap, the same way tests/js/watch.js was
 // split out of tests/js/nav.js; ui/js/Nav.js keeps navigation and this keeps the return.
 
@@ -17,6 +18,41 @@ function busy(pane) {
 // because a create above it renumbers every row below and a listing that jumped back to the top
 // would move the user while they were reading it. Returns the anchor apply() resolves, or null.
 function watched(pane) {
+    return anchoredRefresh(pane, false)
+}
+
+// F5, the re-read the operator asked for. ui/PaneWire.qml runs watched() only when busy() above lets
+// it, and a standing selection holds it; pressing the key is the decision that wait was for, so the
+// selection does not hold this one. It is also the only in-place re-read a network share gets, because a change on the
+// server raises no inotify event here. The selection is cleared the way every new listing clears it,
+// never re-pointed. Search results run their query again, since what they list is a walk.
+function manual(pane) {
+    if (pane.renameEditor() !== null) {
+        pane.message("Finish or cancel the rename first.", false)
+        return null
+    }
+    // Of what busy() waits for, the selection is the only hold that is the operator's to lift: a rename
+    // or a collision card still waiting on its answer names a row by index, and would get another file.
+    // Both hold ahead of search results too, because running the query again replaces those rows.
+    if (pane.collide && pane.collide.pending !== null) {
+        pane.message("Choose what to do about the existing files first.", false)
+        return null
+    }
+    if (pane.renamePending) {
+        pane.message("Rename is still finishing.", false)
+        return null
+    }
+    if (pane.searchMode === Search.RESULTS) {
+        if (pane.searchRunning)
+            pane.message("The search is still running.", false)
+        else
+            Search.run(pane)
+        return null
+    }
+    if (pane.listInFlight) {
+        pane.message("A directory is already loading.", false)
+        return null
+    }
     return anchoredRefresh(pane, false)
 }
 

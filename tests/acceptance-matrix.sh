@@ -68,7 +68,7 @@ rows = [line.split('|') for line in pathlib.Path(sys.argv[1]).read_text().splitl
 assert all(len(row) == 4 for row in rows)
 assert len(rows) == len({(row[0], row[3]) for row in rows})
 # Count distinct current non-header ids from derive_menu_actions, including Places rows.
-assert len({row[0] for row in rows if row[3] != 'header'}) == 36
+assert len({row[0] for row in rows if row[3] != 'header'}) == 37
 assert ['delete', 'deletePermanently', 'Delete permanently', 'file'] in rows
 assert ['moveto', 'moveTo', 'Move to', 'file'] in rows
 assert ['openwith', 'openWith', 'Open with', 'file'] in rows
@@ -77,8 +77,9 @@ assert ['openTab', 'openTab', 'Open in new tab', 'places'] in rows
 assert ['removeFavourite', 'removeFavourite', 'Remove from Favorites', 'places'] in rows
 assert {row[3] for row in rows if row[0] == 'paste'} == {'file', 'background'}
 assert ['updateFlea', 'updateFlea', 'Update Flea', 'background'] in rows
+assert {row[3] for row in rows if row[0] == 'refresh'} == {'background'}
 assert {row[0] for row in rows if row[3] == 'header'} == {'col:mode', 'col:size', 'col:date', 'col:kind'}
-print('ACCEPTANCE_MENU ids=36 header=4 context_rows=' + str(len(rows)))
+print('ACCEPTANCE_MENU ids=37 header=4 context_rows=' + str(len(rows)))
 PY
 mkdir -p "$SB/broken-menu/ui/js"
 printf 'var INVENTORY = [["open","Open","folder","F","open"],["broken"]]\n' > "$SB/broken-menu/ui/js/Menu.js"

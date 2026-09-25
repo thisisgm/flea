@@ -55,7 +55,7 @@ ui/TrashView.qml 466
 ui/WindowBody.qml 484
 ui/js/Filter.js 301
 ui/js/Focus.js 341
-ui/js/Keymap.js 313
+ui/js/Keymap.js 314
 ui/js/Ops.js 331
 ui/js/Settings.js 427"
 

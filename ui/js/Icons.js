@@ -97,6 +97,9 @@ var PATHS = {
     // The picker rail's Recent mark, lucide rotate-ccw, the one SendPicker.html itself draws; the
     // circle is a real curve and stays, and the arrow head is already square on lucide's own grid.
     "history": "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5",
+    // The background menu's Refresh mark, lucide refresh-cw: two arrows, so it never reads as undo's or
+    // Recent's single rotate-ccw. Its arcs are real curves and its arrow heads are already square.
+    "refresh-cw": "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16 M8 16H3v5",
     // Lucide's hard-drive with its four baked 2 unit corner arcs cut square, which lands the body on
     // (6,4) (18,4) (22,12) (22,20) (2,20) (2,12); the divider and the two LED dots are lucide's own.
     "drive": "M6 4h12l4 8v8H2v-8z M2 12h20 M6 16L6.01 16 M10 16L10.01 16",

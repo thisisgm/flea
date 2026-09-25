@@ -91,6 +91,17 @@ Item {
         root.anchor = Anchor.watched(pane)
     }
 
+    // F5, see ui/js/Anchor.js manual. A re-read that went out pays the debt, so the watch does not list
+    // the same change a second time.
+    function refreshNow() {
+        var anchor = Anchor.manual(pane)
+        if (!anchor)
+            return
+        root.stale = false
+        watchSettle.stop()
+        root.anchor = anchor
+    }
+
     // The owed re-read goes through the timer rather than straight out of this handler: reading
     // watchBusy back inside its own change notification re-enters the binding, which Qt reports as a
     // binding loop, and reread() writes listInFlight, which watchBusy reads.

@@ -126,10 +126,12 @@ Item {
             }
         }
 
-        // Losing Qt focus while the editor is up abandons, which is the rail's own field and the
-        // context menu, which takes focus as it opens. A click on another row never lands here,
-        // because a TapHandler moves no focus; ui/js/Tap.js commits that case explicitly.
-        onActiveFocusChanged: if (!activeFocus && root.visible && !root.pending) root.abandoned()
+        // The pane's menu borrows focus and restores it on close; its Refresh must see the draft.
+        // Other focus loss abandons. Row taps commit explicitly in ui/js/Tap.js.
+        onActiveFocusChanged: {
+            if (!activeFocus && root.visible && !root.pending && !(root.pane && root.pane.menuVisible))
+                root.abandoned()
+        }
     }
 
     Text {

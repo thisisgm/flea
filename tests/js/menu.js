@@ -19,10 +19,10 @@ function separated(rows) {
 }
 function run(check) {
     var file = Menu.listingEntries(state({}))
-    check("Menus and Places inventory has 36 actions", Menu.INVENTORY.length, 36)
+    check("Menus and Places inventory has 37 actions", Menu.INVENTORY.length, 37)
     check("Open with uses the authoritative cut geometry", Icons.pathFor("app-window"), "M3 4h18v16H3z M3 9h18 M6 6.5h.01 M9 6.5h.01")
     check("Restore all uses the authoritative undo geometry", Icons.pathFor("undo"), "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5")
-    check("inventory storage ids are unique", Object.keys(Menu.INVENTORY.reduce(function (out, row) { out[row[0]] = true; return out }, {})).length, 36)
+    check("inventory storage ids are unique", Object.keys(Menu.INVENTORY.reduce(function (out, row) { out[row[0]] = true; return out }, {})).length, 37)
     check("default image menu matches Menus specimen", actions(file),
           "open,openWith,cut,copy,paste,duplicate,rename,compress,convert,addToShelf,taildrop,dropbox,trash,addFavourite,toggleHidden")
     check("empty clipboard leaves Paste visible and disabled", entry(file, "paste").disabled, true)
@@ -30,8 +30,16 @@ function run(check) {
     check("folder omits conversion and extraction", actions(Menu.listingEntries(state({ rowMode: 0o040755, rowIsImage: false }))),
           "open,openWith,cut,copy,paste,duplicate,rename,compress,addToShelf,taildrop,dropbox,trash,addFavourite,toggleHidden")
     check("background menu includes real creation actions in order", actions(Menu.listingEntries(state({ hasRow: false }))),
-          "newFolder,newFile,paste,selectAll,addFavourite,sort,toggleHidden,settings")
+          "newFolder,newFile,paste,selectAll,addFavourite,sort,toggleHidden,refresh,settings")
     var background = Menu.listingEntries(state({ hasRow: false, updateVersion: "0.3.4" }))
+    // F5's menu row: the folder is what it re-reads, so it sits in the empty-space menu's view group
+    // and never on a file's own menu, and it draws lucide's refresh-cw rather than undo's rotate-ccw.
+    check("Refresh sits in the view group beside the hidden toggle, with the refresh mark",
+          (background.map(function (r) { return r.separator ? "|" : r.action }).join(",").indexOf("|,sort,toggleHidden,refresh,|") >= 0)
+          + "|" + entry(background, "refresh").glyph, "true|refresh-cw")
+    check("a file's own menu does not offer it", actions(file).indexOf("refresh"), -1)
+    check("refresh-cw is lucide's own four strokes", Icons.pathFor("refresh-cw"),
+          "M3 12a9 9 0 0 1 9-9 9.75 9.75 0 0 1 6.74 2.74L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-9 9 9.75 9.75 0 0 1-6.74-2.74L3 16 M8 16H3v5")
     check("a known newer build adds Update Flea under Settings, in the same group, with the download mark",
           background.slice(-2).map(function (r) { return (r.separator ? "|" : r.action) + ":" + r.glyph }).join(","),
           "settings:sliders,updateFlea:download")

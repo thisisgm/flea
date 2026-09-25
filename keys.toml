@@ -530,7 +530,7 @@ move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "page
         "parent", "pageForward", "historyBack", "historyForward", "focusNext", "focusPreview",
         "tabNew", "tabClose", "tabNext", "tabPrevious", "windowNew", "escape"]
 look = ["viewList", "viewColumns", "viewGrid", "togglePreview", "loadPreview", "preview",
-        "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
+        "toggleHidden", "refresh", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
         "textSizeReset", "keymapSheet"]
 find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
@@ -1060,6 +1060,19 @@ keys = "shift-insert"
 action = "paste"
 label = "paste"
 frontend = "tui"
+context = "listing"
+
+# Every file manager's F5. The watch re-reads on its own but waits while a selection stands, and a
+# network share raises no inotify event here at all, so this is the re-read a selection does not
+# defer; see ui/js/Anchor.js manual. Window only: the terminal interface has no refresh case yet.
+[[preset]]
+name = "all"
+mods = "none"
+key = "F5"
+keys = "f5"
+action = "refresh"
+label = "refresh"
+frontend = "gui"
 context = "listing"
 
 # H and L, not h and l: the character is authoritative for letters, and h and l are the shared

@@ -59,6 +59,8 @@ var INVENTORY = [
     ["removeFavourite", "Remove from Favorites", "minus", "P", "inspect"],
     ["sort", "Sort by", "sort", "B", "view"],
     ["toggleHidden", "Show hidden files", "eye", "FB", "view"],
+    // F5's row. The folder is what it re-reads, so it is on the empty-space menu and not a file's own.
+    ["refresh", "Refresh", "refresh-cw", "B", "view"],
     ["settings", "Settings", "sliders", "B", "settings"],
     ["updateFlea", "Update Flea", "download", "B", "settings"],
     ["restoreAll", "Restore all", "undo", "T", "restore"],

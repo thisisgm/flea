@@ -268,6 +268,7 @@ FocusScope {
 
     function applyPendingSelect() { Nav.applyPendingSelect(root) }
     function refresh(selectPath) { Nav.refresh(root, selectPath) }
+    function refreshListing() { wire.refreshNow() }
 
     function open(newPath) {
         if (trashHost.confirming) return
