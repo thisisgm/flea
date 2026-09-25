@@ -27,12 +27,32 @@ function parseDevices(body, unmounted) {
         // The system disk is never walked: /boot and a separate home are the box's own plumbing and
         // the row above already stands for that disk. Everything else on the box is walked, which is
         // what puts a second internal drive in the rail (operator, 2026-09-11: only sticks appeared).
-        if (!nodes[i].name || nodes[i] === system || isPseudo(nodes[i].name))
+        if (!nodes[i].name || nodes[i] === system)
+            continue
+        // A pseudo disk is walked only while something under it is mounted at a real directory: a
+        // VeraCrypt file container is a crypt leaf on a loop device and a mounted disk image is the
+        // loop itself, which is how Nautilus lists both, while zram (swap is no directory) and an
+        // idle loop nobody mounted stay off the rail exactly as before.
+        var pseudo = isPseudo(nodes[i].name)
+        if (pseudo && !holdsMount(nodes[i]))
             continue
         // No transport to inherit at the top: the disk answers for itself inside the walk.
-        collectVolumes([nodes[i]], "", false, out, unmounted === true)
+        collectVolumes([nodes[i]], "", false, out, unmounted === true, pseudo)
     }
     return out
+}
+
+// Whether this node, or anything under it, is mounted at a real directory: what earns a pseudo disk
+// its walk. mountOf answers "" for [SWAP], so zram can never qualify, and an idle loop cannot either.
+function holdsMount(node) {
+    if (mountOf(node).length > 0)
+        return true
+    var kids = node.children || []
+    for (var i = 0; i < kids.length; i++) {
+        if (holdsMount(kids[i]))
+            return true
+    }
+    return false
 }
 
 // zram and loop devices are type "disk" too, and neither is a disk anyone browses.
@@ -71,7 +91,7 @@ function holdsRoot(node) {
 // RailAdditions rule 1 adds the third case behind its own switch: a volume nothing has mounted, with
 // a filesystem to browse. With the switch off this is the 0.2.1 rule exactly, which kept a spare EFI
 // or recovery partition out of the rail.
-function collectVolumes(nodes, model, unplugs, out, unmounted) {
+function collectVolumes(nodes, model, unplugs, out, unmounted, attached) {
     for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i]
         var kids = n.children || []
@@ -85,10 +105,14 @@ function collectVolumes(nodes, model, unplugs, out, unmounted) {
         // child is, and emitting both would put one drive in the rail twice.
         var emptyOptical = String(n.type || "").toLowerCase() === "rom"
                         && mountOf(n).length === 0 && String(n.fstype || "").length === 0
-        if (n.name && kids.length === 0 && !emptyOptical
-                && (pulls || mountOf(n).length > 0 || (unmounted && browsable(n))))
-            out.push(volumeRow(n, own, pulls, unmounted))
-        collectVolumes(kids, own, pulls, out, unmounted)
+        // A row under a pseudo disk exists only while it is mounted: an attached-but-idle loop is
+        // plumbing rather than a place, and rule 1's switch must not surface it either.
+        var earns = attached === true
+            ? mountOf(n).length > 0
+            : (pulls || mountOf(n).length > 0 || (unmounted && browsable(n)))
+        if (n.name && kids.length === 0 && !emptyOptical && earns)
+            out.push(volumeRow(n, own, pulls, unmounted, attached))
+        collectVolumes(kids, own, pulls, out, unmounted, attached)
     }
 }
 
@@ -132,11 +156,24 @@ function devicePath(node) {
 // The label ladder is the filesystem label, then the drive's product name, then the kernel name.
 // volumeMenu says the row was built under RailAdditions rule 1, which is what gives it the Mount,
 // Open and Unmount rows; without the switch the row carries the menu it carried in 0.2.1.
-function volumeRow(n, model, unplugs, unmounted) {
+// attached says the operator put this volume here and will take it away again, so it carries the
+// row's release: everything on a loop device, because a loop cannot survive a reboot and is the
+// operator's by construction, and a crypt mapping only where udisks mounts an interactive unlock.
+// Crypt type alone is not the operator's act (CodeRabbit on PR 200): /home on a second encrypted
+// disk is crypttab's boot-time mapping, and it must keep its Unmount in the menu and off the row.
+function volumeRow(n, model, unplugs, unmounted, attached) {
     var path = mountOf(n)
     var label = n.label ? String(n.label) : (model.length > 0 ? model : String(n.name))
+    var unlocked = String(n.type || "") === "crypt" && interactiveMount(path)
     return { kind: "volume", label: label, device: devicePath(n), path: path, mounted: path.length > 0,
-             removable: unplugs === true, size: deviceBytes(n.size), volumeMenu: unmounted === true }
+             removable: unplugs === true, size: deviceBytes(n.size), volumeMenu: unmounted === true,
+             attached: attached === true || unlocked }
+}
+
+// Where udisks puts a mount somebody asked for in a session, against the fstab and crypttab
+// territory a boot mounts by itself: the same split Nautilus draws its own unmount control on.
+function interactiveMount(path) {
+    return path.indexOf("/run/media/") === 0 || path.indexOf("/media/") === 0
 }
 
 // An unavailable or malformed capacity stays absent; only the delegate formats valid byte counts.

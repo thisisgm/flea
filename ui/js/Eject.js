@@ -1,6 +1,7 @@
 .pragma library
 
 .import "Mounts.js" as Mounts
+.import "RailMenu.js" as RailMenu
 
 // Sample input: the lsblk --json body ui/js/Mounts.js "parseDevices" reads, taken again after
 // gio mount -e returned for /dev/sda1:
@@ -136,10 +137,12 @@ function release(root, sidebar, fromRail) {
         root.message("This is not inside a removable volume.", false)
         return
     }
-    var rows = Mounts.railMenu(entry)
-    if (rows.length === 0) {
+    // The menu's own release and never its first row: a mounted volume's menu leads with Open
+    // (RailAdditions rule 2), and Ctrl+E is the release key, not a second Enter.
+    var action = RailMenu.releaseOf(entry)
+    if (action.length === 0) {
         root.message(entry.label + " has nothing to eject or unmount.", false)
         return
     }
-    sidebar.releaseChosen(rows[0].action, Mounts.railKey(entry))
+    sidebar.releaseChosen(action, Mounts.railKey(entry))
 }

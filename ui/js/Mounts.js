@@ -144,7 +144,7 @@ function sameEntry(x, y) {
     return x.path === y.path && x.label === y.label && x.group === y.group && x.kind === y.kind
         && x.uri === y.uri && x.device === y.device && x.mounted === y.mounted && x.glyph === y.glyph
         && x.size === y.size && x.editable === y.editable && x.removable === y.removable
-        && x.volumeMenu === y.volumeMenu
+        && x.volumeMenu === y.volumeMenu && x.attached === y.attached
 }
 
 // Sample input: one rail entry as ui/DeviceMounts.qml and ui/NetworkMounts.qml build them,
@@ -179,6 +179,11 @@ function railMenu(entry) {
     }
     if (!entry.mounted)
         return []
+    // A volume the operator attached, an unlocked VeraCrypt or LUKS mapping or a mounted disk
+    // image, is released as routinely as it was opened, so its rows wait for no Extras switch.
+    if (entry.group === "device" && entry.kind === "volume" && entry.attached === true)
+        return [{ label: "Open", action: "openVolume", glyph: "folder" },
+                { label: "Unmount", action: "unmountVolume", glyph: "eject" }]
     if (entry.group === "device" && entry.kind === "volume" && entry.removable === true)
         return [{ label: "Eject", action: "eject", glyph: "eject" }]
     if (entry.group === "network" && entry.kind === "share")

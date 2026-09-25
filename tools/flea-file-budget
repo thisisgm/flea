@@ -50,7 +50,7 @@ ui/PreviewColumn.qml 477
 ui/Row.qml 421
 ui/SettingsPanel.qml 542
 ui/SettingsRow.qml 410
-ui/Sidebar.qml 543
+ui/Sidebar.qml 545
 ui/TrashView.qml 466
 ui/WindowBody.qml 485
 ui/js/Filter.js 301

@@ -63,6 +63,38 @@ function placeSaved(sidebar, mounts, requestId, uri, success) {
         mounts.replacePlace(was)
 }
 
+// The release a row's own menu offers: Eject when it is there, else the row's Unmount, whatever
+// position Open holds. Ctrl+E dispatches this through ui/js/Eject.js, so the key means release on
+// every row, where reading the menu's first row dispatched Open on any menu that leads with it.
+function releaseOf(entry) {
+    var rows = Mounts.railMenu(entry)
+    var unmount = ""
+    for (var i = 0; i < rows.length; i++) {
+        if (rows[i].action === "eject")
+            return "eject"
+        if (String(rows[i].action).indexOf("unmount") === 0 && unmount.length === 0)
+            unmount = rows[i].action
+    }
+    return unmount
+}
+
+// Issue 76: the release above, drawn on the row itself by ui/SidebarRow.qml. Two rows keep theirs
+// in the menu alone, which is why the cut is made here and not in railMenu. NFS is the issue's own
+// carve-out, because an NFS export is not something to disconnect from a rail click. And a mounted
+// internal volume is /home and its siblings: rule 1's switch gives it an Unmount row, and a stray
+// click at the rail's edge must not be an invitation to it, so only a volume somebody pulls out or
+// attached themselves draws the mark, which is also exactly the set Nautilus draws it on.
+function releaseMark(entry) {
+    if (!entry || entry.mounted !== true)
+        return ""
+    if (entry.group === "network" && /^nfs:/i.test(String(entry.uri || "")))
+        return ""
+    if (entry.group === "device" && entry.kind === "volume"
+            && entry.removable !== true && entry.attached !== true)
+        return ""
+    return releaseOf(entry)
+}
+
 // The rail menu's chosen row, handed the row's key rather than its position: the rail rebuilds on
 // a five second poll, so the index the menu opened over can name a different row by now. A key
 // that no longer names a row does nothing, because the row it named has left the rail already.

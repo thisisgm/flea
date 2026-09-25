@@ -476,6 +476,7 @@ Item {
                     renaming: (index + root.placesEntries.length) === root.renamingIndex
                     onActivated: function (idx) { root.activate(idx + root.placesEntries.length) }
                     onMenuRequested: function (idx, pos) { root.openRailMenu(idx + root.placesEntries.length, pos) }
+                    onReleaseRequested: function (action, key) { root.releaseChosen(action, key) }
                     onRenameCommitted: function (idx, text) { root.commitRename(idx + root.placesEntries.length, text) }
                     onRenameCancelled: root.cancelRename()
                 }
@@ -510,6 +511,7 @@ Item {
                     focused: root.focused
                     onActivated: function (idx) { root.activate(idx + root.placesEntries.length + root.networkEntries.length) }
                     onMenuRequested: function (idx, pos) { root.openRailMenu(idx + root.placesEntries.length + root.networkEntries.length, pos) }
+                    onReleaseRequested: function (action, key) { root.releaseChosen(action, key) }
                 }
             }
         }

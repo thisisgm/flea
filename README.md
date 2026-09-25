@@ -32,7 +32,7 @@ Large directories stay responsive: the window loads rows and requests thumbnails
 - **Quick Look.** Press Space for images, PDFs, text, media and archive contents.
 - **File operations.** Copy, move, rename, trash, compress and extract, with an undo journal.
 - **Network and sharing.** SMB, SFTP, FTPS, WebDAV, NFS, Dropbox and Taildrop.
-- **Devices.** USB drives, phones and cameras over MTP, PTP and AFC, mounted from the rail.
+- **Devices.** USB drives, disk images, unlocked VeraCrypt and LUKS volumes, and phones and cameras over MTP, PTP and AFC, mounted and released from the rail.
 - **Desktop integration.** Default file manager, “Show in folder” and Open/Save dialogs.
 - **Your settings.** Omarchy text sizes, configurable menus and Default, Vim, Mac or Windows keys.
 

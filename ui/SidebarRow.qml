@@ -1,6 +1,8 @@
 import QtQuick
 import qs.Commons
 import "js/Format.js" as Format
+import "js/Mounts.js" as Mounts
+import "js/RailMenu.js" as RailMenu
 
 // One rail row, shared by the Favorites, Network and Devices groups so the three read alike; see
 // ui/Sidebar.qml "The rail" for the entry shape each group feeds this delegate.
@@ -23,6 +25,15 @@ Item {
     signal menuRequested(int index, var scenePosition)
     signal renameCommitted(int index, string text)
     signal renameCancelled(int index)
+    // Issue 76: the release the row's own menu offers, pressed on the row itself. It carries the
+    // action and the key rather than the index, so the rail dispatches it through the exact
+    // releaseChosen a chosen menu row takes, stale-index rule included.
+    signal releaseRequested(string action, string key)
+
+    // Issue 76's ask: a mounted row that can release draws that release where its mounted dot sat,
+    // because a row with a release is by definition mounted, so the mark carries the dot's own news.
+    // ui/js/RailMenu.js releaseMark is the policy, NFS's carve-out included.
+    readonly property string releaseAction: RailMenu.releaseMark(root.modelData)
 
     // A share or a removable volume carries a mount-state dot; the internal disk is always there
     // and always mounted, so a dot on it would say nothing, and a favourite is not a mount at all.
@@ -174,12 +185,23 @@ Item {
         // Green once gio mount -l lists it, muted at half strength while it is only a bookmark waiting
         // to be mounted. A square, not a disc: the cut is hard corners, and the canvas draws it square.
         Rectangle {
-            visible: root.showsDot
+            visible: root.showsDot && root.releaseAction.length === 0
             anchors.centerIn: parent
             width: root.dotSize
             height: root.dotSize
             color: root.modelData.mounted ? Theme.color.executable : Theme.color.muted
             opacity: root.modelData.mounted ? 1 : root.unmountedOpacity
+        }
+
+        // The release mark, ink at the slot's own size the way the NETWORK plus draws its glyph; the
+        // press target is the tap handler's own hitMin band below, never only these few pixels.
+        Glyph {
+            visible: root.releaseAction.length > 0
+            anchors.centerIn: parent
+            width: Theme.font.caption
+            height: width
+            name: "eject"
+            color: Theme.color.muted
         }
     }
 
@@ -193,6 +215,14 @@ Item {
             // row had nothing to offer, and it must not mount and open a stick nobody asked to open.
             if (button === Qt.RightButton) {
                 root.menuRequested(root.index, eventPoint.scenePosition)
+                return
+            }
+            // The release mark's target: the indicator slot grown to the minimum hit size, centred
+            // on the slot the way the NETWORK plus centres its own. One handler decides, the pointer
+            // convention this tree already keeps, so the mark can never also activate the row.
+            if (root.releaseAction.length > 0
+                    && eventPoint.position.x >= dot.x + dot.width / 2 - Theme.hitMin / 2) {
+                root.releaseRequested(root.releaseAction, Mounts.railKey(root.modelData))
                 return
             }
             root.activated(root.index)

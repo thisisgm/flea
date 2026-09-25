@@ -338,7 +338,7 @@ QtObject {
                     size: entry.size, detail: detail.text, detailColor: String(detail.color), labelWidth: Math.round(row.labelItem.width), labelNeeds: Math.round(row.labelItem.implicitWidth),
                     fontSize: detail.font.pixelSize, tabular: detail.font.features.tnum === 1,
                     rect: box(row), detailRect: box(detail),
-                    indicatorRect: box(row.indicatorSlot), indicatorVisible: row.indicatorVisible}
+                    indicatorRect: box(row.indicatorSlot), indicatorVisible: row.indicatorVisible, release: row.releaseAction}
             })})
         }
 
