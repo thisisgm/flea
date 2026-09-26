@@ -647,13 +647,15 @@ Item {
 
         Rectangle {
             id: fileNameBar
-            visible: root.active && root.navbarShown
+            visible: root.active
+            enabled: root.navbarShown
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
             height: Theme.chromeHeight
             color: Theme.color.surface
             z: 4
+            opacity: root.navbarShown ? 1 : 0
 
             Text {
                 anchors.left: parent.left
@@ -727,7 +729,7 @@ Item {
 
         Flea.PreviewText {
             id: textPane
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: fileNameBar.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -743,7 +745,7 @@ Item {
 
         Loader {
             id: mediaLoader
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: fileNameBar.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -782,7 +784,7 @@ Item {
         // source rather than sourceComponent, so a file is decoded only while an image is open and its texture goes with the item.
         Loader {
             id: imageLoader
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: fileNameBar.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -815,7 +817,7 @@ Item {
         // The canvas's PdfViewer, source not sourceComponent, so QtQuick.Pdf loads on the first PDF and never for a folder without one.
         Loader {
             id: pdfLoader
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: fileNameBar.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -837,7 +839,7 @@ Item {
         // The canvas's Archive tile at Quick Look size: the name, the count the index gave, then the entries.
         Column {
             id: archivePane
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: fileNameBar.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -907,7 +909,7 @@ Item {
 
         // Media still buffering or an image still decoding shows the crawl; LoadingState's hold-off keeps a fast local open from flashing it.
         Flea.LoadingState {
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: fileNameBar.bottom
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -934,7 +936,7 @@ Item {
 
         Flea.PreviewInfoPanel {
             id: infoPanel
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: fileNameBar.bottom
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             width: Math.min(320, Math.max(240, parent.width * 0.36))
