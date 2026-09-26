@@ -77,6 +77,7 @@ var PATHS = {
     "folder": "M2 20V3h6l2 3h12v14H2z",
     "folders-first": "M2 12V4h6l2 2h12v6H2z M2 17h20 M2 21h20",
     "file-text": "M4 22V2h10l6 6v14H4z M14 2v6h6 M8 9h2 M8 13h8 M8 17h8",
+    "file-pdf": "M4 22V2h10l6 6v14H4z M14 2v6h6 M8 12h4 M8 12v5 M8 15h3 M13 12v5 M13 12h2l1 1.5-1 1.5h-2",
     "code": "M16 18l6-6-6-6 M8 6l-6 6 6 6",
     "image": "M3 3h18v18H3z M7 9A2 2 0 1 0 11 9A2 2 0 1 0 7 9Z M21 15l-3-3L6 21",
     "film": "M3 3h18v18H3z M7 3v18 M3 7.5h4 M3 12h18 M3 16.5h4 M17 3v18 M17 7.5h4 M17 16.5h4",

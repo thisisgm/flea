@@ -395,6 +395,9 @@ FocusScope {
     function openParent() { if (trashHost.opened) trashHost.close(); else Nav.parent(root) }
 
     function join(base, name) {
+        // Rows can land just before pane.path. Keep clicks and previews under the directory being loaded.
+        if (!base || base.length === 0)
+            base = root.listingPath || root.home || "/"
         return base === "/" ? "/" + name : base + "/" + name
     }
 

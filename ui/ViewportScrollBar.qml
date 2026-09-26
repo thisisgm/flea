@@ -30,7 +30,8 @@ Item {
     property bool settling: false
     // A HoverHandler, not the MouseArea's containsMouse: a press reparents that area onto the window, and its hover goes stale.
     readonly property bool inLane: lane.hovered
-    readonly property bool shown: Scroll.revealed(root.overflow, root.moving, root.inLane, pointer.pressed)
+    // Keep the handle visible whenever the viewport has content to scroll.
+    readonly property bool shown: root.overflow
     readonly property bool wide: root.inLane || pointer.pressed
     readonly property real knobWidth: Math.round((root.wide ? Scroll.KNOB_WIDE_PX : Scroll.KNOB_REST_PX) * Theme.sizeRatio)
     readonly property real knobInset: Math.round(Scroll.KNOB_INSET_PX * Theme.sizeRatio)
@@ -96,7 +97,7 @@ Item {
     Accessible.onIncreaseAction: root.page(1)
     Accessible.onDecreaseAction: root.page(-1)
 
-    // Everything drawn fades together; the entrance is instant, and reduced motion snaps the exit too.
+    // Everything stays drawn while content overflows the viewport.
     Item {
         anchors.fill: parent
         opacity: root.shown ? 1 : 0

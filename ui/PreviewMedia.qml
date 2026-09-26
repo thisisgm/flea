@@ -12,6 +12,8 @@ Item {
     property int size: 0
     // What the backend called this row, which the column draws and the overlay is opened from.
     property string kindName: ""
+    // The backend thumbnail gives video a useful first frame while the player loads.
+    property string thumb: ""
     // The backend probe's sample rate in hertz, 0 until its answer lands or for a file with none.
     property int rate: 0
     // The Quick Look starts playing on open, which is its whole job. The preview column does not:
@@ -62,6 +64,10 @@ Item {
         else player.play()
     }
 
+    function stop() {
+        player.stop()
+    }
+
     function seekTo(ms) {
         player.position = Math.max(0, Math.min(player.duration, ms))
     }
@@ -87,6 +93,18 @@ Item {
         id: video
         anchors.fill: parent
         visible: root.kind === "video"
+    }
+
+    Image {
+        anchors.fill: parent
+        visible: root.kind === "video" && root.thumb.length > 0
+                 && (player.mediaStatus === MediaPlayer.LoadingMedia
+                     || player.mediaStatus === MediaPlayer.BufferingMedia
+                     || player.mediaStatus === MediaPlayer.StalledMedia)
+        source: root.thumb.length > 0 ? Format.fileUri(root.thumb) : ""
+        fillMode: Image.PreserveAspectFit
+        asynchronous: true
+        cache: true
     }
 
     Flea.Glyph {

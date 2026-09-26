@@ -11,6 +11,7 @@ Item {
 
     property string path: ""
     property string home: ""
+    readonly property string displayPath: root.path.length > 0 ? root.path : root.home
     property bool canGoBack: false
     property bool canGoUp: false
     // "list", "columns" or "grid"; the button naming the current one takes the accent.
@@ -224,8 +225,7 @@ Item {
         Text {
             anchors.fill: parent
             visible: !root.editing && root.showPath && ViewState.addressBar === "path"
-            text: root.home && (root.path === root.home || root.path.indexOf(root.home + "/") === 0)
-                  ? "~" + root.path.substring(root.home.length) : root.path
+            text: root.displayPath
             color: Theme.color.foreground
             font.family: Theme.font.family
             font.pixelSize: Theme.font.caption
@@ -256,7 +256,7 @@ Item {
 
                 Repeater {
                     id: crumbs
-                    model: Crumbs.fitCrumbs(Crumbs.crumbs(root.path, root.home),
+                    model: Crumbs.fitCrumbs(Crumbs.crumbs(root.displayPath, root.home),
                                          Math.floor(crumbSlot.width / crumbMetrics.advanceWidth))
 
                     delegate: Flea.Crumb {

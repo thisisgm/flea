@@ -1,6 +1,7 @@
 .pragma library
 
 .import "Filter.js" as Filter
+.import "PreviewPaths.js" as PreviewPaths
 
 // What the preview overlay does with a key, split out of Focus.js at its 300-line hard cap the
 // same way ui/js/Trash.js was: Focus.js decides which surface owns a key, and this is the surface.
@@ -32,11 +33,13 @@ function pdfAction(action, viewer) {
     else if (action === "cursorDown" || action === "cursorUp") viewer.scrollPage(action === "cursorDown" ? 1 : -1)
 }
 
-// A directory has no preview kind of its own, so Space on one is a silent no-op rather than an error.
+// Space on a directory previews the files in that directory, starting with its first file.
 function open(root) {
     var row = root.rowFor(root.cursorIndex)
-    if (row && !row.d)
-        root.preview.open(root.join(root.path, row.n), row.i, row.s, root.kindNames[row.k] || "")
+    if (row && row.d)
+        root.preview.openFolder(PreviewPaths.rowPath(root, row))
+    else if (row)
+        root.preview.open(PreviewPaths.rowPath(root, row), row.i, row.s, root.kindNames[row.k] || "")
 }
 
 // Preview open: j/k move the cursor and the preview follows; escape always closes, and so does a
@@ -48,8 +51,9 @@ function open(root) {
 function act(action, root) {
     root.preview.revealStrip()
     switch (action) {
-    case "cursorDown": Filter.moveCursor(root, 1); follow(root); return
-    case "cursorUp": Filter.moveCursor(root, -1); follow(root); return
+    case "cursorDown": root.preview.movePreview(1); return
+    case "cursorUp": root.preview.movePreview(-1); return
+    case "open": root.preview.openDefault(); return
     case "preview": root.preview.close(); return
     // Space closes every kind now, so playback has its own key; it self-guards, because p reaches
     // this only in the media context and a still image has nothing to play.
@@ -81,5 +85,5 @@ function act(action, root) {
 function follow(root) {
     var row = root.rowFor(root.cursorIndex)
     if (row && !row.d)
-        root.preview.follow(root.join(root.path, row.n), row.i, row.s, root.kindNames[row.k] || "")
+        root.preview.follow(PreviewPaths.rowPath(root, row), row.i, row.s, root.kindNames[row.k] || "")
 }

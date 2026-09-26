@@ -1,4 +1,5 @@
 .import "../../ui/js/PreviewKeys.js" as PreviewKeys
+.import "../../ui/js/PreviewPaths.js" as PreviewPaths
 
 function run(check) {
     var activated = []
@@ -58,4 +59,36 @@ function run(check) {
     var still = previewPane("image")
     PreviewKeys.act("playPause", still)
     check("p does nothing to a still preview", still.played + still.closed, 0)
+
+    // Rows can arrive before pane.path is updated. The preview must keep the directory from the
+    // request or fall back to home instead of opening /filename.
+    function pathPane(path, listingPath, home, row) {
+        return {path: path, listingPath: listingPath, home: home,
+            join: function(base, name) { return base === "/" ? "/" + name : base + "/" + name },
+            rowFor: function() { return row }, cursorIndex: 0,
+            kindNames: ["image"], preview: {}}
+    }
+    var pending = pathPane("", "/home/adam/Downloads", "/home/adam", {n: "photo.jpg", d: false, i: "image", s: 12, k: 0})
+    check("preview path uses the pending listing directory", PreviewPaths.rowPath(pending, pending.rowFor()), "/home/adam/Downloads/photo.jpg")
+    var home = pathPane("", "", "/home/adam", {n: "photo.jpg", d: false, i: "image", s: 12, k: 0})
+    check("preview path falls back to home", PreviewPaths.rowPath(home, home.rowFor()), "/home/adam/photo.jpg")
+
+    var opened = pathPane("", "/home/adam/Downloads", "/home/adam", {n: "photo.jpg", d: false, i: "image", s: 12, k: 0})
+    opened.preview.opened = ""
+    opened.preview.open = function(path) { opened.preview.opened = path }
+    PreviewKeys.open(opened)
+    check("file preview uses the safe row path", opened.preview.opened, "/home/adam/Downloads/photo.jpg")
+
+    var folder = pathPane("", "/home/adam/Downloads", "/home/adam", {n: "Pictures", d: true, i: "folder", s: 0, k: 0})
+    folder.preview.folder = ""
+    folder.preview.openFolder = function(path) { folder.preview.folder = path }
+    PreviewKeys.open(folder)
+    check("directory preview uses the safe row path", folder.preview.folder, "/home/adam/Downloads/Pictures")
+
+    var moves = []
+    var moved = {preview: {movePreview: function(delta) { moves.push(delta) },
+        revealStrip: function() {}}}
+    PreviewKeys.act("cursorUp", moved)
+    PreviewKeys.act("cursorDown", moved)
+    check("preview cursor actions move between files", moves.join(","), "-1,1")
 }

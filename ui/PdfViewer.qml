@@ -45,10 +45,17 @@ Item {
     property real zoom: root.minZoom
 
     signal closed()
+    signal nextFileRequested()
 
     // A new document is a new subject, so it opens fitted however the last one was left.
     onPathChanged: { root.zoom = root.minZoom; root.pdfControlIndex = -1 }
-    function turn(delta) { pdf.turn(delta) }
+    function turn(delta) {
+        if (delta > 0 && root.pageCount > 0 && root.page >= root.pageCount - 1) {
+            root.nextFileRequested()
+            return
+        }
+        pdf.turn(delta)
+    }
     function turnPage(delta) { root.turn(delta) }
     function scrollPage(delta) {
         pageFlick.contentY = Math.max(0, Math.min(pageFlick.contentHeight - pageFlick.height,

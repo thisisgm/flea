@@ -10,6 +10,7 @@ Item {
     id: root
 
     property string path: ""
+    property real zoom: 1
 
     // The same name the media and PDF panes give their unreadable state, so Preview.qml tests one property.
     readonly property bool failed: picture.status === Image.Error
@@ -43,6 +44,8 @@ Item {
         fillMode: root.vector ? Image.PreserveAspectFit : Image.Stretch
         // A phone keeps a portrait photo's turn in EXIF, and Qt leaves it unapplied unless asked.
         autoTransform: true
+        scale: root.zoom
+        transformOrigin: Item.Center
         asynchronous: true
         cache: false
         // Decoded no larger than the surface: the same 6016x3900 PNG is 94 MB of texture at full size
