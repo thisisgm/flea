@@ -231,6 +231,9 @@ Press **?** for the full keymap, or **,** to change settings.
 The Windows preset uses `Ctrl+Shift+1/2/3` for views. Menu visibility does not disable shortcuts.
 See [the full key table](keys.toml) for preset bindings and pointer actions.
 
+Hover over a clipped context-menu label, including a script name, to read its full text.
+If it is taller than the window, move onto the tooltip and scroll to read the rest.
+
 ## Build
 
 Requires Omarchy, Quickshell 0.3.1 or newer, and Rust. See

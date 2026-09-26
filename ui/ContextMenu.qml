@@ -371,6 +371,7 @@ Item {
 
         Flea.CardScroll {
             id: scroll
+            onContentYChanged: tooltip.row = null
             anchors.fill: parent
             anchors.topMargin: Theme.spacing.rowPaddingY
             anchors.bottomMargin: Theme.spacing.rowPaddingY
@@ -390,7 +391,7 @@ Item {
                     compact: root.forRail && root.railKey !== "trash" && root.railKey !== "trashSelection"
                     current: !root.submenuOpen && root.cursor === row.index
                     lastPointerGlobal: root.pointerGlobal
-                    onPointerSeen: function (at) { root.pointerGlobal = at }
+                    onPointerSeen: function (at) { root.pointerGlobal = at; tooltip.row = row }
                     onPointerMoved: {
                         if (root.pointerSettling) return
                         root.cursor = row.index
@@ -437,6 +438,7 @@ Item {
 
         Flea.CardScroll {
             id: subScroll
+            onContentYChanged: tooltip.row = null
             anchors.fill: parent
             anchors.topMargin: Theme.spacing.rowPaddingY
             anchors.bottomMargin: Theme.spacing.rowPaddingY
@@ -467,7 +469,7 @@ Item {
                     current: root.submenuCursor === subRow.index
                     // A flyout opened by key can land under the resting pointer too, so it reads the same point.
                     lastPointerGlobal: root.pointerGlobal
-                    onPointerSeen: function (at) { root.pointerGlobal = at }
+                    onPointerSeen: function (at) { root.pointerGlobal = at; tooltip.row = subRow }
                     onPointerMoved: if (!root.pointerSettling && subRow.modelData.separator !== true) root.submenuCursor = subRow.index
                     onActivated: root.chooseSub(subRow.modelData.id)
                 }
@@ -476,9 +478,9 @@ Item {
         }
     }
 
-    // One focus catcher for the whole menu: real QML focus never moves into the Repeater rows
-    // themselves, so every key lands here regardless of which level is open. They arrive through
-    // keys.toml's own table, so j and k step this list the way they step every other one.
+    Flea.MenuTooltip { id: tooltip; objectName: "menuTooltip"; opened: root.opened; workArea: root.workArea }
+
+    // One focus catcher keeps keys out of the Repeater rows, at either menu level.
     Item {
         id: keyCatcher
         anchors.fill: parent
