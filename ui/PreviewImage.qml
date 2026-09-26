@@ -47,7 +47,8 @@ Item {
         scale: root.zoom
         transformOrigin: Item.Center
         asynchronous: true
-        cache: false
+        // Keep the decoded frame available while preview chrome timers change layout.
+        cache: true
         // Decoded no larger than the surface: the same 6016x3900 PNG is 94 MB of texture at full size
         // and 8 MB bound to this box's 2099x1156 surface, measured, for 17 ms more decode.
         // corner: a zero here means unbounded to Qt, so the floor is 1 and never 0.
