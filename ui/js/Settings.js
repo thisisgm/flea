@@ -362,7 +362,15 @@ function previewRows(state) {
                ["Off", "Images", "Images and video"], data.thumbnails || "media"),
         size,
         // Rule 7: GridArea gates ctrl-scroll on ViewState.ctrlZoom alone and sizes the tiles from it with thumbnails off, so it is grid zoom, it is named that, and it never greys with them.
-        { kind: "check", id: "preview.ctrlZoom", label: "Zoom the grid with ctrl and scroll", glyph: "move-horizontal", on: data.ctrlZoom !== false }
+        { kind: "check", id: "preview.ctrlZoom", label: "Zoom the grid with ctrl and scroll", glyph: "move-horizontal", on: data.ctrlZoom !== false },
+        { kind: "group", label: "Quick Look" },
+        { kind: "check", id: "preview.hideFilmstrip", label: "Hide filmstrip during playback", glyph: "film", on: data.hideFilmstrip !== false },
+        { kind: "check", id: "preview.preloadAdjacent", label: "Preload next and previous files", glyph: "download", on: data.preloadAdjacent !== false },
+        { kind: "check", id: "preview.mediaControls", label: "Show media controls", glyph: "play", on: data.mediaControls !== false },
+        { kind: "check", id: "preview.infoPanel", label: "Open file info with preview", glyph: "info", on: data.infoPanel === true },
+        { kind: "check", id: "preview.hideNavbarFullscreen", label: "Hide navbar in fullscreen", glyph: "maximize", on: data.hideNavbarFullscreen !== false },
+        choice("preview.navbarHideMs", "Navbar hide delay", "history", [2000, 4000, 6000],
+               ["2 seconds", "4 seconds", "6 seconds"], data.navbarHideMs || 4000)
     ]
 }
 

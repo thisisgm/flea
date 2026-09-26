@@ -1701,6 +1701,16 @@ context = "pdf"
 
 [[preset]]
 name = "all"
+mods = "text"
+key = "t"
+keys = "t"
+action = "toggleFilmstrip"
+label = "toggle filmstrip"
+frontend = "all"
+context = "preview,pdf,media"
+
+[[preset]]
+name = "all"
 mods = "none"
 key = "Escape"
 keys = "escape"
