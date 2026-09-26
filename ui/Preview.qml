@@ -730,7 +730,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: mediaStrip.top
             scale: root.contentZoom
             transformOrigin: Item.TopLeft
             clip: true
@@ -746,7 +746,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: mediaStrip.top
             anchors.rightMargin: root.infoInset
             scale: root.contentZoom
             transformOrigin: Item.TopLeft
@@ -785,7 +785,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: mediaStrip.top
             anchors.rightMargin: root.infoInset
             clip: true
             onLoaded: {
@@ -818,7 +818,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: mediaStrip.top
             anchors.rightMargin: root.infoInset
             clip: true
             onLoaded: {
@@ -840,7 +840,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: mediaStrip.top
             anchors.margins: Theme.spacing.rowPaddingX
             anchors.rightMargin: Theme.spacing.rowPaddingX + root.infoInset
             scale: root.contentZoom
@@ -910,7 +910,7 @@ Item {
             anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: mediaStrip.top
             anchors.rightMargin: root.infoInset
             visible: (root.isMedia || root.isImage || root.isArchive) && root.status === "loading"
         }
@@ -936,7 +936,7 @@ Item {
             id: infoPanel
             anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
             anchors.right: parent.right
-            anchors.bottom: parent.bottom
+            anchors.bottom: mediaStrip.top
             width: Math.min(320, Math.max(240, parent.width * 0.36))
             z: 2
             opened: root.infoOpen
