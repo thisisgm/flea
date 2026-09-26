@@ -10,6 +10,7 @@ Item {
     id: root
 
     property string path: ""
+    property real zoom: 1
 
     // The same name the media and PDF panes give their unreadable state, so Preview.qml tests one property.
     readonly property bool failed: picture.status === Image.Error
@@ -43,13 +44,14 @@ Item {
         fillMode: root.vector ? Image.PreserveAspectFit : Image.Stretch
         // A phone keeps a portrait photo's turn in EXIF, and Qt leaves it unapplied unless asked.
         autoTransform: true
+        scale: root.zoom
+        transformOrigin: Item.Center
         asynchronous: true
-        cache: false
-        // Decoded no larger than the surface: the same 6016x3900 PNG is 94 MB of texture at full size
-        // and 8 MB bound to this box's 2099x1156 surface, measured, for 17 ms more decode.
-        // corner: a zero here means unbounded to Qt, so the floor is 1 and never 0.
+        // Keep the decoded frame available while preview chrome timers change layout.
+        cache: true
+        // Keep decoding tied to the stable width. Navbar changes alter height only.
         sourceSize.width: Math.max(1, Math.round(root.width))
-        sourceSize.height: Math.max(1, Math.round(root.height))
+        sourceSize.height: 0
     }
 
     // A failed decode is a mark and a sentence, never a bare ground: the blank-frame class again otherwise.

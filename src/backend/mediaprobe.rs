@@ -5,7 +5,7 @@ use std::io::Read;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 // std offers no way to kill a child from another thread without owning it, so the signal is declared here rather than taking a crate, the same call metareq.rs makes for its archive watchdog.
@@ -32,6 +32,8 @@ pub struct Media {
     pub width: u32,
     pub height: u32,
     pub sample_rate: u32,
+    pub frame_rate: f64,
+    pub bitrate: u64,
 }
 
 impl Media {
@@ -48,9 +50,7 @@ fn argv(path: &Path) -> Vec<String> {
         "-v",
         "error",
         "-show_entries",
-        "format=duration",
-        "-show_entries",
-        "stream=width,height,sample_rate,codec_type",
+        "format=duration,bit_rate:stream=width,height,sample_rate,codec_type,r_frame_rate",
         "-of",
         "default=noprint_wrappers=1",
     ]
@@ -61,6 +61,10 @@ fn argv(path: &Path) -> Vec<String> {
 }
 
 pub fn probe(path: &Path) -> Media {
+    probe_with_cancel(path, None, 0)
+}
+
+pub fn probe_with_cancel(path: &Path, generation: Option<Arc<AtomicUsize>>, token: usize) -> Media {
     let inner = argv(path);
     // The same jail the thumbnail pipeline uses; with no bwrap on PATH the probe is simply skipped.
     if !sandbox::available() {
@@ -80,7 +84,7 @@ pub fn probe(path: &Path) -> Media {
     };
     // prlimit's --cpu cannot bound a probe blocked in open(2) or read(2), because a blocked process burns no CPU at all.
     let watch = Arc::new(Watch::default());
-    let watchdog = watchdog(child.id() as i32, Arc::clone(&watch));
+    let watchdog = watchdog(child.id() as i32, Arc::clone(&watch), generation, token);
     let mut stdout = Vec::new();
     if let Some(mut pipe) = child.stdout.take() {
         let _ = pipe.read_to_end(&mut stdout);
@@ -96,11 +100,15 @@ pub fn probe(path: &Path) -> Media {
 }
 
 // One thread, one timed wait, one signal, waking the instant the probe is reaped rather than at the end of a sleep; the same shape metareq.rs uses to bound an archive listing.
-fn watchdog(pid: i32, watch: Arc<Watch>) -> std::thread::JoinHandle<()> {
+fn watchdog(pid: i32, watch: Arc<Watch>, generation: Option<Arc<AtomicUsize>>, token: usize) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let deadline = Instant::now() + PROBE_LIMIT;
         let mut reaped = watch.reaped.lock().unwrap();
         while !*reaped {
+            if generation.as_ref().is_some_and(|current| current.load(Ordering::Relaxed) != token) {
+                unsafe { kill(-pid, SIGKILL) };
+                break;
+            }
             let left = deadline.saturating_duration_since(Instant::now());
             if left.is_zero() {
                 break;
@@ -155,10 +163,24 @@ pub fn parse(text: &str) -> Media {
             "height" if !in_audio => m.height = value.parse().unwrap_or(0),
             "sample_rate" => m.sample_rate = value.parse().unwrap_or(0),
             "duration" => m.duration_ms = seconds_to_ms(value),
+            "r_frame_rate" if !in_audio => m.frame_rate = frame_rate(value),
+            "bit_rate" => {
+                let rate = value.parse().unwrap_or(0);
+                if rate > 0 { m.bitrate = rate; }
+            }
             _ => {}
         }
     }
     m
+}
+
+fn frame_rate(value: &str) -> f64 {
+    if let Some((numerator, denominator)) = value.split_once('/') {
+        let n = numerator.parse::<f64>().unwrap_or(0.0);
+        let d = denominator.parse::<f64>().unwrap_or(0.0);
+        if n > 0.0 && d > 0.0 { return n / d; }
+    }
+    value.parse::<f64>().unwrap_or(0.0)
 }
 
 // ffprobe prints seconds with six decimals, and "N/A" for a stream it could not measure.
@@ -176,7 +198,7 @@ mod tests {
     #[test]
     fn a_video_stream_reports_pixels_and_the_format_reports_duration() {
         let m = parse("codec_type=video\nwidth=1920\nheight=1080\nduration=10.000000\n");
-        assert_eq!(m, Media { duration_ms: 10000, width: 1920, height: 1080, sample_rate: 0 });
+        assert_eq!(m, Media { duration_ms: 10000, width: 1920, height: 1080, sample_rate: 0, frame_rate: 0.0, bitrate: 0 });
     }
 
     #[test]
@@ -194,7 +216,15 @@ mod tests {
     #[test]
     fn an_audio_only_file_reports_a_rate_and_no_pixels() {
         let m = parse("codec_type=audio\nsample_rate=44100\nduration=245.000000\n");
-        assert_eq!(m, Media { duration_ms: 245000, width: 0, height: 0, sample_rate: 44100 });
+        assert_eq!(m, Media { duration_ms: 245000, width: 0, height: 0, sample_rate: 44100, frame_rate: 0.0, bitrate: 0 });
+    }
+
+    #[test]
+    fn a_video_stream_reports_frame_rate_and_format_bitrate() {
+        let m = parse("codec_type=video\nwidth=1920\nheight=1080\nr_frame_rate=30000/1001\nbit_rate=4500000\n");
+        assert_eq!(m.width, 1920);
+        assert!((m.frame_rate - 29.970029).abs() < 0.0001);
+        assert_eq!(m.bitrate, 4500000);
     }
 
     #[test]

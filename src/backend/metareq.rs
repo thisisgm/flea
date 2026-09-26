@@ -11,7 +11,7 @@ use crate::backend::sandbox;
 use crate::json::escape;
 use std::path::Path;
 use std::os::unix::process::CommandExt;
-use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 use std::sync::Arc;
 
 // std offers no way to kill a child from another thread without owning it, so the signal is declared
@@ -28,6 +28,8 @@ pub struct Meta {
     // Milliseconds, and the sample rate in hertz; both zero for anything that is not media.
     pub duration_ms: u64,
     pub sample_rate: u32,
+    pub frame_rate: f64,
+    pub bitrate: u64,
     // How many entries an archive holds and how big they are unpacked, both exact; zero otherwise.
     pub entries: usize,
     pub unpacked: u64,
@@ -50,7 +52,7 @@ pub struct Meta {
 
 impl Meta {
     fn empty() -> Meta {
-        Meta { width: 0, height: 0, duration_ms: 0, sample_rate: 0, entries: 0, unpacked: 0, names: Vec::new(), archive_failed: false, lines: 0, lines_partial: false, lines_failed: false, target: String::new(), target_is_dir: false, owner: String::new() }
+        Meta { width: 0, height: 0, duration_ms: 0, sample_rate: 0, frame_rate: 0.0, bitrate: 0, entries: 0, unpacked: 0, names: Vec::new(), archive_failed: false, lines: 0, lines_partial: false, lines_failed: false, target: String::new(), target_is_dir: false, owner: String::new() }
     }
 }
 
@@ -58,6 +60,11 @@ impl Meta {
 // re-classify a row it has already classified once. media costs a subprocess, so it is only ever
 // asked for a row whose kind actually names a duration.
 pub fn read(path: &Path, text: bool, media: bool, archive: Option<&Formats>) -> Meta {
+    read_with_cancel(path, text, media, archive, None, 0)
+}
+
+fn read_with_cancel(path: &Path, text: bool, media: bool, archive: Option<&Formats>,
+                    generation: Option<Arc<AtomicUsize>>, token: usize) -> Meta {
     let mut m = Meta::empty();
     m.owner = owner::of(path);
     if let Ok(link) = std::fs::read_link(path) {
@@ -76,9 +83,14 @@ pub fn read(path: &Path, text: bool, media: bool, archive: Option<&Formats>) -> 
         m.archive_failed = listed.failed;
     }
     if media {
-        let probed = mediaprobe::probe(path);
+        let probed = match generation {
+            Some(current) => mediaprobe::probe_with_cancel(path, Some(current), token),
+            None => mediaprobe::probe(path),
+        };
         m.duration_ms = probed.duration_ms;
         m.sample_rate = probed.sample_rate;
+        m.frame_rate = probed.frame_rate;
+        m.bitrate = probed.bitrate;
         // A still image already answered above; only a video's own container fills these in.
         if m.width == 0 {
             m.width = probed.width;
@@ -186,8 +198,8 @@ pub fn meta_line(row: usize, m: &Meta) -> String {
         .map(|e| format!(r#"{{"n":"{}","d":{}}}"#, escape(&e.name), e.is_dir))
         .collect();
     format!(
-        r#"{{"t":"meta","row":{},"w":{},"h":{},"ms":{},"rate":{},"entries":{},"unpacked":{},"afailed":{},"names":[{}],"lines":{},"partial":{},"lfailed":{},"target":"{}","targetdir":{},"owner":"{}"}}"#,
-        row, m.width, m.height, m.duration_ms, m.sample_rate, m.entries, m.unpacked,
+        r#"{{"t":"meta","row":{},"w":{},"h":{},"ms":{},"rate":{},"fps":{},"bitrate":{},"entries":{},"unpacked":{},"afailed":{},"names":[{}],"lines":{},"partial":{},"lfailed":{},"target":"{}","targetdir":{},"owner":"{}"}}"#,
+        row, m.width, m.height, m.duration_ms, m.sample_rate, m.frame_rate, m.bitrate, m.entries, m.unpacked,
         m.archive_failed, names.join(","), m.lines, m.lines_partial, m.lines_failed,
         escape(&m.target), m.target_is_dir, escape(&m.owner)
     )
@@ -202,10 +214,12 @@ pub fn meta_reply(row: usize, meta: &Meta, token: usize) -> String {
 }
 
 // Answers on a thread, because a media row costs an ffprobe and the loop waits on nothing.
-pub fn spawn(row: usize, path: std::path::PathBuf, text: bool, media: bool,
-             archive: Option<std::sync::Arc<Formats>>, token: usize, tx: std::sync::mpsc::Sender<OpMsg>) {
+pub fn spawn_with_cancel(row: usize, path: std::path::PathBuf, text: bool, media: bool,
+                         archive: Option<std::sync::Arc<Formats>>, token: usize,
+                         generation_token: usize,
+                         generation: Arc<AtomicUsize>, tx: std::sync::mpsc::Sender<OpMsg>) {
     std::thread::spawn(move || {
-        let line = meta_reply(row, &read(&path, text, media, archive.as_deref()), token);
+        let line = meta_reply(row, &read_with_cancel(&path, text, media, archive.as_deref(), Some(generation), generation_token), token);
         let _ = tx.send(OpMsg::Meta { line });
     });
 }
@@ -374,7 +388,8 @@ mod tests {
     // The real path a meta request takes: run.rs hands spawn these arguments and reads back one OpMsg.
     fn answered(path: &std::path::Path) -> Option<String> {
         let (tx, rx) = std::sync::mpsc::channel();
-        spawn(7, path.to_path_buf(), true, false, None, 0, tx);
+        spawn_with_cancel(7, path.to_path_buf(), true, false, None, 0, 0,
+                          Arc::new(AtomicUsize::new(0)), tx);
         match rx.recv_timeout(BOUND) {
             Ok(OpMsg::Meta { line }) => Some(line),
             _ => None,

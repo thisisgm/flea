@@ -45,10 +45,17 @@ Item {
     property real zoom: root.minZoom
 
     signal closed()
+    signal nextFileRequested()
 
     // A new document is a new subject, so it opens fitted however the last one was left.
     onPathChanged: { root.zoom = root.minZoom; root.pdfControlIndex = -1 }
-    function turn(delta) { pdf.turn(delta) }
+    function turn(delta) {
+        if (delta > 0 && root.pageCount > 0 && root.page >= root.pageCount - 1) {
+            root.nextFileRequested()
+            return
+        }
+        pdf.turn(delta)
+    }
     function turnPage(delta) { root.turn(delta) }
     function scrollPage(delta) {
         pageFlick.contentY = Math.max(0, Math.min(pageFlick.contentHeight - pageFlick.height,
@@ -57,6 +64,11 @@ Item {
 
     function zoomBy(steps) {
         root.zoom = Math.max(root.minZoom, Math.min(root.maxZoom, root.zoom + steps * root.zoomStep))
+    }
+
+    function commitPinch() {
+        root.zoom = Math.max(root.minZoom, Math.min(root.maxZoom, root.zoom * pdfPinch.persistentScale))
+        pdfPinch.persistentScale = 1
     }
 
     function toggleExpand() { root.expanded = !root.expanded }
@@ -232,8 +244,8 @@ Item {
         anchors.right: parent.right
         clip: true
         // At zoom 1 the content is exactly the viewport, so a fitted page cannot be dragged at all.
-        contentWidth: width * root.zoom
-        contentHeight: height * root.zoom
+        contentWidth: width * root.zoom * pdfPinch.persistentScale
+        contentHeight: height * root.zoom * pdfPinch.persistentScale
         boundsBehavior: Flickable.StopAtBounds
 
         Flea.FastScrollHandler {
@@ -260,6 +272,18 @@ Item {
                 active: root.active
             }
         }
+    }
+
+    PinchHandler {
+        id: pdfPinch
+        enabled: root.pageCount > 0
+        target: null
+        minimumScale: 0.5
+        maximumScale: 4
+        minimumRotation: 0
+        maximumRotation: 0
+        persistentScale: 1
+        onActiveChanged: if (!active) root.commitPinch()
     }
 
     // The one sentence an unreadable document gets; without it the surface is simply blank.

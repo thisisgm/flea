@@ -135,6 +135,12 @@ QtObject {
     readonly property string thumbnailSize: root.preview.thumbSize || "medium"
     readonly property int thumbnailPixels: ({ small: 48, medium: 64, large: 96, xlarge: 128 })[root.thumbnailSize] || 64
     readonly property bool ctrlZoom: root.preview.ctrlZoom !== false
+    readonly property bool previewHideFilmstrip: root.preview.hideFilmstrip !== false
+    readonly property bool previewPreloadAdjacent: root.preview.preloadAdjacent !== false
+    readonly property bool previewMediaControls: root.preview.mediaControls !== false
+    readonly property bool previewInfoPanel: root.preview.infoPanel === true
+    readonly property bool previewHideNavbarFullscreen: root.preview.hideNavbarFullscreen !== false
+    readonly property int previewNavbarHideMs: root.preview.navbarHideMs || 4000
     readonly property string density: root.state.density || "compact"
     readonly property string addressBar: root.state.addressBar || "breadcrumb"
     readonly property bool hyprlandIcons: root.display.hyprlandIcons === true

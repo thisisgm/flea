@@ -33,7 +33,10 @@ pub const DEFAULTS: &str = r#"{
   "preview": {
     "column": true, "loadOn": "automatic",
     "thumbnails": "media", "thumbSize": "medium",
-    "ctrlZoom": true
+    "ctrlZoom": true,
+    "hideFilmstrip": true, "preloadAdjacent": true,
+    "mediaControls": true, "infoPanel": false,
+    "hideNavbarFullscreen": true, "navbarHideMs": 4000
   },
   "keys": "default",
   "display": { "textSize": { "mode": "system" }, "hyprlandIcons": false },
@@ -112,6 +115,12 @@ pub const PREVIEW: &[(&str, Rule)] = &[
     ("thumbnails", Rule::Word(&["off", "images", "media"])),
     ("thumbSize", Rule::Word(&["small", "medium", "large", "xlarge"])),
     ("ctrlZoom", Rule::Bool),
+    ("hideFilmstrip", Rule::Bool),
+    ("preloadAdjacent", Rule::Bool),
+    ("mediaControls", Rule::Bool),
+    ("infoPanel", Rule::Bool),
+    ("hideNavbarFullscreen", Rule::Bool),
+    ("navbarHideMs", Rule::Count(1000.0, 10000.0)),
 ];
 
 // mode is "system" or one stop, so there is nowhere to put a free number; see the handoff's Display row.

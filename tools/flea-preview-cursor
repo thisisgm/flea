@@ -1,0 +1,27 @@
+#!/bin/bash
+set -u
+umask 077
+
+command -v hyprctl >/dev/null 2>&1 || exit 0
+
+state_dir=${XDG_RUNTIME_DIR:-/tmp}
+state="$state_dir/flea-preview-cursor-${UID:-0}"
+
+if [ "${1:-}" = "save" ]; then
+  pos=$(hyprctl cursorpos 2>/dev/null) || exit 0
+  [[ $pos =~ ^-?[0-9]+,-?[0-9]+$ ]] || exit 0
+  tmp=$(mktemp "$state.XXXXXX") || exit 0
+  trap 'rm -f -- "$tmp"' EXIT
+  printf '%s\n' "$pos" > "$tmp" || exit 0
+  chmod 600 "$tmp" || exit 0
+  mv -f -- "$tmp" "$state" || exit 0
+  trap - EXIT
+  exit 0
+fi
+
+[ -s "$state" ] || exit 0
+pos=$(<"$state")
+[[ $pos =~ ^(-?[0-9]+),(-?[0-9]+)$ ]] || exit 0
+x=${BASH_REMATCH[1]}
+y=${BASH_REMATCH[2]}
+hyprctl dispatch "hl.dsp.cursor.move({ x = $x, y = $y })" >/dev/null

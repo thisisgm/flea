@@ -98,6 +98,7 @@ var PRESET_KEYS = [
     {"mods":"text","key":"-","keys":"-","action":"zoomOut","label":"zoomOut","frontend":"all","context":"pdf","preset":"all","code":"","text":"-","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":0,"mask":(0)},
     {"mods":"text","key":"+","keys":"+","action":"zoomIn","label":"zoomIn","frontend":"all","context":"pdf","preset":"all","code":"","text":"+","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":0,"mask":(0)},
     {"mods":"text","key":"e","keys":"e","action":"expand","label":"expand","frontend":"all","context":"pdf","preset":"all","code":"","text":"e","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":0,"mask":(0)},
+    {"mods":"text","key":"t","keys":"t","action":"toggleFilmstrip","label":"toggle filmstrip","frontend":"all","context":"preview,pdf,media","preset":"all","code":"","text":"t","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":0,"mask":(0)},
     {"mods":"none","key":"Escape","keys":"escape","action":"escape","label":"close editor","frontend":"all","context":"editor","preset":"all","code":"Key_Escape","text":"","ctrl":false,"shift":false,"alt":false,"super":false,"keycode":Qt.Key_Escape,"mask":(0)},
 ]
 var SHARED_KEYS = [

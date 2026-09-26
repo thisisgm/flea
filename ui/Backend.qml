@@ -51,7 +51,7 @@ Item {
     signal redoStarted(int id, int n, string op)
     signal metaResult(var message)
     property int metaToken: 0
-    signal meta(int row, int w, int h, real durationMs, int sampleRate, int entries, real unpacked, bool archiveFailed, var names, real lines, bool partial, bool linesFailed, string target, bool targetDir, string owner)
+    signal meta(int row, int w, int h, real durationMs, int sampleRate, real frameRate, real bitrate, int entries, real unpacked, bool archiveFailed, var names, real lines, bool partial, bool linesFailed, string target, bool targetDir, string owner)
     signal fsInfo(string fs, real free, string path)
     // The one line no request asked for: the directory the current listing came from changed under
     // it. path is that directory, so a pane that has since moved can ignore it; see docs/protocol.md.
@@ -180,9 +180,7 @@ Item {
     }
 
     function trash(rows, menuId) {
-        if (rows.length === 0) {
-            return
-        }
+        if (rows.length === 0) return
         root.send({ c: "trash", rows: rows, menuId: menuId || 0 })
     }
 

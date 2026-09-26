@@ -1,0 +1,44 @@
+#!/bin/bash
+set -u
+
+command -v hyprctl >/dev/null 2>&1 || exit 0
+command -v jq >/dev/null 2>&1 || exit 0
+
+width=${1:?width required}
+height=${2:?height required}
+restore=${3:-}
+[[ $width =~ ^[0-9]+$ && $height =~ ^[0-9]+$ ]] || exit 0
+[[ -z "$restore" || "$restore" = "restore" ]] || exit 0
+
+address=$(hyprctl clients -j | jq -r '.[] | select(.class == "com.thisisgm.flea" and .title == "Flea Preview") | .address' | head -1)
+[[ $address =~ ^0x[0-9a-fA-F]+$ ]] || exit 0
+window="address:$address"
+
+floating=$(hyprctl clients -j | jq -r --arg address "$address" '.[] | select(.address == $address) | .floating')
+if [ "$floating" != "true" ]; then
+  hyprctl dispatch "hl.dsp.window.float({ window = \"$window\", action = \"on\" })" >/dev/null
+fi
+
+if [ "$restore" != "restore" ]; then
+  hyprctl dispatch "hl.dsp.focus({ window = \"$window\" })" >/dev/null
+fi
+if [ "$restore" = "restore" ]; then
+  monitor=$(hyprctl monitors -j | jq -c 'map(select(.focused == true))[0]')
+  monitor_x=$(jq -r '.x // 0' <<< "$monitor")
+  monitor_y=$(jq -r '.y // 0' <<< "$monitor")
+  monitor_width=$(jq -r '.width' <<< "$monitor")
+  monitor_height=$(jq -r '.height' <<< "$monitor")
+  scale=$(jq -r '.scale // 1' <<< "$monitor")
+  [[ $monitor_x =~ ^-?[0-9]+$ && $monitor_y =~ ^-?[0-9]+$ ]] || exit 0
+  [[ $monitor_width =~ ^[0-9]+$ && $monitor_height =~ ^[0-9]+$ ]] || exit 0
+  [[ $scale =~ ^[0-9]+([.][0-9]+)?$ && $scale != 0 ]] || exit 0
+  scaled_width=$(awk -v value="$monitor_width" -v factor="$scale" 'BEGIN { printf "%d", value / factor }')
+  scaled_height=$(awk -v value="$monitor_height" -v factor="$scale" 'BEGIN { printf "%d", value / factor }')
+  width=$((scaled_width * 80 / 100))
+  height=$((scaled_height * 80 / 100))
+  x=$((monitor_x + (scaled_width - width) / 2))
+  y=$((monitor_y + (scaled_height - height) / 2))
+  hyprctl dispatch "hl.dsp.window.resize({ window = \"$window\", x = $width, y = $height, relative = false })" >/dev/null
+  hyprctl dispatch "hl.dsp.window.move({ window = \"$window\", x = $x, y = $y, relative = false })" >/dev/null
+fi
+hyprctl dispatch "hl.dsp.window.alter_zorder({ window = \"$window\", mode = \"top\" })" >/dev/null
