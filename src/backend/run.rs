@@ -2,7 +2,7 @@ use crate::backend::meta::stat_range;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
 use crate::backend::peek::peek_line;
-use crate::backend::metareq::spawn as spawn_meta;
+use crate::backend::metareq::spawn_with_cancel as spawn_meta;
 use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::dirsizereq::{queue_dirsizes, seed_answered, start_next, report_done as report_dirsize};
@@ -29,6 +29,7 @@ use crate::error::FleaError;
 use crate::heap;
 use std::io::{self, BufWriter, Write};
 use std::path::{Path, PathBuf};
+use std::sync::atomic::{AtomicUsize, Ordering};
 use std::sync::mpsc::{channel, Receiver, TryRecvError};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -58,6 +59,7 @@ pub fn run() -> i32 {
     let (results, done) = channel::<Done>();
     let (op_tx, op_rx) = channel::<OpMsg>();
     let mut ops = Ops::new(op_tx);
+    let meta_generation = Arc::new(AtomicUsize::new(0));
     let pool = Pool::new(THUMB_WORKERS, results, default_root(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
     let cache = Cache::new();
     // Every thumbnail job fails closed without these two, so the reason is said once here rather than never; see AGENTS.md "Thumbnail sandbox".
@@ -91,7 +93,8 @@ pub fn run() -> i32 {
         };
         match event {
             Event::Request(line) => {
-                if handle_line(&line, &mut out, &mut st, &tb, &pool, &cache, &mut ops, &mut watch) == Control::Quit {
+                if handle_line(&line, &mut out, &mut st, &tb, &pool, &cache, &mut ops, &mut watch,
+                               Arc::clone(&meta_generation)) == Control::Quit {
                     break;
                 }
             }
@@ -133,6 +136,7 @@ fn handle_line(
     cache: &Cache,
     ops: &mut Ops,
     watch: &mut Watch,
+    meta_generation: Arc<AtomicUsize>,
 ) -> Control {
     // Rows read from a numbering this listing has already replaced name other files, so they are refused.
     if let Some(refused) = super::rowguard::refusal(line, st.generation) {
@@ -317,9 +321,11 @@ fn handle_line(
         Request::FsInfo => say(out, &fsinfo_line(&read_fsinfo(&st.base), &st.base.to_string_lossy())),
         // One row, only when a client asked: the same no-sweep rule thumb and dirsize already follow.
         Request::Meta { row, text, media, archive, token } => {
+            let generation = meta_generation.fetch_add(1, Ordering::Relaxed) + 1;
             if row < st.listing.len() {
                 let want = if archive { Some(Arc::clone(&tb.formats)) } else { None };
-                spawn_meta(row, st.base.join(st.listing.name(row)), text, media, want, token, ops.tx.clone())
+                spawn_meta(row, st.base.join(st.listing.name(row)), text, media, want, token,
+                           generation, meta_generation.clone(), ops.tx.clone())
             }
         }
         Request::Paths { rows } =>

@@ -5,7 +5,7 @@ use std::io::Read;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::Command;
-use std::sync::{Arc, Condvar, Mutex};
+use std::sync::{atomic::{AtomicUsize, Ordering}, Arc, Condvar, Mutex};
 use std::time::{Duration, Instant};
 
 // std offers no way to kill a child from another thread without owning it, so the signal is declared here rather than taking a crate, the same call metareq.rs makes for its archive watchdog.
@@ -61,6 +61,10 @@ fn argv(path: &Path) -> Vec<String> {
 }
 
 pub fn probe(path: &Path) -> Media {
+    probe_with_cancel(path, None, 0)
+}
+
+pub fn probe_with_cancel(path: &Path, generation: Option<Arc<AtomicUsize>>, token: usize) -> Media {
     let inner = argv(path);
     // The same jail the thumbnail pipeline uses; with no bwrap on PATH the probe is simply skipped.
     if !sandbox::available() {
@@ -80,7 +84,7 @@ pub fn probe(path: &Path) -> Media {
     };
     // prlimit's --cpu cannot bound a probe blocked in open(2) or read(2), because a blocked process burns no CPU at all.
     let watch = Arc::new(Watch::default());
-    let watchdog = watchdog(child.id() as i32, Arc::clone(&watch));
+    let watchdog = watchdog(child.id() as i32, Arc::clone(&watch), generation, token);
     let mut stdout = Vec::new();
     if let Some(mut pipe) = child.stdout.take() {
         let _ = pipe.read_to_end(&mut stdout);
@@ -96,11 +100,15 @@ pub fn probe(path: &Path) -> Media {
 }
 
 // One thread, one timed wait, one signal, waking the instant the probe is reaped rather than at the end of a sleep; the same shape metareq.rs uses to bound an archive listing.
-fn watchdog(pid: i32, watch: Arc<Watch>) -> std::thread::JoinHandle<()> {
+fn watchdog(pid: i32, watch: Arc<Watch>, generation: Option<Arc<AtomicUsize>>, token: usize) -> std::thread::JoinHandle<()> {
     std::thread::spawn(move || {
         let deadline = Instant::now() + PROBE_LIMIT;
         let mut reaped = watch.reaped.lock().unwrap();
         while !*reaped {
+            if generation.as_ref().is_some_and(|current| current.load(Ordering::Relaxed) != token) {
+                unsafe { kill(-pid, SIGKILL) };
+                break;
+            }
             let left = deadline.saturating_duration_since(Instant::now());
             if left.is_zero() {
                 break;
