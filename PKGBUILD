@@ -63,6 +63,8 @@ check() {
 package() {
   cd "$startdir"
   install -Dm755 "$srcdir/target/release/flea" "$pkgdir/usr/bin/flea"
+  install -Dm755 tools/flea-preview-cursor "$pkgdir/usr/bin/flea-preview-cursor"
+  install -Dm755 tools/flea-preview-popout "$pkgdir/usr/bin/flea-preview-popout"
   install -Dm755 tools/flea-gio-auth "$pkgdir/usr/lib/flea/flea-gio-auth"
   # The portal backend, its registration and its D-Bus activation: xdg-desktop-portal 1.22 reads
   # portals/ out of every data dir, and this is Flea's own package writing Flea's own files.

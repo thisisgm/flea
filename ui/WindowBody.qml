@@ -278,7 +278,7 @@ Rectangle {
             interval: 120
             repeat: false
             onTriggered: Quickshell.execDetached([
-                "/home/adam/Code/flea-custom/tools/flea-preview-popout",
+                "flea-preview-popout",
                 String(previewWindow.width),
                 String(previewWindow.height)
             ])
@@ -298,12 +298,12 @@ Rectangle {
             onTriggered: {
                 if (!previewWindow.fullscreen)
                     Quickshell.execDetached([
-                        "/home/adam/Code/flea-custom/tools/flea-preview-popout",
+                        "flea-preview-popout",
                         String(previewWindow.width),
                         String(previewWindow.height),
                         "restore"
                     ])
-                Quickshell.execDetached(["/home/adam/Code/flea-custom/tools/flea-preview-cursor", "restore"])
+                Quickshell.execDetached(["flea-preview-cursor", "restore"])
             }
         }
 

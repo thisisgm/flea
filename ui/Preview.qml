@@ -272,7 +272,7 @@ Item {
     function toggleFullscreen() {
         if (!root.windowHost) return
         root.savedPaneCursor = root.pane ? root.pane.cursorIndex : -1
-        Quickshell.execDetached(["/home/adam/Code/flea-custom/tools/flea-preview-cursor", "save"])
+        Quickshell.execDetached(["flea-preview-cursor", "save"])
         root.windowHost.fullscreen = !root.windowHost.fullscreen
         if (root.pane && root.savedPaneCursor >= 0)
             root.pane.cursorIndex = root.savedPaneCursor
