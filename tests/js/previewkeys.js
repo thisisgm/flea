@@ -27,8 +27,6 @@ function run(check) {
     PreviewKeys.pdfAction("trash", viewer)
     check("listing actions do nothing in PDF context", activated.join(","), "1,5")
 
-    // GM, 2026-09-11: "pressing space a second time should close the preview, just like Finder
-    // does". It closes on every kind, media included, which reverses Task 22's play/pause on space.
     function previewPane(kind) {
         var pane = { closed: 0, played: 0 }
         pane.preview = {
@@ -40,18 +38,24 @@ function run(check) {
         }
         return pane
     }
-    for (var kind of ["text", "image", "pdf", "archive", "audio", "video"]) {
+    for (var kind of ["text", "image", "pdf", "archive"]) {
         var open = previewPane(kind)
         PreviewKeys.act("preview", open)
         check("space closes a " + kind + " preview", open.closed, 1)
         check("and plays nothing on a " + kind + " preview", open.played, 0)
+    }
+    for (var kind of ["audio", "video"]) {
+        var open = previewPane(kind)
+        PreviewKeys.act("preview", open)
+        check("space plays a " + kind + " preview", open.played, 1)
+        check("space does not close a " + kind + " preview", open.closed, 0)
     }
     // Escape still closes, because a preview must never need a particular key to leave it.
     var escaped = previewPane("video")
     PreviewKeys.act("escape", escaped)
     check("escape still closes a media preview", escaped.closed, 1)
 
-    // Space no longer plays, so p does, and only where there is something to play.
+    // P also plays, and only where there is something to play.
     var tune = previewPane("audio")
     PreviewKeys.act("playPause", tune)
     check("p plays and pauses a media preview", tune.played, 1)

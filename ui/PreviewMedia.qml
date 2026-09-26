@@ -16,6 +16,9 @@ Item {
     property string thumb: ""
     // The backend probe's sample rate in hertz, 0 until its answer lands or for a file with none.
     property int rate: 0
+    // ffprobe supplies this while QtMultimedia is still loading and reports duration zero.
+    property int probedDuration: 0
+    readonly property string errorDetail: player.errorString || ""
     // The Quick Look starts playing on open, which is its whole job. The preview column does not:
     // arrowing down a folder of clips must not start any of them.
     property bool autoStart: true
@@ -48,7 +51,8 @@ Item {
         var dot = name.lastIndexOf(".")
         var suffix = dot > 0 ? name.substring(dot + 1).toLowerCase() : ""
         var parts = [root.kindName.length > 0 ? root.kindName : suffix]
-        if (player.duration > 0) parts.push(Format.duration(player.duration))
+        var mediaDuration = player.duration > 0 ? player.duration : root.probedDuration
+        if (mediaDuration > 0) parts.push(Format.duration(mediaDuration))
         parts.push(Format.sampleRate(root.rate))
         if (root.size > 0) parts.push(Format.size(root.size))
         return parts.filter(function (part) { return part.length > 0 }).join(" · ")

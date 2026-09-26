@@ -90,6 +90,9 @@ Item {
     // MediaPdf rule 6's fourth fact: Qt carries no sample-rate key at all (QMediaMetaData::Key, Qt 6.11), so the number is the backend probe's, asked the way an archive's is.
     property int mediaRate: 0
     property int mediaRow: -1
+    property var infoMeta: null
+    property int infoRow: -1
+    property string infoRequestPath: ""
     property string archiveRequestPath: ""
     readonly property bool archiveFailed: root.isArchive && root.archiveMeta !== null && root.archiveMeta.archiveFailed === true
     // For ui/Ipc.qml: the item drawing this kind's content, whether a player exists, and what the text and archive panes hold.
@@ -135,14 +138,31 @@ Item {
 
     // Read through to PreviewMedia so this file never imports QtMultimedia, and 0 before the loader has an item.
     readonly property int position: (root.isMedia && mediaLoader.item) ? mediaLoader.item.position : 0
-    readonly property int duration: (root.isMedia && mediaLoader.item) ? mediaLoader.item.duration : 0
+    readonly property int duration: {
+        var playerDuration = (root.isMedia && mediaLoader.item) ? mediaLoader.item.duration : 0
+        if (playerDuration > 0)
+            return playerDuration
+        return root.infoMeta && root.infoMeta.ms > 0 ? root.infoMeta.ms : 0
+    }
 
     // Shown on open, hidden stripHideMs after the last reveal, video only: audio has nothing else to look at.
     property bool stripShown: true
     property bool filmstripShown: true
+    property bool navbarShown: true
+    property bool infoOpen: false
+    property bool infoPanelSessionSet: false
+    readonly property real infoInset: root.infoOpen ? infoPanel.width : 0
     readonly property bool previewFullscreen: root.windowHost !== null && root.windowHost.fullscreen
     // StatusBar.messageMs, the OEM's own transient interval, which Sidebar's unmount arm reuses for the same reason.
     readonly property int stripHideMs: 4000
+
+    function revealNavbar() {
+        root.navbarShown = true
+        if (ViewState.previewHideNavbarFullscreen && root.previewFullscreen)
+            navbarHideTimer.restart()
+        else
+            navbarHideTimer.stop()
+    }
 
     function revealStrip() {
         root.stripShown = true
@@ -151,19 +171,34 @@ Item {
 
     function revealFilmstrip() {
         root.filmstripShown = true
-        if (root.status === "playing" || root.previewFullscreen)
+        if (ViewState.previewHideFilmstrip && (root.status === "playing" || root.previewFullscreen))
             filmstripHideTimer.restart()
         else
             filmstripHideTimer.stop()
     }
 
     onStatusChanged: root.revealFilmstrip()
-    onPreviewFullscreenChanged: root.revealFilmstrip()
+    onPreviewFullscreenChanged: {
+        root.revealNavbar()
+        root.revealFilmstrip()
+    }
 
     function togglePlay() { if (root.isMedia && mediaLoader.item) mediaLoader.item.togglePlay() }
 
     // MediaMute rule 3: one session flag, so the column's strip and this one always agree.
     function toggleMute() { if (root.isMedia) Flea.MediaSound.toggle() }
+
+    function toggleInfo() { root.infoOpen = !root.infoOpen }
+
+    function toggleFilmstrip() {
+        root.filmstripShown = !root.filmstripShown
+        filmstripHideTimer.stop()
+    }
+
+    function resetZoom() {
+        if (root.isImage) root.contentZoom = 1
+        else if (root.isPdf && pdfLoader.item) pdfLoader.item.zoom = pdfLoader.item.minZoom
+    }
 
     // Absolute seek in ms, clamped by PreviewMedia's own seekTo; the slider's onReleased calls this directly.
     function seekTo(ms) { if (root.isMedia && mediaLoader.item) mediaLoader.item.seekTo(ms) }
@@ -236,6 +271,7 @@ Item {
         root.folderItems = []
         root.previewIndex = -1
         root.active = false
+        root.infoOpen = false
         root.pane.backend.peek(folderPath, 1000, root.pane.showHidden)
         folderPreviewPoll.start()
         Qt.callLater(root.forceActiveFocus)
@@ -279,6 +315,7 @@ Item {
         followSettle.stop()
         stripHideTimer.stop()
         filmstripHideTimer.stop()
+        navbarHideTimer.stop()
         if (mediaLoader.item) mediaLoader.item.stop()
         root.active = false
         root.kind = ""
@@ -287,7 +324,10 @@ Item {
         pdfLoader.source = ""
         imageLoader.source = ""
         root.archiveMeta = null
+        root.infoMeta = null
         root.archiveRow = -1
+        root.infoRow = -1
+        root.infoRequestPath = ""
         root.mediaRate = 0
         root.mediaRow = -1
         root.archiveRequestPath = ""
@@ -305,12 +345,17 @@ Item {
         root.kindName = newKind || ""
         root.kind = Kinds.quickLookKind(newIcon, newPath)
         root.contentZoom = 1
+        root.navbarShown = true
+        navbarHideTimer.stop()
+        if (!root.infoPanelSessionSet) {
+            root.infoOpen = ViewState.previewInfoPanel
+            root.infoPanelSessionSet = true
+        }
         root.active = true
         mediaLoader.source = root.isMedia ? "PreviewMedia.qml" : ""
         pdfLoader.source = root.isPdf ? "PdfViewer.qml" : ""
         imageLoader.source = root.isImage ? "PreviewImage.qml" : ""
-        root.askArchive()
-        root.askMedia()
+        root.askInfo()
         root.revealStrip()
     }
 
@@ -318,13 +363,30 @@ Item {
     // Keep the same navigation rules here, including media seek and PDF page movement.
     Keys.onPressed: function (event) {
         if (!root.active) return
+        root.revealNavbar()
         if (event.isAutoRepeat && root.heldNavigationAction.length > 0) {
             event.accepted = true
             return
         }
         var action = ""
-        if (event.key === Qt.Key_Space || event.key === Qt.Key_Escape) {
+        if (event.key === Qt.Key_Space) {
+            if (root.isMedia) root.togglePlay()
+            else root.close()
+            event.accepted = true
+            return
+        }
+        if (event.key === Qt.Key_Escape) {
             root.close()
+            event.accepted = true
+            return
+        }
+        if (event.key === Qt.Key_I && event.modifiers === Qt.NoModifier) {
+            root.toggleInfo()
+            event.accepted = true
+            return
+        }
+        if (event.key === Qt.Key_T && event.modifiers === Qt.NoModifier) {
+            root.toggleFilmstrip()
             event.accepted = true
             return
         }
@@ -374,7 +436,7 @@ Item {
     // One row, only while an archive is the thing open: the same no-sweep rule the column follows.
     function askArchive() {
         root.archiveMeta = null
-        root.archiveRow = root.isArchive && root.pane ? root.pane.cursorIndex : -1
+        root.archiveRow = root.isArchive ? root.metadataRow() : -1
         root.archiveRequestPath = ""
         if (root.archiveRow >= 0 && root.pane) {
             var row = root.pane.rowFor(root.archiveRow)
@@ -387,14 +449,42 @@ Item {
     // The same one row, for the one fact the transport under the overlay cannot report.
     function askMedia() {
         root.mediaRate = 0
-        root.mediaRow = root.isMedia && root.pane ? root.pane.cursorIndex : -1
+        root.mediaRow = root.isMedia ? root.metadataRow() : -1
         if (root.mediaRow >= 0)
             root.pane.backend.askMeta(root.mediaRow, false, true, false)
     }
 
+    function metadataRow() {
+        if (!root.pane)
+            return -1
+        if (root.previewIndex >= 0 && root.previewIndex < root.filmstripItems.length) {
+            var item = root.filmstripItems[root.previewIndex]
+            if (item && typeof item.index === "number" && item.index >= 0)
+                return item.index
+        }
+        return root.pendingFolderPath.length > 0 ? -1 : root.pane.cursorIndex
+    }
+
+    function askInfo() {
+        root.infoMeta = null
+        root.infoRow = root.metadataRow()
+        root.infoRequestPath = root.path
+        root.archiveMeta = null
+        root.archiveRow = root.isArchive ? root.infoRow : -1
+        root.archiveRequestPath = root.isArchive ? root.path : ""
+        root.mediaRate = 0
+        root.mediaRow = root.isMedia ? root.infoRow : -1
+        if (root.infoRow >= 0)
+            root.pane.backend.askMeta(root.infoRow, root.kind === "text", root.isMedia, root.isArchive)
+    }
+
     Connections {
         target: root.pane ? root.pane.backend : null
-        function onMeta(row, w, h, durationMs, sampleRate, entries, unpacked, archiveFailed, names, lines, partial, linesFailed, target, targetDir, owner) {
+        function onMeta(row, w, h, durationMs, sampleRate, frameRate, bitrate, entries, unpacked, archiveFailed, names, lines, partial, linesFailed, target, targetDir, owner) {
+            if (row === root.infoRow && root.path === root.infoRequestPath)
+                root.infoMeta = {w: w, h: h, ms: durationMs, rate: sampleRate, fps: frameRate, bitrate: bitrate,
+                    entries: entries, unpacked: unpacked, archiveFailed: archiveFailed, names: names,
+                    lines: lines, partial: partial, linesFailed: linesFailed, target: target, targetDir: targetDir, owner: owner}
             if (root.isArchive && row === root.archiveRow && root.path === root.archiveRequestPath)
                 root.archiveMeta = { entries: entries, unpacked: unpacked, archiveFailed: archiveFailed, names: names }
             if (root.isMedia && row === root.mediaRow)
@@ -428,8 +518,7 @@ Item {
     Connections {
         target: root.pane
         function onRowsChanged() {
-            if (root.active && root.isArchive && root.archiveMeta === null) root.askArchive()
-            if (root.active && root.isMedia && root.mediaRate === 0) root.askMedia()
+            if (root.active && root.infoMeta === null) root.askInfo()
         }
     }
 
@@ -466,9 +555,16 @@ Item {
         interval: root.stripHideMs
         repeat: false
         onTriggered: {
-            if (root.status === "playing" || root.previewFullscreen)
+            if (ViewState.previewHideFilmstrip && (root.status === "playing" || root.previewFullscreen))
                 root.filmstripShown = false
         }
+    }
+
+    Timer {
+        id: navbarHideTimer
+        interval: ViewState.previewNavbarHideMs
+        repeat: false
+        onTriggered: if (ViewState.previewHideNavbarFullscreen && root.previewFullscreen) root.navbarShown = false
     }
 
     MouseArea {
@@ -483,7 +579,10 @@ Item {
             if (mouse.button === Qt.LeftButton && !surface.contains(surface.mapFromItem(root, mouse.x, mouse.y)))
                 root.close()
         }
-        onPositionChanged: root.revealStrip()
+        onPositionChanged: {
+            root.revealStrip()
+            root.revealNavbar()
+        }
     }
 
     // PdfViewer.html and MediaPlayer.html draw a pane with its own edge: on the surface colour alone the inset vanished into the listing behind it.
@@ -514,6 +613,11 @@ Item {
         // Mirrors hyprland decoration:rounding; media fills the surface and keeps square corners, a visible corner only shows on text and audio panes.
         radius: Style.cornerRadius
 
+        HoverHandler {
+            enabled: root.active
+            onPointChanged: root.revealNavbar()
+        }
+
         Behavior on anchors.verticalCenterOffset {
             enabled: root.active && !Theme.reducedMotion
             NumberAnimation { duration: Motion.durMs.open; easing.type: Easing.BezierSpline; easing.bezierCurve: Motion.bezierCurve }
@@ -530,7 +634,7 @@ Item {
 
         Rectangle {
             id: fileNameBar
-            visible: root.active && !root.isPdf
+            visible: root.active && root.navbarShown
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.top: parent.top
@@ -560,6 +664,13 @@ Item {
                 spacing: Theme.spacing.gap
 
                 Flea.ChromeButton {
+                    glyph: "info"
+                    accessName: "File info"
+                    restingColor: root.infoOpen ? Theme.color.accent : Theme.color.foreground
+                    onActivated: root.toggleInfo()
+                }
+
+                Flea.ChromeButton {
                     glyph: "minus"
                     accessName: "Zoom out"
                     restingColor: Theme.color.foreground
@@ -575,6 +686,14 @@ Item {
                     disabledOpacity: 0.55
                     enabled: root.isImage && root.contentZoom < 4
                     onActivated: root.contentZoom = Math.min(4, root.contentZoom + 0.25)
+                }
+
+                Flea.ChromeButton {
+                    glyph: "undo"
+                    accessName: "Reset zoom"
+                    restingColor: Theme.color.foreground
+                    enabled: (root.isImage && root.contentZoom !== 1) || (root.isPdf && pdfLoader.item && pdfLoader.item.zoom !== pdfLoader.item.minZoom)
+                    onActivated: root.resetZoom()
                 }
 
                 Flea.ChromeButton {
@@ -595,9 +714,13 @@ Item {
 
         Flea.PreviewText {
             id: textPane
-            anchors.fill: parent
+            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
             scale: root.contentZoom
             anchors.margins: Theme.spacing.gap
+            anchors.rightMargin: Theme.spacing.gap + root.infoInset
             active: root.kind === "text"
             path: root.path
             size: root.size
@@ -605,7 +728,11 @@ Item {
 
         Loader {
             id: mediaLoader
-            anchors.fill: parent
+            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: root.infoInset
             scale: root.contentZoom
             onLoaded: {
                 item.path = Qt.binding(function () { return root.path })
@@ -613,20 +740,23 @@ Item {
                 item.size = Qt.binding(function () { return root.size })
                 item.kindName = Qt.binding(function () { return root.kindName })
                 item.rate = Qt.binding(function () { return root.mediaRate })
+                item.probedDuration = Qt.binding(function () {
+                    return root.infoMeta && root.infoMeta.ms > 0 ? root.infoMeta.ms : 0
+                })
                 item.thumb = Qt.binding(function () { return root.currentThumb })
             }
         }
 
         // Warm the Qt image cache for the two files navigation can reach next.
         Image {
-            source: root.previousThumb.length > 0 ? Format.fileUri(root.previousThumb) : ""
+            source: ViewState.previewPreloadAdjacent && root.previousThumb.length > 0 ? Format.fileUri(root.previousThumb) : ""
             asynchronous: true
             cache: true
             visible: false
         }
 
         Image {
-            source: root.nextThumb.length > 0 ? Format.fileUri(root.nextThumb) : ""
+            source: ViewState.previewPreloadAdjacent && root.nextThumb.length > 0 ? Format.fileUri(root.nextThumb) : ""
             asynchronous: true
             cache: true
             visible: false
@@ -635,28 +765,42 @@ Item {
         // source rather than sourceComponent, so a file is decoded only while an image is open and its texture goes with the item.
         Loader {
             id: imageLoader
-            anchors.fill: parent
+            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: root.infoInset
             onLoaded: {
                 item.path = Qt.binding(function () { return root.path })
-                item.zoom = Qt.binding(function () { return root.contentZoom })
+                item.zoom = Qt.binding(function () {
+                    return root.contentZoom * imagePinch.persistentScale
+                })
             }
         }
 
         PinchHandler {
+            id: imagePinch
             enabled: root.isImage && imageLoader.item !== null
-            target: imageLoader.item as Item
             minimumScale: 0.5
             maximumScale: 4
             minimumRotation: 0
             maximumRotation: 0
-            persistentScale: root.contentZoom
-            onActiveChanged: if (!active) root.contentZoom = persistentScale
+            persistentScale: 1
+            onActiveChanged: if (!active) {
+                var factor = persistentScale
+                root.contentZoom = Math.max(0.5, Math.min(4, root.contentZoom * factor))
+                persistentScale = 1
+            }
         }
 
         // The canvas's PdfViewer, source not sourceComponent, so QtQuick.Pdf loads on the first PDF and never for a folder without one.
         Loader {
             id: pdfLoader
-            anchors.fill: parent
+            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: root.infoInset
             onLoaded: {
                 item.path = Qt.binding(function () { return root.path })
                 item.active = true
@@ -673,8 +817,12 @@ Item {
         // The canvas's Archive tile at Quick Look size: the name, the count the index gave, then the entries.
         Column {
             id: archivePane
-            anchors.fill: parent
+            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
             anchors.margins: Theme.spacing.rowPaddingX
+            anchors.rightMargin: Theme.spacing.rowPaddingX + root.infoInset
             scale: root.contentZoom
             spacing: Theme.spacing.gap
             visible: root.isArchive && root.archiveMeta !== null && !root.archiveFailed
@@ -709,7 +857,7 @@ Item {
         // Declined, or an archive whose index could not be read: a mark over the sentence, never a bare surface.
         Column {
             anchors.centerIn: parent
-            width: parent.width - 2 * Theme.spacing.rowPaddingX
+            width: parent.width - 2 * Theme.spacing.rowPaddingX - root.infoInset
             spacing: Theme.spacing.gap
             visible: root.kind === "unsupported" || root.archiveFailed
 
@@ -737,16 +885,21 @@ Item {
 
         // Media still buffering or an image still decoding shows the crawl; LoadingState's hold-off keeps a fast local open from flashing it.
         Flea.LoadingState {
-            anchors.fill: parent
+            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.left: parent.left
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            anchors.rightMargin: root.infoInset
             visible: (root.isMedia || root.isImage || root.isArchive) && root.status === "loading"
         }
 
         // MediaStrip stays below the filmstrip, so video controls and next/previous file arrows remain separate.
         Flea.MediaStrip {
             id: mediaStrip
-            visible: root.isMedia && (root.kind === "audio" || root.stripShown)
+            visible: ViewState.previewMediaControls && root.isMedia && (root.kind === "audio" || root.stripShown)
             anchors.left: parent.left
             anchors.right: parent.right
+            anchors.rightMargin: root.infoInset
             anchors.bottom: parent.bottom
             framed: false
             playing: root.status === "playing"
@@ -757,6 +910,27 @@ Item {
             onTouched: root.revealStrip()
         }
 
+        Flea.PreviewInfoPanel {
+            id: infoPanel
+            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.right: parent.right
+            anchors.bottom: parent.bottom
+            width: Math.min(320, Math.max(240, parent.width * 0.36))
+            z: 2
+            opened: root.infoOpen
+            path: root.path
+            kind: root.kindName.length > 0 ? root.kindName : root.kind
+            size: root.size
+            meta: root.infoMeta
+            mediaError: root.isMedia && mediaLoader.item ? mediaLoader.item.errorDetail : ""
+            onCopyRequested: function (label, value) {
+                if (root.pane && root.pane.opener) {
+                    root.pane.opener.copyText(value)
+                    root.pane.message("Copied to clipboard.", false)
+                }
+            }
+        }
+
         // Windows-style filmstrip for media previews. It uses cached thumbnails when available
         // and falls back to a bounded image decode from the source file.
         Rectangle {
@@ -765,7 +939,9 @@ Item {
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
-            anchors.bottomMargin: root.isMedia ? mediaStrip.height : 0
+            // Keep the transport lane reserved for every file, so moving between media and non-media
+            // items does not move the filmstrip.
+            anchors.bottomMargin: mediaStrip.implicitHeight
             height: 92
             color: Theme.color.background
             opacity: 0.94

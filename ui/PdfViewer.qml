@@ -66,6 +66,11 @@ Item {
         root.zoom = Math.max(root.minZoom, Math.min(root.maxZoom, root.zoom + steps * root.zoomStep))
     }
 
+    function commitPinch() {
+        root.zoom = Math.max(root.minZoom, Math.min(root.maxZoom, root.zoom * pdfPinch.persistentScale))
+        pdfPinch.persistentScale = 1
+    }
+
     function toggleExpand() { root.expanded = !root.expanded }
     function expandFrom(page, zoom) {
         pdf.page = Math.max(0, pdf.pageCount > 0 ? Math.min(pdf.pageCount - 1, page) : page)
@@ -239,8 +244,8 @@ Item {
         anchors.right: parent.right
         clip: true
         // At zoom 1 the content is exactly the viewport, so a fitted page cannot be dragged at all.
-        contentWidth: width * root.zoom
-        contentHeight: height * root.zoom
+        contentWidth: width * root.zoom * pdfPinch.persistentScale
+        contentHeight: height * root.zoom * pdfPinch.persistentScale
         boundsBehavior: Flickable.StopAtBounds
 
         Flea.FastScrollHandler {
@@ -267,6 +272,17 @@ Item {
                 active: root.active
             }
         }
+    }
+
+    PinchHandler {
+        id: pdfPinch
+        enabled: root.pageCount > 0
+        minimumScale: 0.5
+        maximumScale: 4
+        minimumRotation: 0
+        maximumRotation: 0
+        persistentScale: 1
+        onActiveChanged: if (!active) root.commitPinch()
     }
 
     // The one sentence an unreadable document gets; without it the surface is simply blank.

@@ -64,7 +64,7 @@ function route(root, message) {
         root.menuResult(message)
     } else if (message.t === "meta") {
         root.metaResult(message)
-        root.meta(message.row, message.w, message.h, message.ms, message.rate, message.entries, message.unpacked, message.afailed, message.names, message.lines, message.partial, message.lfailed === true, message.target, message.targetdir, message.owner || "")
+        root.meta(message.row, message.w, message.h, message.ms, message.rate, message.fps || 0, message.bitrate || 0, message.entries, message.unpacked, message.afailed, message.names, message.lines, message.partial, message.lfailed === true, message.target, message.targetdir, message.owner || "")
     } else if (message.t === "fsinfo") {
         root.fsInfo(message.fs, message.free, message.path || "")
     } else if (message.t === "changed") {

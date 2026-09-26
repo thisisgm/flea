@@ -28,6 +28,8 @@ pub struct Meta {
     // Milliseconds, and the sample rate in hertz; both zero for anything that is not media.
     pub duration_ms: u64,
     pub sample_rate: u32,
+    pub frame_rate: f64,
+    pub bitrate: u64,
     // How many entries an archive holds and how big they are unpacked, both exact; zero otherwise.
     pub entries: usize,
     pub unpacked: u64,
@@ -50,7 +52,7 @@ pub struct Meta {
 
 impl Meta {
     fn empty() -> Meta {
-        Meta { width: 0, height: 0, duration_ms: 0, sample_rate: 0, entries: 0, unpacked: 0, names: Vec::new(), archive_failed: false, lines: 0, lines_partial: false, lines_failed: false, target: String::new(), target_is_dir: false, owner: String::new() }
+        Meta { width: 0, height: 0, duration_ms: 0, sample_rate: 0, frame_rate: 0.0, bitrate: 0, entries: 0, unpacked: 0, names: Vec::new(), archive_failed: false, lines: 0, lines_partial: false, lines_failed: false, target: String::new(), target_is_dir: false, owner: String::new() }
     }
 }
 
@@ -79,6 +81,8 @@ pub fn read(path: &Path, text: bool, media: bool, archive: Option<&Formats>) -> 
         let probed = mediaprobe::probe(path);
         m.duration_ms = probed.duration_ms;
         m.sample_rate = probed.sample_rate;
+        m.frame_rate = probed.frame_rate;
+        m.bitrate = probed.bitrate;
         // A still image already answered above; only a video's own container fills these in.
         if m.width == 0 {
             m.width = probed.width;
@@ -186,8 +190,8 @@ pub fn meta_line(row: usize, m: &Meta) -> String {
         .map(|e| format!(r#"{{"n":"{}","d":{}}}"#, escape(&e.name), e.is_dir))
         .collect();
     format!(
-        r#"{{"t":"meta","row":{},"w":{},"h":{},"ms":{},"rate":{},"entries":{},"unpacked":{},"afailed":{},"names":[{}],"lines":{},"partial":{},"lfailed":{},"target":"{}","targetdir":{},"owner":"{}"}}"#,
-        row, m.width, m.height, m.duration_ms, m.sample_rate, m.entries, m.unpacked,
+        r#"{{"t":"meta","row":{},"w":{},"h":{},"ms":{},"rate":{},"fps":{},"bitrate":{},"entries":{},"unpacked":{},"afailed":{},"names":[{}],"lines":{},"partial":{},"lfailed":{},"target":"{}","targetdir":{},"owner":"{}"}}"#,
+        row, m.width, m.height, m.duration_ms, m.sample_rate, m.frame_rate, m.bitrate, m.entries, m.unpacked,
         m.archive_failed, names.join(","), m.lines, m.lines_partial, m.lines_failed,
         escape(&m.target), m.target_is_dir, escape(&m.owner)
     )

@@ -133,6 +133,19 @@ function sampleRate(hz) {
     return (khz === Math.round(khz) ? khz : khz.toFixed(1)) + " kHz"
 }
 
+function frameRate(fps) {
+    var n = Number(fps)
+    if (!isFinite(n) || n <= 0) return ""
+    return (Math.abs(n - Math.round(n)) < 0.01 ? Math.round(n) : n.toFixed(2)) + " fps"
+}
+
+function bitrate(bits) {
+    var n = Number(bits)
+    if (!isFinite(n) || n <= 0) return ""
+    if (n >= 1000000) return (n / 1000000).toFixed(1) + " Mb/s"
+    return Math.round(n / 1000) + " kb/s"
+}
+
 // Issue 67, jesedv: a yanked path is quoted unless a shell reads every character of it as itself.
 function shellQuoted(path) {
     var text = String(path)

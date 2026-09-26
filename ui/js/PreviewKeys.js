@@ -42,10 +42,8 @@ function open(root) {
         root.preview.open(PreviewPaths.rowPath(root, row), row.i, row.s, root.kindNames[row.k] || "")
 }
 
-// Preview open: j/k move the cursor and the preview follows; escape always closes, and so does a
-// second space, on every kind including media (GM, 2026-09-11: "pressing space a second time should
-// close the preview, just like Finder does"). That reverses Task 22, which had space toggle
-// play/pause on a media preview; the strip's own play control still does that with the pointer.
+// Preview open: j/k move the cursor and the preview follows; escape always closes. Space toggles
+// playback for media and closes other preview types.
 // Any key reveals the media strip, even one that does nothing else, matching "move the mouse or
 // press anything" from the same ruling.
 function act(action, root) {
@@ -54,9 +52,10 @@ function act(action, root) {
     case "cursorDown": root.preview.movePreview(1); return
     case "cursorUp": root.preview.movePreview(-1); return
     case "open": root.preview.openDefault(); return
-    case "preview": root.preview.close(); return
-    // Space closes every kind now, so playback has its own key; it self-guards, because p reaches
-    // this only in the media context and a still image has nothing to play.
+    case "preview":
+        if (root.preview.isMedia) root.preview.togglePlay()
+        else root.preview.close()
+        return
     case "playPause":
         if (root.preview.isMedia) root.preview.togglePlay()
         return
@@ -76,6 +75,7 @@ function act(action, root) {
     case "zoomOut": root.preview.zoomBy(-1); return
     case "zoomIn": root.preview.zoomBy(1); return
     case "expand": root.preview.toggleExpand(); return
+    case "toggleFilmstrip": root.preview.toggleFilmstrip(); return
     // MediaMute rule 5: the flag is the preview's to flip, and it silences without pausing.
     case "mute": root.preview.toggleMute(); return
     }
