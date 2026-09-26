@@ -177,10 +177,20 @@ Item {
             filmstripHideTimer.stop()
     }
 
-    onStatusChanged: root.revealFilmstrip()
+    onStatusChanged: {
+        if (root.filmstripShown)
+            root.revealFilmstrip()
+        else if (ViewState.previewHideFilmstrip && (root.status === "playing" || root.previewFullscreen))
+            filmstripHideTimer.restart()
+    }
     onPreviewFullscreenChanged: {
         root.revealNavbar()
-        root.revealFilmstrip()
+        if (root.previewFullscreen) {
+            if (root.filmstripShown)
+                filmstripHideTimer.restart()
+        } else {
+            root.revealFilmstrip()
+        }
     }
 
     function togglePlay() { if (root.isMedia && mediaLoader.item) mediaLoader.item.togglePlay() }
