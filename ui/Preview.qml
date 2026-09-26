@@ -985,6 +985,16 @@ Item {
                 highlightMoveDuration: 70
                 highlightMoveVelocity: 1600
                 clip: true
+                // Give the first and last item a viewport-sized inset. Without it, strict
+                // highlighting centers the edge item and clips its outer half.
+                header: Item {
+                    width: Math.max(0, (imageFilmstripList.width - 76) / 2)
+                    height: 64
+                }
+                footer: Item {
+                    width: Math.max(0, (imageFilmstripList.width - 76) / 2)
+                    height: 64
+                }
                 delegate: Rectangle {
                         width: 76
                         height: 64
