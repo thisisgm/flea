@@ -1005,8 +1005,6 @@ Item {
                         width: 76
                         height: 64
                         color: Theme.color.surface
-                        border.width: modelData.path === root.path ? 2 : Theme.spacing.hairline
-                        border.color: modelData.path === root.path ? Theme.color.accent : Theme.color.muted
                         radius: Style.cornerRadius
                         clip: true
 
@@ -1034,6 +1032,18 @@ Item {
                                 : Kinds.quickLookKind(modelData.icon, modelData.path) === Kinds.PDF
                                   ? "file-pdf" : Icons.glyphFor(modelData.icon)
                         color: Theme.color.muted
+                    }
+
+                    // Keep the stroke inside the card. A border on the delegate edge can lose a
+                    // side when ListView moves the delegate onto a fractional coordinate.
+                    Rectangle {
+                        anchors.fill: parent
+                        anchors.margins: 1
+                        color: "transparent"
+                        border.width: modelData.path === root.path ? 2 : 1
+                        border.color: modelData.path === root.path ? Theme.color.accent : Theme.color.muted
+                        radius: Math.max(0, Style.cornerRadius - 1)
+                        z: 2
                     }
 
                         MouseArea {
