@@ -727,7 +727,7 @@ Item {
 
         Flea.PreviewText {
             id: textPane
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -743,7 +743,7 @@ Item {
 
         Loader {
             id: mediaLoader
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -782,7 +782,7 @@ Item {
         // source rather than sourceComponent, so a file is decoded only while an image is open and its texture goes with the item.
         Loader {
             id: imageLoader
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -815,7 +815,7 @@ Item {
         // The canvas's PdfViewer, source not sourceComponent, so QtQuick.Pdf loads on the first PDF and never for a folder without one.
         Loader {
             id: pdfLoader
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -837,7 +837,7 @@ Item {
         // The canvas's Archive tile at Quick Look size: the name, the count the index gave, then the entries.
         Column {
             id: archivePane
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
@@ -907,7 +907,7 @@ Item {
 
         // Media still buffering or an image still decoding shows the crawl; LoadingState's hold-off keeps a fast local open from flashing it.
         Flea.LoadingState {
-            anchors.top: root.navbarShown ? fileNameBar.bottom : parent.top
+            anchors.top: parent.top
             anchors.left: parent.left
             anchors.right: parent.right
             anchors.bottom: parent.bottom
