@@ -1,0 +1,15 @@
+#!/bin/bash
+set -u
+
+state=/tmp/flea-preview-cursor
+
+if [ "${1:-}" = "save" ]; then
+  hyprctl cursorpos > "$state"
+  exit 0
+fi
+
+[ -s "$state" ] || exit 0
+pos=$(<"$state")
+x=${pos%,*}
+y=${pos#*,}
+hyprctl dispatch "hl.dsp.cursor.move({ x = $x, y = $y })" >/dev/null

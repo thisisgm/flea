@@ -1,0 +1,13 @@
+[Desktop Entry]
+Type=Application
+Name=Flea
+GenericName=File Manager
+Comment=Fast, keyboard-first file manager
+Exec=env FLEA_BIN=/home/adam/Code/flea-custom/target/release/flea FLEA_UI=/home/adam/Code/flea-custom/ui/boot /home/adam/Code/flea-custom/target/release/flea --gui %f
+Icon=/home/adam/Code/flea-custom/packaging/com.thisisgm.flea.svg
+Terminal=false
+Categories=System;FileTools;FileManager;
+MimeType=inode/directory;
+Keywords=files;folder;manager;browser;flea;
+StartupNotify=true
+StartupWMClass=com.thisisgm.flea

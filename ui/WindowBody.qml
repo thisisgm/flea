@@ -261,7 +261,60 @@ Rectangle {
         onTransferCancelRequested: function (id) { bar.transferOwner.backend.transfercancel(id) }
     }
 
-    Flea.Preview { id: preview; pane: view.currentPane }
+    // Quick Look uses its own window, so it can resize and move without changing the browser layout.
+    FloatingWindow {
+        id: previewWindow
+        title: "Flea Preview"
+        visible: preview.active
+        parentWindow: view.host
+        screen: view.host ? view.host.screen : null
+        color: Theme.color.background
+        implicitWidth: Math.max(480, Math.round((screen ? screen.width : view.width) * 0.8))
+        implicitHeight: Math.max(360, Math.round((screen ? screen.height : view.height) * 0.8))
+
+        // Make the preview a compositor floating popout on the current workspace and center it.
+        Timer {
+            id: popoutTimer
+            interval: 120
+            repeat: false
+            onTriggered: Quickshell.execDetached([
+                "/home/adam/Code/flea-custom/tools/flea-preview-popout",
+                String(previewWindow.width),
+                String(previewWindow.height)
+            ])
+        }
+        onVisibleChanged: {
+            if (visible) {
+                popoutTimer.restart()
+                Qt.callLater(preview.forceActiveFocus)
+            }
+        }
+        onFullscreenChanged: if (visible) restorePreviewTimer.restart()
+
+        Timer {
+            id: restorePreviewTimer
+            interval: 120
+            repeat: false
+            onTriggered: {
+                if (!previewWindow.fullscreen)
+                    Quickshell.execDetached([
+                        "/home/adam/Code/flea-custom/tools/flea-preview-popout",
+                        String(previewWindow.width),
+                        String(previewWindow.height),
+                        "restore"
+                    ])
+                Quickshell.execDetached(["/home/adam/Code/flea-custom/tools/flea-preview-cursor", "restore"])
+            }
+        }
+
+        Flea.Preview {
+            id: preview
+            anchors.fill: parent
+            pane: view.currentPane
+            floating: true
+            windowHost: previewWindow
+        }
+    }
 
     MouseArea {
         anchors.fill: parent
