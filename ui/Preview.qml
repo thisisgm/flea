@@ -981,6 +981,7 @@ Item {
                 currentIndex: root.imageFilmstripIndex
                 highlightRangeMode: ListView.StrictlyEnforceRange
                 property real edgeInset: Math.floor(Math.max(0, (width - 76) / 2))
+                property real edgeSafety: 2
                 preferredHighlightBegin: root.imageFilmstripIndex <= 0
                                            ? edgeInset
                                            : root.imageFilmstripIndex >= root.filmstripItems.length - 1
@@ -993,11 +994,11 @@ Item {
                 // Give the first and last item a viewport-sized inset. Without it, strict
                 // highlighting centers the edge item and clips its outer half.
                 header: Item {
-                    width: imageFilmstripList.edgeInset
+                    width: imageFilmstripList.edgeInset + imageFilmstripList.edgeSafety
                     height: 64
                 }
                 footer: Item {
-                    width: imageFilmstripList.edgeInset
+                    width: imageFilmstripList.edgeInset + imageFilmstripList.edgeSafety
                     height: 64
                 }
                 delegate: Rectangle {
