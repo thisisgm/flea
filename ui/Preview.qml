@@ -719,6 +719,8 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             scale: root.contentZoom
+            transformOrigin: Item.TopLeft
+            clip: true
             anchors.margins: Theme.spacing.gap
             anchors.rightMargin: Theme.spacing.gap + root.infoInset
             active: root.kind === "text"
@@ -734,6 +736,8 @@ Item {
             anchors.bottom: parent.bottom
             anchors.rightMargin: root.infoInset
             scale: root.contentZoom
+            transformOrigin: Item.TopLeft
+            clip: true
             onLoaded: {
                 item.path = Qt.binding(function () { return root.path })
                 item.kind = Qt.binding(function () { return root.kind })
@@ -770,6 +774,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.rightMargin: root.infoInset
+            clip: true
             onLoaded: {
                 item.path = Qt.binding(function () { return root.path })
                 item.zoom = Qt.binding(function () {
@@ -781,6 +786,7 @@ Item {
         PinchHandler {
             id: imagePinch
             enabled: root.isImage && imageLoader.item !== null
+            target: null
             minimumScale: 0.5
             maximumScale: 4
             minimumRotation: 0
@@ -801,6 +807,7 @@ Item {
             anchors.right: parent.right
             anchors.bottom: parent.bottom
             anchors.rightMargin: root.infoInset
+            clip: true
             onLoaded: {
                 item.path = Qt.binding(function () { return root.path })
                 item.active = true
@@ -824,6 +831,8 @@ Item {
             anchors.margins: Theme.spacing.rowPaddingX
             anchors.rightMargin: Theme.spacing.rowPaddingX + root.infoInset
             scale: root.contentZoom
+            transformOrigin: Item.TopLeft
+            clip: true
             spacing: Theme.spacing.gap
             visible: root.isArchive && root.archiveMeta !== null && !root.archiveFailed
 

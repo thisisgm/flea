@@ -277,6 +277,7 @@ Item {
     PinchHandler {
         id: pdfPinch
         enabled: root.pageCount > 0
+        target: null
         minimumScale: 0.5
         maximumScale: 4
         minimumRotation: 0
