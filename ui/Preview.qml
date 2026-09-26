@@ -151,6 +151,8 @@ Item {
     property bool navbarShown: true
     property bool infoOpen: false
     property bool infoPanelSessionSet: false
+    property real lastPointerX: -1
+    property real lastPointerY: -1
     readonly property real infoInset: root.infoOpen ? infoPanel.width : 0
     readonly property bool previewFullscreen: root.windowHost !== null && root.windowHost.fullscreen
     // StatusBar.messageMs, the OEM's own transient interval, which Sidebar's unmount arm reuses for the same reason.
@@ -356,6 +358,8 @@ Item {
         root.kind = Kinds.quickLookKind(newIcon, newPath)
         root.contentZoom = 1
         root.navbarShown = true
+        root.lastPointerX = -1
+        root.lastPointerY = -1
         navbarHideTimer.stop()
         if (!root.infoPanelSessionSet) {
             root.infoOpen = ViewState.previewInfoPanel
@@ -589,7 +593,11 @@ Item {
             if (mouse.button === Qt.LeftButton && !surface.contains(surface.mapFromItem(root, mouse.x, mouse.y)))
                 root.close()
         }
-        onPositionChanged: {
+        onPositionChanged: function (mouse) {
+            if (mouse.x === root.lastPointerX && mouse.y === root.lastPointerY)
+                return
+            root.lastPointerX = mouse.x
+            root.lastPointerY = mouse.y
             root.revealStrip()
             root.revealNavbar()
         }
@@ -622,11 +630,6 @@ Item {
         clip: true
         // Mirrors hyprland decoration:rounding; media fills the surface and keeps square corners, a visible corner only shows on text and audio panes.
         radius: Style.cornerRadius
-
-        HoverHandler {
-            enabled: root.active
-            onPointChanged: root.revealNavbar()
-        }
 
         Behavior on anchors.verticalCenterOffset {
             enabled: root.active && !Theme.reducedMotion
