@@ -262,6 +262,10 @@ Item {
         root.send({ c: "thumb", rows: rows })
     }
 
+    function setThumbSpeed(speed) {
+        root.send({ c: "thumbspeed", speed: speed || "default" })
+    }
+
     // An empty rows cancels EVERYTHING queued, so an empty list is never sent; see docs/protocol.md.
     function thumbcancel(rows) {
         if (rows.length === 0) {
@@ -360,6 +364,7 @@ Item {
             root.queueing = false
             // Asked once per process: which formats exist cannot change while the backend runs.
             root.askFormats()
+            root.setThumbSpeed(ViewState.thumbSpeed)
             for (var i = 0; i < root.pending.length; i++) {
                 child.write(root.pending[i])
             }
@@ -387,5 +392,10 @@ Item {
             }
             root.failed("backend", "", "the backend exited with code " + exitCode, 0)
         }
+    }
+
+    Connections {
+        target: ViewState
+        function onThumbSpeedChanged() { root.setThumbSpeed(ViewState.thumbSpeed) }
     }
 }

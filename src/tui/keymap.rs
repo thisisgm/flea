@@ -115,6 +115,8 @@ impl Map {
                             | "shift"
                             | "ctrl"
                             | "ctrlshift"
+                            | "ctrlalt"
+                            | "ctrlaltshift"
                             | "alt"
                             | "super"
                             | "supershift"
@@ -143,6 +145,8 @@ impl Map {
                 let prefix = match key.mods.as_str() {
                     "ctrl" => "Ctrl+",
                     "ctrlshift" => "Ctrl+Shift+",
+                    "ctrlalt" => "Ctrl+Alt+",
+                    "ctrlaltshift" => "Ctrl+Alt+Shift+",
                     "alt" => "Alt+",
                     "super" => "Super+",
                     "supershift" => "Super+Shift+",

@@ -4,6 +4,7 @@ import "js/DirSizes.js" as DirSizes
 import "js/Filter.js" as Filter
 import "js/Focus.js" as Focus
 import "js/Tap.js" as Tap
+import "js/ThumbSize.js" as ThumbSize
 import "js/Thumbs.js" as Thumbs
 
 // The grid view. Same rows, same marks, same thumbnails as the list; only the geometry differs, so
@@ -25,9 +26,7 @@ GridView {
         var steps = root.zoomTravel > 0 ? Math.floor(root.zoomTravel) : Math.ceil(root.zoomTravel)
         if (steps !== 0) {
             root.zoomTravel -= steps
-            var sizes = ["small", "medium", "large", "xlarge"]
-            var next = Math.max(0, Math.min(sizes.length - 1, sizes.indexOf(ViewState.thumbnailSize) + steps))
-            ViewState.changeSetting("preview.thumbSize", sizes[next])
+            ViewState.changeSetting("preview.thumbSize", ThumbSize.step(ViewState.thumbnailSize, steps))
         }
         return true
     }
@@ -36,6 +35,8 @@ GridView {
     signal dirSizesApplied(var ask)
     signal dirSizesCancelled()
 
+    // A wheel burst through PDFs still looks idle at the list's 120 ms, so generation waits longer.
+    readonly property int generateSettleMs: 220
     // How many tiles fit across, which is what a cursor step down has to move by.
     readonly property int columns: Math.max(1, Math.floor(root.width / Math.max(Theme.grid.minCellWidth, ViewState.thumbnailPixels + 2 * Theme.spacing.rowPaddingX)))
     readonly property int tileRows: Math.max(1, Math.ceil(root.pane.shownTotal / root.columns))
@@ -160,6 +161,14 @@ GridView {
             root.pane.backend.dirsizecancel()
             root.dirSizesCancelled()
         }
+        var drop = Thumbs.pending(root.pane.thumbState).filter(function (index) { return index !== root.pane.previewIndex })
+        if (drop.length > 0) {
+            root.pane.backend.thumbcancel(drop)
+            root.thumbsApplied({ ask: [], drop: drop })
+        }
+        // The first screen stays on firstSettleMs. The pulse would name the pre-resize viewport.
+        if (settle.interval === root.generateSettleMs)
+            thumbPulse.restart()
         coalesce.start()
         settle.restart()
     }
@@ -171,6 +180,14 @@ GridView {
         interval: root.pane.coalesceMs
         repeat: false
         onTriggered: root.requestIfDrifted()
+    }
+
+    // A cache hit should not wait out the generation settle. Armed only after the first real ask.
+    Timer {
+        id: thumbPulse
+        interval: root.pane.coalesceMs
+        repeat: false
+        onTriggered: root.requestThumbs()
     }
 
     Timer {
@@ -249,6 +266,8 @@ GridView {
         work.drop = work.drop.filter(function (index) { return index !== root.pane.previewIndex })
         root.pane.backend.thumbcancel(work.drop)
         root.pane.backend.thumb(work.ask)
+        if (work.ask.length > 0)
+            settle.interval = root.generateSettleMs
         root.thumbsApplied(work)
     }
 

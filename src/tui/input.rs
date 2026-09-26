@@ -286,6 +286,8 @@ fn csi(text: &str) -> Option<Key> {
         2 => "alt",
         4 => "ctrl",
         5 => "ctrlshift",
+        6 => "ctrlalt",
+        7 => "ctrlaltshift",
         8 => "super",
         9 => "supershift",
         10 => "superalt",
@@ -414,7 +416,8 @@ mod tests {
             decoder.feed(b"\x1b[57365u\x1b[1;11D", false),
             vec![Key::named("F2", ""), Key::named("Left", "superalt")]
         );
-        assert_eq!(decoder.feed(b"\x1b[1;7D", false)[0].mods, "unsupported");
+        assert_eq!(decoder.feed(b"\x1b[1;7D", false)[0].mods, "ctrlalt");
+        assert_eq!(decoder.feed(b"\x1b[1;8D", false)[0].mods, "ctrlaltshift");
     }
     #[test]
     fn graphics_capability_requires_the_requested_terminal_reply() {

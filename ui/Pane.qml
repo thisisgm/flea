@@ -118,6 +118,7 @@ FocusScope {
     signal permissionsRequested(string path)
     signal pathBarRequested()  // ":" and Ctrl+L; the bar is chrome, so shell.qml opens it as it does the popup above
     signal textSizeRequested(int direction)  // issue 9's zoom pair, +1, -1 or 0 to follow Omarchy again; the size is the window's
+    signal thumbSizeRequested(int direction)  // Preview thumbnail size, +1, -1 or 0 for medium; not the text size
 
     // The window covers [held, held + rows.length) and nothing outside it is in memory.
     property int held: 0

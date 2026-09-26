@@ -87,9 +87,9 @@ Item {
             sourceSize.height: Theme.iconSize
             fillMode: Image.PreserveAspectFit
             asynchronous: true
-            // No cache by URL: a regenerated thumbnail keeps its path, and a cached decode would keep the old pixels.
-            cache: false
-            source: root.thumb.length > 0 ? Format.fileUri(root.thumb) : ""
+            // Off unless Preview asks to keep decodes. The mtime query is what makes a kept one follow a rewrite.
+            cache: ViewState.thumbCache
+            source: root.thumb.length > 0 ? Format.fileUri(root.thumb) + (ViewState.thumbCache && root.row ? ("?m=" + root.row.m) : "") : ""
         }
 
         Flea.Glyph {

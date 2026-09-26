@@ -62,7 +62,17 @@ pub struct Done {
 // Parsed once by the caller and shared from here, so no pool thread reads these files again; the shelf's single job has no pool and so no worker.
 pub(crate) struct Tables { pub aliases: Arc<Aliases>, pub specs: Arc<Thumbnailers>, pub cache: Cache, pub worker: Option<WorkerLink> }
 
-type Shared = Arc<(Mutex<VecDeque<Job>>, Condvar)>;
+// The queue plus how many jobs are inside a worker. `limit` is the live cap. Fast raises it to
+// `fast` without a new process, and a job already running is left to finish when the cap drops.
+struct Gate {
+    queue: VecDeque<Job>,
+    running: usize,
+    limit: usize,
+    slow: usize,
+    fast: usize,
+}
+
+type Shared = Arc<(Mutex<Gate>, Condvar)>;
 
 pub struct Pool {
     inner: Shared,
@@ -71,13 +81,21 @@ pub struct Pool {
 impl Pool {
     // The cache root and both tables are the caller's: a test never writes into the operator's shared cache, and run.rs has already parsed these two files.
     pub fn new(workers: usize, results: Sender<Done>, root: PathBuf, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Pool {
-        Pool::start(workers, results, Tables { aliases, specs, cache: Cache::at(root), worker: Some(WorkerLink::new()) })
+        Pool::elastic(workers, workers, results, root, aliases, specs)
     }
 
-    fn start(workers: usize, results: Sender<Done>, tables: Tables) -> Pool {
-        let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
+    // `slow` is the cap a fresh pool runs at. `fast` is how many threads exist and how high set_fast can raise it.
+    pub fn elastic(slow: usize, fast: usize, results: Sender<Done>, root: PathBuf, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Pool {
+        let cap = fast.max(slow).max(1);
+        let initial = slow.max(1).min(cap);
+        Pool::start(cap, initial, initial, cap, results, Tables { aliases, specs, cache: Cache::at(root), worker: Some(WorkerLink::new()) })
+    }
+
+    fn start(spawned: usize, limit: usize, slow: usize, fast: usize, results: Sender<Done>, tables: Tables) -> Pool {
+        let gate = Gate { queue: VecDeque::new(), running: 0, limit, slow, fast };
+        let inner: Shared = Arc::new((Mutex::new(gate), Condvar::new()));
         let tables = Arc::new(tables);
-        for _ in 0..workers.max(1) {
+        for _ in 0..spawned.max(1) {
             let inner = Arc::clone(&inner);
             let tables = Arc::clone(&tables);
             let results = results.clone();
@@ -86,23 +104,31 @@ impl Pool {
         Pool { inner }
     }
 
+    // Preview > Thumbnail generation. A lower cap does not kill a child that has already started.
+    pub fn set_fast(&self, on: bool) {
+        let (lock, cv) = &*self.inner;
+        let mut gate = lock.lock().unwrap();
+        gate.limit = if on { gate.fast } else { gate.slow };
+        cv.notify_all();
+    }
+
     // Returns the jobs it dropped to make room, so a caller can unmap and answer the rows that will now never report.
     pub fn submit(&self, mut job: Job) -> Vec<Job> {
         let (lock, cv) = &*self.inner;
-        let mut q = lock.lock().unwrap();
+        let mut gate = lock.lock().unwrap();
         let mut dropped = Vec::new();
         // The oldest job is the one furthest from the viewport, so it is the one to drop.
-        while q.len() >= MAX_QUEUE {
-            match q.pop_front() {
+        while gate.queue.len() >= MAX_QUEUE {
+            match gate.queue.pop_front() {
                 Some(j) => dropped.push(j),
                 None => break,
             }
         }
         // The depth at submit is the number of jobs already ahead of this one, which is what says whether the workers were starved.
         if let Some(t) = job.trace.as_mut() {
-            t.depth = q.len();
+            t.depth = gate.queue.len();
         }
-        q.push_back(job);
+        gate.queue.push_back(job);
         cv.notify_one();
         dropped
     }
@@ -110,23 +136,23 @@ impl Pool {
     // Returns the queued jobs it removed; a job already inside a worker is never one of them and still reports.
     pub fn cancel(&self, path: &Path) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
-        let mut q = lock.lock().unwrap();
-        let (dropped, kept): (Vec<Job>, Vec<Job>) = q.drain(..).partition(|j| j.path == path);
-        *q = kept.into();
+        let mut gate = lock.lock().unwrap();
+        let (dropped, kept): (Vec<Job>, Vec<Job>) = gate.queue.drain(..).partition(|j| j.path == path);
+        gate.queue = kept.into();
         dropped
     }
 
     // Taken and cleared under one lock, because a caller that read the queue first could race a worker's own pop.
     pub fn cancel_all(&self) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
-        let mut q = lock.lock().unwrap();
-        q.drain(..).collect()
+        let mut gate = lock.lock().unwrap();
+        gate.queue.drain(..).collect()
     }
 
     #[cfg(test)]
     fn pending(&self) -> usize {
         let (lock, _cv) = &*self.inner;
-        lock.lock().unwrap().len()
+        lock.lock().unwrap().queue.len()
     }
 }
 
@@ -134,12 +160,15 @@ fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
     loop {
         let mut job = {
             let (lock, cv) = &*inner;
-            let mut q = lock.lock().unwrap();
-            while q.is_empty() {
-                q = cv.wait(q).unwrap();
+            let mut gate = lock.lock().unwrap();
+            while gate.queue.is_empty() || gate.running >= gate.limit {
+                gate = cv.wait(gate).unwrap();
             }
-            match q.pop_front() {
-                Some(j) => j,
+            match gate.queue.pop_front() {
+                Some(j) => {
+                    gate.running += 1;
+                    j
+                }
                 None => continue,
             }
         };
@@ -148,6 +177,12 @@ fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
         }
         let started = Instant::now();
         let outcome = run_one(&tables, &mut job);
+        {
+            let (lock, cv) = &*inner;
+            let mut gate = lock.lock().unwrap();
+            gate.running = gate.running.saturating_sub(1);
+            cv.notify_all();
+        }
         let ms = started.elapsed().as_secs_f64() * 1000.0;
         if results.send(Done { path: job.path, result: outcome, ms, trace: job.trace }).is_err() {
             return;
@@ -267,7 +302,7 @@ mod tests {
         fn new(tag: &str, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Self {
             let sandbox = TestDir::new(tag);
             sandbox.assert_contains(sandbox.path());
-            let inner = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
+            let inner = Arc::new((Mutex::new(Gate { queue: VecDeque::new(), running: 0, limit: 1, slow: 1, fast: 1 }), Condvar::new()));
             let pool = Pool { inner: Arc::clone(&inner) };
             let tables = Arc::new(Tables { aliases, specs, cache: Cache::at(sandbox.path().to_path_buf()), worker: None });
             let (sender, receiver) = channel();
@@ -437,5 +472,15 @@ mod tests {
         assert_eq!(png_text(&bytes, "Thumb::URI"), Some(uri_for(&src)));
         assert_eq!(png_text(&bytes, "Thumb::MTime"), Some(FIXTURE_MTIME.to_string()));
         assert_eq!(published, 1, "a temp file survived the publish");
+    }
+
+    #[test]
+    fn fast_raises_the_slot_cap_and_default_puts_it_back() {
+        let inner = Arc::new((Mutex::new(Gate { queue: VecDeque::new(), running: 0, limit: 6, slow: 6, fast: 8 }), Condvar::new()));
+        let pool = Pool { inner: Arc::clone(&inner) };
+        pool.set_fast(true);
+        assert_eq!(inner.0.lock().unwrap().limit, 8);
+        pool.set_fast(false);
+        assert_eq!(inner.0.lock().unwrap().limit, 6);
     }
 }

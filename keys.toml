@@ -98,6 +98,54 @@ action = "textSizeDown"
 key = "0"
 action = "textSizeReset"
 
+# Grid thumbnail size, separate from the text size above. On a US layout Ctrl+Shift++ is text
+# size, so these take Ctrl+Alt. Equal and Minus are the unshifted keys; Plus and Underscore are
+# the shifted ones, the same split text size uses. 0 restores medium, the schema default.
+[[ctrlalt]]
+key = "Plus"
+keys = "alt-+"
+action = "thumbSizeUp"
+
+[[ctrlalt]]
+key = "Equal"
+keys = "alt-+"
+action = "thumbSizeUp"
+
+[[ctrlalt]]
+key = "Minus"
+keys = "alt--"
+action = "thumbSizeDown"
+
+[[ctrlalt]]
+key = "Underscore"
+keys = "alt--"
+action = "thumbSizeDown"
+
+[[ctrlalt]]
+key = "0"
+keys = "alt-0"
+action = "thumbSizeReset"
+
+[[ctrlaltshift]]
+key = "Plus"
+keys = "alt-+"
+action = "thumbSizeUp"
+
+[[ctrlaltshift]]
+key = "Equal"
+keys = "alt-+"
+action = "thumbSizeUp"
+
+[[ctrlaltshift]]
+key = "Minus"
+keys = "alt--"
+action = "thumbSizeDown"
+
+[[ctrlaltshift]]
+key = "Underscore"
+keys = "alt--"
+action = "thumbSizeDown"
+
 [[ctrlshift]]
 key = "Greater"
 action = "toggleHidden"
@@ -531,7 +579,7 @@ move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "page
         "tabNew", "tabClose", "tabNext", "tabPrevious", "windowNew", "escape"]
 look = ["viewList", "viewColumns", "viewGrid", "togglePreview", "loadPreview", "preview",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
-        "textSizeReset", "keymapSheet"]
+        "textSizeReset", "thumbSizeUp", "thumbSizeDown", "thumbSizeReset", "keymapSheet"]
 find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "toggleSelect",
@@ -700,6 +748,21 @@ label = "smaller"
 keys = "^)"
 action = "textSizeReset"
 label = "reset size"
+
+[[sheet]]
+keys = "alt-+"
+action = "thumbSizeUp"
+label = "larger thumbs"
+
+[[sheet]]
+keys = "alt--"
+action = "thumbSizeDown"
+label = "smaller thumbs"
+
+[[sheet]]
+keys = "alt-0"
+action = "thumbSizeReset"
+label = "reset thumbs"
 
 [[sheet]]
 keys = ","

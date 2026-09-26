@@ -5,6 +5,8 @@ use std::path::{Path, PathBuf};
 const APP_NAME: &str = "flea";
 const LARGE_DIR: &str = "large";
 const FAIL_DIR: &str = "fail";
+// Flea publishes large/. Nautilus often publishes x-large, and older caches still hold normal/.
+const LOOKUP_DIRS: [&str; 3] = [LARGE_DIR, "x-large", "normal"];
 const CACHE_DIR: &str = "thumbnails";
 const HOME_CACHE_DIR: &str = ".cache";
 // The bytes GLib leaves literal in a file URI, measured here across every printable ASCII byte, plus the "/" that separates components and is structure; see AGENTS.md "Thumbnail cache".
@@ -70,10 +72,13 @@ impl Cache {
                 return Hit::Failed;
             }
         }
-        let large = self.large_path(&uri);
-        if let Ok(bytes) = std::fs::read(&large) {
-            if stamped_mtime(&bytes) == Some(mtime) {
-                return Hit::Ready(large);
+        let name = format!("{}.png", md5::hex(uri.as_bytes()));
+        for dir in LOOKUP_DIRS {
+            let file = self.root.join(dir).join(&name);
+            if let Ok(bytes) = std::fs::read(&file) {
+                if stamped_mtime(&bytes) == Some(mtime) {
+                    return Hit::Ready(file);
+                }
             }
         }
         Hit::Miss
@@ -305,5 +310,51 @@ mod tests {
             _ => None,
         };
         assert_eq!(got, Some(want));
+    }
+
+    fn write_size(root: &TestDir, dir: &str, mtime: i64) -> PathBuf {
+        let name = format!("{}.png", md5::hex(uri_for(Path::new(FIXTURE_SRC)).as_bytes()));
+        let file = root.path().join(dir).join(name);
+        std::fs::create_dir_all(file.parent().unwrap()).unwrap();
+        std::fs::write(&file, stamped_png(mtime)).unwrap();
+        file
+    }
+
+    #[test]
+    fn a_hit_in_x_large_or_normal_answers_when_large_misses() {
+        let root = TestDir::new("thumbcache-xlarge");
+        let want = write_size(&root, "x-large", 7);
+        match Cache::at(root.path().to_path_buf()).lookup(Path::new(FIXTURE_SRC), 7) {
+            Hit::Ready(p) => assert_eq!(p, want),
+            _ => panic!("x-large was a miss"),
+        }
+        let root = TestDir::new("thumbcache-normal");
+        let want = write_size(&root, "normal", 7);
+        match Cache::at(root.path().to_path_buf()).lookup(Path::new(FIXTURE_SRC), 7) {
+            Hit::Ready(p) => assert_eq!(p, want),
+            _ => panic!("normal was a miss"),
+        }
+    }
+
+    #[test]
+    fn large_wins_over_a_later_directory() {
+        let root = TestDir::new("thumbcache-prefer-large");
+        let large = write_size(&root, "large", 7);
+        write_size(&root, "normal", 7);
+        match Cache::at(root.path().to_path_buf()).lookup(Path::new(FIXTURE_SRC), 7) {
+            Hit::Ready(p) => assert_eq!(p, large),
+            _ => panic!("large was a miss"),
+        }
+    }
+
+    #[test]
+    fn a_stale_large_entry_does_not_hide_a_fresh_normal_one() {
+        let root = TestDir::new("thumbcache-stale-large");
+        write_size(&root, "large", 4);
+        let normal = write_size(&root, "normal", 7);
+        match Cache::at(root.path().to_path_buf()).lookup(Path::new(FIXTURE_SRC), 7) {
+            Hit::Ready(p) => assert_eq!(p, normal),
+            _ => panic!("a fresh normal entry was hidden by a stale large one"),
+        }
     }
 }

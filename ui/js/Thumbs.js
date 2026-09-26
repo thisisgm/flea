@@ -73,6 +73,18 @@ function remember(state, row, file, cap) {
     return { file: state.file, order: state.order }
 }
 
+// Rows still waiting on a child. A scroll drops these so a pause cannot leave a backlog of PDFs.
+function pending(state) {
+    var drop = []
+    if (!state || !state.file)
+        return drop
+    for (var key in state.file) {
+        if (state.file[key] === ASKED)
+            drop.push(Number(key))
+    }
+    return drop
+}
+
 function fileFor(state, row) {
     var value = state.file[row]
     return typeof value === "string" ? value : ""

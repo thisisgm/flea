@@ -18,13 +18,13 @@ src/backend/metareq.rs 404
 src/backend/opsdispatch.rs 536
 src/backend/opsreq/tests.rs 424
 src/backend/proto.rs 466
-src/backend/run.rs 427
-src/backend/thumbs.rs 441
+src/backend/run.rs 429
+src/backend/thumbs.rs 486
 src/backend/thumbworker.rs 953
 src/backend/trashbrowse.rs 698
 src/backend/trashdelete.rs 895
 src/tui/actions.rs 1021
-src/tui/input.rs 449
+src/tui/input.rs 452
 src/tui/model.rs 1196
 src/tui/render.rs 807
 src/uistate.rs 442
@@ -52,10 +52,10 @@ ui/SettingsPanel.qml 542
 ui/SettingsRow.qml 410
 ui/Sidebar.qml 543
 ui/TrashView.qml 466
-ui/WindowBody.qml 485
+ui/WindowBody.qml 493
 ui/js/Filter.js 301
 ui/js/Focus.js 341
-ui/js/Keymap.js 313
+ui/js/Keymap.js 322
 ui/js/Ops.js 331
 ui/js/Settings.js 427"
 

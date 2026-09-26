@@ -257,16 +257,21 @@ function runCompletionRows(check) {
     var preview = Settings.rows("preview", state)
     check("preview visibility is independent of loading", find(preview, "preview.column").on, false)
     check("manual preview reports the stored load mode", find(preview, "preview.loadOn").value, "Manual")
-    check("all four thumbnail display stops remain available", find(preview, "preview.thumbSize").values.join(","), "small,medium,large,xlarge")
+    check("all six thumbnail display stops remain available", find(preview, "preview.thumbSize").values.join(","), "small,medium,large,xlarge,xxlarge,huge")
     check("thumbnail source policy remains separate", find(preview, "preview.thumbnails").selected, "off")
     check("ctrl zoom can be disabled", find(preview, "preview.ctrlZoom").on, false)
+    check("memory cache ships off and generation stays on the default width",
+          [find(preview, "preview.thumbCache").on, find(preview, "preview.thumbSpeed").selected].join("|"), "false|default")
+    var faster = Settings.rows("preview", { data: { preview: { thumbCache: true, thumbSpeed: "fast" } } })
+    check("a stored memory cache and fast generation read back",
+          [find(faster, "preview.thumbCache").on, find(faster, "preview.thumbSpeed").selected].join("|"), "true|fast")
     // HANDOFF rule 3: nothing is indented, so no row carries the flag that stepped its mark right.
     check("no preview row is indented", preview.filter(function (row) { return row.indented }).length, 0)
-    var sizes = ["small", "medium", "large", "xlarge"]
+    var sizes = ["small", "medium", "large", "xlarge", "xxlarge", "huge"]
     check("the size row names the stop and no figure, one value per row", sizes.map(function (size) {
         var row = find(Settings.rows("preview", { data: { preview: { thumbSize: size } } }), "preview.thumbSize")
         return (row.caption === undefined ? "-" : row.caption) + "|" + row.value
-    }).join(","), "-|Small,-|Medium,-|Large,-|Extra large")
+    }).join(","), "-|Small,-|Medium,-|Large,-|Extra large,-|XX-large,-|Huge")
     // Rule 3: the sentence explaining Load sits under Load, inside its own group, not in a footer two hairlines away.
     check("the load hint sits under the control it explains", preview[3].kind + "|" + preview[3].label + "|" + (preview[3].footer === undefined),
           "hint|Ctrl+Space loads the current selection.|true")

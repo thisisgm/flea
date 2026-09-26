@@ -33,7 +33,7 @@ pub const DEFAULTS: &str = r#"{
   "preview": {
     "column": true, "loadOn": "automatic",
     "thumbnails": "media", "thumbSize": "medium",
-    "ctrlZoom": true
+    "ctrlZoom": true, "thumbCache": false, "thumbSpeed": "default"
   },
   "keys": "default",
   "display": { "textSize": { "mode": "system" }, "hyprlandIcons": false },
@@ -110,8 +110,12 @@ pub const PREVIEW: &[(&str, Rule)] = &[
     ("column", Rule::Bool),
     ("loadOn", Rule::Word(&["automatic", "manual"])),
     ("thumbnails", Rule::Word(&["off", "images", "media"])),
-    ("thumbSize", Rule::Word(&["small", "medium", "large", "xlarge"])),
+    ("thumbSize", Rule::Word(&["small", "medium", "large", "xlarge", "xxlarge", "huge"])),
     ("ctrlZoom", Rule::Bool),
+    // Off until asked: the grid and columns decode each visit, which is what a regenerated path needs.
+    ("thumbCache", Rule::Bool),
+    // "default" is the shipped width of six; "fast" raises the same pool to eight. See AGENTS.md.
+    ("thumbSpeed", Rule::Word(&["default", "fast"])),
 ];
 
 // mode is "system" or one stop, so there is nowhere to put a free number; see the handoff's Display row.
@@ -262,6 +266,8 @@ mod tests {
         assert_eq!(d.get("preview").and_then(|p| p.get("loadOn")).and_then(Json::as_str), Some("automatic"));
         assert_eq!(d.get("preview").and_then(|p| p.get("thumbnails")).and_then(Json::as_str), Some("media"));
         assert_eq!(d.get("preview").and_then(|p| p.get("thumbSize")).and_then(Json::as_str), Some("medium"));
+        assert_eq!(d.get("preview").and_then(|p| p.get("thumbCache")).and_then(Json::as_bool), Some(false));
+        assert_eq!(d.get("preview").and_then(|p| p.get("thumbSpeed")).and_then(Json::as_str), Some("default"));
         assert_eq!(d.get("display").and_then(|p| p.get("textSize")).and_then(|t| t.get("mode")).and_then(Json::as_str), Some("system"));
         let display: Vec<&str> = d.get("display").and_then(Json::as_object).expect("display").iter().map(|(k, _)| k.as_str()).collect();
         assert_eq!(display, ["textSize", "hyprlandIcons"], "the compositor owns opacity, icons and shadows");
@@ -303,10 +309,16 @@ mod tests {
                      r#"{"places":{"driveSize":false,"trashCount":false}}"#,
                      r#"{"places":{"rail":"hidden"}}"#, r#"{"places":{"rail":"shown"}}"#,
                      r#"{"places":{"showUnmounted":false}}"#,
-                     r#"{"updates":{"autoCheck":false}}"#] {
+                     r#"{"updates":{"autoCheck":false}}"#,
+                     r#"{"preview":{"thumbSize":"xxlarge"}}"#,
+                     r#"{"preview":{"thumbSize":"huge"}}"#,
+                     r#"{"preview":{"thumbCache":true}}"#,
+                     r#"{"preview":{"thumbSpeed":"fast"}}"#] {
             assert!(takes(good).is_ok(), "{} is a value its key takes", good);
         }
-        for (bad, named) in [(r#"{"display":{"textSize":{"mode":13}}}"#, "display.textSize.mode"),
+        for (bad, named) in [(r#"{"preview":{"thumbSize":"enormous"}}"#, "preview.thumbSize"),
+                             (r#"{"preview":{"thumbSpeed":"max"}}"#, "preview.thumbSpeed"),
+                             (r#"{"display":{"textSize":{"mode":13}}}"#, "display.textSize.mode"),
                              (r#"{"display":{"textSize":{"mode":14.5}}}"#, "display.textSize.mode"),
                              (r#"{"display":{"textSize":{"mode":"14"}}}"#, "display.textSize.mode"),
                              (r#"{"display":{"textSize":{"mode":"override"}}}"#, "display.textSize.mode"),

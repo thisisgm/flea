@@ -33,8 +33,9 @@ use std::sync::mpsc::{channel, Receiver, TryRecvError};
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-// Wider pools settle sooner and answer input later: 6 settles the media fixture ahead of strata for 5.5 ms of input under a full pool; see AGENTS.md "Thumbnail requests".
+// 6 settles the media fixture ahead of strata for 5.5 ms of input under a full pool; Fast is the next measured width. See AGENTS.md "Thumbnail requests".
 const THUMB_WORKERS: usize = 6;
+const THUMB_WORKERS_FAST: usize = 8;
 // The whole shutdown budget: a running job is killed at the pool's own 20 s deadline, so waiting longer than that can never cut one short.
 const DRAIN_LIMIT: Duration = Duration::from_secs(25);
 
@@ -58,7 +59,7 @@ pub fn run() -> i32 {
     let (results, done) = channel::<Done>();
     let (op_tx, op_rx) = channel::<OpMsg>();
     let mut ops = Ops::new(op_tx);
-    let pool = Pool::new(THUMB_WORKERS, results, default_root(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+    let pool = Pool::elastic(THUMB_WORKERS, THUMB_WORKERS_FAST, results, default_root(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
     let cache = Cache::new();
     // Every thumbnail job fails closed without these two, so the reason is said once here rather than never; see AGENTS.md "Thumbnail sandbox".
     if !sandbox::available() {
@@ -255,6 +256,7 @@ fn handle_line(
             thumb_rows(out, &rows, st, tb, pool, cache);
             out.flush().ok();
         }
+        Request::ThumbSpeed { fast } => pool.set_fast(fast),
         Request::ThumbCancel { rows } => {
             if rows.is_empty() {
                 // An empty rows cancels everything queued, and every job it drops has to leave the map with it; see AGENTS.md "Thumbnail requests".

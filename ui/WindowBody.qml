@@ -4,6 +4,7 @@ import qs.Commons
 import "."
 import "." as Flea
 import "js/TextSize.js" as TextSize
+import "js/ThumbSize.js" as ThumbSize
 import "js/Nav.js" as Nav
 import "js/Ops.js" as Ops
 import "js/Search.js" as Search
@@ -78,6 +79,11 @@ Rectangle {
         else
             ViewState.stepTextSize(direction)
         view.currentPane.message(TextSize.announce(ViewState.textSize, ViewState.omarchyBase), false)
+    }
+
+    function applyThumbSize(direction) {
+        ViewState.stepThumbSize(direction)
+        view.currentPane.message(ThumbSize.announce(ViewState.thumbnailSize), false)
     }
 
     // The backend is told first and answers when it has drained, so closing never leaves a half
@@ -172,6 +178,7 @@ Rectangle {
         // Issue 9. ViewState persists the stop and Theme derives its own tokens from it, so
         // the whole window follows without any surface reading the chord itself.
         onTextSizeRequested: function (direction) { view.applyTextSize(direction) }
+        onThumbSizeRequested: function (direction) { view.applyThumbSize(direction) }
         onOpened: function (path) { if (shareBrowser.owner === primaryPane) shareBrowser.close() }
     }
 
@@ -215,6 +222,7 @@ Rectangle {
                 onPermissionsRequested: function(path) { permissionsDialog.open(path, otherPane) }
                 onPathBarRequested: chrome.startEdit()
                 onTextSizeRequested: function(direction) { view.applyTextSize(direction) }
+                onThumbSizeRequested: function(direction) { view.applyThumbSize(direction) }
                 onOpened: if (otherPane.shareBrowser.owner === otherPane) otherPane.shareBrowser.close()
             }
         }

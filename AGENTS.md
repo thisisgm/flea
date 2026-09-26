@@ -1982,6 +1982,12 @@ fit (754x25, not the covering 14130x471), and an EXIF-turned photo decodes uprig
 fit, decoded whole when its stored size fits the box before the turn, because Qt weighs `sourceSize`
 against the stored orientation.
 
+Larger grid thumbnails, retargeted onto this release, raise five ceilings, each `wc -l` at the commit:
+`src/backend/thumbs.rs` 441 to 486 for the slot cap that lets Preview > Thumbnail generation Fast run
+eight workers while the default stays six; `src/backend/run.rs` 427 to 429 for that fast constant and
+the `thumbspeed` arm; `src/tui/input.rs` 449 to 452 for ctrl-alt and ctrl-alt-shift; `ui/js/Keymap.js`
+313 to 322 for those chords; `ui/WindowBody.qml` 485 to 493 for the thumbnail-size status line.
+
 **Every count in this section is a SNAPSHOT, not a live figure, and eleven of the eighteen had
 drifted by 2026-09-01: `src/heap.rs` was claimed at 15 and is 100, `ui/Row.qml` at 166 and is 310,
 `ui/Theme.qml` at 264 and is 187.** Nothing was over the hard cap when that was checked; only the
@@ -3064,6 +3070,13 @@ and looks it up under a different mtime for `Hit::Miss`, and one looks the same 
 under its own mtime for `Hit::Ready` naming the file it found. The third is not redundant:
 without it the second passes on an implementation that returns `Miss` for everything.
 
+A miss in `large/` is not yet a miss for the file. `lookup` then tries `x-large/` and `normal/`
+under the same mtime rule, in that order, and returns the first hit. Flea still publishes into
+`large/` only. The other two are what another program on this box may already have written, which
+is what lets a warm Nautilus cache answer without starting evince. A stale `large/` entry does not
+hide a fresh one later in that order. `a_hit_in_x_large_or_normal_answers_when_large_misses`,
+`large_wins_over_a_later_directory` and `a_stale_large_entry_does_not_hide_a_fresh_normal_one` pin it.
+
 An entry is only a hit when its `Thumb::MTime` text equals the source file's mtime. That is
 the spec's whole staleness rule: the thumbnail carries the modification time of the file it
 was made from, so an edited file misses and gets regenerated rather than showing its old
@@ -3795,7 +3808,10 @@ the listing looking for work at any priority, and the proof is on the record: li
 `~/.cache/thumbnails/large` by zero files and never creates `fail/flea`.
 
 **`THUMB_WORKERS` is 6 since 0.3.2, and it is a measured choice and not a core count.** It lives here and
-not in `thumbs.rs` because it is scheduling policy and belongs with the request policy.
+not in `thumbs.rs` because it is scheduling policy and belongs with the request policy. Preview's
+Thumbnail generation Fast raises that cap to 8, the next width in the series below. The pool is
+spawned at 8 and `Gate.limit` starts at 6; `thumbspeed` moves the limit, and a job already inside a
+worker runs out either way.
 
 **The reason this paragraph used to give was half wrong, and the box said so.** It claimed the
 box has 12 cores and that a decoder child is itself multithreaded, so four children already
@@ -4164,6 +4180,15 @@ case is verified benign rather than argued: a full 2400-detent traversal reports
 never sends or counts a request. Either way it is one request naming one viewport, so it breaks no
 rule; no test covers the mid-scroll request, and `tests/ui.sh thumbs` cannot reach it because its
 fling runs entirely after the latch.
+
+**The grid waits longer once it has asked, and looks sooner.** `ui/GridArea.qml` latches its settle
+to 220 ms the first time a request names a row, because a wheel burst through PDFs still looks idle
+at 120 ms and would start a viewport of evince jobs. After that latch, motion also arms a 16 ms
+pulse that sends the same `requestThumbs`, so a cache hit paints without waiting out the 220 ms.
+`onContentYChanged` in the list, the grid and a column drops every queued thumbnail the moment the
+viewport moves. A job a worker has already started is left to finish, which is what fills `large/`
+for the next visit. The first screen stays on `firstSettleMs` and does not arm the pulse, so the
+one-request open above is unchanged.
 
 **Do not reach for the two repairs that look obvious and are not.** Gating on the window reaching
 its declared size fails, because at 526 px it IS at its declared size. Requesting on the first

@@ -167,6 +167,8 @@ fn a_thumb_request_carries_its_rows_in_order() {
         Request::ThumbCancel { rows } => assert_eq!(rows, vec![17, 140]),
         _ => panic!("expected ThumbCancel"),
     }
+    assert!(matches!(parse_request(r#"{"c":"thumbspeed","speed":"fast"}"#), Request::ThumbSpeed { fast: true }));
+    assert!(matches!(parse_request(r#"{"c":"thumbspeed"}"#), Request::ThumbSpeed { fast: false }));
 }
 
 #[test]

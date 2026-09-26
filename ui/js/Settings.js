@@ -1,5 +1,6 @@
 .pragma library
 .import "TextSize.js" as TextSize
+.import "ThumbSize.js" as ThumbSize
 .import "Places.js" as Places
 .import "Keymap.js" as Keymap
 .import "SettingsShelf.js" as Shelf
@@ -348,8 +349,10 @@ function previewRows(state) {
     // Rule 7: with the column off, SelectionPreview.canRead is false and both load paths return, so Load is the one real dependent here and it greys rather than lying.
     load.available = data.column !== false
     // One value per row, rule 4: the board drops the figure outright, because "64 px  Medium" is one fact twice.
-    var size = choice("preview.thumbSize", "Thumbnail size", "maximize", ["small", "medium", "large", "xlarge"],
-                      ["Small", "Medium", "Large", "Extra large"], data.thumbSize || "medium")
+    var size = choice("preview.thumbSize", "Thumbnail size", "maximize", ThumbSize.NAMES,
+                      ThumbSize.LABELS, ThumbSize.parse(data.thumbSize))
+    var speed = choice("preview.thumbSpeed", "Thumbnail generation", "cpu", ["default", "fast"],
+                       ["Default", "Fast"], data.thumbSpeed === "fast" ? "fast" : "default")
     return [
         { kind: "group", label: "Preview column" },
         // Preview board rule 4: the heading names the group, so the row under it names the switch.
@@ -362,7 +365,10 @@ function previewRows(state) {
                ["Off", "Images", "Images and video"], data.thumbnails || "media"),
         size,
         // Rule 7: GridArea gates ctrl-scroll on ViewState.ctrlZoom alone and sizes the tiles from it with thumbnails off, so it is grid zoom, it is named that, and it never greys with them.
-        { kind: "check", id: "preview.ctrlZoom", label: "Zoom the grid with ctrl and scroll", glyph: "move-horizontal", on: data.ctrlZoom !== false }
+        { kind: "check", id: "preview.ctrlZoom", label: "Zoom the grid with ctrl and scroll", glyph: "move-horizontal", on: data.ctrlZoom !== false },
+        // Grid and columns force cache off, because a regenerated thumbnail keeps its path. This is the opt-in.
+        { kind: "check", id: "preview.thumbCache", label: "Keep thumbnails in memory", glyph: "hard-drive", on: data.thumbCache === true },
+        speed
     ]
 }
 

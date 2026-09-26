@@ -145,6 +145,11 @@ ListView {
             root.pane.backend.dirsizecancel()
             root.dirSizesCancelled()
         }
+        var drop = Thumbs.pending(root.pane.thumbState).filter(function (index) { return index !== root.pane.previewIndex })
+        if (drop.length > 0) {
+            root.pane.backend.thumbcancel(drop)
+            root.thumbsApplied({ ask: [], drop: drop })
+        }
         coalesce.start()
         settle.restart()
     }

@@ -352,9 +352,15 @@ The queue is bounded, and a request larger than it is still answered in full. Wh
 is full the oldest job in it is dropped to make room, and the row that job belonged to is
 answered at once with an empty `file` rather than left waiting.
 
-**What the shipped client sends.** `ui/Pane.qml` sends `thumb` only when the list settles,
-which is a 120 ms timer restarted by every scroll and by every arriving window of rows, so a
-fling issues nothing at all until it stops. One request names only rows currently visible,
+**What the shipped client sends.** The list sends `thumb` only when it settles, a 120 ms
+timer restarted by every scroll and by every arriving window of rows, so a fling issues
+nothing at all until it stops. The grid uses that same first-screen settle, then latches to
+220 ms once a request has named a row, because a wheel burst through PDFs still looks idle
+at 120 ms. After that latch, 16 ms of stillness also sends `thumb`, so a cache hit paints
+without waiting out the 220 ms. `onContentYChanged` in the list, the grid and a column
+drops every still-queued row as soon as the viewport moves. A job a worker has already
+started is not one of those: it runs to completion and its `thumbed` line still arrives,
+which is what fills the shared cache for the next visit. One request names only rows currently visible,
 only rows whose `rows` object carried `t:true`, and only rows the client's own map does not
 already hold.
 
@@ -388,7 +394,18 @@ so a client that cancels must stop waiting for it. No response line.
 
 A cancelled row can be asked for again straight away, in either form of the request: cancelling
 forgets the row as well as its job, so a later `thumb` for it queues fresh work rather than
-being deduplicated against the job that was just dropped.
+being deduplicated against the job that was just dropped. A job the worker has already
+started is not forgotten: the row stays mapped and the later `thumbed` is the answer.
+
+### thumbspeed
+
+`{"c":"thumbspeed","speed":"default"|"fast"}`
+
+Example: `{"c":"thumbspeed","speed":"fast"}`
+
+Sets the live thumbnail worker cap. `default` is six, the shipped width. `fast` is eight.
+A missing or any other `speed` is `default`. No response line. Jobs already running are
+left to finish; the new cap applies to the next pop.
 
 ### dirsize
 
