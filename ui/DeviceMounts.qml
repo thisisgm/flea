@@ -13,6 +13,9 @@ Item {
     property var entries: []
     // RailAdditions rule 1's switch, on by default from 0.3.3; off answers 0.2.1's rows, and the state document is read elsewhere.
     property bool showUnmounted: true
+    // Off by default: with it on, every sibling partition of the disk that holds / becomes its own
+    // row too (a second OS, a Windows volume), the way Nautilus lists them.
+    property bool showSystemPartitions: false
 
     signal opened(string path)
     signal message(string text, bool isError)
@@ -108,7 +111,7 @@ Item {
     }
 
     function rebuild() {
-        var rows = Devices.parseDevices(root._listing, root.showUnmounted)
+        var rows = Devices.parseDevices(root._listing, root.showUnmounted, root.showSystemPartitions)
         var out = []
         for (var i = 0; i < rows.length; i++) {
             var r = rows[i]

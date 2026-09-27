@@ -271,4 +271,39 @@ function run(check) {
     check("an unmounted partition names its mounted crypt child", Eject.blockers(crypt, "/dev/sda1").join(","), "vault")
     check("a vanished device names nothing", Eject.blockers(gone, "/dev/sda1").join(","), "")
     check("garbage names nothing", Eject.blockers("not json", "/dev/sda1").join(","), "")
+
+    // places.showSystemPartitions: a real multi-boot disk, captured from an operator's box with a
+    // Windows install (an unlabeled data volume beside the labeled "Acer" system volume), this
+    // Omarchy install under a LUKS container, and a second Arch install ("ryoku"). Every plumbing
+    // partition (the two ESPs, Microsoft reserved, the mislabeled NTFS "Recovery" partition whose
+    // parttypename still reads "EFI System", and the Linux extended boot partition) must stay out
+    // whether or not the switch is on; only the switch decides whether the four real volumes besides
+    // the root leaf get their own rows.
+    var multiboot = '{"blockdevices":[{"name":"nvme0n1","path":"/dev/nvme0n1","label":null,"mountpoints":[],"rm":false,"tran":"nvme","size":512110190592,"type":"disk","model":"Micron_2450",'
+                  + '"children":['
+                  + '{"name":"nvme0n1p1","path":"/dev/nvme0n1p1","label":"ESP","mountpoints":[],"rm":false,"size":272629760,"type":"part","model":null,"fstype":"vfat","parttypename":"EFI System"},'
+                  + '{"name":"nvme0n1p2","path":"/dev/nvme0n1p2","label":null,"mountpoints":[],"rm":false,"size":16777216,"type":"part","model":null,"fstype":null,"parttypename":"Microsoft reserved"},'
+                  + '{"name":"nvme0n1p3","path":"/dev/nvme0n1p3","label":"Acer","mountpoints":[],"rm":false,"size":221029335040,"type":"part","model":null,"fstype":"ntfs","parttypename":"Microsoft basic data"},'
+                  + '{"name":"nvme0n1p4","path":"/dev/nvme0n1p4","label":null,"mountpoints":[],"rm":false,"size":53491007488,"type":"part","model":null,"fstype":"ntfs","parttypename":"Microsoft basic data"},'
+                  + '{"name":"nvme0n1p5","path":"/dev/nvme0n1p5","label":"OMARCHY_EFI","mountpoints":["/boot"],"rm":false,"size":2147484160,"type":"part","model":null,"fstype":"vfat","parttypename":"EFI System"},'
+                  + '{"name":"nvme0n1p6","path":"/dev/nvme0n1p6","label":null,"mountpoints":[],"rm":false,"size":158911693312,"type":"part","model":null,"fstype":"crypto_LUKS","parttypename":"Linux filesystem",'
+                  + '"children":[{"name":"omarchy_root","path":"/dev/mapper/omarchy_root","label":"OMARCHY","mountpoints":["/var/cache/pacman/pkg","/var/log","/home","/"],"rm":false,"size":158894916096,"type":"crypt","model":null,"fstype":"btrfs"}]},'
+                  + '{"name":"nvme0n1p7","path":"/dev/nvme0n1p7","label":"Recovery","mountpoints":[],"rm":false,"size":1073741824,"type":"part","model":null,"fstype":"ntfs","parttypename":"EFI System"},'
+                  + '{"name":"nvme0n1p8","path":"/dev/nvme0n1p8","label":"RYOKUBOOT","mountpoints":[],"rm":false,"size":2147483648,"type":"part","model":null,"fstype":"vfat","parttypename":"Linux extended boot"},'
+                  + '{"name":"nvme0n1p9","path":"/dev/nvme0n1p9","label":"ryoku","mountpoints":[],"rm":false,"size":73015492608,"type":"part","model":null,"fstype":"btrfs","parttypename":"Linux filesystem"}'
+                  + ']}]}'
+    check("with the switch off, a multi-boot disk is still the one disk row",
+          Devices.parseDevices(multiboot, true, false).length, 1)
+    check("and off is what an omitted third argument means too",
+          Devices.parseDevices(multiboot, true).length, 1)
+    var withSiblings = Devices.parseDevices(multiboot, true, true)
+    check("with the switch on, every real volume on the system disk is a row beside the disk",
+          withSiblings.map(function (e) { return e.label }).join(","), "nvme0n1,Acer,53.5 GB Volume,ryoku")
+    check("an unlabeled sibling takes Nautilus's own decimal-size name",
+          withSiblings[2].label, "53.5 GB Volume")
+    check("a sibling volume is not offered an eject", withSiblings[1].removable, false)
+    check("an unmounted sibling still earns the fuller rail menu so it can be mounted",
+          Mounts.railMenu(Object.assign({ group: "device" }, withSiblings[1])).length > 0, true)
+    check("the root leaf itself is not a second row, the disk row above already opens it",
+          withSiblings.some(function (e) { return e.path === "/" && e.kind === "volume" }), false)
 }

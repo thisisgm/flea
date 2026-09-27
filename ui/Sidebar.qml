@@ -129,6 +129,7 @@ Item {
     DeviceMounts {
         id: devices
         showUnmounted: root.placesState.showUnmounted !== false
+        showSystemPartitions: root.placesState.showSystemPartitions === true
         onOpened: function (path) { root.opened(path) }
         onMessage: function (text, isError) { root.message(text, isError) }
         onForgetMessage: function (text) { root.forgetMessage(text) }

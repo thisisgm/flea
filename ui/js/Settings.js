@@ -392,7 +392,7 @@ function placesRows(state) {
     for (var b = 0; b < builtins.length; b++) rows.push({ kind: "check", id: "places." + builtins[b][0], label: builtins[b][1], glyph: builtins[b][2], on: data[builtins[b][0]] !== false })
     rows.push({ kind: "group", label: "Rail" })
     // The fourth field is src/uischema.rs's shipped value, which is what a key the file never stored reads as.
-    var rail = [["driveSize", "Show drive size", "drive", false], ["trashCount", "Show Trash count", "trash", false], ["showUnmounted", "Show unmounted drives", "drive", true], ["autoHide", "Auto-hide sidebar", "maximize", false]]
+    var rail = [["driveSize", "Show drive size", "drive", false], ["trashCount", "Show Trash count", "trash", false], ["showUnmounted", "Show unmounted drives", "drive", true], ["showSystemPartitions", "Show other partitions on this disk", "drive", false], ["autoHide", "Auto-hide sidebar", "maximize", false]]
     for (var r = 0; r < rail.length; r++) rows.push({ kind: "check", id: "places." + rail[r][0], label: rail[r][1], glyph: rail[r][2], on: rail[r][3] ? data[rail[r][0]] !== false : data[rail[r][0]] === true })
     // Directive 74: the rail is remembered as a word, so this row reads it as one; ctrl-b writes the same leaf. Directive 77: auto-hide answers the pointer instead, so the remembered choice is greyed while that is on rather than quietly ignored.
     rows.push({ kind: "check", id: "places.rail", label: "Show sidebar", glyph: "columns", on: data.rail !== "hidden", available: data.autoHide !== true })

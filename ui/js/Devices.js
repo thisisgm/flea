@@ -8,8 +8,9 @@
 // {"name":"sda1","path":"/dev/sda1","label":"128GB","mountpoints":["/run/media/gm/128GB"],"rm":true,
 //  "tran":null,"size":124656812032,"type":"part","model":null}.
 // Two row kinds come out: one "disk" row for the disk that carries /, then one "volume" row for each
-// volume on every other disk. ui/DeviceMounts.qml turns these into rail entries.
-function parseDevices(body, unmounted) {
+// volume on every other disk, plus, with systemPartitions on, one more for every sibling partition of
+// the system disk itself (a second OS, a Windows volume). ui/DeviceMounts.qml turns these into rail entries.
+function parseDevices(body, unmounted, systemPartitions) {
     var tree
     try {
         tree = JSON.parse(String(body || ""))
@@ -23,16 +24,72 @@ function parseDevices(body, unmounted) {
     if (system)
         out.push({ kind: "disk", label: String(system.name), device: devicePath(system), path: "/",
                    mounted: true, removable: false, size: deviceBytes(system.size) })
+    if (system && systemPartitions === true)
+        collectSystemPartitions(system.children || [], out)
     for (var i = 0; i < nodes.length; i++) {
-        // The system disk is never walked: /boot and a separate home are the box's own plumbing and
-        // the row above already stands for that disk. Everything else on the box is walked, which is
-        // what puts a second internal drive in the rail (operator, 2026-09-11: only sticks appeared).
+        // The system disk is walked separately, above, and only with the switch on: /boot and a
+        // separate home are the box's own plumbing and the row above already stands for that disk.
+        // Everything else on the box is walked here, which is what puts a second internal drive in
+        // the rail (operator, 2026-09-11: only sticks appeared).
         if (!nodes[i].name || nodes[i] === system || isPseudo(nodes[i].name))
             continue
         // No transport to inherit at the top: the disk answers for itself inside the walk.
         collectVolumes([nodes[i]], "", false, out, unmounted === true)
     }
     return out
+}
+
+// places.showSystemPartitions's own walk: every leaf partition of the system disk earns a row,
+// mounted or not, the way Nautilus lists them, except the one that actually holds / (the disk row
+// above already opens it) and the box's own plumbing (see systemPlumbing). Nothing pulled from here
+// is removable, and every row carries volumeMenu so it can be mounted from the rail like any other
+// unmounted volume.
+function collectSystemPartitions(nodes, out) {
+    for (var i = 0; i < nodes.length; i++) {
+        var n = nodes[i]
+        var kids = n.children || []
+        if (kids.length > 0) {
+            collectSystemPartitions(kids, out)
+            continue
+        }
+        if (n.name && !holdsRoot(n) && !systemPlumbing(n))
+            out.push(systemPartitionRow(n))
+    }
+}
+
+// The box's own plumbing on the system disk, which Nautilus does not offer as a place to browse
+// either: an EFI system partition, a Linux extended boot partition (systemd-boot's ESP mirror), a
+// Microsoft reserved partition, a recovery partition, a BIOS boot partition, and whatever is actually
+// mounted as the box's own boot area, read off the mountpoint rather than guessed from a label.
+function systemPlumbing(n) {
+    var type = String(n.parttypename || "").toLowerCase()
+    if (/efi|extended boot|reserved|recovery|bios boot/.test(type))
+        return true
+    var point = mountOf(n)
+    return point === "/boot" || point === "/efi" || point === "/boot/efi"
+}
+
+// A system-disk sibling is never a drive anyone unplugs, and it always earns the fuller rail menu
+// (Mount, Open, Unmount), since it may not be mounted yet.
+function systemPartitionRow(n) {
+    var path = mountOf(n)
+    var label = n.label ? String(n.label) : (sizeName(n.size) || String(n.name))
+    return { kind: "volume", label: label, device: devicePath(n), path: path, mounted: path.length > 0,
+             removable: false, size: deviceBytes(n.size), volumeMenu: true }
+}
+
+// Nautilus's own name for an unlabeled volume, "53.5 GB Volume", in decimal units.
+function sizeName(bytes) {
+    if (!Number.isSafeInteger(bytes) || bytes <= 0)
+        return ""
+    var units = ["kB", "MB", "GB", "TB"]
+    var value = bytes / 1000
+    var u = 0
+    while (value >= 1000 && u < units.length - 1) {
+        value /= 1000
+        u++
+    }
+    return value.toFixed(1) + " " + units[u] + " Volume"
 }
 
 // zram and loop devices are type "disk" too, and neither is a disk anyone browses.

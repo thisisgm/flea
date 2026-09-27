@@ -202,7 +202,10 @@ function runCompletionRows(check) {
     // GM's 0.3.3 ruling: unmounted drives ship on, and an off the file stored is still the operator's.
     check("Show unmounted drives defaults on and a stored off reads off", [find(places, "places.showUnmounted").on,
           find(Settings.rows("places", { data: { places: { showUnmounted: false } } }), "places.showUnmounted").on].join(","), "true,false")
-    check("the Rail controls follow the ruled order", places.slice(-7, -2).map(function (row) { return row.label }).join("|"), "Show Trash count|Show unmounted drives|Auto-hide sidebar|Show sidebar|Sidebar width")
+    // A dual-boot sibling partition ships off, the same posture as driveSize and trashCount.
+    check("Show other partitions on this disk defaults off and a stored on reads on", [find(places, "places.showSystemPartitions").on,
+          find(Settings.rows("places", { data: { places: { showSystemPartitions: true } } }), "places.showSystemPartitions").on].join(","), "false,true")
+    check("the Rail controls follow the ruled order", places.slice(-8, -2).map(function (row) { return row.label }).join("|"), "Show Trash count|Show unmounted drives|Show other partitions on this disk|Auto-hide sidebar|Show sidebar|Sidebar width")
     // Directive 74: two handles on one remembered state, so the row reads the word ctrl-b writes.
     check("Show sidebar is checked while the rail is shown", find(places, "places.rail").on, true)
     check("and auto-hide ships off, so nothing hides itself", find(places, "places.autoHide").on, false)

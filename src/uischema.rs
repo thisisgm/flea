@@ -24,7 +24,8 @@ pub const DEFAULTS: &str = r#"{
     "favourites": [],
     "showHome": true, "showNetwork": true,
     "showDevices": true, "showTrash": true,
-    "driveSize": false, "trashCount": false, "showUnmounted": true, "rail": "shown", "autoHide": false, "sidebarWidth": 192
+    "driveSize": false, "trashCount": false, "showUnmounted": true, "showSystemPartitions": false,
+    "rail": "shown", "autoHide": false, "sidebarWidth": 192
   },
   "shelf": {
     "enabled": false, "bar": true, "rail": "off",
@@ -90,6 +91,7 @@ pub const PLACES: &[(&str, Rule)] = &[
     ("driveSize", Rule::Bool),
     ("trashCount", Rule::Bool),
     ("showUnmounted", Rule::Bool),
+    ("showSystemPartitions", Rule::Bool),
     ("rail", Rule::Word(&["shown", "hidden"])),
     ("autoHide", Rule::Bool),
     ("sidebarWidth", Rule::SidebarWidth),
@@ -259,6 +261,8 @@ mod tests {
         assert_eq!(d.get("places").and_then(|p| p.get("trashCount")).and_then(Json::as_bool), Some(false));
         // GM's 0.3.3 ruling: unmounted drives are on the rail unless the operator switches them off.
         assert_eq!(d.get("places").and_then(|p| p.get("showUnmounted")).and_then(Json::as_bool), Some(true));
+        // A dual-boot sibling partition is off by default, the same posture as driveSize and trashCount.
+        assert_eq!(d.get("places").and_then(|p| p.get("showSystemPartitions")).and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("preview").and_then(|p| p.get("loadOn")).and_then(Json::as_str), Some("automatic"));
         assert_eq!(d.get("preview").and_then(|p| p.get("thumbnails")).and_then(Json::as_str), Some("media"));
         assert_eq!(d.get("preview").and_then(|p| p.get("thumbSize")).and_then(Json::as_str), Some("medium"));
@@ -303,6 +307,7 @@ mod tests {
                      r#"{"places":{"driveSize":false,"trashCount":false}}"#,
                      r#"{"places":{"rail":"hidden"}}"#, r#"{"places":{"rail":"shown"}}"#,
                      r#"{"places":{"showUnmounted":false}}"#,
+                     r#"{"places":{"showSystemPartitions":true}}"#,
                      r#"{"updates":{"autoCheck":false}}"#] {
             assert!(takes(good).is_ok(), "{} is a value its key takes", good);
         }
@@ -318,6 +323,7 @@ mod tests {
                              (r#"{"places":{"favourites":"/a"}}"#, "places.favourites"),
                              (r#"{"places":{"driveSize":1}}"#, "places.driveSize"),
                              (r#"{"places":{"trashCount":"true"}}"#, "places.trashCount"),
+                             (r#"{"places":{"showSystemPartitions":1}}"#, "places.showSystemPartitions"),
                              (r#"{"places":{"rail":"off"}}"#, "places.rail"),
                              (r#"{"places":{"rail":true}}"#, "places.rail"),
                              (r#"{"updates":{"autoCheck":"yes"}}"#, "updates.autoCheck"),
