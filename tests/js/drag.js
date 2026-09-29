@@ -16,7 +16,6 @@ function pane(sent, picked, rows) {
 function run(check) {
     var rows = [{ n: "omarchy", d: true }, { n: "flea", d: true }, { n: "a.txt", d: false }, { n: "b.txt", d: false }]
 
-    // The selection when the pressed row is in it, the row alone when it is not.
     check("a drag from a selected row carries the whole selection",
           String(Drag.carried(pane([], [1, 2, 3], rows), 2)), "1,2,3")
     check("a drag from a row outside the selection carries that row alone",
@@ -42,10 +41,10 @@ function run(check) {
 
     // The status bar's half of the board's caption, "copy vs move reads in the status bar".
     check("the bar names the verb, the count and the folder",
-          Drag.line(2, "omarchy", false), "Move 2 items to omarchy · ctrl at lift copies")
+          Drag.line(2, "omarchy", false), "Move 2 items to omarchy · ctrl copies and shift moves, read at lift")
     check("a copy line drops the hint", Drag.line(1, "omarchy", true), "Copy 1 item to omarchy")
     check("with no folder under the pointer it says where one would go",
-          Drag.line(3, "", false), "Move 3 items to a folder · ctrl at lift copies")
+          Drag.line(3, "", false), "Move 3 items to a folder · ctrl copies and shift moves, read at lift")
 
     // The drop is the transfer request, rows and not paths, the shape Ops.moveToDropbox sends.
     var sent = []
@@ -62,6 +61,15 @@ function run(check) {
     // resolve by path, and the wire carries the same paths as plain text for a terminal.
     var lifted = pane([], [], rows)
     lifted.backend.dirDev = 42
+    var readOnly = pane([], [], rows)
+    readOnly.backend.dirDev = 42
+    readOnly.backend.dirWritable = false
+    var readOnlyWire = Drag.mimeFor(readOnly, [2], false)
+    check("a directory the user cannot write is not deletable", Drag.markerDeletable(readOnlyWire[Drag.ROWS_MIME]), false)
+    var readOnlyDrop = []
+    Drag.dropInto(pane(readOnlyDrop, [], rows), readOnlyWire[Drag.ROWS_MIME], ["file:///d/a.txt"], "/e", 42)
+    check("so a same-device drop of it copies", readOnlyDrop[0].op, "copy")
+    check("a finished move does not delete the uri-list the receiver is moving", Drag.releaseDeletes(Qt.MoveAction, false), false)
     var wire = Drag.mimeFor(lifted, [2, 3], false)
     check("the marker names the source directory", Drag.markerSource(wire[Drag.ROWS_MIME]), "/d")
     check("and its filesystem", Drag.markerDev(wire[Drag.ROWS_MIME]), 42)
@@ -120,12 +128,9 @@ function run(check) {
     var inside = []
     check("and the transfer is refused before it is sent", Drag.dropInto(pane(inside, [], rows), "", folderUrls, "/d/omarchy/deep", 3), false)
     check("so nothing reached the backend", inside.length, 0)
-    // A foreign drag of a file into the folder it already lives in would copy it onto itself.
     check("a file from another window cannot land in its own folder", Drag.canDropInto("", ["file:///d/a.txt"], "/d"), false)
     check("but the same file can land one folder down", Drag.canDropInto("", ["file:///d/a.txt"], "/d/omarchy"), true)
     check("and a file straight under the root cannot land in the root", Drag.canDropInto("", ["file:///a.txt"], "/"), false)
-    // Which route a drop takes: paths whenever the drag carries them, the row index only for a
-    // selection too wide to carry paths, and then only on the listing it was lifted from.
     check("hasPaths reads the uri-list", Drag.hasPaths(urls), true)
     check("and answers false for a drag carrying none", Drag.hasPaths([]), false)
     check("a wide drag drops by index on its own listing", Drag.canDropByIndex(wire[Drag.ROWS_MIME], "/d", [0, 2], 1), true)
@@ -156,7 +161,6 @@ function run(check) {
     check("and it is a copy of those paths into that folder",
           JSON.stringify(external),
           JSON.stringify([{ c: "transfer", op: "copy", paths: ["/x/a.txt", "/x/b.txt"], dest: "/d/omarchy" }]))
-    // A file row and a row not loaded are refused before any drop by ui/List.qml's own canDrop above.
     var extRefused = []
     check("an external drop carrying no local file sends nothing",
           Drag.dropInto(pane(extRefused, [], rows), "", ["https://example.com/a.txt"], "/d/omarchy", 0), false)
@@ -179,9 +183,6 @@ function run(check) {
           Drag.mimeFor(pane([], [], rows), [], false).hasOwnProperty("text/uri-list"), false)
     check("the bar says nothing extra when the drag can leave", Drag.reachNote(true), "")
     check("and names the limit when it cannot", Drag.reachNote(false), " · too wide to drag out")
-    // A selection reaches past the window the client holds, and dropping the rest in silence is how
-    // Ops.js "abandoned the rest" on a wide move. The payload and the count the bar says must agree,
-    // so an unresolvable selection offers no uri-list at all rather than a subset of one.
     var wide = Drag.mimeFor(pane([], [], rows), [0, 9], false)
     check("a selection reaching past the held window offers no uri-list at all",
           wide.hasOwnProperty("text/uri-list"), false)
@@ -200,34 +201,34 @@ function run(check) {
           Drag.isOwnDrag(""), false)
     check("the marker names the sender before the rows",
           Drag.markerPayload([0, 2], false).split("\n")[1], "0,2")
-    // The wire's marker carries the pane's directory and its device, 0 when the stub backend has none.
     check("and the whole marker is what goes on the wire",
           Drag.mimeFor(pane([], [], rows), [0, 2], false)[Drag.ROWS_MIME], Drag.markerPayload([0, 2], false, "/d", 0))
 
     // One function decides the verb, and the label and the transfer both read it: a line promising a
     // copy while a move happens is the shape this branch has already produced twice.
-    check("within one volume this window's own drag moves", Drag.verbFor(true, false, 56, 56), "move")
+    check("within one volume this window's own drag moves", Drag.verbFor(true, false, false, 56, 56, true), "move")
     check("across two volumes it copies, so the original survives the crossing",
-          Drag.verbFor(true, false, 56, 32), "copy")
-    check("ctrl forces a copy within one volume", Drag.verbFor(true, true, 56, 56), "copy")
-    check("and across two it is a copy either way", Drag.verbFor(true, true, 56, 32), "copy")
-    check("anything from elsewhere copies", Drag.verbFor(false, false, 56, 56), "copy")
-    check("and ctrl cannot turn that into a move", Drag.verbFor(false, true, 56, 56), "copy")
+          Drag.verbFor(true, false, false, 56, 32, true), "copy")
+    check("ctrl forces a copy within one volume", Drag.verbFor(true, true, false, 56, 56, true), "copy")
+    check("and across two it is a copy either way", Drag.verbFor(true, true, false, 56, 32, true), "copy")
+    check("shift forces a move even across two volumes", Drag.verbFor(true, false, true, 56, 32, true), "move")
+    check("a drag that started in another process follows the same device rule",
+          Drag.verbFor(false, false, false, 56, 56, true), "move")
+    check("ctrl forces a copy from that other process too", Drag.verbFor(false, true, true, 56, 56, true), "copy")
     check("a source device that could not be read copies rather than risk a move",
-          Drag.verbFor(true, false, 0, 56), "copy")
+          Drag.verbFor(true, false, false, 0, 56, true), "copy")
     check("and a destination that could not be read does the same",
-          Drag.verbFor(true, false, 56, 0), "copy")
+          Drag.verbFor(true, false, false, 56, 0, true), "copy")
+    check("shift moves even when neither device is known", Drag.verbFor(false, false, true, 0, 0, false), "move")
+    check("a source that cannot be deleted copies on the same device",
+          Drag.verbFor(true, false, false, 56, 56, false), "copy")
     check("the row label reads the verb the same function gave",
-          Drag.label(Drag.verbFor(true, false, 56, 32) === "copy"), "copy here")
+          Drag.label(Drag.verbFor(true, false, false, 56, 32, true) === "copy"), "copy here")
     check("and so does the bar line",
-          Drag.line(1, "omarchy", Drag.verbFor(true, false, 56, 56) === "copy"),
-          "Move 1 item to omarchy · ctrl at lift copies")
+          Drag.line(1, "omarchy", Drag.verbFor(true, false, false, 56, 56, true) === "copy"),
+          "Move 1 item to omarchy · ctrl copies and shift moves, read at lift")
 
-    // The lift's ctrl rides the marker because the drop event cannot carry it any more: Flea now
-    // advertises Qt.CopyAction alone, so Chromium stops reporting dropEffect move, and Qt clamps
-    // a DragEvent's proposedAction to what the source advertised. Measured on Qt 6.11.2: the
-    // receiver read proposedAction 2 of supported 3 under copy|move and 1 of 1 under copy alone.
-    check("the marker's last field is the modifier the lift read",
+    check("the marker's third field is the ctrl bit the lift read",
           Drag.markerPayload([0, 2], true).split("\n")[2], "copy")
     check("and a plain lift says move in that same field",
           Drag.markerPayload([0, 2], false).split("\n")[2], "move")
@@ -243,50 +244,50 @@ function run(check) {
     check("the wire carries the modifier the lift read", Drag.markerCopying(heldWire), true)
     check("and a plain lift puts a move on it", Drag.markerCopying(plainWire), false)
     check("so a plain drag within one volume still moves",
-          Drag.verbFor(Drag.isOwnDrag(plainWire), Drag.markerCopying(plainWire), 56, 56), "move")
+          Drag.verbFor(Drag.isOwnDrag(plainWire), Drag.markerCopying(plainWire), Drag.markerShift(plainWire), Drag.markerDev(plainWire) || 56, 56, Drag.markerDeletable(plainWire)), "move")
     check("ctrl at the lift still forces a copy",
-          Drag.verbFor(Drag.isOwnDrag(heldWire), Drag.markerCopying(heldWire), 56, 56), "copy")
+          Drag.verbFor(Drag.isOwnDrag(heldWire), Drag.markerCopying(heldWire), Drag.markerShift(heldWire), 56, 56, Drag.markerDeletable(heldWire)), "copy")
     check("and across two volumes the marker cannot make it a move",
-          Drag.verbFor(Drag.isOwnDrag(plainWire), Drag.markerCopying(plainWire), 56, 32), "copy")
-    check("a marked drag from another Flea window still copies, whatever its marker says",
-          Drag.verbFor(Drag.isOwnDrag("some-other-flea\n0,2\nmove"),
-                       Drag.markerCopying("some-other-flea\n0,2\nmove"), 56, 56), "copy")
+          Drag.verbFor(Drag.isOwnDrag(plainWire), Drag.markerCopying(plainWire), Drag.markerShift(plainWire), 56, 32, true), "copy")
+    var other = "some-other-flea\n0,2\nmove\n/x\n56"
+    check("another process's marker moves when the devices match",
+          Drag.verbFor(Drag.isOwnDrag(other), Drag.markerCopying(other), Drag.markerShift(other), 56, 56, Drag.markerDeletable(other)), "move")
 
     var fromOtherFlea = []
     Drag.dropInto(pane(fromOtherFlea, [], rows), "some-other-flea\n0\nmove\n/x\n56", ["file:///x/a.txt"], "/d/omarchy", 56)
-    check("a drop from another Flea window copies, like any other foreign source",
-          fromOtherFlea.length === 1 ? fromOtherFlea[0].op : "nothing sent", "copy")
+    check("a drop from another Flea window moves when the devices match",
+          fromOtherFlea.length === 1 ? fromOtherFlea[0].op : "nothing sent", "move")
 
     var feedback = Drag.feedbackFor(Drag.markerPayload([1, 3], false, "/source", 56),
         ["file:///source/a.txt", "file:///source/link"])
     check("a different view reads the full carried count from the marker", feedback.count, 2)
     check("target feedback follows same-device move", Drag.feedbackLine(feedback, "folder", 56),
-        "Move 2 items to folder · ctrl at lift copies")
+        "Move 2 items to folder · ctrl copies and shift moves, read at lift")
     check("target feedback follows cross-device copy", Drag.feedbackLine(feedback, "folder", 32),
         "Copy 2 items to folder")
     check("an unknown destination is described as copy", Drag.feedbackLine(feedback, "folder", 0),
         "Copy 2 items to folder")
     check("leaving a target restores the source gesture's generic line", Drag.feedbackLine(feedback, "", feedback.dev),
-        "Move 2 items to a folder · ctrl at lift copies")
+        "Move 2 items to a folder · ctrl copies and shift moves, read at lift")
     var wideFeedback = Drag.feedbackFor(Drag.markerPayload([1, 3, 5], false, "/source", 56), [])
     check("a wide payload keeps its whole count in another view", wideFeedback.count, 3)
     check("wide feedback never promises external reach", Drag.feedbackLine(wideFeedback, "folder", 56),
-        "Move 3 items to folder · ctrl at lift copies · too wide to drag out")
+        "Move 3 items to folder · ctrl copies and shift moves, read at lift · too wide to drag out")
     var foreignFeedback = Drag.feedbackFor("other\n0,1,2\nmove\n/source\n56", ["file:///source/a.txt"])
     check("foreign feedback counts actual paths, never foreign row indices", foreignFeedback.count, 1)
-    check("foreign feedback copies on the same device", Drag.feedbackLine(foreignFeedback, "folder", 56),
-        "Copy 1 item to folder")
+    check("foreign feedback moves on the same device", Drag.feedbackLine(foreignFeedback, "folder", 56),
+        "Move 1 item to folder · ctrl copies and shift moves, read at lift")
     check("a pathless foreign payload has no live feedback", Drag.feedbackLine(Drag.feedbackFor("", []), "folder", 56), "")
     check("ctrl survives the feedback handoff", Drag.feedbackLine(Drag.feedbackFor(
         Drag.markerPayload([1], true, "/source", 56), ["file:///source/a.txt"]), "folder", 56), "Copy 1 item to folder")
 
-  // DragOut rule 4: Flea is the shelf's one named receiver, so the word it says while a shelf drag
-  // hovers is the intent the lift fixed, not the one a missing rows marker would imply.
+    check("an outside offer of move alone says move",
+        Drag.feedbackLine(Drag.feedbackFor("", ["file:///p/one"], "", Qt.MoveAction), "drafts", 0), "Move 1 item to drafts · ctrl copies and shift moves, read at lift")
   var moveDrag = "9f2c\nmove"
   var copyDrag = "9f2c\ncopy"
   check("a shelf drag's own verb is what the hover says",
         Drag.feedbackLine(Drag.feedbackFor("", ["file:///p/one", "file:///p/two"], moveDrag), "drafts", 0),
-        "Move 2 items to drafts · ctrl at lift copies")
+        "Move 2 items to drafts · ctrl copies and shift moves, read at lift")
   check("and a shelf drag lifted with ctrl says copy",
         Drag.feedbackLine(Drag.feedbackFor("", ["file:///p/one"], copyDrag), "drafts", 0),
         "Copy 1 item to drafts")

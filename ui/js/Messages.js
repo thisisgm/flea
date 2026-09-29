@@ -6,6 +6,7 @@
 function route(root, message) {
     if (message.t === "listed") {
         root.dirDev = message.v || 0
+        root.dirWritable = message.w !== false
         root.listed(message.n, message.read, message.sort, message.path || "")
     } else if (message.t === "rows") {
         root.rows(message.start, message.rows, message.ms, message.kinds || [], message.listing || 0)

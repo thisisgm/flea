@@ -203,17 +203,27 @@ pub fn located_many_line(directory: &str, id: usize, transfer_id: usize, matches
 }
 
 pub fn listed_line(n: usize, read_ms: f64, sort_ms: f64, dev: u64, path: &str) -> String {
+    say_listed(n, read_ms, sort_ms, dev, path, crate::backend::ops::dir_writable(std::path::Path::new(path)))
+}
+
+// `w` is whether this user can create or delete entries in the directory. A drag from one that
+// cannot copies, because a move would have to delete the originals.
+pub(crate) fn say_listed(n: usize, read_ms: f64, sort_ms: f64, dev: u64, path: &str, writable: bool) -> String {
     format!(
-        r#"{{"t":"listed","n":{},"read":{:.3},"sort":{:.3},"v":{},"path":"{}"}}"#,
-        n, read_ms, sort_ms, dev, escape(path)
+        r#"{{"t":"listed","n":{},"read":{:.3},"sort":{:.3},"v":{},"w":{},"path":"{}"}}"#,
+        n, read_ms, sort_ms, dev, writable, escape(path)
     )
 }
 
 // The anchor's index in the new order, or -1; the fields ride last, so an unanchored reply is the line above exactly.
 pub fn listed_line_anchor(n: usize, read_ms: f64, sort_ms: f64, dev: u64, path: &str, anchor: &str, anchor_index: isize) -> String {
+    say_listed_anchor(n, read_ms, sort_ms, dev, path, crate::backend::ops::dir_writable(std::path::Path::new(path)), anchor, anchor_index)
+}
+
+pub(crate) fn say_listed_anchor(n: usize, read_ms: f64, sort_ms: f64, dev: u64, path: &str, writable: bool, anchor: &str, anchor_index: isize) -> String {
     format!(
-        r#"{{"t":"listed","n":{},"read":{:.3},"sort":{:.3},"v":{},"path":"{}","anchor":"{}","anchorIndex":{}}}"#,
-        n, read_ms, sort_ms, dev, escape(path), escape(anchor), anchor_index
+        r#"{{"t":"listed","n":{},"read":{:.3},"sort":{:.3},"v":{},"w":{},"path":"{}","anchor":"{}","anchorIndex":{}}}"#,
+        n, read_ms, sort_ms, dev, writable, escape(path), escape(anchor), anchor_index
     )
 }
 

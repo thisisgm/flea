@@ -138,7 +138,8 @@ pub fn usable_dest(dest: &str) -> Result<PathBuf, FleaError> {
         return Err(op_err("transfer", dest, "a destination must be an absolute path"));
     }
     match p.metadata() {
-        Ok(m) if m.is_dir() => Ok(p),
+        Ok(m) if m.is_dir() && crate::backend::ops::dir_writable(&p) => Ok(p),
+        Ok(m) if m.is_dir() => Err(op_err("transfer", dest, "that folder cannot be written")),
         Ok(_) => Err(op_err("transfer", dest, "the destination is not a directory")),
         Err(e) => Err(from_io("transfer", dest, &e)),
     }

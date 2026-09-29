@@ -64,6 +64,12 @@ pub fn trash(paths: &[PathBuf]) -> (Vec<Entry>, usize) {
 }
 
 pub(crate) fn trash_checked(paths: &[PathBuf], selection: Option<&[super::menu_actions::Selected]>) -> Result<(Vec<Entry>, usize), String> {
+    // A leading empty path is a drag that left this window. The receiver may already have moved
+    // the file and still accepted a move; a path that is gone is then nothing left to delete.
+    let (quiet_gone, paths) = match paths.first() {
+        Some(path) if path.as_os_str().is_empty() => (true, &paths[1..]),
+        _ => (false, paths),
+    };
     super::menu_actions::validate_sources(selection, paths)?;
     if paths.is_empty() {
         return Ok((Vec::new(), 0));
@@ -73,7 +79,7 @@ pub(crate) fn trash_checked(paths: &[PathBuf], selection: Option<&[super::menu_a
     let (present, missing): (Vec<&PathBuf>, Vec<&PathBuf>) =
         paths.iter().partition(|p| p.symlink_metadata().is_ok());
     if present.is_empty() {
-        return Ok((Vec::new(), missing.len()));
+        return Ok((Vec::new(), if quiet_gone { 0 } else { missing.len() }));
     }
     let before = list();
     let mut argv: Vec<String> = vec!["trash".to_string(), "--".to_string()];
@@ -86,7 +92,7 @@ pub(crate) fn trash_checked(paths: &[PathBuf], selection: Option<&[super::menu_a
     let _ = gio(&refs);
     let after = list();
     let mut ok = Vec::new();
-    let mut failed = missing.len();
+    let mut failed = if quiet_gone { 0 } else { missing.len() };
     for p in present {
         if p.symlink_metadata().is_ok() {
             failed += 1;
@@ -139,6 +145,14 @@ mod tests {
         let (entries, failed) = trash_checked(&gone, None).expect("a batch of missing paths is not an error");
         assert!(entries.is_empty(), "nothing was trashed, so nothing is journaled");
         assert_eq!(failed, 2, "both are counted as failures rather than as trashed");
+    }
+
+    #[test]
+    fn a_drag_release_does_not_fail_when_the_receiver_already_moved_the_file() {
+        let gone = vec![PathBuf::new(), PathBuf::from("/nonexistent/flea-drag-release.txt")];
+        let (entries, failed) = trash_checked(&gone, None).expect("quiet");
+        assert!(entries.is_empty());
+        assert_eq!(failed, 0);
     }
 
     #[test]

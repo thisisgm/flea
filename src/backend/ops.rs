@@ -126,6 +126,16 @@ pub fn duplicate(path: &Path) -> (Result<PathBuf, FleaError>, Vec<Step>) {
     }
 }
 
+// A directory this user cannot create entries in. access(2) W_OK is 2, the check Files uses.
+pub(crate) fn dir_writable(path: &Path) -> bool {
+    let bytes = std::os::unix::ffi::OsStrExt::as_bytes(path.as_os_str());
+    let Ok(c) = std::ffi::CString::new(bytes) else { return false };
+    extern "C" {
+        fn access(path: *const std::ffi::c_char, mode: std::ffi::c_int) -> std::ffi::c_int;
+    }
+    unsafe { access(c.as_ptr(), 2) == 0 }
+}
+
 // A given name is created exactly or refused; an empty one takes the first free default, because a
 // client holds a window of the listing, not the directory, so it cannot know which names are taken.
 pub fn mkdir(parent: &Path, name: &str) -> Result<(PathBuf, Vec<Step>), FleaError> {
@@ -348,5 +358,16 @@ mod tests {
         std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
         assert_eq!(err.msg, "permission denied");
         assert!(!locked.join("x").exists());
+    }
+
+    #[test]
+    fn a_directory_without_write_permission_is_not_writable() {
+        let d = TestDir::new("dirwrite");
+        let locked = d.dir("locked");
+        assert!(super::dir_writable(&locked));
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o555)).unwrap();
+        let refused = !super::dir_writable(&locked);
+        std::fs::set_permissions(&locked, std::fs::Permissions::from_mode(0o755)).unwrap();
+        assert!(refused, "a drop onto a folder that cannot be written is refused");
     }
 }

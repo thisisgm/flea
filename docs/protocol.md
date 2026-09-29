@@ -813,9 +813,9 @@ same way, which is why a scripted client waits for its line before sending `quit
 
 ### listed
 
-`{"t":"listed","n":<uint>,"read":<float>,"sort":<float>,"v":<uint>,"path":<string>}`
+`{"t":"listed","n":<uint>,"read":<float>,"sort":<float>,"v":<uint>,"w":<bool>,"path":<string>}`
 
-Example: `{"t":"listed","n":100000,"read":26.400,"sort":2.500,"v":56,"path":"/home/gm"}`
+Example: `{"t":"listed","n":100000,"read":26.400,"sort":2.500,"v":56,"w":true,"path":"/home/gm"}`
 
 `n` is the row count. `read` and `sort` are milliseconds, formatted to three decimal
 places (`{:.3}`). Sent after a successful `list` and after a successful `sort`. `read` is
@@ -828,6 +828,9 @@ every file in the directory shares it. A client compares it against the `v` of t
 being dropped on: equal is one volume and the drag moves, different is two and it copies. `v` is 0
 when the directory could not be stat'd, and a client reads 0 as unknown and copies, because copying
 where a move was meant is an annoyance and moving where a copy was meant loses the original.
+`w` is whether this user can create or delete entries in that directory. A drag from a directory
+with `w` false copies, because a move would have to delete the originals and cannot. A reply that
+omits `w` is an older backend, and a client reads that the same as true.
 
 `path` is the directory exactly as the `list` that made this listing spelled it, byte for byte, with a
 trailing slash, a symlink or a `..` left unresolved, because a client drops any `listed` line whose

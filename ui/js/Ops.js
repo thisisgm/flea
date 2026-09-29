@@ -231,6 +231,7 @@ function clip(pane, moving, paths) {
         pane.message(copied(paths.length, moving), false)
         return
     }
+    if (pane.pathsPending) return
     var idx = targetIndices(pane)
     if (idx.length === 0) return sayNoTarget(pane)
     pane.clipPending = moving
@@ -300,6 +301,7 @@ function sendTaildrop(pane, taildrop, peerId, path) {
 function compress(pane, format) {
     var idx = targetIndices(pane)
     if (idx.length === 0) return sayNoTarget(pane)
+    if (pane.pathsPending || pane.clipPending !== null) return
     // The archive request names paths and has no rows form, so the indices are resolved first and the
     // request is built in compressResolved. Naming them here would drop every row outside the window.
     pane.pathsPending = { kind: "compress", format: format }
@@ -325,6 +327,7 @@ function compressResolved(pane, list, format, menuId) {
 function pathsResolved(pane, list) {
     var pending = pane.pathsPending
     pane.pathsPending = null
+    if (pending && pending.kind === "drag") { pending.deliver(list, pending); return }
     if (pending && pending.kind === "compress") {
         compressResolved(pane, list, pending.format)
         return

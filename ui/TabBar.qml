@@ -1,5 +1,6 @@
 import QtQuick
 import "." as Flea
+import "js/DragOut.js" as DragOut
 import "js/Tabs.js" as Tabs
 
 // The window's tab strip. Hidden with no height until a second tab exists, so the default window
@@ -84,7 +85,9 @@ Item {
                 Flea.DropInto {
                     anchors.fill: parent
                     pane: root.pane
+                    enabled: DragOut.searchTabEnabled(root.pane ? root.pane.searchMode : "", tab.current)
                     switchesOnHover: true
+                    refuseLoading: DragOut.refuseLoading(root.pane && root.pane.listInFlight, true, tab.current)
                     // The pane's drop path, not its drawn one: a tab selected by the hover switch is
                     // current before its listing lands, and until then pane.path is the tab left behind.
                     dest: Tabs.pathAt(root.tabs, root.currentIndex, tab.index,

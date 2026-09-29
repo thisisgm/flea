@@ -7,6 +7,7 @@ import "contrast.js" as ContrastSuite
 import "crumbs.js" as CrumbsSuite
 import "dirsizes.js" as DirSizesSuite
 import "drag.js" as DragSuite
+import "dragout.js" as DragOutSuite
 import "dst.js" as DstSuite
 import "errors.js" as ErrorsSuite
 import "facts.js" as FactsSuite
@@ -94,7 +95,7 @@ Item {
 
         var suites = [
             ["archive", ArchiveSuite], ["background", BackgroundSuite], ["collide", CollideSuite], ["columns", ColumnsSuite], ["contrast", ContrastSuite],
-            ["dirsizes", DirSizesSuite], ["drag", DragSuite], ["dst", DstSuite],
+            ["dirsizes", DirSizesSuite], ["drag", DragSuite], ["dragout", DragOutSuite], ["dst", DstSuite],
             ["edmonton", DstSuite],
             ["errors", ErrorsSuite], ["facts", FactsSuite], ["filter", FilterSuite], ["filter-cursor", FilterCursorSuite],
             ["focus", FocusSuite], ["focus-grid", FocusGridSuite], ["focus-forward", FocusForwardSuite],

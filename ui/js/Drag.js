@@ -1,5 +1,6 @@
 .pragma library
 
+.import "DragOut.js" as DragOut
 .import "Ops.js" as Ops
 .import "Swap.js" as Swap
 
@@ -21,10 +22,14 @@ function carried(pane, index) {
     return [index]
 }
 
-// Ctrl copies and a plain drag moves, the convention of every desktop file manager and the board's
-// own default, whose label reads "move here". Shift and alt mean nothing here.
+// Ctrl copies. Shift moves. Both are read at the lift: once Drag.active runs, the window gets no keys.
+// Ctrl and Shift together stay a copy. A link is not offered.
 function copying(modifiers) {
     return (modifiers & Qt.ControlModifier) !== 0
+}
+
+function shifting(modifiers) {
+    return (modifiers & Qt.ShiftModifier) !== 0 && !copying(modifiers)
 }
 
 // Only a directory row takes a drop, and never one the drag itself carries: a folder cannot move into
@@ -41,13 +46,12 @@ function label(copy) {
     return copy ? "copy here" : "move here"
 }
 
-// The status bar's half of the board: "Move 2 items to omarchy · ctrl at lift copies". The hint
-// names the lift because Drag.active runs a nested event loop the window gets no key events in, so
-// a ctrl pressed after the drag starts cannot reach anything and must not be advertised as if it can.
+// The status bar's half of the board. The hint names the lift because Drag.active runs a nested
+// event loop the window gets no key events in, so a key pressed after the drag starts cannot arrive.
 function line(n, name, copy) {
     var verb = copy ? "Copy " : "Move "
     var where = name.length > 0 ? " to " + name : " to a folder"
-    return verb + Ops.items(n) + where + (copy ? "" : " · ctrl at lift copies")
+    return verb + Ops.items(n) + where + (copy ? "" : " · ctrl copies and shift moves, read at lift")
 }
 
 // Rows as Ops.moveToDropbox sends them, named in the listing of the lift; answers whether the card's question went out.
@@ -63,18 +67,7 @@ function drop(pane, rows, index, copy, listing) {
 // not one is left behind rather than guessed at, so a drag from a browser carrying an http link
 // contributes nothing instead of a bogus path. The wire form is percent-encoded, so it is decoded here.
 function pathsFromUrls(urls) {
-    var paths = []
-    if (!urls) {
-        return paths
-    }
-    for (var i = 0; i < urls.length; i++) {
-        var url = String(urls[i])
-        if (url.indexOf("file:///") !== 0) {
-            continue
-        }
-        paths.push(decodeURIComponent(url.substring(7)))
-    }
-    return paths
+    return DragOut.filePaths(urls)
 }
 
 
@@ -107,10 +100,29 @@ var INSTANCE = String(Date.now()) + "-" + String(Math.floor(Math.random() * 1000
 // The marker's payload: which Flea sent it, the rows it carries, then the modifier the lift read.
 // One marker rather than a second mime type, because two types are two things to keep in agreement
 // and a drop carrying one but not the other is a state nobody would have written a branch for.
-// The modifier rides here because Drag.supportedActions is the only field another application ever
-// sees, and offering it Qt.MoveAction is what made Chromium report dropEffect move.
-function markerPayload(rows, copy, source, dev) {
-    return INSTANCE + "\n" + rows.join(",") + "\n" + (copy ? "copy" : "move") + "\n" + String(source || "") + "\n" + String(dev || 0)
+// Field 2 is ctrl at the lift. Field 5 is whether the source can be deleted (missing means yes, so
+// another Flea's older marker still moves). Field 6 is shift at the lift.
+// The listing directory's own writability. Missing means the reply predates the field, and a move
+// stays available; an explicit false is a directory this user cannot delete from, so the drag copies.
+function listingDeletable(pane) {
+    return !(pane && pane.backend && pane.backend.dirWritable === false)
+}
+
+// dragFinished runs when the receiver accepts, which is before Files has read a uri-list it is
+// about to move. Deleting on that acceptance puts the files in Trash and the destination never
+// gets them. Files moves or copies the files itself. A drop this window already transferred
+// accepts copy, so it does not delete either.
+function releaseDeletes(dropAction, landed) {
+    // dropAction is what the receiver accepted. landed means this window already transferred.
+    // Files moves a uri-list after accepting it. An in-window drop already moved or copied.
+    // Deleting on acceptance races that read, so this is never a delete.
+    void dropAction
+    void landed
+    return false
+}
+
+function markerPayload(rows, copy, source, dev, deletable, shift) {
+    return INSTANCE + "\n" + rows.join(",") + "\n" + (copy ? "copy" : "move") + "\n" + String(source || "") + "\n" + String(dev || 0) + "\n" + (deletable === false ? "0" : "1") + "\n" + (shift === true ? "1" : "0")
 }
 
 // The directory the rows were lifted from, and its filesystem, both baked at the lift: a drop that
@@ -122,6 +134,16 @@ function markerSource(payload) {
 
 function markerDev(payload) {
     return Number(String(payload).split("\n")[4]) || 0
+}
+
+function markerShift(payload) {
+    return String(payload).split("\n")[6] === "1"
+}
+
+// Missing means the source can be deleted. Only an explicit 0 copies a same-device drag.
+function markerDeletable(payload) {
+    var field = String(payload).split("\n")[5]
+    return field !== "0"
 }
 
 // Whether the listing under the drop is still the one the rows were lifted from, which is the only
@@ -141,8 +163,7 @@ function canDropByIndex(marker, path, rows, index) {
     return rows.length > 0 && sameListing(marker, path) && rows.indexOf(index) < 0
 }
 
-// Whether the marked drag was lifted with ctrl down. Anything carrying no marker answers false,
-// which costs nothing: verbFor already copies everything that did not come from this window.
+// Whether the marked drag was lifted with ctrl down. No marker answers false.
 function markerCopying(payload) {
     return String(payload).split("\n")[2] === "copy"
 }
@@ -173,9 +194,9 @@ function uriFor(path) {
 // "a wide move relocated a few files and abandoned the rest", and here it would hand another
 // application a subset while the bar named the whole count. No list at all is refusable and visible.
 // Whether the key is present is also what tells the bar the drag cannot leave Flea.
-function mimeFor(pane, rows, copy) {
+function mimeFor(pane, rows, copy, shift) {
     var mime = {}
-    mime[ROWS_MIME] = markerPayload(rows, copy, pane.path, pane.backend ? pane.backend.dirDev : 0)
+    mime[ROWS_MIME] = markerPayload(rows, copy, pane.path, pane.backend ? pane.backend.dirDev : 0, listingDeletable(pane), shift === true)
     var uris = []
     var paths = []
     for (var i = 0; i < rows.length; i++) {
@@ -198,62 +219,43 @@ function mimeFor(pane, rows, copy) {
 // directory, or a folder row reached after the listing changed under the drag. A drop into the
 // directory the rows came from is nothing to do and is refused; a drag with no uri-list, which is a
 // selection too wide to leave the window, carries no paths to send and is refused too.
-function canDropInto(marker, urls, dest) {
-    if (isOwnDrag(marker) && markerSource(marker) === dest) {
-        return false
-    }
-    var paths = pathsFromUrls(urls)
-    for (var i = 0; i < paths.length; i++) {
-        // A folder into itself or its own subtree: copy_dir would read its own fresh copy until the
-        // disk is full, so the drop is refused here and again in src/backend/opsreq.rs.
-        if (dest === paths[i] || dest.indexOf(paths[i] + "/") === 0) {
-            return false
-        }
-        // An item into the folder it already lives in, which a foreign drag can ask for: a copy onto itself.
-        var slash = paths[i].lastIndexOf("/")
-        if ((slash === 0 ? "/" : paths[i].substring(0, slash)) === dest) {
-            return false
-        }
-    }
-    return paths.length > 0
+function canDropInto(marker, urls, dest, plain) {
+    if (isOwnDrag(marker) && markerSource(marker) === dest) return false
+    var paths = DragOut.sources(urls, plain, marker, "")
+    return paths.length > 0 && DragOut.refusal(paths, dest, marker, "") === ""
 }
 
-// The transfer for a drop that resolves by path. verbFor decides move against copy the same way a
-// row drop does, from the marker's own device against the destination's; a drop from anywhere but
-// this window copies, so no source deletes a file on the strength of a drop it did not deliver.
-function dropInto(pane, marker, urls, dest, destDev, shelf) {
-    if (!canDropInto(marker, urls, dest)) {
-        return false
-    }
+// The transfer for a drop that resolves by path. verbFor is the only copy-versus-move decision.
+// proposed is the platform action of a drag that has no marker: Files states move or copy there.
+function dropInto(pane, marker, urls, dest, destDev, shelf, plain, proposed) {
+    var paths = DragOut.sources(urls, plain, marker, shelf)
+    if (!canDropInto(marker, urls, dest, plain) && shelfToken(shelf).length === 0) return false
     // Rule 4: a shelf drag is redeemed rather than re-read as a list of URIs, because a fallback to
     // a URI copy after the shelf promised a move is the silent wrong answer it forbids; its URIs only ask first.
     if (shelfToken(shelf).length > 0) {
         return pane.collide.ask({ c: "transfer", op: "", paths: [], dest: dest, shelf: shelfToken(shelf) }, pathsFromUrls(urls))
     }
-    var verb = verbFor(isOwnDrag(marker), markerCopying(marker), markerDev(marker), destDev)
-    return pane.collide.ask({ c: "transfer", op: verb, paths: pathsFromUrls(urls), dest: dest })
+    var ctrl = markerCopying(marker)
+    var shift = markerShift(marker)
+    var srcDev = markerDev(marker)
+    if (!marker) {
+        var moveBit = (proposed & Qt.MoveAction) !== 0
+        var copyBit = (proposed & Qt.CopyAction) !== 0
+        if (moveBit && !copyBit) shift = true
+        else if (copyBit && !moveBit) ctrl = true
+    }
+    var verb = verbFor(isOwnDrag(marker), ctrl, shift, srcDev, destDev, markerDeletable(marker))
+    return pane.collide.ask({ c: "transfer", op: verb, paths: paths, dest: dest })
 }
 
-// THE one place the verb is decided, so the label the operator reads and the request that is sent
-// cannot drift apart. Finder's rules, all of them: a drag from anywhere but this window copies, a
-// drag within one volume moves, a drag across two copies so the original survives the crossing, and
-// ctrl forces a copy either way.
-//
-// ctrlHeld comes off the marker markerCopying reads, and never off the drop event: Qt clamps a
-// DragEvent's proposedAction to the actions the source advertised, so a copy-only drag reports
-// Qt.CopyAction whether or not ctrl is down.
-//
-// srcDev is the listing's own filesystem from the listed line and destDev is the dropped-on folder's
-// from its row; docs/protocol.md documents both. Either being 0 means the stat failed, which is a
-// boundary that cannot be ruled out: copying where Finder would move is an annoyance, and moving
-// where Finder would copy loses the original, so unknown copies.
-function verbFor(own, ctrlHeld, srcDev, destDev) {
-    if (!own || ctrlHeld) {
-        return "copy"
-    }
-    if (!srcDev || !destDev) {
-        return "copy"
-    }
+// The only place copy versus move is chosen. own records which process started the drag and does
+// not change the answer: another process follows the device rule. Ctrl copies. Shift moves, even
+// across devices, even when a device is unknown, even when the source cannot be deleted. Ctrl wins
+// if both are held. An unknown device copies. A source that cannot be deleted copies unless Shift.
+function verbFor(own, ctrlHeld, shiftHeld, srcDev, destDev, deletable) {
+    if (ctrlHeld) return "copy"
+    if (shiftHeld) return "move"
+    if (!srcDev || !destDev || deletable === false) return "copy"
     return srcDev === destDev ? "move" : "copy"
 }
 
@@ -265,17 +267,22 @@ function reachNote(canLeave) {
 }
 
 // Sample marker: "<instance>\n1,3\nmove\n/source\n42"; feedback never becomes destination row indices.
-function feedbackFor(marker, urls, shelf) {
+function feedbackFor(marker, urls, shelf, proposed) {
     var fields = String(marker).split("\n")
     var own = fields[0] === INSTANCE
     var paths = pathsFromUrls(urls)
-    // Rule 4: the shelf fixed its verb at the lift, so Flea says that word rather than deriving one
-    // from a marker the shelf never sent, which would read as a copy for every move.
     if (shelfToken(shelf).length > 0) {
         return { own: true, copy: shelfCopying(shelf), dev: 0, fixed: shelfCopying(shelf),
                  count: paths.length, canLeave: paths.length > 0 }
     }
-    return { own: own, copy: fields[2] === "copy", dev: Number(fields[4]) || 0,
+    var copy = fields[2] === "copy"
+    var shift = fields[6] === "1"
+    if (!marker) {
+        if ((proposed & Qt.MoveAction) !== 0 && (proposed & Qt.CopyAction) === 0) shift = true
+        else if ((proposed & Qt.CopyAction) !== 0 && (proposed & Qt.MoveAction) === 0) copy = true
+    }
+    return { own: own, copy: copy, shift: shift,
+             dev: Number(fields[4]) || 0, deletable: fields[5] !== "0",
              count: own && fields[1] ? fields[1].split(",").length : paths.length,
              canLeave: paths.length > 0 }
 }
@@ -283,7 +290,7 @@ function feedbackFor(marker, urls, shelf) {
 function copyingFor(feedback, destDev) {
     if (!feedback) return true
     return feedback.fixed !== undefined ? feedback.fixed === true
-        : verbFor(feedback.own, feedback.copy, feedback.dev, destDev) === "copy"
+        : verbFor(feedback.own, feedback.copy, feedback.shift, feedback.dev, destDev, feedback.deletable) === "copy"
 }
 
 function feedbackLine(feedback, name, destDev) {

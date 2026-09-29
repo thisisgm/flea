@@ -20,6 +20,7 @@ pass=0
 fail=0
 button_down=false
 control_down=false
+RECV_PID=""
 pointer_tolerance=4
 
 export XDG_RUNTIME_DIR=/run/user/$(id -u)
@@ -121,9 +122,19 @@ cleanup() {
   if [ "$control_down" = true ]; then
     ydotool key 29:0 >/dev/null 2>&1 || { bad "cleanup could not release Ctrl"; status=1; }
   fi
+  if [ -n "$RECV_PID" ]; then
+    kill "$RECV_PID" 2>/dev/null || true
+    wait "$RECV_PID" 2>/dev/null || true
+  fi
   if [ -f "$SB/flea.log" ]; then
     note "native stderr from $SB/flea.log"
-    cat -- "$SB/flea.log"
+    # WAYLAND_DEBUG traces every request. Keep the drag facts and the application's own lines.
+    if grep -q '^\[' "$SB/flea.log"; then
+      grep -E 'origin window|start_drag' "$SB/flea.log" || true
+      grep -v -E '^\[' "$SB/flea.log" | tail -80
+    else
+      cat -- "$SB/flea.log"
+    fi
   fi
   if [ "$drained" = true ]; then
     sandbox_remove "$SB" 2>/dev/null
@@ -210,6 +221,7 @@ r5_state() {
 
 # The product entry resolves the UI, renderer and backend identity before execing Quickshell.
 QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" HOME="$HOMEDIR" FLEA_TEST_RUN_ROOT="$SB" \
+  WAYLAND_DEBUG=1 \
   setsid "$FLEA_BIN" --gui "$HOMEDIR" >"$SB/flea.log" 2>&1 &
 FLEA_PID=$!
 MYID=""
@@ -402,14 +414,9 @@ check "a plain drag is a move, so the source is gone" \
 # ---------------------------------------------------------------- R3
 echo
 echo "== R3: ctrl decides copy versus move, and the lift is where it is read =="
-# The modifier used to ride drag.proposedAction, which Qt recomputes from the live keyboard, so ctrl
-# pressed after the final motion still reached the drop. It cannot any more: the drag advertises
-# Qt.CopyAction alone so Chromium stops reporting dropEffect move, and Qt clamps a DragEvent's
-# proposedAction to what the source advertised. Measured on Qt 6.11.2 from the DropArea itself, the
-# receiver read proposedAction 2 of supported 3 under copy|move and 1 of 1 under copy alone, and
-# Copy|Link reads 1 of 5, so no pair of actions both discriminates ctrl and keeps the copy promise.
-# ui/js/Drag.js's own row marker carries it instead, baked when the DragHandler activates, so ctrl
-# is held from before the press here and a ctrl pressed mid-drag now leaves the drag a move.
+# Ctrl and Shift are read when the drag starts. Drag.active then runs a nested loop in which the
+# window receives no keys, so a ctrl pressed after that leaves the verb as it was at the lift.
+# The drag offers both copy and move. This case holds Ctrl before the press, so the drop copies.
 set -- $(screen_centre r3.txt); sx=$1; sy=$2
 set -- $(screen_centre aaa);    ax=$1; ay=$2
 warp "$sx" "$sy"; sleep 0.4
@@ -437,7 +444,7 @@ press; sleep 0.3
 glide_to "$bx" "$by"; sleep 0.8
 MID=$(ipc stickyMessage)
 release; sleep 0.6
-check "the line names the folder under the pointer" "$MID" "Move 1 item to bbb · ctrl at lift copies"
+check "the line names the folder under the pointer" "$MID" "Move 1 item to bbb · ctrl copies and shift moves, read at lift"
 
 # ---------------------------------------------------------------- R1
 echo
@@ -828,7 +835,7 @@ dual_drag_diagnostic() {
 
 visit_targets() {
   local destination="$1" verb="$2" suffix=""
-  [[ "$verb" != Move ]] || suffix=' · ctrl at lift copies'
+  [[ "$verb" != Move ]] || suffix=' · ctrl copies and shift moves, read at lift'
   glide_to "$folder_x" "$folder_y"
   expect_feedback "$destination" "$verb 2 items to folder$suffix"
   glide_to "$floor_x" "$floor_y"
@@ -1044,6 +1051,124 @@ expect_ipc pathBarOpen false
 hyprctl dispatch "hl.dsp.window.float()" >/dev/null
 sleep 0.5
 echo
+
+# ---------------------------------------------------------------- outbound
+echo
+echo "== outbound: one file dragged into a second process =="
+# The in-window cases above never leave this process, so a green run said nothing about whether
+# wl_data_device.start_drag reached another client. This receiver is that client. It logs the offer
+# and exits. A missing window is a failed launch, and that failure must not be read as a drag that left.
+printf 'outbound payload\n' > "$HOMEDIR/outbound.txt"
+printf 'inner payload\n' > "$HOMEDIR/inner.txt"
+native_key :; sleep 0.3
+native_key "$HOMEDIR"; sleep 0.2
+native_key -k Return
+for i in $(seq 1 40); do
+  [ "$(ipc path)" = "$HOMEDIR" ] && [ "$(ipc listInFlight)" = false ] && rowidx outbound.txt >/dev/null 2>&1 && break
+  sleep 0.25
+done
+check "the outbound case is looking at the fixture" "$(ipc path)" "$HOMEDIR"
+
+RECV_LOG=$SB/receiver.log
+: > "$RECV_LOG"
+setsid python3 "$repo/tests/drag-receiver.py" "$RECV_LOG" >"$SB/receiver-err.log" 2>&1 &
+RECV_PID=$!
+RECV_ADDR=""
+for i in $(seq 1 40); do
+  RECV_ADDR=$(hyprctl clients -j | python3 -c '
+import json, sys
+pid = int(sys.argv[1])
+hits = [w for w in json.load(sys.stdin) if w.get("pid") == pid or w.get("title") == "flea-drag-receiver"]
+print(hits[0]["address"] if len(hits) == 1 else "")
+' "$RECV_PID") || true
+  [ -n "$RECV_ADDR" ] && break
+  sleep 0.25
+done
+if [ -z "$RECV_ADDR" ]; then
+  bad "the receiver is absent"
+  note "the drag is not claimed to have left"
+  note "receiver stderr: $(cat "$SB/receiver-err.log" 2>/dev/null)"
+else
+  ok "the receiver window is up"
+  hyprctl dispatch "hl.dsp.focus({ window = \"$RECV_ADDR\" })" >/dev/null
+  sleep 0.3
+  hyprctl dispatch "hl.dsp.window.float()" >/dev/null
+  sleep 0.3
+  hyprctl dispatch "hl.dsp.window.resize({ x = 420, y = 320 })" >/dev/null
+  sleep 0.3
+  hyprctl dispatch "hl.dsp.window.move({ x = 1100, y = 80 })" >/dev/null
+  sleep 0.4
+  FLEA_ADDR=$(hyprctl clients -j | python3 -c '
+import json, sys
+pid = int(sys.argv[1])
+hits = [w for w in json.load(sys.stdin) if w.get("pid") == pid]
+print(hits[0]["address"] if len(hits) == 1 else "")
+' "$MYPID")
+  hyprctl dispatch "hl.dsp.focus({ window = \"$FLEA_ADDR\" })" >/dev/null
+  sleep 0.4
+  hyprctl dispatch "hl.dsp.window.move({ x = 40, y = 80 })" >/dev/null
+  sleep 0.4
+  hyprctl dispatch "hl.dsp.window.resize({ x = 1000, y = 720 })" >/dev/null
+  sleep 0.6
+  geometry=$(r11_geometry) || die "outbound window geometry unavailable"
+  read -r WX WY WW WH _ <<< "$geometry"
+
+  # Edge: a release that stays inside Flea must not be a drop on the receiver, and it still moves.
+  point=$(screen_centre inner.txt) || die "inner.txt is not visible"
+  read -r sx sy <<< "$point"
+  point=$(screen_centre aaa) || die "aaa is not visible"
+  read -r ax ay <<< "$point"
+  warp "$sx" "$sy"; sleep 0.4
+  press; sleep 0.3
+  glide_to "$ax" "$ay"; sleep 0.5
+  release; sleep 0.5
+  wait_for "$HOMEDIR/aaa/inner.txt" present
+  check "a release inside Flea still moves the file" \
+        "$([ -e "$HOMEDIR/aaa/inner.txt" ] && echo moved || echo missing)" "moved"
+  check "and the other process logged nothing" \
+        "$(grep -c 'body<<' "$RECV_LOG" || true)" "0"
+
+  point=$(screen_centre outbound.txt) || die "outbound.txt is not visible"
+  read -r sx sy <<< "$point"
+  set -- $(hyprctl clients -j | python3 -c '
+import json, sys
+addr = sys.argv[1]
+for w in json.load(sys.stdin):
+    if w.get("address") == addr:
+        x, y = w["at"]; w_, h = w["size"]
+        print(x + w_ // 2, y + h // 2)
+        break
+' "$RECV_ADDR")
+  rx=$1; ry=$2
+  warp "$sx" "$sy"; sleep 0.4
+  press; sleep 0.3
+  glide_to "$rx" "$ry"; sleep 0.6
+  release; sleep 0.5
+  for i in $(seq 1 40); do
+    grep -q 'body<<' "$RECV_LOG" && break
+    sleep 0.25
+  done
+  check "the other process received the file URI" \
+        "$(python3 -c '
+import pathlib, sys
+text = pathlib.Path(sys.argv[1]).read_text() if pathlib.Path(sys.argv[1]).exists() else ""
+needle = "file://" 
+name = sys.argv[2]
+start = text.find("body<<")
+end = text.find(">>", start)
+body = text[start:end] if start >= 0 else ""
+print("received" if needle in body and name in body else "missing")
+' "$RECV_LOG" "outbound.txt")" "received"
+  check "and the original is still in the folder" \
+        "$([ -e "$HOMEDIR/outbound.txt" ] && echo kept || echo GONE)" "kept"
+  if grep -q "Couldn't start a drag because the origin window could not be found." "$SB/flea.log"; then
+    printf 'DRAG_OUTBOUND record=missing-origin\n'
+  elif grep -q 'start_drag' "$SB/flea.log"; then
+    printf 'DRAG_OUTBOUND record=start_drag\n'
+  else
+    printf 'DRAG_OUTBOUND record=no-start-line\n'
+  fi
+fi
 
 printf 'DRAG_SHARED routes=List-Grid,Grid-activeColumns,dual-left-right,dual-right-left real_relative_input=ok index_only=not_exercised transfer_preemption=not_exercised\n'
 echo "$((pass + fail)) checks, $fail failed"
