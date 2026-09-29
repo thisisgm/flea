@@ -1211,18 +1211,18 @@ exactly once, and a type nobody matches on twice would be ceremony.
 
 `--tui` and `--gui` are mutually exclusive; giving both is a usage error naming the conflict,
 never a coin flip. With neither flag the window is the default, including when both handles are
-a terminal, because the terminal interface is reserved but not built and a bare invocation must
-open the product that exists. `--tui` is the only route to that reserved interface, and the only
-mode that reads the tty at all: `main.rs` computes the `is_terminal()` pair one line above the
-`if want_tui` that is its only reader, so no other mode can consult it even by accident. It requires
-both stdin and stdout to be a real terminal, not just one, so a future implementation cannot write
-escape codes into a pipeline. `flea | head` gives stdin a tty and stdout a pipe and an explicit
-`--tui` therefore refuses. A window launch without a non-empty `WAYLAND_DISPLAY` or `DISPLAY`
-refuses rather than trying and failing inside `qs`.
+a terminal, so a bare `flea` typed at a shell opens the window. The terminal implementation in
+`src/tui` is experimental and unfinished, and is not ready for supported use. Its user-facing
+documentation is intentionally deferred until it is ready. `--tui` is its only entry point,
+and the only mode that reads the tty at all: `main.rs` computes the `is_terminal()` pair one line
+above the `if want_tui` that is its only reader, so no other mode can
+consult it even by accident. It requires both stdin and stdout to be a real terminal, not just one,
+so the interface cannot write escape codes into a pipeline. A window launch without a non-empty
+`WAYLAND_DISPLAY` or `DISPLAY` refuses rather than trying and failing inside `qs`.
 
 `./tests/modes.sh` checks both no-flag shapes: redirected handles exercise the launcher path and
 `script` from the hard `util-linux` dependency gives the child a real pty on both handles, pinning
-the terminal invocation that used to fall into the unbuilt interface.
+that a bare invocation at a terminal still takes the window branch and never the terminal interface.
 
 `paths::ui_dir()` finds the UI the same way `FLEA_BIN` finds the backend binary (see "Where
 the backend binary comes from" below): `FLEA_UI` first, then the packaged
@@ -2827,9 +2827,9 @@ array with no preset of its own, so a cap it draws for a Mac-only chord would be
 its readers the moment the toggle moved. `tests/js/keymap.js` resolves the whole sheet under both
 presets and fails if any row answers differently.
 
-The tool emits JavaScript only. Plan 6 adds the Rust output together with the terminal key
-type that consumes it; a generated module with no caller is dead code, so the second output
-waits for its consumer.
+The tool emits JavaScript only. The experimental terminal implementation in `src/tui/keymap.rs`
+embeds `keys.toml` with `include_str!` and parses it itself; it has no generated Rust keymap.
+Its preset lookup skips rows marked `frontend = "gui"`.
 
 ## Testing
 

@@ -109,7 +109,7 @@ check "missing qs carries no errno" "0" "$(echo "$out" | grep -c 'os error')"
 out=$(env -u WAYLAND_DISPLAY -u DISPLAY $BIN . 2>&1 </dev/null)
 check "no flag defaults to the window" "1" "$(echo "$out" | grep -c 'no graphical session')"
 
-# A shell PTY proves bare flea still means the product that exists, not the reserved terminal interface.
+# A shell PTY proves bare flea selects the window branch; only --tui reaches the terminal interface.
 out=$(env -u WAYLAND_DISPLAY -u DISPLAY script -qec "$BIN ." /dev/null 2>&1)
 check "no flag at a terminal defaults to the window" "1" "$(echo "$out" | grep -c 'no graphical session')"
 
