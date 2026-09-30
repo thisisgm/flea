@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|ctrlclick|viewrestart|dd|sortrestart|dirsortstale|editplace|mute|placemenu|runscript|unmounted|sidebar|menu|hidden|selection|watch|optical|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|phones|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|renderer|settings|makedefault|noblank|previewswap ...]; networklive is opt-in.
+# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|ctrlclick|viewrestart|dd|sortrestart|dirsortstale|editplace|mute|placemenu|runscript|unmounted|sidebar|menu|hidden|selection|watch|optical|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|phones|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|middleclick|openterminal|renderer|settings|makedefault|noblank|previewswap ...]; networklive is opt-in.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -4628,6 +4628,71 @@ case_tabs() {
     [[ "$(ipc tabIndex)" == "0" ]] || fail "tabs: clicking tab 0 did not select it, index=$(ipc tabIndex)"
     shot tabs-two
     printf 'TABS count=%s index=%s labels=%s\n' "$(ipc tabCount)" "$(ipc tabIndex)" "$(ipc tabLabels)"
+    kill_flea
+}
+
+# A middle click on a directory opens it in a new tab, the mirror of ui/TabBar.qml closing one on the
+# same button, in each of the three views and on a Favorites row; tests/js/tap.js holds the decision
+# in ui/js/Tap.js and this presses it at the real window. The file row and the Trash row are the
+# negative controls: the same button on a row with no folder of its own must leave the count alone,
+# which is what says the count below moved because of the directory and not because of the button.
+wait_tabs() {
+    local want="$1"
+    for _attempt in $(seq 1 40); do
+        [[ "$(ipc tabCount)" == "$want" ]] && return
+        sleep 0.25
+    done
+    fail "middleclick: $2 left $(ipc tabCount) tabs, not $want"
+}
+
+case_middleclick() {
+    local dir="$fixture_root/middleclick"
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/alpha" "$dir/fav"
+    : > "$dir/note.txt"
+    seed_ui_state "$fixture_root/middleclick-state" "$(printf '{"places":{"favourites":[{"label":"Fav","path":"%s/fav"}]}}' "$dir")"
+    launch "$dir"
+    # Measured row order: alpha, fav, note.txt.
+    wait_listing 3
+    [[ "$(ipc tabCount)" == "1" ]] || fail "middleclick: started with $(ipc tabCount) tabs, not 1"
+
+    echo "-- a file opens no tab --"
+    click_row 2 middle
+    settle
+    [[ "$(ipc tabCount)" == "1" ]] || fail "middleclick: a middle click on a file opened a tab"
+    [[ "$(ipc path)" == "$dir" ]] || fail "middleclick: a middle click on a file left for $(ipc path)"
+
+    echo "-- a directory opens in a new tab, in each view --"
+    local count=1 view
+    for view in list grid columns; do
+        [[ "$view" == list ]] || click_chrome "$view"
+        settle
+        [[ "$(ipc viewMode)" == "$view" ]] || fail "middleclick: the chrome did not switch to $view"
+        click_row 0 middle
+        count=$((count + 1))
+        wait_tabs "$count" "a middle click on alpha in $view"
+        wait_path "$dir/alpha"
+        printf 'MIDDLECLICK %s tabs=%s labels=%s\n' "$view" "$(ipc tabCount)" "$(ipc tabLabels)"
+        click_tab 0
+        wait_path "$dir"
+        wait_listing 3
+    done
+    shot middleclick-views
+
+    echo "-- a Favorites row opens in a new tab, and the Trash row opens none --"
+    local trash_index fav_index
+    trash_index=$(ipc railEntries | jq -r 'map(.label) | index("Trash")')
+    [[ -n "$trash_index" && "$trash_index" != "null" ]] || fail "middleclick: the rail has no Trash row"
+    click_rail_row "$trash_index" middle
+    settle
+    [[ "$(ipc tabCount)" == "$count" ]] || fail "middleclick: a middle click on the Trash opened a tab"
+    fav_index=$(ipc railEntries | jq -r 'map(.label) | index("Fav")')
+    [[ -n "$fav_index" && "$fav_index" != "null" ]] \
+        || fail "middleclick: the seeded favourite is not on the rail, which carries $(ipc railEntries)"
+    click_rail_row "$fav_index" middle
+    wait_tabs "$((count + 1))" "a middle click on the Fav row"
+    wait_path "$dir/fav"
+    shot middleclick-rail
     kill_flea
 }
 
@@ -10089,7 +10154,7 @@ case_previewviews() {
 . "$repo/tests/ui-transfer-live.sh"
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click ctrlclick viewrestart dd collide sortrestart duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden selection watch optical select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings makedefault clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign noblank previewswap transferlive)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click ctrlclick viewrestart dd collide sortrestart duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden selection watch optical select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject rename renamelife taildrop providers grid columns operations tabs middleclick openterminal renderer settings makedefault clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign noblank previewswap transferlive)
 
 : > "$run_log"
 : > "$flea_log"

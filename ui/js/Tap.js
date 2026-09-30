@@ -1,6 +1,7 @@
 .pragma library
 
 .import "Search.js" as Search
+.import "Tabs.js" as Tabs
 
 // The pointer contract, declared in keys.toml's [[pointer]] table and decided here and nowhere
 // else. tests/js/tap.js drives every row of Keymap.POINTER through the three functions below, so a
@@ -97,7 +98,26 @@ function onBackground(view, eventPoint) {
 function tappedColumn(row, button, tapCount) {
     if (!row || button === Qt.RightButton)
         return ""
+    if (button === Qt.MiddleButton)
+        return row.d && tapCount === 1 ? "openTab" : ""
     if (row.d)
         return tapCount === 1 ? "reveal" : ""
     return tapCount === 2 ? "open" : ""
+}
+
+// Middle click on a directory, in every view and on the Places rail: that directory in a new tab, the
+// way a browser opens a link, and the mirror of ui/TabBar.qml closing a tab on the same button. It
+// leaves the cursor and the selection where they were, because the tab being left keeps its own. A
+// file answers nothing: it has no directory to show. tabTarget is the decision and is all tests/js
+// can drive, since Tabs.openNew needs a whole pane.
+function tabTarget(row, base, root) {
+    return row && row.d && typeof row.n === "string" ? root.join(base, row.n) : ""
+}
+
+function tappedTab(row, base, root) {
+    var target = tabTarget(row, base, root)
+    if (target.length === 0)
+        return
+    root.commitOpenRename()
+    Tabs.openNew(root, target)
 }

@@ -91,9 +91,11 @@ ListView {
         TapHandler {
             id: tap
             enabled: !cell.renaming
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             onTapped: function (eventPoint, button) {
-                if (button === Qt.RightButton)
+                if (button === Qt.MiddleButton)
+                    Tap.tappedTab(root.pane.rowFor(listingIndex), root.pane.path, root.pane)
+                else if (button === Qt.RightButton)
                     Tap.tappedMenu(listingIndex, eventPoint, root.pane, root.menu)
                 else
                     Tap.tapped(listingIndex, tap.tapCount, tap.point.modifiers, root.pane)

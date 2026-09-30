@@ -281,6 +281,7 @@ Item {
             dim: true
             onActivated: function (name, isDir) { root.activateNeighbour(root.parentPath, name, isDir) }
             onNeighbourMenuRequested: function (name) { root.menuOnNeighbour(root.parentPath, name) }
+            onTabRequested: function (row) { Tap.tappedTab(row, root.parentPath, root.pane) }
         }
 
         // The pane's own listing, which is why this column and only this one takes the accent.
@@ -295,6 +296,7 @@ Item {
             // The list's and the grid's own two routes, reached from the one column whose rows are the pane's listing, so a click means the same thing in all three views.
             onPicked: function (index, tapCount, modifiers) { Tap.tappedMiddle(index, tapCount, modifiers, root.pane) }
             onMenuRequested: function (index, eventPoint) { Tap.tappedMenu(index, eventPoint, root.pane, root.menu) }
+            onTabRequested: function (row) { Tap.tappedTab(row, root.pane.path, root.pane) }
             onBackgroundMenuRequested: function (eventPoint) { root.menu.openBackground(eventPoint.scenePosition) }
             onThumbsApplied: function (work) { root.thumbsApplied(work) }
             onDirSizesApplied: function (ask) { root.dirSizesApplied(ask) }
@@ -318,6 +320,7 @@ Item {
                 drawsEmpty: root.answered(root.shownChildPath)
                 onActivated: function (name, isDir) { root.activateNeighbour(root.shownChildPath, name, isDir) }
                 onNeighbourMenuRequested: function (name) { root.menuOnNeighbour(root.shownChildPath, name) }
+                onTabRequested: function (row) { Tap.tappedTab(row, root.shownChildPath, root.pane) }
             }
 
             Flea.SelectionPreview {

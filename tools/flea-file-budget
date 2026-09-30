@@ -67,7 +67,7 @@ ui/Preview.qml 463
 ui/Row.qml 421
 ui/SettingsPanel.qml 542
 ui/SettingsRow.qml 410
-ui/Sidebar.qml 566
+ui/Sidebar.qml 568
 ui/StatusBar.qml 451
 ui/TrashView.qml 467
 ui/WindowBody.qml 546

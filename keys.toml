@@ -729,8 +729,8 @@ label = "keys"
 #        chrome     ui/ChromeBar.qml's path above the listing and a dual pane's own path, ui/PanePath.qml,
 #                   whose segments are their own targets, both drawn by ui/Crumb.qml
 # press  the button, then any modifier before it, then "x2" for the second tap of a double click
-# row    which rows the line covers: any, dir, file, parent, inert, renaming or result
-# does   backOrParent commitRename extendSelect goToCrumb menu nothing open pathBar reveal selectOnly toggleSelect
+# row    which rows the line covers: any, dir, file, parent, inert, place, renaming or result
+# does   backOrParent commitRename extendSelect goToCrumb menu nothing open openTab pathBar reveal selectOnly toggleSelect
 #
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
 # opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
@@ -823,6 +823,23 @@ row = "any"
 does = "menu"
 label = "open the context menu at the pointer, on the selection the row is in"
 
+# Middle click opens a directory in a new tab, the way a browser opens a link, and it is the mirror
+# of ui/TabBar.qml closing a tab on the same button. It moves neither the cursor nor the selection,
+# because the tab being left keeps its own; ui/js/Tap.js tappedTab decides, in all three views.
+[[pointer]]
+where = "listing"
+press = "middle"
+row = "dir"
+does = "openTab"
+label = "open the directory in a new tab"
+
+[[pointer]]
+where = "listing"
+press = "middle"
+row = "file"
+does = "nothing"
+label = "a file has no directory to open in a tab"
+
 # The operator's ruling, 2026-09-11: the columns view goes into a directory on one tap, the way both
 # of its own neighbour columns already do and the way Finder's column view does. Only a directory and
 # only here: a file in this column still waits for the second tap, and one tap in the list and the
@@ -867,6 +884,12 @@ press = "right"
 row = "any"
 does = "nothing"
 label = "a peeked row has no menu"
+[[pointer]]
+where = "neighbour"
+press = "middle"
+row = "dir"
+does = "openTab"
+label = "open the peeked directory in a new tab"
 
 # Issue 45: the path above the listing is a control now as well as a label. Every segment but the
 # leaf opens its own directory on one tap, through the same pathEntered route the typed bar uses; the
@@ -914,6 +937,15 @@ press = "right"
 row = "any"
 does = "menu"
 label = "eject and unmount"
+
+# A Places or Favorites row, ui/js/PlaceMenu.js openTabAt: the same new tab the listing's middle click
+# opens. The Trash, a share and a volume answer nothing, because none has a folder until it is opened.
+[[pointer]]
+where = "rail"
+press = "middle"
+row = "place"
+does = "openTab"
+label = "open the place in a new tab"
 
 
 # Current Desktop SettingsKeys/KeyAudit routes.

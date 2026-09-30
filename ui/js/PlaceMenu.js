@@ -1,6 +1,8 @@
 .pragma library
 
 .import "Menu.js" as Menu
+.import "Mounts.js" as Mounts
+.import "Places.js" as Places
 .import "Tabs.js" as Tabs
 
 // MenuAdditions rule 3: the folder menu, opened from a Places or Favorites row and acting on that
@@ -60,4 +62,20 @@ function removeAt(sidebar, favourites, index, path) {
 function leaf(path) {
     var cut = String(path).replace(/\/+$/, "").lastIndexOf("/")
     return cut < 0 ? path : path.substring(cut + 1)
+}
+
+// A middle click on a Places or Favorites row: its folder in a new tab, the listing's own middle click
+// (ui/js/Tap.js tappedTab). A favourite resolves as ui/Sidebar.qml openFavourite does, and a remote
+// one, which has to mount before it has a path, says so rather than opening somewhere else.
+function openTabAt(sidebar, index) {
+    var entry = sidebar.entries[index]
+    var pane = sidebar.navigationPane
+    if (!entry || !pane || (entry.kind !== "home" && entry.kind !== "favourite"))
+        return
+    var error = entry.kind === "favourite" ? Places.recordError(entry.original) : ""
+    if (error) { sidebar.message("Could not open " + entry.label + " · " + error, true); return }
+    var path = String(entry.path)
+    if (path.indexOf("file://") === 0) path = Mounts.decodePath(path.substring(7))
+    else if (path.indexOf("://") >= 0) { sidebar.message(entry.label + " opens in this tab only.", false); return }
+    Tabs.openNew(pane, path)
 }

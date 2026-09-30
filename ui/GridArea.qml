@@ -126,10 +126,12 @@ GridView {
         TapHandler {
             id: tap
             enabled: !cell.renaming
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
+            acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
             onTapped: function (eventPoint, button) {
                 if (cell.listingIndex < 0) return
-                if (button === Qt.RightButton)
+                if (button === Qt.MiddleButton)
+                    Tap.tappedTab(root.pane.rowFor(cell.listingIndex), root.pane.path, root.pane)
+                else if (button === Qt.RightButton)
                     Tap.tappedMenu(cell.listingIndex, eventPoint, root.pane, root.menu)
                 else
                     Tap.tapped(cell.listingIndex, tap.tapCount, tap.point.modifiers, root.pane)

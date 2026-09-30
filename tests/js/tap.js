@@ -43,7 +43,7 @@ function eventPoint() {
 // The table's press column, turned back into the three things a TapHandler actually reports.
 function press(text) {
     return {
-        button: text.indexOf("right") >= 0 ? Qt.RightButton : Qt.LeftButton,
+        button: text.indexOf("right") >= 0 ? Qt.RightButton : text.indexOf("middle") >= 0 ? Qt.MiddleButton : Qt.LeftButton,
         taps: text.indexOf("x2") >= 0 ? 2 : 1,
         modifiers: (text.indexOf("ctrl") >= 0 ? Qt.ControlModifier : 0)
                  | (text.indexOf("shift") >= 0 ? Qt.ShiftModifier : 0)
@@ -80,6 +80,8 @@ function driveListing(row) {
     // A result is an ordinary listing row; what makes it one is the mode the pane is in.
     if (row.row === "result")
         sink.searchMode = "results"
+    if (p.button === Qt.MiddleButton) // a new tab needs a whole pane, so the path tappedTab would open is driven
+        return Tap.tabTarget(row.row === "file" ? { n: "a.txt" } : { n: "sub", d: true }, "", { join: function () { return "openTab" } }) || "nothing"
     if (p.button === Qt.RightButton) {
         var raised = menu()
         Tap.tappedMenu(2, eventPoint(), sink, raised)
@@ -124,11 +126,11 @@ function countWhere(where) {
 function run(check) {
     var rows = Keymap.POINTER
     // The denominator first: an empty table would pass every loop below by having nothing in it.
-    check("the pointer table reached the tests at all", rows.length, 20)
-    check("the table declares the listing's clicks", countWhere("listing"), 10)
+    check("the pointer table reached the tests at all", rows.length, 24)
+    check("the table declares the listing's clicks", countWhere("listing"), 12)
     check("the table declares the middle column's own click", countWhere("column"), 1)
-    check("the table declares the neighbour columns' clicks", countWhere("neighbour"), 4)
-    check("the table declares the rail's clicks", countWhere("rail"), 2)
+    check("the table declares the neighbour columns' clicks", countWhere("neighbour"), 5)
+    check("the table declares the rail's clicks", countWhere("rail"), 3)
     // Issue 20's back button belongs to no row, so it is declared against the window itself and
     // ui/WindowBody.qml is what carries it; nothing here can press it and tests/ui.sh does, with ydotool.
     check("the table declares the window's own buttons", countWhere("window"), 1)
@@ -159,9 +161,9 @@ function run(check) {
                   driveNeighbour(rows[i]), rows[i].does)
         }
     }
-    check("every listing row of the table was driven", drivenListing, 10)
+    check("every listing row of the table was driven", drivenListing, 12)
     check("every middle column row of the table was driven", drivenColumn, 1)
-    check("every neighbour row of the table was driven", drivenNeighbour, 4)
+    check("every neighbour row of the table was driven", drivenNeighbour, 5)
 
     // The operator's own defect, stated as the thing that must never come back: a single left click
     // reached act("open") on any row, in every view, before 2026-09-02.

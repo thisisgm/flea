@@ -26,6 +26,8 @@ Item {
     // away from the list, see AGENTS.md "A second ContextMenu instance breaks the whole window's
     // keyboard focus", which is why the rail had no menu at all until now.
     signal menuRequested(int index, var scenePosition)
+    // Middle click: the row's folder in a new tab; ui/js/PlaceMenu.js openTabAt decides which rows have one.
+    signal tabRequested(int index)
     signal renameCommitted(int index, string text)
     signal renameCancelled(int index)
 
@@ -263,11 +265,15 @@ Item {
     }
 
     TapHandler {
-        acceptedButtons: Qt.LeftButton | Qt.RightButton
+        acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
         onTapped: function (eventPoint, button) {
             // The field owns clicks inside itself while editing; this only covers the rest of the row.
             if (root.renaming)
                 return
+            if (button === Qt.MiddleButton) {
+                root.tabRequested(root.index)
+                return
+            }
             // The mark releases on its own left tap; the row must not activate underneath
             // it, while a right tap still raises the menu it always did.
             if (button === Qt.LeftButton && root.showsEject && root.ejectAt(eventPoint.scenePosition))

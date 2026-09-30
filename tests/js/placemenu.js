@@ -72,4 +72,14 @@ function run(check) {
     check("and refuses when the record it was opened on is not there any more",
           favourites.removed.join(",") + "|" + legacy.said,
           "0,0|Favorites changed; reopen the menu before removing this row.")
+
+    // A middle click opens a Places or Favorites row in a new tab; the rows with no folder of their
+    // own until they are opened answer nothing, and a remote favourite says why.
+    var middle = sidebarStub([])
+    middle.entries = [{ kind: "trash", label: "Trash" }, { kind: "favourite", label: "NAS", path: "smb://nas/data",
+                       original: { label: "NAS", path: "smb://nas/data" } }]
+    PlaceMenu.openTabAt(middle, 0)
+    check("a middle click on the Trash opens nothing", middle.said + middle.navigationPane.tabs.items.length, "0")
+    PlaceMenu.openTabAt(middle, 1)
+    check("and a remote favourite says it opens in this tab only", middle.said, "NAS opens in this tab only.")
 }
