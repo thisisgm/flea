@@ -1,4 +1,5 @@
 .pragma library
+.import "CutMarks.js" as CutMarks
 .import "Eject.js" as Eject
 .import "Filter.js" as Filter
 .import "Grid.js" as Grid
@@ -128,11 +129,11 @@ function act(action, root, menuId, paths) {
     // ExtThumbs: the background menu's class row and any future chord land here.
     case "extThumbs": root.toggleExtThumbs(); return
     case "sidebar": root.toggleRail(); return
-    // Popups handle Escape first; the focused listing then unwinds filter, search, status and marks.
+    // Popups handle Escape first; the focused listing then unwinds filter, search, a cut, status and marks.
     case "escape":
         if (root.filterTyping || root.filterQuery.length > 0) Filter.close(root)
         else if (root.searchMode.length > 0 && root.focusView === LIST) Search.cancel(root)
-        else if (root.statusBar && root.statusBar.escapePressed()) return
+        else if (CutMarks.cancel(root) || (root.statusBar && root.statusBar.escapePressed())) return
         else root.escapePressed()
         return
     case "preview": PreviewKeys.open(root); return

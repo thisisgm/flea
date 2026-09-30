@@ -1,6 +1,7 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
+import "js/CutMarks.js" as CutMarks
 import "js/Filter.js" as Filter
 import "js/ExtThumbs.js" as ExtThumbs
 import "js/Tap.js" as Tap
@@ -201,6 +202,8 @@ Item {
             row: root.pane ? root.pane.rowFor(listingIndex) : root.rows[index] !== undefined ? root.rows[index] : null
             thumb: root.pane !== null && Thumbs.allowed(row, ViewState.thumbnailMode) ? root.pane.thumbFor(listingIndex) : ""
             showSize: root.pane !== null
+            // Only the pane's own column: a peek has no path of its own here to join a row against.
+            cut: CutMarks.rowIsCut(root.pane, row)
             dirSize: root.pane !== null ? DirSizes.sizeFor(root.pane.dirSizeState, listingIndex) : null
             cursor: root.selectedIndex >= 0 && listingIndex === root.selectedIndex
             // The list and the grid both mark a selection member apart from the cursor; so does this.

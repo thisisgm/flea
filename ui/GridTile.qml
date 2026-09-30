@@ -16,6 +16,10 @@ Item {
     property bool dropTarget: false
     property bool dropCopying: false
     property string thumb: ""
+    // On the clipboard as a cut: the scissors take the mark slot, see ui/js/CutMarks.js.
+    property bool cut: false
+    // And faded, Nautilus's other half of the cue: the row is leaving once the paste lands.
+    opacity: root.cut ? 0.5 : 1
     property bool renaming: false
     property var renamePane: null
     readonly property string editorText: editor.current
@@ -71,7 +75,7 @@ Item {
         Image {
             id: tileThumb
             anchors.fill: parent
-            visible: root.thumbDrawn
+            visible: root.thumbDrawn && !root.cut
             // Format.fileUri, not a concatenation: a cache path can carry a # or a ? and either one
             // silently truncates a plain file:// URL, which is what the hashcache fixture proves.
             source: root.thumb.length > 0 ? Format.fileUri(root.thumb) : ""
@@ -84,10 +88,10 @@ Item {
 
         Flea.Glyph {
             anchors.fill: parent
-            visible: !root.thumbDrawn
+            visible: !root.thumbDrawn || root.cut
             // The tile is the mark's own slot: without its own ceiling Glyph caps a 46 px tile at the 19 px row mark.
             maxSize: ViewState.thumbnailPixels
-            name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : "file"
+            name: root.cut ? "scissors" : root.row ? Icons.glyphForRow(root.row.i, root.row.p) : "file"
             // ThemeRoles.dc.html gives accent the selection fill and edge and foreground the label
             // and the mark inside it, so the border carries the emphasis and the ink stays readable.
             color: root.cursor || root.selected ? Theme.color.foreground : Theme.color.muted

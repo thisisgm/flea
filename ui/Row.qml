@@ -17,6 +17,9 @@ Item {
     readonly property real sizeWidth: root.dualMode ? Theme.dualColumn.size : Theme.column.size
     property bool hovered: false
     property string thumb: ""
+    // On the clipboard as a cut: faded, with the scissors in the icon slot, Nautilus's cue; see ui/js/CutMarks.js.
+    property bool cut: false
+    opacity: root.cut ? 0.5 : 1
     property bool selected: false
     // The per-response dictionary row.k indexes into; List.qml hands down the same array every row of one response shares.
     property var kindNames: []
@@ -112,7 +115,7 @@ Item {
     // share this slot and exactly one is visible, chosen by whether the pane holds a thumbnail path.
     Image {
         id: thumbImage
-        visible: root.thumbDrawn
+        visible: root.thumbDrawn && !root.cut
         anchors.left: parent.left
         anchors.leftMargin: Theme.spacing.rowPaddingX + root.leadingSlot
         anchors.verticalCenter: parent.verticalCenter
@@ -129,13 +132,13 @@ Item {
 
     Glyph {
         id: icon
-        visible: !root.thumbDrawn
+        visible: !root.thumbDrawn || root.cut
         anchors.left: parent.left
         anchors.leftMargin: Theme.spacing.rowPaddingX + root.leadingSlot
         anchors.verticalCenter: parent.verticalCenter
         width: root.markSlot
         height: root.markSlot
-        name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : Icons.FALLBACK
+        name: root.cut ? "scissors" : root.row ? Icons.glyphForRow(root.row.i, root.row.p) : Icons.FALLBACK
         color: root.dualMode ? (root.cursor && root.paneFocused ? Theme.color.accent : Theme.color.muted)
             : root.lifted ? Theme.color.foreground : root.dim
     }

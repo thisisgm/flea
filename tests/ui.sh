@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
-# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|ctrlclick|viewrestart|dd|sortrestart|dirsortstale|editplace|mute|placemenu|runscript|unmounted|sidebar|menu|hidden|selection|watch|optical|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|phones|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|openterminal|renderer|settings|makedefault|noblank|previewswap ...]; networklive is opt-in.
+# Usage: ./tests/ui.sh [cursor|terminal|open|rows|click|ctrlclick|viewrestart|dd|sortrestart|dirsortstale|editplace|mute|placemenu|runscript|unmounted|sidebar|menu|hidden|selection|watch|optical|select|colour|lifted|icons|thumbs|hashcache|stale|nosweep|oem|header|overflow|focus|preview|network|netmark|networktimeout|networklive|gvfs|sharebrowser|unmount|phones|eject|rename|renamelife|taildrop|grid|columns|operations|tabs|cutmark|openterminal|renderer|settings|makedefault|noblank|previewswap ...]; networklive is opt-in.
 set -u
 set -o pipefail
 # Hard rule 9's guard, which owns FIXTURE_ROOT and every create and delete this suite makes.
@@ -4582,6 +4582,50 @@ click_tab() {
     read -r wx wy _ww _wh < <(window_box) || fail "click_tab: native window coordinates unavailable"
     omarchy-drive click "$((cx + wx))" "$((cy + wy))" >/dev/null
     settle
+}
+
+# A cut row is faded and draws the scissors in its icon slot until the paste lands, Nautilus's cue,
+# and Escape takes the cut back and restores it; ui/js/CutMarks.js is the rule and tests/js/cutmarks.js
+# drives it, so this is the half that says the delegate draws it and the keyboard reaches it. The
+# neighbour row and the copy are the negative controls: a mark on every row, or on a copy, would
+# still read scissors on a.txt.
+wait_glyph() {
+    local name="$1" want="$2"
+    for _attempt in $(seq 1 40); do
+        [[ "$(glyph_of "$name")" == "$want" ]] && return
+        sleep 0.25
+    done
+    fail "cutmark: $name draws $(glyph_of "$name"), not $want, $3"
+}
+
+case_cutmark() {
+    local dir="$fixture_root/cutmark"
+    sandbox_scratch "$dir"
+    : > "$dir/a.txt"
+    : > "$dir/b.txt"
+    launch "$dir"
+    wait_listing 2
+    local plain
+    plain=$(glyph_of a.txt)
+    [[ -n "$plain" && "$plain" != "scissors" ]] || fail "cutmark: a.txt starts drawing '$plain'"
+    while [[ "$(ipc rowAt "$(ipc cursor)")" != "a.txt|"* ]]; do key j >/dev/null; settle; done
+
+    echo "-- x marks the cut row and only it --"
+    key x >/dev/null
+    wait_glyph a.txt scissors "after x"
+    [[ "$(glyph_of b.txt)" != "scissors" ]] || fail "cutmark: the row beside the cut is marked too"
+    shot cutmark-cut
+
+    echo "-- escape takes the cut back and restores the row --"
+    key -k Escape >/dev/null
+    wait_glyph a.txt "$plain" "after Escape"
+    shot cutmark-escaped
+
+    echo "-- a copy marks nothing --"
+    key y >/dev/null
+    settle
+    [[ "$(glyph_of a.txt)" == "$plain" ]] || fail "cutmark: a copy marked a.txt with $(glyph_of a.txt)"
+    kill_flea
 }
 
 case_tabs() {
@@ -10089,7 +10133,7 @@ case_previewviews() {
 . "$repo/tests/ui-transfer-live.sh"
 
 declare -a wanted=("$@")
-[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click ctrlclick viewrestart dd collide sortrestart duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden selection watch optical select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject rename renamelife taildrop providers grid columns operations tabs openterminal renderer settings makedefault clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign noblank previewswap transferlive)
+[[ ${#wanted[@]} -eq 0 ]] && wanted=(cursor scroll scrollbar terminal open rows click ctrlclick viewrestart dd collide sortrestart duallaunch dirsortstale editplace mute placemenu runscript unmounted sidebar menu background hidden selection watch optical select colour lifted icons thumbs hashcache stale nosweep oem header overflow focus preview pdffocus network netmark networkauth networktimeout gvfs sharebrowser unmount phones trasharm eject rename renamelife taildrop providers grid columns operations tabs cutmark openterminal renderer settings makedefault clickthrough wheelunder overlays views formats previewviews hangshare openwithdesign noblank previewswap transferlive)
 
 : > "$run_log"
 : > "$flea_log"
