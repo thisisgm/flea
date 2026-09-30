@@ -8,8 +8,8 @@ use std::sync::mpsc::Sender;
 use std::time::Duration;
 
 const GIT_TIMEOUT: Duration = Duration::from_secs(10);
-const DEFAULT_LIMIT: usize = 100;
-const MAX_LIMIT: usize = 500;
+const DEFAULT_LIMIT: usize = 500;
+const MAX_LIMIT: usize = 2000;
 
 #[derive(Clone, Debug, PartialEq)]
 pub struct Edge {

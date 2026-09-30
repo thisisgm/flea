@@ -198,7 +198,7 @@ pub fn parse_request(line: &str) -> Request {
         Some("gitgraph") => Request::GitGraph {
             id: field_usize(line, "id").unwrap_or(0),
             path: field_str(line, "path").unwrap_or_default(),
-            limit: field_usize(line, "limit").unwrap_or(100),
+            limit: field_usize(line, "limit").unwrap_or(0),
         },        Some("quit") => Request::Quit,
         _ => Request::Unknown,
     }

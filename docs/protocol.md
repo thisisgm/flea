@@ -824,9 +824,9 @@ late answer. One probe per directory change, never per row.
 
 ### gitgraph
 
-`{"c":"gitgraph","id":2,"path":"/home/gm/flea","limit":100}` asks for the lane graph of the
-repository that contains `path`. `limit` caps `git log --max-count` (1..500, default 100). The
-answer is asynchronous.
+`{"c":"gitgraph","id":2,"path":"/home/gm/flea","limit":500}` asks for the lane graph of the
+repository that contains `path`. `limit` caps `git log --max-count` (1..2000, default 500; `0` means
+default). The answer is asynchronous.
 
 `{"t":"gitgraph","id":2,"path":"...","root":"...","head":"...","branch":"main","error":"","commits":[...]}`
 

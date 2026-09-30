@@ -85,6 +85,35 @@ fn real_repo_status_and_graph() {
 }
 
 #[test]
+fn merge_in_real_repo_opens_a_second_lane() {
+    let dir = TestDir::new("gitgraph-merge");
+    let root = dir.path();
+    run(root, &["git", "init", "-b", "main"]);
+    run(root, &["git", "config", "user.email", "flea@test"]);
+    run(root, &["git", "config", "user.name", "Flea"]);
+    std::fs::write(root.join("a.txt"), "base\n").unwrap();
+    run(root, &["git", "add", "a.txt"]);
+    run(root, &["git", "-c", "commit.gpgsign=false", "commit", "-m", "base"]);
+    run(root, &["git", "checkout", "-b", "feature"]);
+    std::fs::write(root.join("a.txt"), "feature\n").unwrap();
+    run(root, &["git", "add", "a.txt"]);
+    run(root, &["git", "-c", "commit.gpgsign=false", "commit", "-m", "on feature"]);
+    run(root, &["git", "checkout", "main"]);
+    std::fs::write(root.join("b.txt"), "main\n").unwrap();
+    run(root, &["git", "add", "b.txt"]);
+    run(root, &["git", "-c", "commit.gpgsign=false", "commit", "-m", "on main"]);
+    run(root, &["git", "-c", "commit.gpgsign=false", "merge", "--no-ff", "-m", "merge feature", "feature"]);
+
+    let graph = graph_of(root, 500);
+    assert!(graph.error.is_empty(), "{}", graph.error);
+    assert!(graph.commits.len() >= 4, "expected merge history, got {}", graph.commits.len());
+    let max_width = graph.commits.iter().map(|c| c.width).max().unwrap_or(1);
+    assert!(max_width >= 2, "expected multi-lane graph, max width {max_width}; lanes={:?}",
+            graph.commits.iter().map(|c| (c.short.as_str(), c.lane, c.width, c.edges.len())).collect::<Vec<_>>());
+    assert!(graph.commits.iter().any(|c| c.parents.len() > 1), "expected a merge commit with two parents");
+}
+
+#[test]
 fn plain_folder_is_not_a_repo() {
     let dir = TestDir::new("gitgraph");
     let status = status_of(dir.path());

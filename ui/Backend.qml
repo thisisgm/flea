@@ -276,7 +276,7 @@ Item {
     }
 
     function askGitGraph(id, path, limit) {
-        root.send({ c: "gitgraph", id: id, path: path, limit: limit || 100 })
+        root.send({ c: "gitgraph", id: id, path: path, limit: (typeof limit === "number" ? limit : 0) })
     }
 
     function localSend(op, peer, paths) {

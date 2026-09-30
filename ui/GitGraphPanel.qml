@@ -51,7 +51,7 @@ Item {
         root.error = ""
         root.commits = []
         root.requestId += 1
-        root.pane.backend.askGitGraph(root.requestId, root.pane.listingPath, 100)
+        root.pane.backend.askGitGraph(root.requestId, root.pane.listingPath, 0)
     }
 
     function takeGraph(id, path, repoRoot, head, branch, error, commits) {
