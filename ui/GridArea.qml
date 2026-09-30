@@ -1,5 +1,6 @@
 import QtQuick
 import "." as Flea
+import "js/CutMarks.js" as CutMarks
 import "js/DirSizes.js" as DirSizes
 import "js/ExtThumbs.js" as ExtThumbs
 import "js/Filter.js" as Filter
@@ -107,6 +108,7 @@ GridView {
         width: root.cellWidth
         height: root.cellHeight
         row: root.pane.rowFor(listingIndex)
+        cut: CutMarks.rowIsCut(root.pane, row)
         cursor: listingIndex === root.pane.cursorIndex
         hovered: hover.hovered
         selected: root.pane.isSelected(listingIndex)

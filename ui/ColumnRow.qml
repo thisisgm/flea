@@ -14,6 +14,10 @@ Item {
     property var row: null
     // The pane's thumbnail path for this row, empty for a peek's row: only the listing's own column asks for any.
     property string thumb: ""
+    // On the clipboard as a cut: the scissors take the mark slot, see ui/js/CutMarks.js.
+    property bool cut: false
+    // And faded, Nautilus's other half of the cue: the row is leaving once the paste lands.
+    opacity: root.cut ? 0.5 : 1
     // A path is not a thumbnail: a cache file evicted between the answer and the decode leaves the mark to the glyph.
     readonly property bool thumbDrawn: root.thumb.length > 0 && thumbImage.status !== Image.Error
     readonly property alias iconStatus: thumbImage.status
@@ -82,7 +86,7 @@ Item {
         Image {
             id: thumbImage
             anchors.fill: parent
-            visible: root.thumbDrawn
+            visible: root.thumbDrawn && !root.cut
             sourceSize.width: Theme.iconSize
             sourceSize.height: Theme.iconSize
             fillMode: Image.PreserveAspectFit
@@ -94,8 +98,8 @@ Item {
 
         Flea.Glyph {
             anchors.fill: parent
-            visible: !root.thumbDrawn
-            name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : "file"
+            visible: !root.thumbDrawn || root.cut
+            name: root.cut ? "scissors" : root.row ? Icons.glyphForRow(root.row.i, root.row.p) : "file"
             color: root.cursor ? Theme.color.accent : Theme.color.muted
         }
     }

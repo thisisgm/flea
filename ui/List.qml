@@ -1,5 +1,6 @@
 import QtQuick
 import "." as Flea
+import "js/CutMarks.js" as CutMarks
 import "js/DirSizes.js" as DirSizes
 import "js/ExtThumbs.js" as ExtThumbs
 import "js/Filter.js" as Filter
@@ -67,6 +68,7 @@ ListView {
         hiddenCols: root.pane.dualMode ? ["mode", "kind"].concat(ViewState.hiddenCols) : ViewState.hiddenCols
         hovered: hover.hovered
         thumb: root.thumbFor(listingIndex)
+        cut: CutMarks.rowIsCut(root.pane, row)
         selected: root.pane.isSelected(listingIndex)
         kindNames: root.pane.kindNames
         dirSize: root.dirSizeFor(listingIndex)
