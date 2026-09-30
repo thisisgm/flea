@@ -59,6 +59,10 @@ pub enum Request {
     TrashBrowse { line: String },
     // The path bar's folder jump: the favourites and recent files the client read, joined with zoxide's ranking.
     Jump { id: usize, favourites: Vec<String>, recent: Vec<String> },
+    // Lightweight: is this path inside a git work tree, and which branch/head.
+    GitStatus { id: usize, path: String },
+    // Full lane graph for the repo that contains path; limit caps git log --max-count.
+    GitGraph { id: usize, path: String, limit: usize },
     Quit,
     Unknown,
 }
@@ -186,7 +190,16 @@ pub fn parse_request(line: &str) -> Request {
             archive: field_bool(line, "archive"),
         },
         Some("jump") => Request::Jump { id: field_usize(line, "id").unwrap_or(0), favourites: field_str_array(line, "favourites"), recent: field_str_array(line, "recent") },
-        Some("quit") => Request::Quit,
+
+        Some("gitstatus") => Request::GitStatus {
+            id: field_usize(line, "id").unwrap_or(0),
+            path: field_str(line, "path").unwrap_or_default(),
+        },
+        Some("gitgraph") => Request::GitGraph {
+            id: field_usize(line, "id").unwrap_or(0),
+            path: field_str(line, "path").unwrap_or_default(),
+            limit: field_usize(line, "limit").unwrap_or(100),
+        },        Some("quit") => Request::Quit,
         _ => Request::Unknown,
     }
 }

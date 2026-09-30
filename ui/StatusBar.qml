@@ -22,6 +22,7 @@ Item {
         ? Status.selectionBytes(root.pane) : -1
     property int selectionCount: 0
     property string fsName: ""
+    property string gitBranch: ""
     property real fsFree: 0
     property string notice: ""
     // [{text, detail, place}]: place is the path a no-Trash refusal was raised in, "" for every other error.
@@ -235,7 +236,8 @@ Item {
     // The one fact on this strip a result or an error may not evict, so a pane with no answer for
     // it says unknown rather than describing the filesystem the pane just failed to leave.
     function fsText() {
-        return root.fsName.length ? root.fsName + " · " + Format.size(root.fsFree) + " free" : "unknown"
+        var disk = root.fsName.length ? root.fsName + " · " + Format.size(root.fsFree) + " free" : "unknown"
+        return root.gitBranch.length ? disk + " · " + root.gitBranch : disk
     }
 
     function slot() {

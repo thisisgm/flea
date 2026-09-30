@@ -45,7 +45,7 @@ function queryPane() {
     p.renameEditor = function () { return null }
     p.act = function (action) { Focus.act(action, p) }
     p.backend = { search: function (path, query, hidden) { p.walked.push(path + "?" + query) },
-                  askFsInfo: function () {} }
+                  askFsInfo: function () {}, askGitStatus: function () {} }
     return p
 }
 

@@ -365,6 +365,9 @@ fn handle_line(
             say(out, &super::proto::located_many_line(&st.base.to_string_lossy(), id, transfer_id, &matches, error.as_deref()));
         }
         Request::Jump { id, favourites, recent } => super::jump::request(id, favourites, recent, ops.tx.clone()),
+        // Git status/graph run off-thread: a cold pack or network fs must not stall list/window.
+        Request::GitStatus { id, path } => super::gitgraph::request_status(id, path, ops.tx.clone()),
+        Request::GitGraph { id, path, limit } => super::gitgraph::request_graph(id, path, limit, ops.tx.clone()),
         Request::Quit => return Control::Quit,
         // corner: an unrecognised line is answered with silence, see AGENTS.md.
         Request::Unknown => {}

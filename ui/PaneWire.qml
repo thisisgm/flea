@@ -373,6 +373,21 @@ Item {
         }
 
         // The answer to Ops.clip's askPaths; nothing reaches the clipboard until this lands.
+        function onGitStatus(id, path, repo, root, branch, head) {
+            if (id !== pane.gitStatusId) return
+            if (path.length && path !== pane.path && path !== pane.listingPath) return
+            pane.gitRepo = repo === true
+            pane.gitBranch = repo ? (branch || "") : ""
+            pane.gitRoot = repo ? (root || "") : ""
+        }
+
+        function onGitGraph(id, path, root, head, branch, error, commits) {
+            var panel = pane.gitGraphPanel
+            if (!panel) return
+            var target = panel.takeGraph ? panel : panel.item
+            if (target && target.takeGraph) target.takeGraph(id, path, root, head, branch, error, commits)
+        }
+
         function onPaths(list) {
             Ops.pathsResolved(pane, list)
         }

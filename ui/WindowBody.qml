@@ -192,6 +192,7 @@ Rectangle {
         shareBrowser: shareBrowser
         keymapSheet: keymapSheet
         settingsPanel: settingsPanel
+        gitGraphPanel: gitGraphPanel
         statusBar: bar
         onMessage: function (text, isError) { bar.say(text, isError) }
         onForgetMessage: function (text) { bar.forget(text) }
@@ -237,6 +238,7 @@ Rectangle {
                 shareBrowser: primaryPane.shareBrowser
                 keymapSheet: primaryPane.keymapSheet
                 settingsPanel: primaryPane.settingsPanel
+                gitGraphPanel: primaryPane.gitGraphPanel
                 statusBar: bar
                 onFocusRequested: view.focusPane(1)
                 onSwitchPane: view.focusPane(0)
@@ -288,6 +290,7 @@ Rectangle {
         selectionCount: view.currentPane.trash.opened ? view.currentPane.trash.selectedCount : view.currentPane.selectionCount()
         fsName: view.currentPane.fsName
         fsFree: view.currentPane.fsFree
+        gitBranch: view.currentPane.gitBranch
         searchRunning: view.currentPane.searchRunning
         searchLine: view.currentPane.searchMode === "results"
                     ? Search.statusLine(view.currentPane.searchRunning, view.currentPane.total, view.currentPane.searchScanned, view.currentPane.searchMs)
@@ -372,6 +375,16 @@ Rectangle {
         anchors.fill: parent
         active: false
         source: "SettingsPanel.qml"
+        readonly property bool opened: item !== null && item.opened
+        function open(holder) { active = true; item.open(holder) }
+    }
+
+    Loader {
+        id: gitGraphPanel
+        z: 3
+        anchors.fill: parent
+        active: false
+        source: "GitGraphPanel.qml"
         readonly property bool opened: item !== null && item.opened
         function open(holder) { active = true; item.open(holder) }
     }
@@ -492,7 +505,7 @@ Rectangle {
     TapHandler {
         acceptedButtons: Qt.BackButton
         onTapped: {
-            if (view.currentPane.menuActions.opened || settingsPanel.opened || view.currentPane.trash.confirming || chrome.editing || convertDialog.opened || permissionsDialog.opened || keymapSheet.opened
+            if (view.currentPane.menuActions.opened || settingsPanel.opened || gitGraphPanel.opened || view.currentPane.trash.confirming || chrome.editing || convertDialog.opened || permissionsDialog.opened || keymapSheet.opened
                     || networkDialog.opened || (shareBrowser.active && shareBrowser.owner === view.currentPane) || preview.active
                     || view.currentPane.renameEditor() !== null || (view.currentPane.sidebar && view.currentPane.sidebar.renameEditor() !== null))
                 return
@@ -540,6 +553,7 @@ Rectangle {
         permissionsDialog: permissionsDialog.item
         keymapSheet: keymapSheet.item
         settingsPanel: settingsPanel.item
+        gitGraphPanel: gitGraphPanel.item
         networkDialog: networkDialog.item
         shareBrowser: shareLoader.item
         emptyState: view.currentPane.emptyState

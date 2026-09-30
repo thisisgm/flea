@@ -25,6 +25,8 @@ pub mod gvfslist;
 pub mod fuzzy;
 // The path bar's folder jump; see docs/protocol.md "jump".
 pub mod jump;
+// Git branch/commit graph for a directory that is (or sits inside) a repository.
+pub mod gitgraph;
 pub mod search;
 pub mod searchreq;
 pub mod sort;

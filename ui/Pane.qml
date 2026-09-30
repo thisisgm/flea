@@ -119,6 +119,13 @@ FocusScope {
     property var keymapSheet: null
     // shell.qml's ui/SettingsPanel.qml, which the comma key opens from the list and the rail alike, see act() below.
     property var settingsPanel: null
+    // shell.qml's ui/GitGraphPanel.qml, which Ctrl+G opens for the directory on screen.
+    property var gitGraphPanel: null
+    // Set by a gitstatus reply for the listing path; StatusBar draws the branch beside the disk line.
+    property bool gitRepo: false
+    property string gitBranch: ""
+    property string gitRoot: ""
+    property int gitStatusId: 0
     property Item overlayParent: null
     readonly property alias trash: trashHost
     readonly property alias menuActions: menuActions
@@ -365,6 +372,7 @@ FocusScope {
         if (trashHost.confirming) return
         if (action === "openTrash" || action === "emptyTrash" || action === "restoreAll") { trashHost.action(action); return }
         if (action === "settings") { root.settingsPanel.open(root); return }
+        if (action === "gitGraph") { if (root.gitGraphPanel) root.gitGraphPanel.open(root); return }
         if (action === "permissions") { root.openPermissions(); return }
         if (["newFile", "rename", "openWith", "moveTo", "copyTo", "properties", "deletePermanently"].indexOf(action) >= 0) {
             menuActions.open(action, menuId || 0)
