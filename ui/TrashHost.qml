@@ -139,7 +139,8 @@ Loader {
         function onRequested(message) { root.pane.backend.send(message) }
         function onBackRequested() { root.pane.focusView = Focus.LIST; root.pane.listArea.forceActiveFocus() }
         function onFocusRailRequested() { root.pane.focusView = Focus.RAIL }
-        function onActionRequested(action) { root.pane.act(action) }
+        // Focus.act has no keymapSheet case (handleKey opens it), so ? from Trash opens the sheet here.
+        function onActionRequested(action) { if (action === "keymapSheet") root.pane.keymapSheet.open(root.pane); else root.pane.act(action) }
         function onStatusReported(message, error) { root.pane.message(message, error) }
         function onOperationResult(headline, detail, error) { root.pane.operationResult(headline, detail, error); if (root.pane.sidebar) root.pane.sidebar.refreshTrash() }
         function onContextRequested(x, y, selection) { root.menuAt(root.item.mapToItem(null, x, y), selection) }
