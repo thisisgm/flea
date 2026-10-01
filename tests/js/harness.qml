@@ -35,6 +35,7 @@ import "match.js" as MatchSuite
 import "menu.js" as MenuSuite
 import "openwith.js" as OpenWithSuite
 import "devices.js" as DevicesSuite
+import "loopdevices.js" as LoopDevicesSuite
 import "mounts.js" as MountsSuite
 import "names.js" as NamesSuite
 import "nav.js" as NavSuite
@@ -113,7 +114,7 @@ Item {
             ["focus-lines", FocusLinesSuite], ["focus-wrap", FocusWrapSuite],
             ["format", FormatSuite], ["icons", IconsSuite],
             ["jump", JumpSuite], ["jump-heldout", JumpHeldoutSuite], ["keymap", KeymapSuite], ["localsend", LocalSendSuite], ["listbudget", ListBudgetSuite], ["match", MatchSuite], ["menu", MenuSuite],
-            ["marks", MarksSuite],             ["mounts", MountsSuite], ["names", NamesSuite], ["nav", NavSuite], ["crumbs", CrumbsSuite], ["devices", DevicesSuite], ["network", NetworkSuite],
+            ["marks", MarksSuite],             ["mounts", MountsSuite], ["names", NamesSuite], ["nav", NavSuite], ["crumbs", CrumbsSuite], ["devices", DevicesSuite], ["loopdevices", LoopDevicesSuite], ["network", NetworkSuite],
             ["openwith", OpenWithSuite], ["ops", OpsSuite], ["opstrash", OpsTrashSuite],
             ["palette", PaletteSuite], ["pathbar", PathBarSuite], ["places", PlacesSuite], ["placemenu", PlaceMenuSuite], ["rail", RailSuite], ["scripts", ScriptsSuite],
             ["phones", PhonesSuite],

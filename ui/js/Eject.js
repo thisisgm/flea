@@ -133,7 +133,7 @@ function releasable(entry) {
     if (!entry || entry.mounted !== true)
         return false
     if (entry.group === "device" && entry.kind === "volume")
-        return entry.removable === true
+        return entry.removable === true || entry.loop === true
     if (entry.group === "device" && entry.kind === "phone")
         return true
     if (entry.group === "network" && entry.kind === "share")
