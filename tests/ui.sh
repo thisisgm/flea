@@ -2082,6 +2082,17 @@ case_click() {
     printf 'CLICK back path=%q\n' "$(ipc path)"
     shot click-back
     [[ "$(ipc path)" == "$deep" ]] || fail "click: the back button went to $(ipc path), not back to $deep"
+    # The forward button retraces that back, then back again restores the history the climb below spends.
+    # 0xC4 is button 4, BTN_EXTRA, which Qt reports as Qt.ForwardButton.
+    ydotool click 0xC4 >/dev/null 2>&1 || fail "click: ydotool refused the mouse forward button"
+    settle
+    settle
+    printf 'CLICK forward path=%q\n' "$(ipc path)"
+    [[ "$(ipc path)" == "$up" ]] || fail "click: the forward button went to $(ipc path), not forward to $up"
+    ydotool click 0xC3 >/dev/null 2>&1 || fail "click: ydotool refused the back button after forward"
+    settle
+    settle
+    [[ "$(ipc path)" == "$deep" ]] || fail "click: back after forward went to $(ipc path), not $deep"
     # The same button's other half: with the history spent it climbs, which is the whole of
     # ui/js/Nav.js mouseBack and the half a stub calling mouseBack directly cannot prove is bound.
     ydotool click 0xC3 >/dev/null 2>&1 || fail "click: ydotool refused the second back button press"

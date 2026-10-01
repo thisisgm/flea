@@ -2966,9 +2966,11 @@ case `click` then drives real clicks at the window, which is the half a JavaScri
 reach: it is what says a delegate hands `Tap.tapped` the tap count and the modifiers the click
 actually carried.
 
-The last two rows landed with issues 20 and 45 and are not `Tap.js`'s. `window` is the mouse's
-back button, which belongs to no row: `ui/WindowBody.qml` carries the handler and `ui/js/Nav.js`
-`mouseBack` decides between the history and the climb. `chrome` is the path above the listing and,
+The last three rows landed with issues 20 and 45 and are not `Tap.js`'s. `window` is the mouse's
+two side buttons, which belong to no row: `ui/WindowBody.qml` carries one handler for both and
+`ui/js/Nav.js` decides, `mouseBack` between the history and the climb and `mouseForward` retracing a
+back, both behind the same context-menu and collision-card refusal (`mouseRefused`), and forward never
+while Trash is open, as `Pane.goForward` refuses there. `chrome` is the path above the listing and,
 in the dual view, each pane's own path, whose segments `ui/Crumb.qml` draws as their own click
 targets for both, placed by `ui/ChromeBar.qml` and by `ui/PanePath.qml`, from `ui/js/Crumbs.js`.
 Until 0.3.2 a dual pane's path was one `Text` answering only the double click, so a tap on a parent
@@ -2992,7 +2994,10 @@ it first. `tests/ui.sh` case `click` now closes that gap the way this paragraph 
 after the crumb press it parks the pointer over a listing row with `omarchy-drive move`, sends
 `ydotool click 0xC3` twice, and reads the path back through the IPC seam both times, so the history
 branch and the climb branch of `mouseBack` are each pressed through the shipped tree. The crumb half
-is pressed the same way, from `crumbCentre`, which is the seam `ui/Ipc.qml` grew for it.
+is pressed the same way, from `crumbCentre`, which is the seam `ui/Ipc.qml` grew for it. Between the
+two back presses the case sends `ydotool click 0xC4`, button 4, which Qt reports as `Qt.ForwardButton`,
+requires the path forward again, and backs once more so the climb still finds the history spent;
+`tests/js/navmouse.js` drives `mouseForward` itself, because `tests/js/nav.js` is at its hard cap.
 
 A crumb click answers on the first tap, GM's ruling of 2026-09-22. `ui/Crumb.qml` used to carry
 `exclusiveSignals: TapHandler.SingleTap | TapHandler.DoubleTap`, which makes the tap count decide by
@@ -5302,10 +5307,10 @@ capture, with its identities still checked per item. Move to Dropbox lost its ow
 Dropbox" sticky with this, because a move waiting on the card would have left it standing after a
 Cancel; transferstarted names the move a moment later. The shelf's own `flea shelf` actions and the
 TUI pass no choice and refuse as before. **The pane does not navigate behind the card**:
-`ui/js/Nav.js` `mouseBack` refuses while `pane.collide.opened`, the way it refuses behind the context
-menu, since the transfer waiting on the card names the folder it asked about; the keyboard and the
-chrome's own back and up buttons are covered by the card's focus and backdrop, and there is no
-forward mouse button binding to gate. `tests/ui-operations-design.sh` and `tests/ui-providers.sh`
+`ui/js/Nav.js` `mouseBack` and `mouseForward` refuse while `pane.collide.opened`, the way they refuse
+behind the context menu, since the transfer waiting on the card names the folder it asked about; the
+keyboard and the chrome's own back and up buttons are covered by the card's focus and backdrop.
+`tests/ui-operations-design.sh` and `tests/ui-providers.sh`
 drove their error and retry footers with a real name collision through Copy to and Move to Dropbox;
 a collision now asks instead, so those flows fail on an unreadable source file and a read-only Dropbox
 folder, both real failures that are not a name.

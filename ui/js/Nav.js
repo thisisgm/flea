@@ -56,12 +56,16 @@ function forward(pane) {
     pane.openWithoutHistory(target)
 }
 
+// The pane's own context menu covers the listing and no navigation closes it, so a press behind
+// one left the menu standing over another directory's rows and its next row acted on whichever
+// file had arrived at that index. ui/shell.qml refuses the window's overlays; the collision card is the pane's.
+function mouseRefused(pane) {
+    return pane.menuVisible || pane.collide.opened
+}
+
 // The mouse back button follows history, or climbs when no history exists.
 function mouseBack(pane) {
-    // The pane's own context menu covers the listing and no navigation closes it, so a press behind
-    // one left the menu standing over another directory's rows and its next row acted on whichever
-    // file had arrived at that index. ui/shell.qml refuses the window's overlays; the collision card is the pane's.
-    if (pane.menuVisible || pane.collide.opened) {
+    if (mouseRefused(pane)) {
         return
     }
     if (pane.history.length > 0) {
@@ -69,6 +73,11 @@ function mouseBack(pane) {
         return
     }
     parent(pane)
+}
+
+// The mouse forward button retraces a back, behind the same refusals; with nothing ahead it does nothing.
+function mouseForward(pane) {
+    if (!mouseRefused(pane)) forward(pane)
 }
 
 // Every listing the pane asks for; of options, ui/Pane.qml reads keepHidden and ui/js/Swap.js begin() the rest.
