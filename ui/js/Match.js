@@ -1,5 +1,7 @@
 .pragma library
 
+.import "Format.js" as Format
+
 // A search row's name is its path relative to the search root, so the display splits it here and
 // the wire never carries a second shape; see docs/protocol.md "search".
 function base(path) {
@@ -11,6 +13,16 @@ function base(path) {
 function location(path) {
     var i = String(path).lastIndexOf("/")
     return i < 0 ? "" : String(path).substring(0, i)
+}
+
+// The Stack's location column: the parent directory, with home written as a tilde.
+function place(path, home) {
+    var abs = String(path || "")
+    if (abs.charAt(0) !== "/")
+        abs = "/" + abs
+    var cut = abs.lastIndexOf("/")
+    var dir = cut <= 0 ? "/" : abs.substring(0, cut)
+    return Format.tilde(dir, String(home || ""))
 }
 
 // Where to paint the accent run inside a name, mirroring the backend's own case-insensitive match.

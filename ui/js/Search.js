@@ -13,6 +13,10 @@ var RESULTS = "results"
 // f opens the query line. The walk does not start here: a subtree walk per keystroke would be a
 // sweep, and the design's own ruling is that enter commits the query.
 function start(root) {
+    if (root.path === "flea:stack") {
+        root.message("The Stack is already every recent file.", false)
+        return
+    }
     root.searchMode = TYPING
 }
 

@@ -84,7 +84,7 @@ Item {
         root.editing = true
         // The trailing slash is what makes typing a child the natural next keystroke, and the line
         // opens selected, so a name typed straight away replaces it instead of joining onto it.
-        field.text = root.path === "/" ? "/" : root.path + "/"
+        field.text = root.path.charAt(0) !== "/" ? "" : (root.path === "/" ? "/" : root.path + "/")
         field.forceActiveFocus()
         field.selectAll()
     }
@@ -236,8 +236,8 @@ Item {
         Text {
             anchors.fill: parent
             visible: !root.editing && root.showPath && ViewState.addressBar === "path"
-            text: root.home && (root.path === root.home || root.path.indexOf(root.home + "/") === 0)
-                  ? "~" + root.path.substring(root.home.length) : root.path
+            text: root.path === "flea:stack" ? "The Stack" : (root.home && (root.path === root.home || root.path.indexOf(root.home + "/") === 0)
+                  ? "~" + root.path.substring(root.home.length) : root.path)
             color: Theme.color.foreground
             font.family: Theme.font.family
             font.pixelSize: Theme.font.caption

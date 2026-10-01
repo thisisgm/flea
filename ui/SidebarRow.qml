@@ -60,7 +60,7 @@ Item {
     Rectangle {
         anchors.fill: parent
         color: root.cursor
-            ? (root.modelData.kind === "trash" ? Style.selectedAccentFill : root.focused ? Style.selectedFill : Style.normalFill)
+            ? ((root.modelData.kind === "trash" || root.modelData.kind === "stack") ? Style.selectedAccentFill : root.focused ? Style.selectedFill : Style.normalFill)
             : "transparent"
     }
 

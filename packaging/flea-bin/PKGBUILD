@@ -36,6 +36,7 @@ package() {
   cd "$_pkgname-$pkgver-linux-$CARCH"
   install -Dm755 flea "$pkgdir/usr/bin/flea"
   install -Dm755 tools/flea-gio-auth "$pkgdir/usr/lib/flea/flea-gio-auth"
+  install -Dm755 tools/the-stack.py "$pkgdir/usr/lib/flea/the-stack.py"
   # The portal backend, its registration and its D-Bus activation; xdg-desktop-portal 1.22 reads every data dir's portals/.
   install -Dm755 tools/flea-portal "$pkgdir/usr/lib/flea/flea-portal"
   install -Dm644 packaging/flea.portal -t "$pkgdir/usr/share/xdg-desktop-portal/portals"

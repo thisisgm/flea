@@ -12,6 +12,9 @@ Item {
 
     // {n, d, i} as a peek answers them, or a listing row, which carries the same three fields.
     property var row: null
+    // The Stack's rows carry absolute paths. A directory listing's names have no slash, so this is a no-op there.
+    property bool leafName: false
+    readonly property string shownName: root.leafName && root.row && String(root.row.n).indexOf("/") >= 0 ? String(root.row.n).substring(String(root.row.n).lastIndexOf("/") + 1) : (root.row ? String(root.row.n) : "")
     // The pane's thumbnail path for this row, empty for a peek's row: only the listing's own column asks for any.
     property string thumb: ""
     // A path is not a thumbnail: a cache file evicted between the answer and the decode leaves the mark to the glyph.
@@ -130,7 +133,7 @@ Item {
         anchors.right: sizeCell.left
         anchors.rightMargin: (root.showSize ? Theme.spacing.gap : 0) + (root.clipMark.length > 0 ? Theme.spacing.gap + root.clipPx : 0)
         anchors.verticalCenter: parent.verticalCenter
-        text: root.row && root.nameBudget >= 0 ? Format.middleElide(root.row.n, Math.max(0, root.nameBudget - (root.clipMark.length > 0 ? Math.ceil((Theme.spacing.gap + root.clipPx) / Theme.bodyAdvance) : 0))) : (root.row ? root.row.n : "")
+        text: root.row && root.nameBudget >= 0 ? Format.middleElide(root.shownName, Math.max(0, root.nameBudget - (root.clipMark.length > 0 ? Math.ceil((Theme.spacing.gap + root.clipPx) / Theme.bodyAdvance) : 0))) : root.shownName
         color: root.ink
         font.family: Theme.font.family
         font.pixelSize: Theme.font.body

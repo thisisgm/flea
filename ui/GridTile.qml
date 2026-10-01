@@ -138,7 +138,7 @@ Item {
         // The slot fits the laid-out text, keeping the token reserve as its minimum.
         height: Math.max(root.dropTarget ? Theme.grid.captionLineHeight : Theme.grid.captionHeight, Math.ceil(contentHeight))
         horizontalAlignment: Text.AlignHCenter
-        text: root.row ? GridNames.gridCaption(root.row.n, root.captionPerLine, root.captionLines) : ""
+        text: root.row ? GridNames.gridCaption((root.renamePane && root.renamePane.path === "flea:stack" && root.row.n.indexOf("/") >= 0) ? root.row.n.substring(root.row.n.lastIndexOf("/") + 1) : root.row.n, root.captionPerLine, root.captionLines) : ""
         color: Theme.color.foreground
         font.family: Theme.font.family
         font.pixelSize: Theme.font.bodySmall

@@ -129,6 +129,7 @@ QtObject {
     // keeps a sub-key a newer Flea left there, and the patch carries the leaf ALONE: a sub-key this
     // Flea has no rule for is one src/uistate.rs refuses, and it refuses the whole patch with it.
     function changeLeaf(key, leaf) {
+        if (key === "dual" && leaf && leaf.paths && (leaf.paths[0] === "flea:stack" || leaf.paths[1] === "flea:stack")) leaf = { focus: leaf.focus }
         root.owe(key, UiState.withGroup(root.state, key, leaf), UiState.withGroup(root.unsaved, key, leaf))
     }
 
@@ -198,7 +199,7 @@ QtObject {
     // Written as the pane moves, never by a control. "Last folder" would otherwise have nothing to
     // return to, and the pair ui/shell.qml already remembers for the dual view covers only that view.
     function rememberLastPath(path) {
-        if (root.state.lastPath === path)
+        if (path === "flea:stack" || root.state.lastPath === path)
             return
         root.changeKey("lastPath", String(path || ""))
     }

@@ -70,6 +70,7 @@ import "sort.js" as SortSuite
 import "swap.js" as SwapSuite
 import "previewswap.js" as PreviewSwapSuite
 import "startup.js" as StartupSuite
+import "stack.js" as StackSuite
 import "status.js" as StatusSuite
 import "statusfix.js" as StatusFixSuite
 import "permissions.js" as PermissionsSuite
@@ -126,7 +127,7 @@ Item {
             ["renderer", RendererSuite], ["rowcells", RowCellsSuite],
             ["scroll", ScrollSuite], ["search", SearchSuite],
             ["selection", SelectionSuite], ["settings", SettingsSuite], ["settingsmenus", SettingsMenusSuite], ["settingsshelf", SettingsShelfSuite], ["settingsabout", SettingsAboutSuite],
-            ["sort", SortSuite], ["swap", SwapSuite], ["startup", StartupSuite], ["trashdates", TrashDatesSuite], ["permissions", PermissionsSuite], ["status", StatusSuite], ["statusfix", StatusFixSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
+            ["sort", SortSuite], ["swap", SwapSuite], ["startup", StartupSuite], ["stack", StackSuite], ["trashdates", TrashDatesSuite], ["permissions", PermissionsSuite], ["status", StatusSuite], ["statusfix", StatusFixSuite], ["taildrop", TaildropSuite], ["textsize", TextSizeSuite],
             ["trash", TrashSuite], ["tap", TapSuite], ["marquee", MarqueeSuite], ["tabs", TabsSuite], ["tabs-switch", TabsSwitchSuite], ["shelfmodel", ShelfModelSuite],
             ["themes", ThemesSuite], ["thumbs", ThumbsSuite], ["extthumbs", ExtThumbsSuite], ["transfer", TransferSuite], ["uistate", UiStateSuite], ["update", UpdateSuite],
             ["watch", WatchSuite], ["gvfsbridge", GvfsBridgeSuite]

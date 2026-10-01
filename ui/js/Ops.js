@@ -174,7 +174,7 @@ function duplicate(pane, menuId) {
 
 // No name field: the backend answers with the first free "New Folder", so there is no retry loop.
 function newFolder(pane) {
-    pane.backend.mkdir(pane.path)
+    if (pane.path === "flea:stack") { pane.message("The Stack is a list of files, not a folder.", false); return } pane.backend.mkdir(pane.path)
 }
 
 // Every view draws the same inline editor: the list and the grid inside the row, the columns view
@@ -257,8 +257,8 @@ function archiveDoneLine(verified) {
 
 function paste(pane) {
     var clip = pane.clipboard
-    if (!clip || clip.paths.length === 0) {
-        pane.message("There is nothing to paste; y copies and x cuts.", false)
+    if (pane.path === "flea:stack" || !clip || clip.paths.length === 0) {
+        pane.message(pane.path === "flea:stack" ? "The Stack is a list of files, not a folder." : "There is nothing to paste; y copies and x cuts.", false)
         return
     }
     // A cut is spent once its paste goes out, see ui/CollideHost.qml; a copy stays so it can be pasted again.
@@ -299,7 +299,7 @@ function sendTaildrop(pane, taildrop, peerId, path) {
 // before the request goes out, and the backend refuses a destination that appeared meanwhile anyway.
 function compress(pane, format) {
     var idx = targetIndices(pane)
-    if (idx.length === 0) return sayNoTarget(pane)
+    if (pane.path === "flea:stack") { pane.message("The Stack is a list of files, not a folder.", false); return } if (idx.length === 0) return sayNoTarget(pane)
     // The archive request names paths and has no rows form, so the indices are resolved first and the
     // request is built in compressResolved. Naming them here would drop every row outside the window.
     pane.pathsPending = { kind: "compress", format: format }

@@ -33,8 +33,17 @@ function reverseOrder(by, desc) {
     return { key: by, desc: !desc }
 }
 
+function stay(pane) {
+    if (!pane || pane.path !== "flea:stack")
+        return false
+    pane.message("The Stack stays in access order.", false)
+    return true
+}
+
 // ui/Header.qml's click: only ORDERS leave this file except the forget row.
 function column(pane, key) {
+    if (stay(pane))
+        return
     // The flyout's last row (issue 179) forgets the folder and lists it on the default.
     if (key === "__default__") {
         if (pane.backend && pane.backend.forgetFolderSort)
@@ -53,12 +62,16 @@ function column(pane, key) {
 
 // s walks ORDERS so it never lands on a refusal-only column; an aimed click earns the reason, a walking key only noise.
 function next(pane) {
+    if (stay(pane))
+        return
     var order = nextOrder(ORDERS, pane.backend.sortBy)
     resort(pane, order.key, order.desc)
 }
 
 // S: the capital-is-the-variant pair g/G and j/J use.
 function reverse(pane) {
+    if (stay(pane))
+        return
     var order = reverseOrder(pane.backend.sortBy, pane.backend.sortDesc)
     resort(pane, order.key, order.desc)
 }

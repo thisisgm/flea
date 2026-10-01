@@ -19,6 +19,7 @@ Item {
     property var backend: null
     property Item navigationPane: null
     property bool trashActive: false
+    property bool stackActive: false
     // Set by Enter on a row that mounts first, so the open that lands afterwards takes focus into the folder.
     property bool focusOnOpen: false
     // ui/Pane.qml's one ui/ContextMenu.qml, handed in rather than built here: a second instance in
@@ -178,7 +179,8 @@ Item {
 
     function rebuild() {
         var home = Quickshell.env("HOME")
-        root.homeEntries = root.placesState.showHome === false ? [] : Places.homeEntries(home, userDirsFile.text(), Icons.sidebarGlyphFor)
+        var homes = root.placesState.showHome === false ? [] : Places.homeEntries(home, userDirsFile.text(), Icons.sidebarGlyphFor)
+        root.homeEntries = [{ label: "The Stack", path: "flea:stack", group: "home", kind: "stack", glyph: "layers" }].concat(homes)
     }
 
     // NetworkDialog's saved() drives this reload because a watch set up before its parent directory existed never fires, and it blocks because "forget" derives its body from this text: measured here, an asynchronous reload put a removed line back.
@@ -266,7 +268,7 @@ Item {
         var entry = root.entries[index]
         if (!entry) return
         if (entry.kind === "favourite") { root.openFavourite(entry.favouriteIndex); return }
-        if (entry.kind === "home") { root.opened(entry.path); return }
+        if (entry.kind === "home" || entry.kind === "stack") { root.opened(entry.path); return }
         if (entry.kind === "trash") { root.trashRequested(); return }
         var rest = index - root.placesEntries.length
         if (rest < root.networkEntries.length) root.service.activate(rest, root.navigationPane)
@@ -395,8 +397,8 @@ Item {
                 id: homeRepeater
                 model: root.homeEntries
                 delegate: SidebarRow {
-                    cursor: index === root.cursorIndex
-                    focused: root.focused
+                    cursor: modelData.kind === "stack" ? RailKeys.trashCursor(root.stackActive, index === root.cursorIndex, root.focused, root.menu && root.menu.opened && root.menu.forRail) : index === root.cursorIndex
+                    focused: root.focused || (modelData.kind === "stack" && root.stackActive)
                     onActivated: function (idx) { root.activate(idx) }
                     onMenuRequested: function(idx, pos) { root.openRailMenu(idx, pos) }
                 }

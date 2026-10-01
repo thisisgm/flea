@@ -31,6 +31,9 @@ function run(check) {
     var root = Crumbs.crumbs("/", "/home/gm")
     check("the root is one crumb and it is the last one",
           drawn(root) + "|" + targets(root) + "|" + root.length, "/|/|1")
+    var stack = Crumbs.crumbs("flea:stack", "/home/gm")
+    check("The Stack is one crumb and it names the place",
+          drawn(stack) + "|" + targets(stack) + "|" + stack.length, "The Stack|flea:stack|1")
     var noHome = Crumbs.crumbs("/home/gm/Work", "")
     check("with no home in the environment every component is its own crumb",
           drawn(noHome) + "|" + targets(noHome), "/home/gm/Work|/ /home /home/gm /home/gm/Work")

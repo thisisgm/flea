@@ -54,6 +54,7 @@ function pack(items, index) {
 }
 
 function label(path, home) {
+    if (path === "flea:stack") return "The Stack"
     if (!path || path === "/")
         return "/"
     if (home && path === home)

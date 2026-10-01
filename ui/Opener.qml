@@ -1,6 +1,7 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import "js/Stack.js" as Stack
 
 // The one component that runs Flea's own opening modes, so the huge page corner has one owner; see AGENTS.md "Opening a file".
 Item {
@@ -40,6 +41,8 @@ Item {
 
         onExited: function (exitCode, exitStatus) {
             if (exitCode === 0) {
+                if (root.current.charAt(0) === "/")
+                    Quickshell.execDetached(Stack.command(Quickshell.env("HOME") || "", ["--touch", root.current]))
                 return
             }
             if (exitCode === root.isDirectoryStatus) {

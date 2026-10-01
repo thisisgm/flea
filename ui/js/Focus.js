@@ -165,7 +165,7 @@ function act(action, root, menuId, paths) {
     case "cut": Ops.clip(root, true, paths); return
     case "paste": Ops.paste(root); return
     case "movePaste":
-        if (root.clipboard.paths.length === 0) { root.message("The clipboard is empty.", false); return }
+        if (root.path === "flea:stack" || root.clipboard.paths.length === 0) { root.message(root.path === "flea:stack" ? "The Stack is a list of files, not a folder." : "The clipboard is empty.", false); return }
         root.collide.ask({c: "transfer", op: "move", paths: root.clipboard.paths, dest: root.path}, null, true)
         return
     case "undo": Ops.undo(root); return

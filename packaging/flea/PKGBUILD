@@ -46,6 +46,7 @@ package() {
   cd "$srcdir/$pkgname-$pkgver"
   install -Dm755 "$srcdir/target/release/flea" "$pkgdir/usr/bin/flea"
   install -Dm755 tools/flea-gio-auth "$pkgdir/usr/lib/flea/flea-gio-auth"
+  install -Dm755 tools/the-stack.py "$pkgdir/usr/lib/flea/the-stack.py"
   install -Dm755 tools/flea-portal "$pkgdir/usr/lib/flea/flea-portal"
   install -Dm644 packaging/flea.portal -t "$pkgdir/usr/share/xdg-desktop-portal/portals"
   install -Dm644 packaging/org.freedesktop.impl.portal.desktop.flea.service -t "$pkgdir/usr/share/dbus-1/services"

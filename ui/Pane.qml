@@ -247,7 +247,7 @@ FocusScope {
     property var forwardHistory: []
     property var tabs: null
     readonly property bool canGoBack: trashHost.opened || root.history.length > 0
-    readonly property bool canGoUp: root.path.length > 1
+    readonly property bool canGoUp: root.path.length > 1 && root.path !== "flea:stack"
 
     // The filesystem line the status bar draws, refreshed once per directory rather than per row.
     property string fsName: ""
@@ -332,8 +332,8 @@ FocusScope {
     // Where a drop on this pane lands. While a listing is out the pane's own path is still the
     // directory it is leaving, so a drop taken in that window landed in the wrong one: measured by
     // tests/drag.sh R7, where a drop on a tab whose listing was still out copied into the source.
-    readonly property string dropPath: root.listInFlight && root.listingPath.length > 0
-                                       ? root.listingPath : root.path
+    readonly property string dropPath: (root.path === "flea:stack" || root.listingPath === "flea:stack") ? ""
+                                       : (root.listInFlight && root.listingPath.length > 0 ? root.listingPath : root.path)
 
     function rowFor(index) {
         var offset = index - root.held
@@ -419,17 +419,17 @@ FocusScope {
     function openFile(path) { wire.opener.open(path) }
 
     // A terminal in the directory being shown, through ui/Opener.qml's flea --terminal.
-    function openTerminal() { wire.opener.openTerminal(root.path) }
+    function openTerminal() { if (root.path === "flea:stack") { root.message("The Stack is a list of files, not a folder.", false); return } wire.opener.openTerminal(root.path) }
 
-    function newWindow() { Quickshell.execDetached([Quickshell.env("FLEA_BIN") || "flea", root.path]) }
+    function newWindow() { if (root.path === "flea:stack") { root.message("The Stack is a list of files, not a folder.", false); return } Quickshell.execDetached([Quickshell.env("FLEA_BIN") || "flea", root.path]) }
 
     // Quoted when it holds whitespace, because this one is pasted into a shell: see ui/js/Format.js.
-    function copyDirPath() { wire.opener.copyText(Format.shellQuoted(root.path)) }
+    function copyDirPath() { if (root.path === "flea:stack") { root.message("The Stack is a list of files, not a folder.", false); return } wire.opener.copyText(Format.shellQuoted(root.path)) }
 
     function openParent() { if (trashHost.opened) trashHost.close(); else Nav.parent(root) }
 
     function join(base, name) {
-        return base === "/" ? "/" + name : base + "/" + name
+        return base === "flea:stack" ? (String(name || "").charAt(0) === "/" ? String(name || "") : "/" + String(name || "")) : (base === "/" ? "/" + name : base + "/" + name)
     }
 
     Flea.PaneWire {
@@ -478,7 +478,7 @@ FocusScope {
         // The held rows a double click fits and F4 fits whole; ListColumns040 never scans the directory.
         pane: root
         viewMode: root.viewMode
-        sortBy: root.backend.sortBy
+        sortBy: root.path === "flea:stack" ? "" : root.backend.sortBy
         sortDesc: root.backend.sortDesc
         dualMode: root.dualMode
         hiddenCols: root.dualMode ? ["mode", "kind"].concat(ViewState.hiddenCols) : ViewState.hiddenCols

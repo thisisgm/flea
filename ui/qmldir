@@ -90,6 +90,7 @@ PanePath 1.0 PanePath.qml
 PaneRail 1.0 PaneRail.qml
 PaneWire 1.0 PaneWire.qml
 PaneSwap 1.0 PaneSwap.qml
+StackModel 1.0 StackModel.qml
 ShareBrowser 1.0 ShareBrowser.qml
 Sidebar 1.0 Sidebar.qml
 SidebarRow 1.0 SidebarRow.qml

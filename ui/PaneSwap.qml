@@ -1,8 +1,10 @@
 import QtQuick
+import Quickshell
 import "js/Anchor.js" as Anchor
 import "js/DirSizes.js" as DirSizes
 import "js/Nav.js" as Nav
 import "js/Search.js" as Search
+import "js/Stack.js" as Stack
 import "js/Swap.js" as Swap
 import "js/Tabs.js" as Tabs
 import "js/Thumbs.js" as Thumbs
@@ -24,6 +26,10 @@ Item {
     property int blankFrames: 0
     property int loadingFrames: 0
     property var last: ({ ms: 0, end: "" })
+    // The ranker's last answer, so a quiet re-read reloads only when the order changed.
+    property bool stackProbe: false
+    property var stackShown: []
+    property var stackReadyPaths: null
 
     // ui/js/Nav.js asks for every listing through here; false means nothing is held and it forgets now.
     // A search's matches are never held.
@@ -38,7 +44,11 @@ Item {
 
     // The listed line held or fallen-back rows wait for is kept for them, an earlier request's is dropped, any other applied.
     function takeListed(total, readMs, sortMs, path) {
-        var action = Swap.onListed(root.phase, root.pane.listInFlight, path, root.pane.listingPath)
+        // listpaths answers with path "/", which is not the token the place was asked with.
+        var asked = root.pane.listingPath
+        if (Stack.isStack(asked) && path === "/")
+            asked = path
+        var action = Swap.onListed(root.phase, root.pane.listInFlight, path, asked)
         if (action === Swap.KEEP) {
             root.phase = Swap.kept(root.phase, { total: total, readMs: readMs, sortMs: sortMs, path: path })
             root.pane.listedSeen = true
@@ -115,9 +125,10 @@ Item {
             pane.stateMessage = ""
             return
         }
-        if (path.length > 0) pane.path = path  // the listing landed, so this is where the pane moves
+        if (Stack.isStack(pane.listingPath)) pane.path = Stack.TOKEN
+        else if (path.length > 0) pane.path = path  // the listing landed, so this is where the pane moves
         pane.listingState = total === 0 ? "empty" : "ready"
-        pane.stateMessage = total === 0 ? "This directory is empty; add a file to see it here." : ""
+        pane.stateMessage = total === 0 ? (Stack.isStack(pane.path) ? "No recent files." : "This directory is empty; add a file to see it here.") : ""
         pane.opened(pane.path)
     }
 
@@ -136,6 +147,35 @@ Item {
         }
         root.wire.locateRetry()
         root.wire.openRenameOnArrival()
+    }
+
+    function beginStack() { Stack.begin(root, stackModel) }
+    function noteStackSources() { Stack.note(root, stackModel, stackHold) }
+    function noteAccess(path) {
+        if (Stack.shouldTouch(root.pane, path))
+            Quickshell.execDetached(Stack.command(root.pane.home, ["--touch", path]))
+    }
+
+    StackModel {
+        id: stackModel
+        home: root.pane ? root.pane.home : ""
+        watch: root.pane !== null && Stack.isStack(root.pane.path)
+        onReady: function (paths) { Stack.ready(root, paths) }
+        onFailed: function (text) { Stack.failed(root, text) }
+        onSourcesChanged: root.noteStackSources()
+    }
+
+    Timer {
+        id: stackHold
+        interval: 400
+        onTriggered: root.noteStackSources()
+    }
+
+    Connections {
+        target: root.pane && root.pane.backend ? root.pane.backend : null
+        function onRenamed(ok, path) { if (ok) root.noteAccess(path) }
+        function onDuplicated(ok, path) { if (ok) root.noteAccess(path) }
+        function onConvertDone(id, ok, path) { if (ok) root.noteAccess(path) }
     }
 
     function describe() {

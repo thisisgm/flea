@@ -102,6 +102,7 @@ function openWithoutHistory(pane, newPath, options) {
     else if (pane.filterTyping)
         Filter.commit(pane)
     pane.appliedListingPreferences = pane.listingPreferences
+    if (newPath === "flea:stack") { pane.swap.beginStack(); return }
     pane.backend.list(newPath, pane.windowSize, pane.showHidden)
     // One statfs per directory, not per row: the bar's right half only changes when the pane moves.
     pane.backend.askFsInfo()
@@ -256,7 +257,7 @@ function parent(pane) {
         pane.open(parentOf(pane.listingPath))
         return
     }
-    if (pane.path === "/") {
+    if (pane.path === "/" || pane.path === "flea:stack") {
         return
     }
     var here = pane.path

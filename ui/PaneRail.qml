@@ -78,6 +78,7 @@ Item {
             service: root.service
             focused: root.pane.railPane.focusView === Focus.RAIL
             trashActive: root.pane.railPane.trash.opened
+            stackActive: root.pane.railPane.path === "flea:stack"
             onOpened: function(path) { RailKeys.openFrom(root.pane.railPane, path, sidebar) }
             onTrashRequested: root.pane.railPane.trash.open()
             onMessage: function(text, isError) { RailKeys.messaged(sidebar, isError); root.pane.message(text, isError) }

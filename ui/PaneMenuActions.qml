@@ -172,7 +172,7 @@ Loader {
         if (action === "rename" && pane.renamePending) { pane.message("Rename is still finishing.", false); return }
         if (deleting || survivorId) { pane.message("The deletion is still finishing.", false); return }
         if (action === "newFile") {
-            requestId++
+            if (pane.path === "flea:stack") { pane.message("The Stack is a list of files, not a folder.", false); return } requestId++
             folder = pane.path
             show(action)
             return

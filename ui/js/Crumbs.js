@@ -9,6 +9,8 @@
 // home test is the whole-component one, home itself or home and a separator, which ui/js/Format.js
 // tilde and ui/js/Search.js scopeRoot now both make too: a sibling like /home/gmx is not inside home.
 function crumbs(path, home) {
+    if (path === "flea:stack")
+        return [{ text: "The Stack", path: "flea:stack", last: true }]
     var text = String(path)
     var base = String(home)
     var inHome = base.length > 0 && (text === base || text.indexOf(base + "/") === 0)

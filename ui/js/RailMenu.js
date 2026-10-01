@@ -15,6 +15,9 @@ function railMenuFor(sidebar, entry, scenePosition, hidden) {
         sidebar.menu.openForRail("trash", Menu.trashEntries(sidebar.trashCount, false), scenePosition)
         return
     }
+    // The Stack is a list of files, not a folder and not a mount.
+    if (entry.kind === "stack")
+        return
     // MenuAdditions rule 3: a Places or Favorites row opens the folder menu for its path while that
     // Extras row is on, and with it off a favourite keeps the one Remove it has offered since 0.2.1.
     if (entry.kind === "favourite" || entry.kind === "home") {

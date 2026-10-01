@@ -223,6 +223,7 @@ Item {
             // A shrunk listing subscripts out of range under a delegate not yet released, and QML
             // hands that back as undefined; every row reader in the tree tests against a real null.
             row: root.pane ? root.pane.rowFor(listingIndex) : root.rows[index] !== undefined ? root.rows[index] : null
+            leafName: root.pane !== null && root.pane.path === "flea:stack"
             thumb: root.pane !== null && Thumbs.allowed(row, ViewState.thumbnailMode) ? root.pane.thumbFor(listingIndex) : ""
             showSize: root.showsSize
             dirSize: root.pane !== null ? DirSizes.sizeFor(root.pane.dirSizeState, listingIndex) : null
