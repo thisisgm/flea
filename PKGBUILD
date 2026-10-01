@@ -37,7 +37,8 @@ optdepends=('libarchive: archive listing and extraction'
             'ffmpeg: media metadata in the preview column'
             'ffmpegthumbnailer: video thumbnails, made by one pre-linked worker through libffmpegthumbnailer.so.4, or by the ffmpegthumbnailer program per video when that library will not load'
             'dropbox-cli: Dropbox share links'
-            'zoxide: frecent folders in the folder jump of the path bar')
+            'zoxide: frecent folders in the folder jump of the path bar'
+            'xclip: X11 clipboard support')
 # The release profile strips, so a debug package would have nothing to hold.
 options=('!debug')
 # Empty on purpose: with no source array makepkg builds from $startdir, so a clone is the source.

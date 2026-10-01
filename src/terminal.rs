@@ -9,13 +9,14 @@ use std::process::{Command, Stdio};
 // The exit status ui/Opener.qml reads. 0 is a successful handoff and needs no name.
 pub const FAILED: i32 = 2;
 
-// Canonical, so a relative path and a symlink both name the one real directory the terminal sits in.
+/// Resolve a relative path or symlink to the directory the terminal should use.
 fn resolved(path: &str) -> Option<PathBuf> {
     std::fs::canonicalize(path).ok()
 }
 
-// xdg-terminal-exec is the OEM route: `omarchy default terminal` configures what it reads,
-// and --dir= names the working directory without taking a command.
+/// Open a terminal in `path`, preferring the desktop's `xdg-terminal-exec`.
+/// If that launcher is missing, try Alacritty, Kitty, then xterm in the resolved directory.
+/// Return [`FAILED`] when the path is invalid or no terminal can be launched.
 pub fn open_terminal(path: &str) -> i32 {
     let target = match resolved(path) {
         Some(p) => p,
@@ -35,7 +36,24 @@ pub fn open_terminal(path: &str) -> i32 {
     // corner: spawn and not exec, because the terminal outlives us; see AGENTS.md "Opening a file".
     let mut terminal = Command::new("xdg-terminal-exec");
     detach(&mut terminal);
-    let started = terminal.arg(&dir).spawn();
+    let started = terminal.arg(&dir).spawn().or_else(|error| {
+        if error.kind() != std::io::ErrorKind::NotFound { return Err(error); }
+        // Desktop setups without xdg-terminal-exec can still use a local emulator.
+        let mut alacritty = Command::new("alacritty");
+        alacritty.arg("--working-directory").arg(&target);
+        let mut kitty = Command::new("kitty");
+        kitty.arg("--directory").arg(&target);
+        let mut xterm = Command::new("xterm");
+        xterm.current_dir(&target);
+        for candidate in [&mut alacritty, &mut kitty, &mut xterm] {
+            detach(candidate);
+            match candidate.spawn() {
+                Err(error) if error.kind() == std::io::ErrorKind::NotFound => continue,
+                result => return result,
+            }
+        }
+        Err(error)
+    });
     match started {
         Ok(_) => 0,
         Err(_) => {
@@ -45,7 +63,8 @@ pub fn open_terminal(path: &str) -> i32 {
     }
 }
 
-// The guards every program Flea starts and does not wait for carries; src/update.rs hands its updater the same.
+/// Apply the process guards to a child that Flea starts without waiting for it.
+/// The updater in `src/update.rs` uses these guards too.
 pub fn detach(child: &mut Command) {
     // The setting is inherited across exec, so this is the last point that can hand it back.
     thp::enable();
