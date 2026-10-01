@@ -34,6 +34,8 @@ function run(check) {
     check("a volume with a mountpoint reads as mounted", d[1].mounted, true)
     check("a removable volume is marked removable, which is what offers it Eject", d[1].removable, true)
     check("a loop device is not a device row", d.map(function (e) { return e.label }).join(","), "nvme0n1,128GB")
+    check("a real removable volume is not marked loop", d[1].loop, false)
+
     // The system disk is the one place the walk never goes: /boot and /home are the box's own
     // plumbing, and the disk row above already stands for that drive.
     check("no partition of the system disk becomes a row of its own",
