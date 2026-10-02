@@ -325,6 +325,8 @@ pub fn assign_lanes(commits: &mut [Commit]) {
         if let Some(ref first_hash) = first {
             lanes[col] = Some(first_hash.clone());
             edges.push(Edge { from: col, to: col });
+        } else {
+            lanes[col] = None;
         }
         for &i in incoming.iter().skip(1) {
             edges.push(Edge { from: i, to: col });

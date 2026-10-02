@@ -67,9 +67,24 @@ Item {
 
     visible: root.opened
     focus: root.opened
+    function scrollBy(delta) {
+        if (!flick.visible) return
+        var maxY = Math.max(0, flick.contentHeight - flick.height)
+        flick.contentY = Math.max(0, Math.min(maxY, flick.contentY + delta))
+    }
+
     Keys.onPressed: function (event) {
         if (event.key === Qt.Key_Escape) { root.close(); event.accepted = true }
         else if (event.key === Qt.Key_R && (event.modifiers & Qt.ControlModifier)) { root.reload(); event.accepted = true }
+        else if (event.key === Qt.Key_Up) { root.scrollBy(-root.rowH); event.accepted = true }
+        else if (event.key === Qt.Key_Down) { root.scrollBy(root.rowH); event.accepted = true }
+        else if (event.key === Qt.Key_PageUp) { root.scrollBy(-Math.max(root.rowH, flick.height)); event.accepted = true }
+        else if (event.key === Qt.Key_PageDown) { root.scrollBy(Math.max(root.rowH, flick.height)); event.accepted = true }
+        else if (event.key === Qt.Key_Home) { root.scrollBy(-flick.contentY); event.accepted = true }
+        else if (event.key === Qt.Key_End) {
+            root.scrollBy(Math.max(0, flick.contentHeight - flick.height) - flick.contentY)
+            event.accepted = true
+        }
     }
 
     MouseArea {

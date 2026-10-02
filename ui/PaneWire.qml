@@ -437,6 +437,11 @@ Item {
                 pane.message(text, true)
                 return
             }
+            // A refused hop must not keep a gitstatus reply for the rejected destination.
+            pane.gitStatusId += 1
+            pane.gitRepo = false
+            pane.gitBranch = ""
+            pane.gitRoot = ""
             // The target listing actually ended, so neither deferred menu can land on it; a stale or refused sort never reaches here.
             pane.pendingMenu = false
             Nav.clearPendingBackground(pane)
