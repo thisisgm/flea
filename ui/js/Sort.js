@@ -2,6 +2,7 @@
 
 .import "DirSizes.js" as DirSizes
 .import "FolderSorts.js" as FolderSorts
+.import "History.js" as History
 .import "Thumbs.js" as Thumbs
 
 // What the header's click and the s and S keys do, taking ui/Pane.qml's root the way Nav.js and
@@ -85,6 +86,8 @@ function resort(pane, key, desc) {
     // and a selection of row indices would silently come to name different files.
     pane.thumbState = Thumbs.empty()
     pane.dirSizeState = DirSizes.empty()
+    // An owed Back or Forward cursor names an index in the order being replaced.
+    History.cancel(pane)
     pane.clearSelection()
     pane.setCursor(0)
     // sort emits no rows of its own, so the reordered window is asked for here; see docs/protocol.md.

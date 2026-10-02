@@ -109,8 +109,10 @@ var INSTANCE = String(Date.now()) + "-" + String(Math.floor(Math.random() * 1000
 // and a drop carrying one but not the other is a state nobody would have written a branch for.
 // The modifier rides here because Drag.supportedActions is the only field another application ever
 // sees, and offering it Qt.MoveAction is what made Chromium report dropEffect move.
-function markerPayload(rows, copy, source, dev) {
-    return INSTANCE + "\n" + rows.join(",") + "\n" + (copy ? "copy" : "move") + "\n" + String(source || "") + "\n" + String(dev || 0)
+// The sixth field is the numbering the rows were read in, so a drop that resolves them by index,
+// the rail's Trash taking a selection too wide to carry paths, names that numbering back.
+function markerPayload(rows, copy, source, dev, listing) {
+    return INSTANCE + "\n" + rows.join(",") + "\n" + (copy ? "copy" : "move") + "\n" + String(source || "") + "\n" + String(dev || 0) + "\n" + String(listing || 0)
 }
 
 // The directory the rows were lifted from, and its filesystem, both baked at the lift: a drop that
@@ -122,6 +124,11 @@ function markerSource(payload) {
 
 function markerDev(payload) {
     return Number(String(payload).split("\n")[4]) || 0
+}
+
+// 0 when the marker predates the field or the lift had no listing, which a by-index drop refuses.
+function markerListing(payload) {
+    return Number(String(payload).split("\n")[5]) || 0
 }
 
 // Whether the listing under the drop is still the one the rows were lifted from, which is the only
@@ -175,7 +182,8 @@ function uriFor(path) {
 // Whether the key is present is also what tells the bar the drag cannot leave Flea.
 function mimeFor(pane, rows, copy) {
     var mime = {}
-    mime[ROWS_MIME] = markerPayload(rows, copy, pane.path, pane.backend ? pane.backend.dirDev : 0)
+    mime[ROWS_MIME] = markerPayload(rows, copy, pane.path, pane.backend ? pane.backend.dirDev : 0,
+                                    pane.backend ? pane.backend.heldListing : 0)
     var uris = []
     var paths = []
     for (var i = 0; i < rows.length; i++) {

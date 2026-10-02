@@ -23,6 +23,7 @@ function settled(path) {
     p.listArea = { primeSettle: function () {} }
     p.swap = { hold: function () { return false } }
     p.join = function (base, name) { return base + "/" + name }
+    p.rowFor = function (index) { return p.rows[index - p.held] || null }
     p.backend = {
         list: function (target, first, hidden) { p.sent.push("list " + target); p.path = target; p.listInFlight = false },
         askFsInfo: function () {}

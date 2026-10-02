@@ -735,7 +735,7 @@ label = "keys"
 #                   whose segments are their own targets, both drawn by ui/Crumb.qml
 # press  the button, then any modifier before it, then "x2" for the second tap of a double click
 # row    which rows the line covers: any, dir, file, parent, inert, renaming or result
-# does   backOrParent commitRename extendSelect goToCrumb menu nothing open pathBar reveal selectOnly toggleSelect
+# does   backOrParent commitRename extendSelect forward goToCrumb menu nothing open pathBar reveal selectOnly toggleSelect
 #
 # Enter opens and is in the [[code]] table above, not here: this is the pointer's half only. The rail
 # opens on one tap, as Finder's own sidebar does and as every other rail in Omarchy does, which is
@@ -896,15 +896,22 @@ row = "inert"
 does = "pathBar"
 label = "type the path: the current folder's own segment, the collapsed marker or the strip beside the path"
 
-# Issue 20: the mouse's extra button. It belongs to the window rather than to a row, so it is the one
-# line here with no listing under it; ui/js/Nav.js mouseBack decides, and ui/shell.qml refuses it
-# behind a dialog, an open preview, the share overlay and any field holding the keyboard.
+# Issue 20: the mouse's side buttons. They belong to the window rather than to a row, so they are the
+# lines here with no listing under them; ui/js/Nav.js mouseBack and mouseForward decide, and
+# ui/WindowBody.qml refuses both behind a dialog, an open preview, the share overlay and any field holding the keyboard.
 [[pointer]]
 where = "window"
 press = "back"
 row = "any"
 does = "backOrParent"
 label = "go back through the history, or up a directory when there is none"
+
+[[pointer]]
+where = "window"
+press = "forward"
+row = "any"
+does = "forward"
+label = "go forward again through a back, and nothing when there is none"
 
 [[pointer]]
 where = "rail"

@@ -136,6 +136,8 @@ function span(list, first, last) {
 // "/" opens the query line. Unlike the search's, nothing is committed to start a walk: the rows are
 // already here, so the listing narrows on the keystroke itself.
 function start(pane) {
+    // Opening the field is newer intent, even if Esc dismisses it before a delayed history reply.
+    pane.historyRestore = null
     pane.filterTyping = true
 }
 

@@ -484,19 +484,19 @@ Rectangle {
         }
     }
 
-    // Issue 20: the mouse's own back button, taken by the window because no row is being
-    // clicked; ui/js/Nav.js mouseBack is what chooses between the history and the climb.
-    // The menu's own refusal is in there rather than in the list below because that is the
-    // only place a JavaScript suite can drive it; the list below is the other overlays a
-    // back press must not act behind.
+    // Issue 20: the mouse's side buttons, taken by the window because no row is being clicked;
+    // ui/js/Nav.js mouseBack chooses between the history and the climb, mouseForward retraces a back
+    // (never in Trash, as Pane.goForward). The menu's refusal is in Nav.js, where a suite can drive
+    // it; the list below is the other overlays a side button press must not act behind.
     TapHandler {
-        acceptedButtons: Qt.BackButton
-        onTapped: {
+        acceptedButtons: Qt.BackButton | Qt.ForwardButton
+        onTapped: function (eventPoint, button) {
             if (view.currentPane.menuActions.opened || settingsPanel.opened || view.currentPane.trash.confirming || chrome.editing || convertDialog.opened || permissionsDialog.opened || keymapSheet.opened
                     || networkDialog.opened || (shareBrowser.active && shareBrowser.owner === view.currentPane) || preview.active
                     || view.currentPane.renameEditor() !== null || (view.currentPane.sidebar && view.currentPane.sidebar.renameEditor() !== null))
                 return
-            if (view.currentPane.trash.opened) view.currentPane.trash.close()
+            if (button === Qt.ForwardButton) { if (!view.currentPane.trash.opened) Nav.mouseForward(view.currentPane) }
+            else if (view.currentPane.trash.opened) view.currentPane.trash.close()
             else Nav.mouseBack(view.currentPane)
         }
     }

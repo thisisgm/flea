@@ -13,6 +13,8 @@ var RESULTS = "results"
 // f opens the query line. The walk does not start here: a subtree walk per keystroke would be a
 // sweep, and the design's own ruling is that enter commits the query.
 function start(root) {
+    // Opening the field is newer intent, even if Esc dismisses it before a delayed history reply.
+    root.historyRestore = null
     root.searchMode = TYPING
 }
 

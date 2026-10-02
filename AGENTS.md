@@ -445,6 +445,38 @@ red with no sentence where it cannot act, a folder owned by somebody else or a m
 stays plain where its owner may still fix it, which is the way back in. `tests/js/menu.js` pins the
 rows and the absent parent rows, `tests/js/nav.js` the target.
 
+## Back and Forward restore the cursor
+
+`ui/js/History.js` stores an immutable directory, row name and fallback index for each history entry.
+`ui/js/Nav.js` keeps the navigation guards and public verbs; Back and Forward move the departing
+entry onto the opposite stack before opening the destination. A mouse Back with no history still
+climbs to the parent, and mouse Forward with no forward history does nothing. Both refuse behind
+the context menu or collision card; `ui/WindowBody.qml` also gates them behind dialogs, previews and
+editors, and Forward does nothing in Trash.
+
+**Names survive a reordering; indices only provide the fallback.** `ui/PaneSwap.qml` resolves the
+entry when the destination's rows land, first against the held window. An off-window name asks the
+existing read-only `locate` request where it is, then `setCursor` requests only its viewport-sized
+window. Nothing stats the whole directory to restore a cursor. A missing name falls back to the
+saved index clamped to the new count; an empty destination settles at once.
+
+**A delayed answer owes the original intent, not a new cursor.** Navigation, a re-sort, a deliberate
+cursor move, a wheel clamp that moves it, or a newer selection invalidates the restore. Opening a
+filter or search cancels it at `start`, even when Escape dismisses the field before the answer:
+checking only the current field state let that dismissed intent revive. `Filter.close` remains a
+reset rather than an intent change, because listing swaps and tab hops call it too. A watched
+re-read waits while a restore is owed, avoiding an anchor taken from the placeholder cursor.
+
+Tabs carry an owed entry in their snapshot. A same-folder hop resumes it over the held rows, while
+a tab with a different order waits for that sort's own numbering. `History.wait` records the
+selection version after the tab's reset; later selection changes refuse both the landed rows and
+any attempt to carry that owed entry into another tab.
+
+`tests/js/history.js` and `history-tabs.js` exercise the delayed replies and the actual dismissed
+filter/search transitions. `tests/nav-history.sh` and `nav-history-sort.sh` drive the real window
+and backend through QtTest mouse buttons, toolbar Back, tabs, wheel and filter input, with delayed
+reply controls, viewport request bounds and screenshots of the restored row.
+
 ## The preview swap
 
 A cursor move drew the next preview half-built: v0.3.4 shows 145 to 151 mid frames over 18 column
@@ -2916,6 +2948,12 @@ e41 R7 integration records tests/js/columns.js at 618, retaining all e39 neighbo
 
 w64 R2 moves two ceilings, each re-derived with `wc -l`: `src/backend/durable.rs` 631 to 661 for the held-file clone baseline (the first held file is cloned once before any close, sharing its pre-write description, then originals close in parallel, syncfs runs on the clone and the clone drops on every path, with clone failure sticky unconfirmed); `src/backend/durable_tests.rs` 1121 to 1248 for the clone lifetime, clone-failure and clone-syncfs-failure pins. `src/backend/movebatch.rs` keeps 469 and `src/backend/movebatch_tests.rs` keeps 751 with no added line.
 
+Cursor history records three ceilings, each re-derived with `wc -l`: `ui/Pane.qml` 735 to 738 for
+the restore owner and deliberate-move cancellation, `ui/PaneWire.qml` 468 to 472 for routing locate
+and failure cancellation, and `ui/js/Tabs.js` 299 to 306 for carrying an owed entry across tab hops.
+`ui/js/Filter.js` 253 to 255 records its start-only cancellation; `ui/js/History.js` at 168,
+`ui/js/Search.js` at 232, and the history suites at 246 and 162 stay under their hard caps.
+
 ## The key table is generated
 
 `keys.toml` at the repository root is the single source of truth for every binding.
@@ -2966,9 +3004,10 @@ case `click` then drives real clicks at the window, which is the half a JavaScri
 reach: it is what says a delegate hands `Tap.tapped` the tap count and the modifiers the click
 actually carried.
 
-The last two rows landed with issues 20 and 45 and are not `Tap.js`'s. `window` is the mouse's
-back button, which belongs to no row: `ui/WindowBody.qml` carries the handler and `ui/js/Nav.js`
-`mouseBack` decides between the history and the climb. `chrome` is the path above the listing and,
+The last three rows landed with issues 20 and 45 and are not `Tap.js`'s. `window` is the mouse's
+two side buttons, which belong to no row: `ui/WindowBody.qml` carries one handler for both and
+`ui/js/Nav.js` decides, `mouseBack` between history and the climb, `mouseForward` retracing a back,
+both behind the same `mouseRefused` guard. `chrome` is the path above the listing and,
 in the dual view, each pane's own path, whose segments `ui/Crumb.qml` draws as their own click
 targets for both, placed by `ui/ChromeBar.qml` and by `ui/PanePath.qml`, from `ui/js/Crumbs.js`.
 Until 0.3.2 a dual pane's path was one `Text` answering only the double click, so a tap on a parent
@@ -2992,7 +3031,10 @@ it first. `tests/ui.sh` case `click` now closes that gap the way this paragraph 
 after the crumb press it parks the pointer over a listing row with `omarchy-drive move`, sends
 `ydotool click 0xC3` twice, and reads the path back through the IPC seam both times, so the history
 branch and the climb branch of `mouseBack` are each pressed through the shipped tree. The crumb half
-is pressed the same way, from `crumbCentre`, which is the seam `ui/Ipc.qml` grew for it.
+is pressed the same way, from `crumbCentre`, which is the seam `ui/Ipc.qml` grew for it. Between the
+two back presses the case sends `ydotool click 0xC4`, which Qt reports as `Qt.ForwardButton`,
+requires the path forward again, and backs once more so the climb still finds the history spent;
+`tests/js/navmouse.js` drives `mouseForward` itself.
 
 A crumb click answers on the first tap, GM's ruling of 2026-09-22. `ui/Crumb.qml` used to carry
 `exclusiveSignals: TapHandler.SingleTap | TapHandler.DoubleTap`, which makes the tap count decide by
@@ -3093,7 +3135,7 @@ waits for its consumer.
   the rest with what each needs, so this paragraph carries neither a count nor a membership for
   either list to outgrow. A suite in neither list fails the runner's own audit, so one cannot go
   uninvoked a second time.
-- **`./tests/drag.sh` is the internal drag's characterisation suite, 9 checks**, and it has to
+- **`./tests/drag.sh` is the internal drag's characterisation suite**, whose own last line prints its tally, and it has to
   be run by hand: no runner invokes it. It was written against the drag's behaviour BEFORE the
   platform-drag rewrite, so it is the net that catches what the rewrite changes, and it earned
   that immediately: the first cut of the rewrite failed R3, `expected [kept] got [GONE]`,
@@ -5063,6 +5105,31 @@ Two things a reproduction meets: ghostty's paste protection raises "Potentially 
 terminal has no bracketed paste, which reads as a failed drop, and a press taken from an IPC centre can
 land on the column header rather than the row, so read a screenshot before calling a drag failed.
 
+## Drag to Trash
+
+A row drag dropped on the rail's Trash row sends the backend's existing `trash` request, the one
+`dd` sends, so it journals the same `Trashed` step and `z` restores it. `ui/RailTrashRow.qml` is the
+Trash row, a `SidebarRow` with a `DropArea`, and `ui/js/TrashDrop.js` decides.
+
+**Only a drag this window lifted may trash.** A foreign drop, another Flea's or the shelf's carries
+files Flea did not hand over, and `ui/js/Drag.js verbFor` already refuses to remove a source on a
+drop it did not deliver; a delete is that rule's strongest case. A drag carrying paths trashes those
+paths. A selection too wide to carry paths trashes by index, only over the listing it was lifted
+from, and named in the numbering of the lift, which the row marker now carries as its sixth field,
+so `src/backend/rowguard.rs` refuses it after a re-list rather than trashing whatever those indices
+name now. `tests/js/trashdrop.js` drives the decisions and `tests/drag.sh` case RT the real drop.
+
+The fallback's first selected row is found with one loop, never `Math.min.apply`: a wide selection
+can exceed the JavaScript engine's argument limit even though its row array is valid. The request
+still carries every lifted index and its listing generation. `tests/js/trashdrop.js` checks a
+million reversed indices byte-for-byte as numbers, plus an unsorted selection whose minimum is in
+the middle, so neither truncation nor assuming the first index is the minimum can pass.
+
+A platform drag delivers no hover, so an auto-hidden rail would never come up for one:
+`ui/PaneRail.qml` lays a `DropArea` over the edge strip and the rail's width that keeps the overlay
+rail up while a row drag rests there, and refuses the drop itself, so a drop elsewhere on the overlay
+rail no longer falls through to the listing row under it.
+
 ## Backend memory levers that were measured and dropped
 
 Measured on 2026-08-30 by Plan 5's Task 5b, warm, against a backend driven over its own wire with
@@ -5302,10 +5369,10 @@ capture, with its identities still checked per item. Move to Dropbox lost its ow
 Dropbox" sticky with this, because a move waiting on the card would have left it standing after a
 Cancel; transferstarted names the move a moment later. The shelf's own `flea shelf` actions and the
 TUI pass no choice and refuse as before. **The pane does not navigate behind the card**:
-`ui/js/Nav.js` `mouseBack` refuses while `pane.collide.opened`, the way it refuses behind the context
-menu, since the transfer waiting on the card names the folder it asked about; the keyboard and the
-chrome's own back and up buttons are covered by the card's focus and backdrop, and there is no
-forward mouse button binding to gate. `tests/ui-operations-design.sh` and `tests/ui-providers.sh`
+`ui/js/Nav.js` `mouseBack` and `mouseForward` refuse while `pane.collide.opened`, the way they refuse
+behind the context menu, since the transfer waiting on the card names the folder it asked about;
+the keyboard and the chrome's own back and up buttons are covered by the card's focus and backdrop.
+`tests/ui-operations-design.sh` and `tests/ui-providers.sh`
 drove their error and retry footers with a real name collision through Copy to and Move to Dropbox;
 a collision now asks instead, so those flows fail on an unreadable source file and a read-only Dropbox
 folder, both real failures that are not a name.

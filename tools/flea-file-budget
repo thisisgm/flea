@@ -63,9 +63,9 @@ ui/Ipc.qml 818
 ui/NetworkDialog.qml 449
 ui/NetworkMounts.qml 838
 ui/OpenWithDialog.qml 592
-ui/Pane.qml 735
+ui/Pane.qml 738
 ui/PaneMenuActions.qml 407
-ui/PaneWire.qml 468
+ui/PaneWire.qml 472
 ui/PermissionsDialog.qml 432
 ui/PickerWindow.qml 706
 ui/PreviewColumn.qml 499
@@ -78,12 +78,13 @@ ui/StatusBar.qml 456
 ui/Theme.qml 415
 ui/TrashView.qml 475
 ui/WindowBody.qml 547
-ui/js/Filter.js 253
+ui/js/Filter.js 255
 ui/js/Focus.js 373
 ui/js/Keymap.js 314
 ui/js/Menu.js 337
 ui/js/Ops.js 371
-ui/js/Settings.js 432"
+ui/js/Settings.js 432
+ui/js/Tabs.js 306"
 
 status=0
 

@@ -2,6 +2,7 @@
 
 .import "Filter.js" as Filter
 .import "Format.js" as Format
+.import "History.js" as History
 .import "Search.js" as Search
 .import "Sort.js" as Sort
 .import "Startup.js" as Startup
@@ -39,7 +40,9 @@ function snapshot(pane, path) {
         // Issue 94, nixfred: the counter every list bumps, so a selection only returns to its own rows.
         listRequests: pane.backend.listRequests,
         // The directory's filesystem, so a drop on this tab while another shows decides move against copy.
-        dev: elsewhere ? 0 : pane.backend.dirDev
+        dev: elsewhere ? 0 : pane.backend.dirDev,
+        // The row a Back or Forward still owes this directory, an immutable ui/js/History.js entry, or null.
+        cursorRestore: elsewhere ? null : History.owedEntry(pane)
     }
 }
 
@@ -154,24 +157,26 @@ function apply(pane, item, dropped) {
         if (pane.backend && (pane.backend.sortBy !== item.sortBy || pane.backend.sortDesc !== item.sortDesc)) {
             // Issue 94: the one reset a reorder takes, ui/js/Sort.js's, which this branch half repeated.
             Sort.resort(pane, item.sortBy, item.sortDesc)
-            pane.tabs.pendingCursor = item.cursorIndex
+            pane.tabs.pendingCursor = item.cursorRestore ? -1 : item.cursorIndex
+            History.wait(pane, item.cursorRestore)
             return
         }
         // The switch that re-reads nothing, unless something else did: the watch and a write both list.
-        pane.setCursor(item.cursorIndex)
-        if (pane.backend && item.listRequests === pane.backend.listRequests) {
+        // An owed row resolves by name after the selection, never through the index it stood on.
+        if (!item.cursorRestore) pane.setCursor(item.cursorIndex)
+        if (pane.backend && item.listRequests === pane.backend.listRequests)
             restoreSelection(pane, item.selected, item.follows)
-            return
-        }
-        pane.clearSelection()
+        else
+            pane.clearSelection()
+        History.resume(pane, item.cursorRestore)
         return
     }
-    pane.tabs.pendingCursor = item.cursorIndex
+    pane.tabs.pendingCursor = item.cursorRestore ? -1 : item.cursorIndex
     pane.tabs.pendingSortBy = item.sortBy
     pane.tabs.pendingSortDesc = item.sortDesc
     // The tab's own dotfile answer is restored above, so the listing keeps it rather than taking the
     // standing preference. A tab in another view clears at once: these rows were never listed in that view.
-    pane.openWithoutHistory(item.path, { keepHidden: true, clearAtOnce: viewChanged })
+    pane.openWithoutHistory(item.path, { keepHidden: true, clearAtOnce: viewChanged, restore: item.cursorRestore })
 }
 
 function applyPending(pane) {
@@ -188,7 +193,7 @@ function applyPending(pane) {
             pane.backend.sortBy = by
             pane.backend.sortDesc = desc
             pane.backend.window(0, pane.windowSize)
-            return
+            return true
         }
     }
     if (t.pendingCursor >= 0) {
@@ -229,6 +234,8 @@ function openNew(pane, where) {
     // walk's results, so a target equal to the scope still has to be listed again. Escape already does.
     if (pane.path !== target || dropped)
         pane.openWithoutHistory(target)
+    else
+        History.resume(pane, items[items.length - 1].cursorRestore)
 }
 
 function selectAt(pane, i) {

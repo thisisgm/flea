@@ -1,15 +1,19 @@
 .pragma library
 
+.import "History.js" as History
+
 // Re-reading the open listing without moving the user off it. Two callers with one mechanism: a
 // change another program made under the listing (ui/PaneWire.qml's watch) and Flea's own delete.
 // Split out of ui/js/Nav.js, which sits at the 300-line JS cap, the same way tests/js/watch.js was
 // split out of tests/js/nav.js; ui/js/Nav.js keeps navigation and this keeps the return.
 
-// ui/PaneWire.qml watchBusy: a re-read renumbers every row, so it waits while anything names a row by index or holds one open, the collision card's transfer too.
+// ui/PaneWire.qml watchBusy: a re-read renumbers every row, so it waits while anything names a row by index or holds one open, the collision card's transfer too,
+// and while a Back or Forward's locate is still owed, whose placeholder cursor the anchor would otherwise keep.
 function busy(pane) {
     return !pane || pane.listInFlight || pane.renamingIndex >= 0 || pane.renamePending
         || pane.menuVisible || pane.menuActions.opened || pane.filterTyping || pane.searchMode.length > 0
         || pane.selectionCount() > 0 || pane.selectionBand !== null || pane.collide.pending !== null
+        || History.owed(pane) !== null
 }
 
 // A change another program made under the open listing, unlike ui/js/Nav.js refresh() which follows

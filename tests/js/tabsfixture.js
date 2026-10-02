@@ -1,4 +1,5 @@
 .import "../../ui/js/Selection.js" as Selection
+.import "../../ui/js/History.js" as History
 
 // The stub pane both tab suites drive, kept here so neither owns it: tests/js/tabs.js covers the
 // tab list itself and tests/js/tabs-switch.js what a switch restores.
@@ -6,7 +7,7 @@ function pane(path) {
     var p = {
         path: path || "/home/gm/Work",
         home: "/home/gm",
-        history: ["/home/gm"],
+        history: [History.entry("/home/gm", "Work", 3)],
         cursorIndex: 4,
         viewMode: "list",
         showHidden: false,

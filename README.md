@@ -128,7 +128,11 @@ If you previously pinned another directory handler, restore that handler explici
 
 **The shelf** lives in the Omarchy bar: send files there from any menu, drag them out into any app, pin the ones you keep coming back to. **Phones** are Devices rows over MTP, AFC and PTP.
 
+**Mouse Back and Forward** return to the folder and cursor row you left. The row is found by name if the folder changed order; if it disappeared, the cursor falls back to the nearest saved position. A delayed reply never overrides a newer cursor move, selection, filter or search.
+
 **Dragging out** works into any app that takes a drop, on this monitor or another, as long as the target is on screen before you lift the file; a terminal gets the path. Switching workspace mid-drag ends it, because Hyprland releases every mouse button on a workspace change, so bring the target workspace up first. See "A drag does not survive a workspace switch" in `AGENTS.md`.
+
+**Dragging to Trash**: drop rows on the rail's Trash row and they go to the trash, the same as `dd`, and `z` puts them back. Only a drag that started in that Flea window is taken, so another app's files are never deleted by a drop. A selection wider than the held rows stays complete and names the listing it was lifted from; a changed listing refuses it rather than trashing different rows.
 
 <p align="center">
   <img src="docs/images/shelf.png" width="49%" alt="The shelf card open over Flea, with thumbnails, pins and the last three screenshots">

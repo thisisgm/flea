@@ -1,6 +1,7 @@
 import QtQuick
 import "." as Flea
 import "js/Focus.js" as Focus
+import "js/Drag.js" as DragOps
 import "js/Eject.js" as Eject
 import "js/RailKeys.js" as RailKeys
 import "js/RailMenu.js" as RailMenu
@@ -37,8 +38,11 @@ Item {
     // from under the menu it just opened.
     readonly property bool menuHere: root.pane !== null && root.pane.contextMenu().opened
                                      && root.pane.contextMenu().forRail
-    readonly property bool wanted: edge.hovered || root.over || root.menuHere
+    readonly property bool wanted: edge.hovered || root.over || root.menuHere || root.dragHere
                                    || (root.pane !== null && root.pane.focusView === Focus.RAIL)
+    // A platform drag delivers no hover, so a row drag reveals an overlay rail through drop areas
+    // instead: the edge strip and the rail's width here, the Trash row's own once it is up.
+    readonly property bool dragHere: dragReveal.containsDrag || (rail.item !== null && rail.item.trashDragOver)
 
     onWantedChanged: {
         if (root.wanted) { settle.stop(); root.revealed = true }
@@ -64,6 +68,17 @@ Item {
         width: Theme.space(4)
         enabled: root.overlay
         HoverHandler { id: edge; enabled: root.overlay }
+    }
+
+    // Below the rail, so the Trash row's own drop area answers first; taking nothing here keeps a
+    // drop on the overlay rail from falling through to whatever listing row lies under it.
+    DropArea {
+        id: dragReveal
+        anchors { left: parent.left; top: parent.top; bottom: parent.bottom }
+        width: Math.max(strip.width, rail.width)
+        enabled: root.overlay
+        keys: [DragOps.ROWS_MIME]
+        onDropped: function (drop) { drop.accepted = false }
     }
 
     Loader {

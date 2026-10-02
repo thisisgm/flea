@@ -399,6 +399,36 @@ check "and not in the folder it merely crossed" \
 check "a plain drag is a move, so the source is gone" \
       "$([ -e "$HOMEDIR/r2.txt" ] && echo still-there || echo moved)" "moved"
 
+# ---------------------------------------------------------------- RT
+echo
+echo "== RT: a row dropped on the rail's Trash row goes to the trash =="
+# ui/RailTrashRow.qml sends the same trash request dd does, by path, through ui/js/TrashDrop.js.
+# HOME and XDG_DATA_HOME are this run's own, and gio trashes a file on the home filesystem into
+# $XDG_DATA_HOME/Trash in-process, so the operator's own Trash never sees this file.
+# Settled first: a baseline read while a re-list is out is not this folder's count.
+expect_ipc listInFlight false
+rt_before=$(ipc total)
+printf 't1 payload\n' > "$HOMEDIR/t1.txt"
+expect_ipc total $((rt_before + 1))
+trash_index=""
+IFS='|' read -r -a rail_labels <<< "$(ipc railLabels)"
+for i in "${!rail_labels[@]}"; do [ "${rail_labels[$i]}" = Trash ] && trash_index=$i && break; done
+[ -n "$trash_index" ] || die "RT: the rail carries no Trash row: $(ipc railLabels)"
+point=$(ipc railRowCentre "$trash_index")
+[[ "$point" =~ ^[0-9]+\ [0-9]+$ ]] || die "RT: the Trash row has no geometry: $point"
+read -r tx ty <<< "$point"
+set -- $(screen_centre t1.txt); sx=$1; sy=$2
+warp "$sx" "$sy"; sleep 0.4
+press; sleep 0.3
+glide_to "$((WX + tx))" "$((WY + ty))"; sleep 0.5
+release; sleep 0.4
+wait_for "$HOMEDIR/t1.txt" absent
+check "the dropped file left its folder" \
+      "$([ -e "$HOMEDIR/t1.txt" ] && echo still-there || echo gone)" "gone"
+check "and it is in this run's Trash, not deleted" \
+      "$([ -e "$XDG_DATA_HOME/Trash/files/t1.txt" ] && echo trashed || echo missing)" "trashed"
+expect_ipc total "$rt_before"
+
 # ---------------------------------------------------------------- R3
 echo
 echo "== R3: ctrl decides copy versus move, and the lift is where it is read =="

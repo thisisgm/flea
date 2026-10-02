@@ -242,9 +242,11 @@ FocusScope {
     }
 
 
-    // Each tab retains its own back and forward navigation.
+    // Each tab retains its own back and forward navigation, entries from ui/js/History.js entry();
+    // historyRestore is the cursor a Back or Forward still owes the listing it asked for, or null.
     property var history: []
     property var forwardHistory: []
+    property var historyRestore: null
     property var tabs: null
     readonly property bool canGoBack: trashHost.opened || root.history.length > 0
     readonly property bool canGoUp: root.path.length > 1
@@ -392,8 +394,9 @@ FocusScope {
     // index is a listing row, which is what every caller outside ui/js/Filter.js holds; the clamp
     // and the scroll both happen in view space, because a filter can be narrowing what is drawn.
     function setCursor(index) { Filter.setCursor(root, index) }
-    // ListView.Contain has no name inside a .pragma library, so the scroll itself stays here.
-    function showRow(view) { root.listArea.positionViewAtIndex(view, ListView.Contain); root.listArea.restartCoalesce() }
+    // ListView.Contain has no name inside a .pragma library, so the scroll itself stays here. A deliberate
+    // cursor move (this, or a wheel clamp that moved it in onCursorClamped) drops a cursor Back or Forward owes.
+    function showRow(view) { root.historyRestore = null; root.listArea.positionViewAtIndex(view, ListView.Contain); root.listArea.restartCoalesce() }
 
     // A successful pointer commit preserves the newly selected row; a refusal returns to its editor.
     function commitOpenRename() {
@@ -601,7 +604,7 @@ FocusScope {
         menu: menu
 
         // List only computes the clamp and the thumbnail plan; cursorIndex and thumbState are Pane's own to write.
-        onCursorClamped: function (first, last) { Filter.clampCursor(root, first, last) }
+        onCursorClamped: function (first, last) { var was = root.cursorIndex; Filter.clampCursor(root, first, last); if (root.cursorIndex !== was) root.historyRestore = null }
         onThumbsApplied: function (work) { root.thumbState = Thumbs.applied(root.thumbState, work) }
         onDirSizesApplied: function (ask) { root.dirSizeState = DirSizes.applied(root.dirSizeState, ask) }
         onDirSizesCancelled: root.dirSizeState = DirSizes.cancelled(root.dirSizeState)

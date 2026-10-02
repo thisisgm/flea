@@ -152,6 +152,7 @@ Item {
         function onRows(start, items, ms, kinds, listing) { swap.takeRows(start, items, kinds, listing) }
 
         function onLocated(message) {
+            swap.located(message)
             if (!root.retryId || message.transferId !== root.retryId) return
             root.retryId = 0
             root.retryPaths = []
@@ -410,9 +411,11 @@ Item {
                 }
             }
             if (where === "redo") { pane.transfer = Ops.emptyTransfer(); pane.sticky("") }
-            // A refused sort changes nothing in the backend, so it changes nothing here: a notice in the
-            // plain role, never the error role, which is for a listing that stopped being true.
+            // A refused sort changes nothing in the backend, so it changes nothing here but the cursor a
+            // Back or Forward waited on its rows for: a notice in the plain role, never the error role,
+            // which is for a listing that stopped being true.
             if (where === "sort") {
+                pane.historyRestore = null
                 pane.message(text, false)
                 return
             }
@@ -437,6 +440,7 @@ Item {
                 pane.held = 0
                 pane.rows = []
                 pane.cursorIndex = 0
+                pane.historyRestore = null
                 // No transferdone is coming from a backend that is gone, and nothing else ends a
                 // running transfer, so the card would crawl over a dead child until the app closed.
                 pane.transfer = Ops.emptyTransfer()

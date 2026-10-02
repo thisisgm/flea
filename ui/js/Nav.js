@@ -6,6 +6,7 @@
 .import "Thumbs.js" as Thumbs
 .import "Search.js" as Search
 .import "ColumnMenu.js" as ColumnMenu
+.import "History.js" as History
 
 // Where the pane has been and how it gets back, taking ui/Pane.qml's root the way Search.js and
 // Ops.js do: the pane holds the state, this holds what the state does.
@@ -20,7 +21,7 @@ function open(pane, newPath) {
         return
     }
     if (pane.path.length > 0 && newPath !== pane.path) {
-        pane.history = pane.history.concat([pane.path])
+        pane.history = pane.history.concat([History.capture(pane)])
         pane.forwardHistory = []
     }
     pane.openWithoutHistory(newPath)
@@ -37,11 +38,7 @@ function back(pane) {
         pane.message("A directory is already loading.", false)
         return
     }
-    var target = pane.history[pane.history.length - 1]
-    pane.forwardHistory = (pane.forwardHistory || []).concat([pane.path])
-    // The pop happens before the open, because open() is what would otherwise push it straight back on.
-    pane.history = pane.history.slice(0, pane.history.length - 1)
-    pane.openWithoutHistory(target)
+    History.travel(pane, "history", "forwardHistory")
 }
 
 function forward(pane) {
@@ -50,20 +47,19 @@ function forward(pane) {
         pane.message("A directory is already loading.", false)
         return
     }
-    var target = pane.forwardHistory[pane.forwardHistory.length - 1]
-    pane.history = pane.history.concat([pane.path])
-    pane.forwardHistory = pane.forwardHistory.slice(0, -1)
-    pane.openWithoutHistory(target)
+    History.travel(pane, "forwardHistory", "history")
+}
+
+// The pane's own context menu covers the listing and no navigation closes it, so a press behind
+// one left the menu standing over another directory's rows and its next row acted on whichever
+// file had arrived at that index. ui/shell.qml refuses the window's overlays; the collision card is the pane's.
+function mouseRefused(pane) {
+    return pane.menuVisible || pane.collide.opened
 }
 
 // The mouse back button follows history, or climbs when no history exists.
 function mouseBack(pane) {
-    // The pane's own context menu covers the listing and no navigation closes it, so a press behind
-    // one left the menu standing over another directory's rows and its next row acted on whichever
-    // file had arrived at that index. ui/shell.qml refuses the window's overlays; the collision card is the pane's.
-    if (pane.menuVisible || pane.collide.opened) {
-        return
-    }
+    if (mouseRefused(pane)) return
     if (pane.history.length > 0) {
         back(pane)
         return
@@ -71,7 +67,13 @@ function mouseBack(pane) {
     parent(pane)
 }
 
-// Every listing the pane asks for; of options, ui/Pane.qml reads keepHidden and ui/js/Swap.js begin() the rest.
+// The mouse forward button retraces a back, and with nothing ahead goes nowhere.
+function mouseForward(pane) {
+    if (!mouseRefused(pane)) forward(pane)
+}
+
+// Every listing the pane asks for; of options, ui/Pane.qml reads keepHidden, ui/js/History.js arm() restore
+// (the cursor Back or Forward owes, dropped by any other listing) and ui/js/Swap.js begin() the rest.
 // A walk owns the rows until this lands, so leaving it is the shared step with the tabs:
 // tab switches, Back, Up, rail clicks and jumps all funnel through here.
 function openWithoutHistory(pane, newPath, options) {
@@ -95,6 +97,7 @@ function openWithoutHistory(pane, newPath, options) {
     // settle firing in between would spend it; a re-read of the same path keeps its class.
     if (newPath !== pane.path) { pane.storageClass = ""; pane.storageKnown = false }
     var ask = options || {}
+    History.arm(pane, ask.restore)
     // A settled listing stays drawn until the new rows land, see AGENTS.md "The listing swap".
     if (!pane.swap.hold(ask))
         forget(pane, ask.keptQuery)

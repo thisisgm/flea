@@ -1,6 +1,7 @@
 import QtQuick
 import "js/Anchor.js" as Anchor
 import "js/DirSizes.js" as DirSizes
+import "js/History.js" as History
 import "js/Nav.js" as Nav
 import "js/Search.js" as Search
 import "js/Swap.js" as Swap
@@ -128,7 +129,9 @@ Item {
             pane.rowsAt = Date.now()
         pane.applyPendingSelect()
         root.wire.anchor = Anchor.apply(pane, root.wire.anchor)
-        Tabs.applyPending(pane)
+        // A tab restore that answers these rows with a sort leaves an owed cursor waiting for the reordered rows.
+        if (Tabs.applyPending(pane)) History.defer(pane)
+        else History.landed(pane)
         pane.listArea.restartSettle()
         if (pane.listInFlight) {
             pane.listInFlight = false
@@ -137,6 +140,9 @@ Item {
         root.wire.locateRetry()
         root.wire.openRenameOnArrival()
     }
+
+    // ui/PaneWire.qml routes every located line here; ui/js/History.js keeps only its own.
+    function located(message) { History.located(root.pane, message) }
 
     function describe() {
         return { holding: root.holding, fellBack: root.fellBack, holds: root.holds, fallbacks: root.fallbacks,
@@ -163,6 +169,7 @@ Item {
                 return
             cap.stop()
             root.phase = Swap.ended(root.phase)
+            History.ended(root.pane)
         }
     }
 

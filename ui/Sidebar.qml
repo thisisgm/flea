@@ -9,7 +9,6 @@ import "js/Mounts.js" as Mounts
 import "js/Places.js" as Places
 import "js/PlaceMenu.js" as PlaceMenu
 import "js/RailMenu.js" as RailMenu
-import "js/RailKeys.js" as RailKeys
 
 // Places, Favorites, Network and Devices share one flat cursor in visual order.
 Item {
@@ -47,6 +46,8 @@ Item {
     readonly property var trashEntries: root.placesState.showTrash === false ? []
         : [{ label: "Trash", path: "trash:///", group: "trash", kind: "trash", glyph: "trash", count: root.trashCount }]
     signal trashRequested()
+    // A row drag resting on the Trash row, which ui/PaneRail.qml reads to keep an overlay rail up.
+    readonly property bool trashDragOver: trashRepeater.count > 0 && !!trashRepeater.itemAt(0) && trashRepeater.itemAt(0).dragOver
 
     // The saved place an Edit is rewriting, "" when none is; ui/js/RailMenu.js editPlace sets it.
     property string editingPlace: ""
@@ -404,13 +405,7 @@ Item {
             Repeater {
                 id: trashRepeater
                 model: root.trashEntries
-                delegate: SidebarRow {
-                    // The menu sets cursorIndex on open, so isCursor also means the open menu is on this row.
-                    cursor: RailKeys.trashCursor(root.trashActive, index + root.homeEntries.length === root.cursorIndex, root.focused, root.menu && root.menu.opened && root.menu.forRail)
-                    focused: root.focused || root.trashActive
-                    onActivated: function (idx) { root.activate(idx + root.homeEntries.length) }
-                    onMenuRequested: function(idx, pos) { root.openRailMenu(idx + root.homeEntries.length, pos) }
-                }
+                delegate: RailTrashRow { rail: root }
             }
 
             Text {
