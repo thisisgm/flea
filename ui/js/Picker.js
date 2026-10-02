@@ -22,6 +22,19 @@ function isRecent(location) {
     return location === RECENT
 }
 
+// The rail section heading for a row's group, the browser sidebar's own four words, or "" for a
+// group that carries none. ui/PickerPlaces.qml draws it above each run of one group. Recent's row
+// is group "favorite" so its cursor and activation read as a favourite's, and it carries no heading
+// on purpose: it is one row that already says "Recent", so a heading over it would only repeat it,
+// and it sits as a lone location above the first section the way GNOME Files draws Recent.
+function groupHeading(group) {
+    if (group === "home") return "PLACES"
+    if (group === "favourite") return "FAVORITES"
+    if (group === "network") return "NETWORK"
+    if (group === "device") return "DEVICES"
+    return ""
+}
+
 // SendPicker.html draws a chooser row as the name, a 70px size and an 80px date, so the two columns
 // the window's rows also carry are hidden here at every width rather than at some of them.
 var HIDDEN_COLS = ["mode", "kind"]
