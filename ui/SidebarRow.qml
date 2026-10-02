@@ -56,13 +56,17 @@ Item {
     Accessible.name: root.modelData.label
 
     // A rail row is a row, so its cursor is the list row's own: a square full-bleed fill and the
-    // accent bar, per the canvas and the icon spec's "the rail rounds nothing"; see ui/Row.qml.
+    // accent bar, per the canvas and the icon spec's "the rail rounds nothing"; see ui/Row.qml. The
+    // pointer lifts it the same way too, except over the eject mark, which carries its own wash below.
     Rectangle {
         anchors.fill: parent
         color: root.cursor
             ? (root.modelData.kind === "trash" ? Style.selectedAccentFill : root.focused ? Style.selectedFill : Style.normalFill)
+            : rowHover.hovered && !(ejectLoader.item !== null && ejectLoader.item.hovered) ? Style.hoverFill
             : "transparent"
     }
+
+    HoverHandler { id: rowHover }
 
     // The eject mark's hover lift, the board's 8% rung; the mark itself lifts to foreground below.
     Rectangle {
