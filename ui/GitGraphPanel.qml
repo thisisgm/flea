@@ -42,7 +42,7 @@ Item {
     }
 
     function reload() {
-        if (!root.pane || !root.pane.backend || !root.pane.listingPath) {
+        if (!root.pane || !root.pane.backend || !root.pane.path) {
             root.error = "No directory"
             root.commits = []
             return
@@ -51,7 +51,7 @@ Item {
         root.error = ""
         root.commits = []
         root.requestId += 1
-        root.pane.backend.askGitGraph(root.requestId, root.pane.listingPath, 0)
+        root.pane.backend.askGitGraph(root.requestId, root.pane.path, 0)
     }
 
     function takeGraph(id, path, repoRoot, head, branch, error, commits) {
