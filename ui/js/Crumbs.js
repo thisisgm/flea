@@ -8,10 +8,34 @@
 // path is the directory the piece names, which is what ui/ChromeBar.qml hands to pathEntered. The
 // home test is the whole-component one, home itself or home and a separator, which ui/js/Format.js
 // tilde and ui/js/Search.js scopeRoot now both make too: a sibling like /home/gmx is not inside home.
-function crumbs(path, home) {
+function crumbs(path, home, rootAlias) {
     var text = String(path)
+    var aliasRoot = rootAlias ? cleanRoot(rootAlias.path) : ""
+    var aliasLabel = rootAlias ? String(rootAlias.label || "") : ""
+    var aliased = aliasRoot.length > 0 && aliasLabel.length > 0 && inside(text, aliasRoot)
+    if (aliased) {
+        // The label is one crumb even when it contains "/"; only the real path's suffix supplies
+        // separators and navigation targets.
+        var tail = text.substring(aliasRoot.length)
+        var aliasedParts = tail.length > 0 ? tail.substring(1).split("/") : []
+        var aliasedOut = [{ text: aliasLabel + (aliasedParts.length > 0 ? "/" : ""),
+                            path: aliasRoot, last: false }]
+        var aliasedWalked = aliasRoot
+        for (var a = 0; a < aliasedParts.length; a++) {
+            if (aliasedParts[a].length === 0)
+                continue
+            aliasedWalked += "/" + aliasedParts[a]
+            aliasedOut.push({ text: aliasedParts[a] + "/", path: aliasedWalked, last: false })
+        }
+        var aliasedEnd = aliasedOut[aliasedOut.length - 1]
+        if (aliasedOut.length > 1)
+            aliasedEnd.text = aliasedEnd.text.substring(0, aliasedEnd.text.length - 1)
+        aliasedEnd.last = true
+        return aliasedOut
+    }
+
     var base = String(home)
-    var inHome = base.length > 0 && (text === base || text.indexOf(base + "/") === 0)
+    var inHome = base.length > 0 && inside(text, base)
     var display = inHome ? "~" + text.substring(base.length) : text
     var parts = display.split("/")
     var walked = inHome ? base : ""
@@ -33,6 +57,69 @@ function crumbs(path, home) {
     }
     end.last = true
     return out
+}
+
+function cleanRoot(path) {
+    var text = String(path || "")
+    while (text.length > 1 && text.charAt(text.length - 1) === "/")
+        text = text.substring(0, text.length - 1)
+    return text
+}
+
+function inside(path, root) {
+    return path === root || path.indexOf(root + "/") === 0
+}
+
+// Issue 237: the network service remembers every mounted display root it has resolved. The deepest
+// one wins, so two WebDAV spaces on one host and a saved location inside a broader mount stay distinct.
+function aliasAt(path, aliases) {
+    var text = String(path || "")
+    var best = null
+    for (var i = 0; aliases && i < aliases.length; i++) {
+        var root = cleanRoot(aliases[i].path)
+        if (root.length > 0 && inside(text, root) && (!best || root.length > best.path.length))
+            best = { path: root, label: String(aliases[i].label || ""), key: aliases[i].key }
+    }
+    return best && best.label.length > 0 ? best : null
+}
+
+function rememberAlias(aliases, path, label, key) {
+    var root = cleanRoot(path)
+    var name = String(label || "")
+    if (root.length === 0 || name.length === 0)
+        return aliases || []
+    var id = String(key || root)
+    var out = []
+    for (var i = 0; aliases && i < aliases.length; i++) {
+        if (aliases[i].key !== id && cleanRoot(aliases[i].path) !== root)
+            out.push(aliases[i])
+    }
+    out.push({ path: root, label: name, key: id })
+    return out
+}
+
+// Only a persisted source may rename an alias; a live mount's generated label is not a saved name.
+function labelsByKey(entries, keyFor) {
+    var out = {}
+    for (var i = 0; entries && i < entries.length; i++) {
+        var address = entries[i].uri || entries[i].path
+        if (entries[i].saved === true && address && entries[i].label)
+            out[keyFor(address)] = entries[i].label
+    }
+    return out
+}
+
+// A saved-place rename changes the visible root without changing a real path or navigation target.
+function relabelAliases(aliases, labels) {
+    var changed = false
+    var out = []
+    for (var i = 0; aliases && i < aliases.length; i++) {
+        var name = labels && labels[aliases[i].key] ? String(labels[aliases[i].key]) : aliases[i].label
+        changed = changed || name !== aliases[i].label
+        out.push(name === aliases[i].label ? aliases[i]
+                                          : { path: aliases[i].path, label: name, key: aliases[i].key })
+    }
+    return changed ? out : (aliases || [])
 }
 
 // Below this a leaf gives up more to the ellipsis than the ellipsis saves, so it is drawn whole.

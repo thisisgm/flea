@@ -14,6 +14,7 @@ Item {
     // True only when the drawn path's listing failed, so retyping it retries and all else is a no-op.
     property bool pathFailed: false
     property string home: ""
+    property var pathAlias: null
     property bool canGoBack: false
     property bool canGoUp: false
     // "list", "columns" or "grid"; the button naming the current one takes the accent.
@@ -268,7 +269,7 @@ Item {
 
                 Repeater {
                     id: crumbs
-                    model: Crumbs.fitCrumbs(Crumbs.crumbs(root.path, root.home),
+                    model: Crumbs.fitCrumbs(Crumbs.crumbs(root.path, root.home, root.pathAlias),
                                          Math.floor(crumbSlot.width / crumbMetrics.advanceWidth))
 
                     delegate: Flea.Crumb {

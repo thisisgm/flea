@@ -692,6 +692,7 @@ QtObject {
         // Issue 45's segments, reached the way tabCentre reaches a tab: a driven press on a real
         // crumb is the only thing that can tell a bound TapHandler from an unbound one.
         function crumbCount(): int { return root.chrome.crumbItems.count }
+        function crumbText(): string { return root.chrome.crumbItems.model.map(function (c) { return c.text }).join("") }
         // Measured: with the bar open the slot is hidden and a crumb's box is still there, and a path
         // too long for the bar slides its head clean off the left, so a bare centre aims a driven
         // click at the desktop. Answering "" for both is what stops a test pressing nothing at all.
@@ -705,6 +706,7 @@ QtObject {
         }
         // A dual pane's own path, side 0 or 1, answered the way crumbCount and crumbCentre answer the chrome's.
         function paneCrumbCount(side: int): int { return root.panes[side] ? root.panes[side].pathCrumbs.count : 0 }
+        function paneCrumbText(side: int): string { var p = root.panes[side]; return p ? p.pathCrumbs.model.map(function (c) { return c.text }).join("") : "" }
         function paneCrumbCentre(side: int, i: int): string {
             var pane = root.panes[side]
             var item = pane ? pane.pathCrumbs.itemAt(i) : null

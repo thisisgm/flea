@@ -6057,7 +6057,11 @@ case "\$*" in
 "info --attributes=trash::item-count trash:///"|"monitor --dir=trash:///") exec /usr/bin/gio "\$@" ;;
 esac
 case "\$1 \${2:-}" in
-"mount -li") exit 0 ;;
+"mount -li")
+    if [ -e "$fake_root/friendly-live" ]; then
+        printf 'Mount(0): GVfs generated on 198.51.100.1 -> smb://198.51.100.1/\n  Type: GDaemonMount\n'
+    fi
+    ;;
 "mount nfs://cancel.test/export")
     : > "$fake_root/cancel-started"
     read release < "$fake_root/mount-release"
@@ -6073,6 +6077,11 @@ case "\$1 \${2:-}" in
     ;;
 "mount nfs://stale-one.test/export") printf 'Location is already mounted\n' >&2; exit 2 ;;
 "mount nfs://stale-two.test/export") exit 2 ;;
+"mount --anonymous")
+    [ "\$3" != 'smb://198.51.100.1/' ] || : > "$fake_root/friendly-live"
+    printf '%s\n' "\$*" > "$mount_log"
+    printf '%s\n' "\$*" >> "$mount_calls"
+    ;;
 "mount "*) printf '%s\n' "\$*" > "$mount_log"; printf '%s\n' "\$*" >> "$mount_calls" ;;
 "info nfs://stale-two.test/export") exit 1 ;;
 "info nfs://late-retry.test/export") exit 1 ;;
@@ -6127,7 +6136,14 @@ EOS
     settle
     [[ "$(ipc dialogOpen)" == "true" ]] || fail "network: a from the rail did not open the add-location dialog"
     shot network-dialog-open
-    # The form opens with the caret in Host, which is the one field it actually needs.
+    # Give the saved place a name that differs from both its host and gio's generated mount name:
+    # only then can the breadcrumb prove which source it used. The form starts in Host, so backtab
+    # reaches Label and the following Tab returns to Host.
+    key -M shift -k Tab -m shift >/dev/null
+    settle
+    [[ "$(ipc networkFocus)" == Label ]] || fail "network: Shift+Tab did not reach Label"
+    key "Saved personal" >/dev/null
+    key -k Tab >/dev/null
     # TEST-NET-2 (RFC 5737): guaranteed non-routable, so this never actually dials out.
     key "198.51.100.1" >/dev/null
     settle
@@ -6139,11 +6155,23 @@ EOS
     [[ "$(ipc dialogOpen)" == "false" ]] || fail "network: Enter did not submit and close the dialog"
     [[ "$(cat "$mount_log")" == 'mount --anonymous smb://198.51.100.1/' ]] \
         || fail "network: guest SMB did not use gio mount --anonymous"
-    network_wait_favourites '.places.favourites == [{"label":"198.51.100.1","path":"smb://198.51.100.1/"}]'
+    network_wait_favourites '.places.favourites == [{"label":"Saved personal","path":"smb://198.51.100.1/"}]'
     network_wait_closed
-    [[ -z "$(ipc networkEntries)" ]] || fail "network: an unlisted mount was invented as a Network row"
+    # info completion asks for a fresh mount listing, the same rebuild the five-second poll runs.
+    # Its live row deliberately carries another label under the same normalized URI.
+    for _attempt in $(seq 1 100); do
+        [[ "$(ipc networkEntries)" == "GVfs generated|network|share|true" ]] && break
+        sleep 0.05
+    done
+    [[ "$(ipc networkEntries)" == "GVfs generated|network|share|true" ]] \
+        || fail "network: the live mount control did not reach the rail: $(ipc networkEntries)"
+    [[ "$(ipc crumbText)" == "Saved personal" ]] \
+        || fail "network: the live poll changed the saved breadcrumb to $(ipc crumbText)"
     [[ ! -e "$bookmarks" ]] || fail "network: the new favourite created shared GTK bookmarks"
     shot network-appeared
+    # Retire this live-row control before the later legacy-bookmark fixture expects its rail alone.
+    sandbox_require "$fake_root/friendly-live"
+    rm -f -- "$SANDBOX_PATH"
 
     local invalid_port invalid_port_failures=0 snapshot
     for invalid_port in "22/path" "0" "65536"; do
@@ -6581,6 +6609,8 @@ EOS
     network_release origin
     wait_network_result mounted 5
     network_wait_panes ".focused == 1 and .panes[0].path == \"$races/mounted\" and .panes[0].total == 2 and (.panes[0].loading | not)"
+    [[ "$(ipc paneCrumbText 0)" == "Origin mount" ]] \
+        || fail "network: the dual-pane mount breadcrumb reads $(ipc paneCrumbText 0), not its saved label"
     [[ "$(ipc dualState | jq -c '.panes[1]')" == "$other_before" ]] \
         || fail "network: completing the first pane's mount changed the second pane"
     shot network-dual-origin-mount

@@ -96,6 +96,7 @@ Rectangle {
         id: networkHost
         backend: primaryPane.backend
         origin: primaryPane
+        savedFavourites: Favourites.records
     }
     readonly property var networkService: networkHost
     function ensureNetworkService() {
@@ -117,6 +118,7 @@ Rectangle {
         // True only when the drawn path's listing failed, so the bar retries it and nothing else.
         pathFailed: Nav.pathFailed(view.currentPane)
         home: view.currentPane.home
+        pathAlias: view.currentPane.pathAlias
         canGoBack: view.currentPane.canGoBack
         canGoUp: view.currentPane.canGoUp
         viewMode: view.dualMode ? "dual" : view.currentPane.viewMode

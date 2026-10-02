@@ -3,6 +3,7 @@ import Quickshell
 import Quickshell.Io
 import "js/Errors.js" as Errors
 import "js/Cloud.js" as Cloud
+import "js/Crumbs.js" as Crumbs
 import "js/Mounts.js" as Mounts
 import "js/Protocols.js" as Protocols
 import "js/Dropbox.js" as Dropbox
@@ -13,8 +14,18 @@ Item {
     id: root
 
     property string bookmarksText: ""
+    property var savedFavourites: []
+    onSavedFavouritesChanged: root.rebuild()
     property var backend: null
     property var entries: []
+    // Retained across unmounts: the same GVFS path denotes the same share; navigation still uses the real path.
+    property var pathAliases: []
+    property var _aliasLabels: ({})
+    function pathAlias(path) { return Crumbs.aliasAt(path, root.pathAliases) }
+    function rememberPathAlias(path, label, uri) {
+        var key = Mounts.normalize(uri)
+        root.pathAliases = Crumbs.rememberAlias(root.pathAliases, path, root._aliasLabels[key] || label, key)
+    }
     // Secrets live only here for this QML process lifetime; the map is never serialized or exposed.
     property var _passwords: ({})
     property string result: "idle"
@@ -378,6 +389,17 @@ Item {
             out.push({ path: clouds[c].path, label: Mounts.leaf(clouds[c].path), group: "network",
                        kind: "cloud", uri: "", mounted: true, glyph: "server" })
         }
+        // Only persisted names may relabel an alias; live gio labels are deliberately excluded.
+        var labelSources = []
+        for (var s = 0; s < marks.length; s++)
+            labelSources.push({ uri: marks[s].uri, label: marks[s].label, saved: true })
+        for (var f = 0; root.savedFavourites && f < root.savedFavourites.length; f++) {
+            var favourite = root.savedFavourites[f]
+            if (favourite && favourite.path && favourite.label)
+                labelSources.push({ path: favourite.path, label: favourite.label, saved: true })
+        }
+        root._aliasLabels = Crumbs.labelsByKey(labelSources, Mounts.normalize)
+        root.pathAliases = Crumbs.relabelAliases(root.pathAliases, root._aliasLabels)
         // Every five seconds forever, so an unchanged poll must not assign: see Mounts.sameEntries.
         if (!Mounts.sameEntries(root.entries, out))
             root.entries = out
@@ -533,13 +555,15 @@ Item {
         if (path === root._repairPath) {
             if (!readFailed) {
                 var openPath = root._repairPath
+                var openOrigin = root._pendingOrigin
                 mountTimeout.stop()
                 root._repairActive = false
                 root._repairBridged = false
                 root._repairPath = ""
                 root.result = "mounted"
+                root.rememberPathAlias(openPath, root._pendingLabel, root._pendingUri)
                 root.finishRequest(true, "")
-                root.opened(openPath, root._pendingOrigin)
+                root.opened(openPath, openOrigin)
                 return
             }
             var cut = root._repairPath.indexOf("/gvfs/")
@@ -577,9 +601,11 @@ Item {
         root._repairRoot = ""
         root._repairPath = ""
         if (picked.path.length > 0) {
+            var pickedOrigin = root._pendingOrigin
             root.result = "mounted"
+            root.rememberPathAlias(picked.path, root._pendingLabel, root._pendingUri)
             root.finishRequest(true, "")
-            root.opened(picked.path, root._pendingOrigin)
+            root.opened(picked.path, pickedOrigin)
             return
         }
         if (picked.users.length > 0) {
@@ -776,9 +802,14 @@ Item {
                     root.failBridgeMissing()
                     return
                 }
+                // Capture before emitting completion or waiting: a later open may replace _pending* before onReady.
+                var bridgeLabel = root._pendingLabel
+                var bridgeUri = root._pendingUri
+                var bridgeOrigin = root._pendingOrigin
+                root.rememberPathAlias(path, bridgeLabel, bridgeUri)
                 root.result = "mounted"
                 root.finishRequest(true, "")
-                openBridge.ensure(path, root._pendingLabel, root._pendingOrigin)
+                openBridge.ensure(path, bridgeLabel, bridgeOrigin)
                 return
             }
             // A refused keyless sftp attempt is a missing credential and not a refused location, sftp only.

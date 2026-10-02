@@ -23,11 +23,14 @@ ShellRoot {
         id: network
 
         onOpened: function (path) {
-            if (root.phase === 1 && path === "/child-should-open") {
-                root.finish("NETWORK_OPEN_SHARE overlap=blocked sequential=open")
+            var alias = network.pathAlias(path)
+            if (root.phase === 1 && path === "/child-should-open" && alias
+                    && alias.path === path && alias.label === "child") {
+                root.finish("NETWORK_OPEN_SHARE overlap=blocked sequential=open alias=child")
                 return
             }
-            root.finish("NETWORK_OPEN_SHARE FAIL opened=" + path + " phase=" + root.phase)
+            root.finish("NETWORK_OPEN_SHARE FAIL opened=" + path + " phase=" + root.phase
+                        + " alias=" + JSON.stringify(alias))
         }
 
         onRetryRequested: function (uri, label, password, reason, failedConnect) {

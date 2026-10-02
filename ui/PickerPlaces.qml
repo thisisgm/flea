@@ -172,6 +172,7 @@ Item {
     // pays the same five-second rhythm for them.
     Flea.NetworkMounts {
         id: network
+        savedFavourites: Flea.Favourites.records
         onCompleted: function(requestId, uri, success, reason) { root.networkCompleted(requestId, uri, success, reason) }
         onOpened: function(path) { if (root.awaitingNetwork) root.chosen(path) }
         // A FUSE path that is a file: the chooser selects it, the way a favourite file resolves.

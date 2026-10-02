@@ -8,6 +8,7 @@ Rectangle {
 
     property string path: ""
     property string home: ""
+    property var pathAlias: null
     property bool focused: false
     // ui/ChromeBar.qml's inputLive: false while Quick Look covers the strip, so a press on it stays Quick Look's.
     property bool inputLive: true
@@ -54,7 +55,7 @@ Rectangle {
                 id: crumbs
                 // Empty while the strip is hidden, because the single view keeps it at height 0 and would rebuild its crumbs on every move.
                 model: root.visible
-                       ? Crumbs.fitCrumbs(Crumbs.crumbs(root.path, root.home),
+                       ? Crumbs.fitCrumbs(Crumbs.crumbs(root.path, root.home, root.pathAlias),
                                           Math.floor((slot.width - 2 * Theme.spacing.rowPaddingX) / metrics.advanceWidth))
                        : []
 
