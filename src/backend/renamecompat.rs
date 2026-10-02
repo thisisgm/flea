@@ -13,6 +13,9 @@ const RENAME_NOREPLACE: u32 = 1;
 const EINVAL: i32 = 22;
 // GVFS answers a WebDAV rename with EIO instead of refusing it outright.
 const EIO: i32 = 5;
+// The errno a plain-rename fallback answers for a destination that already exists, the same refusal
+// the RENAME_NOREPLACE flag gives where the kernel honours it.
+const EEXIST: i32 = 17;
 // The error a copy-fallback rename answers when its folder would not confirm and the copy went back.
 pub const RENAME_UNCONFIRMED: &str = "the drive did not confirm the folder, so the rename was undone";
 const EXDEV: i32 = 18;
@@ -53,8 +56,42 @@ pub(crate) fn rename_path(from: &Path, to: &Path) -> Result<(), FleaError> {
     match rename_noreplace(from, to) {
         Ok(()) => Ok(()),
         Err(error) if error.raw_os_error() == Some(EXDEV) || needs_copy_fallback(from, &error) => copy_then_remove(from, to),
+        Err(error) if needs_plain_rename_fallback(from, &error) => plain_rename_noclobber(from, to),
         Err(error) => Err(from_io("rename", &to.to_string_lossy(), &error)),
     }
+}
+
+// A kernel network mount answers RENAME_NOREPLACE with EINVAL but renames fine without the flag, the
+// way `mv` and GIO's own rename do. A folder rename there must NOT become the unbounded recursive
+// network copy the FUSE copy-fallback is, so it takes a plain rename instead, keeping the no-clobber
+// guarantee as a pre-existence check rather than as an atom. Measured on a Synology nfs4 export
+// (issue: "Invalid input." renaming a folder on /mnt/<nfs>): renameat2 answers EINVAL, `mv` succeeds.
+// Only `nfs` and `nfs4` are claimed here because those are what was measured; cifs almost certainly
+// belongs beside them but is not on this box to confirm. A missing mountinfo answers no.
+fn needs_plain_rename_fallback(from: &Path, error: &io::Error) -> bool {
+    if error.raw_os_error() != Some(EINVAL) {
+        return false;
+    }
+    std::fs::read_to_string("/proc/self/mountinfo")
+        .ok()
+        .map(|body| plain_rename_mount_in(from, &body))
+        .unwrap_or(false)
+}
+
+fn plain_rename_mount_in(from: &Path, mountinfo: &str) -> bool {
+    matches!(mount_type_in(from, mountinfo).as_deref(), Some("nfs") | Some("nfs4"))
+}
+
+// The flag is unavailable, so no-clobber is a check and not an atom: refuse a destination that
+// already exists, otherwise rename plainly. The window between the stat and the rename is the one
+// every file manager on these mounts already accepts; the alternative here is a full tree copy over
+// the network. A plain rename is a single syscall, so it either fully lands or fully fails, which is
+// why this path leaves no partial, no kept copy and no manifest the copy-fallback has to carry.
+fn plain_rename_noclobber(from: &Path, to: &Path) -> Result<(), FleaError> {
+    if to.symlink_metadata().is_ok() {
+        return Err(from_io("rename", &to.to_string_lossy(), &io::Error::from_raw_os_error(EEXIST)));
+    }
+    std::fs::rename(from, to).map_err(|error| from_io("rename", &to.to_string_lossy(), &error))
 }
 
 // WebDAV is decided from the path and errno alone, so a FUSE check never reads mountinfo for it.
@@ -213,6 +250,45 @@ mod tests {
         assert!(!needs_fuse_fallback_in(&directory, &invalid, &ext4));
         assert!(!needs_fuse_fallback_in(&directory, &exists, &rclone));
         assert_eq!(std::fs::read_to_string(file).unwrap(), "body");
+    }
+    #[test]
+    fn a_network_mount_takes_the_plain_rename_and_never_the_copy() {
+        let d = TestDir::new("nfsrenamescope");
+        let directory = d.dir("directory");
+        let nfs4 = format!("1 0 0:3 / {} rw - nfs4 192.168.0.21:/v/x rw\n", d.path().display());
+        let nfs = format!("1 0 0:4 / {} rw - nfs 192.168.0.21:/v/x rw\n", d.path().display());
+        let ext4 = format!("1 0 8:1 / {} rw - ext4 /dev/a rw\n", d.path().display());
+        let rclone = format!("1 0 0:1 / {} rw - fuse.rclone remote: rw\n", d.path().display());
+        let invalid = io::Error::from_raw_os_error(EINVAL);
+        let exists = io::Error::from_raw_os_error(EEXIST);
+        // nfs and nfs4 under EINVAL take the plain rename; nothing else does.
+        assert!(plain_rename_mount_in(&directory, &nfs4));
+        assert!(plain_rename_mount_in(&directory, &nfs));
+        assert!(!plain_rename_mount_in(&directory, &ext4));
+        assert!(!plain_rename_mount_in(&directory, &rclone));
+        // The EINVAL gate: a plain collision never reaches this fallback.
+        assert!(!needs_plain_rename_fallback(&directory, &exists));
+        // The two fallbacks never claim the same EINVAL: an nfs mount is no FUSE copy, a rclone one no plain rename.
+        assert!(!needs_fuse_fallback_in(&directory, &invalid, &nfs4));
+        assert!(!plain_rename_mount_in(&directory, &rclone));
+    }
+    #[test]
+    fn a_plain_rename_moves_the_folder_and_refuses_an_existing_name() {
+        let d = TestDir::new("plainrename");
+        let source = d.dir("source");
+        std::fs::write(source.join("inside.txt"), "body").unwrap();
+        let target = d.path().join("renamed");
+        plain_rename_noclobber(&source, &target).expect("a free name renames plainly");
+        assert!(!source.exists(), "the source name is gone after the move");
+        assert_eq!(std::fs::read_to_string(target.join("inside.txt")).unwrap(), "body");
+        // A name that already exists is refused rather than clobbered, the flag's own guarantee by a check.
+        let occupied = d.dir("occupied");
+        std::fs::write(occupied.join("keep.txt"), "keep").unwrap();
+        let error = plain_rename_noclobber(&target, &occupied).expect_err("an existing name is refused");
+        assert_eq!(error.where_, "rename");
+        assert_eq!(error.msg, "already exists");
+        assert_eq!(std::fs::read_to_string(occupied.join("keep.txt")).unwrap(), "keep");
+        assert!(target.exists(), "the refused source is left where it was");
     }
     #[test]
     fn only_a_gvfs_webdav_eio_uses_the_copy_fallback() {
