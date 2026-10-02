@@ -150,7 +150,10 @@ ListView {
     }
 
     Keys.onPressed: function (event) {
-        var action = Keymap.lookup(event.key, event.text, event.modifiers, "listing")
+        // Confirmation belongs to the chooser, even when the listing preset binds Enter to Rename.
+        var confirm = (event.key === Qt.Key_Return || event.key === Qt.Key_Enter)
+            && (event.modifiers & ~Qt.KeypadModifier) === Qt.NoModifier
+        var action = confirm ? "open" : Keymap.lookup(event.key, event.text, event.modifiers, "listing")
         event.accepted = true
         if (action === "cursorFirstArm") {
             if (root.firstArmed) root.moveCursor(-root.picker.shownTotal)

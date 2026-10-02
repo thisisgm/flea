@@ -1,7 +1,10 @@
 .import "../../ui/js/Picker.js" as Picker
 .import "../../ui/js/Sort.js" as Sort
 
+.import "pickerkeys.js" as PickerKeys
+
 function run(check) {
+    PickerKeys.run(check)
     // The shape tools/flea-portal writes for an OpenFile with two filters, taken from its request_for().
     var asked = JSON.stringify({
         mode: "open", title: "Send to unraid", app: "", accept: "Send", multiple: true,
