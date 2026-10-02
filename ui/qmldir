@@ -69,6 +69,7 @@ NetworkForm 1.0 NetworkForm.qml
 NetworkMounts 1.0 NetworkMounts.qml
 NetworkPlaces 1.0 NetworkPlaces.qml
 MountListing 1.0 MountListing.qml
+ClipboardBridge 1.0 ClipboardBridge.qml
 PhoneMounts 1.0 PhoneMounts.qml
 FleaMark 1.0 FleaMark.qml
 Opener 1.0 Opener.qml

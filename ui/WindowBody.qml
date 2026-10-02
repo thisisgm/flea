@@ -172,6 +172,15 @@ Rectangle {
         pane: view.currentPane
     }
 
+    // The system clipboard's own copy of Copy and Cut, so a second window and the desktop see this
+    // one's and it sees theirs. It lands on the primary pane, and the pane sync just below carries
+    // it to the second, the same road a pane's own clip already travels.
+    ClipboardBridge {
+        id: clipBridge
+        onArrived: function (clip) { primaryPane.clipboard = clip }
+        onMessage: function (text, isError) { bar.say(text, isError) }
+    }
+
     Flea.Pane {
         id: primaryPane
         anchors.left: parent.left
@@ -186,7 +195,7 @@ Rectangle {
         onFocusRequested: view.focusPane(0)
         onSwitchPane: view.focusPane(1)
         onPathChanged: view.rememberPaths()
-        onClipboardChanged: if (secondPane.item && secondPane.item.pane.clipboard !== clipboard) secondPane.item.pane.clipboard = clipboard
+        onClipboardChanged: { if (secondPane.item && secondPane.item.pane.clipboard !== clipboard) secondPane.item.pane.clipboard = clipboard; clipBridge.publish(clipboard) }
         overlayParent: view
         preview: preview
         shareBrowser: shareBrowser

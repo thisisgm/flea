@@ -77,7 +77,7 @@ ui/Sidebar.qml 567
 ui/StatusBar.qml 456
 ui/Theme.qml 415
 ui/TrashView.qml 475
-ui/WindowBody.qml 547
+ui/WindowBody.qml 556
 ui/js/Filter.js 253
 ui/js/Focus.js 373
 ui/js/Keymap.js 314
