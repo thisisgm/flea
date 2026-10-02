@@ -7159,7 +7159,7 @@ EOS
     # Rule 6 again: a reopen after a failed connect is a connect, not an add, and it says which failed.
     [[ "$(ipc dialogOpen)" == "true" && "$(ipc networkTitle)" == "Connect to a network share, failed connect" ]] \
         || fail "networkauth: failure did not reopen approved FTPS artifact, title $(ipc networkTitle)"
-    [[ "$(ipc networkStatus)" == "Connect failed: host refused the TLS handshake" ]] \
+    [[ "$(ipc networkStatus)" == "Connect failed: the network location could not be opened" ]] \
         || fail "networkauth: failure said $(ipc networkStatus)"
     [[ "$(ipc networkAction)" == "Retry" && "$(ipc networkPasswordState)" == "masked|set" ]] \
         || fail "networkauth: failure lost Retry or masked credential state"

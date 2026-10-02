@@ -1,5 +1,6 @@
 .import "../../ui/js/Errors.js" as Errors
 
+/** Exercise user-facing error mappings with the Qt test runner's equality assertion callback. */
 function run(check) {
     // StatusBar board rule 4, both refusal lanes: a refused hop names the directory that refused,
     // and a refusal of the directory already on screen names nothing, because the breadcrumb does.
@@ -145,16 +146,27 @@ function run(check) {
     // The pane block draws the sentence and the mode as two lines now, so the only thing left to
     // decide is whether there is a mode to draw at all; States board rule 3.
 
-    // The credentialed mount's own sentences, lifted out of ui/NetworkMounts.qml in the 0.1.4
-    // composition: the two codes "timeout" and the shell own, then the two the server owns.
+    // The credentialed mount can identify the timeout and shell statuses without reading GIO text.
     check("the helper's own deadline names the host, not the credential",
           Errors.connectFailure(124, "smb://host/share"), "Connect failed: host did not respond")
     check("a helper that could not be run at all says so",
           Errors.connectFailure(127, "smb://host/share"), "Connect failed: authentication helper is unavailable")
-    check("a scheme that negotiates a handshake reads the refusal as one",
-          Errors.connectFailure(1, "davs://host/dav"), "Connect failed: host refused the TLS handshake")
-    check("and every other scheme reads it as the credential",
-          Errors.connectFailure(1, "smb://host/share"), "Connect failed: authentication was refused")
-    check("no uri at all answers rather than throwing",
-          Errors.connectFailure(1, ""), "Connect failed: authentication was refused")
+    // The helper suppresses GIO's text and returns its status; 1 cannot tell a bad password
+    // from a TLS failure, a bad path or an unreachable share. The URI is not diagnostic evidence.
+    for (var uri of ["davs://host/dav", "dav://host/dav", "ftps://host/", "ftp://host/",
+                     "smb://host/share", "sftp://host/", "DAVS://host/dav", "", null]) {
+        for (var code of [1, 2, 42]) {
+            check("an unclassified mount failure stays neutral: " + uri + " status " + code,
+                  Errors.connectFailure(code, uri), "Connect failed: the network location could not be opened")
+        }
+        check("a non-executable helper is named for every scheme: " + uri,
+              Errors.connectFailure(126, uri), "Connect failed: authentication helper is unavailable")
+        check("a missing helper is named for every scheme: " + uri,
+              Errors.connectFailure(127, uri), "Connect failed: authentication helper is unavailable")
+        check("a timeout is named for every scheme: " + uri,
+              Errors.connectFailure(124, uri), "Connect failed: host did not respond")
+    }
+    check("the refusal does not echo URI credentials or paths",
+          Errors.connectFailure(1, "davs://user:secret@host/private"),
+          "Connect failed: the network location could not be opened")
 }

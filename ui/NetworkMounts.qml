@@ -717,7 +717,7 @@ Item {
             // 124 is a host that never answered and 126/127 a helper that could not start; neither
             // is the server turning the credential down, so neither invalidates it.
             var refused = exitCode !== 124 && exitCode !== 126 && exitCode !== 127
-            root.failMount(Errors.connectFailure(exitCode, root._pendingUri),
+            root.failMount(Errors.connectFailure(exitCode),
                            root.passwordFor(root._pendingUri), refused)
         }
     }
