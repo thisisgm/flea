@@ -82,6 +82,7 @@ FocusScope {
     // shared by the second pane): mounts, bridge waits and dialog answers outlive the rail.
     property var sharedNetworkService: null
     property var networkService: null
+    readonly property var pathAlias: root.networkService ? root.networkService.pathAlias(root.path) : null
     // Answers the one network host ui/WindowBody.qml builds with the window.
     function ensureNetworkService() {
         if (root.networkService) return root.networkService
@@ -453,6 +454,7 @@ FocusScope {
         visible: height > 0
         path: root.path
         home: root.home
+        pathAlias: root.pathAlias
         focused: root.paneFocused
         inputLive: !(root.preview && root.preview.active)
         onChosen: function (path) { root.open(path) }

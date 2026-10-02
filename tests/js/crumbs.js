@@ -40,6 +40,54 @@ function run(check) {
     check("a sibling whose name merely starts with home's is outside it, and says so",
           drawn(sibling) + "|" + targets(sibling), "/home/gmx/deep|/ /home /home/gmx /home/gmx/deep")
 
+    // Issue 237: a mounted network root may have an operator-facing saved label, while every
+    // destination stays the real GVFS path. The display root replaces only that whole path component.
+    var davRoot = "/run/user/1000/gvfs/dav:host=cloud.example.com,ssl=true,prefix=%2Fdav%2Fspaces%2FSPACE-ID"
+    var dav = Crumbs.crumbs(davRoot + "/Documents/Projects", "/home/gm",
+                            { path: davRoot, label: "Cloud — Personal" })
+    check("a saved network label replaces the internal GVFS root in the breadcrumb",
+          drawn(dav), "Cloud — Personal/Documents/Projects")
+    check("and every aliased crumb still navigates by its real filesystem path",
+          targets(dav), davRoot + " " + davRoot + "/Documents " + davRoot + "/Documents/Projects")
+    var davAtRoot = Crumbs.crumbs(davRoot, "/home/gm", { path: davRoot, label: "Cloud — Personal" })
+    check("the mounted root itself is one crumb carrying the saved label",
+          drawn(davAtRoot) + "|" + targets(davAtRoot), "Cloud — Personal|" + davRoot)
+    var slashLabel = Crumbs.crumbs(davRoot + "/Documents", "/home/gm",
+                                   { path: davRoot, label: "Cloud / Personal" })
+    check("a slash inside a saved label does not split it into false path crumbs",
+          slashLabel.length + "|" + slashLabel[0].text + "|" + targets(slashLabel),
+          "2|Cloud / Personal/|" + davRoot + " " + davRoot + "/Documents")
+    var davSibling = Crumbs.crumbs(davRoot + "-old/Documents", "/home/gm",
+                                   { path: davRoot, label: "Cloud — Personal" })
+    check("a path that merely starts with the mount root does not inherit its label",
+          drawn(davSibling), davRoot + "-old/Documents")
+
+    var aliases = Crumbs.rememberAlias([], davRoot, "Cloud — Personal", "davs://cloud/personal")
+    var teamRoot = davRoot + "/Team"
+    aliases = Crumbs.rememberAlias(aliases, teamRoot + "/", "Cloud — Team", "davs://cloud/team")
+    check("the deepest of two mounted roots on one host supplies the visible label",
+          Crumbs.aliasAt(teamRoot + "/Roadmap", aliases).label, "Cloud — Team")
+    check("and the broader root still labels its own other descendants",
+          Crumbs.aliasAt(davRoot + "/Documents", aliases).label, "Cloud — Personal")
+    check("a sibling outside every remembered root has no alias",
+          Crumbs.aliasAt(davRoot + "-old/Documents", aliases), null)
+    var moved = Crumbs.rememberAlias(aliases, davRoot + "/Personal", "Personal files", "davs://cloud/personal")
+    check("resolving one saved location at a new path replaces its stale root",
+          Crumbs.aliasAt(davRoot + "/Documents", moved), null)
+    check("and the replacement root keeps the new label",
+          Crumbs.aliasAt(davRoot + "/Personal/Docs", moved).label, "Personal files")
+    // The live row follows the favourite and deliberately has the same key: accepting every drawn
+    // row would let its gio-generated label overwrite the persisted one on the five-second poll.
+    var labels = Crumbs.labelsByKey([
+        { path: "davs://cloud/personal/", label: "Cloud — Private", saved: true },
+        { uri: "davs://cloud/personal/", label: "Personal on cloud.example.com", saved: false }
+    ], function (uri) { return String(uri).replace(/\/$/, "") })
+    var renamed = Crumbs.relabelAliases(moved, labels)
+    check("a live gio row cannot overwrite the saved connection label under the same key",
+          Crumbs.aliasAt(davRoot + "/Personal/Docs", renamed).label, "Cloud — Private")
+    check("and leaves another mounted space's label alone",
+          Crumbs.aliasAt(teamRoot + "/Roadmap", renamed).label, "Cloud — Team")
+
     // Chrome rule 2: the strip collapses whole crumbs into one marker rather than cutting one in half.
     var deep = Crumbs.crumbs("/home/gm/one/two/three/four/five", "/home/gm")
     check("a path that fits keeps every crumb", drawn(Crumbs.fitCrumbs(deep, 80)), "~/one/two/three/four/five")
