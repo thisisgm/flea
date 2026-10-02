@@ -29,14 +29,18 @@ function pane(holds) {
         cleared: 0,
         holds: 0,
         said: [],
-        sent: []
+        sent: [],
+        gitRepo: false,
+        gitBranch: "",
+        gitRoot: "",
+        gitStatusId: 0,
     }
     p.clearSelection = function () { p.cleared += 1 }
     p.message = function (text, isError) { p.said.push(text) }
     p.listArea = { primeSettle: function () {} }
     p.backend = {
         list: function (path, first, hidden) { p.sent.push("list " + path) },
-        askFsInfo: function () { p.sent.push("fsinfo") }
+        askFsInfo: function () { p.sent.push("fsinfo") }, askGitStatus: function (id, path) { p.sent.push("gitstatus") }
     }
     // ui/PaneSwap.qml hold(): how often it was asked, with what, and whether the rows on screen stay up.
     p.swap = { holding: false, hold: function (ask) { p.holds += 1; p.asked = ask; p.swap.holding = holds; return holds } }
@@ -77,7 +81,7 @@ function keyPane(inFlight, rows) {
         askPaths: function (rows) { p.sent.push("paths " + rows.join(",")) },
         send: function (request) { p.sent.push(request.c) },
         list: function (path) { p.sent.push("list " + path) },
-        askFsInfo: function () {}
+        askFsInfo: function () {}, askGitStatus: function () {}
     }
     p.openCursor = function () { Nav.openCursor(p, { open: function (path) { p.sent.push("open " + path) } }) }
     p.open = function (path) { p.sent.push("list " + path) }
@@ -230,7 +234,7 @@ function run(check) {
     // ui/js/Nav.js with a swap that holds: the request goes out and nothing on screen is touched.
     var held = pane(true)
     Nav.openWithoutHistory(held, inner)
-    check("a held listing asks for the directory", held.sent.join(","), "list /home/gm/Work/inner,fsinfo")
+    check("a held listing asks for the directory", held.sent.join(","), "list /home/gm/Work/inner,fsinfo,gitstatus")
     check("and is in flight, with the directory asked for recorded for a drop",
           held.listInFlight + "|" + held.listedSeen + "|" + held.listingPath, "true|false|/home/gm/Work/inner")
     check("and forgets nothing on screen but the filter line's caret: count, window, cursor, selection, filter, rename and state",

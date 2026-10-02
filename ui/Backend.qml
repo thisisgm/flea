@@ -61,6 +61,9 @@ Item {
     signal peeked(string path, bool hidden, int total, var rows, bool readFailed, int mode, bool hiddenLast, int first)
     // The path bar's folder jump, the existing folders of each source in its own order; see docs/protocol.md "jump".
     signal jumped(int id, var favourites, var zoxide, var recent, var frecency)
+    // Git repo awareness for the current directory and the on-demand branch graph panel.
+    signal gitStatus(int id, string path, bool repo, string root, string branch, string head)
+    signal gitGraph(int id, string path, string root, string head, string branch, string error, var commits)
     signal archiveStarted(int id)
     signal archiveDone(int id, bool ok, bool verified, string err)
     signal convertChecked(var message)
@@ -266,6 +269,14 @@ Item {
     // Once per open of the path bar: the client's favourites and recent files, joined there with zoxide; id comes back on the answer.
     function jump(id, favourites, recent) {
         root.send({ c: "jump", id: id, favourites: favourites, recent: recent })
+    }
+
+    function askGitStatus(id, path) {
+        root.send({ c: "gitstatus", id: id, path: path })
+    }
+
+    function askGitGraph(id, path, limit) {
+        root.send({ c: "gitgraph", id: id, path: path, limit: (typeof limit === "number" ? limit : 0) })
     }
 
     function localSend(op, peer, paths) {

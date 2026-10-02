@@ -117,7 +117,7 @@ for (const mode of ["results", "typing"]) {
     p.listArea = {primeSettle() {}};
     p.clearSelection = () => { p.selected = []; };
     p.backend.listRequests = 0;
-    p.backend.askFsInfo = () => {};
+    p.backend.askFsInfo = () => {}; p.backend.askGitStatus = () => {};
     p.backend.send = request => requests.push(request);
     p.backend.list = (...args) => list(p.backend, view, ...args);
     const Nav = {openWithoutHistory(current, path) {

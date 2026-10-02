@@ -49,6 +49,12 @@ action = "eject"
 key = "B"
 action = "sidebar"
 
+# Git branch graph for the directory on screen, ported from Switchboard's lane view. G is free in
+# the shared ctrl table; bare g remains cursorFirstArm under the nnn preset only.
+[[ctrl]]
+key = "G"
+action = "gitGraph"
+
 # Not a Finder chord: Cmd+Shift+G is Go to Folder there, and Ctrl+Shift+G is nothing on this box.
 # Ctrl+L is what Nautilus, Thunar, Dolphin and every browser bind, so the path bar answers to it too.
 [[ctrl]]
@@ -531,7 +537,7 @@ move = ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "page
         "tabNew", "tabClose", "tabNext", "tabPrevious", "windowNew", "escape"]
 look = ["viewList", "viewColumns", "viewGrid", "togglePreview", "loadPreview", "preview",
         "toggleHidden", "sidebar", "zoomIn", "zoomOut", "expand", "mute", "textSizeUp", "textSizeDown",
-        "textSizeReset", "keymapSheet"]
+        "textSizeReset", "keymapSheet", "gitGraph"]
 find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "toggleSelect",
@@ -715,6 +721,11 @@ label = "settings"
 keys = "?"
 action = "keymapSheet"
 label = "keys"
+
+[[sheet]]
+keys = "^g"
+action = "gitGraph"
+label = "git branch graph"
 
 # The pointer contract, the mouse's half of this table. tools/flea-keymap-gen turns it into
 # Keymap.POINTER and tests/js/tap.js drives ui/js/Tap.js against every listing and neighbour row, so

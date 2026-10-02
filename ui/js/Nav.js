@@ -105,6 +105,12 @@ function openWithoutHistory(pane, newPath, options) {
     pane.backend.list(newPath, pane.windowSize, pane.showHidden)
     // One statfs per directory, not per row: the bar's right half only changes when the pane moves.
     pane.backend.askFsInfo()
+    // One git probe per directory change: StatusBar draws the branch when the path sits in a repo.
+    pane.gitRepo = false
+    pane.gitBranch = ""
+    pane.gitRoot = ""
+    pane.gitStatusId += 1
+    pane.backend.askGitStatus(pane.gitStatusId, newPath)
 }
 
 // Everything a fresh listing forgets, written once: at the request, or by ui/PaneSwap.qml when held rows go.

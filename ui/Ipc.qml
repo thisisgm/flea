@@ -17,6 +17,7 @@ QtObject {
     property var convertDialog: null
     property var keymapSheet: null
     property var settingsPanel: null
+    property var gitGraphPanel: null
     property var networkDialog: null
     property var shareBrowser: null
     property var emptyState: null

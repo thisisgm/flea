@@ -29,6 +29,8 @@ Divider 1.0 Divider.qml
 EscapeHint 1.0 EscapeHint.qml
 ContextMenu 1.0 ContextMenu.qml
 KeymapSheet 1.0 KeymapSheet.qml
+GitGraphPanel 1.0 GitGraphPanel.qml
+GitGraphRow 1.0 GitGraphRow.qml
 SettingsPanel 1.0 SettingsPanel.qml
 SettingsPane 1.0 SettingsPane.qml
 SettingsRail 1.0 SettingsRail.qml

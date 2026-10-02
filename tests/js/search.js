@@ -65,7 +65,7 @@ function run(check) {
             open: function (path) { this.opened += 1 },
             openWithoutHistory: function (path) { this.relisted = path },
             backend: { search: function (path, query, hidden) { sent.push(path + "?" + query) },
-                       askFsInfo: function () { sent.push("fsinfo") } }
+                       askFsInfo: function () { sent.push("fsinfo") }, askGitStatus: function () { sent.push("gitstatus") } }
         }
     }
     function press(code, text) { return { key: code, text: text, modifiers: Qt.NoModifier } }

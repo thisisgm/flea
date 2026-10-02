@@ -1,10 +1,5 @@
 .import "../../ui/js/Nav.js" as Nav
 
-// Nav.js had no suite at all, so nothing loaded it outside the running app and a broken .import in
-// it would first have been seen on the box. These are its two pure functions, which ui/ColumnsArea.qml
-// walks the Miller trail with, plus the reset that a fresh listing runs.
-
-// Only the members openWithoutHistory writes, so the check is what a new listing forgets.
 function pane() {
     var p = {
         listInFlight: false,
@@ -33,7 +28,11 @@ function pane() {
         // The collision card, shut; ui/CollideHost.qml opened is what the mouse back button reads.
         collide: { opened: false },
         said: [],
-        sent: []
+        sent: [],
+        gitRepo: false,
+        gitBranch: "",
+        gitRoot: "",
+        gitStatusId: 0
     }
     p.clearSelection = function () { p.cleared += 1 }
     p.message = function (text, isError) { p.said.push(text) }
@@ -43,7 +42,7 @@ function pane() {
     p.backend = {
         // A listing that answers is what moves the pane, ui/PaneSwap.qml applyListed, never the request.
         list: function (path, first, hidden) { p.sent.push("list " + path); if (!p.refuses) p.path = path },
-        askFsInfo: function () { p.sent.push("fsinfo") }
+        askFsInfo: function () { p.sent.push("fsinfo") }, askGitStatus: function () { p.sent.push("gitstatus") }
     }
     return p
 }
@@ -83,7 +82,7 @@ function run(check) {
     var refused = browsing(["/home/gm"])
     refused.refuses = true
     Nav.open(refused, "/home/gm/Work/inner")
-    check("a refused hop asks for the directory", refused.sent.join("|"), "list /home/gm/Work/inner|fsinfo")
+    check("a refused hop asks for the directory", refused.sent.join("|"), "list /home/gm/Work/inner|fsinfo|gitstatus")
     check("and leaves the pane standing where it was", refused.path, "/home/gm/Work")
 
     var travel = browsing(["/home/gm"])
@@ -120,7 +119,7 @@ function run(check) {
     check("and forgets a half-pressed dd, the cursor and the selection",
           fresh.trashArmedAt + "|" + fresh.cursorIndex + "|" + fresh.cleared, "0|0|1")
     check("and asks the backend for the directory it was given",
-          fresh.sent.join(","), "list /home/gm/Work,fsinfo")
+          fresh.sent.join(","), "list /home/gm/Work,fsinfo,gitstatus")
     // A drop taken while the reply is still out lands in the directory asked for and not the one
     // being left, so the request is recorded; the stub above answers at once, which the real
     // backend does not, and ui/Pane.qml dropPath reads this only while the listing is in flight.

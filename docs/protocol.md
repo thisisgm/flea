@@ -811,6 +811,29 @@ the next open skips what it names rather than wedge behind it: its whole mount w
 anywhere else. A dead share therefore holds at most one thread per source for good, not more per open, and a
 check merely slow inside its budget is run again rather than skipped.
 
+### gitstatus
+
+`{"c":"gitstatus","id":1,"path":"/home/gm/flea"}` asks whether `path` sits inside a Git work
+tree. The answer is asynchronous (git is a subprocess) and rides the same late channel as `jump`.
+
+`{"t":"gitstatus","id":1,"path":"/home/gm/flea","repo":true,"root":"/home/gm/flea","branch":"main","head":"a1b2c3d4e5f6"}`
+
+`repo` is false when git is missing, the path is not a work tree, or the probe timed out; `root`,
+`branch` and `head` are then empty. `id` echoes the request so a navigated-away pane can drop a
+late answer. One probe per directory change, never per row.
+
+### gitgraph
+
+`{"c":"gitgraph","id":2,"path":"/home/gm/flea","limit":500}` asks for the lane graph of the
+repository that contains `path`. `limit` caps `git log --max-count` (1..2000, default 500; `0` means
+default). The answer is asynchronous.
+
+`{"t":"gitgraph","id":2,"path":"...","root":"...","head":"...","branch":"main","error":"","commits":[...]}`
+
+Each commit carries `hash`, `short`, `parents`, `refs`, `subject`, `date`, `lane`, `through`,
+`edges` (`from`/`to` lane indices), `width` and `is_head`. Lane layout matches gitk / GitKraken
+(newest-first). Contest/worktree run overlays from Switchboard are not on this wire.
+
 ### quit
 
 `{"c":"quit"}`

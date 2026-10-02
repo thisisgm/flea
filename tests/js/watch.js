@@ -27,7 +27,11 @@ function pane() {
         filterTyping: true,
         cleared: 0,
         said: [],
-        sent: []
+        sent: [],
+        gitRepo: false,
+        gitBranch: "",
+        gitRoot: "",
+        gitStatusId: 0,
     }
     p.clearSelection = function () { p.cleared += 1 }
     p.message = function (text, isError) { p.said.push(text) }
@@ -36,7 +40,7 @@ function pane() {
     p.swap = { hold: function () { return false } }
     p.backend = {
         list: function (path, first, hidden) { p.sent.push("list " + path) },
-        askFsInfo: function () { p.sent.push("fsinfo") },
+        askFsInfo: function () { p.sent.push("fsinfo") }, askGitStatus: function (id, path) { p.sent.push("gitstatus") },
         window: function (start, count) { p.sent.push("window " + start) }
     }
     return p
@@ -72,7 +76,7 @@ function run(check) {
     var seen = watched(0, [{ n: "a" }, { n: "b" }, { n: "c" }], 1)
     var anchor = Anchor.watched(seen)
     check("a watched re-read asks for the same directory again",
-          seen.sent.join(","), "list /home/gm,fsinfo")
+          seen.sent.join(","), "list /home/gm,fsinfo,gitstatus")
     check("and anchors on the name the cursor was on, not on its index",
           anchor.name + "|" + anchor.index, "b|1")
     check("and keeps the filter, which narrows rows rather than choosing the directory",
@@ -113,7 +117,7 @@ function run(check) {
     var deep = watched(4000, [{ n: "m" }, { n: "n" }], 4001, 100000)
     var deepAnchor = Anchor.watched(deep)
     check("a re-read below the first window asks for the window the cursor was in",
-          deep.sent.join(","), "list /home/gm,fsinfo,window 4000")
+          deep.sent.join(","), "list /home/gm,fsinfo,gitstatus,window 4000")
     // A rows reply waits until its listed line has run, so it always carries its total; see ui/PaneSwap.qml.
     deep.held = 0
     deep.rows = [{ n: "a" }, { n: "b" }]
@@ -176,7 +180,7 @@ function run(check) {
     // row and applyAnchor's own fallback lands on whatever took its place, selected.
     var deleted2 = watched(0, [{ n: "a" }, { n: "b" }, { n: "c" }], 1)
     var deleteAnchor = Anchor.afterDelete(deleted2)
-    check("a delete re-reads the same directory", deleted2.sent.join(","), "list /home/gm,fsinfo")
+    check("a delete re-reads the same directory", deleted2.sent.join(","), "list /home/gm,fsinfo,gitstatus")
     check("and anchors on the row that was deleted", deleteAnchor.name, "b")
     deleted2.rows = [{ n: "a" }, { n: "c" }]
     deleted2.total = 2
