@@ -108,6 +108,22 @@ ShellRoot {
             win.openWithoutHistory(next)
         }
 
+        // Issue 191: the location field, the browser's own path bar in the chooser. It navigates to
+        // a typed, pasted or home-relative directory, the way ui/ChromeBar.qml does; a file path
+        // lists nothing, exactly as the browser's does, so this stays navigation and adds no new
+        // wire. ui/PickerChrome.qml draws the field over the path text while editingPath stands.
+        property bool editingPath: false
+        function startPathEdit() {
+            if (win.submitting || win.backendUnavailable) return
+            win.editingPath = true
+        }
+        function cancelPathEdit() { win.editingPath = false; list.forceActiveFocus() }
+        function commitPath(typed, target) {
+            win.editingPath = false
+            list.forceActiveFocus()
+            if (target.length > 0 && target !== win.path) win.open(target)
+        }
+
         function openWithoutHistory(next) {
             if (win.backendUnavailable) return
             listing.clear()
