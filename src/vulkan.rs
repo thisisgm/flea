@@ -54,9 +54,9 @@ const PROPERTIES_BYTES: usize = 2048;
 const DEVICE_TYPE_CPU: u32 = 4;
 
 // PCI vendor ids, the values /sys/class/drm/card*/device/vendor carries.
-const PCI_VENDOR_NVIDIA: u32 = 0x10de;
-const PCI_VENDOR_INTEL: u32 = 0x8086;
-const PCI_VENDOR_AMD: u32 = 0x1002;
+pub(crate) const PCI_VENDOR_NVIDIA: u32 = 0x10de;
+pub(crate) const PCI_VENDOR_INTEL: u32 = 0x8086;
+pub(crate) const PCI_VENDOR_AMD: u32 = 0x1002;
 const PCI_VENDOR_VIRTIO: u32 = 0x1af4;
 
 // VkPhysicalDeviceLimits contains VkDeviceSize fields, so the driver write needs 8-byte alignment.
@@ -275,7 +275,7 @@ fn icd_for_displays(devices: &[(u32, u32, u32)], displays: &[(u32, u32)], cards:
             }
             let Ok(body) = std::fs::read_to_string(&path) else { continue };
             let Some(lib) = icd_library(&body) else { continue };
-            let Some(vendor) = vendor_of_library(lib) else { continue };
+            let Some(vendor) = vendor_of_library(&lib) else { continue };
             if !displays.iter().any(|(v, _)| *v == vendor) {
                 continue;
             }
@@ -292,14 +292,20 @@ fn icd_for_displays(devices: &[(u32, u32, u32)], displays: &[(u32, u32)], cards:
     }
 }
 
-// Sample input: the packaged nvidia_icd.json, whose library_path is libGLX_nvidia.so.0.
-fn icd_library(body: &str) -> Option<&str> {
-    let key = body.find("\"library_path\"")?;
-    let after = body[key + "\"library_path\"".len()..].trim_start();
-    let after = after.strip_prefix(':')?.trim_start();
-    let after = after.strip_prefix('"')?;
-    let end = after.find('"')?;
-    Some(&after[..end])
+// A packaged manifest is a few hundred bytes, and jsondoc's object parse is quadratic in its keys, so a larger file names nothing.
+pub(crate) const MANIFEST_BYTES: usize = 4096;
+
+// The loader reads ICD.library_path through cJSON: any case, first repeat. A repeat of either key, which no packaged
+// manifest has, names no library, and a member anywhere else, or a string holding the words, changes nothing.
+// Sample input: the packaged nvidia_icd.json, whose ICD.library_path is libGLX_nvidia.so.0.
+pub(crate) fn icd_library(body: &str) -> Option<String> {
+    // The loader refuses a manifest that does not parse, so a library named in one drives nothing.
+    if body.len() > MANIFEST_BYTES || crate::jsondoc::parse(body).is_err() {
+        return None;
+    }
+    let library = crate::jsonmembers::only(crate::jsonmembers::only(body, "ICD")?, "library_path")?;
+    // The loader opens the path up to its first NUL, so a path holding one names a library this cannot tell.
+    crate::jsondoc::parse(library).ok()?.as_str().filter(|path| !path.contains('\0')).map(str::to_owned)
 }
 
 // One name test for the hasvk ICD, which the display pin skips.
@@ -387,7 +393,7 @@ fn card_pci_ids(drm: &Path) -> Vec<(u32, u32)> {
 }
 
 // Sample input: "card1" is a card, "card1-DP-1" is one of its connectors, "renderD128" is a render node.
-fn is_card(name: &str) -> bool {
+pub(crate) fn is_card(name: &str) -> bool {
     match name.strip_prefix("card") {
         Some(digits) => !digits.is_empty() && digits.bytes().all(|b| b.is_ascii_digit()),
         None => false,
@@ -435,7 +441,7 @@ fn connector_card(name: &str) -> Option<&str> {
 }
 
 // Sample input: "0x8086\n", "0XA788", "10de".
-fn parse_hex_id(raw: &str) -> Option<u32> {
+pub(crate) fn parse_hex_id(raw: &str) -> Option<u32> {
     let trimmed = raw.trim();
     let hex = trimmed
         .strip_prefix("0x")
@@ -528,7 +534,21 @@ mod tests {
     #[test]
     fn icd_library_reads_the_packaged_nvidia_shape() {
         let body = "{\n    \"file_format_version\" : \"1.0.1\",\n    \"ICD\": {\n        \"library_path\": \"libGLX_nvidia.so.0\",\n        \"api_version\" : \"1.4.341\"\n    }\n}\n";
-        assert_eq!(icd_library(body), Some("libGLX_nvidia.so.0"));
+        assert_eq!(icd_library(body).as_deref(), Some("libGLX_nvidia.so.0"));
+        let lower = "{\"icd\":{\"Library_Path\":\"libvulkan_radeon.so\"}}";
+        assert_eq!(icd_library(lower).as_deref(), Some("libvulkan_radeon.so"), "cJSON matches either key in any case");
+        let metadata = "{\"comment\":\"library_path caf\\u00e9\",\"ICD\":{\"library_path\":\"libvulkan_radeon.so\",\"note\":\"library_path\"}}";
+        assert_eq!(icd_library(metadata).as_deref(), Some("libvulkan_radeon.so"), "only the two keys can be ambiguous");
+        for ambiguous in [
+            "{\"ICD\":{\"Library_Path\":\"libvulkan_radeon.so\",\"library_path\":\"libGLX_nvidia.so.0\"}}",
+            "{\"ICD\":{\"library_path\":\"libvulkan_radeon.so\",\"library_path\":\"libGLX_nvidia.so.0\"}}",
+            "{\"ICD\":{\"library_path\":\"libvulkan_radeon.so\",\"library\\u005fpath\":\"libGLX_nvidia.so.0\"}}",
+            "{\"ICD\":{\"library_path\":\"libvulkan_radeon.so\"},\"ICD\":{\"library_path\":\"libGLX_nvidia.so.0\"}}",
+            "{\"ICD\":{\"library_path\\u0000x\":\"libvulkan_radeon.so\",\"library_path\":\"libGLX_nvidia.so.0\"}}",
+            "{\"ICD\":{\"library_path\":\"libvulkan_radeon.so\\u0000/../libGLX_nvidia.so.0\"}}",
+        ] {
+            assert_eq!(icd_library(ambiguous), None, "{ambiguous}");
+        }
     }
 
     #[test]
@@ -589,10 +609,10 @@ mod tests {
     fn the_minipc_icd_pair_names_hasvk_and_skips_it() {
         let hasvk = "{\"ICD\":{\"library_path\":\"libvulkan_intel_hasvk.so\"}}\n";
         let intel = "{\"ICD\":{\"library_path\":\"libvulkan_intel.so\"}}\n";
-        assert!(is_hasvk_library(icd_library(hasvk).unwrap()));
-        assert!(!is_hasvk_library(icd_library(intel).unwrap()));
-        assert_eq!(vendor_of_library(icd_library(hasvk).unwrap()), None);
-        assert_eq!(vendor_of_library(icd_library(intel).unwrap()), Some(PCI_VENDOR_INTEL));
+        assert!(is_hasvk_library(&icd_library(hasvk).unwrap()));
+        assert!(!is_hasvk_library(&icd_library(intel).unwrap()));
+        assert_eq!(vendor_of_library(&icd_library(hasvk).unwrap()), None);
+        assert_eq!(vendor_of_library(&icd_library(intel).unwrap()), Some(PCI_VENDOR_INTEL));
     }
 
     // Hybrid: Vulkan sees Intel and NVIDIA, only NVIDIA has a panel, so the Intel ICD has to go.
@@ -613,7 +633,7 @@ mod tests {
     #[test]
     fn icd_for_displays_picks_the_nvidia_json_and_not_hasvk() {
         let root = fixture_root("icd-pick");
-        std::fs::write(root.join("nvidia_icd.json"), "{\"ICD\":{\"library_path\":\"libGLX_nvidia.so.0\"}}\n").unwrap();
+        std::fs::write(root.join("nvidia_icd.json"), "{\"comment\":\"library_path caf\\u00e9\",\"ICD\":{\"library_path\":\"libGLX_nvidia.so.0\"}}\n").unwrap();
         std::fs::write(root.join("intel_icd.json"), "{\"ICD\":{\"library_path\":\"libvulkan_intel.so\"}}\n").unwrap();
         std::fs::write(root.join("intel_hasvk_icd.json"), "{\"ICD\":{\"library_path\":\"libvulkan_intel_hasvk.so\"}}\n").unwrap();
         let intel = (PCI_VENDOR_INTEL, 0xa788, DEVICE_TYPE_INTEGRATED);

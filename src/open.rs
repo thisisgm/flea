@@ -31,8 +31,9 @@ pub fn open(path: &str) -> i32 {
     thp::enable();
     // corner: waited for, not detached, and on an archive that wait is a cold handler start; see AGENTS.md "Opening a file".
     let mut launcher = Command::new("gio");
-    // The display-GPU pin is Qt's alone, and only this launcher's own pin is dropped.
+    // The display-GPU pin and the driver exclusion are Qt's alone, and only this launcher's own are dropped.
     vulkan::drop_display_pin(&mut launcher);
+    crate::icdexclude::drop_exclusion(&mut launcher);
     // The platform theme Flea traded for its own startup is Qt's alone too, and is handed back here.
     gui::restore_platform_theme(&mut launcher);
     let finished = launcher

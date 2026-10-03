@@ -197,6 +197,8 @@ fn qs_command(target: PathBuf) -> Command {
             cmd.env("FLEA_BIN", binary);
         }
     }
+    // Before the probe and qs in every arm, so neither loads a driver for a GPU vendor this box does not hold.
+    crate::icdexclude::exclude_absent_vendors();
     // Empty is absent, the rule paths::has_display() applies: a wrapper's unset variable is not a choice.
     if std::env::var_os("QSG_RHI_BACKEND").is_some_and(|value| !value.is_empty()) {
         // An explicit choice is the operator's, so it is neither replaced nor offered a retry.

@@ -49,8 +49,9 @@ pub fn open_terminal(path: &str) -> i32 {
 pub fn detach(child: &mut Command) {
     // The setting is inherited across exec, so this is the last point that can hand it back.
     thp::enable();
-    // The display-GPU pin is Qt's alone, and only this launcher's own pin is dropped.
+    // The display-GPU pin and the driver exclusion are Qt's alone, and only this launcher's own are dropped.
     vulkan::drop_display_pin(child);
+    crate::icdexclude::drop_exclusion(child);
     // The platform theme Flea traded for its own startup is Qt's alone too, and is handed back here.
     gui::restore_platform_theme(child);
     // The child outlives us, so an inherited pipe would kill it on its first write; see AGENTS.md "Opening a file".

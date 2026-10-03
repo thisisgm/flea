@@ -68,8 +68,66 @@ phase and is not in this tree yet.
    device owning no connector, and without that condition it would make a plain single-GPU box pin.
    A box whose
    every Vulkan device owns a connected connector, or that has no DRM connectors at all, leaves
-   the loader's default and says nothing. A loader that cannot
-   deliver one is given `opengl` before `qs` starts at all, because Quickshell hands
+   the loader's default and says nothing.
+   **A driver for a GPU vendor the box does not hold is not loaded where the loader can be told so,
+   and that is not the pin.** On an AMD-only box (an RX 7900 XTX beside a Granite Ridge iGPU) with
+   `nvidia-utils` 610.57.04 installed, the NVIDIA ICD made `vkCreateInstance` take 0.63 to 1.1 s and
+   found no device: it runs `nvidia-modprobe` twice, and each run took 365 to 370 ms there. Qt then
+   paid the same again, so Super+Shift+F mapped the window 1.56 to 1.62 s after the key. In a clean
+   Omarchy 4.0.4 lab guest with the same package and a virtio GPU, `nvidia-modprobe` returns in 2 ms
+   and the NVIDIA ICD costs the launch about 20 ms, 17 to 31 ms against 2.9 to 6.2 ms over 12
+   interleaved pairs of launches to a stub `qs`, so the size of the win is the box's and not the
+   driver's. The pin cannot help, because every device the probe lists is AMD. `src/icdexclude.rs`
+   runs before the probe and before `qs` in every renderer arm, because the OpenGL retry inherits the
+   shell's filter and zink draws GL through Vulkan. It sets `VK_LOADER_DRIVERS_DISABLE` to the
+   manifest file names whose `ICD.library_path` file name is, whole, one of six packaged hardware
+   driver libraries (`libGLX_nvidia.so.0`, `libvulkan_nouveau.so`, `libvulkan_radeon.so`,
+   `amdvlk64.so`, `amdvlk32.so`, `libvulkan_intel.so`) whose vendor no PCI display controller (base
+   class 0x03) and no PCI-backed DRM card carries; a vendor word inside any other name names nothing,
+   because only these are known to drive one vendor alone. Venus, `libvulkan_virtio.so`, is kept:
+   its vtest transport serves Vulkan from whatever GPU or software renderer backs it, with no virtio
+   device on the box. Vendors are read from
+   sysfs, never from Vulkan, which is the call being avoided, so a dGPU whose `nvidia-drm` is not
+   loaded keeps its driver. Nothing is excluded when the operator set `VK_DRIVER_FILES`,
+   `VK_ICD_FILENAMES`, `VK_ADD_DRIVER_FILES`, `VK_LOADER_DRIVERS_SELECT` or
+   `VK_LOADER_DRIVERS_DISABLE`, when `vulkan/loader_settings.d/vk_loader_settings.json` exists under
+   any root searched, when a display controller's vendor cannot be read, when any DRM card's device is
+   not on the PCI bus (a SoC GPU, a virtio-mmio GPU, an evdi dock), when no display controller is
+   found, or when the search lists more than 256 manifests, counted before any is opened. A driver it
+   cannot name is kept: lavapipe, hasvk, swiftshader, any other library, and any manifest that is not
+   a regular file, runs past 4 KiB (packaged ones are a few hundred bytes, and jsondoc's object parse
+   is quadratic in its keys) or does not parse. Manifests are opened through `backend/regfile`,
+   non-blocking, so a fifo
+   swapped in after the check cannot hold Flea's read; a fifo the loader itself opens still holds its
+   probe, as it did before this. The loader's filter names files and not paths, compares them
+   case-insensitively and reads only its first 16 entries, so a name any kept manifest on the search
+   path shares is kept, a name its glob would read as more than itself is never written, and NVIDIA's
+   names go first in a list that stops at 16. The search is a superset of the loader's, read as raw
+   bytes: config home, `XDG_CONFIG_DIRS`, `/etc/xdg`, `/etc`, data home, `XDG_DATA_DIRS`,
+   `/usr/local/share` and `/usr/share`. `vulkan::icd_library` reads `ICD.library_path` through
+   `jsondoc`, for the pin as well, because a first-match text scan read a decoy key placed before it.
+   `src/jsonmembers.rs` finds both keys the way the loader's cJSON does, without regard to case, and
+   sees an exact repeat, which `jsondoc::parse` folds into the last while cJSON takes the first, so a
+   repeat of either key names no library. cJSON hands names and the path to the loader as C strings,
+   so a name is compared only up to its first NUL, which makes `ICD\u0000x` a repeat of `ICD`, and a
+   path holding a NUL names no library. A member anywhere else, or a string holding the words,
+   changes nothing, which keeps the pin working for manifests with metadata. Measured on the AMD box,
+   `vkCreateInstance` then takes 6 to 8 ms and the window maps in
+   154 to 185 ms over two warm launches against 1622 to 1950 ms over three for the installed 0.3.7;
+   deciding costs well under a millisecond: over 25 interleaved pairs of the launch to a stub `qs`,
+   the same build given the operator's own filter, which skips the decision, differs by a paired
+   median of 0.06 ms both on the AMD box (deciding slower in 14 of 25 pairs, inside the noise) and in
+   the 4.0.4 guest (19 of 25), and the explicit OpenGL arm measured above now pays it too. A loader
+   older than 1.3.234 ignores the variable and is as slow as before. Nothing is said on stderr,
+   because no device changes. The marker `FLEA_VK_DISABLE` holds the exact filter written: a launch
+   inheriting a filter its marker names, a new window or the OpenGL retry, decides again, and
+   `src/open.rs` and `src/terminal.rs` drop that pair; a filter its marker does not name is the
+   operator's, so only the stale marker goes. Helpers QML starts directly inherit the filter, as they
+   inherit the pin; it names only drivers for absent vendors, so an eGPU of such a vendor plugged in
+   while Flea runs is the one shape it hides from them. A new window inheriting Flea's own pin adds no
+   filter, because the pin's `VK_DRIVER_FILES` already loads only the display GPU's ICD.
+   A loader that cannot deliver a
+   Vulkan device is given `opengl` before `qs` starts at all, because Quickshell hands
    `QRhi::create` a `QVulkanInstance` it never created and SIGSEGVs there rather than raising
    the scene-graph error the QML arm listens for, issue #14 on a QEMU Virtio GPU. That downgrade
    is not silent: `usable()` answers with the call or library that refused, and with the
@@ -1662,6 +1720,7 @@ failure fails the check rather than passing it.
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
 - `thp.rs` the one `prctl(PR_SET_THP_DISABLE)` declaration, `disable()` and `enable()`.
+- `icdexclude.rs` disables the Vulkan drivers of GPU vendors the box does not hold, before the probe and `qs`; see rule 5.
 - `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
 - `terminal.rs` hands one directory to `xdg-terminal-exec --dir=` and does not wait, see "Opening a file";
   its `detach` is the set of guards every program Flea starts and does not wait for carries.
@@ -1677,6 +1736,7 @@ failure fails the check rather than passing it.
 - `json.rs` the wire's JSON: read one named field out of one line, escape one string into one.
 - `jsondoc.rs` one whole JSON document in and out, which the one-line scanner above deliberately is not.
 - `jsonstring.rs` one JSON string in and one Rust `String` out: the escapes and the surrogate pairs.
+- `jsonmembers.rs` one member of a JSON object found as the Vulkan loader's cJSON finds it: any case, every repeat seen.
 - `uischema.rs` the shipped `ui.json` shape and the rule each key is measured against.
 - `uistate.rs` the `ui.json` merges: a file onto the defaults, one caller patch, and 0.1.3's `view.json`.
 - `uimigrate.rs` the one-time changes a stored `ui.json` is owed, applied on read and recorded by its
@@ -6936,3 +6996,5 @@ w61 preserves the complete footer dismissal hint, each re-derived with wc -l: ui
 0.3.7 warning closure records durable.rs at 662 lines, one cfg(test) attribute above the 661 ceiling. The helper has only test callers; runtime behavior is unchanged.
 
 e68 R4 retires dismissed menu snapshot replies, re-derived with `wc -l`: `ui/PaneMenuActions.qml` 404 to 407 for the retire guard on the snapshot reply (a stale ok reply retires silently only with the menu and dialog closed and no action awaiting; an open menu, a waiting action or a backend refusal keeps its sentence); the probe is the new `tests/menu-snapshot-retire.qml` at 145 with `tests/menu-snapshot-retire.sh` at 72 carrying the offscreen gate, both inside their budgets and registered in `tests/run-all.sh` headless.
+
+icdexclude moves two ceilings, each re-derived with `wc -l`: `src/gui.rs` 501 to 503 for the one exclusion call ahead of the renderer arms and its comment, and `src/vulkan.rs` 728 to 748 for `icd_library` reading `ICD.library_path` through `jsondoc` and `src/jsonmembers.rs` with its 4 KiB bound, its NUL refusal and the repeat and metadata pins, with three helpers and three PCI vendor constants made `pub(crate)`. The exclusion itself is the new `src/icdexclude.rs` at 212, inside the soft budget, with its tests in the new `src/icdexclude_tests.rs` at 221, and the member lookup is the new `src/jsonmembers.rs` at 121, all inside both budgets.

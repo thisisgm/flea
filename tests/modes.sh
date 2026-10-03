@@ -14,7 +14,7 @@ BIN_REAL=$(readlink -f "$BIN")
 UI_REAL=$(readlink -f .)/ui
 # An operator exporting any of these would answer for src/gui.rs, which is the thing under test here.
 unset QSG_RHI_BACKEND FLEA_RENDERER_AUTOMATIC QT_VK_PHYSICAL_DEVICE_INDEX VK_DRIVER_FILES VK_ICD_FILENAMES QS_ICON_THEME FLEA_QT_THEME \
-  FLEA_PREFETCH FLEA_PREFETCH_SHELL
+  FLEA_PREFETCH FLEA_PREFETCH_SHELL VK_ADD_DRIVER_FILES VK_LOADER_DRIVERS_SELECT VK_LOADER_DRIVERS_DISABLE FLEA_VK_DISABLE
 fail=0
 
 check() {
@@ -143,6 +143,8 @@ printf 'PREFETCH %s\n' "${FLEA_PREFETCH-unset}"
 printf 'PREFETCH_SHELL %s %s\n' "${FLEA_PREFETCH_SHELL-unset}" "$$"
 printf 'ICON_THEME %s\n' "${QS_ICON_THEME-unset}"
 printf 'THEME_MARKER %s\n' "${FLEA_QT_THEME-unset}"
+printf 'DRIVERS_DISABLE %s\n' "${VK_LOADER_DRIVERS_DISABLE-unset}"
+printf 'DISABLE_MARKER %s\n' "${FLEA_VK_DISABLE-unset}"
 STUB
 chmod +x "$D/qs"
 out=$(env FLEA_BIN=stale FLEA_UI="$UI_REAL" WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
@@ -161,6 +163,9 @@ check "the automatic renderer starts with Vulkan" "1" "$(echo "$out" | grep -c '
 check "the automatic renderer permits one fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC 1$')"
 # The downgrade below says why, so its silence here is what proves this arm took the probe's other branch.
 check "a loader that can deliver Vulkan says nothing" "0" "$(echo "$out" | grep -c 'Vulkan is unusable')"
+# Which drivers are excluded depends on this box's GPUs, but the marker always names the exact filter Flea wrote.
+disabled=$(echo "$out" | sed -n 's/^DRIVERS_DISABLE //p')
+check "a driver exclusion and its marker travel together" "$disabled" "$(echo "$out" | sed -n 's/^DISABLE_MARKER //p')"
 # A DRM card directory has no dash in its name; card1-DP-1 is one of its connectors.
 card_count=0
 for card in /sys/class/drm/card[0-9]*; do
@@ -190,6 +195,28 @@ check "and an explicit ICD list is not announced as a pin" "0" "$(echo "$out" | 
 out=$(env VK_DRIVER_FILES=/tmp/flea-operator-driver.json WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an explicit driver file list is preserved" "1" "$(echo "$out" | grep -c '^DRIVER_FILES /tmp/flea-operator-driver.json$')"
 check "and an explicit driver file list is not announced as a pin" "0" "$(echo "$out" | grep -c 'GPU with no display')"
+check "and an explicit driver file list excludes no driver" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE unset$')"
+# The loader's own filter is the operator's too, and Flea neither replaces it nor marks it as its own.
+out=$(env VK_LOADER_DRIVERS_DISABLE=flea-operator_icd.json WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+check "an operator's own driver filter is preserved" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE flea-operator_icd.json$')"
+check "and it is not marked as Flea's" "1" "$(echo "$out" | grep -c '^DISABLE_MARKER unset$')"
+# A loader settings file can add or choose drivers itself, so its presence is the operator's choice as well.
+mkdir -p "$D/xdg/vulkan/loader_settings.d" && printf '{}\n' > "$D/xdg/vulkan/loader_settings.d/vk_loader_settings.json"
+out=$(env XDG_CONFIG_DIRS="$D/xdg" WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+check "a loader settings file excludes no driver" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE unset$')"
+# A new window or the OpenGL retry inherits the shell's own filter, which the launcher decides again in every arm.
+for renderer in "" opengl; do
+  out=$(env QSG_RHI_BACKEND="$renderer" VK_LOADER_DRIVERS_DISABLE=flea-stale_icd.json FLEA_VK_DISABLE=flea-stale_icd.json \
+    WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+  check "an inherited Flea exclusion is decided again${renderer:+ on $renderer}, not passed on" "0" "$(echo "$out" | grep -c 'flea-stale_icd.json')"
+  disabled=$(echo "$out" | sed -n 's/^DRIVERS_DISABLE //p')
+  check "and the fresh decision${renderer:+ on $renderer} carries its own marker" "$disabled" "$(echo "$out" | sed -n 's/^DISABLE_MARKER //p')"
+done
+# A marker that leaked into a shell the operator then changed the filter in names another filter, which stays theirs.
+out=$(env VK_LOADER_DRIVERS_DISABLE=flea-operator_icd.json FLEA_VK_DISABLE=flea-stale_icd.json \
+  WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
+check "a filter its leaked marker does not name is the operator's" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE flea-operator_icd.json$')"
+check "and the stale marker is not handed on" "1" "$(echo "$out" | grep -c '^DISABLE_MARKER unset$')"
 out=$(env QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=stale WAYLAND_DISPLAY=flea-modes-test-display PATH="$D:/usr/bin:/bin" $BIN --gui 2>&1 </dev/null)
 check "an explicit renderer is preserved" "1" "$(echo "$out" | grep -c '^RENDERER opengl$')"
 check "an explicit renderer cannot trigger fallback" "1" "$(echo "$out" | grep -c '^AUTOMATIC unset$')"
@@ -368,6 +395,8 @@ last_arg="$D/last-arg"
   printf 'printf "ICD %%s\\n" "${VK_ICD_FILENAMES-unset}"\n'
   printf 'printf "DRIVER_FILES %%s\\n" "${VK_DRIVER_FILES-unset}"\n'
   printf 'printf "PIN %%s\\n" "${FLEA_VK_PIN-unset}"\n'
+  printf 'printf "DRIVERS_DISABLE %%s\\n" "${VK_LOADER_DRIVERS_DISABLE-unset}"\n'
+  printf 'printf "DISABLE_MARKER %%s\\n" "${FLEA_VK_DISABLE-unset}"\n'
   printf 'printf "THEME %%s\\n" "${QT_QPA_PLATFORMTHEME-unset}"\n'
   printf 'printf "ICON_THEME %%s\\n" "${QS_ICON_THEME-unset}"\n'
   printf 'printf "THEME_MARKER %%s\\n" "${FLEA_QT_THEME-unset}"\n'
@@ -434,14 +463,35 @@ check "and its driver file list goes with it" "1" "$(echo "$out" | grep -c '^DRI
 check "and the marker itself does not leak onward" "1" "$(echo "$out" | grep -c '^PIN unset$')"
 
 : > "$opened"
+# Flea's own driver exclusion is marked with its exact value, and is taken back off a program Flea opens.
+VK_LOADER_DRIVERS_DISABLE=flea-absent_icd.json FLEA_VK_DISABLE=flea-absent_icd.json \
+  PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1 | cat >/dev/null
+check "the marked-exclusion open returned success" "0" "${PIPESTATUS[0]}"
+wait_for_line "$opened" '^THP_enabled'
+out=$(cat "$opened")
+check "a marked driver exclusion is dropped from an opened program" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE unset$')"
+check "and its marker does not leak onward" "1" "$(echo "$out" | grep -c '^DISABLE_MARKER unset$')"
+
+: > "$opened"
+# A leaked marker naming another filter makes the filter beside it the operator's, so only the marker goes.
+VK_LOADER_DRIVERS_DISABLE=flea-operator_icd.json FLEA_VK_DISABLE=flea-absent_icd.json \
+  PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1 | cat >/dev/null
+check "the leaked-marker open returned success" "0" "${PIPESTATUS[0]}"
+wait_for_line "$opened" '^THP_enabled'
+out=$(cat "$opened")
+check "an operator's filter beside a leaked marker reaches the opened program" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE flea-operator_icd.json$')"
+check "and the leaked marker does not" "1" "$(echo "$out" | grep -c '^DISABLE_MARKER unset$')"
+
+: > "$opened"
 # An operator's own list carries no marker, so it must survive into the program they open.
 VK_ICD_FILENAMES=/tmp/flea-operator-icd.json VK_DRIVER_FILES=/tmp/flea-operator-driver.json \
-  PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1 | cat >/dev/null
+  VK_LOADER_DRIVERS_DISABLE=flea-operator_icd.json PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" 2>&1 | cat >/dev/null
 check "the operator-list open returned success" "0" "${PIPESTATUS[0]}"
 wait_for_line "$opened" '^THP_enabled'
 out=$(cat "$opened")
 check "an operator's own ICD list reaches the opened program" "1" "$(echo "$out" | grep -c '^ICD /tmp/flea-operator-icd.json$')"
 check "and so does their own driver file list" "1" "$(echo "$out" | grep -c '^DRIVER_FILES /tmp/flea-operator-driver.json$')"
+check "and so does their own driver filter" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE flea-operator_icd.json$')"
 
 : > "$opened"
 # An exported but empty marker is absent, so it must not turn an operator's own list into a pin.
@@ -591,6 +641,8 @@ ran="$D/ran.log"
   printf 'printf "ICD %%s\\n" "${VK_ICD_FILENAMES-unset}"\n'
   printf 'printf "DRIVER_FILES %%s\\n" "${VK_DRIVER_FILES-unset}"\n'
   printf 'printf "PIN %%s\\n" "${FLEA_VK_PIN-unset}"\n'
+  printf 'printf "DRIVERS_DISABLE %%s\\n" "${VK_LOADER_DRIVERS_DISABLE-unset}"\n'
+  printf 'printf "DISABLE_MARKER %%s\\n" "${FLEA_VK_DISABLE-unset}"\n'
   printf 'printf "THEME %%s\\n" "${QT_QPA_PLATFORMTHEME-unset}"\n'
   printf 'printf "ICON_THEME %%s\\n" "${QS_ICON_THEME-unset}"\n'
   printf 'printf "THEME_MARKER %%s\\n" "${FLEA_QT_THEME-unset}"\n'
@@ -633,14 +685,35 @@ check "and its driver file list goes with it" "1" "$(echo "$out" | grep -c '^DRI
 check "and the marker does not leak into the terminal" "1" "$(echo "$out" | grep -c '^PIN unset$')"
 
 : > "$ran"
+# Flea's own driver exclusion is taken back off a terminal Flea opens, the same as its pin.
+VK_LOADER_DRIVERS_DISABLE=flea-absent_icd.json FLEA_VK_DISABLE=flea-absent_icd.json \
+  PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/dir" 2>&1 | cat >/dev/null
+check "the marked-exclusion terminal returned success" "0" "${PIPESTATUS[0]}"
+wait_for_line "$ran" '^THP_enabled'
+out=$(cat "$ran")
+check "a marked driver exclusion is dropped from a terminal" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE unset$')"
+check "and its marker does not leak into the terminal" "1" "$(echo "$out" | grep -c '^DISABLE_MARKER unset$')"
+
+: > "$ran"
+# The terminal path reaches the same ownership test, so it needs the leaked-marker arm of its own.
+VK_LOADER_DRIVERS_DISABLE=flea-operator_icd.json FLEA_VK_DISABLE=flea-absent_icd.json \
+  PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/dir" 2>&1 | cat >/dev/null
+check "the leaked-marker terminal returned success" "0" "${PIPESTATUS[0]}"
+wait_for_line "$ran" '^THP_enabled'
+out=$(cat "$ran")
+check "an operator's filter beside a leaked marker reaches the terminal" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE flea-operator_icd.json$')"
+check "and the leaked marker does not reach the terminal" "1" "$(echo "$out" | grep -c '^DISABLE_MARKER unset$')"
+
+: > "$ran"
 # An operator's own list carries no marker, so it must survive into the terminal they open.
 VK_ICD_FILENAMES=/tmp/flea-operator-icd.json VK_DRIVER_FILES=/tmp/flea-operator-driver.json \
-  PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/dir" 2>&1 | cat >/dev/null
+  VK_LOADER_DRIVERS_DISABLE=flea-operator_icd.json PATH="$D/bin:/usr/bin:/bin" $BIN --terminal "$D/dir" 2>&1 | cat >/dev/null
 check "the operator-list terminal returned success" "0" "${PIPESTATUS[0]}"
 wait_for_line "$ran" '^THP_enabled'
 out=$(cat "$ran")
 check "an operator's own ICD list reaches the terminal" "1" "$(echo "$out" | grep -c '^ICD /tmp/flea-operator-icd.json$')"
 check "and so does their own driver file list" "1" "$(echo "$out" | grep -c '^DRIVER_FILES /tmp/flea-operator-driver.json$')"
+check "and so does their own driver filter in a terminal" "1" "$(echo "$out" | grep -c '^DRIVERS_DISABLE flea-operator_icd.json$')"
 
 : > "$ran"
 # Both spawn sites reach one shared guard, pin_is_marked, so each needs this arm of its own.
