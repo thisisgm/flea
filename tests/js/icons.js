@@ -60,6 +60,11 @@ function run(check) {
     check("videos", Icons.sidebarGlyphFor("Videos"), "film")
     check("music folder", Icons.sidebarGlyphFor("Music"), "music")
     check("projects", Icons.sidebarGlyphFor("Projects"), "folder-git-2")
+    check("code", Icons.sidebarGlyphFor("Code"), "binary")
+    check("sync", Icons.sidebarGlyphFor("Sync"), "cloud")
+    check("wallpapers", Icons.sidebarGlyphFor("Wallpapers"), "wallpaper")
+    check("windows", Icons.sidebarGlyphFor("Windows"), "app-window")
+    check("work", Icons.sidebarGlyphFor("Work"), "briefcase")
     check("an unknown bookmark falls back to folder", Icons.sidebarGlyphFor("NAS"), "folder")
     check("an empty label still answers", Icons.sidebarGlyphFor(""), "folder")
 
@@ -73,7 +78,7 @@ function run(check) {
     check("Preview keeps the board's right-hand column", Icons.pathFor("preview"), "M3 3h18v18H3z M15 3v18")
     check("Folders first keeps the board's stacked rules", Icons.pathFor("folders-first"), "M2 12V4h6l2 2h12v6H2z M2 17h20 M2 21h20")
 
-    var sidebarNames = ["house", "download", "file-text", "image", "film", "music", "folder-git-2", "folder"]
+    var sidebarNames = ["house", "download", "file-text", "image", "film", "music", "folder-git-2", "binary", "cloud", "wallpaper", "app-window", "briefcase", "folder"]
     for (var j = 0; j < sidebarNames.length; j++) {
         drawsItsOwnMark(sidebarNames[j])
     }

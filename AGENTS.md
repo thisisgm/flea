@@ -5996,6 +5996,18 @@ numbers still come from the launcher path, hard rule 7). `rsvg-convert` only
 proves a `d` parses; librsvg renders through a bad tail and exits 0, so its exit status is
 not a gate.
 
+**Five more sidebar labels, 2026-10-03.** `Code`, `Sync`, `Wallpapers`, `Windows` and `Work` are
+common home folders an operator adds through `user-dirs.dirs` or a bookmark, and each drew the
+plain folder. `Code` takes lucide's `binary`, its zeros squared to bare rectangles the way `music`
+squared its note heads, rather than `<>`, which reads as markup; `Sync` takes `cloud`, whose curves
+are genuine and stay, rather than another folder with arrows on it. `Wallpapers` takes `wallpaper`
+and `Work` takes `briefcase`, both recut by the rule above, the `wallpaper` hill's rounded peak
+squared to the point its two strokes meet; `Windows`, Omarchy's VM folder, reuses the `app-window`
+mark already in the set. **A stroke that ends on another stroke starts one unit short of it**:
+under SquareCap the cap projects one unit past the endpoint, so the `wallpaper` hill, which lucide
+ends exactly on the frame, poked a spur past it. Each end moves one unit inward along its own
+direction, which lands the cap on the point lucide drew.
+
 **The row-name distribution, re-derived 2026-08-31** (the task brief's own figures, checked
 against the artefact and not just quoted): `cut -d: -f2 /usr/share/mime/generic-icons | sort |
 uniq -c | sort -rn | head -30` gives `x-office-document` 106, `package-x-generic` 89,

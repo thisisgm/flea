@@ -53,7 +53,12 @@ var SIDEBAR_GLYPHS = {
     "Pictures": "image",
     "Videos": "film",
     "Music": "music",
-    "Projects": "folder-git-2"
+    "Projects": "folder-git-2",
+    "Code": "binary",
+    "Sync": "cloud",
+    "Wallpapers": "wallpaper",
+    "Windows": "app-window",
+    "Work": "briefcase"
 }
 
 var SIDEBAR_FALLBACK = "folder"
@@ -90,6 +95,10 @@ var PATHS = {
     "house": "M3 21V10l9-7 9 7v11h-6v-8H9v8H3z",
     "download": "M12 15V3 M7 10l5 5 5-5 M3 15v6h18v-6",
     "folder-git-2": "M18 19a5 5 0 0 1-5-5v8 M9 20H2V3h6l2 2h12v5 M11 12A2 2 0 1 0 15 12A2 2 0 1 0 11 12Z M18 19A2 2 0 1 0 22 19A2 2 0 1 0 18 19Z",
+    "binary": "M14 14h4v6h-4z M6 4h4v6H6z M6 20h4 M14 10h4 M6 14h2v6 M14 4h2v6",
+    "cloud": "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z",
+    "wallpaper": "M2 3h20v14H2z M12 17v4 M8 21h8 M9.71 16.29l6.79-6.79L21.29 14.29 M6 9A2 2 0 1 0 10 9A2 2 0 1 0 6 9Z",
+    "briefcase": "M16 20V2H8v18 M2 6h20v14H2z",
     // The two near-zero-length lines are lucide's own technique for the rack unit's LED dots; SquareCap draws them as square dots, matching the cut.
     "server": "M2 2h20v8H2z M2 14h20v8H2z M6 6L6.01 6 M6 18L6.01 18",
     // The Network group's add mark, replacing a Text "+" the operator read as a Christian cross.
