@@ -19,6 +19,8 @@ pub mod linecount;
 pub mod dirsize;
 pub mod dirsizereq;
 pub mod listpaths;
+// Issue 144: a list scans off the event loop; see src/backend/listwork.rs.
+pub mod listwork;
 pub mod events;
 pub mod scan;
 pub mod gvfslist;

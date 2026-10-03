@@ -19,6 +19,8 @@ pub enum Event {
     FsInfo(crate::backend::fsinforeq::Done),
     // A write operation's own thread reports here, so the loop stays the only writer of stdout.
     Op(OpMsg),
+    // Issue 144: a list's scan, so a slow mount's read_dir never holds the loop; see src/backend/listwork.rs.
+    List(crate::backend::listwork::Done),
     // The watch descriptor that saw it, so a burst belonging to the directory the client has already
     // left is dropped rather than answered for the new one; see src/backend/watch.rs.
     Changed(i32),

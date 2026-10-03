@@ -1,3 +1,7 @@
+# Unreleased
+
+- A `list` scans on its own thread, so a slow MTP or network mount no longer freezes transfer progress while the existing reader-thread Cancel stops the copy (#144, @mfilm77).
+
 # Flea 0.3.7
 
 - Tight row density fits more rows, while Compact stays the default (#154, @muellan).

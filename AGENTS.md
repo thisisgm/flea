@@ -6936,3 +6936,61 @@ w61 preserves the complete footer dismissal hint, each re-derived with wc -l: ui
 0.3.7 warning closure records durable.rs at 662 lines, one cfg(test) attribute above the 661 ceiling. The helper has only test callers; runtime behavior is unchanged.
 
 e68 R4 retires dismissed menu snapshot replies, re-derived with `wc -l`: `ui/PaneMenuActions.qml` 404 to 407 for the retire guard on the snapshot reply (a stale ok reply retires silently only with the menu and dialog closed and no action awaiting; an open menu, a waiting action or a backend refusal keeps its sentence); the probe is the new `tests/menu-snapshot-retire.qml` at 145 with `tests/menu-snapshot-retire.sh` at 72 carrying the offscreen gate, both inside their budgets and registered in `tests/run-all.sh` headless.
+
+### A list scans off the event loop, so a slow mount cannot freeze progress or cancel
+
+Issue 144: moving a file from an MTP phone left the transfer card frozen and Cancel ignored.
+`run.rs`'s `list` arm called `scan()` inline, and that one loop is also the only reader of
+`Event::Op` and `Event::Request`, so a `read_dir` (or the gio child the gvfs route spawns) that
+waited on the device held every `transferprogress` line and the `transfercancel` behind it. The
+cancel itself no longer waits for the loop: `spawn_reader` sets the running operation's flag as it
+reads the line (commit 60a07b9, `src/backend/events.rs`), which is what makes a cancel land whatever
+the loop is doing. This change is the other half, the loop that keeps writing progress.
+
+`src/backend/listwork.rs` owns it. `listwork::start` runs the walk-end and `watch.begin` on the loop
+exactly as before, then spawns the scan on its own thread and returns the `Job` it will answer with;
+the scan posts `Event::List(Done)` on the loop's one channel, the way a thumbnail or a size posts its
+own. `listwork::finish` does what the arm did inline: picker filter, ordering, `watch.commit` or
+`watch.abandon`, `adopt`, then `fsinfo.list_arrived` and `prefetch::first_rows_sent`.
+
+**Request order is what `Gate` keeps.** A scan takes an unbounded time on a wedged mount, and the
+protocol is a sequential command stream: `protocol.sh` sends `list A`, `list B`, `paths [0]` with
+listing 1 and requires the refusal that only exists if B replaced A before `paths` ran. So while a
+scan is out, every request that arrives waits in `Gate` and replays in the order it arrived once the
+scan lands. The loop is still free for events (progress, thumbnails, sizes, figures, the watch),
+which is the half the issue asked for; only requests queue, and the client sends none while its own
+`listInFlight` holds. A `quit` or a closed stdin while a scan is out is kept too, so a listing a
+script asked for is still answered before the process leaves, exactly as the inline scan did.
+
+**A second list does not overtake the first, and the shipped clients never ask for one.** The gate
+answers in request order, which is the only order the protocol test accepts: `protocol.sh` sends
+`list A`, `list B`, `paths [0]` with listing 1 and requires both listings adopted and the old
+numbering refused. A newer list cannot be answered first without dropping or refusing the older one,
+and a client waiting on the older `listed` line would then never clear its own `listInFlight`.
+Nothing shipped needs it: `ui/js/Nav.js`'s `openWithoutHistory` refuses a navigation while
+`pane.listInFlight`, the TUI's `Model::open` refuses while `self.pending` is set, and dual panes run
+one backend each (`ui/WindowBody.qml`), so no one backend ever has two lists out. A slow MTP folder
+therefore delays only the pane that asked for it; another pane's local folder is another backend and
+answers at once. `peek`, which the columns and network-repair paths use, is the one same-backend
+listing still on the loop, and it is named above rather than folded in.
+
+**A watch burst seen during a scan is decided once the scan says what it listed.** `watch.begin`
+arms the new descriptor beside the current one, and which of the two is current is only known at
+`commit` or `abandon`. A burst read while the scan is out is therefore kept in the `Gate` and
+answered after it, if and only if its descriptor is the one that became current: a change in the
+directory just left answers nothing, as it did when the loop was inside the scan.
+
+**What is still synchronous, honestly.** `peek` scans a preview directory inline, `listpaths`
+`lstat`s each named path, `window`'s `stat_range` and a size/mtime `sort`'s `stat_all` run on the
+loop, and ordering runs after the scan lands. None of these is on the path the report measured (open
+a phone folder, or a re-read of it), and a gvfs listing answers `stat_range`/`stat_all` from its gio
+store with no lstat, so a phone folder's default name order pays none of them. They are named here
+rather than quietly fixed.
+
+The regression is `tests/mtp-scan.sh`: a `FLEA_GIO_BIN` fake that blocks until the script releases
+it makes the scan provably out and blocked, then a 4 GiB sparse copy is started and cancelled while
+it is out. Progress and the cancelled `transferdone` must be written before the scan's `listed`
+line, which an inline scan cannot do. `listwork_tests.rs`'s unit tests pin the two seams without a
+mount: a blocked scan does not hold the channel, and requests queued behind a scan replay in order.
+`tools/flea-file-budget` records `src/backend/run.rs` 448 to 460 for the gate and the two extra
+`handle_line` call sites; `src/backend/listwork.rs` is inside the soft budget.
