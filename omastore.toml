@@ -1,0 +1,11 @@
+kind = "app"
+categories = ["System", "FileManager", "FileTools"]
+icon = "packaging/com.thisisgm.flea.svg"
+
+[linux.x86_64]
+asset = "flea-v{version}-linux-x86_64.tar.gz"
+exec = "flea-{version}-linux-x86_64/flea"
+
+[linux.aarch64]
+asset = "flea-v{version}-linux-aarch64.tar.gz"
+exec = "flea-{version}-linux-aarch64/flea"
