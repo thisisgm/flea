@@ -38,6 +38,7 @@ SettingsRuler 1.0 SettingsRuler.qml
 SettingsSegment 1.0 SettingsSegment.qml
 MediaStrip 1.0 MediaStrip.qml
 MenuRow 1.0 MenuRow.qml
+MenuTooltip 1.0 MenuTooltip.qml
 MenuEdgeFade 1.0 MenuEdgeFade.qml
 RenameField 1.0 RenameField.qml
 EmptyState 1.0 EmptyState.qml
