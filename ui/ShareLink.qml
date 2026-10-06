@@ -1,5 +1,6 @@
 import Quickshell.Io
 import QtQuick
+import Quickshell
 
 Item {
     id: root
@@ -61,7 +62,11 @@ Item {
             }
             root.pendingUrl = url
             root._clipboardAwaitingStart = true
-            copyToClipboard.command = ["wl-copy", url]
+            var x11 = Quickshell.env("XDG_SESSION_TYPE") === "x11"
+                      || (!Quickshell.env("WAYLAND_DISPLAY") && !!Quickshell.env("DISPLAY"))
+            copyToClipboard.command = x11
+                ? ["sh", "-c", "printf '%s' \"$1\" | xclip -selection clipboard -in", "_", url]
+                : ["wl-copy", url]
             copyToClipboard.running = true
         }
     }

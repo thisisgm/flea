@@ -79,6 +79,7 @@ Item {
         onIsDirectory: function (path) { pane.open(path) }
         onTerminalBusy: function (path) { pane.message("Still opening the last terminal; try again in a moment.", false) }
         onTerminalFailed: function (path) { pane.message("No terminal on this system opened that directory.", true) }
+        onClipboardFailed: pane.message("The path could not be copied to the clipboard.", true)
     }
 
     Flea.ShareLink {

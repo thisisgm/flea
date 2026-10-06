@@ -20,7 +20,8 @@ optdepends=('libarchive: archive listing and extraction'
             'ffmpeg: media metadata in the preview column'
             'ffmpegthumbnailer: video thumbnails, made by one pre-linked worker through libffmpegthumbnailer.so.4, or by the ffmpegthumbnailer program per video when that library will not load'
             'dropbox-cli: Dropbox share links'
-            'zoxide: frecent folders in the folder jump of the path bar')
+            'zoxide: frecent folders in the folder jump of the path bar'
+            'xclip: X11 clipboard support')
 options=('!debug')
 # SKIP here keeps a version bump to one line; the release workflow pins it from SHASUMS256.txt before the AUR sees it.
 # The local name carries pkgrel, so a rebuilt release is downloaded again, never read from a stale yay cache.
