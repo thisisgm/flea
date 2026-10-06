@@ -197,6 +197,8 @@ ListView {
             root.picker.requestSort(Sort.nextOrder(Picker.SORT_ORDERS, root.picker.sortBy))
         } else if (action === "sortReverse") {
             root.picker.requestSort(Sort.reverseOrder(root.picker.sortBy, root.picker.sortDesc))
+        } else if (action === "pathBar") {
+            root.picker.startPathEdit()
         } else if (action === "toggleHidden") {
             root.picker.showHidden = !root.picker.showHidden
             if (root.picker.path.length > 0)

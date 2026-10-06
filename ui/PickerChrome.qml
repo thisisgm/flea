@@ -1,7 +1,6 @@
 import QtQuick
 import qs.Commons
 import "." as Flea
-import "js/Format.js" as Format
 import "js/Picker.js" as Picker
 
 // The picker's two chrome strips: what was asked for and the two answers on top, where the list is
@@ -270,20 +269,17 @@ Item {
             }
         }
 
-        Text {
+        // The path slot: the location the strip stands in, and, on Ctrl+L or ":", the field that
+        // types a new one. It fills the room between the nav marks and the filter chips; its own
+        // internals live in ui/PickerLocationField.qml so this strip stays under its hard cap.
+        Flea.PickerLocationField {
             anchors.left: moves.right
             anchors.leftMargin: Theme.spacing.gap
             anchors.right: types.left
             anchors.rightMargin: Theme.spacing.gap
             anchors.verticalCenter: parent.verticalCenter
-            // Recent is a location and not a path, so the strip says the location's own name; a
-            // tilde form of the token would be a path the window is not standing in.
-            text: root.picker.recent ? Picker.RECENT_LABEL : Format.tilde(root.picker.path, root.picker.home)
-            color: Theme.color.foreground
-            font.family: Theme.font.family
-            font.pixelSize: Theme.font.caption
-            elide: Text.ElideLeft
-            textFormat: Text.PlainText
+            height: Theme.hitMin
+            picker: root.picker
         }
 
         // The caller's filters, and All files beside them; a request with no filters draws no chips.

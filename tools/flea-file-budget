@@ -116,7 +116,7 @@ ui/Pane.qml 1043
 ui/PaneMenuActions.qml 467
 ui/PaneWire.qml 586
 ui/PermissionsDialog.qml 674
-ui/PickerWindow.qml 779
+ui/PickerWindow.qml 795
 ui/Preview.qml 669
 ui/PreviewColumn.qml 583
 ui/DeviceMounts.qml 496
