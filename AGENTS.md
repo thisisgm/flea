@@ -3454,6 +3454,13 @@ The stage2 merge of fs1 and fs5 records `ui/js/Devices.js` at 366, fs1's udisks 
 `mediaRemovable` for the USB power-off chain, and `tests/js/devices.js` at 303 for both units' pins, each over the
 300 hard cap and recorded rather than split, re-derived with `wc -l`.
 
+The mounted-loop rail fix (an opened .iso in DEVICES) moves three recorded ceilings, each re-derived with `wc -l`:
+`ui/js/Devices.js` 366 to 413 for the mounted-loop pseudo test, the loop flag on the walk and the row, and
+`ejectCommand`, which detaches a loop row's loop device after its unmount and exits apart when only the detach fails,
+`ui/DeviceMounts.qml` 496 to 510 for a loop row's `-u` eject route around the power-off chain and its
+failed-detach verdict, and
+`tests/js/devices.js` 303 to 305 for the not-loop pin on a real stick. The loop cases live in `tests/js/loopdevices.js`.
+
 The stage4 merge records the merged ceilings, re-derived with `wc -l` at
 the merge: `tests/js/watch.js` 354 (us1's kill-sweep pins beside xw4r2's two-window settle pins) and `ui/Pane.qml` 1013
 (xw4r2's settler wiring beside stage2's Anchor import and drag state). The merged undo ceilings are also re-derived

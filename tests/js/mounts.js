@@ -67,6 +67,10 @@ function run(check) {
     var bookmark = { label: "NAS", group: "network", kind: "share", uri: "smb://example.com/", mounted: false }
     var dropbox = { label: "Dropbox", group: "network", kind: "dropbox", uri: "", mounted: true }
     var favourite = { label: "Home", group: "favourite", kind: "favourite", path: "/home/user" }
+    // A mounted loop device (an opened .iso): never removable at the kernel level, same as `fixed`,
+    // but unlike a bolted-in disk it exists only because the user attached it, so it still offers
+    // Eject -- DeviceMounts.qml's eject() already knows to route it through gio mount -u.
+    var loopRow = { label: "OMARCHY_202608", group: "device", kind: "volume", device: "/dev/loop0p1", mounted: true, removable: false, loop: true }
     function solid(rows) { return rows.filter(function (r) { return r.separator !== true }) }
     function labelsOf(rows) { return solid(rows).map(function (r) { return r.label }).join(",") }
     function actionsOf(rows) { return solid(rows).map(function (r) { return r.action }).join(",") }
@@ -77,6 +81,8 @@ function run(check) {
     check("Open takes the listing menu's own mark", solid(Mounts.railMenu(volume))[0].glyph, "folder-open")
     check("the Eject row carries the eject action", solid(Mounts.railMenu(volume))[1].action, "eject")
     check("the Eject row draws the eject mark", solid(Mounts.railMenu(volume))[1].glyph, "eject")
+    check("a mounted loop device opens beside Eject despite removable being false", labelsOf(Mounts.railMenu(loopRow)), "Open,Eject")
+    check("the loop row's Eject carries the eject action", solid(Mounts.railMenu(loopRow))[1].action, "eject")
     check("a group change draws the listing menu's own separator", Mounts.railMenu(volume).length, 3)
     check("a mounted network share opens beside its release", labelsOf(Mounts.railMenu(share)), "Open,Unmount,Rename,Edit address,Remove from Network")
     check("its Open is the listing menu's own row too", actionsOf(Mounts.railMenu(share)), "open,unmount,rename,editPlace,remove")
@@ -99,6 +105,8 @@ function run(check) {
           never.some(function (e) {
               return Mounts.railMenu(e).some(function (r) { return r.action === "eject" })
           }), false)
+    check("a mounted loop device is the one other row eject reaches",
+          Mounts.railMenu(loopRow).some(function (r) { return r.action === "eject" }), true)
 
     // The key a chosen row carries back: the rail rebuilds on a five second poll, so an index taken
     // when the menu opened can name a different row by the time a row inside it is chosen.

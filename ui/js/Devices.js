@@ -28,17 +28,36 @@ function parseDevices(body, unmounted) {
         // The system disk is never walked: /boot and a separate home are the box's own plumbing and
         // the row above already stands for that disk. Everything else on the box is walked, which is
         // what puts a second internal drive in the rail (operator, 2026-09-11: only sticks appeared).
-        if (!nodes[i].name || nodes[i] === system || isPseudo(nodes[i].name))
+        if (!nodes[i].name || nodes[i] === system || isPseudo(nodes[i]))
             continue
         // No transport to inherit at the top: the disk answers for itself inside the walk.
-        collectVolumes([nodes[i]], "", false, out, unmounted === true)
+        collectVolumes([nodes[i]], "", false, out, unmounted === true, false)
     }
     return dedupeVolumes(out)
 }
 
-// zram and loop devices are type "disk" too, and neither is a disk anyone browses.
-function isPseudo(name) {
-    return /^(zram|loop)/.test(String(name))
+// zram is type "disk" too and nobody browses it. A loop device is the same, except when it is
+// mounted: opening an .iso from the file list gio loop-mounts it, and that mount is exactly as
+// browsable as a stick's, even though the kernel never sets "rm" for one. An unmounted loop device
+// (systemd, some package manager, ...) has nothing to do with anyone browsing files and stays out.
+function isPseudo(node) {
+    var name = String(node.name || "")
+    if (/^zram/.test(name))
+        return true
+    return /^loop/.test(name) && !holdsMount(node)
+}
+
+// Same shape as holdsRoot below, but for any mountpoint at all rather than "/" specifically -- a
+// mounted loop device's own node is never itself mounted, only a partition under it is.
+function holdsMount(node) {
+    if (mountOf(node).length > 0)
+        return true
+    var kids = node.children || []
+    for (var k = 0; k < kids.length; k++) {
+        if (holdsMount(kids[k]))
+            return true
+    }
+    return false
 }
 
 // The disk that actually carries /, found through the mountpoints of its own subtree. It used to be
@@ -72,7 +91,7 @@ function holdsRoot(node) {
 // RailAdditions rule 1 adds the third case behind its own switch: a volume nothing has mounted, with
 // a filesystem to browse. With the switch off this is the 0.2.1 rule exactly, which kept a spare EFI
 // or recovery partition out of the rail.
-function collectVolumes(nodes, model, unplugs, out, unmounted) {
+function collectVolumes(nodes, model, unplugs, out, unmounted, underLoop) {
     for (var i = 0; i < nodes.length; i++) {
         var n = nodes[i]
         var kids = n.children || []
@@ -82,11 +101,16 @@ function collectVolumes(nodes, model, unplugs, out, unmounted) {
         // mariobgsp (PR 74), whose USB drive reports tran=usb on sdb and null on sdb1. It stops
         // there: what a crypt leaf under it reads as is what it read as before that PR.
         var pulls = unpluggable(n) || (unplugs && String(n.type || "") === "part")
+        // "loop" rides down the recursion since a loop device's own children never carry it either;
+        // ui/DeviceMounts.qml's eject() reads it to route a loop row around gio's hang on -e.
+        var loopHere = underLoop || /^loop/.test(String(n.name || ""))
         // The hide rule runs in every branch: a removable ESP, swap or member is no row on any setting.
+        // A loop partition is a row only while mounted: the .iso's other partitions are not drives
+        // anyone plugged in, so the unmounted-volume rule never offers them Mount.
         if (n.name && kids.length === 0 && !hidden(n)
-                && (pulls || mountOf(n).length > 0 || (unmounted && browsable(n))))
-            out.push(volumeRow(n, own, pulls, unmounted))
-        collectVolumes(kids, own, pulls, out, unmounted)
+                && (pulls || mountOf(n).length > 0 || (unmounted && browsable(n) && !loopHere)))
+            out.push(volumeRow(n, own, pulls, unmounted, loopHere))
+        collectVolumes(kids, own, pulls, out, unmounted, loopHere)
     }
 }
 
@@ -270,6 +294,26 @@ function powerOffDisk(device) {
     return bare ? text : ""
 }
 
+// The eject command for one volume row. A loop row (an opened .iso) is unmounted with -u, since
+// gio mount -e hangs on a loop volume, and then its loop device is detached, since -u alone left
+// one attached per open. With another partition of it still mounted, the kernel only marks the
+// loop to clear on its last close (measured: AUTOCLEAR 0 to 1, the mount kept reading), so the
+// detach never pulls a mount away. Sample: {device: "/dev/loop0p1", path: "/run/media/u/ISO",
+// loop: true} answers the sh chain against /dev/loop0; any other row answers gio mount -e.
+// A failed unmount exits 1; an unmount whose detach then failed exits detachFailedExit, so the
+// verdict can say the loop device is still attached instead of a plain "Ejected".
+var detachFailedExit = 3
+function ejectCommand(e) {
+    var path = String(e.path || "")
+    if (e.loop !== true)
+        return ["gio", "mount", "-e", path]
+    var loopDisk = powerOffDisk(e.device)
+    if (!/^\/dev\/loop\d+$/.test(loopDisk))
+        return ["gio", "mount", "-u", path]
+    return ["sh", "-c", 'gio mount -u "$1" || exit 1; udisksctl loop-delete --no-user-interaction -b "$2" || exit ' + detachFailedExit,
+            "sh", path, loopDisk]
+}
+
 // The sysfs block name for a disk path, so the eject chain can watch its write counter.
 // Sample input: "/dev/sda" answers "sda", "/dev/nvme0n1" answers "nvme0n1.
 function sysBase(disk) {
@@ -351,13 +395,16 @@ function devicePath(node) {
 // The label ladder is the filesystem label, then the drive's product name, then the kernel name.
 // volumeMenu says the row was built under RailAdditions rule 1, which is what gives it the Mount,
 // Open and Unmount rows; without the switch the row carries the menu it carried in 0.2.1.
-function volumeRow(n, model, unplugs, unmounted) {
+// "loop" rides along so ui/DeviceMounts.qml's eject() can tell a loop-backed row from a real
+// drive's: gio mount -e hangs forever on a loop volume (measured live), because it never carries
+// a Drive object the way a real disk's partition does, and gio's eject path waits on one regardless.
+function volumeRow(n, model, unplugs, unmounted, loop) {
     var path = mountOf(n)
     var label = n.label ? String(n.label) : (model.length > 0 ? model : String(n.name))
     var fs = String(n.fstype || "").toLowerCase()
     return { kind: "volume", label: label, device: devicePath(n), path: path, mounted: path.length > 0,
              removable: unplugs === true, mediaRemovable: n.rm === true, size: deviceBytes(n.size), volumeMenu: unmounted === true,
-             uuid: fs === "btrfs" && n.uuid ? String(n.uuid) : "" }
+             uuid: fs === "btrfs" && n.uuid ? String(n.uuid) : "", loop: !!loop }
 }
 
 // An unavailable or malformed capacity stays absent; only the delegate formats valid byte counts.

@@ -58,6 +58,8 @@ Item {
     // the only witness: gio's own exit code has been 0 over a volume that was still mounted.
     property string _ejectDevice: ""
     property string _ejectLabel: ""
+    // A loop row's unmount succeeded but its detach did not (Devices.detachFailedExit).
+    property bool _ejectDetachFailed: false
     // Listings are counted as they start. _verdictFromListing is 0 while gio runs, so nothing is
     // judged before it exits; at exit it becomes one past the count, so the listing in flight at
     // that moment, taken before the eject finished, is never the witness.
@@ -144,7 +146,7 @@ Item {
             out.push({ path: r.path, label: label, group: "device", kind: r.kind,
                        device: r.device, mounted: r.mounted, removable: r.removable,
                        mediaRemovable: r.mediaRemovable === true, size: r.size,
-                       volumeMenu: r.volumeMenu === true, glyph: "drive" })
+                       volumeMenu: r.volumeMenu === true, glyph: "drive", loop: !!r.loop })
         }
         // Same rule as ui/NetworkMounts.qml's: an unchanged poll assigns nothing, see Mounts.sameEntries.
         if (!Mounts.sameEntries(root.entries, out))
@@ -215,6 +217,7 @@ Item {
     function armEject(e) {
         root._ejectDevice = e.device
         root._ejectLabel = e.label
+        root._ejectDetachFailed = false
         root._verdictFromListing = 0
     }
 
@@ -222,6 +225,13 @@ Item {
     // --eject (glib 2.88.3 gio-tool-mount.c:1264 against :1278), so "-e -d <device>" mounts instead.
     // gio's own -f is never passed: forcing an unmount over an open write is how a file manager
     // loses somebody's data.
+    //
+    // A loop row (an ISO opened from the file list) takes -u instead: -e hung indefinitely against
+    // it every time it was tried, on a bare loop device and on a hybrid ISO's partitioned one alike
+    // -- neither carries a Drive object, and that is what gio's eject path never comes back from
+    // waiting on. Its loop device is then detached (Devices.ejectCommand), and judgeEject reads the
+    // very next listing either way, so the result is judged identically: gone or unmounted is
+    // "safe", still mounted is not.
     function eject(index) {
         var e = root.entries[index]
         if (!e || e.kind !== "volume" || !e.mounted)
@@ -232,15 +242,17 @@ Item {
         }
         // A USB disk that is not media-removable (a USB HDD or SSD bridge) is powered off
         // instead: ejecting its media re-announces the disk and udiskie remounts it at once.
+        // A loop row is never media-removable either, but there is no drive behind it to power
+        // off, so it skips this and takes the -u route below.
         var disk = Devices.powerOffDisk(e.device)
-        if (disk.length > 0 && e.mediaRemovable !== true) {
+        if (!e.loop && disk.length > 0 && e.mediaRemovable !== true) {
             root.powerOff(e, disk)
             return
         }
         root.armEject(e)
         root.quiesce(e.path)
         root._ejectErr = ""
-        ejectProcess.command = ["gio", "mount", "-e", e.path]
+        ejectProcess.command = Devices.ejectCommand(e)
         ejectProcess.running = true
         // Replaces the arm prompt, and a stick mid-flush can take a while to come unmounted.
         root.message("Ejecting " + e.label + ", do not unplug it yet.", false)
@@ -312,7 +324,8 @@ Item {
             return
         powerOffTimeout.stop()
         ejectVerdictTimeout.stop()
-        var s = Eject.sentence(verdict, root._ejectLabel, others)
+        // An unmounted loop row reads as safe to the listing; a failed detach still has to say so.
+        var s = Eject.sentence(verdict === "safe" && root._ejectDetachFailed ? "attached" : verdict, root._ejectLabel, others)
         root._ejectDevice = ""
         // The newest verdict about this device is the true one, so it replaces the last one rather
         // than queueing behind it: a refusal is an error and stands until dismissed, and without
@@ -488,6 +501,7 @@ Item {
             }
             if (root._powerOffDisk.length > 0)
                 root._powerOffDisk = ""
+            root._ejectDetachFailed = exitCode === Devices.detachFailedExit
             root._verdictFromListing = root._listingsStarted + 1
             ejectVerdictTimeout.restart()
             root.poll()

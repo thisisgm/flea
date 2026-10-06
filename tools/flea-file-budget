@@ -59,7 +59,7 @@ src/uistore.rs 540
 src/vulkan.rs 728
 tests/js/columns.js 666
 tests/js/drag.js 469
-tests/js/devices.js 303
+tests/js/devices.js 305
 tests/js/previewswap.js 408
 tests/js/mdstructure.js 626
 tests/js/keymap.js 309
@@ -119,7 +119,7 @@ ui/PermissionsDialog.qml 674
 ui/PickerWindow.qml 779
 ui/Preview.qml 669
 ui/PreviewColumn.qml 583
-ui/DeviceMounts.qml 496
+ui/DeviceMounts.qml 510
 ui/PreviewMarkdown.qml 623
 ui/Row.qml 482
 ui/SettingsPanel.qml 543
@@ -131,7 +131,7 @@ ui/TrashView.qml 466
 ui/ViewState.qml 536
 ui/WindowBody.qml 651
 ui/js/Anchor.js 406
-ui/js/Devices.js 366
+ui/js/Devices.js 413
 ui/js/Filter.js 257
 ui/js/Focus.js 435
 ui/js/Keymap.js 355

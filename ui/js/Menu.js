@@ -249,12 +249,12 @@ function availableRail(e, entry) {
     switch (e.id) {
     case "mountVolume": return volume && !mounted && entry.volumeMenu === true
     case "mountPhone": return phone && !mounted
-    case "open": return (volume && mounted && (entry.volumeMenu === true || entry.removable === true))
+    case "open": return (volume && mounted && (entry.volumeMenu === true || entry.removable === true || entry.loop === true))
         || (phone && mounted) || (share && mounted)
     case "unmountVolume": return volume && mounted && entry.volumeMenu === true
     case "unmountPhone": return phone && mounted
     case "unmount": return share && mounted
-    case "eject": return volume && mounted && entry.removable === true
+    case "eject": return volume && mounted && (entry.removable === true || entry.loop === true)
     case "rename": return share && entry.editable !== false
     case "editPlace": return share && entry.editable !== false
     case "remove": return share && entry.editable !== false
