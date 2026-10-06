@@ -182,11 +182,11 @@ function run(check) {
     var newTab = key(Qt.Key_T, "t", none)
     check("t resolves to a new tab", Focus.lookup(newTab, pane(closed())), "tabNew")
 
-    // GridView includes Filter in its chrome; both supported views narrow their held rows.
+    // GridView includes Filter in its chrome; every view narrows its held rows.
     var slash = key(Qt.Key_Slash, "/", none)
     check("slash opens the filter in the list view", Focus.lookup(slash, pane(closed())), "filter")
     check("slash opens the filter in the grid view", Focus.lookup(slash, pane(closed(), "grid")), "filter")
-    check("slash is discarded in the columns view", Focus.lookup(slash, pane(closed(), "columns")), "")
+    check("slash opens the filter in the columns view", Focus.lookup(slash, pane(closed(), "columns")), "filter")
     // A walk replaces the listing a filter would be narrowing, and its strip covers the header, so
     // / goes quiet there exactly as s and S do.
     check("slash is discarded while a search owns the header",

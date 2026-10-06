@@ -84,9 +84,9 @@ function lookup(event, root) {
     var action = Keymap.lookup(event.key, event.text, event.modifiers, context)
     // The share listing borrows the menu context for j/k/enter, but it has no submenu to step into.
     if (action === "menuRight" && shareBrowserHere(root)) return "open"
-    // List and Grid filter held rows; search owns the header while its results are active.
+    // Every view filters held rows; search owns the header while its results are active.
     if (action === "filter")
-        return (root.viewMode !== "columns" && root.searchMode.length === 0) ? action : ""
+        return root.searchMode.length === 0 ? action : ""
     // Left and Right seek inside a media preview and turn the page in a PDF one, which is the only
     // place the map binds either action now that the browsing pair is parent and browse-in; the grid
     // takes the bare arrows above, before the map is consulted.

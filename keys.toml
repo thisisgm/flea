@@ -430,8 +430,8 @@ action = "extendUp"
 char = "h"
 action = "parent"
 
-# Narrows the rows already listed, in place and with no round trip. ui/js/Focus.js keeps it to the
-# list view, the one the canvas draws a filter in, the same way it keeps addNetwork to the rail.
+# Narrows the rows already listed, in place and with no round trip. ui/js/Focus.js offers it in the
+# list, grid and columns views; in the columns view it narrows the active column.
 [[text]]
 char = "/"
 action = "filter"
