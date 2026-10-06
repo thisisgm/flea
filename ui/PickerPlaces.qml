@@ -31,8 +31,11 @@ Item {
     readonly property var recentRow: [{
         path: Picker.RECENT, label: Picker.RECENT_LABEL, group: "favorite", kind: "favorite", glyph: "history"
     }]
+    // Recent, then PLACES (Home and the XDG dirs), then FAVORITES: the window rail's own order, so
+    // the chooser reads the way the browser beside it does. Favourites sat above Home before, which
+    // is why they read as loose rows rather than a labelled group; see the section header below.
     readonly property var placeEntries: (root.offerRecent ? root.recentRow : [])
-        .concat(Places.storedEntries(Flea.Favourites.records, root.home), Places.homeEntries(root.home, root.dirsText, Icons.sidebarGlyphFor))
+        .concat(Places.homeEntries(root.home, root.dirsText, Icons.sidebarGlyphFor), Places.storedEntries(Flea.Favourites.records, root.home))
     // Directive 55, GM relaying a user's report: a dialog that cannot reach a disk or a share is a
     // dialog that makes you type the path, so the chooser draws the window's own NETWORK and DEVICES
     // groups from the same listings. Rows only: nothing here trashes, ejects or renames.
@@ -67,6 +70,32 @@ Item {
         onCurrentIndexChanged: positionViewAtIndex(currentIndex, ListView.Contain)
         Flea.FastScrollHandler { flickable: rail }
         // No bar and no lane: rows fill the rail and still scroll by wheel, touchpad and keys.
+        // The window rail's own PLACES / FAVORITES / NETWORK / DEVICES headings, drawn by the view
+        // itself so a header lives outside the row index space: the cursor, choose() and controls()
+        // all keep counting rows and never a heading. The model is already grouped, so consecutive
+        // rows of one group sit under one heading; ui/js/Picker.js names each group.
+        section.property: "group"
+        section.delegate: Item {
+            id: heading
+            required property string section
+            readonly property string heLabel: Picker.groupHeading(section)
+            width: rail.width
+            // Zero for a group with no heading, Recent's among them, so its lone row sits at the top
+            // with no empty band above it; otherwise the label's own box.
+            height: heading.heLabel.length > 0 ? label.implicitHeight : 0
+            Text {
+                id: label
+                x: Theme.spacing.rowPaddingX
+                topPadding: Math.ceil(font.pixelSize * 0.15) + Theme.spacing.gap
+                bottomPadding: Theme.spacing.gap
+                text: heading.heLabel
+                color: Theme.color.muted
+                font.family: Theme.font.family
+                font.pixelSize: Theme.font.caption
+                font.letterSpacing: 1
+                textFormat: Text.PlainText
+            }
+        }
         Keys.onTabPressed: function(event) { root.picker.stepFocus(rail, (event.modifiers & Qt.ShiftModifier) !== 0) }
         Keys.onBacktabPressed: root.picker.stepFocus(rail, true)
         Keys.onPressed: function(event) {

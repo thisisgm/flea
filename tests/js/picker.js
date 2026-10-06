@@ -50,6 +50,16 @@ function run(check) {
     check("a row in a directory joins onto it", Picker.rowPath("/home/gm", "a.png"), "/home/gm/a.png")
     check("a row in Recent is its own path", Picker.rowPath(Picker.RECENT, "home/gm/Pictures/a.png"), "/home/gm/Pictures/a.png")
     check("a row at the root still joins once", Picker.rowPath("/", "etc"), "/etc")
+
+    // The rail's section headings, ui/PickerPlaces.qml draws one above each run of a group. Recent's
+    // row is group "favorite" and carries no heading, a lone location above the first section; the
+    // other four are the browser sidebar's own words, so the chooser and the window read alike.
+    check("Recent sits headerless above the sections", Picker.groupHeading("favorite"), "")
+    check("the home and XDG rows are PLACES", Picker.groupHeading("home"), "PLACES")
+    check("the saved favourites are FAVORITES", Picker.groupHeading("favourite"), "FAVORITES")
+    check("the shares are NETWORK", Picker.groupHeading("network"), "NETWORK")
+    check("the drives and phones are DEVICES", Picker.groupHeading("device"), "DEVICES")
+    check("a group with no heading draws none", Picker.groupHeading("nope"), "")
     check("a symlink directory remains navigable without changing link identity", Picker.directory({d:false,p:0o120777,i:"folder"}), true)
     check("a regular file with a folder-like name stays a file", Picker.directory({d:false,p:0o100644,i:"folder"}), false)
 
