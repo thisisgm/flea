@@ -959,6 +959,11 @@ binary, writes it the payload and waits up to 2 s for its `ready`. Runs off the 
 thread, the way `clipGet` does, so an owner that never answers holds up no other request.
 Answers one `clip` line with `op` of `set`; see `clip` below.
 
+In an X11 session the Artix port uses `xclip -quiet` to own the CLIPBOARD selection
+as `x-special/gnome-copied-files`. It attaches a unique `x11:<32 hex>` token
+to the selection owner's X11 window and keeps that owner alive after Flea exits.
+This path requires `xclip`, `libX11` and `libXfixes`.
+
 ### clipGet
 
 `{"c":"clipGet"}`
@@ -968,6 +973,9 @@ slow reads do, because a foreign source can take up to 2 s to close its pipe. Th
 owner's own token type is read first, then GNOME's copied-files shape, then the
 uri-list with KDE's cut marker; an empty or text-only selection answers `none`. Answers
 one `clip` line with `op` of `get`; see `clip` below.
+
+On X11, reads use `xclip` for the GNOME copied-files target, falling back to
+`text/uri-list` and the KDE cut marker. Reads are capped at 64 MiB and 3 seconds.
 
 ### clipClear
 
@@ -991,6 +999,11 @@ so a copy made after that last round trip and before the null selection lands ca
 still be wiped. Answers one `clip` line with `op` of `clear`, saying whether it
 cleared; see `clip` below.
 
+On X11, token clears first compare the current selection owner with the token.
+The `cut` form also compares the operation and path list. X11 has no atomic
+compare-and-clear request, so a replacement in the interval between the last
+owner check and the clear could still be removed.
+
 ### clipWatch
 
 `{"c":"clipWatch"}`
@@ -1003,6 +1016,10 @@ as `clip` lines with `op` of `changed`, an empty or text-only selection as `none
 two identical selections in a row emit once. No compositor or manager ends the thread
 after one `changed` `none` line carrying the error; a dropped connection reconnects at
 most once a second, at most 5 times.
+
+On X11, the watcher receives XFixes selection notifications and reads the new file
+selection; if the server lacks XFixes, it samples once a second. It never observes
+PRIMARY text highlights.
 
 Flea's private `application/x-flea-clip` payload is `copy|cut TOKEN PID`, where TOKEN
 is 32 hex characters and PID is the detached owner's process id. The older

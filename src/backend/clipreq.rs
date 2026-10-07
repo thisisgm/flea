@@ -1,13 +1,15 @@
 // Set, get and clear answer one clip line each; clipWatch answers nothing before its changed lines.
 use crate::backend::opsreq::OpMsg;
-use crate::clip::{control, own, reply, watch};
+use crate::clip::{self, control, own, reply, watch, x11};
 use std::sync::mpsc::Sender;
 
 static SETS: std::sync::OnceLock<SetQueue> = std::sync::OnceLock::new();
 
 // Validated before any spawn: a bad op or path answers rather than owning.
 pub fn request_set(replies: Sender<OpMsg>, op: String, paths: Vec<String>) {
-    SETS.get_or_init(SetQueue::new).start(replies, move || own::spawn_owner(&op, &paths));
+    SETS.get_or_init(SetQueue::new).start(replies, move || {
+        if clip::use_x11() { x11::set(&op, &paths) } else { own::spawn_owner(&op, &paths) }
+    });
 }
 
 struct SetWork {
@@ -67,7 +69,7 @@ fn mutation_failure(op: &str, error: &str) -> String {
 
 // A read can block on a foreign source, so this answers beside the loop like jump does.
 pub fn request_get(replies: Sender<OpMsg>) {
-    beside(replies, || match control::get() {
+    beside(replies, || match if clip::use_x11() { x11::get() } else { control::get() } {
         Ok(got) => reply::reply_get(true, Some(&got), ""),
         Err(e) => reply::reply_get(false, None, &e),
     });
@@ -79,6 +81,16 @@ pub fn request_clear(replies: Sender<OpMsg>, token: String, cut: Vec<String>) {
 }
 
 fn clear_line(token: &str, cut: &[String]) -> String {
+    if clip::use_x11() {
+        if token.is_empty() && cut.is_empty() {
+            return reply::reply_clear(false, false, "the token names the copy to clear");
+        }
+        let result = if !token.is_empty() { x11::clear(token) } else { x11::clear_cut(cut) };
+        return match result {
+            Ok(cleared) => reply::reply_clear(true, cleared, ""),
+            Err(e) => reply::reply_clear(false, false, &e),
+        };
+    }
     if !cut.is_empty() {
         match control::clear_cut(cut) {
             Ok(cleared) => reply::reply_clear(true, cleared, ""),
@@ -114,7 +126,7 @@ pub fn request_watch(replies: Sender<OpMsg>, watching: &mut bool) {
         return;
     }
     *watching = true;
-    watch::start(replies);
+    if clip::use_x11() { x11::watch(replies) } else { watch::start(replies) }
 }
 
 #[cfg(test)]
