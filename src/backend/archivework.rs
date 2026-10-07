@@ -160,34 +160,48 @@ fn drain_reader(reader: std::thread::JoinHandle<String>) -> bool {
 // The cancellable runner, watched for a cancel: kill and reap here, so nothing is renamed and stderr is drained.
 pub fn run_boxed_cancellable(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                              cancel: &AtomicBool) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, None)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Jail::Archive)
+}
+
+// A user compress format's own program rides into the archive jail read-only; see AGENTS.md "User compress formats".
+pub fn run_boxed_cancellable_with(what: &str, inner: Vec<String>, read_only: &Path, program: &Path, work: &mut Work,
+                                  cancel: &AtomicBool) -> Result<(), FleaError> {
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Jail::ArchiveWith(program))
 }
 
 // Convert keeps its CPU cap on the cancellable runner; archive jobs run uncapped.
 pub fn run_boxed_cancellable_capped(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                     cancel: &AtomicBool) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(sandbox::CPU_SECONDS))
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Jail::Capped(sandbox::CPU_SECONDS))
 }
 
 // Test seam: the convert runner with a lower cap, so the pin burns seconds, not 30 s.
 #[cfg(test)]
 fn run_boxed_cancellable_capped_with_cpu(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                          cancel: &AtomicBool, cpu_seconds: u32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(cpu_seconds))
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Jail::Capped(cpu_seconds))
+}
+
+// Which jail one job runs in: convert's CPU-capped one, or the uncapped archive one with or without a user program.
+enum Jail<'a> {
+    Capped(u32),
+    Archive,
+    ArchiveWith(&'a Path),
 }
 
 fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
-                               cancel: &AtomicBool, started: Option<&AtomicU32>, cpu: Option<u32>) -> Result<(), FleaError> {
+                               cancel: &AtomicBool, started: Option<&AtomicU32>, jail: Jail) -> Result<(), FleaError> {
     #[cfg(test)]
-    LAST_CPU.with(|c| c.set(Some(cpu)));
+    LAST_CPU.with(|c| c.set(Some(match jail { Jail::Capped(seconds) => Some(seconds), _ => None })));
     if !sandbox::available() {
         let tool = inner.first().map_or("", |s| s.as_str());
         return Err(op_err(what, tool, "the sandbox is unavailable: bwrap or prlimit is not on PATH"));
     }
     // The cap is the only difference between the convert jail and the archive one.
-    let mut full = match cpu {
-        Some(seconds) => sandbox::wrap_with(&inner, read_only, &work.dir, Some(seconds)),
-        None => sandbox::wrap_archive(&inner, read_only, &work.dir),
+    let mut full = match jail {
+        Jail::Capped(seconds) => sandbox::wrap_with(&inner, read_only, &work.dir, Some(seconds)),
+        Jail::Archive => sandbox::wrap_archive(&inner, read_only, &work.dir),
+        Jail::ArchiveWith(program) => crate::backend::archiveuser::wrap(&inner, read_only, &work.dir, program),
     };
     sandbox::add_status(&mut full, inner.len());
     let mut jailed = crate::backend::jail::spawn_jailed(&full, |cmd| {
@@ -247,7 +261,7 @@ fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path,
 #[cfg(test)]
 fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                   cancel: &AtomicBool, started: &AtomicU32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), None)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Jail::Archive)
 }
 
 // The convert runner with its own CPU cap and a spawn witness, so a timeout test cancels a live child.
@@ -255,7 +269,7 @@ fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Pa
 pub(crate) fn run_boxed_cancellable_capped_observed(what: &str, inner: Vec<String>, read_only: &Path,
                                                    work: &mut Work, cancel: &AtomicBool,
                                                    started: &AtomicU32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Some(sandbox::CPU_SECONDS))
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Jail::Capped(sandbox::CPU_SECONDS))
 }
 
 pub fn is_empty_dir(dir: &Path) -> bool {

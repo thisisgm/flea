@@ -1,6 +1,7 @@
 // Which archive formats this box can actually write and read, probed once at startup, and the argv
 // each tool needs. The jobs themselves are archiveops.rs and reading an index is archivelist.rs.
 use crate::backend::archivespec::{seven_spec, tar_spec, ListSpec};
+use crate::backend::archiveuser::{self, UserFormat};
 use std::path::Path;
 
 const BSDTAR: &str = "bsdtar";
@@ -9,6 +10,8 @@ const SEVENZIP: &str = "7z";
 // The formats bsdtar writes on this box, in the order the submenu offers them.
 const TAR_FORMATS: &[&str] = &["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "tar.zst"];
 const SEVENZIP_FORMAT: &str = "7z";
+// Ids a user format can never take: everything built in, and rar, which Flea reads and never writes.
+const RESERVED: &[&str] = &["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "tar.zst", "7z", "rar", "tgz"];
 
 // Either tool reads a .zip and a .rar, which is what a 7z-only box can still extract.
 const ZIP_SUFFIXES: &[&str] = &[".zip", ".rar"];
@@ -26,6 +29,8 @@ pub struct Formats {
     names: Vec<String>,
     have_bsdtar: bool,
     have_7z: bool,
+    // $XDG_CONFIG_HOME/flea/compressors, offered after the built-in formats; see archiveuser.rs.
+    user: Vec<UserFormat>,
     // Test seam: with the probe set, compress() itself runs the RLIMIT_CPU check (see K1).
     #[cfg(test)]
     probe: bool,
@@ -43,7 +48,7 @@ fn on_path(prog: &str) -> bool {
 
 impl Formats {
     pub fn probe() -> Formats {
-        Formats::from_tools(on_path(BSDTAR), on_path(SEVENZIP))
+        Formats::from_tools(on_path(BSDTAR), on_path(SEVENZIP)).with_user(archiveuser::load(RESERVED))
     }
 
     // Nothing writes rar here: WinRAR's own tool is the only thing on Linux that does, it is not free
@@ -57,7 +62,7 @@ impl Formats {
         if have_7z {
             names.push(SEVENZIP_FORMAT.to_string());
         }
-        Formats { names, have_bsdtar, have_7z,
+        Formats { names, have_bsdtar, have_7z, user: Vec::new(),
             #[cfg(test)]
             probe: false,
             #[cfg(test)]
@@ -65,16 +70,29 @@ impl Formats {
         }
     }
 
+    // The user's formats join the table after the built-in ones, so they reach the submenu like any other.
+    pub fn with_user(mut self, mut user: Vec<UserFormat>) -> Formats {
+        user.retain(|u| !RESERVED.contains(&u.id.as_str()));
+        self.names.extend(user.iter().map(|u| u.id.clone()));
+        self.user = user;
+        self
+    }
+
+    // The program a user format runs, which the jail has to bind; None for every built-in format.
+    pub fn user_program(&self, format: &str) -> Option<&Path> {
+        self.user.iter().find(|u| u.id == format).map(|u| u.program.as_path())
+    }
+
     // A Formats whose compressor is the RLIMIT_CPU probe, so the uncapped-jail pin drives compress() itself.
     #[cfg(test)]
     pub fn test_probe() -> Formats {
-        Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, probe: true, block: false }
+        Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, user: Vec::new(), probe: true, block: false }
     }
 
     // A Formats whose compressor blocks until killed, so a mid-run cancel always has a live child.
     #[cfg(test)]
     pub fn test_block() -> Formats {
-        Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, probe: false, block: true }
+        Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, user: Vec::new(), probe: false, block: true }
     }
 
     // Exactly the table, which is what the compress submenu draws; an empty one self-hides the entry.
@@ -105,6 +123,9 @@ impl Formats {
             return Some(vec!["/usr/bin/python3".to_string(), "-c".to_string(),
                 "import resource,sys; open(sys.argv[1],'wb').write(b'probe'); sys.exit(0 if resource.getrlimit(resource.RLIMIT_CPU)[0]==resource.RLIM_INFINITY else 1)".to_string(),
                 dest.to_string_lossy().to_string()]);
+        }
+        if let Some(user) = self.user.iter().find(|u| u.id == format) {
+            return Some(user.argv(dest, parent, names));
         }
         let mut a: Vec<String> = Vec::with_capacity(names.len() + 7);
         if format == SEVENZIP_FORMAT {
@@ -242,6 +263,21 @@ mod tests {
         // And rar is never offered as something to write, on any box.
         assert!(!both.offers("rar"));
         assert!(!both.names().iter().any(|n| n == "rar"));
+    }
+
+    // A user format follows the built-in ones in the submenu, builds its own argv and names its program
+    // for the jail; one claiming a built-in id never reaches the table, whatever the parser let through.
+    #[test]
+    fn a_user_format_joins_the_table_after_the_built_in_ones() {
+        let line = "zjx /opt/zjx {out} --base {dir} -- {names}\nzip /opt/fake {out} {names}";
+        let (user, _) = archiveuser::parse(line, &[], |p| Some(p.to_path_buf()));
+        let f = Formats::from_tools(true, false).with_user(user);
+        assert_eq!(f.names(), &["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "tar.zst", "zjx"]);
+        let a = f.compress_argv("zjx", Path::new("/x/s.zjx"), Path::new("/src"), &["a".to_string()]).unwrap();
+        assert_eq!(a, ["/opt/zjx", "/x/s.zjx", "--base", "/src", "--", "a"]);
+        assert_eq!(f.user_program("zjx"), Some(Path::new("/opt/zjx")));
+        assert_eq!(f.compress_argv("zip", Path::new("/x/s.zip"), Path::new("/src"), &["a".to_string()]).unwrap()[0], "bsdtar");
+        assert_eq!(f.user_program("zip"), None, "the built-in zip keeps the plain archive jail");
     }
 
     #[test]
