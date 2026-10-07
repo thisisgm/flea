@@ -2,9 +2,11 @@
 use super::control;
 use super::own;
 use super::reply;
+use super::x11;
 
 pub fn get() -> i32 {
-    match control::get() {
+    let result = if super::use_x11() { x11::get() } else { control::get() };
+    match result {
         Ok(got) => {
             println!("{}", reply::reply_get(true, Some(&got), ""));
             0
@@ -38,7 +40,8 @@ pub fn set(op: &str) -> i32 {
             }
         }
     }
-    match own::spawn_owner(op, &paths) {
+    let result = if super::use_x11() { x11::set(op, &paths) } else { own::spawn_owner(op, &paths) };
+    match result {
         Ok(token) => {
             println!("{}", token);
             0
@@ -55,7 +58,8 @@ pub fn clear(token: &str) -> i32 {
         eprintln!("flea: the token names the copy to clear");
         return 2;
     }
-    match control::clear(token) {
+    let result = if super::use_x11() { x11::clear(token) } else { control::clear(token) };
+    match result {
         Ok(cleared) => {
             println!("{}", reply::reply_clear(true, cleared, ""));
             0
