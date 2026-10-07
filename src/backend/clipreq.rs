@@ -82,6 +82,9 @@ pub fn request_clear(replies: Sender<OpMsg>, token: String, cut: Vec<String>) {
 
 fn clear_line(token: &str, cut: &[String]) -> String {
     if clip::use_x11() {
+        if token.is_empty() && cut.is_empty() {
+            return reply::reply_clear(false, false, "the token names the copy to clear");
+        }
         let result = if !token.is_empty() { x11::clear(token) } else { x11::clear_cut(cut) };
         return match result {
             Ok(cleared) => reply::reply_clear(true, cleared, ""),
