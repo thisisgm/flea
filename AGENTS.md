@@ -4830,6 +4830,60 @@ it forks sets the same two limits itself through an `extern "C"` `setrlimit` fro
 that `std` already links, so no crate is taken and the zero-dependency rule above holds.
 "Thumbnail worker" has what stands in for the binds.
 
+## User compress formats
+
+The compress submenu is the table `src/backend/archive.rs` probed, and the operator can add rows to
+it without a Flea release: one line per format in `$XDG_CONFIG_HOME/flea/compressors`, read once by
+`Formats::probe` when the backend starts, so an edit lands at the next launch. No file is the
+ordinary case and says nothing. `src/backend/archiveuser.rs` owns the format, the parser and the jail
+bind; Flea has no dependencies, so the format is lines and whitespace rather than TOML or JSON:
+
+```
+# id   program                    arguments
+zjx    /home/me/.local/bin/zjx    pack --output {out} --base {dir} -- {names}
+tar.lz4 /usr/bin/bsdtar --lz4 -c -f {out} -C {dir} -- {names}
+```
+
+**The id is the extension.** `.zjx` is the submenu label, `Compress to .zjx` the sheet's, and
+`<stem>.zjx` the destination `ui/js/Ops.js` already builds for every format, so the client changed
+nothing. An id is lowercase ASCII letters and digits in dot-separated parts, at most 16 bytes, and
+never one of the built-in ids or `rar`: a built-in format is never replaced, and `Formats::with_user`
+drops a reserved id again even if a caller skipped the parser. The first line of an id wins, and the
+first 16 formats are read.
+
+**Nothing passes through a shell.** The words after the program become argv exactly. `{out}` (the
+staged archive, named once) and `{dir}` (the selection's parent) are replaced wherever they appear
+inside a word; `{names}` (the selected names, relative to `{dir}`) or `{paths}` (the same names made
+absolute) must be a whole word, named once, and becomes one argument per item. A name that begins with
+a dash reaches the tool as an argument like any other, so a template that uses `{names}` should end
+option parsing first, as the example does; `{paths}` never begins with a dash. Words cannot contain
+spaces; a tool that needs one is given a wrapper script.
+
+**The tool runs in the archive jail, plus its own executable.** The program must be an absolute path
+to a regular file with an execute bit, canonicalized at load, so a `~/.local/bin` symlink binds its
+target. `archiveops::compress` runs it through `run_boxed_cancellable_with`, which is
+`sandbox::wrap_archive` with one more `--ro-bind` of that file: the same `/usr` and `/etc`, the
+selection's parent read-only, the staging directory writable, the 2 GiB address-space cap and no CPU
+cap. Nothing else of the home becomes visible, including the directory the program sits in, and the
+environment is cleared like any archive job. A tool that needs a library, interpreter or data outside
+`/usr` and `/etc` fails here and says so through the ordinary archive failure line; that is the
+boundary rather than a defect to widen per tool. The staged archive is renamed into place with the same
+no-replace rename as the built-in formats, and a tool that exits 0 having written nothing is refused.
+
+**A refused line is said, once.** `archiveuser::load` prints `flea: <file>: line N: <reason>` on stderr
+for every line it refuses, and loads the rest, because a format that silently never appears in the
+submenu is a defect the operator cannot see. Compress only: extract, list and Quick Look of a user
+format are not offered, since each would need its own argv contract and its own verification.
+
+**How it is proved.** `archiveuser.rs`'s tests drive the parser's every refusal, the placeholder
+expansion, the cap and the executable check through a real symlink. `archive.rs`'s
+`a_user_format_joins_the_table_after_the_built_in_ones` pins the table order and that a reserved id
+keeps the built-in tool. `archiveops_tests.rs`'s
+`a_user_format_runs_its_own_program_in_the_jail_and_sees_nothing_else_of_its_directory` compresses
+through the real jail with a script outside `/usr`, a name with a space and one with a leading dash,
+and asserts that a file beside the script is not visible inside it. Measured with a real tool:
+`zjx pack` run inside this exact jail wrote an archive byte-identical to the same command outside it.
+
 ## Thumbnail worker
 
 **42 of the 97 ms a video thumbnail cost was `ffmpegthumbnailer` linking itself**, about a hundred

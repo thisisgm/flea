@@ -4,6 +4,7 @@ pub mod archive;
 pub mod archivelist;
 pub mod archiveops;
 pub mod archivespec;
+pub mod archiveuser;
 pub mod archivereq;
 pub mod archivework;
 pub mod mime;

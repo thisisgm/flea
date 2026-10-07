@@ -262,3 +262,28 @@ fn a_compress_derives_its_parent_and_names_from_absolute_paths() {
     assert!(split_paths(&["/home/gm/a.txt".to_string(), "/etc/hosts".to_string()]).is_none());
     assert!(split_paths(&[]).is_none());
 }
+
+// A user format's program lives outside /usr, so the jail binds that one file and nothing beside it:
+// the tool runs, receives every selected name as its own argument, and cannot see its own directory.
+#[test]
+fn a_user_format_runs_its_own_program_in_the_jail_and_sees_nothing_else_of_its_directory() {
+    if crate::backend::sandboxprobe::skipped() { return; }
+    let d = TestDir::new("archuser");
+    d.dir("src");
+    d.file("src/a b.txt", "a");
+    d.file("src/-dash", "b");
+    d.dir("bin");
+    d.file("bin/secret", "not for the jail");
+    let tool = d.script("bin/tool", "#!/bin/sh\nout=$1; dir=$2; shift 3\n\
+        if [ -e \"$(dirname \"$0\")/secret\" ]; then seen=seen; else seen=hidden; fi\n\
+        { echo \"$seen\"; for n in \"$@\"; do [ -f \"$dir/$n\" ] && echo \"$n\"; done; } > \"$out\"\n");
+    let line = format!("mine {} {{out}} {{dir}} -- {{names}}", tool.display());
+    let (user, refused) = crate::backend::archiveuser::parse(&line, &[], |p| Some(p.to_path_buf()));
+    assert!(refused.is_empty(), "{:?}", refused);
+    let formats = Formats::from_tools(true, false).with_user(user);
+    assert!(formats.offers("mine"));
+    let dest = d.join("src.mine");
+    let names = ["a b.txt".to_string(), "-dash".to_string()];
+    compress(&formats, &d.join("src"), &names, "mine", &dest, &AtomicBool::new(false)).expect("the user tool compresses");
+    assert_eq!(std::fs::read_to_string(&dest).unwrap(), "hidden\na b.txt\n-dash\n");
+}

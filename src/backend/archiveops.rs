@@ -4,7 +4,8 @@
 // archivelist.rs's.
 use crate::backend::archive::Formats;
 use crate::backend::archivework::{archive_produced_count_cancellable, is_empty_dir,
-                                   run_boxed_cancellable, run_boxed_cancellable_capped, Work};
+                                   run_boxed_cancellable, run_boxed_cancellable_capped,
+                                   run_boxed_cancellable_with, Work};
 use crate::backend::convert;
 use crate::backend::ops::rename_noreplace;
 use crate::backend::opsreq::op_err;
@@ -28,7 +29,10 @@ pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str
         Some(a) => a,
         None => return Err(op_err("archive", format, "this box offers no tool for that format")),
     };
-    run_boxed_cancellable("archive", inner, parent, &mut work, cancel)?;
+    match formats.user_program(format) {
+        Some(program) => run_boxed_cancellable_with("archive", inner, parent, program, &mut work, cancel)?,
+        None => run_boxed_cancellable("archive", inner, parent, &mut work, cancel)?,
+    }
     if staged.symlink_metadata().is_err() {
         return Err(op_err("archive", format, "the archive tool wrote nothing"));
     }
