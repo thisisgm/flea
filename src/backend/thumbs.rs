@@ -123,6 +123,12 @@ impl Pool {
         q.drain(..).collect()
     }
 
+    // Test-only: a queue no worker drains, so a request-policy test reads back exactly what it queued; nothing ever reports a job it holds, so a drain over it waits out its limit.
+    #[cfg(test)]
+    pub(crate) fn idle() -> Pool {
+        Pool { inner: Arc::new((Mutex::new(VecDeque::new()), Condvar::new())) }
+    }
+
     #[cfg(test)]
     fn pending(&self) -> usize {
         let (lock, _cv) = &*self.inner;
@@ -276,8 +282,8 @@ mod tests {
         fn new(tag: &str, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Self {
             let sandbox = TestDir::new(tag);
             sandbox.assert_contains(sandbox.path());
-            let inner = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
-            let pool = Pool { inner: Arc::clone(&inner) };
+            let pool = Pool::idle();
+            let inner = Arc::clone(&pool.inner);
             let tables = Arc::new(Tables { aliases, specs, cache: Cache::at(sandbox.path().to_path_buf()), worker: None });
             let (sender, receiver) = channel();
             let worker = std::thread::spawn(move || worker(inner, sender, tables));

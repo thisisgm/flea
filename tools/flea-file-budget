@@ -34,10 +34,10 @@ src/backend/opsreq/tests.rs 484
 src/backend/permissions.rs 719
 src/backend/run.rs 719
 src/backend/ops.rs 427
-src/backend/thumbs.rs 460
+src/backend/thumbs.rs 466
 src/backend/dirsizeworker.rs 574
 src/backend/watch.rs 533
-src/backend/thumbreq.rs 418
+src/backend/thumbreq.rs 417
 src/backend/undo.rs 606
 src/backend/undo_tests.rs 423
 src/backend/undoshare.rs 403

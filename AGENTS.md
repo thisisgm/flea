@@ -3516,6 +3516,8 @@ cliphunt 2026-10-05 moves one ceiling, re-derived with `wc -l`: `src/backend/men
 
 mdfid2 records one ceiling, re-derived with `wc -l`: `ui/js/MdDocument.js` 299 to 311 for the HTML heading route (the one heading check with its flush, block and align lines).
 
+The thumbreq race fix moves two ceilings, each re-derived with `wc -l`: `src/backend/thumbs.rs` 460 to 466 for the test-only `Pool::idle`, a queue no worker drains, and `src/backend/thumbreq.rs` 418 to 417 because its harness builds that pool instead of a one-worker one. `a_symlink_row_keys_the_cache_on_its_target_mtime` read the queue back through `cancel_all`, and the harness's worker popped the job first in 2 of 5 runs.
+
 ## The key table is generated
 
 `keys.toml` at the repository root is the single source of truth for every binding.
@@ -5124,7 +5126,7 @@ is the reason the product beats the field, and a sweep here would forfeit it.
 one `Mutex<VecDeque<Job>>` under a `Condvar` and report every finished job down one `Sender<Done>`.
 The worker count is the caller's, not a constant here: it is a scheduling policy that belongs
 with the request policy in `run.rs`, and the only thing this module insists on is that zero
-workers is not a pool. The MIME alias table, the thumbnailer specs and the `Cache` live in one
+workers is not a pool, outside the test-only `Pool::idle` that request-policy tests read back. The MIME alias table, the thumbnailer specs and the `Cache` live in one
 `Arc<Tables>` shared by every worker, so the caller's one parse and the one cache root reach four
 threads as a single handle rather than as four copies. **No worker reads either file on any path
 now**: both arrive as `Arc`s from the caller, `Cache::at` only stores the root, and even
