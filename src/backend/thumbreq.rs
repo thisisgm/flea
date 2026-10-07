@@ -208,7 +208,7 @@ mod tests {
     use std::sync::mpsc::channel;
     use std::sync::Arc;
 
-    // One jpeg declaration over /usr/bin/false, which reads and writes nothing; the full path only queues under it here and a popped job just exits non-zero.
+    // One jpeg declaration, so for_mime answers; the harness's pool has no worker, so the program it names never runs.
     fn tables() -> Tables {
         let aliases = Arc::new(Aliases::load());
         let thumbs = Arc::new(Thumbnailers::from_entries(
@@ -239,11 +239,10 @@ mod tests {
         }
     }
 
-    fn harness(dir: &TestDir, tb: &Tables) -> (State, Pool, Cache) {
+    fn harness(dir: &TestDir) -> (State, Pool, Cache) {
         let (events, _) = channel();
-        let (results, _) = channel();
         let st = State::new(crate::backend::dirsizeworker::Worker::new(events));
-        let pool = Pool::new(1, results, dir.join("poolcache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+        let pool = Pool::idle();
         let cache = Cache::at(dir.join("cache"));
         (st, pool, cache)
     }
@@ -253,7 +252,7 @@ mod tests {
         let d = TestDir::new("thumbcacheonly");
         d.file("photo.jpg", "not a picture, so no decoder could read it either");
         let tb = tables();
-        let (mut st, pool, cache) = harness(&d, &tb);
+        let (mut st, pool, cache) = harness(&d);
         listed(&d, &mut st);
         let mut out = Vec::new();
         thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, true);
@@ -261,7 +260,7 @@ mod tests {
         assert!(line.contains(r#""file":"""#), "a miss with no cache entry answers none: {}", line);
         assert_eq!(st.outstanding, 0, "no job may be in flight for a row that was answered");
         assert!(st.asked.is_empty(), "and no mapping may hold it for a later report");
-        pool.cancel_all();
+        assert!(pool.cancel_all().is_empty(), "nothing reaches the pool for a cache-only miss");
     }
 
     #[test]
@@ -270,7 +269,7 @@ mod tests {
         let path = d.file("photo.jpg", "bytes the open is then refused for");
         let mtime = std::fs::metadata(&path).unwrap().mtime();
         let tb = tables();
-        let (mut st, pool, cache) = harness(&d, &tb);
+        let (mut st, pool, cache) = harness(&d);
         let uri = thumbcache::uri_for(&path);
         let large = cache.large_path(&uri);
         std::fs::create_dir_all(large.parent().unwrap()).unwrap();
@@ -285,7 +284,7 @@ mod tests {
         assert!(line.contains(&large.to_string_lossy().into_owned()),
             "the cached entry is served although the source no longer opens: {}", line);
         assert_eq!(st.outstanding, 0, "a served row queues nothing either");
-        pool.cancel_all();
+        assert!(pool.cancel_all().is_empty(), "nothing reaches the pool for a served row");
     }
 
     #[test]
@@ -293,7 +292,7 @@ mod tests {
         let d = TestDir::new("thumbcachedqueue");
         d.file("photo.jpg", "not a picture, and nothing here decodes it");
         let tb = tables();
-        let (mut st, pool, cache) = harness(&d, &tb);
+        let (mut st, pool, cache) = harness(&d);
         listed(&d, &mut st);
         std::fs::remove_file(d.join("photo.jpg")).unwrap();
         let mut out = Vec::new();
@@ -301,7 +300,7 @@ mod tests {
         assert!(out.is_empty(), "a genuine miss is queued from cached figures, not answered: {}",
             String::from_utf8_lossy(&out));
         assert_eq!(st.outstanding, 1, "the job is in flight from the window's figures alone");
-        pool.cancel_all();
+        assert_eq!(pool.cancel_all().iter().map(|j| j.path.clone()).collect::<Vec<_>>(), vec![d.join("photo.jpg")], "the queued job is the windowed row's own file");
     }
 
     #[test]
@@ -314,7 +313,7 @@ mod tests {
         assert_eq!(unsafe { mkfifo(c.as_ptr(), 0o644) }, 0, "fixture fifo must exist");
         std::os::unix::fs::symlink(&fifo, d.join("link.jpg")).unwrap();
         let tb = tables();
-        let (mut st, pool, cache) = harness(&d, &tb);
+        let (mut st, pool, cache) = harness(&d);
         st.base = d.path().to_path_buf();
         let mut l = Listing::new();
         l.push("link.jpg", false);
@@ -329,7 +328,7 @@ mod tests {
         assert!(line.contains(r#""file":"""#), "a symlink to a fifo answers none: {}", line);
         assert_eq!(st.outstanding, 0, "no job may queue for a fifo target");
         assert!(st.asked.is_empty(), "and no mapping may hold it");
-        pool.cancel_all();
+        assert!(pool.cancel_all().is_empty(), "nothing reaches the pool for a fifo target");
     }
 
     #[test]
@@ -343,7 +342,7 @@ mod tests {
         let target_mtime = std::fs::metadata(&target).unwrap().mtime();
         let link_mtime = std::fs::symlink_metadata(d.join("link.jpg")).unwrap().mtime();
         let tb = tables();
-        let (mut st, pool, cache) = harness(&d, &tb);
+        let (mut st, pool, cache) = harness(&d);
         st.base = d.path().to_path_buf();
         let mut l = Listing::new();
         l.push("link.jpg", false);
@@ -379,7 +378,7 @@ mod tests {
         let link_mtime = std::fs::symlink_metadata(&link).unwrap().mtime();
         assert_ne!(target_mtime, link_mtime, "the mtimes must differ to tell the two keys apart");
         let tb = tables();
-        let (mut st, pool, cache) = harness(&d, &tb);
+        let (mut st, pool, cache) = harness(&d);
         let uri = thumbcache::uri_for(&link);
         let large = cache.large_path(&uri);
         std::fs::create_dir_all(large.parent().unwrap()).unwrap();
@@ -397,7 +396,7 @@ mod tests {
         assert!(line.contains(&large.to_string_lossy().into_owned()),
             "a cached symlink answers its entry under cacheOnly: {}", line);
         assert_eq!(st.outstanding, 0, "a served row queues nothing");
-        pool.cancel_all();
+        assert!(pool.cancel_all().is_empty(), "nothing reaches the pool for a served symlink");
     }
 
     #[test]
@@ -405,7 +404,7 @@ mod tests {
         let d = TestDir::new("thumbfull");
         d.file("photo.jpg", "not a picture, and nothing here decodes it");
         let tb = tables();
-        let (mut st, pool, cache) = harness(&d, &tb);
+        let (mut st, pool, cache) = harness(&d);
         listed(&d, &mut st);
         let mut out = Vec::new();
         thumb_rows(&mut out, &[0], &mut st, &tb, &pool, &cache, false);
@@ -413,6 +412,6 @@ mod tests {
             String::from_utf8_lossy(&out));
         assert_eq!(st.outstanding, 1, "the job is in flight as it always was");
         assert_eq!(st.asked.len(), 1, "and the mapping holds it for the report");
-        pool.cancel_all();
+        assert_eq!(pool.cancel_all().iter().map(|j| j.path.clone()).collect::<Vec<_>>(), vec![d.join("photo.jpg")], "the queued job is the row's own file");
     }
 }
