@@ -345,7 +345,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.color.surface
+        color: Glass.surfacePlane
     }
 
     Rectangle {
@@ -422,7 +422,7 @@ Item {
 
                 Rectangle {
                     anchors.fill: parent
-                    color: tab.current ? Theme.color.background : "transparent"
+                    color: tab.current ? Glass.backgroundPlane : "transparent"
                 }
 
                 // Flush on the strip's own bottom edge, replacing it rather than sitting inside the

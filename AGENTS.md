@@ -6465,8 +6465,20 @@ keys because Omarchy themes contain more roles than Flea uses. `color.surface` w
 ladder `ThemeRoles.html` specifies, `dark_background` then `background`, because background
 is the neutral fallback when the chrome plane is absent. Alacritty-derived palettes contain
 neither of those two, so the measured surface fallback for them is `selection`, the third rung.
-Shell parsing consumes only `[font]` and `[spacing]` because Flea has no bar, popups,
-tooltip or lock screen.
+Shell parsing consumes `[font]`, `[spacing]` and `[flea] background-alpha` (default 1).
+`Glass.qml` waits for Color's existing theme and user shell readers before the window is created,
+using their parsing and user precedence. Its `clearWindow` uses the rounded color alpha,
+matching `boot/shell.qml`'s body-color check, so a value rounding to 1 keeps both opaque.
+Quickshell fixes the surface format at creation: an opaque launch keeps `planeAlpha` at 1
+until reopened, while a glass launch follows alpha changes live. The default keeps the opaque
+surface so the compositor can skip content behind it; see "The first window".
+
+`Glass.backgroundPlane` and `surfacePlane` tint the body, rail, tabs, chrome, status, filter,
+search and path strips. Alpha is per plane: at 0.34, stacked chrome is about 0.56 and the
+current tab 0.71. Text, icons, selection and overlays keep their opaque roles. Menus, dialogs,
+Quick Look's panel, Trash, the share browser and editors must hide the listing under them.
+The columns preview's held picture uses a clear ground on glass to avoid stacking another
+background during navigation.
 
 ### Plain text filenames
 

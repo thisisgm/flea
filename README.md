@@ -135,6 +135,15 @@ If you previously pinned another directory handler, restore that handler explici
   <img src="docs/images/iphone.png" width="49%" alt="An iPhone camera roll browsed over AFC, with HEIC thumbnails and a preview">
 </p>
 
+**Background opacity:** add this to a theme's `shell.toml`, or to `~/.config/omarchy/shell.toml` for every theme:
+
+```toml
+[flea]
+background-alpha = 0.34
+```
+
+Values run from 0 to 1 (default 1). Text, menus, dialogs and Quick Look's panel stay opaque. Background layers stack, making the bars more opaque than the list. Reopen Flea to enable transparency after an opaque launch.
+
 ## Performance
 
 Measured on **23 September 2026**, using the **0.3.3** source tree.

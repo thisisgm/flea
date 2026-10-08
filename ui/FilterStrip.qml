@@ -27,7 +27,7 @@ Item {
     // raised chrome, because a filter is about the listing under it and a search is not about here.
     Rectangle {
         anchors.fill: parent
-        color: Theme.color.background
+        color: Glass.backgroundPlane
     }
 
     Rectangle {

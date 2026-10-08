@@ -51,6 +51,9 @@ ShellRoot {
             if (bodyLoader.status !== Loader.Null)
                 return
             bodyLoader.setSource(fleaWindow.fileUrl(Quickshell.shellDir + "/../WindowBody.qml"), { host: fleaWindow })
+            // Still before the window exists, the only time Quickshell takes a clear surface: see ui/Glass.qml.
+            if (bodyLoader.item && bodyLoader.item.color.a < 1)
+                fleaWindow.color = "transparent"
         }
 
         // Quickshell 0.3.1 has no exit API, and it is signalled from here because a window closed
