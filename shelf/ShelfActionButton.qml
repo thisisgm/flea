@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 
 // Ui/PanelActionButton's shape with Flea's own mark as its ink: the OEM button draws a nerd glyph
@@ -9,7 +10,7 @@ BorderSurface {
 
   property string path: ""
   property string tooltipText: ""
-  property color foreground: Color.popups.text
+  property color foreground: Commons.Color.popups.text
   property bool hasCursor: false
   property real iconSize: Style.font.icon
   property real size: Math.max(Style.space(22), iconSize + Style.spacing.sm * 2)

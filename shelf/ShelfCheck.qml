@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // The shared control, Containers rule 14 and the Keys board: a 14 unit interior inside two 2px
 // borders, filled in the foreground with the tick cut out of it, so no palette has to tell accent
@@ -8,9 +9,9 @@ Item {
   id: root
 
   property bool on: false
-  property color foreground: Color.popups.text
+  property color foreground: Commons.Color.popups.text
   property color muted: Qt.darker(foreground, 1.55)
-  property color ground: Color.popups.background
+  property color ground: Commons.Color.popups.background
 
   readonly property int borderWidth: 2
   // 18 outer at bodySmall 13, derived so it lands on the same number at any text size.

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell
 import Quickshell.Wayland
 import qs.Commons
+import qs.Commons as Commons
 import "Model.js" as Model
 
 // EdgeRail: a live drop region at the screen's edge and no pixels at rest. Rule 4: the drop is
@@ -13,8 +14,8 @@ PanelWindow {
   property string edge: "right"
   property int dwellMs: 120
   property int held: 0
-  property color accent: Color.accent
-  property color foreground: Color.popups.text
+  property color accent: Commons.Color.accent
+  property color foreground: Commons.Color.popups.text
 
   signal dropped(var paths)
   signal dwelled()
