@@ -149,6 +149,15 @@ Item {
     function tableScroller() { return tableRoute.scrollers.filter(function (s) { return s })[0] || null }
     // The offset the wheel moved, in whichever view shows, for Quick Look's IPC.
     readonly property real scrollY: root.shownView === Markdown.SOURCE ? sourceList.contentY : body.contentY
+    function scrollBy(pixelDelta) {
+        var view = root.shownView === Markdown.SOURCE ? sourceList : body
+        var low = view.originY - view.topMargin
+        var high = Math.max(low, view.originY + view.contentHeight - view.height + view.bottomMargin)
+        view.cancelFlick()
+        view.contentY = Math.max(low, Math.min(high, view.contentY + pixelDelta))
+        if (view === body) { root.releaseHeldPlace(); root.noteEnd() }
+    }
+
     // The render suite reads live delegate geometry; only visible blocks plus the cache exist, so offscreen blocks answer null.
     function blockItem(i) {
         var kids = body.contentItem.children

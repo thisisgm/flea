@@ -187,6 +187,11 @@ Item {
         root.load(newPath, newIcon, newSize, newKind, newThumb, root.pane ? root.pane.cursorIndex : -1)
     }
 
+    function scrollDocument(direction, isPage) {
+        var document = root.isMarkdown ? markdownLoader.item : root.kind === "text" ? textPane : null
+        if (document) document.scrollBy(direction * (isPage ? (root.isMarkdown ? document.viewportHeight : document.height) / 2 : Theme.font.body))
+    }
+
     // GM 2026-10-03: a Markdown Quick Look opens rendered, and r flips only the open one (no stored choice).
     function toggleMarkdownView() {
         if (root.isMarkdown) root.markdownSource = !root.markdownSource

@@ -74,6 +74,13 @@ function run(check) {
             key(preset, "X", "", ctrl, "", context)
             key(preset, "N", "", ctrl, "", context)
         }
+        for (var chord of [["D", ctrl, "pageDown"], ["U", ctrl, "pageUp"],
+                           ["PageDown", none, "pageDown"], ["PageUp", none, "pageUp"]])
+            key(preset, chord[0], "", chord[1], chord[2], "preview")
+        key(preset, "J", "j", none, "cursorDown", "preview")
+        key(preset, "K", "k", none, "cursorUp", "preview")
+        key(preset, "Down", "", none, "cursorDown", "preview")
+        key(preset, "Up", "", none, "cursorUp", "preview")
         key(preset, "Right", "", none, "menuRight", "menu")
         key(preset, "Left", "", none, "parent", "menu")
         key(preset, "J", "j", none, "cursorDown", "menu")

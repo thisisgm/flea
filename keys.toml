@@ -1904,6 +1904,48 @@ label = "pageForward"
 frontend = "all"
 context = "preview,pdf,media"
 
+
+# Scroll documents in Quick Look while the cursor keys continue to follow files.
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "D"
+keys = "ctrl-d"
+action = "pageDown"
+label = "scroll down"
+frontend = "gui"
+context = "preview"
+
+[[preset]]
+name = "all"
+mods = "ctrl"
+key = "U"
+keys = "ctrl-u"
+action = "pageUp"
+label = "scroll up"
+frontend = "gui"
+context = "preview"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "PageDown"
+keys = "pagedown"
+action = "pageDown"
+label = "scroll down"
+frontend = "gui"
+context = "preview"
+
+[[preset]]
+name = "all"
+mods = "none"
+key = "PageUp"
+keys = "pageup"
+action = "pageUp"
+label = "scroll up"
+frontend = "gui"
+context = "preview"
+
 # GM 2026-10-03: r flips the open Markdown Quick Look to source and back, and the listing's r stays rename (preview context only).
 [[preset]]
 name = "all"
