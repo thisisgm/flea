@@ -19,7 +19,7 @@ import "js/Tabs.js" as Tabs
 Rectangle {
     id: view
     anchors.fill: parent
-    color: Theme.color.background
+    color: Glass.backgroundPlane
     // The window this body was loaded into. Named host, not fleaWindow: a root property of
     // that name would bind to itself through Ipc and read null.
     property var host

@@ -451,7 +451,7 @@ Item {
             burstEnds: true
             ready: root.thirdReady
             folderHold: root.folderWaiting
-            ground: Theme.color.background
+            ground: Glass.planeAlpha < 1 ? "transparent" : Theme.color.background
 
             Flea.ColumnPane {
                 id: childColumn

@@ -177,7 +177,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.color.surface
+        color: Glass.surfacePlane
     }
 
     // A test drives these by coordinate, because a glyph button carries no text to find on screen.

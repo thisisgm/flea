@@ -264,7 +264,7 @@ Item {
         id: background
         width: parent.width
         height: Theme.chromeHeight
-        color: Theme.color.surface
+        color: Glass.surfacePlane
         border.width: 0
     }
 

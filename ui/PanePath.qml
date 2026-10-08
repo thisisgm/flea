@@ -17,7 +17,7 @@ Rectangle {
     signal chosen(string path)
     signal editRequested()
 
-    color: root.focused ? Theme.color.surface : Theme.color.background
+    color: root.focused ? Glass.surfacePlane : Glass.backgroundPlane
 
     // Where no crumb is, the strip keeps the one gesture it had before issue 45: a double click types the path.
     component TypeArea: Item {

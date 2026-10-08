@@ -1,5 +1,6 @@
 module flea
 singleton Theme 1.0 Theme.qml
+singleton Glass 1.0 Glass.qml
 singleton MediaSound 1.0 MediaSound.qml
 singleton Scripts 1.0 Scripts.qml
 singleton ViewState 1.0 ViewState.qml

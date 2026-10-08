@@ -1,5 +1,12 @@
 # Exact qmllint unqualified diagnostics, including repeated reads on one source line.
 # profile quickshell-missing
+ui/Glass.qml	14	Color	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	15	Util	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	16	Util	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	20	Color	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	21	Color	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	22	Color	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	22	Util	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
 ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	58	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	59	view	Declared QML id; component context access is valid at runtime.
@@ -1220,8 +1227,8 @@ ui/boot/fleatab.qml	34	Quickshell	Quickshell import exports this runtime singlet
 ui/boot/fleatab.qml	35	Quickshell	Quickshell import exports this runtime singleton or enum.
 ui/boot/fleatab.qml	36	Quickshell	Quickshell import exports this runtime singleton or enum.
 ui/boot/picker.qml	20	Quickshell	Quickshell import exports this runtime singleton or enum.
-ui/boot/shell.qml	58	Quickshell	Quickshell import exports this runtime singleton or enum.
-ui/boot/shell.qml	70	Quickshell	Quickshell import exports this runtime singleton or enum.
+ui/boot/shell.qml	61	Quickshell	Quickshell import exports this runtime singleton or enum.
+ui/boot/shell.qml	73	Quickshell	Quickshell import exports this runtime singleton or enum.
 ui/boot/tabtearoff.qml	16	Quickshell	Quickshell import exports this runtime singleton or enum.
 ui/boot/tabtearoff.qml	21	anchors	Inherited QtQuick Item property in the enclosing item scope.
 ui/boot/tabtearoff.qml	27	WlrLayershell	Quickshell import exports this runtime singleton or enum.
@@ -1234,6 +1241,13 @@ ui/PermissionsHeadings.qml	23	root	Declared QML id; component context access is 
 ui/PermissionsHeadings.qml	23	root	Declared QML id; component context access is valid at runtime.
 ui/PermissionsHeadings.qml	25	root	Declared QML id; component context access is valid at runtime.
 # profile quickshell-present
+ui/Glass.qml	14	Color	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	15	Util	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	16	Util	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	20	Color	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	21	Color	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	22	Color	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
+ui/Glass.qml	22	Util	qs.Commons exports this singleton; qmllint cannot resolve the shell module.
 ui/MarkdownBlockView.qml	57	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	58	view	Declared QML id; component context access is valid at runtime.
 ui/MarkdownBlockView.qml	59	view	Declared QML id; component context access is valid at runtime.

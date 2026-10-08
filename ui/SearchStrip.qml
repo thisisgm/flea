@@ -22,7 +22,7 @@ Item {
 
     Rectangle {
         anchors.fill: parent
-        color: Theme.color.surface
+        color: Glass.surfacePlane
     }
 
     Rectangle {
