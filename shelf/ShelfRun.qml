@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "Run.js" as Run
 
@@ -9,9 +10,9 @@ Item {
   id: root
 
   property var run: Run.idle()
-  property color foreground: Color.popups.text
+  property color foreground: Commons.Color.popups.text
   property color muted: Qt.darker(foreground, 1.55)
-  property color accent: Color.accent
+  property color accent: Commons.Color.accent
   property string fontFamily: Style.font.family
   property real pad: Style.spacing.rowPaddingX
 

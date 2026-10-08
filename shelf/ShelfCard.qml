@@ -2,6 +2,7 @@ import QtQuick
 import QtQuick.Controls
 import QtQuick.Layouts
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "Model.js" as Model
 import "Run.js" as Run
@@ -18,10 +19,10 @@ Item {
   property var kinds: ({ screenshots: true, recordings: true })
   // Rule 8: a tooltip carries the key only when Flea's own key hints setting is on.
   property bool keyHints: false
-  property color foreground: Color.popups.text
+  property color foreground: Commons.Color.popups.text
   property color muted: Qt.darker(foreground, 1.4)
-  property color accent: Color.accent
-  property color urgent: Color.urgent
+  property color accent: Commons.Color.accent
+  property color urgent: Commons.Color.urgent
   property string fontFamily: Style.font.family
   // Rule 9: one transient line, one voice: the last result or the one error, never both.
   property string result: ""

@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 
 // One flyout, two verbs and the send: Flea's own places and Taildrop's own peers, numbered so a
 // keyboard reaches any of them in one press. Actions: recent destinations first, because the same
@@ -11,7 +12,7 @@ Item {
   property var rows: []
   // The destination flyout offers the chooser as its last row; the peer flyout has no such thing.
   property bool browsable: false
-  property color foreground: Color.popups.text
+  property color foreground: Commons.Color.popups.text
   property color muted: Qt.darker(foreground, 1.55)
   property string fontFamily: Style.font.family
   property real pad: Style.spacing.rowPaddingX

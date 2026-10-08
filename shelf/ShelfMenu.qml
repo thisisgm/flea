@@ -1,5 +1,6 @@
 import QtQuick
 import qs.Commons
+import qs.Commons as Commons
 import qs.Ui
 import "Model.js" as Model
 
@@ -10,7 +11,7 @@ Item {
   id: root
 
   property var piles: []
-  property color foreground: Color.popups.text
+  property color foreground: Commons.Color.popups.text
   property color muted: Qt.darker(foreground, 1.55)
   property string fontFamily: Style.font.family
   property real pad: Style.spacing.rowPaddingX
