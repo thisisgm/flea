@@ -21,6 +21,8 @@ Item {
     readonly property var bodyItem: doc.bodyItem
     readonly property var tableWheel: doc.tableWheel
     function tableScroller() { return doc.tableScroller() }
+    readonly property real viewportHeight: doc.height
+    function scrollBy(pixelDelta) { doc.scrollBy(pixelDelta) }
     readonly property real scrollY: doc.scrollY
     function endGap() { return doc.endGap() }
     function closeState() { var c = barClose.mapToItem(null, barClose.width / 2, barClose.height / 2); return { hovered: barClose.hovered, pressed: barClose.pressed, focused: barClose.keyboardFocused, centre: Math.round(c.x) + " " + Math.round(c.y) } }

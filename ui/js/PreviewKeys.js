@@ -53,6 +53,8 @@ function act(action, root) {
     switch (action) {
     case "cursorDown": Filter.moveCursor(root, 1); Marks.follow(root); follow(root); return
     case "cursorUp": Filter.moveCursor(root, -1); Marks.follow(root); follow(root); return
+    case "pageDown": root.preview.scrollDocument(1, true); return
+    case "pageUp": root.preview.scrollDocument(-1, true); return
     case "preview": root.preview.close(); return
     // Space closes every kind now, so playback has its own key; it self-guards, because p reaches
     // this only in the media context and a still image has nothing to play.

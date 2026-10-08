@@ -138,6 +138,22 @@ elif [ -n "$shot" ]; then
 fi
 printf '%s\n' "$output" | grep -oE 'MARKDOWN_RENDER (CHECK|body=|PASS).*'
 
+# Keyboard scrolling reaches both Markdown views and the plain text pane through Quick Look.
+cp tests/preview-scroll.qml "$test_root/config/shell.qml" || exit 1
+for note in $(seq 1 16); do printf '## Section %s\n\n' "$note"; for word in $(seq 1 $((note % 9 + 15))); do printf 'A long wrapping paragraph with variable height. '; done; printf '\n\n'; done > "$test_root/scroll.md"
+cp "$test_root/scroll.md" "$test_root/scroll.txt" || exit 1
+scroll_output=$( ( env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
+    HOME="$test_root/home" XDG_STATE_HOME="$test_root/state" XDG_CACHE_HOME="$test_root/cache" \
+    XDG_RUNTIME_DIR="$test_root/runtime" FLEA_SCROLL_DOC="$test_root/scroll.md" FLEA_SCROLL_TEXT="$test_root/scroll.txt" \
+    QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_QUICK_BACKEND=software QT_FORCE_STDERR_LOGGING=1 \
+    timeout 20 qs -p "$test_root/config" 2>&1 ) 2>/dev/null )
+printf '%s\n' "$scroll_output" | grep -oE 'PREVIEW_SCROLL .*'
+check_warnings "$scroll_output" 0 || exit 1
+if ! printf '%s\n' "$scroll_output" | grep -qF 'PREVIEW_SCROLL 44 checks, 0 failed'; then
+    printf 'FAIL keyboard scrolling: %s\n' "$scroll_output"
+    exit 1
+fi
+
 cp tests/markdown-source-render.qml "$test_root/config/shell.qml" || exit 1
 source_output=$( ( env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
     HOME="$test_root/home" XDG_STATE_HOME="$test_root/state" XDG_CACHE_HOME="$test_root/cache" \

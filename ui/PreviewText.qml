@@ -20,6 +20,13 @@ Item {
     property bool readFailed: false
 
     readonly property Item bodyItem: body
+    readonly property real scrollY: textFlick.contentY
+    function scrollBy(pixelDelta) {
+        var low = textFlick.originY - textFlick.topMargin
+        var high = Math.max(low, textFlick.originY + textFlick.contentHeight - textFlick.height + textFlick.bottomMargin)
+        textFlick.cancelFlick()
+        textFlick.contentY = Math.max(low, Math.min(high, textFlick.contentY + pixelDelta))
+    }
     function shownText() { return body.text }
     readonly property string status: {
         if (root.tooLarge) return "This file is too large to preview."
