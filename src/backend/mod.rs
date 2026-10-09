@@ -34,6 +34,7 @@ pub mod sort;
 pub mod ordering;
 pub mod state;
 pub mod mediaprobe;
+pub mod emblem;
 pub mod meta;
 pub mod metareq;
 pub mod metasort;

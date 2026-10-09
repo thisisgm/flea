@@ -182,7 +182,10 @@ var PATHS = {
     // Invert selection's mark, lucide's contrast, its outer ring kept a true curve.
     "contrast": "M12 2a10 10 0 1 0 0 20a10 10 0 1 0 0-20 M12 18a6 6 0 0 0 0-12v12z",
     // Settings > Click and refresh's Open items with mark: the arrow head and its tail, as Icons040 cuts it.
-    "pointer": "M4 4l16 6.5-7 2-2 7z M13 13l6 6"
+    "pointer": "M4 4l16 6.5-7 2-2 7z M13 13l6 6",
+    // The sync badge's marks, see js/Emblem.js: lucide's refresh arrows and its cloud.
+    "sync": "M3 12a9 9 0 0 1 15-6.7L21 8 M21 3v5h-5 M21 12a9 9 0 0 1-15 6.7L3 16 M3 21v-5h5",
+    "cloud": "M17.5 19H9a7 7 0 1 1 6.71-9h1.79a4.5 4.5 0 1 1 0 9Z"
 }
 
 // The sub-paths a mark fills as well as strokes, by name; ui/Glyph.qml draws them in the mark's own ink.

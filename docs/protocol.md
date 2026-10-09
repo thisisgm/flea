@@ -1086,7 +1086,7 @@ A first listing and a navigation carry no `changed`, and a client reads a missin
 
 ### rows
 
-`{"t":"rows","start":<uint>,"rows":[{"n":<string>,"d":<bool>,"s":<uint>,"m":<int>,"p":<uint>,"i":<string>,"t":<bool>,"k":<uint>[,"l":<string>][,"v":<uint>]},...],"kinds":[<string>,...],"ms":<float>,"listing":<uint>}`
+`{"t":"rows","start":<uint>,"rows":[{"n":<string>,"d":<bool>,"s":<uint>,"m":<int>,"p":<uint>,"i":<string>,"t":<bool>,"k":<uint>[,"l":<string>][,"v":<uint>][,"e":<string>]},...],"kinds":[<string>,...],"ms":<float>,"listing":<uint>}`
 
 Example:
 `{"t":"rows","start":0,"rows":[{"n":"say \"hi\".txt","d":false,"s":12,"m":1787790423,"p":33188,"i":"text-x-generic","t":false,"k":0},{"n":"photos","d":true,"s":4096,"m":1787790424,"p":16877,"i":"folder","t":false,"k":1,"v":56}],"kinds":["Plain text document","Folder"],"ms":1.250,"listing":1}`
@@ -1113,6 +1113,11 @@ never carries both `l` and `v`: `d` is the link's own type, so a symlink's `d` i
 never the directory row `v` is for. The client draws the target beside the name and the word `link`
 in the size column, because a link's own `st_size` is the length of that target path and not a size
 anyone means.
+
+**`e` is the row's sync status, and only a tagged row carries it.** `src/backend/emblem.rs` reads
+the `user.sync.status` extended attribute a sync tool sets (Omarchy's Storage Drives does) on the same
+stat pass as the row, and sends only `synced`, `syncing`, `partial`, `conflict` or `excluded`; a name
+with rclone's `.conflictN` part is `conflict` without the attribute. `ui/EmblemBadge.qml` draws it.
 
 **`v` is the row's filesystem id, and only a directory row carries it.** A drop destination is
 always a directory, so a file row's device would never be read, and the scale fixture is 100,000
