@@ -266,4 +266,22 @@ function run(check) {
     readReply(listing, worker, '{"t":"paths","paths":["/b/obsolete"]}')
     check("F43 obsolete worker forwards nothing", listing.replies.length, 2)
     check("F33 obsolete worker accepts no paths request", requestPaths(worker, false, [0], obsoleteRequest), false)
+
+    // Picker sort persistence: requesting sort remembers folder sort and updates default sort leaf
+    var sortSlice = Source.slice(winSrc, "function requestSort(order) {", "function filterRequest()").trim()
+    var factory = new Function("win", "backend", "ViewState", "listing", "return (" + sortSlice + ")")
+    var remembered = [], leafChanges = []
+    var winMock = { sortable: true, recent: false, path: "/home/gm/Downloads", windowSize: 100, pendingListings: 0,
+                    clearListing: function() {}, focusView: function() {} }
+    var backendMock = { sortBy: "name", sortDesc: false,
+                        rememberFolderSort: function(path, key, desc) { remembered.push({ path: path, key: key, desc: desc }) } }
+    var viewMock = { state: { foldersFirst: true, groupByKind: false },
+                     changeLeaf: function(key, leaf) { leafChanges.push({ key: key, leaf: leaf }) } }
+    var listMock = { sort: function() {}, window: function() {} }
+    var runSort = factory(winMock, backendMock, viewMock, listMock)
+    runSort({ key: "mtime", desc: true })
+    check("picker sort remembers folder sort", JSON.stringify(remembered),
+          JSON.stringify([{ path: "/home/gm/Downloads", key: "mtime", desc: true }]))
+    check("picker sort updates ViewState sort leaf", JSON.stringify(leafChanges),
+          JSON.stringify([{ key: "sort", leaf: { key: "date", reverse: true } }]))
 }
