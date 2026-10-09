@@ -3,6 +3,7 @@ import Quickshell
 import qs.Commons
 import "js/Columns.js" as Columns
 import "js/Drag.js" as DragOps
+import "js/Emblem.js" as Emblem
 import "js/Format.js" as Format
 import "js/Icons.js" as Icons
 import "js/Match.js" as Match
@@ -201,6 +202,12 @@ Item {
         name: root.row ? Icons.glyphForRow(root.row.i, root.row.p) : Icons.FALLBACK
         color: root.dimmed(root.dualMode ? (root.cursor && root.paneFocused ? Theme.color.accent : Theme.color.muted) : root.lifted ? Theme.color.foreground : root.dim)
     }
+
+    // The sync badge over the icon, made only on a row a sync tool tagged, see js/Emblem.js.
+    property Item emblemItem: null
+    function syncEmblem() { root.emblemItem = Emblem.sync(root.emblemItem, Qt.resolvedUrl("EmblemBadge.qml"), root, { targetIcon: icon, status: root.row && root.row.e ? root.row.e : "" }) }
+    onRowChanged: root.syncEmblem()
+    Component.onCompleted: root.syncEmblem()
 
     // What the row actually draws, so a test catches the binding being cut and not only the lookup.
     readonly property alias iconUrl: thumbImage.source

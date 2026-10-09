@@ -3,6 +3,7 @@ import qs.Commons
 import "." as Flea
 import "js/Density.js" as Density
 import "js/Drag.js" as DragOps
+import "js/Emblem.js" as Emblem
 import "js/Format.js" as Format
 import "js/GridNames.js" as GridNames
 import "js/Icons.js" as Icons
@@ -122,6 +123,12 @@ Item {
             color: root.cursor || root.selected ? Theme.color.foreground : Theme.color.muted
         }
     }
+
+    // The sync badge in the icon's corner, made only on a tile a sync tool tagged, see js/Emblem.js.
+    property Item emblemItem: null
+    function syncEmblem() { root.emblemItem = Emblem.sync(root.emblemItem, Qt.resolvedUrl("EmblemBadge.qml"), markSlot, { targetIcon: markSlot, isGrid: true, status: root.row && root.row.e ? root.row.e : "" }) }
+    onRowChanged: root.syncEmblem()
+    Component.onCompleted: root.syncEmblem()
 
     HoverHandler { id: hover }
 

@@ -14,6 +14,7 @@ pub struct Meta {
     // The filesystem this row lives on, so a drop can tell a move within one volume from a copy
     // across two the way Finder does. Free here: the stat that fills the fields above already read it.
     pub dev: u64,
+    pub emblem: String, // the row's sync status, see backend/emblem.rs; empty when no sync tool tagged it
 }
 
 // The st_mode file-type bits, plus the two types a thumbnail request can reach: a regular file, or a symlink whose target is stat'd when the row is asked for.
@@ -70,7 +71,7 @@ fn cached_or(base: &Path, l: &Listing, i: usize, stat: &(impl Fn(&Path, &str) ->
         // corner: a cached symlink pays meta_one's one follow-stat so a linked folder draws as one.
         let target_is_dir = l.spans.get(i).is_some_and(|s| s.is_symlink)
             && base.join(l.name(i)).metadata().map(|t| t.is_dir()).unwrap_or(false);
-        return Meta { size: g.size, mtime: g.mtime, mode: g.mode, target_is_dir, target: l.gio_target(g.name_off).to_string(), dev: l.base_dev };
+        return Meta { size: g.size, mtime: g.mtime, mode: g.mode, target_is_dir, target: l.gio_target(g.name_off).to_string(), dev: l.base_dev, emblem: String::new() };
     }
     stat(base, l.name(i))
 }
@@ -110,12 +111,8 @@ fn meta_one(base: &Path, name: &str) -> Meta {
             let is_link = m.file_type().is_symlink();
             let target_is_dir = is_link && base.join(name).metadata().map(|t| t.is_dir()).unwrap_or(false);
             // corner: only a symlink pays the readlink, on the same row that already pays the second stat.
-            let target = if is_link {
-                std::fs::read_link(base.join(name)).map(|t| t.to_string_lossy().to_string()).unwrap_or_default()
-            } else {
-                String::new()
-            };
-            Meta { size: m.size(), mtime: m.mtime(), mode: m.mode(), target_is_dir, target, dev: m.dev() }
+            let target = if is_link { std::fs::read_link(base.join(name)).map(|t| t.to_string_lossy().to_string()).unwrap_or_default() } else { String::new() };
+            Meta { size: m.size(), mtime: m.mtime(), mode: m.mode(), target_is_dir, target, dev: m.dev(), emblem: crate::backend::emblem::read_emblem(base, name) }
         }
         Err(_) => zeroes(),
     }
@@ -124,7 +121,7 @@ fn meta_one(base: &Path, name: &str) -> Meta {
 // mode 0 needs no flag beside it: a real st_mode always carries its file-type bits, so
 // 0 is outside the domain and is itself the "I could not look" marker for the whole row.
 fn zeroes() -> Meta {
-    Meta { size: 0, mtime: 0, mode: 0, target_is_dir: false, target: String::new(), dev: 0 }
+    Meta { size: 0, mtime: 0, mode: 0, target_is_dir: false, target: String::new(), dev: 0, emblem: String::new() }
 }
 
 // One window row's cached gio facts, owned so a remote worker answers from the store with no arena clone.
@@ -181,7 +178,7 @@ fn window_meta_one(base: &Path, row: &WindowRow) -> Meta {
         Some(g) => {
             // corner: a cached symlink pays meta_one's one follow-stat so a linked folder draws as one.
             let target_is_dir = g.is_symlink && base.join(&row.name).metadata().map(|t| t.is_dir()).unwrap_or(false);
-            Meta { size: g.size, mtime: g.mtime, mode: g.mode, target_is_dir, target: g.target.clone(), dev: g.base_dev }
+            Meta { size: g.size, mtime: g.mtime, mode: g.mode, target_is_dir, target: g.target.clone(), dev: g.base_dev, emblem: String::new() }
         }
         None => meta_one(base, &row.name),
     }
@@ -416,7 +413,7 @@ mod tests {
         let seen = Arc::clone(&seen_fast);
         let fast = move |_: &Path, name: &str| {
             seen.lock().unwrap().insert(std::thread::current().id());
-            Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
+            Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0, emblem: String::new() }
         };
         let (metas, _) = stat_range_with(d.path(), &l, 0, 16, SLOW_PASS_MS, fast);
         assert_eq!((metas.len(), metas[0].size, metas[15].size), (16, 0, 15));
@@ -427,7 +424,7 @@ mod tests {
         let slow = move |_: &Path, name: &str| {
             seen.lock().unwrap().insert(std::thread::current().id());
             std::thread::sleep(std::time::Duration::from_millis(25));
-            Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
+            Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0, emblem: String::new() }
         };
         let (metas, _) = stat_range_with(d.path(), &l, 0, 16, SLOW_PASS_MS, slow);
         assert_eq!((metas.len(), metas[0].size, metas[15].size), (16, 0, 15));
@@ -457,7 +454,7 @@ mod tests {
                 move |_: &Path, name: &str| {
                     seen.lock().unwrap().insert(std::thread::current().id());
                     std::thread::sleep(std::time::Duration::from_millis(25));
-                    Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
+                    Meta { size: name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0, emblem: String::new() }
                 }
             };
             let (metas, _) = stat_range_with(d.path(), &mk(dev), 0, 16, SLOW_PASS_MS, slow);
@@ -550,7 +547,7 @@ mod tests {
             let stub = move |_: &Path, row: &WindowRow| {
                 seen.lock().unwrap().insert(std::thread::current().id());
                 std::thread::sleep(std::time::Duration::from_millis(sleep_ms));
-                Meta { size: row.name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }
+                Meta { size: row.name[1..].parse().unwrap_or(0), mtime: 1, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0, emblem: String::new() }
             };
             let (metas, _) = stat_window_rows_with(d.path(), &rows, SLOW_PASS_MS, threaded, stub);
             assert_eq!((metas.len(), metas[0].size, metas[15].size), (16, 0, 15));
