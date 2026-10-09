@@ -14,6 +14,7 @@ mod oflags;
 mod open;
 mod paths;
 mod prefetch;
+mod program;
 mod qsregistry;
 mod tearoff;
 mod terminal;
@@ -211,12 +212,15 @@ fn main() {
         usage("--prewarm takes a path, a first index and a destination");
     }
 
-    // flea --open <path>
+    // flea --open <path>, and flea --run <path>, which starts one program itself; see src/program.rs.
     if args.len() == 3 && args[1] == "--open" {
         exit(open::open(&args[2]));
     }
     if args.get(1).map(String::as_str) == Some("--open") {
         usage("--open takes one path");
+    }
+    if args.get(1).map(String::as_str) == Some("--run") {
+        exit(if args.len() == 3 { program::run(&args[2]) } else { usage("--run takes one path") });
     }
 
     // flea --terminal <dir>

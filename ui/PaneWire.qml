@@ -75,7 +75,7 @@ Item {
         // A dropped request is the app being busy, not a failure, so it takes the plain role.
         onBusy: function (path) { pane.message("Still opening the last file; try again in a moment.", false) }
         // canonicalize proved the path before every failure src/open.rs and src/terminal.rs report under their one status, so neither sentence below names a cause.
-        onFailed: function (path) { pane.message("No application on this system opened that file.", true) }
+        onFailed: function (path, why) { pane.message(why || "No application on this system opened that file.", true) }
         onIsDirectory: function (path) { pane.open(path) }
         onTerminalBusy: function (path) { pane.message("Still opening the last terminal; try again in a moment.", false) }
         onTerminalFailed: function (path) { pane.message("No terminal on this system opened that directory.", true) }

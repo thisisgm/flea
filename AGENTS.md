@@ -1896,7 +1896,8 @@ failure fails the check rather than passing it.
 
 - `main.rs` dispatches on argv, and this is every flag it matches: `--backend` runs the command
   loop, `--prewarm <path> <first> <dest>` writes the prewarm file, `--open <path>` hands one file
-  to the desktop's handler, `--terminal <dir>` opens the configured terminal there,
+  to the desktop's handler, `--run <path>` starts one program itself,
+  `--terminal <dir>` opens the configured terminal there,
   `--update [check]` asks the installing source for a newer Flea or opens Omarchy's updater,
   `--default [off]` claims or releases the OS-level default, the "Show in folder" registration and
   the chooser routing together,
@@ -1916,6 +1917,9 @@ failure fails the check rather than passing it.
 - `open.rs` hands one file to `gio open` and waits for it, see "Opening a file".
 - `terminal.rs` hands one directory to `xdg-terminal-exec --dir=` and does not wait, see "Opening a file";
   its `detach` is the set of guards every program Flea starts and does not wait for carries.
+- `program.rs` starts one executable file itself and does not wait, see "Running a program". Named
+  for what it starts rather than for its flag, because `backend/run.rs` is the command loop and two
+  modules called `run.rs` would make every sentence about either one ambiguous.
 - `tearoff.rs` names the three tab tear-off variables and removes them from a child's environment, for `detach` and `open.rs`.
 - `figurehelper.rs` `flea --figure-helper`: maths and diagrams through quickjs-ng under the
   thumbnail jail's flags and caps, see "Markdown figures".
@@ -2101,6 +2105,7 @@ failure fails the check rather than passing it.
 - `keys.toml` is the one key table, and `tools/flea-keymap-gen` turns it into `Keymap.js`.
 - `ui/js/Keymap.js` is the generated key-to-action lookup and imports no QML.
 - `ui/js/Format.js` is the pure size, date, permission and name-elision formatter.
+- `ui/js/Program.js` decides which rows Flea starts itself rather than handing to the desktop, see "Running a program".
 - `ui/js/Errors.js` turns a backend failure into the one sentence the status bar shows, and
   imports no QML; it was lifted out of `Pane.qml` at the hard cap and has no behaviour of
   its own.
@@ -6443,6 +6448,97 @@ configures it: that command writes `~/.config/xdg-terminals.list`, one of the co
 `tests/modes.sh` pins the argument, both refusals, the descriptors, the process group and the huge
 page restore against a stub on `PATH`, and `tests/ui.sh openterminal` drives the button and the
 chord from both views against a logging `FLEA_BIN`.
+
+### Running a program
+
+**Enter on a file the operator has marked executable starts it, and that is a different verb from
+opening one.** `flea --open` asks the desktop database for a handler, which is the right question
+for a document and the wrong one for a program: nothing on a stock box claims an AppImage, so
+`gio open` refused it and the window said "no application on this system opened that file" about a
+file the operator had already said was a program. `flea --run <path>` is the other verb and
+`src/program.rs` is all of it.
+
+It is a mode rather than a branch inside `--open` because the two answer different questions. A
+`.sh` file with an execute bit is a program to the kernel and a text file to the database, and
+folding the two together would have made `chmod +x` on a document silently change what opening it
+means. Opening stays the desktop's decision, exactly as "Opening a file" leaves it; running is the
+mode that never asks the database anything.
+
+It resolves the path with `std::fs::canonicalize`, so a symlink starts its target and the absolute
+result cannot be read as a flag by the child, and then hands the command to `terminal::detach`, the
+guards every program Flea starts and does not wait for carries: `thp::enable()`, because the setting
+is inherited across exec and a program started from the window would otherwise run its whole life
+with transparent huge pages disabled without ever asking; the display-GPU pin and the platform theme
+handed back; the tear-off variables dropped; `/dev/null` on all three descriptors, so the program
+does not die on `SIGPIPE` when Quickshell closes the pipes it handed `flea --run`; and
+`process_group(0)`, so nothing that later kills Flea's group reaches it. It spawns and never waits,
+because the program outlives Flea the way the terminal does. `Command::new(&target)` is argv-direct
+exec and never a shell, and the program is given no arguments at all.
+
+**It runs in the program's own folder and not in Flea's.** `current_dir` is the canonical path's
+parent: a program dropped in a directory looks for what sits beside it, and Flea's working directory
+is wherever Flea was started from, which is nothing to do with it.
+
+The exit statuses are the whole contract, and they extend `--open`'s rather than inventing a second
+numbering: `0` is a started program, `2` is a path that resolved to nothing and a file the kernel
+refused to exec, `3` means the resolved target is a directory and carries no output at all, and `4`
+is the one status this mode adds, a target that is not a regular file carrying an execute bit. `2`
+covers the two exec failures together because the window says the same sentence for both and neither
+is the operator's to fix: measured here against a file with the bit set and no shebang, one with a
+broken ELF header and one naming an interpreter that does not exist, all three come back from
+`spawn()` as an error rather than as a started program, so Rust reports the failed exec and does not
+fall back to a shell the way `execvp(3)` would. `4` is separate because it is the one refusal the
+operator can act on, and the window says so in its own words.
+
+**Flea never sets the execute bit to satisfy itself.** Marking a download executable is the
+operator's decision and `ui/PermissionsDialog.qml` is where they make it; a mode that chmod'd its
+way to a launch would make that dialog a formality. `tests/modes.sh` pins the refused file's mode
+afterward, so a later convenience cannot quietly become that.
+
+`ui/Opener.qml` is the window side, the way it is for the other two, and `run()` is its own `Process`
+so a run and an open in flight cannot take each other's exit status. `0` says nothing: the first
+press stays silent and only a press that was refused speaks, which is the rule the opener already
+follows. A refusal raises the opener's one `failed(path, why)` with the run's own sentence in `why`:
+for `4` the bit is gone, for anything else the program could not be started. An open raises it with
+`why` empty, and `ui/PaneWire.qml`'s one handler says `why` when there is one and the open's sentence
+when there is not. A second `run()` while the first is in flight is dropped and raises `busy`, the
+open's own signal, because the sentence is the same; and that guard is bounded: `runDeadline` is the
+same 15 s `ui/NetworkMounts.qml` gives a leg of an open, with the same consume-once flag so the leg
+it ends cannot report a second, contradictory failure. The bound is not ceremony. Everything
+`flea --run` does after `canonicalize` is a spawn that returns, and `canonicalize` is the one call in
+it that can hang, inside a dead network mount, which is exactly the shape issue #36 left in the
+share browser. See "A single-flight guard needs a deadline, and a refusal the user can see".
+
+`ui/js/Nav.js` `openCursor` hands the opener the row with the path, `opener.open(path, row)`, and
+`open()` asks `ui/js/Program.js` `startsItself(row)` before it reaches for `flea --open`: a regular
+file with any of the three execute bits (`isRunnable`) goes to `run(path)` instead. Every caller
+that opens a path with no row keeps the desktop's route. `tests/js/program.js` pins both functions.
+**The hand-off sits after the archive branch and not before it**, so the
+0.1.4 archive ruling is untouched and an archive the operator happened to mark executable still opens
+Flea's own view. Nothing is lost by that order: an AppImage is not an archive to the classifier,
+because `/usr/share/mime/globs2` resolves `*.appimage` to `application/vnd.appimage` and
+`application/x-iso9660-appimage`, and `/usr/share/mime/generic-icons` gives both
+`application-x-executable`, which `ui/js/Kinds.js` does not call an archive.
+
+**A `.desktop` entry is the exception, and it reaches the opener however it is moded**, because only
+the desktop can read the `Exec` line inside one; executing the file itself would run the INI header.
+
+**No confirmation dialog, and that is the row's own colour doing the work.** `ui/Row.qml` already
+draws an executable row in `Theme.color.executable`, reading `Format.isExecutable` off this same mode, so the listing has said the file is a program before Enter is pressed. A prompt over a
+fact the row is already stating is a second question, and the operator answered the first one when
+they set the bit.
+
+**The context-menu row is not in the tree, and the reason is the budget rather than the design.**
+`ui/js/Menu.js` sits on its 300-line hard cap and `ui/PaneMenuActions.qml` on its 400-line one, so a
+Run row needs a split before it needs code; see "File budget". Enter, `l` and a double click all
+reach `openCursor`, so the route is reachable from all three without it. The menu's Make executable
+row (MenuAdditions040) is the other half: it sets the bit this route reads.
+
+`tests/modes.sh` drives the mode against a stub that is the program itself, with no handoff binary
+between Flea and it: argv, the working directory, the three guards, both refusals, the directory's
+silence and the usage errors. `tests/js/nav.js` pins the routing, including the two answers that
+must not move, and `tests/js/format.js` pins `isRunnable` against the kinds that carry an execute bit
+and are not programs.
 
 ### No type-ahead, and trash is a pair
 

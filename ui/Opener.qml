@@ -1,31 +1,52 @@
 import Quickshell
 import Quickshell.Io
 import QtQuick
+import "js/Program.js" as Program
 
 // The one component that runs Flea's own opening modes, so the huge page corner has one owner; see AGENTS.md "Opening a file".
 Item {
     id: root
 
-    signal failed(string path)
+    // why is the run's own sentence, empty for an open, so ui/PaneWire.qml's one handler says both.
+    signal failed(string path, string why)
     signal isDirectory(string path)
     signal terminalFailed(string path)
-    // Raised where the two single-flight guards below drop a request, so a swallowed press says so.
+    // Raised where the single-flight guards below drop a request, so a swallowed press says so; an
+    // open and a run share busy, because the sentence is the same for both.
     signal busy(string path)
     signal terminalBusy(string path)
 
     // The status src/open.rs returns for a directory, which the caller navigates to instead.
     readonly property int isDirectoryStatus: 3
+    // The status src/program.rs returns for a file carrying no execute bit, which the window says
+    // in its own words rather than passing the mode's sentence on.
+    readonly property int notExecutableStatus: 4
+    // Long enough that nothing healthy meets it: everything flea --run does after canonicalize is a
+    // spawn that returns, and canonicalize is the one call that can hang, inside a dead network
+    // mount. The same bound ui/NetworkMounts.qml gives a leg of an open, and for the same reason.
+    readonly property int runDeadlineMs: 15000
 
     property string current: ""
     // The terminal launch's own path: open() and openTerminal() run on separate
     // Processes guarded only against themselves, so sharing current let whichever
     // started second rewrite the path the first one's onExited still reports.
     property string terminalCurrent: ""
+    // The run launch's own path, for the same reason terminalCurrent is the terminal's.
+    property string runCurrent: ""
+    // Set by the deadline so the leg it ended cannot report a second, contradictory failure, the
+    // rule ui/NetworkMounts.qml's _infoTimedOut follows; see AGENTS.md "A single-flight guard".
+    property bool runTimedOut: false
 
     // flea --open waits for gio open and not for the application it starts, and that wait is 11 to 15 ms
     // for an Exec= handler but 0.32 to 0.75 s for a DBusActivatable one, which is what this box's
     // twenty-five archive types default to, so this guard drops a second Enter for that long and says so.
-    function open(path) {
+    // row is the listing's, when ui/js/Nav.js has one: a file the operator marked executable is
+    // started rather than handed to the desktop, see run() below and ui/js/Program.js.
+    function open(path, row) {
+        if (Program.startsItself(row)) {
+            root.run(path)
+            return
+        }
         if (child.running) {
             root.busy(path)
             return
@@ -46,7 +67,46 @@ Item {
                 root.isDirectory(root.current)
                 return
             }
-            root.failed(root.current)
+            root.failed(root.current, "")
+        }
+    }
+
+    // Starting a program is not opening a file: flea --open asks the desktop database for a handler
+    // and nothing on a stock box claims an AppImage, so Enter on one answered with the opener's own
+    // refusal. Its own Process, so a run and an open in flight cannot take each other's exit status.
+    function run(path) {
+        if (runChild.running) {
+            root.busy(path)
+            return
+        }
+        root.runCurrent = path
+        root.runTimedOut = false
+        runChild.command = [Quickshell.env("FLEA_BIN") || "flea", "--run", path]
+        runChild.running = true
+        runDeadline.restart()
+    }
+
+    Process {
+        id: runChild
+
+        onExited: function (exitCode, exitStatus) {
+            runDeadline.stop()
+            if (root.runTimedOut || exitCode === 0) {
+                return
+            }
+            root.failed(root.runCurrent, exitCode === root.notExecutableStatus
+                        ? "That file is no longer marked executable." : "That program could not be started.")
+        }
+    }
+
+    Timer {
+        id: runDeadline
+        interval: root.runDeadlineMs
+        // Ending the guard, not the program: by now it has either started or was never going to.
+        onTriggered: {
+            root.runTimedOut = true
+            runChild.running = false
+            root.failed(root.runCurrent, "That program could not be started.")
         }
     }
 
