@@ -4,8 +4,8 @@ import Quickshell.Io
 import "js/Stack.js" as Stack
 
 // Reads The Stack. The ranker is /usr/lib/flea/the-stack.py, with the home-directory copy as a
-// fallback. This only runs it and watches the two files that can change the order while the place
-// is open: the desktop's recent history and the touch file Flea writes when it opens a file.
+// fallback. A watcher from that helper records a new file or an open under the user folders
+// into the touch file. This also watches recent history, so either change refreshes the place.
 Item {
     id: root
 
@@ -108,12 +108,39 @@ Item {
         onTriggered: if (root.watch) root.sourcesChanged()
     }
 
-    // mtime is not in either watched file. While the place is open, look again so a save or a
-    // download can take the top without the operator leaving and coming back.
+    // The watcher covers a save, a download, a screenshot, and an open while Flea is running.
+    // This pass is the backup for a file that changed with Flea closed, once the place is open.
     Timer {
         interval: 8000
         repeat: true
         running: root.watch
         onTriggered: if (root.watch) root.sourcesChanged()
     }
+
+    Process {
+        id: eye
+        running: false
+        stdout: StdioCollector {}
+        stderr: StdioCollector {}
+        onExited: function () {
+            if (root.home.length > 0)
+                eyeAgain.restart()
+        }
+    }
+
+    Timer {
+        id: eyeAgain
+        interval: 1500
+        onTriggered: root.armEye()
+    }
+
+    function armEye() {
+        if (root.home.length === 0 || eye.running)
+            return
+        eye.command = Stack.command(root.home, ["--watch"])
+        eye.running = true
+    }
+
+    onHomeChanged: armEye()
+    Component.onCompleted: armEye()
 }

@@ -102,7 +102,16 @@ function openWithoutHistory(pane, newPath, options) {
     else if (pane.filterTyping)
         Filter.commit(pane)
     pane.appliedListingPreferences = pane.listingPreferences
-    if (newPath === "flea:stack") { pane.swap.beginStack(); return }
+    if (newPath === "flea:stack") {
+        // The Stack is not one directory: listpaths uses base "/", mixes local and removable
+        // paths, and the status strip stays blank. Mark storage known as local so the
+        // viewport can request thumbnails; skipping askFsInfo left storageKnown false and
+        // every thumb/preview ask returned before it began.
+        pane.storageClass = ""
+        pane.storageKnown = true
+        pane.swap.beginStack()
+        return
+    }
     pane.backend.list(newPath, pane.windowSize, pane.showHidden)
     // One statfs per directory, not per row: the bar's right half only changes when the pane moves.
     pane.backend.askFsInfo()
