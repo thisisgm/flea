@@ -517,6 +517,19 @@ check "a name with a newline in it arrives whole and unsplit" \
   "$D/$newline_name" "$(cat "$last_arg")"
 check "and it is still exactly two arguments too" "1" "$(grep -c '^NARGS 2$' "$opened")"
 
+: > "$opened"
+PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" "$D/linkfile" >/dev/null 2>&1
+wait_for_line "$opened" '^THP_enabled'
+check "multiple files are handed to gio open together" "1" \
+  "$(grep -c "^ARGV open $D/file.txt $D/file.txt$" "$opened")"
+check "and it is three arguments" "1" "$(grep -c '^NARGS 3$' "$opened")"
+
+out=$(PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/file.txt" "$D/dir" 2>&1)
+rc=$?
+check "a directory among several paths is refused with the failure status" "2" "$rc"
+check "and its sentence names the mixed batch, not a missing file" "1" "$(echo "$out" | grep -c 'directories cannot be opened alongside files')"
+check "and it does not blame the path" "0" "$(echo "$out" | grep -c 'could not be opened')"
+
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/dir" >/dev/null 2>&1
 check "a directory is refused with its own status" "3" "$?"
 PATH="$D/bin:/usr/bin:/bin" $BIN --open "$D/linkdir" >/dev/null 2>&1

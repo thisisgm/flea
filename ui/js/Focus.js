@@ -132,7 +132,7 @@ function act(action, root, menuId, paths) {
     case "cursorLast": Filter.setCursorView(root, root.shownTotal - 1); Marks.follow(root); return
     case "pageDown": step(root, Math.max(1, Math.floor(root.visibleRows / 2))); Marks.follow(root); return
     case "pageUp": step(root, -Math.max(1, Math.floor(root.visibleRows / 2))); Marks.follow(root); return
-    case "open": root.openCursor(); return
+    case "open": root.openCursor(paths); return
     case "openTab": Tabs.openCursorTab(root); return
     case "parent": root.openParent(); return
     case "historyBack": root.goBack(); return

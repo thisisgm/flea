@@ -211,12 +211,12 @@ fn main() {
         usage("--prewarm takes a path, a first index and a destination");
     }
 
-    // flea --open <path>
-    if args.len() == 3 && args[1] == "--open" {
-        exit(open::open(&args[2]));
+    // flea --open <path>...
+    if args.len() >= 3 && args[1] == "--open" {
+        exit(open::open_all(&args[2..]));
     }
     if args.get(1).map(String::as_str) == Some("--open") {
-        usage("--open takes one path");
+        usage("--open takes one or more paths");
     }
 
     // flea --terminal <dir>
