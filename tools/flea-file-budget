@@ -62,7 +62,7 @@ tests/js/drag.js 469
 tests/js/devices.js 303
 tests/js/previewswap.js 408
 tests/js/mdstructure.js 626
-tests/js/keymap.js 309
+tests/js/keymap.js 310
 tests/js/focus.js 745
 tests/js/mounts.js 262
 tests/js/menu.js 515

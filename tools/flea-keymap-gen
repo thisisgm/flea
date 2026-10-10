@@ -169,7 +169,7 @@ function lookupFor(name, key, text, modifiers, context, frontend) {
     for (var i = 0; i < SHARED_KEYS.length; i++) {
         if (matches(SHARED_KEYS[i], key, text, modifiers)) return SHARED_KEYS[i].action
     }
-    if (frontend === "tui" && modifiers === 0 && text >= String(DIGITS.from) && text <= String(DIGITS.to))
+    if ((frontend === "tui" || frontend === "gui") && modifiers === 0 && text >= String(DIGITS.from) && text <= String(DIGITS.to))
         return DIGITS.prefix + text
     return ""
 }
