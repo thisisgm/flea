@@ -130,7 +130,7 @@ var ERROR_ON_SURFACE_SAMPLES = [
 // Sample input: one palette body above; the bar's own ground is the surface it sits on.
 function errorOnSurfaceSamples(check) {
     var applied = Source.source("ui/Theme.qml")
-    check("Theme.qml lifts the status bar red on its surface", applied.indexOf("Contrast.ensureRatio(Color.urgent, surface, 4.5)") >= 0, true)
+    check("Theme.qml lifts the status bar red on its surface", applied.indexOf("Contrast.ensureRatio(Omarchy.Color.urgent, surface, 4.5)") >= 0, true)
     var weak = 0
     for (var i = 0; i < ERROR_ON_SURFACE_SAMPLES.length; i++) {
         var r = roles(ERROR_ON_SURFACE_SAMPLES[i])

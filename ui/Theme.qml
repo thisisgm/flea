@@ -4,6 +4,7 @@ import Quickshell
 import Quickshell.Io
 import QtQuick
 import qs.Commons
+import qs.Commons as Omarchy
 import "js/Buttons.js" as Buttons
 import "js/Columns.js" as Columns
 import "js/Contrast.js" as Contrast
@@ -36,7 +37,7 @@ Singleton {
     property bool reducedMotion: Quickshell.env("FLEA_REDUCED_MOTION") === "1"
 
     // The only literal colours in the UI. Color models five roles; surface, symlink and executable
-    // have no counterpart, and the other two are read here before Color.loadColors has run.
+    // have no counterpart, and the other two are read here before Omarchy.Color.loadColors has run.
     readonly property var fallbackColor: ({
         background: "#101315",
         surface: "#181825",
@@ -48,23 +49,23 @@ Singleton {
     readonly property real hueFloor: 0.2
 
     readonly property QtObject color: QtObject {
-        readonly property color background: Color.background
-        readonly property color foreground: Color.foreground
+        readonly property color background: Omarchy.Color.background
+        readonly property color foreground: Omarchy.Color.foreground
         // The heading ink: a brighter step of the foreground, applyColors derives it from the palette.
-        property color foregroundBright: Color.foreground
-        property color muted: Qt.darker(Color.foreground, 1.4)
-        readonly property color accent: Color.accent
-        property color error: Color.urgent
+        property color foregroundBright: Omarchy.Color.foreground
+        property color muted: Qt.darker(Omarchy.Color.foreground, 1.4)
+        readonly property color accent: Omarchy.Color.accent
+        property color error: Omarchy.Color.urgent
         // Error ink on the status bar's own surface, lifted there the way error is on the background.
-        property color errorOnSurface: Color.urgent
+        property color errorOnSurface: Omarchy.Color.urgent
         property color surface: root.fallbackColor.surface
         property color symlink: root.fallbackColor.symlink
         property color executable: root.fallbackColor.executable
         // The accent as a frame rather than as ink: on a card's own surface a frame is a graphical
         // object, so it is lifted to 3:1 there the way symlink and executable are lifted on the list.
-        property color accentFrame: Color.accent
+        property color accentFrame: Omarchy.Color.accent
         // True where the accent carries colour, so it can mark focus apart from the foreground and muted frames; kanagawa, solitude, vantablack and white do not.
-        property bool accentHasHue: Color.accent.hsvSaturation > root.hueFloor
+        property bool accentHasHue: Omarchy.Color.accent.hsvSaturation > root.hueFloor
     }
 
     readonly property QtObject font: QtObject {
@@ -323,24 +324,24 @@ Singleton {
         var bg = Palette.pick(found, ["background"], root.fallbackColor.background);
         var surface = Palette.pick(found, Palette.SURFACE_KEYS, root.fallbackColor.surface);
         root.color.surface = surface;
-        Color.loadColors(body);
+        Omarchy.Color.loadColors(body);
         // Measured over the 22 stock palettes in tests/js/themes.js: 20 set a muted under the 3:1 a
         // caption needs, rose-pine's at 1.48, so it is lifted the way the two ladder colours below are.
         root.color.muted = Contrast.ensureRatio(
-            Palette.pick(found, ["muted"], Qt.darker(Color.foreground, 1.4)), bg, 3);
+            Palette.pick(found, ["muted"], Qt.darker(Omarchy.Color.foreground, 1.4)), bg, 3);
         // Headings take the palette's bright foreground (the ANSI ring's color15 without one) when it has more contrast than the foreground.
-        var bright = Palette.pick(found, ["bright_foreground", "color15"], String(Color.foreground));
-        root.color.foregroundBright = Contrast.ratio(bright, bg) > Contrast.ratio(String(Color.foreground), bg) ? bright : Color.foreground;
-        root.color.accentFrame = Contrast.ensureRatio(Color.accent, surface, 3);
-        root.color.accentHasHue = Color.accent.hsvSaturation > root.hueFloor;
+        var bright = Palette.pick(found, ["bright_foreground", "color15"], String(Omarchy.Color.foreground));
+        root.color.foregroundBright = Contrast.ratio(bright, bg) > Contrast.ratio(String(Omarchy.Color.foreground), bg) ? bright : Omarchy.Color.foreground;
+        root.color.accentFrame = Contrast.ensureRatio(Omarchy.Color.accent, surface, 3);
+        root.color.accentHasHue = Omarchy.Color.accent.hsvSaturation > root.hueFloor;
         root.color.symlink = Contrast.ensureRatio(
             Palette.pick(found, ["cyan", "color6"], root.fallbackColor.symlink), bg, 4.5);
         root.color.executable = Contrast.ensureRatio(
             Palette.pick(found, ["green", "color2"], root.fallbackColor.executable), bg, 4.5);
         // Urgent is the palette's own red: seven of the 23 installed themes leave it under 4.5:1 on their own ground, so it is lifted the way symlink and executable are, and the three whose red carries no chroma at all (solitude, white, vantablack) fall back to the foreground, because a destructive row drawn in the same grey as an unavailable one reads as switched off rather than as dangerous.
-        root.color.error = Color.urgent.hsvSaturation > root.hueFloor ? Contrast.ensureRatio(Color.urgent, bg, 4.5) : String(Color.foreground);
+        root.color.error = Omarchy.Color.urgent.hsvSaturation > root.hueFloor ? Contrast.ensureRatio(Omarchy.Color.urgent, bg, 4.5) : String(Omarchy.Color.foreground);
         // The status bar draws that same ink on the surface, where four themes land under 4.5.
-        root.color.errorOnSurface = Color.urgent.hsvSaturation > root.hueFloor ? Contrast.ensureRatio(Color.urgent, surface, 4.5) : String(Color.foreground);
+        root.color.errorOnSurface = Omarchy.Color.urgent.hsvSaturation > root.hueFloor ? Contrast.ensureRatio(Omarchy.Color.urgent, surface, 4.5) : String(Omarchy.Color.foreground);
         // A body that parsed to nothing left every role on its fallback, so the flag says so rather
         // than reporting that the read happened: text() returns "" for a file that is not there.
         root.ready = Palette.isPalette(found);
@@ -377,14 +378,14 @@ Singleton {
         Component.onCompleted: root.applyColors(colorsFile.text())
     }
 
-    // Color.loadShell refreshes Style's whole token scale, so the type ladder flips with the theme.
+    // Omarchy.Color.loadShell refreshes Style's whole token scale, so the type ladder flips with the theme.
     FileView {
         id: shellFile
         path: root.stateDir + "/theme/shell.toml"
         blockLoading: true
         printErrors: false
-        onLoaded: Color.loadShell(text())
-        onLoadFailed: Color.loadShell("")
+        onLoaded: Omarchy.Color.loadShell(text())
+        onLoadFailed: Omarchy.Color.loadShell("")
     }
 
     // omarchy-theme-set rm -rf's and mv's the theme directory, so an inotify watch on a file inside
