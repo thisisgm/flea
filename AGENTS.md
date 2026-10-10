@@ -1358,13 +1358,16 @@ gives a stick Open and Unmount above the Eject that case asserts alone.
 `main.rs` dispatches on argv before anything else runs, but only `--backend` is fully insulated
 from the flag parsing below: it is matched anywhere in argv and always wins. `--prewarm`,
 `--open` and `--terminal` are matched only in their exact well-formed shape, `args.len() == 5`
-for the first and `args.len() == 3` with the flag in argv[1] for the other two, so a MALFORMED one
+for the first and `args.len() >= 3` for `--open` and `args.len() == 3` for `--terminal`, the flag
+in argv[1], so a MALFORMED one
 is not caught here at all. It
 falls through to the parsing below and leaves by the unknown-flag branch, which names the flag
-and exits 2; `flea --open` with no path and `flea --open a b` are both that case. The looseness
-predates this branch for `--prewarm` and this branch extended it to `--open` and `--terminal`. `--open` takes exactly one path and exits with the whole of its contract: `0` is a
+and exits 2; `flea --open` with no path and `flea --terminal a b` are both that case. The looseness
+predates this branch for `--prewarm` and this branch extended it to `--open` and `--terminal`. `--open` takes one path or more and exits with the whole of its contract: `0` is a
 successful handoff, `2` is anything that could not be opened and carries one elided
-sentence, and `3` means the resolved target is a directory and carries no output at all. A
+sentence, and `3` means the single resolved target is a directory and carries no output at all.
+A batch carrying a directory is `2` and not `3`, and says so: a directory among several paths names
+the batch rather than claiming a path is missing, because every one of them resolved. A
 directory is refused rather than handed on because the desktop default for `inode/directory` is a
 file manager either way, `org.gnome.Nautilus.desktop` on an unclaimed box and
 `com.thisisgm.flea.desktop` once `--default` has claimed it, so handing one on opens a file manager
@@ -1895,8 +1898,8 @@ failure fails the check rather than passing it.
 ## Module map
 
 - `main.rs` dispatches on argv, and this is every flag it matches: `--backend` runs the command
-  loop, `--prewarm <path> <first> <dest>` writes the prewarm file, `--open <path>` hands one file
-  to the desktop's handler, `--terminal <dir>` opens the configured terminal there,
+loop, `--prewarm <path> <first> <dest>` writes the prewarm file, `--open <path>...` hands one file
+or more to the desktop's handler, `--terminal <dir>` opens the configured terminal there,
   `--update [check]` asks the installing source for a newer Flea or opens Omarchy's updater,
   `--default [off]` claims or releases the OS-level default, the "Show in folder" registration and
   the chooser routing together,
@@ -6332,8 +6335,8 @@ file`, so the set tells a refused open from an unimplemented one and neither one
 the desktop default for `inode/directory` is a file manager either way, `org.gnome.Nautilus.desktop`
 on an unclaimed box and `com.thisisgm.flea.desktop` once `--default` has claimed it, so opening one
 through the opener from inside a file manager opens a file manager; the caller navigates instead.
-`flea --open` with no path and `flea --open a b` both fall through to the unknown-flag branch, which
-names the flag and exits 2.
+`flea --open` with no path falls through to the unknown-flag branch, which
+names the flag and exits 2; `flea --open a b` is a well-formed batch and is handed on together.
 
 `ui/Opener.qml` is the window side of that contract and the only component in the tree that runs
 `flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the
@@ -6376,6 +6379,22 @@ classifier is the icon rather than an extension table because the icon is what t
 reads; measured here, all eight extensions in `ui/js/Archive.js` resolve through
 `/usr/share/mime/globs2` to a type whose `/usr/share/mime/generic-icons` row is `package-x-generic`,
 and so do `.deb`, `.rpm`, `.jar`, `.cab`, `.gz` and `.xz`.
+
+**Enter on a selection opens every marked file, and two rows refuse the whole batch.** The rule was
+missing at three layers at once, so no two files could ever reach a handler: `Nav.openCursor` read
+only `pane.cursorIndex`, `ui/Opener.qml` built a fixed `[bin, "--open", path]`, and `main.rs` matched
+`--open` only at `args.len() == 3`. `gio open` has always taken `LOCATION…`, so the fix is one
+variadic batch end to end. A selection holding a directory refuses with `Directories cannot be opened
+alongside files.`, and one holding an archive refuses with `Archives open on their own, one at a time.`,
+because the ruling above is a VIEW and a mixed batch has no single view to show, while handing the
+archive to the desktop handler is exactly the outcome that ruling exists to prevent. A selected row
+outside the pane's held window is the third refusal, `Some selected files are outside the loaded rows.`,
+because `rowFor` answers `null` outside `[held, held + rows.length)` and a selection of a 100,000-row
+listing holds every index while only a screenful of rows is in memory; skipping the nulls opened the
+visible part and said nothing, which is the very defect the batch is meant to fix. `src/open.rs`
+`open_all` carries the same refusal at the CLI, with its own `flea:` sentence naming the mixed batch,
+never the missing-file one. The TUI's `open` has no Quick Look surface, so it keeps handing an archive
+to the desktop handler and refuses only the directory.
 
 **That one icon covers the whole Nautilus class on this box, derived rather than assumed.**
 `org.gnome.Nautilus.desktop` lists 26 `MimeType` entries; 25 resolve to it as the default and the

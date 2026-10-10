@@ -687,7 +687,7 @@ FocusScope {
         return item && item.renaming ? item : null
     }
 
-    function openCursor() { Nav.openCursor(root, wire.opener) }
+    function openCursor(paths) { Nav.openCursor(root, wire.opener, paths) }
 
     // A path the caller already resolved, for the columns view's neighbour rows, which have no cursor.
     function openFile(path) { wire.opener.open(path) }

@@ -199,27 +199,29 @@ function clearPendingBackground(pane) { ColumnMenu.clearPendingBackground(pane) 
 // The deferred neighbour background, consumed on every landing by identity.
 function applyPendingBackground(pane) { ColumnMenu.applyPendingBackground(pane) }
 
-// Enter on the cursor row: a directory navigates, an archive opens Flea's own view, anything else
-// goes to the opener. The in-flight guard is what stops a second Enter queueing a second listing.
-function openCursor(pane, opener) {
-    if (pane.listInFlight) {
-        pane.message("A directory is already loading.", false)
-        return
+// Enter on the cursor row or selection: a directory navigates, an archive opens Flea's own view,
+// anything else goes to the opener. The in-flight guard stops a second Enter queueing a second listing.
+function openCursor(pane, opener, paths) {
+    if (pane.listInFlight) { pane.message("A directory is already loading.", false); return }
+    var indices = pane.selectedIndices ? pane.selectedIndices() : []
+    var targets = paths
+    if (!targets && indices.length > 1) {
+        targets = []
+        for (var i = 0; i < indices.length; i++) {
+            var r = pane.rowFor(indices[i])
+            if (!r) { pane.message("Some selected files are outside the loaded rows.", false); return }
+            var path = pane.join(pane.path, r.n)
+            if (r.d) { pane.message("Directories cannot be opened alongside files.", false); return }
+            if (Kinds.quickLookKind(r.i, path) === Kinds.ARCHIVE) { pane.message("Archives open on their own, one at a time.", false); return }
+            targets.push(path)
+        }
     }
+    if (targets && targets.length > 1) { opener.open(targets); return }
     var row = pane.rowFor(pane.cursorIndex)
-    if (!row) {
-        pane.message("That row has not loaded yet.", false)
-        return
-    }
-    if (!Filter.cursorShown(pane)) {
-        pane.message("That row is hidden by the filter.", false)
-        return
-    }
+    if (!row) { pane.message("That row has not loaded yet.", false); return }
+    if (!Filter.cursorShown(pane)) { pane.message("That row is hidden by the filter.", false); return }
     var path = pane.join(pane.path, row.n)
-    if (row.d) {
-        pane.open(path)
-        return
-    }
+    if (row.d) { pane.open(path); return }
     // Handing an archive on opens another file manager, and this is ui/Preview.qml's own classifier.
     if (Kinds.quickLookKind(row.i, path) === Kinds.ARCHIVE) {
         pane.quickLook().open(path, row.i, row.s, pane.kindNames[row.k] || "",

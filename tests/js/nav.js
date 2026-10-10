@@ -359,4 +359,43 @@ function run(check) {
     var settled = { listInFlight: true, listingState: "loading", stateMessage: "" }
     check("a loading pane is left alone", Anchor.clearWaiting(settled), false)
     check("and keeps its flight", settled.listInFlight, true)
+
+    var multi = pane()
+    var openedTargets = []
+    multi.path = "/music"
+    multi.selectedIndices = function () { return [0, 1] }
+    multi.rowFor = function (i) { return i === 0 ? { n: "1.mp3", d: false } : { n: "2.mp3", d: false } }
+    multi.join = function (base, name) { return base + "/" + name }
+    Nav.openCursor(multi, { open: function (paths) { openedTargets = paths } })
+    check("multi-select opens all files together", openedTargets.join(","), "/music/1.mp3,/music/2.mp3")
+
+    var mixed = pane()
+    var mixedOpened = []
+    mixed.path = "/music"
+    mixed.selectedIndices = function () { return [0, 1] }
+    mixed.rowFor = function (i) { return i === 0 ? { n: "1.mp3", d: false } : { n: "sub", d: true } }
+    mixed.join = function (base, name) { return base + "/" + name }
+    Nav.openCursor(mixed, { open: function (paths) { mixedOpened = paths } })
+    check("multi-select with a directory refuses opening", mixedOpened.length, 0)
+    check("and explains why", mixed.said[0], "Directories cannot be opened alongside files.")
+
+    var arch = pane()
+    var archOpened = []
+    arch.path = "/music"
+    arch.selectedIndices = function () { return [0, 1] }
+    arch.rowFor = function (i) { return i === 0 ? { n: "song.mp3", d: false } : { n: "backup.zip", i: "package-x-generic", d: false } }
+    arch.join = function (base, name) { return base + "/" + name }
+    Nav.openCursor(arch, { open: function (paths) { archOpened = paths } })
+    check("a selection holding an archive opens nothing", archOpened.length, 0)
+    check("and says archives open alone", arch.said[0], "Archives open on their own, one at a time.")
+
+    var far = pane()
+    var farOpened = []
+    far.path = "/music"
+    far.selectedIndices = function () { return [0, 1, 2, 3, 4, 5] }
+    far.rowFor = function (i) { return i < 2 ? { n: "song" + i + ".mp3", d: false } : null }
+    far.join = function (base, name) { return base + "/" + name }
+    Nav.openCursor(far, { open: function (paths) { farOpened = paths } })
+    check("a selection reaching past the held window opens nothing", farOpened.length, 0)
+    check("and says so instead of opening the part it can see", far.said[0], "Some selected files are outside the loaded rows.")
 }

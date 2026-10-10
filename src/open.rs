@@ -17,16 +17,30 @@ fn resolved(path: &str) -> Option<PathBuf> {
 
 // gio open is the OEM route: it asks the desktop database, so Terminal=true is honoured; see AGENTS.md "Opening a file".
 pub fn open(path: &str) -> i32 {
-    let target = match resolved(path) {
-        Some(p) => p,
-        // The reason is elided, never shown raw, and the path is the user's own input.
-        None => {
-            eprintln!("flea: that file could not be opened, check that it still exists");
-            return FAILED;
+    open_all(&[path.to_string()])
+}
+
+pub fn open_all(paths: &[String]) -> i32 {
+    if paths.is_empty() {
+        return FAILED;
+    }
+    let mut targets = Vec::with_capacity(paths.len());
+    for path in paths {
+        match resolved(path) {
+            Some(p) => targets.push(p),
+            None => {
+                // The reason is elided, never shown raw, and the path is the user's own input.
+                eprintln!("flea: that file could not be opened, check that it still exists");
+                return FAILED;
+            }
         }
-    };
-    if target.is_dir() {
+    }
+    if targets.len() == 1 && targets[0].is_dir() {
         return IS_DIRECTORY;
+    }
+    if targets.iter().any(|t| t.is_dir()) {
+        eprintln!("flea: directories cannot be opened alongside files");
+        return FAILED;
     }
     // The setting is inherited across exec, so this is the last point that can hand it back.
     thp::enable();
@@ -38,9 +52,11 @@ pub fn open(path: &str) -> i32 {
     gui::restore_platform_theme(&mut launcher);
     // The tear-off hand-off belongs to the one window a tear-off starts, never to a program it opens.
     tearoff::drop_env(&mut launcher);
+    launcher.arg("open");
+    for target in &targets {
+        launcher.arg(target);
+    }
     let finished = launcher
-        .arg("open")
-        .arg(&target)
         // The handler outlives us, so an inherited pipe would kill it on its first write; see AGENTS.md "Opening a file".
         .stdin(Stdio::null())
         .stdout(Stdio::null())
@@ -59,5 +75,30 @@ pub fn open(path: &str) -> i32 {
             eprintln!("flea: nothing on this system could be asked to open that file");
             FAILED
         }
+    }
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn open_all_rejects_empty_paths() {
+        assert_eq!(open_all(&[]), FAILED);
+    }
+
+    #[test]
+    fn open_all_rejects_nonexistent_file() {
+        assert_eq!(open_all(&["/nonexistent_file_path_xyz123".to_string()]), FAILED);
+    }
+
+    #[test]
+    fn open_all_single_directory_returns_is_directory() {
+        assert_eq!(open_all(&["/".to_string()]), IS_DIRECTORY);
+    }
+
+    #[test]
+    fn open_all_multiple_with_directory_fails() {
+        assert_eq!(open_all(&["/".to_string(), "/etc".to_string()]), FAILED);
     }
 }
