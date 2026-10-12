@@ -58,8 +58,14 @@ checks=0
 failures=0
 # Native ui:clipboard in tests/ui.sh owns fresh-window system Copy/Cut paste, including bytes and all selected destinations.
 for action in copy cut copyas-list copyas-grid copyas-columns terminal pasteas pasteas-absolute pasteas-hard original; do
+    rm -rf "$test_root/source/sub"
     printf 'alpha contents\n' > "$test_root/source/alpha.txt"
     printf 'beta contents\n' > "$test_root/source/beta.txt"
+    if [[ "$action" == copyas-* ]]; then
+        mkdir -p "$test_root/source/sub"
+        mv "$test_root/source/alpha.txt" "$test_root/source/sub/alpha.txt"
+        mv "$test_root/source/beta.txt" "$test_root/source/sub/beta.txt"
+    fi
     start="$test_root/source"
     [ "$action" = original ] && start="$test_root/original-dest"
     dest="$test_root/$action-dest"
@@ -97,19 +103,31 @@ for action in copy cut copyas-list copyas-grid copyas-columns terminal pasteas p
     if printf '%s\n' "$output" | grep -aq 'CLIPHUNT FAIL'; then failed=1; fi
     if [[ "$action" == copyas-* ]]; then
         checks=$((checks + 1))
-        # Sample input: {"text":"/source/alpha.txt\n/source/beta.txt"} is one Copy as publication.
+        # Sample input: {"text":"/source/sub/alpha.txt\n/source/sub/beta.txt"} is one Copy as publication.
+        # Files live in sub/ under the listed directory, so Relative path is sub/name and Name is the leaf.
         python3 - "$test_root/clipboard.calls" "$test_root/source" <<'PY'
 import json, pathlib, sys
 calls = [json.loads(line)["text"] for line in pathlib.Path(sys.argv[1]).read_text().splitlines()]
-root = sys.argv[2]
-paths = [root + "/alpha.txt", root + "/beta.txt"]
-expected = ["\n".join(paths), "alpha.txt\nbeta.txt", "alpha\nbeta", root + "\n" + root,
+root = pathlib.Path(sys.argv[2])
+want = {str(root / "sub" / "alpha.txt"), str(root / "sub" / "beta.txt")}
+paths = calls[0].split("\n") if calls else []
+if set(paths) != want or len(paths) != 2:
+    print("FAIL Copy as Path did not copy both nested files:", repr(calls))
+    sys.exit(1)
+relative = "\n".join("sub/" + pathlib.Path(p).name for p in paths)
+names = "\n".join(pathlib.Path(p).name for p in paths)
+stems = "\n".join(pathlib.Path(p).stem for p in paths)
+folder = str(root / "sub")
+if relative == names:
+    print("FAIL Relative path matched Name; nested files required:", repr(relative))
+    sys.exit(1)
+expected = ["\n".join(paths), relative, names, stems, folder + "\n" + folder,
             "\n".join(pathlib.Path(p).as_uri() for p in paths),
             "\n".join("'" + p + "'" for p in paths), "\n".join(paths)]
 if calls != expected:
     print("FAIL Copy as leaves or Ctrl+Shift+C did not copy the whole selection:", repr(calls))
     sys.exit(1)
-print("PASS six Copy as leaves and Ctrl+Shift+C copied both selected files")
+print("PASS seven Copy as leaves and Ctrl+Shift+C copied both selected files")
 PY
         if [ "$?" -ne 0 ]; then failed=1; failures=$((failures + 1)); fi
     elif [[ "$action" == terminal ]]; then

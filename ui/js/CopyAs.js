@@ -35,7 +35,44 @@ function uri(path) {
     return Format.fileUri(String(path))
 }
 
-function one(path, kind) {
+// Sample input: path "/home/gm/proj/src/a.rs", base "/home/gm/proj" -> "src/a.rs".
+// The listed directory is the base, so a search hit keeps the folders under it.
+function relative(path, base) {
+    var p = String(path)
+    var b = String(base || "")
+    if (!b)
+        return p
+    while (p.length > 1 && p.charAt(p.length - 1) === "/")
+        p = p.substring(0, p.length - 1)
+    while (b.length > 1 && b.charAt(b.length - 1) === "/")
+        b = b.substring(0, b.length - 1)
+    if (p === b)
+        return "."
+    if (b === "/")
+        return p.charAt(0) === "/" ? p.substring(1) : p
+    if (p.indexOf(b + "/") === 0)
+        return p.substring(b.length + 1)
+    var pParts = p.split("/")
+    var bParts = b.split("/")
+    if (pParts[pParts.length - 1] === "")
+        pParts.pop()
+    if (bParts[bParts.length - 1] === "")
+        bParts.pop()
+    var i = 0
+    while (i < pParts.length && i < bParts.length && pParts[i] === bParts[i])
+        i++
+    var out = []
+    var u
+    for (u = i; u < bParts.length; u++)
+        if (bParts[u] !== "")
+            out.push("..")
+    for (u = i; u < pParts.length; u++)
+        if (pParts[u] !== "")
+            out.push(pParts[u])
+    return out.length ? out.join("/") : "."
+}
+
+function one(path, kind, base) {
     if (kind === "name")
         return leaf(path)
     if (kind === "stem")
@@ -46,12 +83,14 @@ function one(path, kind) {
         return uri(path)
     if (kind === "quoted")
         return "'" + String(path).split("'").join("'\\''") + "'"
+    if (kind === "relative")
+        return relative(path, base)
     return String(path)
 }
 
-function lines(paths, kind) {
+function lines(paths, kind, base) {
     var out = []
     for (var i = 0; i < paths.length; i++)
-        out.push(one(paths[i], kind))
+        out.push(one(paths[i], kind, base))
     return out.join("\n")
 }

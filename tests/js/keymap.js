@@ -170,6 +170,7 @@ function run(check) {
         key(preset, "V", "V", shift, "invertSelection")
         key(preset, "C", "", ctrl | shift, "copyPath")
         key(preset, "P", "p", none, "copyPath", "menu")
+        key(preset, "R", "r", none, "copyRelative", "menu")
         key(preset, "N", "n", none, "copyName", "menu")
         key(preset, "E", "e", none, "copyStem", "menu")
         key(preset, "F", "f", none, "copydirpath", "menu")

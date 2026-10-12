@@ -6,6 +6,7 @@ import Quickshell.Io
 import "flea" as Flea
 import "flea/js/Keymap.js" as Keymap
 import "flea/js/Menu.js" as Menu
+import "flea/js/Search.js" as Search
 
 // Each real window observes native clipboard refusals; the driver records Copy as text separately.
 ShellRoot {
@@ -27,7 +28,7 @@ ShellRoot {
     property int leafIndex: 0
     readonly property int artifactStage: 20
     readonly property var linkLeaves: ({pasteas: "pasteLink", "pasteas-absolute": "pasteAbsoluteLink", "pasteas-hard": "pasteHardLink"})
-    readonly property var copyLeaves: ["copyPath", "copyName", "copyStem", "copydirpath", "copyUri", "copyQuoted"]
+    readonly property var copyLeaves: ["copyPath", "copyRelative", "copyName", "copyStem", "copydirpath", "copyUri", "copyQuoted"]
     readonly property var pane: body.currentPane
 
     function log(line) { console.log("CLIPHUNT " + line) }
@@ -148,8 +149,20 @@ ShellRoot {
                 + pane.path + " messages=" + JSON.stringify(messages))
             log("DONE action=" + action)
             quit()
-        } else if (stage === 0 && action.indexOf("copyas-") === 0 && !pane.listInFlight && pane.total === 2) {
+        } else if (stage === 0 && action.indexOf("copyas-") === 0 && !pane.listInFlight && pane.total === 1) {
             pane.chooseView(action.substring("copyas-".length))
+            stage = 21
+            ticks = 0
+        } else if (stage === 21 && ticks >= 5 && !pane.listInFlight) {
+            // Search from the listed directory so a nested file copies as sub/name on Relative path.
+            pane.searchHere = true
+            Search.start(pane)
+            pane.searchQuery = "txt"
+            Search.run(pane)
+            stage = 22
+            ticks = 0
+        } else if (stage === 22 && !pane.searchRunning && pane.searchMode === "results"
+                   && pane.total === 2 && pane.visibleItemFor(0)) {
             stage = 6
             ticks = 0
         } else if (stage === 6 && ticks >= 5 && pane.visibleItemFor(0)) {

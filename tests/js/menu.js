@@ -112,13 +112,13 @@ function run(check) {
     // enabled where the single-item rows above grey out.
     check("multi-selection keeps Permissions enabled on files",
         entry(Menu.listingEntries(state({ hiddenActions: [], selectionCount: 2, selectionModes: [0o100644, 0o100644] })), "permissions").disabled, false)
-    // MenuAdditions040: Copy as holds six leaves, Paste as three, each with
+    // MenuAdditions040: Copy as holds seven leaves, Paste as three, each with
     // the board's own mark; the letters ride the menu keymap, not a hint.
     var copyLeaves = entry(Menu.listingEntries(state({ hiddenActions: [] })), "copyAs").submenu
-    check("Copy as holds Path, Name, Stem, Folder path, URI and Shell-quoted",
-        copyLeaves.map(function (r) { return r.id }).join(","), "copyPath,copyName,copyStem,copydirpath,copyUri,copyQuoted")
+    check("Copy as holds Path, Relative path, Name, Stem, Folder path, URI and Shell-quoted",
+        copyLeaves.map(function (r) { return r.id }).join(","), "copyPath,copyRelative,copyName,copyStem,copydirpath,copyUri,copyQuoted")
     check("and each leaf wears the board's mark",
-        copyLeaves.map(function (r) { return r.glyph }).join(","), "file-text,type,type,folder,globe,terminal")
+        copyLeaves.map(function (r) { return r.glyph }).join(","), "file-text,file,type,type,folder,globe,terminal")
     var pasteLeaves = entry(Menu.listingEntries(state({ hiddenActions: [], clipboardAvailable: true })), "pasteAs").submenu
     check("Paste as holds Link, Absolute link and Hard link",
         pasteLeaves.map(function (r) { return r.id }).join(","), "pasteLink,pasteAbsoluteLink,pasteHardLink")
@@ -338,7 +338,7 @@ function providerRefresh(check) {
     check("and the Paste as row", entry(hiddenRows, "pasteAs").action || "absent", "absent")
     check("yet Copy as still builds its flyout from the action",
           Menu.flyoutEntries("copyAs").map(function (l) { return l.id }).join(","),
-          "copyPath,copyName,copyStem,copydirpath,copyUri,copyQuoted")
+          "copyPath,copyRelative,copyName,copyStem,copydirpath,copyUri,copyQuoted")
     check("and Paste as builds its own",
           Menu.flyoutEntries("pasteAs").map(function (l) { return l.id }).join(","),
           "pasteLink,pasteAbsoluteLink,pasteHardLink")
@@ -512,4 +512,7 @@ function providerRefresh(check) {
     var pmaText = Source.source("ui/PaneMenuActions.qml")
     check("Show original sends through requestLinkTarget", pmaText.indexOf("requestLinkTarget") >= 0, true)
     check("and sends no raw linktarget", pmaText.indexOf('"linktarget"') < 0, true)
+    // Source pin: a menu leaf copies through Ops.copyAs, so Recent's refusal covers it too.
+    check("Copy as leaves copy through Ops.copyAs", pmaText.indexOf("Ops.copyAs(root.pane, kind, taken)") >= 0, true)
+    check("and never format their own text", pmaText.indexOf("CopyAs.lines") < 0, true)
 }

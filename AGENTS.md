@@ -3516,6 +3516,8 @@ cliphunt 2026-10-05 moves one ceiling, re-derived with `wc -l`: `src/backend/men
 
 mdfid2 records one ceiling, re-derived with `wc -l`: `ui/js/MdDocument.js` 299 to 311 for the HTML heading route (the one heading check with its flush, block and align lines).
 
+copyrelative 2026-10-12 (Copy as gains Relative path on `r`) moves eight ceilings and lowers one, each re-derived with `wc -l`: `ui/js/Menu.js` 454 to 455 for the seventh leaf, `ui/js/Focus.js` 435 to 436 and `ui/js/Keymap.js` 355 to 356 for its dispatch and generated row, `ui/js/Ops.js` 426 to 430 for the listed directory as the base on the paths claim and the refusal in Recent, which stands on "/" so a relative path there would read as relative to the terminal; `tests/js/keymap.js` 309 to 310, `tests/js/focus.js` 745 to 749, `tests/js/menu.js` 515 to 518 and `tests/js/ops.js` 511 to 534 for the key, the dispatch, the leaf order with the `Ops.copyAs` source pin, and the base, the stored claim and the Recent refusal; `ui/PaneMenuActions.qml` falls 467 to 466 because its leaves now copy through `Ops.copyAs` and no longer import `CopyAs`. Global limits and all checks remain intact.
+
 ## The key table is generated
 
 `keys.toml` at the repository root is the single source of truth for every binding.

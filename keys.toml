@@ -1777,6 +1777,16 @@ context = "menu"
 [[preset]]
 name = "all"
 mods = "text"
+key = "r"
+keys = "r"
+action = "copyRelative"
+label = "copy relative path"
+frontend = "all"
+context = "menu"
+
+[[preset]]
+name = "all"
+mods = "text"
 key = "n"
 keys = "n"
 action = "copyName"

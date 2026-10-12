@@ -737,6 +737,10 @@ function run(check) {
     copyPathPane.opener = { copyText: function (text) { copyPathPane.copied = text } }
     Focus.act("copyPath", copyPathPane, 0, ["/d/a.txt"])
     check("copy path copies at once", copyPathPane.copied, "/d/a.txt")
+    copyPathPane.path = "/d"
+    copyPathPane.copied = ""
+    Focus.act("copyRelative", copyPathPane, 0, ["/d/sub/a.txt"])
+    check("copy relative copies at once", copyPathPane.copied, "sub/a.txt")
     var pasteLinkPane = listPane(true)
     pasteLinkPane.linked = []
     pasteLinkPane.pasteLink = function (kind) { pasteLinkPane.linked.push(kind + ":" + arguments.length) }
