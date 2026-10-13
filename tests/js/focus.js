@@ -171,6 +171,20 @@ function run(check) {
     check("e is discarded while browsing", Focus.lookup(e, pane(closed())), "")
     check("minus is discarded while browsing", Focus.lookup(minus, pane(closed())), "")
     check("plus is discarded while browsing", Focus.lookup(plus, pane(closed())), "")
+    var ctrl = Qt.ControlModifier
+    var ctrlEqual = key(Qt.Key_Equal, "=", ctrl)
+    var ctrlPlus = key(Qt.Key_Plus, "+", ctrl)
+    var ctrlMinus = key(Qt.Key_Minus, "-", ctrl)
+    var ctrlZero = key(Qt.Key_0, "0", ctrl)
+    var image = { active: true, isMedia: false, isPdf: false, isImage: true }
+    check("ctrl equal grows listing text", Focus.lookup(ctrlEqual, pane(closed())), "textSizeUp")
+    check("ctrl plus grows listing text", Focus.lookup(ctrlPlus, pane(closed())), "textSizeUp")
+    check("ctrl minus shrinks listing text", Focus.lookup(ctrlMinus, pane(closed())), "textSizeDown")
+    check("ctrl zero resets listing text", Focus.lookup(ctrlZero, pane(closed())), "textSizeReset")
+    check("ctrl plus leaves PDF zoom on the bare plus", Focus.lookup(ctrlPlus, pane(pdfOpen())), "")
+    check("ctrl minus leaves PDF zoom on the bare minus", Focus.lookup(ctrlMinus, pane(pdfOpen())), "")
+    check("ctrl zero leaves image fit on the bare zero", Focus.lookup(ctrlZero, pane(image)), "")
+    check("bare plus still zooms an image", Focus.lookup(plus, pane(image)), "zoomIn")
     check("e is discarded over a media preview", Focus.lookup(e, pane(mediaOpen())), "")
     check("minus is discarded over a media preview", Focus.lookup(minus, pane(mediaOpen())), "")
 

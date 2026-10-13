@@ -74,8 +74,8 @@ tests/js/collide.js 319
 tests/js/devices.js 363
 tests/js/previewswap.js 469
 tests/js/mdstructure.js 655
-tests/js/keymap.js 356
-tests/js/focus.js 843
+tests/js/keymap.js 372
+tests/js/focus.js 857
 tests/js/mounts.js 349
 tests/js/menu.js 596
 tests/js/nav.js 478
@@ -170,7 +170,7 @@ ui/js/ColumnsCarry.js 94
 ui/js/Devices.js 391
 ui/js/Filter.js 284
 ui/js/Focus.js 483
-ui/js/Keymap.js 365
+ui/js/Keymap.js 369
 ui/js/Nav.js 328
 ui/js/Markdown.js 135
 ui/js/MdBlocks.js 437

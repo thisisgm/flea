@@ -91,8 +91,25 @@ action = "newFolder"
 
 # Issue 9: foot's own zoom chords, which in foot are a text size and are one here too. They are an
 # alias onto the Display section's own control and its one stored stop, never a second engine. Plus
-# and Equal both, because + is Shift+= on this layout and the hand presses the one key either way;
-# 0 goes back to following Omarchy, so an override is never a state you are stuck in.
+# and Equal both, because + is Shift+= on a US layout and the hand presses the one key either way.
+# Ctrl++ without that Shift arrives as Equal, and Qt can report Plus with Control alone, so the
+# same three actions answer on Control by itself. 0 goes back to following Omarchy.
+[[ctrl]]
+key = "Plus"
+action = "textSizeUp"
+
+[[ctrl]]
+key = "Equal"
+action = "textSizeUp"
+
+[[ctrl]]
+key = "Minus"
+action = "textSizeDown"
+
+[[ctrl]]
+key = "0"
+action = "textSizeReset"
+
 [[ctrlshift]]
 key = "Plus"
 action = "textSizeUp"

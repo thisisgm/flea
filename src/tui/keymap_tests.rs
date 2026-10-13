@@ -76,6 +76,30 @@ fn default_redo_is_control_shift_z() {
     assert_eq!(map.action(&Key::character('Z', "ctrlshift"), "default"), "redo");
 }
 #[test]
+fn ctrl_equal_grows_listing_text_and_shift_chords_stay() {
+    let map = Map::load();
+    for (key, action) in [
+        (Key::character('=', "ctrl"), "textSizeUp"),
+        (Key::character('+', "ctrl"), "textSizeUp"),
+        (Key::character('-', "ctrl"), "textSizeDown"),
+        (Key::character('0', "ctrl"), "textSizeReset"),
+        (Key::named("Plus", "ctrlshift"), "textSizeUp"),
+        (Key::named("Equal", "ctrlshift"), "textSizeUp"),
+        (Key::named("Minus", "ctrlshift"), "textSizeDown"),
+        (Key::named("Underscore", "ctrlshift"), "textSizeDown"),
+        (Key::named("0", "ctrlshift"), "textSizeReset"),
+    ] {
+        assert_eq!(map.action(&key, "default"), action, "{}", key.name);
+    }
+    assert_eq!(map.action(&Key::character('+', ""), "default"), "zoomIn");
+    assert_eq!(map.action(&Key::character('-', ""), "default"), "zoomOut");
+    assert_eq!(map.in_context(&Key::character('+', "ctrl"), "default", "pdf"), "");
+    assert_eq!(map.in_context(&Key::character('-', "ctrl"), "default", "pdf"), "");
+    assert_eq!(map.in_context(&Key::character('+', ""), "default", "pdf"), "zoomIn");
+    assert_eq!(map.in_context(&Key::character('0', ""), "default", "preview"), "zoomFit");
+    assert_eq!(map.in_context(&Key::character('0', "ctrl"), "default", "preview"), "");
+}
+#[test]
 fn header_comments_do_not_strip_quoted_hashes_or_accept_other_suffixes() {
     let map = Map::parse(r##"
 [[text]] # A header comment can contain = and ]].
