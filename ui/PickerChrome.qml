@@ -10,7 +10,7 @@ import "js/Picker.js" as Picker
 Item {
     id: root
     // Its Jump dropdown hangs below the strip, so the chrome rises over the places and the listing while it shows.
-    z: entry.jumpShown ? 1 : 0
+    z: entry.jumpShown || folderButton.hovered ? 1 : 0
 
     property var picker: null
     property var submissionFocus: null
@@ -56,13 +56,15 @@ Item {
     signal upRequested()
     signal chipChosen(int index)
     signal viewChosen(string mode)
+    signal newFolderRequested()
 
     readonly property var req: root.picker.req
     readonly property var chips: Picker.chips(root.req)
 
     readonly property color edge: root.picker.edge
 
-    implicitHeight: ask.height + where.height
+    readonly property bool folderButtonWrapped: !!root.picker.saving && root.width < moves.width + views.width + folderButton.implicitWidth + Theme.space(280)
+    implicitHeight: ask.height + where.height + (root.folderButtonWrapped ? Theme.chromeHeight : 0)
 
     // The picker's answers are ButtonSystem040 A's one control at body size, framed inside the ask strip's insets; the picker owns Tab.
     component Answer: Flea.DialogButton {
@@ -362,9 +364,10 @@ Item {
             id: types
             anchors.right: parent.right
             anchors.rightMargin: views.width + Theme.spacing.rowPaddingX + Theme.spacing.gap
+                + (root.picker.saving && !root.folderButtonWrapped ? folderButton.width + Theme.spacing.gap : 0)
             anchors.verticalCenter: parent.verticalCenter
             // The chips take room first and the path gives way through its anchor, keeping its minimum.
-            width: Picker.chipStripWidth(where.width - moves.width - views.width - 2 * Theme.spacing.rowPaddingX - 3 * Theme.spacing.gap, chipRow.width, Picker.CHIP_PATH_MIN)
+            width: Picker.chipStripWidth(where.width - moves.width - views.width - (root.picker.saving && !root.folderButtonWrapped ? folderButton.width + Theme.spacing.gap : 0) - 2 * Theme.spacing.rowPaddingX - 3 * Theme.spacing.gap, chipRow.width, Picker.CHIP_PATH_MIN)
             height: Theme.hitMin
             contentWidth: chipRow.width
             contentHeight: height
@@ -430,8 +433,55 @@ Item {
         }
     }
 
+    Mark {
+        id: folderButton
+        objectName: "pickerNewFolder"
+        accessName: "New folder"
+        visible: !!root.picker.saving
+        enabled: !!root.picker.canCreateFolder
+        markItem.visible: false
+        ringItem.visible: false
+        anchors.right: root.folderButtonWrapped ? parent.right : views.left
+        anchors.rightMargin: root.folderButtonWrapped ? Theme.spacing.rowPaddingX : Theme.spacing.gap
+        anchors.top: root.folderButtonWrapped ? where.bottom : where.top
+        onActivated: root.newFolderRequested()
+        Text {
+            objectName: "pickerFolderGlyph"
+            text: "\ueec7" // Nerd Fonts: nf-fa-folder_plus (U+EEC7)
+            font.family: "Symbols Nerd Font Mono"
+            font.pixelSize: folderButton.glyphSize
+            width: folderButton.glyphSize
+            height: width
+            anchors.horizontalCenter: parent.horizontalCenter
+            y: Math.round((parent.height - Theme.spacing.hairline - height) / 2)
+            horizontalAlignment: Text.AlignHCenter
+            verticalAlignment: Text.AlignVCenter
+            color: !folderButton.enabled ? Theme.color.mutedFrame : folderButton.activeFocus ? Theme.color.accent : Theme.color.foreground
+            opacity: folderButton.enabled ? 1 : Theme.disabledOpacity
+            textFormat: Text.PlainText
+        }
+    }
+    Rectangle {
+        visible: folderButton.hovered && folderButton.enabled
+        x: Math.max(0, folderButton.x + folderButton.width - width)
+        y: folderButton.y + folderButton.height
+        width: folderHint.implicitWidth + 2 * Theme.spacing.gap
+        height: folderHint.implicitHeight + 2 * Theme.spacing.rowPaddingY
+        color: Theme.color.surface
+        Text {
+            id: folderHint
+            anchors.centerIn: parent
+            text: "New folder (Ctrl+Shift+N)"
+            font.family: Theme.font.family
+            font.pixelSize: Theme.font.caption
+            color: Theme.color.foreground
+            textFormat: Text.PlainText
+        }
+    }
+
     function focusItems() {
         var items = [cancelButton, acceptButton, backButton, upButton]
+        if (root.picker.saving) items.push(folderButton)
         for (var i = 0; i < chipRepeater.count; i++) items.push(chipRepeater.itemAt(i))
         return items
     }

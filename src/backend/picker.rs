@@ -15,6 +15,8 @@ use std::sync::mpsc::{sync_channel, Sender, SyncSender, TrySendError};
 
 #[path = "picker_limits.rs"]
 mod limits;
+#[path = "picker_folder.rs"]
+mod folder;
 
 const O_PATH: i32 = 0o10000000;
 const FNM_CASEFOLD: i32 = 1 << 4;
@@ -138,6 +140,7 @@ struct SaveReview {
 struct State {
     marks: Vec<Held>,
     save: Option<SaveReview>,
+    folder: folder::Draft,
 }
 impl State {
     // Sample input: {"c":"picker","op":"mark","id":1,"path":"/tmp/photo.png","multiple":true}.
@@ -165,6 +168,9 @@ impl State {
                 self.select(&paths, directory, cancel, Held::open)
             }
             Some("validate") => self.valid_marks(cancel),
+            Some("folderPrepare") => self.folder.prepare(line, id),
+            Some("folderCreate") => self.folder.create(line, cancel),
+            Some("folderClose") => self.folder.close(),
             Some("save") => {
                 self.save = None;
                 let path = PathBuf::from(field_str(line, "folder").unwrap_or_default());
@@ -306,3 +312,7 @@ mod tests;
 #[cfg(test)]
 #[path = "picker_wording_tests.rs"]
 mod wording;
+
+#[cfg(test)]
+#[path = "picker_folder_tests.rs"]
+mod folder_tests;

@@ -111,7 +111,7 @@ ShellRoot {
         readonly property bool marksAllowed: win.req.multiple && !win.saving
         readonly property var cursorRow: win.rowFor(win.cursorIndex)
         readonly property bool cursorFile: win.listingState === "ready" && !win.listingFailed && win.cursorRow !== null && !Picker.directory(win.cursorRow)
-        readonly property bool canAccept: !win.backendUnavailable && !win.submitting && !win.markRequest && (win.saving
+        readonly property bool canAccept: !win.backendUnavailable && !win.submitting && !newFolder.active && !win.markRequest && (win.saving
             ? win.saveReady : win.marks.length > 0 || (!win.folderMode && win.cursorFile) || (win.folderMode && !win.recent && win.listingState !== "loading"))
 
         // SendPicker.html draws every rule and control frame in one ink, a lift over whatever plane
@@ -124,6 +124,9 @@ ShellRoot {
         readonly property bool recent: Picker.isRecent(win.path)
 
         readonly property bool saving: win.req.mode === "save"
+        readonly property bool canCreateFolder: newFolder.available
+        readonly property var folderCreation: newFolder
+        function startNewFolder() { newFolder.open(win.contentItem.Window.window ? win.contentItem.Window.window.activeFocusItem : null) }
         readonly property bool folderMode: win.req.directory || win.req.mode === "savefiles"
         // Twice the wider view's screen plus slack, so the screen still fits after the quarter lead.
         readonly property int windowSize: Picker.windowSize(list.visibleRows, grid.visibleTileRows, grid.columns)
@@ -142,7 +145,7 @@ ShellRoot {
         }
 
         function open(next) {
-            if (win.submitting || next === win.path) return
+            if (win.submitting || newFolder.active || next === win.path) return
             if (win.path.length > 0) win.history = win.history.concat([win.path])
             win.openWithoutHistory(next)
         }
@@ -330,6 +333,7 @@ ShellRoot {
         }
 
         function cancel() {
+            if (newFolder.active) { newFolder.close(); return }
             win.finish(Picker.RESPONSE_CANCELLED, [])
         }
 
@@ -459,10 +463,11 @@ ShellRoot {
                 win.say(msg, true)
             }
             onChanged: function (path) {
-                if (path === win.path && !win.submitting) win.openWithoutHistory(win.path)
+                if (path === win.path && !win.submitting && !newFolder.active) win.openWithoutHistory(win.path)
             }
             onPickerResult: function (message) {
                 if (win.answered || win.backendUnavailable) return
+                newFolder.received(message)
                 if (message.id === win.markRequest || message.id === win.pathProbe) {
                     selection.received(message)
                 } else if (message.id === win.saveRequest) {
@@ -499,6 +504,7 @@ ShellRoot {
         Rectangle {
             anchors.fill: parent
             color: Theme.color.background
+            enabled: !newFolder.active
             focus: true
             // The save field takes the keyboard from the list, and Escape has to refuse from there too.
             Keys.onEscapePressed: win.cancel()
@@ -517,6 +523,7 @@ ShellRoot {
                 onUpRequested: { win.focusView(); win.goUp() }
                 onChipChosen: function (index) { win.filterIndex = index }
                 onViewChosen: function (mode) { win.setView(mode) }
+                onNewFolderRequested: win.startNewFolder()
             }
 
             Flea.PickerPlaces {
@@ -698,6 +705,20 @@ ShellRoot {
                     }
                 }
             }
+        }
+
+        Flea.PickerNewFolder {
+            id: newFolder
+            picker: win
+            onCreated: function(path) {
+                win.open(path)
+                Qt.callLater(function() { save.fieldItem.forceActiveFocus() })
+            }
+        }
+        Shortcut {
+            sequence: "Ctrl+Shift+N"
+            enabled: win.canCreateFolder
+            onActivated: win.startNewFolder()
         }
 
         function showShares(uri, label, names) {

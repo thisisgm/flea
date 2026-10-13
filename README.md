@@ -109,6 +109,10 @@ If you previously pinned another directory handler, restore that handler explici
 
 </details>
 
+## Saving files
+
+In a Save dialog, the **folder-plus button** or `Ctrl+Shift+N` creates one folder in the current location. Flea enters it and keeps the filename; **Save** remains a separate action. Cancelling the Save dialog afterwards does not remove the folder.
+
 ## Views
 
 **List** for file details. **Grid** for photos and clips. **Columns** for browsing folders with a preview beside them.

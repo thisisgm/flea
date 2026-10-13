@@ -128,6 +128,8 @@ PickerSelection 1.0 PickerSelection.qml
 PickerPlaces 1.0 PickerPlaces.qml
 PickerRecent 1.0 PickerRecent.qml
 PickerSave 1.0 PickerSave.qml
+PickerNewFolder 1.0 PickerNewFolder.qml
+PickerFolderDialog 1.0 PickerFolderDialog.qml
 PickerPathBar 1.0 PickerPathBar.qml
 PathEntry 1.0 PathEntry.qml
 PanePath 1.0 PanePath.qml

@@ -4,7 +4,8 @@ import "." as Flea
 import "js/Format.js" as Format
 import "js/Picker.js" as Picker
 
-// Collision approval reviews a URI; the requesting application remains the only writer.
+// Collision approval reviews a URI; the requesting application alone writes the chosen file.
+// Folder creation is a separate, explicit picker operation.
 Item {
     id: root
     required property var picker
