@@ -110,13 +110,16 @@ Singleton {
     readonly property real bodyAdvance: bodyGlyphMetrics.advanceWidth
     TextMetrics {
         id: glyphMetrics
+        renderType: Text.NativeRendering
         font.family: Style.font.family
+        // Match the listing's hinted advances when budgeting and wrapping filenames.
+        font.hintingPreference: Font.PreferFullHinting
         font.pixelSize: root.font.bodySmall
         text: "0"
     }
 
     // Trash draws its Deleted cell at body, and body/bodySmall is not one ratio across the size stops.
-    TextMetrics { id: bodyGlyphMetrics; font.family: Style.font.family; font.pixelSize: root.font.body; text: "0" }
+    TextMetrics { id: bodyGlyphMetrics; renderType: Text.NativeRendering; font.family: Style.font.family; font.hintingPreference: Font.PreferFullHinting; font.pixelSize: root.font.body; text: "0" }
     readonly property real bodySmallAdvance: root.glyphAdvance // Same inputs as glyphMetrics, so one object serves both; grid tile budgets off this, never the body one.
 
     // The header and every row read the stored widths so the two cannot drift apart; a drag previews in the header alone, ListColumns040 callout 1.

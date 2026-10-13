@@ -37,6 +37,8 @@ Item {
         text: root.before
         color: root.color
         font.family: Theme.font.family
+        // The entry already uses native rendering; snap both axes at small listing sizes.
+        font.hintingPreference: Font.PreferFullHinting
         font.pixelSize: root.pixelSize
         elide: root.elideMiddle && !root.marked ? Text.ElideMiddle : Text.ElideRight
         textFormat: Text.PlainText
@@ -69,6 +71,7 @@ Item {
                 text: root.run
                 color: root.color
                 font.family: Theme.font.family
+                font.hintingPreference: Font.PreferFullHinting
                 font.pixelSize: root.pixelSize
                 elide: Text.ElideRight
                 textFormat: Text.PlainText
@@ -83,6 +86,7 @@ Item {
                 text: root.after
                 color: root.color
                 font.family: Theme.font.family
+                font.hintingPreference: Font.PreferFullHinting
                 font.pixelSize: root.pixelSize
                 elide: Text.ElideRight
                 textFormat: Text.PlainText

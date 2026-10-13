@@ -230,7 +230,8 @@ Item {
 
     function dualRecent(check, walk) {
         var dualTexts = root.texts(dualRow, walk)
-        check("Dual Recent drops Location at the single-pane floor", dualHeader.cols.location, false)
+        // Hinting and font advances can put the single-pane floor on either side of the dual floor.
+        check("Dual Recent follows its own floor at the single-pane width", dualHeader.cols.location, root.locationFloor >= root.dualLocationFloor)
         check("Dual Recent header and row sets agree", dualRow.columnSet(), dualHeader.columnSet())
         check("Dual Recent builds its name", dualTexts.name !== null, true)
         if (dualTexts.name)

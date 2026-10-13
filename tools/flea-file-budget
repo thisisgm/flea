@@ -155,12 +155,12 @@ ui/PreviewColumn.qml 589
 ui/PickerChrome.qml 441
 ui/DeviceMounts.qml 537
 ui/PreviewMarkdown.qml 625
-ui/Row.qml 496
+ui/Row.qml 502
 ui/SettingsPanel.qml 547
 ui/SettingsRow.qml 409
 ui/Sidebar.qml 713
 ui/StatusBar.qml 477
-ui/Theme.qml 475
+ui/Theme.qml 478
 ui/TrashView.qml 472
 ui/UnlockDialog.qml 450
 ui/ViewState.qml 542

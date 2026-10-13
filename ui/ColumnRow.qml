@@ -158,6 +158,7 @@ Item {
         text: root.row && root.nameBudget >= 0 ? Format.middleElide(root.row.n, Math.max(0, root.nameBudget - (root.clipMark.length > 0 ? Math.ceil((Theme.spacing.gap + root.clipPx) / Theme.bodyAdvance) : 0))) : (root.row ? root.row.n : "")
         color: root.ink
         font.family: Theme.font.family
+        font.hintingPreference: Font.PreferFullHinting
         font.pixelSize: Theme.font.body
         textFormat: Text.PlainText
         elide: Text.ElideMiddle
@@ -183,6 +184,7 @@ Item {
         color: root.ink
         horizontalAlignment: Text.AlignRight
         font.family: Theme.font.family
+        font.hintingPreference: Font.PreferFullHinting
         font.pixelSize: Theme.font.caption
         textFormat: Text.PlainText
         elide: Text.ElideRight
@@ -241,6 +243,7 @@ Item {
                             // List's metadata ink (ui/Row.qml cellInk): foreground on a lifted row, a darker foreground at rest.
                             color: root.dimmed(root.cursor || root.lifted || root.hovered || root.selected || root.dropTarget ? Theme.color.foreground : Theme.color.metadata)
                             font.family: Theme.font.family
+                            font.hintingPreference: Font.PreferFullHinting
                             font.pixelSize: Theme.font.caption
                             elide: Text.ElideLeft
                             textFormat: Text.PlainText
@@ -267,6 +270,7 @@ Item {
                         text: DragOps.label(root.dropCopying, root.dropLinking)
                         color: Theme.color.accent
                         font.family: Theme.font.family
+                        font.hintingPreference: Font.PreferFullHinting
                         font.pixelSize: Theme.font.caption
                         textFormat: Text.PlainText
                     }

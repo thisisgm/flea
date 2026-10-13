@@ -277,6 +277,7 @@ Item {
         selectionColor: "transparent"
         selectedTextColor: Theme.color.background
         font.family: Theme.font.family
+        font.hintingPreference: Font.PreferFullHinting
         font.pixelSize: Theme.font.body
         clip: true
         readOnly: root.pending
@@ -313,6 +314,7 @@ Item {
         text: root.errorText
         color: Theme.color.error
         font.family: Theme.font.family
+        font.hintingPreference: Font.PreferFullHinting
         font.pixelSize: Theme.font.caption
         textFormat: Text.PlainText
         wrapMode: Text.Wrap
@@ -346,6 +348,7 @@ Item {
             text: root.extension
             color: Theme.color.muted
             font.family: field.font.family
+            font.hintingPreference: field.font.hintingPreference
             font.pixelSize: field.font.pixelSize
             textFormat: Text.PlainText
         }

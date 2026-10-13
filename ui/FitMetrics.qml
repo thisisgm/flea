@@ -5,7 +5,9 @@ import "js/ColumnFit.js" as ColumnFit
 Item {
     TextMetrics {
         id: fitText
+        renderType: Text.NativeRendering
         font.family: Theme.font.family
+        font.hintingPreference: Font.PreferFullHinting
         font.pixelSize: Theme.font.caption
     }
 

@@ -63,14 +63,15 @@ ShellRoot {
         root.check(cap.lineCount === 2, "base " + base + " normal lines " + cap.lineCount)
         root.check(ntext.slice(-4) === ".txt", "base " + base + " normal tail " + ntext.slice(-12))
         root.check(ntext.indexOf("…") >= 0, "base " + base + " normal no ellipsis")
-        root.check(cap.contentHeight <= cap.height, "base " + base + " normal textHeight " + cap.contentHeight + " over slot " + cap.height)
+        root.check(Math.ceil(cap.contentHeight) <= cap.height, "base " + base + " normal textHeight " + cap.contentHeight + " over slot " + cap.height)
         root.check(cap.y + cap.height <= normalTile.height, "base " + base + " normal bottom past tile")
+        // Full hinting can fit the fractional line box exactly; its rounded pixel extent must still fit.
         if (withNegative)
-            root.check(cap.contentHeight > 2 * lineH, "base " + base + " old slot already contained it")
+            root.check(Math.ceil(cap.contentHeight) > 2 * lineH, "base " + base + " old slot already contained it")
         var dcap = dropTile.captionItem
         console.log("GRIDCAPTION MEASURE base=" + base + " tile=drop lines=" + dcap.lineCount + " textHeight=" + dcap.contentHeight + " slotHeight=" + dcap.height + " bottom=" + (dcap.y + dcap.height) + " tileHeight=" + dropTile.height)
         root.check(dcap.lineCount === 1, "base " + base + " drop lines " + dcap.lineCount)
-        root.check(dcap.contentHeight <= dcap.height, "base " + base + " drop textHeight " + dcap.contentHeight + " over slot " + dcap.height)
+        root.check(Math.ceil(dcap.contentHeight) <= dcap.height, "base " + base + " drop textHeight " + dcap.contentHeight + " over slot " + dcap.height)
         root.check(dcap.y + dcap.height <= dropTile.height, "base " + base + " drop bottom past tile")
         // The hover tip follows Flea's own elide: on for the cut name, which Qt sees whole, off for a name that wraps whole.
         root.check(!cap.truncated, "base " + base + " Qt cut the caption Flea elided")

@@ -191,6 +191,7 @@ Item {
         text: root.row ? GridNames.gridCaption(root.row.n, root.captionPerLine, root.captionLines) : ""
         color: Theme.color.foreground
         font.family: Theme.font.family
+        font.hintingPreference: Font.PreferFullHinting
         font.pixelSize: Theme.font.bodySmall
         textFormat: Text.PlainText
         wrapMode: Text.WrapAnywhere
@@ -258,6 +259,7 @@ Item {
             text: DragOps.label(root.dropCopying, root.dropLinking)
             color: Theme.color.accent
             font.family: Theme.font.family
+            font.hintingPreference: Font.PreferFullHinting
             font.pixelSize: Theme.font.caption
             textFormat: Text.PlainText
             elide: Text.ElideRight
@@ -291,6 +293,7 @@ Item {
                 text: root.row ? root.row.n : ""
                 color: Theme.color.foreground
                 font.family: Theme.font.family
+                font.hintingPreference: Font.PreferFullHinting
                 font.pixelSize: Theme.font.caption
                 wrapMode: Text.Wrap
                 textFormat: Text.PlainText
