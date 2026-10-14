@@ -7,6 +7,11 @@ fn open_child() {
     if let Some(path) = std::env::var_os("FLEA_TEST_OPEN_ASK") {
         std::process::exit(super::open_ask(&path.to_string_lossy()));
     }
+    // The batch half: every path on its own line, because a selection of more than one is what this drives.
+    if let Some(all) = std::env::var_os("FLEA_TEST_OPEN_ALL") {
+        let paths: Vec<String> = all.to_string_lossy().split('\n').map(String::from).collect();
+        std::process::exit(super::open_all(&paths));
+    }
     if let Some(path) = std::env::var_os("FLEA_TEST_OPEN") {
         std::process::exit(super::open(&path.to_string_lossy()));
     }
@@ -205,4 +210,65 @@ fn the_handler_button_launches_the_named_entry_with_the_file() {
     let out = run_child_with("FLEA_TEST_DISPATCH", line(&app).as_ref(), path, env);
     assert_eq!(out.status.code(), Some(crate::runfile::RUN_CHANGED), "a swapped file is refused");
     assert!(!std::fs::read_to_string(&log).unwrap_or_default().contains("launch"), "and nothing was launched");
+}
+
+// The variadic entrance: no path at all is a failure, never a panic or a hang.
+#[test]
+fn open_all_rejects_empty_paths() {
+    assert_eq!(super::open_all(&[]), super::FAILED);
+}
+
+// A path that does not resolve is elided and answered with the failure status.
+#[test]
+fn open_all_rejects_nonexistent_file() {
+    assert_eq!(super::open_all(&["/nonexistent_file_path_xyz123".to_string()]), super::FAILED);
+}
+
+// One directory keeps the lone contract answer the window navigates on.
+#[test]
+fn open_all_single_directory_returns_is_directory() {
+    assert_eq!(super::open_all(&["/".to_string()]), super::IS_DIRECTORY);
+}
+
+// A directory among several names the batch, because every one of them resolved.
+#[test]
+fn open_all_multiple_with_directory_fails() {
+    assert_eq!(super::open_all(&["/".to_string(), "/etc".to_string()]), super::FAILED);
+}
+
+// The card is single-flight and holds one file, so a batch naming a program opens nothing and says so.
+// A lone AppImage still asks, which the ask test above pins; this is the half a selection can never reach.
+#[test]
+fn a_batch_naming_a_program_refuses_whole() {
+    let dir = crate::backend::testdir::TestDir::new("open-batch-program");
+    let app = fixture(&dir, "live.AppImage", &appimage_bytes(), 0o755);
+    let track = fixture(&dir, "track.mp3", b"ID3", 0o644);
+    let (path, log) = stub_gio(&dir);
+    let both = format!("{}\n{}", app.display(), track.display());
+    let out = run_child_with("FLEA_TEST_OPEN_ALL", both.as_ref(), path, &[]);
+    assert_eq!(out.status.code(), Some(super::FAILED), "a batch is refused whole: {}", String::from_utf8_lossy(&out.stderr));
+    assert!(String::from_utf8_lossy(&out.stderr).contains("a program opens on its own, one at a time"), "the sentence names the batch, not a missing file");
+    assert!(!String::from_utf8_lossy(&out.stdout).contains(r#""ask""#), "no card was asked for, because one file cannot be asked about twice");
+    let calls = std::fs::read_to_string(&log).unwrap_or_default();
+    assert!(!calls.contains("open") && !calls.contains("launch"), "nothing in that selection was handed on: {calls}");
+}
+
+// A batch of one type reaches the desktop file the database named, in a single launch holding every file,
+// which is the Nautilus shape a player whose Exec takes a URI list needs to become one playlist.
+#[test]
+fn a_batch_of_one_type_launches_its_handler_once() {
+    let dir = crate::backend::testdir::TestDir::new("open-batch-launch");
+    let one = fixture(&dir, "one.mp3", b"ID3", 0o644);
+    let two = fixture(&dir, "two.mp3", b"ID3", 0o644);
+    let share = handler_root(&dir, Some("Stub Player"));
+    let (path, log) = stub_gio(&dir);
+    let both = format!("{}\n{}", one.display(), two.display());
+    let env: &[(&str, &std::ffi::OsStr)] = &[("XDG_DATA_HOME", share.as_os_str()), ("FLEA_STUB_CLAIMED", "audio/mpeg".as_ref()),
+                                               ("FLEA_STUB_HANDLER", "flea-stub.desktop".as_ref())];
+    let out = run_child_with("FLEA_TEST_OPEN_ALL", both.as_ref(), path, env);
+    assert_eq!(out.status.code(), Some(0), "the handler took the group: {}", String::from_utf8_lossy(&out.stderr));
+    let calls = std::fs::read_to_string(&log).expect("the stub logged");
+    let entry = share.join("applications/flea-stub.desktop").display().to_string();
+    assert_eq!(calls.matches("gio launch ").count(), 1, "one launch for the group, not one a file: {calls}");
+    assert!(calls.contains(&format!("launch {} {} {}", entry, one.display(), two.display())), "and it named the entry with both files: {calls}");
 }

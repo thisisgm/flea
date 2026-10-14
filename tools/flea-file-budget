@@ -57,7 +57,7 @@ src/backend/trashdelete.rs 938
 src/clip/watch_end_tests.rs 405
 src/gvfsprefetch_tests.rs 398
 src/gui.rs 505
-src/tui/actions.rs 1058
+src/tui/actions.rs 1083
 src/tui/hold_tests.rs 427
 src/tui/input.rs 455
 src/tui/model.rs 1268
@@ -78,7 +78,7 @@ tests/js/keymap.js 356
 tests/js/focus.js 843
 tests/js/mounts.js 349
 tests/js/menu.js 596
-tests/js/nav.js 478
+tests/js/nav.js 516
 tests/js/rail.js 471
 tests/js/picker.js 352
 tests/picker-grid.qml 465
@@ -171,7 +171,7 @@ ui/js/Devices.js 391
 ui/js/Filter.js 284
 ui/js/Focus.js 483
 ui/js/Keymap.js 365
-ui/js/Nav.js 328
+ui/js/Nav.js 349
 ui/js/Markdown.js 135
 ui/js/MdBlocks.js 437
 ui/js/FigureWorker.mjs 619

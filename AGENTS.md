@@ -1559,12 +1559,16 @@ Open, Unmount, Eject and the case proves Ctrl+E and the menu both release it.
 `main.rs` dispatches on argv before anything else runs, but only `--backend` is fully insulated
 from the flag parsing below: it is matched anywhere in argv and always wins. `--prewarm`,
 `--open` and `--terminal` are matched only in their exact well-formed shape, `args.len() == 5`
-for the first and `args.len() == 3` with the flag in argv[1] for the other two, so a MALFORMED one
+for the first and `args.len() >= 3` for `--open` and `args.len() == 3` for `--terminal`, the flag
+in argv[1], so a MALFORMED one
 is not caught here at all. It
 meets its flag's own usage error just below (`--prewarm takes a path, a first index and a destination`,
-`--open takes one path`, `--terminal takes one directory`) and exits 2; `flea --open` with no path and `flea --open a b` are both that case.
-`--open` takes exactly one path and exits `0` on a successful handoff, `2` on anything that could not be opened, carrying one elided
-sentence, and `3` where the resolved target is a directory, carrying no output at all; the window's path adds `4` and `5` below. A
+`--open takes one or more paths`, `--terminal takes one directory`) and exits 2; `flea --open` with no path
+and `flea --terminal a b` are both that case, while `flea --open a b` is a well-formed batch.
+`--open` takes one path or more and exits `0` on a successful handoff, `2` on anything that could not be opened, carrying one elided
+sentence, and `3` where the single resolved target is a directory, carrying no output at all; the window's path adds `4` and `5` below. A
+batch carrying a directory is `2` and not `3`, and says so: a directory among several paths names
+the batch rather than claiming a path is missing, because every one of them resolved. A
 directory is refused rather than handed on because the desktop default for `inode/directory` is a
 file manager either way, `org.gnome.Nautilus.desktop` on an unclaimed box and
 `com.thisisgm.flea.desktop` once `--default` has claimed it, so handing one on opens a file manager
@@ -2103,8 +2107,8 @@ failure fails the check rather than passing it.
 ## Module map
 
 - `main.rs` dispatches on argv, and this is every flag it matches: `--backend` runs the command
-  loop, `--prewarm <path> <first> <dest>` writes the prewarm file, `--open <path>` hands one file
-  to the desktop's handler, `--terminal <dir>` opens the configured terminal there,
+  loop, `--prewarm <path> <first> <dest>` writes the prewarm file, `--open <path>...` hands one file
+  or more to the desktop's handler, `--terminal <dir>` opens the configured terminal there,
   `--run <path> <dev> <ino> <size> <mtime_s> <mtime_ns>` and `--run-terminal` with the same identity
   start the card's program outside or inside a terminal, answering `0`, `2`, `6` for a file changed
   since the ask, `7` for a noexec volume or `8` for a spawn failure, `--open-text <path>` opens
@@ -7059,6 +7063,21 @@ than the link, and the absolute result cannot be read as a flag by the child, so
 `--output=/etc/x` is passed as `/tmp/.../--output=/etc/x`. A broken symlink fails canonicalization,
 which is the error path.
 
+`flea --open <path>...` takes one path or more, and `open_all` is that entrance: Enter on a
+multi-selection hands every marked file over at once. A batch runs the same per-file run decision
+each single path takes, so one program in it refuses the whole selection — the card is single-flight
+with one `root.current` and `ask_line()` carries one identity, so nothing in that selection is opened
+and the sentence names the batch rather than a missing file. A directory among several paths is
+refused the same way, and a lone directory keeps `3`. Past those, more than one target is grouped by
+handler in `batch_plan` and each group is launched once through `gio launch <desktop file> <files>`,
+which is what Nautilus does with a selection: `gio open` starts the handler once per file, so a
+selection of N opened N programs where Nautilus opened one, and a player whose `Exec` line takes a
+URI list got one file per program instead of one playlist. The desktop database still decides the
+handler; Flea only asks which one through `gio mime` and hands gio the desktop file it named, and
+nothing is parsed out of the file. `batch_plan` answering `None` — a type with no handler, or one
+whose desktop file is not installed — leaves the whole batch on the `gio open` route rather than
+opening part of a selection.
+
 The exit statuses are `0` for a successful handoff, `2` for anything that could not
 be opened, carrying one elided sentence on stderr, and `3` where the resolved target is a directory,
 carrying no output at all; the window's `--open` path adds `4`, asking the run card with one JSON line on
@@ -7071,8 +7090,9 @@ file`, so the set tells a refused open from an unimplemented one and neither one
 the desktop default for `inode/directory` is a file manager either way, `org.gnome.Nautilus.desktop`
 on an unclaimed box and `com.thisisgm.flea.desktop` once `--default` has claimed it, so opening one
 through the opener from inside a file manager opens a file manager; the caller navigates instead.
-`flea --open` with no path and `flea --open a b` both meet the usage error `--open takes one path`
-and exit 2 (tests/modes.sh counts that sentence).
+`flea --open` with no path meets the usage error `--open takes one or more paths` and exits 2
+(tests/modes.sh counts that sentence); `flea --open a b` is a well-formed batch and is handed on
+together, one argv each.
 
 `ui/Opener.qml` is the window side of that contract and the only component in the tree that runs
 `flea --open` or `flea --terminal`. It holds a `Process` for each of the three it runs, and the
@@ -7116,6 +7136,27 @@ classifier is the icon rather than an extension table because the icon is what t
 reads; measured here, all eight extensions in `ui/js/Archive.js` resolve through
 `/usr/share/mime/globs2` to a type whose `/usr/share/mime/generic-icons` row is `package-x-generic`,
 and so do `.deb`, `.rpm`, `.jar`, `.cab`, `.gz` and `.xz`.
+
+**Enter on a selection opens every marked file, and a mixed selection refuses the whole batch.** The rule was
+missing at three layers at once, so no two files could ever reach a handler: `Nav.openCursor` read
+only `pane.cursorIndex`, `ui/Opener.qml` built a fixed `[bin, "--open", path]`, and `main.rs` matched
+`--open` only at `args.len() == 3`. `gio open` has always taken `LOCATION…`, so the fix is one
+variadic batch end to end. A selection holding a directory refuses with `Directories cannot be opened
+alongside files.`, and one holding an archive refuses with `Archives open on their own, one at a time.`,
+because the ruling above is a VIEW and a mixed batch has no single view to show, while handing the
+archive to the desktop handler is exactly the outcome that ruling exists to prevent. A selected row
+outside the pane's held window is a third refusal, `Some selected files are outside the loaded rows.`,
+because `rowFor` answers `null` outside `[held, held + rows.length)` and a selection of a 100,000-row
+listing holds every index while only a screenful of rows is in memory; skipping the nulls opened the
+visible part and said nothing, which is the very defect the batch is meant to fix. A fourth is a
+program in the selection, `a program opens on its own, one at a time.`, because the run card is
+single-flight: `ui/Opener.qml` holds one `root.current` and `runfile::ask_line` carries one identity, so
+a batch of twelve files cannot be asked about at all. Refusing the batch is the same shape as the
+directory and archive refusals and the same rule `batch_plan` already follows: never open part of a
+selection. A lone file still reaches the card with `4`, which the ask tests in `src/open_tests.rs` pin.
+`src/open.rs` `open_all` carries the same refusals at the CLI, each with its own `flea:` sentence
+naming the mixed batch, never the missing-file one. The TUI's `open` has no Quick Look surface, so it
+keeps handing an archive to the desktop handler and refuses only the directory.
 
 **That one icon covers the whole Nautilus class on this box, derived rather than assumed.**
 `org.gnome.Nautilus.desktop` lists 26 `MimeType` entries; 25 resolve to it as the default and the

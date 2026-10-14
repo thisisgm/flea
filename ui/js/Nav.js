@@ -227,15 +227,36 @@ function openableRow(pane) {
     return row
 }
 
-// Enter on the cursor row: a directory navigates, an archive opens Flea's own view, anything else goes to the opener.
-function openCursor(pane, opener) {
+// Enter on the cursor row or the selection: a directory navigates, an archive opens Flea's own view,
+// anything else goes to the opener. The in-flight guard stops a second Enter queueing a second listing.
+function openCursor(pane, opener, paths) {
+    // A menu or neighbour row hands the paths it already resolved.
+    if (paths) {
+        opener.open(paths)
+        return
+    }
+    var indices = pane.selectedIndices ? pane.selectedIndices() : []
+    // A selection of more than one opens together, and refuses the whole batch rather than part of it.
+    if (indices.length > 1) {
+        if (loading(pane)) { pane.message("A directory is already loading.", false); return }
+        var base = Search.baseOf(pane)
+        var targets = []
+        for (var i = 0; i < indices.length; i++) {
+            var row = pane.rowFor(indices[i])
+            if (!row) { pane.message("Some selected files are outside the loaded rows.", false); return }
+            var path = pane.join(base, row.n)
+            if (row.d) { pane.message("Directories cannot be opened alongside files.", false); return }
+            if (Kinds.quickLookKind(row.i, path) === Kinds.ARCHIVE) { pane.message("Archives open on their own, one at a time.", false); return }
+            targets.push(path)
+        }
+        opener.open(targets)
+        return
+    }
+    // The cursor row, through the three guards above, unchanged.
     var row = openableRow(pane)
     if (!row) return
     var path = pane.join(Search.baseOf(pane), row.n)
-    if (row.d) {
-        pane.open(path)
-        return
-    }
+    if (row.d) { pane.open(path); return }
     // Handing an archive on opens another file manager, and this is ui/Preview.qml's own classifier; an AppImage is a program first, so it asks on the run card.
     if (Kinds.quickLookKind(row.i, path) === Kinds.ARCHIVE && !/\.appimage$/i.test(row.n)) {
         pane.quickLook().open(path, row.i, row.s, pane.kindNames[row.k] || "",

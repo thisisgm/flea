@@ -294,7 +294,10 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         m.fail("Wait for search to settle before a file operation".into());
         return Ok(());
     }
+    // A batch reads the rows it was given, so the cursor-row guard below would refuse a whole
+    // selection over an unrelated unloaded row and open nothing without saying why.
     if !m.rows.contains_key(&m.cursor)
+        && !(action == "open" && m.selected.len() > 1)
         && matches!(
             action,
             "open"
@@ -341,11 +344,33 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         "historyBack" => history(m, false, w)?,
         "historyForward" => history(m, true, w)?,
         "open" => {
-            if let Some(path) = m.current_path() {
+            if m.selected.len() > 1 {
+                let mut paths: Vec<String> = Vec::new();
+                let mut has_dir = false;
+                let mut outside = false;
+                for &idx in &m.selected {
+                    match m.rows.get(&idx) {
+                        Some(row) => {
+                            if row.directory { has_dir = true; break; }
+                            paths.push(m.path.join(&row.name).to_string_lossy().into_owned());
+                        }
+                        None => { outside = true; break }
+                    }
+                }
+                if outside {
+                    m.fail("Some selected files are outside the loaded rows.".into());
+                } else if has_dir {
+                    m.fail("Directories cannot be opened alongside files.".into());
+                } else if !paths.is_empty() {
+                    if crate::open::open_all(&paths) != 0 {
+                        m.fail("Could not open selected files.".into());
+                    }
+                }
+            } else if let Some(path) = m.current_path() {
                 if m.rows.get(&m.cursor).is_some_and(|r| r.directory) {
                     navigate(m, path, w)?;
                 } else if crate::open::open(&path.to_string_lossy()) != 0 {
-                    m.fail("Could not open selected file".into());
+                    m.fail("Could not open selected file.".into());
                 }
             }
         }
