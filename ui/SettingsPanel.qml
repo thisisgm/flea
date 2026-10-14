@@ -26,7 +26,7 @@ Item {
     readonly property int railWidth: Theme.settings.railWidth
     // The Menus board's work-area clamp: a floating surface never renders taller than its bounds
     // less this margin, and the pane scrolls inside that while the rail stays put.
-    readonly property int clampMargin: 8
+    readonly property int clampMargin: Theme.card.inset
     // The compact card keeps View's measured size across sections, clamped to the window.
     readonly property int chromeAndBorder: Theme.chromeHeight + 2 * Theme.spacing.hairline
     readonly property int paneBottomPadding: Math.round(8 * Theme.font.bodySmall / 13)

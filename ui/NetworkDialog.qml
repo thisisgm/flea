@@ -27,8 +27,6 @@ Item {
     property bool saveNewPlace: true
     readonly property bool busy: root.connecting || root.saving
     readonly property string dialogTitle: root.failedConnect ? "Could not connect to the network share" : root.baseTitle()
-    // The card keeps this much window above and below it when the window is shorter than the card.
-    readonly property int clampMargin: 8
     // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
     readonly property var cardItem: card
     readonly property var bodyItem: body
@@ -206,7 +204,7 @@ Item {
     function formMetrics() { return Math.round(card.padding) + "|" + Math.round(body.spacing) }
     // "contentY|contentHeight|height" of the scroller between the pinned title and buttons, so a test sees the clamp and the scroll.
     function bodyScroll() { return Math.round(body.contentY) + "|" + Math.round(body.contentHeight) + "|" + Math.round(body.scrollItem.height) }
-    function formMetricTargets() { return Style.space(16) + "|" + Style.space(12) }
+    function formMetricTargets() { return Theme.card.padding + "|" + Theme.card.gap }
 
     // Dialogs rule 6: the title says what you are doing, so it survives a chip swap; the two entry
     // points are two tasks, open() adding a place and openLocation() connecting to one already saved.
@@ -281,33 +279,23 @@ Item {
     // The fade and the rise are the shared reveal of ui/Reveal.qml.
     Flea.Reveal { target: root; shown: root.opened; lift: root.cardItem }
 
-    Rectangle {
+    Flea.DialogScrim {
         id: scrim
-        anchors.fill: parent
-        // Util.alpha bakes the 0.7 scrim strength into the colour, the house idiom ConfirmDialog uses.
-        color: Util.alpha(Theme.color.background, 0.7)
-
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            hoverEnabled: true
-            onClicked: root.close()
-            onWheel: function (wheel) { wheel.accepted = true }
-        }
+        onDismissed: root.close()
     }
 
     // The house dialog shape read off ConfirmDialog.qml: BorderSurface, an accent border, cornerRadius.
     BorderSurface {
         id: card
-        width: Theme.cardSpan(Theme.space(380) * Theme.dialogWidthRatio, root.width - 2 * root.clampMargin)
+        width: Theme.cardSpan(Theme.card.form, root.width - 2 * Theme.card.inset)
         // Clamped to the window; the body scrolls whatever the clamp cut, see ui/CardScroll.qml.
-        height: Theme.cardSpan(body.wanted + contentTopInset + contentBottomInset, root.height - 2 * root.clampMargin)
+        height: Theme.cardSpan(body.wanted + contentTopInset + contentBottomInset, root.height - 2 * Theme.card.inset)
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
         color: Theme.color.surface
-        borderSpec: Border.flat(Theme.color.accent, Style.normalBorderWidth)
+        borderSpec: Border.flat(Theme.color.mutedFrame, Theme.spacing.hairline)
         radius: Style.cornerRadius
-        padding: Style.space(16)
+        padding: Theme.card.padding
 
         MouseArea {
             anchors.fill: parent
@@ -325,10 +313,8 @@ Item {
             anchors.leftMargin: card.contentLeftInset - Theme.focusClearance
             anchors.rightMargin: card.contentRightInset - Theme.focusClearance
             Keys.onEscapePressed: root.close()
-            // Outer rhythm and each section's own header-to-content gap read exact off tailscale/dropbox Panel.qml.
-            spacing: Style.space(12)
 
-            title: Flea.DialogTitle {
+            title: Flea.DialogHeader {
                 width: parent.width
                 text: root.dialogTitle
             }
@@ -336,7 +322,7 @@ Item {
             // Network.html places Cancel before the primary action at the card's right edge; the Dropbox install route stays pinned beneath.
             buttons: Column {
                 width: parent.width
-                spacing: Style.space(12)
+                spacing: Theme.card.gap
 
                 Row {
                     anchors.right: parent.right
@@ -370,7 +356,7 @@ Item {
                 Column {
                     width: parent.width
                     visible: !root.dropboxInstalled
-                    spacing: Style.space(10)
+                    spacing: Theme.spacing.gap
 
                     PanelSectionHeader {
                         text: "DROPBOX"
@@ -389,7 +375,7 @@ Item {
 
             Column {
                 width: parent.width
-                spacing: Style.space(12)
+                spacing: Theme.card.gap
 
                 NetworkForm {
                     id: form

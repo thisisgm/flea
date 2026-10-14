@@ -40,7 +40,7 @@ Item {
     }
     readonly property real labelSpacing: 0.1
 
-    implicitHeight: caption.implicitHeight + Theme.spacing.hairline * 4 + box.height
+    implicitHeight: caption.implicitHeight + Theme.card.labelGap + box.height
 
     Text {
         id: caption
@@ -57,7 +57,7 @@ Item {
     Rectangle {
         id: box
         anchors.top: caption.bottom
-        anchors.topMargin: Theme.spacing.hairline * 4
+        anchors.topMargin: Theme.card.labelGap
         anchors.left: parent.left
         anchors.right: parent.right
         height: Theme.rowHeight - Theme.spacing.rowPaddingY

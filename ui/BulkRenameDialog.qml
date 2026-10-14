@@ -21,20 +21,18 @@ FocusScope {
     property string find: ""
     property string replace: ""
     property var owner: null
-    // The board's 640 card, so a narrower window clamps it rather than clipping it.
-    readonly property real cardWant: 640
-    // The card's own padding, matching the 16 the buttons row and title already assume.
-    readonly property int cardPadding: 16
+    readonly property real cardWant: Theme.card.sheet
+    readonly property int cardPadding: Theme.card.padding
     // 255 name bytes plus one newline per selected name, the TUI batch's own bound.
     readonly property int nameLineBytes: 256
     // The two half-width columns share one gap, so both halves measure the same remainder.
     readonly property int columnGap: 14
     // The new-names stack breathes less than a column gap, the way the old-names one does.
-    readonly property int stackGap: 4
+    readonly property int stackGap: Theme.card.labelGap
     // The names frame's sides, wider than its top and bottom for the caret; those take the old column's rowsInset.
-    readonly property int frameSide: 8
+    readonly property int frameSide: Theme.spacing.gap
     // A new name and its reason sit one side-inset apart.
-    readonly property int reasonGap: 8
+    readonly property int reasonGap: Theme.spacing.gap
     // The mktemp leaf's fixed stem, so the cleanup guard measures the template it cleans.
     readonly property string scratchStem: "flea-rename-"
     property string terminalBase: ""
@@ -226,8 +224,8 @@ FocusScope {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(root.cardWant, root.width - 2 * Theme.spacing.gap)
-        height: Theme.cardSpan(body.wanted + 2 * root.cardPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.spacing.gap)
+        width: Theme.cardSpan(root.cardWant, root.width - 2 * Theme.card.inset)
+        height: Theme.cardSpan(body.wanted + 2 * root.cardPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.color: Theme.color.mutedFrame
         border.width: Theme.spacing.hairline
@@ -246,7 +244,7 @@ FocusScope {
             anchors.rightMargin: root.cardPadding + Theme.spacing.hairline - Theme.focusClearance
             anchors.topMargin: root.cardPadding + Theme.spacing.hairline - Theme.focusClearance
             anchors.bottomMargin: root.cardPadding + Theme.spacing.hairline - Theme.focusClearance
-            title: Flea.DialogTitle { width: parent.width; text: BulkRename.title(root.oldNames.length) }
+            title: Flea.DialogHeader { width: parent.width; text: BulkRename.title(root.oldNames.length) }
             buttons: Row {
                 anchors.right: parent.right
                 spacing: Theme.spacing.gap

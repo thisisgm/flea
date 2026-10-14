@@ -188,26 +188,17 @@ FocusScope {
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
         // The board's own 448, grown by the text size the way the collision card is.
-        width: Theme.cardSpan(card.contentWidth + 2 * card.cardPadding + 2 * Theme.spacing.hairline, root.width - 2 * Theme.spacing.gap)
-        height: Theme.cardSpan(body.wanted + card.cardPadding + card.cardBottomPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.spacing.gap)
+        width: Theme.cardSpan(card.contentWidth + 2 * card.cardPadding + 2 * Theme.spacing.hairline, root.width - 2 * Theme.card.inset)
+        height: Theme.cardSpan(body.wanted + card.cardPadding + card.cardBottomPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.color: Theme.color.mutedFrame
         border.width: Theme.spacing.hairline
         radius: Style.cornerRadius
-        readonly property real referenceScale: Theme.font.bodySmall / referenceBody
-        readonly property real cardPadding: Math.round(cardPad * referenceScale)
-        readonly property real cardBottomPadding: Math.round(cardBottomPad * referenceScale)
-        // RunFile's buttons keep 6 px of air over the gap.
-        readonly property real buttonsAir: Math.round(buttonsPad * referenceScale)
-        // The board's 414 content, since four buttons at DialogButton's pad and gap need 409.
+        readonly property real cardPadding: Theme.card.padding
+        readonly property real cardBottomPadding: Theme.card.padding
+        // The card grows with its buttons rather than wrapping one.
         readonly property real contentWidth: Math.max(card.boardContent, buttons.implicitWidth)
-        // The board's own reference size, pad and content width, so no bare number sits in an expression.
-        readonly property real referenceBody: 13
-        readonly property real cardPad: 16
-        readonly property real cardBottomPad: 12
-        readonly property real buttonsPad: 6
-        readonly property real contentBase: 414
-        readonly property real boardContent: Math.round(contentBase * referenceScale * Theme.dialogWidthRatio)
+        readonly property real boardContent: Theme.card.form - 2 * card.cardPadding - 2 * Theme.spacing.hairline
         // The handler's name elides inside what the board's content leaves beside the other buttons, so a long name never widens the card.
         readonly property real handlerRoom: {
             var used = 0
@@ -247,7 +238,6 @@ FocusScope {
             buttons: Row {
                 id: buttons
                 anchors.right: parent.right
-                topPadding: card.buttonsAir
                 spacing: Theme.spacing.gap
                 Repeater {
                     id: buttonRow

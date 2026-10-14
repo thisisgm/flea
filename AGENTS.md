@@ -2233,6 +2233,12 @@ failure fails the check rather than passing it.
   `tests/js/uistate.js` can redden on a mutation of the rule that only a zero exit proves a save.
 - `ui/Theme.qml` owns the singleton palette, type and spacing tokens from the Omarchy
   theme plus the user override.
+  `Theme.card` is every dialog card's anatomy, the OEM panel tokens at Flea's text size: `padding`
+  (`Style.spacing.panelPadding`), `gap` between title, body and buttons (`panelGap`), `labelGap`, `inset` to the
+  window's edge, the `title` size (`Style.font.title`) and the widths `narrow`, `form`, `wide` and `sheet`. A card
+  takes these and `ui/DialogScrim.qml`, never a padding, gap or width of its own. Two widths stay their board's,
+  each pinned by a test: Convert's 300 (`tests/dialog-board.qml`'s two-line error) and Permissions' 480
+  (`tests/permissions-adv.qml`); `ui/BulkRenameDialog.qml`'s `columnGap` stays the literal `tests/js/bulkrename.js` holds.
 - `ui/Pane.qml` owns one directory view, its integer model, held window, actions, the
   settle timer and the row-to-thumbnail map, see "Thumbnail requests in the GUI".
 - `ui/PaneWire.qml` is where every reply from outside the window lands: the backend's, and
@@ -9349,3 +9355,5 @@ The strays and rail-frame join onto the settled stage5 moves five ceilings, each
 The picker's empty-folder shot waits for the empty state to rest: `ui/EmptyState.qml` gains `atRest` (148 to 150 lines, inside its soft budget), true under reduced motion, or once the caption fade has stopped, the hero is fully opaque and either a fixed caption shows or the third beat's mark is drawn whole; the picker's IPC `snapshot()` reports it as `emptyRest` on the existing line, and `tests/picker-native.py` waits on it before any capture of an empty folder, since the mark's 1800 ms draw on each 2800 ms beat kept ten 0.1 s shots from ever matching. The two lines move the `bytes` line of `tests/startup-units.txt` from 1672796 to 1673140.
 
 The rail lit-place test presses the rail through its `PointHandler` instead of setting `pointerFocus`, and releases past the drag threshold so the row never activates; `tests/sidebar-flows.qml` moves 683 to 687 in `tools/flea-file-budget`, re-derived with `wc -l`.
+
+The dialog card tokens move one ceiling, re-derived with `wc -l`: `ui/Theme.qml` 475 to 493 for `Theme.card`. Every dialog that took the tokens is shorter or unchanged.

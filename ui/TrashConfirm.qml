@@ -15,9 +15,8 @@ FocusScope {
     property var snapshot: ({})
     property bool destructiveFocus: false
     property string scopeName: "Trash items"
-    readonly property real referenceScale: Theme.font.bodySmall / 13
-    readonly property real cardPadding: Math.round(16 * referenceScale)
-    readonly property real cardBottomPadding: Theme.spacing.rowPaddingX
+    readonly property real cardPadding: Theme.card.padding
+    readonly property real cardBottomPadding: Theme.card.padding
     signal confirmed(int token)
     signal cancelled()
     readonly property var cardItem: card
@@ -61,9 +60,8 @@ FocusScope {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        // TrashSidebar's 340px content width excludes its two 16px paddings and hairlines.
-        width: Theme.cardSpan(Math.round(340 * root.referenceScale * Theme.dialogWidthRatio) + 2 * root.cardPadding + 2 * Theme.spacing.hairline, root.width - 2 * Theme.spacing.gap)
-        height: Theme.cardSpan(body.wanted + root.cardPadding + root.cardBottomPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.spacing.gap)
+        width: Theme.cardSpan(Theme.card.narrow, root.width - 2 * Theme.card.inset)
+        height: Theme.cardSpan(body.wanted + root.cardPadding + root.cardBottomPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.color: Theme.color.mutedFrame
         border.width: Theme.spacing.hairline

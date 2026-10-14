@@ -56,7 +56,7 @@ Item {
     readonly property int viewportRows: 7
     readonly property int eyebrowHeight: Math.round(Theme.font.caption * 1.6) + Theme.spacing.gap
     property int listHeight: root.viewportRows * Theme.rowHeight
-    readonly property int clampMargin: 8
+    readonly property int clampMargin: Theme.card.inset
     // DialogButtons040 at size 14: the field is 18 px under the title rule (two gaps) and 31 px over the eyebrow's ink (the row's own 15 plus 16).
     readonly property int searchLead: 2 * Theme.spacing.gap
     readonly property real eyebrowLeadBoard: 16
@@ -207,7 +207,7 @@ Item {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(Theme.space(480) * Theme.dialogWidthRatio, root.width - 2 * root.clampMargin)
+        width: Theme.cardSpan(Theme.card.wide, root.width - 2 * root.clampMargin)
         // Clamped to the window; the body scrolls whatever the clamp cut, so a short screen cannot
         // put Cancel and Open past the bottom edge with no way to reach them.
         height: Theme.cardSpan(body.wanted + 2 * Theme.spacing.rowPaddingX, root.height - 2 * root.clampMargin)

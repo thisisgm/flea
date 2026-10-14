@@ -8,6 +8,7 @@ DialogButton 1.0 DialogButton.qml
 DialogScrim 1.0 DialogScrim.qml
 DialogField 1.0 DialogField.qml
 DialogTitle 1.0 DialogTitle.qml
+DialogHeader 1.0 DialogHeader.qml
 SettingsSegment 1.0 SettingsSegment.qml
 Process 1.0 Process.qml
 SplitParser 1.0 SplitParser.qml

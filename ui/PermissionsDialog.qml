@@ -327,24 +327,13 @@ FocusScope {
     Keys.onBacktabPressed: function(event) { root.stepFocus(true); event.accepted = true }
     Keys.onPressed: function(event) { event.accepted = true }
     Keys.onEscapePressed: function(event) { root.close(); event.accepted = true }
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.color.background
-        opacity: 0.5
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onClicked: root.close()
-            onWheel: function(wheel) { wheel.accepted = true }
-        }
-    }
+    Flea.DialogScrim { onDismissed: root.close() }
     Rectangle {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(Math.round(root.boardCardWidth * root.boardScale), root.width - 2 * Theme.spacing.gap)
-        height: Theme.cardSpan(Theme.spacing.hairline + chrome.height + body.wanted + Theme.spacing.rowPaddingX + root.bodyInset, root.height - 2 * Theme.spacing.gap)
+        width: Theme.cardSpan(Math.round(root.boardCardWidth * root.boardScale), root.width - 2 * Theme.card.inset)
+        height: Theme.cardSpan(Theme.spacing.hairline + chrome.height + body.wanted + Theme.spacing.rowPaddingX + root.bodyInset, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.color: Theme.color.mutedFrame
         border.width: Theme.spacing.hairline

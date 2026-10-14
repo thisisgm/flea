@@ -20,13 +20,10 @@ FocusScope {
     // Merge is present only when a folder lands on a folder; the second card never offers it.
     property bool showMerge: false
     readonly property string explainText: Collide.EXPLAIN
-    readonly property real referenceScale: Collide.cardReferenceScale(Theme.font.bodySmall)
-    readonly property real cardPadding: Collide.cardPadding(referenceScale)
-    readonly property real cardBottomPadding: Math.round(12 * referenceScale)
-    // MergeFolders: the buttons keep 6 px of air over the gap.
-    readonly property real buttonsAir: Math.round(6 * referenceScale)
+    readonly property real cardPadding: Theme.card.padding
+    readonly property real cardBottomPadding: Theme.card.padding
     // The card grows with the labels rather than wrapping one, and Keep both stays the default with the ring.
-    readonly property real contentWidth: Collide.cardContentWidth(referenceScale, Theme.dialogWidthRatio, buttons.implicitWidth)
+    readonly property real contentWidth: Math.max(Theme.card.narrowContent, buttons.implicitWidth)
     signal chosen(string choice)
     readonly property var cardItem: card
     readonly property bool titleTruncated: title.truncated
@@ -69,8 +66,8 @@ FocusScope {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(root.contentWidth + 2 * root.cardPadding + 2 * Theme.spacing.hairline, root.width - 2 * Theme.spacing.gap)
-        height: Theme.cardSpan(body.wanted + root.cardPadding + root.cardBottomPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.spacing.gap)
+        width: Theme.cardSpan(root.contentWidth + 2 * root.cardPadding + 2 * Theme.spacing.hairline, root.width - 2 * Theme.card.inset)
+        height: Theme.cardSpan(body.wanted + root.cardPadding + root.cardBottomPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.color: Theme.color.mutedFrame
         border.width: Theme.spacing.hairline
@@ -97,7 +94,6 @@ FocusScope {
             buttons: Row {
                 id: buttons
                 anchors.right: parent.right
-                topPadding: root.buttonsAir
                 spacing: Theme.spacing.gap
                 Flea.DialogButton { id: cancelButton; label: Collide.LABELS.cancel; focused: root.focusName === "cancel"; onActivated: root.press("cancel") }
                 Flea.DialogButton { id: skipButton; label: Collide.LABELS.skip; focused: root.focusName === "skip"; onActivated: root.press("skip") }

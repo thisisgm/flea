@@ -27,8 +27,6 @@ Item {
     readonly property var cancelItem: cancelButton
     readonly property var submitItem: extractButton
     readonly property var bodyItem: body
-    readonly property int dialogWidth: 448
-    readonly property int clampMargin: 8
     readonly property var cardItem: card
 
     anchors.fill: parent
@@ -130,27 +128,17 @@ Item {
     }
 
     // A dimmed ground, and a click on it is a cancel, the same shape the convert dialog uses.
-    Rectangle {
-        anchors.fill: parent
-        color: Theme.color.background
-        opacity: 0.5
-
-        MouseArea {
-            anchors.fill: parent
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            hoverEnabled: true
-            onClicked: root.close()
-            onWheel: function (wheel) { wheel.accepted = true }
-        }
+    Flea.DialogScrim {
+        onDismissed: root.close()
     }
 
     Rectangle {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(Theme.space(root.dialogWidth) * Theme.dialogWidthRatio, root.width - 2 * root.clampMargin)
+        width: Theme.cardSpan(Theme.card.form, root.width - 2 * Theme.card.inset)
         // Clamped to the window; the body scrolls whatever the clamp cut, see ui/CardScroll.qml.
-        height: Theme.cardSpan(body.wanted + 2 * Theme.spacing.rowPaddingX, root.height - 2 * root.clampMargin)
+        height: Theme.cardSpan(body.wanted + 2 * Theme.card.padding, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.width: Theme.spacing.hairline
         border.color: Theme.color.mutedFrame
@@ -168,31 +156,16 @@ Item {
             id: body
             bleedY: Theme.focusClearance
             anchors.fill: parent
-            anchors.topMargin: Theme.spacing.rowPaddingX - Theme.focusClearance
-            anchors.bottomMargin: Theme.spacing.rowPaddingX - Theme.focusClearance
-            spacing: Theme.spacing.rowPaddingX
+            anchors.topMargin: Theme.card.padding - Theme.focusClearance
+            anchors.bottomMargin: Theme.card.padding - Theme.focusClearance
+            spacing: Theme.card.gap
 
-            title: Item {
-                width: parent.width
-                height: header.implicitHeight + Theme.spacing.gap
-
-                Flea.DialogTitle {
-                    id: header
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.margins: Theme.spacing.rowPaddingX
-                    text: ArchiveCard.encryptedTitle(root.leaf)
-                    elide: Text.ElideMiddle
-                }
-
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    x: Theme.spacing.rowPaddingX
-                    width: parent.width - 2 * Theme.spacing.rowPaddingX
-                    height: Theme.spacing.hairline
-                    color: Theme.color.mutedFrame
-                    opacity: 0.4
-                }
+            title: Flea.DialogHeader {
+                id: header
+                x: Theme.card.padding
+                width: parent.width - 2 * Theme.card.padding
+                text: ArchiveCard.encryptedTitle(root.leaf)
+                elide: Text.ElideMiddle
             }
 
             buttons: Item {
@@ -201,7 +174,7 @@ Item {
                 Row {
                     anchors.bottom: parent.bottom
                     anchors.right: parent.right
-                    anchors.rightMargin: Theme.spacing.rowPaddingX
+                    anchors.rightMargin: Theme.card.padding
                     spacing: Theme.spacing.gap
 
                     Flea.DialogButton {
@@ -227,8 +200,8 @@ Item {
 
             // The wrong-password specimen: the field in the error frame, then its bare sentence directly under it.
             Column {
-                x: Theme.spacing.rowPaddingX
-                width: parent.width - 2 * Theme.spacing.rowPaddingX
+                x: Theme.card.padding
+                width: parent.width - 2 * Theme.card.padding
                 spacing: Theme.spacing.gap
 
                 Flea.DialogField {

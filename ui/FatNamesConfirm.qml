@@ -18,11 +18,10 @@ FocusScope {
     property string noteText: ""
     property string focusName: Collide.FAT_DEFAULT
     // The card geometry lives in ui/js/Collide.js, shared with CollideConfirm.
-    readonly property real referenceScale: Collide.cardReferenceScale(Theme.font.bodySmall)
-    readonly property real cardPadding: Collide.cardPadding(referenceScale)
-    readonly property real cardBottomPadding: Theme.spacing.rowPaddingX
+    readonly property real cardPadding: Theme.card.padding
+    readonly property real cardBottomPadding: Theme.card.padding
     // The card grows with the labels rather than wrapping one, and Rename and copy keeps the ring.
-    readonly property real contentWidth: Collide.cardContentWidth(referenceScale, Theme.dialogWidthRatio, buttons.implicitWidth)
+    readonly property real contentWidth: Math.max(Theme.card.narrowContent, buttons.implicitWidth)
     signal chosen(string choice)
     readonly property var cardItem: card
     readonly property bool buttonsFit: buttons.width <= body.holderWidth
@@ -61,8 +60,8 @@ FocusScope {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(root.contentWidth + 2 * root.cardPadding + 2 * Theme.spacing.hairline, root.width - 2 * Theme.spacing.gap)
-        height: Theme.cardSpan(body.wanted + root.cardPadding + root.cardBottomPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.spacing.gap)
+        width: Theme.cardSpan(root.contentWidth + 2 * root.cardPadding + 2 * Theme.spacing.hairline, root.width - 2 * Theme.card.inset)
+        height: Theme.cardSpan(body.wanted + root.cardPadding + root.cardBottomPadding + 2 * Theme.spacing.hairline, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.color: Theme.color.mutedFrame
         border.width: Theme.spacing.hairline

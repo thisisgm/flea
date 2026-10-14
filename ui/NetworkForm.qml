@@ -33,7 +33,7 @@ Column {
     readonly property string passwordHintText: passwordHint.visible ? passwordHint.text : ""
     readonly property bool complete: Protocols.complete({ host: root.host, port: root.port })
 
-    spacing: Style.space(12)
+    spacing: Theme.card.gap
     // Every row's natural height whether or not the protocol shows it: the form keeps this height
     // through every chip, so the chips above and the buttons below never move under the pointer,
     // and a shorter protocol leaves its air under Mounts as rather than a hole between fields.
@@ -221,7 +221,7 @@ Column {
 
     Row {
         width: parent.width
-        spacing: Style.space(10)
+        spacing: Theme.spacing.gap
 
         Flea.DialogField {
             id: hostField

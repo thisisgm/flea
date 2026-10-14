@@ -231,17 +231,15 @@ FocusScope {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(448, root.width - 2 * Theme.spacing.gap)
-        height: Theme.cardSpan(body.wanted + card.cardPadding + card.cardBottomPadding, root.height - 2 * Theme.spacing.gap)
+        width: Theme.cardSpan(Theme.card.form, root.width - 2 * Theme.card.inset)
+        height: Theme.cardSpan(body.wanted + card.cardPadding + card.cardBottomPadding, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.color: Theme.color.mutedFrame
         border.width: Theme.spacing.hairline
         radius: Style.cornerRadius
-        // The Unlock board's padding 16 16 12 and 6 px of air over the buttons, at its 13 px reference.
-        readonly property real referenceScale: Theme.font.bodySmall / 13
-        readonly property real cardPadding: Math.round(16 * referenceScale)
-        readonly property real cardBottomPadding: Math.round(12 * referenceScale)
-        readonly property real buttonsAir: Math.round(6 * referenceScale)
+        // The shared card padding on every side; the gap over the buttons is CardFrame's.
+        readonly property real cardPadding: Theme.card.padding
+        readonly property real cardBottomPadding: Theme.card.padding
         MouseArea {
             anchors.fill: parent
             hoverEnabled: true
@@ -317,7 +315,6 @@ FocusScope {
                 Row {
                     id: buttonRow
                     anchors.right: parent.right
-                    topPadding: card.buttonsAir
                     spacing: Theme.spacing.gap
                     Flea.DialogButton {
                         id: cancelButton

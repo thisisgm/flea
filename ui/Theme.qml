@@ -257,6 +257,24 @@ Singleton {
     function cardSpan(want, room) { return Math.max(0, Math.min(Math.ceil(want), Math.floor(room))) }
     function cardOrigin(room, span) { return Math.round((room - span) / 2) }
 
+    // Every dialog card's own anatomy, the OEM panel tokens (Style.spacing.panelPadding, panelGap, labelGap, Style.font.title) at Flea's text size, so no card carries a padding, gap or width of its own.
+    readonly property QtObject card: QtObject {
+        readonly property int padding: Math.round(Style.spacing.panelPadding * root.sizeRatio)
+        // Between a card's title, body and button row.
+        readonly property int gap: Math.round(Style.spacing.panelGap * root.sizeRatio)
+        readonly property int labelGap: Math.round(Style.spacing.labelGap * root.sizeRatio)
+        // The least room a card keeps to the window's edge.
+        readonly property int inset: Math.round(Style.spacing.lg * root.sizeRatio)
+        readonly property int title: root.overridden ? Math.round(root.baseSize * 7 / 6) : Style.font.title
+        // The four widths a card comes in: a chooser, a form, a list and a two-column sheet.
+        readonly property int narrow: Math.round(root.space(370) * root.dialogWidthRatio)
+        // What a narrow card leaves inside its padding and frame, the least a confirmation's content takes.
+        readonly property int narrowContent: narrow - 2 * padding - 2 * root.spacing.hairline
+        readonly property int form: Math.round(root.space(448) * root.dialogWidthRatio)
+        readonly property int wide: Math.round(root.space(480) * root.dialogWidthRatio)
+        readonly property int sheet: Math.round(root.space(568) * root.dialogWidthRatio)
+    }
+
     // The Settings board's anatomy, resolved at base-size 14: a border-box panel 560 wide whose two
     // outer hairlines leave 558 inside, split into a 150 rail and a 408 pane. 480 and 350 are those
     // two at the OEM's own 12 anchor, so the pair scales once and the rail is what is left over.

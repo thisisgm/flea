@@ -10,7 +10,7 @@ Item {
     property alias title: titleHolder.data
     property alias buttons: buttonHolder.data
     // The gap between the parts, the gap the single column kept between its children.
-    property real spacing: Theme.spacing.gap
+    property real spacing: Theme.card.gap
     // Room kept inside the clip, past each control's own frame, as CardScroll keeps it.
     property int bleed: 0
     property int bleedX: bleed

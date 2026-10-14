@@ -152,8 +152,7 @@ Item {
     // The real sheet is sixty rows whose chords run to eighteen characters: at 300 a cap took the
     // whole half-cell, the wording beside it elided to a single ellipsis, and the two columns
     // overprinted each other. 480 is the Open with card's own anchor and leaves both room.
-    readonly property int sheetWidth: 480
-    readonly property int clampMargin: 8
+    readonly property int clampMargin: Theme.card.inset
     // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
     readonly property var cardItem: card
     // A cap is sized from the type scale, never from the text inside it, so every cap is one height.
@@ -312,7 +311,7 @@ Item {
         x: Theme.cardOrigin(root.width, width)
         // The rest card centres, and a query grows or shrinks it from its bottom, so the title never moves.
         y: Math.round((root.height - root.restCardHeight) / 2)
-        width: Theme.cardSpan(Theme.space(root.sheetWidth) * Theme.dialogWidthRatio, root.width - 2 * root.clampMargin)
+        width: Theme.cardSpan(Theme.card.wide, root.width - 2 * root.clampMargin)
         // Clamped to the window below its top; the body scrolls whatever the clamp cut, see ui/CardScroll.qml.
         height: Theme.cardSpan(body.wanted + 2 * Theme.spacing.rowPaddingX, root.height - card.y - root.clampMargin)
         color: Theme.color.surface

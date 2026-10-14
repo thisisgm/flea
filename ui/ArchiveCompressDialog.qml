@@ -31,8 +31,6 @@ Item {
     readonly property var cancelItem: cancelButton
     readonly property var submitItem: compressButton
     readonly property var bodyItem: body
-    readonly property int dialogWidth: 448
-    readonly property int clampMargin: 8
     readonly property var cardItem: card
 
     // What a capture reads instead of the fields: the eye, which field wears the error frame, never a typed character.
@@ -175,9 +173,9 @@ Item {
         id: card
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(Theme.space(root.dialogWidth) * Theme.dialogWidthRatio, root.width - 2 * root.clampMargin)
+        width: Theme.cardSpan(Theme.card.form, root.width - 2 * Theme.card.inset)
         // Clamped to the window; the body scrolls whatever the clamp cut, see ui/CardScroll.qml.
-        height: Theme.cardSpan(body.wanted + 2 * Theme.spacing.rowPaddingX, root.height - 2 * root.clampMargin)
+        height: Theme.cardSpan(body.wanted + 2 * Theme.card.padding, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.width: Theme.spacing.hairline
         border.color: Theme.color.mutedFrame
@@ -195,31 +193,16 @@ Item {
             id: body
             bleedY: Theme.focusClearance
             anchors.fill: parent
-            anchors.topMargin: Theme.spacing.rowPaddingX - Theme.focusClearance
-            anchors.bottomMargin: Theme.spacing.rowPaddingX - Theme.focusClearance
-            spacing: Theme.spacing.rowPaddingX
+            anchors.topMargin: Theme.card.padding - Theme.focusClearance
+            anchors.bottomMargin: Theme.card.padding - Theme.focusClearance
+            spacing: Theme.card.gap
 
-            title: Item {
-                width: parent.width
-                height: header.implicitHeight + Theme.spacing.gap
-
-                Flea.DialogTitle {
-                    id: header
-                    anchors.left: parent.left
-                    anchors.right: parent.right
-                    anchors.margins: Theme.spacing.rowPaddingX
-                    text: ArchiveCard.compressTitle(root.count)
-                    elide: Text.ElideMiddle
-                }
-
-                Rectangle {
-                    anchors.bottom: parent.bottom
-                    x: Theme.spacing.rowPaddingX
-                    width: parent.width - 2 * Theme.spacing.rowPaddingX
-                    height: Theme.spacing.hairline
-                    color: Theme.color.mutedFrame
-                    opacity: 0.4
-                }
+            title: Flea.DialogHeader {
+                id: header
+                x: Theme.card.padding
+                width: parent.width - 2 * Theme.card.padding
+                text: ArchiveCard.compressTitle(root.count)
+                elide: Text.ElideMiddle
             }
 
             buttons: Item {
@@ -228,7 +211,7 @@ Item {
                 Row {
                     anchors.bottom: parent.bottom
                     anchors.right: parent.right
-                    anchors.rightMargin: Theme.spacing.rowPaddingX
+                    anchors.rightMargin: Theme.card.padding
                     spacing: Theme.spacing.gap
 
                     Flea.DialogButton {
@@ -252,13 +235,13 @@ Item {
 
             Column {
                 width: parent.width
-                spacing: Theme.spacing.rowPaddingX
+                spacing: Theme.card.gap
 
                 // The segment's own caption, in the same capitals and at the same distance DialogField draws above its box.
                 Column {
-                    x: Theme.spacing.rowPaddingX
-                    width: parent.width - 2 * Theme.spacing.rowPaddingX
-                    spacing: Theme.spacing.hairline * 4
+                    x: Theme.card.padding
+                    width: parent.width - 2 * Theme.card.padding
+                    spacing: Theme.card.labelGap
 
                     Text {
                         width: parent.width
@@ -281,8 +264,8 @@ Item {
 
                 Flea.DialogField {
                     id: nameField
-                    x: Theme.spacing.rowPaddingX
-                    width: parent.width - 2 * Theme.spacing.rowPaddingX
+                    x: Theme.card.padding
+                    width: parent.width - 2 * Theme.card.padding
                     label: "Name"
                     placeholder: "Archive.7z"
                     onAccepted: root.commit()
@@ -291,8 +274,8 @@ Item {
 
                 Flea.DialogField {
                     id: passwordField
-                    x: Theme.spacing.rowPaddingX
-                    width: parent.width - 2 * Theme.spacing.rowPaddingX
+                    x: Theme.card.padding
+                    width: parent.width - 2 * Theme.card.padding
                     label: "Password"
                     secret: true
                     error: root.errorText.length > 0 && root.password.length === 0
@@ -303,8 +286,8 @@ Item {
 
                 // The extract card's recipe: the refused field in the error frame, its bare sentence directly under the pair.
                 Column {
-                    x: Theme.spacing.rowPaddingX
-                    width: parent.width - 2 * Theme.spacing.rowPaddingX
+                    x: Theme.card.padding
+                    width: parent.width - 2 * Theme.card.padding
                     spacing: Theme.spacing.gap
 
                     Flea.DialogField {
@@ -343,7 +326,7 @@ Item {
                     Item {
                         id: box
                         anchors.left: parent.left
-                        anchors.leftMargin: Theme.spacing.rowPaddingX
+                        anchors.leftMargin: Theme.card.padding
                         anchors.verticalCenter: parent.verticalCenter
                         width: ruleBox.implicitWidth
                         height: ruleBox.implicitHeight

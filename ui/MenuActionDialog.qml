@@ -194,26 +194,14 @@ FocusScope {
     Keys.onBacktabPressed: function(event) { root.stepFocus(true); event.accepted = true }
     Keys.onEscapePressed: function(event) { root.close(); event.accepted = true }
     Keys.onPressed: function(event) { event.accepted = true }
-    Rectangle {
-        anchors.fill: parent
-        visible: root.cardShown
-        color: Theme.color.background
-        opacity: 0.5
-        MouseArea {
-            anchors.fill: parent
-            hoverEnabled: true
-            acceptedButtons: Qt.LeftButton | Qt.RightButton
-            onClicked: root.close()
-            onWheel: function(wheel) { wheel.accepted = true }
-        }
-    }
+    Flea.DialogScrim { visible: root.cardShown; onDismissed: root.close() }
     Rectangle {
         id: card
         visible: root.cardShown
         x: Theme.cardOrigin(root.width, width)
         y: Theme.cardOrigin(root.height, height)
-        width: Theme.cardSpan(Theme.space(420) * Theme.dialogWidthRatio, root.width - 2 * Theme.spacing.gap)
-        height: Theme.cardSpan(body.wanted + 2 * Theme.spacing.rowPaddingX, root.height - 2 * Theme.spacing.gap)
+        width: Theme.cardSpan(Theme.card.form, root.width - 2 * Theme.card.inset)
+        height: Theme.cardSpan(body.wanted + 2 * Theme.card.padding, root.height - 2 * Theme.card.inset)
         color: Theme.color.surface
         border.color: Theme.color.mutedFrame
         border.width: Theme.spacing.hairline
@@ -228,16 +216,8 @@ FocusScope {
             id: body
             bleed: Theme.focusClearance
             anchors.fill: parent
-            anchors.margins: Theme.spacing.rowPaddingX - Theme.focusClearance
-            title: Column {
-                width: parent.width
-                spacing: Theme.spacing.gap
-                Flea.DialogTitle {
-                    width: parent.width
-                    text: root.title
-                }
-                Rectangle { width: parent.width; height: Theme.spacing.hairline; color: Theme.color.mutedFrame; opacity: 0.4 }
-            }
+            anchors.margins: Theme.card.padding - Theme.focusClearance
+            title: Flea.DialogHeader { width: parent.width; text: root.title }
             buttons: Row {
                 anchors.right: parent.right
                 spacing: Theme.spacing.gap

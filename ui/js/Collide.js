@@ -22,16 +22,6 @@ var EXPLAIN = "Replaced items go to Trash, and Undo restores them."
 var NONE = "refuse"
 var WAITING = "A transfer is already waiting on its question; try again once it is answered."
 
-// One card geometry for CollideConfirm and FatNamesConfirm, so the two cards keep one size.
-var CARD_REFERENCE_BODY = 13
-var CARD_PAD = 16
-var CARD_CONTENT_BASE = 368
-function cardReferenceScale(bodySmall) { return bodySmall / CARD_REFERENCE_BODY }
-function cardPadding(scale) { return Math.round(CARD_PAD * scale) }
-function cardContentWidth(scale, ratio, buttonsWidth) {
-    return Math.max(Math.round(CARD_CONTENT_BASE * scale * ratio), buttonsWidth)
-}
-
 // The folder's own name, which is what the title says; the root has no leaf, so it says itself.
 function folderName(dest) {
     var path = String(dest || "")

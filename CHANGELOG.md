@@ -1,5 +1,6 @@
 # Flea 0.3.10
 
+- Dialogs share one padding, spacing and set of widths taken from Omarchy's own panels, and the Unlock, Bulk rename and network cards now grow with the text size.
 - Tags in Omarchy's colours, shared with Dolphin. T tags the selection, 1 to 7 pick a colour, the menus gain a Tags row and flyout, a TAGS section can show in the sidebar (off by default), and search finds files by tag, such as the red tag.
 - Pasting a folder onto one with the same name can merge the two, and undo puts both back as they were.
 - Hovering a drag over a folder can open it (off by default), lists scroll while you drag near their edges, names that a stick's exFAT cannot hold are fixed before the copy, and an image on the clipboard pastes as a file.

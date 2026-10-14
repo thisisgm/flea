@@ -22,7 +22,7 @@ Item {
         text: root.text
         color: Theme.color.foreground
         font.family: Theme.font.family
-        font.pixelSize: Theme.font.body
+        font.pixelSize: Theme.card.title
         font.bold: true
         textFormat: Text.PlainText
         elide: root.elide
