@@ -7,6 +7,7 @@ import "js/Keymap.js" as Keymap
 import "js/MarkBox.js" as MarkBox
 import "js/Scroll.js" as Scroll
 import "js/Sort.js" as Sort
+import "js/Filter.js" as Filter
 
 // The picker's listing: ui/Row.qml drawn behind a check box, and the keys that move through it. The
 // window's own ui/List.qml is not reused, because every line of it that is not layout is a drag, a
@@ -16,6 +17,7 @@ ListView {
 
     property var picker: null
     property var backend: null
+    readonly property var filteredRows: root.picker.shown || null
 
     readonly property int visibleRows: Math.max(1, Math.ceil(root.height / Theme.rowHeight))
     // PickerBox's outer size, read by the header's leading slot.
@@ -31,6 +33,7 @@ ListView {
     activeFocusOnTab: true
     Keys.onTabPressed: function(event) { root.picker.stepFocus(root, (event.modifiers & Qt.ShiftModifier) !== 0) }
     Keys.onBacktabPressed: root.picker.stepFocus(root, true)
+    onActiveFocusChanged: if (!root.activeFocus && root.picker.filterTyping === true) root.picker.commitFilter()
     property bool firstArmed: false
     // The previous tap path, so a rebuilt list never sends a row the first tap missed.
     property string lastTapPath: ""
@@ -44,7 +47,7 @@ ListView {
     delegate: Item {
         id: cell
         required property int index
-        readonly property int listingIndex: index
+        readonly property int listingIndex: Filter.at(root.filteredRows, index)
         readonly property var row: root.picker.rowFor(cell.listingIndex)
         readonly property string rowPath: cell.row ? Picker.rowPath(root.picker.path, cell.row.n) : ""
         // A Recent row is named by its whole path under the listing base, and SendPicker.html draws
@@ -80,6 +83,9 @@ ListView {
             cursor: cell.listingIndex === root.picker.cursorIndex
             hovered: hover.hovered
             kindNames: root.picker.kindNames
+            markArmed: root.picker.filterTyping === true || !!root.picker.filterQuery
+            searchQuery: root.picker.filterQuery || ""
+            filtering: root.filteredRows !== null
         }
 
         Flea.PickerBox {
@@ -100,6 +106,7 @@ ListView {
             acceptedButtons: Qt.LeftButton
             // One tap moves the cursor; a same-path double tap opens, accepts or marks by mode; a box tap toggles.
             onTapped: function (eventPoint, button) {
+                if (cell.listingIndex < 0 || !cell.row) return
                 var was = root.picker.cursorIndex
                 var extending = (tap.point.modifiers & Qt.ShiftModifier) !== 0 && root.picker.marksAllowed
                 if (!extending) root.picker.endRange()
@@ -123,14 +130,18 @@ ListView {
         if (root.picker.shownTotal === 0)
             return
         var was = root.picker.cursorIndex
-        var to = Math.max(0, Math.min(root.picker.shownTotal - 1, was + delta))
+        var to = Math.max(0, Math.min(root.picker.shownTotal - 1, Filter.viewOf(root.filteredRows, was) + delta))
         if (!extending) root.picker.endRange()
-        root.picker.cursorIndex = to
-        if (extending) root.picker.markRange(was, to)
+        root.picker.cursorIndex = Filter.at(root.filteredRows, to)
+        if (extending) root.picker.markRange(was, root.picker.cursorIndex)
         root.positionViewAtIndex(to, ListView.Contain)
     }
 
     Keys.onPressed: function (event) {
+        if (root.picker.filterTyping === true && root.picker.handleFilterKey(event)) {
+            event.accepted = true
+            return
+        }
         var action = Keymap.lookup(event.key, event.text, event.modifiers, "listing")
         event.accepted = true
         if (action === "cursorFirstArm") {
@@ -140,7 +151,9 @@ ListView {
         }
         root.firstArmed = false
         if (event.key === Qt.Key_Escape) {
-            root.picker.cancel()
+            if (!root.picker.escapeFilter || !root.picker.escapeFilter()) root.picker.cancel()
+        } else if (action === "filter") {
+            root.picker.openFilter()
         } else if (action === "cursorDown") {
             root.moveCursor(1)
         } else if (action === "cursorUp") {
@@ -198,7 +211,8 @@ ListView {
     }
 
     function requestIfDrifted() {
-        if (!root.visible || root.picker.backendUnavailable || root.picker.total === 0 || root.picker.pendingListings > 0)
+        if (!root.visible || root.picker.backendUnavailable || root.picker.total === 0
+                || root.picker.pendingListings > 0 || root.filteredRows !== null)
             return
         var firstVisible = Math.floor(root.contentY / Theme.rowHeight)
         var heldEnd = root.picker.held + root.picker.rows.length

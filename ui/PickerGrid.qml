@@ -8,6 +8,7 @@ import "js/Density.js" as Density
 import "js/Thumbs.js" as Thumbs
 import "js/ExtThumbs.js" as ExtThumbs
 import "js/Sort.js" as Sort
+import "js/Filter.js" as Filter
 
 // Issue #191 grid mode: the main window's tiles over the same rows, visible tiles only.
 GridView {
@@ -16,6 +17,9 @@ GridView {
     property var picker: null
     // The listing worker, which holds the rows a thumb request names; see ui/PickerListing.qml.
     property var backend: null
+    readonly property var filteredRows: root.picker.shown || null
+    readonly property int shownTotal: root.picker.shownTotal === undefined ? root.picker.total : root.picker.shownTotal
+    onFilteredRowsChanged: if (root.visible) settle.restart()
 
     // The first screen outlasts the compositor's resize, the fling debounce after that.
     readonly property int firstSettleMs: 70
@@ -32,7 +36,7 @@ GridView {
     onVisibleTileRowsChanged: if (root.visible) settle.restart()
 
     // Hidden builds nothing: a hidden view is not a free view, AGENTS.md rule 6.
-    model: root.visible ? root.picker.total : 0
+    model: root.visible ? root.shownTotal : 0
     clip: true
     boundsBehavior: Flickable.StopAtBounds
     highlightMoveDuration: 0
@@ -41,6 +45,7 @@ GridView {
     activeFocusOnTab: true
     Keys.onTabPressed: function(event) { root.picker.stepFocus(root, (event.modifiers & Qt.ShiftModifier) !== 0) }
     Keys.onBacktabPressed: root.picker.stepFocus(root, true)
+    onActiveFocusChanged: if (!root.activeFocus && root.picker.filterTyping === true) root.picker.commitFilter()
     property bool firstArmed: false
     // The previous tap path, so a rebuilt grid never sends a tile the first tap missed.
     property string lastTapPath: ""
@@ -58,7 +63,7 @@ GridView {
     delegate: Item {
         id: cell
         required property int index
-        readonly property int listingIndex: index
+        readonly property int listingIndex: Filter.at(root.filteredRows, index)
         readonly property var row: root.picker.rowFor(cell.listingIndex)
         readonly property string rowPath: cell.row ? Picker.rowPath(root.picker.path, cell.row.n) : ""
         // A Recent row is named by its whole path, drawn by its own leaf; see ui/PickerList.qml.
@@ -80,6 +85,8 @@ GridView {
             hovered: hover.hovered
             selected: cell.isMarked
             thumb: root.thumbFor(cell.listingIndex)
+            markQuery: root.picker.filterQuery || ""
+            markArmed: root.picker.filterTyping === true || !!root.picker.filterQuery
         }
 
         // The board's box, one gap in from the tile's top left; the cursor tile's mark is
@@ -101,6 +108,7 @@ GridView {
             acceptedButtons: Qt.LeftButton
             // One tap moves the cursor; a same-path double tap opens, accepts or marks by mode; a box tap toggles.
             onTapped: function (eventPoint, button) {
+                if (cell.listingIndex < 0 || !cell.row) return
                 var was = root.picker.cursorIndex
                 var extending = (tap.point.modifiers & Qt.ShiftModifier) !== 0 && root.picker.marksAllowed
                 if (!extending) root.picker.endRange()
@@ -128,22 +136,22 @@ GridView {
     }
 
     function moveCursor(delta, extending) {
-        if (root.picker.total === 0)
+        if (root.shownTotal === 0)
             return
-        var to = Picker.gridTarget(root.picker.cursorIndex, delta, root.columns, root.picker.total)
+        var to = Picker.gridTarget(Filter.viewOf(root.filteredRows, root.picker.cursorIndex), delta, root.columns, root.shownTotal)
         var before = root.picker.cursorIndex
         if (!extending) root.picker.endRange()
-        root.picker.cursorIndex = to
-        if (extending) root.picker.markRange(before, to)
+        root.picker.cursorIndex = Filter.at(root.filteredRows, to)
+        if (extending) root.picker.markRange(before, root.picker.cursorIndex)
         root.positionViewAtIndex(to, GridView.Contain)
     }
 
     function jumpTo(index) {
-        if (root.picker.total === 0)
+        if (root.shownTotal === 0)
             return
         root.picker.endRange()
-        var to = Math.max(0, Math.min(root.picker.total - 1, index))
-        root.picker.cursorIndex = to
+        var to = Math.max(0, Math.min(root.shownTotal - 1, index))
+        root.picker.cursorIndex = Filter.at(root.filteredRows, to)
         root.positionViewAtIndex(to, GridView.Contain)
     }
 
@@ -166,7 +174,9 @@ GridView {
         }
         root.firstArmed = false
         if (key === Qt.Key_Escape) {
-            root.picker.cancel()
+            if (!root.picker.escapeFilter || !root.picker.escapeFilter()) root.picker.cancel()
+        } else if (action === "filter") {
+            root.picker.openFilter()
         } else if (action === "cursorDown") {
             root.moveCursor(root.columns)
         } else if (action === "cursorUp") {
@@ -178,13 +188,13 @@ GridView {
         } else if (action === "selectAll") {
             root.picker.selectAll()
         } else if (action === "pageDown") {
-            root.jumpTo(Picker.pageTarget(root.picker.cursorIndex, root.visibleTileRows * root.columns, root.picker.total))
+            root.jumpTo(Picker.pageTarget(Filter.viewOf(root.filteredRows, root.picker.cursorIndex), root.visibleTileRows * root.columns, root.shownTotal))
         } else if (action === "pageUp") {
-            root.jumpTo(Picker.pageTarget(root.picker.cursorIndex, -root.visibleTileRows * root.columns, root.picker.total))
+            root.jumpTo(Picker.pageTarget(Filter.viewOf(root.filteredRows, root.picker.cursorIndex), -root.visibleTileRows * root.columns, root.shownTotal))
         } else if (action === "cursorFirst") {
             root.jumpTo(0)
         } else if (action === "cursorLast") {
-            root.jumpTo(root.picker.total - 1)
+            root.jumpTo(root.shownTotal - 1)
         } else if (action === "viewList") {
             root.picker.setView("list")
         } else if (action === "viewGrid") {
@@ -212,15 +222,19 @@ GridView {
     }
 
     Keys.onPressed: function (event) {
+        if (root.picker.filterTyping === true && root.picker.handleFilterKey(event)) {
+            event.accepted = true
+            return
+        }
         // Bare arrows and h/l step to visual neighbours in the grid, the main grid's own rule;
         // the map below would read them as parent and browse-in instead.
-        if (event.modifiers === Qt.NoModifier
+        if ((event.modifiers === Qt.NoModifier || event.modifiers === Qt.ShiftModifier)
                 && (event.key === Qt.Key_Left || event.key === Qt.Key_Right
-                    || event.text === "h" || event.text === "l")) {
+                    || (event.modifiers === Qt.NoModifier && (event.text === "h" || event.text === "l")))) {
             var across = (event.key === Qt.Key_Left || event.text === "h") ? -1 : 1
             event.accepted = true
             root.firstArmed = false
-            root.moveCursor(across)
+            root.moveCursor(across, event.modifiers === Qt.ShiftModifier)
             return
         }
         var action = Keymap.lookup(event.key, event.text, event.modifiers, "listing")
@@ -261,7 +275,8 @@ GridView {
     }
 
     function requestIfDrifted() {
-        if (!root.visible || root.picker.backendUnavailable || root.picker.total === 0 || root.picker.pendingListings > 0)
+        if (!root.visible || root.picker.backendUnavailable || root.picker.total === 0
+                || root.picker.pendingListings > 0 || root.filteredRows !== null)
             return
         var range = Picker.tileRange(root.contentY, root.cellHeightPx, root.visibleTileRows, root.columns, root.picker.total)
         var heldEnd = root.picker.held + root.picker.rows.length
@@ -276,12 +291,16 @@ GridView {
     // Only the visible tiles, only once each, and only after the grid has stopped moving.
     // Unknown storage holds until fsinfo names it, so the first screen never decodes as local.
     function requestThumbs() {
-        if (!root.visible || root.picker.backendUnavailable || root.picker.total === 0
+        if (!root.visible || root.picker.backendUnavailable || root.shownTotal === 0
                 || root.picker.pendingListings > 0 || root.picker.recent || !root.picker.storageKnown)
             return
-        var range = Picker.tileRange(root.contentY, root.cellHeightPx, root.visibleTileRows, root.columns, root.picker.total)
+        var range = Picker.tileRange(root.contentY, root.cellHeightPx, root.visibleTileRows, root.columns, root.shownTotal)
+        var span = Filter.span(root.filteredRows, range.first, range.last)
         var work = Thumbs.plan(root.picker.thumbState, root.picker.rows, root.picker.held,
-                               range.first, range.last, ViewState.thumbnailMode)
+                               span.first, span.last, ViewState.thumbnailMode)
+        var drawn = Filter.cut(work, root.filteredRows, root.picker.thumbState)
+        work.ask = drawn.ask
+        work.drop = drawn.drop
         root.backend.thumbcancel(work.drop)
         // An off class still asks; the worker answers from the cache alone, see ui/js/ExtThumbs.js.
         work.cacheOnly = ExtThumbs.cacheOnly(root.picker.storageClass, ViewState.preview)
