@@ -76,6 +76,19 @@ fn default_redo_is_control_shift_z() {
     assert_eq!(map.action(&Key::character('Z', "ctrlshift"), "default"), "redo");
 }
 #[test]
+fn selection_actions_resolve_and_appear_in_the_sheet() {
+    let map = Map::load();
+    for preset in ["default", "vim", "mac", "windows"] {
+        assert_eq!(map.action(&Key::named("A", "ctrlshift"), preset), "deselectAll");
+        assert_eq!(map.action(&Key::character('V', ""), preset), "invertSelection");
+        assert_eq!(map.chord("deselectAll", preset, "listing").as_deref(), Some("Ctrl+Shift+A"));
+        assert_eq!(map.chord("invertSelection", preset, "listing").as_deref(), Some("V"));
+        let sheet = map.sheet(preset);
+        assert!(sheet.iter().any(|line| line.starts_with("Ctrl+Shift+A  ")), "{preset} omits deselect all");
+        assert!(sheet.iter().any(|line| line.starts_with("V  ")), "{preset} omits invert selection");
+    }
+}
+#[test]
 fn header_comments_do_not_strip_quoted_hashes_or_accept_other_suffixes() {
     let map = Map::parse(r##"
 [[text]] # A header comment can contain = and ]].

@@ -89,6 +89,11 @@ action = "settings"
 key = "N"
 action = "newFolder"
 
+# Clear the marks without unwinding the filter or search, beside Ctrl+A's Select all.
+[[ctrlshift]]
+key = "A"
+action = "deselectAll"
+
 # Issue 9: foot's own zoom chords, which in foot are a text size and are one here too. They are an
 # alias onto the Display section's own control and its one stored stop, never a second engine. Plus
 # and Equal both, because + is Shift+= on this layout and the hand presses the one key either way;
@@ -654,7 +659,7 @@ look = ["viewList", "viewColumns", "viewGrid", "viewDual", "togglePreview", "fac
 find = ["filter", "search", "reveal", "sortNext", "sortReverse", "pathBar", "reload"]
 change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
           "deletePermanently", "undo", "redo", "newFolder", "copydirpath", "copyPath", "toggleSelect",
-          "selectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
+          "selectAll", "deselectAll", "extendDown", "extendUp", "menu", "properties", "addNetwork", "eject",
           "openTerminal", "settings", "autofitColumns", "copyAs", "pasteAs", "invertSelection", "tags"]
 
 # The digit range, expanded by the generator into tab1 through tab9.
@@ -794,6 +799,16 @@ label = "new folder"
 keys = "v"
 action = "toggleSelect"
 label = "select"
+
+[[sheet]]
+keys = "^A"
+action = "deselectAll"
+label = "deselect all"
+
+[[sheet]]
+keys = "V"
+action = "invertSelection"
+label = "invert selection"
 
 [[sheet]]
 keys = "s"

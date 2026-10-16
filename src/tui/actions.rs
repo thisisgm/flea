@@ -361,6 +361,14 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 m.shown().into_iter().collect()
             };
         }
+        "deselectAll" => m.selected.clear(),
+        "invertSelection" => {
+            m.selected = if m.filter.is_empty() {
+                (0..m.total).filter(|i| !m.selected.contains(i)).collect()
+            } else {
+                m.shown().into_iter().filter(|i| !m.selected.contains(i)).collect()
+            };
+        }
         "toggleHidden" => {
             m.hidden = !m.hidden;
             save("hidden", Json::Bool(m.hidden), m);
