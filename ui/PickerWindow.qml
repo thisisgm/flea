@@ -9,6 +9,8 @@ import "." as Flea
 import "js/Picker.js" as Picker
 import "js/Keymap.js" as Keymap
 import "js/Thumbs.js" as Thumbs
+import "js/Filter.js" as Filter
+import "js/Input.js" as Input
 // ControlReader.js loads with IpcControls.qml on the first cohesionControls call, never with the picker's first frame.
 
 // One portal request, one window: the org.freedesktop.impl.portal.FileChooser dialog every caller on
@@ -55,8 +57,12 @@ ShellRoot {
         // Which chip is active: an index into the caller's filters, or -1 for All files.
         property int filterIndex: Picker.currentChip(win.req)
         readonly property var filter: win.filterIndex >= 0 ? win.req.filters[win.filterIndex] : null
-        readonly property var shown: null
-        readonly property int shownTotal: win.total
+        // Filename filtering narrows only the held window, independently of the caller's type chip.
+        property string filterQuery: ""
+        property bool filterTyping: false
+        readonly property var shown: Filter.shown(win.rows, win.held, win.filterQuery, win.recent)
+        readonly property int shownTotal: win.shown === null ? win.total : win.shown.length
+        readonly property string filterSummary: Filter.summary(win.shown, win.rows.length, win.total, win.recent)
         onFilterChanged: if (win.path.length) win.openWithoutHistory(win.path)
 
         // The view the listing draws in; a launch reads pickerView and only setView writes it.
@@ -70,7 +76,7 @@ ShellRoot {
             // reads, and cursor moves never owe the file anything.
             ViewState.changeKey("pickerView", next)
             // A reshow owns its window: the shown view moves to the cursor and refetches there.
-            var at = Math.max(0, Math.min(win.cursorIndex, win.total - 1))
+            var at = Math.max(0, Filter.viewOf(win.shown, win.cursorIndex))
             if (next === "grid") grid.reshow(at)
             else list.reshow(at)
             win.restoreActionFocus(before)
@@ -169,6 +175,50 @@ ShellRoot {
             var at = index - win.held
             return at >= 0 && at < win.rows.length ? win.rows[at] : null
         }
+        function openFilter() {
+            if (win.backendUnavailable || win.submitting || win.pendingListings || win.listingFailed) return
+            Filter.start(win)
+            win.endRange()
+            win.focusView()
+        }
+        function commitFilter() { Filter.commit(win) }
+        function escapeFilter() {
+            if (!win.filterTyping && win.filterQuery.length === 0) return false
+            Filter.close(win)
+            win.endRange()
+            if (win.cursorIndex < 0 && win.total > 0) win.cursorIndex = win.held
+            win.viewItem().reshow(Math.max(0, win.cursorIndex))
+            return true
+        }
+        function applyFilter(query) {
+            win.endRange()
+            win.filterQuery = query
+            var next = Filter.shown(win.rows, win.held, query, win.recent)
+            if (next !== null && Filter.viewOf(next, win.cursorIndex) < 0)
+                win.cursorIndex = next.length ? next[0] : -1
+            else if (next === null && win.cursorIndex < 0 && win.total > 0)
+                win.cursorIndex = win.held
+            win.viewItem().reshow(Math.max(0, Filter.viewOf(next, win.cursorIndex)))
+        }
+        // The browser's query-line input rules, without its row-indexed selection transitions:
+        // picker checks are retained path identities, explicitly counted in the footer.
+        function handleFilterKey(event) {
+            if (!win.filterTyping) return false
+            var action = Keymap.lookup(event.key, event.text, event.modifiers, "listing")
+            if (action === "pathBar" || (!Input.isPrintable(event.text)
+                    && ["cursorDown", "cursorUp", "cursorFirst", "cursorLast", "pageDown", "pageUp"].indexOf(action) >= 0)) {
+                win.commitFilter()
+                return false
+            }
+            if (Input.isPasteKey(event))
+                return Input.pasteInto(win, function(text) { win.applyFilter(win.filterQuery + text) })
+            if (event.key === Qt.Key_Escape) win.escapeFilter()
+            else if (event.key === Qt.Key_Return || event.key === Qt.Key_Enter) win.commitFilter()
+            else if (event.key === Qt.Key_Backspace) win.applyFilter(win.filterQuery.slice(0, -1))
+            else if (Input.isPrintable(event.text)) win.applyFilter(win.filterQuery + event.text)
+            return true
+        }
+        function clipboardText() { return Quickshell.clipboardText }
 
         function open(next) {
             if (win.submitting || next === win.path) return
@@ -200,6 +250,8 @@ ShellRoot {
 
         // Rows are named by index, so a replaced listing is dropped whole; emptying the model returns the viewport to the top.
         function clearListing() {
+            win.filterQuery = ""
+            win.filterTyping = false
             selection.reset()
             win.total = 0
             win.held = 0
@@ -285,6 +337,7 @@ ShellRoot {
 
         // Enter walks folders and submits the checked files, or the cursor file when none are checked.
         function activate(index) {
+            if (Filter.viewOf(win.shown, index) < 0) return
             var row = win.rowFor(index)
             if (!row)
                 return
@@ -462,6 +515,7 @@ ShellRoot {
                 win.held = start
                 win.rows = items
                 win.kindNames = kinds
+                if (win.filterQuery.length > 0) win.applyFilter(win.filterQuery)
             }
             // A thumbed line for the previous listing is still in the pipe when clearListing
             // emptied the map, so only the live listing's answers land.
@@ -545,7 +599,7 @@ ShellRoot {
             color: Theme.color.background
             focus: true
             // The save field takes the keyboard from the list, and Escape has to refuse from there too.
-            Keys.onEscapePressed: win.cancel()
+            Keys.onEscapePressed: if (!win.escapeFilter()) win.cancel()
 
             Flea.PickerChrome {
                 id: chrome
@@ -589,12 +643,22 @@ ShellRoot {
                 height: visible ? implicitHeight : 0
             }
 
+            Flea.FilterStrip {
+                id: nameFilter
+                anchors.left: places.right
+                anchors.right: parent.right
+                anchors.top: header.bottom
+                pane: win
+                suppressed: shares.item !== null && shares.item.active
+                summary: win.filterSummary
+            }
+
             Flea.PickerList {
                 id: list
                 visible: win.viewMode === "list"
                 anchors.left: places.right
                 anchors.right: parent.right
-                anchors.top: header.bottom
+                anchors.top: nameFilter.bottom
                 anchors.bottom: save.top
                 picker: win
                 backend: listing
@@ -610,7 +674,7 @@ ShellRoot {
                 visible: win.viewMode === "grid"
                 anchors.left: places.right
                 anchors.right: parent.right
-                anchors.top: header.bottom
+                anchors.top: nameFilter.bottom
                 anchors.bottom: save.top
                 picker: win
                 backend: listing
@@ -632,6 +696,15 @@ ShellRoot {
                 width: list.width
                 height: list.height
                 visible: win.listingState === "empty"
+            }
+
+            Flea.StateMessage {
+                x: list.x; y: list.y; width: list.width; height: list.height
+                active: win.filterQuery.length > 0
+                total: win.rows.length
+                filterQuery: win.filterQuery
+                shown: win.shownTotal
+                listingState: win.listingState
             }
 
             FocusScope {
@@ -722,7 +795,8 @@ ShellRoot {
                     width: Math.min(implicitWidth, Math.max(0, parent.width - 2 * Theme.spacing.rowPaddingX
                         - Theme.spacing.gap - Math.min(statusMessage.implicitWidth, parent.width / 2)))
                     anchors.verticalCenter: parent.verticalCenter
-                    text: win.backendUnavailable ? "Esc cancel" : Picker.hints(win.req)
+                    text: win.backendUnavailable ? "Esc cancel" : win.filterTyping
+                        ? "Enter apply · Esc clears" : Keymap.hintFor("filter") + " filter names · " + (win.filterQuery.length > 0 ? "Esc clears · " : "") + Picker.hints(win.req)
                     color: Theme.color.foreground
                     font.family: Theme.font.family
                     font.pixelSize: Theme.font.caption
@@ -803,6 +877,8 @@ ShellRoot {
                 var jumpFrame = jumpItem ? jumpItem.dropItem : null
                 var jumpVisible = jumpFrame ? Math.floor((jumpFrame.height - 2 * Theme.spacing.rowPaddingY) / Theme.rowHeight) : 0
                 return JSON.stringify({path: win.path, total: win.total, held: win.held, rows: win.rows,
+                    filterQuery: win.filterQuery, filterTyping: win.filterTyping, shown: win.shown,
+                    shownTotal: win.shownTotal, filterSummary: win.filterSummary,
                     pathBarOpen: chrome.editing, pathFieldText: chrome.jump ? chrome.jump.query : "",
                     jump: {open: !!jumpItem && jumpItem.shown, rows: jumpItem ? jumpItem.entries.length : 0, visibleRows: jumpVisible, contentY: jumpFrame ? jumpFrame.scrollY : 0, cursor: jumpItem ? jumpItem.cursor : -1, paths: jumpItem ? jumpItem.entries.map(function(entry) { return entry.path }) : []},
                     cursor: win.cursorIndex, cursorName: win.rowFor(win.cursorIndex) ? win.rowFor(win.cursorIndex).n : "",

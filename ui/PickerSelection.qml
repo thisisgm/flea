@@ -2,6 +2,7 @@ import QtQuick
 import "js/Format.js" as Format
 import "js/Picker.js" as Picker
 import "js/Marks.js" as Marks
+import "js/Filter.js" as Filter
 
 // Paths come from the listing worker; retained identities stay on the separate check worker.
 Item {
@@ -32,7 +33,7 @@ Item {
         return true
     }
     function toggle(index) {
-        if (!available()) return
+        if (!available() || Filter.viewOf(picker.shown || null, index) < 0) return
         endRange()
         var row = picker.rowFor(index)
         if (!row || Picker.directory(row) !== picker.folderMode) return
@@ -41,7 +42,7 @@ Item {
     function all() {
         if (!permitted()) return
         endRange()
-        resolve(Marks.range(picker.shownTotal), null)
+        resolve(picker.shown === null || picker.shown === undefined ? Marks.range(picker.shownTotal) : picker.shown.slice(), null)
     }
     function range(was, index) {
         if (!permitted()) return
@@ -50,12 +51,17 @@ Item {
             anchor = was
         }
         last = index
-        var lo = Math.min(anchor, index), hi = Math.max(anchor, index)
-        var indices = []
-        for (var i = lo; i <= hi; i++) indices.push(i)
+        var indices
+        if (picker.shown) indices = Filter.between(picker.shown, anchor, index)
+        else {
+            var lo = Math.min(anchor, index), hi = Math.max(anchor, index)
+            indices = []
+            for (var i = lo; i <= hi; i++) indices.push(i)
+        }
         resolve(indices, rangeState)
     }
     function resolve(indices, range) {
+        if (!indices.length) return
         if (picker.markRequest || picker.submitting) {
             queued = queued.concat([{indices: indices, range: range}])
             return

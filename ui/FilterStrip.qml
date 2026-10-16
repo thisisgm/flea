@@ -12,7 +12,9 @@ Item {
 
     property var pane: null
 
-    readonly property bool up: !root.pane.trash.opened && (root.pane.filterTyping || root.pane.filterQuery.length > 0)
+    property bool suppressed: root.pane.trash.opened
+    property string summary: Filter.summary(root.pane.shown, root.pane.rows.length, root.pane.total)
+    readonly property bool up: !root.suppressed && (root.pane.filterTyping || root.pane.filterQuery.length > 0)
     readonly property real ruleOpacity: 0.12
     // Twice the hairline, the same weight the cursor row's mark uses, so one caret rule serves both.
     readonly property int caretWidth: Theme.spacing.hairline * 2
@@ -87,7 +89,7 @@ Item {
         anchors.rightMargin: Theme.spacing.gap
         anchors.verticalCenter: parent.verticalCenter
         elide: Text.ElideRight
-        text: Filter.summary(root.pane.shown, root.pane.rows.length, root.pane.total)
+        text: root.summary
         color: Theme.color.muted
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
