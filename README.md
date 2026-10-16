@@ -248,6 +248,7 @@ Press **?** for the full keymap, or **,** to change settings.
 | Open with the default app | `Enter` |
 | Quick Look | `Space` |
 | Select / extend selection | `v` / `Shift` + arrows |
+| Select all / deselect all / invert selection | `Ctrl+A` / `Ctrl+Shift+A` / `V` |
 | Copy / cut / paste | `y` `x` `p`, or `Ctrl+C` `Ctrl+X` `Ctrl+V` |
 | Rename / trash / undo / redo | `r` or `F2` / `dd` or `Delete` / `z` / `Ctrl+Shift+Z` |
 | Tag the selection | `T`, then `1`–`7` |
@@ -262,6 +263,7 @@ Press **?** for the full keymap, or **,** to change settings.
 | Zoom an image in Quick Look / fit | `+` `-` / `0` |
 
 The Windows preset uses `Ctrl+Shift+1/2/3/4` for views and `Ctrl+Y` for redo. Menu visibility does not disable shortcuts.
+Deselect all clears marks without changing the filter, search query or cursor; Invert selection flips the rows drawn by the current filter.
 See [the full key table](keys.toml) for preset bindings and pointer actions.
 
 ## Build

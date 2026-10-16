@@ -2698,6 +2698,13 @@ record clears when the edit leaves that row or the tile is reused, so a pooled t
 
 ## File budget
 
+Issue 164 adds a dedicated Deselect all action without changing Escape, and completes Invert
+selection in the TUI. Scoped ceilings, re-derived with `wc -l`, move `src/tui/actions.rs`
+1058 to 1066, `ui/js/Focus.js` 492 to 493, `ui/js/Menu.js` 513 to 514 and generated
+`ui/js/Keymap.js` 370 to 371; the keymap and menu tests move 366 to 379 and 673 to 686.
+The unchanged startup unit inventories gain 530 source bytes, moving their ON/OFF pins
+to 1774115 and 1663274. Global file limits stay unchanged.
+
 The RAW3 join onto the 0.3.11 stage records the merged `wc -l` ceilings at `src/backend/metareq.rs` 541, `src/backend/menu_actions.rs` 674, `tests/js/facts.js` 415 and `ui/js/Facts.js` 402. `ui/MenuActionDialog.qml` crosses the unchanged 400-line cap at 402 for the initial photo facts combined with the deferred file facts, each pair drawn once in the board's order; its scoped ceiling is the merged count. No code or comment was compressed to meet a cap.
 The same join keeps all 66 stage Properties checks and all 7 RAW3 checks, then adds 4 checks for duplicate pairs, approved values and deferred completion of missing facts, and 8 checks (2 for each of a partial ISO, a partial camera, complementary fields and conflicting fields) that the immediate and deferred photo facts merge field by field before each pair is drawn once, so `tests/menu-contents.sh` expects 85. Both lint profiles retain their allowance counts, source text, symbols and reasons, with the `ui/MenuActionDialog.qml` reads one line lower (body 325 to 326, root 328 to 329 and 342 to 343). The 169 first-frame units still sum to 1,628,263 bytes; the changed RAW3 UI units are deferred, so `tests/startup-units.txt` stays unchanged.
 

@@ -62,7 +62,7 @@ src/backend/trashdelete.rs 987
 src/clip/watch_end_tests.rs 405
 src/gvfsprefetch_tests.rs 398
 src/gui.rs 505
-src/tui/actions.rs 1058
+src/tui/actions.rs 1066
 src/tui/hold_tests.rs 427
 src/tui/input.rs 455
 src/tui/model.rs 1268
@@ -80,10 +80,10 @@ tests/js/facts.js 415
 tests/js/devices.js 437
 tests/js/previewswap.js 475
 tests/js/mdstructure.js 655
-tests/js/keymap.js 366
+tests/js/keymap.js 379
 tests/js/focus.js 843
 tests/js/mounts.js 359
-tests/js/menu.js 673
+tests/js/menu.js 686
 tests/js/nav.js 478
 tests/js/rail.js 471
 tests/js/picker.js 382
@@ -185,8 +185,8 @@ ui/js/Anchor.js 379
 ui/js/ColumnsCarry.js 103
 ui/js/Devices.js 440
 ui/js/Filter.js 284
-ui/js/Focus.js 492
-ui/js/Keymap.js 370
+ui/js/Focus.js 493
+ui/js/Keymap.js 371
 ui/js/Nav.js 328
 ui/js/Markdown.js 135
 ui/js/MdBlocks.js 437
@@ -194,7 +194,7 @@ ui/js/FigureWorker.mjs 619
 ui/js/MdDocument.js 337
 ui/js/MdLeaf.js 309
 ui/js/MdHtml.js 307
-ui/js/Menu.js 513
+ui/js/Menu.js 514
 ui/js/Drag.js 364
 ui/js/Format.js 305
 ui/js/Ops.js 577

@@ -198,6 +198,7 @@ function act(action, root, menuId, paths) {
     case "extendDown": root.extendSelection(1); return
     case "extendUp": root.extendSelection(-1); return
     case "selectAll": root.selectAll(); return
+    case "deselectAll": root.clearSelection(); return
     // A walk replaces the listing the filter was narrowing, so the filter goes before the query line
     // does: leaving it up would hide every result that did not happen to match it.
     case "search": Filter.close(root); Search.start(root); return
