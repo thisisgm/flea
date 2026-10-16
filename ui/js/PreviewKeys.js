@@ -118,7 +118,8 @@ function act(action, root) {
         if (root.preview.isCompare) {
             var compare = root.preview.surfaceItem()
             if (compare) compare.stepFocus(action === "focusPrevious")
-        } else if (root.preview.hasBar) root.preview.toggleMarkdownClose()
+        } else if (root.preview.isFont) root.preview.focusFontControl()
+        else if (root.preview.hasBar) root.preview.toggleMarkdownClose()
         return
     case "open":
         if (root.preview.hasBar && root.preview.markdownCloseFocused) root.preview.close()

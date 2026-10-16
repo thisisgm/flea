@@ -59,7 +59,9 @@ function isHtml(name) { return /\.(html|htm)$/i.test(String(name)) }
 // TrueType, OpenType and collections (font/ttf, font/otf, font/collection); the backend checks the MIME type again.
 var FONT_EXTENSIONS = [".ttf", ".otf", ".ttc"]
 
-function isFont(name) {
+function isFont(name) { return /\.(ttf|otf|ttc|otc|woff2?|eot|pfa|pfb|t1|t42|cid|cff|pfr|fon|fnt|bdf|pcf|otb|dfont|suit|suitcase|afm|pfm)(\.(gz|bz2|Z))?$/i.test(String(name)) }
+
+function isSampleFont(name) {
     var lower = String(name).toLowerCase()
     return FONT_EXTENSIONS.some(function (e) { return lower.length > e.length && lower.indexOf(e, lower.length - e.length) !== -1 })
 }

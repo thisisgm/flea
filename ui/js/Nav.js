@@ -237,7 +237,7 @@ function openCursor(pane, opener) {
         return
     }
     // Handing an archive on opens another file manager, and this is ui/Preview.qml's own classifier; an AppImage is a program first, so it asks on the run card.
-    if (Kinds.quickLookKind(row.i, path) === Kinds.ARCHIVE && !/\.appimage$/i.test(row.n)) {
+    if (Kinds.quickLookKind(row.i, path) === Kinds.FONT || (Kinds.quickLookKind(row.i, path) === Kinds.ARCHIVE && !/\.appimage$/i.test(row.n))) {
         pane.quickLook().open(path, row.i, row.s, pane.kindNames[row.k] || "",
             pane.thumbState && pane.thumbState.file ? Thumbs.fileFor(pane.thumbState, pane.cursorIndex) : "")
         return

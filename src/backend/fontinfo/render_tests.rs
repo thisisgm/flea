@@ -165,6 +165,27 @@ fn an_alias_name_resolves_to_its_canonical_type() {
 }
 
 #[test]
+fn an_otf_mime_collision_accepts_font_tables_but_not_an_office_document() {
+    let d = TestDir::new("fontotfcollision");
+    let path = d.join("actual.otf");
+    // OTTO, one maxp table at byte 28, version 1.0 and 25 glyphs.
+    let bytes = [b"OTTO".as_slice(), &[0, 1, 0, 0, 0, 0, 0, 0], b"maxp",
+        &[0, 0, 0, 0, 0, 0, 0, 28, 0, 0, 0, 6, 0, 1, 0, 0, 0, 25]].concat();
+    std::fs::write(&path, bytes).unwrap();
+    for types in [
+        "50:application/vnd.oasis.opendocument.formula-template:*.otf\n50:font/otf:*.otf\n",
+        "50:font/otf:*.otf\n50:application/vnd.oasis.opendocument.formula-template:*.otf\n",
+    ] {
+        let rig = Rig { mime: Db::from_str(types), ..Rig::new() };
+        assert_eq!(files_of(&rig.run(&ask(&path), &d.join("cache"))).len(), 3);
+    }
+    let rig = Rig { mime: Db::from_str("50:application/vnd.oasis.opendocument.formula-template:*.otf\n"), ..Rig::new() };
+    let office = d.file("formula.otf", "not a font");
+    assert!(rig.run(&ask(&office), &d.join("cache")).contains("no readable font tables"));
+    assert_eq!(rig.jobs.get(), 0);
+}
+
+#[test]
 fn a_bad_ask_runs_no_job() {
     let d = TestDir::new("fontbad");
     let rig = Rig::new();

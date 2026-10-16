@@ -15,6 +15,7 @@ import "js/Archive.js" as Archive
 import "js/DragOut.js" as DragOut
 import "js/Startup.js" as Startup
 import "js/Nav.js" as Nav
+import "js/Kinds.js" as Kinds
 import "js/RecentMode.js" as RecentMode
 import "js/Ops.js" as Ops
 import "js/Clipboard.js" as Clipboard
@@ -810,7 +811,10 @@ FocusScope {
     function openCursor() { Nav.openCursor(root, wire.opener) }
 
     // A path the caller already resolved, for the columns view's neighbour rows, which have no cursor.
-    function openFile(path) { wire.opener.open(path) }
+    function openFile(path) {
+        if (Kinds.isFont(path)) root.quickLook().open(path, "font-x-generic", 0, "Font", "")
+        else wire.opener.open(path)
+    }
 
     // A terminal in the caller's place or the directory being shown, through flea --terminal.
     function openTerminal(path) { wire.opener.openTerminal(path || root.path) }

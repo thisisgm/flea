@@ -14,6 +14,7 @@ var IMAGE = Kinds.IMAGE
 var VIDEO = Kinds.VIDEO
 var AUDIO = Kinds.AUDIO
 var PDF = Kinds.PDF
+var FONT = Kinds.FONT
 var TEXT = Kinds.TEXT
 var CODE = Kinds.CODE
 var ARCHIVE = Kinds.ARCHIVE
@@ -46,6 +47,7 @@ function state(row, selectionCount, loading, errorText, kindName) {
     // The backend's icon ladder falls a name it cannot identify all the way to text-x-generic, but
     // its Kind says the truth: UNKNOWN_KIND, which is "Data". Such a row is not text, it is a type
     // nothing recognised, and that is the canvas's Unsupported tile (its own example is core.dump).
+    if (Kinds.isFont(row.n)) return FONT
     if (kindName === UNKNOWN_KIND) {
         return UNSUPPORTED
     }
@@ -202,7 +204,7 @@ function archiveMore(meta, shown) {
 }
 
 // TallPreviews: the kinds whose frame fills the column down to the name, by the row's kind and never its load state.
-var TALL_STATES = [TEXT, CODE, ARCHIVE, PDF]
+var TALL_STATES = [TEXT, CODE, ARCHIVE, PDF, FONT]
 
 function tall(st) {
     return TALL_STATES.indexOf(st) >= 0

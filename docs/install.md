@@ -107,6 +107,13 @@ unmanaged-devices=driver:ipheth
 
 Then run `sudo systemctl restart NetworkManager`.
 
+## User fonts and font preferences
+
+Flea can preview and install fonts for the current user, and apply installed families as
+desktop or terminal defaults. See [font management](fonts.md) for supported formats,
+installation paths and restoring previous preferences. These per-user files survive
+package removal; restore defaults and uninstall unwanted fonts first if needed.
+
 ## Uninstall
 
 ```

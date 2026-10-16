@@ -35,7 +35,13 @@ Item {
     readonly property bool isImage: root.kind === "image"
     readonly property bool isArchive: root.kind === "archive"
     readonly property bool isFont: root.kind === "font"
-    readonly property bool fontFailed: root.isFont && fontLoader.item !== null && fontLoader.item.failed
+    property bool fontManagement: false
+    readonly property bool advancedFont: root.fontManagement || (Kinds.isFont(root.path) && !Kinds.isSampleFont(root.path))
+    readonly property var fontItem: fontLoader.item
+    readonly property var fontManageControl: fontManage
+    function manageFont() { root.fontManagement = true }
+    function focusFontControl() { if (root.advancedFont && root.fontItem) root.fontItem.focusFirst(); else fontManage.forceActiveFocus() }
+    readonly property bool fontFailed: root.isFont && !root.advancedFont && fontLoader.item !== null && fontLoader.item.failed
     // RenderedPreviews: a Markdown file keeps the text kind and draws its own bar and pane.
     readonly property bool isMarkdown: root.kind === "text" && Kinds.isMarkdown(root.path)
     readonly property bool isHtml: root.kind === "text" && Kinds.isHtml(root.path)
@@ -63,6 +69,7 @@ Item {
     readonly property bool archiveFailed: root.isArchive && root.archiveMeta !== null && root.archiveMeta.archiveFailed === true
     // For ui/Ipc.qml: the item drawing this kind's content, whether a player exists, and what the text and archive panes hold.
     function surfaceItem() {
+        if (root.isFont) return fontLoader.item
         if (root.isImage) return imageLoader.item
         if (root.isMedia) return mediaLoader.item
         if (root.isPdf) return pdfLoader.item
@@ -254,8 +261,10 @@ Item {
         root.loadingSince = 0
         root.landed = false
         minShow.stop()
-        if (!root.active)
+        if (!root.active) {
+            root.fontManagement = false
             revealCap.stop()
+        }
         else
             Qt.callLater(root.revealIfReady)
     }
@@ -800,19 +809,34 @@ Item {
                 }
             }
 
+            // The existing isolated sample stays the default; management replaces the same loader on demand.
             Loader {
                 id: fontLoader
                 anchors.fill: parent
                 anchors.margins: Theme.spacing.hairline
-                active: root.isFont
-                source: "FontPane.qml"
+                active: root.active && root.isFont
+                source: root.advancedFont ? "PreviewFont.qml" : "FontPane.qml"
                 onLoaded: {
                     item.path = Qt.binding(function () { return root.path })
-                    item.size = Qt.binding(function () { return root.size })
-                    item.backend = Qt.binding(function () { return root.pane ? root.pane.backend : null })
-                    item.active = Qt.binding(function () { return root.isFont })
+                    if (root.advancedFont) {
+                        item.pane = Qt.binding(function () { return root.pane })
+                    } else {
+                        item.size = Qt.binding(function () { return root.size })
+                        item.backend = Qt.binding(function () { return root.pane ? root.pane.backend : null })
+                        item.active = Qt.binding(function () { return root.active && root.isFont })
+                    }
                     item.closeRequested.connect(root.close)
                 }
+            }
+            Flea.DialogButton {
+                id: fontManage
+                anchors.right: parent.right
+                anchors.bottom: parent.bottom
+                anchors.margins: Theme.spacing.rowPaddingX
+                visible: root.isFont && !root.advancedFont
+                label: "Manage font…"
+                tabStop: true
+                onActivated: root.manageFont()
             }
 
             // A file-path Loader, so a window that never compares compiles none of it; the item asks its one diff on load.

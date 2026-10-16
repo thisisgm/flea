@@ -1,4 +1,7 @@
 mod backend;
+mod fontcli;
+mod fontdefaults;
+mod fontscan;
 mod chooser;
 mod clip;
 mod defaults;
@@ -153,6 +156,8 @@ fn main() {
     if args.iter().any(|a| a == "--backend") {
         exit(backend::run::run());
     }
+
+    if let Some(code) = fontcli::dispatch(&args) { exit(code); }
 
     // flea --thumb-worker: only ever started by the backend, inside its sandbox, with a socket on stdin.
     if args.len() == 2 && args[1] == "--thumb-worker" {

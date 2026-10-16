@@ -20,7 +20,8 @@ function run(check) {
     check("TrueType, OpenType and collections open the font page, whatever the case",
           ["a.ttf", "A.OTF", "b.ttc", "x.tar.ttf"].map(function (n) { return Kinds.quickLookKind("font-x-generic", n) }).join("|"),
           "font|font|font|font")
-    check("WOFF, WOFF2 and Type 1 stay unsupported",
+    check("WOFF, WOFF2 and Type 1 open management; a bare extension remains unsupported",
           ["a.woff", "a.woff2", "a.pfb", "ttf", ".ttf"].map(function (n) { return Kinds.quickLookKind("font-x-generic", n) }).join("|"),
-          "unsupported|unsupported|unsupported|unsupported|unsupported")
+          "font|font|font|unsupported|font")
+    check("only the upstream formats use the isolated sample", ["a.ttf", "a.otf", "a.ttc", "a.woff", "a.pfb"].map(Kinds.isSampleFont).join("|"), "true|true|true|false|false")
 }

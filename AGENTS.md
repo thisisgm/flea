@@ -9572,6 +9572,75 @@ The picker's empty-folder shot waits for the empty state to rest: `ui/EmptyState
 
 The rail lit-place test presses the rail through its `PointHandler` instead of setting `pointerFocus`, and releases past the drag threshold so the row never activates; `tests/sidebar-flows.qml` moves 683 to 687 in `tools/flea-file-budget`, re-derived with `wc -l`.
 
+
+## Font previews and user installation
+
+`ui/PreviewFont.qml` is loaded only for the selected font through Quick Look or the column
+preview. Enter uses the same Quick Look route as Space. Its `FontLoader`, `FontOptions.qml`
+and `FontActions.qml` helper are absent on other file kinds; no listing loads fonts. The
+sample editor consumes text keys, including Space, and Escape closes Quick Look. The glyph
+sample comes from each face's actual charset, so symbol fonts show their own characters.
+
+`flea --font info|install|uninstall <path>` (`src/fontcli.rs`) runs outside the backend listing
+loop. It accepts regular font files up to 64 MiB, validates a private snapshot through
+`fontscan.rs` and `fc-scan`, and installs that same snapshot atomically without replacing a
+file. FreeType/Fontconfig-readable TrueType/OpenType collections, WOFF/WOFF2, Type 1/42,
+CFF/CID, PFR, Windows FON/FNT, BDF/PCF and resource-font containers are accepted, including
+compressed bitmap inputs. Extensions route the viewer but never authorize installation.
+AFM/PFM metrics and unsupported EOT/Office inputs are refused, with no installed copy.
+
+Installation uses `$XDG_DATA_HOME/fonts/flea` (default `~/.local/share/fonts/flea`). Every
+existing content-derived target is compared byte for byte. A new installation must appear
+in `fc-list` after `fc-cache`; otherwise only the copy created by that attempt is removed,
+and the cache refreshed again. An existing user file is never removed by this failed-install
+rollback. Availability means Fontconfig exposes the file, not that every application supports
+legacy formats. Uninstall preserves downloaded sources; a file browsed directly in the user's
+font roots (`$XDG_DATA_HOME/fonts` or `~/.fonts`) can itself be uninstalled. System files and
+source symlinks cannot be removed. Fonts installed elsewhere are outside this manager.
+
+Collections install as one original file, with a face selector for preview. Variable fonts
+retain their variation data byte for byte. The specimen's `font.variableAxes` uses the limits
+reported by FreeType's MM API through native `src/fontaxes.rs` FFI, run in a bounded Rust
+helper process only for a selected variable font. No converter or Python runtime is used. Each
+foreign tool has a deadline; `FontActions` allows their combined inspection and rollback budget.
+
+`tests/fonts.sh` drives real Fontconfig discovery, removal, invalid inputs, FIFOs, occupied
+targets, symlinks and rejected-install rollback under isolated user roots. Its offscreen legs
+use the actual pane/backend, install buttons, text editor, collection selector and variable-axis
+bindings. `font-formats.py` generates WOFF and BDF and exercises other real formats present on
+the host. The integration with main records `ui/Pane.qml` 1239, `ui/Preview.qml` 1034,
+`ui/PreviewColumn.qml` 575 and `ui/js/Facts.js` 404, re-derived with `wc -l` in
+`tools/flea-file-budget`. New font components remain below the soft budget. Startup source
+byte pins are re-derived from their inventories; the selected-font components remain demand loaded.
+
+The selected-font viewer's **Use as default** panel runs `--font defaults`,
+`--font apply <path> <face-index> <destination>` or `--font restore <destination>`.
+`src/fontcli.rs` validates the selected face and requires its source or identical managed
+copy to be discoverable by Fontconfig before applying it. Terminal and system monospace
+choices require the face's Fontconfig spacing to be mono, dual or charcell.
+`src/fontdefaults.rs` and its focused Rust modules use the existing JSON codec and change only
+user preferences for desktop sans-serif (Fontconfig, GTK3/4 and writable GSettings), serif,
+monospace, Alacritty, Kitty, Ghostty or Foot. Fontconfig alias substitution replaces the
+requested alias so a later Omarchy `fonts.conf` preference cannot prepend the old choice.
+Existing `fonts.conf` is untouched. Terminal sizes and unrelated settings are retained;
+Ghostty fallback entries remain. Configurations in unsupported Alacritty layouts fail
+validation without writes. Dotfile symlinks are kept and their real user file is updated.
+Private journals under `$XDG_STATE_HOME/flea/font-defaults` retain the original preference
+across repeated applies. Restore refuses to overwrite external edits. Applications may
+need reopening; private application font overrides remain the application's choice.
+`tests/font-defaults.py` exercises all seven destinations, existing Omarchy alias priority,
+GSettings under an isolated keyfile backend, restoration, conflicts and symlinks.
+`tests/font-defaults.qml` presses the real apply/restore buttons offscreen in private roots.
+No development test changes the operator's font preferences.
+
+The font backend has no Python helpers or new Cargo dependencies. Native preference modules
+retain the earlier JSON journal schema, including canonical GSettings strings, so old backups
+remain restorable. Alacritty edits use a bounded lexical TOML editor that preserves unrelated
+text and refuses ambiguous font tables; it supports inline, dotted and expanded font settings.
+`fontdefaults/tests.rs` covers native edits, special names, native terminal parsers, exact-byte
+restore, permissions, links and legacy journals. `tests/font-defaults.py` blocks `python3` while
+exercising the shipped CLI, including a real variable font when available; Python is used for
+test orchestration and fixtures only.
 The camera RAW review round 1 moves two ceilings, each re-derived with `wc -l`: `src/backend/metareq.rs` 442 to 446 for `read_in`, which takes the RAW copy directory so a test points it at its sandbox, and `src/backend/thumbs.rs` 480 to 485 for `run_one_in` and the `raw_dir` argument of `input_for`, for the same reason; no code or comment was cut.
 
 The column PDF stack builds slots only for the pages near the view and reads each page size once per document, which takes `ui/PreviewPdf.qml` from 393 to 449 lines, past the 400 cap, recorded in `tools/flea-file-budget`; `tests/js/previewswap.js` moves 463 to 468 for the stack and settle pins, and `tests/startup-units.txt` takes `bytes` 1597982 (+23, all from `ui/IpcPreviewState.qml`), each re-derived with `wc -l` or the probe. A page render error fails the column only before its first draw and on the page under the frame's top; after the first draw, every page error leaves only its own slot empty, as the board draws no page-level failure. That rule moves two ceilings in `tools/flea-file-budget`, each re-derived with `wc -l`: `tests/preview-pdf-flow.qml` 416 to 427 for the real render-error checks before and after the first draw, then to 439 for a later-slot error before the first draw that preserves the column until its top page fails, and `ui/PreviewPdf.qml` 449 to 450 for the draw state read before the assignments that can settle the first frame synchronously.
@@ -9584,3 +9653,25 @@ Before the Markdown Source merge, the Compare request, dispatch, answer route, o
 `ui/Pane.qml` is 1232 lines against its 1233 ceiling: moving its direct Compare import to the existing Ops import removed one line after the ceiling was recorded. `ui/js/Focus.js` was 490 against 491 before the Markdown Source merge: the same import move took it from 489 to 488, and the merged paging handlers then added two lines and raised the ceiling by two, from 489 to 491, a raise counted on a tree that still held the import line, so one line was spare in each ceiling at that step.
 
 Before the Markdown Source merge, the code wrap keys joined beside the image zoom keys moved one ceiling, re-derived with `wc -l`: `tests/js/previewkeys.js` crossed the hard cap at 303 with `runImageZoom` and `runWrapKeys` side by side, each pinning one Quick Look key family; recorded because the join added no lines of its own.
+
+
+## Font management joined to the existing Quick Look
+
+The PR retains main's `FontPane.qml`, sandboxed ImageMagick rendering, cache, theme
+updates and stale-answer handling. `ui/Preview.qml` has one font loader: TTF/OTF/TTC
+open the existing sample; **Manage font…** switches that loader to `PreviewFont.qml`.
+Other supported containers open management directly. Closing resets the mode. The
+column keeps its compact management specimen within main's tall-frame/facts anatomy.
+Only opting into management (or selecting a container outside the quick sample's
+formats) loads the font into Qt. `tests/fontpane.sh` retains main's lifecycle controls;
+`tests/fonts.sh` also drives the real backend sample-to-management transition and uses
+an inert headless Commons fixture. Native font rendering tests cover the same-weight
+`.otf` collision between OpenType and OpenDocument formula templates, accepting the
+ambiguous type only when readable font tables are present.
+
+The joined first-frame source inventories remain 180 units with language marks on
+and 177 with them off, with byte sums 1,774,032 and 1,663,191 respectively (+447
+versus main, from font routing and keyboard access). The object census is not green
+on this host: both the joined tree and a separately built pristine main at 4c7b27bc
+report 719 against the pinned 605; the inventories and the +447 byte delta are
+measured independently of that failing object-count assertion.
