@@ -182,6 +182,7 @@ ShellRoot {
             win.focusView()
         }
         function commitFilter() { Filter.commit(win) }
+        function closeFilter() { Filter.close(win) }
         function escapeFilter() {
             if (!win.filterTyping && win.filterQuery.length === 0) return false
             Filter.close(win)
@@ -534,6 +535,7 @@ ShellRoot {
             onFailed: function (where, input, msg, mode) {
                 if (where === "backend") {
                     win.backendUnavailable = true
+                    win.closeFilter()
                     win.pendingListings = 0
                     win.receivingLatestListing = false
                     win.markRequest = 0
