@@ -379,6 +379,8 @@ ListView {
                 root.pane.backend.dirsizecancel()
                 root.dirSizesCancelled()
             }
+            // Filtering may already have reset contentY; clearing it must refill even without another scroll.
+            if (root.pane.filterQuery.length === 0) coalesce.restart()
             settle.restart()
         }
     }
