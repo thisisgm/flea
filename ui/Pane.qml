@@ -31,7 +31,7 @@ FocusScope {
     id: root
     focus: true
     // Unhandled child keys reach the pane, including keys from an actually focused rail.
-    Keys.onPressed: function (event) { DragOut.keys.track(event, true); event.accepted = Focus.handleKey(event, root.sidebar && root.sidebar.activeFocus ? root.railPane : root, root.sidebar) }
+    Keys.onPressed: function (event) { DragOut.keys.track(event, true); ViewState.pointerKeyed(event); event.accepted = Focus.handleKey(event, root.sidebar && root.sidebar.activeFocus ? root.railPane : root, root.sidebar) }
     Keys.onReleased: function (event) { DragOut.keys.track(event, false) }
     enabled: !root.settingsPanel || !root.settingsPanel.opened
     property var backend: null
@@ -873,7 +873,7 @@ FocusScope {
     PointHandler {
         id: focusPointer
         acceptedButtons: Qt.AllButtons
-        onActiveChanged: if (active) railHost.focusPress(focusPointer.point.position)
+        onActiveChanged: if (active) { ViewState.pointerQuiet = false; railHost.focusPress(focusPointer.point.position) }
     }
 
     Flea.Header {

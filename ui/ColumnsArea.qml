@@ -22,7 +22,7 @@ Item {
     signal thumbsApplied(var work)
     signal dirSizesApplied(var ask)
     // Whichever view is up owns the keyboard, and Focus.handleKey is the one route all three take.
-    Keys.onPressed: function (event) { event.accepted = Focus.handleKey(event, root.pane, root.pane.sidebar) }
+    Keys.onPressed: function (event) { ViewState.pointerKeyed(event); event.accepted = Focus.handleKey(event, root.pane, root.pane.sidebar) }
 
     // peekKey -> answered rows and outstanding asks; a landing retains drawn folders under the same key and order.
     property var peeked: ({})

@@ -285,6 +285,7 @@ FocusScope {
         else if (!busy) ensureWindow()
     }
     Keys.onPressed: function(event) {
+        ViewState.pointerKeyed(event)
         if (root.railKeyHandler && root.railKeyHandler(event)) { event.accepted = true; return }
         var action = Keymap.lookup(event.key, event.text, event.modifiers, "listing", "gui")
         if (action === "trashArm" && event.isAutoRepeat) { event.accepted = true; return }
@@ -440,7 +441,7 @@ FocusScope {
                 width: listing.width
                 height: Theme.fileRowHeight
                 // HANDOFF rule 7: a marked row takes the OEM's own selection rung, the one ui/Row.qml draws in every listing, rather than an accent wash this surface mixed for itself.
-                color: selected ? Style.selectionFill : hover.hovered ? Style.hoverFill : "transparent"
+                color: selected ? Style.selectionFill : hover.hovered && !ViewState.pointerQuiet ? Style.hoverFill : "transparent"
                 Rectangle { width: Theme.spacing.hairline * 2; height: parent.height; visible: itemRow.selected; color: Theme.color.accent }
                 Row {
                     anchors.fill: parent
@@ -452,7 +453,7 @@ FocusScope {
                     Text { id: original; width: locationTitle.width; anchors.verticalCenter: parent.verticalCenter; text: itemRow.item ? Trash.location(itemRow.item.original, root.home) : ""; textFormat: Text.PlainText; elide: Text.ElideLeft; horizontalAlignment: Text.AlignRight; color: Theme.color.foreground; font { family: Theme.font.family; pixelSize: Theme.font.body } }
                     Text { id: deleted; width: deletedTitle.width; anchors.verticalCenter: parent.verticalCenter; text: itemRow.item ? Trash.deleted(itemRow.item.deleted) : ""; textFormat: Text.PlainText; elide: Text.ElideRight; horizontalAlignment: Text.AlignRight; color: Theme.color.foreground; font { family: Theme.font.family; pixelSize: Theme.font.body } }
                 }
-                HoverHandler { id: hover }
+                HoverHandler { id: hover; onPointChanged: if (hovered) ViewState.pointerMoved(point.scenePosition) }
                 Accessible.role: Accessible.ListItem
                 Accessible.name: item ? item.original.split("/").pop() : ""
                 Accessible.selected: selected

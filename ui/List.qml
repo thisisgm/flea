@@ -130,7 +130,7 @@ ListView {
         hiddenCols: root.rowHiddenCols
         // One Columns.set per List state, shared by every delegate; Row keeps its local default for PickerList and drop targets.
         assignedCols: root.listCols
-        hovered: hover.hovered
+        hovered: hover.hovered && !ViewState.pointerQuiet
         thumb: cell.live ? root.thumbFor(listingIndex) : cell.thumb
         selected: cell.live && root.pane.isSelected(listingIndex)
         // Empty short-circuits before the library, so no row calls it while the clipboard is empty.
@@ -163,6 +163,7 @@ ListView {
             id: hover
             // Disabled while pooled, so a reused row starts unhovered as a new one does.
             enabled: cell.live && root.pane.selectionBand === null
+            onPointChanged: if (hovered) ViewState.pointerMoved(point.scenePosition)
         }
 
         TapHandler {

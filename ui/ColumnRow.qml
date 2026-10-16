@@ -42,6 +42,8 @@ Item {
     // An ancestor column that is not on the trail reads back, so its text drops to muted.
     property bool dim: false
     property bool hovered: false
+    // A key hides the hover until the pointer moves (ViewState.pointerQuiet).
+    readonly property bool hoverShown: root.hovered && !ViewState.pointerQuiet
     // False while ui/ColumnPane.qml's view holds the row pooled, which parks its listing reads and turns its hover off.
     property bool live: true
     ListView.onPooled: root.live = false
@@ -92,7 +94,7 @@ Item {
         color: root.cursor ? Style.selectedAccentFill
              : root.selected ? Style.selectionFill
              : root.lifted ? Style.hoverFill
-             : root.hovered ? Style.hoverFill
+             : root.hoverShown ? Style.hoverFill
              : "transparent"
     }
 
@@ -249,7 +251,7 @@ Item {
                         sourceComponent: Text {
                             text: Match.location(markParts.path)
                             // List's metadata ink (ui/Row.qml cellInk): foreground on a lifted row, a darker foreground at rest.
-                            color: root.dimmed(root.cursor || root.lifted || root.hovered || root.selected || root.dropTarget ? Theme.color.foreground : Theme.color.metadata)
+                            color: root.dimmed(root.cursor || root.lifted || root.hoverShown || root.selected || root.dropTarget ? Theme.color.foreground : Theme.color.metadata)
                             font.family: Theme.font.family
                             font.pixelSize: Theme.font.caption
                             elide: Text.ElideLeft
@@ -337,6 +339,7 @@ Item {
         id: hover
         enabled: root.live
         onHoveredChanged: root.hovered = hovered
+        onPointChanged: if (hovered) ViewState.pointerMoved(point.scenePosition)
     }
 
     // Test seam as functions, so no row at rest binds to name geometry (tests/columnscost.qml).

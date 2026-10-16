@@ -24,6 +24,21 @@ QtObject {
     // The whole document, so a later section reads its own key without a second file read.
     property var state: ({})
 
+    // A key hides the listing's hover until the pointer moves, as the Omarchy menu does; a row moved under a still pointer is no move.
+    property bool pointerQuiet: false
+    property point pointerAt: Qt.point(-1, -1)
+    // Sample input: a Qt.Key_J press quiets; a bare Shift press does not.
+    function pointerKeyed(event) {
+        var bare = [Qt.Key_Shift, Qt.Key_Control, Qt.Key_Alt, Qt.Key_AltGr, Qt.Key_Meta, Qt.Key_Super_L, Qt.Key_Super_R]
+        if (bare.indexOf(event.key) < 0) root.pointerQuiet = true
+    }
+    // Sample input: the scene point a row's HoverHandler reports, within a pixel of the last one while a key holds it quiet.
+    function pointerMoved(scene) {
+        if (root.pointerQuiet && Math.abs(scene.x - root.pointerAt.x) <= 1 && Math.abs(scene.y - root.pointerAt.y) <= 1) return
+        root.pointerAt = scene
+        root.pointerQuiet = false
+    }
+
     // Mirrors "columns" in src/uischema.rs, and is the only default this front end needs before the
     // first frame: it is what a first launch draws, when there is no file to settle and none to read.
     readonly property var defaultColumns: ["name", "size", "date"]

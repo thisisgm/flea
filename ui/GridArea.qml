@@ -104,6 +104,7 @@ GridView {
     Keys.onPressed: function (event) {
         root.prebuild.kick()
         root.holdCache()
+        ViewState.pointerKeyed(event)
         event.accepted = Focus.handleKey(event, root.pane, root.pane.sidebar)
     }
     // Written, not bound: a count change puts the view on row 0 as a reset does, which would drop a binding.
@@ -238,7 +239,7 @@ GridView {
         height: root.cellHeight
         row: cell.live ? GridGeometry.heldRow(cell.rowMemo, root.heldRows, listingIndex) : cell.row
         // One shared hover index for every tile, so no tile builds its own handler.
-        hovered: cell.live && root.hoveredIndex === cell.index
+        hovered: cell.live && root.hoveredIndex === cell.index && !ViewState.pointerQuiet
         hoverShown: root.pane.selectionBand === null
         selected: cell.live && root.pane.isSelected(listingIndex)
         dropTarget: dragSession.dropIndex >= 0 && listingIndex === dragSession.dropIndex
@@ -309,7 +310,7 @@ GridView {
         id: hoverProbe
         enabled: root.visible && !root.hiddenHeld
         onHoveredChanged: { if (!hovered) root.hoveredIndex = -1; else root.hoverScene(point.scenePosition) }
-        onPointChanged: if (hovered) root.hoverScene(point.scenePosition)
+        onPointChanged: if (hovered) { ViewState.pointerMoved(point.scenePosition); root.hoverScene(point.scenePosition) }
     }
     // One drop area for every folder tile: a per-tile DropArea costs a delegate each in the landing turn.
     property var dropTile: null
