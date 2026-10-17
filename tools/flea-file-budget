@@ -12,6 +12,7 @@ tests/csv-preview.qml 520
 shelf/Panel.qml 443
 shelf/ShelfCard.qml 444
 shelf/ShelfService.qml 481
+src/backend/archivework.rs 408
 src/backend/copyfile.rs 739
 src/backend/codereq.rs 408
 src/backend/tags.rs 408

@@ -228,3 +228,18 @@ fn a_zip_is_probed_and_unlocked_by_7z_while_its_plain_extract_stays_with_bsdtar(
     let tar_only = Formats::from_tools(true, false);
     assert!(tar_only.technical_list_argv(zip).is_none() && !reads_password(&tar_only, zip), "no 7z, no password route");
 }
+
+/// A user format follows the built-in ones in the submenu, builds its own argv and names its program
+/// for the jail; one claiming a built-in id never reaches the table, whatever the parser let through.
+#[test]
+fn a_user_format_joins_the_table_after_the_built_in_ones() {
+    let line = "zjx /opt/zjx {out} --base {dir} -- {names}\nzip /opt/fake {out} {names}";
+    let (user, _) = archiveuser::parse(line, &[], |p| Some(p.to_path_buf()));
+    let f = Formats::from_tools(true, false).with_user(user);
+    assert_eq!(f.names(), &["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "tar.zst", "zjx"]);
+    let a = f.compress_argv("zjx", Path::new("/x/s.zjx"), Path::new("/src"), &["a".to_string()]).unwrap();
+    assert_eq!(a, ["/opt/zjx", "/x/s.zjx", "--base", "/src", "--", "a"]);
+    assert_eq!(f.user_program("zjx"), Some(Path::new("/opt/zjx")));
+    assert_eq!(f.compress_argv("zip", Path::new("/x/s.zip"), Path::new("/src"), &["a".to_string()]).unwrap()[0], "bsdtar");
+    assert_eq!(f.user_program("zip"), None, "the built-in zip keeps the plain archive jail");
+}

@@ -7,6 +7,7 @@ pub mod archivelist;
 pub mod archiveops;
 pub mod archivepass;
 pub mod archivespec;
+pub mod archiveuser;
 pub mod archivereq;
 pub mod archivework;
 pub mod appicon;

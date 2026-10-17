@@ -31,6 +31,7 @@ Large directories stay responsive: the window loads rows and requests thumbnails
 - **Four views.** List, columns, grid and two panes side by side, with tabs and natural filename sorting.
 - **Quick Look.** Press Space for images, PDFs, text, media, 3D model thumbnails and archive contents.
 - **File operations.** Copy, move, rename, trash, compress and extract, with an undo journal. Rename several files in one card. Pasting a folder onto one with the same name merges them, and undo reverts the merge. Opening a script, a program or an AppImage asks first: Run, Run in terminal or Open as text. Properties counts a folder's size and items.
+  Add your own compress formats in `~/.config/flea/compressors`; see AGENTS.md, “User compress formats”.
 - **Tags.** Seven tags in your theme's colours, set with `T` and the keys 1 to 7, listed in the sidebar and found with `tag:red`.
 - **Search.** Ranked results replace the listing as you type. Esc returns to the folder and the cursor; Enter keeps the results.
 - **Network and sharing.** SMB, SFTP, FTPS, WebDAV, NFS, Dropbox and Taildrop.

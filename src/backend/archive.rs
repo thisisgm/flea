@@ -1,6 +1,7 @@
 // Which archive formats this box can actually write and read, probed once at startup, and the argv
 // each tool needs. The jobs themselves are archiveops.rs and reading an index is archivelist.rs.
 use crate::backend::archivespec::{seven_spec, tar_spec, ListSpec};
+use crate::backend::archiveuser::{self, UserFormat};
 use std::path::Path;
 
 const BSDTAR: &str = "bsdtar";
@@ -9,6 +10,8 @@ const SEVENZIP: &str = "7z";
 // The formats bsdtar writes on this box, in the order the submenu offers them.
 const TAR_FORMATS: &[&str] = &["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "tar.zst"];
 const SEVENZIP_FORMAT: &str = "7z";
+// Ids a user format can never take: everything built in, and rar, which Flea reads and never writes.
+const RESERVED: &[&str] = &["zip", "tar", "tar.gz", "tar.bz2", "tar.xz", "tar.zst", "7z", "rar", "tgz"];
 const ZIP_FORMAT: &str = "zip";
 // 7z stores a symbolic link as a link instead of following it.
 pub(crate) const STORE_LINKS: &str = "-snl";
@@ -38,6 +41,8 @@ pub struct Formats {
     names: Vec<String>,
     have_bsdtar: bool,
     have_7z: bool,
+    // $XDG_CONFIG_HOME/flea/compressors, offered after the built-in formats; see archiveuser.rs.
+    user: Vec<UserFormat>,
     // Test seam: with the probe set, compress() itself runs the RLIMIT_CPU check (see K1).
     #[cfg(test)]
     probe: bool,
@@ -64,13 +69,14 @@ fn on_path(prog: &str) -> bool {
 }
 
 impl Formats {
+    /// Detect installed archive tools and load configured compression formats once.
     pub fn probe() -> Formats {
-        Formats::from_tools(on_path(BSDTAR), on_path(SEVENZIP))
+        Formats::from_tools(on_path(BSDTAR), on_path(SEVENZIP)).with_user(archiveuser::load(RESERVED))
     }
 
-    // Nothing writes rar here: WinRAR's own tool is the only thing on Linux that does, it is not free
-    // software and it is in no Arch repository, so the compress submenu cannot offer it. Reading one
-    // is separate and needs neither that tool nor a flag, see extract_argv below.
+    /// Nothing writes rar here: WinRAR's own tool is the only thing on Linux that does, it is not free
+    /// software and it is in no Arch repository, so the compress submenu cannot offer it. Reading one
+    /// is separate and needs neither that tool nor a flag, see extract_argv below.
     pub fn from_tools(have_bsdtar: bool, have_7z: bool) -> Formats {
         let mut names = Vec::new();
         if have_bsdtar {
@@ -79,7 +85,7 @@ impl Formats {
         if have_7z {
             names.push(SEVENZIP_FORMAT.to_string());
         }
-        Formats { names, have_bsdtar, have_7z,
+        Formats { names, have_bsdtar, have_7z, user: Vec::new(),
             #[cfg(test)]
             probe: false,
             #[cfg(test)]
@@ -89,23 +95,36 @@ impl Formats {
         }
     }
 
-    // A Formats whose compressor is the RLIMIT_CPU probe, so the uncapped-jail pin drives compress() itself.
+    /// The user's formats join the table after the built-in ones, so they reach the submenu like any other.
+    pub fn with_user(mut self, mut user: Vec<UserFormat>) -> Formats {
+        user.retain(|u| !RESERVED.contains(&u.id.as_str()));
+        self.names.extend(user.iter().map(|u| u.id.clone()));
+        self.user = user;
+        self
+    }
+
+    /// The program a user format runs, which the jail has to bind; None for every built-in format.
+    pub fn user_program(&self, format: &str) -> Option<&Path> {
+        self.user.iter().find(|u| u.id == format).map(|u| u.program.as_path())
+    }
+
+    /// A Formats whose compressor is the RLIMIT_CPU probe, so the uncapped-jail pin drives compress() itself.
     #[cfg(test)]
     pub fn test_probe() -> Formats {
-        Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, probe: true, block: false, stub: None }
+        Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, user: Vec::new(), probe: true, block: false, stub: None }
     }
 
-    // A Formats whose compressor blocks until killed, so a mid-run cancel always has a live child.
+    /// A Formats whose compressor blocks until killed, so a mid-run cancel always has a live child.
     #[cfg(test)]
     pub fn test_block() -> Formats {
-        Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, probe: false, block: true, stub: None }
+        Formats { names: vec!["zip".to_string()], have_bsdtar: true, have_7z: false, user: Vec::new(), probe: false, block: true, stub: None }
     }
 
-    // A 7z-only Formats whose probe listing and extract are the given argvs, so a cancel can land on a live probe.
+    /// A 7z-only Formats whose probe listing and extract are the given argvs, so a cancel can land on a live probe.
     #[cfg(test)]
     pub fn test_stub(technical: Vec<String>, extract: Vec<String>) -> Formats {
         let stub = Stub { technical, extract, indexed: std::sync::atomic::AtomicUsize::new(0) };
-        Formats { names: vec![SEVENZIP_FORMAT.to_string()], have_bsdtar: false, have_7z: true, probe: false, block: false, stub: Some(stub) }
+        Formats { names: vec![SEVENZIP_FORMAT.to_string()], have_bsdtar: false, have_7z: true, user: Vec::new(), probe: false, block: false, stub: Some(stub) }
     }
 
     // How many index listings the stubbed Formats was asked for.
@@ -128,10 +147,10 @@ impl Formats {
         self.have_7z
     }
 
-    // bsdtar's -a picks the compression from the destination's own extension, so one argv covers
-    // every tar flavour, and zip on a box without 7z; 7z is its own tool and its own shape.
-    // corner: bsdtar reads -C positionally, so it has to precede the names it applies to. Putting it
-    // after them archives nothing, prints "Cannot stat" per name, and still leaves an empty archive.
+    /// bsdtar's -a picks the compression from the destination's own extension, so one argv covers
+    /// every tar flavour, and zip on a box without 7z; 7z is its own tool and its own shape.
+    /// corner: bsdtar reads -C positionally, so it has to precede the names it applies to. Putting it
+    /// after them archives nothing, prints "Cannot stat" per name, and still leaves an empty archive.
     pub fn compress_argv(&self, format: &str, dest: &Path, parent: &Path, names: &[String]) -> Option<Vec<String>> {
         if !self.offers(format) {
             return None;
@@ -147,6 +166,9 @@ impl Formats {
             return Some(vec!["/usr/bin/python3".to_string(), "-c".to_string(),
                 "import resource,sys; open(sys.argv[1],'wb').write(b'probe'); sys.exit(0 if resource.getrlimit(resource.RLIMIT_CPU)[0]==resource.RLIM_INFINITY else 1)".to_string(),
                 dest.to_string_lossy().to_string()]);
+        }
+        if let Some(user) = self.user.iter().find(|u| u.id == format) {
+            return Some(user.argv(dest, parent, names));
         }
         let mut a: Vec<String> = Vec::with_capacity(names.len() + 7);
         // A zip goes to 7z when it is installed: its deflate runs on every core, where bsdtar's runs on one.

@@ -7,7 +7,8 @@ use crate::backend::archiveenc;
 use crate::backend::archivefree;
 use crate::backend::archivepass;
 use crate::backend::archivework::{archive_produced_count_cancellable, is_empty_dir,
-                                   run_boxed_cancellable, run_boxed_cancellable_capped, Work};
+                                   run_boxed_cancellable, run_boxed_cancellable_capped,
+                                   run_boxed_cancellable_with, Work};
 use crate::backend::convert;
 use crate::backend::ops::rename_noreplace;
 use crate::backend::opsreq::op_err;
@@ -24,7 +25,7 @@ pub struct Password<'a> {
     pub encrypt_names: bool,
 }
 
-// One archive out of a selection that all shares a parent, which is what a listing selection is.
+/// One archive out of a selection that all shares a parent, which is what a listing selection is.
 pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str,
                 dest: &Path, cancel: &AtomicBool, password: Option<Password>) -> Result<(), FleaError> {
     if dest.symlink_metadata().is_ok() {
@@ -59,7 +60,10 @@ pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str
             Some(a) => a,
             None => return Err(op_err("archive", format, "no installed tool can create that format")),
         };
-        run_boxed_cancellable("archive", inner, parent, &mut work, cancel)?;
+        match formats.user_program(format) {
+            Some(program) => run_boxed_cancellable_with("archive", inner, parent, program, &mut work, cancel)?,
+            None => run_boxed_cancellable("archive", inner, parent, &mut work, cancel)?,
+        }
     }
     if staged.symlink_metadata().is_err() {
         return Err(op_err("archive", format, "the archive tool wrote nothing"));
