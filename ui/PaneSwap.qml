@@ -239,7 +239,10 @@ Item {
             pane.stateMessage = ""
             return
         }
-        if (path.length > 0) pane.path = path  // the listing landed, so this is where the pane moves
+        // Older backends omit the path from a listed reply. The request path is still authoritative
+        // because Swap already matched this reply to the current listing.
+        var settledPath = path.length > 0 ? path : pane.listingPath
+        if (settledPath.length > 0) pane.path = settledPath
         pane.listingState = total === 0 ? "empty" : "ready"
         pane.stateMessage = total === 0 ? "This folder is empty." : ""
         pane.opened(pane.path)
