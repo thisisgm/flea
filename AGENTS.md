@@ -420,6 +420,21 @@ before. So is a box whose inotify instance limit is exhausted, which says so onc
 never sends the line. `IN_MODIFY` is deliberately not in the mask: it fires on every `write(2)` and a
 listing does not draw a partial size, so a row's size follows `IN_CLOSE_WRITE` instead.
 
+**A folder inotify cannot hear is re-read when the window comes back to the front.** An rclone,
+sshfs or gvfs FUSE mount and a kernel NFS or SMB share raise no inotify for a change made on the far
+side, and rclone refreshing its directory cache raises none either, so a window left open on one
+drew the listing it opened with until the user navigated. Every navigation already lists afresh, so
+the gap was a window left in place. `ui/PaneSwap.qml`'s `Window.onActiveChanged` hands each activation change to
+`ui/js/Reload.js front`, which calls `returned` only when the window comes back after leaving the
+front (never the launch's own arrival, nor a repeated activation), and `blind` owes the watched
+re-read (`wire.stale` plus `reread`, the route `Nav.refresh` takes for a metadata write) only when the
+folder is FUSE by its statfs magic (`fsName` "fuse") or its class is `network` or `phone`, nothing is
+listing, no search or Recent owns the rows and the pane is drawn. It is anchored by name and held by
+`watchBusy` exactly as a `changed` line is, and it never polls: a window kept at the front still
+follows only `watchpoll.rs`'s 5 s mtime poll on a network or phone class, which misses a change that leaves the folder's own mtime where it was.
+F5 and Ctrl+R remain the manual re-read on any filesystem. `tests/js/reload.js` `returnChecks` pins
+the predicate, the front states and the hook's source.
+
 **Flea's own writes pay for one extra scan.** A rename, mkdir, trash or transfer already calls
 `pane.refresh()`, and the watch answers for the same write about 400 ms later, so the directory is
 read twice. The second read is anchored the same way and moves nothing the user can see. Suppressing
@@ -2697,6 +2712,8 @@ for the tile's own faces. A pooled tile's Loader is active only for the row reco
 record clears when the edit leaves that row or the tile is reused, so a pooled tile never builds an editor.
 
 ## File budget
+
+The FUSE return re-read adds five lines to `ui/PaneSwap.qml` (339 to 344 by `wc -l`, under the 400 cap and holding no `tests/staticgates-unqualified.tsv` row) and `blind`, `returned` and `front` to `ui/js/Reload.js` under its cap; the first-frame source pins re-derive with the `wc -c` sum used by `tests/startup-objects.sh`, from 1,774,732 to 1,776,351 bytes in `tests/startup-units.txt` and from 1,663,891 to 1,665,510 in `tests/startup-units-off.txt`, with no unit added.
 
 The RAW3 join onto the 0.3.11 stage records the merged `wc -l` ceilings at `src/backend/metareq.rs` 541, `src/backend/menu_actions.rs` 674, `tests/js/facts.js` 415 and `ui/js/Facts.js` 402. `ui/MenuActionDialog.qml` crosses the unchanged 400-line cap at 402 for the initial photo facts combined with the deferred file facts, each pair drawn once in the board's order; its scoped ceiling is the merged count. No code or comment was compressed to meet a cap.
 The same join keeps all 66 stage Properties checks and all 7 RAW3 checks, then adds 4 checks for duplicate pairs, approved values and deferred completion of missing facts, and 8 checks (2 for each of a partial ISO, a partial camera, complementary fields and conflicting fields) that the immediate and deferred photo facts merge field by field before each pair is drawn once, so `tests/menu-contents.sh` expects 85. Both lint profiles retain their allowance counts, source text, symbols and reasons, with the `ui/MenuActionDialog.qml` reads one line lower (body 325 to 326, root 328 to 329 and 342 to 343). The 169 first-frame units still sum to 1,628,263 bytes; the changed RAW3 UI units are deferred, so `tests/startup-units.txt` stays unchanged.
