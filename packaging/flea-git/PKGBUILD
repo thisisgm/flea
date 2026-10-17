@@ -16,7 +16,7 @@ makedepends=('cargo' 'git')
 provides=("$_pkgname")
 # flea-bin provides flea, so this one conflict keeps all three packages mutually exclusive.
 conflicts=("$_pkgname")
-optdepends=('libarchive: archive listing and extraction'
+optdepends=('xclip: X11 clipboard support' 'libarchive: archive listing and extraction'
             '7zip: 7z archive support'
             'imagemagick: image conversion'
             'tailscale: Taildrop sharing'

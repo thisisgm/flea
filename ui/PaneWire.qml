@@ -87,6 +87,8 @@ Item {
         // The run card's own answers: a program asks once on its raw ask line, and a file no application claims asks Open with.
         onAskRunRaw: function (path, text) { pane.askRunCard({ path: path, raw: text }) }
         onAskOpenWith: function (path) { pane.showOpenWith(path) }
+        onClipboardFailed: pane.message("The path could not be copied to the clipboard.", true)
+
     }
 
     Flea.ShareLink {

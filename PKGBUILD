@@ -34,7 +34,7 @@ depends=('bat' 'bubblewrap' 'expect' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc
 makedepends=('cargo')
 # Both packages own /usr/bin/flea, so pacman refuses the pair rather than leaving one half-installed.
 conflicts=('flea-git')
-optdepends=('libarchive: archive listing and extraction'
+optdepends=('xclip: X11 clipboard support' 'libarchive: archive listing and extraction'
             '7zip: 7z archive support'
             'imagemagick: image conversion'
             'tailscale: Taildrop sharing'
