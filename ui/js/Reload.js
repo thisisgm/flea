@@ -16,6 +16,34 @@ function line(changed) {
     return changed === 1 ? WORDS.one : Format.fill(WORDS.many, Format.count(changed))
 }
 
+// Inotify hears only this kernel's own writes, so a FUSE folder (rclone, sshfs, gvfs) or a network or phone
+// one never learns of a change made on the far side; the window coming back to the front re-reads it instead.
+// Sample input: fsName "fuse" or class "network" is true, "btrfs" with class "" is false, and so is a listing out.
+function blind(pane) {
+    var remote = pane.fsName === "fuse" || pane.storageClass === "network" || pane.storageClass === "phone"
+    return remote && pane.visible !== false && !pane.listInFlight && pane.searchMode.length === 0 && pane.recentMode.length === 0
+}
+
+// The watched re-read, owed as a changed line owes it, so a rename editor, menu or drag still holds it; true when owed.
+function returned(pane) {
+    if (!blind(pane))
+        return false
+    pane.wire.stale = true
+    pane.wire.reread()
+    return true
+}
+
+// The window's hold on the front: 0 before it first arrives, 1 while it holds it, 2 once it has left. Only
+// a return from 2 re-reads, so the launch's own arrival and a repeated activation re-read nothing.
+// Sample input: (0, true) is 1, (1, false) is 2, (2, true) is 1 after returned(), (0, false) stays 0.
+function front(pane, was, active) {
+    if (!active)
+        return was === 0 ? 0 : 2
+    if (was === 2)
+        returned(pane)
+    return 1
+}
+
 // A listing out refuses itself and a search owns its header, so both go quiet.
 function begin(pane, wire) {
     if (Nav.loading(pane)) {

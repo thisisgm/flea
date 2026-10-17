@@ -336,4 +336,9 @@ Item {
                 Qt.callLater(root.warmSearch)
         }
     }
+
+    // A FUSE, network or phone folder raises no inotify for a change made elsewhere, so the window
+    // coming back to the front re-reads it; ui/js/Reload.js front says when that is.
+    property int front: 0
+    Window.onActiveChanged: root.front = Reload.front(root.pane, root.front, Window.active)
 }

@@ -166,6 +166,41 @@ function run(check) {
     check("the list request sends wantChanged only when asked", backendList.indexOf("wantChanged: wantChanged === true") >= 0, true)
     check("Backend declares changed and gen on its listed signal", backend.indexOf("signal listed(int total, real readMs, real sortMs, string path, var changed, real gen)") >= 0, true)
     check("PaneSwap applyListed declares the changed count", swapListed.indexOf("function applyListed(total, readMs, sortMs, path, changed)") === 0, true)
+    returnChecks(check)
+}
+
+// A FUSE, network or phone folder raises no inotify for a change made elsewhere, so the window coming back re-reads it.
+function returnChecks(check) {
+    function remote(fsName, storageClass) {
+        var p = pane()
+        p.fsName = fsName
+        p.storageClass = storageClass
+        p.wire = { stale: false, rereads: 0, reread: function () { this.rereads += 1 } }
+        return p
+    }
+    function owed(p) { return Reload.returned(p) + "|" + p.wire.stale + "|" + p.wire.rereads }
+    check("an rclone or sshfs folder is re-read when the window returns", owed(remote("fuse", "network")), "true|true|1")
+    check("so is a FUSE folder the class calls local, as mergerfs is", owed(remote("fuse", "")), "true|true|1")
+    check("and a kernel NFS share", owed(remote("nfs", "network")), "true|true|1")
+    check("and a phone", owed(remote("fuse", "phone")), "true|true|1")
+    check("a local folder keeps trusting its inotify watch", owed(remote("btrfs", "")), "false|false|0")
+    var out = remote("fuse", "network")
+    out.listInFlight = true
+    check("a listing already out is fresh, so it owes nothing", owed(out), "false|false|0")
+    var walk = remote("fuse", "network")
+    walk.searchMode = "results"
+    check("a search owns its rows", owed(walk), "false|false|0")
+    var hidden = remote("fuse", "network")
+    hidden.visible = false
+    check("a pane not drawn owes nothing", owed(hidden), "false|false|0")
+    var away = remote("fuse", "network")
+    var steps = [[0, true], [1, true], [1, false], [2, false], [2, true], [1, true]].map(function (step) {
+        return Reload.front(away, step[0], step[1]) + ":" + away.wire.rereads
+    })
+    check("only a return after leaving the front re-reads, never the launch or a repeat", steps.join(" "), "1:0 1:0 2:0 2:0 1:1 1:1")
+    check("and an inactive window never seen at the front stays unseen", Reload.front(away, 0, false), 0)
+    var hook = Source.slice(Source.source("ui/PaneSwap.qml"), "property int front: 0", "\n}")
+    check("PaneSwap hands every activation change to Reload.front", hook.indexOf("Window.onActiveChanged: root.front = Reload.front(root.pane, root.front, Window.active)") >= 0, true)
 }
 
 // Execute the suite's reload steps with a reply inside keyClick and with a reply delivered later.
