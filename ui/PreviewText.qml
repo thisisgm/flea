@@ -54,6 +54,16 @@ Item {
         return null
     }
     readonly property var list: root.csv ? (root.body !== null ? root.body.list : null) : root.codeList
+    readonly property real scrollY: root.list !== null ? root.list.contentY : 0
+    readonly property real viewportHeight: root.list !== null ? root.list.height : root.height
+    function scrollBy(pixelDelta) {
+        var view = root.list
+        if (view === null) return
+        var low = view.originY - view.topMargin
+        var high = Math.max(low, view.originY + view.contentHeight - view.height + view.bottomMargin)
+        view.cancelFlick()
+        view.contentY = Math.max(low, Math.min(high, view.contentY + pixelDelta))
+    }
     function shownText() { return root.fromFile ? file.text() : root.body !== null ? root.body.lines.join("\n") : "" }
     readonly property string status: {
         if (root.tooLarge) return "This file is too large to preview."

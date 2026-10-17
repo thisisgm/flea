@@ -24,6 +24,8 @@ Item {
     readonly property var bodyItem: doc.bodyItem
     readonly property var tableWheel: doc.tableWheel
     function tableScroller() { return doc.tableScroller() }
+    readonly property real viewportHeight: doc.viewportHeight
+    function scrollBy(pixelDelta) { doc.scrollBy(pixelDelta) }
     readonly property real scrollY: doc.scrollY
     function endGap() { return doc.endGap() }
     function closeState() { return bar.closeState() }

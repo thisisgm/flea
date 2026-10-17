@@ -333,6 +333,11 @@ Item {
         root.load(newPath, newIcon, newSize, newKind, newThumb, root.pane ? root.pane.cursorIndex : -1)
     }
 
+    function scrollDocument(direction, isPage) {
+        var document = root.isMarkdown ? markdownLoader.item : root.kind === "text" ? textPane : null
+        if (document) document.scrollBy(direction * (isPage ? document.viewportHeight / 2 : Theme.font.body))
+    }
+
     // The Compare overlay for two regular files; iconName is the first file's, which picks the bar's mark.
     function openCompare(pathA, pathB, newIcon) {
         followSettle.stop()

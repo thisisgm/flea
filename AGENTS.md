@@ -9186,6 +9186,17 @@ The rename focus return (issue #265) records one ceiling, re-derived with `wc -l
 
 Qt 6.12 palette 2026-10-09: qt6-declarative 6.12 adds a `Color` singleton to `QtQuick`, which shadows `qs.Commons`' `Color` where both are imported unqualified, so the palette read undefined and text drew black on black. The nine files that read it import `qs.Commons as Commons` beside the plain import and say `Commons.Color`, the fix Omarchy made in its shell (omacom/omarchy #14553, #14626); comments still say `Color`. `ui/Theme.qml` goes from 433 to 434, `shelf/Panel.qml` 430 to 431 and `shelf/ShelfCard.qml` 443 to 444 for that import line; `tests/staticgates-unqualified.tsv` moves the `ui/Theme.qml` rows below it down one line in both profiles and names `Commons` where it named `Color`.
 
+Quick Look document scrolling uses Ctrl+D/Ctrl+U and PageDown/PageUp in the GUI preview
+context, in every key preset. Each step moves half the document viewport; MarkdownPane
+forwards to PreviewMarkdown in both Rendered and Source, and plain text bounds its Flickable.
+Cursor navigation and the Space/Escape close actions retain their existing routes.
+`tests/preview-keyboard-scroll.qml`, run by `tests/markdown-render.sh`, drives real key events through
+Focus.handleKey into Quick Look and checks half the actual Flickable viewport in all three views.
+Real keys reach both bounds, preserve bare file-navigation routes and close with Space/Escape.
+The listing owner is stubbed; full-pane file loading and native display behavior are separate proofs.
+Scoped file ceilings for this addition, re-derived with `wc -l` on the merge with main:
+`ui/Preview.qml` 1015, `ui/PreviewMarkdown.qml` 678, `ui/js/Keymap.js` 374 and
+`tests/js/keymap.js` 373. `ui/js/Focus.js` is unchanged.
 2026-10-09 moves one ceiling, re-derived with `wc -l`: `ui/ColumnPane.qml` 403 to 423 for the hidden column that keeps its rows until a new count reaches it and then holds none (`keptTotal`, which its model's total reads), the offset a dropped column follows its cursor in (`heldY`), and the return that rebuilds a dropped column at that offset in the handler that shows it; `tests/columnshidden.sh` drives it over the real pane and backend.
 
 The union (gm/039x-s3union: the 271, b6, b1, b3, b5, b2, tuicombo and stage3 fix batches merged on int d79462fc) records the merged ceilings, each re-derived with `wc -l` at the merge: `src/backend/iomount.rs` 622, `src/backend/run.rs` 1060, `src/backend/undoshare.rs` 415, `tests/js/focus.js` 759, `tests/js/nav.js` 456, `ui/ChromeBar.qml` 324, `ui/GridArea.qml` 429, `ui/Ipc.qml` 897, `ui/NetworkMounts.qml` 901, `ui/Pane.qml` 1073, `ui/PaneWire.qml` 561, `ui/js/Devices.js` 363, `ui/js/Nav.js` 315, `ui/js/Tabs.js` 717. `src/backend/run.rs` carries both the list gate that keeps a scan off the event loop and the search session's burst collapse and index patches, in one `dispatch`.

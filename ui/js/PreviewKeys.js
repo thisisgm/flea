@@ -79,6 +79,8 @@ function act(action, root) {
             root.preview.markdownShown.scrollBy(direction)
         else if (!root.preview.isCompare) { Filter.moveCursor(root, direction); Marks.follow(root); follow(root) }
         return
+    case "pageDown": root.preview.scrollDocument(1, true); return
+    case "pageUp": root.preview.scrollDocument(-1, true); return
     case "preview": root.preview.close(); return
     // Space closes every kind now, so playback has its own key; it self-guards, because p reaches
     // this only in the media context and a still image has nothing to play.
