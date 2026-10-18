@@ -83,6 +83,9 @@ mod menu_slot;
 pub(crate) mod menu_registry;
 mod menu_registry_work;
 mod menucontents;
+mod menuproperties;
+#[cfg(test)]
+mod menuproperties_tests;
 mod menufacts;
 mod walkmounts;
 mod menudelete;

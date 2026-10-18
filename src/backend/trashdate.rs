@@ -19,6 +19,15 @@ extern "C" {
     fn localtime_r(timep: *const i64, result: *mut WallClock) -> *mut WallClock;
 }
 
+// Properties uses the same local wall clock as the rest of the desktop, with minute precision.
+pub(super) fn modified_local(seconds: i64) -> Result<String, String> {
+    let mut out = WallClock { sec: 0, min: 0, hour: 0, mday: 0, mon: 0, year: 0, wday: 0, yday: 0, isdst: 0, gmtoff: 0, zone: std::ptr::null() };
+    if unsafe { localtime_r(&seconds, &mut out) }.is_null() {
+        return Err("Could not format the selected items' modification dates.".into());
+    }
+    Ok(format!("{:04}-{:02}-{:02} {:02}:{:02}", out.year + 1900, out.mon + 1, out.mday, out.hour, out.min))
+}
+
 // Stamps a .trashinfo DeletionDate in local time, the way the desktop's own trash names it.
 pub(crate) fn deletion_date_local() -> String {
     let now = unsafe { time(std::ptr::null_mut()) };

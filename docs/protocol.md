@@ -154,6 +154,35 @@ completion rather than implying rollback. The caller can use the identity-checke
 or restores its survivors before cancellation stops the next root. The undo journal does not
 cover permanent deletion.
 
+`{"c":"menuaction","op":"properties","id":4}` describes the identities captured by `snapshot`.
+For one item the existing single-item reply is unchanged. For several items it returns `kinds`,
+combined `bytes`, and `newest` and `oldest`, the selected entries' own modification dates in local
+time as `YYYY-MM-DD HH:MM`. Kinds are counted in this order, omitting empty groups: folders,
+symbolic links, texts, images, videos, audio files, files and special files. Regular files use the MIME
+name database's text, image, video and audio groups, with all other regular files grouped as files.
+Counts use singular words for one and comma grouping for thousands, for example `2 images, 1 video`.
+No file contents are opened to classify them, and a symbolic link keeps its own kind, size and date.
+
+A selection containing folders first answers its known file bytes with `done:false`, then walks
+each selected folder on demand using the same walker as `contents`. A selection on a remote mount
+or containing a remote mountpoint has one 15-second bound covering initial metadata, every walk
+and final identity revalidation; cancellation frees the menu worker without waiting for a blocked
+remote syscall. A deadline returns `ok:false,error:"The selected items are not responding."`, and
+a worker lost before its result returns `ok:false,error:"The selected items stopped answering."`. Each total
+includes the selected folders' own entries, stays on each starting device and never follows links.
+Each queued child opens without following links through a held directory descriptor and must
+still match its captured identity. A replaced or unreadable descendant leaves a partial floor.
+Progress and the final reply have the same shape:
+`{"t":"menuaction","id":4,"op":"properties","ok":true,"kinds":"2 images, 1 video","bytes":52300000,"newest":"2026-09-23 10:14","oldest":"2026-08-21 12:02","partial":false,"done":true}`.
+`done:true` means the request ended, and only `done:true,partial:false` means the total is exact.
+Unreadable or vanished descendants and already-stuck mounts leave a floor with `partial:true`.
+The overall remote deadline returns the error described above. `close` or a newer `snapshot` cancels the request, whose last reply carries
+`cancelled:true,partial:true,done:false`; a cancellation reply may omit the facts.
+After a close, the caller discards all replies for that snapshot. A moved, vanished or replaced
+selected identity returns `ok:false` with an `error`, including when it changes during the walk.
+Dates and Kinds describe selected entries, not their descendants. Selected roots are summed
+independently, so selecting both a folder and an entry inside it counts that entry in each root.
+
 `{"c":"menuaction","op":"contents","id":4}` counts what the one captured folder holds, for Properties on a folder.
 It walks with the folder size walker and never crosses into a nested mount or follows a symbolic link. A local folder
 walks on the menu worker with no deadline. A folder on a remote mount, or holding one anywhere below it (the walk
