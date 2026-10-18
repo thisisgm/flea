@@ -135,10 +135,10 @@ ui/Backend.qml 606
 ui/MenuActionDialog.qml 396
 ui/ChromeBar.qml 352
 ui/ColumnsArea.qml 594
-ui/ColumnPane.qml 461
+ui/ColumnPane.qml 463
 ui/ContextMenu.qml 740
 ui/ConvertDialog.qml 456
-ui/GridArea.qml 665
+ui/GridArea.qml 667
 ui/Ipc.qml 993
 tests/gridprebuild.qml 457
 tests/code-column.qml 416
@@ -147,7 +147,7 @@ tests/preview-layout-loop.qml 408
 tests/preview-scroll.qml 523
 tests/columnsprebuild.qml 416
 ui/KeymapSheet.qml 551
-ui/List.qml 480
+ui/List.qml 482
 tests/listprebuild.qml 410
 tests/poolpark.qml 419
 tests/touchpad-edge.qml 438
