@@ -1,4 +1,7 @@
 use crate::backend::meta::stat_range;
+#[cfg(test)]
+#[path = "trashthumb_protocol_tests.rs"]
+mod trashthumb_protocol_tests;
 use crate::backend::meta::Meta;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
@@ -347,6 +350,10 @@ fn handle_line(
             poller.clear();
             listpaths::answer(out, st, pool, tb, &paths, first, line)
         }
+        Request::Filter { query, id } => {
+            let line = super::filter::filtered_line(&st.listing, &query, id);
+            say(out, &super::rowguard::stamped(line, st.generation));
+        }
         Request::Window { start, count } => {
             match window_metas(st, start, count) {
                 Ok((metas, ms)) => {
@@ -523,6 +530,13 @@ fn handle_line(
                 }
             }
         }
+        Request::TrashThumb { line } => {
+            super::trashthumb::request(out, st, tb, pool, cache, &line);
+            out.flush().ok();
+        }
+        Request::TrashThumbCancel { ids } => {
+            super::trashthumb::cancel(out, st, pool, &ids);
+        }
         Request::DirSize { rows } => {
             queue_dirsizes(out, st, &rows);
         }
@@ -698,7 +712,7 @@ fn rows_needed(request: &Request) -> usize {
         Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
         Request::BulkRename { .. } => 0,
         // A path lookup can name any match, and a sort reorders the whole set.
-        Request::Locate { .. } | Request::LocateMany { .. } | Request::Sort { .. } => usize::MAX,
+        Request::Locate { .. } | Request::LocateMany { .. } | Request::Sort { .. } | Request::Filter { .. } => usize::MAX,
         // A listing request replaces what it reads; the session lifecycle answers fresh, not from adopted rows.
         Request::List { .. }
         | Request::ListPaths { .. }
@@ -737,6 +751,8 @@ fn rows_needed(request: &Request) -> usize {
         | Request::Picker { .. }
         | Request::LocalSend { .. }
         | Request::TrashBrowse { .. }
+        | Request::TrashThumb { .. }
+        | Request::TrashThumbCancel { .. }
         | Request::Jump { .. }
         | Request::Devs { .. }
         | Request::Flash(_)
@@ -790,8 +806,9 @@ fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Po
 // A new row order invalidates every outstanding index, so the queue goes and no result can be reported against the new listing.
 pub fn forget_rows(st: &mut State, pool: &Pool) {
     st.generation += 1;
-    st.outstanding = st.outstanding.saturating_sub(pool.cancel_all().len() + st.deferred.take_all().len());
+    cancel_all(st, pool);
     st.asked.clear();
+    st.thumb_mtimes.clear();
     st.window_meta.clear();
     // A list or a sort changes which row an index names, the same reason thumbnails clear their map.
     st.dirsizes.clear();
@@ -890,6 +907,8 @@ pub(crate) fn drain(
     for (_, row) in std::mem::take(&mut st.asked) {
         writeln!(out, "{}", thumbed_line(row, "", 0.0)).ok();
     }
+    st.thumb_mtimes.clear();
+    super::trashthumb::drain(out, st);
     out.flush().ok();
 }
 

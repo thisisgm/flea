@@ -41,6 +41,9 @@ pub struct State {
     pub base: PathBuf,
     // Only the rows a client named, so this never grows with the directory; see AGENTS.md "Thumbnail requests".
     pub asked: Vec<(PathBuf, usize)>,
+    // The submitted job's mtime stays fixed when a later window refreshes its metadata.
+    pub thumb_mtimes: HashMap<PathBuf, i64>,
+    pub trash_asked: Vec<super::trashthumb::Ask>,
     pub outstanding: usize,
     // Rows the pool has no room for yet, in request order; each is also in asked, so its answer still follows its row.
     pub deferred: crate::backend::thumbdefer::Deferred,
@@ -79,6 +82,8 @@ impl State {
     pub fn new(dirsize_worker: super::dirsizeworker::Worker) -> State {
         State {
             listing: Listing::new(), base: PathBuf::new(), asked: Vec::new(), outstanding: 0, deferred: Default::default(),
+            trash_asked: Vec::new(),
+            thumb_mtimes: HashMap::new(),
             window_meta: HashMap::new(),
             dirsizes: HashMap::new(), dirsize_queue: Vec::new(), dirsize_worker,
             search: None, search_reported: Instant::now(), generation: FIRST_LISTING - 1, held: Held::List,

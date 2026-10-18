@@ -271,6 +271,19 @@ fn row(item: &Detail) -> String {
     )
 }
 
+fn thumbnail(item: &Detail) -> String {
+    if !item.directory && item.icon.starts_with("image-") {
+        if let Some(backing) = &item.backing {
+            if let Some((path, mtime)) = backing.thumbnail() {
+                return format!(r#"{{"path":"{}","provider":"{}","identity":"{}","mtime":{}}}"#,
+                    escape(&path.to_string_lossy()), escape(&backing.provider_identity()),
+                    escape(&backing.selection_identity()), mtime);
+            }
+        }
+    }
+    "null".into()
+}
+
 fn selection_identity(item: &Detail) -> String {
     format!(r#"["{}","{}",{},"{}","{}","{}"]"#,
         escape(&item.item.uri), escape(&item.item.original), item.size,
@@ -318,9 +331,21 @@ fn failure(item: &Item, expected: &str, error: &str) -> String {
     format!(r#"{{"uri":"{}","name":"{}","identity":"{}","error":"{}"}}"#,
         escape(&item.uri), escape(item.original.rsplit('/').next().unwrap_or(&item.original)), escape(expected), escape(error))
 }
-fn delete_one(item: &Detail, recovery: &Result<PathBuf, String>) -> Result<(), String> {
+// Purge once on request exit, including a partial restore that stops on an unreadable target record.
+struct ThumbnailPurge(Vec<String>);
+impl ThumbnailPurge {
+    fn record(&mut self, reviewed: &Reviewed, result: &Result<(), Refusal>) {
+        if let Some(uri) = reviewed.departed_uri(result) { self.0.push(uri); }
+    }
+}
+impl Drop for ThumbnailPurge {
+    fn drop(&mut self) { super::trashthumbcache::purge(&self.0); }
+}
+fn delete_one(item: &Detail, recovery: &Result<PathBuf, String>, thumbnails: &mut ThumbnailPurge) -> Result<(), String> {
     let reviewed = item.backing.as_ref().ok_or_else(|| unchecked(Op::Delete).shown())?;
-    reviewed.delete(recovery.as_ref().map_err(Clone::clone)?).map_err(String::from)
+    let result = reviewed.delete(recovery.as_ref().map_err(Clone::clone)?);
+    thumbnails.record(reviewed, &result);
+    result.map_err(String::from)
 }
 // A record that will not read back fails its own item, so items already deleted stay counted; a record with no readable uri gets an empty one.
 fn unread(item: Option<Item>) -> String {
@@ -359,6 +384,7 @@ fn left_unread(confirmation: &Confirmation, reached: usize) -> (Vec<String>, usi
     (rows, left)
 }
 fn delete_confirmed(confirmation: &Confirmation, recovery: &Result<PathBuf, String>) -> String {
+    let mut thumbnails = ThumbnailPurge(Vec::new());
     let mut done = 0;
     let mut failures = Vec::new();
     let mut offset = 0;
@@ -383,7 +409,7 @@ fn delete_confirmed(confirmation: &Confirmation, recovery: &Result<PathBuf, Stri
             Err(_) => { failures.push(unread(None)); continue; }
         };
         match load_detail(&text, &confirmation.trees) {
-            Ok(item) => match delete_one(&item, recovery) {
+            Ok(item) => match delete_one(&item, recovery, &mut thumbnails) {
                 Ok(()) => done += 1,
                 Err(error) => failures.push(failure(&item.item, &surviving_identity(&item), &error)),
             },
@@ -506,10 +532,16 @@ impl Session {
             }
         }
         if stale { self.selection = None; selected_count = 0; members.clear(); }
+        let mut classes = HashMap::new();
         let rows = rows.iter().map(|item| {
             let mut text = row(item);
             text.pop();
-            text.push_str(&format!(r#","bulkSelected":{}}}"#, members.contains(&item.item.uri)));
+            let class = if self.body.is_empty() { "null".into() } else {
+                let class = item.backing.as_ref().and_then(Reviewed::thumbnail_path).and_then(|path| path.parent().map(PathBuf::from))
+                    .map(|parent| *classes.entry(parent.clone()).or_insert_with(|| super::extclass::classify_in(&parent, &self.body))).unwrap_or("");
+                format!(r#""{}""#, class)
+            };
+            text.push_str(&format!(r#","bulkSelected":{},"storageClass":{},"thumbnail":{}}}"#, members.contains(&item.item.uri), class, thumbnail(item)));
             text
         }).collect::<Vec<_>>();
         Ok(format!(r#""total":{},"start":{},"rows":[{}],"selectionToken":{},"selectionCount":{},"selectionStale":{}"#,
@@ -691,6 +723,7 @@ impl Session {
         Ok(true)
     }
     fn restore(&mut self, line: &str) -> Result<String, String> {
+        let mut thumbnails = ThumbnailPurge(Vec::new());
         if field_bool(line, "all") { self.items = list()?; }
         let targets = self.targets(line)?;
         // A target whose original sits on a pending mount waits, so the late write lands first.
@@ -708,10 +741,10 @@ impl Session {
                 if !field_bool(line, "all") {
                     require_selected_identity(&current, &field_str(&text, "identity").unwrap_or_default())?;
                 }
-                let result = current.backing.as_ref()
-                    .ok_or_else(|| unchecked(Op::Restore))?
-                    .restore(&PathBuf::from(&item.original), &crate::backend::trashdelete::recovery_root()?)
-                    .map_err(String::from);
+                let backing = current.backing.as_ref().ok_or_else(|| unchecked(Op::Restore))?;
+                let result = backing.restore(&PathBuf::from(&item.original), &crate::backend::trashdelete::recovery_root()?);
+                thumbnails.record(backing, &result);
+                let result = result.map_err(String::from);
                 if result.is_err() { retained = surviving_identity(&current); }
                 result
             });
@@ -729,6 +762,9 @@ impl Session {
 
 #[cfg(test)]
 mod refusal_tests;
+#[cfg(test)]
+#[path = "trashbrowse/thumbnail_tests.rs"]
+mod thumbnail_tests;
 #[cfg(test)]
 mod tests {
     use super::*;

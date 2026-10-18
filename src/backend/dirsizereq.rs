@@ -70,9 +70,11 @@ mod tests {
         listing.push("b", true);
         listing.push("file", false);
         State {
+            trash_asked: Vec::new(),
             listing,
             base,
             asked: Vec::new(),
+            thumb_mtimes: HashMap::new(),
             outstanding: 0,
             deferred: Default::default(),
             window_meta: HashMap::new(),
