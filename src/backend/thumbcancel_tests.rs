@@ -21,7 +21,7 @@ fn cancel_after_an_older_completion_orphans_the_new_job(deferred: bool) {
     d.dir("info");
     let mut tb = Tables::load();
     tb.thumbs = std::sync::Arc::new(Thumbnailers::from_entries(&[("t.thumbnailer".into(),
-        "[Thumbnailer Entry]\nExec=/usr/bin/false %i %o %s\nMimeType=image/jpeg;\n".into())], &tb.aliases));
+        "[Thumbnailer Entry]\nExec=/usr/bin/false %i %o %s\nMimeType=image/jpeg;\n".into())], &tb.aliases)).into();
     let (events, _) = channel();
     let mut st = State::new(crate::backend::dirsizeworker::Worker::new(events));
     st.base = d.join("files");
