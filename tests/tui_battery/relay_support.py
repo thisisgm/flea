@@ -19,10 +19,22 @@ CHILD_PID = 9000
 RESIZED = struct.pack("HHHH", 1, 1, 10, 10)  # the geometry the winsize double reports after the resize fires
 
 
+class Client:
+    def __init__(self):
+        self.closed = False
+
+    def setblocking(self, *_):
+        pass
+
+    def close(self):
+        self.closed = True
+
+
 class Server:
     def __init__(self, fail=False):
         self.closed = False
         self.fail = fail
+        self.clients = []
 
     def __enter__(self):
         return self
@@ -39,6 +51,10 @@ class Server:
     def setblocking(self, *_):
         pass
 
+    def accept(self):
+        self.clients.append(Client())
+        return self.clients[-1], None
+
     def close(self):
         self.closed = True
         if self.fail:
@@ -51,7 +67,10 @@ def run_relay(case, scenario):
     spec.write_text(json.dumps({"argv": ["candidate"], "environment": {}}))
     if scenario == "start-failure":
         (case / "relay-start.json").write_text("exclusive-create collision\n")
-    server, handlers, closed, logs, forwarded, restored, killed = Server(scenario == "server-close-failure"), {}, [], [], [], [], []
+    server_fails = scenario in ("server-close-failure", "two-close-failure")
+    server, handlers, closed, logs, forwarded, restored, killed = Server(server_fails), {}, [], [], [], [], []
+    # The close scenarios accept two clients on the first poll, so the teardown has client sockets to close.
+    accepts = [2] if scenario.endswith("close-failure") else []
     installed, geometry, reaps, winch_restored = set(), [], [], None
     # The teardown case ends on master EOF with the child still running, so the shutdown path must reap it.
     output = [b"first", b"FINAL\x1b[?1049l\x1b[?25h"] if scenario == "drain" else [b""] if scenario == "teardown" else ["議".encode()]
@@ -77,7 +96,7 @@ def run_relay(case, scenario):
             winch_restored = handlers.get(signal.SIGWINCH, signal.SIG_DFL) == signal.SIG_DFL
         if scenario == "resize-close" and callable(handlers.get(signal.SIGWINCH)):
             handlers[signal.SIGWINCH]()
-        if scenario == "master-close-failure":
+        if scenario in ("master-close-failure", "two-close-failure"):
             raise OSError("master close refused")
 
     def ioctl(fd, request=None, data=None, *_):
@@ -122,7 +141,8 @@ def run_relay(case, scenario):
                (relay.fcntl, "ioctl", ioctl),
                (relay, "winsize", lambda *_: [1, 1, 10, 10] if fired else [6, 20, 200, 60]),
                (relay, "write_all", lambda fd, data: forwarded.append(data)),
-               (relay.select, "select", lambda *_: ([MASTER_FD] if output else [], [], [])),
+               (relay.select, "select", lambda *_: ([server] * (accepts.pop() if accepts else 0)
+                                                    + ([MASTER_FD] if output else []), [], [])),
                (Path, "open", open_file)]
     error, code = None, None
     with ExitStack() as stack:
@@ -142,6 +162,7 @@ def run_relay(case, scenario):
     result = dict(error=error, code=code, forwarded=b"".join(forwarded), unread=list(output),
                   restored=restored, killed=killed, server_closed=server.closed,
                   master_closed=MASTER_FD in closed, logs_closed=all(stream.closed for stream in logs),
+                  logs_opened=len(logs), clients_closed=[client.closed for client in server.clients],
                   handlers_restored=all(handler == signal.SIG_DFL for handler in handlers.values()), injected=fired,
                   handlers_installed=sorted(installed), winch_restored_at_master_close=winch_restored,
                   stop_routed_during_teardown=bool(reaps) and all(r["stop_routed"] for r in reaps if r["torn_down"])
