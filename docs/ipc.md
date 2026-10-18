@@ -107,3 +107,43 @@ is mandatory. `tests/run-all.sh` builds the fixture before running the suite.
 The same contract runs during `cargo test --locked --workspace`; GPUI tests also
 exercise the shell entity's actual executor task. The headless fixture proves
 transport and dispatch, while compositor rendering remains a separate check.
+
+## Owned test windows
+
+Window-driving harnesses source `tests/lib/flea-transport.sh`. Set
+`FLEA_TEST_FRONTEND=qml|gpui` once, defaulting to `qml`, and use
+`flea_test_launch PATH LOG`, `flea_test_call call TARGET FUNCTION`, and
+`flea_test_quit` for normal shutdown or `flea_test_stop` for failure cleanup. Python harnesses use `Client.start_owned(PATH)` or
+`tests/lib/flea_transport.py`'s `Window`. The helper chooses binaries only from
+this worktree's `target/debug` or `target/release` build, or its explicit
+`CARGO_TARGET_DIR`. It never finds a Flea binary on PATH.
+
+Each launch gets a marked `mktemp` root, a private runtime and a dedicated process
+group. A supervisor holds the launch directory open, providing a short runtime path
+through `/proc/PID/fd/N/runtime` so Unix sockets fit even in long worktree paths. Calls
+validate the launched PID's start time, environment marker, group and socket inode,
+then verify the connected peer's PID. A failed or incomplete read cannot become
+a successful empty reply. `Window.quit()` checks the native acknowledgement before
+waiting for group drain. Native status 3 preserves `FLEA_IPC_NOT_PORTED` verbatim.
+The current stage has no native picker launch; the helper reports
+`FLEA_IPC_NOT_PORTED fleapicker.launch` rather than opening a browser as a picker.
+
+Set `FLEA_TEST_WINDOWS_ROOT` to a private marked root to own several windows.
+The existing IPC helper, PID lookup and instance listing then resolve only those
+windows. Ambiguous configuration selectors and foreign PIDs fail. Cleanup signals
+only verified members of a launched process group, waits for backend drain, and
+keeps evidence roots. Unowned QML client forwarding keeps its existing arguments,
+streams and statuses. `tests/native-transport.sh` covers controls and QML launches;
+`tests/native-transport-gpui.sh` covers the stage native window where a compositor
+or Xvfb is available.
+
+Cleanup uses one bounded TERM/KILL drain, including failed startup. The supervisor
+acts as a subreaper and retains the launch leader until its owned descendants have
+exited and been reaped. Historical startup diagnostics remain available after a
+successful cleanup retry. Native quit waits for natural exit and a zero process
+status; cleanup that required a signal cannot satisfy its acknowledgement.
+QML listings retain Quickshell's complete instance metadata and original instance
+IDs. An ID selector resolves that metadata to an owned PID before forwarding.
+The Xvfb launcher records start time and group and signals through a pidfd only
+after checking the same identity. The transport suites run with no controlling
+tty, a private PID namespace, and an explicit environment built with `env -i`.

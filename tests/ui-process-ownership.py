@@ -271,6 +271,7 @@ sleep() {{ :; }}
 fail() {{ printf 'FAIL %s\\n' "$*" >&2; exit 1; }}
 sandbox_scratch() {{ mkdir -p "$1"; }}
 assert_theme() {{ :; }}
+flea_test_exec() {{ setsid nohup "$@"; }}
 {world_functions}
 case_xwsettings
 """

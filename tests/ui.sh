@@ -1,5 +1,6 @@
 #!/usr/bin/env bash
 . "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+. "$(dirname "${BASH_SOURCE[0]}")/lib/flea-transport.sh"
 # Drives the real Quickshell window with omarchy-drive and asserts through the read-only IPC seam.
 # Usage: ./tests/ui.sh [case ...]; with no args it runs the default wanted list below; every case_* here or in a sourced tests/ui-*.sh outside it runs only by name (touchpad, networklive and xwdrag among them).
 set -u
@@ -88,6 +89,9 @@ drain_wait_s=30
 run_root=$(mktemp -d /tmp/flea-ui-run.XXXXXXXX) || fail "cannot create native evidence sandbox"
 printf 'flea native evidence\n' > "$run_root/.flea-test-sandbox"
 export FLEA_TEST_RUN_ROOT="$run_root"
+export FLEA_TEST_WINDOWS_ROOT="$run_root/windows"
+mkdir -m 700 "$FLEA_TEST_WINDOWS_ROOT" || fail "cannot create owned window root"
+: > "$FLEA_TEST_WINDOWS_ROOT/.flea-test-sandbox"
 # A surviving copied-UI window can prove abandonment only after this runner has gone.
 printf '%s\n' "$$" > "$run_root/runner.pid" || fail "cannot record the native evidence runner"
 evidence_dir="$run_root/evidence"
@@ -217,6 +221,10 @@ settle() {
 }
 
 flea_pids() {
+    if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-} ]]; then
+        python3 -B "$flea_test_helper" pids "$FLEA_TEST_WINDOWS_ROOT"
+        return $?
+    fi
     local pid pids process result=0
     pids=$(pgrep -x qs) || result=$?
     (( result <= 1 )) || return "$result"
@@ -346,6 +354,10 @@ owned_trash_monitors() {
 
 kill_flea() {
     local pid pids found waited ownership deadline=$((SECONDS + drain_wait_s)) dead_pids=""
+    if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-} ]]; then
+        dead_pids=$(flea_pids) || fail "cannot enumerate owned windows before teardown"
+        flea_test_stop_all || fail "owned process group teardown failed; fixtures kept"
+    fi
     [[ "$run_root" == /* && -f "$run_root/.flea-test-sandbox" ]] || fail "native process ownership root is missing"
     pids=$(flea_pids) || fail "cannot enumerate native windows for teardown"
     for pid in $pids; do
@@ -593,8 +605,12 @@ launch_window() {
     # Each case starts with an empty session journal, so one case never undoes another's operation.
     rm -f "$FLEA_UNDO_DIR/undo-journal" "$FLEA_UNDO_DIR/undo-journal.lock"
     # A case may set flea_launch_wrap, as cap_unlock does to start Flea in the graphical session polkit trusts.
-    FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" ${flea_launch_wrap[@]+"${flea_launch_wrap[@]}"} \
-        setsid nohup "$flea_bin" --gui "$start_path" >"$flea_log" 2>&1 </dev/null &
+    local -a wrap_args=()
+    local wrap_arg
+    for wrap_arg in ${flea_launch_wrap[@]+"${flea_launch_wrap[@]}"}; do wrap_args+=("--wrap=$wrap_arg"); done
+    flea_test_launch "$start_path" "$flea_log" --ui "$flea_ui" --binary "$flea_bin" "${wrap_args[@]}" \
+        || fail "owned window launch failed"
+    ipc_pid=$FLEA_TEST_PID
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
 }
@@ -3892,7 +3908,7 @@ case_xwsettings() {
     cat "$flea_log" >> "$run_log" 2>/dev/null || true
     : > "$flea_log"
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     local addrA addrB pidA pidB
     addrA=$(omarchy-drive windows --json | jq -r '[.windows[] | select(.title == "Flea")] | .[0].address // empty')
@@ -3906,7 +3922,7 @@ case_xwsettings() {
 
     # Window B on the copied tree, over the same state file.
     FLEA_UI="$uib" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$dir" >>"$flea_log" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$dir" >>"$flea_log" 2>&1 </dev/null &
     local attempt count
     for (( attempt = 0; attempt < 150; attempt++ )); do
         count=$(omarchy-drive windows --json | jq '[.windows[] | select(.title == "Flea")] | length')
@@ -4415,7 +4431,7 @@ xw_second_window() {
     mkdir -p "$ui_copy" || fail "xwwatch: could not stage the second window's UI copy"
     cp -a "$flea_ui/." "$ui_copy/" || fail "xwwatch: could not copy the UI for the second window"
     FLEA_UI="$ui_copy" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$start_path" >>"$run_root/flea.A.log" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$start_path" >>"$run_root/flea.A.log" 2>&1 </dev/null &
     pid=""
     for _attempt in $(seq 1 "$xw_window_poll_tries"); do
         pid=$(xw_owned_pid_for_arg "$ui_copy") && [[ -n "$pid" ]] && break || pid=""
@@ -4967,7 +4983,7 @@ case_select() {
     : > "$flea_log"
     # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
     QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$dir" FLEA_SELECT="$dir/b.txt" FLEA_BIN="$flea_bin" \
-        setsid nohup qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
+        flea_test_exec qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
     assert_window
@@ -4985,7 +5001,7 @@ case_select() {
     : > "$flea_log"
     # The renderer is stated because src/gui.rs owns that choice and a direct qs launch never runs it.
     QSG_RHI_BACKEND="${QSG_RHI_BACKEND:-vulkan}" FLEA_PATH="$dir" FLEA_SELECT="$dir/does-not-exist.txt" FLEA_BIN="$flea_bin" \
-        setsid nohup qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
+        flea_test_exec qs -p "$flea_ui/boot" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
     assert_window
@@ -7416,7 +7432,7 @@ case_xwundo() {
     # Both windows run under the session runtime dir; only their backends share the suite journal dir.
     rm -f "$FLEA_UNDO_DIR/undo-journal" "$FLEA_UNDO_DIR/undo-journal.lock"
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$dir" >"$flea_log" 2>&1 </dev/null &
     omarchy-drive wait window flea --timeout 15 >/dev/null
     omarchy-drive focus flea >/dev/null
     assert_window
@@ -7426,7 +7442,7 @@ case_xwundo() {
     [[ -n "$addrA" ]] || fail "xwundo: window A never appeared"
 
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$dirB" >"$blog" 2>&1 </dev/null &
+        flea_test_exec "$flea_bin" --gui "$dirB" >"$blog" 2>&1 </dev/null &
     local addrB="" attempt
     for attempt in $(seq 1 150); do
         if [[ "$(omarchy-drive windows --json | jq '[.windows[] | select(.title == "Flea")] | length')" == "2" ]]; then
@@ -7565,10 +7581,10 @@ case_renderer() {
     printf '#!/bin/sh\nprintf "RAN %%s\\n" "$*" >> %q\n' "$relaunched" > "$dir/flea-stub"
     chmod +x "$dir/flea-stub"
     # The marker is set, so the renderer's own name is the only thing standing between this and a retry.
-    env QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=1 \
+    QSG_RHI_BACKEND=opengl FLEA_RENDERER_AUTOMATIC=1 \
         __EGL_VENDOR_LIBRARY_FILENAMES="$dir/no-such-egl-vendor.json" \
         FLEA_PATH="$dir" FLEA_BIN="$dir/flea-stub" \
-        setsid nohup qs -p "$flea_ui/boot" > "$log" 2>&1 </dev/null &
+        flea_test_exec qs -p "$flea_ui/boot" > "$log" 2>&1 </dev/null &
     local waited
     for waited in $(seq 1 200); do
         grep -aq 'graphics backend opengl failed' "$log" && break
@@ -13494,8 +13510,8 @@ xwdrag_count() {
 xwdrag_launch_second() {
     local start_path="$1" before after pid
     before=$(flea_pids | tr '\n' ' ')
-    FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" \
-        setsid nohup "$flea_bin" --gui "$start_path" >"$run_root/flea-second.log" 2>&1 </dev/null &
+    flea_test_launch "$start_path" "$run_root/flea-second.log" --ui "$flea_ui" --binary "$flea_bin" \
+        || fail "xwdrag: owned second window launch failed"
     for i in $(seq 1 60); do
         after=$(flea_pids | tr '\n' ' ')
         for pid in $after; do

@@ -19,6 +19,10 @@
 #     Shell ID: flea
 #     Config path: /usr/share/flea/ui/boot/shell.qml
 flea_ipc_pids() {
+  if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-} ]]; then
+    python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" lookup "$FLEA_TEST_WINDOWS_ROOT" "$1"
+    return $?
+  fi
   local want="$1/boot/shell.qml" pid= line
   while IFS= read -r line; do
     case $line in
