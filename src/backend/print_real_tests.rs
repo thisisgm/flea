@@ -140,8 +140,8 @@ fn print_real_protocol_converters_run_in_the_production_jail() {
 
 // Print's input step with a test-cache service in place of the shared one: the office leg converts on a production-built service and the office jail.
 #[test]
+#[ignore = "needs LibreOffice; tests/print-office-real.sh runs it on minipc"]
 fn print_real_office_leg_converts_through_the_office_service() {
-    if !ready(&["soffice"]) || crate::backend::sandboxprobe::skipped() { return; }
     let d = TestDir::new("print-real-office");
     let fixture = "{\\rtf1\\ansi Print and convert fixture.}";
     let source = d.file("letter.rtf", fixture);

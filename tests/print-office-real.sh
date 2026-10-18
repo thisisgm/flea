@@ -92,3 +92,11 @@ finally:
     (root / 'replies.json').write_text(json.dumps(replies, indent=2) + '\n')
 print('ok   print-office-real: real office conversion produced a PDF')
 PY
+# The ignored unit test drives print's office leg through the office service; --exact and the count stop a renamed test passing as zero run.
+test=backend::printreq::tests::real::print_real_office_leg_converts_through_the_office_service
+log="$box/office-leg-test.log"
+if ! (cd "$repo" && cargo test --locked --bin flea -- --ignored --exact "$test") > "$log" 2>&1 || ! grep -q '^test result: ok. 1 passed' "$log"; then
+    printf 'FAIL print-office-real: %s did not pass, see %s\n' "$test" "$log"
+    exit 1
+fi
+printf 'ok   print-office-real: print office leg unit test passed\n'
