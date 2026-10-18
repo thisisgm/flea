@@ -127,7 +127,7 @@ start = s.send(b'\r')
 s.wait(b'1 item', start)
 s.wait(b'inside-file.txt', start)
 start = s.send(b'\x0c' + str(case / 'missing-folder').encode() + b'\r')
-s.wait(b'scan:', start)
+s.wait(b'item not found', start)
 s.send(b'q')
 s.finish()
 assert (case / 'cwd').read_text() == str(fixture / 'enter-here') + '\n'

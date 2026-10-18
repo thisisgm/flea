@@ -1,0 +1,43 @@
+use super::*;
+use crate::tui::render::frame_tests::entry;
+
+#[test]
+fn t3_codicons_seti_and_documented_exceptions_match_reference_codepoints() {
+    for (name, expected) in [("main.rs", "\u{e68b}"), ("todo.md", "\u{eb1d}"), ("table.ods", "\u{ebb7}"),
+        ("slides.odp", "\u{f0428}"), ("data.json", "\u{e60b}"), ("report.pdf", "\u{eaeb}"), ("notes.txt", TEXT)] {
+        assert_eq!(row(&entry(name, false, 0), true), expected, "{name}");
+    }
+    let mut folder = entry("A", true, 0);
+    assert_eq!(row(&folder, true), FOLDER);
+    folder.link = "target".into();
+    assert_eq!(row(&folder, true), "\u{eaed}");
+    folder.directory = false;
+    assert_eq!(row(&folder, true), "\u{eaee}");
+    assert_eq!(row(&folder, false), " ");
+    folder.icon = "folder".into();
+    assert_eq!(row(&folder, true), "\u{eaed}");
+    assert_eq!(row(&folder, false), "›");
+}
+#[test]
+fn t3_probe_success_refusal_missing_tool_timeout_and_output_are_bounded() {
+    let cancel = AtomicBool::new(false);
+    assert_eq!(output(Command::new("sh").args(["-c", "printf covered"]), &cancel).as_deref(), Some("covered"));
+    assert!(output(Command::new("sh").args(["-c", "exit 1"]), &cancel).is_none());
+    assert!(output(&mut Command::new("/nonexistent-flea-font-probe"), &cancel).is_none());
+    assert!(output(Command::new("sh").args(["-c", "while :; do printf aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; done"]), &cancel).is_none());
+    let start = Instant::now();
+    assert!(output(Command::new("sh").args(["-c", "sleep 2"]), &cancel).is_none());
+    assert!(start.elapsed() < Duration::from_secs(1));
+    cancel.store(true, Ordering::Relaxed);
+    assert!(output(Command::new("sh").args(["-c", "sleep 2"]), &cancel).is_none());
+}
+#[test]
+fn t3_builtin_marks_survive_missing_font_but_forced_test_fallback_is_explicit() {
+    let mut m = crate::tui::render::frame_tests::model();
+    m.font_marks = false;
+    assert!(!m.marks());
+    m.capabilities.graphics = crate::tui::capabilities::Protocol::Kitty;
+    assert!(m.marks());
+    m.force_text_marks = true;
+    assert!(!m.marks());
+}

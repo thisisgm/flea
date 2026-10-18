@@ -203,7 +203,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
             match action.as_str() {
                 "cursorDown" => {
                     model.preview_scroll =
-                        (model.preview_scroll + 1).min(model.preview_line_count.saturating_sub(1))
+                        (model.preview_scroll + 1).min(super::layout::preview_scroll_limit(model))
                 }
                 "cursorUp" => model.preview_scroll = model.preview_scroll.saturating_sub(1),
                 _ => {}

@@ -1,0 +1,307 @@
+use crate::tui::{model::{Model, Row}, render, keymap::Map, theme::Theme};
+use crate::jsondoc::Json;
+use std::time::Duration;
+
+pub fn plain(text: &str) -> String {
+    let mut chars = text.chars();
+    let mut out = String::new();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' {
+            if chars.next() == Some('[') { for c in chars.by_ref() { if ('@'..='~').contains(&c) { break; } } }
+        } else { out.push(c); }
+    }
+    out
+}
+pub fn grid(text: &str, columns: usize, lines: usize) -> Vec<String> {
+    let mut cells = vec![vec![String::from(" "); columns]; lines];
+    let (mut x, mut y) = (0, 0);
+    let mut chars = text.chars();
+    while let Some(c) = chars.next() {
+        if c == '\x1b' && chars.next() == Some('[') {
+            let mut args = String::new();
+            for code in chars.by_ref() {
+                if ('@'..='~').contains(&code) {
+                    if code == 'H' {
+                        let mut numbers = args.split(';').map(|s| s.parse::<usize>().unwrap_or(1).saturating_sub(1));
+                        y = numbers.next().unwrap_or(0); x = numbers.next().unwrap_or(0);
+                    } else if code == 'J' && args == "2" { cells.iter_mut().for_each(|row| row.fill(" ".into())); }
+                    break;
+                }
+                args.push(code);
+            }
+        } else if y < lines && x < columns {
+            let width = crate::tui::cells::width(c);
+            if width == 0 { if x > 0 { cells[y][x - 1].push(c); } }
+            else {
+                cells[y][x] = c.to_string();
+                for cell in cells[y].iter_mut().skip(x + 1).take(width - 1) { cell.clear(); }
+                x += width;
+            }
+        }
+    }
+    cells.into_iter().map(|row| row.concat()).collect()
+}
+pub fn entry(name: &str, directory: bool, size: usize) -> Row {
+    Row::parse(&crate::jsondoc::parse(&format!(r#"{{"n":"{name}","d":{directory},"s":{size},"p":33188,"i":"text-x-generic"}}"#)).unwrap(), &[])
+}
+pub fn model() -> Model {
+    let mut m = Model::new("/fx/v/work".into(), &Json::Null);
+    m.height = 27; m.columns = 130;
+    m.parents = vec![entry("work", true, 0)];
+    for (index, (name, directory, size)) in [("A", true, 462), ("Code", true, 216), ("Docs", true, 22100),
+        ("Empty", true, 40), ("Locked", true, 60), ("Many", true, 2200), ("Media", true, 2600000),
+        ("notes.txt", false, 99), ("todo.md", false, 48)].into_iter().enumerate() {
+        m.rows.insert(index, entry(name, directory, size));
+        if directory { m.folder_sizes.insert(index, (size, index == 4)); }
+    }
+    m.total = 9; m.cursor = 7;
+    m.preview_path = m.path.join("notes.txt");
+    m.preview_body = "Visual gate notes\n\nThis file is the fixture's plain text sample.\nLine four keeps the preview busy.".into();
+    m.rows.get_mut(&7).unwrap().kind = "Plain text document".into();
+    m.disk_path = m.path.clone(); m.disk_fs = "tmpfs".into(); m.disk_free = 64100000;
+    m.hints = crate::tui::keymap::Hints::new(&Map::load(), "default");
+    crate::tui::layout::prepare(&mut m);
+    m
+}
+#[test]
+fn t3_frame_matches_reference_columns_names_sizes_and_rules() {
+    let m = model();
+    let theme = Theme::from_text("");
+    let out = render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO);
+    let rows = grid(&out, 130, 31);
+    assert_eq!(&rows[0][..16], " /fx/v/work     ");
+    assert_eq!(rows[0].chars().skip(123).collect::<String>(), "Name ▴ ");
+    assert_eq!(rows[1].chars().nth(27), Some('┬'));
+    assert_eq!(rows[1].chars().nth(79), Some('┬'));
+    assert_eq!(rows[29].chars().nth(27), Some('┴'));
+    assert_eq!(rows[2].chars().nth(27), Some('│'));
+    let current: String = rows[9].chars().skip(28).take(51).collect();
+    assert_eq!(current, format!("▎{} notes.txt{}99 B  ", crate::tui::icons::TEXT, " ".repeat(33)));
+    assert_eq!(rows[9].chars().nth(79), Some('│'));
+    assert!(rows[2].contains(&format!("{} notes.txt", crate::tui::icons::TEXT)));
+    assert!(rows[5].contains("1 Visual gate notes"));
+    assert!(rows[30].starts_with(" 9 items"));
+    assert!(rows[30].ends_with("tmpfs · 64.1 MB free · ? keys "));
+    assert!(!rows.join("").contains("notes.txt/"));
+    assert!(out.contains(&theme.cursor));
+}
+#[test]
+fn t3_no_preview_and_no_marks_keep_name_columns() {
+    let mut m = model();
+    m.preview_visible = false;
+    let theme = Theme::from_text("");
+    for marks in [true, false] {
+        m.force_text_marks = !marks;
+        let rows = grid(&render::frame(&m, &theme, &Map::load(), 130, 31, Duration::ZERO), 130, 31);
+        assert_eq!(rows[9].chars().skip(31).take(9).collect::<String>(), "notes.txt");
+        assert_eq!(rows[2].chars().filter(|c| *c == '│').count(), 1);
+        assert_eq!(rows[9].chars().skip(124).take(4).collect::<String>(), "99 B");
+    }
+}
+#[test]
+fn t3_every_screen_axis_and_resize_produce_bounded_complete_frames() {
+    let m = model(); let theme = Theme::from_text(""); let map = Map::load();
+    for columns in [0, 1, 11, 12, 28, 40, 130] {
+        for lines in [0, 1, 4, 5, 6, 31] {
+            let rows = grid(&render::frame(&m, &theme, &map, columns, lines, Duration::ZERO), columns, lines);
+            assert_eq!(rows.len(), lines);
+            assert!(rows.iter().all(|row| crate::tui::cells::text_width(row) == columns));
+        }
+    }
+}
+
+#[test]
+fn t3_empty_and_locked_states_match_reference_cells_without_preview_side_effects() {
+    let mut m = model(); let theme = Theme::from_text(""); let map = Map::load();
+    m.total = 0; m.rows.clear(); m.path.push("Empty");
+    m.empty_at = std::time::Instant::now() - Duration::from_secs(6);
+    let rows = grid(&render::frame(&m, &theme, &map, 130, 31, Duration::ZERO), 130, 31);
+    assert_eq!(rows[14].chars().skip(28).take(51).collect::<String>().trim(), crate::tui::icons::FOLDER);
+    assert_eq!(rows[15].chars().skip(28).take(51).collect::<String>().trim(), "QUIET IN HERE");
+    assert!(rows[30].starts_with(" 0 items"));
+    let (mut w, reader) = crate::tui::wire::echo_wire();
+    let mut m = model(); m.cursor = 4; m.preview_path = m.path.join("Locked");
+    m.preview_children = Some(m.preview_path.clone());
+    m.receive(crate::jsondoc::parse(r#"{"t":"peeked","path":"/fx/v/work/Locked","failed":true,"mode":16384,"rows":[]}"#).unwrap(), &mut w).unwrap();
+    assert!(m.error.is_empty());
+    crate::tui::preview::layout(&mut m);
+    let rows = grid(&render::frame(&m, &theme, &map, 130, 31, Duration::ZERO), 130, 31);
+    assert_eq!(rows[16].chars().skip(80).collect::<String>().trim(), crate::tui::icons::LOCK);
+    assert_eq!(rows[17].chars().skip(80).collect::<String>().trim(), "You don’t have permission to open this folder.");
+    m.pending = Some(m.preview_path.clone());
+    m.receive(crate::jsondoc::parse(r#"{"t":"error","where":"scan","path":"/fx/v/work/Locked","msg":"permission denied"}"#).unwrap(), &mut w).unwrap();
+    let rows = grid(&render::frame(&m, &theme, &map, 130, 31, Duration::ZERO), 130, 31);
+    assert!(rows[30].contains("9 items  You don’t have permission to open this folder."));
+    assert!(!rows[30].contains("dismiss"));
+    assert_eq!(m.path, std::path::Path::new("/fx/v/work"));
+    drop(w); reader.join().unwrap();
+}
+#[test]
+fn t3_prepared_text_is_viewport_bounded_and_rest_frames_remain_identical() {
+    let mut m = model(); let theme = Theme::from_text(""); let map = Map::load();
+    m.preview_body = "A line with a large body\n".repeat(32000);
+    crate::tui::layout::prepare(&mut m);
+    assert!(m.text_lines.len() <= m.height - 3);
+    let reference = render::frame(&m, &theme, &map, 130, 31, Duration::ZERO);
+    let mut micros = Vec::new();
+    for _ in 0..5 {
+        let start = std::time::Instant::now();
+        for _ in 0..100 {
+            crate::tui::layout::prepare(&mut m);
+            assert_eq!(render::frame(&m, &theme, &map, 130, 31, Duration::ZERO), reference);
+        }
+        micros.push(start.elapsed().as_micros() / 100);
+    }
+    eprintln!("t3 cached 130x31 frame cost, microseconds/frame: {}..{} (five batches of 100, debug build)", micros.iter().min().unwrap(), micros.iter().max().unwrap());
+    m.preview_scroll = 1000;
+    crate::tui::layout::prepare(&mut m);
+    assert_eq!(m.text_lines[0].0, Some(1001));
+}
+
+#[test]
+fn review_t3_r1_symlink_name_with_leading_combining_mark_never_panics() {
+    let mut row = entry("a", false, 1);
+    row.name = "\u{301}a".into();
+    row.link = "target".into();
+    let output = crate::tui::cells::row(&row, 51, Some("1 B"), true,
+        crate::tui::cells::RowStyle::default(), &Theme::from_text(""), "");
+    assert!(plain(&output).contains("a → target"));
+    let theme = Theme::from_text("");
+    for name in ["\u{301}a", "\u{301}", "e\u{301}界", "\x1b界\u{202e}a", "a very long symlink filename"] {
+        row.name = name.into();
+        row.link = "\u{301}界/target".into();
+        for columns in 0..60 {
+            for query in ["", "a", "界", "\u{301}"] {
+                let output = crate::tui::cells::row(&row, columns, Some("1 B"), true,
+                    crate::tui::cells::RowStyle::default(), &theme, query);
+                let visible = plain(&output);
+                assert_eq!(crate::tui::cells::text_width(&visible), columns, "{name:?} at {columns}");
+                assert!(!visible.chars().any(|c| !crate::tui::cells::safe(c)));
+                if columns >= 10 { assert!(visible.ends_with("1 B  ")); }
+            }
+        }
+    }
+}
+
+#[test]
+fn review_t3_r1_folder_preview_scroll_changes_rendered_children() {
+    use crate::tui::{actions, input::Key, preview, wire};
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = model();
+    m.height = 6;
+    m.cursor = 0;
+    preview::load(&mut m, true);
+    preview::request(&mut m, &mut wire).unwrap();
+    m.receive(crate::jsondoc::parse(r#"{"t":"peeked","path":"/fx/v/work/A","n":6,"rows":[{"n":"child-1","d":false},{"n":"child-2","d":false},{"n":"child-3","d":false},{"n":"child-4","d":false},{"n":"child-5","d":false},{"n":"child-6","d":false}]}"#).unwrap(), &mut wire).unwrap();
+    preview::layout(&mut m);
+    crate::tui::layout::prepare(&mut m);
+    let theme = Theme::from_text("");
+    let before = plain(&crate::tui::layout::preview(&m, 3, 50, 6, &theme));
+    m.preview_focus = true;
+    actions::key(&mut m, &Key::named("Down", ""), &Map::load(), &mut wire).unwrap();
+    preview::layout(&mut m);
+    crate::tui::layout::prepare(&mut m);
+    let after = plain(&crate::tui::layout::preview(&m, 3, 50, 6, &theme));
+    assert_eq!(m.preview_scroll, 1);
+    eprintln!("preview_scroll={}, first child before={before:?}, after={after:?}", m.preview_scroll);
+    assert_ne!(before, after, "a real preview Down must reveal the next child");
+    assert!(before.contains("child-1") && after.contains("child-2"));
+    let header = plain(&crate::tui::layout::preview(&m, 0, 50, 6, &theme));
+    for _ in 0..10 { wheel(&mut m, 65, &mut wire); }
+    assert_eq!(m.preview_scroll, 3);
+    assert!(plain(&crate::tui::layout::preview(&m, 5, 50, 6, &theme)).contains("child-6"));
+    actions::key(&mut m, &Key::named("Up", ""), &Map::load(), &mut wire).unwrap();
+    preview::layout(&mut m);
+    assert_eq!(m.preview_scroll, 2);
+    assert!(plain(&crate::tui::layout::preview(&m, 3, 50, 6, &theme)).contains("child-3"));
+    assert_eq!(plain(&crate::tui::layout::preview(&m, 0, 50, 6, &theme)), header);
+    m.height = 9;
+    preview::layout(&mut m);
+    assert_eq!(m.preview_scroll, 0);
+    for y in 0..m.height { assert_eq!(crate::tui::cells::text_width(&plain(&crate::tui::layout::preview(&m, y, 50, m.height, &theme))), 50); }
+    wire::finish(wire, reader);
+}
+
+#[test]
+fn review_t3_r1_archive_backend_facts_are_rendered() {
+    use crate::tui::{preview, wire};
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = model();
+    m.rows.get_mut(&7).unwrap().name = "bundle.zip".into();
+    m.rows.get_mut(&7).unwrap().icon = "package-x-generic".into();
+    m.rows.get_mut(&7).unwrap().kind = "ZIP archive".into();
+    preview::load(&mut m, true);
+    preview::request(&mut m, &mut wire).unwrap();
+    m.receive(crate::jsondoc::parse(&format!(r#"{{"t":"meta","row":7,"token":{},"entries":3,"unpacked":156}}"#, m.preview_requested)).unwrap(), &mut wire).unwrap();
+    preview::layout(&mut m);
+    crate::tui::layout::prepare(&mut m);
+    assert_eq!(m.preview_metadata, ["Entries · 3", "Unpacked · 156 B"]);
+    let theme = Theme::from_text("");
+    let body = (0..m.height).map(|y| plain(&crate::tui::layout::preview(&m,y,50,m.height,&theme))).collect::<Vec<_>>().join("\n");
+    eprintln!("archive preview: {body}");
+    wire::finish(wire, reader);
+    assert!(body.contains("Entries · 3") && body.contains("Unpacked · 156 B"), "backend archive facts disappeared from the rendered preview");
+}
+
+fn wheel(m: &mut Model, button: u32, wire: &mut crate::tui::wire::Wire) {
+    use crate::tui::{actions, input::{Key, Pointer}, preview};
+    let mut key = Key::named("", "");
+    key.pointer = Some(Pointer { button, x: 90, y: 6, released: false, motion: false });
+    actions::key(m, &key, &Map::load(), wire).unwrap();
+    preview::layout(m);
+}
+#[test]
+fn review_t3_r1_archive_failure_reply_is_rendered_below_the_header() {
+    use crate::tui::{preview, wire};
+    let (mut wire, reader) = wire::echo_wire();
+    let mut m = model();
+    let row = m.rows.get_mut(&7).unwrap();
+    row.name = "broken.zip".into(); row.icon = "package-x-generic".into(); row.kind = "ZIP archive".into();
+    preview::load(&mut m, true);
+    preview::request(&mut m, &mut wire).unwrap();
+    preview::layout(&mut m);
+    m.receive(crate::jsondoc::parse(&format!(r#"{{"t":"meta","row":7,"token":{},"afailed":true}}"#, m.preview_requested)).unwrap(), &mut wire).unwrap();
+    preview::layout(&mut m);
+    let theme = Theme::from_text("");
+    let rows: Vec<_> = (0..m.height).map(|y| plain(&crate::tui::layout::preview(&m, y, 50, m.height, &theme))).collect();
+    assert!(rows[0].contains("broken.zip"));
+    assert!(rows[1].contains("ZIP archive"));
+    assert_eq!(rows[2].trim(), "");
+    assert_eq!(rows[3].trim(), "This archive could not be read.");
+    assert!(rows.iter().all(|row| crate::tui::cells::text_width(row) == 50));
+    wire::finish(wire, reader);
+}
+#[test]
+fn review_t3_r1_non_text_bodies_scroll_without_moving_the_header() {
+    use crate::tui::{preview, wire};
+    let (mut wire, reader) = wire::echo_wire();
+    let theme = Theme::from_text("");
+    for selected in [false, true] {
+        let mut m = model(); m.height = 4; m.preview_body.clear(); m.preview_width = 0;
+        if selected {
+            m.selected.extend([0, 1, 2]);
+            for i in 0..3 { m.selected_rows.insert(i, m.rows[&i].clone()); }
+        } else {
+            m.preview_metadata = vec!["Entries · 3".into(), "Unpacked · 156 B".into(), "This archive could not be read.".into()];
+        }
+        preview::layout(&mut m);
+        let header = plain(&crate::tui::layout::preview(&m, 0, 50, 4, &theme));
+        let before = plain(&crate::tui::layout::preview(&m, 3, 50, 4, &theme));
+        wheel(&mut m, 65, &mut wire);
+        assert_eq!(m.preview_scroll, 1);
+        let after = plain(&crate::tui::layout::preview(&m, 3, 50, 4, &theme));
+        assert_ne!(before, after);
+        for _ in 0..5 { wheel(&mut m, 65, &mut wire); }
+        assert_eq!(m.preview_scroll, 2);
+        let last = plain(&crate::tui::layout::preview(&m, 3, 50, 4, &theme));
+        assert!(last.contains(if selected { "Docs" } else { "This archive could not be read." }));
+        assert_eq!(plain(&crate::tui::layout::preview(&m, 0, 50, 4, &theme)), header);
+        for _ in 0..5 { wheel(&mut m, 64, &mut wire); }
+        assert_eq!(m.preview_scroll, 0);
+        assert_eq!(plain(&crate::tui::layout::preview(&m, 3, 50, 4, &theme)), before);
+        m.height = 3;
+        preview::layout(&mut m);
+        assert_eq!(m.preview_scroll, 0);
+    }
+    wire::finish(wire, reader);
+}
