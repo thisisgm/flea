@@ -111,9 +111,9 @@ impl Map {
                 return get(block, "action").into();
             }
         }
-        if key.mods == "shift" {
+        if shift_in_text(key) {
             for (kind, block) in &self.blocks {
-                if kind == "text" && get(block, "char") == key.text && !key.text.is_empty() {
+                if kind == "text" && get(block, "char") == key.text {
                     return get(block, "action").into();
                 }
             }
@@ -320,9 +320,13 @@ pub(super) fn supported(action: &str) -> bool {
 }
 fn matches_key(block: &HashMap<String, String>, key: &Key) -> bool {
     match get(block, "mods") {
-        "text" => matches!(key.mods.as_str(), "" | "shift") && get(block, "key") == key.text,
+        "text" => (key.mods.is_empty() || shift_in_text(key)) && get(block, "key") == key.text,
         mods => (if mods == "none" { "" } else { mods }) == key.mods && get(block, "key") == key.name,
     }
+}
+// Shift is already in the text only for an uppercase letter; any other Shift stays part of the chord, as input.rs keeps it.
+fn shift_in_text(key: &Key) -> bool {
+    key.mods == "shift" && key.text.chars().count() == 1 && key.text.chars().all(char::is_uppercase)
 }
 fn context_matches(block: &HashMap<String, String>, context: &str) -> bool {
     get(block, "context").split(',').any(|s| s == context || s == "all")
