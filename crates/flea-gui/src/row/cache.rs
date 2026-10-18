@@ -6,6 +6,9 @@ use std::{collections::HashMap, rc::Rc};
 
 /// One row's shaped cells as glyph runs whose tiles the window keeps; colour is chosen at paint, so the cursor reshapes nothing.
 pub struct Prepared {
+    pub label: String,
+    pub size_text: String,
+    pub date_text: String,
     pub name: GlyphRun,
     pub size: GlyphRun,
     pub date: GlyphRun,
@@ -119,7 +122,9 @@ mod tests {
     fn prepared() -> Prepared {
         let layout = Arc::new(LineLayout::default());
         Prepared {
-            name: GlyphRun::new(Arc::clone(&layout)),
+            label: String::new(),
+            size_text: String::new(),
+            date_text: String::new(),            name: GlyphRun::new(Arc::clone(&layout)),
             size: GlyphRun::new(Arc::clone(&layout)),
             date: GlyphRun::new(layout),
             mark: Mark::File,

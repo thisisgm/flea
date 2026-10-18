@@ -74,6 +74,16 @@ impl Pane {
         }
     }
 
+    /// A listing asked for whose first rows have not landed, Pane.qml's listInFlight.
+    pub fn listing_in_flight(&self) -> bool {
+        self.listing_open
+    }
+
+    /// Unanswered listing and held-window requests.
+    pub fn pending(&self) -> usize {
+        usize::from(self.listing_open) + usize::from(self.in_flight.is_some())
+    }
+
     /// The listing request's first count, one window as Pane.qml asks for it.
     pub fn first_count(&self) -> usize {
         self.asked

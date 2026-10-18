@@ -34,5 +34,11 @@
   "window.backend_report": "%1",
   "window.column_name": "Name",
   "window.column_size": "Size",
-  "window.column_modified": "Modified"
+  "window.column_modified": "Modified",
+  "visual.window": "The capture request names another window.",
+  "visual.unknown": "The capture scene is not registered.",
+  "visual.settings": "The capture scene settings are invalid.",
+  "visual.busy": "The window is still completing a capture or backend request.",
+  "visual.snapshot": "The requested presented snapshot is unavailable.",
+  "visual.timeout": "The requested capture snapshot was not presented in time."
 }
