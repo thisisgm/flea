@@ -165,6 +165,18 @@ fn print_protocol_lists_the_default_and_the_no_printer_state() {
 }
 
 #[test]
+fn print_input_fetches_an_office_document_and_passes_every_other_kind_through() {
+    let (source, fetched) = (PathBuf::from("/in/report.docx"), PathBuf::from("/cache/report.pdf"));
+    let (calls, cancel) = (std::cell::Cell::new(0), Arc::new(AtomicBool::new(false)));
+    let fetch = |p: &std::path::Path, _| { calls.set(calls.get() + 1); assert_eq!(p, source); Ok(fetched.clone()) };
+    assert_eq!(print_input_with(fetch, &source, printconvert::Kind::Office, &cancel), Ok(fetched.clone()));
+    for kind in [printconvert::Kind::Pdf, printconvert::Kind::Image, printconvert::Kind::Text, printconvert::Kind::Other] {
+        assert_eq!(print_input_with(fetch, &source, kind, &cancel), Ok(source.clone()));
+    }
+    assert_eq!(calls.get(), 1, "only the office document is fetched");
+}
+
+#[test]
 fn print_protocol_submits_one_lp_per_file_and_keeps_refusals() {
     let mut rig = Rig::new(true);
     let image = rig.dir.file("-photo.png", "pixels");

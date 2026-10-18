@@ -157,7 +157,7 @@ fn the_conversion_makes_no_path_call_of_its_own() {
 // Written independently of production constants, so routing Office back to the generic cap fails.
 const CHECK_OFFICE_LIMITS: &str = r#"
 import os, resource, sys
-assert resource.getrlimit(resource.RLIMIT_AS) == (4294967296, 4294967296), 'Office must have a finite 4 GiB address-space cap'
+assert resource.getrlimit(resource.RLIMIT_AS) == (8589934592, 8589934592), 'Office must have a finite 8 GiB address-space cap'
 assert resource.getrlimit(resource.RLIMIT_CPU) == (30, 30), 'Office must retain its 30 s CPU cap'
 os.execv(sys.argv[1], sys.argv[1:])
 "#;
@@ -234,7 +234,7 @@ fn a_real_docx_converts_in_the_production_jail_and_is_cached() {
     );
     assert_eq!(mtime_of(&pdf), mtime_of(&src));
     eprintln!(
-        "office native DOCX conversion and cache: {} ms; kernel AS=4294967296 CPU=30",
+        "office native DOCX conversion and cache: {} ms; kernel AS=8589934592 CPU=30",
         began.elapsed().as_millis()
     );
 }

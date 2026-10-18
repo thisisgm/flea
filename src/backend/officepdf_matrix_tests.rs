@@ -129,7 +129,7 @@ fn matrix_cell(
         .find(|argument| argument.starts_with("--as="))
         .unwrap();
     assert_eq!(
-        cap, "--as=4294967296",
+        cap, "--as=8589934592",
         "the matrix must start with the production Office cap"
     );
     *cap = format!("--as={bytes}");
