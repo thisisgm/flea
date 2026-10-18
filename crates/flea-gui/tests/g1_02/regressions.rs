@@ -274,3 +274,73 @@ fn sort_race_convergence_must_survive_a_resize_while_the_relist_is_out() {
         "the relist's complete first window was refused against the current geometry",
     );
 }
+
+#[test]
+fn oversized_unparked_anchor_answer_must_not_block_future_windows() {
+    let mut pane = waiting_on_the_mark();
+    pane.requests.cancel();
+    assert_eq!(
+        pane.anchor_window(600)
+            .map(|request| (request.start, request.count)),
+        Some((600, 320))
+    );
+    // The anchor's answer carries one row more than it asked for.
+    let taken = pane.receive_at(
+        Reply::Rows {
+            start: 600,
+            rows: rows(321),
+            listing: 2,
+        },
+        1110,
+    );
+    assert_eq!(taken, Err("pane.reply_window".into()));
+    // The window records the protocol error (events.rs); the complete pair still lands at the minimum.
+    assert!(!pane.fail("protocol", "", "", 0, 1110));
+    assert!(pane.busy());
+    assert!(pane.tick(1166));
+    assert!(!pane.busy());
+    assert_eq!((pane.state.kind, pane.held.listing), (Kind::Ready, 2));
+    pane.scroll_to(600. * ROW_HEIGHT);
+    assert_eq!(
+        pane.wanted_window(),
+        Some((450, 320)),
+        "oversized unparked anchor answer still owns the only request slot: {:?}",
+        pane.requests.outstanding,
+    );
+}
+
+#[test]
+fn a_malformed_window_answer_is_not_requested_again_with_no_input() {
+    let mut pane = settled();
+    pane.scroll_to(600. * ROW_HEIGHT);
+    let mut sent = 0;
+    for _ in 0..1000 {
+        let Some((start, count)) = pane.wanted_window() else {
+            break;
+        };
+        sent += 1;
+        // A backend that answers this window one row short every time.
+        assert!(pane
+            .receive_at(
+                Reply::Rows {
+                    start,
+                    rows: rows(count - 1),
+                    listing: 1,
+                },
+                2,
+            )
+            .is_err());
+        assert!(!pane.fail("protocol", "", "", 0, 2));
+    }
+    assert_eq!(
+        sent, 1,
+        "the same malformed window was sent {sent} times with no scroll or input between sends"
+    );
+    assert!(pane.requests.outstanding.is_none());
+    // A different wanted window goes out, and the first one may be asked again after it.
+    pane.scroll_to(800. * ROW_HEIGHT);
+    assert_eq!(pane.wanted_window(), Some((650, 320)));
+    pane.requests.cancel();
+    pane.scroll_to(600. * ROW_HEIGHT);
+    assert_eq!(pane.wanted_window(), Some((450, 320)));
+}

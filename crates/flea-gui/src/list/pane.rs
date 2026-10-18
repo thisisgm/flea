@@ -257,6 +257,17 @@ impl Pane {
                 .parked_until = None;
             return self.swap.show_left(now) == 0 && self.commit(now);
         }
+        // A protocol error while a pair is ready came from its anchor's answer; the complete pair still lands.
+        if operation == "protocol"
+            && self
+                .swap
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.ready.is_some())
+        {
+            self.retire_anchor();
+            return self.swap.show_left(now) == 0 && self.commit(now);
+        }
         if operation == "window" {
             if path == self.path && !self.busy() {
                 self.requests.cancel();
