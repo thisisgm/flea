@@ -10,7 +10,7 @@ use crate::backend::metareq::spawn as spawn_meta;
 use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_link, start_link_target, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::dirsizereq::{queue_dirsizes, seed_answered, start_next, report_done as report_dirsize};
-use crate::backend::events::{spawn_forwarder, spawn_op_forwarder, spawn_reader, Event};
+use crate::backend::events::{spawn_op_forwarder, spawn_reader, Event};
 use crate::backend::{flashop, flashslot};
 use crate::backend::fsinfo::fsinfo_line;
 use crate::backend::fsinforeq::FsInfo;
@@ -18,17 +18,17 @@ use crate::backend::listpaths;
 use crate::backend::listwork::{self, Gate};
 use crate::backend::proto::{error_line, listed_line, parse_request, paths_line, thumbed_line, Request};
 use crate::backend::proto::with_anchor;
-use crate::backend::rows::rows_line;
-use crate::backend::sandbox;
 use crate::backend::listing::Listing;
 use crate::backend::search::Search;
 use crate::backend::searchsession::{Session, FIRST_WINDOW_DEFAULT};
 use crate::backend::state::{Held, State, Tables};
 use crate::backend::searchreq::{collapse_query_burst, emit_session_answer, finish_search, is_search_query_line,
     op_tag_paths, op_write_paths, searchclosed_line, searchopened_line, step_search};
-use crate::backend::thumbcache::{default_root, Cache};
+use crate::backend::thumbcache::Cache;
 use crate::backend::thumbreq::{cancel_all, cancel_row, report_done, thumb_rows};
-use crate::backend::thumbs::{Done, Pool};
+use crate::backend::thumbs::Pool;
+#[cfg(test)]
+use crate::backend::thumbs::Done;
 use crate::backend::thumbwrite::sweep_own_temps;
 use crate::backend::unmount::leave_mount;
 use crate::backend::watch::{changed_line, Watch};
@@ -61,32 +61,31 @@ enum Control {
 pub fn run() -> i32 {
     // Before the first listing, because a threshold glibc has already ratcheted strands the next arena on the heap.
     heap::pin_mmap_threshold();
-    // Recorded when the first rows go out, the next launch's prefetch list; see src/prefetch.rs.
-    crate::prefetch::record_after_first_rows();
     let mut out = BufWriter::new(io::stdout());
     let tb = Tables::load();
     let (tx, rx) = channel::<Event>();
     let mut st = State::new(super::dirsizeworker::Worker::new(tx.clone()));
-    let (results, done) = channel::<Done>();
     let (op_tx, op_rx) = channel::<OpMsg>();
-    let mut ops = Ops::new_shared(op_tx);
-    let pool = Pool::new(THUMB_WORKERS, results, default_root(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+    let mut ops = Ops::new_shared(op_tx.clone());
+    let op_events = tx.clone();
+    ops.tx = super::lazy::DeferredSender::new(move || {
+        spawn_op_forwarder(op_rx, op_events);
+        op_tx
+    });
+    let pool = Pool::lazy(THUMB_WORKERS, &tb, super::thumbcache::default_root(), tx.clone());
     let cache = Cache::new();
-    // Every thumbnail job fails closed without these two, so the reason is said once here rather than never; see AGENTS.md "Thumbnail sandbox".
-    if !sandbox::available() {
-        eprintln!("flea: thumbnails are disabled, bwrap or prlimit is not on PATH");
-    }
-    // The workers hold senders too, so no exit can come from a disconnect and every exit is an explicit event; see AGENTS.md "Thumbnail requests".
-    spawn_forwarder(done, tx.clone());
-    spawn_op_forwarder(op_rx, tx.clone());
     // One flash at a time beside transfers; its worker reports on its own channel, joined the same way.
     let (flash_tx, flash_rx) = channel::<flashslot::FlashMsg>();
-    let mut flash = flashslot::Ctx::new(flash_tx);
-    flashslot::spawn_forwarder(flash_rx, tx.clone());
+    let mut flash = flashslot::Ctx::new(flash_tx.clone());
+    let flash_events = tx.clone();
+    flash.tx = super::lazy::DeferredSender::new(move || {
+        flashslot::spawn_forwarder(flash_rx, flash_events);
+        flash_tx
+    });
     spawn_reader(tx.clone(), Arc::clone(&ops.live));
     let mut fsinfo = FsInfo::new(tx.clone());
     let loop_tx = tx.clone();
-    // Armed before the first request, so no listing is ever answered with nothing watching it.
+    // The descriptor starts on first use, still armed before the listing scan.
     let mut watch = Watch::start(tx.clone());
     let mut peeks = PeekWatch::start(tx.clone());
     let poller = super::watchpoll::Poller::new(tx.clone());
@@ -120,6 +119,7 @@ pub fn run() -> i32 {
             break;
         }
     }
+    st.nearby.close();
     st.dirsize_worker.cancel();
     drain(&mut out, &mut st, &mut ops, &mut flash, &rx, &pool, &cache);
     0
@@ -140,6 +140,9 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                       poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate) -> Control {
     match event {
         Event::Request(line) => {
+            if super::nearby::is_request(&line) {
+                return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate);
+            }
             // A list for another folder takes the place of a plain list scan still out, after the requests that waited replay against the listing still current.
             while gate.holds() && listwork::list_path(&line).is_some_and(|path| gate.let_go(&path)) {
                 let quit = listwork::replay(gate, |waiting, gate| handle_line(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate) == Control::Quit);
@@ -178,6 +181,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
             }
         }
         Event::Thumb(d) => report_done(out, st, pool, d),
+        Event::Nearby { ticket, line } => if st.nearby.accept(ticket) { say(out, &line) },
         Event::Flash(m) => flash.report(out, &m),
         Event::DirSize(d) => report_dirsize(out, st, d),
         // A slow mount's figures, printed only for the directory on screen now.
@@ -234,6 +238,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         Event::SearchHeld => super::searchhold::on_search_held(out, st, tb, pool),
         Event::ReadError(e) => {
+            st.nearby.close();
             // The framing cannot be trusted past a decode failure, so this reports at once and the reader reads no further.
             writeln!(out, "{}", error_line(&e)).ok();
             out.flush().ok();
@@ -246,6 +251,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         // A scan still out is answered before the process leaves, so no client loses its listing.
         Event::Closed => {
+            st.nearby.close();
             if gate.holds() {
                 gate.close();
                 return Control::Continue;
@@ -314,6 +320,8 @@ fn handle_line(
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
+        Request::Nearby { op, id } => say(out, &st.nearby.request(&op, id, loop_tx.clone())),
+        Request::NetworkAddress { address, id } => say(out, &super::networkaddress::answer(id, &address)),
         Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
         Request::Picker { line } => {
             let replies = ops.tx.clone();
@@ -355,11 +363,14 @@ fn handle_line(
             say(out, &super::rowguard::stamped(line, st.generation));
         }
         Request::Window { start, count } => {
+            let start = st.window_start(start);
+            if count == 0 {
+                say(out, &super::rowguard::stamped(super::rows::empty_line(start, 0.0), st.generation));
+                return Control::Continue;
+            }
             match window_metas(st, start, count) {
                 Ok((metas, ms)) => {
-                    let start_w = start.min(st.listing.len());
-                    let mut kinds = tb.kinds.borrow_mut();
-                    let line = super::rows::rows_line(&st.base, &st.listing, &metas, start_w, ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
+                    let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
                     writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok();
                 }
                 Err(e) => {
@@ -608,6 +619,7 @@ fn handle_line(
             paths, format, PathBuf::from(&path), PathBuf::from(&dest), menu_id, password, encrypt_names),
         Request::Convert { path, dest, strip, menu_id, request_id, check } =>
             start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip, menu_id, request_id, check),
+        Request::PrintConvert(ask) => super::printreq::serve(out, ops, ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases)),
         Request::Formats { id } => {
             let mut line = formats_line(&tb.formats, convert::available());
             line.insert_str(line.len() - 1, &format!(r#", "id":{},"providers":{}"#, id, super::providers::facts()));
@@ -646,6 +658,15 @@ fn handle_line(
         }
         Request::Paths { rows } =>
             say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
+        Request::ImagePaths(ask) => say(
+            out,
+            &paths_line(&super::viewerpaths::ordered(
+                &st.base,
+                &st.listing,
+                &tb.mime,
+                &ask,
+            )),
+        ),
         Request::Locate { path } => {
             let index = st.listing.index_of(&st.base, Path::new(&path));
             say(out, &super::proto::located_line(&st.base.to_string_lossy(), &path, index));
@@ -698,6 +719,7 @@ fn rows_end(rows: &[usize]) -> usize {
 // One past the last row a request can read; no wildcard arm, so a new request must classify its rows to compile.
 fn rows_needed(request: &Request) -> usize {
     match request {
+        Request::Window { count: 0, .. } => 0,
         Request::Window { start, count } => start.saturating_add(*count),
         Request::MenuAction { rows, .. }
         | Request::Thumb { rows, .. }
@@ -707,6 +729,11 @@ fn rows_needed(request: &Request) -> usize {
         | Request::Link { rows, .. }
         | Request::Trash { rows, .. }
         | Request::Paths { rows } => rows_end(rows),
+        Request::ImagePaths(ask) => ask
+            .rows
+            .as_ref()
+            .map_or(usize::MAX, |rows| rows_end(rows))
+            .max(ask.start.saturating_add(1)),
         Request::Meta { row, .. } => row.saturating_add(1),
         // Tags apply to and read held rows; the bulk rename names paths, never rows.
         Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
@@ -735,6 +762,7 @@ fn rows_needed(request: &Request) -> usize {
         | Request::LinkTarget { .. }
         | Request::Archive { .. }
         | Request::Convert { .. }
+        | Request::PrintConvert(_)
         | Request::PasteImage(_) => 0,
         // Lines, dialogs and the clipboard name paths or nothing, never a row index.
         Request::Shebang { .. }
@@ -750,6 +778,8 @@ fn rows_needed(request: &Request) -> usize {
         | Request::Permissions { .. }
         | Request::Picker { .. }
         | Request::LocalSend { .. }
+        | Request::Nearby { .. }
+        | Request::NetworkAddress { .. }
         | Request::TrashBrowse { .. }
         | Request::TrashThumb { .. }
         | Request::TrashThumbCancel { .. }
@@ -850,10 +880,10 @@ fn adopt_listed_as(out: &mut impl Write, st: &mut State, pool: &Pool, tb: &Table
     };
     let listed = if same && want_changed { crate::backend::proto::with_changed(&listed, changed) } else { listed };
     writeln!(out, "{}", listed).ok();
-    let mut kinds = tb.kinds.borrow_mut();
-    let line = super::rows::rows_line(&st.base, &st.listing, &done.first_metas, done.first_start, done.first_ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
+    let start = st.window_start(done.first_start);
+    let line = tb.rows_line(&st.base, &st.listing, &done.first_metas, start, done.first_ms);
     let line = match gen {
-        Some(gen) => super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, done.first_start..done.first_start + done.first_metas.len()),
+        Some(gen) => super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..start + done.first_metas.len()),
         None => super::rowguard::stamped(line, st.generation),
     };
     writeln!(out, "{}", line).ok();
@@ -897,7 +927,9 @@ pub(crate) fn drain(
             Err(_) => break,
         }
     }
-    ops.journal.release_held();
+    if let Some(journal) = ops.journal.get_mut() {
+        journal.release_held();
+    }
     pool.cancel_all();
     // The queue is empty now, so no worker can start a new job and the temps still on disk are exactly the abandoned ones.
     if st.outstanding > 0 {
@@ -925,16 +957,15 @@ pub fn write_window_gen(
     tb: &Tables,
     gen: Option<usize>,
 ) {
-    let (metas, ms) = stat_range(&st.base, &st.listing, start, count);
-    let start = start.min(st.listing.len());
+    let start = st.window_start(start);
+    let (metas, ms) = if count == 0 { (Vec::new(), 0.0) } else { stat_range(&st.base, &st.listing, start, count) };
     for (i, m) in metas.iter().enumerate() {
         st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir));
     }
     // Sample window: start 0 with 3 metas keeps keys 0..3, so a scrolled-past window never grows the map.
     let end = start.saturating_add(metas.len());
     st.window_meta.retain(|&row, _| row >= start && row < end);
-    let mut kinds = tb.kinds.borrow_mut();
-    let line = rows_line(&st.base, &st.listing, &metas, start, ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
+    let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
     match gen {
         Some(gen) => writeln!(out, "{}", super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..end)).ok(),
         None => writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok(),
@@ -951,6 +982,9 @@ pub(crate) fn search_root_info(base: &Path) -> Result<(u64, bool), FleaError> {
 
 // One window's metas: remoteness is decided before anything is moved, so a local window stats inline with no clone and a remote one moves only its rows to the worker.
 pub(crate) fn window_metas(st: &State, start: usize, count: usize) -> Result<(Vec<Meta>, f64), FleaError> {
+    if count == 0 {
+        return Ok((Vec::new(), 0.0));
+    }
     let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
     if super::iomount::is_remote(&st.base, &body) {
         let rows = super::meta::window_rows(&st.listing, start, count);
@@ -965,6 +999,10 @@ pub(crate) fn window_metas(st: &State, start: usize, count: usize) -> Result<(Ve
 #[cfg(test)]
 #[path = "run_tags_tests.rs"]
 mod tags_tests;
+
+#[cfg(test)]
+#[path = "run_empty_tests.rs"]
+mod empty_tests;
 
 #[cfg(test)]
 mod tests {
@@ -1050,8 +1088,8 @@ mod tests {
             st.listing.push("a.txt", false);
             st.listing.push("b.txt", false);
             let (results, _done) = channel();
-            let pool = Pool::new(THUMB_TEST_WORKERS, results, cache_root, Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
-            let cache = Cache::new();
+            let pool = Pool::new(THUMB_TEST_WORKERS, results, cache_root.clone(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+            let cache = Cache::at(cache_root);
             let (tx, rx) = channel();
             let mut ops = Ops::new(tx);
             let (flash_tx, _flash_rx) = channel();
@@ -1133,3 +1171,7 @@ mod session_wire_tests;
 #[cfg(test)]
 #[path = "run_hold_tests.rs"]
 mod hold_wire_tests;
+
+#[cfg(test)]
+#[path = "viewerorder_tests.rs"]
+mod viewerorder_tests;

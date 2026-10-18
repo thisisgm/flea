@@ -6,7 +6,6 @@ use crate::paths;
 use std::ffi::OsString;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 // Arch's extra/quickjs-ng, the only engine the vendored bundles run under.
 const SYSTEM_QJS: &str = "/usr/bin/qjs";
@@ -159,7 +158,7 @@ pub fn dispatch(args: &[String]) -> Option<i32> {
 fn run(warm: Option<&str>) -> i32 {
     match resolve(&warm_kinds(warm)) {
         Ok(argv) => {
-            let mut cmd = Command::new(&argv[0]);
+            let mut cmd = crate::backend::locale::command(&argv[0]);
             cmd.args(&argv[1..]);
             // Exec replaces us, so the caller's stdin and stdout pipes reach qjs direct.
             let error = cmd.exec();

@@ -294,6 +294,25 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
     assert_eq!(lines.len(), 3, "listed, rows, searched: {lines:?}");
     assert_eq!(crate::json::field_usize(&lines[0], "n"), Some(400), "all four hundred matches counted");
     assert_eq!(held(&st), 399, "the rest waits unranked for a scroll");
+    // Empty windows clamp against the full count without ranking or materializing the held remainder.
+    for (start, clamped) in [(200, 200), (999, 400)] {
+        ask(&format!(r#"{{"c":"window","start":{start},"count":0}}"#), &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
+        let reply = String::from_utf8(std::mem::take(&mut out)).unwrap();
+        assert_eq!(crate::json::field_usize(&reply, "start"), Some(clamped));
+        assert_eq!(crate::json::field_usize(&reply, "listing"), Some(st.generation as usize));
+        assert!(reply.contains(r#""rows":[],"kinds":[],"ms":0.000"#));
+        assert_eq!(held(&st), 399, "an empty request leaves every unranked match held");
+        assert_eq!(st.listing.len(), 1);
+        write_window_gen(&mut out, &mut st, start, 0, &tb, Some(7));
+        let generated = String::from_utf8(std::mem::take(&mut out)).unwrap();
+        assert_eq!(crate::json::field_usize(&generated, "start"), Some(clamped));
+        assert!(generated.contains(r#""rows":[],"kinds":[],"ms":0.000"#));
+        assert_eq!(held(&st), 399, "the generated empty window shares the dispatch clamp");
+    }
+    write_window_gen(&mut out, &mut st, 999, 1, &tb, Some(7));
+    let beyond = String::from_utf8(std::mem::take(&mut out)).unwrap();
+    assert_eq!(crate::json::field_usize(&beyond, "start"), Some(400));
+    assert_eq!(held(&st), 399, "an out-of-range generated window ranks no held rows");
     // Past the head: one window of 350 joins, 49 stay held.
     ask(r#"{"c":"window","start":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     let lines: Vec<String> = String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect();

@@ -58,6 +58,7 @@ pub struct Deletion {
     pub scroll: usize,
 }
 pub struct Model {
+    pub capabilities: super::capabilities::Capabilities,
     pub path: PathBuf,
     pub pending: Option<PathBuf>,
     // The loop keeps the previous frame, so the rows under the cursor are not drawn yet.
@@ -174,6 +175,7 @@ impl Model {
     pub fn new(path: PathBuf, settings: &Json) -> Self {
         let preview = settings.get("preview").unwrap_or(&Json::Null);
         Self {
+            capabilities: super::capabilities::Capabilities::default(),
             path: path.clone(),
             pending: None,
             held: false,

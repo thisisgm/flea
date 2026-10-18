@@ -28,7 +28,7 @@ const STUCK_TTL_SECS: u64 = 60;
 const STUCK_GRACE_MS: u64 = 1000;
 
 pub struct Worker {
-    jobs: Sender<Job>,
+    jobs: super::lazy::Lazy<Sender<Job>>,
     generation: Arc<AtomicU64>,
     active: Option<Active>,
     events: Sender<Event>,
@@ -87,10 +87,14 @@ impl Worker {
 
     fn with_walk<F>(events: Sender<Event>, walk: F) -> Self
     where F: Fn(&std::path::Path, &dyn Fn() -> bool) -> dirsize::DirSize + Send + 'static {
-        let (jobs, rx) = channel::<Job>();
         let generation = Arc::new(AtomicU64::new(0));
         let current = Arc::new(std::sync::Mutex::new(None));
-        spawn_thread(rx, generation.clone(), events.clone(), walk, Arc::clone(&current));
+        let (worker_gen, worker_events, worker_current) = (generation.clone(), events.clone(), Arc::clone(&current));
+        let jobs = super::lazy::Lazy::new(move || {
+            let (jobs, rx) = channel::<Job>();
+            spawn_thread(rx, worker_gen, worker_events, walk, worker_current);
+            jobs
+        });
         Self { jobs, generation, active: None, events, started: None, current, stuck: HashMap::new(), abandoned: HashMap::new() }
     }
 
@@ -127,7 +131,7 @@ impl Worker {
             self.generation.fetch_add(1, Ordering::Relaxed);
             let (jobs, rx) = channel::<Job>();
             spawn_production(rx, self.generation.clone(), self.events.clone(), Arc::clone(&self.current));
-            self.jobs = jobs;
+            self.jobs = jobs.into();
             self.active = None;
             self.started = None;
         }

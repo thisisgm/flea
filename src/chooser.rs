@@ -5,7 +5,9 @@ use crate::userfile::{config_home, create_file, data_file, replace_file};
 use std::fs;
 use std::io::IsTerminal;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+
+#[path = "chooser_startup.rs"]
+mod startup;
 
 // The interface Flea's backend implements, and the only key in portals.conf that is Flea's to write.
 const IFACE: &str = "org.freedesktop.impl.portal.FileChooser";
@@ -19,8 +21,6 @@ const GROUP: &str = "[preferred]";
 const REPLACED: &str = "# flea replaced: ";
 // A desktop-specific configuration is <desktop>-portals.conf; the plain portals.conf has no dash before it.
 const DESKTOP_SUFFIX: &str = "-portals.conf";
-// The same restart Settings > About runs; try-restart leaves a portal that is not running alone, and its next start reads the file anyway.
-const RESTART: [&str; 3] = ["--user", "try-restart", "xdg-desktop-portal.service"];
 const RESTARTED: &str = "xdg-desktop-portal restarted if it was running, so file dialogs follow now";
 const AT_STARTUP: &str = "xdg-desktop-portal reads this at startup: systemctl --user restart xdg-desktop-portal";
 
@@ -84,14 +84,9 @@ fn follow_line(terminal: bool, restart: impl FnOnce() -> bool) -> &'static str {
     }
 }
 
-// systemctl keeps its own stderr, so a refused restart says why above the line telling the user to run it.
+// The frontend must answer too: a successful systemctl exit alone is not a working chooser.
 fn restart_portal() -> bool {
-    Command::new("systemctl")
-        .args(RESTART)
-        .stdin(Stdio::null())
-        .stdout(Stdio::null())
-        .status()
-        .is_ok_and(|s| s.success())
+    startup::restart()
 }
 
 fn claim_chooser((path, desktop_file): (PathBuf, bool)) -> Result<String, String> {

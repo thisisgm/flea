@@ -296,13 +296,26 @@ class Service:
         self.connection = None
         self.picks = {}
         self.idle_source = 0
+        self.quit_source = 0
+        self.retiring = False
+        self.status = 0
         node = Gio.DBusNodeInfo.new_for_xml(INTROSPECTION)
         self.chooser_info = node.lookup_interface(CHOOSER_IFACE)
         self.request_info = node.lookup_interface(REQUEST_IFACE)
 
     def on_bus_acquired(self, connection, _name):
         self.connection = connection
-        connection.register_object(OBJECT_PATH, self.chooser_info, self.on_call, self.on_get_property, None)
+        try:
+            registration = connection.register_object(OBJECT_PATH, self.chooser_info, self.on_call, self.on_get_property, None)
+            if not registration:
+                raise RuntimeError("the FileChooser object was not registered")
+        except Exception as error:
+            say("could not export FileChooser before owning the bus name (%s)" % error)
+            self.status = 1
+            Gio.bus_unown_name(self.owner)
+            self.owner = 0
+            self.loop.quit()
+            return
         self.arm_idle_exit()
 
     def on_name_lost(self, _connection, _name):
@@ -311,9 +324,13 @@ class Service:
 
     def on_get_property(self, _connection, _sender, _path, _iface, name):
         # The one property xdg-desktop-portal's proxy reads when it caches this interface.
-        return GLib.Variant("u", 3) if name == "version" else None
+        if name == "version":
+            self.arm_idle_exit()
+            return GLib.Variant("u", 3)
+        return None
 
     def on_call(self, connection, _sender, path, iface, method, params, invocation):
+        self.arm_idle_exit()
         if iface == REQUEST_IFACE and method == "Close":
             pick = self.picks.get(path)
             if pick is not None:
@@ -352,12 +369,18 @@ class Service:
     def arm_idle_exit(self):
         self.cancel_idle_exit()
         if not self.picks:
-            self.idle_source = GLib.timeout_add_seconds(IDLE_EXIT_SEC, self.on_idle)
+            if self.retiring:
+                self.quit_source = GLib.timeout_add(500, self.on_quit)
+            else:
+                self.idle_source = GLib.timeout_add_seconds(IDLE_EXIT_SEC, self.on_idle)
 
     def cancel_idle_exit(self):
         if self.idle_source:
             GLib.source_remove(self.idle_source)
             self.idle_source = 0
+        if self.quit_source:
+            GLib.source_remove(self.quit_source)
+            self.quit_source = 0
 
     # The name goes back before the process does, and the quit waits half a second behind it: a call
     # that arrives after the release activates a fresh instance instead of reaching a dead one.
@@ -365,13 +388,17 @@ class Service:
         self.idle_source = 0
         if self.picks:
             return GLib.SOURCE_REMOVE
+        self.retiring = True
         if self.owner:
             Gio.bus_unown_name(self.owner)
             self.owner = 0
-        GLib.timeout_add(500, self.on_quit)
+        self.quit_source = GLib.timeout_add(500, self.on_quit)
         return GLib.SOURCE_REMOVE
 
     def on_quit(self):
+        self.quit_source = 0
+        if self.picks:
+            return GLib.SOURCE_REMOVE
         self.loop.quit()
         return GLib.SOURCE_REMOVE
 
@@ -392,7 +419,7 @@ def main():
     finally:
         if service.owner:
             Gio.bus_unown_name(service.owner)
-    return 0
+    return service.status
 
 
 if __name__ == "__main__":

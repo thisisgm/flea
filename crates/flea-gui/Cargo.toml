@@ -1,0 +1,14 @@
+[package]
+name = "flea-gui"
+version = "0.4.0"
+edition = "2021"
+license = "MIT"
+
+[dependencies]
+flea = { path = "../.." }
+gpui = { workspace = true }
+gpui_platform = { workspace = true }
+async-channel = "=2.5.0"
+
+[dev-dependencies]
+gpui = { workspace = true, features = ["test-support"] }

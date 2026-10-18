@@ -108,6 +108,7 @@ fn poll_once(
 
 pub struct Poller {
     state: Arc<Mutex<(PathBuf, i64)>>,
+    startup: super::lazy::Lazy<()>,
 }
 
 impl Poller {
@@ -126,21 +127,24 @@ impl Poller {
         let (at, held) = (Arc::clone(&state), Arc::clone(&wedged));
         let classify: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(classify);
         let stat: Arc<dyn Fn(&Path) -> i64 + Send + Sync> = Arc::new(stat);
-        std::thread::Builder::new().name("flea-watchpoll".into()).spawn(move || {
-            loop {
-                std::thread::sleep(Duration::from_secs(POLL_SECS));
-                let open = at.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
-                if open.as_os_str().is_empty() {
-                    continue;
+        let startup = super::lazy::Lazy::new(move || {
+            std::thread::Builder::new().name("flea-watchpoll".into()).spawn(move || {
+                loop {
+                    std::thread::sleep(Duration::from_secs(POLL_SECS));
+                    let open = at.lock().unwrap_or_else(|p| p.into_inner()).0.clone();
+                    if open.as_os_str().is_empty() {
+                        continue;
+                    }
+                    // The thread owns one iteration's wedge check, deadline pair and apply.
+                    poll_once(&open, &at, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
                 }
-                // The thread owns one iteration's wedge check, deadline pair and apply.
-                poll_once(&open, &at, &held, &classify, &stat, Duration::from_secs(STAT_TIMEOUT_SECS), &tx);
-            }
-        }).expect("could not start watch poller");
-        Self { state }
+            }).expect("could not start watch poller");
+        });
+        Self { state, startup }
     }
 
     pub fn set(&self, path: PathBuf) {
+        let _ = &*self.startup;
         *self.state.lock().unwrap_or_else(|p| p.into_inner()) = (path, 0);
     }
 

@@ -3,6 +3,10 @@
 #   tools/flea-hooks-install
 set -u
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 # No cd: the installer works on the invoking repository, which may be any clone or linked worktree.
 
 PIN_HK="2.4.0"
@@ -35,7 +39,7 @@ write_hook() {
 }
 
 # The top is resolved at hook time so linked worktrees of this clone share one installer.
-write_hook "pre-commit" 'top=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "flea pre-commit: refused: not inside a git work tree" >&2; exit 1; }
+write_hook "pre-commit" 'top=$(LC_ALL=C.UTF-8 LANGUAGE= git rev-parse --show-toplevel 2>/dev/null) || { echo "flea pre-commit: refused: not inside a git work tree" >&2; exit 1; }
 exec "$top/tools/flea-hook-check" hook pre-commit'
-write_hook "commit-msg" 'top=$(git rev-parse --show-toplevel 2>/dev/null) || { echo "flea commit-msg: refused: not inside a git work tree" >&2; exit 1; }
+write_hook "commit-msg" 'top=$(LC_ALL=C.UTF-8 LANGUAGE= git rev-parse --show-toplevel 2>/dev/null) || { echo "flea commit-msg: refused: not inside a git work tree" >&2; exit 1; }
 exec "$top/tools/flea-hook-check" hook commit-msg "$1"'

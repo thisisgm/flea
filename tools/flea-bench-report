@@ -19,6 +19,10 @@
 # public README and the operator's machine names are not public.
 set -uo pipefail
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 die() { echo "flea-bench-report: $*" >&2; exit 1; }
 
 if [ "${1:-}" = "--selftest" ] || [ "${1:-}" = "selftest" ]; then

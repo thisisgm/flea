@@ -3942,6 +3942,8 @@ file owns the watched, delete and preference anchor contracts together; `ui/js/A
 counted-reload pins. `ui/PaneSwap.qml` is 186, applying the watched anchor with row height before
 the preference anchor. `tests/xwsettings-tabs.qml` is 416 for the native immediate-reload, kept-file and selection-clear pins, preserving the two-window watch coverage under xw5. Global limits and checks remain unchanged.
 
+The 0.4.0 merges of batches B, D and E into int re-derive their conflicted ceilings with `wc -l`; each ceiling is the merged file's length, where both sides grew a file under its own review: `src/backend/run.rs` 1177, `src/backend/proto.rs` 499, `src/backend/thumbs.rs` 561, `src/backend/dirsizeworker.rs` 577, `src/backend/watch.rs` 555, `src/backend/thumbreq.rs` 472, `src/backend/thumbspec.rs` 479, `src/backend/officepdf.rs` 423 and `src/backend/run_session_tests.rs` 544. Batch B's locale pin moves two mx2 files after that record: `src/figurehelper.rs` 178 to 177 for launching qjs through `locale::command`, and `tools/vendor-js/build.sh` 43 to 47 for exporting `LC_ALL=C.UTF-8` and unsetting `LANGUAGE`. Global limits stay unchanged.
+
 The x5m round 3 fixes re-derive the touched ceilings with `wc -l`: `ui/js/Anchor.js` is 405 for
 request-scoped locate IDs, separate send statements and the unfinished-anchor hold;
 `ui/PaneWire.qml` is 575 and `tests/js/xwwatch.js` is 310 after folding the cited comment blocks

@@ -1,6 +1,10 @@
 #!/bin/bash
 # Rebuild pinned vendor bundles byte for byte; the caller supplies npm and network.
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 cd "$(dirname "$0")" || exit 1
 
 [ -f package.json ] || { echo "vendor-js: no package.json beside this script"; exit 1; }
