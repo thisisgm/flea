@@ -5,6 +5,7 @@ mod actions;
 mod jobdrive;
 mod jobevents;
 mod jobs;
+mod jobstart;
 mod jobwork;
 
 pub mod listing;
@@ -291,3 +292,6 @@ mod jobs_fix1_tests;
 mod jobs_fix2_tests;
 #[cfg(test)]
 mod jobs_tests;
+
+#[cfg(test)]
+mod jobs_regression_tests;

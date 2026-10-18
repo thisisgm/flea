@@ -16,8 +16,7 @@ pub enum OpMsg {
     },
     JobReady {
         id: usize,
-        drive: String,
-        target: String,
+        result: Result<(String, String), FleaError>,
     },
     JobSample {
         id: usize,
@@ -51,7 +50,7 @@ pub enum OpMsg {
     Trashed { id: usize, ok: usize, failed: usize, entry: Entry, reason: String, announced: bool },
     Linked { ok: usize, failed: usize, skipped: usize, entry: Entry, note: String, first_err: String, dest: String },
     Duplicated { ok: bool, path: String, err: String, entry: Entry },
-    RedoDone { journal: crate::backend::undo::Journal, result: Result<String, FleaError>, touched: crate::backend::undo::Reached },
+    RedoDone { journal: Box<crate::backend::undo::Journal>, result: Result<String, FleaError>, touched: crate::backend::undo::Reached },
     MenuDeleteDone { line: String },
     // Legacy archive worker receipt used by archivequit_tests and archivepass_tests.
     #[cfg(test)]
@@ -64,7 +63,7 @@ pub enum OpMsg {
     // Rename execution returned; the dispatcher hands its entry to the journal publisher.
     RenameDone { id: usize, result: Result<(PathBuf, Vec<Step>), FleaError> },
     RenameSlow { id: usize, line: String },
-    JournalDone { journal: crate::backend::undo::Journal, renames: Vec<(usize, crate::backend::renamework::Outcome)> },
+    JournalDone { journal: Box<crate::backend::undo::Journal>, renames: Vec<(usize, crate::backend::renamework::Outcome)> },
     MkdirDone { id: usize, result: Result<(PathBuf, Vec<Step>), FleaError> },
     // A slow bulk rename reporting late: the landed steps with the batch counts.
     BulkRenameDone { id: usize, result: Result<crate::backend::bulkrename::BulkOutcome, FleaError> },

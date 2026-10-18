@@ -25,6 +25,8 @@ const DIR_MODE: u32 = 0o700;
 #[derive(Clone, Debug)]
 pub(crate) struct Shared {
     dir: PathBuf,
+    // Set when this handle's last lock attempt timed out behind another holder, so its caller retries instead of detaching.
+    contended: std::cell::Cell<bool>,
 }
 
 impl Shared {
@@ -40,7 +42,10 @@ impl Shared {
     // Tests take their directories as arguments, never a process-wide variable another test reads.
     pub(crate) fn at(dir: PathBuf) -> Option<Shared> {
         match validate_dir(&dir) {
-            Ok(()) => Some(Shared { dir }),
+            Ok(()) => Some(Shared {
+                dir,
+                contended: Default::default(),
+            }),
             Err(msg) => {
                 diagnostic(format_args!("{}", msg));
                 None
@@ -54,6 +59,10 @@ impl Shared {
 
     fn lock_path(&self) -> PathBuf {
         self.dir.join(LOCK_FILE)
+    }
+
+    pub(crate) fn contended(&self) -> bool {
+        self.contended.get()
     }
 }
 
@@ -91,40 +100,9 @@ fn validate_dir(dir: &Path) -> Result<(), String> {
     Ok(())
 }
 
-// Held across one read-modify-write; dropping it releases the flock, so a dead process keeps nothing.
-struct Guard {
-    _file: std::fs::File,
-}
-
-fn lock(shared: &Shared) -> Result<Guard, String> {
-    validate_dir(&shared.dir)?;
-    let file = std::fs::OpenOptions::new()
-        .read(true)
-        .write(true)
-        .create(true)
-        .mode(0o600)
-        .custom_flags(crate::oflags::O_NOFOLLOW)
-        .open(shared.lock_path())
-        .map_err(|e| format!("the shared undo lock could not be opened ({:?})", e.kind()))?;
-    #[cfg(test)]
-    super::renametiming::mark("flock_begin");
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
-    loop {
-        match crate::uistore::try_lock_exclusive(&file) {
-            Ok(true) => break,
-            Ok(false) => {}
-            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
-            Err(error) => return Err(format!("the shared undo lock could not be taken ({:?})", error.kind())),
-        }
-        if std::time::Instant::now() >= deadline {
-            return Err("the shared undo lock stayed busy for 2 seconds, so undo stays in this process".into());
-        }
-        std::thread::sleep(std::time::Duration::from_millis(5));
-    }
-    #[cfg(test)]
-    super::renametiming::mark("flock_end");
-    Ok(Guard { _file: file })
-}
+#[path = "undosharelock.rs"]
+mod sharelock;
+use sharelock::lock;
 
 // A stored Err replay answers its error when taken, exactly as the in-memory pop answers it.
 pub(crate) enum StoredRedo {
@@ -445,6 +423,12 @@ pub(crate) fn redo_newest(slot: &mut Option<Shared>, id: usize, cancel: &std::sy
     };
     let claimed = match claim_redo(&shared) {
         Ok(claimed) => claimed,
+        Err(()) if shared.contended() => {
+            return (
+                Err(redo_error("the undo history is busy; try again")),
+                Default::default(),
+            );
+        }
         Err(()) => {
             *slot = None;
             return (Err(redo_error("the undo history could not be read")), Default::default());

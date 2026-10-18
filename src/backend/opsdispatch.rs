@@ -276,7 +276,10 @@ pub(crate) fn do_menu_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to
         .and_then(|menu| menu.selected_path(id, Path::new(path)));
     match selected {
         Ok(item) => {
-            if ops.live.running().is_some() { busy(out, "rename"); return Vec::new(); }
+            if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
+                busy(out, "rename");
+                return Vec::new();
+            }
             let from = path.to_string();
             let name = to.to_string();
             do_rename_with(out, ops, path, CALL_DEADLINE, move || {
@@ -308,7 +311,7 @@ where F: FnOnce() -> Result<(PathBuf, Vec<Step>), FleaError> + Send + 'static,
     Vec::new()
 }
 
-// One mkdir(2), so like rename it answers inline on a local mount and goes slow on a remote one.
+// A local mkdir answers inline; a remote mkdir uses the bounded slow-write worker.
 pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str) -> Vec<PathBuf> {
     if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "mkdir");
@@ -767,29 +770,16 @@ pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
         let result = journal.redo(id, &cancel, &tx);
         // The worker owns this journal alone, so the take cannot race the loop.
         let touched = journal.take_last_touched();
-        let _ = tx.send(OpMsg::RedoDone { journal, result, touched });
+        let _ = tx.send(OpMsg::RedoDone {
+            journal: Box::new(journal),
+            result,
+            touched,
+        });
     });
 }
 
 // Every message an operation thread sends, written out and, when terminal, recorded in the journal.
 pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
-    if matches!(
-        &msg,
-        OpMsg::TransferDone { .. }
-            | OpMsg::MergeDone { .. }
-            | OpMsg::RenameDone { .. }
-            | OpMsg::MkdirDone { .. }
-            | OpMsg::BulkRenameDone { .. }
-            | OpMsg::SetTagsDone { .. }
-            | OpMsg::Trashed { .. }
-            | OpMsg::TrashAnnounced { .. }
-            | OpMsg::Pasted { .. }
-            | OpMsg::Duplicated { .. }
-            | OpMsg::Linked { .. }
-            | OpMsg::RedoDone { .. }
-    ) {
-        ops.jobs.invalidate_undo(out);
-    }
     if let OpMsg::TransferDone {
         id, entry, failed, ..
     }
@@ -894,7 +884,9 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
         OpMsg::RenameSlow { id, line } => {
             if ops.pending.iter().any(|held| held.id == id) { writeln!(out, "{}", line).ok(); }
         }
-        OpMsg::JournalDone { journal, renames } => super::renamework::published(out, ops, journal, renames),
+        OpMsg::JournalDone { journal, renames } => {
+            super::renamework::published(out, ops, *journal, renames)
+        }
         OpMsg::MkdirDone { id, result } => {
             land_mkdir(out, ops, result);
             forget_pending(ops, id);
@@ -926,7 +918,7 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
             }
         }
         OpMsg::RedoDone { journal, result, .. } => {
-            ops.journal = journal;
+            ops.journal = *journal;
             ops.live.finished();
             match result {
                 Ok(op) => writeln!(out, r#"{{"t":"redone","op":"{}","ok":true}}"#, crate::json::escape(&op)).ok(),
@@ -934,6 +926,8 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
             };
         }
     }
+    super::renamework::flush_pending(ops);
+    super::jobevents::refresh_undo(out, ops);
     out.flush().ok();
 }
 

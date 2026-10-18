@@ -64,6 +64,12 @@ pub(crate) fn publish(ops: &mut Ops, command: Publication) {
     spawn(ops, vec![command]);
 }
 
+pub(crate) fn flush_pending(ops: &mut Ops) {
+    if ops.journal.deferred.is_none() && ops.journal.has_pending() {
+        spawn(ops, Vec::new());
+    }
+}
+
 fn spawn(ops: &mut Ops, commands: Vec<Publication>) {
     let mut placeholder = Journal::new();
     placeholder.deferred = Some(Vec::new());
@@ -97,7 +103,13 @@ fn spawn(ops: &mut Ops, commands: Vec<Publication>) {
                 }
             }
         }
-        let _ = tx.send(OpMsg::JournalDone { journal, renames });
+        while journal.has_pending() {
+            journal.retry_pending();
+        }
+        let _ = tx.send(OpMsg::JournalDone {
+            journal: Box::new(journal),
+            renames,
+        });
     });
 }
 

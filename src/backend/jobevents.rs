@@ -27,10 +27,29 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
     };
     let mut force = terminal;
     match message {
-        OpMsg::JobReady { drive, target, .. } => {
-            job.drive = Some(drive.clone());
-            job.target = target.clone();
+        OpMsg::JobReady { result, .. } => {
+            if job.state != State::Waiting {
+                return;
+            }
             job.prepared = true;
+            match result {
+                Ok((drive, target)) => {
+                    job.drive = Some(drive.clone());
+                    job.target = target.clone();
+                }
+                Err(error) => {
+                    job.state = State::Failed;
+                    job.reason = error.msg.clone();
+                    if let Some(work) = &job.work {
+                        let line = work.failed_line(id, job.total, &error.msg);
+                        if !line.is_empty() {
+                            writeln!(out, "{line}").ok();
+                        }
+                    }
+                    ops.detached.remove(id);
+                    ops.jobs.update(out, id);
+                }
+            }
             ops.jobs.advance(out, &ops.detached, &ops.tx);
             return;
         }
@@ -304,6 +323,8 @@ fn retry(job: &mut Job) -> Result<(), String> {
     job.done = 0;
     job.bytes = 0;
     job.total_bytes = 0;
+    job.item_bytes = 0;
+    job.cancelled = false;
     job.rate = 0;
     job.left = None;
     job.moved = 0;
@@ -324,19 +345,30 @@ fn refuse(out: &mut impl Write, id: usize, error: &str) {
     out.flush().ok();
 }
 
-pub(crate) fn changes_history(request: &super::proto::Request) -> bool {
-    use super::proto::Request;
-    match request {
-        Request::Jobs { line } => field_str(line, "op").as_deref() == Some("retry"),
-        Request::Actions { line } => field_str(line, "op").as_deref() == Some("run"),
-        Request::LocalSend { op, .. } => op == "send",
-        Request::MenuAction { line, .. } => {
-            matches!(field_str(line, "op").as_deref(), Some("delete" | "newFile"))
-        }
-        Request::TrashBrowse { line } => {
-            matches!(field_str(line, "op").as_deref(), Some("delete" | "restore"))
-        }
-        Request::Permissions { line } => field_str(line, "op").as_deref() == Some("apply"),
-        _ => false,
+pub(crate) fn refresh_undo(out: &mut impl Write, ops: &mut Ops) {
+    if ops.journal.deferred.is_some() {
+        return;
+    }
+    let expired: Vec<_> = ops
+        .jobs
+        .rows
+        .iter_mut()
+        .filter_map(|job| {
+            if job.undo
+                && job
+                    .undo_key
+                    .as_ref()
+                    .is_some_and(|key| !ops.journal.token_is_current(key))
+            {
+                job.undo = false;
+                job.undo_key = None;
+                Some(job.id)
+            } else {
+                None
+            }
+        })
+        .collect();
+    for id in expired {
+        ops.jobs.update(out, id);
     }
 }
