@@ -125,7 +125,7 @@ fn is_barrier(entry: &Entry) -> bool {
 }
 
 // One user-visible operation, however many steps it took, named the way the status bar already named it.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Entry {
     pub op: String,
     pub steps: Vec<Step>,
@@ -160,8 +160,16 @@ impl Reached {
     }
 }
 
+pub(crate) struct UndoToken {
+    pub(crate) generation: Option<u64>,
+    pub(crate) entry: Entry,
+    revision: u64,
+}
+
 pub struct Journal {
     entries: Vec<Entry>,
+    revision: u64,
+    recorded: Option<UndoToken>,
     redo: Vec<Result<super::redo::Replay, FleaError>>,
     shared: Option<super::undoshare::Shared>,
     // Entries queue here behind any open trash reservation, so they file in the order the operations were accepted.
@@ -237,7 +245,18 @@ impl Journal {
         std::mem::take(&mut self.last_touched)
     }
     pub fn new() -> Journal {
-        Journal { entries: Vec::new(), redo: Vec::new(), shared: None, gate: Default::default(), last_touched: Reached::default(), manifests: std::collections::HashMap::new(), next_nonce: 0, nonce_high: nonce_high_once() }
+        Journal {
+            entries: Vec::new(),
+            revision: 0,
+            recorded: None,
+            redo: Vec::new(),
+            shared: None,
+            gate: Default::default(),
+            last_touched: Reached::default(),
+            manifests: std::collections::HashMap::new(),
+            next_nonce: 0,
+            nonce_high: nonce_high_once(),
+        }
     }
 
     // Production attaches the session journal file; a refused directory keeps the in-memory one.
@@ -290,6 +309,13 @@ impl Journal {
         }
     }
 
+    // Only an entry filed now can offer job Undo; a held reservation publishes no premature token.
+    pub(crate) fn push_for_job(&mut self, entry: Entry) -> Option<UndoToken> {
+        let entry = self.gate.hold(entry)?;
+        self.file_inner(entry, true);
+        self.recorded.take()
+    }
+
     // A trash batch reserves its place at the announce, so a write accepted in the settle window files after it.
     pub(crate) fn reserve(&mut self, id: usize) {
         self.gate.reserve(id);
@@ -314,6 +340,12 @@ impl Journal {
 
     // An operation that changed nothing records nothing, so undo never reports a no-op as work.
     fn file(&mut self, entry: Entry) {
+        self.file_inner(entry, false);
+    }
+
+    fn file_inner(&mut self, entry: Entry, job: bool) {
+        self.revision = self.revision.wrapping_add(1);
+        self.recorded = None;
         let shared = match &self.shared {
             Some(shared) => shared.clone(),
             None => {
@@ -323,6 +355,13 @@ impl Journal {
                 self.redo.clear();
                 for step in &entry.steps {
                     if let Step::Moved { before, after, .. } = step { self.rebase(before, after); }
+                }
+                if job {
+                    self.recorded = Some(UndoToken {
+                        generation: None,
+                        entry: entry.clone(),
+                        revision: self.revision,
+                    });
                 }
                 self.entries.push(entry);
                 if self.entries.len() > DEPTH {
@@ -346,12 +385,19 @@ impl Journal {
                 *manifest_nonce = Some(nonce);
             }
         }
-        match super::undoshare::push_entry(&shared, &filed) {
-            Ok(super::undoshare::PushResult::Stored) => {
+        match super::undoshare::push_entry_generation(&shared, &filed) {
+            Ok((super::undoshare::PushResult::Stored, generation)) => {
+                if job {
+                    self.recorded = generation.map(|generation| UndoToken {
+                        generation: Some(generation),
+                        entry: filed,
+                        revision: self.revision,
+                    });
+                }
                 self.prune();
                 return;
             }
-            Ok(super::undoshare::PushResult::TooBig) => {
+            Ok((super::undoshare::PushResult::TooBig, _)) => {
                 for nonce in &nonces {
                     self.manifests.remove(nonce);
                 }
@@ -380,6 +426,13 @@ impl Journal {
         for step in &entry.steps {
             if let Step::Moved { before, after, .. } = step { self.rebase(before, after); }
         }
+        if job {
+            self.recorded = Some(UndoToken {
+                generation: None,
+                entry: entry.clone(),
+                revision: self.revision,
+            });
+        }
         self.entries.push(entry);
         if self.entries.len() > DEPTH {
             self.entries.remove(0);
@@ -399,11 +452,32 @@ impl Journal {
 
     // A failing step stops the rest, mode and tag steps skip changed paths with a note, and shared entries reattach this backend's manifests.
     pub fn undo(&mut self) -> Result<String, FleaError> {
+        self.undo_matching(None)
+    }
+
+    pub(crate) fn undo_for_job(&mut self, token: &UndoToken) -> Result<String, FleaError> {
+        self.undo_matching(Some(token))
+    }
+
+    fn undo_matching(&mut self, token: Option<&UndoToken>) -> Result<String, FleaError> {
         self.last_touched = Reached::default();
+        if token.is_some_and(|key| {
+            key.revision != self.revision || key.generation.is_some() != self.shared.is_some()
+        }) {
+            return Err(err("That job can no longer be undone."));
+        }
+        self.revision = self.revision.wrapping_add(1);
+        self.recorded = None;
         if let Some(shared) = self.shared.clone() {
-            let (mut entry, gen) = match super::undoshare::claim_undo(&shared) {
+            let (mut entry, gen) = match super::undoshare::claim_undo_matching(&shared, token) {
                 Ok(Some(pair)) => pair,
-                Ok(None) => return Err(err("there is nothing to undo")),
+                Ok(None) => {
+                    return Err(err(if token.is_some() {
+                        "That job can no longer be undone."
+                    } else {
+                        "there is nothing to undo"
+                    }))
+                }
                 Err(()) => {
                     self.shared = None;
                     return Err(FleaError { where_: "undo".into(), path: String::new(), msg: "the undo history could not be read".into() });
@@ -441,6 +515,9 @@ impl Journal {
             let _ = super::undoshare::finish_undone(&shared, Some(entry), &changes, gen);
             self.prune();
             return Ok(op);
+        }
+        if token.is_some_and(|key| self.entries.last() != Some(&key.entry)) {
+            return Err(err("That job can no longer be undone."));
         }
         let entry = match self.entries.pop() {
             Some(e) => e,
@@ -494,6 +571,8 @@ impl Journal {
 
     pub fn redo(&mut self, id: usize, cancel: &std::sync::atomic::AtomicBool,
                 tx: &std::sync::mpsc::Sender<super::opsreq::OpMsg>) -> Result<String, FleaError> {
+        self.revision = self.revision.wrapping_add(1);
+        self.recorded = None;
         self.last_touched = Reached::default();
         if self.shared.is_some() {
             let (result, touched) = super::undoshare::redo_newest(&mut self.shared, id, cancel, tx);

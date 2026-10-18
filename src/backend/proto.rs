@@ -5,7 +5,18 @@ use crate::json::{escape, field_bool, field_str, field_str_array, field_usize, f
 pub const TRANSFER_CANCEL: &str = "transfercancel";
 
 pub enum Request {
-    List { path: String, first: usize, hidden: bool, want_changed: bool },
+    Jobs {
+        line: String,
+    },
+    Actions {
+        line: String,
+    },
+    List {
+        path: String,
+        first: usize,
+        hidden: bool,
+        want_changed: bool,
+    },
     // A listing built from paths the client names, in the order it named them; the picker's Recent.
     ListPaths { paths: Vec<String>, first: usize },
     Window { start: usize, count: usize },
@@ -131,9 +142,23 @@ pub fn parse_request(line: &str) -> Request {
             dest: field_str(line, "dest").unwrap_or_default(),
             collide: super::collide::Ask::parse(line),
         },
-        Some("linktarget") => Request::LinkTarget { path: field_str(line, "path").unwrap_or_default(), id: field_usize(line, "id").unwrap_or(0) },
-        Some("picker") => Request::Picker { line: line.to_string() },
-        Some("menuaction") => Request::MenuAction { line: line.to_string(), rows: field_usize_array(line, "rows") },
+        Some("linktarget") => Request::LinkTarget {
+            path: field_str(line, "path").unwrap_or_default(),
+            id: field_usize(line, "id").unwrap_or(0),
+        },
+        Some("picker") => Request::Picker {
+            line: line.to_string(),
+        },
+        Some("menuaction") => Request::MenuAction {
+            line: line.to_string(),
+            rows: field_usize_array(line, "rows"),
+        },
+        Some("jobs") => Request::Jobs {
+            line: line.to_string(),
+        },
+        Some("actions") => Request::Actions {
+            line: line.to_string(),
+        },
         Some("localsend") => Request::LocalSend {
             op: field_str(line, "op").unwrap_or_default(),
             peer: field_str(line, "peer").unwrap_or_default(),

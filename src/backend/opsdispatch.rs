@@ -1,8 +1,8 @@
-// Dispatch for the five write operations: one runs at a time, because the status bar has one sticky slot for it.
+// Write dispatch: destination-keyed jobs share workers; other mutations retain their existing slot.
 use crate::backend::iomount::{internal_failure, mount_body, mount_key, slow_sentence, slow_write_with, CALL_DEADLINE, SlowWrite, SLOW_MKDIR, SLOW_RENAME};
 use crate::backend::ops;
 use crate::backend::opsreq::{
-    duplicated_line, made_line, op_err, renamed_line, run_duplicate_checked, run_transfer_checked, run_trash,
+    duplicated_line, made_line, op_err, renamed_line, run_duplicate_checked, run_trash,
     transferdone_line, transferitem_line, transferprogress_line, transferstarted_line, undone_line, usable_dest,
     LinkOutcome, OpMsg,
 };
@@ -31,6 +31,7 @@ pub(crate) struct SlowClaim {
 // Everything the write operations own, kept apart from the listing state they never touch.
 pub(crate) struct Ops {
     pub journal: Journal,
+    pub jobs: super::jobs::Jobs,
     pub permissions: super::permissions::Permissions,
     pub picker: Option<super::picker::Picker>,
     pub menuactions: Option<super::menu_actions::MenuActions>,
@@ -52,8 +53,24 @@ pub(crate) struct Ops {
 
 impl Ops {
     pub fn new(tx: Sender<OpMsg>) -> Ops {
-        Ops { journal: Journal::new(), permissions: super::permissions::Permissions::default(), picker: None, menuactions: None, trashbrowser: None,
-               transfer_retry: (0, Vec::new()), question: None, asked: 0, next_id: 1, live: Arc::new(super::opscancel::Live::new()), pending: Vec::new(), settling: Vec::new(), detached: Arc::new(super::opscancel::DetachedJobs::new()), tx }
+        let live = Arc::new(super::opscancel::Live::new());
+        Ops {
+            journal: Journal::new(),
+            jobs: Default::default(),
+            permissions: super::permissions::Permissions::default(),
+            picker: None,
+            menuactions: None,
+            trashbrowser: None,
+            transfer_retry: (0, Vec::new()),
+            question: None,
+            asked: 0,
+            next_id: 1,
+            live: Arc::clone(&live),
+            pending: Vec::new(),
+            settling: Vec::new(),
+            detached: Arc::clone(&live.1),
+            tx,
+        }
     }
 
     // Production shares one undo history across every backend in the session; tests keep new().
@@ -81,7 +98,7 @@ impl Ops {
     }
 }
 
-// The status bar shows one operation, so a second one is refused as data rather than queued invisibly behind the first.
+// Non-job mutations retain their existing busy refusal while another mutation is in flight.
 fn busy(out: &mut impl Write, where_: &str) -> bool {
     let e = op_err(where_, "", "an operation is already running");
     writeln!(out, "{}", error_line(&e)).ok();
@@ -107,7 +124,7 @@ pub(crate) fn start_transfer(out: &mut impl Write, ops: &mut Ops, op: &str, path
 
 pub(crate) fn request_menu_action(out: &mut impl Write, ops: &mut Ops, line: String, paths: Vec<String>, cursor: Option<String>) {
     let deleting = crate::json::field_str(&line, "op").as_deref() == Some("delete");
-    if deleting && ops.live.running().is_some() {
+    if deleting && (ops.live.running().is_some() || ops.jobs.unfinished() > 0) {
         writeln!(out, "{}", super::menu_actions::response(&line, Err("An operation is already running.".into()))).ok();
         out.flush().ok();
         return;
@@ -146,6 +163,7 @@ fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &str, paths: 
     }
     let dest = match usable_dest(dest) {
         Ok(d) => d,
+        Err(e) if e.msg == "that folder cannot be written" => PathBuf::from(dest),
         Err(e) => {
             writeln!(out, "{}", error_line(&e)).ok();
             out.flush().ok();
@@ -168,17 +186,34 @@ fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &str, paths: 
     let moving = op == "move";
     let n = paths.len();
     ops.transfer_retry = (0, Vec::new());
-    let (id, cancel) = ops.claim_transfer();
+    let id = ops.claim_id();
     writeln!(out, "{}", transferstarted_line(id, n, moving)).ok();
     out.flush().ok();
-    let tx = ops.tx.clone();
     let policy = collide.policy(ops.question.take(), &dest);
-    thread::spawn(move || run_transfer_checked(id, moving, paths, dest, cancel, tx, selection, destination, policy));
+    let target = dest.clone();
+    ops.jobs.submit(
+        out,
+        id,
+        if moving { "move" } else { "copy" },
+        "",
+        Some(target),
+        super::jobwork::Work::Transfer {
+            moving,
+            paths,
+            dest,
+            selection,
+            destination,
+            policy,
+        },
+        &ops.detached,
+        &ops.tx,
+    );
 }
 
-// A slow write holds no slot and no flag its worker polls, so a cancel reaches only the live operation.
+// A cancel reaches the matching slot operation or detached job without changing other flags.
 pub(crate) fn cancel_transfer(_out: &mut impl Write, ops: &mut Ops, id: usize) {
     ops.live.cancel(id);
+    ops.detached.cancel(id);
 }
 
 // One gate for every write: each resolved source and the destination wait while their mount holds a slow write.
@@ -239,7 +274,7 @@ pub(crate) fn menu_sources(ops: &Ops, id: usize) -> Result<Option<Vec<super::men
 }
 
 pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>, menu_id: usize) {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "trash");
         return;
     }
@@ -261,7 +296,7 @@ pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String
 }
 
 pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str, menu_id: usize) {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "duplicate");
         return;
     }
@@ -298,7 +333,7 @@ pub(crate) fn do_menu_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to
 
 // A local rename answers inline; a remote one past the deadline answers slow first and journals when its worker lands, so the loop never waits on a hung share longer than CALL_DEADLINE.
 pub(crate) fn do_rename(out: &mut impl Write, ops: &mut Ops, path: &str, to: &str) -> Vec<PathBuf> {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "rename");
         return Vec::new();
     }
@@ -360,7 +395,7 @@ fn land_rename(out: &mut impl Write, ops: &mut Ops, result: Result<(PathBuf, Vec
 
 // One mkdir(2), so like rename it answers inline on a local mount and goes slow on a remote one.
 pub(crate) fn do_mkdir(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str) -> Vec<PathBuf> {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "mkdir");
         return Vec::new();
     }
@@ -420,14 +455,26 @@ fn land_mkdir(out: &mut impl Write, ops: &mut Ops, result: Result<(PathBuf, Vec<
 
 // Answers every path the reversal may have touched, failed or not, so a session patches its index.
 pub(crate) fn do_undo(out: &mut impl Write, ops: &mut Ops) -> super::undo::Reached {
-    if ops.live.running().is_some() {
+    do_undo_matching(out, ops, None)
+}
+
+pub(crate) fn do_undo_matching(
+    out: &mut impl Write,
+    ops: &mut Ops,
+    token: Option<&super::undo::UndoToken>,
+) -> super::undo::Reached {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "undo");
         return Default::default();
     }
     if pending_busy(out, ops, "undo") {
         return Default::default();
     }
-    match ops.journal.undo() {
+    match if let Some(key) = token {
+        ops.journal.undo_for_job(key)
+    } else {
+        ops.journal.undo()
+    } {
         Ok(op) => writeln!(out, "{}", undone_line(&op, true)).ok(),
         Err(e) => writeln!(out, "{}", error_line(&e)).ok(),
     };
@@ -476,8 +523,18 @@ fn fail_link_verify() -> bool {
 }
 
 // Paste as links: the slot and the collide answer are decided here, the links land beside the loop.
-pub(crate) fn start_link(out: &mut impl Write, ops: &mut Ops, op: &str, paths: Vec<String>, dest: &str, collide: super::collide::Ask) {
-    if ops.live.running().is_some() { busy(out, "link"); return; }
+pub(crate) fn start_link(
+    out: &mut impl Write,
+    ops: &mut Ops,
+    op: &str,
+    paths: Vec<String>,
+    dest: &str,
+    collide: super::collide::Ask,
+) {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
+        busy(out, "link");
+        return;
+    }
     let dest_path = match usable_dest(dest) {
         Ok(d) => d,
         Err(mut e) => {
@@ -706,7 +763,7 @@ fn link_target_parts(absolute: &Path) -> (String, String) {
 
 // Permissions batch: one entry holds every path Apply changed, so one undo restores all.
 pub(crate) fn do_permissions_batch(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>, modes: Vec<String>, id: usize) {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         writeln!(out, "{}", super::proto::permissions_batch_line(id, false, "", "an operation is already running")).ok();
         out.flush().ok();
         return;
@@ -745,7 +802,7 @@ pub(crate) fn do_permissions_batch(out: &mut impl Write, ops: &mut Ops, paths: V
 }
 
 pub(crate) fn do_newfile(out: &mut impl Write, ops: &mut Ops, parent: &str, name: &str, id: usize) -> Vec<PathBuf> {
-    if ops.live.running().is_some() {
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         let request = format!(r#"{{"op":"newFile","id":{}}}"#, id);
         writeln!(out, "{}", super::menu_actions::response(&request, Err("An operation is already running.".into()))).ok();
         out.flush().ok();
@@ -771,8 +828,13 @@ pub(crate) fn do_newfile(out: &mut impl Write, ops: &mut Ops, parent: &str, name
 }
 
 pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
-    if ops.live.running().is_some() { busy(out, "redo"); return; }
-    if pending_busy(out, ops, "redo") { return; }
+    if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
+        busy(out, "redo");
+        return;
+    }
+    if pending_busy(out, ops, "redo") {
+        return;
+    }
     let (op, n) = match ops.journal.redo_info() {
         Ok(info) => info,
         Err(error) => {
@@ -795,10 +857,68 @@ pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
 }
 
 // Every message an operation thread sends, written out and, when terminal, recorded in the journal.
-pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
+pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
+    if matches!(
+        &msg,
+        OpMsg::TransferDone { .. }
+            | OpMsg::MergeDone { .. }
+            | OpMsg::RenameDone { .. }
+            | OpMsg::MkdirDone { .. }
+            | OpMsg::BulkRenameDone { .. }
+            | OpMsg::SetTagsDone { .. }
+            | OpMsg::Trashed { .. }
+            | OpMsg::TrashAnnounced { .. }
+            | OpMsg::Pasted { .. }
+            | OpMsg::Duplicated { .. }
+            | OpMsg::Linked { .. }
+            | OpMsg::RedoDone { .. }
+    ) {
+        ops.jobs.invalidate_undo(out);
+    }
+    if let OpMsg::TransferDone {
+        id, entry, failed, ..
+    }
+    | OpMsg::MergeDone {
+        id, entry, failed, ..
+    } = &mut msg
+    {
+        let owned = std::mem::replace(
+            entry,
+            Entry {
+                op: String::new(),
+                steps: Vec::new(),
+            },
+        );
+        if let Some(job) = ops.jobs.rows.iter_mut().find(|job| job.id == *id) {
+            job.undo_key = if *failed == 0 {
+                ops.journal.push_for_job(owned)
+            } else {
+                ops.journal.push(owned);
+                None
+            };
+        } else {
+            ops.journal.push(owned);
+        }
+    }
+    super::jobevents::observe(out, ops, &msg);
     match msg {
-        OpMsg::MenuDeleteDone { line } | OpMsg::SlotDone { line } => {
+        OpMsg::JobEntries { .. } | OpMsg::JobReady { .. } | OpMsg::JobSample { .. } => {}
+        OpMsg::JobDone { line, .. } => {
+            if !line.is_empty() {
+                writeln!(out, "{}", line).ok();
+            }
+        }
+        OpMsg::ActionReady { request, result } => super::actions::ready(out, ops, request, result),
+        OpMsg::MenuDeleteDone { line } => {
             ops.live.finished();
+            writeln!(out, "{}", line).ok();
+        }
+        OpMsg::SlotDone { line } => {
+            if let Some(id) = crate::json::field_usize(&line, "id") {
+                ops.live.finished_if(id);
+            } else {
+                ops.live.finished();
+            }
             writeln!(out, "{}", line).ok();
         }
         OpMsg::Progress { id, index, name, bytes, total, scanned } => {
@@ -807,17 +927,28 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
         OpMsg::Item { id, index, name, ok, err } => {
             writeln!(out, "{}", transferitem_line(id, index, &name, ok, &err)).ok();
         }
-        OpMsg::TransferDone { id, ok, failed, skipped, cancelled, entry, retry, durable, note, refused } => {
-            ops.journal.push(entry);
-            ops.live.finished();
+        OpMsg::TransferDone {
+            id,
+            ok,
+            failed,
+            skipped,
+            cancelled,
+            retry,
+            durable,
+            note,
+            refused,
+            ..
+        } => {
+            ops.live.finished_if(id);
             ops.transfer_retry = (id, retry);
             writeln!(out, "{}", transferdone_line(id, ok, failed, skipped, cancelled, &ops.transfer_retry.1, durable, &note, &refused)).ok();
         }
         done @ OpMsg::MergeDone { .. } => {
             let line = super::merge::transferdone_merge_line(&done);
-            let OpMsg::MergeDone { id, entry, retry, .. } = done else { return };
-            ops.journal.push(entry);
-            ops.live.finished();
+            let OpMsg::MergeDone { id, retry, .. } = done else {
+                return;
+            };
+            ops.live.finished_if(id);
             ops.transfer_retry = (id, retry);
             writeln!(out, "{}", line).ok();
         }
@@ -1735,17 +1866,24 @@ mod tests {
             }
         }
         assert!(landed, "the released rename journals late");
-        // The local transfer's own Done may still be in flight; it frees the slot it claimed.
+        // The local transfer's own Done may still be in flight; drain its job before undo.
         for _ in 0..LAND_ROUNDS {
-            if o.live.running().is_none() {
+            if o.jobs.unfinished() == 0 {
                 break;
             }
             let msg = rx.recv_timeout(LAND_BOUND).expect("the local transfer reports through the op channel");
             let mut sink = out();
             report_op(&mut sink, &mut o, msg);
         }
-        assert!(o.live.running().is_none(), "the local transfer frees the slot it claimed");
-        assert!(dest.join("cargo.txt").exists(), "the local transfer landed beside the held write");
+        assert_eq!(
+            o.jobs.unfinished(),
+            0,
+            "the local transfer finishes its own job"
+        );
+        assert!(
+            dest.join("cargo.txt").exists(),
+            "the local transfer landed beside the held write"
+        );
         let mut undone = out();
         do_undo(&mut undone, &mut o);
         assert!(text(&undone).contains(r#"{"t":"undone""#), "no pending entry survives the late Done: {}", text(&undone));
@@ -2161,7 +2299,7 @@ mod tests {
         assert!(text(&started).contains("archivestarted"), "a compress elsewhere starts: {}", text(&started));
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the compress reports through the op channel");
-            let terminal = matches!(&msg, OpMsg::DetachedDone { .. });
+            let terminal = matches!(&msg, OpMsg::JobDone { .. });
             let mut sink = out();
             report_op(&mut sink, &mut o, msg);
             if terminal {
@@ -2169,6 +2307,11 @@ mod tests {
             }
         }
         assert!(o.detached.is_empty(), "the compress leaves the quit registry");
+        assert_eq!(
+            o.jobs.unfinished(),
+            0,
+            "the archive terminal result completes its job"
+        );
         let local_divergent = local.file("c2.txt", "c");
         let mut busy = out();
         crate::backend::archivereq::start_archive(&mut busy, &mut o, std::sync::Arc::clone(&formats), "compress",
@@ -2195,7 +2338,7 @@ mod tests {
         assert!(text(&started).contains("archivestarted"), "an extract elsewhere starts: {}", text(&started));
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the extract reports through the op channel");
-            let terminal = matches!(&msg, OpMsg::SlotDone { .. });
+            let terminal = matches!(&msg, OpMsg::JobDone { .. });
             let mut sink = out();
             report_op(&mut sink, &mut o, msg);
             if terminal {
@@ -2203,6 +2346,11 @@ mod tests {
             }
         }
         assert!(o.live.running().is_none(), "the extract frees the slot it claimed");
+        assert_eq!(
+            o.jobs.unfinished(),
+            0,
+            "the archive terminal result completes its job"
+        );
         // A convert of the held mount waits before anything is inspected.
         let remote_convert = remote.file("in.png", "pixels");
         let journaled = o.journal.len();

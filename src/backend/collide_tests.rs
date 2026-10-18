@@ -352,7 +352,11 @@ fn a_menu_question_captures_the_selection_its_transfer_runs_on_after_the_menu_cl
     assert!(String::from_utf8_lossy(&out).contains(r#""t":"transferstarted""#), "{}", String::from_utf8_lossy(&out));
     let mut done = None;
     while done.is_none() {
-        if let OpMsg::TransferDone { ok, failed, .. } = rx.recv_timeout(WAIT).expect("a terminal line") { done = Some((ok, failed)); }
+        let message = rx.recv_timeout(WAIT).expect("a terminal line");
+        if let OpMsg::TransferDone { ok, failed, .. } = &message {
+            done = Some((*ok, *failed));
+        }
+        crate::backend::opsdispatch::report_op(&mut out, &mut ops, message);
     }
     assert_eq!(done, Some((1, 0)));
     assert_eq!(text(&to.join("photo copy.png")), "yours", "Keep both on Copy to names the copy as Duplicate does");

@@ -311,6 +311,28 @@ fn handle_line(
         return Control::Continue;
     }
     let request = parse_request(line);
+    if super::jobevents::changes_history(&request)
+        || matches!(
+            &request,
+            Request::Transfer { .. }
+                | Request::Archive { .. }
+                | Request::Trash { .. }
+                | Request::Rename { .. }
+                | Request::MkDir { .. }
+                | Request::NewFile { .. }
+                | Request::Duplicate { .. }
+                | Request::Link { .. }
+                | Request::BulkRename { .. }
+                | Request::PermissionsBatch { .. }
+                | Request::SetTags { .. }
+                | Request::Undo
+                | Request::Redo
+                | Request::PasteImage(_)
+                | Request::Convert { check: false, .. }
+        )
+    {
+        ops.jobs.invalidate_undo(out);
+    }
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
@@ -326,7 +348,41 @@ fn handle_line(
             super::opsdispatch::request_menu_action(out, ops, line, paths, cursor);
         }
         // Directive 71: a CLI run of a second or more, so it answers on its own thread.
-        Request::LocalSend { op, peer, paths, id } => super::localsend::request(op, peer, paths, id, ops.tx.clone()),
+        Request::Jobs { line } => {
+            let reached = super::jobevents::request(out, ops, &line);
+            patch_session_paths(st, reached.dirs);
+            note_tag_writes(st, &reached.tags);
+        }
+        Request::Actions { line } => {
+            super::actions::request(line, Arc::clone(&tb.mime), ops.tx.clone())
+        }
+        Request::LocalSend {
+            op,
+            peer,
+            paths,
+            id,
+        } => {
+            if op == "send" {
+                let job = ops.claim_id();
+                ops.jobs.submit(
+                    out,
+                    job,
+                    "send",
+                    "Sending",
+                    None,
+                    super::jobwork::Work::Send {
+                        peer,
+                        paths,
+                        request: id,
+                        selection: None,
+                    },
+                    &ops.detached,
+                    &ops.tx,
+                );
+            } else {
+                super::localsend::request(op, peer, paths, id, ops.tx.clone());
+            }
+        }
         Request::TrashBrowse { line } => {
             let replies = ops.tx.clone();
             // The browser resolves its originals inside, so the mounts held slow travel with the request.
@@ -724,7 +780,9 @@ fn rows_needed(request: &Request) -> usize {
         // A viewport map, not the listing: these rows index work already queued.
         Request::ThumbCancel { .. } | Request::DirSizeCancel => 0,
         // Operations carry paths or no rows; their rows were resolved by their own earlier ask.
-        Request::TransferCancel { .. }
+        Request::Jobs { .. }
+        | Request::Actions { .. }
+        | Request::TransferCancel { .. }
         | Request::Rename { .. }
         | Request::Duplicate { .. }
         | Request::MkDir { .. }
@@ -1125,6 +1183,10 @@ mod tests {
 #[cfg(test)]
 #[path = "run_gate_tests.rs"]
 mod gate_tests;
+
+#[cfg(test)]
+#[path = "run_jobs_tests.rs"]
+mod jobs_tests;
 
 #[cfg(test)]
 #[path = "run_session_tests.rs"]

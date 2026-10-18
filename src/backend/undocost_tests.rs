@@ -59,7 +59,12 @@ fn move_entry(salt: u64, steps: usize) -> Entry {
 
 // Writes a journal of these entries in file order.
 fn write_journal(shared_dir: &std::path::Path, undo: Vec<Entry>, redo: Vec<StoredRedo>) -> u64 {
-    let doc = Doc { undo, redo, push_gen: 3 };
+    let doc = Doc {
+        undo,
+        redo,
+        push_gen: 3,
+        job_gen: 0,
+    };
     let text = render(&encode(&doc));
     let path = shared_dir.join(JOURNAL_FILE);
     let mut file = std::fs::OpenOptions::new().write(true).create(true).truncate(true).mode(0o600).open(&path).unwrap();

@@ -75,6 +75,12 @@ fn read_line(line: String, live: &Live) -> Event {
     if let Some(Request::TransferCancel { id }) = cancel_in(&line) {
         live.cancel(id);
     }
+    if line.contains("jobs")
+        && crate::json::field_str(&line, "c").as_deref() == Some("jobs")
+        && crate::json::field_str(&line, "op").as_deref() == Some("cancel")
+    {
+        live.cancel(crate::json::field_usize(&line, "id").unwrap_or(0));
+    }
     Event::Request(line)
 }
 
