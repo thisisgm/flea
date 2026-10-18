@@ -144,6 +144,7 @@ fn a_watch_starts_once_and_the_second_is_silent() {
         generation: 0,
         held: Held::List,
         clip_watching: false,
+        nearby: Default::default(),
     };
     request_watch(tx.clone(), &mut state.clip_watching, Some(missing.clone()));
     assert!(state.clip_watching);

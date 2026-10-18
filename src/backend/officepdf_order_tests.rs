@@ -1,6 +1,49 @@
 use super::*;
 
 #[test]
+fn print_and_export_jobs_are_not_replaced_by_later_previews() {
+    let d = TestDir::new("officepdf-required");
+    let r = rig(&d, GATED, CONVERT_TIMEOUT);
+    let gate = d.join("running.docx");
+    mkfifo(&gate);
+    let required = d.file("required.docx", "office\n");
+    let preview = d.file("preview.docx", "preview\n");
+    assert_eq!(r.ask(1, &gate), converting_line(1));
+    let service = Arc::clone(&r.svc);
+    let source = required.clone();
+    let fetch = std::thread::spawn(move || service.fetch(&source, Arc::new(AtomicBool::new(false))));
+    let end = Instant::now() + BOUND;
+    while r.svc.locked().required.is_empty() && Instant::now() < end { std::thread::sleep(Duration::from_millis(5)); }
+    assert_eq!(r.svc.locked().required.len(), 1);
+    assert_eq!(r.ask(2, &preview), converting_line(2));
+    within("the running office conversion is released", move || drop(std::fs::OpenOptions::new().write(true).open(&gate).unwrap()));
+    let pdf = fetch.join().unwrap().unwrap();
+    assert_eq!(pdf, r.svc.store.pdf_path(&Store::key(&required)));
+    assert_eq!(std::fs::read(&pdf).unwrap(), b"%PDF-1.4 gated");
+    assert!([r.end(), r.end()].iter().all(|(_, line)| line.contains("ready")));
+    assert_eq!(r.jobs(), 3);
+    assert_eq!(r.svc.fetch(&required, Arc::new(AtomicBool::new(false))).unwrap(), pdf);
+    assert_eq!(r.jobs(), 3, "export reuses the preview cache");
+}
+
+#[test]
+fn cancelling_a_required_office_job_does_not_cache_a_failure() {
+    let d = TestDir::new("officepdf-required-cancel");
+    let r = rig(&d, HANGS, CONVERT_TIMEOUT);
+    let source = d.file("letter.docx", "office");
+    let cancel = Arc::new(AtomicBool::new(false));
+    let stop = Arc::clone(&cancel);
+    let service = Arc::clone(&r.svc);
+    let fetch = std::thread::spawn(move || service.fetch(&source, stop));
+    let end = Instant::now() + BOUND;
+    while r.jobs() == 0 && Instant::now() < end { std::thread::sleep(Duration::from_millis(5)); }
+    assert_eq!(r.jobs(), 1);
+    cancel.store(true, Ordering::Relaxed);
+    assert_eq!(fetch.join().unwrap().unwrap_err(), "cancelled");
+    assert_eq!(r.fail_markers(), 0);
+}
+
+#[test]
 fn an_older_request_that_finishes_its_probe_last_is_replaced_and_the_newer_stays_queued() {
     let d = TestDir::new("officepdf-order");
     let (mut r, (open_tx, open_rx)) = (rig(&d, GATED, CONVERT_TIMEOUT), channel::<()>());
@@ -106,7 +149,7 @@ fn the_conversion_makes_no_path_call_of_its_own() {
     let d = TestDir::new("officepdf-no-path-call");
     let r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
     let absent = d.join("resolved-by-the-probe.docx");
-    let job = Job { key: "k".repeat(KEY_HEX_CHARS), program: "/usr/bin/sh".into(), input: absent, mtime: SystemTime::UNIX_EPOCH, seq: 0, waiters: Vec::new() };
+    let job = Job { key: "k".repeat(KEY_HEX_CHARS), program: "/usr/bin/sh".into(), input: absent, mtime: SystemTime::UNIX_EPOCH, seq: 0, waiters: Vec::new(), required: false, cancel: None };
     assert!(r.svc.convert(&job).is_ok(), "an input the job already carries needs no second resolve");
     assert_eq!(r.jobs(), 1);
 }
