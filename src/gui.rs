@@ -7,6 +7,9 @@ use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+mod launch;
+pub use launch::{exec_gpui, use_gpui};
+
 // std already links libc, so fork is declared here rather than taking a crate.
 extern "C" {
     fn fork() -> i32;
@@ -47,7 +50,11 @@ pub fn exec_qs(ui: &Path, start: Option<&str>, select: Option<&str>) -> i32 {
 }
 
 // One helper invocation for the launch, so a gvfs start pays one fork, never two.
-pub(crate) fn launch_warm_command(exe: &Path, list: Option<&Path>, gvfs: Option<(&str, &Path)>) -> Option<Command> {
+pub(crate) fn launch_warm_command(
+    exe: &Path,
+    list: Option<&Path>,
+    gvfs: Option<(&str, &Path)>,
+) -> Option<Command> {
     let has_list = list.is_some_and(|p| p.is_file());
     if !has_list && gvfs.is_none() {
         return None;
@@ -55,7 +62,11 @@ pub(crate) fn launch_warm_command(exe: &Path, list: Option<&Path>, gvfs: Option<
     let mut cmd = Command::new(exe);
     cmd.arg("--launch-warm");
     // Sample args: "flea --launch-warm /cache/flea/prefetch /run/user/1000/gvfs/x/dir /run/user/1000/flea/gvfs-1.list"; "-" skips a job.
-    cmd.arg(if has_list { list.unwrap().as_os_str() } else { OsStr::new("-") });
+    cmd.arg(if has_list {
+        list.unwrap().as_os_str()
+    } else {
+        OsStr::new("-")
+    });
     match gvfs {
         Some((path, dest)) => {
             cmd.arg(path);
@@ -66,7 +77,9 @@ pub(crate) fn launch_warm_command(exe: &Path, list: Option<&Path>, gvfs: Option<
             cmd.arg("-");
         }
     }
-    cmd.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null());
+    cmd.stdin(Stdio::null())
+        .stdout(Stdio::null())
+        .stderr(Stdio::null());
     // The gvfs head start outlives the exec, the page-cache job sharing its fork; a local launch keeps today's shape.
     if gvfs.is_some() {
         cmd.process_group(0);
@@ -76,8 +89,12 @@ pub(crate) fn launch_warm_command(exe: &Path, list: Option<&Path>, gvfs: Option<
 
 // The launcher's side: one spawn and one fork-wait for both jobs, true when the helper started.
 pub(crate) fn warm_all(list: Option<&Path>, gvfs: Option<(&str, &Path)>) -> bool {
-    let Ok(exe) = std::env::current_exe() else { return false };
-    let Some(mut cmd) = launch_warm_command(&exe, list, gvfs) else { return false };
+    let Ok(exe) = std::env::current_exe() else {
+        return false;
+    };
+    let Some(mut cmd) = launch_warm_command(&exe, list, gvfs) else {
+        return false;
+    };
     // The child forks and its parent exits at once, so this wait is only the fork.
     match cmd.spawn() {
         Ok(mut child) => {
@@ -96,13 +113,25 @@ pub fn run_launch_warm(list: &str, gvfs_path: &str, gvfs_dest: &str) -> i32 {
     }
     let gio = crate::backend::gvfslist::gio_bin();
     let owned = list.to_owned();
-    run_warm_jobs(list, gvfs_path, gvfs_dest, &gio, crate::gvfsprefetch::runtime_dir().as_deref(), move || {
-        prefetch::do_warm(Path::new(&owned))
-    })
+    run_warm_jobs(
+        list,
+        gvfs_path,
+        gvfs_dest,
+        &gio,
+        crate::gvfsprefetch::runtime_dir().as_deref(),
+        move || prefetch::do_warm(Path::new(&owned)),
+    )
 }
 
 // Both jobs at once: gio runs here while the warm runs on a thread, then both join.
-fn run_warm_jobs(list: &str, gvfs_path: &str, gvfs_dest: &str, gio: &str, runtime: Option<&Path>, warm: impl FnOnce() + Send + 'static) -> i32 {
+fn run_warm_jobs(
+    list: &str,
+    gvfs_path: &str,
+    gvfs_dest: &str,
+    gio: &str,
+    runtime: Option<&Path>,
+    warm: impl FnOnce() + Send + 'static,
+) -> i32 {
     let warm = (list != "-").then(|| std::thread::spawn(warm));
     if gvfs_path != "-" && gvfs_dest != "-" {
         let _ = crate::gvfsprefetch::run_in(gvfs_path, Path::new(gvfs_dest), gio, runtime);
@@ -183,35 +212,7 @@ fn apply_renderer(cmd: &mut Command, renderer: LaunchRenderer) {
 pub(crate) fn qs_command(target: PathBuf) -> Command {
     let mut cmd = Command::new("qs");
     cmd.arg("-p").arg(target);
-    // Only the main window records a prefetch list; a chooser started from a Flea terminal must not overwrite it.
-    cmd.env_remove(prefetch::LIST_ENV);
-    cmd.env_remove(prefetch::SHELL_ENV);
-    // The gvfs head start belongs to the window that was opened on its path, never to a chooser.
-    cmd.env_remove(crate::gvfsprefetch::PREFETCH_ENV);
-    cmd.env_remove(crate::gvfsprefetch::PATH_ENV);
-    cmd.env_remove(crate::gvfsprefetch::START_ENV);
-    // A shell started under an --unlock window must not replay its dialog; unlock_command sets it back for the one launch.
-    cmd.env_remove(crate::unlock::ENV);
-    skip_gtk_platform_theme(&mut cmd);
-    // An explicit choice is the operator's; map_or because is_none_or needs Rust 1.82 over the 1.77 floor.
-    if std::env::var_os("FLEA_BIN").map_or(true, |value| value.is_empty()) {
-        if let Ok(binary) = std::env::current_exe() {
-            cmd.env("FLEA_BIN", binary);
-        }
-    }
-    // Before the probe and qs in every arm, so neither loads a driver for a GPU vendor this box does not hold.
-    crate::icdexclude::exclude_absent_vendors();
-    // Empty is absent, the rule paths::has_display() applies: a wrapper's unset variable is not a choice.
-    if std::env::var_os("QSG_RHI_BACKEND").is_some_and(|value| !value.is_empty()) {
-        // An explicit choice is the operator's, so it is neither replaced nor offered a retry.
-        cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
-        // Vulkan on a hybrid GPU still has to present on the compositor's device; pinning is not a renderer change.
-        if std::env::var_os("QSG_RHI_BACKEND").as_deref() == Some(OsStr::new("vulkan")) {
-            pin_display_icd(&mut cmd, None);
-        }
-    } else {
-        apply_renderer(&mut cmd, automatic_renderer(crate::vkprobecache::usable()));
-    }
+    launch::configure_shell(&mut cmd);
     cmd
 }
 
@@ -274,10 +275,14 @@ fn skip_gtk_platform_theme(cmd: &mut Command) {
     if std::env::var_os("QT_QPA_PLATFORMTHEME").as_deref() != Some(OsStr::new(GTK3)) {
         return;
     }
-    let Some(home) = std::env::var_os("HOME") else { return };
+    let Some(home) = std::env::var_os("HOME") else {
+        return;
+    };
     let path = PathBuf::from(home).join(".local/state/omarchy/current/theme/icons.theme");
     // Sample input, the whole file: "Yaru-purple\n"
-    let Ok(text) = std::fs::read_to_string(path) else { return };
+    let Ok(text) = std::fs::read_to_string(path) else {
+        return;
+    };
     let name = text.trim();
     if name.is_empty() {
         return;
@@ -327,22 +332,43 @@ mod tests {
     fn a_display_gpu_pin_sets_both_loader_variables() {
         let icd = String::from("/usr/share/vulkan/icd.d/nvidia_icd.json");
         let mut cmd = Command::new("true");
-        apply_display_pin(&mut cmd, vulkan::DisplayPin::Pin { icd: icd.clone(), gpu: (0x10de, 0x27e0) });
-        assert_eq!(override_of(&cmd, "VK_DRIVER_FILES").as_deref(), Some(icd.as_str()));
-        assert_eq!(override_of(&cmd, "VK_ICD_FILENAMES").as_deref(), Some(icd.as_str()));
+        apply_display_pin(
+            &mut cmd,
+            vulkan::DisplayPin::Pin {
+                icd: icd.clone(),
+                gpu: (0x10de, 0x27e0),
+            },
+        );
+        assert_eq!(
+            override_of(&cmd, "VK_DRIVER_FILES").as_deref(),
+            Some(icd.as_str())
+        );
+        assert_eq!(
+            override_of(&cmd, "VK_ICD_FILENAMES").as_deref(),
+            Some(icd.as_str())
+        );
     }
 
     #[test]
     fn a_pin_marks_itself_so_a_child_can_tell_it_from_the_operators_own_list() {
         let mut cmd = Command::new("true");
-        apply_display_pin(&mut cmd, vulkan::DisplayPin::Pin { icd: String::from("/x.json"), gpu: (0x10de, 0x27e0) });
+        apply_display_pin(
+            &mut cmd,
+            vulkan::DisplayPin::Pin {
+                icd: String::from("/x.json"),
+                gpu: (0x10de, 0x27e0),
+            },
+        );
         assert_eq!(override_of(&cmd, vulkan::PIN_MARKER).as_deref(), Some("1"));
     }
 
     #[test]
     fn an_exported_but_empty_loader_variable_is_absent_not_a_choice() {
         assert!(!operator_chose_icd(None, None));
-        assert!(!operator_chose_icd(Some(OsStr::new("")), Some(OsStr::new(""))));
+        assert!(!operator_chose_icd(
+            Some(OsStr::new("")),
+            Some(OsStr::new(""))
+        ));
         assert!(operator_chose_icd(Some(OsStr::new("/a.json")), None));
         assert!(operator_chose_icd(None, Some(OsStr::new("/b.json"))));
     }
@@ -358,14 +384,18 @@ mod tests {
 
     // A removal is a present key with no value, which override_of cannot tell from an absent one.
     fn removed(cmd: &Command, key: &str) -> bool {
-        cmd.get_envs().any(|(name, value)| name == OsStr::new(key) && value.is_none())
+        cmd.get_envs()
+            .any(|(name, value)| name == OsStr::new(key) && value.is_none())
     }
 
     #[test]
     fn a_traded_platform_theme_is_handed_back_to_an_opened_program() {
         let mut cmd = Command::new("true");
         apply_theme_restore(&mut cmd, Some(OsStr::new("gtk3")));
-        assert_eq!(override_of(&cmd, "QT_QPA_PLATFORMTHEME").as_deref(), Some("gtk3"));
+        assert_eq!(
+            override_of(&cmd, "QT_QPA_PLATFORMTHEME").as_deref(),
+            Some("gtk3")
+        );
         assert!(removed(&cmd, "QS_ICON_THEME"));
         assert!(removed(&cmd, THEME_MARKER));
     }
@@ -401,19 +431,34 @@ mod tests {
         }
         let mut cmd = Command::new("true");
         apply_renderer(&mut cmd, automatic_renderer(Ok(vec![(0x8086, 0x0412, 1)])));
-        assert_eq!(override_of(&cmd, "QSG_RHI_BACKEND").as_deref(), Some("opengl"));
+        assert_eq!(
+            override_of(&cmd, "QSG_RHI_BACKEND").as_deref(),
+            Some("opengl")
+        );
         assert!(removed(&cmd, "FLEA_RENDERER_AUTOMATIC"));
     }
 
     // hasvk beside another usable device keeps Vulkan, with the retry the automatic arm permits.
     #[test]
     fn a_probe_beside_hasvk_starts_on_vulkan_with_retry() {
-        for probe in [vec![(0x8086, 0x0412, 1), (0x10de, 0x27e0, 2)], vec![(0x8086, 0xa788, 1)]] {
-            assert!(matches!(automatic_renderer(Ok(probe.clone())), LaunchRenderer::Vulkan(_)));
+        for probe in [
+            vec![(0x8086, 0x0412, 1), (0x10de, 0x27e0, 2)],
+            vec![(0x8086, 0xa788, 1)],
+        ] {
+            assert!(matches!(
+                automatic_renderer(Ok(probe.clone())),
+                LaunchRenderer::Vulkan(_)
+            ));
             let mut cmd = Command::new("true");
             apply_renderer(&mut cmd, automatic_renderer(Ok(probe)));
-            assert_eq!(override_of(&cmd, "QSG_RHI_BACKEND").as_deref(), Some("vulkan"));
-            assert_eq!(override_of(&cmd, "FLEA_RENDERER_AUTOMATIC").as_deref(), Some("1"));
+            assert_eq!(
+                override_of(&cmd, "QSG_RHI_BACKEND").as_deref(),
+                Some("vulkan")
+            );
+            assert_eq!(
+                override_of(&cmd, "FLEA_RENDERER_AUTOMATIC").as_deref(),
+                Some("1")
+            );
         }
     }
 
@@ -421,18 +466,28 @@ mod tests {
     #[test]
     fn no_vulkan_at_all_is_the_existing_downgrade() {
         match automatic_renderer(Err(String::from("vkCreateInstance answered -9"))) {
-            LaunchRenderer::UnusableFallback(reason) => assert!(reason.contains("vkCreateInstance"), "{reason}"),
+            LaunchRenderer::UnusableFallback(reason) => {
+                assert!(reason.contains("vkCreateInstance"), "{reason}")
+            }
             _ => panic!("an unusable loader must downgrade"),
         }
         let mut cmd = Command::new("true");
-        apply_renderer(&mut cmd, automatic_renderer(Err(String::from("vkCreateInstance answered -9"))));
-        assert_eq!(override_of(&cmd, "QSG_RHI_BACKEND").as_deref(), Some("opengl"));
+        apply_renderer(
+            &mut cmd,
+            automatic_renderer(Err(String::from("vkCreateInstance answered -9"))),
+        );
+        assert_eq!(
+            override_of(&cmd, "QSG_RHI_BACKEND").as_deref(),
+            Some("opengl")
+        );
         assert!(removed(&cmd, "FLEA_RENDERER_AUTOMATIC"));
     }
 
     // The argv a launch helper carries, read back from the built command.
     fn argv_of(cmd: &Command) -> Vec<String> {
-        cmd.get_args().map(|a| a.to_string_lossy().into_owned()).collect()
+        cmd.get_args()
+            .map(|a| a.to_string_lossy().into_owned())
+            .collect()
     }
 
     #[test]
@@ -441,17 +496,33 @@ mod tests {
         let list = dir.file("prefetch", "flea-prefetch 2\n");
         let dest = dir.join("gvfs-1.list");
         let share = "/run/user/1000/gvfs/smb-share:server=x,share=y/dir";
-        let cmd = launch_warm_command(Path::new("flea"), Some(list.as_path()), Some((share, dest.as_path())))
-            .expect("a gvfs launch with a list warms");
-        assert_eq!(argv_of(&cmd), vec!["--launch-warm", list.to_str().unwrap(), share, dest.to_str().unwrap()]);
+        let cmd = launch_warm_command(
+            Path::new("flea"),
+            Some(list.as_path()),
+            Some((share, dest.as_path())),
+        )
+        .expect("a gvfs launch with a list warms");
+        assert_eq!(
+            argv_of(&cmd),
+            vec![
+                "--launch-warm",
+                list.to_str().unwrap(),
+                share,
+                dest.to_str().unwrap()
+            ]
+        );
     }
 
     #[test]
     fn a_local_launch_carries_no_gvfs_job() {
         let dir = crate::backend::testdir::TestDir::new("launch-warm-local");
         let list = dir.file("prefetch", "flea-prefetch 2\n");
-        let cmd = launch_warm_command(Path::new("flea"), Some(list.as_path()), None).expect("a local launch with a list warms");
-        assert_eq!(argv_of(&cmd), vec!["--launch-warm", list.to_str().unwrap(), "-", "-"]);
+        let cmd = launch_warm_command(Path::new("flea"), Some(list.as_path()), None)
+            .expect("a local launch with a list warms");
+        assert_eq!(
+            argv_of(&cmd),
+            vec!["--launch-warm", list.to_str().unwrap(), "-", "-"]
+        );
     }
 
     #[test]
@@ -474,25 +545,44 @@ mod tests {
         let started_flag = Arc::clone(&started_job);
         let finished_flag = Arc::clone(&finished_job);
         let dest_job = dest.clone();
-        assert_eq!(run_warm_jobs(list.to_str().unwrap(), share, dest.to_str().unwrap(), &gio, Some(&runtime), move || {
-            std::fs::write(&started, "started").unwrap();
-            started_flag.store(true, Ordering::Relaxed);
-            // Bounded wait for gio's answer, so only the join proves the warm finished.
-            for _ in 0..50 {
-                if dest_job.exists() {
-                    break;
+        assert_eq!(
+            run_warm_jobs(
+                list.to_str().unwrap(),
+                share,
+                dest.to_str().unwrap(),
+                &gio,
+                Some(&runtime),
+                move || {
+                    std::fs::write(&started, "started").unwrap();
+                    started_flag.store(true, Ordering::Relaxed);
+                    // Bounded wait for gio's answer, so only the join proves the warm finished.
+                    for _ in 0..50 {
+                        if dest_job.exists() {
+                            break;
+                        }
+                        std::thread::sleep(std::time::Duration::from_millis(20));
+                    }
+                    if dest_job.exists() {
+                        finished_flag.store(true, Ordering::Relaxed);
+                    }
                 }
-                std::thread::sleep(std::time::Duration::from_millis(20));
-            }
-            if dest_job.exists() {
-                finished_flag.store(true, Ordering::Relaxed);
-            }
-        }), 0);
+            ),
+            0
+        );
         assert!(dest.is_file(), "both jobs are done when the helper returns");
         let body = std::fs::read_to_string(&dest).unwrap();
-        assert!(body.contains("smb://h/share/a.txt"), "gio's listing landed, not a failure marker: {body}");
-        assert!(started_job.load(Ordering::Relaxed), "the warm ran beside gio, which waited for its start");
-        assert!(finished_job.load(Ordering::Relaxed), "and the warm finished before the helper returned");
+        assert!(
+            body.contains("smb://h/share/a.txt"),
+            "gio's listing landed, not a failure marker: {body}"
+        );
+        assert!(
+            started_job.load(Ordering::Relaxed),
+            "the warm ran beside gio, which waited for its start"
+        );
+        assert!(
+            finished_job.load(Ordering::Relaxed),
+            "and the warm finished before the helper returned"
+        );
     }
 
     #[test]
