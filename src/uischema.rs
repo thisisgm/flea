@@ -21,6 +21,7 @@ pub const DEFAULTS: &str = r#"{
   "hidden": false,
   "langMarks": true,
   "hiddenLast": false,
+  "showGitStatus": false,
   "highlightToday": false,
   "wrapAtEnds": false,
   "escapeUp": false,
@@ -199,6 +200,7 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("hidden", Rule::Bool),
     ("langMarks", Rule::Bool),
     ("hiddenLast", Rule::Bool),
+    ("showGitStatus", Rule::Bool),
     ("highlightToday", Rule::Bool),
     ("wrapAtEnds", Rule::Bool),
     // ClickAndRefresh: Escape climbs when on, the pointer's open mode, and the
@@ -287,7 +289,22 @@ mod tests {
             keys,
             [
                 "view", "pickerView", "density", "columns", "columnsLimit", "columnWidths", "addressBar", "sort", "rememberSort", "folderSorts", "rememberViewPerFolder", "folderViews",
-                "dual", "foldersFirst", "groupByKind", "hidden", "langMarks", "hiddenLast", "highlightToday", "wrapAtEnds", "escapeUp", "openMode", "clickRename", "openFoldersWhileDragging", "keyHints", "startIn", "startFolder",
+                "dual",
+                "foldersFirst",
+                "groupByKind",
+                "hidden",
+                "langMarks",
+                "hiddenLast",
+                "showGitStatus",
+                "highlightToday",
+                "wrapAtEnds",
+                "escapeUp",
+                "openMode",
+                "clickRename",
+                "openFoldersWhileDragging",
+                "keyHints",
+                "startIn",
+                "startFolder",
                 "lastPath", "lastTabs", "newTab", "trashAutoEmpty", "trashSweptOn", "places", "shelf",
                 "preview", "previewFacts", "keys",
                 "display", "menu", "updates", "stateVersion"
@@ -304,6 +321,7 @@ mod tests {
         assert_eq!(d.get("hidden").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("hiddenLast").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("langMarks").and_then(Json::as_bool), Some(true));
+        assert_eq!(d.get("showGitStatus").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("highlightToday").and_then(Json::as_bool), Some(false));
         assert_eq!(d.get("wrapAtEnds").and_then(Json::as_bool), Some(false));
         // Escape stays put and a double click opens as in 0.3.4; slow click renames, on by the defaults ledger.

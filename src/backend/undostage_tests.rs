@@ -63,14 +63,36 @@ pub(super) fn fixture_doc() -> Doc {
         (steps[1].clone(), None, None),
     ]);
     Doc {
-        undo: vec![Entry { op: "move".to_string(), steps }, Entry { op: "barrier".to_string(), steps: vec![Step::Barrier] }],
-        redo: vec![StoredRedo::Ok(replay), StoredRedo::Err(FleaError { where_: "redo".into(), path: "/a".into(), msg: "gone".into() })],
+        undo: vec![
+            Entry {
+                op: "move".to_string(),
+                steps,
+            },
+            Entry {
+                op: "barrier".to_string(),
+                steps: vec![Step::Barrier],
+            },
+        ],
+        redo: vec![
+            StoredRedo::Ok(replay),
+            StoredRedo::Err(FleaError {
+                where_: "redo".into(),
+                path: "/a".into(),
+                msg: "gone".into(),
+            }),
+        ],
         push_gen: 7,
+        job_gen: 0,
     }
 }
 
 fn empty() -> Doc {
-    Doc { undo: Vec::new(), redo: Vec::new(), push_gen: 0 }
+    Doc {
+        undo: Vec::new(),
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    }
 }
 
 #[test]
@@ -82,7 +104,21 @@ fn the_staged_text_is_the_old_render_byte_for_byte() {
     assert_eq!(staged.text(), want, "the journal file did not change a byte");
     assert_eq!(staged.text(), render(&encode(&doc)));
     assert_eq!(staged.len(), GOLDEN.len() as u64, "the staged size is the written size");
-    for doc in [empty(), Doc { undo: Vec::new(), redo: fixture_doc().redo, push_gen: 1 }, Doc { undo: fixture_doc().undo, redo: Vec::new(), push_gen: u64::MAX }] {
+    for doc in [
+        empty(),
+        Doc {
+            undo: Vec::new(),
+            redo: fixture_doc().redo,
+            push_gen: 1,
+            job_gen: 0,
+        },
+        Doc {
+            undo: fixture_doc().undo,
+            redo: Vec::new(),
+            push_gen: u64::MAX,
+            job_gen: 0,
+        },
+    ] {
         let staged = Staged::new(&doc);
         assert_eq!(staged.text(), render(&encode(&doc)));
         assert_eq!(staged.len(), staged.text().len() as u64);
@@ -104,7 +140,12 @@ fn trimming_by_piece_sizes_keeps_what_trimming_by_whole_renders_kept() {
     }
     let whole = render(&encode(&doc)).len() as u64;
     for cap in (0..=whole + 10).step_by(TRIM_CAP_STRIDE) {
-        let mut old = Doc { undo: doc.undo.clone(), redo: Vec::new(), push_gen: doc.push_gen };
+        let mut old = Doc {
+            undo: doc.undo.clone(),
+            redo: Vec::new(),
+            push_gen: doc.push_gen,
+            job_gen: 0,
+        };
         old.redo.extend(fixture_doc().redo);
         let mut staged = Staged::new(&old);
         staged.trim_to(cap);
@@ -148,7 +189,12 @@ fn one_batched_rebase_equals_one_rebase_per_pair() {
             doc.redo.push(StoredRedo::Ok(Replay::from_steps("op".to_string(), saved)));
         }
         let pairs: Vec<_> = (0..1 + round % MAX_PAIRS_PER_BATCH).map(|_| (small_identity(&mut state), small_identity(&mut state))).collect();
-        let mut sequential = Doc { undo: doc.undo.clone(), redo: Vec::new(), push_gen: 0 };
+        let mut sequential = Doc {
+            undo: doc.undo.clone(),
+            redo: Vec::new(),
+            push_gen: 0,
+            job_gen: 0,
+        };
         sequential.redo = doc.redo.iter().map(|r| match r {
             StoredRedo::Ok(replay) => { let (op, steps) = replay.steps_data(); StoredRedo::Ok(Replay::from_steps(op, steps)) }
             StoredRedo::Err(e) => StoredRedo::Err(FleaError { where_: e.where_.clone(), path: e.path.clone(), msg: e.msg.clone() }),
@@ -192,7 +238,15 @@ fn a_journal_with_a_merge_step_is_written_past_v2() {
     let id = identity(9, 1);
     let step = Step::Copied { from: path("/a/trip"), to: path("/b/trip"), source: id.clone(), created: id,
         manifest: None, manifest_nonce: None, merge: true, rename_fat: false };
-    let doc = super::undoshare::Doc { undo: vec![Entry { op: "copy".to_string(), steps: vec![step] }], redo: Vec::new(), push_gen: 0 };
+    let doc = super::undoshare::Doc {
+        undo: vec![Entry {
+            op: "copy".to_string(),
+            steps: vec![step],
+        }],
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    };
     let text = Staged::new(&doc).text();
     let version: u64 = text.split("\"v\": ").nth(1).and_then(|rest| rest.split(',').next())
         .and_then(|num| num.trim().parse().ok()).expect("the staged text carries a version");

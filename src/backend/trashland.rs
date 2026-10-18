@@ -45,7 +45,7 @@ pub(crate) fn land(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
             writeln!(out, "{}", trashed_line(ok, failed, &reason)).ok();
         }
         OpMsg::Trashed { id, ok, failed, entry, reason, announced } => {
-            ops.journal.fill(id, entry);
+            super::renamework::publish(ops, super::renamework::Publication::Fill(id, entry));
             ops.settling.retain(|(held, _)| *held != id);
             ops.live.finished_if(id);
             if !announced { writeln!(out, "{}", trashed_line(ok, failed, &reason)).ok(); }
@@ -60,12 +60,20 @@ mod tests {
     use crate::backend::dirsizeworker::Worker;
     use crate::backend::events::Event;
     use crate::backend::flashslot;
-    use crate::backend::opsdispatch::{do_rename, do_undo, start_trash};
+    use crate::backend::opsdispatch::{do_undo, start_trash};
     use crate::backend::run::drain;
     use crate::backend::state::{State, Tables};
     use crate::backend::testdir::TestDir;
     use crate::backend::thumbcache::Cache;
     use crate::backend::thumbs::Pool;
+
+    fn land(out: &mut Vec<u8>, ops: &mut Ops, message: OpMsg) {
+        super::super::renamework::test_request(out, ops, |out, ops| { super::land(out, ops, message); Vec::new() });
+    }
+
+    fn do_rename(out: &mut Vec<u8>, ops: &mut Ops, path: &str, to: &str) {
+        super::super::renamework::test_request(out, ops, |out, ops| super::super::opsdispatch::do_rename(out, ops, path, to));
+    }
 
     fn created(path: &std::path::Path) -> Entry {
         Entry { op: "trash".to_string(), steps: vec![Step::Created { path: path.to_path_buf() }] }
@@ -128,7 +136,7 @@ mod tests {
         land(&mut buf, &mut o, announced(id, &first));
         let mut next: Vec<u8> = Vec::new();
         start_trash(&mut next, &mut o, vec![missing.to_string_lossy().into()], 0);
-        assert!(String::from_utf8_lossy(&next).is_empty(), "a second trash in the window answers no refusal: {}", String::from_utf8_lossy(&next));
+        assert!(String::from_utf8_lossy(&next).contains(r#""t":"trashstarted""#), "a second trash in the window acknowledges acceptance: {}", String::from_utf8_lossy(&next));
         let second = o.live.running().expect("the second trash claimed the slot");
         land(&mut buf, &mut o, journaled(id, &first));
         assert_eq!(o.live.running(), Some(second), "the first batch landing never frees the second batch's slot");
@@ -220,7 +228,9 @@ mod tests {
         let d = TestDir::new("trashland-quit-wait");
         let (x, trashed) = (d.file("x.txt", "x"), d.file("trashed.txt", "t"));
         let (mut st, pool, cache, ev_tx, ev_rx, mut flash) = quit_rig(&d);
-        let (tx, _rx) = std::sync::mpsc::channel();
+        let (tx, op_rx) = std::sync::mpsc::channel();
+        let events = ev_tx.clone();
+        std::thread::spawn(move || { for message in op_rx { if events.send(Event::Op(message)).is_err() { break; } } });
         let mut o = Ops::new(tx);
         let (id, _) = o.claim_transfer();
         let mut buf: Vec<u8> = Vec::new();

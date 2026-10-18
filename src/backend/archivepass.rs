@@ -1,6 +1,5 @@
 // A 7z password travels on the child's stdin and never in argv: only a compress carries a bare `-p`.
 use crate::backend::archive::{Formats, Reader, STORE_LINKS, ZIP_TYPE};
-use crate::backend::archivelist::{parse_reader, Contents};
 use crate::backend::archivework::{cancel_failure, failure_message, spawn_stderr_reader, Work, SANDBOX_MISSING};
 use crate::backend::opsreq::op_err;
 use crate::backend::sandbox;
@@ -9,7 +8,7 @@ use std::io::Write;
 use std::path::Path;
 use std::process::{Child, Stdio};
 use std::sync::atomic::{AtomicBool, Ordering};
-use std::time::{Duration, Instant};
+use std::time::Duration;
 
 // The code the backend answers when an archive needs a password the request did not carry.
 pub const ENCRYPTED: &str = "encrypted";
@@ -18,7 +17,7 @@ pub const WRONG_PASSWORD: &str = "wrong-password";
 // 7z exits 2 on a wrong password and on damaged encrypted data alike, and gives no finer signal.
 const WRONG_PASSWORD_CODE: i32 = 2;
 // 7z exits 255 (Break signaled) when it must ask for a password and stdin is closed.
-const NEEDS_PASSWORD_CODE: i32 = 255;
+pub(crate) const NEEDS_PASSWORD_CODE: i32 = 255;
 // Bare, so a compress reads the secret off stdin rather than off argv.
 const PASSWORD_PROMPT: &str = "-p";
 // Hides the entry names of a password .7z.
@@ -69,60 +68,6 @@ pub fn extract_verdict(code: Option<i32>, with_password: bool, guarded: impl FnO
     }
 }
 
-// The bytes the archive unpacks to, read off its index in the readonly jail; None when unreadable, which refuses nothing.
-pub fn unpacked_bytes(archive: &Path, formats: &Formats, cancel: &AtomicBool) -> Option<u64> {
-    let (inner, spec) = formats.list_argv(archive)?;
-    if !sandbox::available() {
-        return None;
-    }
-    let mut full = sandbox::wrap_readonly(&inner, archive);
-    sandbox::add_status(&mut full, inner.len());
-    let mut jailed = crate::backend::jail::spawn_jailed(&full, |cmd| {
-        cmd.stdin(Stdio::null());
-        cmd.stdout(Stdio::piped());
-        cmd.stderr(Stdio::null());
-    })
-    .ok()?;
-    let deadline = Instant::now() + Duration::from_millis(crate::backend::archivelist::ARCHIVE_READ_MS);
-    let output = match jailed.child.stdout.take() {
-        Some(output) => output,
-        None => {
-            crate::backend::jail::kill_tree(&mut jailed);
-            return None;
-        }
-    };
-    let parser = std::thread::spawn(move || {
-        parse_reader(std::io::BufReader::new(output), &spec)
-    });
-    loop {
-        if cancel.load(Ordering::Relaxed) {
-            crate::backend::jail::kill_tree(&mut jailed);
-            return None;
-        }
-        match jailed.child.try_wait() {
-            Ok(Some(status)) => {
-                let listed: Contents = match parser.join() {
-                    Ok(listed) => listed,
-                    Err(_) => return None,
-                };
-                if cancel.load(Ordering::Relaxed) || !status.success() || listed.failed {
-                    return None;
-                }
-                return Some(listed.unpacked);
-            }
-            Ok(None) if Instant::now() >= deadline => {
-                crate::backend::jail::kill_tree(&mut jailed);
-                return None;
-            }
-            Ok(None) => std::thread::sleep(PW_POLL),
-            Err(_) => {
-                crate::backend::jail::kill_tree(&mut jailed);
-                return None;
-            }
-        }
-    }
-}
-
 // Whether a failed extract's code asks the card for a password, so the line names the archive to retry.
 pub fn asks_again(err: &str) -> bool {
     err == ENCRYPTED || err == WRONG_PASSWORD
@@ -152,19 +97,25 @@ pub fn answer_prompt(child: &mut Child, secret: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-// The archive jail around 7z; a secret rides its stdin, None leaves stdin closed. Ok(None) is a clean exit.
+// 7z reads one stdin line, so a line break would lock the archive with only the text before it.
+pub(crate) fn refuse_line_break(what: &str, archive: &str, secret: Option<&str>) -> Result<(), FleaError> {
+    if secret.is_some_and(|s| s.contains(['\n', '\r'])) {
+        return Err(op_err(what, archive, &format!("the password for {archive} cannot hold a line break")));
+    }
+    Ok(())
+}
+
+// The archive jail around 7z writing the archive named; a secret rides its stdin, None leaves stdin closed. Ok(None) is a clean exit.
 pub fn run_boxed_cancellable_password(
     what: &str,
+    archive: &str,
     inner: Vec<String>,
     read_only: &Path,
     work: &mut Work,
     secret: Option<&str>,
     cancel: &AtomicBool,
 ) -> Result<Option<SevenFailure>, FleaError> {
-    // 7z reads one stdin line, so a line break would lock the archive with only the text before it.
-    if secret.is_some_and(|s| s.contains(['\n', '\r'])) {
-        return Err(op_err(what, "7z", "a password cannot hold a line break"));
-    }
+    refuse_line_break(what, archive, secret)?;
     run_with(what, inner, read_only, work, secret, cancel, answer_prompt)
 }
 
@@ -213,6 +164,58 @@ fn run_with(
                 reader.join().ok();
                 return Err(from_io(what, &full[0], &e));
             }
+        }
+    }
+}
+
+// Extraction loops own the nonblocking password pipe, so dropping it never waits for a writer.
+pub(crate) struct Prompt {
+    input: std::process::ChildStdin,
+    line: Vec<u8>,
+    written: usize,
+}
+
+impl Prompt {
+    pub(crate) fn new(child: &mut Child, secret: Option<&str>) -> std::io::Result<Option<Self>> {
+        use std::os::fd::AsRawFd;
+        extern "C" {
+            fn fcntl(fd: i32, command: i32, ...) -> i32;
+        }
+        const F_GETFL: i32 = 3;
+        const F_SETFL: i32 = 4;
+        let Some((input, secret)) = child.stdin.take().zip(secret) else {
+            return Ok(None);
+        };
+        let fd = input.as_raw_fd();
+        let flags = unsafe { fcntl(fd, F_GETFL) };
+        if flags < 0 || unsafe { fcntl(fd, F_SETFL, flags | crate::oflags::O_NONBLOCK) } < 0 {
+            return Err(std::io::Error::last_os_error());
+        }
+        let mut line = secret.as_bytes().to_vec();
+        line.push(b'\n');
+        Ok(Some(Self {
+            input,
+            line,
+            written: 0,
+        }))
+    }
+
+    // One write per poll leaves the caller's deadline and Cancel active even when stdin stays full.
+    pub(crate) fn advance(prompt: &mut Option<Self>) {
+        let complete = prompt.as_mut().is_some_and(|prompt| {
+            match prompt.input.write(&prompt.line[prompt.written..]) {
+                Ok(count) => {
+                    prompt.written += count;
+                    count == 0 || prompt.written == prompt.line.len()
+                }
+                Err(error) => !matches!(
+                    error.kind(),
+                    std::io::ErrorKind::WouldBlock | std::io::ErrorKind::Interrupted
+                ),
+            }
+        });
+        if complete {
+            *prompt = None;
         }
     }
 }

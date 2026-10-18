@@ -153,3 +153,94 @@ fn the_conversion_makes_no_path_call_of_its_own() {
     assert!(r.svc.convert(&job).is_ok(), "an input the job already carries needs no second resolve");
     assert_eq!(r.jobs(), 1);
 }
+
+// Written independently of production constants, so routing Office back to the generic cap fails.
+const CHECK_OFFICE_LIMITS: &str = r#"
+import os, resource, sys
+assert resource.getrlimit(resource.RLIMIT_AS) == (4294967296, 4294967296), 'Office must have a finite 4 GiB address-space cap'
+assert resource.getrlimit(resource.RLIMIT_CPU) == (30, 30), 'Office must retain its 30 s CPU cap'
+os.execv(sys.argv[1], sys.argv[1:])
+"#;
+
+// Port the retained office native probe's DOCX, real converter, cache hit and PDF assertions to the backend suite.
+#[test]
+#[ignore = "native: needs LibreOffice and a working sandbox, run by MINIPC.md"]
+fn a_real_docx_converts_in_the_production_jail_and_is_cached() {
+    let program = find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default())
+        .expect("the native office regression requires LibreOffice");
+    assert!(
+        !skipped(),
+        "the native office regression requires the real sandbox"
+    );
+    let d = TestDir::new("officepdf-native");
+    d.assert_contains(d.path());
+    let generated = std::process::Command::new("python3")
+        .args(["-B", "tests/fixtures/office/generate.py"])
+        .arg(d.path())
+        .output()
+        .expect("the retained office fixture generator starts");
+    assert!(
+        generated.status.success(),
+        "fixture generation failed: {}",
+        String::from_utf8_lossy(&generated.stderr)
+    );
+    let mut r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
+    let jail: Runner = Box::new(run_boxed_office);
+    r.svc = Arc::new(Service::new(
+        Store::new(&r.cache),
+        Box::new(move || Some(program.clone())),
+        Box::new(|program, input, out| {
+            // Check the kernel's actual inherited limits, then exec the unmodified converter argv.
+            let mut checked = vec![
+                "/usr/bin/python3".into(),
+                "-c".into(),
+                CHECK_OFFICE_LIMITS.into(),
+            ];
+            checked.extend(argv(program, input, out));
+            checked
+        }),
+        jail,
+        CONVERT_TIMEOUT,
+    ));
+    let src = d.join("report.docx");
+    let original = std::fs::read(&src).unwrap();
+    let began = Instant::now();
+    assert_eq!(r.ask(1, &src), converting_line(1));
+    let pdf = r.svc.store.pdf_path(&Store::key(&src));
+    let end =
+        r.rx.recv_timeout(CONVERT_TIMEOUT + Duration::from_secs(20))
+            .expect("native conversion answers after its deadline and bounded drain");
+    let OpMsg::DetachedDone { id, line } = end else {
+        panic!("native conversion must finish the detached operation");
+    };
+    assert_eq!(
+        (id, line),
+        (1, ready_line(1, &pdf)),
+        "native conversion failed"
+    );
+    assert!(
+        std::fs::read(&pdf).unwrap().starts_with(b"%PDF-"),
+        "the converter must produce a real PDF"
+    );
+    assert_eq!(
+        std::fs::read(&src).unwrap(),
+        original,
+        "the read-only input is unchanged"
+    );
+    assert_eq!(
+        r.ask(2, &src),
+        ready_line(2, &pdf),
+        "the second request is a cache hit"
+    );
+    assert_eq!(mtime_of(&pdf), mtime_of(&src));
+    eprintln!(
+        "office native DOCX conversion and cache: {} ms; kernel AS=4294967296 CPU=30",
+        began.elapsed().as_millis()
+    );
+}
+
+#[path = "officepdf_matrix_tests.rs"]
+mod matrix;
+
+#[path = "officepdf_cache_tests.rs"]
+mod cache;

@@ -17,16 +17,22 @@ const LENGTH_BYTES: u64 = 8;
 pub struct Cancellation {
     generation: Arc<AtomicUsize>,
     expected: usize,
+    flag: Option<Arc<std::sync::atomic::AtomicBool>>,
 }
 impl Cancellation {
+    pub fn operation(flag: Arc<std::sync::atomic::AtomicBool>) -> Self {
+        Self { flag: Some(flag), ..Self::default() }
+    }
     pub fn next(&self) -> Self {
         Self {
             generation: self.generation.clone(),
             expected: self.generation.fetch_add(1, Ordering::Relaxed) + 1,
+            flag: self.flag.clone(),
         }
     }
     pub fn check(&self) -> Result<(), String> {
-        if self.generation.load(Ordering::Relaxed) == self.expected {
+        if self.generation.load(Ordering::Relaxed) == self.expected
+            && !self.flag.as_ref().is_some_and(|flag| flag.load(Ordering::Relaxed)) {
             Ok(())
         } else {
             Err("Trash request cancelled.".into())

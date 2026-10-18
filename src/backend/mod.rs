@@ -1,4 +1,20 @@
 pub(crate) mod locale;
+mod actionmanifest;
+mod actionpreview;
+mod actionrun;
+mod actions;
+mod jobdrive;
+mod jobevents;
+mod jobs;
+mod jobview;
+mod jobwork;
+mod rclone;
+mod rcloneenv;
+mod rclonefolders;
+mod rclonelog;
+mod rcloneproc;
+mod rclonerun;
+
 pub mod listing;
 pub mod filter;
 #[cfg(test)]
@@ -13,12 +29,22 @@ pub mod archivepass;
 pub mod archivespec;
 pub mod archivereq;
 pub mod archivework;
+mod extractindex;
+mod extractprogress;
+mod extractrun;
 pub mod appicon;
 pub mod mime;
 pub mod fsinfo;
 pub mod fsname;
 pub mod fsinforeq;
 pub mod extclass;
+#[cfg(test)]
+pub(crate) mod gitfixture;
+pub mod gitprobe;
+pub mod gitreq;
+#[cfg(test)]
+mod gitreq_process_tests;
+pub mod gitstatus;
 pub mod gvfsroot;
 pub mod netfs;
 pub mod networkaddress;
@@ -71,6 +97,9 @@ pub mod ordering;
 pub mod state;
 pub(crate) mod lazy;
 pub mod mediaprobe;
+pub mod model3d;
+pub mod model3dreq;
+mod model3dcache;
 pub mod meta;
 pub mod metareq;
 pub mod metasort;
@@ -102,6 +131,7 @@ pub(crate) mod trashthumb;
 pub(crate) mod trashthumbcache;
 pub mod trashland;
 pub mod journalgate;
+pub(crate) mod renamework;
 pub mod trashdelete;
 pub mod trashmanifest;
 pub mod rows;
@@ -274,6 +304,9 @@ pub mod quietpanic;
 #[cfg(test)]
 pub mod reaphold;
 
+#[cfg(test)]
+pub mod renametiming;
+
 pub mod dirsizeworker;
 // The decode-free RAW container walker: the largest embedded JPEG preview plus EXIF facts.
 pub mod rawembed;
@@ -283,3 +316,10 @@ pub mod rawbmff;
 pub mod rawraf;
 pub mod rawexif;
 pub mod rawpreview;
+
+#[cfg(test)]
+mod jobs_fix1_tests;
+#[cfg(test)]
+mod jobs_fix2_tests;
+#[cfg(test)]
+mod jobs_tests;

@@ -42,6 +42,19 @@ pub fn open_terminal(path: &str) -> i32 {
     }
 }
 
+// The same OEM launcher with a command, passed as argv after the option terminator.
+pub(crate) fn open_argv(directory: &std::path::Path, argv: &[String]) -> std::io::Result<()> {
+    if argv.is_empty() {
+        return Err(std::io::Error::other("empty terminal action"));
+    }
+    let target = directory.canonicalize()?;
+    let mut dir = OsString::from("--dir=");
+    dir.push(target);
+    let mut terminal = Command::new("xdg-terminal-exec");
+    detach(&mut terminal);
+    terminal.arg(dir).arg("--").args(argv).spawn().map(|_| ())
+}
+
 // The guards every program Flea starts and does not wait for carries; src/update.rs hands its updater the same.
 pub fn detach(child: &mut Command) {
     // One helper owns the environment, so a new guard reaches every launcher at once; see src/open.rs.

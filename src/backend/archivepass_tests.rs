@@ -228,7 +228,7 @@ fn the_child_cmdline_cannot_carry_the_secret() {
     let (tx, rx) = channel();
     let observer = stub.observer(tx, true, || {});
     let inner = stub.inner();
-    let result = run_boxed_cancellable_password("archive", inner, stub.dir.path(), &mut stub.work, Some(CANARY), &AtomicBool::new(false));
+    let result = run_boxed_cancellable_password("archive", "out.7z", inner, stub.dir.path(), &mut stub.work, Some(CANARY), &AtomicBool::new(false));
     let (said, seen) = rx.recv_timeout(REPORT_BOUND).expect("the stub never reported, so nothing was proved");
     observer.join().expect("observer");
     assert!(matches!(result, Ok(None)), "the stub exits 0 once released");
@@ -269,7 +269,7 @@ fn a_cancel_with_a_password_closes_stdin_and_reaps_the_child() {
     let (tx, rx) = channel();
     let observer = stub.observer(tx, false, move || flag.store(true, Ordering::Relaxed));
     let inner = stub.inner();
-    let err = run_boxed_cancellable_password("archive", inner, stub.dir.path(), &mut stub.work, Some(CANARY), &cancel).unwrap_err();
+    let err = run_boxed_cancellable_password("archive", "out.7z", inner, stub.dir.path(), &mut stub.work, Some(CANARY), &cancel).unwrap_err();
     let alive = procs_with(&stub.nonce);
     stub.release();
     let (said, _) = rx.recv_timeout(REPORT_BOUND).expect("the stub never reported");
@@ -292,7 +292,7 @@ fn a_cancel_past_the_drain_bound_with_a_password_still_reaps_the_child() {
     let name = stub.work.dir.file_name().unwrap().to_string_lossy().to_string();
     set_reader_hold_ms(2000);
     set_drain_secs(0);
-    let err = run_boxed_cancellable_password("archive", inner, stub.dir.path(), &mut stub.work, Some(CANARY), &cancel).unwrap_err();
+    let err = run_boxed_cancellable_password("archive", "out.7z", inner, stub.dir.path(), &mut stub.work, Some(CANARY), &cancel).unwrap_err();
     set_reader_hold_ms(0);
     set_drain_secs(CANCEL_DRAIN_SECS);
     let alive = procs_with(&stub.nonce);
@@ -343,8 +343,8 @@ fn a_password_with_a_line_break_is_refused_before_7z_starts() {
             other => panic!("a compress answers DetachedDone, got {:?}", std::mem::discriminant(&other)),
         };
         assert!(!crate::json::field_bool(&line, "ok"), "a line-broken password compressed: {}", line);
-        assert!(crate::json::field_str(&line, "err").unwrap_or_default().contains("a password cannot hold a line break"),
-            "the refusal names the line break: {}", line);
+        assert_eq!(crate::json::field_str(&line, "err").unwrap_or_default(), "the password for out.7z cannot hold a line break",
+            "the refusal names the archive and the line break: {}", line);
         assert!(!line.contains("s3cret"), "the terminal line carried the secret: {}", line);
         assert!(!dest.exists(), "a refused compress published a destination");
     }
