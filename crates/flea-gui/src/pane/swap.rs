@@ -1,6 +1,6 @@
 //! The listing's cap and minimum drawn time, with a complete pair retained until one commit.
 use super::{states::State, Held};
-use std::{cell::Cell, rc::Rc, time::Duration};
+use std::{cell::Cell, collections::VecDeque, rc::Rc, time::Duration};
 
 pub const CAP_MS: u64 = 66;
 pub const MIN_SHOW_MS: u64 = 100;
@@ -83,6 +83,8 @@ pub struct Swap {
     pub pending: Option<Pending>,
     pub(crate) unheld_total: Option<usize>,
     pub(crate) unheld_first: usize,
+    // The first-window count each sort still out asked for, oldest first.
+    pub(crate) sorts_out: VecDeque<usize>,
     pub session: Session,
     pub holding: bool,
     pub fell_back: bool,
@@ -117,6 +119,7 @@ impl Swap {
         self.input_at = now;
         self.rows_at = 0;
         self.unheld_total = None;
+        self.sorts_out.clear();
         self.pending = Some(Pending {
             path,
             total: None,
@@ -192,6 +195,7 @@ impl Swap {
     pub fn end(&mut self, now: u64, reason: &'static str) {
         self.pending = None;
         self.unheld_total = None;
+        self.sorts_out.clear();
         self.holding = false;
         self.fell_back = false;
         self.counters.last_ms = now.saturating_sub(self.since);

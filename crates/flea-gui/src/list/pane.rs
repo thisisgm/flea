@@ -235,6 +235,10 @@ impl Pane {
         now: u64,
     ) -> bool {
         if operation == "stale" || operation == "sort" {
+            // A refused sort answers no pair, so its asked count leaves the queue with it.
+            if operation == "sort" {
+                self.swap.sorts_out.pop_front();
+            }
             return false;
         }
         if matches!(operation, "scan" | "window") && !path.is_empty() && path != self.place() {
