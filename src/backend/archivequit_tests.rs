@@ -103,6 +103,7 @@ fn a_thumb_finishing_during_the_detached_wait_is_reported() {
     let row_path = d.join("pic.jpg");
     std::fs::write(&row_path, "pixels").expect("row file");
     st.asked.push((row_path.clone(), 7));
+    st.thumb_mtimes.insert(row_path.clone(), 0);
     st.outstanding = 1;
     // One detached job held open the way a running compress is.
     let work = Work::new(d.path(), "arc").expect("work");
@@ -117,7 +118,7 @@ fn a_thumb_finishing_during_the_detached_wait_is_reported() {
     });
     // The thumb lands while the detached job is still running.
     let thumb_file = d.join("pic.png");
-    ev_tx.send(Event::Thumb(Done { path: row_path, result: Outcome::Ready(thumb_file), ms: 1.0, trace: None })).ok();
+    ev_tx.send(Event::Thumb(Done { mtime: 0, path: row_path, trash_identity: None, result: Outcome::Ready(thumb_file), ms: 1.0, trace: None })).ok();
     let mut out = Vec::new();
     let began = Instant::now();
     drain(&mut out, &mut st, &mut ops, &mut flash, &ev_rx, &pool, &cache);

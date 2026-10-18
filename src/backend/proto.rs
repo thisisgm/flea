@@ -9,6 +9,8 @@ pub enum Request {
     // A listing built from paths the client names, in the order it named them; the picker's Recent.
     ListPaths { paths: Vec<String>, first: usize },
     Window { start: usize, count: usize },
+    // A name-only subsequence of the whole listing, carrying original row indices.
+    Filter { query: String, id: usize },
     // ordering::request reads desc from the raw line, so this parsed copy is read by tests alone; anchor is the cursor's row.
     Sort { by: String, #[cfg_attr(not(test), allow(dead_code))] desc: bool, anchor: Option<String> },
     Search { path: String, query: String, hidden: bool },
@@ -22,6 +24,8 @@ pub enum Request {
     // storage class whose switch is off; absent is today's full path, see docs/protocol.md "thumb".
     Thumb { rows: Vec<usize>, cache_only: bool },
     ThumbCancel { rows: Vec<usize> },
+    TrashThumb { line: String },
+    TrashThumbCancel { ids: Vec<usize> },
     DirSize { rows: Vec<usize> },
     // Unlike thumbcancel, there is no rows form: it always cancels everything in flight, see docs/protocol.md "dirsizecancel".
     DirSizeCancel,
@@ -149,6 +153,10 @@ pub fn parse_request(line: &str) -> Request {
             start: field_usize(line, "start").unwrap_or(0),
             count: field_usize(line, "count").unwrap_or(0),
         },
+        Some("filter") => Request::Filter {
+            query: field_str(line, "query").unwrap_or_default(),
+            id: field_usize(line, "id").unwrap_or(0),
+        },
         Some("sort") => Request::Sort {
             by: field_str(line, "by").unwrap_or_default(),
             desc: field_bool(line, "desc"),
@@ -178,6 +186,8 @@ pub fn parse_request(line: &str) -> Request {
         Some("thumb") => Request::Thumb { rows: field_usize_array(line, "rows"),
             cache_only: field_bool(line, "cacheOnly") },
         Some("thumbcancel") => Request::ThumbCancel { rows: field_usize_array(line, "rows") },
+        Some("trashthumb") => Request::TrashThumb { line: line.to_string() },
+        Some("trashthumbcancel") => Request::TrashThumbCancel { ids: field_usize_array(line, "ids") },
         Some("dirsize") => Request::DirSize { rows: field_usize_array(line, "rows") },
         Some("dirsizecancel") => Request::DirSizeCancel,
         Some("transfer") => Request::Transfer {
