@@ -3,7 +3,7 @@
 # Needs realpath from coreutils, which is the tree's only test-side binary dependency. An absent or
 # failing one fails closed: sandbox_canon returns non-zero and every caller either refuses on that or
 # treats it as a refusal, including sandbox_forbidden, which must never read it as "not under".
-# A lane agent test-driving file operations against real paths under $HOME emptied /home/gm on
+# A lane agent test-driving file operations against real paths under $HOME emptied the operator home on
 # 2026-09-01, and there is no @home snapshot, so every destructive path in this tree comes through
 # here. Each check is code that runs before the delete, not a promise in a report.
 
@@ -59,7 +59,7 @@ sandbox_plausible() {
   return 0
 }
 
-# True when child is under parent, comparing whole components: /home/gmother is not under /home/gm.
+# True when child is under parent, comparing whole components: /srv/userother is not under /srv/user.
 # Both sides are normalised first: a trailing slash on the parent silently matched nothing, which
 # emptied the whole forbidden-roots list whenever HOME carried one.
 sandbox_under() {

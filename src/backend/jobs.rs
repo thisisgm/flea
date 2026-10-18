@@ -60,80 +60,6 @@ pub(crate) struct Jobs {
 }
 
 impl Jobs {
-    pub fn submit(
-        &mut self,
-        out: &mut impl Write,
-        id: usize,
-        spec: super::jobwork::Spec<'_>,
-        work: Work,
-        flags: &DetachedJobs,
-        tx: &Sender<OpMsg>,
-    ) {
-        let super::jobwork::Spec { kind, label, target } = spec;
-        self.invalidate_undo(out);
-        self.rows.retain(|job| job.state != State::Done);
-        let cancel = Arc::new(AtomicBool::new(false));
-        flags.insert(id, &cancel);
-        let total = if kind == "extract" {
-            0
-        } else {
-            work.paths().len()
-        };
-        let file = work.file();
-        let target_name = match &work {
-            Work::Rclone(send) => send.remote.clone(),
-            Work::Send { peer, .. } => peer.clone(),
-            _ => target
-                .as_ref()
-                .and_then(|p| p.file_name())
-                .map(|name| name.to_string_lossy().into())
-                .unwrap_or_default(),
-        };
-        self.next_order += 1;
-        self.rows.push(Job {
-            id,
-            order: self.next_order,
-            kind: kind.into(),
-            label: label.into(),
-            phase: String::new(),
-            check: String::new(),
-            receipt: String::new(),
-            target: target_name,
-            state: State::Waiting,
-            file,
-            done: 0,
-            total,
-            bytes: 0,
-            total_bytes: 0,
-            item_bytes: 0,
-            rate: 0,
-            left: None,
-            reason: "checking target".into(),
-            output: Vec::new(),
-            undo: false,
-            undo_key: None,
-            cancelled: false,
-            failed: Vec::new(),
-            work: Some(work),
-            cancel,
-            drive: None,
-            prepared: target.is_none(),
-            started: Instant::now(),
-            reported: Instant::now(),
-            moved: 0,
-            index: None,
-        });
-        self.snapshot(out);
-        if let Some(target) = target {
-            let tx = tx.clone();
-            std::thread::spawn(move || {
-                let (drive, target) = super::jobdrive::drive_of(&target);
-                let _ = tx.send(OpMsg::JobReady { id, drive, target });
-            });
-        }
-        self.advance(out, flags, tx);
-    }
-
     pub fn unfinished(&self) -> usize {
         self.rows
             .iter()
@@ -187,6 +113,34 @@ impl Jobs {
             })
             .collect();
         for id in ids {
+            self.update(out, id);
+        }
+    }
+
+    // A job keeps its Undo only while the journal still holds the token it recorded.
+    pub fn refresh_undo(&mut self, out: &mut impl Write, journal: &super::undo::Journal) {
+        if journal.deferred.is_some() {
+            return;
+        }
+        let expired: Vec<_> = self
+            .rows
+            .iter_mut()
+            .filter_map(|job| {
+                if job.undo
+                    && job
+                        .undo_key
+                        .as_ref()
+                        .is_some_and(|key| !journal.token_is_current(key))
+                {
+                    job.undo = false;
+                    job.undo_key = None;
+                    Some(job.id)
+                } else {
+                    None
+                }
+            })
+            .collect();
+        for id in expired {
             self.update(out, id);
         }
     }

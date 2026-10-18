@@ -21,6 +21,7 @@ pub(super) fn many(items: &[Item]) -> Result<Vec<Detail>, Refusal> {
     parse(items, &gio(&args)?)
 }
 
+// Sample input: "type: regular\nsize:  1\nuri: trash:///a\nattributes:\n  standard::size: 1\n  id::file: a\n  id::filesystem: fs\n".
 fn parse(items: &[Item], text: &str) -> Result<Vec<Detail>, Refusal> {
     let mut sections = HashMap::new();
     let mut current = None;
@@ -83,5 +84,29 @@ mod tests {
         ] {
             assert!(parse(&items, &text).is_err(), "{text}");
         }
+    }
+
+    #[test]
+    fn real_gio_headers_keep_namespaced_attributes() {
+        let d = crate::backend::testdir::TestDir::new("trash-gio-headers");
+        let a = d.file("a", "a");
+        let b = d.dir("b");
+        let items = [a, b].into_iter().map(|path| Item {
+            uri: format!("file://{}", path.display()),
+            original: path.to_str().unwrap().into(),
+        }).collect::<Vec<_>>();
+        let text = gio(&["info", "--nofollow-symlinks", ATTRIBUTES, &items[0].uri, &items[1].uri]).unwrap();
+        let rows = parse(&items, &text).unwrap();
+        for (item, actual) in items.iter().zip(&rows) {
+            let expected = detail(item).unwrap();
+            assert_eq!(actual.size, expected.size);
+            assert_eq!(actual.directory, expected.directory);
+            assert_eq!(actual.identity, expected.identity);
+            assert_eq!(actual.icon, expected.icon);
+            assert_eq!(actual.deleted, expected.deleted);
+        }
+        assert!(!rows[0].directory && rows[1].directory);
+        assert_eq!(rows[0].size, 1);
+        assert_ne!(rows[0].identity, rows[1].identity);
     }
 }

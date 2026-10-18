@@ -7,6 +7,7 @@ mod jobdrive;
 mod jobevents;
 mod jobs;
 mod jobview;
+mod jobstart;
 mod jobwork;
 mod rclone;
 mod rcloneenv;
@@ -100,6 +101,7 @@ pub(crate) mod lazy;
 pub mod mediaprobe;
 pub mod model3d;
 pub mod model3dreq;
+mod model3dadmit;
 mod model3dcache;
 pub mod meta;
 pub mod metareq;
@@ -324,3 +326,6 @@ mod jobs_fix1_tests;
 mod jobs_fix2_tests;
 #[cfg(test)]
 mod jobs_tests;
+
+#[cfg(test)]
+mod jobs_regression_tests;

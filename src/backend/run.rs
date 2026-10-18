@@ -327,28 +327,6 @@ fn handle_line(
         return Control::Continue;
     }
     let request = parse_request(line);
-    if super::jobevents::changes_history(&request)
-        || matches!(
-            &request,
-            Request::Transfer { .. }
-                | Request::Archive { .. }
-                | Request::Trash { .. }
-                | Request::Rename { .. }
-                | Request::MkDir { .. }
-                | Request::NewFile { .. }
-                | Request::Duplicate { .. }
-                | Request::Link { .. }
-                | Request::BulkRename { .. }
-                | Request::PermissionsBatch { .. }
-                | Request::SetTags { .. }
-                | Request::Undo
-                | Request::Redo
-                | Request::PasteImage(_)
-                | Request::Convert { check: false, .. }
-        )
-    {
-        ops.jobs.invalidate_undo(out);
-    }
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
@@ -770,6 +748,8 @@ fn handle_line(
         // corner: an unrecognised line is answered with silence, see AGENTS.md.
         Request::Unknown => {}
     }
+    super::renamework::flush_pending(ops);
+    ops.jobs.refresh_undo(out, &ops.journal);
     Control::Continue
 }
 

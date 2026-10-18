@@ -60,6 +60,16 @@ fn renames_and_copies_use_the_hig_added_letter_and_keep_the_original_path() {
 }
 
 #[test]
+fn a_deleted_flag_in_a_rename_or_copy_record_takes_precedence_over_added() {
+    let cases = [("RD", "000000", 'D'), ("CD", "000000", 'D'), ("RM", "100644", 'A'), ("CM", "100644", 'A')];
+    for (xy, worktree, letter) in cases {
+        let kind = &xy[..1];
+        let bytes = format!("# branch.head main\x002 {xy} N... 100644 100644 {worktree} a b {kind}100 new\0old\0");
+        assert_eq!(parse(bytes.as_bytes()).unwrap().mark(Path::new("new")), (Some(letter), false), "{xy}");
+    }
+}
+
+#[test]
 fn hig_eight_changed_paths_match_the_branch_caption_and_folder_marks() {
     let mut bytes = b"# branch.head main\0".to_vec();
     for (status, path) in [

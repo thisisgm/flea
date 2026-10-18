@@ -1,9 +1,16 @@
+use super::limits::*;
 use super::{Model, Result};
+
+const MAX_HEADER_BYTES: usize = 65_536;
+const MAX_ELEMENTS: usize = 32;
+const MAX_PROPERTIES: usize = 64;
+const MAX_LIST_VALUES: usize = 1024;
 
 #[derive(Clone,Copy)]
 enum Type { I8, U8, I16, U16, I32, U32, F32, F64 }
 
 impl Type {
+    // Sample input: "float" or "uint8" selects one PLY scalar representation.
     fn parse(name: &str) -> Result<Self> {
         match name {
             "char"|"int8" => Ok(Self::I8), "uchar"|"uint8" => Ok(Self::U8),
@@ -23,7 +30,7 @@ impl Type {
             let (lo,hi) = match self {
                 Self::I8 => (-128.,127.), Self::U8 => (0.,255.), Self::I16 => (-32768.,32767.),
                 Self::U16 => (0.,65535.), Self::I32 => (i32::MIN as f64,i32::MAX as f64),
-                Self::U32 => (0.,u32::MAX as f64), _ => (-1e9,1e9),
+                Self::U32 => (0.,u32::MAX as f64), _ => (-MAX_COORDINATE,MAX_COORDINATE),
             };
             if n < lo || n > hi || (self.integer() && n.fract() != 0.) { return Err("PLY scalar is out of range".into()) }
             n
@@ -50,6 +57,7 @@ struct Property { name: String, scalar: Type, count: Option<Type> }
 struct Element { name: String, count: usize, properties: Vec<Property> }
 struct Data<'a> { bytes: &'a [u8], at: usize, big: bool, words: Option<std::str::SplitWhitespace<'a>> }
 
+// Sample input: ply\nformat ascii 1.0\nelement vertex 1\nproperty float x\nproperty float y\nproperty float z\nend_header\n0 0 0\n.
 pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
     let mut end = 0;
     let mut elements: Vec<Element> = Vec::new();
@@ -57,7 +65,7 @@ pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
     let mut total = 0usize;
     for line in bytes.split_inclusive(|b| *b == b'\n') {
         end += line.len();
-        if end > 65_536 { return Err("PLY header exceeds its bound".into()) }
+        if end > MAX_HEADER_BYTES { return Err("PLY header exceeds its bound".into()) }
         let line = super::text(line)?.trim();
         let words: Vec<&str> = line.split_whitespace().collect();
         match words.as_slice() {
@@ -66,12 +74,12 @@ pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
             ["element",name,count] => {
                 let count = count.parse::<usize>().map_err(|_| "invalid PLY element count")?;
                 total = total.checked_add(count).filter(|&n| n <= super::MAX_VERTICES+super::MAX_TRIANGLES).ok_or("PLY element count exceeds its bound")?;
-                if elements.len() >= 32 { return Err("too many PLY elements".into()) }
+                if elements.len() >= MAX_ELEMENTS { return Err("too many PLY elements".into()) }
                 elements.push(Element { name: name.to_string(), count, properties: Vec::new() });
             }
             ["property",scalar,name] | ["property","list",_,scalar,name] => {
                 let element = elements.last_mut().ok_or("PLY property has no element")?;
-                if element.properties.len() >= 64 || element.properties.iter().any(|p| p.name == *name) { return Err("invalid PLY properties".into()) }
+                if element.properties.len() >= MAX_PROPERTIES || element.properties.iter().any(|p| p.name == *name) { return Err("invalid PLY properties".into()) }
                 let count = if words.len() == 5 { Some(Type::parse(words[2])?) } else { None };
                 if count.is_some_and(|t| !t.integer()) { return Err("PLY list count must be integer".into()) }
                 element.properties.push(Property { name: name.to_string(), scalar: Type::parse(scalar)?, count });
@@ -96,7 +104,7 @@ pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
             for property in &element.properties {
                 if let Some(count) = property.count {
                     let n = count.read(&mut data)?;
-                    if !(0. ..=1024.).contains(&n) { return Err("PLY list exceeds its bound".into()) }
+                    if !(0. ..=MAX_LIST_VALUES as f64).contains(&n) { return Err("PLY list exceeds its bound".into()) }
                     let face = element.name == "face" && matches!(property.name.as_str(),"vertex_indices"|"vertex_index");
                     let mut values = Vec::new();
                     for _ in 0..n as usize {

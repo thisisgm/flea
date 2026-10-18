@@ -10,6 +10,9 @@ use std::time::{Duration, Instant};
 pub const DEADLINE: Duration = Duration::from_secs(5);
 const OUTPUT_LIMIT: usize = 32 * 1024 * 1024;
 const STDERR_LIMIT: usize = 64 * 1024;
+const METADATA_LIMIT_BYTES: usize = 4096;
+const READ_CHUNK_BYTES: usize = 8192;
+const DRAIN_ALLOCATION_OVERHEAD_BYTES: usize = 128;
 
 #[derive(Debug)]
 pub struct Repository {
@@ -40,6 +43,7 @@ pub fn discover(directory: &Path) -> Result<Option<Repository>, String> {
             dotgit
         } else if meta.is_file() {
             let bytes = small_file(&dotgit)?;
+            // Sample input: b"gitdir: ../.git/worktrees/linked\n".
             let name = bytes
                 .strip_prefix(b"gitdir: ")
                 .ok_or("Git status found an invalid gitdir file.")?;
@@ -56,6 +60,7 @@ pub fn discover(directory: &Path) -> Result<Option<Repository>, String> {
             .map_err(|error| format!("Git status: {error}"))?
         {
             let bytes = small_file(&common_file)?;
+            // Sample input: b"../..\n", relative to the Git metadata directory.
             git.join(raw_path(bytes.strip_suffix(b"\n").unwrap_or(&bytes)))
                 .canonicalize()
                 .map_err(|error| format!("Git status: {error}"))?
@@ -87,10 +92,10 @@ fn small_file(path: &Path) -> Result<Vec<u8>, String> {
     let mut bytes = Vec::new();
     regfile::open_regular(path)
         .ok_or("Git status could not read repository metadata.")?
-        .take(4097)
+        .take((METADATA_LIMIT_BYTES + 1) as u64)
         .read_to_end(&mut bytes)
         .map_err(|error| format!("Git status: {error}"))?;
-    if bytes.len() > 4096 {
+    if bytes.len() > METADATA_LIMIT_BYTES {
         return Err("Git status repository metadata is too large.".into());
     }
     Ok(bytes)
@@ -172,7 +177,7 @@ fn drain(reader: impl Read + Send + 'static, limit: usize) -> Receiver<Result<Ve
                 return Err("Git status could not allocate its snapshot.".into());
             }
             let mut reader = reader;
-            let mut chunk = [0; 8192];
+            let mut chunk = [0; READ_CHUNK_BYTES];
             loop {
                 let remaining = (limit + 1 - bytes.len()).min(chunk.len());
                 let count = match reader.read(&mut chunk[..remaining]) {
@@ -211,7 +216,7 @@ pub(super) fn capture_with(
 
 fn capture_budget(full: &[String], budget: &Budget<'_>) -> Result<Vec<u8>, String> {
     // Reserve both complete drain buffers and allocation overhead before either thread starts.
-    budget.claim(OUTPUT_LIMIT + 1 + STDERR_LIMIT + 1 + 128)?;
+    budget.claim(OUTPUT_LIMIT + 1 + STDERR_LIMIT + 1 + DRAIN_ALLOCATION_OVERHEAD_BYTES)?;
     let mut child = jail::spawn_jailed(full, |cmd| {
         cmd.stdin(Stdio::null())
             .stdout(Stdio::piped())

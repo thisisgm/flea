@@ -6,6 +6,7 @@ use std::time::Instant;
 
 pub const ALLOCATION_LIMIT: usize = 64 * 1024 * 1024;
 const ALLOCATION_OVERHEAD: usize = 64;
+const CHECK_CHUNK_BYTES: usize = 4096;
 
 pub struct Budget<'a> {
     used: Cell<usize>,
@@ -78,7 +79,7 @@ impl<'a> Budget<'a> {
     pub fn copy(&self, bytes: &[u8]) -> Result<Vec<u8>, String> {
         let mut result = Vec::new();
         self.reserve(&mut result, bytes.len())?;
-        for chunk in bytes.chunks(4096) {
+        for chunk in bytes.chunks(CHECK_CHUNK_BYTES) {
             self.check()?;
             result.extend_from_slice(chunk);
         }
@@ -168,9 +169,10 @@ impl<'a, 'b, 'c> Records<'a, 'b, 'c> {
         }
     }
 
+    // Sample input: b"# branch.head main\0? src/lib.rs\0".
     pub fn next(&mut self) -> Result<Option<&'a [u8]>, String> {
         let mut offset = 0;
-        for chunk in self.remaining.chunks(4096) {
+        for chunk in self.remaining.chunks(CHECK_CHUNK_BYTES) {
             self.budget.check()?;
             if let Some(end) = chunk.iter().position(|byte| *byte == 0) {
                 let record = &self.remaining[..offset + end];

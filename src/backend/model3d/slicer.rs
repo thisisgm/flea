@@ -1,4 +1,5 @@
 use super::Model;
+use super::limits::MAX_SLICER_QUANTITY;
 
 #[derive(Clone,Debug,Default,PartialEq)]
 pub struct SlicerFacts {
@@ -13,9 +14,10 @@ pub struct SlicerFacts {
 
 fn positive(value: &str) -> Option<f64> {
     let value = value.trim().parse::<f64>().ok()?;
-    (value.is_finite() && (0. ..=1e12).contains(&value)).then_some(value)
+    (value.is_finite() && (0. ..=MAX_SLICER_QUANTITY).contains(&value)).then_some(value)
 }
 
+// Sample input: "0.4, 0.6mm" or "[0.4;0.6]".
 fn values(value: &str) -> Vec<f64> {
     value.trim_matches(['[',']','"']).split([',',';']).map(|v| {
         let v = v.trim().trim_matches('"');
@@ -30,7 +32,7 @@ fn sum(value: &str) -> Option<f64> {
     (!values.is_empty()).then(|| values.iter().sum())
 }
 
-// Slicer durations are seconds, colon time, or explicit d/h/m/s words; unknown text stays unknown.
+// Sample input: "123.5", "01:02:03", or "1 day 2 h 3 min 4 s"; unknown text stays unknown.
 fn seconds(value: &str) -> Option<f64> {
     let value = value.trim().trim_matches('"');
     if let Some(n) = positive(value) { return Some(n) }
@@ -56,7 +58,7 @@ fn seconds(value: &str) -> Option<f64> {
         };
         total += n*factor;
         count += 1;
-        if total > 1e12 { return None }
+        if total > MAX_SLICER_QUANTITY { return None }
     }
     (count > 0).then_some(total)
 }
@@ -90,6 +92,7 @@ impl SlicerFacts {
 }
 
 pub(super) fn totals(model: &mut Model) {
+    if model.plates.is_empty() { return }
     let plates: Vec<SlicerFacts> = model.plates.iter().map(|plate| {
         let local = Model { metadata: plate.metadata.clone(), ..Model::default() };
         local.slicer(None)

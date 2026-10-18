@@ -1,6 +1,13 @@
 use super::Result;
 use std::collections::BTreeMap;
 
+const MAX_XML_BYTES: usize = 64 * 1024 * 1024;
+const MAX_XML_NODES: usize = 1_000_000;
+const MAX_XML_DEPTH: usize = 64;
+const MAX_XML_ATTRIBUTES: usize = 64;
+const MAX_XML_NAME_BYTES: usize = 256;
+const MAX_ENTITY_BYTES: usize = 16;
+
 pub(super) struct Node {
     pub name: String,
     pub attrs: BTreeMap<String,String>,
@@ -40,7 +47,7 @@ fn decoded(source: &str) -> Result<String> {
     while let Some(at) = left.find('&') {
         out.push_str(&left[..at]);
         left = &left[at+1..];
-        let end = left.find(';').filter(|&i| i <= 16).ok_or("invalid XML entity")?;
+        let end = left.find(';').filter(|&i| i <= MAX_ENTITY_BYTES).ok_or("invalid XML entity")?;
         let entity = &left[..end];
         let c = match entity {
             "lt" => '<', "gt" => '>', "amp" => '&', "quot" => '"', "apos" => '\'',
@@ -58,11 +65,13 @@ fn decoded(source: &str) -> Result<String> {
 }
 
 fn name(source: &str) -> bool {
-    !source.is_empty() && source.len() <= 256 && source.bytes().all(|c| c.is_ascii_alphanumeric() || matches!(c,b'_'|b'-'|b'.'|b':'))
+    !source.is_empty() && source.len() <= MAX_XML_NAME_BYTES && source.bytes().all(|c| c.is_ascii_alphanumeric() || matches!(c,b'_'|b'-'|b'.'|b':'))
 }
 
+// Sample input: <model unit="millimeter"><metadata name="Application">Slicer &amp; tools</metadata></model>.
 pub(super) fn parse(source: &str) -> Result<Document> {
-    if source.len() > 64*1024*1024 || source.chars().any(|c| c.is_control() && !matches!(c,'\t'|'\r'|'\n')) { return Err("XML exceeds its bound or contains controls".into()) }
+    if source.len() > MAX_XML_BYTES { return Err("XML exceeds its bound".into()) }
+    if source.chars().any(|c| c.is_control() && !matches!(c,'\t'|'\r'|'\n')) { return Err("XML contains control characters".into()) }
     let mut nodes: Vec<Node> = Vec::new();
     let mut stack: Vec<(usize,String)> = Vec::new();
     let mut root = None;
@@ -120,7 +129,8 @@ pub(super) fn parse(source: &str) -> Result<Document> {
         while !rest.is_empty() {
             let equals = rest.find('=').ok_or("missing XML attribute value")?;
             let key = rest[..equals].trim_end();
-            if !name(key) || attrs.len() >= 64 { return Err("invalid XML attribute".into()) }
+            if attrs.len() >= MAX_XML_ATTRIBUTES { return Err("XML attribute count exceeds its bound".into()) }
+            if !name(key) { return Err("invalid XML attribute".into()) }
             rest = rest[equals+1..].trim_start();
             let quote = rest.chars().next().filter(|c| matches!(c,'\''|'"')).ok_or("unquoted XML attribute")?;
             rest = &rest[1..];
@@ -131,7 +141,7 @@ pub(super) fn parse(source: &str) -> Result<Document> {
             if !rest.is_empty() && !rest.starts_with(char::is_whitespace) { return Err("missing XML attribute separator".into()) }
             rest = rest.trim_start();
         }
-        if nodes.len() >= 1_000_000 || stack.len() >= 64 { return Err("XML structure exceeds its bound".into()) }
+        if nodes.len() >= MAX_XML_NODES || stack.len() >= MAX_XML_DEPTH { return Err("XML structure exceeds its bound".into()) }
         let i = nodes.len();
         nodes.push(Node { name: local(tag_name).into(), attrs, text: String::new(), children: Vec::new() });
         if let Some(&(parent,_)) = stack.last() { nodes[parent].children.push(i) }

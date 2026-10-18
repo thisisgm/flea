@@ -349,7 +349,7 @@ mod tests {
         let progress: OpMsg = OpMsg::SlotDone { line: String::new() };
         assert!(op_write_paths(&progress).is_empty(), "a terminal line with no paths patches nothing");
         let redone: OpMsg = OpMsg::RedoDone {
-            journal: crate::backend::undo::Journal::new(),
+            journal: Box::new(crate::backend::undo::Journal::new()),
             result: Ok("rename".to_string()),
             touched: crate::backend::undo::Reached { dirs: vec![PathBuf::from("/scope/back.txt")], tags: Vec::new() },
         };

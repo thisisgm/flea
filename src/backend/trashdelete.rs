@@ -180,7 +180,7 @@ fn matches(tree: &Records, base: &File, root: &OsStr, cancel: &Cancellation) -> 
     MATCH_WALKS.with(|walks| walks.set(walks.get() + 1));
     let mut offset = tree.start();
     while let Some(bytes) = tree.next(&mut offset).changed("Trash review unreadable")? {
-        cancel.check().map_err(Refusal::said)?;
+        cancel.check().map_err(Refusal::cancelled)?;
         let node = Node::decode(&bytes)?;
         let Ok((parent, name)) = parent_at(base, root, &node.relative) else { return Ok(false); };
         let path = fd_path(&parent, &name);
@@ -189,7 +189,7 @@ fn matches(tree: &Records, base: &File, root: &OsStr, cancel: &Cancellation) -> 
             let directory = open_dir(&path)?;
             let mut children = 0;
             for entry in std::fs::read_dir(fd_path(&directory, OsStr::new("."))).changed("Could not read a Trash folder")? {
-                cancel.check().map_err(Refusal::said)?;
+                cancel.check().map_err(Refusal::cancelled)?;
                 entry.changed("Could not read a Trash folder entry")?;
                 children += 1;
             }
@@ -591,6 +591,10 @@ impl Reviewed {
             }
             if journal.remove_empty(&quarantine_path, &quarantine, &files).is_err() {
                 return Err(error.wrap(Outcome::StuckInTrash(op, recovery)));
+            }
+            if error.outcome() == &Outcome::Cancelled {
+                finish(journal, op, false).map_err(Refusal::logged)?;
+                return Err(error);
             }
             settle(journal, op);
             // A refusal that is a whole sentence already says what was done: nothing was deleted, or nothing was restored.

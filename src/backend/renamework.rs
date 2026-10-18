@@ -64,12 +64,20 @@ pub(crate) fn publish(ops: &mut Ops, command: Publication) {
     spawn(ops, vec![command]);
 }
 
+pub(crate) fn flush_pending(ops: &mut Ops) {
+    if ops.journal.deferred.is_none() && ops.journal.has_pending() {
+        spawn(ops, Vec::new());
+    }
+}
+
 fn spawn(ops: &mut Ops, commands: Vec<Publication>) {
     let mut placeholder = Journal::new();
     placeholder.deferred = Some(Vec::new());
     let mut journal = std::mem::replace(&mut *ops.journal, placeholder);
     let tx = ops.tx.clone();
     std::thread::spawn(move || {
+        // Entries pending before this run get one bounded attempt; an entry these commands queue already spent its own.
+        let retry = journal.has_pending();
         let mut renames = Vec::new();
         for command in commands {
             match command {
@@ -97,7 +105,13 @@ fn spawn(ops: &mut Ops, commands: Vec<Publication>) {
                 }
             }
         }
-        let _ = tx.send(OpMsg::JournalDone { journal, renames });
+        if retry {
+            journal.retry_pending();
+        }
+        let _ = tx.send(OpMsg::JournalDone {
+            journal: Box::new(journal),
+            renames,
+        });
     });
 }
 
