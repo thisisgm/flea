@@ -25,12 +25,16 @@ struct Status {
 struct Finished(Arc<State>);
 
 impl Drop for Finished {
-    fn drop(&mut self) { self.0.status.lock().unwrap().finished = true; }
+    fn drop(&mut self) {
+        self.0.status.lock().unwrap().finished = true;
+    }
 }
 
 pub(super) struct State {
     status: Mutex<Status>,
     body: String,
+    #[cfg(test)]
+    panic_on_progress: Option<Arc<std::sync::atomic::AtomicBool>>,
 }
 
 impl State {
@@ -64,18 +68,51 @@ impl State {
     }
 }
 
-pub(super) fn serve(line: &str, items: &[Selected], replies: &Sender<OpMsg>, cancel: &Cancellation, body: &str) -> bool {
-    let mounts = items.iter().flat_map(|item| walkmounts::remote_mounts_under(&item.path, body)).collect::<Vec<_>>();
+pub(super) fn serve(
+    line: &str,
+    items: &[Selected],
+    replies: &Sender<OpMsg>,
+    cancel: &Cancellation,
+    body: &str,
+) -> bool {
+    let mounts = items
+        .iter()
+        .flat_map(|item| walkmounts::remote_mounts_under(&item.path, body))
+        .collect::<Vec<_>>();
     if walkmounts::stuck_among(&mounts).is_some() {
-        let floor = Summary { partial: true, ..Summary::default() };
-        return replies.send(OpMsg::Meta { line: response(line, Ok(floor.fields(true, cancel.check().is_err()))) }).is_ok();
+        let floor = Summary {
+            partial: true,
+            ..Summary::default()
+        };
+        return replies
+            .send(OpMsg::Meta {
+                line: response(line, Ok(floor.fields(true, cancel.check().is_err()))),
+            })
+            .is_ok();
     }
     serve_bounded(line, items, replies, cancel, body, iomount::BULK_DEADLINE)
 }
 
-fn serve_bounded(line: &str, items: &[Selected], replies: &Sender<OpMsg>, cancel: &Cancellation, body: &str, deadline: Duration) -> bool {
+fn serve_bounded(
+    line: &str,
+    items: &[Selected],
+    replies: &Sender<OpMsg>,
+    cancel: &Cancellation,
+    body: &str,
+    deadline: Duration,
+) -> bool {
     let bound = Instant::now() + deadline;
-    let shared = Arc::new(State { status: Mutex::new(Status { floor: Summary::default(), at: items[0].path.clone(), moved: Instant::now(), finished: false }), body: body.into() });
+    let shared = Arc::new(State {
+        status: Mutex::new(Status {
+            floor: Summary::default(),
+            at: items[0].path.clone(),
+            moved: Instant::now(),
+            finished: false,
+        }),
+        body: body.into(),
+        #[cfg(test)]
+        panic_on_progress: tests::PANIC_ON_PROGRESS.with(|slot| slot.borrow_mut().take()),
+    });
     let (request, selected, work) = (line.to_owned(), items.to_vec(), Arc::clone(&shared));
     let stop = Cancellation::default().next();
     let worker_stop = stop.clone();
@@ -85,36 +122,55 @@ fn serve_bounded(line: &str, items: &[Selected], replies: &Sender<OpMsg>, cancel
         super::serve_local(&request, &selected, &tx, &worker_stop, Some(&work));
     });
     let ending = loop {
-        if cancel.check().is_err() { break shared.floor(true); }
+        if cancel.check().is_err() {
+            break Ok(shared.floor(true));
+        }
         let remaining = bound.saturating_duration_since(Instant::now());
         if remaining.is_zero() {
             if !mark_if_stalled(&shared) {
                 let watching = Arc::clone(&shared);
                 std::thread::spawn(move || watch_stall(&watching));
             }
-            break shared.floor(false);
+            break Ok(shared.floor(false));
         }
         match rx.recv_timeout(remaining.min(CANCEL_POLL)) {
             Ok(OpMsg::Meta { line }) => {
                 // Recheck after receiving too, so cancellation cannot be followed by a queued exact ending.
-                if cancel.check().is_err() || Instant::now() >= bound { continue; }
-                let terminal = !field_bool(&line, "ok") || field_bool(&line, "done") || field_bool(&line, "cancelled");
-                if replies.send(OpMsg::Meta { line }).is_err() { stop.next(); return false; }
-                if terminal { return true; }
+                if cancel.check().is_err() || Instant::now() >= bound {
+                    continue;
+                }
+                let terminal = !field_bool(&line, "ok")
+                    || field_bool(&line, "done")
+                    || field_bool(&line, "cancelled");
+                if replies.send(OpMsg::Meta { line }).is_err() {
+                    stop.next();
+                    return false;
+                }
+                if terminal {
+                    return true;
+                }
             }
             Ok(_) => unreachable!("Properties emits only menu replies"),
             Err(RecvTimeoutError::Timeout) => (),
-            Err(RecvTimeoutError::Disconnected) => break shared.floor(false),
+            Err(RecvTimeoutError::Disconnected) => {
+                break Err("The selected items stopped answering.".into())
+            }
         }
     };
     stop.next();
-    replies.send(OpMsg::Meta { line: response(line, Ok(ending)) }).is_ok()
+    replies
+        .send(OpMsg::Meta {
+            line: response(line, ending),
+        })
+        .is_ok()
 }
 
 // Only a worker still silent inside a syscall marks its current remote mount; counting or completed work marks none.
 fn mark_if_stalled(shared: &State) -> bool {
     let state = shared.status.lock().unwrap();
-    if state.finished { return true; }
+    if state.finished {
+        return true;
+    }
     if state.moved.elapsed() >= iomount::CALL_DEADLINE {
         walkmounts::mark_holding(&state.at, &shared.body);
         return true;
@@ -123,27 +179,76 @@ fn mark_if_stalled(shared: &State) -> bool {
 }
 
 fn watch_stall(shared: &State) {
-    while !mark_if_stalled(shared) { std::thread::sleep(CANCEL_POLL); }
+    while !mark_if_stalled(shared) {
+        std::thread::sleep(CANCEL_POLL);
+    }
 }
 
 // This walk belongs to the aggregate supervisor, so it has no second deadline or waiting worker.
-pub(super) fn count(item: &Selected, cancel: &Cancellation, work: &State, report: &mut dyn FnMut(Result<Counted, String>) -> bool) -> bool {
+pub(super) fn count(
+    item: &Selected,
+    cancel: &Cancellation,
+    work: &State,
+    report: &mut dyn FnMut(Result<Counted, String>) -> bool,
+) -> bool {
     work.before(&item.path);
     let meta = match item.current() {
         Ok(meta) if meta.is_dir() => meta,
         Ok(_) => return report(Err("Only a folder has contents to count.".into())),
         Err(error) => return report(Err(error)),
     };
-    if !report(Ok(Counted { tally: Tally { bytes: meta.len(), items: 0, partial: false }, done: false, cancelled: false })) { return false; }
-    let mounts: HashSet<PathBuf> = crate::backend::mountinfo::mounts_in(&work.body).into_iter().map(|(path, _)| path).collect();
+    if !report(Ok(Counted {
+        tally: Tally {
+            bytes: meta.len(),
+            items: 0,
+            partial: false,
+        },
+        done: false,
+        cancelled: false,
+    })) {
+        return false;
+    }
+    let mounts: HashSet<PathBuf> = crate::backend::mountinfo::mounts_in(&work.body)
+        .into_iter()
+        .map(|(path, _)| path)
+        .collect();
     let open = std::cell::Cell::new(true);
     let stopped = || cancel.check().is_err() || !open.get();
     let mut progress = |tally: &Tally| {
-        if !report(Ok(Counted { tally: *tally, done: false, cancelled: false })) { open.set(false); }
+        #[cfg(test)]
+        if let Some(reached) = &work.panic_on_progress {
+            reached.store(true, std::sync::atomic::Ordering::SeqCst);
+            panic!("test: Properties worker panicked during directory walk");
+        }
+        if !report(Ok(Counted {
+            tally: *tally,
+            done: false,
+            cancelled: false,
+        })) {
+            open.set(false);
+        }
     };
     let entering = |path: &Path| work.before(path);
     let dev_of = |path: &Path| mounts.contains(path).then_some(u64::MAX);
-    let tally = walk_core(&item.path, &stopped, Some(&dev_of), Some(Progress { every: Duration::ZERO, report: &mut progress, entering: Some(&entering) }));
+    let tally = walk_core(
+        &item.path,
+        &stopped,
+        Some(&dev_of),
+        Some(Progress {
+            every: Duration::ZERO,
+            report: &mut progress,
+            entering: Some(&entering),
+        }),
+    );
     let cancelled = cancel.check().is_err();
-    open.get() && report(Ok(Counted { tally, done: !cancelled, cancelled }))
+    open.get()
+        && report(Ok(Counted {
+            tally,
+            done: !cancelled,
+            cancelled,
+        }))
 }
+
+#[cfg(test)]
+#[path = "menuproperties_remote_tests.rs"]
+mod tests;
