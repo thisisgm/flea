@@ -164,16 +164,12 @@ impl Tags {
             return Vec::new();
         }
         self.armed = true;
-        let (kept, survivors) = index.last_patch();
+        let (moves, survivors) = index.last_patch();
         let mut names = pass.names.lock().unwrap();
-        let old = std::mem::take(&mut *names);
-        let mut next: Vec<Option<Vec<String>>> = match kept {
-            None => old,
-            Some(kept) => {
-                let mut keep = kept.iter().peekable();
-                old.into_iter().enumerate().filter(|(at, _)| keep.next_if(|&&row| row == *at).is_some()).map(|(_, have)| have).collect()
-            }
-        };
+        let mut next = std::mem::take(&mut *names);
+        for &(at, last) in moves {
+            if last < next.len() { next.swap_remove(at); }
+        }
         next.resize(index.len(), None);
         // A re-read that found its rows under the old ids sees this and finds them again.
         pass.epoch.fetch_add(1, Ordering::Relaxed);

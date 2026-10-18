@@ -247,6 +247,8 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
             }
         }
         Event::SearchHeld => super::searchhold::on_search_held(out, st, tb, pool),
+        Event::SearchDelta(token) if gate.holds() => gate.hold(Event::SearchDelta(token)),
+        Event::SearchDelta(token) => super::searchdelta::on_delta(out, st, tb, pool, token),
         Event::ReadError(e) => {
             st.nearby.close();
             // The framing cannot be trusted past a decode failure, so this reports at once and the reader reads no further.

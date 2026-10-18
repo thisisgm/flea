@@ -617,26 +617,44 @@ that session; both still carry the sizes the session knows. A walk the
 scheduler had not started by the deadline marks nothing. Every patch of the
 index, from a write or the open folder's watch, forgets the known sizes.
 
-The index is the session's snapshot: no per-directory watches and no
-per-query mtime sweep. The backend's own writes under the scope patch the
-index when they land, the open folder's existing watch patches that one
-directory's entries when it reports a change, and reopening the session or
-changing scope re-walks. An outside change deeper than the open folder shows
-after a reopen. The index has no fixed entry-count cap. Raw basenames are interned
-and paths are reconstructed from parent references. Checked ID or arena bounds and
-allocation refusals stop adding entries and preserve the identities already held.
+Local sessions own a recursive inotify instance, separate from the pane and column
+watches. Each directory is armed before enumeration. Queued changes are replayed
+before the completed walk is announced. External root and deep create, rename,
+delete, replacement and subtree moves reconcile affected directory blocks without
+another query. The standing nonempty query is then pushed again as `listed`, `rows`,
+`searched`, with the same query `gen` and a new listing generation. Clients replace
+the old rows even when the query generation is unchanged, and discard row indices
+from the old listing generation. Applying an index delta always precedes this push.
+The first idle event has no timer delay; subsequent events already queued share a
+reconciliation. There is no per-query mtime sweep or whole-index repack per event.
+Retained name storage is reclaimed only after retired bytes exceed both 1 MiB and
+one percent of logical storage. Dense row swaps and reclamation invalidate internal
+query caches and any pageable remainder before another answer.
 
-Every session `searched` line carries `partial` and `partial_reason`. `partial:false`
-and an empty reason certify that enumeration completed without a refused directory.
+The backend's own writes and the open folder's existing watch retain their patch
+paths. A remote-root session uses bounded enumeration and own-write/manual
+reconciliation; it does not claim recursive notification. Closing or cancelling a
+running walk stops and joins the recursive pump and closes its descriptors. A new
+scope rejects queued events carrying the old session's token.
+
+The index has no fixed entry-count cap. Raw basenames are interned and paths are
+reconstructed from parent references. Checked ID or arena bounds and allocation
+refusals stop adding entries and preserve identities already held.
+
+Every session `searched` line carries `partial` and `partial_reason`. Once
+`walking:false`, `partial:false` and an empty reason certify enumeration without a
+refused directory and, for a local session, no reported recursive-watch failure.
 While enumeration or tag loading continues, `walking:true` carries `partial:true`
-with reason `walking`, unless an earlier failure already supplies a reason. A finished
-but incomplete index has `walking:false`, `partial:true` and a reason of `unreadable`,
-`capacity` or `allocation`. Cancellation carries `cancelled:true`, `walking:false`,
-`partial:true` and reason `cancelled`. For a nonempty query, `scanned` counts retained
-identities, including when the query matches none. An empty query retains its existing
-folder-row count. A partial result remains usable but is never a complete scope
-inventory; reopen the session to retry refused coverage. A patch read refusal
-also makes coverage partial. These fields do not claim recursive watch coverage.
+with reason `walking`, unless an earlier failure supplies a reason. Incomplete
+coverage carries `unreadable`, `capacity` or `allocation`; cancellation carries
+`cancelled:true`, `walking:false`, `partial:true` and reason `cancelled`. Watch
+registration, descriptor or unmount failure carries `watch_failed`. A queue
+overflow reconciles all registered directory blocks and carries `watch_overflow`.
+Both watch failures remain partial until reopen, even if reconciliation recovers
+usable results, so no failed scope claims complete live coverage. For a nonempty
+query, `scanned` counts retained identities even when no entry matches; an empty
+query retains its folder-row count. A patch read refusal also makes coverage partial.
+A partial result remains usable but never certifies a complete live scope inventory.
 
 The scorer and ranking contract are `search`'s own. A query extending the
 previous one scores only the previous matches; any other change scores the

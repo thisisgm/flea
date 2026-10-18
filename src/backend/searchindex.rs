@@ -3,7 +3,9 @@ use crate::backend::fuzzy::{fold_packed, rank_order, Hay, Packed};
 use super::searchblocks::{display_len, Blocks};
 use super::searchnames::{Names, Refusal, EMPTY};
 use std::cmp::Ordering as CmpOrdering;
-use std::collections::{HashMap, HashSet};
+use std::collections::HashMap;
+#[cfg(test)]
+use std::collections::HashSet;
 use std::ffi::OsStr;
 use std::os::unix::ffi::OsStrExt;
 use std::path::Path;
@@ -14,6 +16,8 @@ pub(crate) const PARALLEL_SCORE_AT: usize = 2048;
 struct Row {
     name: u32,
     parent: u32,
+    next: u32,
+    previous: u32,
 }
 
 pub(crate) struct Index {
@@ -22,8 +26,10 @@ pub(crate) struct Index {
     rows: Vec<Row>,
     kinds: Vec<u8>,
     pub(crate) partial: Option<Refusal>,
-    kept: Option<Vec<usize>>,
+    moves: Vec<(usize, usize)>,
     survivors: usize,
+    pub(crate) epoch: u64,
+    retired_bytes: usize,
     #[cfg(test)]
     pub(crate) compactions: usize,
     #[cfg(test)]
@@ -44,7 +50,7 @@ impl Index {
     pub(crate) fn new() -> Self {
         Self {
             names: Names::new(), blocks: Blocks::new(), rows: Vec::new(), kinds: Vec::new(),
-            partial: None, kept: None, survivors: 0,
+            partial: None, moves: Vec::new(), survivors: 0, epoch: 0, retired_bytes: 0,
             #[cfg(test)]
             compactions: 0,
             #[cfg(test)]
@@ -79,7 +85,7 @@ impl Index {
         size_of::<Self>() + self.names.bytes(allocated) + self.blocks.bytes(allocated)
             + count(self.rows.len(), self.rows.capacity()) * size_of::<Row>()
             + count(self.kinds.len(), self.kinds.capacity())
-            + self.kept.as_ref().map_or(0, |kept| count(kept.len(), kept.capacity()) * size_of::<usize>())
+            + count(self.moves.len(), self.moves.capacity()) * size_of::<(usize, usize)>()
     }
 
     // Owned bridges make reconstruction visible to callers; no hidden full-path cache exists.
@@ -169,10 +175,12 @@ impl Index {
         if row as usize / 8 == self.kinds.len() {
             self.kinds.try_reserve(1).map_err(|_| "allocation")?;
         }
-        self.blocks.append(parent, row)?;
         if row as usize / 8 == self.kinds.len() { self.kinds.push(0); }
         if is_dir { self.kinds[row as usize / 8] |= 1 << (row % 8); }
-        self.rows.push(Row { name, parent });
+        let next = self.blocks.head(parent);
+        self.rows.push(Row { name, parent, next, previous: EMPTY });
+        if next != EMPTY { self.rows[next as usize].previous = row; }
+        self.blocks.set_head(parent, row);
         Ok(())
     }
 
@@ -209,11 +217,11 @@ fn score_part(fuzzy: &crate::backend::fuzzy::Fuzzy, rows: &[usize], index: &Inde
 }
 
 // A patch distinguishes a vanished directory from a refused or incomplete read.
-fn read_bounded(dir: &Path, body: &str) -> Result<Option<super::searchread::Directory>, crate::error::FleaError> {
+fn read_bounded(dir: &Path, body: &str, follow: bool) -> Result<Option<super::searchread::Directory>, crate::error::FleaError> {
     let owned = dir.to_path_buf();
-    match super::iomount::call(dir, body, "search", move || super::searchread::read(&owned))? {
+    match super::iomount::call(dir, body, "search", move || if follow { super::searchread::read_root(&owned) } else { super::searchread::read(&owned) })? {
         Ok(read) => Ok(Some(read)),
-        Err(error) if error.kind() == std::io::ErrorKind::NotFound => Ok(None),
+        Err(error) if matches!(error.raw_os_error(), Some(2 | 20 | 40)) => Ok(None),
         Err(error) => Err(crate::error::from_io("search", &dir.to_string_lossy(), &error)),
     }
 }

@@ -47,7 +47,7 @@ fn an_own_write_into_a_directory_the_walk_has_not_read_adds_its_rows_once() {
     let added = d.file("sub/new.txt", "");
     s.patch_after_write(&added);
     release.send(()).expect("the parked walk takes its release");
-    walked_rx.recv_timeout(Duration::from_secs(30)).expect("the walk lands");
+    crate::backend::searchwalkhold::wait_landed(&walked_rx, Duration::from_secs(30));
     assert!(s.poll_walked(), "the landing announces once");
     let answer = s.query(1, "txt", 100).expect("generation 1 answers");
     assert_eq!(answer.total, 2, "the walk and the patch both read sub, and each file is one row");
@@ -64,7 +64,7 @@ fn a_paste_of_many_items_into_one_folder_patches_that_folder_once() {
     let before = s.index.lock().unwrap().scanned.load(Ordering::Relaxed);
     assert!(s.patch_after_writes(&landed), "the landed items are under the scope");
     let scanned = s.index.lock().unwrap().scanned.load(Ordering::Relaxed) - before;
-    assert_eq!(scanned, s.indexed(), "twenty landed items cost one pass over the index, not twenty");
+    assert_eq!(scanned, 20, "twenty landed items inspect only their directory block");
 }
 
 #[test]
@@ -110,7 +110,7 @@ fn renamed_behind_a_parked_walk(
 fn a_patch_that_waited_for_the_walk_applies_at_its_landing() {
     let (_d, mut s, walked_rx, release) = renamed_behind_a_parked_walk("patchlanding");
     release.send(()).expect("the parked walk takes its release");
-    walked_rx.recv_timeout(Duration::from_secs(30)).expect("the walk lands");
+    crate::backend::searchwalkhold::wait_landed(&walked_rx, Duration::from_secs(30));
     assert!(s.poll_walked(), "the landing announces once");
     assert_eq!(s.query(1, "new", 100).expect("generation 1 answers").total, 1, "the renamed file is indexed");
     assert_eq!(s.query(2, "old", 100).expect("generation 2 answers").total, 0, "the old name is gone");

@@ -54,3 +54,53 @@ pub(crate) struct WalkHold {
     parked: std::sync::mpsc::Sender<()>,
     release: std::sync::mpsc::Receiver<()>,
 }
+
+// Tests waiting for a walk or tag landing keep recursive notifications distinct from that completion.
+pub(crate) fn wait_landed(rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>, timeout: std::time::Duration) {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())) {
+            Ok(crate::backend::events::Event::SearchWalked) => return,
+            Ok(crate::backend::events::Event::SearchDelta(_)) => {},
+            _ => panic!("the expected search walk or tag landing did not arrive"),
+        }
+    }
+}
+
+pub(crate) fn assert_no_landing(rx: &std::sync::mpsc::Receiver<crate::backend::events::Event>, timeout: std::time::Duration) {
+    let deadline = std::time::Instant::now() + timeout;
+    loop {
+        match rx.recv_timeout(deadline.saturating_duration_since(std::time::Instant::now())) {
+            Ok(crate::backend::events::Event::SearchDelta(_)) => {},
+            Err(std::sync::mpsc::RecvTimeoutError::Timeout) => return,
+            _ => panic!("an unexpected search walk or tag landing arrived"),
+        }
+    }
+}
+
+pub(crate) struct ReadHold {
+    dir: String,
+    after: usize,
+    parked: std::sync::mpsc::Sender<()>,
+    release: std::sync::mpsc::Receiver<()>,
+}
+
+impl WalkProbes {
+    pub(crate) fn test_hold_scan_in(&self, dir: &str, after: usize) -> (std::sync::mpsc::Receiver<()>, std::sync::mpsc::Sender<()>) {
+        let (parked, wait) = std::sync::mpsc::channel();
+        let (release, resume) = std::sync::mpsc::channel();
+        *self.read_hold.lock().unwrap() = Some(ReadHold { dir: dir.to_string(), after, parked, release: resume });
+        (wait, release)
+    }
+
+    pub(crate) fn hold_read_if_due(&self, dir: &Path, count: usize) {
+        let due = self.read_hold.lock().unwrap().as_ref().is_some_and(|hold|
+            dir.file_name() == Some(std::ffi::OsStr::new(&hold.dir)) && count >= hold.after);
+        if due {
+            if let Some(hold) = self.read_hold.lock().unwrap().take() {
+                let _ = hold.parked.send(());
+                let _ = hold.release.recv();
+            }
+        }
+    }
+}

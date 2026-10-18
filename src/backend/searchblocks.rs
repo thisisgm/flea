@@ -1,4 +1,4 @@
-// Directory ancestry and contiguous runs of entries, independent of reconstructed paths.
+// Directory ancestry and membership heads for initially contiguous, locally mutable blocks.
 use super::searchnames::{slot, table, Names, Refusal, EMPTY};
 use std::collections::hash_map::RandomState;
 use std::hash::BuildHasher;
@@ -7,24 +7,22 @@ struct Directory {
     name: u32,
     parent: u32,
     text_len: u32,
-}
-
-struct Block {
-    parent: u32,
-    first: u32,
-    count: u32,
+    head: u32,
+    child: u32,
+    sibling: u32,
 }
 
 pub(crate) struct Blocks {
     dirs: Vec<Directory>,
     lookup: Vec<u32>,
-    runs: Vec<Block>,
     hash: RandomState,
+    root: u32,
+    child: u32,
 }
 
 impl Blocks {
     pub(crate) fn new() -> Self {
-        Self { dirs: Vec::new(), lookup: Vec::new(), runs: Vec::new(), hash: RandomState::new() }
+        Self { dirs: Vec::new(), lookup: Vec::new(), hash: RandomState::new(), root: EMPTY, child: EMPTY }
     }
 
     pub(crate) fn directory(&mut self, names: &Names, parent: u32, name: u32) -> Result<u32, Refusal> {
@@ -51,25 +49,40 @@ impl Blocks {
         }
         self.dirs.try_reserve(1).map_err(|_| "allocation")?;
         let at = slot(&self.lookup, hash, |_| false);
-        self.dirs.push(Directory { name, parent, text_len });
+        let sibling = if parent == EMPTY { self.child } else { self.dirs[parent as usize].child };
+        self.dirs.push(Directory { name, parent, text_len, head: EMPTY, child: EMPTY, sibling });
+        if parent == EMPTY { self.child = id; } else { self.dirs[parent as usize].child = id; }
         self.lookup[at] = id;
         Ok(id)
     }
 
-    pub(crate) fn append(&mut self, parent: u32, row: u32) -> Result<(), Refusal> {
-        if let Some(run) = self.runs.last_mut() {
-            if run.parent == parent && run.first.checked_add(run.count) == Some(row) {
-                run.count = run.count.checked_add(1).ok_or("capacity")?;
-                return Ok(());
-            }
-        }
-        self.runs.try_reserve(1).map_err(|_| "allocation")?;
-        self.runs.push(Block { parent, first: row, count: 1 });
-        Ok(())
-    }
-
     pub(crate) fn text_len(&self, dir: u32) -> u32 {
         if dir == EMPTY { 0 } else { self.dirs[dir as usize].text_len }
+    }
+
+    pub(crate) fn head(&self, dir: u32) -> u32 {
+        if dir == EMPTY { self.root } else { self.dirs[dir as usize].head }
+    }
+
+    // The scope has no row; other directory identities live in their containing block.
+    pub(crate) fn identity(&self, dir: u32) -> Option<(u32, u32)> {
+        if dir == EMPTY { return None; }
+        let dir = &self.dirs[dir as usize];
+        Some((dir.parent, dir.name))
+    }
+
+    pub(crate) fn set_head(&mut self, dir: u32, row: u32) {
+        if dir == EMPTY { self.root = row; } else { self.dirs[dir as usize].head = row; }
+    }
+
+    pub(crate) fn children(&self, dir: u32) -> Vec<u32> {
+        let mut child = if dir == EMPTY { self.child } else { self.dirs[dir as usize].child };
+        let mut children = Vec::new();
+        while child != EMPTY {
+            children.push(child);
+            child = self.dirs[child as usize].sibling;
+        }
+        children
     }
 
     pub(crate) fn ancestors(&self, mut dir: u32, into: &mut Vec<u32>) {
@@ -85,7 +98,6 @@ impl Blocks {
         let count = |len, capacity| if allocated { capacity } else { len };
         count(self.dirs.len(), self.dirs.capacity()) * size_of::<Directory>()
             + self.lookup.capacity() * size_of::<u32>()
-            + count(self.runs.len(), self.runs.capacity()) * size_of::<Block>()
     }
 }
 
