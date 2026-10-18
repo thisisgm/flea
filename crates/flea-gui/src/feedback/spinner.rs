@@ -1,6 +1,6 @@
 //! The Omarchy spiral as the loading mark: a dash crawls along the brand path as a few axis aligned quads, never a path or a rotation.
 use gpui::{
-    fill, point, px, size, App, Bounds, Element, ElementId, GlobalElementId, Hsla,
+    fill, point, px, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId, Hsla,
     InspectorElementId, IntoElement, LayoutId, Pixels, Style, Window,
 };
 use std::{
@@ -10,7 +10,7 @@ use std::{
 };
 
 /// The brand path `M21 21H3V3h18v14H7V7h10v6h-6` on the 24 unit grid, outer corner to centre.
-const SPIRAL: [(f32, f32); 10] = [
+pub(crate) const SPIRAL: [(f32, f32); 10] = [
     (21., 21.),
     (3., 21.),
     (3., 3.),
@@ -23,12 +23,12 @@ const SPIRAL: [(f32, f32); 10] = [
     (11., 13.),
 ];
 /// Distance along the centreline to each vertex; the whole spiral is 114 units.
-const AT: [f32; 10] = [0., 18., 36., 54., 68., 82., 92., 102., 108., 114.];
+pub(crate) const AT: [f32; 10] = [0., 18., 36., 54., 68., 82., 92., 102., 108., 114.];
 pub const GRID: f32 = 24.;
-const LENGTH: f32 = 114.;
+pub(crate) const LENGTH: f32 = 114.;
 // The brand's stroke of 2 dashed 30 on and 27 off in stroke widths: one dash and one gap are the centreline exactly.
-const DASH: f32 = 60.;
-const HALF: f32 = 1.;
+pub(crate) const DASH: f32 = 60.;
+pub(crate) const HALF: f32 = 1.;
 /// One walk of the dash offset from 0 to -57 stroke widths, looping, as the QML crawl ran.
 pub const PERIOD_MS: u64 = 1600;
 pub const TRAVEL: f32 = 57.;
@@ -70,6 +70,7 @@ pub struct Crawl {
     since: Cell<Option<Instant>>,
     offset: Cell<f32>,
     slot: Cell<Bounds<Pixels>>,
+    mask: Cell<ContentMask<Pixels>>,
     ink: Cell<Hsla>,
     pub counters: Counters,
 }
@@ -111,7 +112,7 @@ impl Crawl {
         }
     }
 
-    /// Paints the mark in its slot and asks for the next frame only while shown and moving.
+    /// Paints the mark in its slot, clipped to its pane, and asks for the next frame only while shown and moving.
     pub fn paint(&self, moving: bool, pinned: Option<f32>, window: &mut Window, cx: &App) {
         if !self.shown.get() {
             return;
@@ -135,12 +136,14 @@ impl Crawl {
         let left = (f32::from(slot.origin.x + (slot.size.width - side) / 2.) * scale).round();
         let top = (f32::from(slot.origin.y + (slot.size.height - side) / 2.) * scale).round();
         let ink = self.ink.get();
-        cells(phase, unit, |[x0, y0, x1, y1], coverage| {
-            let bounds = Bounds::from_corners(
-                point(px((left + x0) / scale), px((top + y0) / scale)),
-                point(px((left + x1) / scale), px((top + y1) / scale)),
-            );
-            window.paint_quad(fill(bounds, ink.opacity(coverage)));
+        window.with_content_mask(Some(self.mask.get()), |window| {
+            cells(phase, unit, |[x0, y0, x1, y1], coverage| {
+                let bounds = Bounds::from_corners(
+                    point(px((left + x0) / scale), px((top + y0) / scale)),
+                    point(px((left + x1) / scale), px((top + y1) / scale)),
+                );
+                window.paint_quad(fill(bounds, ink.opacity(coverage)));
+            });
         });
         if moving && pinned.is_none() {
             bump(&self.counters.requests);
@@ -213,7 +216,7 @@ fn spans(low: f32, high: f32) -> [Option<(f32, f32, f32)>; 3] {
     ]
 }
 
-/// The mark's place in the pane's layout; it records its bounds and paints nothing, so a crawl frame leaves the pane alone.
+/// The mark's place in the pane's layout; it records its bounds and its pane's clip and paints nothing, so a crawl frame leaves the pane alone.
 pub struct Slot(pub Rc<Crawl>);
 
 impl IntoElement for Slot {
@@ -253,10 +256,11 @@ impl Element for Slot {
         _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
         _: &mut (),
-        _: &mut Window,
+        window: &mut Window,
         _: &mut App,
     ) {
         self.0.slot.set(bounds);
+        self.0.mask.set(window.content_mask());
     }
     fn paint(
         &mut self,

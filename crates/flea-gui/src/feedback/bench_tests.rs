@@ -1,17 +1,15 @@
 //! Measurement arms for the loading mark, run by hand: cargo test --release -p flea-gui --lib feedback::bench_tests -- --ignored --nocapture.
-use super::spinner::{phase, Crawl, GRID};
-use super::spinner_tests::{Requests, FRAME};
+use super::spinner::{phase, Crawl, AT, DASH, GRID, HALF, LENGTH, PERIOD_MS, SPIRAL};
+use super::spinner_tests::{frame, land, load, open_with, shell, Holds, Requests, FRAME};
 use crate::{
     list::bench::{allocations, fixture, real_cx},
-    pane::swap::{Options, CAP_MS},
-    state::{tests::shell_with, Shell},
-    window::startup::View,
+    state::Shell,
 };
-use flea::protocol::{Reply, RowFacts};
+use flea::protocol::Reply;
 use gpui::{
-    div, point, prelude::*, px, AnyElement, App, AppContext, Bounds, Context, Element, ElementId,
-    Entity, GlobalElementId, InspectorElementId, LayoutId, Path, PathBuilder, Pixels, Render,
-    Style, StyleRefinement, Task, TestAppContext, Window, WindowHandle,
+    div, point, prelude::*, px, AnyElement, App, Bounds, Context, Element, ElementId, Entity,
+    GlobalElementId, InspectorElementId, LayoutId, Path, PathBuilder, Pixels, Render, Style,
+    StyleRefinement, Task, TestAppContext, Window, WindowHandle,
 };
 use std::{
     cell::{Cell, RefCell},
@@ -21,21 +19,8 @@ use std::{
 
 const FRAMES: usize = 1200;
 const BATCHES: usize = 7;
-// Phases a period cache keeps: one per 16 ms frame of the 1600 ms walk.
-const CACHED: usize = 100;
-const SPIRAL: [(f32, f32); 10] = [
-    (21., 21.),
-    (3., 21.),
-    (3., 3.),
-    (21., 3.),
-    (21., 17.),
-    (7., 17.),
-    (7., 7.),
-    (17., 7.),
-    (17., 13.),
-    (11., 13.),
-];
-const AT: [f32; 10] = [0., 18., 36., 54., 68., 82., 92., 102., 108., 114.];
+// Phases a period cache keeps, one per frame of the walk.
+const CACHED: usize = (PERIOD_MS as u128 / FRAME.as_millis()) as usize;
 
 #[derive(Clone, Copy, Debug, PartialEq)]
 enum Geometry {
@@ -70,6 +55,12 @@ impl Render for Bench {
             self.geometry,
             Rc::clone(&self.paths),
         ))
+    }
+}
+
+impl Holds for Bench {
+    fn held(&self) -> &Entity<Shell> {
+        &self.shell
     }
 }
 
@@ -155,8 +146,9 @@ fn spiral(mark: &Crawl, at: f32) -> Path<Pixels> {
     let unit = f32::from(slot.size.width) / GRID;
     let place =
         |(x, y): (f32, f32)| point(slot.origin.x + px(x * unit), slot.origin.y + px(y * unit));
+    let tail = AT.len() - 2;
     let along = |s: f32| {
-        let at = (0..9).find(|&at| s <= AT[at + 1]).unwrap_or(8);
+        let at = (0..=tail).find(|&at| s <= AT[at + 1]).unwrap_or(tail);
         let ((ax, ay), (bx, by)) = (SPIRAL[at], SPIRAL[at + 1]);
         let t = (s - AT[at]) / (AT[at + 1] - AT[at]);
         (
@@ -168,24 +160,25 @@ fn spiral(mark: &Crawl, at: f32) -> Path<Pixels> {
             ),
         )
     };
-    let mut builder = PathBuilder::stroke(px(2. * unit));
-    let start = 114. * at;
-    let mut runs = vec![(start, (start + 60.).min(114.))];
-    if start + 60. > 114. {
-        runs.push((0., start + 60. - 114.));
+    let mut builder = PathBuilder::stroke(px(2. * HALF * unit));
+    let start = LENGTH * at;
+    let mut runs = vec![(start, (start + DASH).min(LENGTH))];
+    if start + DASH > LENGTH {
+        runs.push((0., start + DASH - LENGTH));
     }
     for (from, to) in runs {
         let (first, (x, y), (dx, dy)) = along(from + 1e-4);
-        builder.move_to(place((x - dx * (1. + 1e-4), y - dy * (1. + 1e-4))));
+        builder.move_to(place((x - dx * (HALF + 1e-4), y - dy * (HALF + 1e-4))));
         let (last, (x, y), (dx, dy)) = along(to);
         for vertex in SPIRAL.iter().take(last + 1).skip(first + 1) {
             builder.line_to(place(*vertex));
         }
-        builder.line_to(place((x + dx, y + dy)));
+        builder.line_to(place((x + dx * HALF, y + dy * HALF)));
     }
     builder.build().unwrap()
 }
 
+// Reads the one line of /proc/thread-self/schedstat, such as "52341982 1204511 87", which is ns on a CPU, ns waiting and timeslices.
 fn cpu_ns() -> u64 {
     let stat = std::fs::read_to_string("/proc/thread-self/schedstat").unwrap();
     stat.split_whitespace().next().unwrap().parse().unwrap()
@@ -198,24 +191,7 @@ fn open(
     cached: bool,
     timer: bool,
 ) -> (WindowHandle<Bench>, Requests) {
-    let (backend, first) = crate::backend::Backend::test_channel();
-    let (spare, second) = crate::backend::Backend::test_channel();
-    let handle = cx.add_window(|window, cx| {
-        let shell = cx.new(|cx| {
-            let mut shell = shell_with(backend, cx);
-            if dual {
-                let mut host = shell_with(spare, cx).panes[0].take().unwrap();
-                let rows = Reply::Rows {
-                    start: 0,
-                    rows: fixture("2k")[..320].to_vec(),
-                    listing: 2,
-                };
-                host.pane.receive(rows).unwrap();
-                shell.panes[1] = Some(host);
-                shell.view = View::Dual;
-            }
-            shell
-        });
+    let (handle, keep) = open_with(cx, dual, |shell, window, cx| {
         // A QML-style hold timer: it ticks every frame interval whether or not the mark is on screen.
         let timer = timer.then(|| {
             cx.spawn_in(window, async move |this, cx| loop {
@@ -234,60 +210,26 @@ fn open(
             _timer: timer,
         }
     });
-    (handle, vec![Box::new(first), Box::new(second)])
+    if dual {
+        // The second pane holds real names, so its list shapes text as a folder does.
+        shell(cx, handle, |shell, _, cx| {
+            let rows = Reply::Rows {
+                start: 0,
+                rows: fixture("2k")[..320].to_vec(),
+                listing: 2,
+            };
+            shell.panes[1].as_mut().unwrap().pane.receive(rows).unwrap();
+            cx.notify();
+        });
+    }
+    (handle, keep)
 }
 
-fn load(cx: &mut TestAppContext, handle: WindowHandle<Bench>) {
-    handle
-        .update(cx, |bench, window, cx| {
-            bench.shell.clone().update(cx, |shell, cx| {
-                assert!(shell.navigate(0, "/slow".into(), None, Options::default(), window, cx));
-                let host = shell.panes[0].as_mut().unwrap();
-                assert!(host.pane.tick(host.pane.now() + CAP_MS));
-                host.changed(&shell.locale);
-                // The listing never answers here, so its 10 s wait is dropped to keep the pane loading.
-                shell.deadlines[0] = None;
-                cx.notify();
-            })
-        })
-        .unwrap();
-}
-
-/// The listing lands within one platform frame, so the mark hides.
-fn land(cx: &mut TestAppContext, handle: WindowHandle<Bench>) {
-    handle
-        .update(cx, |bench, window, cx| {
-            bench.shell.clone().update(cx, |shell, cx| {
-                let listed = Reply::Listed {
-                    path: "/slow".into(),
-                    total: 2,
-                };
-                shell.receive(0, crate::backend::Event::Reply(listed), window, cx);
-                let rows = Reply::Rows {
-                    start: 0,
-                    rows: vec![RowFacts::default(); 2],
-                    listing: 3,
-                };
-                shell.receive(0, crate::backend::Event::Reply(rows), window, cx);
-                let host = shell.panes[0].as_mut().unwrap();
-                host.pane
-                    .tick(host.pane.now() + crate::pane::swap::MIN_SHOW_MS);
-                host.changed(&shell.locale);
-                assert!(!host.pane.busy());
-                cx.notify();
-            });
-            window.simulate_next_frame(cx);
-        })
-        .unwrap();
-}
-
-/// One platform frame: the clock runs due tasks, due frame callbacks run, and the window draws if dirtied.
-fn frame(cx: &mut TestAppContext, handle: WindowHandle<Bench>) -> usize {
-    cx.executor().advance_clock(FRAME);
-    cx.update_window(handle.into(), |_, window, cx| {
-        window.simulate_next_frame(cx)
-    })
-    .unwrap()
+/// The shared fall back to the loading mark, with the listing's 10 s wait dropped since it never answers here.
+fn loading(cx: &mut TestAppContext, handle: WindowHandle<Bench>) -> Rc<Crawl> {
+    let mark = load(cx, handle);
+    shell(cx, handle, |shell, _, _| shell.deadlines[0] = None);
+    mark
 }
 
 fn range(mut values: Vec<f64>) -> String {
@@ -300,23 +242,13 @@ fn range(mut values: Vec<f64>) -> String {
     )
 }
 
-fn crawl(cx: &mut TestAppContext, handle: WindowHandle<Bench>) -> Rc<Crawl> {
-    handle
-        .update(cx, |bench, _, cx| {
-            let host = bench.shell.read(cx).panes[0].as_ref().unwrap();
-            Rc::clone(&host.pane.swap.mark)
-        })
-        .unwrap()
-}
-
 fn measure(geometry: Geometry, cached: bool, dual: bool) {
     let mut cx = real_cx();
     let (handle, _keep) = open(&mut cx, dual, geometry, cached, false);
-    load(&mut cx, handle);
+    let mark = loading(&mut cx, handle);
     for _ in 0..FRAMES {
         frame(&mut cx, handle);
     }
-    let mark = crawl(&mut cx, handle);
     let draws = handle
         .update(&mut cx, |bench, _, _| Rc::clone(&bench.draws))
         .unwrap();
@@ -364,12 +296,11 @@ fn hidden() {
     for timer in [true, false] {
         let mut cx = real_cx();
         let (handle, _keep) = open(&mut cx, true, Geometry::Quads, true, timer);
-        load(&mut cx, handle);
+        let mark = loading(&mut cx, handle);
         for _ in 0..30 {
             frame(&mut cx, handle);
         }
         land(&mut cx, handle);
-        let mark = crawl(&mut cx, handle);
         let draws = handle
             .update(&mut cx, |bench, _, _| Rc::clone(&bench.draws))
             .unwrap();

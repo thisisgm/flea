@@ -517,11 +517,14 @@ line arriving while it is drawn is kept even when no rows were held, and `rows` 
 wait in `waiting`, in arrival order, for the `minShow` timer and then land as they would have. A folder that lists in
 under 66 ms never shows the mark; one that lists between 66 and 166 ms draws the mark at 66 ms and the
 whole folder at 166 ms; a slower one draws the mark at 66 ms and the folder when it lands. `describe()`
-reports how long the last mark stood as `shownMs`. A walk's matches never wait on the mark. The mark
-holds still for its first second on screen and crawls only after it (`ui/Spinner.qml`), so a load shorter
+reports how long the last mark stood as `shownMs`. A walk's matches never wait on the mark. The QML
+mark holds still for its first second on screen and crawls only after it (`ui/Spinner.qml`), so a load shorter
 than that never draws motion. `tests/spinner-still.sh` counts, never times, the frames the window swaps and the
 `dashOffset` writes per mark, so a resting mark that asks for frames, or a crawl written faster than the window
-draws (a timer in place of the animation), fails on any machine.
+draws (a timer in place of the animation), fails on any machine. That first-second hold belongs to the QML front
+end only. By a 0.4.0 ruling the GPUI mark (`crates/flea-gui/src/feedback/spinner.rs`) crawls from the first frame
+it draws, so it differs from `tests/spinner-still.sh` on purpose, and `tests/gpui-spinner.sh` counts its frames,
+offset writes and frame requests instead.
 
 **No row acts while a listing is out, held or not.** After the `list` request the backend numbers
 every row for the directory asked for, so an action on a row by its index would land on another file.
@@ -2155,6 +2158,10 @@ failure fails the check rather than passing it.
   window a bare invocation already means, see "Modes".
 - `paths.rs` resolves the UI directory and whether a display is available.
 - `gui.rs` execs `qs` against the resolved UI directory.
+- `crates/flea-gui/src/window/root.rs` is the GPUI window root. It holds the shell as one cached view and paints
+  each pane's loading mark over it in an overlay, inside the content mask the mark's slot recorded, so a narrow pane
+  cuts the mark at its own edge. A surface that covers a pane (Quick Look, menus, sheets, dialogs) paints in a later
+  layer than that overlay, a GPUI `deferred`, so it is never drawn under a mark.
 - `thp.rs` the `prctl(PR_SET_THP_DISABLE)` declaration behind `disable()` and `enable()`.
 - `icdexclude.rs` disables the Vulkan drivers of GPU vendors the box does not hold, before the probe and `qs`; see rule 5.
 - `icdmanifests.rs` the manifest inventory behind `icdexclude.rs` and the probe cache's key: which ICD manifests the loader would read and what each one's library names.

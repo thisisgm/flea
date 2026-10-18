@@ -1,4 +1,4 @@
-use super::spinner::{phase, Crawl};
+use super::spinner::{phase, Crawl, HERO, TRAVEL};
 use crate::{
     backend::{Backend, Event as BackendEvent},
     pane::swap::{Options, CAP_MS, MIN_SHOW_MS},
@@ -6,7 +6,10 @@ use crate::{
     window::{root::Root, startup::View},
 };
 use flea::protocol::{Reply, RowFacts};
-use gpui::{AppContext, Context, Entity, TestAppContext, Window, WindowHandle};
+use gpui::{
+    point, px, size, AppContext, Bounds, Context, Entity, Render, ScaledPixels, TestAppContext,
+    Window, WindowHandle,
+};
 use std::{cell::Cell, rc::Rc, time::Duration};
 
 pub(super) const FRAME: Duration = Duration::from_millis(16);
@@ -14,10 +17,26 @@ pub(super) const FRAME: Duration = Duration::from_millis(16);
 /// The backend ends a test keeps alive, so a listing request is sent rather than refused.
 pub(super) type Requests = Vec<Box<dyn FnMut() -> Option<(usize, usize)>>>;
 
-pub(super) fn open(cx: &mut TestAppContext, dual: bool) -> (WindowHandle<Root>, Requests) {
+/// A window root that holds the shell, so these helpers drive the shipped root and the bench arms alike.
+pub(super) trait Holds: Render {
+    fn held(&self) -> &Entity<Shell>;
+}
+
+impl Holds for Root {
+    fn held(&self) -> &Entity<Shell> {
+        &self.shell
+    }
+}
+
+/// A window whose root `root` builds around a shell with one pane, or two in the dual view.
+pub(super) fn open_with<V: Holds>(
+    cx: &mut TestAppContext,
+    dual: bool,
+    root: impl FnOnce(Entity<Shell>, &mut Window, &mut Context<V>) -> V,
+) -> (WindowHandle<V>, Requests) {
     let (backend, first) = Backend::test_channel();
     let (spare, second) = Backend::test_channel();
-    let handle = cx.add_window(|_, cx| {
+    let handle = cx.add_window(|window, cx| {
         let shell = cx.new(|cx| {
             let mut shell = shell_with(backend, cx);
             if dual {
@@ -26,19 +45,23 @@ pub(super) fn open(cx: &mut TestAppContext, dual: bool) -> (WindowHandle<Root>, 
             }
             shell
         });
-        Root { shell }
+        root(shell, window, cx)
     });
     (handle, vec![Box::new(first), Box::new(second)])
 }
 
-pub(super) fn shell<R>(
+pub(super) fn open(cx: &mut TestAppContext, dual: bool) -> (WindowHandle<Root>, Requests) {
+    open_with(cx, dual, |shell, _, _| Root { shell })
+}
+
+pub(super) fn shell<V: Holds, R>(
     cx: &mut TestAppContext,
-    handle: WindowHandle<Root>,
+    handle: WindowHandle<V>,
     update: impl FnOnce(&mut Shell, &mut Window, &mut Context<Shell>) -> R,
 ) -> R {
     handle
         .update(cx, |root, window, cx| {
-            root.shell
+            root.held()
                 .clone()
                 .update(cx, |shell, cx| update(shell, window, cx))
         })
@@ -46,10 +69,14 @@ pub(super) fn shell<R>(
 }
 
 /// Starts a listing on side 0 and spends its hold, so the pane falls back to the loading state.
-pub(super) fn load(cx: &mut TestAppContext, handle: WindowHandle<Root>) -> Rc<Crawl> {
+pub(super) fn load<V: Holds>(cx: &mut TestAppContext, handle: WindowHandle<V>) -> Rc<Crawl> {
+    load_side(cx, handle, 0)
+}
+
+fn load_side<V: Holds>(cx: &mut TestAppContext, handle: WindowHandle<V>, side: usize) -> Rc<Crawl> {
     shell(cx, handle, |shell, window, cx| {
-        assert!(shell.navigate(0, "/slow".into(), None, Options::default(), window, cx));
-        let host = shell.panes[0].as_mut().unwrap();
+        assert!(shell.navigate(side, "/slow".into(), None, Options::default(), window, cx));
+        let host = shell.panes[side].as_mut().unwrap();
         assert!(host.pane.tick(host.pane.now() + CAP_MS));
         host.changed(&shell.locale);
         cx.notify();
@@ -58,10 +85,10 @@ pub(super) fn load(cx: &mut TestAppContext, handle: WindowHandle<Root>) -> Rc<Cr
 }
 
 /// The listing lands past the mark's minimum within one platform frame, whose due callbacks run before it draws.
-pub(super) fn land(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
+pub(super) fn land<V: Holds>(cx: &mut TestAppContext, handle: WindowHandle<V>) {
     handle
         .update(cx, |root, window, cx| {
-            root.shell.clone().update(cx, |shell, cx| {
+            root.held().clone().update(cx, |shell, cx| {
                 let listed = Reply::Listed {
                     path: "/slow".into(),
                     total: 2,
@@ -85,7 +112,7 @@ pub(super) fn land(cx: &mut TestAppContext, handle: WindowHandle<Root>) {
 }
 
 /// One platform frame 16 ms on: due next-frame callbacks run, and the window draws only if that dirtied it.
-pub(super) fn frame(cx: &mut TestAppContext, handle: WindowHandle<Root>) -> usize {
+pub(super) fn frame<V: 'static>(cx: &mut TestAppContext, handle: WindowHandle<V>) -> usize {
     cx.executor().advance_clock(FRAME);
     cx.update_window(handle.into(), |_, window, cx| {
         window.simulate_next_frame(cx)
@@ -128,7 +155,7 @@ fn the_crawl_moves_on_the_second_frame_after_show(cx: &mut TestAppContext) {
     assert_eq!(frame(cx, handle), 1);
     assert_eq!(drawn(cx, handle), 2);
     assert!(mark.offset() < 0.);
-    assert_eq!(mark.offset(), -57. * phase(FRAME));
+    assert_eq!(mark.offset(), -TRAVEL * phase(FRAME));
 }
 
 #[gpui::test]
@@ -150,7 +177,7 @@ fn every_drawn_frame_writes_the_offset_once_and_asks_for_one_more(cx: &mut TestA
             (frames, (frames, frames, frames))
         );
     }
-    assert!(mark.offset() < 0. && mark.offset() > -57.);
+    assert!(mark.offset() < 0. && mark.offset() > -TRAVEL);
 }
 
 #[gpui::test]
@@ -205,7 +232,7 @@ fn a_hide_puts_the_dash_back_to_rest_and_the_next_show_starts_there(cx: &mut Tes
     load(cx, handle);
     assert_eq!((mark.shown(), mark.offset()), (true, 0.));
     frame(cx, handle);
-    assert_eq!(mark.offset(), -57. * phase(FRAME));
+    assert_eq!(mark.offset(), -TRAVEL * phase(FRAME));
 }
 
 #[gpui::test]
@@ -253,4 +280,64 @@ fn the_pane_describe_reports_the_marks_counters(cx: &mut TestAppContext) {
     }
     assert_eq!(count("others"), Some(0.));
     assert!((count("offset").unwrap() - f64::from(mark.offset())).abs() < 0.001);
+}
+
+#[gpui::test]
+fn a_narrow_dual_pane_clips_its_mark_at_the_pane_edge(cx: &mut TestAppContext) {
+    for side in 0..2 {
+        let (handle, _keep) = open(cx, true);
+        // A 192 px rail, two 30 px panes and the 1 px between them make each pane narrower than the centred 48 px mark.
+        cx.simulate_window_resize(handle.into(), size(px(253.), px(400.)));
+        let mark = load_side(cx, handle, side);
+        let mut past = false;
+        for frames in 0..25 {
+            if frames > 0 {
+                assert_eq!(frame(cx, handle), 1);
+            }
+            let (pane, width, square, quads) = shell(cx, handle, |shell, window, _| {
+                let pane = shell.geometry(window).panes[side];
+                let scale = window.scale_factor();
+                let edges = Bounds::new(
+                    point(px(pane.x), px(pane.y)),
+                    size(px(pane.width), px(pane.height)),
+                );
+                let square = mark.slot().scale(scale);
+                (
+                    edges.scale(scale),
+                    pane.width,
+                    square,
+                    window.painted_quads(),
+                )
+            });
+            assert!(width < HERO, "side {side}: pane {width} px");
+            let ink = mark.ink();
+            let ours: Vec<_> = quads
+                .iter()
+                .filter(|quad| {
+                    quad.background
+                        .as_solid()
+                        .is_some_and(|color| (color.h, color.s, color.l) == (ink.h, ink.s, ink.l))
+                        && quad.bounds.is_contained_within(&square)
+                })
+                .collect();
+            assert!(!ours.is_empty(), "side {side} frame {frames}: no mark quad");
+            for quad in ours {
+                let shown = quad.bounds.intersect(&quad.content_mask.bounds);
+                assert!(
+                    inside(shown, pane),
+                    "side {side} frame {frames}: {shown:?} leaves the pane {pane:?}"
+                );
+                past |= !inside(quad.bounds, pane);
+            }
+        }
+        assert!(past, "side {side}: the mark never reached past its pane");
+    }
+}
+
+fn inside(bounds: Bounds<ScaledPixels>, pane: Bounds<ScaledPixels>) -> bool {
+    let near = |a: ScaledPixels, b: ScaledPixels| a.0 >= b.0 - 0.01;
+    near(bounds.origin.x, pane.origin.x)
+        && near(bounds.origin.y, pane.origin.y)
+        && near(pane.right(), bounds.right())
+        && near(pane.bottom(), bounds.bottom())
 }
