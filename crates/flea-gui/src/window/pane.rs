@@ -2,6 +2,7 @@ use super::locale::Snapshot;
 use crate::{
     backend::{Backend, Failure},
     list::{pane::Pane, ListState, Typeface},
+    navigation::Navigator,
 };
 use gpui::{SharedString, Task};
 use std::{cell::RefCell, rc::Rc};
@@ -22,6 +23,8 @@ pub(crate) struct PaneHost {
     pub answered: bool,
     pub waiting: bool,
     pub stopped: bool,
+    pub nav: Navigator,
+    pub watch_task: Option<(u64, Task<()>)>,
     applied_listing: usize,
 }
 
@@ -43,6 +46,8 @@ impl PaneHost {
             answered: false,
             waiting: false,
             stopped: false,
+            nav: Navigator::new(Rc::default(), Rc::default()),
+            watch_task: None,
             applied_listing: 0,
         }
     }

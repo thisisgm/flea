@@ -119,6 +119,7 @@ impl Shell {
                 let _ = cx.update(|window, cx| {
                     this.update(cx, |shell, cx| {
                         if let Some(host) = &mut shell.panes[side] {
+                            let before = host.pane.path().to_owned();
                             if host.pane.tick(host.pane.now()) {
                                 host.changed(&shell.locale);
                                 shell.path_labels[side] = host.path.clone().into();
@@ -128,6 +129,7 @@ impl Shell {
                                 }
                                 cx.notify();
                             }
+                            shell.after_navigation(side, &before, window, cx);
                         }
                         shell.arm_transition(side, window, cx);
                     })

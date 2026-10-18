@@ -69,7 +69,10 @@ impl Shell {
                     pane: &host.pane,
                     catalog: &self.locale.catalog,
                 };
-                let _ = answer.try_send(surface.dispatch_to(request, &[&pane]));
+                let navigation = crate::ipc::navigation::NavigationAdapter {
+                    navigator: &host.nav,
+                };
+                let _ = answer.try_send(surface.dispatch_to(request, &[&pane, &navigation]));
             }
             Event::Quit => {
                 self.close(window, cx);
@@ -87,6 +90,7 @@ impl Shell {
         let Some(host) = &mut self.panes[side] else {
             return;
         };
+        let before = host.pane.path().to_owned();
         let event = match event {
             BackendEvent::Session { generation, reply } => {
                 if host.pane.swap.session.drops(generation) {
@@ -136,13 +140,53 @@ impl Shell {
                 message,
                 mode,
             } => {
-                if !host
+                let ended = host
                     .pane
-                    .fail(&operation, &path, &message, mode, host.pane.now())
-                {
+                    .fail(&operation, &path, &message, mode, host.pane.now());
+                if ended {
+                    host.changed(&self.locale);
+                }
+                host.nav.after_failure(&mut host.pane, &operation);
+                self.run_navigation(side, window, cx);
+                if !ended {
                     return;
                 }
-                host.changed(&self.locale);
+            }
+            BackendEvent::Changed { path } => {
+                let now = host.pane.now();
+                host.nav.changed(&host.pane, &path, now);
+                self.arm_watch(side, window, cx);
+                return;
+            }
+            BackendEvent::Located(located) => {
+                let taken = match located.id {
+                    Some(id) => host.nav.take_located_many(
+                        &host.pane,
+                        &located.directory,
+                        id,
+                        located.ok,
+                        &located.matches,
+                        &mut host.selected,
+                    ),
+                    None => host.nav.take_located(
+                        &mut host.pane,
+                        &located.directory,
+                        &located.path,
+                        located.index,
+                    ),
+                };
+                if taken {
+                    self.run_navigation(side, window, cx);
+                    self.arm_watch(side, window, cx);
+                    cx.notify();
+                }
+                return;
+            }
+            BackendEvent::Paths(paths) => {
+                if host.nav.take_paths(&mut host.pane, &paths) {
+                    self.run_navigation(side, window, cx);
+                }
+                return;
             }
             BackendEvent::Reply(reply) => match host.pane.receive(reply) {
                 Ok(true) => {
@@ -154,6 +198,7 @@ impl Shell {
                     self.seam.rows(&host.pane);
                 }
                 Ok(false) => {
+                    self.after_navigation(side, &before, window, cx);
                     self.arm_transition(side, window, cx);
                     return;
                 }
@@ -170,6 +215,7 @@ impl Shell {
                 }
             },
         }
+        self.after_navigation(side, &before, window, cx);
         self.arm_transition(side, window, cx);
         if side == 0 {
             self.ensure_ipc_reader(window, cx);

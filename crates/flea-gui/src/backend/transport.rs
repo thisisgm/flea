@@ -1,7 +1,8 @@
 //! Wire adapters keep the optional denied-directory mode and captured row numbering intact.
-use super::{parse_reply, Event};
+use super::{parse_reply, Event, Located};
+use crate::navigation::{folder_state::Order, Command, Listing};
 use crate::pane::requests::RowAction;
-use flea::{jsondoc, protocol::Reply};
+use flea::{json::escape, jsondoc, protocol::Reply};
 use std::io::{self, Write};
 
 pub(super) fn parse(line: &str) -> Result<Event, String> {
@@ -26,6 +27,7 @@ pub(super) fn parse(line: &str) -> Result<Event, String> {
                 mode,
             })
         }
+        Reply::Other => Ok(other(line)?.unwrap_or(Event::Reply(Reply::Other))),
         reply => {
             // Canonical plain windows have no gen; escaped keys still take the structural parser.
             if !line.contains("\"gen\"") && !line.contains("\\u") {
@@ -66,4 +68,104 @@ pub(super) fn write_rows(
     }
     writeln!(output, "]}}")?;
     output.flush()
+}
+
+// Unsolicited and pathed replies the listing parser has no variant for.
+pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
+    let document = jsondoc::parse(line)?;
+    let text = |key| match document.get(key) {
+        Some(jsondoc::Json::Str(value)) => Ok(value.clone()),
+        _ => Err(format!("{key} must be a string")),
+    };
+    let number = |value: Option<&jsondoc::Json>| match value {
+        Some(jsondoc::Json::Num(value)) => value.parse::<i64>().ok(),
+        _ => None,
+    };
+    Ok(match document.get("t") {
+        Some(jsondoc::Json::Str(kind)) if kind == "changed" => {
+            Some(Event::Changed { path: text("path")? })
+        }
+        Some(jsondoc::Json::Str(kind)) if kind == "paths" => Some(Event::Paths(
+            document
+                .get("paths")
+                .and_then(jsondoc::Json::as_array)
+                .ok_or("paths must be an array")?
+                .iter()
+                .map(|path| path.as_str().map(str::to_owned).ok_or("paths must be strings"))
+                .collect::<Result<_, _>>()?,
+        )),
+        Some(jsondoc::Json::Str(kind)) if kind == "located" => {
+            let matches = match document.get("matches").and_then(jsondoc::Json::as_array) {
+                Some(found) => found
+                    .iter()
+                    .filter_map(|found| {
+                        let index = usize::try_from(number(found.get("index"))?).ok()?;
+                        Some((found.get("path")?.as_str()?.to_owned(), index))
+                    })
+                    .collect(),
+                None => Vec::new(),
+            };
+            Some(Event::Located(Located {
+                directory: text("directory")?,
+                path: text("path").unwrap_or_default(),
+                index: number(document.get("index")).unwrap_or(-1),
+                id: number(document.get("id")).and_then(|id| u64::try_from(id).ok()),
+                transfer: number(document.get("transferId")).unwrap_or(0),
+                ok: document.get("ok").and_then(jsondoc::Json::as_bool) != Some(false),
+                matches,
+            }))
+        }
+        _ => None,
+    })
+}
+
+fn order_fields(order: Order, folders_first: bool, group_by_kind: bool, hidden_last: bool) -> String {
+    format!(
+        "\"by\":\"{}\",\"desc\":{},\"foldersFirst\":{folders_first},\"groupByKind\":{group_by_kind},\"hiddenLast\":{hidden_last}",
+        order.key, order.desc
+    )
+}
+
+// The one list composition: the folder's order and filters ride every request.
+pub fn list_line(listing: &Listing) -> String {
+    let mut line = format!(
+        "{{\"c\":\"list\",\"path\":\"{}\",\"first\":{},\"hidden\":{},\"wantChanged\":{},{}",
+        escape(&listing.path),
+        listing.first,
+        listing.hidden,
+        listing.want_changed,
+        order_fields(listing.order, listing.folders_first, listing.group_by_kind, listing.hidden_last)
+    );
+    if let Some(select) = &listing.select {
+        line.push_str(&format!(",\"select\":\"{}\"", escape(select)));
+    }
+    line.push('}');
+    line
+}
+
+pub(super) fn command_line(command: &Command) -> Option<String> {
+    Some(match command {
+        Command::List(listing) => list_line(listing),
+        Command::Window { start, count } => {
+            format!("{{\"c\":\"window\",\"start\":{start},\"count\":{count}}}")
+        }
+        Command::Sort {
+            order,
+            folders_first,
+            group_by_kind,
+            hidden_last,
+        } => format!(
+            "{{\"c\":\"sort\",{}}}",
+            order_fields(*order, *folders_first, *group_by_kind, *hidden_last)
+        ),
+        Command::Locate { path } => format!("{{\"c\":\"locate\",\"path\":\"{}\"}}", escape(path)),
+        Command::LocateMany { paths, id } => {
+            let paths: Vec<String> = paths
+                .iter()
+                .map(|path| format!("\"{}\"", escape(path)))
+                .collect();
+            format!("{{\"c\":\"locate\",\"paths\":[{}],\"id\":{id}}}", paths.join(","))
+        }
+        Command::Paths(_) | Command::Persist(_) => return None,
+    })
 }
