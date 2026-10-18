@@ -227,6 +227,9 @@ mod manifestfsize_tests;
 // Test-only: hard rule 9's sandbox root, so no destructive test names a path outside one.
 #[cfg(test)]
 pub mod testdir;
+// Test-only: a disk-backed sandbox and bounded recreation on a genuinely reused inode.
+#[cfg(test)]
+mod inodereuse;
 // Test-only: the fifo, writer and bound every hang test shares.
 #[cfg(test)]
 pub mod fifotest;
