@@ -1,4 +1,5 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Hard rule 6's live battery for the write operations: every one through the real key or menu path,
 # asserted on the filesystem and on the app's own IPC, never on an eyeball.
 set -u
@@ -6,6 +7,7 @@ set -u
 . "$(dirname "$0")/../tools/flea-sandbox-guard"
 SB="$FIXTURE_ROOT/flea-live-ops"
 TREE=${FLEA_TREE:-$HOME/Work/claude/flea}
+flea_ipc_init "${FLEA_BIN:-$TREE/target/release/flea}"
 export PATH="$HOME/.local/bin:$PATH"
 eval "$(omarchy-drive env)" 2>/dev/null
 fail=0
@@ -13,7 +15,7 @@ fail=0
 # A path is not an instance selector, so this resolves the pid once and addresses it by number.
 . "$TREE/tools/flea-ipc-pid"
 FLEA_PID=""
-q() { qs ipc --pid "$FLEA_PID" call flea "$@" 2>/dev/null; }
+q() { flea_ipc_call --pid "$FLEA_PID" call flea "$@" 2>/dev/null; }
 
 # Pressing Return on a row hands the file to the default handler, and that handler outlives this
 # script: three xdg-open and nvim pairs were still resident seventeen hours later, holding the load

@@ -1,4 +1,5 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Compares live launch with experimental prewarm generation; the UI does not adopt it.
 set -u
 # Hard rule 9's guard, which owns FIXTURE_ROOT. This was the last script in the tree writing without
@@ -11,6 +12,7 @@ eval "$(omarchy-drive env)"
 
 root=$(cd "$(dirname "$0")/.." && pwd) || exit 1
 bin=${BIN:-$root/target/release/flea}
+flea_ipc_init "$bin"
 ui=${UI:-$root/ui}
 dir=${DIR:-$FIXTURE_ROOT/flea-bench-btrfs}
 prewarm_path=${XDG_RUNTIME_DIR:-/run/user/$(id -u)}/flea-first-paint-$$.json
@@ -85,7 +87,7 @@ wait_for_row() {
     local deadline=$((SECONDS + timeout_seconds))
     local actual
     while ((SECONDS <= deadline)); do
-        actual=$(omarchy-drive ipc -p "$ui/boot" flea rowAt 0 2>/dev/null) || true
+        actual=$(flea_ipc_drive -p "$ui/boot" flea rowAt 0 2>/dev/null) || true
         if [ "$actual" = "$expected_row" ]; then
             return 0
         fi
@@ -127,7 +129,7 @@ run_once() {
         stop_shell "$pid"
         fail "the mapped window is not Flea"
     fi
-    if ! omarchy-drive wait ipc -p "$ui/boot" flea total "$expected_total" --timeout "$timeout_seconds" >/dev/null; then
+    if ! flea_ipc_wait -p "$ui/boot" flea total "$expected_total" --timeout "$timeout_seconds" >/dev/null; then
         stop_shell "$pid"
         fail "the expected total never reached the window"
     fi

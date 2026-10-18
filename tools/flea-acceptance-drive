@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init "$BIN"
 # The display half of tools/flea-acceptance, which sources this. Everything in here needs a real
 # Flea window, which is why it is a separate file behind a separate flag: the request battery still
 # runs headless on a box whose one display another lane is holding.
@@ -75,7 +77,7 @@ drive_session_setup() {
 # ---- the seam into the running window --------------------------------------------------------------
 
 ipc() {
-  omarchy-drive ipc -p "$REPO/ui" flea "$@"
+  flea_ipc_drive -p "$REPO/ui" flea "$@"
 }
 
 # Every keystroke goes through omarchy-drive, which focuses the window and refuses a wrong class first.
@@ -578,7 +580,7 @@ drive_launch() {
   DRIVE_WINDOW_ADDRESS=$(drive_window_identity | jq -er '.address') || die "cannot identify native candidate window"
   omarchy-drive focus "$DRIVE_WINDOW_ADDRESS" || die "owned candidate could not receive focus"
   # The seam is built after the first listing, so the window has mapped before it answers.
-  omarchy-drive wait ipc -p "$REPO/ui" flea ready true --timeout 20 >/dev/null 2>&1 || die "the IPC seam never answered ready in 20 s"
+  flea_ipc_wait -p "$REPO/ui" flea ready true --timeout 20 >/dev/null 2>&1 || die "the IPC seam never answered ready in 20 s"
   # A window under a fixture HOME renders the fallback palette, and every colour claim off it is
   # worthless; ui/Theme.qml carries the flag for exactly this check.
   [ "$(ipc themeLoaded)" = true ] || die "themeLoaded is not true, so this window paints a fallback palette"
@@ -1383,7 +1385,7 @@ keycase_pageForward() {
   esac
   expected=$((before + 1))
   k "$@"
-  omarchy-drive wait ipc -p "$REPO/ui" flea previewPdfPage "$expected" --timeout 10 >/dev/null \
+  flea_ipc_wait -p "$REPO/ui" flea previewPdfPage "$expected" --timeout 10 >/dev/null \
     || { WHY="the PDF page stayed at $(ipc previewPdfPage) after the chord"; return 1; }
   omarchy-drive wait ocr flea PAGETWO --timeout 10 >/dev/null 2>&1 \
     || { WHY="the preview state advanced but the second page was not painted"; return 1; }

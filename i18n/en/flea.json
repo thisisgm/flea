@@ -1,6 +1,11 @@
 {
   "app.name": "Flea",
   "folder.empty": "This folder is empty",
+  "ipc.start_failed": "IPC could not start: %1",
+  "ipc.request_timed_out": "IPC request timed out",
+  "ipc.line_too_long": "IPC line is too long",
+  "ipc.invalid_request": "Invalid IPC request: %1",
+  "ipc.window_busy": "flea ipc: the window is busy",
   "items.count": {
     "one": "%1 item",
     "other": "%1 items"

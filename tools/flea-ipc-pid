@@ -1,3 +1,4 @@
+. "$(dirname "${BASH_SOURCE[0]}")/flea-ipc"
 # The pid of the one Flea running a given ui tree, because a path is not an instance selector.
 #
 #   . tools/flea-ipc-pid
@@ -25,7 +26,7 @@ flea_ipc_pids() {
       *"Process ID: "*) pid=${line##*": "} ;;
       *"Config path: "*) [ "${line##*": "}" = "$want" ] && printf '%s\n' "$pid" ;;
     esac
-  done < <(qs list --all 2>/dev/null)
+  done < <(flea_ipc_list --all 2>/dev/null)
 }
 
 # Refuses rather than picks: two instances at one path is the exact state that produced a wrong

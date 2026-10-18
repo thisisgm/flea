@@ -1,4 +1,4 @@
-use flea_gui::state;
+use flea_gui::{ipc::server::Server, state};
 use gpui::{prelude::*, px, size, App, TitlebarOptions, WindowBounds, WindowOptions};
 use std::path::PathBuf;
 
@@ -45,6 +45,17 @@ fn main() {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);
     });
+    let i18n = flea::i18n::I18n::default();
+    let server = flea::ipc::endpoint::runtime()
+        .and_then(|runtime| Server::bind(&runtime))
+        .unwrap_or_else(|error| {
+            eprintln!(
+                "flea-gui: {}",
+                i18n.tr_args("ipc.start_failed", &[&error.to_string()])
+            );
+            std::process::exit(2);
+        });
+    let events = server.events.clone();
     gpui_platform::application().run(move |cx: &mut App| {
         cx.on_window_closed(|cx, _| {
             if cx.windows().is_empty() {
@@ -62,7 +73,7 @@ fn main() {
             ..Default::default()
         };
         if let Err(error) = cx.open_window(options, |window, cx| {
-            cx.new(|cx| state::Shell::new(path, select, window, cx))
+            cx.new(|cx| state::Shell::new(path, select, events, window, cx))
         }) {
             eprintln!("flea-gui: the window could not open: {error}");
             cx.quit();

@@ -54,31 +54,16 @@ mod summon;
 mod uistore;
 mod update;
 mod userfile;
+mod usage;
 mod vkprobecache;
 mod vulkan;
 
+pub(crate) use usage::usage;
 use crate::backend::proto::error_line;
 use claims::{claim_both, claim_picker, release_both};
 use std::io::IsTerminal;
 use std::path::PathBuf;
 use std::process::exit;
-
-pub(crate) fn usage(message: &str) -> ! {
-    eprintln!("flea: {}", message);
-    eprintln!("usage: flea [--tui|--gui] [--select <uri|path>] [path]");
-    eprintln!("       flea --default [off]");
-    eprintln!("       flea --picker [off]");
-    eprintln!("       flea --ui-state [<json patch>]");
-    eprintln!("       flea --update [check]");
-    eprintln!("       flea --run <path> <dev> <ino> <size> <mtime_s> <mtime_ns>");
-    eprintln!("       flea --run-terminal <path> <dev> <ino> <size> <mtime_s> <mtime_ns>");
-    eprintln!("       flea --open-text <path>");
-    eprintln!("       flea --open-handler <path> <desktop id> <dev> <ino> <size> <mtime_s> <mtime_ns>");
-    eprintln!("       flea --clip get|set copy|cut|clear TOKEN");
-    eprintln!("       flea flash choose [start]");
-    eprintln!("       flea --version");
-    exit(2)
-}
 
 // A reveal names a file; the window opens on its parent with that entry selected.
 fn select_target(raw: &str) -> Option<(PathBuf, PathBuf)> {
@@ -110,7 +95,12 @@ fn main() {
         }
     };
 
-    // Bare and checked before every other mode, so a script can ask which Flea is installed without parsing.
+    // IPC owns its arguments, including strings that spell another mode flag.
+    if args.get(1).map(String::as_str) == Some("ipc") {
+        exit(flea::ipc::client::run(&args[2..]));
+    }
+
+    // A bare version query needs no display or path parsing.
     if args.len() == 2 && args[1] == "--version" {
         println!("{}", env!("CARGO_PKG_VERSION"));
         exit(0);

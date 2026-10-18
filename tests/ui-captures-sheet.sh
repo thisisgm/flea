@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Runs the real capture case with controlled replies and a clock advanced only by settle.
 set -uo pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)" || exit 1

@@ -99,6 +99,8 @@ import sys
 import tempfile
 import time
 from importlib.machinery import SourceFileLoader
+sys.path.insert(0, os.path.dirname(os.path.abspath(__file__)))
+from flea_ipc import Client
 
 HERE = os.path.dirname(os.path.abspath(__file__))
 REPO = os.path.dirname(HERE)
@@ -651,7 +653,8 @@ class Session:
             (wx, wy), (ww, wh) = win["at"], win["size"]
             self.win = (wx, wy, ww, wh)
             self.known = set(self.outsiders())
-            self.qs_pid = qs_pid(ctx, self.proc)
+            self.ipc_client = Client(ctx["tree"] + "/target/release/flea")
+            self.qs_pid = qs_pid(ctx, self.proc, self.ipc_client)
             self.set_region(region)
         except BaseException:
             self.close()
@@ -670,8 +673,8 @@ class Session:
         self.rec.wait_quiet(int(1.5 * NS), time.monotonic_ns(), 30 * NS)
 
     def ipc(self, fn, *args):
-        out = subprocess.run(["qs", "ipc", "--pid", str(self.qs_pid), "call", "flea", fn] + [str(a) for a in args],
-                             env=S.ENV, capture_output=True, text=True, timeout=10)
+        out = subprocess.run(self.ipc_client.command("--pid", self.qs_pid, "call", "flea", fn) + [str(a) for a in args],
+                             env=self.ipc_client.environment(S.ENV), capture_output=True, text=True, timeout=10)
         return out.stdout.strip()
 
     def ipc_int(self, fn, *args):
@@ -830,12 +833,12 @@ def flea_state(ctx, patch):
     return ctx["states"][key]
 
 
-def qs_pid(ctx, proc):
+def qs_pid(ctx, proc, ipc_client):
     """The pid of the one qs running this tree's ui under the launched process, the only exact IPC selector."""
     want = ctx["tree"] + "/ui/boot/shell.qml"
     t0 = time.monotonic()
     while time.monotonic() - t0 < 10:
-        out = subprocess.run(["qs", "list", "--all"], env=S.ENV, capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(ipc_client.command("list", "--all"), env=ipc_client.environment(S.ENV), capture_output=True, text=True, timeout=10).stdout
         pid, found = None, []
         # Sample input: "  Process ID: 1318508" (qs list --all indents two spaces).
         for line in out.splitlines():
@@ -3268,7 +3271,7 @@ def selftest():
     check("series_keeps_samples_before_oserror", (len(rows), sum("error" not in r for r in rows), rows[-1].get("error")),
           (4, 3, "OSError: uinput gone"))
     # A qs ipc call that outlives its timeout is an error row after the samples before it, in a series and in a session start.
-    ipc_timeout = subprocess.TimeoutExpired(["qs", "ipc"], 10)
+    ipc_timeout = subprocess.TimeoutExpired(["flea-ipc"], 10)
     seen.clear()
 
     def column_or_time_out(*a):
@@ -3624,6 +3627,7 @@ def selftest():
     class HungIpc(Session):
         def __init__(self):
             self.qs_pid, self.view, self.closed, self.load, self.taken = 1, "list", False, None, []
+            self.ipc_client = Client("qs")
 
         def close(self):
             self.closed = True

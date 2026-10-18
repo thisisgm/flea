@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # tests/ui.sh and tests/ui-captures-dropmods.sh window helpers against hyprctl, omarchy-drive and ipc doubles: geometry, focus, keys and the cursor seek are per qs pid, and a lookup or a key that fails ends the case.
 set -u
 cd "$(dirname "$0")/.." || exit 1

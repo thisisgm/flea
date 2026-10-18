@@ -1,4 +1,6 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
 . "$(dirname "$0")/headless-commons.sh"
 # Two ViewState singletons over one temp ui.json: live apply of one window's change in the other, per-window state, own-write and half-written guards; tests/js/uistate.js pins the merge, this pins the QML wiring.
 set -u
