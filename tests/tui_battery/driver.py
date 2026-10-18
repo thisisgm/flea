@@ -103,6 +103,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         adapter = Adapter(terminal_name, case, "flea-" + uuid.uuid4().hex, colors, profiles.get(terminal_name))
         packages = adapter.preflight(commands)
         profile = adapter.configure()
+        profile["config_check"] = adapter.validate(commands)
         fonts = font_identity(commands, profile["font"], adapter.environment())
         fx, fixture = build(case, state["family"], args.fixtures)
         available = set(fixture.get("features", [])) | BUILT_IN_FEATURES
