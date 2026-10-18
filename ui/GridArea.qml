@@ -119,10 +119,8 @@ GridView {
     onCurrentIndexChanged: { root.prebuild.kick(); root.holdCache(); Qt.callLater(root.revealCursor) }
     function revealCursor() {
         // StableModel.resize parks currentIndex on row 0 mid-change, so onResized places the view; a far landing waits for its window, which onRowsChanged lands.
-        if (root.visible && !root.hiddenHeld && !root.landingWait && root.count > 0 && root.cursorView >= 0 && root.currentIndex === root.cursorView) {
-            root.positionViewAtIndex(root.cursorView, GridView.Contain)
-            root.keepLastRowClear(root.cursorView)
-        }
+        if (root.visible && !root.hiddenHeld && !root.landingWait && root.count > 0 && root.cursorView >= 0 && root.currentIndex === root.cursorView)
+            root.containTile(root.cursorView)
     }
     // One gap of bare ground along the left, the top and below the last row; the hairline inset stays.
     leftMargin: Theme.spacing.gap
@@ -471,7 +469,7 @@ GridView {
     function windowOwed() { return root.owes() && root.landingNeed() !== null }
     // The view move of a cursor landing, which Pane.showRow makes right after the ask: a far one waits for its rows, as one pass binds them where two would clear then bind.
     function showCursor(view, context) {
-        if (!root.landingWait) root.positionViewAtIndex(view, GridView.Contain)
+        if (!root.landingWait) root.containTile(view)
     }
     property bool landingWait: false
     // Where the landing ask's window starts, so its own reply is told from another ask's.
@@ -539,6 +537,8 @@ GridView {
             root.restoreCursorView()
         else root.revealCursor()
     }
+    // A cursor reveal parks its tile in one pass, the last row's gap included, so no later turn moves a view already drawn.
+    function containTile(viewIndex) { root.positionViewAtIndex(viewIndex, GridView.Contain); root.keepLastRowClear(viewIndex) }
     // Contain parks a last-row cursor flush on the view bottom, so keep the tiles one gap clear; a row already clear stays put.
     function keepLastRowClear(view) {
         if (root.contentHeight + root.topMargin + root.bottomMargin <= root.height || root.columns < 1 || view < 0) return
