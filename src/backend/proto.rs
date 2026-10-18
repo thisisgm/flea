@@ -93,6 +93,8 @@ pub enum Request {
     MenuAction { line: String, rows: Vec<usize> },
     // Directive 71: op is "peers" for the flyout's own list and "send" for the transfer it chooses.
     LocalSend { op: String, peer: String, paths: Vec<String>, id: usize },
+    Nearby { op: String, id: usize },
+    NetworkAddress { address: String, id: usize },
     TrashBrowse { line: String },
     // The device of each path named, symlinks followed, for the drop verb of a target that is not the listing; see docs/protocol.md "devs".
     Devs { paths: Vec<String>, id: usize },
@@ -112,6 +114,8 @@ pub enum Request {
 // Sample input: {"c":"list","path":"/home/gm","first":350,"hidden":false}
 pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
+        Some("nearby") => Request::Nearby { op: field_str(line, "op").unwrap_or_default(), id: field_usize(line, "id").unwrap_or(0) },
+        Some("networkaddress") => Request::NetworkAddress { address: field_str(line, "address").unwrap_or_default(), id: field_usize(line, "id").unwrap_or(0) },
         Some("trashbrowse") => Request::TrashBrowse { line: line.to_string() },
         Some("permissions") => Request::Permissions { line: line.to_string() },
         Some("permissionsBatch") => Request::PermissionsBatch {

@@ -117,6 +117,7 @@ pub fn run() -> i32 {
             break;
         }
     }
+    st.nearby.close();
     st.dirsize_worker.cancel();
     drain(&mut out, &mut st, &mut ops, &mut flash, &rx, &pool, &cache);
     0
@@ -137,6 +138,9 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                       poller: &super::watchpoll::Poller, loop_tx: &Sender<Event>, gate: &mut Gate) -> Control {
     match event {
         Event::Request(line) => {
+            if super::nearby::is_request(&line) {
+                return handle_line(&line, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate);
+            }
             // A list for another folder takes the place of a plain list scan still out, after the requests that waited replay against the listing still current.
             while gate.holds() && listwork::list_path(&line).is_some_and(|path| gate.let_go(&path)) {
                 let quit = listwork::replay(gate, |waiting, gate| handle_line(waiting, out, st, tb, pool, cache, ops, flash, watch, peeks, fsinfo, poller, loop_tx, gate) == Control::Quit);
@@ -175,6 +179,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
             }
         }
         Event::Thumb(d) => report_done(out, st, pool, d),
+        Event::Nearby { ticket, line } => if st.nearby.accept(ticket) { say(out, &line) },
         Event::Flash(m) => flash.report(out, &m),
         Event::DirSize(d) => report_dirsize(out, st, d),
         // A slow mount's figures, printed only for the directory on screen now.
@@ -231,6 +236,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         Event::SearchHeld => super::searchhold::on_search_held(out, st, tb, pool),
         Event::ReadError(e) => {
+            st.nearby.close();
             // The framing cannot be trusted past a decode failure, so this reports at once and the reader reads no further.
             writeln!(out, "{}", error_line(&e)).ok();
             out.flush().ok();
@@ -243,6 +249,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         // A scan still out is answered before the process leaves, so no client loses its listing.
         Event::Closed => {
+            st.nearby.close();
             if gate.holds() {
                 gate.close();
                 return Control::Continue;
@@ -311,6 +318,8 @@ fn handle_line(
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
+        Request::Nearby { op, id } => say(out, &st.nearby.request(&op, id, loop_tx.clone())),
+        Request::NetworkAddress { address, id } => say(out, &super::networkaddress::answer(id, &address)),
         Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
         Request::Picker { line } => {
             let replies = ops.tx.clone();
@@ -736,6 +745,8 @@ fn rows_needed(request: &Request) -> usize {
         | Request::Permissions { .. }
         | Request::Picker { .. }
         | Request::LocalSend { .. }
+        | Request::Nearby { .. }
+        | Request::NetworkAddress { .. }
         | Request::TrashBrowse { .. }
         | Request::Jump { .. }
         | Request::Devs { .. }

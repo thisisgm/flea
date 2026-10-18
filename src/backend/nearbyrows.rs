@@ -1,0 +1,118 @@
+use super::networkaddress::{self, Address};
+use crate::json::escape;
+use std::collections::BTreeMap;
+
+#[path = "nearbystatus.rs"]
+mod status;
+
+pub const MAX_ROWS: usize = 256;
+pub const SERVICES: [&str; 6] = ["_smb._tcp", "_sftp-ssh._tcp", "_webdav._tcp", "_webdavs._tcp", "_nfs._tcp", "_nfs._udp"];
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct Row {
+    pub name: String,
+    pub source: &'static str,
+    pub address: Address,
+}
+
+impl Row {
+    pub fn json(&self) -> String {
+        format!(r#"{{"name":"{}","source":"{}",{}}}"#, escape(&self.name), self.source, networkaddress::fields(&self.address))
+    }
+}
+
+fn service_scheme(service: &str) -> Option<&'static str> {
+    Some(match service {
+        "_smb._tcp" => "smb",
+        "_sftp-ssh._tcp" => "sftp",
+        "_webdav._tcp" => "dav",
+        "_webdavs._tcp" => "davs",
+        "_nfs._tcp" | "_nfs._udp" => "nfs",
+        _ => return None,
+    })
+}
+
+// Avahi emits backslash plus three decimal digits for escaped label and TXT bytes.
+fn unescape(input: &str) -> Option<String> {
+    let bytes = input.as_bytes();
+    let mut out = Vec::new();
+    let mut at = 0;
+    while at < bytes.len() {
+        if bytes[at] != b'\\' { out.push(bytes[at]); at += 1; continue; }
+        at += 1;
+        if bytes.get(at).is_some_and(u8::is_ascii_digit) {
+            let digits = bytes.get(at..at + 3)?;
+            if !digits.iter().all(u8::is_ascii_digit) { return None; }
+            let value = digits.iter().fold(0u16, |n, b| n * 10 + (b - b'0') as u16);
+            out.push(u8::try_from(value).ok()?);
+            at += 3;
+        } else {
+            out.push(*bytes.get(at)?);
+            at += 1;
+        }
+    }
+    let out = String::from_utf8(out).ok()?;
+    (!out.chars().any(char::is_control)).then_some(out)
+}
+
+fn txt_path(input: &str) -> Option<String> {
+    let mut rest = input.trim();
+    while let Some(quoted) = rest.strip_prefix('"') {
+        let mut escaped = false;
+        let end = quoted.bytes().position(|b| {
+            if escaped { escaped = false; false }
+            else if b == b'\\' { escaped = true; false }
+            else { b == b'"' }
+        })?;
+        if let Some(raw_path) = quoted[..end].strip_prefix("path=") {
+            let path = unescape(raw_path)?;
+            return Some(if path.starts_with('/') { path.into() } else { format!("/{path}") });
+        }
+        rest = quoted[end + 1..].trim_start();
+    }
+    Some("/".into())
+}
+
+pub fn avahi(text: &str, service: &str) -> Vec<Row> {
+    let Some(scheme) = service_scheme(service) else { return Vec::new(); };
+    let mut rows = Vec::new();
+    for line in text.lines().filter(|line| line.len() <= 8192) {
+        let fields: Vec<&str> = line.splitn(10, ';').collect();
+        if fields.len() != 10 || fields[0] != "=" || fields[4] != service { continue; }
+        let Some(name) = unescape(fields[3]).filter(|name| !name.is_empty()) else { continue; };
+        let Some(path) = txt_path(fields[9]) else { continue; };
+        let uri = format!("{scheme}://{}:{}{}", fields[6], fields[8], networkaddress::encode(&path, true));
+        let Ok(address) = networkaddress::parse(&uri) else { continue; };
+        rows.push(Row { name, source: "mdns", address });
+        if rows.len() == MAX_ROWS { break; }
+    }
+    rows
+}
+
+pub fn tailscale(input: &str) -> Result<Vec<Row>, &'static str> {
+    tailscale_checked(input, &mut || true)
+}
+
+pub fn tailscale_checked(input: &str, keep_going: &mut dyn FnMut() -> bool) -> Result<Vec<Row>, &'static str> {
+    status::decode(input, keep_going)
+}
+
+// An endpoint appears once across interfaces and address families; distinct paths and protocols stay distinct.
+pub fn deduplicate(rows: Vec<Row>) -> Vec<Row> {
+    let mut found = BTreeMap::new();
+    for row in rows {
+        let key = row.address.uri.clone();
+        if found.contains_key(&key) || found.len() < MAX_ROWS {
+            found.entry(key).and_modify(|old: &mut Row| {
+                if (row.source, &row.name) < (old.source, &old.name) { *old = row.clone(); }
+            }).or_insert(row);
+        }
+    }
+    let mut rows: Vec<Row> = found.into_values().collect();
+    rows.sort_by(|a, b| a.name.to_lowercase().cmp(&b.name.to_lowercase()).then_with(|| a.address.uri.cmp(&b.address.uri)));
+    rows
+}
+
+#[cfg(test)]
+#[path = "nearbyrows_tests.rs"]
+mod tests;

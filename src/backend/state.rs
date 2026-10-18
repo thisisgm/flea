@@ -63,6 +63,7 @@ pub struct State {
     pub held: Held,
     // The clipboard watcher runs once per backend; a second clipWatch is a no-op.
     pub clip_watching: bool,
+    pub nearby: super::nearby::Discovery,
 }
 
 impl Tables {
@@ -84,6 +85,7 @@ impl State {
             search: None, search_reported: Instant::now(), generation: FIRST_LISTING - 1, held: Held::List,
             search_session: None,
             clip_watching: false,
+            nearby: Default::default(),
         }
     }
 }
