@@ -365,3 +365,23 @@ fn a_line_broken_extract_password_names_the_archive() {
     let line = crate::backend::archivereq::archive_line(42, request, &Formats::from_tools(true, true), None, std::sync::Arc::new(AtomicBool::new(false)), None);
     assert!(line.contains("photos.7z") && line.contains("line break") && !line.contains("s3cret"), "{line}");
 }
+
+// The compress side of the same refusal names the archive being written, never the secret.
+#[test]
+fn a_line_broken_compress_password_names_the_archive() {
+    let d = TestDir::new("archpwbreakc");
+    d.file("a.txt", "body");
+    let dest = d.join("photos.7z");
+    let formats = Formats::from_tools(true, true);
+    let pw = Password { secret: "s3cret\nmore", encrypt_names: false };
+    let e = compress(&formats, d.path(), &["a.txt".to_string()], "7z", &dest, &AtomicBool::new(false), Some(pw)).unwrap_err();
+    assert_eq!((e.where_.as_str(), e.path.as_str()), ("archive", "photos.7z"));
+    assert!(e.msg.contains("photos.7z") && !e.msg.contains("s3cret"), "{}", e.msg);
+    let request = crate::backend::archivereq::ArchiveRequest {
+        compressing: true, paths: vec![d.join("a.txt").to_string_lossy().to_string()], format: "7z".into(),
+        archive: PathBuf::from("/nonexistent"), dest: dest.clone(), password: "s3cret\rmore".into(), encrypt_names: false,
+    };
+    let line = crate::backend::archivereq::archive_line(43, request, &formats, None, std::sync::Arc::new(AtomicBool::new(false)), None);
+    assert!(line.contains("photos.7z") && line.contains("line break") && !line.contains("s3cret"), "{line}");
+    assert!(!dest.exists(), "a refused compress published a destination");
+}

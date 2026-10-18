@@ -32,6 +32,6 @@ fn a_missing_sandbox_names_the_package_to_install() {
     let cancel = AtomicBool::new(false);
     let plain = run_boxed_cancellable("archive", inner.clone(), d.path(), &mut work, &cancel).unwrap_err();
     assert_eq!(plain.msg, "the sandbox is unavailable: bubblewrap or prlimit is not installed");
-    let password = crate::backend::archivepass::run_boxed_cancellable_password("archive", inner, d.path(), &mut work, None, &cancel).unwrap_err();
+    let password = crate::backend::archivepass::run_boxed_cancellable_password("archive", "out.7z", inner, d.path(), &mut work, None, &cancel).unwrap_err();
     assert_eq!(password.msg, "the sandbox is unavailable: bubblewrap or prlimit is not installed");
 }

@@ -51,7 +51,8 @@ pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str
     // The password arm builds its own 7z argv and runs it in the archive jail beside every other archive job.
     if let Some(password) = password {
         let inner = archivepass::compress_argv(format, &staged, parent, names, password.encrypt_names);
-        match archivepass::run_boxed_cancellable_password("archive", inner, parent, &mut work, Some(password.secret), cancel)? {
+        let leaf = dest.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
+        match archivepass::run_boxed_cancellable_password("archive", &leaf, inner, parent, &mut work, Some(password.secret), cancel)? {
             None => {}
             Some(f) => return Err(op_err("archive", format, &f.message)),
         }
@@ -104,9 +105,7 @@ pub(crate) fn extract_reporting(
     if password.is_some() && !archivepass::reads_password(formats, archive) {
         return Err(op_err("archive", &leaf, archivepass::NO_PASSWORD_READER));
     }
-    if password.is_some_and(|secret| secret.contains(['\n', '\r'])) {
-        return Err(op_err("archive", &leaf, &format!("the password for {leaf} cannot hold a line break")));
-    }
+    archivepass::refuse_line_break("archive", &leaf, password)?;
     let index = super::extractindex::read(formats, archive, password, cancel);
     if cancel.load(Ordering::Relaxed) {
         return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
