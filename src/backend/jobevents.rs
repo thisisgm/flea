@@ -154,7 +154,12 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
             }
             job.undo = job.undo_key.is_some() && *failed == 0;
         }
-        OpMsg::JobDone { failed, error, .. } => {
+        OpMsg::JobDone {
+            failed,
+            error,
+            line,
+            ..
+        } => {
             job.failed = failed.clone();
             job.reason = error.clone();
             job.state = if error.is_empty() {
@@ -162,7 +167,11 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
             } else {
                 State::Failed
             };
-            job.cancelled = job.cancel.load(Ordering::Relaxed);
+            job.cancelled = if job.kind == "emptyTrash" {
+                crate::json::field_bool(line, "cancelled")
+            } else {
+                job.cancel.load(Ordering::Relaxed)
+            };
             if job.cancelled {
                 job.state = State::Done;
                 job.reason.clear();

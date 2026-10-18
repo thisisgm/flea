@@ -398,11 +398,7 @@ fn handle_line(
             }
         }
         Request::TrashBrowse { line } => {
-            let replies = ops.tx.clone();
-            // The browser resolves its originals inside, so the mounts held slow travel with the request.
-            let pending = ops.pending.iter().map(|held| held.mount.clone()).collect();
-            let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-            ops.trashbrowser.get_or_insert_with(|| super::trashbrowse::TrashBrowser::new(replies)).request(line, pending, body);
+            super::trashbrowse::request(out, ops, line);
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
         Request::List { path, first, hidden, want_changed } => {
@@ -1222,3 +1218,7 @@ mod hold_wire_tests;
 #[cfg(test)]
 #[path = "run_git_tests.rs"]
 mod git_wire_tests;
+
+#[cfg(test)]
+#[path = "run_emptytrash_tests.rs"]
+mod emptytrash_tests;
