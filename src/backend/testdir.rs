@@ -181,6 +181,11 @@ fn open_dir(path: &Path) -> std::io::Result<std::fs::File> {
         .open(path)
 }
 
+// Forking threads per call; each one keeps forking while body runs, so a write in body overlaps some fork.
+const SIBLING_FORKERS: usize = 4;
+// How long each sibling child sits in pre_exec before it execs, so any fd it inherited stays open that long.
+const SIBLING_HOLD: std::time::Duration = std::time::Duration::from_millis(10);
+
 // Parallel test threads fork while a write fd is open, and each fork keeps that fd until its own exec. These siblings fork on purpose, each child held in pre_exec, so a write that overlaps a fork fails the next exec with ETXTBSY.
 pub fn with_forking_siblings<T>(body: impl FnOnce() -> T) -> T {
     use std::os::unix::process::CommandExt;
@@ -193,12 +198,12 @@ pub fn with_forking_siblings<T>(body: impl FnOnce() -> T) -> T {
     }
     let stop = AtomicBool::new(false);
     std::thread::scope(|scope| {
-        for _ in 0..4 {
+        for _ in 0..SIBLING_FORKERS {
             scope.spawn(|| {
                 while !stop.load(Ordering::Relaxed) {
                     let mut child = std::process::Command::new("/bin/true");
                     // SAFETY: the hook only sleeps and touches no shared state, and it runs in the forked child before exec.
-                    unsafe { child.pre_exec(|| { std::thread::sleep(std::time::Duration::from_millis(10)); Ok(()) }); }
+                    unsafe { child.pre_exec(|| { std::thread::sleep(SIBLING_HOLD); Ok(()) }); }
                     child.status().expect("a sibling fork runs");
                 }
             });
