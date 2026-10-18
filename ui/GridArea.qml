@@ -262,6 +262,8 @@ GridView {
                 id: tap
                 enabled: !cell.renaming
                 acceptedButtons: Qt.LeftButton | Qt.RightButton | Qt.MiddleButton
+                // A held press must still tap on release.
+                longPressThreshold: 0
                 // A press held past the interval must not fire while the button is
                 // still down on a row about to be dragged; the release still arms.
                 onPressedChanged: if (pressed) root.pane.pressSlowClick()
