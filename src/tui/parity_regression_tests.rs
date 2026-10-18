@@ -84,3 +84,13 @@ fn parity_checker_rejects_inert_editor_close() {
     }
     assert_eq!(checked, 4);
 }
+
+#[test]
+fn parity_checker_rejects_a_moved_open_tab_key() {
+    check_rows(include_str!("parity.tsv"), &Map::load());
+    let text = include_str!("../../keys.toml");
+    let mutant = text.replace("key = \"O\"\naction = \"openTab\"", "key = \"O\"\naction = \"cursorDown\"");
+    assert_ne!(mutant, text);
+    let result = std::panic::catch_unwind(|| check_rows(include_str!("parity.tsv"), &Map::parse(&mutant)));
+    assert!(result.is_err(), "the parity checker accepted O moved from openTab to cursorDown");
+}
