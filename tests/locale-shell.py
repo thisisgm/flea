@@ -335,12 +335,21 @@ def main():
         targets = SCOPE['BYTE_TOOLS'] if args.regress_byte_marker == 'all' else (args.regress_byte_marker,)
         detected = []
         for target in targets:
-            failures = SCOPE['unmarked_rows'](globals(), repo, target)
+            try:
+                failures = SCOPE['unmarked_rows'](globals(), repo, target)
+            except ValueError as error:
+                errors.append('FAIL ' + str(error))
+                detected.append(False)
+                continue
             detected.append(bool(failures))
+            if not failures:
+                errors.append(f'FAIL byte-marker control {target}: no unpinned site detected')
             for path, line, name, _, _ in failures:
                 print(f'FAIL {path.relative_to(repo)}:{line} {name} without its byte marker')
             print(f'byte-marker control {target}: {len(failures)} unpinned sites')
-        return 1 if all(detected) and not errors else 2
+        if errors:
+            print('\n'.join(errors))
+        return 1 if detected and all(detected) and not errors else 3
     rows = list(inventory(repo))
     for path, line, name, scope_ok, prefix in rows:
         check(f'{path.relative_to(repo)}:{line} {name} scope', scope_ok)

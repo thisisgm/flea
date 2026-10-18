@@ -132,7 +132,8 @@ def unmarked_rows(api, repo, target):
     path = repo / 'tools' / target
     source = path.read_text()
     mutated, count = re.subn(r'[ \t]+# locale-bytes:[^\n]*', '', source)
-    assert count and mutated != source, target + ' marker control changed no text'
+    if not count or mutated == source:
+        raise ValueError(target + ' marker control changed no text')
     return [row for row in api['inventory'](repo, [(path, mutated)]) if not row[3] and row[2] != 'shell nesting']
 
 
@@ -187,7 +188,12 @@ def self_checks(api, check):
     scope_checks(api, check)
     repo = api['Path'](api['__file__']).resolve().parents[1]
     for target in BYTE_TOOLS:
-        check(target + ' missing markers fail its own audit', bool(unmarked_rows(api, repo, target)))
+        try:
+            failures = unmarked_rows(api, repo, target)
+        except ValueError as error:
+            check(str(error), False)
+        else:
+            check(target + ' missing markers fail its own audit', bool(failures))
 
 
 # Sample input: printf x | while read l; do :; done followed by the locale exports.

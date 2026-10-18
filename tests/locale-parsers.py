@@ -50,30 +50,41 @@ def main():
     requested = inherited.get("LC_ALL", "C")
     try:
         locale.setlocale(locale.LC_ALL, requested)
-        locale.setlocale(locale.LC_ALL, "de_DE.UTF-8")
-        locale.setlocale(locale.LC_ALL, requested)
     except locale.Error as error:
-        parser.error(f"requested locale {requested} or required de_DE.UTF-8 is unavailable: {error}")
+        parser.error(f"requested locale {requested} is unavailable: {error}")
+    german_available = True
+    try:
+        locale.setlocale(locale.LC_ALL, "de_DE.UTF-8")
+    except locale.Error:
+        german_available = False
+    finally:
+        locale.setlocale(locale.LC_ALL, requested)
+    if args.regress_decimal and not german_available:
+        print("FAIL --regress-decimal: de_DE.UTF-8 is unavailable; control cannot run", file=sys.stderr)
+        return 3
     inherited["LC_ALL"] = requested
     inherited["LANG"] = requested
     inherited["LANGUAGE"] = "de:ar"
     temp_env = dict(inherited, LC_ALL="C.UTF-8")
     temp_env.pop("LANGUAGE", None)
     parent = REPO / ".superpowers/i0"
-    assert parent.resolve().is_relative_to(REPO)
+    if not parent.resolve().is_relative_to(REPO):
+        raise RuntimeError("REFUSED locale fixture parent outside the repository")
     parent.mkdir(parents=True, exist_ok=True)
     root = Path(subprocess.check_output(
         ["mktemp", "-d", str(REPO / ".superpowers/i0/locale-regression.XXXXXX")],
         env=temp_env, text=True).strip())
-    assert root.is_absolute() and root.parent == REPO / ".superpowers/i0"
+    if not root.is_absolute() or root.parent != parent:
+        raise RuntimeError("REFUSED unexpected locale fixture root")
     (root / ".flea-test-sandbox").write_text("locale parser regression fixtures\n")
     success = False
 
     def cleanup():
         if not args.keep and success:
-            assert str(root) and root.is_absolute() and root.resolve().parent == parent.resolve()
-            assert not root.is_symlink() and root.name.startswith("locale-regression.")
-            assert (root / ".flea-test-sandbox").is_file()
+            if not (str(root) and root.is_absolute() and root.resolve().parent == parent.resolve()
+                    and not root.is_symlink() and root.name.startswith("locale-regression.")
+                    and (root / ".flea-test-sandbox").is_file()):
+                raise RuntimeError("REFUSED removal of an unmarked or unexpected locale fixture")
             shutil.rmtree(root)
         elif not success:
             print(f"kept evidence={root}", file=sys.stderr)
@@ -154,11 +165,15 @@ def main():
     byte_pipeline = pipeline
     if args.regress_manifest_byte_mode:
         mutated = histogram.replace("LC_ALL=C LANGUAGE= ", "LC_ALL=C.UTF-8 LANGUAGE= ")
-        assert mutated != histogram, "manifest byte-mode control did not change its pipeline"
+        if mutated == histogram:
+            print("FAIL --regress-manifest-byte-mode: replacement changed no text", file=sys.stderr)
+            return 3
         histogram = mutated
     if args.regress_fixture_byte_mode:
         mutated = byte_pipeline.replace("LC_ALL=C LANGUAGE= ", "LC_ALL=C.UTF-8 LANGUAGE= ")
-        assert mutated != byte_pipeline, "matched-fixture byte-mode control did not change its pipeline"
+        if mutated == byte_pipeline:
+            print("FAIL --regress-fixture-byte-mode: replacement changed no text", file=sys.stderr)
+            return 3
         byte_pipeline = mutated
     counts = root / "extensions.txt"
     result = subprocess.run(["/bin/bash", "-c", SHELL["export_scope"](manifest) +
@@ -240,10 +255,14 @@ def main():
     numeric += 'last_entrant=125; ticks_per_second=100\n' + cpu_line + '\nprintf "%s" "$cpu_s"'
     if args.regress_decimal:
         numeric = numeric.replace("LC_ALL=C.UTF-8 LANGUAGE= ", "")
-    german = dict(inherited, LC_ALL="de_DE.UTF-8", LANG="de_DE.UTF-8")
-    result = subprocess.run(["/bin/bash", "-c", numeric], env=german, capture_output=True, text=True)
-    check("German sys_seconds and cpu_s use dot decimals", result.returncode == 0 and
-          result.stdout == "1.75|1.25", (result.returncode, result.stdout, result.stderr))
+    if german_available:
+        # POSIX mode makes awk implementations that default to dot decimals honor LC_NUMERIC.
+        german = dict(inherited, LC_ALL="de_DE.UTF-8", LANG="de_DE.UTF-8", POSIXLY_CORRECT="1")
+        result = subprocess.run(["/bin/bash", "-c", numeric], env=german, capture_output=True, text=True)
+        check("German sys_seconds and cpu_s use dot decimals", result.returncode == 0 and
+              result.stdout == "1.75|1.25", (result.returncode, result.stdout, result.stderr))
+    else:
+        print("SKIP German decimal probe: de_DE.UTF-8 is unavailable")
 
     for tool, function_name in [("flea-field-search", "calibrate"),
                                 ("flea-field-instant", "calib_window"),
