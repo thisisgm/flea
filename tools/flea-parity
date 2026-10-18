@@ -1,12 +1,5 @@
 #!/usr/bin/env -S python3 -B
-"""Derive a source-addressable migration inventory without executing input files.
-
-IDs exclude line numbers so status overlays survive unrelated source insertions.
-Custom harness cases are static assertion and failure sites, not runtime loop counts.
-Case columns and sink forms allow completeness checks at individual token locations.
-The first matching TSV map rule supplies family and owner; unmatched rows stay open.
-Python 3.11 or later is required for the standard-library TOML reader.
-"""
+"""Derive a source-addressable migration inventory without executing input files."""
 
 import argparse
 import collections
@@ -33,8 +26,10 @@ SCOPE = ('0.4.0 Find', 'Exact remainders from the 0.3.11 cut', '0.4.0 Explore',
 TOKEN = re.compile(r'//[^\n]*|/\*[\s\S]*?\*/|"(?:\\.|[^"\\])*"|'
                    r"'(?:\\.|[^'\\])*'|`(?:\\.|[^`\\])*`|[\w$]+|[^\s]")
 REGEX = re.compile(r'/(?![/*])(?:\\.|\[(?:\\.|[^\]\\])*\]|[^/\\\n])+/[a-z]*')
+IDENTITY_HEX_LENGTH = 32
 
 
+# Sample input: function run() { check("selection", actual, expected); }
 def tokens(text):
     items, offset = [], 0
     while match := TOKEN.search(text, offset):
@@ -52,6 +47,7 @@ def line_at(text, offset):
     return text.count('\n', 0, offset) + 1
 
 
+# Sample input: tokens('Item { check(true) }'), with opening='{' and closing='}'.
 def pairs(items, opening='{', closing='}'):
     stack, found = [], {}
     for index, item in enumerate(items):
@@ -66,6 +62,7 @@ def read(path):
     return path.read_text(encoding='utf-8')
 
 
+# Sample input: if (!ready) { fail("not ready"); } else check(true);
 def statement_end(items, start, blocks, parens, text):
     if items[start][0] == '{':
         return blocks[start]
@@ -88,6 +85,7 @@ def statement_end(items, start, blocks, parens, text):
     return index
 
 
+# Sample input: function check(label, actual, expected) { if (actual !== expected) fail(label); }
 def primitive_spans(items, declaration, body, blocks, parens, text, assertions):
     end = blocks[body]
     args_start, args_end = declaration + 3, parens[declaration + 2]
@@ -151,6 +149,7 @@ def primitive_spans(items, declaration, body, blocks, parens, text, assertions):
     return spans
 
 
+# Sample input: if (!ready) throw new Error("not ready"); Qt.exit(1);
 def failure_sinks(items, parens):
     """Collect potential failure receipts without suppressing helper implementations."""
     found = {}
@@ -205,6 +204,7 @@ def failure_sinks(items, parens):
     return found
 
 
+# Sample input: function see(label) { check(label, ready, true); } see("ready");
 def assertion_wrappers(items, blocks, parens, text, sinks=None):
     """Follow local function calls, including deferred callbacks, to assertion sinks."""
     definitions, declarations = [], set()
@@ -275,10 +275,57 @@ def assertion_wrappers(items, blocks, parens, text, sinks=None):
     return reaches
 
 
+# Sample input: function run() { check("same label", value === 1); check("same label", value === 2); }
+def case_identities(items, sites, blocks, parens):
+    declarations = []
+    for index, item in enumerate(items[:-3]):
+        if item[0] != 'function':
+            continue
+        args = index + 1 if items[index + 1][0] == '(' else index + 2
+        end = parens.get(args)
+        if end is not None and end + 1 in blocks:
+            start = index - 2 if index > 1 and items[index - 1][0] in ('=', ':') else index
+            declarations.append((end + 1, blocks[end + 1], [word[0] for word in items[start:end + 1]]))
+    groups, spans = collections.defaultdict(list), {}
+    for index, end in sites:
+        start = index
+        while start > 1 and items[start - 1][0] == '.':
+            start -= 2
+        context = [header for opening, closing, header in declarations if opening < index < closing]
+        expression = [word[0] for word in items[start:end + 1]]
+        signature = json.dumps([context, expression], ensure_ascii=False, separators=(',', ':'))
+        groups[signature].append(index)
+        stop = end + 1 if end + 1 < len(items) and items[end + 1][0] == ';' else end
+        spans[index] = (start, end, stop)
+    hidden = set()
+    for start, end, stop in spans.values():
+        hidden.update(range(start, stop + 1))
+    identities = {}
+    for signature, indices in groups.items():
+        peers = set()
+        if len(indices) > 1:
+            for index in indices:
+                start, end, stop = spans[index]
+                peers.update(range(start, stop + 1))
+        for index in indices:
+            content = signature
+            if peers:
+                # Repeated expressions bind to peer content, so adding an identical peer invalidates prior proof.
+                start, end, stop = spans[index]
+                before = [word[0] for position, word in enumerate(items[:start])
+                          if position not in hidden or position in peers]
+                after = [word[0] for position, word in enumerate(items[stop + 1:], stop + 1)
+                         if position not in hidden or position in peers]
+                content = json.dumps([signature, before, after], ensure_ascii=False, separators=(',', ':'))
+            identities[index] = hashlib.sha256(content.encode()).hexdigest()[:IDENTITY_HEX_LENGTH]
+    return identities
+
+
 class Inventory:
     def __init__(self, tree, rules):
         self.tree, self.rows = tree, []
         self.rules = []
+        # Sample input: kind\tpath-glob\tname-pattern\tfamily\towner
         for rule in csv.DictReader((s for s in read(rules).splitlines()
                                     if s.strip() and not s.startswith('#')), delimiter='\t'):
             self.rules.append((rule, re.compile(rule['name-pattern'], re.I)))
@@ -310,6 +357,7 @@ class Inventory:
             if kind == 'qml' and 'IpcHandler' in text:
                 self.ipc(path, text)
 
+    # Sample input: IpcHandler { target: "flea"; function ready(): string { return "yes" } }
     def ipc(self, path, text):
         items = tokens(text)
         blocks = pairs(items)
@@ -333,6 +381,7 @@ class Inventory:
                     self.add('ipc', f'ipc:{target}.{name}', path, line_at(text, offset),
                              name=f'{target}.{name}', details=f'target={target}; function={name}')
 
+    # Sample input: '[[preset]]\nname = "vim"\nkey = "j"\naction = "cursorDown"\n'.
     def keys(self):
         path = self.tree / 'keys.toml'
         text = read(path)
@@ -352,6 +401,9 @@ class Inventory:
                 context = entry.get('context', entry.get('where', 'listing'))
                 mods = entry.get('mods', section if section in ('ctrl', 'ctrlshift', 'shift') else '')
                 chord = f'{mods}+{key}' if mods else key
+                # A prefixed row (yazi's "m b") is its own binding, so its prefix leads the chord.
+                if entry.get('prefix'):
+                    chord = f'{entry["prefix"]} {chord}'
                 signature = '|'.join((section, preset, context, chord, action, entry.get('row', '')))
                 self.add('binding', f'binding:{signature}', path, positions[section][index],
                          name=action, action=action, key=chord, context=context, preset=preset,
@@ -365,13 +417,26 @@ class Inventory:
                          line_at(text, match.start()), name=action, action=action,
                          key=str(number), context='listing', preset='shared', details='table=digits')
 
+    # Sample input: pub const DEFAULTS: &str = r#"{"preview":{"column":true},"columns":["name"]}"#;
     def schema(self):
         path = self.tree / 'src/uischema.rs'
         text = read(path)
         match = re.search(r'\bDEFAULTS\s*:\s*&str\s*=\s*r(#*)"([\s\S]*?)"\1\s*;', text)
         if not match:
             raise ValueError(f'no DEFAULTS JSON string in {path}')
-        json.loads(match[2])
+        document = json.loads(match[2])
+
+        def reject_object_arrays(value, key=''):
+            if isinstance(value, dict):
+                for name, child in value.items():
+                    reject_object_arrays(child, f'{key}.{name}' if key else name)
+            elif isinstance(value, list):
+                for child in value:
+                    if isinstance(child, dict):
+                        raise ValueError(f'DEFAULTS array of objects is unsupported at key {key or "<root>"} in {path}')
+                    reject_object_arrays(child, key)
+
+        reject_object_arrays(document)
         items, stack, pending = tokens(match[2]), [], None
         for index, item in enumerate(items):
             word = item[0]
@@ -392,7 +457,7 @@ class Inventory:
         paths += sorted((self.tree / 'tests/js').glob('*.js'))
         self.case_wrappers = {}
         for path in paths:
-            text, seen = read(path), collections.Counter()
+            text = read(path)
             items = tokens(text)
             braces, parens = pairs(items), pairs(items, '(', ')')
             sinks = failure_sinks(items, parens)
@@ -455,8 +520,11 @@ class Inventory:
                 if 'throw' in sinks[index]:
                     end = statement_end(items, index, braces, parens, text)
                 additional.append((index, end))
-            # Reserve the full previous selection before numbering newly discovered sink sites.
-            for index, end in legacy + discovered + additional:
+            sites = legacy + discovered + additional
+            identities = case_identities(items, sites, braces, parens)
+            if len(set(identities.values())) != len(identities):
+                raise ValueError(f'indistinguishable case identities in {self.source(path)}')
+            for index, end in sites:
                 item, arguments = items[index], items[index + 2:end]
                 if 'throw' in sinks.get(index, ()):
                     arguments = items[index + 1:end + 1]
@@ -472,10 +540,7 @@ class Inventory:
                 label = labels[0] if labels else ''
                 expression = text[item.end():items[end].end()] if item[0] == 'throw' else text[items[index + 1].end():items[end].start()]
                 label = ' '.join((label or expression).split())
-                signature = label if item[0] == 'check' else f'{item[0]}:{label}'
-                digest = hashlib.sha256(signature.encode()).hexdigest()[:16]
-                seen[digest] += 1
-                identity = f'{kind}:{self.source(path)}:case-{digest}-{seen[digest]}'
+                identity = f'{kind}:{self.source(path)}:case-{identities[index]}'
                 column = item.start() - text.rfind('\n', 0, item.start())
                 self.add(kind, identity, path, line_at(text, item.start()), name=path.stem, details=label,
                          column=column, sink=','.join(sorted(sinks.get(index, ()))))
@@ -483,6 +548,7 @@ class Inventory:
                     item[0] == 'TestCase' or re.search(r'''^["'`]FAIL\b''', item[0]) for item in items):
                 raise ValueError(f'unrecognized test harness has no cases: {self.source(path)}')
 
+    # Sample inputs: 'headless="backend preview"' (runner); 'east s1 suites backend preview' (layout).
     def suites(self, layout):
         runner = self.tree / 'tests/run-all.sh'
         names, lanes = set(), collections.defaultdict(list)
@@ -509,6 +575,7 @@ class Inventory:
             self.add('suite', f'suite:{name}', path, name=name, **{'qml-bound': 'yes' if evidence else 'no'},
                      details=details)
 
+    # Sample input: exec bash "$(dirname "$0")/live.sh", whose body runs qmltestrunner -input tests/preview.qml.
     def qml_evidence(self, path, visiting):
         if path in visiting:
             return ''
@@ -573,6 +640,7 @@ class Inventory:
                     return evidence
         return ''
 
+    # Sample input: '## Previews\n### ql-text: Text preview\n- The footer follows shared spacing.\n'.
     def boards(self, design):
         changes = design / 'CHANGES.md'
         sections, name, family = {}, '', ''
@@ -590,8 +658,9 @@ class Inventory:
             details = '; '.join(f'{self.source(changes)}:{n}: {s}' for n, s in sections[path.stem])
             self.add('board', f'board:{path.stem}', path, name=path.stem, details=details)
 
+    # Sample input: '## 0.4.0\n| TUI parity | source | open |\n- Another scope item\n'.
     def scope(self, pending):
-        active, section, seen = False, '', collections.Counter()
+        active, section = False, ''
         for number, line in enumerate(read(pending).splitlines(), 1):
             heading = re.match(r'^(#{2,3}) (.+)$', line)
             if heading:
@@ -606,12 +675,12 @@ class Inventory:
             title = (match or bullet)[1]
             if title.lower() in ('item', 'task', 'row') or re.fullmatch(r'[: -]+', title):
                 continue
-            digest = hashlib.sha256(f'{section}|{title}'.encode()).hexdigest()[:16]
-            seen[digest] += 1
-            self.add('scope', f'scope:{digest}-{seen[digest]}', pending, number, name=title,
+            digest = hashlib.sha256(f'{section}|{line.strip()}'.encode()).hexdigest()[:IDENTITY_HEX_LENGTH]
+            self.add('scope', f'scope:{digest}', pending, number, name=title,
                      details=f'{section}: {line}')
 
 
+# Sample inputs: id\tsource for the prior matrix; id\treason for explicitly removed rows (TSV headers).
 def preserve(rows, before, removed):
     reader = csv.DictReader(read(before).splitlines(), delimiter='\t')
     if not reader.fieldnames or 'id' not in reader.fieldnames:
@@ -708,13 +777,18 @@ def main():
             preserve(rows, args.before, args.removed)
         if args.status:
             seen = set()
+            # Sample input: 'id\tstatus\tevidence\nipc:flea.ready\tgreen\tproof.log\n' (TSV).
             for fields in csv.reader(read(args.status).splitlines(), delimiter='\t'):
                 if not fields or fields in (['id', 'status'], ['id', 'status', 'evidence']) or fields[0].startswith('#'):
                     continue
                 if len(fields) not in (2, 3) or not fields[1].strip() or fields[0] in seen or fields[0] not in by_id:
                     raise ValueError(f'invalid, duplicate or unknown status row: {fields}')
+                if fields[1] not in ('open', 'green', 'ruled out'):
+                    raise ValueError(f'unknown status for {fields[0]}: {fields[1]!r}')
                 evidence = fields[2].strip() if len(fields) == 3 else ''
                 evidence_path = (inventory.tree / evidence).resolve() if evidence else None
+                if evidence_path and not evidence_path.is_relative_to(inventory.tree):
+                    raise ValueError(f'evidence path escapes --tree for {fields[0]}: {evidence}')
                 if fields[1] == 'green' and (not evidence_path or not evidence_path.is_file()):
                     raise ValueError(f'green row requires an existing evidence file: {fields[0]}')
                 seen.add(fields[0])

@@ -24,7 +24,7 @@ case "$tool" in
  bwrap)
   while [ "$#" -gt 0 ]; do
    case "$1" in
-    --ro-bind|--bind|--symlink|--setenv) shift 3 ;;
+    --ro-bind|--ro-bind-try|--bind|--symlink|--setenv) shift 3 ;;
     --tmpfs|--proc|--dev|--json-status-fd) shift 2 ;;
     --*) shift ;;
     *) exec "$@" ;;
