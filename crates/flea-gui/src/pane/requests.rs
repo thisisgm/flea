@@ -1,0 +1,304 @@
+//! A single bounded viewport request and the generation every row action must retain.
+use super::{Held, Pane};
+use flea::protocol::RowFacts;
+use std::rc::Rc;
+
+pub const BUFFER: usize = 150;
+pub const MARGIN: usize = 25;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct WindowRequest {
+    pub start: usize,
+    pub count: usize,
+    pub listing: usize,
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+pub struct RowAction {
+    pub listing: usize,
+    pub rows: Vec<usize>,
+}
+
+#[derive(Default)]
+pub struct Requests {
+    pub outstanding: Option<WindowRequest>,
+    pub sent: usize,
+    pub initial_first: Option<usize>,
+}
+
+impl Requests {
+    pub fn wanted(&mut self, held: &Held, first: usize, visible: usize) -> Option<WindowRequest> {
+        if self.outstanding.is_some() || held.total == 0 {
+            return None;
+        }
+        let last = first.saturating_add(visible).min(held.total);
+        let end = held.start.saturating_add(held.rows.len()).min(held.total);
+        if self.initial_first == Some(first) && first >= held.start && last <= end {
+            return None;
+        }
+        self.initial_first = None;
+        let drifted = held.rows.is_empty()
+            || first < held.start
+            || (first.saturating_sub(held.start) < MARGIN && held.start > 0)
+            || (end.saturating_sub(last) < MARGIN && end < held.total);
+        if !drifted {
+            return None;
+        }
+        let request = WindowRequest {
+            start: first.saturating_sub(BUFFER),
+            count: visible.saturating_add(2 * BUFFER),
+            listing: held.listing,
+        };
+        self.outstanding = Some(request);
+        self.sent += 1;
+        Some(request)
+    }
+
+    pub fn accepts(&self, held: &Held, start: usize, count: usize, listing: usize) -> bool {
+        self.outstanding.is_some_and(|request| {
+            request.listing == listing
+                && held.listing == listing
+                && request.start == start
+                && count <= request.count
+        })
+    }
+
+    pub fn cancel(&mut self) {
+        self.outstanding = None;
+    }
+}
+
+pub fn capture(held: &Held, busy: bool, rows: Vec<usize>) -> Option<RowAction> {
+    if busy || held.listing == 0 || rows.is_empty() || rows.iter().any(|&row| row >= held.total) {
+        return None;
+    }
+    Some(RowAction {
+        listing: held.listing,
+        rows,
+    })
+}
+
+pub fn current(action: &RowAction, held: &Held, busy: bool) -> bool {
+    !busy && action.listing > 0 && action.listing == held.listing
+}
+
+pub fn swallows(busy: bool, action: &str) -> bool {
+    busy && !action.is_empty()
+        && !matches!(
+            action,
+            "open"
+                | "parent"
+                | "historyBack"
+                | "historyForward"
+                | "escape"
+                | "viewList"
+                | "viewColumns"
+                | "viewGrid"
+                | "viewDual"
+                | "sidebar"
+                | "windowNew"
+                | "togglePreview"
+                | "reload"
+        )
+}
+
+impl Pane {
+    pub fn anchor_window(&mut self, start: usize) -> Option<WindowRequest> {
+        let pending = self.swap.pending.as_ref()?;
+        let held = pending.ready.as_ref()?;
+        if self.requests.outstanding.is_some() || pending.following.is_some() || start >= held.total
+        {
+            return None;
+        }
+        let request = WindowRequest {
+            start,
+            count: pending.first,
+            listing: held.listing,
+        };
+        self.requests.outstanding = Some(request);
+        self.requests.sent += 1;
+        Some(request)
+    }
+
+    pub(crate) fn retire_anchor(&mut self) {
+        // Pending listings admit only explicit anchor requests for their ready generation.
+        if self.swap.pending.as_ref().is_some_and(|pending| {
+            pending.ready.as_ref().is_some_and(|held| {
+                self.requests
+                    .outstanding
+                    .is_some_and(|request| request.listing == held.listing)
+            })
+        }) {
+            self.requests.cancel();
+        }
+    }
+
+    pub(crate) fn take_rows(
+        &mut self,
+        start: usize,
+        rows: Vec<RowFacts>,
+        listing: usize,
+        now: u64,
+    ) -> Result<bool, String> {
+        if self.swap.pending.is_some() {
+            let pending = self.swap.pending.as_ref().expect("pending listing");
+            let Some(total) = pending.total else {
+                return Ok(false);
+            };
+            if let Some(held) = &pending.ready {
+                if !self.requests.accepts(held, start, rows.len(), listing) {
+                    return Ok(false);
+                }
+                Self::check_complete(start, rows.len(), total, pending.first)?;
+                self.swap
+                    .pending
+                    .as_mut()
+                    .expect("pending listing")
+                    .following = Some(Held {
+                    listing,
+                    total,
+                    start,
+                    rows,
+                });
+                self.swap
+                    .pending
+                    .as_mut()
+                    .expect("pending listing")
+                    .parked_until = None;
+                self.requests.cancel();
+                self.swap.counters.waits += 1;
+                return Ok(false);
+            }
+            if listing < self.greatest_listing
+                || (listing == self.greatest_listing && !pending.options.search)
+            {
+                return Ok(false);
+            }
+            Self::check_complete(start, rows.len(), total, pending.first)?;
+            let held = Held {
+                listing,
+                total,
+                start,
+                rows,
+            };
+            self.swap.pending.as_mut().expect("pending listing").ready = Some(held);
+            let parked = self.swap.pending.as_ref().is_some_and(|pending| {
+                pending.options.restore_name.as_ref().is_some_and(|name| {
+                    pending.ready.as_ref().is_some_and(|held| {
+                        held.total > 0 && !held.rows.iter().any(|row| &row.name == name)
+                    })
+                })
+            });
+            if parked {
+                let until = now
+                    .saturating_add(self.swap.show_left(now))
+                    .saturating_add(super::swap::PARKED_WAIT_MS);
+                self.swap
+                    .pending
+                    .as_mut()
+                    .expect("pending listing")
+                    .parked_until = Some(until);
+                return Ok(false);
+            }
+            if !self
+                .swap
+                .pending
+                .as_ref()
+                .expect("pending listing")
+                .options
+                .search
+                && self.swap.show_left(now) > 0
+            {
+                self.swap.counters.waits += 1;
+                return Ok(false);
+            }
+            return Ok(self.commit(now));
+        }
+        // A same-path sort can end the hold before the relist's own pair (ui/PaneSwap.qml).
+        if let Some(total) = self
+            .swap
+            .unheld_total
+            .take()
+            .filter(|_| listing > self.greatest_listing)
+        {
+            Self::check_complete(start, rows.len(), total, self.first_count())?;
+            self.requests.cancel();
+            self.greatest_listing = listing;
+            self.held = Rc::new(Held {
+                listing,
+                total,
+                start,
+                rows,
+            });
+            self.state.kind = if total == 0 {
+                super::Kind::Empty
+            } else {
+                super::Kind::Ready
+            };
+            self.cursor = self.cursor.min(total.saturating_sub(1));
+            self.scroll_by(0.);
+            self.requests.initial_first =
+                Some((self.scroll_y / super::ROW_HEIGHT).floor() as usize);
+            self.swap.counters.commits += 1;
+            self.swap.rows_at = now;
+            return Ok(true);
+        }
+        if listing == self.held.listing {
+            let bound = self
+                .requests
+                .outstanding
+                .map_or(self.first_count(), |request| request.count);
+            Self::check_window(start, rows.len(), self.held.total, bound)?;
+        }
+        if !self
+            .requests
+            .accepts(&self.held, start, rows.len(), listing)
+        {
+            return Ok(false);
+        }
+        Self::check_complete(
+            start,
+            rows.len(),
+            self.held.total,
+            self.requests.outstanding.expect("matched window").count,
+        )?;
+        self.requests.cancel();
+        self.held = Rc::new(Held {
+            listing,
+            total: self.held.total,
+            start,
+            rows,
+        });
+        Ok(true)
+    }
+
+    pub(crate) fn check_window(
+        start: usize,
+        count: usize,
+        total: usize,
+        bound: usize,
+    ) -> Result<(), String> {
+        if start > total
+            || count > total.saturating_sub(start)
+            || count > bound
+            || (total > 0 && count == 0)
+            || (total == 0 && start != 0)
+        {
+            return Err("pane.reply_window".into());
+        }
+        Ok(())
+    }
+
+    fn check_complete(
+        start: usize,
+        count: usize,
+        total: usize,
+        bound: usize,
+    ) -> Result<(), String> {
+        Self::check_window(start, count, total, bound)?;
+        if count != total.saturating_sub(start).min(bound) {
+            return Err("pane.reply_window".into());
+        }
+        Ok(())
+    }
+}

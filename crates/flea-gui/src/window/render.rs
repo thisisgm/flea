@@ -42,7 +42,12 @@ impl Render for Shell {
                         MouseButton::Left,
                         cx.listener(move |shell, _, _, cx| shell.focus_pane(side, cx)),
                     )
-                    .child(list)
+                    .when(
+                        host.pane.state.kind == crate::pane::states::Kind::Ready,
+                        |div| div.child(list),
+                    )
+                    .children(self.slots.states[side].clone())
+                    .child(super::frame::Frame::new(&host.pane))
                     .into_any_element(),
             );
         }

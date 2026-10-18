@@ -11,6 +11,18 @@
     "other": "%1 items"
   },
   "operation.failed": "Could not %1: %2",
+  "pane.reading": "reading",
+  "pane.locked": "You don’t have permission to open this folder.",
+  "pane.unread": "That folder could not be read.",
+  "pane.unavailable": "unavailable",
+  "pane.empty.initial": "NOTHING HERE YET",
+  "pane.empty.beat_one": "A VERY TIDY FOLDER",
+  "pane.empty.beat_two": "NOT A FILE IN SIGHT",
+  "pane.empty.rest": "QUIET IN HERE",
+  "pane.permissions_other_owner": "%1 · not yours",
+  "pane.reply_window": "The backend answered rows outside the requested window",
+  "pane.row_request": "The row request is invalid",
+  "pane.busy": "A directory is already loading.",
   "selection.count": {
     "one": "%1 item selected in %2",
     "other": "%1 items selected in %2"

@@ -7,7 +7,7 @@ use gpui::{AppContext, Render};
 use std::rc::Rc;
 use std::sync::Arc;
 
-fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
+pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
     let locale = Snapshot {
         revision: 1,
         catalog: Arc::new(flea::i18n::I18n::default()),
@@ -261,11 +261,25 @@ fn ipc_executor_is_cold_until_first_answer_and_then_serves_the_committed_pane(
             shell.receive(0, BackendEvent::Reply(Reply::Other), window, cx);
             assert!(shell._ipc_reader.is_none());
             assert!(receive.try_recv().is_err());
+            shell.panes[0].as_mut().unwrap().pane.begin(
+                "/files".into(),
+                crate::pane::swap::Options::default(),
+                0,
+            );
+            shell.receive(
+                0,
+                BackendEvent::Reply(Reply::Listed {
+                    path: "/files".into(),
+                    total: 1000,
+                }),
+                window,
+                cx,
+            );
             shell.receive(
                 0,
                 BackendEvent::Reply(Reply::Rows {
                     start: 0,
-                    rows: vec![flea::protocol::RowFacts::default()],
+                    rows: vec![flea::protocol::RowFacts::default(); 320],
                     listing: 3,
                 }),
                 window,

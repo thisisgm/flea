@@ -86,6 +86,7 @@ pub struct Slots {
     pub tabs: Option<AnyView>,
     pub headers: [Option<AnyView>; 2],
     pub strips: [Option<AnyView>; 2],
+    pub states: [Option<AnyView>; 2],
     pub strip_height: f32,
     pub status: Option<AnyView>,
 }
