@@ -23,6 +23,43 @@ mod searchnames;
 mod searchblocks;
 
 #[test]
+fn review_fb1_storage_round_trip() {
+    let mut names = searchnames::Names::new();
+    let plain = names.intern(b"plain").unwrap();
+    let raw = names.intern(b"dir\xff").unwrap();
+    assert_eq!(names.intern(b"plain").unwrap(), plain);
+    assert_eq!(names.len(), 2);
+    let before = names.bytes(true);
+    names.finish();
+    assert!(names.bytes(true) <= before);
+    assert!(names.bytes(true) >= names.bytes(false));
+    assert_eq!(names.get(raw), b"dir\xff");
+    let plain_bits = names.bits(plain as usize);
+    assert_eq!(plain_bits, searchbits::mask(b"plain"));
+    assert_eq!(names.group_bits(0), plain_bits | names.bits(raw as usize));
+    assert!(searchbits::possible(searchbits::mask(b"plain"), plain_bits, 0));
+    assert!(!searchbits::possible(searchbits::mask(b"plain/"), plain_bits, 0));
+
+    let mut blocks = searchblocks::Blocks::new();
+    let parent = blocks.directory(&names, searchnames::EMPTY, plain).unwrap();
+    let child = blocks.directory(&names, parent, raw).unwrap();
+    assert_eq!(blocks.directory(&names, parent, raw).unwrap(), child);
+    assert_eq!(blocks.len(), 2);
+    assert_eq!(blocks.record(child), (raw, parent));
+    assert_eq!(blocks.text_len(child) as usize, String::from_utf8_lossy(b"plain/dir\xff").len());
+    let mut ancestors = vec![searchnames::EMPTY];
+    blocks.ancestors(child, &mut ancestors);
+    assert_eq!(ancestors, [raw, plain]);
+    blocks.append(parent, 0).unwrap();
+    let one_run = blocks.bytes(false);
+    blocks.append(parent, 1).unwrap();
+    assert_eq!(blocks.bytes(false), one_run);
+    blocks.append(child, 2).unwrap();
+    assert!(blocks.bytes(false) > one_run);
+    assert!(blocks.bytes(true) >= blocks.bytes(false));
+}
+
+#[test]
 fn review_fb1_directory_allocation_child() {
     let Ok(case) = std::env::var("REVIEW_FB1_ALLOC_CASE") else { return; };
     let mut names = searchnames::Names::new();
