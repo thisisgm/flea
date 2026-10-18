@@ -152,3 +152,110 @@ fn late_cancel_keeps_job_completion_and_legacy_replies_consistent() {
     assert_eq!(ops.jobs.rows[0].done, 2);
     assert!(ops.live.running().is_none());
 }
+
+#[test]
+fn cancel_before_claim_counts_untouched_items_as_skipped() {
+    let d = TestDir::new("trash-preclaim-cancel");
+    let confirmation = two_items(&d);
+    let flag = Arc::new(AtomicBool::new(false));
+    let cancel = Cancellation::operation(flag.clone());
+    for name in ["a", "b"] {
+        d.assert_contains(&d.join(&format!("files/{name}")));
+        d.assert_contains(&d.join(&format!("info/{name}.trashinfo")));
+    }
+    let fields = delete_with(
+        &confirmation,
+        &Ok(d.path().to_path_buf()),
+        &cancel,
+        |_, item, _| {
+            if item.is_some() {
+                flag.store(true, Ordering::Relaxed);
+            }
+        },
+    );
+    let reply = format!("{{{fields}}}");
+    for name in ["a", "b"] {
+        assert_eq!(std::fs::read_to_string(d.join(&format!("files/{name}"))).unwrap(), "payload");
+        assert!(d.join(&format!("info/{name}.trashinfo")).is_file());
+    }
+    assert!(field_bool(&reply, "cancelled"));
+    assert_eq!(field_usize(&reply, "done"), Some(0));
+    assert_eq!(field_usize(&reply, "failed"), Some(0), "untouched files are skipped: {reply}");
+    assert_eq!(field_usize(&reply, "skipped"), Some(2));
+}
+
+#[test]
+fn cancelling_inside_a_tree_keeps_the_partial_item_failed() {
+    let d = TestDir::new("trash-partial-batch-cancel");
+    let mut confirmation = two_items(&d);
+    let path = d.dir("files/tree");
+    d.file("files/tree/first", "abc");
+    d.file("files/tree/second", "de");
+    d.file("info/tree.trashinfo", "[Trash Info]\nPath=/original/tree\n");
+    let meta = path.symlink_metadata().unwrap();
+    let mut backing = Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
+    backing.snapshot(&mut confirmation.trees, d.path(), &Cancellation::default()).unwrap();
+    let item = Detail {
+        item: Item { uri: "trash:///tree".into(), original: "/original/tree".into() },
+        size: 5,
+        deleted: String::new(),
+        identity: "id".into(),
+        directory: true,
+        icon: String::new(),
+        backing: Some(backing),
+    };
+    confirmation.items.append(save_detail(&item).unwrap().as_bytes()).unwrap();
+    confirmation.count += 1;
+    confirmation.nodes += 3;
+    let flag = Arc::new(AtomicBool::new(false));
+    d.assert_contains(&path);
+    for name in ["a", "b", "tree"] {
+        d.assert_contains(&d.join(&format!("files/{name}")));
+        d.assert_contains(&d.join(&format!("info/{name}.trashinfo")));
+    }
+    let fields = delete_with(
+        &confirmation,
+        &Ok(d.path().to_path_buf()),
+        &Cancellation::operation(flag.clone()),
+        |removed, _, _| {
+            if removed == 3 {
+                flag.store(true, Ordering::Relaxed);
+            }
+        },
+    );
+    let reply = format!("{{{fields}}}");
+    assert_eq!(field_usize(&reply, "done"), Some(2), "{reply}");
+    assert_eq!(field_usize(&reply, "failed"), Some(1), "{reply}");
+    assert_eq!(field_usize(&reply, "skipped"), Some(0), "{reply}");
+    assert!(field_bool(&reply, "cancelled"));
+    assert_eq!(std::fs::read_dir(&path).unwrap().count(), 1);
+    assert!(d.join("info/tree.trashinfo").is_file());
+    assert_eq!(std::fs::read_dir(d.join("files")).unwrap().count(), 1);
+}
+
+#[test]
+fn cancellation_does_not_hide_a_recovery_error() {
+    let d = TestDir::new("trash-cancel-recovery-error");
+    let confirmation = two_items(&d);
+    let flag = Arc::new(AtomicBool::new(false));
+    let fields = delete_with(
+        &confirmation,
+        &Err("Recovery directory unavailable.".into()),
+        &Cancellation::operation(flag.clone()),
+        |_, item, _| {
+            if item.is_some() {
+                flag.store(true, Ordering::Relaxed);
+            }
+        },
+    );
+    let reply = format!("{{{fields}}}");
+    assert_eq!(field_usize(&reply, "done"), Some(0));
+    assert_eq!(field_usize(&reply, "failed"), Some(1));
+    assert_eq!(field_usize(&reply, "skipped"), Some(1));
+    assert!(field_bool(&reply, "cancelled"));
+    assert!(reply.contains("Recovery directory unavailable."));
+    for name in ["a", "b"] {
+        assert_eq!(std::fs::read_to_string(d.join(&format!("files/{name}"))).unwrap(), "payload");
+        assert!(d.join(&format!("info/{name}.trashinfo")).is_file());
+    }
+}

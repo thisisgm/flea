@@ -1,5 +1,6 @@
 use super::*;
 use crate::backend::testdir::TestDir;
+use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
@@ -74,4 +75,63 @@ fn cancellation_before_claim_preserves_everything() {
         .is_err());
     assert_eq!(std::fs::read_to_string(path).unwrap(), "keep");
     assert!(info.is_file());
+}
+
+#[test]
+fn cancelling_after_claim_is_skipped_only_when_rollback_succeeds() {
+    for (blocked, record_left) in [(false, false), (true, false), (false, true)] {
+        let d = TestDir::new("trash-claimed-cancel");
+        d.dir("files");
+        d.dir("info");
+        let path = d.file("files/item", "keep");
+        let info = d.file("info/item.trashinfo", "[Trash Info]\nPath=/original/item\n");
+        let meta = path.symlink_metadata().unwrap();
+        let mut reviewed = Reviewed::inspect(path.clone(), &format!("l{}:{}", meta.dev(), meta.ino())).unwrap();
+        reviewed.snapshot(&mut Manifest::new(d.path()).unwrap(), d.path(), &Cancellation::default()).unwrap();
+        let flag = Arc::new(AtomicBool::new(false));
+        let cancel = Cancellation::operation(flag.clone());
+        d.assert_contains(&path);
+        d.assert_contains(&info);
+        let refusal = reviewed.with_claimed(
+            Op::Delete,
+            d.path(),
+            None,
+            || flag.store(true, Ordering::Relaxed),
+            |quarantine| {
+                if blocked {
+                    d.file("files/item", "replacement");
+                }
+                if record_left {
+                    std::fs::set_permissions(d.path(), std::fs::Permissions::from_mode(0o500)).unwrap();
+                }
+                remove_tree_cancellable(
+                    reviewed.tree.as_ref().unwrap(),
+                    quarantine,
+                    Refusal::new(Outcome::NothingDeleted, "Trash changed."),
+                    &cancel,
+                    &mut || panic!("no node may be deleted"),
+                )
+            },
+        ).unwrap_err();
+        std::fs::set_permissions(d.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
+        if blocked {
+            let Outcome::Stuck(Op::Delete, kept) = refusal.outcome() else {
+                panic!("a failed rollback must remain a failure: {refusal:?}");
+            };
+            d.assert_contains(kept);
+            assert_eq!(std::fs::read_to_string(kept.join("payload")).unwrap(), "keep");
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), "replacement");
+        } else if record_left {
+            assert_eq!(refusal.outcome(), &Outcome::RecordLeft(None));
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), "keep");
+            assert!(std::fs::read_dir(d.path()).unwrap().any(|entry| {
+                entry.unwrap().path().extension().is_some_and(|extension| extension == "review")
+            }));
+        } else {
+            assert_eq!(refusal.outcome(), &Outcome::Cancelled);
+            assert_eq!(std::fs::read_to_string(&path).unwrap(), "keep");
+            assert_eq!(std::fs::read_dir(d.join("files")).unwrap().count(), 1);
+        }
+        assert!(info.is_file());
+    }
 }
