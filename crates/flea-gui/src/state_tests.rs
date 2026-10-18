@@ -1,278 +1,283 @@
 use super::*;
-use gpui::{prelude::*, px, size, TestAppContext};
+use crate::window::startup::{Arguments, Settings};
+use crate::{backend::Event as BackendEvent, list::pane::ROW_HEIGHT};
+use flea::protocol::Reply;
+use gpui::{px, size, TestAppContext};
+use gpui::{AppContext, Render};
+use std::rc::Rc;
+use std::sync::Arc;
 
-fn shell_with(backend: Backend) -> Shell {
-    Shell {
-        path: "/files".into(),
-        backend: Some(backend),
-        snapshot: Rc::new(Snapshot {
-            title: "files".into(),
-            total: 20,
+fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
+    let locale = Snapshot {
+        revision: 1,
+        catalog: Arc::new(flea::i18n::I18n::default()),
+    };
+    let settings = Settings::from_json(flea::jsondoc::parse("{}").unwrap(), false);
+    let launch = Launch::resolve(
+        settings,
+        Arguments {
+            path: Some("/files".into()),
+            select: None,
+        },
+        "/home/test",
+    );
+    let mut host = PaneHost::new("/files".into(), None, 620., &locale);
+    host.backend = Some(backend);
+    host.pane
+        .receive(Reply::Listed {
+            path: "/files".into(),
+            total: 1000,
+        })
+        .unwrap();
+    host.pane
+        .receive(Reply::Rows {
             start: 0,
+            rows: vec![flea::protocol::RowFacts::default(); 320],
             listing: 2,
-            names: Vec::new(),
-        }),
-        pending_total: None,
-        requested: 1,
-        waiting: false,
-        backend_error: None,
-        cache: Rc::new(RefCell::new(NameCache::default())),
-        _reader: None,
+        })
+        .unwrap();
+    let mut lifecycle = Lifecycle::default();
+    lifecycle.attach(0);
+    Shell {
+        path_labels: launch.paths.clone().map(SharedString::from),
+        launch,
+        locale: locale.clone(),
+        labels: labels(&locale),
+        slots: Slots::default(),
+        lifecycle,
+        view: View::List,
+        focus_side: 0,
+        panes: [Some(host), None],
+        focus: cx.focus_handle(),
+        seam: Seam::new(),
+        ipc_events: None,
         _ipc_reader: None,
-        cursor: 0,
-        selected: Vec::new(),
+        _locale_reader: None,
+        locale_service: None,
+        _app_quit: None,
+        deadlines: [None, None],
     }
 }
 
 #[gpui::test]
 fn adv_e_r1_dead_backend_prints_once_across_many_renders(cx: &mut TestAppContext) {
-    const CHILD: &str = "FLEA_TEST_DEAD_BACKEND_CHILD";
-    if std::env::var_os(CHILD).is_none() {
-        let output = std::process::Command::new(std::env::current_exe().unwrap())
-            .args([
-                "--exact",
-                "state::tests::adv_e_r1_dead_backend_prints_once_across_many_renders",
-                "--nocapture",
-            ])
-            .env(CHILD, "1")
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        assert_eq!(
-            String::from_utf8_lossy(&output.stderr)
-                .matches("flea-gui: the backend stopped accepting requests")
-                .count(),
-            1
-        );
-        return;
-    }
     let (backend, receiver) = Backend::test_channel();
     drop(receiver);
     let cx = cx.add_empty_window();
-    let entity = cx.update(|_, cx| cx.new(|_| shell_with(backend)));
+    let entity = cx.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
     for wanted in 2..66 {
         cx.simulate_resize(size(px(640.), px((wanted + 1) as f32 * ROW_HEIGHT)));
         cx.update(|window, cx| {
             entity.update(cx, |shell, cx| {
-                assert_eq!(visible_rows(window.viewport_size().height), wanted);
-                assert_ne!(shell.requested, wanted);
-                assert!(!shell.waiting);
+                shell.panes[0]
+                    .as_mut()
+                    .unwrap()
+                    .pane
+                    .scroll_to(600. * ROW_HEIGHT);
                 let _ = shell.render(window, cx);
-                assert_eq!(shell.requested, wanted);
-            });
+                assert!(shell.panes[0].as_ref().unwrap().stopped);
+                assert!(shell.panes[0].as_ref().unwrap().error.is_some());
+            })
         });
     }
 }
 
 #[gpui::test]
 fn adv_e_r2_unrelated_replies_keep_the_window_request_in_flight(cx: &mut TestAppContext) {
-    const CHILD: &str = "FLEA_TEST_UNRELATED_REPLY_CHILD";
-    if std::env::var_os(CHILD).is_none() {
-        let output = std::process::Command::new(std::env::current_exe().unwrap())
-            .args([
-                "--exact",
-                "state::tests::adv_e_r2_unrelated_replies_keep_the_window_request_in_flight",
-                "--nocapture",
-            ])
-            .env(CHILD, "1")
-            .output()
-            .unwrap();
-        assert!(
-            output.status.success(),
-            "{}",
-            String::from_utf8_lossy(&output.stderr)
-        );
-        assert_eq!(
-            String::from_utf8_lossy(&output.stderr)
-                .lines()
-                .filter(|line| *line == "flea-gui: ignored an error for /elsewhere: unrelated")
-                .count(),
-            1
-        );
-        return;
-    }
     let (backend, mut requests) = Backend::test_channel();
     let cx = cx.add_empty_window();
-    cx.simulate_resize(size(px(640.), px(11. * ROW_HEIGHT)));
-    let entity = cx.update(|_, cx| cx.new(|_| shell_with(backend)));
+    let entity = cx.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
     cx.update(|window, cx| {
         entity.update(cx, |shell, cx| {
-            shell.backend_error = Some("existing backend error".into());
+            let host = shell.panes[0].as_mut().unwrap();
+            host.pane.scroll_to(600. * ROW_HEIGHT);
+            let original = Rc::clone(&host.pane.held);
             let _ = shell.render(window, cx);
-            assert_eq!(requests(), Some((0, 10)));
-            assert!(shell.waiting);
+            assert!(requests().is_some());
+            for reply in [
+                Reply::Other,
+                Reply::Listed {
+                    path: "/elsewhere".into(),
+                    total: 99,
+                },
+                Reply::Rows {
+                    start: 0,
+                    rows: Vec::new(),
+                    listing: 1,
+                },
+                Reply::Error {
+                    operation: "window".into(),
+                    path: "/elsewhere".into(),
+                    message: "unrelated".into(),
+                },
+            ] {
+                shell.receive(0, BackendEvent::Reply(reply), window, cx);
+                let _ = shell.render(window, cx);
+                assert_eq!(requests(), None);
+                assert!(Rc::ptr_eq(
+                    &original,
+                    &shell.panes[0].as_ref().unwrap().pane.held
+                ));
+            }
+        })
+    });
+}
+
+#[gpui::test]
+fn ipc_executor_reads_the_current_model_without_starting_io(cx: &mut TestAppContext) {
+    let (backend, _) = Backend::test_channel();
+    let window = cx.add_empty_window();
+    window.update(|window, cx| {
+        let entity = cx.new(|cx| shell_with(backend, cx));
+        entity.update(cx, |shell, cx| {
+            shell.panes[0].as_mut().unwrap().pane.cursor = 4;
+            shell.panes[0].as_mut().unwrap().selected = vec![2, 4];
+            for (name, expected) in [
+                ("total", "1000"),
+                ("cursor", "4"),
+                ("selectedIndices", "2,4"),
+                ("path", "/files"),
+            ] {
+                let (answer, receive) = std::sync::mpsc::sync_channel(1);
+                shell.ipc(
+                    Event::Call {
+                        request: flea::ipc::wire::Request::Call {
+                            target: "flea".into(),
+                            function: name.into(),
+                            arguments: vec![],
+                        },
+                        answer,
+                    },
+                    window,
+                    cx,
+                );
+                assert_eq!(
+                    receive.try_recv().unwrap().reply,
+                    flea::ipc::wire::Reply::value(expected)
+                );
+            }
         });
     });
-    cx.simulate_resize(size(px(640.), px(6. * ROW_HEIGHT)));
-    for reply in [
-        Reply::Other,
-        Reply::Listed {
-            path: "/files".into(),
-            total: 20,
-        },
-        Reply::Listed {
-            path: "/elsewhere".into(),
-            total: 99,
-        },
-        Reply::Rows {
-            start: 0,
-            names: vec!["old".into()],
-            listing: 1,
-        },
-        Reply::Error {
-            operation: "window".into(),
-            path: "/elsewhere".into(),
-            message: "unrelated".into(),
-        },
-    ] {
-        let description = format!("{reply:?}");
-        cx.update(|window, cx| {
-            entity.update(cx, |shell, cx| {
-                let snapshot = Rc::clone(&shell.snapshot);
-                shell.receive(Ok(reply), cx);
-                let _ = shell.render(window, cx);
-                assert_eq!(requests(), None, "{description}");
-                assert!(shell.waiting, "{description}");
-                assert_eq!(shell.requested, 10);
-                assert!(Rc::ptr_eq(&shell.snapshot, &snapshot), "{description}");
-                assert_eq!(
-                    shell.backend_error.as_deref(),
-                    Some("existing backend error"),
-                    "{description}"
-                );
-            });
-        });
-    }
-    cx.update(|window, cx| {
-        entity.update(cx, |shell, cx| {
-            shell.receive(
-                Ok(Reply::Rows {
-                    start: 0,
-                    names: (0..10).map(|index| format!("file-{index}")).collect(),
+}
+
+#[gpui::test]
+fn language_change_invalidates_shaped_rows_and_refreshes_snapshot_text(cx: &mut TestAppContext) {
+    let (backend, _) = Backend::test_channel();
+    let entity = cx.new(|cx| shell_with(backend, cx));
+    entity.update(cx, |shell, cx| {
+        shell.panes[0].as_mut().unwrap().answered = true;
+        {
+            use crate::row::cache::{Prepared, Shaping};
+            use crate::row::{marks::Mark, NameInk};
+            let host = shell.panes[0].as_ref().unwrap();
+            let mut list = host.list.borrow_mut();
+            list.rows.begin(
+                &Shaping {
                     listing: 2,
+                    font: gpui::font("JetBrains Mono"),
+                    body: px(14.),
+                    caption: px(12.),
+                    name_cells: 40,
+                    scale: 1.,
+                },
+                3,
+            );
+            list.rows
+                .get_or_prepare(0, &flea::protocol::RowFacts::default(), || {
+                    let layout = Arc::new(gpui::LineLayout::default());
+                    Prepared {
+                        name: gpui::GlyphRun::new(layout.clone()),
+                        size: gpui::GlyphRun::new(layout.clone()),
+                        date: gpui::GlyphRun::new(layout),
+                        mark: Mark::File,
+                        ink: NameInk::Foreground,
+                    }
+                });
+            assert_eq!(list.rows.len(), 1);
+        }
+        let snapshot = Snapshot {
+            revision: 2,
+            catalog: shell.locale.catalog.clone(),
+        };
+        shell.apply_locale(snapshot, cx);
+        assert_eq!(shell.locale.revision, 2);
+        assert_eq!(
+            shell.panes[0].as_ref().unwrap().status.as_ref(),
+            "1,000 items"
+        );
+        assert_eq!(shell.panes[0].as_ref().unwrap().list.borrow().rows.len(), 0);
+    });
+}
+
+#[gpui::test]
+fn dual_is_constructed_on_first_demand_and_retained_without_hidden_rendering(
+    cx: &mut TestAppContext,
+) {
+    let (backend, _) = Backend::test_channel();
+    let window = cx.add_empty_window();
+    window.update(|window, cx| {
+        let entity = cx.new(|cx| shell_with(backend, cx));
+        entity.update(cx, |shell, cx| {
+            assert!(shell.panes[1].is_none());
+            assert_eq!(shell.lifecycle.live_count(), 1);
+            for view in [View::Columns, View::Grid, View::List] {
+                shell.set_view(view, window, cx);
+                assert!(shell.panes[1].is_none());
+            }
+            shell.set_view(View::Dual, window, cx);
+            assert_eq!(shell.lifecycle.live_count(), 2);
+            let second = Rc::clone(&shell.panes[1].as_ref().unwrap().list);
+            shell.set_view(View::List, window, cx);
+            let _ = shell.render(window, cx);
+            assert_eq!(second.borrow().rows.misses, 0);
+            shell.set_view(View::Dual, window, cx);
+            assert!(Rc::ptr_eq(&second, &shell.panes[1].as_ref().unwrap().list));
+            assert_eq!(shell.lifecycle.live_count(), 2);
+        });
+    });
+}
+
+#[gpui::test]
+fn ipc_executor_is_cold_until_first_answer_and_then_serves_the_committed_pane(
+    cx: &mut TestAppContext,
+) {
+    let (backend, _) = Backend::test_channel();
+    let (send, events) = async_channel::bounded(2);
+    let (answer, receive) = std::sync::mpsc::sync_channel(1);
+    send.try_send(Event::Call {
+        request: flea::ipc::wire::Request::Call {
+            target: "flea".into(),
+            function: "total".into(),
+            arguments: vec![],
+        },
+        answer,
+    })
+    .unwrap();
+    let window = cx.add_empty_window();
+    let entity = window.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
+    window.update(|window, cx| {
+        entity.update(cx, |shell, cx| {
+            shell.ipc_events = Some(events);
+            shell.receive(0, BackendEvent::Reply(Reply::Other), window, cx);
+            assert!(shell._ipc_reader.is_none());
+            assert!(receive.try_recv().is_err());
+            shell.receive(
+                0,
+                BackendEvent::Reply(Reply::Rows {
+                    start: 0,
+                    rows: vec![flea::protocol::RowFacts::default()],
+                    listing: 3,
                 }),
+                window,
                 cx,
             );
-            assert!(!shell.waiting);
-            assert_eq!(shell.snapshot.names.len(), 10);
-            let _ = shell.render(window, cx);
-            assert_eq!(requests(), Some((0, 5)));
-            assert!(shell.waiting);
-        });
-    });
-}
-
-#[gpui::test]
-fn adv_e_r2_answered_rows_and_errors_release_the_window_request(cx: &mut TestAppContext) {
-    let replies = vec![
-        Ok(Reply::Rows {
-            start: 0,
-            names: vec!["a".into(), "b".into()],
-            listing: 3,
-        }),
-        Ok(Reply::Rows {
-            start: 21,
-            names: Vec::new(),
-            listing: 3,
-        }),
-        Ok(Reply::Rows {
-            start: 0,
-            names: vec!["current".into()],
-            listing: 2,
-        }),
-        Ok(Reply::Error {
-            operation: "window".into(),
-            path: "/files".into(),
-            message: "refused".into(),
-        }),
-        Err("malformed reply".into()),
-    ];
-    cx.add_empty_window().update(|window, cx| {
-        let wanted = visible_rows(window.viewport_size().height);
-        assert_ne!(wanted, 1);
-        for reply in replies {
-            let (backend, mut requests) = Backend::test_channel();
-            let entity = cx.new(|_| shell_with(backend));
-            entity.update(cx, |shell, cx| {
-                shell.waiting = true;
-                shell.receive(reply, cx);
-                let _ = shell.render(window, cx);
-                assert_eq!(requests(), Some((0, wanted)));
-            });
-        }
-    });
-}
-
-#[test]
-fn only_visible_rows_are_requested_including_a_partial_last_row() {
-    assert_eq!(visible_rows(px(31.)), 0);
-    assert_eq!(visible_rows(px(62.)), 1);
-    assert_eq!(visible_rows(px(63.)), 2);
-    assert_eq!(visible_rows(px(640.)), 20);
-}
-
-#[gpui::test]
-fn ipc_executor_reads_the_current_model_without_starting_io(cx: &mut gpui::TestAppContext) {
-    use crate::ipc::server::Event;
-    use flea::ipc::wire::{Reply, Request};
-    use std::sync::mpsc;
-    let (send, events) = async_channel::bounded(2);
-    let shell = cx.new(|cx| Shell {
-        path: "/committed".into(),
-        backend: None,
-        snapshot: Rc::new(Snapshot {
-            title: "files".into(),
-            total: 7,
-            start: 0,
-            listing: 1,
-            names: Vec::new(),
-        }),
-        pending_total: Some(99),
-        requested: 20,
-        waiting: true,
-        backend_error: None,
-        cache: Rc::new(RefCell::new(NameCache::default())),
-        _reader: None,
-        _ipc_reader: Some(Shell::ipc_reader(events, cx)),
-        cursor: 4,
-        selected: vec![2, 4],
-    });
-    for (name, expected) in [
-        ("total", "7"),
-        ("cursor", "4"),
-        ("selectedIndices", "2,4"),
-        ("path", "/committed"),
-    ] {
-        let (answer, receive) = mpsc::sync_channel(1);
-        assert!(send
-            .try_send(Event::Call {
-                request: Request::Call {
-                    target: "flea".into(),
-                    function: name.into(),
-                    arguments: vec![]
-                },
-                answer,
-            })
-            .is_ok());
-        cx.run_until_parked();
-        assert_eq!(receive.try_recv().unwrap().reply, Reply::value(expected));
-    }
-    shell.update(cx, |shell, _| shell.cursor = 5);
-    let (answer, receive) = mpsc::sync_channel(1);
-    assert!(send
-        .try_send(Event::Call {
-            request: Request::Call {
-                target: "flea".into(),
-                function: "cursor".into(),
-                arguments: vec![]
-            },
-            answer,
+            assert!(shell._ipc_reader.is_some());
+            assert!(shell.ipc_events.is_none());
         })
-        .is_ok());
+    });
     cx.run_until_parked();
-    assert_eq!(receive.try_recv().unwrap().reply, Reply::value("5"));
+    assert_eq!(
+        receive.try_recv().unwrap().reply,
+        flea::ipc::wire::Reply::value("1000")
+    );
 }

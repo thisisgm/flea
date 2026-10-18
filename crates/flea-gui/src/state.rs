@@ -1,181 +1,236 @@
 use crate::{
-    backend::Backend,
-    ipc::{server::Event, Surface},
-    list::{ListElement, NameCache, Snapshot, ROW_HEIGHT},
+    backend::{Backend, Failure},
+    ipc::server::Event,
+    list::seam::Seam,
+    window::{
+        composition::{Geometry, Labels, Slots},
+        lifecycle::{Lifecycle, Phase},
+        locale::{self, Snapshot},
+        pane::PaneHost,
+        startup::{self, Launch, View},
+    },
 };
-use flea::protocol::Reply;
-use gpui::{Context, IntoElement, Pixels, Render, SharedString, Task, Window};
-use std::{cell::RefCell, path::Path, rc::Rc};
+use gpui::{Context, FocusHandle, SharedString, Task, Window};
+use std::time::Duration;
 
 pub struct Shell {
-    path: String,
-    backend: Option<Backend>,
-    snapshot: Rc<Snapshot>,
-    pending_total: Option<usize>,
-    requested: usize,
-    waiting: bool,
-    backend_error: Option<String>,
-    cache: Rc<RefCell<NameCache>>,
-    _reader: Option<Task<()>>,
-    _ipc_reader: Option<Task<()>>,
-    cursor: usize,
-    selected: Vec<usize>,
+    pub launch: Launch,
+    pub slots: Slots,
+    pub lifecycle: Lifecycle,
+    pub view: View,
+    pub focus_side: usize,
+    pub(crate) panes: [Option<PaneHost>; 2],
+    pub(crate) locale: Snapshot,
+    pub(crate) labels: Labels,
+    pub(crate) path_labels: [SharedString; 2],
+    pub(crate) focus: FocusHandle,
+    pub(crate) seam: Seam,
+    pub(crate) ipc_events: Option<async_channel::Receiver<Event>>,
+    pub(crate) _ipc_reader: Option<Task<()>>,
+    pub(crate) _locale_reader: Option<Task<()>>,
+    pub(crate) locale_service: Option<locale::Service>,
+    _app_quit: Option<gpui::Subscription>,
+    pub(crate) deadlines: [Option<Task<()>>; 2],
 }
 
-pub fn visible_rows(height: Pixels) -> usize {
-    ((f32::from(height) / ROW_HEIGHT).ceil() as usize).saturating_sub(1)
+pub(crate) fn labels(locale: &Snapshot) -> Labels {
+    Labels {
+        name: locale.catalog.tr("window.column_name").into(),
+        size: locale.catalog.tr("window.column_size").into(),
+        modified: locale.catalog.tr("window.column_modified").into(),
+    }
 }
 
 impl Shell {
     pub fn new(
-        path: String,
-        select: Option<String>,
+        launch: Launch,
+        locale: Snapshot,
         events: async_channel::Receiver<Event>,
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
-        let requested = visible_rows(window.viewport_size().height);
-        let title: SharedString = Path::new(&path)
-            .file_name()
-            .and_then(|name| name.to_str())
-            .unwrap_or(&path)
-            .to_owned()
-            .into();
+        let focus = cx.focus_handle();
+        window.focus(&focus, cx);
+        let seam = Seam::new();
+        seam.window_opened();
+        let view = launch.settings.view;
+        let focus_side = launch.focus;
+        let path_labels = launch.paths.clone().map(SharedString::from);
         let mut shell = Self {
-            path: path.clone(),
-            backend: None,
-            pending_total: None,
-            requested,
-            waiting: true,
-            backend_error: None,
-            snapshot: Rc::new(Snapshot {
-                title,
-                total: 0,
-                start: 0,
-                listing: 0,
-                names: Vec::new(),
-            }),
-            cache: Rc::new(RefCell::new(NameCache::default())),
-            _reader: None,
-            _ipc_reader: Some(Self::ipc_reader(events, cx)),
-            cursor: 0,
-            selected: Vec::new(),
+            launch,
+            view,
+            focus_side,
+            path_labels,
+            labels: labels(&locale),
+            locale,
+            focus,
+            seam,
+            panes: [None, None],
+            slots: Slots::default(),
+            lifecycle: Lifecycle::default(),
+            ipc_events: Some(events),
+            _ipc_reader: None,
+            _locale_reader: None,
+            locale_service: None,
+            _app_quit: None,
+            deadlines: [None, None],
         };
-        match Backend::start(path, select, requested) {
+        shell._app_quit = Some(cx.on_app_quit(|shell, _| {
+            let pending: Vec<_> = shell
+                .panes
+                .iter()
+                .flatten()
+                .filter_map(|host| host.backend.as_ref())
+                .map(|backend| {
+                    backend.quit();
+                    backend.drained()
+                })
+                .collect();
+            async move {
+                for backend in pending {
+                    let _ = backend.recv().await;
+                }
+            }
+        }));
+        shell.start_pane(0, window, cx);
+        if view == View::Dual {
+            shell.start_pane(1, window, cx);
+        }
+        if shell.panes[0].as_ref().is_some_and(|host| host.stopped) {
+            shell.ensure_ipc_reader(window, cx);
+        }
+        shell
+    }
+
+    pub(crate) fn has_tabs(&self) -> bool {
+        self.slots.tabs.is_some()
+            || self
+                .launch
+                .settings
+                .data
+                .get("lastTabs")
+                .and_then(|tabs| tabs.get("paths"))
+                .and_then(flea::jsondoc::Json::as_array)
+                .is_some_and(|paths| paths.len() > 1)
+    }
+
+    pub(crate) fn geometry(&self, window: &Window) -> Geometry {
+        let viewport = self.seam.viewport().unwrap_or(window.viewport_size());
+        Geometry::measure(
+            f32::from(viewport.width),
+            f32::from(viewport.height),
+            &self.launch.settings,
+            self.view,
+            self.has_tabs(),
+        )
+    }
+
+    fn start_pane(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+        if self.panes[side].is_some() || !self.lifecycle.attach(side) {
+            return;
+        }
+        let height = self.seam.viewport().map_or_else(
+            || {
+                self.geometry(window)
+                    .rows_height(self.view == View::Dual, self.slots.strip_height)
+            },
+            |viewport| f32::from(viewport.height),
+        );
+        let mut host = PaneHost::new(
+            self.launch.paths[side].clone(),
+            self.launch.select[side].clone(),
+            height,
+            &self.locale,
+        );
+        match Backend::start(
+            host.path.clone(),
+            host.select.clone(),
+            host.pane.first_count(),
+        ) {
             Ok(backend) => {
                 let replies = backend.replies.clone();
-                shell._reader = Some(cx.spawn(async move |this, cx| {
-                    while let Ok(reply) = replies.recv().await {
-                        if this
-                            .update(cx, |shell, cx| shell.receive(reply, cx))
+                host.reader = Some(cx.spawn_in(window, async move |this, cx| {
+                    while let Ok(event) = replies.recv().await {
+                        if cx
+                            .update(|window, cx| {
+                                this.update(cx, |shell, cx| shell.receive(side, event, window, cx))
+                            })
                             .is_err()
                         {
                             break;
                         }
                     }
                 }));
-                shell.backend = Some(backend);
+                host.backend = Some(backend);
+                self.deadlines[side] = Some(cx.spawn_in(window, async move |this, cx| {
+                    cx.background_executor()
+                        .timer(Duration::from_millis(startup::LISTING_WAIT_MS))
+                        .await;
+                    let _ = cx.update(|window, cx| {
+                        this.update(cx, |shell, cx| {
+                            if let Some(host) = &mut shell.panes[side] {
+                                if !host.answered && !host.stopped && host.error.is_none() {
+                                    host.waiting = true;
+                                    host.status = shell.locale.catalog.tr("window.waiting").into();
+                                    if side == 0 {
+                                        shell.ensure_ipc_reader(window, cx);
+                                    }
+                                    cx.notify();
+                                }
+                            }
+                        })
+                    });
+                }));
             }
             Err(error) => {
-                shell.waiting = false;
-                shell.record_error(format!("the backend thread could not start: {error}"));
+                host.stopped = true;
+                host.record_error(
+                    Failure {
+                        key: "window.backend_reader",
+                        detail: error.to_string(),
+                    },
+                    &self.locale,
+                );
+                self.lifecycle.drained(side);
             }
         }
-        shell
+        self.panes[side] = Some(host);
     }
 
-    fn ipc_reader(events: async_channel::Receiver<Event>, cx: &mut Context<Self>) -> Task<()> {
-        cx.spawn(async move |this, cx| {
-            while let Ok(event) = events.recv().await {
-                if this.update(cx, |shell, cx| shell.ipc(event, cx)).is_err() {
-                    break;
+    pub fn set_view(&mut self, view: View, window: &mut Window, cx: &mut Context<Self>) {
+        if self.lifecycle.phase() != Phase::Open {
+            return;
+        }
+        self.view = view;
+        if view == View::Dual {
+            self.start_pane(1, window, cx);
+        } else {
+            self.focus_side = 0;
+        }
+        cx.notify();
+    }
+
+    pub fn focus_pane(&mut self, side: usize, cx: &mut Context<Self>) {
+        if side < 2 && (side == 0 || self.view == View::Dual) && self.panes[side].is_some() {
+            self.focus_side = side;
+            cx.notify();
+        }
+    }
+
+    pub fn close(&mut self, window: &mut Window, cx: &mut Context<Self>) -> bool {
+        if self.lifecycle.begin_close() {
+            for host in self.panes.iter().flatten() {
+                if let Some(backend) = &host.backend {
+                    backend.quit();
                 }
             }
-        })
-    }
-
-    fn ipc(&self, event: Event, cx: &mut Context<Self>) {
-        match event {
-            Event::Call { request, answer } => {
-                let surface = Surface {
-                    path: &self.path,
-                    total: self.snapshot.total,
-                    cursor: self.cursor,
-                    selected: &self.selected,
-                };
-                let _ = answer.try_send(surface.dispatch(request));
-            }
-            Event::Quit => cx.quit(),
+            cx.notify();
         }
-    }
-
-    fn receive(&mut self, reply: Result<Reply, String>, cx: &mut Context<Self>) {
-        match reply {
-            Ok(Reply::Listed { path, total }) if path == self.path => {
-                self.pending_total = Some(total)
-            }
-            Ok(Reply::Rows {
-                start,
-                names,
-                listing,
-            }) => {
-                if listing < self.snapshot.listing {
-                    return;
-                }
-                self.waiting = false;
-                let total = self.pending_total.take().unwrap_or(self.snapshot.total);
-                if names.len() > self.requested || start > total || names.len() > total - start {
-                    eprintln!("flea-gui: the backend answered rows outside the requested window");
-                    return;
-                }
-                self.snapshot = Rc::new(Snapshot {
-                    title: self.snapshot.title.clone(),
-                    total,
-                    start,
-                    listing,
-                    names: names.into_iter().map(SharedString::from).collect(),
-                });
-                self.backend_error = None;
-                cx.notify();
-            }
-            Ok(Reply::Error { path, message, .. }) if path == self.path => {
-                self.waiting = false;
-                self.record_error(message);
-            }
-            Ok(Reply::Error { path, message, .. }) => {
-                eprintln!("flea-gui: ignored an error for {path}: {message}");
-            }
-            Err(message) => {
-                self.waiting = false;
-                self.record_error(message);
-            }
-            _ => {}
+        let closed = self.lifecycle.phase() == Phase::Closed;
+        if closed {
+            window.remove_window();
         }
-    }
-
-    fn record_error(&mut self, message: String) {
-        if self.backend_error.as_deref() != Some(&message) {
-            eprintln!("flea-gui: {message}");
-            self.backend_error = Some(message);
-        }
-    }
-}
-
-impl Render for Shell {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let wanted = visible_rows(window.viewport_size().height);
-        if !self.waiting && wanted != self.requested {
-            if let Some(backend) = &self.backend {
-                self.requested = wanted;
-                match backend.window(self.snapshot.start, wanted) {
-                    Ok(()) => {
-                        self.waiting = true;
-                    }
-                    Err(error) => self.record_error(error),
-                }
-            }
-        }
-        ListElement::new(Rc::clone(&self.snapshot), Rc::clone(&self.cache))
+        closed
     }
 }
 

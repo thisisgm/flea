@@ -14,5 +14,25 @@
   "selection.count": {
     "one": "%1 item selected in %2",
     "other": "%1 items selected in %2"
-  }
+  },
+  "window.loading": "Loading",
+  "window.waiting": "Still waiting for this folder",
+  "window.select_required": "--select needs a target",
+  "window.one_directory": "Only one start directory is accepted",
+  "window.unknown_flag": "Unknown flag %1",
+  "window.settings_failed": "Settings could not be read: %1",
+  "window.open_failed": "The window could not open: %1",
+  "window.backend_start": "The backend could not start: %1",
+  "window.backend_wait": "The backend could not be reaped: %1",
+  "window.backend_timeout": "The backend did not finish closing within 30 seconds",
+  "window.backend_protocol": "The backend reply is invalid: %1",
+  "window.backend_read": "The backend reply could not be read: %1",
+  "window.backend_reader": "The backend reader could not start: %1",
+  "window.backend_write": "The backend request could not be written: %1",
+  "window.backend_eof": "The backend closed its reply stream",
+  "window.backend_stopped": "The backend stopped accepting requests",
+  "window.backend_report": "%1",
+  "window.column_name": "Name",
+  "window.column_size": "Size",
+  "window.column_modified": "Modified"
 }
