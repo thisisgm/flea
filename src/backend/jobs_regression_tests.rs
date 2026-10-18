@@ -368,3 +368,11 @@ fn a_deferred_job_entry_files_after_earlier_publications_without_a_token() {
     assert_eq!(ops.journal.undo().unwrap(), "copy");
     assert!(!earlier.exists());
 }
+
+#[test]
+fn an_undo_check_never_starts_an_unused_journal() {
+    let journal = super::lazy::Local::<super::undo::Journal>::new(|| panic!("the undo check started the journal"));
+    let mut jobs = super::jobs::Jobs::default();
+    jobs.refresh_undo(&mut Vec::new(), &journal);
+    assert!(journal.get().is_none());
+}

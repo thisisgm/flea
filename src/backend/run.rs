@@ -978,8 +978,8 @@ pub(crate) fn drain(
     if let Some(id) = flash.slot.running() {
         flash.slot.cancel(id);
     }
-    // A trash batch past its announce has freed the slot but still owes its journal entry, so the drain waits for it too.
-    while st.outstanding > 0 || ops.live.running().is_some() || !ops.pending.is_empty() || ops.journal.deferred.is_some() || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
+    // A trash batch past its announce has freed the slot but still owes its journal entry, so the drain waits for it too; a journal no request started owes none.
+    while st.outstanding > 0 || ops.live.running().is_some() || !ops.pending.is_empty() || ops.journal.get().is_some_and(|journal| journal.deferred.is_some()) || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
         match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
             Ok(Event::Thumb(d)) => report_done(out, st, pool, d),
             Ok(Event::Op(m)) => report_op(out, ops, m),

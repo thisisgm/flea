@@ -118,7 +118,9 @@ impl Jobs {
     }
 
     // A job keeps its Undo only while the journal still holds the token it recorded.
-    pub fn refresh_undo(&mut self, out: &mut impl Write, journal: &super::undo::Journal) {
+    pub fn refresh_undo(&mut self, out: &mut impl Write, journal: &super::lazy::Local<super::undo::Journal>) {
+        // A journal no request has started holds no token, so the check never starts it.
+        let Some(journal) = journal.get() else { return };
         if journal.deferred.is_some() {
             return;
         }
