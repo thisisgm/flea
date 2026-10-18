@@ -43,7 +43,7 @@ fn adv_d_r1_shifted_printables_match_legacy_keys_in_the_real_keymap() {
                 _ => format!("\x1b[{};2;{}u", base as u32, shifted as u32),
             };
             let keys = Decoder::default().feed(encoded.as_bytes(), false);
-            let legacy = Key::character(shifted, "");
+            let legacy = Key::character(shifted, if shifted != base { "" } else { "shift" });
             assert_eq!(keys, [legacy.clone()], "{encoded:?}");
             for preset in ["default", "flea", "mac", "windows", "vim"] {
                 for context in ["listing", "editor", "pdf", "media"] {
@@ -55,6 +55,28 @@ fn adv_d_r1_shifted_printables_match_legacy_keys_in_the_real_keymap() {
     let keys = Decoder::default().feed(b"\x1b[122:90;6u\x1b[3;2~\x1b[1;2D", false);
     assert_eq!(keys, [Key::character('Z', "ctrlshift"), Key::named("Delete", "shift"), Key::named("Left", "shift")]);
     assert_eq!(map.action(&keys[0], "default"), "redo");
+}
+#[test]
+fn adv_d_r2_shift_without_shifted_text_keeps_its_modifier() {
+    let map = crate::tui::keymap::Map::load();
+    for encoded in [
+        b"\x1b[97;2u".as_slice(),
+        b"\x1b[97;130u",
+        b"\x1b[97:97;2u",
+        b"\x1b[97;2;97u",
+    ] {
+        let keys = Decoder::default().feed(encoded, false);
+        let expected = Key::character('a', "shift");
+        assert_eq!(keys, [expected.clone()], "{encoded:?}");
+        assert_eq!(map.action(&keys[0], "flea"), map.action(&expected, "flea"));
+        assert_ne!(
+            map.action(&keys[0], "flea"),
+            map.action(&Key::character('a', ""), "flea")
+        );
+        let mut editor = crate::tui::editor::Editor::new("filter", String::new(), "/".into());
+        editor.update(&keys[0]);
+        assert_eq!(editor.value, "a");
+    }
 }
     #[test]
     fn terminal_replies_never_become_file_actions() {

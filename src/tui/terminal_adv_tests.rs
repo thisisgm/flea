@@ -2,6 +2,8 @@ use super::*;
 use crate::backend::testdir::TestDir;
 use std::os::fd::AsRawFd;
 
+const TIOCSCTTY: usize = 0x540e;
+
 #[test]
 fn adv_d_r1_terminal_child() {
     let Some(root) = std::env::var_os("FLEA_T1_ADV_ROOT") else { return; };
@@ -54,7 +56,7 @@ fn lifecycle(mode: &str) {
         .env("FLEA_T1_ADV_ROOT", dir.path()).env("FLEA_T1_ADV_MODE", mode).env_remove("TMUX")
         .stdin(slave.try_clone().unwrap()).stdout(slave.try_clone().unwrap()).stderr(slave.try_clone().unwrap());
     unsafe { command.pre_exec(|| {
-        if setsid() < 0 || ioctl(0, 0x540eusize, 0) < 0 { return Err(io::Error::last_os_error()); }
+        if setsid() < 0 || ioctl(0, TIOCSCTTY, 0) < 0 { return Err(io::Error::last_os_error()); }
         Ok(())
     }); }
     let mut child = command.spawn().unwrap();
