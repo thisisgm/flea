@@ -111,7 +111,7 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                         model.next_rename(&mut wire)?;
                     }
                     Err(error) => {
-                        if !terminal.ready() { return Err(error); }
+                        if !terminal.ready() { return if terminal.stopped() { Ok(()) } else { Err(error) }; }
                         model.fail(crate::error::io_message(&error));
                         model.menu_action.clear();
                         wire.send(vec![("c", wire::word("menuaction")), ("op", wire::word("close")), ("id", wire::number(model.action_id))])?;
