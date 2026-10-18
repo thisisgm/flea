@@ -178,6 +178,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                 return Control::Quit;
             }
         }
+        Event::Git(line) => say(out, &line),
         Event::Thumb(d) => report_done(out, st, pool, d),
         Event::Flash(m) => flash.report(out, &m),
         Event::DirSize(d) => report_dirsize(out, st, d),
@@ -345,6 +346,10 @@ fn handle_line(
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
+        Request::Git { line } => st
+            .git
+            .get_or_insert_with(|| super::gitreq::Worker::new(loop_tx.clone()))
+            .request(line),
         Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
         Request::Picker { line } => {
             let replies = ops.tx.clone();
@@ -836,6 +841,7 @@ fn rows_needed(request: &Request) -> usize {
         | Request::ClipClear { .. }
         | Request::ClipWatch
         | Request::Quit
+        | Request::Git { .. }
         | Request::Unknown => 0,
     }
 }
@@ -1212,3 +1218,7 @@ mod session_wire_tests;
 #[cfg(test)]
 #[path = "run_hold_tests.rs"]
 mod hold_wire_tests;
+
+#[cfg(test)]
+#[path = "run_git_tests.rs"]
+mod git_wire_tests;

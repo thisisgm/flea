@@ -27,6 +27,11 @@ pub mod fsinfo;
 pub mod fsname;
 pub mod fsinforeq;
 pub mod extclass;
+#[cfg(test)]
+pub(crate) mod gitfixture;
+pub mod gitprobe;
+pub mod gitreq;
+pub mod gitstatus;
 pub mod gvfsroot;
 pub mod netfs;
 pub mod durable;

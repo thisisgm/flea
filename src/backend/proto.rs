@@ -11,6 +11,9 @@ pub enum Request {
     Actions {
         line: String,
     },
+    Git {
+        line: String,
+    },
     List {
         path: String,
         first: usize,
@@ -128,6 +131,9 @@ pub enum Request {
 // Sample input: {"c":"list","path":"/home/gm","first":350,"hidden":false}
 pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
+        Some("gitstatus" | "gitrows" | "gitchanges") => Request::Git {
+            line: line.to_string(),
+        },
         Some("trashbrowse") => Request::TrashBrowse { line: line.to_string() },
         Some("permissions") => Request::Permissions { line: line.to_string() },
         Some("permissionsBatch") => Request::PermissionsBatch {
