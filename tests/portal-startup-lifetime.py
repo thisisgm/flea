@@ -1,6 +1,7 @@
 #!/usr/bin/env python3
 """Exercise activation and idle handover with the real backend on a private bus."""
 
+import json
 import os
 from pathlib import Path
 import signal
@@ -17,6 +18,9 @@ NAME = "org.freedesktop.impl.portal.desktop.flea"
 OBJECT = "/org/freedesktop/portal/desktop"
 IFACE = "org.freedesktop.impl.portal.FileChooser"
 MARKER = ".flea-test-sandbox"
+IDLE_BOUND_SEC = 1
+# Allow 300 ms for second-timer coalescing and the activation/PID query round trips.
+IDLE_TOLERANCE_SEC = 0.3
 
 
 def isolated():
@@ -32,10 +36,18 @@ def isolated():
         (root / "config/xdg-desktop-portal/portals.conf").write_text(
             "[preferred]\norg.freedesktop.impl.portal.FileChooser=flea;gtk\n")
         (root / "backend").write_text(
-            "#!/usr/bin/python3\nimport runpy, sys\n"
+            "#!/usr/bin/python3\nimport json, pathlib, runpy, subprocess, sys, time\n"
+            "if len(sys.argv) == 2:\n"
+            "    child = subprocess.Popen([sys.executable, __file__, sys.argv[1], 'serve'])\n"
+            "    status = child.wait()\n"
+            f"    record = pathlib.Path({str(root / 'run')!r}, 'exit-' + str(child.pid))\n"
+            "    pending = record.with_suffix('.new')\n"
+            "    pending.write_text(json.dumps({'status': status, 'at': time.monotonic()}))\n"
+            "    pending.replace(record)\n"
+            "    sys.exit(status)\n"
             "module = runpy.run_path(sys.argv[1])\n"
-            "module['main'].__globals__['IDLE_EXIT_SEC'] = 1\n"
-            "if len(sys.argv) > 2:\n"
+            f"module['main'].__globals__['IDLE_EXIT_SEC'] = {IDLE_BOUND_SEC}\n"
+            "if sys.argv[2] == 'fail-export':\n"
             "    acquired = module['Service'].on_bus_acquired\n"
             "    class BrokenConnection:\n"
             "        def register_object(self, *args):\n"
@@ -136,14 +148,26 @@ def exercise(root):
     check("failed export explains the refusal", "could not export FileChooser" in (root / "export-failure.log").read_text())
 
     held = activate()
-    pid = daemon("GetConnectionUnixProcessID", GLib.Variant("(s)", (held,)))[0]
     start = time.monotonic()
+    pid = daemon("GetConnectionUnixProcessID", GLib.Variant("(s)", (held,)))[0]
+    process = Path(f"/proc/{pid}")
+    exit_record = root / f"run/exit-{pid}"
+    released = None
     deadline = start + 4
-    while Path(f"/proc/{pid}").exists() and time.monotonic() < deadline:
-        time.sleep(0.02)
+    while time.monotonic() < deadline:
+        if owner() != held and process.exists() and released is None:
+            released = time.monotonic() - start
+        if exit_record.exists():
+            break
+        time.sleep(0.01)
+    record = json.loads(exit_record.read_text()) if exit_record.exists() else {}
+    elapsed = record.get("at", time.monotonic()) - start
+    minimum = IDLE_BOUND_SEC - IDLE_TOLERANCE_SEC
     check("an unused activation releases its name and exits after the idle bound",
-          not owner() and not Path(f"/proc/{pid}").exists(),
-          f"{(time.monotonic() - start) * 1000:.1f} ms, pid={pid}, owner={owner()}")
+          released is not None and minimum <= released <= elapsed <= 4
+          and elapsed >= minimum and record.get("status") == 0 and not owner() and not process.exists(),
+          f"release={released}, elapsed={elapsed:.3f} s, idle={IDLE_BOUND_SEC} s, "
+          f"tolerance={IDLE_TOLERANCE_SEC} s, exit={record.get('status')}, pid={pid}")
     held = activate()
     properties()
     check("Get reads the interface version", call(NAME, "org.freedesktop.DBus.Properties", "Get",
