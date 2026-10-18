@@ -1,0 +1,45 @@
+{
+  "fork": {
+    "url": "https://github.com/thisisgm/gpui-omarchy",
+    "rev": "fedc80f0489b867b26732f937fd95dc44cc75fbc"
+  },
+  "ui_callbacks": [
+    "flea_gui::run",
+    "flea_gui::state::Shell::new",
+    "flea_gui::state::Shell::receive",
+    "flea_gui::state::Shell::render"
+  ],
+  "blocking_helpers": [],
+  "blocking_exceptions": [],
+  "non_color_hex_constants": [],
+  "color_modules": [
+    {
+      "module": "flea_gui::palette",
+      "kind": "palette",
+      "reason": "Parses Omarchy colours and reuses the existing QML canvas and TUI foreground fallbacks."
+    }
+  ],
+  "hot_surfaces": [
+    {
+      "name": "list",
+      "path": "crates/flea-gui/src/list.rs",
+      "element": "ListElement",
+      "row_height": "ROW_HEIGHT"
+    },
+    {
+      "name": "columns",
+      "path": "crates/flea-gui/src/columns.rs",
+      "pending": true
+    },
+    {
+      "name": "grid",
+      "path": "crates/flea-gui/src/grid.rs",
+      "pending": true
+    },
+    {
+      "name": "long_menus",
+      "path": "crates/flea-gui/src/menus.rs",
+      "pending": true
+    }
+  ]
+}

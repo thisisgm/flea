@@ -1,3 +1,4 @@
+use flea::colours;
 use std::collections::HashMap;
 
 // The one background fallback, and ui/Theme.qml carries the same literal for the same reason.
@@ -55,18 +56,9 @@ fn blend(foreground: &str, background: &str, opacity: f64) -> String {
 // Sample input: accent = "#a9b665"; values outside six-digit RGB are ignored.
 fn parse(text: &str) -> HashMap<String, String> {
     let mut out = HashMap::new();
-    for line in text.lines() {
-        if let Some((key, value)) = line.split_once('=') {
-            let value = value.trim().trim_start_matches(['"', '\'']);
-            let value = value.get(..7).unwrap_or("");
-            if value.len() == 7
-                && value.starts_with('#')
-                && value[1..].bytes().all(|b| b.is_ascii_hexdigit())
-            {
-                out.insert(key.trim().into(), value.into());
-                if matches!(key.trim(), "red" | "color1") { out.insert("urgent".into(), value.into()); }
-            }
-        }
+    for (key, value) in colours::entries(text) {
+        out.insert(key.into(), value.into());
+        if matches!(key, "red" | "color1") { out.insert("urgent".into(), value.into()); }
     }
     out
 }

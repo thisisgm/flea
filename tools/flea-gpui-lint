@@ -1,0 +1,60 @@
+#!/usr/bin/env python3
+"""Gate native UI architecture and the single GPUI dependency pin."""
+import json
+from pathlib import Path
+import sys
+
+sys.dont_write_bytecode = True
+from gpui_lint.cargo import native_sources, read_metadata, source_checks, tracked
+from gpui_lint.checks import COLOR_HEX, source_checks as rust_checks
+
+
+def objects(items, section):
+    # Policy sections are arrays of objects; a malformed entry fails here, not at its field access.
+    if not isinstance(items, list):
+        raise ValueError(f"tools/gpui-lint.json {section} must be an array")
+    for index, entry in enumerate(items):
+        if not isinstance(entry, dict):
+            raise ValueError(f"tools/gpui-lint.json {section}[{index}] must be an object")
+    return items
+
+
+def policy_checks(policy):
+    if not isinstance(policy, dict):
+        raise ValueError("tools/gpui-lint.json must be an object")
+    for entry in objects(policy.get("non_color_hex_constants", []), "non_color_hex_constants"):
+        if not all(isinstance(entry.get(key), str) and entry[key].strip() and "*" not in entry[key]
+                   for key in ("symbol", "literal", "reason")) or not COLOR_HEX.fullmatch(entry["literal"]):
+            raise ValueError("non-colour hex exceptions need an exact constant symbol, six/eight-digit hex literal and reason")
+    for entry in objects(policy["blocking_exceptions"], "blocking_exceptions"):
+        if not all(isinstance(entry.get(key), str) and entry[key].strip() and "*" not in entry[key]
+                   for key in ("caller", "symbol", "reason")):
+            raise ValueError("every blocking exception needs an exact caller, symbol and reason")
+    for entry in objects(policy["color_modules"], "color_modules"):
+        if entry.get("kind") not in ("palette", "content") or not isinstance(entry.get("reason"), str) or not entry["reason"].strip():
+            raise ValueError("colour exemptions need a palette/content module and reason")
+        if not isinstance(entry.get("module"), str) or not entry["module"] or "*" in entry["module"]:
+            raise ValueError("colour exemptions need an exact module")
+
+
+def main():
+    root = Path.cwd()
+    try:
+        paths = tracked(root)
+        policy = json.loads((root / "tools/gpui-lint.json").read_text())
+        policy_checks(policy)
+        metadata = read_metadata(root)
+        errors = source_checks(root, paths, metadata, policy)
+        units = native_sources(root, paths, metadata)
+        errors.extend(rust_checks(units, policy))
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(f"flea-gpui-lint: ERROR {error}")
+        return 2
+    for error in sorted(set(errors)):
+        print("FAIL " + error)
+    print(f"flea-gpui-lint: {'FAIL' if errors else 'PASS'} files={len(units)} findings={len(set(errors))}")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
