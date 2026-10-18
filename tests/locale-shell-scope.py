@@ -249,3 +249,34 @@ def scope_checks(api, check):
         rows = list(api['inventory'](repo, [(repo / 'tools/line-control', source)]))
         check('inventory line matches scope line with ' + repr(separator),
               len(rows) == 1 and rows[0][1] == 2 and rows[0][3])
+
+
+# Sample input: --regress-uniq with FAIL matched fixture uniq child environment: C|unset.
+def emit_detection(audit, args, errors):
+    signatures = {
+        'shell': {
+            'parameters': ('command substitution remains code:',),
+            'continuations': ('continued magick flags are parsed', 'continued ffmpeg flags are parsed'),
+            'exports': ('function scope is rejected', 'subshell scope is rejected'),
+            'case-scope': ('global scope after case a)', 'function scope after case a)',
+                           'subshell scope after case a)'),
+            'block-boundaries': ('pipe loop preserves later global scope',
+                                 'nested if keeps exports inside its block'),
+            'block-balance': ('unbalanced scope raises:', 'unbalanced file fails audit:'),
+            'physical-lines': ('newline-only physical line with', 'inventory line matches scope line with'),
+        },
+        'parsers': {
+            'uniq': ('matched fixture uniq child environment',),
+            'caller': ('process_identity preserves subsequent child locale',),
+            'charset': ('minimum name length counts CJK characters', 'gio preserves UTF-8 display names',
+                        'ps preserves UTF-8 process arguments'),
+            'decimal': ('German sys_seconds and cpu_s use dot decimals',),
+            'fixture-scope': ('matched fixture sort child environment', 'matched fixture uniq child environment'),
+            'manifest-byte-mode': ('manifest counts a Latin-1 name as jpg',),
+            'fixture-byte-mode': ('matched fixture counts a Latin-1 name as jpg',),
+        },
+    }
+    for flag, labels in signatures[audit].items():
+        if getattr(args, 'regress_' + flag.replace('-', '_'), False) and any(
+                error.startswith('FAIL ' + label) for label in labels for error in errors):
+            print('DETECTED --regress-' + flag)

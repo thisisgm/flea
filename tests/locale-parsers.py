@@ -10,9 +10,14 @@ import runpy
 import shutil
 import subprocess
 import sys
+import traceback
 
-REPO = Path(__file__).resolve().parents[1]
-SHELL = runpy.run_path(str(Path(__file__).with_name("locale-shell.py")))
+try:
+    REPO = Path(__file__).resolve().parents[1]
+    SHELL = runpy.run_path(str(Path(__file__).with_name("locale-shell.py")))
+except Exception:
+    traceback.print_exc()
+    raise SystemExit(3)
 
 
 def filter_sites():
@@ -52,16 +57,13 @@ def main():
         locale.setlocale(locale.LC_ALL, requested)
     except locale.Error as error:
         parser.error(f"requested locale {requested} is unavailable: {error}")
-    german_available = True
     try:
         locale.setlocale(locale.LC_ALL, "de_DE.UTF-8")
     except locale.Error:
-        german_available = False
+        print("NOT RUN German sys_seconds and cpu_s use dot decimals: de_DE.UTF-8 is unavailable", file=sys.stderr)
+        return 3
     finally:
         locale.setlocale(locale.LC_ALL, requested)
-    if args.regress_decimal and not german_available:
-        print("FAIL --regress-decimal: de_DE.UTF-8 is unavailable; control cannot run", file=sys.stderr)
-        return 3
     inherited["LC_ALL"] = requested
     inherited["LANG"] = requested
     inherited["LANGUAGE"] = "de:ar"
@@ -255,14 +257,11 @@ def main():
     numeric += 'last_entrant=125; ticks_per_second=100\n' + cpu_line + '\nprintf "%s" "$cpu_s"'
     if args.regress_decimal:
         numeric = numeric.replace("LC_ALL=C.UTF-8 LANGUAGE= ", "")
-    if german_available:
-        # POSIX mode makes awk implementations that default to dot decimals honor LC_NUMERIC.
-        german = dict(inherited, LC_ALL="de_DE.UTF-8", LANG="de_DE.UTF-8", POSIXLY_CORRECT="1")
-        result = subprocess.run(["/bin/bash", "-c", numeric], env=german, capture_output=True, text=True)
-        check("German sys_seconds and cpu_s use dot decimals", result.returncode == 0 and
-              result.stdout == "1.75|1.25", (result.returncode, result.stdout, result.stderr))
-    else:
-        print("SKIP German decimal probe: de_DE.UTF-8 is unavailable")
+    # POSIX mode makes awk implementations that default to dot decimals honor LC_NUMERIC.
+    german = dict(inherited, LC_ALL="de_DE.UTF-8", LANG="de_DE.UTF-8", POSIXLY_CORRECT="1")
+    result = subprocess.run(["/bin/bash", "-c", numeric], env=german, capture_output=True, text=True)
+    check("German sys_seconds and cpu_s use dot decimals", result.returncode == 0 and
+          result.stdout == "1.75|1.25", (result.returncode, result.stdout, result.stderr))
 
     for tool, function_name in [("flea-field-search", "calibrate"),
                                 ("flea-field-instant", "calib_window"),
@@ -281,6 +280,7 @@ def main():
     if errors:
         print("\n".join(errors), file=sys.stderr)
         print(f"FAIL locale={requested}; evidence={root}", file=sys.stderr)
+        SHELL["SCOPE"]["emit_detection"]("parsers", args, errors)
         return 1
     success = True
     print(f"PASS locale={requested} decimal={locale.localeconv()['decimal_point']!r}; "
@@ -289,4 +289,9 @@ def main():
 
 
 if __name__ == "__main__":
-    sys.exit(main())
+    try:
+        result = main()
+    except Exception:
+        traceback.print_exc()
+        result = 3
+    sys.exit(result)

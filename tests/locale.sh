@@ -27,44 +27,49 @@ trap cleanup EXIT
 unset LOCPATH
 export LC_ALL=C.UTF-8 LANG=C.UTF-8 LANGUAGE=de:ar
 mkdir -p "$box/locales" || exit 1
-declare -A ready=()
 for name in de_DE ar_AE; do
-    ready[$name]=0
     reason='localedef is not installed'
     if command -v localedef >/dev/null 2>&1; then
         if env -u LANGUAGE localedef --no-archive -i "$name" -f UTF-8 "$box/locales/$name.UTF-8" > "$box/$name.log" 2>&1; then
-            ready[$name]=1
             continue
         fi
         reason='localedef could not generate the locale'
         IFS= read -r reason < "$box/$name.log" || [ -n "$reason" ] || reason='localedef returned no diagnostic'
     fi
-    printf 'SKIP locale %s.UTF-8: %s\n' "$name" "$reason"
+    printf 'FAIL locale required data %s.UTF-8: %s\n' "$name" "$reason"
+    failed=$((failed + 1))
 done
+if [ "$failed" -ne 0 ]; then
+    printf 'locale: %d passed, %d failed\n' "$passed" "$failed"
+    exit 1
+fi
 export LOCPATH="$box/locales"
 
 run() {
-    local label=$1 expected=$2 actual
-    shift 2
+    local label=$1 expected=$2 detection=$3 actual matched=1
+    shift 3
     serial=$((serial + 1))
     "$@" > "$box/check-$serial.log" 2>&1
     actual=$?
-    if [ "$actual" -eq "$expected" ]; then
+    if [ "$expected" -eq 1 ]; then
+        matched=0
+        [ -n "$detection" ] && grep -Fxq -- "$detection" "$box/check-$serial.log" && matched=1
+    fi
+    if [ "$actual" -eq "$expected" ] && [ "$matched" -eq 1 ]; then
         passed=$((passed + 1))
         printf 'ok   locale %s: exit %s\n' "$label" "$actual"
     else
         failed=$((failed + 1))
         printf 'FAIL locale %s: expected exit %s, got %s\n' "$label" "$expected" "$actual"
+        [ "$expected" -ne 1 ] || printf '  expected detection: %s\n' "$detection"
         cat "$box/check-$serial.log"
     fi
 }
 
 for script in tests/locale-shell.py tests/locale-parsers.py; do
-    run "$script normal" 0 python3 -B "$script"
+    run "$script normal" 0 "" python3 -B "$script"
     for name in de_DE ar_AE; do
-        if [ "${ready[$name]}" -eq 1 ]; then
-            run "$script $name.UTF-8" 0 env LC_ALL="$name.UTF-8" LANG="$name.UTF-8" python3 -B "$script"
-        fi
+        run "$script $name.UTF-8" 0 "" env LC_ALL="$name.UTF-8" LANG="$name.UTF-8" python3 -B "$script"
     done
     # Sample input: parser.add_argument('--regress-uniq', action='store_true').
     if ! python3 -B - "$script" > "$box/controls" <<'PY'
@@ -99,15 +104,13 @@ PY
     while read -r flag target; do
         locale_name=C
         if [ "$flag" = --regress-decimal ]; then
-            if [ "${ready[de_DE]}" -ne 1 ]; then
-                printf 'SKIP locale %s %s: de_DE.UTF-8 could not be generated\n' "$script" "$flag"
-                continue
-            fi
             locale_name=de_DE.UTF-8
         fi
         args=("$flag")
         [ -z "$target" ] || args+=("$target")
-        run "$script ${args[*]}" 1 env LC_ALL="$locale_name" LANG="$locale_name" python3 -B "$script" "${args[@]}"
+        detection="DETECTED ${args[*]}"
+        [ "$flag" != --regress-byte-marker ] || [ -n "$target" ] || detection+=' all'
+        run "$script ${args[*]}" 1 "$detection" env LC_ALL="$locale_name" LANG="$locale_name" python3 -B "$script" "${args[@]}"
     done < "$box/controls"
 done
 printf 'locale: %d passed, %d failed\n' "$passed" "$failed"

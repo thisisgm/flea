@@ -2,13 +2,18 @@
 import argparse
 import re
 import runpy
+import traceback
 from functools import partial
 from functools import lru_cache
 from pathlib import Path
 
 
-SCOPE = runpy.run_path(str(Path(__file__).with_name("locale-shell-scope.py")))
-top_level = SCOPE["top_level"]
+try:
+    SCOPE = runpy.run_path(str(Path(__file__).with_name("locale-shell-scope.py")))
+    top_level = SCOPE["top_level"]
+except Exception:
+    traceback.print_exc()
+    raise SystemExit(3)
 
 
 # Sample input: x="${FOO:-$(grep -m1 bar file)}"
@@ -349,17 +354,26 @@ def main():
             print(f'byte-marker control {target}: {len(failures)} unpinned sites')
         if errors:
             print('\n'.join(errors))
-        return 1 if detected and all(detected) and not errors else 3
+        if not (detected and all(detected) and not errors):
+            return 3
+        print('DETECTED --regress-byte-marker ' + args.regress_byte_marker)
+        return 1
     rows = list(inventory(repo))
     for path, line, name, scope_ok, prefix in rows:
         check(f'{path.relative_to(repo)}:{line} {name} scope', scope_ok)
     if errors:
         print('\n'.join(errors))
         print(f'FAIL {len(errors)} of {checks} shell inventory checks')
+        SCOPE['emit_detection']('shell', args, errors)
         return 1
     print(f'PASS {checks} shell inventory checks; {len(rows)} parsed sites; 0 unpinned')
     return 0
 
 
 if __name__ == '__main__':
-    raise SystemExit(main())
+    try:
+        result = main()
+    except Exception:
+        traceback.print_exc()
+        result = 3
+    raise SystemExit(result)
