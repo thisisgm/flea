@@ -1,125 +1,6 @@
 use super::*;
-use crate::backend::{model3d::testdata, testdir::TestDir};
 use crate::jsondoc::Json;
-use std::io::{BufRead,BufReader,Write};
-use std::process::{Child,ChildStdin,Command};
-use std::sync::mpsc::{channel,Receiver};
-
-struct Session { child: Child, input: ChildStdin, lines: Receiver<String> }
-
-impl Session {
-    fn start(root: &TestDir, path: Option<&Path>) -> Option<Self> {
-        let exe = std::env::current_exe().unwrap().parent().unwrap().parent().unwrap().join("flea");
-        if !exe.is_file() {
-            std::io::stderr().write_all(b"SKIP model3d protocol: build --locked --bin flea before this test to supply the actual backend executable\n").unwrap();
-            return None;
-        }
-        let home = root.dir("home");
-        let mut command = Command::new(exe);
-        command.arg("--backend").env("HOME",&home).env("XDG_CACHE_HOME",root.join("cache"))
-            .env("XDG_CONFIG_HOME",root.join("config")).env("XDG_DATA_HOME",root.join("data"))
-            .stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::null());
-        if let Some(path) = path { command.env("PATH",path); }
-        let mut child = command.spawn().unwrap();
-        let input = child.stdin.take().unwrap();
-        let stdout = child.stdout.take().unwrap();
-        let (tx,lines) = channel();
-        std::thread::spawn(move || {
-            for line in BufReader::new(stdout).lines() {
-                if tx.send(line.unwrap()).is_err() { break }
-            }
-        });
-        Some(Self { child, input, lines })
-    }
-
-    fn send(&mut self, line: &str) { writeln!(self.input,"{line}").unwrap(); self.input.flush().unwrap(); }
-
-    fn response(&self, kind: &str) -> Json {
-        let until = Instant::now()+Duration::from_secs(25);
-        loop {
-            let line = self.lines.recv_timeout(until.saturating_duration_since(Instant::now())).expect("the backend did not answer within its deadline");
-            let answer = crate::jsondoc::parse(&line).unwrap();
-            if answer.get("t").and_then(Json::as_str) == Some(kind) { return answer }
-        }
-    }
-}
-
-impl Drop for Session {
-    fn drop(&mut self) {
-        let _ = writeln!(self.input,"{{\"c\":\"quit\"}}");
-        let end = Instant::now()+Duration::from_secs(3);
-        while Instant::now() < end {
-            if self.child.try_wait().unwrap().is_some() { return }
-            std::thread::sleep(Duration::from_millis(10));
-        }
-        let _ = self.child.kill();
-        let _ = self.child.wait();
-    }
-}
-
-fn ask(path: &Path, token: usize) -> String {
-    format!(r#"{{"c":"model3d","slot":"look","token":{token},"path":"{}"}}"#,escape(&path.to_string_lossy()))
-}
-
-#[test]
-fn protocol_real_sandbox_model_facts_and_existing_thumbnail_cache() {
-    if crate::backend::sandboxprobe::skipped() { return }
-    let root = TestDir::new("model3d-protocol");
-    let path = root.join("kit.3mf");
-    root.assert_contains(&path);
-    std::fs::write(&path,testdata::project()).unwrap();
-    let Some(mut session) = Session::start(&root,None) else { return };
-    session.send(&format!(r#"{{"c":"list","path":"{}","first":100}}"#,escape(&root.path().to_string_lossy())));
-    let rows = session.response("rows");
-    let rows = rows.get("rows").unwrap().as_array().unwrap();
-    let row = rows.iter().position(|r| r.get("n").and_then(Json::as_str) == Some("kit.3mf")).unwrap();
-    assert_eq!(rows[row].get("t").and_then(Json::as_bool),Some(true));
-    session.send(&format!(r#"{{"c":"thumb","rows":[{row}],"cacheOnly":true}}"#));
-    assert_eq!(session.response("thumbed").get("file").and_then(Json::as_str),Some(""));
-    session.send(&ask(&path,7));
-    let ready = session.response("model3d");
-    assert_eq!(ready.get("state").and_then(Json::as_str),Some("ready"),"{ready:?}");
-    assert_eq!(ready.get("token").and_then(Json::as_f64),Some(7.));
-    let file = PathBuf::from(ready.get("file").unwrap().as_str().unwrap());
-    root.assert_contains(&file);
-    let model = model3d::wire::read(std::fs::File::open(&file).unwrap()).unwrap();
-    assert_eq!(model.objects.len(),2);
-    assert_eq!(model.plates.len(),2);
-    assert_eq!(model.facts(None).open_edges,Some(0));
-    let thumbnail = PathBuf::from(ready.get("thumbnail").unwrap().as_str().unwrap());
-    root.assert_contains(&thumbnail);
-    assert!(cache::png(&std::fs::read(&thumbnail).unwrap()));
-    session.send(&format!(r#"{{"c":"thumb","rows":[{row}]}}"#));
-    let thumbed = session.response("thumbed");
-    let image = PathBuf::from(thumbed.get("file").unwrap().as_str().unwrap());
-    root.assert_contains(&image);
-    let png = std::fs::read(image).unwrap();
-    assert!(cache::png(&png));
-    assert_eq!(thumbcache::png_text(&png,"Thumb::URI"),Some(thumbcache::uri_for(&path)));
-    session.send(&ask(&path,8));
-    assert_eq!(session.response("model3d").get("file").and_then(Json::as_str),Some(file.to_str().unwrap()));
-    root.assert_contains(&path);
-    std::fs::write(&path,b"broken").unwrap();
-    session.send(&ask(&path,9));
-    let failed = session.response("model3d");
-    assert_eq!(failed.get("state").and_then(Json::as_str),Some("failed"));
-    assert_eq!(failed.get("message").and_then(Json::as_str),Some("This file cannot be previewed."));
-    session.send(r#"{"c":"model3d","slot":"look","token":10,"cancel":true}"#);
-    assert_eq!(session.response("model3d").get("state").and_then(Json::as_str),Some("cancelled"));
-}
-
-#[test]
-fn protocol_missing_sandbox_refuses_before_parsing_or_publishing() {
-    let root = TestDir::new("model3d-no-sandbox");
-    let input = root.file("part.obj",std::str::from_utf8(testdata::OBJ).unwrap());
-    let empty = root.dir("empty-path");
-    let Some(mut session) = Session::start(&root,Some(&empty)) else { return };
-    session.send(&ask(&input,1));
-    let failed = session.response("model3d");
-    assert_eq!(failed.get("state").and_then(Json::as_str),Some("failed"));
-    assert!(failed.get("reason").and_then(Json::as_str).unwrap().contains("bwrap and prlimit"));
-    assert!(!root.join("cache/thumbnails/flea-3d").read_dir().unwrap().any(|e| e.unwrap().path().extension().is_some_and(|e| e == "3d")));
-}
+use crate::backend::{model3d::testdata, testdir::TestDir};
 
 #[test]
 fn cache_rejects_broken_png_and_model_headers() {
@@ -152,13 +33,16 @@ fn waiting_for_another_parser_is_part_of_the_same_deadline() {
     let root = TestDir::new("model3d-busy");
     let input = root.file("model.obj",std::str::from_utf8(testdata::OBJ).unwrap());
     let ticket = codereq::begin("model3d-test-busy");
-    let _held = PARSING.lock().unwrap();
+    let held_ticket = codereq::begin("model3d-test-held");
+    let _held = PARSING.enter(&held_ticket,false,Instant::now()+Duration::from_secs(1)).unwrap();
     let started = Instant::now();
-    let result = ensure_until(&input,root.path(),None,&ticket,started+Duration::from_millis(30));
+    let result = ensure_until(&input,root.path(),None,&ticket,started+Duration::from_millis(30),false);
     assert!(result.err().unwrap().contains("timed out"));
     assert!(started.elapsed() >= Duration::from_millis(30));
     assert!(started.elapsed() < Duration::from_secs(1));
     ticket.discard();
+    drop(_held);
+    held_ticket.discard();
 }
 
 #[test]

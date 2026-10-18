@@ -37,7 +37,7 @@ fn jobs_late_journal_completion_revokes_the_previous_jobs_undo() {
     report_op(
         &mut out,
         &mut ops,
-        OpMsg::RenameDone {
+        OpMsg::MkdirDone {
             id: 2,
             result: Ok((std::path::PathBuf::new(), vec![Step::Barrier])),
         },
@@ -45,6 +45,44 @@ fn jobs_late_journal_completion_revokes_the_previous_jobs_undo() {
     assert!(
         !ops.jobs.rows[0].undo,
         "Undo must never target the later journal entry"
+    );
+}
+
+#[test]
+fn jobs_late_rename_publication_revokes_the_previous_jobs_undo() {
+    let root = super::testdir::TestDir::new("jobs-late-rename");
+    let path = root.file("before", "payload");
+    let (tx, rx) = channel();
+    let mut ops = Ops::new(tx);
+    let mut out = Vec::new();
+    ops.jobs
+        .adopt(&mut out, 1, "copy", "", 1, Arc::new(AtomicBool::new(false)));
+    ops.jobs.rows[0].state = State::Done;
+    ops.jobs.rows[0].undo = true;
+    ops.jobs.rows[0].undo_key = ops.journal.push_for_job(Entry {
+        op: "copy".into(),
+        steps: vec![Step::Barrier],
+    });
+    let renamed = path.clone();
+    super::renamework::start(
+        &mut ops,
+        path.to_string_lossy().into(),
+        std::time::Duration::from_secs(10),
+        move || Ok((renamed, vec![Step::Barrier])),
+    );
+    let done = rx.recv_timeout(std::time::Duration::from_secs(10)).unwrap();
+    assert!(matches!(done, OpMsg::RenameDone { .. }));
+    report_op(&mut out, &mut ops, done);
+    assert!(
+        ops.journal.deferred.is_some() && ops.jobs.rows[0].undo,
+        "the offer stands while the rename's entry is still with the publisher"
+    );
+    let published = rx.recv_timeout(std::time::Duration::from_secs(10)).unwrap();
+    assert!(matches!(published, OpMsg::JournalDone { .. }));
+    report_op(&mut out, &mut ops, published);
+    assert!(
+        !ops.jobs.rows[0].undo,
+        "a late rename's publication must revoke the earlier job's Undo"
     );
 }
 
@@ -176,7 +214,14 @@ fn review_job_undo_must_not_reverse_another_windows_job() {
         Default::default(),
     );
     review_drain(&mut b, &rx_b);
+    out.clear();
     super::jobevents::request(&mut out, &mut a, r#"{"op":"undo","id":1}"#);
+    assert!(String::from_utf8_lossy(&out).contains("That job can no longer be undone."));
+    assert!(!a.jobs.rows[0].undo);
+    assert_eq!(
+        std::fs::read_to_string(dest_a.join("a.txt")).unwrap(),
+        "window A"
+    );
     eprintln!(
         "REPRO shared Undo: window A copy exists={}, window B copy exists={}",
         dest_a.join("a.txt").exists(),
@@ -189,7 +234,7 @@ fn review_job_undo_must_not_reverse_another_windows_job() {
 }
 
 #[test]
-fn review_hostile_argv_names_are_literal_and_cancel_remains_direct() {
+fn hostile_argv_names_remain_literal_and_option_safe() {
     let manifest = super::actionmanifest::parse(
         r#"name = "Inspect"
 mime = ["text/*"]

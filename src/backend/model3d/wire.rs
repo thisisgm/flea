@@ -2,6 +2,9 @@
 use super::*;
 use std::io::{Read,Write};
 
+const MAX_FORMAT_BYTES: usize = 16;
+const MAX_THUMBNAIL_FORMAT_BYTES: usize = 8;
+
 pub const MAX_WIRE: usize = 512*1024*1024;
 const MAGIC: &[u8] = b"FL3D\x01\0\0\0";
 const MAX_HEADER: usize = 2*1024*1024;
@@ -110,7 +113,7 @@ impl<R: Read> Reader<R> {
     #[allow(dead_code)] // Consumed by the GPUI and TUI model reader once rendering lands.
     fn float(&mut self) -> Result<f32> {
         let n = f32::from_le_bytes(self.array()?);
-        if !n.is_finite() || n.abs() > 1e9 { return Err("invalid 3D wire coordinate".into()) }
+        if !n.is_finite() || n.abs() > MAX_COORDINATE as f32 { return Err("invalid 3D wire coordinate".into()) }
         Ok(n)
     }
     #[allow(dead_code)]
@@ -124,17 +127,18 @@ impl<R: Read> Reader<R> {
     #[allow(dead_code)]
     fn map(&mut self) -> Result<BTreeMap<String,String>> {
         let mut map = BTreeMap::new();
-        for _ in 0..self.count(1024)? { let key = self.string(256)?; let value = self.string(16_384)?; map.insert(key,value); }
+        for _ in 0..self.count(MAX_METADATA_ENTRIES)? { let key = self.string(MAX_METADATA_KEY_BYTES)?; let value = self.string(MAX_METADATA_VALUE_BYTES)?; map.insert(key,value); }
         Ok(map)
     }
+    // Sample input (hex): 46 4C 33 44 01 00 00 00 02 00 00 00 7B 7D 00 00 00 00 has summary {} and zero thumbnails.
     fn header(&mut self) -> Result<(String,Vec<Thumbnail>)> {
         if self.array::<8>()? != MAGIC { return Err("invalid 3D model signature".into()) }
         let summary = self.string(MAX_HEADER)?;
         crate::jsondoc::parse(&summary)?;
         let mut thumbnails = Vec::new();
-        for _ in 0..self.count(128)? {
+        for _ in 0..self.count(MAX_THUMBNAILS)? {
             let plate = self.u32()?;
-            let format = self.string(8)?;
+            let format = self.string(MAX_THUMBNAIL_FORMAT_BYTES)?;
             let n = self.count(MAX_THUMBNAIL)?;
             thumbnails.push(Thumbnail { plate: (plate != u32::MAX).then_some(plate), format, bytes: self.bytes(n)? });
         }
@@ -142,17 +146,19 @@ impl<R: Read> Reader<R> {
     }
 }
 
+// Sample input (hex): 46 4C 33 44 01 00 00 00 02 00 00 00 7B 7D 00 00 00 00 has summary {} and zero thumbnails.
 pub fn header(input: impl Read) -> Result<(String,Vec<Thumbnail>)> { Reader { input, read: 0 }.header() }
 
-#[allow(dead_code)] // Public shared-model reader for the later rendering units.
+// Sample input: the header example above followed by nine u32le zeros encodes an empty format, metadata map and seven empty model vectors.
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn read(input: impl Read) -> Result<Model> {
     let mut r = Reader { input, read: 0 };
     let (_,thumbnails) = r.header()?;
-    let mut model = Model { format: r.string(16)?, metadata: r.map()?, thumbnails, ..Model::default() };
-    for _ in 0..r.count(128)? { model.plates.push(Plate { name: r.string(1024)?, metadata: r.map()? }) }
-    for _ in 0..r.count(MAX_OBJECTS)? { model.materials.push(Material { name: r.string(1024)?, color: r.color()? }) }
+    let mut model = Model { format: r.string(MAX_FORMAT_BYTES)?, metadata: r.map()?, thumbnails, ..Model::default() };
+    for _ in 0..r.count(MAX_PLATES)? { model.plates.push(Plate { name: r.string(MAX_NAME_BYTES)?, metadata: r.map()? }) }
+    for _ in 0..r.count(MAX_OBJECTS)? { model.materials.push(Material { name: r.string(MAX_NAME_BYTES)?, color: r.color()? }) }
     for _ in 0..r.count(MAX_OBJECTS)? {
-        let name = r.string(1024)?;
+        let name = r.string(MAX_NAME_BYTES)?;
         let (plate,first_triangle,triangle_count) = (r.u32()?,r.u32()?,r.u32()?);
         let mut transform = [0.;12];
         for n in &mut transform { *n = f64::from_le_bytes(r.array()?); if !n.is_finite() { return Err("invalid 3D wire transform".into()) } }
@@ -179,7 +185,7 @@ pub fn read(input: impl Read) -> Result<Model> {
         model.segments.push(Segment { start, end, extrusion_mm, feed_mm_min, tool });
     }
     let mut previous = 0usize;
-    for _ in 0..r.count(100_000)? {
+    for _ in 0..r.count(MAX_LAYERS)? {
         let (z_mm,first_segment,segment_count) = (r.float()?,r.u32()?,r.u32()?);
         if first_segment as usize != previous { return Err("invalid 3D layer range".into()) }
         previous = previous.checked_add(segment_count as usize).filter(|&n| n <= model.segments.len()).ok_or("3D layer exceeds toolpath")?;

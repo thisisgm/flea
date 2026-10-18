@@ -2,6 +2,7 @@
 use std::collections::HashMap;
 
 pub(crate) const MAX_MANIFEST: usize = 16 * 1024;
+const MAX_ARRAY_VALUES: usize = 128;
 
 #[derive(Clone)]
 pub(crate) struct Manifest {
@@ -17,6 +18,7 @@ enum Value {
     List(Vec<String>),
 }
 
+// Sample input: name="Inspect"\nmime=["text/*"]\nselection="one"\nrun=["cat","{path}"]\nmode="background"
 pub(crate) fn parse(text: &str) -> Result<Manifest, String> {
     if text.len() > MAX_MANIFEST {
         return Err("manifest exceeds 16384 bytes".into());
@@ -41,7 +43,7 @@ pub(crate) fn parse(text: &str) -> Result<Manifest, String> {
             reader.space();
             while reader.byte() != Some(b']') {
                 values.push(reader.string()?);
-                if values.len() > 128 {
+                if values.len() > MAX_ARRAY_VALUES {
                     return Err("too many array values".into());
                 }
                 reader.space();
@@ -68,9 +70,7 @@ pub(crate) fn parse(text: &str) -> Result<Manifest, String> {
         }
     }
     let mut string = |key| match fields.remove(key) {
-        Some(Value::Text(value)) if !value.is_empty() && !value.chars().any(char::is_control) => {
-            Ok(value)
-        }
+        Some(Value::Text(value)) if !value.is_empty() => Ok(value),
         _ => Err(format!("{key} must be a nonempty string")),
     };
     let (name, selection, mode) = (string("name")?, string("selection")?, string("mode")?);
@@ -233,7 +233,8 @@ mode = "background"
             VALID.replace("{path}", "{path"),
             VALID.replace("name =", "other ="),
             format!("{VALID}\nname=\"duplicate\""),
-            format!("{VALID} trailing"),
+            VALID.replace("\nmime", " mime"),
+            VALID.replace("\nmode", " trailing\nmode"),
             VALID.replace("[\"image/*\"]", "\"image/*\""),
             VALID.replace("\"magick\"", "\"{path}\""),
             VALID.replace("mode = \"background\"", ""),
@@ -241,6 +242,15 @@ mode = "background"
         ] {
             assert!(parse(&malformed).is_err(), "{malformed}");
         }
+    }
+
+    #[test]
+    fn manifest_keys_require_separate_lines() {
+        let text = VALID.replace("\nmime", " mime");
+        assert_eq!(
+            parse(&text).err().as_deref(),
+            Some("unexpected text after value")
+        );
     }
 
     #[test]

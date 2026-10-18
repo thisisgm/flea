@@ -1,6 +1,6 @@
 #!/usr/bin/env bash
 . "$(dirname "$0")/headless-commons.sh"
-# A press held across a watched re-read of an unchanged listing must still tap on release, in every view.
+# A press held across a watched re-read of an unchanged listing, or past the press-and-hold interval, must still tap on release, in every view.
 set -u
 cd "$(dirname "$0")/.." || exit 1
 . "$PWD/tools/flea-sandbox-guard"
@@ -24,7 +24,7 @@ ln -s "$(readlink -f ui/boot/Ui)" "$probe/config/Ui" || exit 1
 cp tests/presskeep.qml "$probe/config/shell.qml" || exit 1
 ln -s "$PWD/ui/boot/fleatab.qml" "$probe/config/fleatab.qml" || exit 1
 log="$probe/qs.log"
-readonly runLimitSeconds=60 expectedChecks=39 expectedQsStatus=143
+readonly runLimitSeconds=60 expectedChecks=51 expectedQsStatus=143
 env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE -u FLEA_SELECT \
     HOME="$probe/home" XDG_STATE_HOME="$probe/state" XDG_CONFIG_HOME="$probe/config" \
     XDG_DATA_HOME="$probe/data" XDG_CACHE_HOME="$probe/cache" XDG_RUNTIME_DIR="$probe/runtime" \

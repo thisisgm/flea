@@ -131,7 +131,8 @@ impl Session {
                     .into(),
             );
         }
-        if !self.enabled || self.path != path || field_bool(line, "refresh") {
+        if !self.enabled || self.path != path || self.error.is_some() || field_bool(line, "refresh")
+        {
             self.enabled = true;
             self.path = path.to_string();
             self.snapshot = None;
@@ -260,3 +261,7 @@ mod review_tests;
 #[cfg(test)]
 #[path = "git_multi_tests.rs"]
 mod multi_tests;
+
+#[cfg(test)]
+#[path = "gitreq_recovery_tests.rs"]
+mod recovery_tests;

@@ -71,6 +71,14 @@ impl Work {
         }
     }
 
+    // The folder a transfer or archive writes into, whose drive orders it behind other jobs.
+    pub fn target(&self) -> Option<PathBuf> {
+        match self {
+            Self::Transfer { dest, .. } | Self::Archive { dest, .. } => Some(dest.clone()),
+            Self::Action { .. } | Self::Send { .. } | Self::Rclone(_) => None,
+        }
+    }
+
     pub fn file(&self) -> String {
         let path = match self {
             Self::Archive {
@@ -143,6 +151,16 @@ impl Work {
             }
         }
         Ok(self.paths().len())
+    }
+
+    pub fn failed_line(&self, id: usize, total: usize, error: &str) -> String {
+        match self {
+            Self::Transfer { .. } => {
+                super::opsreq::transferdone_line(id, 0, total, 0, false, &[], false, error, &[])
+            }
+            Self::Archive { .. } => super::archivereq::archivedone_line(id, false, true, error),
+            _ => String::new(),
+        }
     }
 
     pub fn cancelled_line(&self, id: usize, total: usize) -> String {

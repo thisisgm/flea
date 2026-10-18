@@ -13,6 +13,12 @@ use std::sync::Arc;
 use std::time::{Duration, Instant};
 
 const LINE_BYTES: usize = 4096;
+const TAIL_LINES: usize = 2;
+const READ_CHUNKS: usize = 8;
+const DRAIN_CHUNKS: usize = 128;
+const READ_BUFFER: usize = 8192;
+const EXIT_POLL: Duration = Duration::from_millis(10);
+const SIGKILL: i32 = 9;
 
 #[derive(Default)]
 struct Tail {
@@ -28,7 +34,7 @@ impl Tail {
                         .trim_end_matches('\r')
                         .to_string(),
                 );
-                if self.lines.len() > 2 {
+                if self.lines.len() > TAIL_LINES {
                     self.lines.remove(0);
                 }
                 self.pending.clear();
@@ -45,8 +51,8 @@ impl Tail {
         if !self.pending.is_empty() {
             lines.push(bounded_line(&self.pending));
         }
-        if lines.len() > 2 {
-            lines.drain(..lines.len() - 2);
+        if lines.len() > TAIL_LINES {
+            lines.drain(..lines.len() - TAIL_LINES);
         }
         lines
     }
@@ -111,7 +117,7 @@ pub(crate) fn background(
             .and_then(|()| {
                 invoke(
                     &argv,
-                    Path::new(path).parent().unwrap(),
+                    Path::new(path).parent().unwrap_or(Path::new("/")),
                     &cancel,
                     &mut tail,
                     |tail| {
@@ -177,9 +183,9 @@ fn invoke(
     // Command retains its pipe ends until dropped, so the reader must not depend on its destructor.
     drop(command);
     let mut last = Instant::now();
-    let mut buffer = [0u8; 8192];
+    let mut buffer = [0u8; READ_BUFFER];
     loop {
-        for _ in 0..8 {
+        for _ in 0..READ_CHUNKS {
             match reader.read(&mut buffer) {
                 Ok(0) => break,
                 Ok(n) => tail.push(&buffer[..n]),
@@ -195,11 +201,11 @@ fn invoke(
         let exited = if cancelled {
             false
         } else {
-            match super::child::wait_for_exit(&child, Instant::now() + Duration::from_millis(10)) {
+            match super::child::wait_for_exit(&child, Instant::now() + EXIT_POLL) {
                 super::child::Woke::Exited => true,
                 super::child::Woke::Deadline => false,
                 super::child::Woke::Failed(error) => {
-                    let _ = crate::procsignal::signal_group(child.id() as i32, 9);
+                    let _ = crate::procsignal::signal_group(child.id() as i32, SIGKILL);
                     let _ = child.wait();
                     return Err(error.to_string());
                 }
@@ -207,9 +213,9 @@ fn invoke(
         };
         if cancelled || exited {
             // The leader has not been reaped, so its group id cannot name a later, unrelated process.
-            let _ = crate::procsignal::signal_group(child.id() as i32, 9);
+            let _ = crate::procsignal::signal_group(child.id() as i32, SIGKILL);
             let status = child.wait().map_err(|e| e.to_string())?;
-            for _ in 0..128 {
+            for _ in 0..DRAIN_CHUNKS {
                 match reader.read(&mut buffer) {
                     Ok(0) | Err(_) => break,
                     Ok(n) => tail.push(&buffer[..n]),
@@ -237,5 +243,39 @@ mod tests {
         assert!(tail.lines()[0].len() <= LINE_BYTES);
         tail.push(b"\nfirst\nsecond\n");
         assert_eq!(tail.lines(), ["first", "second"]);
+    }
+
+    #[test]
+    fn successful_action_reaps_its_remaining_group() {
+        let sandbox = crate::backend::testdir::TestDir::new("action-success-group");
+        let root = sandbox.path();
+        let pidfile = root.join("child.pid");
+        let argv = vec![
+            "/bin/sh".into(),
+            "-c".into(),
+            "sleep 30 & echo $! > \"$1\"; exit 0".into(),
+            "sh".into(),
+            pidfile.to_str().unwrap().into(),
+        ];
+        invoke(
+            &argv,
+            root,
+            &AtomicBool::new(false),
+            &mut Tail::default(),
+            |_| {},
+        )
+        .unwrap();
+        let pid = std::fs::read_to_string(pidfile).unwrap();
+        let deadline = Instant::now() + Duration::from_secs(2);
+        loop {
+            let stat = std::fs::read_to_string(format!("/proc/{}/stat", pid.trim()));
+            if stat.map_or(true, |text| {
+                text.rsplit_once(')').unwrap().1.split_whitespace().next() == Some("Z")
+            }) {
+                break;
+            }
+            assert!(Instant::now() < deadline, "child still alive after success");
+            std::thread::sleep(Duration::from_millis(5));
+        }
     }
 }

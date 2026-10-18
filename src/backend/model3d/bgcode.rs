@@ -1,6 +1,12 @@
 use super::{codecs, Model, Result, MAX_EXPANDED};
 use super::zip::{u16_at,u32_at};
 
+const MAX_BLOCKS: usize = 65_536;
+const GCODE_BLOCK: u16 = 1;
+const THUMBNAIL_BLOCK: u16 = 5;
+const LAST_METADATA_BLOCK: u16 = 4;
+
+// Sample input: FF FF FB 1D EB 01 0F 59 CC FF FF F9 (hex) expands to "G1 X10Y0\n".
 fn unpack_meat(bytes: &[u8]) -> Result<Vec<u8>> {
     let mut out = Vec::new();
     let (mut packing,mut nospace) = (false,false);
@@ -46,6 +52,7 @@ fn unpack_meat(bytes: &[u8]) -> Result<Vec<u8>> {
     Ok(out)
 }
 
+// Sample input (hex): 47 43 44 45 01 00 00 00 00 00 01 00 00 00 07 00 00 00 00 00 47 31 20 58 31 30 0A encodes G1 X10 followed by newline.
 pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
     if bytes.get(..4) != Some(b"GCDE") || u32_at(bytes,4)? != 1 { return Err("unsupported binary G-code header".into()) }
     let checksum = u16_at(bytes,8)?;
@@ -56,14 +63,14 @@ pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
     let mut expanded_total = 0usize;
     while at < bytes.len() {
         blocks += 1;
-        if blocks > 65_536 { return Err("too many binary G-code blocks".into()) }
+        if blocks > MAX_BLOCKS { return Err("too many binary G-code blocks".into()) }
         let begin = at;
         let kind = u16_at(bytes,at)?;
         let compression = u16_at(bytes,at+2)?;
         let expanded = u32_at(bytes,at+4)? as usize;
         let packed = if compression == 0 { expanded } else { u32_at(bytes,at+8)? as usize };
         at += if compression == 0 { 8 } else { 12 };
-        let params = if kind == 5 { 6 } else if kind <= 4 { 2 } else { return Err("unsupported binary G-code block".into()) };
+        let params = if kind == THUMBNAIL_BLOCK { 6 } else if kind <= LAST_METADATA_BLOCK { 2 } else { return Err("unsupported binary G-code block".into()) };
         let encoding = u16_at(bytes,at)?;
         let payload = at.checked_add(params).and_then(|n| n.checked_add(packed)).filter(|&n| n <= bytes.len()).ok_or("truncated binary G-code block")?;
         expanded_total = expanded_total.checked_add(expanded).filter(|&n| n <= MAX_EXPANDED).ok_or("binary G-code expansion exceeds its bound")?;
@@ -78,12 +85,12 @@ pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
             _ => return Err("unsupported binary G-code compression".into()),
         };
         match kind {
-            1 => {
+            GCODE_BLOCK => {
                 let data = match encoding { 0 => data, 1|2 => unpack_meat(&data)?, _ => return Err("unsupported binary G-code encoding".into()) };
                 if data.len() > MAX_EXPANDED-text.len() { return Err("binary toolpath exceeds its bound".into()) }
                 text.extend_from_slice(&data);
             }
-            5 => {
+            THUMBNAIL_BLOCK => {
                 if u16_at(bytes,at+2)? == 0 || u16_at(bytes,at+4)? == 0 { return Err("invalid binary thumbnail dimensions".into()) }
                 let format = match encoding { 0 => "png", 1 => "jpg", 2 => "qoi", _ => return Err("unsupported binary thumbnail".into()) };
                 model.thumbnail(None,format,data)?;

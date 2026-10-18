@@ -142,6 +142,14 @@ pub fn undone_line(op: &str, ok: bool) -> String {
 
 // A destination Flea will not create as a side effect, checked once before any item is touched.
 pub fn usable_dest(dest: &str) -> Result<PathBuf, FleaError> {
+    checked_dest(dest, true)
+}
+
+pub(crate) fn directory_dest(dest: &str) -> Result<PathBuf, FleaError> {
+    checked_dest(dest, false)
+}
+
+fn checked_dest(dest: &str, require_writable: bool) -> Result<PathBuf, FleaError> {
     let p = PathBuf::from(dest);
     if !p.is_absolute() {
         return Err(op_err("transfer", dest, "a destination must be an absolute path"));
@@ -150,7 +158,7 @@ pub fn usable_dest(dest: &str) -> Result<PathBuf, FleaError> {
     let owned = p.clone();
     let dest_owned = dest.to_string();
     super::iomount::call(&p, &body, "transfer", move || match owned.metadata() {
-        Ok(m) if m.is_dir() && crate::backend::ops::dir_writable(&owned) => Ok(owned),
+        Ok(m) if m.is_dir() && (!require_writable || crate::backend::ops::dir_writable(&owned)) => Ok(owned),
         Ok(m) if m.is_dir() => Err(op_err("transfer", &dest_owned, "that folder cannot be written")),
         Ok(_) => Err(op_err("transfer", &dest_owned, "the destination is not a folder")),
         Err(e) => Err(from_io("transfer", &dest_owned, &e)),

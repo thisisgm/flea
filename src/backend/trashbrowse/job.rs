@@ -1,6 +1,7 @@
 // Reviewed deletion shares the transfer slot, cancellation flag and progress stream.
 use super::*;
 use crate::backend::opsdispatch::Ops;
+use crate::backend::opsreq::PROGRESS_EVERY;
 use std::cell::Cell;
 use std::io::Write;
 
@@ -44,22 +45,25 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: String) {
     let browser = ops
         .trashbrowser
         .get_or_insert_with(|| TrashBrowser::new(replies));
-    if let Some((progress, cancellation)) = job {
-        if let Err(error) =
-            browser.enqueue(line.clone(), pending, body, Some((progress, cancellation)))
-        {
-            let Some(progress) = error.0 .4 else {
-                return;
-            };
-            let refusal = format!(
-                r#"{{"t":"trashbrowse","id":{},"op":"delete","ok":false,"stale":false,"error":"Trash worker unavailable."}}"#,
-                field_usize(&line, "id").unwrap_or(0)
-            );
+    let Err(error) = browser.enqueue(line, pending, body, job) else {
+        return;
+    };
+    ops.trashbrowser = None;
+    let (line, _, _, _, progress) = error.0;
+    let refusal = format!(
+        r#"{{"t":"trashbrowse","id":{},"op":"{}","ok":false,"stale":false,"error":"Trash worker unavailable."}}"#,
+        field_usize(&line, "id").unwrap_or(0),
+        escape(&field_str(&line, "op").unwrap_or_default())
+    );
+    match progress {
+        Some(progress) => {
             crate::backend::opsdispatch::report_op(out, ops, progress.finish(refusal, false));
         }
-    } else {
-        browser.request(line, pending, body);
+        None => {
+            writeln!(out, "{}", refusal).ok();
+        }
     }
+    out.flush().ok();
 }
 
 impl TrashBrowser {
@@ -122,7 +126,7 @@ impl Progress {
             || self
                 .last
                 .get()
-                .map_or(true, |last| now.duration_since(last) >= Duration::from_millis(150))
+                .map_or(true, |last| now.duration_since(last) >= PROGRESS_EVERY)
         {
             self.last.set(Some(now));
             let _ = self.tx.send(OpMsg::JobEntries {
@@ -267,23 +271,34 @@ pub(super) fn delete_with(
         match load_detail(&text, &confirmation.trees) {
             Ok(item) => {
                 progress(removed, Some(&item), reached == 1);
-                let result = recovery.as_ref().map_err(Clone::clone).and_then(|root| {
-                    let reviewed = item
-                        .backing
-                        .as_ref()
-                        .ok_or_else(|| unchecked(Op::Delete).shown())?;
-                    let result = reviewed.delete_cancellable(root, cancel, || {
-                        removed += 1;
-                        progress(removed, Some(&item), false);
+                let result = recovery
+                    .as_ref()
+                    .map_err(|error| Refusal::said(error.clone()))
+                    .and_then(|root| {
+                        let reviewed = item
+                            .backing
+                            .as_ref()
+                            .ok_or_else(|| unchecked(Op::Delete))?;
+                        let result = reviewed.delete_cancellable(root, cancel, || {
+                            removed += 1;
+                            progress(removed, Some(&item), false);
+                        });
+                        thumbnails.record(reviewed, &result);
+                        result
                     });
-                    thumbnails.record(reviewed, &result);
-                    result.map_err(String::from)
-                });
                 match result {
                     Ok(()) => done += 1,
+                    Err(error) if error.outcome() == &Outcome::Cancelled => {
+                        cancelled = true;
+                        break;
+                    }
                     Err(error) => {
                         cancelled |= cancel.check().is_err();
-                        failures.push(failure(&item.item, &surviving_identity(&item), &error));
+                        failures.push(failure(
+                            &item.item,
+                            &surviving_identity(&item),
+                            &error.shown(),
+                        ));
                     }
                 }
             }

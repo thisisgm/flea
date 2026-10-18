@@ -96,8 +96,8 @@ struct Session {
     next_token: usize,
     cancellation: Cancellation,
     scratch: PathBuf,
-    // Mounts the loop holds slow writes on, with the mount table they were read from, so restore and delete wait for them.
     job: Option<job::Progress>,
+    // Mounts the loop holds slow writes on, with the mount table they were read from, so restore and delete wait for them.
     pending: Vec<PathBuf>,
     body: String,
 }
@@ -138,9 +138,6 @@ impl TrashBrowser {
             }
         });
         Self { tx, cancellation: Cancellation::default() }
-    }
-    pub fn request(&self, line: String, pending: Vec<PathBuf>, body: String) {
-        let _ = self.enqueue(line, pending, body, None);
     }
 }
 impl Drop for TrashBrowser {

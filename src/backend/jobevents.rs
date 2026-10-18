@@ -46,10 +46,29 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
                 return;
             }
         }
-        OpMsg::JobReady { drive, target, .. } => {
-            job.drive = Some(drive.clone());
-            job.target = target.clone();
-            job.prepared = true;
+        OpMsg::JobReady { result, .. } => {
+            if job.state != State::Waiting {
+                return;
+            }
+            match result {
+                Ok((drive, target)) => {
+                    job.prepared = true;
+                    job.drive = Some(drive.clone());
+                    job.target = target.clone();
+                }
+                Err(error) => {
+                    job.state = State::Failed;
+                    job.reason = error.msg.clone();
+                    if let Some(work) = &job.work {
+                        let line = work.failed_line(id, job.total, &error.msg);
+                        if !line.is_empty() {
+                            writeln!(out, "{line}").ok();
+                        }
+                    }
+                    ops.detached.remove(id);
+                    ops.jobs.update(out, id);
+                }
+            }
             ops.jobs.advance(out, &ops.detached, &ops.tx);
             return;
         }
@@ -286,6 +305,10 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) -> super:
                     ops.jobs.next_order += 1;
                     job.order = ops.jobs.next_order;
                     ops.detached.insert(id, &job.cancel);
+                    if let Some(target) = job.work.as_ref().filter(|_| !job.prepared).and_then(|w| w.target()) {
+                        job.reason = "checking target".into();
+                        super::jobstart::check_target(id, target, &ops.tx);
+                    }
                     ops.jobs.advance(out, &ops.detached, &ops.tx);
                     return Default::default();
                 }
@@ -314,9 +337,12 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) -> super:
     Default::default()
 }
 
+// A job whose target check failed never started, so it retries whole and checks its target again.
 fn retry(job: &mut Job) -> Result<(), String> {
     let work = job.work.as_mut().ok_or("This job cannot be retried.")?;
-    job.total = work.retry(&job.failed)?;
+    if job.prepared {
+        job.total = work.retry(&job.failed)?;
+    }
     if job.kind == "extract" {
         job.total = 0;
     }
@@ -325,6 +351,8 @@ fn retry(job: &mut Job) -> Result<(), String> {
     job.done = 0;
     job.bytes = 0;
     job.total_bytes = 0;
+    job.item_bytes = 0;
+    job.cancelled = false;
     job.rate = 0;
     job.left = None;
     job.moved = 0;
@@ -346,22 +374,4 @@ fn refuse(out: &mut impl Write, id: usize, error: &str) {
     )
     .ok();
     out.flush().ok();
-}
-
-pub(crate) fn changes_history(request: &super::proto::Request) -> bool {
-    use super::proto::Request;
-    match request {
-        Request::Jobs { line } => field_str(line, "op").as_deref() == Some("retry"),
-        Request::Actions { line } => field_str(line, "op").as_deref() == Some("run"),
-        Request::Rclone { line } => field_str(line, "op").as_deref() == Some("send"),
-        Request::LocalSend { op, .. } => op == "send",
-        Request::MenuAction { line, .. } => {
-            matches!(field_str(line, "op").as_deref(), Some("delete" | "newFile"))
-        }
-        Request::TrashBrowse { line } => {
-            matches!(field_str(line, "op").as_deref(), Some("delete" | "restore"))
-        }
-        Request::Permissions { line } => field_str(line, "op").as_deref() == Some("apply"),
-        _ => false,
-    }
 }
