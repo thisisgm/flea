@@ -7,11 +7,10 @@ use crate::{
         lifecycle::{Lifecycle, Phase},
         locale::{self, Snapshot},
         pane::PaneHost,
-        startup::{self, Launch, View},
+        startup::{Launch, View},
     },
 };
 use gpui::{Context, FocusHandle, SharedString, Task, Window};
-use std::time::Duration;
 
 pub struct Shell {
     pub launch: Launch,
@@ -162,25 +161,6 @@ impl Shell {
                     }
                 }));
                 host.backend = Some(backend);
-                self.deadlines[side] = Some(cx.spawn_in(window, async move |this, cx| {
-                    cx.background_executor()
-                        .timer(Duration::from_millis(startup::LISTING_WAIT_MS))
-                        .await;
-                    let _ = cx.update(|window, cx| {
-                        this.update(cx, |shell, cx| {
-                            if let Some(host) = &mut shell.panes[side] {
-                                if !host.answered && !host.stopped && host.error.is_none() {
-                                    host.waiting = true;
-                                    host.status = shell.locale.catalog.tr("window.waiting").into();
-                                    if side == 0 {
-                                        shell.ensure_ipc_reader(window, cx);
-                                    }
-                                    cx.notify();
-                                }
-                            }
-                        })
-                    });
-                }));
             }
             Err(error) => {
                 host.stopped = true;
@@ -195,6 +175,8 @@ impl Shell {
             }
         }
         self.panes[side] = Some(host);
+        self.arm_transition(side, window, cx);
+        self.arm_listing_wait(side, window, cx);
     }
 
     pub fn set_view(&mut self, view: View, window: &mut Window, cx: &mut Context<Self>) {
@@ -236,4 +218,4 @@ impl Shell {
 
 #[cfg(test)]
 #[path = "state_tests.rs"]
-mod tests;
+pub(crate) mod tests;

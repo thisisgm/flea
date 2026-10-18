@@ -1,0 +1,237 @@
+//! The listing's cap and minimum drawn time, with a complete pair retained until one commit.
+use super::{states::State, Held};
+use std::{cell::Cell, rc::Rc, time::Duration};
+
+pub const CAP_MS: u64 = 66;
+pub const MIN_SHOW_MS: u64 = 100;
+pub const STILL_MS: u64 = 1000;
+pub const PARKED_WAIT_MS: u64 = crate::window::startup::LISTING_WAIT_MS;
+
+#[derive(Clone, Debug, Default)]
+pub struct Options {
+    pub supersede: bool,
+    pub clear_at_once: bool,
+    pub kept_query: String,
+    pub search: bool,
+    pub hold_walk: bool,
+    pub restore_name: Option<String>,
+}
+
+pub struct Pending {
+    pub path: String,
+    pub total: Option<usize>,
+    pub first: usize,
+    pub ready: Option<Held>,
+    pub following: Option<Held>,
+    pub parked_until: Option<u64>,
+    pub options: Options,
+}
+
+#[derive(Default)]
+pub struct Session {
+    pub open: bool,
+    pub leaving: bool,
+    pub generation: usize,
+    pub opened_generation: usize,
+    pub query: String,
+}
+
+impl Session {
+    pub fn drops(&self, generation: usize) -> bool {
+        generation > 0
+            && (self.leaving
+                || !self.open
+                || generation != self.generation
+                || generation <= self.opened_generation)
+    }
+}
+
+#[derive(Default, Debug)]
+pub struct Counters {
+    pub holds: usize,
+    pub fallbacks: usize,
+    pub waits: usize,
+    pub blank_frames: usize,
+    pub loading_frames: usize,
+    pub commits: usize,
+    pub shown_ms: u64,
+    pub last_ms: u64,
+    pub last_end: &'static str,
+}
+
+#[derive(Default)]
+pub struct Frames {
+    pub blank: Cell<usize>,
+    pub loading: Cell<usize>,
+}
+
+impl Frames {
+    pub fn record(&self, busy: bool, loading: bool, fell_back: bool) {
+        if busy && loading {
+            let counter = if fell_back {
+                &self.loading
+            } else {
+                &self.blank
+            };
+            counter.set(counter.get() + 1);
+        }
+    }
+}
+
+#[derive(Default)]
+pub struct Swap {
+    pub pending: Option<Pending>,
+    pub(crate) unheld_total: Option<usize>,
+    pub session: Session,
+    pub holding: bool,
+    pub fell_back: bool,
+    pub since: u64,
+    pub mark_since: Option<u64>,
+    pub counters: Counters,
+    pub frames: Rc<Frames>,
+    pub input_at: u64,
+    pub rows_at: u64,
+}
+
+impl Swap {
+    pub fn begin(
+        &mut self,
+        path: String,
+        first: usize,
+        state: &State,
+        options: Options,
+        now: u64,
+    ) -> bool {
+        if self.busy() && !options.supersede {
+            return false;
+        }
+        self.holding = !options.clear_at_once
+            && state.kind != super::states::Kind::Loading
+            && (!state.search || options.hold_walk);
+        if self.holding {
+            self.counters.holds += 1;
+        }
+        self.fell_back = false;
+        self.since = now;
+        self.input_at = now;
+        self.rows_at = 0;
+        self.unheld_total = None;
+        self.pending = Some(Pending {
+            path,
+            total: None,
+            first,
+            ready: None,
+            following: None,
+            parked_until: None,
+            options,
+        });
+        true
+    }
+
+    pub fn busy(&self) -> bool {
+        self.pending
+            .as_ref()
+            .is_some_and(|pending| !pending.options.search)
+    }
+
+    pub fn expire(&mut self, now: u64) -> bool {
+        if !self.busy() || self.fell_back || now < self.since.saturating_add(CAP_MS) {
+            return false;
+        }
+        if self.holding {
+            self.counters.fallbacks += 1;
+        }
+        self.holding = false;
+        self.fell_back = true;
+        self.counters.last_ms = now.saturating_sub(self.since);
+        self.counters.last_end = "expired";
+        true
+    }
+
+    pub fn show_left(&self, now: u64) -> u64 {
+        self.mark_since.map_or(0, |since| {
+            since.saturating_add(MIN_SHOW_MS).saturating_sub(now)
+        })
+    }
+
+    pub fn mark_shown(&mut self, shown: bool, now: u64) {
+        match (shown, self.mark_since) {
+            (true, None) => self.mark_since = Some(now),
+            (false, Some(since)) => {
+                self.counters.shown_ms = now.saturating_sub(since);
+                self.mark_since = None;
+            }
+            _ => {}
+        }
+    }
+
+    pub fn crawling(&self, now: u64, reduced_motion: bool) -> bool {
+        !reduced_motion
+            && self
+                .mark_since
+                .is_some_and(|since| now >= since.saturating_add(STILL_MS))
+    }
+
+    pub fn deadline(&self, now: u64) -> Option<Duration> {
+        if !self.busy() {
+            return None;
+        }
+        let pending = self.pending.as_ref()?;
+        if pending.ready.is_some() && pending.parked_until.is_none() {
+            return Some(Duration::from_millis(self.show_left(now)));
+        }
+        let at = if self.fell_back {
+            pending.parked_until?
+        } else {
+            self.since.saturating_add(CAP_MS)
+        };
+        Some(Duration::from_millis(at.saturating_sub(now)))
+    }
+
+    pub fn end(&mut self, now: u64, reason: &'static str) {
+        self.pending = None;
+        self.unheld_total = None;
+        self.holding = false;
+        self.fell_back = false;
+        self.counters.last_ms = now.saturating_sub(self.since);
+        self.counters.last_end = reason;
+        self.mark_shown(false, now);
+    }
+}
+
+impl super::Pane {
+    pub fn receive_session(
+        &mut self,
+        reply: flea::protocol::Reply,
+        generation: usize,
+        now: u64,
+    ) -> Result<bool, String> {
+        if self.swap.session.drops(generation) {
+            return Ok(false);
+        }
+        if generation == 0 {
+            return self.receive_at(reply, now);
+        }
+        if let flea::protocol::Reply::Listed { path, total } = &reply {
+            if self.busy() {
+                return Ok(false);
+            }
+            self.swap.unheld_total = None;
+            self.swap.pending = Some(Pending {
+                path: path.clone(),
+                total: Some(*total),
+                first: self.first_count(),
+                ready: None,
+                following: None,
+                parked_until: None,
+                options: Options {
+                    search: true,
+                    kept_query: self.swap.session.query.clone(),
+                    ..Options::default()
+                },
+            });
+            return Ok(false);
+        }
+        self.receive_at(reply, now)
+    }
+}

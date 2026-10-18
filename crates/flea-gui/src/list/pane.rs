@@ -1,14 +1,14 @@
-//! The list pane's model: the held window of rows, scroll and cursor, and ui/Pane.qml's window policy.
+//! The bounded row model shared by every view; transitions publish one complete snapshot.
+use crate::pane::{
+    requests::{self, Requests, RowAction},
+    states::{Kind, State},
+    swap::{Options, Swap},
+};
 use flea::protocol::{Reply, RowFacts};
-use std::rc::Rc;
+use std::{rc::Rc, time::Instant};
 
 pub const ROW_HEIGHT: f32 = 31.;
-const MIN_BUFFER: usize = 50;
-const MAX_BUFFER: usize = 1000;
-const DEFAULT_BUFFER: usize = 150;
-const REFETCH_MARGIN: usize = 25;
 
-/// One window of one listing as the backend answered it; replaced whole, never edited.
 #[derive(Default)]
 pub struct Held {
     pub listing: usize,
@@ -19,18 +19,18 @@ pub struct Held {
 
 impl Held {
     pub fn row(&self, index: usize) -> Option<&RowFacts> {
-        index.checked_sub(self.start).and_then(|at| self.rows.get(at))
+        index
+            .checked_sub(self.start)
+            .and_then(|at| self.rows.get(at))
     }
 }
 
-/// Pane.qml visibleRows: a partial last row counts, and an empty viewport still asks for one.
 pub fn visible_rows(height: f32) -> usize {
     ((height / ROW_HEIGHT).ceil() as usize).max(1)
 }
 
-/// Pane.qml windowSize: the visible rows plus a buffer either side.
 pub fn window_size(visible: usize) -> usize {
-    visible + 2 * DEFAULT_BUFFER.clamp(MIN_BUFFER, MAX_BUFFER)
+    visible.saturating_add(2 * requests::BUFFER)
 }
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -49,128 +49,268 @@ pub struct Pane {
     pub scroll_y: f32,
     pub cursor: usize,
     height: f32,
-    pending_total: Option<usize>,
-    // The listing request is out, so no window goes until its rows land, Pane.qml listInFlight.
-    listing_open: bool,
-    // A window asked for and not yet answered, counted as landed when judging drift.
-    in_flight: Option<(usize, usize)>,
-    // The largest row count any request asked for, the bound an answer is checked against.
-    asked: usize,
+    pub state: State,
+    pub swap: Swap,
+    pub requests: Requests,
+    pub list_requests: usize,
+    pub(crate) greatest_listing: usize,
+    clock: Instant,
 }
 
 impl Pane {
     pub fn new(path: String, height: f32) -> Self {
-        let asked = window_size(visible_rows(height));
-        Self {
-            path,
+        let mut pane = Self {
+            path: path.clone(),
             held: Rc::default(),
             scroll_y: 0.,
             cursor: 0,
             height,
-            pending_total: None,
-            listing_open: true,
-            in_flight: None,
-            asked,
-        }
+            state: State::default(),
+            swap: Swap::default(),
+            requests: Requests::default(),
+            list_requests: 0,
+            greatest_listing: 0,
+            clock: Instant::now(),
+        };
+        pane.begin(path, Options::default(), 0);
+        pane
     }
 
-    /// The listing request's first count, one window as Pane.qml asks for it.
+    pub fn now(&self) -> u64 {
+        self.clock.elapsed().as_millis() as u64
+    }
+    pub fn path(&self) -> &str {
+        &self.path
+    }
+    pub fn place(&self) -> &str {
+        self.swap
+            .pending
+            .as_ref()
+            .map_or(self.path(), |pending| pending.path.as_str())
+    }
     pub fn first_count(&self) -> usize {
-        self.asked
+        window_size(self.visible_rows())
     }
-
     pub fn visible_rows(&self) -> usize {
         visible_rows(self.height)
     }
-
     pub fn set_height(&mut self, height: f32) {
         self.height = height;
         self.scroll_by(0.);
     }
+    pub fn busy(&self) -> bool {
+        self.swap.busy()
+    }
 
-    /// Applies one backend reply; true when what the pane draws changed.
+    pub fn begin(&mut self, path: String, options: Options, now: u64) -> bool {
+        if self.busy() && path == self.place() {
+            return false;
+        }
+        if !self
+            .swap
+            .begin(path, self.first_count(), &self.state, options, now)
+        {
+            return false;
+        }
+        self.list_requests += 1;
+        self.requests.cancel();
+        if !self.swap.holding {
+            self.clear_rows();
+        }
+        true
+    }
+
+    fn clear_rows(&mut self) {
+        self.held = Rc::default();
+        self.cursor = 0;
+        self.scroll_y = 0.;
+        self.state = State::default();
+    }
+
     pub fn receive(&mut self, reply: Reply) -> Result<bool, String> {
+        self.receive_at(reply, self.now())
+    }
+
+    pub fn receive_at(&mut self, reply: Reply, now: u64) -> Result<bool, String> {
         match reply {
-            Reply::Listed { path, total } if path == self.path => {
-                self.pending_total = Some(total);
+            Reply::Listed { path, total } => {
+                if let Some(pending) = &mut self.swap.pending {
+                    if pending.ready.is_none() {
+                        pending.total = (path.is_empty() || path == pending.path).then_some(total);
+                    }
+                } else {
+                    self.swap.unheld_total =
+                        (path.is_empty() || path == self.path).then_some(total);
+                }
                 Ok(false)
             }
-            Reply::Rows { start, rows, listing } => {
-                if listing < self.held.listing {
-                    return Ok(false);
-                }
-                let fresh = listing != self.held.listing || self.pending_total.is_some();
-                let total = self.pending_total.take().unwrap_or(self.held.total);
-                if start > total || rows.len() > total - start || rows.len() > self.asked {
-                    return Err("the backend answered rows outside the requested window".into());
-                }
-                if fresh {
-                    self.cursor = 0;
-                    self.scroll_y = 0.;
-                    self.listing_open = false;
-                }
-                if self.in_flight.is_some_and(|(asked, _)| asked == start) {
-                    self.in_flight = None;
-                }
-                self.held = Rc::new(Held {
-                    listing,
-                    total,
-                    start,
-                    rows,
-                });
-                Ok(true)
-            }
+            Reply::Rows {
+                start,
+                rows,
+                listing,
+            } => self.take_rows(start, rows, listing, now),
+            Reply::Error {
+                operation,
+                path,
+                message,
+            } => Ok(self.fail(&operation, &path, &message, 0, now)),
             _ => Ok(false),
         }
     }
 
-    fn first_visible(&self) -> usize {
-        (self.scroll_y / ROW_HEIGHT).floor() as usize
+    pub(crate) fn commit(&mut self, now: u64) -> bool {
+        let Some(mut pending) = self.swap.pending.take() else {
+            return false;
+        };
+        let Some(held) = pending.ready.take() else {
+            self.swap.pending = Some(pending);
+            return false;
+        };
+        let held = pending.following.take().unwrap_or(held);
+        self.path = pending.path;
+        self.greatest_listing = held.listing;
+        self.cursor = held.start;
+        self.scroll_y = held.start as f32 * ROW_HEIGHT;
+        self.state = State {
+            kind: if held.total == 0 {
+                Kind::Empty
+            } else {
+                Kind::Ready
+            },
+            target: self.path.clone(),
+            query: pending.options.kept_query,
+            search: pending.options.search,
+            ..State::default()
+        };
+        self.held = Rc::new(held);
+        self.scroll_by(0.);
+        self.requests.initial_first = Some((self.scroll_y / ROW_HEIGHT).floor() as usize);
+        self.swap.counters.commits += 1;
+        self.swap.rows_at = now;
+        self.swap.end(now, "landed");
+        true
     }
 
-    /// List.qml requestIfDrifted(): a window around the first visible row once a held edge comes within the margin.
+    pub fn tick(&mut self, now: u64) -> bool {
+        if self.swap.pending.as_ref().is_some_and(|pending| {
+            pending.ready.is_some() && pending.parked_until.is_none_or(|until| now >= until)
+        }) && self.swap.show_left(now) == 0
+        {
+            if self
+                .swap
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.parked_until.is_some())
+            {
+                self.retire_anchor();
+            }
+            return self.commit(now);
+        }
+        if self.swap.expire(now) {
+            self.clear_rows();
+            return true;
+        }
+        false
+    }
+
+    pub fn frame(&mut self, now: u64, loading_mark_drawn: bool) {
+        self.swap
+            .mark_shown(loading_mark_drawn && self.state.kind == Kind::Loading, now);
+        if self.busy() && self.state.kind == Kind::Loading {
+            if self.swap.fell_back {
+                self.swap.counters.loading_frames += 1;
+            } else {
+                self.swap.counters.blank_frames += 1;
+            }
+        }
+    }
+
+    pub fn fail(
+        &mut self,
+        operation: &str,
+        path: &str,
+        message: &str,
+        mode: u32,
+        now: u64,
+    ) -> bool {
+        if operation == "stale" || operation == "sort" {
+            return false;
+        }
+        if matches!(operation, "scan" | "window") && !path.is_empty() && path != self.place() {
+            return false;
+        }
+        if operation != "backend"
+            && self
+                .swap
+                .pending
+                .as_ref()
+                .is_some_and(|pending| pending.parked_until.is_some())
+        {
+            if operation == "window" {
+                self.retire_anchor();
+            }
+            self.swap
+                .pending
+                .as_mut()
+                .expect("parked listing")
+                .parked_until = None;
+            return self.swap.show_left(now) == 0 && self.commit(now);
+        }
+        if operation == "window" {
+            if path == self.path && !self.busy() {
+                self.requests.cancel();
+            }
+            return false;
+        }
+        if (!self.busy() && operation != "backend")
+            || (operation == "scan" && !path.is_empty() && path != self.place())
+        {
+            return false;
+        }
+        let target = self.place().to_owned();
+        self.requests.cancel();
+        self.clear_rows();
+        self.state = State {
+            kind: if operation == "scan" && message.to_lowercase().contains("permission denied") {
+                Kind::Locked
+            } else {
+                Kind::Error
+            },
+            target,
+            mode,
+            ..State::default()
+        };
+        self.swap.end(now, "dropped");
+        true
+    }
+
+    pub fn row_action(&self, rows: Vec<usize>) -> Option<RowAction> {
+        requests::capture(&self.held, self.swap.pending.is_some(), rows)
+    }
+    pub fn accepts_work(&self, listing: usize) -> bool {
+        self.swap.pending.is_none() && listing > 0 && listing == self.held.listing
+    }
     pub fn wanted_window(&mut self) -> Option<(usize, usize)> {
-        let total = self.held.total;
-        if self.listing_open || total == 0 {
+        if self.swap.pending.is_some() {
             return None;
         }
-        let first = self.first_visible();
-        let last = first + self.visible_rows();
-        let (held, len) = self
-            .in_flight
-            .unwrap_or((self.held.start, self.held.rows.len()));
-        let held_end = (held + len).min(total);
-        let drifted = len == 0
-            || (first.saturating_sub(held) < REFETCH_MARGIN && held > 0)
-            || (held_end.saturating_sub(last) < REFETCH_MARGIN && held_end < total);
-        if !drifted {
-            return None;
-        }
-        let window = (
-            first.saturating_sub(DEFAULT_BUFFER.clamp(MIN_BUFFER, MAX_BUFFER)),
-            window_size(self.visible_rows()),
-        );
-        self.in_flight = Some(window);
-        self.asked = self.asked.max(window.1);
-        Some(window)
+        let first = (self.scroll_y / ROW_HEIGHT).floor() as usize;
+        self.requests
+            .wanted(&self.held, first, self.visible_rows())
+            .map(|request| (request.start, request.count))
     }
-
     fn max_scroll(&self) -> f32 {
         (self.held.total as f32 * ROW_HEIGHT - self.height).max(0.)
     }
-
     pub fn scroll_by(&mut self, delta: f32) {
         self.scroll_y = (self.scroll_y + delta).clamp(0., self.max_scroll());
     }
-
     pub fn scroll_to(&mut self, y: f32) {
         self.scroll_y = y.clamp(0., self.max_scroll());
     }
-
-    /// Moves the cursor and scrolls the least that keeps it whole in view.
     pub fn move_cursor(&mut self, step: Move) -> bool {
         let total = self.held.total;
-        if total == 0 {
+        if self.busy() || total == 0 {
             return false;
         }
         let page = ((self.height / ROW_HEIGHT).floor() as usize).max(1);
@@ -186,7 +326,6 @@ impl Pane {
         self.reveal_cursor();
         true
     }
-
     pub fn reveal_cursor(&mut self) {
         let top = self.cursor as f32 * ROW_HEIGHT;
         if top < self.scroll_y {
@@ -198,81 +337,5 @@ impl Pane {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-
-    fn rows(n: usize) -> Vec<RowFacts> {
-        (0..n)
-            .map(|i| RowFacts {
-                name: format!("{i:06}"),
-                ..RowFacts::default()
-            })
-            .collect()
-    }
-
-    fn listed(pane: &mut Pane, total: usize, count: usize) {
-        let path = pane.path.clone();
-        assert!(!pane.receive(Reply::Listed { path, total }).unwrap());
-        assert!(pane
-            .receive(Reply::Rows {
-                start: 0,
-                rows: rows(count),
-                listing: 1
-            })
-            .unwrap());
-    }
-
-    #[test]
-    fn only_visible_rows_are_counted_including_a_partial_last_row() {
-        assert_eq!(visible_rows(0.), 1);
-        assert_eq!(visible_rows(31.), 1);
-        assert_eq!(visible_rows(62.), 2);
-        assert_eq!(visible_rows(63.), 3);
-        assert_eq!(visible_rows(640.), 21);
-        assert_eq!(window_size(21), 321);
-    }
-
-    #[test]
-    fn windows_follow_pane_qml_drift_rules_one_request_at_a_time() {
-        let mut pane = Pane::new("/files".into(), 620.);
-        assert_eq!(pane.wanted_window(), None, "no window while the listing is out");
-        listed(&mut pane, 100_000, 320);
-        assert_eq!(pane.wanted_window(), None);
-        // 320 held rows end at 320; the last visible row reaching within 25 of it asks around the first.
-        pane.scroll_to(276. * ROW_HEIGHT);
-        assert_eq!(pane.wanted_window(), Some((126, 320)));
-        assert_eq!(pane.wanted_window(), None, "the window in flight counts as landed");
-        assert!(pane
-            .receive(Reply::Rows { start: 126, rows: rows(320), listing: 1 })
-            .unwrap());
-        assert_eq!(pane.wanted_window(), None);
-        pane.scroll_to(140. * ROW_HEIGHT);
-        assert_eq!(pane.wanted_window(), Some((0, 320)));
-        // A jump past the held window asks around the new first row.
-        pane.in_flight = None;
-        pane.scroll_to(50_000. * ROW_HEIGHT);
-        assert_eq!(pane.wanted_window(), Some((49_850, 320)));
-    }
-
-    #[test]
-    fn stale_and_oversized_rows_are_refused_and_the_cursor_stays_in_view() {
-        let mut pane = Pane::new("/files".into(), 620.);
-        listed(&mut pane, 1000, 320);
-        assert!(pane
-            .receive(Reply::Rows { start: 0, rows: rows(321), listing: 1 })
-            .is_err());
-        assert!(pane
-            .receive(Reply::Rows { start: 990, rows: rows(11), listing: 1 })
-            .is_err());
-        assert!(!pane
-            .receive(Reply::Rows { start: 0, rows: rows(3), listing: 0 })
-            .unwrap());
-        assert!(pane.move_cursor(Move::End));
-        assert_eq!(pane.cursor, 999);
-        assert_eq!(pane.scroll_y, 1000. * ROW_HEIGHT - 620.);
-        pane.move_cursor(Move::PageUp);
-        assert_eq!(pane.cursor, 979);
-        pane.move_cursor(Move::Home);
-        assert_eq!((pane.cursor, pane.scroll_y), (0, 0.));
-    }
-}
+#[path = "pane_tests.rs"]
+mod tests;

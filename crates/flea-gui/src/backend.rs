@@ -1,4 +1,5 @@
 //! A pane's backend child; all process and pipe work stays off the UI thread.
+use crate::pane::requests::RowAction;
 use async_channel::Receiver;
 use flea::protocol::{parse_reply, Reply, Request};
 use std::io::{self, BufRead, BufReader};
@@ -9,6 +10,7 @@ use std::sync::{
 };
 use std::thread;
 use std::time::{Duration, Instant};
+mod transport;
 
 #[derive(Clone, Debug)]
 pub struct Failure {
@@ -19,6 +21,16 @@ pub struct Failure {
 #[derive(Debug)]
 pub enum Event {
     Reply(Reply),
+    Session {
+        generation: usize,
+        reply: Reply,
+    },
+    Refused {
+        operation: String,
+        path: String,
+        message: String,
+        mode: u32,
+    },
     Failed(Failure),
     Drained,
 }
@@ -31,7 +43,19 @@ pub struct Backend {
 }
 
 enum Control {
-    Window { start: usize, count: usize },
+    List {
+        path: String,
+        select: Option<String>,
+        first: usize,
+    },
+    Window {
+        start: usize,
+        count: usize,
+    },
+    Rows {
+        command: &'static str,
+        action: RowAction,
+    },
     Quit,
     Eof,
 }
@@ -107,8 +131,8 @@ impl Backend {
                             .spawn(move || {
                                 for line in BufReader::new(stdout).lines() {
                                     let event = match line {
-                                        Ok(line) => match parse_reply(&line) {
-                                            Ok(reply) => Event::Reply(reply),
+                                        Ok(line) => match transport::parse(&line) {
+                                            Ok(reply) => reply,
                                             Err(error) => Event::Failed(failure(
                                                 "window.backend_protocol",
                                                 error,
@@ -146,8 +170,21 @@ impl Backend {
                     .and_then(|()| {
                         for control in receiver {
                             match control {
+                                Control::List {
+                                    path,
+                                    select,
+                                    first,
+                                } => Request::List {
+                                    path: &path,
+                                    select: select.as_deref(),
+                                    first,
+                                }
+                                .write_to(&mut input)?,
                                 Control::Window { start, count } => {
                                     Request::Window { start, count }.write_to(&mut input)?
+                                }
+                                Control::Rows { command, action } => {
+                                    transport::write_rows(&mut input, command, &action)?
                                 }
                                 Control::Quit => {
                                     Request::Quit.write_to(&mut input)?;
@@ -191,6 +228,30 @@ impl Backend {
         }
         self.requests
             .send(Control::Window { start, count })
+            .map_err(|_| failure("window.backend_stopped", ""))
+    }
+
+    pub fn list(&self, path: String, select: Option<String>, first: usize) -> Result<(), Failure> {
+        self.send(Control::List {
+            path,
+            select,
+            first,
+        })
+    }
+
+    pub fn rows(&self, command: &'static str, action: RowAction) -> Result<(), Failure> {
+        if !matches!(command, "paths" | "trash") || action.listing == 0 || action.rows.is_empty() {
+            return Err(failure("pane.row_request", ""));
+        }
+        self.send(Control::Rows { command, action })
+    }
+
+    fn send(&self, control: Control) -> Result<(), Failure> {
+        if self.quitting.load(Ordering::Acquire) {
+            return Err(failure("window.backend_stopped", ""));
+        }
+        self.requests
+            .send(control)
             .map_err(|_| failure("window.backend_stopped", ""))
     }
 

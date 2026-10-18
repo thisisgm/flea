@@ -44,6 +44,10 @@ impl Shell {
         let Some(host) = &mut self.panes[self.focus_side] else {
             return;
         };
+        if host.pane.busy() {
+            cx.stop_propagation();
+            return;
+        }
         let step = match event.keystroke.key.as_str() {
             "up" => Move::Up,
             "down" => Move::Down,
@@ -76,6 +80,9 @@ impl Shell {
             return;
         }
         if let Some(host) = &mut self.panes[self.focus_side] {
+            if host.pane.busy() {
+                return;
+            }
             host.pane
                 .scroll_by(-f32::from(event.delta.pixel_delta(px(ROW_HEIGHT)).y));
             cx.notify();

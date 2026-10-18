@@ -7,7 +7,6 @@ use crate::{
     ipc::{server::Event, Surface},
     state::{labels, Shell},
 };
-use flea::protocol::Reply;
 use gpui::{Context, Window};
 
 impl Shell {
@@ -66,7 +65,11 @@ impl Shell {
                     cursor: host.pane.cursor,
                     selected: &host.selected,
                 };
-                let _ = answer.try_send(surface.dispatch(request));
+                let pane = crate::ipc::pane::PaneAdapter {
+                    pane: &host.pane,
+                    catalog: &self.locale.catalog,
+                };
+                let _ = answer.try_send(surface.dispatch_to(request, &[&pane]));
             }
             Event::Quit => {
                 self.close(window, cx);
@@ -84,7 +87,36 @@ impl Shell {
         let Some(host) = &mut self.panes[side] else {
             return;
         };
+        let event = match event {
+            BackendEvent::Session { generation, reply } => {
+                if host.pane.swap.session.drops(generation) {
+                    return;
+                }
+                match host
+                    .pane
+                    .receive_session(reply, generation, host.pane.now())
+                {
+                    Ok(true) => {
+                        host.changed(&self.locale);
+                        self.path_labels[side] = host.path.clone().into();
+                        self.seam.rows(&host.pane);
+                        cx.notify();
+                    }
+                    Ok(false) => {}
+                    Err(key) => host.record_error(
+                        Failure {
+                            key: "window.backend_protocol",
+                            detail: self.locale.catalog.tr(&key),
+                        },
+                        &self.locale,
+                    ),
+                }
+                return;
+            }
+            event => event,
+        };
         match event {
+            BackendEvent::Session { .. } => unreachable!(),
             BackendEvent::Drained => {
                 host.stopped = true;
                 host.backend = None;
@@ -93,42 +125,52 @@ impl Shell {
                     window.remove_window();
                 }
             }
-            BackendEvent::Failed(error) => host.record_error(error, &self.locale),
-            BackendEvent::Reply(Reply::Error { path, message, .. }) if path == host.path => {
-                host.record_error(
-                    Failure {
-                        key: "window.backend_report",
-                        detail: message,
-                    },
-                    &self.locale,
-                );
+            BackendEvent::Failed(error) => {
+                host.pane.fail("backend", "", "", 0, host.pane.now());
+                host.changed(&self.locale);
+                host.record_error(error, &self.locale);
+            }
+            BackendEvent::Refused {
+                operation,
+                path,
+                message,
+                mode,
+            } => {
+                if !host
+                    .pane
+                    .fail(&operation, &path, &message, mode, host.pane.now())
+                {
+                    return;
+                }
+                host.changed(&self.locale);
             }
             BackendEvent::Reply(reply) => match host.pane.receive(reply) {
                 Ok(true) => {
-                    if !host.answered {
-                        host.apply_select();
+                    host.changed(&self.locale);
+                    self.path_labels[side] = host.path.clone().into();
+                    if host.answered {
+                        self.deadlines[side] = None;
                     }
-                    host.answered = true;
-                    host.error = None;
-                    host.failure = None;
-                    host.status = self
-                        .locale
-                        .catalog
-                        .trn("items.count", host.pane.held.total as i64)
-                        .into();
-                    self.deadlines[side] = None;
                     self.seam.rows(&host.pane);
                 }
-                Ok(false) => return,
-                Err(message) => host.record_error(
-                    Failure {
-                        key: "window.backend_protocol",
-                        detail: message,
-                    },
-                    &self.locale,
-                ),
+                Ok(false) => {
+                    self.arm_transition(side, window, cx);
+                    return;
+                }
+                Err(message) => {
+                    host.pane.fail("protocol", "", "", 0, host.pane.now());
+                    host.changed(&self.locale);
+                    host.record_error(
+                        Failure {
+                            key: "window.backend_protocol",
+                            detail: self.locale.catalog.tr(&message),
+                        },
+                        &self.locale,
+                    );
+                }
             },
         }
+        self.arm_transition(side, window, cx);
         if side == 0 {
             self.ensure_ipc_reader(window, cx);
         }

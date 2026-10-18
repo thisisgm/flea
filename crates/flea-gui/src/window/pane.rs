@@ -12,14 +12,17 @@ pub(crate) struct PaneHost {
     pub list: Rc<RefCell<ListState>>,
     pub backend: Option<Backend>,
     pub reader: Option<Task<()>>,
+    pub transition: Option<Task<()>>,
     pub selected: Vec<usize>,
     pub select: Option<String>,
     pub error: Option<String>,
     pub failure: Option<Failure>,
     pub status: SharedString,
+    pub state_text: crate::pane::states::Text,
     pub answered: bool,
     pub waiting: bool,
     pub stopped: bool,
+    applied_listing: usize,
 }
 
 impl PaneHost {
@@ -31,13 +34,16 @@ impl PaneHost {
             list: Rc::new(RefCell::new(ListState::new(Typeface::omarchy_default()))),
             backend: None,
             reader: None,
+            transition: None,
             selected: Vec::new(),
             error: None,
             failure: None,
             status: locale.catalog.tr("window.loading").into(),
+            state_text: crate::pane::states::State::default().text(&locale.catalog, 0),
             answered: false,
             waiting: false,
             stopped: false,
+            applied_listing: 0,
         }
     }
 
@@ -56,19 +62,21 @@ impl PaneHost {
 
     pub fn translated(&mut self, locale: &Snapshot) {
         self.list.borrow_mut().invalidate_text();
+        self.state_text = self.pane.state.text(&locale.catalog, self.pane.held.total);
         if let Some(failure) = self.failure.clone() {
             self.record_error(failure, locale);
         } else {
-            self.status = if self.answered {
-                locale
-                    .catalog
-                    .trn("items.count", self.pane.held.total as i64)
-            } else if self.waiting {
-                locale.catalog.tr("window.waiting")
-            } else {
-                locale.catalog.tr("window.loading")
-            }
-            .into();
+            self.status =
+                if self.answered && self.pane.state.kind == crate::pane::states::Kind::Ready {
+                    locale
+                        .catalog
+                        .trn("items.count", self.pane.held.total as i64)
+                } else if self.waiting {
+                    locale.catalog.tr("window.waiting")
+                } else {
+                    self.state_text.status.clone()
+                }
+                .into();
         }
     }
 
@@ -88,6 +96,23 @@ impl PaneHost {
         if let Some(at) = self.pane.held.rows.iter().position(|row| row.name == name) {
             self.pane.cursor = self.pane.held.start + at;
             self.pane.reveal_cursor();
+        }
+    }
+
+    pub fn changed(&mut self, locale: &Snapshot) {
+        let generation = self.pane.held.listing;
+        if generation != self.applied_listing {
+            self.selected.clear();
+            self.applied_listing = generation;
+        }
+        self.path = self.pane.path().into();
+        self.answered = !self.pane.busy();
+        self.error = None;
+        self.failure = None;
+        self.state_text = self.pane.state.text(&locale.catalog, self.pane.held.total);
+        self.status = self.state_text.status.clone().into();
+        if self.answered {
+            self.apply_select();
         }
     }
 }
