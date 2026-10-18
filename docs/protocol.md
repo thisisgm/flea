@@ -183,6 +183,80 @@ ARW, DNG) from its IFD0 and Exif IFD in the first MiB, and a CR3 from the CMT1, 
 `cancelled:true` and no facts. An `id` that is not the captured snapshot, a selection of several items, or an item that is not a
 regular file answers `ok:false` with an `error`; a fifo or a device is never opened.
 
+### gitstatus
+
+`{"c":"gitstatus","path":"/repo","enabled":true,"refresh":false,"id":1}`
+
+Reads one repository-wide snapshot for Git decoration without replacing the ordinary listing,
+its row numbering or its watch. `path` is the absolute directory being displayed. `enabled`
+defaults to false and `refresh` to false; `id` defaults to 0 and is echoed on every reply.
+The shared Boolean setting is `showGitStatus`, off by default. Its window control is
+`Show Git status` in Settings, View, immediately before `Highlight today's dates`.
+
+An enabled directory change discovers the worktree and runs one read-only Git status. The same
+directory reuses its cached snapshot until `refresh:true`; outside a repository no Git process
+starts. Disabling clears the cache and cancels active or queued older work without discovery or
+process launch. Navigation also cancels the old directory's work. Replies may interleave other
+backend replies, so clients match both `path` and their current `id` before displaying them.
+
+The existing `changed` event drives refresh through the client's 400 ms absorbing timer: the
+first notification starts it, later notifications do not restart it, and expiry sends this request
+with `refresh:true`. Keep one status request in flight and preserve later watch debt until its
+reply. The existing non-recursive watch covers the displayed directory, not all repository paths
+or `.git` metadata; another directory change or explicit refresh discovers those other changes.
+
+The argv is `/usr/bin/git -c core.fsmonitor=false -c core.hooksPath=/dev/null -c core.untrackedCache=false
+-c status.renames=true status --porcelain=v2 -z --branch --untracked-files=all --ignore-submodules=none --`.
+The sandbox changes directory to the repository root; there are no path operands or shell.
+It binds the worktree and linked-worktree metadata read-only, isolates the network, clears the
+environment, and sets `GIT_OPTIONAL_LOCKS=0`, `GIT_CONFIG_NOSYSTEM=1`,
+`GIT_CONFIG_GLOBAL=/dev/null` and `GIT_TERMINAL_PROMPT=0`. Capture, parsing and sorting share one
+five-second deadline and navigation cancellation check. Stdout is bounded at 32 MiB, stderr at
+64 KiB, with the normal sandbox resource limits. A checked 64 MiB aggregate allocation budget
+covers both full capture buffers and cumulative snapshot capacity requests, including paths,
+rename sources, branch text, change records and the sorted folder index. Growth is charged before
+fallible allocation, including replacement storage and 64 bytes of overhead per allocation;
+released allocations remain charged conservatively. Folder marks use at most two path references
+per change, with no ancestor copies. Over-budget input refuses the whole snapshot with
+`Git status snapshot is too large.`; an allocator refusal reports
+`Git status could not allocate its snapshot.` One ordinary staged deletion (`1 D.` with zero
+index and worktree modes) plus one untracked entry (`?`) at the same path is legitimate: Git
+emits this after untracking a retained file or symlink, recreating a staged-deleted file, or
+untracking a retained gitlink (`? path/`). These records coalesce to one `?` change, counted once
+in the branch caption and Changes, with `deleted:false`; the untracked entry determines the
+folder flag and path spelling. A lone deletion remains `D` with `deleted:true`. A rename's
+source metadata can also name an untracked entry; the destination and source remain two distinct
+changes. Other repeated destinations, repeated records, or groups larger than two refuse the
+whole snapshot with `Git status returned a duplicate path.` Coalescing allocates no additional
+storage and retains all existing budget charges, deadline and cancellation checks. Process
+failures retain stderr. Remote discovery uses the existing mount bound.
+
+### gitrows
+
+`{"c":"gitrows","path":"/repo","paths":["/repo/Code","/repo/notes.txt"],"id":2}`
+
+Projects the last successful snapshot onto the visible rows only. `path` must match that
+snapshot's directory, and every `paths` entry must be an absolute immediate child. At most
+400 paths are accepted per request; a larger viewport can use several requests. Results follow
+request order, including clean rows, and perform no per-row stat, MIME lookup or subprocess.
+The window draws the marks in a 14 px column before Size; the TUI uses one cell before the size.
+Both use `M`, `A`, `D` and `?`; the TUI represents a changed folder by yellow `■`.
+
+### gitchanges
+
+`{"c":"gitchanges","path":"/repo","start":0,"count":1,"id":3}`
+
+Pages every canonical changed path relative to the worktree root, deleted and untracked paths
+included. `start` defaults to 0 and clamps to `total`; `count` defaults to 400 and caps at 400.
+The window opens this virtual listing by clicking the branch caption. The branch becomes the
+foreground current crumb, the original folder path becomes its muted ancestor, and Back or Esc
+returns to that folder. Folder prefixes within changed paths are muted before the leaf name;
+the cursor row uses foreground. Deleted rows have no Size or Modified value. There is no added
+`esc returns` hint. Changes view is window only in 0.4.0.
+
+This does not replace the ordinary listing or its watch. Changes-view indices never name
+ordinary backend file-operation rows; clients resolve an existing entry against the reply's `root`.
+
 ### listpaths
 
 `{"c":"listpaths","paths":[<string>,...],"first":<uint>}`
@@ -1615,6 +1689,56 @@ the client that asked for it is going away too. A `collisions` question still be
 same way, which is why a scripted client waits for its line before sending `quit`.
 
 ## Responses
+
+### gitstatus
+
+`{"t":"gitstatus","id":1,"path":"/repo","ok":true,"enabled":true,"root":"/repo","branch":"main","label":"main · 8 changed","changed":8}`
+
+`t` names the request, `id` and `path` echo its correlation, and `ok` reports success. `root`
+is the canonical worktree root, `branch` its branch name (`detached` for detached HEAD),
+`changed` the unique changed-path count after coalescing, and `label` the exact branch-caption text derived
+from that count. An unborn branch keeps its real name; a clean repository says `main · 0 changed`.
+The normal window's branch caption is muted; in Changes it is foreground. The illustrated
+`main · 8 changed` count is data, independent of the ordinary listing's item count.
+
+Disabled replies have `enabled:false`, empty `root`, `branch` and `label`, and `changed:0`.
+An enabled directory outside a repository has the same empty values with `enabled:true`.
+Clients hide Git decoration in both cases. A failed status clears stale decoration while
+ordinary file browsing remains usable; a cached failure stays a failure until refresh or navigation.
+
+### gitrows
+
+`{"t":"gitrows","id":2,"path":"/repo","ok":true,"marks":[{"path":"/repo/Code","status":"","folder":true},{"path":"/repo/notes.txt","status":"M","folder":false}]}`
+
+`marks` contains each asked absolute `path`, its `status`, and whether it is a `folder` with
+changes inside. A clean row has `status:"",folder:false`. Non-empty statuses are exactly
+`M` modified, `A` added, `D` deleted and `?` untracked. Rename/copy destinations use `A`;
+deleted flags within one tracked record take precedence, and other tracked changes use `M`.
+A coalesced index-deletion/untracked pair instead emits one `?`, as described under `gitstatus`.
+A folder square takes precedence over a simultaneous
+letter for a submodule or embedded repository. The window square is 6 px, yellow and centred
+in the 14 px mark column. Resting letters use yellow, green, error and muted roles respectively,
+each at least 4.5:1; cursor-row text uses foreground. `folder` supplies the same yellow `■`
+to the TUI's one-cell column. No marks outside the viewport are requested or painted.
+
+### gitchanges
+
+`{"t":"gitchanges","id":3,"path":"/repo","ok":true,"root":"/repo","label":"main · 8 changed","total":8,"start":0,"entries":[{"path":"Code/lib.rs","status":"D","original":"","deleted":true}]}`
+
+`root` and `label` identify the same cached snapshot as `gitstatus`; `total` is its complete
+unique changed-path count after coalescing, `start` the clamped page offset, and `entries` the requested page in
+repository-relative path order. Each entry supplies `path`, `status`, `original` and `deleted`.
+`status` has the same four-letter alphabet as `gitrows`. `original` is the source path for
+a rename or copy and otherwise empty; it is metadata, not another counted entry. `deleted`
+is true for a `D` row even when that path no longer exists. These replies contain no size or
+date; clients resolve metadata off-thread for existing visible paths and skip it for deleted rows.
+The Changes footer counts `total`, for example `8 items`, separately from ordinary listing rows.
+
+All three Git requests fail with their own `t`, echoed `id` and `path`, `ok:false` and an
+`error` sentence, for example `{"t":"gitstatus","id":1,"path":"/repo","ok":false,"error":"Git status timed out."}`.
+Errors include unavailable snapshots or sandbox, invalid paths or visible-row requests,
+cancellation, timeout, over-limit output, malformed porcelain and underlying I/O or Git diagnostics.
+These are requested replies; `changed` remains the only unsolicited notification.
 
 ### listed
 

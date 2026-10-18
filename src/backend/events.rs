@@ -13,6 +13,7 @@ use std::thread;
 
 // std has no select, so every source of work reaches the loop as one of these.
 pub enum Event {
+    Git(String),
     Request(String),
     Thumb(Done),
     DirSize(crate::backend::dirsizeworker::Done),

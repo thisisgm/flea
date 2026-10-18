@@ -42,7 +42,7 @@ src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
 src/backend/officepdf.rs 411
-src/backend/run.rs 1214
+src/backend/run.rs 1224
 src/backend/run_session_tests.rs 525
 src/backend/ops.rs 440
 src/backend/thumbs.rs 539
@@ -56,7 +56,7 @@ src/backend/undocodec.rs 412
 src/backend/undoshare.rs 462
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
-src/backend/proto.rs 510
+src/backend/proto.rs 516
 src/backend/sandbox.rs 410
 src/backend/thumbworker.rs 961
 src/backend/trashbrowse.rs 1061
@@ -71,7 +71,7 @@ src/tui/input.rs 455
 src/tui/model.rs 1268
 src/tui/mod.rs 419
 src/tui/render.rs 913
-src/uischema.rs 597
+src/uischema.rs 615
 src/uistate.rs 849
 src/uistore.rs 568
 src/vulkan.rs 751
