@@ -10,6 +10,18 @@ fn underscore_hosts_remain_valid_when_typed_and_reopened() {
 }
 
 #[test]
+fn nearby_avahi_underscore_host_produces_no_row() {
+    let line = "=;eth0;IPv4;NAS;_smb._tcp;local;file_server.local;192.0.2.1;445;\n";
+    assert!(crate::backend::nearbyrows::avahi(line, "_smb._tcp").is_empty());
+}
+
+#[test]
+fn nearby_tailnet_underscore_host_produces_no_row() {
+    let status = r#"{"BackendState":"Running","Peer":{"one":{"Online":true,"DNSName":"file_server.tail.ts.net."}}}"#;
+    assert!(crate::backend::nearbyrows::tailscale(status).unwrap().is_empty());
+}
+
+#[test]
 fn every_address_form_builds_the_saved_place_uri() {
     let cases = [
         ("smb://NAS.local/share", "smb://nas.local/share", "SMB", 445, "", "/share"),

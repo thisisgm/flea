@@ -77,6 +77,7 @@ fn txt_path(input: &str) -> Option<String> {
     Some("/".into())
 }
 
+// Discovery rejects underscores only to preserve its existing behavior; typed addresses keep legacy underscore support.
 // Sample input: nas-1.local
 fn valid_discovery_host(host: &str) -> bool {
     !host.contains('_') && networkaddress::valid_host(host)
