@@ -19,10 +19,6 @@ case "$root" in /*) test -f "$root/.flea-test-sandbox" ;; *) exit 98 ;; esac
 tool=${0##*/}
 printf '%s\0' "$tool" "$@" >> "$root/calls"
 printf '\n' >> "$root/calls"
-if test "$tool" = magick && test -f "$root/real-magick"; then
- IFS= read -r program < "$root/real-magick"
- exec "$program" "$@"
-fi
 case "$tool" in
  prlimit) while [ "${1#--}" != "$1" ]; do shift; done; exec "$@" ;;
  bwrap)
@@ -39,6 +35,7 @@ case "$tool" in
   case "$1" in -e) printf 'Kitchen\nBrother\n' ;; -d) printf 'system default destination: Brother\n' ;; esac ;;
  lpoptions) printf 'Duplex/Two-sided: *None DuplexNoTumble\nColorModel/Color: *RGB Gray\n' ;;
  lp)
+  case "$*" in *hold.pdf*) set -C; : > "$root/lp-held"; exec /bin/sleep 30 ;; esac
   case "$*" in *refuse.pdf*) printf 'printer is paused\n' >&2; exit 1 ;; esac ;;
  pdfinfo) printf 'Pages: 3\n' ;;
  magick|montage|pdftoppm)
@@ -84,14 +81,20 @@ struct Rig {
 }
 
 impl Rig {
-    fn new(stubs: bool) -> Self {
+    fn new(stubs: bool) -> Self { Self::with_tools(stubs, None) }
+
+    fn with_magick(script: &str) -> Self { Self::with_tools(true, Some(script)) }
+
+    fn with_tools(stubs: bool, magick: Option<&str>) -> Self {
         use std::os::unix::process::CommandExt;
         let dir = TestDir::new("print-protocol");
         let bin = dir.dir("bin");
         if stubs {
             let script = dir.script("tools", STUB);
+            let custom = magick.map(|body| dir.script("magick-stub", body));
             for name in ["lpstat", "lpoptions", "lp", "magick", "montage", "pdftoppm", "pdfinfo", "prlimit", "bwrap"] {
-                std::os::unix::fs::symlink(&script, bin.join(name)).unwrap();
+                let source = if name == "magick" { custom.as_ref().unwrap_or(&script) } else { &script };
+                std::os::unix::fs::symlink(source, bin.join(name)).unwrap();
             }
             std::os::unix::fs::symlink("/usr/bin/true", bin.join("soffice")).unwrap();
         }
@@ -100,7 +103,7 @@ impl Rig {
         for (key, leaf) in [("XDG_CONFIG_HOME", "config"), ("XDG_CACHE_HOME", "cache"), ("XDG_STATE_HOME", "state"), ("XDG_RUNTIME_DIR", "runtime"), ("XDG_DATA_HOME", "data")] {
             command.env(key, dir.dir(leaf));
         }
-        if stubs { command.env("PATH", format!("{}:/usr/bin:/bin", bin.display())); }
+        if stubs { command.env("PATH", if magick.is_some() { bin.display().to_string() } else { format!("{}:/usr/bin:/bin", bin.display()) }); }
         let mut child = command.stdin(Stdio::piped()).stdout(Stdio::piped()).stderr(Stdio::inherit()).process_group(0).spawn().unwrap();
         let input = child.stdin.take().unwrap();
         let output = child.stdout.take().unwrap();
