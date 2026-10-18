@@ -297,7 +297,6 @@ class Service:
         self.picks = {}
         self.idle_source = 0
         self.quit_source = 0
-        self.served = False
         self.retiring = False
         self.status = 0
         node = Gio.DBusNodeInfo.new_for_xml(INTROSPECTION)
@@ -316,6 +315,8 @@ class Service:
             Gio.bus_unown_name(self.owner)
             self.owner = 0
             self.loop.quit()
+            return
+        self.arm_idle_exit()
 
     def on_name_lost(self, _connection, _name):
         say("another process owns %s, so this one has nothing to answer" % BUS_NAME)
@@ -324,13 +325,11 @@ class Service:
     def on_get_property(self, _connection, _sender, _path, _iface, name):
         # The one property xdg-desktop-portal's proxy reads when it caches this interface.
         if name == "version":
-            self.served = True
             self.arm_idle_exit()
             return GLib.Variant("u", 3)
         return None
 
     def on_call(self, connection, _sender, path, iface, method, params, invocation):
-        self.served = True
         self.arm_idle_exit()
         if iface == REQUEST_IFACE and method == "Close":
             pick = self.picks.get(path)
@@ -369,7 +368,7 @@ class Service:
 
     def arm_idle_exit(self):
         self.cancel_idle_exit()
-        if not self.picks and self.served:
+        if not self.picks:
             if self.retiring:
                 self.quit_source = GLib.timeout_add(500, self.on_quit)
             else:
@@ -387,7 +386,7 @@ class Service:
     # that arrives after the release activates a fresh instance instead of reaching a dead one.
     def on_idle(self):
         self.idle_source = 0
-        if self.picks or not self.served:
+        if self.picks:
             return GLib.SOURCE_REMOVE
         self.retiring = True
         if self.owner:
