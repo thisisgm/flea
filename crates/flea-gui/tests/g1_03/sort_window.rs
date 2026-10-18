@@ -137,3 +137,55 @@ fn a_window_error_under_a_listed_line_no_sort_asked_settles_the_view_request() {
     assert_eq!(landed, Ok(true), "the listing's own rows land at its own count");
     assert_eq!((pane.held.listing, pane.cursor), (2, 0));
 }
+
+// A second sort while the view's top window is still out after the first sort's window failed.
+fn resorted_after_a_failed_sort_window() -> (Pane, Navigator, usize, usize, Option<(usize, usize)>) {
+    let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
+    pane.scroll_to(400. * 31.);
+    let (start, count) = pane.wanted_window().expect("the scroll asks a window");
+    let now = pane.now();
+    let scrolled = pane.receive_at(Reply::Rows { start, rows: rows(start, count, named), listing: 1 }, now);
+    assert_eq!(scrolled, Ok(true));
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let asked = window_count(&mut nav);
+    assert_eq!(pane.wanted_window(), Some((0, asked)), "the reordered top is not held, so the view asks it too");
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    assert!(!pane.fail("window", "/f/base", "timed out", 0, now));
+    nav.after_failure(&mut pane, "window");
+    pane.set_height(900.);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let second = window_count(&mut nav);
+    let resorted = pane.wanted_window();
+    (pane, nav, asked, second, resorted)
+}
+
+#[test]
+fn a_late_view_answer_after_a_resort_is_checked_against_its_own_count() {
+    let (mut pane, _, asked, second, resorted) = resorted_after_a_failed_sort_window();
+    let now = pane.now();
+    let late = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, asked, named), listing: 2 }, now);
+    assert!(late.is_ok(), "the view's window asked {asked} at 0 before the second sort, the window asked after it is {resorted:?}: {late:?}");
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, second, named), listing: 3 }, now);
+    assert_eq!(landed, Ok(true));
+}
+
+#[test]
+fn a_resort_whose_window_also_fails_leaves_the_top_held() {
+    let (mut pane, mut nav, asked, _, resorted) = resorted_after_a_failed_sort_window();
+    let now = pane.now();
+    let late = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, asked, named), listing: 2 }, now);
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    assert!(!pane.fail("window", "/f/base", "timed out", 0, now));
+    nav.after_failure(&mut pane, "window");
+    let answer = resorted.map(|(start, count)| {
+        pane.receive_at(Reply::Rows { start, rows: rows(start, count, named), listing: 3 }, now)
+    });
+    assert!(
+        pane.held.listing > 1 && pane.held.row(0).is_some(),
+        "late {late:?}, answer {answer:?}, held {:?}, asks next {:?}, refused {:?}",
+        (pane.held.listing, pane.held.start),
+        pane.wanted_window(),
+        pane.requests.refused
+    );
+}
