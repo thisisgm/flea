@@ -8,6 +8,8 @@ pub(crate) const PRLIMIT: &str = "prlimit";
 pub(crate) const CPU_SECONDS: u32 = 30;
 // Issue #17 reports glycin exhausting 1 GiB of address space on a large ICC-tagged JPEG and aborting, which this box does not reproduce, so the cap is 2 GiB: the smallest value the ticket records as working, still finite, and virtual rather than resident. What actually consumed it is the arena reservation capped above, not the image.
 pub(crate) const ADDRESS_SPACE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
+// Full-font Office conversion peaked at 3,477,811,200 bytes on minipc; 4 GiB leaves 779.3 MiB (23.5% above that peak).
+pub(crate) const OFFICE_ADDRESS_SPACE_BYTES: u64 = 4 * 1024 * 1024 * 1024;
 // wrap_readonly_extra leads with prlimit, its CPU flag, its address-space flag and bwrap.
 const READONLY_PREFIX_ARGS: usize = 4;
 // One read-only bind takes three arguments: the flag, the source and the destination.
@@ -36,8 +38,9 @@ pub(crate) const BWRAP_FLAGS: &[&str] = &[
     "--symlink",
     "usr/lib",
     "/lib",
-    "--symlink",
-    "usr/lib",
+    // Preserve the host loader directory: usr/lib on Arch, usr/lib64 on Debian.
+    "--ro-bind-try",
+    "/lib64",
     "/lib64",
     "--symlink",
     "usr/bin",
@@ -72,16 +75,22 @@ fn available_on(path: &str) -> bool {
 
 // The decoder's wrapper; the CPU cap is its runaway bound (see AGENTS.md "Thumbnail sandbox").
 pub fn wrap(inner: &[String], input: &Path, out: &Path) -> Vec<String> {
-    wrap_with(inner, input, out, Some(CPU_SECONDS))
+    wrap_with(inner, input, out, Some(CPU_SECONDS), ADDRESS_SPACE_BYTES)
 }
 
 // Issue #211: the archive jail for extract and compress, same boundary and address-space cap but no CPU cap.
 pub fn wrap_archive(inner: &[String], input: &Path, out: &Path) -> Vec<String> {
-    wrap_with(inner, input, out, None)
+    wrap_with(inner, input, out, None, ADDRESS_SPACE_BYTES)
 }
 
-// The one shared argv; the cap is the only argument a caller omits.
-pub(crate) fn wrap_with(inner: &[String], input: &Path, out: &Path, cpu_seconds: Option<u32>) -> Vec<String> {
+// The shared boundary with explicit CPU and finite address-space limits.
+pub(crate) fn wrap_with(
+    inner: &[String],
+    input: &Path,
+    out: &Path,
+    cpu_seconds: Option<u32>,
+    address_space: u64,
+) -> Vec<String> {
     let head_and_binds = 10;
     let mut a: Vec<String> = Vec::with_capacity(inner.len() + BWRAP_FLAGS.len() + head_and_binds);
     // prlimit stays outermost so the address-space cap still arrives.
@@ -89,7 +98,7 @@ pub(crate) fn wrap_with(inner: &[String], input: &Path, out: &Path, cpu_seconds:
     if let Some(seconds) = cpu_seconds {
         a.push(format!("--cpu={}", seconds));
     }
-    a.push(format!("--as={}", ADDRESS_SPACE_BYTES));
+    a.push(format!("--as={}", address_space));
     a.push(BWRAP.to_string());
     for flag in BWRAP_FLAGS {
         a.push(flag.to_string());

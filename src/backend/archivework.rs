@@ -109,42 +109,9 @@ impl Drop for Work {
     }
 }
 
-// The signal a job died from; anything else keeps its number rather than a guessed name.
-fn signal_name(signal: i32) -> Option<&'static str> {
-    match signal {
-        6 => Some("SIGABRT"),
-        9 => Some("SIGKILL"),
-        11 => Some("SIGSEGV"),
-        15 => Some("SIGTERM"),
-        24 => Some("SIGXCPU"),
-        _ => None,
-    }
-}
-
-// bwrap renders a tool the kernel killed as exit 128+n, so this offset recovers the signal.
-const BWRAP_SIGNAL_BASE: i32 = 128;
-
-// Issue #211: stderr's last non-blank line diagnoses a bad archive; otherwise the status names the signal.
-pub(crate) fn failure_message(what: &str, status: &ExitStatus, stderr: &str) -> String {
-    // A blank line is not a diagnosis.
-    if let Some(line) = stderr.lines().rev().find(|line| !line.trim().is_empty()) {
-        return line.trim().to_string();
-    }
-    let killed = |signal: i32| match signal_name(signal) {
-        Some(name) => format!("the {} tool stopped before it finished (signal {})", what, name),
-        None => format!("the {} tool stopped before it finished (signal {})", what, signal),
-    };
-    if let Some(signal) = status.signal() {
-        return killed(signal);
-    }
-    match status.code() {
-        // 128+n is bwrap's rendering of a signal; an unknown one stays an exit status.
-        Some(code) if signal_name(code - BWRAP_SIGNAL_BASE).is_some() => killed(code - BWRAP_SIGNAL_BASE),
-        Some(code) => format!("the {} tool could not finish (exit status {})", what, code),
-        // Unreachable in practice; this function always answers a sentence rather than panicking.
-        None => format!("the {} tool could not finish", what),
-    }
-}
+#[path = "archivefailure.rs"]
+mod failure;
+pub(crate) use failure::failure_message;
 
 // A writer past the kill can still hold stderr open; true means its EOF arrived in bound.
 fn drain_reader(reader: std::thread::JoinHandle<String>) -> bool {
@@ -192,35 +159,50 @@ pub(crate) fn cancel_failure(what: &str, jailed: &mut crate::backend::jail::Jail
 // The cancellable runner, watched for a cancel: kill and reap here, so nothing is renamed and stderr is drained.
 pub fn run_boxed_cancellable(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                              cancel: &AtomicBool) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, None)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, None, sandbox::ADDRESS_SPACE_BYTES)
 }
 
 // Convert keeps its CPU cap on the cancellable runner; archive jobs run uncapped.
 pub fn run_boxed_cancellable_capped(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                     cancel: &AtomicBool) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(sandbox::CPU_SECONDS))
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(sandbox::CPU_SECONDS), sandbox::ADDRESS_SPACE_BYTES)
+}
+
+// Office retains the same jail and cancellation path, with space for the full font catalog.
+pub(crate) fn run_boxed_office(
+    inner: Vec<String>,
+    read_only: &Path,
+    work: &mut Work,
+    cancel: &AtomicBool,
+) -> Result<(), FleaError> {
+    run_boxed_cancellable_inner(
+        "office",
+        inner,
+        read_only,
+        work,
+        cancel,
+        None,
+        Some(sandbox::CPU_SECONDS),
+        sandbox::OFFICE_ADDRESS_SPACE_BYTES,
+    )
 }
 
 // Test seam: the convert runner with a lower cap, so the pin burns seconds, not 30 s.
 #[cfg(test)]
 fn run_boxed_cancellable_capped_with_cpu(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                          cancel: &AtomicBool, cpu_seconds: u32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(cpu_seconds))
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(cpu_seconds), sandbox::ADDRESS_SPACE_BYTES)
 }
 
 fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
-                               cancel: &AtomicBool, started: Option<&AtomicU32>, cpu: Option<u32>) -> Result<(), FleaError> {
+                               cancel: &AtomicBool, started: Option<&AtomicU32>, cpu: Option<u32>, address_space: u64) -> Result<(), FleaError> {
     #[cfg(test)]
     LAST_CPU.with(|c| c.set(Some(cpu)));
     if !sandbox::available() {
         let tool = inner.first().map_or("", |s| s.as_str());
         return Err(op_err(what, tool, SANDBOX_MISSING));
     }
-    // The cap is the only difference between the convert jail and the archive one.
-    let mut full = match cpu {
-        Some(seconds) => sandbox::wrap_with(&inner, read_only, &work.dir, Some(seconds)),
-        None => sandbox::wrap_archive(&inner, read_only, &work.dir),
-    };
+    let mut full = sandbox::wrap_with(&inner, read_only, &work.dir, cpu, address_space);
     sandbox::add_status(&mut full, inner.len());
     let mut jailed = crate::backend::jail::spawn_jailed(&full, |cmd| {
         cmd.stdin(std::process::Stdio::null());
@@ -259,7 +241,7 @@ fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path,
 #[cfg(test)]
 fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                   cancel: &AtomicBool, started: &AtomicU32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), None)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), None, sandbox::ADDRESS_SPACE_BYTES)
 }
 
 // The convert runner with its own CPU cap and a spawn witness, so a timeout test cancels a live child.
@@ -267,7 +249,7 @@ fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Pa
 pub(crate) fn run_boxed_cancellable_capped_observed(what: &str, inner: Vec<String>, read_only: &Path,
                                                    work: &mut Work, cancel: &AtomicBool,
                                                    started: &AtomicU32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Some(sandbox::CPU_SECONDS))
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Some(sandbox::CPU_SECONDS), sandbox::ADDRESS_SPACE_BYTES)
 }
 
 pub fn is_empty_dir(dir: &Path) -> bool {
