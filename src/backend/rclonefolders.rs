@@ -4,12 +4,16 @@ use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
 use std::time::Duration;
 
+// Capability discovery may contact the remote, so it gets longer than listremotes.
+const FEATURES_DEADLINE: Duration = Duration::from_secs(15);
+
 pub(super) struct Features {
     pub hashes: bool,
     pub empty_folders: bool,
 }
 
 impl Features {
+    // Sample input: backend features stdout {"Name":"gdrive","Hashes":["md5","sha1"],"Features":{"CanHaveEmptyDirectories":true}}.
     pub fn read(remote: &str, cancel: &AtomicBool) -> Result<Self, String> {
         let output = super::rcloneproc::run(
             &[
@@ -19,7 +23,7 @@ impl Features {
                 format!("{}:", remote),
             ],
             cancel,
-            Some(Duration::from_secs(15)),
+            Some(FEATURES_DEADLINE),
             true,
             |_| {},
         )?;

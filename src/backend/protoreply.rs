@@ -210,9 +210,7 @@ pub fn error_line(e: &FleaError) -> String {
     )
 }
 
-// A denied listing is the only failure a pane draws more than a sentence for: States.dc.html gives
-// it the directory's own mode string. The field is written only when the mode is known, so every
-// other error line on this wire keeps exactly the three fields it has always had.
+// The mode field is written only when the mode is known, so every other error line keeps its three fields.
 pub fn error_line_with_mode(e: &FleaError, mode: u32) -> String {
     if mode == 0 {
         return error_line(e);
