@@ -157,6 +157,8 @@ mod tests {
     const ANSWERS: Duration = Duration::from_secs(STAT_TIMEOUT_SECS);
     // A helper the test holds blocked never answers, so this only sets how long the test waits before calling it wedged.
     const MISSES: Duration = Duration::from_millis(50);
+    // A gate the test holds is released at its end; this bound only ends a hold the test never released.
+    const HOLD: Duration = Duration::from_secs(30);
 
     #[test]
     fn a_phone_or_network_class_is_polled_and_local_is_not() {
@@ -258,7 +260,7 @@ mod tests {
                 if p == Path::new("/dead") {
                     let _ = entered.send(());
                     // Held until the test ends, bounded so a regression that waits on it fails instead of hanging.
-                    let _ = gate.lock().unwrap_or_else(|p| p.into_inner()).recv_timeout(Duration::from_secs(30));
+                    let _ = gate.lock().unwrap_or_else(|p| p.into_inner()).recv_timeout(HOLD);
                     0
                 } else {
                     22
@@ -291,7 +293,7 @@ mod tests {
         let classify: Arc<dyn Fn(&Path) -> &'static str + Send + Sync> = Arc::new(move |p| {
             if p == Path::new("/dead") {
                 // Held until the test ends, so its stat cannot run inside the test; bounded so a regression fails instead of hanging.
-                let _ = gate.lock().unwrap_or_else(|p| p.into_inner()).recv_timeout(Duration::from_secs(30));
+                let _ = gate.lock().unwrap_or_else(|p| p.into_inner()).recv_timeout(HOLD);
             }
             "network"
         });
