@@ -82,7 +82,8 @@ impl Frames {
 pub struct Swap {
     pub pending: Option<Pending>,
     pub(crate) unheld_total: Option<usize>,
-    pub(crate) unheld_first: usize,
+    // The count the armed pair's own window asked for; None once that window failed.
+    pub(crate) unheld_first: Option<usize>,
     // The first-window count each sort still out asked for, oldest first.
     pub(crate) sorts_out: VecDeque<usize>,
     pub session: Session,

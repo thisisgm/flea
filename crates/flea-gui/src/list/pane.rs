@@ -143,7 +143,7 @@ impl Pane {
                         (path.is_empty() || path == self.path).then_some(total);
                     // Each accepted sort answers one listed line, so its asked count becomes the unheld bound here.
                     if let Some(first) = self.swap.sorts_out.pop_front() {
-                        self.swap.unheld_first = first;
+                        self.swap.unheld_first = Some(first);
                     }
                 }
                 Ok(false)
@@ -172,7 +172,7 @@ impl Pane {
         };
         let held = pending.following.take().unwrap_or(held);
         self.path = pending.path;
-        self.swap.unheld_first = pending.first;
+        self.swap.unheld_first = Some(pending.first);
         self.greatest_listing = held.listing;
         self.cursor = held.start;
         self.scroll_y = held.start as f32 * ROW_HEIGHT;
@@ -278,6 +278,10 @@ impl Pane {
         }
         if operation == "window" {
             if path == self.path && !self.busy() {
+                // A failed window leaves an armed pair no count of its own, so only a window asked later lands it.
+                if self.swap.unheld_total.is_some() {
+                    self.swap.unheld_first = None;
+                }
                 self.requests.cancel();
             } else if path == self.place() {
                 self.retire_anchor();
