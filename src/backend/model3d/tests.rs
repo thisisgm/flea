@@ -110,8 +110,10 @@ fn independently_deflated_3mf_and_material_combinations_parse() {
     let model = parse("3mf",include_bytes!("fixtures/deflated.3mf")).unwrap();
     assert_eq!(model.facts(None).dimensions_mm,[10.,10.,0.]);
     let doc = xml::parse("<resources><basematerials id='1'/><compositematerials id='3' matid='1'><composite values='0.5 0.5'/></compositematerials><multiproperties id='4' pids='3'><multi pindices='0'/></multiproperties></resources>").unwrap();
-    let mut model = Model::default();
-    model.materials = vec![Material { name: "red".into(), color: Some([255,0,0,255]) }, Material { name: "blue".into(), color: Some([0,0,255,255]) }];
+    let mut model = Model {
+        materials: vec![Material { name: "red".into(), color: Some([255,0,0,255]) }, Material { name: "blue".into(), color: Some([0,0,255,255]) }],
+        ..Model::default()
+    };
     let mut groups = std::collections::BTreeMap::from([(1,vec![0,1])]);
     properties::resolve(&doc,doc.root,&mut groups,&mut model).unwrap();
     assert_eq!(model.materials[groups[&3][0] as usize].color,Some([128,0,128,255]));

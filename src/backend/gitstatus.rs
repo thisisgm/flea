@@ -2,6 +2,7 @@
 use std::ffi::OsString;
 use std::os::unix::ffi::{OsStrExt, OsStringExt};
 use std::path::{Component, Path, PathBuf};
+#[cfg(test)]
 use std::time::Instant;
 
 #[path = "gitbudget.rs"]
@@ -66,6 +67,8 @@ impl Snapshot {
     }
 }
 
+// Parser fixture entry point used by gitstatus_tests and the Git request tests.
+#[cfg(test)]
 pub fn parse(bytes: &[u8]) -> Result<Snapshot, String> {
     let budget = Budget::new(Instant::now() + super::gitprobe::DEADLINE, &|| false);
     budget.claim(bytes.len())?;

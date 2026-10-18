@@ -24,7 +24,7 @@ use super::opsdispatch::pending_busy_for;
 mod execution;
 #[cfg(test)]
 pub(crate) use execution::run_archive;
-pub(crate) use execution::{archive_line, run_convert};
+pub(crate) use execution::{archive_line, run_convert, ArchiveRequest};
 
 pub fn archivestarted_line(id: usize) -> String {
     format!(r#"{{"t":"archivestarted","id":{}}}"#, id)
@@ -132,9 +132,11 @@ pub fn start_archive(
     ops.jobs.submit(
         out,
         id,
-        if compressing { "compress" } else { "extract" },
-        "Extracting",
-        target,
+        super::jobwork::Spec {
+            kind: if compressing { "compress" } else { "extract" },
+            label: "Extracting",
+            target,
+        },
         super::jobwork::Work::Archive {
             compressing,
             paths,

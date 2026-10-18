@@ -61,13 +61,12 @@ impl Jobs {
         &mut self,
         out: &mut impl Write,
         id: usize,
-        kind: &str,
-        label: &str,
-        target: Option<PathBuf>,
+        spec: super::jobwork::Spec<'_>,
         work: Work,
         flags: &DetachedJobs,
         tx: &Sender<OpMsg>,
     ) {
+        let super::jobwork::Spec { kind, label, target } = spec;
         self.invalidate_undo(out);
         self.rows.retain(|job| job.state != State::Done);
         let cancel = Arc::new(AtomicBool::new(false));

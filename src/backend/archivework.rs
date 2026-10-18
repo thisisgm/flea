@@ -159,13 +159,13 @@ pub(crate) fn cancel_failure(what: &str, jailed: &mut crate::backend::jail::Jail
 // The cancellable runner, watched for a cancel: kill and reap here, so nothing is renamed and stderr is drained.
 pub fn run_boxed_cancellable(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                              cancel: &AtomicBool) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, None, sandbox::ADDRESS_SPACE_BYTES)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Limits { cpu: None, address_space: sandbox::ADDRESS_SPACE_BYTES })
 }
 
 // Convert keeps its CPU cap on the cancellable runner; archive jobs run uncapped.
 pub fn run_boxed_cancellable_capped(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                     cancel: &AtomicBool) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(sandbox::CPU_SECONDS), sandbox::ADDRESS_SPACE_BYTES)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Limits { cpu: Some(sandbox::CPU_SECONDS), address_space: sandbox::ADDRESS_SPACE_BYTES })
 }
 
 // Office retains the same jail and cancellation path, with space for the full font catalog.
@@ -182,8 +182,10 @@ pub(crate) fn run_boxed_office(
         work,
         cancel,
         None,
-        Some(sandbox::CPU_SECONDS),
-        sandbox::OFFICE_ADDRESS_SPACE_BYTES,
+        Limits {
+            cpu: Some(sandbox::CPU_SECONDS),
+            address_space: sandbox::OFFICE_ADDRESS_SPACE_BYTES,
+        },
     )
 }
 
@@ -191,11 +193,17 @@ pub(crate) fn run_boxed_office(
 #[cfg(test)]
 fn run_boxed_cancellable_capped_with_cpu(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                          cancel: &AtomicBool, cpu_seconds: u32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(cpu_seconds), sandbox::ADDRESS_SPACE_BYTES)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Limits { cpu: Some(cpu_seconds), address_space: sandbox::ADDRESS_SPACE_BYTES })
+}
+
+struct Limits {
+    cpu: Option<u32>,
+    address_space: u64,
 }
 
 fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
-                               cancel: &AtomicBool, started: Option<&AtomicU32>, cpu: Option<u32>, address_space: u64) -> Result<(), FleaError> {
+                               cancel: &AtomicBool, started: Option<&AtomicU32>, limits: Limits) -> Result<(), FleaError> {
+    let Limits { cpu, address_space } = limits;
     #[cfg(test)]
     LAST_CPU.with(|c| c.set(Some(cpu)));
     if !sandbox::available() {
@@ -241,7 +249,7 @@ fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path,
 #[cfg(test)]
 fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                   cancel: &AtomicBool, started: &AtomicU32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), None, sandbox::ADDRESS_SPACE_BYTES)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Limits { cpu: None, address_space: sandbox::ADDRESS_SPACE_BYTES })
 }
 
 // The convert runner with its own CPU cap and a spawn witness, so a timeout test cancels a live child.
@@ -249,7 +257,7 @@ fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Pa
 pub(crate) fn run_boxed_cancellable_capped_observed(what: &str, inner: Vec<String>, read_only: &Path,
                                                    work: &mut Work, cancel: &AtomicBool,
                                                    started: &AtomicU32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Some(sandbox::CPU_SECONDS), sandbox::ADDRESS_SPACE_BYTES)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Limits { cpu: Some(sandbox::CPU_SECONDS), address_space: sandbox::ADDRESS_SPACE_BYTES })
 }
 
 pub fn is_empty_dir(dir: &Path) -> bool {

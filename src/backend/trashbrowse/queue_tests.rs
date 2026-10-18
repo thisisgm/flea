@@ -1,16 +1,7 @@
 use super::*;
 use crate::backend::opsdispatch::Ops;
 
-fn browser() -> (
-    Ops,
-    std::sync::mpsc::Receiver<(
-        String,
-        Cancellation,
-        Vec<PathBuf>,
-        String,
-        Option<job::Progress>,
-    )>,
-) {
+fn browser() -> (Ops, std::sync::mpsc::Receiver<BrowserRequest>) {
     let (tx, requests) = channel();
     let mut ops = Ops::new(channel().0);
     ops.trashbrowser = Some(TrashBrowser {

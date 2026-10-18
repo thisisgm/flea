@@ -458,8 +458,7 @@ pub(crate) fn close_cancelled(
     steps: &mut Vec<Step>,
     durability: &mut Durability,
 ) -> (CloseCounts, Vec<(PathBuf, ItemIdentity)>) {
-    let mut counts = CloseCounts::default();
-    counts.cancelled = true;
+    let mut counts = CloseCounts { cancelled: true, ..CloseCounts::default() };
     if batch.pending.is_empty() {
         return (counts, Vec::new());
     }

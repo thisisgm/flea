@@ -63,8 +63,10 @@ fn material_resource_types_are_validated_before_any_combination_expands() {
     ] {
         let xml = format!("<resources><basematerials id='1'/><colorgroup id='2'/><object id='8'/><texture2dgroup id='9'/><compositematerials id='3' matid='1'><composite values='0.5 0.5'/></compositematerials><multiproperties id='4' pids='1'><multi pindices='0'/></multiproperties>{reference}</resources>");
         let doc = xml::parse(&xml).unwrap();
-        let mut model = Model::default();
-        model.materials = vec![Material { name: "a".repeat(600), color: None };2];
+        let mut model = Model {
+            materials: vec![Material { name: "a".repeat(600), color: None };2],
+            ..Model::default()
+        };
         let mut groups = BTreeMap::from([(1,vec![0,1]),(2,vec![0])]);
         assert_eq!(properties::resolve(&doc,doc.root,&mut groups,&mut model).unwrap_err(),
             "unsupported or missing 3MF material resource reference","{reference}");

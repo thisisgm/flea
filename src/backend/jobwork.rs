@@ -9,6 +9,12 @@ use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 
+pub(crate) struct Spec<'a> {
+    pub kind: &'a str,
+    pub label: &'a str,
+    pub target: Option<PathBuf>,
+}
+
 pub(crate) enum Work {
     Transfer {
         moving: bool,
@@ -218,16 +224,12 @@ impl Work {
                         .unwrap_or_else(|| capture(&sources));
                     let line = super::archivereq::archive_line(
                         id,
-                        compressing,
-                        paths,
-                        format,
-                        archive,
-                        dest,
+                        super::archivereq::ArchiveRequest {
+                            compressing, paths, format, archive, dest, password, encrypt_names,
+                        },
                         &formats,
                         Some(&items),
                         cancel,
-                        password,
-                        encrypt_names,
                     );
                     let success = crate::json::field_bool(&line, "ok");
                     let _ = tx.send(OpMsg::JobDone {

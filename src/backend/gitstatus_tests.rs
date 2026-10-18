@@ -47,7 +47,7 @@ fn porcelain_letters_folder_ancestors_and_deleted_paths() {
 fn renames_and_copies_use_the_hig_added_letter_and_keep_the_original_path() {
     for status in ["R", "C"] {
         let bytes = format!(
-            "# branch.head main\02 {status}. N... 100644 100644 100644 a b {status}100 new\0old\0"
+            "# branch.head main\x002 {status}. N... 100644 100644 100644 a b {status}100 new\0old\0"
         );
         let snapshot = parse(bytes.as_bytes()).unwrap();
         assert_eq!(snapshot.mark(Path::new("new")), (Some('A'), false));
@@ -116,7 +116,7 @@ fn detached_unborn_submodule_and_unmerged_records() {
     let snapshot = parse(b"# branch.oid (initial)\0# branch.head main\0u UU N... 100644 100644 100644 100644 a b c conflict\0").unwrap();
     assert_eq!(snapshot.mark(Path::new("conflict")).0, Some('M'));
     let snapshot =
-        parse(b"# branch.head main\01 .M S.M. 160000 160000 160000 a b module\0").unwrap();
+        parse(b"# branch.head main\x001 .M S.M. 160000 160000 160000 a b module\0").unwrap();
     assert_eq!(snapshot.mark(Path::new("module")), (Some('M'), true));
     assert_eq!(
         parse(b"# branch.head main\0? embedded/\0")
@@ -133,8 +133,8 @@ fn malformed_truncated_and_escaping_status_never_becomes_a_partial_snapshot() {
         b"? a\0",
         b"# branch.head main\0? ../outside\0",
         b"# branch.head main\0? /absolute\0",
-        b"# branch.head main\02 R. N... 1 1 1 a b R100 new\0",
-        b"# branch.head main\01 short\0",
+        b"# branch.head main\x002 R. N... 1 1 1 a b R100 new\0",
+        b"# branch.head main\x001 short\0",
         b"# branch.head main\0x unknown\0",
     ] {
         assert!(parse(bytes).is_err(), "invalid status: {bytes:?}");
@@ -147,7 +147,7 @@ fn malformed_truncated_and_escaping_status_never_becomes_a_partial_snapshot() {
 
 #[test]
 fn git_folder_prefix_index_respects_components_and_rename_sources() {
-    let snapshot = parse(b"# branch.head main\0? abc/file\0? ab/file\0? a/file\02 R. N... 1 1 1 a b R100 new/leaf\0old/leaf\0? leaf\0").unwrap();
+    let snapshot = parse(b"# branch.head main\0? abc/file\0? ab/file\0? a/file\x002 R. N... 1 1 1 a b R100 new/leaf\0old/leaf\0? leaf\0").unwrap();
     for path in ["a", "ab", "abc", "old", "new"] {
         assert_eq!(snapshot.mark(Path::new(path)), (None, true));
     }

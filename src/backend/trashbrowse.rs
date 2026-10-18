@@ -247,22 +247,22 @@ fn detail(item: &Item) -> Result<Detail, Refusal> {
     detail_text(item, &text)
 }
 fn detail_text(item: &Item, text: &str) -> Result<Detail, Refusal> {
-    let size = attribute(&text, "standard::size")
+    let size = attribute(text, "standard::size")
         .and_then(|s| s.parse().ok())
         .ok_or_else(|| unreadable("The Trash helper did not report the item's size."))?;
     let identity = match (
-        attribute(&text, "id::filesystem"),
-        attribute(&text, "id::file"),
+        attribute(text, "id::filesystem"),
+        attribute(text, "id::file"),
     ) {
         (Some(fs), Some(file)) if !fs.is_empty() && !file.is_empty() => format!("{}:{}", fs, file),
         _ => String::new(),
     };
-    let backing = attribute(&text, "standard::target-uri")
+    let backing = attribute(text, "standard::target-uri")
         .and_then(|uri| uri.strip_prefix("file://"))
         .and_then(|path| {
             Reviewed::inspect(
                 PathBuf::from(crate::paths::percent_decode(path)),
-                attribute(&text, "id::file").unwrap_or(""),
+                attribute(text, "id::file").unwrap_or(""),
             )
             .ok()
         });
@@ -270,12 +270,12 @@ fn detail_text(item: &Item, text: &str) -> Result<Detail, Refusal> {
         backing,
         item: item.clone(),
         size,
-        deleted: attribute(&text, "trash::deletion-date")
+        deleted: attribute(text, "trash::deletion-date")
             .unwrap_or("")
             .into(),
         identity,
-        directory: attribute(&text, "standard::type") == Some("2"),
-        icon: attribute(&text, "standard::icon")
+        directory: attribute(text, "standard::type") == Some("2"),
+        icon: attribute(text, "standard::icon")
             .unwrap_or("")
             .split(", ")
             .next()

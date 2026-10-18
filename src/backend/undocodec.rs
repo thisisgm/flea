@@ -1,5 +1,7 @@
 // The shared journal's wire form, both directions; a Copied nonce reattaches only in its recorder.
-use super::undoshare::{Doc, StoredRedo};
+use super::undoshare::StoredRedo;
+#[cfg(test)]
+use super::undoshare::Doc;
 use crate::backend::undo::{Entry, ItemIdentity, Step};
 use crate::jsondoc::{parse, Json};
 use std::path::PathBuf;

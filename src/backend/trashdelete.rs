@@ -491,19 +491,6 @@ impl Reviewed {
         };
         completed.then(|| super::thumbcache::uri_for(&self.path))
     }
-    pub fn delete(&self, recovery_root: &Path) -> Result<(), Refusal> {
-        self.delete_after(recovery_root, || {})
-    }
-    fn delete_after(&self, recovery_root: &Path, before_claim: impl FnOnce()) -> Result<(), Refusal> {
-        self.delete_with(recovery_root, before_claim, |_| {})
-    }
-    fn delete_with(&self, recovery_root: &Path, before_claim: impl FnOnce(), before_remove: impl FnOnce(&Path)) -> Result<(), Refusal> {
-        let tree = self.tree.as_ref().changed("Trash contents have not been reviewed.").map_err(Refusal::logged)?;
-        self.with_claimed(Op::Delete, recovery_root, None, before_claim, |quarantine| {
-            before_remove(&fd_path(quarantine, OsStr::new("payload")));
-            remove_tree(tree, quarantine, Refusal::new(Outcome::NothingDeleted, "Trash contents changed; no deletion attempted."))
-        })
-    }
     pub fn restore(&self, original: &Path, recovery_root: &Path) -> Result<(), Refusal> {
         self.restore_after(original, recovery_root, || {})
     }
@@ -698,6 +685,11 @@ impl PathReview {
 #[cfg(test)]
 #[path = "trashdelete/refusal_tests.rs"]
 mod refusal_tests;
+
+// Compatibility deletion hooks used by trashdelete::tests.
+#[cfg(test)]
+#[path = "trashdelete/deletetest.rs"]
+mod deletetest;
 
 #[cfg(test)]
 mod tests {

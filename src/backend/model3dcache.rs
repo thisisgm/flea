@@ -83,8 +83,9 @@ pub(super) fn evict(root: &Path) {
     let mut count = files.len();
     for (time,path,len) in files {
         if count <= 128 && total <= model3d::wire::MAX_WIRE as u64 { break }
-        if time.elapsed().is_ok_and(|d| d.as_secs() > 60) {
-            if std::fs::remove_file(path).is_ok() { count -= 1; total = total.saturating_sub(len) }
+        if time.elapsed().is_ok_and(|d| d.as_secs() > 60) && std::fs::remove_file(path).is_ok() {
+            count -= 1;
+            total = total.saturating_sub(len);
         }
     }
 }
