@@ -25,7 +25,7 @@ fn stub_gio(dir: &crate::backend::testdir::TestDir) -> (OsString, PathBuf) {
         "#!/bin/sh\necho \"gio $*\" >> \"{}\"\nif [ \"$1\" = open ]; then exit ${{FLEA_STUB_OPEN:-1}}; fi\nif [ \"$1\" = launch ]; then exit 0; fi\nif [ \"$1\" = info ]; then echo \"  standard::content-type: ${{FLEA_STUB_TYPE:-application/octet-stream}}\"; exit 0; fi\nif [ \"$1\" = mime ] && [ \"$2\" = \"$FLEA_STUB_CLAIMED\" ]; then echo \"Default application for '$2': $FLEA_STUB_HANDLER\"; exit 0; fi\nif [ \"$1\" = mime ]; then echo \"No default applications for '$2'\"; exit 0; fi\nexit 1\n",
         log.display()
     );
-    dir.script("bin/gio", &stub);
+    dir.executable("bin/gio", stub.as_bytes(), 0o755);
     let mut path = bin.into_os_string();
     path.push(":");
     path.push(std::env::var_os("PATH").unwrap_or_default());
