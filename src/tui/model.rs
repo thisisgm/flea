@@ -137,6 +137,7 @@ pub struct Model {
     pub store: Option<crate::uistore::Store>,
     pub sheet_top: usize,
     pub transfer_id: usize,
+    pub job_status: super::jobstatus::Status,
     pub transfer_total: usize,
     pub transfer_moving: bool,
     pub quit: bool,
@@ -271,6 +272,7 @@ impl Model {
             store: None,
             sheet_top: 0,
             transfer_id: 0,
+            job_status: super::jobstatus::Status::default(),
             transfer_total: 0,
             transfer_moving: false,
             quit: false,
@@ -568,8 +570,16 @@ impl Model {
     pub fn peek_out(&self) -> bool {
         matches!((&self.peek_sent, self.path.parent()), (Some(sent), Some(parent)) if sent.as_path() == parent)
     }
+    pub fn active_operation(&self) -> usize {
+        if self.job_status.id > 0 {
+            self.job_status.id
+        } else {
+            self.transfer_id
+        }
+    }
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
         match text(&value, "t") {
+            "jobs" | "job" => super::jobstatus::receive(self, &value),
             "listed" => {
                 if let Some(path) = self.pending.take() {
                     self.path = path;
@@ -846,18 +856,20 @@ impl Model {
                 self.transfer_id = count(&value, "id");
                 self.transfer_total = count(&value, "n");
                 self.transfer_moving = flag(&value, "moving");
-                self.transfer = format!(
-                    "{} 0 of {}",
-                    if self.transfer_moving {
-                        "Moving"
-                    } else {
-                        "Copying"
-                    },
-                    self.transfer_total
-                );
+                if self.job_status.id == 0 {
+                    self.transfer = format!(
+                        "{} 0 of {}",
+                        if self.transfer_moving {
+                            "Moving"
+                        } else {
+                            "Copying"
+                        },
+                        self.transfer_total
+                    );
+                }
             }
             "transferprogress" => {
-                if count(&value, "id") == self.transfer_id {
+                if self.job_status.id == 0 && count(&value, "id") == self.transfer_id {
                     self.transfer = format!(
                         "{} {} of {}",
                         if self.transfer_moving {
@@ -891,7 +903,9 @@ impl Model {
                     if count(&value, "id") != self.transfer_id {
                         return Ok(());
                     }
-                    self.transfer.clear();
+                    if self.job_status.id == 0 {
+                        self.transfer.clear();
+                    }
                     self.transfer_id = 0;
                 }
                 if matches!(

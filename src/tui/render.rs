@@ -562,34 +562,87 @@ fn footer(m: &Model, theme: &Theme, columns: usize, elapsed: std::time::Duration
     let base = format!("\x1b[0m{}{}", theme.background, theme.foreground);
     let help = if m.hints.keys.is_empty() { String::new() } else { format!("{} keys", m.hints.keys) };
     let available = columns.saturating_sub(text_width(&help) + 2);
-    let mut parts = Vec::new();
+    let mut parts: Vec<(&str, String, usize)> = Vec::new();
     let chip = format!("{}\x1b[7m", theme.accent);
-    if !m.selected.is_empty() { parts.push((chip.as_str(), format!(" V {} ", grouped(m.selected.len())))); }
-    parts.push((theme.foreground.as_str(), items(m.total)));
+    if !m.selected.is_empty() {
+        parts.push((
+            chip.as_str(),
+            format!(" V {} ", grouped(m.selected.len())),
+            2,
+        ));
+    }
+    parts.push((theme.foreground.as_str(), items(m.total), 2));
     if !m.error.is_empty() {
-        let queued = if m.errors.is_empty() { String::new() } else { format!(" (+{})", m.errors.len()) };
-        let dismiss = if m.hints.dismiss.is_empty() { String::new() } else { format!(" · {} dismisses", m.hints.dismiss) };
-        parts.push((theme.error.as_str(), format!("{}{}{}", m.error, queued, dismiss)));
+        let queued = if m.errors.is_empty() {
+            String::new()
+        } else {
+            format!(" (+{})", m.errors.len())
+        };
+        let dismiss = if m.hints.dismiss.is_empty() {
+            String::new()
+        } else {
+            format!(" · {} dismisses", m.hints.dismiss)
+        };
+        parts.push((
+            theme.error.as_str(),
+            format!("{}{}{}", m.error, queued, dismiss),
+            2,
+        ));
     }
     if !m.transfer.is_empty() {
-        const FRAMES: [&str; 3] = ["░▒▓", "▒▓░", "▓░▒"];
-        const FRAME_MILLIS: u128 = 200;
-        parts.push((theme.foreground.as_str(), format!("{} {}", m.transfer, FRAMES[(elapsed.as_millis() / FRAME_MILLIS) as usize % FRAMES.len()])));
+        let suffix = if m.job_status.count > 1 {
+            format!(" {}", m.job_status.suffix())
+        } else {
+            String::new()
+        };
+        let head = m.transfer.strip_suffix(&suffix).unwrap_or(&m.transfer);
+        if let Some(fraction) = m.job_status.fraction {
+            parts.push((theme.foreground.as_str(), head.into(), 2));
+            parts.extend(m.job_status.bar(theme, fraction));
+        } else {
+            const FRAMES: [&str; 3] = ["░▒▓", "▒▓░", "▓░▒"];
+            const FRAME_MILLIS: u128 = 200;
+            parts.push((
+                theme.foreground.as_str(),
+                format!(
+                    "{} {}",
+                    head,
+                    FRAMES[(elapsed.as_millis() / FRAME_MILLIS) as usize % FRAMES.len()]
+                ),
+                2,
+            ));
+        }
+        if !suffix.is_empty() {
+            parts.push((theme.muted.as_str(), suffix.trim_start().into(), 2));
+        }
     }
-    if !m.search.is_empty() { parts.push((theme.foreground.as_str(), m.search.clone())); }
+    if !m.search.is_empty() {
+        parts.push((theme.foreground.as_str(), m.search.clone(), 2));
+    }
     if m.error.is_empty() && m.transfer.is_empty() && m.search.is_empty() && !m.message.is_empty() {
-        parts.push((theme.foreground.as_str(), m.message.clone()));
+        parts.push((theme.foreground.as_str(), m.message.clone(), 2));
     }
     if !m.filter.is_empty() {
         let shown = m.shown().len();
-        parts.push((theme.foreground.as_str(), format!("Filter {} · {} {} in {} {}", m.filter, grouped(shown), word(shown, "match", "matches"), grouped(m.rows.len()), word(m.rows.len(), "loaded row", "loaded rows"))));
+        parts.push((
+            theme.foreground.as_str(),
+            format!(
+                "Filter {} · {} {} in {} {}",
+                m.filter,
+                grouped(shown),
+                word(shown, "match", "matches"),
+                grouped(m.rows.len()),
+                word(m.rows.len(), "loaded row", "loaded rows")
+            ),
+            2,
+        ));
     }
     let mut out = String::new();
     let mut used = 0;
-    for (color, text) in parts {
+    for (color, text, spacing) in parts {
         if used >= available { break; }
         if used > 0 {
-            let gap = 2.min(available - used);
+            let gap = spacing.min(available - used);
             out.push_str(&" ".repeat(gap));
             used += gap;
         }
@@ -911,3 +964,7 @@ action = "keymapSheet"
         assert_eq!(&text[start..end], "İ");
     }
 }
+
+#[cfg(test)]
+#[path = "jobrender_tests.rs"]
+mod jobrender_tests;

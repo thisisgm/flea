@@ -6,8 +6,9 @@ use crate::backend::archive::Formats;
 use crate::backend::archiveenc;
 use crate::backend::archivefree;
 use crate::backend::archivepass;
-use crate::backend::archivework::{archive_produced_count_cancellable, is_empty_dir,
-                                   run_boxed_cancellable, run_boxed_cancellable_capped, Work};
+use crate::backend::archivework::{
+    is_empty_dir, run_boxed_cancellable, run_boxed_cancellable_capped, Work,
+};
 use crate::backend::convert;
 use crate::backend::ops::rename_noreplace;
 use crate::backend::opsreq::op_err;
@@ -73,12 +74,24 @@ pub fn compress(formats: &Formats, parent: &Path, names: &[String], format: &str
 // to the operator: three rounds of this branch went into an empty directory published as a success,
 // and publishing an unverified one as an ordinary success is a quieter version of the same thing.
 // cancel stops the job, kills its child and publishes nothing; the Work guard drops the stage.
+#[cfg(test)]
 pub fn extract(
     formats: &Formats,
     archive: &Path,
     dest: &Path,
     cancel: &AtomicBool,
     password: Option<&str>,
+) -> Result<bool, FleaError> {
+    extract_reporting(formats, archive, dest, cancel, password, None)
+}
+
+pub(crate) fn extract_reporting(
+    formats: &Formats,
+    archive: &Path,
+    dest: &Path,
+    cancel: &AtomicBool,
+    password: Option<&str>,
+    report: Option<(usize, &std::sync::mpsc::Sender<super::opsreq::OpMsg>)>,
 ) -> Result<bool, FleaError> {
     if dest.symlink_metadata().is_ok() {
         return Err(op_err("archive", &dest.to_string_lossy(), "that destination already exists"));
@@ -91,13 +104,21 @@ pub fn extract(
     if password.is_some() && !archivepass::reads_password(formats, archive) {
         return Err(op_err("archive", &leaf, archivepass::NO_PASSWORD_READER));
     }
-    // A cancel that landed in the slot wait stops here, and an encrypted archive asks for its password before any extract starts.
+    if password.is_some_and(|secret| secret.contains(['\n', '\r'])) {
+        return Err(op_err(
+            "archive",
+            "7z",
+            "a password cannot hold a line break",
+        ));
+    }
+    let index = super::extractindex::read(formats, archive, password, cancel);
+    if cancel.load(Ordering::Relaxed) {
+        return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
+    }
     if password.is_none() {
-        if cancel.load(Ordering::Relaxed) {
-            return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
-        }
-        let needed = archiveenc::password_needed(archive, formats, cancel);
-        // A cancel during the probe killed it, so its None is no verdict and the job is cancelled.
+        let needed = index
+            .encrypted
+            .or_else(|| archiveenc::password_needed(archive, formats, cancel));
         if cancel.load(Ordering::Relaxed) {
             return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
         }
@@ -105,9 +126,8 @@ pub fn extract(
             return Err(op_err("archive", &leaf, archivepass::ENCRYPTED));
         }
     }
-    // The free-space refusal lands before any child runs; an unreadable index refuses nothing.
-    if let Some(unpacked) = archivepass::unpacked_bytes(archive, formats, cancel) {
-        if let Some(sentence) = archivefree::check(&leaf, unpacked, dest) {
+    if index.known {
+        if let Some(sentence) = archivefree::check(&leaf, index.bytes, dest) {
             return Err(op_err("archive", &archive.to_string_lossy(), &sentence));
         }
     }
@@ -130,17 +150,31 @@ pub fn extract(
     if cancel.load(Ordering::Relaxed) {
         return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
     }
-    if archivepass::runs_on_seven(formats, archive, password) {
-        if let Some(f) = archivepass::run_boxed_cancellable_password("archive", inner, archive, &mut work, password, cancel)? {
-            let said = archivepass::extract_verdict(f.code, password.is_some(), || archiveenc::password_needed(archive, formats, cancel));
-            // A cancel during the guarded re-probe killed it; the job is cancelled, whatever the extract's exit said.
-            if cancel.load(Ordering::Relaxed) {
-                return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
-            }
-            return Err(op_err("archive", &leaf, said.unwrap_or(&f.message)));
+    let seven = archivepass::runs_on_seven(formats, archive, password);
+    let (failure, mut progress) = super::extractrun::run(
+        super::extractrun::Command {
+            inner,
+            archive,
+            secret: password,
+            seven,
+        },
+        &mut work,
+        cancel,
+        super::extractprogress::Progress::new(index, password.is_some()),
+        report,
+    )?;
+    if let Some(f) = failure {
+        let said = if seven {
+            archivepass::extract_verdict(f.code, password.is_some(), || {
+                archiveenc::password_needed(archive, formats, cancel)
+            })
+        } else {
+            None
+        };
+        if cancel.load(Ordering::Relaxed) {
+            return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
         }
-    } else {
-        run_boxed_cancellable("archive", inner, archive, &mut work, cancel)?;
+        return Err(op_err("archive", &leaf, said.unwrap_or(&f.message)));
     }
     // compress and convert stat a path Flea never creates, so their existence check is a real test.
     // This one creates its own staging directory, so the same shape always passes. Two archives
@@ -154,7 +188,7 @@ pub fn extract(
     // directories. Counting entries missed the root; counting files missed nested directories.
     let mut verified = true;
     if is_empty_dir(&staged) {
-        match archive_produced_count_cancellable(formats, archive, cancel)? {
+        match progress.index.known.then_some(progress.index.total) {
             // The index named something and nothing arrived: the tool exited 0 having written nothing.
             Some(n) if n > 0 => {
                 return Err(op_err("archive", &archive.to_string_lossy(), "the archive tool wrote nothing"));
@@ -172,6 +206,9 @@ pub fn extract(
     // A cancel during the index read still discards; a cancelled job publishes nothing.
     if cancel.load(Ordering::Relaxed) {
         return Err(op_err("archive", &archive.to_string_lossy(), "cancelled"));
+    }
+    if let Some((id, tx)) = report {
+        progress.sample(&staged, id, tx, true);
     }
     rename_noreplace(&staged, dest)?;
     Ok(verified)

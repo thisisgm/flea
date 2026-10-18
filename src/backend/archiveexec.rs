@@ -1,7 +1,7 @@
 // Archive and conversion workers execute off the backend loop and return existing protocol lines.
 use super::{archivedone_line, collision_message, convertdone_line};
 use crate::backend::archive::Formats;
-use crate::backend::archiveops::{compress, convert_one, extract, split_paths};
+use crate::backend::archiveops::{self, compress, convert_one, split_paths};
 use crate::backend::archivepass;
 use crate::backend::menu_actions::{validate_sources, Selected};
 use crate::backend::opsreq::{op_err, OpMsg};
@@ -41,6 +41,7 @@ pub(crate) fn run_archive(
         formats,
         selection.as_deref(),
         cancel,
+        None,
     );
     // An extract frees the slot its terminal line took; a compress claims none and leaves the quit registry when its line is read.
     let message = if compressing {
@@ -57,6 +58,7 @@ pub(crate) fn archive_line(
     formats: &Formats,
     selection: Option<&[Selected]>,
     cancel: Arc<AtomicBool>,
+    report: Option<&Sender<OpMsg>>,
 ) -> String {
     let ArchiveRequest { compressing, paths, format, archive, dest, password, encrypt_names } = request;
     let sources: Vec<PathBuf> = if compressing {
@@ -85,7 +87,14 @@ pub(crate) fn archive_line(
     } else {
         // An empty password is no password: the encrypted probe below decides whether to ask.
         let password = (!password.is_empty()).then_some(password.as_str());
-        extract(formats, &archive, &dest, &cancel, password)
+        archiveops::extract_reporting(
+            formats,
+            &archive,
+            &dest,
+            &cancel,
+            password,
+            report.map(|tx| (id, tx)),
+        )
     };
     match result {
         Ok(verified) => archivedone_line(id, true, verified, ""),
