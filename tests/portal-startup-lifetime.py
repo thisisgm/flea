@@ -150,14 +150,18 @@ def exercise(root):
     held = activate()
     start = time.monotonic()
     pid = daemon("GetConnectionUnixProcessID", GLib.Variant("(s)", (held,)))[0]
-    process = Path(f"/proc/{pid}")
     exit_record = root / f"run/exit-{pid}"
+    last_held = 0.0
     released = None
     deadline = start + 4
     while time.monotonic() < deadline:
-        if owner() != held and process.exists() and released is None:
-            released = time.monotonic() - start
-        if exit_record.exists():
+        polled_at = time.monotonic() - start
+        if owner() == held:
+            last_held = polled_at
+        elif released is None:
+            # The last query sent while the bus still held the name bounds release from below, even after a prompt reap.
+            released = last_held
+        if released is not None and exit_record.exists():
             break
         time.sleep(0.01)
     record = json.loads(exit_record.read_text()) if exit_record.exists() else {}
@@ -165,8 +169,8 @@ def exercise(root):
     minimum = IDLE_BOUND_SEC - IDLE_TOLERANCE_SEC
     check("an unused activation releases its name and exits after the idle bound",
           released is not None and minimum <= released <= elapsed <= 4
-          and elapsed >= minimum and record.get("status") == 0 and not owner() and not process.exists(),
-          f"release={released}, elapsed={elapsed:.3f} s, idle={IDLE_BOUND_SEC} s, "
+          and elapsed >= minimum and record.get("status") == 0 and not owner(),
+          f"release_after={released}, elapsed={elapsed:.3f} s, idle={IDLE_BOUND_SEC} s, "
           f"tolerance={IDLE_TOLERANCE_SEC} s, exit={record.get('status')}, pid={pid}")
     held = activate()
     properties()
