@@ -1,6 +1,7 @@
 use super::{lifecycle::Phase, startup};
 use crate::{
     list::pane::{Move, ROW_HEIGHT},
+    pane::requests,
     state::Shell,
 };
 use gpui::{px, Context, KeyDownEvent, ScrollWheelEvent, Window};
@@ -50,12 +51,8 @@ impl Shell {
         }
         if modifiers(event.keystroke.modifiers) == 0 {
             if let Some(host) = &mut self.panes[self.focus_side] {
-                // A pane mid-swap swallows plain keys, so no key acts on the listing being replaced.
-                if host.pane.busy() {
-                    cx.stop_propagation();
-                    return;
-                }
-                if self.seam.key(&event.keystroke.key, &mut host.pane) {
+                // The seam acts only while idle, so no plain key touches a listing being replaced.
+                if !host.pane.busy() && self.seam.key(&event.keystroke.key, &mut host.pane) {
                     cx.stop_propagation();
                     cx.notify();
                     return;
@@ -88,6 +85,11 @@ impl Shell {
             }
             Dispatch::Action(action) => action,
         };
+        // A listing out swallows every row action, modified or not, but the answered list.
+        if requests::swallows(host.pane.busy(), action) {
+            cx.stop_propagation();
+            return;
+        }
         if action == "windowNew" {
             self.new_window();
         } else if let Some(view) = match action {
@@ -112,7 +114,7 @@ impl Shell {
                 step.filter(|_| self.keyboard.context == flea::keys::Context::Listing)
             {
                 let host = self.panes[self.focus_side].as_mut().expect("focused pane");
-                if !host.pane.busy() && host.pane.move_cursor(step) {
+                if host.pane.move_cursor(step) {
                     self.seam.selected(host.pane.cursor);
                     cx.notify();
                 }
