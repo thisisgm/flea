@@ -31,6 +31,8 @@ pub mod extclass;
 pub(crate) mod gitfixture;
 pub mod gitprobe;
 pub mod gitreq;
+#[cfg(test)]
+mod gitreq_process_tests;
 pub mod gitstatus;
 pub mod gvfsroot;
 pub mod netfs;
