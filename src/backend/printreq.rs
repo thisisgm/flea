@@ -67,13 +67,14 @@ pub fn options_line(id: usize, printer: &str, cancel: &AtomicBool) -> String {
     result.unwrap_or_else(|err: String| format!(r#"{{"t":"printoptions","id":{id},"ok":false,"destinations":[],"err":"{}"}}"#, escape(&err)))
 }
 
-// Print's input: an office document becomes its cached PDF under cache, every other kind prints as it is.
-pub(crate) fn print_input_in(cache: &std::path::Path, path: &std::path::Path, kind: printconvert::Kind, cancel: &Arc<AtomicBool>) -> Result<PathBuf, String> {
-    if kind == printconvert::Kind::Office { super::officepdf::cached_pdf_in(cache, path, Arc::clone(cancel)) } else { Ok(path.to_path_buf()) }
+// Print's input: an office document becomes the PDF fetch returns, every other kind prints as it is.
+pub(crate) fn print_input_with(fetch: impl FnOnce(&std::path::Path, Arc<AtomicBool>) -> Result<PathBuf, String>, path: &std::path::Path,
+                               kind: printconvert::Kind, cancel: &Arc<AtomicBool>) -> Result<PathBuf, String> {
+    if kind == printconvert::Kind::Office { fetch(path, Arc::clone(cancel)) } else { Ok(path.to_path_buf()) }
 }
 
 fn print_file(path: &std::path::Path, kind: printconvert::Kind, options: &printing::Options, cancel: &Arc<AtomicBool>) -> Result<(), String> {
-    let file = print_input_in(&crate::userfile::cache_home(), path, kind, cancel)?;
+    let file = print_input_with(super::officepdf::cached_pdf, path, kind, cancel)?;
     let argv = printing::argv(&file, kind == printconvert::Kind::Image, kind.paged(), options)?;
     printtool::run(&argv, cancel, printtool::TOOL_WAIT).map_err(|e| e.message)?;
     Ok(())

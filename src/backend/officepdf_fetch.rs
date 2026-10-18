@@ -7,10 +7,10 @@ pub fn cached_pdf(path: &Path, cancel: Arc<AtomicBool>) -> Result<PathBuf, Strin
     production().fetch(path, cancel)
 }
 
-// cached_pdf over a named cache root: the shared service on its own root, else a production service over that root, so a test's real conversion never writes the user's cache.
+// cached_pdf on a production-built service over a test's own cache root, so a real conversion never writes the user's cache.
+#[cfg(test)]
 pub(crate) fn cached_pdf_in(cache: &Path, path: &Path, cancel: Arc<AtomicBool>) -> Result<PathBuf, String> {
-    let shared = production();
-    if shared.store.dir == cache.join(CACHE_LEAF) { shared.fetch(path, cancel) } else { service(cache).fetch(path, cancel) }
+    service(cache).fetch(path, cancel)
 }
 
 impl Service {
