@@ -41,7 +41,7 @@ src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
 src/backend/run.rs 1145
 src/backend/officepdf.rs 404
-src/backend/run_session_tests.rs 535
+src/backend/run_session_tests.rs 544
 src/backend/ops.rs 440
 src/backend/thumbs.rs 544
 src/backend/thumbspec.rs 479
