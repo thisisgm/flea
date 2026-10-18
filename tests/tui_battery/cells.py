@@ -119,6 +119,7 @@ class Screen:
                         raise ValueError("terminal glyph exceeds the grid width: " + repr(ch))
                     if self.x + w > self.columns:
                         self.x, self.y = 0, min(self.rows - 1, self.y + 1)
+                    self.release_partners(w)
                     self.grid[self.y][self.x] = dict(ch=ch, width=w, **self.style)
                     if w == 2 and self.x + 1 < self.columns:
                         self.grid[self.y][self.x + 1] = dict(ch="", width=0, **self.style)
@@ -144,6 +145,15 @@ class Screen:
             end += 1
         for x in range(start, end):
             row[x] = self.blank()
+
+    def release_partners(self, w):
+        # Printing over half of a wide glyph blanks its partner half, as xterm does.
+        row = self.grid[self.y]
+        x, last = self.x, self.x + w - 1
+        if x and row[x]["width"] == 0:
+            row[x - 1] = self.blank()
+        if row[last]["width"] == 2 and last + 1 < self.columns:
+            row[last + 1] = self.blank()
 
     # Sample input: params='1;2', final='H'; params='38:2::255:0:0', final='m'.
     def csi(self, params, final):
