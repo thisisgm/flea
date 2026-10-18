@@ -4,11 +4,39 @@ import json
 import os
 from pathlib import Path
 import queue
+import subprocess
 import sys
 import time
 from importlib.machinery import SourceFileLoader
 
 Backend = SourceFileLoader("rename_timing", str(Path(__file__).with_name("rename-timing.py"))).load_module().Backend
+
+# A distinct child status proves the kernel refused its nonblocking lock attempt.
+CONTENDED_EXIT = 75
+
+
+def witness_controls(root, shim):
+    child = """import fcntl, sys
+with open(sys.argv[1], 'r+') as lock:
+    try:
+        fcntl.flock(lock, fcntl.LOCK_EX | fcntl.LOCK_NB)
+    except BlockingIOError:
+        sys.exit(int(sys.argv[2]))
+"""
+    for name, contended, matches in (("free", False, True), ("other", True, False), ("held", True, True)):
+        folder = root / ("witness-" + name)
+        folder.mkdir()
+        path, entered = folder / "undo-journal.lock", folder / "entered"
+        expected = path if matches else folder / "other.lock"
+        with path.open("x+") as lock:
+            if contended:
+                fcntl.flock(lock, fcntl.LOCK_EX)
+            result = subprocess.run([sys.executable, "-c", child, str(path), str(CONTENDED_EXIT)],
+                env={"LD_PRELOAD": shim, "FLEA_JOURNAL_LOCK": str(expected), "FLEA_JOURNAL_ENTERED": str(entered)},
+                stdin=subprocess.DEVNULL, capture_output=True, timeout=10)
+            assert result.returncode == (CONTENDED_EXIT if contended else 0), (name, result.stderr)
+            assert entered.exists() == (contended and matches), (name, "incorrect flock witness")
+    print("RENAMELAG WITNESS PASS cases=3", flush=True)
 
 
 def wait_for(predicate, message):
@@ -29,7 +57,12 @@ def case(binary, root, shim, mode):
     state = folder / "state"
     state.mkdir()
     entered, release = folder / "entered", folder / "release"
-    env = {"LD_PRELOAD": shim, "FLEA_RENAME_ENTERED": str(entered), "FLEA_RENAME_RELEASE": str(release)} if mode == "syscall" else {}
+    env = {"LD_PRELOAD": shim}
+    if mode == "syscall":
+        env.update(FLEA_RENAME_ENTERED=str(entered), FLEA_RENAME_RELEASE=str(release))
+    else:
+        env.update(FLEA_JOURNAL_LOCK=str(state / "flea_undo_dir" / "undo-journal.lock"),
+                   FLEA_JOURNAL_ENTERED=str(entered))
     previous = {key: os.environ.get(key) for key in env}
     os.environ.update(env)
     backend = Backend(binary, state)
@@ -52,7 +85,7 @@ def case(binary, root, shim, mode):
         assert (root / ".flea-test-sandbox").is_file()
         started = backend.send(dict(c="rename", path=str(source), to=target.name))
         pipelined = backend.send(dict(c="list", path=str(child), first=20))
-        wait_for(entered.exists if mode == "syscall" else target.exists, "rename did not reach the held phase")
+        wait_for(entered.exists, "rename did not reach the witnessed held phase")
         try:
             pipeline_seen = []
             while True:
@@ -86,7 +119,7 @@ def case(binary, root, shim, mode):
         if mode == "syscall":
             assert source.exists() and not target.exists(), "syscall hold was ineffective"
         else:
-            assert target.exists() and lock is not None, "journal hold was ineffective"
+            assert target.exists() and lock is not None and entered.exists(), "journal hold was ineffective"
         if mode == "journal-timeout":
             elapsed_rename, renamed, _ = backend.until("renamed", started)
             assert 1900 <= elapsed_rename < 3500, elapsed_rename
@@ -130,6 +163,7 @@ root = Path(directory)
 assert directory and root.is_absolute() and root.resolve() == root
 assert (root / ".flea-test-sandbox").is_file() and not root.is_relative_to(Path.home())
 assert Path(shim).is_relative_to(root)
+witness_controls(root, shim)
 results = [case(binary, root, shim, mode) for mode in ("syscall", "journal", "journal-timeout")]
 print(f"RENAMELAG DONE cases=3 failed={results.count(False)}")
 sys.exit(0 if all(results) else 1)

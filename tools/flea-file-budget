@@ -51,7 +51,7 @@ src/backend/watch.rs 550
 src/backend/thumbreq.rs 476
 src/backend/undo.rs 802
 src/backend/undo_tests.rs 439
-src/backend/undoshare.rs 462
+src/backend/undoshare.rs 468
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
 src/backend/proto.rs 516
