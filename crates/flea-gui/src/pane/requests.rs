@@ -140,6 +140,25 @@ impl Pane {
         listing: usize,
         now: u64,
     ) -> Result<bool, String> {
+        let answered = self
+            .requests
+            .outstanding
+            .filter(|request| request.start == start && request.listing == listing);
+        let taken = self.land_rows(start, rows, listing, now);
+        // A malformed answer still settles the request it answers, so the slot never stays taken.
+        if taken.is_err() && answered.is_some() && self.requests.outstanding == answered {
+            self.requests.cancel();
+        }
+        taken
+    }
+
+    fn land_rows(
+        &mut self,
+        start: usize,
+        rows: Vec<RowFacts>,
+        listing: usize,
+        now: u64,
+    ) -> Result<bool, String> {
         if self.swap.pending.is_some() {
             let pending = self.swap.pending.as_ref().expect("pending listing");
             let Some(total) = pending.total else {
@@ -221,7 +240,7 @@ impl Pane {
             .take()
             .filter(|_| listing > self.greatest_listing)
         {
-            Self::check_complete(start, rows.len(), total, self.first_count())?;
+            Self::check_complete(start, rows.len(), total, self.swap.unheld_first)?;
             self.requests.cancel();
             self.greatest_listing = listing;
             self.held = Rc::new(Held {
@@ -235,7 +254,9 @@ impl Pane {
             } else {
                 super::Kind::Ready
             };
-            self.cursor = self.cursor.min(total.saturating_sub(1));
+            // The relist's count passes through 0, so the view lands at its first row (ui/PaneSwap.qml land).
+            self.cursor = start;
+            self.scroll_y = start as f32 * super::ROW_HEIGHT;
             self.scroll_by(0.);
             self.requests.initial_first =
                 Some((self.scroll_y / super::ROW_HEIGHT).floor() as usize);

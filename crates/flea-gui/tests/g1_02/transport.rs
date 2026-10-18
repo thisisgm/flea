@@ -43,21 +43,12 @@ for line in sys.stdin:
             .arg(delay.to_string());
         let backend = Backend::start_command(command, "/fixture/empty".into(), None, 320).unwrap();
         let started = Instant::now();
-        let mut pane = Pane::new("/fixture/empty".into(), 620.);
         let deadline = started + Duration::from_secs(10);
-        let mut paired = false;
-        while !paired {
+        let mut replies = Vec::new();
+        while replies.len() < 2 {
             assert!(Instant::now() < deadline, "delayed pipe did not answer");
-            let now = started.elapsed().as_millis() as u64;
-            if pane.tick(now) {
-                if !pane.busy() {
-                    paired = true;
-                    continue;
-                }
-                pane.frame(now, true);
-            }
             match backend.replies.try_recv() {
-                Ok(Event::Reply(reply)) => paired = pane.receive_at(reply, now).unwrap(),
+                Ok(Event::Reply(reply)) => replies.push(reply),
                 Ok(other) => panic!("unexpected event: {other:?}"),
                 Err(async_channel::TryRecvError::Empty) => {
                     std::thread::sleep(Duration::from_millis(1));
@@ -68,6 +59,27 @@ for line in sys.stdin:
         let elapsed = started.elapsed().as_millis();
         assert!(elapsed >= delay as u128);
         assert!(elapsed < delay as u128 + 2000);
+        // The pane runs on a virtual clock, so the pair lands at the scripted delay whatever the host load.
+        let mut pane = Pane::new("/fixture/empty".into(), 620.);
+        let mut paired = false;
+        for now in 0..=delay + 2 * flea_gui::pane::swap::MIN_SHOW_MS {
+            if pane.tick(now) {
+                if !pane.busy() {
+                    paired = true;
+                    break;
+                }
+                pane.frame(now, true);
+            }
+            if now == delay {
+                for reply in replies.drain(..) {
+                    paired |= pane.receive_at(reply, now).unwrap();
+                }
+                if paired {
+                    break;
+                }
+            }
+        }
+        assert!(paired, "the delayed pair never landed");
         backend
             .rows(
                 "paths",

@@ -158,6 +158,9 @@ fn unheld_pairs_require_complete_newer_rows_and_retire_only_the_old_numbering() 
     header(&mut pane, "/fixture/a", 1001, 1040);
     assert!(answer(&mut pane, 0, 320, 2, 1040));
     assert!(pane.requests.outstanding.is_none());
+    assert_eq!((pane.cursor, pane.scroll_y), (0, 0.));
+    assert_eq!(pane.wanted_window(), None);
+    pane.scroll_to(600. * ROW_HEIGHT);
     assert_eq!(pane.wanted_window(), Some((450, 320)));
     let current = Rc::clone(&pane.held);
     let request = pane.requests.outstanding;
@@ -169,4 +172,105 @@ fn unheld_pairs_require_complete_newer_rows_and_retire_only_the_old_numbering() 
     }
     assert!(answer(&mut pane, 450, 320, 2, 1060));
     assert_eq!((pane.held.listing, pane.held.total), (2, 1001));
+}
+
+fn waiting_on_the_mark() -> Pane {
+    let mut pane = settled();
+    assert!(pane.begin("/fixture/b".into(), Options::default(), 1000));
+    pane.tick(1066);
+    pane.frame(1066, true);
+    header(&mut pane, "/fixture/b", 1000, 1100);
+    assert!(!answer(&mut pane, 0, 320, 2, 1100));
+    assert!(pane.swap.pending.as_ref().unwrap().parked_until.is_none());
+    assert!(pane.anchor_window(680).is_some());
+    pane
+}
+
+#[test]
+fn refused_unparked_anchor_must_not_block_future_windows() {
+    let mut pane = waiting_on_the_mark();
+    pane.fail("window", "/fixture/b", "refused", 0, 1110);
+    assert!(pane.tick(1166));
+    assert!(!pane.busy());
+    assert_eq!(pane.path(), "/fixture/b");
+    pane.scroll_to(600. * ROW_HEIGHT);
+    assert_eq!(
+        pane.wanted_window(),
+        Some((450, 320)),
+        "refused unparked anchor still owns the only request slot: {:?}",
+        pane.requests.outstanding,
+    );
+}
+
+#[test]
+fn malformed_parked_anchor_must_not_block_future_windows() {
+    let mut pane = parked();
+    // The anchor's own answer is one row short, so receive fails and the window calls fail("protocol").
+    assert!(pane
+        .receive_at(
+            Reply::Rows {
+                start: 680,
+                rows: rows(319),
+                listing: 2,
+            },
+            1042,
+        )
+        .is_err());
+    assert!(pane.fail("protocol", "", "", 0, 1042));
+    assert!(!pane.busy());
+    pane.scroll_to(600. * ROW_HEIGHT);
+    assert_eq!(
+        pane.wanted_window(),
+        Some((450, 320)),
+        "failed parked anchor still owns the only request slot: {:?}",
+        pane.requests.outstanding,
+    );
+}
+
+#[test]
+fn sort_race_convergence_must_draw_rows_under_the_viewport() {
+    let mut pane = settled();
+    pane.scroll_to(600. * ROW_HEIGHT);
+    assert_eq!(pane.wanted_window(), Some((450, 320)));
+    assert!(answer(&mut pane, 450, 320, 1, 2));
+    assert!(pane.begin("/fixture/a".into(), Options::default(), 1000));
+    // The sort sent just before the relist answers with the window at the scroll position.
+    header(&mut pane, "/fixture/a", 1000, 1010);
+    assert!(answer(&mut pane, 450, 320, 2, 1010));
+    header(&mut pane, "/fixture/a", 1001, 1040);
+    assert!(answer(&mut pane, 0, 320, 3, 1040));
+    assert_eq!((pane.held.listing, pane.held.start), (3, 0));
+    let first = (pane.scroll_y / ROW_HEIGHT).floor() as usize;
+    assert!(
+        pane.held.row(first).is_some(),
+        "viewport starts at row {first}, cursor {}, but the converged listing holds rows {}..{}",
+        pane.cursor,
+        pane.held.start,
+        pane.held.start + pane.held.rows.len(),
+    );
+}
+
+#[test]
+fn sort_race_convergence_must_survive_a_resize_while_the_relist_is_out() {
+    let mut pane = settled();
+    assert!(pane.begin("/fixture/a".into(), Options::default(), 1000));
+    header(&mut pane, "/fixture/a", 1000, 1010);
+    assert!(answer(&mut pane, 0, 320, 2, 1010));
+    // The relist was asked with first 320; the window grows while a slow folder still scans.
+    pane.set_height(931.);
+    assert_ne!(pane.first_count(), 320);
+    header(&mut pane, "/fixture/a", 1001, 3000);
+    let landed = pane.receive_at(
+        Reply::Rows {
+            start: 0,
+            rows: rows(320),
+            listing: 3,
+        },
+        3000,
+    );
+    assert_eq!(
+        (landed, pane.held.listing, pane.held.total),
+        (Ok(true), 3, 1001),
+        "the relist's complete first window was refused against the current geometry",
+    );
 }
