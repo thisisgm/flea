@@ -13,14 +13,23 @@ pub(super) fn remove_tree_cancellable(
         return Err(refused);
     }
     let mut offset = tree.end();
+    let mut deleted_any = false;
     while let Some(bytes) = tree
         .previous(&mut offset)
         .changed("Trash review unreadable")?
     {
-        cancel.check().map_err(Refusal::said)?;
+        cancel.check().map_err(|text| {
+            let refusal = Refusal::cancelled(text);
+            if deleted_any {
+                refusal.wrap(Outcome::Partial(Op::Delete))
+            } else {
+                refusal
+            }
+        })?;
         let node = Node::decode(&bytes)?;
         let (parent, child_name) = parent_at(quarantine, OsStr::new("payload"), &node.relative)?;
         node.claim_remove(&parent, &child_name, quarantine, offset - tree.start())?;
+        deleted_any = true;
         on_node();
     }
     Ok(())
@@ -40,7 +49,7 @@ impl Reviewed {
         cancel: &Cancellation,
         mut on_node: impl FnMut(),
     ) -> Result<(), Refusal> {
-        cancel.check().map_err(Refusal::said)?;
+        cancel.check().map_err(Refusal::cancelled)?;
         let tree = self
             .tree
             .as_ref()

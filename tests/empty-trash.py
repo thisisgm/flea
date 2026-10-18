@@ -47,7 +47,10 @@ with (root / "backend.log").open("w") as log:
                 return held.pop(index)
         deadline = time.monotonic() + seconds
         while True:
-            message = messages.get(timeout=max(0.001, deadline - time.monotonic()))
+            remaining = deadline - time.monotonic()
+            if remaining <= 0:
+                raise queue.Empty
+            message = messages.get(timeout=remaining)
             if predicate(message):
                 return message
             if message.get("t") in ("listed", "transferdone", "trashbrowse", "jobs"):
@@ -184,7 +187,7 @@ with (root / "backend.log").open("w") as log:
         print(f"jobs snapshot kind=emptyTrash done={job['done']} total={job['total']} unfinished=1", flush=True)
         send(dict(c="jobs", op="cancel", id=operation))
         done = until(lambda m: m.get("t") == "transferdone" and m["id"] == operation, 20)
-        assert done["cancelled"] and 0 < done["ok"] < 100000 and done["failed"] <= 1, done
+        assert done["cancelled"] and 0 < done["ok"] < 100000 and done["failed"] == 0, done
         assert done["ok"] + done["failed"] + done["skipped"] == 100000, done
         until(lambda m: m.get("t") == "trashbrowse" and m.get("op") == "delete")
         remaining = {path.name for path in files.iterdir()}

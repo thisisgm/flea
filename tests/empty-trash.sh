@@ -2,6 +2,7 @@
 # Exercise the real backend on a private bus with a marked Trash fixture.
 set -euo pipefail
 cd "$(dirname "$0")/.."
+python3 -B tests/empty-trash-deadline.py
 repo=$(pwd -P)
 mkdir -p "$repo/.superpowers/b-empty-trash"
 root=$(mktemp -d "$repo/.superpowers/b-empty-trash/test.XXXXXXXX")
