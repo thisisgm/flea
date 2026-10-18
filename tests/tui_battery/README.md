@@ -75,6 +75,12 @@ The read-only bundle's `manifest.json` has schema:
 ]}}}
 ```
 
+`tools/flea-tui-fixture-bundle OUTPUT [--seed BENCH_WORK_DIR]` writes this bundle, read-only, beneath a marked
+`mktemp` root and prints its `bundle_sha256`; two builds on one host print the same digest. `--seed` copies the bench
+fixture's Media encoder outputs byte for byte; missing ones come from the bench recipe's magick and ffmpeg commands.
+With `--fixtures`, `--list` and `--dry-run` verify every family the selected states name and report each family's
+`requires_not_supplied`; a missing or altered family exits 2.
+
 List every directory and file, not only the illustrative entries above. Families
 are `work`, `office`, `prints`, `ja`, `ar` and `trash`. Each contains its own work
 snapshot. Original Docs must have three entries; office Docs must have exactly the
