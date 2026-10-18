@@ -7,6 +7,9 @@ use gpui::{AppContext, Render};
 use std::rc::Rc;
 use std::sync::Arc;
 
+#[path = "../tests/g1_04/host.rs"]
+mod g1_04;
+
 fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
     let locale = Snapshot {
         revision: 1,
@@ -47,6 +50,7 @@ fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         lifecycle,
         view: View::List,
         focus_side: 0,
+        keyboard: Default::default(),
         panes: [Some(host), None],
         focus: cx.focus_handle(),
         seam: Seam::new(),
