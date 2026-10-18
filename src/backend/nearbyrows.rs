@@ -77,6 +77,11 @@ fn txt_path(input: &str) -> Option<String> {
     Some("/".into())
 }
 
+// Sample input: nas-1.local
+fn valid_discovery_host(host: &str) -> bool {
+    !host.contains('_') && networkaddress::valid_host(host)
+}
+
 // Sample input: =;eth0;IPv4;NAS;_smb._tcp;local;nas.local;192.0.2.1;445;"path=/docs"
 pub fn avahi(text: &str, service: &str) -> Vec<Row> {
     let Some(scheme) = service_scheme(service) else { return Vec::new(); };
@@ -85,7 +90,7 @@ pub fn avahi(text: &str, service: &str) -> Vec<Row> {
         let fields: Vec<&str> = line.splitn(AVAHI_FIELDS, ';').collect();
         if fields.len() != AVAHI_FIELDS || fields[0] != "=" || fields[4] != service { continue; }
         let host = fields[6].strip_suffix('.').unwrap_or(fields[6]);
-        if !networkaddress::valid_host(host) { continue; }
+        if !valid_discovery_host(host) { continue; }
         let Some(port) = networkaddress::decimal_port(fields[8]) else { continue; };
         let Some(name) = unescape(fields[3]).filter(|name| !name.is_empty()) else { continue; };
         let Some(path) = txt_path(fields[9]) else { continue; };

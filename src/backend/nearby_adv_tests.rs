@@ -79,12 +79,16 @@ fn adv_e_f4_tailnet_dns_cannot_inject_uri_fields() {
 
 #[test]
 fn adv_e_f5_looking_state_is_explicit_even_with_blank_copy() {
-    stubs_receive_exact_argv_and_discovery_is_idle_until_asked();
+    let reply = jsondoc::parse(&line(1, "looking", "", &[], &[])).unwrap();
+    assert_eq!(field(&reply, "message"), "");
+    assert_eq!(field(&reply, "state"), "looking");
 }
 
 #[test]
 fn adv_e_f5_empty_state_is_explicit_even_with_blank_copy() {
-    excess_output_is_bounded_and_empty_results_use_exact_copy();
+    let reply = jsondoc::parse(&line(1, "empty", "", &[], &[])).unwrap();
+    assert_eq!(field(&reply, "message"), "");
+    assert_eq!(field(&reply, "state"), "empty");
 }
 
 #[test]
