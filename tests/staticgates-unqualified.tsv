@@ -1421,16 +1421,16 @@ ui/MarkdownTable.qml	97	root	Declared QML id; component context access is valid 
 ui/MarkdownTable.qml	100	root	Declared QML id; component context access is valid at runtime.
 ui/MarkdownTable.qml	112	modelData	Declared QML property; enclosing component context supplies it.
 ui/MarkdownTable.qml	115	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	69	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	70	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	72	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	83	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	84	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	86	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	74	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	75	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	77	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	89	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	90	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	92	root	Declared QML id; component context access is valid at runtime.
 ui/MediaSession.qml	30	root	Declared QML id; component context access is valid at runtime.
 ui/MediaSession.qml	33	root	Declared QML id; component context access is valid at runtime.
 ui/MediaSession.qml	34	helper	Declared QML id; enclosing Process supplies this member.
@@ -3208,16 +3208,16 @@ ui/MarkdownTable.qml	97	root	Declared QML id; component context access is valid 
 ui/MarkdownTable.qml	100	root	Declared QML id; component context access is valid at runtime.
 ui/MarkdownTable.qml	112	modelData	Declared QML property; enclosing component context supplies it.
 ui/MarkdownTable.qml	115	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	61	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	69	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	70	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	72	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	83	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	84	root	Declared QML id; component context access is valid at runtime.
-ui/MatchText.qml	86	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	65	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	74	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	75	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	77	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	89	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	90	root	Declared QML id; component context access is valid at runtime.
+ui/MatchText.qml	92	root	Declared QML id; component context access is valid at runtime.
 ui/MenuActionDialog.qml	329	root	Declared QML id; component context access is valid at runtime.
 ui/NetworkForm.qml	208	root	Declared QML id; component context access is valid at runtime.
 ui/NetworkForm.qml	206	root	Declared QML id; component context access is valid at runtime.

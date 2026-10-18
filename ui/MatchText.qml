@@ -34,6 +34,10 @@ Item {
         anchors.verticalCenter: parent.verticalCenter
         // Each run takes what is left of the slot, so the tail elides and nothing ever overflows.
         width: Math.min(implicitWidth, root.width)
+        // A run clamped to zero paints nothing: an elided Text at width 0 still draws its full
+        // text on its first layout, so a late match (a head that fills the slot) overpaints
+        // whatever follows until any relayout. The accent wash below already gates the same way.
+        visible: width > 0
         text: root.before
         color: root.color
         font.family: Theme.font.family
@@ -66,6 +70,7 @@ Item {
                 anchors.left: parent.left
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.min(implicitWidth, parent.width)
+                visible: width > 0
                 text: root.run
                 color: root.color
                 font.family: Theme.font.family
@@ -80,6 +85,7 @@ Item {
                 anchors.left: runText.right
                 anchors.verticalCenter: parent.verticalCenter
                 width: Math.max(0, parent.width - runText.width)
+                visible: width > 0
                 text: root.after
                 color: root.color
                 font.family: Theme.font.family
