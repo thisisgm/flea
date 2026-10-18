@@ -508,20 +508,112 @@ class RegressionTests(unittest.TestCase):
         self.assertEqual([self.widths(screen, y) for y in range(2)], [[1] * 6, [1] * 6])
         self.assertEqual(cells.text(screen.snapshot()).splitlines(), ['ab    ', '      '])
 
-    def test_every_erase_keeps_wide_pairs_whole(self):
+    def cells_of(self, screen, row):
+        return [(cell['ch'], cell['width']) for cell in screen.grid[row]]
+
+    def cell_violations(self, snapshot, expected):
+        return [(y, x, snapshot['grid'][y][x]['ch'], snapshot['grid'][y][x]['width'], want)
+                for (y, x), want in expected.items()
+                if (snapshot['grid'][y][x]['ch'], snapshot['grid'][y][x]['width']) != want]
+
+    def erase_sweep(self):
         rows = '\x1b[2;1Hcd中\x1b[3;1Hef中'
         scenarios = (
-            ('lead', rows + '\x1b[1;1Hab中\x1b[1;3H'),
-            ('continuation', rows + '\x1b[1;1Hab中\x1b[1;4H'),
-            ('pending wrap', rows + '\x1b[1;1Habcd中'),
+            ('lead', 2, rows + '\x1b[1;1Hab中\x1b[1;3H'),
+            ('continuation', 3, rows + '\x1b[1;1Hab中\x1b[1;4H'),
+            ('pending wrap', 5, rows + '\x1b[1;1Habcd中'),
         )
-        sequences = ('\x1b[K', '\x1b[1K', '\x1b[2K', '\x1b[J', '\x1b[1J', '\x1b[2J')
-        for position, prefix in scenarios:
-            for sequence in sequences:
-                with self.subTest(position=position, sequence=sequence):
-                    screen = cells.Screen(6, 3)
-                    screen.feed((prefix + sequence).encode())
-                    self.assertEqual(self.wide_pair_violations(screen.snapshot()), [])
+        sequences = (
+            ('\x1b[K', lambda c: [(0, x) for x in range(c, 6)]),
+            ('\x1b[1K', lambda c: [(0, x) for x in range(c + 1)]),
+            ('\x1b[2K', lambda c: [(0, x) for x in range(6)]),
+            ('\x1b[J', lambda c: [(0, x) for x in range(c, 6)] + [(y, x) for y in (1, 2) for x in range(6)]),
+            ('\x1b[1J', lambda c: [(0, x) for x in range(c + 1)]),
+            ('\x1b[2J', lambda c: [(y, x) for y in range(3) for x in range(6)]),
+        )
+        failures = []
+        for position, column, prefix in scenarios:
+            for sequence, region in sequences:
+                screen = cells.Screen(6, 3)
+                screen.feed((prefix + sequence).encode())
+                snapshot = screen.snapshot()
+                problems = self.cell_violations(snapshot, {cell: (' ', 1) for cell in region(column)})
+                problems += self.wide_pair_violations(snapshot)
+                if problems:
+                    failures.append((position, sequence, problems))
+        return failures
+
+    def print_sweep(self):
+        rows = '\x1b[2;1Hcd中\x1b[3;1Hef中'
+        scenarios = (
+            ('lead', 1, rows + '\x1b[1;1Ha中\x1b[1;2H'),
+            ('continuation', 2, rows + '\x1b[1;1Ha中\x1b[1;3H'),
+            ('before lead', 0, rows + '\x1b[1;1Ha中\x1b[1;1H'),
+        )
+        failures = []
+        for position, column, prefix in scenarios:
+            for ch, w in (('b', 1), ('九', 2)):
+                screen = cells.Screen(6, 3)
+                screen.feed((prefix + ch).encode())
+                snapshot = screen.snapshot()
+                expected = {(0, column): (ch, w)}
+                if w == 2:
+                    expected[(0, column + 1)] = ('', 0)
+                problems = self.cell_violations(snapshot, expected) + self.wide_pair_violations(snapshot)
+                if problems:
+                    failures.append((position, ch, problems))
+        return failures
+
+    def test_every_erase_keeps_wide_pairs_whole(self):
+        self.assertEqual(self.erase_sweep(), [])
+
+    def test_erase_sweep_rejects_a_no_op_erase(self):
+        with patch.object(cells.Screen, 'erase', lambda screen, y, start, end: None):
+            self.assertTrue(self.erase_sweep())
+
+    def test_every_print_keeps_wide_pairs_whole(self):
+        self.assertEqual(self.print_sweep(), [])
+
+    def test_print_sweep_rejects_a_no_op_print(self):
+        with patch.object(cells, 'width', lambda ch: 0):
+            self.assertTrue(self.print_sweep())
+
+    def test_narrow_print_over_wide_lead_blanks_continuation(self):
+        screen = cells.Screen(6, 2)
+        screen.feed('中\x1b[1;1Ha'.encode())
+        self.assertEqual(self.cells_of(screen, 0), [('a', 1), (' ', 1), (' ', 1), (' ', 1), (' ', 1), (' ', 1)])
+
+    def test_narrow_print_over_wide_continuation_blanks_lead(self):
+        screen = cells.Screen(6, 2)
+        screen.feed('a中\x1b[1;3Hb'.encode())
+        self.assertEqual(self.cells_of(screen, 0), [('a', 1), (' ', 1), ('b', 1), (' ', 1), (' ', 1), (' ', 1)])
+
+    def test_wide_print_over_wide_continuation_blanks_previous_lead(self):
+        screen = cells.Screen(6, 2)
+        screen.feed('a中\x1b[1;3H九'.encode())
+        self.assertEqual(self.cells_of(screen, 0), [('a', 1), (' ', 1), ('九', 2), ('', 0), (' ', 1), (' ', 1)])
+
+    def test_wide_print_over_wide_lead_blanks_orphaned_continuation(self):
+        screen = cells.Screen(6, 2)
+        screen.feed('a中\x1b[1;1H九'.encode())
+        self.assertEqual(self.cells_of(screen, 0), [('九', 2), ('', 0), (' ', 1), (' ', 1), (' ', 1), (' ', 1)])
+
+    def test_wide_print_over_wide_lead_replaces_glyph(self):
+        screen = cells.Screen(6, 2)
+        screen.feed('a中\x1b[1;2H九'.encode())
+        self.assertEqual(self.cells_of(screen, 0), [('a', 1), ('九', 2), ('', 0), (' ', 1), (' ', 1), (' ', 1)])
+
+    def test_wide_glyph_at_last_column_wraps_and_keeps_last_cell(self):
+        screen = cells.Screen(6, 2)
+        screen.feed('abcde中'.encode())
+        self.assertEqual(self.cells_of(screen, 0), [('a', 1), ('b', 1), ('c', 1), ('d', 1), ('e', 1), (' ', 1)])
+        self.assertEqual(self.cells_of(screen, 1)[:2], [('中', 2), ('', 0)])
+        self.assertEqual(screen.snapshot()['cursor'], [2, 1])
+        screen = cells.Screen(6, 2)
+        screen.feed('abcdef中'.encode())
+        self.assertEqual(self.cells_of(screen, 0)[5], ('f', 1))
+        self.assertEqual(self.cells_of(screen, 1)[:2], [('中', 2), ('', 0)])
+        self.assertEqual(screen.snapshot()['cursor'], [2, 1])
 
 
 if __name__ == '__main__':
