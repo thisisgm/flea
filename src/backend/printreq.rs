@@ -96,19 +96,19 @@ fn print(ask: Print, selection: Result<Option<Vec<super::menu_actions::Selected>
             let name = path.file_name().unwrap_or_default().to_string_lossy();
             let display = if ask.printer_name.is_empty() { &ask.printer } else { &ask.printer_name };
             let result = print_file(path, kind, &options, &cancel);
+            if result.is_err() && cancel.load(Ordering::Relaxed) { return Err("cancelled".into()); }
             message = match &result { Ok(()) => printing::receipt(&name, display), Err(reason) => printing::refusal(&name, reason) };
             let _ = tx.send(OpMsg::Meta { line: format!(r#"{{"t":"printed","id":{id},"requestId":{},"path":"{}","ok":{},"message":"{}"}}"#,
                 ask.request_id, escape(&path.to_string_lossy()), result.is_ok(), escape(&message)) });
             match result {
                 Ok(()) => sent += 1,
-                Err(reason) if reason == "cancelled" => return Err(reason),
                 Err(_) => refused.push(message.clone()),
             }
         }
         if refused.is_empty() { Ok(()) } else { Err(refused.join("\n")) }
     })();
     let err = outcome.err().unwrap_or_default();
-    if !err.is_empty() && sent == 0 && message.is_empty() {
+    if !err.is_empty() && sent == 0 && message.is_empty() && !cancel.load(Ordering::Relaxed) {
         let name = ask.paths.first().and_then(|p| p.file_name()).unwrap_or_default().to_string_lossy();
         message = printing::refusal(&name, &err);
     }

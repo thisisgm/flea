@@ -36,6 +36,7 @@ case "$tool" in
  lpoptions) printf 'Duplex/Two-sided: *None DuplexNoTumble\nColorModel/Color: *RGB Gray\n' ;;
  lp)
   case "$*" in *hold.pdf*) set -C; : > "$root/lp-held"; exec /bin/sleep 30 ;; esac
+  case "$*" in *stderr-cancelled.pdf*) printf 'cancelled\n' >&2; exit 1 ;; esac
   case "$*" in *refuse.pdf*) printf 'printer is paused\n' >&2; exit 1 ;; esac ;;
  pdfinfo) printf 'Pages: 3\n' ;;
  magick|montage|pdftoppm)
