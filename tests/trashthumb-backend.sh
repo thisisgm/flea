@@ -5,18 +5,27 @@ set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 
 sandbox_root_ok
+cleanup() {
+    [[ -n "${box:-}" && "$box" == /* ]] || return
+    if [[ -f "$box/.flea-test-sandbox" ]]; then
+        sandbox_remove "$box"
+    else
+        sandbox_require "$box"
+        rmdir -- "$box" 2>/dev/null || true
+    fi
+}
 box=$(mktemp -d "$FIXTURE_ROOT/trashthumb-backend.XXXXXXXX") || exit 1
+trap cleanup EXIT
 : > "$box/.flea-test-sandbox" || exit 1
 sandbox_require "$box"
-cleanup() {
-    [[ -n "$box" && "$box" == /* && -f "$box/.flea-test-sandbox" ]] && sandbox_remove "$box"
-}
-trap cleanup EXIT
 export CARGO_TARGET_DIR="$box/target"
-export CARGO_HOME="$box/cargo" TMPDIR="$box/tmp"
-mkdir -p "$CARGO_HOME" "$TMPDIR" || exit 1
+export TMPDIR="$box/tmp"
+mkdir -p "$TMPDIR" || exit 1
 
-for module in trashthumb::tests trashbrowse::thumbnail_tests thumbreq::cancel_tests; do
+# Suite setup ends here.
+python3 tests/trashthumb-backend-setup.py "$FIXTURE_ROOT" || exit 1
+
+for module in trashthumb::tests trashbrowse::thumbnail_tests thumbreq::cancel_tests run::trashthumb_protocol_tests; do
     log="$box/${module//::/-}.log"
     cargo test --locked --bin flea -- "backend::$module::" --nocapture > "$log" 2>&1
     rc=$?

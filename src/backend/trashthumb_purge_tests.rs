@@ -1,0 +1,293 @@
+use super::super::*;
+use crate::backend::testdir::TestDir;
+use crate::backend::thumbcache::{uri_for, Cache};
+use std::os::unix::fs::PermissionsExt;
+use std::path::Path;
+
+fn write(home: &Path, name: &str, body: &[u8]) -> PathBuf {
+    let path = home.join(name);
+    assert!(home.is_absolute() && home.join(".flea-test-sandbox").is_file());
+    assert!(
+        path.is_absolute() && path.starts_with(home) && !name.split('/').any(|part| part == "..")
+    );
+    std::fs::create_dir_all(path.parent().unwrap()).unwrap();
+    let mut file = std::fs::OpenOptions::new()
+        .write(true)
+        .create_new(true)
+        .open(&path)
+        .unwrap();
+    std::io::Write::write_all(&mut file, body).unwrap();
+    path
+}
+
+fn fixture(home: &Path) -> (Vec<PathBuf>, Vec<Vec<PathBuf>>, Vec<PathBuf>) {
+    let gio = write(
+        home,
+        "bin/gio",
+        br#"#!/usr/bin/python3
+import os, pathlib, sys, urllib.parse
+root = pathlib.Path(os.environ['HOME'])
+assert root.is_absolute() and (root / '.flea-test-sandbox').is_file()
+files = root / 'data/Trash/files'
+names = sorted(p.name for p in files.iterdir() if p.is_file())
+args = sys.argv[1:]
+def uri(name): return 'trash:///' + urllib.parse.quote(name)
+if args[:2] == ['trash', '--list']:
+    for name in names: print(uri(name) + '\t' + str(root / 'original' / name))
+elif args[0] == 'list':
+    for name in names: print(uri(name) + '  trash::deletion-date=2026-10-18T09:00:00')
+elif args[0] == 'info':
+    name = urllib.parse.unquote(urllib.parse.urlsplit(args[-1]).path).lstrip('/')
+    path = files / name
+    meta = path.lstat()
+    print('  standard::size: ' + str(meta.st_size))
+    print('  standard::type: 1')
+    print('  standard::icon: image-x-generic')
+    print('  standard::target-uri: ' + path.as_uri())
+    print('  trash::deletion-date: 2026-10-18T09:00:00')
+    print('  id::file: l' + str(meta.st_dev) + ':' + str(meta.st_ino))
+    print('  id::filesystem: local')
+else:
+    raise SystemExit('Unexpected gio request: ' + repr(args))
+"#,
+    );
+    std::fs::set_permissions(&gio, std::fs::Permissions::from_mode(0o755)).unwrap();
+    let cache = Cache::new();
+    let mut payloads = Vec::new();
+    let mut remove = Vec::new();
+    let mut keep = Vec::new();
+    for name in ["a photo.png", "z other.png"] {
+        let original = home.join("original").join(name);
+        std::fs::create_dir_all(original.parent().unwrap()).unwrap();
+        let path = write(home, &format!("data/Trash/files/{name}"), b"image bytes");
+        write(
+            home,
+            &format!("data/Trash/info/{name}.trashinfo"),
+            format!(
+                "[Trash Info]\nPath={}\nDeletionDate=2026-10-18T09:00:00\n",
+                &uri_for(&original)[7..]
+            )
+            .as_bytes(),
+        );
+        let uri = uri_for(&path);
+        let mut owned = Vec::new();
+        for identity in ["old-reviewed-object", "current-reviewed-object"] {
+            for file in [
+                cache.large_path_for(&uri, Some(identity)),
+                cache.fail_path_for(&uri, Some(identity)),
+            ] {
+                let relative = file.strip_prefix(home).unwrap().to_str().unwrap();
+                write(home, relative, b"owned thumbnail");
+                owned.push(file);
+            }
+        }
+        for file in [cache.large_path(&uri), cache.fail_path(&uri)] {
+            write(
+                home,
+                file.strip_prefix(home).unwrap().to_str().unwrap(),
+                b"keep",
+            );
+            keep.push(file);
+        }
+        let hash = crate::backend::md5::hex(uri.as_bytes());
+        for dir in [
+            cache.large_dir(),
+            cache.fail_path(&uri).parent().unwrap().to_path_buf(),
+        ] {
+            for name in [
+                format!("trash-{hash}-old.txt"),
+                format!("trash-{hash}0-old.png"),
+                format!("unrelated-trash-{hash}-old.png"),
+            ] {
+                let file = dir.join(name);
+                write(
+                    home,
+                    file.strip_prefix(home).unwrap().to_str().unwrap(),
+                    b"keep",
+                );
+                keep.push(file);
+            }
+        }
+        payloads.push(path);
+        remove.push(owned);
+    }
+    for file in [
+        cache.large_path_for("file:///unrelated", Some("identity")),
+        cache.fail_path_for("file:///unrelated", Some("identity")),
+    ] {
+        write(
+            home,
+            file.strip_prefix(home).unwrap().to_str().unwrap(),
+            b"keep",
+        );
+        keep.push(file);
+    }
+    (payloads, remove, keep)
+}
+
+fn run_case(case: &str, test: &str) {
+    if std::env::var("FLEA_TRASH_PURGE_CASE").ok().as_deref() != Some(case) {
+        let d = TestDir::new("trashthumb-purge-home");
+        let made = std::process::Command::new("mktemp")
+            .arg("-d")
+            .arg(d.join("home.XXXXXXXX"))
+            .output()
+            .unwrap();
+        assert!(made.status.success());
+        let home = PathBuf::from(String::from_utf8(made.stdout).unwrap().trim());
+        d.assert_contains(&home);
+        std::fs::write(home.join(".flea-test-sandbox"), b"private test HOME\n").unwrap();
+        let mut child = std::process::Command::new(std::env::current_exe().unwrap());
+        let test = test.split_once("::").unwrap().1;
+        child
+            .args(["--exact", test, "--nocapture"])
+            .env("FLEA_TRASH_PURGE_CASE", case)
+            .env("HOME", &home)
+            .env(
+                "PATH",
+                format!(
+                    "{}:{}",
+                    home.join("bin").display(),
+                    std::env::var("PATH").unwrap()
+                ),
+            );
+        for (key, name) in [
+            ("XDG_CACHE_HOME", "cache"),
+            ("XDG_DATA_HOME", "data"),
+            ("XDG_CONFIG_HOME", "config"),
+            ("XDG_STATE_HOME", "state"),
+            ("XDG_RUNTIME_DIR", "run"),
+        ] {
+            let path = home.join(name);
+            d.assert_contains(&path);
+            std::fs::create_dir_all(&path).unwrap();
+            child.env(key, path);
+        }
+        let result = child.output().unwrap();
+        assert!(
+            String::from_utf8_lossy(&result.stdout).contains("running 1 test"),
+            "the private-HOME test must execute: {}",
+            String::from_utf8_lossy(&result.stdout)
+        );
+        assert!(
+            result.status.success(),
+            "private HOME {case} failed:\n{}\n{}",
+            String::from_utf8_lossy(&result.stdout),
+            String::from_utf8_lossy(&result.stderr)
+        );
+        return;
+    }
+    let home = PathBuf::from(std::env::var_os("HOME").unwrap());
+    assert!(home.is_absolute() && home.join(".flea-test-sandbox").is_file());
+    let (payloads, owned, keep) = fixture(&home);
+    let scratch = home.join("scratch");
+    std::fs::create_dir_all(&scratch).unwrap();
+    let mut session = Session {
+        scratch,
+        ..Session::default()
+    };
+    let listed = session.handle(r#"{"c":"trashbrowse","op":"list","id":1}"#);
+    assert!(crate::json::field_bool(&listed, "ok"), "{listed}");
+    assert_eq!(crate::json::field_usize(&listed, "total"), Some(2));
+    let first = session
+        .items
+        .iter()
+        .find(|item| item.uri.contains("a%20photo.png"))
+        .unwrap();
+    let current = detail(first).unwrap();
+    let selection = format!(
+        r#""uris":["{}"],"identities":["{}"]"#,
+        first.uri,
+        escape(&selection_identity(&current))
+    );
+    if case == "blocked" {
+        write(&home, "original/a photo.png", b"destination bytes");
+    }
+    let result = if matches!(case, "restore" | "blocked") {
+        session.handle(&format!(
+            r#"{{"c":"trashbrowse","op":"restore","id":2,{selection}}}"#
+        ))
+    } else {
+        let target = if case == "empty" {
+            r#""all":true,"emptyTrash":true"#
+        } else {
+            &selection
+        };
+        let prepared = session.handle(&format!(
+            r#"{{"c":"trashbrowse","op":"prepare","id":2,{target}}}"#
+        ));
+        assert!(crate::json::field_bool(&prepared, "ok"), "{prepared}");
+        let token = crate::json::field_usize(&prepared, "token").unwrap();
+        session.handle(&format!(
+            r#"{{"c":"trashbrowse","op":"delete","id":3,"token":{token}}}"#
+        ))
+    };
+    assert!(crate::json::field_bool(&result, "ok"), "{result}");
+    assert_eq!(
+        crate::json::field_usize(&result, "done"),
+        Some(if case == "blocked" {
+            0
+        } else if case == "empty" {
+            2
+        } else {
+            1
+        }),
+        "{result}"
+    );
+    assert_eq!(
+        crate::json::field_usize(&result, "failed"),
+        Some(usize::from(case == "blocked")),
+        "{result}"
+    );
+    for (index, files) in owned.iter().enumerate() {
+        let gone = (index == 0 && case != "blocked") || case == "empty";
+        assert_eq!(payloads[index].exists(), !gone);
+        for file in files {
+            assert_eq!(
+                file.exists(),
+                !gone,
+                "{case}: wrong cache lifetime for {}",
+                file.display()
+            );
+        }
+    }
+    for file in keep {
+        assert_eq!(
+            std::fs::read(&file).unwrap(),
+            b"keep",
+            "unrelated cache entry changed: {}",
+            file.display()
+        );
+    }
+    if case == "restore" {
+        assert_eq!(
+            std::fs::read(home.join("original/a photo.png")).unwrap(),
+            b"image bytes"
+        );
+    }
+}
+
+macro_rules! purge_case {
+    ($name:ident, $case:literal) => {
+        #[test]
+        fn $name() {
+            run_case($case, concat!(module_path!(), "::", stringify!($name)));
+        }
+    };
+}
+purge_case!(
+    advloop_f5_refused_restore_keeps_its_owned_thumbnails,
+    "blocked"
+);
+purge_case!(
+    advloop_f5_restore_purges_only_its_owned_thumbnails,
+    "restore"
+);
+purge_case!(
+    advloop_f5_permanent_delete_purges_only_its_owned_thumbnails,
+    "delete"
+);
+purge_case!(
+    advloop_f5_empty_trash_purges_only_its_owned_thumbnails,
+    "empty"
+);
