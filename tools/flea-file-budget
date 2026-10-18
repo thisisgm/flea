@@ -249,9 +249,15 @@ while IFS= read -r -d '' file; do
   [ -z "$budgets" ] && continue
   soft=${budgets% *}
   hard=${budgets#* }
+  if [ ! -r "$file" ]; then
+    echo "UNREADABLE $file: cannot read it, so it has no line count"
+    status=1
+    continue
+  fi
   lines=$(wc -l < "$file")
   recorded=""
   if [[ "$file" = crates/* ]] || [ "$lines" -gt "$hard" ]; then
+    # Sample input: known_over_cap lines such as "ui/Preview.qml 724": a path and its exact ceiling.
     recorded=$(printf '%s\n' "$known_over_cap" | awk -v f="$file" '$1 == f { print $2; exit }')
   fi
   # Existing native soft overruns ratchet at their measured record too.
@@ -259,7 +265,6 @@ while IFS= read -r -d '' file; do
     echo "GREW      $file: $lines lines, recorded $recorded, cap $hard"
     status=1
   elif [ "$lines" -gt "$hard" ]; then
-    # Sample input: ui/Preview.qml 724, an exact per-file ceiling from known_over_cap.
     if [ -n "$recorded" ]; then
       if [ "$lines" -gt "$recorded" ]; then
         echo "GREW      $file: $lines lines, recorded $recorded, cap $hard"

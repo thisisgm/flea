@@ -1,5 +1,5 @@
 #!/bin/bash
-# A matching exception passes; changing its crate version must reject its license.
+# A matching exception passes, a bumped version is rejected, and the product workspace passes deny.toml.
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
 mkdir -p .superpowers/g10l || exit 1
@@ -44,3 +44,9 @@ if [ "$rc" -eq 0 ] || ! grep -q 'error\[rejected\]' "$root/mutant.log" || ! grep
   exit 1
 fi
 echo 'ok exact-version license exception rejects the next version'
+cargo deny --locked --offline --workspace check licenses > "$root/product.log" 2>&1
+rc=$?
+cat "$root/product.log"
+printf 'LICENSE product workspace rc=%s\n' "$rc"
+[ "$rc" -eq 0 ] || { echo 'FAIL the product workspace has a license deny.toml does not allow'; exit 1; }
+echo 'ok product workspace licenses pass deny.toml'

@@ -117,3 +117,48 @@ fn root_uses_the_installed_theme(cx: &mut TestAppContext) {
     })
     .unwrap();
 }
+
+struct InheritedProbe {
+    cache: Rc<RefCell<NameCache>>,
+}
+
+impl gpui::Render for InheritedProbe {
+    fn render(&mut self, _: &mut Window, _: &mut gpui::Context<Self>) -> impl IntoElement {
+        use gpui::{ParentElement, Styled};
+        let theme = crate::palette::Theme::default();
+        gpui::div()
+            .size_full()
+            .text_color(theme.background)
+            .text_bg(theme.foreground)
+            .child(ListElement::new(
+                Rc::new(Snapshot {
+                    title: "inherited".into(),
+                    total: 0,
+                    start: 0,
+                    listing: 1,
+                    names: vec![],
+                }),
+                Rc::clone(&self.cache),
+            ))
+    }
+}
+
+#[gpui::test]
+fn inherited_background_keeps_its_text_colour(cx: &mut TestAppContext) {
+    use gpui::AppContext;
+    let theme = crate::palette::Theme::default();
+    let cache = Rc::new(RefCell::new(NameCache::default()));
+    let window = cx.open_window(size(px(320.), px(120.)), |_, _| InheritedProbe {
+        cache: Rc::clone(&cache),
+    });
+    cx.update_window(window.into(), |_, window, cx| {
+        window.draw(cx).clear(cx);
+        let cache = cache.borrow();
+        assert_eq!(cache.background, theme.foreground);
+        assert_eq!(cache.key.as_ref().unwrap().color, theme.background);
+        let quads = window.painted_quads();
+        assert_eq!(quads.len(), 1);
+        assert_eq!(quads[0].background.as_solid(), Some(theme.foreground));
+    })
+    .unwrap();
+}
