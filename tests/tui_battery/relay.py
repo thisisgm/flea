@@ -252,18 +252,20 @@ def serve(spec_path):
             # SIGWINCH goes back before the master closes; stop signals stay on stop() past the reap, restore and receipts.
             if signal.SIGWINCH in previous_handlers:
                 signal.signal(signal.SIGWINCH, previous_handlers.pop(signal.SIGWINCH))
+            failure = None
             try:
-                os.close(master)
-                if log:
-                    log.close()
-                if graphics:
-                    graphics.close()
-                server.close()
-                for client in clients:
-                    client.close()
+                for close in (lambda: os.close(master), *(stream.close for stream in (log, graphics) if stream),
+                              server.close, *(client.close for client in clients)):
+                    # Every close runs even after one raises; the first error is raised once the handlers are back.
+                    try:
+                        close()
+                    except Exception as error:
+                        failure = failure or error
             finally:
                 for sig, handler in previous_handlers.items():
                     signal.signal(sig, handler)
+            if failure is not None:
+                raise failure
     return status if status >= 0 else 128 - status
 
 

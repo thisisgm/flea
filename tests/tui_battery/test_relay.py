@@ -82,14 +82,20 @@ class RelayTests(unittest.TestCase):
         self.assertTrue(result["winch_restored_at_master_close"])
         self.assertTrue(result["handlers_restored"])
 
-    def test_stop_handlers_are_restored_when_a_close_raises(self):
+    def test_every_close_runs_and_stop_handlers_are_restored_when_a_close_raises(self):
+        # The two-close stage pins that the first error is the one raised once every close has run.
         for stage, message in (("master-close-failure", "master close refused"),
-                               ("server-close-failure", "server close refused")):
+                               ("server-close-failure", "server close refused"),
+                               ("two-close-failure", "master close refused")):
             with self.subTest(stage=stage):
                 case = self.root / stage
                 case.mkdir()
                 result = run_relay(case, stage)
-                self.assertIn(message, str(result["error"]))
+                self.assertEqual(str(result["error"]), message)
+                self.assertTrue(result["master_closed"] and result["server_closed"])
+                self.assertEqual(result["logs_opened"], 2)
+                self.assertTrue(result["logs_closed"])
+                self.assertEqual(result["clients_closed"], [True, True])
                 self.assertEqual(result["handlers_installed"], ["SIGHUP", "SIGINT", "SIGTERM", "SIGWINCH"])
                 self.assertTrue(result["restored"])
                 self.assertTrue(result["handlers_restored"])
