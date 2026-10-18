@@ -2,6 +2,7 @@
 
 import csv
 import hashlib
+import os
 from pathlib import Path
 import subprocess
 import zipfile
@@ -17,8 +18,9 @@ REVISION_ABSENT = 1
 def pinned_commit(repo, check):
     if not (repo / '.git').exists():
         return False
+    # Git speaks the C locale here, so a failed lookup names its cause the same way on every machine.
     result = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', '--quiet', '--end-of-options',
-                             f'{REVISION}^{{commit}}'], capture_output=True)
+                             f'{REVISION}^{{commit}}'], capture_output=True, env={**os.environ, 'LC_ALL': 'C'})
     check(result.returncode in (0, REVISION_ABSENT), f'Git could not look up the frozen commit: {result.stderr!r}')
     return result.returncode == 0
 
