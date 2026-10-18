@@ -1,3 +1,5 @@
+mod capabilities;
+mod tmux;
 mod actions;
 mod batch;
 mod completion;
@@ -66,10 +68,10 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
         let mut terminal = terminal::Terminal::enter()?;
         // Rebound after the terminal so it drops first on every exit: mpv's relay writes before the screen is restored.
         let mut model = model;
+        model.capabilities = terminal.decoder.negotiation.detected;
         let map = keymap::Map::load();
         model.hints = keymap::Hints::new(&map, &model.preset);
         let theme = theme::Theme::load();
-        let mut decoder = input::Decoder::default();
         let started = std::time::Instant::now();
         let mut frame = String::new();
         let mut graphics = graphics::Graphics::new();
@@ -117,7 +119,8 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                 }
                 frame.clear();
                 thumbnail.clear();
-                decoder = input::Decoder::default();
+                model.capabilities = terminal.decoder.negotiation.detected;
+                graphics.protocol = model.capabilities.graphics;
             }
             if model.menu_action == "openWaiting" && model.pending.is_none() {
                 model.menu_action = "open".into();
@@ -212,16 +215,16 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                         let rests = resume.is_none()
                             && (graphics.protocol == graphics::Protocol::None
                                 || (graphics.protocol == graphics::Protocol::Kitty
-                                    && decoder.kitty_shm
+                                    && model.capabilities.shared_memory
                                     && kind.contains("video")
                                     && std::path::Path::new(graphics::POSTER).exists()));
                         if rests {
-                            model.player = Some(media::Player::resting(&path, graphics.protocol, decoder.kitty_shm, geometry, size, pixel_extent));
+                            model.player = Some(media::Player::resting(&path, graphics.protocol, model.capabilities.shared_memory, geometry, size, pixel_extent));
                         } else {
                             match media::Player::start(
                                 &path,
                                 graphics.protocol,
-                                decoder.kitty_shm,
+                                model.capabilities.shared_memory,
                                 geometry,
                                 size,
                                 pixel_extent,
@@ -364,7 +367,7 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                     .unwrap_or(&graphics.bytes);
                 // Lowercase d=i drops the placements and keeps kitty's stored copy, so a redraw never re-sends the picture.
                 if changed && graphics.protocol == graphics::Protocol::Kitty {
-                    print!("\x1b_Ga=d,d=i,i=42,q=2\x1b\\");
+                    tmux::write_graphics(&mut std::io::stdout().lock(), b"\x1b_Ga=d,d=i,i=42,q=2\x1b\\")?;
                     std::io::Write::flush(&mut std::io::stdout())?;
                 }
                 if writing && !image.is_empty() {
@@ -372,26 +375,29 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                     let mut stdout = std::io::stdout().lock();
                     write!(stdout, "\x1b[s\x1b[{};{}H", geometry.3, geometry.2)?;
                     graphics::send(&mut stdout, transmit)?;
-                    stdout.write_all(image)?;
+                    tmux::write_graphics(&mut stdout, image)?;
                     write!(stdout, "\x1b[u")?;
                     stdout.flush()?;
                 }
                 hold.mark_painted();
             }
             // A held frame's deadline may cut the input wait short, never lengthen it.
-            let input_wait = wait::poll_wait_ms(decoder.waiting(), last_input.elapsed(), timeout);
+            let input_wait = wait::poll_wait_ms(terminal.decoder.waiting(), last_input.elapsed(), timeout);
+            let input_wait = terminal.decoder.negotiation.wait_ms(std::time::Instant::now(), input_wait);
             let bytes = terminal.read(wire.wake_fd(), hold.wait_ms(&model, std::time::Instant::now(), started, input_wait))?;
+            if terminal.take_resumed() { frame.clear(); }
             wire.drain_wake();
             if !bytes.is_empty() {
                 last_input = std::time::Instant::now();
             }
-            for key in decoder.feed(&bytes, wait::escape_due(bytes.is_empty(), last_input.elapsed(), timeout)) {
+            for key in terminal.decode(&bytes, wait::escape_due(bytes.is_empty(), last_input.elapsed(), timeout))? {
+                let key = if model.editor.is_some() { std::borrow::Cow::Borrowed(&key) } else { key.for_action() };
                 if let Err(e) = actions::key(&mut model, &key, &map, &mut wire) {
                     model.fail(crate::error::io_message(&e));
                 }
             }
-            let protocol = if decoder.kitty { graphics::Protocol::Kitty }
-                else if decoder.sixel { graphics::Protocol::Sixel } else { graphics::Protocol::None };
+            model.capabilities = terminal.decoder.negotiation.detected;
+            let protocol = model.capabilities.graphics;
             if protocol != graphics.protocol {
                 graphics.clear();
                 model.player = None;
