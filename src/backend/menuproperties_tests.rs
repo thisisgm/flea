@@ -107,3 +107,24 @@ fn properties_multi_refuses_a_selected_identity_that_vanished() {
     assert!(!field_bool(&lines[0], "ok"));
     assert!(field_str(&lines[0], "error").unwrap().contains("disappeared"));
 }
+
+#[test]
+fn properties_multi_on_an_enclosing_stuck_mount_returns_a_floor_before_stat() {
+    let sandbox = TestDir::new("properties-multi-stuck");
+    let mount = sandbox.dir("remote");
+    let paths = [sandbox.file("remote/a", "abc"), sandbox.file("remote/b", "de")];
+    let selected = paths.iter().map(|path| super::menu_actions::Selected::inspect(path.to_str().unwrap()).unwrap()).collect::<Vec<_>>();
+    for path in &paths {
+        sandbox.assert_contains(path);
+        std::fs::remove_file(path).unwrap();
+    }
+    let body = format!("1 0 8:1 / / rw - ext4 /dev/a rw\n2 1 0:45 / {} rw - nfs n:/s rw\n", mount.display());
+    let _body = super::iomount::test_hold_body(body);
+    let _stuck = super::iomount::test_hold_stuck(mount);
+    let (tx, rx) = channel();
+    let cancel = super::trashmanifest::Cancellation::default().next();
+    assert!(super::menuproperties::serve(r#"{"op":"properties","id":7}"#, 7, &selected, &tx, &cancel));
+    let line = reply(&rx, "properties");
+    assert!(field_bool(&line, "ok") && field_bool(&line, "done") && field_bool(&line, "partial"), "{line}");
+    assert_eq!(field_usize(&line, "bytes"), Some(0));
+}

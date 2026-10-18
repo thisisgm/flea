@@ -167,8 +167,10 @@ A selection containing folders first answers its known file bytes with `done:fal
 each selected folder on demand using the same walker as `contents`. A selection on a remote mount
 or containing a remote mountpoint has one 15-second bound covering initial metadata, every walk
 and final identity revalidation; cancellation frees the menu worker without waiting for a blocked
-remote syscall. A deadline returns `ok:false,error:"The selected items are not responding."`, and
-a worker lost before its result returns `ok:false,error:"The selected items stopped answering."`. Each total
+remote syscall. A deadline or lost worker ends with the retained floor, `done:true,partial:true`.
+Before initial metadata completes, `kinds`, `newest` and `oldest` are empty and `bytes` includes
+only inspected non-folder entries. A silent syscall marks its current remote mount stuck; a
+subsequent request involving that mount returns a zero partial floor before any stat. Each total
 includes the selected folders' own entries, stays on each starting device and never follows links.
 Each queued child opens without following links through a held directory descriptor and must
 still match its captured identity. A replaced or unreadable descendant leaves a partial floor.
@@ -176,7 +178,7 @@ Progress and the final reply have the same shape:
 `{"t":"menuaction","id":4,"op":"properties","ok":true,"kinds":"2 images, 1 video","bytes":52300000,"newest":"2026-09-23 10:14","oldest":"2026-08-21 12:02","partial":false,"done":true}`.
 `done:true` means the request ended, and only `done:true,partial:false` means the total is exact.
 Unreadable or vanished descendants and already-stuck mounts leave a floor with `partial:true`.
-The overall remote deadline returns the error described above. `close` or a newer `snapshot` cancels the request, whose last reply carries
+The overall remote deadline also leaves a partial floor. `close` or a newer `snapshot` cancels the request, whose last reply carries
 `cancelled:true,partial:true,done:false`; a cancellation reply may omit the facts.
 After a close, the caller discards all replies for that snapshot. A moved, vanished or replaced
 selected identity returns `ok:false` with an `error`, including when it changes during the walk.

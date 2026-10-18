@@ -59,6 +59,7 @@ class Backend:
         self.raw = []
         self.release = owned(root / ("release-" + str(time.monotonic_ns())))
         self.entered = owned(root / ("entered-" + str(time.monotonic_ns())))
+        self.stats = owned(root / ("stats-" + str(time.monotonic_ns())))
         env = dict(os.environ, TZ="UTC", XDG_CACHE_HOME=str(root / "cache"),
                    XDG_STATE_HOME=str(root / "state"), XDG_CONFIG_HOME=str(root / "config"),
                    XDG_RUNTIME_DIR=str(root / "runtime"))
@@ -69,7 +70,8 @@ class Backend:
             env["LD_PRELOAD"] = str(library)
         if stat_target is not None:
             env.update(FLEA_REVIEW_STAT=str(stat_target), FLEA_REVIEW_ARM=str(root / "arm"),
-                       FLEA_REVIEW_ENTERED=str(self.entered), FLEA_REVIEW_RELEASE=str(self.release))
+                       FLEA_REVIEW_ENTERED=str(self.entered), FLEA_REVIEW_RELEASE=str(self.release),
+                       FLEA_REVIEW_STATS=str(self.stats))
         if mount_body is not None:
             env["FLEA_REVIEW_MOUNTS"] = str(mount_body)
         self.proc = subprocess.Popen([binary, "--backend"], env=env, text=True,
@@ -167,9 +169,10 @@ with Backend(child) as backend:
     if not (reply.get("ok") and reply.get("done") and reply.get("partial") and reply.get("bytes", 0) < 1000000):
         failures.append("a replaced child must be an unfollowed partial floor")
 
-remote = folder("remote")
-file("remote/data", b"abc")
-mount_body = file("mountinfo", ("1 0 8:1 / / rw - ext4 /dev/a rw\n30 1 0:45 / " + str(remote) + " rw - nfs n:/s rw\n").encode())
+enclosing = folder("enclosing")
+remote = folder("enclosing/remote")
+file("enclosing/remote/data", b"abc")
+mount_body = file("mountinfo", ("1 0 8:1 / / rw - ext4 /dev/a rw\n30 1 0:45 / " + str(enclosing) + " rw - nfs n:/s rw\n").encode())
 arm = owned(root / "arm")
 with Backend(stat_target=remote, mount_body=mount_body) as backend:
     backend.snapshot([remote, plain])
@@ -180,6 +183,14 @@ with Backend(stat_target=remote, mount_body=mount_body) as backend:
     time.sleep(16)
     before_release = [r for r in backend.transcript if r.get("op") == "properties"]
     print("REMOTE_INITIAL_STAT elapsed=", round(time.monotonic() - started, 3), "properties=", before_release, flush=True)
+    terminal = backend.until(lambda r: r.get("op") == "properties" and (r.get("done") or not r["ok"]))
+    if not (terminal["ok"] and terminal.get("done") and terminal.get("partial") and terminal.get("bytes") == 0):
+        failures.append("initial metadata timeout must finish with a zero partial floor")
+    calls = backend.stats.read_text()
+    repeated = backend.properties()
+    if not (repeated["ok"] and repeated.get("done") and repeated.get("partial") and timings[-1] < 1000 and backend.stats.read_text() == calls):
+        failures.append("an enclosing stuck mount must answer before another selected-item stat")
+    print("REMOTE_ENCLOSING_STUCK repeated_ms=", round(timings[-1], 3), "stat_calls=", len(backend.stats.read_text()), "reply=", repeated, flush=True)
     assert backend.action("close")["ok"]
     backend.send(c="menuaction", op="snapshot", id=8, rows=[1])
     time.sleep(.5)
@@ -199,8 +210,7 @@ with Backend(blocked=remote, stat_target=plain, mount_body=mount_body) as backen
     unlink(backend.entered)
     arm.touch()
     backend.release.touch()
-    # The metadata barrier uses a distinct release file, so the opendir release cannot release it.
-    # The C helper appends .stat to the release path for stat barriers.
+    # The C helper appends .stat so releasing opendir cannot release the metadata barrier.
     deadline = time.monotonic() + 5
     while not backend.entered.exists():
         assert time.monotonic() < deadline, "final validation did not reach metadata barrier"
@@ -210,9 +220,23 @@ with Backend(blocked=remote, stat_target=plain, mount_body=mount_body) as backen
     print("REMOTE_FINAL_STAT after_16s_terminal=", finals, flush=True)
     owned(Path(str(backend.release) + ".stat")).touch()
     backend.until(lambda r: r.get("op") == "properties" and (r.get("done") or not r["ok"]))
-    if not finals:
-        failures.append("final identity validation bypassed bulk deadline")
+    expected_floor = sum(p.lstat().st_size for p in (remote, remote / "data", plain))
+    if not (finals and finals[-1]["ok"] and finals[-1].get("partial") and finals[-1].get("done") and finals[-1].get("bytes") == expected_floor):
+        failures.append("final identity timeout must retain the complete counted floor")
     unlink(arm)
+
+with Backend(blocked=remote, mount_body=mount_body) as backend:
+    backend.snapshot([remote, plain])
+    assert not backend.action("properties")["done"]
+    backend.barrier()
+    time.sleep(16)
+    terminal = backend.until(lambda r: r.get("op") == "properties" and (r.get("done") or not r["ok"]))
+    if not (terminal["ok"] and terminal.get("done") and terminal.get("partial") and terminal.get("bytes", 0) >= plain.stat().st_size + remote.stat().st_size):
+        failures.append("a remote folder deadline must finish with its counted partial floor")
+    repeated = backend.properties()
+    if not (repeated["ok"] and repeated.get("done") and repeated.get("partial") and timings[-1] < 1000):
+        failures.append("a timed-out folder must mark its enclosing mount stuck")
+    print("REMOTE_WALK_FLOOR", terminal, "stuck_repeat_ms=", round(timings[-1], 3), flush=True)
 
 single_tree = folder("single-race/tree")
 single_child = folder("single-race/tree/child")
@@ -244,11 +268,13 @@ with Backend() as backend:
     assert json.dumps(expected, separators=(",", ":")) in backend.raw, backend.raw
     print("SINGLE_CONTENTS_BYTE_IDENTICAL", json.dumps(expected, separators=(",", ":")), flush=True)
 
-for phase in ("initial", "final"):
+for phase in ("initial", "final", "files"):
+    initial = phase != "final"
+    selected_remote = remote / "data" if phase == "files" else remote
     with Backend(blocked=remote if phase == "final" else None,
-                 stat_target=remote if phase == "initial" else plain, mount_body=mount_body) as backend:
-        backend.snapshot([remote, plain])
-        if phase == "initial":
+                 stat_target=selected_remote if initial else plain, mount_body=mount_body) as backend:
+        backend.snapshot([selected_remote, plain])
+        if initial:
             arm.touch()
             backend.send(c="menuaction", op="properties", id=7)
             backend.barrier()
