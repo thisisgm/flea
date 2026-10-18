@@ -168,6 +168,7 @@ impl Pane {
         };
         let held = pending.following.take().unwrap_or(held);
         self.path = pending.path;
+        self.swap.unheld_first = pending.first;
         self.greatest_listing = held.listing;
         self.cursor = held.start;
         self.scroll_y = held.start as f32 * ROW_HEIGHT;
@@ -259,6 +260,8 @@ impl Pane {
         if operation == "window" {
             if path == self.path && !self.busy() {
                 self.requests.cancel();
+            } else if path == self.place() {
+                self.retire_anchor();
             }
             return false;
         }

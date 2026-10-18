@@ -82,6 +82,7 @@ impl Frames {
 pub struct Swap {
     pub pending: Option<Pending>,
     pub(crate) unheld_total: Option<usize>,
+    pub(crate) unheld_first: usize,
     pub session: Session,
     pub holding: bool,
     pub fell_back: bool,
