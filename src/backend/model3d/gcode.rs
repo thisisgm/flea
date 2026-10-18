@@ -86,7 +86,7 @@ impl Machine {
     fn arc(&mut self, model: &mut Model, end: [f64;3], extrusion: f64, w: &BTreeMap<u8,f64>, clockwise: bool) -> Result<()> {
         let [a,b,c] = self.plane;
         let start = self.position;
-        let keys = [b'I',b'J',b'K'];
+        let keys = b"IJK";
         let center = if let Some(&r) = w.get(&b'R') {
             let radius = r.abs()*self.unit;
             let dx = end[a]-start[a];
@@ -158,7 +158,7 @@ impl Machine {
                 90.1 => { self.arc_absolute = true; return Ok(()) },
                 91.1 => { self.arc_absolute = false; return Ok(()) },
                 92. => {
-                    for (axis,key) in [b'X',b'Y',b'Z'].iter().enumerate() { if let Some(v) = w.get(key) { self.offset[axis] = self.position[axis]-v*self.unit } }
+                    for (axis,key) in b"XYZ".iter().enumerate() { if let Some(v) = w.get(key) { self.offset[axis] = self.position[axis]-v*self.unit } }
                     if let Some(v) = w.get(&b'E') { self.extruders.insert(self.tool,v*self.unit); }
                     return Ok(());
                 }
@@ -166,10 +166,10 @@ impl Machine {
             }
         }
         if let Some(&feed) = w.get(&b'F') { if feed <= 0. { return Err("invalid G-code feed".into()) } self.feed = feed*self.unit }
-        if !w.contains_key(&b'G') && ![b'X',b'Y',b'Z',b'E',b'I',b'J',b'K',b'R'].iter().any(|key| w.contains_key(key)) { return Ok(()) }
+        if !w.contains_key(&b'G') && !b"XYZEIJKR".iter().any(|key| w.contains_key(key)) { return Ok(()) }
         let Some(motion) = self.motion else { return Ok(()) };
         let mut end = self.position;
-        for (axis,key) in [b'X',b'Y',b'Z'].iter().enumerate() {
+        for (axis,key) in b"XYZ".iter().enumerate() {
             if let Some(v) = w.get(key) { end[axis] = v*self.unit + if self.relative { self.position[axis] } else { self.offset[axis] } }
         }
         let mut extrusion = 0.;

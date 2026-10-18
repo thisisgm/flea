@@ -143,7 +143,7 @@ fn write_document(
         INDENT, VERSION, INDENT, push_gen
     );
     if job_gen != 0 {
-        let _ = write!(out, "{}\"jobGen\": {},\n", INDENT, job_gen);
+        let _ = writeln!(out, "{}\"jobGen\": {},", INDENT, job_gen);
     }
     let _ = write!(out, "{}\"undo\": ", INDENT);
     write_list(out, undo);

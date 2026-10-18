@@ -14,6 +14,7 @@ trap cleanup EXIT
 python3 -B - "$repo" "$test_root" <<'PY'
 import collections
 import csv
+import hashlib
 import io
 from pathlib import Path
 import re
@@ -234,11 +235,43 @@ unknown.write_text('import QtTest\nTestCase { function scenario() { requireCondi
 (copy / 'ci/default.layout').write_text((fixture / 'ci/default.layout').read_text())
 run(modified_options, code=2)
 
+# The frozen test corpus is already shipped in this tree; pin its identities and bytes to v0.3.12.
+def omit_fixture_cases(directory, names):
+    if Path(directory).is_relative_to(fixture / 'tests'):
+        return [name for name in names if Path(name).suffix in ('.qml', '.js')]
+    return []
+
+
+frozen_tree = root / 'frozen-tree'
+shutil.copytree(fixture, frozen_tree, ignore=omit_fixture_cases)
+manifest = list(csv.DictReader((fixture / 'frozen-sources.tsv').open(), delimiter='\t'))
+check(len(manifest) == 533 and len({row['path'] for row in manifest}) == 533,
+      'the frozen corpus names all 533 QML/JS sources exactly once')
+for row in manifest:
+    relative = Path(row['path'])
+    assert relative.parent in (Path('tests'), Path('tests/js')) and relative.suffix in ('.qml', '.js')
+    source = repo / relative
+    check(hashlib.sha256(source.read_bytes()).hexdigest() == row['sha256'],
+          f'frozen v0.3.12 source bytes: {row["path"]}')
+    target = frozen_tree / relative
+    target.parent.mkdir(parents=True, exist_ok=True)
+    shutil.copyfile(source, target)
+
+# Scope and boards use the CLI fixtures; each tree's own runner and scripts supply its suites.
+tree_layout = root / 'tree.layout'
+tree_layout.write_text('# Suite membership comes from each input tree.\n')
+
+
+def tree_options(tree):
+    return ['--tree', str(tree), '--pending', str(fixture / 'PENDING.md'),
+            '--design', str(fixture / 'design-hig'), '--layout', str(tree_layout)]
+
+
 frozen = root / 'frozen-groups'
 shutil.copytree(fixture, frozen)
 for name in ('figure-component', 'markdown-endfit', 'rename-cost', 'button-system', 'bootload', 'headerhandles',
              'startup-objects', 'folderviews-flow', 'markdown-linearity'):
-    shutil.copyfile(Path('/home/gm/flea-work/h323/tests') / f'{name}.qml', frozen / f'tests/{name}.qml')
+    shutil.copyfile((frozen_tree / 'tests') / f'{name}.qml', frozen / f'tests/{name}.qml')
 frozen_options = ['--tree', str(frozen), '--pending', str(frozen / 'PENDING.md'),
                   '--design', str(frozen / 'design-hig'), '--layout', str(frozen / 'ci/default.layout')]
 group_before = run(frozen_options)
@@ -298,7 +331,7 @@ check(len(parse(group_after)) == len(parse(group_before)) + 1 and
       {row['id'] for row in parse(group_before)} < {row['id'] for row in parse(group_after)},
       'g06-r2-1: a check(false) in the real figure verify changes output and preserves its old cases')
 
-real = parse(run(['--tree', str(repo), '--pending', '/home/gm/flea-ops/claude/releases/PENDING.md']))
+real = parse(run(tree_options(repo)))
 real_counts = collections.Counter(row['kind'] for row in real)
 check(set(real_counts) == set(counts) and all(value > 0 for value in real_counts.values()),
       f'real tree has every artifact kind: {real_counts}')
@@ -315,8 +348,7 @@ for name in ('empty-state', 'connections-style', 'drag-look235', 'figure-package
     finding = 'g06-r1-2' if name in ('empty-state', 'connections-style') else 'g06-r2-2'
     check(next(row for row in real if row['id'] == f'suite:{name}')['qml-bound'] == 'yes',
           f'{finding}: real {name} remains QML-bound')
-frozen_tree = Path('/home/gm/flea-work/h323')
-frozen_rows = parse(run(['--tree', str(frozen_tree), '--pending', '/home/gm/flea-ops/claude/releases/PENDING.md']))
+frozen_rows = parse(run(tree_options(frozen_tree)))
 sink_counts, scanned, excluded = auditor['audit'](frozen_tree, frozen_rows, root / 'sink-sites.tsv')
 check(scanned == 533, f'g06-r5-1: every frozen QML/JS test is scanned: {scanned}')
 for form, (sites, represented) in sink_counts.items():

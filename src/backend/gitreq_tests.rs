@@ -62,7 +62,7 @@ fn cached_snapshot_projects_visible_rows_and_pages_without_any_tool() {
     d.write("nested/file", b"body\n");
     let directory = d.path("nested");
     let snapshot = super::super::gitstatus::parse(
-        b"# branch.head main\01 .D N... 1 1 1 a b deleted\0? nested/file\0? other/child\0",
+        b"# branch.head main\x001 .D N... 1 1 1 a b deleted\0? nested/file\0? other/child\0",
     )
     .unwrap();
     let mut session = Session {

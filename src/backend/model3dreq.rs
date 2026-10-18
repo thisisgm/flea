@@ -109,7 +109,7 @@ fn ensure_until(path: &Path, root: &Path, plate: Option<usize>, ticket: &codereq
         header
     };
     let data = crate::jsondoc::parse(&summary)?;
-    if plate.is_some_and(|p| data.get("plates").and_then(|v| v.as_array()).is_none_or(|a| p >= a.len())) { return Err("3D plate is out of range".into()) }
+    if plate.is_some_and(|p| data.get("plates").and_then(|v| v.as_array()).map_or(true, |a| p >= a.len())) { return Err("3D plate is out of range".into()) }
     let thumbnail = cache::embedded(root,&key,&thumbnails,plate);
     cache::evict(root);
     Ok(Ready { file: dest, thumbnail, summary })

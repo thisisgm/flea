@@ -381,9 +381,7 @@ fn handle_line(
                 ops.jobs.submit(
                     out,
                     job,
-                    "send",
-                    "Sending",
-                    None,
+                    super::jobwork::Spec { kind: "send", label: "Sending", target: None },
                     super::jobwork::Work::Send {
                         peer,
                         paths,

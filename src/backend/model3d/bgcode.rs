@@ -68,8 +68,8 @@ pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
         let payload = at.checked_add(params).and_then(|n| n.checked_add(packed)).filter(|&n| n <= bytes.len()).ok_or("truncated binary G-code block")?;
         expanded_total = expanded_total.checked_add(expanded).filter(|&n| n <= MAX_EXPANDED).ok_or("binary G-code expansion exceeds its bound")?;
         let source = &bytes[at+params..payload];
-        if checksum == 1 {
-            if u32_at(bytes,payload)? != codecs::crc32(&bytes[begin..payload]) { return Err("binary G-code checksum mismatch".into()) }
+        if checksum == 1 && u32_at(bytes,payload)? != codecs::crc32(&bytes[begin..payload]) {
+            return Err("binary G-code checksum mismatch".into());
         }
         let data = match compression {
             0 => source.to_vec(),

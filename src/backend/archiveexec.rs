@@ -10,6 +10,16 @@ use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 
+pub(crate) struct ArchiveRequest {
+    pub compressing: bool,
+    pub paths: Vec<String>,
+    pub format: String,
+    pub archive: PathBuf,
+    pub dest: PathBuf,
+    pub password: String,
+    pub encrypt_names: bool,
+}
+
 #[cfg(test)]
 pub(crate) fn run_archive(
     id: usize,
@@ -27,16 +37,10 @@ pub(crate) fn run_archive(
 ) {
     let line = archive_line(
         id,
-        compressing,
-        paths,
-        format,
-        archive,
-        dest,
+        ArchiveRequest { compressing, paths, format, archive, dest, password, encrypt_names },
         formats,
         selection.as_deref(),
         cancel,
-        password,
-        encrypt_names,
     );
     // An extract frees the slot its terminal line took; a compress claims none and leaves the quit registry when its line is read.
     let message = if compressing {
@@ -49,17 +53,12 @@ pub(crate) fn run_archive(
 
 pub(crate) fn archive_line(
     id: usize,
-    compressing: bool,
-    paths: Vec<String>,
-    format: String,
-    archive: PathBuf,
-    dest: PathBuf,
+    request: ArchiveRequest,
     formats: &Formats,
     selection: Option<&[Selected]>,
     cancel: Arc<AtomicBool>,
-    password: String,
-    encrypt_names: bool,
 ) -> String {
+    let ArchiveRequest { compressing, paths, format, archive, dest, password, encrypt_names } = request;
     let sources: Vec<PathBuf> = if compressing {
         paths.iter().map(PathBuf::from).collect()
     } else {

@@ -13,7 +13,7 @@ pub struct SlicerFacts {
 
 fn positive(value: &str) -> Option<f64> {
     let value = value.trim().parse::<f64>().ok()?;
-    (value.is_finite() && value >= 0. && value <= 1e12).then_some(value)
+    (value.is_finite() && (0. ..=1e12).contains(&value)).then_some(value)
 }
 
 fn values(value: &str) -> Vec<f64> {

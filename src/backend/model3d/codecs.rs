@@ -13,7 +13,7 @@ struct Bits<'a> { bytes: &'a [u8], bit: usize }
 
 impl Bits<'_> {
     fn get(&mut self, count: usize) -> Result<usize> {
-        if self.bit.checked_add(count).is_none_or(|end| end > self.bytes.len() * 8) { return Err("truncated compressed stream".into()) }
+        if self.bit.checked_add(count).map_or(true, |end| end > self.bytes.len() * 8) { return Err("truncated compressed stream".into()) }
         let mut value = 0;
         for shift in 0..count {
             value |= usize::from((self.bytes[self.bit / 8] >> (self.bit % 8)) & 1) << shift;

@@ -8,7 +8,7 @@ use std::io::Write;
 use std::path::PathBuf;
 use std::time::Duration;
 
-type Outcome = Result<(PathBuf, Vec<Step>), FleaError>;
+pub(crate) type Outcome = Result<(PathBuf, Vec<Step>), FleaError>;
 
 // The placeholder records every journal mutation while its history belongs to the publisher.
 pub(crate) enum Publication {

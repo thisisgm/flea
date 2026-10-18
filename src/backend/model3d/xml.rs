@@ -77,10 +77,10 @@ pub(super) fn parse(source: &str) -> Result<Document> {
             at += end;
             continue;
         }
-        if left.starts_with("<!--") {
-            let end = left[4..].find("-->").ok_or("truncated XML comment")? + 4;
-            if left[4..end].contains("--") { return Err("invalid XML comment".into()) }
-            at += end+3;
+        if let Some(body) = left.strip_prefix("<!--") {
+            let end = body.find("-->").ok_or("truncated XML comment")?;
+            if body[..end].contains("--") { return Err("invalid XML comment".into()) }
+            at += 4+end+3;
             continue;
         }
         if let Some(body) = left.strip_prefix("<![CDATA[") {

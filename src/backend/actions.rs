@@ -275,9 +275,7 @@ pub(crate) fn ready(
             ops.jobs.submit(
                 out,
                 id,
-                "action",
-                &label,
-                None,
+                super::jobwork::Spec { kind: "action", label: &label, target: None },
                 super::jobwork::Work::Action {
                     action,
                     paths,

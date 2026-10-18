@@ -18,6 +18,7 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
         | OpMsg::MergeDone { id, .. }
         | OpMsg::DetachedDone { id, .. }
         | OpMsg::JobDone { id, .. } => (*id, true),
+        #[cfg(test)]
         OpMsg::SlotDone { line } => (field_usize(line, "id").unwrap_or(0), true),
         _ => return,
     };
@@ -180,19 +181,9 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
                 job.done = job.total;
             }
         }
-        OpMsg::SlotDone { line } | OpMsg::DetachedDone { line, .. } => {
-            let success = crate::json::field_bool(line, "ok");
-            job.reason = field_str(line, "err").unwrap_or_default();
-            job.state = if success { State::Done } else { State::Failed };
-            job.cancelled = job.cancel.load(Ordering::Relaxed);
-            if job.cancelled {
-                job.state = State::Done;
-                job.reason.clear();
-            }
-            if success {
-                job.done = job.total;
-            }
-        }
+        #[cfg(test)]
+        OpMsg::SlotDone { line } => archive_done(job, line),
+        OpMsg::DetachedDone { line, .. } => archive_done(job, line),
         _ => {}
     }
     if terminal {
@@ -215,6 +206,20 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
     }
     if terminal {
         ops.jobs.advance(out, &ops.detached, &ops.tx);
+    }
+}
+
+fn archive_done(job: &mut Job, line: &str) {
+    let success = crate::json::field_bool(line, "ok");
+    job.reason = field_str(line, "err").unwrap_or_default();
+    job.state = if success { State::Done } else { State::Failed };
+    job.cancelled = job.cancel.load(Ordering::Relaxed);
+    if job.cancelled {
+        job.state = State::Done;
+        job.reason.clear();
+    }
+    if success {
+        job.done = job.total;
     }
 }
 

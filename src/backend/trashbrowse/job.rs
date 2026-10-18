@@ -69,14 +69,14 @@ impl TrashBrowser {
         pending: Vec<PathBuf>,
         body: String,
         job: Option<(Progress, Cancellation)>,
-    ) -> Result<(), std::sync::mpsc::SendError<BrowserRequest>> {
+    ) -> Result<(), Box<std::sync::mpsc::SendError<BrowserRequest>>> {
         // Every request supersedes browser reads; a delete keeps its independent operation flag.
         let next = self.cancellation.next();
         let (cancellation, job) = match job {
             Some((progress, cancellation)) => (cancellation, Some(progress)),
             None => (next, None),
         };
-        self.tx.send((line, cancellation, pending, body, job))
+        self.tx.send((line, cancellation, pending, body, job)).map_err(Box::new)
     }
 }
 
@@ -122,7 +122,7 @@ impl Progress {
             || self
                 .last
                 .get()
-                .is_none_or(|last| now.duration_since(last) >= Duration::from_millis(150))
+                .map_or(true, |last| now.duration_since(last) >= Duration::from_millis(150))
         {
             self.last.set(Some(now));
             let _ = self.tx.send(OpMsg::JobEntries {
