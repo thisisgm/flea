@@ -51,11 +51,12 @@ fn sandbox_availability_rejects_relative_launcher_entries() {
             .env("PATH", format!("rel:{}", root.join("abs").display()))
             .output()
             .unwrap();
-        println!("{}", String::from_utf8_lossy(&output.stdout));
-        println!("{}", String::from_utf8_lossy(&output.stderr));
+        // The child's output stays captured; echoing a SKIP line from it would count as a skip in CI.
         assert!(
             output.status.success(),
-            "{relative_tool} probe child failed"
+            "{relative_tool} probe child failed: {}{}",
+            String::from_utf8_lossy(&output.stdout),
+            String::from_utf8_lossy(&output.stderr)
         );
         assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
     }
