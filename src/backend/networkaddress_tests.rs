@@ -11,13 +11,23 @@ fn underscore_hosts_remain_valid_when_typed_and_reopened() {
 
 #[test]
 fn nearby_avahi_underscore_host_produces_no_row() {
-    let line = "=;eth0;IPv4;NAS;_smb._tcp;local;file_server.local;192.0.2.1;445;\n";
+    let line = "=;eth0;IPv4;NAS;_smb._tcp;local;file_server.local;192.0.2.1;445;\"path=/share\"\n";
+    let control = line.replace("file_server.local", "file-server.local");
+    let rows = crate::backend::nearbyrows::avahi(&control, "_smb._tcp");
+    assert_eq!(rows.len(), 1, "the same resolve line must work without the underscore");
+    assert_eq!(rows[0].address.host, "file-server.local");
+    eprintln!("F10 Avahi control: one row for {}", rows[0].address.host);
     assert!(crate::backend::nearbyrows::avahi(line, "_smb._tcp").is_empty());
 }
 
 #[test]
 fn nearby_tailnet_underscore_host_produces_no_row() {
-    let status = r#"{"BackendState":"Running","Peer":{"one":{"Online":true,"DNSName":"file_server.tail.ts.net."}}}"#;
+    let status = r#"{"BackendState":"Running","Peer":{"one":{"Online":true,"DNSName":"file_server.tail.ts.net.","HostName":"NAS","OS":"linux"}}}"#;
+    let control = status.replace("file_server.tail.ts.net.", "file-server.tail.ts.net.");
+    let rows = crate::backend::nearbyrows::tailscale(&control).unwrap();
+    assert_eq!(rows.len(), 1, "the same peer must work without the underscore");
+    assert_eq!(rows[0].address.host, "file-server.tail.ts.net");
+    eprintln!("F10 tailnet control: one row for {}", rows[0].address.host);
     assert!(crate::backend::nearbyrows::tailscale(status).unwrap().is_empty());
 }
 
