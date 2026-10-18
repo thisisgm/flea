@@ -249,20 +249,21 @@ def serve(spec_path):
             if negative:
                 save(case / "dropped-responses.json", {"forced_fallback": True, "base64": negative.dropped})
         finally:
-            # SIGWINCH goes back before the master closes. The stop signals stay routed to stop() until the reap,
-            # the terminal restore and the receipts are written, so a late SIGTERM cannot end the relay half-way.
+            # SIGWINCH goes back before the master closes; stop signals stay on stop() past the reap, restore and receipts.
             if signal.SIGWINCH in previous_handlers:
                 signal.signal(signal.SIGWINCH, previous_handlers.pop(signal.SIGWINCH))
-            os.close(master)
-            if log:
-                log.close()
-            if graphics:
-                graphics.close()
-            server.close()
-            for client in clients:
-                client.close()
-            for sig, handler in previous_handlers.items():
-                signal.signal(sig, handler)
+            try:
+                os.close(master)
+                if log:
+                    log.close()
+                if graphics:
+                    graphics.close()
+                server.close()
+                for client in clients:
+                    client.close()
+            finally:
+                for sig, handler in previous_handlers.items():
+                    signal.signal(sig, handler)
     return status if status >= 0 else 128 - status
 
 

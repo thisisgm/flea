@@ -20,8 +20,9 @@ RESIZED = struct.pack("HHHH", 1, 1, 10, 10)  # the geometry the winsize double r
 
 
 class Server:
-    def __init__(self):
+    def __init__(self, fail=False):
         self.closed = False
+        self.fail = fail
 
     def __enter__(self):
         return self
@@ -40,6 +41,8 @@ class Server:
 
     def close(self):
         self.closed = True
+        if self.fail:
+            raise OSError("server close refused")
 
 
 def run_relay(case, scenario):
@@ -48,7 +51,7 @@ def run_relay(case, scenario):
     spec.write_text(json.dumps({"argv": ["candidate"], "environment": {}}))
     if scenario == "start-failure":
         (case / "relay-start.json").write_text("exclusive-create collision\n")
-    server, handlers, closed, logs, forwarded, restored, killed = Server(), {}, [], [], [], [], []
+    server, handlers, closed, logs, forwarded, restored, killed = Server(scenario == "server-close-failure"), {}, [], [], [], [], []
     installed, geometry, reaps, winch_restored = set(), [], [], None
     # The teardown case ends on master EOF with the child still running, so the shutdown path must reap it.
     output = [b"first", b"FINAL\x1b[?1049l\x1b[?25h"] if scenario == "drain" else [b""] if scenario == "teardown" else ["議".encode()]
@@ -74,6 +77,8 @@ def run_relay(case, scenario):
             winch_restored = handlers.get(signal.SIGWINCH, signal.SIG_DFL) == signal.SIG_DFL
         if scenario == "resize-close" and callable(handlers.get(signal.SIGWINCH)):
             handlers[signal.SIGWINCH]()
+        if scenario == "master-close-failure":
+            raise OSError("master close refused")
 
     def ioctl(fd, request=None, data=None, *_):
         if fd == MASTER_FD and fd in closed:
@@ -89,14 +94,13 @@ def run_relay(case, scenario):
         return previous
 
     def waitpid(*_):
-        # Each call records whether the stop signals are still routed and whether the resize has reached the PTY.
+        # Each call records whether the stop signals are still routed and how many resizes have reached the PTY.
         call = len(reaps)
+        exited = not (scenario == "teardown" and call < 2 or scenario == "resize-feed" and call < 1)
         reaps.append({"torn_down": bool(killed), "stop_routed": all(callable(handlers.get(sig)) for sig in (
                           signal.SIGTERM, signal.SIGHUP, signal.SIGINT)),
-                      "applied": RESIZED in geometry})
-        if scenario == "teardown" and call < 2 or scenario == "resize-feed" and call < 1:
-            return (0, 0)
-        return (CHILD_PID, 0)
+                      "applied": geometry.count(RESIZED), "exited": exited})
+        return (CHILD_PID, 0) if exited else (0, 0)
 
     def open_file(path, *args, **kwargs):
         if scenario == "log-failure" and path.name == "graphics.log" and args and args[0] == "x":
@@ -132,6 +136,9 @@ def run_relay(case, scenario):
             error = caught
         finally:
             sys.settrace(None)
+    # The loop's own reap of the exited child, before any teardown kill, must find every resize already applied.
+    reaped = next((r for r in reaps if r["exited"]), None)
+    applied = geometry.count(RESIZED)
     result = dict(error=error, code=code, forwarded=b"".join(forwarded), unread=list(output),
                   restored=restored, killed=killed, server_closed=server.closed,
                   master_closed=MASTER_FD in closed, logs_closed=all(stream.closed for stream in logs),
@@ -139,7 +146,8 @@ def run_relay(case, scenario):
                   handlers_installed=sorted(installed), winch_restored_at_master_close=winch_restored,
                   stop_routed_during_teardown=bool(reaps) and all(r["stop_routed"] for r in reaps if r["torn_down"])
                   and any(r["torn_down"] for r in reaps),
-                  applied_before_reap=bool(reaps) and reaps[-1]["applied"])
+                  applied_before_reap=bool(reaped) and not reaped["torn_down"] and applied > 0
+                  and reaped["applied"] == applied)
     result["events"] = [json.loads(line) for line in (case / "pty.log").read_text().splitlines()]
     for stream in logs:
         stream.close()
