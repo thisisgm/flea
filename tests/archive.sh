@@ -97,6 +97,24 @@ for format in $round_trip_formats; do
   stop_backend
 done
 
+# A program member at 0755 keeps its owner execute bit through Flea's own extract, for a zip and a tar.xz.
+mkdir -p "$D/execsrc" || exit 1
+printf '\177ELF\002\001\001' > "$D/execsrc/Godot_linux.x86_64" || exit 1
+chmod 755 "$D/execsrc/Godot_linux.x86_64" || exit 1
+for format in zip tar.xz; do
+  echo "--- extract keeps the execute bit of a $format member ---"
+  if ! bsdtar -a -c -f "$D/exec.$format" -C "$D/execsrc" Godot_linux.x86_64; then
+    echo "FAIL bsdtar could not build the $format fixture"; fail=1; continue
+  fi
+  start_backend
+  send "{\"c\":\"archive\",\"op\":\"extract\",\"path\":\"$D/exec.$format\",\"dest\":\"$D/exec-back-$format\"}"
+  await '"t":"archivedone","id":1' || fail=1
+  check "$format with a 0755 program extracted without error" "1" "$(seen '"t":"archivedone","id":1,"ok":true')"
+  echo "  mode after extract: $(stat -c %a "$D/exec-back-$format/Godot_linux.x86_64" 2>/dev/null || echo missing)"
+  check "and the program kept its owner execute bit" "x" "$(stat -c %A "$D/exec-back-$format/Godot_linux.x86_64" 2>/dev/null | cut -c4)"
+  stop_backend
+done
+
 # A selected name holding a wildcard is taken literally: beside an unselected sibling only one entry lands.
 if [ "$seven_zip_advertised" = 1 ]; then
 echo "--- a wildcard-looking name compresses literally ---"

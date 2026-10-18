@@ -223,6 +223,9 @@ mod undostage_tests;
 // Test-only: a kernel network mount's EINVAL on RENAME_NOREPLACE, routed to a plain rename and never a copy.
 #[cfg(test)]
 mod renamecompat_tests;
+// Test-only: a program's execute bit through a copy and the two moves the ops run.
+#[cfg(test)]
+mod copyexec_tests;
 // Test-only: the closing progress line a paced transfer sends after its last item.
 #[cfg(test)]
 mod transferclose_tests;
