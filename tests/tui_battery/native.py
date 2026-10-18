@@ -2,6 +2,7 @@
 import json
 import os
 from pathlib import Path
+import shlex
 import signal
 import subprocess
 import sys
@@ -96,7 +97,30 @@ class Terminal:
         self.launched = False
 
     def launch(self, argv, environment, graphics_negative=False):
-        raise Blocked("native launch needs exec window rules (workspace, monitor, float) with no Lua-safe typed helper form")
+        root = str(Path(__file__).resolve().parents[1])
+        environment = dict(environment, PYTHONPATH=root)
+        save(self.case / "relay-spec.json", {"argv": argv, "environment": environment, "graphics_negative": graphics_negative})
+        relay_command = [sys.executable, "-m", "tui_battery.relay", str(self.case / "relay-spec.json")]
+        terminal_argv = self.adapter.argv(relay_command)
+        if self.adapter.tmux_socket and len(os.fsencode(self.adapter.tmux_socket)) >= 100:
+            raise Blocked("private tmux socket path is too long; use a shorter marked evidence root")
+        terminal_environment = dict(self.adapter.environment(), PYTHONPATH=root, PYTHONDONTWRITEBYTECODE="1")
+        save(self.case / "launch-spec.json", {"argv": terminal_argv, "environment": terminal_environment})
+        wrapper = ["env", f"PYTHONPATH={root}", sys.executable, "-m", "tui_battery.native", "--launch", str(self.case / "launch-spec.json")]
+        # The window rules run a script file, so no argv byte reaches the Lua string.
+        launcher = self.case / "launch.sh"
+        descriptor = os.open(launcher, os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o700)
+        with os.fdopen(descriptor, "w") as handle:
+            handle.write("#!/bin/bash\nexec " + shlex.join(wrapper) + "\n")
+        compositor(self.commands, "hypr_session_exec_rules", self.display.workspace, self.display.output, str(launcher.absolute()))
+        self.launched = True
+        self.client = wait_for(lambda: self.display.client(self.adapter.identity), self.timeout, "owned native client")
+        wait_for(lambda: (self.case / "relay-start.json").is_file(), self.timeout, "controlling PTY")
+        start = json.loads((self.case / "relay-start.json").read_text())
+        if not start["stdin_tty"] or not start["stdout_tty"]:
+            raise Blocked("candidate stdin/stdout are not real TTYs")
+        compositor(self.commands, "hypr_window_rounding", self.client["address"], "8")
+        return start
 
     def snapshot(self):
         self.client = self.display.client(self.adapter.identity)

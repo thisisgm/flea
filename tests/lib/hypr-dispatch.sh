@@ -154,6 +154,20 @@ hypr_session_exec_script() {
     _hypr_reply_ok "$status" "$answer" "$@"
 }
 
+# Sample input: hypr_session_exec_rules name:tui-proof FLEA-tui-proof /tmp/case/launch.sh, the script runs under window rules.
+hypr_session_exec_rules() {
+    _hypr_arity hypr_session_exec_rules 'WORKSPACE OUTPUT SCRIPT' "$@" || return 1
+    _hypr_workspace hypr_session_exec_rules "$1" || return 1
+    _hypr_output_name hypr_session_exec_rules "$2" || return 1
+    [[ "$3" == /* && "$3" != *[!a-zA-Z0-9_./=-]* ]] || {
+        _hypr_refuse hypr_session_exec_rules "$3" 'expected an absolute script path without shell metacharacters'
+        return 1
+    }
+    local answer status=0
+    answer=$(hyprctl dispatch "hl.dsp.exec_cmd(\"/bin/bash '$3'\", { workspace = \"$1 silent\", monitor = \"$2\", float = true })" 2>&1) || status=$?
+    _hypr_reply_ok "$status" "$answer" "$@"
+}
+
 _hypr_output_name() {
     [[ "$2" =~ ^FLEA-[A-Za-z0-9._-]+$ ]] || _hypr_refuse "$1" "$2" 'expected an owned FLEA- output name'
 }
@@ -172,6 +186,10 @@ _hypr_mods() {
 
 _hypr_key_name() {
     [[ "$2" =~ ^[A-Za-z0-9_]+$ ]] || _hypr_refuse "$1" "$2" 'expected a key name without separators'
+}
+
+_hypr_workspace() {
+    [[ "$2" =~ ^[A-Za-z0-9_:.-]+$ ]] || _hypr_refuse "$1" "$2" 'expected a workspace name or number without quotes, spaces or shell metacharacters'
 }
 
 hypr_window_send_shortcut() {
@@ -267,6 +285,7 @@ _hypr_program() {
         window_opacity) hypr_window_opacity "$@" ;;
         cursor_move) hypr_cursor_move "$@" ;;
         session_exec_script) hypr_session_exec_script "$@" ;;
+        session_exec_rules) hypr_session_exec_rules "$@" ;;
         window_send_shortcut) hypr_window_send_shortcut "$@" ;;
         window_rounding) hypr_window_rounding "$@" ;;
         output_create) hypr_output_create "$@" ;;
