@@ -30,10 +30,11 @@ jobs:
         run: |
           set -euo pipefail
           for line in \
-            'sudo apt-get install -y -o Acquire::Retries=3 libarchive-tools libglib2.0-bin libvulkan1 bubblewrap' \
-            'run: cargo test --release --locked' \
-            'run: cargo build --release --locked' \
-            'run: packaging/flea-bin-tarball target/release/flea "$VERSION" "$ARCH" dist' \
+            'run: packaging/flea-release-build install-deps' \
+            'run: packaging/flea-release-build test' \
+            'run: packaging/flea-release-build build' \
+            'run: packaging/flea-release-build stage' \
+            'run: packaging/flea-release-build check' \
             'versioned_pkgbuilds=(PKGBUILD packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD)' \
             'aur_pkgbuilds=(packaging/flea-bin/PKGBUILD packaging/flea/PKGBUILD packaging/flea-git/PKGBUILD)'; do
             grep -qF -- "$line" .github/workflows/release.yml \
@@ -63,7 +64,7 @@ jobs:
             bash -c 'source "./$1"; printf "%s\n" "depends:" "${depends[@]}" "optdepends:" "${optdepends[@]}"' _ "$1"
           }
           # Sample input: from `package() {` to the next line that is exactly `}`, minus comments, blank lines, the cd line and the binary line.
-          body() { sed -n '/^package() {/,/^}/p' "$1" | grep -v -E '^[[:space:]]*(#|$)|^  cd |/usr/bin/flea"$'; }
+          body() { sed -n '/^package() {/,/^}/p' "$1" | grep -v -E '^[[:space:]]*(#|$)|^  cd |/usr/bin/flea(-gui)?"$'; }
           for pkgbuild in "${aur_pkgbuilds[@]}"; do
             if ! diff <(closure PKGBUILD) <(closure "$pkgbuild"); then
               echo "::error::$pkgbuild's depends or optdepends differ from PKGBUILD's"; fail=1
@@ -101,36 +102,17 @@ jobs:
         with:
           toolchain: stable
 
-      - name: Install what the test suite shells out to
-        run: |
-          set -eu
-          sudo apt-get update -o Acquire::Retries=3
-          sudo apt-get install -y -o Acquire::Retries=3 libarchive-tools libglib2.0-bin libvulkan1 bubblewrap
+      - name: Install what GPUI and the test suite need
+        run: packaging/flea-release-build install-deps
 
       - name: Test
-        run: cargo test --release --locked
+        run: packaging/flea-release-build test
 
       - name: Build
-        run: cargo build --release --locked
+        run: packaging/flea-release-build build
 
       - name: Stage the flea-bin tarball
-        run: packaging/flea-bin-tarball target/release/flea "$VERSION" "$ARCH" dist
+        run: packaging/flea-release-build stage
 
       - name: The tarball holds every path flea-bin's package() installs
-        run: |
-          set -euo pipefail
-          unpacked=$(mktemp -d)
-          tar -xzf "dist/flea-v$VERSION-linux-$ARCH.tar.gz" -C "$unpacked"
-          cd "$unpacked/flea-$VERSION-linux-$ARCH"
-          # Sample input: `  install -Dm644 packaging/flea.portal -t "$pkgdir/usr/share/xdg-desktop-portal/portals"`.
-          # shellcheck disable=SC2016 # the pattern matches a literal $pkgdir
-          sources=$(sed -n '/^package() {/,/^}/p' "$GITHUB_WORKSPACE/packaging/flea-bin/PKGBUILD" \
-            | grep -E '^[[:space:]]*install ' | tr -s ' ' '\n' | grep -vE '^(|install|-[A-Za-z0-9]+|"?\$pkgdir.*)$') \
-            || { echo "::error::no install path could be read from packaging/flea-bin/PKGBUILD's package()"; exit 1; }
-          missing=0
-          while read -r source; do
-            compgen -G "$source" >/dev/null || {
-              echo "::error::flea-bin's package() installs $source, which packaging/flea-bin-tarball did not stage"; missing=1; }
-          done <<< "$sources"
-          echo "checked $(wc -l <<< "$sources") paths flea-bin's package() installs"
-          exit "$missing"
+        run: packaging/flea-release-build check

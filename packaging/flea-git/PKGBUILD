@@ -11,8 +11,8 @@ pkgdesc='Fast, keyboard-first file manager for Omarchy (git version)'
 arch=('x86_64' 'aarch64')
 url='https://github.com/thisisgm/flea'
 license=('MIT' 'Apache-2.0')
-depends=('bat' 'bubblewrap' 'expect' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'kimageformats' 'libheif' 'omarchy' 'python' 'python-gobject' 'qt6-multimedia' 'qt6-webengine' 'quickjs-ng' 'quickshell' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
-makedepends=('cargo' 'git')
+depends=('bat' 'bubblewrap' 'expect' 'fontconfig' 'freetype2' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'kimageformats' 'libglvnd' 'libheif' 'libx11' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'omarchy' 'python' 'python-gobject' 'qt6-multimedia' 'qt6-webengine' 'quickjs-ng' 'quickshell' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'vulkan-driver' 'vulkan-icd-loader' 'wayland' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
+makedepends=('cargo' 'git' 'pkgconf')
 provides=("$_pkgname")
 # flea-bin provides flea, so this one conflict keeps all three packages mutually exclusive.
 conflicts=("$_pkgname")
@@ -35,16 +35,21 @@ pkgver() {
   git describe --long --tags --abbrev=7 | sed 's/^v//;s/\([^-]*-g\)/r\1/;s/-/./g'
 }
 
+prepare() {
+  cd "$srcdir/$pkgname"
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
 build() {
   export CARGO_TARGET_DIR="$srcdir/target"
   cd "$srcdir/$pkgname"
-  cargo build --release --locked
+  cargo build --release --offline --frozen --workspace --bins
 }
 
 check() {
   export CARGO_TARGET_DIR="$srcdir/target"
   cd "$srcdir/$pkgname"
-  cargo test --release --locked
+  cargo test --release --offline --frozen --workspace
   ./tests/js.sh
   ./tests/keymap-gen.sh
 }
@@ -53,6 +58,7 @@ check() {
 package() {
   cd "$srcdir/$pkgname"
   install -Dm755 "$srcdir/target/release/flea" "$pkgdir/usr/bin/flea"
+  install -Dm755 "$srcdir/target/release/flea-gui" "$pkgdir/usr/bin/flea-gui"
   install -Dm755 tools/flea-gio-auth "$pkgdir/usr/lib/flea/flea-gio-auth"
   install -Dm755 tools/flea-udisks "$pkgdir/usr/lib/flea/flea-udisks"
   install -Dm755 tools/flea-portal "$pkgdir/usr/lib/flea/flea-portal"

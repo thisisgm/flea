@@ -10,7 +10,7 @@ pkgdesc='Fast, keyboard-first file manager for Omarchy (prebuilt binary)'
 arch=('x86_64' 'aarch64')
 url='https://github.com/thisisgm/flea'
 license=('MIT' 'Apache-2.0')
-depends=('bat' 'bubblewrap' 'expect' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'kimageformats' 'libheif' 'omarchy' 'python' 'python-gobject' 'qt6-multimedia' 'qt6-webengine' 'quickjs-ng' 'quickshell' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
+depends=('bat' 'bubblewrap' 'expect' 'fontconfig' 'freetype2' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'kimageformats' 'libglvnd' 'libheif' 'libx11' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'omarchy' 'python' 'python-gobject' 'qt6-multimedia' 'qt6-webengine' 'quickjs-ng' 'quickshell' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'vulkan-driver' 'vulkan-icd-loader' 'wayland' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
 optdepends=('libarchive: archive listing and extraction'
             '7zip: 7z archive support'
             'imagemagick: image conversion'
@@ -36,6 +36,7 @@ sha256sums_aarch64=('SKIP')
 package() {
   cd "$_pkgname-$pkgver-linux-$CARCH"
   install -Dm755 flea "$pkgdir/usr/bin/flea"
+  install -Dm755 flea-gui "$pkgdir/usr/bin/flea-gui"
   install -Dm755 tools/flea-gio-auth "$pkgdir/usr/lib/flea/flea-gio-auth"
   install -Dm755 tools/flea-udisks "$pkgdir/usr/lib/flea/flea-udisks"
   # The portal backend, its registration and its D-Bus activation; xdg-desktop-portal 1.22 reads every data dir's portals/.

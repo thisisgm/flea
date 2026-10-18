@@ -18,7 +18,7 @@ license=('MIT' 'Apache-2.0')
 # qt6-webengine ships QtQuick.Pdf and qt6-multimedia ships QtMultimedia, which ui/PreviewPdf.qml and
 # ui/PreviewMedia.qml import: neither is in the omarchy plus quickshell closure, so a clean box
 # installed a Flea whose PDF and media preview could not load at all.
-# gcc-libs and glibc are the binary's only direct links, and hicolor-icon-theme owns the directory
+# gcc-libs and glibc support both binaries, and hicolor-icon-theme owns the directory
 # the desktop icon is installed into.
 # python is the interpreter of two scripts this package installs and D-Bus activates at runtime, so
 # it is a runtime dependency rather than only the checkdepend the sandboxed child needs.
@@ -29,9 +29,12 @@ license=('MIT' 'Apache-2.0')
 # and answers zero folders, and AFC is the one that lists DCIM, so the iPhone needs both.
 # quickjs-ng is what flea --figure-helper execs for Markdown maths and diagrams, so figures need it installed.
 
+# GPUI links Fontconfig, FreeType, XCB and XKB; Wayland and Vulkan are loaded at runtime.
+# libglvnd and libx11 support the renderer fallback; vulkan-driver supplies a usable ICD.
+# git fetches the pinned GPUI fork in prepare(), and pkgconf locates its system libraries.
 # bat colours code previews and jq formats JSON before the sandbox renders it.
-depends=('bat' 'bubblewrap' 'expect' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'kimageformats' 'libheif' 'omarchy' 'python' 'python-gobject' 'qt6-multimedia' 'qt6-webengine' 'quickjs-ng' 'quickshell' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
-makedepends=('cargo')
+depends=('bat' 'bubblewrap' 'expect' 'fontconfig' 'freetype2' 'gcc-libs' 'glib2' 'glibc' 'gvfs' 'gvfs-afc' 'gvfs-dnssd' 'gvfs-gphoto2' 'gvfs-mtp' 'gvfs-nfs' 'gvfs-smb' 'hicolor-icon-theme' 'jq' 'kimageformats' 'libglvnd' 'libheif' 'libx11' 'libxcb' 'libxkbcommon' 'libxkbcommon-x11' 'omarchy' 'python' 'python-gobject' 'qt6-multimedia' 'qt6-webengine' 'quickjs-ng' 'quickshell' 'shared-mime-info' 'udisks2' 'usbmuxd' 'util-linux' 'vulkan-driver' 'vulkan-icd-loader' 'wayland' 'wl-clipboard' 'xdg-terminal-exec' 'xdg-utils')
+makedepends=('cargo' 'git' 'pkgconf')
 # Both packages own /usr/bin/flea, so pacman refuses the pair rather than leaving one half-installed.
 conflicts=('flea-git')
 optdepends=('libarchive: archive listing and extraction'
@@ -48,17 +51,22 @@ options=('!debug')
 # Empty on purpose: with no source array makepkg builds from $startdir, so a clone is the source.
 source=()
 
+prepare() {
+  cd "$startdir"
+  cargo fetch --locked --target "$(rustc -vV | sed -n 's/host: //p')"
+}
+
 build() {
   # Its own target directory, so a makepkg run never disturbs the checkout's target/.
   export CARGO_TARGET_DIR="$srcdir/target"
   cd "$startdir"
-  cargo build --release --locked
+  cargo build --release --offline --frozen --workspace --bins
 }
 
 check() {
   export CARGO_TARGET_DIR="$srcdir/target"
   cd "$startdir"
-  cargo test --release --locked
+  cargo test --release --offline --frozen --workspace
   # These two need no built binary and locate themselves, so they run correctly under makepkg.
   # The rest of tests/ resolves ./target/<profile>/flea against the repo root, which CARGO_TARGET_DIR
   # has moved, so they would refuse on a clean clone or silently test a stale binary on a dev box.
@@ -69,6 +77,7 @@ check() {
 package() {
   cd "$startdir"
   install -Dm755 "$srcdir/target/release/flea" "$pkgdir/usr/bin/flea"
+  install -Dm755 "$srcdir/target/release/flea-gui" "$pkgdir/usr/bin/flea-gui"
   install -Dm755 tools/flea-gio-auth "$pkgdir/usr/lib/flea/flea-gio-auth"
   install -Dm755 tools/flea-udisks "$pkgdir/usr/lib/flea/flea-udisks"
   # The portal backend, its registration and its D-Bus activation: xdg-desktop-portal 1.22 reads
