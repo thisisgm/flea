@@ -149,6 +149,13 @@ CALLER
     if [ "$status" != 0 ]; then
         echo "--- bus daemon and backend log ---"
         cat "$dir/bus.log"
+    else
+        python3 "$tree/tests/portal-startup-lifetime.py"
+        status=$?
+        if [ "$status" = 0 ]; then
+            python3 "$tree/tests/portal-startup-installer.py"
+            status=$?
+        fi
     fi
     exit "$status"
 fi
@@ -244,6 +251,9 @@ for arm in "control stub org.freedesktop.impl.portal.desktop.stub" "flea flea;gt
     owned "$owner"
     check "$name arm: the frontend activated the backend at its own start" "1" "$has_owner"
     if [ "$name" = flea ]; then
+        reply=$(busctl --user --auto-start=no --timeout=5s get-property "$desktop" /org/freedesktop/portal/desktop org.freedesktop.portal.FileChooser version 2>&1)
+        check "flea arm: the installer's readiness probe reaches the real frontend" "0" "$?"
+        check "flea arm: the readiness reply is a nonzero unsigned version" "1" "$(grep -Ec '^u [1-9][0-9]*$' <<< "$reply")"
         wait_name down "$owner" 60
         released=$elapsed
         check "flea arm: the backend released its name after its idle exit" "0" "$([ "$released" = never ] && echo 1 || echo 0)"
