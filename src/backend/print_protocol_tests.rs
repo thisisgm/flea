@@ -165,14 +165,15 @@ fn print_protocol_lists_the_default_and_the_no_printer_state() {
 }
 
 #[test]
-fn print_input_passes_every_other_kind_through_and_leaves_the_cache_alone() {
-    let d = TestDir::new("print-input");
-    let cache = d.dir("cache");
-    let source = d.file("report.pdf", "%PDF-1.4");
+fn print_input_fetches_an_office_document_and_passes_every_other_kind_through() {
+    let (source, fetched) = (PathBuf::from("/in/report.docx"), PathBuf::from("/cache/report.pdf"));
+    let (calls, cancel) = (std::cell::Cell::new(0), Arc::new(AtomicBool::new(false)));
+    let fetch = |p: &std::path::Path, _| { calls.set(calls.get() + 1); assert_eq!(p, source); Ok(fetched.clone()) };
+    assert_eq!(print_input_with(fetch, &source, printconvert::Kind::Office, &cancel), Ok(fetched.clone()));
     for kind in [printconvert::Kind::Pdf, printconvert::Kind::Image, printconvert::Kind::Text, printconvert::Kind::Other] {
-        assert_eq!(print_input_in(&cache, &source, kind, &Arc::new(AtomicBool::new(false))), Ok(source.clone()));
+        assert_eq!(print_input_with(fetch, &source, kind, &cancel), Ok(source.clone()));
     }
-    assert_eq!(std::fs::read_dir(&cache).unwrap().count(), 0, "a print of any other kind touches no cache");
+    assert_eq!(calls.get(), 1, "only the office document is fetched");
 }
 
 #[test]
