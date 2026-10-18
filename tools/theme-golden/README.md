@@ -1,0 +1,19 @@
+# Theme golden table
+
+`tests/fixtures/theme-golden.tsv` is provisional until the controller runs this probe on Omarchy. It was computed by the Rust module using the 23 palettes in Omarchy commit `bf9ee5c`. It proves repeatability and coverage, not agreement with Qt. Every case retains its palette and shell inputs so the Rust test needs no installed themes.
+
+On the controller's Omarchy machine, run:
+
+```sh
+tools/theme-golden/run.sh /absolute/omarchy/shell /absolute/frozen-v0.3.12/ui /absolute/installed/palettes > candidate.tsv
+```
+
+Each palette directory must contain `colors.toml`. A supplied `shell.toml` wins; otherwise the probe renders Omarchy's shell template using its read-only `omarchy-theme-color --all` resolver, then applies `shell.<section>.toml` overrides. An unknown template function fails explicitly. Pass additional disjoint roots to include user palettes. This runs one Quickshell process with read-only links to Commons and frozen Flea QML. Its HOME, config, state, cache, generated manifest and logs live under a fresh marked `.superpowers/g05/golden.*` directory. It does not set the desktop theme or rewrite user settings. The runner publishes TSV only after the completion sentinel and both-stop coverage pass. Review the candidate, replace the fixture and run `test --locked --bin flea -- theme` through the host broker.
+
+Rows are `palette`, `stop`, `token`, `value`, separated by literal tabs. Colors are normalized to `#AARRGGBB`; scalar control numbers have six decimals. The 114 resolved tokens per case include all ThemeColors fields, Commons font and spacing tokens, control fills and frames, the four control border widths, and the cursor and tag treatments. Control numbers follow Commons' finite `Number` coercion, including whitespace-only zero and Qt's signed 64-bit conversion after radix prefixes. Widths round and clamp to zero, with normal feeding hover and hover feeding focus; selected defaults independently to zero. Decorations use the deterministic baseline of radius 0, gaps 5 and motion enabled. The GUI supplies live Hyprland values through `Decoration`; those compositor values are not palette goldens. Concrete font resolution also belongs to the caller's background `fc-match` task, as in Commons, while the token family remains `monospace`.
+
+The only deliberate derivation changes from the frozen QML are the approved marked-row contrast easing and the 2026-10-17 tag fallback rule. The Gray tag may be gray. Other tag colors below raw RGB saturation 0.12 require digits, as do missing or duplicate raw colors. No hue window is used. The swatch is 14 px and its colors clear 3:1 on the listing and menu grounds.
+
+Run `python3 tools/theme-golden/check.py` for a local parse/load check of the complete exporter against minimal module stubs. It also exercises channel conversion and the retained tag rule at raw saturation 0.12, just below that boundary, at black, with a missing color and with a duplicate color. This is a lightweight exporter regression check; agreement with real Commons still comes from the controller's QML export. Accent and urgent classification use QColor's quantized float HSV saturation, while tag classification uses the frozen helper's raw RGB arithmetic. Spacing follows Commons' `parseFloat` prefix semantics independently of control alpha parsing.
+
+`ThemePaths::load` and `ThemeWatcher::poll` belong on a background thread. Polling compares paths, targets, inode identity, length, mtimes and ctimes, so replacing a theme directory does not lose the subscription. A changed fontconfig stamp asks the caller to rerun `fc-match`; a theme change or Hyprland `configreloaded` asks it to reread decoration options. No compositor or subprocess work happens on a paint path. `Material` exposes the frozen glass ink lift separately; the table describes the default opaque palette.
