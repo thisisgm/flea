@@ -124,11 +124,16 @@ impl Terminal {
         Ok(terminal)
     }
     pub fn run_editor(&mut self, editor: &str, path: &Path) -> io::Result<()> {
+        let mut command = Command::new("/bin/sh");
+        command.args(["-c", &format!("exec {} \"$1\"", editor), "flea-bulk-rename"]).arg(path);
+        self.run_command(command)
+    }
+    pub fn run_command(&mut self, command: Command) -> io::Result<()> {
         self.restore(PREPARE_FOR_EDITOR_FAILED)?;
-        let result = match EditorJob::start(editor, path) {
+        let result = match EditorJob::start(command) {
             Ok(mut editor) => {
             let result = loop {
-                if self.stopped() { break Err(io::Error::other("Bulk rename editor interrupted")); }
+                if self.stopped() { break Err(io::Error::other("Editor interrupted")); }
                 match editor.status() {
                     Ok(Some(status)) => break editor_result(status),
                     Err(error) => break Err(error),
@@ -137,8 +142,7 @@ impl Terminal {
                 const INTERRUPT_POLL: std::time::Duration = std::time::Duration::from_millis(50);
                 std::thread::sleep(INTERRUPT_POLL);
             };
-            editor.close()?;
-            result
+            result.and(editor.close())
             }
             Err(error) => Err(error),
         };
@@ -243,14 +247,12 @@ struct EditorJob {
     restored: bool,
 }
 impl EditorJob {
-    fn start(editor: &str, path: &Path) -> io::Result<Self> {
+    fn start(mut command: Command) -> io::Result<Self> {
         let foreground = unsafe { tcgetpgrp(0) };
         if foreground < 0 { return Err(io::Error::last_os_error()); }
         const IGNORE_SIGNAL: usize = 1;
         let handler = unsafe { signal(SIGTTOU, IGNORE_SIGNAL) };
-        // Sample input: nvim -f; the user's editor command is shell syntax, while the names path is a positional argument.
-        let child = Command::new("/bin/sh").args(["-c", &format!("exec {} \"$1\"", editor), "flea-bulk-rename"])
-            .arg(path).process_group(0).spawn();
+        let child = command.process_group(0).spawn();
         let child = match child {
             Ok(child) => child,
             Err(error) => { unsafe { signal(SIGTTOU, handler); } return Err(error); }
@@ -273,7 +275,7 @@ impl EditorJob {
         if result == 0 { return Ok(None); }
         let status = std::process::ExitStatus::from_raw(status);
         if status.stopped_signal().is_some() {
-            return Err(io::Error::other("Bulk rename editor suspended; rename cancelled"));
+            return Err(io::Error::other("Editor suspended; editing cancelled"));
         }
         self.finished = true;
         Ok(Some(status))

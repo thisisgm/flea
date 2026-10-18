@@ -10,6 +10,14 @@ use std::{io, path::PathBuf};
 
 pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Result<()> {
     let armed = std::mem::take(&mut model.key_arm);
+    if model.choose_pending {
+        if matches!(map.action(key, &model.preset).as_str(), "escape" | "quit" | "quitNoCwd") {
+            model.choose_pending = false;
+            model.chosen = None;
+            model.quit = true;
+        }
+        return Ok(());
+    }
     if model.deletion.is_some() { return deletion_key(model, key, wire); }
     if !model.menu && !model.menu_action.is_empty() && model.menu_action != "menu" {
         let action = map.action(key, &model.preset);
@@ -23,7 +31,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     }
     if model.sheet {
         let action = map.in_context(key, &model.preset, "panel");
-        if action == "escape" || (key.mods.is_empty() && key.text == "?") {
+        if matches!(action.as_str(), "escape" | "open") || (key.mods.is_empty() && key.text == "?") {
             model.sheet = false;
             model.properties = None;
         } else if action == "cursorDown" {
@@ -103,6 +111,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
                 model.menu_action.clear();
                 return act(model, "toggleHidden", wire);
             }
+            _ if !action.is_empty() => model.fail(super::parity::refusal(&action).into()),
             _ => {}
         }
         return Ok(());
@@ -126,6 +135,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
             "preview"
         };
         let action = map.in_context(key, &model.preset, context);
+        if matches!(action.as_str(), "tabNext" | "tabPrevious") { return act(model, &action, wire); }
         if action == "escape" || action == "focusPreview" {
             model.preview_focus = false;
             model.quicklook = false;
@@ -204,28 +214,20 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     if key.name == "Paste" {
         return Ok(());
     }
-    if key.mods.is_empty() && key.text.len() == 1 {
-        if let Ok(n) = key.text.parse::<usize>() {
-            if (1..=9).contains(&n) {
-                return tab(model, n - 1, wire);
-            }
+    let mut action = if model.choosing && key.mods.is_empty() && matches!(key.name.as_str(), "Return" | "Enter") {
+        "open".into()
+    } else { map.action(key, &model.preset) };
+    if let Some(prefix) = armed.strip_prefix("prefix:") {
+        action = map.sequence(prefix, key, &model.preset, "listing");
+        if action.is_empty() {
+            if key.name != "Escape" { model.fail("No action for that key sequence".into()); }
+            return Ok(());
         }
     }
-    if key.name == "PageDown" && key.mods == "ctrl" {
-        return tab(model, (model.tab + 1) % model.tabs.len(), wire);
-    }
-    if key.name == "PageUp" && key.mods == "ctrl" {
-        return tab(
-            model,
-            (model.tab + model.tabs.len() - 1) % model.tabs.len(),
-            wire,
-        );
-    }
-    if key.name == "Tab" && key.mods == "ctrl" {
-        model.preview_focus = model.preview_visible;
+    if action.starts_with("prefix:") {
+        model.key_arm = action;
         return Ok(());
     }
-    let mut action = map.action(key, &model.preset);
     // Issue 133: every trash key refuses on a mount gio cannot trash, before d arms and before the backend fails.
     if matches!(action.as_str(), "trash" | "trashArm") && !super::mounts::trashable(&model.path) {
         model.fail(super::mounts::no_trash(&model.hints.delete_permanently));
@@ -281,8 +283,8 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     act(model, &action, wire)
 }
 fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
-    if !m.menu_action.is_empty() && m.menu_action != "menu" && !matches!(action, "quit" | "escape") { return Ok(()); }
-    if (m.pending.is_some() || m.held) && !matches!(action, "quit" | "escape" | "keymapSheet") {
+    if !m.menu_action.is_empty() && m.menu_action != "menu" && !matches!(action, "quit" | "quitNoCwd" | "escape") { return Ok(()); }
+    if (m.pending.is_some() || m.held) && !matches!(action, "quit" | "quitNoCwd" | "escape" | "keymapSheet") {
         return Ok(());
     }
     if m.searching
@@ -308,13 +310,14 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 | "preview"
                 | "reveal"
                 | "toggleSelect"
+                | "editFile"
         )
     {
         return Ok(());
     }
     // A cursor move spends a re-sort's anchor, so neither its late reply nor a gap press pulls the cursor back.
     if matches!(action, "cursorDown" | "cursorUp" | "extendDown" | "extendUp" | "pageDown" | "pageUp"
-        | "first" | "cursorFirst" | "last" | "cursorLast")
+        | "halfPageDown" | "halfPageUp" | "selectNext" | "first" | "cursorFirst" | "last" | "cursorLast")
     {
         m.sort_anchor = None;
     }
@@ -325,6 +328,8 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         "extendUp" => m.move_by(-1, true, w)?,
         "pageDown" => m.move_by(m.height as isize, false, w)?,
         "pageUp" => m.move_by(-(m.height as isize), false, w)?,
+        "halfPageDown" => m.move_by((m.height / 2).max(1) as isize, false, w)?,
+        "halfPageUp" => m.move_by(-((m.height / 2).max(1) as isize), false, w)?,
         "first" | "cursorFirst" => {
             m.cursor = 0;
             m.window(w)?;
@@ -340,7 +345,14 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         }
         "historyBack" => history(m, false, w)?,
         "historyForward" => history(m, true, w)?,
-        "open" => {
+        "open" | "pageForward" => {
+            if m.choosing && (action == "open") && (!m.selected.is_empty() || m.rows.get(&m.cursor).is_some_and(|r| !r.directory)) {
+                if m.pending_clipboard || m.searching { m.fail("Wait for the selection to settle before choosing".into()); return Ok(()); }
+                m.choose_count = m.selected.len().max(1);
+                m.choose_pending = true;
+                w.send(vec![("c", word("paths")), ("rows", m.indices())])?;
+                return Ok(());
+            }
             if let Some(path) = m.current_path() {
                 if m.rows.get(&m.cursor).is_some_and(|r| r.directory) {
                     navigate(m, path, w)?;
@@ -353,6 +365,15 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             if m.rows.contains_key(&m.cursor) && !m.selected.remove(&m.cursor) {
                 m.selected.insert(m.cursor);
             }
+        }
+        "selectNext" => {
+            if m.rows.contains_key(&m.cursor) && !m.selected.remove(&m.cursor) { m.selected.insert(m.cursor); }
+            m.move_by(1, false, w)?;
+        }
+        "clearSelection" => m.selected.clear(),
+        "invertSelection" => {
+            let rows = if m.filter.is_empty() { (0..m.total).collect() } else { m.shown() };
+            m.selected = rows.into_iter().filter(|i| !m.selected.contains(i)).collect();
         }
         "selectAll" => {
             m.selected = if m.filter.is_empty() {
@@ -372,6 +393,18 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         }
         "filter" => m.editor = Some(Editor::new("filter", m.filter.clone(), m.path.clone())),
         "search" => m.editor = Some(Editor::new("search", String::new(), m.path.clone())),
+        "reload" => m.refresh(w)?,
+        "goHome" | "goConfig" | "goDownloads" => {
+            let home = std::env::var_os("HOME").map(PathBuf::from).filter(|p| p.is_absolute());
+            if let Some(home) = home {
+                let path = match action { "goConfig" => home.join(".config"), "goDownloads" => home.join("Downloads"), _ => home };
+                navigate(m, path, w)?;
+            } else { m.fail("No home folder is configured".into()); }
+        }
+        "editFile" => {
+            if m.rows.get(&m.cursor).is_some_and(|r| !r.directory) { m.edit_file = m.current_path(); }
+            else { m.fail("Only a regular file can be edited".into()); }
+        }
         "rename" => {
             if m.selected.len() > 1 {
                 m.action_id = m.action_id.wrapping_add(1).max(1);
@@ -398,6 +431,12 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             m.cut = action == "cut";
             m.pending_clipboard = true;
             w.send(vec![("c", word("paths")), ("rows", m.indices())])?;
+        }
+        "clearClipboard" => {
+            m.clipboard.clear();
+            m.cut = false;
+            m.discard_clipboard |= m.pending_clipboard;
+            m.say("Clipboard cleared".into());
         }
         "paste" | "movePaste" => {
             if m.clipboard.is_empty() {
@@ -455,11 +494,14 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             m.action_id = m.action_id.wrapping_add(1).max(1);
             m.editor = Some(Editor::new("newfile", "New File".into(), m.path.clone()));
         }
-        "sortNext" | "sortReverse" => {
+        "sortNext" | "sortReverse" | "sortName" | "sortNameReverse" | "sortDate" | "sortDateReverse" | "sortSize" | "sortSizeReverse" => {
             // The cursor's logical row: the loaded row, or in a listed/rows gap the anchor still waited for.
             let anchor = m.current_path().or_else(|| m.sort_anchor.clone());
             if action == "sortReverse" {
                 m.reverse = !m.reverse;
+            } else if action != "sortNext" {
+                m.sort = if action.starts_with("sortDate") { "date" } else if action.starts_with("sortSize") { "size" } else { "name" }.into();
+                m.reverse = action.ends_with("Reverse");
             } else {
                 m.sort = match m.sort.as_str() {
                     "name" => "size",
@@ -510,6 +552,14 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         "openTerminal" | "windowNew" => {
             let child = super::terminal::launch(&m.path, action == "windowNew")?;
             m.launches.push((if action == "windowNew" { "New Flea window" } else { "Terminal" }.into(), child));
+        }
+        "openAgent" => {
+            let path = m.path.canonicalize()?;
+            if !path.is_dir() { m.fail("An agent needs a folder to open in".into()); }
+            else {
+                let child = std::process::Command::new("omarchy").arg("agent").current_dir(path).spawn()?;
+                m.launches.push(("Agent".into(), child));
+            }
         }
         "tabClose" => {
             if m.tabs.len() == 1 {
@@ -574,7 +624,7 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             m.sheet = true;
             m.sheet_top = 0;
         }
-        "properties" => {
+        "properties" | "factsToggle" => {
             if m.selected.len() > 1 {
                 m.fail("Properties requires one selected item".into());
             } else if m.current_path().is_some() {
@@ -632,7 +682,11 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             }
         }
         "quit" => m.quit = true,
-        _ => {}
+        "quitNoCwd" => { m.no_cwd = true; m.quit = true; }
+        _ if action.starts_with("tab") && action.len() == 4 && matches!(action.as_bytes()[3], b'1'..=b'9') => {
+            return tab(m, (action.as_bytes()[3] - b'1') as usize, w);
+        }
+        _ => m.fail(super::parity::refusal(action).into()),
     }
     m.remember_selection();
     Ok(())
@@ -972,7 +1026,7 @@ fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
         m.editor = Some(editor);
         return Ok(());
     }
-    if key.name == "Escape" {
+    if key.name == "Escape" || (m.preset == "yazi" && key.mods == "ctrl" && matches!(key.name.as_str(), "C" | "BracketLeft")) {
         if kind == "filter" {
             m.apply_filter(String::new());
         }

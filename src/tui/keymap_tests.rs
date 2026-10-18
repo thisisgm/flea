@@ -1,4 +1,6 @@
 use super::*;
+#[path = "keymap_additive_tests.rs"]
+mod additive;
 #[test]
 fn compiled_source_drives_text_and_native_ctrl() {
     let map = Map::load();
@@ -136,4 +138,68 @@ action = "parent"
     assert_eq!(map.chord("loadPreview", "vim", "listing"), None, "another preset does not read the default's chord");
     assert_eq!(map.chord("escape", "default", "listing").as_deref(), Some("Backspace"));
     assert_eq!(map.chord("parent", "default", "listing"), None, "the earlier Backspace row shadows this one");
+}
+
+#[test]
+fn enhanced_pairs_and_plain_mac_alternatives_are_resolved_in_every_preset() {
+    let map = Map::load();
+    for preset in ["default", "vim", "mac", "windows", "yazi"] {
+        let started = std::time::Instant::now();
+        let sheet = map.sheet(preset);
+        println!("resolved sheet {preset}: {} us", started.elapsed().as_micros());
+        for (key, action) in [
+            (Key::named("Return", "ctrl"), "openTab"),
+            (Key::character('O', ""), "openTab"),
+            (Key::named("Delete", "shift"), "deletePermanently"),
+            (Key::character('Z', "ctrlshift"), "redo"),
+            (Key::character('Y', "ctrl"), "redo"),
+            (Key::character('N', "ctrlshift"), "newFolder"),
+            (Key::character('N', ""), "newFolder"),
+            (Key::character('M', ""), "movePaste"),
+            (Key::character('U', ""), "duplicate"),
+            (Key::character('i', ""), if preset == "yazi" { "properties" } else { "factsToggle" }),
+            (Key::character('I', "shift"), "detailNext"),
+            (Key::character('P', "ctrl"), "print"),
+            (Key::character('G', "ctrl"), "searchContents"),
+            (Key::character('A', ""), "openAgent"),
+            (Key::character('E', "shift"), "editFile"),
+        ] {
+            assert_eq!(map.action(&key, preset), action, "{preset} {key:?}");
+            assert!(sheet.iter().any(|line| line.contains(&map.chord(action, preset, "listing").unwrap())), "{preset} {action} is shown");
+        }
+        assert_eq!(map.action(&Key::character('X', ""), preset), "", "X is window only");
+        assert_eq!(map.action(&Key::character('X', "shift"), preset), "");
+        assert_ne!(map.action(&Key::character('e', ""), preset), "editFile");
+        for context in ["listing", "preview", "pdf", "media"] {
+            assert_eq!(map.in_context(&Key::named("Tab", ""), preset, context), "focusNext");
+            assert_eq!(map.in_context(&Key::named("Tab", "ctrl"), preset, context), "focusPreview");
+            assert_eq!(map.in_context(&Key::named("PageDown", "ctrl"), preset, context), "tabNext");
+            assert_eq!(map.in_context(&Key::named("PageUp", "ctrl"), preset, context), "tabPrevious");
+        }
+        for context in ["menu", "editor", "panel"] {
+            assert_eq!(map.in_context(&Key::character('E', "shift"), preset, context), "");
+        }
+    }
+    assert_eq!(map.action(&Key::character('D', "ctrl"), "windows"), "trash");
+    assert_eq!(map.action(&Key::character('D', "ctrl"), "default"), "pageDown");
+    assert_eq!(map.action(&Key::character('y', ""), "vim"), "copyArm");
+    assert_eq!(map.action(&Key::named("Return", ""), "mac"), "rename");
+}
+
+#[test]
+fn shift_delete_and_uppercase_alternatives_decode_without_keyboard_negotiation() {
+    use crate::tui::input::Decoder;
+    for preset in ["default", "vim", "mac", "windows", "yazi"] {
+        for (bytes, action) in [
+            (b"\x1b[3;2~".as_slice(), "deletePermanently"),
+            (b"O".as_slice(), "openTab"),
+            (b"\x19".as_slice(), "redo"),
+            (b"N".as_slice(), "newFolder"),
+        ] {
+            let mut decoder = Decoder::default();
+            let keys = decoder.feed(bytes, true);
+            assert_eq!(keys.len(), 1);
+            assert_eq!(Map::load().action(&keys[0], preset), action);
+        }
+    }
 }

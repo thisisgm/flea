@@ -58,6 +58,13 @@ pub struct Deletion {
     pub scroll: usize,
 }
 pub struct Model {
+    pub last_directory: Option<PathBuf>,
+    pub choosing: bool,
+    pub choose_pending: bool,
+    pub choose_count: usize,
+    pub chosen: Option<Vec<String>>,
+    pub no_cwd: bool,
+    pub edit_file: Option<PathBuf>,
     pub capabilities: super::capabilities::Capabilities,
     pub path: PathBuf,
     pub pending: Option<PathBuf>,
@@ -90,6 +97,8 @@ pub struct Model {
     pub search_here: bool,
     pub transfer: String,
     pub pending_clipboard: bool,
+    // Keep the untagged paths request pending until its cancelled reply drains.
+    pub discard_clipboard: bool,
     pub clipboard: Vec<String>,
     pub cut: bool,
     pub preview: Vec<String>,
@@ -175,6 +184,13 @@ impl Model {
     pub fn new(path: PathBuf, settings: &Json) -> Self {
         let preview = settings.get("preview").unwrap_or(&Json::Null);
         Self {
+            last_directory: None,
+            choosing: false,
+            choose_pending: false,
+            choose_count: 0,
+            chosen: None,
+            no_cwd: false,
+            edit_file: None,
             capabilities: super::capabilities::Capabilities::default(),
             path: path.clone(),
             pending: None,
@@ -219,6 +235,7 @@ impl Model {
             search_here: false,
             transfer: String::new(),
             pending_clipboard: false,
+            discard_clipboard: false,
             clipboard: Vec::new(),
             cut: false,
             preview: Vec::new(),
@@ -575,6 +592,7 @@ impl Model {
             "listed" => {
                 if let Some(path) = self.pending.take() {
                     self.path = path;
+                    self.last_directory = Some(self.path.clone());
                     self.cursor = self.restore_cursor.take().unwrap_or(0);
                     self.top = self.cursor;
                     self.search.clear();
@@ -792,6 +810,7 @@ impl Model {
                     self.refresh_deletion(wire)?;
                 }
                 if self.pending.is_none()
+                    && !self.choose_pending
                     && self.search.is_empty()
                     && text(&value, "path") == self.path.to_string_lossy()
                 {
@@ -801,6 +820,10 @@ impl Model {
                 }
             }
             "paths" => {
+                if std::mem::take(&mut self.discard_clipboard) {
+                    self.pending_clipboard = false;
+                    return Ok(());
+                }
                 let paths: Vec<String> = value
                     .get("paths")
                     .and_then(Json::as_array)
@@ -809,6 +832,15 @@ impl Model {
                     .filter_map(Json::as_str)
                     .map(str::to_owned)
                     .collect();
+                if self.choose_pending {
+                    self.choose_pending = false;
+                    if paths.len() != self.choose_count || paths.iter().any(|p| !std::path::Path::new(p).is_absolute() || p.contains(['\n', '\r'])) {
+                        self.fail("The selection changed or cannot be written one path per line; choose it again".into());
+                    } else {
+                        self.chosen = Some(paths.clone());
+                        self.quit = true;
+                    }
+                }
                 if self.pending_clipboard {
                     self.pending_clipboard = false;
                     self.clipboard = paths;
@@ -1104,6 +1136,8 @@ impl Model {
                 }
                 if text(&value, "where") == "paths" {
                     self.pending_clipboard = false;
+                    self.discard_clipboard = false;
+                    self.choose_pending = false;
                     self.taildrop_target = None;
                 }
             }

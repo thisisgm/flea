@@ -62,11 +62,11 @@ src/backend/trashdelete.rs 987
 src/clip/watch_end_tests.rs 405
 src/gvfsprefetch_tests.rs 398
 src/gui.rs 505
-src/tui/actions.rs 1058
+src/tui/actions.rs 1112
 src/tui/hold_tests.rs 427
 src/tui/input.rs 455
-src/tui/model.rs 1270
-src/tui/mod.rs 425
+src/tui/model.rs 1304
+src/tui/mod.rs 456
 src/tui/render.rs 913
 src/uischema.rs 597
 src/uistate.rs 849
