@@ -335,7 +335,14 @@ fn csi(text: &str) -> Option<Key> {
                 printable = text.chars().next().filter(|c| !c.is_control())?;
             }
         }
-        let mut key = Key::character(printable, if mods == "shift" { "" } else { mods });
+        let mut key = Key::character(
+            printable,
+            if mods == "shift" && printable != c {
+                ""
+            } else {
+                mods
+            },
+        );
         if last == 'u' {
             if let Some(text) = associated {
                 key.text = text.chars().filter(|c| !c.is_control()).collect();
