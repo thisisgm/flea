@@ -190,12 +190,16 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         // The one line no client asked for, and only ever for the directory being listed now.
         Event::Changed(wd) => {
+            #[cfg(test)]
+            super::renametiming::mark("watch_begin");
             // The current descriptor is unknown while a scan is out, so the burst waits for the scan's answer.
             if gate.holds() {
                 gate.note_change(wd);
             } else if watch.is_current(wd) {
                 say_changed(out, st);
             }
+            #[cfg(test)]
+            super::renametiming::mark("watch_end");
         }
         // The open mount went away; while a scan is out the current descriptor is unknown, so it waits for the scan's answer.
         Event::Unmounted(wd) => if gate.holds() { gate.note_unmount(wd) } else { leave_mount(out, &st.base, watch, poller, wd) },
@@ -213,6 +217,8 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         // A late list worker's descriptor goes unless a re-list aliased it onto the live watch, which a scan still out may not have committed yet.
         Event::AbandonWatch(wd) => gate.park_late(wd).into_iter().for_each(|late| watch.abandon_wd(late)),
         Event::Op(m) => {
+            #[cfg(test)]
+            if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_begin"); }
             if let Some(session) = st.search_session.as_mut() {
                 // An own write under the scope patches the index, and a due batch re-runs the standing query.
                 let patched = session.patch_after_writes(&op_write_paths(&m));
@@ -224,6 +230,8 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                     }
                 }
             }
+            #[cfg(test)]
+            if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_end"); }
             report_op(out, ops, m);
         }
         // A session walk landed; the standing query is re-run once when it is still the newest.
@@ -393,12 +401,16 @@ fn handle_line(
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
         Request::List { path, first, hidden, want_changed } => {
+            #[cfg(test)]
+            super::renametiming::mark("dispatch_list");
             // The session goes first; start then ends the walk and forgets its rows before the scan.
             close_search_session(st);
             let job = listwork::Job { path, first, line: line.to_string(), hidden, want_changed, session: None };
             if let listwork::Started::Inline(landed) = listwork::start(out, st, pool, watch, gate, job, Arc::clone(&tb.mime)) {
                 land(out, st, tb, pool, watch, fsinfo, poller, *landed);
             }
+            #[cfg(test)]
+            super::renametiming::mark("list_complete");
         }
         // A set of named paths is not a directory, so the watch stops rather than following its base.
         Request::ListPaths { paths, first } => {
@@ -631,7 +643,9 @@ fn handle_line(
             start_trash(out, ops, named, menu_id)
         }
         Request::Rename { path, to, menu_id } => {
-            // A rename is an own write: its landed paths patch the index with no walk.
+            #[cfg(test)]
+            super::renametiming::begin();
+            // The worker result patches the search index using the rename's owned paths.
             let touched = if menu_id == 0 { do_rename(out, ops, &path, &to) }
                 else { super::opsdispatch::do_menu_rename(out, ops, &path, &to, menu_id) };
             patch_session_paths(st, touched);
@@ -949,7 +963,7 @@ pub(crate) fn drain(
         flash.slot.cancel(id);
     }
     // A trash batch past its announce has freed the slot but still owes its journal entry, so the drain waits for it too.
-    while st.outstanding > 0 || ops.live.running().is_some() || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
+    while st.outstanding > 0 || ops.live.running().is_some() || !ops.pending.is_empty() || ops.journal.deferred.is_some() || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
         match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
             Ok(Event::Thumb(d)) => report_done(out, st, pool, d),
             Ok(Event::Op(m)) => report_op(out, ops, m),

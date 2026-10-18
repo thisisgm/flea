@@ -72,6 +72,8 @@ fn read_lines(source: impl BufRead, tx: &Sender<Event>, live: &Live) {
 
 // One line's worth of that job, split out so a cancel and an ordinary request are asserted apart.
 fn read_line(line: String, live: &Live) -> Event {
+    #[cfg(test)]
+    super::renametiming::input(&line);
     if let Some(Request::TransferCancel { id }) = cancel_in(&line) {
         live.cancel(id);
     }
