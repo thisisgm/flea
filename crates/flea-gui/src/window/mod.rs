@@ -2,7 +2,7 @@
 pub mod composition;
 mod events;
 mod frame;
-mod input;
+pub mod input;
 pub mod navigate;
 pub mod lifecycle;
 pub mod locale;

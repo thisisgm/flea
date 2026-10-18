@@ -1,4 +1,4 @@
-# The one key table. tools/flea-keymap-gen turns it into ui/js/Keymap.js, which is generated.
+# The one key table. tools/flea-keymap-gen emits frozen-compatible JavaScript and native Rust data.
 
 # Control-modified keys are checked first, so plain d can mean cut while ctrl-d pages.
 [[ctrl]]
@@ -662,6 +662,155 @@ change = ["copy", "cut", "paste", "movePaste", "duplicate", "rename", "trash",
 from = 1
 to = 9
 prefix = "tab"
+
+[sheetoptions]
+cap_budget = 16
+mirrors = [
+    ["cursorDown", "cursorUp"], ["cursorFirst", "cursorLast"], ["pageDown", "pageUp"],
+    ["historyBack", "historyForward"], ["tabNext", "tabPrevious"], ["tabMoveLeft", "tabMoveRight"],
+    ["zoomIn", "zoomOut"], ["textSizeUp", "textSizeDown"], ["extendDown", "extendUp"]
+]
+
+# Spellings that win a sheet cap tie, per preset name; "all" applies to every preset.
+[sheetties]
+all = ["left", "shift-f10"]
+default = ["ctrl-c", "ctrl-v"]
+windows = ["ctrl-c", "ctrl-v"]
+
+# Native copy around a key spelling; key is the catalog key after "keys.".
+[[native_copy]]
+key = "hint.filter"
+text = "Press %1 to filter this folder by name"
+
+# Native presentation uses the approved action names; legacy generated JavaScript stays frozen.
+[native_labels]
+cursorDown = "Cursor down"
+cursorUp = "Cursor up"
+cursorFirst = "First item"
+cursorLast = "Last item"
+pageDown = "Page down"
+pageUp = "Page up"
+open = "Open"
+parent = "Parent folder"
+pageForward = "Browse in"
+historyBack = "Back"
+historyForward = "Forward"
+focusNext = "Next area"
+focusPrevious = "Previous area"
+focusPreview = "Focus the preview"
+tabNew = "New tab"
+openTab = "Open in new tab"
+tabClose = "Close tab"
+tabNext = "Next tab"
+tabPrevious = "Previous tab"
+tabMoveLeft = "Move tab left"
+tabMoveRight = "Move tab right"
+windowNew = "New window"
+escape = "Close or go back"
+viewList = "List view"
+viewColumns = "Columns view"
+viewGrid = "Grid view"
+viewDual = "Dual pane"
+togglePreview = "Preview column"
+factsToggle = "Facts"
+loadPreview = "Preview"
+preview = "Quick Look"
+previewPageForward = "Page preview forward"
+previewPageBack = "Page preview back"
+toggleHidden = "Show hidden files"
+sidebar = "Sidebar"
+zoomIn = "Zoom in"
+zoomOut = "Zoom out"
+expand = "Expand"
+mute = "Mute"
+textSizeUp = "Larger text"
+textSizeDown = "Smaller text"
+textSizeReset = "Reset text size"
+keymapSheet = "Keyboard Shortcuts"
+filter = "Filter"
+search = "Find"
+reveal = "Reveal"
+sortNext = "Sort"
+sortReverse = "Reverse sort"
+pathBar = "Go to folder"
+reload = "Reload"
+copy = "Copy"
+cut = "Cut"
+paste = "Paste"
+rename = "Rename"
+trash = "Move to Trash"
+deletePermanently = "Delete permanently"
+undo = "Undo"
+redo = "Redo"
+newFolder = "New folder"
+copydirpath = "Copy folder path"
+copyPath = "Copy path"
+
+addNetwork = "Add network place"
+autofitColumns = "Autofit columns"
+copyAs = "Copy as"
+copyName = "Copy name"
+copyPatch = "Copy patch"
+copyQuoted = "Copy shell-quoted"
+copyStem = "Copy name without extension"
+copyUri = "Copy file URI"
+duplicate = "Duplicate"
+eject = "Eject"
+extendDown = "Extend down"
+extendUp = "Extend up"
+invertSelection = "Invert selection"
+markdownView = "Rendered/source"
+menu = "Menu"
+menuRight = "Menu right"
+movePaste = "Move here"
+openTerminal = "Terminal"
+pasteAbsoluteLink = "Paste absolute link"
+pasteAs = "Paste as"
+pasteHardLink = "Paste hard link"
+pasteLink = "Paste link"
+playPause = "Play pause"
+properties = "Get info"
+seekBack = "Seek back"
+seekForward = "Seek forward"
+selectAll = "Select all"
+settings = "Settings"
+tag1 = "Tag 1"
+tag2 = "Tag 2"
+tag3 = "Tag 3"
+tag4 = "Tag 4"
+tag5 = "Tag 5"
+tag6 = "Tag 6"
+tag7 = "Tag 7"
+tags = "Tags"
+toggleSelect = "Select"
+toggleWrap = "Wrap"
+zoomFit = "Zoom fit"
+
+# Consecutive pairs share the focused file identity; trash keeps its separate confirmation policy.
+[[sequence]]
+arm = "copyArm"
+action = "copy"
+kind = "pair"
+
+[[sequence]]
+arm = "cutArm"
+action = "cut"
+kind = "pair"
+
+[[sequence]]
+arm = "pasteArm"
+action = "paste"
+kind = "pair"
+
+[[sequence]]
+arm = "cursorFirstArm"
+action = "cursorFirst"
+kind = "pair"
+
+[[sequence]]
+arm = "trashArm"
+action = "trash"
+kind = "confirm"
 
 # The keymap sheet ? opens, in the order the canvas's Keys panel draws it, two columns down.
 # A chord shares the row of the key it doubles, written ^c for ctrl and ^N (a capital, the table's
