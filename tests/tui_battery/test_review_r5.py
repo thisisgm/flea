@@ -37,7 +37,7 @@ class Review5Tests(unittest.TestCase):
                             default_outputs.append(result.stdout)
                         return result
                     with patch.object(Commands, "run", without_polite):
-                        with self.assertRaisesRegex(Blocked, "chafa source output is empty, unsupported or outside"):
+                        with self.assertRaisesRegex(Blocked, "chafa source output holds characters outside the half-block set"):
                             helper.inspect(fixture)
                 self.assertEqual(len(default_outputs), 2)
                 for output in default_outputs:
@@ -67,31 +67,42 @@ class Review5Tests(unittest.TestCase):
         renderer = next(row for row in commands.records if "--format=symbols" in row["argv"])
         size = next(arg for arg in renderer["argv"] if arg.startswith("--size="))
         picture_width, picture_height = (int(part) for part in size.removeprefix("--size=").split("x"))
-        for extra in (b"\x1b[?25l", b"\x1b[?25h", b"\x1b[2J", b"\x1b]0;title\x07", b"\t"):
-            with self.subTest(unsupported=extra):
-                self.assertLess(len(extra), picture_width)
-                # One in-bounds picture row whose first cells are the unsupported control.
-                payload = extra + ("▀" * (picture_width - len(extra)) + "\n").encode()
+        picture = ("▀" * picture_width + "\n").encode()
 
-                def corrupted_output(commands, argv, *args, **kwargs):
-                    result = real_run(commands, argv, *args, **kwargs)
-                    if "--format=symbols" in argv:
-                        result.stdout = payload
-                    return result
-                with patch.object(Commands, "run", corrupted_output):
-                    with self.assertRaisesRegex(Blocked, "chafa source output"):
+        def frame(prefix):
+            # One picture of the approved height whose first row starts with the prefix.
+            first = prefix + ("▀" * (picture_width - len(prefix))).encode() + b"\n"
+            return first + picture * (picture_height - 1)
+
+        def emitted(payload):
+            def output(commands, argv, *args, **kwargs):
+                result = real_run(commands, argv, *args, **kwargs)
+                if "--format=symbols" in argv:
+                    result.stdout = payload
+                return result
+            return output
+
+        with self.subTest(control="unmodified picture"):
+            # The control proves the frame shape is accepted, so each refusal below is its own branch.
+            with patch.object(Commands, "run", emitted(picture * picture_height)):
+                helper.inspect(fixture)
+        charset = "holds characters outside the half-block set"
+        graphics = "contains unparsed or native graphics controls"
+        size = "exceeds the approved picture size"
+        refusals = ((b"\x1b[?25l", charset), (b"\x1b[?25h", charset), (b"\x1b[2J", charset),
+                    (b"\x1b]0;title\x07", charset), (b"\t", charset),
+                    (b"\x1b[8m", graphics), (b"X" * (picture_width + 1), charset))
+        for extra, branch in refusals:
+            with self.subTest(unsupported=extra, branch=branch):
+                with patch.object(Commands, "run", emitted(frame(extra))):
+                    with self.assertRaisesRegex(Blocked, branch):
                         helper.inspect(fixture)
-        overflows = {"width": ("▀" * (picture_width + 1) + "\n").encode(),
-                     "height": (("▀" * picture_width + "\n") * (picture_height + 1)).encode()}
+        overflows = {"width": ("▀" * (picture_width + 1) + "\n").encode() + picture * (picture_height - 1),
+                     "height": picture * (picture_height + 1)}
         for axis, payload in overflows.items():
             with self.subTest(overflow=axis):
-                def oversized_output(commands, argv, *args, **kwargs):
-                    result = real_run(commands, argv, *args, **kwargs)
-                    if "--format=symbols" in argv:
-                        result.stdout = payload
-                    return result
-                with patch.object(Commands, "run", oversized_output):
-                    with self.assertRaisesRegex(Blocked, "chafa source output"):
+                with patch.object(Commands, "run", emitted(payload)):
+                    with self.assertRaisesRegex(Blocked, size):
                         helper.inspect(fixture)
         (self.root / "chafa-controls.json").write_text(json.dumps(receipts, indent=2) + "\n")
 

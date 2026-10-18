@@ -96,10 +96,14 @@ def chafa_cells(source, box, board_cells, fx, commands, cell, case):
     text = output.decode("utf-8", errors="strict")
     visible = re.sub(r"\x1b\[[0-9;]*m", "", text).replace("\r\n", "\n")
     lines = visible.rstrip("\n").split("\n")
-    if (len(lines) > height or any(len(line) > width for line in lines)
-            or not any(ch in visible for ch in "▀▄█▌▐")
-            or any(ch not in " ▀▄█▌▐\n" for ch in visible)):
-        raise Blocked("chafa source output is empty, unsupported or outside the approved bounds")
+    # Each guard names its own branch, so a test can tell which one refused the output. The charset guard runs
+    # first: an escape byte in a row would otherwise also read as an oversized row.
+    if any(ch not in " ▀▄█▌▐\n" for ch in visible):
+        raise Blocked("chafa source output holds characters outside the half-block set")
+    if not any(ch in visible for ch in "▀▄█▌▐"):
+        raise Blocked("chafa source output is empty, with no half-block cells")
+    if len(lines) > height or any(len(line) > width for line in lines):
+        raise Blocked("chafa source output exceeds the approved picture size")
     sw, sh = source["size"]
     ink_width, ink_height = max(map(len, lines)), len(lines)
     ratio = ink_width * cell[0] / (ink_height * cell[1])

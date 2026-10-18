@@ -93,7 +93,9 @@
         }
       ],
       "predicate": {
-        "contains": []
+        "contains": [
+          "A folder can\u2019t be opened together with files."
+        ]
       },
       "checks": [
         "real-marked-selection",

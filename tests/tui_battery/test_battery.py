@@ -189,6 +189,25 @@ class BatteryTests(unittest.TestCase):
         screen.feed(b"\x1b[HOTHER")
         self.assertFalse(predicate(screen.snapshot(), {"contains": ["READY"]}))
 
+    def test_every_surface_predicate_names_text_the_pre_action_frame_lacks(self):
+        states = json.loads((HERE / "surfaces.json").read_text())["states"]
+        before = Screen(60, 4)
+        before.feed(b"\x1b[HREADY")  # the frame before the state's setup key
+        for state in states:
+            with self.subTest(state=state["id"]):
+                rule = state["predicate"]
+                # An empty rule is true on every frame, including the one before the key.
+                self.assertTrue(rule.get("contains") or rule.get("regex"))
+                self.assertFalse(predicate(before.snapshot(), rule))
+
+    def test_open_refused_predicate_is_the_refusal_sentence(self):
+        states = {s["id"]: s for s in json.loads((HERE / "surfaces.json").read_text())["states"]}
+        rule = states["tui-open-refused"]["predicate"]
+        self.assertEqual(rule, {"contains": ["A folder can\u2019t be opened together with files."]})
+        screen = Screen(60, 4)
+        screen.feed("\x1b[H".encode() + rule["contains"][0].encode())
+        self.assertTrue(predicate(screen.snapshot(), rule))
+
     def test_missing_pending_frame_is_not_settled(self):
         screen = Screen(20, 4)
         screen.feed(b"\x1b[HREADY\x1b[")
