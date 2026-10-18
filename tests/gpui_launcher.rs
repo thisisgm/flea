@@ -6,6 +6,7 @@ use std::process::{Command, Output};
 
 struct Sandbox {
     root: PathBuf,
+    temporary: PathBuf,
 }
 
 impl Sandbox {
@@ -29,7 +30,22 @@ impl Sandbox {
         fs::write(root.join(".flea-test-sandbox"), "gpui launcher test\n").unwrap();
         fs::copy(env!("CARGO_BIN_EXE_flea"), root.join("flea")).unwrap();
         fs::create_dir(root.join("files")).unwrap();
-        Self { root }
+        Self { root, temporary }
+    }
+
+    fn removable(&self) -> bool {
+        self.root.is_absolute()
+            && !self.root.as_os_str().is_empty()
+            && self.root.parent() == Some(self.temporary.as_path())
+            && self
+                .root
+                .file_name()
+                .and_then(|name| name.to_str())
+                .is_some_and(|name| name.starts_with("flea-gpui-launch."))
+            && self.root.canonicalize().is_ok_and(|root| root == self.root)
+            && fs::symlink_metadata(&self.root).is_ok_and(|metadata| metadata.is_dir())
+            && fs::symlink_metadata(self.root.join(".flea-test-sandbox"))
+                .is_ok_and(|metadata| metadata.is_file())
     }
 
     fn frontend(&self) {
@@ -67,6 +83,21 @@ print(json.dumps({'argv':sys.argv[1:],'env':{key:os.environ.get(key) for key in 
             command.env_remove(key);
         }
         command
+    }
+}
+
+impl Drop for Sandbox {
+    fn drop(&mut self) {
+        if !self.removable() {
+            eprintln!("flea test sandbox cleanup refused {}", self.root.display());
+            return;
+        }
+        if let Err(error) = fs::remove_dir_all(&self.root) {
+            eprintln!(
+                "flea test sandbox cleanup failed for {}: {error}",
+                self.root.display()
+            );
+        }
     }
 }
 
@@ -219,4 +250,41 @@ fn gpui_exec_errors_name_the_program_and_os_reason() {
         error.contains(&std::io::Error::from_raw_os_error(2).to_string()),
         "{error}"
     );
+}
+
+#[test]
+fn sandbox_is_removed_on_drop() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.root.clone();
+    assert!(root.join(".flea-test-sandbox").is_file());
+    drop(sandbox);
+    assert!(
+        !root.exists(),
+        "sandbox was not removed: {}",
+        root.display()
+    );
+}
+
+#[test]
+fn sandbox_cleanup_refuses_unmarked_or_out_of_root_paths() {
+    let sandbox = Sandbox::new();
+    let root = sandbox.root.clone();
+    let unmarked = root.join("flea-gpui-launch.unmarked");
+    fs::create_dir(&unmarked).unwrap();
+    let probe = Sandbox {
+        root: unmarked.clone(),
+        temporary: root.clone(),
+    };
+    assert!(!probe.removable());
+    drop(probe);
+    assert!(unmarked.exists());
+    let probe = Sandbox {
+        root: root.clone(),
+        temporary: root.join("another-temp-root"),
+    };
+    assert!(!probe.removable());
+    drop(probe);
+    assert!(root.join(".flea-test-sandbox").is_file());
+    drop(sandbox);
+    assert!(!root.exists());
 }

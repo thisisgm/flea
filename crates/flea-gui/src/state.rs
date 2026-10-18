@@ -77,7 +77,6 @@ impl Shell {
     }
 
     fn receive(&mut self, reply: Result<Reply, String>, cx: &mut Context<Self>) {
-        self.waiting = false;
         match reply {
             Ok(Reply::Listed { path, total }) if path == self.path => {
                 self.pending_total = Some(total)
@@ -87,12 +86,13 @@ impl Shell {
                 names,
                 listing,
             }) => {
+                if listing < self.snapshot.listing {
+                    return;
+                }
+                self.waiting = false;
                 let total = self.pending_total.take().unwrap_or(self.snapshot.total);
                 if names.len() > self.requested || start > total || names.len() > total - start {
                     eprintln!("flea-gui: the backend answered rows outside the requested window");
-                    return;
-                }
-                if listing < self.snapshot.listing {
                     return;
                 }
                 self.snapshot = Rc::new(Snapshot {
@@ -105,7 +105,12 @@ impl Shell {
                 self.backend_error = None;
                 cx.notify();
             }
-            Ok(Reply::Error { message, .. }) | Err(message) => {
+            Ok(Reply::Error { path, message, .. }) if path == self.path => {
+                self.waiting = false;
+                self.record_error(message);
+            }
+            Err(message) => {
+                self.waiting = false;
                 self.record_error(message);
             }
             _ => {}
@@ -141,7 +146,7 @@ impl Render for Shell {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gpui::{prelude::*, px, TestAppContext};
+    use gpui::{prelude::*, px, size, TestAppContext};
 
     fn shell_with(backend: Backend) -> Shell {
         Shell {
@@ -191,18 +196,89 @@ mod tests {
         }
         let (backend, receiver) = Backend::test_channel();
         drop(receiver);
-        cx.add_empty_window().update(|window, cx| {
-            let entity = cx.new(|_| shell_with(backend));
-            entity.update(cx, |shell, cx| {
-                for _ in 0..64 {
+        let cx = cx.add_empty_window();
+        let entity = cx.update(|_, cx| cx.new(|_| shell_with(backend)));
+        for wanted in 2..66 {
+            cx.simulate_resize(size(px(640.), px((wanted + 1) as f32 * ROW_HEIGHT)));
+            cx.update(|window, cx| {
+                entity.update(cx, |shell, cx| {
+                    assert_eq!(visible_rows(window.viewport_size().height), wanted);
+                    assert_ne!(shell.requested, wanted);
+                    assert!(!shell.waiting);
                     let _ = shell.render(window, cx);
-                }
+                    assert_eq!(shell.requested, wanted);
+                });
+            });
+        }
+    }
+
+    #[gpui::test]
+    fn adv_e_r2_unrelated_replies_keep_the_window_request_in_flight(cx: &mut TestAppContext) {
+        let (backend, mut requests) = Backend::test_channel();
+        let cx = cx.add_empty_window();
+        cx.simulate_resize(size(px(640.), px(11. * ROW_HEIGHT)));
+        let entity = cx.update(|_, cx| cx.new(|_| shell_with(backend)));
+        cx.update(|window, cx| {
+            entity.update(cx, |shell, cx| {
+                let _ = shell.render(window, cx);
+                assert_eq!(requests(), Some((0, 10)));
+                assert!(shell.waiting);
+            });
+        });
+        cx.simulate_resize(size(px(640.), px(6. * ROW_HEIGHT)));
+        for reply in [
+            Reply::Other,
+            Reply::Listed {
+                path: "/files".into(),
+                total: 20,
+            },
+            Reply::Listed {
+                path: "/elsewhere".into(),
+                total: 99,
+            },
+            Reply::Rows {
+                start: 0,
+                names: vec!["old".into()],
+                listing: 1,
+            },
+            Reply::Error {
+                operation: "window".into(),
+                path: "/elsewhere".into(),
+                message: "unrelated".into(),
+            },
+        ] {
+            let description = format!("{reply:?}");
+            cx.update(|window, cx| {
+                entity.update(cx, |shell, cx| {
+                    shell.receive(Ok(reply), cx);
+                    let _ = shell.render(window, cx);
+                    assert_eq!(requests(), None, "{description}");
+                    assert!(shell.waiting, "{description}");
+                    assert_eq!(shell.requested, 10);
+                });
+            });
+        }
+        cx.update(|window, cx| {
+            entity.update(cx, |shell, cx| {
+                shell.receive(
+                    Ok(Reply::Rows {
+                        start: 0,
+                        names: (0..10).map(|index| format!("file-{index}")).collect(),
+                        listing: 2,
+                    }),
+                    cx,
+                );
+                assert!(!shell.waiting);
+                assert_eq!(shell.snapshot.names.len(), 10);
+                let _ = shell.render(window, cx);
+                assert_eq!(requests(), Some((0, 5)));
+                assert!(shell.waiting);
             });
         });
     }
 
     #[gpui::test]
-    fn adv_e_r1_every_reply_releases_the_next_window_request(cx: &mut TestAppContext) {
+    fn adv_e_r2_answered_rows_and_errors_release_the_window_request(cx: &mut TestAppContext) {
         let replies = vec![
             Ok(Reply::Rows {
                 start: 0,
@@ -216,18 +292,9 @@ mod tests {
             }),
             Ok(Reply::Rows {
                 start: 0,
-                names: vec!["old".into()],
-                listing: 1,
+                names: vec!["current".into()],
+                listing: 2,
             }),
-            Ok(Reply::Listed {
-                path: "/files".into(),
-                total: 20,
-            }),
-            Ok(Reply::Listed {
-                path: "/elsewhere".into(),
-                total: 20,
-            }),
-            Ok(Reply::Other),
             Ok(Reply::Error {
                 operation: "window".into(),
                 path: "/files".into(),
