@@ -157,4 +157,23 @@ fn keypad_bit_reaches_rows_and_paste_but_not_the_digit_rule() {
     assert!(!paste("insert", KEYPAD));
     assert!(!paste("insert", SHIFT | ALT | KEYPAD));
     assert!(!paste("v", CONTROL | SHIFT | KEYPAD));
+    let mut keyboard = Keyboard::default();
+    for (key, text, mask, expected) in [
+        ("1", Some("1"), 0, Dispatch::Action("tab1")),
+        ("1", Some("1"), KEYPAD, Dispatch::Unbound),
+        ("9", Some("9"), KEYPAD, Dispatch::Unbound),
+        ("enter", None, KEYPAD, Dispatch::Action("open")),
+    ] {
+        assert_eq!(
+            resolve(
+                &mut keyboard,
+                "default",
+                &event(key, text, mask),
+                Seat::default()
+            ),
+            expected,
+            "{key} {mask}"
+        );
+    }
+    assert!(input::paste_key(&event("insert", None, SHIFT | KEYPAD)));
 }
