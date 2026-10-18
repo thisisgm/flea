@@ -194,10 +194,12 @@ The shared Boolean setting is `showGitStatus`, off by default. Its window contro
 `Show Git status` in Settings, View, immediately before `Highlight today's dates`.
 
 An enabled directory change discovers the worktree and runs one read-only Git status. The same
-directory reuses its cached snapshot until `refresh:true`; outside a repository no Git process
-starts. Disabling clears the cache and cancels active or queued older work without discovery or
-process launch. Navigation also cancels the old directory's work. Replies may interleave other
-backend replies, so clients match both `path` and their current `id` before displaying them.
+directory reuses a successful cached snapshot until `refresh:true`; failed loads retry on the next
+enabled status request, with the existing mount quarantine still throttling remote discovery.
+Outside a repository no Git process starts. Disabling clears the cache and cancels active or queued
+older work without discovery or process launch. Navigation also cancels the old directory's work.
+Replies may interleave other backend replies, so clients match both `path` and their current `id`
+before displaying them.
 
 The existing `changed` event drives refresh through the client's 400 ms absorbing timer: the
 first notification starts it, later notifications do not restart it, and expiry sends this request
@@ -1764,7 +1766,8 @@ The normal window's branch caption is muted; in Changes it is foreground. The il
 Disabled replies have `enabled:false`, empty `root`, `branch` and `label`, and `changed:0`.
 An enabled directory outside a repository has the same empty values with `enabled:true`.
 Clients hide Git decoration in both cases. A failed status clears stale decoration while
-ordinary file browsing remains usable; a cached failure stays a failure until refresh or navigation.
+ordinary file browsing remains usable. A failed load retries on the next enabled status request;
+the existing mount quarantine refuses filesystem work until its stuck TTL expires.
 
 ### gitrows
 
@@ -1773,7 +1776,9 @@ ordinary file browsing remains usable; a cached failure stays a failure until re
 `marks` contains each asked absolute `path`, its `status`, and whether it is a `folder` with
 changes inside. A clean row has `status:"",folder:false`. Non-empty statuses are exactly
 `M` modified, `A` added, `D` deleted and `?` untracked. Rename/copy destinations use `A`;
-deleted flags within one tracked record take precedence, and other tracked changes use `M`.
+deleted flags within an ordinary tracked record take precedence, and other tracked changes use `M`.
+An unmerged record uses its worktree mode: a present conflicted path uses `M`, including `UD` and
+`DU` modify/delete conflicts, while a zero worktree mode uses `D`. No per-file stat is needed.
 A coalesced index-deletion/untracked pair instead emits one `?`, as described under `gitstatus`.
 A folder square takes precedence over a simultaneous
 letter for a submodule or embedded repository. The window square is 6 px, yellow and centred
