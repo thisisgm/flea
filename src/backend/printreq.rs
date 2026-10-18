@@ -3,7 +3,7 @@ use super::{aliases::Aliases, mime::Db, opsdispatch::Ops, opsreq::OpMsg, pageran
 use crate::json::{escape, field_bool, field_str, field_str_array, field_usize};
 use std::io::Write;
 use std::path::PathBuf;
-use std::sync::{Arc, atomic::AtomicBool};
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}};
 
 pub enum Request {
     Options { id: usize, printer: String },
@@ -92,6 +92,7 @@ fn print(ask: Print, selection: Result<Option<Vec<super::menu_actions::Selected>
         if ask.two_sided && !caps.duplex { return Err("This printer does not support two-sided printing.".into()); }
         let mut refused = Vec::new();
         for (path, kind) in ask.paths.iter().zip(kinds) {
+            if cancel.load(Ordering::Relaxed) { return Err("cancelled".into()); }
             let name = path.file_name().unwrap_or_default().to_string_lossy();
             let display = if ask.printer_name.is_empty() { &ask.printer } else { &ask.printer_name };
             let result = print_file(path, kind, &options, &cancel);
@@ -100,6 +101,7 @@ fn print(ask: Print, selection: Result<Option<Vec<super::menu_actions::Selected>
                 ask.request_id, escape(&path.to_string_lossy()), result.is_ok(), escape(&message)) });
             match result {
                 Ok(()) => sent += 1,
+                Err(reason) if reason == "cancelled" => return Err(reason),
                 Err(_) => refused.push(message.clone()),
             }
         }
