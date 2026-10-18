@@ -5,26 +5,35 @@ import Quickshell
 import "flea" as Flea
 import "flea/js/Filter.js" as Filter
 
-// The first "/" key over a drawn window whose rows all still match, on the real Pane and backend in list, columns and grid: counts the delegates it creates and destroys, and each drawn one keeps its row.
+// Real Pane/backend checks in list, columns and grid: a matching first key keeps delegates, and one Escape after a deep-window filter refills the visible rows.
 ShellRoot {
     id: root
 
     readonly property string fixture: Quickshell.env("FILTERHELD_DIR")
-    readonly property int folderRows: 250
+    readonly property int folderRows: 1350
     readonly property int matchRows: 150
     readonly property int tickMs: 20
     readonly property int giveUpMs: 10000
+    // Between deep cases, return the shared cursor to the refilled top before switching views.
+    // This is next-case setup only: clear() has already counted blanks without moving or escaping again.
     readonly property var ops: [
         { open: true },
         { view: "list" }, { home: true }, { slash: true }, { key: "list" }, { escape: true },
         { view: "columns" }, { home: true }, { slash: true }, { key: "columns" }, { escape: true },
-        { view: "grid" }, { home: true }, { slash: true }, { key: "grid" }, { escape: true }
+        { view: "grid" }, { home: true }, { slash: true }, { key: "grid" }, { escape: true },
+        { view: "list" }, { deep: true }, { slash: true }, { narrow: "list" }, { clear: "list" },
+        { home: true }, { view: "columns" }, { deep: true }, { slash: true }, { narrow: "columns" }, { clear: "columns" },
+        { home: true }, { view: "grid" }, { deep: true }, { slash: true }, { narrow: "grid" }, { clear: "grid" }
     ]
     property int at: 0
     property var awaiting: null
     property double stamp: Date.now()
     property var failures: []
     property var results: []
+    property var clearResults: []
+    property string deepName: ""
+    property int deepIndex: -1
+    property int deepHeld: -1
     property var pane: null
     property var keys: null
     property var before: ({})
@@ -70,6 +79,20 @@ ShellRoot {
         var v = root.view()
         var kids = v ? v.contentItem.children : []
         for (var i = 0; i < kids.length; i++) if (kids[i].listingIndex !== undefined) out.push(kids[i])
+        return out
+    }
+    // Intersecting live delegates, including blank ones: testing row here would hide the regression.
+    function visibleRows() {
+        var out = []
+        var v = root.view()
+        var items = root.all()
+        for (var i = 0; i < items.length; i++) {
+            var cell = items[i]
+            if (!cell.visible || cell.live === false || cell.prebuilt === true || cell.listingIndex < 0) continue
+            var point = cell.mapToItem(v, 0, 0)
+            if (point.x < v.width && point.x + cell.width > 0 && point.y < v.height && point.y + cell.height > 0)
+                out.push(cell)
+        }
         return out
     }
     // Waits until a stretch of quiet frames has passed, so the coalesce and settle timers have run.
@@ -133,6 +156,30 @@ ShellRoot {
         } else if (op.escape) {
             root.keys.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
             root.awaiting = function () { return !root.pane.filterTyping && root.pane.filterQuery === "" }
+        } else if (op.deep) {
+            root.pane.listArea.forceActiveFocus()
+            root.deepIndex = root.folderRows - 20
+            Filter.setCursorView(root.pane, root.deepIndex)
+            root.awaiting = function () {
+                if (root.pane.held <= 0 || root.pane.held > root.deepIndex
+                        || root.pane.held + root.pane.rows.length <= root.deepIndex
+                        || !root.pane.rowFor(root.deepIndex)) return false
+                var rows = root.visibleRows()
+                var cursorVisible = false
+                for (var i = 0; i < rows.length; i++) {
+                    if (!rows[i].row) return false
+                    if (rows[i].listingIndex === root.deepIndex) cursorVisible = true
+                }
+                if (!cursorVisible) return false
+                root.deepName = root.pane.rowFor(root.deepIndex).n
+                root.deepHeld = root.pane.held
+                root.settle(400)
+                return false
+            }
+        } else if (op.narrow !== undefined) {
+            root.narrow(op.narrow)
+        } else if (op.clear !== undefined) {
+            root.clear(op.clear)
         }
     }
 
@@ -185,10 +232,77 @@ ShellRoot {
         }
     }
 
+    // Type the current held row's whole name through the same key route as the first-key check.
+    function narrow(name) {
+        for (var i = 0; i < root.deepName.length; i++)
+            root.keys.keyClickChar(root.deepName.charAt(i), Qt.NoModifier, -1)
+        root.settledAt = Date.now() + 400
+        root.awaiting = function () {
+            if (root.pane.filterQuery !== root.deepName || Date.now() < root.settledAt) return false
+            var v = root.view()
+            var rows = root.visibleRows()
+            if (root.pane.shownTotal !== 1 || v.count !== 1)
+                root.fail(name + " deep filter narrowed to " + v.count + " of " + root.pane.shownTotal + ", want 1")
+            if (rows.length !== 1 || !rows[0].row || rows[0].row.n !== root.deepName)
+                root.fail(name + " deep filter does not draw its current held row " + root.deepName)
+            if (root.pane.held <= 0 || !root.pane.rowFor(root.deepIndex))
+                root.fail(name + " deep filter lost its deep held window before Escape")
+            return true
+        }
+    }
+
+    // No scroll or second Escape may help this refill: count the real viewport after quiet frames.
+    function clear(name) {
+        root.keys.keyClick(Qt.Key_Escape, Qt.NoModifier, -1)
+        root.settledAt = Date.now() + 800
+        root.awaiting = function () {
+            if (Date.now() < root.settledAt) return false
+            var v = root.view()
+            var rows = root.visibleRows()
+            var blank = 0
+            for (var i = 0; i < rows.length; i++) if (!rows[i].row) blank += 1
+            // The geometry names expected slots independently of which delegates Qt instantiated.
+            var range = root.pane.viewMode === "columns" ? root.pane.columnsArea.activeColumn().visibleRange() : v.visibleRange()
+            var first = Math.max(0, range.first)
+            var last = Math.min(v.count - 1, range.last)
+            var missing = 0
+            var unfilled = 0
+            var stale = 0
+            for (var pos = first; pos <= last; pos++) {
+                var cell = v.itemAtIndex(pos)
+                if (!cell || !cell.visible || cell.live === false || cell.prebuilt === true) {
+                    missing += 1
+                    continue
+                }
+                var expected = root.pane.rowFor(cell.listingIndex)
+                if (!cell.row || !expected) unfilled += 1
+                else if (cell.listingIndex !== pos || cell.row.n !== expected.n) stale += 1
+            }
+            var line = name + " visible=" + rows.length + " blank=" + blank + " shown=" + root.pane.shownTotal
+                + " slots=" + first + "-" + last + " missing=" + missing + " unfilled=" + unfilled + " stale=" + stale
+                + " deepHeld=" + root.deepHeld + " held=" + root.pane.held
+            root.clearResults.push(line)
+            console.log("FILTERHELD CLEAR " + line)
+            if (root.pane.filterTyping || root.pane.filterQuery !== "")
+                root.fail(name + " one Escape did not clear the deep filter")
+            if (root.pane.shownTotal !== root.folderRows || v.count !== root.folderRows)
+                root.fail(name + " clear restored " + v.count + " of " + root.pane.shownTotal + ", want " + root.folderRows)
+            if (rows.length < 8) root.fail(name + " clear drew only " + rows.length + " intersecting delegates")
+            if (blank > 0) root.fail(name + " clear left " + blank + " of " + rows.length + " visible rows without data")
+            if (last < first) root.fail(name + " clear has no expected viewport slots")
+            if (missing > 0) root.fail(name + " clear left " + missing + " expected viewport slots without live delegates")
+            if (unfilled > 0) root.fail(name + " clear left " + unfilled + " expected viewport slots without held row data")
+            if (stale > 0) root.fail(name + " clear left " + stale + " expected viewport slots with stale row identities")
+            return true
+        }
+    }
+
     function finish() {
+        if (root.results.length !== 3 || root.clearResults.length !== 3)
+            root.fail("completed first-key=" + root.results.length + " clear=" + root.clearResults.length + ", want 3 each")
         for (var f = 0; f < root.failures.length; f++) console.log("FILTERHELD FAIL " + root.failures[f])
-        if (root.failures.length === 0 && root.results.length === 3) console.log("FILTERHELD PASS " + root.results.join("; "))
-        console.log("FILTERHELD DONE views=" + root.results.length + " failures=" + root.failures.length)
+        if (root.failures.length === 0) console.log("FILTERHELD PASS " + root.results.join("; ") + "; clear " + root.clearResults.join("; "))
+        console.log("FILTERHELD DONE views=" + root.results.length + " clears=" + root.clearResults.length + " failures=" + root.failures.length)
         Qt.exit(root.failures.length > 0 ? 1 : 0)
     }
 }

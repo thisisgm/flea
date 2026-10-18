@@ -2781,6 +2781,13 @@ real WindowBody it drives.
 reaches the card under either icon mark, pinned at `Nav.openCursor`.
 `ui/GridArea.qml` is 665 lines by `wc -l`, its recorded ceiling (moved from 663 for the `viewTop()` helper and its comment, which keeps the viewport top at `contentY - originY` for the drift check and `coversCursor`); the column and row-count handlers restart that drift check with `coalesce.restart()`, so a resize that re-flows the tiles asks for the window they draw without waiting for a scroll.
 
+Clearing a filter over a deep held window restarts List's existing viewport coalesce after the view's
+count and scroll settle, so the unfiltered viewport fetches its rows without another scroll or Escape.
+The scoped ceiling is re-derived with `wc -l`: `ui/List.qml` 480 to 482. No startup object is added;
+`tests/filter-held.sh` covers the deep-window clear in List, Columns and Grid.
+The existing first-frame inventories gain no units; their summed source ceilings move by List's
+182 bytes to 1,774,914 (default) and 1,664,073 (language icons off).
+
 `tests/csv-preview.qml` is recorded at 520 lines by `wc -l`: one real-backend harness drives every CSV and TSV case (record-aligned
 jumps, first-screen continuation, capped replies, plain line counts and the drawn Quick Look elision) over one fixture
 set, including the record-ordinal regressions and two-row quoted fixture checks; splitting it would start a second backend per file.
