@@ -5,7 +5,7 @@ use std::path::PathBuf;
 #[path = "action_regression_tests.rs"]
 mod regressions;
 
-fn drain(wire: &mut wire::Wire) -> Vec<Json> {
+pub(super) fn drain(wire: &mut wire::Wire) -> Vec<Json> {
     wire.send(vec![("c", wire::word("fence"))]).unwrap();
     let mut values = Vec::new();
     loop {
@@ -18,7 +18,7 @@ fn requests<'a>(sent: &'a [Json], command: &str) -> Vec<&'a Json> {
     sent.iter().filter(|v| text(v, "c") == command).collect()
 }
 
-fn listing(wire: &mut wire::Wire, preset: &str) -> Model {
+pub(super) fn listing(wire: &mut wire::Wire, preset: &str) -> Model {
     let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
     model.preset = preset.into();
     model.open(model.path.clone(), wire).unwrap();
@@ -96,6 +96,11 @@ fn mac_move_and_duplicate_have_plain_keys_and_windows_ctrl_d_still_trashes() {
 
 #[test]
 fn unsupported_actions_say_why_and_sequences_do_not_leak_into_another_context() {
+    check_unsupported_actions_and_sequences(&Map::load());
+}
+
+fn check_unsupported_actions_and_sequences(map: &Map) {
+    let press = |m: &mut Model, w: &mut wire::Wire, key: Key| actions::key(m, &key, map, w).unwrap();
     let (mut wire, reader) = wire::echo_wire();
     let mut m = listing(&mut wire, "default");
     press(&mut m, &mut wire, Key::named("F5", ""));
@@ -105,14 +110,44 @@ fn unsupported_actions_say_why_and_sequences_do_not_leak_into_another_context() 
     assert_eq!(m.error, "Settings are available in the Flea window");
     press(&mut m, &mut wire, Key::named("Escape", ""));
     m.preset = "yazi".into();
+    m.total = 3;
+    m.receive(jsondoc::parse(r#"{"t":"rows","start":2,"rows":[{"n":"last-file"}]}"#).unwrap(), &mut wire).unwrap();
+    drain(&mut wire);
+    m.cursor = 2;
     press(&mut m, &mut wire, Key::character('g', ""));
     assert_eq!(m.key_arm, "prefix:g");
     press(&mut m, &mut wire, Key::character('g', ""));
     assert_eq!(m.cursor, 0);
+    assert!(m.key_arm.is_empty());
+    m.cursor = 1;
+    press(&mut m, &mut wire, Key::character('g', ""));
+    m.sheet = true;
+    press(&mut m, &mut wire, Key::character('g', ""));
+    assert_eq!(m.cursor, 1);
+    assert!(m.key_arm.is_empty());
+    assert!(m.sheet);
+    press(&mut m, &mut wire, Key::named("Escape", ""));
+    press(&mut m, &mut wire, Key::character('g', ""));
+    assert_eq!(m.key_arm, "prefix:g");
+    press(&mut m, &mut wire, Key::named("Escape", ""));
+    assert_eq!(m.cursor, 1);
+    assert!(m.key_arm.is_empty());
     press(&mut m, &mut wire, Key::character(';', ""));
     assert!(m.error.contains("Shell prompts are unavailable"));
     press(&mut m, &mut wire, Key::character('g', ""));
     press(&mut m, &mut wire, Key::named("Escape", ""));
     assert_eq!(m.key_arm, "");
     wire::finish(wire, reader);
+}
+
+#[test]
+fn sequence_checker_rejects_inert_navigation() {
+    check_unsupported_actions_and_sequences(&Map::load());
+    let text = include_str!("../../keys.toml");
+    for action in ["clearSelection", "cursorUp"] {
+        let wrong = text.replace("key = \"g\"\naction = \"cursorFirst\"", &format!("key = \"g\"\naction = \"{action}\""));
+        assert_ne!(wrong, text);
+        let result = std::panic::catch_unwind(|| check_unsupported_actions_and_sequences(&Map::parse(&wrong)));
+        assert!(result.is_err(), "the sequence check accepted {action} instead of first-row navigation");
+    }
 }

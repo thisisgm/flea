@@ -30,6 +30,7 @@ mod preview;
 mod render;
 mod taildrop;
 mod terminal;
+mod launch;
 mod wait;
 mod hold;
 #[cfg(test)]

@@ -14,4 +14,4 @@ cleanup() {
   sandbox_remove "$scratch"
 }
 trap cleanup EXIT
-python3 tests/tui_cwd.py "$bin" "$scratch"
+setsid -w env -i PATH="$PATH" HOME="$HOME" python3 -B tests/tui_cwd.py "$bin" "$scratch" < /dev/null

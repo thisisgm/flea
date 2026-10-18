@@ -1,6 +1,7 @@
 """Real CLI and controlling-PTY proof; synthetic input is separate from native terminal emission."""
 import atexit
 import fcntl
+import json
 import os
 from pathlib import Path
 import pty
@@ -176,12 +177,28 @@ s.finish(2)
 assert b'flea: terminal interface:' in s.output
 print('ok output write failure exits 2 after terminal restoration')
 
+def check_editor_guard(tool, fixture, env):
+    master, slave = pty.openpty()
+    try:
+        for first, second, expected in [('--wait', '--', 0), ('WRONG', '--', 1), ('--wait', 'WRONG', 1)]:
+            target = fixture / '.argv-control'
+            target.write_text('original\n')
+            result = subprocess.run([str(tool), first, second, str(target)], env=env,
+                                    stdin=slave, capture_output=True, timeout=8)
+            assert (result.returncode == 0) == (expected == 0), (first, second, result.returncode)
+            assert target.read_text() == ('edited\n' if expected == 0 else 'original\n')
+    finally:
+        os.close(master)
+        os.close(slave)
+
+
 for mode in ['editor', 'visual', 'failure', 'missing']:
     case, fixture, env = environment('edit-' + mode)
     tool = case / 'bin' / 'editor with spaces'
     tool.write_text('''#!/bin/sh
 set -eu
-[ "$1" = --wait ] && [ "$2" = -- ]
+[ "$1" = --wait ] || exit 4
+[ "$2" = -- ] || exit 4
 case "$T2_ROOT" in /*) ;; *) exit 9 ;; esac
 [ -f "$T2_ROOT/../.flea-test-sandbox" ] || exit 9
 case "$3" in "$T2_ROOT"/fixture/*) ;; *) exit 9 ;; esac
@@ -193,6 +210,8 @@ printf 'edited\\n' > "$3"
 ''')
     tool.chmod(0o700)
     env['T2_EDITOR_FAIL'] = '1' if mode == 'failure' else '0'
+    if mode == 'editor':
+        check_editor_guard(tool, fixture, env)
     if mode != 'missing':
         env['VISUAL' if mode == 'visual' else 'EDITOR'] = "'" + str(tool) + "' --wait"
     s = Session(fixture, env)
@@ -217,11 +236,31 @@ print('ok E uses argv, EDITOR/VISUAL, reports errors, restores terminal and rere
 
 case, fixture, env = environment('agent')
 tool = case / 'bin' / 'omarchy'
-tool.write_text('#!/bin/sh\n[ "$1" = agent ] || exit 4\npwd > "$T2_ROOT/agent-cwd"\nprintf "AGENT_READY\\n"\n')
+tool.write_text('''#!/usr/bin/python3
+import json, os, sys
+from pathlib import Path
+os.write(1, b'AGENT_STDOUT_SENTINEL\\n')
+os.write(2, b'AGENT_STDERR_SENTINEL\\n')
+data = dict(cwd=os.getcwd(), argv=sys.argv[1:], pid=os.getpid(), group=os.getpgrp(),
+            fds=[os.readlink('/proc/self/fd/' + str(fd)) for fd in (0, 1, 2)])
+root = Path(os.environ['T2_ROOT'])
+(root / 'agent-result.tmp').write_text(json.dumps(data))
+(root / 'agent-result.tmp').rename(root / 'agent-result')
+''')
 tool.chmod(0o700)
 s = Session(fixture, env)
-s.wait(b'AGENT_READY', s.send(b'A'))
-assert (case / 'agent-cwd').read_text() == str(fixture) + '\n'
+s.send(b'A')
+result_file = case / 'agent-result'
+deadline = time.monotonic() + 8
+while not result_file.exists() and time.monotonic() < deadline:
+    s.read()
+assert result_file.exists(), 'agent did not report its launch'
+result = json.loads(result_file.read_text())
+s.read()
+assert result['cwd'] == str(fixture) and result['argv'] == ['agent'], result
+assert result['fds'] == ['/dev/null'] * 3, result
+assert result['pid'] == result['group'], result
+assert b'AGENT_STDOUT_SENTINEL' not in s.output and b'AGENT_STDERR_SENTINEL' not in s.output
 s.send(b'q')
 s.finish()
 print('ok A executes omarchy agent in the shown folder')

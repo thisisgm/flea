@@ -34,16 +34,7 @@ struct WindowSize {
 fn editor_result(status: std::process::ExitStatus) -> io::Result<()> {
     if status.success() { Ok(()) } else { Err(io::Error::other(format!("The editor could not finish ({})", status))) }
 }
-pub fn launch(path: &Path, window: bool) -> io::Result<Child> {
-    let path = path.canonicalize()?;
-    if !path.is_dir() { return Err(io::Error::other("That is not a folder, so no terminal was opened")); }
-    let mut directory = std::ffi::OsString::from("--dir=");
-    directory.push(&path);
-    let mut command = Command::new("xdg-terminal-exec");
-    command.arg(directory);
-    if window { command.arg("--").arg(std::env::current_exe()?).arg("--tui").arg(&path); }
-    command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).process_group(0).spawn()
-}
+pub use super::launch::terminal as launch;
 extern "C" {
     fn ioctl(fd: i32, request: usize, ...) -> i32;
     fn signal(sig: i32, handler: usize) -> usize;
@@ -124,6 +115,7 @@ impl Terminal {
         Ok(terminal)
     }
     pub fn run_editor(&mut self, editor: &str, path: &Path) -> io::Result<()> {
+        // The bulk editor is shell syntax; keep filename bytes in $1, outside the shell program.
         let mut command = Command::new("/bin/sh");
         command.args(["-c", &format!("exec {} \"$1\"", editor), "flea-bulk-rename"]).arg(path);
         self.run_command(command)
