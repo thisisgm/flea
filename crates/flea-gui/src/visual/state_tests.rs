@@ -114,34 +114,33 @@ fn native_readbacks_and_each_refusal_use_the_registry(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn snapshot_that_never_presents_expires_without_a_receipt(cx: &mut TestAppContext) {
-    let (backend, _) = Backend::test_channel();
-    let window = cx.add_empty_window();
-    let (answer, receive) = std::sync::mpsc::sync_channel(1);
-    let entity = window.update(|window, cx| {
-        let entity = cx.new(|cx| shell_with(backend, cx));
+    let (entity, cx, _requests) = root_shell(cx);
+    let (event, receive) = scene_call(
+        "g1-01-list-r0",
+        r#"{"path":"/files","width":1100,"height":700}"#,
+    );
+    cx.update(|window, cx| {
         entity.update(cx, |shell, cx| {
-            shell.visual.compositor = Some(shown(MAPPED));
-            shell.ipc(
-                Event::Call {
-                    request: Request::Call {
-                        target: "flea".into(),
-                        function: "scene".into(),
-                        arguments: vec![
-                            std::process::id().to_string(),
-                            "g1-01-list-r0".into(),
-                            r#"{"path":"/files","width":1099}"#.into(),
-                        ],
-                    },
-                    answer,
-                },
-                window,
-                cx,
-            );
-            assert!(shell.visual.pending.is_some());
-        });
-        entity
+            forget_drawn(shell);
+            shell.ipc(event, window, cx)
+        })
     });
+    // The compositor numbers each frame's present and reports none of them presented.
+    for _ in 0..3 {
+        commit_frame(&entity, cx);
+    }
     cx.run_until_parked();
+    entity.update(cx, |shell, _| {
+        assert_eq!(
+            (
+                drawn_cursor(shell),
+                shell.visual.pending.is_some(),
+                shell.visual.receipt.is_none()
+            ),
+            (Some(0), true, true),
+            "the window drew the scene, and no frame it drew earned a receipt before the deadline"
+        );
+    });
     assert!(receive.try_recv().is_err());
     cx.executor()
         .advance_clock(std::time::Duration::from_millis(1501));
@@ -186,6 +185,21 @@ fn present(shell: &mut Shell, window: &gpui::Window) {
     let frames = shell.visual.compositor.as_mut().unwrap();
     frames.presented = frames.committed;
     shell.visual_presented(window);
+}
+
+/// Forgets the cursor earlier frames drew, so only a frame drawn after this records one.
+fn forget_drawn(shell: &Shell) {
+    shell.panes[0]
+        .as_ref()
+        .unwrap()
+        .list
+        .borrow_mut()
+        .drawn_cursor = None;
+}
+
+/// The cursor the focused list's last prepaint laid out, the window's own record of a drawn frame.
+fn drawn_cursor(shell: &Shell) -> Option<usize> {
+    shell.panes[0].as_ref().unwrap().list.borrow().drawn_cursor
 }
 
 /// Draws a frame whose present the compositor numbers, and runs that frame's callbacks.
@@ -408,16 +422,21 @@ fn mismatched_client_size_withholds_the_receipt_until_the_deadline(cx: &mut Test
         "g1-01-list-r0",
         r#"{"path":"/files","width":1099,"height":700}"#,
     );
-    cx.update(|window, cx| entity.update(cx, |shell, cx| shell.ipc(event, window, cx)));
+    cx.update(|window, cx| {
+        entity.update(cx, |shell, cx| {
+            forget_drawn(shell);
+            shell.ipc(event, window, cx)
+        })
+    });
     for _ in 0..3 {
         draw_frame(&entity, cx);
     }
     assert!(receive.try_recv().is_err());
     entity.update(cx, |shell, _| {
         assert_eq!(
-            shell.visual.compositor,
-            Some(shown(MAPPED + 3)),
-            "the compositor presented the frames the window drew"
+            drawn_cursor(shell),
+            Some(0),
+            "the window drew frames for the pending scene"
         );
         assert!(shell.visual.receipt.is_none());
     });
