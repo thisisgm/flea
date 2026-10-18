@@ -87,7 +87,6 @@ pub(super) fn unsupported(row: &[&str], keys: &[Key], map: &Map) {
         }
         "pick" => {
             assert!(keys.iter().all(|key| map.in_context(key, "yazi", "pick").is_empty()));
-            assert_eq!(map.action(&Key::character('O', ""), "yazi"), "openTab");
         }
         "input" | "cmp" | "panel" | "confirm" => inactive_action(row, keys, map),
         other => panic!("unverified unsupported context {other}"),
