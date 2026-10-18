@@ -75,6 +75,7 @@ picker|needs the display, a session bus, and Flea activatable as the FileChooser
 picker-issue313-native|needs native Omarchy input, Qt 6.12 and the serialized minipc display lane
 picker-040|is 0.3.10's acceptance suite and is red until the picker has path entry and collision review
 network-live|needs live share credentials and the approved runtime bundle, maintainer only
+license-policy|needs cargo-deny, which the CI image does not carry, so it runs by name on a host that has it
 hook-gate|standalone pinned-hk hook proof, verified separately in a marked Git fixture
 ui-tui|is a standalone native TUI proof that needs the display and owns the display lock
 themes|needs the display: it launches the candidate once per stock theme, and tests/js/themes.js is the half that runs here

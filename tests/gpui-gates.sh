@@ -29,34 +29,37 @@ if [ -f "$root/clippy/clippy-gui.log" ]; then
   tail -20 "$root/clippy/clippy-gui.log"
 fi
 gate gpui-lint tools/flea-gpui-lint
+gate gate-regressions python3 -B tests/gpui_gates_regressions.py
 
 # Only the private copy is mutated; no source file in the worktree is overwritten by a test.
-python3 - "$root" <<'PY'
+# The copy takes every top-level input except VCS, build and scratch state, so the wrapper judges the same tree.
+mkdir "$root/mutant" || exit 1
+for entry in .[!.]* *; do
+  case $entry in .git|.superpowers|target|.flea-local) continue ;; esac
+  [ -e "$entry" ] || continue
+  cp -R "$entry" "$root/mutant/" || exit 1
+done
+python3 - "$root" <<'GATES_PY'
 from pathlib import Path
-import shutil
 import sys
 root = Path(sys.argv[1])
 assert root.is_absolute() and (root / ".flea-test-sandbox").is_file()
-mutant = root / "mutant"
-mutant.mkdir()
-for name in ("Cargo.toml", "Cargo.lock"):
-    shutil.copy2(name, mutant / name)
-for name in ("src", "crates", "ui", "tests", "shelf"):
-    shutil.copytree(name, mutant / name, symlinks=True)
-source = mutant / "crates/flea-gui/src/main.rs"
+source = root / "mutant/crates/flea-gui/src/main.rs"
 text = source.read_text()
 assert text.count("fn main() {") == 1
 source.write_text(text.replace("fn main() {", "fn main() {\n    let g10l_injected_warning = ();", 1))
-PY
+GATES_PY
 copy_rc=$?
 if [ "$copy_rc" -eq 0 ]; then
-  cargo clippy --locked --manifest-path "$root/mutant/Cargo.toml" -p flea-gui --all-targets -- -D warnings > "$root/mutant.log" 2>&1
+  # The mutant goes through the release wrapper, so its strict flea-gui call is the one that judges it.
+  (cd "$root/mutant" && tools/flea-clippy tools/clippy-baseline.txt "$root/mutant-clippy") > "$root/mutant.log" 2>&1
   rc=$?
-  if [ "$rc" -ne 0 ] && grep -q 'unused variable: `g10l_injected_warning`' "$root/mutant.log"; then
-    echo "ok strict flea-gui warning mutant rejected; cargo rc=$rc"
+  # The expected rejection stays out of stdout: the suite runner reads any FAIL line as a failed suite.
+  if [ "$rc" -ne 0 ] && grep -qF 'clippy flea-gui: FAIL' "$root/mutant.log" && grep -q '^error: unused variable: `g10l_injected_warning`' "$root/mutant-clippy/clippy-gui.log" 2>/dev/null; then
+    echo "ok strict flea-gui warning mutant rejected by tools/flea-clippy; rc=$rc"
   else
     cat "$root/mutant.log"
-    echo "FAIL strict flea-gui mutant did not fail for its injected warning; cargo rc=$rc"
+    echo "FAIL strict flea-gui mutant was not rejected by tools/flea-clippy for its injected error; rc=$rc"
     failed=1
   fi
 else

@@ -16,11 +16,12 @@ def run(args, root):
 
 
 def tracked(root):
-    process = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, text=True)
-    if process.returncode == 0:
+    # Only a checkout has a .git entry; an archive export has none and needs no Git call.
+    if (root / ".git").exists():
+        process = subprocess.run(["git", "ls-files", "-z"], cwd=root, capture_output=True, text=True)
+        if process.returncode:
+            raise ValueError(f"git ls-files exited {process.returncode}: {process.stderr.strip()}")
         return [Path(name) for name in process.stdout.split("\0") if name]
-    if "not a git repository" not in process.stderr:
-        raise ValueError(f"git ls-files exited {process.returncode}: {process.stderr.strip()}")
     # CI exports have no index; checking every exported source is a superset of tracked inputs.
     paths = []
     for directory, folders, files in os.walk(root, followlinks=False):
@@ -46,6 +47,7 @@ def gpui(name):
     return name == "gpui" or name.startswith(("gpui-", "gpui_"))
 
 
+# Sample input: "git+https://example.org/fork.git?rev=<sha>#<sha>" for the registered fork URL and revision.
 def source_matches(source, fork):
     if not isinstance(source, str) or not source.startswith("git+"):
         return False

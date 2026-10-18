@@ -6,9 +6,7 @@ set -u
 cd "$(dirname "$0")/.." || exit 1
 repo=$PWD
 
-# The oversized fixture lives in a mktemp -d of its own, which is what hard rule 9 allows outright.
-# The tool finds its files with a relative find, so a scratch tree it is run inside is a whole tree
-# to it, and nothing is ever written into the checkout under ~/Work.
+# Scratch stays under the marked .superpowers/g10l parent, never in shared /tmp.
 mkdir -p "$repo/.superpowers/g10l" || exit 1
 scratch=$(mktemp -d "$repo/.superpowers/g10l/budget.XXXXXX") || exit 1
 # Cleanup accepts only an absolute path under this suite's marked scratch parent.
@@ -94,5 +92,19 @@ check "a tracked crates filename with spaces and a newline passes at its cap" 0 
 printf '// growth\n' >> "$odd_name"
 ( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
 check "whitespace cannot hide a tracked crates file past the hard cap" 1 $?
+
+# A tracked crates file gone from the worktree fails by its path, never as a silent missing count.
+gone="$scratch/crates/flea-gui/src/gone.rs"
+seq 1 3 | sed 's/^/\/\/ line /' > "$gone"
+git -C "$scratch" add crates || exit 1
+case "$gone" in
+  "$scratch"/crates/flea-gui/src/gone.rs) [ -f "$scratch/.flea-test-sandbox" ] && rm -f -- "$gone" ;;
+esac
+( cd "$scratch" && "$repo/tools/flea-file-budget" > deleted.log 2>&1 )
+check "a tracked crates file deleted from the worktree fails" 1 $?
+case $(cat "$scratch/deleted.log") in
+  *"UNREADABLE crates/flea-gui/src/gone.rs"*) echo "ok   deleted file is named" ;;
+  *) echo "FAIL deleted file is named: got '$(cat "$scratch/deleted.log")'"; fail=1 ;;
+esac
 
 exit $fail

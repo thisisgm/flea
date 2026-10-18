@@ -10,6 +10,7 @@ class Token:
     line: int
 
 
+# Sample input: Rust source "let c = 0x1e_29_3b; // note", lexed into tokens with line numbers.
 def tokens(source):
     result = []
     i, line = 0, 1
@@ -101,6 +102,7 @@ def pairs(ts):
     return matched
 
 
+# Sample input: tokens of "use std::{fs::{self, File as F}, io::*};", which aliases F to std::fs::File.
 def use_aliases(ts, parent=None):
     """Expand Rust use trees, including renames, nested groups and self imports."""
     aliases = {}
@@ -164,6 +166,7 @@ def use_aliases(ts, parent=None):
     return aliases
 
 
+# Sample input: tokens of "Vec::<u8>::new()" from index i, with the head resolved through aliases.
 def path_at(ts, i, aliases):
     if ts[i].value == "<":
         receiver, end = path_at(ts, i + 1, aliases)

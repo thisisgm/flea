@@ -49,6 +49,23 @@ def blocking(symbol, args, method, helpers):
     return method and parts[-1] in ("join", "recv") and not args
 
 
+def digits(literal):
+    # Rust underscores are digit separators, so 0x1e_29_3b is the colour 0x1e293b.
+    return literal.replace("_", "")
+
+
+def immediate(ts, matched, start, stop):
+    # Tokens of one argument list outside nested brackets: a nested call's numbers belong to that call.
+    result, i = [], start
+    while i < stop:
+        if ts[i].value in ("(", "[", "{"):
+            i = matched[i] + 1
+            continue
+        result.append(ts[i])
+        i += 1
+    return result
+
+
 def allowed_hex_tokens(unit, entries):
     """Only a named module-level constant can exempt its exact non-colour hex value."""
     ts = unit["tokens"]
@@ -60,7 +77,7 @@ def allowed_hex_tokens(unit, entries):
             end = next((j for j in range(i + 2, len(ts)) if ts[j].value == ";"), len(ts))
             for entry in entries:
                 if entry["symbol"] == symbol:
-                    allowed.update(j for j in range(i + 2, end) if ts[j].value == entry["literal"])
+                    allowed.update(j for j in range(i + 2, end) if digits(ts[j].value) == entry["literal"])
         if ts[i].value in ("{", "(", "["):
             i = matched[i]
         i += 1
@@ -105,7 +122,7 @@ def source_checks(units, policy):
         scopes = environments(ts)
         allowed = allowed_hex_tokens(unit, policy.get("non_color_hex_constants", []))
         for i, token in enumerate(ts):
-            if unit["path"] in surfaces and token.kind == "number" and COLOR_HEX.fullmatch(token.value) and i not in allowed:
+            if unit["path"] in surfaces and token.kind == "number" and COLOR_HEX.fullmatch(digits(token.value)) and i not in allowed:
                 errors.append(f"{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception")
             if token.kind != "ident" or (i and ts[i - 1].value == "::"):
                 continue
@@ -117,12 +134,14 @@ def source_checks(units, policy):
                 continue
             following = ts[end].value
             constructor = name in COLOR_CALLS or any(p in COLOR_TYPES for p in path)
-            named = name.lower() in COLOR_NAMES and (len(path) > 1 or following == "(")
+            gpui_symbol = path[0] == "gpui" or path[0].startswith("gpui_") or any(p in COLOR_TYPES for p in path)
+            named = name.lower() in COLOR_NAMES and gpui_symbol
             args = ts[end + 1:matched[end]] if following in ("(", "{") else []
             literal = any(t.kind in ("number", "string") for t in args)
+            direct = immediate(ts, matched, end + 1, matched[end]) if following in ("(", "{") else []
             text_color = name in COLOR_SETTERS - {"fill", "stroke"} and (
-                any(t.kind == "number" for t in args) or any(t.kind == "string" and (
-                t.value[1:-1].lower() in COLOR_NAMES or t.value[1:-1].startswith("#")) for t in args)
+                any(t.kind == "number" for t in direct) or any(t.kind == "string" and (
+                t.value[1:-1].lower() in COLOR_NAMES or t.value[1:-1].startswith("#")) for t in direct)
             )
             if (constructor and literal) or named or text_color:
                 errors.append(f"{unit['path']}:{token.line}: literal colour { '::'.join(path) }; use theme roles")

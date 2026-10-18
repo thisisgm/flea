@@ -1,3 +1,4 @@
+use flea::colours;
 use gpui::{Global, Hsla};
 
 #[derive(Clone, Copy, Debug, PartialEq)]
@@ -21,18 +22,11 @@ impl Theme {
         Self::from_text(&std::fs::read_to_string(path).unwrap_or_default())
     }
 
+    // Sample input: color0='#101315' or background = "#101315", one key=value per line.
     fn from_text(text: &str) -> Self {
-        let values: Vec<_> = text
-            .lines()
-            .filter_map(|line| {
-                let (key, value) = line.split_once('=')?;
-                let value = value.trim().trim_start_matches(['"', '\'']);
-                let hex = value.strip_prefix('#')?.get(..6)?;
-                if !hex.bytes().all(|byte| byte.is_ascii_hexdigit()) {
-                    return None;
-                }
-                Some((key.trim(), u32::from_str_radix(hex, 16).ok()?))
-            })
+        let values: Vec<_> = colours::entries(text)
+            .into_iter()
+            .filter_map(|(key, hex)| Some((key, u32::from_str_radix(&hex[1..], 16).ok()?)))
             .collect();
         let pick = |keys: &[&str], fallback| {
             keys.iter()
@@ -62,5 +56,23 @@ mod tests {
         let reversed = Theme::from_text("color0='#cacccc'\ncolor7='#101315'");
         assert_eq!(reversed.background, theme.foreground);
         assert_eq!(reversed.foreground, theme.background);
+    }
+
+    #[test]
+    fn identical_quotes_hex_width_and_precedence() {
+        let width: Hsla = gpui::rgb(0x112233).into();
+        assert_eq!(
+            Theme::from_text("background=\"#112233ff\"").background,
+            width
+        );
+        let last: Hsla = gpui::rgb(0x445566).into();
+        assert_eq!(
+            Theme::from_text("background='#112233'\nbackground='#445566'").background,
+            last
+        );
+        assert_eq!(
+            Theme::from_text("foreground=#12345").foreground,
+            Theme::default().foreground
+        );
     }
 }

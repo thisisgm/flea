@@ -7,7 +7,7 @@ Comments and Rust string, raw string, byte string, C string and character litera
 It follows imported aliases and local helper calls; only explicit thread or background-executor closures are background boundaries.
 Imports and local callable aliases follow lexical scopes, including parent-module glob imports. A background boundary must belong to this spawn's receiver and directly supplied closure or future, not another expression in the statement.
 Qualified standard-library joins and blocking channel receives normalize their receiver types, generic arguments and imported aliases before classification; Path::join remains nonblocking.
-In registered hot-surface files, every integer token spelled as 0x plus exactly six or eight hex digits is a finding, even in an unused binding or nested write. Constructor arguments are checked for literal tokens directly. No literal provenance is inferred through variables or control flow.
+In registered hot-surface files, every integer token spelled as 0x plus six or eight hex digits, with Rust underscores ignored, is a finding, even in an unused binding or nested write. Constructor arguments are checked for literal tokens directly. No literal provenance is inferred through variables or control flow.
 
 `tools/gpui-lint.json` is the single registry and exception file:
 
