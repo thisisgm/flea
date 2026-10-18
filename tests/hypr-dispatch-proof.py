@@ -49,12 +49,13 @@ case "$1" in
             getoption) printf '%s\n' '{"option":"decoration:rounding","int":8}' ;;
             *) printf 'fake hyprctl refused unexpected query: %s\n' "$*" >&2; exit 2 ;;
         esac
+        exit "${HYPR_FAKE_STATUS:-0}"
         ;;
-    version) printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"; printf '%s\n' 'Hyprland 0.56.2 (fake)' ;;
-    --help) printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"; printf '%s\n' 'usage: hyprctl command' ;;
+    version) printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"; printf '%s\n' 'Hyprland 0.56.2 (fake)'; exit "${HYPR_FAKE_STATUS:-0}" ;;
+    --help) printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"; printf '%s\n' 'usage: hyprctl command'; exit "${HYPR_FAKE_STATUS:-0}" ;;
     output)
         printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"
-        if [[ "$2" == --help ]]; then printf '%s\n' 'usage: hyprctl output create|remove'; exit 0; fi
+        if [[ "$2" == --help ]]; then printf '%s\n' 'usage: hyprctl output create|remove'; exit "${HYPR_FAKE_STATUS:-0}"; fi
         printf '%s\n' "${HYPR_FAKE_REPLY-ok}"
         exit "${HYPR_FAKE_STATUS:-0}"
         ;;
@@ -252,7 +253,12 @@ def main():
             program = shlex.join(["bash", str(helper), operation, *arguments])
             rc, output, calls = run(program)
             check(operation + " program form", rc == 0 and output == case.get("reply", "ok\n") and calls == [case["text"]], output)
-            for form, code, invoke in (() if query else (("function", shared_code, command), ("program", "", program))):
+            for form, code, invoke in (("function", shared_code, command), ("program", "", program)):
+                if query:
+                    # A query has no ok reply to check, so its returned status is the whole failure contract.
+                    rc, output, calls = run(invoke, code=code, HYPR_FAKE_STATUS=str(FAILED_COMMAND_STATUS))
+                    check(operation + " " + form + " propagates a failed query", rc != 0 and calls == [case["text"]], output)
+                    continue
                 for reply in (WARNING, "", "ok\nwarning", " ok", "ok ", "okay",
                               *(RULE_REPLIES if operation == "session_exec_rules" else ())):
                     rc, output, calls = run(invoke, code=code, HYPR_FAKE_REPLY=reply)
@@ -298,6 +304,12 @@ def main():
                 if arguments[1].endswith("override"):
                     bad_values += ("0.5", "0.96")
                 invalid.extend([arguments[0], arguments[1], bad] for bad in bad_values)
+            if operation == "query_option":
+                # Option paths reach hyprctl as a word, so a separator, a quote or a substitution must refuse before it runs.
+                invalid.extend([bad] for bad in ("decoration:rounding;exit", 'decoration:"rounding"', "decoration:rounding}",
+                                                 "decoration:rounding)", "decoration rounding", "decoration:$(id)",
+                                                 "decoration:rounding\nexit", "decoration", ":rounding", "decoration:",
+                                                 "Decoration:rounding"))
             for bad_arguments in invalid:
                 for prefix, code in ((["hypr_" + operation], shared_code), (["bash", str(helper), operation], "")):
                     rc, output, calls = run(shlex.join(prefix + bad_arguments), code=code)

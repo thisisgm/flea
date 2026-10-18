@@ -6,7 +6,9 @@ import json
 import os
 from pathlib import Path
 import signal
+import struct
 import sys
+import termios
 from unittest.mock import patch
 
 from . import cells, relay
@@ -14,6 +16,7 @@ from .evidence import MARKER
 
 MASTER_FD = 7000
 CHILD_PID = 9000
+RESIZED = struct.pack("HHHH", 1, 1, 10, 10)  # the geometry the winsize double reports after the resize fires
 
 
 class Server:
@@ -46,7 +49,9 @@ def run_relay(case, scenario):
     if scenario == "start-failure":
         (case / "relay-start.json").write_text("exclusive-create collision\n")
     server, handlers, closed, logs, forwarded, restored, killed = Server(), {}, [], [], [], [], []
-    output = [b"first", b"FINAL\x1b[?1049l\x1b[?25h"] if scenario == "drain" else ["議".encode()]
+    installed, geometry, reaps, winch_restored = set(), [], [], None
+    # The teardown case ends on master EOF with the child still running, so the shutdown path must reap it.
+    output = [b"first", b"FINAL\x1b[?1049l\x1b[?25h"] if scenario == "drain" else [b""] if scenario == "teardown" else ["議".encode()]
     fired = False
     original_close, original_open = os.close, Path.open
     source, first_line = inspect.getsourcelines(cells.Screen.feed)
@@ -60,20 +65,38 @@ def run_relay(case, scenario):
         return trace
 
     def close(fd):
+        nonlocal winch_restored
         closed.append(fd)
         if fd != MASTER_FD:
             return original_close(fd)
+        # The state at the first master close: a resize handler still installed here is the ordering defect.
+        if winch_restored is None:
+            winch_restored = handlers.get(signal.SIGWINCH, signal.SIG_DFL) == signal.SIG_DFL
         if scenario == "resize-close" and callable(handlers.get(signal.SIGWINCH)):
             handlers[signal.SIGWINCH]()
 
-    def ioctl(fd, *_):
+    def ioctl(fd, request=None, data=None, *_):
         if fd == MASTER_FD and fd in closed:
             raise OSError(errno.EBADF, "Bad file descriptor")
+        if fd == MASTER_FD and request == termios.TIOCSWINSZ:
+            geometry.append(data)
 
     def install(sig, handler):
         previous = handlers.get(sig, signal.SIG_DFL)
         handlers[sig] = handler
+        if handler != signal.SIG_DFL:
+            installed.add(signal.Signals(sig).name)
         return previous
+
+    def waitpid(*_):
+        # Each call records whether the stop signals are still routed and whether the resize has reached the PTY.
+        call = len(reaps)
+        reaps.append({"torn_down": bool(killed), "stop_routed": all(callable(handlers.get(sig)) for sig in (
+                          signal.SIGTERM, signal.SIGHUP, signal.SIGINT)),
+                      "applied": RESIZED in geometry})
+        if scenario == "teardown" and call < 2 or scenario == "resize-feed" and call < 1:
+            return (0, 0)
+        return (CHILD_PID, 0)
 
     def open_file(path, *args, **kwargs):
         if scenario == "log-failure" and path.name == "graphics.log" and args and args[0] == "x":
@@ -87,7 +110,7 @@ def run_relay(case, scenario):
                (relay.pty, "fork", lambda: (CHILD_PID, MASTER_FD)), (relay.os, "close", close),
                (relay.os, "write", lambda fd, data: len(data)),
                (relay.os, "read", lambda *_: output.pop(0) if output else b""),
-               (relay.os, "waitpid", lambda *_: (CHILD_PID, 0)),
+               (relay.os, "waitpid", waitpid),
                (relay.os, "killpg", lambda *args: killed.append(args)),
                (relay.termios, "tcgetattr", lambda *_: [1, 2, 3]),
                (relay.termios, "tcsetattr", lambda *args: restored.append(args)),
@@ -112,7 +135,11 @@ def run_relay(case, scenario):
     result = dict(error=error, code=code, forwarded=b"".join(forwarded), unread=list(output),
                   restored=restored, killed=killed, server_closed=server.closed,
                   master_closed=MASTER_FD in closed, logs_closed=all(stream.closed for stream in logs),
-                  handlers_restored=all(handler == signal.SIG_DFL for handler in handlers.values()), injected=fired)
+                  handlers_restored=all(handler == signal.SIG_DFL for handler in handlers.values()), injected=fired,
+                  handlers_installed=sorted(installed), winch_restored_at_master_close=winch_restored,
+                  stop_routed_during_teardown=bool(reaps) and all(r["stop_routed"] for r in reaps if r["torn_down"])
+                  and any(r["torn_down"] for r in reaps),
+                  applied_before_reap=bool(reaps) and reaps[-1]["applied"])
     result["events"] = [json.loads(line) for line in (case / "pty.log").read_text().splitlines()]
     for stream in logs:
         stream.close()

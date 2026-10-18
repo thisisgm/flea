@@ -2,6 +2,7 @@
 import inspect
 import os
 from pathlib import Path
+import signal
 import tempfile
 import unittest
 
@@ -46,6 +47,8 @@ class RelayTests(unittest.TestCase):
         kinds = [event["direction"] for event in result["events"]]
         self.assertIn("resize", kinds)
         self.assertGreater(kinds.index("resize"), kinds.index("output"))
+        # The pending resize is applied inside the loop before the child is reaped, not by the shutdown block.
+        self.assertTrue(result["applied_before_reap"])
 
     def test_setup_failure_restores_terminal_and_closes_resources(self):
         for stage, message in (("start-failure", "File exists"), ("log-failure", "graphics log creation refused")):
@@ -57,7 +60,13 @@ class RelayTests(unittest.TestCase):
                 self.assertTrue(result["restored"])
                 self.assertTrue(result["killed"])
                 self.assertTrue(result["server_closed"] and result["master_closed"] and result["logs_closed"])
-                self.assertTrue(result["handlers_restored"])
+                if stage == "start-failure":
+                    # Handlers exist here, so the restore is what is under test.
+                    self.assertTrue(result["handlers_installed"])
+                    self.assertTrue(result["handlers_restored"])
+                else:
+                    # The log opens fail before any handler is installed, so there is nothing to restore.
+                    self.assertEqual(result["handlers_installed"], [])
 
     def test_reaped_child_final_output_is_drained(self):
         result = run_relay(self.root, "drain")
@@ -70,6 +79,18 @@ class RelayTests(unittest.TestCase):
         result = run_relay(self.root, "resize-close")
         self.assertIsNone(result["error"])
         self.assertTrue(result["server_closed"] and result["master_closed"] and result["logs_closed"])
+        self.assertTrue(result["winch_restored_at_master_close"])
+        self.assertTrue(result["handlers_restored"])
+
+    def test_stop_signals_stay_routed_until_the_child_is_reaped(self):
+        case = self.root / "teardown"
+        case.mkdir()
+        result = run_relay(case, "teardown")
+        self.assertIsNone(result["error"])
+        self.assertTrue(result["killed"])
+        # A stop signal during the reap wait must reach stop(), not the default action that ends the relay.
+        self.assertTrue(result["stop_routed_during_teardown"])
+        self.assertTrue(result["restored"])
         self.assertTrue(result["handlers_restored"])
 
 
