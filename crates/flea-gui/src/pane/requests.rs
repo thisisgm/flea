@@ -1,5 +1,5 @@
 //! A single bounded viewport request and the generation every row action must retain.
-use super::{Held, Pane};
+use super::{swap::Own, Held, Pane};
 use flea::protocol::RowFacts;
 use std::rc::Rc;
 
@@ -252,22 +252,25 @@ impl Pane {
             .take()
             .filter(|_| listing > self.greatest_listing)
         {
-            let own = self.swap.unheld_first;
+            let own = self.swap.unheld_own;
             // With its own window failed, the pair lands only as the answer to the window asked at this start.
-            let asked = own.or_else(|| {
-                self.requests
+            let asked = match own {
+                Own::Sort(first) | Own::Listing(first) => Some(first),
+                Own::Asked => self
+                    .requests
                     .outstanding
                     .filter(|request| request.start == start)
-                    .map(|request| request.count)
-            });
+                    .map(|request| request.count),
+            };
             let Some(bound) = asked else {
                 self.swap.unheld_total = Some(total);
                 return Ok(false);
             };
             if let Err(message) = Self::check_complete(start, rows.len(), total, bound) {
-                // A malformed answer to that window settles it and leaves the pair to the next one.
-                if own.is_none() {
-                    self.swap.unheld_total = Some(total);
+                // Refused rows never land, and the newer listing stays armed for the next window asked (ui/PaneSwap.qml takeRows).
+                self.swap.unheld_total = Some(total);
+                self.swap.unheld_own = Own::Asked;
+                if own == Own::Asked {
                     self.requests.refused = self.requests.outstanding.take();
                 }
                 return Err(message);
@@ -286,7 +289,7 @@ impl Pane {
                 super::Kind::Ready
             };
             // Its own window lands the view at its first row (ui/PaneSwap.qml land); a scroll's answer leaves it (takeRows).
-            if own.is_some() {
+            if own != Own::Asked {
                 self.cursor = start;
                 self.scroll_y = start as f32 * super::ROW_HEIGHT;
             }
