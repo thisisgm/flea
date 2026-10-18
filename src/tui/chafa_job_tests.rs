@@ -143,11 +143,12 @@ fn no_namespace_skips_jail_legs_and_runs_parser_cases() {
         .env("FLEA_CHAFA_NO_NAMESPACE_PROBE", "1")
         .output()
         .unwrap();
-    println!("{}", String::from_utf8_lossy(&output.stdout));
-    println!("{}", String::from_utf8_lossy(&output.stderr));
+    // The child's SKIP lines stay in its captured output; echoing them would count as skips in CI.
     assert!(
         output.status.success(),
-        "chafa module must survive namespace refusal"
+        "chafa module must survive namespace refusal: {}{}",
+        String::from_utf8_lossy(&output.stdout),
+        String::from_utf8_lossy(&output.stderr)
     );
     let stderr = String::from_utf8_lossy(&output.stderr);
     assert!(stderr.contains("SKIP tui::chafa::"));
