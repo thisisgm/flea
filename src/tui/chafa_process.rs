@@ -13,6 +13,7 @@ use std::thread::JoinHandle;
 use std::time::{Duration, Instant};
 
 const DEADLINE: Duration = Duration::from_secs(10);
+const POLL_INTERVAL: Duration = Duration::from_millis(10);
 
 struct Decoder {
     jailed: jail::Jailed,
@@ -124,7 +125,7 @@ pub(super) fn run(
         if status.is_some() && decoder.reader.as_ref().unwrap().is_finished() {
             break;
         }
-        std::thread::sleep(Duration::from_millis(10));
+        std::thread::sleep(POLL_INTERVAL);
     }
     let bytes = decoder
         .reader

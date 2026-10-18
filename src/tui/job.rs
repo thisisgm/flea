@@ -124,16 +124,20 @@ mod tests {
         std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
         let before = std::fs::metadata(&path).unwrap().modified().unwrap();
         let script = r#"
-bad=0
+bad=0; matches=0
+[ "$(/usr/bin/cat /input)" = 'held preview source' ] || exit 1
 for path in /proc/[0-9]*/fd/* /proc/[0-9]*/map_files/* /proc/[0-9]*/cwd /proc/[0-9]*/root/input; do
     [ -e "$path" ] || continue
     if [ "$path" -ef /input ]; then
+        matches=$((matches+1))
         if /bin/sh -c 'printf rewritten > "$1"' sh "$path" 2>/dev/null; then bad=$((bad+1)); fi
         if chmod 0666 "$path" 2>/dev/null; then bad=$((bad+1)); fi
         if /usr/bin/truncate -s 0 "$path" 2>/dev/null; then bad=$((bad+1)); fi
         if /usr/bin/touch -d 2000-01-01 "$path" 2>/dev/null; then bad=$((bad+1)); fi
     fi
 done
+# Every match attempts all four mutations, so a run with no match would prove nothing.
+[ "$matches" -gt 0 ] || exit 1
 printf 'held preview source\n'
 exit "$bad"
 "#;

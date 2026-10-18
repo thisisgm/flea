@@ -13,6 +13,10 @@ use std::thread::JoinHandle;
 // Match the TUI preview job's byte/time limits and the PDF preview's 4096-sample dimension cap.
 const OUTPUT_LIMIT: usize = 32 * 1024 * 1024;
 const MAX_DIMENSION: usize = 4096;
+// The longest SGR parameter string one decoder escape may carry.
+const SGR_PARAMETER_BYTES: usize = 64;
+// The execute bits of st_mode; a chafa on PATH needs any one of them.
+const ANY_EXECUTE_BIT: u32 = 0o111;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ColorMode {
@@ -134,7 +138,7 @@ fn find_on(path: &OsStr) -> Option<PathBuf> {
         .find_map(|directory| {
             let executable = directory.join("chafa");
             let meta = executable.metadata().ok()?;
-            if !meta.is_file() || meta.permissions().mode() & 0o111 == 0 {
+            if !meta.is_file() || meta.permissions().mode() & ANY_EXECUTE_BIT == 0 {
                 return None;
             }
             let executable = executable.canonicalize().ok()?;
@@ -165,6 +169,7 @@ fn refused() -> io::Error {
 }
 
 // No decoder escape survives this boundary: only typed colours and known single-cell symbols leave it.
+// Sample input: b"\x1b[38;2;132;24;24m\xe2\x96\x84\x1b[0m\n".
 fn validate(bytes: &[u8], columns: usize, rows: usize) -> io::Result<Grid> {
     geometry(columns, rows)?;
     if bytes.len() > OUTPUT_LIMIT {
@@ -186,7 +191,10 @@ fn validate(bytes: &[u8], columns: usize, rows: usize) -> io::Result<Grid> {
                 loop {
                     match chars.next() {
                         Some('m') => break,
-                        Some(c) if (c.is_ascii_digit() || c == ';') && parameters.len() < 64 => {
+                        Some(c)
+                            if (c.is_ascii_digit() || c == ';')
+                                && parameters.len() < SGR_PARAMETER_BYTES =>
+                        {
                             parameters.push(c)
                         }
                         _ => return Err(refused()),
@@ -241,6 +249,7 @@ fn validate(bytes: &[u8], columns: usize, rows: usize) -> io::Result<Grid> {
     })
 }
 
+// Sample input: "38;2;132;24;24;48;5;16".
 fn sgr(
     text: &str,
     foreground: &mut Color,

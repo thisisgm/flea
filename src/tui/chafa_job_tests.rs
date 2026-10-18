@@ -156,9 +156,25 @@ fn no_namespace_skips_jail_legs_and_runs_parser_cases() {
         ": the bwrap sandbox cannot run here: bwrap: No permissions to create new namespace"
     ));
     let stdout = String::from_utf8_lossy(&output.stdout);
-    assert!(
-        stdout.contains("52 passed"),
-        "the entire chafa module must execute"
-    );
-    assert!(stdout.contains("valid_truecolor_and_indexed_output_becomes_cells_with_resets ... ok"));
+    for case in [
+        "tests::valid_truecolor_and_indexed_output_becomes_cells_with_resets",
+        "tests::each_control_escape_and_unsupported_sgr_is_refused_individually",
+        "job_tests::missing_chafa_is_none_and_nonexecutables_do_not_count",
+        "process_tests::output_cap_kills_decoder_before_it_can_hang",
+        "process_tests::dropping_job_cancels_and_eventually_joins_pending_decoder",
+    ] {
+        assert!(
+            stdout.contains(&format!("tui::chafa::{case} ... ok")),
+            "namespace refusal did not execute {case}: {output:?}"
+        );
+    }
+    for case in [
+        "output_cap_kills_decoder_before_it_can_hang",
+        "dropping_job_cancels_and_eventually_joins_pending_decoder",
+    ] {
+        assert!(
+            stderr.contains(&format!("SKIP tui::chafa::process_tests::{case}:")),
+            "namespace refusal did not skip jailed case {case}: {output:?}"
+        );
+    }
 }

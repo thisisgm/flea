@@ -65,7 +65,7 @@ fn available_on(path: &str) -> bool {
     let has = |prog: &str| {
         path.split(':')
             .filter(|d| Path::new(d).is_absolute())
-            .any(|d| Path::new(d).join(prog).is_file())
+            .any(|d| super::jail::executable_file(&Path::new(d).join(prog)))
     };
     has(BWRAP) && has(PRLIMIT)
 }
