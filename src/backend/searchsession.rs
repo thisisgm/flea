@@ -231,6 +231,7 @@ impl Session {
             && Matcher::can_narrow(&crate::backend::searchtags::Tags::terms(&self.last_query).text, &terms.text);
         let unread = self.tags.prepare(&terms, &self.index, &self.scope, &self.body, self.walking());
         let fuzzy = Matcher::new(&terms.text);
+        let priors = crate::backend::searchprior::snapshot();
         let index = self.index.lock().unwrap();
         // Only complete, unchanged zero-edit extensions can reuse their previous candidates.
         let candidates: Vec<usize> = if narrow && index.partial.is_none() && index.len() == self.matched_index_len {
@@ -240,7 +241,7 @@ impl Session {
         };
         #[cfg(test)]
         let scored = candidates.len();
-        let mut hits = searchindex::score_all(&fuzzy, &candidates, &index);
+        let mut hits = crate::backend::searchprior::rank(priors, &self.scope, &self.folder, &index, searchindex::score_all(&fuzzy, &candidates, &index));
         self.tags.keep(&mut hits, &terms);
         #[cfg(test)]
         {

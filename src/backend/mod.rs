@@ -82,6 +82,7 @@ mod searchblocks;
 mod searchbits;
 mod searchmatch;
 mod searchtypo;
+mod searchprior;
 pub mod searchsession;
 pub mod searchtags;
 #[cfg(test)]

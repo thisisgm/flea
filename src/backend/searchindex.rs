@@ -114,6 +114,11 @@ impl Index {
         scratch.raw
     }
 
+    pub(crate) fn raw_into<'a>(&self, row: usize, scratch: &'a mut Scratch) -> &'a [u8] {
+        self.reconstruct(row, scratch);
+        &scratch.raw
+    }
+
     fn reconstruct(&self, row: usize, scratch: &mut Scratch) {
         #[cfg(test)]
         self.reconstructed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
@@ -207,7 +212,7 @@ impl Index {
 mod patch;
 
 #[derive(Default)]
-struct Scratch {
+pub(crate) struct Scratch {
     ancestors: Vec<u32>,
     raw: Vec<u8>,
 }
