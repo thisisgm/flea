@@ -38,7 +38,7 @@ fn directory(matcher: &Matcher, index: &Index, dir: u32, states: &mut [Option<St
         let mut state = if parent == EMPTY { State::new(matcher.needle.len()) } else { states[parent as usize].as_ref().unwrap().clone() };
         fold(index.names.get(name), letters);
         state.advance(&matcher.needle, letters, false);
-        let boundary = letters.last().is_none_or(|letter| separator(letter.lower));
+        let boundary = letters.last().map_or(true, |letter| separator(letter.lower));
         state.advance(&matcher.needle, &[Letter { lower: '/', boundary }], false);
         states[dir as usize] = Some(state);
         #[cfg(test)]
@@ -52,7 +52,7 @@ fn parent_text<'a>(index: &Index, dir: u32, cache: &'a mut HashMap<u32, Vec<Lett
         let mut text = Vec::new();
         for &name in pending.iter().rev() {
             fold(index.names.get(name), letters);
-            let boundary = letters.last().is_none_or(|letter| separator(letter.lower));
+            let boundary = letters.last().map_or(true, |letter| separator(letter.lower));
             text.extend_from_slice(letters);
             text.push(Letter { lower: '/', boundary });
         }
