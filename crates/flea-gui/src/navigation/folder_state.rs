@@ -262,8 +262,7 @@ pub fn newest_paths(body: &str, home: &str) -> Vec<String> {
     paths
 }
 
-// One worker writes patches in order through the existing schema owner, never on the UI thread.
-// A default writer only counts, so no model or test can reach the real state file by accident.
+// One worker writes patches in order off the UI thread; a default writer only counts, so no test reaches the real state file.
 #[derive(Default)]
 pub struct Writer {
     queue: Option<mpsc::Sender<(String, String)>>,

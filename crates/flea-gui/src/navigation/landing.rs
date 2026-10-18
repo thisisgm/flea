@@ -26,6 +26,10 @@ impl Navigator {
                     preference.apply(pane, selected);
                 }
             }
+            if self.relist_owed {
+                let path = pane.path().to_owned();
+                let _ = self.open(pane, &path);
+            }
         } else {
             self.locate_parked(pane);
         }
@@ -145,6 +149,7 @@ impl Navigator {
         }
         self.restore = None;
         self.pending_select = None;
+        self.relist_owed = false;
         if self
             .anchor
             .as_ref()

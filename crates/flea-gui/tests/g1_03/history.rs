@@ -1,5 +1,6 @@
 use super::*;
 use flea_gui::navigation::{history::Stack, Refusal};
+use flea_gui::pane::swap::Options;
 
 #[test]
 fn the_newest_navigation_wins_and_a_stale_answer_for_the_one_let_go_draws_nothing() {
@@ -147,4 +148,15 @@ fn a_refused_listing_climbs_from_the_folder_it_asked_for_and_drops_the_owed_land
     nav.parent(&mut pane).unwrap();
     let Command::List(listing) = &nav.take()[0] else { panic!() };
     assert_eq!((listing.path.as_str(), listing.select.as_deref()), ("/f/base", Some("/f/base/locked")));
+}
+
+#[test]
+fn a_search_landing_keeps_the_armed_return_select_for_the_search_exit() {
+    let (mut pane, mut nav, mut sel) = settled("/f/base", 40);
+    nav.pending_select = Some("/f/base/file-00030".into());
+    let search = Options { search: true, supersede: true, ..Options::default() };
+    nav.open_without_history(&mut pane, "/f/base", search, None, false).unwrap();
+    assert!(land(&mut pane, &mut nav, &mut sel, ("/f/base", 5, 0, 2), named));
+    assert!(pane.state.search);
+    assert_eq!(nav.pending_select.as_deref(), Some("/f/base/file-00030"), "a walk's landing leaves it armed");
 }
