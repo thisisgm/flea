@@ -20,7 +20,9 @@ struct Dirent {
 }
 
 extern "C" {
-    fn opendir(path: *const c_char) -> *mut std::ffi::c_void;
+    fn open(path: *const c_char, flags: c_int, ...) -> c_int;
+    fn close(fd: c_int) -> c_int;
+    fn fdopendir(fd: c_int) -> *mut std::ffi::c_void;
     fn readdir(dir: *mut std::ffi::c_void) -> *mut Dirent;
     fn closedir(dir: *mut std::ffi::c_void) -> c_int;
     fn dirfd(dir: *mut std::ffi::c_void) -> c_int;
@@ -46,12 +48,31 @@ pub(crate) fn read(dir: &Path) -> std::io::Result<Directory> {
     read_with(dir, false)
 }
 
+// An explicitly chosen scope may be a symlink; recursively discovered directories may not.
+pub(crate) fn read_root(dir: &Path) -> std::io::Result<Directory> {
+    read_observing(dir, false, |_| {}, true)
+}
+
 fn read_with(dir: &Path, unknown: bool) -> std::io::Result<Directory> {
+    read_observing(dir, unknown, |_| {}, false)
+}
+
+#[cfg(test)]
+pub(crate) fn read_observed(dir: &Path, follow: bool, progress: impl FnMut(usize)) -> std::io::Result<Directory> {
+    read_observing(dir, false, progress, follow)
+}
+
+fn read_observing(dir: &Path, unknown: bool, mut progress: impl FnMut(usize), follow: bool) -> std::io::Result<Directory> {
     let path = CString::new(dir.as_os_str().as_bytes())?;
-    let handle = OpenDir(unsafe { opendir(path.as_ptr()) });
+    let flags = 0x80000 | 0x10000 | if follow { 0 } else { 0x20000 };
+    let raw = unsafe { open(path.as_ptr(), flags) };
+    if raw < 0 { return Err(std::io::Error::last_os_error()); }
+    let handle = OpenDir(unsafe { fdopendir(raw) });
     if handle.0.is_null() {
+        let error = std::io::Error::last_os_error();
+        unsafe { close(raw); }
         std::mem::forget(handle);
-        return Err(std::io::Error::last_os_error());
+        return Err(error);
     }
     let fd = unsafe { dirfd(handle.0) };
     let mut out = Directory { entries: Vec::new(), partial: None, #[cfg(test)] stats: 0 };
@@ -89,6 +110,7 @@ fn read_with(dir: &Path, unknown: bool) -> std::io::Result<Directory> {
                 }
                 raw.extend_from_slice(bytes);
                 out.entries.push((OsString::from_vec(raw), is_dir));
+                progress(out.entries.len());
             }
             Err(_) => { out.partial.get_or_insert("unreadable"); }
         }

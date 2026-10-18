@@ -33,7 +33,7 @@ pub(super) fn opened(d: &TestDir) -> (Session, Receiver<Event>) {
     let (tx, rx) = channel();
     let mut s = Session::open_async(&root, &root, false, tx);
     s.join_walk();
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the walk landing arrives");
+    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
     (s, rx)
 }
 
@@ -43,7 +43,7 @@ pub(super) fn tagged(s: &mut Session, rx: &Receiver<Event>, gen: usize, query: &
     let partial = s.query(gen, query, 50).expect("a newer generation answers");
     assert!(partial.walking, "{query}: an answer on unread names says it is still walking");
     s.tags.release_read();
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the tag worker lands through the walk's event");
+    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
     assert!(s.poll_walked(), "the loop sees the tag landing");
     let whole = s.re_answer_standing().expect("the standing tagged query is re-run once");
     assert!(!whole.walking, "{query}: the re-run is whole");
@@ -132,7 +132,7 @@ fn an_empty_text_with_a_tag_matches_every_carrying_entry() {
 
 // The names swap in, the landing event arrives, and the standing query is re-run once.
 pub(super) fn landed(s: &mut Session, rx: &Receiver<Event>) -> Answer {
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the rewrite lands through the walk's event");
+    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
     assert!(s.poll_walked(), "the loop sees the rewrite landing");
     let whole = s.re_answer_standing().expect("the standing tagged query is re-run once");
     assert!(!whole.walking, "the re-run is whole");
@@ -349,7 +349,7 @@ fn a_finished_pass_with_unread_rows_answers_partial_and_retries_them() {
     tags.pass = Some(Arc::clone(&pass));
     let terms = Tags::terms("tag:Red");
     assert!(tags.prepare(&terms, &index, d.path(), "", false), "rows still unread keep the answer partial, never whole");
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the retry re-read lands");
+    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
     assert_eq!(pass.names.lock().unwrap()[1].as_deref(), Some(&[][..]), "the retry read the missing row");
     assert!(!tags.prepare(&terms, &index, d.path(), "", false), "with every row read the answer is whole");
 }

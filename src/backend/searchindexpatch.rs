@@ -1,141 +1,213 @@
-// Existing directory reconciliation, using explicit raw-path reconstruction.
+// Directory reconciliation visits linked members and moves only the dense tail when a row goes.
 use super::*;
 
 impl Index {
-    // Rebuilds only surviving identities; publication is atomic if storage is refused.
-    fn compact(&mut self, kept: &[usize]) -> bool {
+    // Sparse swap-removals let tag state follow row ids without walking unrelated entries.
+    pub(crate) fn last_patch(&self) -> (&[(usize, usize)], usize) {
+        (&self.moves, self.survivors)
+    }
+
+    // The tag pass has consumed the remap; a large deletion must not retain its temporary move log.
+    pub(crate) fn release_patch(&mut self) {
+        self.moves.clear();
+        if self.moves.capacity() > 4096 { self.moves.shrink_to(32); }
+    }
+
+    fn begin_patch(&mut self) {
+        self.moves.clear();
+        self.survivors = self.rows.len();
+        self.epoch = self.epoch.wrapping_add(1);
+    }
+
+    fn remove_row(&mut self, at: usize) {
+        let last = self.rows.len() - 1;
+        let row = &self.rows[at];
+        self.retired_bytes = self.retired_bytes.saturating_add(self.names.get(row.name).len() + size_of::<Row>());
+        let (parent, previous, next) = (row.parent, row.previous, row.next);
+        if previous == EMPTY { self.blocks.set_head(parent, next); }
+        else { self.rows[previous as usize].next = next; }
+        if next != EMPTY { self.rows[next as usize].previous = previous; }
+        let kind = self.is_dir(last);
+        self.rows.swap_remove(at);
+        if at != last {
+            let row = &self.rows[at];
+            let (parent, previous, next) = (row.parent, row.previous, row.next);
+            if previous == EMPTY { self.blocks.set_head(parent, at as u32); }
+            else { self.rows[previous as usize].next = at as u32; }
+            if next != EMPTY { self.rows[next as usize].previous = at as u32; }
+            if kind { self.kinds[at / 8] |= 1 << (at % 8); }
+            else { self.kinds[at / 8] &= !(1 << (at % 8)); }
+        }
+        self.kinds[last / 8] &= !(1 << (last % 8));
+        self.kinds.truncate(self.rows.len().div_ceil(8));
+        self.moves.push((at, last));
+    }
+
+    fn drop_block(&mut self, parent: u32) {
+        let mut pending = vec![parent];
+        while let Some(dir) = pending.pop() {
+            pending.extend(self.blocks.children(dir));
+            while self.blocks.head(dir) != EMPTY {
+                #[cfg(test)]
+                self.scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                self.remove_row(self.blocks.head(dir) as usize);
+            }
+        }
+    }
+
+    // Dense rows leave no tombstones; reclaim retained names only beyond both residency thresholds.
+    fn reclaim(&mut self) {
+        if self.retired_bytes < (1024 * 1024).max(self.bytes(false) / 100) { return; }
         let mut next = Index::new();
-        for &row in kept {
+        for row in 0..self.rows.len() {
             if !next.push(OsStr::from_bytes(&self.raw(row)), self.is_dir(row)) {
                 self.mark_partial(next.partial.unwrap_or("allocation"));
-                return false;
+                return;
             }
         }
         next.finish();
         next.partial = self.partial;
+        next.epoch = self.epoch.wrapping_add(1);
+        next.survivors = self.survivors;
+        next.moves = std::mem::take(&mut self.moves);
         #[cfg(test)]
         {
             next.compactions = self.compactions + 1;
-            next.scanned.store(self.scanned.load(std::sync::atomic::Ordering::Relaxed), std::sync::atomic::Ordering::Relaxed);
+            next.scanned.store(self.scanned.load(std::sync::atomic::Ordering::Relaxed) + self.len(), std::sync::atomic::Ordering::Relaxed);
         }
         *self = next;
+    }
+
+    // A moved or replaced directory must discard its old descendants even when its name and kind agree.
+    pub(crate) fn reset_tree(&mut self, root: &Path, rel: &Path, hidden: bool, body: &str, watch: Option<&super::super::searchwatch::Core>) -> bool {
+        self.begin_patch();
+        let parent = match self.parent(rel.as_os_str().as_bytes()) {
+            Ok(parent) => parent,
+            Err(reason) => { self.mark_partial(reason); return false; }
+        };
+        self.drop_block(parent);
+        self.survivors = self.rows.len();
+        let path = root.join(rel);
+        let probe = path.clone();
+        let directory = super::super::iomount::call(&path, body, "search", move || match probe.symlink_metadata() {
+            Ok(meta) => Ok(meta.is_dir()),
+            Err(error) if matches!(error.raw_os_error(), Some(2 | 20 | 40)) => Ok(false),
+            Err(error) => Err(error),
+        });
+        match directory {
+            Ok(Ok(true)) => self.fill_subtrees(root, &[rel.as_os_str().as_bytes().to_vec()], hidden, body, watch),
+            Ok(Ok(false)) => {},
+            _ => self.mark_partial("unreadable"),
+        }
+        self.reclaim();
         true
     }
 
-    // The last patch's row moves: the old ids kept in order (None: all kept) and the count of surviving old rows.
-    pub(crate) fn last_patch(&self) -> (Option<&[usize]>, usize) {
-        (self.kept.as_deref(), self.survivors)
+    #[cfg(test)]
+    pub(crate) fn patch_dir(&mut self, root: &Path, rel: &Path, hidden: bool, body: &str) -> bool {
+        self.patch_watched(root, rel, hidden, body, None)
     }
 
-    // Reconciles one scope-relative directory in one pass and one repack; false when its mount does not answer.
-    pub(crate) fn patch_dir(&mut self, root: &Path, rel: &Path, hidden: bool, body: &str) -> bool {
-        let rel = rel.as_os_str();
-        let dir = if rel.is_empty() { root.to_path_buf() } else { root.join(rel) };
-        let Ok(listing) = read_bounded(&dir, body) else {
+    pub(crate) fn patch_watched(&mut self, root: &Path, rel: &Path, hidden: bool, body: &str, watch: Option<&super::super::searchwatch::Core>) -> bool {
+        let dir = root.join(rel);
+        if let Some(watch) = watch {
+            if !watch.arm(rel) { self.mark_partial("watch_failed"); }
+        }
+        let Ok(listing) = read_bounded(&dir, body, rel.as_os_str().is_empty()) else {
             self.mark_partial("unreadable");
             return false;
         };
-        (self.kept, self.survivors) = (None, self.rows.len());
-        let prefix: Vec<u8> = if rel.is_empty() { Vec::new() } else { [rel.as_bytes(), b"/"].concat() };
-        // A directory that is gone drops itself and its subtree; the scope itself drops every row.
-        let Some(listing) = listing else {
-            let kept: Vec<usize> = (0..self.rows.len())
-                .filter(|&row| !rel.is_empty() && self.raw(row).as_slice() != rel.as_bytes() && !self.raw(row).starts_with(&prefix))
-                .collect();
-            if !self.compact(&kept) { return false; }
-            (self.survivors, self.kept) = (kept.len(), Some(kept));
-            return true;
-        };
-        if let Some(reason) = listing.partial {
+        if let Some(reason) = listing.as_ref().and_then(|listing| listing.partial) {
             self.mark_partial(reason);
             return false;
         }
-        let seen: Vec<(Vec<u8>, bool)> = listing.entries
-            .into_iter()
-            .filter(|(name, _)| hidden || !is_hidden(name))
-            .map(|(name, is_dir)| ([prefix.as_slice(), name.as_bytes()].concat(), is_dir))
-            .collect();
-        let kinds: HashMap<&[u8], bool> = seen.iter().map(|(child, is_dir)| (child.as_slice(), *is_dir)).collect();
-        let mut kept = Vec::with_capacity(self.rows.len());
-        let mut present: HashSet<Vec<u8>> = HashSet::new();
-        for row in 0..self.rows.len() {
+        self.begin_patch();
+        let parent = match self.parent(rel.as_os_str().as_bytes()) {
+            Ok(parent) => parent,
+            Err(reason) => { self.mark_partial(reason); return false; }
+        };
+        let Some(listing) = listing else {
+            self.drop_block(parent);
+            if let Some((container, name)) = self.blocks.identity(parent) {
+                let mut row = self.blocks.head(container);
+                while row != EMPTY {
+                    #[cfg(test)]
+                    self.scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
+                    let entry = &self.rows[row as usize];
+                    if entry.name == name {
+                        self.remove_row(row as usize);
+                        break;
+                    }
+                    row = entry.next;
+                }
+            }
+            self.survivors = self.rows.len();
+            self.reclaim();
+            return true;
+        };
+        let mut wanted = HashMap::new();
+        for (name, kind) in listing.entries.into_iter().filter(|(name, _)| hidden || !is_hidden(name)) {
+            match self.names.intern(name.as_bytes()) {
+                Ok(name) => { wanted.insert(name, kind); }
+                Err(reason) => { self.mark_partial(reason); return false; }
+            }
+        }
+        let mut row = self.blocks.head(parent);
+        let mut removed_trees = Vec::new();
+        while row != EMPTY {
+            let entry = &self.rows[row as usize];
+            if self.is_dir(row as usize) && wanted.get(&entry.name) != Some(&true) {
+                removed_trees.push(entry.name);
+            }
+            row = entry.next;
+        }
+        for name in removed_trees {
+            if let Ok(dir) = self.blocks.directory(&self.names, parent, name) { self.drop_block(dir); }
+        }
+        let mut row = self.blocks.head(parent);
+        while row != EMPTY {
             #[cfg(test)]
             self.scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-            let raw = self.raw(row);
-            let path = raw.as_slice();
-            let Some(below) = path.strip_prefix(prefix.as_slice()) else {
-                kept.push(row);
-                continue;
-            };
-            let child = &path[..prefix.len() + below.iter().position(|&byte| byte == b'/').unwrap_or(below.len())];
-            // A name that changed kind is a new entry: its old row and the rows below it go, and the push below adds it again.
-            let holds = match kinds.get(child) {
-                Some(&is_dir) if child.len() == path.len() => is_dir == self.is_dir(row),
-                Some(&is_dir) => is_dir,
-                None => false,
-            };
-            if holds {
-                kept.push(row);
-                if child.len() == path.len() {
-                    present.insert(path.to_vec());
-                }
+            let entry = &self.rows[row as usize];
+            let (name, next) = (entry.name, entry.next);
+            if wanted.get(&name) == Some(&self.is_dir(row as usize)) {
+                wanted.remove(&name);
+                row = next;
+            } else {
+                let last = self.rows.len() - 1;
+                self.remove_row(row as usize);
+                if next as usize != last { row = next; }
             }
         }
-        self.survivors = kept.len();
-        if kept.len() < self.rows.len() {
-            if !self.compact(&kept) { return false; }
-            self.survivors = kept.len();
-            self.kept = Some(kept);
-        }
+        self.survivors = self.rows.len();
         let mut added_dirs = Vec::new();
-        for (child, is_dir) in seen {
-            if !present.contains(&child) {
-                if is_dir {
-                    added_dirs.push(child.clone());
-                }
-                self.push(OsStr::from_bytes(&child), is_dir);
-            }
+        for (name, is_dir) in wanted {
+            let bytes = self.names.get(name).to_vec();
+            if let Err(reason) = self.push_name(parent, &bytes, is_dir) { self.mark_partial(reason); break; }
+            if is_dir { added_dirs.push(rel.join(OsStr::from_bytes(&bytes)).as_os_str().as_bytes().to_vec()); }
         }
-        if !added_dirs.is_empty() {
-            self.fill_subtrees(root, &added_dirs, hidden, body);
-        }
+        self.fill_subtrees(root, &added_dirs, hidden, body, watch);
+        self.reclaim();
         true
     }
 
-    // Walks newly added directories in, so a moved tree lands whole; rows already under them are read once.
-    fn fill_subtrees(&mut self, root: &Path, added: &[Vec<u8>], hidden: bool, body: &str) {
-        let prefixes: Vec<Vec<u8>> = added.iter().map(|dir| [dir.as_slice(), b"/"].concat()).collect();
-        let mut present: HashSet<Vec<u8>> = HashSet::new();
-        for row in 0..self.rows.len() {
-            #[cfg(test)]
-            self.scanned.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
-            let raw = self.raw(row);
-            let path = raw.as_slice();
-            if prefixes.iter().any(|prefix| path.starts_with(prefix)) {
-                present.insert(path.to_vec());
-            }
-        }
+    fn fill_subtrees(&mut self, root: &Path, added: &[Vec<u8>], hidden: bool, body: &str, watch: Option<&super::super::searchwatch::Core>) {
         let mut pending = added.to_vec();
-        while let Some(dir_rel) = pending.pop() {
-            if self.storage_refused() {
-                return;
+        while let Some(raw) = pending.pop() {
+            if self.storage_refused() { return; }
+            let rel = Path::new(OsStr::from_bytes(&raw));
+            if let Some(watch) = watch {
+                if !watch.arm(rel) { self.mark_partial("watch_failed"); }
             }
-            let Ok(Some(entries)) = read_bounded(&root.join(OsStr::from_bytes(&dir_rel)), body) else {
+            let Ok(Some(entries)) = read_bounded(&root.join(rel), body, rel.as_os_str().is_empty()) else {
                 self.mark_partial("unreadable");
                 continue;
             };
             if let Some(reason) = entries.partial { self.mark_partial(reason); }
-            for (name, is_dir) in entries.entries {
-                if !hidden && is_hidden(&name) {
-                    continue;
-                }
-                let child = [dir_rel.as_slice(), b"/", name.as_bytes()].concat();
-                if present.insert(child.clone()) {
-                    self.push(OsStr::from_bytes(&child), is_dir);
-                    if is_dir {
-                        pending.push(child);
-                    }
-                }
+            let entries: Vec<_> = entries.entries.into_iter().filter(|(name, _)| hidden || !is_hidden(name)).collect();
+            if !self.push_directory(rel.as_os_str(), &entries) { return; }
+            for (name, is_dir) in entries {
+                if is_dir { pending.push(rel.join(name).as_os_str().as_bytes().to_vec()); }
             }
         }
     }

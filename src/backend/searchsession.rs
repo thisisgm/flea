@@ -40,6 +40,7 @@ pub(crate) struct Session {
     pub(crate) walk_ms: f64,
     pub(crate) probes: Arc<WalkProbes>,
     pub(crate) handle: Option<std::thread::JoinHandle<usize>>,
+    pub(crate) watch: Option<crate::backend::searchwatch::Watch>,
     pub(crate) last_query: String,
     pub(crate) last_matches: Vec<usize>,
     // Scored but unranked matches past the head, ranked on scroll; a patch drops them because it moves row ids.

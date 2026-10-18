@@ -1,6 +1,5 @@
 use super::tests::{fixture, landed, names, opened, tagged, DEADLINE};
 use super::*;
-use crate::backend::events::Event;
 use crate::backend::testdir::TestDir;
 use std::sync::mpsc::channel;
 use std::time::{Duration, Instant};
@@ -63,7 +62,7 @@ fn a_tag_write_with_no_tag_term_asked_reads_nothing_and_announces_nothing() {
     let mut o = ops();
     s.note_tags_written(&written(&d, &mut o, "plain-holiday.txt", "add", "Red"));
     assert_eq!(s.tags.reads(), 0, "no pass is open, so the write reads nothing");
-    assert!(rx.recv_timeout(Duration::from_millis(200)).is_err(), "and no landing is announced");
+    crate::backend::searchwalkhold::assert_no_landing(&rx, Duration::from_millis(200));
     assert!(!s.poll_walked());
     assert_eq!(tagged(&mut s, &rx, 2, "tag:Red").total, 4, "the first tag term reads the names as they are now");
 }
@@ -134,7 +133,7 @@ fn a_narrowing_tag_query_after_a_tag_write_sees_the_row_it_tagged() {
     tagged(&mut s, &rx, 1, "tag:Red");
     let mut o = ops();
     s.note_tags_written(&written(&d, &mut o, "plain-holiday.txt", "add", "Red"));
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)), "the rewrite lands");
+    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
     let narrowed = s.query(2, "tag:Red h", 50).expect("answers");
     assert!(names(&narrowed).contains(&"plain-holiday.txt".to_string()), "the seed holds the row the write tagged: {:?}", names(&narrowed));
     assert!(s.poll_walked(), "the landing still stands for its re-run");
@@ -194,13 +193,13 @@ fn a_write_during_the_first_read_is_not_lost() {
     crate::backend::tags::write_names(&d.join("plain-holiday.txt"), &["Red".to_string()]).expect("tagged");
     tags.refresh(vec![b"plain-holiday.txt".to_vec()], &index);
     drop(held);
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)));
+    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
     worker.join().unwrap();
     assert!(pass.done.load(Ordering::Relaxed));
     let names = pass.names.lock().unwrap();
     assert_eq!(names[1].as_deref(), Some(&["Red".to_string()][..]), "the stale first read did not win");
     assert_eq!(pass.reads.load(Ordering::Relaxed), 3, "two first reads and one re-read");
-    assert!(rx.recv_timeout(Duration::from_millis(200)).is_err(), "one landing, not two");
+    crate::backend::searchwalkhold::assert_no_landing(&rx, Duration::from_millis(200));
 }
 
 // Measured by hand, not by the suite: cargo test --release --bin flea -- --ignored --nocapture tag_pass_at_200k.
@@ -223,7 +222,7 @@ fn tag_pass_at_200k_entries_prints_its_ms() {
     let partial = s.query(1, "tag:Red", 50).expect("answers");
     let loop_ms = asked.elapsed().as_secs_f64() * 1000.0;
     assert!(partial.walking);
-    assert!(matches!(rx.recv_timeout(DEADLINE), Ok(Event::SearchWalked)));
+    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
     let read_ms = asked.elapsed().as_secs_f64() * 1000.0;
     assert!(s.poll_walked());
     let whole = s.re_answer_standing().expect("re-run");
@@ -254,18 +253,22 @@ fn assert_survivor_tag_queue(add: bool) {
     assert!(index.patch_dir(d.path(), Path::new(""), false, ""));
     let queued = tags.carry(&index);
     assert!(Arc::ptr_eq(tags.pass.as_ref().unwrap(), &pass), "the finished pass stays cached");
-    let mut expected = vec![Some(vec!["blue".to_string()]), Some(vec!["green".to_string()])];
-    if add { expected.push(None); }
-    assert_eq!(*pass.names.lock().unwrap(), expected, "surviving identities keep their cached tags");
-    for (query, row, raw) in [("tag:blue", 0, b"b"), ("tag:green", 1, b"c")] {
-        let mut hits = (0..index.len()).map(|row| (1, row)).collect();
+    let mut expected = vec![(b"b".to_vec(), Some(vec!["blue".to_string()])), (b"c".to_vec(), Some(vec!["green".to_string()]))];
+    if add { expected.push((b"d".to_vec(), None)); }
+    let names = pass.names.lock().unwrap().clone();
+    assert_eq!(names.len(), index.len());
+    let mut carried: Vec<_> = (0..index.len()).map(|row| (index.raw(row), names[row].clone())).collect();
+    carried.sort();
+    assert_eq!(carried, expected, "surviving identities keep their cached tags");
+    for (query, raw) in [("tag:blue", b"b"), ("tag:green", b"c")] {
+        let mut hits = (0..index.len()).map(|row| (1, row)).collect::<Vec<_>>();
         tags.keep(&mut hits, &Tags::terms(query));
-        assert_eq!(hits, [(1, row)]);
-        assert_eq!(index.raw(row), raw);
+        assert_eq!(hits.len(), 1);
+        assert_eq!(index.raw(hits[0].1), raw);
     }
     let expected_queue = if add { vec![b"d".to_vec()] } else { Vec::new() };
     assert_eq!(queued, expected_queue, "only new identities need tag reads");
-    assert_eq!(index.last_patch(), (Some(&[1, 2][..]), 2));
+    assert_eq!(index.last_patch().1, 2, "both kept rows count as survivors");
     assert_eq!(pass.reads.load(Ordering::Relaxed), 0, "carrying the cache performs no tag reads");
 }
 
