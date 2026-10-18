@@ -292,6 +292,8 @@ pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String
         return;
     }
     let (id, _) = ops.claim_transfer();
+    writeln!(out, r#"{{"t":"trashstarted","id":{},"n":{},"cancellable":false}}"#, id, paths.iter().filter(|path| !path.is_empty()).count()).ok();
+    out.flush().ok();
     let tx = ops.tx.clone();
     thread::spawn(move || run_trash(id, paths, tx, selection));
 }
@@ -867,7 +869,8 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
     super::jobevents::observe(out, ops, &msg);
     match msg {
         OpMsg::JobEntries { .. } | OpMsg::JobReady { .. } | OpMsg::JobSample { .. } => {}
-        OpMsg::JobDone { line, .. } => {
+        OpMsg::JobDone { id, line, .. } => {
+            ops.live.finished_if(id);
             if !line.is_empty() {
                 writeln!(out, "{}", line).ok();
             }
@@ -2138,7 +2141,7 @@ mod tests {
         let local_trash = local.file("t.txt", "t");
         let mut quiet = out();
         start_trash(&mut quiet, &mut o, vec![local_trash.to_string_lossy().to_string()], 0);
-        assert!(text(&quiet).is_empty(), "trash elsewhere answers nothing in sync: {}", text(&quiet));
+        assert!(text(&quiet).contains(r#""t":"trashstarted""#), "trash elsewhere acknowledges acceptance in sync: {}", text(&quiet));
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the trash reports through the op channel");
             let terminal = matches!(&msg, OpMsg::Trashed { .. });

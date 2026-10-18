@@ -1206,6 +1206,67 @@ the call and keeps the entries that are new, which is what makes the operation r
 
 There is no confirmation step anywhere in this request, because the undo journal is the safety.
 
+An accepted request first flushes `{"t":"trashstarted","id":<uint>,"n":<uint>,"cancellable":false}`,
+before the worker touches the Trash or the client re-lists. `n` counts the resolved top-level paths.
+This acknowledgement lets the client draw its pending operation immediately. It is followed by the
+existing `trashed` outcome; journal settlement and its ordering are unchanged. Ordinary trashing does
+not poll a cancel flag, so this acknowledgement must not expose a Cancel action.
+
+### trashbrowse
+
+`{"c":"trashbrowse","op":"prepare","id":<uint>,"all":true,"emptyTrash":true}` reviews the
+current Trash and answers `{"t":"trashbrowse","op":"prepare","id":<uint>,"ok":true,
+"token":<uint>,"all":true,"count":<uint>,"bytes":<uint>,"partial":false}`. The confirmation body
+uses this reviewed count and byte total, including zero bytes for empty files. A partial, pending,
+or failed review supplies no actionable confirmation. Preparation and validation query item details
+in bounded groups of 128, with the same complete snapshot and identity checks as individual queries.
+
+`{"c":"trashbrowse","op":"delete","id":<uint>,"token":<uint>}` deletes that reviewed snapshot.
+An accepted delete claims the shared transfer slot and immediately flushes
+`{"t":"trashdeletestarted","id":<uint>,"requestId":<uint>}` followed by a `transferprogress` line,
+before any queued Trash request, validation, or filesystem work. `id` is the operation id accepted by
+`transfercancel`; `requestId` is the browser request's id. A busy refusal answers only the ordinary
+`trashbrowse` error and starts no job. A pending unsettled trash journal also refuses deletion.
+
+The job uses the operations card's existing progress and terminal types:
+
+`{"t":"transferprogress","id":<uint>,"index":0,"name":"<string>","itemSize":<uint>,"bytes":<uint>,"total":<uint>,"unit":"items","phase":"checking|deleting","checked":<uint>}`
+
+`unit:items` changes the meaning of `bytes` and `total` for this operation only: they count deleted
+and reviewed filesystem entries, including descendants, directories, and zero-byte files. The totals
+come from the complete saved snapshot, so one trashed folder can report thousands of files. Q6's
+`count` and the terminal item counts remain top-level Trash entries. The immediate sample has total
+0 until the worker reads the confirmation; later samples carry the recursive total. During
+`checking`, `bytes` stays 0 and `checked` counts validated top-level items; during `deleting`, `bytes`
+counts successfully removed entries, including children of a folder interrupted later. Refused entries
+do not advance this bar. `name` is the original name of the top-level item in flight and `itemSize`
+is its reviewed recursive byte size; an empty name means no current item. Samples are throttled to
+150 ms, with immediate phase, first-item and final samples. Tree nodes poll cancel and sample progress.
+
+The native card's head is `Emptying Trash`. Show validation during checking, then the determinate
+file-count bar and deleted-file count, with the current name and size on its file line. Byte rates
+cannot be derived from these counts; a remaining-time estimate must use observed file deletions per
+second and is unavailable during checking. Keep the Trash strip's prior count until completion,
+then refresh it. The Empty Trash control stays in place and is disabled while the job runs.
+
+Exactly one `transferdone` releases this job's slot, followed by its original `trashbrowse` delete
+reply. `ok`, `failed`, and `skipped` on `transferdone` count deleted, refused, and unstarted items;
+`cancelled` reports interruption. A validation failure carries its sentence in `note`, and the browser
+reply retains the existing `ok:false`, `stale`, and `error` fields. A completed or interrupted deletion
+retains `done`, `failed`, and `failures`, and adds `skipped` and `cancelled`. Deletion is irreversible
+and creates no undo entry. Cancellation during validation preserves the confirmation for another
+attempt. Once deletion starts it consumes the token, so remaining items require a new review.
+
+Cancel, quit, and stdin closing poll the same flag between items and between tree nodes. Completed
+deletions stay deleted. An interrupted folder's surviving payload and `.trashinfo` are put back
+together; a failed rollback retains the existing recovery record and names its quarantine in the
+failure. A cancel for another operation id has no effect. The terminal replies precede any client
+re-list, so displaying progress and completion never waits for that re-list.
+
+Accepting delete supersedes earlier browser reads and confirmation checks through the browser's
+request generation. Its independent operation flag accepts cancel while the job is still queued;
+later browser reads cannot cancel the delete. A superseded check answers its ordinary cancelled error.
+
 ### rename
 
 `{"c":"rename","path":"<string>","to":"<string>"}`
@@ -2656,7 +2717,7 @@ listing takes; a failed peek carries neither.
 
 ## Jobs and Actions (0.4.0)
 
-Jobs are additive to the existing transfer, archive, and LocalSend requests and replies. The backend still emits the existing single-operation events with their existing fields. Clients that do not consume jobs can ignore the new event types. Each copy, move, compression, extraction, background action, and LocalSend send has a backend job id, independent of a caller's request id. Empty Trash can adopt its existing operation id and cancellation flag through the same model.
+Jobs are additive to the existing transfer, archive, and LocalSend requests and replies. The backend still emits the existing single-operation events with their existing fields. Clients that do not consume jobs can ignore the new event types. Each copy, move, compression, extraction, background action, and LocalSend send has a backend job id, independent of a caller's request id. Empty Trash adopts its existing operation id and cancellation flag through the same model, with the head `Emptying Trash`.
 
 Requests:
 
@@ -2676,7 +2737,7 @@ Requests:
 {"t":"joberror","id":12,"error":"Only a failed job can be retried."}
 ```
 
-Kinds are `copy`, `move`, `compress`, `extract`, `send`, `action`, and the adoption kind `emptyTrash`. States are `waiting`, `running`, `failed`, and `done`. `done` counts completed top-level items; `total` counts this attempt's items. Extraction starts with zero unknown entry counts until its producer supplies archive entry counts and reports unpacked bytes through `OpMsg::JobEntries`, without changing the wire. `file` is the current item's name; `itemBytes` is its known size. `bytes` is cumulative progress and `totalBytes` is the settled byte total, with zero meaning unknown. `rate` is bytes per second and `left` is estimated seconds or null when no estimate is available. A background action has null byte fields and a file-count bar. Empty Trash has null byte fields, file-count progress, and can retain its current item's size in `itemBytes`.
+Kinds are `copy`, `move`, `compress`, `extract`, `send`, `action`, and the adoption kind `emptyTrash`. States are `waiting`, `running`, `failed`, and `done`. `done` counts completed top-level items; `total` counts this attempt's items. Extraction starts with zero unknown entry counts until its producer supplies archive entry counts and reports unpacked bytes through `OpMsg::JobEntries`, without changing the wire. `file` is the current item's name; `itemBytes` is its known size. `bytes` is cumulative progress and `totalBytes` is the settled byte total, with zero meaning unknown. `rate` is bytes per second and `left` is estimated seconds or null when no estimate is available. A background action has null byte fields and a file-count bar. Empty Trash has null byte fields and counts successfully deleted filesystem nodes, including descendants, against the reviewed recursive total. Its initial total is zero until the worker reads the confirmation. It retains the current top-level item's reviewed size in `itemBytes`; `left` uses deleted nodes and elapsed time. Its terminal legacy replies still count top-level Trash entries, cancellation keeps completed deletions, and retry requires a fresh Trash confirmation.
 
 Copies, moves, compressions, and extractions are queued in arrival order per destination filesystem. The device is resolved off the request loop, following a symlinked target. Btrfs subvolumes share the mount's source key because their anonymous `st_dev` values can differ. Separate destination filesystems run concurrently. A waiting copy uses `Copy 8 items to NAS` and names its predecessor in `reason`, for example `waiting for the copy to NAS`. Cancellation addresses only the named job, including a queued job. `transfercancel` also reaches jobs with that id, including compression. A clean shutdown cancels queued and running jobs through the existing drain.
 
