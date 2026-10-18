@@ -134,7 +134,7 @@ def source_checks(units, policy):
                 continue
             following = ts[end].value
             # A bare call under a gpui glob is gpui's unless the scope declares that name; a method or fn declaration is not a call.
-            if environment.glob and following == "(" and len(path) == 1 and path[0] not in environment.bound and not (i and ts[i - 1].value in (".", "fn")):
+            if environment.glob and following == "(" and len(path) == 1 and path[0] not in environment.items and path[0] not in environment.lets and not (i and ts[i - 1].value in (".", "fn")):
                 path = ("gpui", path[0])
             constructor = name in COLOR_CALLS or any(p in COLOR_TYPES for p in path)
             gpui_symbol = path[0] == "gpui" or path[0].startswith("gpui_") or any(p in COLOR_TYPES for p in path)
