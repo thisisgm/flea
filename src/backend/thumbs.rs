@@ -67,28 +67,51 @@ type Shared = Arc<(Mutex<VecDeque<Job>>, Condvar)>;
 
 pub struct Pool {
     inner: Shared,
+    startup: super::lazy::Lazy<()>,
 }
 
 impl Pool {
-    // The cache root and both tables are the caller's: a test never writes into the operator's shared cache, and run.rs has already parsed these two files.
+    // The cache root and both tables are the caller's, so tests share parsed tables without writing into the operator's cache.
+    #[cfg(test)]
     pub fn new(workers: usize, results: Sender<Done>, root: PathBuf, aliases: Arc<Aliases>, specs: Arc<Thumbnailers>) -> Pool {
         Pool::start(workers, results, Tables { aliases, specs, cache: Cache::at(root), worker: Some(WorkerLink::new()) })
     }
 
+    #[cfg(test)]
     fn start(workers: usize, results: Sender<Done>, tables: Tables) -> Pool {
         let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
+        Self::start_workers(&inner, workers, results, tables);
+        Pool { inner, startup: ().into() }
+    }
+
+    fn start_workers(inner: &Shared, workers: usize, results: Sender<Done>, tables: Tables) {
         let tables = Arc::new(tables);
         for _ in 0..workers.max(1) {
-            let inner = Arc::clone(&inner);
-            let tables = Arc::clone(&tables);
-            let results = results.clone();
+            let (inner, tables, results) = (Arc::clone(inner), Arc::clone(&tables), results.clone());
             std::thread::spawn(move || worker(inner, results, tables));
         }
-        Pool { inner }
+    }
+
+    // Tables and workers are demanded only by the first uncached thumbnail job.
+    pub(crate) fn lazy(workers: usize, tables: &super::state::Tables, events: Sender<super::events::Event>) -> Pool {
+        let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
+        let shared = Arc::clone(&inner);
+        let (aliases, specs) = (tables.aliases.clone(), tables.thumbs.clone());
+        let startup = super::lazy::Lazy::new(move || {
+            let (results, done) = std::sync::mpsc::channel();
+            super::events::spawn_forwarder(done, events);
+            if !sandbox::available() {
+                eprintln!("flea: thumbnails are disabled, bwrap or prlimit is not on PATH");
+            }
+            let tables = Tables { aliases: Arc::clone(&aliases), specs: Arc::clone(&specs), cache: Cache::new(), worker: Some(WorkerLink::new()) };
+            Self::start_workers(&shared, workers, results, tables);
+        });
+        Pool { inner, startup }
     }
 
     // Returns the jobs it dropped to make room, so a caller can unmap and answer the rows that will now never report.
     pub fn submit(&self, mut job: Job) -> Vec<Job> {
+        let _ = &*self.startup;
         let (lock, cv) = &*self.inner;
         let mut q = lock.lock().unwrap();
         let mut dropped = Vec::new();
@@ -127,7 +150,7 @@ impl Pool {
     // Test-only: a pool that starts no worker, so a request-policy test reads back exactly what it queued and a drain waits out its limit; a harness that needs jobs run attaches its own worker to `inner`.
     #[cfg(test)]
     pub(crate) fn idle() -> Pool {
-        Pool { inner: Arc::new((Mutex::new(VecDeque::new()), Condvar::new())) }
+        Pool { inner: Arc::new((Mutex::new(VecDeque::new()), Condvar::new())), startup: ().into() }
     }
 
     // Jobs no worker has taken yet; the request policy reads it to see how many more the queue holds.

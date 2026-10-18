@@ -225,6 +225,11 @@ Stats rows `start..start+count` of the current listing (phase 2) and answers one
 out-of-range window never panics, it just returns fewer rows or none. Missing fields
 default to `0`.
 
+A count of `0` returns an empty `rows` array and `kinds` array with `ms` of `0.000`,
+the clamped `start`, and the current `listing` stamp. It does not read mountinfo,
+stat rows, load row tables, start workers, or rank the remainder of a session's
+matches. A later nonempty window uses the normal complete row format below.
+
 ### sort
 
 `{"c":"sort","by":"<string>","desc":<bool>,"foldersFirst":<bool>,"groupByKind":<bool>,"hiddenLast":<bool>}`

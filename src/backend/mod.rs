@@ -61,6 +61,7 @@ pub mod compare;
 pub mod sort;
 pub mod ordering;
 pub mod state;
+pub(crate) mod lazy;
 pub mod mediaprobe;
 pub mod meta;
 pub mod metareq;

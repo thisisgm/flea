@@ -52,12 +52,12 @@ pub struct FlashMsg {
 
 pub struct Ctx {
     pub slot: Slot,
-    pub tx: std::sync::mpsc::Sender<FlashMsg>,
+    pub tx: super::lazy::DeferredSender<FlashMsg>,
 }
 
 impl Ctx {
     pub fn new(tx: std::sync::mpsc::Sender<FlashMsg>) -> Ctx {
-        Ctx { slot: Slot::new(), tx }
+        Ctx { slot: Slot::new(), tx: tx.into() }
     }
 
     // One answer, written and flushed; a terminal line releases the slot, the rest only print.
