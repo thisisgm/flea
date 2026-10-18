@@ -173,4 +173,45 @@ fn advloop_f1_protocol_keeps_live_duplicates_and_requeues_a_different_cancelled_
     );
     let new = pool.cancel_all().pop().unwrap();
     assert_ne!(old.path, new.path);
+    let mut out = Vec::new();
+    super::super::thumbreq::report_done(
+        &mut out,
+        &mut st,
+        &pool,
+        super::super::thumbs::Done {
+            path: old.path,
+            mtime: old.mtime,
+            trash_identity: old.trash_identity,
+            result: super::super::thumbs::Outcome::Ready(d.join("cache/one.jpg")),
+            ms: 0.0,
+            trace: None,
+        },
+    );
+    assert_eq!(st.outstanding, 1);
+    assert!(
+        out.is_empty(),
+        "the cancelled target must not answer the reused id"
+    );
+    let file = d.join("cache/two.jpg");
+    super::super::thumbreq::report_done(
+        &mut out,
+        &mut st,
+        &pool,
+        super::super::thumbs::Done {
+            path: new.path,
+            mtime: new.mtime,
+            trash_identity: new.trash_identity,
+            result: super::super::thumbs::Outcome::Ready(file.clone()),
+            ms: 0.0,
+            trace: None,
+        },
+    );
+    let out = String::from_utf8(out).unwrap();
+    assert_eq!(out.lines().count(), 1);
+    assert_eq!(field_usize(&out, "id"), Some(7));
+    assert_eq!(
+        field_str(&out, "file"),
+        Some(file.to_string_lossy().into_owned())
+    );
+    assert_eq!(st.outstanding, 0);
 }

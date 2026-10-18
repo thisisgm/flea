@@ -477,6 +477,16 @@ impl Reviewed {
             && self.payload.mode & 0o170000 == other.payload.mode & 0o170000
             && self.metadata.dev == other.metadata.dev && self.metadata.ino == other.metadata.ino
     }
+    // Cleanup failures after payload removal still retire this item's thumbnail namespace.
+    pub fn departed_uri(&self, result: &Result<(), Refusal>) -> Option<String> {
+        let completed = match result {
+            Ok(()) => true,
+            Err(refusal) => matches!(refusal.outcome(),
+                Outcome::InfoLeft(_, _) | Outcome::FolderLeft(_, _)
+                | Outcome::RecordLeft(Some(_)) | Outcome::RecordUnconfirmed(Some(_))),
+        };
+        completed.then(|| super::thumbcache::uri_for(&self.path))
+    }
     pub fn delete(&self, recovery_root: &Path) -> Result<(), Refusal> {
         self.delete_after(recovery_root, || {})
     }
@@ -601,7 +611,6 @@ impl Reviewed {
             };
             return Err(if whole { error } else { error.wrap(Outcome::Partial(op)) });
         }
-        super::trashthumbcache::purge(&[super::thumbcache::uri_for(&self.path)]);
         std::fs::remove_file(fd_path(&quarantine, OsStr::new("metadata")))
             .map_err(|e| Refusal::os(Outcome::InfoLeft(op, recovery.clone()), "Trash metadata cleanup after completion", &e))?;
         journal.remove_empty(&quarantine_path, &quarantine, &files)

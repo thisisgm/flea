@@ -200,15 +200,23 @@ fn run_case(case: &str, test: &str) {
         first.uri,
         escape(&selection_identity(&current))
     );
-    if case == "blocked" {
+    let batch = case.starts_with("batch-") || case.starts_with("partial-");
+    let partial = case.starts_with("partial-");
+    let restoring = matches!(
+        case,
+        "restore" | "blocked" | "batch-restore" | "partial-restore"
+    );
+    if case == "blocked" || case == "partial-restore" {
         write(&home, "original/a photo.png", b"destination bytes");
     }
-    let result = if matches!(case, "restore" | "blocked") {
+    crate::backend::trashthumbcache::DIRECTORY_READS.with(|reads| reads.set([0; 2]));
+    let result = if restoring {
+        let target = if batch { r#""all":true"# } else { &selection };
         session.handle(&format!(
-            r#"{{"c":"trashbrowse","op":"restore","id":2,{selection}}}"#
+            r#"{{"c":"trashbrowse","op":"restore","id":2,{target}}}"#
         ))
     } else {
-        let target = if case == "empty" {
+        let target = if case == "empty" || batch {
             r#""all":true,"emptyTrash":true"#
         } else {
             &selection
@@ -218,16 +226,33 @@ fn run_case(case: &str, test: &str) {
         ));
         assert!(crate::json::field_bool(&prepared, "ok"), "{prepared}");
         let token = crate::json::field_usize(&prepared, "token").unwrap();
-        session.handle(&format!(
-            r#"{{"c":"trashbrowse","op":"delete","id":3,"token":{token}}}"#
-        ))
+        if case == "partial-delete" {
+            let kept = home.join("reviewed-payload");
+            for path in [&payloads[0], &kept] {
+                assert!(home.is_absolute() && home.join(".flea-test-sandbox").is_file());
+                assert!(path.is_absolute() && path.starts_with(&home));
+            }
+            std::fs::rename(&payloads[0], &kept).unwrap();
+            write(&home, "data/Trash/files/a photo.png", b"replacement bytes");
+            // Model a change after the session's last validation, inside the per-item delete loop.
+            let fields = delete_confirmed(
+                session.confirmation.as_ref().unwrap(),
+                &crate::backend::trashdelete::recovery_root(),
+            );
+            assert_eq!(std::fs::read(&kept).unwrap(), b"image bytes");
+            format!(r#"{{"ok":true,{fields}}}"#)
+        } else {
+            session.handle(&format!(
+                r#"{{"c":"trashbrowse","op":"delete","id":3,"token":{token}}}"#
+            ))
+        }
     };
     assert!(crate::json::field_bool(&result, "ok"), "{result}");
     assert_eq!(
         crate::json::field_usize(&result, "done"),
         Some(if case == "blocked" {
             0
-        } else if case == "empty" {
+        } else if case == "empty" || (batch && !partial) {
             2
         } else {
             1
@@ -236,11 +261,12 @@ fn run_case(case: &str, test: &str) {
     );
     assert_eq!(
         crate::json::field_usize(&result, "failed"),
-        Some(usize::from(case == "blocked")),
+        Some(usize::from(case == "blocked" || partial)),
         "{result}"
     );
     for (index, files) in owned.iter().enumerate() {
-        let gone = (index == 0 && case != "blocked") || case == "empty";
+        let refused = index == 0 && (case == "blocked" || partial);
+        let gone = !refused && (index == 0 || case == "empty" || batch);
         assert_eq!(payloads[index].exists(), !gone);
         for file in files {
             assert_eq!(
@@ -259,10 +285,27 @@ fn run_case(case: &str, test: &str) {
             file.display()
         );
     }
-    if case == "restore" {
+    if restoring {
+        for (index, payload) in payloads.iter().enumerate() {
+            if !payload.exists() {
+                assert_eq!(
+                    std::fs::read(home.join("original").join(payload.file_name().unwrap()))
+                        .unwrap(),
+                    b"image bytes"
+                );
+            } else if index == 0 && (case == "blocked" || partial) {
+                assert_eq!(
+                    std::fs::read(home.join("original/a photo.png")).unwrap(),
+                    b"destination bytes"
+                );
+            }
+        }
+    }
+    if batch {
         assert_eq!(
-            std::fs::read(home.join("original/a photo.png")).unwrap(),
-            b"image bytes"
+            crate::backend::trashthumbcache::DIRECTORY_READS.with(|reads| reads.get()),
+            [1, 1],
+            "one request must read large and fail/flea exactly once"
         );
     }
 }
@@ -290,4 +333,20 @@ purge_case!(
 purge_case!(
     advloop_f5_empty_trash_purges_only_its_owned_thumbnails,
     "empty"
+);
+purge_case!(
+    advloop_f7_multi_delete_reads_each_cache_directory_once,
+    "batch-delete"
+);
+purge_case!(
+    advloop_f7_failed_delete_keeps_its_thumbnails,
+    "partial-delete"
+);
+purge_case!(
+    advloop_f7_multi_restore_reads_each_cache_directory_once,
+    "batch-restore"
+);
+purge_case!(
+    advloop_f7_failed_restore_keeps_its_thumbnails,
+    "partial-restore"
 );

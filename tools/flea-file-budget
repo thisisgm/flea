@@ -57,9 +57,9 @@ src/backend/collide_replace_tests.rs 492
 src/backend/proto.rs 483
 src/backend/sandbox.rs 401
 src/backend/thumbworker.rs 961
-src/backend/trashbrowse.rs 1047
+src/backend/trashbrowse.rs 1061
 src/backend/rawpreview_tests.rs 427
-src/backend/trashdelete.rs 998
+src/backend/trashdelete.rs 1007
 src/clip/watch_end_tests.rs 405
 src/gvfsprefetch_tests.rs 398
 src/gui.rs 505
