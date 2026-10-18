@@ -3,7 +3,7 @@
 
 # The root PKGBUILD of github.com/thisisgm/flea, built from the release's source tarball; its closure's reasons live there.
 pkgname=flea
-pkgver=0.3.12
+pkgver=0.4.0
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy'
 arch=('x86_64' 'aarch64')

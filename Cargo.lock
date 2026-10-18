@@ -4,4 +4,4 @@ version = 4
 
 [[package]]
 name = "flea"
-version = "0.3.12"
+version = "0.4.0"

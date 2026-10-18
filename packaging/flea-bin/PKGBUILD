@@ -4,7 +4,7 @@
 # The release workflow's binaries with flea's own closure, whose reasons live beside it in the root PKGBUILD.
 pkgname=flea-bin
 _pkgname=flea
-pkgver=0.3.12
+pkgver=0.4.0
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy (prebuilt binary)'
 arch=('x86_64' 'aarch64')
