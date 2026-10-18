@@ -36,7 +36,10 @@ def board_file(root, name="tui-list-text", text="A", decoration=""):
     return Board(page)
 
 
-def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_kind=False, references=None, frame=None, validate=None):
+def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_kind=False, references=None, frame=None, validate=None,
+         launches=None):
+    # Each terminal launch appends its arguments here, so a caller can tell whether the pair launched at all.
+    launches = [] if launches is None else launches
     if references:
         (root / "boards").mkdir()
         for extension in ("html", "png"):
@@ -60,7 +63,7 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
     case = root / "foot" / state_id / "primary"
     fx = case / "fx"
     # Sample frame: ((width, height, rgba), client size, grid rect); the default grid fills its client, so it has no padding.
-    image, size, grid = frame or ((1, 1, bytes([0, 0, 0, 255])), [1040, 682], [0, 0, 1040, 682])
+    image, size, grid = frame or ((1040, 682, bytes([0, 0, 0, 255]) * (1040 * 682)), [1040, 682], [0, 0, 1040, 682])
     client = {"at": [0, 0], "size": size}
 
     def capture(path):
@@ -84,6 +87,7 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
         return fx, receipt
 
     def launch(*args, **kwargs):
+        launches.append(args)
         for name in ("relay-spec.json", "launch-spec.json"):
             (case / name).write_text(json.dumps({"argv": ["boundary-double"]}))
         for name in ("pty.log", "graphics.log"):
@@ -94,7 +98,7 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
             (case / name).write_bytes(b"native boundary double")
         return {"status": "REVIEW"}
 
-    terminal = SimpleNamespace(client=client, launched=True, launch=launch, close=close)
+    terminal = SimpleNamespace(client=client, launched=True, launch=launch, close=close, snapshot=lambda: snapshot)
     adapter = SimpleNamespace(identity="owned", preflight=lambda *a: {}, configure=configure, environment=lambda: {},
                               validate=validate or (lambda *a: {"status": "PASS"}))
     display = SimpleNamespace(monitor={"x": 0, "y": 0}, original_rounding=0, capture=capture, client=lambda *a: client)

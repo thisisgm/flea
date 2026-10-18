@@ -11,6 +11,7 @@ from unittest.mock import patch
 
 from . import native
 from .adapters import Adapter
+from .edges import ground_edges
 from .evidence import Blocked, Commands, MARKER
 from .review_support import pair
 
@@ -36,8 +37,9 @@ def capture(padding=GROUND, side=None, corners=None):
         for y in range(y0, y1):
             pixels[(y * width + x0) * 4:(y * width + x1) * 4] = bytes((*padding, 255)) * (x1 - x0)
     if corners:
-        for y in (*range(8), *range(height - 8, height)):
-            for x in (*range(8), *range(width - 8, width)):
+        radius = native.WINDOW_ROUNDING
+        for y in (*range(radius), *range(height - radius, height)):
+            for x in (*range(radius), *range(width - radius, width)):
                 pixels[(y * width + x) * 4:(y * width + x) * 4 + 4] = bytes((*corners, 255))
     return (width, height, bytes(pixels)), CLIENT, GRID
 
@@ -102,6 +104,13 @@ class TuiEdgeTests(unittest.TestCase):
         self.assertEqual(verdict["reason"], "TUI ground differs from the terminal background at the left edge")
         self.assertEqual({side: value["delta"] for side, value in verdict["edges"]["sides"].items()},
                          {"left": 18, "top": 18, "right": 18, "bottom": 18})
+
+    def test_a_grid_past_every_client_edge_is_blocked_not_passed(self):
+        image = (40, 30, bytes((*GROUND, 255)) * (40 * 30))
+        with self.assertRaises(Blocked):
+            ground_edges(image, [0, 0, 40, 30], [-5, -5, 50, 40], (8, 22), native.WINDOW_ROUNDING)
+        self.assertEqual(ground_edges(image, [0, 0, 40, 30], [0, 0, 40, 30], (8, 22), native.WINDOW_ROUNDING),
+                         {"status": "PASS", "sides": {}})
 
 
 # Stand-ins for each terminal's own checker: foot 1.28's verdict on a [colors] section, ghostty's stdout diagnostic, kitty's stderr log.
@@ -182,26 +191,33 @@ class TerminalConfigTests(unittest.TestCase):
             raise Blocked("foot rejects the private terminal config: err: invalid section name: colors")
         root = self.root / "pair"
         root.mkdir()
-        verdict, _ = pair(root, validate=reject)
+        launches = []
+        verdict, _ = pair(root, validate=reject, launches=launches)
         self.assertEqual(verdict["status"], "BLOCKED")
         self.assertEqual(verdict["reason"], "foot rejects the private terminal config: err: invalid section name: colors")
+        self.assertEqual(launches, [], "the terminal launched although its config was rejected")
         self.assertFalse((root / "foot/tui-list-text/primary/launch-spec.json").exists())
 
 
 class DisplayModeTests(unittest.TestCase):
     # Sample: Hyprland 0.56.2 reports a new headless output at 1920x1080 scale 1.6 until it applies the mode about a second later.
-    def enter(self, reports):
+    def enter(self, reports, query_failure=None):
         default = {"name": "FLEA-id", "id": 7, "width": 1920, "height": 1080, "scale": 1.6}
         applied = dict(default, width=2560, height=1440, scale=1)
-        # The first read is the in-use check; None never applies the mode.
+        # The first read is the in-use check; None never applies the mode, and a query_failure fails the first poll.
         reads = [[], [default]] if reports is None else [[]] + [[default]] * reports + [[applied]]
+        if query_failure:
+            reads = [[], query_failure]
         def answer(argv, **_):
             function = argv[5]
             code, stdout = {"hypr_query_help": (1, b"commands: monitors clients output version"),
                             "hypr_query_output_help": (1, b"output create remove"),
                             "hypr_query_option": (0, b'{"int": 0}')}.get(function, (0, b""))
             if function == "hypr_query_monitors":
-                stdout = json.dumps(reads.pop(0) if len(reads) > 1 else reads[0]).encode()
+                read = reads.pop(0) if len(reads) > 1 else reads[0]
+                if isinstance(read, str):
+                    return subprocess.CompletedProcess(argv, 1, b"", read.encode())
+                stdout = json.dumps(read).encode()
             return subprocess.CompletedProcess(argv, code, stdout, b"")
         commands = Commands()
         with patch("tui_battery.evidence.subprocess.run", side_effect=answer), patch.object(native, "MODE_DEADLINE", 0.5, create=True):
@@ -221,6 +237,12 @@ class DisplayModeTests(unittest.TestCase):
         monitor, error, commands = self.enter(reports=None)
         self.assertIsNone(monitor)
         self.assertEqual(error, "owned output mode/scale could not be verified: last seen 1920x1080 scale 1.6")
+        self.assertEqual([r["argv"][5] for r in commands.records][-1], "hypr_output_remove")
+
+    def test_a_failed_monitor_query_reaches_the_caller_with_its_own_reason(self):
+        monitor, error, commands = self.enter(reports=None, query_failure="Hyprland socket is gone")
+        self.assertIsNone(monitor)
+        self.assertEqual(error, "command exited 1: bash: Hyprland socket is gone")
         self.assertEqual([r["argv"][5] for r in commands.records][-1], "hypr_output_remove")
 
 

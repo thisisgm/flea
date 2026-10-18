@@ -14,10 +14,10 @@ def ground_edges(image, client, grid, cell, rounding):
               "top": (range(cx + rounding, cx + cw - rounding), range(cy, gy)),
               "right": (range(gx + gw, cx + cw), range(cy + rounding, cy + ch - rounding)),
               "bottom": (range(cx + rounding, cx + cw - rounding), range(gy + gh, cy + ch))}
-    if not any(xs and ys for xs, ys in strips.values()):
-        return {"status": "PASS", "sides": {}}
     if not (0 <= cx <= gx and 0 <= cy <= gy and gx + gw <= cx + cw <= width and gy + gh <= cy + ch <= height):
         raise Blocked("terminal client or grid lies outside the owned output capture")
+    if not any(xs and ys for xs, ys in strips.values()):
+        return {"status": "PASS", "sides": {}}
 
     def at(x, y):
         offset = (y * width + x) * 4
