@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Multi-item Properties protocol acceptance, inside properties-multi.sh's marked root."""
+"""Properties race regressions, inside properties-races.sh's marked root."""
 import datetime
 import json
 import os
@@ -12,7 +12,7 @@ import time
 
 root = Path(sys.argv[1]).resolve()
 binary = str(Path(sys.argv[2]).resolve())
-assert root.is_absolute() and root.name.startswith("flea-properties-multi-")
+assert root.is_absolute() and root.name.startswith("flea-properties-races-")
 assert (root / ".flea-test-sandbox").is_file()
 assert not root.is_relative_to(Path.home().resolve())
 assert os.geteuid() != 0, "unreadable-folder proof must run without root privileges"
@@ -46,7 +46,7 @@ def unlink(path):
 
 library = owned(root / "block.so")
 subprocess.run(["cc", "-shared", "-fPIC", "-o", str(library),
-                str(Path(__file__).with_name("review-properties-block.c")), "-ldl"], check=True)
+                str(Path(__file__).with_name("properties-races-block.c")), "-ldl"], check=True)
 for name in ("cache", "state", "runtime", "config"):
     folder(name)
 owned(root / "runtime").chmod(0o700)
@@ -277,5 +277,5 @@ for phase in ("initial", "final"):
         print("REMOTE_CANCEL", phase, "snapshot_after_close_ms=", round(elapsed * 1000, 3), flush=True)
 
 for failure in failures:
-    print("FAIL review-properties:", failure, flush=True)
+    print("FAIL properties-races:", failure, flush=True)
 assert not failures, failures
