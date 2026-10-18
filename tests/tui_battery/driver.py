@@ -14,7 +14,7 @@ import uuid
 from .adapters import Adapter, TERMINALS, font_profile
 from .geometry import COLUMNS, ROWS, CELL_WIDTH, CELL_HEIGHT
 from .evidence import Blocked, Commands, MARKER, absolute, digest, output_root, save, source_identity
-from .fixtures import build, namespace
+from .fixtures import BUILT_IN_FEATURES, build, inventory, namespace
 from .keys import Keymap
 from .native import Display, Terminal
 from .references import Board, compare_pixels, separator
@@ -104,7 +104,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         profile = adapter.configure()
         fonts = font_identity(commands, profile["font"], adapter.environment())
         fx, fixture = build(case, state["family"], args.fixtures)
-        available = set(fixture.get("features", [])) | {"graphics-negative", "model-source"}
+        available = set(fixture.get("features", [])) | BUILT_IN_FEATURES
         seam = seams.get(state["id"], {})
         available.update(seam.get("features", []))
         missing = set(state["requires"]) - available
@@ -285,9 +285,13 @@ def main(argv=None):
         manifest["registered_surfaces"] = surfaces
         manifest["additional_surfaces"] = [dict(row, terminal=t, kind="surface") for t in terminals for row in surfaces]
         manifest["logical_pairs_requested"] = len(terminals) * len(spec["states"])
+        fixtures_ready = True
+        if args.fixtures:
+            manifest["fixture_families"] = inventory(args.fixtures, spec["states"])
+            fixtures_ready = all(row["status"] == "present" for row in manifest["fixture_families"].values())
         if args.list:
             print(json.dumps(manifest, ensure_ascii=False, indent=2))
-            return 0
+            return 0 if fixtures_ready else 2
         if not args.output:
             raise Blocked("--output is required beneath a marked mktemp root")
         root = output_root(args.output)
@@ -299,9 +303,9 @@ def main(argv=None):
                 case = root.directory(terminal + "/adapter")
                 receipt = fake.adapter_diagnostic(terminal, case, commands, colors)
                 manifest["records"].append(dict(receipt, status="ADAPTER-PASS"))
-            manifest.update(native_acceptance=False, native_captures=0, native_accepted=0,
-                            planned_state_variants=len(planned), status="DRY-RUN-PASS")
-            code = 0
+            manifest.update(native_acceptance=False, native_captures=0, native_accepted=0, planned_state_variants=len(planned),
+                            status="DRY-RUN-PASS" if fixtures_ready else "BLOCKED")
+            code = 0 if fixtures_ready else 2
         else:
             if not args.binary or not args.binary.is_absolute() or not os.access(args.binary, os.X_OK):
                 raise Blocked("--binary must name an absolute executable candidate")
