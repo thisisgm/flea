@@ -25,7 +25,11 @@ version=${tag#v}
 root="flea-$version"
 asset="flea-$tag.tar.gz"
 stage=$(mktemp -d "${TMPDIR:-/tmp}/flea-source-tarball.XXXXXX")
-cleanup() { rm -rf -- "$stage"; }
+: > "$stage/.flea-release-owned"
+cleanup() {
+  [ -n "$stage" ] && [[ "$stage" = /*/flea-source-tarball.* ]] && [ -f "$stage/.flea-release-owned" ] || return 1
+  rm -rf -- "$stage"
+}
 trap cleanup EXIT
 
 # git archive stamps every entry with the tag commit's time and gzip -n drops its own, so one tag and one gzip give one set of bytes.
@@ -42,4 +46,6 @@ roots=$(tar -tzf "$stage/first.tar.gz" | cut -d/ -f1 | sort -u)
 
 mkdir -p "$outdir"
 mv "$stage/first.tar.gz" "$outdir/$asset"
+(cd "$outdir" && sha256sum "$asset" > "$asset.sha256")
 echo "$outdir/$asset"
+echo "$outdir/$asset.sha256"
