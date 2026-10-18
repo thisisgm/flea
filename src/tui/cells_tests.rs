@@ -61,7 +61,8 @@ fn wide_symbol_width_in_c_locale() {
 }
 #[test]
 fn wide_symbol_width_in_utf8_locale() {
-    if crate::tui::render::frame_tests::isolated_test("tui::cells::tests::wide_symbol_width_in_utf8_locale", &[]) { return; }
+    // Named here, not left to isolated_test's default, so the measured locale is this test's own.
+    if crate::tui::render::frame_tests::isolated_test("tui::cells::tests::wide_symbol_width_in_utf8_locale", &[("LC_ALL", "C.UTF-8")]) { return; }
     extern "C" { fn setlocale(category: i32, locale: *const std::ffi::c_char) -> *mut std::ffi::c_char; }
     assert!(!unsafe { setlocale(0, c"".as_ptr()) }.is_null());
     assert_eq!(unsafe { wcwidth(0x1f600) }, 2, "the UTF-8 locale left the symbol to the fallback table, so wcwidth went untested");

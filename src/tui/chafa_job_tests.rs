@@ -23,7 +23,7 @@ fn missing_chafa_is_none_and_nonexecutables_do_not_count() {
 }
 
 #[test]
-fn chafa_lookup_accepts_exactly_what_the_launcher_lookup_accepts() {
+fn chafa_lookup_takes_executable_files_and_links_to_them_only() {
     let fixture = Fixture::new();
     // One candidate per PATH directory, on both sides of the execute-bit criterion.
     let modes = [
@@ -43,22 +43,17 @@ fn chafa_lookup_accepts_exactly_what_the_launcher_lookup_accepts() {
     std::fs::create_dir(fixture.path("directory/chafa")).unwrap();
     symlink(fixture.path("group/chafa"), fixture.path("link/chafa")).unwrap();
     symlink(fixture.path("missing"), fixture.path("dangling/chafa")).unwrap();
-    let mut accepted = Vec::new();
-    for name in [
-        "owner",
-        "group",
-        "other",
-        "none",
-        "directory",
-        "link",
-        "dangling",
-    ] {
-        let directory = fixture.path(name);
-        let launcher = jail::executable_file(&directory.join("chafa"));
-        assert_eq!(find_on(directory.as_os_str()).is_some(), launcher, "{name}");
-        accepted.push(launcher);
+    // A link answers with the file it names, so the program run is the one that was checked.
+    let found = |name: &str| find_on(fixture.path(name).as_os_str());
+    assert_eq!(found("owner"), Some(fixture.path("owner/chafa")));
+    assert_eq!(found("group"), Some(fixture.path("group/chafa")));
+    assert_eq!(found("other"), Some(fixture.path("other/chafa")));
+    assert_eq!(found("link"), Some(fixture.path("group/chafa")));
+    for name in ["none", "directory", "dangling"] {
+        assert_eq!(found(name), None, "{name}");
     }
-    assert!(accepted.contains(&true) && accepted.contains(&false));
+    let rejected_first = std::env::join_paths(["none", "directory", "dangling", "other"].map(|name| fixture.path(name))).unwrap();
+    assert_eq!(find_on(&rejected_first), Some(fixture.path("other/chafa")));
 }
 
 #[test]
