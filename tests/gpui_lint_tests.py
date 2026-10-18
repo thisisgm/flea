@@ -366,7 +366,7 @@ print(json.dumps({"reason": "build-finished", "success": True}))
         return self.errors()
 
     def test_glob_shadowing_follows_rust_scopes(self):
-        # The rule is the bindings.py docstring: a lexical approximation that reports a glob it cannot follow, never hides one.
+        # The rule is the bindings.py docstring, a lexical approximation of Rust glob scopes that follows only what one file shows.
         reported = {
             "impl method": "use gpui::*;\nstruct S;\nimpl S { fn white(&self) {} }\nfn a() { white(); }\n",
             "trait method": "use gpui::*;\ntrait T { fn white(&self) {} }\nfn a() { white(); }\n",
