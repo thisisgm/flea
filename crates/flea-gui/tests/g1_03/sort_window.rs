@@ -189,3 +189,46 @@ fn a_resort_whose_window_also_fails_leaves_the_top_held() {
         pane.requests.refused
     );
 }
+
+
+// A second sort while a scroll's window is out under a pair whose own sort window failed.
+fn resorted_while_a_scroll_window_is_out() -> (Pane, Navigator, (usize, usize)) {
+    let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    window_count(&mut nav);
+    assert_eq!(pane.wanted_window(), None, "the old top is held, so the view asks nothing");
+    let now = pane.now();
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    assert!(!pane.fail("window", "/f/base", "timed out", 0, now));
+    nav.after_failure(&mut pane, "window");
+    pane.scroll_to(400. * 31.);
+    let scroll = pane.wanted_window().expect("the scroll asks a window");
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    window_count(&mut nav);
+    (pane, nav, scroll)
+}
+
+#[test]
+fn a_late_scroll_answer_after_a_resort_keeps_rows_on_the_resorted_top() {
+    let (mut pane, _, (start, count)) = resorted_while_a_scroll_window_is_out();
+    let now = pane.now();
+    let late = pane.receive_at(Reply::Rows { start, rows: rows(start, count, named), listing: 2 }, now);
+    let shown = (0..pane.visible_rows()).filter(|&index| pane.held.row(index).is_some()).count();
+    eprintln!("scroll asked ({start}, {count}); late answer {late:?}; held {:?}; view row {}; rows on screen {shown} of {}",
+        (pane.held.listing, pane.held.start), (pane.scroll_y / 31.) as usize, pane.visible_rows());
+    assert_eq!(shown, pane.visible_rows(), "the resorted top keeps rows on screen until the second sort lands");
+}
+
+#[test]
+fn the_second_sort_still_lands_after_a_late_scroll_answer() {
+    let (mut pane, mut nav, (start, count)) = resorted_while_a_scroll_window_is_out();
+    let now = pane.now();
+    let late = pane.receive_at(Reply::Rows { start, rows: rows(start, count, named), listing: 2 }, now);
+    let render = pane.wanted_window();
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let first = pane.first_count();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, first, named), listing: 3 }, now);
+    nav.after_reply(&mut pane, "/f/base", &mut Vec::new());
+    assert_eq!(landed, Ok(true), "late {late:?}, render asked {render:?}");
+    assert_eq!((pane.held.listing, pane.held.start, pane.cursor), (3, 0, 0));
+}
