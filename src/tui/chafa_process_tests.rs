@@ -3,6 +3,14 @@ use super::*;
 use std::path::Path;
 use std::time::{Duration, Instant};
 
+const START_TIMEOUT: Duration = Duration::from_secs(5);
+const CLEANUP_TIMEOUT: Duration = Duration::from_secs(4);
+const OVERFLOW_TIMEOUT: Duration = Duration::from_secs(8);
+const PROCESS_POLL: Duration = Duration::from_millis(10);
+const SIGUSR1: i32 = 10;
+// A decoder that ignores SIGTERM and starts a descendant that does too, so only a kill ends them.
+const TERM_IGNORING_DECODER: &str = "trap '' TERM\n/bin/sh -c 'trap \"\" TERM; while :; do /usr/bin/sleep 60; done' \"$0.descendant\" &\n";
+
 #[test]
 fn rejects_decoder_failure_even_after_valid_output() {
     if !sandboxed() {
@@ -24,16 +32,42 @@ fn output_cap_kills_decoder_before_it_can_hang() {
         return;
     }
     let fixture = Fixture::new();
-    fixture.stub("/usr/bin/head -c 33554433 /dev/zero; /usr/bin/sleep 60");
+    // USR1 releases output only after the decoder and its descendant are both observable.
+    fixture.stub(&format!(
+        "trap '/usr/bin/head -c {} /dev/zero' USR1\n{TERM_IGNORING_DECODER}wait || :\nwait",
+        OUTPUT_LIMIT + 1,
+    ));
+    let input = File::open(fixture.file("image", b"held\n")).unwrap();
+    let executable = fixture.path("bin/chafa");
+    let cancel = Arc::new(AtomicBool::new(false));
+    let stopped = cancel.clone();
+    let (tx, result) = mpsc::channel();
+    let (release, held) = mpsc::channel();
     let started = Instant::now();
-    let mut job = fixture.start(2, 2, ColorMode::Truecolor);
-    assert!(job
-        .result
-        .recv_timeout(Duration::from_secs(8))
-        .unwrap()
-        .is_err());
+    let worker = std::thread::spawn(move || {
+        let _ = tx.send(process::run(
+            input,
+            &executable,
+            (2, 2),
+            ColorMode::Truecolor,
+            &stopped,
+        ));
+        // Holding the spawning thread keeps bwrap's --die-with-parent from hiding a missing kill.
+        let _ = held.recv();
+    });
+    let mut job = Job {
+        result,
+        cancel,
+        worker: Some(worker),
+    };
+    let processes = wait_for_decoder(&fixture);
+    crate::procsignal::signal_process(processes[0], SIGUSR1).unwrap();
+    assert!(job.result.recv_timeout(OVERFLOW_TIMEOUT).unwrap().is_err());
+    assert_processes_gone(&fixture, processes, started, OVERFLOW_TIMEOUT);
+    release.send(()).unwrap();
     job.cancel();
-    assert!(started.elapsed() < Duration::from_secs(8));
+    assert!(job.worker.is_none());
+    assert!(started.elapsed() < OVERFLOW_TIMEOUT);
 }
 
 #[test]
@@ -57,6 +91,7 @@ fn hanging_decoder_hits_existing_ten_second_deadline_and_joins() {
     );
 }
 
+// Sample input: b"/bin/sh\0/path/to/chafa\0--format=symbols\0".
 fn shells_named(marker: &Path) -> Vec<i32> {
     use std::os::unix::ffi::OsStrExt;
     std::fs::read_dir("/proc")
@@ -73,13 +108,60 @@ fn shells_named(marker: &Path) -> Vec<i32> {
         .collect()
 }
 
+fn wait_for_decoder(fixture: &Fixture) -> [i32; 2] {
+    let started = Instant::now();
+    let decoder = fixture.path("bin/chafa");
+    let descendant = fixture.path("bin/chafa.descendant");
+    loop {
+        if let (Some(decoder), Some(descendant)) = (
+            shells_named(&decoder).first(),
+            shells_named(&descendant).first(),
+        ) {
+            return [*decoder, *descendant];
+        }
+        assert!(
+            started.elapsed() < START_TIMEOUT,
+            "decoder and descendant did not both start"
+        );
+        std::thread::sleep(PROCESS_POLL);
+    }
+}
+
+// Polls until the observed pids and every shell still naming either marker are gone, failing at the bound.
+fn assert_processes_gone(
+    fixture: &Fixture,
+    processes: [i32; 2],
+    started: Instant,
+    timeout: Duration,
+) {
+    let markers = [
+        fixture.path("bin/chafa"),
+        fixture.path("bin/chafa.descendant"),
+    ];
+    loop {
+        let alive: Vec<i32> = processes
+            .into_iter()
+            .filter(|pid| crate::procsignal::signal_process(*pid, 0).is_ok())
+            .chain(markers.iter().flat_map(|marker| shells_named(marker)))
+            .collect();
+        if alive.is_empty() {
+            return;
+        }
+        assert!(
+            started.elapsed() < timeout,
+            "decoder processes remain alive: {alive:?} of {processes:?}"
+        );
+        std::thread::sleep(PROCESS_POLL);
+    }
+}
+
 #[test]
 fn cancel_kills_term_ignoring_decoder_and_descendant_then_joins() {
     if !sandboxed() {
         return;
     }
     let fixture = Fixture::new();
-    fixture.stub("trap '' TERM\n/bin/sh -c 'trap \"\" TERM; while :; do /usr/bin/sleep 60; done' \"$0.descendant\" &\nwait");
+    fixture.stub(&format!("{TERM_IGNORING_DECODER}wait"));
     let mut job = fixture.start(2, 2, ColorMode::Truecolor);
     let marker = fixture.path("bin/chafa.descendant");
     let started = Instant::now();
@@ -114,16 +196,13 @@ fn dropping_job_cancels_and_eventually_joins_pending_decoder() {
         return;
     }
     let fixture = Fixture::new();
-    fixture.stub("trap '' TERM; /usr/bin/sleep 60");
+    fixture.stub(&format!("{TERM_IGNORING_DECODER}wait"));
     let job = fixture.start(2, 2, ColorMode::Truecolor);
+    let processes = wait_for_decoder(&fixture);
     let started = Instant::now();
     drop(job);
-    assert!(started.elapsed() < Duration::from_secs(4));
-    let marker = fixture.path("bin/chafa");
-    while !shells_named(&marker).is_empty() {
-        assert!(started.elapsed() < Duration::from_secs(4));
-        std::thread::sleep(Duration::from_millis(10));
-    }
+    assert!(started.elapsed() < CLEANUP_TIMEOUT);
+    assert_processes_gone(&fixture, processes, started, CLEANUP_TIMEOUT);
 }
 
 #[test]

@@ -20,6 +20,8 @@ const STATUS_STEP_MS: u64 = 5;
 // How long kill_tree waits for a killed pid to vanish; the cancel tests pin their promptness to this same bound.
 pub(crate) const WAIT_GONE_SECS: u64 = 2;
 const WAIT_GONE_STEP_MS: u64 = 10;
+// The execute bits of st_mode; a launcher needs any one of them.
+const ANY_EXECUTE_BIT: u32 = 0o111;
 
 extern "C" {
     fn pipe2(fds: *mut i32, flags: i32) -> i32;
@@ -180,7 +182,6 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
 }
 
 fn launcher_path(program: &str) -> std::io::Result<std::path::PathBuf> {
-    use std::os::unix::fs::PermissionsExt;
     use std::path::{Path, PathBuf};
     let directories: Vec<PathBuf> = std::env::var_os("PATH")
         .map(|path| {
@@ -196,11 +197,7 @@ fn launcher_path(program: &str) -> std::io::Result<std::path::PathBuf> {
         directories
             .iter()
             .map(|directory| directory.join(program))
-            .find(|candidate| {
-                candidate
-                    .metadata()
-                    .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
-            })
+            .find(|candidate| executable_file(candidate))
     } else {
         None
     };
@@ -211,6 +208,13 @@ fn launcher_path(program: &str) -> std::io::Result<std::path::PathBuf> {
         )
     })?;
     Ok(launcher)
+}
+
+// A launcher lookup's criterion: a regular file, or a link to one, with any execute bit set.
+pub(crate) fn executable_file(path: &std::path::Path) -> bool {
+    use std::os::unix::fs::PermissionsExt;
+    path.metadata()
+        .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & ANY_EXECUTE_BIT != 0)
 }
 
 // Kills bwrap and the sandbox init, reaps bwrap within a bound, and leaves the Jailed finished.
