@@ -8,6 +8,7 @@ const MAX_BYTES: usize = 512 * 1024;
 const RESERVE_BYTES: usize = 64 * 1024;
 const MAX_PATH_BYTES: usize = 32 * 1024;
 const URI_ARG_OVERHEAD_BYTES: usize = 16;
+const URI_ESCAPE_MULTIPLIER: usize = 3;
 const MIN_ARG_MAX_BYTES: usize = 128 * 1024;
 const SC_ARG_MAX: i32 = 0;
 extern "C" {
@@ -43,7 +44,7 @@ impl Budget {
             return false;
         }
         let cost = length
-            .saturating_mul(3)
+            .saturating_mul(URI_ESCAPE_MULTIPLIER)
             .saturating_add(URI_ARG_OVERHEAD_BYTES);
         if self.count >= MAX_IMAGES || cost > self.bytes {
             return false;

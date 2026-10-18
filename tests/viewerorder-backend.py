@@ -11,6 +11,15 @@ import sys
 import time
 from urllib.parse import unquote, urlparse
 
+# These bounds mirror the constants in src/imageopen.rs.
+MAX_IMAGES = 4096
+MAX_BYTES = 512 * 1024
+RESERVE_BYTES = 64 * 1024
+MAX_PATH_BYTES = 32 * 1024
+URI_ARG_OVERHEAD_BYTES = 16
+URI_ESCAPE_MULTIPLIER = 3
+MIN_ARG_MAX_BYTES = 128 * 1024
+
 
 def owned(root, path):
     assert root.is_absolute() and (root / ".flea-test-sandbox").is_file()
@@ -57,15 +66,15 @@ def gallery_prefix(paths, env):
     except (OSError, ValueError):
         maximum = -1
     if maximum < 0:
-        maximum = 128 * 1024
+        maximum = MIN_ARG_MAX_BYTES
     environment = sum(len(os.fsencode(key)) + len(os.fsencode(value)) + 2 + struct.calcsize("P")
                       for key, value in env.items())
-    remaining = min(512 * 1024, max(0, maximum - environment - 64 * 1024))
+    remaining = min(MAX_BYTES, max(0, maximum - environment - RESERVE_BYTES))
     chosen = []
     for path in paths:
         length = len(os.fsencode(path))
-        cost = length * 3 + 16
-        if len(chosen) >= 4096 or length > 32 * 1024 or cost > remaining:
+        cost = length * URI_ESCAPE_MULTIPLIER + URI_ARG_OVERHEAD_BYTES
+        if len(chosen) >= MAX_IMAGES or length > MAX_PATH_BYTES or cost > remaining:
             break
         chosen.append(path)
         remaining -= cost

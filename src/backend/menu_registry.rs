@@ -196,8 +196,16 @@ fn wait_exit(fd: i32) -> Result<(), std::io::Error> {
     }
 }
 
-pub(crate) struct Application { pub id: String, pub label: String, pub path: PathBuf,
-                               pub icon: String, pub default: bool }
+pub(crate) struct Application {
+    pub id: String,
+    pub label: String,
+    pub path: PathBuf,
+    pub icon: String,
+    pub default: bool,
+    // Tests retain the checked Exec value to verify this caller's reader.
+    #[cfg(test)]
+    exec: String,
+}
 
 // The flyout's registry, plus the whole installed set and the kind's own name that the dialog groups by.
 pub(crate) struct Catalogue { pub mime: String, pub kind: String,
@@ -369,13 +377,28 @@ fn installed(registry: &Registry, cancel: &Cancellation) -> Result<Vec<Applicati
 
 // A desktop entry the user can open something with: an application, shown, and with a command to run.
 fn launchable(id: &str, path: &Path) -> Result<Option<Application>, String> {
-    if desktop_key(path, "Type=")?.as_deref() != Some("Application") { return Ok(None); }
-    if desktop_key(path, "NoDisplay=")?.as_deref() == Some("true") { return Ok(None); }
-    if desktop_key(path, "Hidden=")?.as_deref() == Some("true") { return Ok(None); }
-    if desktop_key(path, "Exec=")?.is_none() { return Ok(None); }
+    if desktop_key(path, "Type=")?.as_deref() != Some("Application") {
+        return Ok(None);
+    }
+    if desktop_key(path, "NoDisplay=")?.as_deref() == Some("true") {
+        return Ok(None);
+    }
+    if desktop_key(path, "Hidden=")?.as_deref() == Some("true") {
+        return Ok(None);
+    }
+    let Some(_exec) = desktop_key(path, "Exec=")? else {
+        return Ok(None);
+    };
     let label = desktop_label(path)?.unwrap_or_else(|| id.trim_end_matches(".desktop").into());
-    Ok(Some(Application { id: id.into(), label, path: path.to_path_buf(),
-                          icon: desktop_key(path, "Icon=")?.unwrap_or_default(), default: false }))
+    Ok(Some(Application {
+        id: id.into(),
+        label,
+        path: path.to_path_buf(),
+        icon: desktop_key(path, "Icon=")?.unwrap_or_default(),
+        default: false,
+        #[cfg(test)]
+        exec: _exec,
+    }))
 }
 
 // The kind's own name, from the shared mime database the desktop describes a type with.
@@ -472,6 +495,7 @@ mod tests {
             Some("viewer %F")
         );
         let registered = launchable("viewer.desktop", &app).unwrap().unwrap();
+        assert_eq!(registered.exec, "viewer %F");
         assert_eq!(registered.label, "Viewer");
     }
 
