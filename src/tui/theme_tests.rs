@@ -4,7 +4,7 @@ const BENCH: &str = "background='#1c120d'\ndark_background='#150d0a'\nforeground
 #[test]
 fn t3_palette_precedence_and_board_wash_alphas_are_preserved() {
     let theme = Theme::from_text(BENCH);
-    assert_eq!(theme.background, ansi("#1c120d", true));
+    for depth in [Depth::Truecolor, Depth::Indexed, Depth::Sixteen] { assert_eq!(Theme::with_depth(BENCH, depth).background, GROUND); }
     assert_eq!(theme.cursor, ansi(&blend("#d28a41", "#1c120d", 0.18), true));
     assert_eq!(theme.selected, ansi(&blend("#c6b395", "#1c120d", 0.18), true));
     assert_eq!(theme.tab, ansi(&blend("#c6b395", "#1c120d", 0.08), true));
@@ -12,7 +12,8 @@ fn t3_palette_precedence_and_board_wash_alphas_are_preserved() {
     assert_ne!(theme.selected, theme.marked);
     let p = Theme::from_text("color7='#112233'\ncolor0='#010203'\ncolor4='#445566'\naccent='#123456'\nred='#654321'\ncolor1='#abcdef'");
     assert_eq!(p.foreground, ansi("#112233", false));
-    assert_eq!(p.background, ansi("#010203", true));
+    assert_eq!(p.background, GROUND);
+    assert_eq!(p.selected, ansi(&blend("#112233", "#010203", 0.18), true));
     assert_eq!(p.accent, ansi(&ensure("#123456", "#010203", 3.0), false));
     assert_eq!(p.error, ansi(&contrast("#abcdef", "#010203"), false));
     assert_eq!(Theme::from_text("foreground='oops'").foreground, ansi("#cacccc", false));

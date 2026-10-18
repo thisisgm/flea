@@ -5,6 +5,8 @@ use std::io::Read;
 
 // The one background fallback, and ui/Theme.qml carries the same literal for the same reason.
 const BACKGROUND_FALLBACK: &str = "#101315";
+// The ground is the terminal's own default background, so its padding and the strip past the last whole cell match the cells.
+const GROUND: &str = "\x1b[49m";
 // A theme file larger than 64 KiB is refused, and the watcher reads the file again every half second.
 const THEME_BYTES: usize = 64 * 1024;
 const THEME_POLL: std::time::Duration = std::time::Duration::from_millis(500);
@@ -97,7 +99,7 @@ impl Theme {
         Self {
             foreground: encode(&foreground, false), muted: encode(&muted, false), meta: encode(&meta, false),
             accent: encode(&ensure(&accent, &surface, FRAME_CONTRAST), false), error: encode(&error, false),
-            background: encode(&background, true),
+            background: GROUND.into(),
             symlink: encode(&contrast(&pick(&["cyan", "color6"], "#94e2d5"), &background), false),
             executable: encode(&contrast(&pick(&["green", "color2"], "#a6e3a1"), &background), false),
             selected: encode(&blend(&foreground, &background, SELECTED_ALPHA), true),
@@ -225,3 +227,6 @@ fn indexed(index: usize) -> [i32; 3] {
 #[cfg(test)]
 #[path = "theme_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "ground_tests.rs"]
+mod ground_tests;

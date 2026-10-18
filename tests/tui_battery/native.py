@@ -13,6 +13,10 @@ from .keys import shortcut
 from . import relay, png
 
 
+class Deadline(Blocked):
+    """A wait that ran out of time, so callers can tell it apart from a check that failed."""
+
+
 def wait_for(check, timeout, description):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -20,10 +24,16 @@ def wait_for(check, timeout, description):
         if result:
             return result
         time.sleep(.03)
-    raise Blocked(f"deadline waiting for {description}")
+    raise Deadline(f"deadline waiting for {description}")
 
 
 HYPR_HELPER = Path(__file__).resolve().parents[2] / "tests/lib/hypr-dispatch.sh"
+# Each owned terminal gets this corner radius, so edge samples keep this far from its corners.
+WINDOW_ROUNDING = 8
+# Hyprland 0.56.2 applies exec_cmd's workspace, monitor and float rules to the window whose process holds this token.
+EXEC_RULE_TOKEN = "HL_EXEC_RULE_TOKEN"
+# Hyprland 0.56.2 reports a new headless output at its default mode for about a second before the set mode applies.
+MODE_DEADLINE = 5
 
 
 # Every compositor command runs as one bash call that sources the typed helper.
@@ -57,11 +67,18 @@ class Display:
         self.created = True
         try:
             compositor(self.commands, "hypr_monitor_mode", self.output, "2560x1440@60")
-            monitors = self.data("hypr_query_monitors")
-            monitor = next((m for m in monitors if m["name"] == self.output), None)
-            if not monitor or monitor["scale"] != 1 or monitor["width"] != 2560 or monitor["height"] != 1440:
-                raise Blocked("owned output mode/scale could not be verified")
-            self.monitor = monitor
+            seen = []
+
+            def applied():
+                monitor = next((m for m in self.data("hypr_query_monitors") if m["name"] == self.output), None)
+                seen[:] = [monitor]
+                return monitor if monitor and (monitor["scale"], monitor["width"], monitor["height"]) == (1, 2560, 1440) else None
+            try:
+                self.monitor = wait_for(applied, MODE_DEADLINE, "owned output mode")
+            except Deadline:
+                last = seen[0] if seen else None
+                observed = f"{last['width']}x{last['height']} scale {last['scale']}" if last else "no owned output"
+                raise Blocked("owned output mode/scale could not be verified: last seen " + observed) from None
             return self
         except BaseException:
             self.__exit__(None, None, None)
@@ -120,7 +137,7 @@ class Terminal:
         start = json.loads((self.case / "relay-start.json").read_text())
         if not start["stdin_tty"] or not start["stdout_tty"]:
             raise Blocked("candidate stdin/stdout are not real TTYs")
-        compositor(self.commands, "hypr_window_rounding", self.client["address"], "8")
+        compositor(self.commands, "hypr_window_rounding", self.client["address"], str(WINDOW_ROUNDING))
         return start
 
     def snapshot(self):
@@ -180,9 +197,14 @@ def launch(spec_path):
     spec_path = Path(spec_path)
     spec = json.loads(spec_path.read_text())
     directory = spec_path.parent
+    # The terminal keeps its allowlist plus the token Hyprland gave this exec, so the rules match its window.
+    environment = dict(spec["environment"])
+    if os.environ.get(EXEC_RULE_TOKEN):
+        environment[EXEC_RULE_TOKEN] = os.environ[EXEC_RULE_TOKEN]
     with (directory / "terminal.stdout").open("xb") as stdout, (directory / "terminal.stderr").open("xb") as stderr:
-        child = subprocess.Popen(spec["argv"], env=spec["environment"], stdout=stdout, stderr=stderr, start_new_session=True)
-        save(directory / "launch-start.json", {"pid": child.pid, "argv": spec["argv"], "start_ns": time.time_ns()})
+        child = subprocess.Popen(spec["argv"], env=environment, stdout=stdout, stderr=stderr, start_new_session=True)
+        save(directory / "launch-start.json", {"pid": child.pid, "argv": spec["argv"], "start_ns": time.time_ns(),
+                                               "exec_rule_token": EXEC_RULE_TOKEN in environment})
         code = child.wait()
         save(directory / "launch-exit.json", {"exit_code": code, "end_ns": time.time_ns()})
         return code
