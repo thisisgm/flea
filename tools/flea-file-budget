@@ -30,7 +30,7 @@ src/backend/imagesize.rs 559
 src/backend/iomount.rs 634
 src/backend/localsend.rs 432
 src/backend/menu_actions.rs 674
-src/backend/menu_registry.rs 597
+src/backend/menu_registry.rs 621
 src/backend/meta.rs 550
 src/backend/metareq.rs 541
 src/backend/movebatch.rs 477
