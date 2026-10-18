@@ -1,6 +1,7 @@
 """Prove the real locale runner rejects each multi-label control with one dead check."""
 import argparse
 import ast
+import os
 from pathlib import Path
 import runpy
 import shlex
@@ -58,6 +59,25 @@ def probe(control, variant, keep):
     runner = source[start:source.index('\n}\n', start) + 3]
     label = variant + ' --regress-' + control
     detection = 'DETECTED --regress-' + REGRESS_FLAGS.get(control, control)
+    runner_env = dict(os.environ, LC_ALL='C.UTF-8', LANG='C.UTF-8')
+    if not runner_env.get('LOCPATH'):
+        locales = root / 'locales'
+        locales.mkdir()
+        runner_env['LOCPATH'] = str(locales)
+        if MUTANTS[control][0] == 'parsers':
+            setup_env = dict(runner_env)
+            setup_env.pop('LANGUAGE', None)
+            command = ['localedef', '--no-archive', '-i', 'de_DE', '-f', 'UTF-8', str(locales / 'de_DE.UTF-8')]
+            try:
+                setup = subprocess.run(command, env=setup_env, capture_output=True, text=True)
+            except OSError as error:
+                setup = subprocess.CompletedProcess(command, 127, stdout='', stderr=str(error))
+            setup_log = root / 'localedef.log'
+            setup_log.write_text(setup.stdout + setup.stderr)
+            if setup.returncode:
+                print(f'FAIL {label}: locale setup exit {setup.returncode}; log={setup_log}')
+                print('evidence=' + str(root))
+                return 1
     command = ['run', label, '1', detection, 'env', 'LC_ALL=C', 'LANG=C',
                sys.executable, '-B', str(Path(__file__).resolve()), control, variant, '--audit']
     body = ('set -uo pipefail\nbox=' + shlex.quote(str(root)) +
@@ -65,11 +85,20 @@ def probe(control, variant, keep):
             shlex.join(command) + '\n[ "$failed" -eq 0 ]\n')
     script = root / 'runner.sh'
     script.write_text(body)
-    result = subprocess.run(['/bin/bash', str(script)], capture_output=True, text=True)
+    try:
+        result = subprocess.run(['/bin/bash', str(script)], env=runner_env, capture_output=True, text=True)
+    except OSError as error:
+        result = subprocess.CompletedProcess(['/bin/bash', str(script)], 127, stdout='', stderr=str(error))
     output = result.stdout + result.stderr
-    (root / 'runner.log').write_text(output)
-    (root / 'runner.rc').write_text(str(result.returncode) + '\n')
-    child = (root / 'check-1.log').read_text()
+    runner_log = root / 'runner.log'
+    try:
+        runner_log.write_text(output)
+        (root / 'runner.rc').write_text(str(result.returncode) + '\n')
+        child = (root / 'check-1.log').read_text()
+    except OSError as error:
+        print(f'FAIL {label}: runner exit {result.returncode}; log={runner_log}; child output unavailable: {error}')
+        print('evidence=' + str(root))
+        return 1
     victim = MUTANTS[control][1]
     gio_observation = runpy.run_path(str(REPO / 'tests/locale-shell-scope.py'))['GIO_UTF8_OBSERVED']
     if variant == 'mutant':

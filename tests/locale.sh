@@ -53,7 +53,7 @@ run() {
     setsid -w env -i PATH="$PATH" HOME="$box" LC_ALL="$LC_ALL" LANG="$LANG" LANGUAGE="${LANGUAGE-}" LOCPATH="$LOCPATH" \
         "$@" < /dev/null > "$box/check-$serial.log" 2>&1
     actual=$?
-    if [ "$expected" -eq 1 ]; then
+    if [ "$expected" -eq 1 ] || [ -n "$detection" ]; then
         matched=0
         [ -n "$detection" ] && grep -Fxq -- "$detection" "$box/check-$serial.log" && matched=1
     fi
@@ -63,7 +63,7 @@ run() {
     else
         failed=$((failed + 1))
         printf 'FAIL locale %s: expected exit %s, got %s\n' "$label" "$expected" "$actual"
-        [ "$expected" -ne 1 ] || printf '  expected detection: %s\n' "$detection"
+        [ -z "$detection" ] || printf '  expected detection: %s\n' "$detection"
         cat "$box/check-$serial.log"
     fi
 }
@@ -143,5 +143,7 @@ else
     failed=$((failed + 1))
     printf 'FAIL locale mutant discovery\n'
 fi
+run 'probe with locale variables unset' 0 'PASS mutant --regress-charset: runner exit 1; victim=ps preserves UTF-8 process arguments' \
+    env -u LC_ALL -u LANG -u LOCPATH python3 -B tests/locale-control-mutants.py charset mutant
 printf 'locale: %d passed, %d failed\n' "$passed" "$failed"
 [ "$failed" -eq 0 ]
