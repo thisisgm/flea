@@ -19,14 +19,18 @@ use std::sync::mpsc::Sender;
 use std::sync::{Arc, Mutex, MutexGuard, OnceLock, PoisonError};
 use std::time::{Duration, Instant, SystemTime};
 
-// DOCX, ODT, XLSX, ODS, PPTX and RTF, by canonical MIME name; nothing else converts.
-const OFFICE_TYPES: [&str; 6] = [
+// Documents, spreadsheets and presentations, by canonical MIME name.
+const OFFICE_TYPES: [&str; 10] = [
     "application/vnd.openxmlformats-officedocument.wordprocessingml.document",
     "application/vnd.oasis.opendocument.text",
     "application/vnd.openxmlformats-officedocument.spreadsheetml.sheet",
     "application/vnd.oasis.opendocument.spreadsheet",
     "application/vnd.openxmlformats-officedocument.presentationml.presentation",
     "application/rtf",
+    "application/vnd.oasis.opendocument.presentation",
+    "application/msword",
+    "application/vnd.ms-excel",
+    "application/vnd.ms-powerpoint",
 ];
 const CACHE_LEAF: &str = "flea/office";
 // The failure markers keep the thumbnail cache's fail/flea/ shape, beside the PDFs and never in the shared thumbnails tree.
@@ -174,6 +178,8 @@ struct Job {
     mtime: SystemTime,
     seq: u64,
     waiters: Vec<Waiter>,
+    required: bool,
+    cancel: Option<Arc<AtomicBool>>,
 }
 
 #[derive(Default)]
@@ -182,6 +188,7 @@ struct Queue {
     running: Option<Vec<Waiter>>,
     started: u64,
     queued: Option<Job>,
+    required: std::collections::VecDeque<Job>,
 }
 
 type Resolve = Box<dyn Fn() -> Option<String> + Send + Sync>;
@@ -243,12 +250,20 @@ impl Service {
             Hit::Miss => {}
         }
         let _ = tx.send(OpMsg::Meta { line: converting_line(wire) });
-        self.enqueue(Job { key, program, input, mtime, seq, waiters: vec![Waiter { wire, reg, tx: tx.clone() }] });
+        self.enqueue(Job { key, program, input, mtime, seq, waiters: vec![Waiter { wire, reg, tx: tx.clone() }], required: false, cancel: None });
     }
 
     // The running job is never replaced; a request older than the newest started is answered replaced, as is the lower sequence of two queued, and the same file shares one job.
     fn enqueue(self: &Arc<Self>, mut job: Job) {
         let mut q = self.locked();
+        if job.required {
+            if q.running.is_some() { q.required.push_back(job); return; }
+            q.running = Some(std::mem::take(&mut job.waiters));
+            drop(q);
+            let me = Arc::clone(self);
+            std::thread::spawn(move || me.work(job));
+            return;
+        }
         if job.seq < q.started {
             return answer(job.waiters, Err("replaced by a newer request".to_string()));
         }
@@ -276,10 +291,10 @@ impl Service {
             let outcome = self.convert(&job);
             let mut q = self.locked();
             let done = q.running.take().unwrap_or_default();
-            let mut next = q.queued.take();
+            let mut next = q.required.pop_front().or_else(|| q.queued.take());
             if let Some(n) = next.as_mut() {
                 q.running = Some(std::mem::take(&mut n.waiters));
-                q.started = n.seq;
+                if !n.required { q.started = n.seq; }
             }
             drop(q);
             answer(done, outcome);
@@ -292,7 +307,7 @@ impl Service {
 
     // A hit or a recorded failure made by another window since the request is served, so one file and mtime convert once.
     fn convert(&self, job: &Job) -> Result<PathBuf, String> {
-        if self.quit.load(Ordering::Relaxed) {
+        if self.quit.load(Ordering::Relaxed) || job.cancel.as_ref().is_some_and(|c| c.load(Ordering::Relaxed)) {
             return Err("cancelled".to_string());
         }
         match self.store.lookup(&job.key, job.mtime) {
@@ -321,7 +336,7 @@ impl Service {
                 let end = Instant::now() + self.timeout;
                 while !finished.load(Ordering::Relaxed) {
                     let late = Instant::now() >= end;
-                    if late || self.quit.load(Ordering::Relaxed) {
+                    if late || self.quit.load(Ordering::Relaxed) || job.cancel.as_ref().is_some_and(|c| c.load(Ordering::Relaxed)) {
                         timed_out.store(late, Ordering::Relaxed);
                         stop.store(true, Ordering::Relaxed);
                         break;
@@ -336,7 +351,7 @@ impl Service {
         if let Err(e) = ran {
             return Err(if timed_out.load(Ordering::Relaxed) {
                 Fail::Local(format!("the conversion took longer than {} seconds", self.timeout.as_secs()))
-            } else if self.quit.load(Ordering::Relaxed) {
+            } else if self.quit.load(Ordering::Relaxed) || job.cancel.as_ref().is_some_and(|c| c.load(Ordering::Relaxed)) {
                 Fail::Local("cancelled".to_string())
             } else {
                 Fail::Converter(e.msg)
@@ -402,3 +417,7 @@ pub fn serve(out: &mut impl Write, ops: &mut Ops, mime: &Db, aliases: &Aliases, 
 #[cfg(test)]
 #[path = "officepdf_tests.rs"]
 mod tests;
+
+#[path = "officepdf_fetch.rs"]
+mod fetch;
+pub use fetch::cached_pdf;

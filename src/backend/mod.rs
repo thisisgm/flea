@@ -132,6 +132,13 @@ pub mod mergeapply;
 pub mod fatnames;
 pub mod pasteimage;
 pub mod convert;
+pub mod pagerange;
+pub mod printconvert;
+pub mod printing;
+pub mod printreq;
+pub mod printtool;
+pub mod convertbatch;
+pub mod combine;
 // Quick Look's font page: the facts from the font's tables and the sample job; see src/backend/fontinfo/render.rs.
 pub mod fontinfo;
 pub mod copyfile;

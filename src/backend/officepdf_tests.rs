@@ -97,13 +97,14 @@ fn mtime_of(p: &Path) -> SystemTime {
 }
 
 #[test]
-fn the_six_office_types_are_found_by_canonical_name() {
-    let mime = Db::from_str("50:application/vnd.oasis.opendocument.text:*.odt\n50:text/rtf:*.rtf\n50:application/pdf:*.pdf\n50:application/msword:*.doc\n");
+fn office_types_include_legacy_documents_and_are_found_by_canonical_name() {
+    let mime = Db::from_str("50:application/vnd.oasis.opendocument.text:*.odt\n50:text/rtf:*.rtf\n50:application/pdf:*.pdf\n50:application/msword:*.doc\n50:application/vnd.ms-excel:*.xls\n50:application/vnd.ms-powerpoint:*.ppt\n50:application/vnd.oasis.opendocument.presentation:*.odp\n");
     let aliases = Aliases::from_str("text/rtf application/rtf\n");
     assert!(is_office("/x/a.odt", &mime, &aliases));
     assert!(is_office("/x/a.rtf", &mime, &aliases), "an alias is canonicalised first");
     assert!(!is_office("/x/a.pdf", &mime, &aliases));
-    assert!(!is_office("/x/a.doc", &mime, &aliases), "formats outside the six never convert");
+    assert!(is_office("/x/a.doc", &mime, &aliases), "legacy office formats convert too");
+    for name in ["a.xls", "a.ppt", "a.odp"] { assert!(is_office(name, &mime, &aliases)); }
     assert!(!is_office("/x/a.unknown", &mime, &aliases));
 }
 
@@ -294,7 +295,7 @@ fn a_convert_that_finds_a_hit_runs_nothing() {
     let key = Store::key(&src);
     let pdf = r.svc.store.pdf_path(&key);
     Store::publish(&pdf, mtime_of(&src), &mut "other window".as_bytes()).unwrap();
-    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new() };
+    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new(), required: false, cancel: None };
     assert_eq!(r.svc.convert(&job), Ok(pdf));
     assert_eq!(r.jobs(), 0);
 }
