@@ -92,6 +92,9 @@ pub fn event_input(event: &KeyDownEvent, held: Modifiers) -> Input<'_> {
     if held.shift && caseless(&event.keystroke.key) {
         mask |= keys::SHIFT;
     }
+    if event.keystroke.is_keypad {
+        mask |= keys::KEYPAD;
+    }
     Input {
         key,
         text: event.keystroke.key_char.as_deref().unwrap_or(""),

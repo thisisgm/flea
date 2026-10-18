@@ -23,6 +23,7 @@ fn generated_actions_reach_the_window_and_respect_context_and_preset(cx: &mut Te
                 control,
                 ..Default::default()
             },
+            is_keypad: false,
         },
         is_held: false,
         prefer_character_input: false,
@@ -81,6 +82,7 @@ fn fork_shaped_chords_and_the_live_pair_reach_the_window(cx: &mut TestAppContext
                 control,
                 ..Default::default()
             },
+            is_keypad: false,
         },
         is_held: false,
         prefer_character_input: false,

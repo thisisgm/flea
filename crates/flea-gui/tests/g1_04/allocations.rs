@@ -70,6 +70,7 @@ fn dispatch_pointer_hints_and_sequences_allocate_nothing_with_positive_control()
             key: ">".into(),
             key_char: Some(">".into()),
             modifiers: gpui::Modifiers::control(),
+            is_keypad: false,
         },
         is_held: false,
         prefer_character_input: false,

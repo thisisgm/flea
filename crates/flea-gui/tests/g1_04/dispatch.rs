@@ -1,5 +1,5 @@
 use super::*;
-use flea::keys::{sequence::Seat, ALT, CONTROL, SHIFT, SUPER};
+use flea::keys::{sequence::Seat, ALT, CONTROL, KEYPAD, SHIFT, SUPER};
 use flea_gui::window::input::{self, Dispatch, Keyboard};
 use gpui::{KeyDownEvent, Keystroke, Modifiers};
 
@@ -15,6 +15,7 @@ pub(super) fn event(key: &str, text: Option<&str>, mask: u8) -> KeyDownEvent {
                 platform: mask & SUPER != 0,
                 ..Default::default()
             },
+            is_keypad: mask & KEYPAD != 0,
         },
         is_held: false,
         prefer_character_input: false,
