@@ -66,7 +66,10 @@ fn main() {
         .detach();
         match window::open(launch, locale.clone(), events, cx) {
             Ok(window) => {
-                let _ = window.update(cx, |shell, _, cx| shell.follow_locale(&service, cx));
+                let _ = window.update(cx, |root, _, cx| {
+                    root.shell
+                        .update(cx, |shell, cx| shell.follow_locale(&service, cx))
+                });
                 cx.activate(true);
             }
             Err(error) => {

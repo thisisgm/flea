@@ -4,7 +4,6 @@ use std::{cell::Cell, rc::Rc, time::Duration};
 
 pub const CAP_MS: u64 = 66;
 pub const MIN_SHOW_MS: u64 = 100;
-pub const STILL_MS: u64 = 1000;
 pub const PARKED_WAIT_MS: u64 = crate::window::startup::LISTING_WAIT_MS;
 
 #[derive(Clone, Debug, Default)]
@@ -90,6 +89,7 @@ pub struct Swap {
     pub mark_since: Option<u64>,
     pub counters: Counters,
     pub frames: Rc<Frames>,
+    pub mark: Rc<crate::feedback::spinner::Crawl>,
     pub input_at: u64,
     pub rows_at: u64,
 }
@@ -166,11 +166,9 @@ impl Swap {
         }
     }
 
-    pub fn crawling(&self, now: u64, reduced_motion: bool) -> bool {
-        !reduced_motion
-            && self
-                .mark_since
-                .is_some_and(|since| now >= since.saturating_add(STILL_MS))
+    // The crawl starts with the first frame that draws the mark; reduced motion keeps it at rest.
+    pub fn crawling(&self, reduced_motion: bool) -> bool {
+        !reduced_motion && self.mark_since.is_some()
     }
 
     pub fn deadline(&self, now: u64) -> Option<Duration> {
