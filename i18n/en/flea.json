@@ -1,0 +1,13 @@
+{
+  "app.name": "Flea",
+  "folder.empty": "This folder is empty",
+  "items.count": {
+    "one": "%1 item",
+    "other": "%1 items"
+  },
+  "operation.failed": "Could not %1: %2",
+  "selection.count": {
+    "one": "%1 item selected in %2",
+    "other": "%1 items selected in %2"
+  }
+}

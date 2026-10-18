@@ -1,6 +1,6 @@
 // The local wall clock a .trashinfo DeletionDate is stamped from, split out of hometrash.rs.
 #[repr(C)]
-struct WallClock {
+pub(crate) struct WallClock {
     sec: i32,
     min: i32,
     hour: i32,
@@ -19,12 +19,17 @@ extern "C" {
     fn localtime_r(timep: *const i64, result: *mut WallClock) -> *mut WallClock;
 }
 
+// Shared by localized dates so both callers use the same libc declaration and struct tm layout.
+pub(crate) fn local_time(timestamp: i64) -> Option<WallClock> {
+    let mut out = WallClock { sec: 0, min: 0, hour: 0, mday: 0, mon: 0, year: 0, wday: 0, yday: 0, isdst: 0, gmtoff: 0, zone: std::ptr::null() };
+    if unsafe { localtime_r(&timestamp, &mut out) }.is_null() { None } else { Some(out) }
+}
+
 // Stamps a .trashinfo DeletionDate in local time, the way the desktop's own trash names it.
 pub(crate) fn deletion_date_local() -> String {
     let now = unsafe { time(std::ptr::null_mut()) };
-    let mut out = WallClock { sec: 0, min: 0, hour: 0, mday: 0, mon: 0, year: 0, wday: 0, yday: 0, isdst: 0, gmtoff: 0, zone: std::ptr::null() };
-    if unsafe { localtime_r(&now, &mut out) }.is_null() {
+    let Some(out) = local_time(now) else {
         return "1970-01-01T00:00:00".to_string();
-    }
+    };
     format!("{:04}-{:02}-{:02}T{:02}:{:02}:{:02}", out.year + 1900, out.mon + 1, out.mday, out.hour, out.min, out.sec)
 }

@@ -1,0 +1,42 @@
+#!/usr/bin/env python3
+"""Check that each installed Omarchy language has a Flea catalog."""
+import argparse
+import json
+import os
+from pathlib import Path
+import re
+import sys
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("file", nargs="?", type=Path, help="Omarchy locales.json override")
+    parser.add_argument("--locales-json", type=Path, help="Omarchy locales.json override")
+    parser.add_argument("--i18n-dir", type=Path, default=Path(__file__).resolve().parents[1] / "i18n")
+    parser.add_argument("--warn-only", action="store_true", help="report missing catalogs without failing")
+    args = parser.parse_args()
+    if args.file and args.locales_json:
+        parser.error("pass the roster either positionally or with --locales-json")
+    path = args.locales_json or args.file or Path(os.environ.get("OMARCHY_PATH") or "/usr/share/omarchy") / "default/i18n/locales.json"
+    try:
+        # Sample input: {"en":{"name":"English"},"de":{"name":"Deutsch"}} is Omarchy's locale roster.
+        roster = json.loads(path.read_text(encoding="utf-8"))
+        if not isinstance(roster, dict) or not roster:
+            raise ValueError("expected a nonempty locale object")
+        if any(not re.fullmatch(r"[a-z]{2,3}(?:-[A-Za-z]{2})?", code) or not isinstance(entry, dict)
+               for code, entry in roster.items()):
+            raise ValueError("invalid locale code or entry")
+    except (OSError, ValueError) as error:
+        print(f"flea-i18n-roster: {path}: {error}", file=sys.stderr)
+        return 1
+    missing = sorted(code for code in roster if not (args.i18n_dir / code / "flea.json").is_file())
+    if missing:
+        level = "warning" if args.warn_only else "error"
+        print(f"flea-i18n-roster: {level}: {len(missing)} missing catalogs: {', '.join(missing)}", file=sys.stderr)
+        return 0 if args.warn_only else 1
+    print(f"i18n roster checked: {len(roster)} catalogs")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())
