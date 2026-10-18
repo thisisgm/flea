@@ -182,3 +182,21 @@ fn a_panic_in_a_scoring_thread_reaches_the_caller() {
     let scored = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| super::score_all(&fuzzy, &rows, &index)));
     assert!(scored.is_err(), "a row past the arena panics the caller, never a short answer");
 }
+
+#[test]
+fn search_fb1_removal_keeps_its_survivor_count() {
+    let d = TestDir::new("fb1survivors");
+    let gone = d.file("a", "");
+    d.file("b", "");
+    let mut index = Index::new();
+    assert!(index.push("a", false));
+    assert!(index.push("b", false));
+    d.assert_contains(&gone);
+    std::fs::remove_file(&gone).expect("remove sandbox entry");
+    assert!(index.patch_dir(d.path(), Path::new(""), false, ""));
+    assert_eq!(index.len(), 1);
+    assert_eq!(index.raw(0), b"b");
+    let (kept, survivors) = index.last_patch();
+    assert_eq!(kept, Some(&[1][..]));
+    assert_eq!(survivors, 1, "compaction must retain the surviving row population");
+}
