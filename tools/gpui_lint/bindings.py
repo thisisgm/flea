@@ -1,14 +1,10 @@
-"""Lexical imports, local callable aliases and gpui glob shadowing, without literal-value dataflow.
-
-A lexical approximation, not a resolver: a glob through self::, super:: or a child module name carries gpui names when
-the inline module it names holds a gpui glob. A crate:: glob, whose root may be another file, and a path through a name
-this file holds no inline module for count when any module in the file holds one, so an unseen module reports a
-literal colour instead of hiding it.
-"""
+"""Lexical gpui glob scopes: a crate:: glob, or a self::, super:: or child-module glob path through a name that is not an inline child module there and that the file does not declare only as a type, counts as gpui when any module holds one."""
 from dataclasses import dataclass, field
 from .lex import pairs, path_at, scope_aliases
 
 ITEMS = ("fn", "const", "static", "struct", "enum", "type", "trait", "mod", "union")
+TYPES = ("struct", "enum", "trait", "union", "type")
+QUALIFIERS = ("#", "!", "pub", "async", "unsafe", "extern", "default", "safe")
 
 
 @dataclass
@@ -95,22 +91,28 @@ def let_name(ts, i, stop):
     return None
 
 
-# Sample input: tokens of "impl S {" with i at the brace, a body whose methods are not bare names in scope.
-def container_body(ts, start, i):
-    # Methods of an impl or trait body are reached through a path or a receiver, never by their bare name.
+# Sample input: tokens of "let n = 1; fn go(rows: [u8; 4]) {" with i at the brace, whose statement starts at fn.
+def statement_start(ts, start, i, matched):
     j = i - 1
     while j >= start and ts[j].value not in (";", "{", "}"):
-        j -= 1
-    header = [t.value for t in ts[j + 1:i]]
+        j = matched[j] - 1 if ts[j].value in (")", "]") else j - 1
+    return j + 1
+
+
+# Sample input: tokens of "impl S {" with i at the brace, a body whose methods are not bare names in scope.
+def container_body(ts, start, i, matched):
+    # Methods of an impl or trait body are reached through a path or a receiver, never by their bare name.
+    header = [t.value for t in ts[statement_start(ts, start, i, matched):i]]
     return "fn" not in header and ("impl" in header or "trait" in header)
 
 
-# Sample input: tokens of "fn go(&self) {" with i at the brace, an item body that never sees the enclosing lets.
-def item_body(ts, start, i):
-    j = i - 1
-    while j >= start and ts[j].value not in (";", "{", "}"):
-        j -= 1
-    return any(ts[k].value in ITEMS and ts[k + 1].kind == "ident" for k in range(j + 1, i - 1))
+# Sample input: tokens of "#[inline] pub(crate) fn go(&self) {" with i at the brace, an item body that never sees the enclosing lets.
+def item_body(ts, start, i, matched):
+    k = statement_start(ts, start, i, matched)
+    while k < i and (ts[k].value in QUALIFIERS or ts[k].kind == "string"):
+        # An attribute or a pub(...) visibility is skipped whole.
+        k = matched[k + 1] + 1 if ts[k + 1].value in ("(", "[") else k + 1
+    return k + 1 < i and ts[k].value in ITEMS and ts[k + 1].kind == "ident"
 
 
 # Sample input: tokens of "use gpui::*; mod inner { use super::*; }", a Module for the file at -1 and one per mod brace.
@@ -136,29 +138,37 @@ def module_table(ts, matched):
             i += 1
 
     scan(0, len(ts), -1, True)
+    types = {ts[k + 1].value for k in range(len(ts) - 1) if ts[k].value in TYPES and ts[k + 1].kind == "ident"}
+    types -= {ts[k + 1].value for k in range(len(ts) - 1) if ts[k].value == "mod"}
     changed = True
     while changed:
         changed = False
         for key, module in table.items():
             for path in module.globs:
-                holds, names = imported(table, key, path)
+                holds, names = imported(table, types, key, path)
                 if (holds and not module.holds) or not names <= module.names:
                     module.holds, module.names, changed = module.holds or holds, module.names | names, True
-    return table
+    return table, types
 
 
 # Sample input: module key -1 and the glob path ("super", "colors"), which carries what that inline module holds.
-def imported(table, key, path):
+def imported(table, types, key, path):
     if path[0] == "gpui":
         return True, set()
     if path[0] not in ("crate", "self", "super") and path[0] not in table[key].children:
         return False, set()
     target = None if path[0] == "crate" else key
     for segment in path:
-        if target is not None and segment == "super":
+        if target is None or segment == "self":
+            continue
+        if segment == "super":
             target = table[target].parent
-        elif target is not None and segment != "self":
-            target = table[target].children.get(segment)
+        elif segment in table[target].children:
+            target = table[target].children[segment]
+        elif segment in types:
+            return False, set()
+        else:
+            target = None
     if target is None:
         return any(module.holds for module in table.values()), set()
     return table[target].holds, table[target].names
@@ -169,7 +179,7 @@ def environments(ts, aliases=None):
     """Imports and items are block-wide; lets take effect after their statement and never cross an item body."""
     # Parameters, for, match, if-let and closure bindings are not modelled, so they never shadow a glob.
     matched = pairs(ts)
-    table = module_table(ts, matched)
+    table, types = module_table(ts, matched)
     result = [None] * len(ts)
 
     # Sample input: tokens of "let ink = theme.raw; paint(ink);" from the let, which ends at the first semicolon.
@@ -199,7 +209,7 @@ def environments(ts, aliases=None):
         if module:
             environment = Environment(imports, table[key].holds, frozenset(table[key].names))
         else:
-            carried = [imported(table, key, path) for path in glob_paths(ts, start, end, matched)]
+            carried = [imported(table, types, key, path) for path in glob_paths(ts, start, end, matched)]
             own_glob = any(holds for holds, _ in carried)
             items = set() if container else declared(ts, start, end, matched)
             items |= set().union(*(names for _, names in carried))
@@ -227,8 +237,8 @@ def environments(ts, aliases=None):
             if value in ("{", "(", "["):
                 close = matched[i]
                 child_module = value == "{" and i in table
-                child_container = value == "{" and container_body(ts, start, i)
-                child_item = value == "{" and item_body(ts, start, i)
+                child_container = value == "{" and container_body(ts, start, i, matched)
+                child_item = value == "{" and item_body(ts, start, i, matched)
                 walk(i + 1, close, environment, i if child_module else key, child_module, child_container, child_item)
                 result[close] = environment
                 i = close
