@@ -8,8 +8,8 @@ pub(crate) const PRLIMIT: &str = "prlimit";
 pub(crate) const CPU_SECONDS: u32 = 30;
 // Issue #17 reports glycin exhausting 1 GiB of address space on a large ICC-tagged JPEG and aborting, which this box does not reproduce, so the cap is 2 GiB: the smallest value the ticket records as working, still finite, and virtual rather than resident. What actually consumed it is the arena reservation capped above, not the image.
 pub(crate) const ADDRESS_SPACE_BYTES: u64 = 2 * 1024 * 1024 * 1024;
-// Full-font Office conversion peaked at 3,477,811,200 bytes on minipc; 4 GiB leaves 779.3 MiB (23.5% above that peak).
-pub(crate) const OFFICE_ADDRESS_SPACE_BYTES: u64 = 4 * 1024 * 1024 * 1024;
+// Full-font Office conversion peaked at 3,477,811,200 bytes on minipc; 8 GiB holds more than twice that and stays finite.
+pub(crate) const OFFICE_ADDRESS_SPACE_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 // wrap_readonly_extra leads with prlimit, its CPU flag, its address-space flag and bwrap.
 const READONLY_PREFIX_ARGS: usize = 4;
 // One read-only bind takes three arguments: the flag, the source and the destination.

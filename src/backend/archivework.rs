@@ -36,8 +36,8 @@ const CANCEL_DRAIN_STEP: Duration = Duration::from_millis(10);
 thread_local! {
     static READER_HOLD_MS: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
     static DRAIN_SECS: std::cell::Cell<u64> = const { std::cell::Cell::new(CANCEL_DRAIN_SECS) };
-    // The cap the last job on this thread ran under (None: none yet, Some(None): uncapped), so a test tells convert's runner from an archive's.
-    static LAST_CPU: std::cell::Cell<Option<Option<u32>>> = const { std::cell::Cell::new(None) };
+    // The jail argv of the last job on this thread (None: none yet), so a test reads the caps that job ran under.
+    static LAST_JAIL: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) };
     // Microseconds the runner waits between the jail's spawn and its first cancel poll, so a test can land a cancel while bwrap is still starting.
     static SPAWN_HOLD_US: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }
@@ -47,7 +47,11 @@ pub(crate) fn set_spawn_hold_us(us: u64) {
 }
 #[cfg(test)]
 pub(crate) fn last_cpu() -> Option<Option<u32>> {
-    LAST_CPU.with(|c| c.get())
+    last_jail().map(|argv| argv.iter().take_while(|a| *a != sandbox::BWRAP).find_map(|a| a.strip_prefix("--cpu=")?.parse().ok()))
+}
+#[cfg(test)]
+pub(crate) fn last_jail() -> Option<Vec<String>> {
+    LAST_JAIL.with(|j| j.borrow().clone())
 }
 #[cfg(test)]
 pub(crate) fn set_reader_hold_ms(ms: u64) {
@@ -207,17 +211,18 @@ struct Limits {
     address_space: u64,
 }
 
+// caps is the CPU cap, or none for an archive job, and the address-space cap; nothing else differs between the jails.
 fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                cancel: &AtomicBool, started: Option<&AtomicU32>, limits: Limits) -> Result<(), FleaError> {
     let Limits { cpu, address_space } = limits;
+    let mut full = sandbox::wrap_with(&inner, read_only, &work.dir, cpu, address_space);
+    sandbox::add_status(&mut full, inner.len());
     #[cfg(test)]
-    LAST_CPU.with(|c| c.set(Some(cpu)));
+    LAST_JAIL.with(|j| *j.borrow_mut() = Some(full.clone()));
     if !sandbox::available() {
         let tool = inner.first().map_or("", |s| s.as_str());
         return Err(op_err(what, tool, SANDBOX_MISSING));
     }
-    let mut full = sandbox::wrap_with(&inner, read_only, &work.dir, cpu, address_space);
-    sandbox::add_status(&mut full, inner.len());
     let mut jailed = crate::backend::jail::spawn_jailed(&full, |cmd| {
         cmd.stdin(std::process::Stdio::null());
         cmd.stdout(std::process::Stdio::null());
