@@ -1,6 +1,8 @@
-# First match wins. Names are case-insensitive regular expressions over the artifact name.
-# Shared listing and window behavior belongs to G1; suite migration belongs to G0.10.
+# First matching rule supplies family and owner; name patterns ignore case.
 kind	path-glob	name-pattern	family	owner
+scope	*	^TUI|^The TUI|#198\b	Drag, clipboard, windows	T
+scope	*	#299\b|polish, field bench|Every language|^i18n	Settings	G0.10
+scope	*	^Copies reach	Drag, clipboard, windows	G2-drag
 ipc	*	^fleapicker\.	Picker	G2-picker
 suite	*	^(preview|quicklook|pdf|markdown|figure|fence|media|thumb|pv-|raw-|html|fontpane|code|csv)	Previews	G0.10
 suite	*	^(ops|archive|fatcopy|permissions|rename|unlock|flash|transfer|run-card|opener|sandbox|capability|gio-auth)	Operations and dialogs	G0.10
@@ -45,7 +47,4 @@ qml	ui/Ipc*.qml	.*	Feedback	G0.4
 *	*	^(?:flea\.)?(empty|loading|spinner|status|glass|material|stateMessage|errors?|messages|escapehint|protocol|defaultclaim|makedefault|reload|notice|tooltip|checkBox|button|glyph|fleamark|hyprlandmark|langmark|fitmetrics|reveal|divider|resizehandle|theme|palette|contrast|density|format|icons|fillroles|cohesion)|focus frame|#151\b	Feedback	G0.5
 *	*	^(?:flea\.)?(pane|row|list|column|grid|header|cursor|selection|select|nav|anchor|backreturn|scroll|fastscroll|focus|input|mouse|tap|tab|path|crumb|jump|sort|folder|viewport|stablemodel|backend|countedworker|prebuild|parkedwait|hold|held|slow|startup|renderer|windowbody|shell|pickerless|motion|marks|markbox|keyname|keys|keyreach|ring|framegap|chromering|dual)|Grid|Dual|breadcrumb|#(?:60|144|242|265|273|292|322)\b	Drag, clipboard, windows	G1
 *	*	^(?:flea\.)?(names|swap|watch|dirsizes|ddtarget|sequences|shiftranges|dst|hoverready|uiwriter|hidden|reclick|fill|fsslot)|Local.list CPU|#207\b|Atomic updates	Drag, clipboard, windows	G1
-scope	*	^Copies reach	Drag, clipboard, windows	G2-drag
 ipc	*	.*	Feedback	G0.4
-scope	*	^TUI|^The TUI|#198\b	Drag, clipboard, windows	T
-scope	*	#299\b|polish, field bench|Every language|^i18n	Settings	G0.10

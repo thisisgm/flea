@@ -393,7 +393,7 @@ fixture_remove() {
 pid_a=0; id_a=""; addr_a=""
 pid_b=0; id_b=""; addr_b=""
 
-# Sample input, qs list --all --json, one entry: {"config_path":"/home/gm/Work/claude/flea/ui/boot/shell.qml","id":"c0o12e9frkt","pid":3437004,...}
+# Sample input, qs list --all --json, one entry: {"config_path":"/srv/flea/ui/boot/shell.qml","id":"c0o12e9frkt","pid":3437004,...}
 instance_id_of_pid() {
     qs list --all --json 2>/dev/null | jq -r --argjson p "$1" '.[] | select(.pid == $p) | .id'
 }

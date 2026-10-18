@@ -607,7 +607,7 @@ prefetch_for() {
 # prefetch slots end
 
 # entrant sweep begin
-# Sample input: /proc/123/environ "HOME=/home/gm\0FLEA_FIELD_BENCH=4242-1760000000\0..."
+# Sample input: /proc/123/environ "HOME=/root\0FLEA_FIELD_BENCH=4242-1760000000\0..."
 # Every launch exports the token and every child inherits it wherever it goes, so only the bench's own processes match.
 token_pids() {
   local f
