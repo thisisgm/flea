@@ -142,7 +142,7 @@ fn desktop_exec_values_preserve_all_string_escapes_until_decoding() {
         &format!("[Desktop Entry]\nName=Photo\\sViewer\nExec={exec}\n"),
     );
     assert_eq!(
-        crate::backend::menu_registry::desktop_key(&app, "Exec=")
+        crate::backend::menu_registry::desktop_exec_raw(&app)
             .unwrap()
             .as_deref(),
         Some(exec)

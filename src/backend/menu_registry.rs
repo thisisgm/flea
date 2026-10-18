@@ -420,9 +420,20 @@ fn desktop_file(id: &str, cancel: &Cancellation) -> Result<Option<PathBuf>, Stri
 
 pub(crate) fn desktop_label(path: &Path) -> Result<Option<String>, String> { desktop_key(path, "Name=") }
 
+// Sample Exec=viewer\s%F keeps the legacy menu reader's value "viewer %F".
+pub(crate) fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, String> {
+    desktop_key_raw(path, key)
+        .map(|value| value.map(|value| value.replace("\\s", " ").replace("\\n", " ")))
+}
+
+// Sample Exec=viewer\s%F stays encoded for imageopen's string and Exec escape layers.
+pub(crate) fn desktop_exec_raw(path: &Path) -> Result<Option<String>, String> {
+    desktop_key_raw(path, "Exec=")
+}
+
 // Sample Desktop Entry: "[Desktop Entry]\nName=Text Editor\nIcon=accessories-text-editor\nExec=editor %U";
 // GIO alone interprets Exec. Only the [Desktop Entry] group is read, so an action group cannot answer.
-pub(crate) fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, String> {
+fn desktop_key_raw(path: &Path, key: &str) -> Result<Option<String>, String> {
     let file = super::regfile::open_if_regular(path, 0).map_err(|e| format!("Could not read application {}: {}.", path.display(), e))?;
     let mut bytes = Vec::new();
     file.take(MAX_REGISTRY_BYTES + 1).read_to_end(&mut bytes).map_err(|e| format!("Could not read application {}: {}.", path.display(), e))?;
@@ -436,13 +447,7 @@ pub(crate) fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, Stri
         if line.starts_with('[') { entry = line == "[Desktop Entry]"; }
         if entry {
             if let Some(name) = line.strip_prefix(key) {
-                // Exec keeps its encoded value until its capability reader applies both escape layers.
-                let name = name.trim();
-                return Ok(Some(if key == "Exec=" {
-                    name.to_string()
-                } else {
-                    name.replace("\\s", " ").replace("\\n", " ")
-                }));
+                return Ok(Some(name.trim().to_string()));
             }
         }
     }
@@ -454,6 +459,21 @@ mod tests {
     use super::*;
     use std::sync::mpsc::channel;
     use std::time::{Duration, Instant};
+
+    #[test]
+    fn existing_launchable_caller_keeps_unescaped_exec_values() {
+        let dir = crate::backend::testdir::TestDir::new("viewer-legacy-exec");
+        let app = dir.file(
+            "viewer.desktop",
+            "[Desktop Entry]\nType=Application\nName=Viewer\nExec=viewer\\s%F\n",
+        );
+        assert_eq!(
+            desktop_key(&app, "Exec=").unwrap().as_deref(),
+            Some("viewer %F")
+        );
+        let registered = launchable("viewer.desktop", &app).unwrap().unwrap();
+        assert_eq!(registered.label, "Viewer");
+    }
 
     fn started(registry: &Registry) -> i32 {
         let deadline = Instant::now() + Duration::from_secs(5);

@@ -6,6 +6,10 @@ use std::process::Command;
 pub const MAX_IMAGES: usize = 4096;
 const MAX_BYTES: usize = 512 * 1024;
 const RESERVE_BYTES: usize = 64 * 1024;
+const MAX_PATH_BYTES: usize = 32 * 1024;
+const URI_ARG_OVERHEAD_BYTES: usize = 16;
+const MIN_ARG_MAX_BYTES: usize = 128 * 1024;
+const SC_ARG_MAX: i32 = 0;
 extern "C" {
     fn sysconf(name: i32) -> std::os::raw::c_long;
 }
@@ -17,7 +21,7 @@ pub struct Budget {
 impl Budget {
     pub fn new() -> Self {
         // Linux _SC_ARG_MAX is 0; the fallback is Linux's minimum, never the usual 2 MiB guess.
-        let maximum = usize::try_from(unsafe { sysconf(0) }).unwrap_or(128 * 1024);
+        let maximum = usize::try_from(unsafe { sysconf(SC_ARG_MAX) }).unwrap_or(MIN_ARG_MAX_BYTES);
         let environment: usize = std::env::vars_os()
             .map(|(key, value)| {
                 key.as_bytes().len() + value.as_bytes().len() + 2 + std::mem::size_of::<usize>()
@@ -35,10 +39,12 @@ impl Budget {
     pub fn take(&mut self, path: &Path) -> bool {
         // %U may escape every UTF-8 byte as three ASCII bytes; include file://, NUL and argv pointer.
         let length = path.as_os_str().as_bytes().len();
-        if length > 32 * 1024 {
+        if length > MAX_PATH_BYTES {
             return false;
         }
-        let cost = length.saturating_mul(3).saturating_add(16);
+        let cost = length
+            .saturating_mul(3)
+            .saturating_add(URI_ARG_OVERHEAD_BYTES);
         if self.count >= MAX_IMAGES || cost > self.bytes {
             return false;
         }
@@ -49,6 +55,7 @@ impl Budget {
 }
 
 // Desktop Entry string escaping precedes Exec quoting, so each backslash is decoded exactly once.
+// Sample raw value: viewer\s%F becomes "viewer %F" before Exec quoting.
 fn decode_exec_value(raw: &str) -> Option<String> {
     let mut decoded = String::with_capacity(raw.len());
     let mut chars = raw.chars();
@@ -71,6 +78,7 @@ fn decode_exec_value(raw: &str) -> Option<String> {
 }
 
 // One unquoted, standalone list code is the desktop contract; literal %% and action groups are not.
+// Sample raw values: viewer "a\sb" %F accepts a gallery; viewer "%F" does not.
 pub fn takes_many(exec: &str) -> bool {
     let Some(exec) = decode_exec_value(exec) else {
         return false;
@@ -133,7 +141,7 @@ pub fn launcher(target: &Path, paths: &[String]) -> Option<Command> {
     }
     let id = crate::desktopid::default_handler_gio(&mime);
     let app = crate::desktopid::resolve(&id)?;
-    let exec = crate::backend::menu_registry::desktop_key(&app, "Exec=").ok()??;
+    let exec = crate::backend::menu_registry::desktop_exec_raw(&app).ok()??;
     if !takes_many(&exec) {
         return None;
     }
