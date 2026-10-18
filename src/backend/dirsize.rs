@@ -126,7 +126,7 @@ mod tests {
         (sandbox, tree)
     }
 
-    // Counted from inside the walk, so it pins one listing at a time whatever RLIMIT_NOFILE this box has.
+    // Counted inside the walk, so it pins at most two tree descriptors regardless of depth or RLIMIT_NOFILE.
     #[test]
     fn a_deep_walk_holds_at_most_two_descriptors_open_into_the_tree() {
         let (_d, tree) = fixture("dirsize-descriptors");

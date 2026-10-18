@@ -50,7 +50,13 @@ int statx(int fd, const char *path, int flags, unsigned int mask, struct statx *
     static atomic_int held;
     const char *target = getenv("FLEA_REVIEW_STAT");
     const char *arm = getenv("FLEA_REVIEW_ARM");
-    if (target && arm && strcmp(path, target) == 0 && access(arm, F_OK) == 0 && atomic_exchange(&held, 1) == 0) {
+    int armed = target && arm && strcmp(path, target) == 0 && access(arm, F_OK) == 0;
+    const char *stats = getenv("FLEA_REVIEW_STATS");
+    if (armed && stats) {
+        int trace = open(stats, O_WRONLY | O_CREAT | O_APPEND, 0600);
+        if (trace >= 0) { write(trace, "s", 1); close(trace); }
+    }
+    if (armed && atomic_exchange(&held, 1) == 0) {
         int marker = open(getenv("FLEA_REVIEW_ENTERED"), O_WRONLY | O_CREAT, 0600);
         if (marker >= 0) close(marker);
         char release[4096];

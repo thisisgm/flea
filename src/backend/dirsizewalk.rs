@@ -123,3 +123,7 @@ fn list_into(dir: &File, path: &Path, walk: &mut Walk<'_>, folders: &mut Vec<Fol
         }
     }
 }
+
+#[cfg(test)]
+#[path = "dirsize_open_tests.rs"]
+mod open_tests;
