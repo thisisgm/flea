@@ -83,6 +83,17 @@ pub fn lists(commands: &[Command]) -> Vec<String> {
         .collect()
 }
 
+// The count of the first window a command batch asks for.
+pub fn window_count(nav: &mut Navigator) -> usize {
+    nav.take()
+        .iter()
+        .find_map(|command| match command {
+            Command::Window { count, .. } => Some(*count),
+            _ => None,
+        })
+        .unwrap()
+}
+
 #[path = "g1_03/anchor.rs"]
 mod anchor;
 #[path = "g1_03/folders.rs"]
@@ -91,6 +102,8 @@ mod folders;
 mod history;
 #[path = "g1_03/sort.rs"]
 mod sort;
+#[path = "g1_03/sort_window.rs"]
+mod sort_window;
 #[path = "g1_03/transport.rs"]
 mod transport;
 #[path = "g1_03/watch.rs"]

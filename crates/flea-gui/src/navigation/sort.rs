@@ -193,7 +193,10 @@ impl super::Navigator {
         selected.clear();
         pane.cursor = 0;
         pane.scroll_to(0.);
-        pane.requests.cancel();
+        // While a pair is armed, the request out answers before this sort's listed line, so the pair takes it at its own count.
+        if pane.swap.unheld_total.is_none() {
+            pane.requests.cancel();
+        }
         // The sorted pair lands unheld, so the pane checks it against the count asked for here.
         let count = pane.first_count();
         pane.swap.sorts_out.push_back(count);
