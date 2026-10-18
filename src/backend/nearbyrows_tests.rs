@@ -66,7 +66,7 @@ fn duplicate_interfaces_collapse_but_distinct_protocols_and_paths_stay() {
     rows.extend(avahi(&line.replace("_smb._tcp", "_sftp-ssh._tcp").replace(";445;", ";22;"), "_sftp-ssh._tcp"));
     assert_eq!(deduplicate(rows).len(), 3);
     let line = "=;eth0;IPv4;NAS;_smb._tcp;local;nas.local;192.0.2.1;445;";
-    assert_eq!(avahi(&line.repeat(1), "_smb._tcp")[0].address.path, "/");
+    assert_eq!(avahi(line, "_smb._tcp")[0].address.path, "/");
     assert_eq!(avahi(&format!("{}\n", line).repeat(500), "_smb._tcp").len(), MAX_ROWS);
 }
 

@@ -181,7 +181,7 @@ fn print_protocol_submits_one_lp_per_file_and_keeps_refusals() {
     assert_eq!(lp.len(), 2);
     assert!(lp[0].contains("-o\0fit-to-page\0--\0"));
     assert!(!lp[0].contains("-P\0"));
-    assert!(lp[1].contains("-P\01-3,5\0"));
+    assert!(lp[1].contains("-P\x001-3,5\0"));
 }
 
 #[test]

@@ -70,7 +70,7 @@ fn txt_path(input: &str) -> Option<String> {
         })?;
         if let Some(raw_path) = quoted[..end].strip_prefix("path=") {
             let path = unescape(raw_path)?;
-            return Some(if path.starts_with('/') { path.into() } else { format!("/{path}") });
+            return Some(if path.starts_with('/') { path } else { format!("/{path}") });
         }
         rest = quoted[end + 1..].trim_start();
     }
@@ -104,6 +104,7 @@ pub fn avahi(text: &str, service: &str) -> Vec<Row> {
 }
 
 // Sample input: {"BackendState":"Running","Peer":{}}
+#[cfg(test)]
 pub fn tailscale(input: &str) -> Result<Vec<Row>, &'static str> {
     tailscale_checked(input, &mut || true)
 }

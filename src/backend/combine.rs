@@ -31,6 +31,7 @@ impl Background {
     }
 }
 
+#[cfg(test)]
 pub fn background_enabled(layout: Layout, spacing: Spacing, count: usize, columns: usize) -> bool {
     spacing != Spacing::None || (layout == Layout::Grid && (columns == 0 || count % columns != 0))
 }
