@@ -5,6 +5,9 @@ use crate::backend::testdir::TestDir;
 use std::sync::mpsc;
 use std::time::{Duration, Instant};
 
+#[path = "searchmountwatch_tests.rs"]
+mod mount_tests;
+
 fn fresh(d: &TestDir) -> (Session, mpsc::Receiver<Event>) {
     let (tx, rx) = mpsc::channel();
     let root = d.path().to_str().unwrap();

@@ -54,6 +54,7 @@ pub(crate) struct Core {
     pub token: usize,
     events: Sender<Event>,
     stopped: AtomicBool,
+    unmounted: AtomicBool,
     #[cfg(test)]
     pub(crate) refuse: AtomicBool,
 }
@@ -73,7 +74,7 @@ impl Watch {
         let failed = fd.is_none() || stop.is_none();
         let core = Arc::new(Core {
             root: root.to_path_buf(), hidden, token: NEXT.fetch_add(1, Ordering::Relaxed), events,
-            stopped: AtomicBool::new(false), reader: Mutex::new(()),
+            stopped: AtomicBool::new(false), unmounted: AtomicBool::new(false), reader: Mutex::new(()),
             state: Mutex::new(State { fd, dirs: HashMap::new(), paths: BTreeMap::new(), retired: HashSet::new(),
                 delta: Delta { failed, ..Delta::default() }, signalled: false }),
             #[cfg(test)]
@@ -107,6 +108,20 @@ impl Drop for Watch {
 }
 
 impl Core {
+    // Remote directories are snapshots, never recursive inotify registrations, including patch and replacement hooks.
+    pub(crate) fn arm_local(&self, rel: &Path, body: &str) -> bool {
+        if self.stopped.load(Ordering::Acquire) { return false; }
+        if super::iomount::is_remote(&self.root.join(rel), body) {
+            self.forget(rel);
+            return true;
+        }
+        self.arm(rel)
+    }
+
+    pub(crate) fn unmounted(&self) -> bool {
+        self.unmounted.load(Ordering::Acquire)
+    }
+
     // Registration and decoding share a lock, so no reader resolves a new descriptor through an old path.
     pub(crate) fn arm(&self, rel: &Path) -> bool {
         if self.stopped.load(Ordering::Acquire) { return false; }
@@ -210,6 +225,7 @@ impl Core {
             if mask & IGNORED != 0 && state.retired.remove(&wd) { continue; }
             if state.retired.contains(&wd) { continue; }
             let Some(rel) = state.dirs.get(&wd).cloned() else { continue };
+            if mask & UNMOUNT != 0 { self.unmounted.store(true, Ordering::Release); }
             if mask & (IGNORED | UNMOUNT) != 0 {
                 state.dirs.remove(&wd);
                 state.paths.remove(&rel);

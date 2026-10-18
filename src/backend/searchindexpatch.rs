@@ -111,7 +111,7 @@ impl Index {
     pub(crate) fn patch_watched(&mut self, root: &Path, rel: &Path, hidden: bool, body: &str, watch: Option<&super::super::searchwatch::Core>) -> bool {
         let dir = root.join(rel);
         if let Some(watch) = watch {
-            if !watch.arm(rel) { self.mark_partial("watch_failed"); }
+            if !watch.arm_local(rel, body) { self.mark_partial("watch_failed"); }
         }
         let Ok(listing) = read_bounded(&dir, body, rel.as_os_str().is_empty()) else {
             self.mark_partial("unreadable");
@@ -197,7 +197,7 @@ impl Index {
             if self.storage_refused() { return; }
             let rel = Path::new(OsStr::from_bytes(&raw));
             if let Some(watch) = watch {
-                if !watch.arm(rel) { self.mark_partial("watch_failed"); }
+                if !watch.arm_local(rel, body) { self.mark_partial("watch_failed"); }
             }
             let Ok(Some(entries)) = read_bounded(&root.join(rel), body, rel.as_os_str().is_empty()) else {
                 self.mark_partial("unreadable");

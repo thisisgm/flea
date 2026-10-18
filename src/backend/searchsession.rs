@@ -41,6 +41,8 @@ pub(crate) struct Session {
     pub(crate) probes: Arc<WalkProbes>,
     pub(crate) handle: Option<std::thread::JoinHandle<usize>>,
     pub(crate) watch: Option<crate::backend::searchwatch::Watch>,
+    // Unmount freezes this scope until reopen; explicit user cancellation still permits patches.
+    pub(crate) unmounted: bool,
     pub(crate) last_query: String,
     pub(crate) last_matches: Vec<usize>,
     // Scored but unranked matches past the head, ranked on scroll; a patch drops them because it moves row ids.
@@ -327,6 +329,7 @@ impl Session {
 
     // Patches one directory's entries when the open folder's watch reports it; false when its mount does not answer.
     pub(crate) fn patch_open_dir(&mut self, path: &Path) -> bool {
+        if self.unmounted { return false; }
         let Ok(rel) = path.strip_prefix(&self.scope) else { return false };
         let probe = path.to_path_buf();
         let Ok(is_dir) = crate::backend::iomount::call(path, &self.body, "search", move || probe.is_dir()) else {

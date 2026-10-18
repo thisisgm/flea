@@ -550,9 +550,18 @@ untouched: no `listed`, no `rows`, no row invalidation. Answers one line:
 `{"t":"searchopened","path":"<scope>"}`
 
 `hidden` follows `list`'s rule exactly. The scope walks once per session with
-one mountinfo read; a local scope walks with bounded worker threads, a remote
-one with the single bounded worker `search` uses. One session runs at a time;
-opening a second closes the first in silence. A `list`, `listpaths`, `sort`,
+one mountinfo read. Every directory is classified against that snapshot by its
+deepest enclosing mount, including local mounts below remote mounts. Local
+directories use the bounded local walk threads. Network and FUSE directories,
+including ones below a local scope, share one serial remote lane with the existing
+5 s call deadline and 30 s stuck-mount TTL. A mount refused during a walk is not
+retried by that walk's remaining directories. A remote-root scope walks serially.
+Only one name reader may remain active per remote mount across sessions and
+patches. A reader still blocked after cancel or timeout keeps that slot until
+its syscall returns; another request reports partial coverage instead of starting
+another reader, even if the stuck TTL has elapsed.
+One session runs at a time; opening a second closes the first in silence.
+A `list`, `listpaths`, `sort`,
 `search` or `searchclose` closes the session too, and drops
 its index. Closing mid-walk cancels it: no directory opens after close.
 
@@ -606,6 +615,10 @@ own listing, the folder the session was opened from, in its own sort, with
 `listed.path` that folder, in the same listed, rows, searched order with that
 gen. No walk of the scope runs; one readdir of the folder is all it costs. Its
 rows line carries `z` for the folder's own folder rows the same way.
+An unmount of the search scope also completes an empty standing query with one
+`searched` status at that query's generation, `walking:false`, `partial:true`
+and reason `watch_failed`. It preserves the folder's rows, count and listing
+number; it emits no replacement `listed` or `rows` lines.
 
 A size is known when the session learned it earlier, from a `dirsize` answer
 given while it is open or from its own walk for an earlier answer, keyed by
@@ -618,8 +631,12 @@ scheduler had not started by the deadline marks nothing. Every patch of the
 index, from a write or the open folder's watch, forgets the known sizes.
 
 Local sessions own a recursive inotify instance, separate from the pane and column
-watches. Each directory is armed before enumeration. Queued changes are replayed
-before the completed walk is announced. External root and deep create, rename,
+watches. Each local directory is armed before enumeration, including directories
+on local USB filesystems. Nested network and FUSE directories are never armed,
+including during own-write patches and subtree replacement. Those directories
+use bounded enumeration and own-write/manual reconciliation, as remote roots do.
+Queued changes are replayed before the completed walk is announced.
+External root and deep create, rename,
 delete, replacement and subtree moves reconcile affected directory blocks without
 another query. The standing nonempty query is then pushed again as `listed`, `rows`,
 `searched`, with the same query `gen` and a new listing generation. Clients replace
@@ -636,6 +653,18 @@ paths. A remote-root session uses bounded enumeration and own-write/manual
 reconciliation; it does not claim recursive notification. Closing or cancelling a
 running walk stops and joins the recursive pump and closes its descriptors. A new
 scope rejects queued events carrying the old session's token.
+An unmount event from any recursively watched directory stops the whole scope's
+walk, releases its recursive watches, and retains any usable snapshot with
+`walking:false`, `partial:true` and reason `watch_failed` unless an earlier failure
+already supplies a reason. The scope remains terminally unmounted until reopen:
+queued index patches are discarded, and later own-write or open-directory
+notifications cannot reconcile its retained identities. Explicit user cancellation
+keeps its existing patch behavior. Pending tag reads and retries stop too, with
+the stop flag checked before each new path or chunk and after an in-flight read
+returns, including remote workers and tag rereads. It does not
+scan the exposed mountpoint or automatically resume the scope. Reopen to establish a new
+mount snapshot. A remote read abandoned by timeout or cancellation stops before
+its next entry when a blocked syscall returns; the syscall itself is not killed.
 
 The index has no fixed entry-count cap. Raw basenames are interned and paths are
 reconstructed from parent references. Checked ID or arena bounds and allocation
@@ -643,7 +672,8 @@ refusals stop adding entries and preserve identities already held.
 
 Every session `searched` line carries `partial` and `partial_reason`. Once
 `walking:false`, `partial:false` and an empty reason certify enumeration without a
-refused directory and, for a local session, no reported recursive-watch failure.
+refused directory and no reported local recursive-watch failure. This certifies
+a snapshot, with no automatic remote freshness guarantee.
 While enumeration or tag loading continues, `walking:true` carries `partial:true`
 with reason `walking`, unless an earlier failure supplies a reason. Incomplete
 coverage carries `unreadable`, `capacity` or `allocation`; cancellation carries

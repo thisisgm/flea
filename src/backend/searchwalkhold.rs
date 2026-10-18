@@ -92,15 +92,14 @@ impl WalkProbes {
         *self.read_hold.lock().unwrap() = Some(ReadHold { dir: dir.to_string(), after, parked, release: resume });
         (wait, release)
     }
+}
 
-    pub(crate) fn hold_read_if_due(&self, dir: &Path, count: usize) {
-        let due = self.read_hold.lock().unwrap().as_ref().is_some_and(|hold|
-            dir.file_name() == Some(std::ffi::OsStr::new(&hold.dir)) && count >= hold.after);
-        if due {
-            if let Some(hold) = self.read_hold.lock().unwrap().take() {
-                let _ = hold.parked.send(());
-                let _ = hold.release.recv();
-            }
-        }
+pub(crate) fn hold_read_if_due(slot: &std::sync::Mutex<Option<ReadHold>>, dir: &Path, count: usize) {
+    let due = slot.lock().unwrap().as_ref().is_some_and(|hold|
+        dir.file_name() == Some(std::ffi::OsStr::new(&hold.dir)) && count >= hold.after);
+    let hold = if due { slot.lock().unwrap().take() } else { None };
+    if let Some(hold) = hold {
+        let _ = hold.parked.send(());
+        let _ = hold.release.recv();
     }
 }

@@ -9,10 +9,30 @@ impl Session {
     }
 
     pub(crate) fn apply_watch_deltas(&mut self) -> bool {
-        if self.walking() { return false; }
         let Some(core) = self.watch.as_ref().map(|watch| Arc::clone(&watch.core)) else { return false };
-        let before = self.index.lock().unwrap().partial;
         core.flush();
+        if core.unmounted() {
+            self.unmounted = true;
+            self.pending_patches.clear();
+            let mut index = self.index.lock().unwrap();
+            index.mark_partial("watch_failed");
+            self.probes.cancel.store(true, std::sync::atomic::Ordering::Relaxed);
+            drop(index);
+            self.tags.stop();
+            self.watch.take();
+            drop(self.handle.take());
+            self.announced = true;
+            if self.standing.as_ref().is_some_and(|(_, query, _)| query.is_empty()) {
+                self.standing_while_walking = true;
+            }
+            self.sizes.forget();
+            self.last_query.clear();
+            self.last_matches.clear();
+            self.pending_rest = None;
+            return true;
+        }
+        if self.walking() { return false; }
+        let before = self.index.lock().unwrap().partial;
         let delta = core.drain();
         let mut changed = delta.failed || delta.overflow;
         if delta.failed { self.index.lock().unwrap().mark_partial("watch_failed"); }
@@ -61,8 +81,18 @@ pub(crate) fn on_delta(
     pool: &super::thumbs::Pool,
     token: usize,
 ) {
+    let mut empty = None;
     let answer = st.search_session.as_mut().and_then(|session| {
-        if session.apply_watch_token(token) { session.re_answer_now() } else { None }
+        if !session.apply_watch_token(token) { return None; }
+        let answer = session.re_answer_now();
+        if answer.is_none() {
+            empty = session.landing_empty().map(|(gen, n, scanned, ms)| (gen, n, scanned, ms, session.partial_reason()));
+        }
+        answer
     });
     if let Some(answer) = answer { super::searchreq::emit_session_answer(out, st, tb, pool, &answer); }
+    if let Some((gen, n, scanned, ms, reason)) = empty {
+        writeln!(out, "{}", super::searchreq::searched_status_line(n, scanned, ms, gen, false, reason)).ok();
+        out.flush().ok();
+    }
 }
