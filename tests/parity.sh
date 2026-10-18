@@ -182,6 +182,20 @@ run(options + ['--status', str(status)], code=2, reason="unknown status row: ['m
 status.write_text('ipc:flea.ready\tgreen\tevidence.txt\nipc:flea.ready\topen\n')
 run(options + ['--status', str(status)], code=2, reason="duplicate or unknown status row: ['ipc:flea.ready', 'open']")
 
+# Two prefixed rows on one key ("m b" and ", b" in yazi) are two bindings, so neither collides with the other.
+prefixed = root / 'prefixed'
+shutil.copytree(fixture, prefixed)
+keys = prefixed / 'keys.toml'
+keys.write_text(keys.read_text() + ''.join(
+    f'\n[[tui]]\nname = "yazi"\nmods = "text"\nkey = "b"\naction = "sortBy"\ncontext = "listing"\nprefix = "{prefix}"\n'
+    for prefix in ('m', ',')))
+prefixed_ids = {row['id'] for row in parse(run(['--tree', str(prefixed), '--pending', str(prefixed / 'PENDING.md'),
+                                                '--design', str(prefixed / 'design-hig'),
+                                                '--layout', str(prefixed / 'ci/default.layout')]))
+                if row['id'].startswith('binding:tui|')}
+check(prefixed_ids == {'binding:tui|yazi|listing|m text+b|sortBy|', 'binding:tui|yazi|listing|, text+b|sortBy|'},
+      f'prefixed rows on one key keep distinct binding IDs: {prefixed_ids}')
+
 copy = root / 'tree'
 shutil.copytree(fixture, copy)
 modified_options = ['--tree', str(copy), '--pending', str(copy / 'PENDING.md'),

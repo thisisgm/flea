@@ -129,9 +129,15 @@ fn t3_progress_uses_current_backend_samples_and_plain_bar_roles() {
     }
     let theme = Theme::from_text("");
     let output = footer(&m, &theme, 128, Duration::ZERO);
-    assert!(plain(&output).contains("Copying 2 of 5  ━━━━────── 40%"));
-    assert!(output.contains(&format!("{}━━━━", theme.accent)));
-    assert!(output.contains(&format!("{}──────", theme.border)));
+    assert!(plain(&output).contains(&format!("Copying 2 of 5  {}{}  40%", "━".repeat(8), "─".repeat(12))));
+    assert!(output.contains(&format!("{}{}", theme.accent, "━".repeat(8))));
+    assert!(output.contains(&format!("{}{}", theme.border, "─".repeat(12))));
+    let value = r#"{"t":"transferprogress","id":7,"index":0,"bytes":285,"total":100}"#;
+    m.receive(jsondoc::parse(value).unwrap(), &mut w).unwrap();
+    assert_eq!(m.progress_percent, Some(20), "bytes past the total stop at the item");
+    m.transfer_total = 1;
+    m.receive(jsondoc::parse(r#"{"t":"transferprogress","id":7,"index":0,"bytes":57,"total":100}"#).unwrap(), &mut w).unwrap();
+    assert_eq!(m.progress_percent, Some(57));
     assert!(!output.contains("\x1b[7m"));
     drop(w); reader.join().unwrap();
 }

@@ -23,7 +23,7 @@ const PREPARE_FAILED: &str = "The terminal could not be prepared";
 const RESTORE_FAILED: &str = "The terminal could not be restored";
 const PREPARE_FOR_EDITOR_FAILED: &str = "The terminal could not be prepared for the editor";
 const RESTORE_AFTER_EDITOR_FAILED: &str = "The terminal could not be restored after the editor";
-// The rename's own fault when a stop ends it, inside the editor or while either stty around it runs.
+// Any editor handoff ends with this when a stop lands inside the editor or while either stty around it runs.
 const EDITOR_INTERRUPTED: &str = "Editor interrupted";
 #[repr(C)]
 struct WindowSize {
