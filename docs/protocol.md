@@ -775,14 +775,13 @@ indices are resolved against the listing at request time and the operation runs 
 so it still owns a snapshot that outlives whatever the listing does next. `paths` wins when both are
 present, and an index past the end of the listing is dropped in silence.
 
-**One of `transfer`, `trash`, `duplicate` or an archive `extract` runs at a time.** One of those
-arriving while another is still running answers an `error` line saying so and touches nothing. `link`
-and `permissionsBatch` are refused the same way while one runs, without taking the slot: `link`
-answers an `error` line and `permissionsBatch` answers its `permissions` line with `ok` false. The cap
-is one because the status bar carries one transient slot for the running operation, and an extract
-drives that same card, so a second concurrent operation would have nowhere to report. `rename` and
-`mkdir` never take that slot, and an archive `compress` and a `convert` are keyed by their own `id` and
-run alongside by design, so the cap was never one write of any kind.
+**Copies, moves, archive compressions and extractions queue by destination drive.** Each request
+gets its own id and start line, including a request that waits behind another write to the same drive.
+Waiting jobs run in arrival order and name their predecessor and its target in the jobs `reason`.
+Writes to different drives run together; another running job never causes a busy refusal for these
+requests. An extraction writes to the filesystem holding its destination, just as compression does.
+`trash`, `duplicate`, `link` and `permissionsBatch` retain their existing busy guards for non-job
+mutations. `rename` and `mkdir` never take that slot, and `convert` remains independent.
 
 The answer is a `transferstarted` line for a file transfer, then per top-level item a bounded stream of
 `transferprogress` lines and exactly one `transferitem`, then one `transferdone`. An archive `extract`
@@ -1047,12 +1046,12 @@ target mode rather than one mode for all.
 
 Example: `{"c":"transfercancel","id":12}`
 
-Cancels the running transfer or archive `extract` if `id` names it, and does nothing otherwise, so a
-cancel aimed at an operation that already finished can never reach the one after it. A compress
-or a convert has no operator cancel, so a `transfercancel` naming either `id` does nothing and the
-job runs to its end. There is no
-response line of its own: a transfer answers with its own `transferdone` carrying `cancelled` true, and
-an extract answers its own `archivedone` with `ok` false and an `err` of `cancelled`.
+Cancels the waiting or running job named by `id`, including a transfer, archive `extract`, or
+compression, and does nothing for a stale id. Other jobs keep running or waiting independently.
+A convert is not a jobs operation and cannot be cancelled by this request. There is no response line
+of its own: a transfer answers with its own `transferdone` carrying `cancelled` true, and an extract
+answers its own `archivedone` with `ok` false and an `err` of `cancelled`, including when cancelled
+before it runs.
 
 **The item in flight is stopped rather than allowed to finish, and what it had already written is
 removed: a partial file by `copy_file`, a partly-copied directory by `copy_dir`.** A cancel that waited out a multi-gigabyte copy would not be a cancel, and a half-written file
@@ -2563,9 +2562,11 @@ object carries one bit per extension class: `{"archive":<bool>,"sevenZip":<bool>
 `.zip`/`.rar` class served by whichever of those two is installed. The client offers Extract on a package only
 when `sevenZip` is set; the backend's own listing of a package still falls back to `bsdtar` where `7z` is missing,
 as v0.3.8 did, except an `.AppImage`, whose squashfs image only `7z` reads. An `archive` request with an `op` of
-`extract` takes the one-at-a-time slot `transfer` describes, drives that same transfer card and answers
-`archivedone`, never `transferdone`; a `transfercancel` naming its `id` cancels it, and it is not
-journaled, so no `undo` reverses it.
+`extract` joins the destination-drive queue `transfer` describes. It answers `archivestarted` with its
+own id even while waiting, drives that same transfer card through `extractstarted` and
+`transferprogress`, and answers `archivedone`, never `transferdone`. A `transfercancel` naming its
+id cancels only that extraction, whether waiting or running. It is not journaled, so no `undo`
+reverses it.
 
 An `archive` request is `{"c":"archive","op":"compress"|"extract","paths":[<string>,...],"path":"<string>","dest":"<string>","format":"<string>","password":"<string>","encryptNames":<bool>}`.
 A `compress` names absolute `paths` sharing one parent and the `format` to write; an `extract` names the
@@ -2677,7 +2678,7 @@ Requests:
 
 Kinds are `copy`, `move`, `compress`, `extract`, `send`, `action`, and the adoption kind `emptyTrash`. States are `waiting`, `running`, `failed`, and `done`. `done` counts completed top-level items; `total` counts this attempt's items. Extraction starts with zero unknown entry counts until its producer supplies archive entry counts and reports unpacked bytes through `OpMsg::JobEntries`, without changing the wire. `file` is the current item's name; `itemBytes` is its known size. `bytes` is cumulative progress and `totalBytes` is the settled byte total, with zero meaning unknown. `rate` is bytes per second and `left` is estimated seconds or null when no estimate is available. A background action has null byte fields and a file-count bar. Empty Trash has null byte fields, file-count progress, and can retain its current item's size in `itemBytes`.
 
-Copies, moves, and compressions are queued in arrival order per destination filesystem. The device is resolved off the request loop, following a symlinked target. Btrfs subvolumes share the mount's source key because their anonymous `st_dev` values can differ. Separate destination filesystems run concurrently. A waiting copy uses `Copy 8 items to NAS` and names its predecessor in `reason`, for example `waiting for the copy to NAS`. Cancellation addresses only the named job, including a queued job. `transfercancel` also reaches jobs with that id, including compression. A clean shutdown cancels queued and running jobs through the existing drain.
+Copies, moves, compressions, and extractions are queued in arrival order per destination filesystem. The device is resolved off the request loop, following a symlinked target. Btrfs subvolumes share the mount's source key because their anonymous `st_dev` values can differ. Separate destination filesystems run concurrently. A waiting copy uses `Copy 8 items to NAS` and names its predecessor in `reason`, for example `waiting for the copy to NAS`. Cancellation addresses only the named job, including a queued job. `transfercancel` also reaches jobs with that id, including compression. A clean shutdown cancels queued and running jobs through the existing drain.
 
 A failure retains its position, with a failure head and its reason. `retry` preserves the row and id, requeues behind jobs already accepted, and narrows the attempt to failed items. The queued work retains each failed source's identity, including its birth time when available. Transfers check that identity before each item, actions before each invocation, and indivisible archive or send operations before their invocation. A replacement is refused and never becomes the identity of a subsequent retry. A compression or extraction is one indivisible failed operation. `dismiss` accepts only failed or done rows.
 

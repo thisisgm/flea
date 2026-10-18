@@ -234,3 +234,46 @@ fn review_manifest_rejects_unescaped_control_bytes() {
         "a malformed TOML basic string was accepted"
     );
 }
+
+#[test]
+fn legacy_cancel_finishes_a_queued_extract_without_cancelling_its_predecessor() {
+    use super::archive::Formats;
+    use super::jobwork::Work;
+    use std::sync::atomic::Ordering;
+    let (tx, _) = channel();
+    let mut ops = Ops::new(tx);
+    let mut out = Vec::new();
+    let running = Arc::new(AtomicBool::new(false));
+    let waiting = Arc::new(AtomicBool::new(false));
+    for (id, flag) in [(11, &running), (12, &waiting)] {
+        ops.detached.insert(id, flag);
+        ops.jobs
+            .adopt(&mut out, id, "extract", "Extracting", 0, Arc::clone(flag));
+        let job = ops.jobs.rows.last_mut().unwrap();
+        job.drive = Some("same-drive".into());
+        job.target = "target".into();
+    }
+    let root = super::testdir::TestDir::new("jobs-queued-extract-cancel");
+    let queued = &mut ops.jobs.rows[1];
+    queued.state = State::Waiting;
+    queued.work = Some(Work::Archive {
+        compressing: false,
+        paths: Vec::new(),
+        format: String::new(),
+        archive: root.join("not-opened.tar"),
+        dest: root.join("not-created"),
+        formats: Arc::new(Formats::from_tools(false, false)),
+        selection: None,
+        password: String::new(),
+        encrypt_names: false,
+    });
+    out.clear();
+    super::opsdispatch::cancel_transfer(&mut out, &mut ops, 12);
+    assert!(ops.jobs.rows[1].state == State::Done);
+    assert!(ops.jobs.rows[1].cancelled);
+    assert!(ops.jobs.rows[0].state == State::Running);
+    assert!(!running.load(Ordering::Relaxed));
+    assert!(String::from_utf8(out)
+        .unwrap()
+        .contains(r#"{"t":"archivedone","id":12,"ok":false,"verified":true,"err":"cancelled"}"#));
+}

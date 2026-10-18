@@ -108,12 +108,6 @@ pub fn start_archive(
         out.flush().ok();
         return;
     }
-    // An extract takes the copy slot, so a copy, move or second extract is refused busy.
-    if !compressing && ops.live.running().is_some() {
-        writeln!(out, "{}", error_line(&op_err("archive", "", "an operation is already running"))).ok();
-        out.flush().ok();
-        return;
-    }
     // A source or target on a pending mount waits; writes elsewhere run beside the held write.
     let mut sources: Vec<PathBuf> = paths.iter().map(PathBuf::from).collect();
     if !compressing {
@@ -134,7 +128,7 @@ pub fn start_archive(
         writeln!(out, "{}", transferprogress_line(id, 0, &name, 0, 0, 0)).ok();
     }
     out.flush().ok();
-    let target = compressing.then(|| dest.clone());
+    let target = Some(dest.clone());
     ops.jobs.submit(
         out,
         id,
