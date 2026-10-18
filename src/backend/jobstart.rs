@@ -3,6 +3,7 @@ use super::jobwork::Work;
 use super::opscancel::DetachedJobs;
 use super::opsreq::OpMsg;
 use std::io::Write;
+use std::path::PathBuf;
 use std::sync::atomic::AtomicBool;
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
@@ -74,13 +75,18 @@ impl Jobs {
         });
         self.snapshot(out);
         if let Some(target) = target {
-            let tx = tx.clone();
-            let body = super::iomount::mount_body();
-            std::thread::spawn(move || {
-                let result = super::jobdrive::drive_of(&target, &body);
-                let _ = tx.send(OpMsg::JobReady { id, result });
-            });
+            check_target(id, target, tx);
         }
         self.advance(out, flags, tx);
     }
+}
+
+// The target's drive is read off the loop, so a stalled mount delays only its own job.
+pub(crate) fn check_target(id: usize, target: PathBuf, tx: &Sender<OpMsg>) {
+    let tx = tx.clone();
+    let body = super::iomount::mount_body();
+    std::thread::spawn(move || {
+        let result = super::jobdrive::drive_of(&target, &body);
+        let _ = tx.send(OpMsg::JobReady { id, result });
+    });
 }

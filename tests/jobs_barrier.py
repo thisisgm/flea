@@ -3,6 +3,11 @@ from pathlib import Path
 import subprocess
 import time
 
+# A held copy reaches its controlled read well inside this, even on a loaded runner.
+READY_DEADLINE_S = 20
+# How often the ready marker is polled while the copy is on its way to the read.
+READY_POLL_S = 0.005
+
 
 class CopyBarrier:
     def __init__(self, root):
@@ -28,14 +33,14 @@ class CopyBarrier:
         return set(self.directory.glob('*.ready'))
 
     def wait(self, before):
-        deadline = time.monotonic() + 20
+        deadline = time.monotonic() + READY_DEADLINE_S
         while True:
             ready = self.ready() - before
             if ready:
                 assert len(ready) == 1, ready
                 return next(iter(ready))
             assert time.monotonic() < deadline, 'copy never reached its controlled read'
-            time.sleep(0.005)
+            time.sleep(READY_POLL_S)
 
     def release(self, ready):
         assert ready.is_absolute() and ready.parent == self.directory

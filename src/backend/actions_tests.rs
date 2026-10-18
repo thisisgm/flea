@@ -1,22 +1,45 @@
 use super::*;
 use crate::backend::testdir::TestDir;
 
+// Readdir order is the filesystem's (tmpfs lists newest first), so both creation orders run and the count is read back.
 #[test]
 fn unrelated_directory_entries_cannot_hide_manifest_truncation() {
-    let root = TestDir::new("actions-discovery");
-    let actions = root.dir("actions");
-    for index in 0..600 {
-        std::fs::write(actions.join(format!("backup-{index}.toml~")), "backup").unwrap();
-    }
     let text = "name=\"A\"\nmime=[\"text/*\"]\nselection=\"one\"\nmode=\"background\"\nrun=[\"/usr/bin/true\"]\n";
-    for index in 0..100 {
-        std::fs::write(actions.join(format!("valid-{index}.toml")), text).unwrap();
+    for valid_first in [true, false] {
+        let root = TestDir::new("actions-discovery");
+        let actions = root.dir("actions");
+        let backups = || {
+            for index in 0..600 {
+                std::fs::write(actions.join(format!("backup-{index}.toml~")), "backup").unwrap();
+            }
+        };
+        let valid = || {
+            for index in 0..100 {
+                std::fs::write(actions.join(format!("valid-{index}.toml")), text).unwrap();
+            }
+        };
+        if valid_first {
+            valid();
+            backups();
+        } else {
+            backups();
+            valid();
+        }
+        let listed = std::fs::read_dir(&actions)
+            .unwrap()
+            .take(MAX_MANIFESTS)
+            .filter(|entry| entry.as_ref().unwrap().path().extension().is_some_and(|e| e == "toml"))
+            .count();
+        let (loaded, errors) = load_from(root.path());
+        assert_eq!(
+            loaded.len(),
+            listed,
+            "only manifests among the first {MAX_MANIFESTS} entries load (valid first: {valid_first})"
+        );
+        assert!(errors
+            .iter()
+            .any(|(file, error)| file == "actions" && error == "too many manifests"));
     }
-    let (loaded, errors) = load_from(root.path());
-    assert!(loaded.len() < 100, "the fixture must exercise truncation");
-    assert!(errors
-        .iter()
-        .any(|(file, error)| file == "actions" && error == "too many manifests"));
 }
 
 #[test]

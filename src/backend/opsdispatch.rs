@@ -780,6 +780,8 @@ pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
 
 // Every message an operation thread sends, written out and, when terminal, recorded in the journal.
 pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
+    // A publisher's own return never restarts it, so a held lock costs one bounded attempt per later event.
+    let returned = matches!(msg, OpMsg::JournalDone { .. });
     if let OpMsg::TransferDone {
         id, entry, failed, ..
     }
@@ -926,7 +928,9 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
             };
         }
     }
-    super::renamework::flush_pending(ops);
+    if !returned {
+        super::renamework::flush_pending(ops);
+    }
     super::jobevents::refresh_undo(out, ops);
     out.flush().ok();
 }

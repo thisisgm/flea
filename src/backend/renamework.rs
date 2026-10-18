@@ -76,6 +76,8 @@ fn spawn(ops: &mut Ops, commands: Vec<Publication>) {
     let mut journal = std::mem::replace(&mut ops.journal, placeholder);
     let tx = ops.tx.clone();
     std::thread::spawn(move || {
+        // Entries pending before this run get one bounded attempt; an entry these commands queue already spent its own.
+        let retry = journal.has_pending();
         let mut renames = Vec::new();
         for command in commands {
             match command {
@@ -103,7 +105,7 @@ fn spawn(ops: &mut Ops, commands: Vec<Publication>) {
                 }
             }
         }
-        while journal.has_pending() {
+        if retry {
             journal.retry_pending();
         }
         let _ = tx.send(OpMsg::JournalDone {

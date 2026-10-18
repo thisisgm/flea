@@ -69,6 +69,14 @@ impl Work {
         }
     }
 
+    // The folder a transfer or archive writes into, whose drive orders it behind other jobs.
+    pub fn target(&self) -> Option<PathBuf> {
+        match self {
+            Self::Transfer { dest, .. } | Self::Archive { dest, .. } => Some(dest.clone()),
+            Self::Action { .. } | Self::Send { .. } => None,
+        }
+    }
+
     pub fn file(&self) -> String {
         let path = match self {
             Self::Archive {

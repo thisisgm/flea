@@ -92,6 +92,97 @@ fn failed_target_preparation_releases_unrelated_drive() {
     assert!(!String::from_utf8_lossy(&out).contains("waiting for the copy to stalled"));
 }
 
+fn stalled() -> crate::error::FleaError {
+    crate::error::FleaError {
+        where_: "jobs".into(),
+        path: "/stalled".into(),
+        msg: "target is not responding".into(),
+    }
+}
+
+#[test]
+fn failed_target_preparation_answers_the_legacy_terminal_line() {
+    let transfer = super::jobwork::Work::Transfer {
+        moving: false,
+        paths: vec!["/stalled-a".into(), "/stalled-b".into()],
+        dest: "/stalled".into(),
+        selection: None,
+        destination: None,
+        policy: Default::default(),
+    };
+    let archive = super::jobwork::Work::Archive {
+        compressing: false,
+        paths: Vec::new(),
+        format: String::new(),
+        archive: "/stalled.tar".into(),
+        dest: "/stalled".into(),
+        formats: Arc::new(super::archive::Formats::test_stub(Vec::new(), Vec::new())),
+        selection: None,
+        password: String::new(),
+        encrypt_names: false,
+    };
+    for (work, line) in [
+        (transfer, r#"{"t":"transferdone","id":1,"ok":0,"failed":2,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":"target is not responding"}"#),
+        (archive, r#"{"t":"archivedone","id":1,"ok":false,"verified":true,"err":"target is not responding"}"#),
+    ] {
+        let mut ops = Ops::new(channel().0);
+        let mut out = Vec::new();
+        ops.jobs
+            .adopt(&mut out, 1, "copy", "", 2, Arc::new(AtomicBool::new(false)));
+        let job = &mut ops.jobs.rows[0];
+        job.state = State::Waiting;
+        job.prepared = false;
+        job.work = Some(work);
+        out.clear();
+        report_op(&mut out, &mut ops, OpMsg::JobReady { id: 1, result: Err(stalled()) });
+        assert!(ops.jobs.rows[0].state == State::Failed);
+        let text = String::from_utf8_lossy(&out);
+        assert!(text.lines().any(|l| l == line), "{line} missing from {text}");
+    }
+}
+
+#[test]
+fn a_job_whose_target_check_failed_retries_whole_and_checks_again() {
+    let root = TestDir::new("jobs-target-retry");
+    let source = root.file("source", "payload");
+    let dest = root.dir("dest");
+    root.assert_contains(&dest.join("source"));
+    let (tx, rx) = channel();
+    let mut ops = Ops::new(tx);
+    let mut out = Vec::new();
+    ops.jobs.submit(
+        &mut out,
+        1,
+        super::jobwork::Spec { kind: "copy", label: "", target: Some(dest.clone()) },
+        super::jobwork::Work::Transfer {
+            moving: false,
+            paths: vec![source.to_string_lossy().into()],
+            dest: dest.clone(),
+            selection: None,
+            destination: None,
+            policy: Default::default(),
+        },
+        &ops.detached,
+        &ops.tx,
+    );
+    let wait = std::time::Duration::from_secs(10);
+    assert!(matches!(rx.recv_timeout(wait).unwrap(), OpMsg::JobReady { result: Ok(_), .. }));
+    report_op(&mut out, &mut ops, OpMsg::JobReady { id: 1, result: Err(stalled()) });
+    assert!(ops.jobs.rows[0].state == State::Failed && !dest.join("source").exists());
+    out.clear();
+    super::jobevents::request(&mut out, &mut ops, r#"{"op":"retry","id":1}"#);
+    assert!(
+        !String::from_utf8_lossy(&out).contains("joberror"),
+        "a job that never started must be retryable: {}",
+        String::from_utf8_lossy(&out)
+    );
+    while ops.jobs.unfinished() > 0 {
+        report_op(&mut out, &mut ops, rx.recv_timeout(wait).expect("the retried job checks its target again and runs"));
+    }
+    assert!(ops.jobs.rows[0].state == State::Done, "{}", String::from_utf8_lossy(&out));
+    assert_eq!(std::fs::read_to_string(dest.join("source")).unwrap(), "payload");
+}
+
 #[test]
 fn retry_clears_attempt_fields() {
     let sandbox = TestDir::new("jobs-retry");
