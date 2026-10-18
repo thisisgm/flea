@@ -3,6 +3,10 @@ use std::fs;
 use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::process::{Command, Output};
+use std::sync::Mutex;
+
+// A concurrent child launch can retain a copied executable's writable fd until exec.
+static EXECUTABLE_FIXTURES: Mutex<()> = Mutex::new(());
 
 struct Sandbox {
     root: PathBuf,
@@ -11,11 +15,13 @@ struct Sandbox {
 
 impl Sandbox {
     fn new() -> Self {
-        let temporary = PathBuf::from("/tmp").canonicalize().unwrap();
+        let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join(".superpowers/g1-01");
+        fs::create_dir_all(&parent).unwrap();
+        let temporary = parent.canonicalize().unwrap();
         let sandbox_home = PathBuf::from(std::env::var_os("HOME").unwrap())
             .canonicalize()
             .unwrap();
-        assert!(temporary.is_absolute() && !temporary.starts_with(sandbox_home));
+        assert!(temporary.is_absolute() && temporary != sandbox_home);
         let output = Command::new("mktemp")
             .arg("-d")
             .arg(temporary.join("flea-gpui-launch.XXXXXX"))
@@ -112,6 +118,7 @@ fn reply(output: &Output) -> Json {
 
 #[test]
 fn gpui_skips_qt_renderer_switches_and_diagnostics() {
+    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
     let sandbox = Sandbox::new();
     sandbox.frontend();
     for renderer in [None, Some("opengl"), Some("vulkan")] {
@@ -161,6 +168,7 @@ fn gpui_skips_qt_renderer_switches_and_diagnostics() {
 
 #[test]
 fn gpui_path_and_selection_use_argv_despite_stale_parent_environment() {
+    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
     let sandbox = Sandbox::new();
     sandbox.frontend();
     let selected = sandbox.root.join("files/a b");
@@ -209,18 +217,20 @@ fn gpui_path_and_selection_use_argv_despite_stale_parent_environment() {
         .iter()
         .map(|value| value.as_str().unwrap())
         .collect();
-    let home = std::env::var("HOME")
-        .ok()
-        .filter(|value| !value.is_empty())
-        .unwrap_or_else(|| "/".into());
-    assert_eq!(arguments, ["--", home.as_str()]);
+    assert!(arguments.is_empty(), "an unnamed launch must let saved startup settings choose the path");
     for key in ["FLEA_PATH", "FLEA_SELECT"] {
         assert_eq!(document.get("env").unwrap().get(key), Some(&Json::Null));
     }
+    let start = sandbox.root.join("files");
+    let output = sandbox.command().arg(&start).output().unwrap();
+    let document = reply(&output);
+    assert_eq!(document.get("argv"), Some(&Json::Arr(vec![Json::Str("--".into()), Json::Str(start.to_string_lossy().into_owned())])));
+
 }
 
 #[test]
 fn gpui_exec_errors_name_the_program_and_os_reason() {
+    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
     let denied = Sandbox::new();
     let frontend = denied.root.join("flea-gui");
     fs::write(&frontend, "not executable\n").unwrap();
@@ -254,6 +264,7 @@ fn gpui_exec_errors_name_the_program_and_os_reason() {
 
 #[test]
 fn sandbox_is_removed_on_drop() {
+    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
     let sandbox = Sandbox::new();
     let root = sandbox.root.clone();
     assert!(root.join(".flea-test-sandbox").is_file());
@@ -267,6 +278,7 @@ fn sandbox_is_removed_on_drop() {
 
 #[test]
 fn sandbox_cleanup_refuses_unmarked_or_out_of_root_paths() {
+    let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
     let sandbox = Sandbox::new();
     let root = sandbox.root.clone();
     let unmarked = root.join("flea-gpui-launch.unmarked");

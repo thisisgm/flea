@@ -1543,7 +1543,7 @@ version = "0.4.0"
 dependencies = [
  "async-channel",
  "flea",
- "gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
  "gpui-pre-platform",
 ]
 
@@ -2001,7 +2001,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "accesskit",
  "anyhow",
@@ -2017,14 +2017,14 @@ dependencies = [
  "futures",
  "futures-concurrency",
  "getrandom 0.3.4",
- "gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-macros 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-scheduler 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-shared-string 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-sum-tree 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
  "heapless",
  "image",
  "inventory",
@@ -2122,9 +2122,9 @@ dependencies = [
 [[package]]
 name = "gpui-pre-collections"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
- "gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
  "indexmap",
  "rustc-hash 2.1.3",
 ]
@@ -2143,7 +2143,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre-derive-refineable"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "proc-macro2",
  "quote",
@@ -2172,7 +2172,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre-http-client"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "anyhow",
  "bytes",
@@ -2190,7 +2190,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre-linux"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "accesskit",
  "accesskit_unix",
@@ -2202,11 +2202,11 @@ dependencies = [
  "calloop-wayland-source",
  "filedescriptor",
  "futures",
- "gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-http-client 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-wgpu 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
  "libc",
  "log",
  "notify-rust",
@@ -2287,7 +2287,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre-macros"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "heck 0.5.0",
  "proc-macro-crate",
@@ -2299,11 +2299,11 @@ dependencies = [
 [[package]]
 name = "gpui-pre-platform"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "anyhow",
  "console_error_panic_hook",
- "gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
  "gpui-pre-linux",
  "gpui-pre-macos",
  "gpui-pre-web",
@@ -2322,9 +2322,9 @@ dependencies = [
 [[package]]
 name = "gpui-pre-refineable"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
- "gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre-derive-refineable 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
 ]
 
 [[package]]
@@ -2347,7 +2347,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre-scheduler"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "async-task",
  "backtrace",
@@ -2373,7 +2373,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre-shared-string"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "schemars",
  "serde",
@@ -2395,9 +2395,9 @@ dependencies = [
 [[package]]
 name = "gpui-pre-sum-tree"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
- "gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre-ztracing 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
  "heapless",
  "rayon",
  "tracing",
@@ -2417,7 +2417,7 @@ dependencies = [
 [[package]]
 name = "gpui-pre-util"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "anyhow",
  "log",
@@ -2483,15 +2483,15 @@ dependencies = [
 [[package]]
 name = "gpui-pre-wgpu"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
  "anyhow",
  "bytemuck",
  "cosmic-text",
  "etagere",
- "gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
- "gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-collections 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
+ "gpui-pre-util 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
  "itertools",
  "log",
  "parking_lot",
@@ -2550,9 +2550,9 @@ dependencies = [
 [[package]]
 name = "gpui-pre-ztracing"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 dependencies = [
- "gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06)",
+ "gpui-pre-ztracing-macro 0.3.9 (git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17)",
  "tracing",
 ]
 
@@ -2565,7 +2565,7 @@ checksum = "4b0d73e1bc02eef886a5947f41b8512708792e9e5d3053d181843311a487f96f"
 [[package]]
 name = "gpui-pre-ztracing-macro"
 version = "0.3.9"
-source = "git+https://github.com/thisisgm/gpui-omarchy?rev=9a3b3690f7e70d798ae57b1fa811816a474cde06#9a3b3690f7e70d798ae57b1fa811816a474cde06"
+source = "git+https://github.com/thisisgm/gpui-omarchy?rev=b17e1e49a58ac33db00f3124d192f22bbc9bac17#b17e1e49a58ac33db00f3124d192f22bbc9bac17"
 
 [[package]]
 name = "half"

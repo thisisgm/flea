@@ -47,6 +47,20 @@ impl Request<'_> {
     }
 }
 
+/// The fields of one `rows` entry a list row draws, read from docs/protocol.md "rows".
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct RowFacts {
+    pub name: String,
+    pub dir: bool,
+    pub size: u64,
+    pub mtime: i64,
+    pub mode: u32,
+    pub icon: String,
+    pub link: Option<String>,
+    /// False only when the backend sends `"x":false`: the mount has no real modes, so `mode` marks no executable.
+    pub real_modes: bool,
+}
+
 #[derive(Debug, PartialEq)]
 pub enum Reply {
     Listed {
@@ -55,7 +69,7 @@ pub enum Reply {
     },
     Rows {
         start: usize,
-        names: Vec<String>,
+        rows: Vec<RowFacts>,
         listing: usize,
     },
     Error {
@@ -82,13 +96,9 @@ pub fn parse_reply(line: &str) -> Result<Reply, String> {
                 .get("rows")
                 .and_then(Json::as_array)
                 .ok_or("rows must be an array")?;
-            let names = rows
-                .iter()
-                .map(|row| string(row, "n").map(str::to_owned))
-                .collect::<Result<_, _>>()?;
             Ok(Reply::Rows {
                 start: uint(&document, "start")?,
-                names,
+                rows: rows.iter().map(row_facts).collect::<Result<_, _>>()?,
                 listing: uint(&document, "listing")?,
             })
         }
@@ -99,6 +109,27 @@ pub fn parse_reply(line: &str) -> Result<Reply, String> {
         }),
         _ => Ok(Reply::Other),
     }
+}
+
+fn row_facts(row: &Json) -> Result<RowFacts, String> {
+    let link = match row.get("l") {
+        None => None,
+        Some(_) => Some(string(row, "l")?.to_owned()),
+    };
+    let real_modes = match row.get("x") {
+        None => true,
+        Some(value) => value.as_bool().ok_or("x must be a boolean")?,
+    };
+    Ok(RowFacts {
+        name: string(row, "n")?.to_owned(),
+        dir: row.get("d").and_then(Json::as_bool).ok_or("d must be a boolean")?,
+        size: uint(row, "s")? as u64,
+        mtime: int(row, "m")?,
+        mode: u32::try_from(uint(row, "p")?).map_err(|_| "p must fit a mode")?,
+        icon: string(row, "i")?.to_owned(),
+        link,
+        real_modes,
+    })
 }
 
 fn string<'a>(value: &'a Json, key: &str) -> Result<&'a str, String> {
@@ -117,120 +148,15 @@ fn uint(value: &Json, key: &str) -> Result<usize, String> {
     }
 }
 
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn list_paths_cannot_inject_another_line_or_field() {
-        let path = "/files/a\"b\nnext\\file";
-        let mut wire = Vec::new();
-        Request::List {
-            path,
-            first: 20,
-            select: Some(path),
-        }
-        .write_to(&mut wire)
-        .unwrap();
-        let text = String::from_utf8(wire).unwrap();
-        assert_eq!(text.lines().count(), 1);
-        let document = jsondoc::parse(&text).unwrap();
-        assert_eq!(string(&document, "c").unwrap(), "list");
-        assert_eq!(string(&document, "path").unwrap(), path);
-        assert_eq!(string(&document, "select").unwrap(), path);
-        assert_eq!(uint(&document, "first").unwrap(), 20);
-        assert_eq!(document.get("hidden"), Some(&Json::Bool(false)));
-        let mut wire = Vec::new();
-        Request::List {
-            path,
-            first: 0,
-            select: None,
-        }
-        .write_to(&mut wire)
-        .unwrap();
-        assert!(jsondoc::parse(std::str::from_utf8(&wire).unwrap())
-            .unwrap()
-            .get("select")
-            .is_none());
-    }
-
-    #[test]
-    fn window_and_quit_keep_the_existing_wire_shape() {
-        let mut wire = Vec::new();
-        Request::Window {
-            start: 17,
-            count: 20,
-        }
-        .write_to(&mut wire)
-        .unwrap();
-        Request::Quit.write_to(&mut wire).unwrap();
-        assert_eq!(
-            wire,
-            b"{\"c\":\"window\",\"start\":17,\"count\":20}\n{\"c\":\"quit\"}\n"
-        );
-    }
-
-    #[test]
-    fn parses_the_initial_pair_and_preserves_escaped_names() {
-        assert_eq!(
-            parse_reply(r#"{"t":"listed","n":2,"path":"/files/"}"#).unwrap(),
-            Reply::Listed {
-                path: "/files/".into(),
-                total: 2
-            }
-        );
-        assert_eq!(parse_reply(r#"{"t":"rows","start":42,"rows":[{"n":"a\nb","t":false},{"n":"caf\u00e9","t":true}],"listing":9007199254740993}"#).unwrap(),
-            Reply::Rows { start: 42, names: vec!["a\nb".into(), "caf\u{e9}".into()], listing: 9007199254740993 });
-        assert_eq!(
-            parse_reply(r#"{"t":"rows","start":0,"rows":[],"listing":1}"#).unwrap(),
-            Reply::Rows {
-                start: 0,
-                names: vec![],
-                listing: 1
-            }
-        );
-    }
-
-    #[test]
-    fn rejects_malformed_fields_and_never_uses_nested_envelope_fields() {
-        for bad in [
-            r#"{"rows":[{"t":"listed","n":2,"path":"/wrong"}]}"#,
-            r#"{"t":"listed","n":-1,"path":"/files"}"#,
-            r#"{"t":"listed","n":1.5,"path":"/files"}"#,
-            r#"{"t":"rows","start":0,"rows":[{"n":4}],"listing":1}"#,
-            r#"{"t":"rows"}"#,
-            "{",
-        ] {
-            assert!(parse_reply(bad).is_err(), "{bad}");
-        }
-        assert_eq!(
-            parse_reply(r#"{"t":"changed","path":"/files"}"#).unwrap(),
-            Reply::Other
-        );
-        assert_eq!(
-            parse_reply(r#"{"t":"error","where":"scan","path":"/files","msg":"denied"}"#).unwrap(),
-            Reply::Error {
-                operation: "scan".into(),
-                path: "/files".into(),
-                message: "denied".into()
-            }
-        );
-    }
-
-    #[test]
-    fn a_write_failure_is_returned_to_the_caller() {
-        struct Closed;
-        impl Write for Closed {
-            fn write(&mut self, _: &[u8]) -> io::Result<usize> {
-                Err(io::ErrorKind::BrokenPipe.into())
-            }
-            fn flush(&mut self) -> io::Result<()> {
-                Ok(())
-            }
-        }
-        assert_eq!(
-            Request::Quit.write_to(&mut Closed).unwrap_err().kind(),
-            io::ErrorKind::BrokenPipe
-        );
+fn int(value: &Json, key: &str) -> Result<i64, String> {
+    match value.get(key) {
+        Some(Json::Num(number)) => number
+            .parse()
+            .map_err(|_| format!("{key} must be an integer")),
+        _ => Err(format!("{key} must be an integer")),
     }
 }
+
+#[cfg(test)]
+#[path = "protocol_tests.rs"]
+mod tests;

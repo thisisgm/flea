@@ -71,6 +71,7 @@ fn stamp(path: &Path) -> Option<Stamp> {
     })
 }
 
+#[derive(Clone)]
 pub struct I18n {
     paths: Paths,
     roster: Vec<Locale>,

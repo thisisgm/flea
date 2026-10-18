@@ -10,5 +10,9 @@ gpui = { workspace = true }
 gpui_platform = { workspace = true }
 async-channel = "=2.5.0"
 
+[features]
+# Bench-only: a benchmark driver's markers and scroll test, never enabled by packaging or any default build.
+bench-seam = []
+
 [dev-dependencies]
 gpui = { workspace = true, features = ["test-support"] }

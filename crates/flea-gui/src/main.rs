@@ -1,58 +1,59 @@
-use flea_gui::{ipc::server::Server, state};
-use gpui::{prelude::*, px, size, App, TitlebarOptions, WindowBounds, WindowOptions};
-use std::path::PathBuf;
-
-fn arguments() -> Result<(String, Option<String>), String> {
-    parse_arguments(std::env::args().skip(1))
-}
-
-fn parse_arguments(
-    mut args: impl Iterator<Item = String>,
-) -> Result<(String, Option<String>), String> {
-    let mut path = None;
-    let mut select = None;
-    while let Some(argument) = args.next() {
-        match argument.as_str() {
-            "--select" => select = Some(args.next().ok_or("--select needs a target")?),
-            "--" => {
-                path = args.next();
-                if args.next().is_some() {
-                    return Err("only one start directory is accepted".into());
-                }
-                break;
-            }
-            flag if flag.starts_with('-') => return Err(format!("unknown flag {flag}")),
-            _ if path.is_none() => path = Some(argument),
-            _ => return Err("only one start directory is accepted".into()),
-        }
-    }
-    let path = match path {
-        Some(path) => PathBuf::from(path),
-        None => std::env::current_dir().map_err(|error| error.to_string())?,
-    };
-    let absolute = if path.is_absolute() {
-        path
-    } else {
-        std::env::current_dir()
-            .map_err(|error| error.to_string())?
-            .join(path)
-    };
-    Ok((absolute.to_string_lossy().into_owned(), select))
-}
+use flea_gui::{
+    ipc::server::Server,
+    window::{
+        self,
+        locale::Service,
+        startup::{self, Arguments, Launch},
+    },
+};
+use gpui::App;
 
 fn main() {
-    let (path, select) = arguments().unwrap_or_else(|error| {
+    let (service, initial) = Service::start(flea::i18n::Paths::default()).unwrap_or_else(|error| {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);
     });
-    let i18n = flea::i18n::I18n::default();
-    let server = flea::ipc::endpoint::runtime()
-        .and_then(|runtime| Server::bind(&runtime))
+    let locale = initial
+        .recv_blocking()
+        .unwrap_or_else(|_| std::process::exit(2));
+    let mut args = Arguments::parse(std::env::args().skip(1)).unwrap_or_else(|error| {
+        eprintln!(
+            "flea-gui: {}",
+            locale.catalog.tr_args(error.key, &[&error.argument])
+        );
+        std::process::exit(2);
+    });
+    let worker = std::thread::Builder::new()
+        .name("flea-startup".into())
+        .spawn(move || {
+            let settings =
+                startup::load_settings().map_err(|error| ("window.settings_failed", error))?;
+            let cwd = std::env::current_dir()
+                .map_err(|error| ("window.settings_failed", error.to_string()))?;
+            args.absolutize(&cwd);
+            let home = std::env::var("HOME")
+                .ok()
+                .filter(|home| !home.is_empty())
+                .unwrap_or_else(|| "/".into());
+            let server = flea::ipc::endpoint::runtime()
+                .and_then(|runtime| Server::bind(&runtime))
+                .map_err(|error| ("ipc.start_failed", error.to_string()))?;
+            Ok::<_, (&str, String)>((Launch::resolve(settings, args, &home), server))
+        })
         .unwrap_or_else(|error| {
             eprintln!(
                 "flea-gui: {}",
-                i18n.tr_args("ipc.start_failed", &[&error.to_string()])
+                locale
+                    .catalog
+                    .tr_args("window.settings_failed", &[&error.to_string()])
             );
+            std::process::exit(2);
+        });
+    let (launch, server) = worker
+        .join()
+        .unwrap_or_else(|_| std::process::exit(2))
+        .unwrap_or_else(|(key, error)| {
+            eprintln!("flea-gui: {}", locale.catalog.tr_args(key, &[&error]));
             std::process::exit(2);
         });
     let events = server.events.clone();
@@ -63,74 +64,18 @@ fn main() {
             }
         })
         .detach();
-        let options = WindowOptions {
-            app_id: Some("flea".into()),
-            window_bounds: Some(WindowBounds::centered(size(px(900.), px(640.)), cx)),
-            titlebar: Some(TitlebarOptions {
-                title: Some("Flea".into()),
-                ..Default::default()
-            }),
-            ..Default::default()
-        };
-        if let Err(error) = cx.open_window(options, |window, cx| {
-            cx.new(|cx| state::Shell::new(path, select, events, window, cx))
-        }) {
-            eprintln!("flea-gui: the window could not open: {error}");
-            cx.quit();
+        match window::open(launch, locale.clone(), events, cx) {
+            Ok(window) => {
+                let _ = window.update(cx, |shell, _, cx| shell.follow_locale(&service, cx));
+                cx.activate(true);
+            }
+            Err(error) => {
+                eprintln!(
+                    "flea-gui: {}",
+                    locale.catalog.tr_args("window.open_failed", &[&error])
+                );
+                cx.quit();
+            }
         }
-        cx.activate(true);
     });
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-
-    #[test]
-    fn adv_e_r1_argv_ignores_parent_path_and_selection() {
-        const CHILD: &str = "FLEA_TEST_ARGV_CHILD";
-        if std::env::var_os(CHILD).is_none() {
-            let output = std::process::Command::new(std::env::current_exe().unwrap())
-                .args([
-                    "--exact",
-                    "tests::adv_e_r1_argv_ignores_parent_path_and_selection",
-                    "--nocapture",
-                ])
-                .env(CHILD, "1")
-                .env("FLEA_PATH", "/stale-parent/path")
-                .env("FLEA_SELECT", "/stale-parent/selection")
-                .output()
-                .unwrap();
-            assert!(
-                output.status.success(),
-                "{}",
-                String::from_utf8_lossy(&output.stderr)
-            );
-            return;
-        }
-        let explicit =
-            parse_arguments(["--", "/explicit/path"].map(str::to_owned).into_iter()).unwrap();
-        assert_eq!(explicit, ("/explicit/path".into(), None));
-        let bare = parse_arguments(std::iter::empty()).unwrap();
-        assert_eq!(
-            bare,
-            (
-                std::env::current_dir()
-                    .unwrap()
-                    .to_string_lossy()
-                    .into_owned(),
-                None
-            )
-        );
-        let selected = parse_arguments(
-            ["--select", "/explicit/file", "--", "/explicit"]
-                .map(str::to_owned)
-                .into_iter(),
-        )
-        .unwrap();
-        assert_eq!(
-            selected,
-            ("/explicit".into(), Some("/explicit/file".into()))
-        );
-    }
 }

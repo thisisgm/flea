@@ -9,6 +9,26 @@
     "flea:ipc.window_busy": "be74e6c7209c",
     "flea:items.count": "e72c64c9c36b",
     "flea:operation.failed": "a31816d6ddf5",
-    "flea:selection.count": "68f607d6d336"
+    "flea:selection.count": "68f607d6d336",
+    "flea:window.backend_eof": "437097b909cb",
+    "flea:window.backend_protocol": "40d0931a1ed1",
+    "flea:window.backend_read": "5e8ebb984555",
+    "flea:window.backend_reader": "40da9c700ade",
+    "flea:window.backend_report": "509fbea9543c",
+    "flea:window.backend_start": "74957ebe5124",
+    "flea:window.backend_stopped": "d7f42f638f37",
+    "flea:window.backend_timeout": "8edb57a914fa",
+    "flea:window.backend_wait": "da01b5767dc6",
+    "flea:window.backend_write": "5a7dd6a32e1c",
+    "flea:window.column_modified": "e8ce5dcaf408",
+    "flea:window.column_name": "dcd1d5223f73",
+    "flea:window.column_size": "1af851907331",
+    "flea:window.loading": "dc380888c4e2",
+    "flea:window.one_directory": "c5ce462ed072",
+    "flea:window.open_failed": "30d05691f3ef",
+    "flea:window.select_required": "b18009980e62",
+    "flea:window.settings_failed": "5cd88259b7f4",
+    "flea:window.unknown_flag": "6d95bf54c0f9",
+    "flea:window.waiting": "2c288e77af6a"
   }
 }

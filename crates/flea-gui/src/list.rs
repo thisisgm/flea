@@ -1,128 +1,178 @@
-use gpui::{
-    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
-    GlobalElementId, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, ShapedLine,
-    SharedString, Style, TextAlign, TextStyle, TruncateFrom, Window,
+//! The list pane: one custom Element paints the visible rows from prepared lines, with no layout node per row.
+#[cfg(test)]
+mod bench;
+pub mod pane;
+mod locale;
+pub mod seam;
+#[cfg(test)]
+mod tests;
+
+use crate::row::{
+    self,
+    cache::{Prepared, RowCache, Shaping},
+    NameInk,
 };
+use flea::protocol::RowFacts;
+use gpui::{
+    fill, font, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
+    GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, Style,
+    TextRun, TextStyle, TransformationMatrix, Window,
+};
+use pane::{Held, ROW_HEIGHT};
 use std::{cell::RefCell, rc::Rc};
 
-pub const ROW_HEIGHT: f32 = 31.;
-const INSET: f32 = 14.;
+// Board list.html: 14 padding, a 23 mark slot and 9 gap, a 17 mark, Size 70, Modified 134, a 28 end, a 2 edge.
+const PAD_X: f32 = 14.;
+const MARK_SLOT: f32 = 23.;
+const MARK: f32 = 17.;
+const LABEL_X: f32 = PAD_X + MARK_SLOT + 9.;
+const SIZE_W: f32 = 70.;
+const DATE_W: f32 = 134.;
+const END_W: f32 = 28.;
+const EDGE_W: f32 = 2.;
+const CURSOR_WASH: f32 = 0.18;
+// Rows kept shaped past the viewport, so a short scroll back reshapes nothing.
+const CACHE_SCREENS: usize = 3;
 
-pub struct Snapshot {
-    pub title: SharedString,
-    pub total: usize,
-    pub start: usize,
-    pub listing: usize,
-    pub names: Vec<SharedString>,
+/// Omarchy's default face at the board's body and caption sizes, until the pane follows the live font-set.
+#[derive(Clone)]
+pub struct Typeface {
+    pub font: Font,
+    pub body: Pixels,
+    pub caption: Pixels,
 }
 
-#[derive(PartialEq)]
-struct TextKey {
-    font: Font,
-    size: Pixels,
-    width: Pixels,
-    scale: f32,
-    color: Hsla,
-}
-
-struct Entry {
-    index: usize,
-    text: SharedString,
-    line: Rc<ShapedLine>,
-    used: u64,
-}
-
-#[derive(Default)]
-pub struct NameCache {
-    key: Option<TextKey>,
-    entries: Vec<Entry>,
-    prepared: Vec<Rc<ShapedLine>>,
-    clock: u64,
-    line_height: Pixels,
-    background: Hsla,
-    #[cfg(test)]
-    bounds: Bounds<Pixels>,
-}
-
-impl NameCache {
-    fn line(
-        &mut self,
-        index: usize,
-        text: &SharedString,
-        limit: usize,
-        shape: impl FnOnce() -> ShapedLine,
-    ) -> Rc<ShapedLine> {
-        self.clock += 1;
-        if let Some(entry) = self
-            .entries
-            .iter_mut()
-            .find(|entry| entry.index == index && &entry.text == text)
-        {
-            entry.used = self.clock;
-            return Rc::clone(&entry.line);
+impl Typeface {
+    pub fn omarchy_default() -> Self {
+        Self {
+            font: font("JetBrainsMono Nerd Font"),
+            body: px(14.),
+            caption: px(12.),
         }
-        if self.entries.len() >= limit {
-            let oldest = self
-                .entries
-                .iter()
-                .enumerate()
-                .min_by_key(|(_, entry)| entry.used)
-                .map(|(index, _)| index)
-                .unwrap();
-            self.entries.swap_remove(oldest);
+    }
+}
+
+/// The palette roles a row draws with, to be filled from Omarchy's theme.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Palette {
+    pub background: Hsla,
+    pub foreground: Hsla,
+    pub metadata: Hsla,
+    pub metadata_frame: Hsla,
+    pub accent: Hsla,
+    pub accent_frame: Hsla,
+    pub symlink: Hsla,
+    pub executable: Hsla,
+}
+
+impl Palette {
+    /// Interim roles from the inherited text style until the theme tokens land.
+    pub fn inherited(style: &TextStyle) -> Self {
+        let foreground = style.color;
+        Self {
+            background: style.background_color.unwrap_or(Hsla {
+                l: 1. - foreground.l,
+                ..foreground
+            }),
+            foreground,
+            metadata: foreground.opacity(0.62),
+            metadata_frame: foreground.opacity(0.5),
+            accent: foreground,
+            accent_frame: foreground,
+            symlink: foreground,
+            executable: foreground,
         }
-        let line = Rc::new(shape());
-        self.entries.push(Entry {
-            index,
-            text: text.clone(),
-            line: Rc::clone(&line),
-            used: self.clock,
-        });
-        line
+    }
+
+    fn name(&self, ink: NameInk, lifted: bool) -> Hsla {
+        match (lifted, ink) {
+            (true, _) | (false, NameInk::Foreground) => self.foreground,
+            (false, NameInk::Symlink) => self.symlink,
+            (false, NameInk::Executable) => self.executable,
+        }
+    }
+}
+
+/// Paint state a pane keeps across frames: shaped rows, the face's metrics and this frame's rows.
+pub struct ListState {
+    pub typeface: Typeface,
+    pub rows: RowCache,
+    advance: Option<Pixels>,
+    visible: Vec<(usize, Option<Rc<Prepared>>)>,
+}
+
+impl ListState {
+    pub fn new(typeface: Typeface) -> Self {
+        Self {
+            typeface,
+            rows: RowCache::default(),
+            advance: None,
+            visible: Vec::new(),
+        }
+    }
+
+    // One advance of "0" at the body size, Theme.bodyAdvance, which turns the name width into cells.
+    fn body_advance(&mut self, window: &Window) -> Pixels {
+        if let Some(advance) = self.advance {
+            return advance;
+        }
+        let text = window.text_system();
+        let id = text.resolve_font(&self.typeface.font);
+        let advance = text
+            .advance(id, self.typeface.body, '0')
+            .map_or(self.typeface.body * 0.6, |advance| advance.width);
+        self.advance = Some(advance);
+        advance
     }
 }
 
 pub struct ListElement {
-    snapshot: Rc<Snapshot>,
-    cache: Rc<RefCell<NameCache>>,
+    held: Rc<Held>,
+    scroll_y: f32,
+    cursor: usize,
+    state: Rc<RefCell<ListState>>,
 }
 
 impl ListElement {
-    pub fn new(snapshot: Rc<Snapshot>, cache: Rc<RefCell<NameCache>>) -> Self {
-        Self { snapshot, cache }
+    pub fn new(held: Rc<Held>, scroll_y: f32, cursor: usize, state: Rc<RefCell<ListState>>) -> Self {
+        Self {
+            held,
+            scroll_y,
+            cursor,
+            state,
+        }
     }
 }
 
-fn shape_name(
-    text: SharedString,
-    width: Pixels,
-    style: &TextStyle,
-    font_size: Pixels,
-    window: &mut Window,
-    cx: &mut App,
-) -> ShapedLine {
-    let runs = [style.to_run(text.len())];
-    let full = window
-        .text_system()
-        .shape_line(text.clone(), font_size, &runs, None);
-    if full.width() <= width {
-        return full;
+/// Shapes one row's three cells once, the name already middle-elided to its cells so no long name is shaped whole.
+fn prepare(facts: &RowFacts, shaping: &Shaping, window: &Window) -> Prepared {
+    let text = window.text_system();
+    let line = |value: &str, size: Pixels| {
+        let run = TextRun {
+            len: value.len(),
+            font: shaping.font.clone(),
+            color: Hsla::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        GlyphRun::new(text.layout_line(value, size, &[run], None))
+    };
+    let name = row::decorated_name(facts);
+    Prepared {
+        name: line(&row::middle_elide(&name, shaping.name_cells), shaping.body),
+        size: line(&row::size_text(facts), shaping.caption),
+        date: line(&row::format_date(facts.mtime), shaping.caption),
+        mark: row::marks::Mark::for_row(&facts.icon, facts.mode),
+        ink: row::name_ink(facts),
     }
-    let mut wrapper = cx.text_system().line_wrapper(style.font(), font_size);
-    let (text, runs) = wrapper.truncate_line(text, width, "...", &runs, TruncateFrom::End);
-    window
-        .text_system()
-        .shape_line(text, font_size, &runs, None)
 }
 
-fn row_bounds(bounds: Bounds<Pixels>, slot: usize) -> Bounds<Pixels> {
-    Bounds::new(
-        bounds.origin + point(px(INSET), px(slot as f32 * ROW_HEIGHT)),
-        size(
-            (bounds.size.width - px(INSET * 2.)).max(px(0.)),
-            px(ROW_HEIGHT),
-        ),
-    )
+/// Paints a prepared line from the tiles its glyph run kept, so a row already seen costs no lookup per glyph.
+fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
+    let line = run.line();
+    let baseline = window.pixel_snap(top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
+    let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
 impl IntoElement for ListElement {
@@ -134,7 +184,7 @@ impl IntoElement for ListElement {
 
 impl Element for ListElement {
     type RequestLayoutState = ();
-    type PrepaintState = ();
+    type PrepaintState = Palette;
 
     fn id(&self) -> Option<ElementId> {
         None
@@ -164,57 +214,33 @@ impl Element for ListElement {
         bounds: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        cx: &mut App,
-    ) {
-        let style = window.text_style();
-        let font_size = style.font_size.to_pixels(window.rem_size());
-        let width = row_bounds(bounds, 0).size.width;
-        let key = TextKey {
-            font: style.font(),
-            size: font_size,
-            width,
+        _: &mut App,
+    ) -> Palette {
+        let mut state = self.state.borrow_mut();
+        let advance = state.body_advance(window);
+        let name_width = bounds.size.width - px(LABEL_X + SIZE_W + DATE_W + END_W);
+        let shaping = Shaping {
+            listing: self.held.listing,
+            font: state.typeface.font.clone(),
+            body: state.typeface.body,
+            caption: state.typeface.caption,
+            name_cells: (name_width / advance).floor().max(0.) as usize,
             scale: window.scale_factor(),
-            color: style.color,
         };
-        let count = crate::state::visible_rows(bounds.size.height).min(self.snapshot.names.len());
-        let limit = count + 1;
-        let mut cache = self.cache.borrow_mut();
-        #[cfg(test)]
-        {
-            cache.bounds = bounds;
+        let height = f32::from(bounds.size.height);
+        let first = (self.scroll_y / ROW_HEIGHT).floor() as usize;
+        let last = (((self.scroll_y + height) / ROW_HEIGHT).ceil() as usize).min(self.held.total);
+        let ListState { rows, visible, .. } = &mut *state;
+        rows.begin(&shaping, pane::visible_rows(height) * CACHE_SCREENS);
+        visible.clear();
+        for index in first..last.max(first) {
+            let prepared = self
+                .held
+                .row(index)
+                .map(|facts| rows.get_or_prepare(index, facts, || prepare(facts, &shaping, window)));
+            visible.push((index, prepared));
         }
-        if cache.key.as_ref() != Some(&key) {
-            cache.entries.clear();
-            cache.key = Some(key);
-        }
-        while cache.entries.len() > limit {
-            cache.entries.pop();
-        }
-        cache.prepared.clear();
-        cache.line_height = window.pixel_snap(
-            style
-                .line_height
-                .to_pixels(font_size.into(), window.rem_size()),
-        );
-        // Derive the background from the inherited text tokens.
-        cache.background = style.background_color.unwrap_or(Hsla {
-            l: 1. - style.color.l,
-            ..style.color
-        });
-        for (slot, text) in std::iter::once(&self.snapshot.title)
-            .chain(self.snapshot.names.iter().take(count))
-            .enumerate()
-        {
-            let index = if slot == 0 {
-                usize::MAX
-            } else {
-                self.snapshot.start + slot - 1
-            };
-            let line = cache.line(index, text, limit, || {
-                shape_name(text.clone(), width, &style, font_size, window, cx)
-            });
-            cache.prepared.push(line);
-        }
+        Palette::inherited(&window.text_style())
     }
 
     fn paint(
@@ -223,78 +249,65 @@ impl Element for ListElement {
         _: Option<&InspectorElementId>,
         bounds: Bounds<Pixels>,
         _: &mut (),
-        _: &mut (),
+        palette: &mut Palette,
         window: &mut Window,
         cx: &mut App,
     ) {
-        let cache = self.cache.borrow();
-        window.paint_quad(fill(bounds, cache.background));
+        let palette = *palette;
+        let state = self.state.borrow();
+        let left = bounds.origin.x;
+        let right = bounds.origin.x + bounds.size.width;
+        let top_of = |index: usize| bounds.origin.y + px(index as f32 * ROW_HEIGHT - self.scroll_y);
+        window.paint_quad(fill(bounds, palette.background));
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
-            for (slot, line) in cache.prepared.iter().enumerate() {
-                let cell = row_bounds(bounds, slot);
-                let origin = cell.origin + point(px(0.), (px(ROW_HEIGHT) - cache.line_height) / 2.);
-                if let Err(error) = line.paint(
-                    origin,
-                    cache.line_height,
-                    TextAlign::Left,
-                    Some(cell.size.width),
-                    window,
-                    cx,
-                ) {
-                    eprintln!("flea-gui: a name could not paint: {error}");
+            if state.visible.iter().any(|(index, _)| *index == self.cursor) {
+                let top = top_of(self.cursor);
+                let row = Bounds::new(point(left, top), size(bounds.size.width, px(ROW_HEIGHT)));
+                window.paint_quad(fill(row, palette.accent.opacity(CURSOR_WASH)));
+                let edge = Bounds::new(point(left, top), size(px(EDGE_W), px(ROW_HEIGHT)));
+                window.paint_quad(fill(edge, palette.accent_frame));
+            }
+            // One layer for every mark and glyph, so the scene orders the whole list once rather than once a line.
+            window.paint_layer(bounds, |window| {
+                let names = Bounds::new(
+                    point(left + px(LABEL_X), bounds.origin.y),
+                    size(
+                        (bounds.size.width - px(LABEL_X + SIZE_W + DATE_W + END_W)).max(px(0.)),
+                        bounds.size.height,
+                    ),
+                );
+                for (index, prepared) in &state.visible {
+                    let Some(prepared) = prepared else { continue };
+                    let lifted = *index == self.cursor;
+                    let top = top_of(*index);
+                    let mark_at = point(
+                        left + px(PAD_X + (MARK_SLOT - MARK) / 2.),
+                        top + px((ROW_HEIGHT - MARK) / 2.),
+                    );
+                    let (key, data) = prepared.mark.svg();
+                    let mark_ink = if lifted { palette.foreground } else { palette.metadata_frame };
+                    let _ = window.paint_svg(
+                        Bounds::new(mark_at, size(px(MARK), px(MARK))),
+                        key,
+                        Some(data),
+                        TransformationMatrix::unit(),
+                        mark_ink,
+                        cx,
+                    );
+                    let meta = if lifted { palette.foreground } else { palette.metadata };
+                    let size_right = right - px(END_W + DATE_W);
+                    paint_line(&prepared.size, size_right - prepared.size.line().width, top, meta, window);
+                    let date_right = right - px(END_W);
+                    paint_line(&prepared.date, date_right - prepared.date.line().width, top, meta, window);
                 }
-            }
-        });
-    }
-}
-
-#[cfg(test)]
-mod tests {
-    use super::*;
-    use gpui::{AvailableSpace, TestAppContext};
-
-    #[gpui::test]
-    fn list_element_lays_out_n_fixed_rows_for_n_names(cx: &mut TestAppContext) {
-        let cx = cx.add_empty_window();
-        for count in [0, 1, 7, 20] {
-            let snapshot = Rc::new(Snapshot {
-                title: "files".into(),
-                total: count,
-                start: 0,
-                listing: 1,
-                names: (0..count)
-                    .map(|index| format!("file-{index}").into())
-                    .collect(),
+                window.with_content_mask(Some(ContentMask { bounds: names }), |window| {
+                    for (index, prepared) in &state.visible {
+                        let Some(prepared) = prepared else { continue };
+                        let ink = palette.name(prepared.ink, *index == self.cursor);
+                        paint_line(&prepared.name, names.origin.x, top_of(*index), ink, window);
+                    }
+                });
             });
-            let cache = Rc::new(RefCell::new(NameCache::default()));
-            let height = px((count + 1) as f32 * ROW_HEIGHT);
-            cx.draw(
-                point(px(0.), px(0.)),
-                size(
-                    AvailableSpace::Definite(px(640.)),
-                    AvailableSpace::Definite(height),
-                ),
-                |_, _| ListElement::new(Rc::clone(&snapshot), Rc::clone(&cache)),
-            );
-            let bounds = cache.borrow().bounds;
-            assert_eq!(bounds.size.height, height);
-            assert_eq!(cache.borrow().prepared.len(), count + 1);
-            for index in 0..count {
-                let row = row_bounds(bounds, index + 1);
-                assert_eq!(row.size.height, px(31.));
-                assert_eq!(row.origin.y, px((index + 1) as f32 * 31.));
-            }
-            let first_line = Rc::clone(&cache.borrow().prepared[0]);
-            cx.draw(
-                point(px(0.), px(0.)),
-                size(
-                    AvailableSpace::Definite(px(640.)),
-                    AvailableSpace::Definite(height),
-                ),
-                |_, _| ListElement::new(snapshot, Rc::clone(&cache)),
-            );
-            assert_eq!(cache.borrow().entries.len(), count + 1);
-            assert!(Rc::ptr_eq(&first_line, &cache.borrow().prepared[0]));
-        }
+        });
     }
 }

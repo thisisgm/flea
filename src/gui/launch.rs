@@ -29,11 +29,9 @@ fn gpui_argv(binary: &Path, start: Option<&str>, select: Option<&str>) -> Comman
     if let Some(target) = select {
         cmd.arg("--select").arg(target);
     }
-    let path = start
-        .map(str::to_owned)
-        .or_else(|| std::env::var("HOME").ok().filter(|value| !value.is_empty()))
-        .unwrap_or_else(|| "/".into());
-    cmd.arg("--").arg(path);
+    if let Some(path) = start {
+        cmd.arg("--").arg(path);
+    }
     cmd
 }
 
@@ -148,8 +146,7 @@ mod tests {
                 .any(|(name, value)| name == OsStr::new(key) && value.is_none()));
         }
         let bare = gpui_argv(Path::new("flea-gui"), None, None);
-        assert_eq!(bare.get_args().count(), 2);
-        assert_eq!(bare.get_args().next(), Some(OsStr::new("--")));
+        assert_eq!(bare.get_args().count(), 0);
     }
 
     fn argv_of(command: &Command) -> Vec<String> {
