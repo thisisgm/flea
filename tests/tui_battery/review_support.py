@@ -36,7 +36,7 @@ def board_file(root, name="tui-list-text", text="A", decoration=""):
     return Board(page)
 
 
-def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_kind=False, references=None, frame=None):
+def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_kind=False, references=None, frame=None, validate=None):
     if references:
         (root / "boards").mkdir()
         for extension in ("html", "png"):
@@ -95,7 +95,8 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
         return {"status": "REVIEW"}
 
     terminal = SimpleNamespace(client=client, launched=True, launch=launch, close=close)
-    adapter = SimpleNamespace(identity="owned", preflight=lambda *a: {}, configure=configure, environment=lambda: {})
+    adapter = SimpleNamespace(identity="owned", preflight=lambda *a: {}, configure=configure, environment=lambda: {},
+                              validate=validate or (lambda *a: {"status": "PASS"}))
     display = SimpleNamespace(monitor={"x": 0, "y": 0}, original_rounding=0, capture=capture, client=lambda *a: client)
     args = SimpleNamespace(preset=preset, fixtures=None, binary=Path("/candidate"), boards=root, timeout=1)
     state = {"id": state_id, "family": "work", "requires": [], "cwd": "/fx/v/work", "steps": [], "predicate": {}}
@@ -113,4 +114,6 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
             stack.enter_context(patch.object(driver, name, double))
         result = driver.execute_pair(args, Owned(root), display, "foot", state, variant, {},
                                      {"elf_sha256": "elf"}, {}, {}, {}, {})
-    return result, json.loads((fx / "state/flea/ui.json").read_text())
+    # A state blocked before its fixture was built has no candidate settings.
+    settings = fx / "state/flea/ui.json"
+    return result, json.loads(settings.read_text()) if settings.is_file() else None

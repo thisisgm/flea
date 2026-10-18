@@ -30,6 +30,9 @@ def terminal(name, args):
     if args in (["--help"], ["--version"], ["+version"], ["-V"]):
         print("fake terminal diagnostic " + " ".join(OPTIONS[name]))
         return 0
+    # A config check answers like a terminal that accepts the config; the battery's tests cover a rejection.
+    if args[:1] in (["--check-config"], ["+validate-config"], ["+runpy"]):
+        return 0
     if name == "alacritty":
         command = args[args.index("-e") + 1:]
     elif name == "ghostty":
@@ -96,6 +99,7 @@ def adapter_diagnostic(name, case, commands, palette):
     adapter.configure()
     environment = dict(adapter.environment(), PATH=str(fakebin) + ":/usr/bin:/bin", PYTHONPATH=root, PYTHONDONTWRITEBYTECODE="1")
     preflight = adapter.preflight(commands, str(fakebin), environment)
+    config_check = adapter.validate(commands, str(fakebin), environment)
     save(case / "relay-spec.json", {"argv": [sys.executable, "-m", "tui_battery.fake", "--candidate"], "environment": environment})
     argv = adapter.argv([sys.executable, "-m", "tui_battery.relay", str(case / "relay-spec.json")])
     pid, master = pty.fork()
@@ -151,7 +155,7 @@ def adapter_diagnostic(name, case, commands, palette):
         receipt = json.loads((case / "relay-exit.json").read_text())
         if status or not found_key or not receipt["termios_restored"] or not receipt["relay_termios_restored"]:
             raise AssertionError(f"fake {name} failed PTY input/cleanup proof")
-        receipt.update(adapter=name, adapter_argv=argv, preflight=preflight, fake=True, native_acceptance=False,
+        receipt.update(adapter=name, adapter_argv=argv, preflight=preflight, config_check=config_check, fake=True, native_acceptance=False,
                        exit_code=status, elapsed_ms=round((time.monotonic() - started) * 1000, 3))
         return receipt
     finally:

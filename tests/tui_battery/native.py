@@ -28,6 +28,8 @@ HYPR_HELPER = Path(__file__).resolve().parents[2] / "tests/lib/hypr-dispatch.sh"
 WINDOW_ROUNDING = 8
 # Hyprland 0.56.2 applies exec_cmd's workspace, monitor and float rules to the window whose process holds this token.
 EXEC_RULE_TOKEN = "HL_EXEC_RULE_TOKEN"
+# Hyprland 0.56.2 reports a new headless output at its default mode for about a second before the set mode applies.
+MODE_DEADLINE = 5
 
 
 # Every compositor command runs as one bash call that sources the typed helper.
@@ -61,11 +63,18 @@ class Display:
         self.created = True
         try:
             compositor(self.commands, "hypr_monitor_mode", self.output, "2560x1440@60")
-            monitors = self.data("hypr_query_monitors")
-            monitor = next((m for m in monitors if m["name"] == self.output), None)
-            if not monitor or monitor["scale"] != 1 or monitor["width"] != 2560 or monitor["height"] != 1440:
-                raise Blocked("owned output mode/scale could not be verified")
-            self.monitor = monitor
+            seen = []
+
+            def applied():
+                monitor = next((m for m in self.data("hypr_query_monitors") if m["name"] == self.output), None)
+                seen[:] = [monitor]
+                return monitor if monitor and (monitor["scale"], monitor["width"], monitor["height"]) == (1, 2560, 1440) else None
+            try:
+                self.monitor = wait_for(applied, MODE_DEADLINE, "owned output mode")
+            except Blocked:
+                last = seen[0] if seen else None
+                observed = f"{last['width']}x{last['height']} scale {last['scale']}" if last else "no owned output"
+                raise Blocked("owned output mode/scale could not be verified: last seen " + observed) from None
             return self
         except BaseException:
             self.__exit__(None, None, None)
