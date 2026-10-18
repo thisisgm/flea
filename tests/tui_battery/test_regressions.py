@@ -5,6 +5,7 @@ import json
 import os
 from pathlib import Path
 import shutil
+import subprocess
 import sys
 import tempfile
 import unittest
@@ -26,6 +27,23 @@ class RegressionTests(unittest.TestCase):
         self.root = Path(tempfile.mkdtemp(prefix='regressions.', dir=parent))
         self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
         (self.root / MARKER).write_text('owned battery regressions\n')
+
+    def test_display_accepts_help_that_exits_one_like_hyprctl_0562(self):
+        # Sample input: hyprctl --help on Hyprland 0.56.2 prints the command list, including output, and exits 1.
+        monitors = [b'[]', json.dumps([{'name': 'FLEA-id', 'scale': 1, 'width': 2560, 'height': 1440, 'id': 7}]).encode()]
+        def answer(argv, **_):
+            function = argv[5]
+            code, stdout = {'hypr_query_help': (1, b'commands: monitors clients output version'),
+                            'hypr_query_output_help': (1, b'output create remove'),
+                            'hypr_query_option': (0, b'{"int": 0}')}.get(function, (0, b''))
+            if function == 'hypr_query_monitors':
+                stdout = monitors.pop(0) if len(monitors) > 1 else monitors[0]
+            return subprocess.CompletedProcess(argv, code, stdout, b'')
+        commands = Commands()
+        with patch('tui_battery.evidence.subprocess.run', side_effect=answer):
+            with native.Display(commands, 'id') as display:
+                self.assertEqual(display.monitor['id'], 7)
+        self.assertEqual([r['argv'][5] for r in commands.records][-1], 'hypr_output_remove')
 
     def test_nonstring_font_is_blocked(self):
         adapter = adapters.Adapter('kitty', self.root, 'owned', {'fg': '#ffffff', 'bg': '#000000'}, {'font': 12})
