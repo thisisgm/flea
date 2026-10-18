@@ -1,0 +1,48 @@
+#!/usr/bin/env python3
+"""Gate native UI architecture and the single GPUI dependency pin."""
+import json
+from pathlib import Path
+import sys
+
+sys.dont_write_bytecode = True
+from gpui_lint.cargo import native_sources, read_metadata, source_checks, tracked
+from gpui_lint.checks import COLOR_HEX, source_checks as rust_checks
+
+
+def policy_checks(policy):
+    for entry in policy.get("non_color_hex_constants", []):
+        if not all(isinstance(entry.get(key), str) and entry[key].strip() and "*" not in entry[key]
+                   for key in ("symbol", "literal", "reason")) or not COLOR_HEX.fullmatch(entry["literal"]):
+            raise ValueError("non-colour hex exceptions need an exact constant symbol, six/eight-digit hex literal and reason")
+    for entry in policy["blocking_exceptions"]:
+        if not all(isinstance(entry.get(key), str) and entry[key].strip() and "*" not in entry[key]
+                   for key in ("caller", "symbol", "reason")):
+            raise ValueError("every blocking exception needs an exact caller, symbol and reason")
+    for entry in policy["color_modules"]:
+        if entry.get("kind") not in ("palette", "content") or not entry.get("reason", "").strip():
+            raise ValueError("colour exemptions need a palette/content module and reason")
+        if not entry.get("module") or "*" in entry["module"]:
+            raise ValueError("colour exemptions need an exact module")
+
+
+def main():
+    root = Path.cwd()
+    try:
+        paths = tracked(root)
+        policy = json.loads((root / "tools/gpui-lint.json").read_text())
+        policy_checks(policy)
+        metadata = read_metadata(root)
+        errors = source_checks(root, paths, metadata, policy)
+        units = native_sources(root, paths, metadata)
+        errors.extend(rust_checks(units, policy))
+    except (OSError, ValueError, KeyError, TypeError) as error:
+        print(f"flea-gpui-lint: ERROR {error}")
+        return 2
+    for error in sorted(set(errors)):
+        print("FAIL " + error)
+    print(f"flea-gpui-lint: {'FAIL' if errors else 'PASS'} files={len(units)} findings={len(set(errors))}")
+    return 1 if errors else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

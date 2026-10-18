@@ -1,0 +1,343 @@
+"""Mutants and controls for each native lint rule, using marked fixture roots."""
+import copy
+import json
+import os
+from pathlib import Path
+import runpy
+import subprocess
+import sys
+import tempfile
+import unittest
+from unittest.mock import patch
+
+sys.dont_write_bytecode = True
+REPO = Path(__file__).resolve().parents[1]
+sys.path.insert(0, str(REPO / "tools"))
+from gpui_lint.cargo import native_sources, source_checks, tracked
+from gpui_lint.checks import source_checks as rust_checks
+from gpui_lint.lex import tokens
+
+POLICY_CHECKS = runpy.run_path(str(REPO / "tools/flea-gpui-lint"))["policy_checks"]
+FORK = {"url": "https://github.com/thisisgm/gpui-omarchy", "rev": "a" * 40}
+SOURCE = f"git+{FORK['url']}?rev={FORK['rev']}#{FORK['rev']}"
+LIST = """const ROW_HEIGHT: f32 = 31.;
+struct ListElement;
+impl Element for ListElement {
+    fn request_layout() {}
+    fn prepaint() {}
+    fn paint() { theme.background; }
+}
+"""
+
+
+class LintTests(unittest.TestCase):
+    def setUp(self):
+        parent = Path(os.environ["FLEA_LINT_TEST_ROOT"])
+        assert parent.is_absolute() and (parent / ".flea-test-sandbox").is_file()
+        self.root = Path(tempfile.mkdtemp(prefix="case-", dir=parent))
+        (self.root / ".flea-test-sandbox").touch()
+        self.policy = {"fork": FORK, "ui_callbacks": [], "blocking_helpers": [],
+                       "blocking_exceptions": [], "color_modules": [], "hot_surfaces": [
+                           {"name": "list", "path": "crates/flea-gui/src/list.rs", "element": "ListElement", "row_height": "ROW_HEIGHT"},
+                           *({"name": name, "path": f"crates/flea-gui/src/{name}.rs", "pending": True}
+                             for name in ("columns", "grid", "long_menus"))]}
+        self.write("Cargo.toml", f'''[workspace]
+members = ["crates/flea-gui"]
+[workspace.dependencies]
+gpui = {{ package = "gpui-pre", git = "{FORK['url']}", rev = "{FORK['rev']}" }}
+''')
+        self.write("Cargo.lock", f'''version = 4
+[[package]]
+name = "gpui-pre"
+version = "0.3.9"
+source = "{SOURCE}"
+''')
+        self.write("crates/flea-gui/Cargo.toml", '[package]\nname = "flea-gui"\nversion = "0.4.0"\n[dependencies]\ngpui.workspace = true\n')
+        self.write("crates/flea-gui/src/list.rs", LIST)
+        self.metadata = {"workspace_root": str(self.root), "workspace_members": ["native"],
+                         "resolve": {"nodes": [{"id": "native"}]}, "packages": [
+                             {"id": "native", "name": "flea-gui", "version": "0.4.0", "source": None,
+                              "manifest_path": str(self.root / "crates/flea-gui/Cargo.toml")},
+                             {"id": "gpui", "name": "gpui-pre", "version": "0.3.9", "source": SOURCE}]}
+
+    def write(self, path, text):
+        dest = self.root / path
+        assert dest.is_relative_to(self.root)
+        dest.parent.mkdir(parents=True, exist_ok=True)
+        dest.write_text(text)
+
+    def paths(self):
+        return [p.relative_to(self.root) for p in self.root.rglob("*") if p.is_file()]
+
+    def errors(self):
+        units = native_sources(self.root, self.paths(), self.metadata)
+        return rust_checks(units, self.policy)
+
+    def check_body(self, code):
+        self.write("crates/flea-gui/src/list.rs", LIST.replace("theme.background;", code))
+        return self.errors()
+
+    def test_comments_strings_chars_and_raw_identifiers(self):
+        code = '''// std::fs::read("x"); div(); rgb(0xff); }
+        /* outer /* std::thread::sleep(1); */ red() */
+        let text = r####"}; std::fs::read("x"); rgb(1)"####;
+        let bytes = br#"div()"#; let c = cr#"red()"#;
+        let escaped = "\\\"}; fs::read()"; let character = '}';
+        let byte = b'\\x7d'; let unicode = '\\u{007d}'; let quote = '\\'';
+        let lifetime: &'a str = "std::fs";
+        theme.background;'''
+        self.assertEqual([], self.check_body(code))
+        self.assertTrue(any("blocking" in e for e in self.check_body('std::r#fs::read("x");')))
+        for text in ('/* open', 'r##"open', '"open', 'fn paint() {'):
+            with self.subTest(text=text), self.assertRaises(ValueError):
+                from gpui_lint.lex import pairs
+                pairs(tokens(text))
+
+    def test_blocking_primitives_and_nonblocking_controls(self):
+        self.assertEqual([], self.check_body('theme.background; let p = path.join("child");'))
+        self.assertEqual([], self.check_body('std::process::exit(2); replies.recv().await;'))
+        self.assertEqual([], self.check_body('let first = theme.background; if let Some(value) = next { let later = value; }'))
+        for code in ('std::fs::read("x");', 'std::net::TcpStream::connect("x");',
+                     'std::thread::sleep(duration);', 'worker.join();', 'child.wait();',
+                     'command.output();', 'stream.read_to_end(&mut bytes);', 'executor.block_on(future);',
+                     'std::io::Read::read_to_string(stream, buffer);', 'reqwest::blocking::get("host");'):
+            with self.subTest(code=code):
+                self.assertTrue(any("blocking" in e for e in self.check_body(code)), code)
+
+    def test_import_aliases_and_transitive_helpers(self):
+        for use, code in (
+            ('use std::fs as disk;', 'disk::read("x");'),
+            ('use std::{fs::{self as disk, read as load}, thread::sleep as nap};', 'load("x");'),
+            ('use std::thread as worker;', 'worker::sleep(duration);'),
+            ('use std::fs::*;', 'read("x");'),
+            ('extern crate std as native;', 'native::fs::read("x");'),
+            ('use std::fs::File as Handle;', 'Handle::open("x");')):
+            with self.subTest(use=use):
+                self.write("crates/flea-gui/src/list.rs", use + LIST.replace("theme.background;", code))
+                self.assertTrue(any("blocking" in e for e in self.errors()))
+        self.write("crates/flea-gui/src/list.rs", LIST + 'fn helper() { std::fs::read("x"); }')
+        self.assertEqual([], self.errors())
+        self.write("crates/flea-gui/src/list.rs", LIST.replace("theme.background;", "helper();") + 'fn helper() { std::fs::read("x"); }')
+        self.assertTrue(any("blocking" in e for e in self.errors()))
+        self.assertTrue(any("blocking" in e for e in self.check_body('let load = std::fs::read; load("x");')))
+
+    def test_process_spawn_with_command_alias_and_parameter(self):
+        self.assertEqual([], self.check_body('std::process::Command::new("helper");'))
+        for code in ('std::process::Command::new("helper").spawn();',
+                     'let mut command = std::process::Command::new("helper"); command.spawn();'):
+            self.assertTrue(any("blocking" in e for e in self.check_body(code)), code)
+        self.write("crates/flea-gui/src/list.rs", 'use std::process::Command as Process;' + LIST + 'fn callback(command: &mut Process) { command.spawn(); }')
+        self.policy["ui_callbacks"] = ["flea_gui::list::callback"]
+        self.assertTrue(any("blocking" in e for e in self.errors()))
+        self.policy["ui_callbacks"] = []
+        self.write("crates/flea-gui/src/list.rs", LIST.replace("theme.background;", "command().spawn();") + 'fn command() -> std::process::Command { std::process::Command::new("helper") }')
+        self.assertTrue(any("blocking" in e for e in self.errors()))
+
+    def test_registered_callbacks_helpers_and_exact_exceptions(self):
+        self.write("crates/flea-gui/src/callback.rs", 'fn update() { crate::slow::probe(); }')
+        self.assertEqual([], self.errors())
+        self.policy["ui_callbacks"] = ["flea_gui::callback::update"]
+        self.policy["blocking_helpers"] = ["flea_gui::slow::probe"]
+        self.assertTrue(any("blocking" in e for e in self.errors()))
+        self.policy["blocking_exceptions"] = [{"caller": "flea_gui::callback::update", "symbol": "flea_gui::slow::probe", "reason": "Fixture-only probe of the exception contract."}]
+        POLICY_CHECKS(self.policy)
+        self.assertEqual([], self.errors())
+        self.policy["blocking_exceptions"][0]["symbol"] = "flea_gui::slow::*"
+        with self.assertRaises(ValueError):
+            POLICY_CHECKS(self.policy)
+        self.policy["blocking_exceptions"][0]["symbol"] = "flea_gui::slow::probe"
+        self.policy["blocking_exceptions"][0]["reason"] = ""
+        with self.assertRaises(ValueError):
+            POLICY_CHECKS(self.policy)
+
+    def test_background_boundaries_and_async_ui_mutant(self):
+        for code in ('std::thread::spawn(move || { std::fs::read("x"); });',
+                     'cx.background_executor().spawn(async move { std::fs::read("x"); });',
+                     'cx.background_executor().spawn(async move || { std::fs::read("x"); });',
+                     'std::thread::Builder::new().spawn(move || { std::fs::read("x"); });'):
+            with self.subTest(code=code):
+                self.assertEqual([], self.check_body(code))
+        self.assertTrue(any("blocking" in e for e in self.check_body('cx.spawn(async move || { std::fs::read("x"); });')))
+
+    def test_literal_colors_theme_control_and_module_exemptions(self):
+        self.assertEqual([], self.check_body('paint(theme.background);'))
+        for code in ('rgb(0xff1122);', 'rgba(1);', 'hsla(1., 0., 0., 1.);', 'Hsla { l: 0.5, ..theme.ink };',
+                     'gpui::white();', 'Color::RED;', 'div.bg("rebeccapurple");', 'div.text_color("#fff");'):
+            with self.subTest(code=code):
+                self.assertTrue(any("literal colour" in e for e in self.check_body(code)), code)
+        self.write("crates/flea-gui/src/palette.rs", "fn parse() { rgb(0xff1122); }")
+        self.check_body("theme.background;")
+        self.assertTrue(any("literal colour" in e for e in self.errors()))
+        self.policy["color_modules"] = [{"module": "flea_gui::palette", "kind": "palette", "reason": "Parses external palette values into typed theme roles."}]
+        POLICY_CHECKS(self.policy)
+        self.assertEqual([], self.errors())
+        self.assertTrue(any("literal colour" in e for e in self.check_body("rgb(0xff1122);")))
+        self.write("crates/flea-gui/src/list.rs", 'const BASE: u32 = 0xff1122; const INK: u32 = BASE;' + LIST.replace("theme.background;", "rgb(INK);"))
+        self.assertTrue(any("literal colour" in e for e in self.errors()))
+
+    def test_hot_surface_child_tree_and_empty_scan(self):
+        self.assertEqual([], self.errors())
+        for code in ("for row in rows { div().child(row); }", "rows.map(|row| div().children(row));"):
+            with self.subTest(code=code):
+                self.assertTrue(any("child tree" in e for e in self.check_body(code)))
+        self.write("crates/flea-gui/src/row.rs", "fn build() { div(); }")
+        self.assertTrue(any("child tree" in e for e in self.check_body("crate::row::build();")))
+        self.check_body("theme.background;")
+        self.write("crates/flea-gui/src/columns.rs", "fn new() {}")
+        self.assertTrue(any("pending surface exists" in e for e in self.errors()))
+        self.policy["hot_surfaces"] = []
+        self.assertTrue(any("empty" in e for e in self.errors()))
+        self.assertTrue(any("empty" in e for e in rust_checks([], self.policy)))
+
+    def test_manifest_metadata_and_lock_sources(self):
+        def check(meta=None):
+            return source_checks(self.root, self.paths(), meta or self.metadata, self.policy)
+        self.assertEqual([], check())
+        for bad in (None, "registry+https://github.com/rust-lang/crates.io-index",
+                    SOURCE.replace("a" * 40, "b" * 40), SOURCE.replace("thisisgm", "unknown")):
+            metadata = copy.deepcopy(self.metadata)
+            metadata["packages"][1]["source"] = bad
+            self.assertTrue(check(metadata), bad)
+        self.write("crates/flea-gui/Cargo.toml", '[dependencies]\ngpui = { path = "../vendor/gpui" }\n')
+        self.assertTrue(check())
+        self.write("crates/flea-gui/Cargo.toml", '[dependencies]\ngpui.workspace = true\n')
+        self.assertEqual([], check())
+        self.write("Cargo.lock", '[ [package] ]\n')
+        with self.assertRaises(ValueError):
+            check()
+
+    def test_patches_vendor_unknown_git_and_second_pin(self):
+        def check():
+            return source_checks(self.root, self.paths(), self.metadata, self.policy)
+        self.assertEqual([], check())
+        original = (self.root / "Cargo.toml").read_text()
+        for suffix in ('\n[patch.crates-io]\ngpui = { path = "vendor/gpui" }\n',
+                       '\n[replace]\n"gpui:0.3.9" = { path = "vendor/gpui" }\n'):
+            self.write("Cargo.toml", original + suffix)
+            self.assertTrue(check())
+        self.write("Cargo.toml", original)
+        self.write(".cargo/config.toml", '[source.crates-io]\nreplace-with = "vendored-sources"\n')
+        self.assertTrue(check())
+        self.write(".cargo/config.toml", "")
+        self.assertEqual([], check())
+        self.metadata["packages"].append({"name": "extra", "id": "extra", "source": "git+https://unknown/repo#abc"})
+        self.assertTrue(check())
+
+    def test_symlink_native_source_is_rejected(self):
+        self.assertEqual([], source_checks(self.root, self.paths(), self.metadata, self.policy))
+        self.write("ui/boot/keep", "frozen reference\n")
+        reference = self.root / "ui/boot/Ui"
+        reference.symlink_to(self.root.parent)
+        paths = self.paths() + [reference.relative_to(self.root)]
+        self.assertEqual([], source_checks(self.root, paths, self.metadata, self.policy))
+        link = self.root / "crates/flea-gui/src/link.rs"
+        link.symlink_to(self.root / "crates/flea-gui/src/list.rs")
+        self.assertTrue(any("symlink" in e for e in source_checks(self.root, self.paths(), self.metadata, self.policy)))
+        with self.assertRaises(ValueError):
+            native_sources(self.root, self.paths(), self.metadata)
+
+    def test_tracked_native_inventory(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
+        self.assertEqual(1, len(native_sources(self.root, tracked(self.root), self.metadata)))
+        self.write("crates/flea-gui/src/new.rs", "fn paint() { std::fs::read(\"x\"); }")
+        subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
+        units = native_sources(self.root, tracked(self.root), self.metadata)
+        self.assertEqual(2, len(units))
+        self.assertTrue(any("blocking" in e for e in rust_checks(units, self.policy)))
+
+    def test_archived_source_inventory_has_the_same_controls(self):
+        with patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": str(self.root.parent)}):
+            units = native_sources(self.root, tracked(self.root), self.metadata)
+            self.assertEqual(1, len(units))
+            self.assertEqual([], rust_checks(units, self.policy))
+            self.check_body('std::fs::read("x");')
+            units = native_sources(self.root, tracked(self.root), self.metadata)
+            self.assertTrue(any("blocking" in e for e in rust_checks(units, self.policy)))
+
+    def test_complete_cli_passes_control_and_rejects_mutant(self):
+        self.write("tools/gpui-lint.json", json.dumps(self.policy))
+        self.write("metadata.json", json.dumps(self.metadata))
+        self.write("bin/cargo", '''#!/usr/bin/env python3
+from pathlib import Path
+import sys
+assert sys.argv[1:] == ["metadata", "--locked", "--format-version", "1"]
+print(Path("metadata.json").read_text())
+''')
+        (self.root / "bin/cargo").chmod(0o755)
+        env = dict(os.environ, PATH=str(self.root / "bin") + os.pathsep + os.environ["PATH"],
+                   GIT_CEILING_DIRECTORIES=str(self.root.parent))
+        command = [str(REPO / "tools/flea-gpui-lint")]
+        control = subprocess.run(command, cwd=self.root, env=env, capture_output=True, text=True)
+        self.assertEqual(0, control.returncode, control.stdout + control.stderr)
+        self.assertIn("PASS files=1 findings=0", control.stdout)
+        self.check_body('std::fs::read("x");')
+        mutant = subprocess.run(command, cwd=self.root, env=env, capture_output=True, text=True)
+        self.assertEqual(1, mutant.returncode, mutant.stdout + mutant.stderr)
+        self.assertIn("UI blocking call std::fs::read", mutant.stdout)
+
+    def test_clippy_workspace_ratchet_and_independent_strict_gate(self):
+        bindir = self.root / "bin"
+        bindir.mkdir()
+        self.write("baseline.txt", "clippy::seed_style|style|1\n")
+        self.write("bin/clippy-driver", '''#!/usr/bin/env python3
+print("Lint groups loaded by this crate:")
+print(" clippy::correctness  clippy::seed_correctness")
+print(" clippy::suspicious  clippy::seed_suspicious")
+print(" clippy::style  clippy::seed_style")
+''')
+        self.write("bin/cargo", '''#!/usr/bin/env python3
+import json, os, pathlib, sys
+args = sys.argv[1:]
+assert args[0] == "clippy" and "--locked" in args and "--all-targets" in args
+with pathlib.Path(os.environ["CALLS"]).open("a") as log:
+    log.write(json.dumps(args) + "\\n")
+if "--workspace" not in args:
+    assert args[args.index("-p") + 1] == "flea-gui" and args[-2:] == ["-D", "warnings"]
+    sys.exit(int(os.environ["STRICT_RC"]))
+span = [{"is_primary": True, "file_name": "src/lib.rs", "line_start": 1, "column_start": 1}]
+for name in ("flea", "flea-gui"):
+    package_id = "path+file:///fixture/" + name + "#0.4.0" if os.environ.get("SHORT_ID") else "path+file:///fixture#" + name + "@0.4.0"
+    print(json.dumps({"reason": "compiler-message", "package_id": package_id, "message": {"level": "warning", "code": {"code": "clippy::seed_style"}, "spans": span, "message": "seed"}}))
+print(json.dumps({"reason": "compiler-artifact", "target": {"name": "flea"}}))
+print(json.dumps({"reason": "build-finished", "success": True}))
+''')
+        for name in ("cargo", "clippy-driver"):
+            (bindir / name).chmod(0o755)
+        env = dict(os.environ, PATH=str(bindir) + os.pathsep + os.environ["PATH"],
+                   CALLS=str(self.root / "calls.jsonl"), STRICT_RC="0")
+        args = [str(REPO / "tools/flea-clippy"), str(self.root / "baseline.txt"), str(self.root / "clippy")]
+        control = subprocess.run(args, cwd=self.root, env=env, capture_output=True, text=True)
+        self.assertEqual(0, control.returncode, control.stdout)
+        self.assertIn("findings=1", control.stdout)
+        self.assertIn("flea-gui: PASS", control.stdout)
+        env["STRICT_RC"] = "1"
+        mutant = subprocess.run(args, cwd=self.root, env=env, capture_output=True, text=True)
+        self.assertEqual(1, mutant.returncode, mutant.stdout)
+        self.assertIn("flea-gui: FAIL cargo_rc=1", mutant.stdout)
+        calls = [json.loads(line) for line in (self.root / "calls.jsonl").read_text().splitlines()]
+        self.assertEqual(4, len(calls))
+        self.assertTrue(all("--workspace" in args for args in calls[::2]))
+        env.update(STRICT_RC="0", SHORT_ID="1")
+        control = subprocess.run(args, cwd=self.root, env=env, capture_output=True, text=True)
+        self.assertEqual(0, control.returncode, control.stdout)
+        self.assertIn("findings=1", control.stdout)
+
+    def test_hook_guard_covers_native_sources_and_license_policy(self):
+        subprocess.run(["git", "init", "-q", str(self.root)], check=True)
+        subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
+        command = [str(REPO / "tools/flea-hook-check"), "guard"]
+        control = subprocess.run(command, cwd=self.root, capture_output=True, text=True)
+        self.assertEqual(0, control.returncode, control.stderr)
+        for name in ("crates/flea-gui/src/list.rs", "deny.toml"):
+            self.write(name, "changed\n")
+            mutant = subprocess.run(command, cwd=self.root, capture_output=True, text=True)
+            self.assertEqual(1, mutant.returncode, mutant.stderr)
+            self.assertIn(name + " is not fully staged", mutant.stderr)
+            subprocess.run(["git", "-C", str(self.root), "add", "."], check=True)
+            control = subprocess.run(command, cwd=self.root, capture_output=True, text=True)
+            self.assertEqual(0, control.returncode, control.stderr)
+
+
+if __name__ == "__main__":
+    unittest.main(verbosity=2)

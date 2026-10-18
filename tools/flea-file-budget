@@ -12,6 +12,7 @@ soft_js=200;   hard_js=300
 
 # Recorded debts and scoped release exceptions retain exact per-file ceilings; global limits stay unchanged.
 known_over_cap="shelf/Model.js 701
+crates/flea-gui/src/list.rs 256
 tests/csv-preview.qml 520
 shelf/Panel.qml 443
 shelf/ShelfCard.qml 444
@@ -239,7 +240,7 @@ budget_for() {
   esac
 }
 
-while IFS= read -r file; do
+while IFS= read -r -d '' file; do
   # Pinned vendor bundles are excluded as generated output; the generated Keymap.js keeps its recorded ceiling.
   case "$file" in
     ui/vendor/*) continue ;;
@@ -249,9 +250,16 @@ while IFS= read -r file; do
   soft=${budgets% *}
   hard=${budgets#* }
   lines=$(wc -l < "$file")
-  if [ "$lines" -gt "$hard" ]; then
-    # Sample input: ui/Preview.qml 724, an exact per-file ceiling from known_over_cap.
+  recorded=""
+  if [[ "$file" = crates/* ]] || [ "$lines" -gt "$hard" ]; then
     recorded=$(printf '%s\n' "$known_over_cap" | awk -v f="$file" '$1 == f { print $2; exit }')
+  fi
+  # Existing native soft overruns ratchet at their measured record too.
+  if [[ "$file" = crates/* && -n "$recorded" && "$lines" -gt "$recorded" ]]; then
+    echo "GREW      $file: $lines lines, recorded $recorded, cap $hard"
+    status=1
+  elif [ "$lines" -gt "$hard" ]; then
+    # Sample input: ui/Preview.qml 724, an exact per-file ceiling from known_over_cap.
     if [ -n "$recorded" ]; then
       if [ "$lines" -gt "$recorded" ]; then
         echo "GREW      $file: $lines lines, recorded $recorded, cap $hard"
@@ -266,6 +274,13 @@ while IFS= read -r file; do
   elif [ "$lines" -gt "$soft" ]; then
     echo "over soft $file: $lines lines, budget $soft, split it"
   fi
-done < <(find src ui shelf tests -type f \( -name '*.rs' -o -name '*.qml' -o -name '*.js' -o -name '*.mjs' \) 2>/dev/null)
+done < <(
+  find src ui shelf tests -type f \( -name '*.rs' -o -name '*.qml' -o -name '*.js' -o -name '*.mjs' \) -print0 2>/dev/null
+  if git rev-parse --is-inside-work-tree >/dev/null 2>&1; then
+    git ls-files --cached --deduplicate -z -- 'crates/*.rs' 2>/dev/null
+  else
+    find crates -type f -name '*.rs' -print0 2>/dev/null
+  fi
+)
 
 exit $status
