@@ -34,4 +34,3 @@ pub(super) fn release_both() -> i32 {
     let picker = chooser::release();
     handler.max(picker)
 }
-
