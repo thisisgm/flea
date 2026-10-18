@@ -100,8 +100,23 @@ fn lock(shared: &Shared) -> Result<Guard, String> {
         .custom_flags(crate::oflags::O_NOFOLLOW)
         .open(shared.lock_path())
         .map_err(|e| format!("the shared undo lock could not be opened ({:?})", e.kind()))?;
-    crate::uistore::lock_exclusive(&file)
-        .map_err(|e| format!("the shared undo lock could not be taken ({:?})", e.kind()))?;
+    #[cfg(test)]
+    super::renametiming::mark("flock_begin");
+    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(2);
+    loop {
+        match crate::uistore::try_lock_exclusive(&file) {
+            Ok(true) => break,
+            Ok(false) => {}
+            Err(error) if error.kind() == std::io::ErrorKind::Interrupted => {}
+            Err(error) => return Err(format!("the shared undo lock could not be taken ({:?})", error.kind())),
+        }
+        if std::time::Instant::now() >= deadline {
+            return Err("the shared undo lock stayed busy for 2 seconds, so undo stays in this process".into());
+        }
+        std::thread::sleep(std::time::Duration::from_millis(5));
+    }
+    #[cfg(test)]
+    super::renametiming::mark("flock_end");
     Ok(Guard { _file: file })
 }
 

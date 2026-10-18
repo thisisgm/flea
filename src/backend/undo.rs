@@ -167,12 +167,13 @@ pub(crate) struct UndoToken {
 }
 
 pub struct Journal {
+    pub(crate) deferred: Option<Vec<super::renamework::Publication>>,
     entries: Vec<Entry>,
     revision: u64,
     recorded: Option<UndoToken>,
     redo: Vec<Result<super::redo::Replay, FleaError>>,
     shared: Option<super::undoshare::Shared>,
-    // Entries queue here behind any open trash reservation, so they file in the order the operations were accepted.
+    // Entries queue behind open trash or rename reservations, so they file in acceptance order.
     gate: super::journalgate::Gate,
     // Paths the last reversal touched, so a session patches its index; cleared on take and on entry.
     last_touched: Reached,
@@ -246,6 +247,7 @@ impl Journal {
     }
     pub fn new() -> Journal {
         Journal {
+            deferred: None,
             entries: Vec::new(),
             revision: 0,
             recorded: None,
@@ -304,6 +306,7 @@ impl Journal {
     }
 
     pub fn push(&mut self, entry: Entry) {
+        if let Some(queue) = self.deferred.as_mut() { queue.push(super::renamework::Publication::Push(entry)); return; }
         if let Some(entry) = self.gate.hold(entry) {
             self.file(entry);
         }
@@ -318,11 +321,13 @@ impl Journal {
 
     // A trash batch reserves its place at the announce, so a write accepted in the settle window files after it.
     pub(crate) fn reserve(&mut self, id: usize) {
+        if let Some(queue) = self.deferred.as_mut() { queue.push(super::renamework::Publication::Reserve(id)); return; }
         self.gate.reserve(id);
     }
 
     // The batch's entry (empty when all failed) fills its place, and every ready entry now leading files in queue order.
     pub(crate) fn fill(&mut self, id: usize, entry: Entry) {
+        if let Some(queue) = self.deferred.as_mut() { queue.push(super::renamework::Publication::Fill(id, entry)); return; }
         if let Some(entry) = self.gate.fill(id, entry) {
             self.push(entry);
         }
@@ -333,6 +338,7 @@ impl Journal {
 
     // A quit files what the gate still holds, so a write accepted in the settle window keeps its entry past the window.
     pub(crate) fn release_held(&mut self) {
+        if let Some(queue) = self.deferred.as_mut() { queue.push(super::renamework::Publication::Release); return; }
         for ready in self.gate.release() {
             self.file(ready);
         }

@@ -108,8 +108,10 @@ pub enum OpMsg {
     Asked { turn: usize, question: crate::backend::collide::Question, line: String },
     // A pasted clipboard image, journaled beside its line; it claims no slot either.
     Pasted { line: String, entry: Option<Entry> },
-    // A slow remote write reporting late: the loop journals it exactly as the in-time path would.
+    // Rename execution returned; the dispatcher hands its entry to the journal publisher.
     RenameDone { id: usize, result: Result<(PathBuf, Vec<Step>), FleaError> },
+    RenameSlow { id: usize, line: String },
+    JournalDone { journal: crate::backend::undo::Journal, renames: Vec<(usize, Result<(PathBuf, Vec<Step>), FleaError>)> },
     MkdirDone { id: usize, result: Result<(PathBuf, Vec<Step>), FleaError> },
     // A slow bulk rename reporting late: the landed steps with the batch counts.
     BulkRenameDone { id: usize, result: Result<super::bulkrename::BulkOutcome, FleaError> },

@@ -104,6 +104,7 @@ pub(crate) mod trashthumb;
 pub(crate) mod trashthumbcache;
 pub mod trashland;
 pub mod journalgate;
+pub(crate) mod renamework;
 pub mod trashdelete;
 pub mod trashmanifest;
 pub mod rows;
@@ -262,6 +263,9 @@ pub mod quietpanic;
 // Test-only: holds a child's reap as an uninterruptible sleep would, so kill_tree's bound is pinned.
 #[cfg(test)]
 pub mod reaphold;
+
+#[cfg(test)]
+pub mod renametiming;
 
 pub mod dirsizeworker;
 // The decode-free RAW container walker: the largest embedded JPEG preview plus EXIF facts.
