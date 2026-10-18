@@ -1,0 +1,141 @@
+#!/usr/bin/env python3
+"""Regenerate English source hashes, or check catalog keys, holes and shared references."""
+import argparse
+import hashlib
+import json
+import os
+from pathlib import Path
+import re
+import sys
+import tempfile
+
+HOLES = re.compile(r"%[1-9][0-9]*")
+CODE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z]{2})?\Z")
+CATEGORIES = {"zero", "one", "two", "few", "many", "other"}
+KINDS = {"shell", "menu", "cli", "keybindings"}
+
+
+def unique_object(pairs):
+    result = {}
+    for key, value in pairs:
+        if key in result:
+            raise ValueError(f"duplicate JSON key: {key}")
+        result[key] = value
+    return result
+
+
+def read(path):
+    value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
+    if not isinstance(value, dict):
+        raise ValueError(f"{path}: expected a JSON object")
+    return value
+
+
+def forms(value, location):
+    if isinstance(value, str) and value.strip():
+        return [value]
+    if isinstance(value, dict) and "other" in value and set(value) <= CATEGORIES:
+        if all(isinstance(text, str) and text.strip() for text in value.values()):
+            return list(value.values())
+    raise ValueError(f"{location}: expected nonempty text or CLDR forms including other")
+
+
+def source_hash(value):
+    text = value if isinstance(value, str) else json.dumps(value, ensure_ascii=False, sort_keys=True)
+    return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
+
+
+def check_reference(reference, omarchy):
+    target = reference.removeprefix("omarchy:")
+    kind, dot, key = target.partition(".")
+    if not reference.startswith("omarchy:") or not dot or kind not in KINDS or not key:
+        raise ValueError(f"invalid Omarchy reference: {reference}")
+    if omarchy is None:
+        raise ValueError(f"{reference}: set OMARCHY_PATH or --omarchy-path to check the source key")
+    catalog = read(omarchy / "default/i18n/en" / f"{kind}.json")
+    if kind == "menu":
+        catalog = {f"{mid}.{field}": text for mid, fields in catalog.items()
+                   if isinstance(fields, dict) for field, text in fields.items()}
+    if key not in catalog:
+        raise ValueError(f"Omarchy source key disappeared: {reference}")
+    forms(catalog[key], reference)
+
+
+def expected_manifest(root, omarchy, references):
+    english = read(root / "en/flea.json")
+    if not english or any(not key or not isinstance(key, str) for key in english):
+        raise ValueError("English catalog must have nonempty keys")
+    placeholders = {}
+    for key, value in english.items():
+        variants = forms(value, f"en:{key}")
+        expected = set(HOLES.findall(variants[0]))
+        if any(set(HOLES.findall(text)) != expected for text in variants):
+            raise ValueError(f"en:{key}: placeholders differ between plural forms")
+        placeholders[key] = expected
+    manifest = {}
+    for path in sorted(root.glob("*/flea.json")):
+        code = path.parent.name
+        if not CODE.fullmatch(code):
+            raise ValueError(f"invalid catalog language code: {code}")
+        catalog = read(path)
+        missing, extra = set(english) - set(catalog), set(catalog) - set(english)
+        if missing or extra:
+            raise ValueError(f"{code}: key parity failed; missing={sorted(missing)}, extra={sorted(extra)}")
+        section = {}
+        for key, value in catalog.items():
+            if isinstance(value, dict) != isinstance(english[key], dict):
+                raise ValueError(f"{code}:{key}: text/plural shape differs from English")
+            for text in forms(value, f"{code}:{key}"):
+                if set(HOLES.findall(text)) != placeholders[key]:
+                    raise ValueError(f"{code}:{key}: placeholder parity failed")
+                if text.startswith("omarchy:"):
+                    references.add(text)
+            section[f"flea:{key}"] = source_hash(english[key])
+        manifest[code] = section
+    for reference in sorted(references):
+        check_reference(reference, omarchy)
+    return manifest
+
+
+def atomic_write(path, text):
+    temporary = None
+    try:
+        with tempfile.NamedTemporaryFile(mode="w", encoding="utf-8", dir=path.parent,
+                                         prefix=".translation-manifest.", delete=False) as stream:
+            temporary = Path(stream.name)
+            stream.write(text)
+            stream.flush()
+            os.fsync(stream.fileno())
+        os.replace(temporary, path)
+    finally:
+        if temporary is not None and temporary.exists():
+            temporary.unlink()
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument("--check", action="store_true", help="validate without writing")
+    parser.add_argument("--i18n-dir", type=Path, default=Path(__file__).resolve().parents[1] / "i18n")
+    parser.add_argument("--omarchy-path", type=Path, default=os.environ.get("OMARCHY_PATH") or None)
+    parser.add_argument("--reference", action="append", default=[], help="also verify this omarchy:kind.key reference")
+    args = parser.parse_args()
+    omarchy = args.omarchy_path
+    if omarchy is None and Path("/usr/share/omarchy/default/i18n/en").is_dir():
+        omarchy = Path("/usr/share/omarchy")
+    try:
+        manifest = expected_manifest(args.i18n_dir, omarchy, set(args.reference))
+        path = args.i18n_dir / "translation-manifest.json"
+        if args.check:
+            if read(path) != manifest:
+                raise ValueError(f"{path}: stale English hashes; run tools/flea-i18n-manifest")
+        else:
+            atomic_write(path, json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
+    except (OSError, ValueError) as error:
+        print(f"flea-i18n-manifest: {error}", file=sys.stderr)
+        return 1
+    print(f"i18n manifest {'checked' if args.check else 'updated'}: {len(manifest)} catalogs, {len(manifest['en'])} English keys")
+    return 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

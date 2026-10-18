@@ -1,0 +1,180 @@
+//! Shared catalogs and locale formatting; callers drive poll_changed from their own event loop.
+mod catalog;
+mod document;
+mod format;
+mod locale;
+pub mod plural;
+
+pub use catalog::substitute;
+pub use locale::Locale;
+use catalog::Catalog;
+use std::collections::HashMap;
+use std::os::unix::fs::MetadataExt;
+use std::path::{Path, PathBuf};
+
+#[derive(Clone, Debug)]
+pub struct Paths {
+    pub omarchy: PathBuf,
+    pub language_file: PathBuf,
+    // Highest priority first; a partial catalog can fall back through the remaining roots.
+    pub catalogs: Vec<PathBuf>,
+}
+
+fn env_path(key: &str) -> Option<PathBuf> {
+    std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)
+}
+
+impl Default for Paths {
+    fn default() -> Self {
+        let config = env_path("XDG_CONFIG_HOME").or_else(|| env_path("HOME").map(|p| p.join(".config")));
+        let language_file = env_path("OMARCHY_LANGUAGE_FILE").unwrap_or_else(|| {
+            config.unwrap_or_else(|| PathBuf::from("/nonexistent")).join("omarchy/language")
+        });
+        let mut catalogs: Vec<PathBuf> = env_path("FLEA_I18N").into_iter().collect();
+        if let Ok(exe) = std::env::current_exe() {
+            if let Some(prefix) = exe.parent().and_then(Path::parent) {
+                catalogs.push(prefix.join("share/flea/i18n"));
+            }
+        }
+        catalogs.extend([PathBuf::from("/usr/share/flea/i18n"), PathBuf::from("/usr/local/share/flea/i18n")]);
+        if let Ok(exe) = std::env::current_exe() {
+            catalogs.extend(exe.ancestors().skip(1).take(4).map(|p| p.join("i18n")));
+        }
+        catalogs.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("i18n"));
+        catalogs.dedup();
+        Self {
+            omarchy: env_path("OMARCHY_PATH").unwrap_or_else(|| PathBuf::from("/usr/share/omarchy")),
+            language_file, catalogs,
+        }
+    }
+}
+
+#[derive(Clone, Debug, PartialEq, Eq)]
+struct Stamp {
+    device: u64, inode: u64, length: u64,
+    modified: (i64, i64), changed: (i64, i64),
+}
+
+fn stamp(path: &Path) -> Option<Stamp> {
+    let m = std::fs::metadata(path).ok()?;
+    Some(Stamp {
+        device: m.dev(), inode: m.ino(), length: m.len(),
+        modified: (m.mtime(), m.mtime_nsec()), changed: (m.ctime(), m.ctime_nsec()),
+    })
+}
+
+pub struct I18n {
+    paths: Paths,
+    roster: Vec<Locale>,
+    locale: Locale,
+    english: Catalog,
+    translated: Catalog,
+    omarchy_english: HashMap<&'static str, Catalog>,
+    omarchy_translated: HashMap<&'static str, Catalog>,
+    watched: Vec<(PathBuf, Option<Stamp>)>,
+}
+
+impl Default for I18n {
+    fn default() -> Self { Self::load(Paths::default()) }
+}
+
+impl I18n {
+    pub fn load(paths: Paths) -> Self {
+        let mut result = Self {
+            paths, roster: Vec::new(), locale: Locale::default(),
+            english: Catalog::new(), translated: Catalog::new(),
+            omarchy_english: HashMap::new(), omarchy_translated: HashMap::new(), watched: Vec::new(),
+        };
+        result.reload();
+        result
+    }
+
+    pub fn language(&self) -> &str { &self.locale.code }
+    pub fn locale(&self) -> &Locale { &self.locale }
+    pub fn roster(&self) -> &[Locale] { &self.roster }
+    pub fn tr(&self, key: &str) -> String { self.resolve(key, None).unwrap_or(key).into() }
+
+    pub fn tr_args(&self, key: &str, args: &[&str]) -> String {
+        substitute(&self.tr(key), args)
+    }
+
+    // Count supplies %1; additional arguments start at %2.
+    pub fn trn(&self, key: &str, count: i64) -> String { self.trn_args(key, count, &[]) }
+
+    pub fn trn_args(&self, key: &str, count: i64, args: &[&str]) -> String {
+        let number = self.locale.format_count(count);
+        let mut values = vec![number.as_str()];
+        values.extend_from_slice(args);
+        substitute(self.resolve(key, Some(count)).unwrap_or(key), &values)
+    }
+
+    fn resolve<'a>(&'a self, key: &'a str, count: Option<i64>) -> Option<&'a str> {
+        if let Some(reference) = key.strip_prefix("omarchy:") {
+            return self.omarchy_word(reference, count);
+        }
+        let value = catalog::lookup(&self.english, &self.translated, key, self.language(), count)?;
+        match value.strip_prefix("omarchy:") {
+            Some(reference) => self.omarchy_word(reference, count),
+            None => Some(value),
+        }
+    }
+
+    fn omarchy_word(&self, reference: &str, count: Option<i64>) -> Option<&str> {
+        let (kind, key) = reference.split_once('.')?;
+        catalog::lookup(
+            self.omarchy_english.get(kind)?, self.omarchy_translated.get(kind)?,
+            key, self.language(), count,
+        )
+    }
+
+    // Includes missing files, so creation, removal, replacement and same-length edits all trigger reload.
+    pub fn poll_changed(&mut self) -> bool {
+        if self.watched.iter().all(|(path, before)| stamp(path) == *before) { return false; }
+        self.reload();
+        true
+    }
+
+    fn watch(&mut self, path: PathBuf) -> PathBuf {
+        self.watched.push((path.clone(), stamp(&path)));
+        path
+    }
+
+    fn flea_catalog(&mut self, code: &str, mut base: Catalog) -> Catalog {
+        for root in self.paths.catalogs.clone().iter().rev() {
+            let file = self.watch(root.join(code).join("flea.json"));
+            base.extend(catalog::load(&file, false));
+        }
+        base
+    }
+
+    pub fn reload(&mut self) {
+        self.watched.clear();
+        // Stamp before reading so a concurrent edit remains visible to the next poll.
+        let language_file = self.watch(self.paths.language_file.clone());
+        let registry = self.watch(self.paths.omarchy.join("default/i18n/locales.json"));
+        self.roster = locale::parse(&catalog::read(&registry).unwrap_or_default());
+        let language = catalog::read(&language_file).unwrap_or_default();
+        let code = language.lines().next().unwrap_or("").trim();
+        self.locale = self.roster.iter().find(|l| l.code == code).cloned()
+            .unwrap_or_else(|| self.roster.iter().find(|l| l.code == "en").unwrap().clone());
+        let code = self.locale.code.clone();
+        self.english = self.flea_catalog("en", catalog::parse(include_str!("../../i18n/en/flea.json"), false));
+        self.translated = self.flea_catalog(&code, Catalog::new());
+        self.omarchy_english.clear();
+        self.omarchy_translated.clear();
+        for kind in catalog::KINDS {
+            let root = self.paths.omarchy.join("default/i18n");
+            let english = self.watch(root.join("en").join(format!("{kind}.json")));
+            let translated = self.watch(root.join(&code).join(format!("{kind}.json")));
+            self.omarchy_english.insert(kind, catalog::load(&english, kind == "menu"));
+            self.omarchy_translated.insert(kind, catalog::load(&translated, kind == "menu"));
+        }
+    }
+}
+
+#[cfg(test)]
+mod tests;
+#[cfg(test)]
+mod plural_tests;
+#[cfg(test)]
+mod load_tests;
