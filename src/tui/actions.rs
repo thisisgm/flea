@@ -494,6 +494,7 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             m.action_id = m.action_id.wrapping_add(1).max(1);
             m.editor = Some(Editor::new("newfile", "New File".into(), m.path.clone()));
         }
+        "detailNext" => super::detail::cycle(m),
         "sortNext" | "sortReverse" | "sortName" | "sortNameReverse" | "sortDate" | "sortDateReverse" | "sortSize" | "sortSizeReverse" => {
             // The cursor's logical row: the loaded row, or in a listed/rows gap the anchor still waited for.
             let anchor = m.current_path().or_else(|| m.sort_anchor.clone());
@@ -515,6 +516,7 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             let mut request = vec![
                 ("c", word("sort")),
                 ("by", word(&m.sort)),
+                ("foldersByName", Json::Bool(m.sort == "size")),
                 ("desc", Json::Bool(m.reverse)),
                 ("foldersFirst", Json::Bool(m.folders_first)),
                 ("groupByKind", Json::Bool(m.group_by_kind)),

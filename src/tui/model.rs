@@ -97,6 +97,7 @@ pub struct Model {
     pub height: usize,
     pub hidden: bool,
     pub sort: String,
+    pub detail: super::detail::Detail,
     pub reverse: bool,
     pub folders_first: bool,
     pub group_by_kind: bool,
@@ -247,6 +248,7 @@ impl Model {
                 .filter(|s| !s.is_empty())
                 .unwrap_or("name")
                 .into(),
+            detail: super::detail::Detail::default(),
             reverse: settings.get("sort").is_some_and(|s| flag(s, "reverse")),
             folders_first: settings
                 .get("foldersFirst")
@@ -380,6 +382,7 @@ impl Model {
             ("first", number(self.height)),
             ("hidden", Json::Bool(self.hidden)),
             ("by", word(&self.sort)),
+            ("foldersByName", Json::Bool(self.sort == "size")),
             ("desc", Json::Bool(self.reverse)),
             ("foldersFirst", Json::Bool(self.folders_first)),
             ("groupByKind", Json::Bool(self.group_by_kind)),
@@ -558,6 +561,13 @@ impl Model {
         self.message = message;
         self.message_at = std::time::Instant::now();
     }
+    pub fn expire_message(&mut self, now: std::time::Instant) {
+        if !matches!(self.menu_action.as_str(), "taildropRefresh" | "taildrop")
+            && !self.message.contains("Undo available")
+            && now.saturating_duration_since(self.message_at) >= std::time::Duration::from_secs(4) {
+            self.message.clear();
+        }
+    }
     pub fn fail(&mut self, error: String) {
         if error.is_empty() { return; }
         if self.error.is_empty() { self.error = error; }
@@ -605,6 +615,7 @@ impl Model {
     pub fn invalidate_rows(&mut self) {
         self.cancel_taildrop();
         self.rows.clear();
+        self.detail.invalidate();
         self.folder_sizes.clear();
         self.size_pending.clear();
         self.size_view.0.clear();
@@ -763,6 +774,7 @@ impl Model {
                 let rows = value.get("rows").and_then(Json::as_array).unwrap_or(&empty);
                 let start = count(&value, "start");
                 self.rows.clear();
+                self.detail.invalidate();
                 for (i, row) in rows.iter().enumerate() {
                     self.rows.insert(start + i, Row::parse(row, kinds));
                 }
@@ -797,6 +809,7 @@ impl Model {
                     self.image_file = Some(PathBuf::from(text(&value, "file")));
                 }
             }
+            "owner" => self.detail.receive(&value, &self.rows),
             "meta" => {
                 if self.pending.is_none()
                     && count(&value, "row") == self.cursor
@@ -1204,11 +1217,14 @@ impl Model {
                         text(&value, "path").into(),
                         format!("Kind · {}", text(&value, "kind")),
                         format!("Size · {}", super::render::bytes(count(&value, "bytes"))),
-                        format!("Modified · {}", super::render::modified(value.get("modified").and_then(Json::as_f64).unwrap_or(0.0) as i64)),
                         format!("Permissions · {}", text(&value, "mode")),
                         format!("Owner · {} ({})", text(&value, "owner"), count(&value, "uid")),
                         format!("Group · {}", count(&value, "gid")),
                     ];
+                    let modified = super::calendar::value(value.get("modified").unwrap_or(&Json::Null));
+                    if !modified.is_empty() { facts.insert(3, format!("Modified · {modified}")); }
+                    let deleted = super::calendar::value(value.get("deleted").unwrap_or(&Json::Null));
+                    if !deleted.is_empty() { facts.push(format!("Deleted · {deleted}")); }
                     if flag(&value, "symlink") { facts.push(format!("Target · {}", text(&value, "target"))); }
                     self.properties = Some(facts);
                 }

@@ -613,6 +613,10 @@ fn handle_line(
         Request::OfficePdf { id, path } => super::officepdf::serve(out, ops, &tb.mime, &tb.aliases, id, &path),
         Request::FontLook(ask) => super::fontinfo::render::spawn(ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases), ops.tx.clone()),
         // One row, only when a client asked: the same no-sweep rule thumb and dirsize already follow.
+        Request::Owner { row, token } => {
+            let path = (row < st.listing.len()).then(|| st.base.join(st.listing.name(row)));
+            super::owner::spawn(row, path, token, ops.tx.clone());
+        }
         Request::Meta { row, text, media, archive, token } => {
             if row < st.listing.len() {
                 let want = if archive { Some(Arc::clone(&tb.formats)) } else { None };
@@ -710,7 +714,7 @@ fn rows_needed(request: &Request) -> usize {
             .as_ref()
             .map_or(usize::MAX, |rows| rows_end(rows))
             .max(ask.start.saturating_add(1)),
-        Request::Meta { row, .. } => row.saturating_add(1),
+        Request::Meta { row, .. } | Request::Owner { row, .. } => row.saturating_add(1),
         // Tags apply to and read held rows; the bulk rename names paths, never rows.
         Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
         Request::BulkRename { .. } => 0,

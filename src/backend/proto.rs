@@ -51,6 +51,7 @@ pub enum Request {
     LocateMany { paths: Vec<String>, id: usize, menu_id: usize, transfer_id: usize },
     // The preview column's own extras for one row: pixels, line count, symlink target.
     Meta { row: usize, text: bool, media: bool, archive: bool, token: usize },
+    Owner { row: usize, token: usize },
     // The cursor row's two-byte shebang probe for the Make executable row; see docs/protocol.md "shebang".
     Shebang { path: String, id: usize },
     // The code preview's coloured lines for a file or a text the client holds; the wire lives in codereq.rs.
@@ -292,6 +293,10 @@ pub fn parse_request(line: &str) -> Request {
             // Absent is name order, so an older client's peek reads as it did.
             by: field_str(line, "by"),
             desc: field_bool(line, "desc"),
+        },
+        Some("owner") => Request::Owner {
+            row: field_usize(line, "row").unwrap_or(0),
+            token: field_usize(line, "token").unwrap_or(0),
         },
         Some("meta") => Request::Meta {
             token: field_usize(line, "token").unwrap_or(0),
