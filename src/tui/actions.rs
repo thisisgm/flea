@@ -284,7 +284,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
 }
 fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     if !m.menu_action.is_empty() && m.menu_action != "menu" && !matches!(action, "quit" | "quitNoCwd" | "escape") { return Ok(()); }
-    if (m.pending.is_some() || m.held) && !matches!(action, "quit" | "quitNoCwd" | "escape" | "keymapSheet") {
+    if (m.pending.is_some() || m.held || m.name_filter.waiting) && !matches!(action, "quit" | "quitNoCwd" | "escape" | "keymapSheet") {
         return Ok(());
     }
     if m.searching
@@ -331,11 +331,11 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         "halfPageDown" => m.move_by((m.height / 2).max(1) as isize, false, w)?,
         "halfPageUp" => m.move_by(-((m.height / 2).max(1) as isize), false, w)?,
         "first" | "cursorFirst" => {
-            m.cursor = 0;
+            m.cursor = if m.filter.is_empty() { 0 } else { m.shown().first().copied().unwrap_or(m.cursor) };
             m.window(w)?;
         }
         "last" | "cursorLast" => {
-            m.cursor = m.total.saturating_sub(1);
+            m.cursor = if m.filter.is_empty() { m.total.saturating_sub(1) } else { m.shown().last().copied().unwrap_or(m.cursor) };
             m.window(w)?;
         }
         "parent" => {
@@ -668,7 +668,7 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             if !m.error.is_empty() {
                 m.dismiss_error();
             } else if !m.filter.is_empty() {
-                m.apply_filter(String::new());
+                m.apply_filter(String::new(), w)?;
             } else if m.searching {
                 w.send(vec![("c", word("searchcancel"))])?;
             } else if !m.search.is_empty() {
@@ -846,7 +846,7 @@ fn pointer_key(
         }
         return Ok(());
     }
-    if m.pending.is_some() || m.held {
+    if m.pending.is_some() || m.held || m.name_filter.waiting {
         return Ok(());
     }
     if scroll != 0 {
@@ -870,7 +870,7 @@ fn pointer_key(
     let index = if m.filter.is_empty() {
         m.top + pointer.y - super::render::BODY_ROW
     } else {
-        m.shown().get(pointer.y - super::render::BODY_ROW).copied().unwrap_or(usize::MAX)
+        m.visible().get(pointer.y - super::render::BODY_ROW).copied().unwrap_or(usize::MAX)
     };
     if !m.rows.contains_key(&index) {
         return Ok(());
@@ -1030,7 +1030,7 @@ fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
     }
     if key.name == "Escape" || (m.preset == "yazi" && key.mods == "ctrl" && matches!(key.name.as_str(), "C" | "BracketLeft")) {
         if kind == "filter" {
-            m.apply_filter(String::new());
+            m.apply_filter(String::new(), w)?;
         }
         return Ok(());
     }
@@ -1046,7 +1046,7 @@ fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                 let p = super::completion::expand(value, &home, &editor.path);
                 navigate(m, p, w)?;
             }
-            "filter" => m.apply_filter(value.clone()),
+            "filter" => m.apply_filter(value.clone(), w)?,
             "search" => {
                 if value.is_empty() {
                     return Ok(());
@@ -1104,7 +1104,7 @@ fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
         editor.update(key);
     }
     if kind == "filter" {
-        m.apply_filter(editor.value.clone());
+        m.apply_filter(editor.value.clone(), w)?;
     }
     if kind == "path" {
         m.completion = m.completer.request(&editor.value, &editor.path);

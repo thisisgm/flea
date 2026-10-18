@@ -13,6 +13,7 @@ mod batch;
 mod chafa;
 mod completion;
 mod cells;
+mod filter;
 mod layout;
 mod icons;
 mod editor;

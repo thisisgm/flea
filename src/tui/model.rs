@@ -163,6 +163,7 @@ pub struct Model {
     pub media_probe: Option<(usize, usize, usize)>,
     pub thumb_index: Option<usize>,
     pub filter: String,
+    pub name_filter: super::filter::Matches,
     pub restore_cursor: Option<usize>,
     pub restore_path: Option<PathBuf>,
     // Set by a re-sort press, kept across its replies, spent by a cursor move, a new listing request or a -1 answer.
@@ -329,6 +330,7 @@ impl Model {
             media_probe: None,
             thumb_index: None,
             filter: String::new(),
+            name_filter: Default::default(),
             restore_cursor: None,
             restore_path: None,
             sort_anchor: None,
@@ -429,7 +431,7 @@ impl Model {
     }
     pub fn visible(&self) -> Vec<usize> {
         if self.filter.is_empty() { self.rows.range(self.top..self.top.saturating_add(self.height)).map(|(i, _)| *i).collect() }
-        else { self.shown().into_iter().take(self.height).collect() }
+        else { super::filter::visible(self) }
     }
     pub fn restore_navigation(&mut self) {
         if let Some((back, forward, tab)) = self.navigation_before.take() {
@@ -451,6 +453,7 @@ impl Model {
         } else { self.open(self.path.clone(), wire) }
     }
     pub fn window(&mut self, wire: &mut Wire) -> io::Result<()> {
+        if !self.filter.is_empty() { return super::filter::window(self, wire); }
         let old_top = self.top;
         if self.cursor < self.top {
             self.top = self.cursor;
@@ -580,27 +583,9 @@ impl Model {
     pub fn dismiss_error(&mut self) {
         self.error = self.errors.pop_front().unwrap_or_default();
     }
-    pub fn shown(&self) -> Vec<usize> {
-        self.rows
-            .iter()
-            .filter(|(_, row)| {
-                self.filter.is_empty()
-                    || row
-                        .name
-                        .to_lowercase()
-                        .contains(&self.filter.to_lowercase())
-            })
-            .map(|(&i, _)| i)
-            .collect()
-    }
-    pub fn apply_filter(&mut self, query: String) {
-        self.filter = query;
-        let shown = self.shown();
-        self.selected.retain(|i| shown.contains(i));
-        if !shown.contains(&self.cursor) {
-            self.cursor = shown.first().copied().unwrap_or(self.top);
-        }
-    }
+    pub fn shown(&self) -> Vec<usize> { super::filter::shown(self) }
+    pub fn filter_count(&self) -> usize { super::filter::count_shown(self) }
+    pub fn apply_filter(&mut self, query: String, wire: &mut Wire) -> io::Result<()> { super::filter::change(self, query, wire) }
     pub fn indices(&self) -> Json {
         Json::Arr(if self.selected.is_empty() {
             vec![number(self.cursor)]
@@ -617,6 +602,7 @@ impl Model {
         }
     }
     pub fn invalidate_rows(&mut self) {
+        self.name_filter.reset();
         self.cancel_taildrop();
         self.rows.clear();
         self.detail.invalidate();
@@ -661,7 +647,7 @@ impl Model {
             if extend {
                 self.selected.insert(self.cursor);
             }
-            return Ok(());
+            return self.window(wire);
         }
         if extend {
             self.selected.insert(self.cursor);
@@ -683,6 +669,7 @@ impl Model {
     }
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
         match text(&value, "t") {
+            "filtered" => super::filter::receive(self, &value, wire)?,
             "listed" => {
                 if let Some(path) = self.pending.take() {
                     self.empty_at = std::time::Instant::now();
@@ -777,10 +764,13 @@ impl Model {
                     .unwrap_or(&empty);
                 let rows = value.get("rows").and_then(Json::as_array).unwrap_or(&empty);
                 let start = count(&value, "start");
-                self.rows.clear();
+                // An answered filter keeps the drawn matches other windows brought, and only those.
+                let drawn = super::filter::answered(self).map(|_| self.visible());
+                let kept = |i: &usize| drawn.as_ref().is_some_and(|drawn| drawn.contains(i));
+                self.rows.retain(|i, _| kept(i));
                 self.detail.invalidate();
                 for (i, row) in rows.iter().enumerate() {
-                    self.rows.insert(start + i, Row::parse(row, kinds));
+                    if drawn.is_none() || kept(&(start + i)) { self.rows.insert(start + i, Row::parse(row, kinds)); }
                 }
                 self.remember_selection();
                 if let Some(path) = &self.restore_path {

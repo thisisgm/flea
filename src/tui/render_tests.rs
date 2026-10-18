@@ -71,8 +71,6 @@
         model.rows.insert(1, row());
         let filtered = footer(&model, &theme, 120, std::time::Duration::ZERO);
         assert!(filtered.contains("Filter a  2 of 2 shown"), "two matches of two rows: {filtered}");
-        assert_eq!(hidden_note(1), "1 row hidden by the filter");
-        assert_eq!(hidden_note(1204), "1,204 rows hidden by the filter");
     }
     #[test]
     fn deletion_confirm_is_singular_for_one_item() {

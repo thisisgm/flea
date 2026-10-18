@@ -346,6 +346,10 @@ fn handle_line(
             poller.clear();
             listpaths::answer(out, st, pool, tb, &paths, first, line)
         }
+        Request::Filter { query, id } => {
+            let line = super::filter::filtered_line(&st.listing, &query, id);
+            say(out, &super::rowguard::stamped(line, st.generation));
+        }
         Request::Window { start, count } => {
             let start = st.window_start(start);
             if count == 0 {
@@ -719,7 +723,7 @@ fn rows_needed(request: &Request) -> usize {
         Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
         Request::BulkRename { .. } => 0,
         // A path lookup can name any match, and a sort reorders the whole set.
-        Request::Locate { .. } | Request::LocateMany { .. } | Request::Sort { .. } => usize::MAX,
+        Request::Locate { .. } | Request::LocateMany { .. } | Request::Sort { .. } | Request::Filter { .. } => usize::MAX,
         // A listing request replaces what it reads; the session lifecycle answers fresh, not from adopted rows.
         Request::List { .. }
         | Request::ListPaths { .. }

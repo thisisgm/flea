@@ -33,12 +33,6 @@ fn marked(n: usize) -> String {
     format!("{} marked {}", grouped(n), word(n, "item", "items"))
 }
 
-// "1 row hidden by the filter", the body note the listing draws under a filtered view.
-#[cfg(test)]
-pub fn hidden_note(hidden: usize) -> String {
-    format!("{} {} hidden by the filter", grouped(hidden), word(hidden, "row", "rows"))
-}
-
 // Counts of rows, items, files and matches group in thousands, the way the GUI formats them.
 pub fn grouped(n: usize) -> String {
     let digits = n.to_string().into_bytes();
@@ -116,7 +110,7 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
             let prefix = match editor.kind { "path" => ": ".into(), "filter" => "Filter ".into(), _ => format!("{}: ", editor.kind) };
             let suffix = if editor.pending { " · Working…".into() }
                 else if editor.kind == "path" { m.completion.strip_prefix(&editor.value).unwrap_or("").into() }
-                else if editor.kind == "filter" { format!("  {} of {} shown", m.shown().len(), m.total) }
+                else if editor.kind == "filter" { format!("  {} of {} shown", m.filter_count(), m.total) }
                 else if editor.kind == "search" { format!(" · in {} · Tab changes scope", if m.search_here { layout::display_path(m) } else { "Home".into() }) }
                 else { String::new() };
             out.push_str(&editor.line(&prefix, &suffix, header_width, &base, &theme.muted, &theme.accent));

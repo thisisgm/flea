@@ -20,16 +20,18 @@ fn t3_codicons_seti_and_documented_exceptions_match_reference_codepoints() {
 }
 #[test]
 fn t3_probe_success_refusal_missing_tool_timeout_and_output_are_bounded() {
+    if crate::tui::render::frame_tests::isolated_test("tui::icons::tests::t3_probe_success_refusal_missing_tool_timeout_and_output_are_bounded", &[]) { return; }
     let cancel = AtomicBool::new(false);
     assert_eq!(output(Command::new("sh").args(["-c", "printf covered"]), &cancel).as_deref(), Some("covered"));
-    assert!(output(Command::new("sh").args(["-c", "exit 1"]), &cancel).is_none());
-    assert!(output(&mut Command::new("/nonexistent-flea-font-probe"), &cancel).is_none());
-    assert!(output(Command::new("sh").args(["-c", "while :; do printf aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; done"]), &cancel).is_none());
+    assert_eq!(collect_output(Command::new("sh").args(["-c", "exit 1"]), &cancel), Err(Stop::Refused));
+    assert_eq!(collect_output(&mut Command::new("/nonexistent-flea-font-probe"), &cancel), Err(Stop::Failed));
+    assert_eq!(collect_output(Command::new("sh").args(["-c", "while :; do printf aaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaaa; done"]), &cancel), Err(Stop::OutputLimit));
     let start = Instant::now();
-    assert!(output(Command::new("sh").args(["-c", "sleep 2"]), &cancel).is_none());
+    assert_eq!(collect_output(Command::new("sh").args(["-c", "sleep 2"]), &cancel), Err(Stop::Deadline));
     assert!(start.elapsed() < Duration::from_secs(1));
+    // A command that would succeed shows the cancel branch alone, since no deadline or cap can end it first.
     cancel.store(true, Ordering::Relaxed);
-    assert!(output(Command::new("sh").args(["-c", "sleep 2"]), &cancel).is_none());
+    assert_eq!(collect_output(Command::new("sh").args(["-c", "printf covered"]), &cancel), Err(Stop::Cancelled));
 }
 #[test]
 fn t3_builtin_marks_survive_missing_font_but_forced_test_fallback_is_explicit() {
@@ -41,3 +43,5 @@ fn t3_builtin_marks_survive_missing_font_but_forced_test_fallback_is_explicit() 
     m.force_text_marks = true;
     assert!(!m.marks());
 }
+#[path = "icons_signal_tests.rs"]
+mod signal_tests;

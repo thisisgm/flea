@@ -4,6 +4,23 @@ use std::io::Read;
 
 // The one background fallback, and ui/Theme.qml carries the same literal for the same reason.
 const BACKGROUND_FALLBACK: &str = "#101315";
+// A theme file larger than 64 KiB is refused, and the watcher reads the file again every half second.
+const THEME_BYTES: usize = 64 * 1024;
+const THEME_POLL: std::time::Duration = std::time::Duration::from_millis(500);
+// ui/Theme.qml's textContrast, frameContrast and hueFloor, and the Qt.darker step its metadata ink takes.
+const TEXT_CONTRAST: f64 = 4.5;
+const FRAME_CONTRAST: f64 = 3.0;
+const HUE_FLOOR: f64 = 0.2;
+const DARKER_STEP: f64 = 1.4;
+// Foreground washes over the background, first the marked row's alpha search from max to min by step, then the fixed washes.
+const MARK_ALPHA_MAX: f64 = 0.35;
+const MARK_ALPHA_MIN: f64 = 0.12;
+const MARK_ALPHA_STEP: f64 = 0.01;
+const SELECTED_ALPHA: f64 = 0.18;
+const CURSOR_ALPHA: f64 = 0.18;
+const TAB_ALPHA: f64 = 0.08;
+const MATCH_ALPHA: f64 = 0.14;
+const BORDER_ALPHA: f64 = 0.12;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Depth { Sixteen, Indexed, #[default] Truecolor }
@@ -62,38 +79,38 @@ impl Theme {
         let background = pick(&["background", "color0"], BACKGROUND_FALLBACK);
         let accent = pick(&["accent", "color4", "blue"], "#cacccc");
         let surface = pick(&["dark_background", "background", "selection", "color0"], BACKGROUND_FALLBACK);
-        let darker = rgb(&foreground).map(|v| (v * 255.0 / 1.4).round() as u8);
+        let darker = rgb(&foreground).map(|v| (v * 255.0 / DARKER_STEP).round() as u8);
         let darker = format!("#{:02x}{:02x}{:02x}", darker[0], darker[1], darker[2]);
         let muted = contrast(&contrast(&pick(&["muted"], &darker), &background), &surface);
         let meta = contrast(&contrast(&darker, &background), &surface);
-        let mut mark_alpha = 0.35;
-        while mark_alpha > 0.12 && ratio(rgb(&foreground), rgb(&blend(&foreground, &background, mark_alpha))) < 4.5 { mark_alpha -= 0.01; }
+        let mut mark_alpha = MARK_ALPHA_MAX;
+        while mark_alpha > MARK_ALPHA_MIN && ratio(rgb(&foreground), rgb(&blend(&foreground, &background, mark_alpha))) < TEXT_CONTRAST { mark_alpha -= MARK_ALPHA_STEP; }
         let error = pick(&["urgent"], "#a55555");
         let channels = rgb(&error);
         let high = channels.into_iter().fold(0.0_f64, f64::max);
         let low = channels.into_iter().fold(1.0_f64, f64::min);
-        let error = if high == 0.0 || (high - low) / high <= 0.2 { foreground.clone() } else { contrast(&error, &background) };
+        let error = if high == 0.0 || (high - low) / high <= HUE_FLOOR { foreground.clone() } else { contrast(&error, &background) };
         let encode = |hex: &str, bg| color(hex, bg, depth);
         Self {
             foreground: encode(&foreground, false), muted: encode(&muted, false), meta: encode(&meta, false),
-            accent: encode(&ensure(&accent, &surface, 3.0), false), error: encode(&error, false),
+            accent: encode(&ensure(&accent, &surface, FRAME_CONTRAST), false), error: encode(&error, false),
             background: encode(&background, true),
             symlink: encode(&contrast(&pick(&["cyan", "color6"], "#94e2d5"), &background), false),
             executable: encode(&contrast(&pick(&["green", "color2"], "#a6e3a1"), &background), false),
-            selected: encode(&blend(&foreground, &background, 0.18), true),
-            cursor: encode(&blend(&accent, &background, 0.18), true),
+            selected: encode(&blend(&foreground, &background, SELECTED_ALPHA), true),
+            cursor: encode(&blend(&accent, &background, CURSOR_ALPHA), true),
             marked: encode(&blend(&foreground, &background, mark_alpha), true),
-            tab: encode(&blend(&foreground, &background, 0.08), true),
-            match_fill: encode(&blend(&foreground, &background, 0.14), true),
-            border: encode(&blend(&foreground, &background, 0.12), false), depth,
+            tab: encode(&blend(&foreground, &background, TAB_ALPHA), true),
+            match_fill: encode(&blend(&foreground, &background, MATCH_ALPHA), true),
+            border: encode(&blend(&foreground, &background, BORDER_ALPHA), false), depth,
         }
     }
 }
 fn read(path: &std::path::Path) -> Option<String> {
     let file = crate::backend::regfile::open_if_regular(path, 0).ok()?;
     let mut bytes = Vec::new();
-    file.take(65537).read_to_end(&mut bytes).ok()?;
-    (bytes.len() <= 65536).then(|| String::from_utf8_lossy(&bytes).into_owned())
+    file.take((THEME_BYTES + 1) as u64).read_to_end(&mut bytes).ok()?;
+    (bytes.len() <= THEME_BYTES).then(|| String::from_utf8_lossy(&bytes).into_owned())
 }
 // A single worker follows theme switches without file reads in the event loop.
 pub struct Watch {
@@ -107,10 +124,11 @@ impl Watch {
         std::thread::spawn(move || {
             let mut previous = None;
             loop {
-                if let Some(text) = read(&path) {
+                // A read with no colour, ui/js/Palette.js's isPalette test, is a rewrite caught empty or cut short, so the live palette stays.
+                if let Some(text) = read(&path).filter(|text| !parse(text).is_empty()) {
                     if previous.as_ref() != Some(&text) && tx.try_send(text.clone()).is_ok() { previous = Some(text); }
                 }
-                if wait.recv_timeout(std::time::Duration::from_millis(500)).is_ok() { break; }
+                if wait.recv_timeout(THEME_POLL).is_ok() { break; }
             }
         });
         Self { updates, stop }
@@ -154,7 +172,7 @@ fn ratio(a: [f64; 3], b: [f64; 3]) -> f64 {
     let (a, b) = (luminance(a), luminance(b));
     (a.max(b) + 0.05) / (a.min(b) + 0.05)
 }
-fn contrast(foreground: &str, background: &str) -> String { ensure(foreground, background, 4.5) }
+fn contrast(foreground: &str, background: &str) -> String { ensure(foreground, background, TEXT_CONTRAST) }
 fn ensure(foreground: &str, background: &str, minimum: f64) -> String {
     // Keep this calculation aligned with ui/js/Contrast.js, including its rounded RGB result.
     const SEARCH_STEPS: usize = 18;

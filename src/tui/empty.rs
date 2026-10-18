@@ -10,7 +10,7 @@ pub fn notice(y: usize, height: usize, width: usize, mark: &str, headline: &str)
     else { fit("", width) }
 }
 pub fn line(y: usize, height: usize, width: usize, marks: bool, elapsed: Duration) -> String {
-    let phrase = PHRASES[(elapsed.as_millis() / ROTATE_MS).min(2) as usize];
+    let phrase = PHRASES[(elapsed.as_millis() / ROTATE_MS).min((PHRASES.len() - 1) as u128) as usize];
     notice(y, height, width, if marks { super::icons::FOLDER } else { "›" }, phrase)
 }
 
@@ -19,7 +19,7 @@ mod tests {
     use super::*;
     #[test]
     fn caption_has_three_beats_and_rests_on_the_last() {
-        for (millis, expected) in [(0, PHRASES[0]), (2799, PHRASES[0]), (2800, PHRASES[1]), (5599, PHRASES[1]), (5600, PHRASES[2]), (280000, PHRASES[2])] {
+        for (millis, expected) in [(0, PHRASES[0]), (2799, PHRASES[0]), (2800, PHRASES[1]), (5599, PHRASES[1]), (5600, PHRASES[2]), (280000, *PHRASES.last().unwrap())] {
             assert_eq!(line(13, 27, 51, true, Duration::from_millis(millis)).trim(), expected);
         }
     }

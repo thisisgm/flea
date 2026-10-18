@@ -48,6 +48,8 @@ fn t3_footer_uses_plain_selection_filter_disk_and_error_roles_without_collision(
     assert!(!selected.contains("\x1b[7m"));
     m.selected.clear(); m.filter = "o".into();
     assert!(plain(&footer(&m, &theme, 128, Duration::ZERO)).starts_with("Filter o  5 of 9 shown"));
+    let frame = plain(&crate::tui::render::frame(&m, &theme, &crate::tui::keymap::Map::load(), 130, 31, Duration::ZERO));
+    assert!(frame.contains("Filter o  5 of 9 shown") && !frame.contains("hidden by the filter"), "the count replaces the retired body note: {frame}");
     m.filter.clear(); m.error = "You don’t have permission to open this folder.".into();
     let error = footer(&m, &theme, 128, Duration::ZERO);
     assert!(error.contains(&format!("{}{}", theme.error, m.error)));
