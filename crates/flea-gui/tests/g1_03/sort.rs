@@ -148,3 +148,45 @@ fn a_sort_after_a_resize_lands_its_reordered_window_at_the_count_it_asked_for() 
     let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, count, named), listing: 2 }, now);
     assert_eq!(landed, Ok(true), "window count {count}");
 }
+
+#[test]
+fn two_sorts_across_a_resize_each_land_at_the_count_they_asked_for() {
+    let window_count = |nav: &mut Navigator| {
+        nav.take()
+            .iter()
+            .find_map(|command| match command {
+                Command::Window { count, .. } => Some(*count),
+                _ => None,
+            })
+            .unwrap()
+    };
+    let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let first = window_count(&mut nav);
+    pane.set_height(900.);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let second = window_count(&mut nav);
+    assert_ne!(first, second, "the height change moved the count");
+    let now = pane.now();
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, first, named), listing: 2 }, now);
+    assert_eq!(landed, Ok(true), "first sort asked {first}, second asked {second}");
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, second, named), listing: 3 }, now);
+    assert_eq!(landed, Ok(true), "second sort asked {second}");
+}
+
+#[test]
+fn a_refused_sort_frees_its_count_so_the_next_sort_lands_at_its_own() {
+    let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    nav.take();
+    let now = pane.now();
+    assert!(!pane.fail("sort", "/f/base", "refused", 0, now));
+    pane.set_height(900.);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let count = pane.first_count();
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, count, named), listing: 2 }, now);
+    assert_eq!(landed, Ok(true), "sort asked {count}");
+}

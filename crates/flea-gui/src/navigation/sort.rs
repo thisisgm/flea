@@ -196,7 +196,7 @@ impl super::Navigator {
         pane.requests.cancel();
         // The sorted pair lands unheld, so the pane checks it against the count asked for here.
         let count = pane.first_count();
-        pane.swap.unheld_first = count;
+        pane.swap.sorts_out.push_back(count);
         self.emit(super::Command::Window { start: 0, count });
         Ok(true)
     }

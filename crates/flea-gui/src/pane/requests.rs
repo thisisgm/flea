@@ -252,7 +252,9 @@ impl Pane {
             .take()
             .filter(|_| listing > self.greatest_listing)
         {
-            Self::check_complete(start, rows.len(), total, self.swap.unheld_first)?;
+            // Each sorted pair is checked against the count its own request asked for.
+            let first = self.swap.sorts_out.pop_front().unwrap_or(self.swap.unheld_first);
+            Self::check_complete(start, rows.len(), total, first)?;
             self.requests.cancel();
             self.greatest_listing = listing;
             self.held = Rc::new(Held {
