@@ -51,6 +51,10 @@ impl Shell {
             Ok(_) => match function.as_str() {
                 "scene" => match Spec::parse(&arguments[0], &arguments[1], &arguments[2]) {
                     Err(key) => self.visual_error(key),
+                    // A receipt names a presented frame, so a window the compositor reports none for never earns one.
+                    Ok(_) if self.presented_frames(window).is_none() => {
+                        self.visual_error("visual.unpresented")
+                    }
                     Ok(_) if self.visual.pending.is_some() || self.pending_requests() != 0 => {
                         self.visual_error("visual.busy")
                     }
@@ -63,6 +67,10 @@ impl Shell {
                     if arguments[0] != std::process::id().to_string() {
                         self.visual_error("visual.window")
                     } else if let Some(receipt) = &self.visual.receipt {
+                        // The geometry holds while the receipt frame is still the newest one presented.
+                        let presented = self
+                            .presented_frames(window)
+                            .map(|frames| frames.presented.to_string());
                         let matches = receipt.get("scene").and_then(|value| value.as_str())
                             == Some(&arguments[1])
                             && receipt
@@ -70,7 +78,7 @@ impl Shell {
                                 .and_then(|value| value.as_f64())
                                 .map(|n| n.to_string())
                                 == Some(arguments[2].clone())
-                            && arguments[2] == self.visual.frame.to_string();
+                            && presented.as_ref() == Some(&arguments[2]);
                         if matches && !self.visual.probe.empty() {
                             Reply::value(
                                 jsondoc::render(&self.visual.probe.json(receipt)).trim_end(),
@@ -87,7 +95,10 @@ impl Shell {
                 "sceneState" => {
                     Reply::value(jsondoc::render(&self.visual_state(window)).trim_end())
                 }
-                "presentedFrame" => Reply::value(self.visual.frame.to_string()),
+                "presentedFrame" => match self.presented_frames(window) {
+                    Some(frames) => Reply::value(frames.presented.to_string()),
+                    None => self.visual_error("visual.unpresented"),
+                },
                 "viewMode" => Reply::value(super::view_name(self.view)),
                 // Ipc.qml: the focused pane's listing in flight, and a name only for a row the list draws.
                 "listInFlight" => Reply::value(
@@ -128,6 +139,12 @@ impl Shell {
     ) {
         self.visual.revision += 1;
         self.visual.receipt = None;
+        self.visual.awaiting = None;
+        // Registered here, outside a frame, because a Wayland window cannot take its first presented-frame callback while it draws.
+        let weak = cx.entity().downgrade();
+        self.visual.presented = Some(window.observe_frame_presented(cx, move |window, cx| {
+            let _ = weak.update(cx, |shell, _| shell.visual_presented(window));
+        }));
         self.launch.paths = [spec.path.clone(), spec.path.clone()];
         self.launch.settings.view = spec.view;
         self.set_view(spec.view, window, cx);
@@ -169,6 +186,8 @@ impl Shell {
             let _ = cx.update(|_, cx| {
                 this.update(cx, |shell, _| {
                     if let Some(pending) = shell.visual.pending.take() {
+                        shell.visual.awaiting = None;
+                        shell.visual.presented = None;
                         let _ = pending.answer.try_send(Answer {
                             reply: shell.visual_error("visual.timeout"),
                             quit: false,

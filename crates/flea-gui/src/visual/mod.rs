@@ -8,7 +8,7 @@ mod tests;
 use crate::{ipc::server::Answer, list::pane::ROW_HEIGHT, state::Shell, window::startup::View};
 use flea::{ipc::wire::Reply, jsondoc::Json};
 pub(crate) use geometry::Probe;
-use gpui::{App, Context, Task, Window};
+use gpui::{App, Context, PresentedFrames, Subscription, Task, Window};
 use std::sync::mpsc::SyncSender;
 
 pub(crate) struct Pending {
@@ -18,12 +18,24 @@ pub(crate) struct Pending {
 
 #[derive(Default)]
 pub(crate) struct Visual {
-    pub frame: u64,
     pub revision: u64,
     pub receipt: Option<Json>,
     pub pending: Option<Pending>,
     pub probe: Probe,
     pub deadline: Option<Task<()>>,
+    pub awaiting: Option<Awaiting>,
+    pub presented: Option<Subscription>,
+    /// Stands in for the compositor's counts in tests, because the GPUI test window reports none.
+    #[cfg(test)]
+    pub compositor: Option<PresentedFrames>,
+}
+
+/// An eligible frame whose present was submitted, waiting for the compositor to report it presented.
+pub(crate) struct Awaiting {
+    pub committed: u64,
+    pub revision: u64,
+    pub live: contract::Live,
+    pub probe: Probe,
 }
 
 pub(crate) fn view_name(view: View) -> &'static str {
@@ -49,6 +61,15 @@ pub(crate) fn number(value: impl ToString) -> Json {
 }
 
 impl Shell {
+    /// The frames the compositor reported committed and presented, `None` where it reports none.
+    pub(crate) fn presented_frames(&self, window: &Window) -> Option<PresentedFrames> {
+        #[cfg(test)]
+        if let Some(frames) = self.visual.compositor {
+            return Some(frames);
+        }
+        window.presented_frames()
+    }
+
     pub(crate) fn pending_requests(&self) -> usize {
         self.panes
             .iter()
@@ -71,7 +92,11 @@ impl Shell {
             ("cursor", number(host.map_or(0, |host| host.pane.cursor))),
             ("pending", number(self.pending_requests())),
             ("preview", Json::Str("absent".into())),
-            ("frame", number(self.visual.frame)),
+            (
+                "frame",
+                self.presented_frames(window)
+                    .map_or(Json::Null, |frames| number(frames.presented)),
+            ),
             ("scale", number(window.scale_factor())),
             ("width", number(f32::from(window.viewport_size().width))),
             ("height", number(f32::from(window.viewport_size().height))),
@@ -138,6 +163,11 @@ impl Shell {
         for host in self.panes.iter().flatten() {
             host.list.borrow_mut().probe = eligible.then(|| probe.clone());
         }
+        if !eligible {
+            return;
+        }
+        // The frames committed before this one, so a present that fails is never awaited.
+        let before = self.presented_frames(window).map(|frames| frames.committed);
         let weak = cx.entity().downgrade();
         // Native frame callbacks queued during render run after that frame's present submission.
         window.on_next_frame(move |window, cx| {
@@ -145,8 +175,7 @@ impl Shell {
                 return;
             }
             let _ = weak.update(cx, |shell, cx| {
-                shell.visual.frame += 1;
-                if !eligible || revision != shell.visual.revision {
+                if revision != shell.visual.revision {
                     return;
                 }
                 let live = shell.visual_live(window, cx);
@@ -161,18 +190,50 @@ impl Shell {
                     cx.notify();
                     return;
                 }
-                let Some(pending) = shell.visual.pending.take() else {
+                // `scene` refuses a window without presentation feedback, so a pending scene always has counts.
+                let Some(frames) = shell.presented_frames(window) else {
                     return;
                 };
-                let receipt = pending.spec.receipt(shell.visual.frame, &live);
-                shell.visual.probe = probe;
-                shell.visual.receipt = Some(receipt.clone());
-                shell.visual.deadline = None;
-                let _ = pending.answer.try_send(Answer {
-                    reply: Reply::value(flea::jsondoc::render(&receipt).trim_end()),
-                    quit: false,
+                // A failed present numbers no frame, so the compositor never shows this one; draw again.
+                if Some(frames.committed) == before {
+                    cx.notify();
+                    return;
+                }
+                shell.visual.awaiting = Some(Awaiting {
+                    committed: frames.committed,
+                    revision,
+                    live,
+                    probe,
                 });
+                shell.visual_presented(window);
             });
+        });
+    }
+
+    /// Issues the receipt when the compositor reports the awaited frame itself presented, never a later one.
+    pub(crate) fn visual_presented(&mut self, window: &Window) {
+        let Some(frames) = self.presented_frames(window) else {
+            return;
+        };
+        let ready = self.visual.awaiting.as_ref().is_some_and(|awaiting| {
+            awaiting.revision == self.visual.revision && frames.presented == awaiting.committed
+        });
+        if !ready {
+            return;
+        }
+        self.visual.presented = None;
+        let (Some(awaiting), Some(pending)) =
+            (self.visual.awaiting.take(), self.visual.pending.take())
+        else {
+            return;
+        };
+        let receipt = pending.spec.receipt(frames.presented, &awaiting.live);
+        self.visual.probe = awaiting.probe;
+        self.visual.receipt = Some(receipt.clone());
+        self.visual.deadline = None;
+        let _ = pending.answer.try_send(Answer {
+            reply: Reply::value(flea::jsondoc::render(&receipt).trim_end()),
+            quit: false,
         });
     }
 }
