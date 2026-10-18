@@ -18,11 +18,12 @@ setsid -w env -i PATH="$PATH" HOME="$unit_root/home" \
     cargo test --locked -p flea-gui --lib feedback:: -- --nocapture < /dev/null > "$log" 2>&1
 rc=$?
 set -e
-grep -E '^(SPINNER_BOARD|test |test result)' "$log" || true
+grep -E '^(SPINNER_BOARD|SPINNER_ALLOCS|test |test result)' "$log" || true
 [ "$rc" -eq 0 ] || { tail -40 "$log" >&2; printf 'gpui-spinner: FAIL cargo test exited %s\n' "$rc"; exit 1; }
 # Every check is one test; a filter that matched nothing would pass with zero, so the count is required.
+# Reads cargo's summary line, for example "test result: ok. 11 passed; 0 failed; 2 ignored; 0 measured; 33 filtered out; finished in 0.05s".
 checks=$(sed -n 's/^test result: ok\. \([0-9]*\) passed; 0 failed.*/\1/p' "$log" | head -1)
-[ "${checks:-0}" -ge 10 ] || { printf 'gpui-spinner: FAIL only %s checks ran\n' "${checks:-0}"; exit 1; }
+[ "${checks:-0}" -ge 11 ] || { printf 'gpui-spinner: FAIL only %s checks ran\n' "${checks:-0}"; exit 1; }
 shots=$(find "$unit_root/specimens" -name 'spinner-*.pgm' | wc -l)
 [ "$shots" -eq 9 ] || { printf 'gpui-spinner: FAIL %s board specimens, want 9\n' "$shots"; exit 1; }
 printf 'gpui-spinner: specimens in %s\n' "$unit_root/specimens"

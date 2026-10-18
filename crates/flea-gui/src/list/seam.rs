@@ -39,7 +39,10 @@ mod bench {
     };
     use crate::feedback::spinner::Arm;
     use gpui::{px, size, Pixels, Size};
-    use std::time::{Instant, SystemTime, UNIX_EPOCH};
+    use std::{
+        ffi::OsString,
+        time::{Instant, SystemTime, UNIX_EPOCH},
+    };
 
     // The benchmark's sustained scroll: 3000 px a second for five seconds.
     const SPEED: f32 = 3000.;
@@ -67,21 +70,57 @@ mod bench {
         mark: Arm,
     }
 
-    impl Seam {
-        /// FLEA_GUI_BENCH_VIEWPORT, "1024x899", pins the list to the benchmark pane's size at the window's corner.
-        pub fn new() -> Self {
-            let viewport = std::env::var("FLEA_GUI_BENCH_VIEWPORT")
+    /// FLEA_GUI_BENCH_VIEWPORT, "1024x899", pins the list to the benchmark pane's size at the window's corner.
+    fn viewport(value: &str) -> Option<Size<Pixels>> {
+        let (width, height) = value.split_once('x')?;
+        let side = |text: &str| {
+            text.parse::<f32>()
                 .ok()
-                .and_then(|value| {
-                    let (width, height) = value.split_once('x')?;
-                    Some(size(px(width.parse().ok()?), px(height.parse().ok()?)))
-                });
-            // FLEA_GUI_BENCH_MARK "none" leaves the loading mark undrawn for the floor arm; a number pins its dash offset.
-            let mark = match std::env::var("FLEA_GUI_BENCH_MARK").ok().as_deref() {
-                Some("none") => Arm::Hidden,
-                Some(offset) => offset.parse().map_or(Arm::Crawl, Arm::Pinned),
-                None => Arm::Crawl,
-            };
+                .filter(|side| side.is_finite() && *side > 0.)
+        };
+        Some(size(px(side(width)?), px(side(height)?)))
+    }
+
+    /// FLEA_GUI_BENCH_MARK "none" leaves the loading mark undrawn for the floor arm; a number pins its dash offset.
+    fn mark(value: &str) -> Option<Arm> {
+        match value {
+            "none" => Some(Arm::Hidden),
+            offset => offset
+                .parse()
+                .ok()
+                .filter(|offset: &f32| offset.is_finite())
+                .map(Arm::Pinned),
+        }
+    }
+
+    /// An unset variable is None; a set one that does not parse is the message the run ends with.
+    fn check<T>(
+        name: &str,
+        value: Option<OsString>,
+        parse: fn(&str) -> Option<T>,
+    ) -> Result<Option<T>, String> {
+        let Some(value) = value else { return Ok(None) };
+        match value.to_str().and_then(parse) {
+            Some(parsed) => Ok(Some(parsed)),
+            None => Err(format!(
+                "flea-gui: {name}={} does not parse",
+                value.to_string_lossy()
+            )),
+        }
+    }
+
+    // A benchmark run with a mistyped variable stops before it measures anything, rather than measure the default arm.
+    fn read<T>(name: &str, parse: fn(&str) -> Option<T>) -> Option<T> {
+        check(name, std::env::var_os(name), parse).unwrap_or_else(|message| {
+            eprintln!("{message}");
+            std::process::exit(2)
+        })
+    }
+
+    impl Seam {
+        pub fn new() -> Self {
+            let viewport = read("FLEA_GUI_BENCH_VIEWPORT", viewport);
+            let mark = read("FLEA_GUI_BENCH_MARK", mark).unwrap_or(Arm::Crawl);
             Self {
                 ready: false,
                 armed: false,
@@ -180,6 +219,34 @@ mod bench {
             eprintln!("FEAS_FRAMES {}", frames.join(","));
             eprintln!("PANE_SCROLL_MISSES {}", run.misses);
             self.run = None;
+        }
+    }
+
+    #[cfg(test)]
+    mod tests {
+        use super::{check, mark, viewport, Arm};
+        use gpui::{px, size};
+
+        #[test]
+        fn a_bench_variable_parses_or_names_itself_and_its_value() {
+            assert_eq!(viewport("1024x899"), Some(size(px(1024.), px(899.))));
+            for bad in ["1024", "1024x", "wide x 899", "NaNx899", "0x899", "-5x899"] {
+                assert_eq!(viewport(bad), None, "{bad}");
+            }
+            assert_eq!(mark("none"), Some(Arm::Hidden));
+            assert_eq!(mark("-27"), Some(Arm::Pinned(-27.)));
+            for bad in ["", "crawl", "inf", "NaN", "-27px"] {
+                assert_eq!(mark(bad), None, "{bad}");
+            }
+            assert_eq!(check("FLEA_GUI_BENCH_MARK", None, mark), Ok(None));
+            assert_eq!(
+                check("FLEA_GUI_BENCH_MARK", Some("crawl".into()), mark),
+                Err("flea-gui: FLEA_GUI_BENCH_MARK=crawl does not parse".into())
+            );
+            assert_eq!(
+                check("FLEA_GUI_BENCH_VIEWPORT", Some("1024".into()), viewport),
+                Err("flea-gui: FLEA_GUI_BENCH_VIEWPORT=1024 does not parse".into())
+            );
         }
     }
 }

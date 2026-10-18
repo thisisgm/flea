@@ -19,11 +19,12 @@ impl Render for Root {
                     .clone()
                     .cached(StyleRefinement::default().size_full()),
             )
+            // A surface that covers a pane (Quick Look, menus, sheets, dialogs) paints in a later layer than this overlay, a GPUI deferred, so no mark draws over it.
             .child(Overlay(self.shell.clone()))
     }
 }
 
-/// Paints after the shell has laid out, so a mark lands in this frame's slot; a crawl frame repaints only this.
+/// Paints after the shell has laid out, so a mark lands in this frame's slot inside its pane's clip; a crawl frame repaints only this.
 struct Overlay(Entity<Shell>);
 
 impl IntoElement for Overlay {

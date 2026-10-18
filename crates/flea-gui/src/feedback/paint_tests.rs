@@ -1,33 +1,47 @@
-use super::spinner::{cells, phase, Crawl, Slot, PERIOD_MS};
+use super::spinner::{cells, phase, Crawl, Slot, GRID, PERIOD_MS, TRAVEL};
+use super::spinner_tests::{frame, FRAME};
 use crate::list::{bench::allocations, Palette};
 use gpui::{
-    div, prelude::*, size, App, Bounds, Context, DevicePixels, Element, ElementId, GlobalElementId,
-    InspectorElementId, LayoutId, Pixels, Render, Style, SvgRenderer, SvgSize, TestAppContext,
-    Window,
+    div, fill, point, prelude::*, px, size, App, Bounds, Context, DevicePixels, Element, ElementId,
+    GlobalElementId, Hsla, InspectorElementId, LayoutId, Pixels, Render, Style, SvgRenderer,
+    SvgSize, TestAppContext, Window, WindowHandle,
 };
 use std::{cell::Cell, rc::Rc, sync::Arc, time::Duration};
 
-/// A slot alone in a window, so one paint of the mark is measured without the shell around it.
-struct Probe {
-    crawl: Rc<Crawl>,
-    offset: Rc<Cell<f32>>,
-    cost: Rc<Cell<u64>>,
+/// What a probe window paints in its slot.
+#[derive(Clone, Copy, Default)]
+enum Painter {
+    #[default]
+    Nothing,
+    /// The shipped crawl arm.
+    Crawl,
+    /// The bench's pinned arm at this offset.
+    Pinned(f32),
+    /// The dash at this phase drawn straight from `cells`, asking for a frame or not, which is GPUI's own cost for it.
+    Reference(f32, bool),
+}
+
+/// A slot alone in a window, so each paint is measured without the shell around it.
+struct Probe(Rc<Crawl>, Rc<Measures>);
+
+#[derive(Default)]
+struct Measures {
+    painter: Cell<Painter>,
+    /// Heap allocations in the last paint.
+    spent: Cell<u64>,
+    painted: Cell<usize>,
 }
 
 impl Render for Probe {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
         div()
             .size_full()
-            .child(Slot(Rc::clone(&self.crawl)))
-            .child(Measured(
-                Rc::clone(&self.crawl),
-                self.offset.get(),
-                Rc::clone(&self.cost),
-            ))
+            .child(Slot(Rc::clone(&self.0)))
+            .child(Measured(Rc::clone(&self.0), Rc::clone(&self.1)))
     }
 }
 
-struct Measured(Rc<Crawl>, f32, Rc<Cell<u64>>);
+struct Measured(Rc<Crawl>, Rc<Measures>);
 
 impl IntoElement for Measured {
     type Element = Self;
@@ -74,51 +88,119 @@ impl Element for Measured {
         window: &mut Window,
         cx: &mut App,
     ) {
+        let (crawl, measures) = (&self.0, &self.1);
         let before = allocations();
-        self.0.paint(false, Some(self.1), window, cx);
-        self.2.set(self.2.get() + allocations() - before);
+        match measures.painter.get() {
+            Painter::Nothing => return,
+            Painter::Crawl => crawl.paint(true, None, window, cx),
+            Painter::Pinned(offset) => crawl.paint(false, Some(offset), window, cx),
+            Painter::Reference(at, asks) => reference(crawl.slot(), crawl.ink(), at, asks, window),
+        }
+        measures.spent.set(allocations() - before);
+        measures.painted.set(measures.painted.get() + 1);
     }
+}
+
+// The quads the mark's paint places for a square slot, with nothing of its own around them.
+fn reference(slot: Bounds<Pixels>, ink: Hsla, at: f32, asks: bool, window: &mut Window) {
+    let scale = window.scale_factor();
+    let unit = f32::from(slot.size.width) * scale / GRID;
+    let left = (f32::from(slot.origin.x) * scale).round();
+    let top = (f32::from(slot.origin.y) * scale).round();
+    window.with_content_mask(Some(window.content_mask()), |window| {
+        cells(at, unit, |[x0, y0, x1, y1], coverage| {
+            let bounds = Bounds::from_corners(
+                point(px((left + x0) / scale), px((top + y0) / scale)),
+                point(px((left + x1) / scale), px((top + y1) / scale)),
+            );
+            window.paint_quad(fill(bounds, ink.opacity(coverage)));
+        });
+    });
+    if asks {
+        window.request_animation_frame();
+    }
+}
+
+type Probed = (Rc<Crawl>, Rc<Measures>, WindowHandle<Probe>);
+
+fn probe(cx: &mut TestAppContext) -> Probed {
+    let (crawl, measures) = (Rc::new(Crawl::default()), Rc::new(Measures::default()));
+    let probe = Probe(Rc::clone(&crawl), Rc::clone(&measures));
+    (crawl, measures, cx.add_window(|_, _| probe))
+}
+
+fn refresh(cx: &mut TestAppContext, handle: WindowHandle<Probe>) {
+    cx.update_window(handle.into(), |_, window, _| window.refresh())
+        .unwrap();
 }
 
 #[gpui::test]
 fn the_mark_builds_no_geometry_and_allocates_nothing_after_its_first_frame(
     cx: &mut TestAppContext,
 ) {
-    let crawl = Rc::new(Crawl::default());
-    let (offset, cost) = (Rc::new(Cell::new(0.)), Rc::new(Cell::new(0)));
-    let probe = Probe {
-        crawl: Rc::clone(&crawl),
-        offset: Rc::clone(&offset),
-        cost: Rc::clone(&cost),
-    };
-    let handle = cx.add_window(|_, _| probe);
-    cx.update_window(handle.into(), |_, window, _| {
-        crawl.show(
-            true,
-            Palette::inherited(&window.text_style()).metadata_frame,
-        );
-    })
-    .unwrap();
-    let draw = |cx: &mut TestAppContext, at: f32| {
-        offset.set(at);
-        cx.update_window(handle.into(), |_, window, cx| {
-            window.refresh();
-            window.draw(cx).clear(cx);
+    let period = (PERIOD_MS / FRAME.as_millis() as u64) as usize;
+    // The shipped crawl on the test clock, then the bench's pinned arm walked through the same offsets.
+    for pinned in [false, true] {
+        // The mark and its reference draw in two windows in lockstep, so GPUI's own scene growth and frame request match.
+        let (mark, reference) = (probe(cx), probe(cx));
+        cx.update_window(mark.2.into(), |_, window, _| {
+            let ink = Palette::inherited(&window.text_style()).metadata_frame;
+            mark.0.show(true, ink);
+            reference.0.show(false, ink);
         })
         .unwrap();
-    };
-    let steps = PERIOD_MS / 8;
-    let period = |cx: &mut TestAppContext| {
-        for step in 0..steps {
-            draw(cx, -57. * step as f32 / steps as f32);
+        let (mut last, mut wraps) = (0., 0);
+        for drawn in 1..=period * 5 / 2 {
+            let at = phase(FRAME * (drawn - 1) as u32);
+            mark.1.painter.set(match pinned {
+                false => Painter::Crawl,
+                true => Painter::Pinned(-TRAVEL * at),
+            });
+            reference.1.painter.set(Painter::Reference(at, !pinned));
+            if drawn == 1 || pinned {
+                refresh(cx, mark.2);
+                refresh(cx, reference.2);
+            } else {
+                frame(cx, mark.2);
+                cx.update_window(reference.2.into(), |_, window, cx| {
+                    window.simulate_next_frame(cx)
+                })
+                .unwrap();
+            }
+            let painted = (mark.0.counters.frames.get(), mark.1.painted.get());
+            assert_eq!(
+                (painted, reference.1.painted.get()),
+                ((drawn, drawn), drawn)
+            );
+            assert!(
+                (mark.0.offset() + TRAVEL * at).abs() < 1e-4,
+                "frame {drawn}"
+            );
+            wraps += usize::from(mark.0.offset() > last);
+            last = mark.0.offset();
+            if drawn == 1 {
+                continue;
+            }
+            let spent = (mark.1.spent.get(), reference.1.spent.get());
+            assert_eq!(
+                spent.0, spent.1,
+                "frame {drawn}: the mark against GPUI's own cost"
+            );
+            // Past a whole period both of the window's alternating scenes have held every phase, so GPUI grows nothing.
+            if pinned && drawn > period + 1 {
+                assert_eq!(spent.0, 0, "frame {drawn}");
+            }
         }
-    };
-    period(cx);
-    let painted = crawl.counters.frames.get();
-    cost.set(0);
-    period(cx);
-    assert_eq!(cost.get(), 0);
-    assert_eq!((crawl.counters.frames.get() - painted) as u64, steps);
+        assert_eq!(
+            wraps, 2,
+            "pinned {pinned}: the walk covers two whole periods"
+        );
+        eprintln!(
+            "SPINNER_ALLOCS pinned={pinned} frames={} last_frame_allocs={}",
+            mark.1.painted.get(),
+            mark.1.spent.get()
+        );
+    }
 }
 
 // One 8-bit step of the reference; a between frame also allows its 4x supersampled edge, which lands on the nearest quarter pixel.
@@ -148,8 +230,8 @@ fn board(dashoffset: f32, side: u32) -> Vec<f32> {
 
 pub(super) fn raster(offset: f32, side: u32) -> Vec<f32> {
     let mut coverage = vec![0f32; (side * side) as usize];
-    let at = (-offset / 57.).rem_euclid(1.);
-    cells(at, side as f32 / 24., |[x0, y0, x1, y1], amount| {
+    let at = (-offset / TRAVEL).rem_euclid(1.);
+    cells(at, side as f32 / GRID, |[x0, y0, x1, y1], amount| {
         for y in y0 as u32..y1 as u32 {
             for x in x0 as u32..x1 as u32 {
                 coverage[(y * side + x) as usize] += amount;
@@ -217,5 +299,5 @@ fn the_quads_match_the_board_spiral_at_rest_and_mid_period() {
 #[test]
 fn a_period_ends_where_it_started() {
     assert_eq!(phase(Duration::from_millis(PERIOD_MS)), 0.);
-    assert_eq!(raster(0., 48), raster(-57., 48));
+    assert_eq!(raster(0., 48), raster(-TRAVEL, 48));
 }
