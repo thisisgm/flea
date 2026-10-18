@@ -164,6 +164,10 @@ mod trash_tests;
 #[path = "tabmove_tests.rs"]
 mod tabmove_tests;
 
+#[cfg(test)]
+#[path = "selection_tests.rs"]
+mod selection_tests;
+
 // The model's status lines and faults, which also need the echo wire.
 #[cfg(test)]
 #[path = "words_tests.rs"]

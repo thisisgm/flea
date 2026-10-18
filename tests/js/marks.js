@@ -1,10 +1,61 @@
 .import "../../ui/js/Marks.js" as Marks
+.import "../../ui/js/Focus.js" as Focus
+.import "../../ui/js/Selection.js" as Selection
 .import "filterfixture.js" as Fixture
 
 // Marking rows over whatever the filter left drawn: ctrl+A, the shift range in both forms, and
 // ctrl+click. Split out of tests/js/filter.js with ui/js/Marks.js; the stub pane is shared.
 
+// The real selection model behind the pane methods Focus.act dispatches to.
+function actionPane(query, searchMode) {
+    var p = Fixture.pane(query)
+    p.selection = Selection.create()
+    p.selectedIndices = function () { return p.selection.indices() }
+    p.clearCalls = 0
+    p.clearSelection = function () { p.clearCalls++; p.selection.clear(); p.selectionVersion++ }
+    p.invertSelection = function () { Marks.invert(p) }
+    p.cursorIndex = 5
+    p.cursorSeq = 3
+    p.filterTyping = query.length > 0
+    p.searchMode = searchMode
+    p.searchQuery = searchMode.length > 0 ? "screen" : ""
+    p.searchRunning = searchMode.length > 0
+    p.selection.toggle(0)
+    p.selection.toggle(2)
+    p.selection.toggle(5)
+    return p
+}
+
+function viewState(p) {
+    return JSON.stringify([p.filterQuery, p.filterTyping, p.searchMode, p.searchQuery,
+        p.searchRunning, p.cursorIndex, p.cursorSeq, p.shown, p.shownTotal, p.scrolled])
+}
+
+function actions(check) {
+    var cases = [
+        { name: "unfiltered", query: "", search: "", inverted: "1,3,4,6" },
+        { name: "filtered", query: "scr", search: "", inverted: "1,6" },
+        { name: "search results", query: "", search: "results", inverted: "1,3,4,6" }
+    ]
+    for (var i = 0; i < cases.length; i++) {
+        var c = cases[i], clear = actionPane(c.query, c.search)
+        var beforeClear = viewState(clear)
+        Focus.act("deselectAll", clear)
+        check(c.name + " Deselect all clears every mark, including hidden rows", Fixture.picks(clear), "")
+        check(c.name + " Deselect all uses the pane clear method once", clear.clearCalls, 1)
+        check(c.name + " Deselect all publishes the changed selection", clear.selectionVersion, 1)
+        check(c.name + " Deselect all leaves filter, search and cursor untouched", viewState(clear), beforeClear)
+
+        var invert = actionPane(c.query, c.search), beforeInvert = viewState(invert)
+        Focus.act("invertSelection", invert)
+        check(c.name + " Invert flips drawn marks and never retains hidden marks", Fixture.picks(invert), c.inverted)
+        check(c.name + " Invert publishes the changed selection", invert.selectionVersion, 1)
+        check(c.name + " Invert leaves filter, search and cursor untouched", viewState(invert), beforeInvert)
+    }
+}
+
 function run(check) {
+    actions(check)
     var all = Fixture.pane("scr")
     Marks.selectAll(all)
     check("select all takes what is drawn, never the rows the filter hid", Fixture.picks(all), "0,1,5,6")

@@ -28,10 +28,10 @@ function separated(rows) {
 }
 function run(check) {
     var file = Menu.listingEntries(state({}))
-    check("Menus and Places inventory has 57 actions", Menu.INVENTORY.length, 57)
+    check("Menus and Places inventory has 58 actions", Menu.INVENTORY.length, 58)
     check("Open with uses the authoritative cut geometry", Icons.pathFor("app-window"), "M3 4h18v16H3z M3 9h18 M6 6.5h.01 M9 6.5h.01")
     check("Restore all uses the authoritative undo geometry", Icons.pathFor("undo"), "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5")
-    check("inventory storage ids are unique", Object.keys(Menu.INVENTORY.reduce(function (out, row) { out[row[0]] = true; return out }, {})).length, 57)
+    check("inventory storage ids are unique", Object.keys(Menu.INVENTORY.reduce(function (out, row) { out[row[0]] = true; return out }, {})).length, 58)
     check("default image menu matches Menus specimen", actions(file),
           "open,openWith,run,openAsText,cut,copy,paste,duplicate,rename,compress,convert,flashDrive,addToShelf,taildrop,dropbox,trash,addFavourite,toggleHidden,toggleLangMarks")
     check("code icons ship enabled with the existing code glyph", entry(file, "toggleLangMarks").label + "|" + entry(file, "toggleLangMarks").glyph, "Hide code icons|code")
@@ -43,7 +43,7 @@ function run(check) {
     check("folder omits run and open as text; Pane gives a folder no image or archive flag, so no conversion or extraction", actions(Menu.listingEntries(state({ rowMode: 0o040755, rowIsImage: false, rowName: "Photos" }))),
           "open,openWith,cut,copy,paste,duplicate,rename,compress,addToShelf,taildrop,dropbox,trash,addFavourite,toggleHidden,toggleLangMarks")
     check("background menu includes real creation actions in order", actions(Menu.listingEntries(state({ hasRow: false }))),
-          "newFolder,newFile,paste,selectAll,openTerminal,addFavourite,sort,toggleHidden,toggleLangMarks,settings")
+          "newFolder,newFile,paste,selectAll,deselectAll,openTerminal,addFavourite,sort,toggleHidden,toggleLangMarks,settings")
     var background = Menu.listingEntries(state({ hasRow: false, updateVersion: "0.3.4" }))
     check("a known newer build adds Update Flea under Settings, in the same group, with the download mark",
           background.slice(-2).map(function (r) { return (r.separator ? "|" : r.action) + ":" + r.glyph }).join(","),
@@ -103,6 +103,19 @@ function run(check) {
     // Invert selection lives on the background menu beside Select all, never on a file row.
     check("while Invert selection lives on the background menu",
         entry(Menu.listingEntries(state({ hasRow: false, hiddenActions: [] })), "invertSelection").action, "invertSelection")
+    var selectionMenu = Menu.listingEntries(state({ hasRow: false, hiddenActions: [] }))
+    check("Deselect all sits between Select all and the existing Invert selection",
+        selectionMenu.filter(function (r) { return ["selectAll", "deselectAll", "invertSelection"].indexOf(r.action) >= 0 })
+            .map(function (r) { return r.action }).join(","), "selectAll,deselectAll,invertSelection")
+    check("Deselect all exposes its own action and label",
+        entry(selectionMenu, "deselectAll").action + "|" + entry(selectionMenu, "deselectAll").label, "deselectAll|Deselect all")
+    check("selection-wide controls stay off the file row menu", entry(all, "deselectAll").action, undefined)
+    check("Deselect all remains available with no marks",
+        entry(Menu.listingEntries(state({ hasRow: false, selectionCount: 0, hiddenActions: [] })), "deselectAll").disabled === true, false)
+    check("and keeps its action with no marks",
+        entry(Menu.listingEntries(state({ hasRow: false, selectionCount: 0, hiddenActions: [] })), "deselectAll").action, "deselectAll")
+    check("the Menus switch can hide Deselect all",
+        entry(Menu.listingEntries(state({ hasRow: false, hiddenActions: ["deselectAll"] })), "deselectAll").action, undefined)
     function shown(a) { return entry(Menu.listingEntries(state({ hiddenActions: [], rowIsSymlink: true })), a) }
     check("Show original draws the link mark in the open group", shown("showOriginal").glyph, "symlink")
     check("permanent deletion carries danger role", entry(all, "deletePermanently").danger, true)
@@ -285,7 +298,7 @@ function run(check) {
     check("its Copy path row carries the copy dispatch",
           entry(locked, "copypath").action, "copypath")
     check("and no row that would create in, paste into or sort the parent",
-          ["newFolder", "newFile", "paste", "selectAll", "sort", "toggleHidden", "settings"].every(function (a) {
+          ["newFolder", "newFile", "paste", "selectAll", "deselectAll", "sort", "toggleHidden", "settings"].every(function (a) {
               return entry(locked, a).action === undefined
           }), true)
     check("Permissions stays plain while its owner may still be the operator, the way back in",

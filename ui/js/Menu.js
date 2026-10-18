@@ -67,6 +67,7 @@ var INVENTORY = [
     ["editPlace", "Edit address", "sliders", "R", "basic"],
     ["remove", "Remove from Network", "minus", "R", "rremove"],
     ["selectAll", "Select all", "check", "B", "basic"],
+    ["deselectAll", "Deselect all", "minus", "B", "basic"],
     // MenuAdditions040: Invert selection flips the marks over the rows the
     // listing draws; hidden, present only while something is selected.
     ["invertSelection", "Invert selection", "contrast", "B", "basic", "invertSelection"],

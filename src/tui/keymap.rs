@@ -235,6 +235,8 @@ fn supported(action: &str) -> bool {
             | "open"
             | "toggleSelect"
             | "selectAll"
+            | "deselectAll"
+            | "invertSelection"
             | "toggleHidden"
             | "pathBar"
             | "filter"

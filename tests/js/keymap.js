@@ -192,6 +192,17 @@ function run(check) {
         key(preset, "C", "c", none, "copyAs")
         key(preset, "P", "P", shift, "pasteAs")
         key(preset, "V", "V", shift, "invertSelection")
+        for (var sf = 0; sf < 2; sf++) {
+            var selectionFrontend = ["gui", "tui"][sf]
+            key(preset, "A", "", ctrl | shift, "deselectAll", "listing", selectionFrontend)
+            key(preset, "A", "A", ctrl | shift, "deselectAll", "listing", selectionFrontend)
+            key(preset, "V", "V", shift, "invertSelection", "listing", selectionFrontend)
+            key(preset, "A", "", ctrl | shift, "", "editor", selectionFrontend)
+            var selectionSheet = Keymap.sheetFor(preset, selectionFrontend)
+            var deselectRow = selectionSheet.filter(function (r) { return r.action === "deselectAll" })[0] || {}
+            check(preset + " " + selectionFrontend + " sheet exposes Deselect all",
+                deselectRow.label + "|" + deselectRow.keys, "deselect all|ctrl-shift-a")
+        }
         key(preset, "C", "", ctrl | shift, "copyPath")
         key(preset, "P", "p", none, "copyPath", "menu")
         key(preset, "N", "n", none, "copyName", "menu")
@@ -203,6 +214,8 @@ function run(check) {
         key(preset, "A", "a", none, "pasteAbsoluteLink", "menu")
         key(preset, "H", "H", shift, "pasteHardLink", "menu")
     }
+    check("Deselect all follows Select all in the Change group",
+        Keymap.SHEET_GROUPS.change.indexOf("deselectAll"), Keymap.SHEET_GROUPS.change.indexOf("selectAll") + 1)
     check("Copy as hints its opener", Keymap.hintFor("copyAs"), "c")
     check("a shift chord fills an action no plain key names", Keymap.hintFor("deletePermanently"), "shift-delete")
     // A preset shift row for an action the table binds plain: the plain key must speak for it, since a shift chord only fills what no text or plain row names.
