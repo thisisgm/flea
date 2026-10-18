@@ -30,7 +30,7 @@ pub(crate) struct SlowClaim {
 
 // Everything the write operations own, kept apart from the listing state they never touch.
 pub(crate) struct Ops {
-    pub journal: Journal,
+    pub journal: super::lazy::Local<Journal>,
     pub permissions: super::permissions::Permissions,
     pub picker: Option<super::picker::Picker>,
     pub menuactions: Option<super::menu_actions::MenuActions>,
@@ -47,20 +47,27 @@ pub(crate) struct Ops {
     pub settling: Vec<(usize, String)>,
     // Detached jobs, so a quit cancels each one; they run alongside by design.
     pub detached: Arc<super::opscancel::DetachedJobs>,
-    pub tx: Sender<OpMsg>,
+    pub tx: super::lazy::DeferredSender<OpMsg>,
 }
 
 impl Ops {
+    #[cfg(test)]
     pub fn new(tx: Sender<OpMsg>) -> Ops {
-        Ops { journal: Journal::new(), permissions: super::permissions::Permissions::default(), picker: None, menuactions: None, trashbrowser: None,
-               transfer_retry: (0, Vec::new()), question: None, asked: 0, next_id: 1, live: Arc::new(super::opscancel::Live::new()), pending: Vec::new(), settling: Vec::new(), detached: Arc::new(super::opscancel::DetachedJobs::new()), tx }
+        Self::with_journal(tx, Journal::new().into())
+    }
+
+    fn with_journal(tx: Sender<OpMsg>, journal: super::lazy::Local<Journal>) -> Ops {
+        Ops { journal, permissions: super::permissions::Permissions::default(), picker: None, menuactions: None, trashbrowser: None,
+               transfer_retry: (0, Vec::new()), question: None, asked: 0, next_id: 1, live: Arc::new(super::opscancel::Live::new()), pending: Vec::new(), settling: Vec::new(), detached: Arc::new(super::opscancel::DetachedJobs::new()), tx: tx.into() }
     }
 
     // Production shares one undo history across every backend in the session; tests keep new().
     pub fn new_shared(tx: Sender<OpMsg>) -> Ops {
-        let mut ops = Ops::new(tx);
-        ops.journal.attach_shared();
-        ops
+        Self::with_journal(tx, super::lazy::Local::new(|| {
+            let mut journal = Journal::new();
+            journal.attach_shared();
+            journal
+        }))
     }
 
     // An id with no slot claimed: archive and convert are id-keyed and run concurrently by design,
@@ -782,7 +789,7 @@ pub(crate) fn start_redo(out: &mut impl Write, ops: &mut Ops) {
         }
     };
     let (id, cancel) = ops.claim_transfer();
-    let mut journal = std::mem::replace(&mut ops.journal, Journal::new());
+    let mut journal = std::mem::replace(&mut *ops.journal, Journal::new());
     writeln!(out, r#"{{"t":"redostarted","id":{},"n":{},"op":"{}"}}"#, id, n, crate::json::escape(&op)).ok();
     out.flush().ok();
     let tx = ops.tx.clone();
@@ -874,7 +881,7 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, msg: OpMsg) {
             }
         }
         OpMsg::RedoDone { journal, result, .. } => {
-            ops.journal = journal;
+            ops.journal = journal.into();
             ops.live.finished();
             match result {
                 Ok(op) => writeln!(out, r#"{{"t":"redone","op":"{}","ok":true}}"#, crate::json::escape(&op)).ok(),

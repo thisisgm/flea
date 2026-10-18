@@ -609,13 +609,13 @@ fn owner_can_write(dir: &std::fs::File) {
 
 // The path that reaches a held directory through this process's own descriptor table, so no rename of
 // the name it was opened under can put anything else behind it. Linux only, the one platform this ships on.
-fn held_path(dir: &std::fs::File) -> PathBuf {
+pub(super) fn held_path(dir: &std::fs::File) -> PathBuf {
     PathBuf::from(format!("/proc/self/fd/{}", dir.as_raw_fd()))
 }
 
 // O_DIRECTORY refuses anything that is not a directory and O_NOFOLLOW refuses a symlink swapped in at
 // the name itself, so the descriptor is the directory this copy stat'd or the open fails.
-fn open_dir(path: &Path) -> std::io::Result<std::fs::File> {
+pub(super) fn open_dir(path: &Path) -> std::io::Result<std::fs::File> {
     std::fs::OpenOptions::new()
         .read(true)
         .custom_flags(O_DIRECTORY | O_NOFOLLOW)

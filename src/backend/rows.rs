@@ -17,6 +17,10 @@ use std::path::Path;
 // A row is a short name, two flags, three numbers and an icon name, so this rarely reallocates.
 const ROW_BYTES_ESTIMATE: usize = 128;
 
+pub(crate) fn empty_line(start: usize, ms: f64) -> String {
+    format!(r#"{{"t":"rows","start":{start},"rows":[],"kinds":[],"ms":{ms:.3}}}"#)
+}
+
 pub fn rows_line(
     base: &Path,
     l: &Listing,

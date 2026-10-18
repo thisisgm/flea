@@ -31,6 +31,7 @@ pub mod linecount;
 pub mod dirsize;
 pub mod dirsizereq;
 pub mod listpaths;
+pub mod viewerpaths;
 // Issue 144: a remote list scans off the event loop; see src/backend/listwork.rs.
 pub mod listwork;
 pub mod unmount;
@@ -64,6 +65,7 @@ pub mod compare;
 pub mod sort;
 pub mod ordering;
 pub mod state;
+pub(crate) mod lazy;
 pub mod mediaprobe;
 pub mod meta;
 pub mod metareq;
@@ -85,6 +87,9 @@ mod menu_slot;
 pub(crate) mod menu_registry;
 mod menu_registry_work;
 mod menucontents;
+mod menuproperties;
+#[cfg(test)]
+mod menuproperties_tests;
 mod menufacts;
 mod walkmounts;
 mod menudelete;
