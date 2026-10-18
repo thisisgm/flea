@@ -5,11 +5,14 @@ const MAX_STRING: usize = 8192;
 const MAX_MEMBERS: usize = 100_000;
 const MAX_TOKENS: usize = 524_288;
 const MAX_DEPTH: usize = 32;
+const MAX_NUMBER: usize = 128;
+const CHECK_INTERVAL: usize = 1024;
 pub(super) const INTERRUPTED: &str = "Tailscale status decode was cancelled or timed out.";
 const INVALID: &str = "Tailscale status could not be read.";
 const LIMITED: &str = "Tailscale status exceeded its decode limits.";
 
 // Visit direct members without building ignored objects or scanning preceding keys for duplicates.
+// Sample input: {"BackendState":"Running","Peer":{}}
 pub(super) fn object<'a>(input: &'a str, keep_going: &mut dyn FnMut() -> bool,
     mut visit: impl FnMut(String, &'a str, &mut dyn FnMut() -> bool) -> Result<(), &'static str>,
 ) -> Result<(), &'static str> {
@@ -38,6 +41,7 @@ pub(super) fn object<'a>(input: &'a str, keep_going: &mut dyn FnMut() -> bool,
     reader.check()
 }
 
+// Sample input: "nas.tail.ts.net."
 pub(super) fn text(input: &str) -> Option<String> {
     parse_string(input.as_bytes(), &mut 0).ok()
 }
@@ -70,6 +74,7 @@ impl Reader<'_, '_> {
         if self.take(byte) { Ok(()) } else { Err(INVALID) }
     }
 
+    // Sample input: "caf\u00e9"
     fn string(&mut self) -> Result<String, &'static str> {
         self.check()?;
         self.space();
@@ -78,7 +83,7 @@ impl Reader<'_, '_> {
         self.at += 1;
         while let Some(&byte) = self.input.as_bytes().get(self.at) {
             if self.at - start > MAX_STRING { return Err(LIMITED); }
-            if (self.at - start) % 1024 == 0 { self.check()?; }
+            if (self.at - start) % CHECK_INTERVAL == 0 { self.check()?; }
             self.at += 1;
             if byte == b'\\' { self.at += 1; }
             else if byte == b'"' {
@@ -89,6 +94,7 @@ impl Reader<'_, '_> {
         Err(INVALID)
     }
 
+    // Sample input: [true,{"Online":false},1.25e2]
     fn value(&mut self, depth: usize) -> Result<(), &'static str> {
         self.check()?;
         if depth >= MAX_DEPTH { return Err(LIMITED); }
@@ -104,7 +110,7 @@ impl Reader<'_, '_> {
                 let start = self.at;
                 while self.input.as_bytes().get(self.at).is_some_and(|b| matches!(b, b'-' | b'+' | b'.' | b'e' | b'E' | b'0'..=b'9')) {
                     self.at += 1;
-                    if self.at - start > 128 { return Err(LIMITED); }
+                    if self.at - start > MAX_NUMBER { return Err(LIMITED); }
                 }
                 crate::jsondoc::parse(&self.input[start..self.at]).map_err(|_| INVALID)?;
             }
@@ -113,6 +119,7 @@ impl Reader<'_, '_> {
         Ok(())
     }
 
+    // Sample input: {"Online":true,"DNSName":"nas.tail.ts.net."}
     fn container(&mut self, depth: usize, object: bool) -> Result<(), &'static str> {
         self.at += 1;
         let end = if object { b'}' } else { b']' };
@@ -128,6 +135,7 @@ impl Reader<'_, '_> {
         }
     }
 
+    // Sample input: true
     fn literal(&mut self, literal: &str) -> Result<(), &'static str> {
         if !self.input[self.at..].starts_with(literal) { return Err(INVALID); }
         self.at += literal.len();

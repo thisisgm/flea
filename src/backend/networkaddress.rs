@@ -2,6 +2,9 @@ use crate::json::escape;
 use std::net::Ipv6Addr;
 
 pub const INVALID: &str = "Enter a valid network address.";
+const MAX_ADDRESS: usize = 8192;
+const MAX_HOST: usize = 253;
+const MAX_LABEL: usize = 63;
 
 // Both front ends hand uri to their saved-place opener; parsing never mounts or saves a host.
 #[derive(Clone, Debug, PartialEq, Eq)]
@@ -28,19 +31,27 @@ pub fn protocol(scheme: &str) -> Option<(&'static str, u16)> {
     })
 }
 
+// Sample input: nas-1.local
 pub fn valid_host(host: &str) -> bool {
     if let Some(ip) = host.strip_prefix('[').and_then(|s| s.strip_suffix(']')) {
         return ip.parse::<Ipv6Addr>().is_ok();
     }
-    !host.is_empty() && host.len() <= 253 && host.split('.').all(|label| {
-        !label.is_empty() && label.len() <= 63
+    !host.is_empty() && host.len() <= MAX_HOST && host.split('.').all(|label| {
+        !label.is_empty() && label.len() <= MAX_LABEL
             && !label.starts_with('-') && !label.ends_with('-')
-            && label.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_'))
+            && label.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
     })
 }
 
+// Sample input: 00445
+pub fn decimal_port(input: &str) -> Option<u16> {
+    if input.is_empty() || !input.bytes().all(|b| b.is_ascii_digit()) { return None; }
+    input.parse::<u16>().ok().filter(|&port| port != 0)
+}
+
+// Sample input: sftp://gm@nas.local:2222/docs%20and%20photos
 pub fn parse(input: &str) -> Result<Address, &'static str> {
-    if input.len() > 8192 || input.chars().any(char::is_control) { return Err(INVALID); }
+    if input.len() > MAX_ADDRESS || input.chars().any(char::is_control) { return Err(INVALID); }
     let input = input.trim();
     if input.is_empty() {
         return Err(INVALID);
@@ -78,8 +89,7 @@ pub fn parse(input: &str) -> Result<Address, &'static str> {
     if !valid_host(&host) { return Err(INVALID); }
     let port = if port.is_empty() { default_port } else {
         let digits = port.strip_prefix(':').ok_or(INVALID)?;
-        if digits.is_empty() || !digits.bytes().all(|b| b.is_ascii_digit()) { return Err(INVALID); }
-        digits.parse::<u16>().ok().filter(|&p| p != 0).ok_or(INVALID)?
+        decimal_port(digits).ok_or(INVALID)?
     };
     if encoded && (raw_path.contains('?') || raw_path.contains('#')) { return Err(INVALID); }
     let raw_path = raw_path.trim_end_matches('/');
@@ -120,6 +130,7 @@ pub fn encode(input: &str, path: bool) -> String {
 }
 
 // Preserve existing escapes so an encoded separator or dot never becomes a different resource.
+// Sample input: /docs%2fphotos
 fn encoded_path(input: &str) -> String {
     let mut out = String::new();
     let mut bytes = input.bytes();
@@ -138,6 +149,7 @@ fn encoded_path(input: &str) -> String {
     out
 }
 
+// Sample input: /docs%20and%20photos
 fn decode(input: &str) -> Result<String, &'static str> {
     let mut out = Vec::new();
     let mut bytes = input.bytes();

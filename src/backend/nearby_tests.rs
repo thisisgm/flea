@@ -7,6 +7,9 @@ use std::process::{Command, Stdio};
 #[path = "nearby_ready_tests.rs"]
 mod ready;
 
+#[path = "nearby_adv_tests.rs"]
+mod adv;
+
 struct Fixture {
     dir: TestDir,
     root: PathBuf,
@@ -173,6 +176,7 @@ fn excess_output_is_bounded_and_empty_results_use_exact_copy() {
     discovery.request_with_path("start", 1, tx, Some(fixture.root.clone()));
     let (_, reply) = result(&rx);
     assert_eq!(field(&reply, "message"), NOTHING);
+    assert_eq!(field(&reply, "state"), "empty");
     assert!(jsondoc::render(&reply).contains("output exceeded its limit"));
     fixture.wait_gone();
 }
