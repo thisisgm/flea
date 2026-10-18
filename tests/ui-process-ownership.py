@@ -281,8 +281,9 @@ def world_run(index, knobs):
     for name in world_names:
         (stub / name).write_text(f'#!/bin/bash\nexec python3 {shlex.quote(str(world_script))} {name} "$@"\n')
         (stub / name).chmod(0o755)
-    # Records the bounds the case hands timeout and runs the call without them: on a loaded box a world call can outlast the real 2 s bound and read as empty, and world_hang_guard_s bounds a stall.
-    (stub / "timeout").write_text('#!/bin/bash\nWORLD_TIMEOUT="$1 $2" exec "${@:3}"\n')
+    # Records the bounds the case hands timeout and runs the call without them: on a loaded box a world call can outlast the real 2 s bound and read as empty, and world_hang_guard_s bounds a stall. A call not shaped timeout --kill-after=X Y cmd fails loud.
+    (stub / "timeout").write_text('#!/bin/bash\n[[ $1 == --kill-after=* && $# -ge 3 ]] || { echo "timeout stub: unexpected call timeout $*" >&2; exit 125; }\n'
+                                  'WORLD_TIMEOUT="$1 $2" exec "${@:3}"\n')
     (stub / "timeout").chmod(0o755)
     env = {**os.environ, "PATH": f"{stub}:{os.environ['PATH']}", "FLEA_WORLD": str(run / "world"),
            "FLEA_TEST_RUN_ROOT": str(run), "XDG_STATE_HOME": str(run / "state"), **knobs}
