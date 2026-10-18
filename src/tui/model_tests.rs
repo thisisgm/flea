@@ -139,14 +139,18 @@
 
     #[test]
     fn menu_requires_a_ready_identity_snapshot() {
+        let map = crate::tui::keymap::Map::load();
+        let enabled = |model: &Model, id: &str| super::super::render::menu_layout::entries(model, &map).into_iter().flatten()
+            .any(|row| row.id == id && row.enabled());
         let mut model = Model::new(PathBuf::from("/"), &Json::Null);
         model.menu_path = PathBuf::from("/selected");
         model.menu_count = 1;
-        assert!(!model.menu_enabled(0));
-        assert!(model.menu_enabled(1));
+        model.menu_view.taildrop = true;
+        assert!(!enabled(&model, "open"));
+        assert!(enabled(&model, "toggleHidden"));
         model.menu_ready = true;
-        assert!(model.menu_enabled(0));
-        assert!(!model.menu_enabled(2));
+        assert!(enabled(&model, "open"));
+        assert!(!enabled(&model, "taildrop"), "Taildrop with no machine cannot act");
         model.menu_path.clear();
-        assert!(!model.menu_enabled(0));
+        assert!(!enabled(&model, "open"));
     }

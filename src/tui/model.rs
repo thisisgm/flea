@@ -57,7 +57,6 @@ pub struct Tab {
 pub struct Deletion {
     pub token: usize,
     pub count: usize,
-    pub bytes: usize,
     pub destructive: bool,
     pub scroll: usize,
 }
@@ -142,7 +141,7 @@ pub struct Model {
     pub preview_focus: bool,
     pub quicklook: bool,
     pub sheet: bool,
-    pub properties: Option<Vec<String>>,
+    pub properties: Option<Vec<(String, String)>>,
     pub action_id: usize,
     pub menu: bool,
     pub menu_cursor: usize,
@@ -152,6 +151,10 @@ pub struct Model {
     pub menu_path: PathBuf,
     pub menu_directory: bool,
     pub menu_count: usize,
+    pub menu_view: super::render::menu_layout::View,
+    // Whether Hyprland rounds its windows, so a card or menu frame rounds its corners to match.
+    pub rounded: std::sync::Arc<std::sync::atomic::AtomicBool>,
+    pub i18n: crate::i18n::I18n,
     pub editor: Option<super::editor::Editor>,
     pub preset: String,
     pub hints: super::keymap::Hints,
@@ -315,6 +318,9 @@ impl Model {
             menu_path: PathBuf::new(),
             menu_directory: false,
             menu_count: 0,
+            menu_view: super::render::menu_layout::View::new(settings),
+            rounded: Default::default(),
+            i18n: Default::default(),
             editor: None,
             preset: match text(settings, "keys") {
                 "vim" => "vim",
@@ -532,15 +538,6 @@ impl Model {
         self.delete_marks.clear();
         self.menu_action = "deleteRefresh".into();
         wire.send(vec![("c", word("menuaction")), ("op", word("refreshDelete")), ("id", number(self.action_id))])
-    }
-    pub fn menu_enabled(&self, index: usize) -> bool {
-        if self.taildrop.submenu { return self.menu_ready && !self.taildrop.loading() && index < self.taildrop.peers.len(); }
-        match index {
-            0 => self.menu_ready && !self.menu_path.as_os_str().is_empty(),
-            1 => true,
-            2 => self.menu_ready && self.menu_count > 0 && !self.taildrop.loading() && !self.taildrop.peers.is_empty(),
-            _ => false,
-        }
     }
     fn cancel_taildrop(&mut self) -> bool {
         if self.taildrop_target.take().is_none() { return false; }
@@ -1149,8 +1146,10 @@ impl Model {
                     wire.send(vec![("c", word("menuaction")), ("op", word("close")), ("id", number(self.action_id))])?;
                 }
             }
+            "formats" | "actions" => super::render::menu_run::receive(self, &value),
             "menuaction" if !self.menu_action.is_empty() && count(&value, "id") == self.action_id => {
-                if !flag(&value, "ok") {
+                if super::render::menu_run::reply(self, &value, wire)? {
+                } else if !flag(&value, "ok") {
                     if !flag(&value, "cancelled") { self.fail(text(&value, "error").into()); }
                     self.menu_action.clear();
                     self.menu = false;
@@ -1158,7 +1157,7 @@ impl Model {
                     self.deletion = None;
                     wire.send(vec![("c", word("menuaction")), ("op", word("close")), ("id", number(self.action_id))])?;
                 } else if text(&value, "op") == "snapshot" && self.menu_action == "menu" {
-                    self.menu_ready = true;
+                    super::render::menu_run::ready(self, wire)?;
                 } else if text(&value, "op") == "snapshot" && self.menu_action == "deleteSnapshot" {
                     self.menu_action = "deletePrepare".into();
                     wire.send(vec![("c", word("menuaction")), ("op", word("prepareDelete")), ("id", number(self.action_id))])?;
@@ -1167,7 +1166,7 @@ impl Model {
                     let token = count(&value, "token");
                     if token == 0 { return Err(io::Error::other("Deletion could not be confirmed; try again")); }
                     self.menu_count = count(&value, "count");
-                    self.deletion = Some(Deletion { token, count: self.menu_count, bytes: count(&value, "bytes"), destructive: false, scroll: 0 });
+                    self.deletion = Some(Deletion { token, count: self.menu_count, destructive: false, scroll: 0 });
                     self.menu_action = "deleteConfirm".into();
                 } else if text(&value, "op") == "snapshot" && self.menu_action == "bulkSnapshot" {
                     self.menu_action = "bulk".into();
@@ -1217,24 +1216,11 @@ impl Model {
             }
             "menuaction" if self.sheet && self.properties.is_some() && count(&value, "id") == self.action_id => {
                 if !flag(&value, "ok") {
-                    self.properties = Some(vec![text(&value, "error").into()]);
+                    self.properties = Some(vec![(String::new(), text(&value, "error").into())]);
                 } else if text(&value, "op") == "snapshot" {
                     wire.send(vec![("c", word("menuaction")), ("op", word("properties")), ("id", number(self.action_id))])?;
                 } else if text(&value, "op") == "properties" {
-                    let mut facts = vec![
-                        text(&value, "path").into(),
-                        format!("Kind · {}", text(&value, "kind")),
-                        format!("Size · {}", super::render::bytes(count(&value, "bytes"))),
-                        format!("Permissions · {}", text(&value, "mode")),
-                        format!("Owner · {} ({})", text(&value, "owner"), count(&value, "uid")),
-                        format!("Group · {}", count(&value, "gid")),
-                    ];
-                    let modified = super::calendar::value(value.get("modified").unwrap_or(&Json::Null));
-                    if !modified.is_empty() { facts.insert(3, format!("Modified · {modified}")); }
-                    let deleted = super::calendar::value(value.get("deleted").unwrap_or(&Json::Null));
-                    if !deleted.is_empty() { facts.push(format!("Deleted · {deleted}")); }
-                    if flag(&value, "symlink") { facts.push(format!("Target · {}", text(&value, "target"))); }
-                    self.properties = Some(facts);
+                    self.properties = Some(super::render::cards::properties(&value, &self.i18n));
                 }
             }
             "error" => {

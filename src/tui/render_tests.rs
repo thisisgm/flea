@@ -1,6 +1,6 @@
     use super::*;
     use crate::tui::model::Row;
-    use crate::tui::cells::match_range;
+    use crate::tui::cells::{match_range, Wrapped};
     #[test]
     fn chrome_and_pane_insets_preserve_body_and_minimum_pdf_space() {
         assert_eq!(body_height(67), 63);
@@ -15,27 +15,6 @@
                 assert_eq!(start + width + pane_padding(outer), columns);
             }
         }
-    }
-    #[test]
-    fn scrolled_root_menu_renders_the_selected_action() {
-        let mut model = Model::new(std::path::PathBuf::from("/"), &crate::jsondoc::Json::Null);
-        model.columns = 80;
-        model.height = 4;
-        model.menu_top = 1;
-        model.menu_cursor = 2;
-        let rows = menu_rows(&model);
-        assert_eq!(rows, ["show hidden", "taildrop  ▶"]);
-        assert_eq!(overlay_rect(&rows, model.columns, model.height + CHROME_ROWS).3, 2);
-        let mut output = String::new();
-        overlay(&mut output, &rows, model.columns, model.height + CHROME_ROWS, "",
-            Some(model.menu_cursor - model.menu_top), "open", None);
-        assert!(output.contains("\x1b[7m taildrop  ▶ │"));
-        assert!(!output.contains("\x1b[7m show hidden"));
-        assert!(output.contains("│ show hidden │"));
-        model.hidden = true;
-        assert_eq!(menu_rows(&model), ["hide hidden", "taildrop  ▶"]);
-        model.taildrop.error = "signed out".into();
-        assert_eq!(menu_rows(&model), ["hide hidden", "taildrop · signed out"]);
     }
     #[test]
     fn counted_lines_read_singular_for_one_and_plural_for_many() {
@@ -71,61 +50,6 @@
         model.rows.insert(1, row());
         let filtered = footer(&model, &theme, 120, std::time::Duration::ZERO);
         assert!(filtered.contains("Filter a  2 of 2 shown"), "two matches of two rows: {filtered}");
-    }
-    #[test]
-    fn deletion_confirm_is_singular_for_one_item() {
-        let mut model = Model::new(std::path::PathBuf::from("/"), &crate::jsondoc::Json::Null);
-        model.deletion = Some(super::super::model::Deletion { token: 1, count: 1, bytes: 42, ..Default::default() });
-        model.columns = 80;
-        let confirmation = deletion_rows(&model).concat();
-        assert!(confirmation.contains("1 item,"));
-        assert!(confirmation.contains("This deletes it from disk. This cannot be undone."));
-        assert!(!confirmation.contains("them"));
-    }
-    #[test]
-    fn confirmation_buttons_stay_visible_and_hit_testable_at_small_sizes() {
-        let mut model = Model::new(std::path::PathBuf::from("/"), &crate::jsondoc::Json::Null);
-        model.deletion = Some(super::super::model::Deletion { token: 1, count: 3, bytes: 42, ..Default::default() });
-        assert!(!model.deletion.as_ref().unwrap().destructive);
-        for columns in [12, 28, 80] {
-            for height in [4, 20] {
-                model.columns = columns;
-                model.height = height;
-                let scroll = deletion_rows(&model).len().saturating_sub(height);
-                model.deletion.as_mut().unwrap().scroll = scroll;
-                let buttons = deletion_buttons(&model);
-                assert_eq!(buttons.len(), 2);
-                for (_, x, y) in &buttons {
-                    assert!(*x > 0 && x + 9 <= columns);
-                    assert!(*y > 0 && *y <= height + CHROME_ROWS);
-                }
-                assert_ne!((buttons[0].1, buttons[0].2), (buttons[1].1, buttons[1].2));
-            }
-        }
-    }
-    #[test]
-    fn padded_overlays_preserve_confirmation_and_panel_text() {
-        let mut model = Model::new(std::path::PathBuf::from("/"), &crate::jsondoc::Json::Null);
-        model.deletion = Some(super::super::model::Deletion { token: 1, count: 3, bytes: 42, ..Default::default() });
-        let map = Map::load();
-        for columns in [12, 28, 30, 80] {
-            model.columns = columns;
-            let confirmation = deletion_rows(&model);
-            assert!(confirmation.concat().contains("This deletes them from disk. This cannot be undone."));
-            model.properties = None;
-            let keys = panel_rows(&model, &map);
-            model.properties = Some(vec!["Properties: a-long-file-name-with-an-extension.txt".into()]);
-            let properties = panel_rows(&model, &map);
-            for rows in [confirmation, keys, properties] {
-                let (_, _, width, _) = overlay_rect(&rows, columns, rows.len() + 4);
-                let mut output = String::new();
-                overlay(&mut output, &rows, columns, rows.len() + 4, "", None, "panel", None);
-                for row in rows.iter().filter(|row| !row.trim().is_empty()) {
-                    assert!(text_width(row) <= width - 2, "clipped {row:?} at {columns} columns");
-                    assert!(output.contains(&format!("│ {} │", fit(row, width - 2))));
-                }
-            }
-        }
     }
     #[test]
     fn active_tab_remains_in_the_same_visible_hit_map() {

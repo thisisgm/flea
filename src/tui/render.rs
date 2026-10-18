@@ -1,8 +1,16 @@
 use super::{cells::{self, RowStyle}, icons, layout, keymap::Map, model::Model, theme::Theme};
 use std::io::{self, Write};
-pub use super::cells::{clean, safe, text_width, fit, Wrapped};
+pub use super::cells::{clean, safe, text_width, fit};
 pub use super::layout::{panes, BODY_ROW, CHROME_ROWS, body_height, pane_padding, preview_area, tab_layout};
 use super::layout::footer;
+#[path = "cards.rs"]
+pub(super) mod cards;
+#[path = "key_sheet.rs"]
+pub(super) mod key_sheet;
+#[path = "menu_layout.rs"]
+pub(super) mod menu_layout;
+#[path = "menu_run.rs"]
+pub(super) mod menu_run;
 
 pub fn bytes(n: usize) -> String {
     const BYTES_PER_UNIT: f64 = 1000.0;
@@ -57,6 +65,9 @@ pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
 }
 pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize, elapsed: std::time::Duration) -> String {
     if columns < 12 || lines <= CHROME_ROWS { return layout::small(columns, lines, theme); }
+    // A card or the keys sheet is the one lit surface: everything behind it draws in the scrim's inks.
+    let lit = theme;
+    let theme = if m.sheet || m.deletion.is_some() { theme.dim.as_deref().unwrap_or(theme) } else { theme };
     let (left, middle, right) = panes(columns, m.preview_visible);
     let body = body_height(lines);
     let base = theme.base();
@@ -117,26 +128,10 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
         }
     } else { out.push_str(&footer(m, theme, header_width, elapsed)); }
     out.push_str(&format!("{} ", base));
-    if m.sheet {
-        let rows = panel_rows(m, map);
-        overlay(&mut out, &rows[m.sheet_top.min(rows.len())..], columns, lines, &base, None, if m.properties.is_some() { "properties" } else { "keys" }, None);
-    }
-    if m.menu {
-        let rows = menu_rows(m);
-        let disabled: Vec<usize> = (0..rows.len()).filter(|index| !m.menu_enabled(m.menu_top + index)).collect();
-        overlay(&mut out, &rows, columns, lines, &base, Some(m.menu_cursor.saturating_sub(m.menu_top)),
-            if m.taildrop.submenu { "taildrop" } else { "open" }, Some((&theme.muted, &disabled)));
-    }
-    if let Some(deletion) = &m.deletion {
-        let rows = deletion_rows(m);
-        let scroll = deletion.scroll.min(rows.len().saturating_sub(1));
-        overlay(&mut out, &rows[scroll..], columns, lines, &base, None, "Delete permanently?", None);
-        for (destructive, x, y) in deletion_buttons(m) {
-            let color = if destructive { if deletion.token == 0 { &theme.muted } else { &theme.error } } else { &theme.accent };
-            out.push_str(&format!("\x1b[{};{}H{}{}{}{}{}", y, x, base, color,
-                if deletion.destructive == destructive { "\x1b[7m" } else { "" }, if destructive { "[ Delete ]" } else { "[ Cancel ]" }, base));
-        }
-    }
+    if m.properties.is_some() { cards::draw_properties(&mut out, m, lit); }
+    else if m.sheet { key_sheet::draw(&mut out, m, lit, map); }
+    if m.menu { menu_layout::draw(&mut out, m, lit, map); }
+    if m.deletion.is_some() { cards::draw_delete(&mut out, m, lit); }
     out
 }
 pub(super) fn selection_line(m: &Model, y: usize, columns: usize) -> String {
@@ -146,106 +141,6 @@ pub(super) fn selection_line(m: &Model, y: usize, columns: usize) -> String {
     if let Some(row) = m.selected_rows.values().nth(y - 3) { return format!("{} {}", fit(&row.name, columns.saturating_sub(text_width(&bytes(row.size)) + 1)), bytes(row.size)); }
     if y == m.selected_rows.len() + 3 && m.selected_rows.len() < m.selected.len() { return format!("{} outside loaded rows", marked(m.selected.len() - m.selected_rows.len())); }
     String::new()
-}
-pub fn deletion_rows(m: &Model) -> Vec<String> {
-    let Some(deletion) = &m.deletion else { return Vec::new(); };
-    let width = m.columns.saturating_sub(if m.columns < 30 { 4 } else { 8 }).max(1);
-    let summary = if deletion.token == 0 { "Inspecting selected items…".into() }
-        else { format!("{} {}, {}", grouped(deletion.count), if deletion.count == 1 { "item" } else { "items" }, bytes(deletion.bytes)) };
-    let mut rows: Vec<String> = Wrapped::new(&summary, width).map(str::to_owned).collect();
-    // One item is deleted as "it", several as "them", the same rule the window's confirm keeps.
-    let scope = if deletion.count == 1 { "This deletes it from disk. This cannot be undone." }
-        else { "This deletes them from disk. This cannot be undone." };
-    rows.extend(Wrapped::new(scope, width).map(str::to_owned));
-    rows.push(String::new());
-    if m.columns < 30 { rows.extend([" ".repeat(10), " ".repeat(10)]); }
-    else { rows.push(" ".repeat(22)); }
-    rows
-}
-pub fn deletion_buttons(m: &Model) -> Vec<(bool, usize, usize)> {
-    let rows = deletion_rows(m);
-    let Some(deletion) = &m.deletion else { return Vec::new(); };
-    let scroll = deletion.scroll.min(rows.len().saturating_sub(1));
-    let (x, y, width, count) = overlay_rect(&rows[scroll..], m.columns, m.height + CHROME_ROWS);
-    let stacked = m.columns < 30;
-    [false, true].into_iter().filter_map(|destructive| {
-        let row = rows.len() - 1 - usize::from(stacked && !destructive);
-        if row < scroll || row >= scroll + count || width < 10 { return None; }
-        let offset = if stacked { width - 10 } else { width.saturating_sub(22) + if destructive { 12 } else { 0 } };
-        Some((destructive, x + 2 + offset, y + 2 + row - scroll))
-    }).collect()
-}
-pub fn menu_rows(m: &Model) -> Vec<String> {
-    if m.taildrop.submenu {
-        return m.taildrop.peers.iter().skip(m.menu_top).map(|p| p.label.clone()).collect();
-    }
-    let reason = m.taildrop.reason();
-    let taildrop = if reason.is_empty() { "taildrop  ▶".into() } else { format!("taildrop · {}", reason) };
-    vec!["open".into(), if m.hidden { "hide hidden".into() } else { "show hidden".into() }, taildrop]
-        .into_iter().skip(m.menu_top).collect()
-}
-pub fn panel_rows(m: &Model, map: &Map) -> Vec<String> {
-    let rows = m.properties.clone().unwrap_or_else(|| map.sheet(&m.preset));
-    rows.iter().flat_map(|line| Wrapped::new(line, m.columns.saturating_sub(8).max(1))).map(clean).collect()
-}
-pub fn overlay_rect(rows: &[String], columns: usize, lines: usize) -> (usize, usize, usize, usize) {
-    let width = rows
-        .iter()
-        .map(|row| text_width(row))
-        .max()
-        .unwrap_or(0)
-        .saturating_add(2)
-        .max(13)
-        .min(columns.saturating_sub(if columns < 30 { 2 } else { 6 }));
-    let count = rows.len().min(lines.saturating_sub(4));
-    (
-        (columns.saturating_sub(width + 2)) / 2,
-        (lines.saturating_sub(count + 2)) / 2,
-        width,
-        count,
-    )
-}
-fn overlay(
-    out: &mut String,
-    rows: &[String],
-    columns: usize,
-    lines: usize,
-    base: &str,
-    selected: Option<usize>,
-    title: &str,
-    dim: Option<(&str, &[usize])>,
-) {
-    let (x, y, width, count) = overlay_rect(rows, columns, lines);
-    let heading = format!("─ {} ", title);
-    out.push_str(&format!(
-        "\x1b[{};{}H{}┌{}{}┐",
-        y + 1,
-        x + 1,
-        base,
-        fit(&heading, text_width(&heading).min(width)),
-        "─".repeat(width.saturating_sub(text_width(&heading)))
-    ));
-    for (i, row) in rows.iter().take(count).enumerate() {
-        out.push_str(&format!(
-            "\x1b[{};{}H{}│{}{} {} {}│",
-            y + i + 2,
-            x + 1,
-            base,
-            dim.filter(|(_, indices)| indices.contains(&i))
-                .map(|(color, _)| color)
-                .unwrap_or(""),
-            if selected == Some(i) { "\x1b[7m" } else { "" },
-            fit(row, width.saturating_sub(2)),
-            base
-        ));
-    }
-    out.push_str(&format!(
-        "\x1b[{};{}H{}└{}┘",
-        y + count + 2,
-        x + 1,
-        base,
-        "─".repeat(width)
-    ));
 }
 #[cfg(test)]
 #[path = "render_tests.rs"]

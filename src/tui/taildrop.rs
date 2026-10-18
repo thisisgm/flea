@@ -42,7 +42,6 @@ pub struct Taildrop {
     started: Instant,
     pub peers: Vec<Peer>,
     pub error: String,
-    pub submenu: bool,
     sending: Option<String>,
     pub sent: Option<Result<String, String>>,
 }
@@ -56,7 +55,6 @@ impl Taildrop {
             started: Instant::now(),
             peers: Vec::new(),
             error: String::new(),
-            submenu: false,
             sending: None,
             sent: None,
         }
@@ -89,11 +87,6 @@ impl Taildrop {
     }
     pub fn loading(&self) -> bool {
         self.child.is_some()
-    }
-    pub fn reason(&self) -> &str {
-        if self.sending.is_some() { "sending" }
-        else if self.loading() { "checking" }
-        else { &self.error }
     }
     pub fn current_peer(&self, selected: &Peer) -> Option<Peer> {
         self.peers.iter().find(|peer| peer.id == selected.id && peer.address == selected.address).cloned()

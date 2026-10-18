@@ -135,37 +135,6 @@ impl Map {
             .find(|(_, key)| self.in_context(key, preset, context) == action)
             .map(|(name, key)| spell(&key, name))
     }
-    pub fn sheet(&self, preset: &str) -> Vec<String> {
-        let mut resolved = Vec::new();
-        for (kind, block) in &self.blocks {
-            let Some((name, key)) = block_key(kind, block) else { continue; };
-            let prefix = get(block, "prefix");
-            let found = if prefix.is_empty() { self.action(&key, preset) }
-                else {
-                    let start = self.action(&Key::character(prefix.chars().next().unwrap(), ""), preset);
-                    if start != format!("prefix:{}", prefix) { continue; }
-                    self.sequence(prefix, &key, preset, "listing")
-                };
-            if found.is_empty() { continue; }
-            let chord = format!("{}{}{}", if prefix.is_empty() { String::new() } else { format!("{} ", prefix) },
-                spell(&key, name), if found.ends_with("Arm") { name } else { "" });
-            let entry = (canonical(&found).to_string(), chord);
-            if !resolved.contains(&entry) { resolved.push(entry); }
-        }
-        let mut rows = Vec::new();
-        let mut seen = Vec::new();
-        for (_, label) in self.blocks.iter().filter(|(kind, _)| matches!(kind.as_str(), "sheet" | "tuisheet" | "tui")) {
-            let action = canonical(get(label, "action"));
-            if seen.contains(&action) || get(label, "label").is_empty() || !supported(action) { continue; }
-            let keys: Vec<_> = resolved.iter().filter(|(a, _)| a == action).map(|(_, key)| key.as_str()).collect();
-            if !keys.is_empty() {
-                seen.push(action);
-                rows.push(format!("{}  {}", keys.join(" / "), get(label, "label")));
-            }
-        }
-        rows.push("1–9  Select tab".into());
-        rows
-    }
 }
 // A block as the key it binds and the name the sheet prints for it; None for a block that binds no key the sheet can show.
 fn block_key<'a>(kind: &'a str, block: &'a HashMap<String, String>) -> Option<(&'a str, Key)> {
@@ -224,16 +193,6 @@ fn spell(key: &Key, name: &str) -> String {
         _ => "",
     };
     format!("{}{}", prefix, name)
-}
-fn canonical(action: &str) -> &str {
-    match action {
-        "copyArm" => "copy",
-        "cutArm" => "cut",
-        "pasteArm" => "paste",
-        "cursorFirstArm" => "cursorFirst",
-        "trashArm" => "trash",
-        _ => action,
-    }
 }
 pub(super) fn supported(action: &str) -> bool {
     matches!(

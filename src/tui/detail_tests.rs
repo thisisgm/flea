@@ -213,10 +213,10 @@ fn properties_omit_invalid_modified_and_accept_gio_deleted_wall_time() {
         let reply = crate::jsondoc::parse(&format!(r#"{{"t":"menuaction","op":"properties","id":8,"ok":true,"path":"/fx/v/work/notes.txt","kind":"Plain text document","bytes":99,"modified":{stamp},"deleted":"2025-06-14T09:30:00"}}"#)).unwrap();
         model.receive(reply, &mut wire).unwrap();
         let facts = model.properties.as_ref().unwrap();
-        let modified: Vec<_> = facts.iter().filter(|row| row.starts_with("Modified · ")).collect();
+        let modified: Vec<_> = facts.iter().filter(|(label, _)| label == "Modified").collect();
         assert_eq!(modified.len(), usize::from(stamp == "1790158470"));
-        assert!(facts.contains(&"Deleted · 2025-06-14 09:30".into()));
-        assert!(facts.contains(&"Kind · Plain text document".into()));
+        assert!(facts.contains(&("Deleted".into(), "2025-06-14 09:30".into())));
+        assert!(facts.contains(&("Kind".into(), "Plain text document".into())));
     }
     wire::finish(wire, reader);
 }
