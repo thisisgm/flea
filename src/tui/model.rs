@@ -4,6 +4,10 @@ use std::collections::{BTreeMap, BTreeSet, VecDeque};
 use std::io;
 use std::path::PathBuf;
 
+// Matches StatusBar.messageMs in ui/StatusBar.qml.
+const MESSAGE_TIME: std::time::Duration = std::time::Duration::from_secs(4);
+const FOLDER_SIZE_SETTLE: std::time::Duration = std::time::Duration::from_millis(120);
+
 #[derive(Clone)]
 pub struct Row {
     pub name: String,
@@ -414,7 +418,7 @@ impl Model {
             let visible = self.visible();
             self.folder_sizes.retain(|index, _| visible.contains(index));
         }
-        if self.pending.is_some() || self.searching || now.saturating_duration_since(self.size_at).as_millis() < 120
+        if self.pending.is_some() || self.searching || now.saturating_duration_since(self.size_at) < FOLDER_SIZE_SETTLE
             || self.disk_path != self.path || crate::backend::extclass::refuses_folder_sizes(&self.disk_class) { return Ok(()); }
         let rows: Vec<_> = self.visible().into_iter().filter(|index| self.rows.get(index).is_some_and(|row| row.directory)
             && !self.folder_sizes.contains_key(index) && !self.size_pending.contains(index)).collect();
@@ -564,7 +568,7 @@ impl Model {
     pub fn expire_message(&mut self, now: std::time::Instant) {
         if !matches!(self.menu_action.as_str(), "taildropRefresh" | "taildrop")
             && !self.message.contains("Undo available")
-            && now.saturating_duration_since(self.message_at) >= std::time::Duration::from_secs(4) {
+            && now.saturating_duration_since(self.message_at) >= MESSAGE_TIME {
             self.message.clear();
         }
     }

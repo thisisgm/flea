@@ -559,7 +559,7 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             let path = m.path.canonicalize()?;
             if !path.is_dir() { m.fail("An agent needs a folder to open in".into()); }
             else {
-                let child = std::process::Command::new("omarchy").arg("agent").current_dir(path).spawn()?;
+                let child = super::launch::agent(&path)?;
                 m.launches.push(("Agent".into(), child));
             }
         }

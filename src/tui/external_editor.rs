@@ -22,6 +22,7 @@ pub(super) fn command(editor: Option<&str>, visual: Option<&str>, path: &Path) -
 }
 
 // Quotes group arguments and backslashes quote characters; no expansion or shell evaluation occurs.
+// Sample input: 'editor program' --wait "two words".
 fn arguments(text: &str) -> io::Result<Vec<String>> {
     let mut args = Vec::new();
     let mut word = String::new();
