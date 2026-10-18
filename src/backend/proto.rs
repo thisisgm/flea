@@ -46,6 +46,7 @@ pub enum Request {
     // Resolves row indices to absolute paths, which is what lets a client hold a clipboard for a
     // selection wider than the window it renders; see docs/protocol.md "paths".
     Paths { rows: Vec<usize> },
+    ImagePaths(super::viewerpaths::Ask),
     Locate { path: String },
     LocateMany { paths: Vec<String>, id: usize, menu_id: usize, transfer_id: usize },
     // The preview column's own extras for one row: pixels, line count, symlink target.
@@ -228,7 +229,16 @@ pub fn parse_request(line: &str) -> Request {
         },
         Some("undo") => Request::Undo,
         Some("redo") => Request::Redo,
-        Some("paths") => Request::Paths { rows: field_usize_array(line, "rows") },
+        Some("paths") => match field_usize(line, "images") {
+            Some(start) => Request::ImagePaths(super::viewerpaths::Ask {
+                start,
+                rows: field_bool(line, "scoped").then(|| field_usize_array(line, "rows")),
+                selected: field_bool(line, "selected"),
+            }),
+            None => Request::Paths {
+                rows: field_usize_array(line, "rows"),
+            },
+        },
         Some("locate") => match field_str(line, "path") {
             Some(path) => Request::Locate { path },
             None => Request::LocateMany { paths: field_str_array(line, "paths"),

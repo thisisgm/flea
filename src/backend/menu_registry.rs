@@ -422,7 +422,7 @@ pub(crate) fn desktop_label(path: &Path) -> Result<Option<String>, String> { des
 
 // Sample Desktop Entry: "[Desktop Entry]\nName=Text Editor\nIcon=accessories-text-editor\nExec=editor %U";
 // GIO alone interprets Exec. Only the [Desktop Entry] group is read, so an action group cannot answer.
-fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, String> {
+pub(crate) fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, String> {
     let file = super::regfile::open_if_regular(path, 0).map_err(|e| format!("Could not read application {}: {}.", path.display(), e))?;
     let mut bytes = Vec::new();
     file.take(MAX_REGISTRY_BYTES + 1).read_to_end(&mut bytes).map_err(|e| format!("Could not read application {}: {}.", path.display(), e))?;
@@ -435,7 +435,15 @@ fn desktop_key(path: &Path, key: &str) -> Result<Option<String>, String> {
         let line = line.trim_end();
         if line.starts_with('[') { entry = line == "[Desktop Entry]"; }
         if entry {
-            if let Some(name) = line.strip_prefix(key) { return Ok(Some(name.trim().replace("\\s", " ").replace("\\n", " "))); }
+            if let Some(name) = line.strip_prefix(key) {
+                // Exec keeps its encoded value until its capability reader applies both escape layers.
+                let name = name.trim();
+                return Ok(Some(if key == "Exec=" {
+                    name.to_string()
+                } else {
+                    name.replace("\\s", " ").replace("\\n", " ")
+                }));
+            }
         }
     }
     Ok(None)

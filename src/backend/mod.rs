@@ -27,6 +27,7 @@ pub mod linecount;
 pub mod dirsize;
 pub mod dirsizereq;
 pub mod listpaths;
+pub mod viewerpaths;
 // Issue 144: a remote list scans off the event loop; see src/backend/listwork.rs.
 pub mod listwork;
 pub mod unmount;

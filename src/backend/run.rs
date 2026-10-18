@@ -632,6 +632,15 @@ fn handle_line(
         }
         Request::Paths { rows } =>
             say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
+        Request::ImagePaths(ask) => say(
+            out,
+            &paths_line(&super::viewerpaths::ordered(
+                &st.base,
+                &st.listing,
+                &tb.mime,
+                &ask,
+            )),
+        ),
         Request::Locate { path } => {
             let index = st.listing.index_of(&st.base, Path::new(&path));
             say(out, &super::proto::located_line(&st.base.to_string_lossy(), &path, index));
@@ -693,6 +702,11 @@ fn rows_needed(request: &Request) -> usize {
         | Request::Link { rows, .. }
         | Request::Trash { rows, .. }
         | Request::Paths { rows } => rows_end(rows),
+        Request::ImagePaths(ask) => ask
+            .rows
+            .as_ref()
+            .map_or(usize::MAX, |rows| rows_end(rows))
+            .max(ask.start.saturating_add(1)),
         Request::Meta { row, .. } => row.saturating_add(1),
         // Tags apply to and read held rows; the bulk rename names paths, never rows.
         Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
@@ -1114,3 +1128,7 @@ mod session_wire_tests;
 #[cfg(test)]
 #[path = "run_hold_tests.rs"]
 mod hold_wire_tests;
+
+#[cfg(test)]
+#[path = "viewerorder_tests.rs"]
+mod viewerorder_tests;

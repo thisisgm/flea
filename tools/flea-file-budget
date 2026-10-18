@@ -31,7 +31,7 @@ src/backend/imagesize.rs 559
 src/backend/iomount.rs 634
 src/backend/localsend.rs 432
 src/backend/menu_actions.rs 674
-src/backend/menu_registry.rs 569
+src/backend/menu_registry.rs 577
 src/backend/meta.rs 550
 src/backend/metareq.rs 541
 src/backend/movebatch.rs 477
@@ -40,7 +40,7 @@ src/backend/opsdispatch.rs 2273
 src/backend/opsreq.rs 563
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
-src/backend/run.rs 1116
+src/backend/run.rs 1134
 src/backend/officepdf.rs 404
 src/backend/run_session_tests.rs 525
 src/backend/ops.rs 440
@@ -54,7 +54,7 @@ src/backend/undo_tests.rs 439
 src/backend/undoshare.rs 414
 src/backend/undoshare_tests.rs 563
 src/backend/collide_replace_tests.rs 492
-src/backend/proto.rs 473
+src/backend/proto.rs 483
 src/backend/sandbox.rs 401
 src/backend/thumbworker.rs 961
 src/backend/trashbrowse.rs 1025
