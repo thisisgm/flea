@@ -76,8 +76,10 @@ The read-only bundle's `manifest.json` has schema:
 ```
 
 `tools/flea-tui-fixture-bundle OUTPUT [--seed BENCH_WORK_DIR]` writes this bundle, read-only, beneath a marked
-`mktemp` root and prints its `bundle_sha256`; two builds on one host print the same digest. `--seed` copies the bench
-fixture's Media encoder outputs byte for byte; missing ones come from the bench recipe's magick and ffmpeg commands.
+`mktemp` root and prints its `bundle_sha256`; two builds on one host print the same digest, which
+`test_two_builds_without_a_seed_in_different_seconds_match` in `test_fixture_bundle.py` checks. `--seed` copies the
+bench fixture's Media encoder outputs byte for byte; missing ones come from the bench recipe's magick and ffmpeg
+commands, and `report.pdf` takes the recipe's raw pixels in the bundle's own clock-free PDF writer.
 With `--fixtures`, `--list` and `--dry-run` verify every family the selected states name and report each family's
 `requires_not_supplied`; a missing or altered family exits 2.
 

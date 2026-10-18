@@ -9,17 +9,21 @@ import struct
 import subprocess
 import sys
 import tempfile
+import time
 import unittest
+from unittest import mock
 import zipfile
 
-from .evidence import Blocked, MARKER
+from . import offline
+from .evidence import Blocked, MARKER, Owned, output_root
 from .driver import main as battery
-from .fixtures import WORK, build, import_family
-from .bundle import standin
+from .fixtures import WORK, build, import_family, inventory
+from .bundle import build as bundle_build, office, standin
 
 HERE = Path(__file__).resolve().parent
 TOOL = HERE.parents[1] / "tools/flea-tui-fixture-bundle"
 FAMILIES = ("work", "office", "prints", "ja", "ar", "trash")
+WORK_STATE = [{"id": "tui-list", "family": "work", "requires": []}]
 
 
 def unlock(root):
@@ -135,12 +139,105 @@ class FixtureBundleTests(unittest.TestCase):
         manifest = json.loads(json.dumps(self.manifest))
         manifest["families"] = {"work": manifest["families"]["work"]}
         manifest["families"]["work"]["auxiliary"] = []
-        manifest["families"]["work"]["entries"][-1]["sha256"] = "0" * 64
+        row = next(row for row in manifest["families"]["work"]["entries"] if row["kind"] == "file")
+        row["sha256"] = "0" * 64
         (tampered / "manifest.json").write_text(json.dumps(manifest))
         code, listed = self.listing(tampered)
         self.assertEqual(code, 2)
         self.assertEqual(listed["fixture_families"]["work"]["status"], "invalid")
+        self.assertEqual(listed["fixture_families"]["work"]["reason"],
+                         f"fixture source identity mismatch: work/{row['path']}: sha256 differs from the manifest")
         self.assertEqual(listed["fixture_families"]["office"]["status"], "missing")
+
+    def tampered_manifest(self, change):
+        """A copy of the work family whose manifest change() edits in place; returns the copy's root."""
+        tampered = self.case() / "tampered"
+        shutil.copytree(self.bundle / "families/work", tampered / "families/work", symlinks=True)
+        shutil.copytree(self.bundle / "aux", tampered / "aux", symlinks=True)
+        manifest = json.loads(json.dumps(self.manifest))
+        manifest["families"] = {"work": manifest["families"]["work"]}
+        manifest = change(manifest) or manifest
+        (tampered / "manifest.json").write_text(json.dumps(manifest) if isinstance(manifest, (dict, list)) else manifest)
+        return tampered
+
+    def test_list_names_a_tampered_auxiliary_file(self):
+        row = self.manifest["families"]["work"]["auxiliary"][0]
+        tampered = self.tampered_manifest(lambda m: m["families"]["work"]["auxiliary"][0].update(sha256="0" * 64))
+        listed = inventory(tampered, WORK_STATE)["work"]
+        self.assertEqual(listed["status"], "invalid")
+        self.assertEqual(listed["reason"], f"fixture source identity mismatch: work/{row['source']}: sha256 differs from the manifest")
+
+    def test_corrupt_or_misshapen_manifest_is_blocked(self):
+        for text in ("{not json", "[]", '{"families": []}'):
+            with self.subTest(manifest=text):
+                tampered = self.tampered_manifest(lambda m: text)
+                with self.assertRaisesRegex(Blocked, "fixture manifest"):
+                    inventory(tampered, WORK_STATE)
+        tampered = self.tampered_manifest(lambda m: m["families"].update(work=["not", "a", "family"]))
+        self.assertEqual(inventory(tampered, WORK_STATE)["work"],
+                         {"status": "invalid", "states": ["tui-list"], "reason": "fixture family work is not an object"})
+
+    def test_recipe_report_pdf_ignores_the_writer_clock(self):
+        calls = []
+
+        def stamping(argv, scratch, timeout=180):
+            # A writer that stamps Info, XMP and /ID from the clock, as ImageMagick may; raw pixels carry no stamp.
+            out, n = argv[-1], len(calls)
+            calls.append(argv)
+            if out.startswith("rgb:"):
+                Path(out[4:]).write_bytes(b"\xff" * (600 * 800 * 3))
+            else:
+                Path(out).write_bytes(b"%%PDF-1.3\n<< /CreationDate (D:2026101812000%d) >>\n<xmp:CreateDate>2026-10-18T12:00:0%dZ"
+                                      b"</xmp:CreateDate>\ntrailer << /ID [<%02d> <%02d>] >>\n%%%%EOF\n" % (n, n, n, n))
+
+        made = []
+        with mock.patch.object(bundle_build, "run", stamping):
+            for _ in range(2):
+                scratch = self.case()
+                made.append(bundle_build.seed_bytes("report.pdf", None, scratch, {}))
+        self.assertEqual(made[0], made[1])
+        self.assertEqual(len(made[0]), 21840)
+        self.assertNotIn(b"/ID", made[0])
+
+    def test_two_builds_without_a_seed_in_different_seconds_match(self):
+        receipts, starts = [], []
+        for name in ("first", "second"):
+            while starts and int(time.time()) == starts[-1]:
+                time.sleep(0.05)
+            starts.append(int(time.time()))
+            result = builder(self.case() / name, "--without-rasters")
+            self.assertEqual(result.returncode, 0, result.stderr.decode())
+            receipts.append(json.loads(result.stdout))
+        self.assertNotEqual(starts[0], starts[1])
+        self.assertEqual(receipts[0]["bundle_sha256"], receipts[1]["bundle_sha256"])
+        self.assertEqual(receipts[0]["manifest_sha256"], receipts[1]["manifest_sha256"])
+
+    def test_failed_office_build_is_not_cached(self):
+        saved = dict(bundle_build._OFFICE)
+        self.addCleanup(lambda: (bundle_build._OFFICE.clear(), bundle_build._OFFICE.update(saved)))
+        bundle_build._OFFICE.clear()
+        with mock.patch.object(office, "xlsx", lambda target: b"short"):
+            with self.assertRaisesRegex(Blocked, "budget.xlsx is 5 bytes"):
+                bundle_build.office_documents()
+        self.assertEqual(bundle_build._OFFICE, {})
+        docs = bundle_build.office_documents()
+        self.assertEqual({name: len(data) for name, data in docs.items()}, bundle_build.OFFICE_SIZES)
+
+    def test_offline_bundle_failure_leaves_a_removable_root(self):
+        owner = self.case()
+
+        def failing(argv):
+            root = output_root(Path(argv[0])).path
+            (root / "families").mkdir()
+            for path in (root / "families", root):
+                path.chmod(0o555)
+            return 2
+
+        with mock.patch.object(offline, "fixture_bundle", failing):
+            with self.assertRaisesRegex(Blocked, "did not build"):
+                offline.bundle_dry_run(Owned(owner), owner / "boards")
+        shutil.rmtree(owner / "bundle")
+        self.assertFalse((owner / "bundle").exists())
 
     def test_existing_or_relative_output_is_refused(self):
         for output, reason in ((self.bundle, b"output must be new"), (Path("relative-bundle"), b"must be absolute")):

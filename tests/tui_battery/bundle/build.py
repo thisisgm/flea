@@ -5,7 +5,6 @@ import hashlib
 import json
 import os
 from pathlib import Path
-import re
 import shutil
 import subprocess
 import sys
@@ -28,12 +27,13 @@ RECIPES = {
     "photo.png": ["magick", "-seed", "7", "-size", "800x600", "plasma:fractal", "-strip", "{out}"],
     "sunset.jpg": ["magick", "-seed", "11", "-size", "640x480", "gradient:orange-purple", "-strip", "-quality", "85", "{out}"],
     "report.pdf": ["magick", "-size", "600x800", "xc:white", "-fill", "black", "-pointsize", "36", "-annotate", "+60+120",
-                   "Visual gate report", "-pointsize", "20", "-annotate", "+60+200", "Page one of the fixture PDF.", "{out}"],
+                   "Visual gate report", "-pointsize", "20", "-annotate", "+60+200", "Page one of the fixture PDF.", "-depth", "8", "rgb:{out}"],
     "clip.mp4": ["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "testsrc=duration=2:size=320x240:rate=25", "-pix_fmt",
                  "yuv420p", "-fflags", "+bitexact", "-flags", "+bitexact", "-c:v", "libx264", "-threads", "1", "{out}"],
     "tone.ogg": ["ffmpeg", "-loglevel", "error", "-f", "lavfi", "-i", "sine=frequency=440:duration=2", "-fflags", "+bitexact",
                  "-c:a", "libvorbis", "{out}"],
 }
+REPORT_SIZE, REPORT_BYTES = (600, 800), 21840  # the bench recipe's canvas and the bench seed's report.pdf size
 OFFICE_SIZES = {"budget.xlsx": 7970, "garden-report.docx": 8025, "garden-report.pdf": 92286, "lease.docx": 8192, "talk.odp": 19532}
 REPORT_PAGES = [
     [("Title", "Riverside Community Garden"),
@@ -135,10 +135,15 @@ def seed_bytes(name, seed, scratch, provenance):
         return data
     run([part.replace("{out}", str(out)) for part in RECIPES[name]], scratch)
     data = out.read_bytes()
+    recipe = " ".join(RECIPES[name][:1] + [a for a in RECIPES[name][1:] if "{out}" not in a])
     if name == "report.pdf":
-        # ImageMagick stamps the build time; a fixed stamp of the same length keeps every offset.
-        data = re.sub(rb"\(D:\d{14}", b"(D:20250615100000", data)
-    provenance[name] = "bench recipe: " + " ".join(RECIPES[name][:1] + [a for a in RECIPES[name][1:] if a != "{out}"])
+        # ImageMagick's PDF writer stamps dates, XMP and an /ID from the clock, so magick draws raw pixels and pdf.py wraps them.
+        if len(data) != REPORT_SIZE[0] * REPORT_SIZE[1] * 3:
+            raise Blocked(f"magick wrote {len(data)} bytes of report.pdf pixels, not {REPORT_SIZE[0]}x{REPORT_SIZE[1]} RGB")
+        provenance[name] = (f"bench recipe {recipe} as raw RGB, wrapped as one image page by the bundle's pdf.py "
+                            f"with fixed Info dates and no /ID, padded to the bench file's {REPORT_BYTES} bytes")
+        return pdf.image(*REPORT_SIZE, data, REPORT_BYTES)
+    provenance[name] = "bench recipe: " + recipe
     return data
 
 
@@ -186,8 +191,10 @@ _OFFICE = {}
 
 
 def office_documents():
+    """Builds the five office documents once per process; the cache takes only a whole set at the reference sizes."""
     if not _OFFICE:
-        _OFFICE["garden-report.docx"] = office.docx(REPORT_PAGES, "Spring report 2025", "Sam Ellis", OFFICE_SIZES["garden-report.docx"])
+        made = {}
+        made["garden-report.docx"] = office.docx(REPORT_PAGES, "Spring report 2025", "Sam Ellis", OFFICE_SIZES["garden-report.docx"])
         pages = []
         for page in REPORT_PAGES:
             y, rows = 770, []
@@ -198,15 +205,16 @@ def office_documents():
                     y -= points * 1.6
                 y -= 6
             pages.append(rows)
-        _OFFICE["garden-report.pdf"] = pdf.document(pages, "Spring report 2025", "Sam Ellis", OFFICE_SIZES["garden-report.pdf"])
-        _OFFICE["budget.xlsx"] = office.xlsx(OFFICE_SIZES["budget.xlsx"])
+        made["garden-report.pdf"] = pdf.document(pages, "Spring report 2025", "Sam Ellis", OFFICE_SIZES["garden-report.pdf"])
+        made["budget.xlsx"] = office.xlsx(OFFICE_SIZES["budget.xlsx"])
         thumb = raster.gradient_png(256, 144, [(52, 101, 56), (234, 222, 186)])
-        _OFFICE["talk.odp"] = office.odp(TALK, "Composting at home", thumb, OFFICE_SIZES["talk.odp"])
+        made["talk.odp"] = office.odp(TALK, "Composting at home", thumb, OFFICE_SIZES["talk.odp"])
         package = office.docx(LEASE_PAGES, "Plot lease", "Sam Ellis", 5590)
-        _OFFICE["lease.docx"] = office.encrypted(package)
+        made["lease.docx"] = office.encrypted(package)
         for name, size in OFFICE_SIZES.items():
-            if len(_OFFICE[name]) != size:
-                raise Blocked(f"{name} is {len(_OFFICE[name])} bytes, the reference is {size}")
+            if len(made[name]) != size:
+                raise Blocked(f"{name} is {len(made[name])} bytes, the reference is {size}")
+        _OFFICE.update(made)
     return dict(_OFFICE)
 
 
@@ -396,8 +404,8 @@ def build(output, seed=None, without_rasters=False):
                     path.chmod(0o700)
             shutil.rmtree(scratch)
     provenance = dict(sorted(bundle.provenance.items()))
-    provenance.update({"office documents": "Python OOXML and ODF writers with fixed timestamps; the archive comment pads each to its "
-                                           "reference size; lease.docx is ECMA-376 Standard Encryption, AES-128, password fixture",
+    provenance.update({"office documents": "Python OOXML and ODF writers with fixed timestamps; a private zip extra field (0x6C66) "
+                                           "pads each to its reference size, with at most 7 archive comment bytes; lease.docx is ECMA-376 Standard Encryption, AES-128, password fixture",
                        "PDF documents": "Python PDF writer with fixed Info dates; a comment block after the header pads each to size",
                        "3D models": "Python meshes from the fixed bracket, knob and boat geometry; 3MF thumbnails by the bundle rasterizer",
                        "text and small files": "the bench recipe's exact bytes, written by Python"})

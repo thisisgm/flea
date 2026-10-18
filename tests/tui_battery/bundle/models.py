@@ -238,19 +238,22 @@ def thumbnail(meshes, size=256, fill=0.92):
     return raster.render(meshes, size, size, fill=fill)
 
 
+SLACK_3MF = 1000  # headroom under target that zip_exact pads, well above its 4-byte field header and 64-byte comment cap
+
+
 def threemf(parts, base, target):
     """Stores the model uncompressed so size grows with detail: the finest whole level under target, then k split triangles."""
     def size(tris, k):
         return len(zip_exact(parts(subdivide(tris, k)), None))
     level = base
-    while size(refine(level, 1), 0) <= target - 1000:
+    while size(refine(level, 1), 0) <= target - SLACK_3MF:
         level = refine(level, 1)
     if size(level, 0) > target:
         raise ValueError(f"3MF base model exceeds its {target} byte target")
     lo, hi = 0, len(level)
     while hi - lo > 1:
         mid = (lo + hi) // 2
-        if size(level, mid) <= target - 1000:
+        if size(level, mid) <= target - SLACK_3MF:
             lo = mid
         else:
             hi = mid
