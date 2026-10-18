@@ -22,7 +22,7 @@ ShellRoot {
     property string pendingUrl: ""
     property string grabDir: ""
     // The config directory's parent name: green or revert.
-    property string cfgName: ""
+    property string configName: ""
     property bool finished: false
 
     readonly property var longRow: ({ n: root.longName, d: false, i: "text-x-generic", p: 420, s: 13, m: root.stamp, t: false, k: 0 })
@@ -226,7 +226,7 @@ ShellRoot {
         var reasons = geom === undefined ? ["not captured"] : geom.fails.slice()
         if (pixels === -1 || pixels === -2) reasons.push("pixels not captured")
         else if (pixels !== null && pixels > 0) reasons.push("pixels differ at " + pixels)
-        var info = (geom === undefined || geom.info === undefined ? "" : " " + geom.info) + " cfg=" + root.cfgName
+        var info = (geom === undefined || geom.info === undefined ? "" : " " + geom.info) + " config=" + root.configName
         if (reasons.length === 0) {
             console.log("MATCHTEXT PASS " + name + (pixels === null ? " pixels=baseline" : " pixels-differ=0") + info)
             return true
@@ -270,20 +270,20 @@ ShellRoot {
             cases += 1
             if (det > 0) {
                 passed += 1
-                console.log("MATCHTEXT PASS pixels-detect shifted-differ=" + det + " cfg=" + root.cfgName)
+                console.log("MATCHTEXT PASS pixels-detect shifted-differ=" + det + " config=" + root.configName)
             } else {
-                console.log("MATCHTEXT FAIL pixels-detect shift of 40 px read " + det + " differing pixels, the readback is blind cfg=" + root.cfgName)
+                console.log("MATCHTEXT FAIL pixels-detect shift of 40 px read " + det + " differing pixels, the readback is blind config=" + root.configName)
             }
         }
         for (var f = 0; f < root.failures.length; f++) console.log("MATCHTEXT FAIL harness " + root.failures[f])
-        console.log("MATCHTEXT DONE cfg=" + root.cfgName + " cases=" + cases + " passed=" + passed + " failed=" + (cases - passed + root.failures.length))
+        console.log("MATCHTEXT DONE config=" + root.configName + " cases=" + cases + " passed=" + passed + " failed=" + (cases - passed + root.failures.length))
         Quickshell.execDetached(["kill", String(Quickshell.processId)])
     }
 
     // The steps run one after another. Each grab resumes the chain once its frame is saved and drawn.
     Component.onCompleted: {
         root.grabDir = String(Qt.resolvedUrl(".")).replace("file://", "").replace(/\/$/, "")
-        root.cfgName = root.grabDir.split("/").slice(-2, -1)[0]
+        root.configName = root.grabDir.split("/").slice(-2, -1)[0]
         root.steps = [
             function () { root.wait(500) },
             function () { root.grab(rowsBox, "rows", root.probeRows) },

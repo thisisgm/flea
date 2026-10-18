@@ -18,16 +18,16 @@ trap cleanup EXIT
 
 # One config root per run: the driver as shell.qml, its stub pane and probes, the Commons and Ui singletons, and a ui tree as flea.
 setup_config() {
-    local name=$1 uitree=$2 cfg="$test_root/$1/config"
-    mkdir -p "$cfg" "$test_root/$1/home" "$test_root/$1/state" "$test_root/$1/runtime" || return 1
+    local name=$1 uitree=$2 config="$test_root/$1/config"
+    mkdir -p "$config" "$test_root/$1/home" "$test_root/$1/state" "$test_root/$1/runtime" || return 1
     chmod 700 "$test_root/$1/runtime" || return 1
-    ln -s "$uitree" "$cfg/flea" || return 1
-    headless_commons "$test_root" "$cfg/Commons" || return 1
-    ln -s "$(readlink -f ui/boot/Ui)" "$cfg/Ui" || return 1
+    ln -s "$uitree" "$config/flea" || return 1
+    headless_commons "$test_root" "$config/Commons" || return 1
+    ln -s "$(readlink -f ui/boot/Ui)" "$config/Ui" || return 1
     # One ShellId per config, so the green and revert processes never share an instance id.
-    sed "s/ShellId flea-matchtext-zerowidth-test/ShellId flea-matchtext-zerowidth-$1-test/" tests/matchtext-zerowidth.qml > "$cfg/shell.qml" || return 1
-    cp tests/matchtext-pane.qml "$cfg/MatchtextPane.qml" || return 1
-    cp tests/matchtext-zerowidth.js "$cfg/matchtext-zerowidth.js" || return 1
+    sed "s/ShellId flea-matchtext-zerowidth-test/ShellId flea-matchtext-zerowidth-$1-test/" tests/matchtext-zerowidth.qml > "$config/shell.qml" || return 1
+    cp tests/matchtext-pane.qml "$config/MatchtextPane.qml" || return 1
+    cp tests/matchtext-zerowidth.js "$config/matchtext-zerowidth.js" || return 1
 }
 
 run_config() {
@@ -98,7 +98,7 @@ printf '%s\n' "$green" | grep -ao 'MATCHTEXT PASS.*'
 if [ "$fix_lines" -eq 3 ]; then
     # The revert's own verdicts, reworded so the suite's FAIL contract does not read them as failures.
     printf '%s\n' "$revert" | grep -a 'MATCHTEXT FAIL ' | sed 's/MATCHTEXT FAIL /MATCHTEXT expected: revert failed /'
-    printf 'MATCHTEXT ok: green passes all %s cases; the revert fails the three late cases and holds the four controls\n' "$(printf '%s\n' $late $controls | wc -l)"
+    printf 'MATCHTEXT ok: green passes all %s cases; the revert fails the %s late cases and holds the %s controls\n' "$(printf '%s\n' $late $controls | wc -l)" "$(printf '%s\n' $late | wc -l)" "$(printf '%s\n' $controls | wc -l)"
 else
     printf 'MATCHTEXT ok: green passes all %s cases on ui/\n' "$(printf '%s\n' $late $controls | wc -l)"
 fi
