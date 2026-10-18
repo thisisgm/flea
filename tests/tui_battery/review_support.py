@@ -36,7 +36,7 @@ def board_file(root, name="tui-list-text", text="A", decoration=""):
     return Board(page)
 
 
-def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_kind=False, references=None):
+def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_kind=False, references=None, frame=None):
     if references:
         (root / "boards").mkdir()
         for extension in ("html", "png"):
@@ -59,11 +59,13 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
     snapshot = {"columns": 130, "rows": 31, "grid": grid, "pty": [31, 130, 1040, 682], "unsupported": []}
     case = root / "foot" / state_id / "primary"
     fx = case / "fx"
-    client = {"at": [0, 0], "size": [1040, 682]}
+    # Sample frame: ((width, height, rgba), client size, grid rect); the default grid fills its client, so it has no padding.
+    image, size, grid = frame or ((1, 1, bytes([0, 0, 0, 255])), [1040, 682], [0, 0, 1040, 682])
+    client = {"at": [0, 0], "size": size}
 
     def capture(path):
         path.write_bytes(b"native boundary double")
-        return (1, 1, bytes([0, 0, 0, 255]))
+        return image
 
     def close():
         (case / "relay-exit.json").write_text(json.dumps({"candidate_exit": 0, "termios_restored": True,
@@ -100,7 +102,7 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
     variant = {"id": "primary", "columns": 130, "rows": 31, "origin": [4, 9]}
     doubles = {"Adapter": lambda *a: adapter, "Terminal": lambda *a: terminal, "build": build,
                "font_identity": lambda *a: {}, "private_theme": lambda *a: "theme", "namespace": lambda *a: [],
-               "settled": lambda *a, **k: snapshot, "separator": lambda *a: [0, 0, 1040, 682],
+               "settled": lambda *a, **k: snapshot, "separator": lambda *a: grid,
                "steps": lambda *a: None, "dynamic_masks": lambda *a: ([], None), "capabilities": lambda *a: {},
                "inspect_media": lambda *a, **k: ({"status": "PASS"}, None, []),
                "visual_review": lambda *a: {"status": "PASS"}, "compare_pixels": pixels,

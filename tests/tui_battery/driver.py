@@ -16,7 +16,8 @@ from .geometry import COLUMNS, ROWS, CELL_WIDTH, CELL_HEIGHT
 from .evidence import Blocked, Commands, MARKER, absolute, digest, output_root, save, source_identity
 from .fixtures import BUILT_IN_FEATURES, build, inventory, namespace
 from .keys import Keymap
-from .native import Display, Terminal
+from .native import WINDOW_ROUNDING, Display, Terminal
+from .edges import ground_edges
 from .references import Board, compare_pixels, separator
 from .scenarios import file_assertions, legacy_shift_delete, negatives, settled, steps, visual_review
 from .protocol import capabilities
@@ -166,6 +167,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
             rect = [client_rect[0] + px, client_rect[1] + py, snapshot["pty"][2], snapshot["pty"][3]]
         else:
             rect = separator(image, client_rect, snapshot["pty"])
+        edges = ground_edges(image, client_rect, rect, calibration["cell"], WINDOW_ROUNDING)
         ref = args.boards / "boards" / (state["id"] + ".html")
         board = Board(ref)
         masks, facts = dynamic_masks(board, snapshot, candidate, state["cwd"], commands)
@@ -186,7 +188,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         behavior = file_assertions(state, fx)
         if state["id"] in ("tui-delete", "tui-delete-focus"):
             behavior["legacy_shift_delete"] = legacy_shift_delete(case / "pty.log")
-        verdict.update(behavior=behavior, cells=comparison, pixels=pixels, visual=visual, media=media,
+        verdict.update(behavior=behavior, cells=comparison, pixels=pixels, visual=visual, media=media, edges=edges,
                        predicate={"status": "PASS", "rule": rule}, elf_sha256=identity["elf_sha256"])
         if state["id"] == "tui-sort-size":
             expected = board.cells()
@@ -198,8 +200,10 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                 raise Blocked("size-sort reference folder order conflicts with the name-order ruling")
         if state["id"] == "tui-keys" and re.search(r"shift-delete\s*/\s*X", "".join(r["text"] for r in board.runs), re.I):
             raise Blocked("keys reference still advertises the removed X delete alternative")
-        statuses = [behavior["status"], comparison["geometry"]["status"], comparison["color"]["status"], pixel_status(pixels, visual), visual["status"], media["status"]]
-        verdict["status"] = "FAIL" if "FAIL" in statuses else ("PASS" if statuses == ["PASS"] * 6 else "BLOCKED")
+        statuses = [behavior["status"], comparison["geometry"]["status"], comparison["color"]["status"], pixel_status(pixels, visual), visual["status"], media["status"], edges["status"]]
+        verdict["status"] = "FAIL" if "FAIL" in statuses else ("PASS" if statuses == ["PASS"] * 7 else "BLOCKED")
+        if edges["status"] == "FAIL":
+            verdict["reason"] = edges["reason"]
     except (Blocked, ValueError, OSError, KeyError, AssertionError, RuntimeError) as error:
         verdict["reason"] = str(error)
         if terminal and terminal.client and not (case / "native.png").exists():
