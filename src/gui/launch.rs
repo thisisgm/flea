@@ -1,9 +1,14 @@
-use super::{apply_renderer, automatic_renderer, pin_display_icd, skip_gtk_platform_theme};
+use super::{
+    apply_display_pin, apply_renderer, automatic_renderer, pin_display_icd, skip_gtk_platform_theme,
+};
 use crate::{prefetch, thp};
 use std::ffi::OsStr;
 use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::Command;
+
+#[path = "gpui_renderer.rs"]
+mod gpui_renderer;
 
 pub fn use_gpui() -> bool {
     frontend_is_gpui(std::env::var_os("FLEA_FRONTEND").as_deref())
@@ -52,11 +57,7 @@ pub fn exec_gpui(start: Option<&str>, select: Option<&str>) -> i32 {
 fn configure_gpui(cmd: &mut Command) {
     configure_child(cmd);
     set_backend_binary(cmd);
-    cmd.env_remove("QSG_RHI_BACKEND");
-    cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
-    crate::vulkan::drop_display_pin(cmd);
-    cmd.env_remove(crate::vulkan::PIN_MARKER);
-    crate::icdexclude::exclude_absent_vendors();
+    gpui_renderer::configure(cmd);
 }
 
 fn configure_child(cmd: &mut Command) {
@@ -126,6 +127,20 @@ mod tests {
         );
         assert_eq!(gpui_binary(executable, |_| false), Path::new("flea-gui"));
         assert_eq!(gpui_binary(None, |_| true), Path::new("flea-gui"));
+    }
+
+    #[test]
+    fn gpui_launch_environment_does_not_choose_a_qt_renderer() {
+        let mut cmd = Command::new("flea-gui");
+        configure_child(&mut cmd);
+        set_backend_binary(&mut cmd);
+        for key in [
+            "QSG_RHI_BACKEND",
+            "FLEA_RENDERER_AUTOMATIC",
+            "QT_QPA_PLATFORMTHEME",
+        ] {
+            assert!(!cmd.get_envs().any(|(name, _)| name == key));
+        }
     }
 
     #[test]

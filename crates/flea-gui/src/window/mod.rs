@@ -33,6 +33,17 @@ pub fn open(
         ..Default::default()
     };
     cx.open_window(options, |window, cx| {
+        if std::env::var_os("FLEA_GUI_RENDER_DIAGNOSTICS").is_some() {
+            if let Some(specs) = window.gpu_specs() {
+                eprintln!(
+                    "flea-render: device={:?} driver={:?} info={:?} software={}",
+                    specs.device_name,
+                    specs.driver_name,
+                    specs.driver_info,
+                    specs.is_software_emulated
+                );
+            }
+        }
         let shell = cx.new(|cx| Shell::new(launch, locale, events, window, cx));
         let weak = shell.downgrade();
         window.on_window_should_close(cx, move |window, cx| {
