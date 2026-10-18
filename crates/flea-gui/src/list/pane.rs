@@ -2,7 +2,7 @@
 use crate::pane::{
     requests::{self, Requests, RowAction},
     states::{Kind, State},
-    swap::{Options, Swap},
+    swap::{Options, Own, Swap},
 };
 use flea::protocol::{Reply, RowFacts};
 use std::{rc::Rc, time::Instant};
@@ -153,10 +153,11 @@ impl Pane {
                 } else {
                     self.swap.unheld_total =
                         (path.is_empty() || path == self.path).then_some(total);
-                    // Each accepted sort answers one listed line, so its asked count becomes the unheld bound here.
-                    if let Some(first) = self.swap.sorts_out.pop_front() {
-                        self.swap.unheld_first = first;
-                    }
+                    // Each accepted sort answers one listed line, so its asked count becomes the pair's own here.
+                    self.swap.unheld_own = match self.swap.sorts_out.pop_front() {
+                        Some(first) => Own::Sort(first),
+                        None => Own::Listing(self.swap.listing_first),
+                    };
                 }
                 Ok(false)
             }
@@ -184,7 +185,7 @@ impl Pane {
         };
         let held = pending.following.take().unwrap_or(held);
         self.path = pending.path;
-        self.swap.unheld_first = pending.first;
+        self.swap.listing_first = pending.first;
         self.greatest_listing = held.listing;
         self.cursor = held.start;
         self.scroll_y = held.start as f32 * ROW_HEIGHT;
@@ -290,7 +291,12 @@ impl Pane {
         }
         if operation == "window" {
             if path == self.path && !self.busy() {
-                self.requests.cancel();
+                // While a sort's pair keeps its count, a window error answers that sort's window, so the view's request stays out.
+                if self.swap.unheld_total.is_some() && matches!(self.swap.unheld_own, Own::Sort(_)) {
+                    self.swap.unheld_own = Own::Asked;
+                } else {
+                    self.requests.cancel();
+                }
             } else if path == self.place() {
                 self.retire_anchor();
             }

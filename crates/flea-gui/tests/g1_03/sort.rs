@@ -191,16 +191,6 @@ fn a_refused_sort_frees_its_count_so_the_next_sort_lands_at_its_own() {
     assert_eq!(landed, Ok(true), "sort asked {count}");
 }
 
-fn window_count(nav: &mut Navigator) -> usize {
-    nav.take()
-        .iter()
-        .find_map(|command| match command {
-            Command::Window { count, .. } => Some(*count),
-            _ => None,
-        })
-        .unwrap()
-}
-
 // A remote window stat that times out answers an error naming window and the listed path, and no rows.
 #[test]
 fn a_sort_whose_window_failed_leaves_no_count_for_the_next_sort() {

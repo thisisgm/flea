@@ -77,11 +77,25 @@ impl Frames {
     }
 }
 
+// What answers an armed pair, set each time a listed line arms it.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub(crate) enum Own {
+    // A sort's own window at this count, which a window error can answer.
+    Sort(usize),
+    // The listing's own first rows at this count, which only a rows line answers.
+    Listing(usize),
+    // Its own window failed or was refused, so only the window asked at an answer's start lands it.
+    #[default]
+    Asked,
+}
+
 #[derive(Default)]
 pub struct Swap {
     pub pending: Option<Pending>,
     pub(crate) unheld_total: Option<usize>,
-    pub(crate) unheld_first: usize,
+    pub(crate) unheld_own: Own,
+    // The first-window count the committed listing asked for.
+    pub(crate) listing_first: usize,
     // The first-window count each sort still out asked for, oldest first.
     pub(crate) sorts_out: VecDeque<usize>,
     pub session: Session,
