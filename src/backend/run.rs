@@ -59,6 +59,7 @@ enum Control {
 
 // Errors are responses, so the loop never exits on a bad request.
 pub fn run() -> i32 {
+    if let Some(status) = super::model3dreq::worker_entry() { return status }
     // Before the first listing, because a threshold glibc has already ratcheted strands the next arena on the heap.
     heap::pin_mmap_threshold();
     // Recorded when the first rows go out, the next launch's prefetch list; see src/prefetch.rs.
@@ -694,6 +695,7 @@ fn handle_line(
         // Answered on a thread, since bat runs in a jail and a read on a hung mount never returns.
         Request::Code(ask) => super::codereq::spawn(ask, ops.tx.clone()),
         Request::Html(ask) => super::htmlreq::spawn(ask, ops.tx.clone()),
+        Request::Model3d(ask) => super::model3dreq::spawn(ask, ops.tx.clone()),
         // Answered on a thread: diff runs in a jail and a read on a hung mount never returns.
         Request::Compare(ask) => super::compare::spawn(ask, ops.tx.clone()),
         tags @ (Request::SetTags { .. } | Request::TagStates { .. }) => {
@@ -798,6 +800,7 @@ fn rows_needed(request: &Request) -> usize {
         Request::Shebang { .. }
         | Request::Code(_)
         | Request::Html(_)
+        | Request::Model3d(_)
         | Request::Compare(_)
         | Request::FsInfo
         | Request::Peek { .. }

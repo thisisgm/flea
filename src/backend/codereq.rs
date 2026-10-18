@@ -116,6 +116,12 @@ pub(super) fn begin(slot: &str) -> Ticket {
 }
 
 impl Ticket {
+    // A synchronous preview caller has no wire reply, but must release its completed slot.
+    pub(super) fn discard(self) {
+        let mut slots = held(table());
+        if slots.get(&self.slot).is_some_and(|(seq, _)| *seq == self.seq) { slots.remove(&self.slot); }
+    }
+
     pub(super) fn superseded(&self) -> bool {
         matches!(*held(&self.run), Run::Cancelled)
     }
