@@ -24,3 +24,7 @@ pub fn sort(l: &mut Listing, base: &Path, desc: bool, hidden_last: bool) -> (f64
     l.spans = indices.into_iter().map(|i| l.spans[i]).collect();
     (ms, start.elapsed().as_secs_f64() * 1000.0, Vec::new())
 }
+
+#[cfg(test)]
+#[path = "tuifolders_tests.rs"]
+mod tests;

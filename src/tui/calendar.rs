@@ -37,16 +37,19 @@ fn stamp(year: i32, month: i32, day: i32, hour: i32, minute: i32) -> String {
     format!("{year:04}-{month:02}-{day:02} {hour:02}:{minute:02}")
 }
 
+const GIO_DELETED_BYTES: usize = 19;
+
+// Sample input: "2025-06-14T09:30:59" or 1790158470 as numeric epoch seconds.
 // GIO Trash supplies local wall time without an offset; converting it as UTC would shift Deleted.
 pub fn value(value: &Json) -> String {
     if let Json::Num(number) = value { return number.parse().map(modified).unwrap_or_default(); }
     let Some(text) = value.as_str() else { return String::new(); };
     let bytes = text.as_bytes();
-    if bytes.len() != 19 || !bytes.iter().enumerate().all(|(i, b)| match i {
+    if bytes.len() != GIO_DELETED_BYTES || !bytes.iter().enumerate().all(|(i, b)| match i {
         4 | 7 => *b == b'-', 10 => *b == b'T', 13 | 16 => *b == b':', _ => b.is_ascii_digit(),
     }) { return String::new(); }
     let number = |start, end| text[start..end].parse::<i32>().unwrap_or(-1);
-    if number(17, 19) > 59 { return String::new(); }
+    if number(17, GIO_DELETED_BYTES) > 59 { return String::new(); }
     stamp(number(0, 4), number(5, 7), number(8, 10), number(11, 13), number(14, 16))
 }
 
