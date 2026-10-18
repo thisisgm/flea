@@ -49,6 +49,18 @@ def references(owner):
     return root
 
 
+def bundle_dry_run(owner, boards):
+    """Builds a stand-in-seeded bundle and dry-runs the battery on it; the bundle is left removable whatever fails."""
+    bundle, output = owner.child("bundle"), owner.child("diagnostic")
+    try:
+        if fixture_bundle([str(bundle), "--seed", str(standin.seed(owner.child("seed"))), "--without-rasters"]):
+            raise Blocked("offline fixture bundle did not build")
+        code = battery(["--boards", str(boards), "--fixtures", str(bundle), "--output", str(output), "--dry-run"])
+    finally:
+        standin.writable(bundle)
+    return code, output
+
+
 def main(scratch):
     owner = Owned(Path(scratch))
     if os.isatty(0):
@@ -72,15 +84,7 @@ def main(scratch):
     result = unittest.TextTestRunner(verbosity=1).run(suite)
     if not result.wasSuccessful() or result.skipped or result.testsRun != count:
         return 1
-    bundle = owner.child("bundle")
-    built = fixture_bundle([str(bundle), "--seed", str(standin.seed(owner.child("seed"))), "--without-rasters"])
-    if built:
-        raise Blocked("offline fixture bundle did not build")
-    output = owner.child("diagnostic")
-    try:
-        code = battery(["--boards", str(boards), "--fixtures", str(bundle), "--output", str(output), "--dry-run"])
-    finally:
-        standin.writable(bundle)
+    code, output = bundle_dry_run(owner, boards)
     if code:
         return code
     manifest = json.loads((output / "manifest.json").read_text())

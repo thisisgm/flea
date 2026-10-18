@@ -33,8 +33,7 @@ def zip_exact(entries, target):
     pad = target - len(data)
     if pad < 0:
         raise ValueError(f"archive base is {len(data)} bytes, over its {target} byte target")
-    # An unknown extra field repeats in the local and central headers, so it pads two bytes for each it holds;
-    # LibreOffice refuses a long archive comment, which therefore carries only the odd byte.
+    # A private extra field repeats in both zip headers, padding two bytes per byte; LibreOffice refuses long comments, so one holds the 0 to 7 left.
     extras, index, left = {}, len(entries) - 1, pad // 2
     while left >= PAD_HEADER and index > 0:
         n = min(left, 65535) - PAD_HEADER

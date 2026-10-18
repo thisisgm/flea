@@ -14,7 +14,7 @@ import uuid
 from .adapters import Adapter, TERMINALS, font_profile
 from .geometry import COLUMNS, ROWS, CELL_WIDTH, CELL_HEIGHT
 from .evidence import Blocked, Commands, MARKER, absolute, digest, output_root, save, source_identity
-from .fixtures import build, inventory, namespace
+from .fixtures import BUILT_IN_FEATURES, build, inventory, namespace
 from .keys import Keymap
 from .native import Display, Terminal
 from .references import Board, compare_pixels, separator
@@ -104,7 +104,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         profile = adapter.configure()
         fonts = font_identity(commands, profile["font"], adapter.environment())
         fx, fixture = build(case, state["family"], args.fixtures)
-        available = set(fixture.get("features", [])) | {"graphics-negative", "model-source"}
+        available = set(fixture.get("features", [])) | BUILT_IN_FEATURES
         seam = seams.get(state["id"], {})
         available.update(seam.get("features", []))
         missing = set(state["requires"]) - available

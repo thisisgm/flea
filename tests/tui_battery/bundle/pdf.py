@@ -1,4 +1,5 @@
-"""Text PDFs with an Info dictionary and an exact byte size, padded by a comment block after the header."""
+"""Text and image PDFs with a fixed-date Info dictionary and an exact byte size, padded by a comment block after the header."""
+import zlib
 
 A4 = (595, 842)
 
@@ -50,9 +51,30 @@ def document(pages, title, author, target, cjk=False, size=A4):
         kids.append(add(f"<< /Type /Page /Parent {pages_id} 0 R /MediaBox [0 0 {size[0]} {size[1]}] "
                         f"/Resources << /Font << {fonts} >> >> /Contents {content} 0 R >>"))
     objects[pages_id - 1] = f"<< /Type /Pages /Count {len(kids)} /Kids [{' '.join(f'{k} 0 R' for k in kids)}] >>"
-    catalog = add(f"<< /Type /Catalog /Pages {pages_id} 0 R >>")
-    info = add(f"<< /Title {info_string(title)} /Author {info_string(author)} /Producer (flea fixture) "
-               "/CreationDate (D:20250615100000Z) /ModDate (D:20250615100000Z) >>")
+    return pack(objects, pages_id, title, author, target)
+
+
+def image(width, height, rgb, target):
+    """One page showing an 8-bit RGB raster at one point per pixel, as an ImageMagick PDF shows its canvas."""
+    stream = zlib.compress(bytes(rgb), 9).decode("latin-1")
+    objects = [f"<< /Type /XObject /Subtype /Image /Width {width} /Height {height} /ColorSpace /DeviceRGB /BitsPerComponent 8 "
+               f"/Filter /FlateDecode /Length {len(stream)} >>\nstream\n{stream}\nendstream"]
+    draw = f"q {width} 0 0 {height} 0 0 cm /Im1 Do Q"
+    objects.append(f"<< /Length {len(draw)} >>\nstream\n{draw}\nendstream")
+    objects.append(f"<< /Type /Page /Parent 4 0 R /MediaBox [0 0 {width} {height}] /Resources << /XObject << /Im1 1 0 R >> >> "
+                   "/Contents 2 0 R >>")
+    objects.append("<< /Type /Pages /Count 1 /Kids [3 0 R] >>")
+    return pack(objects, 4, "", "", target)
+
+
+def pack(objects, pages_id, title, author, target):
+    """Appends the catalog and the fixed-date Info, then pads the file to exactly target bytes."""
+    objects = list(objects)
+    objects.append(f"<< /Type /Catalog /Pages {pages_id} 0 R >>")
+    catalog = len(objects)
+    objects.append(f"<< /Title {info_string(title)} /Author {info_string(author)} /Producer (flea fixture) "
+                   "/CreationDate (D:20250615100000Z) /ModDate (D:20250615100000Z) >>")
+    info = len(objects)
 
     def serialize(padding):
         out = bytearray(b"%PDF-1.7\n%\xe2\xe3\xcf\xd3\n" + padding)
