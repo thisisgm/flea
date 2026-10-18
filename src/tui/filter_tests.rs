@@ -26,10 +26,25 @@ fn press(m: &mut Model, wire: &mut wire::Wire, key: Key) { actions::key(m, &key,
 fn typed(m: &mut Model, wire: &mut wire::Wire, keys: &str) {
     for c in keys.chars() { press(m, wire, Key::character(c, "")); }
 }
-fn wheel_down(m: &mut Model, wire: &mut wire::Wire) {
+fn pointer(m: &mut Model, wire: &mut wire::Wire, button: u32, y: usize) {
     let mut key = Key::named("", "");
-    key.pointer = Some(Pointer { button: 65, x: 30, y: BODY_ROW, released: false, motion: false });
+    key.pointer = Some(Pointer { button, x: 30, y, released: false, motion: false });
     press(m, wire, key);
+}
+fn held(m: &Model) -> Vec<usize> { m.rows.keys().copied().collect() }
+fn rows(m: &mut Model, wire: &mut wire::Wire, start: usize, names: &[&str]) {
+    let rows = names.iter().map(|n| format!(r#"{{"n":"{n}"}}"#)).collect::<Vec<_>>().join(",");
+    m.receive(jsondoc::parse(&format!(r#"{{"t":"rows","start":{start},"rows":[{rows}]}}"#)).unwrap(), wire).unwrap();
+}
+// A filter on the large folder, typed and closed with Return, its answer drawn three rows at a time.
+fn answered(w: &mut wire::Wire, query: &str, matches: &str) -> Model {
+    let mut m = large(w);
+    m.height = 3;
+    typed(&mut m, w, &format!("/{query}"));
+    press(&mut m, w, Key::named("Return", ""));
+    let ask = last_ask(&drain(w)).clone();
+    answer(&mut m, w, &ask, matches);
+    m
 }
 fn last_ask(sent: &[Json]) -> &Json {
     sent.iter().rev().find(|v| text(v, "c") == "filter").expect("the filter asks the backend about the whole folder")
@@ -75,26 +90,31 @@ fn superseded_answers_drop_and_scrolling_fetches_only_the_missing_matches() {
     answer(&mut m, &mut w, &second, "[1,40,41,42,900]");
     assert_eq!((m.cursor, m.filter_count()), (1, 5));
     assert_eq!(windows(&drain(&mut w)), [(40, 2)], "one window per run of adjacent drawn matches");
-    m.receive(jsondoc::parse(r#"{"t":"rows","start":40,"rows":[{"n":"ne40"},{"n":"ne41"}]}"#).unwrap(), &mut w).unwrap();
+    rows(&mut m, &mut w, 0, &["alpha", "one", "beta"]);
+    assert_eq!(held(&m), [1], "a reply to an older window cannot bring back a row the filter does not draw");
+    rows(&mut m, &mut w, 40, &["ne40", "new41"]);
     press(&mut m, &mut w, Key::named("Return", ""));
     for _ in 0..3 { press(&mut m, &mut w, Key::named("Down", "")); }
     assert_eq!((m.cursor, m.visible()), (42, vec![40, 41, 42]));
     assert_eq!(windows(&drain(&mut w)), [(42, 1)]);
-    m.receive(jsondoc::parse(r#"{"t":"rows","start":42,"rows":[{"n":"ne42"}]}"#).unwrap(), &mut w).unwrap();
-    assert_eq!(m.rows.keys().copied().collect::<Vec<_>>(), [40, 41, 42], "rows the filter no longer draws are not held");
+    rows(&mut m, &mut w, 42, &["new42"]);
+    assert_eq!(held(&m), [40, 41, 42], "rows the filter no longer draws are not held");
     typed(&mut m, &mut w, "/w");
     press(&mut m, &mut w, Key::named("Return", ""));
     let narrower = last_ask(&drain(&mut w)).clone();
     assert_eq!(text(&narrower, "query"), "new");
-    press(&mut m, &mut w, Key::named("Down", ""));
-    wheel_down(&mut m, &mut w);
+    assert_eq!((m.visible(), m.filter_count()), (vec![41, 42], 2), "until its answer a query draws and counts only the held rows it matches");
+    press(&mut m, &mut w, Key::named("Up", ""));
+    pointer(&mut m, &mut w, 64, BODY_ROW);
     assert_eq!(m.cursor, 42, "a cursor key and the wheel wait for the answer, as each waits for a listing");
-    answer(&mut m, &mut w, &narrower, "[42]");
-    assert_eq!((m.cursor, m.filter_count()), (42, 1));
+    answer(&mut m, &mut w, &narrower, "[41,42]");
+    assert_eq!((m.cursor, m.filter_count()), (42, 2));
     drain(&mut w);
     m.receive(jsondoc::parse(&format!(r#"{{"t":"listed","n":{LARGE}}}"#)).unwrap(), &mut w).unwrap();
     let third = last_ask(&drain(&mut w)).clone();
     assert_eq!(text(&third, "query"), "new", "a renumbered listing asks again");
+    answer(&mut m, &mut w, &narrower, "[1]");
+    assert!(m.name_filter.waiting && m.filter_count() == 0, "an answer to a request sent before the re-list is dropped, though its query matches");
     answer(&mut m, &mut w, &second, "[1]");
     answer(&mut m, &mut w, &third, "[7,42]");
     assert_eq!((m.cursor, m.filter_count()), (42, 2));
@@ -102,5 +122,32 @@ fn superseded_answers_drop_and_scrolling_fetches_only_the_missing_matches() {
     press(&mut m, &mut w, Key::named("Escape", ""));
     assert!(m.filter.is_empty());
     assert_eq!(windows(&drain(&mut w)), [(40, 3)], "clearing refills the viewport around the cursor");
+    wire::finish(w, reader);
+}
+#[test]
+fn first_last_and_a_click_name_drawn_matches() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = answered(&mut w, "ne", "[1,40,41,42,900]");
+    drain(&mut w);
+    press(&mut m, &mut w, Key::named("End", ""));
+    assert_eq!((m.cursor, m.visible()), (900, vec![41, 42, 900]), "the last key lands on the last match");
+    assert_eq!(windows(&drain(&mut w)), [(41, 2), (900, 1)]);
+    rows(&mut m, &mut w, 41, &["ne41", "ne42"]);
+    rows(&mut m, &mut w, 900, &["ne900"]);
+    pointer(&mut m, &mut w, 0, BODY_ROW);
+    assert_eq!(m.cursor, 41, "a click names the match drawn under the pointer");
+    press(&mut m, &mut w, Key::named("Home", ""));
+    assert_eq!((m.cursor, m.visible()), (1, vec![1, 40, 41]), "the first key lands on the first match");
+    wire::finish(w, reader);
+}
+#[test]
+fn a_filter_with_no_match_leaves_no_row_to_act_on() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = answered(&mut w, "zzz", "[]");
+    assert!(m.visible().is_empty() && held(&m).is_empty() && m.current_path().is_none());
+    drain(&mut w);
+    for key in [Key::named("Delete", ""), Key::named("Delete", "shift"), Key::character('y', "")] { press(&mut m, &mut w, key); }
+    let sent: Vec<String> = drain(&mut w).iter().map(|v| text(v, "c").to_string()).collect();
+    assert!(sent.iter().all(|c| !matches!(c.as_str(), "trash" | "paths" | "menuaction")), "an action reached a row the filter does not draw: {sent:?}");
     wire::finish(w, reader);
 }

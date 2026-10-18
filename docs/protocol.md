@@ -280,10 +280,12 @@ the current sorted listing, with `[]` for no matches. An empty query answers `ro
 so clearing restores the integer-count model without sending an identity array.
 `ms` measures backend matching and serialization, not UI latency.
 
-The client accepts a reply only while its `id` and `query` name the latest request and
-its `listing` stamp agrees with the rows on screen. A sort or re-list requires a fresh
-filter request against the new numbering. View positions map through `rows`; paths and
-file operations use those original listing indices and the listing stamp. Filtering
+The client accepts a reply only while its `id` and `query` name the latest request, and
+it drops its answer and sends a fresh request whenever a list, sort, search, search
+refresh or final search ranking renumbers the listing, so an accepted reply answers in
+the numbering of the rows on screen, the one its `listing` stamp names. View positions
+map through `rows`; paths and file operations use those original listing indices and
+the listing stamp. Filtering
 does not emit a `rows` metadata reply or refill a window, even on clear. The client
 requests only windows needed for the displayed matches and refills its viewport after clear.
 

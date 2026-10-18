@@ -72,3 +72,13 @@ fn in_place_rewrite_keeps_previous_palette() {
     assert_eq!(complete, "background='#ffffff'");
     assert_eq!((transient, partial), (None, None), "a rewrite caught empty or cut short replaced the live palette");
 }
+#[test]
+fn a_read_that_changes_before_its_second_look_is_not_published() {
+    let root = crate::backend::testdir::TestDir::new("theme-settle");
+    let path = root.file("colors.toml", "background='#ffffff'\nforeground='#00");
+    root.assert_contains(&path);
+    let full = "background='#ffffff'\nforeground='#000000'\n";
+    assert_eq!(settled(&path, None, || root.replace_file(&path, full)), None, "a read cut after its first colour was published");
+    assert_eq!(settled(&path, None, || {}).as_deref(), Some(full));
+    assert_eq!(settled(&path, Some(full), || panic!("an unchanged read waits for a second look")), None);
+}
