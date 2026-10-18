@@ -15,6 +15,8 @@ unsafe impl GlobalAlloc for Allocator {
 #[global_allocator]
 static ALLOCATOR: Allocator = Allocator;
 
+#[path = "../src/backend/searchbits.rs"]
+mod searchbits;
 #[path = "../src/backend/searchnames.rs"]
 mod searchnames;
 #[path = "../src/backend/searchblocks.rs"]

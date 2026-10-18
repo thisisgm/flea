@@ -686,9 +686,29 @@ query, `scanned` counts retained identities even when no entry matches; an empty
 query retains its folder-row count. A patch read refusal also makes coverage partial.
 A partial result remains usable but never certifies a complete live scope inventory.
 
-The scorer and ranking contract are `search`'s own. A query extending the
-previous one scores only the previous matches; any other change scores the
-index. The first window is selected and ordered without a full sort; the rest
+The session has its own lexical scorer; one-shot `search` and folder `jump`
+keep their existing scorer. The query and candidate characters fold without
+Unicode normalization. Exact basenames rank before clean basename prefixes,
+word prefixes, aligned paths, ordinary subsequences and typo-only matches.
+Subsequences use the best run and boundary alignment across the whole relative
+path, including separators, with no first-occurrence limit. ASCII letter
+presence masks reject impossible names before scoring, and an interned basename
+is scored once per query. Unknown and non-ASCII classes bypass this rejection.
+
+Typo-only matching starts at a word boundary and permits letter replacement,
+insertion, deletion and adjacent swap, including the first letter. The budget
+is zero below four alphanumeric query characters, one from four through seven,
+and two from eight onward. Digits and punctuation are never edited. A query
+beginning with punctuation, such as `.svg`, permits no edits. Explicit path
+queries may correct letters in parent components as well as the basename.
+Fresh lexical ties use shorter relative paths and natural raw identity order.
+The final history and folder-distance order belongs to the read-only ranking
+prior layer; it adds no control or result mark.
+
+Only extensions with zero edit budgets on both sides may reuse the previous
+matches, and only with identical tags, complete prior coverage and an unchanged
+index. Backspace, scope or index changes, unfinished tag reads and edit-eligible
+queries rescore candidates. The first window is selected and ordered without a full sort; the rest
 stays scored but unranked until a row past the window is asked for, when the
 next chunk is ordered with the same comparator and appended behind the head,
 the request's need or one window, whichever is larger, at least doubling the

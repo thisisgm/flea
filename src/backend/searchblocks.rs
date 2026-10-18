@@ -94,6 +94,13 @@ impl Blocks {
         }
     }
 
+    pub(crate) fn len(&self) -> usize { self.dirs.len() }
+
+    pub(crate) fn record(&self, dir: u32) -> (u32, u32) {
+        let dir = &self.dirs[dir as usize];
+        (dir.name, dir.parent)
+    }
+
     pub(crate) fn bytes(&self, allocated: bool) -> usize {
         let count = |len, capacity| if allocated { capacity } else { len };
         count(self.dirs.len(), self.dirs.capacity()) * size_of::<Directory>()

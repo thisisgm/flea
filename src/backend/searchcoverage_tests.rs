@@ -30,11 +30,11 @@ fn search_raw_names_never_collide_with_lossy_or_unicode_names() {
         assert_eq!(&index.raw(row), path);
         assert_eq!(index.path_len(row), String::from_utf8_lossy(path).len());
     }
-    let fuzzy = crate::backend::fuzzy::Fuzzy::new("caf");
+    let fuzzy = crate::backend::searchmatch::Matcher::new("caf");
     let hits = score_all(&fuzzy, &(0..paths.len()).collect::<Vec<_>>(), &index);
-    let mut direct = crate::backend::fuzzy::Fuzzy::new("caf");
+    let direct = crate::backend::searchmatch::Matcher::new("caf");
     for (score, row) in hits {
-        assert_eq!(Some(score), direct.score(&String::from_utf8_lossy(paths[row])));
+        assert_eq!(Some(score), direct.full(paths[row]));
     }
 }
 

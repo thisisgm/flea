@@ -79,6 +79,9 @@ pub mod searchindex;
 mod searchnames;
 mod searchread;
 mod searchblocks;
+mod searchbits;
+mod searchmatch;
+mod searchtypo;
 pub mod searchsession;
 pub mod searchtags;
 #[cfg(test)]

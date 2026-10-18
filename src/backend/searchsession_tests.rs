@@ -30,7 +30,8 @@ fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
         assert_eq!(s.counters.walks_started, 1, "still 1 walk after query {}", i + 1);
         assert_eq!(crate::backend::mountinfo::test_reads(), 1, "still 1 mountinfo read after query {}", i + 1);
         if i > 0 {
-            assert_eq!(s.counters.rows_scored, previous, "query {} scores the {} previous matches", i + 1, previous);
+            let expected = if len < 4 { previous } else { s.indexed() };
+            assert_eq!(s.counters.rows_scored, expected, "only zero-edit extensions narrow; edit-eligible queries rescore the index");
         }
         previous = answer.total;
     }
