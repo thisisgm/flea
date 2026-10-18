@@ -49,9 +49,9 @@ fn a_patch_follows_a_name_that_changed_kind() {
         index.push(path, is_dir);
     }
     assert!(index.patch_dir(root(&d), std::path::Path::new(""), false, &crate::backend::mountinfo::read_body()), "a local scope answers its patch");
-    let mut rows: Vec<(&str, bool)> = (0..index.len()).map(|row| (index.path(row), index.is_dir(row))).collect();
+    let mut rows: Vec<(String, bool)> = (0..index.len()).map(|row| (index.path(row), index.is_dir(row))).collect();
     rows.sort();
-    assert_eq!(rows, [("same", true), ("same/in.txt", false), ("was-dir", false), ("was-file", true), ("was-file/new.txt", false)]);
+    assert_eq!(rows, [("same", true), ("same/in.txt", false), ("was-dir", false), ("was-file", true), ("was-file/new.txt", false)].map(|(path, kind)| (path.to_string(), kind)));
 }
 
 // A patch that drops two children ahead of a deeper row keeps every surviving row and drops only the gone ones.
@@ -66,25 +66,23 @@ fn a_patch_dropping_two_children_keeps_the_rows_after_them() {
         index.push(path, is_dir);
     }
     assert!(index.patch_dir(root(&d), std::path::Path::new(""), false, &crate::backend::mountinfo::read_body()), "a local scope answers its patch");
-    let mut paths: Vec<&str> = (0..index.len()).map(|row| index.path(row)).collect();
+    let mut paths: Vec<String> = (0..index.len()).map(|row| index.path(row)).collect();
     paths.sort();
     assert_eq!(paths, ["c.txt", "sub", "sub/x.txt"], "a.txt and b.txt gone, sub/x.txt kept");
 }
 
-#[cfg(test)]
-mod cap_tests {
-use super::*;
-
-// Past the cap the walk stops adding and the count stands.
 #[test]
-fn an_index_past_the_cap_stops_adding() {
+fn an_index_reports_checked_capacity_refusal_without_losing_prior_identities() {
     let mut index = Index::new();
-    for i in 0..SESSION_MAX_ENTRIES + 1 {
-        index.push(format!("f{}", i), false);
-    }
-    assert_eq!(index.len(), SESSION_MAX_ENTRIES, "the index holds {} rows", index.len());
-    assert!(index.capped, "the cap marks the index it stopped");
-}
+    index.row_limit = 2;
+    assert!(index.push("a", false));
+    assert!(index.push("b", true));
+    assert!(!index.push("c", false));
+    assert_eq!(index.len(), 2);
+    assert_eq!(index.partial, Some("capacity"));
+    assert_eq!(index.raw(0), b"a");
+    assert_eq!(index.raw(1), b"b");
+    assert!(index.is_dir(1));
 }
 
 // Diagnostic only, never a gate: one full-index score over 100k synthetic realistic paths prints its ms.

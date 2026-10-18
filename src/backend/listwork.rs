@@ -3,7 +3,7 @@ use crate::backend::events::Event;
 use crate::backend::iomount::{internal_failure, ListErr, ListOut};
 use crate::backend::proto::{error_line, error_line_with_mode, parse_request, Request};
 use crate::backend::run::{adopt_listed, adopt_session, forget_rows};
-use crate::backend::searchreq::{finish_search, searched_gen_line};
+use crate::backend::searchreq::finish_search;
 use crate::backend::state::{Held, State, Tables};
 use crate::backend::thumbs::Pool;
 use crate::backend::watch::Watch;
@@ -294,7 +294,8 @@ pub fn finish_session<W: Write>(out: &mut W, st: &mut State, tb: &Tables, pool: 
             let ms = listed.read_ms + listed.sort_ms;
             adopt_session(out, st, pool, tb, &job.path, listed, scan.gen);
             st.held = Held::Walk;
-            writeln!(out, "{}", searched_gen_line(n, n, ms, scan.gen, scan.walking)).ok();
+            let reason = st.search_session.as_ref().and_then(|session| session.partial_reason());
+            writeln!(out, "{}", super::searchreq::searched_status_line(n, n, ms, scan.gen, scan.walking, reason)).ok();
         }
         Err(failed) => {
             watch.abandon_wd(failed.watch_wd);

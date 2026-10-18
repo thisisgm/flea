@@ -21,7 +21,7 @@ fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
     let mut s = Session::open_sync(&root, &root, false);
     assert_eq!(s.counters.walks_started, 1, "1 walk over the session's directories");
     assert_eq!(s.walk_dirs(), 4, "the scope, docs, docs/work and downloads over 4 directories walked");
-    assert!(!s.capped(), "the fixture never reaches the cap");
+    assert_eq!(s.partial_reason(), None, "the fixture has complete coverage");
     assert_eq!(crate::backend::mountinfo::test_reads(), 1, "1 mountinfo read over the session's directories");
     let mut previous = usize::MAX;
     for (i, len) in (1..=10).enumerate() {

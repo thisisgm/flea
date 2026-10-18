@@ -887,7 +887,7 @@ fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Po
             if let Some(answer) = session.answer_held().or_else(|| session.re_answer_standing()) {
                 emit_session_answer(out, st, tb, pool, &answer);
             } else if let Some((gen, n, scanned, ms)) = session.landing_empty() {
-                writeln!(out, "{}", super::searchreq::searched_gen_line(n, scanned, ms, gen, false)).ok();
+                writeln!(out, "{}", super::searchreq::searched_status_line(n, scanned, ms, gen, false, session.partial_reason())).ok();
                 out.flush().ok();
             }
         }

@@ -178,7 +178,7 @@ impl Tags {
         // A re-read that found its rows under the old ids sees this and finds them again.
         pass.epoch.fetch_add(1, Ordering::Relaxed);
         *names = next;
-        (survivors..index.len()).map(|row| index.raw(row).to_vec()).collect()
+        (survivors..index.len()).map(|row| index.raw(row)).collect()
     }
 
     // Queues the rows a patch added, so their names are read off the loop and the standing query is re-run once they are in.
@@ -233,7 +233,7 @@ impl Tags {
             let unread: Vec<bool> = pass.names.lock().unwrap().iter().map(Option::is_none).collect();
             let missing: Vec<Vec<u8>> = {
                 let index = index.lock().unwrap();
-                (0..index.len()).filter(|&row| unread.get(row).is_some_and(|unread| *unread)).map(|row| index.raw(row).to_vec()).collect()
+                (0..index.len()).filter(|&row| unread.get(row).is_some_and(|unread| *unread)).map(|row| index.raw(row)).collect()
             };
             if missing.is_empty() {
                 pass.unread_failed.store(false, Ordering::Relaxed);
@@ -315,7 +315,7 @@ fn read_all(pass: &Pass, index: &Mutex<Index>, len: usize, events: &Sender<Event
         let rels: Vec<Vec<u8>> = {
             let index = index.lock().unwrap();
             // A patch may have shortened the index; its reset stops this pass, but the chunk in hand must not read past the end.
-            (row..end.min(index.len())).map(|at| index.raw(at).to_vec()).collect()
+            (row..end.min(index.len())).map(|at| index.raw(at)).collect()
         };
         if rels.is_empty() {
             return;
@@ -378,7 +378,7 @@ fn reread(pass: &Pass, index: &Mutex<Index>, rels: Vec<Vec<u8>>) {
         loop {
             let index = index.lock().unwrap();
             let end = (row + CHUNK).min(index.len());
-            found.extend((row..end).filter(|&at| want.contains(index.raw(at))).map(|at| (at, index.raw(at).to_vec())));
+            found.extend((row..end).filter(|&at| want.contains(&index.raw(at))).map(|at| (at, index.raw(at))));
             if end >= index.len() || found.len() == want.len() {
                 break;
             }
