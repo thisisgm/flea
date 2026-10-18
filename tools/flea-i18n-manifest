@@ -66,7 +66,17 @@ def check_reference(reference, omarchy):
     forms(catalog[key], reference)
 
 
-def current_hashes(root, omarchy, references):
+# Sample input: "" or {"one":"","other":"%1 files"} has no complete translation to record.
+def empty_translation(value):
+    if isinstance(value, str):
+        return not value.strip()
+    if isinstance(value, dict) and set(value) <= CATEGORIES:
+        return all(isinstance(text, str) for text in value.values()) and (
+            not value or any(not text.strip() for text in value.values()))
+    return False
+
+
+def current_hashes(root, omarchy, references, allow_empty=False):
     english = read(root / "en/flea.json")
     if not english or any(not key or not isinstance(key, str) for key in english):
         raise ValueError("English catalog must have nonempty keys")
@@ -90,6 +100,8 @@ def current_hashes(root, omarchy, references):
         for key, value in catalog.items():
             if isinstance(value, dict) != isinstance(english[key], dict):
                 raise ValueError(f"{code}:{key}: text/plural shape differs from English")
+            if code != "en" and allow_empty and empty_translation(value):
+                continue
             for text in forms(value, f"{code}:{key}"):
                 if set(HOLES.findall(text)) != placeholders[key]:
                     raise ValueError(f"{code}:{key}: placeholder parity failed")
@@ -115,6 +127,10 @@ def recorded_manifest(path):
 
 
 def update_manifest(recorded, current, mark):
+    recorded = {
+        code: {unit: digest for unit, digest in section.items() if unit in current[code]}
+        for code, section in recorded.items() if code in current
+    }
     recorded["en"] = current["en"]
     for code, hashes in current.items():
         if code != "en":
@@ -135,7 +151,12 @@ def update_manifest(recorded, current, mark):
 
 
 def check_manifest(recorded, current, path):
-    if recorded.get("en") != current["en"]:
+    for code, section in sorted(recorded.items()):
+        if code not in current:
+            print(f"flea-i18n-manifest: warning: orphaned language {code}", file=sys.stderr)
+        for unit in sorted(section.keys() - current.get(code, {}).keys()):
+            print(f"flea-i18n-manifest: warning: orphaned entry {code}:{unit}", file=sys.stderr)
+    if any(recorded.get("en", {}).get(unit) != digest for unit, digest in current["en"].items()):
         raise ValueError(f"{path}: stale English hashes; run tools/flea-i18n-manifest")
     for code, hashes in current.items():
         for unit, digest in hashes.items():
@@ -175,7 +196,7 @@ def main():
     if omarchy is None and Path("/usr/share/omarchy/default/i18n/en").is_dir():
         omarchy = Path("/usr/share/omarchy")
     try:
-        current = current_hashes(args.i18n_dir, omarchy, set(args.reference))
+        current = current_hashes(args.i18n_dir, omarchy, set(args.reference), allow_empty=not args.check)
         path = args.i18n_dir / "translation-manifest.json"
         manifest = recorded_manifest(path)
         if args.check:

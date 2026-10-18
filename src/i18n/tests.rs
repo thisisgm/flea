@@ -189,9 +189,7 @@ fn roster_fields_digits_decimal_sizes_and_grouping_are_preserved() {
     assert_eq!(bn.localize_number("120"), "১২০");
     let de = roster.iter().find(|l| l.code == "de").unwrap();
     assert_eq!(de.format_size(22_100), "22,1 kB");
-    let mut custom = Locale::default();
-    custom.separator = ",".into();
-    custom.grouping = vec![3, 2];
+    let custom = Locale { separator: ",".into(), grouping: vec![3, 2], ..Locale::default() };
     assert_eq!(custom.format_count(1_234_567), "12,34,567");
     assert_eq!(Locale::default().format_count(i64::MIN), "-9,223,372,036,854,775,808");
     assert_eq!(Locale::default().format_size(1_000), "1.0 kB");
