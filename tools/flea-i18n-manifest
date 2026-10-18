@@ -13,8 +13,10 @@ HOLES = re.compile(r"%[1-9][0-9]*")
 CODE = re.compile(r"[a-z]{2,3}(?:-[A-Za-z]{2})?\Z")
 CATEGORIES = {"zero", "one", "two", "few", "many", "other"}
 KINDS = {"shell", "menu", "cli", "keybindings"}
+HASH = re.compile(r"[0-9a-f]{12}\Z")
 
 
+# Sample input: [("label", "Open"), ("count", {"other": "%1 files"})] are decoded JSON members.
 def unique_object(pairs):
     result = {}
     for key, value in pairs:
@@ -24,6 +26,7 @@ def unique_object(pairs):
     return result
 
 
+# Sample input: {"label":"Open","count":{"other":"%1 files"}} is a catalog object.
 def read(path):
     value = json.loads(path.read_text(encoding="utf-8"), object_pairs_hook=unique_object)
     if not isinstance(value, dict):
@@ -31,6 +34,7 @@ def read(path):
     return value
 
 
+# Sample input: "Open %1" or {"one":"%1 file","other":"%1 files"} is a catalog value.
 def forms(value, location):
     if isinstance(value, str) and value.strip():
         return [value]
@@ -45,6 +49,7 @@ def source_hash(value):
     return hashlib.sha256(text.encode("utf-8")).hexdigest()[:12]
 
 
+# Sample input: "omarchy:shell.common.search" names an English Omarchy catalog key.
 def check_reference(reference, omarchy):
     target = reference.removeprefix("omarchy:")
     kind, dot, key = target.partition(".")
@@ -61,7 +66,7 @@ def check_reference(reference, omarchy):
     forms(catalog[key], reference)
 
 
-def expected_manifest(root, omarchy, references):
+def current_hashes(root, omarchy, references):
     english = read(root / "en/flea.json")
     if not english or any(not key or not isinstance(key, str) for key in english):
         raise ValueError("English catalog must have nonempty keys")
@@ -97,6 +102,49 @@ def expected_manifest(root, omarchy, references):
     return manifest
 
 
+# Sample input: {"de":{"flea:label":"0123456789ab"}} records the English source a translation used.
+def recorded_manifest(path):
+    manifest = read(path) if path.exists() else {}
+    for code, section in manifest.items():
+        if not CODE.fullmatch(code) or not isinstance(section, dict):
+            raise ValueError(f"{path}: invalid language section {code}")
+        for key, digest in section.items():
+            if not key.startswith("flea:") or not isinstance(digest, str) or not HASH.fullmatch(digest):
+                raise ValueError(f"{path}: invalid source hash for {code}:{key}")
+    return manifest
+
+
+def update_manifest(recorded, current, mark):
+    recorded["en"] = current["en"]
+    for code, hashes in current.items():
+        if code != "en":
+            section = recorded.setdefault(code, {})
+            for key, digest in hashes.items():
+                section.setdefault(key, digest)
+    if mark:
+        code, *keys = mark
+        if code == "en" or code not in current:
+            raise ValueError(f"--mark requires an existing translated catalog: {code}")
+        units = [key if key.startswith("flea:") else f"flea:{key}" for key in keys]
+        for unit in units:
+            if unit not in current[code]:
+                raise ValueError(f"cannot mark missing translation {code}:{unit}")
+        for unit in units:
+            recorded[code][unit] = current[code][unit]
+    return recorded
+
+
+def check_manifest(recorded, current, path):
+    if recorded.get("en") != current["en"]:
+        raise ValueError(f"{path}: stale English hashes; run tools/flea-i18n-manifest")
+    for code, hashes in current.items():
+        for unit, digest in hashes.items():
+            if unit not in recorded.get(code, {}):
+                raise ValueError(f"{path}: missing source hash for {code}:{unit}; run tools/flea-i18n-manifest")
+            if code != "en" and recorded[code][unit] != digest:
+                print(f"flea-i18n-manifest: warning: stale translation {code}:{unit}", file=sys.stderr)
+
+
 def atomic_write(path, text):
     temporary = None
     try:
@@ -114,26 +162,31 @@ def atomic_write(path, text):
 
 def main():
     parser = argparse.ArgumentParser(description=__doc__)
-    parser.add_argument("--check", action="store_true", help="validate without writing")
+    mode = parser.add_mutually_exclusive_group()
+    mode.add_argument("--check", action="store_true", help="validate without writing; stale translations warn")
+    mode.add_argument("--mark", nargs="+", metavar="LANG_OR_KEY", help="record updated translations: --mark LANG KEY...")
     parser.add_argument("--i18n-dir", type=Path, default=Path(__file__).resolve().parents[1] / "i18n")
     parser.add_argument("--omarchy-path", type=Path, default=os.environ.get("OMARCHY_PATH") or None)
     parser.add_argument("--reference", action="append", default=[], help="also verify this omarchy:kind.key reference")
     args = parser.parse_args()
+    if args.mark and len(args.mark) < 2:
+        parser.error("--mark requires a language and at least one key")
     omarchy = args.omarchy_path
     if omarchy is None and Path("/usr/share/omarchy/default/i18n/en").is_dir():
         omarchy = Path("/usr/share/omarchy")
     try:
-        manifest = expected_manifest(args.i18n_dir, omarchy, set(args.reference))
+        current = current_hashes(args.i18n_dir, omarchy, set(args.reference))
         path = args.i18n_dir / "translation-manifest.json"
+        manifest = recorded_manifest(path)
         if args.check:
-            if read(path) != manifest:
-                raise ValueError(f"{path}: stale English hashes; run tools/flea-i18n-manifest")
+            check_manifest(manifest, current, path)
         else:
+            manifest = update_manifest(manifest, current, args.mark)
             atomic_write(path, json.dumps(manifest, ensure_ascii=False, indent=2, sort_keys=True) + "\n")
     except (OSError, ValueError) as error:
         print(f"flea-i18n-manifest: {error}", file=sys.stderr)
         return 1
-    print(f"i18n manifest {'checked' if args.check else 'updated'}: {len(manifest)} catalogs, {len(manifest['en'])} English keys")
+    print(f"i18n manifest {'checked' if args.check else 'updated'}: {len(current)} catalogs, {len(current['en'])} English keys")
     return 0
 
 

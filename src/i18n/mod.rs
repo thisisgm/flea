@@ -24,24 +24,32 @@ fn env_path(key: &str) -> Option<PathBuf> {
     std::env::var_os(key).filter(|v| !v.is_empty()).map(PathBuf::from)
 }
 
+fn catalog_dirs(override_dir: Option<PathBuf>, exe: Option<&Path>, source: &Path, debug: bool) -> Vec<PathBuf> {
+    let mut catalogs: Vec<PathBuf> = override_dir.into_iter().collect();
+    if let Some(prefix) = exe.and_then(Path::parent).and_then(Path::parent) {
+        catalogs.push(prefix.join("share/flea/i18n"));
+    }
+    catalogs.extend([PathBuf::from("/usr/share/flea/i18n"), PathBuf::from("/usr/local/share/flea/i18n")]);
+    if debug || exe.is_some_and(|path| path.starts_with(source.join("target"))) {
+        catalogs.push(source.join("i18n"));
+    }
+    catalogs.dedup();
+    catalogs
+}
+
+// Sample input: "de\n" selects de; only the first line of Omarchy's language file is used.
+fn language_code(text: &str) -> &str {
+    text.lines().next().unwrap_or("").trim()
+}
+
 impl Default for Paths {
     fn default() -> Self {
         let config = env_path("XDG_CONFIG_HOME").or_else(|| env_path("HOME").map(|p| p.join(".config")));
         let language_file = env_path("OMARCHY_LANGUAGE_FILE").unwrap_or_else(|| {
             config.unwrap_or_else(|| PathBuf::from("/nonexistent")).join("omarchy/language")
         });
-        let mut catalogs: Vec<PathBuf> = env_path("FLEA_I18N").into_iter().collect();
-        if let Ok(exe) = std::env::current_exe() {
-            if let Some(prefix) = exe.parent().and_then(Path::parent) {
-                catalogs.push(prefix.join("share/flea/i18n"));
-            }
-        }
-        catalogs.extend([PathBuf::from("/usr/share/flea/i18n"), PathBuf::from("/usr/local/share/flea/i18n")]);
-        if let Ok(exe) = std::env::current_exe() {
-            catalogs.extend(exe.ancestors().skip(1).take(4).map(|p| p.join("i18n")));
-        }
-        catalogs.push(PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("i18n"));
-        catalogs.dedup();
+        let exe = std::env::current_exe().ok();
+        let catalogs = catalog_dirs(env_path("FLEA_I18N"), exe.as_deref(), Path::new(env!("CARGO_MANIFEST_DIR")), cfg!(debug_assertions));
         Self {
             omarchy: env_path("OMARCHY_PATH").unwrap_or_else(|| PathBuf::from("/usr/share/omarchy")),
             language_file, catalogs,
@@ -119,6 +127,7 @@ impl I18n {
         }
     }
 
+    // Sample input: "shell.common.search" or "menu.apps.label" names a catalog and its key.
     fn omarchy_word(&self, reference: &str, count: Option<i64>) -> Option<&str> {
         let (kind, key) = reference.split_once('.')?;
         catalog::lookup(
@@ -152,9 +161,9 @@ impl I18n {
         // Stamp before reading so a concurrent edit remains visible to the next poll.
         let language_file = self.watch(self.paths.language_file.clone());
         let registry = self.watch(self.paths.omarchy.join("default/i18n/locales.json"));
-        self.roster = locale::parse(&catalog::read(&registry).unwrap_or_default());
+        self.roster = locale::parse(&catalog::read(&registry).unwrap_or_default(), &registry);
         let language = catalog::read(&language_file).unwrap_or_default();
-        let code = language.lines().next().unwrap_or("").trim();
+        let code = language_code(&language);
         self.locale = self.roster.iter().find(|l| l.code == code).cloned()
             .unwrap_or_else(|| self.roster.iter().find(|l| l.code == "en").unwrap().clone());
         let code = self.locale.code.clone();
@@ -178,3 +187,5 @@ mod tests;
 mod plural_tests;
 #[cfg(test)]
 mod load_tests;
+#[cfg(test)]
+mod adv_c_tests;

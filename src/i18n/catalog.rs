@@ -23,6 +23,7 @@ pub(super) fn read(path: &Path) -> Option<String> {
     Some(text)
 }
 
+// Sample input: {"folder.empty":"This folder is empty"} is a flat Flea catalog.
 pub(super) fn parse(text: &str, menu: bool) -> Catalog {
     parse_checked(text, menu).unwrap_or_else(|error| {
         eprintln!("flea: refusing i18n catalog: {error}");
@@ -30,6 +31,7 @@ pub(super) fn parse(text: &str, menu: bool) -> Catalog {
     })
 }
 
+// Sample input: {"items":{"other":"%1 items"}}; menu mode consumes {"apps":{"label":"Apps"}}.
 pub(super) fn parse_checked(text: &str, menu: bool) -> Result<Catalog, String> {
     let Json::Obj(pairs) = document::parse(text)? else {
         return Err("expected a catalog object".into());
@@ -83,6 +85,7 @@ pub(super) fn lookup<'a>(
 }
 
 // Scan once so %10 is distinct from %1 and replacement text is never interpreted as another hole.
+// Sample input: "%2 then %1" with ["A", "B"] produces "B then A".
 pub fn substitute(text: &str, args: &[&str]) -> String {
     let mut result = String::with_capacity(text.len());
     let mut rest = text;

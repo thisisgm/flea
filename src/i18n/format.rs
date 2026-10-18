@@ -2,6 +2,21 @@ use super::Locale;
 use crate::backend::trashdate::{local_time, WallClock};
 use std::ffi::{c_char, c_int, c_void, CStr, CString};
 
+// glibc locale.h defines LC_NUMERIC as category 1 and its mask as 1 << LC_NUMERIC.
+const LC_NUMERIC_MASK: c_int = 1 << 1;
+// glibc locale.h defines LC_TIME as category 2 and its mask as 1 << LC_TIME.
+const LC_TIME_MASK: c_int = 1 << 2;
+// glibc langinfo.h uses _NL_ITEM(LC_NUMERIC, 1) for the thousands separator.
+const NL_THOUSANDS_SEP: c_int = 0x10001;
+// glibc langinfo.h uses _NL_ITEM(LC_NUMERIC, 2) for the grouping sequence.
+const NL_GROUPING: c_int = 0x10002;
+// glibc limits.h uses CHAR_MAX to end grouping; c_char follows the target's signedness.
+const CHAR_MAX: u8 = c_char::MAX as u8;
+const DATE_BUFFER_SIZE: usize = 128;
+const SI_STEP: f64 = 1000.0;
+const SIZE_ROUNDING_FACTOR: f64 = 10.0;
+const MAX_DECIMALS: usize = 20;
+
 extern "C" {
     fn newlocale(mask: c_int, name: *const c_char, base: *mut c_void) -> *mut c_void;
     fn freelocale(locale: *mut c_void);
@@ -26,11 +41,10 @@ impl Drop for Handle {
 }
 
 pub(super) fn set_grouping(locale: &mut Locale) {
-    if let Some(handle) = Handle::new(&locale.glibc_locale, 1 << 1) {
-        // _NL_ITEM(LC_NUMERIC, 1) and _NL_ITEM(LC_NUMERIC, 2) are separator and grouping.
+    if let Some(handle) = Handle::new(&locale.glibc_locale, LC_NUMERIC_MASK) {
         unsafe {
-            locale.separator = CStr::from_ptr(nl_langinfo_l(0x10001, handle.0)).to_string_lossy().into_owned();
-            locale.grouping = CStr::from_ptr(nl_langinfo_l(0x10002, handle.0)).to_bytes().to_vec();
+            locale.separator = CStr::from_ptr(nl_langinfo_l(NL_THOUSANDS_SEP, handle.0)).to_string_lossy().into_owned();
+            locale.grouping = CStr::from_ptr(nl_langinfo_l(NL_GROUPING, handle.0)).to_bytes().to_vec();
         }
         return;
     }
@@ -38,7 +52,7 @@ pub(super) fn set_grouping(locale: &mut Locale) {
     let language = locale.format_locale.split('-').next().unwrap_or("en");
     locale.separator = match language {
         "fr" => "\u{202f}",
-        "ru" | "uk" | "pl" | "cs" | "sk" | "sv" | "fi" | "no" | "et" | "lv" | "lt" | "hu" => "\u{a0}",
+        "ru" | "uk" | "pl" | "cs" | "sk" | "sv" | "fi" | "no" | "nb" | "nn" | "et" | "lv" | "lt" | "hu" => "\u{a0}",
         "fa" => "٬",
         _ if locale.decimal == "," => ".",
         _ => ",",
@@ -47,6 +61,7 @@ pub(super) fn set_grouping(locale: &mut Locale) {
 }
 
 impl Locale {
+    // Sample input: "-12.5" uses ASCII digits and a dot; filenames such as "file1.txt" pass through.
     pub fn localize_number(&self, value: &str) -> String {
         let number = value.strip_prefix('-').unwrap_or(value);
         let mut parts = number.split('.');
@@ -61,7 +76,7 @@ impl Locale {
     }
 
     pub fn format_number(&self, value: f64, decimals: usize) -> String {
-        self.localize_number(&format!("{:.*}", decimals.min(20), value))
+        self.localize_number(&format!("{:.*}", decimals.min(MAX_DECIMALS), value))
     }
 
     pub fn format_count(&self, count: i64) -> String {
@@ -70,8 +85,8 @@ impl Locale {
         let mut groups = Vec::new();
         let mut index = 0;
         while end > 0 {
-            let size = self.grouping.get(index).or_else(|| self.grouping.last()).copied().unwrap_or(127);
-            let start = if size == 0 || size >= 127 { 0 } else { end.saturating_sub(size as usize) };
+            let size = self.grouping.get(index).or_else(|| self.grouping.last()).copied().unwrap_or(CHAR_MAX);
+            let start = if size == 0 || size >= CHAR_MAX { 0 } else { end.saturating_sub(size as usize) };
             groups.push(&text[start..end]);
             end = start;
             if index + 1 < self.grouping.len() { index += 1; }
@@ -85,8 +100,8 @@ impl Locale {
         const UNITS: [&str; 7] = ["B", "kB", "MB", "GB", "TB", "PB", "EB"];
         let mut value = bytes as f64;
         let mut unit = 0;
-        while value >= 1000.0 && unit < UNITS.len() - 1 {
-            value /= 1000.0;
+        while (value * SIZE_ROUNDING_FACTOR).round() >= SI_STEP * SIZE_ROUNDING_FACTOR && unit < UNITS.len() - 1 {
+            value /= SI_STEP;
             unit += 1;
         }
         let number = if unit == 0 { self.localize_number(&bytes.to_string()) } else { self.format_number(value, 1) };
@@ -96,8 +111,8 @@ impl Locale {
     // The fixed date form is shared by all languages; only digits and the locale handle vary.
     pub fn format_date(&self, timestamp: i64) -> Option<String> {
         let tm = local_time(timestamp)?;
-        let locale = Handle::new(&self.glibc_locale, 1 << 2).or_else(|| Handle::new("C", 1 << 2))?;
-        let mut out = [0u8; 128];
+        let locale = Handle::new(&self.glibc_locale, LC_TIME_MASK).or_else(|| Handle::new("C", LC_TIME_MASK))?;
+        let mut out = [0u8; DATE_BUFFER_SIZE];
         let length = unsafe {
             strftime_l(out.as_mut_ptr().cast(), out.len(), c"%Y-%m-%d %H:%M".as_ptr(), &tm, locale.0)
         };

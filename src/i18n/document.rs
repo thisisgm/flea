@@ -5,6 +5,7 @@ pub(super) const MAX_BYTES: usize = 1024 * 1024;
 pub(super) const MAX_ENTRIES: usize = 16_384;
 
 // A single forward cursor and hashed object insertion keep wide and duplicate-key inputs linear.
+// Sample input: {"label":"Open %1","count":{"one":"%1 item","other":"%1 items"}}.
 pub(super) fn parse(text: &str) -> Result<Json, String> {
     if text.len() > MAX_BYTES {
         return Err(format!("document exceeds {MAX_BYTES} bytes"));
@@ -50,6 +51,7 @@ impl Reader<'_> {
         Ok(())
     }
 
+    // Sample input: {"key":"value"}, [1,true], "text", null or -1.5e2 is one JSON value.
     fn value(&mut self, depth: usize) -> Result<Json, String> {
         if depth >= jsondoc::MAX_DEPTH {
             return Err(self.error("document exceeds nesting limit"));
@@ -71,6 +73,7 @@ impl Reader<'_> {
         }
     }
 
+    // Sample input: "Open \"%1\"" includes JSON quotes and escaped interior quotes.
     fn string(&mut self) -> Result<String, String> {
         let start = self.at;
         if !self.consume(b'"') { return Err(self.error("expected a string")); }
@@ -97,6 +100,7 @@ impl Reader<'_> {
         Err(self.error("unterminated string"))
     }
 
+    // Sample input: {"name":"Flea","forms":{"other":"%1 items"}} is a JSON object.
     fn object(&mut self, depth: usize) -> Result<Json, String> {
         self.at += 1;
         self.space();
@@ -117,6 +121,7 @@ impl Reader<'_> {
         }
     }
 
+    // Sample input: [null,true,12,"text",{"key":"value"}] is an ordered JSON array.
     fn array(&mut self, depth: usize) -> Result<Json, String> {
         self.at += 1;
         self.space();

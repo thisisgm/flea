@@ -19,6 +19,7 @@ def main():
         parser.error("pass the roster either positionally or with --locales-json")
     path = args.locales_json or args.file or Path(os.environ.get("OMARCHY_PATH") or "/usr/share/omarchy") / "default/i18n/locales.json"
     try:
+        # Sample input: {"en":{"name":"English"},"de":{"name":"Deutsch"}} is Omarchy's locale roster.
         roster = json.loads(path.read_text(encoding="utf-8"))
         if not isinstance(roster, dict) or not roster:
             raise ValueError("expected a nonempty locale object")

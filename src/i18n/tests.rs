@@ -171,7 +171,7 @@ fn malformed_catalogs_and_registry_do_not_break_english_lookup() {
 
 #[test]
 fn roster_fields_digits_decimal_sizes_and_grouping_are_preserved() {
-    let roster = locale::parse(include_str!("fixtures/locales.json"));
+    let roster = locale::parse(include_str!("fixtures/locales.json"), Path::new("fixtures/locales.json"));
     assert_eq!(roster.len(), 50);
     let fa = roster.iter().find(|l| l.code == "fa").unwrap();
     assert_eq!(fa.name, "فارسی");

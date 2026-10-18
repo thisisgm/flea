@@ -1,5 +1,6 @@
 use super::document;
 use crate::jsondoc::Json;
+use std::path::Path;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Locale {
@@ -26,17 +27,19 @@ impl Default for Locale {
     }
 }
 
+// Sample input: "en", "fil" or "pt-BR"; no directory separators are accepted.
 pub(super) fn valid_code(code: &str) -> bool {
     let (language, region) = code.split_once('-').map_or((code, None), |(a, b)| (a, Some(b)));
     (2..=3).contains(&language.len()) && language.bytes().all(|b| b.is_ascii_lowercase())
         && region.map_or(true, |r| r.len() == 2 && r.bytes().all(|b| b.is_ascii_alphabetic()))
 }
 
-pub(super) fn parse(text: &str) -> Vec<Locale> {
+// Sample input: {"de":{"name":"Deutsch","formatLocale":"de-DE","locale":"de_DE.UTF-8","decimal":","}}.
+pub(super) fn parse(text: &str, path: &Path) -> Vec<Locale> {
     let mut locales = Vec::new();
     let document = if text.is_empty() { Ok(Json::Null) } else { document::parse(text) };
     if let Err(error) = &document {
-        eprintln!("flea: refusing i18n roster: {error}");
+        eprintln!("flea: refusing i18n roster {}: {error}", path.display());
     }
     if let Ok(Json::Obj(entries)) = document {
         for (code, entry) in entries {
