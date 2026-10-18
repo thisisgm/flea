@@ -18,103 +18,18 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         }
         return Ok(());
     }
-    if model.deletion.is_some() { return deletion_key(model, key, wire); }
+    if model.deletion.is_some() { return super::render::cards::delete_key(model, key, wire); }
     if !model.menu && !model.menu_action.is_empty() && model.menu_action != "menu" {
         let action = map.action(key, &model.preset);
         return if matches!(action.as_str(), "escape" | "quit") { act(model, &action, wire) } else { Ok(()) };
     }
+    if model.menu { return super::render::menu_run::key(model, key, map, wire); }
+    if model.sheet { return super::render::cards::sheet_key(model, key, map); }
     if let Some(pointer) = &key.pointer {
         return pointer_key(model, key, pointer, map, wire);
     }
     if model.editor.is_some() {
         return edit(model, key, wire);
-    }
-    if model.sheet {
-        let action = map.in_context(key, &model.preset, "panel");
-        if matches!(action.as_str(), "escape" | "open") || (key.mods.is_empty() && key.text == "?") {
-            model.sheet = false;
-            model.properties = None;
-        } else if action == "cursorDown" {
-            model.sheet_top =
-                (model.sheet_top + 1).min(super::render::panel_rows(model, map).len().saturating_sub(1));
-        } else if action == "cursorUp" {
-            model.sheet_top = model.sheet_top.saturating_sub(1);
-        }
-        return Ok(());
-    }
-    if model.menu {
-        let count = if model.taildrop.submenu {
-            model.taildrop.peers.len().max(1)
-        } else {
-            3
-        };
-        let action = map.in_context(key, &model.preset, "menu");
-        match action.as_str() {
-            "escape" | "parent" => {
-                if model.taildrop.submenu {
-                    model.taildrop.submenu = false;
-                    model.menu_cursor = 2;
-                    model.menu_top = 0;
-                } else {
-                    model.menu = false;
-                    model.menu_action.clear();
-                }
-            }
-            "cursorDown" | "cursorUp" | "focusNext" | "focusPrevious" => {
-                for _ in 0..count {
-                    model.menu_cursor = (model.menu_cursor + if matches!(action.as_str(), "cursorDown" | "focusNext") { 1 } else { count - 1 }) % count;
-                    if model.menu_enabled(model.menu_cursor) { break; }
-                }
-                model.menu_top = model.menu_top.min(model.menu_cursor);
-                let visible = model.height.max(1);
-                if model.menu_cursor >= model.menu_top + visible { model.menu_top = model.menu_cursor + 1 - visible; }
-            }
-            "open" | "preview" | "menuRight" => {
-                if !model.menu_enabled(model.menu_cursor) { return Ok(()); }
-                if model.taildrop.submenu {
-                    if model.pending_clipboard || model.taildrop_target.is_some() {
-                        return Ok(());
-                    }
-                    if let Some(peer) = model.taildrop.peers.get(model.menu_cursor) {
-                        model.taildrop_target = Some(peer.clone());
-                        model.menu_action = "taildropRefresh".into();
-                        model.taildrop.refresh();
-                        model.say("Checking Taildrop".into());
-                        model.menu = false;
-                    }
-                    return Ok(());
-                }
-                if model.menu_cursor == 2 {
-                    if model.taildrop.peers.is_empty() {
-                        model.fail(if model.taildrop.loading() {
-                            "Taildrop is still loading".into()
-                        } else if !model.taildrop.error.is_empty() {
-                            model.taildrop.error.clone()
-                        } else {
-                            "No reachable Taildrop devices".into()
-                        });
-                    } else if model.rows.contains_key(&model.cursor) {
-                        model.taildrop.submenu = true;
-                        model.menu_cursor = 0;
-                        model.menu_top = 0;
-                    }
-                    return Ok(());
-                }
-                if action == "menuRight" {
-                    return Ok(());
-                }
-                model.menu = false;
-                if model.menu_cursor == 0 {
-                    model.menu_action = "open".into();
-                    return wire.send(vec![("c", word("menuaction")), ("op", word("validate")), ("id", super::wire::number(model.action_id)), ("action", word("open"))]);
-                }
-                model.menu_action.clear();
-                return act(model, "toggleHidden", wire);
-            }
-            _ if !action.is_empty() => model.fail(super::parity::refusal(&action).into()),
-            _ => {}
-        }
-        return Ok(());
     }
     if key.name == "P" && key.mods == "alt" {
         model.preview_visible = !model.preview_visible;
@@ -282,7 +197,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     }
     act(model, &action, wire)
 }
-fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
+pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     if !m.menu_action.is_empty() && m.menu_action != "menu" && !matches!(action, "quit" | "quitNoCwd" | "escape") { return Ok(()); }
     if (m.pending.is_some() || m.held || m.name_filter.waiting) && !matches!(action, "quit" | "quitNoCwd" | "escape" | "keymapSheet") {
         return Ok(());
@@ -602,29 +517,12 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 }
             }
         }
-        "menu" => {
-            m.menu = true;
-            m.menu_cursor = if m.rows.contains_key(&m.cursor) { 0 } else { 1 };
-            m.menu_top = 0;
-            m.taildrop.submenu = false;
-            m.taildrop.refresh();
-            m.menu_ready = false;
-            m.menu_action.clear();
-            m.menu_path = m.current_path().unwrap_or_default();
-            m.menu_directory = m.rows.get(&m.cursor).is_some_and(|row| row.directory);
-            let mut rows: Vec<usize> = if m.selected.is_empty() { m.rows.contains_key(&m.cursor).then_some(m.cursor).into_iter().collect() } else { m.selected.iter().copied().collect() };
-            m.menu_count = rows.len();
-            if !m.menu_path.as_os_str().is_empty() && !rows.contains(&m.cursor) { rows.push(m.cursor); }
-            if !rows.is_empty() {
-                m.action_id = m.action_id.wrapping_add(1).max(1);
-                m.menu_action = "menu".into();
-                w.send(vec![("c", word("menuaction")), ("op", word("snapshot")), ("id", super::wire::number(m.action_id)), ("rows", Json::Arr(rows.into_iter().map(super::wire::number).collect()))])?;
-            }
-        }
+        "menu" => super::render::menu_run::open(m, w)?,
         "keymapSheet" => {
             m.properties = None;
             m.sheet = true;
             m.sheet_top = 0;
+            super::render::cards::probe(&m.rounded);
         }
         "properties" | "factsToggle" => {
             if m.selected.len() > 1 {
@@ -633,7 +531,8 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 m.action_id = m.action_id.wrapping_add(1).max(1);
                 m.sheet = true;
                 m.sheet_top = 0;
-                m.properties = Some(vec!["Loading properties…".into()]);
+                m.properties = Some(vec![(String::new(), m.i18n.tr("properties.loading"))]);
+                super::render::cards::probe(&m.rounded);
                 w.send(vec![("c", word("menuaction")), ("op", word("snapshot")), ("id", super::wire::number(m.action_id)), ("rows", m.indices())])?;
             }
         }
@@ -693,57 +592,6 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
     m.remember_selection();
     Ok(())
 }
-fn deletion_key(m: &mut Model, key: &Key, wire: &mut Wire) -> io::Result<()> {
-    let rows = super::render::deletion_rows(m);
-    let scroll = m.deletion.as_ref().unwrap().scroll.min(rows.len().saturating_sub(1));
-    let (x, y, width, count) = super::render::overlay_rect(&rows[scroll..], m.columns, m.height + super::render::CHROME_ROWS);
-    let mut activate = false;
-    let mut cancel = key.name == "Escape";
-    if let Some(pointer) = &key.pointer {
-        if pointer.released { return Ok(()); }
-        let inside = pointer.x > x && pointer.x <= x + width + 2 && pointer.y > y && pointer.y <= y + count + 2;
-        if matches!(pointer.button, 64 | 65) {
-            let deletion = m.deletion.as_mut().unwrap();
-            deletion.scroll = if pointer.button == 64 { scroll.saturating_sub(1) }
-                else { (scroll + 1).min(rows.len().saturating_sub(count.max(1))) };
-        } else if !inside && pointer.button == 0 && !pointer.motion { cancel = true; }
-        else if inside {
-            if let Some((destructive, _, _)) = super::render::deletion_buttons(m).into_iter().find(|(_, x, y)| pointer.y == *y && pointer.x >= *x && pointer.x < *x + 10) {
-                if pointer.motion || pointer.button == 0 {
-                let deletion = m.deletion.as_mut().unwrap();
-                if destructive && deletion.token == 0 { return Ok(()); }
-                deletion.destructive = destructive && deletion.token != 0;
-                activate = pointer.button == 0 && !pointer.motion;
-                }
-            }
-        }
-    } else {
-        let deletion = m.deletion.as_mut().unwrap();
-        if key.mods.is_empty() && key.name == "Up" { deletion.scroll = scroll.saturating_sub(1); }
-        else if key.mods.is_empty() && key.name == "Down" { deletion.scroll = (scroll + 1).min(rows.len().saturating_sub(count.max(1))); }
-        else if (matches!(key.name.as_str(), "Tab" | "Backtab") && matches!(key.mods.as_str(), "" | "shift"))
-            || (key.mods.is_empty() && (matches!(key.name.as_str(), "Right" | "Left") || matches!(key.text.as_str(), "h" | "l"))) {
-            deletion.destructive = deletion.token != 0 && match key.name.as_str() {
-                "Left" => false, "Right" => true,
-                _ if key.text == "h" => false, _ if key.text == "l" => true,
-                _ => !deletion.destructive,
-            };
-            deletion.scroll = rows.len().saturating_sub(count.max(1));
-        } else if key.mods.is_empty() && matches!(key.name.as_str(), "Return" | "Enter" | "Space") { activate = true; }
-    }
-    let deletion = m.deletion.as_ref().unwrap();
-    if cancel || (activate && !deletion.destructive) {
-        m.deletion = None;
-        m.menu_action.clear();
-        wire.send(vec![("c", word("menuaction")), ("op", word("close")), ("id", super::wire::number(m.action_id))])?;
-    } else if activate && deletion.token != 0 && super::render::deletion_buttons(m).iter().any(|(destructive, _, _)| *destructive) {
-        let token = deletion.token;
-        m.deletion = None;
-        m.menu_action = "deleteRunning".into();
-        wire.send(vec![("c", word("menuaction")), ("op", word("delete")), ("id", super::wire::number(m.action_id)), ("token", super::wire::number(token))])?;
-    }
-    Ok(())
-}
 fn pointer_key(
     m: &mut Model,
     key: &Key,
@@ -761,40 +609,6 @@ fn pointer_key(
         _ => 0,
     };
     if m.editor.is_some() {
-        return Ok(());
-    }
-    if m.sheet || m.menu {
-        let rows = if m.sheet {
-            super::render::panel_rows(m, map).into_iter().skip(m.sheet_top).collect()
-        } else {
-            super::render::menu_rows(m)
-        };
-        let (x, y, width, count) = super::render::overlay_rect(&rows, m.columns, m.height + super::render::CHROME_ROWS);
-        if scroll != 0 {
-            return self::key(
-                m,
-                &Key::named(if scroll < 0 { "Up" } else { "Down" }, ""),
-                map,
-                w,
-            );
-        }
-        let inside = pointer.x > x + 1
-            && pointer.x <= x + width + 1
-            && pointer.y > y + 1
-            && pointer.y <= y + count + 1;
-        if inside && m.menu {
-            let index = m.menu_top + pointer.y - y - 2;
-            if m.menu_enabled(index) && (pointer.motion || pointer.button == 0) {
-                m.menu_cursor = index;
-                if !pointer.motion {
-                    return self::key(m, &Key::named("Return", ""), map, w);
-                }
-            }
-        } else if !inside && !pointer.motion && pointer.button == 0 {
-            m.menu = false;
-            m.menu_action.clear();
-            m.sheet = false;
-        }
         return Ok(());
     }
     if pointer.motion && pointer.button == 3 { return Ok(()); }
