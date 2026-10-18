@@ -10,6 +10,7 @@ ShellRoot {
     property var palettes: []
     property int at: 0
     property int stop: 12
+    property bool failed: false
 
     FileView {
         id: manifest
@@ -126,33 +127,47 @@ ShellRoot {
         return (Math.max(la, lb) + 0.05) / (Math.min(la, lb) + 0.05)
     }
 
-    function next() {
-        if (at === palettes.length) {
-            console.log("THEME_GOLDEN_DONE")
-            Quickshell.execDetached(["kill", String(Quickshell.processId)])
-            return
+    function guarded(action) {
+        if (failed) return
+        try { action() }
+        catch (error) {
+            failed = true
+            console.error("THEME_GOLDEN_FAIL: " + String(error))
+            Quickshell.execDetached(["kill", "-TERM", String(Quickshell.processId)])
         }
-        var p = palettes[at], user = "[font]\nbase-size = " + stop
-        Commons.Color.foreground = "#cacccc"
-        Commons.Color.background = "#101315"
-        Commons.Color.accent = "#cacccc"
-        Commons.Color.urgent = "#a55555"
-        Commons.Color.muted = "#707880"
-        Flea.ViewState.textSize = ({mode: "system"})
-        Commons.Color.loadShell(p.shell)
-        Commons.Color.loadUserShell(user)
-        Flea.Theme.applyColors(p.colors)
-        Commons.Style.cornerRadius = 0
-        Commons.Style.gapsOut = 5
-        Commons.Style.reduceMotion = false
-        Qt.callLater(function() {
-            input("colors", Flea.Theme.palette)
-            input("shell", Commons.Color.parseShell(p.shell))
-            input("user", Commons.Color.parseShell(user))
-            dump()
-            if (stop === 12) stop = 14
-            else { stop = 12; at++ }
-            Qt.callLater(next)
+    }
+
+    function next() {
+        guarded(function() {
+            if (at === palettes.length) {
+                console.log("THEME_GOLDEN_DONE")
+                Quickshell.execDetached(["kill", String(Quickshell.processId)])
+                return
+            }
+            var p = palettes[at], user = "[font]\nbase-size = " + stop
+            Commons.Color.foreground = "#cacccc"
+            Commons.Color.background = "#101315"
+            Commons.Color.accent = "#cacccc"
+            Commons.Color.urgent = "#a55555"
+            Commons.Color.muted = "#707880"
+            Flea.ViewState.setTextSize({mode: "system"})
+            Commons.Color.loadShell(p.shell)
+            Commons.Color.loadUserShell(user)
+            Flea.Theme.applyColors(p.colors)
+            Commons.Style.cornerRadius = 0
+            Commons.Style.gapsOut = 5
+            Commons.Style.reduceMotion = false
+            Qt.callLater(function() {
+                guarded(function() {
+                    input("colors", Flea.Theme.palette)
+                    input("shell", Commons.Color.parseShell(p.shell))
+                    input("user", Commons.Color.parseShell(user))
+                    dump()
+                    if (stop === 12) stop = 14
+                    else { stop = 12; at++ }
+                    Qt.callLater(next)
+                })
+            })
         })
     }
 
@@ -160,13 +175,15 @@ ShellRoot {
         interval: 750
         running: true
         onTriggered: {
-            root.palettes = JSON.parse(manifest.text())
-            Commons.Color.colorsFile.waitForJob()
-            Commons.Color.shellFile.waitForJob()
-            Commons.Color.userShellFile.waitForJob()
-            // The probe's fixture is opaque regardless of the controller's compositor transparency setting.
-            Flea.Glass.clear = false
-            root.next()
+            root.guarded(function() {
+                root.palettes = JSON.parse(manifest.text())
+                Commons.Color.colorsFile.waitForJob()
+                Commons.Color.shellFile.waitForJob()
+                Commons.Color.userShellFile.waitForJob()
+                // The probe's fixture is opaque regardless of the controller's compositor transparency setting.
+                Flea.Glass.clear = false
+                root.next()
+            })
         }
     }
 }
