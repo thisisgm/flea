@@ -29,7 +29,7 @@ pub fn prepare(child: &mut Command) {
     tearoff::drop_env(child);
 }
 
-// In-process callers (the TUI, the shelf) stay on 0/2/3: an executable is refused with its sentence, and only the main.rs --open path asks the card, through open_ask.
+// In-process callers (the TUI, the shelf) read any nonzero status as a refusal, 7 and 10 included; only the main.rs --open path asks the card, through open_ask.
 pub fn open(path: &str) -> i32 {
     open_inner(path, false)
 }
