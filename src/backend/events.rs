@@ -14,6 +14,7 @@ use std::thread;
 // std has no select, so every source of work reaches the loop as one of these.
 pub enum Event {
     Request(String),
+    Nearby { ticket: u64, line: String },
     Thumb(Done),
     DirSize(crate::backend::dirsizeworker::Done),
     // A slow mount's figures, decided off the loop so no statfs ever blocks a window behind it.

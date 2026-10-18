@@ -7,6 +7,9 @@ use std::os::unix::process::CommandExt;
 use std::path::{Path, PathBuf};
 use std::process::{Command, Stdio};
 
+mod launch;
+pub use launch::{exec_gpui, use_gpui};
+
 // std already links libc, so fork is declared here rather than taking a crate.
 extern "C" {
     fn fork() -> i32;
@@ -183,35 +186,7 @@ fn apply_renderer(cmd: &mut Command, renderer: LaunchRenderer) {
 pub(crate) fn qs_command(target: PathBuf) -> Command {
     let mut cmd = Command::new("qs");
     cmd.arg("-p").arg(target);
-    // Only the main window records a prefetch list; a chooser started from a Flea terminal must not overwrite it.
-    cmd.env_remove(prefetch::LIST_ENV);
-    cmd.env_remove(prefetch::SHELL_ENV);
-    // The gvfs head start belongs to the window that was opened on its path, never to a chooser.
-    cmd.env_remove(crate::gvfsprefetch::PREFETCH_ENV);
-    cmd.env_remove(crate::gvfsprefetch::PATH_ENV);
-    cmd.env_remove(crate::gvfsprefetch::START_ENV);
-    // A shell started under an --unlock window must not replay its dialog; unlock_command sets it back for the one launch.
-    cmd.env_remove(crate::unlock::ENV);
-    skip_gtk_platform_theme(&mut cmd);
-    // An explicit choice is the operator's; map_or because is_none_or needs Rust 1.82 over the 1.77 floor.
-    if std::env::var_os("FLEA_BIN").map_or(true, |value| value.is_empty()) {
-        if let Ok(binary) = std::env::current_exe() {
-            cmd.env("FLEA_BIN", binary);
-        }
-    }
-    // Before the probe and qs in every arm, so neither loads a driver for a GPU vendor this box does not hold.
-    crate::icdexclude::exclude_absent_vendors();
-    // Empty is absent, the rule paths::has_display() applies: a wrapper's unset variable is not a choice.
-    if std::env::var_os("QSG_RHI_BACKEND").is_some_and(|value| !value.is_empty()) {
-        // An explicit choice is the operator's, so it is neither replaced nor offered a retry.
-        cmd.env_remove("FLEA_RENDERER_AUTOMATIC");
-        // Vulkan on a hybrid GPU still has to present on the compositor's device; pinning is not a renderer change.
-        if std::env::var_os("QSG_RHI_BACKEND").as_deref() == Some(OsStr::new("vulkan")) {
-            pin_display_icd(&mut cmd, None);
-        }
-    } else {
-        apply_renderer(&mut cmd, automatic_renderer(crate::vkprobecache::usable()));
-    }
+    launch::configure_shell(&mut cmd);
     cmd
 }
 

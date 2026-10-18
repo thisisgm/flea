@@ -117,11 +117,11 @@ function after(args, code, stderr, restartOk) {
 
 function runDefault(check) {
     // The two sentences MakeDefault.js reads are the binary's own, taken from the source rather than copied here.
-    var defaults = Source.source("src/defaults.rs"), main = Source.source("src/main.rs")
+    var defaults = Source.source("src/defaults.rs"), claims = Source.source("src/claims.rs")
     // Sample input: pub const DESKTOP_ID: &str = "com.thisisgm.flea.desktop";
     var rustId = (defaults.match(/pub const DESKTOP_ID: &str = "([^"]*)"/) || [])[1]
     var refusal = spoken(defaults, "fn claim_from(entry: Option<PathBuf>) -> i32 {", rustId)
-    var skipped = spoken(main, "fn claim_both() -> i32 {", "")
+    var skipped = spoken(claims, "fn claim_both() -> i32 {", "")
     check("the box is ticked by the very id src/defaults.rs claims", MakeDefault.DESKTOP_ID, rustId)
     var exitUninstalled = (defaults.match(/pub const EXIT_UNINSTALLED: i32 = (\d+)/) || [])[1]
     check("the refusal is defaults::claim()'s own flea: line", refusal.indexOf("flea: " + rustId + " ") === 0, true)
