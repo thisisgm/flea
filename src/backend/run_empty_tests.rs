@@ -72,4 +72,3 @@ fn run_search_lazy_thumbnail_pool_reports_its_first_job() {
         assert!(matches!(reply, Event::Thumb(Done { path: got, result: super::super::thumbs::Outcome::Failed, .. }) if got == path));
     }
 }
-
