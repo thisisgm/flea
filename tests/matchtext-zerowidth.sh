@@ -22,7 +22,7 @@ setup_config() {
     mkdir -p "$config" "$test_root/$1/home" "$test_root/$1/state" "$test_root/$1/runtime" || return 1
     chmod 700 "$test_root/$1/runtime" || return 1
     ln -s "$uitree" "$config/flea" || return 1
-    headless_commons "$test_root" "$config/Commons" || return 1
+    headless_commons "$test_root" "$config/Commons" || exit 1
     ln -s "$(readlink -f ui/boot/Ui)" "$config/Ui" || return 1
     # One ShellId per config, so the green and revert processes never share an instance id.
     sed "s/ShellId flea-matchtext-zerowidth-test/ShellId flea-matchtext-zerowidth-$1-test/" tests/matchtext-zerowidth.qml > "$config/shell.qml" || return 1
