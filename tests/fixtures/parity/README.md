@@ -1,6 +1,6 @@
 The frozen corpus contains 533 QML and JavaScript test sources from v0.3.12, commit `f21789e56cc4b0877caa3156fff7bce52a8dd9c2`. `frozen-sources.tsv` pins every source's SHA256. The deterministic `frozen-sources.zip` occupies 1,837,510 bytes in the source tree; its uncompressed sources occupy 6,418,188 bytes.
 
-`corpus.py` verifies every archive member against the manifest. In a checkout it also reads and verifies the pinned Git objects, using those bytes for the test oracle. A source export uses the committed copy. Live test sources may change independently. Both paths retain the independent lexical audit of all frozen failure sites.
+`corpus.py` verifies every archive member against the manifest. In a checkout that holds the pinned commit it also reads and verifies the pinned Git objects, using those bytes for the test oracle. A source export, or a checkout without that commit such as a `git clone --depth 1`, uses the committed copy. Live test sources may change independently. Both paths retain the independent lexical audit of all frozen failure sites.
 
 To regenerate the archive from the pinned objects, run this from the repository root:
 

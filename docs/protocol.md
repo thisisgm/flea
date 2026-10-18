@@ -1779,8 +1779,9 @@ the existing mount quarantine refuses filesystem work until its stuck TTL expire
 
 `marks` contains each asked absolute `path`, its `status`, and whether it is a `folder` with
 changes inside. A clean row has `status:"",folder:false`. Non-empty statuses are exactly
-`M` modified, `A` added, `D` deleted and `?` untracked. Rename/copy destinations use `A`;
-deleted flags within an ordinary tracked record take precedence, and other tracked changes use `M`.
+`M` modified, `A` added, `D` deleted and `?` untracked. A deleted flag in an ordinary or
+rename/copy record takes precedence, so an `RD` destination uses `D`; other rename/copy
+destinations use `A`, and other tracked changes use `M`.
 An unmerged record uses its worktree mode: a present conflicted path uses `M`, including `UD` and
 `DU` modify/delete conflicts, while a zero worktree mode uses `D`. No per-file stat is needed.
 A coalesced index-deletion/untracked pair instead emits one `?`, as described under `gitstatus`.

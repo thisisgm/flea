@@ -3,8 +3,10 @@
 import copy
 import csv
 import hashlib
+import os
 from pathlib import Path
 import shutil
+import subprocess
 
 
 def validate(context):
@@ -141,6 +143,33 @@ def validate(context):
               'the source-export fallback still refuses a wrong frozen hash')
     else:
         raise AssertionError('a corrupted frozen manifest was accepted')
+
+    # A `git clone --depth 1` checkout lacks the frozen commit, so the corpus reads the hash-verified archive instead.
+    git_env = {**os.environ, 'GIT_CONFIG_NOSYSTEM': '1', 'GIT_CONFIG_GLOBAL': os.devnull}
+
+    def git(*arguments):
+        made = subprocess.run(['git', '-c', 'user.name=parity', '-c', 'user.email=parity@invalid', *arguments],
+                              env=git_env, capture_output=True, text=True)
+        check(made.returncode == 0, f'git {arguments[0]} for the shallow corpus clone: {made.stderr}')
+
+    shallow_origin, shallow_clone = root / 'shallow-origin', root / 'shallow-clone'
+    git('init', '-q', str(shallow_origin))
+    for generation in ('first', 'second'):
+        git('-C', str(shallow_origin), 'commit', '-q', '--allow-empty', '-m', generation)
+    git('clone', '-q', '--depth', '1', shallow_origin.as_uri(), str(shallow_clone))
+    check((shallow_clone / '.git/shallow').is_file(), 'the corpus clone is shallow')
+    shallow_sources = dict(corpus['sources'](shallow_clone, fixture, check))
+    check(not corpus['pinned_commit'](shallow_clone, check), 'the shallow clone lacks the frozen commit')
+    check(len(shallow_sources) == corpus['SOURCE_COUNT']
+          and all(data == (context['frozen_tree'] / path).read_bytes() for path, data in shallow_sources.items()),
+          'a shallow clone yields the frozen corpus from the committed copy')
+    try:
+        list(corpus['sources'](shallow_clone, corrupt, check))
+    except AssertionError as error:
+        check(f'frozen v0.3.12 source bytes: {manifest[0]["path"]}' in str(error),
+              'the shallow-clone fallback still refuses a wrong frozen hash')
+    else:
+        raise AssertionError('a shallow clone accepted a corrupted frozen manifest')
 
     # Sample input: old-id\tnew-id\tsource\tcolumn\tsink\tsource-sha256 (TSV header).
     migration = list(csv.DictReader((fixture / 'case-id-migration.tsv').open(), delimiter='\t'))
