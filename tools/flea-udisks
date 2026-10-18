@@ -428,6 +428,10 @@ HIDDEN_GPT = {"c12a7328-f81f-11d2-ba4b-00a0c93ec93b", "21686148-6449-6e6f-744e-6
               "a19d880f-05fc-4d3b-a006-743f0f84911e", "e6d6d379-f507-44c2-a23c-238f2a3df928"}
 HIDDEN_MBR = {0x0, 0x5, 0xf, 0x85, 0x11, 0x12, 0x14, 0x16, 0x17, 0x1b, 0x1c, 0x1e, 0x27, 0x3d,
               0x84, 0x8d, 0x8e, 0x90, 0x91, 0x92, 0x93, 0x97, 0x98, 0x9a, 0x9b, 0xab, 0xbb, 0xc2, 0xc3, 0xdd, 0xef, 0xfd}
+# UDisks 80-udisks2.rules unhides the first two partitions of an iso9660 or udf isohybrid image, typed 0x0 or 0x17.
+ISOHYBRID_TYPES = {0x0, 0x17}
+ISOHYBRID_NUMBERS = {1, 2}
+ISOHYBRID_IDTYPES = {"iso9660", "udf"}
 RECOVERY_LABELS = {"Recovery", "RECOVERY", "Lenovo_Recovery", "HP_RECOVERY", "Recovery_Partition", "DellUtility",
                    "DellRestore", "IBM_SERVICE", "SERVICEV001", "SERVICEV002", "SYSTEM_RESERVED", "System_Reserved",
                    "WINRE_DRV", "DIAGS", "IntelRST"}
@@ -451,12 +455,13 @@ def volume_visible(block):
         return False
     if not block["Filesystem"] or block["IdUsage"] != "filesystem" or not block["IdType"]:
         return False
+    # Sample input: "0xef" or "EF" (MBR hex) and "c12a7328-f81f-11d2-ba4b-00a0c93ec93b" (GPT UUID).
     parttype = block["PartitionType"].lower()
     if parttype in HIDDEN_GPT:
         return False
     try:
         number = int(parttype, 16) if parttype else -1
-        installer = number in (0x0, 0x17) and block["PartitionNumber"] in (1, 2) and block["IdType"].lower() in ("iso9660", "udf")
+        installer = number in ISOHYBRID_TYPES and block["PartitionNumber"] in ISOHYBRID_NUMBERS and block["IdType"].lower() in ISOHYBRID_IDTYPES
         if number in HIDDEN_MBR and not installer:
             return False
     except ValueError:

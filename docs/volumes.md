@@ -32,8 +32,9 @@ that removes no mount point stops with `busy`; a read failure returns `error`.
 A removable drive's mounted siblings are unmounted, its unlocked containers
 are locked, and the drive is powered off when supported, or its media ejected
 when supported. A busy filesystem stops the sequence without forcing it.
-A drive carrying a system mount is never powered off. Lock and PowerOff wait
-until the refreshed drive listing contains no mounted filesystem. No command schedules
+A drive carrying a system mount is never powered off. Lock and PowerOff run only after
+one final refreshed drive listing shows no mounted filesystem. A mounted sibling there
+returns `busy`. No command schedules
 an automatic remount.
 
 Actions return `{"ok":true}` on success. Refusals return

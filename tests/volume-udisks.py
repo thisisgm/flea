@@ -362,9 +362,37 @@ class Volumes(unittest.TestCase):
             filesystem["MountPoints"] = ["/mnt/data"] + ["/mnt/alias-%d" % index for index in range(500)]
             self.assertEqual(self.command("release", "/mnt/data/file"), {"ok": False, "err": "busy"})
             self.assertTrue(filesystem["MountPoints"])
-            self.assertGreater(len(calls), 0)
-            self.assertLessEqual(len(calls), 32)
+            self.assertEqual(len(calls), 32)
             self.assertEqual(set(method for _, _, method, _ in calls), {"Unmount"})
+
+    def test_release_drains_three_and_thirty_two_aliases(self):
+        for removable in (False, True):
+            for count in (3, 32):
+                with self.subTest(removable=removable, count=count):
+                    calls.clear()
+                    self.data["drives"]["/drives/data"].update(Removable=removable, CanPowerOff=True)
+                    filesystem = self.data["blocks"]["/blocks/sdb2"]["Filesystem"]
+                    filesystem["MountPoints"] = ["/mnt/data"] + ["/mnt/alias-%d" % index for index in range(count - 1)]
+                    self.assertEqual(self.command("release", "/mnt/data/file"), {"ok": True})
+                    self.assertEqual(filesystem["MountPoints"], [])
+                    self.assertEqual([method for _, _, method, _ in calls], ["Unmount"] * count + (["PowerOff"] if removable else []))
+
+    def test_late_sibling_remount_returns_busy_before_lock_or_poweroff(self):
+        self.data["drives"]["/drives/data"].update(Removable=True, CanPowerOff=True)
+        original = helper.blocks
+        reads = []
+        def remount_at_final_check():
+            reads.append(len(reads) + 1)
+            if len(reads) == 4:
+                self.data["blocks"]["/blocks/sdb1"]["Filesystem"]["MountPoints"] = ["/mnt/raced"]
+            elif len(reads) == 5:
+                self.data["blocks"]["/blocks/sdb1"]["Filesystem"]["MountPoints"] = []
+            return original()
+        helper.blocks = remount_at_final_check
+        self.addCleanup(setattr, helper, "blocks", original)
+        self.assertEqual(self.command("release", "/mnt/data/file"), {"ok": False, "err": "busy"})
+        self.assertEqual(len(reads), 4)
+        self.assertEqual([method for _, _, method, _ in calls], ["Unmount"])
 
     def test_hidden_alias_does_not_block_removable_release(self):
         self.data["drives"]["/drives/data"].update(ConnectionBus="usb", CanPowerOff=True)
