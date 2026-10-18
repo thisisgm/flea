@@ -31,8 +31,16 @@ fn preview(run: Vec<String>, input: &Path, slot: &str) -> String {
 #[test]
 fn multicall_preview_keeps_its_invocation_name() {
     let root = TestDir::new("preview-multicall");
-    let path = program("/usr/bin/xzcat").expect("xzcat installed");
+    let real = std::fs::canonicalize("/usr/bin/xz").expect("xz installed");
+    let alias = root.dir("bin").join("xzcat");
+    root.assert_contains(&alias);
+    std::os::unix::fs::symlink(&real, &alias).unwrap();
+    let path = program(alias.to_str().unwrap()).expect("the alias resolves");
     assert_eq!(path.file_name().unwrap(), "xzcat");
+    assert!(
+        path.symlink_metadata().unwrap().file_type().is_symlink() && path.canonicalize().unwrap() == real,
+        "the fixture must be a multicall alias whatever the host's xzcat is"
+    );
     let input = root.file("input.txt", "preview contents\n");
     let output = std::process::Command::new("/usr/bin/xz")
         .args(["-c", input.to_str().unwrap()])

@@ -52,7 +52,7 @@ fn descendants(leader: u32) -> BTreeSet<u32> {
             let Ok(children) = std::fs::read_to_string(task.path().join("children")) else {
                 continue;
             };
-            // Sample input: /proc/123/task/123/children contains "456 789 " followed by a newline.
+            // Sample input: /proc/123/task/123/children contains "456 789 ", each pid followed by a space and no newline.
             pending.extend(
                 children
                     .split_whitespace()

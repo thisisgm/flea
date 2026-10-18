@@ -75,8 +75,17 @@ mod tests {
         }
     }
 
+    extern "C" {
+        fn geteuid() -> u32;
+    }
+
     #[test]
     fn queued_permission_failures_remain_retryable() {
+        // Root writes into a 0o500 folder, so only a non-root run can produce the permission failure.
+        if unsafe { geteuid() } == 0 {
+            println!("SKIP queued_permission_failures_remain_retryable: root bypasses mode 0o500");
+            return;
+        }
         let root = TestDir::new("queued-readonly-destination");
         let source = root.file("source", "payload");
         let dest = root.dir("readonly");

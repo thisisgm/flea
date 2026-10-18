@@ -31,9 +31,9 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
             if job.state != State::Waiting {
                 return;
             }
-            job.prepared = true;
             match result {
                 Ok((drive, target)) => {
+                    job.prepared = true;
                     job.drive = Some(drive.clone());
                     job.target = target.clone();
                 }
@@ -284,6 +284,10 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) -> super:
                     ops.jobs.next_order += 1;
                     job.order = ops.jobs.next_order;
                     ops.detached.insert(id, &job.cancel);
+                    if let Some(target) = job.work.as_ref().filter(|_| !job.prepared).and_then(|w| w.target()) {
+                        job.reason = "checking target".into();
+                        super::jobstart::check_target(id, target, &ops.tx);
+                    }
                     ops.jobs.advance(out, &ops.detached, &ops.tx);
                     return Default::default();
                 }
@@ -312,9 +316,12 @@ pub(crate) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) -> super:
     Default::default()
 }
 
+// A job whose target check failed never started, so it retries whole and checks its target again.
 fn retry(job: &mut Job) -> Result<(), String> {
     let work = job.work.as_mut().ok_or("This job cannot be retried.")?;
-    job.total = work.retry(&job.failed)?;
+    if job.prepared {
+        job.total = work.retry(&job.failed)?;
+    }
     if job.kind == "extract" {
         job.total = 0;
     }

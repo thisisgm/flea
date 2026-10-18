@@ -226,7 +226,32 @@ fn refused_requests_preserve_job_undo_offer() {
     );
     ops.jobs.rows[0].state = crate::backend::jobs::State::Done;
     ops.jobs.rows[0].undo = true;
+    let made = sandbox.file("made", "");
+    ops.jobs.rows[0].undo_key = ops.journal.push_for_job(crate::backend::undo::Entry {
+        op: "copy".into(),
+        steps: vec![crate::backend::undo::Step::Created { path: made }],
+    });
+    assert!(ops.jobs.rows[0].undo_key.is_some());
     let mut out = Vec::new();
+    let mut ask = |line: &str, st: &mut State, ops: &mut Ops| {
+        handle_line(
+            line,
+            &mut out,
+            st,
+            &tb,
+            &pool,
+            &cache,
+            ops,
+            &mut flashslot::Ctx::new(channel().0),
+            &mut watch,
+            &mut peeks,
+            &mut fsinfo,
+            &poller,
+            &events,
+            &mut Gate::new(events.clone()),
+        );
+        String::from_utf8(std::mem::take(&mut out)).unwrap()
+    };
     for line in [
         format!(
             r#"{{"c":"trash","rows":[0],"listing":{}}}"#,
@@ -237,27 +262,20 @@ fn refused_requests_preserve_job_undo_offer() {
             root.display()
         ),
     ] {
-        handle_line(
-            &line,
-            &mut out,
-            &mut st,
-            &tb,
-            &pool,
-            &cache,
-            &mut ops,
-            &mut flashslot::Ctx::new(channel().0),
-            &mut watch,
-            &mut peeks,
-            &mut fsinfo,
-            &poller,
-            &events,
-            &mut Gate::new(events.clone()),
-        );
-        let text = String::from_utf8(std::mem::take(&mut out)).unwrap();
+        let text = ask(&line, &mut st, &mut ops);
         assert!(text.contains("error"), "request must be refused: {text}");
         assert!(
             ops.jobs.rows[0].undo,
             "refused request expired offer: {line} {text}"
         );
     }
+    let accepted = format!(
+        r#"{{"c":"mkdir","path":"{}","name":"accepted"}}"#,
+        root.display()
+    );
+    let text = ask(&accepted, &mut st, &mut ops);
+    assert!(
+        !text.contains("error") && !ops.jobs.rows[0].undo,
+        "an accepted write must expire the offer through its token: {text}"
+    );
 }

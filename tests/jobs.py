@@ -13,6 +13,8 @@ from jobs_barrier import CopyBarrier
 
 BINARY = str(Path(sys.argv[1]).resolve())
 MARKER = '.flea-test-sandbox'
+# Request ids for barrier round trips start above every fixed id the suite sends.
+BARRIER_SYNC_FIRST_ID = 10000
 
 
 class Root:
@@ -32,7 +34,8 @@ class Backend:
     def __init__(self, root):
         self.root = root
         self.barrier = CopyBarrier(root)
-        self.barrier_sync = 10000
+        self.barrier_sync = BARRIER_SYNC_FIRST_ID
+        self.cancel_handled = None
         env = dict(os.environ)
         for key, name in [('HOME', 'home'), ('XDG_CONFIG_HOME', 'config'),
                           ('XDG_DATA_HOME', 'data'), ('XDG_STATE_HOME', 'state'),
@@ -98,10 +101,12 @@ class Backend:
         return ident, ready
 
     def cancel_held(self, ident, ready):
+        started = time.monotonic()
         self.send(c='jobs', op='cancel', id=ident)
         self.barrier_sync += 1
         self.send(c='actions', op='list', id=self.barrier_sync, paths=[])
         self.wait(lambda e: e['t'] == 'actions' and e['id'] == self.barrier_sync)
+        self.cancel_handled = time.monotonic() - started
         self.barrier.release(ready)
         return self.state(ident, 'done')
 
@@ -164,11 +169,10 @@ def copies(backend, root, temporary):
     started = time.monotonic()
     backend.send(c='jobs', op='cancel', id=two)
     assert backend.state(two, 'done')['cancelled']
-    latencies = [time.monotonic() - started]
-    started = time.monotonic()
+    waiting = time.monotonic() - started
     assert backend.cancel_held(one, held_one)['cancelled']
-    latencies.append(time.monotonic() - started)
-    print(f'MEASURE waiting/running copy Cancel {min(latencies):.4f} to {max(latencies):.4f}s')
+    print(f'MEASURE waiting copy Cancel to done {waiting:.4f}s, running copy Cancel handled within '
+          f'{backend.cancel_handled:.4f}s (timed to the reply of the request sent after it)')
     assert not (second / tree.name).exists()
     for ident in (one, two):
         backend.send(c='jobs', op='dismiss', id=ident)
