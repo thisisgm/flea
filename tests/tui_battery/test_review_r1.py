@@ -101,9 +101,15 @@ class ReviewTests(unittest.TestCase):
         pixels = bytearray(value for y in range(100) for x in range(100) for value in (x, y, 40, 255))
         received = media_transcript(self.root, [{"ns": 30, "data": traffic}], kitty=kitty, sixel=sixel)
         caps = {"candidate_received": received, "forced_fallback": forced}
-        return inspect_media({"id": "tui-list-image", "cwd": "/fx/v/work"}, board, Screen(10, 4).snapshot(),
-                             (100, 100, pixels), [4, 9, 84, 88], caps, self.root, self.root, self.root, {},
-                             adapter=adapter, expected_transport=transport_for(adapter, forced))
+        state = {"id": "tui-list-image", "cwd": "/fx/v/work", "cursor": "photo.png"}
+        (self.root / "v/work").mkdir(parents=True, exist_ok=True)
+        (self.root / "v/work/photo.png").write_bytes(b"fixture identity")
+        arguments = (state, board, Screen(10, 4).snapshot(), (100, 100, pixels), [4, 9, 84, 88], caps, self.root, self.root, self.root)
+        keywords = dict(adapter=adapter, expected_transport=transport_for(adapter, forced))
+        # The controller approves the picture for the identities this run produced; placements are still judged.
+        first = inspect_media(*arguments, {}, **keywords)[0]
+        approval = {"representation": dict(approved=True, **first["review_requirements"])} if "review_requirements" in first else {}
+        return inspect_media(*arguments, approval, **keywords)
 
     def test_5_transport_specific_placement_and_primary_paths(self):
         kitty = "\x1b_Ga=T,i=7;AAAA\x1b\\"

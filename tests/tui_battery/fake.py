@@ -16,7 +16,13 @@ import tty
 from .adapters import Adapter, OPTIONS
 from .cells import predicate
 from .evidence import Blocked, MARKER, save
+from .geometry import COLUMNS, ROWS
 from . import relay
+
+FAKE_EOF_EXIT = 92
+EXEC_FAILURE_EXIT = 127
+DIAGNOSTIC_OUTPUT_BYTES = 65536
+FAKE_CELL_WIDTH, FAKE_CELL_HEIGHT = 8, 22
 
 
 def terminal(name, args):
@@ -50,12 +56,17 @@ def candidate():
         os.write(1, b"\x1b[?1049h\x1b[?25l\x1b[HREADY\x1b_Gi=31,a=q;AAAA\x1b\\\x1b[31;1Hfake terminal diagnostic")
         reply = bytearray()
         while not reply.endswith(b"\x1b\\"):
-            reply.extend(os.read(0, 1))
+            data = os.read(0, 1)
+            if not data:
+                return FAKE_EOF_EXIT
+            reply.extend(data)
         if reply != b"\x1b_Gi=31;OK\x1b\\":
             return 91
         os.write(1, b"\x1b[2;1HQUERY REPLY RECEIVED")
         while True:
             key = os.read(0, 1)
+            if not key:
+                return FAKE_EOF_EXIT
             if key == b"?":
                 os.write(1, b"\x1b[HKEY RECEIVED")
             elif key == b"q":
@@ -84,16 +95,23 @@ def adapter_diagnostic(name, case, commands, palette):
     argv = adapter.argv([sys.executable, "-m", "tui_battery.relay", str(case / "relay-spec.json")])
     pid, master = pty.fork()
     if pid == 0:
-        fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", 31, 130, 1040, 682))
-        os.execvpe(argv[0], argv, environment)
+        try:
+            fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", ROWS, COLUMNS,
+                        COLUMNS * FAKE_CELL_WIDTH, ROWS * FAKE_CELL_HEIGHT))
+            os.execvpe(argv[0], argv, environment)
+        except OSError as error:
+            os.write(2, f"fake {name} could not execute {argv[0]}: {error}\n".encode())
+            os._exit(EXEC_FAILURE_EXIT)
     deadline, status = time.monotonic() + 15, None
+    output = bytearray()
     found_ready = found_key = sent_reply = sent_key = False
     try:
         while time.monotonic() < deadline:
             ready, _, _ = select.select([master], [], [], .03)
             if ready:
                 try:
-                    os.read(master, 65536)
+                    output.extend(os.read(master, DIAGNOSTIC_OUTPUT_BYTES))
+                    output = output[-DIAGNOSTIC_OUTPUT_BYTES:]
                 except OSError:
                     break
             if not found_key and (case / "relay.sock").exists() and not (case / "relay-exit.json").exists():
@@ -123,6 +141,8 @@ def adapter_diagnostic(name, case, commands, palette):
                 time.sleep(.02)
         if status is None:
             raise Blocked(f"fake {name} did not quit at its deadline")
+        if status:
+            raise Blocked(f"fake {name} exited {status}: " + output.decode(errors="replace")[-300:])
         receipt = json.loads((case / "relay-exit.json").read_text())
         if status or not found_key or not receipt["termios_restored"] or not receipt["relay_termios_restored"]:
             raise AssertionError(f"fake {name} failed PTY input/cleanup proof")

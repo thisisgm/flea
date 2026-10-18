@@ -7,6 +7,7 @@ import re
 import shutil
 
 from .cells import Screen
+from .geometry import ORIGIN, CELL_WIDTH, CELL_HEIGHT, ALIGNMENT_EPSILON
 from .evidence import Blocked, Commands, absolute, digest
 from .fixtures import relative
 from . import png
@@ -15,11 +16,11 @@ STATES = {"tui-list-pdf", "tui-list-video", "tui-quicklook-image", "tui-3d-quick
           "tui-office", "tui-print-sent", "tui-combine", "tui-lang-ar"}
 
 
-def bounds(box, origin=(4, 9)):
+def bounds(box, origin=ORIGIN):
     left, top, width, height = box
-    x, y = math.floor((left - origin[0]) / 8.4 + .00001), math.floor((top - origin[1]) / 22 + .00001)
-    return [x, y, math.ceil((left + width - origin[0]) / 8.4 - .00001) - x,
-            math.ceil((top + height - origin[1]) / 22 - .00001) - y]
+    x, y = math.floor((left - origin[0]) / CELL_WIDTH + ALIGNMENT_EPSILON), math.floor((top - origin[1]) / CELL_HEIGHT + ALIGNMENT_EPSILON)
+    return [x, y, math.ceil((left + width - origin[0]) / CELL_WIDTH - ALIGNMENT_EPSILON) - x,
+            math.ceil((top + height - origin[1]) / CELL_HEIGHT - ALIGNMENT_EPSILON) - y]
 
 
 def inputs(state):
@@ -57,7 +58,7 @@ def sources(state, case, fx, boxes):
         width, height, _ = png.read(fx / raster)
         bw, bh = box[2:]
         # Quantization may add at most one terminal cell along either picture edge.
-        tolerance = 8.4 / bh + bw * 22 / (bh * bh)
+        tolerance = CELL_WIDTH / bh + bw * CELL_HEIGHT / (bh * bh)
         if abs(width / height - bw / bh) > tolerance:
             raise Blocked("source aspect differs from the approved picture bounds")
         result.append({"input": name, "input_sha256": hashes[name], "raster": raster,

@@ -8,7 +8,7 @@ from .dynamic import disk_field
 from .evidence import Blocked, digest
 from . import png
 
-GEOMETRY = {"canvas": [1100, 700], "columns": 130, "rows": 31, "cell": [8.4, 22], "origin": [4, 9]}
+from .geometry import GEOMETRY, COLUMNS, ROWS, CELL_WIDTH, CELL_HEIGHT, ORIGIN
 
 
 def styles(raw):
@@ -91,17 +91,17 @@ class Board(HTMLParser):
             return "#" + "".join(f"{math.floor(int(a[i:i+2],16)*ratio+int(b[i:i+2],16)*(1-ratio)+.5):02x}" for i in (1, 3, 5))
         raise Blocked(f"unsupported board ink recipe: {expression}")
 
-    def cells(self, columns=130, rows=31, origin=(4, 9)):
+    def cells(self, columns=COLUMNS, rows=ROWS, origin=ORIGIN):
         result = {(x, y): {"ch": " ", "fg": self.ink("var(--fg)"), "bg": self.ink("var(--bg)"),
                            "bold": False, "dim": False, "underline": False, "width": 1} for y in range(rows) for x in range(columns)}
         strokes = {}
         for style in self.shapes:
             left, top, w, h = [float(style.get(k, "0").removesuffix("px")) for k in ("left", "top", "width", "height")]
-            x, y = math.floor((left - origin[0] + .01) / 8.4), math.floor((top - origin[1] + .01) / 22)
+            x, y = math.floor((left - origin[0] + .01) / CELL_WIDTH), math.floor((top - origin[1] + .01) / CELL_HEIGHT)
             if "clip" in style:
                 clip = style["clip"]
-                x = round((float(clip["left"].removesuffix("px")) - origin[0]) / 8.4)
-                y = round((float(clip["top"].removesuffix("px")) - origin[1]) / 22)
+                x = round((float(clip["left"].removesuffix("px")) - origin[0]) / CELL_WIDTH)
+                y = round((float(clip["top"].removesuffix("px")) - origin[1]) / CELL_HEIGHT)
                 if (x, y) in result:
                     glyph = ("╭" if "border-top" in style else "╰") if "border-left" in style else ("╮" if "border-top" in style else "╯")
                     ink = next(v.split(" solid ", 1)[1] for k, v in style.items() if k in ("border-left", "border-right"))
@@ -110,24 +110,24 @@ class Board(HTMLParser):
             if "background" not in style or (x, y) not in result:
                 continue
             ink = self.ink(style["background"])
-            if abs((left - origin[0]) / 8.4 - x) < .01 and abs((top - origin[1]) / 22 - y) < .01 and h == 22 and w >= 8.39:
-                for offset in range(round(w / 8.4)):
+            if abs((left - origin[0]) / CELL_WIDTH - x) < .01 and abs((top - origin[1]) / CELL_HEIGHT - y) < .01 and h == CELL_HEIGHT and w >= 8.39:
+                for offset in range(round(w / CELL_WIDTH)):
                     if (x + offset, y) in result:
                         result[(x + offset, y)]["bg"] = ink
-            elif h in (1, 2) and w <= 8.41:
-                l = left <= origin[0] + x * 8.4 + .1
-                r = left + w >= origin[0] + (x + 1) * 8.4 - .1
+            elif h in (1, 2) and w <= CELL_WIDTH + .01:
+                l = left <= origin[0] + x * CELL_WIDTH + .1
+                r = left + w >= origin[0] + (x + 1) * CELL_WIDTH - .1
                 entry = strokes.setdefault((x, y), [False, False, False, False, ink, h])
                 entry[0], entry[1] = entry[0] or l, entry[1] or r
-            elif w in (1, 2) and h <= 22:
-                u = top <= origin[1] + y * 22 + .1
-                d = top + h >= origin[1] + (y + 1) * 22 - .1
+            elif w in (1, 2) and h <= CELL_HEIGHT:
+                u = top <= origin[1] + y * CELL_HEIGHT + .1
+                d = top + h >= origin[1] + (y + 1) * CELL_HEIGHT - .1
                 entry = strokes.setdefault((x, y), [False, False, False, False, ink, w])
                 entry[2], entry[3] = entry[2] or u, entry[3] or d
-            elif abs(w - 2.1) < .02 and h == 22:
+            elif abs(w - 2.1) < .02 and h == CELL_HEIGHT:
                 result[(x, y)].update(ch="▎", fg=ink)
-            elif abs(w - 8.4) < .02 and h == 11:
-                result[(x, y)].update(ch="▀" if abs((top - origin[1]) % 22) < .01 else "▄", fg=ink)
+            elif abs(w - CELL_WIDTH) < .02 and h == 11:
+                result[(x, y)].update(ch="▀" if abs((top - origin[1]) % CELL_HEIGHT) < .01 else "▄", fg=ink)
         line_glyphs = {(True, True, False, False): "─", (False, False, True, True): "│",
                        (False, True, False, True): "┌", (True, False, False, True): "┐",
                        (False, True, True, False): "└", (True, False, True, False): "┘",
@@ -142,8 +142,8 @@ class Board(HTMLParser):
                 result[cell].update(ch=glyph, fg=values[4])
         for run in self.runs:
             style = run["style"]
-            x = round((float(style["left"].removesuffix("px")) - origin[0]) / 8.4)
-            y = round((float(style["top"].removesuffix("px")) - origin[1]) / 22)
+            x = round((float(style["left"].removesuffix("px")) - origin[0]) / CELL_WIDTH)
+            y = round((float(style["top"].removesuffix("px")) - origin[1]) / CELL_HEIGHT)
             for ch in run["text"]:
                 w = width(ch)
                 if 0 <= x < columns and 0 <= y < rows:
@@ -174,15 +174,15 @@ class Board(HTMLParser):
                 boxes.append([*picture["origin"], float(w), float(h)])
         return boxes
 
-    def compare(self, snapshot, masks=(), origin=(4, 9), resting=False, picture_reference=None):
+    def compare(self, snapshot, masks=(), origin=ORIGIN, resting=False, picture_reference=None):
         errors, colors = [], []
         expected_cells = self.cells(snapshot["columns"], snapshot["rows"], origin)
         if picture_reference:
             alternate = picture_reference.cells(snapshot["columns"], snapshot["rows"], origin)
             for left, top, w, h in self.media_boxes():
-                x0, y0 = math.floor((left - origin[0]) / 8.4), math.floor((top - origin[1]) / 22)
-                for y in range(y0, min(snapshot["rows"], math.ceil((top + h - origin[1]) / 22))):
-                    for x in range(x0, min(snapshot["columns"], math.ceil((left + w - origin[0]) / 8.4))):
+                x0, y0 = math.floor((left - origin[0]) / CELL_WIDTH), math.floor((top - origin[1]) / CELL_HEIGHT)
+                for y in range(y0, min(snapshot["rows"], math.ceil((top + h - origin[1]) / CELL_HEIGHT))):
+                    for x in range(x0, min(snapshot["columns"], math.ceil((left + w - origin[0]) / CELL_WIDTH))):
                         if (x, y) in expected_cells:
                             expected_cells[(x, y)] = alternate[(x, y)]
         strict_foreground = set()
@@ -256,7 +256,7 @@ def separator(image, client, pty):
     return unique[0]
 
 
-def compare_pixels(native, board, rect, directory, reference_rect=(4, 9, 1092, 682)):
+def compare_pixels(native, board, rect, directory, reference_rect=(*ORIGIN, round(COLUMNS * CELL_WIDTH), ROWS * CELL_HEIGHT)):
     candidate = png.crop(png.read(native), rect)
     reference = png.crop(png.read(board), reference_rect)
     png.write(directory / "grid-crop.png", *candidate)
