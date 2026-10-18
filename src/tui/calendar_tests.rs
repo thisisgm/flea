@@ -30,8 +30,23 @@ fn local_calendar_in_fresh_timezone_processes() {
             .args(["--exact", "tui::calendar::tests::local_calendar_in_fresh_timezone_processes", "--nocapture"])
             .env("TZ", zone).env(CHILD, format!("{seconds}|{expected}"))
             .output().unwrap();
-        assert!(output.status.success(), "{zone} {seconds}: {}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+        assert!(one_calendar_case_passed(&output), "{zone} {seconds}: {}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
     }
+}
+
+// Sample output: test result: ok. 1 passed; 0 failed; 0 ignored; 0 measured; 3145 filtered out; finished in 0.00s
+fn one_calendar_case_passed(output: &std::process::Output) -> bool {
+    output.status.success() && String::from_utf8_lossy(&output.stdout).lines()
+        .any(|line| line.starts_with("test result: ok. 1 passed; 0 failed;"))
+}
+
+#[test]
+fn a_zero_test_child_is_not_a_successful_calendar_case() {
+    let output = Command::new(std::env::current_exe().unwrap())
+        .args(["--exact", "tui::calendar::tests::missing_timezone_case", "--nocapture"])
+        .output().unwrap();
+    assert!(output.status.success(), "the negative control needs libtest's successful zero-test exit");
+    assert!(!one_calendar_case_passed(&output), "a filter that runs no test must be refused");
 }
 
 #[test]

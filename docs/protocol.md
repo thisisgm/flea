@@ -1986,6 +1986,22 @@ its row does), resolved from `/etc/passwd` alone and never through `getpwuid`: t
 NSS and can wait on a network directory, and the meta thread must never hang the column on one. A uid
 no local account carries answers the empty string, never the number dressed as a name.
 
+### owner
+
+`{"t":"owner","row":<uint>,"token":<uint>,"owner":"<string>","retry":<bool>}`
+
+Example: `{"t":"owner","row":7,"token":91,"owner":"gm","retry":false}`
+
+The answer to one `{"c":"owner","row":<uint>,"token":<uint>}` request, which the TUI's Owner detail
+column sends for one drawn row at a time, echoing its `row` and `token`. `owner` reads as `meta.owner`
+does, the login name from `/etc/passwd`, and is empty for a uid no local account carries, a path that
+cannot be stat'ed or a row past the listing. `retry` is true only when the stat could not run, because
+its remote mount already holds an owner stat, eight remote owner stats are held across all mounts, the
+mount is marked stuck, or the stat missed its five-second deadline. `owner` is empty then too, so a
+reader that ignores `retry` reads the line it always did, and an absent `retry` reads as false. The
+TUI keeps every `retry:false` answer, empty ones included, until its rows change, and asks a
+`retry:true` row again only while the Owner column still draws it, at most once a second.
+
 ### shebang
 
 `{"t":"shebang","path":"<string>","hasShebang":<bool>,"id":<uint>}`

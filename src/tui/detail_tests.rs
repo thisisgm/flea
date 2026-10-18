@@ -57,6 +57,85 @@ fn answer(request: &Json, owner: &str) -> Json {
         ("token".into(), number(count(request, "token"))), ("owner".into(), word(owner))])
 }
 
+// Just past the backoff, so a sleep of this length always reopens a failed row.
+const RETRY_WAIT: Duration = OWNER_RETRY_DELAY.saturating_add(Duration::from_millis(100));
+
+fn retry_answer(request: &Json) -> Json {
+    let mut reply = answer(request, "");
+    if let Json::Obj(fields) = &mut reply { fields.push(("retry".into(), Json::Bool(true))); }
+    reply
+}
+
+#[test]
+fn failed_owners_retry_after_a_delay_without_starving_healthy_visible_rows() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut model = frame_tests::model();
+    model.total = 100000;
+    model.height = 3;
+    model.detail.mode = Column::Owner;
+    prepare(&mut model, &mut wire).unwrap();
+    let sent = drain(&mut wire);
+    let failed = requests(&sent, "owner")[0];
+    model.receive(retry_answer(failed), &mut wire).unwrap();
+    for (index, owner) in [(1, ""), (2, "healthy")] {
+        prepare(&mut model, &mut wire).unwrap();
+        let sent = drain(&mut wire);
+        let request = requests(&sent, "owner")[0];
+        assert_eq!(count(request, "row"), index, "a failed row must not block healthy rows");
+        model.receive(answer(request, owner), &mut wire).unwrap();
+    }
+    prepare(&mut model, &mut wire).unwrap();
+    assert!(drain(&mut wire).is_empty(), "a failed row backs off instead of spinning");
+    std::thread::sleep(RETRY_WAIT);
+    prepare(&mut model, &mut wire).unwrap();
+    let sent = drain(&mut wire);
+    let retried = requests(&sent, "owner");
+    assert_eq!(retried.len(), 1, "a failed visible row retries without a new listing");
+    assert_eq!(count(retried[0], "row"), 0);
+    model.receive(answer(retried[0], "recovered"), &mut wire).unwrap();
+    assert_eq!(value(&model, 0, &model.rows[&0]), "recovered");
+    prepare(&mut model, &mut wire).unwrap();
+    assert!(drain(&mut wire).is_empty(), "successful owners and terminal blanks stay cached");
+    wire::finish(wire, reader);
+}
+
+#[test]
+fn failed_owner_retries_stay_visible_and_respect_mode_and_row_identity() {
+    let (mut wire, reader) = wire::echo_wire();
+    let mut model = frame_tests::model();
+    model.height = 1;
+    model.detail.mode = Column::Owner;
+    prepare(&mut model, &mut wire).unwrap();
+    let sent = drain(&mut wire);
+    let stale = retry_answer(requests(&sent, "owner")[0]);
+    model.receive(stale.clone(), &mut wire).unwrap();
+    std::thread::sleep(RETRY_WAIT);
+    model.top = 1;
+    model.rows.get_mut(&1).unwrap().mode = 0;
+    prepare(&mut model, &mut wire).unwrap();
+    assert!(drain(&mut wire).is_empty(), "an offscreen failed owner requests nothing");
+    model.top = 0;
+    model.detail.mode = Column::Size;
+    prepare(&mut model, &mut wire).unwrap();
+    assert!(drain(&mut wire).is_empty(), "another detail mode requests no owner retries");
+    model.detail.mode = Column::Owner;
+    model.pending = Some("/next".into());
+    prepare(&mut model, &mut wire).unwrap();
+    assert!(drain(&mut wire).is_empty(), "navigation still gates owner work");
+    model.pending = None;
+    model.invalidate_rows();
+    model.rows.insert(0, frame_tests::entry("replacement", false, 1));
+    prepare(&mut model, &mut wire).unwrap();
+    let sent = drain(&mut wire);
+    let fresh = requests(&sent, "owner")[0];
+    model.receive(stale, &mut wire).unwrap();
+    prepare(&mut model, &mut wire).unwrap();
+    assert!(drain(&mut wire).is_empty(), "an old failure cannot spend the fresh pending request");
+    model.receive(answer(fresh, "replacement-owner"), &mut wire).unwrap();
+    assert_eq!(value(&model, 0, &model.rows[&0]), "replacement-owner");
+    wire::finish(wire, reader);
+}
+
 #[test]
 fn owners_are_serial_cached_and_bounded_to_visible_held_rows_at_100k() {
     let (mut wire, reader) = wire::echo_wire();
