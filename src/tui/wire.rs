@@ -185,10 +185,13 @@ mod tests {
         wire.wake = Some(wake);
         wire.drain_wake();
         assert!(wire.wake_fd() >= 0, "an open wake stays polled after its bytes are read");
-        // The reader thread's end goes away with it; a closed socket would poll ready on every call from then on.
+        // A concurrent fork can retain the socket even with CLOEXEC; shutdown makes closure independent of that copy.
+        let inherited = ring.try_clone().unwrap();
+        ring.shutdown(std::net::Shutdown::Write).unwrap();
         drop(ring);
         wire.drain_wake();
         assert_eq!(wire.wake_fd(), -1);
+        drop(inherited);
         drop(wire);
         reader.join().unwrap();
     }
