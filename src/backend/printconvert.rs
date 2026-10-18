@@ -6,6 +6,7 @@ pub const IMAGE_FORMATS: &[&str] = &["jpg", "png", "webp", "avif", "heic", "tiff
 pub const PDF_FORMATS: &[&str] = &["png", "jpg", "webp", "tiff"];
 pub const COMBINE_FORMATS: &[&str] = &["png", "jpg", "webp"];
 pub const MAX_ITEMS: usize = 256;
+pub const MIN_ITEMS: usize = 1;
 
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind { Image, Pdf, Office, Text, Other }

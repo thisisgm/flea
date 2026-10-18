@@ -6,6 +6,7 @@ pub enum Pages {
 }
 
 pub const MAX_PAGES: u32 = 10_000;
+pub const MAX_RANGE_BYTES: usize = 1024;
 pub const RANGE_ERROR: &str = "Enter All or a page range such as 1-3, 5.";
 
 impl Pages {
@@ -14,7 +15,7 @@ impl Pages {
         if text.is_empty() || text.eq_ignore_ascii_case("all") {
             return Ok(Self::All);
         }
-        if text.len() > 1024 { return Err(RANGE_ERROR.into()); }
+        if text.len() > MAX_RANGE_BYTES { return Err(RANGE_ERROR.into()); }
         let number = |s: &str| -> Result<u32, String> {
             let s = s.trim();
             if s.is_empty() || !s.bytes().all(|b| b.is_ascii_digit()) { return Err(RANGE_ERROR.into()); }

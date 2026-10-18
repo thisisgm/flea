@@ -90,6 +90,7 @@ fn print(ask: Print, selection: Result<Option<Vec<super::menu_actions::Selected>
         if !list.iter().any(|d| d.name == ask.printer) { return Err(printing::NO_PRINTER.into()); }
         let caps = printing::capabilities(&query(&["lpoptions", "-p", &ask.printer, "-l"], &cancel)?);
         if ask.two_sided && !caps.duplex { return Err("This printer does not support two-sided printing.".into()); }
+        let mut refused = Vec::new();
         for (path, kind) in ask.paths.iter().zip(kinds) {
             let name = path.file_name().unwrap_or_default().to_string_lossy();
             let display = if ask.printer_name.is_empty() { &ask.printer } else { &ask.printer_name };
@@ -97,10 +98,12 @@ fn print(ask: Print, selection: Result<Option<Vec<super::menu_actions::Selected>
             message = match &result { Ok(()) => printing::receipt(&name, display), Err(reason) => printing::refusal(&name, reason) };
             let _ = tx.send(OpMsg::Meta { line: format!(r#"{{"t":"printed","id":{id},"requestId":{},"path":"{}","ok":{},"message":"{}"}}"#,
                 ask.request_id, escape(&path.to_string_lossy()), result.is_ok(), escape(&message)) });
-            result?;
-            sent += 1;
+            match result {
+                Ok(()) => sent += 1,
+                Err(_) => refused.push(message.clone()),
+            }
         }
-        Ok(())
+        if refused.is_empty() { Ok(()) } else { Err(refused.join("\n")) }
     })();
     let err = outcome.err().unwrap_or_default();
     if !err.is_empty() && sent == 0 && message.is_empty() {

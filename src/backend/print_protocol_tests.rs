@@ -10,6 +10,8 @@ const HELPER: &str = "backend::printreq::tests::print_protocol_helper";
 
 #[path = "print_real_tests.rs"]
 mod real;
+#[path = "print_advloop_tests.rs"]
+mod advloop;
 const STUB: &str = r#"#!/bin/sh
 set -eu
 root=${FLEA_PRINT_TEST_ROOT:?}
@@ -17,6 +19,10 @@ case "$root" in /*) test -f "$root/.flea-test-sandbox" ;; *) exit 98 ;; esac
 tool=${0##*/}
 printf '%s\0' "$tool" "$@" >> "$root/calls"
 printf '\n' >> "$root/calls"
+if test "$tool" = magick && test -f "$root/real-magick"; then
+ IFS= read -r program < "$root/real-magick"
+ exec "$program" "$@"
+fi
 case "$tool" in
  prlimit) while [ "${1#--}" != "$1" ]; do shift; done; exec "$@" ;;
  bwrap)
