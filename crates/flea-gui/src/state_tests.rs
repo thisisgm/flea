@@ -39,6 +39,8 @@ fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
     let mut lifecycle = Lifecycle::default();
     lifecycle.attach(0);
     Shell {
+        capture: crate::capture::Capture::default(),
+        visual: crate::visual::Visual::default(),
         path_labels: launch.paths.clone().map(SharedString::from),
         launch,
         locale: locale.clone(),
@@ -186,6 +188,9 @@ fn language_change_invalidates_shaped_rows_and_refreshes_snapshot_text(cx: &mut 
                 .get_or_prepare(0, &flea::protocol::RowFacts::default(), || {
                     let layout = Arc::new(gpui::LineLayout::default());
                     Prepared {
+                        label: String::new(),
+                        size_text: String::new(),
+                        date_text: String::new(),
                         name: gpui::GlyphRun::new(layout.clone()),
                         size: gpui::GlyphRun::new(layout.clone()),
                         date: gpui::GlyphRun::new(layout),
@@ -281,3 +286,6 @@ fn ipc_executor_is_cold_until_first_answer_and_then_serves_the_committed_pane(
         flea::ipc::wire::Reply::value("1000")
     );
 }
+
+#[path = "visual/state_tests.rs"]
+mod visual_tests;

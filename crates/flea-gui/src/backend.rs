@@ -31,6 +31,7 @@ pub struct Backend {
 }
 
 enum Control {
+    List { path: String, first: usize },
     Window { start: usize, count: usize },
     Quit,
     Eof,
@@ -146,6 +147,12 @@ impl Backend {
                     .and_then(|()| {
                         for control in receiver {
                             match control {
+                                Control::List { path, first } => Request::List {
+                                    path: &path,
+                                    first,
+                                    select: None,
+                                }
+                                .write_to(&mut input)?,
                                 Control::Window { start, count } => {
                                     Request::Window { start, count }.write_to(&mut input)?
                                 }
@@ -183,6 +190,12 @@ impl Backend {
             replies,
             drained,
         })
+    }
+
+    pub fn list(&self, path: String, first: usize) -> Result<(), Failure> {
+        self.requests
+            .send(Control::List { path, first })
+            .map_err(|_| failure("window.backend_stopped", ""))
     }
 
     pub fn window(&self, start: usize, count: usize) -> Result<(), Failure> {

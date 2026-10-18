@@ -5,19 +5,25 @@ use std::rc::Rc;
 
 impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.capture.report(window, cx);
         let geometry = self.geometry(window);
+        let background = crate::list::Palette::inherited(&window.text_style()).background;
         let viewport = self.seam.viewport();
         let height = viewport.map_or_else(
             || geometry.rows_height(self.view == View::Dual, self.slots.strip_height),
             |viewport| f32::from(viewport.height),
         );
         let mut panes: [Option<AnyElement>; 2] = [None, None];
+        let marks = self.visual_marks();
         for (side, host) in self.panes.iter_mut().enumerate() {
             let Some(host) = host else { continue };
             if side == 1 && self.view != View::Dual {
                 continue;
             }
             host.pane.set_height(height);
+            if let (Some((cursor, selection)), true) = (&marks, side == self.focus_side) {
+                crate::visual::apply_marks(host, *cursor, selection);
+            }
             self.seam.frame(&mut host.pane, &host.list.borrow(), window);
             if !host.stopped {
                 if let (Some((start, count)), Some(backend)) =
@@ -46,9 +52,11 @@ impl Render for Shell {
                     .into_any_element(),
             );
         }
+        self.visual_frame(window, cx);
         if let Some(viewport) = viewport {
             return div()
                 .size_full()
+                .bg(background)
                 .track_focus(&self.focus)
                 .on_key_down(cx.listener(Self::key))
                 .on_scroll_wheel(cx.listener(Self::wheel))
@@ -68,11 +76,18 @@ impl Render for Shell {
             &geometry,
             &self.slots,
             panes,
-            paths,
-            status,
-            &self.labels,
+            composition::Content {
+                paths,
+                status,
+                labels: &self.labels,
+            },
             self.view == View::Dual,
+            self.visual
+                .pending
+                .as_ref()
+                .map(|_| self.visual.probe.clone()),
         )
+        .bg(background)
         .track_focus(&self.focus)
         .on_key_down(cx.listener(Self::key))
         .on_scroll_wheel(cx.listener(Self::wheel))

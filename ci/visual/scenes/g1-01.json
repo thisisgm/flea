@@ -1,0 +1,225 @@
+{
+  "version": 1,
+  "scenes": [
+    {
+      "id": "g1-01-columns-r0",
+      "unit": "G1.01",
+      "board": "columns",
+      "reference": "cols-cursorfull-1100x700",
+      "reference_tag": "f21789e5",
+      "fixture": "work",
+      "width": 1100,
+      "height": 700,
+      "text_size": 14,
+      "density": "compact",
+      "view": "columns",
+      "selection": [],
+      "cursor": 0,
+      "corner_radius": 0,
+      "reduced_motion": true,
+      "caret_blink": false,
+      "theme": "bench",
+      "decisions": [
+        "columns-name"
+      ],
+      "changes": [
+        "columns",
+        "recipes"
+      ],
+      "covers": [
+        "board:columns"
+      ]
+    },
+    {
+      "id": "g1-01-columns-r8",
+      "unit": "G1.01",
+      "board": "columns",
+      "reference": "cols-cursorfull-1100x700",
+      "reference_tag": "f21789e5",
+      "fixture": "work",
+      "width": 1100,
+      "height": 700,
+      "text_size": 14,
+      "density": "compact",
+      "view": "columns",
+      "selection": [],
+      "cursor": 0,
+      "corner_radius": 8,
+      "reduced_motion": true,
+      "caret_blink": false,
+      "theme": "bench",
+      "decisions": [
+        "columns-name"
+      ],
+      "changes": [
+        "columns",
+        "recipes"
+      ],
+      "covers": [
+        "board:columns"
+      ]
+    },
+    {
+      "id": "g1-01-list-r0",
+      "unit": "G1.01",
+      "board": "list",
+      "reference": "list-populated-1100x700",
+      "reference_tag": "f21789e5",
+      "fixture": "work",
+      "width": 1100,
+      "height": 700,
+      "text_size": 14,
+      "density": "compact",
+      "view": "list",
+      "selection": [],
+      "cursor": 0,
+      "corner_radius": 0,
+      "reduced_motion": true,
+      "caret_blink": false,
+      "theme": "bench",
+      "decisions": [],
+      "changes": [
+        "list",
+        "recipes"
+      ],
+      "covers": [
+        "board:list"
+      ]
+    },
+    {
+      "id": "g1-01-list-r8",
+      "unit": "G1.01",
+      "board": "list",
+      "reference": "list-populated-1100x700",
+      "reference_tag": "f21789e5",
+      "fixture": "work",
+      "width": 1100,
+      "height": 700,
+      "text_size": 14,
+      "density": "compact",
+      "view": "list",
+      "selection": [],
+      "cursor": 0,
+      "corner_radius": 8,
+      "reduced_motion": true,
+      "caret_blink": false,
+      "theme": "bench",
+      "decisions": [],
+      "changes": [
+        "list",
+        "recipes"
+      ],
+      "covers": [
+        "board:list"
+      ]
+    },
+    {
+      "id": "g1-01-grid-r0",
+      "unit": "G1.01",
+      "board": "grid",
+      "reference": "grid-populated-1100x700",
+      "reference_tag": "f21789e5",
+      "fixture": "work",
+      "width": 1100,
+      "height": 700,
+      "text_size": 14,
+      "density": "compact",
+      "view": "grid",
+      "selection": [],
+      "cursor": 0,
+      "corner_radius": 0,
+      "reduced_motion": true,
+      "caret_blink": false,
+      "theme": "bench",
+      "decisions": [],
+      "changes": [
+        "grid",
+        "recipes"
+      ],
+      "covers": [
+        "board:grid"
+      ]
+    },
+    {
+      "id": "g1-01-grid-r8",
+      "unit": "G1.01",
+      "board": "grid",
+      "reference": "grid-populated-1100x700",
+      "reference_tag": "f21789e5",
+      "fixture": "work",
+      "width": 1100,
+      "height": 700,
+      "text_size": 14,
+      "density": "compact",
+      "view": "grid",
+      "selection": [],
+      "cursor": 0,
+      "corner_radius": 8,
+      "reduced_motion": true,
+      "caret_blink": false,
+      "theme": "bench",
+      "decisions": [],
+      "changes": [
+        "grid",
+        "recipes"
+      ],
+      "covers": [
+        "board:grid"
+      ]
+    },
+    {
+      "id": "g1-01-dual-r0",
+      "unit": "G1.01",
+      "board": "dual",
+      "reference": "dual-populated-1100x700",
+      "reference_tag": "f21789e5",
+      "fixture": "work",
+      "width": 1100,
+      "height": 700,
+      "text_size": 14,
+      "density": "compact",
+      "view": "dual",
+      "selection": [],
+      "cursor": 0,
+      "corner_radius": 0,
+      "reduced_motion": true,
+      "caret_blink": false,
+      "theme": "bench",
+      "decisions": [],
+      "changes": [
+        "dual",
+        "recipes"
+      ],
+      "covers": [
+        "board:dual"
+      ]
+    },
+    {
+      "id": "g1-01-dual-r8",
+      "unit": "G1.01",
+      "board": "dual",
+      "reference": "dual-populated-1100x700",
+      "reference_tag": "f21789e5",
+      "fixture": "work",
+      "width": 1100,
+      "height": 700,
+      "text_size": 14,
+      "density": "compact",
+      "view": "dual",
+      "selection": [],
+      "cursor": 0,
+      "corner_radius": 8,
+      "reduced_motion": true,
+      "caret_blink": false,
+      "theme": "bench",
+      "decisions": [],
+      "changes": [
+        "dual",
+        "recipes"
+      ],
+      "covers": [
+        "board:dual"
+      ]
+    }
+  ]
+}

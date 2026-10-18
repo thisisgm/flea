@@ -1,8 +1,8 @@
 //! The list pane: one custom Element paints the visible rows from prepared lines, with no layout node per row.
 #[cfg(test)]
 mod bench;
-pub mod pane;
 mod locale;
+pub mod pane;
 pub mod seam;
 #[cfg(test)]
 mod tests;
@@ -22,13 +22,13 @@ use pane::{Held, ROW_HEIGHT};
 use std::{cell::RefCell, rc::Rc};
 
 // Board list.html: 14 padding, a 23 mark slot and 9 gap, a 17 mark, Size 70, Modified 134, a 28 end, a 2 edge.
-const PAD_X: f32 = 14.;
-const MARK_SLOT: f32 = 23.;
-const MARK: f32 = 17.;
-const LABEL_X: f32 = PAD_X + MARK_SLOT + 9.;
-const SIZE_W: f32 = 70.;
-const DATE_W: f32 = 134.;
-const END_W: f32 = 28.;
+pub(crate) const PAD_X: f32 = 14.;
+pub(crate) const MARK_SLOT: f32 = 23.;
+pub(crate) const MARK: f32 = 17.;
+pub(crate) const LABEL_X: f32 = PAD_X + MARK_SLOT + 9.;
+pub(crate) const SIZE_W: f32 = 70.;
+pub(crate) const DATE_W: f32 = 134.;
+pub(crate) const END_W: f32 = 28.;
 const EDGE_W: f32 = 2.;
 const CURSOR_WASH: f32 = 0.18;
 // Rows kept shaped past the viewport, so a short scroll back reshapes nothing.
@@ -98,7 +98,10 @@ pub struct ListState {
     pub typeface: Typeface,
     pub rows: RowCache,
     advance: Option<Pixels>,
-    visible: Vec<(usize, Option<Rc<Prepared>>)>,
+    pub(crate) visible: Vec<(usize, Option<Rc<Prepared>>)>,
+    pub(crate) probe: Option<crate::visual::Probe>,
+    // The cursor the last prepaint laid out, the one a presented frame drew.
+    pub(crate) drawn_cursor: Option<usize>,
 }
 
 impl ListState {
@@ -108,6 +111,8 @@ impl ListState {
             rows: RowCache::default(),
             advance: None,
             visible: Vec::new(),
+            probe: None,
+            drawn_cursor: None,
         }
     }
 
@@ -134,7 +139,12 @@ pub struct ListElement {
 }
 
 impl ListElement {
-    pub fn new(held: Rc<Held>, scroll_y: f32, cursor: usize, state: Rc<RefCell<ListState>>) -> Self {
+    pub fn new(
+        held: Rc<Held>,
+        scroll_y: f32,
+        cursor: usize,
+        state: Rc<RefCell<ListState>>,
+    ) -> Self {
         Self {
             held,
             scroll_y,
@@ -159,20 +169,54 @@ fn prepare(facts: &RowFacts, shaping: &Shaping, window: &Window) -> Prepared {
         GlyphRun::new(text.layout_line(value, size, &[run], None))
     };
     let name = row::decorated_name(facts);
+    let label = row::middle_elide(&name, shaping.name_cells).into_owned();
+    let size_text = row::size_text(facts);
+    let date_text = row::format_date(facts.mtime);
     Prepared {
-        name: line(&row::middle_elide(&name, shaping.name_cells), shaping.body),
-        size: line(&row::size_text(facts), shaping.caption),
-        date: line(&row::format_date(facts.mtime), shaping.caption),
+        name: line(&label, shaping.body),
+        size: line(&size_text, shaping.caption),
+        date: line(&date_text, shaping.caption),
+        label,
+        size_text,
+        date_text,
         mark: row::marks::Mark::for_row(&facts.icon, facts.mode),
         ink: row::name_ink(facts),
     }
 }
 
 /// Paints a prepared line from the tiles its glyph run kept, so a row already seen costs no lookup per glyph.
-fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
+pub(crate) fn line_bounds(
+    run: &GlyphRun,
+    x: Pixels,
+    top: Pixels,
+    window: &Window,
+) -> Bounds<Pixels> {
     let line = run.line();
-    let baseline = window.pixel_snap(top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
-    let _ = window.paint_glyph_run(point(x, baseline), run, color);
+    let baseline =
+        window.pixel_snap(top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
+    Bounds::new(
+        point(x, baseline - line.ascent),
+        size(line.width, line.ascent + line.descent),
+    )
+}
+
+pub(crate) fn mark_bounds(left: Pixels, top: Pixels) -> Bounds<Pixels> {
+    Bounds::new(
+        point(
+            left + px(PAD_X + (MARK_SLOT - MARK) / 2.),
+            top + px((ROW_HEIGHT - MARK) / 2.),
+        ),
+        size(px(MARK), px(MARK)),
+    )
+}
+
+fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
+    let bounds = line_bounds(run, x, top, window);
+    let _ = window.paint_glyph_run(
+        point(bounds.origin.x, bounds.origin.y + run.line().ascent),
+        run,
+        color,
+    );
 }
 
 impl IntoElement for ListElement {
@@ -217,6 +261,7 @@ impl Element for ListElement {
         _: &mut App,
     ) -> Palette {
         let mut state = self.state.borrow_mut();
+        state.drawn_cursor = Some(self.cursor);
         let advance = state.body_advance(window);
         let name_width = bounds.size.width - px(LABEL_X + SIZE_W + DATE_W + END_W);
         let shaping = Shaping {
@@ -234,12 +279,12 @@ impl Element for ListElement {
         rows.begin(&shaping, pane::visible_rows(height) * CACHE_SCREENS);
         visible.clear();
         for index in first..last.max(first) {
-            let prepared = self
-                .held
-                .row(index)
-                .map(|facts| rows.get_or_prepare(index, facts, || prepare(facts, &shaping, window)));
+            let prepared = self.held.row(index).map(|facts| {
+                rows.get_or_prepare(index, facts, || prepare(facts, &shaping, window))
+            });
             visible.push((index, prepared));
         }
+        crate::visual::geometry::rows(&state, bounds, self.scroll_y, window);
         Palette::inherited(&window.text_style())
     }
 
@@ -280,25 +325,42 @@ impl Element for ListElement {
                     let Some(prepared) = prepared else { continue };
                     let lifted = *index == self.cursor;
                     let top = top_of(*index);
-                    let mark_at = point(
-                        left + px(PAD_X + (MARK_SLOT - MARK) / 2.),
-                        top + px((ROW_HEIGHT - MARK) / 2.),
-                    );
+                    let mark = mark_bounds(left, top);
                     let (key, data) = prepared.mark.svg();
-                    let mark_ink = if lifted { palette.foreground } else { palette.metadata_frame };
+                    let mark_ink = if lifted {
+                        palette.foreground
+                    } else {
+                        palette.metadata_frame
+                    };
                     let _ = window.paint_svg(
-                        Bounds::new(mark_at, size(px(MARK), px(MARK))),
+                        mark,
                         key,
                         Some(data),
                         TransformationMatrix::unit(),
                         mark_ink,
                         cx,
                     );
-                    let meta = if lifted { palette.foreground } else { palette.metadata };
+                    let meta = if lifted {
+                        palette.foreground
+                    } else {
+                        palette.metadata
+                    };
                     let size_right = right - px(END_W + DATE_W);
-                    paint_line(&prepared.size, size_right - prepared.size.line().width, top, meta, window);
+                    paint_line(
+                        &prepared.size,
+                        size_right - prepared.size.line().width,
+                        top,
+                        meta,
+                        window,
+                    );
                     let date_right = right - px(END_W);
-                    paint_line(&prepared.date, date_right - prepared.date.line().width, top, meta, window);
+                    paint_line(
+                        &prepared.date,
+                        date_right - prepared.date.line().width,
+                        top,
+                        meta,
+                        window,
+                    );
                 }
                 window.with_content_mask(Some(ContentMask { bounds: names }), |window| {
                     for (index, prepared) in &state.visible {
