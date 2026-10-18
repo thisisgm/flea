@@ -1,6 +1,6 @@
 // The extraction-only runner samples progress while preserving the archive jail and cancellation drain.
 use super::archivepass::{Prompt, SevenFailure};
-use super::archivework::{cancel_failure, failure_message, tool_note, Work, DELAYED_ERRORS, SANDBOX_MISSING};
+use super::archivework::{before_trailer, cancel_failure, failure_message, tool_note, Work, SANDBOX_MISSING};
 use super::extractprogress::Progress;
 use super::opsreq::{op_err, OpMsg};
 use super::{jail, sandbox};
@@ -217,7 +217,7 @@ fn complete_line(bytes: &[u8], progress: Option<Observation<'_>>, diagnostics: &
     }
     match line.strip_prefix(TOOL_PREFIX).filter(|_| bsdtar) {
         // The trailer is kept only as the last line.
-        Some(DELAYED_ERRORS) => {}
+        Some(own) if before_trailer(own) == Some("") => {}
         Some(own) => {
             let note = tool_note(own);
             if diagnostics.tool.is_empty() || !note && !diagnostics.diagnosed {
@@ -341,6 +341,28 @@ mod tests {
         assert_eq!(answers, causes);
     }
 
+    // libarchive 3.8 prints the trailer without its period and adds a detail to the damage line; neither spelling of the trailer ever answers.
+    #[test]
+    fn the_delayed_error_trailer_never_answers_with_or_without_its_period() {
+        let status = std::process::ExitStatus::from_raw(256);
+        let cases = [
+            ("bsdtar: Ignoring malformed pax extended attribute\nx a/b: Can't create 'a/b': Not a directory\nx lastfile\n", "a/b: Can't create 'a/b': Not a directory"),
+            ("bsdtar: Ignoring malformed pax attributes: malformed attribute size field\nx a\nbsdtar: Damaged tar archive (bad header checksum)\nbsdtar: Retrying...\n", "bsdtar: Damaged tar archive (bad header checksum)"),
+            ("bsdtar: Ignoring malformed pax extended attributes\nbsdtar: Retrying...\n", "bsdtar: Ignoring malformed pax extended attributes"),
+        ];
+        for trailer in ["bsdtar: Error exit delayed from previous errors.", "bsdtar: Error exit delayed from previous errors"] {
+            for (lines, cause) in cases {
+                let progress = Mutex::new(Progress::new(Index::default(), false));
+                let stderr = format!("{lines}{trailer}\n");
+                let text = read(stderr.as_bytes(), Some((&progress, Path::new("/nonexistent"), false)));
+                assert_eq!(failure_message("archive", &status, &text), cause, "{stderr}");
+            }
+            // A tool run without -v hands its stderr to failure_message unread.
+            let plain = format!("bsdtar: Ignoring malformed pax extended attributes\nblocked/child: Could not stat blocked/child: Not a directory\n{trailer}");
+            assert_eq!(failure_message("archive", &status, &plain), "blocked/child: Could not stat blocked/child: Not a directory", "{plain}");
+        }
+    }
+
     // Real bsdtar -v -x over a USTAR tar that opens with a malformed pax header and whose bytes `d` the Python line `damage` edits; returns stderr and the reply.
     fn real_bsdtar(tag: &str, names: &str, damage: &str) -> (String, String) {
         let root = TestDir::new(tag);
@@ -360,8 +382,8 @@ mod tests {
     // The acceptance case: real bsdtar warns, reports the member error mid-stream and ends on its generic trailer.
     #[test]
     fn a_real_bsdtar_member_error_survives_the_delayed_error_trailer() {
-        let (_, message) = real_bsdtar("extractmembererror", "('blocked', 'blocked/child', 'lastfile')", "pass");
-        assert!(message.starts_with("blocked/child: ") && message.contains("Not a directory"), "{message}");
+        let (stderr, message) = real_bsdtar("extractmembererror", "('blocked', 'blocked/child', 'lastfile')", "pass");
+        assert!(message.starts_with("blocked/child: ") && message.contains("Not a directory"), "{message}\n{stderr}");
     }
 
     // A damaged header is an archive-level error, so bsdtar gives it the same prefix as its warnings, and it still answers.
@@ -369,6 +391,7 @@ mod tests {
     fn a_real_bsdtar_damaged_archive_answers_over_its_warning() {
         let (stderr, message) = real_bsdtar("extractdamaged", "('a', 'b')", "assert d[2048:2049]==b'b';d[2196:2204]=b'9999999\\0'");
         assert!(stderr.contains("bsdtar: Retrying..."), "{stderr}");
-        assert_eq!(message, "bsdtar: Damaged tar archive", "{stderr}");
+        // libarchive 3.8 appends the reason, as in "(bad header checksum)"; the trailer is never the answer.
+        assert!(message == "bsdtar: Damaged tar archive" || message.starts_with("bsdtar: Damaged tar archive ("), "{message}\n{stderr}");
     }
 }

@@ -117,7 +117,7 @@ impl Drop for Work {
 
 #[path = "archivefailure.rs"]
 mod failure;
-pub(crate) use failure::{failure_message, tool_note, DELAYED_ERRORS};
+pub(crate) use failure::{before_trailer, failure_message, tool_note};
 
 // A writer past the kill can still hold stderr open; true means its EOF arrived in bound.
 fn drain_reader(reader: std::thread::JoinHandle<String>) -> bool {
