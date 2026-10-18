@@ -42,8 +42,6 @@ ShellRoot {
     readonly property int frameSlack: 4
     readonly property int frameSlackDual: 8
     readonly property int readsPerBump: 5
-    // The far columns case read 209 to 211 row fields before its rename across logged runs, so that case alone gets this beside its selection bumps.
-    readonly property int readsSpread: 3
     // The views the positive control scrolls through, one at a time.
     readonly property var controlViews: ["list", "grid", "columns", "dual"]
     property int controlView: 0
@@ -70,9 +68,15 @@ ShellRoot {
     property int rowsReplies: 0
     property int inputs: 0
     property int cursorRowEvals: 0
+    property var warm: null
+    property int rests: 0
+    property int plans: 0
+    property int backgroundReads: 0
     // Per case: the rows replies it saw, the fields they armed on arrival, and the fields still unarmed in the pane one turn after a reply (the handler arms the reply's rows, not the pane's).
     property var replyLog: []
     property int escapeChecked: 0
+    property bool warmStarted: false
+    property bool advancing: false
     // Field reads of held rows, in an object never reassigned: a getter that wrote a property would loop every binding that reads a row.
     readonly property var tally: ({ rowReads: 0 })
 
@@ -83,7 +87,7 @@ ShellRoot {
             console.log("RENAMECOST FAIL " + label)
         }
     }
-    function ready() { return !pane.listInFlight && pane.path === fixture && pane.listingState === "ready" }
+    function ready() { return !pane.listInFlight && pane.path === fixture && pane.listingState === "ready" && pane.storageKnown }
     function settled() {
         return root.ready() && pane.renamingIndex < 0 && !pane.renamePending && pane.wire.anchor === null
     }
@@ -109,6 +113,7 @@ ShellRoot {
             if (o.running === true && o.interval !== undefined && o.triggeredOnStart !== undefined) out.timers++
             if (o.running === true && o.loops !== undefined && o.alwaysRunToEnd !== undefined) out.animations++
             if (typeof o.queueDeparture === "function" && typeof o.ownsEdit === "function") out.editors++
+            if (o.unitWarmMs !== undefined) root.warm = o
             var kids = o.children !== undefined ? o.children : []
             for (var i = 0; i < kids.length; i++) stack.push(kids[i])
             var res = o.resources !== undefined ? o.resources : []
@@ -133,10 +138,25 @@ ShellRoot {
         root.inputs = 0
         root.cursorRowEvals = 0
         root.tally.rowReads = 0
+        root.rests = 0
+        root.plans = 0
+        root.backgroundReads = 0
     }
     function counters() {
         return { frames: root.frames, selection: root.selectionBumps, rows: root.rowsReplies, inputs: root.inputs,
-                 cursorRow: root.cursorRowEvals, rowReads: root.tally.rowReads }
+                 cursorRow: root.cursorRowEvals, rowReads: root.tally.rowReads,
+                 rests: root.rests, plans: root.plans, background: root.backgroundReads }
+    }
+    // With thumbnails off and an empty cache, the settle planner reads only each held visible row's t field.
+    function plannedReads() {
+        var area = pane.viewMode === "columns" ? pane.columnsArea.activeColumn() : pane.listArea
+        var range = area.visibleRange()
+        var reads = 0
+        for (var i = range.first; i <= range.last; i++) {
+            var row = pane.rowFor(i)
+            if (row && Object.getOwnPropertyDescriptor(row, "t") !== undefined) reads++
+        }
+        return reads
     }
     // rowFor is a QML method and cannot be wrapped, so every field a held row gives out is counted instead; a rows reply arms its rows on arrival, snapshots arm the rest.
     function armRows() {
@@ -235,7 +255,8 @@ ShellRoot {
         }
         var head = root.stepLog[0]
         var steps = root.stepLog.slice(1)
-        var sum = { frames: 0, selection: 0, rows: 0, inputs: 0, cursorRow: 0, rowReads: 0, built: 0, destroyed: 0, rebound: 0 }
+        var sum = { frames: 0, selection: 0, rows: 0, inputs: 0, cursorRow: 0, rowReads: 0, built: 0, destroyed: 0, rebound: 0,
+                    rests: 0, plans: 0, background: 0 }
         var missed = 0
         for (var k = 0; k < steps.length; k++) {
             for (var name in sum) sum[name] += steps[k][name]
@@ -257,6 +278,13 @@ ShellRoot {
             if (Flea.ViewState.state.view !== c.view) { pane.chooseView(c.view); return false }
             if (!root.ready()) return false
             pane.listArea.forceActiveFocus()
+            // The first cursor key lazily builds Quick Look; both measured phases need those same readers.
+            if (!root.warmStarted) {
+                pane.setCursor(1)
+                root.press({ key: Qt.Key_Down })
+                root.warmStarted = true
+            }
+            if (body.quickLook === null) return false
             pane.clearSelection()
             // A row outside the held window reads as missing, so the cursor goes home until the window holds it.
             if (c.far && !pane.rowFor(pane.total - 1)) { pane.setCursor(pane.total - 1); return false }
@@ -348,7 +376,8 @@ ShellRoot {
         var seen = root.counters()
         root.line(tag, { delta: delta, seen: seen })
         root.check(delta.rebound + delta.built > 0, tag + " a " + root.controlJump + " row jump rebound or built no delegate")
-        root.check(seen.rowReads > 0, tag + " a " + root.controlJump + " row jump read no held row")
+        root.check(seen.rowReads > seen.background, tag + " a " + root.controlJump + " row jump read no held row outside the idle work")
+        root.check(seen.rests > 0 && seen.plans > 0, tag + " did not count both background producers")
         root.check(seen.cursorRow > 0, tag + " a " + root.controlJump + " row jump left the cursor row alone")
         root.waitTicks = 0
         root.stage = 0
@@ -390,10 +419,10 @@ ShellRoot {
         for (var n = 0; n < costs.length; n++)
             root.check(b.keys[costs[n]] <= a.keys[costs[n]], tag + " " + costs[n] + " over " + root.keys.length + " keys " + a.keys[costs[n]] + " before, " + b.keys[costs[n]] + " after")
         root.check(b.keys.frames <= a.keys.frames + (c.view === "dual" ? root.frameSlackDual : root.frameSlack), tag + " frames over " + root.keys.length + " keys " + a.keys.frames + " before, " + b.keys.frames + " after")
-        // Each bump of the landed row's selection makes the status strip total that one row in five field reads; an Escape end bumps nothing, so its row reads get no selection allowance.
+        // Selection costs five reads per bump; subtract only the observed rest and viewport-planner work from both phases.
         var escape = c.end === Qt.Key_Escape
-        var spread = c.view === "columns" && c.far === true ? root.readsSpread : 0
-        root.check(b.keys.rowReads <= a.keys.rowReads + (escape ? 0 : root.readsPerBump * b.keys.selection + spread), tag + " row field reads over " + root.keys.length + " keys " + a.keys.rowReads + " before, " + b.keys.rowReads + " after, " + b.keys.selection + " selection bumps")
+        root.check(a.keys.background <= a.keys.rowReads && b.keys.background <= b.keys.rowReads, tag + " background budget exceeded measured reads")
+        root.check(b.keys.rowReads - b.keys.background <= a.keys.rowReads - a.keys.background + (escape ? 0 : root.readsPerBump * b.keys.selection), tag + " row field reads over " + root.keys.length + " keys " + a.keys.rowReads + " before, " + b.keys.rowReads + " after, " + b.keys.selection + " selection bumps, background " + a.keys.background + " before, " + b.keys.background + " after")
         if (escape) {
             root.escapeChecked++
             root.check(a.keys.selection === 0, tag + " selection bumps " + a.keys.selection + " before an Escape rename over " + root.keys.length + " keys")
@@ -442,6 +471,20 @@ ShellRoot {
         function onInputAtChanged() { root.inputs++ }
     }
     Connections {
+        target: root.warm ? root.warm.prepare : null
+        // The fixture holds local text files: readsInline reads d and n once when this rest fires.
+        function onRestedChanged() { if (root.warm.prepare.rested) { root.rests++; root.backgroundReads += 2 } }
+    }
+    Connections {
+        target: root.pane ? root.pane.listArea : null
+        function onThumbsApplied(work) {
+            root.check(Flea.ViewState.thumbnailMode === "off" && Object.keys(pane.thumbState.file).length === 0
+                && work.ask.length === 0 && work.drop.length === 0, "background planner left the empty thumbnails-off fixture")
+            root.plans++
+            root.backgroundReads += root.plannedReads()
+        }
+    }
+    Connections {
         target: root.pane ? root.pane.backend : null
         // This handler runs before the pane's own takeRows, so it arms the reply's own row objects, which the pane then holds.
         function onRows(start, items) {
@@ -460,23 +503,28 @@ ShellRoot {
         running: true
         repeat: true
         onTriggered: {
-            if (root.caseIndex >= root.cases.length) {
-                root.report()
-                return
-            }
-            var before = root.stage
-            if (root.advance() === true) {
-                root.stageTicks = 0
-                return
-            }
-            root.stageTicks++
-            if (root.stageTicks > root.stallTicks) {
-                root.failures.push("stage " + before + " of case " + root.caseIndex + " never completed")
-                console.log("RENAMECOST FAIL stalled at stage " + before + " case " + root.caseIndex + " index=" + pane.renamingIndex
-                    + " pending=" + pane.renamePending + " anchor=" + (pane.wire.anchor !== null) + " cursor=" + pane.cursorIndex
-                    + " view=" + Flea.ViewState.state.view + " ready=" + root.ready() + " row=" + (pane.rowFor(pane.cursorIndex) ? pane.rowFor(pane.cursorIndex).n : "none"))
-                root.report()
-            }
+            // TestEvent pumps events while injecting keys, so a late tick must not inject the same step twice.
+            if (root.advancing) return
+            root.advancing = true
+            try {
+                if (root.caseIndex >= root.cases.length) {
+                    root.report()
+                    return
+                }
+                var before = root.stage
+                if (root.advance() === true) {
+                    root.stageTicks = 0
+                    return
+                }
+                root.stageTicks++
+                if (root.stageTicks > root.stallTicks) {
+                    root.failures.push("stage " + before + " of case " + root.caseIndex + " never completed")
+                    console.log("RENAMECOST FAIL stalled at stage " + before + " case " + root.caseIndex + " index=" + pane.renamingIndex
+                        + " pending=" + pane.renamePending + " anchor=" + (pane.wire.anchor !== null) + " cursor=" + pane.cursorIndex
+                        + " view=" + Flea.ViewState.state.view + " ready=" + root.ready() + " row=" + (pane.rowFor(pane.cursorIndex) ? pane.rowFor(pane.cursorIndex).n : "none"))
+                    root.report()
+                }
+            } finally { root.advancing = false }
         }
     }
 }
