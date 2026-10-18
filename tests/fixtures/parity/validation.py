@@ -171,6 +171,16 @@ def validate(context):
     else:
         raise AssertionError('a shallow clone accepted a corrupted frozen manifest')
 
+    # A .git file that is no gitfile makes rev-parse exit 128 there; an empty .git directory would find the parent repo.
+    broken = root / 'broken-repo'
+    broken.mkdir()
+    (broken / '.git').write_text('not a git directory\n')
+    calls = []
+    looked_up = corpus['pinned_commit'](broken, lambda condition, label: calls.append((bool(condition), label)))
+    check(len(calls) == 1 and not calls[0][0] and 'Git could not look up the frozen commit' in calls[0][1]
+          and 'invalid gitfile format' in calls[0][1] and looked_up is False,
+          f'a broken repository fails the frozen commit lookup by name: {calls}')
+
     # Sample input: old-id\tnew-id\tsource\tcolumn\tsink\tsource-sha256 (TSV header).
     migration = list(csv.DictReader((fixture / 'case-id-migration.tsv').open(), delimiter='\t'))
     # Sample input: id\tsource followed by qml-test:tests/preview.qml:test_named\ttests/preview.qml:10 (TSV).

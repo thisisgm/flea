@@ -353,7 +353,8 @@ for name in ('empty-state', 'connections-style', 'drag-look235', 'figure-package
     check(next(row for row in real if row['id'] == f'suite:{name}')['qml-bound'] == 'yes',
           f'{finding}: real {name} remains QML-bound')
 frozen_rows = parse(run(tree_options(frozen_tree)))
-sink_counts, scanned, excluded = auditor['audit'](frozen_tree, frozen_rows, root / 'sink-sites.tsv')
+sink_report = root / 'sink-sites.tsv'
+sink_counts, scanned, excluded = auditor['audit'](frozen_tree, frozen_rows, sink_report)
 check(scanned == 533, f'g06-r5-1: every frozen QML/JS test is scanned: {scanned}')
 for form, (sites, represented) in sink_counts.items():
     check(sites > 0 and sites == represented, f'g06-r5-1: completeness for {form}: {sites}/{represented}')
@@ -383,21 +384,27 @@ overridden = run_neutral(options, {'FLEA_PARITY_DESIGN': str(root / 'absent-desi
 check(overridden.returncode == 0 and overridden.stdout == output, 'flags take precedence over environment paths')
 
 
-# No committed tools, tests, src or ci file names a home path or private ~/ tree; joined tokens keep this guard off itself.
+# Parity's own files and this run's outputs name no home path or private ~/ tree; joined tokens keep it off itself.
 HOME_TOKEN = '/ho' + 'me/'
 TILDE_TOKEN = '~' + '/'
 XDG_BASES = ('.config', '.cache', '.local')
 HOME_PATH = re.compile(re.escape(HOME_TOKEN) + r'[A-Za-z0-9_][A-Za-z0-9._-]*')
 TILDE_PATH = re.compile(re.escape(TILDE_TOKEN) + r'([A-Za-z0-9_.][A-Za-z0-9._-]*)')
+# What the parity tool owns: the tool, its default --map, this suite and its fixture tree.
+PARITY_SCOPE = ('tools/flea-parity', 'tools/flea-parity.map', 'tests/parity.sh', 'tests/fixtures/parity')
+# What this run wrote: the --out matrix and the completeness audit's sink report.
+PARITY_OUTPUTS = (saved.name, sink_report.name)
 
 
-def home_paths(tree):
+# Not read: .zip archives, *.manifest.md files, anything under __pycache__ and any file holding a NUL byte.
+def home_paths(tree, scope):
     scanned, found = 0, []
-    for name in ('tools', 'tests', 'src', 'ci'):
-        for path in sorted((tree / name).rglob('*') if (tree / name).is_dir() else []):
+    for name in scope:
+        top = tree / name
+        for path in [top] if top.is_file() else sorted(top.rglob('*')):
             relative = path.relative_to(tree).as_posix()
             if (not path.is_file() or path.suffix == '.zip' or '__pycache__' in path.parts
-                    or relative.startswith('docs/bench/') or relative.endswith('.manifest.md')):
+                    or relative.endswith('.manifest.md')):
                 continue
             data = path.read_bytes()
             if b'\0' in data:
@@ -411,20 +418,32 @@ def home_paths(tree):
 
 
 fixture_home = root / 'home-fixture'
-(fixture_home / 'tools').mkdir(parents=True)
-(fixture_home / 'tools/leak.sh').write_text(f'# sample {HOME_TOKEN}user/Work\ncd {TILDE_TOKEN}Work\n')
-(fixture_home / 'tools/clean.sh').write_text(f'# a bare /home word and {TILDE_TOKEN}.config are allowed\n')
-(fixture_home / 'tools/exempt.manifest.md').write_text(f'{HOME_TOKEN}user/Work\n')
-fixture_scanned, fixture_found = home_paths(fixture_home)
-check(fixture_scanned == 2 and [(path, number) for path, number, _ in fixture_found] == [('tools/leak.sh', 1), ('tools/leak.sh', 2)],
+owned = fixture_home / 'tests/fixtures/parity'
+owned.mkdir(parents=True)
+(owned / 'leak.sh').write_text(f'# sample {HOME_TOKEN}user/Work\ncd {TILDE_TOKEN}Work\n')
+(owned / 'clean.sh').write_text(f'# a bare /home word and {TILDE_TOKEN}.config are allowed\n')
+(owned / 'exempt.manifest.md').write_text(f'{HOME_TOKEN}user/Work\n')
+(fixture_home / 'src').mkdir()
+(fixture_home / 'src/sample.rs').write_text(f'// sample input {HOME_TOKEN}user/Work\n')
+fixture_scanned, fixture_found = home_paths(fixture_home, PARITY_SCOPE)
+leak = 'tests/fixtures/parity/leak.sh'
+check(fixture_scanned == 2 and [(path, number) for path, number, _ in fixture_found] == [(leak, 1), (leak, 2)],
       f'the neutral guard is red on a fixture home path and names each line: {fixture_scanned} scanned, {fixture_found}')
+outside_scanned, outside_found = home_paths(fixture_home, ('src',))
+check(outside_scanned == 1 and [(path, number) for path, number, _ in outside_found] == [('src/sample.rs', 1)],
+      f'a home path outside the parity scope is a real hit the scoped guard does not count: {outside_found}')
 unassigned = sum(row['family'] == 'unassigned' for row in real)
 check(unassigned / len(real) < 0.05, f'real-tree unassigned fraction: {unassigned}/{len(real)}')
 runpy.run_path(str(fixture / 'validation.py'))['validate'](locals())
-tree_scanned, tree_found = home_paths(repo)
-for path, number, text in tree_found:
+check(all(home_paths(repo, (name,))[0] for name in PARITY_SCOPE) and
+      all(home_paths(root, (name,))[0] for name in PARITY_OUTPUTS),
+      f'every parity scope path and written output is present and scanned: {PARITY_SCOPE} {PARITY_OUTPUTS}')
+tree_scanned, tree_found = home_paths(repo, PARITY_SCOPE)
+output_scanned, output_found = home_paths(root, PARITY_OUTPUTS)
+for path, number, text in tree_found + output_found:
     print(f'neutral: {path}:{number}: {text[:160]}')
-check(tree_scanned > 1000 and not tree_found,
-      f'{len(tree_found)} committed lines hold an absolute home path or a private ~/ tree, listed above; {tree_scanned} files scanned')
+check(not tree_found and not output_found,
+      f'{len(tree_found) + len(output_found)} parity tool, suite, fixture, matrix or report lines hold an absolute '
+      f'home path or a private ~/ tree, listed above; {tree_scanned} owned files and {output_scanned} outputs scanned')
 print(f'parity: {checks} checks, 0 failed; fixture {len(rows)} rows; real {len(real)} rows; unassigned {unassigned}')
 PY
