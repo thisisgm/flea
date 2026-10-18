@@ -190,3 +190,55 @@ fn a_refused_sort_frees_its_count_so_the_next_sort_lands_at_its_own() {
     let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, count, named), listing: 2 }, now);
     assert_eq!(landed, Ok(true), "sort asked {count}");
 }
+
+fn window_count(nav: &mut Navigator) -> usize {
+    nav.take()
+        .iter()
+        .find_map(|command| match command {
+            Command::Window { count, .. } => Some(*count),
+            _ => None,
+        })
+        .unwrap()
+}
+
+// A remote window stat that times out answers an error naming window and the listed path, and no rows.
+#[test]
+fn a_sort_whose_window_failed_leaves_no_count_for_the_next_sort() {
+    let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let first = window_count(&mut nav);
+    let now = pane.now();
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    assert!(!pane.fail("window", "/f/base", "timed out", 0, now));
+    nav.after_failure(&mut pane, "window");
+    pane.set_height(900.);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let second = window_count(&mut nav);
+    assert_ne!(first, second, "the height change moved the count");
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, second, named), listing: 3 }, now);
+    assert_eq!(landed, Ok(true), "first sort asked {first}, second asked {second}");
+}
+
+#[test]
+fn a_failed_sort_window_leaves_each_later_sort_its_own_count() {
+    let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    window_count(&mut nav);
+    let now = pane.now();
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    assert!(!pane.fail("window", "/f/base", "timed out", 0, now));
+    nav.after_failure(&mut pane, "window");
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let second = window_count(&mut nav);
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, second, named), listing: 3 }, now);
+    assert_eq!(landed, Ok(true), "the second sort lands at an unchanged height");
+    nav.after_reply(&mut pane, "/f/base", &mut sel);
+    pane.set_height(900.);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let third = window_count(&mut nav);
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, third, named), listing: 4 }, now);
+    assert_eq!(landed, Ok(true), "second sort asked {second}, third asked {third}");
+}

@@ -141,6 +141,10 @@ impl Pane {
                 } else {
                     self.swap.unheld_total =
                         (path.is_empty() || path == self.path).then_some(total);
+                    // Each accepted sort answers one listed line, so its asked count becomes the unheld bound here.
+                    if let Some(first) = self.swap.sorts_out.pop_front() {
+                        self.swap.unheld_first = first;
+                    }
                 }
                 Ok(false)
             }
