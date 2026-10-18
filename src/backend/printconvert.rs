@@ -43,6 +43,7 @@ pub fn can_combine(kinds: &[Kind]) -> bool {
     kinds.len() >= 2 && kinds.iter().all(|kind| *kind == Kind::Image)
 }
 
+#[cfg(test)]
 pub fn print_label(count: usize) -> String {
     if count > 1 { format!("Print {count} Items…") } else { "Print…".into() }
 }

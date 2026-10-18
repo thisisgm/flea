@@ -16,7 +16,7 @@ fn print_review_round2_pdf_has_one_page_per_selected_image() {
     tool(&d, vec!["magick".into(), "--".into(), red.display().to_string(), "--".into(), blue.display().to_string(), tiff.display().to_string()]);
     assert_eq!(image_pages(&d, &tiff), 2);
     let retained = d.join("retained.tiff");
-    tool(&d, convertbatch::image_argv(&[tiff.clone()], &retained, true));
+    tool(&d, convertbatch::image_argv(std::slice::from_ref(&tiff), &retained, true));
     assert_eq!(image_pages(&d, &retained), 2, "existing TIFF targets keep every frame");
     let mut counts = Vec::new();
     for (n, selected) in [vec![tiff.clone()], vec![tiff.clone(), green]].iter().enumerate() {
@@ -49,14 +49,14 @@ fn print_review_multipage_tiff_preserves_every_page() {
     tool(&d, crate::backend::convert::argv(&source, &legacy, true));
     assert_eq!(image_pages(&d, &legacy), 2, "the shipped converter preserves both pages");
     let output = d.join("converted.tiff");
-    tool(&d, convertbatch::image_argv(&[source.clone()], &output, true));
+    tool(&d, convertbatch::image_argv(std::slice::from_ref(&source), &output, true));
     assert_eq!(image_pages(&d, &output), 2, "Convert must preserve every TIFF page");
     let converted_pdf = d.join("converted.pdf");
-    tool(&d, convertbatch::image_argv(&[source.clone()], &converted_pdf, false));
+    tool(&d, convertbatch::image_argv(std::slice::from_ref(&source), &converted_pdf, false));
     let page_word = tool(&d, vec!["pdfinfo".into(), "--".into(), converted_pdf.display().to_string()]);
     assert!(page_word.lines().any(|line| line.strip_prefix("Pages:").is_some_and(|count| count.trim() == "1")), "PDF contributes one page for this selected TIFF");
     let png = d.join("fanout.png");
-    tool(&d, convertbatch::image_argv(&[source.clone()], &png, true));
+    tool(&d, convertbatch::image_argv(std::slice::from_ref(&source), &png, true));
     let destination = d.join("two-pages (converted).png");
     let pages = convertbatch::image_results(&png, &destination, &source).unwrap();
     assert_eq!(pages.len(), 2, "single-page targets publish every page");
