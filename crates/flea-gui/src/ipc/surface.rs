@@ -11,8 +11,16 @@ pub struct Surface<'a> {
     pub selected: &'a [usize],
 }
 
+pub trait Adapter {
+    fn call(&self, function: &str, arguments: &[String]) -> Option<Reply>;
+}
+
 impl Surface<'_> {
     pub fn dispatch(&self, request: Request) -> Answer {
+        self.dispatch_to(request, &[])
+    }
+
+    pub fn dispatch_to(&self, request: Request, adapters: &[&dyn Adapter]) -> Answer {
         let Request::Call {
             target,
             function,
@@ -28,14 +36,23 @@ impl Surface<'_> {
             Ok(function) => function,
             Err(reply) => return Answer { reply, quit: false },
         };
-        let reply = match (target.as_str(), function.name) {
-            (_, "version") => Reply::value(env!("CARGO_PKG_VERSION")),
-            (_, "quit") => Reply {
+        let adapted = (target == "flea")
+            .then(|| {
+                adapters
+                    .iter()
+                    .find_map(|adapter| adapter.call(function.name, &arguments))
+            })
+            .flatten();
+        let reply = match (adapted, target.as_str(), function.name) {
+            (Some(reply), _, _) => reply,
+            (_, _, "version") => Reply::value(env!("CARGO_PKG_VERSION")),
+            (_, _, "quit") => Reply {
                 code: 0,
                 stdout: String::new(),
                 stderr: String::new(),
             },
             (
+                _,
                 "flea",
                 "ready" | "path" | "total" | "cursor" | "selectionCount" | "selectedIndices",
             ) => {

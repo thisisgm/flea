@@ -84,7 +84,13 @@ fn real_backend_pipes_drain_on_quit_and_report_unexpected_eof() {
             match backend.replies.try_recv() {
                 Ok(Event::Drained) => break,
                 Ok(Event::Failed(error)) => failures.push(error.key),
-                Ok(Event::Reply(_)) | Err(async_channel::TryRecvError::Empty) => {
+                Ok(Event::Reply(_))
+                | Ok(Event::Refused { .. })
+                | Ok(Event::Session { .. })
+                | Ok(Event::Changed { .. })
+                | Ok(Event::Located(_))
+                | Ok(Event::Paths(_))
+                | Err(async_channel::TryRecvError::Empty) => {
                     std::thread::sleep(Duration::from_millis(5))
                 }
                 Err(error) => panic!("missing drain event: {error}"),
