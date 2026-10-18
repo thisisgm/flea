@@ -39,7 +39,7 @@ src/backend/opsdispatch.rs 2280
 src/backend/opsreq.rs 563
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
-src/backend/run.rs 1149
+src/backend/run.rs 1153
 src/backend/officepdf.rs 404
 src/backend/run_session_tests.rs 544
 src/backend/ops.rs 440
@@ -53,7 +53,7 @@ src/backend/undo_tests.rs 439
 src/backend/undoshare.rs 414
 src/backend/undoshare_tests.rs 563
 src/backend/collide_replace_tests.rs 492
-src/backend/proto.rs 488
+src/backend/proto.rs 494
 src/backend/sandbox.rs 401
 src/backend/thumbworker.rs 961
 src/backend/trashbrowse.rs 1025

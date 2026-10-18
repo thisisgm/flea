@@ -97,9 +97,10 @@ pub fn focused(m: &Model) -> bool {
         && m.editor.as_ref().map_or(true, |editor| matches!(editor.kind, "filter" | "search"))
 }
 pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
-    if m.total <= body || body == 0 || m.scrolled_at.map_or(true, |at| now.saturating_duration_since(at) >= Duration::from_millis(700)) { return None; }
-    let height = (body.saturating_mul(body) / m.total).max(1).min(body);
-    let top = m.top.min(m.total - body) * (body - height) / (m.total - body);
+    let (first, total) = super::filter::lane(m);
+    if total <= body || body == 0 || m.scrolled_at.map_or(true, |at| now.saturating_duration_since(at) >= Duration::from_millis(700)) { return None; }
+    let height = (body.saturating_mul(body) / total).max(1).min(body);
+    let top = first.min(total - body) * (body - height) / (total - body);
     Some((top, height))
 }
 pub fn small(columns: usize, lines: usize, theme: &Theme) -> String {
@@ -123,7 +124,7 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
     let help = if m.hints.keys.is_empty() { String::new() } else { format!("{} keys", m.hints.keys) };
     let disk = if m.disk_path == m.path && !m.disk_fs.is_empty() { format!("{} · {} free", m.disk_fs, super::render::bytes(m.disk_free)) } else { String::new() };
     let count = if !m.filter.is_empty() {
-        format!("Filter {}  {} of {} shown", m.filter, super::render::grouped(m.shown().len()), super::render::grouped(m.total))
+        format!("Filter {}  {} of {} shown", m.filter, super::render::grouped(m.filter_count()), super::render::grouped(m.total))
     } else if !m.selected.is_empty() {
         format!("{} of {} selected{}", super::render::grouped(m.selected.len()), super::render::grouped(m.total),
             selection_bytes(m).map(|bytes| format!(" · {}", super::render::bytes(bytes))).unwrap_or_default())

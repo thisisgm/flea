@@ -2,6 +2,7 @@ use crate::tui::{model::{Model, Row}, render, keymap::Map, theme::Theme};
 use crate::jsondoc::Json;
 use std::time::Duration;
 
+// Sample input: "\x1b[31mnote\x1b[0m".
 pub fn plain(text: &str) -> String {
     let mut chars = text.chars();
     let mut out = String::new();
@@ -12,6 +13,7 @@ pub fn plain(text: &str) -> String {
     }
     out
 }
+// Sample input: "\x1b[2;3Hnote\x1b[0m" at row 2, column 3.
 pub fn grid(text: &str, columns: usize, lines: usize) -> Vec<String> {
     let mut cells = vec![vec![String::from(" "); columns]; lines];
     let (mut x, mut y) = (0, 0);
@@ -304,4 +306,18 @@ fn review_t3_r1_non_text_bodies_scroll_without_moving_the_header() {
         assert_eq!(m.preview_scroll, 0);
     }
     wire::finish(wire, reader);
+}
+// Re-runs one test alone in a child with no controlling terminal, stdin from /dev/null and only the variables it sets; false inside that child.
+pub fn isolated_test(name: &str, extra: &[(&str, &str)]) -> bool {
+    if std::env::var_os("FLEA_TEST_ISOLATED_CHILD").is_some() { return false; }
+    let mut command = std::process::Command::new("setsid");
+    command.arg("-w").arg(std::env::current_exe().unwrap()).args(["--exact", name, "--nocapture", "--test-threads=1"])
+        .env_clear().env("PATH", "/usr/bin:/bin").env("LC_ALL", "C.UTF-8").env("FLEA_TEST_ISOLATED_CHILD", "1")
+        .stdin(std::process::Stdio::null());
+    for (key, value) in extra { command.env(key, value); }
+    let output = command.output().unwrap();
+    println!("{}{}", String::from_utf8_lossy(&output.stdout), String::from_utf8_lossy(&output.stderr));
+    assert!(output.status.success(), "isolated test {name}: {}", output.status);
+    assert!(String::from_utf8_lossy(&output.stdout).contains("test result: ok. 1 passed;"), "isolated test {name} ran no test");
+    true
 }

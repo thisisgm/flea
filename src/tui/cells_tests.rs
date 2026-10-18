@@ -50,3 +50,25 @@ fn t3_text_fallback_keeps_columns_and_only_filter_matches_are_bold() {
         }
     }
 }
+#[test]
+fn wide_symbol_width_in_c_locale() {
+    if crate::tui::render::frame_tests::isolated_test("tui::cells::tests::wide_symbol_width_in_c_locale", &[("LC_ALL", "C")]) { return; }
+    extern "C" { fn setlocale(category: i32, locale: *const std::ffi::c_char) -> *mut std::ffi::c_char; }
+    assert!(!unsafe { setlocale(0, c"".as_ptr()) }.is_null());
+    println!("C locale: wide symbol measured {} cells", width('\u{1f600}'));
+    assert_eq!(width('\u{1f600}'), 2);
+}
+#[test]
+fn wide_symbol_width_in_utf8_locale() {
+    if crate::tui::render::frame_tests::isolated_test("tui::cells::tests::wide_symbol_width_in_utf8_locale", &[]) { return; }
+    extern "C" { fn setlocale(category: i32, locale: *const std::ffi::c_char) -> *mut std::ffi::c_char; }
+    assert!(!unsafe { setlocale(0, c"".as_ptr()) }.is_null());
+    println!("UTF-8 locale: wide symbol measured {} cells", width('\u{1f600}'));
+    assert_eq!(width('\u{1f600}'), 2);
+}
+#[test]
+fn wrapping_keeps_wide_word_parts_separate() {
+    let lines = words("a議議", 4);
+    println!("wrapped lines: {lines:?}, widths: {:?}", lines.iter().map(|s| text_width(s)).collect::<Vec<_>>());
+    assert_eq!(lines, ["a議", "議"]);
+}

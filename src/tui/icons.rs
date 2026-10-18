@@ -66,38 +66,51 @@ impl Drop for Probe {
         if let Some(worker) = self.worker.take() { let _ = worker.join(); }
     }
 }
+const F_SETFL: i32 = 4;
+const SIGKILL: i32 = 9;
+const PROBE_BYTES: usize = 4096;
+const READ_BYTES: usize = 1024;
+const PROBE_DEADLINE: Duration = Duration::from_millis(150);
+const PROBE_POLL: Duration = Duration::from_millis(5);
+
+#[derive(Debug, PartialEq, Eq)]
+enum Stop { Failed, Refused, OutputLimit, Cancelled, Deadline }
+
 pub(super) fn output(command: &mut Command, cancel: &AtomicBool) -> Option<String> {
-    extern "C" { fn fcntl(fd: i32, command: i32, ...) -> i32; fn kill(pid: i32, signal: i32) -> i32; }
-    let mut child = command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().ok()?;
+    collect_output(command, cancel).ok()
+}
+fn collect_output(command: &mut Command, cancel: &AtomicBool) -> Result<String, Stop> {
+    extern "C" { fn fcntl(fd: i32, command: i32, ...) -> i32; }
+    let mut child = command.stdin(Stdio::null()).stdout(Stdio::piped()).stderr(Stdio::null()).process_group(0).spawn().map_err(|_| Stop::Failed)?;
     let mut pipe = child.stdout.take().unwrap();
-    let fd = pipe.as_raw_fd();
-    if unsafe { fcntl(fd, 4, 2048) } < 0 {
-        let _ = child.kill(); let _ = child.wait(); return None;
+    if unsafe { fcntl(pipe.as_raw_fd(), F_SETFL, crate::oflags::O_NONBLOCK) } < 0 {
+        let _ = crate::procsignal::signal_group(child.id() as i32, SIGKILL);
+        let _ = child.wait();
+        return Err(Stop::Failed);
     }
     let start = Instant::now();
     let mut bytes = Vec::new();
-    let result = loop {
-        let mut chunk = [0; 1024];
+    let outcome = loop {
+        let mut chunk = [0; READ_BYTES];
         match pipe.read(&mut chunk) {
             Ok(n) => bytes.extend_from_slice(&chunk[..n]),
             Err(e) if e.kind() == std::io::ErrorKind::WouldBlock => {},
-            Err(_) => break None,
+            Err(_) => break Err(Stop::Failed),
         }
-        if bytes.len() > 4096 || cancel.load(Ordering::Relaxed) || start.elapsed() >= Duration::from_millis(150) { break None; }
-        match child.try_wait() {
-            Ok(Some(status)) if status.success() => {
-                let mut tail = Vec::new();
-                let _ = (&mut pipe).take(4097 - bytes.len() as u64).read_to_end(&mut tail);
-                bytes.extend(tail);
-                break (bytes.len() <= 4096).then(|| String::from_utf8_lossy(&bytes).into_owned());
-            }
-            Ok(Some(_)) | Err(_) => break None,
-            Ok(None) => std::thread::sleep(Duration::from_millis(5)),
-        }
+        if bytes.len() > PROBE_BYTES { break Err(Stop::OutputLimit); }
+        if cancel.load(Ordering::Relaxed) { break Err(Stop::Cancelled); }
+        if start.elapsed() >= PROBE_DEADLINE { break Err(Stop::Deadline); }
+        // owner_live peeks with WNOWAIT, so an exited leader stays unreaped and its group id cannot be reused before the signal below.
+        if !crate::clip::own::owner_live(child.id()) { break Ok(()); }
+        std::thread::sleep(PROBE_POLL);
     };
-    unsafe { kill(-(child.id() as i32), 9); }
-    let _ = child.wait();
-    result
+    let _ = crate::procsignal::signal_group(child.id() as i32, SIGKILL);
+    let status = child.wait().map_err(|_| Stop::Failed)?;
+    outcome?;
+    if !status.success() { return Err(Stop::Refused); }
+    let _ = (&mut pipe).take((PROBE_BYTES + 1 - bytes.len()) as u64).read_to_end(&mut bytes);
+    if bytes.len() > PROBE_BYTES { return Err(Stop::OutputLimit); }
+    Ok(String::from_utf8_lossy(&bytes).into_owned())
 }
 
 #[cfg(test)]

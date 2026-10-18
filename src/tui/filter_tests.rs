@@ -1,0 +1,106 @@
+use super::super::{actions, input::{Key, Pointer}, keymap::Map, model::Model, render::BODY_ROW, theme::Theme, wire::{self, count, text}};
+use crate::jsondoc::{self, Json};
+use crate::tui::render::frame_tests::plain;
+
+const LARGE: usize = 100_000;
+
+fn drain(wire: &mut wire::Wire) -> Vec<Json> {
+    wire.send(vec![("c", wire::word("fence"))]).unwrap();
+    let mut values = Vec::new();
+    loop {
+        let value = wire.events.recv_timeout(std::time::Duration::from_secs(10)).unwrap().unwrap();
+        if text(&value, "c") == "fence" { return values; }
+        values.push(value);
+    }
+}
+// A folder of 100,000 names holding its first two rows, the way a large folder sits before any scroll.
+fn large(wire: &mut wire::Wire) -> Model {
+    let mut m = Model::new("/large".into(), &Json::Null);
+    m.open(m.path.clone(), wire).unwrap();
+    m.receive(jsondoc::parse(&format!(r#"{{"t":"listed","n":{LARGE}}}"#)).unwrap(), wire).unwrap();
+    m.receive(jsondoc::parse(r#"{"t":"rows","start":0,"rows":[{"n":"alpha"},{"n":"one"}]}"#).unwrap(), wire).unwrap();
+    drain(wire);
+    m
+}
+fn press(m: &mut Model, wire: &mut wire::Wire, key: Key) { actions::key(m, &key, &Map::load(), wire).unwrap(); }
+fn typed(m: &mut Model, wire: &mut wire::Wire, keys: &str) {
+    for c in keys.chars() { press(m, wire, Key::character(c, "")); }
+}
+fn wheel_down(m: &mut Model, wire: &mut wire::Wire) {
+    let mut key = Key::named("", "");
+    key.pointer = Some(Pointer { button: 65, x: 30, y: BODY_ROW, released: false, motion: false });
+    press(m, wire, key);
+}
+fn last_ask(sent: &[Json]) -> &Json {
+    sent.iter().rev().find(|v| text(v, "c") == "filter").expect("the filter asks the backend about the whole folder")
+}
+fn answer(m: &mut Model, wire: &mut wire::Wire, ask: &Json, rows: &str) {
+    let line = format!(r#"{{"t":"filtered","id":{},"query":"{}","n":{LARGE},"rows":{rows},"ms":0.010,"listing":1}}"#, count(ask, "id"), text(ask, "query"));
+    m.receive(jsondoc::parse(&line).unwrap(), wire).unwrap();
+}
+fn windows(sent: &[Json]) -> Vec<(usize, usize)> {
+    sent.iter().filter(|v| text(v, "c") == "window").map(|v| (count(v, "start"), count(v, "count"))).collect()
+}
+
+#[test]
+fn a_match_outside_the_loaded_rows_is_shown_and_counted() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = large(&mut w);
+    typed(&mut m, &mut w, "/needle");
+    let sent = drain(&mut w);
+    let ask = last_ask(&sent).clone();
+    assert_eq!(text(&ask, "query"), "needle");
+    answer(&mut m, &mut w, &ask, "[99999]");
+    assert_eq!(windows(&drain(&mut w)), [(99999, 1)], "only the drawn match is fetched");
+    m.receive(jsondoc::parse(r#"{"t":"rows","start":99999,"rows":[{"n":"Needle.txt"}],"kinds":[],"listing":1}"#).unwrap(), &mut w).unwrap();
+    assert_eq!(m.visible(), [99999]);
+    assert_eq!(m.current_path(), Some(m.path.join("Needle.txt")));
+    let theme = Theme::from_text("");
+    assert!(plain(&crate::tui::layout::footer(&m, &theme, 128, std::time::Duration::ZERO)).starts_with("Filter needle  1 of 100,000 shown"));
+    let frame = plain(&crate::tui::render::frame(&m, &theme, &Map::load(), 130, 31, std::time::Duration::ZERO));
+    assert!(frame.contains("Needle.txt") && frame.contains("1 of 100000 shown"), "{frame}");
+    wire::finish(w, reader);
+}
+#[test]
+fn superseded_answers_drop_and_scrolling_fetches_only_the_missing_matches() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = large(&mut w);
+    m.height = 3;
+    typed(&mut m, &mut w, "/n");
+    let first = last_ask(&drain(&mut w)).clone();
+    typed(&mut m, &mut w, "e");
+    let second = last_ask(&drain(&mut w)).clone();
+    answer(&mut m, &mut w, &first, "[1,5]");
+    assert!(drain(&mut w).is_empty() && m.filter_count() == 1, "an answer to an older query changes nothing");
+    answer(&mut m, &mut w, &second, "[1,40,41,42,900]");
+    assert_eq!((m.cursor, m.filter_count()), (1, 5));
+    assert_eq!(windows(&drain(&mut w)), [(40, 2)], "one window per run of adjacent drawn matches");
+    m.receive(jsondoc::parse(r#"{"t":"rows","start":40,"rows":[{"n":"ne40"},{"n":"ne41"}]}"#).unwrap(), &mut w).unwrap();
+    press(&mut m, &mut w, Key::named("Return", ""));
+    for _ in 0..3 { press(&mut m, &mut w, Key::named("Down", "")); }
+    assert_eq!((m.cursor, m.visible()), (42, vec![40, 41, 42]));
+    assert_eq!(windows(&drain(&mut w)), [(42, 1)]);
+    m.receive(jsondoc::parse(r#"{"t":"rows","start":42,"rows":[{"n":"ne42"}]}"#).unwrap(), &mut w).unwrap();
+    assert_eq!(m.rows.keys().copied().collect::<Vec<_>>(), [40, 41, 42], "rows the filter no longer draws are not held");
+    typed(&mut m, &mut w, "/w");
+    press(&mut m, &mut w, Key::named("Return", ""));
+    let narrower = last_ask(&drain(&mut w)).clone();
+    assert_eq!(text(&narrower, "query"), "new");
+    press(&mut m, &mut w, Key::named("Down", ""));
+    wheel_down(&mut m, &mut w);
+    assert_eq!(m.cursor, 42, "a cursor key and the wheel wait for the answer, as each waits for a listing");
+    answer(&mut m, &mut w, &narrower, "[42]");
+    assert_eq!((m.cursor, m.filter_count()), (42, 1));
+    drain(&mut w);
+    m.receive(jsondoc::parse(&format!(r#"{{"t":"listed","n":{LARGE}}}"#)).unwrap(), &mut w).unwrap();
+    let third = last_ask(&drain(&mut w)).clone();
+    assert_eq!(text(&third, "query"), "new", "a renumbered listing asks again");
+    answer(&mut m, &mut w, &second, "[1]");
+    answer(&mut m, &mut w, &third, "[7,42]");
+    assert_eq!((m.cursor, m.filter_count()), (42, 2));
+    drain(&mut w);
+    press(&mut m, &mut w, Key::named("Escape", ""));
+    assert!(m.filter.is_empty());
+    assert_eq!(windows(&drain(&mut w)), [(40, 3)], "clearing refills the viewport around the cursor");
+    wire::finish(w, reader);
+}

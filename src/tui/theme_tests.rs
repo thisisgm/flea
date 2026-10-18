@@ -47,9 +47,28 @@ fn t3_live_theme_reads_only_bounded_regular_files_and_follows_changes() {
     let path = root.file("colors.toml", BENCH);
     let watch = Watch::start(path.clone());
     assert_eq!(watch.updates.recv_timeout(std::time::Duration::from_secs(2)).unwrap(), BENCH);
-    std::fs::write(&path, "background='#ffffff'").unwrap();
+    let saved = root.file("colors.next", "background='#ffffff'");
+    root.assert_contains(&path);
+    std::fs::rename(saved, &path).unwrap();
     assert_eq!(watch.updates.recv_timeout(std::time::Duration::from_secs(2)).unwrap(), "background='#ffffff'");
     assert!(read(root.path()).is_none());
     std::fs::write(&path, "x".repeat(65537)).unwrap();
     assert!(read(&path).is_none());
+}
+#[test]
+fn in_place_rewrite_keeps_previous_palette() {
+    let root = crate::backend::testdir::TestDir::new("theme-rewrite");
+    let path = root.file("colors.toml", BENCH);
+    root.assert_contains(&path);
+    let watch = Watch::start(path.clone());
+    assert_eq!(watch.updates.recv_timeout(std::time::Duration::from_secs(3)).unwrap(), BENCH);
+    let _writer = std::fs::OpenOptions::new().write(true).truncate(true).open(&path).unwrap();
+    let transient = watch.updates.recv_timeout(std::time::Duration::from_millis(750)).ok();
+    std::fs::write(&path, "background='#ffff").unwrap();
+    let partial = watch.updates.recv_timeout(std::time::Duration::from_millis(750)).ok();
+    std::fs::write(&path, "background='#ffffff'").unwrap();
+    let complete = watch.updates.recv_timeout(std::time::Duration::from_secs(3)).unwrap();
+    println!("transient {transient:?}; partial {partial:?}; complete {complete:?}");
+    assert_eq!(complete, "background='#ffffff'");
+    assert_eq!((transient, partial), (None, None), "a rewrite caught empty or cut short replaced the live palette");
 }
