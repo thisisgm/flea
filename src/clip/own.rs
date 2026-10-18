@@ -156,7 +156,7 @@ pub(crate) fn spawn_owner_with(
 ) -> Result<String, String> {
     let token = format::make_token()?;
     let mut child = unsafe {
-        std::process::Command::new(exe)
+        crate::backend::locale::command(exe)
         .arg("--clip-own")
         .stdin(std::process::Stdio::piped())
         .stdout(std::process::Stdio::piped())

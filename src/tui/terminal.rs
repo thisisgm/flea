@@ -66,7 +66,7 @@ pub struct Terminal {
 }
 impl Terminal {
     pub fn enter() -> io::Result<Self> {
-        let output = Command::new("stty")
+        let output = crate::backend::locale::command("stty")
             .arg("-g")
             .stdin(Stdio::inherit())
             .output()?;

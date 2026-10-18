@@ -11,6 +11,10 @@
 # checks the binary exists at an absolute path before running anything, because that check is the
 # entire reason this script exists.
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 cd "$(dirname "$0")/.." || exit 1
 
 bin=${FLEA_QMLLINT:-/usr/lib/qt6/bin/qmllint}

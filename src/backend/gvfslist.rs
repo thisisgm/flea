@@ -194,7 +194,7 @@ pub(crate) fn raw_output(path: &str, gio: &str, timeout: Duration) -> Result<Vec
     // -h rides on every call so gio's own hidden rule never forks the rows; parse_line's dot filter stays the only hidden rule.
     let mut argv = vec!["list".to_string(), "-u".to_string(), "-a".to_string(), GIO_ATTRS.to_string(), "--nofollow-symlinks".to_string(), "-h".to_string()];
     argv.push(path.to_string());
-    let mut child = std::process::Command::new(gio)
+    let mut child = crate::backend::locale::command(gio)
         .args(&argv)
         .stdin(std::process::Stdio::null())
         .stdout(std::process::Stdio::piped())

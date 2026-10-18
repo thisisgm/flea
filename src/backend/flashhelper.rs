@@ -67,7 +67,7 @@ fn seam_args(cmd: &mut std::process::Command, loop_root: Option<&std::path::Path
 
 // The helper run in drives mode for these disks, its stdout, or None when it did not run or answer.
 fn drives_text(path: &str, devs: &[String], limit: Duration, loop_root: Option<&std::path::Path>) -> Option<String> {
-    let mut cmd = std::process::Command::new(path);
+    let mut cmd = crate::backend::locale::command(path);
     cmd.arg("drives");
     seam_args(&mut cmd, loop_root);
     for dev in devs {
@@ -184,7 +184,7 @@ pub fn eject(dev: &str) -> Result<(), String> {
 }
 
 pub(crate) fn eject_at(path: &str, dev: &str, limit: Duration) -> Result<(), String> {
-    let mut cmd = std::process::Command::new(path);
+    let mut cmd = crate::backend::locale::command(path);
     cmd.arg("eject");
     seam_args(&mut cmd, crate::backend::flasheligible::seam_root().as_deref());
     cmd.arg(dev);

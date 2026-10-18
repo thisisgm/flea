@@ -2,7 +2,6 @@
 use crate::error::FleaError;
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 // gio trash --list prints one entry per line as "<uri>\t<original path>".
 const LIST_SEP: char = '\t';
@@ -49,7 +48,13 @@ pub(crate) fn gio(args: &[&str]) -> Option<std::process::Output> {
         return stand_in(args);
     }
     let argv = gio_argv(args);
-    Command::new(&argv[0]).args(&argv[1..]).output().ok()
+    // Writes forward gio's diagnostic to the user; only listing and metadata output are parsed.
+    let mut command = if args.first() == Some(&"info") || args == ["trash", "--list"] {
+        crate::backend::locale::command(&argv[0])
+    } else {
+        std::process::Command::new(&argv[0])
+    };
+    command.args(&argv[1..]).output().ok()
 }
 
 // The argv gio runs under, so the suite pins the bound without spawning a subprocess.

@@ -2,6 +2,10 @@
 # Checks the AUR carries the versions a release tag published, reading each wanted pkgrel from the tag's own PKGBUILDs.
 set -uo pipefail
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 json_file=""
 if [ "${1:-}" = "--json" ]; then
     [ -n "${2:-}" ] || { echo "flea-aur-versions: --json needs a file" >&2; exit 2; }

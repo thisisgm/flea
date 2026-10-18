@@ -6,7 +6,6 @@ use std::fs::{self, Metadata, OpenOptions};
 use std::io::{self, Read, Write};
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
-use std::process::Command;
 
 const NAME_BYTES: usize = 255;
 // The one sentence for every fault in making the temporary folder the names file lives in; a fault after that names the folder.
@@ -114,7 +113,7 @@ fn settle(result: io::Result<()>, cleanup: io::Result<()>) -> io::Result<()> {
 struct NamesFile { root: PathBuf, path: PathBuf, identity: (u64, u64, u32), cleaned: bool }
 impl NamesFile {
     fn new(document: &str) -> io::Result<Self> {
-        let output = Command::new("mktemp").args(["-d", "/tmp/flea-rename-XXXXXX"]).output()?;
+        let output = crate::backend::locale::command("mktemp").args(["-d", "/tmp/flea-rename-XXXXXX"]).output()?;
         if !output.status.success() { return Err(failure(PREPARE_FAILED)); }
         let root = PathBuf::from(String::from_utf8(output.stdout).map_err(|_| failure(PREPARE_FAILED))?.trim());
         if !root.is_absolute() || root.parent() != Some(Path::new("/tmp")) || !root.file_name().is_some_and(|name| name.to_string_lossy().starts_with("flea-rename-")) {

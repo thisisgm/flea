@@ -188,8 +188,16 @@ def session_env():
 ENV = None
 
 
+def parsed_env(env=None):
+    """Keep parser children deterministic while application launches retain the session locale."""
+    child = dict(os.environ if env is None else env)
+    child["LC_ALL"] = "C.UTF-8"
+    child.pop("LANGUAGE", None)
+    return child
+
+
 def hypr(*args):
-    return subprocess.run(["hyprctl", *args], env=ENV, capture_output=True, text=True, timeout=10).stdout
+    return subprocess.run(["hyprctl", *args], env=parsed_env(ENV), capture_output=True, text=True, timeout=10).stdout
 
 
 def clients():
@@ -280,7 +288,7 @@ class Recorder:
         self.malformed = 0
         self.unstamped = 0
         self.lock = threading.Lock()
-        self.proc = subprocess.Popen(cmd, env=ENV, stdout=subprocess.PIPE, text=True, bufsize=1)
+        self.proc = subprocess.Popen(cmd, env=parsed_env(ENV), stdout=subprocess.PIPE, text=True, bufsize=1)
         self.thread = threading.Thread(target=self._read, daemon=True)
         self.thread.start()
         t0 = time.monotonic()
@@ -372,7 +380,7 @@ class Recorder:
 
 
 def build_recorder(workdir):
-    out = subprocess.run([os.path.join(HERE, "flea-framecap-build"), workdir], capture_output=True, text=True)
+    out = subprocess.run([os.path.join(HERE, "flea-framecap-build"), workdir], capture_output=True, text=True, env=parsed_env())
     if out.returncode != 0:
         raise RuntimeError(out.stderr.strip())
     return out.stdout.strip()
@@ -546,7 +554,7 @@ KILL_TARGETS = [("qs", "/ui"), ("flea", "--backend"), ("kitty", "--class " + TUI
 
 def pids_for(comm, token=""):
     out = []
-    for p in subprocess.run(["pgrep", "-x", comm], capture_output=True, text=True).stdout.split():
+    for p in subprocess.run(["pgrep", "-x", comm], capture_output=True, text=True, env=parsed_env()).stdout.split():
         try:
             with open("/proc/%s/cmdline" % p) as f:
                 cmd = f.read().replace("\0", " ")
