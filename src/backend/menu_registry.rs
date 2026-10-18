@@ -39,8 +39,8 @@ impl Registry {
     }
 
     fn query(&self, args: &[&OsStr], cancel: &Cancellation) -> Result<String, String> {
-        let mut command = Command::new("gio");
-        command.args(args).env("LC_ALL", "C");
+        let mut command = crate::backend::locale::command("gio");
+        command.args(args);
         self.capture(&mut command, cancel)
     }
 

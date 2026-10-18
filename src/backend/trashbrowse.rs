@@ -5,7 +5,6 @@ use crate::backend::trashmanifest::{Cancellation, Manifest, Op, Outcome, Refusal
 use crate::json::{escape, field_bool, field_str, field_str_array, field_usize};
 use std::collections::{HashMap, HashSet};
 use std::path::PathBuf;
-use std::process::Command;
 use std::sync::mpsc::{channel, Sender};
 use std::thread;
 use std::time::{Duration, Instant};
@@ -128,8 +127,7 @@ impl Drop for TrashBrowser {
 
 fn gio(args: &[&str]) -> Result<String, Refusal> {
     let prefix = super::trash::gio_prefix();
-    answer(Command::new(&prefix[0])
-        .env("LC_ALL", "C")
+    answer(crate::backend::locale::command(&prefix[0])
         .args(&prefix[1..])
         .args(args)
         .output())

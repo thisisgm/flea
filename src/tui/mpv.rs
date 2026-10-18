@@ -37,7 +37,7 @@ impl Process {
         }
         let directory = temporary()?;
         let endpoint = directory.join("ipc");
-        let mut command = Command::new("mpv");
+        let mut command = crate::backend::locale::command("mpv");
         command
             .args(arguments(protocol, shm, &endpoint, geometry, terminal_size, pixels))
             .arg("--")
@@ -267,7 +267,7 @@ fn arguments(
     args
 }
 fn temporary() -> io::Result<PathBuf> {
-    let output = Command::new("mktemp")
+    let output = crate::backend::locale::command("mktemp")
         .args(["-d", "/tmp/flea-tui-XXXXXX"])
         .output()?;
     if !output.status.success() {

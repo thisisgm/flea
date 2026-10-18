@@ -1,3 +1,4 @@
+pub(crate) mod locale;
 pub mod listing;
 pub mod aliases;
 pub mod archive;

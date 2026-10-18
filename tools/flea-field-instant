@@ -671,7 +671,7 @@ class Session:
 
     def ipc(self, fn, *args):
         out = subprocess.run(["qs", "ipc", "--pid", str(self.qs_pid), "call", "flea", fn] + [str(a) for a in args],
-                             env=S.ENV, capture_output=True, text=True, timeout=10)
+                             env=S.parsed_env(S.ENV), capture_output=True, text=True, timeout=10)
         return out.stdout.strip()
 
     def ipc_int(self, fn, *args):
@@ -835,7 +835,7 @@ def qs_pid(ctx, proc):
     want = ctx["tree"] + "/ui/boot/shell.qml"
     t0 = time.monotonic()
     while time.monotonic() - t0 < 10:
-        out = subprocess.run(["qs", "list", "--all"], env=S.ENV, capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(["qs", "list", "--all"], env=S.parsed_env(S.ENV), capture_output=True, text=True, timeout=10).stdout
         pid, found = None, []
         # Sample input: "  Process ID: 1318508" (qs list --all indents two spaces).
         for line in out.splitlines():
@@ -1769,8 +1769,8 @@ def calib_window(work, delay):
     shutil.copyfile(os.path.join(REPO, "tests", "search-calib.qml"), os.path.join(cfg, "shell.qml"))
     logp = os.path.join(work, "client-%d-%d.log" % (delay, time.monotonic_ns()))
     logf = open(logp, "w")
-    client = subprocess.Popen(["qs", "-p", cfg, "-n"], env=dict(S.ENV, CALIB_DELAY_MS=str(delay),
-                              QT_FORCE_STDERR_LOGGING="1"), stdout=logf, stderr=subprocess.STDOUT)
+    client = subprocess.Popen(["qs", "-p", cfg, "-n"], env=S.parsed_env(dict(S.ENV, CALIB_DELAY_MS=str(delay),
+                              QT_FORCE_STDERR_LOGGING="1")), stdout=logf, stderr=subprocess.STDOUT)
     logf.close()
     win = S.window_by_pid({client.pid} | S.descendants(client.pid), 20)
     if win is None:
@@ -2240,7 +2240,7 @@ def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, on
     if part in ("p2-held", "smoke"):
         ctx["repeat"].update(repeat_probe(keys, ctx["repeat"]))
     mon = S.monitor()
-    rev = subprocess.run(["git", "-C", tree, "rev-parse", "HEAD"], capture_output=True, text=True)
+    rev = subprocess.run(["git", "-C", tree, "rev-parse", "HEAD"], capture_output=True, text=True, env=S.parsed_env())
     head = rev.stdout.strip()
     if rev.returncode != 0 or not head:
         raise SystemExit("flea tree %s is not a git tree, git rev-parse HEAD says: %s" % (tree, rev.stderr.strip() or "nothing"))

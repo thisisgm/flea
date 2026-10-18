@@ -5,6 +5,10 @@
 # artefact rather than typed, because a hand-kept table is wrong the first time anything upgrades.
 set -uo pipefail
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C
+unset LANGUAGE
+
 OUT=${1:-}
 FIXTURE=${2:-}
 [ -n "$OUT" ] && [ -n "$FIXTURE" ] || { echo "usage: flea-bench-manifest <manifest> <fixture>|close <csv>" >&2; exit 2; }
@@ -144,7 +148,7 @@ if [ "$FIXTURE" = close ]; then
   say "before notes before photo. **A never-attempted count is not a capability claim.**"
   say ""
   if [ -s "$KEY_MAP" ]; then
-    exts=$(cut -d' ' -f2 "$KEY_MAP" | LC_ALL=C sort -u)
+    exts=$(cut -d' ' -f2 "$KEY_MAP" | LC_ALL=C LANGUAGE= sort -u)
     tmp_fail=$(mktemp) || exit 1
     for id in $ids; do
       rows=$(grep "^$id," "$csv")
@@ -158,7 +162,7 @@ if [ "$FIXTURE" = close ]; then
       for f in "$KEYS_DIR/$id"-run*.fail.keys; do
         [ -s "$f" ] && cat "$f" >> "$tmp_fail"
       done
-      LC_ALL=C sort -u -o "$tmp_fail" "$tmp_fail"
+      LC_ALL=C LANGUAGE= sort -u -o "$tmp_fail" "$tmp_fail"
       refused_fmt=$("$KEYS_TOOL" classify "$KEY_MAP" "$tmp_fail" 2>/dev/null)
       produced=""
       refused=""
@@ -187,7 +191,7 @@ if [ "$FIXTURE" = close ]; then
   say ""
   never=""
   for id in $ids; do
-    vals=$(grep "^$id," "$csv" | cut -d, -f"$preview_col" | LC_ALL=C sort -u)
+    vals=$(grep "^$id," "$csv" | cut -d, -f"$preview_col" | LC_ALL=C LANGUAGE= sort -u)
     [ "$vals" = "-1" ] && never="${never:+$never, }$id"
   done
   if [ -n "$never" ]; then
@@ -230,7 +234,7 @@ if [ "$FIXTURE" = close ]; then
   # The work-difference refusal. Flea thumbnails the viewport by design and another entrant thumbnails the
   # directory, so a settle time compared across that gap is not a comparison at all.
   counts=$(tail -n +2 "$csv" | cut -d, -f"$thumbs_col","$ranked_col" | grep ',yes$' \
-           | cut -d, -f1 | grep -E '^[0-9]+$' | grep -v '^0$' | LC_ALL=C sort -n)
+           | cut -d, -f1 | grep -E '^[0-9]+$' | grep -v '^0$' | LC_ALL=C LANGUAGE= sort -n)
   lo=$(printf '%s\n' "$counts" | head -1)
   hi=$(printf '%s\n' "$counts" | tail -1)
   if [ -n "$lo" ] && [ -n "$hi" ] && [ "$hi" -ge $(( lo * 10 )) ]; then
@@ -312,7 +316,7 @@ say ""
 say "## Fixture by extension"
 say ""
 say '```'
-ls -U "$FIXTURE" | sed -n 's/.*\.\([A-Za-z0-9]*\)$/\1/p' | sort | uniq -c | sort -rn >> "$OUT"
+ls -U "$FIXTURE" | sed -n 's/.*\.\([A-Za-z0-9]*\)$/\1/p' | LC_ALL=C LANGUAGE= sort | LC_ALL=C LANGUAGE= uniq -c | LC_ALL=C LANGUAGE= sort -rn >> "$OUT"
 # sed drops a name with no dot in it, so those are counted separately rather than vanishing.
 printf '%7s no extension\n' "$(ls -U "$FIXTURE" | grep -c -v '\.')" >> "$OUT"
 say '```'
@@ -458,7 +462,7 @@ if [ -n "${TUI_CONFIG_DIR:-}" ] && [ -d "${TUI_CONFIG_DIR:-}" ]; then
     cat "$f" >> "$OUT"
     say '```'
     say ""
-  done < <(find "$TUI_CONFIG_DIR" -type f ! -name '.*' | LC_ALL=C sort)
+  done < <(find "$TUI_CONFIG_DIR" -type f ! -name '.*' | LC_ALL=C LANGUAGE= sort)
 fi
 
 say "## Libraries the entrants render through"

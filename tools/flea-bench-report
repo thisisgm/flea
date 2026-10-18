@@ -19,6 +19,10 @@
 # public README and the operator's machine names are not public.
 set -uo pipefail
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C
+unset LANGUAGE
+
 die() { echo "flea-bench-report: $*" >&2; exit 1; }
 
 if [ "${1:-}" = "--selftest" ] || [ "${1:-}" = "selftest" ]; then
@@ -162,7 +166,7 @@ while IFS= read -r id; do
 done < <(tail -n +2 "$CSV" | cut -d, -f"$id_col")
 [ ${#ids[@]} -gt 0 ] || die "$CSV has no result rows"
 
-runs=$(tail -n +2 "$CSV" | cut -d, -f"$run_col" | sort -u | grep -c .)
+runs=$(tail -n +2 "$CSV" | cut -d, -f"$run_col" | LC_ALL=C LANGUAGE= sort -u | grep -c .)
 
 # The group comes from the manifest's own entrant block, written from what the harness launched,
 # rather than from a list kept in here that goes stale the first time the field changes.
@@ -226,7 +230,7 @@ for id in "${ids[@]}"; do
     fi
     die "$id has no row in $CSV, so the report has nothing to say about it"
   fi
-  n=$(id_rows "$id" | cut -d, -f"$ranked_col" | sort -u | grep -c .)
+  n=$(id_rows "$id" | cut -d, -f"$ranked_col" | LC_ALL=C LANGUAGE= sort -u | grep -c .)
   [ "$n" -eq 1 ] || die "$id carries $n different 'ranked' verdicts across its counted runs"
 done
 
@@ -350,7 +354,7 @@ median_n() {
   local x n mid
   while IFS= read -r x; do
     [ -n "$x" ] && v+=("$x")
-  done < <(sort -n)
+  done < <(LC_ALL=C LANGUAGE= sort -n)
   n=${#v[@]}
   [ "$n" -gt 0 ] || { printf '0 0'; return 0; }
   mid=$(( n / 2 ))
@@ -368,7 +372,7 @@ spread10() {
   local x
   while IFS= read -r x; do
     [ -n "$x" ] && v+=("$x")
-  done < <(sort -n)
+  done < <(LC_ALL=C LANGUAGE= sort -n)
   [ ${#v[@]} -ge 2 ] && [ "${v[0]}" -gt 0 ] || { printf '10'; return 0; }
   printf '%d' $(( v[${#v[@]} - 1] * 10 / v[0] ))
 }
@@ -486,7 +490,7 @@ group_table() {
     echo
     echo "| entrant | version | first window | settled listing | work done | memory, PSS | CPU, process tree | runs |"
     echo "|---|---|---|---|---|---|---|---|"
-    printf '%s\n' "${ranked_rows[@]}" | sort -n | cut -d'|' -f2-
+    printf '%s\n' "${ranked_rows[@]}" | LC_ALL=C LANGUAGE= sort -n | cut -d'|' -f2-
   fi
   if [ ${#unranked_rows[@]} -gt 0 ]; then
     echo
@@ -539,7 +543,7 @@ place() {
     [ "$i" -eq 1 ] && { first=$(( 10#$val )); first_id=$name; }
     [ "$i" -eq 2 ] && { second=$(( 10#$val )); second_id=$name; }
     [ "$name" = flea ] && { rank=$i; mine=$(( 10#$val )); }
-  done < <(printf '%s\n' "${rows[@]}" | sort -n)
+  done < <(printf '%s\n' "${rows[@]}" | LC_ALL=C LANGUAGE= sort -n)
   [ "$rank" -gt 0 ] || { echo "- **$label:** flea produced no number on this column"; return 0; }
   # Words up to ten, digits past it, because no group in this harness has ever had eleven entrants
   # and an unset array index under set -u would take the whole report down if it ever did.

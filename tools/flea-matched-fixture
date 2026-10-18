@@ -3,7 +3,7 @@
 set -u
 # Hard rule 9's guard owns FIXTURE_ROOT and every absolute, root and containment check below. The
 # marker stays this fixture's own name, so a media build can never delete a matched fixture.
-. "$(dirname "$0")/../tools/flea-sandbox-guard"
+. "$(LC_ALL=C LANGUAGE= dirname "$0")/../tools/flea-sandbox-guard"
 
 
 src=${SRC:-$FIXTURE_ROOT/flea-media-btrfs}
@@ -15,10 +15,10 @@ marker=.flea-matched-fixture
 fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 
 sandbox_require "$dir"
-parent=$(dirname "$dir")
+parent=$(LC_ALL=C LANGUAGE= dirname "$dir")
 
 # corner: tmpfs pages are the filesystem, so drop_caches cannot evict them, see AGENTS.md "Fixtures".
-fs=$(findmnt -no FSTYPE -T "$parent" 2>/dev/null)
+fs=$(LC_ALL=C LANGUAGE= findmnt -no FSTYPE -T "$parent" 2>/dev/null)
 if [ -z "$fs" ]; then
   fail "findmnt could not name the filesystem holding $parent"
 fi
@@ -43,7 +43,7 @@ touch "$dir/$marker" || fail "could not write the marker $dir/$marker"
 # heic goes because dolphin renders none of it and mkv because nautilus and pcmanfm render none.
 # The patterns are literal in the case arm, because a variable holding them would pathname-expand here.
 copied=0
-for f in $(ls "$src"); do
+for f in $(LC_ALL=C LANGUAGE= ls "$src"); do
   case $f in
     *.heic|*.mkv) continue ;;
   esac
@@ -54,18 +54,18 @@ for f in $(ls "$src"); do
 done
 
 # ls skips the dotfile marker, so this counts exactly the files that were meant to land.
-built=$(ls "$dir" | wc -l)
+built=$(LC_ALL=C LANGUAGE= ls "$dir" | LC_ALL=C LANGUAGE= wc -l)
 if [ "$built" -ne "$copied" ]; then
   fail "copied $copied files but $dir holds $built"
 fi
 if [ "$copied" -eq 0 ]; then
   fail "copied nothing out of $src, so it is not a media fixture"
 fi
-left=$(ls "$dir" | grep -cE '\.(heic|mkv)$')
+left=$(LC_ALL=C LANGUAGE= ls "$dir" | LC_ALL=C LANGUAGE= grep -cE '\.(heic|mkv)$')
 if [ "$left" -ne 0 ]; then
   fail "$left dropped-type files survived into $dir"
 fi
 
 sync
-echo "flea-matched-fixture: $built files in $dir on $(findmnt -no FSTYPE -T "$dir"), EXPECT_FILES=$(ls -A "$dir" | wc -l)"
-ls "$dir" | sed 's/.*\.//' | sort | uniq -c | sort -rn
+echo "flea-matched-fixture: $built files in $dir on $(LC_ALL=C LANGUAGE= findmnt -no FSTYPE -T "$dir"), EXPECT_FILES=$(LC_ALL=C LANGUAGE= ls -A "$dir" | LC_ALL=C LANGUAGE= wc -l)"
+LC_ALL=C LANGUAGE= ls "$dir" | LC_ALL=C LANGUAGE= sed 's/.*\.//' | LC_ALL=C LANGUAGE= sort | LC_ALL=C LANGUAGE= uniq -c | LC_ALL=C LANGUAGE= sort -rn

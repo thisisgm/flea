@@ -11,6 +11,10 @@
 # checks the binary exists at an absolute path before running anything, because that check is the
 # entire reason this script exists.
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C
+unset LANGUAGE
 cd "$(dirname "$0")/.." || exit 1
 
 bin=${FLEA_QMLLINT:-/usr/lib/qt6/bin/qmllint}
@@ -48,7 +52,7 @@ environment_note="Cannot assign binding of type QVariantMap to QVariantHash"
 counts=$(printf '%s' "$json" \
   | jq -r --arg note "$exit_status_note" --arg env "$environment_note" \
     '.files[].warnings[] | select((.message | contains($note)) or (.message | contains($env)) | not) | .id' \
-  | sort | uniq -c)
+  | LC_ALL=C LANGUAGE= sort | LC_ALL=C LANGUAGE= uniq -c)
 exit_status_filtered=$(printf '%s' "$json" \
   | jq -r --arg note "$exit_status_note" '.files[].warnings[] | select(.message | contains($note)) | .id' \
   | wc -l)

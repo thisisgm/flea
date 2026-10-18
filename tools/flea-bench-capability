@@ -11,12 +11,12 @@
 # Read-only against the operator's box. The fixture and every cache live inside a sandbox this
 # script creates through tools/flea-sandbox-guard, and no entrant is given $HOME/.cache.
 set -uo pipefail
-cd "$(dirname "$0")/.." || exit 1
+cd "$(LC_ALL=C LANGUAGE= dirname "$0")/.." || exit 1
 FLEA_REPO=$PWD
 . "$FLEA_REPO/tools/flea-sandbox-guard"
 
 export PATH="$HOME/.local/bin:$PATH"
-eval "$(omarchy-drive env)"
+eval "$(LC_ALL=C LANGUAGE= omarchy-drive env)"
 
 MEDIA=${MEDIA:-$FIXTURE_ROOT/flea-media-btrfs}
 FLEA_UI="$FLEA_REPO/ui"
@@ -53,7 +53,7 @@ OWNED_CONTROL_GROUP=
 OWNED_UNIT_SEQUENCE=0
 
 process_command() {
-  ps -o command= -p "$1" 2>/dev/null
+  LC_ALL=C LANGUAGE= ps -o command= -p "$1" 2>/dev/null
 }
 
 # Sample input: `/proc/4123/stat` starts `4123 (flea) S 4100 4123 4123 ...` and field 22 is starttime.
@@ -77,7 +77,7 @@ read_unit_properties() {
   UNIT_CONTROL_GROUP=
   UNIT_INVOCATION=
   UNIT_KILL_MODE=
-  output=$(systemctl --user show "$unit" --no-pager \
+  output=$(LC_ALL=C LANGUAGE= systemctl --user show "$unit" --no-pager \
     --property=LoadState --property=ActiveState --property=SubState --property=MainPID \
     --property=ControlGroup --property=InvocationID --property=KillMode 2>/dev/null) || return 1
   while IFS='=' read -r key value; do
@@ -134,7 +134,7 @@ boundary_contains() {
 pids_for_target() {
   local comm=$1 token=${2:-} pid command
   TARGET_PIDS=()
-  for pid in $(pgrep -x "$comm" 2>/dev/null); do
+  for pid in $(LC_ALL=C LANGUAGE= pgrep -x "$comm" 2>/dev/null); do
     command=$(process_command "$pid") || continue
     if [ -n "$token" ]; then
       case "$command" in *"$token"*) ;; *) continue ;; esac
@@ -378,7 +378,7 @@ stop_watches() {
 
 require_flea_enumeration() {
   local shells status=0
-  shells=$(qs list --all 2>/dev/null) || status=$?
+  shells=$(LC_ALL=C LANGUAGE= qs list --all 2>/dev/null) || status=$?
   [ "$status" -eq 0 ] \
     || { printf 'REFUSED: qs list --all failed with status %s\n' "$status" >&2; return 1; }
   case "$shells" in
@@ -422,7 +422,7 @@ drop_thumbs() {
   mkdir -p "$THUMBS/large" "$THUMBS/fail"
   local d
   for d in "$THUMBS"/*/; do
-    [ "$(ls -A "$d" | wc -l)" = 0 ] || fail "the scratch thumbnail cache is not empty at the start: $d"
+    [ "$(LC_ALL=C LANGUAGE= ls -A "$d" | LC_ALL=C LANGUAGE= wc -l)" = 0 ] || fail "the scratch thumbnail cache is not empty at the start: $d"
   done
 }
 restore_thumbs() {
@@ -477,7 +477,7 @@ XDG_STATE_HOME="$FLEA_STATE" "$FLEA_BIN" --ui-state '{"sort":{"key":"name","reve
 # same bytes the field bench uses rather than something generated here.
 formats=""
 for ext in jpg png webp heic mp4 webm mkv txt; do
-  src=$(ls -U "$MEDIA" | grep "\.$ext\$" | head -1)
+  src=$(LC_ALL=C LANGUAGE= ls -U "$MEDIA" | LC_ALL=C LANGUAGE= grep "\.$ext\$" | LC_ALL=C LANGUAGE= head -1)
   if [ -z "$src" ]; then
     printf 'SKIP: the media fixture holds no .%s, so that format is not tested\n' "$ext" >&2
     continue
@@ -493,13 +493,13 @@ MAP="$SB/fixture.map"
 # Every key in the cache, minus the failure markers, which are their own answer.
 cap_keys() {
   local out=$1
-  find "$THUMBS" -type f -name '*.png' -not -path "$THUMBS/fail/*" -printf '%f\n' 2>/dev/null \
-    | sed 's/\.png$//' | LC_ALL=C sort -u > "$out"
+  LC_ALL=C LANGUAGE= find "$THUMBS" -type f -name '*.png' -not -path "$THUMBS/fail/*" -printf '%f\n' 2>/dev/null \
+    | LC_ALL=C LANGUAGE= sed 's/\.png$//' | LC_ALL=C LANGUAGE= sort -u > "$out"
 }
 cap_fail_keys() {
   local out=$1
-  find "$THUMBS/fail" -type f -name '*.png' -printf '%f\n' 2>/dev/null \
-    | sed 's/\.png$//' | LC_ALL=C sort -u > "$out"
+  LC_ALL=C LANGUAGE= find "$THUMBS/fail" -type f -name '*.png' -printf '%f\n' 2>/dev/null \
+    | LC_ALL=C LANGUAGE= sed 's/\.png$//' | LC_ALL=C LANGUAGE= sort -u > "$out"
 }
 
 # One directory per format holding exactly one file, so a render can only be that format's, and one
@@ -514,7 +514,7 @@ cap_transient() {
     cp "$FIXTURE/sample.$ext" "$dir/sample.$ext" || fail "could not copy the $ext sample"
 
     : > "$log"
-    inotifywait -m -q -r -e close_write --format '%w%f' /tmp > "$log" 2>/dev/null &
+    LC_ALL=C LANGUAGE= inotifywait -m -q -r -e close_write --format '%w%f' /tmp > "$log" 2>/dev/null &
     watch_pid=$!
     remember_watch "$watch_pid" || fail "the $id $ext render watch exited before this run recorded it"
     sleep 2
@@ -528,9 +528,9 @@ cap_transient() {
     require_no_foreign_processes \
       || fail "an unowned process appeared during the $id $ext capability window, so no result from it is attributable"
 
-    n=$(grep -c "^${TRANSIENT_PREFIX}[0-9]*-[0-9]*/result\.png\$" "$log")
+    n=$(LC_ALL=C LANGUAGE= grep -c "^${TRANSIENT_PREFIX}[0-9]*-[0-9]*/result\.png\$" "$log")
     # Two entrant processes in one window would let one format's renders be counted for another.
-    pids=$(grep -o "^${TRANSIENT_PREFIX}[0-9]*" "$log" | LC_ALL=C sort -u | wc -l)
+    pids=$(LC_ALL=C LANGUAGE= grep -o "^${TRANSIENT_PREFIX}[0-9]*" "$log" | LC_ALL=C LANGUAGE= sort -u | LC_ALL=C LANGUAGE= wc -l)
     [ "$pids" -le 1 ] || fail "$pids $id processes wrote renders during the $ext window, so no count from it is attributable"
     stop_watches
     kill_entrants \
@@ -551,18 +551,18 @@ cap_transient() {
   printf '%-10s can %s | cannot %s (live watch)\n' "$id" "${can:-nothing}" "${cannot:-nothing}"
 }
 
-repo_sha=$(git -C "$FLEA_REPO" rev-parse --short HEAD 2>/dev/null || printf unknown)
+repo_sha=$(LC_ALL=C LANGUAGE= git -C "$FLEA_REPO" rev-parse --short HEAD 2>/dev/null || printf unknown)
 repo_state=clean
-[ -z "$(git -C "$FLEA_REPO" status --porcelain -- src ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null)" ] || repo_state=DIRTY
-binary_size=$(stat -c %s "$FLEA_BIN")
-binary_sha=$(sha256sum "$FLEA_BIN" | cut -d' ' -f1)
-instrument_sha=$(sha256sum "$FLEA_REPO/tools/flea-bench-capability" | cut -d' ' -f1)
+[ -z "$(LC_ALL=C LANGUAGE= git -C "$FLEA_REPO" status --porcelain -- src ui tests tools packaging Cargo.toml Cargo.lock PKGBUILD 2>/dev/null)" ] || repo_state=DIRTY
+binary_size=$(LC_ALL=C LANGUAGE= stat -c %s "$FLEA_BIN")
+binary_sha=$(LC_ALL=C LANGUAGE= sha256sum "$FLEA_BIN" | LC_ALL=C LANGUAGE= cut -d' ' -f1)
+instrument_sha=$(LC_ALL=C LANGUAGE= sha256sum "$FLEA_REPO/tools/flea-bench-capability" | LC_ALL=C LANGUAGE= cut -d' ' -f1)
 
-mkdir -p "$(dirname "$OUT")"
+mkdir -p "$(LC_ALL=C LANGUAGE= dirname "$OUT")"
 {
   echo "# What each GUI entrant can actually thumbnail"
   echo
-  echo "Written by tools/flea-bench-capability on $(date -Is). Eight files, one per format, a"
+  echo "Written by tools/flea-bench-capability on $(LC_ALL=C LANGUAGE= date -Is). Eight files, one per format, a"
   echo "private cache per entrant, and $CAP_TIMEOUT_S seconds each. **Nothing here is ranked and no"
   echo "timing is taken.** The field bench's format column answers a different question, how far an"
   echo "entrant got through a 2000-file directory whose names sort by format, and it was being read"
@@ -578,9 +578,9 @@ mkdir -p "$(dirname "$OUT")"
 
 # Sample input, one row of the field bench's ENTRANTS table: "strata|gui|io.github.lgse.Strata|strata||||setsid nohup $STRATA_BIN $FIXTURE"
 # corner: one multi-statement sed expands the five variables the bench's command field uses, rather than five processes.
-mapfile -t CAP_ROWS < <(sed -n '/^  declare -ga ENTRANTS=(/,/^  )/p' "$FLEA_REPO/tools/flea-field-bench" \
-  | grep '^    "' | tr -d '"' \
-  | sed "s|\$FIXTURE|$FIXTURE|g; s|\$FLEA_UI|$FLEA_UI|g; s|\$FLEA_BIN|$FLEA_BIN|g; s|\$STRATA_BIN|$STRATA_BIN|g; s|\$FLEA_STATE|$FLEA_STATE|g")
+mapfile -t CAP_ROWS < <(LC_ALL=C LANGUAGE= sed -n '/^  declare -ga ENTRANTS=(/,/^  )/p' "$FLEA_REPO/tools/flea-field-bench" \
+  | LC_ALL=C LANGUAGE= grep '^    "' | LC_ALL=C LANGUAGE= tr -d '"' \
+  | LC_ALL=C LANGUAGE= sed "s|\$FIXTURE|$FIXTURE|g; s|\$FLEA_UI|$FLEA_UI|g; s|\$FLEA_BIN|$FLEA_BIN|g; s|\$STRATA_BIN|$STRATA_BIN|g; s|\$FLEA_STATE|$FLEA_STATE|g")
 [ ${#CAP_ROWS[@]} -gt 0 ] || fail "no entrant rows were read out of tools/flea-field-bench"
 
 # The rows were read whole above, because an entrant reading stdin would eat the next row.
@@ -623,7 +623,7 @@ for cap_row in "${CAP_ROWS[@]}"; do
     require_no_foreign_processes \
       || fail "an unowned process appeared during the $id capability window, so no result from it is attributable"
     cap_keys "$produced"
-    n=$(wc -l < "$produced")
+    n=$(LC_ALL=C LANGUAGE= wc -l < "$produced")
     if [ "$n" != "$last_n" ]; then
       last_n=$n
       last_change=$waited
@@ -636,7 +636,7 @@ for cap_row in "${CAP_ROWS[@]}"; do
   can=""
   cannot=""
   for ext in $formats; do
-    got=$(printf '%s\n' "$made" | tr ';' '\n' | grep "^$ext=" | cut -d= -f2)
+    got=$(printf '%s\n' "$made" | LC_ALL=C LANGUAGE= tr ';' '\n' | LC_ALL=C LANGUAGE= grep "^$ext=" | LC_ALL=C LANGUAGE= cut -d= -f2)
     if [ "${got:-0}" -gt 0 ]; then
       can="${can:+$can, }$ext"
     else

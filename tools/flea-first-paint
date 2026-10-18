@@ -3,13 +3,13 @@
 set -u
 # Hard rule 9's guard, which owns FIXTURE_ROOT. This was the last script in the tree writing without
 # it, found by a class sweep rather than by a failure.
-. "$(dirname "$0")/../tools/flea-sandbox-guard"
+. "$(LC_ALL=C LANGUAGE= dirname "$0")/../tools/flea-sandbox-guard"
 
 
 export PATH="$HOME/.local/bin:$PATH"
-eval "$(omarchy-drive env)"
+eval "$(LC_ALL=C LANGUAGE= omarchy-drive env)"
 
-root=$(cd "$(dirname "$0")/.." && pwd) || exit 1
+root=$(cd "$(LC_ALL=C LANGUAGE= dirname "$0")/.." && pwd) || exit 1
 bin=${BIN:-$root/target/release/flea}
 ui=${UI:-$root/ui}
 dir=${DIR:-$FIXTURE_ROOT/flea-bench-btrfs}
@@ -37,7 +37,7 @@ fail() {
 is_flea_process() {
     local pid=$1
     [ -r "/proc/$pid/cmdline" ] || return 1
-    tr '\0' ' ' < "/proc/$pid/cmdline" | grep -Fq -- "$ui"
+    LC_ALL=C LANGUAGE= tr '\0' ' ' < "/proc/$pid/cmdline" | LC_ALL=C LANGUAGE= grep -Fq -- "$ui"
 }
 
 wait_for_flea_process() {
@@ -53,7 +53,7 @@ wait_for_flea_process() {
 
 assert_no_flea() {
     local pid
-    for pid in $(pgrep -x qs 2>/dev/null); do
+    for pid in $(LC_ALL=C LANGUAGE= pgrep -x qs 2>/dev/null); do
         if is_flea_process "$pid"; then
             fail "Flea is already running as pid $pid"
         fi
@@ -85,7 +85,7 @@ wait_for_row() {
     local deadline=$((SECONDS + timeout_seconds))
     local actual
     while ((SECONDS <= deadline)); do
-        actual=$(omarchy-drive ipc -p "$ui/boot" flea rowAt 0 2>/dev/null) || true
+        actual=$(LC_ALL=C LANGUAGE= omarchy-drive ipc -p "$ui/boot" flea rowAt 0 2>/dev/null) || true
         if [ "$actual" = "$expected_row" ]; then
             return 0
         fi
@@ -103,7 +103,7 @@ run_once() {
     local elapsed
 
     rm -f "$prewarm_path"
-    start=$(date +%s%3N)
+    start=$(LC_ALL=C LANGUAGE= date +%s%3N)
     if [ "$generate_prewarm" = yes ]; then
         "$bin" --prewarm "$dir" "$first" "$prewarm_path" || fail "prewarm failed"
     fi
@@ -123,7 +123,7 @@ run_once() {
         stop_shell "$pid"
         fail "the shell exited before a window appeared"
     fi
-    if ! omarchy-drive windows --json | grep -q '"class":"com.thisisgm.flea"'; then
+    if ! LC_ALL=C LANGUAGE= omarchy-drive windows --json | LC_ALL=C LANGUAGE= grep -q '"class":"com.thisisgm.flea"'; then
         stop_shell "$pid"
         fail "the mapped window is not Flea"
     fi
@@ -142,7 +142,7 @@ run_once() {
 
 [ -x "$bin" ] || fail "$bin is missing, run cargo build --release"
 [ -d "$dir" ] || fail "$dir is missing"
-[ "$(findmnt -T "$dir" -no FSTYPE)" != tmpfs ] || fail "$dir is on tmpfs"
+[ "$(LC_ALL=C LANGUAGE= findmnt -T "$dir" -no FSTYPE)" != tmpfs ] || fail "$dir is on tmpfs"
 case "$iterations" in
     ''|*[!0-9]*|0) fail "ITERATIONS must be a positive integer" ;;
 esac

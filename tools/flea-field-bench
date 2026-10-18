@@ -7,13 +7,13 @@ set -uo pipefail
 # than by $0's. It owns FIXTURE_ROOT and checks every path this script writes or deletes.
 # Exported, and overridable: tools/flea-bench-manifest is a child process that defaults to this
 # same path, so an unexported value left it reporting a different tree than the run measured.
-FLEA_REPO=$(readlink -f "${FLEA_REPO:-$HOME/Work/claude/flea}") || { printf 'FAIL: cannot resolve FLEA_REPO\n' >&2; exit 1; }
+FLEA_REPO=$(LC_ALL=C LANGUAGE= readlink -f "${FLEA_REPO:-$HOME/Work/claude/flea}") || { printf 'FAIL: cannot resolve FLEA_REPO\n' >&2; exit 1; }
 export FLEA_REPO
 . "$FLEA_REPO/tools/flea-sandbox-guard"
 
 # The CPU column needs a leaf cgroup, which only a delegated user scope may make; see AGENTS.md "Testing".
 # Sample input: /proc/self/cgroup "0::/user.slice/user-1000.slice/user@1000.service/app.slice/flea-field-bench-123.scope"
-case "$(cut -d: -f3 /proc/self/cgroup)" in
+case "$(LC_ALL=C LANGUAGE= cut -d: -f3 /proc/self/cgroup)" in
   */flea-field-bench-*.scope) ;;
   *)
     if [ -n "${FLEA_BENCH_REENTERED:-}" ]; then
@@ -36,15 +36,15 @@ if [ "$SUDO_NOPASSWD" = yes ]; then exec </dev/null; else
 fi
 
 export PATH="$HOME/.local/bin:$PATH"
-eval "$(omarchy-drive env)"
+eval "$(LC_ALL=C LANGUAGE= omarchy-drive env)"
 # omarchy-drive env omits the Qt platform theme, so without this the field benches a Flea that resolves no icon.
-export QT_QPA_PLATFORMTHEME="$(systemctl --user show-environment | grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-)"
+export QT_QPA_PLATFORMTHEME="$(LC_ALL=C LANGUAGE= systemctl --user show-environment | LC_ALL=C LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | LC_ALL=C LANGUAGE= cut -d= -f2-)"
 # Omarchy sets this with hl.env in envs.lua, so it reaches a Hyprland-launched client and is not in
 # the systemd user environment at all; a live client is the only authoritative reader. Same fallback
 # ~/tmp/flea-launch.sh already uses.
 if [ -z "$QT_QPA_PLATFORMTHEME" ]; then
-  barpid=$(pgrep -x quickshell | head -1)
-  [ -n "$barpid" ] && export QT_QPA_PLATFORMTHEME=$(tr "\0" "\n" < "/proc/$barpid/environ" | grep "^QT_QPA_PLATFORMTHEME=" | cut -d= -f2-)
+  barpid=$(LC_ALL=C LANGUAGE= pgrep -x quickshell | LC_ALL=C LANGUAGE= head -1)
+  [ -n "$barpid" ] && export QT_QPA_PLATFORMTHEME=$(LC_ALL=C LANGUAGE= tr "\0" "\n" < "/proc/$barpid/environ" | LC_ALL=C LANGUAGE= grep "^QT_QPA_PLATFORMTHEME=" | LC_ALL=C LANGUAGE= cut -d= -f2-)
 fi
 [ -n "$QT_QPA_PLATFORMTHEME" ] || { printf 'FAIL: no live client published QT_QPA_PLATFORMTHEME either, so every Qt entrant would be benched with no icon theme\n' >&2; exit 1; }
 
@@ -65,7 +65,7 @@ export FLEA_QMLCACHE="$FLEA_REPO/target/qmlcache"
 # anchor setup begin
 export ANCHOR_REPO="${ANCHOR_REPO:-}"
 if [ -n "$ANCHOR_REPO" ]; then
-  ANCHOR_REPO=$(readlink -f "$ANCHOR_REPO") || { printf 'FAIL: cannot resolve ANCHOR_REPO\n' >&2; exit 1; }
+  ANCHOR_REPO=$(LC_ALL=C LANGUAGE= readlink -f "$ANCHOR_REPO") || { printf 'FAIL: cannot resolve ANCHOR_REPO\n' >&2; exit 1; }
 fi
 WITH_ANCHOR=no
 if [ -n "$ANCHOR_REPO" ] && [ "$ANCHOR_REPO" != "$FLEA_REPO" ]; then WITH_ANCHOR=yes; fi
@@ -77,16 +77,16 @@ export ANCHOR_QMLCACHE="$ANCHOR_REPO/target/qmlcache"
 # manifest selection begin
 
 # A sibling manifest tool wins only when it carries the tree tool's provenance marker.
-MANIFEST_TOOL=$(dirname "$0")/flea-bench-manifest
-[ -x "$MANIFEST_TOOL" ] && grep -q '^manifest_tool_marker() {' "$MANIFEST_TOOL" || MANIFEST_TOOL="$FLEA_REPO/tools/flea-bench-manifest"
-MANIFEST_TOOL=$(readlink -f "$MANIFEST_TOOL")
+MANIFEST_TOOL=$(LC_ALL=C LANGUAGE= dirname "$0")/flea-bench-manifest
+[ -x "$MANIFEST_TOOL" ] && LC_ALL=C LANGUAGE= grep -q '^manifest_tool_marker() {' "$MANIFEST_TOOL" || MANIFEST_TOOL="$FLEA_REPO/tools/flea-bench-manifest"
+MANIFEST_TOOL=$(LC_ALL=C LANGUAGE= readlink -f "$MANIFEST_TOOL")
 # manifest selection end
 
 # Strata's binary path is explicit because it is built from source; STRATA_SRC names its build tree, checked by strata_provenance.
 STRATA_BIN=${STRATA_BIN:-$HOME/Work/strata/target/release/strata}
 STRATA_SRC=${STRATA_SRC:-}
 # The harness's own file, so the manifest can record its sha256 and whether a copy was patched.
-HARNESS_TOOL=$(readlink -f "$0")
+HARNESS_TOOL=$(LC_ALL=C LANGUAGE= readlink -f "$0")
 export ANCHOR_REPO ANCHOR_BIN ANCHOR_UI ANCHOR_QMLCACHE HARNESS_TOOL MANIFEST_TOOL
 # The one entrant here that persists no thumbnail. strata renders each one in a sandboxed helper
 # that writes result.png into /tmp/strata-preview-<pid>-<n> and deletes the directory on drop, so it
@@ -184,7 +184,7 @@ fail() { printf 'FAIL: %s\n' "$*" >&2; exit 1; }
 [ "${XDG_CACHE_HOME:-$HOME/.cache}" = "$HOME/.cache" ] || fail "XDG_CACHE_HOME is $XDG_CACHE_HOME, but the thumbnail and prefetch parks work under $HOME/.cache, so the caches the tested Flea reads would stay in place"
 
 # The scope the re-entry above made; every entrant run gets a leaf of its own under it.
-BENCH_CG="/sys/fs/cgroup$(cut -d: -f3 /proc/self/cgroup)"
+BENCH_CG="/sys/fs/cgroup$(LC_ALL=C LANGUAGE= cut -d: -f3 /proc/self/cgroup)"
 [ -w "$BENCH_CG" ] || fail "the bench scope $BENCH_CG is not writable, so no run could be given a control group of its own"
 RUN_CG=""
 ENTRANT_SCOPE=""
@@ -324,7 +324,7 @@ run_guarded() {
   while :; do
     WG_CLEAN=""
     run_one "$@" >> "$OUT"
-    tail -1 "$OUT"
+    LC_ALL=C LANGUAGE= tail -1 "$OUT"
     # Only a launch that was measured and found contaminated is repeated, and its row stays in the CSV.
     [ "$WG_CLEAN" = 0 ] || break
     if [ "$RERUN_N" -ge "$WRITE_RERUNS" ]; then
@@ -372,7 +372,7 @@ drop_thumbs() {
   # A crashed run can leave a populated cache behind, and the run then reports cache hits as a result.
   local d
   for d in "$THUMBS"/*/; do
-    [ "$(ls -A "$d" | wc -l)" = 0 ] || fail "the scratch thumbnail cache is not empty at the start of a cold run: $d"
+    [ "$(LC_ALL=C LANGUAGE= ls -A "$d" | LC_ALL=C LANGUAGE= wc -l)" = 0 ] || fail "the scratch thumbnail cache is not empty at the start of a cold run: $d"
   done
 }
 
@@ -385,7 +385,7 @@ count_thumbs() {
   for d in "$THUMBS"/*/; do
     [ -d "$d" ] || continue
     name=${d%/}; name=${name##*/}
-    n=$(find "$d" -type f | wc -l)
+    n=$(LC_ALL=C LANGUAGE= find "$d" -type f | LC_ALL=C LANGUAGE= wc -l)
     # fail/ holds one marker per file a thumbnailer refused, so it is reported and never added to the total.
     [ "$name" = fail ] || THUMBS_N=$(( THUMBS_N + n ))
     THUMBS_BY_DIR="${THUMBS_BY_DIR:+$THUMBS_BY_DIR;}$name=$n"
@@ -408,7 +408,7 @@ WATCH_ARM_TIMEOUT_MS=${WATCH_ARM_TIMEOUT_MS:-30000}
 watch_armed() {
   local err=$1 deadline
   now_ms; deadline=$(( NOW_MS + WATCH_ARM_TIMEOUT_MS ))
-  while ! grep -q 'Watches established' "$err" 2>/dev/null; do
+  while ! LC_ALL=C LANGUAGE= grep -q 'Watches established' "$err" 2>/dev/null; do
     now_ms
     [ "$NOW_MS" -gt "$deadline" ] && return 1
     sleep 0.05
@@ -427,9 +427,9 @@ watch_start() {
   : > "$WATCH_OPENS"
   : > "$WATCH_RENDERS.err"
   : > "$WATCH_OPENS.err"
-  inotifywait -m -r -e close_write --format '%w%f' /tmp > "$WATCH_RENDERS" 2> "$WATCH_RENDERS.err" &
+  LC_ALL=C LANGUAGE= inotifywait -m -r -e close_write --format '%w%f' /tmp > "$WATCH_RENDERS" 2> "$WATCH_RENDERS.err" &
   WATCH_PIDS=("$!")
-  inotifywait -m -e open --format '%f' "$FIXTURE" > "$WATCH_OPENS" 2> "$WATCH_OPENS.err" &
+  LC_ALL=C LANGUAGE= inotifywait -m -e open --format '%f' "$FIXTURE" > "$WATCH_OPENS" 2> "$WATCH_OPENS.err" &
   WATCH_PIDS+=("$!")
   watch_armed "$WATCH_RENDERS.err" || fail "the render watch never armed on /tmp"
   watch_armed "$WATCH_OPENS.err" || fail "the fixture watch never armed on $FIXTURE"
@@ -450,18 +450,18 @@ watch_stop() {
     kill -0 "$pid" 2>/dev/null || fail "a $id watch died during the run, so nothing it wrote is a count"
   done
   watch_kill
-  WATCH_N=$(grep -c "^$TRANSIENT_PREFIX[0-9]*-[0-9]*/result\.png\$" "$WATCH_RENDERS")
+  WATCH_N=$(LC_ALL=C LANGUAGE= grep -c "^$TRANSIENT_PREFIX[0-9]*-[0-9]*/result\.png\$" "$WATCH_RENDERS")
   # Two entrant processes in one window would let one run's renders be counted for another.
-  pids=$(grep -o "^$TRANSIENT_PREFIX[0-9]*" "$WATCH_RENDERS" | LC_ALL=C sort -u | grep -c .)
+  pids=$(LC_ALL=C LANGUAGE= grep -o "^$TRANSIENT_PREFIX[0-9]*" "$WATCH_RENDERS" | LC_ALL=C LANGUAGE= sort -u | LC_ALL=C LANGUAGE= grep -c .)
   [ "$pids" -le 1 ] || fail "$pids $id processes wrote renders in this run, so no count from it is attributable"
-  opens_n=$(grep -c . "$WATCH_OPENS")
+  opens_n=$(LC_ALL=C LANGUAGE= grep -c . "$WATCH_OPENS")
   WATCH_REFUSED=""
   # corner: the pairing holds for a strata that renders one file at a time into a per-render dir, and v0.19.0's reused workers write none.
   if [ "$opens_n" -lt "$WATCH_N" ] || [ $(( opens_n - WATCH_N )) -gt 1 ]; then
     WATCH_REFUSED="its watches saw $WATCH_N renders for $opens_n opened fixture files so neither is a count"
     return 0
   fi
-  grep . "$WATCH_OPENS" | head -n "$WATCH_N" > "$WATCH_RENDERED"
+  LC_ALL=C LANGUAGE= grep . "$WATCH_OPENS" | LC_ALL=C LANGUAGE= head -n "$WATCH_N" > "$WATCH_RENDERED"
 }
 
 # The extension of every name the entrant rendered, in the fixture map's own extension order, so a
@@ -473,7 +473,7 @@ watch_classify() {
     case $name in *.*) ext=${name##*.} ;; *) ext=none ;; esac
     count[$ext]=$(( ${count[$ext]:-0} + 1 ))
   done < "$WATCH_RENDERED"
-  for ext in $(cut -d' ' -f2 "$KEY_MAP" | LC_ALL=C sort -u); do
+  for ext in $(LC_ALL=C LANGUAGE= cut -d' ' -f2 "$KEY_MAP" | LC_ALL=C LANGUAGE= sort -u); do
     n=${count[$ext]:-0}
     out="${out:+$out;}$ext=$n"
     total=$(( total + n ))
@@ -486,7 +486,7 @@ watch_classify() {
 # because a preview nobody could see was not measured.
 preview_colours() {
   grim -g "$PREVIEW_REGION" "$PREVIEW_SHOT" 2>/dev/null || return 1
-  magick "$PREVIEW_SHOT" -format %k info: 2>/dev/null
+  LC_ALL=C LANGUAGE= magick "$PREVIEW_SHOT" -format %k info: 2>/dev/null
 }
 
 # The TUI group's number: time from launch to the cursor file's preview being on screen. It runs
@@ -534,10 +534,10 @@ measure_preview() {
 capture_keys() {
   local id=$1
   KEYS_FILE="$KEYS_DIR/$id-run$RUN_INDEX.keys"
-  find "$THUMBS" -type f -name '*.png' -not -path "$THUMBS/fail/*" -printf '%f\n' 2>/dev/null \
-    | sed 's/\.png$//' | LC_ALL=C sort -u > "$KEYS_FILE"
-  find "$THUMBS/fail" -type f -name '*.png' -printf '%f\n' 2>/dev/null \
-    | sed 's/\.png$//' | LC_ALL=C sort -u > "$KEYS_DIR/$id-run$RUN_INDEX.fail.keys"
+  LC_ALL=C LANGUAGE= find "$THUMBS" -type f -name '*.png' -not -path "$THUMBS/fail/*" -printf '%f\n' 2>/dev/null \
+    | LC_ALL=C LANGUAGE= sed 's/\.png$//' | LC_ALL=C LANGUAGE= sort -u > "$KEYS_FILE"
+  LC_ALL=C LANGUAGE= find "$THUMBS/fail" -type f -name '*.png' -printf '%f\n' 2>/dev/null \
+    | LC_ALL=C LANGUAGE= sed 's/\.png$//' | LC_ALL=C LANGUAGE= sort -u > "$KEYS_DIR/$id-run$RUN_INDEX.fail.keys"
 }
 
 # A plain mv moves the parked cache INTO a recreated $THUMBS, so -T closes that race and the refusal makes it loud.
@@ -615,7 +615,7 @@ token_pids() {
   while IFS= read -r f; do
     f=${f#/proc/}
     TOKEN_PIDS+=("${f%/environ}")
-  done < <(grep -lzsx -- "FLEA_FIELD_BENCH=$1" /proc/[0-9]*/environ)
+  done < <(LC_ALL=C LANGUAGE= grep -lzsx -- "FLEA_FIELD_BENCH=$1" /proc/[0-9]*/environ)
 }
 
 # Ends what the kill list missed, names each process in the log, and fails when one outlives SIGKILL.
@@ -625,7 +625,7 @@ sweep_token() {
   [ ${#TOKEN_PIDS[@]} -eq 0 ] && return 0
   for pid in "${TOKEN_PIDS[@]}"; do
     printf 'LEFTOVER: pid %s (%s) in %s carried the bench token past the kill list\n' \
-      "$pid" "$(cat "/proc/$pid/comm" 2>/dev/null)" "$(cut -d: -f3 "/proc/$pid/cgroup" 2>/dev/null)" >&2
+      "$pid" "$(LC_ALL=C LANGUAGE= cat "/proc/$pid/comm" 2>/dev/null)" "$(LC_ALL=C LANGUAGE= cut -d: -f3 "/proc/$pid/cgroup" 2>/dev/null)" >&2
     kill "$pid" 2>/dev/null
   done
   # In tenths of a second, a grace for SIGTERM and then for SIGKILL; a zombie has an empty environ and drops out.
@@ -649,11 +649,11 @@ tui_first_rows() {
   local t0=$1 deadline=$2 size=0 last=0
   FIRST_ROWS_MS=-1
   while :; do
-    size=$(stat -c %s "$TUI_DUMP" 2>/dev/null || echo 0)
+    size=$(LC_ALL=C LANGUAGE= stat -c %s "$TUI_DUMP" 2>/dev/null || echo 0)
     now_ms
     if [ "$size" -gt "$last" ]; then
       last=$size
-      grep -qaFf "$TUI_NAMES" "$TUI_DUMP" && { FIRST_ROWS_MS=$(( NOW_MS - t0 )); return 0; }
+      LC_ALL=C LANGUAGE= grep -qaFf "$TUI_NAMES" "$TUI_DUMP" && { FIRST_ROWS_MS=$(( NOW_MS - t0 )); return 0; }
     fi
     [ "$NOW_MS" -gt "$deadline" ] && return 1
     sleep "$TUI_ROWS_POLL_S"
@@ -706,7 +706,7 @@ mount_ticks_delta() {
 }
 # The cpu_sys_s formula in one place, so the suite tests it directly.
 sys_seconds() {
-  awk -v c="$1" -v d="$2" -v hz="$3" 'BEGIN { printf "%.2f", c + d / hz }'
+  LC_ALL=C LANGUAGE= awk -v c="$1" -v d="$2" -v hz="$3" 'BEGIN { printf "%.2f", c + d / hz }'
 }
 
 # The helper is the second process an entrant does its work in, declared per entrant and resolved after launch.
@@ -754,7 +754,7 @@ settle_ticks() {
     if [ -z "$HELPER_SIDE" ]; then
       HELPER_SIDE=outside
       # An if and not an &&: this is the function's last command, and an && list's false for tumblerd read as thunar gone.
-      if grep -qx "0::${RUN_CG#/sys/fs/cgroup}" "/proc/$HELPER_PID/cgroup" 2>/dev/null; then HELPER_SIDE=inside; fi
+      if LC_ALL=C LANGUAGE= grep -qx "0::${RUN_CG#/sys/fs/cgroup}" "/proc/$HELPER_PID/cgroup" 2>/dev/null; then HELPER_SIDE=inside; fi
     fi
   fi
 }
@@ -783,7 +783,7 @@ entrant_cg() {
   case "$name" in kitty-*-*.scope) ;; *) return 1 ;; esac
   kitty_pid=${name#kitty-}
   kitty_pid=${kitty_pid%%-*}
-  grep -qx "0::${RUN_CG#/sys/fs/cgroup}" "/proc/$kitty_pid/cgroup" 2>/dev/null || return 1
+  LC_ALL=C LANGUAGE= grep -qx "0::${RUN_CG#/sys/fs/cgroup}" "/proc/$kitty_pid/cgroup" 2>/dev/null || return 1
   ENTRANT_SCOPE=$ENTRANT_CG
 }
 
@@ -802,7 +802,7 @@ sweep_cg() {
   while ! cg_empty "$cg" && [ "$polls" -lt "$grace_polls" ]; do sleep 0.1; polls=$(( polls + 1 )); done
   [ -r "$cg/cgroup.procs" ] || return 0
   while read -r pid; do
-    printf 'LEFTOVER: pid %s (%s) outlived the kill list in %s\n' "$pid" "$(cat "/proc/$pid/comm" 2>/dev/null)" "$cg" >&2
+    printf 'LEFTOVER: pid %s (%s) outlived the kill list in %s\n' "$pid" "$(LC_ALL=C LANGUAGE= cat "/proc/$pid/comm" 2>/dev/null)" "$cg" >&2
     n=$(( n + 1 ))
   done < "$cg/cgroup.procs"
   [ "$n" -gt 0 ] && echo 1 > "$cg/cgroup.kill"
@@ -905,10 +905,10 @@ drm_kb() {
 pids_for() {
   local comm=$1 token=${2:-} pid c
   PIDS=()
-  for pid in $(pgrep -x "$comm" 2>/dev/null); do
+  for pid in $(LC_ALL=C LANGUAGE= pgrep -x "$comm" 2>/dev/null); do
     [ -r "/proc/$pid/cmdline" ] || continue
     if [ -n "$token" ]; then
-      c=$(tr '\0' ' ' < "/proc/$pid/cmdline")
+      c=$(LC_ALL=C LANGUAGE= tr '\0' ' ' < "/proc/$pid/cmdline")
       case "$c" in *"$token"*) ;; *) continue ;; esac
     fi
     PIDS+=("$pid")
@@ -917,7 +917,7 @@ pids_for() {
 
 kill_entrant() {
   local comm=$1 token=${2:-} pid
-  for _round in $(seq 1 200); do
+  for _round in $(LC_ALL=C LANGUAGE= seq 1 200); do
     pids_for "$comm" "$token"
     [ ${#PIDS[@]} -eq 0 ] && return 0
     for pid in "${PIDS[@]}"; do kill "$pid" 2>/dev/null; done
@@ -1078,7 +1078,7 @@ warm_qml_cache() {
   local state quiet=0 polls=0 n pid cg="$BENCH_CG/run-warm"
   [ -e "$PREFETCH" ] && fail "a prefetch list is already at $PREFETCH before the warm launch, so the warm guard could pass from a stale list"
   mkdir -p "$FLEA_QMLCACHE" || fail "cannot make $FLEA_QMLCACHE"
-  state=$(mktemp -d "$FLEA_STATE/warm-state.XXXXXX") || fail "no warm state directory under $FLEA_STATE"
+  state=$(LC_ALL=C LANGUAGE= mktemp -d "$FLEA_STATE/warm-state.XXXXXX") || fail "no warm state directory under $FLEA_STATE"
   cp -a "$FLEA_STATE/flea" "$state/" || fail "cannot copy the shipped defaults into $state"
   : > "$state/polled" || fail "cannot write the poll marker in $state"
   # A leaf of its own, as a timed run has, so warm_stop can end everything it starts, sandboxed decoders in their own sessions included.
@@ -1093,7 +1093,7 @@ warm_qml_cache() {
   # Out of the job table, so the shell never prints the killed job into the run log.
   disown "$pid"
   # The launch keeps its pid through exec, so it is seen in the group once joined, or gone if the join failed.
-  until grep -qx "$pid" "$cg/cgroup.procs" 2> /dev/null; do
+  until LC_ALL=C LANGUAGE= grep -qx "$pid" "$cg/cgroup.procs" 2> /dev/null; do
     kill -0 "$pid" 2> /dev/null || { warm_stop "$cg"; fail "the warm launch left before it joined $cg"; }
     sleep "$WARM_JOIN_POLL_S"
   done
@@ -1106,16 +1106,16 @@ warm_qml_cache() {
   while [ "$polls" -lt "$WARM_MAX_POLLS" ] && [ "$quiet" -lt "$WARM_QUIET_POLLS" ]; do
     sleep "$WARM_POLL_S"; polls=$(( polls + 1 ))
     : > "$state/polling"
-    if [ -n "$(find "$FLEA_QMLCACHE" -newer "$state/polled" -print -quit)" ]; then quiet=0; else quiet=$(( quiet + 1 )); fi
+    if [ -n "$(LC_ALL=C LANGUAGE= find "$FLEA_QMLCACHE" -newer "$state/polled" -print -quit)" ]; then quiet=0; else quiet=$(( quiet + 1 )); fi
     mv "$state/polling" "$state/polled"
   done
   warm_stop "$cg"
   [ "$quiet" -ge "$WARM_QUIET_POLLS" ] \
     || fail "the warm launch was still writing QML units into $FLEA_QMLCACHE after $WARM_MAX_POLLS polls, so the first timed launch could compile"
-  n=$(ls -A "$FLEA_QMLCACHE" | wc -l)
+  n=$(LC_ALL=C LANGUAGE= ls -A "$FLEA_QMLCACHE" | LC_ALL=C LANGUAGE= wc -l)
   [ "$n" -gt 0 ] || fail "the warm launch compiled nothing into $FLEA_QMLCACHE, so the first timed launch would compile"
   [ -s "$PREFETCH" ] || fail "the warm launch recorded no prefetch list at $PREFETCH, so the first timed launch would run without one"
-  printf 'WARM: %s QML units in %s, prefetch list of %s lines\n' "$n" "$FLEA_QMLCACHE" "$(wc -l < "$PREFETCH")" >&2
+  printf 'WARM: %s QML units in %s, prefetch list of %s lines\n' "$n" "$FLEA_QMLCACHE" "$(LC_ALL=C LANGUAGE= wc -l < "$PREFETCH")" >&2
 }
 
 # Closes the warm Flea as clean_bench closes a timed one, kills whatever is left in its control group, and fails if the group will not empty.
@@ -1137,9 +1137,9 @@ stop_warm_job() {
     pid=${!:-}
     [ -n "$pid" ] && [ "$pid" != "${WARM_PREVIOUS_PID:-}" ] || return 0
     # Sample input: ps -o pgid=,ppid= -p 4242 prints "4242 4100" for the warm group leader and its bench parent.
-    read -r pgid parent < <(ps -o pgid=,ppid= -p "$pid") || return 0
+    read -r pgid parent < <(LC_ALL=C LANGUAGE= ps -o pgid=,ppid= -p "$pid") || return 0
     [ "$pgid" = "$pid" ] && [ "$parent" = "$$" ] \
-      && cmp -s "/proc/$pid/cmdline" "/proc/$$/cmdline" || return 0
+      && LC_ALL=C LANGUAGE= cmp -s "/proc/$pid/cmdline" "/proc/$$/cmdline" || return 0
   fi
   [ -n "$pid" ] || return 0
   kill -TERM -- "-$pid" 2>/dev/null || true
@@ -1161,8 +1161,8 @@ stop_warm_job() {
 # Sample input: hyprland-dialog's cmdline "--title Application Not Responding --text An application flea-media-btrfs - pcmanfm is not responding. ..."
 close_entrant_dialogs() {
   local pid text row id kind class rest
-  for pid in $(pgrep -x hyprland-dialog 2>/dev/null); do
-    text=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)
+  for pid in $(LC_ALL=C LANGUAGE= pgrep -x hyprland-dialog 2>/dev/null); do
+    text=$(LC_ALL=C LANGUAGE= tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)
     for row in "${ENTRANTS[@]}"; do
       IFS='|' read -r id kind class rest <<< "$row"
       case "$text" in *" - $class is not responding"*) ;; *) continue ;; esac
@@ -1178,7 +1178,7 @@ require_bench_idle() {
   local row comm token pid n=0 load load_hundredths waited=0
   # Sample input: /proc/loadavg "0.44 0.19 0.30 1/595 2585811", and the first field is the minute.
   while :; do
-    load=$(cut -d' ' -f1 /proc/loadavg)
+    load=$(LC_ALL=C LANGUAGE= cut -d' ' -f1 /proc/loadavg)
     load_hundredths=$(( 10#${load/./} ))
     [ "$load_hundredths" -le "$BENCH_MAX_LOAD_HUNDREDTHS" ] && break
     [ "$waited" -ge "$BENCH_IDLE_WAIT_S" ] \
@@ -1189,20 +1189,20 @@ require_bench_idle() {
   done
   BENCH_IDLE_WAITED=$waited
   # Any dialog on screen floats over the entrants and takes their focus, and one this run did not cause is not its to close.
-  pgrep -x hyprland-dialog >/dev/null && fail "a hyprland-dialog is on screen, and it would float over and take focus from every entrant"
+  LC_ALL=C LANGUAGE= pgrep -x hyprland-dialog >/dev/null && fail "a hyprland-dialog is on screen, and it would float over and take focus from every entrant"
   [ "$waited" -gt 0 ] && printf 'the box settled after %ss at load %s\n' "$waited" "$load" >&2
   for row in "${KILL_TARGETS[@]}"; do
     IFS='|' read -r comm token <<< "$row"
     pids_for "$comm" "$token"
     for pid in "${PIDS[@]}"; do
-      printf 'FAIL: pid %s is already alive and this run would kill it: %s\n' "$pid" "$(tr '\0' ' ' < "/proc/$pid/cmdline")" >&2
+      printf 'FAIL: pid %s is already alive and this run would kill it: %s\n' "$pid" "$(LC_ALL=C LANGUAGE= tr '\0' ' ' < "/proc/$pid/cmdline")" >&2
       n=$(( n + 1 ))
     done
   done
   # A process from an earlier invocation that was killed before its sweep ran still carries that invocation's token.
   token_pids '.*'
   for pid in "${TOKEN_PIDS[@]}"; do
-    printf 'FAIL: pid %s (%s) outlived an earlier field run: %s\n' "$pid" "$(cat "/proc/$pid/comm" 2>/dev/null)" "$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)" >&2
+    printf 'FAIL: pid %s (%s) outlived an earlier field run: %s\n' "$pid" "$(LC_ALL=C LANGUAGE= cat "/proc/$pid/comm" 2>/dev/null)" "$(LC_ALL=C LANGUAGE= tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)" >&2
     n=$(( n + 1 ))
   done
   [ "$n" -eq 0 ] || fail "the $n process(es) named above would be killed by this run, so it refuses to start"
@@ -1222,9 +1222,9 @@ wait_for_pid() {
 # True when a client pid is this run's own: its comm, and its command line carrying the token when one is given.
 window_owned() {
   local pid=$1 comm=$2 token=$3 c
-  [ "$(cat "/proc/$pid/comm" 2>/dev/null)" = "$comm" ] || return 1
+  [ "$(LC_ALL=C LANGUAGE= cat "/proc/$pid/comm" 2>/dev/null)" = "$comm" ] || return 1
   [ -n "$token" ] || return 0
-  c=$(tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)
+  c=$(LC_ALL=C LANGUAGE= tr '\0' ' ' < "/proc/$pid/cmdline" 2>/dev/null)
   case "$c" in *"$token"*) return 0 ;; esac
   return 1
 }
@@ -1236,14 +1236,14 @@ note_foreign_window() {
   [ -n "${FOREIGN_SEEN[$pid]:-}" ] && return 0
   FOREIGN_SEEN[$pid]=1
   printf 'FOREIGN WINDOW: pid %s (%s) holds class %s, and this run waits for %s %s\n' \
-    "$pid" "$(cat "/proc/$pid/comm" 2>/dev/null)" "$class" "$owner_comm" "$owner_token" >&2
+    "$pid" "$(LC_ALL=C LANGUAGE= cat "/proc/$pid/comm" 2>/dev/null)" "$class" "$owner_comm" "$owner_token" >&2
 }
 
 # Mapped when a client of this class is owned by this run's entrant, polled directly because omarchy-drive waits at 50 ms.
 wait_for_window() {
   local class=$1 deadline=$2 owner_comm=$3 owner_token=$4 clients pid seen
   while :; do
-    clients=$(hyprctl -j clients 2>/dev/null)
+    clients=$(LC_ALL=C LANGUAGE= hyprctl -j clients 2>/dev/null)
     # Stamped before the ownership check, so its forks never reach mapped_ms and every entrant pays the same.
     now_ms
     seen=$NOW_MS
@@ -1251,7 +1251,7 @@ wait_for_window() {
     case $clients in
       *"\"class\": \"$class\""*)
         # Sample input, one client of hyprctl -j clients: {"class": "com.thisisgm.flea", "pid": 12345, ...}
-        for pid in $(printf '%s' "$clients" | jq -r --arg c "$class" '.[] | select(.class == $c) | .pid'); do
+        for pid in $(printf '%s' "$clients" | LC_ALL=C LANGUAGE= jq -r --arg c "$class" '.[] | select(.class == $c) | .pid'); do
           if window_owned "$pid" "$owner_comm" "$owner_token"; then
             NOW_MS=$seen
             return 0
@@ -1270,7 +1270,7 @@ NET_IFACE=""
 # Sample input, one /proc/net/dev line: "  eth0: 123456 789 ..." where the first number is receive bytes.
 net_rx_bytes() {
   local v
-  v=$(grep "^ *$1:" /proc/net/dev 2>/dev/null | tr -s ' ' | sed 's/^ //' | cut -d' ' -f2)
+  v=$(LC_ALL=C LANGUAGE= grep "^ *$1:" /proc/net/dev 2>/dev/null | LC_ALL=C LANGUAGE= tr -s ' ' | LC_ALL=C LANGUAGE= sed 's/^ //' | LC_ALL=C LANGUAGE= cut -d' ' -f2)
   printf '%s' "${v:-0}"
 }
 
@@ -1406,9 +1406,9 @@ run_one() {
   drm_kb "$pid"
   # cpu.stat counts microseconds and /proc/<pid>/stat counts USER_HZ ticks, 100 a second on this kernel.
   local usec_per_second=1000000 ticks_per_second=100
-  cpu_s=$(awk -v t="$last_entrant" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", t / hz }')
+  cpu_s=$(LC_ALL=C LANGUAGE= awk -v t="$last_entrant" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", t / hz }')
   # The old reading, kept so a table from before the leaf can still be compared: a sandboxed decode never reaches it, see AGENTS.md "Testing".
-  cpu_reaped_s=$(awk -v t="$last_tree" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", t / hz }')
+  cpu_reaped_s=$(LC_ALL=C LANGUAGE= awk -v t="$last_tree" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", t / hz }')
   cgroup_usage_usec "$RUN_CG" || fail "no usage_usec in $RUN_CG/cpu.stat, so this row has no CPU column"
   local run_usec=$CG_USEC
   # Read at settle and not at launch: kitty's move can land after the launch check, and its scope leaves with the child.
@@ -1420,7 +1420,7 @@ run_one() {
     fi
   fi
   [ "$HELPER_SIDE" = outside ] && helper_add=$last_helper
-  cpu_tree_s=$(awk -v u="$run_usec" -v us="$usec_per_second" -v t="$helper_add" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", u / us + t / hz }')
+  cpu_tree_s=$(LC_ALL=C LANGUAGE= awk -v u="$run_usec" -v us="$usec_per_second" -v t="$helper_add" -v hz="$ticks_per_second" 'BEGIN { printf "%.2f", u / us + t / hz }')
   if mount_ticks_delta; then
     cpu_sys_s=$(sys_seconds "$cpu_tree_s" "$MOUNT_DTICKS" "$ticks_per_second")
   else
@@ -1495,7 +1495,7 @@ run_one() {
 # bare ls would hide a stray dotfile from a check whose whole job is to refuse an altered fixture,
 # so the dotfiles are judged by NAME rather than folded into a total nobody can re-derive.
 case $FIXTURE_KIND in ""|nas|usb) ;; *) fail "FIXTURE_KIND=$FIXTURE_KIND names no known fixture kind (nas, usb)" ;; esac
-fixture_payload=$(ls -U "$FIXTURE" | wc -l)
+fixture_payload=$(LC_ALL=C LANGUAGE= ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= wc -l)
 [ "$fixture_payload" = "$EXPECT_FILES" ] \
   || fail "fixture holds $fixture_payload visible entries, not $EXPECT_FILES"
 # A nas or usb fixture is not the harness's own tree: only the payload count above applies.
@@ -1512,11 +1512,11 @@ while IFS= read -r dotfile; do
     .seed.*) ;;
     *) fail "fixture carries an unexpected dotfile: $dotfile" ;;
   esac
-done < <(ls -A "$FIXTURE" | grep '^\.')
+done < <(LC_ALL=C LANGUAGE= ls -A "$FIXTURE" | LC_ALL=C LANGUAGE= grep '^\.')
 # A missing marker means this is not the fixture the harness built, which a name check alone cannot
 # see: it only judges the dotfiles that are there.
 [ "$fixture_marked" = yes ] || fail "fixture carries none of the marker names above, so it is not one this harness built"
-[ "$(findmnt -no FSTYPE -T "$FIXTURE")" = "btrfs" ] || fail "fixture is not on btrfs"
+[ "$(LC_ALL=C LANGUAGE= findmnt -no FSTYPE -T "$FIXTURE")" = "btrfs" ] || fail "fixture is not on btrfs"
 fi
 require_bench_idle
 
@@ -1531,16 +1531,16 @@ safe_rm_tmpdir() {
   [ -d "$dir" ] || { printf 'WARNING: not removing %s path %s, it is not a directory\n' "$kind" "$dir" >&2; return 1; }
   [ -f "$dir/$PERF_TMP_MARK" ] || { printf 'WARNING: not removing %s path %s, it carries no marker\n' "$kind" "$dir" >&2; return 1; }
   [ -L "$dir/$PERF_TMP_MARK" ] && { printf 'WARNING: not removing %s path %s, its marker is a symlink\n' "$kind" "$dir" >&2; return 1; }
-  mark=$(cat "$dir/$PERF_TMP_MARK" 2>/dev/null) || { printf 'WARNING: not removing %s path %s, its marker is unreadable\n' "$kind" "$dir" >&2; return 1; }
+  mark=$(LC_ALL=C LANGUAGE= cat "$dir/$PERF_TMP_MARK" 2>/dev/null) || { printf 'WARNING: not removing %s path %s, its marker is unreadable\n' "$kind" "$dir" >&2; return 1; }
   [ "$mark" = "owner=$$" ] || { printf 'WARNING: not removing %s path %s, its marker names another owner\n' "$kind" "$dir" >&2; return 1; }
   rm -rf "$dir" || { printf 'WARNING: could not remove %s path %s\n' "$kind" "$dir" >&2; return 1; }
 }
 # The copied kitty callback must not point outside the marked roots: its socket lives under TUI_CONF.
 materialize_tui_socket() {
   [ -f "$TUI_CONF/kitty/kitty.conf" ] || return 0
-  sed -i "s|unix:/tmp/flea-bench-kitty|unix:$TUI_CONF/flea-bench-kitty|" "$TUI_CONF/kitty/kitty.conf" || return 1
-  grep -q "unix:$TUI_CONF/flea-bench-kitty" "$TUI_CONF/kitty/kitty.conf" || return 1
-  ! grep -q "unix:/tmp/flea-bench-kitty" "$TUI_CONF/kitty/kitty.conf" || return 1
+  LC_ALL=C LANGUAGE= sed -i "s|unix:/tmp/flea-bench-kitty|unix:$TUI_CONF/flea-bench-kitty|" "$TUI_CONF/kitty/kitty.conf" || return 1
+  LC_ALL=C LANGUAGE= grep -q "unix:$TUI_CONF/flea-bench-kitty" "$TUI_CONF/kitty/kitty.conf" || return 1
+  ! LC_ALL=C LANGUAGE= grep -q "unix:/tmp/flea-bench-kitty" "$TUI_CONF/kitty/kitty.conf" || return 1
 }
 
 # Everything this run made and nothing else: parks go back and only this run's marked mktemp dirs are removed.
@@ -1571,7 +1571,7 @@ trap 'exit 130' INT
 trap 'exit 143' TERM
 
 # After the trap, never before it: an earlier temp directory would leak on every early exit between the two.
-TUI_CONF=$(mktemp -d) || fail "no temp directory for the TUI configuration"
+TUI_CONF=$(LC_ALL=C LANGUAGE= mktemp -d) || fail "no temp directory for the TUI configuration"
 printf 'owner=%s\n' "$$" > "$TUI_CONF/$PERF_TMP_MARK" || fail "could not mark $TUI_CONF"
 cp -r "$TUI_CONF_SRC/." "$TUI_CONF/" || fail "could not copy $TUI_CONF_SRC"
 # What a TUI rows probe's kitty receives from its child, and the entry names whose first appearance in it stamps first_rows_ms.
@@ -1583,13 +1583,13 @@ TUI_NAMES=$TUI_CONF/fixture-names
 # The first screen of an ascending name sort, by byte order and by natural order, without names short enough to match chrome.
 first_screen_names=400
 min_name_chars=4
-{ ls -A "$FIXTURE" | LC_ALL=C sort | head -"$first_screen_names"; ls -A "$FIXTURE" | sort -V | head -"$first_screen_names"; } | grep -E ".{$min_name_chars,}" | sort -u > "$TUI_NAMES"
+{ LC_ALL=C LANGUAGE= ls -A "$FIXTURE" | LC_ALL=C LANGUAGE= sort | LC_ALL=C LANGUAGE= head -"$first_screen_names"; LC_ALL=C LANGUAGE= ls -A "$FIXTURE" | LC_ALL=C LANGUAGE= sort -V | LC_ALL=C LANGUAGE= head -"$first_screen_names"; } | LC_ALL=C LANGUAGE= grep -E ".{$min_name_chars,}" | LC_ALL=C LANGUAGE= sort -u > "$TUI_NAMES"
 [ -s "$TUI_NAMES" ] || fail "no fixture entry name in $FIXTURE is $min_name_chars characters or longer, so no TUI listing could be recognised"
-TUI_CONF_FS=$(findmnt -no FSTYPE --target "$TUI_CONF")
+TUI_CONF_FS=$(LC_ALL=C LANGUAGE= findmnt -no FSTYPE --target "$TUI_CONF")
 # lf reads previewer as a path and does not expand a variable in it, measured: the config drew no
 # image until the path was absolute. The committed file carries the name so it stays readable, and
 # the run materialises it. The manifest records the materialised copy, which is what actually ran.
-find "$TUI_CONF" -type f -exec sed -i "s|\$XDG_CONFIG_HOME|$TUI_CONF|g" {} +
+LC_ALL=C LANGUAGE= find "$TUI_CONF" -type f -exec sed -i "s|\$XDG_CONFIG_HOME|$TUI_CONF|g" {} +
 materialize_tui_socket || fail "the copied kitty callback keeps a socket outside $TUI_CONF"
 # broot lists nothing until its first-run install question is answered (src/shell_install/state.rs), so a run with broot starts answered.
 if only_has broot && command -v broot > /dev/null 2>&1; then
@@ -1599,7 +1599,7 @@ if only_has broot && command -v broot > /dev/null 2>&1; then
 fi
 
 # Flea runs on its shipped defaults, because an operator's saved view, sort or rows decide what the first screen holds.
-FLEA_STATE=$(mktemp -d /tmp/flea-bench-state.XXXXXX) || fail "no temp directory for Flea's state"
+FLEA_STATE=$(LC_ALL=C LANGUAGE= mktemp -d /tmp/flea-bench-state.XXXXXX) || fail "no temp directory for Flea's state"
 printf 'owner=%s\n' "$$" > "$FLEA_STATE/$PERF_TMP_MARK" || fail "could not mark $FLEA_STATE"
 mkdir -p "$FLEA_STATE/flea" "$FLEA_STATE/no-config" || fail "could not make $FLEA_STATE/flea"
 # An empty config directory for this one write, so an old view.json cannot migrate into the defaults.
@@ -1609,7 +1609,7 @@ printf 'flea-state: %s, the shipped defaults, whose text size follows the system
 if [ "$WITH_ANCHOR" = yes ]; then
 # The anchor gets its own state directory, written by its own binary, so its older ui-state schema never touches the fresh build's state.
 [ -x "$ANCHOR_BIN" ] || fail "$ANCHOR_BIN is missing, so the anchor arm is not built"
-ANCHOR_STATE=$(mktemp -d /tmp/flea-bench-state.XXXXXX) || fail "no temp directory for the anchor state"
+ANCHOR_STATE=$(LC_ALL=C LANGUAGE= mktemp -d /tmp/flea-bench-state.XXXXXX) || fail "no temp directory for the anchor state"
 printf 'owner=%s\n' "$$" > "$ANCHOR_STATE/$PERF_TMP_MARK" || fail "could not mark $ANCHOR_STATE"
 mkdir -p "$ANCHOR_STATE/flea" "$ANCHOR_STATE/no-config" || fail "could not make $ANCHOR_STATE/flea"
 [ "$ANCHOR_STATE" != "$FLEA_STATE" ] || fail "the anchor state is the fresh state, refusing a shared ui-state schema"
@@ -1624,7 +1624,7 @@ fi
 # screenshots of yazi, ranger, lf, nnn and superfile as inside every previewing pane and clear of
 # every status line, so a clock or a cursor cannot pass for a preview.
 # Sample input, line 2 of hyprctl monitors: "	2560x1440@119.99800 at 0x0"
-mon=$(hyprctl monitors | sed -n '2p' | cut -d@ -f1 | tr -d '[:space:]')
+mon=$(LC_ALL=C LANGUAGE= hyprctl monitors | LC_ALL=C LANGUAGE= sed -n '2p' | LC_ALL=C LANGUAGE= cut -d@ -f1 | LC_ALL=C LANGUAGE= tr -d '[:space:]')
 mon_w=${mon%x*}
 mon_h=${mon#*x}
 [ -n "$mon_w" ] && [ -n "$mon_h" ] || fail "could not read the monitor size out of hyprctl monitors"
@@ -1634,7 +1634,7 @@ PREVIEW_REGION="$(( mon_w * 55 / 100 )),$(( mon_h * 12 / 100 )) ${preview_w}x${p
 PREVIEW_SHOT="$TUI_CONF/.preview-probe.png"
 # The named image the TUI group is timed against. The fixture's first name is a video and almost
 # nothing previews one, so the target is named here and recorded in the manifest.
-PREVIEW_TARGET_NAME=$(ls -U "$FIXTURE" | grep -m1 '\.jpg$')
+PREVIEW_TARGET_NAME=$(LC_ALL=C LANGUAGE= ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= grep -m1 '\.jpg$')
 PREVIEW_TARGET=""
 [ -n "$PREVIEW_TARGET_NAME" ] && PREVIEW_TARGET="$FIXTURE/$PREVIEW_TARGET_NAME"
 park_thumbs
@@ -1646,19 +1646,19 @@ rm -f "$FLEA_PREFETCH_SLOT"
 # Resolved once, because a pid is what the settle clock reads; the log and the manifest record them.
 MOUNT_PIDS=()
 case $FIXTURE in
-  /run/user/*/gvfs/*) mapfile -t MOUNT_PIDS < <(pgrep -x gvfsd-fuse; pgrep -f '^/usr/lib/gvfsd-smb ') ;;
+  /run/user/*/gvfs/*) mapfile -t MOUNT_PIDS < <(LC_ALL=C LANGUAGE= pgrep -x gvfsd-fuse; LC_ALL=C LANGUAGE= pgrep -f '^/usr/lib/gvfsd-smb ') ;;
 esac
 printf 'settle clock also watches the gvfs daemons: %s\n' "${MOUNT_PIDS[*]:-none}" >&2
 # NAS_HOST names the server for the route lookup; the default route is the fallback.
 if [ "$FIXTURE_KIND" = nas ]; then
   if [ -n "${NAS_HOST:-}" ]; then
-    NET_IFACE=$(ip route get "$NAS_HOST" 2>/dev/null | grep -o 'dev [^ ]*' | cut -d' ' -f2)
+    NET_IFACE=$(LC_ALL=C LANGUAGE= ip route get "$NAS_HOST" 2>/dev/null | LC_ALL=C LANGUAGE= grep -o 'dev [^ ]*' | LC_ALL=C LANGUAGE= cut -d' ' -f2)
   fi
-  [ -n "$NET_IFACE" ] || NET_IFACE=$(ip route show default 2>/dev/null | grep -o 'dev [^ ]*' | head -1 | cut -d' ' -f2)
+  [ -n "$NET_IFACE" ] || NET_IFACE=$(LC_ALL=C LANGUAGE= ip route show default 2>/dev/null | LC_ALL=C LANGUAGE= grep -o 'dev [^ ]*' | LC_ALL=C LANGUAGE= head -1 | LC_ALL=C LANGUAGE= cut -d' ' -f2)
   [ -n "$NET_IFACE" ] || fail "FIXTURE_KIND=nas needs a network interface and none was found (set NAS_HOST)"
   printf 'receive bytes are counted on %s\n' "$NET_IFACE" >&2
 fi
-mkdir -p "$(dirname "$OUT")"
+mkdir -p "$(LC_ALL=C LANGUAGE= dirname "$OUT")"
 : > "$OUT"
 echo "id,run,mapped_ms,settled_ms,pss_kb,cpu_s,child_pss_kb,thumbs_n,pss_anon_kb,uss_kb,drm_kb,thumbs_by_dir,cpu_tree_s,thumbs_by_format,ranked,preview_ms,cpu_reaped_s,cpu_sys_s,dirty_wb_kb,pgpgout_pre_kb,pgpgout_launch_kb,write_clean,rerun,first_rows_ms,launch_pos" >> "$OUT"
 
@@ -1725,7 +1725,7 @@ fi
 # a newer .qml is the thing being benched rather than a stale build, and checking it refused a run
 # that was measuring exactly the change it had just been handed.
 [ -x "$FLEA_BIN" ] || fail "$FLEA_BIN is missing, so run cargo build --release before benching"
-stale_src=$(find "$FLEA_REPO/src" "$FLEA_REPO/Cargo.toml" "$FLEA_REPO/Cargo.lock" -newer "$FLEA_BIN" -print -quit)
+stale_src=$(LC_ALL=C LANGUAGE= find "$FLEA_REPO/src" "$FLEA_REPO/Cargo.toml" "$FLEA_REPO/Cargo.lock" -newer "$FLEA_BIN" -print -quit)
 [ -z "$stale_src" ] || fail "$stale_src is newer than $FLEA_BIN, so this run would bench a stale build"
 # strata provenance begin
 # STRATA_SRC defaults to the cargo target/release tree that built STRATA_BIN; the binary must report that tree's version exactly.
@@ -1739,9 +1739,9 @@ strata_provenance() {
     esac
   fi
   [ -f "$STRATA_SRC/Cargo.toml" ] || fail "STRATA_SRC=$STRATA_SRC has no Cargo.toml, so it is not the tree that built $STRATA_BIN"
-  ver=$(sed -n 's/^version = "\(.*\)"$/\1/p' "$STRATA_SRC/Cargo.toml" | head -1)
+  ver=$(LC_ALL=C LANGUAGE= sed -n 's/^version = "\(.*\)"$/\1/p' "$STRATA_SRC/Cargo.toml" | LC_ALL=C LANGUAGE= head -1)
   [ -n "$ver" ] || fail "$STRATA_SRC/Cargo.toml names no version, so STRATA_SRC cannot be checked against $STRATA_BIN"
-  out=$("$STRATA_BIN" --version 2>&1 | head -1) || true
+  out=$(LC_ALL=C LANGUAGE= "$STRATA_BIN" --version 2>&1 | LC_ALL=C LANGUAGE= head -1) || true
   [ "${out##* }" = "$ver" ] \
     || fail "$STRATA_BIN reports '${out:-nothing}', not version $ver of STRATA_SRC=$STRATA_SRC, so the manifest would name the wrong source"
   export STRATA_SRC
@@ -1757,15 +1757,15 @@ MANIFEST="${OUT%.csv}.manifest.md"
 # read at the run site gives its eighth name the whole remainder. cut -f8 stops at the next pipe, so
 # the RUN and the RECORD would diverge on the one case the format declares legal, and the line above
 # claims they cannot. No flea command has a pipe today, so this is latent rather than wrong.
-flea_cmd=$(printf '%s\n' "${ENTRANTS[@]}" | grep '^flea|' | cut -d'|' -f8-)
+flea_cmd=$(printf '%s\n' "${ENTRANTS[@]}" | LC_ALL=C LANGUAGE= grep '^flea|' | LC_ALL=C LANGUAGE= cut -d'|' -f8-)
 # Every run's launch order, named in the manifest so a rank can be read against the place each entrant held.
 LAUNCH_ORDER=""
-for r in $(seq 1 "$RUNS"); do
+for r in $(LC_ALL=C LANGUAGE= seq 1 "$RUNS"); do
   line="run $r:"
   while read -r i place; do line="$line ${ENTRANTS[$i]%%|*}@$place"; done < <(run_order "$r")
   LAUNCH_ORDER="${LAUNCH_ORDER:+$LAUNCH_ORDER$'\n'}$line"
 done
-printf '%s\n' "${ENTRANTS[@]}" | cut -d'|' -f1,2,4 \
+printf '%s\n' "${ENTRANTS[@]}" | LC_ALL=C LANGUAGE= cut -d'|' -f1,2,4 \
   | FLEA_LAUNCH_LINE="$flea_cmd" TUI_TERMINAL="$TUI_TERM" EXPECT_FILES="$EXPECT_FILES" \
     TUI_CONFIG_DIR="$TUI_CONF" PREVIEW_TARGET="$PREVIEW_TARGET" \
     BENCH_IDLE_WAITED="$BENCH_IDLE_WAITED" FIXTURE_KIND="$FIXTURE_KIND" \
@@ -1781,7 +1781,7 @@ mkdir -p "$KEYS_DIR" || fail "could not make the key directory at $KEYS_DIR"
 if [ "$DROP_THUMBS" = yes ]; then
   "$FLEA_REPO/tools/flea-bench-keys" map "$FIXTURE" "$KEY_MAP" \
     || [ -n "$FIXTURE_KIND" ] || fail "the fixture key map did not build, so no thumbnail count in this run could be classified"
-  echo "key map: $KEY_MAP, $(wc -l < "$KEY_MAP") keys"
+  echo "key map: $KEY_MAP, $(LC_ALL=C LANGUAGE= wc -l < "$KEY_MAP") keys"
 fi
 
 # warm jobs begin
@@ -1818,7 +1818,7 @@ fi
 # entrant runs begin
 # Every row names a kind that launches, so a typo row fails here rather than vanishing from every run.
 for row in "${ENTRANTS[@]}"; do IFS='|' read -r _ row_kind _ <<< "$row"; case $row_kind in gui|tui) ;; *) fail "an entrant row has a kind other than gui or tui, so it would never launch";; esac; done
-for RUN_INDEX in $(seq 1 "$RUNS"); do
+for RUN_INDEX in $(LC_ALL=C LANGUAGE= seq 1 "$RUNS"); do
   mapfile -t RUN_ORDER < <(run_order "$RUN_INDEX")
   for line in "${RUN_ORDER[@]}"; do
     read -r i LAUNCH_POS <<< "$line"

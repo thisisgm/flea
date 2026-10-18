@@ -202,8 +202,8 @@ def require_seeded_view(arm, extra):
         raise RuntimeError("arm %s has no launch state to verify" % (arm.get("id"),))
     cmd = arm["flea_dir"] + "/target/release/flea"
     probe = subprocess.run([cmd, "--ui-state"], capture_output=True,
-                           text=True, env=dict(os.environ, XDG_STATE_HOME=state,
-                                               XDG_CONFIG_HOME=state + "/no-config"),
+                           text=True, env=S.parsed_env(dict(os.environ, XDG_STATE_HOME=state,
+                                               XDG_CONFIG_HOME=state + "/no-config")),
                            timeout=LAUNCH_MAP_S)
     if probe.returncode != 0:
         lines = (probe.stderr or "").splitlines()

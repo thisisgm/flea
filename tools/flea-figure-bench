@@ -2,9 +2,14 @@
 # Times a fresh figure helper from spawn to its first answer, n runs per case, as median and range: flea-figure-bench [--runs N] [--cases a,b] [--warm] -- CMD...; with --warm the clock starts when the helper announces it is ready.
 import json
 import statistics
+import os
 import subprocess
 import sys
 import time
+
+# Parsed child output uses a fixed locale without changing the caller environment.
+PARSER_ENV = dict(os.environ, LC_ALL="C")
+PARSER_ENV.pop("LANGUAGE", None)
 
 THEME = {"bg": "#101315", "fg": "#c0caf5", "accent": "#7aa2f7", "font": "monospace", "bodyPx": 14}
 # One figure per kind and diagram family the corpus leans on.
@@ -21,7 +26,7 @@ MS = 1000.0
 def one(command, kind, source, warm):
     request = json.dumps({"id": 1, "kind": kind, "source": source, "display": True, "theme": THEME}) + "\n"
     start = time.perf_counter()
-    proc = subprocess.Popen(command + (["--warm=" + kind] if warm else []), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL)
+    proc = subprocess.Popen(command + (["--warm=" + kind] if warm else []), stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.DEVNULL, env=PARSER_ENV)
     if warm:
         ready = json.loads(proc.stdout.readline() or "{}")
         if ready.get("warm") != [kind]:
