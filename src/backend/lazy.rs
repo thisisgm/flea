@@ -84,6 +84,11 @@ impl<T> Local<T> {
     pub fn get_mut(&mut self) -> Option<&mut T> {
         self.value.get_mut()
     }
+
+    // A reader that must not start the service sees it only once a request has.
+    pub fn get(&self) -> Option<&T> {
+        self.value.get()
+    }
 }
 
 impl<T> From<T> for Local<T> {
