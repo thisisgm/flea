@@ -24,6 +24,10 @@ def wait_for(check, timeout, description):
 
 
 HYPR_HELPER = Path(__file__).resolve().parents[2] / "tests/lib/hypr-dispatch.sh"
+# Each owned terminal gets this corner radius, so edge samples keep this far from its corners.
+WINDOW_ROUNDING = 8
+# Hyprland 0.56.2 applies exec_cmd's workspace, monitor and float rules to the window whose process holds this token.
+EXEC_RULE_TOKEN = "HL_EXEC_RULE_TOKEN"
 
 
 # Every compositor command runs as one bash call that sources the typed helper.
@@ -120,7 +124,7 @@ class Terminal:
         start = json.loads((self.case / "relay-start.json").read_text())
         if not start["stdin_tty"] or not start["stdout_tty"]:
             raise Blocked("candidate stdin/stdout are not real TTYs")
-        compositor(self.commands, "hypr_window_rounding", self.client["address"], "8")
+        compositor(self.commands, "hypr_window_rounding", self.client["address"], str(WINDOW_ROUNDING))
         return start
 
     def snapshot(self):
@@ -180,9 +184,14 @@ def launch(spec_path):
     spec_path = Path(spec_path)
     spec = json.loads(spec_path.read_text())
     directory = spec_path.parent
+    # The terminal keeps its allowlist plus the token Hyprland gave this exec, so the rules match its window.
+    environment = dict(spec["environment"])
+    if os.environ.get(EXEC_RULE_TOKEN):
+        environment[EXEC_RULE_TOKEN] = os.environ[EXEC_RULE_TOKEN]
     with (directory / "terminal.stdout").open("xb") as stdout, (directory / "terminal.stderr").open("xb") as stderr:
-        child = subprocess.Popen(spec["argv"], env=spec["environment"], stdout=stdout, stderr=stderr, start_new_session=True)
-        save(directory / "launch-start.json", {"pid": child.pid, "argv": spec["argv"], "start_ns": time.time_ns()})
+        child = subprocess.Popen(spec["argv"], env=environment, stdout=stdout, stderr=stderr, start_new_session=True)
+        save(directory / "launch-start.json", {"pid": child.pid, "argv": spec["argv"], "start_ns": time.time_ns(),
+                                               "exec_rule_token": EXEC_RULE_TOKEN in environment})
         code = child.wait()
         save(directory / "launch-exit.json", {"exit_code": code, "end_ns": time.time_ns()})
         return code
