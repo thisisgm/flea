@@ -13,7 +13,11 @@ from .cells import Screen
 from .media import inspect as inspect_media
 from .review_support import board_file
 
-BOARDS = Path(os.environ.get("FLEA_BATTERY_BOARDS", "/home/gm/flea-ops/claude/releases/0.4.0/design-hig")) / "boards"
+def boards_directory():
+    value = os.environ.get("FLEA_BATTERY_BOARDS")
+    if not value:
+        raise Blocked("FLEA_BATTERY_BOARDS is unset: set it to the design-hig directory that holds boards/")
+    return Path(value) / "boards"
 NAMES = ("tui-list-text", "tui-lang-ja", "tui-lang-ja-menu", "tui-lang-ar", "tui-lang-ru-keys")
 
 
@@ -61,6 +65,7 @@ def comparison(board, variant):
 class Review3Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
+        cls.boards = boards_directory()
         parent = Path(os.environ.get("FLEA_BATTERY_TEST_ROOT", Path(__file__).resolve().parents[2] / ".superpowers/t12a"))
         parent.mkdir(parents=True, exist_ok=True)
         cls.scratch = Path(tempfile.mkdtemp(prefix="review-r3.", dir=parent))
@@ -69,31 +74,34 @@ class Review3Tests(unittest.TestCase):
     def test_reviewer_shifted_field_probe(self):
         for name in NAMES:
             with self.subTest(board=name):
-                result = comparison(Board(BOARDS / (name + ".html")), "wrong-position")
+                result = comparison(Board(self.boards / (name + ".html")), "wrong-position")
                 self.assertEqual(result["without_mask"]["geometry"]["status"], "FAIL")
-                self.assertTrue(result["status"] == "BLOCKED" or result["geometry"]["status"] == "FAIL")
+                self.assertEqual(result["status"], "COMPARED")
+                self.assertEqual(result["geometry"]["status"], "FAIL")
 
     def test_reviewer_wrong_rendition_probe(self):
         for name in NAMES:
             with self.subTest(board=name):
-                result = comparison(Board(BOARDS / (name + ".html")), "wrong-rendition")
+                result = comparison(Board(self.boards / (name + ".html")), "wrong-rendition")
                 self.assertEqual(result["without_mask"]["color"]["status"], "FAIL")
                 self.assertEqual(result["color"]["status"], "FAIL")
 
     def test_reviewer_matching_count_and_backend_controls(self):
         for name in NAMES:
             with self.subTest(board=name):
-                board = Board(BOARDS / (name + ".html"))
+                board = Board(self.boards / (name + ".html"))
                 for variant in ("matching", "verified-change"):
                     result = comparison(board, variant)
                     self.assertEqual(result["geometry"]["status"], "PASS")
                     self.assertEqual(result["color"]["status"], "PASS")
                 self.assertEqual(comparison(board, "wrong-count")["geometry"]["status"], "FAIL")
-                self.assertEqual(comparison(board, "wrong-backend")["status"], "BLOCKED")
+                backend = comparison(board, "wrong-backend")
+                self.assertEqual(backend["status"], "BLOCKED")
+                self.assertEqual(backend["reason"], "native disk facts differ from the real backend reply")
 
     def test_individual_rendition_and_width_remain_checked(self):
         for name in NAMES:
-            board = Board(BOARDS / (name + ".html"))
+            board = Board(self.boards / (name + ".html"))
             cells = board.cells()
             snapshot = {"columns": 130, "rows": 31, "grid": [
                 [dict(cells[x, y], reverse=False) for x in range(130)] for y in range(31)]}
@@ -134,6 +142,14 @@ class Review3Tests(unittest.TestCase):
             inspect_media({"id": "tui-office", "cwd": "/fx/v/work"}, board, snapshot,
                           (100, 100, bytes([0, 0, 0, 255]) * 10000), [4, 9, 84, 88], caps,
                           root, root, root, review, adapter="alacritty", expected_transport="half-blocks")
+
+
+class BoardsVariableTests(unittest.TestCase):
+    def test_unset_boards_variable_refuses_by_name(self):
+        environment = {key: value for key, value in os.environ.items() if key != "FLEA_BATTERY_BOARDS"}
+        with patch.dict(os.environ, environment, clear=True):
+            with self.assertRaisesRegex(Blocked, "FLEA_BATTERY_BOARDS"):
+                Review3Tests.setUpClass()
 
 
 if __name__ == "__main__":

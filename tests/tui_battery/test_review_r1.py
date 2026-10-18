@@ -86,11 +86,13 @@ class ReviewTests(unittest.TestCase):
         board.pictures = [{"origin": [4, 9], "resolved_style": {"width": "8.4px", "height": "22px"}}]
         caps = {"candidate_received": {"kitty_positive": False, "sixel_positive": False}, "forced_fallback": False}
         (self.root / "graphics.log").write_text("")
+        (self.root / "pty.log").write_text("")
         state = {"id": "tui-list-image", "cwd": "/fx/v/work"}
+        image = (100, 100, bytearray(value for y in range(100) for x in range(100) for value in (x, y, 40, 255)))
         for adapter, transport in (("kitty", "kitty"), ("ghostty", "kitty"), ("foot", "sixel")):
-            with self.subTest(adapter=adapter), self.assertRaises(Blocked):
-                inspect_media(state, board, Screen(10, 4).snapshot(), (1, 1, bytes([0, 0, 0, 255])),
-                              [0, 0, 10, 4], caps, self.root, self.root, self.root, {}, adapter=adapter, expected_transport=transport)
+            with self.subTest(adapter=adapter), self.assertRaisesRegex(Blocked, f"{adapter} requires actual {transport} negotiation"):
+                inspect_media(state, board, Screen(10, 4).snapshot(), image,
+                              [0, 0, 100, 100], caps, self.root, self.root, self.root, {}, adapter=adapter, expected_transport=transport)
 
     def media_case(self, adapter, forced=False, traffic="", kitty=False, sixel=False):
         board = board_file(self.root, "tui-list-image")

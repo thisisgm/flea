@@ -4,6 +4,7 @@ import hashlib
 import json
 import os
 from pathlib import Path
+import re
 import time
 
 from .cells import predicate, text
@@ -11,6 +12,10 @@ from .evidence import Blocked, digest, save
 from .keys import bytes_for
 from .native import wait_for
 from . import relay
+
+SETTLE_STABLE_SECONDS = .12
+SETTLE_REFUSAL_SECONDS = .3
+LISTING_PREFIX_CELLS = 3  # focus marker, icon and the space after the icon
 
 
 def settled(terminal, rule, timeout, transient=False):
@@ -24,7 +29,7 @@ def settled(terminal, rule, timeout, transient=False):
         identity = json.dumps(snapshot["grid"], sort_keys=True)
         if identity != last:
             last, since = identity, time.monotonic()
-        if transient or time.monotonic() - since >= .12:
+        if transient or time.monotonic() - since >= SETTLE_STABLE_SECONDS:
             return snapshot
     return wait_for(check, timeout, "state predicate " + json.dumps(rule, ensure_ascii=False))
 
@@ -40,6 +45,12 @@ def send(terminal, key, journal, replay=False):
     journal.append(receipt)
 
 
+# Sample input: pane cells "▎x todo.md   99 B  ", where the name ends at the first run of two spaces.
+def listing_name(pane):
+    field = "".join(c["ch"] for c in pane)[LISTING_PREFIX_CELLS:]
+    return re.split(r"\s{2,}", field, maxsplit=1)[0]
+
+
 def highlighted(snapshot, name):
     for row in snapshot["grid"][2:-2]:
         string = "".join(c["ch"] for c in row)
@@ -50,7 +61,7 @@ def highlighted(snapshot, name):
         if len(separators) < 2:
             continue
         pane = row[separators[0] + 1:separators[1]]
-        if name in "".join(c["ch"] for c in pane) and any(c["reverse"] or c["ch"] == "▎" for c in pane):
+        if listing_name(pane) == name and any(c["reverse"] or c["ch"] == "▎" for c in pane):
             return True
     return False
 
@@ -127,6 +138,7 @@ def file_assertions(state, fx):
 def legacy_shift_delete(log):
     observed = bytearray()
     for line in log.read_text().splitlines():
+        # Sample input: {"ns": 1, "direction": "terminal-input", "base64": "G1szOzJ+"} per pty.log line.
         row = json.loads(line)
         if row["direction"] == "terminal-input":
             observed.extend(base64.b64decode(row["base64"]))
@@ -146,6 +158,15 @@ def visual_review(path, reviews, board_hash):
     return {"status": "PASS" if record.get("approved") is True else "FAIL", "review": record}
 
 
+class FrameSequence:
+    """Serves one earlier frame, then the current frame, like a terminal that has moved on."""
+    def __init__(self, earlier, current):
+        self.pending, self.current = [earlier], current
+
+    def snapshot(self):
+        return self.pending.pop() if self.pending else self.current
+
+
 def negatives():
     from .cells import Screen
     from .protocol import GraphicsNegative, query_ids
@@ -156,10 +177,14 @@ def negatives():
     if not predicate(screen.snapshot(), {"contains": ["READY"]}) or predicate(screen.snapshot(), {"contains": ["MISSING"]}):
         raise AssertionError("state predicate bypass control failed")
     results.append("missing state predicate refused")
+    earlier = screen.snapshot()
     screen.feed(b"\x1b[HSTALE")
-    if predicate(screen.snapshot(), {"contains": ["READY"]}):
+    try:
+        settled(FrameSequence(earlier, screen.snapshot()), {"contains": ["READY"]}, SETTLE_REFUSAL_SECONDS)
+    except Blocked:
+        results.append("stale earlier frame refused by settle")
+    else:
         raise AssertionError("stale frame bypass control failed")
-    results.append("stale earlier frame refused")
     blank = (160, 80, bytearray([28, 18, 13, 255]) * 160 * 80)
     try:
         separator(blank, (0, 0, 160, 80), (4, 20, 160, 80))

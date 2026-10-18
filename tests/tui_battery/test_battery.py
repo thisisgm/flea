@@ -4,11 +4,14 @@ import json
 import os
 from pathlib import Path
 import stat
+import subprocess
+import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
 from . import png
+from .adapters import TERMINALS
 from .cells import Screen, predicate, text
 from .driver import contract, selection
 from .evidence import Blocked, MARKER, Owned, digest, output_root
@@ -24,6 +27,7 @@ from .reconcile import pixel_status
 from .review_support import media_transcript
 
 HERE = Path(__file__).resolve().parent
+FIFO_DEADLINE_SECONDS = 5
 
 
 class BatteryTests(unittest.TestCase):
@@ -62,8 +66,25 @@ class BatteryTests(unittest.TestCase):
     def test_regular_source_refuses_fifo_without_blocking(self):
         fifo = self.root / "source-fifo"
         os.mkfifo(fifo)
-        with self.assertRaises(Blocked):
-            regular_bytes(fifo)
+        # Sample input: argv [FIFO_PATH, TESTS_DIR] where FIFO_PATH is a named pipe, not a regular file.
+        source = ("import sys\n"
+                  "sys.path.insert(0, sys.argv[2])\n"
+                  "from pathlib import Path\n"
+                  "from tui_battery.evidence import Blocked\n"
+                  "from tui_battery.fixtures import regular_bytes\n"
+                  "try:\n"
+                  "    regular_bytes(Path(sys.argv[1]))\n"
+                  "except Blocked as error:\n"
+                  "    print(error)\n"
+                  "else:\n"
+                  "    sys.exit(1)\n")
+        try:
+            child = subprocess.run([sys.executable, "-B", "-c", source, str(fifo), str(HERE.parent)], stdin=subprocess.DEVNULL,
+                                   capture_output=True, text=True, timeout=FIFO_DEADLINE_SECONDS, check=False)
+        except subprocess.TimeoutExpired:
+            self.fail("FIFO source blocked past its deadline")
+        self.assertEqual(child.returncode, 0, child.stderr)
+        self.assertIn("fixture is not a bounded regular file", child.stdout)
 
     def test_regular_source_refuses_symlink(self):
         target = self.root / "data"
@@ -375,7 +396,12 @@ class BatteryTests(unittest.TestCase):
         self.assertEqual(len(spec["states"]), 61)
         self.assertEqual(len({s["id"] for s in spec["states"]}), 61)
         variants = sum(len(s["variants"]) for s in spec["states"])
-        self.assertGreaterEqual(variants * 5, 310)
+        self.assertEqual(variants, 63)
+        self.assertEqual(variants * len(TERMINALS), 315)
+        states = {s["id"]: s for s in spec["states"]}
+        self.assertEqual([(v["id"], v["columns"], v["rows"], v["origin"]) for v in states["tui-small"]["variants"]],
+                         [("wide-short", 130, 4, [4, 9]), ("narrow", 11, 6, [4, 175])])
+        self.assertEqual([v["id"] for v in states["tui-long"]["variants"]], ["primary", "rest"])
         self.assertEqual(spec["excluded"][0]["id"], "tui-send-with")
         self.assertEqual(len(json.loads((HERE / "calendar.json").read_text())["states"]), 17)
 

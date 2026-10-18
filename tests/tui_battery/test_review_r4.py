@@ -17,7 +17,7 @@ from .references import Board
 from .case_identity import seal
 from .reconcile import retained
 from . import test_review_r2
-from .test_review_r3 import BOARDS, NAMES
+from .test_review_r3 import NAMES, boards_directory
 from . import png
 
 CHILD = '''import sys
@@ -70,6 +70,14 @@ def disk_snapshot(board, fs, free):
     return result, field
 
 
+# Each change alters only the hint suffix right of the disk field, so the disk facts stay valid.
+SUFFIX_CHANGES = (
+    lambda cell: cell.update(ch="!"),
+    lambda cell: cell.update(width=2),
+    lambda cell: cell.update(fg="#ff0000"),
+)
+
+
 class Review4Tests(unittest.TestCase):
     @classmethod
     def setUpClass(cls):
@@ -78,7 +86,7 @@ class Review4Tests(unittest.TestCase):
 
     def test_backend_derived_width_variations_on_five_approved_boards(self):
         for name in NAMES:
-            board = Board(BOARDS / (name + ".html"))
+            board = Board(boards_directory() / (name + ".html"))
             for fs, free in (("tmpfs", 64200000), ("tmpfs", 164100000), ("tmpfs", 4100000),
                              ("tmpfs", 1), ("tmpfs", 1_000_000_000), ("btrfs", 2_000_000_000_000),
                              ("fuse.sshfs", 64100000), ("xfs", 64100000), ("xfs", 999)):
@@ -91,9 +99,18 @@ class Review4Tests(unittest.TestCase):
                     self.assertEqual(comparison["color"]["status"], "PASS")
                     self.assertEqual(facts["anchor"][1], original["right"])
                     self.assertEqual(actual["grid"][-1][original["right"]:], snapshot(board)["grid"][-1][original["right"]:])
+                    for change in SUFFIX_CHANGES:
+                        corrupt = copy.deepcopy(actual)
+                        row = corrupt["grid"][-1]
+                        x = next(x for x in range(original["right"], corrupt["columns"]) if row[x]["ch"] != " ")
+                        change(row[x])
+                        with patch("tui_battery.dynamic.fsinfo", return_value={"fs": fs, "free": free}):
+                            corrupt_expectations, _ = masks(board, corrupt, [], "/fx/v/work", None)
+                        result = board.compare(corrupt, masks=corrupt_expectations)
+                        self.assertIn("FAIL", {result["geometry"]["status"], result["color"]["status"]})
 
     def test_wider_tail_keeps_spacing_widths_and_all_rendition_checked(self):
-        board = Board(BOARDS / "tui-lang-ja.html")
+        board = Board(boards_directory() / "tui-lang-ja.html")
         actual, _ = disk_snapshot(board, "fuse.sshfs", 164100000)
         with patch("tui_battery.dynamic.fsinfo", return_value={"fs": "fuse.sshfs", "free": 164100000}):
             expectations, facts = masks(board, actual, [], "/fx/v/work", None)
@@ -116,7 +133,7 @@ class Review4Tests(unittest.TestCase):
             (fx / directory).mkdir(parents=True, exist_ok=True)
         if approved_board:
             state = next(s for s in json.loads((Path(__file__).with_name("states.json")).read_text())["states"] if s["id"] == name)
-            board = Board(BOARDS / (name + ".html"))
+            board = Board(boards_directory() / (name + ".html"))
         else:
             page = case / "board.html"
             page.write_text('<style>.th{--fg:#c6b395;--bg:#1c120d;--muted:#8b7b74;--muted-frame:#715e56;--accent-frame:#d28a41}</style>'
@@ -158,7 +175,7 @@ class Review4Tests(unittest.TestCase):
     def inspect(self, fixture, review=None, adapter="alacritty"):
         case, fx, board, state, actual, caps = fixture
         commands = Commands()
-        result = inspect(state, board, actual, None, [4, 9, 1092, 682], caps, case, fx, BOARDS.parent,
+        result = inspect(state, board, actual, None, [4, 9, 1092, 682], caps, case, fx, boards_directory().parent,
                          review or {}, adapter=adapter, expected_transport="half-blocks", commands=commands)
         return (*result, commands)
 

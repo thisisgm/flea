@@ -63,14 +63,34 @@ class Review5Tests(unittest.TestCase):
                 receipts.append({"state": name, "default_cursor_controls": "REJECTED", "explicit_off": "REJECTED",
                                  "polite_cursor_controls": "ABSENT", "geometry": "PASS", "color": "PASS"})
         self.assertEqual(len(receipts), 7)
-        for extra in (b"\x1b[?25l", b"\x1b[?25h", b"\x1b[2J", b"\x1b]0;title\x07", b"\t", b"\x1b[8m", b"X" * 131):
-            with self.subTest(unsupported_or_overflow=extra):
+        _, _, _, commands = helper.inspect(fixture)
+        renderer = next(row for row in commands.records if "--format=symbols" in row["argv"])
+        size = next(arg for arg in renderer["argv"] if arg.startswith("--size="))
+        picture_width, picture_height = (int(part) for part in size.removeprefix("--size=").split("x"))
+        for extra in (b"\x1b[?25l", b"\x1b[?25h", b"\x1b[2J", b"\x1b]0;title\x07", b"\t"):
+            with self.subTest(unsupported=extra):
+                self.assertLess(len(extra), picture_width)
+                # One in-bounds picture row whose first cells are the unsupported control.
+                payload = extra + ("▀" * (picture_width - len(extra)) + "\n").encode()
+
                 def corrupted_output(commands, argv, *args, **kwargs):
                     result = real_run(commands, argv, *args, **kwargs)
                     if "--format=symbols" in argv:
-                        result.stdout += extra
+                        result.stdout = payload
                     return result
                 with patch.object(Commands, "run", corrupted_output):
+                    with self.assertRaisesRegex(Blocked, "chafa source output"):
+                        helper.inspect(fixture)
+        overflows = {"width": ("▀" * (picture_width + 1) + "\n").encode(),
+                     "height": (("▀" * picture_width + "\n") * (picture_height + 1)).encode()}
+        for axis, payload in overflows.items():
+            with self.subTest(overflow=axis):
+                def oversized_output(commands, argv, *args, **kwargs):
+                    result = real_run(commands, argv, *args, **kwargs)
+                    if "--format=symbols" in argv:
+                        result.stdout = payload
+                    return result
+                with patch.object(Commands, "run", oversized_output):
                     with self.assertRaisesRegex(Blocked, "chafa source output"):
                         helper.inspect(fixture)
         (self.root / "chafa-controls.json").write_text(json.dumps(receipts, indent=2) + "\n")
