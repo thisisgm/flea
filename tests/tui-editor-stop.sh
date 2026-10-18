@@ -124,6 +124,7 @@ if fault:
 PY
 )
 echo "$result"
+# Sample input: "held=1 exit=0 fault=0 restored=1"; field held prints 1.
 field() { printf '%s\n' "$result" | sed -n "s/.*$1=\([a-z0-9]*\).*/\1/p" | head -1; }
 check "the bulk rename reached the editor's return stty" 1 "$(field held)"
 check "the TUI left on SIGTERM with status 0" 0 "$(field exit)"
