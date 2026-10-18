@@ -1,8 +1,14 @@
 """Shell parser-child inventory, including command wrappers and substitutions."""
 import argparse
 import re
+import runpy
+from functools import partial
 from functools import lru_cache
 from pathlib import Path
+
+
+SCOPE = runpy.run_path(str(Path(__file__).with_name("locale-shell-scope.py")))
+top_level = SCOPE["top_level"]
 
 
 # Sample input: x="${FOO:-$(grep -m1 bar file)}"
@@ -203,26 +209,9 @@ def scoped(prefix, line="", program=""):
 def export_scope(source):
     first = min((start for start, name, _ in commands(source)
                  if parsed(name, source[start + len(name):].lstrip())), default=len(source))
-    masked = code_mask(source)
-    depth = 0
-    blocks = 0
-    boundaries = {match.start(1): match[1] for match in re.finditer(
-        r"(?m)(?:^|[;\n])[ \t]*(if|fi|for|while|until|select|case|done|esac)\b", masked)}
-    top = list(masked)
-    for index, char in enumerate(masked):
-        keyword = boundaries.get(index)
-        if keyword in {"if", "for", "while", "until", "select", "case"}:
-            blocks += 1
-        if char in "({":
-            depth += 1
-        if depth or blocks:
-            top[index] = 'Q' if char != '\n' else '\n'
-        if char in ")}":
-            depth -= 1
-        if keyword in {"fi", "done", "esac"}:
-            blocks -= 1
+    top = top_level(code_mask(source))
     declarations = []
-    for match in re.finditer(r"(?m)^[ \t]*(export LC_ALL=C\.UTF-8|unset LANGUAGE)[ \t]*$", ''.join(top)[:first]):
+    for match in re.finditer(r"(?m)^[ \t]*(export LC_ALL=C\.UTF-8|unset LANGUAGE)[ \t]*$", top[:first]):
         declarations.append(source[match.start():match.end()])
     return "\n".join(declarations) + ("\n" if declarations else "")
 
@@ -236,10 +225,15 @@ def command_text(suffix):
     return re.sub(r"\\\n[ \t]*", " ", suffix).split("\n", 1)[0]
 
 
+# Sample input: a comment with a form feed, a newline, then LC_ALL=C LANGUAGE= sed x # locale-bytes: raw names
+def physical_line(source, start):
+    return source.split("\n")[source.count("\n", 0, start)]
+
+
 # Sample input: LC_ALL=C LANGUAGE= grep -c . paths # locale-bytes: count raw path records
 def scope_for(source, start, name, prefix):
     explicit = re.search(r"(?:^|\s)(?:LC_ALL|LANGUAGE)=", prefix) is not None
-    line = source.splitlines()[source.count("\n", 0, start)]
+    line = physical_line(source, start)
     return scoped(prefix, line, name) if explicit else exported(source)
 
 
@@ -283,8 +277,13 @@ def shell_files(repo):
             yield path, source
 
 
-def inventory(repo):
-    for path, source in shell_files(repo):
+def inventory(repo, files=None):
+    for path, source in shell_files(repo) if files is None else files:
+        try:
+            export_scope(source)
+        except ValueError as error:
+            yield path, 1, "shell nesting", False, str(error)
+            continue
         functions = set(re.findall(r"^\s*([A-Za-z_][A-Za-z_0-9]*)\s*\(\)", source, re.M))
         for start, name, prefix in commands(source):
             suffix = source[start + len(name):].lstrip()
@@ -300,9 +299,14 @@ def main():
     parser.add_argument('--regress-parameters', action='store_true')
     parser.add_argument('--regress-continuations', action='store_true')
     parser.add_argument('--regress-exports', action='store_true')
-    parser.add_argument('--regress-byte-marker', action='store_true')
+    parser.add_argument('--regress-case-scope', action='store_true')
+    parser.add_argument('--regress-block-boundaries', action='store_true')
+    parser.add_argument('--regress-block-balance', action='store_true')
+    parser.add_argument('--regress-physical-lines', action='store_true')
+    parser.add_argument('--regress-byte-marker', nargs='?', const='all',
+                        choices=('all',) + SCOPE['BYTE_TOOLS'])
     args = parser.parse_args()
-    global code_mask, command_text, exported, shell_files
+    global code_mask, command_text, exported, top_level, physical_line
     if args.regress_parameters:
         real_mask = code_mask
         code_mask = lambda text, *a, **k: real_mask(re.sub(
@@ -311,16 +315,11 @@ def main():
         command_text = lambda suffix: suffix.split('\n', 1)[0]
     if args.regress_exports:
         exported = lambda source: 'export LC_ALL=C.UTF-8\n' in source and 'unset LANGUAGE\n' in source
-    if args.regress_byte_marker:
-        actual_files = shell_files
-
-        def unmarked_files(repo):
-            for path, source in actual_files(repo):
-                if path.name == 'flea-bench-manifest':
-                    source = re.sub(r'[ \t]+# locale-bytes:[^\n]*', '', source)
-                yield path, source
-
-        shell_files = unmarked_files
+    top_level = partial(top_level, case_patterns=not args.regress_case_scope,
+                        operator_boundaries=not args.regress_block_boundaries,
+                        strict=not args.regress_block_balance)
+    if args.regress_physical_lines:
+        physical_line = lambda source, start: source.splitlines()[source.count('\n', 0, start)]
     errors = []
     checks = 0
 
@@ -330,47 +329,18 @@ def main():
         if not passed:
             errors.append('FAIL ' + label)
 
-    for source in ['x="${FOO:-$(grep -m1 bar file)}"',
-                   'x=${FOO:-$(grep -m1 bar file)}',
-                   'x="${a:-${b:-$(grep -m1 bar file)}}"',
-                   'x="`grep -m1 bar file`"']:
-        check('command substitution remains code: ' + source,
-              sum(name == 'grep' for _, name, _ in commands(source)) == 1)
-    check('nested parameter braces are masked together', '}' not in code_mask('x=${a:-${b}}'))
-    check('quoted braces stay inside the parameter',
-          '}' not in code_mask('x=${a:-"}"}'))
-    check('quoted data is not executable', not any(name == 'grep' for _, name, _ in commands(
-        "echo 'grep bar file'\n# grep bar file\ncat <<'DATA'\ngrep bar file\nDATA\n")))
-    for name, suffix in [('magick', ' "$f" \\\n  -format "%k" info:'),
-                         ('ffmpeg', ' -hide_banner \\\n  -encoders')]:
-        check('continued ' + name + ' flags are parsed', parsed(name, suffix))
-    check('next command flags do not classify magick', not parsed('magick', ' file.png\necho -format'))
-    scope = 'export LC_ALL=C.UTF-8\nunset LANGUAGE\n'
-    check('top-level scope before parser is accepted', exported(scope + 'grep bar file\n'))
-    for label, source in [('late', 'grep bar file\n' + scope),
-                          ('function', 'f() {\n' + scope + '}\ngrep bar file\n'),
-                          ('subshell', '(\n' + scope + ')\ngrep bar file\n'),
-                          ('conditional', 'if false; then\n' + scope + 'fi\ngrep bar file\n'),
-                          ('heredoc', "cat <<'DATA'\n" + scope + 'DATA\ngrep bar file\n'),
-                          ('comment', '# export LC_ALL=C.UTF-8\n# unset LANGUAGE\ngrep bar file\n')]:
-        check(label + ' scope is rejected', not exported(source))
-    marked = "LC_ALL=C LANGUAGE= sed 's/.*\\.//' # locale-bytes: count raw filename extensions"
-    check('marked byte matcher is accepted', scoped('LC_ALL=C LANGUAGE= ', marked, 'sed'))
-    check('byte matcher without marker is rejected', not scoped('LC_ALL=C LANGUAGE= ', 'sed x', 'sed'))
-    check('quoted marker is not a comment', not scoped(
-        'LC_ALL=C LANGUAGE= ', "sed '# locale-bytes: quoted data'", 'sed'))
-    check('byte marker requires its reason', not scoped(
-        'LC_ALL=C LANGUAGE= ', "sed x # locale-bytes: ", 'sed'))
-    check('byte marker cannot authorize a text child', not scoped('LC_ALL=C LANGUAGE= ', marked, 'qs'))
-    unmarked = scope + 'LC_ALL=C LANGUAGE= sed x\n'
-    start, name, prefix = next(row for row in commands(unmarked) if row[1] == 'sed')
-    check('global UTF-8 scope does not hide an unmarked byte override',
-          not scope_for(unmarked, start, name, prefix))
-    own_source = Path(__file__).read_text()
-    for name in ['code_mask', 'commands']:
-        preceding = own_source[:own_source.index('def ' + name + '(')].rstrip().splitlines()[-1]
-        check('sample input above ' + name, 'Sample input:' in preceding)
+    SCOPE["self_checks"](globals(), check)
     repo = Path(__file__).resolve().parents[1]
+    if args.regress_byte_marker:
+        targets = SCOPE['BYTE_TOOLS'] if args.regress_byte_marker == 'all' else (args.regress_byte_marker,)
+        detected = []
+        for target in targets:
+            failures = SCOPE['unmarked_rows'](globals(), repo, target)
+            detected.append(bool(failures))
+            for path, line, name, _, _ in failures:
+                print(f'FAIL {path.relative_to(repo)}:{line} {name} without its byte marker')
+            print(f'byte-marker control {target}: {len(failures)} unpinned sites')
+        return 1 if all(detected) and not errors else 2
     rows = list(inventory(repo))
     for path, line, name, scope_ok, prefix in rows:
         check(f'{path.relative_to(repo)}:{line} {name} scope', scope_ok)

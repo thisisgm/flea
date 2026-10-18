@@ -39,8 +39,11 @@ def main():
                         help="remove the numeric formatter pins; this control must fail in de_DE.UTF-8")
     parser.add_argument("--regress-fixture-scope", action="store_true",
                         help="remove the tool's export; the pipeline must detect the lost scope")
-    parser.add_argument("--regress-byte-mode", action="store_true",
-                        help="restore UTF-8 matching over raw filename bytes; this control must fail")
+    byte_modes = parser.add_mutually_exclusive_group()
+    byte_modes.add_argument("--regress-manifest-byte-mode", action="store_true",
+                            help="restore UTF-8 matching in the manifest check only; this control must fail")
+    byte_modes.add_argument("--regress-fixture-byte-mode", action="store_true",
+                            help="restore UTF-8 matching in the matched-fixture check only; this control must fail")
     parser.add_argument("--keep", action="store_true", help="keep the marked fixture root for inspection")
     args = parser.parse_args()
     inherited = dict(os.environ)
@@ -149,9 +152,14 @@ def main():
     histogram = next(line for line in manifest.splitlines()
                      if 'ls -U "$FIXTURE" |' in line and "uniq -c" in line)
     byte_pipeline = pipeline
-    if args.regress_byte_mode:
-        histogram = histogram.replace("LC_ALL=C LANGUAGE= ", "LC_ALL=C.UTF-8 LANGUAGE= ")
-        byte_pipeline = byte_pipeline.replace("LC_ALL=C LANGUAGE= ", "LC_ALL=C.UTF-8 LANGUAGE= ")
+    if args.regress_manifest_byte_mode:
+        mutated = histogram.replace("LC_ALL=C LANGUAGE= ", "LC_ALL=C.UTF-8 LANGUAGE= ")
+        assert mutated != histogram, "manifest byte-mode control did not change its pipeline"
+        histogram = mutated
+    if args.regress_fixture_byte_mode:
+        mutated = byte_pipeline.replace("LC_ALL=C LANGUAGE= ", "LC_ALL=C.UTF-8 LANGUAGE= ")
+        assert mutated != byte_pipeline, "matched-fixture byte-mode control did not change its pipeline"
+        byte_pipeline = mutated
     counts = root / "extensions.txt"
     result = subprocess.run(["/bin/bash", "-c", SHELL["export_scope"](manifest) +
                              'FIXTURE=$1; OUT=$2\n' + histogram, "extensions", str(files), str(counts)],
