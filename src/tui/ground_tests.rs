@@ -21,6 +21,7 @@ fn apply(arguments: &str, background: &mut Background) {
     }
 }
 // Replays cursor moves, SGR and erases the way a terminal applies them, from the terminal's reset state.
+// Sample input: "\x1b[2;3H\x1b[48;5;17mA\x1b[K" writes "A" at x 2, y 1 on background "48;5;17", then erases to the line end.
 fn replay(stream: &str) -> Replay {
     let mut out = Replay { cells: Vec::new(), erases: Vec::new(), last: None };
     let (mut x, mut y) = (0, 0);

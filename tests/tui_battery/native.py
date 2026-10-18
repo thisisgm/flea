@@ -13,6 +13,10 @@ from .keys import shortcut
 from . import relay, png
 
 
+class Deadline(Blocked):
+    """A wait that ran out of time, so callers can tell it apart from a check that failed."""
+
+
 def wait_for(check, timeout, description):
     deadline = time.monotonic() + timeout
     while time.monotonic() < deadline:
@@ -20,7 +24,7 @@ def wait_for(check, timeout, description):
         if result:
             return result
         time.sleep(.03)
-    raise Blocked(f"deadline waiting for {description}")
+    raise Deadline(f"deadline waiting for {description}")
 
 
 HYPR_HELPER = Path(__file__).resolve().parents[2] / "tests/lib/hypr-dispatch.sh"
@@ -71,7 +75,7 @@ class Display:
                 return monitor if monitor and (monitor["scale"], monitor["width"], monitor["height"]) == (1, 2560, 1440) else None
             try:
                 self.monitor = wait_for(applied, MODE_DEADLINE, "owned output mode")
-            except Blocked:
+            except Deadline:
                 last = seen[0] if seen else None
                 observed = f"{last['width']}x{last['height']} scale {last['scale']}" if last else "no owned output"
                 raise Blocked("owned output mode/scale could not be verified: last seen " + observed) from None
