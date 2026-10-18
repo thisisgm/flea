@@ -1,7 +1,7 @@
 use super::test_support::Fixture;
 use super::*;
 use std::io::Write;
-use std::os::unix::fs::symlink;
+use std::os::unix::fs::{symlink, PermissionsExt};
 use std::path::Path;
 use std::process::{Command, Stdio};
 use std::time::{Duration, Instant};
@@ -20,6 +20,45 @@ fn missing_chafa_is_none_and_nonexecutables_do_not_count() {
     let stub = fixture.file("bin/chafa", b"not executable");
     std::fs::set_permissions(&stub, std::fs::Permissions::from_mode(0o600)).unwrap();
     assert!(find_on(path.as_os_str()).is_none());
+}
+
+#[test]
+fn chafa_lookup_accepts_exactly_what_the_launcher_lookup_accepts() {
+    let fixture = Fixture::new();
+    // One candidate per PATH directory, on both sides of the execute-bit criterion.
+    let modes = [
+        ("owner", 0o700),
+        ("group", 0o610),
+        ("other", 0o601),
+        ("none", 0o644),
+    ];
+    for (name, mode) in modes {
+        std::fs::create_dir(fixture.path(name)).unwrap();
+        let candidate = fixture.file(&format!("{name}/chafa"), b"#!/bin/sh\n");
+        std::fs::set_permissions(&candidate, std::fs::Permissions::from_mode(mode)).unwrap();
+    }
+    for name in ["directory", "link", "dangling"] {
+        std::fs::create_dir(fixture.path(name)).unwrap();
+    }
+    std::fs::create_dir(fixture.path("directory/chafa")).unwrap();
+    symlink(fixture.path("group/chafa"), fixture.path("link/chafa")).unwrap();
+    symlink(fixture.path("missing"), fixture.path("dangling/chafa")).unwrap();
+    let mut accepted = Vec::new();
+    for name in [
+        "owner",
+        "group",
+        "other",
+        "none",
+        "directory",
+        "link",
+        "dangling",
+    ] {
+        let directory = fixture.path(name);
+        let launcher = jail::executable_file(&directory.join("chafa"));
+        assert_eq!(find_on(directory.as_os_str()).is_some(), launcher, "{name}");
+        accepted.push(launcher);
+    }
+    assert!(accepted.contains(&true) && accepted.contains(&false));
 }
 
 #[test]

@@ -1,6 +1,6 @@
 use super::test_support::{sandboxed, Fixture};
 use super::*;
-use std::os::unix::fs::symlink;
+use std::os::unix::fs::{symlink, PermissionsExt};
 use std::time::Duration;
 
 #[test]
