@@ -3,6 +3,7 @@ import contextlib
 import io
 import json
 import os
+import re
 from pathlib import Path
 import shutil
 import struct
@@ -13,6 +14,7 @@ import time
 import unittest
 from unittest import mock
 import zipfile
+import zlib
 
 from . import offline
 from .evidence import Blocked, MARKER, Owned, output_root
@@ -178,14 +180,14 @@ class FixtureBundleTests(unittest.TestCase):
                          {"status": "invalid", "states": ["tui-list"], "reason": "fixture family work is not an object"})
 
     def test_recipe_report_pdf_ignores_the_writer_clock(self):
-        calls = []
+        calls, pixels = [], bytes(i % 251 for i in range(600 * 800 * 3))
 
         def stamping(argv, scratch, timeout=180):
             # A writer that stamps Info, XMP and /ID from the clock, as ImageMagick may; raw pixels carry no stamp.
             out, n = argv[-1], len(calls)
             calls.append(argv)
             if out.startswith("rgb:"):
-                Path(out[4:]).write_bytes(b"\xff" * (600 * 800 * 3))
+                Path(out[4:]).write_bytes(pixels)
             else:
                 Path(out).write_bytes(b"%%PDF-1.3\n<< /CreationDate (D:2026101812000%d) >>\n<xmp:CreateDate>2026-10-18T12:00:0%dZ"
                                       b"</xmp:CreateDate>\ntrailer << /ID [<%02d> <%02d>] >>\n%%%%EOF\n" % (n, n, n, n))
@@ -198,6 +200,18 @@ class FixtureBundleTests(unittest.TestCase):
         self.assertEqual(made[0], made[1])
         self.assertEqual(len(made[0]), 21840)
         self.assertNotIn(b"/ID", made[0])
+        report = made[0]
+        xref = int(report.rsplit(b"startxref\n", 1)[1].split(b"\n", 1)[0])
+        count = int(re.match(rb"xref\n0 (\d+)\n", report[xref:]).group(1))
+        rows = report[xref:].split(b"\n")[3:2 + count]
+        self.assertEqual(len(rows), count - 1)
+        for number, row in enumerate(rows, 1):
+            offset = int(row[:10])
+            self.assertTrue(report[offset:].startswith(b"%d 0 obj\n" % number), number)
+        head = re.search(rb"/Subtype /Image .*?/Length (\d+) >>\nstream\n", report)
+        stream = report[head.end():report.index(b"\nendstream", head.end())]
+        self.assertEqual(len(stream), int(head.group(1)))
+        self.assertEqual(zlib.decompress(stream), pixels)
 
     def test_two_builds_without_a_seed_in_different_seconds_match(self):
         receipts, starts = [], []
