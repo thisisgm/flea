@@ -289,16 +289,26 @@ mod tests {
         assert_eq!(message, "bsdtar: blocked/child: Not a directory");
     }
 
-    // The acceptance case: real bsdtar reports the member error mid-stream and ends on its generic trailer.
+    #[test]
+    fn a_member_error_wins_over_a_tool_warning_before_it() {
+        let progress = Mutex::new(Progress::new(Index::default(), false));
+        let stderr = b"bsdtar: Ignoring malformed pax extended attribute\nx a/b: Can't create 'a/b': Not a directory\nx lastfile\nbsdtar: Error exit delayed from previous errors.\n";
+        let text = read(stderr.as_slice(), Some((&progress, Path::new("/nonexistent"), false)));
+        let message = failure_message("archive", &std::process::ExitStatus::from_raw(256), &text);
+        assert_eq!(message, "a/b: Can't create 'a/b': Not a directory");
+    }
+
+    // The acceptance case: real bsdtar warns, reports the member error mid-stream and ends on its generic trailer.
     #[test]
     fn a_real_bsdtar_member_error_survives_the_delayed_error_trailer() {
         let root = TestDir::new("extractmembererror");
         root.dir("out");
         let archive = root.join("bad.tar");
-        let script = "import io,sys,tarfile\nwith tarfile.open(sys.argv[1], 'w') as t:\n for name in ('blocked', 'blocked/child', 'lastfile'):\n  m=tarfile.TarInfo(name);m.size=1;t.addfile(m,io.BytesIO(b'x'))";
+        let script = "import io,sys,tarfile\nwith tarfile.open(sys.argv[1], 'w', format=tarfile.USTAR_FORMAT) as t:\n x=tarfile.TarInfo('pax');x.type=tarfile.XHDTYPE;x.size=8;t.addfile(x,io.BytesIO(b'garbage\\n'))\n for name in ('blocked', 'blocked/child', 'lastfile'):\n  m=tarfile.TarInfo(name);m.size=1;t.addfile(m,io.BytesIO(b'x'))";
         assert!(std::process::Command::new("/usr/bin/python3").args(["-c", script]).arg(&archive).status().unwrap().success());
         let output = std::process::Command::new("bsdtar").args(["-v", "-x", "-f"]).arg(&archive).arg("-C").arg(root.join("out")).output().unwrap();
         assert!(!output.status.success());
+        assert!(output.stderr.starts_with(b"bsdtar: Ignoring malformed pax"), "{}", String::from_utf8_lossy(&output.stderr));
         let progress = Mutex::new(Progress::new(Index::default(), false));
         let text = read(output.stderr.as_slice(), Some((&progress, &root.join("out"), false)));
         let message = failure_message("archive", &output.status, &text);

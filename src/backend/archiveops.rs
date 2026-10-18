@@ -122,7 +122,7 @@ pub(crate) fn extract_reporting(
         }
     }
     if index.known {
-        if let Some(sentence) = archivefree::check(&leaf, index.bytes, dest) {
+        if let Some(sentence) = archivefree::check(&leaf, index.space, dest) {
             return Err(op_err("archive", &archive.to_string_lossy(), &sentence));
         }
     }
