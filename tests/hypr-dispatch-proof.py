@@ -28,10 +28,13 @@ PLACEMENT_WIDTH = 1000
 PLACEMENT_HEIGHT = 720
 SHARED_HELPER_FILE = "tests/lib/hypr-dispatch.sh"
 OPERATIONS = ("workspace_focus", "window_focus", "window_float", "window_resize", "window_move", "window_resize_absolute",
-              "window_move_absolute", "window_opacity", "cursor_move", "session_exec_script", "window_send_shortcut",
+              "window_move_absolute", "window_opacity", "cursor_move", "session_exec_script",
+              "session_exec_rules", "window_send_shortcut",
               "window_rounding", "output_create", "output_remove", "monitor_mode", "query_monitors", "query_clients",
               "query_option", "query_version", "query_help", "query_output_help")
 ENTRY_POINTS = tuple("hypr_" + operation for operation in OPERATIONS)
+RULE_REPLIES = ("error: =[C]:-1: buildRuleFromTable: unknown effect 'bogus'",
+                "error: =[C]:-1: buildRuleFromTable: failed to build table for exec rules from argument")
 LUA_PREFIX = "hl." + "dsp."
 FAKE = r'''#!/usr/bin/env bash
 set -u
@@ -250,7 +253,8 @@ def main():
             rc, output, calls = run(program)
             check(operation + " program form", rc == 0 and output == case.get("reply", "ok\n") and calls == [case["text"]], output)
             for form, code, invoke in (() if query else (("function", shared_code, command), ("program", "", program))):
-                for reply in (WARNING, "", "ok\nwarning", " ok", "ok ", "okay"):
+                for reply in (WARNING, "", "ok\nwarning", " ok", "ok ", "okay",
+                              *(RULE_REPLIES if operation == "session_exec_rules" else ())):
                     rc, output, calls = run(invoke, code=code, HYPR_FAKE_REPLY=reply)
                     check(operation + " " + form + " rejects reply " + repr(reply),
                           rc == 1 and output == refusal(operation, arguments, reply, 0) and calls == [case["text"]], output)
@@ -259,12 +263,19 @@ def main():
                       rc == 1 and output == refusal(operation, arguments, "ok", FAILED_COMMAND_STATUS)
                       and calls == [case["text"]], output)
             invalid = [arguments[:-1], arguments + ["extra"]] if arguments else [["extra"]]
-            if operation not in ("cursor_move", "session_exec_script"):
+            if operation not in ("cursor_move", "session_exec_script", "session_exec_rules"):
                 invalid.extend([bad, *arguments[1:]] for bad in
                                ("flea", "abc", '0xab"c', "0xab}c", "address:0xabc", "", "0Xabc", "0x"))
             if operation == "session_exec_script":
                 invalid.extend([bad] for bad in ("", "run.sh", "./run.sh", "/tmp/a b.sh", "/tmp/a'bad.sh",
                                '/tmp/a"bad.sh', "/tmp/a;exit.sh", "/tmp/$(id).sh", "/tmp/`id`.sh", "/tmp/a\nb.sh"))
+            if operation == "session_exec_rules":
+                invalid.extend([bad, arguments[1], arguments[2]] for bad in
+                               ("", "a b", "a;exit", 'a"b', "a'b", "a\\b", "$(id)", "a`id`", "a\nb"))
+                invalid.extend([arguments[0], bad, arguments[2]] for bad in
+                               ("DP-2", "FLEA-", "FLEA-a b", 'FLEA-"x', "FLEA-a;exit", "", "HDMI-A-1"))
+                invalid.extend([arguments[0], arguments[1], bad] for bad in
+                               ("", "run.sh", "./run.sh", "/tmp/a b.sh", "/tmp/a'bad.sh", "/tmp/a;exit.sh", "/tmp/$(id).sh"))
             integer_start = 0 if operation in ("workspace_focus", "cursor_move") else 1
             if operation in ("workspace_focus", "window_resize", "window_move", "window_resize_absolute", "window_move_absolute", "cursor_move",
                              "window_rounding"):
