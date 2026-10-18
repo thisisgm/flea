@@ -318,12 +318,7 @@ def actions(backend, root, a, b):
     backend.send(c='actions', op='run', id=89, action=action, paths=[str(source)])
     handed = backend.wait(lambda e: e['t'] == 'actionstarted' and e['requestId'] == 89)
     assert handed['ok'] and 'id' not in handed
-    end = time.monotonic() + 5
-    terminal_log = root / 'terminal.json'
-    while not terminal_log.exists():
-        assert time.monotonic() < end
-        time.sleep(0.01)
-    argv = json.loads(terminal_log.read_text())
+    argv = terminal_argv(root / 'terminal.json')
     assert argv == ['--dir=' + str(root), '--', '/usr/bin/printf', './' + source.name], argv
     print('PASS terminal mode uses OEM launcher and preserves argv')
 
@@ -447,6 +442,25 @@ def review_probes(backend, root, a):
     assert not failures, 'review reproducers failed: ' + ', '.join(failures)
 
 
+# Stub xdg-terminal-exec: the argv lands in a sibling file renamed into place, so log is only ever whole.
+def terminal_launcher(launcher, log):
+    part = log.with_name(log.name + '.part')
+    launcher.parent.mkdir()
+    launcher.write_text('#!/usr/bin/python3\nimport json,os,sys\n'
+                        f'with open({str(part)!r}, "w") as out:\n'
+                        '    out.write(json.dumps(sys.argv[1:]))\n'
+                        f'os.replace({str(part)!r}, {str(log)!r})\n')
+    launcher.chmod(0o700)
+
+
+def terminal_argv(log, seconds=5):
+    end = time.monotonic() + seconds
+    while not log.exists():
+        assert time.monotonic() < end, f'the terminal launcher wrote no {log.name} in {seconds}s'
+        time.sleep(0.01)
+    return json.loads(log.read_text())
+
+
 def main():
     scratch = Path('.superpowers/b-jobs')
     scratch.mkdir(parents=True, exist_ok=True)
@@ -455,11 +469,7 @@ def main():
     backend = None
     try:
         assert os.stat(root.path).st_dev != os.stat(temporary.path).st_dev, 'test requires a separate tmpfs'
-        launcher = root.path / 'bin/xdg-terminal-exec'
-        launcher.parent.mkdir()
-        launcher.write_text('#!/usr/bin/python3\nimport json,sys\n'
-                            'open(' + repr(str(root.path / 'terminal.json')) + ',"w").write(json.dumps(sys.argv[1:]))\n')
-        launcher.chmod(0o700)
+        terminal_launcher(root.path / 'bin/xdg-terminal-exec', root.path / 'terminal.json')
         backend = Backend(root.path)
         a, b = copies(backend, root.path, temporary.path)
         manifests(backend, root.path, a, b)

@@ -97,19 +97,25 @@ pub fn answer_prompt(child: &mut Child, secret: &str) -> std::io::Result<()> {
     Ok(())
 }
 
-// The archive jail around 7z; a secret rides its stdin, None leaves stdin closed. Ok(None) is a clean exit.
+// 7z reads one stdin line, so a line break would lock the archive with only the text before it.
+pub(crate) fn refuse_line_break(what: &str, archive: &str, secret: Option<&str>) -> Result<(), FleaError> {
+    if secret.is_some_and(|s| s.contains(['\n', '\r'])) {
+        return Err(op_err(what, archive, &format!("the password for {archive} cannot hold a line break")));
+    }
+    Ok(())
+}
+
+// The archive jail around 7z writing the archive named; a secret rides its stdin, None leaves stdin closed. Ok(None) is a clean exit.
 pub fn run_boxed_cancellable_password(
     what: &str,
+    archive: &str,
     inner: Vec<String>,
     read_only: &Path,
     work: &mut Work,
     secret: Option<&str>,
     cancel: &AtomicBool,
 ) -> Result<Option<SevenFailure>, FleaError> {
-    // 7z reads one stdin line, so a line break would lock the archive with only the text before it.
-    if secret.is_some_and(|s| s.contains(['\n', '\r'])) {
-        return Err(op_err(what, "7z", "a password cannot hold a line break"));
-    }
+    refuse_line_break(what, archive, secret)?;
     run_with(what, inner, read_only, work, secret, cancel, answer_prompt)
 }
 
