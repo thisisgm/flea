@@ -28,6 +28,7 @@ if [ -z "${FLEA_PORTAL_STARTUP_BUS:-}" ]; then
     . "$(dirname "$0")/../tools/flea-sandbox-guard"
     cd "$(dirname "$0")/.." || exit 1
     tree=$PWD
+    installer_binary=${FLEA_BIN:-"$tree/target/release/flea"}
     for file in tools/flea-portal packaging/flea.portal packaging/$backend.service; do
         [ -f "$file" ] || { printf 'portal-startup.sh: %s is missing, refusing to report on nothing\n' "$file" >&2; exit 1; }
     done
@@ -149,6 +150,16 @@ CALLER
     if [ "$status" != 0 ]; then
         echo "--- bus daemon and backend log ---"
         cat "$dir/bus.log"
+    else
+        python3 "$tree/tests/portal-startup-lifetime.py"
+        status=$?
+        python3 "$tree/tests/portal-startup-installer-binary.py"
+        binary_status=$?
+        [ "$status" != 0 ] || status=$binary_status
+        if [ "$status" = 0 ]; then
+            FLEA_BIN="$installer_binary" python3 "$tree/tests/portal-startup-installer.py"
+            status=$?
+        fi
     fi
     exit "$status"
 fi
@@ -244,6 +255,9 @@ for arm in "control stub org.freedesktop.impl.portal.desktop.stub" "flea flea;gt
     owned "$owner"
     check "$name arm: the frontend activated the backend at its own start" "1" "$has_owner"
     if [ "$name" = flea ]; then
+        reply=$(busctl --user --auto-start=no --timeout=5s get-property "$desktop" /org/freedesktop/portal/desktop org.freedesktop.portal.FileChooser version 2>&1)
+        check "flea arm: the installer's readiness probe reaches the real frontend" "0" "$?"
+        check "flea arm: the readiness reply is a nonzero unsigned version" "1" "$(grep -Ec '^u [1-9][0-9]*$' <<< "$reply")"
         wait_name down "$owner" 60
         released=$elapsed
         check "flea arm: the backend released its name after its idle exit" "0" "$([ "$released" = never ] && echo 1 || echo 0)"

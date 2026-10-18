@@ -31,16 +31,25 @@ pub fn prepare(child: &mut Command) {
 
 // In-process callers (the TUI, the shelf) stay on 0/2/3: an executable is refused with its sentence, and only the main.rs --open path asks the card, through open_ask.
 pub fn open(path: &str) -> i32 {
-    open_inner(path, false)
+    open_inner(path, false, &[])
 }
 
 // The window's own entrance: a program asks once on the run card instead of reaching a handler.
 pub fn open_ask(path: &str) -> i32 {
-    open_inner(path, true)
+    open_inner(path, true, &[])
+}
+
+// The ordered image handoff shares every first-target run decision with a single open.
+pub fn open_many(paths: &[String]) -> i32 {
+    match paths.first() {
+        Some(path) if paths.len() == 1 => open_ask(path),
+        Some(path) => open_inner(path, true, paths),
+        None => FAILED,
+    }
 }
 
 // gio open is the OEM route: it asks the desktop database, so Terminal=true is honoured; see AGENTS.md "Opening a file".
-fn open_inner(path: &str, ask: bool) -> i32 {
+fn open_inner(path: &str, ask: bool, images: &[String]) -> i32 {
     let target = match resolved(path) {
         Some(p) => p,
         // The reason is elided, never shown raw, and the path is the user's own input.
@@ -54,7 +63,7 @@ fn open_inner(path: &str, ask: bool) -> i32 {
     }
     // A FIFO, socket or device is never a program and never blocks here: it skips the snapshot and the run decision and opens the way it always did.
     if !target.is_file() {
-        return open_normally(&target, ask);
+        return open_normally(&target, ask, &[]);
     }
     // One open for the kind and the identity together, so a swap between them cannot pair two files.
     let opened = match crate::runid::snapshot(&target) {
@@ -73,8 +82,15 @@ fn open_inner(path: &str, ask: bool) -> i32 {
                 eprintln!("flea: that file is a program, so it was not opened");
                 return FAILED;
             }
-            let handler = if matches!(kind, runfile::Kind::AppImage) { crate::desktopid::handler(&target) } else { None };
-            println!("{}", runfile::ask_line(kind, handler.as_ref(), &opened.id, &target));
+            let handler = if matches!(kind, runfile::Kind::AppImage) {
+                crate::desktopid::handler(&target)
+            } else {
+                None
+            };
+            println!(
+                "{}",
+                runfile::ask_line(kind, handler.as_ref(), &opened.id, &target)
+            );
             return runfile::ASK_RUN;
         }
         // A script missing its bit opens with its handler the way it always did; the menu's Make executable is the one route to the bit.
@@ -90,17 +106,19 @@ fn open_inner(path: &str, ask: bool) -> i32 {
         }
         runfile::Decision::OpenNormally => {}
     }
-    open_normally(&target, ask)
+    open_normally(&target, ask, images)
 }
 
-// Past every run decision: handed to gio open and waited on, the way the opener always did.
-fn open_normally(target: &Path, ask: bool) -> i32 {
+// Past every run decision: handed to GIO and waited on, the way the opener always did.
+fn open_normally(target: &Path, ask: bool, images: &[String]) -> i32 {
     // corner: waited for, not detached, and on an archive that wait is a cold handler start; see AGENTS.md "Opening a file".
-    let mut launcher = Command::new("gio");
+    let mut launcher = crate::imageopen::launcher(target, images).unwrap_or_else(|| {
+        let mut single = Command::new("gio");
+        single.arg("open").arg(target);
+        single
+    });
     prepare(&mut launcher);
     let finished = launcher
-        .arg("open")
-        .arg(target)
         // The handler outlives us, so an inherited pipe would kill it on its first write; see AGENTS.md "Opening a file".
         .stdin(Stdio::null())
         .stdout(Stdio::null())

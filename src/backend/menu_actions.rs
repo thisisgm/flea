@@ -42,6 +42,9 @@ impl MenuActions {
             let _close = CloseOnExit(Arc::clone(&queued));
             while let Some((line, paths, cursor, cancel)) = queued.take() {
                 let mut state = published.lock().unwrap().clone();
+                if field_str(&line, "op").as_deref() == Some("properties") && state.items.len() != 1 {
+                    if super::menuproperties::serve(&line, state.id, &state.items, &output, &cancel) { continue; } else { break; }
+                }
                 if field_str(&line, "op").as_deref() == Some("contents") {
                     if super::menucontents::serve(&line, state.id, &state.items, &output, &cancel) { continue; } else { break; }
                 }
@@ -289,17 +292,7 @@ impl Snapshot {
         let item = &self.items[0];
         let meta = item.current()?;
         match op {
-            "properties" => {
-                let kind = if meta.file_type().is_symlink() { "Symbolic link" } else if meta.is_dir() { "Directory" }
-                           else if meta.is_file() { "File" } else { "Special file" };
-                let target = if meta.file_type().is_symlink() {
-                    std::fs::read_link(&item.path).map_err(|e| format!("Could not read the link: {}.", crate::error::io_message(&e)))?.to_string_lossy().to_string()
-                } else { String::new() };
-                Ok(format!(r#""path":"{}","kind":"{}","directory":{},"symlink":{},"target":"{}","bytes":{},"modified":{},"mode":"{:04o}","owner":"{}","uid":{},"gid":{},"tags":{},"photo":{}"#,
-                    escape(&item.path.to_string_lossy()), kind, meta.is_dir(), meta.file_type().is_symlink(), escape(&target),
-                    meta.len(), meta.mtime(), meta.mode() & 0o7777, escape(&super::owner::name(meta.uid())), meta.uid(), meta.gid(), super::tags::names_json(&item.path),
-                    super::metareq::photo_json(&super::metareq::photo(&item.path, true))))
-            }
+            "properties" => super::menuproperties::single(item, &meta),
             "applications" => {
                 let found = menu_registry::catalogue(registry, &item.path, field_bool(line, "installed"), cancel)?;
                 Ok(format!(r#""applications":[{}],"installed":[{}],"mime":"{}","kind":"{}","path":"{}""#,

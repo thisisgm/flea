@@ -75,7 +75,8 @@ fn a_provider_destination_that_is_a_file_is_not_a_folder() {
 // Lines no fixture reaches (a link replaced between two reads, a stat failing right after a create) are pinned by their source.
 #[test]
 fn retired_menu_wording_is_gone_from_the_live_source() {
-    let live = include_str!("menu_actions.rs").split("\n#[cfg(test)]\nmod tests").next().unwrap();
+    let actions = include_str!("menu_actions.rs").split("\n#[cfg(test)]\nmod tests").next().unwrap();
+    let live = format!("{}\n{}", actions, include_str!("menuproperties.rs"));
     for retired in ["Menu selection expired", "review a fresh confirmation", "The menu service stopped", "survivor identities",
                     "This path was not in the menu selection", "captured menu selection", "is not a directory",
                     "Cursor source was not captured", "Could not read symlink", "record its identity"] {

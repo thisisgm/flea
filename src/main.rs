@@ -11,6 +11,7 @@ mod hyprkeys;
 #[cfg_attr(not(test), allow(dead_code))]
 mod i18n;
 mod icdexclude;
+mod imageopen;
 mod json;
 mod jsondoc;
 mod jsonmembers;
@@ -190,12 +191,12 @@ fn main() {
         usage("--prewarm takes a path, a first index and a destination");
     }
 
-    // flea --open <path>: the window's entrance, which asks the run card; in-process callers use open::open.
-    if args.len() == 3 && args[1] == "--open" {
-        exit(open::open_ask(&args[2]));
+    // flea --open <path> [images...]: the window's entrance; the first target still asks the run card.
+    if args.len() >= 3 && args[1] == "--open" {
+        exit(open::open_many(&args[2..]));
     }
     if args.get(1).map(String::as_str) == Some("--open") {
-        usage("--open takes one path");
+        usage("--open <path> [images...]");
     }
 
     // flea --terminal <dir>
