@@ -4,13 +4,15 @@ import io
 import json
 import os
 from pathlib import Path
+import shutil
 import sys
 import tempfile
 import unittest
 from unittest.mock import patch
 
-from . import adapters, cells, driver, dynamic, fake, media, native, receipts, reconcile
+from . import adapters, cells, driver, dynamic, fake, media, native, receipts, reconcile, references
 from .evidence import Blocked, Commands, MARKER, digest
+from .geometry import CELL_HEIGHT, ORIGIN
 from .review_support import media_transcript
 from . import test_review_r2
 
@@ -22,6 +24,7 @@ class RegressionTests(unittest.TestCase):
         parent = Path(os.environ.get('FLEA_BATTERY_TEST_ROOT', Path(__file__).resolve().parents[2] / '.superpowers/t12a'))
         parent.mkdir(parents=True, exist_ok=True)
         self.root = Path(tempfile.mkdtemp(prefix='regressions.', dir=parent))
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
         (self.root / MARKER).write_text('owned battery regressions\n')
 
     def test_nonstring_font_is_blocked(self):
@@ -614,6 +617,59 @@ class RegressionTests(unittest.TestCase):
         self.assertEqual(self.cells_of(screen, 0)[5], ('f', 1))
         self.assertEqual(self.cells_of(screen, 1)[:2], [('中', 2), ('', 0)])
         self.assertEqual(screen.snapshot()['cursor'], [2, 1])
+
+    def test_private_marker_sgr_is_recorded_and_parsing_continues(self):
+        for data in (b'\x1b[>4;2m', b'\x1b[>4;1m', b'\x1b[?4m'):
+            with self.subTest(data=data):
+                screen = cells.Screen(6, 2)
+                screen.feed(data + b'ab')
+                self.assertIn('CSI ' + data[2:-1].decode() + 'm', screen.unsupported)
+                self.assertEqual(self.cells_of(screen, 0)[:2], [('a', 1), ('b', 1)])
+
+    def test_colon_in_cursor_csi_is_recorded_not_parsed(self):
+        screen = cells.Screen(6, 2)
+        screen.feed(b'\x1b[1:2Hx')
+        self.assertIn('CSI 1:2H', screen.unsupported)
+        self.assertEqual(self.cells_of(screen, 0)[0], ('x', 1))
+
+    def test_marker_in_sgr_group_is_recorded_and_parsing_continues(self):
+        screen = cells.Screen(6, 2)
+        screen.feed(b'\x1b[38;?5mab')
+        self.assertIn('SGR ?5', screen.unsupported)
+        self.assertEqual(self.cells_of(screen, 0)[:2], [('a', 1), ('b', 1)])
+
+    def test_unapproved_native_picture_claims_no_verification(self):
+        state, board, image, caps, fx = self.media_case()
+        result = self.inspect_media(state, board, image, caps, fx)
+        self.assertEqual(result['status'], 'BLOCKED')
+        self.assertNotIn('representation_verified', result)
+        self.assertTrue(result['representation_bound'])
+
+    def test_full_cell_background_threshold_follows_cell_width(self):
+        board = references.Board.__new__(references.Board)
+        board.palette = {'fg': '#c6b395', 'bg': '#1c120d', 'accent': '#ffffff'}
+        board.runs = []
+        shape ={'left': f'{ORIGIN[0]}px', 'top': f'{ORIGIN[1]}px', 'height': f'{CELL_HEIGHT}px',
+                 'background': 'var(--accent)'}
+        board.shapes = [dict(shape, width='9.7px')]
+        with patch.object(references, 'CELL_WIDTH', 10.0):
+            self.assertEqual(board.cells(columns=2, rows=1)[(0, 0)]['bg'], '#1c120d')
+        board.shapes = [dict(shape, width=f'{references.CELL_WIDTH}px')]
+        self.assertEqual(board.cells(columns=2, rows=1)[(0, 0)]['bg'], '#ffffff')
+
+    def test_root_is_removed_after_each_test(self):
+        class Probe(RegressionTests):
+            def test_probe(self):
+                self.assertTrue(self.root.is_dir())
+        case = Probe('test_probe')
+        self.assertTrue(case.run().wasSuccessful())
+        self.assertFalse(case.root.exists())
+
+    def test_nonzero_fake_exit_reports_code_and_output_tail(self):
+        message = str(fake.exit_blocked('foot', fake.EXEC_FAILURE_EXIT, b'x' * 400 + b'tail'))
+        self.assertTrue(message.startswith('fake foot exited 127: '))
+        self.assertEqual(len(message.split(': ', 1)[1]), fake.OUTPUT_TAIL_CHARS)
+        self.assertTrue(message.endswith('tail'))
 
 
 if __name__ == '__main__':

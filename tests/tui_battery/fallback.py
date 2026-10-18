@@ -145,7 +145,7 @@ def numbered_cells(box, number, focused, board, cells):
 
 
 def representation_status(media, review):
-    if not media.get("representation_verified"):
+    if not media.get("representation_bound"):
         return media["status"]
     decision = review.get("representation", {})
     required = media["review_requirements"]
@@ -190,7 +190,7 @@ def inspect(state, board, snapshot, grid_rect, case, fx, review, commands=None):
     requirements = {"mode": mode, "bounds": cell_boxes, "picture_bounds": boxes, "sources": source, "renderer": renderer}
     if mode == "numbered-boxes":
         requirements["focused_image"] = 1
-    result = {"status": "BLOCKED", "mode": mode, "representation_verified": True,
+    result = {"status": "BLOCKED", "mode": mode, "representation_bound": True,
               "review_requirements": requirements, "source_files": files,
               "boxes": [{"cells": box} for box in cell_boxes], "native_protocol": False}
     result["status"] = representation_status(result, review)

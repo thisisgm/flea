@@ -12,6 +12,8 @@ C0 = r"\x00-\x17\x19\x1c-\x1f"
 CSI = re.compile(r"\x1b\[([0-?" + C0 + r"]*)([ -/" + C0 + r"]*)([@-~])")
 CSI_PREFIX = re.compile(r"\x1b\[[0-?" + C0 + r"]*[ -/" + C0 + r"]*")
 ESCAPE = re.compile(r"\x1b([ -/]*)([0-~])")
+CSI_BODY = re.compile(r"[0-9;]*")
+SGR_GROUP = re.compile(r"[0-9:]*")
 
 PALETTE = ["#1c120d", "#d65a4f", "#79ab55", "#dc9c36", "#509467", "#957a5a", "#599181", "#c6b395",
            "#8b7b74", "#d65a4f", "#79ab55", "#dc9c36", "#509467", "#957a5a", "#599181", "#d8cdbb"]
@@ -157,11 +159,17 @@ class Screen:
 
     # Sample input: params='1;2', final='H'; params='38:2::255:0:0', final='m'.
     def csi(self, params, final):
-        if final == "m":
+        marker = params[:1] if params[:1] in ("?", ">", "<", "=") else ""
+        body = params[len(marker):]
+        if final == "m" and not marker:
             self.sgr(params)
             return
-        private = params.startswith(("?", ">", "<", "="))
-        nums = [int(n or 0) for n in params.lstrip("?><=").split(";")]
+        if final == "m" or not CSI_BODY.fullmatch(body):
+            # Private-marker SGR and colon or marker params on other finals stay unmodeled.
+            self.unsupported.add(f"CSI {params}{final}")
+            return
+        private = bool(marker)
+        nums = [int(n or 0) for n in body.split(";")]
         first = nums[0] or 1
         if final in ("H", "f"):
             self.y = min(self.rows - 1, max(0, first - 1))
@@ -208,6 +216,9 @@ class Screen:
     def sgr(self, params):
         nums = []
         for group in params.split(";"):
+            if not SGR_GROUP.fullmatch(group):
+                self.unsupported.add("SGR " + group)
+                continue
             if ":" not in group:
                 nums.append(int(group or 0))
                 continue
