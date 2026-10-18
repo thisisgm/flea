@@ -404,8 +404,11 @@ def build(output, seed=None, without_rasters=False):
                     path.chmod(0o700)
             shutil.rmtree(scratch)
     provenance = dict(sorted(bundle.provenance.items()))
-    provenance.update({"office documents": "Python OOXML and ODF writers with fixed timestamps; a private zip extra field (0x6C66) "
-                                           "pads each to its reference size, with at most 7 archive comment bytes; lease.docx is ECMA-376 Standard Encryption, AES-128, password fixture",
+    provenance.update({"office documents": "Python OOXML and ODF writers with fixed timestamps; a private zip extra field (0x6C66), "
+                                           "with at most 7 archive comment bytes, pads garden-report.docx, budget.xlsx and talk.odp to "
+                                           "their reference sizes and lease.docx's inner package to 5590 bytes; lease.docx is that "
+                                           "package in ECMA-376 Standard Encryption, AES-128, password fixture, as a 15-sector "
+                                           "compound file of exactly 8192 bytes; garden-report.pdf is under PDF documents",
                        "PDF documents": "Python PDF writer with fixed Info dates; a comment block after the header pads each to size",
                        "3D models": "Python meshes from the fixed bracket, knob and boat geometry; 3MF thumbnails by the bundle rasterizer",
                        "text and small files": "the bench recipe's exact bytes, written by Python"})
