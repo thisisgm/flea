@@ -383,8 +383,7 @@ overridden = run_neutral(options, {'FLEA_PARITY_DESIGN': str(root / 'absent-desi
 check(overridden.returncode == 0 and overridden.stdout == output, 'flags take precedence over environment paths')
 
 
-# Neutral sources: no committed file under tools, tests, src or ci holds an absolute home path or a private ~/ tree,
-# outside the shipped docs and bench manifests. Both tokens are joined at run time, so this guard never matches itself.
+# No committed tools, tests, src or ci file names a home path or private ~/ tree; joined tokens keep this guard off itself.
 HOME_TOKEN = '/ho' + 'me/'
 TILDE_TOKEN = '~' + '/'
 XDG_BASES = ('.config', '.cache', '.local')

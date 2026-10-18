@@ -1,6 +1,5 @@
 use super::*;
 use crate::backend::testdir::TestDir;
-use std::os::unix::fs::PermissionsExt;
 use std::sync::atomic::AtomicBool;
 use std::sync::Arc;
 
@@ -90,6 +89,7 @@ fn cancelling_after_claim_is_skipped_only_when_rollback_succeeds() {
         reviewed.snapshot(&mut Manifest::new(d.path()).unwrap(), d.path(), &Cancellation::default()).unwrap();
         let flag = Arc::new(AtomicBool::new(false));
         let cancel = Cancellation::operation(flag.clone());
+        let mut replaced = None;
         d.assert_contains(&path);
         d.assert_contains(&info);
         let refusal = reviewed.with_claimed(
@@ -101,8 +101,13 @@ fn cancelling_after_claim_is_skipped_only_when_rollback_succeeds() {
                 if blocked {
                     d.file("files/item", "replacement");
                 }
+                // A swapped record is a failure root cannot bypass, unlike a read-only recovery folder.
                 if record_left {
-                    std::fs::set_permissions(d.path(), std::fs::Permissions::from_mode(0o500)).unwrap();
+                    let records: Vec<_> = std::fs::read_dir(d.path()).unwrap().map(|entry| entry.unwrap().path())
+                        .filter(|path| path.extension().is_some_and(|extension| extension == "review")).collect();
+                    assert_eq!(records.len(), 1, "one recovery record while claimed: {records:?}");
+                    d.replace_file(&records[0], "replacement record");
+                    replaced = Some(records[0].clone());
                 }
                 remove_tree_cancellable(
                     reviewed.tree.as_ref().unwrap(),
@@ -113,7 +118,6 @@ fn cancelling_after_claim_is_skipped_only_when_rollback_succeeds() {
                 )
             },
         ).unwrap_err();
-        std::fs::set_permissions(d.path(), std::fs::Permissions::from_mode(0o700)).unwrap();
         if blocked {
             let Outcome::Stuck(Op::Delete, kept) = refusal.outcome() else {
                 panic!("a failed rollback must remain a failure: {refusal:?}");
@@ -124,9 +128,8 @@ fn cancelling_after_claim_is_skipped_only_when_rollback_succeeds() {
         } else if record_left {
             assert_eq!(refusal.outcome(), &Outcome::RecordLeft(None));
             assert_eq!(std::fs::read_to_string(&path).unwrap(), "keep");
-            assert!(std::fs::read_dir(d.path()).unwrap().any(|entry| {
-                entry.unwrap().path().extension().is_some_and(|extension| extension == "review")
-            }));
+            let record = replaced.as_ref().expect("the record was swapped while claimed");
+            assert_eq!(std::fs::read_to_string(record).unwrap(), "replacement record", "the changed record is preserved");
         } else {
             assert_eq!(refusal.outcome(), &Outcome::Cancelled);
             assert_eq!(std::fs::read_to_string(&path).unwrap(), "keep");

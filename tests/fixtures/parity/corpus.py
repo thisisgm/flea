@@ -10,6 +10,17 @@ import zipfile
 REVISION = 'f21789e56cc4b0877caa3156fff7bce52a8dd9c2'
 SOURCE_COUNT = 533
 ARCHIVE_LIMIT = 2_000_000
+REVISION_ABSENT = 1
+
+
+# A shallow or single-branch clone lacks the pinned commit and reads the hash-verified archive; a broken repository fails.
+def pinned_commit(repo, check):
+    if not (repo / '.git').exists():
+        return False
+    result = subprocess.run(['git', '-C', str(repo), 'rev-parse', '--verify', '--quiet', '--end-of-options',
+                             f'{REVISION}^{{commit}}'], capture_output=True)
+    check(result.returncode in (0, REVISION_ABSENT), f'Git could not look up the frozen commit: {result.stderr!r}')
+    return result.returncode == 0
 
 
 # Sample input: path\tsha256 followed by tests/rename-cost.qml\t<64 hexadecimal digits> (TSV).
@@ -20,7 +31,7 @@ def sources(repo, fixture, check):
           f'the frozen corpus names all {SOURCE_COUNT} QML/JS sources exactly once')
     archive_path = fixture / 'frozen-sources.zip'
     check(archive_path.stat().st_size < ARCHIVE_LIMIT, 'the committed frozen copy stays below 2 MB')
-    checkout = (repo / '.git').exists()
+    checkout = pinned_commit(repo, check)
     with zipfile.ZipFile(archive_path) as archive:
         check(len(archive.namelist()) == SOURCE_COUNT and set(archive.namelist()) == set(paths),
               'the frozen copy contains exactly the manifest paths')
