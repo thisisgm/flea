@@ -40,5 +40,6 @@
   "visual.settings": "The capture scene settings are invalid.",
   "visual.busy": "The window is still completing a capture or backend request.",
   "visual.snapshot": "The requested presented snapshot is unavailable.",
-  "visual.timeout": "The requested capture snapshot was not presented in time."
+  "visual.timeout": "The requested capture snapshot was not presented in time.",
+  "visual.unpresented": "The compositor reports no presented frames for this window."
 }
