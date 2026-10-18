@@ -76,6 +76,7 @@ pub enum Request {
     Archive { op: String, paths: Vec<String>, path: String, dest: String, format: String, menu_id: usize,
               password: String, encrypt_names: bool },
     Convert { path: String, dest: String, strip: bool, menu_id: usize, request_id: usize, check: bool },
+    PrintConvert(super::printreq::Request),
     // Which archive formats this box actually offers, and whether a converter is installed at all.
     Formats { id: usize },
     Permissions { line: String },
@@ -252,6 +253,7 @@ pub fn parse_request(line: &str) -> Request {
             password: field_str(line, "password").unwrap_or_default(),
             encrypt_names: field_bool(line, "encryptNames"),
         },
+        Some("printoptions" | "print" | "convertbatch" | "combine") => Request::PrintConvert(super::printreq::Request::parse(line)),
         Some("convert") => Request::Convert {
             request_id: field_usize(line, "requestId").unwrap_or(0),
             check: field_bool(line, "check"),

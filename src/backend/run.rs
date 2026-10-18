@@ -603,6 +603,7 @@ fn handle_line(
             paths, format, PathBuf::from(&path), PathBuf::from(&dest), menu_id, password, encrypt_names),
         Request::Convert { path, dest, strip, menu_id, request_id, check } =>
             start_convert(out, ops, PathBuf::from(&path), PathBuf::from(&dest), strip, menu_id, request_id, check),
+        Request::PrintConvert(ask) => super::printreq::serve(out, ops, ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases)),
         Request::Formats { id } => {
             let mut line = formats_line(&tb.formats, convert::available());
             line.insert_str(line.len() - 1, &format!(r#", "id":{},"providers":{}"#, id, super::providers::facts()));
@@ -730,6 +731,7 @@ fn rows_needed(request: &Request) -> usize {
         | Request::LinkTarget { .. }
         | Request::Archive { .. }
         | Request::Convert { .. }
+        | Request::PrintConvert(_)
         | Request::PasteImage(_) => 0,
         // Lines, dialogs and the clipboard name paths or nothing, never a row index.
         Request::Shebang { .. }
