@@ -160,8 +160,14 @@ fn sandbox_availability_requires_executable_launchers() {
     const FLAG: &str = "FLEA_SANDBOX_EXECUTABILITY_PROBE";
     // A regular file with no execute bit, which the launcher lookup refuses.
     const NON_EXECUTABLE_MODE: u32 = 0o644;
-    if std::env::var_os(FLAG).is_some() {
+    // The same file with execute bits, the positive control.
+    const EXECUTABLE_MODE: u32 = 0o755;
+    if let Ok(expected) = std::env::var(FLAG) {
         let available = crate::backend::sandbox::available();
+        if expected == "available" {
+            assert!(available, "executable launchers must be available");
+            return;
+        }
         let full = crate::backend::sandbox::wrap_readonly(
             &["/usr/bin/true".into()],
             Path::new("/usr/bin/true"),
@@ -179,31 +185,42 @@ fn sandbox_availability_requires_executable_launchers() {
         let root = TestDir::new("sandbox-nonexecutable-launcher");
         let path = root.file(blocked, "not executable\n");
         root.assert_contains(&path);
-        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(NON_EXECUTABLE_MODE))
-            .unwrap();
         let other = if blocked == "bwrap" {
             "prlimit"
         } else {
             "bwrap"
         };
-        std::os::unix::fs::symlink("/usr/bin/true", root.join(other)).unwrap();
-        let output = Command::new(std::env::current_exe().unwrap())
-            .args([
-                "--exact",
-                "backend::jail::path_tests::sandbox_availability_requires_executable_launchers",
-                "--nocapture",
-            ])
-            .env(FLAG, "1")
-            .env("PATH", root.path())
-            .output()
-            .unwrap();
-        // The child's output stays captured; echoing a SKIP line from it would count as a skip in CI.
+        let target = Path::new("/usr/bin/true");
+        // A missing target leaves the PATH unavailable whatever the blocked file's mode, so the refusal would prove nothing.
         assert!(
-            output.status.success(),
-            "{blocked} probe child failed: {}{}",
-            String::from_utf8_lossy(&output.stdout),
-            String::from_utf8_lossy(&output.stderr)
+            executable_file(target),
+            "launcher fixture target {} must be executable",
+            target.display()
         );
-        assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
+        std::os::unix::fs::symlink(target, root.join(other)).unwrap();
+        for (mode, expected) in [
+            (EXECUTABLE_MODE, "available"),
+            (NON_EXECUTABLE_MODE, "unavailable"),
+        ] {
+            std::fs::set_permissions(&path, std::fs::Permissions::from_mode(mode)).unwrap();
+            let output = Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "backend::jail::path_tests::sandbox_availability_requires_executable_launchers",
+                    "--nocapture",
+                ])
+                .env(FLAG, expected)
+                .env("PATH", root.path())
+                .output()
+                .unwrap();
+            // The child's output stays captured; echoing a SKIP line from it would count as a skip in CI.
+            assert!(
+                output.status.success(),
+                "{blocked} {expected} probe child failed: {}{}",
+                String::from_utf8_lossy(&output.stdout),
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert!(String::from_utf8_lossy(&output.stdout).contains("1 passed"));
+        }
     }
 }

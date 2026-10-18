@@ -1,8 +1,7 @@
-use crate::backend::sandbox;
+use crate::backend::{jail, sandbox};
 use std::ffi::OsStr;
 use std::fs::File;
 use std::io;
-use std::os::unix::fs::PermissionsExt;
 use std::path::PathBuf;
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -15,8 +14,6 @@ const OUTPUT_LIMIT: usize = 32 * 1024 * 1024;
 const MAX_DIMENSION: usize = 4096;
 // The longest SGR parameter string one decoder escape may carry.
 const SGR_PARAMETER_BYTES: usize = 64;
-// The execute bits of st_mode; a chafa on PATH needs any one of them.
-const ANY_EXECUTE_BIT: u32 = 0o111;
 
 #[derive(Clone, Copy, Debug, Eq, PartialEq)]
 pub enum ColorMode {
@@ -137,8 +134,7 @@ fn find_on(path: &OsStr) -> Option<PathBuf> {
         .filter(|directory| directory.is_absolute())
         .find_map(|directory| {
             let executable = directory.join("chafa");
-            let meta = executable.metadata().ok()?;
-            if !meta.is_file() || meta.permissions().mode() & ANY_EXECUTE_BIT == 0 {
+            if !jail::executable_file(&executable) {
                 return None;
             }
             let executable = executable.canonicalize().ok()?;
