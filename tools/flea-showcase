@@ -518,7 +518,7 @@ fixture_instances() {
     local pid
     for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs || true); do
         [[ -r "/proc/$pid/environ" ]] || continue
-        if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' '\n' 2>/dev/null < "/proc/$pid/environ" | LC_ALL=C.UTF-8 LANGUAGE= grep -q "^PATH=$shim_dir:"; then
+        if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' '\n' 2>/dev/null < "/proc/$pid/environ" | LC_ALL=C LANGUAGE= grep -q "^PATH=$shim_dir:"; then # locale-bytes: compare a raw process environment path
             printf '%s\n' "$pid"
         fi
     done

@@ -135,7 +135,7 @@ run_once() {
         stop_shell "$pid"
         fail "the expected first row never reached the window"
     fi
-    elapsed=$(( $(date +%s%3N) - start ))
+    elapsed=$(( $(LC_ALL=C.UTF-8 LANGUAGE= date +%s%3N) - start ))
     printf '  %-22s %4d ms\n' "$label" "$elapsed"
     stop_shell "$pid"
 }

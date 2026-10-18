@@ -450,18 +450,18 @@ watch_stop() {
     kill -0 "$pid" 2>/dev/null || fail "a $id watch died during the run, so nothing it wrote is a count"
   done
   watch_kill
-  WATCH_N=$(LC_ALL=C.UTF-8 LANGUAGE= grep -c "^$TRANSIENT_PREFIX[0-9]*-[0-9]*/result\.png\$" "$WATCH_RENDERS")
+  WATCH_N=$(LC_ALL=C LANGUAGE= grep -c "^$TRANSIENT_PREFIX[0-9]*-[0-9]*/result\.png\$" "$WATCH_RENDERS") # locale-bytes: count raw event paths
   # Two entrant processes in one window would let one run's renders be counted for another.
   pids=$(LC_ALL=C.UTF-8 LANGUAGE= grep -o "^$TRANSIENT_PREFIX[0-9]*" "$WATCH_RENDERS" | LC_ALL=C.UTF-8 LANGUAGE= sort -u | LC_ALL=C.UTF-8 LANGUAGE= grep -c .)
   [ "$pids" -le 1 ] || fail "$pids $id processes wrote renders in this run, so no count from it is attributable"
-  opens_n=$(LC_ALL=C.UTF-8 LANGUAGE= grep -c . "$WATCH_OPENS")
+  opens_n=$(LC_ALL=C LANGUAGE= grep -c . "$WATCH_OPENS") # locale-bytes: count nonempty raw filename records
   WATCH_REFUSED=""
   # corner: the pairing holds for a strata that renders one file at a time into a per-render dir, and v0.19.0's reused workers write none.
   if [ "$opens_n" -lt "$WATCH_N" ] || [ $(( opens_n - WATCH_N )) -gt 1 ]; then
     WATCH_REFUSED="its watches saw $WATCH_N renders for $opens_n opened fixture files so neither is a count"
     return 0
   fi
-  LC_ALL=C.UTF-8 LANGUAGE= grep . "$WATCH_OPENS" | head -n "$WATCH_N" > "$WATCH_RENDERED"
+  LC_ALL=C LANGUAGE= grep . "$WATCH_OPENS" | head -n "$WATCH_N" > "$WATCH_RENDERED" # locale-bytes: select raw filename records for comparison
 }
 
 # The extension of every name the entrant rendered, in the fixture map's own extension order, so a
@@ -1634,7 +1634,7 @@ PREVIEW_REGION="$(( mon_w * 55 / 100 )),$(( mon_h * 12 / 100 )) ${preview_w}x${p
 PREVIEW_SHOT="$TUI_CONF/.preview-probe.png"
 # The named image the TUI group is timed against. The fixture's first name is a video and almost
 # nothing previews one, so the target is named here and recorded in the manifest.
-PREVIEW_TARGET_NAME=$(LC_ALL=C.UTF-8 LANGUAGE= ls -U "$FIXTURE" | LC_ALL=C.UTF-8 LANGUAGE= grep -m1 '\.jpg$')
+PREVIEW_TARGET_NAME=$(LC_ALL=C.UTF-8 LANGUAGE= ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= grep -m1 '\.jpg$') # locale-bytes: select a raw preview filename by extension
 PREVIEW_TARGET=""
 [ -n "$PREVIEW_TARGET_NAME" ] && PREVIEW_TARGET="$FIXTURE/$PREVIEW_TARGET_NAME"
 park_thumbs

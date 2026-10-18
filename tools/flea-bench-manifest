@@ -316,9 +316,9 @@ say ""
 say "## Fixture by extension"
 say ""
 say '```'
-ls -U "$FIXTURE" | sed -n 's/.*\.\([A-Za-z0-9]*\)$/\1/p' | sort | uniq -c | sort -rn >> "$OUT"
+ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= sed -n 's/.*\.\([A-Za-z0-9]*\)$/\1/p' | sort | uniq -c | sort -rn >> "$OUT" # locale-bytes: count extensions of raw filename bytes
 # sed drops a name with no dot in it, so those are counted separately rather than vanishing.
-printf '%7s no extension\n' "$(ls -U "$FIXTURE" | grep -c -v '\.')" >> "$OUT"
+printf '%7s no extension\n' "$(ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= grep -c -v '\.')" >> "$OUT" # locale-bytes: count raw filenames without an extension
 say '```'
 say ""
 # The denominator any "N of M" phrasing has to use, derived here so nobody re-derives it by hand.
@@ -327,7 +327,7 @@ say ""
 total_payload=$(ls -U "$FIXTURE" | wc -l)
 not_thumbnailable=0
 for ext in ${NOT_THUMBNAILABLE:-txt}; do
-  n=$(ls -U "$FIXTURE" | grep -c "\.$ext$")
+  n=$(ls -U "$FIXTURE" | LC_ALL=C LANGUAGE= grep -c "\.$ext$") # locale-bytes: count raw filename extensions
   not_thumbnailable=$(( not_thumbnailable + n ))
   say "- excluded from the denominator: $n .$ext files, which no thumbnailer attempts"
 done

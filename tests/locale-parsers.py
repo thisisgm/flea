@@ -37,6 +37,10 @@ def main():
                         help="restore the ASCII locale in UTF-8 probes; this control must fail")
     parser.add_argument("--regress-decimal", action="store_true",
                         help="remove the numeric formatter pins; this control must fail in de_DE.UTF-8")
+    parser.add_argument("--regress-fixture-scope", action="store_true",
+                        help="remove the tool's export; the pipeline must detect the lost scope")
+    parser.add_argument("--regress-byte-mode", action="store_true",
+                        help="restore UTF-8 matching over raw filename bytes; this control must fail")
     parser.add_argument("--keep", action="store_true", help="keep the marked fixture root for inspection")
     args = parser.parse_args()
     inherited = dict(os.environ)
@@ -60,12 +64,16 @@ def main():
         env=temp_env, text=True).strip())
     assert root.is_absolute() and root.parent == REPO / ".superpowers/i0"
     (root / ".flea-test-sandbox").write_text("locale parser regression fixtures\n")
+    success = False
+
     def cleanup():
-        if not args.keep:
-            assert str(root) and root.is_absolute() and root.parent == parent.resolve()
+        if not args.keep and success:
+            assert str(root) and root.is_absolute() and root.resolve().parent == parent.resolve()
             assert not root.is_symlink() and root.name.startswith("locale-regression.")
             assert (root / ".flea-test-sandbox").is_file()
             shutil.rmtree(root)
+        elif not success:
+            print(f"kept evidence={root}", file=sys.stderr)
 
     atexit.register(cleanup)
     errors = []
@@ -93,7 +101,7 @@ def main():
     for path, line, program, forced, prefix in inventory:
         check(f"{path.relative_to(REPO)}:{line} {program} scope", forced, repr(prefix))
     (root / "inventory.tsv").write_text("".join(
-        f"{path.relative_to(REPO)}:{line}\t{program}\t{'UTF-8 scoped' if forced else 'UNPINNED'}\n"
+        f"{path.relative_to(REPO)}:{line}\t{program}\t{'scoped' if forced else 'UNPINNED'}\n"
         for path, line, program, forced, _ in inventory))
 
     files = root / "files"
@@ -112,14 +120,16 @@ def main():
             f'exec /usr/bin/{program} "$@"\n')
         wrapper.chmod(0o755)
     source = (REPO / "tools/flea-matched-fixture").read_text()
+    if args.regress_fixture_scope:
+        source = source.replace("export LC_ALL=C.UTF-8\n", "")
     pipeline = next(line for line in source.splitlines()
                     if 'ls "$dir" |' in line and "uniq -c" in line)
     if args.regress_uniq:
         pipeline = pipeline.replace("uniq -c", "env -u LC_ALL uniq -c")
     env = dict(inherited, PATH=str(bin_dir) + ":" + inherited["PATH"],
                I0_FILTER_LOG=str(capture))
-    global_scope = "export LC_ALL=C.UTF-8\nunset LANGUAGE\n"
-    result = subprocess.run(["/bin/bash", "-c", global_scope + "dir=$1\n" + pipeline,
+    tool_scope = SHELL["export_scope"](source)
+    result = subprocess.run(["/bin/bash", "-c", tool_scope + "dir=$1\n" + pipeline,
                              "locale-regression", str(files)],
                             env=env, capture_output=True, text=True)
     check("matched fixture counts", result.returncode == 0 and
@@ -132,6 +142,26 @@ def main():
         check(f"matched fixture {program} child environment",
               (actual_locale, language) == ("C.UTF-8", "unset"),
               f"{actual_locale}|{language}")
+
+    raw_name = os.fsencode(files) + b"/caf\xe9.jpg"
+    os.close(os.open(raw_name, os.O_CREAT | os.O_EXCL | os.O_WRONLY, 0o600))
+    manifest = (REPO / "tools/flea-bench-manifest").read_text()
+    histogram = next(line for line in manifest.splitlines()
+                     if 'ls -U "$FIXTURE" |' in line and "uniq -c" in line)
+    byte_pipeline = pipeline
+    if args.regress_byte_mode:
+        histogram = histogram.replace("LC_ALL=C LANGUAGE= ", "LC_ALL=C.UTF-8 LANGUAGE= ")
+        byte_pipeline = byte_pipeline.replace("LC_ALL=C LANGUAGE= ", "LC_ALL=C.UTF-8 LANGUAGE= ")
+    counts = root / "extensions.txt"
+    result = subprocess.run(["/bin/bash", "-c", SHELL["export_scope"](manifest) +
+                             'FIXTURE=$1; OUT=$2\n' + histogram, "extensions", str(files), str(counts)],
+                            env=inherited, capture_output=True)
+    check("manifest counts a Latin-1 name as jpg", result.returncode == 0 and
+          counts.read_bytes().split() == [b"3", b"jpg", b"1", b"png"], counts.read_bytes())
+    result = subprocess.run(["/bin/bash", "-c", tool_scope + 'dir=$1\n' + byte_pipeline,
+                             "extensions", str(files)], env=inherited, capture_output=True)
+    check("matched fixture counts a Latin-1 name as jpg", result.returncode == 0 and
+          result.stdout.split() == [b"3", b"jpg", b"1", b"png"], result.stdout)
 
     capability = (REPO / "tools/flea-bench-capability").read_text()
     field = (REPO / "tools/flea-field-bench").read_text()
@@ -225,6 +255,7 @@ def main():
         print("\n".join(errors), file=sys.stderr)
         print(f"FAIL locale={requested}; evidence={root}", file=sys.stderr)
         return 1
+    success = True
     print(f"PASS locale={requested} decimal={locale.localeconv()['decimal_point']!r}; "
           f"{len(sites)} filter sites, {len(inventory)} parsed sites, {checks} checks; evidence={root}")
     return 0

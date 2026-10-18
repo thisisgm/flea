@@ -1,14 +1,78 @@
 """Shell parser-child inventory, including command wrappers and substitutions."""
+import argparse
 import re
+from functools import lru_cache
 from pathlib import Path
 
-# Mask quoted data and here-documents while retaining command substitutions as executable code.
-def code_mask(text):
+
+# Sample input: x="${FOO:-$(grep -m1 bar file)}"
+def code_mask(text, comment_spans=None):
     mask = list(text)
     docs = []
+
     def hide(a, b):
-        for j in range(a, b):
-            mask[j] = 'Q'
+        mask[a:b] = 'Q' * (b - a)
+
+    # Sample input: "${FOO:-$(grep -m1 bar file)}"
+    def quote(i):
+        delimiter = text[i]
+        hide(i, i + 1)
+        i += 1
+        while i < len(text) and text[i] != delimiter:
+            if delimiter == '"' and text.startswith('${', i):
+                i = parameter(i)
+            elif delimiter == '"' and text.startswith('$((', i):
+                i = arithmetic(i)
+            elif delimiter == '"' and text.startswith('$(', i):
+                i = code(i + 2, True)
+            elif delimiter == '"' and text[i] == '\\':
+                hide(i, min(i + 2, len(text))); i += 2
+            elif delimiter == '"' and text[i] == "`":
+                i = code(i + 1, "`")
+            else:
+                hide(i, i + 1); i += 1
+        if i < len(text):
+            hide(i, i + 1); i += 1
+        return i
+
+    # Sample input: ${FOO:-${BAR:-$(grep -m1 bar file)}}
+    def parameter(i):
+        hide(i, i + 2)
+        i += 2
+        while i < len(text):
+            if text.startswith('${', i):
+                i = parameter(i)
+            elif text.startswith('$((', i):
+                i = arithmetic(i)
+            elif text.startswith('$(', i):
+                i = code(i + 2, True)
+            elif text[i] in "\"'":
+                i = quote(i)
+            elif text[i] == '\\':
+                hide(i, min(i + 2, len(text))); i += 2
+            else:
+                end = text[i] == '}'
+                hide(i, i + 1); i += 1
+                if end:
+                    return i
+        return i
+
+    # Sample input: $(( $(date +%s) - start ))
+    def arithmetic(i):
+        hide(i, i + 3)
+        i += 3
+        depth = 2
+        while i < len(text) and depth:
+            if text.startswith('$(', i) and not text.startswith('$((', i):
+                i = code(i + 2, True)
+                continue
+            if text[i] == '(':
+                depth += 1
+            elif text[i] == ')':
+                depth -= 1
+            hide(i, i + 1); i += 1
+        return i
+
     def code(i, closing=False):
         depth = 0
         while i < len(text):
@@ -19,50 +83,48 @@ def code_mask(text):
                     start = i
                     while i < len(text):
                         end = text.find('\n', i)
-                        if end < 0: end = len(text)
+                        if end < 0:
+                            end = len(text)
                         line = text[i:end]
                         i = min(end + 1, len(text))
-                        if (line.lstrip('\t') if tabs else line) == delimiter: break
+                        if (line.lstrip('\t') if tabs else line) == delimiter:
+                            break
                     hide(start, i)
-                    if i and text[i-1] == '\n': mask[i-1] = '\n'
+                    if i and text[i - 1] == '\n':
+                        mask[i - 1] = '\n'
                 docs.clear()
                 continue
-            if c == '#' and (i == 0 or text[i-1].isspace() or text[i-1] in ';|&('):
+            if c == '#' and (i == 0 or text[i - 1].isspace() or text[i - 1] in ';|&('):
                 end = text.find('\n', i)
-                if end < 0: end = len(text)
+                if end < 0:
+                    end = len(text)
+                if comment_spans is not None:
+                    comment_spans.append((i, end))
                 hide(i, end); i = end; continue
             if text.startswith('<<', i) and not text.startswith('<<<', i):
-                match = re.match(r'<<(-?)\s*([\'\"]?)([A-Za-z_][A-Za-z_0-9]*)\2', text[i:])
-                if match: docs.append((match[3], bool(match[1])))
-            if text.startswith('${', i) or text.startswith('$((', i):
-                end_token = '}' if text.startswith('${', i) else '))'
-                end = text.find(end_token, i+2)
-                if end < 0: end = len(text)-len(end_token)
-                hide(i, end+len(end_token)); i = end+len(end_token); continue
-            if c == "'":
-                end = text.find("'", i+1)
-                if end < 0: end = len(text)-1
-                hide(i, end+1); i = end+1; continue
-            if c == '"':
-                hide(i, i+1); i += 1
-                while i < len(text) and text[i] != '"':
-                    if text[i] == '\\': hide(i, min(i+2, len(text))); i += 2
-                    elif text.startswith('$(', i) and not text.startswith('$((', i): i = code(i+2, True)
-                    elif text[i] == '`':
-                        end = text.find('`', i+1)
-                        if end < 0: end = len(text)-1
-                        i = end+1
-                    else: hide(i, i+1); i += 1
-                if i < len(text): hide(i, i+1); i += 1
-                continue
+                match = re.match(r"<<(-?)\s*(['\"]?)([A-Za-z_][A-Za-z_0-9]*)\2", text[i:])
+                if match:
+                    docs.append((match[3], bool(match[1])))
+            if text.startswith('${', i):
+                i = parameter(i); continue
+            if text.startswith('$((', i):
+                i = arithmetic(i); continue
+            if c in "\"'":
+                i = quote(i); continue
             if text.startswith('\\\n', i):
-                mask[i:i+2] = [' ', ' ']; i += 2; continue
-            if c == '\\': hide(i, min(i+2, len(text))); i += 2; continue
-            if closing and c == ')' and depth == 0: return i+1
-            if c == '(': depth += 1
-            if c == ')': depth -= 1
+                mask[i:i + 2] = [' ', ' ']; i += 2; continue
+            if c == '\\':
+                hide(i, min(i + 2, len(text))); i += 2; continue
+            stop = ')' if closing is True else closing
+            if stop and c == stop and depth == 0:
+                return i + 1
+            if c == '(':
+                depth += 1
+            if c == ')':
+                depth -= 1
             i += 1
         return i
+
     code(0)
     return ''.join(mask)
 
@@ -76,6 +138,7 @@ FILTER = {"sort", "uniq", "comm", "join"}
 PARSER_NAMES = FILTER | set("awk sed grep rg tr ls ps pgrep find findmnt du df date uname pacman curl file diff python3 perl bc readelf nm strings expr".split())
 
 
+# Sample input: ! env -u LANGUAGE LC_ALL=C.UTF-8 nice -n 2 grep -m1 bar file
 def commands(source):
     masked = code_mask(source)
     seen = set()
@@ -120,16 +183,67 @@ def commands(source):
             break
 
 
-def scoped(prefix):
-    return (re.search(r"(?:^|\s)LC_ALL=C\.UTF-8(?:\s|$)", prefix) is not None
-            and (re.search(r"(?:^|\s)LANGUAGE=(?:\s|$)", prefix) is not None
-                 or re.search(r"\benv\s+-u\s+LANGUAGE\b", prefix) is not None))
+# Sample input: LC_ALL=C LANGUAGE= sed x # locale-bytes: count raw filename extensions
+def scoped(prefix, line="", program=""):
+    language = (re.search(r"(?:^|\s)LANGUAGE=(?:\s|$)", prefix) is not None
+                or re.search(r"\benv\s+-u\s+LANGUAGE\b", prefix) is not None)
+    if not language:
+        return False
+    if re.search(r"(?:^|\s)LC_ALL=C\.UTF-8(?:\s|$)", prefix):
+        return True
+    if program not in {"sed", "awk", "grep"} or not re.search(r"(?:^|\s)LC_ALL=C(?:\s|$)", prefix):
+        return False
+    comments = []
+    code_mask(line, comments)
+    return any(re.match(r"# locale-bytes: \S.+", line[a:b]) for a, b in comments)
+
+
+# Sample input: export LC_ALL=C.UTF-8 followed by unset LANGUAGE before grep reads a file.
+@lru_cache(maxsize=64)
+def export_scope(source):
+    first = min((start for start, name, _ in commands(source)
+                 if parsed(name, source[start + len(name):].lstrip())), default=len(source))
+    masked = code_mask(source)
+    depth = 0
+    blocks = 0
+    boundaries = {match.start(1): match[1] for match in re.finditer(
+        r"(?m)(?:^|[;\n])[ \t]*(if|fi|for|while|until|select|case|done|esac)\b", masked)}
+    top = list(masked)
+    for index, char in enumerate(masked):
+        keyword = boundaries.get(index)
+        if keyword in {"if", "for", "while", "until", "select", "case"}:
+            blocks += 1
+        if char in "({":
+            depth += 1
+        if depth or blocks:
+            top[index] = 'Q' if char != '\n' else '\n'
+        if char in ")}":
+            depth -= 1
+        if keyword in {"fi", "done", "esac"}:
+            blocks -= 1
+    declarations = []
+    for match in re.finditer(r"(?m)^[ \t]*(export LC_ALL=C\.UTF-8|unset LANGUAGE)[ \t]*$", ''.join(top)[:first]):
+        declarations.append(source[match.start():match.end()])
+    return "\n".join(declarations) + ("\n" if declarations else "")
 
 
 def exported(source):
-    return "export LC_ALL=C.UTF-8\n" in source and "unset LANGUAGE\n" in source
+    return {line.strip() for line in export_scope(source).splitlines()} >= {"export LC_ALL=C.UTF-8", "unset LANGUAGE"}
 
 
+# Sample input: -crop 10x10 \ followed by a newline and -format '%k' info:.
+def command_text(suffix):
+    return re.sub(r"\\\n[ \t]*", " ", suffix).split("\n", 1)[0]
+
+
+# Sample input: LC_ALL=C LANGUAGE= grep -c . paths # locale-bytes: count raw path records
+def scope_for(source, start, name, prefix):
+    explicit = re.search(r"(?:^|\s)(?:LC_ALL|LANGUAGE)=", prefix) is not None
+    line = source.splitlines()[source.count("\n", 0, start)]
+    return scoped(prefix, line, name) if explicit else exported(source)
+
+
+# Sample input: magick "$f" -format "%k" info:
 def parsed(name, suffix):
     if name in PARSER_NAMES:
         return True
@@ -150,9 +264,9 @@ def parsed(name, suffix):
     if name == "hk":
         return suffix.startswith("--version")
     if name == "ffmpeg":
-        return "-encoders" in suffix.split("\n", 1)[0]
+        return "-encoders" in command_text(suffix)
     if name == "magick":
-        return "-format" in suffix.split("\n", 1)[0]
+        return "-format" in command_text(suffix)
     if name == "patch":
         return True
     if name == "systemctl":
@@ -176,4 +290,97 @@ def inventory(repo):
             suffix = source[start + len(name):].lstrip()
             if name in functions or not parsed(name, suffix):
                 continue
-            yield path, source.count("\n", 0, start) + 1, name, exported(source) or scoped(prefix), prefix
+            line = source.count("\n", 0, start) + 1
+            scope = scope_for(source, start, name, prefix)
+            yield path, line, name, scope, prefix
+
+
+def main():
+    parser = argparse.ArgumentParser(description=__doc__)
+    parser.add_argument('--regress-parameters', action='store_true')
+    parser.add_argument('--regress-continuations', action='store_true')
+    parser.add_argument('--regress-exports', action='store_true')
+    parser.add_argument('--regress-byte-marker', action='store_true')
+    args = parser.parse_args()
+    global code_mask, command_text, exported, shell_files
+    if args.regress_parameters:
+        real_mask = code_mask
+        code_mask = lambda text, *a, **k: real_mask(re.sub(
+            r'\$\{[^}]*\}', lambda m: 'Q' * len(m[0]), text), *a, **k)
+    if args.regress_continuations:
+        command_text = lambda suffix: suffix.split('\n', 1)[0]
+    if args.regress_exports:
+        exported = lambda source: 'export LC_ALL=C.UTF-8\n' in source and 'unset LANGUAGE\n' in source
+    if args.regress_byte_marker:
+        actual_files = shell_files
+
+        def unmarked_files(repo):
+            for path, source in actual_files(repo):
+                if path.name == 'flea-bench-manifest':
+                    source = re.sub(r'[ \t]+# locale-bytes:[^\n]*', '', source)
+                yield path, source
+
+        shell_files = unmarked_files
+    errors = []
+    checks = 0
+
+    def check(label, passed):
+        nonlocal checks
+        checks += 1
+        if not passed:
+            errors.append('FAIL ' + label)
+
+    for source in ['x="${FOO:-$(grep -m1 bar file)}"',
+                   'x=${FOO:-$(grep -m1 bar file)}',
+                   'x="${a:-${b:-$(grep -m1 bar file)}}"',
+                   'x="`grep -m1 bar file`"']:
+        check('command substitution remains code: ' + source,
+              sum(name == 'grep' for _, name, _ in commands(source)) == 1)
+    check('nested parameter braces are masked together', '}' not in code_mask('x=${a:-${b}}'))
+    check('quoted braces stay inside the parameter',
+          '}' not in code_mask('x=${a:-"}"}'))
+    check('quoted data is not executable', not any(name == 'grep' for _, name, _ in commands(
+        "echo 'grep bar file'\n# grep bar file\ncat <<'DATA'\ngrep bar file\nDATA\n")))
+    for name, suffix in [('magick', ' "$f" \\\n  -format "%k" info:'),
+                         ('ffmpeg', ' -hide_banner \\\n  -encoders')]:
+        check('continued ' + name + ' flags are parsed', parsed(name, suffix))
+    check('next command flags do not classify magick', not parsed('magick', ' file.png\necho -format'))
+    scope = 'export LC_ALL=C.UTF-8\nunset LANGUAGE\n'
+    check('top-level scope before parser is accepted', exported(scope + 'grep bar file\n'))
+    for label, source in [('late', 'grep bar file\n' + scope),
+                          ('function', 'f() {\n' + scope + '}\ngrep bar file\n'),
+                          ('subshell', '(\n' + scope + ')\ngrep bar file\n'),
+                          ('conditional', 'if false; then\n' + scope + 'fi\ngrep bar file\n'),
+                          ('heredoc', "cat <<'DATA'\n" + scope + 'DATA\ngrep bar file\n'),
+                          ('comment', '# export LC_ALL=C.UTF-8\n# unset LANGUAGE\ngrep bar file\n')]:
+        check(label + ' scope is rejected', not exported(source))
+    marked = "LC_ALL=C LANGUAGE= sed 's/.*\\.//' # locale-bytes: count raw filename extensions"
+    check('marked byte matcher is accepted', scoped('LC_ALL=C LANGUAGE= ', marked, 'sed'))
+    check('byte matcher without marker is rejected', not scoped('LC_ALL=C LANGUAGE= ', 'sed x', 'sed'))
+    check('quoted marker is not a comment', not scoped(
+        'LC_ALL=C LANGUAGE= ', "sed '# locale-bytes: quoted data'", 'sed'))
+    check('byte marker requires its reason', not scoped(
+        'LC_ALL=C LANGUAGE= ', "sed x # locale-bytes: ", 'sed'))
+    check('byte marker cannot authorize a text child', not scoped('LC_ALL=C LANGUAGE= ', marked, 'qs'))
+    unmarked = scope + 'LC_ALL=C LANGUAGE= sed x\n'
+    start, name, prefix = next(row for row in commands(unmarked) if row[1] == 'sed')
+    check('global UTF-8 scope does not hide an unmarked byte override',
+          not scope_for(unmarked, start, name, prefix))
+    own_source = Path(__file__).read_text()
+    for name in ['code_mask', 'commands']:
+        preceding = own_source[:own_source.index('def ' + name + '(')].rstrip().splitlines()[-1]
+        check('sample input above ' + name, 'Sample input:' in preceding)
+    repo = Path(__file__).resolve().parents[1]
+    rows = list(inventory(repo))
+    for path, line, name, scope_ok, prefix in rows:
+        check(f'{path.relative_to(repo)}:{line} {name} scope', scope_ok)
+    if errors:
+        print('\n'.join(errors))
+        print(f'FAIL {len(errors)} of {checks} shell inventory checks')
+        return 1
+    print(f'PASS {checks} shell inventory checks; {len(rows)} parsed sites; 0 unpinned')
+    return 0
+
+
+if __name__ == '__main__':
+    raise SystemExit(main())

@@ -478,7 +478,7 @@ XDG_STATE_HOME="$FLEA_STATE" "$FLEA_BIN" --ui-state '{"sort":{"key":"name","reve
 # same bytes the field bench uses rather than something generated here.
 formats=""
 for ext in jpg png webp heic mp4 webm mkv txt; do
-  src=$(LC_ALL=C.UTF-8 LANGUAGE= ls -U "$MEDIA" | LC_ALL=C.UTF-8 LANGUAGE= grep "\.$ext\$" | head -1)
+  src=$(LC_ALL=C.UTF-8 LANGUAGE= ls -U "$MEDIA" | LC_ALL=C LANGUAGE= grep "\.$ext\$" | head -1) # locale-bytes: select a raw fixture filename by extension
   if [ -z "$src" ]; then
     printf 'SKIP: the media fixture holds no .%s, so that format is not tested\n' "$ext" >&2
     continue
@@ -529,7 +529,7 @@ cap_transient() {
     require_no_foreign_processes \
       || fail "an unowned process appeared during the $id $ext capability window, so no result from it is attributable"
 
-    n=$(LC_ALL=C.UTF-8 LANGUAGE= grep -c "^${TRANSIENT_PREFIX}[0-9]*-[0-9]*/result\.png\$" "$log")
+    n=$(LC_ALL=C LANGUAGE= grep -c "^${TRANSIENT_PREFIX}[0-9]*-[0-9]*/result\.png\$" "$log") # locale-bytes: count raw event paths
     # Two entrant processes in one window would let one format's renders be counted for another.
     pids=$(LC_ALL=C.UTF-8 LANGUAGE= grep -o "^${TRANSIENT_PREFIX}[0-9]*" "$log" | LC_ALL=C.UTF-8 LANGUAGE= sort -u | wc -l)
     [ "$pids" -le 1 ] || fail "$pids $id processes wrote renders during the $ext window, so no count from it is attributable"

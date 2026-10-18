@@ -34,16 +34,18 @@ wait_for_line() {
   return 1
 }
 
-D="$FIXTURE_ROOT/flea-update-test-$$"
-sandbox_make "$D"
+D=$(sandbox_root_ok && mktemp -d "$SANDBOX_ROOT/flea-update-test-XXXXXX") || exit 1
+sandbox_require "$D"
+: > "$D/$SANDBOX_MARKER"
 mkdir -p "$D/bin" "$D/empty" "$D/home"
 calls="$D/calls.log"
 ran="$D/presenter.log"
 
-# Each stub records its own argv on one line and answers from STUB_* variables the case exports.
+# Each stub records its argv, locale and exact inherited environment, then answers from the case's STUB_* variables.
 stub() {
   local name="$1" body="$2"
-  printf '#!/bin/sh\nprintf "%%s %%s LC_ALL=%%s\\n" %q "$*" "${LC_ALL-unset}" >> %q\n%s\n' "$name" "$calls" "$body" > "$D/bin/$name"
+  printf '#!/bin/sh\nLC_ALL=C.UTF-8 LANGUAGE= /usr/bin/sort -z /proc/$$/environ > %q\nexact=unexpected\n/usr/bin/cmp -s %q %q && exact=exact\nprintf "%%s %%s LC_ALL=%%s LANGUAGE=%%s NARGS=%%s ENV=%%s\\n" %q "$*" "${LC_ALL-unset}" "${LANGUAGE-unset}" "$#" "$exact" >> %q\n%s\n' \
+    "$D/child.env" "$D/expected.env" "$D/child.env" "$name" "$calls" "$body" > "$D/bin/$name"
   chmod +x "$D/bin/$name"
 }
 
@@ -61,9 +63,12 @@ stub vercmp 'printf "%s\n" "${STUB_ORDER:-0}"'
 # Only the stub directory is on PATH, so a program this suite forgot to stub fails to start rather than reaching a mirror.
 run_check() {
   : > "$calls"
-  out=$(env -i HOME="$D/home" PATH="$D/bin" "$@" "$BIN" --update check 2>"$D/stderr")
+  env -i HOME="$D/home" PATH="$D/bin" "$@" LC_ALL=C.UTF-8 /usr/bin/env -0 \
+    | LC_ALL=C.UTF-8 LANGUAGE= sort -z > "$D/expected.env"
+  out=$(env -i HOME="$D/home" PATH="$D/bin" LC_ALL=de_DE.UTF-8 LANGUAGE=de:ar "$@" "$BIN" --update check 2>"$D/stderr")
   rc=$?
   err=$(cat "$D/stderr")
+  check "every parser child received only the expected environment" "0" "$(grep -c ' ENV=unexpected$' "$calls")"
 }
 
 called() { grep -c "^$1 " "$calls"; }
@@ -72,14 +77,14 @@ called() { grep -c "^$1 " "$calls"; }
 run_check
 check "an unowned binary prints unchecked unowned" "unchecked unowned - -" "$out"
 check "and exits with nothing to install" "3" "$rc"
-check "and asked pacman who owns the running binary" "1" "$(grep -c "^pacman -Qqo $BIN_REAL LC_ALL=C$" "$calls")"
+check "and asked pacman who owns the running binary" "1" "$(grep -Fxc "pacman -Qqo $BIN_REAL LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=2 ENV=exact" "$calls")"
 check "and asked no mirror and no AUR" "0|0" "$(called checkupdates)|$(called curl)"
 
 # A local makepkg build carries OPR's name and no signature.
 run_check STUB_OWNER=flea STUB_INSTALLED=0.3.3-1 STUB_VALIDATED=None
 check "a local build prints unchecked local with its version" "unchecked local 0.3.3-1 -" "$out"
 check "and exits with nothing to install" "3" "$rc"
-check "and pacman described it in the C locale" "1" "$(grep -c '^pacman -Qi flea LC_ALL=C$' "$calls")"
+check "and pacman described it in the C.UTF-8 locale" "1" "$(grep -Fxc 'pacman -Qi flea LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=2 ENV=exact' "$calls")"
 check "and asked no source" "0|0" "$(called checkupdates)|$(called curl)"
 
 # flea-git follows main, and its describe-style version is not one this check compares.
@@ -93,8 +98,8 @@ run_check "${opr[@]}" STUB_UPDATES_CODE=0 STUB_ORDER=1 \
   STUB_UPDATES='linux 6.16.8.arch1-1 -> 6.16.9.arch1-1\nflea 0.3.2-1 -> 0.3.3-1\n'
 check "an OPR update prints available with both versions" "available opr 0.3.2-1 0.3.3-1" "$out"
 check "and exits 0" "0" "$rc"
-check "checkupdates ran with no arguments" "1" "$(grep -c '^checkupdates  LC_ALL=C$' "$calls")"
-check "vercmp was asked whether the offer is newer than the installed" "1" "$(grep -c '^vercmp 0.3.3-1 0.3.2-1 ' "$calls")"
+check "checkupdates ran with no arguments" "1" "$(grep -Fxc 'checkupdates  LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=0 ENV=exact' "$calls")"
+check "vercmp was asked whether the offer is newer than the installed" "1" "$(grep -Fxc 'vercmp 0.3.3-1 0.3.2-1 LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=2 ENV=exact' "$calls")"
 check "and the AUR was never asked" "0" "$(called curl)"
 
 run_check "${opr[@]}" STUB_UPDATES_CODE=0 STUB_UPDATES='linux 6.16.8.arch1-1 -> 6.16.9.arch1-1\n'
@@ -117,10 +122,10 @@ run_check "${aur[@]}" STUB_BODY="$answer" STUB_ORDER=1
 check "an AUR update prints available with both versions" "available aur 0.3.3-1 0.3.4-1" "$out"
 check "and exits 0" "0" "$rc"
 check "curl got the bounded request and nothing else" \
-  "curl -q --silent --fail --globoff --max-time 10 --max-filesize 1M https://aur.archlinux.org/rpc/v5/info?arg[]=flea-bin LC_ALL=C" \
+  "curl -q --silent --fail --globoff --max-time 10 --max-filesize 1M https://aur.archlinux.org/rpc/v5/info?arg[]=flea-bin LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=9 ENV=exact" \
   "$(grep '^curl ' "$calls")"
 check "and the mirrors were never asked" "0" "$(called checkupdates)"
-check "vercmp was asked whether the AUR's build is newer than the installed" "1" "$(grep -c '^vercmp 0.3.4-1 0.3.3-1 ' "$calls")"
+check "vercmp was asked whether the AUR's build is newer than the installed" "1" "$(grep -Fxc 'vercmp 0.3.4-1 0.3.3-1 LC_ALL=C.UTF-8 LANGUAGE=unset NARGS=2 ENV=exact' "$calls")"
 
 run_check "${aur[@]}" STUB_BODY="${answer/0.3.4-1/0.3.3-1}" STUB_ORDER=0
 check "the same version on the AUR is current" "current aur 0.3.3-1 0.3.3-1" "$out"
