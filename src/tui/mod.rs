@@ -8,6 +8,7 @@ mod empty;
 pub(crate) mod graphics;
 mod input;
 mod job;
+mod jobstatus;
 mod keymap;
 mod media;
 mod model;

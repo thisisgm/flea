@@ -163,6 +163,7 @@ pub fn sent(text: &str, name: &str) -> Option<Result<(), String>> {
 }
 
 fn stop(child: &mut Child) {
+    let _ = crate::procsignal::signal_group(child.id() as i32, SIGKILL as i32);
     let _ = child.kill();
     let _ = child.wait();
 }
@@ -202,8 +203,32 @@ pub fn peers(limit: Duration) -> Result<Vec<Peer>, String> {
 // slave is the app's own output and a key written there is never read, and the device the CLI found
 // arrives as an incremental screen update, so the stream is read whole rather than frame by frame.
 // The row is reached with the arrows the CLI's own footer names, Enter sends, and the CLI says so.
+pub(crate) fn send_cancelled(
+    name: &str,
+    paths: &[String],
+    cancel: &std::sync::atomic::AtomicBool,
+) -> Result<(), String> {
+    send_with_cancel(name, paths, SEND_LIMIT, cancel)
+}
+
 pub fn send(name: &str, paths: &[String], limit: Duration) -> Result<(), String> {
-    if paths.is_empty() { return Err("LocalSend was given nothing to send.".into()) }
+    send_with_cancel(
+        name,
+        paths,
+        limit,
+        &std::sync::atomic::AtomicBool::new(false),
+    )
+}
+
+fn send_with_cancel(
+    name: &str,
+    paths: &[String],
+    limit: Duration,
+    cancel: &std::sync::atomic::AtomicBool,
+) -> Result<(), String> {
+    if paths.is_empty() {
+        return Err("LocalSend was given nothing to send.".into());
+    }
     let mut args: Vec<String> = Vec::new();
     for path in paths {
         args.push("-f".into());
@@ -217,6 +242,10 @@ pub fn send(name: &str, paths: &[String], limit: Duration) -> Result<(), String>
     let deadline = Instant::now() + limit;
     let mut index = None;
     while Instant::now() < deadline {
+        if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+            stop(&mut child);
+            return Err("Send cancelled.".into());
+        }
         let text = text_of(&seen);
         if let Some(refusal) = refusal(&text) {
             stop(&mut child);
@@ -244,6 +273,10 @@ pub fn send(name: &str, paths: &[String], limit: Duration) -> Result<(), String>
     // The CLI reports the transfer on its own event line, "S <device>: Sent 1 file (61 B, took 0s)",
     // and that line is the only success this side can honestly report.
     while Instant::now() < deadline {
+        if cancel.load(std::sync::atomic::Ordering::Relaxed) {
+            stop(&mut child);
+            return Err("Send cancelled.".into());
+        }
         let text = text_of(&seen);
         if let Some(verdict) = sent(&text, name) {
             stop(&mut child);

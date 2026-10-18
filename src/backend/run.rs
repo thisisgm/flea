@@ -59,6 +59,7 @@ enum Control {
 
 // Errors are responses, so the loop never exits on a bad request.
 pub fn run() -> i32 {
+    if let Some(status) = super::model3dreq::worker_entry() { return status }
     // Before the first listing, because a threshold glibc has already ratcheted strands the next arena on the heap.
     heap::pin_mmap_threshold();
     let mut out = BufWriter::new(io::stdout());
@@ -180,6 +181,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                 return Control::Quit;
             }
         }
+        Event::Git(line) => say(out, &line),
         Event::Thumb(d) => report_done(out, st, pool, d),
         Event::Nearby { ticket, line } => if st.nearby.accept(ticket) { say(out, &line) },
         Event::Flash(m) => flash.report(out, &m),
@@ -193,12 +195,16 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         // The one line no client asked for, and only ever for the directory being listed now.
         Event::Changed(wd) => {
+            #[cfg(test)]
+            super::renametiming::mark("watch_begin");
             // The current descriptor is unknown while a scan is out, so the burst waits for the scan's answer.
             if gate.holds() {
                 gate.note_change(wd);
             } else if watch.is_current(wd) {
                 say_changed(out, st);
             }
+            #[cfg(test)]
+            super::renametiming::mark("watch_end");
         }
         // The open mount went away; while a scan is out the current descriptor is unknown, so it waits for the scan's answer.
         Event::Unmounted(wd) => if gate.holds() { gate.note_unmount(wd) } else { leave_mount(out, &st.base, watch, poller, wd) },
@@ -216,6 +222,8 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         // A late list worker's descriptor goes unless a re-list aliased it onto the live watch, which a scan still out may not have committed yet.
         Event::AbandonWatch(wd) => gate.park_late(wd).into_iter().for_each(|late| watch.abandon_wd(late)),
         Event::Op(m) => {
+            #[cfg(test)]
+            if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_begin"); }
             if let Some(session) = st.search_session.as_mut() {
                 // An own write under the scope patches the index, and a due batch re-runs the standing query.
                 let patched = session.patch_after_writes(&op_write_paths(&m));
@@ -227,6 +235,8 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                     }
                 }
             }
+            #[cfg(test)]
+            if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_end"); }
             report_op(out, ops, m);
         }
         // A session walk landed; the standing query is re-run once when it is still the newest.
@@ -317,11 +327,37 @@ fn handle_line(
         return Control::Continue;
     }
     let request = parse_request(line);
+    if super::jobevents::changes_history(&request)
+        || matches!(
+            &request,
+            Request::Transfer { .. }
+                | Request::Archive { .. }
+                | Request::Trash { .. }
+                | Request::Rename { .. }
+                | Request::MkDir { .. }
+                | Request::NewFile { .. }
+                | Request::Duplicate { .. }
+                | Request::Link { .. }
+                | Request::BulkRename { .. }
+                | Request::PermissionsBatch { .. }
+                | Request::SetTags { .. }
+                | Request::Undo
+                | Request::Redo
+                | Request::PasteImage(_)
+                | Request::Convert { check: false, .. }
+        )
+    {
+        ops.jobs.invalidate_undo(out);
+    }
     // A session answer adopts only its first window, so rows past the head join the listing before any arm reads them.
     extend_search_listing(st, rows_needed(&request));
     match request {
         Request::Nearby { op, id } => say(out, &st.nearby.request(&op, id, loop_tx.clone())),
         Request::NetworkAddress { address, id } => say(out, &super::networkaddress::answer(id, &address)),
+        Request::Git { line } => st
+            .git
+            .get_or_insert_with(|| super::gitreq::Worker::new(loop_tx.clone()))
+            .request(line),
         Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
         Request::Picker { line } => {
             let replies = ops.tx.clone();
@@ -334,22 +370,55 @@ fn handle_line(
             super::opsdispatch::request_menu_action(out, ops, line, paths, cursor);
         }
         // Directive 71: a CLI run of a second or more, so it answers on its own thread.
-        Request::LocalSend { op, peer, paths, id } => super::localsend::request(op, peer, paths, id, ops.tx.clone()),
+        Request::Rclone { line } => super::rclone::request(out, ops, &line),
+        Request::Jobs { line } => {
+            let reached = super::jobevents::request(out, ops, &line);
+            patch_session_paths(st, reached.dirs);
+            note_tag_writes(st, &reached.tags);
+        }
+        Request::Actions { line } => {
+            super::actions::request(line, Arc::clone(&tb.mime), ops.tx.clone())
+        }
+        Request::LocalSend {
+            op,
+            peer,
+            paths,
+            id,
+        } => {
+            if op == "send" {
+                let job = ops.claim_id();
+                ops.jobs.submit(
+                    out,
+                    job,
+                    super::jobwork::Spec { kind: "send", label: "Sending", target: None },
+                    super::jobwork::Work::Send {
+                        peer,
+                        paths,
+                        request: id,
+                        selection: None,
+                    },
+                    &ops.detached,
+                    &ops.tx,
+                );
+            } else {
+                super::localsend::request(op, peer, paths, id, ops.tx.clone());
+            }
+        }
         Request::TrashBrowse { line } => {
-            let replies = ops.tx.clone();
-            // The browser resolves its originals inside, so the mounts held slow travel with the request.
-            let pending = ops.pending.iter().map(|held| held.mount.clone()).collect();
-            let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-            ops.trashbrowser.get_or_insert_with(|| super::trashbrowse::TrashBrowser::new(replies)).request(line, pending, body);
+            super::trashbrowse::request(out, ops, line);
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
         Request::List { path, first, hidden, want_changed } => {
+            #[cfg(test)]
+            super::renametiming::mark("dispatch_list");
             // The session goes first; start then ends the walk and forgets its rows before the scan.
             close_search_session(st);
             let job = listwork::Job { path, first, line: line.to_string(), hidden, want_changed, session: None };
             if let listwork::Started::Inline(landed) = listwork::start(out, st, pool, watch, gate, job, Arc::clone(&tb.mime)) {
                 land(out, st, tb, pool, watch, fsinfo, poller, *landed);
             }
+            #[cfg(test)]
+            super::renametiming::mark("list_complete");
         }
         // A set of named paths is not a directory, so the watch stops rather than following its base.
         Request::ListPaths { paths, first } => {
@@ -585,7 +654,9 @@ fn handle_line(
             start_trash(out, ops, named, menu_id)
         }
         Request::Rename { path, to, menu_id } => {
-            // A rename is an own write: its landed paths patch the index with no walk.
+            #[cfg(test)]
+            super::renametiming::begin();
+            // The worker result patches the search index using the rename's owned paths.
             let touched = if menu_id == 0 { do_rename(out, ops, &path, &to) }
                 else { super::opsdispatch::do_menu_rename(out, ops, &path, &to, menu_id) };
             patch_session_paths(st, touched);
@@ -650,6 +721,7 @@ fn handle_line(
         // Answered on a thread, since bat runs in a jail and a read on a hung mount never returns.
         Request::Code(ask) => super::codereq::spawn(ask, ops.tx.clone()),
         Request::Html(ask) => super::htmlreq::spawn(ask, ops.tx.clone()),
+        Request::Model3d(ask) => super::model3dreq::spawn(ask, ops.tx.clone()),
         // Answered on a thread: diff runs in a jail and a read on a hung mount never returns.
         Request::Compare(ask) => super::compare::spawn(ask, ops.tx.clone()),
         tags @ (Request::SetTags { .. } | Request::TagStates { .. }) => {
@@ -751,7 +823,10 @@ fn rows_needed(request: &Request) -> usize {
         // A viewport map, not the listing: these rows index work already queued.
         Request::ThumbCancel { .. } | Request::DirSizeCancel => 0,
         // Operations carry paths or no rows; their rows were resolved by their own earlier ask.
-        Request::TransferCancel { .. }
+        Request::Rclone { .. }
+        | Request::Jobs { .. }
+        | Request::Actions { .. }
+        | Request::TransferCancel { .. }
         | Request::Rename { .. }
         | Request::Duplicate { .. }
         | Request::MkDir { .. }
@@ -768,6 +843,7 @@ fn rows_needed(request: &Request) -> usize {
         Request::Shebang { .. }
         | Request::Code(_)
         | Request::Html(_)
+        | Request::Model3d(_)
         | Request::Compare(_)
         | Request::FsInfo
         | Request::Peek { .. }
@@ -791,6 +867,7 @@ fn rows_needed(request: &Request) -> usize {
         | Request::ClipClear { .. }
         | Request::ClipWatch
         | Request::Quit
+        | Request::Git { .. }
         | Request::Unknown => 0,
     }
 }
@@ -918,7 +995,7 @@ pub(crate) fn drain(
         flash.slot.cancel(id);
     }
     // A trash batch past its announce has freed the slot but still owes its journal entry, so the drain waits for it too.
-    while st.outstanding > 0 || ops.live.running().is_some() || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
+    while st.outstanding > 0 || ops.live.running().is_some() || !ops.pending.is_empty() || ops.journal.deferred.is_some() || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
         match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
             Ok(Event::Thumb(d)) => report_done(out, st, pool, d),
             Ok(Event::Op(m)) => report_op(out, ops, m),
@@ -1165,6 +1242,10 @@ mod tests {
 mod gate_tests;
 
 #[cfg(test)]
+#[path = "run_jobs_tests.rs"]
+mod jobs_tests;
+
+#[cfg(test)]
 #[path = "run_session_tests.rs"]
 mod session_wire_tests;
 
@@ -1175,3 +1256,11 @@ mod hold_wire_tests;
 #[cfg(test)]
 #[path = "viewerorder_tests.rs"]
 mod viewerorder_tests;
+
+#[cfg(test)]
+#[path = "run_git_tests.rs"]
+mod git_wire_tests;
+
+#[cfg(test)]
+#[path = "run_emptytrash_tests.rs"]
+mod emptytrash_tests;

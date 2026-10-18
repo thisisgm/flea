@@ -104,7 +104,15 @@ fn a_merge_step_keeps_its_flag_through_the_shared_doc_and_a_plain_copy_carries_n
     let d = TestDir::new("merge-codec");
     let id = ItemIdentity::inspect(d.path()).unwrap();
     let step = |merge| Step::Copied { from: d.join("a"), to: d.join("b"), source: id.clone(), created: id.clone(), manifest: None, manifest_nonce: Some(7), merge, rename_fat: false };
-    let doc = crate::backend::undoshare::Doc { undo: vec![Entry { op: "copy".into(), steps: vec![step(true), step(false)] }], redo: Vec::new(), push_gen: 0 };
+    let doc = crate::backend::undoshare::Doc {
+        undo: vec![Entry {
+            op: "copy".into(),
+            steps: vec![step(true), step(false)],
+        }],
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    };
     let text = crate::jsondoc::render(&crate::backend::undocodec::encode(&doc));
     assert_eq!(text.matches("\"merge\"").count(), 1, "only the merge top carries the flag: {text}");
     let back = crate::backend::undocodec::decode(&text).expect("the doc decodes");

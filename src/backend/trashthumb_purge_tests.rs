@@ -37,16 +37,18 @@ if args[:2] == ['trash', '--list']:
 elif args[0] == 'list':
     for name in names: print(uri(name) + '  trash::deletion-date=2026-10-18T09:00:00')
 elif args[0] == 'info':
-    name = urllib.parse.unquote(urllib.parse.urlsplit(args[-1]).path).lstrip('/')
-    path = files / name
-    meta = path.lstat()
-    print('  standard::size: ' + str(meta.st_size))
-    print('  standard::type: 1')
-    print('  standard::icon: image-x-generic')
-    print('  standard::target-uri: ' + path.as_uri())
-    print('  trash::deletion-date: 2026-10-18T09:00:00')
-    print('  id::file: l' + str(meta.st_dev) + ':' + str(meta.st_ino))
-    print('  id::filesystem: local')
+    for target in [arg for arg in args[1:] if arg.startswith('trash:///')]:
+        print('uri: ' + target)
+        name = urllib.parse.unquote(urllib.parse.urlsplit(target).path).lstrip('/')
+        path = files / name
+        meta = path.lstat()
+        print('  standard::size: ' + str(meta.st_size))
+        print('  standard::type: 1')
+        print('  standard::icon: image-x-generic')
+        print('  standard::target-uri: ' + path.as_uri())
+        print('  trash::deletion-date: 2026-10-18T09:00:00')
+        print('  id::file: l' + str(meta.st_dev) + ':' + str(meta.st_ino))
+        print('  id::filesystem: local')
 else:
     raise SystemExit('Unexpected gio request: ' + repr(args))
 "#,
@@ -200,7 +202,9 @@ fn run_case(case: &str, test: &str) {
         first.uri,
         escape(&selection_identity(&current))
     );
-    let batch = case.starts_with("batch-") || case.starts_with("partial-");
+    let cancelled = case == "cancel-empty";
+    let batch =
+        case.starts_with("batch-") || case.starts_with("partial-") || case == "empty" || cancelled;
     let partial = case.starts_with("partial-");
     let restoring = matches!(
         case,
@@ -226,7 +230,24 @@ fn run_case(case: &str, test: &str) {
         ));
         assert!(crate::json::field_bool(&prepared, "ok"), "{prepared}");
         let token = crate::json::field_usize(&prepared, "token").unwrap();
-        if case == "partial-delete" {
+        if cancelled {
+            let flag = std::sync::Arc::new(std::sync::atomic::AtomicBool::new(false));
+            let cancellation = Cancellation::operation(flag.clone());
+            let fields = job::delete_with(
+                session.confirmation.as_ref().unwrap(),
+                &crate::backend::trashdelete::recovery_root(),
+                &cancellation,
+                |done, item, _| {
+                    if done == 1 && item.is_none() {
+                        flag.store(true, std::sync::atomic::Ordering::Relaxed);
+                    }
+                },
+            );
+            let result = format!(r#"{{"ok":true,{fields}}}"#);
+            assert!(field_bool(&result, "cancelled"), "{result}");
+            assert_eq!(field_usize(&result, "skipped"), Some(1), "{result}");
+            result
+        } else if case == "partial-delete" {
             let kept = home.join("reviewed-payload");
             for path in [&payloads[0], &kept] {
                 assert!(home.is_absolute() && home.join(".flea-test-sandbox").is_file());
@@ -252,7 +273,7 @@ fn run_case(case: &str, test: &str) {
         crate::json::field_usize(&result, "done"),
         Some(if case == "blocked" {
             0
-        } else if case == "empty" || (batch && !partial) {
+        } else if !cancelled && (case == "empty" || (batch && !partial)) {
             2
         } else {
             1
@@ -266,7 +287,7 @@ fn run_case(case: &str, test: &str) {
     );
     for (index, files) in owned.iter().enumerate() {
         let refused = index == 0 && (case == "blocked" || partial);
-        let gone = !refused && (index == 0 || case == "empty" || batch);
+        let gone = !refused && (index == 0 || (!cancelled && batch));
         assert_eq!(payloads[index].exists(), !gone);
         for file in files {
             assert_eq!(
@@ -349,4 +370,8 @@ purge_case!(
 purge_case!(
     advloop_f7_failed_restore_keeps_its_thumbnails,
     "partial-restore"
+);
+purge_case!(
+    cancelled_empty_trash_purges_only_removed_items_once,
+    "cancel-empty"
 );

@@ -117,6 +117,23 @@ mod tests {
         assert!(named.contains(&format!(" and {} has ", leaf)), "the folder is named by its own leaf: {}", named);
     }
 
+    // A later version of a path overwrites the earlier one, so only distinct paths add up against the free space.
+    #[test]
+    fn appended_versions_of_one_path_need_room_for_the_largest_only() {
+        if crate::backend::sandboxprobe::skipped() { return; }
+        let extract = |tag: &str, names: [&str; 3]| {
+            let d = TestDir::new(tag);
+            let archive = d.file("x.7z", "stub input");
+            let free = fsinfo::read(d.path()).expect("the test filesystem answers a statfs").free;
+            let listing = format!("print('----------')\nfor name in {names:?}:\n print('Path = %s\\nSize = {}\\n' % name)\n", free / 2);
+            let formats = crate::backend::archive::Formats::test_stub(vec!["/usr/bin/python3".into(), "-c".into(), listing], vec!["/usr/bin/true".into()]);
+            let cancel = std::sync::atomic::AtomicBool::new(false);
+            crate::backend::archiveops::extract(&formats, &archive, &d.join("out"), &cancel, None).expect_err("the stub tool writes nothing")
+        };
+        assert_eq!(extract("archfreeversions", ["disk.img"; 3]).msg, "the archive tool wrote nothing");
+        assert!(extract("archfreepaths", ["a.img", "b.img", "c.img"]).msg.starts_with("Extracting x.7z needs "));
+    }
+
     // AA6: the size is rounded before its unit is picked, so no value reads as 1000.0 of the unit below.
     #[test]
     fn a_size_rounds_before_it_picks_its_unit() {

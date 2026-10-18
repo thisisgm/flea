@@ -279,7 +279,12 @@ fn every_step_kind_round_trips_with_exact_integers() {
             Step::Barrier,
         ],
     };
-    let doc = super::Doc { undo: vec![entry], redo: Vec::new(), push_gen: 0 };
+    let doc = super::Doc {
+        undo: vec![entry],
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    };
     let text = crate::jsondoc::render(&crate::backend::undocodec::encode(&doc));
     assert!(text.contains("\"born\": null"), "an unknown birth time is encoded as null");
     assert!(text.contains("\"b\": null"), "and so is an identity's");
@@ -304,6 +309,7 @@ fn a_trash_entry_with_no_uri_is_a_record_not_a_defect() {
         }],
         redo: Vec::new(),
         push_gen: 0,
+        job_gen: 0,
     };
     let text = crate::jsondoc::render(&crate::backend::undocodec::encode(&doc));
     let mut back = crate::backend::undocodec::decode(&text).expect("an empty uri decodes");
@@ -341,7 +347,12 @@ fn a_record_from_before_birth_time_was_kept_decodes_as_unknown() {
 #[test]
 fn an_oversized_doc_trims_oldest_and_keeps_newest() {
     let big = "op-".to_string() + &"x".repeat(1024 * 1024);
-    let mut doc = super::Doc { undo: Vec::new(), redo: Vec::new(), push_gen: 0 };
+    let mut doc = super::Doc {
+        undo: Vec::new(),
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    };
     for index in 0..40 {
         let path = PathBuf::from(format!("/x{}", index));
         doc.undo.push(Entry { op: format!("{}-{}", big, index), steps: vec![Step::Created { path }] });

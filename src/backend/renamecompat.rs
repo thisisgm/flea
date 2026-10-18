@@ -43,6 +43,8 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
     let error = if forced {
         io::Error::from_raw_os_error(EINVAL)
     } else {
+        #[cfg(test)]
+        super::renametiming::mark("syscall_begin");
         let rc = unsafe {
             renameat2(
                 AT_FDCWD,
@@ -53,9 +55,14 @@ pub fn rename_noreplace(from: &Path, to: &Path) -> io::Result<()> {
             )
         };
         if rc == 0 {
+            #[cfg(test)]
+            super::renametiming::mark("syscall_end");
             return Ok(());
         }
-        io::Error::last_os_error()
+        let error = io::Error::last_os_error();
+        #[cfg(test)]
+        super::renametiming::mark("syscall_end");
+        error
     };
     match error.raw_os_error() {
         Some(EINVAL) | Some(EOPNOTSUPP) => {

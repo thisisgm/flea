@@ -80,6 +80,10 @@ else
   echo "skip the 20-megapixel decode: magick is absent and imagemagick is an optdepends"
 fi
 
+# Issue #39: a 256-megapixel PNG exercises the real decoder beyond the smaller ICC fixture.
+python3 tests/thumbs-large.py "$BIN" "$D"
+check "a valid 16000 by 16000 PNG thumbnails on three fresh caches" "0" "$?"
+
 # A list replaces the row mapping, so a result for the old listing is dropped rather than reported against the new one.
 out=$(printf '{"c":"list","path":"%s","first":10}\n{"c":"thumb","rows":[0]}\n{"c":"list","path":"%s","first":10}\n{"c":"quit"}\n' "$D/gen" "$D/other" | timeout 120 $BIN --backend)
 check "a result for a superseded listing is dropped" "0" "$(echo "$out" | grep -c '"t":"thumbed"')"

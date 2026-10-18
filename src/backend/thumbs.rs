@@ -205,6 +205,7 @@ pub(crate) fn run_one(tables: &Tables, job: &mut Job) -> Outcome {
 
 // The copies of a camera RAW's embedded JPEG live in raw_dir, which a test points at its sandbox instead of the user's cache.
 pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outcome {
+    if super::model3d::supported(&job.path.to_string_lossy()).is_some() { return super::model3dreq::thumbnail(tables,job) }
     let spec = match tables.specs.for_mime(&job.mime, &tables.aliases) {
         Some(s) => s,
         None => return Outcome::Failed,
