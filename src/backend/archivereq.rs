@@ -1,11 +1,12 @@
-// Turning an archive or convert REQUEST into wire lines and a background job: the response builders,
-// the two run_* bodies a thread executes, and the two start_* entry points the dispatcher calls.
-// What those jobs do is archiveops.rs.
+// Archive and conversion request dispatch, response builders, and focused protocol tests.
 use crate::backend::archive::Formats;
-use crate::backend::archivepass;
-use crate::backend::archiveops::{self, compress, convert_one, extract, split_paths};
+use crate::backend::archiveops;
+#[cfg(test)]
+use crate::backend::archiveops::{compress, convert_one, extract};
 use crate::backend::convert;
-use crate::backend::opsreq::{op_err, transferprogress_line, OpMsg};
+use crate::backend::opsreq::{op_err, transferprogress_line};
+#[cfg(test)]
+use crate::backend::opsreq::OpMsg;
 use crate::error::io_message;
 use crate::json::escape;
 use std::path::PathBuf;
@@ -13,12 +14,17 @@ use crate::backend::opsdispatch::Ops;
 use crate::backend::proto::error_line;
 use std::io::Write;
 use std::sync::atomic::AtomicBool;
-use std::sync::mpsc::Sender;
 use std::sync::Arc;
 use std::thread;
 use super::menu_actions::{validate_sources, Selected};
 use super::opsdispatch::menu_sources;
 use super::opsdispatch::pending_busy_for;
+
+#[path = "archiveexec.rs"]
+mod execution;
+#[cfg(test)]
+pub(crate) use execution::run_archive;
+pub(crate) use execution::{archive_line, run_convert};
 
 pub fn archivestarted_line(id: usize) -> String {
     format!(r#"{{"t":"archivestarted","id":{}}}"#, id)
@@ -68,101 +74,6 @@ pub fn formats_line(formats: &Formats, can_convert: bool) -> String {
 // The extract gets its own start type so an older client never owns a card it cannot finish.
 fn extractstarted_line(id: usize) -> String {
     format!(r#"{{"t":"extractstarted","id":{}}}"#, id)
-}
-
-#[cfg(test)]
-pub(crate) fn run_archive(
-    id: usize,
-    compressing: bool,
-    paths: Vec<String>,
-    format: String,
-    archive: PathBuf,
-    dest: PathBuf,
-    formats: &Formats,
-    tx: Sender<OpMsg>,
-    selection: Option<Vec<Selected>>,
-    cancel: Arc<AtomicBool>,
-    password: String,
-    encrypt_names: bool,
-) {
-    let line = archive_line(
-        id,
-        compressing,
-        paths,
-        format,
-        archive,
-        dest,
-        formats,
-        selection.as_deref(),
-        cancel,
-        password,
-        encrypt_names,
-    );
-    // An extract frees the slot its terminal line took; a compress claims none and leaves the quit registry when its line is read.
-    let message = if compressing {
-        OpMsg::DetachedDone { id, line }
-    } else {
-        OpMsg::SlotDone { line }
-    };
-    let _ = tx.send(message);
-}
-
-pub(crate) fn archive_line(
-    id: usize,
-    compressing: bool,
-    paths: Vec<String>,
-    format: String,
-    archive: PathBuf,
-    dest: PathBuf,
-    formats: &Formats,
-    selection: Option<&[Selected]>,
-    cancel: Arc<AtomicBool>,
-    password: String,
-    encrypt_names: bool,
-) -> String {
-    let sources: Vec<PathBuf> = if compressing {
-        paths.iter().map(PathBuf::from).collect()
-    } else {
-        vec![archive.clone()]
-    };
-    let result = if let Err(error) = validate_sources(selection, &sources) {
-        Err(op_err("archive", "", &error))
-    } else if compressing {
-        // A compress writes the archive, so nothing verifies it and an empty password is no password.
-        let password = (!password.is_empty()).then(|| crate::backend::archiveops::Password {
-            secret: &password,
-            encrypt_names,
-        });
-        match split_paths(&paths) {
-            Some((parent, names)) => compress(formats, &parent, &names, &format, &dest, &cancel, password).map(|()| true),
-            None => Err(op_err("archive", "", "the items to compress must be in one folder")),
-        }
-    } else {
-        // An empty password is no password: the encrypted probe below decides whether to ask.
-        let password = (!password.is_empty()).then_some(password.as_str());
-        extract(formats, &archive, &dest, &cancel, password)
-    };
-    match result {
-        Ok(verified) => archivedone_line(id, true, verified, ""),
-        Err(e) if !compressing && archivepass::asks_again(&e.msg) => archivepass::asks_again_line(id, &e.msg, &archive, &dest),
-        Err(e) => archivedone_line(id, false, true, &e.msg),
-    }
-}
-
-pub(crate) fn run_convert(id: usize, request_id: usize, input: PathBuf, dest: PathBuf, strip: bool, tx: Sender<OpMsg>, selection: Option<Vec<Selected>>,
-                   cancel: Arc<AtomicBool>) {
-    let result = validate_sources(selection.as_deref(), std::slice::from_ref(&input))
-        .map_err(|error| op_err("convert", &input.to_string_lossy(), &error))
-        .and_then(|()| convert_one(&input, &dest, strip, &cancel));
-    let line = match result {
-        Ok(()) => convertdone_line(id, request_id, &input.to_string_lossy(), true, &dest.to_string_lossy(), "", false),
-        Err(e) => {
-            let collision = dest.symlink_metadata().is_ok();
-            let message = if collision { collision_message(&dest) } else { e.msg };
-            convertdone_line(id, request_id, &input.to_string_lossy(), false, &dest.to_string_lossy(), &message, collision)
-        }
-    };
-    let _ = tx.send(OpMsg::DetachedDone { id, line });
 }
 
 // The dispatch half, kept beside the work so run.rs's own match stays one line per request.

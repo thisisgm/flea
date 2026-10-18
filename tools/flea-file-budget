@@ -36,7 +36,6 @@ src/backend/meta.rs 550
 src/backend/metareq.rs 541
 src/backend/movebatch.rs 477
 src/backend/movebatch_tests.rs 752
-src/backend/archivereq.rs 458
 src/backend/opsdispatch.rs 2404
 src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
@@ -52,7 +51,6 @@ src/backend/watch.rs 550
 src/backend/thumbreq.rs 476
 src/backend/undo.rs 802
 src/backend/undo_tests.rs 439
-src/backend/undocodec.rs 412
 src/backend/undoshare.rs 462
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
