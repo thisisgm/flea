@@ -39,7 +39,7 @@ pub fn valid_host(host: &str) -> bool {
     !host.is_empty() && host.len() <= MAX_HOST && host.split('.').all(|label| {
         !label.is_empty() && label.len() <= MAX_LABEL
             && !label.starts_with('-') && !label.ends_with('-')
-            && label.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'-')
+            && label.bytes().all(|b| b.is_ascii_alphanumeric() || matches!(b, b'-' | b'_'))
     })
 }
 

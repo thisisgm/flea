@@ -1,6 +1,15 @@
 use super::*;
 
 #[test]
+fn underscore_hosts_remain_valid_when_typed_and_reopened() {
+    let address = parse("smb://file_server/share").expect("typed underscore host must remain valid");
+    assert_eq!(address.host, "file_server");
+    assert_eq!(address.uri, "smb://file_server/share");
+    assert_eq!(address.path, "/share");
+    assert_eq!(parse(&address.uri).unwrap(), address, "saved URI must reopen unchanged");
+}
+
+#[test]
 fn every_address_form_builds_the_saved_place_uri() {
     let cases = [
         ("smb://NAS.local/share", "smb://nas.local/share", "SMB", 445, "", "/share"),

@@ -45,7 +45,7 @@ fn peer(input: &str, keep_going: &mut dyn FnMut() -> bool) -> Result<Option<Row>
     })?;
     let Some(dns) = dns.filter(|_| online) else { return Ok(None); };
     let dns = dns.strip_suffix('.').unwrap_or(&dns);
-    if !networkaddress::valid_host(dns) || dns.to_ascii_lowercase().ends_with(".mullvad.ts.net") { return Ok(None); }
+    if !super::valid_discovery_host(dns) || dns.to_ascii_lowercase().ends_with(".mullvad.ts.net") { return Ok(None); }
     let scheme = if os.is_some_and(|os| os.eq_ignore_ascii_case("windows")) { "smb" } else { "sftp" };
     let Ok(address) = networkaddress::parse(&format!("{scheme}://{dns}/")) else { return Ok(None); };
     let name = label.filter(|label| !label.is_empty() && !label.eq_ignore_ascii_case("localhost"))
