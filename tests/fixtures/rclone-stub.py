@@ -55,6 +55,16 @@ if control.get('real'):
             (root / 'injected.json').write_text(json.dumps(dict(source=source, target=str(target),
                 size=before.st_size, mtime_ns=before.st_mtime_ns)))
     os.execv(control['real'], [control['real'], *args])
+failure = control.get({'listremotes': 'list_error', 'backend': 'features_error', 'mkdir': 'mkdir_error'}.get(args[0], ''))
+if failure:
+    # rclone 1.75 ends a failed command with this notice row under --use-json-log, and a dated text line otherwise.
+    message = 'Failed to ' + args[0] + ': ' + failure
+    if '--use-json-log' in args:
+        print(json.dumps(dict(time='2026-10-18T12:00:00.000000000Z', level='notice', msg=message,
+                              source='cmd/cmd.go:334')), file=sys.stderr)
+    else:
+        print('2026/10/18 12:00:00 NOTICE: ' + message, file=sys.stderr)
+    sys.exit(1)
 if args[0] == 'listremotes':
     if control.get('list_hang'):
         signal.signal(signal.SIGTERM, signal.SIG_IGN)

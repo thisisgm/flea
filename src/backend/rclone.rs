@@ -12,15 +12,18 @@ const LIST_DEADLINE: Duration = Duration::from_secs(2);
 
 // Sample input: listremotes stdout "gdrive:\nnas-crypt:\n", one configured remote per line ending in a colon.
 pub(super) fn remotes(cancel: &AtomicBool) -> Result<Vec<String>, String> {
+    let mut log = super::rclonelog::Log::default();
     let output = super::rcloneproc::run(
-        &["listremotes".into()],
+        &["listremotes".into(), "--use-json-log".into()],
         cancel,
         Some(LIST_DEADLINE),
         true,
-        |_| {},
+        |line| {
+            log.line(line);
+        },
     )?;
     if !output.success {
-        return Err("Could not read rclone remotes.".into());
+        return Err(log.explain("Could not list rclone remotes.".into()));
     }
     let mut remotes = Vec::new();
     for line in output.text.lines() {
@@ -66,26 +69,22 @@ pub(super) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) {
     let folder = field_str(line, "folder").unwrap_or_default();
     let paths = field_str_array(line, "paths");
     let error = if op != "send" {
-        "Unknown rclone request."
+        "Unknown rclone request.".to_string()
     } else if !remote_name(&remote) || folder.contains('\0') {
-        "Choose a configured rclone remote and folder."
+        "Choose a configured rclone remote and folder.".into()
     } else if folder.split('/').any(|part| part == "..") {
-        "An rclone folder cannot contain a .. component."
-    } else if paths.is_empty()
-        || paths.iter().any(|p| {
-            let path = Path::new(p);
-            !path.is_absolute() || path.file_name().is_none() || p.contains('\0')
-        })
-    {
-        "rclone requires absolute selection paths."
+        "An rclone folder cannot contain a .. component.".into()
+    } else if paths.is_empty() {
+        "Choose at least one item to send with rclone.".into()
     } else {
-        ""
+        paths.iter().find_map(|p| path_error(p)).unwrap_or_default()
     };
     if !error.is_empty() {
         writeln!(
             out,
             r#"{{"t":"rclonestarted","requestId":{},"ok":false,"error":"{}"}}"#,
-            request, error
+            request,
+            escape(&error)
         )
         .ok();
         out.flush().ok();
@@ -116,6 +115,25 @@ pub(super) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) {
         &ops.detached,
         &ops.tx,
     );
+}
+
+// The sentence that refuses one selection path, naming it; None for an absolute path with a file name.
+fn path_error(path: &str) -> Option<String> {
+    if path.contains('\0') {
+        Some(format!(
+            "rclone cannot send {}, it contains a NUL byte.",
+            path
+        ))
+    } else if !Path::new(path).is_absolute() {
+        Some(format!(
+            "rclone requires an absolute selection path, not {}.",
+            path
+        ))
+    } else if Path::new(path).file_name().is_none() {
+        Some(format!("rclone cannot send {}, it has no file name.", path))
+    } else {
+        None
+    }
 }
 
 #[cfg(test)]

@@ -1,4 +1,5 @@
 // Remote capabilities decide whether selected folders can be delivered without dropping empty descendants.
+use super::rclonelog::Log;
 use crate::jsondoc::{parse, Json};
 use std::path::Path;
 use std::sync::atomic::{AtomicBool, Ordering};
@@ -15,27 +16,41 @@ pub(super) struct Features {
 impl Features {
     // Sample input: backend features stdout {"Name":"gdrive","Hashes":["md5","sha1"],"Features":{"CanHaveEmptyDirectories":true}}.
     pub fn read(remote: &str, cancel: &AtomicBool) -> Result<Self, String> {
+        let mut log = Log::default();
         let output = super::rcloneproc::run(
             &[
                 "backend".into(),
                 "features".into(),
+                "--use-json-log".into(),
                 "--".into(),
                 format!("{}:", remote),
             ],
             cancel,
             Some(FEATURES_DEADLINE),
             true,
-            |_| {},
+            |line| {
+                log.line(line);
+            },
         )?;
-        let value =
-            parse(&output.text).map_err(|_| "Could not read rclone remote capabilities.")?;
-        if !output.success {
-            return Err("Could not read rclone remote capabilities.".into());
-        }
+        let value = match parse(&output.text) {
+            Ok(value) if output.success => value,
+            _ => {
+                let sentence = format!(
+                    "Could not read the capabilities of rclone remote {}.",
+                    remote
+                );
+                return Err(log.explain(sentence));
+            }
+        };
         let hashes = value
             .get("Hashes")
             .and_then(Json::as_array)
-            .ok_or("Could not read rclone checksum support.")?;
+            .ok_or_else(|| {
+                format!(
+                    "Could not read the checksum support of rclone remote {}.",
+                    remote
+                )
+            })?;
         let hashes = hashes.iter().filter_map(Json::as_str).any(|hash| {
             matches!(
                 hash,
@@ -72,6 +87,7 @@ impl Features {
         if !self.empty_folders {
             return Ok(());
         }
+        let mut log = Log::default();
         let output = super::rcloneproc::run(
             &[
                 "mkdir".into(),
@@ -83,12 +99,14 @@ impl Features {
             cancel,
             None,
             false,
-            |_| {},
+            |line| {
+                log.line(line);
+            },
         )?;
         if output.success {
             Ok(())
         } else {
-            Err(format!("Could not create the folder {}.", target))
+            Err(log.explain(format!("Could not create the folder {}.", target)))
         }
     }
 }
