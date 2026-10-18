@@ -97,7 +97,6 @@ action = "cursorDown"
 fn hints_name_the_shipped_keys_as_the_sheet_spells_them() {
     let map = Map::load();
     let hints = Hints::new(&map, "default");
-    assert_eq!(hints.dismiss, "Escape");
     assert_eq!(hints.keys, "?");
     assert_eq!(hints.load_preview, "Ctrl+Space");
     assert_eq!(hints.delete_permanently, "Shift+Delete");
@@ -110,7 +109,7 @@ fn every_shipped_preset_names_a_key_for_every_hint() {
     let map = Map::load();
     for preset in ["default", "vim", "mac", "windows"] {
         let hints = Hints::new(&map, preset);
-        for (name, chord) in [("dismiss", &hints.dismiss), ("keys", &hints.keys), ("load_preview", &hints.load_preview), ("delete_permanently", &hints.delete_permanently), ("trash", &hints.trash)] {
+        for (name, chord) in [("keys", &hints.keys), ("load_preview", &hints.load_preview), ("delete_permanently", &hints.delete_permanently), ("trash", &hints.trash)] {
             assert!(!chord.is_empty(), "{preset} has no key for the {name} hint");
         }
     }

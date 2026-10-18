@@ -8,6 +8,9 @@ mod tmux;
 mod actions;
 mod batch;
 mod completion;
+mod cells;
+mod layout;
+mod icons;
 mod editor;
 mod empty;
 pub(crate) mod graphics;
@@ -78,7 +81,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         model.capabilities = terminal.decoder.negotiation.detected;
         let map = keymap::Map::load();
         model.hints = keymap::Hints::new(&map, &model.preset);
-        let theme = theme::Theme::load();
+        let mut style = layout::Live::new(&mut model);
         let started = std::time::Instant::now();
         let mut frame = String::new();
         let mut graphics = graphics::Graphics::new();
@@ -150,10 +153,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                 model.menu_action = "open".into();
                 wire.send(vec![("c", wire::word("menuaction")), ("op", wire::word("validate")), ("id", wire::number(model.action_id)), ("action", wire::word("open"))])?;
             }
-            preview::load(&mut model, false);
-            preview::poll(&mut model);
-            preview::request(&mut model, &mut wire)?;
-            preview::layout(&mut model);
+            style.prepare(&mut model, &mut wire)?;
             model.taildrop.poll();
             model.advance_taildrop(&mut wire)?;
             if let Some(result) = model.taildrop.sent.take() {
@@ -374,7 +374,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             if !held {
                 let changed = render::draw(
                     &model,
-                    &theme,
+                    &style.theme,
                     &map,
                     size.0,
                     size.1,

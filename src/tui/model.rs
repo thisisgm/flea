@@ -58,6 +58,24 @@ pub struct Deletion {
     pub scroll: usize,
 }
 pub struct Model {
+    pub font_marks: bool,
+    pub force_text_marks: bool,
+    pub disk_path: PathBuf,
+    fs_requested: Option<PathBuf>,
+    pub disk_fs: String,
+    pub disk_free: usize,
+    pub disk_class: String,
+    pub folder_sizes: BTreeMap<usize, (usize, bool)>,
+    size_pending: BTreeSet<usize>,
+    size_view: (PathBuf, usize, usize, String),
+    size_at: std::time::Instant,
+    pub empty_at: std::time::Instant,
+    pub scrolled_at: Option<std::time::Instant>,
+    pub preview_rows: Vec<Row>,
+    pub preview_rows_generation: usize,
+    pub preview_refusal: String,
+    pub text_lines: Vec<(Option<usize>, String)>,
+    pub text_gutter: usize,
     pub last_directory: Option<PathBuf>,
     pub choosing: bool,
     pub choose_pending: bool,
@@ -109,6 +127,7 @@ pub struct Model {
     pub preview_line_count: usize,
     pub preview_layout_scroll: usize,
     pub preview_layout_height: usize,
+    pub preview_body_bytes: usize,
     pub preview_width: usize,
     pub preview_layout_generation: usize,
     pub preview_path: PathBuf,
@@ -148,6 +167,7 @@ pub struct Model {
     pub sheet_top: usize,
     pub transfer_id: usize,
     pub transfer_total: usize,
+    pub progress_percent: Option<usize>,
     pub transfer_moving: bool,
     pub quit: bool,
     pub back: Vec<PathBuf>,
@@ -184,6 +204,24 @@ impl Model {
     pub fn new(path: PathBuf, settings: &Json) -> Self {
         let preview = settings.get("preview").unwrap_or(&Json::Null);
         Self {
+            font_marks: true,
+            force_text_marks: false,
+            disk_path: PathBuf::new(),
+            fs_requested: None,
+            disk_fs: String::new(),
+            disk_free: 0,
+            disk_class: String::new(),
+            folder_sizes: BTreeMap::new(),
+            size_pending: BTreeSet::new(),
+            size_view: (PathBuf::new(), 0, 0, String::new()),
+            size_at: std::time::Instant::now(),
+            empty_at: std::time::Instant::now(),
+            scrolled_at: None,
+            preview_rows: Vec::new(),
+            preview_rows_generation: usize::MAX,
+            preview_refusal: String::new(),
+            text_lines: Vec::new(),
+            text_gutter: 0,
             last_directory: None,
             choosing: false,
             choose_pending: false,
@@ -246,6 +284,7 @@ impl Model {
             preview_line_count: 0,
             preview_layout_scroll: 0,
             preview_layout_height: 0,
+            preview_body_bytes: 0,
             preview_width: 0,
             preview_layout_generation: 0,
             preview_path: PathBuf::new(),
@@ -291,6 +330,7 @@ impl Model {
             sheet_top: 0,
             transfer_id: 0,
             transfer_total: 0,
+            progress_percent: None,
             transfer_moving: false,
             quit: false,
             back: Vec::new(),
@@ -350,6 +390,40 @@ impl Model {
         }
         result
     }
+    pub fn marks(&self) -> bool {
+        !self.force_text_marks && (self.font_marks || self.capabilities.graphics == super::capabilities::Protocol::Kitty)
+    }
+    pub fn row_size(&self, index: usize, row: &Row) -> String {
+        let (bytes, partial) = self.folder_sizes.get(&index).copied().unwrap_or((row.size, row.directory));
+        format!("{}{}", if partial { ">" } else { "" }, super::render::bytes(bytes))
+    }
+    pub fn request_sizes(&mut self, wire: &mut Wire, now: std::time::Instant) -> io::Result<()> {
+        if self.pending.is_none() && self.search.is_empty() && self.fs_requested.as_ref() != Some(&self.path) {
+            wire.send(vec![("c", word("fsinfo"))])?;
+            self.fs_requested = Some(self.path.clone());
+        }
+        let view = (self.path.clone(), self.top, self.height, self.filter.clone());
+        if self.pending.is_some() || self.searching || view != self.size_view {
+            if !self.size_pending.is_empty() { wire.send(vec![("c", word("dirsizecancel"))])?; }
+            self.size_pending.clear();
+            self.size_view = view;
+            self.size_at = now;
+            let visible = self.visible();
+            self.folder_sizes.retain(|index, _| visible.contains(index));
+        }
+        if self.pending.is_some() || self.searching || now.saturating_duration_since(self.size_at).as_millis() < 120
+            || self.disk_path != self.path || crate::backend::extclass::refuses_folder_sizes(&self.disk_class) { return Ok(()); }
+        let rows: Vec<_> = self.visible().into_iter().filter(|index| self.rows.get(index).is_some_and(|row| row.directory)
+            && !self.folder_sizes.contains_key(index) && !self.size_pending.contains(index)).collect();
+        if rows.is_empty() { return Ok(()); }
+        wire.send(vec![("c", word("dirsize")), ("rows", Json::Arr(rows.iter().map(|row| number(*row)).collect()))])?;
+        self.size_pending.extend(rows);
+        Ok(())
+    }
+    pub fn visible(&self) -> Vec<usize> {
+        if self.filter.is_empty() { self.rows.range(self.top..self.top.saturating_add(self.height)).map(|(i, _)| *i).collect() }
+        else { self.shown().into_iter().take(self.height).collect() }
+    }
     pub fn restore_navigation(&mut self) {
         if let Some((back, forward, tab)) = self.navigation_before.take() {
             self.back = back;
@@ -370,12 +444,14 @@ impl Model {
         } else { self.open(self.path.clone(), wire) }
     }
     pub fn window(&mut self, wire: &mut Wire) -> io::Result<()> {
+        let old_top = self.top;
         if self.cursor < self.top {
             self.top = self.cursor;
         }
         if self.cursor >= self.top + self.height {
             self.top = self.cursor + 1 - self.height;
         }
+        if self.top != old_top { self.scrolled_at = Some(std::time::Instant::now()); }
         wire.send(vec![
             ("c", word("window")),
             ("start", number(self.top)),
@@ -529,6 +605,9 @@ impl Model {
     pub fn invalidate_rows(&mut self) {
         self.cancel_taildrop();
         self.rows.clear();
+        self.folder_sizes.clear();
+        self.size_pending.clear();
+        self.size_view.0.clear();
         self.selected.clear();
         self.selected_rows.clear();
         self.preview_path.clear();
@@ -591,6 +670,7 @@ impl Model {
         match text(&value, "t") {
             "listed" => {
                 if let Some(path) = self.pending.take() {
+                    self.empty_at = std::time::Instant::now();
                     self.path = path;
                     self.last_directory = Some(self.path.clone());
                     self.cursor = self.restore_cursor.take().unwrap_or(0);
@@ -603,6 +683,7 @@ impl Model {
                     self.tabs[self.tab].path = self.path.clone();
                     self.navigation_before = None;
                 }
+                if self.total > 0 && count(&value, "n") == 0 { self.empty_at = std::time::Instant::now(); }
                 self.total = count(&value, "n");
                 self.invalidate_rows();
                 self.cursor = self.cursor.min(self.total.saturating_sub(1));
@@ -636,6 +717,7 @@ impl Model {
                         self.peek_sent = Some(parent);
                     }
                 }
+                self.fs_requested = None;
                 self.window(wire)?;
                 if let Some(path) = self.restore_path.as_ref().filter(|_| !self.searching) {
                     wire.send(vec![
@@ -694,6 +776,18 @@ impl Model {
                             self.window(wire)?;
                         }
                     }
+                }
+            }
+            "fsinfo" if self.pending.is_none() && text(&value, "path") == self.path.to_string_lossy() => {
+                self.disk_path = self.path.clone();
+                self.disk_fs = text(&value, "fs").into();
+                self.disk_free = count(&value, "free");
+                self.disk_class = text(&value, "class").into();
+            }
+            "dirsized" if self.pending.is_none() => {
+                let row = count(&value, "row");
+                if self.size_pending.remove(&row) && self.rows.get(&row).is_some_and(|entry| entry.directory) {
+                    self.folder_sizes.insert(row, (count(&value, "bytes"), flag(&value, "partial")));
                 }
             }
             "thumbed" => {
@@ -770,6 +864,11 @@ impl Model {
                     .is_some_and(|path| path.to_string_lossy() == text(&value, "path"))
                     && self.current_path().as_ref() == self.preview_children.as_ref()
                 {
+                    self.preview_rows_generation = self.preview_generation;
+                    self.preview_refusal = if !flag(&value, "failed") { String::new() }
+                        else if count(&value, "mode") > 0 && count(&value, "mode") & 0o444 == 0 { "You don’t have permission to open this folder.".into() }
+                        else { "This folder could not be read.".into() };
+                    self.preview_rows = value.get("rows").and_then(Json::as_array).unwrap_or(&[]).iter().take(self.height).map(|row| Row::parse(row, &[])).collect();
                     self.preview.truncate(2);
                     if flag(&value, "failed") {
                         self.preview.push("This folder could not be read.".into());
@@ -877,6 +976,7 @@ impl Model {
                 self.window(wire)?;
             }
             "transferstarted" => {
+                self.progress_percent = None;
                 self.transfer_id = count(&value, "id");
                 self.transfer_total = count(&value, "n");
                 self.transfer_moving = flag(&value, "moving");
@@ -892,6 +992,11 @@ impl Model {
             }
             "transferprogress" => {
                 if count(&value, "id") == self.transfer_id {
+                    let total = count(&value, "total");
+                    self.progress_percent = if self.transfer_total > 0 && total > 0 {
+                        let fraction = (count(&value, "bytes") as f64 / total as f64).clamp(0.0, 1.0);
+                        Some(((count(&value, "index") as f64 + fraction) * 100.0 / self.transfer_total as f64).clamp(0.0, 100.0) as usize)
+                    } else { None };
                     self.transfer = format!(
                         "{} {} of {}",
                         if self.transfer_moving {
@@ -927,6 +1032,7 @@ impl Model {
                     }
                     self.transfer.clear();
                     self.transfer_id = 0;
+                    self.progress_percent = None;
                 }
                 if matches!(
                     operation,
@@ -1108,7 +1214,11 @@ impl Model {
                 }
             }
             "error" => {
-                self.fail(format!("{}: {}", text(&value, "where"), text(&value, "msg")));
+                self.fail(if text(&value, "where") == "scan" {
+                    if text(&value, "msg") == "permission denied" { "You don’t have permission to open this folder.".into() }
+                    else { text(&value, "msg").into() }
+                }
+                    else { format!("{}: {}", text(&value, "where"), text(&value, "msg")) });
                 if text(&value, "where") == "rename" && self.bulk.is_some() {
                     self.bulk.as_mut().unwrap().cancelled = true;
                     self.next_rename(wire)?;
@@ -1148,157 +1258,5 @@ impl Model {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    #[test]
-    fn counted_lines_read_singular_for_one() {
-        let (mut wire, reader) = crate::tui::wire::echo_wire();
-        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
-        model.pending_clipboard = true;
-        model.receive(crate::jsondoc::parse(r#"{"t":"paths","paths":["/listing/a"]}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.message, "1 item copied");
-        model.search = "Search: stale".into();
-        model.receive(crate::jsondoc::parse(r#"{"t":"searched","n":1,"scanned":5}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.search, "Search: 1 match · 5 scanned");
-        model.receive(crate::jsondoc::parse(r#"{"t":"trashed","ok":1,"failed":0}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.message, "Moved 1 item to Trash · Undo available");
-        model.transfer_id = 7;
-        model.receive(crate::jsondoc::parse(r#"{"t":"transferdone","id":7,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.message, "Transferred 1 item");
-        model.menu_action = "deleteRunning".into();
-        model.menu_count = 1;
-        model.receive(crate::jsondoc::parse(r#"{"t":"menuaction","op":"delete","id":0,"ok":true,"deleted":1,"failed":0,"remaining":[]}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.message, "Deleted 1 of 1 item");
-        assert_eq!(bulk_done_line(1, false), "Renamed 1 item · Undo reverts one");
-        crate::tui::wire::finish(wire, reader);
-    }
-    #[test]
-    fn counted_lines_read_plural_for_many() {
-        let (mut wire, reader) = crate::tui::wire::echo_wire();
-        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
-        model.pending_clipboard = true;
-        model.cut = true;
-        model.receive(crate::jsondoc::parse(r#"{"t":"paths","paths":["/listing/a","/listing/b"]}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.message, "2 items cut");
-        model.search = "Search: stale".into();
-        model.receive(crate::jsondoc::parse(r#"{"t":"searched","n":2000,"scanned":3000}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.search, "Search: 2,000 matches · 3,000 scanned");
-        model.receive(crate::jsondoc::parse(r#"{"t":"trashed","ok":3,"failed":0}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.message, "Moved 3 items to Trash · Undo available");
-        model.transfer_id = 7;
-        model.receive(crate::jsondoc::parse(r#"{"t":"transferdone","id":7,"ok":1204,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.message, "Transferred 1,204 items");
-        model.menu_action = "deleteRunning".into();
-        model.menu_count = 3;
-        model.receive(crate::jsondoc::parse(r#"{"t":"menuaction","op":"delete","id":0,"ok":true,"deleted":2,"failed":0,"remaining":[]}"#).unwrap(), &mut wire).unwrap();
-        assert_eq!(model.message, "Deleted 2 of 3 items");
-        assert_eq!(bulk_done_line(3, true), "Stopped after renaming 3 items · Undo reverts one");
-        crate::tui::wire::finish(wire, reader);
-    }
-    #[test]
-    fn listing_invalidation_cancels_pending_taildrop_intent() {
-        let mut model = Model::new(PathBuf::from("/"), &Json::Null);
-        model.taildrop_target = Some(super::super::taildrop::Peer { id: "node".into(), label: "peer".into(), address: "peer.invalid".into() });
-        model.menu_action = "taildropRefresh".into();
-        model.message = "Checking Taildrop".into();
-        model.invalidate_rows();
-        assert!(model.taildrop_target.is_none());
-        assert!(model.menu_action.is_empty());
-        assert!(model.message.is_empty());
-        assert_eq!(model.error, "Taildrop cancelled; selection changed");
-        assert!(!model.cancel_taildrop(), "late invalidation must not create another error");
-    }
-
-
-    #[test]
-    fn pdf_preview_uses_filename_not_generic_icon_or_localized_kind() {
-        let mut row = Row::parse(&Json::Obj(vec![
-            ("n".into(), word("pages.PDF")),
-            ("i".into(), word("x-office-document")),
-        ]), &[word("Document")]);
-        assert!(row.is_pdf());
-        row.directory = true;
-        assert!(!row.is_pdf());
-        row.directory = false;
-        row.link = "original.pdf".into();
-        assert!(!row.is_pdf());
-        row.link.clear();
-        for name in [".pdf", "pages.pdf.txt", "report.doc", "no-extension"] {
-            row.name = name.into();
-            assert!(!row.is_pdf(), "{name}");
-        }
-    }
-
-    #[test]
-    fn survivor_restore_requires_current_reply_and_original_membership() {
-        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
-        model.menu_action = "deleteRestore".into();
-        model.restore_id = 7;
-        model.total = 100;
-        model.restore_selection = [PathBuf::from("/listing/survivor"), PathBuf::from("/listing/replaced")].into_iter().collect();
-        let reply = |id, directory| Json::Obj(vec![("id".into(), number(id)), ("directory".into(), word(directory)),
-            ("ok".into(), Json::Bool(true)), ("matches".into(), Json::Arr(vec![
-                Json::Obj(vec![("path".into(), word("/listing/survivor")), ("index".into(), number(75))]),
-                Json::Obj(vec![("path".into(), word("/listing/unselected")), ("index".into(), number(3))])]))]);
-        assert!(!model.restore_survivors(&reply(6, "/listing")));
-        assert!(!model.restore_survivors(&reply(7, "/other")));
-        model.pending = Some(PathBuf::from("/listing"));
-        assert!(!model.restore_survivors(&reply(7, "/listing")));
-        model.pending = None;
-        assert!(model.restore_survivors(&reply(7, "/listing")));
-        assert_eq!(model.selected, [75].into_iter().collect());
-        assert_eq!(model.cursor, 75);
-        assert!(model.selected_rows.is_empty(), "offscreen survivors remain selected without invented metadata");
-        assert!(model.restore_selection.is_empty());
-        assert!(model.menu_action.is_empty());
-    }
-
-    #[test]
-    fn one_mark_keeps_its_identity_when_cursor_leaves_the_page() {
-        let mut model = Model::new(PathBuf::from("/"), &Json::Null);
-        let row = |name| Row::parse(&Json::Obj(vec![("n".into(), word(name))]), &[]);
-        model.rows.insert(3, row("marked"));
-        model.selected.insert(3);
-        model.remember_selection();
-        model.rows.clear();
-        model.rows.insert(8, row("cursor"));
-        model.cursor = 8;
-        let (index, selected) = model.single_row().unwrap();
-        assert_eq!(index, 3);
-        assert_eq!(selected.name, "marked");
-        model.selected.insert(8);
-        assert!(model.single_row().is_none());
-        model.selected.clear();
-        assert_eq!(model.single_row().unwrap().1.name, "cursor");
-    }
-
-    #[test]
-    fn errors_survive_until_each_is_acknowledged() {
-        let mut model = Model::new(PathBuf::from("/"), &Json::Null);
-        model.fail("Copy failed".into());
-        model.fail("Preview failed".into());
-        model.fail("Copy failed".into());
-        model.fail("Preview failed".into());
-        model.fail(String::new());
-        assert_eq!(model.error, "Copy failed");
-        assert_eq!(model.errors.len(), 1);
-        model.dismiss_error();
-        assert_eq!(model.error, "Preview failed");
-        model.dismiss_error();
-        assert!(model.error.is_empty());
-    }
-
-    #[test]
-    fn menu_requires_a_ready_identity_snapshot() {
-        let mut model = Model::new(PathBuf::from("/"), &Json::Null);
-        model.menu_path = PathBuf::from("/selected");
-        model.menu_count = 1;
-        assert!(!model.menu_enabled(0));
-        assert!(model.menu_enabled(1));
-        model.menu_ready = true;
-        assert!(model.menu_enabled(0));
-        assert!(!model.menu_enabled(2));
-        model.menu_path.clear();
-        assert!(!model.menu_enabled(0));
-    }
-}
+#[path = "model_tests.rs"]
+mod tests;

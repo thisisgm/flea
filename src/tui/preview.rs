@@ -187,36 +187,7 @@ pub fn request(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<(
     Ok(())
 }
 pub fn layout(m: &mut Model) {
-    let columns = if m.quicklook || m.preview_visible { super::render::preview_area(m.columns, m.quicklook).1 } else { 0 };
-    let changed = m.preview_width != columns || m.preview_layout_generation != m.preview_generation;
-    if !changed
-        && m.preview_layout_scroll == m.preview_scroll
-        && m.preview_layout_height == m.height
-    {
-        return;
-    }
-    m.preview_width = columns;
-    m.preview_layout_generation = m.preview_generation;
-    let lines = || {
-        m.preview
-            .iter()
-            .chain(m.preview_metadata.iter())
-            .map(String::as_str)
-            .chain(m.preview_body.lines())
-            .flat_map(|line| super::render::Wrapped::new(line, columns))
-    };
-    if changed {
-        m.preview_line_count = lines().count();
-    }
-    m.preview_scroll = m.preview_scroll.min(m.preview_line_count.saturating_sub(1));
-    let shown: Vec<String> = lines()
-        .skip(m.preview_scroll)
-        .take(m.height)
-        .map(super::render::clean)
-        .collect();
-    m.preview_display = shown;
-    m.preview_layout_scroll = m.preview_scroll;
-    m.preview_layout_height = m.height;
+    super::layout::prepare(m);
 }
 #[cfg(test)]
 mod tests {

@@ -1,0 +1,152 @@
+    use super::*;
+    #[test]
+    fn counted_lines_read_singular_for_one() {
+        let (mut wire, reader) = crate::tui::wire::echo_wire();
+        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        model.pending_clipboard = true;
+        model.receive(crate::jsondoc::parse(r#"{"t":"paths","paths":["/listing/a"]}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.message, "1 item copied");
+        model.search = "Search: stale".into();
+        model.receive(crate::jsondoc::parse(r#"{"t":"searched","n":1,"scanned":5}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.search, "Search: 1 match · 5 scanned");
+        model.receive(crate::jsondoc::parse(r#"{"t":"trashed","ok":1,"failed":0}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.message, "Moved 1 item to Trash · Undo available");
+        model.transfer_id = 7;
+        model.receive(crate::jsondoc::parse(r#"{"t":"transferdone","id":7,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.message, "Transferred 1 item");
+        model.menu_action = "deleteRunning".into();
+        model.menu_count = 1;
+        model.receive(crate::jsondoc::parse(r#"{"t":"menuaction","op":"delete","id":0,"ok":true,"deleted":1,"failed":0,"remaining":[]}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.message, "Deleted 1 of 1 item");
+        assert_eq!(bulk_done_line(1, false), "Renamed 1 item · Undo reverts one");
+        crate::tui::wire::finish(wire, reader);
+    }
+    #[test]
+    fn counted_lines_read_plural_for_many() {
+        let (mut wire, reader) = crate::tui::wire::echo_wire();
+        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        model.pending_clipboard = true;
+        model.cut = true;
+        model.receive(crate::jsondoc::parse(r#"{"t":"paths","paths":["/listing/a","/listing/b"]}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.message, "2 items cut");
+        model.search = "Search: stale".into();
+        model.receive(crate::jsondoc::parse(r#"{"t":"searched","n":2000,"scanned":3000}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.search, "Search: 2,000 matches · 3,000 scanned");
+        model.receive(crate::jsondoc::parse(r#"{"t":"trashed","ok":3,"failed":0}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.message, "Moved 3 items to Trash · Undo available");
+        model.transfer_id = 7;
+        model.receive(crate::jsondoc::parse(r#"{"t":"transferdone","id":7,"ok":1204,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.message, "Transferred 1,204 items");
+        model.menu_action = "deleteRunning".into();
+        model.menu_count = 3;
+        model.receive(crate::jsondoc::parse(r#"{"t":"menuaction","op":"delete","id":0,"ok":true,"deleted":2,"failed":0,"remaining":[]}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.message, "Deleted 2 of 3 items");
+        assert_eq!(bulk_done_line(3, true), "Stopped after renaming 3 items · Undo reverts one");
+        crate::tui::wire::finish(wire, reader);
+    }
+    #[test]
+    fn listing_invalidation_cancels_pending_taildrop_intent() {
+        let mut model = Model::new(PathBuf::from("/"), &Json::Null);
+        model.taildrop_target = Some(super::super::taildrop::Peer { id: "node".into(), label: "peer".into(), address: "peer.invalid".into() });
+        model.menu_action = "taildropRefresh".into();
+        model.message = "Checking Taildrop".into();
+        model.invalidate_rows();
+        assert!(model.taildrop_target.is_none());
+        assert!(model.menu_action.is_empty());
+        assert!(model.message.is_empty());
+        assert_eq!(model.error, "Taildrop cancelled; selection changed");
+        assert!(!model.cancel_taildrop(), "late invalidation must not create another error");
+    }
+
+
+    #[test]
+    fn pdf_preview_uses_filename_not_generic_icon_or_localized_kind() {
+        let mut row = Row::parse(&Json::Obj(vec![
+            ("n".into(), word("pages.PDF")),
+            ("i".into(), word("x-office-document")),
+        ]), &[word("Document")]);
+        assert!(row.is_pdf());
+        row.directory = true;
+        assert!(!row.is_pdf());
+        row.directory = false;
+        row.link = "original.pdf".into();
+        assert!(!row.is_pdf());
+        row.link.clear();
+        for name in [".pdf", "pages.pdf.txt", "report.doc", "no-extension"] {
+            row.name = name.into();
+            assert!(!row.is_pdf(), "{name}");
+        }
+    }
+
+    #[test]
+    fn survivor_restore_requires_current_reply_and_original_membership() {
+        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        model.menu_action = "deleteRestore".into();
+        model.restore_id = 7;
+        model.total = 100;
+        model.restore_selection = [PathBuf::from("/listing/survivor"), PathBuf::from("/listing/replaced")].into_iter().collect();
+        let reply = |id, directory| Json::Obj(vec![("id".into(), number(id)), ("directory".into(), word(directory)),
+            ("ok".into(), Json::Bool(true)), ("matches".into(), Json::Arr(vec![
+                Json::Obj(vec![("path".into(), word("/listing/survivor")), ("index".into(), number(75))]),
+                Json::Obj(vec![("path".into(), word("/listing/unselected")), ("index".into(), number(3))])]))]);
+        assert!(!model.restore_survivors(&reply(6, "/listing")));
+        assert!(!model.restore_survivors(&reply(7, "/other")));
+        model.pending = Some(PathBuf::from("/listing"));
+        assert!(!model.restore_survivors(&reply(7, "/listing")));
+        model.pending = None;
+        assert!(model.restore_survivors(&reply(7, "/listing")));
+        assert_eq!(model.selected, [75].into_iter().collect());
+        assert_eq!(model.cursor, 75);
+        assert!(model.selected_rows.is_empty(), "offscreen survivors remain selected without invented metadata");
+        assert!(model.restore_selection.is_empty());
+        assert!(model.menu_action.is_empty());
+    }
+
+    #[test]
+    fn one_mark_keeps_its_identity_when_cursor_leaves_the_page() {
+        let mut model = Model::new(PathBuf::from("/"), &Json::Null);
+        let row = |name| Row::parse(&Json::Obj(vec![("n".into(), word(name))]), &[]);
+        model.rows.insert(3, row("marked"));
+        model.selected.insert(3);
+        model.remember_selection();
+        model.rows.clear();
+        model.rows.insert(8, row("cursor"));
+        model.cursor = 8;
+        let (index, selected) = model.single_row().unwrap();
+        assert_eq!(index, 3);
+        assert_eq!(selected.name, "marked");
+        model.selected.insert(8);
+        assert!(model.single_row().is_none());
+        model.selected.clear();
+        assert_eq!(model.single_row().unwrap().1.name, "cursor");
+    }
+
+    #[test]
+    fn errors_survive_until_each_is_acknowledged() {
+        let mut model = Model::new(PathBuf::from("/"), &Json::Null);
+        model.fail("Copy failed".into());
+        model.fail("Preview failed".into());
+        model.fail("Copy failed".into());
+        model.fail("Preview failed".into());
+        model.fail(String::new());
+        assert_eq!(model.error, "Copy failed");
+        assert_eq!(model.errors.len(), 1);
+        model.dismiss_error();
+        assert_eq!(model.error, "Preview failed");
+        model.dismiss_error();
+        assert!(model.error.is_empty());
+    }
+
+    #[test]
+    fn menu_requires_a_ready_identity_snapshot() {
+        let mut model = Model::new(PathBuf::from("/"), &Json::Null);
+        model.menu_path = PathBuf::from("/selected");
+        model.menu_count = 1;
+        assert!(!model.menu_enabled(0));
+        assert!(model.menu_enabled(1));
+        model.menu_ready = true;
+        assert!(model.menu_enabled(0));
+        assert!(!model.menu_enabled(2));
+        model.menu_path.clear();
+        assert!(!model.menu_enabled(0));
+    }

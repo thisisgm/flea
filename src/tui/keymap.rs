@@ -8,7 +8,6 @@ pub struct Map {
 // The key names the hints print, read from the keymap once per run so a rebound key reaches its hint.
 #[derive(Default, Clone)]
 pub struct Hints {
-    pub dismiss: String,
     pub keys: String,
     pub load_preview: String,
     pub delete_permanently: String,
@@ -18,7 +17,6 @@ impl Hints {
     pub fn new(map: &Map, preset: &str) -> Self {
         let chord = |action: &str| map.chord(action, preset, "listing").unwrap_or_default();
         Self {
-            dismiss: chord("escape"),
             keys: chord("keymapSheet"),
             load_preview: chord("loadPreview"),
             delete_permanently: chord("deletePermanently"),
