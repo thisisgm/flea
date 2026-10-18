@@ -166,8 +166,16 @@ fn key_shell(
             })
         });
     }
-    cx.update(|_, cx| assert_eq!(shell.read(cx).panes[0].as_ref().unwrap().pane.busy(), busy));
+    assert_busy(cx, &shell, busy);
     (cx, shell, observed, subscription)
+}
+
+fn assert_busy(cx: &mut VisualTestContext, shell: &Entity<Shell>, busy: bool) {
+    cx.update(|_, cx| assert_eq!(shell.read(cx).panes[0].as_ref().unwrap().pane.busy(), busy));
+}
+
+fn cursor(cx: &mut VisualTestContext, shell: &Entity<Shell>) -> usize {
+    cx.update(|_, cx| shell.read(cx).panes[0].as_ref().unwrap().pane.cursor)
 }
 
 fn press(
@@ -227,12 +235,58 @@ fn a_busy_pane_swallows_a_plain_row_action(cx: &mut TestAppContext) {
 fn a_busy_pane_still_acts_on_the_answered_keys(cx: &mut TestAppContext) {
     // Escape and F5 emit their actions while a listing is out; Ctrl-3 switches the view inline.
     let (cx, shell, observed, _subscription) = key_shell(cx, true);
+    assert_busy(cx, &shell, true);
     press(cx, &shell, "escape", None, Modifiers::default());
     assert_eq!(*observed.borrow(), vec!["escape"]);
+    assert_busy(cx, &shell, true);
     press(cx, &shell, "f5", None, Modifiers::default());
     assert_eq!(*observed.borrow(), vec!["escape", "reload"]);
+    assert_busy(cx, &shell, true);
+    cx.update(|_, cx| assert_ne!(shell.read(cx).view, View::Grid));
     press(cx, &shell, "3", None, controlled());
     cx.update(|_, cx| assert_eq!(shell.read(cx).view, View::Grid));
+}
+
+#[gpui::test]
+fn a_busy_pane_holds_its_cursor_against_down_and_shift_down(cx: &mut TestAppContext) {
+    // Down moves the cursor on an idle pane; Shift-Down is extendDown. Neither may move or emit while busy.
+    let (cx, shell, observed, _subscription) = key_shell(cx, true);
+    let start = cursor(cx, &shell);
+    assert_busy(cx, &shell, true);
+    press(cx, &shell, "down", None, Modifiers::default());
+    assert_eq!(
+        cursor(cx, &shell),
+        start,
+        "down moved the cursor on a busy pane"
+    );
+    assert!(
+        observed.borrow().is_empty(),
+        "down: {:?}",
+        observed.borrow()
+    );
+    assert_busy(cx, &shell, true);
+    press(cx, &shell, "down", None, shifted());
+    assert_eq!(
+        cursor(cx, &shell),
+        start,
+        "shift-down moved the cursor on a busy pane"
+    );
+    assert!(
+        observed.borrow().is_empty(),
+        "shift-down: {:?}",
+        observed.borrow()
+    );
+}
+
+#[gpui::test]
+fn an_idle_pane_moves_on_down_and_emits_shift_down(cx: &mut TestAppContext) {
+    // The control for the busy cursor test: the same two keys act on an idle pane.
+    let (cx, shell, observed, _subscription) = key_shell(cx, false);
+    let start = cursor(cx, &shell);
+    press(cx, &shell, "down", None, Modifiers::default());
+    assert_eq!(cursor(cx, &shell), start + 1);
+    press(cx, &shell, "down", None, shifted());
+    assert_eq!(*observed.borrow(), vec!["extendDown"]);
 }
 
 #[gpui::test]
