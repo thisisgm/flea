@@ -98,3 +98,51 @@ fn stale_and_oversized_rows_are_refused_and_the_cursor_stays_in_view() {
     pane.move_cursor(Move::Home);
     assert_eq!((pane.cursor, pane.scroll_y), (0, 0.));
 }
+
+#[test]
+fn a_listing_stays_in_flight_until_its_rows_land_and_each_open_request_counts() {
+    let mut pane = Pane::new("/files".into(), 620.);
+    assert!(pane.listing_in_flight(), "the opening listing is out");
+    assert_eq!(pane.pending(), 1);
+    assert!(!pane
+        .receive(Reply::Listed {
+            path: "/files".into(),
+            total: 1000
+        })
+        .unwrap());
+    assert!(
+        pane.listing_in_flight(),
+        "a listed line alone lands no rows"
+    );
+    assert_eq!(pane.pending(), 1);
+    assert!(pane
+        .receive(Reply::Rows {
+            start: 0,
+            rows: rows(320),
+            listing: 1
+        })
+        .unwrap());
+    assert!(!pane.listing_in_flight());
+    assert_eq!(pane.pending(), 0);
+    pane.scroll_to(600. * ROW_HEIGHT);
+    assert_eq!(pane.wanted_window(), Some((450, 320)));
+    assert!(
+        !pane.listing_in_flight(),
+        "a held-window request is not a listing"
+    );
+    assert_eq!(pane.pending(), 1);
+    assert!(pane
+        .receive(Reply::Rows {
+            start: 450,
+            rows: rows(320),
+            listing: 1
+        })
+        .unwrap());
+    assert_eq!(pane.pending(), 0);
+    assert!(pane.begin("/other".into(), Options::default(), pane.now()));
+    assert!(
+        pane.listing_in_flight(),
+        "a hop elsewhere is out until it lands"
+    );
+    assert_eq!(pane.pending(), 1);
+}

@@ -88,6 +88,17 @@ impl Pane {
             .as_ref()
             .map_or(self.path(), |pending| pending.path.as_str())
     }
+
+    /// A listing asked for that has not landed yet, Pane.qml's listInFlight.
+    pub fn listing_in_flight(&self) -> bool {
+        self.busy()
+    }
+
+    /// Unanswered listing and held-window requests.
+    pub fn pending(&self) -> usize {
+        usize::from(self.busy()) + usize::from(self.requests.outstanding.is_some())
+    }
+
     pub fn first_count(&self) -> usize {
         window_size(self.visible_rows())
     }
