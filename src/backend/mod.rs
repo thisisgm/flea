@@ -82,6 +82,7 @@ pub mod state;
 pub mod mediaprobe;
 pub mod model3d;
 pub mod model3dreq;
+mod model3dadmit;
 mod model3dcache;
 pub mod meta;
 pub mod metareq;

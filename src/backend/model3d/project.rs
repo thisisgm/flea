@@ -1,3 +1,5 @@
+use super::limits::*;
+
 use super::{amf, xml, Model, Result, Transform, IDENTITY};
 use std::collections::BTreeMap;
 
@@ -8,6 +10,7 @@ struct Part {
     properties: BTreeMap<u32,Vec<u32>>,
 }
 
+// Sample input: "1 0 0 0 1 0 0 0 1 10 20 30", with translations in model units.
 fn transform(value: Option<&str>, unit: f64) -> Result<Transform> {
     let Some(value) = value else { return Ok(IDENTITY) };
     let values = value.split_whitespace().map(super::number).collect::<Result<Vec<_>>>()?;
@@ -16,6 +19,7 @@ fn transform(value: Option<&str>, unit: f64) -> Result<Transform> {
     Ok(matrix)
 }
 
+// Sample input: from="3D/main.model", target="Objects/one.model" resolves to "3d/objects/one.model".
 fn member(from: &str, target: &str) -> Result<String> {
     if target.contains(['\\','\0',':','?','#']) { return Err("unsupported 3MF part URI".into()) }
     let decoded = crate::paths::percent_decode(target);
@@ -27,11 +31,11 @@ fn member(from: &str, target: &str) -> Result<String> {
             _ => parts.push(part),
         }
     }
-    Ok(parts.join("/"))
+    Ok(parts.join("/").to_ascii_lowercase())
 }
 
 fn root(files: &BTreeMap<String,Vec<u8>>) -> Result<String> {
-    if let Some(bytes) = files.get("_rels/.rels") {
+    if let Some((_,bytes)) = files.iter().find(|(path,_)| path.eq_ignore_ascii_case("_rels/.rels")) {
         let doc = xml::parse(super::text(bytes)?)?;
         for n in &doc.nodes {
             if n.name == "Relationship" && n.attr("Type").is_some_and(|v| v.ends_with("/3dmodel")) {
@@ -40,7 +44,7 @@ fn root(files: &BTreeMap<String,Vec<u8>>) -> Result<String> {
             }
         }
     }
-    files.keys().find(|n| n.eq_ignore_ascii_case("3D/3dmodel.model")).cloned().ok_or_else(|| "3MF root model is missing".into())
+    files.keys().find(|n| n.eq_ignore_ascii_case("3D/3dmodel.model")).map(|p| p.to_ascii_lowercase()).ok_or_else(|| "3MF root model is missing".into())
 }
 
 fn load(bytes: &[u8], model: &mut Model) -> Result<Part> {
@@ -87,11 +91,14 @@ fn optional_index(n: &xml::Node, name: &str) -> Result<Option<u32>> {
 struct Instance<'a> {
     parts: &'a BTreeMap<String,Part>,
     active: Vec<(String,u32)>,
+    expansions: usize,
 }
 
 impl Instance<'_> {
     fn add(&mut self, path: &str, id: u32, transform: Transform, plate: u32, model: &mut Model) -> Result<()> {
-        if self.active.len() >= 32 || self.active.iter().any(|(p,i)| p == path && *i == id) { return Err("cyclic or excessive 3MF components".into()) }
+        if self.active.len() >= MAX_COMPONENT_DEPTH || self.active.iter().any(|(p,i)| p == path && *i == id) { return Err("cyclic or excessive 3MF components".into()) }
+        if self.expansions >= MAX_COMPONENT_EXPANSIONS { return Err(format!("excessive 3MF component expansions at {path}#{id}")) }
+        self.expansions += 1;
         self.active.push((path.into(),id));
         let part = self.parts.get(path).ok_or("3MF component part is missing")?;
         let i = *part.objects.get(&id).ok_or("3MF component object is missing")?;
@@ -140,18 +147,22 @@ impl Instance<'_> {
 
 pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
     let files = super::zip::unpack(bytes)?;
-    let sliced = files.keys().any(|path| path.ends_with("slice_info.config"));
+    let mut names = std::collections::BTreeSet::new();
+    for path in files.keys() {
+        if !names.insert(path.to_ascii_lowercase()) { return Err(format!("ambiguous 3MF part name: {path}")) }
+    }
+    let sliced = files.keys().any(|path| path.to_ascii_lowercase().ends_with("slice_info.config"));
     let root = root(&files)?;
     let plates = super::projectmeta::read(&files,model)?;
     let mut parts = BTreeMap::new();
     for (path,bytes) in &files {
         if !path.to_ascii_lowercase().ends_with(".model") { continue }
-        if parts.len() >= 128 { return Err("too many 3MF model parts".into()) }
-        parts.insert(path.clone(),load(bytes,model)?);
+        if parts.len() >= MAX_PARTS { return Err("too many 3MF model parts".into()) }
+        parts.insert(path.to_ascii_lowercase(),load(bytes,model)?);
     }
     let main = parts.get(&root).ok_or("3MF root part is missing")?;
     let build = main.doc.child(main.doc.root,"build").ok_or("3MF build is missing")?;
-    let mut instances = Instance { parts: &parts, active: Vec::new() };
+    let mut instances = Instance { parts: &parts, active: Vec::new(), expansions: 0 };
     let mut occurrence = BTreeMap::new();
     for item in main.doc.children(build,"item") {
         let item = &main.doc.nodes[item];
@@ -168,7 +179,7 @@ pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
         let file = lower.rsplit('/').next().unwrap_or("");
         let plate = file.strip_prefix("plate_").and_then(|v| v.strip_suffix(".png")).and_then(|v| v.parse::<u32>().ok()).and_then(|n| n.checked_sub(1));
         if let Some(plate) = plate {
-            if plate >= 128 { return Err("3MF thumbnail plate exceeds its bound".into()) }
+            if plate >= MAX_PLATES as u32 { return Err("3MF thumbnail plate exceeds its bound".into()) }
             while model.plates.len() <= plate as usize { model.plates.push(super::Plate { name: format!("Plate {}",model.plates.len()+1), metadata: BTreeMap::new() }) }
         }
         if file == "thumbnail.png" || plate.is_some() { model.thumbnail(plate,"png",bytes.clone())? }

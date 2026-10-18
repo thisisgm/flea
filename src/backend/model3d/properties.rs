@@ -1,10 +1,12 @@
+use super::limits::*;
+
 use super::{xml, Material, Model, Result};
 use std::collections::BTreeMap;
 
 fn name_part<'a>(parts: &mut Vec<&'a str>, length: &mut usize, part: &'a str) -> Result<()> {
     let separator = if parts.is_empty() { 0 } else { 3 };
     *length = length.checked_add(separator).and_then(|n| n.checked_add(part.len()))
-        .filter(|&n| n <= 1024).ok_or("3D material name exceeds its bound")?;
+        .filter(|&n| n <= MAX_NAME_BYTES).ok_or("3D material name exceeds its bound")?;
     parts.push(part);
     Ok(())
 }
@@ -22,7 +24,7 @@ pub(super) fn resolve(doc: &xml::Document, resources: usize, properties: &mut BT
         if !matches!(n.name.as_str(),"compositematerials"|"multiproperties") { continue }
         let ids = if n.name == "compositematerials" { vec![n.index("matid")?] }
             else { n.attr("pids").ok_or("3MF multi-property ids missing")?.split_whitespace().map(|v| v.parse::<u32>().map_err(|_| "invalid 3MF property id".into())).collect::<Result<Vec<_>>>()? };
-        if ids.is_empty() || ids.len() > 64 { return Err("3MF material group exceeds its bound".into()) }
+        if ids.is_empty() || ids.len() > MAX_MATERIAL_GROUP { return Err("3MF material group exceeds its bound".into()) }
         for id in &ids {
             let kind = kinds.get(id).copied();
             let allowed = if n.name == "compositematerials" { kind == Some("basematerials") }

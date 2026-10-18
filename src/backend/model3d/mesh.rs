@@ -1,5 +1,8 @@
+use super::limits::*;
+
 use super::{number, text, Model, Result, IDENTITY};
 
+// Sample input: solid part\nfacet normal 0 0 1\nouter loop\nvertex 0 0 0\nvertex 1 0 0\nvertex 0 1 0\nendloop\nendfacet\nendsolid part\n.
 pub(super) fn stl(bytes: &[u8], model: &mut Model) -> Result<()> {
     if bytes.len() >= 84 {
         let count = super::zip::u32_at(bytes,80)? as usize;
@@ -57,12 +60,13 @@ fn obj_index(token: &str, count: usize) -> Result<u32> {
     Ok(index as u32)
 }
 
+// Sample input: v 0 0 0\nv 1 0 0\nv 0 1 0\nf 1 2 3\n.
 pub(super) fn obj(bytes: &[u8], model: &mut Model) -> Result<()> {
     let mut name = "Object 1".to_string();
     let mut first = 0;
     let mut material = None;
     for line in text(bytes)?.lines() {
-        if line.len() > 65_536 { return Err("OBJ line exceeds its bound".into()) }
+        if line.len() > MAX_LINE_BYTES { return Err("OBJ line exceeds its bound".into()) }
         let mut words = line.split('#').next().unwrap_or("").split_whitespace();
         match words.next() {
             Some("v") => {
@@ -79,7 +83,7 @@ pub(super) fn obj(bytes: &[u8], model: &mut Model) -> Result<()> {
                 model.vertex([values[0] as f32/w as f32,values[1] as f32/w as f32,values[2] as f32/w as f32],color)?;
             }
             Some("f") => {
-                let indices: Vec<u32> = words.take(1025).map(|w| obj_index(w,model.vertices.len())).collect::<Result<_>>()?;
+                let indices: Vec<u32> = words.take(MAX_POLYGON_VERTICES+1).map(|w| obj_index(w,model.vertices.len())).collect::<Result<_>>()?;
                 polygon(model,&indices,material)?;
             }
             // Face groups do not divide physical topology; materials remain attached to triangles.
@@ -104,8 +108,14 @@ pub(super) fn obj(bytes: &[u8], model: &mut Model) -> Result<()> {
 
 // Ear clipping preserves concave OBJ and PLY faces without a dependency or unbounded recursion.
 pub(super) fn polygon(model: &mut Model, indices: &[u32], material: Option<u32>) -> Result<()> {
-    if indices.len() < 3 || indices.len() > 1024 { return Err("polygon size exceeds its bound".into()) }
+    if indices.len() < 3 || indices.len() > MAX_POLYGON_VERTICES { return Err("polygon size exceeds its bound".into()) }
     if indices.iter().any(|&v| v as usize >= model.vertices.len()) { return Err("polygon vertex is out of range".into()) }
+    let mut unique = Vec::new();
+    for &index in indices {
+        if !unique.iter().any(|&i: &u32| model.vertices[i as usize].position == model.vertices[index as usize].position) { unique.push(index) }
+    }
+    if unique.len() < 3 { return Ok(()) }
+    let indices = unique.as_slice();
     let points: Vec<[f64;3]> = indices.iter().map(|&i| model.vertices[i as usize].position.map(f64::from)).collect();
     let mut normal = [0.;3];
     for i in 0..points.len() {
@@ -118,8 +128,8 @@ pub(super) fn polygon(model: &mut Model, indices: &[u32], material: Option<u32>)
     let axis = (0..3).max_by(|&a,&b| normal[a].abs().total_cmp(&normal[b].abs())).unwrap();
     let points: Vec<[f64;2]> = points.iter().map(|p| [p[(axis+1)%3],p[(axis+2)%3]]).collect();
     let turn = |a: usize,b: usize,c: usize| (points[b][0]-points[a][0])*(points[c][1]-points[a][1]) - (points[b][1]-points[a][1])*(points[c][0]-points[a][0]);
+    if normal[axis] == 0. { return Ok(()) }
     let sign = normal[axis].signum();
-    if sign == 0. { return Err("degenerate polygon".into()) }
     let mut left: Vec<usize> = (0..indices.len()).collect();
     while left.len() > 3 {
         let mut found = None;

@@ -1,9 +1,13 @@
+use super::limits::*;
 use super::{Model,Result};
 use std::collections::{BTreeMap,BTreeSet};
+
+const MAX_PROFILE_DEPTH: usize = 32;
 
 #[derive(Default)]
 struct Config { general: BTreeMap<String,String>, metadata: BTreeMap<String,String>, values: BTreeMap<String,String>, containers: Vec<(usize,String)> }
 
+// Sample input: [general]\nname = Ender\n[values]\nlayer_height = 0.2\n.
 fn ini(source: &str) -> Config {
     let mut config = Config::default();
     let mut section = "";
@@ -12,7 +16,7 @@ fn ini(source: &str) -> Config {
         if line.starts_with('[') && line.ends_with(']') { section = &line[1..line.len()-1]; continue }
         let Some((key,value)) = line.split_once('=') else { continue };
         let (key,value) = (key.trim(),value.trim());
-        if key.len() > 256 || value.len() > 16_384 { continue }
+        if key.len() > MAX_METADATA_KEY_BYTES || value.len() > MAX_METADATA_VALUE_BYTES { continue }
         let table = match section {
             "general" => &mut config.general, "metadata" => &mut config.metadata, "values" => &mut config.values,
             "containers" => {
@@ -21,7 +25,7 @@ fn ini(source: &str) -> Config {
             }
             _ => continue,
         };
-        if table.len() < 1024 { table.insert(key.into(),value.into()); }
+        if table.len() < MAX_METADATA_ENTRIES { table.insert(key.into(),value.into()); }
     }
     config.containers.sort_unstable();
     config
@@ -32,14 +36,14 @@ fn default_values(value: &crate::jsondoc::Json, out: &mut BTreeMap<String,String
     for (key,value) in entries {
         if let Some(default) = value.get("default_value") {
             let literal = default.as_str().map(str::to_string).or_else(|| default.as_f64().map(|n| n.to_string()));
-            if let Some(literal) = literal { if out.len() < 1024 && literal.len() <= 16_384 { out.insert(key.clone(),literal); } }
+            if let Some(literal) = literal { if out.len() < MAX_METADATA_ENTRIES && literal.len() <= MAX_METADATA_VALUE_BYTES { out.insert(key.clone(),literal); } }
         }
         if let Some(children) = value.get("children") { default_values(children,out) }
     }
 }
 
 fn resolve<'a>(id: &'a str, key: &str, configs: &'a BTreeMap<String,Config>, active: &mut BTreeSet<String>) -> Option<&'a str> {
-    if active.len() >= 32 || !active.insert(id.into()) { return None }
+    if active.len() >= MAX_PROFILE_DEPTH || !active.insert(id.into()) { return None }
     let result = configs.get(id).and_then(|config| {
         config.values.get(key).map(String::as_str).or_else(|| config.containers.iter().find_map(|(_,id)| resolve(id,key,configs,active)))
     });
@@ -52,7 +56,7 @@ pub(super) fn read(files: &BTreeMap<String,Vec<u8>>, model: &mut Model) -> Resul
     for (path,bytes) in files {
         let Some(path) = path.strip_prefix("Cura/") else { continue };
         if ![".global.cfg",".extruder.cfg",".inst.cfg",".def.json",".xml.fdm_material"].iter().any(|suffix| path.ends_with(suffix)) && path != "user-settings.json" { continue }
-        if bytes.len() > 8*1024*1024 { return Err("Cura profile exceeds its bound".into()) }
+        if bytes.len() > MAX_METADATA_BYTES { return Err("Cura profile exceeds its bound".into()) }
         let mut id = None;
         let mut config = Config::default();
         for suffix in [".global.cfg",".extruder.cfg",".inst.cfg"] {
