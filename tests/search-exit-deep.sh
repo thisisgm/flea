@@ -39,8 +39,8 @@ output=$(env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
     FLEA_BIN="$bin" EXITDEEP_DIR="$test_root/fixture" EXITDEEP_REPS="$reps" \
     timeout "${EXITDEEP_TIMEOUT:-120}" qs -p "$test_root/config" 2>&1)
 
-# Sample input, the receipt: "  INFO qml: EXITDEEP DONE checks=99 failed=0", 11 checks for each of 9 exits per repetition.
-done_count=$(printf '%s\n' "$output" | grep -c "EXITDEEP DONE checks=$((99 * reps)) failed=0\$")
+# Sample input, the receipt: "  INFO qml: EXITDEEP DONE checks=108 failed=0", 12 checks for each of 9 exits per repetition.
+done_count=$(printf '%s\n' "$output" | grep -c "EXITDEEP DONE checks=$((108 * reps)) failed=0\$")
 noisy=$(printf '%s\n' "$output" | grep -av 'does not support setting window masks' | grep -aiE 'WARN|ERROR|Binding loop|failed to load|Unable to assign|Cannot assign|TypeError|ReferenceError|is not a function|is not defined')
 printf '%s\n' "$output" | grep -a 'EXITDEEP TIME'
 if [ "$done_count" -ne 1 ] || printf '%s\n' "$output" | grep -aq 'EXITDEEP FAIL' || [ -n "$noisy" ]; then
