@@ -43,7 +43,7 @@ fn adv_d_r1_shifted_printables_match_legacy_keys_in_the_real_keymap() {
                 _ => format!("\x1b[{};2;{}u", base as u32, shifted as u32),
             };
             let keys = Decoder::default().feed(encoded.as_bytes(), false);
-            let legacy = Key::character(shifted, if shifted != base { "" } else { "shift" });
+            let legacy = Key::character(shifted, "");
             assert_eq!(keys, [legacy.clone()], "{encoded:?}");
             for preset in ["default", "flea", "mac", "windows", "vim"] {
                 for context in ["listing", "editor", "pdf", "media"] {
@@ -59,23 +59,46 @@ fn adv_d_r1_shifted_printables_match_legacy_keys_in_the_real_keymap() {
 #[test]
 fn adv_d_r2_shift_without_shifted_text_keeps_its_modifier() {
     let map = crate::tui::keymap::Map::load();
-    for encoded in [
-        b"\x1b[97;2u".as_slice(),
-        b"\x1b[97;130u",
-        b"\x1b[97:97;2u",
-        b"\x1b[97;2;97u",
+    for (encoded, printed) in [
+        (b"\x1b[97;2u".as_slice(), 'a'),
+        (b"\x1b[97;130u".as_slice(), 'a'),
+        (b"\x1b[32;2u".as_slice(), ' '),
+        (b"\x1b[32;130u".as_slice(), ' '),
     ] {
         let keys = Decoder::default().feed(encoded, false);
-        let expected = Key::character('a', "shift");
+        let expected = Key::character(printed, "shift");
         assert_eq!(keys, [expected.clone()], "{encoded:?}");
         assert_eq!(map.action(&keys[0], "flea"), map.action(&expected, "flea"));
         assert_ne!(
             map.action(&keys[0], "flea"),
-            map.action(&Key::character('a', ""), "flea")
+            map.action(&Key::character(printed, ""), "flea")
         );
         let mut editor = crate::tui::editor::Editor::new("filter", String::new(), "/".into());
         editor.update(&keys[0]);
-        assert_eq!(editor.value, "a");
+        assert_eq!(editor.value, printed.to_string());
+    }
+}
+
+#[test]
+fn adv_d_r3_equal_base_shift_metadata_matches_true_legacy_input() {
+    let map = crate::tui::keymap::Map::load();
+    for printed in [' ', 'a'] {
+        let code = printed as u32;
+        let legacy = Key::character(printed, "");
+        assert_eq!(Decoder::default().feed(printed.to_string().as_bytes(), false), [legacy.clone()]);
+        for encoded in [
+            format!("\x1b[{code}:{code};2u"),
+            format!("\x1b[{code};2;{code}u"),
+            format!("\x1b[{code}:{code};2;{code}u"),
+        ] {
+            let keys = Decoder::default().feed(encoded.as_bytes(), false);
+            assert_eq!(keys, [legacy.clone()], "{encoded:?}");
+            for preset in ["default", "flea", "mac", "windows", "vim"] {
+                for context in ["listing", "editor", "pdf", "media"] {
+                    assert_eq!(map.in_context(&keys[0], preset, context), map.in_context(&legacy, preset, context));
+                }
+            }
+        }
     }
 }
     #[test]

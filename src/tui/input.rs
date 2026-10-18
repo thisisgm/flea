@@ -337,7 +337,7 @@ fn csi(text: &str) -> Option<Key> {
         }
         let mut key = Key::character(
             printable,
-            if mods == "shift" && printable != c {
+            if mods == "shift" && (shifted.is_some() || associated.is_some()) {
                 ""
             } else {
                 mods
