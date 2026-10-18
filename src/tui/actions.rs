@@ -622,10 +622,10 @@ fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             } else if !m.search.is_empty() {
                 let path = m.search_from.clone().unwrap_or_else(|| m.path.clone());
                 m.open(path, w)?;
-            } else if m.transfer_id > 0 {
+            } else if m.active_operation() > 0 {
                 w.send(vec![
                     ("c", word("transfercancel")),
-                    ("id", super::wire::number(m.transfer_id)),
+                    ("id", super::wire::number(m.active_operation())),
                 ])?;
             } else {
                 m.selected.clear();

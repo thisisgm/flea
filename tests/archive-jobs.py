@@ -25,8 +25,8 @@ root = Path(__file__).resolve().parent.parent
 args = sys.argv[1:]
 if 'bsdtar' in args:
     tail = args[args.index('bsdtar') + 1:]
-    if tail[:2] == ['-x', '-f']:
-        name = Path(tail[2]).stem
+    if '-x' in tail and '-f' in tail:
+        name = Path(tail[tail.index('-f') + 1]).stem
         if name.startswith('held-'):
             (root / (name + '.ready')).write_text(str(os.getpid()))
             deadline = time.monotonic() + 45
@@ -83,10 +83,20 @@ def waiting(backend, ident):
     backend.wait(lambda e: backend.jobs.get(ident, {}).get('reason', '').startswith('waiting for the extraction to '))
     job = backend.jobs[ident]
     assert job['state'] == 'waiting' and job['reason'].removeprefix('waiting for the extraction to '), job
+    assert job['done'] == 0 and job['bytes'] == 0, job
 
 
-def success(backend, ident):
+def success(backend, ident, archive):
     assert event(backend, 'archivedone', ident) == dict(t='archivedone', id=ident, ok=True, verified=True, err='')
+    rows = [e['job'] for e in backend.events if e['t'] == 'job' and e['job']['id'] == ident]
+    source = archive.parent / (archive.stem + '-source')
+    expected_bytes = sum(p.stat().st_size for p in source.rglob('*') if p.is_file())
+    assert all(a['done'] <= b['done'] and a['bytes'] <= b['bytes'] for a, b in zip(rows, rows[1:])), rows
+    final = rows[-1]
+    assert final['state'] == 'done' and not final['cancelled'], final
+    assert final['done'] == final['total'] == 3, final
+    assert final['bytes'] == final['totalBytes'] == expected_bytes, final
+    assert final['file'] and final['itemBytes'] > 0, final
 
 
 def transfers_done(backend, ident):
@@ -141,19 +151,19 @@ def scenario(backend, root, temporary, archives):
     ready(backend, other, seven)
     assert all(backend.jobs[i]['state'] == 'running' for i in (one, seven))
     release(backend, other)
-    success(backend, seven)
+    success(backend, seven, other)
     contents(temporary / 'other', other.stem)
     assert backend.jobs[one]['state'] == 'running' and not (root / 'first').exists()
     print('PASS different tmpfs drive runs an extract and a copy beside the held extract')
 
     release(backend, first)
-    success(backend, one)
+    success(backend, one, first)
     contents(root / 'first', first.stem)
     ready(backend, second, three)
     assert all(backend.jobs[i]['state'] == 'waiting' for i in (four, five))
     assert not (local_copy / source.name).exists() and move_source.exists()
     release(backend, second)
-    success(backend, three)
+    success(backend, three, second)
     contents(root / 'second', second.stem)
     transfers_done(backend, four)
     transfers_done(backend, five)
@@ -172,7 +182,7 @@ def scenario(backend, root, temporary, archives):
     elapsed = time.monotonic() - started
     assert not (root / 'cancelled-running').exists()
     nine = extract(backend, later, root / 'later')
-    success(backend, nine)
+    success(backend, nine, later)
     contents(root / 'later', later.stem)
     assert not list(root.rglob('.flea-work-*')) and not list(temporary.rglob('.flea-work-*'))
     print(f'PASS running Cancel ({elapsed:.4f}s), no destination or work directory, later extraction succeeds')

@@ -1,15 +1,21 @@
 // The staging directory every delegated archive job writes into, the jail those jobs run in, and the
 // two reads an extract is verified against. The jobs themselves are archiveops.rs.
 use crate::backend::sandbox;
+#[cfg(test)]
 use crate::backend::archive::Formats;
+#[cfg(test)]
 use crate::backend::archivespec::ListSpec;
+#[cfg(test)]
 use crate::backend::archivelist::parse_reader;
 use crate::backend::opsreq::op_err;
 use crate::error::{from_io, FleaError};
-use std::io::{self, Read};
+use std::io::Read;
+#[cfg(test)]
+use std::io;
 use std::os::unix::process::ExitStatusExt;
 use std::path::{Path, PathBuf};
 use std::process::ExitStatus;
+#[cfg(test)]
 use std::sync::Arc;
 use std::sync::atomic::{AtomicBool, AtomicU32, Ordering};
 use std::time::{Duration, Instant};
@@ -272,16 +278,7 @@ pub fn archive_produced_count(formats: &Formats, archive: &Path) -> Option<usize
     archive_produced_count_inner(inner, spec, archive, &cancel, None, None).ok().flatten()
 }
 
-// The extract owns this token too: an empty staging directory is the one branch that reads the archive again.
-pub fn archive_produced_count_cancellable(formats: &Formats, archive: &Path,
-                                          cancel: &AtomicBool) -> Result<Option<usize>, FleaError> {
-    let (inner, spec) = match formats.list_argv(archive) {
-        Some(value) => value,
-        None => return Ok(None),
-    };
-    archive_produced_count_inner(inner, spec, archive, cancel, None, None)
-}
-
+#[cfg(test)]
 fn archive_produced_count_inner(inner: Vec<String>, spec: ListSpec, read_only: &Path,
                                 cancel: &AtomicBool, started: Option<&AtomicU32>,
                                 ready: Option<Arc<AtomicBool>>) -> Result<Option<usize>, FleaError> {
@@ -346,15 +343,18 @@ fn archive_produced_count_inner(inner: Vec<String>, spec: ListSpec, read_only: &
     }
 }
 
+#[cfg(test)]
 fn cancelled(cancel: &AtomicBool) -> bool {
     cancel.load(Ordering::Relaxed)
 }
 
+#[cfg(test)]
 struct ReadyReader<R> {
     reader: R,
     ready: Option<Arc<AtomicBool>>,
 }
 
+#[cfg(test)]
 impl<R: Read> Read for ReadyReader<R> {
     fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
         let read = self.reader.read(buf);

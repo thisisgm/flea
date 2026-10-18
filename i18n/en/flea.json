@@ -9,5 +9,11 @@
   "selection.count": {
     "one": "%1 item selected in %2",
     "other": "%1 items selected in %2"
-  }
+  },
+  "jobs.count": {
+    "one": "%1 job",
+    "other": "%1 jobs"
+  },
+  "jobs.suffix": "· %1",
+  "progress.percent": "%1%"
 }

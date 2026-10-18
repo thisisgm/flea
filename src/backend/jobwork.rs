@@ -230,6 +230,7 @@ impl Work {
                         &formats,
                         Some(&items),
                         cancel,
+                        Some(&tx),
                     );
                     let success = crate::json::field_bool(&line, "ok");
                     let _ = tx.send(OpMsg::JobDone {

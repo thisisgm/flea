@@ -266,7 +266,11 @@ impl Job {
             };
         }
         if self.kind == "extract" && self.total == 0 {
-            return "Extracting".into();
+            return if self.done == 0 {
+                "Extracting".into()
+            } else {
+                format!("Extracting {} items", self.done)
+            };
         }
         if self.kind == "emptyTrash" {
             return "Emptying Trash".into();

@@ -177,7 +177,7 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
                 job.state = State::Done;
                 job.reason.clear();
             }
-            if job.state == State::Done && !job.cancelled {
+            if job.state == State::Done && !job.cancelled && job.total > 0 {
                 job.done = job.total;
             }
         }
