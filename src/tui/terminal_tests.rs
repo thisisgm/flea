@@ -122,7 +122,7 @@ fn real_pty_startup_resize_legacy_quit_and_signaled_quit_restore_the_terminal() 
         let mut master = unsafe { std::fs::File::from_raw_fd(master) };
         let slave = unsafe { std::fs::File::from_raw_fd(slave) };
         let saved = mode(&slave);
-        let mut child = Command::new(std::env::current_exe().unwrap())
+        let mut child = pty_test_command()
             .args(["--exact", "tui::terminal::tests::terminal_session_child", "--nocapture"])
             .env("FLEA_T1_TEST_ROOT", dir.path()).env("TERM", "kitty").env_remove("TMUX")
             .env("FLEA_TUI_CAPABILITIES", "1")
@@ -201,7 +201,7 @@ fn review_suspension_restores_keyboard_flags_and_terminal_mode() {
     let mut master = unsafe { std::fs::File::from_raw_fd(master) };
     let slave = unsafe { std::fs::File::from_raw_fd(slave) };
     let saved = mode(&slave);
-    let mut child = Command::new(std::env::current_exe().unwrap())
+    let mut child = pty_test_command()
         .args(["--exact", "tui::terminal::tests::review_suspend_child", "--nocapture"])
         .env("FLEA_T1_REVIEW_SUSPEND_ROOT", dir.path()).env_remove("TMUX")
         .stdin(slave.try_clone().unwrap()).stdout(slave.try_clone().unwrap()).stderr(slave.try_clone().unwrap())
@@ -286,7 +286,7 @@ fn review_positive_panic_editor_handoff_and_silent_terminal_cleanup() {
         let mut master = unsafe { std::fs::File::from_raw_fd(master) };
         let slave = unsafe { std::fs::File::from_raw_fd(slave) };
         let saved = mode(&slave);
-        let mut command = Command::new(std::env::current_exe().unwrap());
+        let mut command = pty_test_command();
         command.args(["--exact", "tui::terminal::tests::review_positive_lifecycle_child", "--nocapture"])
             .env("FLEA_T1_REVIEW_LIFECYCLE_ROOT", dir.path()).env("FLEA_T1_REVIEW_LIFECYCLE_MODE", name).env_remove("TMUX")
             .stdin(slave.try_clone().unwrap()).stdout(slave.try_clone().unwrap()).stderr(slave.try_clone().unwrap());
@@ -346,7 +346,7 @@ fn suspension_reenters_with_fresh_queries_and_balances_the_second_keyboard_push(
     let slave = unsafe { std::fs::File::from_raw_fd(slave) };
     let saved = Command::new("stty").arg("-g").stdin(slave.try_clone().unwrap()).output().unwrap();
     assert!(saved.status.success());
-    let mut child = Command::new(std::env::current_exe().unwrap())
+    let mut child = pty_test_command()
         .args(["--exact", "tui::terminal::tests::review_suspend_child", "--nocapture"])
         .env("FLEA_T1_REVIEW_SUSPEND_ROOT", dir.path()).env_remove("TMUX")
         .stdin(slave.try_clone().unwrap()).stdout(slave.try_clone().unwrap()).stderr(slave.try_clone().unwrap())

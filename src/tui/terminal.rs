@@ -383,6 +383,13 @@ pub fn cell_pixels() -> Option<(usize, usize)> {
     let height = usize::from(size.y) / usize::from(size.rows);
     (width > 0 && height > 0).then_some((width, height))
 }
+// PTY fixtures model a foreground shell, which unblocks job-control signals before starting its command.
+#[cfg(test)]
+fn pty_test_command() -> Command {
+    let mut command = Command::new("env");
+    command.arg("--default-signal=TSTP,TTIN,TTOU").arg(std::env::current_exe().unwrap());
+    command
+}
 #[cfg(test)]
 #[path = "terminal_tests.rs"]
 mod tests;

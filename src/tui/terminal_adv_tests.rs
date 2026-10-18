@@ -51,7 +51,7 @@ fn lifecycle(mode: &str) {
     let slave = unsafe { std::fs::File::from_raw_fd(slave) };
     let saved = Command::new("stty").arg("-g").stdin(slave.try_clone().unwrap()).output().unwrap();
     assert!(saved.status.success());
-    let mut command = Command::new(std::env::current_exe().unwrap());
+    let mut command = pty_test_command();
     command.args(["--exact", "tui::terminal::adv_tests::adv_d_r1_terminal_child", "--nocapture"])
         .env("FLEA_T1_ADV_ROOT", dir.path()).env("FLEA_T1_ADV_MODE", mode).env_remove("TMUX")
         .stdin(slave.try_clone().unwrap()).stdout(slave.try_clone().unwrap()).stderr(slave.try_clone().unwrap());
