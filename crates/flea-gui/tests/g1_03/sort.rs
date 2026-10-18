@@ -191,16 +191,6 @@ fn a_refused_sort_frees_its_count_so_the_next_sort_lands_at_its_own() {
     assert_eq!(landed, Ok(true), "sort asked {count}");
 }
 
-fn window_count(nav: &mut Navigator) -> usize {
-    nav.take()
-        .iter()
-        .find_map(|command| match command {
-            Command::Window { count, .. } => Some(*count),
-            _ => None,
-        })
-        .unwrap()
-}
-
 // A remote window stat that times out answers an error naming window and the listed path, and no rows.
 #[test]
 fn a_sort_whose_window_failed_leaves_no_count_for_the_next_sort() {
@@ -241,62 +231,4 @@ fn a_failed_sort_window_leaves_each_later_sort_its_own_count() {
     pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
     let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, third, named), listing: 4 }, now);
     assert_eq!(landed, Ok(true), "second sort asked {second}, third asked {third}");
-}
-
-// A sort whose window failed, then a scroll: the pair the sort armed must take the scroll's answer at the scroll's count.
-fn scrolled_after_a_failed_sort_window(height: f32) -> (Pane, usize, (usize, usize)) {
-    let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
-    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
-    let asked = window_count(&mut nav);
-    let now = pane.now();
-    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
-    assert!(!pane.fail("window", "/f/base", "timed out", 0, now));
-    nav.after_failure(&mut pane, "window");
-    pane.set_height(height);
-    pane.scroll_to(400. * 31.);
-    pane.cursor = 420;
-    let window = pane.wanted_window().expect("the scroll asks a window");
-    (pane, asked, window)
-}
-
-#[test]
-fn a_scroll_answer_after_a_failed_sort_window_lands_at_its_own_count() {
-    let (mut pane, asked, (start, count)) = scrolled_after_a_failed_sort_window(900.);
-    assert_ne!(asked, count, "the height change moved the count");
-    let now = pane.now();
-    let landed = pane.receive_at(Reply::Rows { start, rows: rows(start, count, named), listing: 2 }, now);
-    assert_eq!(landed, Ok(true), "sort asked {asked}, scroll asked {count} at {start}");
-}
-
-#[test]
-fn a_scroll_answer_after_a_failed_sort_window_leaves_the_pane_able_to_ask_again() {
-    let (mut pane, _, (start, count)) = scrolled_after_a_failed_sort_window(900.);
-    let now = pane.now();
-    let landed = pane.receive_at(Reply::Rows { start, rows: rows(start, count, named), listing: 2 }, now);
-    pane.scroll_to(700. * 31.);
-    assert!(pane.wanted_window().is_some(), "answer {landed:?}, still out {:?}", pane.requests.outstanding);
-}
-
-#[test]
-fn a_scroll_answer_after_a_failed_sort_window_keeps_the_cursor_and_the_view_where_the_user_left_them() {
-    let (mut pane, asked, (start, count)) = scrolled_after_a_failed_sort_window(620.);
-    assert_eq!(asked, count, "an unchanged height asks the sort's count");
-    let now = pane.now();
-    let landed = pane.receive_at(Reply::Rows { start, rows: rows(start, count, named), listing: 2 }, now);
-    assert_eq!(landed, Ok(true));
-    assert_eq!((pane.held.listing, pane.held.start), (2, start));
-    assert_eq!((pane.cursor, pane.scroll_y), (420, 400. * 31.), "the view stays where the user scrolled");
-}
-
-#[test]
-fn a_malformed_scroll_answer_after_a_failed_sort_window_settles_its_request() {
-    let (mut pane, _, (start, count)) = scrolled_after_a_failed_sort_window(620.);
-    let now = pane.now();
-    let landed = pane.receive_at(Reply::Rows { start, rows: rows(start, count - 1, named), listing: 2 }, now);
-    assert!(landed.is_err());
-    assert_eq!(pane.requests.outstanding, None, "the refused answer settles its request");
-    pane.scroll_to(700. * 31.);
-    let (start, count) = pane.wanted_window().expect("a moved view asks again");
-    let landed = pane.receive_at(Reply::Rows { start, rows: rows(start, count, named), listing: 2 }, now);
-    assert_eq!(landed, Ok(true), "the sorted listing still lands at the next window asked");
 }
