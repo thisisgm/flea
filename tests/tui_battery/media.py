@@ -1,13 +1,18 @@
 """Native pixels and protocol evidence are distinct from cell-only fallback proof."""
+import hashlib
 import math
+from pathlib import Path
 
 from .evidence import Blocked, digest
+from .geometry import CELL_HEIGHT, CELL_WIDTH, ORIGIN
 from .references import Board
 from .media_proof import placements
 from . import fallback, png
 
 FALLBACK = {"tui-list-image": "tui-image-chafa", "tui-list-symlink": "tui-image-chafa",
             "tui-3d-column": "tui-3d-chafa"}
+FIXTURE_ROOT = "/fx"
+NONEMPTY_PICTURE_COLORS = 4
 
 
 def transport_for(adapter, forced_fallback):
@@ -15,6 +20,25 @@ def transport_for(adapter, forced_fallback):
     if adapter not in transports:
         raise Blocked("unknown media adapter: " + adapter)
     return "half-blocks" if forced_fallback else transports[adapter]
+
+
+def fixture_path(fx, cwd, name):
+    if cwd != FIXTURE_ROOT and not cwd.startswith(FIXTURE_ROOT + "/"):
+        raise Blocked("media scenario cwd is outside the /fx fixture root: " + cwd)
+    root = fx.resolve()
+    path = (root / cwd.removeprefix(FIXTURE_ROOT).lstrip("/") / name).resolve()
+    if Path(name).is_absolute() or not path.is_relative_to(root):
+        raise Blocked("media fixture escapes the /fx fixture root: " + name)
+    return path
+
+
+def picture_status(requirements, review):
+    decision = review.get("representation") or {}
+    if any(decision.get(key) != value for key, value in requirements.items()):
+        return "BLOCKED"
+    if decision.get("approved") is True:
+        return "PASS"
+    return "FAIL" if decision.get("approved") is False else "BLOCKED"
 
 
 def inspect(state, board, snapshot, image, grid_rect, caps, case, fx, boards, review, *, adapter, expected_transport, commands=None):
@@ -38,25 +62,34 @@ def inspect(state, board, snapshot, image, grid_rect, caps, case, fx, boards, re
         return result, alternate, expectations
     columns, rows = snapshot["columns"], snapshot["rows"]
     cw, ch = grid_rect[2] / columns, grid_rect[3] / rows
-    proof = []
+    proof, captures = [], []
     for left, top, width, height in boxes:
-        x, y = (left - 4) / 8.4, (top - 9) / 22
-        cell_box = [math.floor(x), math.floor(y), math.ceil(width / 8.4), math.ceil(height / 22)]
+        x, y = (left - ORIGIN[0]) / CELL_WIDTH, (top - ORIGIN[1]) / CELL_HEIGHT
+        cell_box = [math.floor(x), math.floor(y), math.ceil(width / CELL_WIDTH), math.ceil(height / CELL_HEIGHT)]
         rect = [round(grid_rect[0] + x * cw), round(grid_rect[1] + y * ch),
-                max(1, round(width / 8.4 * cw)), max(1, round(height / 22 * ch))]
+                max(1, round(width / CELL_WIDTH * cw)), max(1, round(height / CELL_HEIGHT * ch))]
         cropped = png.crop(image, rect)
         colors = {bytes(cropped[2][i:i + 3]) for i in range(0, len(cropped[2]), 4)}
         proof.append({"cells": cell_box, "native_rect": rect, "distinct_colors": len(colors)})
-        if native:
-            if len(colors) < 4:
-                raise Blocked("negotiated graphics did not produce nonempty native picture pixels")
+        captures.append(hashlib.sha256(bytes(cropped[2])).hexdigest())
+        if native and len(colors) < NONEMPTY_PICTURE_COLORS:
+            raise Blocked("negotiated graphics did not produce nonempty native picture pixels")
     display_proof = placements(case, received, mode) if native else []
     filename = state.get("cursor")
-    fixture = fx / state["cwd"].removeprefix("/fx/") / filename if filename else None
-    fixture_hash = digest(fixture) if fixture and fixture.is_file() else None
-    result = {"status": "PASS", "mode": mode, "boxes": proof, "fixture_sha256": fixture_hash,
+    if not filename:
+        raise Blocked("media scenario names no selected fixture")
+    fixture = fixture_path(fx, state["cwd"], filename)
+    if not fixture.is_file():
+        raise Blocked("selected media fixture is missing: " + filename)
+    result = {"status": "PASS", "mode": mode, "boxes": proof, "fixture_sha256": digest(fixture),
               "forced": caps["forced_fallback"], "native_protocol": native,
               "adapter": adapter, "expected_transport": expected_transport, "placements": display_proof}
+    if native:
+        # Nonempty crop colors prove only that pixels arrived; the picture needs a controller decision bound to these identities.
+        requirements = {"mode": mode, "fixture_sha256": result["fixture_sha256"], "boxes": proof,
+                        "placements": display_proof, "native_capture_sha256": captures}
+        result.update(status=picture_status(requirements, review), representation_verified=True,
+                      review_requirements=requirements)
     alternate = None
     if not native:
         if state["id"] in FALLBACK:

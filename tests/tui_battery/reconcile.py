@@ -23,6 +23,8 @@ def pixel_status(pixels, visual):
 def shutdown_failure(terminal_exit, shutdown):
     if not isinstance(terminal_exit, dict) or type(terminal_exit.get("exit_code")) is not int or terminal_exit["exit_code"] != 0:
         return "terminal process did not exit successfully"
+    if not isinstance(shutdown, dict):
+        return "shutdown record is not an object"
     if (type(shutdown.get("candidate_exit")) is not int or shutdown["candidate_exit"] != 0
             or shutdown.get("termios_restored") is not True or shutdown.get("relay_termios_restored") is not True):
         return "candidate exit or TTY restoration failed"
@@ -58,7 +60,7 @@ def retained(source, identity, planned, boards, reviews, configurations=None):
             media_status = representation_status(media, visual.get("review", {}))
             checks.append(media_status)
             if verdict.get("reason") or verdict.get("shutdown_reason"):
-                raise Blocked(verdict.get("reason", verdict.get("shutdown_reason")))
+                raise Blocked(verdict.get("reason") or verdict.get("shutdown_reason"))
             result.update(status="PASS" if checks == ["PASS"] * 5 else ("FAIL" if "FAIL" in checks else "BLOCKED"),
                           visual=visual, checks=checks, artifact_sha256=hashes)
         except (Blocked, OSError, ValueError, KeyError) as error:

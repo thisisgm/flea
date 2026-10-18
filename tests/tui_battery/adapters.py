@@ -5,6 +5,7 @@ import shutil
 
 from .evidence import Blocked, digest, save
 from .cells import PALETTE
+from .geometry import COLUMNS, ROWS, ORIGIN
 
 TERMINALS = ("alacritty", "foot", "ghostty", "kitty", "tmux")
 OPTIONS = {
@@ -16,12 +17,26 @@ OPTIONS = {
 }
 
 
+def font_profile(profile):
+    if profile is None:
+        profile = {}
+    if not isinstance(profile, dict):
+        raise Blocked("invalid private font profile: expected an object")
+    font = profile.get("font", "JetBrainsMono Nerd Font")
+    size = profile.get("font_size", 14)
+    if not isinstance(font, str) or not font.strip() or any(c in font for c in '\n\r"\\'):
+        raise Blocked("invalid private font profile: font must be a nonempty single-line name")
+    if type(size) not in (int, float) or not 4 <= size <= 48:
+        raise Blocked("invalid private font profile: font_size must be a number from 4 to 48")
+    return {"font": font, "font_size": size}
+
+
 class Adapter:
     def __init__(self, name, directory, identity, palette, profile=None):
         if name not in TERMINALS:
             raise Blocked(f"unknown terminal: {name}")
         self.name, self.directory, self.identity = name, directory, identity
-        self.palette, self.profile = palette, profile or {}
+        self.palette, self.profile = palette, profile
         self.config = directory / ("terminal.toml" if name == "alacritty" else "terminal.conf")
         self.tmux_socket = None
 
@@ -50,26 +65,28 @@ class Adapter:
         return receipts
 
     def configure(self):
-        font = self.profile.get("font", "JetBrainsMono Nerd Font")
-        size = self.profile.get("font_size", 14)
-        if not isinstance(size, (int, float)) or not 4 <= size <= 48 or any(c in font for c in '\n\r"\\'):
-            raise Blocked("invalid private font profile")
-        p = self.palette
-        bg, fg = p["bg"], p["fg"]
+        profile = font_profile(self.profile)
+        font, size = profile["font"], profile["font_size"]
+        palette = self.palette
+        bg, fg = palette["bg"], palette["fg"]
+        padding_x, padding_y = ORIGIN
         if self.name == "alacritty":
-            content = (f'[window]\ndimensions = {{ columns = 130, lines = 31 }}\npadding = {{ x = 4, y = 9 }}\n'
+            content = (f'[window]\ndimensions = {{ columns = {COLUMNS}, lines = {ROWS} }}\n'
+                       f'padding = {{ x = {padding_x}, y = {padding_y} }}\n'
                        f'decorations = "None"\n[font]\nnormal = {{ family = "{font}" }}\nsize = {size}\n'
                        f'[colors.primary]\nbackground = "{bg}"\nforeground = "{fg}"\n')
         elif self.name in ("foot", "tmux"):
-            content = (f'[main]\nfont={font}:size={size}\ninitial-window-size-chars=130x31\npad=4x9\n'
+            content = (f'[main]\nfont={font}:size={size}\ninitial-window-size-chars={COLUMNS}x{ROWS}\n'
+                       f'pad={padding_x}x{padding_y}\n'
                        f'[colors]\nbackground={bg[1:]}\nforeground={fg[1:]}\n')
         elif self.name == "ghostty":
             content = (f'font-family = {font}\nfont-size = {size}\nbackground = {bg}\nforeground = {fg}\n'
-                       'window-width = 130\nwindow-height = 31\nwindow-padding-x = 4\nwindow-padding-y = 9\n'
+                       f'window-width = {COLUMNS}\nwindow-height = {ROWS}\n'
+                       f'window-padding-x = {padding_x}\nwindow-padding-y = {padding_y}\n'
                        'window-decoration = false\nconfirm-close-surface = false\n')
         else:
             content = (f'font_family {font}\nfont_size {size}\nbackground {bg}\nforeground {fg}\n'
-                       'remember_window_size no\ninitial_window_width 130c\ninitial_window_height 31c\n'
+                       f'remember_window_size no\ninitial_window_width {COLUMNS}c\ninitial_window_height {ROWS}c\n'
                        'window_padding_width 0\nhide_window_decorations yes\nconfirm_os_window_close 0\n')
         if self.name == "alacritty":
             labels = ("black", "red", "green", "yellow", "blue", "magenta", "cyan", "white")
@@ -94,18 +111,18 @@ class Adapter:
         return receipt
 
     def argv(self, command):
-        app, cfg = self.identity, str(self.config)
+        app, config_path = self.identity, str(self.config)
         if self.name == "alacritty":
-            return ["alacritty", "--config-file", cfg, "--class", app, "--title", app, "-e", *command]
+            return ["alacritty", "--config-file", config_path, "--class", app, "--title", app, "-e", *command]
         if self.name == "foot":
-            return ["foot", "--config", cfg, "--app-id", app, "--title", app, *command]
+            return ["foot", "--config", config_path, "--app-id", app, "--title", app, *command]
         if self.name == "ghostty":
-            return ["ghostty", "--config-default-files=false", f"--config-file={cfg}", f"--class={app}",
+            return ["ghostty", "--config-default-files=false", f"--config-file={config_path}", f"--class={app}",
                     f"--title={app}", "--gtk-single-instance=false", "-e", *command]
         if self.name == "kitty":
-            return ["kitty", "--config", cfg, "--class", app, "--name", app, "--title", app, *command]
+            return ["kitty", "--config", config_path, "--class", app, "--name", app, "--title", app, *command]
         self.tmux_socket = str(self.directory / "tmux.sock")
-        return ["foot", "--config", cfg, "--app-id", app, "--title", app,
+        return ["foot", "--config", config_path, "--app-id", app, "--title", app,
                 "tmux", "-S", self.tmux_socket, "-f", str(self.directory / "tmux.conf"),
                 "new-session", "-s", "battery", *command]
 

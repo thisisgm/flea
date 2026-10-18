@@ -43,7 +43,7 @@ capability controls. No diagnostic image or fake terminal result counts as nativ
 
 `tests/tui-battery.sh` is registered in `tests/run-all.sh`. It discovers every
 `test_*.py` module, then runs the display-free diagnostics through all five fake
-adapters. It ends with `PASS tui-battery: 83 regressions, 5 fake adapters` only when
+adapters. It ends with `PASS tui-battery: <count> regressions, 5 fake adapters` only when
 all discovered tests and all diagnostics pass. The count follows future test additions.
 Failures, skipped tests, incomplete diagnostics and missing reference inputs fail the suite.
 

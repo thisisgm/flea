@@ -119,27 +119,36 @@ class Terminal:
         return snapshot if snapshot["pty"][:2] == [rows, columns] else None
 
     def close(self):
-        if (self.case / "relay.sock").exists() and not (self.case / "relay-exit.json").exists():
-            try:
-                relay.rpc(self.case, {"op": "stop"})
-            except (ConnectionError, OSError):
-                pass
         exit_path = self.case / "launch-exit.json"
+        # Sample input: {"exit_code":0,"end_ns":1792330118607080126}, visible only after its JSON write completes.
+        def exit_receipt():
+            try:
+                value = json.loads(exit_path.read_text())
+            except (FileNotFoundError, json.JSONDecodeError):
+                return None
+            if not isinstance(value, dict):
+                raise Blocked("terminal exit receipt must be an object: " + str(exit_path))
+            return value
         try:
-            receipt = wait_for(lambda: json.loads(exit_path.read_text()) if exit_path.is_file() else None,
-                               5, "terminal exit and child reap")
-        except Blocked:
+            if (self.case / "relay.sock").exists() and not (self.case / "relay-exit.json").exists():
+                try:
+                    relay.rpc(self.case, {"op": "stop"})
+                except (ConnectionError, OSError):
+                    pass
+            return wait_for(exit_receipt, 5, "terminal exit and child reap: " + str(exit_path))
+        except BaseException:
             start = self.case / "launch-start.json"
             if start.is_file():
                 pid = json.loads(start.read_text())["pid"]
+                if type(pid) is not int or pid <= 1:
+                    raise Blocked("invalid terminal process group in " + str(start))
                 try:
                     os.killpg(pid, signal.SIGTERM)
                 except ProcessLookupError:
                     pass
-            self.adapter.close(self.commands)
             raise
-        self.adapter.close(self.commands)
-        return receipt
+        finally:
+            self.adapter.close(self.commands)
 
 
 def launch(spec_path):

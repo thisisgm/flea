@@ -100,9 +100,15 @@ class Review2Tests(unittest.TestCase):
         caps = {"candidate_received": capabilities(self.root / "pty.log", "candidate-input"), "forced_fallback": False}
         (self.root / "graphics.log").write_text("\n".join(json.dumps({"ns": ns, "data": data}) for ns, data in graphics))
         pixels = bytearray(v for y in range(100) for x in range(100) for v in (x, y, 40, 255))
-        return inspect_media({"id": "tui-list-image", "cwd": "/fx/v/work"}, page, Screen(10, 4).snapshot(),
-                             (100, 100, pixels), [4, 9, 84, 88], caps, self.root, self.root, self.root, {},
-                             adapter="kitty" if protocol == "kitty" else "foot", expected_transport=protocol)
+        state = {"id": "tui-list-image", "cwd": "/fx/v/work", "cursor": "photo.png"}
+        (self.root / "v/work").mkdir(parents=True, exist_ok=True)
+        (self.root / "v/work/photo.png").write_bytes(b"fixture identity")
+        arguments = (state, page, Screen(10, 4).snapshot(), (100, 100, pixels), [4, 9, 84, 88], caps, self.root, self.root, self.root)
+        keywords = dict(adapter="kitty" if protocol == "kitty" else "foot", expected_transport=protocol)
+        # The controller approves the picture for the identities this run produced; placements are still judged.
+        first = inspect_media(*arguments, {}, **keywords)[0]
+        approval = {"representation": dict(approved=True, **first["review_requirements"])} if "review_requirements" in first else {}
+        return inspect_media(*arguments, approval, **keywords)
 
     def test_2_transmit_only_is_not_placement(self):
         with self.assertRaises(Blocked):

@@ -3,6 +3,7 @@ import json
 from pathlib import Path
 
 from .evidence import Blocked, absolute, digest
+from .adapters import font_profile
 
 ARTIFACTS = ("native.png", "grid-crop.png", "cells.json", "pty.log", "graphics.log", "capabilities.json",
              "state.json", "commands.json", "diff.png", "overlay.png", "media.json", "dynamic-facts.json",
@@ -11,9 +12,8 @@ ARTIFACTS = ("native.png", "grid-crop.png", "cells.json", "pty.log", "graphics.l
 
 
 def configuration(terminal, preset, variant, state, profile=None, steps=None, seam=None):
-    profile = profile or {}
     return {"terminal": terminal, "preset": preset, "variant": variant, "state": state,
-            "profile": {"font": profile.get("font", "JetBrainsMono Nerd Font"), "font_size": profile.get("font_size", 14)},
+            "profile": font_profile(profile),
             "steps": state["steps"] if steps is None else steps, "seam": seam or {}}
 
 

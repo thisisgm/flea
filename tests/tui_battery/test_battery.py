@@ -94,8 +94,32 @@ class BatteryTests(unittest.TestCase):
         with self.assertRaises(OSError):
             regular_bytes(link)
 
-    def fixture_source(self):
-        source = self.root / "source"
+    def linked_family(self, name, *links):
+        source = self.fixture_source(name)
+        manifest = source / "manifest.json"
+        document = json.loads(manifest.read_text())
+        # The "links" family keeps the nine original work entries; only "work" is pinned to exactly those.
+        entries = document["families"]["work"]["entries"] + [
+            {"path": path, "kind": "symlink", "target": link, "mode": 0o777, "mtime_ns": 123456789000}
+            for path, link in links]
+        document["families"]["links"] = {"root": "work", "entries": entries}
+        manifest.write_text(json.dumps(document))
+        return source, Path(tempfile.mkdtemp(dir=self.root))
+
+    def test_symlink_target_must_stay_inside_snapshot(self):
+        source, target = self.linked_family("valid", ("contained", "Docs"))
+        import_family(source, "links", target)
+        self.assertEqual((target / "contained").resolve(), (target / "Docs").resolve())
+        escapes = ((("escape", "../outside"),), (("escape", "/etc"),),
+                   (("contained", "Docs"), ("hop", "contained/../../outside")))
+        for index, links in enumerate(escapes):
+            with self.subTest(links=links):
+                source, target = self.linked_family(f"escape-{index}", *links)
+                with self.assertRaisesRegex(Blocked, "escapes its snapshot"):
+                    import_family(source, "links", target)
+
+    def fixture_source(self, name="source"):
+        source = self.root / name
         work = source / "work"
         work.mkdir(parents=True)
         entries = []

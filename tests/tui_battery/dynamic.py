@@ -10,12 +10,17 @@ import time
 from .cells import width
 from .evidence import Blocked
 
+BACKEND_EVIDENCE_BYTES = 4 * 1024 * 1024
+BACKEND_QUIT_SECONDS = 3
+
+# Sample input: ext4 · 5.0 kB free; ext4 · 空き 5.0 kB; ext4 · 5.0 kB متاحة; ext4 · свободно 5,0 kB.
 FS = r"\b(?P<fs>[A-Za-z0-9_.+-]+) · "
 SIZE = r"(?P<size>\d+(?:[.,٫]\d)? (?:B|kB|MB|GB|TB))"
 DISK = [re.compile(FS + recipe) for recipe in
         (SIZE + r" free", r"空き " + SIZE, SIZE + r" (?:ةحاتم|متاحة)", r"свободно " + SIZE)]
 
 
+# Sample input: [{"ch":"e"},{"ch":"x"},{"ch":"t"},{"ch":"4"},{"ch":" · 5.0 kB free"}].
 def disk_field(row):
     chars, columns = [], []
     for x, cell in enumerate(row):
@@ -45,6 +50,7 @@ def size(value):
     return f"{value:.1f} {units[index]}" if index else f"{int(value)} B"
 
 
+# Sample input: b'{"t":"listed"}\n{"t":"fsinfo","path":"/fx/v/work","fs":"ext4","free":5000}\n'.
 def fsinfo(candidate, cwd, commands, timeout=8):
     index = len(candidate) - 3
     if candidate[index] != "/opt/flea":
@@ -64,7 +70,8 @@ def fsinfo(candidate, cwd, commands, timeout=8):
     try:
         request({"c": "list", "path": cwd, "first": 0, "hidden": False})
         deadline = time.monotonic() + timeout
-        while time.monotonic() < deadline and result is None:
+        quitting = False
+        while time.monotonic() < deadline:
             for key, _ in selector.select(.05):
                 chunk = os.read(key.fileobj.fileno(), 65536)
                 if not chunk:
@@ -79,19 +86,24 @@ def fsinfo(candidate, cwd, commands, timeout=8):
                         line, _, tail = pending.partition(b"\n")
                         pending = bytearray(tail)
                         message = json.loads(line)
-                        if message.get("t") == "listed":
+                        if message.get("t") == "listed" and result is None:
                             request({"c": "fsinfo"})
                         if message.get("t") == "fsinfo" and message.get("path") == cwd:
                             result = message
-                if len(output) + len(errors) > 4 * 1024 * 1024:
+                if len(output) + len(errors) > BACKEND_EVIDENCE_BYTES:
                     raise Blocked("backend fact evidence exceeds 4 MiB")
+            if result is not None and not quitting:
+                request({"c": "quit"})
+                process.stdin.close()
+                quitting = True
+                deadline = time.monotonic() + BACKEND_QUIT_SECONDS
             if process.poll() is not None and not selector.get_map():
                 break
         if result is None:
             raise Blocked("backend did not answer its actual filesystem facts")
-        request({"c": "quit"})
-        process.stdin.close()
-        code = process.wait(timeout=3)
+        if process.poll() is None or selector.get_map():
+            raise Blocked("filesystem fact backend failed to quit and drain its output")
+        code = process.returncode
         if code:
             raise Blocked("filesystem fact backend exited nonzero")
         return result

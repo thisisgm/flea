@@ -11,7 +11,8 @@ import sys
 import time
 import uuid
 
-from .adapters import Adapter, TERMINALS
+from .adapters import Adapter, TERMINALS, font_profile
+from .geometry import COLUMNS, ROWS, CELL_WIDTH, CELL_HEIGHT
 from .evidence import Blocked, Commands, MARKER, absolute, digest, output_root, save, source_identity
 from .fixtures import build, namespace
 from .keys import Keymap
@@ -30,8 +31,12 @@ HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
 
 
+# Sample input: {"foot":{"font":"JetBrainsMono Nerd Font","font_size":14}}.
 def load(path):
-    return json.loads(Path(path).read_text())
+    value = json.loads(Path(path).read_text())
+    if not isinstance(value, dict):
+        raise Blocked("JSON object required: " + str(path))
+    return value
 
 
 def selection(value, choices):
@@ -125,8 +130,8 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                                 graphics_negative="graphics-negative" in state["requires"])
         initial = settled(terminal, {"contains": [Path(state["cwd"]).name]}, args.timeout)
         rows, columns, width, height = initial["pty"]
-        if rows != 31 or columns != 130 or not width or not height:
-            raise Blocked("diagnostic PTY must report 130x31 cells and nonzero pixel metrics")
+        if rows != ROWS or columns != COLUMNS or not width or not height:
+            raise Blocked(f"diagnostic PTY must report {COLUMNS}x{ROWS} cells and nonzero pixel metrics")
         calibration_image = display.capture(case / "calibration.png")
         client = terminal.client
         ox, oy = display.monitor["x"], display.monitor["y"]
@@ -136,12 +141,12 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                        "padding": [client["size"][0] - width, client["size"][1] - height],
                        "origin_padding": [rect[0] - client_rect[0], rect[1] - client_rect[1]],
                        "pty": initial["pty"], "client": client, "grid": rect,
-                       "browser_cell": [8.4, 22], "resampling_allowed": False}
+                       "browser_cell": [CELL_WIDTH, CELL_HEIGHT], "resampling_allowed": False}
         save(case / "profile.json", dict(profile, terminal=terminal_name, calibrated=True, calibration=calibration, fonts=fonts,
              packages=packages, theme_sha256=theme_hash, original_rounding=display.original_rounding))
         keymap = Keymap(REPO / "keys.toml", args.preset)
         steps(terminal, active, fx, keymap, journal, args.timeout)
-        if (variant["columns"], variant["rows"]) != (130, 31):
+        if (variant["columns"], variant["rows"]) != (COLUMNS, ROWS):
             terminal.resize(variant["columns"], variant["rows"], calibration)
         rule = state["predicate"]
         if state["id"] == "tui-long":
@@ -176,7 +181,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         save(case / "media.json", media)
         comparison = board.compare(snapshot, masks=masks + media_masks, origin=variant["origin"],
                                    resting=variant["id"] == "rest", picture_reference=alternate)
-        reference_rect = [*variant["origin"], round(variant["columns"] * 8.4), variant["rows"] * 22]
+        reference_rect = [*variant["origin"], round(variant["columns"] * CELL_WIDTH), variant["rows"] * CELL_HEIGHT]
         pixels = compare_pixels(case / "native.png", ref.with_suffix(".png"), rect, case, reference_rect)
         behavior = file_assertions(state, fx)
         if state["id"] in ("tui-delete", "tui-delete-focus"):
@@ -185,7 +190,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                        predicate={"status": "PASS", "rule": rule}, elf_sha256=identity["elf_sha256"])
         if state["id"] == "tui-sort-size":
             expected = board.cells()
-            rows = ["".join(expected[(x, y)]["ch"] for x in range(130)) for y in range(2, 29)]
+            rows = ["".join(expected[(x, y)]["ch"] for x in range(COLUMNS)) for y in range(2, ROWS - 2)]
             positions = {name: next((i for i, line in enumerate(rows)
                                     if len(line.split("│")) >= 3 and re.search(r"(?:^| )" + re.escape(name) + r"(?: |$)", line.split("│")[1])), 99)
                          for name in ("A", "Code", "Docs", "Empty", "Locked", "Many", "Media")}
@@ -308,6 +313,10 @@ def main(argv=None):
             identity = source_identity(REPO, args.binary, args.boards, commands)
             save(root.child("identity.json"), identity)
             profiles = load(args.profiles) if args.profiles else {}
+            for name, profile in profiles.items():
+                if name not in TERMINALS or not isinstance(profile, dict):
+                    raise Blocked(f"invalid private terminal profile: {name}")
+                font_profile(profile)
             reviews = load(args.reviews) if args.reviews else {}
             overrides = load(args.steps) if args.steps else {}
             seams = load(args.seams) if args.seams else {}

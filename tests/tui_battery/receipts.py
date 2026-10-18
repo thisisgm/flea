@@ -8,11 +8,12 @@ from .scenarios import legacy_shift_delete
 
 REQUIRED = ("native.png", "grid-crop.png", "pty.log", "cells.json", "capabilities.json",
             "state.json", "commands.json", "diff.png", "overlay.png", "profile.json")
+CALENDAR_CHECKS = ["exact-date", "selected-identity", "view-predicate", "clean-quit"]
 
 
 def supplement(path, identity, terminals, controls, calendar, surfaces=()):
-    expectations = {row["id"]: row.get("checks", []) for row in controls}
-    expectations.update({row["id"]: row["checks"] for row in surfaces})
+    expectations = {row["id"]: row.get("checks") for row in controls}
+    expectations.update({row["id"]: row.get("checks") for row in surfaces})
     requested = [(terminal, "control", row["id"]) for terminal in terminals for row in controls]
     requested += [(terminal, "calendar", label) for terminal in terminals for label in calendar["states"]]
     requested += [(terminal, "surface", row["id"]) for terminal in terminals for row in surfaces]
@@ -53,7 +54,9 @@ def supplement(path, identity, terminals, controls, calendar, surfaces=()):
             assertions = verdict.get("assertions")
             if not isinstance(assertions, dict) or not assertions or any(v is not True for v in assertions.values()):
                 raise Blocked("supplemental control has absent or failed behavior assertions")
-            required_checks = expectations.get(label, ["exact-date", "selected-identity", "view-predicate", "clean-quit"])
+            required_checks = CALENDAR_CHECKS if kind == "calendar" else expectations.get(label)
+            if not isinstance(required_checks, list) or not required_checks:
+                raise Blocked(f"{kind} definition lacks explicit checks: {label}")
             if any(assertions.get(check) is not True for check in required_checks):
                 raise Blocked("supplemental evidence omits required control variants")
             if kind == "calendar" and verdict.get("original_driver_sha256") != calendar["driver_sha256"]:
