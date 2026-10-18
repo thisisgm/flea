@@ -24,13 +24,14 @@ impl Matches {
         self.top = 0;
     }
 }
-// Until the first answer the query narrows the loaded rows, the same substring the backend matches.
+// Until the answer to the current query arrives, the query narrows the held rows, the same substring the backend matches.
 fn loaded(m: &Model) -> Vec<usize> {
     let folded = m.filter.to_lowercase();
     m.rows.iter().filter(|(_, row)| row.name.to_lowercase().contains(&folded)).map(|(&i, _)| i).collect()
 }
+// The answer to the current query, once it has arrived; an older answer stays out of the drawn rows and the count.
 pub fn answered(m: &Model) -> Option<&[usize]> {
-    m.name_filter.rows.as_deref().filter(|_| !m.filter.is_empty())
+    m.name_filter.rows.as_deref().filter(|_| !m.filter.is_empty() && !m.name_filter.waiting)
 }
 pub fn shown(m: &Model) -> Vec<usize> {
     answered(m).map_or_else(|| loaded(m), <[usize]>::to_vec)
@@ -84,7 +85,7 @@ pub fn receive(m: &mut Model, value: &Json, wire: &mut Wire) -> io::Result<()> {
         .filter_map(Json::as_f64).map(|i| i as usize).filter(|&i| i < m.total).collect();
     m.selected.retain(|i| rows.binary_search(i).is_ok());
     if rows.binary_search(&m.cursor).is_err() { m.cursor = rows.first().copied().unwrap_or(m.top); }
-    // A hidden row leaves the held rows, so no action can reach a row the filter does not draw.
+    // A hidden row leaves the held rows, and actions.rs refuses a row action at a cursor it does not hold, so no action reaches a row the filter does not draw.
     m.rows.retain(|i, _| rows.binary_search(i).is_ok());
     m.name_filter.rows = Some(rows);
     m.name_filter.waiting = false;

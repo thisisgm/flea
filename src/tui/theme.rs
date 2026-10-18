@@ -7,6 +7,8 @@ const BACKGROUND_FALLBACK: &str = "#101315";
 // A theme file larger than 64 KiB is refused, and the watcher reads the file again every half second.
 const THEME_BYTES: usize = 64 * 1024;
 const THEME_POLL: std::time::Duration = std::time::Duration::from_millis(500);
+// A changed read counts only when a second read this much later matches it, longer than a rewrite in place takes.
+const THEME_SETTLE: std::time::Duration = std::time::Duration::from_millis(50);
 // ui/Theme.qml's textContrast, frameContrast and hueFloor, and the Qt.darker step its metadata ink takes.
 const TEXT_CONTRAST: f64 = 4.5;
 const FRAME_CONTRAST: f64 = 3.0;
@@ -112,6 +114,12 @@ fn read(path: &std::path::Path) -> Option<String> {
     file.take((THEME_BYTES + 1) as u64).read_to_end(&mut bytes).ok()?;
     (bytes.len() <= THEME_BYTES).then(|| String::from_utf8_lossy(&bytes).into_owned())
 }
+// A changed read is published only if it yields a colour, ui/js/Palette.js's isPalette test, and a second read after the pause matches it, so a rewrite caught empty or part way waits for the next poll.
+fn settled(path: &std::path::Path, previous: Option<&str>, pause: impl FnOnce()) -> Option<String> {
+    let first = read(path).filter(|text| previous != Some(text.as_str()) && !parse(text).is_empty())?;
+    pause();
+    (read(path)? == first).then_some(first)
+}
 // A single worker follows theme switches without file reads in the event loop.
 pub struct Watch {
     pub updates: std::sync::mpsc::Receiver<String>,
@@ -122,13 +130,13 @@ impl Watch {
         let (tx, updates) = std::sync::mpsc::sync_channel(1);
         let (stop, wait) = std::sync::mpsc::channel();
         std::thread::spawn(move || {
-            let mut previous = None;
+            let mut previous: Option<String> = None;
             loop {
-                // A read with no colour, ui/js/Palette.js's isPalette test, is a rewrite caught empty or cut short, so the live palette stays.
-                if let Some(text) = read(&path).filter(|text| !parse(text).is_empty()) {
-                    if previous.as_ref() != Some(&text) && tx.try_send(text.clone()).is_ok() { previous = Some(text); }
+                let mut stopped = false;
+                if let Some(text) = settled(&path, previous.as_deref(), || stopped = wait.recv_timeout(THEME_SETTLE).is_ok()) {
+                    if tx.try_send(text.clone()).is_ok() { previous = Some(text); }
                 }
-                if wait.recv_timeout(THEME_POLL).is_ok() { break; }
+                if stopped || wait.recv_timeout(THEME_POLL).is_ok() { break; }
             }
         });
         Self { updates, stop }

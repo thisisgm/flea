@@ -55,6 +55,7 @@ fn wide_symbol_width_in_c_locale() {
     if crate::tui::render::frame_tests::isolated_test("tui::cells::tests::wide_symbol_width_in_c_locale", &[("LC_ALL", "C")]) { return; }
     extern "C" { fn setlocale(category: i32, locale: *const std::ffi::c_char) -> *mut std::ffi::c_char; }
     assert!(!unsafe { setlocale(0, c"".as_ptr()) }.is_null());
+    assert_eq!(unsafe { wcwidth(0x1f600) }, -1, "the C locale measured the symbol itself, so the fallback table went untested");
     println!("C locale: wide symbol measured {} cells", width('\u{1f600}'));
     assert_eq!(width('\u{1f600}'), 2);
 }
@@ -63,6 +64,7 @@ fn wide_symbol_width_in_utf8_locale() {
     if crate::tui::render::frame_tests::isolated_test("tui::cells::tests::wide_symbol_width_in_utf8_locale", &[]) { return; }
     extern "C" { fn setlocale(category: i32, locale: *const std::ffi::c_char) -> *mut std::ffi::c_char; }
     assert!(!unsafe { setlocale(0, c"".as_ptr()) }.is_null());
+    assert_eq!(unsafe { wcwidth(0x1f600) }, 2, "the UTF-8 locale left the symbol to the fallback table, so wcwidth went untested");
     println!("UTF-8 locale: wide symbol measured {} cells", width('\u{1f600}'));
     assert_eq!(width('\u{1f600}'), 2);
 }
