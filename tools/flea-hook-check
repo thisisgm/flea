@@ -8,7 +8,7 @@ import subprocess
 import sys
 
 # Sample input (a repo-relative name): "src/backend/run.rs"
-RELEVANT = ("src/*", "ui/*", "tests/*", "tools/*", "Cargo.*", "hk.pkl", "keys.toml", "AGENTS.md",
+RELEVANT = ("src/*", "crates/*", "ui/*", "tests/*", "tools/*", "Cargo.*", "deny.toml", "hk.pkl", "keys.toml", "AGENTS.md",
             "build.rs", "*/build.rs", "rust-toolchain*", "*/rust-toolchain*", ".cargo/*", "*/.cargo/*")
 
 

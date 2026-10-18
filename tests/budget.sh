@@ -9,14 +9,15 @@ repo=$PWD
 # The oversized fixture lives in a mktemp -d of its own, which is what hard rule 9 allows outright.
 # The tool finds its files with a relative find, so a scratch tree it is run inside is a whole tree
 # to it, and nothing is ever written into the checkout under ~/Work.
-scratch=$(mktemp -d) || exit 1
-# GNU mktemp -d honours a relative TMPDIR verbatim, so the one delete this suite makes is checked
-# absolute and non-empty here, before the trap that runs it is installed.
+mkdir -p "$repo/.superpowers/g10l" || exit 1
+scratch=$(mktemp -d "$repo/.superpowers/g10l/budget.XXXXXX") || exit 1
+# Cleanup accepts only an absolute path under this suite's marked scratch parent.
 case $scratch in
   /*/*) ;;
   *) echo "FAIL: mktemp -d gave '$scratch', which is not an absolute path two components deep"; exit 1 ;;
 esac
-trap 'rm -rf "$scratch"' EXIT
+touch "$scratch/.flea-test-sandbox" || exit 1
+trap 'case "$scratch" in /*/.superpowers/g10l/budget.?*) [ -n "$scratch" ] && [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 
 fail=0
 check() {
@@ -44,7 +45,7 @@ seq 1 $oversized_lines | sed 's/^/\/\/ line /' > "$scratch/src/oversized.rs"
 check "oversized file fails" 1 $?
 
 # The duplicate-ceiling gate reads a hardcoded list, so a scratch-root copy of the tool names one file twice and runs there.
-rm -f "$scratch/src/oversized.rs"
+case "$scratch" in /*/.superpowers/g10l/budget.?*) [ -n "$scratch" ] && [ -f "$scratch/.flea-test-sandbox" ] && rm -f -- "$scratch/src/oversized.rs" ;; esac
 sed 's|^known_over_cap="shelf/Model.js 701$|&\nshelf/Model.js 701|' "$repo/tools/flea-file-budget" > "$scratch/dup-budget"
 if cmp -s "$repo/tools/flea-file-budget" "$scratch/dup-budget"; then
   echo "FAIL duplicate fixture: the sed did not duplicate a known_over_cap entry"
@@ -57,5 +58,41 @@ case $dup_out in
   *"DUPLICATE ceiling: shelf/Model.js"*) echo "ok   duplicate is named" ;;
   *) echo "FAIL duplicate is named: got '$dup_out'"; fail=1 ;;
 esac
+
+# The crates scanner reads the index, so an untracked scratch file cannot stand in for coverage.
+mkdir -p "$scratch/crates/flea-gui/src"
+git -C "$scratch" init -q || exit 1
+seq 1 256 | sed 's/^/\/\/ line /' > "$scratch/crates/flea-gui/src/list.rs"
+git -C "$scratch" add crates || exit 1
+( cd "$scratch" && "$repo/tools/flea-file-budget" > crates-control.log 2>&1 )
+check "a tracked crates file at its recorded 256 lines passes" 0 $?
+printf '// growth\n' >> "$scratch/crates/flea-gui/src/list.rs"
+( cd "$scratch" && "$repo/tools/flea-file-budget" > crates-mutant.log 2>&1 )
+check "a tracked crates file past its record fails" 1 $?
+if grep -qF 'GREW      crates/flea-gui/src/list.rs: 257 lines, recorded 256' "$scratch/crates-mutant.log"; then
+  echo "ok   crates growth names its measured record"
+else
+  echo "FAIL crates growth did not name its measured record"
+  fail=1
+fi
+seq 1 400 | sed 's/^/\/\/ line /' > "$scratch/crates/flea-gui/src/new.rs"
+printf '// line\n' > "$scratch/crates/flea-gui/src/list.rs"
+git -C "$scratch" add crates || exit 1
+( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
+check "a new tracked crates file at the unchanged hard cap passes" 0 $?
+printf '// growth\n' >> "$scratch/crates/flea-gui/src/new.rs"
+( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
+check "a new tracked crates file past the hard cap fails" 1 $?
+
+# Git's quoted name output must not hide a tracked Rust file with whitespace in its name.
+seq 1 400 | sed 's/^/\/\/ line /' > "$scratch/crates/flea-gui/src/new.rs"
+odd_name="$scratch/crates/flea-gui/src/with space"$'\n'"and-line.rs"
+seq 1 400 | sed 's/^/\/\/ line /' > "$odd_name"
+git -C "$scratch" add crates || exit 1
+( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
+check "a tracked crates filename with spaces and a newline passes at its cap" 0 $?
+printf '// growth\n' >> "$odd_name"
+( cd "$scratch" && "$repo/tools/flea-file-budget" >/dev/null 2>&1 )
+check "whitespace cannot hide a tracked crates file past the hard cap" 1 $?
 
 exit $fail

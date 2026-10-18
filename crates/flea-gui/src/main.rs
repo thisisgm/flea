@@ -1,4 +1,4 @@
-use flea_gui::state;
+use flea_gui::{palette::Theme, state};
 use gpui::{prelude::*, px, size, App, TitlebarOptions, WindowBounds, WindowOptions};
 use std::path::PathBuf;
 
@@ -49,7 +49,12 @@ fn main() {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);
     });
+    run(path, select, Theme::load());
+}
+
+fn run(path: String, select: Option<String>, theme: Theme) {
     gpui_platform::application().run(move |cx: &mut App| {
+        cx.set_global(theme);
         cx.on_window_closed(|cx, _| {
             if cx.windows().is_empty() {
                 cx.quit();
