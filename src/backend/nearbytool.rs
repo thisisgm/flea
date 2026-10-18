@@ -3,9 +3,13 @@ use std::os::fd::AsRawFd;
 use std::os::unix::process::CommandExt;
 use std::path::Path;
 use std::process::{Child, ChildStderr, ChildStdout, Command, Stdio};
+use std::time::Instant;
+use super::child::{wait_for_exit, Woke};
 
 const MAX_OUTPUT: usize = 1024 * 1024;
 const MAX_ERROR: usize = 16 * 1024;
+const READ_BUFFER: usize = 8192;
+const MAX_READ_TURN: usize = 64 * 1024;
 const F_GETFL: i32 = 3;
 const F_SETFL: i32 = 4;
 const O_NONBLOCK: i32 = 0o4000;
@@ -14,6 +18,21 @@ const SIGKILL: i32 = 9;
 extern "C" {
     fn fcntl(fd: i32, command: i32, ...) -> i32;
     fn kill(pid: i32, signal: i32) -> i32;
+}
+
+#[cfg(test)]
+thread_local! {
+    pub(super) static SIGNALLED_UNREAPED: std::cell::Cell<Option<bool>> = const { std::cell::Cell::new(None) };
+}
+
+fn signal_group(child: &Child) {
+    #[cfg(test)]
+    SIGNALLED_UNREAPED.with(|seen| {
+        if seen.get().is_some() {
+            seen.set(Some(std::path::Path::new(&format!("/proc/{}", child.id())).exists()));
+        }
+    });
+    unsafe { kill(-(child.id() as i32), SIGKILL); }
 }
 
 // Nonblocking pipes keep a descendant holding stdout open from extending the discovery deadline.
@@ -56,8 +75,7 @@ impl Tool {
 
     pub fn poll(&mut self) {
         if self.ended { return; }
-        let eof = match read_pipe(&mut self.stdout, &mut self.output, MAX_OUTPUT)
-            .and_then(|stdout| read_pipe(&mut self.stderr, &mut self.error, MAX_ERROR).map(|stderr| stdout && stderr)) {
+        let eof = match self.drain() {
             Ok(eof) => eof,
             Err(error) => {
                 self.problem = Some(format!("Discovery output could not be read: {error}"));
@@ -67,16 +85,26 @@ impl Tool {
             }
         };
         let Some(child) = self.child.as_mut() else { self.ended = eof; return; };
-        match child.try_wait() {
-            Ok(Some(status)) => {
-                if !status.success() { self.problem = Some(format!("Discovery tool failed ({status})")); }
-                // Helpers own their process group, including a descendant left behind after the leader exits.
-                unsafe { kill(-(child.id() as i32), SIGKILL); }
-                self.ended = eof;
-                self.child = None;
+        match wait_for_exit(child, Instant::now()) {
+            Woke::Exited => {
+                // The unreaped leader reserves its group ID until every descendant has been signalled.
+                signal_group(child);
+                match child.try_wait() {
+                    Ok(Some(status)) => {
+                        if !status.success() { self.problem = Some(format!("Discovery tool failed ({status})")); }
+                        self.ended = eof;
+                        self.child = None;
+                    }
+                    Ok(None) => {}
+                    Err(error) => {
+                        self.problem = Some(format!("Discovery tool could not be waited for: {error}"));
+                        self.terminate();
+                        self.ended = true;
+                    }
+                }
             }
-            Ok(None) => {}
-            Err(error) => {
+            Woke::Deadline => {}
+            Woke::Failed(error) => {
                 self.problem = Some(format!("Discovery tool could not be waited for: {error}"));
                 self.terminate();
                 self.ended = true;
@@ -87,7 +115,10 @@ impl Tool {
     pub fn ended(&self) -> bool { self.ended }
 
     pub fn finish(&mut self, timed_out: bool) -> (String, Option<String>) {
-        if !self.ended && timed_out { self.problem = Some("Discovery tool timed out after 3 seconds".into()); }
+        if timed_out {
+            if !self.ended { self.problem = Some(format!("Discovery tool timed out after {} seconds", super::nearby::LIMIT.as_secs_f64())); }
+            if let Err(error) = self.drain() { self.problem = Some(format!("Discovery output could not be read: {error}")); }
+        }
         self.terminate();
         let detail = String::from_utf8_lossy(&self.error).trim().replace(['\r', '\n'], " ");
         let problem = self.problem.take().map(|problem| {
@@ -100,9 +131,18 @@ impl Tool {
         (output, problem)
     }
 
+    fn drain(&mut self) -> io::Result<bool> {
+        // Give both nonblocking pipes one capped turn even if the first exceeds its total limit.
+        let stdout = read_pipe(&mut self.stdout, &mut self.output, MAX_OUTPUT);
+        let stderr = read_pipe(&mut self.stderr, &mut self.error, MAX_ERROR);
+        let stdout = stdout?;
+        let stderr = stderr?;
+        Ok(stdout && stderr)
+    }
+
     fn terminate(&mut self) {
         if let Some(mut child) = self.child.take() {
-            unsafe { kill(-(child.id() as i32), SIGKILL); }
+            signal_group(&child);
             // An uninterruptible helper must not hold the dialog or the three second deadline.
             std::thread::spawn(move || { let _ = child.wait(); });
         }
@@ -114,10 +154,10 @@ impl Drop for Tool {
 }
 
 fn read_pipe(pipe: &mut impl Read, output: &mut Vec<u8>, limit: usize) -> io::Result<bool> {
-    let mut buffer = [0; 8192];
+    let mut buffer = [0; READ_BUFFER];
     // Each source gets one capped turn, so an infinite writer cannot starve cancellation or siblings.
     let mut read = 0;
-    while read < 64 * 1024 {
+    while read < MAX_READ_TURN {
         match pipe.read(&mut buffer) {
             Ok(0) => return Ok(true),
             Ok(count) => {
