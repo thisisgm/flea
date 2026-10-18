@@ -7,7 +7,8 @@ fn image_paths_follow_the_held_listing_and_refuse_stale_numbering() {
     let mut tb = Tables::load();
     tb.mime = Arc::new(super::super::mime::Db::from_str(
         "50:image/png:*.png\n50:text/plain:*.txt\n",
-    ));
+    ))
+    .into();
     let (events, _received) = channel();
     let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
     st.base = dir.join("unscanned");
