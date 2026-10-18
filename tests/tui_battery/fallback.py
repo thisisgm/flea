@@ -96,8 +96,7 @@ def chafa_cells(source, box, board_cells, fx, commands, cell, case):
     text = output.decode("utf-8", errors="strict")
     visible = re.sub(r"\x1b\[[0-9;]*m", "", text).replace("\r\n", "\n")
     lines = visible.rstrip("\n").split("\n")
-    # Each guard names its own branch, so a test can tell which one refused the output. The charset guard runs
-    # first: an escape byte in a row would otherwise also read as an oversized row.
+    # Each guard names its own branch; the charset guard runs first, as an escape byte would also read as an oversized row.
     if any(ch not in " ▀▄█▌▐\n" for ch in visible):
         raise Blocked("chafa source output holds characters outside the half-block set")
     if not any(ch in visible for ch in "▀▄█▌▐"):

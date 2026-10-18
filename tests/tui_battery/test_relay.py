@@ -82,6 +82,18 @@ class RelayTests(unittest.TestCase):
         self.assertTrue(result["winch_restored_at_master_close"])
         self.assertTrue(result["handlers_restored"])
 
+    def test_stop_handlers_are_restored_when_a_close_raises(self):
+        for stage, message in (("master-close-failure", "master close refused"),
+                               ("server-close-failure", "server close refused")):
+            with self.subTest(stage=stage):
+                case = self.root / stage
+                case.mkdir()
+                result = run_relay(case, stage)
+                self.assertIn(message, str(result["error"]))
+                self.assertEqual(result["handlers_installed"], ["SIGHUP", "SIGINT", "SIGTERM", "SIGWINCH"])
+                self.assertTrue(result["restored"])
+                self.assertTrue(result["handlers_restored"])
+
     def test_stop_signals_stay_routed_until_the_child_is_reaped(self):
         case = self.root / "teardown"
         case.mkdir()
