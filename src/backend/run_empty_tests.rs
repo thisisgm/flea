@@ -19,9 +19,14 @@ fn run_search_empty_windows_leave_tables_unloaded_and_preserve_rich_rows() {
     assert!(tb.aliases.get().is_none() && tb.thumbs.get().is_none() && tb.formats.get().is_none());
     assert_eq!(rows_needed(&Request::Window { start: 999, count: 0 }), 0);
     let (metas, _) = window_metas(&st, 0, 2).unwrap();
-    let actual = tb.rows_line(&st.base, &st.listing, &metas, 0, 0.0);
+    let mime = super::super::mime::Db::load();
+    let icons = super::super::icons::Names::load();
+    let aliases = super::super::aliases::Aliases::load();
+    let thumbs = super::super::thumbspec::Thumbnailers::load(&aliases);
+    let mut kinds = super::super::kind::Kinds::new();
     let expected = super::super::rows::rows_line(&st.base, &st.listing, &metas, 0, 0.0,
-        &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut tb.kinds.borrow_mut());
+        &mime, &icons, &aliases, &thumbs, &mut kinds);
+    let actual = tb.rows_line(&st.base, &st.listing, &metas, 0, 0.0);
     assert_eq!(actual, expected, "lazy tables preserve every complete row field");
     assert!(tb.mime.get().is_some() && tb.icons.get().is_some());
     assert!(tb.aliases.get().is_some() && tb.thumbs.get().is_some() && tb.formats.get().is_none());
@@ -41,16 +46,30 @@ fn run_search_empty_remote_window_never_enters_the_mount_worker() {
 
 #[test]
 fn run_search_lazy_thumbnail_pool_reports_its_first_job() {
+    const CHILD: &str = "FLEA_TEST_DISABLED_THUMB_CHILD";
+    if std::env::var_os(CHILD).is_none() {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", "backend::run::empty_tests::run_search_lazy_thumbnail_pool_reports_its_first_job", "--nocapture"])
+            .env(CHILD, "1").env("PATH", "").output().unwrap();
+        let stderr = String::from_utf8(output.stderr).unwrap();
+        assert!(output.status.success(), "{stderr}");
+        assert_eq!(stderr.matches("flea: thumbnails are disabled, bwrap or prlimit is not on PATH").count(), 1, "{stderr}");
+        return;
+    }
     let d = TestDir::new("lazy-thumbnail-pool");
     let tb = Tables::load();
     let (events, replies) = channel();
-    let pool = Pool::lazy(1, &tb, events);
+    let cache_root = d.join("thumb-cache");
+    d.assert_contains(&cache_root);
+    let pool = Pool::lazy(1, &tb, cache_root, events);
     assert_eq!(pool.pending(), 0);
     assert!(pool.cancel_all().is_empty());
     assert!(tb.aliases.get().is_none() && tb.thumbs.get().is_none());
-    let path = d.join("not-decoded");
-    pool.submit(super::super::thumbs::Job { path: path.clone(), mtime: 0, mime: "application/x-flea-no-thumbnailer".into(), trace: None });
-    let reply = replies.recv_timeout(Duration::from_secs(5)).expect("the first lazy job reaches the loop");
-    assert!(matches!(reply, Event::Thumb(Done { path: got, result: super::super::thumbs::Outcome::Failed, .. }) if got == path));
+    for name in ["first-not-decoded", "second-not-decoded"] {
+        let path = d.join(name);
+        pool.submit(super::super::thumbs::Job { path: path.clone(), mtime: 0, mime: "application/x-flea-no-thumbnailer".into(), trace: None });
+        let reply = replies.recv_timeout(Duration::from_secs(5)).expect("each lazy job reaches the loop");
+        assert!(matches!(reply, Event::Thumb(Done { path: got, result: super::super::thumbs::Outcome::Failed, .. }) if got == path));
+    }
 }
 

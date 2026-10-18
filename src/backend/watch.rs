@@ -170,7 +170,7 @@ impl Watch {
         }
     }
 
-    // A directory this box could have watched and did not; no inotify at all is said once at startup.
+    // A directory this box could have watched and did not; no inotify at all is said once on first use.
     pub fn refused(&self) -> bool {
         self.fd.get().is_some_and(|&fd| fd >= 0) && self.wd < 0
     }

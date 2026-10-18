@@ -303,7 +303,16 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         assert!(reply.contains(r#""rows":[],"kinds":[],"ms":0.000"#));
         assert_eq!(held(&st), 399, "an empty request leaves every unranked match held");
         assert_eq!(st.listing.len(), 1);
+        write_window_gen(&mut out, &mut st, start, 0, &tb, Some(7));
+        let generated = String::from_utf8(std::mem::take(&mut out)).unwrap();
+        assert_eq!(crate::json::field_usize(&generated, "start"), Some(clamped));
+        assert!(generated.contains(r#""rows":[],"kinds":[],"ms":0.000"#));
+        assert_eq!(held(&st), 399, "the generated empty window shares the dispatch clamp");
     }
+    write_window_gen(&mut out, &mut st, 999, 1, &tb, Some(7));
+    let beyond = String::from_utf8(std::mem::take(&mut out)).unwrap();
+    assert_eq!(crate::json::field_usize(&beyond, "start"), Some(400));
+    assert_eq!(held(&st), 399, "an out-of-range generated window ranks no held rows");
     // Past the head: one window of 350 joins, 49 stay held.
     ask(r#"{"c":"window","start":1,"count":1}"#, &mut out, &mut st, &mut ops, &mut watch, &mut peeks, &mut fsinfo, &poller);
     let lines: Vec<String> = String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect();

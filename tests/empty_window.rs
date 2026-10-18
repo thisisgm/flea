@@ -5,6 +5,24 @@ use std::io::{BufRead, BufReader};
 use std::os::fd::AsRawFd;
 use std::process::{Child, ChildStdin, ChildStdout, Command, Stdio};
 
+const MOUNTINFO_OPENS: usize = 0;
+const MIME_OPENS: usize = MOUNTINFO_OPENS + 1;
+const ICON_OPENS: usize = MIME_OPENS + 1;
+const ALIAS_OPENS: usize = ICON_OPENS + 1;
+const THUMBNAILER_OPENS: usize = ALIAS_OPENS + 1;
+const METADATA_CALLS: usize = THUMBNAILER_OPENS + 1;
+const THREAD_STARTS: usize = METADATA_CALLS + 1;
+const COUNTER_SLOT_COUNT: usize = THREAD_STARTS + 1;
+const COUNTER_FILE_BYTES: usize = COUNTER_SLOT_COUNT * std::mem::size_of::<u64>();
+const COUNTER_NAMES: [&str; COUNTER_SLOT_COUNT] = ["mountinfo opens", "MIME opens", "icon opens", "alias opens", "thumbnailer opens", "metadata calls", "thread starts"];
+type Counters = [u64; COUNTER_SLOT_COUNT];
+
+fn reader_only_counts() -> Counters {
+    let mut counts = [0; COUNTER_SLOT_COUNT];
+    counts[THREAD_STARTS] = 1;
+    counts
+}
+
 fn wire_path(path: &Path) -> String {
     let mut text = String::new();
     for ch in path.to_str().expect("UTF-8 fixture path").chars() {
@@ -99,9 +117,14 @@ impl Backend {
     }
 }
 
-fn counters(path: &Path) -> Vec<u64> {
-    std::fs::read(path).unwrap().chunks_exact(8)
-        .map(|bytes| u64::from_ne_bytes(bytes.try_into().unwrap())).collect()
+fn counters(path: &Path) -> Counters {
+    let bytes = std::fs::read(path).unwrap();
+    assert_eq!(bytes.len(), COUNTER_FILE_BYTES);
+    let mut counts = [0; COUNTER_SLOT_COUNT];
+    for (slot, bytes) in counts.iter_mut().zip(bytes.chunks_exact(std::mem::size_of::<u64>())) {
+        *slot = u64::from_ne_bytes(bytes.try_into().unwrap());
+    }
+    counts
 }
 
 
@@ -148,7 +171,7 @@ fn observer(dir: &TestDir) -> (std::path::PathBuf, std::path::PathBuf) {
     assert!(Command::new("cc").args(["-shared", "-fPIC", "-O2", "-Wall", "-Werror"])
         .arg(&source).arg("-o").arg(&library).args(["-ldl", "-pthread"]).status().unwrap().success());
     let counts = dir.file("counts", "");
-    std::fs::File::options().write(true).open(&counts).unwrap().set_len(56).unwrap();
+    std::fs::File::options().write(true).open(&counts).unwrap().set_len(COUNTER_FILE_BYTES as u64).unwrap();
     (library, counts)
 }
 
@@ -160,8 +183,8 @@ fn empty_window_protocol() {
     let empty = r#"{"t":"rows","start":0,"rows":[],"kinds":[],"ms":0.000,"listing":0}"#;
     let reply = backend.ask(r#"{"c":"window","start":999,"count":0}"#);
     let cold = counters(&counts);
-    eprintln!("cold counts mountinfo/mime/icons/aliases/thumbnailers/metadata/threads={cold:?}");
-    assert_eq!(cold, [0, 0, 0, 0, 0, 0, 1], "only the stdin reader starts before any row is demanded");
+    eprintln!("cold counters {COUNTER_NAMES:?}={cold:?}");
+    assert_eq!(cold, reader_only_counts(), "only the stdin reader starts before any row is demanded");
     assert_eq!(reply, empty);
     for _ in 0..1000 {
         assert_eq!(backend.ask(r#"{"c":"window","start":999,"count":0}"#), empty);
@@ -173,14 +196,15 @@ fn empty_window_protocol() {
     assert!(listed.contains(r#""n":1,"#), "{listed}");
     assert!(backend.read().contains(r#""rows":[]"#));
     let no_rows = counters(&counts);
-    assert_eq!(&no_rows[1..5], &[1, 0, 0, 0], "names-only listing demands only the picker MIME table");
+    assert_eq!([no_rows[MIME_OPENS], no_rows[ICON_OPENS], no_rows[ALIAS_OPENS], no_rows[THUMBNAILER_OPENS]], [1, 0, 0, 0], "names-only listing demands only the picker MIME table");
     let row = backend.ask(r#"{"c":"window","start":0,"count":1,"listing":1}"#);
     assert!(row.contains(r#""n":"hello.txt","d":false,"s":5"#), "{row}");
     assert!(row.contains(r#""i":"text-x-generic""#), "{row}");
     assert!(row.contains(r#""kinds":["#) && row.ends_with(r#""listing":1}"#), "{row}");
     let warm = counters(&counts);
-    assert_eq!(&warm[1..4], &[1, 1, 1], "each shared row table loads once");
-    assert!(warm[5] > no_rows[5], "requested metadata is observed by the preload control");
+    assert_eq!([warm[MIME_OPENS], warm[ICON_OPENS], warm[ALIAS_OPENS]], [1, 1, 1], "each shared row table loads once");
+    assert!(warm[METADATA_CALLS] > no_rows[METADATA_CALLS], "requested metadata is observed by the preload control");
+    assert!(warm[MOUNTINFO_OPENS] > no_rows[MOUNTINFO_OPENS], "a real nonempty window positively controls mountinfo observation");
     for _ in 0..10 {
         let reply = backend.ask(r#"{"c":"window","start":999,"count":0,"listing":1}"#);
         assert_eq!(reply, r#"{"t":"rows","start":1,"rows":[],"kinds":[],"ms":0.000,"listing":1}"#);
@@ -281,11 +305,14 @@ fn empty_window_prefetch_protocol() {
         let reply = backend.ask(r#"{"c":"window","start":0,"count":0}"#);
         assert_eq!(reply, r#"{"t":"rows","start":0,"rows":[],"kinds":[],"ms":0.000,"listing":0}"#);
     }
-    assert_eq!(counters(&counts), [0, 0, 0, 0, 0, 0, 1], "prefetch recorder waits for a listing's rows");
+    assert_eq!(counters(&counts), reader_only_counts(), "prefetch recorder waits for a listing's rows");
     backend.quit();
-    assert_eq!(counters(&counts), [0, 0, 0, 0, 0, 0, 1], "idle drain starts no unused service");
+    assert_eq!(counters(&counts), reader_only_counts(), "idle drain starts no unused service");
     assert!(!d.join("runtime/flea").exists(), "an unused journal creates no session directory");
 }
 
 #[path = "empty_window/transport.rs"]
 mod transport;
+
+#[path = "empty_window/review.rs"]
+mod review;

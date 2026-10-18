@@ -87,6 +87,12 @@ impl Tables {
 }
 
 impl State {
+    // Every window clamps against the full known result count without adopting its held remainder.
+    pub(crate) fn window_start(&self, start: usize) -> usize {
+        let held = self.search_session.as_ref().and_then(|session| session.pending_rest.as_ref()).map_or(0, Vec::len);
+        start.min(self.listing.len().saturating_add(held))
+    }
+
     // One below FIRST_LISTING, so the forget_rows a first list runs numbers its rows FIRST_LISTING.
     pub fn new(dirsize_worker: super::dirsizeworker::Worker) -> State {
         State {
