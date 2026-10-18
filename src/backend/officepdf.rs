@@ -1,6 +1,6 @@
 // An office document becomes one cached PDF: LibreOffice runs headless in the jail Convert uses, one job at a time, and the PDF viewer draws the result.
 use crate::backend::aliases::Aliases;
-use crate::backend::archivework::{run_boxed_cancellable_capped, Work};
+use crate::backend::archivework::{run_boxed_office, Work};
 use crate::backend::iomount;
 use crate::backend::md5;
 use crate::backend::mime::Db;
@@ -31,6 +31,8 @@ const OFFICE_TYPES: [&str; 6] = [
 const CACHE_LEAF: &str = "flea/office";
 // The failure markers keep the thumbnail cache's fail/flea/ shape, beside the PDFs and never in the shared thumbnails tree.
 const FAIL_LEAF: &str = "fail/flea";
+// Bump this version when the conversion argv or jail profile changes; cached PDFs stay reusable.
+const FAILURE_PROFILE: &str = "flea-office-profile-v2\n";
 const PROGRAM: &str = "soffice";
 // The jail's own tmpfs, so the profile LibreOffice writes needs no bind.
 const PROFILE_URL: &str = "file:///tmp/flea-office-profile";
@@ -105,7 +107,11 @@ impl Store {
     pub fn lookup(&self, key: &str, mtime: SystemTime) -> Hit {
         let failed = self.fail_path(key);
         if Store::stamped(&failed, mtime) {
-            return Hit::Failed(std::fs::read_to_string(&failed).unwrap_or_default());
+            if let Ok(body) = std::fs::read_to_string(&failed) {
+                if let Some(message) = body.strip_prefix(FAILURE_PROFILE) {
+                    return Hit::Failed(message.to_string());
+                }
+            }
         }
         let pdf = self.pdf_path(key);
         if Store::stamped(&pdf, mtime) { Hit::Ready(pdf) } else { Hit::Miss }
@@ -133,7 +139,8 @@ impl Store {
 
     fn record_failure(&self, key: &str, mtime: SystemTime, message: &str) {
         let dest = self.fail_path(key);
-        if Store::publish(&dest, mtime, &mut message.as_bytes()).is_ok() {
+        let body = format!("{FAILURE_PROFILE}{message}");
+        if Store::publish(&dest, mtime, &mut body.as_bytes()).is_ok() {
             self.prune(dest.parent().unwrap_or(&self.dir));
         }
     }
@@ -381,7 +388,7 @@ fn production() -> &'static Arc<Service> {
         let resolve: Resolve = Box::new(|| {
             if sandbox::available() { find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default()) } else { None }
         });
-        let jail: Runner = Box::new(|argv, input, work, stop| run_boxed_cancellable_capped("office", argv, input, work, stop));
+        let jail: Runner = Box::new(run_boxed_office);
         Arc::new(Service::new(Store::new(&crate::userfile::cache_home()), resolve, Box::new(argv), jail, CONVERT_TIMEOUT))
     })
 }

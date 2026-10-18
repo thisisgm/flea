@@ -41,8 +41,8 @@ src/backend/opsdispatch.rs 2404
 src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
+src/backend/officepdf.rs 411
 src/backend/run.rs 1214
-src/backend/officepdf.rs 404
 src/backend/run_session_tests.rs 525
 src/backend/ops.rs 440
 src/backend/thumbs.rs 539
@@ -57,7 +57,7 @@ src/backend/undoshare.rs 462
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
 src/backend/proto.rs 510
-src/backend/sandbox.rs 401
+src/backend/sandbox.rs 410
 src/backend/thumbworker.rs 961
 src/backend/trashbrowse.rs 1061
 src/backend/rawpreview_tests.rs 427

@@ -316,7 +316,7 @@ fn without_soffice_no_request_is_served() {
 fn the_production_runner_converts_through_the_real_jail() {
     if skipped() { return; }
     let d = TestDir::new("officepdf-jail");
-    let jail: Runner = Box::new(|argv, input, work, stop| run_boxed_cancellable_capped("office", argv, input, work, stop));
+    let jail: Runner = Box::new(run_boxed_office);
     let r = rig_in(&d, MAKE_PDF, CONVERT_TIMEOUT, jail);
     let src = d.file("a.docx", "doc");
     assert_eq!(r.ask(1, &src), converting_line(1));
