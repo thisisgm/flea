@@ -310,12 +310,16 @@ fn review_positive_panic_editor_handoff_and_silent_terminal_cleanup() {
             }
             if let Some(status) = child.try_wait().unwrap() { break status; }
         };
+        while wait_input(master.as_raw_fd(), -1, 20).unwrap() {
+            let mut bytes = [0; 4096];
+            match master.read(&mut bytes) { Ok(0) | Err(_) => break, Ok(n) => transcript.extend_from_slice(&bytes[..n]) }
+        }
         assert_eq!(status.success(), name != "panic", "PTY {name}: {}", String::from_utf8_lossy(&transcript));
         assert_eq!(mode(&slave), saved, "PTY {name} left termios changed");
         let pushes = transcript.windows(super::super::capabilities::KEYBOARD_ENABLE.len()).filter(|p| *p == super::super::capabilities::KEYBOARD_ENABLE).count();
         let pops = transcript.windows(super::super::capabilities::KEYBOARD_DISABLE.len()).filter(|p| *p == super::super::capabilities::KEYBOARD_DISABLE).count();
         let expected = if name == "silent" { 0 } else if name == "panic" { 1 } else { 2 };
-        assert_eq!((pushes, pops), (expected, expected), "PTY {name} keyboard stack imbalance");
+        assert_eq!((pushes, pops), (expected, expected), "PTY {name} keyboard stack imbalance: {}", String::from_utf8_lossy(&transcript));
         if name.starts_with("editor") {
             assert_eq!(std::fs::read(dir.join("editor-mode")).unwrap(), saved, "editor inherited raw mode");
             let first_pop = transcript.windows(4).position(|p| p == b"\x1b[<u").unwrap();

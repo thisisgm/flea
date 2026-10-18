@@ -5,6 +5,24 @@ fn decoder(transport: Transport, now: Instant) -> Decoder {
     Decoder::new(Negotiation::begin(transport, (31, 32), true, now))
 }
 #[test]
+fn adv_d_r1_tmux_da1_selects_its_own_sixel_without_passthrough() {
+    let now = Instant::now();
+    let mut d = decoder(Transport::Tmux { passthrough: false }, now);
+    assert_eq!(d.negotiation.queries("shared"), b"\x1b[?u\x1b[c");
+    assert!(d.feed_at(b"\x1b_Gi=31;OK\x1b\\\x1b_Gi=32;OK\x1b\\", false, now).is_empty());
+    assert_eq!(d.negotiation.detected.graphics, Protocol::None);
+    assert!(d.feed_at(b"\x1b[?62;4c", false, now).is_empty());
+    assert_eq!(d.negotiation.detected.graphics, Protocol::Sixel);
+    assert!(!d.negotiation.detected.shared_memory);
+}
+
+#[test]
+fn adv_d_r1_queries_request_only_consumed_capabilities() {
+    let now = Instant::now();
+    let d = decoder(Transport::Direct, now);
+    assert_eq!(d.negotiation.queries("shared"), b"shared\x1b_Gi=31,s=1,v=1,a=q,t=d,f=24;AAAA\x1b\\\x1b[?u\x1b[c");
+}
+#[test]
 fn replies_are_correlated_one_shot_and_bounded_by_the_query_window() {
     let now = Instant::now();
     let mut d = decoder(Transport::Direct, now);
@@ -33,8 +51,7 @@ fn every_fragment_boundary_preserves_keys_and_positive_capabilities() {
         assert_eq!(keys, [Key::character('j', ""), Key::character('k', "")], "split {split}");
         assert_eq!(d.negotiation.detected.graphics, Protocol::Kitty);
         assert!(d.negotiation.detected.shared_memory);
-        assert_eq!(d.negotiation.detected.color, Color::Rgb);
-        assert_eq!(d.negotiation.detected.keyboard, Keyboard::Kitty { previous_flags: 0 });
+        assert_eq!(d.negotiation.detected.keyboard, Keyboard::Kitty);
         assert!(d.negotiation.take_keyboard_enable());
         d.feed_at(b"\x1b[?1u", false, now);
         assert!(!d.negotiation.take_keyboard_enable());
@@ -56,7 +73,6 @@ fn malformed_negative_and_stale_replies_never_enable_a_feature() {
     let oversized = format!("\x1b[?62;4;{}0c", "0;".repeat(100));
     d.feed_at(oversized.as_bytes(), false, now);
     assert_eq!(d.negotiation.detected.graphics, Protocol::None);
-    assert_eq!(d.negotiation.detected.color, Color::Indexed);
     assert_eq!(d.negotiation.detected.keyboard, Keyboard::Unknown);
     let mut fresh = Decoder::new(Negotiation::begin(Transport::Direct, (41, 42), true, now));
     fresh.feed_at(b"\x1b_Gi=31;OK\x1b\\\x1b_Gi=32;OK\x1b\\", false, now);
@@ -68,24 +84,23 @@ fn malformed_negative_and_stale_replies_never_enable_a_feature() {
     assert_eq!(d.negotiation.detected.graphics, Protocol::None);
 }
 #[test]
-fn missing_tmux_passthrough_keeps_graphics_off_even_with_positive_outer_replies() {
+fn missing_tmux_passthrough_refuses_outer_graphics_and_accepts_inner_sixel() {
     let now = Instant::now();
-    for rgb in [false, true] {
-        let mut d = decoder(Transport::Tmux { passthrough: false, rgb }, now);
-        let queries = d.negotiation.queries("shared");
-        assert_eq!(queries, b"\x1b[?u");
-        d.feed_at(b"\x1b_Gi=31;OK\x1b\\\x1b[?62;4c\x1b_Gi=32;OK\x1b\\\x1bP1+r5463\x1b\\\x1b[?0u", false, now);
-        assert_eq!(d.negotiation.detected.graphics, Protocol::None);
-        assert!(!d.negotiation.detected.shared_memory);
-        assert_eq!(d.negotiation.detected.color, if rgb { Color::Rgb } else { Color::Indexed });
-        assert_eq!(d.negotiation.detected.keyboard, Keyboard::Kitty { previous_flags: 0 });
-        println!("tmux-off query={queries:?} selected={:?}", d.negotiation.detected);
-    }
+    let mut d = decoder(Transport::Tmux { passthrough: false }, now);
+    let queries = d.negotiation.queries("shared");
+    assert_eq!(queries, b"\x1b[?u\x1b[c");
+    d.feed_at(b"\x1b_Gi=31;OK\x1b\\\x1b_Gi=32;OK\x1b\\\x1bP1+r5463\x1b\\\x1b[?0u", false, now);
+    assert_eq!(d.negotiation.detected.graphics, Protocol::None);
+    assert!(!d.negotiation.detected.shared_memory);
+    assert_eq!(d.negotiation.detected.keyboard, Keyboard::Kitty);
+    d.feed_at(b"\x1b[?62;4c", false, now);
+    assert_eq!(d.negotiation.detected.graphics, Protocol::Sixel);
+    println!("tmux-off query={queries:?} selected={:?}", d.negotiation.detected);
 }
 #[test]
 fn tmux_queries_and_fragmented_wrapped_replies_are_decoded() {
     let now = Instant::now();
-    let transport = Transport::Tmux { passthrough: true, rgb: true };
+    let transport = Transport::Tmux { passthrough: true };
     let mut d = decoder(transport, now);
     let query = d.negotiation.queries("shared");
     assert!(query.starts_with(b"\x1bPtmux;\x1b\x1b_Gi=31"));

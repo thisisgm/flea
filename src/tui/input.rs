@@ -57,6 +57,7 @@ impl Key {
 // Capability controls and associated text have separate encoded-byte budgets.
 const CSI_CONTROL_LIMIT: usize = 128;
 const CSI_TEXT_LIMIT: usize = 64 * 1024;
+const REPLY_CAPTURE_LIMIT: usize = 512;
 #[derive(Default)]
 pub struct Decoder {
     pending: Vec<u8>,
@@ -77,6 +78,7 @@ impl Decoder {
     pub fn feed(&mut self, bytes: &[u8], idle: bool) -> Vec<Key> {
         self.feed_at(bytes, idle, std::time::Instant::now())
     }
+    // Sample input: j ESC_Gi=31;OK ST k emits j and k while retaining fragmented replies.
     pub fn feed_at(&mut self, bytes: &[u8], idle: bool, now: std::time::Instant) -> Vec<Key> {
         self.negotiation.expire(now);
         // A late reply's tail stays inside its control string; Escape can cancel an abandoned string.
@@ -144,7 +146,7 @@ impl Decoder {
                     self.reply.clear();
                     continue;
                 }
-                if self.reply.len() < 512 { self.reply.push(byte); } else { self.oversized = true; }
+                if self.reply.len() < REPLY_CAPTURE_LIMIT { self.reply.push(byte); } else { self.oversized = true; }
                 self.pending.drain(..if byte == 27 && wrapped { 2 } else { 1 });
                 continue;
             }
@@ -229,6 +231,7 @@ impl Decoder {
         out
     }
 }
+// Sample input: ESC[0;1;30028:30028u uses the text budget; ESC[?62;4c uses the control budget.
 fn csi_limit(bytes: &[u8]) -> usize {
     let body = &bytes[2..];
     if body.first().is_some_and(u8::is_ascii_digit) {
@@ -240,10 +243,11 @@ fn csi_limit(bytes: &[u8]) -> usize {
     }
     2 + CSI_CONTROL_LIMIT
 }
+// Sample input: 0xc3 begins a two-byte UTF-8 character; ASCII consumes one byte.
 fn utf8_width(first: u8) -> usize {
     match first { 0xc2..=0xdf => 2, 0xe0..=0xef => 3, 0xf0..=0xf4 => 4, _ => 1 }
 }
-// Sample input: 1;5D, 2;2~, 32;5u; kitty flag 1 leaves ordinary text in legacy form.
+// Sample input: 1;5D, 3;2~, 103:71;2;71u and 57400u retain legacy key meanings.
 fn csi(text: &str) -> Option<Key> {
     let last = text.chars().last()?;
     if let Some(body) = text.strip_prefix('<') {
@@ -297,9 +301,19 @@ fn csi(text: &str) -> Option<Key> {
             57348 => "Insert", 57349 => "Delete", 57350 => "Left", 57351 => "Right",
             57352 => "Up", 57353 => "Down", 57354 => "PageUp", 57355 => "PageDown",
             57356 => "Home", 57357 => "End", 57363 => "Menu", 57365 => "F2", 57373 => "F10",
-            127 => "Backspace", 13 => "Return", 9 => "Tab", 27 => "Escape", _ => "",
+            57417 => "Left", 57418 => "Right", 57419 => "Up", 57420 => "Down",
+            57421 => "PageUp", 57422 => "PageDown", 57423 => "Home", 57424 => "End",
+            57425 => "Insert", 57426 => "Delete",
+            127 => "Backspace", 13 | 57414 => "Return", 9 => "Tab", 27 => "Escape", _ => "",
         };
         if !functional.is_empty() { return Some(Key::named(functional, mods)); }
+        let keypad = (57399..=57416).contains(&code);
+        let code = match code {
+            57399..=57408 => code - 57399 + u32::from(b'0'),
+            57409 => u32::from(b'.'), 57410 => u32::from(b'/'), 57411 => u32::from(b'*'),
+            57412 => u32::from(b'-'), 57413 => u32::from(b'+'), 57415 => u32::from(b'='),
+            57416 => u32::from(b','), _ => code,
+        };
         if (57344..=63743).contains(&code) { return None; }
         if code == 0 {
             let text = fields.get(2)?.split(':').map(|s| s.parse::<u32>().ok().and_then(char::from_u32)).collect::<Option<String>>()?;
@@ -310,10 +324,20 @@ fn csi(text: &str) -> Option<Key> {
         }
         let c = char::from_u32(code).filter(|c| !c.is_control())?;
         let shifted = codes.get(1).and_then(|s| s.parse::<u32>().ok()).and_then(char::from_u32);
-        let mut key = Key::character(if modifier & 1 != 0 { shifted.unwrap_or(c) } else { c }, mods);
-        if last == 'u' {
+        let associated = if last == 'u' {
             if let Some(text) = fields.get(2) {
-                let text = text.split(':').map(|s| s.parse::<u32>().ok().and_then(char::from_u32)).collect::<Option<String>>()?;
+                Some(text.split(':').map(|s| s.parse::<u32>().ok().and_then(char::from_u32)).collect::<Option<String>>()?)
+            } else { None }
+        } else { None };
+        let mut printable = if modifier & 1 != 0 { shifted.unwrap_or(c) } else { c };
+        if keypad || mods == "shift" {
+            if let Some(text) = associated.as_deref().filter(|text| text.chars().count() == 1) {
+                printable = text.chars().next().filter(|c| !c.is_control())?;
+            }
+        }
+        let mut key = Key::character(printable, if mods == "shift" { "" } else { mods });
+        if last == 'u' {
+            if let Some(text) = associated {
                 key.text = text.chars().filter(|c| !c.is_control()).collect();
             }
             let physical = codes.get(2).or_else(|| codes.get(1)).and_then(|s| s.parse::<u32>().ok()).and_then(char::from_u32);
