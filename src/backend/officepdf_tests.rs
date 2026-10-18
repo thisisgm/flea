@@ -97,17 +97,6 @@ fn mtime_of(p: &Path) -> SystemTime {
 }
 
 #[test]
-fn the_six_office_types_are_found_by_canonical_name() {
-    let mime = Db::from_str("50:application/vnd.oasis.opendocument.text:*.odt\n50:text/rtf:*.rtf\n50:application/pdf:*.pdf\n50:application/msword:*.doc\n");
-    let aliases = Aliases::from_str("text/rtf application/rtf\n");
-    assert!(is_office("/x/a.odt", &mime, &aliases));
-    assert!(is_office("/x/a.rtf", &mime, &aliases), "an alias is canonicalised first");
-    assert!(!is_office("/x/a.pdf", &mime, &aliases));
-    assert!(!is_office("/x/a.doc", &mime, &aliases), "formats outside the six never convert");
-    assert!(!is_office("/x/a.unknown", &mime, &aliases));
-}
-
-#[test]
 fn a_program_counts_only_when_it_resolves_under_usr() {
     let d = TestDir::new("officepdf-find");
     let local = d.file("soffice", "#!/bin/sh\n");
@@ -294,7 +283,7 @@ fn a_convert_that_finds_a_hit_runs_nothing() {
     let key = Store::key(&src);
     let pdf = r.svc.store.pdf_path(&key);
     Store::publish(&pdf, mtime_of(&src), &mut "other window".as_bytes()).unwrap();
-    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new() };
+    let job = Job { key, program: "/usr/bin/sh".into(), input: src.clone(), mtime: mtime_of(&src), seq: 0, waiters: Vec::new(), required: false, cancel: None };
     assert_eq!(r.svc.convert(&job), Ok(pdf));
     assert_eq!(r.jobs(), 0);
 }
@@ -398,3 +387,5 @@ fn the_cache_holds_the_figure_stores_bound_and_drops_the_oldest_conversion() {
     assert_eq!(kept, [false, true, true], "the first conversion went, the newest stays");
 }
 #[path = "officepdf_order_tests.rs"] mod order;
+#[path = "officepdf_kind_tests.rs"] mod kinds;
+#[path = "officepdf_cancel_tests.rs"] mod cancel;

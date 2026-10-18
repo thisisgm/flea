@@ -80,6 +80,7 @@ pub enum Request {
     Archive { op: String, paths: Vec<String>, path: String, dest: String, format: String, menu_id: usize,
               password: String, encrypt_names: bool },
     Convert { path: String, dest: String, strip: bool, menu_id: usize, request_id: usize, check: bool },
+    PrintConvert(super::printreq::Request),
     // Which archive formats this box actually offers, and whether a converter is installed at all.
     Formats { id: usize },
     Permissions { line: String },
@@ -97,6 +98,8 @@ pub enum Request {
     MenuAction { line: String, rows: Vec<usize> },
     // Directive 71: op is "peers" for the flyout's own list and "send" for the transfer it chooses.
     LocalSend { op: String, peer: String, paths: Vec<String>, id: usize },
+    Nearby { op: String, id: usize },
+    NetworkAddress { address: String, id: usize },
     TrashBrowse { line: String },
     // The device of each path named, symlinks followed, for the drop verb of a target that is not the listing; see docs/protocol.md "devs".
     Devs { paths: Vec<String>, id: usize },
@@ -116,6 +119,8 @@ pub enum Request {
 // Sample input: {"c":"list","path":"/home/gm","first":350,"hidden":false}
 pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
+        Some("nearby") => Request::Nearby { op: field_str(line, "op").unwrap_or_default(), id: field_usize(line, "id").unwrap_or(0) },
+        Some("networkaddress") => Request::NetworkAddress { address: field_str(line, "address").unwrap_or_default(), id: field_usize(line, "id").unwrap_or(0) },
         Some("trashbrowse") => Request::TrashBrowse { line: line.to_string() },
         Some("permissions") => Request::Permissions { line: line.to_string() },
         Some("permissionsBatch") => Request::PermissionsBatch {
@@ -258,6 +263,7 @@ pub fn parse_request(line: &str) -> Request {
             password: field_str(line, "password").unwrap_or_default(),
             encrypt_names: field_bool(line, "encryptNames"),
         },
+        Some("printoptions" | "print" | "convertbatch" | "combine") => Request::PrintConvert(super::printreq::Request::parse(line)),
         Some("convert") => Request::Convert {
             request_id: field_usize(line, "requestId").unwrap_or(0),
             check: field_bool(line, "check"),
