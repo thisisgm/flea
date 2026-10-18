@@ -31,8 +31,7 @@ fi
 gate gpui-lint tools/flea-gpui-lint
 gate gate-regressions python3 -B tests/gpui_gates_regressions.py
 
-# Only the private copy is mutated; no source file in the worktree is overwritten by a test.
-# The copy takes every top-level input except VCS, build and scratch state, so the wrapper judges the same tree.
+# Only the private copy is mutated, and it takes every top-level input except VCS, build and scratch state, so the wrapper judges the same tree.
 mkdir "$root/mutant" || exit 1
 for entry in .[!.]* *; do
   case $entry in .git|.superpowers|target|.flea-local) continue ;; esac
