@@ -1,4 +1,7 @@
 pub mod listing;
+pub mod filter;
+#[cfg(test)]
+mod filter_tests;
 pub mod aliases;
 pub mod archive;
 pub mod archiveenc;
