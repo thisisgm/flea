@@ -30,8 +30,8 @@ const CANCEL_DRAIN_STEP: Duration = Duration::from_millis(10);
 thread_local! {
     static READER_HOLD_MS: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
     static DRAIN_SECS: std::cell::Cell<u64> = const { std::cell::Cell::new(CANCEL_DRAIN_SECS) };
-    // The cap the last job on this thread ran under (None: none yet, Some(None): uncapped), so a test tells convert's runner from an archive's.
-    static LAST_CPU: std::cell::Cell<Option<Option<u32>>> = const { std::cell::Cell::new(None) };
+    // The jail argv of the last job on this thread (None: none yet), so a test reads the caps that job ran under.
+    static LAST_JAIL: std::cell::RefCell<Option<Vec<String>>> = const { std::cell::RefCell::new(None) };
     // Microseconds the runner waits between the jail's spawn and its first cancel poll, so a test can land a cancel while bwrap is still starting.
     static SPAWN_HOLD_US: std::cell::Cell<u64> = const { std::cell::Cell::new(0) };
 }
@@ -41,7 +41,11 @@ pub(crate) fn set_spawn_hold_us(us: u64) {
 }
 #[cfg(test)]
 pub(crate) fn last_cpu() -> Option<Option<u32>> {
-    LAST_CPU.with(|c| c.get())
+    last_jail().map(|argv| argv.iter().take_while(|a| *a != sandbox::BWRAP).find_map(|a| a.strip_prefix("--cpu=")?.parse().ok()))
+}
+#[cfg(test)]
+pub(crate) fn last_jail() -> Option<Vec<String>> {
+    LAST_JAIL.with(|j| j.borrow().clone())
 }
 #[cfg(test)]
 pub(crate) fn set_reader_hold_ms(ms: u64) {
@@ -192,36 +196,32 @@ pub(crate) fn cancel_failure(what: &str, jailed: &mut crate::backend::jail::Jail
 // The cancellable runner, watched for a cancel: kill and reap here, so nothing is renamed and stderr is drained.
 pub fn run_boxed_cancellable(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                              cancel: &AtomicBool) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, None)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, (None, sandbox::ADDRESS_SPACE_BYTES))
 }
 
 // Convert keeps its CPU cap on the cancellable runner; archive jobs run uncapped.
 pub fn run_boxed_cancellable_capped(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                     cancel: &AtomicBool) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(sandbox::CPU_SECONDS))
+    run_boxed_cancellable_limited(what, inner, read_only, work, cancel, sandbox::CPU_SECONDS, sandbox::ADDRESS_SPACE_BYTES)
 }
 
-// Test seam: the convert runner with a lower cap, so the pin burns seconds, not 30 s.
-#[cfg(test)]
-fn run_boxed_cancellable_capped_with_cpu(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
-                                         cancel: &AtomicBool, cpu_seconds: u32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, Some(cpu_seconds))
+// The capped runner with caller-chosen caps: the office jail's own address space, and a test's lower CPU cap.
+pub fn run_boxed_cancellable_limited(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
+                                     cancel: &AtomicBool, cpu_seconds: u32, address_space: u64) -> Result<(), FleaError> {
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, None, (Some(cpu_seconds), address_space))
 }
 
+// caps is the CPU cap, or none for an archive job, and the address-space cap; nothing else differs between the jails.
 fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
-                               cancel: &AtomicBool, started: Option<&AtomicU32>, cpu: Option<u32>) -> Result<(), FleaError> {
+                               cancel: &AtomicBool, started: Option<&AtomicU32>, caps: (Option<u32>, u64)) -> Result<(), FleaError> {
+    let mut full = sandbox::wrap_with(&inner, read_only, &work.dir, caps.0, caps.1);
+    sandbox::add_status(&mut full, inner.len());
     #[cfg(test)]
-    LAST_CPU.with(|c| c.set(Some(cpu)));
+    LAST_JAIL.with(|j| *j.borrow_mut() = Some(full.clone()));
     if !sandbox::available() {
         let tool = inner.first().map_or("", |s| s.as_str());
         return Err(op_err(what, tool, SANDBOX_MISSING));
     }
-    // The cap is the only difference between the convert jail and the archive one.
-    let mut full = match cpu {
-        Some(seconds) => sandbox::wrap_with(&inner, read_only, &work.dir, Some(seconds)),
-        None => sandbox::wrap_archive(&inner, read_only, &work.dir),
-    };
-    sandbox::add_status(&mut full, inner.len());
     let mut jailed = crate::backend::jail::spawn_jailed(&full, |cmd| {
         cmd.stdin(std::process::Stdio::null());
         cmd.stdout(std::process::Stdio::null());
@@ -259,7 +259,7 @@ fn run_boxed_cancellable_inner(what: &str, inner: Vec<String>, read_only: &Path,
 #[cfg(test)]
 fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Path, work: &mut Work,
                                   cancel: &AtomicBool, started: &AtomicU32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), None)
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), (None, sandbox::ADDRESS_SPACE_BYTES))
 }
 
 // The convert runner with its own CPU cap and a spawn witness, so a timeout test cancels a live child.
@@ -267,7 +267,7 @@ fn run_boxed_cancellable_observed(what: &str, inner: Vec<String>, read_only: &Pa
 pub(crate) fn run_boxed_cancellable_capped_observed(what: &str, inner: Vec<String>, read_only: &Path,
                                                    work: &mut Work, cancel: &AtomicBool,
                                                    started: &AtomicU32) -> Result<(), FleaError> {
-    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), Some(sandbox::CPU_SECONDS))
+    run_boxed_cancellable_inner(what, inner, read_only, work, cancel, Some(started), (Some(sandbox::CPU_SECONDS), sandbox::ADDRESS_SPACE_BYTES))
 }
 
 pub fn is_empty_dir(dir: &Path) -> bool {

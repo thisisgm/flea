@@ -72,16 +72,16 @@ fn available_on(path: &str) -> bool {
 
 // The decoder's wrapper; the CPU cap is its runaway bound (see AGENTS.md "Thumbnail sandbox").
 pub fn wrap(inner: &[String], input: &Path, out: &Path) -> Vec<String> {
-    wrap_with(inner, input, out, Some(CPU_SECONDS))
+    wrap_with(inner, input, out, Some(CPU_SECONDS), ADDRESS_SPACE_BYTES)
 }
 
 // Issue #211: the archive jail for extract and compress, same boundary and address-space cap but no CPU cap.
 pub fn wrap_archive(inner: &[String], input: &Path, out: &Path) -> Vec<String> {
-    wrap_with(inner, input, out, None)
+    wrap_with(inner, input, out, None, ADDRESS_SPACE_BYTES)
 }
 
-// The one shared argv; the cap is the only argument a caller omits.
-pub(crate) fn wrap_with(inner: &[String], input: &Path, out: &Path, cpu_seconds: Option<u32>) -> Vec<String> {
+// The one shared argv; a caller names its CPU cap, or none, and its address-space cap.
+pub(crate) fn wrap_with(inner: &[String], input: &Path, out: &Path, cpu_seconds: Option<u32>, address_space: u64) -> Vec<String> {
     let head_and_binds = 10;
     let mut a: Vec<String> = Vec::with_capacity(inner.len() + BWRAP_FLAGS.len() + head_and_binds);
     // prlimit stays outermost so the address-space cap still arrives.
@@ -89,7 +89,7 @@ pub(crate) fn wrap_with(inner: &[String], input: &Path, out: &Path, cpu_seconds:
     if let Some(seconds) = cpu_seconds {
         a.push(format!("--cpu={}", seconds));
     }
-    a.push(format!("--as={}", ADDRESS_SPACE_BYTES));
+    a.push(format!("--as={}", address_space));
     a.push(BWRAP.to_string());
     for flag in BWRAP_FLAGS {
         a.push(flag.to_string());

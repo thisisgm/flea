@@ -144,12 +144,12 @@ fn print_office_fixture_and_sandbox_argv_need_no_installed_converter() {
     let source = d.file("letter.rtf", "{\\rtf1\\ansi Print and convert fixture.}");
     let work = Work::new(d.path(), "office-real").unwrap();
     let args = crate::backend::officepdf::argv("soffice", &source, &work.dir);
-    let mut full = crate::backend::sandbox::wrap_compile(&args, &[&source], &work.dir);
+    let mut full = crate::backend::sandbox::wrap_with(&args, &source, &work.dir, Some(crate::backend::sandbox::CPU_SECONDS), crate::backend::officepdf::ADDRESS_SPACE_BYTES);
     crate::backend::sandbox::add_status(&mut full, args.len());
     assert_eq!(std::fs::read_to_string(&source).unwrap(), "{\\rtf1\\ansi Print and convert fixture.}");
     assert_eq!(args, ["soffice", "--headless", "--norestore", "--nolockcheck", "-env:UserInstallation=file:///tmp/flea-office-profile",
         "--convert-to", "pdf", "--outdir", &work.dir.to_string_lossy(), &source.to_string_lossy()]);
-    assert_eq!(&full[..4], ["prlimit", "--cpu=30", "--as=2147483648", "bwrap"]);
+    assert_eq!(&full[..4], ["prlimit", "--cpu=30", "--as=8589934592", "bwrap"]);
     assert!(full.iter().any(|arg| arg == "--unshare-all"));
     assert!(full.iter().any(|arg| arg == "--clearenv"));
     assert!(full.windows(3).any(|args| args == ["--ro-bind", &source.to_string_lossy(), &source.to_string_lossy()]));
