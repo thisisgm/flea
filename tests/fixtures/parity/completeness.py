@@ -197,11 +197,12 @@ def audit(tree, rows, report=None):
         for line, column, forms in scan(path.read_text(), excluded):
             source = f'{name}:{line}'
             candidates = indexed[source, column]
+            represented = len(candidates) == 1 and forms <= set(candidates[0]['sink'].split(','))
             for form in forms:
                 totals[form] += 1
-                matched[form] += len(candidates) == 1
-            if len(candidates) != 1:
-                missing.append((source, column, sorted(forms), len(candidates)))
+                matched[form] += represented
+            if not represented:
+                missing.append((source, column, sorted(forms), [row['sink'] for row in candidates]))
             details.append((name, line, column, ','.join(sorted(forms)), ','.join(row['id'] for row in candidates)))
     if report:
         with Path(report).open('w') as stream:

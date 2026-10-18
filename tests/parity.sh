@@ -14,8 +14,8 @@ trap cleanup EXIT
 python3 -B - "$repo" "$test_root" <<'PY'
 import collections
 import csv
-import hashlib
 import io
+import os
 from pathlib import Path
 import re
 import runpy
@@ -38,12 +38,17 @@ def check(condition, label):
     checks += 1
 
 
-def run(args, code=0):
+def run(args, code=0, reason=''):
     result = subprocess.run(tool + args, text=True, capture_output=True)
     check(result.returncode == code, f'exit {code}, got {result.returncode}: {result.stderr}')
+    if code:
+        check(bool(reason) and result.stderr.startswith('flea-parity: ') and reason in result.stderr,
+              f'rejection needs {reason!r}, got {result.stderr!r}')
+        check(not result.stdout, 'a rejected inventory emits no matrix')
     return result.stdout
 
 
+# Sample input: kind\tid\tsource followed by qml\tqml:ui/Preview.qml\tui/Preview.qml:1 (TSV).
 def parse(text):
     return list(csv.DictReader(io.StringIO(text), delimiter='\t'))
 
@@ -130,20 +135,21 @@ for form in auditor['FORMS']:
         raise AssertionError(f'completeness missed removed {form} row')
 preserved = list(csv.DictReader((fixture / 'preserved-cases.tsv').open(), delimiter='\t'))
 check(len(preserved) == 64 and all(row['id'] in by_id and by_id[row['id']]['source'] == row['source']
-                                 for row in preserved), 'g06-r5-1: every pre-inversion fixture case ID and source survives')
+                                 for row in preserved), 'g06-r5-1: every preserved fixture source site survives its audited ID migration')
 
 status = root / 'status.tsv'
 status.write_text('id\tstatus\nevidence-missing\tgreen\n')
-run(options + ['--status', str(status)], code=2)
+run(options + ['--status', str(status)], code=2, reason="unknown status row: ['evidence-missing', 'green']")
 status.write_text('id\tstatus\nipc:flea.ready\tgreen\n')
-run(options + ['--status', str(status)], code=2)
+run(options + ['--status', str(status)], code=2, reason='green row requires an existing evidence file: ipc:flea.ready')
 status.write_text('id\tstatus\tevidence\nipc:flea.ready\tgreen\t\n')
-run(options + ['--status', str(status)], code=2)
+run(options + ['--status', str(status)], code=2, reason='green row requires an existing evidence file: ipc:flea.ready')
 status.write_text('id\tstatus\tevidence\nipc:flea.ready\tgreen\tevidence.txt\nboard:picker\tgreen\t\n')
-run(options + ['--status', str(status)], code=2)
+run(options + ['--status', str(status)], code=2, reason='green row requires an existing evidence file: board:picker')
 status.write_text('id\tstatus\tevidence\nipc:flea.ready\tgreen\tmissing.log\n')
 rejected_output = root / 'rejected.tsv'
-run(options + ['--status', str(status), '--out', str(rejected_output)], code=2)
+run(options + ['--status', str(status), '--out', str(rejected_output)], code=2,
+    reason='green row requires an existing evidence file: ipc:flea.ready')
 check(not rejected_output.exists(), 'green without existing evidence never writes a matrix')
 status.write_text('id\tstatus\tevidence\nipc:flea.ready\tgreen\tevidence.txt\nboard:picker\truled out\t\n')
 overlay = parse(run(options + ['--status', str(status)]))
@@ -165,16 +171,16 @@ check(saved.read_text() == output, 'saved TSV equals stdout TSV')
 check(run(options + ['--before', str(saved)]) == output, 'preservation gate retains every prior fixture ID')
 invalid_before = root / 'invalid-before.tsv'
 invalid_before.write_text('')
-run(options + ['--before', str(invalid_before)], code=2)
+run(options + ['--before', str(invalid_before)], code=2, reason='previous inventory needs an id column')
 invalid_before.write_text('id\njs:ui/js/Unmapped.js\njs:ui/js/Unmapped.js\n')
-run(options + ['--before', str(invalid_before)], code=2)
+run(options + ['--before', str(invalid_before)], code=2, reason='previous inventory contains empty or duplicate IDs')
 markdown = run(options + ['--md'])
 check(markdown.startswith('| kind | id | source |') and '\\|' in markdown, 'Markdown header and pipe escaping')
 check(len(markdown.splitlines()) == len(rows) + 2, 'one Markdown row per artifact')
 status.write_text('id\tstatus\nmissing:row\tgreen\n')
-run(options + ['--status', str(status)], code=2)
+run(options + ['--status', str(status)], code=2, reason="unknown status row: ['missing:row', 'green']")
 status.write_text('ipc:flea.ready\tgreen\tevidence.txt\nipc:flea.ready\topen\n')
-run(options + ['--status', str(status)], code=2)
+run(options + ['--status', str(status)], code=2, reason="duplicate or unknown status row: ['ipc:flea.ready', 'open']")
 
 copy = root / 'tree'
 shutil.copytree(fixture, copy)
@@ -196,14 +202,16 @@ check(len(mutated) == len(modified) + 1 and {row['id'] for row in modified} < {r
 unmapped = copy / 'ui/js/Unmapped.js'
 renamed = unmapped.with_suffix('.txt')
 unmapped.rename(renamed)
-run(modified_options + ['--before', str(saved)], code=2)
+run(modified_options + ['--before', str(saved)], code=2, reason='1 previous rows disappeared without reasons:')
 reasons = root / 'removed.tsv'
 reasons.write_text('id\treason\njs:ui/js/Unmapped.js\t\n')
-run(modified_options + ['--before', str(saved), '--removed', str(reasons)], code=2)
+run(modified_options + ['--before', str(saved), '--removed', str(reasons)], code=2,
+    reason='removed inventory rows need unique IDs and non-empty reasons')
 reasons.write_text('id\treason\njs:ui/js/Unmapped.js\tFixture intentionally changes this file extension.\n')
 run(modified_options + ['--before', str(saved), '--removed', str(reasons)])
 renamed.rename(unmapped)
-run(modified_options + ['--before', str(saved), '--removed', str(reasons)], code=2)
+run(modified_options + ['--before', str(saved), '--removed', str(reasons)], code=2,
+    reason='removal reasons name rows that did not disappear:')
 (copy / 'tests/preview.sh').write_text('#!/bin/bash\ncat ui/Preview.qml\n')
 modified = parse(run(modified_options))
 check(next(row for row in modified if row['id'] == 'suite:preview')['qml-bound'] == 'yes',
@@ -213,7 +221,7 @@ modified = parse(run(modified_options))
 check(next(row for row in modified if row['id'] == 'suite:wrapper')['qml-bound'] == 'no',
       'a helper cycle terminates without inventing QML execution')
 (copy / 'ci/default.layout').write_text('east broken suites absent\n')
-run(modified_options, code=2)
+run(modified_options, code=2, reason='suite absent has no script')
 
 relocated = []
 for label in ('input-a', 'input-b'):
@@ -233,9 +241,9 @@ check(all(not Path(row['source'].rsplit(':', 1)[0]).is_absolute() for row in par
 unknown = copy / 'tests/unrecognized.qml'
 unknown.write_text('import QtTest\nTestCase { function scenario() { requireCondition(true) } }\n')
 (copy / 'ci/default.layout').write_text((fixture / 'ci/default.layout').read_text())
-run(modified_options, code=2)
+run(modified_options, code=2, reason='unrecognized test harness has no cases: tests/unrecognized.qml')
 
-# The frozen test corpus is already shipped in this tree; pin its identities and bytes to v0.3.12.
+# The frozen copy is hash-checked in source archives too; live tests may evolve independently.
 def omit_fixture_cases(directory, names):
     if Path(directory).is_relative_to(fixture / 'tests'):
         return [name for name in names if Path(name).suffix in ('.qml', '.js')]
@@ -244,18 +252,11 @@ def omit_fixture_cases(directory, names):
 
 frozen_tree = root / 'frozen-tree'
 shutil.copytree(fixture, frozen_tree, ignore=omit_fixture_cases)
-manifest = list(csv.DictReader((fixture / 'frozen-sources.tsv').open(), delimiter='\t'))
-check(len(manifest) == 533 and len({row['path'] for row in manifest}) == 533,
-      'the frozen corpus names all 533 QML/JS sources exactly once')
-for row in manifest:
-    relative = Path(row['path'])
-    assert relative.parent in (Path('tests'), Path('tests/js')) and relative.suffix in ('.qml', '.js')
-    source = repo / relative
-    check(hashlib.sha256(source.read_bytes()).hexdigest() == row['sha256'],
-          f'frozen v0.3.12 source bytes: {row["path"]}')
+corpus = runpy.run_path(str(fixture / 'corpus.py'))
+for relative, data in corpus['sources'](repo, fixture, check):
     target = frozen_tree / relative
     target.parent.mkdir(parents=True, exist_ok=True)
-    shutil.copyfile(source, target)
+    target.write_bytes(data)
 
 # Scope and boards use the CLI fixtures; each tree's own runner and scripts supply its suites.
 tree_layout = root / 'tree.layout'
@@ -277,7 +278,7 @@ frozen_options = ['--tree', str(frozen), '--pending', str(frozen / 'PENDING.md')
 group_before = run(frozen_options)
 restored = list(csv.DictReader((fixture / 'restored-cases.tsv').open(), delimiter='\t'))
 check(len(restored) == 22 and {row['id'] for row in restored} <= {row['id'] for row in parse(group_before)},
-      'g06-r2-1: all 22 previously inventoried frozen row identities are restored')
+      'g06-r2-1: all 22 previously inventoried frozen sites retain their migrated identities')
 sources = {row['source'] for row in parse(group_before) if row['kind'] == 'qml-test'}
 check('tests/markdown-linearity.qml:409' in sources,
       'g06-r5-1: real postfix-division behavior throw has an individual row')
@@ -299,8 +300,11 @@ for name, pattern, expected, needle, injection in [
          ' root.see("review unconditional folder failure", function () { return false }, true);')]:
     source = frozen / f'tests/{name}.qml'
     original = source.read_text()
+    # Exclude seeView's helper body before plan; only behavior sites belong in this wrapper count.
+    plan_line = next(number for number, line in enumerate(original.splitlines(), 1)
+                     if 'function plan(remember)' in line) if name == 'folderviews-flow' else 0
     sites = {f'tests/{name}.qml:{number}' for number, line in enumerate(original.splitlines(), 1)
-             if re.search(pattern, line) and (name != 'folderviews-flow' or number > 97)}
+             if re.search(pattern, line) and number > plan_line}
     check(len(sites) == expected and sites <= sources,
           f'g06-r4-1: every independent wrapper site in real {name} has a row')
     check(original.count(needle) == 1, f'g06-r4-1: mutation anchor is unique in {name}')
@@ -355,7 +359,73 @@ for form, (sites, represented) in sink_counts.items():
     check(sites > 0 and sites == represented, f'g06-r5-1: completeness for {form}: {sites}/{represented}')
     print(f'parity sinks: {form}: {sites} sites, {represented} rows')
 print(f'parity exclusions: {excluded}; known successful Qt exits only; comments, literal data and declarations are not sink sites')
+# Neutral defaults: the tool names no operator path, so each board root and layout comes from a flag or its variable.
+def run_neutral(args, env=None):
+    inherited = {key: value for key, value in os.environ.items() if key not in ('FLEA_PARITY_DESIGN', 'FLEA_PARITY_LAYOUT')}
+    return subprocess.run(tool + args, text=True, capture_output=True, env={**inherited, **(env or {})})
+
+
+tree_only = ['--tree', str(fixture), '--pending', str(fixture / 'PENDING.md')]
+refused = run_neutral(tree_only)
+check(refused.returncode == 2 and refused.stderr == 'flea-parity: --design is required (or FLEA_PARITY_DESIGN)\n'
+      and not refused.stdout, f'no design path refuses by name: {refused.returncode} {refused.stderr!r}')
+refused = run_neutral(tree_only + ['--design', str(fixture / 'design-hig')])
+check(refused.returncode == 2 and refused.stderr == 'flea-parity: --layout is required (or FLEA_PARITY_LAYOUT)\n'
+      and not refused.stdout, f'no layout path refuses by name: {refused.returncode} {refused.stderr!r}')
+blank = run_neutral(tree_only, {'FLEA_PARITY_DESIGN': ''})
+check(blank.returncode == 2 and blank.stderr == 'flea-parity: --design is required (or FLEA_PARITY_DESIGN)\n',
+      'an empty design variable counts as unset')
+from_env = run_neutral(tree_only, {'FLEA_PARITY_DESIGN': str(fixture / 'design-hig'),
+                                   'FLEA_PARITY_LAYOUT': str(fixture / 'ci/default.layout')})
+check(from_env.returncode == 0 and from_env.stdout == output, 'environment paths reproduce the flag inventory byte for byte')
+overridden = run_neutral(options, {'FLEA_PARITY_DESIGN': str(root / 'absent-design'),
+                                   'FLEA_PARITY_LAYOUT': str(root / 'absent.layout')})
+check(overridden.returncode == 0 and overridden.stdout == output, 'flags take precedence over environment paths')
+
+
+# Neutral sources: no committed file under tools, tests, src or ci holds an absolute home path or a private ~/ tree,
+# outside the shipped docs and bench manifests. Both tokens are joined at run time, so this guard never matches itself.
+HOME_TOKEN = '/ho' + 'me/'
+TILDE_TOKEN = '~' + '/'
+XDG_BASES = ('.config', '.cache', '.local')
+HOME_PATH = re.compile(re.escape(HOME_TOKEN) + r'[A-Za-z0-9_][A-Za-z0-9._-]*')
+TILDE_PATH = re.compile(re.escape(TILDE_TOKEN) + r'([A-Za-z0-9_.][A-Za-z0-9._-]*)')
+
+
+def home_paths(tree):
+    scanned, found = 0, []
+    for name in ('tools', 'tests', 'src', 'ci'):
+        for path in sorted((tree / name).rglob('*') if (tree / name).is_dir() else []):
+            relative = path.relative_to(tree).as_posix()
+            if (not path.is_file() or path.suffix == '.zip' or '__pycache__' in path.parts
+                    or relative.startswith('docs/bench/') or relative.endswith('.manifest.md')):
+                continue
+            data = path.read_bytes()
+            if b'\0' in data:
+                continue
+            scanned += 1
+            for number, line in enumerate(data.decode('utf-8', 'replace').splitlines(), 1):
+                private = [match for match in TILDE_PATH.finditer(line) if match[1] not in XDG_BASES]
+                if HOME_PATH.search(line) or private:
+                    found.append((relative, number, line.strip()))
+    return scanned, found
+
+
+fixture_home = root / 'home-fixture'
+(fixture_home / 'tools').mkdir(parents=True)
+(fixture_home / 'tools/leak.sh').write_text(f'# sample {HOME_TOKEN}user/Work\ncd {TILDE_TOKEN}Work\n')
+(fixture_home / 'tools/clean.sh').write_text(f'# a bare /home word and {TILDE_TOKEN}.config are allowed\n')
+(fixture_home / 'tools/exempt.manifest.md').write_text(f'{HOME_TOKEN}user/Work\n')
+fixture_scanned, fixture_found = home_paths(fixture_home)
+check(fixture_scanned == 2 and [(path, number) for path, number, _ in fixture_found] == [('tools/leak.sh', 1), ('tools/leak.sh', 2)],
+      f'the neutral guard is red on a fixture home path and names each line: {fixture_scanned} scanned, {fixture_found}')
 unassigned = sum(row['family'] == 'unassigned' for row in real)
 check(unassigned / len(real) < 0.05, f'real-tree unassigned fraction: {unassigned}/{len(real)}')
+runpy.run_path(str(fixture / 'validation.py'))['validate'](locals())
+tree_scanned, tree_found = home_paths(repo)
+for path, number, text in tree_found:
+    print(f'neutral: {path}:{number}: {text[:160]}')
+check(tree_scanned > 1000 and not tree_found,
+      f'{len(tree_found)} committed lines hold an absolute home path or a private ~/ tree, listed above; {tree_scanned} files scanned')
 print(f'parity: {checks} checks, 0 failed; fixture {len(rows)} rows; real {len(real)} rows; unassigned {unassigned}')
 PY
