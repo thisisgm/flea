@@ -15,8 +15,8 @@ fn signal_name(signal: i32) -> Option<&'static str> {
 // bwrap renders a tool the kernel killed as exit 128+n, so this offset recovers the signal.
 const BWRAP_SIGNAL_BASE: i32 = 128;
 
-// bsdtar's generic last line after member errors, which says nothing about which member failed.
-pub(crate) const DELAYED_ERRORS: &str = "Error exit delayed from previous errors.";
+// bsdtar's generic last line after member errors, which says nothing about which member failed; libarchive 3.7 ends it with a period, 3.8 does not.
+const DELAYED_ERRORS: &str = "Error exit delayed from previous errors";
 // bsdtar's warning about a header it skipped, which never says why the extract failed.
 const IGNORING: &str = "Ignoring ";
 // bsdtar's note that it is resyncing after damage, printed after the damage error itself.
@@ -27,6 +27,11 @@ pub(crate) fn tool_note(text: &str) -> bool {
     text.starts_with(IGNORING) || text == RETRYING
 }
 
+// The text before bsdtar's delayed-error trailer when the line is that trailer, in either spelling.
+pub(crate) fn before_trailer(line: &str) -> Option<&str> {
+    line.strip_suffix('.').unwrap_or(line).strip_suffix(DELAYED_ERRORS)
+}
+
 // Sample: "bsdtar: Ignoring malformed pax extended attributes\nblocked/child: Could not stat blocked/child: Not a directory\nbsdtar: Error exit delayed from previous errors."
 // Issue #211: the last non-blank stderr line diagnoses; under that trailer, the first line without the trailer's tool prefix, else the first prefixed line that is no warning or retry note; otherwise the status does.
 pub(crate) fn failure_message(what: &str, status: &ExitStatus, stderr: &str) -> String {
@@ -34,7 +39,7 @@ pub(crate) fn failure_message(what: &str, status: &ExitStatus, stderr: &str) -> 
     let mut lines = stderr.lines().map(str::trim).filter(|line| !line.is_empty());
     if let Some(first) = lines.next() {
         let last = lines.next_back().unwrap_or(first);
-        let Some(tool) = last.strip_suffix(DELAYED_ERRORS) else {
+        let Some(tool) = before_trailer(last) else {
             return last.to_string();
         };
         let mut kept = std::iter::once(first).chain(lines);

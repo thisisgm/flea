@@ -25,8 +25,6 @@ from fnmatch import fnmatchcase
 from pathlib import Path
 
 
-DESIGN = Path('/home/gm/flea-ops/claude/releases/0.4.0/design-hig')
-LAYOUT = Path('/home/gm/flea-ops/ci/layouts/default.layout')
 FIELDS = ('kind', 'id', 'source', 'column', 'sink', 'family', 'owner', 'status', 'qml-bound',
           'lines', 'action', 'key', 'context', 'preset', 'evidence', 'details')
 ASSERTIONS = frozenset(('check', 'expect', 'verify', 'compare', 'fuzzyCompare', 'tryCompare', 'tryVerify', 'fail'))
@@ -671,8 +669,10 @@ def main():
     parser = argparse.ArgumentParser(description=__doc__)
     parser.add_argument('--tree', type=Path, help='input tree (default: git toplevel)')
     parser.add_argument('--pending', type=Path, help='external scope ledger; omitted means no scope rows')
-    parser.add_argument('--design', type=Path, default=DESIGN, help='board root, containing CHANGES.md and boards/')
-    parser.add_argument('--layout', type=Path, default=LAYOUT, help='flea-ci layout, used read-only')
+    parser.add_argument('--design', type=Path, default=os.environ.get('FLEA_PARITY_DESIGN') or None,
+                        help='board root, containing CHANGES.md and boards/ (default: $FLEA_PARITY_DESIGN)')
+    parser.add_argument('--layout', type=Path, default=os.environ.get('FLEA_PARITY_LAYOUT') or None,
+                        help='flea-ci layout, used read-only (default: $FLEA_PARITY_LAYOUT)')
     parser.add_argument('--map', type=Path, default=Path(__file__).with_suffix('.map'))
     parser.add_argument('--status', type=Path,
                         help='id/status/evidence TSV; green requires an existing file, relative to --tree')
@@ -683,6 +683,10 @@ def main():
     parser.add_argument('--summary', action='store_true', help='print counts and green percentage')
     args = parser.parse_args()
     try:
+        if args.design is None:
+            raise ValueError('--design is required (or FLEA_PARITY_DESIGN)')
+        if args.layout is None:
+            raise ValueError('--layout is required (or FLEA_PARITY_LAYOUT)')
         tree = args.tree or Path(subprocess.check_output(['git', 'rev-parse', '--show-toplevel'], text=True).strip())
         inventory = Inventory(tree.resolve(), args.map)
         inventory.code()
