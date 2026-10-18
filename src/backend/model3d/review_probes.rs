@@ -11,8 +11,15 @@ fn r1_tool_change_after_arc_keeps_valid_toolpath() {
 
 #[test]
 fn r1_material_names_refuse_before_amplifying() {
+    // Five full groups over one 600-byte name: the bound refuses at the second part, before any group reads its last, bad index.
     let name = "N".repeat(600);
-    let source = format!("<model><resources><basematerials id='1'><base name='{name}'/></basematerials><basematerials id='2'><base name='{name}'/></basematerials><multiproperties id='3' pids='1 2'><multi pindices='0 0'/></multiproperties></resources><build/></model>");
+    let pids = ["1";super::limits::MAX_MATERIAL_GROUP].join(" ");
+    let mut indices = ["0";super::limits::MAX_MATERIAL_GROUP];
+    indices[super::limits::MAX_MATERIAL_GROUP-1] = "1";
+    let indices = indices.join(" ");
+    let mut source = format!("<model><resources><basematerials id='1'><base name='{name}'/></basematerials>");
+    for id in 2..=6 { source.push_str(&format!("<multiproperties id='{id}' pids='{pids}'><multi pindices='{indices}'/><multi pindices='{indices}'/></multiproperties>")) }
+    source.push_str("</resources><build/></model>");
     let bytes = super::testdata::archive(&[("3D/3dmodel.model",source.as_bytes())]);
     assert_eq!(parse("3mf",&bytes).unwrap_err(), "3D material name exceeds its bound");
 }

@@ -66,6 +66,9 @@ fn embedded_png_requires_decoder_before_publication() {
     let tables = thumbs::Tables { aliases, specs, cache: thumbcache::Cache::at(root.to_path_buf()), worker: None };
     let job = thumbs::Job { path: input, mtime: 7, mime: "model/x-flea-3d".into(), trash_identity: None, trace: None };
     assert!(matches!(thumbnail(&tables, &job), thumbs::Outcome::Failed), "an embedded PNG must require a sandboxed decoder");
+    // The cache hit extracted the picture and recorded no failure, so the refusal is the missing decoder's.
+    assert_eq!(std::fs::read(cache_root.join(format!("{key}-all.png"))).ok().as_deref(), Some(&testdata::PNG[..]));
+    assert!(matches!(tables.cache.lookup(&job.path,7,THUMB_TABLE),thumbcache::Hit::Miss));
     assert!(!tables.cache.large_path_for(&thumbcache::uri_for(&job.path),None).exists());
 }
 

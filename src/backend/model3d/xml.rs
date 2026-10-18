@@ -70,7 +70,8 @@ fn name(source: &str) -> bool {
 
 // Sample input: <model unit="millimeter"><metadata name="Application">Slicer &amp; tools</metadata></model>.
 pub(super) fn parse(source: &str) -> Result<Document> {
-    if source.len() > MAX_XML_BYTES || source.chars().any(|c| c.is_control() && !matches!(c,'\t'|'\r'|'\n')) { return Err("XML exceeds its bound or contains controls".into()) }
+    if source.len() > MAX_XML_BYTES { return Err("XML exceeds its bound".into()) }
+    if source.chars().any(|c| c.is_control() && !matches!(c,'\t'|'\r'|'\n')) { return Err("XML contains control characters".into()) }
     let mut nodes: Vec<Node> = Vec::new();
     let mut stack: Vec<(usize,String)> = Vec::new();
     let mut root = None;

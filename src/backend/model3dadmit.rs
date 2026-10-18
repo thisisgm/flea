@@ -59,6 +59,23 @@ mod tests {
     use crate::backend::{codereq, jail};
     use std::sync::{mpsc, Arc};
 
+    const PROBE_WAIT: Duration = Duration::from_millis(50);
+    const PROBE_LIMIT: Duration = Duration::from_secs(2);
+
+    // One enter on its own thread, so a waiter that ignores its deadline fails the test instead of hanging it.
+    fn probe(gate: &Arc<Gate>, background: bool) -> (Result<(),String>,Duration) {
+        let gate = Arc::clone(gate);
+        let (sent, got) = mpsc::channel();
+        std::thread::spawn(move || {
+            let ticket = codereq::begin("model3d-admission-probe");
+            let began = Instant::now();
+            let result = gate.enter(&ticket,background,began+PROBE_WAIT).map(|_| ());
+            sent.send((result,began.elapsed())).unwrap();
+            ticket.discard();
+        });
+        got.recv_timeout(PROBE_LIMIT).expect("a waiter outlived its deadline")
+    }
+
     #[test]
     fn foreground_cancels_a_running_background_parser_before_admission() {
         let gate = Arc::new(Gate::new());
@@ -89,6 +106,12 @@ mod tests {
         let gate = Arc::new(Gate::new());
         let held_ticket = codereq::begin("model3d-admission-held");
         let held = gate.enter(&held_ticket,false,Instant::now()+Duration::from_secs(2)).unwrap();
+        for background in [true,false] {
+            let (result,waited) = probe(&gate,background);
+            assert_eq!(result,Err("3D preview timed out".into()),"background={background}: a busy gate admitted a waiter");
+            assert!(waited >= PROBE_WAIT,"background={background}: refused after {waited:?}, before its deadline");
+        }
+        assert_eq!(gate.state.lock().unwrap().foreground,0);
         let foreground = Arc::clone(&gate);
         let (entered, next) = mpsc::channel();
         let announced = entered.clone();
@@ -110,14 +133,24 @@ mod tests {
             entered.send("background").unwrap();
             ticket.discard();
         });
-        let ticket = codereq::begin("model3d-admission-timeout");
-        assert!(gate.enter(&ticket,true,Instant::now()).err().unwrap().contains("timed out"));
-        ticket.discard();
         drop(held);
         held_ticket.discard();
         assert_eq!(next.recv_timeout(Duration::from_secs(2)).unwrap(),"foreground");
         assert_eq!(next.recv_timeout(Duration::from_secs(2)).unwrap(),"background");
         worker.join().unwrap();
         behind.join().unwrap();
+        assert_eq!(probe(&gate,true).0,Ok(()));
+    }
+
+    #[test]
+    fn a_counted_foreground_waiter_keeps_a_free_gate_from_background() {
+        let gate = Gate::new();
+        let ticket = codereq::begin("model3d-admission-pending");
+        gate.state.lock().unwrap().foreground = 1;
+        let refused = gate.enter(&ticket,true,Instant::now()+PROBE_WAIT).map(|_| ());
+        assert_eq!(refused,Err("3D preview timed out".into()),"a background parser was admitted ahead of a waiting foreground preview");
+        gate.state.lock().unwrap().foreground = 0;
+        assert!(gate.enter(&ticket,true,Instant::now()+PROBE_WAIT).is_ok());
+        ticket.discard();
     }
 }

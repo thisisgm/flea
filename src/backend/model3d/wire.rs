@@ -149,8 +149,8 @@ impl<R: Read> Reader<R> {
 // Sample input (hex): 46 4C 33 44 01 00 00 00 02 00 00 00 7B 7D 00 00 00 00 has summary {} and zero thumbnails.
 pub fn header(input: impl Read) -> Result<(String,Vec<Thumbnail>)> { Reader { input, read: 0 }.header() }
 
-#[allow(dead_code)] // Public shared-model reader for the later rendering units.
 // Sample input: the header example above followed by nine u32le zeros encodes an empty format, metadata map and seven empty model vectors.
+#[cfg_attr(not(test), allow(dead_code))]
 pub fn read(input: impl Read) -> Result<Model> {
     let mut r = Reader { input, read: 0 };
     let (_,thumbnails) = r.header()?;

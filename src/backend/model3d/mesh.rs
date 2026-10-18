@@ -106,39 +106,62 @@ pub(super) fn obj(bytes: &[u8], model: &mut Model) -> Result<()> {
     Ok(())
 }
 
+// Clipping can leave a corner repeating its neighbour or a zero-width spike, and neither holds any area.
+fn collapse(left: &mut Vec<usize>, same: impl Fn(usize,usize) -> bool) {
+    while left.len() >= 3 {
+        let n = left.len();
+        let Some(at) = (0..n).find(|&at| { let prev = left[(at+n-1)%n]; same(prev,left[at]) || same(prev,left[(at+1)%n]) }) else { break };
+        left.remove(at);
+    }
+}
+
 // Ear clipping preserves concave OBJ and PLY faces without a dependency or unbounded recursion.
 pub(super) fn polygon(model: &mut Model, indices: &[u32], material: Option<u32>) -> Result<()> {
     if indices.len() < 3 || indices.len() > MAX_POLYGON_VERTICES { return Err("polygon size exceeds its bound".into()) }
     if indices.iter().any(|&v| v as usize >= model.vertices.len()) { return Err("polygon vertex is out of range".into()) }
-    let mut unique = Vec::new();
+    // Only a repeat of the previous corner or of the first one at the close is dropped; a later revisit is a keyhole bridge or a pinch.
+    let position = |i: u32| model.vertices[i as usize].position;
+    let mut unique: Vec<u32> = Vec::new();
     for &index in indices {
-        if !unique.iter().any(|&i: &u32| model.vertices[i as usize].position == model.vertices[index as usize].position) { unique.push(index) }
+        if unique.last().map_or(true,|&last| position(last) != position(index)) { unique.push(index) }
     }
+    while unique.len() > 1 && position(unique[0]) == position(unique[unique.len()-1]) { unique.pop(); }
     if unique.len() < 3 { return Ok(()) }
     let indices = unique.as_slice();
-    let points: Vec<[f64;3]> = indices.iter().map(|&i| model.vertices[i as usize].position.map(f64::from)).collect();
+    let corners: Vec<[f64;3]> = indices.iter().map(|&i| position(i).map(f64::from)).collect();
     let mut normal = [0.;3];
-    for i in 0..points.len() {
-        let a = points[i];
-        let b = points[(i+1)%points.len()];
+    for i in 0..corners.len() {
+        let a = corners[i];
+        let b = corners[(i+1)%corners.len()];
         normal[0] += (a[1]-b[1])*(a[2]+b[2]);
         normal[1] += (a[2]-b[2])*(a[0]+b[0]);
         normal[2] += (a[0]-b[0])*(a[1]+b[1]);
     }
     let axis = (0..3).max_by(|&a,&b| normal[a].abs().total_cmp(&normal[b].abs())).unwrap();
-    let points: Vec<[f64;2]> = points.iter().map(|p| [p[(axis+1)%3],p[(axis+2)%3]]).collect();
+    let points: Vec<[f64;2]> = corners.iter().map(|p| [p[(axis+1)%3],p[(axis+2)%3]]).collect();
     let turn = |a: usize,b: usize,c: usize| (points[b][0]-points[a][0])*(points[c][1]-points[a][1]) - (points[b][1]-points[a][1])*(points[c][0]-points[a][0]);
+    let same = |a: usize,b: usize| corners[a] == corners[b];
     if normal[axis] == 0. { return Ok(()) }
     let sign = normal[axis].signum();
     let mut left: Vec<usize> = (0..indices.len()).collect();
-    while left.len() > 3 {
+    loop {
+        collapse(&mut left,same);
+        if left.len() <= 3 { break }
         let mut found = None;
         for i in 0..left.len() {
             let a = left[(i+left.len()-1)%left.len()];
             let b = left[i];
             let c = left[(i+1)%left.len()];
             if turn(a,b,c)*sign <= 0. { continue }
-            if left.iter().copied().any(|p| p != a && p != b && p != c && turn(a,b,p)*sign >= 0. && turn(b,c,p)*sign >= 0. && turn(c,a,p)*sign >= 0.) { continue }
+            // A revisit of the tip blocks the ear only when one of its own edges runs into the ear's angle.
+            let inside = |q: usize| turn(a,b,q)*sign > 0. && turn(b,c,q)*sign > 0.;
+            let blocks = |at: usize| {
+                let p = left[at];
+                if p == a || p == b || p == c || same(p,a) || same(p,c) { return false }
+                if same(p,b) { return inside(left[(at+left.len()-1)%left.len()]) || inside(left[(at+1)%left.len()]) }
+                turn(a,b,p)*sign >= 0. && turn(b,c,p)*sign >= 0. && turn(c,a,p)*sign >= 0.
+            };
+            if (0..left.len()).any(blocks) { continue }
             found = Some((i,[indices[a],indices[b],indices[c]]));
             break;
         }
@@ -146,5 +169,6 @@ pub(super) fn polygon(model: &mut Model, indices: &[u32], material: Option<u32>)
         model.triangle(triangle,[None;3],material)?;
         left.remove(i);
     }
+    if left.len() < 3 { return Ok(()) }
     model.triangle([indices[left[0]],indices[left[1]],indices[left[2]]],[None;3],material)
 }
