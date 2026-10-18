@@ -29,6 +29,17 @@ fn command() -> Command {
 }
 
 impl Backend {
+    #[cfg(test)]
+    pub(crate) fn test_channel() -> (Self, impl FnMut() -> Option<(usize, usize)>) {
+        let (requests, receiver) = mpsc::channel();
+        let (_, replies) = async_channel::unbounded();
+        let receive = move || match receiver.try_recv().ok()? {
+            Control::Window { start, count } => Some((start, count)),
+            Control::Stop => None,
+        };
+        (Self { requests, replies }, receive)
+    }
+
     pub fn start(path: String, select: Option<String>, first: usize) -> io::Result<Self> {
         let (requests, receiver) = mpsc::channel();
         let finished = requests.clone();

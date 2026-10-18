@@ -67,6 +67,9 @@ pub enum Reply {
 }
 
 /// Reads fields from their own object, so nested row keys cannot impersonate the envelope.
+/// Sample input: {"t":"listed","path":"/files","n":1}
+/// Sample input: {"t":"rows","start":0,"listing":1,"rows":[{"n":"a.txt"}]}
+/// Sample input: {"t":"error","where":"window","path":"/files","msg":"refused"}
 pub fn parse_reply(line: &str) -> Result<Reply, String> {
     let document = jsondoc::parse(line)?;
     match string(&document, "t")? {

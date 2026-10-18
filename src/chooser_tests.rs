@@ -148,7 +148,7 @@ fn an_unknown_desktop_asks_for_the_command_the_user_ran() {
         assert!(asked.contains("reads /h/hyprland-portals.conf or /h/sway-portals.conf. "), "{}", asked);
         assert!(asked.ends_with(&format!("Run {} inside the desktop session.", command)), "{}", asked);
     }
-    let main = include_str!("main.rs");
-    assert_eq!(main.matches("chooser::claim(\"flea --picker\")").count(), 1, "the picker route names itself");
-    assert_eq!(main.matches("chooser::claim(\"flea --default\")").count(), 1, "the default route names itself");
+    let claims = include_str!("claims.rs");
+    assert_eq!(claims.matches("chooser::claim(\"flea --picker\")").count(), 1, "the picker route names itself");
+    assert_eq!(claims.matches("chooser::claim(\"flea --default\")").count(), 1, "the default route names itself");
 }
