@@ -4,6 +4,7 @@ pub mod i18n;
 pub mod ipc;
 pub mod json;
 pub mod jsondoc;
+pub mod keys;
 mod jsonstring;
 pub mod oflags;
 pub mod protocol;

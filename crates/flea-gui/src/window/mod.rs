@@ -1,7 +1,7 @@
 //! Native window host and composition interfaces shared by later surfaces.
 pub mod composition;
 mod events;
-mod input;
+pub mod input;
 pub mod lifecycle;
 pub mod locale;
 pub(crate) mod pane;
