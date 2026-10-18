@@ -167,7 +167,8 @@ A selection containing folders first answers its known file bytes with `done:fal
 each selected folder on demand using the same walker as `contents`. A selection on a remote mount
 or containing a remote mountpoint has one 15-second bound covering initial metadata, every walk
 and final identity revalidation; cancellation frees the menu worker without waiting for a blocked
-remote syscall. A deadline or lost worker ends with the retained floor, `done:true,partial:true`.
+remote syscall. A deadline ends with the retained floor, `done:true,partial:true`. A worker lost
+before a terminal reply returns `ok:false,error:"The selected items stopped answering."`.
 Before initial metadata completes, `kinds`, `newest` and `oldest` are empty and `bytes` includes
 only inspected non-folder entries. A silent syscall marks its current remote mount stuck; a
 subsequent request involving that mount returns a zero partial floor before any stat. Each total
