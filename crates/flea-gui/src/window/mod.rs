@@ -1,12 +1,15 @@
 //! Native window host and composition interfaces shared by later surfaces.
 pub mod composition;
 mod events;
+mod frame;
 mod input;
+pub mod navigate;
 pub mod lifecycle;
 pub mod locale;
 pub(crate) mod pane;
 mod render;
 pub mod startup;
+mod transitions;
 
 use crate::{ipc::server::Event, state::Shell};
 use gpui::{px, size, App, AppContext, TitlebarOptions, WindowBounds, WindowHandle, WindowOptions};
@@ -41,3 +44,6 @@ pub fn open(
     })
     .map_err(|error| error.to_string())
 }
+
+#[cfg(test)]
+mod transition_tests;

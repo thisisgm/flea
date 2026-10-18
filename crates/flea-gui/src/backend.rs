@@ -1,7 +1,8 @@
 //! A pane's backend child; all process and pipe work stays off the UI thread.
+use crate::pane::requests::RowAction;
 use async_channel::Receiver;
 use flea::protocol::{parse_reply, Reply, Request};
-use std::io::{self, BufRead, BufReader};
+use std::io::{self, BufRead, BufReader, Write};
 use std::process::{Child, Command, Stdio};
 use std::sync::{
     atomic::{AtomicBool, Ordering},
@@ -9,6 +10,8 @@ use std::sync::{
 };
 use std::thread;
 use std::time::{Duration, Instant};
+mod transport;
+pub use transport::list_line;
 
 #[derive(Clone, Debug)]
 pub struct Failure {
@@ -19,8 +22,35 @@ pub struct Failure {
 #[derive(Debug)]
 pub enum Event {
     Reply(Reply),
+    Session {
+        generation: usize,
+        reply: Reply,
+    },
+    Refused {
+        operation: String,
+        path: String,
+        message: String,
+        mode: u32,
+    },
     Failed(Failure),
     Drained,
+    Changed {
+        path: String,
+    },
+    Located(Located),
+    Paths(Vec<String>),
+}
+
+// Both locate forms: the single path with its index, and the batch with its id and matches.
+#[derive(Debug, Clone, PartialEq, Eq)]
+pub struct Located {
+    pub directory: String,
+    pub path: String,
+    pub index: i64,
+    pub id: Option<u64>,
+    pub transfer: i64,
+    pub ok: bool,
+    pub matches: Vec<(String, usize)>,
 }
 
 pub struct Backend {
@@ -31,7 +61,20 @@ pub struct Backend {
 }
 
 enum Control {
-    Window { start: usize, count: usize },
+    List {
+        path: String,
+        select: Option<String>,
+        first: usize,
+    },
+    Window {
+        start: usize,
+        count: usize,
+    },
+    Rows {
+        command: &'static str,
+        action: RowAction,
+    },
+    Line(String),
     Quit,
     Eof,
 }
@@ -78,12 +121,29 @@ impl Backend {
     }
 
     // Injecting the command lets acceptance drive the real pipe, EOF and reaping path.
+    pub fn start_listing(listing: &crate::navigation::Listing) -> io::Result<Self> {
+        Self::start_with(command(), transport::list_line(listing))
+    }
+
     pub fn start_command(
-        mut command: Command,
+        command: Command,
         path: String,
         select: Option<String>,
         first: usize,
     ) -> io::Result<Self> {
+        let mut line = Vec::new();
+        Request::List {
+            path: &path,
+            first,
+            select: select.as_deref(),
+        }
+        .write_to(&mut line)?;
+        let line = String::from_utf8_lossy(&line).trim_end().to_owned();
+        Self::start_with(command, line)
+    }
+
+    // The first line is written before any control, so the child always lists first.
+    pub fn start_with(mut command: Command, first_line: String) -> io::Result<Self> {
         let (requests, receiver) = mpsc::channel();
         let finished = requests.clone();
         let (output, replies) = async_channel::unbounded();
@@ -107,8 +167,8 @@ impl Backend {
                             .spawn(move || {
                                 for line in BufReader::new(stdout).lines() {
                                     let event = match line {
-                                        Ok(line) => match parse_reply(&line) {
-                                            Ok(reply) => Event::Reply(reply),
+                                        Ok(line) => match transport::parse(&line) {
+                                            Ok(reply) => reply,
                                             Err(error) => Event::Failed(failure(
                                                 "window.backend_protocol",
                                                 error,
@@ -137,17 +197,30 @@ impl Backend {
                         }
                     };
                     let mut graceful = false;
-                    let result = Request::List {
-                        path: &path,
-                        first,
-                        select: select.as_deref(),
-                    }
-                    .write_to(&mut input)
+                    let result = writeln!(input, "{first_line}")
+                    .and_then(|()| input.flush())
                     .and_then(|()| {
                         for control in receiver {
                             match control {
+                                Control::List {
+                                    path,
+                                    select,
+                                    first,
+                                } => Request::List {
+                                    path: &path,
+                                    select: select.as_deref(),
+                                    first,
+                                }
+                                .write_to(&mut input)?,
                                 Control::Window { start, count } => {
                                     Request::Window { start, count }.write_to(&mut input)?
+                                }
+                                Control::Rows { command, action } => {
+                                    transport::write_rows(&mut input, command, &action)?
+                                }
+                                Control::Line(line) => {
+                                    writeln!(input, "{line}")?;
+                                    input.flush()?
                                 }
                                 Control::Quit => {
                                     Request::Quit.write_to(&mut input)?;
@@ -191,6 +264,41 @@ impl Backend {
         }
         self.requests
             .send(Control::Window { start, count })
+            .map_err(|_| failure("window.backend_stopped", ""))
+    }
+
+    pub fn list(&self, path: String, select: Option<String>, first: usize) -> Result<(), Failure> {
+        self.send(Control::List {
+            path,
+            select,
+            first,
+        })
+    }
+
+    pub fn rows(&self, command: &'static str, action: RowAction) -> Result<(), Failure> {
+        if !matches!(command, "paths" | "trash") || action.listing == 0 || action.rows.is_empty() {
+            return Err(failure("pane.row_request", ""));
+        }
+        self.send(Control::Rows { command, action })
+    }
+
+    // Navigation submits typed requests; paths reuses the captured-listing row writer.
+    pub fn command(&self, command: &crate::navigation::Command) -> Result<(), Failure> {
+        if let crate::navigation::Command::Paths(action) = command {
+            return self.rows("paths", action.clone());
+        }
+        match transport::command_line(command) {
+            Some(line) => self.send(Control::Line(line)),
+            None => Ok(()),
+        }
+    }
+
+    fn send(&self, control: Control) -> Result<(), Failure> {
+        if self.quitting.load(Ordering::Acquire) {
+            return Err(failure("window.backend_stopped", ""));
+        }
+        self.requests
+            .send(control)
             .map_err(|_| failure("window.backend_stopped", ""))
     }
 

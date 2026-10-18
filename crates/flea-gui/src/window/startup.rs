@@ -80,6 +80,7 @@ pub struct Settings {
     pub rail_width: f32,
     pub columns: usize,
     pub split: f32,
+    pub newest: Vec<String>,
 }
 
 fn word<'a>(value: &'a Json, key: &str) -> &'a str {
@@ -119,6 +120,7 @@ impl Settings {
             rail_width,
             columns,
             split,
+            newest: Vec::new(),
         }
     }
 
@@ -194,7 +196,16 @@ pub fn load_settings() -> Result<Settings, String> {
         .ok()
         .and_then(|text| flea::jsondoc::parse(&text).ok())
         .is_some_and(|raw| raw.get("view").and_then(Json::as_str).is_some());
-    Ok(Settings::from_json(data, saved_view))
+    let mut settings = Settings::from_json(data, saved_view);
+    // Read once on the startup worker, never on a frame: the folders that open newest first.
+    let config = std::env::var_os("XDG_CONFIG_HOME")
+        .filter(|v| !v.is_empty())
+        .map(PathBuf::from)
+        .unwrap_or_else(|| home.join(".config"));
+    let body = std::fs::read_to_string(config.join("user-dirs.dirs")).unwrap_or_default();
+    settings.newest =
+        crate::navigation::folder_state::newest_paths(&body, &home.to_string_lossy());
+    Ok(settings)
 }
 
 #[derive(Clone, Debug)]
