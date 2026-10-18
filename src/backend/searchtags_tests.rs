@@ -107,7 +107,7 @@ fn each_entry_is_read_once_per_session_and_an_extension_never_reads_again() {
     let narrowed = s.query(2, "tag:Red holiday", 50).expect("answers");
     assert!(!narrowed.walking, "the names are in, so the extension answers whole at once");
     assert_eq!(narrowed.total, 1);
-    assert_eq!(s.counters.rows_scored, first.total, "the extension scores only the Red matches");
+    assert_eq!(s.counters.rows_scored, rows, "edit-eligible text rescans candidates while reusing every tag read");
     let other = s.query(3, "tag:Blue", 50).expect("answers");
     assert_eq!(other.total, 1, "another tag is answered from the same names");
     assert_eq!(s.tags.reads(), rows, "no second read for the extension or another tag");

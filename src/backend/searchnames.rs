@@ -10,6 +10,7 @@ pub(crate) type Refusal = &'static str;
 struct Name {
     off: u32,
     len: u32,
+    bits: u64,
 }
 
 pub(crate) struct Names {
@@ -17,6 +18,7 @@ pub(crate) struct Names {
     refs: Vec<Name>,
     lookup: Vec<u32>,
     hash: RandomState,
+    groups: Vec<u64>,
 }
 
 // Fallible table allocation keeps allocation refusal distinguishable from a complete walk.
@@ -37,7 +39,7 @@ pub(crate) fn slot(slots: &[u32], hash: u64, same: impl Fn(u32) -> bool) -> usiz
 
 impl Names {
     pub(crate) fn new() -> Self {
-        Self { slabs: Vec::new(), refs: Vec::new(), lookup: Vec::new(), hash: RandomState::new() }
+        Self { slabs: Vec::new(), refs: Vec::new(), lookup: Vec::new(), hash: RandomState::new(), groups: Vec::new() }
     }
 
     pub(crate) fn get(&self, id: u32) -> &[u8] {
@@ -67,6 +69,7 @@ impl Names {
             }
             self.lookup = lookup;
         }
+        if id % 64 == 0 { self.groups.try_reserve(1).map_err(|_| "allocation")?; }
         self.refs.try_reserve(1).map_err(|_| "allocation")?;
         if self.slabs.last().is_none_or(|slab| slab.len() + bytes.len() > SLAB) {
             self.slabs.try_reserve(1).map_err(|_| "allocation")?;
@@ -81,7 +84,10 @@ impl Names {
         let slab = self.slabs.last_mut().unwrap();
         slab.try_reserve_exact(SLAB - slab.len()).map_err(|_| "allocation")?;
         slab.extend_from_slice(bytes);
-        self.refs.push(Name { off, len: bytes.len() as u32 });
+        let bits = super::searchbits::mask(bytes);
+        self.refs.push(Name { off, len: bytes.len() as u32, bits });
+        if id % 64 == 0 { self.groups.push(0); }
+        self.groups[id as usize / 64] |= bits;
         self.lookup[at] = id;
         Ok(id)
     }
@@ -99,9 +105,13 @@ impl Names {
             + count(self.slabs.len(), self.slabs.capacity()) * size_of::<Vec<u8>>()
             + count(self.refs.len(), self.refs.capacity()) * size_of::<Name>()
             + self.lookup.capacity() * size_of::<u32>()
+            + count(self.groups.len(), self.groups.capacity()) * size_of::<u64>()
     }
 
-    #[cfg(test)]
+    pub(crate) fn bits(&self, id: usize) -> u64 { self.refs[id].bits }
+
+    pub(crate) fn group_bits(&self, group: usize) -> u64 { self.groups[group] }
+
     pub(crate) fn len(&self) -> usize {
         self.refs.len()
     }

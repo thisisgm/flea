@@ -96,7 +96,7 @@ fn full_index_score_prints_its_ms() {
         );
     }
     assert_eq!(index.len(), 100_000, "100000 synthetic rows indexed");
-    let fuzzy = crate::backend::fuzzy::Fuzzy::new("report");
+    let fuzzy = crate::backend::searchmatch::Matcher::new("report");
     let rows: Vec<usize> = (0..index.len()).collect();
     let started = std::time::Instant::now();
     let hits = super::score_all(&fuzzy, &rows, &index);
@@ -172,12 +172,12 @@ fn a_patch_on_a_stuck_mount_reads_nothing_and_leaves_the_index() {
 }
 
 #[test]
-fn a_panic_in_a_scoring_thread_reaches_the_caller() {
+fn an_invalid_scoring_candidate_panics_instead_of_losing_rows() {
     let mut index = Index::new();
     for i in 0..PARALLEL_SCORE_AT + 50 {
         index.push(format!("report_{:05}.txt", i), false);
     }
-    let fuzzy = crate::backend::fuzzy::Fuzzy::new("report");
+    let fuzzy = crate::backend::searchmatch::Matcher::new("report");
     let rows: Vec<usize> = (0..index.len()).chain([index.len() + 5]).collect();
     let scored = std::panic::catch_unwind(std::panic::AssertUnwindSafe(|| super::score_all(&fuzzy, &rows, &index)));
     assert!(scored.is_err(), "a row past the arena panics the caller, never a short answer");

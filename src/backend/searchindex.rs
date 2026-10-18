@@ -1,5 +1,4 @@
 // The session snapshot stores basename ids and parents; paths exist only in caller scratch.
-use crate::backend::fuzzy::{fold_packed, rank_order, Hay, Packed};
 use super::searchblocks::{display_len, Blocks};
 use super::searchnames::{Names, Refusal, EMPTY};
 use std::cmp::Ordering as CmpOrdering;
@@ -36,6 +35,14 @@ pub(crate) struct Index {
     pub(crate) scanned: std::sync::atomic::AtomicUsize,
     #[cfg(test)]
     pub(crate) row_limit: usize,
+    #[cfg(test)]
+    pub(crate) reconstructed: std::sync::atomic::AtomicUsize,
+    #[cfg(test)]
+    pub(crate) names_scored: std::sync::atomic::AtomicUsize,
+    #[cfg(test)]
+    pub(crate) dirs_scored: std::sync::atomic::AtomicUsize,
+    #[cfg(test)]
+    pub(crate) paths_scored: std::sync::atomic::AtomicUsize,
 }
 
 pub(crate) fn index_bytes(index: &Index) -> usize {
@@ -57,6 +64,14 @@ impl Index {
             scanned: std::sync::atomic::AtomicUsize::new(0),
             #[cfg(test)]
             row_limit: u32::MAX as usize,
+            #[cfg(test)]
+            reconstructed: std::sync::atomic::AtomicUsize::new(0),
+            #[cfg(test)]
+            names_scored: std::sync::atomic::AtomicUsize::new(0),
+            #[cfg(test)]
+            dirs_scored: std::sync::atomic::AtomicUsize::new(0),
+            #[cfg(test)]
+            paths_scored: std::sync::atomic::AtomicUsize::new(0),
         }
     }
 
@@ -100,6 +115,8 @@ impl Index {
     }
 
     fn reconstruct(&self, row: usize, scratch: &mut Scratch) {
+        #[cfg(test)]
+        self.reconstructed.fetch_add(1, std::sync::atomic::Ordering::Relaxed);
         let entry = &self.rows[row];
         self.blocks.ancestors(entry.parent, &mut scratch.ancestors);
         scratch.raw.clear();
@@ -189,32 +206,15 @@ impl Index {
 #[path = "searchindexpatch.rs"]
 mod patch;
 
-// The old scorer receives an identical packed full path assembled in reusable worker scratch.
 #[derive(Default)]
 struct Scratch {
     ancestors: Vec<u32>,
     raw: Vec<u8>,
-    ascii: Vec<u8>,
 }
 
-fn score_part(fuzzy: &crate::backend::fuzzy::Fuzzy, rows: &[usize], index: &Index) -> Vec<(i32, usize)> {
-    let mut scratch = Scratch::default();
-    rows.iter().filter_map(|&row| {
-        index.reconstruct(row, &mut scratch);
-        let text = String::from_utf8_lossy(&scratch.raw);
-        let score = if text.is_ascii() {
-            scratch.ascii.clear();
-            scratch.ascii.extend(text.bytes().map(|byte| byte.to_ascii_lowercase() | (u8::from(byte.is_ascii_uppercase()) << 7)));
-            fuzzy.score_pre_folded(Hay::Ascii(&scratch.ascii))
-        } else {
-            match fold_packed(&text) {
-                Packed::Ascii(bytes) => fuzzy.score_pre_folded(Hay::Ascii(&bytes)),
-                Packed::Wide(words) => fuzzy.score_pre_folded(Hay::Wide(&words)),
-            }
-        };
-        score.map(|score| (score, row))
-    }).collect()
-}
+#[path = "searchscore.rs"]
+mod scoring;
+pub(crate) use scoring::score_all;
 
 // A patch distinguishes a vanished directory from a refused or incomplete read.
 fn read_bounded(dir: &Path, body: &str, follow: bool) -> Result<Option<super::searchread::Directory>, crate::error::FleaError> {
@@ -225,32 +225,10 @@ fn read_bounded(dir: &Path, body: &str, follow: bool) -> Result<Option<super::se
     }
 }
 
-// Scores candidates with the session's scorer; wide indexes split over the same walker bound.
-pub(crate) fn score_all(fuzzy: &crate::backend::fuzzy::Fuzzy, rows: &[usize], index: &Index) -> Vec<(i32, usize)> {
-    if rows.len() < PARALLEL_SCORE_AT {
-        return score_part(fuzzy, rows, index);
-    }
-    let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1).clamp(1, WALK_THREADS);
-    let chunk = rows.len().div_ceil(threads);
-    std::thread::scope(|scope| {
-        let mut handles = Vec::with_capacity(threads);
-        for part in rows.chunks(chunk) {
-            handles.push(scope.spawn(move || {
-                score_part(fuzzy, part, index)
-            }));
-        }
-        let mut out = Vec::with_capacity(rows.len());
-        for handle in handles {
-            out.extend(handle.join().unwrap_or_else(|panic| std::panic::resume_unwind(panic)));
-        }
-        out
-    })
-}
-
 // The one rank comparator for answers and rest chunks, so a scrolled window only extends the head's order.
 pub(crate) fn rank_cmp(index: &Index, a: &(i32, usize), b: &(i32, usize)) -> CmpOrdering {
     b.0.cmp(&a.0).then_with(|| index.path_len(a.1).cmp(&index.path_len(b.1)))
-        .then_with(|| rank_order(a.0, &index.path(a.1), b.0, &index.path(b.1)))
+        .then_with(|| super::sort::name_order(&index.raw(a.1), &index.raw(b.1)))
 }
 
 // The best `window` hits in rank order, the rest unranked; the path comparator runs only on the window and its edge ties.
@@ -298,3 +276,15 @@ mod coverage_tests;
 #[cfg(test)]
 #[path = "searchfixture_tests.rs"]
 mod fixture_tests;
+
+#[cfg(test)]
+#[path = "searchlatency_tests.rs"]
+mod latency_tests;
+
+#[cfg(test)]
+#[path = "searchprune_tests.rs"]
+mod prune_tests;
+
+#[cfg(test)]
+#[path = "searchreview_tests.rs"]
+mod review_tests;

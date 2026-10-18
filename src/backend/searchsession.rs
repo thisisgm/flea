@@ -1,5 +1,5 @@
 // One live search session: the scope's snapshot index plus the standing query and its generation.
-use crate::backend::fuzzy::Fuzzy;
+use crate::backend::searchmatch::Matcher;
 use crate::backend::searchindex::{self, rank_cmp, select_head, Index};
 use crate::backend::searchreq::Answer;
 use crate::backend::searchwalk::WalkProbes;
@@ -44,6 +44,7 @@ pub(crate) struct Session {
     // Unmount freezes this scope until reopen; explicit user cancellation still permits patches.
     pub(crate) unmounted: bool,
     pub(crate) last_query: String,
+    pub(crate) matched_index_len: usize,
     pub(crate) last_matches: Vec<usize>,
     // Scored but unranked matches past the head, ranked on scroll; a patch drops them because it moves row ids.
     pub(crate) pending_rest: Option<Vec<(i32, usize)>>,
@@ -225,12 +226,14 @@ impl Session {
     pub(crate) fn answer(&mut self, query: &str, count: usize) -> Answer {
         let started = Instant::now();
         let terms = crate::backend::searchtags::Tags::terms(query);
-        let narrow = self.tags.narrows(&self.last_query, query);
+        let narrow = self.tags.narrows(&self.last_query, query)
+            && !self.walking() && !self.standing_while_walking
+            && Matcher::can_narrow(&crate::backend::searchtags::Tags::terms(&self.last_query).text, &terms.text);
         let unread = self.tags.prepare(&terms, &self.index, &self.scope, &self.body, self.walking());
-        let fuzzy = Fuzzy::new(&terms.text);
+        let fuzzy = Matcher::new(&terms.text);
         let index = self.index.lock().unwrap();
-        // Incremental narrowing: an extension scores only the previous matches, any other change scores the index.
-        let candidates: Vec<usize> = if narrow {
+        // Only complete, unchanged zero-edit extensions can reuse their previous candidates.
+        let candidates: Vec<usize> = if narrow && index.partial.is_none() && index.len() == self.matched_index_len {
             self.last_matches.clone()
         } else {
             (0..index.len()).collect()
@@ -265,6 +268,7 @@ impl Session {
             hits[..window].iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
         let total = all.len();
         let indexed = index.len();
+        self.matched_index_len = indexed;
         let partial = index.partial;
         drop(index);
         Answer {
@@ -353,3 +357,11 @@ impl Session {
 #[cfg(test)]
 #[path = "searchsession_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "searchconservative_tests.rs"]
+mod conservative_tests;
+
+#[cfg(test)]
+#[path = "searchcache_tests.rs"]
+mod cache_tests;
