@@ -184,12 +184,14 @@ ShellRoot {
         } else if (root.mode === "window") {
             if (phase === 0) { focusList(); press(Qt.Key_N, Qt.ControlModifier); next() }
             else if (phase === 1) {
-                if (waitFor("Ctrl+N in the list launches a window", launches(), 1, launches() < 1)) return
+                var listed = launches()
+                if (waitFor("Ctrl+N in the list launches a window", listed, 1, listed < 1)) return
                 check("Ctrl+N in the list launches a window", launches(), 1)
                 pane.focusView = "rail"; pane.sidebar.forceActiveFocus()
                 press(Qt.Key_N, Qt.ControlModifier); next()
             } else if (phase === 2) {
-                if (Date.now() - phaseAt < 1000 || waitFor("Ctrl+N in the rail launches a window", launches(), 2, launches() < 2)) return
+                var railed = launches()
+                if (Date.now() - phaseAt < 1000 || waitFor("Ctrl+N in the rail launches a window", railed, 2, railed < 2)) return
                 check("Ctrl+N in the rail launches a window", launches(), 2)
                 focusRail(); text("t"); next()
             } else if (phase === 3) {
@@ -241,7 +243,8 @@ ShellRoot {
                 check("the second pane owns the shared rail", pane !== root.railOwner, true)
                 focusRail(); press(Qt.Key_N, Qt.ControlModifier); next()
             } else if (phase === 18) {
-                if (Date.now() - phaseAt < 1000 || waitFor("Ctrl+N from the shared rail launches a window", launches(), 3, launches() < 3)) return
+                var shared = launches()
+                if (Date.now() - phaseAt < 1000 || waitFor("Ctrl+N from the shared rail launches a window", shared, 3, shared < 3)) return
                 check("Ctrl+N from the shared rail launches a window", launches(), 3)
                 focusRail(); text("t"); next()
             } else if (phase === 19) {
@@ -380,7 +383,7 @@ ShellRoot {
         interval: 20000
         running: !root.finished
         onTriggered: {
-            if (root.pending) check(root.pending[0] + " before the deadline at phase " + root.phase, root.pending[1], root.pending[2])
+            if (root.pending) check(root.pending[0] + " before the deadline at phase " + root.phase + ", last read " + JSON.stringify(root.pending[1]) + " of " + JSON.stringify(root.pending[2]), false, true)
             else check("the probe finishes before its deadline at phase " + root.phase, false, true)
             finish()
         }
