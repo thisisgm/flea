@@ -338,6 +338,50 @@ print(json.dumps({"reason": "build-finished", "success": True}))
             control = subprocess.run(command, cwd=self.root, capture_output=True, text=True)
             self.assertEqual(0, control.returncode, control.stderr)
 
+    def use_check(self, prefix, code):
+        self.write("crates/flea-gui/src/list.rs", prefix + LIST.replace("theme.background;", code))
+        return self.errors()
+
+    def test_digit_separators_and_integer_suffixes_are_colour_literals(self):
+        for code in ("let c = 0x1e_29_3b;", "let c = 0x1e293b_u32;", "let c = 0x1e293bu8;", "let c = 0x1e_29_3b_usize;"):
+            with self.subTest(code=code):
+                self.assertTrue(any("colour-sized hex" in e for e in self.check_body(code)), code)
+        self.assertEqual([], self.check_body("let c = 0x12345_u32;"))
+
+    def test_text_color_reads_only_direct_arguments(self):
+        self.assertTrue(any("literal colour text_color" in e for e in self.check_body("label.text_color(0x112233);")))
+        self.assertEqual([], self.check_body("label.text_color(theme.with_alpha(0.5));"))
+
+    def test_named_colours_resolve_through_gpui_glob_and_list_imports(self):
+        for prefix, code in (("use gpui::*;\n", "white();"), ("use gpui::{self, *};\n", "black();"),
+                             ("use gpui::{white, black};\n", "black();"), ("use gpui::white;\n", "white();")):
+            with self.subTest(prefix=prefix):
+                self.assertTrue(any("literal colour" in e for e in self.use_check(prefix, code)), prefix)
+        self.assertEqual([], self.use_check("use gpui::*;\nfn white() -> u32 { 0 }\n", "white();"))
+        self.assertEqual([], self.use_check("use palette::*;\n", "white();"))
+
+    def test_tracked_fails_closed_on_a_broken_checkout(self):
+        with patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": str(self.root.parent)}):
+            (self.root / ".git").mkdir()
+            with self.assertRaises(ValueError):
+                tracked(self.root)
+
+    def test_malformed_policy_sections_fail_before_field_access(self):
+        for section, value in (("blocking_exceptions", ["flea_gui::slow::probe"]),
+                               ("color_modules", "palette"),
+                               ("non_color_hex_constants", [1])):
+            with self.subTest(section=section):
+                with self.assertRaises(ValueError):
+                    POLICY_CHECKS(dict(self.policy, **{section: value}))
+
+    def test_malformed_policy_exits_two_without_traceback(self):
+        self.write("tools/gpui-lint.json", json.dumps(dict(self.policy, blocking_exceptions=["flea_gui::slow::probe"])))
+        env = dict(os.environ, GIT_CEILING_DIRECTORIES=str(self.root.parent))
+        result = subprocess.run([str(REPO / "tools/flea-gpui-lint")], cwd=self.root, env=env, capture_output=True, text=True)
+        self.assertEqual(2, result.returncode, result.stdout + result.stderr)
+        self.assertIn("flea-gpui-lint: ERROR", result.stdout)
+        self.assertNotIn("Traceback", result.stdout + result.stderr)
+
 
 if __name__ == "__main__":
     unittest.main(verbosity=2)
