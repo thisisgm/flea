@@ -139,15 +139,21 @@ fn print_real_protocol_converters_run_in_the_production_jail() {
 }
 
 #[test]
-fn print_real_office_export_reports_the_inherited_converter_result() {
-    if !ready(&["soffice"]) || crate::backend::sandboxprobe::skipped() { return; }
+fn print_office_fixture_and_sandbox_argv_need_no_installed_converter() {
     let d = TestDir::new("print-real-office");
     let source = d.file("letter.rtf", "{\\rtf1\\ansi Print and convert fixture.}");
     let work = Work::new(d.path(), "office-real").unwrap();
     let args = crate::backend::officepdf::argv("soffice", &source, &work.dir);
     let mut full = crate::backend::sandbox::wrap_compile(&args, &[&source], &work.dir);
     crate::backend::sandbox::add_status(&mut full, args.len());
-    printtool::run(&full, &AtomicBool::new(false), printtool::TOOL_WAIT).unwrap();
-    let result = std::fs::read(work.dir.join("letter.pdf")).unwrap();
-    assert!(result.starts_with(b"%PDF"));
+    assert_eq!(std::fs::read_to_string(&source).unwrap(), "{\\rtf1\\ansi Print and convert fixture.}");
+    assert_eq!(args, ["soffice", "--headless", "--norestore", "--nolockcheck", "-env:UserInstallation=file:///tmp/flea-office-profile",
+        "--convert-to", "pdf", "--outdir", &work.dir.to_string_lossy(), &source.to_string_lossy()]);
+    assert_eq!(&full[..4], ["prlimit", "--cpu=30", "--as=2147483648", "bwrap"]);
+    assert!(full.iter().any(|arg| arg == "--unshare-all"));
+    assert!(full.iter().any(|arg| arg == "--clearenv"));
+    assert!(full.windows(3).any(|args| args == ["--ro-bind", &source.to_string_lossy(), &source.to_string_lossy()]));
+    assert!(full.windows(3).any(|args| args == ["--bind", &work.dir.to_string_lossy(), &work.dir.to_string_lossy()]));
+    assert_eq!(&full[full.len() - args.len() - 2..][..2], ["--json-status-fd", "7"]);
+    assert_eq!(&full[full.len() - args.len()..], &args);
 }
