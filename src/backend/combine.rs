@@ -1,0 +1,203 @@
+// Image layout math and ImageMagick commands are shared by the window and terminal cards.
+use super::{aliases::Aliases, archivework::Work, convertbatch, menu_actions::Selected, mime::Db, opsreq::OpMsg, printconvert, printtool};
+use crate::json::{field_str, field_usize};
+use std::path::{Path, PathBuf};
+use std::sync::{Arc, atomic::{AtomicBool, Ordering}, mpsc::Sender};
+
+pub const MAX_DIMENSION: u32 = 50_000;
+pub const MIN_GRID_COLUMNS: usize = 1;
+pub const MAX_GRID_COLUMNS: usize = printconvert::MAX_ITEMS;
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Layout { Row, Column, Grid }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Spacing { None, Small, Large }
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Background { Transparent, White, Black }
+
+impl Spacing {
+    pub fn pixels(self, edge: u32) -> u32 {
+        let percent = match self { Self::None => 0, Self::Small => 3, Self::Large => 8 };
+        let scaled = u64::from(edge) * percent;
+        let whole = scaled / 100;
+        let round_up = scaled % 100 > 50 || (scaled % 100 == 50 && whole % 2 == 1);
+        (whole + u64::from(round_up)).min(u32::MAX as u64) as u32
+    }
+}
+
+impl Background {
+    pub fn ink(self) -> &'static str {
+        match self { Self::Transparent => "none", Self::White => "white", Self::Black => "black" }
+    }
+}
+
+#[cfg(test)]
+pub fn background_enabled(layout: Layout, spacing: Spacing, count: usize, columns: usize) -> bool {
+    spacing != Spacing::None || (layout == Layout::Grid && (columns == 0 || count % columns != 0))
+}
+
+pub struct Ask {
+    pub request_id: usize,
+    pub menu_id: usize,
+    pub paths: Vec<PathBuf>,
+    pub format: String,
+    pub name: String,
+    pub layout: String,
+    pub spacing: String,
+    pub background: String,
+    pub columns: usize,
+}
+
+impl Ask {
+    pub fn parse(line: &str) -> Self {
+        let paths = super::printreq::paths(line);
+        let format = field_str(line, "format").unwrap_or_else(|| printconvert::combined_format(paths.first().map_or(Path::new(""), PathBuf::as_path)).into()).to_ascii_lowercase();
+        Self { request_id: field_usize(line, "requestId").unwrap_or(0), menu_id: field_usize(line, "menuId").unwrap_or(0), paths,
+            background: field_str(line, "background").unwrap_or_else(|| if format == "jpg" { "White" } else { "Transparent" }.into()), format,
+            name: field_str(line, "name").unwrap_or_default(), layout: field_str(line, "layout").unwrap_or_else(|| "Row".into()),
+            spacing: field_str(line, "spacing").unwrap_or_else(|| "None".into()), columns: field_usize(line, "columns").unwrap_or(2) }
+    }
+}
+
+pub struct Settings {
+    pub layout: Layout,
+    pub spacing: Spacing,
+    pub background: Background,
+    pub columns: usize,
+}
+
+pub fn shared_size(layout: Layout, sizes: &[(u32, u32)]) -> Result<(u32, u32), String> {
+    let first = *sizes.first().ok_or("The image dimensions could not be used.")?;
+    if sizes.iter().any(|(w, h)| *w == 0 || *h == 0 || *w > MAX_DIMENSION || *h > MAX_DIMENSION) {
+        return Err("The image dimensions could not be used.".into());
+    }
+    Ok(match layout {
+        Layout::Row => (first.0, sizes.iter().map(|(_, h)| *h).min().unwrap()),
+        Layout::Column => (sizes.iter().map(|(w, _)| *w).min().unwrap(), first.1),
+        Layout::Grid => (sizes.iter().map(|(w, _)| *w).max().unwrap(), sizes.iter().map(|(_, h)| *h).max().unwrap()),
+    })
+}
+
+impl Settings {
+    pub fn parse(ask: &Ask) -> Result<Self, String> {
+        let layout = match ask.layout.as_str() { "Row" => Layout::Row, "Column" => Layout::Column, "Grid" => Layout::Grid, _ => return Err("Choose Row, Column or Grid.".into()) };
+        let spacing = match ask.spacing.as_str() { "None" => Spacing::None, "Small" => Spacing::Small, "Large" => Spacing::Large, _ => return Err("Choose None, Small or Large spacing.".into()) };
+        let background = match ask.background.as_str() { "Transparent" => Background::Transparent, "White" => Background::White, "Black" => Background::Black, _ => return Err("Choose Transparent, White or Black.".into()) };
+        if !printconvert::COMBINE_FORMATS.contains(&ask.format.as_str()) { return Err("Choose PNG, JPEG or WebP.".into()); }
+        if background == Background::Transparent && ask.format == "jpg" { return Err("JPEG does not support a transparent background.".into()); }
+        if layout == Layout::Grid && !(MIN_GRID_COLUMNS..=MAX_GRID_COLUMNS).contains(&ask.columns) { return Err(format!("Columns must be between {MIN_GRID_COLUMNS} and {MAX_GRID_COLUMNS}.")); }
+        Ok(Self { layout, spacing, background, columns: ask.columns })
+    }
+
+    pub fn edge(&self, size: (u32, u32)) -> u32 {
+        match self.layout { Layout::Row => size.1, Layout::Column => size.0, Layout::Grid => size.0.min(size.1) }
+    }
+}
+
+pub fn scale_argv(input: &Path, output: &Path, size: (u32, u32), settings: &Settings, first: bool) -> Vec<String> {
+    let mut args = vec!["magick".into(), "--".into(), format!("{}[0]", input.display()), "-auto-orient".into(), "-resize".into()];
+    args.push(match settings.layout { Layout::Row => format!("x{}", size.1), Layout::Column => size.0.to_string(), Layout::Grid => format!("{}x{}", size.0, size.1) });
+    args.extend(["-background".into(), settings.background.ink().into()]);
+    let spacing = settings.spacing.pixels(settings.edge(size));
+    if settings.layout == Layout::Grid {
+        args.extend(["-gravity".into(), "center".into(), "-extent".into(), format!("{}x{}", size.0, size.1)]);
+        if spacing > 0 {
+            args.extend(["-gravity".into(), "northwest".into(), "-extent".into(), format!("{}x{}", size.0 + spacing, size.1 + spacing)]);
+        }
+    } else if !first && spacing > 0 {
+        let (gravity, geometry) = if settings.layout == Layout::Row { ("West", format!("{spacing}x0")) } else { ("North", format!("0x{spacing}")) };
+        args.extend(["-gravity".into(), gravity.into(), "-splice".into(), geometry]);
+    }
+    args.push(output.to_string_lossy().into_owned());
+    args
+}
+
+pub fn join_argv(inputs: &[PathBuf], output: &Path, size: (u32, u32), settings: &Settings) -> Vec<String> {
+    let mut args = vec![if settings.layout == Layout::Grid { "montage" } else { "magick" }.into()];
+    for input in inputs { args.extend(["--".into(), input.to_string_lossy().into_owned()]); }
+    args.extend(["-background".into(), settings.background.ink().into()]);
+    match settings.layout {
+        Layout::Row => args.push("+append".into()),
+        Layout::Column => args.push("-append".into()),
+        Layout::Grid => {
+            args.extend(["-tile".into(), format!("{}x", settings.columns), "-geometry".into(), "+0+0".into()]);
+        }
+    }
+    let spacing = settings.spacing.pixels(settings.edge(size));
+    if settings.layout != Layout::Grid && spacing > 0 {
+        args.extend(["-bordercolor".into(), settings.background.ink().into(), "-border".into(), spacing.to_string()]);
+    }
+    if printconvert::extension(output) == "jpg" {
+        args.extend(["-alpha".into(), "remove".into(), "-alpha".into(), "off".into()]);
+    }
+    args.push(output.to_string_lossy().into_owned());
+    args
+}
+
+pub fn join_commands(inputs: &[PathBuf], output: &Path, size: (u32, u32), settings: &Settings) -> Vec<Vec<String>> {
+    let spacing = settings.spacing.pixels(settings.edge(size));
+    if settings.layout != Layout::Grid || spacing == 0 { return vec![join_argv(inputs, output, size, settings)]; }
+    let intermediate = output.with_file_name(format!("{}.grid.png", output.file_name().unwrap_or_default().to_string_lossy()));
+    let mut finish = vec!["magick".into(), "--".into(), intermediate.to_string_lossy().into_owned(), "-background".into(), settings.background.ink().into(),
+        "-gravity".into(), "northwest".into(), "-splice".into(), format!("{spacing}x{spacing}")];
+    if printconvert::extension(output) == "jpg" { finish.extend(["-alpha".into(), "remove".into(), "-alpha".into(), "off".into()]); }
+    finish.push(output.to_string_lossy().into_owned());
+    vec![join_argv(inputs, &intermediate, size, settings), finish]
+}
+
+fn make(ask: &Ask, settings: &Settings, work: &mut Work, cancel: &AtomicBool, id: usize, tx: &Sender<OpMsg>) -> Result<PathBuf, String> {
+    let inputs = convertbatch::staged_inputs(&ask.paths, work)?;
+    let mut identify = vec!["magick".into()];
+    for input in &inputs { identify.extend(["--".into(), format!("{}[0]", input.display())]); }
+    identify.extend(["-auto-orient".into(), "-format".into(), "%w %h\n".into(), "info:".into()]);
+    let info = printtool::boxed(identify, work, cancel)?;
+    // magick -auto-orient -format "%w %h\n" info: sample: 800 600
+    let sizes = info.lines().map(|line| {
+        let mut words = line.split_whitespace();
+        let size = words.next().and_then(|w| w.parse().ok()).zip(words.next().and_then(|h| h.parse().ok()));
+        size.filter(|_| words.next().is_none()).ok_or_else(|| "The image dimensions could not be used.".to_string())
+    }).collect::<Result<Vec<_>, _>>()?;
+    if sizes.len() != inputs.len() { return Err("The image dimensions could not be used.".into()); }
+    let size = shared_size(settings.layout, &sizes)?;
+    let mut scaled = Vec::new();
+    for (n, input) in inputs.iter().enumerate() {
+        convertbatch::progress(tx, "combine", id, ask.request_id, n, inputs.len() + 1, &ask.paths[n]);
+        let output = work.dir.join(format!("scaled-{n}.png"));
+        printtool::boxed(scale_argv(input, &output, size, settings, n == 0), work, cancel)?;
+        scaled.push(output);
+    }
+    convertbatch::progress(tx, "combine", id, ask.request_id, inputs.len(), inputs.len() + 1, &ask.paths[0]);
+    let output = work.dir.join(format!("output.{}", ask.format));
+    for command in join_commands(&scaled, &output, size, settings) { printtool::boxed(command, work, cancel)?; }
+    Ok(output)
+}
+
+pub fn run(ask: Ask, selection: Result<Option<Vec<Selected>>, String>, id: usize, mime: &Db, aliases: &Aliases, cancel: Arc<AtomicBool>, tx: &Sender<OpMsg>) -> String {
+    let mut published = Vec::new();
+    let outcome = (|| {
+        let selected = selection?;
+        super::menu_actions::validate_sources(selected.as_deref(), &ask.paths)?;
+        printtool::inputs(&ask.paths)?;
+        let kinds: Vec<_> = ask.paths.iter().map(|p| printconvert::classify(&p.to_string_lossy(), mime, aliases)).collect();
+        if !printconvert::can_combine(&kinds) { return Err("Select at least two images to combine.".into()); }
+        let settings = Settings::parse(&ask)?;
+        let parent = ask.paths[0].parent().ok_or("the source has no parent folder")?;
+        if ask.paths.iter().any(|p| p.parent() != Some(parent)) { return Err("The selected images must be in one folder.".into()); }
+        let name = if ask.name.is_empty() { printconvert::combined_name(&ask.paths[0], &ask.format) } else { ask.name.clone() };
+        if !printconvert::bare_name(&name) || printconvert::extension(Path::new(&name)) != ask.format { return Err("Enter a file name with the chosen format's extension.".into()); }
+        let dest = parent.join(name);
+        convertbatch::vacant(&dest)?;
+        let mut work = Work::new(parent, "combine").map_err(|e| e.msg)?;
+        let staged = make(&ask, &settings, &mut work, &cancel, id, tx)?;
+        if cancel.load(Ordering::Relaxed) { return Err("cancelled".into()); }
+        printtool::publish(&staged, &dest)?;
+        published.push(dest);
+        convertbatch::progress(tx, "combine", id, ask.request_id, ask.paths.len() + 1, ask.paths.len() + 1, &published[0]);
+        Ok(())
+    })();
+    convertbatch::finished("combine", id, ask.request_id, &ask.paths.first().map_or(String::new(), |p| p.to_string_lossy().into_owned()), &published, outcome)
+}
+
+#[cfg(test)]
+#[path = "combine_tests.rs"]
+mod tests;

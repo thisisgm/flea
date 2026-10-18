@@ -1,3 +1,4 @@
+pub(crate) mod locale;
 pub mod listing;
 pub mod filter;
 #[cfg(test)]
@@ -20,6 +21,10 @@ pub mod fsinforeq;
 pub mod extclass;
 pub mod gvfsroot;
 pub mod netfs;
+pub mod networkaddress;
+pub mod nearby;
+pub mod nearbyrows;
+mod nearbytool;
 pub mod durable;
 pub mod icons;
 pub mod regfile;
@@ -30,6 +35,7 @@ pub mod linecount;
 pub mod dirsize;
 pub mod dirsizereq;
 pub mod listpaths;
+pub mod viewerpaths;
 // Issue 144: a remote list scans off the event loop; see src/backend/listwork.rs.
 pub mod listwork;
 pub mod unmount;
@@ -63,6 +69,7 @@ pub mod compare;
 pub mod sort;
 pub mod ordering;
 pub mod state;
+pub(crate) mod lazy;
 pub mod mediaprobe;
 pub mod meta;
 pub mod metareq;
@@ -84,6 +91,9 @@ mod menu_slot;
 pub(crate) mod menu_registry;
 mod menu_registry_work;
 mod menucontents;
+mod menuproperties;
+#[cfg(test)]
+mod menuproperties_tests;
 mod menufacts;
 mod walkmounts;
 mod menudelete;
@@ -133,6 +143,13 @@ pub mod mergeapply;
 pub mod fatnames;
 pub mod pasteimage;
 pub mod convert;
+pub mod pagerange;
+pub mod printconvert;
+pub mod printing;
+pub mod printreq;
+pub mod printtool;
+pub mod convertbatch;
+pub mod combine;
 // Quick Look's font page: the facts from the font's tables and the sample job; see src/backend/fontinfo/render.rs.
 pub mod fontinfo;
 pub mod copyfile;
@@ -232,6 +249,9 @@ mod manifestfsize_tests;
 // Test-only: hard rule 9's sandbox root, so no destructive test names a path outside one.
 #[cfg(test)]
 pub mod testdir;
+// Test-only: a disk-backed sandbox and bounded recreation on a genuinely reused inode.
+#[cfg(test)]
+mod inodereuse;
 // Test-only: the fifo, writer and bound every hang test shares.
 #[cfg(test)]
 pub mod fifotest;

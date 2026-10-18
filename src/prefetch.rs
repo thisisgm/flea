@@ -192,6 +192,8 @@ fn recorded_by(list: &Path) -> Option<String> {
 
 // After every listing's rows: only the first call is heard, and a backend with no list to record hears none.
 pub fn first_rows_sent() {
+    static STARTED: OnceLock<()> = OnceLock::new();
+    STARTED.get_or_init(record_after_first_rows);
     if let Some(fired) = FIRST_ROWS.get() {
         let _ = fired.send(());
     }

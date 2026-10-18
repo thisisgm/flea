@@ -221,7 +221,12 @@ fn query_default() -> Result<String, Refusal> {
 
 // xdg-mime keeps its own stderr, so its complaint reaches the user and nothing here restates it.
 fn xdg_mime(args: &[&str]) -> Result<String, Refusal> {
-    let out = Command::new("xdg-mime")
+    let mut command = if args.first() == Some(&"query") {
+        crate::backend::locale::command("xdg-mime")
+    } else {
+        Command::new("xdg-mime")
+    };
+    let out = command
         .args(args)
         .stdin(Stdio::null())
         .stderr(Stdio::inherit())

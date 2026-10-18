@@ -242,12 +242,12 @@ mod tests {
         ));
         assert!(thumbs.for_mime("image/jpeg", &aliases).is_some(), "the fixture declares jpeg");
         Tables {
-            mime: Arc::new(Db::load()),
-            icons: Arc::new(Names::load()),
-            aliases,
-            thumbs,
+            mime: Arc::new(Db::load()).into(),
+            icons: Arc::new(Names::load()).into(),
+            aliases: aliases.into(),
+            thumbs: thumbs.into(),
             kinds: RefCell::new(Kinds::new()),
-            formats: Arc::new(Formats::probe()),
+            formats: Arc::new(Formats::probe()).into(),
         }
     }
 

@@ -64,7 +64,7 @@ fn fixture(d: &TestDir) -> (State, Tables, Pool, Cache) {
             "[Thumbnailer Entry]\nExec=/usr/bin/false %i %o\nMimeType=image/jpeg;\n".into(),
         )],
         &tb.aliases,
-    ));
+    )).into();
     let st = State::new(super::super::dirsizeworker::Worker::new(channel().0));
     (st, tb, Pool::idle(), Cache::at(d.join("cache")))
 }

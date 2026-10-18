@@ -25,14 +25,14 @@ flea_ipc_pids() {
       *"Process ID: "*) pid=${line##*": "} ;;
       *"Config path: "*) [ "${line##*": "}" = "$want" ] && printf '%s\n' "$pid" ;;
     esac
-  done < <(qs list --all 2>/dev/null)
+  done < <(LC_ALL=C.UTF-8 LANGUAGE= qs list --all 2>/dev/null)
 }
 
 # Refuses rather than picks: two instances at one path is the exact state that produced a wrong
 # reading, so the caller is told instead of being handed whichever one qs happened to reach first.
 flea_ipc_pid() {
   local ui="$1" pids
-  pids=$(flea_ipc_pids "$ui" | tr '\n' ' ')
+  pids=$(flea_ipc_pids "$ui" | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ' ')
   set -- $pids
   case $# in
     0) echo "flea-ipc-pid: no Flea is running from $ui" >&2; return 1 ;;

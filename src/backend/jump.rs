@@ -5,7 +5,7 @@ use crate::backend::mountinfo::{enclosing, mounts_in};
 use std::collections::{BTreeMap, HashMap, HashSet};
 use std::io::Read;
 use std::path::{Path, PathBuf};
-use std::process::{Command, Stdio};
+use std::process::Stdio;
 use std::sync::atomic::{AtomicBool, AtomicU64, Ordering};
 use std::sync::mpsc::{channel, Sender};
 use std::sync::Mutex;
@@ -101,7 +101,7 @@ fn zoxide(program: &str, limit: Duration) -> Option<Vec<(String, f64)>> {
     if ZOXIDE_RUNNING.swap(true, Ordering::SeqCst) {
         return None;
     }
-    let spawned = Command::new(program)
+    let spawned = crate::backend::locale::command(program)
         .args(["query", "--list", "--all", "--score"])
         .stdin(Stdio::null())
         .stdout(Stdio::piped())

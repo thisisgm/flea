@@ -50,6 +50,7 @@ pub enum Request {
     // Resolves row indices to absolute paths, which is what lets a client hold a clipboard for a
     // selection wider than the window it renders; see docs/protocol.md "paths".
     Paths { rows: Vec<usize> },
+    ImagePaths(super::viewerpaths::Ask),
     Locate { path: String },
     LocateMany { paths: Vec<String>, id: usize, menu_id: usize, transfer_id: usize },
     // The preview column's own extras for one row: pixels, line count, symlink target.
@@ -80,6 +81,7 @@ pub enum Request {
     Archive { op: String, paths: Vec<String>, path: String, dest: String, format: String, menu_id: usize,
               password: String, encrypt_names: bool },
     Convert { path: String, dest: String, strip: bool, menu_id: usize, request_id: usize, check: bool },
+    PrintConvert(super::printreq::Request),
     // Which archive formats this box actually offers, and whether a converter is installed at all.
     Formats { id: usize },
     Permissions { line: String },
@@ -97,6 +99,8 @@ pub enum Request {
     MenuAction { line: String, rows: Vec<usize> },
     // Directive 71: op is "peers" for the flyout's own list and "send" for the transfer it chooses.
     LocalSend { op: String, peer: String, paths: Vec<String>, id: usize },
+    Nearby { op: String, id: usize },
+    NetworkAddress { address: String, id: usize },
     TrashBrowse { line: String },
     // The device of each path named, symlinks followed, for the drop verb of a target that is not the listing; see docs/protocol.md "devs".
     Devs { paths: Vec<String>, id: usize },
@@ -116,6 +120,8 @@ pub enum Request {
 // Sample input: {"c":"list","path":"/home/gm","first":350,"hidden":false}
 pub fn parse_request(line: &str) -> Request {
     match field_str(line, "c").as_deref() {
+        Some("nearby") => Request::Nearby { op: field_str(line, "op").unwrap_or_default(), id: field_usize(line, "id").unwrap_or(0) },
+        Some("networkaddress") => Request::NetworkAddress { address: field_str(line, "address").unwrap_or_default(), id: field_usize(line, "id").unwrap_or(0) },
         Some("trashbrowse") => Request::TrashBrowse { line: line.to_string() },
         Some("permissions") => Request::Permissions { line: line.to_string() },
         Some("permissionsBatch") => Request::PermissionsBatch {
@@ -238,7 +244,16 @@ pub fn parse_request(line: &str) -> Request {
         },
         Some("undo") => Request::Undo,
         Some("redo") => Request::Redo,
-        Some("paths") => Request::Paths { rows: field_usize_array(line, "rows") },
+        Some("paths") => match field_usize(line, "images") {
+            Some(start) => Request::ImagePaths(super::viewerpaths::Ask {
+                start,
+                rows: field_bool(line, "scoped").then(|| field_usize_array(line, "rows")),
+                selected: field_bool(line, "selected"),
+            }),
+            None => Request::Paths {
+                rows: field_usize_array(line, "rows"),
+            },
+        },
         Some("locate") => match field_str(line, "path") {
             Some(path) => Request::Locate { path },
             None => Request::LocateMany { paths: field_str_array(line, "paths"),
@@ -258,6 +273,7 @@ pub fn parse_request(line: &str) -> Request {
             password: field_str(line, "password").unwrap_or_default(),
             encrypt_names: field_bool(line, "encryptNames"),
         },
+        Some("printoptions" | "print" | "convertbatch" | "combine") => Request::PrintConvert(super::printreq::Request::parse(line)),
         Some("convert") => Request::Convert {
             request_id: field_usize(line, "requestId").unwrap_or(0),
             check: field_bool(line, "check"),

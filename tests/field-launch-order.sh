@@ -137,19 +137,25 @@ fresh config" "$out"
 check "a valid multi-word ONLY exits zero" 0 "$rc"
 
 # Run the capability tool's own roster read, so the earlier builder remains visible to its caller.
-cap_src=$(sed -n '/^mapfile -t CAP_ROWS /,/^  | sed /p' tools/flea-bench-capability)
+cap_src=$(sed -n '/^# capability roster begin$/,/^# capability roster end$/p' tools/flea-bench-capability)
+[ -n "$cap_src" ] || { echo "FAIL: no capability roster block"; exit 1; }
 cap_case() {
   (
     FLEA_REPO=$PWD; FLEA_UI=$scratch/ui; FLEA_BIN=$scratch/flea; STRATA_BIN=$scratch/strata; FIXTURE=$scratch; FLEA_STATE=$scratch/state
+    FLEA_QMLCACHE=$scratch/qmlcache
     eval "$cap_src"
     gui=0
     for row in "${CAP_ROWS[@]}"; do [[ "$row" = *'|gui|'* ]] && gui=$(( gui + 1 )); done
     printf 'gui=%s' "$gui"
     [[ "${CAP_ROWS[0]:-}" = *"FLEA_UI=$FLEA_UI "* ]] && printf ' ui expanded'
     [[ "${CAP_ROWS[0]:-}" = *"XDG_STATE_HOME=$FLEA_STATE "* ]] && printf ' state expanded'
+    [[ "${CAP_ROWS[0]:-}" = *"QML_DISK_CACHE_PATH=$FLEA_QMLCACHE "* ]] && printf ' cache expanded'
+    for row in "${CAP_ROWS[@]}"; do
+      if [[ "$row" = *'|gui|'* && "$row" = *'$'* ]]; then printf ' unresolved variable'; fi
+    done
   )
 }
-check "the capability reader retains every GUI row and expands its paths" "gui=7 ui expanded state expanded" "$(cap_case)"
+check "the capability reader retains every GUI row and expands its paths" "gui=7 ui expanded state expanded cache expanded" "$(cap_case)"
 
 # The CSV: the header ends with launch_pos, and the row format writes one value per header column.
 header=$(grep -m1 '^echo "id,run,' "$bench" | sed 's/^echo "//; s/" >> .*//')
