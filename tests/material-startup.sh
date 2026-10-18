@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
 # Count the Glassy alpha search on the real launcher path, using an instrumented disposable UI copy.
 set -uo pipefail
 cd "$(dirname "$0")/.." || exit 1
@@ -99,7 +101,7 @@ leg() {
     for ((tick = 0; tick < ready_polls; tick++)); do
         answer=$(env -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE DISPLAY=:material-startup \
             XDG_RUNTIME_DIR="$probe/runtime" QT_QPA_PLATFORM=offscreen \
-            timeout "$call_timeout_s" qs ipc -p "$ui_copy/boot" call flea glass 2>/dev/null) && [[ "$answer" == '{'* ]] && break
+            timeout "$call_timeout_s" "$FLEA_IPC_HELPER" -p "$ui_copy/boot" call flea glass 2>/dev/null) && [[ "$answer" == '{'* ]] && break
         answer=""
         sleep "$poll_s"
     done

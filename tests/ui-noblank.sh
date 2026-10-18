@@ -593,7 +593,7 @@ relstart_look() {
     seek_row_named "$name"
     settle
     key -k space >/dev/null
-    omarchy-drive wait ipc -p "$flea_ui/boot" flea previewState "$kind" --timeout 10 >/dev/null \
+    flea_ipc_wait -p "$flea_ui/boot" flea previewState "$kind" --timeout 10 >/dev/null \
         || fail "relstart: Quick Look on $name draws '$(ipc previewState)', not its $kind"
     [[ "$(ipc previewOpen)" == true && "$(ipc previewKind)" == "$kind" ]] \
         || fail "relstart: Quick Look on $name is $(ipc previewKind), open=$(ipc previewOpen), not a $kind"

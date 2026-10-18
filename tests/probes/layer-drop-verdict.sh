@@ -1,4 +1,5 @@
 #!/bin/bash
+. "$(dirname "${BASH_SOURCE[0]}")/../../tools/flea-ipc"
 # Verdict helpers shared by the Bottom-layer probe and headless scan; the probe supplies live readers and the scan stubs them.
 
 layerdrop_path_attempts=30
@@ -33,7 +34,7 @@ layerdrop_catcher_hit() {
         [[ -n "$tid" ]] || continue
         seen=""
         for attempt in $(seq 1 "$layerdrop_path_attempts"); do
-            seen=$(qs ipc -i "$tid" call flea path 2>/dev/null || true)
+            seen=$(flea_ipc_call -i "$tid" call flea path 2>/dev/null || true)
             layerdrop_path_matches "$seen" "$lifted_path" && break
             sleep "$layerdrop_path_poll"
         done

@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Times one share opened through two routes, the kernel mount and the GVFS FUSE path, each in a fresh Flea, interleaved so drift hits both.
 set -uo pipefail
 . "$(dirname "$0")/flea-sandbox-guard"
@@ -72,8 +73,9 @@ else
 fi
 
 # A live process, not a zombie that nothing has reaped yet.
+flea_ipc_init "$FLEA_BIN"
 alive() { local s; s=$(ps -o stat= -p "$1" 2>/dev/null) && [ -n "$s" ] && [ "${s:0:1}" != Z ]; }
-ipc() { timeout 2 qs ipc --pid "$qpid" call flea "$@" 2>/dev/null; }
+ipc() { timeout 2 "$FLEA_IPC_HELPER" --pid "$qpid" call flea "$@" 2>/dev/null; }
 now_ms() { date +%s%3N; }
 out=${OUT:-$root/share-route.csv}
 echo "route,run,listed_ms,first_rows_ms,rows" | tee "$out"

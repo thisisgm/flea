@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # Native drag regression checks through the identified product launcher and owned fixtures.
 #
 # Motion goes through uinput and never through hl.dsp.cursor.move. That warp emits wl_pointer.motion
@@ -11,6 +12,7 @@ set -o pipefail
 repo="$(cd "$(dirname "$0")/.." && pwd)"
 # Without this the UI resolves "flea" from PATH, which is the installed package and not this tree.
 export FLEA_BIN="${FLEA_BIN:-$repo/target/release/flea}"
+flea_ipc_init "$FLEA_BIN"
 export FLEA_UI="$repo/ui"
 . "$repo/tools/flea-sandbox-guard"
 
@@ -402,7 +404,7 @@ glide_to() {
 # window. Matching the window by class alone aborted three runs beside another lane's Flea, which is
 # right to refuse but needlessly blind, because the pid is already in hand.
 myid() {
-  qs list --all --json 2>/dev/null | python3 -c '
+  flea_ipc_list --all --json 2>/dev/null | python3 -c '
 import json, sys
 hits = [i for i in json.load(sys.stdin) if i["config_path"] == sys.argv[1] and i["pid"] == int(sys.argv[2])]
 if len(hits) != 1:
@@ -410,7 +412,7 @@ if len(hits) != 1:
 print("%s %s" % (hits[0]["id"], hits[0]["pid"]))
 ' "$repo/ui/boot/shell.qml" "$FLEA_PID"
 }
-ipc() { qs ipc -i "$MYID" call flea "$@" 2>&1; }
+ipc() { flea_ipc_call -i "$MYID" call flea "$@" 2>&1; }
 native_key() {
   local result=0
   omarchy-drive key --window flea "$@" || result=$?

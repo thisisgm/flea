@@ -1,4 +1,6 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
+flea_ipc_init qs
 # Drives the file chooser the way an application does: omarchy-file-select asks the XDG portal,
 # xdg-desktop-portal routes org.freedesktop.impl.portal.FileChooser to whichever backend the
 # configuration names, and this asserts what comes back AT THE CALLER. It proves nothing about Flea
@@ -39,7 +41,7 @@ client=0
 asker=0
 
 ipc() {
-    timeout 5 omarchy-drive ipc -p "$picker_config" fleapicker "$@" 2>/dev/null
+    timeout 5 "$FLEA_IPC_HELPER" drive -p "$picker_config" fleapicker "$@" 2>/dev/null
 }
 
 press() {
@@ -365,7 +367,7 @@ case_taildrop() {
     # dismisses whatever is up before asking for it, or the click below reads an empty screen.
     omarchy-drive key -k Escape >/dev/null 2>&1
     sleep 1
-    omarchy-drive ipc omarchy.tailscale open >/dev/null || fail "the stock Tailscale panel would not open"
+    FLEA_IPC_KIND=qml "$FLEA_IPC_HELPER" drive omarchy.tailscale open >/dev/null || fail "the stock Tailscale panel would not open"
     sleep 3
     # The peer row has no click action of its own; the hover under the click is what moves the
     # panel's own cursor, and s is the panel's own send key. Neither is Flea's. The label is a

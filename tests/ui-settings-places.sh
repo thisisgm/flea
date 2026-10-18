@@ -227,10 +227,10 @@ places_concurrent() (
     sandbox_require "$addition"
     mkdir "$addition" || fail "places: distinct rail identity fixture creation failed"
     first_pid=$(flea_pid)
-    first_id=$(qs list --all --json | jq -er --arg path "$flea_ui/boot/shell.qml" --argjson pid "$first_pid" '.[] | select(.config_path == $path and .pid == $pid) | .id')
+    first_id=$(flea_ipc_list --all --json | jq -er --arg path "$flea_ui/boot/shell.qml" --argjson pid "$first_pid" '.[] | select(.config_path == $path and .pid == $pid) | .id')
     key -M ctrl -k n -m ctrl >/dev/null
     for attempt in $(seq 1 100); do
-        rows=$(qs list --all --json | jq -c --arg path "$flea_ui/boot/shell.qml" '[.[] | select(.config_path == $path)]')
+        rows=$(flea_ipc_list --all --json | jq -c --arg path "$flea_ui/boot/shell.qml" '[.[] | select(.config_path == $path)]')
         [[ "$(jq length <<< "$rows")" == 2 ]] && break
         sleep 0.05
     done
@@ -247,7 +247,7 @@ places_concurrent() (
         flea_process_owned "$first_pid" || fail "places: first window run ownership changed"
         flea_process_owned "$second_pid" || fail "places: second window run ownership changed"
         [[ "$owned_pid" =~ ^[0-9]+$ && -r "/proc/$owned_pid/environ" ]] || fail "places: owned window process vanished"
-        qs list --all --json | jq -e --arg path "$flea_ui/boot/shell.qml" --arg id "$owned_id" --argjson pid "$owned_pid" \
+        flea_ipc_list --all --json | jq -e --arg path "$flea_ui/boot/shell.qml" --arg id "$owned_id" --argjson pid "$owned_pid" \
             'any(.[]; .config_path == $path and .id == $id and .pid == $pid)' >/dev/null || fail "places: instance ownership changed"
         tr '\0' '\n' < "/proc/$owned_pid/environ" | grep -Fx "FLEA_BIN=$flea_bin" >/dev/null || fail "places: candidate binary changed"
         tr '\0' '\n' < "/proc/$owned_pid/environ" | grep -Fx "FLEA_UI=$flea_ui" >/dev/null || fail "places: candidate UI changed"
@@ -274,7 +274,7 @@ places_concurrent() (
         address=$(places_owned_window "$instance" "$pid") || fail "places: cannot select an owned window"
         omarchy-drive focus "$address" >/dev/null
     }
-    ipc() { qs ipc -i "$instance" call flea "$@"; }
+    ipc() { flea_ipc_call -i "$instance" call flea "$@"; }
     key() {
         [[ "$(places_owned_window "$instance" "$pid")" == "$address" ]] || fail "places: window address changed before native input"
         [[ "$(hyprctl activewindow -j | jq -r .address)" == "$address" ]] || fail "places: another window took keyboard focus"

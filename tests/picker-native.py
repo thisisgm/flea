@@ -12,6 +12,11 @@ import sys
 import tempfile
 import time
 
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from flea_ipc import Client
+IPC = Client("qs")
+IPC.export()
 import gi
 gi.require_version("Gio", "2.0")
 from gi.repository import Gio, GLib
@@ -276,7 +281,7 @@ class Request:
 
     def state(self):
         # One reader answers path, field flag and Jump together, so a poll reads one instant.
-        return json.loads(run(["qs", "ipc", "--pid", self.pid, "call", "fleapicker", "snapshot"], picker_env))
+        return json.loads(run([*IPC.command(), "--pid", self.pid, "call", "fleapicker", "snapshot"], picker_env))
 
     def window(self):
         found = [window for window in windows() if window.get("pid") == self.pid and window.get("title") == self.title]
@@ -423,7 +428,7 @@ def test_multiple():
     multiple = Request("SP02-multiple", multiple=GLib.Variant("b", True), accept_label=GLib.Variant("s", "Send")).opened()
     multiple.mark("alpha.txt")
     index = multiple.row("beta.txt")
-    centre = run(["qs", "ipc", "--pid", multiple.pid, "call", "fleapicker", "rowCentre", index], picker_env)
+    centre = run([*IPC.command(), "--pid", multiple.pid, "call", "fleapicker", "rowCentre", index], picker_env)
     # Double-clicking the row marks it and must not submit it.
     x, y = map(int, centre.split())
     window = multiple.window()
@@ -1011,7 +1016,7 @@ def test_path():
     focus = Request("SP14-focus", folder=siblings).opened()
     focus.key("-M", "ctrl", "-k", "l", "-m", "ctrl")
     focus.until("Ctrl+L opens the path field", lambda state: state["pathBarOpen"])
-    centre = run(["qs", "ipc", "--pid", focus.pid, "call", "fleapicker", "rowCentre", 0], picker_env)
+    centre = run([*IPC.command(), "--pid", focus.pid, "call", "fleapicker", "rowCentre", 0], picker_env)
     focus.point(centre)
     focus.until("a row tap moves focus out and closes the field", lambda state: not state["pathBarOpen"] and state["listFocus"])
     focus.capture("path-focus-left")

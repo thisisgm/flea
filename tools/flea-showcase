@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+. "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
 # The showcase drive: a stage-set home, the whole monitor as the stage, and the beats of
 # showcase-script.md (in .superpowers/sdd/2026-09-01-flea-1to1-buildout/) choreographed inside it.
 #   tools/flea-showcase fixture               build the stage-set home and list it, no window
@@ -26,6 +27,7 @@ set -o pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd) || exit 1
 ui=$repo/ui
 bin=${FLEA_BIN:-$repo/target/release/flea}
+flea_ipc_init "$bin"
 # The operator's own home is the instance; these four are furnished from the stage set for the take.
 fixture=$HOME
 furnished=("$HOME/Pictures" "$HOME/Documents" "$HOME/Music" "$HOME/Projects")
@@ -395,15 +397,15 @@ pid_b=0; id_b=""; addr_b=""
 
 # Sample input, qs list --all --json, one entry: {"config_path":"/home/gm/Work/claude/flea/ui/boot/shell.qml","id":"c0o12e9frkt","pid":3437004,...}
 instance_id_of_pid() {
-    qs list --all --json 2>/dev/null | jq -r --argjson p "$1" '.[] | select(.pid == $p) | .id'
+    flea_ipc_list --all --json 2>/dev/null | jq -r --argjson p "$1" '.[] | select(.pid == $p) | .id'
 }
 
 ipc() {
-    qs ipc -i "$id_a" call flea "$@" 2>/dev/null
+    flea_ipc_call -i "$id_a" call flea "$@" 2>/dev/null
 }
 
 ipc_b() {
-    qs ipc -i "$id_b" call flea "$@" 2>/dev/null
+    flea_ipc_call -i "$id_b" call flea "$@" 2>/dev/null
 }
 
 # Sample input, one hyprctl client: {"address":"0x5a1c","pid":3437004,"at":[780,385],"size":[1000,700],"floating":true,...}

@@ -9,6 +9,11 @@ import shutil
 import subprocess
 import tempfile
 import time
+import sys
+
+sys.path.insert(0, str(Path(__file__).resolve().parent.parent / "tools"))
+from flea_ipc import Client
+Client("qs").export()
 
 
 source = Path(__file__).with_name("ui.sh").read_text()
@@ -77,6 +82,7 @@ if "\nxwsettings_route_snapshot() {" in source:
     helpers += "\n" + function("xwsettings_route_snapshot")
 prelude = f"""
 set -u -o pipefail
+. "$FLEA_IPC_HELPER"
 run_root={shlex.quote(str(root))}
 fixture_root="$run_root/fixture"
 thumb_fixture="$run_root/thumb"
@@ -170,8 +176,8 @@ routing = source[routing_start:routing_end].replace('    local active=', '    ac
 route_driver = r'''
 addrA=0xa
 addrB=0xb
-ipcA=(omarchy-drive ipc -p /a flea)
-ipcB=(omarchy-drive ipc -p /b flea)
+ipcA=(flea_ipc_drive -p /a flea)
+ipcB=(flea_ipc_drive -p /b flea)
 focus_required_reads=3
 route_no_key=false
 printf '0\n' > "$run_root/focus-reads"
@@ -247,6 +253,7 @@ world_constants = "\n".join(re.findall(r"^(?:ipc_(?:call_\w+|pid)|async_wait_ms)
 def world_script_body(run):
     return f"""
 set -u -o pipefail
+. "$FLEA_IPC_HELPER"
 run_root={shlex.quote(str(run))}
 fixture_root="$run_root/fixture"
 flea_ui="$run_root/candidate-ui"
