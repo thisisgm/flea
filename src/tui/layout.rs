@@ -135,8 +135,10 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
         // A job list of more than one job names its count after the bar, in the muted ink.
         let suffix = if m.job_status.count > 1 { format!(" {}", m.job_status.suffix()) } else { String::new() };
         parts.push((&theme.foreground, m.transfer.strip_suffix(&suffix).unwrap_or(&m.transfer).into(), 2));
-        if let Some(fraction) = m.job_status.fraction.or(m.progress_percent.map(|percent| percent as f64 / 100.0)) {
-            parts.extend(m.job_status.bar(theme, fraction));
+        // The job list owns the bar while it names a job; the legacy transfer percent draws only without one.
+        let percent = if m.job_status.id == 0 { m.progress_percent } else { m.job_status.percent };
+        if let Some(percent) = percent {
+            parts.extend(m.job_status.bar(theme, percent));
         }
         if !suffix.is_empty() { parts.push((&theme.muted, suffix.trim_start().into(), 2)); }
     }

@@ -38,7 +38,7 @@ fn a_failure_from_another_profile_is_retried() {
     Store::publish(
         &marker,
         mtime_of(&src),
-        &mut "flea-office-profile-v1\nold failure".as_bytes(),
+        &mut "flea-office-profile-v2\nold failure".as_bytes(),
     )
     .unwrap();
     assert_eq!(r.ask(1, &src), converting_line(1));
@@ -49,7 +49,7 @@ fn a_failure_from_another_profile_is_retried() {
 
 #[test]
 fn stale_failure_profiles_keep_valid_cached_pdfs() {
-    for message in ["legacy failure", "flea-office-profile-v1\nold failure"] {
+    for message in ["legacy failure", "flea-office-profile-v1\nold failure", "flea-office-profile-v2\nold failure"] {
         let d = TestDir::new("officepdf-profile-pdf");
         let r = rig(&d, BROKEN, CONVERT_TIMEOUT);
         let src = d.file("a.docx", "doc");

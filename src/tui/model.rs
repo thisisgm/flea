@@ -1012,10 +1012,10 @@ impl Model {
             "transferprogress" => {
                 if self.job_status.id == 0 && count(&value, "id") == self.transfer_id {
                     let total = count(&value, "total");
-                    self.progress_percent = if self.transfer_total > 0 && total > 0 {
-                        let fraction = (count(&value, "bytes") as f64 / total as f64).clamp(0.0, 1.0);
-                        Some(((count(&value, "index") as f64 + fraction) * 100.0 / self.transfer_total as f64).clamp(0.0, 100.0) as usize)
-                    } else { None };
+                    self.progress_percent = (self.transfer_total > 0 && total > 0).then(|| {
+                        let done = count(&value, "index") as u128 * total as u128 + count(&value, "bytes").min(total) as u128;
+                        super::jobstatus::ratio(done, total as u128 * self.transfer_total as u128)
+                    });
                     self.transfer = format!(
                         "{} {} of {}",
                         if self.transfer_moving {

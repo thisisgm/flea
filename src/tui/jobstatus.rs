@@ -94,31 +94,36 @@ mod model_tests {
     }
 }
 
-pub(super) fn fraction(job: &crate::jsondoc::Json) -> Option<f64> {
+pub(super) fn percent(job: &crate::jsondoc::Json) -> Option<usize> {
     use super::wire::{count, text};
     if text(job, "state") != "running" {
         return None;
     }
     let total = count(job, "totalBytes");
-    (total > 0).then(|| (count(job, "bytes") as f64 / total as f64).clamp(0.0, 1.0))
+    (total > 0).then(|| ratio(count(job, "bytes").min(total) as u128, total as u128))
 }
 
-// tui-progress draws twenty cells, with the completed stroke in accent and the rest in frame ink.
+// A whole percent in integers, so 57 bytes of 100 read 57% where a float reads 56.99.
+pub(super) fn ratio(done: u128, total: u128) -> usize {
+    (done.min(total) * 100 / total.max(1)) as usize
+}
+
+// The tui-progress board draws twenty cells, the done run in the accent over the border track, then the percent in meta ink.
 pub(super) fn bar<'a>(
     theme: &'a super::theme::Theme,
-    fraction: f64,
+    percent: usize,
     i18n: &crate::i18n::I18n,
 ) -> [(&'a str, String, usize); 3] {
-    // Ten cells of accent on the border track, then the whole percent in the meta ink.
-    let percent = (fraction.clamp(0.0, 1.0) * 100.0) as usize;
-    let filled = percent / 10;
+    const CELLS: usize = 20;
+    let percent = percent.min(100);
+    let filled = (percent * CELLS + 50) / 100;
     [
         (theme.accent.as_str(), "━".repeat(filled), 2),
-        (theme.border.as_str(), "─".repeat(10 - filled), 0),
+        (theme.border.as_str(), "─".repeat(CELLS - filled), 0),
         (
             theme.meta.as_str(),
             i18n.tr_args("progress.percent", &[&i18n.locale().format_count(percent as i64)]),
-            1,
+            2,
         ),
     ]
 }
@@ -132,28 +137,42 @@ mod bar_tests {
     fn extraction_unknown_bytes_never_fabricate_a_percentage() {
         let job = parse(r#"{"state":"running","done":12,"total":0,"bytes":3400,"totalBytes":0}"#)
             .unwrap();
-        assert_eq!(fraction(&job), None);
+        assert_eq!(percent(&job), None);
     }
 
     #[test]
-    fn extraction_bar_uses_unpacked_fraction_and_the_existing_theme_roles() {
+    fn extraction_bar_uses_unpacked_bytes_and_the_existing_theme_roles() {
         let job = parse(r#"{"state":"running","bytes":3700000,"totalBytes":9700000}"#).unwrap();
         let theme = super::super::theme::Theme::from_text("");
         let pieces = bar(
             &theme,
-            fraction(&job).unwrap(),
+            percent(&job).unwrap(),
             &crate::i18n::I18n::default(),
         );
-        assert_eq!(pieces[0], (theme.accent.as_str(), "━━━".into(), 2));
-        assert_eq!(pieces[1], (theme.border.as_str(), "───────".into(), 0));
-        assert_eq!(pieces[2], (theme.meta.as_str(), "38%".into(), 1));
+        assert_eq!(pieces[0], (theme.accent.as_str(), "━".repeat(8), 2));
+        assert_eq!(pieces[1], (theme.border.as_str(), "─".repeat(12), 0));
+        assert_eq!(pieces[2], (theme.meta.as_str(), "38%".into(), 2));
+    }
+
+    #[test]
+    fn a_percent_is_whole_and_the_bar_rounds_to_twenty_cells() {
+        let job = parse(r#"{"state":"running","bytes":57,"totalBytes":100}"#).unwrap();
+        assert_eq!(percent(&job), Some(57));
+        let job = parse(r#"{"state":"running","bytes":120,"totalBytes":100}"#).unwrap();
+        assert_eq!(percent(&job), Some(100));
+        let theme = super::super::theme::Theme::from_text("");
+        let i18n = crate::i18n::I18n::default();
+        for (percent, filled) in [(0, 0), (2, 0), (3, 1), (40, 8), (57, 11), (100, 20), (250, 20)] {
+            let pieces = bar(&theme, percent, &i18n);
+            assert_eq!((pieces[0].1.chars().count(), pieces[1].1.chars().count()), (filled, 20 - filled), "{percent}");
+        }
     }
 }
 
 #[derive(Default)]
 pub(super) struct Status {
     pub id: usize,
-    pub fraction: Option<f64>,
+    pub percent: Option<usize>,
     pub count: usize,
     i18n: crate::i18n::I18n,
 }
@@ -167,9 +186,9 @@ impl Status {
     pub fn bar<'a>(
         &self,
         theme: &'a super::theme::Theme,
-        fraction: f64,
+        percent: usize,
     ) -> [(&'a str, String, usize); 3] {
-        bar(theme, fraction, &self.i18n)
+        bar(theme, percent, &self.i18n)
     }
 }
 
@@ -181,15 +200,15 @@ pub(super) fn receive(model: &mut super::model::Model, value: &crate::jsondoc::J
     if text(value, "t") == "jobs" {
         status.id = count(value, "newest");
         status.count = count(value, "unfinished");
-        status.fraction = value
+        status.percent = value
             .get("jobs")
             .and_then(Json::as_array)
             .and_then(|jobs| jobs.iter().find(|job| count(job, "id") == status.id))
-            .and_then(fraction);
+            .and_then(percent);
         model.transfer = line(&status.i18n, text(value, "head"), status.count);
     } else if let Some(job) = value.get("job") {
         if count(job, "id") == status.id {
-            status.fraction = fraction(job);
+            status.percent = percent(job);
             status.count = count(value, "unfinished");
             model.transfer = if matches!(text(job, "state"), "waiting" | "running") {
                 line(&status.i18n, text(job, "head"), status.count)

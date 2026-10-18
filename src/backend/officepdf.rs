@@ -35,7 +35,7 @@ const CACHE_LEAF: &str = "flea/office";
 // The failure markers keep the thumbnail cache's fail/flea/ shape, beside the PDFs and never in the shared thumbnails tree.
 const FAIL_LEAF: &str = "fail/flea";
 // Bump this version when the conversion argv or jail profile changes; cached PDFs stay reusable.
-const FAILURE_PROFILE: &str = "flea-office-profile-v2\n";
+const FAILURE_PROFILE: &str = "flea-office-profile-v3\n";
 const PROGRAM: &str = "soffice";
 // The jail's own tmpfs, so the profile LibreOffice writes needs no bind.
 const PROFILE_URL: &str = "file:///tmp/flea-office-profile";
