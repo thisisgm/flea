@@ -12,6 +12,8 @@ mod chords;
 mod dispatch;
 #[path = "g1_04/generator.rs"]
 mod generator;
+#[path = "g1_04/keypad.rs"]
+mod keypad;
 #[path = "g1_04/presentation.rs"]
 mod presentation;
 #[path = "g1_04/vectors.rs"]

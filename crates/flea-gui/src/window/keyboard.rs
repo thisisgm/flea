@@ -75,6 +75,7 @@ pub fn modifiers(modifiers: Modifiers) -> u8 {
 }
 
 pub fn event_input(event: &KeyDownEvent, held: Modifiers) -> Input<'_> {
+    let keypad = event.keystroke.is_keypad;
     let key = match event.keystroke.key.as_str() {
         "enter" => "Return",
         "[" => "BracketLeft",
@@ -86,13 +87,21 @@ pub fn event_input(event: &KeyDownEvent, held: Modifiers) -> Input<'_> {
         "-" => "Minus",
         "_" => "Underscore",
         ">" => "Greater",
+        // The fork names a keypad operator by its keysym; the key table names it by the Qt key for that keysym.
+        "add" if keypad => "Plus",
+        "subtract" if keypad => "Minus",
+        "multiply" if keypad => "Asterisk",
+        "divide" if keypad => "Slash",
+        "separator" if keypad => "Comma",
+        "decimal" if keypad => "Period",
+        "equal" if keypad => "Equal",
         key => key,
     };
     let mut mask = modifiers(event.keystroke.modifiers);
     if held.shift && caseless(&event.keystroke.key) {
         mask |= keys::SHIFT;
     }
-    if event.keystroke.is_keypad {
+    if keypad {
         mask |= keys::KEYPAD;
     }
     Input {
