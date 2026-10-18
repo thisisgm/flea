@@ -141,11 +141,25 @@ impl Shell {
             height,
             &self.locale,
         );
-        match Backend::start(
-            host.path.clone(),
-            host.select.clone(),
-            host.pane.first_count(),
-        ) {
+        // One folder memory per window: both panes read and write the same maps.
+        let (folders, writer) = match self.panes.iter().flatten().next() {
+            Some(other) => (other.nav.folders.clone(), other.nav.writer.clone()),
+            None => (
+                std::rc::Rc::new(std::cell::RefCell::new(
+                    crate::navigation::folder_state::Folders::from_settings(
+                        &self.launch.settings.data,
+                        self.launch.settings.newest.clone(),
+                    ),
+                )),
+                std::rc::Rc::new(std::cell::RefCell::new(
+                    crate::navigation::folder_state::Writer::live(),
+                )),
+            ),
+        };
+        host.nav = crate::navigation::Navigator::new(folders, writer);
+        let mut listing = host.nav.listing(&host.pane, &host.path.clone(), false);
+        listing.select = host.select.clone();
+        match Backend::start_listing(&listing) {
             Ok(backend) => {
                 let replies = backend.replies.clone();
                 host.reader = Some(cx.spawn_in(window, async move |this, cx| {

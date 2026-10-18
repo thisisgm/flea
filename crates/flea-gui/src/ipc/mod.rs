@@ -1,3 +1,4 @@
+pub mod navigation;
 pub mod pane;
 pub mod server;
 mod surface;

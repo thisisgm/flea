@@ -10,6 +10,8 @@
     "one": "%1 item",
     "other": "%1 items"
   },
+  "navigation.row_not_loaded": "That row has not loaded yet.",
+  "navigation.save_failed": "The folder setting could not be saved.",
   "operation.failed": "Could not %1: %2",
   "pane.reading": "reading",
   "pane.locked": "You don’t have permission to open this folder.",

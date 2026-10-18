@@ -8,6 +8,8 @@
     "flea:ipc.start_failed": "c5aefa30db1e",
     "flea:ipc.window_busy": "be74e6c7209c",
     "flea:items.count": "e72c64c9c36b",
+    "flea:navigation.row_not_loaded": "beb6707f604e",
+    "flea:navigation.save_failed": "91ca1043261b",
     "flea:operation.failed": "a31816d6ddf5",
     "flea:pane.busy": "9d83f53d4b9a",
     "flea:pane.empty.beat_one": "dc5bd14f4f73",
