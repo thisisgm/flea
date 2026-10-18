@@ -271,6 +271,19 @@ fn row(item: &Detail) -> String {
     )
 }
 
+fn thumbnail(item: &Detail) -> String {
+    if !item.directory && item.icon.starts_with("image-") {
+        if let Some(backing) = &item.backing {
+            if let Some((path, mtime)) = backing.thumbnail() {
+                return format!(r#"{{"path":"{}","provider":"{}","identity":"{}","mtime":{}}}"#,
+                    escape(&path.to_string_lossy()), escape(&backing.provider_identity()),
+                    escape(&backing.selection_identity()), mtime);
+            }
+        }
+    }
+    "null".into()
+}
+
 fn selection_identity(item: &Detail) -> String {
     format!(r#"["{}","{}",{},"{}","{}","{}"]"#,
         escape(&item.item.uri), escape(&item.item.original), item.size,
@@ -506,10 +519,16 @@ impl Session {
             }
         }
         if stale { self.selection = None; selected_count = 0; members.clear(); }
+        let mut classes = HashMap::new();
         let rows = rows.iter().map(|item| {
             let mut text = row(item);
             text.pop();
-            text.push_str(&format!(r#","bulkSelected":{}}}"#, members.contains(&item.item.uri)));
+            let class = if self.body.is_empty() { "null".into() } else {
+                let class = item.backing.as_ref().and_then(Reviewed::thumbnail_path).and_then(|path| path.parent().map(PathBuf::from))
+                    .map(|parent| *classes.entry(parent.clone()).or_insert_with(|| super::extclass::classify_in(&parent, &self.body))).unwrap_or("");
+                format!(r#""{}""#, class)
+            };
+            text.push_str(&format!(r#","bulkSelected":{},"storageClass":{},"thumbnail":{}}}"#, members.contains(&item.item.uri), class, thumbnail(item)));
             text
         }).collect::<Vec<_>>();
         Ok(format!(r#""total":{},"start":{},"rows":[{}],"selectionToken":{},"selectionCount":{},"selectionStale":{}"#,
@@ -729,6 +748,9 @@ impl Session {
 
 #[cfg(test)]
 mod refusal_tests;
+#[cfg(test)]
+#[path = "trashbrowse/thumbnail_tests.rs"]
+mod thumbnail_tests;
 #[cfg(test)]
 mod tests {
     use super::*;

@@ -88,6 +88,7 @@ mod menufacts;
 mod walkmounts;
 mod menudelete;
 pub mod trashbrowse;
+pub(crate) mod trashthumb;
 pub mod trashland;
 pub mod journalgate;
 pub mod trashdelete;

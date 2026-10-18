@@ -24,6 +24,8 @@ pub enum Request {
     // storage class whose switch is off; absent is today's full path, see docs/protocol.md "thumb".
     Thumb { rows: Vec<usize>, cache_only: bool },
     ThumbCancel { rows: Vec<usize> },
+    TrashThumb { line: String },
+    TrashThumbCancel { ids: Vec<usize> },
     DirSize { rows: Vec<usize> },
     // Unlike thumbcancel, there is no rows form: it always cancels everything in flight, see docs/protocol.md "dirsizecancel".
     DirSizeCancel,
@@ -184,6 +186,8 @@ pub fn parse_request(line: &str) -> Request {
         Some("thumb") => Request::Thumb { rows: field_usize_array(line, "rows"),
             cache_only: field_bool(line, "cacheOnly") },
         Some("thumbcancel") => Request::ThumbCancel { rows: field_usize_array(line, "rows") },
+        Some("trashthumb") => Request::TrashThumb { line: line.to_string() },
+        Some("trashthumbcancel") => Request::TrashThumbCancel { ids: field_usize_array(line, "ids") },
         Some("dirsize") => Request::DirSize { rows: field_usize_array(line, "rows") },
         Some("dirsizecancel") => Request::DirSizeCancel,
         Some("transfer") => Request::Transfer {

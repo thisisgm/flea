@@ -25,12 +25,20 @@ impl Deferred {
     }
 
     // A waiting job for this path, taken back by a cancel the way the pool gives up a queued one.
-    pub fn take(&mut self, path: &Path) -> Vec<Job> {
-        let at = self.jobs.iter().position(|j| j.path == path);
+    pub fn take(&mut self, path: &Path, trash_identity: Option<&str>) -> Vec<Job> {
+        let at = self.jobs.iter().position(|j| j.path == path && j.trash_identity.as_deref() == trash_identity);
         at.and_then(|i| self.jobs.remove(i)).into_iter().collect()
     }
 
-    // Every waiting job, for a cancel-all or a listing change.
+    // Ordinary cancellation retains Trash jobs in their original request order.
+    pub fn take_listing(&mut self) -> Vec<Job> {
+        let (dropped, kept): (Vec<Job>, Vec<Job>) = self.jobs.drain(..).partition(|j| j.trash_identity.is_none());
+        self.jobs = kept.into();
+        dropped
+    }
+
+    // Test-only: every waiting job, so a harness can inspect or run a complete batch.
+    #[cfg(test)]
     pub fn take_all(&mut self) -> Vec<Job> {
         self.jobs.drain(..).collect()
     }
@@ -46,7 +54,9 @@ fn submit_waiting(out: &mut impl Write, st: &mut State, pool: &Pool, mut room: u
         let Some(job) = st.deferred.jobs.pop_front() else { break };
         for dropped in pool.submit(job) {
             st.outstanding = st.outstanding.saturating_sub(1);
-            if let Some(at) = st.asked.iter().position(|(p, _)| *p == dropped.path) {
+            super::trashthumb::answer(out, st, &dropped.path, dropped.mtime, dropped.trash_identity.as_deref(), "");
+            if let Some(at) = st.asked.iter().position(|(p, _)| dropped.trash_identity.is_none() && *p == dropped.path && st.thumb_mtimes.get(p) == Some(&dropped.mtime)) {
+                st.thumb_mtimes.remove(&dropped.path);
                 let row = st.asked.remove(at).1;
                 writeln!(out, "{}", thumbed_line(row, "", 0.0)).ok();
                 out.flush().ok();
@@ -71,8 +81,9 @@ mod tests {
         for row in 0..MAX_QUEUE + 2 {
             let path = d.join(&format!("img-{row}.jpg"));
             st.asked.push((path.clone(), row));
+            st.thumb_mtimes.insert(path.clone(), 0);
             st.outstanding += 1;
-            let job = Job { path, mtime: 0, mime: "image/jpeg".to_string(), trace: None };
+            let job = Job { path, mtime: 0, trash_identity: None, mime: "image/jpeg".to_string(), trace: None };
             if row < MAX_QUEUE {
                 assert!(pool.submit(job).is_empty());
             } else {
