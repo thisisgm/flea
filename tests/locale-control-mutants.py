@@ -2,6 +2,7 @@
 import argparse
 import ast
 from pathlib import Path
+import runpy
 import shlex
 import shutil
 import subprocess
@@ -19,7 +20,9 @@ MUTANTS = {
     'physical-lines': ('shell', 'newline-only physical line with'),
     'fixture-scope': ('parsers', 'matched fixture sort child environment'),
     'charset': ('parsers', 'ps preserves UTF-8 process arguments'),
+    'gio-charset': ('parsers', 'gio preserves UTF-8 display names'),
 }
+REGRESS_FLAGS = {'gio-charset': 'charset'}
 
 
 # Sample input: check('continued ffmpeg flags are parsed', parsed(name, suffix)).
@@ -37,7 +40,7 @@ def audit(control, variant):
                           '    return\n').body[0]
         callbacks[0].body.insert(0, guard)
         ast.fix_missing_locations(tree)
-    sys.argv = [str(path), '--regress-' + control]
+    sys.argv = [str(path), '--regress-' + REGRESS_FLAGS.get(control, control)]
     exec(compile(tree, str(path), 'exec'), {'__name__': '__main__', '__file__': str(path)})
 
 
@@ -54,7 +57,7 @@ def probe(control, variant, keep):
     start = source.index('run() {\n')
     runner = source[start:source.index('\n}\n', start) + 3]
     label = variant + ' --regress-' + control
-    detection = 'DETECTED --regress-' + control
+    detection = 'DETECTED --regress-' + REGRESS_FLAGS.get(control, control)
     command = ['run', label, '1', detection, 'env', 'LC_ALL=C', 'LANG=C',
                sys.executable, '-B', str(Path(__file__).resolve()), control, variant, '--audit']
     body = ('set -uo pipefail\nbox=' + shlex.quote(str(root)) +
@@ -68,17 +71,20 @@ def probe(control, variant, keep):
     (root / 'runner.rc').write_text(str(result.returncode) + '\n')
     child = (root / 'check-1.log').read_text()
     victim = MUTANTS[control][1]
+    gio_observation = runpy.run_path(str(REPO / 'tests/locale-shell-scope.py'))['GIO_UTF8_OBSERVED']
     if variant == 'mutant':
         expected = f'FAIL locale {label}: expected exit 1, got 1'
         good = (result.returncode == 1 and expected in output.splitlines()
                 and any(line.startswith('MUTANT muted check: ' + victim) for line in child.splitlines())
                 and not any(line.startswith('FAIL ' + victim) for line in child.splitlines())
+                and (control != 'gio-charset' or gio_observation not in child.splitlines())
                 and detection not in child.splitlines())
     else:
         expected = f'ok   locale {label}: exit 1'
         good = (result.returncode == 0 and expected in output.splitlines()
                 and detection in child.splitlines()
-                and any(line.startswith('FAIL ' + victim) for line in child.splitlines()))
+                and (any(line.startswith('FAIL ' + victim) for line in child.splitlines())
+                     or (control == 'gio-charset' and gio_observation in child.splitlines())))
     print(('PASS ' if good else 'FAIL ') + label + f': runner exit {result.returncode}; victim={victim}')
     print(expected if good else output, end='\n')
     if keep or not good:

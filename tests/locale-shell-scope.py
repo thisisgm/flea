@@ -4,6 +4,7 @@ import re
 TOKENS = re.compile(r"\n|;;&|;;|;&|&&|\|\||[();|&<>]|[^\s();|&<>]+")
 LOOPS = {"for", "while", "until", "select"}
 BYTE_TOOLS = ('flea-bench-manifest', 'flea-matched-fixture', 'flea-showcase')
+GIO_UTF8_OBSERVED = 'OBSERVED gio preserves UTF-8 display names: gio kept UTF-8 under LC_ALL=C'
 
 
 # Sample input: case "$1" in a|b) : ;; esac followed by f() { export LC_ALL=C.UTF-8; }.
@@ -252,7 +253,7 @@ def scope_checks(api, check):
 
 
 # Sample input: --regress-uniq with FAIL matched fixture uniq child environment: C|unset.
-def emit_detection(audit, args, errors):
+def emit_detection(audit, args, errors, observations=()):
     signatures = {
         'shell': {
             'parameters': ('command substitution remains code:',),
@@ -276,12 +277,10 @@ def emit_detection(audit, args, errors):
             'fixture-byte-mode': ('matched fixture counts a Latin-1 name as jpg',),
         },
     }
-    # CI gio preserves UTF-8 under C; only its label may fall back to the independently required ps failure.
-    alternatives = {'gio preserves UTF-8 display names':
-                    ('gio preserves UTF-8 display names', 'ps preserves UTF-8 process arguments')}
+    # CI gio can preserve UTF-8 under C; only that check's own observation can replace its failure.
     for flag, labels in signatures[audit].items():
         if getattr(args, 'regress_' + flag.replace('-', '_'), False) and all(
-                any(error.startswith('FAIL ' + candidate)
-                    for candidate in alternatives.get(label, (label,)) for error in errors)
+                any(error.startswith('FAIL ' + label) for error in errors) or
+                (label == 'gio preserves UTF-8 display names' and GIO_UTF8_OBSERVED in observations)
                 for label in labels):
             print('DETECTED --regress-' + flag)

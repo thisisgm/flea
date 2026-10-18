@@ -93,6 +93,7 @@ def main():
 
     atexit.register(cleanup)
     errors = []
+    observations = []
     checks = 0
 
     def check(label, passed, actual):
@@ -100,6 +101,7 @@ def main():
         checks += 1
         if not passed:
             errors.append(f"FAIL {label}: {actual}")
+        return passed
 
     samples = ["sort a", "ok && sort a", "ok || sort a", "! sort a",
                "xargs -0 -n 2 sort", "xargs -I {} sort", "xargs -I{} sort",
@@ -240,8 +242,10 @@ def main():
     utf8_file.touch()
     result = subprocess.run(["/bin/bash", "-c", utf8_scope + 'gio info "$1"', "gio", str(utf8_file)],
                             env=inherited, capture_output=True, text=True)
-    check("gio preserves UTF-8 display names", result.returncode == 0 and
-          "display name: ñandú-é.txt" in result.stdout, result.stdout)
+    if check("gio preserves UTF-8 display names", result.returncode == 0 and
+             "display name: ñandú-é.txt" in result.stdout, result.stdout) and args.regress_charset:
+        observations.append(SHELL["SCOPE"]["GIO_UTF8_OBSERVED"])
+        print(observations[-1])
     process = subprocess.Popen(["sleep-ñé", "30"], executable="/usr/bin/sleep", env=inherited)
     try:
         result = subprocess.run(["/bin/bash", "-c", utf8_scope + 'ps -o args= -p "$1"',
@@ -280,7 +284,7 @@ def main():
     if errors:
         print("\n".join(errors), file=sys.stderr)
         print(f"FAIL locale={requested}; evidence={root}", file=sys.stderr)
-        SHELL["SCOPE"]["emit_detection"]("parsers", args, errors)
+        SHELL["SCOPE"]["emit_detection"]("parsers", args, errors, observations)
         return 1
     success = True
     print(f"PASS locale={requested} decimal={locale.localeconv()['decimal_point']!r}; "

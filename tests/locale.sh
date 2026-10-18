@@ -49,7 +49,9 @@ run() {
     local label=$1 expected=$2 detection=$3 actual matched=1
     shift 3
     serial=$((serial + 1))
-    "$@" > "$box/check-$serial.log" 2>&1
+    # The broker supplies a PID namespace; each check also gets CI's empty environment, detached session and null stdin.
+    setsid -w env -i PATH="$PATH" HOME="$box" LC_ALL="$LC_ALL" LANG="$LANG" LANGUAGE="${LANGUAGE-}" LOCPATH="$LOCPATH" \
+        "$@" < /dev/null > "$box/check-$serial.log" 2>&1
     actual=$?
     if [ "$expected" -eq 1 ]; then
         matched=0
@@ -113,13 +115,30 @@ PY
         run "$script ${args[*]}" 1 "$detection" env LC_ALL="$locale_name" LANG="$locale_name" python3 -B "$script" "${args[@]}"
     done < "$box/controls"
 done
-# Eight dead-check mutants and their unmodified twins add sixteen checks to the original twenty-five.
+# Nine dead-check mutants and their unmodified twins add eighteen checks to the original twenty-five.
+expected_mutants=(continuations exports case-scope block-boundaries block-balance physical-lines fixture-scope charset gio-charset)
 if python3 -B tests/locale-control-mutants.py --list > "$box/mutants"; then
-    while read -r control; do
-        for variant in mutant twin; do
-            run "$variant --regress-$control" 0 "" python3 -B tests/locale-control-mutants.py "$control" "$variant"
+    mapfile -t listed_mutants < "$box/mutants"
+    valid=1
+    [ "${#listed_mutants[@]}" -eq "${#expected_mutants[@]}" ] || valid=0
+    for expected in "${expected_mutants[@]}"; do
+        matches=0
+        for actual in "${listed_mutants[@]}"; do
+            [ "$actual" != "$expected" ] || matches=$((matches + 1))
         done
-    done < "$box/mutants"
+        [ "$matches" -eq 1 ] || valid=0
+    done
+    if [ "$valid" -eq 1 ]; then
+        for control in "${listed_mutants[@]}"; do
+            for variant in mutant twin; do
+                run "$variant --regress-$control" 0 "" python3 -B tests/locale-control-mutants.py "$control" "$variant"
+            done
+        done
+    else
+        failed=$((failed + 1))
+        printf 'FAIL locale mutant discovery: expected all %s controls exactly once\n' "${#expected_mutants[@]}"
+        printf '  listed: <%s>\n' "${listed_mutants[*]}"
+    fi
 else
     failed=$((failed + 1))
     printf 'FAIL locale mutant discovery\n'
