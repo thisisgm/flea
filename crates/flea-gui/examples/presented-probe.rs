@@ -39,11 +39,14 @@ fn main() {
             });
         let observed = Rc::new(Cell::new(0u64));
         let counter = observed.clone();
-        let _ = window.update(cx, |_, window, cx| {
+        if let Err(error) = window.update(cx, |_, window, cx| {
             window
                 .observe_frame_presented(cx, move |_, _| counter.set(counter.get() + 1))
                 .detach();
-        });
+        }) {
+            eprintln!("presented-probe: the presented observer did not register: {error}");
+            std::process::exit(2);
+        }
         cx.spawn(async move |cx: &mut AsyncApp| {
             for second in 1..=SAMPLES {
                 cx.background_executor().timer(Duration::from_secs(1)).await;
