@@ -1,0 +1,4 @@
+package() {
+    install -Dm644 ui/*.qml -t "$pkgdir/share/ui"
+}
+exit 37
