@@ -8,6 +8,10 @@ use std::path::{Path, PathBuf};
 use std::sync::mpsc::Sender;
 use std::sync::Arc;
 
+const MAX_MANIFESTS: usize = 256;
+const MAX_SCRIPTS: usize = 256;
+const MAX_SELECTION: usize = 4096;
+
 #[derive(Clone)]
 pub(crate) struct Action {
     pub id: String,
@@ -26,12 +30,15 @@ fn config() -> PathBuf {
 }
 
 pub(crate) fn load() -> (Vec<Action>, Vec<(String, String)>) {
+    load_from(&config())
+}
+
+fn load_from(root: &Path) -> (Vec<Action>, Vec<(String, String)>) {
     let mut actions = Vec::new();
     let mut errors = Vec::new();
-    let root = config();
     if let Ok(entries) = std::fs::read_dir(root.join("actions")) {
-        for entry in entries.take(257) {
-            if actions.len() + errors.len() >= 256 {
+        for (index, entry) in entries.take(MAX_MANIFESTS + 1).enumerate() {
+            if index == MAX_MANIFESTS {
                 errors.push(("actions".into(), "too many manifests".into()));
                 break;
             }
@@ -68,7 +75,7 @@ pub(crate) fn load() -> (Vec<Action>, Vec<(String, String)>) {
         }
     }
     if let Ok(entries) = std::fs::read_dir(root.join("scripts")) {
-        for entry in entries.take(256).flatten() {
+        for entry in entries.take(MAX_SCRIPTS).flatten() {
             let Ok(meta) = entry.path().symlink_metadata() else {
                 continue;
             };
@@ -184,7 +191,7 @@ pub(crate) fn request(line: String, mime: Arc<super::mime::Db>, tx: Sender<OpMsg
         let id = field_usize(&line, "id").unwrap_or(0);
         let op = field_str(&line, "op").unwrap_or_else(|| "list".into());
         let paths = field_str_array(&line, "paths");
-        let valid = paths.len() <= 4096
+        let valid = paths.len() <= MAX_SELECTION
             && paths
                 .iter()
                 .all(|p| Path::new(p).is_absolute() && !p.contains('\0'));
@@ -292,9 +299,10 @@ pub(crate) fn ready(
                     let mut error = String::new();
                     for path in &paths {
                         let argv = action.argv(Path::new(path));
-                        if let Err(e) =
-                            crate::terminal::open_argv(Path::new(path).parent().unwrap(), &argv)
-                        {
+                        if let Err(e) = crate::terminal::open_argv(
+                            Path::new(path).parent().unwrap_or(Path::new("/")),
+                            &argv,
+                        ) {
                             error = e.to_string();
                             break;
                         }
@@ -323,3 +331,7 @@ pub(crate) fn ready(
     }
     out.flush().ok();
 }
+
+#[cfg(test)]
+#[path = "actions_tests.rs"]
+mod tests;

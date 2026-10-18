@@ -37,7 +37,7 @@ fn jobs_late_journal_completion_revokes_the_previous_jobs_undo() {
     report_op(
         &mut out,
         &mut ops,
-        OpMsg::RenameDone {
+        OpMsg::MkdirDone {
             id: 2,
             result: Ok((std::path::PathBuf::new(), vec![Step::Barrier])),
         },
@@ -176,7 +176,14 @@ fn review_job_undo_must_not_reverse_another_windows_job() {
         Default::default(),
     );
     review_drain(&mut b, &rx_b);
+    out.clear();
     super::jobevents::request(&mut out, &mut a, r#"{"op":"undo","id":1}"#);
+    assert!(String::from_utf8_lossy(&out).contains("That job can no longer be undone."));
+    assert!(!a.jobs.rows[0].undo);
+    assert_eq!(
+        std::fs::read_to_string(dest_a.join("a.txt")).unwrap(),
+        "window A"
+    );
     eprintln!(
         "REPRO shared Undo: window A copy exists={}, window B copy exists={}",
         dest_a.join("a.txt").exists(),
@@ -189,7 +196,7 @@ fn review_job_undo_must_not_reverse_another_windows_job() {
 }
 
 #[test]
-fn review_hostile_argv_names_are_literal_and_cancel_remains_direct() {
+fn hostile_argv_names_remain_literal_and_option_safe() {
     let manifest = super::actionmanifest::parse(
         r#"name = "Inspect"
 mime = ["text/*"]

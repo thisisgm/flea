@@ -782,8 +782,11 @@ gets its own id and start line, including a request that waits behind another wr
 Waiting jobs run in arrival order and name their predecessor and its target in the jobs `reason`.
 Writes to different drives run together; another running job never causes a busy refusal for these
 requests. An extraction writes to the filesystem holding its destination, just as compression does.
-`trash`, `duplicate`, `link` and `permissionsBatch` retain their existing busy guards for non-job
-mutations. `rename` and `mkdir` never take that slot, and `convert` remains independent.
+Ordinary `trash`, `duplicate`, `link` and menu deletion share one non-job operation slot.
+Reviewed Trash deletion also claims that slot and refuses while its previous Trash journal is settling;
+destination-queued transfers do not hold it. Ordinary non-job mutations, including `rename`, `mkdir`
+and `permissionsBatch`, refuse while the slot or an unfinished job is active. `rename` and `mkdir`
+do not claim the slot themselves, and `convert` remains independent.
 
 The answer is a `transferstarted` line for a file transfer, then per top-level item a bounded stream of
 `transferprogress` lines and exactly one `transferitem`, then one `transferdone`. An archive `extract`
@@ -982,7 +985,7 @@ when both are present. A `link` whose `listing` is not the numbering in force
 is refused with `where` of `stale` before a single index is resolved, the
 same rule `transfer` follows.
 
-Like `transfer`, this runs beside the loop and takes the one-operation slot:
+This runs beside the loop and takes the non-job operation slot:
 the busy check and the collide answer are decided on the loop, then one
 thread links each source, replacing through the trash when the card chose
 it, and the answer is written from its message. A source or the destination
@@ -1224,7 +1227,7 @@ or failed review supplies no actionable confirmation. Preparation and validation
 in bounded groups of 128, with the same complete snapshot and identity checks as individual queries.
 
 `{"c":"trashbrowse","op":"delete","id":<uint>,"token":<uint>}` deletes that reviewed snapshot.
-An accepted delete claims the shared transfer slot and immediately flushes
+An accepted delete claims the non-job operation slot and immediately flushes
 `{"t":"trashdeletestarted","id":<uint>,"requestId":<uint>}` followed by a `transferprogress` line,
 before any queued Trash request, validation, or filesystem work. `id` is the operation id accepted by
 `transfercancel`; `requestId` is the browser request's id. A busy refusal answers only the ordinary
@@ -1236,9 +1239,10 @@ The job uses the operations card's existing progress and terminal types:
 
 `unit:items` changes the meaning of `bytes` and `total` for this operation only: they count deleted
 and reviewed filesystem entries, including descendants, directories, and zero-byte files. The totals
-come from the complete saved snapshot, so one trashed folder can report thousands of files. Q6's
-`count` and the terminal item counts remain top-level Trash entries. The immediate sample has total
-0 until the worker reads the confirmation; later samples carry the recursive total. During
+come from the complete saved snapshot, so one trashed folder can report thousands of files. The
+`trashbrowse` prepare reply's `count` and the terminal item counts remain top-level Trash entries.
+The immediate sample has total 0 until the worker reads the confirmation; later samples carry the
+recursive total. During
 `checking`, `bytes` stays 0 and `checked` counts validated top-level items; during `deleting`, `bytes`
 counts successfully removed entries, including children of a folder interrupted later. Refused entries
 do not advance this bar. `name` is the original name of the top-level item in flight and `itemSize`
@@ -2765,7 +2769,7 @@ Actions requests use absolute selection paths, resolved by the caller from one l
 
 A terminal handoff or refused run answers `actionstarted` with `requestId`, `ok`, and `error`, without a job id. A terminal action opens each expanded argv through `xdg-terminal-exec --dir=... -- ...`, the Open in Terminal launcher. A preview-only action refuses `run`. A preview answers text suitable for the existing `code` request's `text` input and the code renderer. Its process runs in the existing read-only preview jail with only the cursor file and executable added, a five-second wall deadline, the existing CPU and address-space limits, and a 1,048,576-byte output cap. A newer preview request cancels and suppresses the older reply.
 
-The manifest directory is `$XDG_CONFIG_HOME/flea/actions` or `$HOME/.config/flea/actions`. The parser accepts the specimen's TOML subset: five unique required keys, double-quoted basic strings with JSON-compatible escapes, and possibly multiline string arrays with comments and trailing commas. Raw C0 control bytes other than tab, and raw DEL, are prohibited in strings; supported escaped values remain valid. Other keys, tables, duplicate keys, missing fields, wrong types, empty arrays, invalid modes or selection rules, invalid escapes or placeholders, and files over 16,384 bytes are refused whole. Directory discovery examines at most 257 entries to detect overflow and reads at most 256 manifests; arrays hold at most 128 elements. Nonregular files are refused without blocking. Each refusal appears in the `actions.errors` array as `{"file":"bad.toml","error":"..."}`; valid siblings remain available.
+The manifest directory is `$XDG_CONFIG_HOME/flea/actions` or `$HOME/.config/flea/actions`. The parser accepts the specimen's TOML subset: five unique required keys, double-quoted basic strings with JSON-compatible escapes, and possibly multiline string arrays with comments and trailing commas. Raw C0 control bytes other than tab, and raw DEL, are prohibited in strings; supported escaped values remain valid. Other keys, tables, duplicate keys, missing fields, wrong types, empty arrays, invalid modes or selection rules, invalid escapes or placeholders, and files over 16,384 bytes are refused whole. Directory discovery examines at most 257 entries to detect overflow, counting unrelated entries too, and reports when that entry limit truncates discovery; it reads at most 256 manifests; arrays hold at most 128 elements. Nonregular files are refused without blocking. Each refusal appears in the `actions.errors` array as `{"file":"bad.toml","error":"..."}`; valid siblings remain available.
 
 ```toml
 name = "Resize to 1600 px"
@@ -2778,6 +2782,6 @@ mode = "background"
 
 MIME patterns match the entire MIME string and accept literal characters, `*`, and `?`. Every selected item must match a pattern; `one` requires exactly one item, while `many` accepts one or more. MIME comes from the existing name database, with directories reported as `inode/directory` and unknown files as `application/octet-stream`. Listing and running recheck the actual selected paths. No directory listing is MIME-scanned to populate Actions.
 
-`{path}`, `{dir}`, `{name}`, `{stem}`, and `{ext}` expand separately within each argv element, once per selected file. Replacements are not expanded again. The program is literal and cannot contain placeholders. Paths remain absolute; a placeholder-led argument whose result begins with `-` is prefixed with `./`, so a filename cannot become an option. Invocation uses argv without a shell unless the manifest explicitly names one. A background job retains only its last two merged stdout and stderr lines, each bounded to 4,096 decoded UTF-8 bytes with lossy decoding. `output` replaces the file line once nonempty. Cancel kills the entire invocation's process group with SIGKILL before reaping its leader, including children that ignore SIGTERM.
+`{path}`, `{dir}`, `{name}`, `{stem}`, and `{ext}` expand separately within each argv element, once per selected file. Replacements are not expanded again. The program is literal and cannot contain placeholders. Paths remain absolute; a placeholder-led argument whose result begins with `-` is prefixed with `./`, so a filename cannot become an option. Invocation uses argv without a shell unless the manifest explicitly names one. A background job retains only its last two merged stdout and stderr lines, each bounded to 4,096 decoded UTF-8 bytes with lossy decoding. `output` replaces the file line once nonempty. The invocation owns its entire process group: cancellation and leader exit, successful or unsuccessful, kill remaining descendants with SIGKILL before reaping the leader, including children that ignore SIGTERM.
 
 Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain Actions entries, with ids `script:<filename>` and labels omitting the final extension. They retain the existing Run script contract: one invocation receives all selected absolute paths. The Actions switch retains the `runScript` id in `menu.hidden` and remains hidden by default. No `src/uischema.rs` defaults change.

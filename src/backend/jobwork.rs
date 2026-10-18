@@ -139,6 +139,16 @@ impl Work {
         Ok(self.paths().len())
     }
 
+    pub fn failed_line(&self, id: usize, total: usize, error: &str) -> String {
+        match self {
+            Self::Transfer { .. } => {
+                super::opsreq::transferdone_line(id, 0, total, 0, false, &[], false, error, &[])
+            }
+            Self::Archive { .. } => super::archivereq::archivedone_line(id, false, true, error),
+            _ => String::new(),
+        }
+    }
+
     pub fn cancelled_line(&self, id: usize, total: usize) -> String {
         match self {
             Self::Transfer { .. } => {

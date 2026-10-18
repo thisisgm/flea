@@ -195,3 +195,69 @@ fn review_job_undo_patches_the_session() {
         "both undos patch with no walk"
     );
 }
+
+#[test]
+fn refused_requests_preserve_job_undo_offer() {
+    let sandbox = TestDir::new("jobs-refused-request");
+    let root = sandbox.path();
+    let tb = Tables::load();
+    let (events, _) = channel::<Event>();
+    let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
+    let pool = Pool::new(
+        1,
+        channel().0,
+        root.join("cache"),
+        Arc::clone(&tb.aliases),
+        Arc::clone(&tb.thumbs),
+    );
+    let cache = Cache::new();
+    let mut ops = Ops::new(channel().0);
+    let mut watch = Watch::start(events.clone());
+    let mut peeks = PeekWatch::start(events.clone());
+    let mut fsinfo = FsInfo::new(events.clone());
+    let poller = super::super::watchpoll::Poller::new(events.clone());
+    ops.jobs.adopt(
+        &mut Vec::new(),
+        1,
+        "copy",
+        "",
+        1,
+        Arc::new(std::sync::atomic::AtomicBool::new(false)),
+    );
+    ops.jobs.rows[0].state = crate::backend::jobs::State::Done;
+    ops.jobs.rows[0].undo = true;
+    let mut out = Vec::new();
+    for line in [
+        format!(
+            r#"{{"c":"trash","rows":[0],"listing":{}}}"#,
+            st.generation + 1
+        ),
+        format!(
+            r#"{{"c":"mkdir","path":"{}","name":"bad/name"}}"#,
+            root.display()
+        ),
+    ] {
+        handle_line(
+            &line,
+            &mut out,
+            &mut st,
+            &tb,
+            &pool,
+            &cache,
+            &mut ops,
+            &mut flashslot::Ctx::new(channel().0),
+            &mut watch,
+            &mut peeks,
+            &mut fsinfo,
+            &poller,
+            &events,
+            &mut Gate::new(events.clone()),
+        );
+        let text = String::from_utf8(std::mem::take(&mut out)).unwrap();
+        assert!(text.contains("error"), "request must be refused: {text}");
+        assert!(
+            ops.jobs.rows[0].undo,
+            "refused request expired offer: {line} {text}"
+        );
+    }
+}

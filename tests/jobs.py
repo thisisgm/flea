@@ -9,6 +9,7 @@ import subprocess
 import sys
 import tempfile
 import time
+from jobs_barrier import CopyBarrier
 
 BINARY = str(Path(sys.argv[1]).resolve())
 MARKER = '.flea-test-sandbox'
@@ -30,6 +31,8 @@ class Root:
 class Backend:
     def __init__(self, root):
         self.root = root
+        self.barrier = CopyBarrier(root)
+        self.barrier_sync = 10000
         env = dict(os.environ)
         for key, name in [('HOME', 'home'), ('XDG_CONFIG_HOME', 'config'),
                           ('XDG_DATA_HOME', 'data'), ('XDG_STATE_HOME', 'state'),
@@ -40,6 +43,7 @@ class Backend:
         self.actions = root / 'config/flea/actions'
         self.actions.mkdir(parents=True, exist_ok=True)
         env['PATH'] = str(root / 'bin') + ':' + env.get('PATH', '')
+        self.barrier.environment(env)
         self.process = subprocess.Popen([BINARY, '--backend'], stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
                                         env=env, start_new_session=True)
@@ -86,6 +90,21 @@ class Backend:
         self.send(c='transfer', op='copy', paths=[str(p) for p in paths], dest=str(destination))
         return self.wait(lambda e: e['t'] == 'transferstarted')['id']
 
+    def held_copy(self, paths, destination):
+        before = self.barrier.ready()
+        ident = self.copy(paths, destination)
+        ready = self.barrier.wait(before)
+        self.state(ident, 'running')
+        return ident, ready
+
+    def cancel_held(self, ident, ready):
+        self.send(c='jobs', op='cancel', id=ident)
+        self.barrier_sync += 1
+        self.send(c='actions', op='list', id=self.barrier_sync, paths=[])
+        self.wait(lambda e: e['t'] == 'actions' and e['id'] == self.barrier_sync)
+        self.barrier.release(ready)
+        return self.state(ident, 'done')
+
     def manifest(self, name, **overrides):
         fields = dict(name=name, mime=['text/*'], selection='many',
                       run=['/usr/bin/true', '{path}'], mode='background')
@@ -119,7 +138,8 @@ def fixture(root):
     source.mkdir()
     tree = source / 'tree'
     tree.mkdir()
-    for index in range(4000):
+    (tree / 'hold-copy.txt').write_text('controlled copy read')
+    for index in range(8):
         (tree / f'{index:05d}.txt').write_bytes(b'payload' * 32)
     a = source / 'first.txt'
     b = source / 'second.txt'
@@ -134,7 +154,7 @@ def copies(backend, root, temporary):
     second = root / 'Docs'
     first.mkdir()
     second.mkdir()
-    one = backend.copy([tree], first)
+    one, held_one = backend.held_copy([tree], first)
     two = backend.copy([tree], second)
     backend.wait(lambda e: backend.jobs.get(two, {}).get('reason', '').startswith('waiting for the copy to '))
     queued = backend.jobs[two]
@@ -146,8 +166,7 @@ def copies(backend, root, temporary):
     assert backend.state(two, 'done')['cancelled']
     latencies = [time.monotonic() - started]
     started = time.monotonic()
-    backend.send(c='jobs', op='cancel', id=one)
-    assert backend.state(one, 'done')['cancelled']
+    assert backend.cancel_held(one, held_one)['cancelled']
     latencies.append(time.monotonic() - started)
     print(f'MEASURE waiting/running copy Cancel {min(latencies):.4f} to {max(latencies):.4f}s')
     assert not (second / tree.name).exists()
@@ -156,14 +175,12 @@ def copies(backend, root, temporary):
         backend.wait(lambda e: e['t'] == 'jobs' and ident not in backend.jobs)
     print('PASS same-drive FIFO, named wait, independent running and waiting Cancel, Dismiss')
 
-    one = backend.copy([tree], second)
-    two = backend.copy([tree], temporary)
+    one, held_one = backend.held_copy([tree], second)
+    two, held_two = backend.held_copy([tree], temporary)
     backend.wait(lambda e: all(backend.jobs.get(i, {}).get('state') == 'running' for i in (one, two)))
-    backend.send(c='jobs', op='cancel', id=one)
-    backend.state(one, 'done')
+    backend.cancel_held(one, held_one)
     assert not backend.jobs[two]['cancelled']
-    backend.send(c='jobs', op='cancel', id=two)
-    backend.state(two, 'done')
+    backend.cancel_held(two, held_two)
     print('PASS different-drive concurrency, one Cancel preserves the other')
 
     destination = root / 'retry'
@@ -371,15 +388,14 @@ def review_probes(backend, root, a):
         target.unlink()
         blocker_dest = root / 'review-blocker'
         blocker_dest.mkdir()
-        blocker = backend.copy([root / 'source/tree'], blocker_dest)
+        blocker, held = backend.held_copy([root / 'source/tree'], blocker_dest)
         backend.state(blocker, 'running')
         backend.send(c='jobs', op='retry', id=ident)
         backend.wait(lambda e: backend.jobs.get(ident, {}).get('state') == 'waiting'
                      and backend.jobs[ident]['reason'].startswith('waiting for'))
         source.rename(root / 'review-original-held.txt')
         source.write_text('unrelated replacement')
-        backend.send(c='jobs', op='cancel', id=blocker)
-        backend.state(blocker, 'done')
+        backend.cancel_held(blocker, held)
         backend.wait(lambda e: backend.jobs.get(ident, {}).get('state') in ('done', 'failed'))
         assert source.exists(), 'replacement source exists=False, destination=' + target.read_text()
         assert source.read_text() == 'unrelated replacement'
@@ -453,8 +469,10 @@ def main():
     root = Root(str(scratch.resolve()))
     temporary = Root(tempfile.gettempdir())
     backend = None
+    barrier = None
     try:
         assert os.stat(root.path).st_dev != os.stat(temporary.path).st_dev, 'test requires a separate tmpfs'
+        barrier = CopyBarrier.build(root.path)
         launcher = root.path / 'bin/xdg-terminal-exec'
         launcher.parent.mkdir()
         launcher.write_text('#!/usr/bin/python3\nimport json,sys\n'
@@ -470,6 +488,8 @@ def main():
         print('PASS final snapshot excludes failed and done jobs from unfinished count')
         review_probes(backend, root.path, a)
     finally:
+        if barrier:
+            barrier.close()
         if backend:
             backend.close()
         temporary.close()
