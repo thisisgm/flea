@@ -22,6 +22,8 @@ MARKER = ".flea-test-sandbox"
 IDLE_BOUND_SEC = 1
 # Allow 300 ms for second-timer coalescing and the activation/PID query round trips.
 IDLE_TOLERANCE_SEC = 0.3
+# Bound private-bus monitor setup so a stalled daemon cannot hang the lifetime checks.
+MONITOR_SETUP_TIMEOUT_MS = 3000
 
 
 def isolated():
@@ -183,7 +185,7 @@ def exercise(root):
                  "type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged'"]
         monitor.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus.Monitoring",
                           "BecomeMonitor", GLib.Variant("(asu)", (rules, 0)), None,
-                          Gio.DBusCallFlags.NONE, 3000, None)
+                          Gio.DBusCallFlags.NONE, MONITOR_SETUP_TIMEOUT_MS, None)
         held = activate()
         start = time.monotonic()
         pid = daemon("GetConnectionUnixProcessID", GLib.Variant("(s)", (held,)))[0]
