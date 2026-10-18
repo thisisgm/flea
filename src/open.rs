@@ -29,7 +29,7 @@ pub fn prepare(child: &mut Command) {
     tearoff::drop_env(child);
 }
 
-// In-process callers (the TUI, the shelf) stay on 0/2/3: an executable is refused with its sentence, and only the main.rs --open path asks the card, through open_ask.
+// In-process callers (the TUI, the shelf) read any nonzero status as a refusal, 7 and 10 included; only the main.rs --open path asks the card, through open_ask.
 pub fn open(path: &str) -> i32 {
     open_inner(path, false, &[])
 }
@@ -76,37 +76,43 @@ fn open_inner(path: &str, ask: bool, images: &[String]) -> i32 {
     // A program asks once on the run card instead of reaching a handler, and a file no application claims asks Open with.
     let body = std::fs::read("/proc/self/mountinfo").unwrap_or_default();
     let mounts = String::from_utf8_lossy(&body).into_owned();
-    match runfile::decide_opened(&opened, &target, &mounts) {
+    open_snapshot(&target, &opened, ask, &mounts, images)
+}
+
+// The run decision and its answer off one snapshot; the mount table is the caller's, so a test can name a noexec volume the box does not hold.
+fn open_snapshot(target: &Path, opened: &crate::runid::Opened, ask: bool, mounts: &str, images: &[String]) -> i32 {
+    match runfile::decide_opened(opened, target, mounts) {
         runfile::Decision::Ask(kind) => {
             if !ask {
                 eprintln!("flea: that file is a program, so it was not opened");
                 return FAILED;
             }
             let handler = if matches!(kind, runfile::Kind::AppImage) {
-                crate::desktopid::handler(&target)
+                crate::desktopid::handler(target)
             } else {
                 None
             };
             println!(
                 "{}",
-                runfile::ask_line(kind, handler.as_ref(), &opened.id, &target)
+                runfile::ask_line(kind, handler.as_ref(), &opened.id, target)
             );
             return runfile::ASK_RUN;
         }
         // A script missing its bit opens with its handler the way it always did; the menu's Make executable is the one route to the bit.
         runfile::Decision::MakeExecutable(runfile::Kind::Script) => {}
-        // A binary missing its bit is refused for every caller, since an AppImage launcher would run it.
+        // A binary missing its bit is refused for every caller, since an AppImage launcher would run it; its own status names that cause, not a missing application.
         runfile::Decision::MakeExecutable(_) => {
             eprintln!("flea: that file is a program, so it was not opened");
-            return FAILED;
+            return runfile::NOT_EXECUTABLE;
         }
+        // A program on a noexec volume answers the run card's own status, so the window names the volume and not a missing application.
         runfile::Decision::RefuseNoExec => {
             eprintln!("flea: that program is on a volume that does not allow running files");
-            return FAILED;
+            return runfile::RUN_NOEXEC;
         }
         runfile::Decision::OpenNormally => {}
     }
-    open_normally(&target, ask, images)
+    open_normally(target, ask, images)
 }
 
 // Past every run decision: handed to GIO and waited on, the way the opener always did.
