@@ -584,7 +584,7 @@ the listing swap already follows for `list`:
    each folder row among the first `sizes` rows whose complete size is known.
 3. One terminal line naming the generation:
 
-`{"t":"searched","n":<matches>,"scanned":<entries>,"ms":<ms>,"cancelled":false,"gen":<gen>,"walking":<bool>}`
+`{"t":"searched","n":<matches>,"scanned":<entries>,"ms":<ms>,"cancelled":false,"gen":<gen>,"walking":<bool>,"partial":<bool>,"partial_reason":<string>}`
 
 `scanned` is the index size the query scored over. `walking` is true while
 the walk is still running: the answer comes from the partial index, and the
@@ -622,8 +622,21 @@ per-query mtime sweep. The backend's own writes under the scope patch the
 index when they land, the open folder's existing watch patches that one
 directory's entries when it reports a change, and reopening the session or
 changing scope re-walks. An outside change deeper than the open folder shows
-after a reopen. The index holds at most 200,000 entries; past it the walk
-stops adding and the count stands.
+after a reopen. The index has no fixed entry-count cap. Raw basenames are interned
+and paths are reconstructed from parent references. Checked ID or arena bounds and
+allocation refusals stop adding entries and preserve the identities already held.
+
+Every session `searched` line carries `partial` and `partial_reason`. `partial:false`
+and an empty reason certify that enumeration completed without a refused directory.
+While enumeration or tag loading continues, `walking:true` carries `partial:true`
+with reason `walking`, unless an earlier failure already supplies a reason. A finished
+but incomplete index has `walking:false`, `partial:true` and a reason of `unreadable`,
+`capacity` or `allocation`. Cancellation carries `cancelled:true`, `walking:false`,
+`partial:true` and reason `cancelled`. For a nonempty query, `scanned` counts retained
+identities, including when the query matches none. An empty query retains its existing
+folder-row count. A partial result remains usable but is never a complete scope
+inventory; reopen the session to retry refused coverage. A patch read refusal
+also makes coverage partial. These fields do not claim recursive watch coverage.
 
 The scorer and ranking contract are `search`'s own. A query extending the
 previous one scores only the previous matches; any other change scores the

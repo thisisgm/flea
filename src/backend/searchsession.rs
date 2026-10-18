@@ -117,9 +117,8 @@ impl Session {
         self.index.lock().unwrap().len()
     }
 
-    #[cfg(test)]
-    pub(crate) fn capped(&self) -> bool {
-        self.index.lock().unwrap().capped
+    pub(crate) fn partial_reason(&self) -> Option<&'static str> {
+        self.index.lock().unwrap().partial
     }
 
     // Bytes the arena holds now; zero once close frees it, counted not sampled.
@@ -260,9 +259,10 @@ impl Session {
             self.counters.rank_compares = compares.get();
         }
         let rows: Vec<(String, bool)> =
-            hits[..window].iter().map(|&(_, row)| (index.path(row).to_string(), index.is_dir(row))).collect();
+            hits[..window].iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
         let total = all.len();
         let indexed = index.len();
+        let partial = index.partial;
         drop(index);
         Answer {
             gen: 0,
@@ -271,6 +271,7 @@ impl Session {
             total,
             indexed,
             walking: self.walking() || unread,
+            partial,
             ms: started.elapsed().as_secs_f64() * 1000.0,
             count,
             scope: self.scope.clone(),
@@ -314,7 +315,7 @@ impl Session {
             }
             let taken: Vec<(i32, usize)> = rest.drain(..take).collect();
             let rows: Vec<(String, bool)> =
-                taken.iter().map(|&(_, row)| (index.path(row).to_string(), index.is_dir(row))).collect();
+                taken.iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
             (rows, rest.is_empty())
         };
         if spent {

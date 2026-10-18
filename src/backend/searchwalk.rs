@@ -1,5 +1,5 @@
 // The session walk: bounded parallel threads over a shared queue locally, one bounded worker per directory remotely.
-use super::searchindex::{index_bytes, is_hidden, read_entries, Index, WALK_THREADS};
+use super::searchindex::{index_bytes, is_hidden, Index, WALK_THREADS};
 use super::searchreq::Cancelled;
 use super::searchsession::Session;
 #[cfg(test)]
@@ -56,11 +56,15 @@ pub(crate) fn fill(
     body: &str,
     probes: &WalkProbes,
 ) -> usize {
-    if remote {
+    let dirs = if remote {
         walk_remote(out, root, hidden, body, probes)
     } else {
         walk_local(out, root, hidden, probes)
-    }
+    };
+    let mut index = out.lock().unwrap();
+    if probes.cancel.load(Ordering::Relaxed) { index.mark_partial("cancelled"); }
+    index.finish();
+    dirs
 }
 
 // Local scopes walk with bounded worker threads over a shared directory queue.
@@ -122,9 +126,17 @@ fn open_local(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, probes:
         return None;
     }
     let rel = rel_of(root, dir);
-    let mut rows: Vec<(PathBuf, bool)> = Vec::new();
+    let mut rows = Vec::new();
     let mut subdirs = Vec::new();
-    for (name, is_dir) in read_entries(dir) {
+    let read = match super::searchread::read(dir) {
+        Ok(read) => read,
+        Err(_) => {
+            out.lock().unwrap().mark_partial("unreadable");
+            return None;
+        }
+    };
+    let partial = read.partial;
+    for (name, is_dir) in read.entries {
         // A dot-prefixed name is dropped before it is counted, matching scan.rs's own hidden rule.
         if !hidden && is_hidden(&name) {
             continue;
@@ -133,7 +145,7 @@ fn open_local(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, probes:
         if is_dir {
             subdirs.push(dir.join(&name));
         }
-        rows.push((rel.join(&name), is_dir));
+        rows.push((name, is_dir));
     }
     #[cfg(test)]
     probes.hold_if_due(probes.opened.load(Ordering::Relaxed), dir, true);
@@ -143,9 +155,8 @@ fn open_local(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, probes:
     if probes.cancel.load(Ordering::Relaxed) {
         return None;
     }
-    for (path, is_dir) in rows {
-        index.push(path, is_dir);
-    }
+    if let Some(reason) = partial { index.mark_partial(reason); }
+    if !index.push_directory(rel.as_os_str(), &rows) { return None; }
     Some(subdirs)
 }
 
@@ -166,9 +177,12 @@ fn walk_remote(out: &Mutex<Index>, root: &Path, hidden: bool, body: &str, probes
         }
         // One bound for opendir, getdents and d_type together, so a dead server costs one deadline.
         let owned = dir.clone();
-        let entries = match super::iomount::call(&dir, body, "search", move || read_entries(&owned)) {
-            Ok(entries) => entries,
-            _ => continue,
+        let entries = match super::iomount::call(&dir, body, "search", move || super::searchread::read(&owned)) {
+            Ok(Ok(entries)) => entries,
+            _ => {
+                out.lock().unwrap().mark_partial("unreadable");
+                continue;
+            }
         };
         let rel = rel_of(root, &dir);
         {
@@ -176,14 +190,11 @@ fn walk_remote(out: &Mutex<Index>, root: &Path, hidden: bool, body: &str, probes
             if probes.cancel.load(Ordering::Relaxed) {
                 break;
             }
+            if let Some(reason) = entries.partial { index.mark_partial(reason); }
+            let entries: Vec<_> = entries.entries.into_iter().filter(|(name, _)| hidden || !is_hidden(name)).collect();
+            if !index.push_directory(rel.as_os_str(), &entries) { return dirs; }
             for (name, is_dir) in entries {
-                if !hidden && is_hidden(&name) {
-                    continue;
-                }
-                index.push(rel.join(&name), is_dir);
-                if is_dir {
-                    pending.push(dir.join(&name));
-                }
+                if is_dir { pending.push(dir.join(name)); }
             }
         }
         dirs += 1;
@@ -300,6 +311,7 @@ impl Session {
             return None;
         }
         self.probes.cancel.store(true, Ordering::Relaxed);
+        self.index.lock().unwrap().mark_partial("cancelled");
         self.flush_patches();
         self.stand_held();
         // The landing event still arrives; swallowing it here stops the re-run it would fire.
