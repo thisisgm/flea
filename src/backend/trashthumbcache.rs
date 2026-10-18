@@ -3,6 +3,11 @@ use std::collections::HashSet;
 use std::io::ErrorKind;
 use std::os::unix::ffi::OsStrExt;
 
+#[cfg(test)]
+thread_local! {
+    pub(super) static DIRECTORY_READS: std::cell::Cell<[usize; 2]> = const { std::cell::Cell::new([0; 2]) };
+}
+
 // These are the backing file URIs used by Trash thumbnail jobs, not their original locations.
 pub(crate) fn purge(uris: &[String]) {
     let hashes: HashSet<_> = uris.iter().map(|uri| md5::hex(uri.as_bytes())).collect();
@@ -17,6 +22,12 @@ pub(crate) fn purge(uris: &[String]) {
     }
     let failed = cache.fail_path("").parent().unwrap().to_path_buf();
     for dir in [cache.large_dir(), failed] {
+        #[cfg(test)]
+        DIRECTORY_READS.with(|reads| {
+            let mut counts = reads.get();
+            counts[usize::from(dir != cache.large_dir())] += 1;
+            reads.set(counts);
+        });
         let entries = match std::fs::read_dir(&dir) {
             Ok(entries) => entries,
             Err(error) => {

@@ -237,7 +237,7 @@ fn a_damaged_frame_with_no_readable_targets_fails_every_item_it_left_in_one_row_
 fn an_item_with_no_backing_review_says_nothing_can_be_deleted_from_this_trash() {
     let item = Detail { item: Item { uri: "trash:///a".into(), original: "/tmp/a".into() }, size: 1, deleted: String::new(),
         identity: "id".into(), directory: false, icon: String::new(), backing: None };
-    let error = delete_one(&item, &Ok(std::path::PathBuf::from("/nonexistent-recovery"))).unwrap_err();
+    let error = delete_one(&item, &Ok(std::path::PathBuf::from("/nonexistent-recovery")), &mut ThumbnailPurge(Vec::new())).unwrap_err();
     assert_eq!(error, "This Trash cannot be checked, so nothing can be deleted from it.");
     assert!(failure(&item.item, "", &error).contains(r#""error":"This Trash cannot be checked, so nothing can be deleted from it.""#));
 }
