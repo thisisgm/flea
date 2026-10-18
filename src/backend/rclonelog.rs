@@ -41,20 +41,22 @@ impl Log {
             let object = row.get("object").and_then(Json::as_str).unwrap_or_default();
             self.skipped = bounded(&format!("{}: {}", object, msg));
         }
-        if matches!(
-            row.get("level").and_then(Json::as_str),
-            Some("error" | "critical" | "alert" | "emergency")
-        ) {
-            let object = row.get("object").and_then(Json::as_str).unwrap_or_default();
-            if !self.file_error && (self.error.is_empty() || !object.is_empty()) {
-                self.error = bounded(&format!(
-                    "{}{}{}",
-                    object,
-                    if object.is_empty() { "" } else { ": " },
-                    msg
-                ));
-                self.file_error = !object.is_empty();
-            }
+        let object = row.get("object").and_then(Json::as_str).unwrap_or_default();
+        // rclone 1.75 ends a failed command with a notice row "Failed to <command>: <cause>", its whole cause.
+        let summary = object.is_empty() && msg.starts_with("Failed to ");
+        let failed = summary
+            || matches!(
+                row.get("level").and_then(Json::as_str),
+                Some("error" | "critical" | "alert" | "emergency")
+            );
+        if failed && !self.file_error && (self.error.is_empty() || !object.is_empty() || summary) {
+            self.error = bounded(&format!(
+                "{}{}{}",
+                object,
+                if object.is_empty() { "" } else { ": " },
+                msg
+            ));
+            self.file_error = !object.is_empty();
         }
         let Some(stats) = row.get("stats") else {
             return false;
@@ -87,6 +89,17 @@ impl Log {
     }
 }
 
+impl Log {
+    // A failure sentence followed by the error rclone itself logged, already bounded, when there is one.
+    pub fn explain(&self, sentence: String) -> String {
+        if self.error.is_empty() {
+            sentence
+        } else {
+            format!("{} {}", sentence, self.error)
+        }
+    }
+}
+
 fn bounded(text: &str) -> String {
     let mut end = text.len().min(MAX_TEXT);
     while !text.is_char_boundary(end) {
@@ -106,6 +119,30 @@ mod tests {
         log.line(r#"{"level":"error","object":"two words.jpg","msg":"md5 differ"}"#);
         log.line(r#"{"level":"error","msg":"Failed to check: 1 differences found"}"#);
         assert_eq!(log.error, "two words.jpg: md5 differ");
+    }
+
+    #[test]
+    fn rclone_command_failure_notice_is_the_cause_unless_a_file_failed() {
+        let mut log = Log::default();
+        log.line(r#"{"level":"notice","msg":"Failed to backend: didn't find backend called \"nosuchbackend\"","source":"cmd/cmd.go:334"}"#);
+        assert_eq!(
+            log.error,
+            "Failed to backend: didn't find backend called \"nosuchbackend\""
+        );
+        let mut log = Log::default();
+        log.line(r#"{"level":"error","msg":"Attempt 1/3 failed with 1 errors and: mkdir /r/afile: not a directory"}"#);
+        log.line(r#"{"level":"notice","msg":"Failed to mkdir: mkdir /r/afile: not a directory"}"#);
+        assert_eq!(
+            log.error,
+            "Failed to mkdir: mkdir /r/afile: not a directory"
+        );
+        let mut log = Log::default();
+        log.line(r#"{"level":"error","object":"a.jpg","msg":"Failed to copy: connection reset"}"#);
+        log.line(r#"{"level":"notice","msg":"Failed to copyto: connection reset"}"#);
+        assert_eq!(log.error, "a.jpg: Failed to copy: connection reset");
+        let mut log = Log::default();
+        log.line(r#"{"level":"notice","object":"a.jpg","msg":"Failed to set modification time"}"#);
+        assert!(log.error.is_empty());
     }
 
     #[test]

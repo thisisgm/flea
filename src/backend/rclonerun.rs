@@ -281,7 +281,10 @@ fn prepare(
         }
     }
     if !super::rclone::remotes(cancel)?.contains(&send.remote) {
-        return Err("That rclone remote is no longer configured.".into());
+        return Err(format!(
+            "rclone remote {} is no longer configured.",
+            send.remote
+        ));
     }
     super::rclonefolders::Features::read(&send.remote, cancel)
 }
@@ -347,11 +350,7 @@ fn verdict(ok: bool, log: &Log, name: &str, remote: &str, checking: bool) -> Res
     } else {
         format!("Could not send {} to {}.", name, remote)
     };
-    Err(if log.error.is_empty() {
-        error
-    } else {
-        format!("{} {}", error, log.error)
-    })
+    Err(log.explain(error))
 }
 
 #[cfg(test)]

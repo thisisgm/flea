@@ -188,14 +188,55 @@ def sizes(f):
 
 
 def refused_paths(f):
-    for request, path in enumerate(['/', str(f.root / 'source/..')], 301):
-        f.backend.send(c='rclone', op='send', id=request, remote='gdrive', folder='Uploads', paths=[path])
+    parent = str(f.root / 'source/..')
+    for request, (paths, error) in enumerate([
+            (['/'], 'rclone cannot send /, it has no file name.'),
+            ([parent], 'rclone cannot send ' + parent + ', it has no file name.'),
+            (['source/first.txt'], 'rclone requires an absolute selection path, not source/first.txt.'),
+            (['/a\0b'], 'rclone cannot send /a\0b, it contains a NUL byte.'),
+            ([], 'Choose at least one item to send with rclone.')], 301):
+        f.backend.send(c='rclone', op='send', id=request, remote='gdrive', folder='Uploads', paths=paths)
         reply = f.backend.wait(lambda e: e['t'] == 'rclonestarted' and e['requestId'] == request)
         assert not reply['ok'] and 'id' not in reply, reply
-        assert reply['error'] == 'rclone requires absolute selection paths.', reply
+        assert reply['error'] == error, reply
     f.backend.send(c='jobs', op='list')
     assert f.backend.wait(lambda e: e['t'] == 'jobs')['jobs'] == []
     assert not (f.root / 'argv.jsonl').exists() and f.backend.process.poll() is None
+
+
+def failures_carry_rclone(f):
+    long_cause = 'didn\'t find section in config file ' + 'x' * 9000
+    tree = f.root / 'source/tree'
+    tree.mkdir()
+    (tree / 'payload.txt').write_text('selected content')
+    for control, paths, sentence, cause in [
+            ('list_error', [f.paths[0]], 'Could not list rclone remotes.', 'Failed to listremotes: config is corrupt'),
+            ('features_error', [f.paths[0]], 'Could not read the capabilities of rclone remote gdrive.',
+             'Failed to backend: ' + long_cause),
+            ('mkdir_error', [tree], 'Could not create the folder gdrive:Uploads/tree.',
+             'Failed to mkdir: permission denied')]:
+        controls = dict(list_error='', features_error='', mkdir_error='')
+        controls[control] = cause.split(': ', 1)[1]
+        f.configure(**controls)
+        ident = f.send(paths=paths)
+        reason = f.backend.state(ident, 'failed')['reason']
+        assert reason == sentence + ' ' + cause[:4096], (control, reason[:300], len(reason))
+        f.backend.send(c='jobs', op='dismiss', id=ident)
+        f.backend.wait(lambda e: e['t'] == 'jobs' and ident not in f.backend.jobs)
+    f.configure(mkdir_error='', remotes='b2-photos:')
+    ident = f.send()
+    assert f.backend.state(ident, 'failed')['reason'] == 'rclone remote gdrive is no longer configured.'
+
+
+def unknown_backend(f):
+    (f.root / 'bin/rclone').symlink_to(REAL_RCLONE)
+    config = f.root / 'rclone.conf'
+    assert config.is_absolute() and config.is_relative_to(f.root) and (f.root / '.flea-test-sandbox').is_file()
+    config.write_text('[gdrive]\ntype = nosuchbackend\n')
+    ident = f.send(paths=[f.paths[0]], folder=str(f.root / 'remote'))
+    reason = f.backend.state(ident, 'failed')['reason']
+    assert reason.startswith('Could not read the capabilities of rclone remote gdrive. '), reason
+    assert 'nosuchbackend' in reason, reason
 
 
 def env_only_remote(f):
@@ -382,6 +423,7 @@ def main():
              ('Retry sends only check failure', retry, dict(mismatch='two words.jpg')),
              ('size-only remote reports size check', sizes, dict(sizes=True)),
              ('paths without a file name are refused before a job', refused_paths, {}),
+             ('rclone failures carry its bounded stderr and name the remote', failures_carry_rclone, {}),
              ('CI parity runs the binary its own build made', ci_binary, dict(stub=False)),
              ('missing object hashes downgrade receipt', sizes, dict(no_hash=True)),
              ('Cancel checking reports not checked', cancel, dict(hang='check')),
@@ -400,6 +442,7 @@ def main():
              dict(stub=False, inherited={'RCLONE_MAX_DEPTH': '1'})),
             ('selected empty directory and descendants are delivered', empty_directories,
              dict(stub=False)),
+            ('unknown backend failure carries real rclone stderr', unknown_backend, dict(stub=False)),
             ('env-only remote with a stderr notice still reads capabilities', env_only_remote,
              dict(stub=False, inherited={'RCLONE_CONFIG_GDRIVE_TYPE': 'local'})),
         ])
