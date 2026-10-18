@@ -366,6 +366,7 @@ print(json.dumps({"reason": "build-finished", "success": True}))
         return self.errors()
 
     def test_glob_shadowing_follows_rust_scopes(self):
+        # The rule is the bindings.py docstring: a lexical approximation that reports a glob it cannot follow, never hides one.
         reported = {
             "impl method": "use gpui::*;\nstruct S;\nimpl S { fn white(&self) {} }\nfn a() { white(); }\n",
             "trait method": "use gpui::*;\ntrait T { fn white(&self) {} }\nfn a() { white(); }\n",
@@ -384,6 +385,9 @@ print(json.dumps({"reason": "build-finished", "success": True}))
             "5 use child module glob": "mod colors { pub use gpui::*; }\nuse colors::*;\nfn a() { white(); }\n",
             "6 block glob before an outer item": "fn white() {}\nfn a() { use gpui::*; white(); }\n",
             "6 block glob before an outer let": "fn a() { let white = 1; { use gpui::*; white(); } }\n",
+            "r5-1 array type in a nested fn signature": "use gpui::*;\nfn a() { let white = 1; fn b(rows: [u8; 4]) { white(); } }\n",
+            "r5-1 array type in an impl header": "use gpui::*;\ntrait T {}\nimpl T for [u8; 4] { fn white(&self) {} fn go(&self) { white(); } }\n",
+            "r5-2 glob through a name the file never declares": "use gpui::*;\nmod inner { use self::unseen::*; fn a() { white(); } }\n",
         }
         for name, source in reported.items():
             with self.subTest(case=name):
@@ -413,6 +417,9 @@ print(json.dumps({"reason": "build-finished", "success": True}))
             "5 use crate glob in a file without a gpui glob": "mod colors { pub fn tint() {} }\nmod inner { use crate::*; fn a() { white(); } }\n",
             "6 same-block item before the block glob": "fn a() { use gpui::*; fn white() {} white(); }\n",
             "6 later let before the block glob": "fn a() { use gpui::*; let white = 1; white(); }\n",
+            "r5-1 const pointer type in a let": "use gpui::*;\nfn a() { let white = 1; let p: *const u8 = { white(); q }; }\n",
+            "r5-1 static lifetime in a let": "use gpui::*;\nfn a() { let white = 1; let s: &'static str = { white(); q }; }\n",
+            "r5-2 glob through an enum the module declares": "use gpui::*;\nmod inner { enum Mode { A } use self::Mode::*; fn a() { white(); } }\n",
         }
         for name, source in quiet.items():
             with self.subTest(case=name):
