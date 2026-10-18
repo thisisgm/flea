@@ -90,7 +90,8 @@ fn superseded_answers_drop_and_scrolling_fetches_only_the_missing_matches() {
     answer(&mut m, &mut w, &second, "[1,40,41,42,900]");
     assert_eq!((m.cursor, m.filter_count()), (1, 5));
     assert_eq!(windows(&drain(&mut w)), [(40, 2)], "one window per run of adjacent drawn matches");
-    rows(&mut m, &mut w, 0, &["alpha", "one", "beta"]);
+    // Rows 0 and 2 carry the query in their names, so only the answer, never a name match, keeps them out.
+    rows(&mut m, &mut w, 0, &["ne0", "one", "ne2"]);
     assert_eq!(held(&m), [1], "a reply to an older window cannot bring back a row the filter does not draw");
     rows(&mut m, &mut w, 40, &["ne40", "new41"]);
     press(&mut m, &mut w, Key::named("Return", ""));
@@ -134,20 +135,38 @@ fn first_last_and_a_click_name_drawn_matches() {
     assert_eq!(windows(&drain(&mut w)), [(41, 2), (900, 1)]);
     rows(&mut m, &mut w, 41, &["ne41", "ne42"]);
     rows(&mut m, &mut w, 900, &["ne900"]);
-    pointer(&mut m, &mut w, 0, BODY_ROW);
-    assert_eq!(m.cursor, 41, "a click names the match drawn under the pointer");
+    press(&mut m, &mut w, Key::named("Up", ""));
+    assert_eq!((m.cursor, m.visible()), (42, vec![41, 42, 900]));
+    // The third drawn row is match 900, where the listing's own top plus two names another row.
+    assert_ne!(m.top + 2, 900);
+    pointer(&mut m, &mut w, 0, BODY_ROW + 2);
+    assert_eq!(m.cursor, 900, "a click names the match drawn under the pointer");
     press(&mut m, &mut w, Key::named("Home", ""));
     assert_eq!((m.cursor, m.visible()), (1, vec![1, 40, 41]), "the first key lands on the first match");
     wire::finish(w, reader);
 }
+// The rows a filter answer draws, then each command one key sends with the rows it names, on a model of its own.
+fn sent_after(query: &str, matches: &str, key: Key) -> (Vec<usize>, Vec<(String, Vec<usize>)>) {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = answered(&mut w, query, matches);
+    // The yazi keymap binds y to copy, which the default keymap leaves unbound.
+    m.preset = "yazi".into();
+    drain(&mut w);
+    let drawn = m.visible();
+    press(&mut m, &mut w, key);
+    let sent = drain(&mut w).iter().map(|v| (text(v, "c").to_string(),
+        v.get("rows").and_then(Json::as_array).map_or_else(Vec::new, |rows| rows.iter().filter_map(Json::as_f64).map(|i| i as usize).collect()))).collect();
+    wire::finish(w, reader);
+    (drawn, sent)
+}
 #[test]
 fn a_filter_with_no_match_leaves_no_row_to_act_on() {
     let (mut w, reader) = wire::echo_wire();
-    let mut m = answered(&mut w, "zzz", "[]");
+    let m = answered(&mut w, "zzz", "[]");
     assert!(m.visible().is_empty() && held(&m).is_empty() && m.current_path().is_none());
-    drain(&mut w);
-    for key in [Key::named("Delete", ""), Key::named("Delete", "shift"), Key::character('y', "")] { press(&mut m, &mut w, key); }
-    let sent: Vec<String> = drain(&mut w).iter().map(|v| text(v, "c").to_string()).collect();
-    assert!(sent.iter().all(|c| !matches!(c.as_str(), "trash" | "paths" | "menuaction")), "an action reached a row the filter does not draw: {sent:?}");
     wire::finish(w, reader);
+    for (key, command) in [(Key::named("Delete", ""), "trash"), (Key::named("Delete", "shift"), "menuaction"), (Key::character('y', ""), "paths")] {
+        assert_eq!(sent_after("one", "[1]", key.clone()), (vec![1], vec![(command.to_string(), vec![1])]), "{key:?} on the one drawn match");
+        assert_eq!(sent_after("zzz", "[]", key.clone()), (vec![], vec![]), "{key:?} reached a row the filter does not draw");
+    }
 }

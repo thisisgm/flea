@@ -91,6 +91,15 @@ fn parity_checker_rejects_a_moved_open_tab_key() {
     let text = include_str!("../../keys.toml");
     let mutant = text.replace("key = \"O\"\naction = \"openTab\"", "key = \"O\"\naction = \"cursorDown\"");
     assert_ne!(mutant, text);
-    let result = std::panic::catch_unwind(|| check_rows(include_str!("parity.tsv"), &Map::parse(&mutant)));
-    assert!(result.is_err(), "the parity checker accepted O moved from openTab to cursorDown");
+    let map = Map::parse(&mutant);
+    assert_eq!(map.action(&Key::character('O', ""), "yazi"), "cursorDown");
+    let result = std::panic::catch_unwind(|| check_rows(include_str!("parity.tsv"), &map));
+    let message = panic_text(result.expect_err("the parity checker accepted O moved from openTab to cursorDown"));
+    assert!(message.contains("the intentional alternative changed: \"O\"") && message.contains("right: \"openTab\""),
+        "the parity checker rejected the moved O for another reason: {message}");
+}
+
+// The text of a caught panic, from assert! and panic! with or without arguments.
+fn panic_text(payload: Box<dyn std::any::Any + Send>) -> String {
+    payload.downcast_ref::<String>().cloned().or_else(|| payload.downcast_ref::<&str>().map(|s| (*s).to_owned())).unwrap_or_default()
 }
