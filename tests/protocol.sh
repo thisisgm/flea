@@ -556,8 +556,7 @@ check "hidden true includes both dotfile entries" "5" "$(echo "$out" | head -1 |
 check "the dotfile row is present" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotfile"')"
 check "the dot-directory row is present and marked a directory" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotdir","d":true')"
 
-# Directory sizes: each argument is a stage of request lines, or wait:N to hold until N dirsized lines have arrived.
-# A walk a later sort or quit finds unfinished is never answered (docs/protocol.md "dirsized" and "quit"), so a stage owed an answer waits for it.
+# Directory sizes: a sort or quit drops an unfinished walk (docs/protocol.md "dirsized", "quit"), so a stage owed answers is followed by wait:N, N dirsized lines.
 dirsize_run() {
   local out="$DZ_SB/dirsize.out" in="$DZ_SB/dirsize.in" step waited pid
   rm -f "$out" "$in"
@@ -565,7 +564,8 @@ dirsize_run() {
   : > "$out"
   $BIN --backend < "$in" > "$out" &
   pid=$!
-  exec 8> "$in"
+  # Read-write, so the open never blocks and a write after an early backend exit raises no SIGPIPE; closing it is the backend's EOF.
+  exec 8<> "$in"
   for step in "$@"; do
     case "$step" in
       wait:*)
@@ -606,7 +606,8 @@ check "sub's size counts its own entry plus a.txt inside it" "0" "$?"
 
 # A file row is never a valid dirsize target, and neither is one past the end; row 0 asked after them answers after anything they were owed.
 out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[1,99999]}\n' "$DZ")" '{"c":"dirsize","rows":[0]}' wait:1)
-check "a file row and an out-of-range row both answer nothing" "0" "$(echo "$out" | grep -cE '"t":"dirsized","row":(1|99999),')"
+check "a file row and an out-of-range row answer nothing, so the row 0 marker's is the one dirsized line" "1" "$(echo "$out" | grep -c '"t":"dirsized"')"
+check "and that one answer names row 0" "1" "$(echo "$out" | grep '"t":"dirsized"' | grep -c '"row":0[,}]')"
 
 # A row already answered is re-answered at once from the cache; staged separately, or two requests sent together would just dedup against the queue instead.
 out=$(dirsize_run \
