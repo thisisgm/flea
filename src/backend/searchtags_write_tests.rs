@@ -233,3 +233,48 @@ fn tag_pass_at_200k_entries_prints_its_ms() {
     let plain = s.query(3, "f0001", 50).expect("answers");
     println!("TAGS200K untagged_total={} untagged_ms={:.1} reads={}", plain.total, plain.ms, s.tags.reads());
 }
+
+fn assert_survivor_tag_queue(add: bool) {
+    let d = TestDir::new("fb1tagcarry");
+    let mut index = Index::new();
+    for name in ["a", "b", "c"] {
+        d.file(name, "");
+        assert!(index.push(name, false));
+    }
+    let pass = Pass::new(index.len(), Bound::new(d.path(), ""));
+    *pass.names.lock().unwrap() = vec![Some(vec!["red".into()]), Some(vec!["blue".into()]), Some(vec!["green".into()])];
+    pass.done.store(true, Ordering::Relaxed);
+    let (tx, _rx) = channel();
+    let mut tags = Tags::new(tx);
+    tags.pass = Some(Arc::clone(&pass));
+    let gone = d.join("a");
+    d.assert_contains(&gone);
+    std::fs::remove_file(&gone).expect("remove sandbox entry");
+    if add { d.file("d", ""); }
+    assert!(index.patch_dir(d.path(), Path::new(""), false, ""));
+    let queued = tags.carry(&index);
+    assert!(Arc::ptr_eq(tags.pass.as_ref().unwrap(), &pass), "the finished pass stays cached");
+    let mut expected = vec![Some(vec!["blue".to_string()]), Some(vec!["green".to_string()])];
+    if add { expected.push(None); }
+    assert_eq!(*pass.names.lock().unwrap(), expected, "surviving identities keep their cached tags");
+    for (query, row, raw) in [("tag:blue", 0, b"b"), ("tag:green", 1, b"c")] {
+        let mut hits = (0..index.len()).map(|row| (1, row)).collect();
+        tags.keep(&mut hits, &Tags::terms(query));
+        assert_eq!(hits, [(1, row)]);
+        assert_eq!(index.raw(row), raw);
+    }
+    let expected_queue = if add { vec![b"d".to_vec()] } else { Vec::new() };
+    assert_eq!(queued, expected_queue, "only new identities need tag reads");
+    assert_eq!(index.last_patch(), (Some(&[1, 2][..]), 2));
+    assert_eq!(pass.reads.load(Ordering::Relaxed), 0, "carrying the cache performs no tag reads");
+}
+
+#[test]
+fn search_fb1_pure_deletion_queues_no_tag_reads() {
+    assert_survivor_tag_queue(false);
+}
+
+#[test]
+fn search_fb1_deletion_and_addition_queue_only_the_new_tag_identity() {
+    assert_survivor_tag_queue(true);
+}

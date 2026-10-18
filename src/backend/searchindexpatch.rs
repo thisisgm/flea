@@ -84,6 +84,7 @@ impl Index {
         self.survivors = kept.len();
         if kept.len() < self.rows.len() {
             if !self.compact(&kept) { return false; }
+            self.survivors = kept.len();
             self.kept = Some(kept);
         }
         let mut added_dirs = Vec::new();
