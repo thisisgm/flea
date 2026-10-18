@@ -13,6 +13,7 @@ pub(crate) fn forget_one(st: &mut State, path: &Path) {
     st.outstanding = st.outstanding.saturating_sub(1);
     if let Some(at) = st.asked.iter().position(|(p, _)| p == path) {
         st.asked.remove(at);
+        st.thumb_mtimes.remove(path);
     }
 }
 
@@ -140,14 +141,15 @@ fn queue_row(
         return;
     }
     st.asked.push((path.clone(), row));
+    st.thumb_mtimes.insert(path.clone(), mtime);
     st.outstanding += 1;
-    st.deferred.enqueue(Job { path, mtime, mime, trace: trace(row) });
+    st.deferred.enqueue(Job { path, mtime, trash_identity: None, mime, trace: trace(row) });
     super::thumbdefer::pump(out, st, pool);
 }
 
 // A job already inside a worker keeps its mapping; every queued or waiting job leaves with its cancellation.
 pub(crate) fn cancel_all(st: &mut State, pool: &Pool) {
-    for job in pool.cancel_all().into_iter().chain(st.deferred.take_all()) {
+    for job in pool.cancel_listing().into_iter().chain(st.deferred.take_listing()) {
         forget_one(st, &job.path);
     }
 }
@@ -159,14 +161,15 @@ pub(crate) fn cancel_row(out: &mut impl Write, st: &mut State, pool: &Pool, row:
         None => return,
     };
     // A row still waiting for room is taken back from the deferred queue, and a queued one from the pool.
-    let mut dropped = st.deferred.take(&st.asked[at].0);
+    let mut dropped = st.deferred.take(&st.asked[at].0, None);
     if dropped.is_empty() {
-        dropped = pool.cancel(&st.asked[at].0);
+        dropped = pool.cancel(&st.asked[at].0, None);
     }
     if dropped.is_empty() {
         return;
     }
     st.outstanding = st.outstanding.saturating_sub(dropped.len());
+    st.thumb_mtimes.remove(&st.asked[at].0);
     st.asked.remove(at);
     // The room a cancel frees goes to the next waiting row now, not at the next report.
     super::thumbdefer::pump(out, st, pool);
@@ -177,15 +180,16 @@ pub(crate) fn report_done(out: &mut impl Write, st: &mut State, pool: &Pool, don
     st.outstanding = st.outstanding.saturating_sub(1);
     // Workers have taken jobs off the pool since the last pump, so the oldest waiting rows go in now.
     super::thumbdefer::pump(out, st, pool);
-    let row = match st.asked.iter().position(|(p, _)| *p == done.path) {
-        Some(i) => st.asked.remove(i).1,
-        None => return,
-    };
     let file = match done.result {
         Outcome::Ready(p) => p.to_string_lossy().into_owned(),
         Outcome::Failed => String::new(),
     };
-    writeln!(out, "{}", thumbed_line(row, &file, done.ms)).ok();
+    super::trashthumb::answer(out, st, &done.path, done.mtime, done.trash_identity.as_deref(), &file);
+    if let Some(at) = st.asked.iter().position(|(p, _)| done.trash_identity.is_none() && *p == done.path && st.thumb_mtimes.get(p) == Some(&done.mtime)) {
+        st.thumb_mtimes.remove(&done.path);
+        let row = st.asked.remove(at).1;
+        writeln!(out, "{}", thumbed_line(row, &file, done.ms)).ok();
+    }
     out.flush().ok();
     if let Some(t) = &done.trace {
         trace_line(t);
@@ -205,6 +209,10 @@ fn trace_line(t: &Trace) {
         ms(exited.saturating_sub(spawned)), ms(whole.saturating_sub(exited)), ms(whole)
     );
 }
+
+#[cfg(test)]
+#[path = "thumbcancel_tests.rs"]
+mod cancel_tests;
 
 #[cfg(test)]
 mod tests {

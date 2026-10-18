@@ -130,6 +130,8 @@ fn a_watch_starts_once_and_the_second_is_silent() {
         listing: Listing::new(),
         base: Default::default(),
         asked: Vec::new(),
+        thumb_mtimes: Default::default(),
+        trash_asked: Vec::new(),
         outstanding: 0,
         deferred: Default::default(),
         window_meta: Default::default(),

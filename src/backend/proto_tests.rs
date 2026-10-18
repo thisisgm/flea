@@ -1,6 +1,19 @@
 use super::*;
 
 #[test]
+fn trash_thumbnail_commands_are_recognized() {
+    for line in [
+        r#"{"c":"trashthumb","id":41,"cacheOnly":true}"#,
+        r#"{"c":"trashthumbcancel","ids":[41,42]}"#,
+    ] {
+        assert!(
+            !matches!(parse_request(line), Request::Unknown),
+            "unrecognized Trash thumbnail command: {line}"
+        );
+    }
+}
+
+#[test]
 fn locate_preserves_request_identity_and_reports_absence() {
     assert!(matches!(parse_request(r#"{"c":"locate","path":"/a/file"}"#), Request::Locate { path } if path == "/a/file"));
     assert_eq!(located_line("/a", "/a/file", Some(3)), r#"{"t":"located","directory":"/a","path":"/a/file","index":3}"#);

@@ -461,6 +461,16 @@ impl Reviewed {
         // This ephemeral value is compared within one backend session, never parsed or persisted.
         format!("{:?}|{:?}", self.payload, self.metadata)
     }
+    pub fn thumbnail(&self) -> Option<(PathBuf, i64)> {
+        (self.thumbnail_path().is_some() && self.unchanged())
+            .then(|| (self.path.clone(), self.payload.mtime))
+    }
+    pub fn thumbnail_path(&self) -> Option<&Path> {
+        (self.payload.mode & 0o170000 == 0o100000).then_some(&self.path)
+    }
+    pub fn provider_identity(&self) -> String {
+        format!("l{}:{}", self.payload.dev, self.payload.ino)
+    }
     pub fn same_item(&self, other: &Self) -> bool {
         self.path == other.path && self.info == other.info
             && self.payload.dev == other.payload.dev && self.payload.ino == other.payload.ino

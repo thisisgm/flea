@@ -23,6 +23,8 @@ pub(crate) const JOB_TIMEOUT: Duration = Duration::from_secs(20);
 pub struct Job {
     pub path: PathBuf,
     pub mtime: i64,
+    // The submitted Reviewed identity for Trash; unknown listing and shelf identities stay None.
+    pub trash_identity: Option<String>,
     pub mime: String,
     // None unless FLEA_THUMB_TRACE is set, so an untraced job carries no marks; see AGENTS.md "Thumbnail trace".
     pub trace: Option<Trace>,
@@ -55,6 +57,8 @@ pub enum Outcome {
 
 pub struct Done {
     pub path: PathBuf,
+    pub mtime: i64,
+    pub trash_identity: Option<String>,
     pub result: Outcome,
     pub ms: f64,
     pub trace: Option<Trace>,
@@ -109,10 +113,19 @@ impl Pool {
     }
 
     // Returns the queued jobs it removed; a job already inside a worker is never one of them and still reports.
-    pub fn cancel(&self, path: &Path) -> Vec<Job> {
+    pub fn cancel(&self, path: &Path, trash_identity: Option<&str>) -> Vec<Job> {
         let (lock, _cv) = &*self.inner;
         let mut q = lock.lock().unwrap();
-        let (dropped, kept): (Vec<Job>, Vec<Job>) = q.drain(..).partition(|j| j.path == path);
+        let (dropped, kept): (Vec<Job>, Vec<Job>) = q.drain(..).partition(|j| j.path == path && j.trash_identity.as_deref() == trash_identity);
+        *q = kept.into();
+        dropped
+    }
+
+    // Ordinary cancellation follows queued job identities, including jobs whose row mapping was already consumed.
+    pub fn cancel_listing(&self) -> Vec<Job> {
+        let (lock, _cv) = &*self.inner;
+        let mut q = lock.lock().unwrap();
+        let (dropped, kept): (Vec<Job>, Vec<Job>) = q.drain(..).partition(|j| j.trash_identity.is_none());
         *q = kept.into();
         dropped
     }
@@ -156,7 +169,7 @@ fn worker(inner: Shared, results: Sender<Done>, tables: Arc<Tables>) {
         let started = Instant::now();
         let outcome = run_one(&tables, &mut job);
         let ms = started.elapsed().as_secs_f64() * 1000.0;
-        if results.send(Done { path: job.path, result: outcome, ms, trace: job.trace }).is_err() {
+        if results.send(Done { path: job.path, mtime: job.mtime, trash_identity: job.trash_identity, result: outcome, ms, trace: job.trace }).is_err() {
             return;
         }
     }
@@ -183,7 +196,7 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
         Some(p) => p,
         None => return Outcome::Failed,
     };
-    let final_path = tables.cache.large_path(&key_uri);
+    let final_path = tables.cache.large_path_for(&key_uri, job.trash_identity.as_deref());
     let dir = match final_path.parent() {
         Some(d) => d.to_path_buf(),
         None => return Outcome::Failed,
@@ -224,7 +237,7 @@ pub(crate) fn run_one_in(tables: &Tables, job: &mut Job, raw_dir: &Path) -> Outc
     if matches!(ran, Ran::Succeeded) && wrote_something(&temp) {
     } else if records_marker(&ran, super::extclass::classify(&job.path)) {
         // corner: glycin exits 0 on bytes it cannot decode, so an empty output is the decoder's verdict on the file; see AGENTS.md "Thumbnail pool".
-        record_failure(&tables.cache, &key_uri, job.mtime, tables.specs.fingerprint());
+        record_failure_for(&tables.cache, &key_uri, job.mtime, tables.specs.fingerprint(), job.trash_identity.as_deref());
         return discard(&temp);
     } else {
         // corner: a child that never started is the machine's fault, not the file's, so it is not recorded in fail/; see AGENTS.md "Thumbnail pool".
@@ -270,7 +283,11 @@ pub(crate) fn discard(temp: &Path) -> Outcome {
 }
 
 pub(crate) fn record_failure(cache: &Cache, uri: &str, mtime: i64, table: &str) {
-    let path = cache.fail_path(uri);
+    record_failure_for(cache, uri, mtime, table, None);
+}
+
+pub(crate) fn record_failure_for(cache: &Cache, uri: &str, mtime: i64, table: &str, identity: Option<&str>) {
+    let path = cache.fail_path_for(uri, identity);
     let dir = match path.parent() {
         Some(d) => d.to_path_buf(),
         None => return,
@@ -329,7 +346,7 @@ mod tests {
     }
 
     fn job(path: &str) -> Job {
-        Job { path: PathBuf::from(path), mtime: 0, mime: "image/jpeg".to_string(), trace: None }
+        Job { path: PathBuf::from(path), mtime: 0, trash_identity: None, mime: "image/jpeg".to_string(), trace: None }
     }
 
     // Returns a pool whose one worker is already inside a ten minute child, so the queue can only change by the caller's own hand.
@@ -392,7 +409,7 @@ mod tests {
         let pool = &fixture.pool;
         pool.submit(job(MISSING));
         assert_eq!(pool.pending(), 1);
-        pool.cancel(&PathBuf::from(MISSING));
+        pool.cancel(&PathBuf::from(MISSING), None);
         assert_eq!(pool.pending(), 0, "cancel left the job in the queue");
         // A cancelled job produces no Done at all, so a short wait must time out.
         let seen = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_millis(500));
@@ -423,9 +440,9 @@ mod tests {
         }
         assert_eq!(pool.pending(), MAX_QUEUE);
         // The oldest submissions are the dropped ones, so cancelling one of those changes nothing.
-        pool.cancel(&PathBuf::from("/definitely/not/here-0.jpg"));
+        pool.cancel(&PathBuf::from("/definitely/not/here-0.jpg"), None);
         assert_eq!(pool.pending(), MAX_QUEUE);
-        pool.cancel(&PathBuf::from(format!("/definitely/not/here-{}.jpg", MAX_QUEUE * 2 - 1)));
+        pool.cancel(&PathBuf::from(format!("/definitely/not/here-{}.jpg", MAX_QUEUE * 2 - 1)), None);
         let left = pool.pending();
         assert_eq!(left, MAX_QUEUE - 1);
     }
@@ -474,7 +491,7 @@ mod tests {
         let src = fixture.sandbox.join("in.png");
         // A real thumbnailer needs a real image, and the fail marker writer already makes the smallest valid one.
         write_marker(&src, "file:///input", 0, None).unwrap();
-        fixture.pool.submit(Job { path: src.clone(), mtime: FIXTURE_MTIME, mime: "image/png".to_string(), trace: None });
+        fixture.pool.submit(Job { path: src.clone(), mtime: FIXTURE_MTIME, trash_identity: None, mime: "image/png".to_string(), trace: None });
         let done = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_secs(30)).expect("no result");
         let out = match done.result {
             Outcome::Ready(p) => p,
@@ -511,7 +528,7 @@ mod tests {
         let specs = Arc::new(Thumbnailers::from_entries(&[("fail.thumbnailer".to_string(), body.to_string())], &aliases));
         let fixture = TestPool::new("thumbs-failtable", aliases, Arc::clone(&specs));
         let src = fixture.sandbox.file("in.jpg", "bytes the decoder refuses");
-        fixture.pool.submit(Job { path: src.clone(), mtime: FIXTURE_MTIME, mime: "image/jpeg".to_string(), trace: None });
+        fixture.pool.submit(Job { path: src.clone(), mtime: FIXTURE_MTIME, trash_identity: None, mime: "image/jpeg".to_string(), trace: None });
         let done = fixture.receiver.as_ref().unwrap().recv_timeout(Duration::from_secs(30)).expect("no result");
         assert!(matches!(done.result, Outcome::Failed));
         let cache = Cache::at(fixture.sandbox.path().to_path_buf());
