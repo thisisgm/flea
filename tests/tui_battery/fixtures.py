@@ -108,6 +108,36 @@ def import_family(source, family, target):
             "representations": spec.get("representations", {})}
 
 
+def inventory(source, states):
+    """Verifies, without copying, every family the selected states name: entry bytes, auxiliary bytes and declared features."""
+    source = absolute(source)
+    manifest = json.loads(regular_bytes(source / "manifest.json"))
+    report = {}
+    for family in sorted({state["family"] for state in states}):
+        named = sorted(state["id"] for state in states if state["family"] == family)
+        spec = manifest.get("families", {}).get(family)
+        if spec is None:
+            report[family] = {"status": "missing", "states": named}
+            continue
+        try:
+            base = absolute(source / relative(spec["root"]))
+            rows = [(base / relative(row["path"]), row) for row in spec["entries"] if row["kind"] == "file"]
+            rows += [(absolute(source / relative(row["source"])), row) for row in spec.get("auxiliary", [])]
+            for path, row in rows:
+                data = regular_bytes(path)
+                if len(data) != row["size"] or hashlib.sha256(data).hexdigest() != row["sha256"]:
+                    raise Blocked(f"fixture source identity mismatch: {family}/{row['path']}")
+            supplied = set(spec.get("features", [])) | {"graphics-negative", "model-source"}
+            wanted = {need for state in states if state["family"] == family for need in state["requires"]}
+            report[family] = {"status": "present", "states": named, "entries": len(spec["entries"]),
+                              "auxiliary": len(spec.get("auxiliary", [])), "features": spec.get("features", []),
+                              "representations": sorted(spec.get("representations", {})),
+                              "requires_not_supplied": sorted(wanted - supplied)}
+        except (Blocked, OSError, KeyError, TypeError) as error:
+            report[family] = {"status": "invalid", "states": named, "reason": str(error)}
+    return report
+
+
 def seed_auxiliary(source, fx, receipt):
     copied = []
     for row in receipt.get("auxiliary", []):
