@@ -211,9 +211,9 @@ fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &str, paths: 
 }
 
 // A cancel reaches the matching slot operation or detached job without changing other flags.
-pub(crate) fn cancel_transfer(_out: &mut impl Write, ops: &mut Ops, id: usize) {
+pub(crate) fn cancel_transfer(out: &mut impl Write, ops: &mut Ops, id: usize) {
     ops.live.cancel(id);
-    ops.detached.cancel(id);
+    ops.jobs.advance(out, &ops.detached, &ops.tx);
 }
 
 // One gate for every write: each resolved source and the destination wait while their mount holds a slow write.

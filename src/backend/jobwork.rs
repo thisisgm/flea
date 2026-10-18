@@ -138,9 +138,16 @@ impl Work {
             Self::Transfer { .. } => {
                 super::opsreq::transferdone_line(id, 0, 0, total, true, &[], false, "", &[])
             }
-            Self::Archive { .. } => {
-                super::archivereq::archivedone_line(id, false, true, "operation cancelled")
-            }
+            Self::Archive { compressing, .. } => super::archivereq::archivedone_line(
+                id,
+                false,
+                true,
+                if *compressing {
+                    "operation cancelled"
+                } else {
+                    "cancelled"
+                },
+            ),
             Self::Send { request, .. } => format!(
                 r#"{{"t":"localsendsent","id":{},"ok":false,"reason":"Send cancelled."}}"#,
                 request

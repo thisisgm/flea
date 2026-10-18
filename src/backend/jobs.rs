@@ -249,6 +249,7 @@ impl Job {
             "copy" => "copy",
             "move" => "move",
             "compress" => "compression",
+            "extract" => "extraction",
             _ => "job",
         }
     }
