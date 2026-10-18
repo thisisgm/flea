@@ -8,7 +8,6 @@ pub struct Map {
 // The key names the hints print, read from the keymap once per run so a rebound key reaches its hint.
 #[derive(Default, Clone)]
 pub struct Hints {
-    pub dismiss: String,
     pub keys: String,
     pub load_preview: String,
     pub delete_permanently: String,
@@ -18,7 +17,6 @@ impl Hints {
     pub fn new(map: &Map, preset: &str) -> Self {
         let chord = |action: &str| map.chord(action, preset, "listing").unwrap_or_default();
         Self {
-            dismiss: chord("escape"),
             keys: chord("keymapSheet"),
             load_preview: chord("loadPreview"),
             delete_permanently: chord("deletePermanently"),
@@ -72,6 +70,12 @@ impl Map {
         }
         for name in [preset, "all"] {
             for (kind, block) in &self.blocks {
+                if kind == "tui" && get(block, "name") == name && get(block, "prefix").is_empty()
+                    && context_matches(block, context) && matches_key(block, key) {
+                    return get(block, "action").into();
+                }
+            }
+            for (kind, block) in &self.blocks {
                 let here = get(block, "context");
                 let mods = get(block, "mods");
                 let key_matches = if mods == "text" {
@@ -105,7 +109,22 @@ impl Map {
                 return get(block, "action").into();
             }
         }
+        if shift_in_text(key) {
+            for (kind, block) in &self.blocks {
+                if kind == "text" && get(block, "char") == key.text {
+                    return get(block, "action").into();
+                }
+            }
+        }
+        if key.mods.is_empty() && key.text.len() == 1 && matches!(key.text.as_bytes()[0], b'1'..=b'9') {
+            return format!("tab{}", key.text);
+        }
         String::new()
+    }
+    pub fn sequence(&self, prefix: &str, key: &Key, preset: &str, context: &str) -> String {
+        self.blocks.iter().find(|(kind, block)| kind == "tui" && get(block, "name") == preset
+            && get(block, "prefix") == prefix && context_matches(block, context) && matches_key(block, key))
+            .map(|(_, block)| get(block, "action").into()).unwrap_or_default()
     }
     // The first key a preset binds to an action in a context, spelled as the sheet spells it: "Ctrl+Space", "Escape", "?".
     pub fn chord(&self, action: &str, preset: &str, context: &str) -> Option<String> {
@@ -117,42 +136,40 @@ impl Map {
             .map(|(name, key)| spell(&key, name))
     }
     pub fn sheet(&self, preset: &str) -> Vec<String> {
-        let mut rows = Vec::new();
-        for (_, label) in self.blocks.iter().filter(|(kind, _)| kind == "sheet") {
-            let action = get(label, "action");
-            if !supported(action) {
-                continue;
-            }
-            let mut keys = Vec::new();
-            for (kind, block) in &self.blocks {
-                let Some((name, key)) = block_key(kind, block) else {
-                    continue;
+        let mut resolved = Vec::new();
+        for (kind, block) in &self.blocks {
+            let Some((name, key)) = block_key(kind, block) else { continue; };
+            let prefix = get(block, "prefix");
+            let found = if prefix.is_empty() { self.action(&key, preset) }
+                else {
+                    let start = self.action(&Key::character(prefix.chars().next().unwrap(), ""), preset);
+                    if start != format!("prefix:{}", prefix) { continue; }
+                    self.sequence(prefix, &key, preset, "listing")
                 };
-                let found = self.action(&key, preset);
-                if canonical(&found) != action {
-                    continue;
-                }
-                let chord = format!(
-                    "{}{}",
-                    spell(&key, name),
-                    if found.ends_with("Arm") { name } else { "" }
-                );
-                if !keys.contains(&chord) {
-                    keys.push(chord);
-                }
-            }
+            if found.is_empty() { continue; }
+            let chord = format!("{}{}{}", if prefix.is_empty() { String::new() } else { format!("{} ", prefix) },
+                spell(&key, name), if found.ends_with("Arm") { name } else { "" });
+            let entry = (canonical(&found).to_string(), chord);
+            if !resolved.contains(&entry) { resolved.push(entry); }
+        }
+        let mut rows = Vec::new();
+        let mut seen = Vec::new();
+        for (_, label) in self.blocks.iter().filter(|(kind, _)| matches!(kind.as_str(), "sheet" | "tuisheet" | "tui")) {
+            let action = canonical(get(label, "action"));
+            if seen.contains(&action) || get(label, "label").is_empty() || !supported(action) { continue; }
+            let keys: Vec<_> = resolved.iter().filter(|(a, _)| a == action).map(|(_, key)| key.as_str()).collect();
             if !keys.is_empty() {
+                seen.push(action);
                 rows.push(format!("{}  {}", keys.join(" / "), get(label, "label")));
             }
         }
         rows.push("1–9  Select tab".into());
-        rows.push("q  Quit".into());
         rows
     }
 }
 // A block as the key it binds and the name the sheet prints for it; None for a block that binds no key the sheet can show.
 fn block_key<'a>(kind: &'a str, block: &'a HashMap<String, String>) -> Option<(&'a str, Key)> {
-    let mods = if kind == "preset" {
+    let mods = if matches!(kind, "preset" | "tui") {
         get(block, "mods")
     } else {
         kind
@@ -218,7 +235,7 @@ fn canonical(action: &str) -> &str {
         _ => action,
     }
 }
-fn supported(action: &str) -> bool {
+pub(super) fn supported(action: &str) -> bool {
     matches!(
         action,
         "cursorDown"
@@ -271,7 +288,46 @@ fn supported(action: &str) -> bool {
             | "reveal"
             | "escape"
             | "quit"
+            | "quitNoCwd"
+            | "editFile"
+            | "detailNext"
+            | "print"
+            | "factsToggle"
+            | "pageForward"
+            | "reload"
+            | "invertSelection"
+            | "clearSelection"
+            | "selectNext"
+            | "clearClipboard"
+            | "openAgent"
+            | "searchContents"
+            | "tabMoveLeft"
+            | "tabMoveRight"
+            | "halfPageUp"
+            | "halfPageDown"
+            | "sortName"
+            | "sortNameReverse"
+            | "sortDate"
+            | "sortDateReverse"
+            | "sortSize"
+            | "sortSizeReverse"
+            | "goHome"
+            | "goConfig"
+            | "goDownloads"
     )
+}
+fn matches_key(block: &HashMap<String, String>, key: &Key) -> bool {
+    match get(block, "mods") {
+        "text" => (key.mods.is_empty() || shift_in_text(key)) && get(block, "key") == key.text,
+        mods => (if mods == "none" { "" } else { mods }) == key.mods && get(block, "key") == key.name,
+    }
+}
+// Shift is already in the text only for an uppercase letter; any other Shift stays part of the chord, as input.rs keeps it.
+fn shift_in_text(key: &Key) -> bool {
+    key.mods == "shift" && key.text.chars().count() == 1 && key.text.chars().all(char::is_uppercase)
+}
+fn context_matches(block: &HashMap<String, String>, context: &str) -> bool {
+    get(block, "context").split(',').any(|s| s == context || s == "all")
 }
 fn get<'a>(map: &'a HashMap<String, String>, key: &str) -> &'a str {
     map.get(key).map(String::as_str).unwrap_or("")

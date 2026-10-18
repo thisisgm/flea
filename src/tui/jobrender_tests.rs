@@ -11,9 +11,9 @@ fn extraction_status_paints_the_board_bar_and_muted_job_count() {
     let theme = Theme::from_text("");
     let output = footer(&model, &theme, 120, Duration::ZERO);
     assert!(output.contains(&format!("{}Extracting 7 of 18", theme.foreground)));
-    assert!(output.contains(&format!("{}━━━━━━━━", theme.accent)));
-    assert!(output.contains(&format!("{}────────────", theme.border)));
-    assert!(output.contains(&format!("{}40%", theme.muted)));
+    assert!(output.contains(&format!("{}━━━━{}", theme.accent, theme.base())));
+    assert!(output.contains(&format!("{}──────{}", theme.border, theme.base())));
+    assert!(output.contains(&format!("{}40%", theme.meta)));
     assert!(output.contains(&format!("{}· 3 jobs", theme.muted)));
     assert!(!output.contains('░'));
     assert_eq!(text_width(&strip_ansi(&output)), 120);

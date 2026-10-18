@@ -24,7 +24,7 @@ const RESTORE_FAILED: &str = "The terminal could not be restored";
 const PREPARE_FOR_EDITOR_FAILED: &str = "The terminal could not be prepared for the editor";
 const RESTORE_AFTER_EDITOR_FAILED: &str = "The terminal could not be restored after the editor";
 // The rename's own fault when a stop ends it, inside the editor or while either stty around it runs.
-const EDITOR_INTERRUPTED: &str = "Bulk rename editor interrupted";
+const EDITOR_INTERRUPTED: &str = "Editor interrupted";
 #[repr(C)]
 struct WindowSize {
     rows: u16,
@@ -36,16 +36,7 @@ struct WindowSize {
 fn editor_result(status: std::process::ExitStatus) -> io::Result<()> {
     if status.success() { Ok(()) } else { Err(io::Error::other(format!("The editor could not finish ({})", status))) }
 }
-pub fn launch(path: &Path, window: bool) -> io::Result<Child> {
-    let path = path.canonicalize()?;
-    if !path.is_dir() { return Err(io::Error::other("That is not a folder, so no terminal was opened")); }
-    let mut directory = std::ffi::OsString::from("--dir=");
-    directory.push(&path);
-    let mut command = Command::new("xdg-terminal-exec");
-    command.arg(directory);
-    if window { command.arg("--").arg(std::env::current_exe()?).arg("--tui").arg(&path); }
-    command.stdin(Stdio::null()).stdout(Stdio::null()).stderr(Stdio::null()).process_group(0).spawn()
-}
+pub use super::launch::terminal as launch;
 extern "C" {
     fn ioctl(fd: i32, request: usize, ...) -> i32;
     fn signal(sig: i32, handler: usize) -> usize;
@@ -126,11 +117,17 @@ impl Terminal {
         Ok(terminal)
     }
     pub fn run_editor(&mut self, editor: &str, path: &Path) -> io::Result<()> {
-        // A stop that lands while either stty runs ends the rename as interrupted, and Drop restores the terminal.
+        // The bulk editor is shell syntax; keep filename bytes in $1, outside the shell program.
+        let mut command = Command::new("/bin/sh");
+        command.args(["-c", &format!("exec {} \"$1\"", editor), "flea-bulk-rename"]).arg(path);
+        self.run_command(command)
+    }
+    pub fn run_command(&mut self, command: Command) -> io::Result<()> {
+        // A stop that lands while either stty runs ends the edit as interrupted, and Drop restores the terminal.
         if let Err(error) = self.restore(PREPARE_FOR_EDITOR_FAILED) {
             return Err(if self.stopped() { io::Error::other(EDITOR_INTERRUPTED) } else { error });
         }
-        let result = match EditorJob::start(editor, path) {
+        let result = match EditorJob::start(command) {
             Ok(mut editor) => {
             let result = loop {
                 if self.stopped() { break Err(io::Error::other(EDITOR_INTERRUPTED)); }
@@ -142,8 +139,7 @@ impl Terminal {
                 const INTERRUPT_POLL: std::time::Duration = std::time::Duration::from_millis(50);
                 std::thread::sleep(INTERRUPT_POLL);
             };
-            editor.close()?;
-            result
+            result.and(editor.close())
             }
             Err(error) => Err(error),
         };

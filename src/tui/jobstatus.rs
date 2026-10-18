@@ -109,18 +109,16 @@ pub(super) fn bar<'a>(
     fraction: f64,
     i18n: &crate::i18n::I18n,
 ) -> [(&'a str, String, usize); 3] {
-    let fraction = fraction.clamp(0.0, 1.0);
-    let filled = (fraction * 20.0) as usize;
+    // Ten cells of accent on the border track, then the whole percent in the meta ink.
+    let percent = (fraction.clamp(0.0, 1.0) * 100.0) as usize;
+    let filled = percent / 10;
     [
         (theme.accent.as_str(), "━".repeat(filled), 2),
-        (theme.border.as_str(), "─".repeat(20 - filled), 0),
+        (theme.border.as_str(), "─".repeat(10 - filled), 0),
         (
-            theme.muted.as_str(),
-            i18n.tr_args(
-                "progress.percent",
-                &[&i18n.locale().format_count((fraction * 100.0) as i64)],
-            ),
-            2,
+            theme.meta.as_str(),
+            i18n.tr_args("progress.percent", &[&i18n.locale().format_count(percent as i64)]),
+            1,
         ),
     ]
 }
@@ -146,12 +144,9 @@ mod bar_tests {
             fraction(&job).unwrap(),
             &crate::i18n::I18n::default(),
         );
-        assert_eq!(pieces[0], (theme.accent.as_str(), "━━━━━━━".into(), 2));
-        assert_eq!(
-            pieces[1],
-            (theme.border.as_str(), "─────────────".into(), 0)
-        );
-        assert_eq!(pieces[2], (theme.muted.as_str(), "38%".into(), 2));
+        assert_eq!(pieces[0], (theme.accent.as_str(), "━━━".into(), 2));
+        assert_eq!(pieces[1], (theme.border.as_str(), "───────".into(), 0));
+        assert_eq!(pieces[2], (theme.meta.as_str(), "38%".into(), 1));
     }
 }
 

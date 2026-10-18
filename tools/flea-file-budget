@@ -45,7 +45,7 @@ src/backend/opsdispatch.rs 2414
 src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
-src/backend/run.rs 1266
+src/backend/run.rs 1270
 src/backend/officepdf.rs 430
 src/backend/run_session_tests.rs 544
 src/backend/ops.rs 440
@@ -59,7 +59,7 @@ src/backend/undo_tests.rs 439
 src/backend/undoshare.rs 462
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
-src/backend/proto.rs 532
+src/backend/proto.rs 406
 src/backend/sandbox.rs 410
 src/backend/thumbworker.rs 961
 src/backend/trashbrowse.rs 1055
@@ -68,12 +68,12 @@ src/backend/trashdelete.rs 1011
 src/clip/watch_end_tests.rs 405
 src/gvfsprefetch_tests.rs 398
 src/gui.rs 480
-src/tui/actions.rs 1058
+src/tui/actions.rs 1114
 src/tui/hold_tests.rs 427
 src/tui/input.rs 455
-src/tui/model.rs 1315
-src/tui/mod.rs 426
-src/tui/render.rs 970
+src/tui/model.rs 1286
+src/tui/mod.rs 459
+src/tui/render.rs 260
 src/uischema.rs 615
 src/uistate.rs 849
 src/uistore.rs 568

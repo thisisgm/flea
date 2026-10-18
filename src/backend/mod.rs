@@ -94,6 +94,7 @@ mod htmlsandbox;
 pub mod compare;
 pub mod sort;
 pub mod ordering;
+mod tuifolders;
 pub mod state;
 pub(crate) mod lazy;
 pub mod mediaprobe;
