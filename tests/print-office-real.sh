@@ -3,15 +3,15 @@
 set -euo pipefail
 repo=$(cd "$(dirname "$0")/.." && pwd -P)
 binary=${FLEA_BIN:-$repo/target/release/flea}
-[ -x "$binary" ] || { printf 'FAIL print-office-real: no release binary at %s\n' "$binary"; exit 1; }
 if ! command -v soffice >/dev/null 2>&1; then
     printf 'ok   print-office-real: soffice not installed, real conversion needs minipc\n'
     exit 0
 fi
+[ -x "$binary" ] || { printf 'FAIL print-office-real: no release binary at %s\n' "$binary"; exit 1; }
 parent="$repo/.superpowers/print-office-real"
 mkdir -p "$parent"
 box=$(mktemp -d "$parent/suite.XXXXXXXX")
-[[ -n "$box" && "$box" == /* ]] || exit 1
+[[ -n "$box" && "$box" == /* ]] || { printf 'FAIL print-office-real: bad sandbox root %s\n' "$box"; exit 1; }
 : > "$box/.flea-test-sandbox"
 cleanup() {
     local status=$?

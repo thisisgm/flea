@@ -7,6 +7,12 @@ pub fn cached_pdf(path: &Path, cancel: Arc<AtomicBool>) -> Result<PathBuf, Strin
     production().fetch(path, cancel)
 }
 
+// cached_pdf on a production service over a test's own cache root, so a real conversion never writes the user's cache.
+#[cfg(test)]
+pub(crate) fn cached_pdf_in(cache: &Path, path: &Path, cancel: Arc<AtomicBool>) -> Result<PathBuf, String> {
+    service(cache).fetch(path, cancel)
+}
+
 impl Service {
     pub(super) fn fetch(self: &Arc<Self>, path: &Path, cancel: Arc<AtomicBool>) -> Result<PathBuf, String> {
         if cancel.load(Ordering::Relaxed) { return Err("cancelled".into()); }
