@@ -4,6 +4,8 @@ import base64
 import json
 import os
 from pathlib import Path
+import re
+import struct
 import subprocess
 import sys
 import time
@@ -26,6 +28,48 @@ def record():
     path = owned(root, Path(os.environ["VIEWERORDER_RECEIPT"]))
     with path.open("x") as receipt:
         json.dump(sys.argv[2:], receipt)
+
+
+def audit_listing_io(trace, images):
+    active = False
+    ended = False
+    violations = []
+    for line in trace.read_text().splitlines():
+        if re.search(r"\bwrite\(1(?:<[^>]*>)?,", line):
+            if r'\"t\":\"rows\"' in line:
+                active = True
+            if active and r'\"where\":\"stale\"' in line:
+                ended = True
+                break
+            continue
+        if active and ("getdents64(" in line or str(images) + "/" in line
+                       or (str(images) + ">" in line and '"image-' in line)):
+            violations.append(line)
+    assert active and ended, "syscall audit did not capture both listing and stale-reply boundaries"
+    assert not violations, f"gallery paths performed {len(violations)} filesystem calls: {violations[:3]}"
+    print("viewerorder-backend: gallery requests performed zero scan/stat/open calls", flush=True)
+
+
+def gallery_prefix(paths, env):
+    """The documented Linux argv bound applies to each backend and opener request."""
+    try:
+        maximum = os.sysconf("SC_ARG_MAX")
+    except (OSError, ValueError):
+        maximum = -1
+    if maximum < 0:
+        maximum = 128 * 1024
+    environment = sum(len(os.fsencode(key)) + len(os.fsencode(value)) + 2 + struct.calcsize("P")
+                      for key, value in env.items())
+    remaining = min(512 * 1024, max(0, maximum - environment - 64 * 1024))
+    chosen = []
+    for path in paths:
+        length = len(os.fsencode(path))
+        cost = length * 3 + 16
+        if len(chosen) >= 4096 or length > 32 * 1024 or cost > remaining:
+            break
+        chosen.append(path)
+        remaining -= cost
+    return chosen
 
 
 def escaped_exec_controls(binary, root, env, desktop, viewer, paths):
@@ -102,18 +146,28 @@ def run(binary, root):
             dict(c="paths", images=start, listing=0),
             dict(c="quit"),
         ]
-        result = subprocess.run([binary, "--backend"], input="".join(json.dumps(row) + "\n" for row in commands),
+        launcher = [binary, "--backend"]
+        trace = None
+        if not descending and not hidden:
+            trace = owned(root, root / "gallery-syscalls.log")
+            launcher = ["strace", "-f", "-qq", "-yy", "-s", "65536", "-e", "trace=%file,getdents64,write", "-o", str(trace), *launcher]
+        result = subprocess.run(launcher, input="".join(json.dumps(row) + "\n" for row in commands),
                                 env=env, cwd=root, capture_output=True, text=True, timeout=20)
         assert result.returncode == 0, result.stderr
         replies = [json.loads(line) for line in result.stdout.splitlines()]
         assert not [row for row in replies if row["t"] == "error" and row.get("where") != "stale"], replies
         paths = [row["paths"] for row in replies if row["t"] == "paths"]
-        expected = [path for path in listing[start:] + listing[:start] if path.endswith(".png") and not path.endswith("/folder.png")]
+        expected = gallery_prefix([path for path in listing[start:] + listing[:start]
+                                   if path.endswith(".png") and not path.endswith("/folder.png")], env)
         rotated = [row for row in scope if row >= start] + [row for row in scope if row < start]
-        assert paths == [listing, expected, [listing[row] for row in rotated], [listing[row] for row in scope], []], paths
+        wanted = [listing, expected, gallery_prefix([listing[row] for row in rotated], env),
+                  gallery_prefix([listing[row] for row in scope], env), []]
+        assert paths == wanted, [(len(actual), len(want)) for actual, want in zip(paths, wanted)]
         assert len([row for row in replies if row.get("where") == "stale" and row.get("path") == "paths"]) == 1, replies
+        if trace is not None:
+            audit_listing_io(trace, images)
         galleries.append(expected)
-        print(f"viewerorder-backend: descending={descending} hidden={hidden}, {len(expected)} ordered images", flush=True)
+        print(f"viewerorder-backend: root-bytes={len(os.fsencode(root))} descending={descending} hidden={hidden}, {len(expected)} ordered images", flush=True)
 
     viewer = root / "viewer"
     write(root, viewer, '#!/bin/sh\nexec python3 -I -B "$VIEWERORDER_DRIVER" record "$@"\n')
@@ -131,7 +185,7 @@ def run(binary, root):
         assert handler.returncode == 0 and handler.stdout.splitlines()[0].endswith(": viewerorder.desktop"), (handler.stdout, handler.stderr)
         receipt = owned(root, root / f"receipt-{code}.json")
         env["VIEWERORDER_RECEIPT"] = str(receipt)
-        expected = galleries[0] if code.isupper() else galleries[0][:1]
+        expected = gallery_prefix(galleries[0], env) if code.isupper() else galleries[0][:1]
         result = subprocess.run([binary, "--open", *galleries[0]], env=env, cwd=root,
                                 capture_output=True, text=True, timeout=20)
         assert result.returncode == 0, (code, result.returncode, result.stderr)
@@ -156,4 +210,14 @@ if __name__ == "__main__":
     if len(sys.argv) > 1 and sys.argv[1] == "record":
         record()
     else:
-        run(str(Path(sys.argv[1]).resolve(strict=True)), Path(sys.argv[2]))
+        binary = str(Path(sys.argv[1]).resolve(strict=True))
+        root = Path(sys.argv[2])
+        run(binary, root)
+        if len(os.fsencode(root)) < 400:
+            long_root = root
+            while len(os.fsencode(long_root)) < 400:
+                long_root = owned(root, long_root / ("long-root-" + "x" * 118))
+                long_root.mkdir()
+            with owned(root, long_root / ".flea-test-sandbox").open("x") as marker:
+                marker.write("viewerorder long-root fixture\n")
+            run(binary, long_root)
