@@ -88,7 +88,7 @@ def inspect(state, board, snapshot, image, grid_rect, caps, case, fx, boards, re
         # Nonempty crop colors prove only that pixels arrived; the picture needs a controller decision bound to these identities.
         requirements = {"mode": mode, "fixture_sha256": result["fixture_sha256"], "boxes": proof,
                         "placements": display_proof, "native_capture_sha256": captures}
-        result.update(status=picture_status(requirements, review), representation_verified=True,
+        result.update(status=picture_status(requirements, review), representation_bound=True,
                       review_requirements=requirements)
     alternate = None
     if not native:

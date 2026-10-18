@@ -183,7 +183,7 @@ class Review4Tests(unittest.TestCase):
         fixture = self.fixture(name, approved_board)
         pending, _, expectations, commands = self.inspect(fixture)
         self.assertEqual(pending["status"], "BLOCKED")
-        self.assertTrue(pending["representation_verified"])
+        self.assertTrue(pending["representation_bound"])
         # Capture double paints the known independent oracle, without bypassing the comparator.
         for area in expectations:
             for entry in area["cells"]:

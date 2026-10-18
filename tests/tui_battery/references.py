@@ -110,7 +110,7 @@ class Board(HTMLParser):
             if "background" not in style or (x, y) not in result:
                 continue
             ink = self.ink(style["background"])
-            if abs((left - origin[0]) / CELL_WIDTH - x) < .01 and abs((top - origin[1]) / CELL_HEIGHT - y) < .01 and h == CELL_HEIGHT and w >= 8.39:
+            if abs((left - origin[0]) / CELL_WIDTH - x) < .01 and abs((top - origin[1]) / CELL_HEIGHT - y) < .01 and h == CELL_HEIGHT and w >= CELL_WIDTH - .01:
                 for offset in range(round(w / CELL_WIDTH)):
                     if (x + offset, y) in result:
                         result[(x + offset, y)]["bg"] = ink

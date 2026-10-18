@@ -22,6 +22,7 @@ from . import relay
 FAKE_EOF_EXIT = 92
 EXEC_FAILURE_EXIT = 127
 DIAGNOSTIC_OUTPUT_BYTES = 65536
+OUTPUT_TAIL_CHARS = 300
 FAKE_CELL_WIDTH, FAKE_CELL_HEIGHT = 8, 22
 
 
@@ -75,6 +76,10 @@ def candidate():
         os.write(1, b"\x1b[?25h\x1b[?1049l")
         termios.tcsetattr(0, termios.TCSANOW, saved)
     return 0
+
+
+def exit_blocked(name, status, output):
+    return Blocked(f"fake {name} exited {status}: " + output.decode(errors="replace")[-OUTPUT_TAIL_CHARS:])
 
 
 def adapter_diagnostic(name, case, commands, palette):
@@ -142,7 +147,7 @@ def adapter_diagnostic(name, case, commands, palette):
         if status is None:
             raise Blocked(f"fake {name} did not quit at its deadline")
         if status:
-            raise Blocked(f"fake {name} exited {status}: " + output.decode(errors="replace")[-300:])
+            raise exit_blocked(name, status, output)
         receipt = json.loads((case / "relay-exit.json").read_text())
         if status or not found_key or not receipt["termios_restored"] or not receipt["relay_termios_restored"]:
             raise AssertionError(f"fake {name} failed PTY input/cleanup proof")
