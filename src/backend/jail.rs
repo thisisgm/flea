@@ -119,6 +119,13 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
     if full.is_empty() {
         return Err(std::io::Error::other("empty jail argv"));
     }
+    let launcher = launcher_path(&full[0])?;
+    // Our prlimit wrappers attach limit values to their flags; the first non-option is the launcher.
+    let nested = if std::path::Path::new(&full[0]).file_name()
+        == Some(std::ffi::OsStr::new(crate::backend::sandbox::PRLIMIT)) {
+        full.iter().enumerate().skip(1).find(|(_, arg)| !arg.starts_with('-'))
+            .map(|(at, program)| launcher_path(program).map(|path| (at, path))).transpose()?
+    } else { None };
     let mut fds = [0, 0];
     if unsafe { pipe2(fds.as_mut_ptr(), O_CLOEXEC) } != 0 {
         return Err(std::io::Error::last_os_error());
@@ -128,8 +135,12 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
     let read_raw = read_fd.as_raw_fd();
     let write_raw = write_fd.as_raw_fd();
     let status_fd = crate::backend::sandbox::STATUS_FD;
-    let mut cmd = std::process::Command::new(&full[0]);
-    cmd.args(&full[1..]);
+    let mut cmd = std::process::Command::new(launcher);
+    if let Some((at, path)) = nested {
+        cmd.args(&full[1..at]).arg(path).args(&full[at + 1..]);
+    } else {
+        cmd.args(&full[1..]);
+    }
     setup(&mut cmd);
     unsafe {
         use std::os::unix::process::CommandExt;
@@ -166,6 +177,40 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
         return Err(std::io::Error::other("the jail status reader could not start"));
     }
     Ok(Jailed { child, sandbox_pid: pid })
+}
+
+fn launcher_path(program: &str) -> std::io::Result<std::path::PathBuf> {
+    use std::os::unix::fs::PermissionsExt;
+    use std::path::{Path, PathBuf};
+    let directories: Vec<PathBuf> = std::env::var_os("PATH")
+        .map(|path| {
+            std::env::split_paths(&path)
+                .filter(|directory| directory.is_absolute())
+                .collect()
+        })
+        .unwrap_or_default();
+    let program = Path::new(program);
+    let launcher = if program.is_absolute() {
+        Some(program.to_owned())
+    } else if program.components().count() == 1 {
+        directories
+            .iter()
+            .map(|directory| directory.join(program))
+            .find(|candidate| {
+                candidate
+                    .metadata()
+                    .is_ok_and(|meta| meta.is_file() && meta.permissions().mode() & 0o111 != 0)
+            })
+    } else {
+        None
+    };
+    let launcher = launcher.ok_or_else(|| {
+        std::io::Error::new(
+            std::io::ErrorKind::NotFound,
+            "Sandbox launcher is unavailable",
+        )
+    })?;
+    Ok(launcher)
 }
 
 // Kills bwrap and the sandbox init, reaps bwrap within a bound, and leaves the Jailed finished.
@@ -212,3 +257,7 @@ fn wait_gone(pid: i32) {
 #[cfg(test)]
 #[path = "jail_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "jail_path_tests.rs"]
+mod path_tests;

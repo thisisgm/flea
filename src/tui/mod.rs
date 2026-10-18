@@ -7,6 +7,8 @@ mod parity;
 mod tmux;
 mod actions;
 mod batch;
+#[cfg(test)]
+mod chafa;
 mod completion;
 mod cells;
 mod layout;

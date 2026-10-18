@@ -66,7 +66,7 @@ src/tui/actions.rs 1112
 src/tui/hold_tests.rs 427
 src/tui/input.rs 455
 src/tui/model.rs 1304
-src/tui/mod.rs 456
+src/tui/mod.rs 458
 src/tui/render.rs 913
 src/uischema.rs 597
 src/uistate.rs 849
