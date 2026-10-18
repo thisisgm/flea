@@ -15,11 +15,18 @@ fn signal_name(signal: i32) -> Option<&'static str> {
 // bwrap renders a tool the kernel killed as exit 128+n, so this offset recovers the signal.
 const BWRAP_SIGNAL_BASE: i32 = 128;
 
-// Issue #211: stderr's last non-blank line diagnoses a bad archive; otherwise the status names the signal.
+// bsdtar's generic last line after member errors, which says nothing about which member failed.
+const DELAYED_ERRORS: &str = "Error exit delayed from previous errors.";
+
+// Sample: "blocked/child: Could not stat blocked/child: Not a directory\nbsdtar: Error exit delayed from previous errors."
+// Issue #211: the last non-blank stderr line diagnoses, the first when the last is that trailer; otherwise the status does.
 pub(crate) fn failure_message(what: &str, status: &ExitStatus, stderr: &str) -> String {
     // A blank line is not a diagnosis.
-    if let Some(line) = stderr.lines().rev().find(|line| !line.trim().is_empty()) {
-        return line.trim().to_string();
+    let mut lines = stderr.lines().map(str::trim).filter(|line| !line.is_empty());
+    if let Some(first) = lines.next() {
+        let last = lines.next_back().unwrap_or(first);
+        let line = if last.ends_with(DELAYED_ERRORS) { first } else { last };
+        return line.to_string();
     }
     let killed = |signal: i32| match signal_name(signal) {
         Some(name) => format!("the {} tool stopped before it finished (signal {})", what, name),

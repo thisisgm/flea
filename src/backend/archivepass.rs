@@ -17,7 +17,7 @@ pub const WRONG_PASSWORD: &str = "wrong-password";
 // 7z exits 2 on a wrong password and on damaged encrypted data alike, and gives no finer signal.
 const WRONG_PASSWORD_CODE: i32 = 2;
 // 7z exits 255 (Break signaled) when it must ask for a password and stdin is closed.
-const NEEDS_PASSWORD_CODE: i32 = 255;
+pub(crate) const NEEDS_PASSWORD_CODE: i32 = 255;
 // Bare, so a compress reads the secret off stdin rather than off argv.
 const PASSWORD_PROMPT: &str = "-p";
 // Hides the entry names of a password .7z.

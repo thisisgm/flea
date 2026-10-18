@@ -38,7 +38,7 @@ def duplicate_encrypted(root, backend):
     assert reply['ok'], reply
     assert (root / 'out/aa.txt').read_bytes() == second.read_bytes()
     job = backend.jobs[reply['id']]
-    assert job['total'] == job['totalBytes'] == 0, job
+    assert (job['total'], job['totalBytes']) == (2, 24), job
     print('PASSWORD_FLOW PASS duplicate members keep encrypted and accept the password', flush=True)
     for mode in ('bytes', 'timeout'):
         bounded_encrypted(root, backend, archive, mode)

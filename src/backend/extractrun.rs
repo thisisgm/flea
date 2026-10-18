@@ -12,6 +12,15 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{mpsc::Sender, Arc, Mutex};
 use std::time::Duration;
 
+// A hostile member name cannot grow a line past this, in a listing or in the extracting tool's output.
+pub(crate) const LINE_LIMIT: usize = 65_536;
+// The extracting child is polled this often for its exit, a cancel and a progress sample.
+const POLL: Duration = Duration::from_millis(50);
+// Each kept diagnostic line is cut to this many characters.
+const DIAGNOSTIC_CHARS: usize = 4096;
+// The first member errors are kept apart from progress lines, so a later member never replaces the cause.
+const MEMBER_ERRORS: usize = 8;
+
 pub(crate) struct Command<'a> {
     pub inner: Vec<String>,
     pub archive: &'a Path,
@@ -107,7 +116,7 @@ pub(crate) fn run(
                 });
                 return Ok((failed, progress));
             }
-            Ok(_) => std::thread::sleep(Duration::from_millis(50)),
+            Ok(_) => std::thread::sleep(POLL),
             Err(e) => {
                 jail::kill_tree(&mut jailed);
                 return Err(from_io("archive", &full[0], &e));
@@ -116,26 +125,41 @@ pub(crate) fn run(
     }
 }
 
-// A hostile member name cannot grow a line without bound; diagnostics retain only their bounded tail.
+// The progress a pipe feeds, the staging directory it samples, and whether the tool is 7z.
 type Observation<'a> = (&'a Mutex<Progress>, &'a Path, bool);
 
+// The first MEMBER_ERRORS diagnostic lines and the last one, never a bsdtar "x name" progress line.
+#[derive(Default)]
+struct Diagnostics {
+    first: Vec<String>,
+    last: String,
+}
+
+impl Diagnostics {
+    fn text(mut self) -> String {
+        if !self.last.is_empty() && self.first.last() != Some(&self.last) {
+            self.first.push(self.last);
+        }
+        self.first.join("\n")
+    }
+}
+
 fn read(mut pipe: impl Read, progress: Option<Observation<'_>>) -> String {
-    const LINE_LIMIT: usize = 65_536;
     let mut chunk = [0u8; 8192];
     let mut pending = Vec::new();
-    let mut tail = String::new();
+    let mut diagnostics = Diagnostics::default();
     let mut skipping = false;
     loop {
         let count = match pipe.read(&mut chunk) {
             Ok(count) => count,
             Err(error) if error.kind() == std::io::ErrorKind::Interrupted => continue,
-            Err(_) => return tail,
+            Err(_) => return diagnostics.text(),
         };
         if count == 0 {
             if !skipping && !pending.is_empty() {
-                complete_line(&pending, progress, &mut tail);
+                complete_line(&pending, progress, &mut diagnostics);
             }
-            return tail;
+            return diagnostics.text();
         }
         for part in chunk[..count].split_inclusive(|byte| *byte == b'\n') {
             let whole = part.last() == Some(&b'\n');
@@ -146,7 +170,7 @@ fn read(mut pipe: impl Read, progress: Option<Observation<'_>>) -> String {
             if !skipping {
                 pending.extend_from_slice(part);
                 if whole {
-                    complete_line(&pending, progress, &mut tail);
+                    complete_line(&pending, progress, &mut diagnostics);
                 } else if let Some((progress, _, false)) = progress {
                     if let Ok(text) = std::str::from_utf8(&pending) {
                         progress.lock().unwrap().preview(text);
@@ -161,17 +185,31 @@ fn read(mut pipe: impl Read, progress: Option<Observation<'_>>) -> String {
     }
 }
 
-fn complete_line(bytes: &[u8], progress: Option<Observation<'_>>, tail: &mut String) {
+// Sample: bsdtar -v stderr "x docs/a.txt" for progress, "x docs/b: Could not stat docs/b: Not a directory" for a member error.
+// corner: a member whose own name holds ": " reads as an error line, which only a failed extract ever shows.
+fn complete_line(bytes: &[u8], progress: Option<Observation<'_>>, diagnostics: &mut Diagnostics) {
     let text = String::from_utf8_lossy(bytes);
+    let text = text.trim_end_matches(['\r', '\n']);
     if let Some((progress, stage, seven)) = progress {
-        progress
-            .lock()
-            .unwrap()
-            .line(text.trim_end_matches(['\r', '\n']), seven, stage);
+        progress.lock().unwrap().line(text, seven, stage);
     }
-    if !text.trim().is_empty() {
-        *tail = text.chars().take(4096).collect();
+    let line = match text.strip_prefix("x ") {
+        Some(member) if matches!(progress, Some((_, _, false))) => {
+            if !member.contains(": ") {
+                return;
+            }
+            member
+        }
+        _ => text,
+    };
+    let line: String = line.trim().chars().take(DIAGNOSTIC_CHARS).collect();
+    if line.is_empty() {
+        return;
     }
+    if diagnostics.first.len() < MEMBER_ERRORS {
+        diagnostics.first.push(line.clone());
+    }
+    diagnostics.last = line;
 }
 
 #[cfg(test)]
@@ -181,6 +219,7 @@ mod tests {
     use crate::backend::testdir::TestDir;
     use std::collections::HashMap;
     use std::io::Cursor;
+    use std::os::unix::process::ExitStatusExt;
     use std::sync::mpsc::{channel, Receiver};
 
     struct Paused {
@@ -240,5 +279,29 @@ mod tests {
             }
             _ => panic!("expected extraction sample"),
         }
+    }
+
+    #[test]
+    fn a_progress_line_never_replaces_a_member_error() {
+        let progress = Mutex::new(Progress::new(Index::default(), false));
+        let text = read(b"bsdtar: blocked/child: Not a directory\nx lastfile\n".as_slice(), Some((&progress, Path::new("/nonexistent"), false)));
+        let message = failure_message("archive", &std::process::ExitStatus::from_raw(256), &text);
+        assert_eq!(message, "bsdtar: blocked/child: Not a directory");
+    }
+
+    // The acceptance case: real bsdtar reports the member error mid-stream and ends on its generic trailer.
+    #[test]
+    fn a_real_bsdtar_member_error_survives_the_delayed_error_trailer() {
+        let root = TestDir::new("extractmembererror");
+        root.dir("out");
+        let archive = root.join("bad.tar");
+        let script = "import io,sys,tarfile\nwith tarfile.open(sys.argv[1], 'w') as t:\n for name in ('blocked', 'blocked/child', 'lastfile'):\n  m=tarfile.TarInfo(name);m.size=1;t.addfile(m,io.BytesIO(b'x'))";
+        assert!(std::process::Command::new("/usr/bin/python3").args(["-c", script]).arg(&archive).status().unwrap().success());
+        let output = std::process::Command::new("bsdtar").args(["-v", "-x", "-f"]).arg(&archive).arg("-C").arg(root.join("out")).output().unwrap();
+        assert!(!output.status.success());
+        let progress = Mutex::new(Progress::new(Index::default(), false));
+        let text = read(output.stderr.as_slice(), Some((&progress, &root.join("out"), false)));
+        let message = failure_message("archive", &output.status, &text);
+        assert!(message.starts_with("blocked/child: ") && message.contains("Not a directory"), "{message}");
     }
 }
