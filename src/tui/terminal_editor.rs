@@ -1,4 +1,4 @@
-// The bulk rename editor as its own foreground job: it takes the terminal, and close always hands it back.
+// An editor as its own foreground job: it takes the terminal, and close always hands it back.
 use super::*;
 
 pub(super) struct EditorJob {
@@ -9,14 +9,12 @@ pub(super) struct EditorJob {
     restored: bool,
 }
 impl EditorJob {
-    pub(super) fn start(editor: &str, path: &Path) -> io::Result<Self> {
+    pub(super) fn start(mut command: Command) -> io::Result<Self> {
         let foreground = unsafe { tcgetpgrp(0) };
         if foreground < 0 { return Err(io::Error::last_os_error()); }
         const IGNORE_SIGNAL: usize = 1;
         let handler = unsafe { signal(SIGTTOU, IGNORE_SIGNAL) };
-        // Sample input: nvim -f; the user's editor command is shell syntax, while the names path is a positional argument.
-        let child = Command::new("/bin/sh").args(["-c", &format!("exec {} \"$1\"", editor), "flea-bulk-rename"])
-            .arg(path).process_group(0).spawn();
+        let child = command.process_group(0).spawn();
         let child = match child {
             Ok(child) => child,
             Err(error) => { unsafe { signal(SIGTTOU, handler); } return Err(error); }
@@ -39,7 +37,7 @@ impl EditorJob {
         if result == 0 { return Ok(None); }
         let status = std::process::ExitStatus::from_raw(status);
         if status.stopped_signal().is_some() {
-            return Err(io::Error::other("Bulk rename editor suspended; rename cancelled"));
+            return Err(io::Error::other("Editor suspended; editing cancelled"));
         }
         self.finished = true;
         Ok(Some(status))

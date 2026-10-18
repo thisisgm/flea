@@ -1,0 +1,11 @@
+[package]
+name = "tui-battery-settings-reader"
+version = "0.1.0"
+edition = "2021"
+publish = false
+
+[[bin]]
+name = "tui-battery-settings-reader"
+path = "probe.rs"
+
+[workspace]

@@ -1,8 +1,21 @@
 mod capabilities;
+#[cfg(test)]
+mod action_key_tests;
+pub(crate) mod cwd;
+mod external_editor;
+mod parity;
 mod tmux;
 mod actions;
+mod calendar;
+mod detail;
 mod batch;
+#[cfg(test)]
+mod chafa;
 mod completion;
+mod cells;
+mod filter;
+mod layout;
+mod icons;
 mod editor;
 mod empty;
 pub(crate) mod graphics;
@@ -19,6 +32,7 @@ mod preview;
 mod render;
 mod taildrop;
 mod terminal;
+mod launch;
 mod wait;
 mod hold;
 #[cfg(test)]
@@ -38,10 +52,10 @@ extern "C" {
     fn setlocale(category: i32, locale: *const std::ffi::c_char) -> *mut std::ffi::c_char;
 }
 
-pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
+pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> i32 {
     // Before any thread starts: a picture job's thread would otherwise open an arena that keeps a few hundred KB.
     crate::heap::one_arena();
-    let result = (|| -> io::Result<()> {
+    let result = (|| -> io::Result<i32> {
         // LC_CTYPE makes wcwidth use the terminal's inherited locale without changing numeric formatting.
         unsafe {
             setlocale(0, c"".as_ptr());
@@ -59,6 +73,8 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
         let settings = store.read();
         let mut wire = wire::Wire::start(gvfs.as_ref())?;
         let mut model = model::Model::new(path.clone(), &settings);
+        if let Some(preset) = &options.keymap { model.preset = preset.clone(); }
+        model.choosing = options.chooser_file.is_some();
         model.store = Some(store);
         let mut size = terminal::size();
         model.height = render::body_height(size.1).max(1);
@@ -72,7 +88,7 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
         model.capabilities = terminal.decoder.negotiation.detected;
         let map = keymap::Map::load();
         model.hints = keymap::Hints::new(&map, &model.preset);
-        let theme = theme::Theme::load();
+        let mut style = layout::Live::new(&mut model);
         let started = std::time::Instant::now();
         let mut frame = String::new();
         let mut graphics = graphics::Graphics::new();
@@ -101,6 +117,23 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                 Err(error) => { launch_errors.push(format!("Could not observe {}: {}", name, crate::error::io_message(&error))); false }
             });
             for error in launch_errors { model.fail(error); }
+            if let Some(path) = model.edit_file.take() {
+                graphics.clear();
+                model.player = None;
+                model.pdf = None;
+                match external_editor::run(&mut terminal, &path) {
+                    Ok(()) => {}
+                    Err(error) => {
+                        if !terminal.ready() { return Err(error); }
+                        model.fail(crate::error::io_message(&error));
+                    }
+                }
+                model.refresh(&mut wire)?;
+                frame.clear();
+                thumbnail.clear();
+                model.capabilities = terminal.decoder.negotiation.detected;
+                graphics.protocol = model.capabilities.graphics;
+            }
             if model.menu_action == "bulkEditor" {
                 graphics.clear();
                 model.player = None;
@@ -112,7 +145,7 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                         model.next_rename(&mut wire)?;
                     }
                     Err(error) => {
-                        if !terminal.ready() { return if terminal.stopped() { Ok(()) } else { Err(error) }; }
+                        if !terminal.ready() { if terminal.stopped() { break; } return Err(error); }
                         model.fail(crate::error::io_message(&error));
                         model.menu_action.clear();
                         wire.send(vec![("c", wire::word("menuaction")), ("op", wire::word("close")), ("id", wire::number(model.action_id))])?;
@@ -127,10 +160,8 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                 model.menu_action = "open".into();
                 wire.send(vec![("c", wire::word("menuaction")), ("op", wire::word("validate")), ("id", wire::number(model.action_id)), ("action", wire::word("open"))])?;
             }
-            preview::load(&mut model, false);
-            preview::poll(&mut model);
-            preview::request(&mut model, &mut wire)?;
-            preview::layout(&mut model);
+            style.prepare(&mut model, &mut wire)?;
+            detail::prepare(&mut model, &mut wire)?;
             model.taildrop.poll();
             model.advance_taildrop(&mut wire)?;
             if let Some(result) = model.taildrop.sent.take() {
@@ -142,12 +173,7 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
             if let Some(completion) = model.completer.poll() {
                 model.completion = completion;
             }
-            // Match StatusBar.messageMs while keeping the actionable undo receipt until dismissed.
-            const MESSAGE_TIME: std::time::Duration = std::time::Duration::from_millis(4000);
-            if !matches!(model.menu_action.as_str(), "taildropRefresh" | "taildrop")
-                && !model.message.contains("Undo available") && model.message_at.elapsed() >= MESSAGE_TIME {
-                model.message.clear();
-            }
+            model.expire_message(std::time::Instant::now());
             let visible = (model.preview_visible || model.quicklook) && model.selected.len() < 2;
             let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some();
             if (model.menu || model.deletion.is_some()) != menu_tracking {
@@ -351,7 +377,7 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
             if !held {
                 let changed = render::draw(
                     &model,
-                    &theme,
+                    &style.theme,
                     &map,
                     size.0,
                     size.1,
@@ -414,10 +440,17 @@ pub fn run(path: Option<&str>, select: Option<&str>) -> i32 {
                 model.window(&mut wire)?;
             }
         }
-        Ok(())
+        let clean = model.quit && !terminal.stopped();
+        let directory = model.last_directory.clone();
+        let chosen = model.chosen.take();
+        let no_cwd = model.no_cwd;
+        drop(graphics);
+        drop(model);
+        drop(terminal);
+        options.finish(directory.as_deref(), chosen.as_deref(), clean, no_cwd)
     })();
     match result {
-        Ok(()) => 0,
+        Ok(code) => code,
         Err(e) => {
             eprintln!("flea: terminal interface: {}", crate::error::io_message(&e));
             2
