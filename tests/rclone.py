@@ -17,7 +17,7 @@ STUB = Path('tests/fixtures/rclone-stub.py').resolve()
 
 
 class Backend(JobsBackend):
-    def __init__(self, root):
+    def __init__(self, root, cwd=''):
         self.root = root
         env = dict(os.environ)
         for key, name in [('HOME', 'home'), ('XDG_CONFIG_HOME', 'config'),
@@ -28,9 +28,11 @@ class Backend(JobsBackend):
             folder.mkdir(exist_ok=True)
             env[key] = str(folder)
         assert root.is_absolute() and (root / '.flea-test-sandbox').is_file()
+        self.env = env
+        (root / cwd).mkdir(parents=True, exist_ok=True)
         self.process = subprocess.Popen([BINARY, '--backend'], stdin=subprocess.PIPE,
                                         stdout=subprocess.PIPE, stderr=subprocess.DEVNULL,
-                                        cwd=root, env=env, start_new_session=True)
+                                        cwd=root / cwd, env=env, start_new_session=True)
         self.pending = b''
         self.events = []
         self.jobs = {}
@@ -59,7 +61,7 @@ class Fixture:
             os.environ['RCLONE_SIZE_ONLY'] = 'true'
         os.environ.update(control.get('inherited', {}))
         (self.root / 'rclone.conf').write_text('[gdrive]\ntype = local\n')
-        self.backend = Backend(self.root)
+        self.backend = Backend(self.root, control.get('cwd', ''))
         source = self.root / 'source'
         source.mkdir()
         self.paths = [source / name for name in ['first.txt', 'two words.jpg', '-leading.txt']]
@@ -178,6 +180,87 @@ def sizes(f):
     job = f.backend.state(ident, 'done')
     assert job['check'] == 'size', job
     assert any(e['t'] == 'job' and e['job']['file'] == 'comparing sizes' for e in f.backend.events)
+    checking = [e['job'] for e in f.backend.events if e['t'] == 'job' and e['job']['id'] == ident
+                and e['job']['phase'] == 'checking']
+    if f.control.get('sizes'):
+        assert checking and all(j['check'] == 'size' and j['file'] == 'comparing sizes'
+                                for j in checking), checking
+
+
+def refused_paths(f):
+    for request, path in enumerate(['/', str(f.root / 'source/..')], 301):
+        f.backend.send(c='rclone', op='send', id=request, remote='gdrive', folder='Uploads', paths=[path])
+        reply = f.backend.wait(lambda e: e['t'] == 'rclonestarted' and e['requestId'] == request)
+        assert not reply['ok'] and 'id' not in reply, reply
+        assert reply['error'] == 'rclone requires absolute selection paths.', reply
+    f.backend.send(c='jobs', op='list')
+    assert f.backend.wait(lambda e: e['t'] == 'jobs')['jobs'] == []
+    assert not (f.root / 'argv.jsonl').exists() and f.backend.process.poll() is None
+
+
+def env_only_remote(f):
+    (f.root / 'bin/rclone').symlink_to(REAL_RCLONE)
+    config = f.root / 'rclone.conf'
+    assert config.is_absolute() and config.is_relative_to(f.root) and (f.root / '.flea-test-sandbox').is_file()
+    config.unlink()
+    native = subprocess.run([REAL_RCLONE, 'backend', 'features', '--', 'gdrive:'], env=f.backend.env,
+                            cwd=f.root, text=True, capture_output=True, timeout=10)
+    assert native.returncode == 0 and json.loads(native.stdout)['Hashes'], native.stderr
+    assert 'not found - using defaults' in native.stderr, 'rclone wrote no stderr notice to separate'
+    destination = f.root / 'remote'
+    ident = f.send(paths=[f.paths[0]], folder=str(destination))
+    receipt = f.backend.wait(lambda e: e['t'] == 'rclonesent' and e['id'] == ident)
+    assert receipt['ok'] and receipt['check'] == 'checksum', receipt
+    assert (destination / f.paths[0].name).read_bytes() == f.paths[0].read_bytes()
+
+
+CARGO_STUB = '''#!/usr/bin/python3
+import json
+import os
+from pathlib import Path
+root = Path(__file__).resolve().parent.parent
+assert root.is_absolute() and (root / '.flea-test-sandbox').is_file()
+target = Path(os.environ['CARGO_TARGET_DIR']) / 'debug/flea'
+assert target.is_absolute() and target.resolve().is_relative_to(root)
+if os.environ.get('STUB_BUILD') != 'absent':
+    target.parent.mkdir(parents=True)
+    target.write_text('#!/bin/sh\\necho fresh\\n')
+    target.chmod(0o700)
+(root / 'built.txt').write_text(str(target))
+print(json.dumps({'reason': 'build-finished', 'success': True}))
+'''
+UNSHARE_STUB = '''#!/usr/bin/python3
+import json
+from pathlib import Path
+import subprocess
+import sys
+root = Path(__file__).resolve().parent.parent
+assert root.is_absolute() and (root / '.flea-test-sandbox').is_file()
+selected = Path(next(arg.split('=', 1)[1] for arg in sys.argv if arg.startswith('FLEA_BIN=')))
+assert selected.is_absolute() and selected.resolve().is_relative_to(root)
+marker = subprocess.check_output([str(selected)], text=True).strip()
+(root / 'selected.json').write_text(json.dumps({'path': str(selected), 'marker': marker}))
+'''
+
+
+def ci_binary(f):
+    for folder in ['tests', 'tools', 'target/debug']:
+        (f.root / folder).mkdir(parents=True)
+    shutil.copyfile('tests/rclone-ci.sh', f.root / 'tests/rclone-ci.sh')
+    for path, text in [('tools/flea-clippy', '#!/bin/sh\nexit 0\n'), ('target/debug/flea', '#!/bin/sh\necho stale\n'),
+                       ('bin/cargo', CARGO_STUB), ('bin/unshare', UNSHARE_STUB)]:
+        (f.root / path).write_text(text)
+        (f.root / path).chmod(0o700)
+    env = dict(PATH=str(f.root / 'bin') + ':/usr/bin:/bin', LC_ALL='C.UTF-8')
+    run = subprocess.run(['/bin/bash', str(f.root / 'tests/rclone-ci.sh')], env=env, cwd=f.root,
+                         capture_output=True, text=True, timeout=60)
+    assert run.returncode == 0, (run.stdout, run.stderr)
+    selected = json.loads((f.root / 'selected.json').read_text())
+    assert selected == dict(path=(f.root / 'built.txt').read_text(), marker='fresh'), selected
+    (f.root / 'selected.json').unlink()
+    run = subprocess.run(['/bin/bash', str(f.root / 'tests/rclone-ci.sh')], env=dict(env, STUB_BUILD='absent'),
+                         cwd=f.root, capture_output=True, text=True, timeout=60)
+    assert run.returncode == 1 and not (f.root / 'selected.json').exists(), (run.stdout, run.stderr)
 
 
 def bounded(f):
@@ -298,6 +381,8 @@ def main():
              ('Retry sends only copy failure', retry, dict(fail='two words.jpg')),
              ('Retry sends only check failure', retry, dict(mismatch='two words.jpg')),
              ('size-only remote reports size check', sizes, dict(sizes=True)),
+             ('paths without a file name are refused before a job', refused_paths, {}),
+             ('CI parity runs the binary its own build made', ci_binary, dict(stub=False)),
              ('missing object hashes downgrade receipt', sizes, dict(no_hash=True)),
              ('Cancel checking reports not checked', cancel, dict(hang='check')),
              ('discovery has a wall deadline', bounded, dict(list_hang=True)),
@@ -315,6 +400,8 @@ def main():
              dict(stub=False, inherited={'RCLONE_MAX_DEPTH': '1'})),
             ('selected empty directory and descendants are delivered', empty_directories,
              dict(stub=False)),
+            ('env-only remote with a stderr notice still reads capabilities', env_only_remote,
+             dict(stub=False, inherited={'RCLONE_CONFIG_GDRIVE_TYPE': 'local'})),
         ])
         cases.extend(edge_cases(REAL_RCLONE, STUB))
     failures = []

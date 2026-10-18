@@ -156,8 +156,6 @@ pub(super) fn background(id: usize, send: Send, cancel: Arc<AtomicBool>, tx: Sen
                 progress.sample(&name, 0, progress.bytes);
             }
             if !copied.is_empty() && !cancel.load(Ordering::Relaxed) {
-                progress.sample("comparing checksums", 0, progress.bytes);
-                progress.status("checking", "checksum", "", 0, None);
                 let hashes = features.hashes;
                 check = if hashes { "checksum" } else { "size" };
                 for (path, selected) in &copied {

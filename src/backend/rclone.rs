@@ -7,11 +7,15 @@ use std::path::Path;
 use std::sync::atomic::AtomicBool;
 use std::time::Duration;
 
+// Discovery reads only local configuration, so a slower answer means rclone is stuck.
+const LIST_DEADLINE: Duration = Duration::from_secs(2);
+
+// Sample input: listremotes stdout "gdrive:\nnas-crypt:\n", one configured remote per line ending in a colon.
 pub(super) fn remotes(cancel: &AtomicBool) -> Result<Vec<String>, String> {
     let output = super::rcloneproc::run(
         &["listremotes".into()],
         cancel,
-        Some(Duration::from_secs(2)),
+        Some(LIST_DEADLINE),
         true,
         |_| {},
     )?;
@@ -65,6 +69,8 @@ pub(super) fn request(out: &mut impl Write, ops: &mut Ops, line: &str) {
         "Unknown rclone request."
     } else if !remote_name(&remote) || folder.contains('\0') {
         "Choose a configured rclone remote and folder."
+    } else if folder.split('/').any(|part| part == "..") {
+        "An rclone folder cannot contain a .. component."
     } else if paths.is_empty()
         || paths.iter().any(|p| {
             let path = Path::new(p);

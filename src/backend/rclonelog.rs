@@ -1,6 +1,9 @@
 // Parse only rclone's documented JSON fields, retaining bounded errors and absolute byte samples.
 use crate::jsondoc::{parse, Json};
 
+// Bytes kept from one log row's error, skip or file name, so a long row cannot grow the job line.
+const MAX_TEXT: usize = 4096;
+
 #[derive(Default)]
 pub(super) struct Log {
     pub bytes: u64,
@@ -24,6 +27,7 @@ fn number(value: Option<&Json>) -> u64 {
 }
 
 impl Log {
+    // Sample input: {"level":"error","object":"a.jpg","msg":"md5 differ"} or {"level":"notice","msg":"...","stats":{"bytes":4000,"totalBytes":12000,"speed":240000.0,"eta":3,"transferring":[{"name":"a.jpg","size":12000}]}}.
     pub fn line(&mut self, text: &str) -> bool {
         let Ok(row) = parse(text) else { return false };
         let msg = row.get("msg").and_then(Json::as_str).unwrap_or_default();
@@ -84,7 +88,7 @@ impl Log {
 }
 
 fn bounded(text: &str) -> String {
-    let mut end = text.len().min(4096);
+    let mut end = text.len().min(MAX_TEXT);
     while !text.is_char_boundary(end) {
         end -= 1;
     }

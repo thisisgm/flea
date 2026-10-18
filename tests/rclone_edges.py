@@ -2,6 +2,8 @@
 import os
 import socket
 
+FOLDER_ERROR = 'An rclone folder cannot contain a .. component.'
+
 
 def local_remote(f):
     (f.root / 'bin/rclone').symlink_to(f.control['real_binary'])
@@ -109,6 +111,25 @@ def colon_folder(f):
         assert intended.read_bytes() == source.read_bytes()
 
 
+def parent_folder(f):
+    local_remote(f)
+    cwd = f.root / f.control['cwd']
+    source = f.paths[1]
+    nested = f.send(paths=[source], folder='control/nested')
+    receipt = f.backend.wait(lambda e: e['t'] == 'rclonesent' and e['id'] == nested)
+    assert receipt['ok'] and receipt['check'] == 'checksum', receipt
+    assert (cwd / 'control/nested' / source.name).read_bytes() == source.read_bytes()
+    for request, folder in enumerate(['../../local-escaped', '..', 'control/..',
+                                      'control/../../../local-escaped'], 210):
+        f.backend.send(c='rclone', op='send', id=request, remote='gdrive', folder=folder, paths=[str(source)])
+        reply = f.backend.wait(lambda e: e['t'] == 'rclonestarted' and e['requestId'] == request)
+        assert not reply['ok'] and 'id' not in reply and reply['error'] == FOLDER_ERROR, (folder, reply)
+    f.backend.send(c='jobs', op='list')
+    assert [j['id'] for j in f.backend.wait(lambda e: e['t'] == 'jobs')['jobs']] == [nested]
+    copies = sorted(str(p.relative_to(f.root)) for p in f.root.rglob(source.name))
+    assert copies == sorted(['source/' + source.name, f.control['cwd'] + '/control/nested/' + source.name]), copies
+
+
 def cases(real, stub):
     result = [
         ('inherited local copy-links cannot escape the selected tree', source_link,
@@ -130,6 +151,8 @@ def cases(real, stub):
     for directory in [False, True]:
         result.append(('colon folder joins ' + ('directory' if directory else 'file') + ' correctly',
                        colon_folder, dict(stub=False, directory=directory)))
+    result.append(('parent folder components are refused before a job', parent_folder,
+                   dict(stub=False, cwd='work/a/b')))
     for _, _, options in result:
         options.update(real_binary=real, real_stub=str(stub))
     return result

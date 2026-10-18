@@ -12,6 +12,7 @@ if cargo build --locked --workspace --message-format=json > "$rclone_ci_root/bui
     if python3 -B - "$rclone_ci_root/build.json" <<'PY'
 import json
 import sys
+# Sample input: {"reason":"compiler-message","message":{"level":"warning","rendered":"warning: unused variable"}} or {"reason":"build-finished","success":true}
 messages = [json.loads(line) for line in open(sys.argv[1]) if line.startswith('{')]
 warnings = [m['message'] for m in messages if m.get('reason') == 'compiler-message'
             and m['message']['level'] in ('warning', 'error')]
@@ -40,8 +41,12 @@ else
     rclone_ci_status=1
 fi
 rclone_ci_parent_ns=$(readlink /proc/self/ns/pid)
-rclone_ci_bin=$(realpath "${FLEA_BIN:-target/debug/flea}")
-if unshare --user --map-root-user --pid --fork --mount-proc \
+# The parity run uses the binary this script just built, never a FLEA_BIN or target/ left from another build.
+rclone_ci_bin=$CARGO_TARGET_DIR/debug/flea
+if [ ! -x "$rclone_ci_bin" ]; then
+    echo "FAIL rclone CI parity: $rclone_ci_bin was not built"
+    rclone_ci_status=1
+elif unshare --user --map-root-user --pid --fork --mount-proc \
     setsid -w env -i PATH="$PATH" LC_ALL=C.UTF-8 FLEA_BIN="$rclone_ci_bin" \
     FLEA_RCLONE_PARENT_NS="$rclone_ci_parent_ns" /usr/bin/python3 -B tests/rclone.py "$rclone_ci_bin" < /dev/null; then
     echo 'PASS rclone CI parity: clean environment, no controlling tty, private PID namespace'
