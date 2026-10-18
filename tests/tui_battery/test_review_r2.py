@@ -189,9 +189,12 @@ class Review2Tests(unittest.TestCase):
             with self.subTest(file=name):
                 path = case / name
                 original = path.read_text()
-                path.write_text(json.dumps({"font_size": 24, "keys": "windows", "packages": ["foot 2"]}))
-                self.assertNotEqual(self.reconcile(source, identity, row, config)["status"], "PASS")
-                path.write_text(original)
+                self.assertEqual(self.reconcile(source, identity, row, config)["status"], "PASS")
+                try:
+                    path.write_text(json.dumps({"font_size": 24, "keys": "windows", "packages": ["foot 2"]}))
+                    self.assertNotEqual(self.reconcile(source, identity, row, config)["status"], "PASS")
+                finally:
+                    path.write_text(original)
 
     def test_3_conflicting_requested_configuration_is_refused(self):
         source, case, identity, row, config = self.retained_case()

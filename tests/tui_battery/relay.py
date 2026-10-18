@@ -19,6 +19,15 @@ from .evidence import Owned, save
 from .protocol import GraphicsNegative, query_ids
 
 MAX_LOG = 64 * 1024 * 1024
+READ_BYTES = 64 * 1024
+TAIL_BYTES = 64 * 1024
+COMMAND_BYTES = 1024 * 1024
+RPC_ANSWER_BYTES = 8 * 1024 * 1024
+POLL_SECONDS = .05
+FLUSH_SECONDS = .15
+ANSWER_SECONDS = 2
+SHUTDOWN_SECONDS = 3
+SHUTDOWN_POLL_SECONDS = .02
 
 
 def write_all(fd, data):
@@ -55,7 +64,8 @@ def serve(spec_path):
     pid, master = pty.fork()
     if pid == 0:
         os.close(start_write)
-        os.read(start_read, 1)
+        if os.read(start_read, 1) != b"1":
+            os._exit(1)
         os.close(start_read)
         fcntl.ioctl(0, termios.TIOCSWINSZ, struct.pack("HHHH", *size))
         stderr = os.open(owner.child("candidate.stderr"), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
@@ -74,13 +84,14 @@ def serve(spec_path):
     status, stopping, total = None, False, 0
     negative = GraphicsNegative() if spec.get("graphics_negative") else None
     output_tail = b""
-    original_child_mode = termios.tcgetattr(master)
-    os.write(start_write, b"1")
-    os.close(start_write)
+    original_child_mode = None
     pending_since = None
     clients = {}
-    log = owner.child("pty.log").open("x")
-    graphics = owner.child("graphics.log").open("x")
+    resize_pending = False
+    log = graphics = None
+    start_open = True
+    previous_handlers = {}
+
     def event(direction, data=b"", **extra):
         nonlocal total
         total += len(data)
@@ -89,22 +100,53 @@ def serve(spec_path):
         log.write(json.dumps(dict(ns=time.time_ns(), direction=direction,
                                   base64=base64.b64encode(data).decode(), **extra)) + "\n")
         log.flush()
-    def resized(*_):
+
+    def relay_output(data):
+        nonlocal output_tail
+        event("output", data)
+        write_all(1, data)
+        if negative:
+            output_tail = (output_tail + data)[-TAIL_BYTES:]
+            negative.ids.update(query_ids(output_tail))
+        screen.feed(data)
+        for chunk in screen.graphics:
+            graphics.write(json.dumps({"ns": time.time_ns(), "data": chunk}) + "\n")
+        screen.graphics.clear()
+        graphics.flush()
+
+    def apply_resize():
+        nonlocal resize_pending
+        resize_pending = False
         current = winsize(0)
         fcntl.ioctl(master, termios.TIOCSWINSZ, struct.pack("HHHH", *current))
         screen.resize(current[1], current[0])
         event("resize", geometry=current)
+
+    def resized(*_):
+        # Signal context only sets a flag; the loop applies the geometry between feeds.
+        nonlocal resize_pending
+        resize_pending = True
+
     def stop(*_):
         nonlocal stopping
         stopping = True
-    signal.signal(signal.SIGWINCH, resized)
-    for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
-        signal.signal(sig, stop)
-    tty.setraw(0)
-    save(case / "relay-start.json", {"pid": pid, "pty": size, "stdin_tty": os.isatty(0), "stdout_tty": os.isatty(1)})
+
     try:
+        original_child_mode = termios.tcgetattr(master)
+        log = owner.child("pty.log").open("x")
+        graphics = owner.child("graphics.log").open("x")
+        previous_handlers[signal.SIGWINCH] = signal.signal(signal.SIGWINCH, resized)
+        for sig in (signal.SIGTERM, signal.SIGHUP, signal.SIGINT):
+            previous_handlers[sig] = signal.signal(sig, stop)
+        tty.setraw(0)
+        os.write(start_write, b"1")
+        os.close(start_write)
+        start_open = False
+        save(case / "relay-start.json", {"pid": pid, "pty": size, "stdin_tty": os.isatty(0), "stdout_tty": os.isatty(1)})
         while not stopping:
-            ready, _, _ = select.select([0, master, server, *clients], [], [], .05)
+            if resize_pending:
+                apply_resize()
+            ready, _, _ = select.select([0, master, server, *clients], [], [], POLL_SECONDS)
             for fd in ready:
                 if fd == server:
                     client, _ = server.accept()
@@ -112,24 +154,15 @@ def serve(spec_path):
                     clients[client] = b""
                 elif fd == master:
                     try:
-                        data = os.read(master, 65536)
+                        data = os.read(master, READ_BYTES)
                     except OSError:
                         data = b""
                     if not data:
                         stopping = True
                         break
-                    event("output", data)
-                    write_all(1, data)
-                    if negative:
-                        output_tail = (output_tail + data)[-65536:]
-                        negative.ids.update(query_ids(output_tail))
-                    screen.feed(data)
-                    for chunk in screen.graphics:
-                        graphics.write(json.dumps({"ns": time.time_ns(), "data": chunk}) + "\n")
-                    screen.graphics.clear()
-                    graphics.flush()
+                    relay_output(data)
                 elif fd == 0:
-                    data = os.read(0, 65536)
+                    data = os.read(0, READ_BYTES)
                     if not data:
                         stopping = True
                         break
@@ -141,17 +174,18 @@ def serve(spec_path):
                         event("candidate-input", data)
                         write_all(master, data)
                 else:
-                    data = fd.recv(1024 * 1024)
+                    data = fd.recv(COMMAND_BYTES)
                     if not data:
                         fd.close()
                         del clients[fd]
                         continue
                     clients[fd] += data
-                    if len(clients[fd]) > 1024 * 1024:
+                    if len(clients[fd]) > COMMAND_BYTES:
                         raise RuntimeError("relay command exceeded budget")
                     if b"\n" not in clients[fd]:
                         continue
                     raw, clients[fd] = clients[fd].split(b"\n", 1)
+                    # Sample input: {"op": "input", "base64": "YWI="} as one JSON line.
                     request = json.loads(raw)
                     if request["op"] == "input":
                         incoming = base64.b64decode(request["base64"], validate=True)
@@ -162,10 +196,10 @@ def serve(spec_path):
                     elif request["op"] != "snapshot":
                         raise RuntimeError("unknown relay command")
                     answer = dict(screen.snapshot(), pty=winsize(master))
-                    fd.settimeout(2)
+                    fd.settimeout(ANSWER_SECONDS)
                     fd.sendall(json.dumps(answer).encode() + b"\n")
                     fd.setblocking(False)
-            if negative and pending_since is not None and time.monotonic() - pending_since > .15:
+            if negative and pending_since is not None and time.monotonic() - pending_since > FLUSH_SECONDS:
                 tail = negative.flush()
                 event("candidate-input", tail, incomplete_reply_flushed=True)
                 write_all(master, tail)
@@ -174,39 +208,61 @@ def serve(spec_path):
             if done:
                 status = os.waitstatus_to_exitcode(child_status)
                 stopping = True
-    finally:
-        if status is None:
-            try:
-                os.killpg(pid, signal.SIGTERM)
-            except ProcessLookupError:
-                pass
-            deadline = time.monotonic() + 3
-            while time.monotonic() < deadline:
-                done, child_status = os.waitpid(pid, os.WNOHANG)
-                if done:
-                    status = os.waitstatus_to_exitcode(child_status)
+        if status is not None:
+            # Output queued before the child exited still reaches the log, the screen and the terminal.
+            deadline = time.monotonic() + SHUTDOWN_SECONDS
+            while time.monotonic() < deadline and select.select([master], [], [], 0)[0]:
+                try:
+                    data = os.read(master, READ_BYTES)
+                except OSError:
                     break
-                select.select([], [], [], .02)
+                if not data:
+                    break
+                relay_output(data)
+        if resize_pending:
+            # A resize that arrived during the last feed still reaches the PTY and the log.
+            apply_resize()
+    finally:
+        for sig, handler in previous_handlers.items():
+            signal.signal(sig, handler)
+        if start_open:
+            os.close(start_write)
+        try:
             if status is None:
-                os.killpg(pid, signal.SIGKILL)
-                _, child_status = os.waitpid(pid, 0)
-                status = os.waitstatus_to_exitcode(child_status)
-        restored = termios.tcgetattr(master) == original_child_mode
-        termios.tcsetattr(0, termios.TCSANOW, saved)
-        save(case / "relay-exit.json", {"candidate_exit": status, "termios_restored": restored,
-             "relay_termios_restored": termios.tcgetattr(0) == saved, "screen": screen.snapshot()})
-        if negative:
-            save(case / "dropped-responses.json", {"forced_fallback": True, "base64": negative.dropped})
-        os.close(master)
-        log.close()
-        graphics.close()
-        server.close()
-        for client in clients:
-            client.close()
+                try:
+                    os.killpg(pid, signal.SIGTERM)
+                except ProcessLookupError:
+                    pass
+                deadline = time.monotonic() + SHUTDOWN_SECONDS
+                while time.monotonic() < deadline:
+                    done, child_status = os.waitpid(pid, os.WNOHANG)
+                    if done:
+                        status = os.waitstatus_to_exitcode(child_status)
+                        break
+                    select.select([], [], [], SHUTDOWN_POLL_SECONDS)
+                if status is None:
+                    os.killpg(pid, signal.SIGKILL)
+                    _, child_status = os.waitpid(pid, 0)
+                    status = os.waitstatus_to_exitcode(child_status)
+            restored = termios.tcgetattr(master) == original_child_mode
+            termios.tcsetattr(0, termios.TCSANOW, saved)
+            save(case / "relay-exit.json", {"candidate_exit": status, "termios_restored": restored,
+                 "relay_termios_restored": termios.tcgetattr(0) == saved, "screen": screen.snapshot()})
+            if negative:
+                save(case / "dropped-responses.json", {"forced_fallback": True, "base64": negative.dropped})
+        finally:
+            os.close(master)
+            if log:
+                log.close()
+            if graphics:
+                graphics.close()
+            server.close()
+            for client in clients:
+                client.close()
     return status if status >= 0 else 128 - status
 
 
-def rpc(case, request, timeout=2):
+def rpc(case, request, timeout=ANSWER_SECONDS):
     with socket.socket(socket.AF_UNIX) as client:
         client.settimeout(timeout)
         directory_fd = os.open(case, os.O_RDONLY | os.O_DIRECTORY)
@@ -217,12 +273,13 @@ def rpc(case, request, timeout=2):
         client.sendall(json.dumps(request).encode() + b"\n")
         chunks = bytearray()
         while b"\n" not in chunks:
-            part = client.recv(65536)
+            part = client.recv(READ_BYTES)
             if not part:
                 raise RuntimeError("relay closed without an answer")
             chunks.extend(part)
-            if len(chunks) > 8 * 1024 * 1024:
+            if len(chunks) > RPC_ANSWER_BYTES:
                 raise RuntimeError("relay answer exceeds budget")
+        # Sample input: {"columns": 2, "rows": 1, "grid": [[{"ch": "A"}, {"ch": " "}]], "pty": [24, 80]} as one JSON line.
         return json.loads(chunks)
 
 

@@ -28,7 +28,9 @@ PLACEMENT_WIDTH = 1000
 PLACEMENT_HEIGHT = 720
 SHARED_HELPER_FILE = "tests/lib/hypr-dispatch.sh"
 OPERATIONS = ("workspace_focus", "window_focus", "window_float", "window_resize", "window_move", "window_resize_absolute",
-              "window_move_absolute", "window_opacity", "cursor_move", "session_exec_script")
+              "window_move_absolute", "window_opacity", "cursor_move", "session_exec_script", "window_send_shortcut",
+              "window_rounding", "output_create", "output_remove", "monitor_mode", "query_monitors", "query_clients",
+              "query_option", "query_version", "query_help", "query_output_help")
 ENTRY_POINTS = tuple("hypr_" + operation for operation in OPERATIONS)
 LUA_PREFIX = "hl." + "dsp."
 FAKE = r'''#!/usr/bin/env bash
@@ -36,7 +38,24 @@ set -u
 case "$1" in
     clients) printf '%s\n' "$HYPR_FAKE_CLIENTS" ;;
     activewindow) cat "$HYPR_FAKE_ACTIVE" ;;
-    dispatch)
+    -j)
+        printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"
+        case "$2" in
+            monitors) printf '%s\n' '[{"name":"FLEA-fixture","id":7}]' ;;
+            clients) printf '%s\n' '[{"pid":111,"address":"0xabc"}]' ;;
+            getoption) printf '%s\n' '{"option":"decoration:rounding","int":8}' ;;
+            *) printf 'fake hyprctl refused unexpected query: %s\n' "$*" >&2; exit 2 ;;
+        esac
+        ;;
+    version) printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"; printf '%s\n' 'Hyprland 0.56.2 (fake)' ;;
+    --help) printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"; printf '%s\n' 'usage: hyprctl command' ;;
+    output)
+        printf '%s\n' "$*" >> "$HYPR_FAKE_LOG"
+        if [[ "$2" == --help ]]; then printf '%s\n' 'usage: hyprctl output create|remove'; exit 0; fi
+        printf '%s\n' "${HYPR_FAKE_REPLY-ok}"
+        exit "${HYPR_FAKE_STATUS:-0}"
+        ;;
+    dispatch|eval)
         printf '%s\n' "$2" >> "$HYPR_FAKE_LOG"
         if [[ -n "${HYPR_FAKE_FAIL_ACTION:-}" && "$2" == *"$HYPR_FAKE_FAIL_ACTION"* ]]; then
             printf '%s\n' "$HYPR_FAKE_WARNING"
@@ -223,13 +242,14 @@ def main():
         for case in cases:
             operation = case["operation"]
             arguments = case["args"]
+            query = operation.startswith("query_")
             command = shlex.join(["hypr_" + operation, *arguments])
             rc, output, calls = run(command, code=shared_code)
-            check(operation + " exact text " + repr(arguments), rc == 0 and not output and calls == [case["text"]], output)
+            check(operation + " exact text " + repr(arguments), rc == 0 and output == case.get("reply", "") and calls == [case["text"]], output)
             program = shlex.join(["bash", str(helper), operation, *arguments])
             rc, output, calls = run(program)
-            check(operation + " program form", rc == 0 and output == "ok\n" and calls == [case["text"]], output)
-            for form, code, invoke in (("function", shared_code, command), ("program", "", program)):
+            check(operation + " program form", rc == 0 and output == case.get("reply", "ok\n") and calls == [case["text"]], output)
+            for form, code, invoke in (() if query else (("function", shared_code, command), ("program", "", program))):
                 for reply in (WARNING, "", "ok\nwarning", " ok", "ok ", "okay"):
                     rc, output, calls = run(invoke, code=code, HYPR_FAKE_REPLY=reply)
                     check(operation + " " + form + " rejects reply " + repr(reply),
@@ -238,7 +258,7 @@ def main():
                 check(operation + " " + form + " rejects failed command with ok",
                       rc == 1 and output == refusal(operation, arguments, "ok", FAILED_COMMAND_STATUS)
                       and calls == [case["text"]], output)
-            invalid = [arguments[:-1], arguments + ["extra"]]
+            invalid = [arguments[:-1], arguments + ["extra"]] if arguments else [["extra"]]
             if operation not in ("cursor_move", "session_exec_script"):
                 invalid.extend([bad, *arguments[1:]] for bad in
                                ("flea", "abc", '0xab"c', "0xab}c", "address:0xabc", "", "0Xabc", "0x"))
@@ -246,12 +266,18 @@ def main():
                 invalid.extend([bad] for bad in ("", "run.sh", "./run.sh", "/tmp/a b.sh", "/tmp/a'bad.sh",
                                '/tmp/a"bad.sh', "/tmp/a;exit.sh", "/tmp/$(id).sh", "/tmp/`id`.sh", "/tmp/a\nb.sh"))
             integer_start = 0 if operation in ("workspace_focus", "cursor_move") else 1
-            if operation in ("workspace_focus", "window_resize", "window_move", "window_resize_absolute", "window_move_absolute", "cursor_move"):
+            if operation in ("workspace_focus", "window_resize", "window_move", "window_resize_absolute", "window_move_absolute", "cursor_move",
+                             "window_rounding"):
                 for index in range(integer_start, len(arguments)):
                     for bad in ("1.5", "one", "1;exit", "1}", "+1", ""):
                         invalid.append(arguments[:index] + [bad] + arguments[index + 1:])
                     if operation in ("window_resize", "window_resize_absolute"):
                         invalid.append(arguments[:index] + ["-1"] + arguments[index + 1:])
+            if operation == "window_send_shortcut":
+                invalid.extend([arguments[0], bad, arguments[2]] for bad in ("ctrl", "SHIFT;exit", 'SUPER"', "Super", "SHIFT,SUPER"))
+                invalid.extend([arguments[0], arguments[1], bad] for bad in ("", "Return;exit", 'R"', "a b", "a,b"))
+            if operation == "monitor_mode":
+                invalid.extend([arguments[0], bad] for bad in ("2560x1440", "2560x1440@", "wide", "2560x1440@60;exit", ""))
             if operation == "window_float":
                 invalid.extend([arguments[0], bad] for bad in ("ON", "toggle", 'on"', ""))
             if operation == "window_opacity":

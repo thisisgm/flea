@@ -2,7 +2,6 @@
 import json
 import os
 from pathlib import Path
-import shlex
 import signal
 import subprocess
 import sys
@@ -23,6 +22,15 @@ def wait_for(check, timeout, description):
     raise Blocked(f"deadline waiting for {description}")
 
 
+HYPR_HELPER = Path(__file__).resolve().parents[2] / "tests/lib/hypr-dispatch.sh"
+
+
+# Every compositor command runs as one bash call that sources the typed helper.
+def compositor(commands, function, *arguments, check=True):
+    return commands.run(["bash", "-c", 'source "$1" && shift && "$@"', "hypr", str(HYPR_HELPER), function, *arguments],
+                        check=check)
+
+
 class Display:
     def __init__(self, commands, identity):
         self.commands, self.identity = commands, identity
@@ -31,23 +39,23 @@ class Display:
         self.created = False
         self.original_rounding = None
 
-    def data(self, kind):
-        return json.loads(self.commands.run(["hyprctl", "-j", *kind.split()]).stdout)
+    def data(self, function):
+        return json.loads(compositor(self.commands, function).stdout)
 
     def __enter__(self):
-        help_result = self.commands.run(["hyprctl", "--help"])
-        self.commands.run(["hyprctl", "version"])
-        self.commands.run(["hyprctl", "output", "--help"], check=False)
+        help_result = compositor(self.commands, "hypr_query_help")
+        compositor(self.commands, "hypr_query_version")
+        compositor(self.commands, "hypr_query_output_help", check=False)
         if "output" not in (help_result.stdout + help_result.stderr).decode(errors="replace"):
             raise Blocked("installed hyprctl does not advertise output control")
-        self.original_rounding = json.loads(self.commands.run(["hyprctl", "-j", "getoption", "decoration:rounding"]).stdout)
-        if any(m["name"] == self.output for m in self.data("monitors all")):
+        self.original_rounding = json.loads(compositor(self.commands, "hypr_query_option", "decoration:rounding").stdout)
+        if any(m["name"] == self.output for m in self.data("hypr_query_monitors")):
             raise Blocked("headless output identity is already in use")
-        self.commands.run(["hyprctl", "output", "create", "headless", self.output])
+        compositor(self.commands, "hypr_output_create", self.output)
         self.created = True
         try:
-            self.commands.run(["hyprctl", "keyword", "monitor", f"{self.output},2560x1440@60,auto,1"])
-            monitors = self.data("monitors all")
+            compositor(self.commands, "hypr_monitor_mode", self.output, "2560x1440@60")
+            monitors = self.data("hypr_query_monitors")
             monitor = next((m for m in monitors if m["name"] == self.output), None)
             if not monitor or monitor["scale"] != 1 or monitor["width"] != 2560 or monitor["height"] != 1440:
                 raise Blocked("owned output mode/scale could not be verified")
@@ -59,11 +67,11 @@ class Display:
 
     def __exit__(self, *_):
         if self.created:
-            self.commands.run(["hyprctl", "output", "remove", self.output])
+            compositor(self.commands, "hypr_output_remove", self.output)
             self.created = False
 
     def client(self, identity):
-        matches = [c for c in self.data("clients") if c.get("class") == identity and c.get("title") == identity]
+        matches = [c for c in self.data("hypr_query_clients") if c.get("class") == identity and c.get("title") == identity]
         if len(matches) > 1:
             raise Blocked("ambiguous owned terminal identity")
         if matches:
@@ -88,26 +96,7 @@ class Terminal:
         self.launched = False
 
     def launch(self, argv, environment, graphics_negative=False):
-        root = str(Path(__file__).resolve().parents[1])
-        environment = dict(environment, PYTHONPATH=root)
-        save(self.case / "relay-spec.json", {"argv": argv, "environment": environment, "graphics_negative": graphics_negative})
-        relay_command = [sys.executable, "-m", "tui_battery.relay", str(self.case / "relay-spec.json")]
-        terminal_argv = self.adapter.argv(relay_command)
-        if self.adapter.tmux_socket and len(os.fsencode(self.adapter.tmux_socket)) >= 100:
-            raise Blocked("private tmux socket path is too long; use a shorter marked evidence root")
-        terminal_environment = dict(self.adapter.environment(), PYTHONPATH=root, PYTHONDONTWRITEBYTECODE="1")
-        save(self.case / "launch-spec.json", {"argv": terminal_argv, "environment": terminal_environment})
-        wrapper = ["env", f"PYTHONPATH={root}", sys.executable, "-m", "tui_battery.native", "--launch", str(self.case / "launch-spec.json")]
-        rules = f"[workspace {self.display.workspace} silent; monitor {self.display.output}; float] "
-        self.commands.run(["hyprctl", "dispatch", "exec", rules + shlex.join(wrapper)])
-        self.launched = True
-        self.client = wait_for(lambda: self.display.client(self.adapter.identity), self.timeout, "owned native client")
-        wait_for(lambda: (self.case / "relay-start.json").is_file(), self.timeout, "controlling PTY")
-        start = json.loads((self.case / "relay-start.json").read_text())
-        if not start["stdin_tty"] or not start["stdout_tty"]:
-            raise Blocked("candidate stdin/stdout are not real TTYs")
-        self.commands.run(["hyprctl", "setprop", "address:" + self.client["address"], "rounding", "8"])
-        return start
+        raise Blocked("native launch needs exec window rules (workspace, monitor, float) with no Lua-safe typed helper form")
 
     def snapshot(self):
         self.client = self.display.client(self.adapter.identity)
@@ -117,13 +106,12 @@ class Terminal:
 
     def key(self, key):
         mods, name = shortcut(key)
-        self.commands.run(["hyprctl", "dispatch", "sendshortcut", f"{mods},{name},address:{self.client['address']}"])
+        compositor(self.commands, "hypr_window_send_shortcut", self.client["address"], mods, name)
 
     def resize(self, columns, rows, calibration):
         cw, ch = calibration["cell"]
         px, py = calibration["padding"]
-        self.commands.run(["hyprctl", "dispatch", "resizewindowpixel",
-                           f"exact {columns * cw + px} {rows * ch + py},address:{self.client['address']}"])
+        compositor(self.commands, "hypr_window_resize", self.client["address"], str(columns * cw + px), str(rows * ch + py))
         return wait_for(lambda: self._resized(columns, rows), self.timeout, "native PTY resize")
 
     def _resized(self, columns, rows):
