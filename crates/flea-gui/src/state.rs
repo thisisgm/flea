@@ -109,6 +109,9 @@ impl Shell {
                 self.waiting = false;
                 self.record_error(message);
             }
+            Ok(Reply::Error { path, message, .. }) => {
+                eprintln!("flea-gui: ignored an error for {path}: {message}");
+            }
             Err(message) => {
                 self.waiting = false;
                 self.record_error(message);
@@ -214,12 +217,38 @@ mod tests {
 
     #[gpui::test]
     fn adv_e_r2_unrelated_replies_keep_the_window_request_in_flight(cx: &mut TestAppContext) {
+        const CHILD: &str = "FLEA_TEST_UNRELATED_REPLY_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "state::tests::adv_e_r2_unrelated_replies_keep_the_window_request_in_flight",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert_eq!(
+                String::from_utf8_lossy(&output.stderr)
+                    .lines()
+                    .filter(|line| *line == "flea-gui: ignored an error for /elsewhere: unrelated")
+                    .count(),
+                1
+            );
+            return;
+        }
         let (backend, mut requests) = Backend::test_channel();
         let cx = cx.add_empty_window();
         cx.simulate_resize(size(px(640.), px(11. * ROW_HEIGHT)));
         let entity = cx.update(|_, cx| cx.new(|_| shell_with(backend)));
         cx.update(|window, cx| {
             entity.update(cx, |shell, cx| {
+                shell.backend_error = Some("existing backend error".into());
                 let _ = shell.render(window, cx);
                 assert_eq!(requests(), Some((0, 10)));
                 assert!(shell.waiting);
@@ -250,11 +279,18 @@ mod tests {
             let description = format!("{reply:?}");
             cx.update(|window, cx| {
                 entity.update(cx, |shell, cx| {
+                    let snapshot = Rc::clone(&shell.snapshot);
                     shell.receive(Ok(reply), cx);
                     let _ = shell.render(window, cx);
                     assert_eq!(requests(), None, "{description}");
                     assert!(shell.waiting, "{description}");
                     assert_eq!(shell.requested, 10);
+                    assert!(Rc::ptr_eq(&shell.snapshot, &snapshot), "{description}");
+                    assert_eq!(
+                        shell.backend_error.as_deref(),
+                        Some("existing backend error"),
+                        "{description}"
+                    );
                 });
             });
         }
