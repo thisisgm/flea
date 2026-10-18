@@ -99,6 +99,7 @@ impl Pane {
         usize::from(self.busy()) + usize::from(self.requests.outstanding.is_some())
     }
 
+    /// The listing request's first count, one window as Pane.qml asks for it.
     pub fn first_count(&self) -> usize {
         window_size(self.visible_rows())
     }
