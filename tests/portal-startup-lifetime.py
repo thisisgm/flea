@@ -136,8 +136,14 @@ def exercise(root):
     check("failed export explains the refusal", "could not export FileChooser" in (root / "export-failure.log").read_text())
 
     held = activate()
-    time.sleep(2.2)
-    check("activation waits for its first frontend read before idle exit", owner() == held, owner())
+    pid = daemon("GetConnectionUnixProcessID", GLib.Variant("(s)", (held,)))[0]
+    start = time.monotonic()
+    deadline = start + 4
+    while Path(f"/proc/{pid}").exists() and time.monotonic() < deadline:
+        time.sleep(0.02)
+    check("an unused activation releases its name and exits after the idle bound",
+          not owner() and not Path(f"/proc/{pid}").exists(),
+          f"{(time.monotonic() - start) * 1000:.1f} ms, pid={pid}, owner={owner()}")
     held = activate()
     properties()
     check("Get reads the interface version", call(NAME, "org.freedesktop.DBus.Properties", "Get",

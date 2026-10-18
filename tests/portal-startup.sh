@@ -28,6 +28,7 @@ if [ -z "${FLEA_PORTAL_STARTUP_BUS:-}" ]; then
     . "$(dirname "$0")/../tools/flea-sandbox-guard"
     cd "$(dirname "$0")/.." || exit 1
     tree=$PWD
+    installer_binary=${FLEA_BIN:-"$tree/target/release/flea"}
     for file in tools/flea-portal packaging/flea.portal packaging/$backend.service; do
         [ -f "$file" ] || { printf 'portal-startup.sh: %s is missing, refusing to report on nothing\n' "$file" >&2; exit 1; }
     done
@@ -152,8 +153,11 @@ CALLER
     else
         python3 "$tree/tests/portal-startup-lifetime.py"
         status=$?
+        python3 "$tree/tests/portal-startup-installer-binary.py"
+        binary_status=$?
+        [ "$status" != 0 ] || status=$binary_status
         if [ "$status" = 0 ]; then
-            python3 "$tree/tests/portal-startup-installer.py"
+            FLEA_BIN="$installer_binary" python3 "$tree/tests/portal-startup-installer.py"
             status=$?
         fi
     fi

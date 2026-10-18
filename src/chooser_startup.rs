@@ -5,26 +5,31 @@ const SERVICE: &str = "xdg-desktop-portal.service";
 const FRONTEND: &str = "org.freedesktop.portal.Desktop";
 const OBJECT: &str = "/org/freedesktop/portal/desktop";
 const IFACE: &str = "org.freedesktop.portal.FileChooser";
+const RESTART_TIMEOUT: Duration = Duration::from_secs(15);
+const BUSCTL_TIMEOUT: Duration = Duration::from_secs(5);
+const BUSCTL_EXIT_GRACE: Duration = Duration::from_secs(1);
+const BUSCTL_KILL_TIMEOUT: Duration = BUSCTL_TIMEOUT.saturating_add(BUSCTL_EXIT_GRACE);
+const POLL_INTERVAL: Duration = Duration::from_millis(20);
 
 // A stopped frontend stays stopped, and a live one must export FileChooser before success is reported.
 pub fn restart() -> bool {
     let mut restart = Command::new("systemctl");
     restart.args(["--user", "try-restart", SERVICE]);
-    let restarted =
-        bounded(restart, Duration::from_secs(15)).is_some_and(|out| out.status.success());
+    let restarted = bounded(restart, RESTART_TIMEOUT).is_some_and(|out| out.status.success());
     if restarted {
         let mut probe = Command::new("busctl");
+        let probe_timeout = format!("--timeout={}s", BUSCTL_TIMEOUT.as_secs());
         probe.args([
             "--user",
             "--auto-start=no",
-            "--timeout=5s",
+            &probe_timeout,
             "get-property",
             FRONTEND,
             OBJECT,
             IFACE,
             "version",
         ]);
-        if bounded(probe, Duration::from_secs(6))
+        if bounded(probe, BUSCTL_KILL_TIMEOUT)
             .is_some_and(|out| out.status.success() && ready_reply(&out.stdout))
         {
             return true;
@@ -59,7 +64,7 @@ fn bounded(mut command: Command, limit: Duration) -> Option<Output> {
     loop {
         match child.try_wait() {
             Ok(Some(_)) => return child.wait_with_output().ok(),
-            Ok(None) if start.elapsed() < limit => std::thread::sleep(Duration::from_millis(20)),
+            Ok(None) if start.elapsed() < limit => std::thread::sleep(POLL_INTERVAL),
             _ => {
                 let _ = child.kill();
                 let _ = child.wait();

@@ -7,10 +7,15 @@ from pathlib import Path
 import pty
 import shutil
 import subprocess
+import sys
 import tempfile
 
 
 REPO = Path(__file__).resolve().parent.parent
+BINARY = Path(os.environ.get("FLEA_BIN") or REPO / "target/release/flea").resolve()
+if not BINARY.is_file() or not os.access(BINARY, os.X_OK):
+    sys.exit(f"portal-startup-installer: installer binary is missing or not executable: {BINARY}")
+print(f"portal-startup-installer: testing {BINARY}", flush=True)
 SCRATCH = REPO / ".superpowers/k123"
 SCRATCH.mkdir(parents=True, exist_ok=True)
 ROOT = Path(tempfile.mkdtemp(prefix="portal-installer.", dir=SCRATCH)).resolve()
@@ -20,11 +25,11 @@ MARKER.touch()
 
 def run(env, args, terminal):
     if not terminal:
-        out = subprocess.run([str(REPO / "target/debug/flea"), *args], env=env,
+        out = subprocess.run([str(BINARY), *args], env=env,
                              stdout=subprocess.PIPE, stderr=subprocess.STDOUT, timeout=25)
         return out.returncode, out.stdout.decode()
     master, slave = pty.openpty()
-    child = subprocess.Popen([str(REPO / "target/debug/flea"), *args], env=env, stdout=slave, stderr=slave)
+    child = subprocess.Popen([str(BINARY), *args], env=env, stdout=slave, stderr=slave)
     os.close(slave)
     data = b""
     try:
