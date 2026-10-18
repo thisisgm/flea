@@ -69,7 +69,7 @@ pub fn run() -> i32 {
         spawn_op_forwarder(op_rx, op_events);
         op_tx
     });
-    let pool = Pool::lazy(THUMB_WORKERS, &tb, tx.clone());
+    let pool = Pool::lazy(THUMB_WORKERS, &tb, super::thumbcache::default_root(), tx.clone());
     let cache = Cache::new();
     // One flash at a time beside transfers; its worker reports on its own channel, joined the same way.
     let (flash_tx, flash_rx) = channel::<flashslot::FlashMsg>();
@@ -347,15 +347,14 @@ fn handle_line(
             listpaths::answer(out, st, pool, tb, &paths, first, line)
         }
         Request::Window { start, count } => {
+            let start = st.window_start(start);
             if count == 0 {
-                let total = st.listing.len() + st.search_session.as_ref().and_then(|session| session.pending_rest.as_ref()).map_or(0, Vec::len);
-                say(out, &super::rowguard::stamped(super::rows::empty_line(start.min(total), 0.0), st.generation));
+                say(out, &super::rowguard::stamped(super::rows::empty_line(start, 0.0), st.generation));
                 return Control::Continue;
             }
             match window_metas(st, start, count) {
                 Ok((metas, ms)) => {
-                    let start_w = start.min(st.listing.len());
-                    let line = tb.rows_line(&st.base, &st.listing, &metas, start_w, ms);
+                    let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
                     writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok();
                 }
                 Err(e) => {
@@ -851,9 +850,10 @@ fn adopt_listed_as(out: &mut impl Write, st: &mut State, pool: &Pool, tb: &Table
     };
     let listed = if same && want_changed { crate::backend::proto::with_changed(&listed, changed) } else { listed };
     writeln!(out, "{}", listed).ok();
-    let line = tb.rows_line(&st.base, &st.listing, &done.first_metas, done.first_start, done.first_ms);
+    let start = st.window_start(done.first_start);
+    let line = tb.rows_line(&st.base, &st.listing, &done.first_metas, start, done.first_ms);
     let line = match gen {
-        Some(gen) => super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, done.first_start..done.first_start + done.first_metas.len()),
+        Some(gen) => super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..start + done.first_metas.len()),
         None => super::rowguard::stamped(line, st.generation),
     };
     writeln!(out, "{}", line).ok();
@@ -925,8 +925,8 @@ pub fn write_window_gen(
     tb: &Tables,
     gen: Option<usize>,
 ) {
+    let start = st.window_start(start);
     let (metas, ms) = if count == 0 { (Vec::new(), 0.0) } else { stat_range(&st.base, &st.listing, start, count) };
-    let start = start.min(st.listing.len());
     for (i, m) in metas.iter().enumerate() {
         st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir));
     }
@@ -1056,8 +1056,8 @@ mod tests {
             st.listing.push("a.txt", false);
             st.listing.push("b.txt", false);
             let (results, _done) = channel();
-            let pool = Pool::new(THUMB_TEST_WORKERS, results, cache_root, Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
-            let cache = Cache::new();
+            let pool = Pool::new(THUMB_TEST_WORKERS, results, cache_root.clone(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+            let cache = Cache::at(cache_root);
             let (tx, rx) = channel();
             let mut ops = Ops::new(tx);
             let (flash_tx, _flash_rx) = channel();

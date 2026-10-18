@@ -93,7 +93,7 @@ impl Pool {
     }
 
     // Tables and workers are demanded only by the first uncached thumbnail job.
-    pub(crate) fn lazy(workers: usize, tables: &super::state::Tables, events: Sender<super::events::Event>) -> Pool {
+    pub(crate) fn lazy(workers: usize, tables: &super::state::Tables, root: PathBuf, events: Sender<super::events::Event>) -> Pool {
         let inner: Shared = Arc::new((Mutex::new(VecDeque::new()), Condvar::new()));
         let shared = Arc::clone(&inner);
         let (aliases, specs) = (tables.aliases.clone(), tables.thumbs.clone());
@@ -103,7 +103,7 @@ impl Pool {
             if !sandbox::available() {
                 eprintln!("flea: thumbnails are disabled, bwrap or prlimit is not on PATH");
             }
-            let tables = Tables { aliases: Arc::clone(&aliases), specs: Arc::clone(&specs), cache: Cache::new(), worker: Some(WorkerLink::new()) };
+            let tables = Tables { aliases: Arc::clone(&aliases), specs: Arc::clone(&specs), cache: Cache::at(root), worker: Some(WorkerLink::new()) };
             Self::start_workers(&shared, workers, results, tables);
         });
         Pool { inner, startup }
