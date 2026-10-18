@@ -21,10 +21,14 @@ ShellRoot {
     property int pasteReadSequence: 0
     readonly property int probeTickMs: 100
     readonly property int clipboardReadTimeoutMs: 5000
+    readonly property int textPublicationTimeoutMs: 15000
     readonly property int clipboardReadStage: 14
     readonly property string clipboardRefusal: "WAYLAND_DISPLAY is not set, so there is no clipboard to use"
     property bool quitting: false
     property int leafIndex: 0
+    property real textRequestedAt: 0
+    property int textPublicationCount: 0
+    property int textPublicationBefore: 0
     readonly property int artifactStage: 20
     readonly property var linkLeaves: ({pasteas: "pasteLink", "pasteas-absolute": "pasteAbsoluteLink", "pasteas-hard": "pasteHardLink"})
     readonly property var copyLeaves: ["copyPath", "copyName", "copyStem", "copydirpath", "copyUri", "copyQuoted"]
@@ -37,12 +41,73 @@ ShellRoot {
         var openRow = menu.openSubmenuRow >= 0 && menu.entries[menu.openSubmenuRow] ? menu.entries[menu.openSubmenuRow].action : ""
         return "opened=" + menu.opened + " submenuOpen=" + menu.submenuOpen + " submenu="
             + (menu.loneFlyoutAction.length > 0 ? "lone:" + menu.loneFlyoutAction : openRow)
-            + " ready=" + pane.menuActions.ready + " req=" + pane.menuActions.requestId
+            + " ready=" + pane.menuActions.ready + " applicationsReady=" + pane.menuActions.openWithLoaded + " req=" + pane.menuActions.requestId
             + " pending=" + pane.menuActions.pendingAction + "/" + pane.menuActions.pendingActivation
             + " provRefreshing=" + pane.menuActions.providersRefreshing
             + " entries=" + menu.entries.length + " subEntries=" + menu.submenuEntries.length
             + " clipPaths=" + pane.clipboard.paths.length + " cursor=" + pane.cursorIndex
             + " listInFlight=" + pane.listInFlight + " messages=" + JSON.stringify(messages.slice(-3))
+    }
+    FileView {
+        id: textPublications
+        path: Quickshell.env("FLEA_HUNT_CLIPBOARD") + ".calls"
+        watchChanges: true
+        onFileChanged: reload()
+        onLoaded: {
+            var text = this.text().trim()
+            shell.textPublicationCount = text.length ? text.split("\n").length : 0
+        }
+    }
+    // The stub records text before the frozen copier exits; the next copy must wait for both.
+    function textPublisher() {
+        var children = pane.opener.data
+        for (var i = 0; i < children.length; i++) {
+            var child = children[i]
+            if (child.command !== undefined && child.command.length > 2
+                    && child.command[0] === "sh" && child.command[2].indexOf("wl-copy") >= 0)
+                return child
+        }
+        return null
+    }
+    function textPublisherIdle() {
+        var publisher = textPublisher()
+        return publisher !== null && !publisher.running
+    }
+    function beginTextPublication(expectedBefore) {
+        var count = textPublicationCount
+        if (count !== expectedBefore) {
+            log("FAIL " + action + " publication before dispatch expected=" + expectedBefore + " actual=" + count + " " + menuState())
+            quit()
+            return false
+        }
+        textPublicationBefore = count
+        textRequestedAt = Date.now()
+        return true
+    }
+    function textPublished() {
+        var count = textPublicationCount
+        var expected = textPublicationBefore + 1
+        var elapsed = Date.now() - textRequestedAt
+        if (elapsed >= textPublicationTimeoutMs) {
+            log("FAIL " + action + " publication timeout expected=" + expected + " actual=" + count + " elapsedMs=" + elapsed + " publisherIdle=" + textPublisherIdle() + " command=" + JSON.stringify(textPublisher() ? textPublisher().command : []) + " " + menuState())
+            quit()
+            return false
+        }
+        if (count < textPublicationBefore || count > expected) {
+            log("FAIL " + action + " publication count before=" + textPublicationBefore + " expected=" + expected + " actual=" + count + " " + menuState())
+            quit()
+            return false
+        }
+        if (count === expected && textPublisherIdle()) {
+            log("INFO " + action + " publication=" + expected + " elapsedMs=" + elapsed)
+            return true
+        }
+        return false
+    }
+    // A single-item snapshot starts a registry query, which must leave the pending menu slot before activation.
+    function menuReady() {
+        var actions = pane.menuActions
+        return actions.ready && (actions.selectedKinds.length !== 1 || actions.openWithLoaded)
     }
     function checkPublication() {
         var sets = clipReplies.filter(function (reply) { return reply.op === "set" })
@@ -125,7 +190,7 @@ ShellRoot {
             pane.openCursorMenu()
             stage = 15
             ticks = 0
-        } else if (stage === 15 && pane.menuActions.ready) {
+        } else if (stage === 15 && menuReady()) {
             pane.contextMenu().choose("showOriginal")
             stage = 16
             ticks = 0
@@ -139,7 +204,7 @@ ShellRoot {
             pane.openCursorMenu()
             stage = 18
             ticks = 0
-        } else if (stage === 18 && pane.menuActions.ready) {
+        } else if (stage === 18 && menuReady()) {
             pane.contextMenu().choose("showOriginal")
             stage = 19
             ticks = 0
@@ -166,20 +231,22 @@ ShellRoot {
             pane.act(Keymap.lookup(Qt.Key_C, "c", 0, "listing"))
             stage = 7
             ticks = 0
-        } else if (stage === 7 && pane.menuActions.ready && pane.contextMenu().submenuOpen) {
+        } else if (stage === 7 && menuReady() && pane.contextMenu().submenuOpen) {
+            if (!beginTextPublication(leafIndex)) return
             pane.contextMenu().chooseSub(copyLeaves[leafIndex])
             stage = 8
             ticks = 0
-        } else if (stage === 8 && ticks >= 5) {
+        } else if (stage === 8 && ticks >= 5 && textPublished()) {
             log("INFO " + action + " dispatched=" + copyLeaves[leafIndex] + " messages=" + JSON.stringify(messages))
             leafIndex += 1
             if (leafIndex < copyLeaves.length) stage = 6
             else {
+                if (!beginTextPublication(copyLeaves.length)) return
                 pane.act(Keymap.lookup(Qt.Key_C, "", Qt.ControlModifier | Qt.ShiftModifier, "listing"))
                 stage = 9
             }
             ticks = 0
-        } else if (stage === 9 && ticks >= 5) {
+        } else if (stage === 9 && ticks >= 5 && textPublished()) {
             log("DONE action=" + action)
             quit()
         } else if (stage === 0 && pane.total === 2 && !pane.listInFlight && pane.visibleItemFor(0)) {
@@ -245,7 +312,7 @@ ShellRoot {
             if (pane.total !== 2) log("FAIL local-paste-lands-files total=" + pane.total)
             stage = artifactStage
             artifactCheck.running = true
-        } else if (stage === 12 && pane.menuActions.ready && pane.contextMenu().submenuOpen) {
+        } else if (stage === 12 && menuReady() && pane.contextMenu().submenuOpen) {
             pane.contextMenu().chooseSub(linkLeaves[action])
             stage = 13
             ticks = 0
