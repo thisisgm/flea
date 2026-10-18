@@ -183,6 +183,46 @@ fn a_job_whose_target_check_failed_retries_whole_and_checks_again() {
     assert_eq!(std::fs::read_to_string(dest.join("source")).unwrap(), "payload");
 }
 
+// A cancel during the target check ends the job, so no retry can put a second check beside the first.
+#[test]
+fn a_job_cancelled_during_its_target_check_is_not_retried() {
+    let root = TestDir::new("jobs-target-cancel");
+    let source = root.file("source", "payload");
+    let dest = root.dir("dest");
+    root.assert_contains(&dest.join("source"));
+    let (tx, rx) = channel();
+    let mut ops = Ops::new(tx);
+    let mut out = Vec::new();
+    ops.jobs.submit(
+        &mut out,
+        1,
+        super::jobwork::Spec { kind: "copy", label: "", target: Some(dest.clone()) },
+        super::jobwork::Work::Transfer {
+            moving: false,
+            paths: vec![source.to_string_lossy().into()],
+            dest: dest.clone(),
+            selection: None,
+            destination: None,
+            policy: Default::default(),
+        },
+        &ops.detached,
+        &ops.tx,
+    );
+    assert!(ops.jobs.rows[0].state == State::Waiting && !ops.jobs.rows[0].prepared);
+    super::jobevents::request(&mut out, &mut ops, r#"{"op":"cancel","id":1}"#);
+    assert!(ops.jobs.rows[0].state == State::Done && ops.jobs.rows[0].cancelled);
+    out.clear();
+    super::jobevents::request(&mut out, &mut ops, r#"{"op":"retry","id":1}"#);
+    let text = String::from_utf8_lossy(&out).into_owned();
+    assert!(text.contains(r#"{"t":"joberror","id":1,"error":"Only a failed job can be retried."}"#), "{text}");
+    let held = rx.recv_timeout(std::time::Duration::from_secs(10)).expect("the first check answers");
+    assert!(matches!(held, OpMsg::JobReady { id: 1, .. }));
+    report_op(&mut out, &mut ops, held);
+    assert!(ops.jobs.rows[0].state == State::Done && ops.jobs.rows[0].cancelled);
+    assert!(!dest.join("source").exists());
+    assert!(rx.recv_timeout(std::time::Duration::from_millis(500)).is_err(), "only one check ever ran");
+}
+
 #[test]
 fn retry_clears_attempt_fields() {
     let sandbox = TestDir::new("jobs-retry");
