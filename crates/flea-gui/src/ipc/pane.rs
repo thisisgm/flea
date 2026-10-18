@@ -13,6 +13,7 @@ impl Adapter for PaneAdapter<'_> {
         let pane = self.pane;
         let swap = &pane.swap;
         let count = &swap.counters;
+        let mark = &swap.mark;
         let value = match function {
             "listInFlight" => pane.busy().to_string(),
             "listRequests" => pane.list_requests.to_string(),
@@ -23,10 +24,11 @@ impl Adapter for PaneAdapter<'_> {
                 "{{\"held\":{},\"loaded\":{},\"windowSize\":{},\"total\":{},\"shownTotal\":{}}}",
                 pane.held.start, pane.held.rows.len(), pane.first_count(), pane.held.total, pane.held.total),
             "swapState" => format!(
-                "{{\"holding\":{},\"fellBack\":{},\"holds\":{},\"fallbacks\":{},\"waits\":{},\"blankFrames\":{},\"loadingFrames\":{},\"last\":{{\"ms\":{},\"end\":\"{}\"}},\"shownMs\":{},\"commits\":{}}}",
+                "{{\"holding\":{},\"fellBack\":{},\"holds\":{},\"fallbacks\":{},\"waits\":{},\"blankFrames\":{},\"loadingFrames\":{},\"last\":{{\"ms\":{},\"end\":\"{}\"}},\"shownMs\":{},\"commits\":{},\"mark\":{{\"shown\":{},\"offset\":{:.3},\"frames\":{},\"writes\":{},\"requests\":{},\"others\":{}}}}}",
                 swap.holding, swap.fell_back, count.holds, count.fallbacks, count.waits,
                 count.blank_frames + swap.frames.blank.get(), count.loading_frames + swap.frames.loading.get(), count.last_ms, escape(count.last_end),
-                count.shown_ms, count.commits),
+                count.shown_ms, count.commits, mark.shown(), mark.offset(), mark.counters.frames.get(),
+                mark.counters.writes.get(), mark.counters.requests.get(), mark.counters.others.get()),
             _ => return None,
         };
         Some(Reply::value(value))

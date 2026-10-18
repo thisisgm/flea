@@ -1,18 +1,19 @@
 //! Native window host and composition interfaces shared by later surfaces.
 pub mod composition;
 mod events;
-mod frame;
 pub mod input;
 pub mod navigate;
 pub mod lifecycle;
 pub mod locale;
 pub(crate) mod pane;
 mod render;
+pub mod root;
 pub mod startup;
 mod transitions;
 
 use crate::{ipc::server::Event, state::Shell};
 use gpui::{px, size, App, AppContext, TitlebarOptions, WindowBounds, WindowHandle, WindowOptions};
+use root::Root;
 use startup::Launch;
 
 pub fn open(
@@ -20,7 +21,7 @@ pub fn open(
     locale: locale::Snapshot,
     events: async_channel::Receiver<Event>,
     cx: &mut App,
-) -> Result<WindowHandle<Shell>, String> {
+) -> Result<WindowHandle<Root>, String> {
     let title = locale.catalog.tr("app.name");
     let options = WindowOptions {
         app_id: Some("flea".into()),
@@ -40,7 +41,7 @@ pub fn open(
             })
             .is_err()
         });
-        shell
+        cx.new(|_| Root { shell })
     })
     .map_err(|error| error.to_string())
 }

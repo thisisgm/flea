@@ -1,4 +1,5 @@
 pub mod backend;
+pub mod feedback;
 pub mod ipc;
 mod list;
 pub mod navigation;

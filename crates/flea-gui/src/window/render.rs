@@ -1,6 +1,10 @@
 use super::{composition, startup::View};
-use crate::{list::ListElement, state::Shell};
-use gpui::{div, prelude::*, AnyElement, Context, IntoElement, MouseButton, Render, Window};
+use crate::{
+    feedback::spinner,
+    list::{ListElement, Palette},
+    state::Shell,
+};
+use gpui::{div, prelude::*, px, AnyElement, Context, IntoElement, MouseButton, Render, Window};
 use std::rc::Rc;
 
 impl Render for Shell {
@@ -11,6 +15,20 @@ impl Render for Shell {
             || geometry.rows_height(self.view == View::Dual, self.slots.strip_height),
             |viewport| f32::from(viewport.height),
         );
+        let palette = Palette::inherited(&window.text_style());
+        let drawn = [self.mark_drawn(0), self.mark_drawn(1)];
+        for (side, &drawn) in drawn.iter().enumerate() {
+            let Some(host) = &self.panes[side] else {
+                continue;
+            };
+            let mark = &host.pane.swap.mark;
+            mark.rendered();
+            let changed = drawn != mark.shown();
+            mark.show(drawn, palette.metadata_frame);
+            if changed {
+                self.pane_mark_shown(side, drawn, window, cx);
+            }
+        }
         let mut panes: [Option<AnyElement>; 2] = [None, None];
         for (side, host) in self.panes.iter_mut().enumerate() {
             let Some(host) = host else { continue };
@@ -47,7 +65,28 @@ impl Render for Shell {
                         |div| div.child(list),
                     )
                     .children(self.slots.states[side].clone())
-                    .child(super::frame::Frame::new(&host.pane))
+                    .when(drawn[side], |div| {
+                        div.child(
+                            gpui::div()
+                                .absolute()
+                                .size_full()
+                                .flex()
+                                .flex_col()
+                                .items_center()
+                                .justify_center()
+                                .gap(px(spinner::GAP))
+                                .child(spinner::Slot(Rc::clone(&host.pane.swap.mark)))
+                                .child(
+                                    gpui::div()
+                                        .text_size(host.list.borrow().typeface.caption)
+                                        .font_family(
+                                            host.list.borrow().typeface.font.family.clone(),
+                                        )
+                                        .text_color(palette.metadata)
+                                        .child(host.state_text.message.clone()),
+                                ),
+                        )
+                    })
                     .into_any_element(),
             );
         }
