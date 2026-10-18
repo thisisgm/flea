@@ -1,6 +1,10 @@
 #!/bin/bash
 # Builds the media fixture, see AGENTS.md "Fixtures".
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 # Hard rule 9's guard owns FIXTURE_ROOT and every absolute, root and containment check below. The
 # marker stays this fixture's own name, so a media build can never delete a matched fixture.
 . "$(dirname "$0")/../tools/flea-sandbox-guard"

@@ -19,7 +19,8 @@ case $scratch in
   /*/*) ;;
   *) echo "FAIL: mktemp -d gave '$scratch', which is not an absolute path two components deep"; exit 1 ;;
 esac
-trap 'rm -rf "$scratch"' EXIT
+: > "$scratch/.flea-test-sandbox"
+trap 'case $scratch in /*/*) [ -f "$scratch/.flea-test-sandbox" ] && rm -rf -- "$scratch" ;; esac' EXIT
 
 fail=0
 check() {
@@ -63,6 +64,10 @@ check "a normal run writes a manifest" 0 $?
 
 holds "the payload is counted from the fixture" "fixture payload: $payload visible entries" "$man"
 holds "the histogram counts the jpgs it holds" "2 jpg" "$man"
+mkdir -p "$scratch/latin1"
+touch "$scratch/latin1/$(printf 'caf\351.jpg')"
+printf '%s\n' "flea|gui|qs" | "$tool" "$scratch/latin1.md" "$scratch/latin1" >/dev/null 2>&1
+holds "the histogram counts a Latin-1 filename as jpg" "1 jpg" "$scratch/latin1.md"
 holds "and the one file with no extension at all" "1 no extension" "$man"
 holds "an entrant that is not installed is named" "NOT INSTALLED" "$man"
 holds "flea's row is its own source, not a package" "^flea .* source " "$man"

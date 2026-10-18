@@ -165,6 +165,38 @@ fn an_alias_name_resolves_to_its_canonical_type() {
 }
 
 #[test]
+fn an_otf_mime_collision_accepts_font_tables_but_not_an_office_document() {
+    let d = TestDir::new("fontotfcollision");
+    // OTTO, one maxp table at byte 28, version 1.0 and 25 glyphs.
+    let bytes = [b"OTTO".as_slice(), &[0, 1, 0, 0, 0, 0, 0, 0], b"maxp",
+        &[0, 0, 0, 0, 0, 0, 0, 28, 0, 0, 0, 6, 0, 1, 0, 0, 0, 25]].concat();
+    let paths = [d.join("actual.otf"), d.join("uppercase.OTF")];
+    for path in &paths {
+        d.assert_contains(path);
+        std::fs::write(path, &bytes).expect("font tables");
+    }
+    for (i, types) in [
+        "50:application/vnd.oasis.opendocument.formula-template:*.otf\n50:font/otf:*.otf\n",
+        "50:font/otf:*.otf\n50:application/vnd.oasis.opendocument.formula-template:*.otf\n",
+    ].iter().enumerate() {
+        let rig = Rig { mime: Db::from_str(types), ..Rig::new() };
+        for path in &paths {
+            let line = rig.run(&ask(path), &d.join(&format!("cache-{}", i)));
+            assert_eq!(files_of(&line).len(), 3, "{}", line);
+            assert_eq!(field_usize(&line, "glyphs"), Some(25), "{}", line);
+        }
+        assert_eq!(rig.jobs.get(), paths.len(), "each MIME order draws both fonts");
+    }
+    let rig = Rig { mime: Db::from_str("50:application/vnd.oasis.opendocument.formula-template:*.otf\n"), ..Rig::new() };
+    let office = d.file("formula.otf", "not a font");
+    let root = d.join("office-cache");
+    let line = rig.run(&ask(&office), &root);
+    assert_eq!(field_str(&line, "err").as_deref(), Some("that file has no readable font tables"));
+    assert_eq!(rig.jobs.get(), 0, "an Office document runs no renderer");
+    assert!(!root.exists(), "an Office document creates no cache");
+}
+
+#[test]
 fn a_bad_ask_runs_no_job() {
     let d = TestDir::new("fontbad");
     let rig = Rig::new();

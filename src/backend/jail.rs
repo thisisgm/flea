@@ -128,7 +128,7 @@ pub fn spawn_jailed(full: &[String], setup: impl FnOnce(&mut std::process::Comma
     let read_raw = read_fd.as_raw_fd();
     let write_raw = write_fd.as_raw_fd();
     let status_fd = crate::backend::sandbox::STATUS_FD;
-    let mut cmd = std::process::Command::new(&full[0]);
+    let mut cmd = crate::backend::locale::command(&full[0]);
     cmd.args(&full[1..]);
     setup(&mut cmd);
     unsafe {

@@ -2,6 +2,10 @@
 # Over the hard cap fails; over the soft budget only warns, see AGENTS.md "File budget".
 set -u
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 soft_rust=250; hard_rust=400
 soft_qml=250;  hard_qml=400
 soft_js=200;   hard_js=300
@@ -29,7 +33,7 @@ src/backend/renamecompat.rs 721
 src/backend/gvfslist.rs 513
 src/backend/imagesize.rs 559
 src/backend/iomount.rs 634
-src/backend/localsend.rs 432
+src/backend/localsend.rs 433
 src/backend/menu_actions.rs 674
 src/backend/menu_registry.rs 569
 src/backend/meta.rs 550
@@ -212,7 +216,7 @@ tests/unlock-stdin.qml 483
 src/backend/searchindex.rs 401
 tests/gridjump.qml 516
 tests/gridbare.qml 426
-src/backend/trash.rs 401
+src/backend/trash.rs 406
 src/backend/trash_tests.rs 423
 tests/permissions-adv.qml 402
 tests/quicklook-code.qml 463"

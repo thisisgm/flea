@@ -5,6 +5,10 @@ import os
 import subprocess
 import sys
 
+# Parsed child output uses a fixed locale without changing the caller environment.
+PARSER_ENV = dict(os.environ, LC_ALL="C.UTF-8")
+PARSER_ENV.pop("LANGUAGE", None)
+
 HERE = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -17,7 +21,7 @@ def die(msg):
 # Sample input (a config value): "strip"
 def repo_config(key):
     try:
-        out = subprocess.run(["git", "config", "--get", key], capture_output=True, text=True, check=False)
+        out = subprocess.run(["git", "config", "--get", key], capture_output=True, text=True, check=False, env=PARSER_ENV)
     except OSError as e:
         die(f"git config did not start: {e}")
     if out.returncode == 1:
@@ -30,7 +34,7 @@ def repo_config(key):
 # Sample input (a ref name): "MERGE_HEAD"
 def verify_ref(name):
     try:
-        out = subprocess.run(["git", "rev-parse", "-q", "--verify", name], capture_output=True, text=True, check=False)
+        out = subprocess.run(["git", "rev-parse", "-q", "--verify", name], capture_output=True, text=True, check=False, env=PARSER_ENV)
     except OSError as e:
         die(f"git rev-parse did not start: {e}")
     if out.returncode == 1:
@@ -44,7 +48,7 @@ def verify_ref(name):
 # rev-parse answers only the first line, so an octopus merge reads every line here.
 def merge_heads():
     try:
-        out = subprocess.run(["git", "rev-parse", "--absolute-git-dir"], capture_output=True, text=True, check=False)
+        out = subprocess.run(["git", "rev-parse", "--absolute-git-dir"], capture_output=True, text=True, check=False, env=PARSER_ENV)
     except OSError as e:
         die(f"git rev-parse did not start: {e}")
     if out.returncode != 0:
@@ -61,7 +65,7 @@ def merge_heads():
         if len(one) != 40 or any(c not in "0123456789abcdef" for c in one):
             die(f"MERGE_HEAD holds no 40-hex parent: {one}")
         try:
-            out = subprocess.run(["git", "rev-parse", "-q", "--verify", f"{one}^{{commit}}"], capture_output=True, text=True, check=False)
+            out = subprocess.run(["git", "rev-parse", "-q", "--verify", f"{one}^{{commit}}"], capture_output=True, text=True, check=False, env=PARSER_ENV)
         except OSError as e:
             die(f"git rev-parse did not start: {e}")
         # Exit 1 alone means the line names no commit; any other failure is git's own, named as such.
@@ -157,9 +161,9 @@ def main():
         die(f"cannot load tools/flea-commit-rules: {e}")
     try:
         an_raw = subprocess.run(["git", "var", "GIT_AUTHOR_IDENT"],
-                                capture_output=True, text=True, check=False)
+                                capture_output=True, text=True, check=False, env=PARSER_ENV)
         cn_raw = subprocess.run(["git", "var", "GIT_COMMITTER_IDENT"],
-                                capture_output=True, text=True, check=False)
+                                capture_output=True, text=True, check=False, env=PARSER_ENV)
     except OSError as e:
         die(f"git var did not start: {e}")
     if an_raw.returncode != 0:

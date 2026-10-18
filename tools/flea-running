@@ -8,6 +8,10 @@
 # shape; this exists so the correct form is the easy one to reach for.
 set -u
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 pattern=${1:-}
 if [ -z "$pattern" ]; then
   echo "usage: flea-running <exact-command-line>" >&2

@@ -7,7 +7,7 @@ use std::io::{Read, Write};
 use std::os::fd::{FromRawFd, OwnedFd};
 use std::os::raw::c_ulong;
 use std::os::unix::process::CommandExt;
-use std::process::{Child, Command, Stdio};
+use std::process::{Child, Stdio};
 use std::sync::{Arc, Mutex};
 use std::time::{Duration, Instant};
 
@@ -88,7 +88,8 @@ fn spawn(program: &str, args: &[String], slave: &std::fs::File) -> Result<Child,
     let stdin = slave.try_clone().map_err(|e| format!("LocalSend could not start: {}.", crate::error::io_message(&e)))?;
     let stdout = slave.try_clone().map_err(|e| format!("LocalSend could not start: {}.", crate::error::io_message(&e)))?;
     let stderr = slave.try_clone().map_err(|e| format!("LocalSend could not start: {}.", crate::error::io_message(&e)))?;
-    let mut command = Command::new(program);
+    // The hidden terminal is parsed for device rows and English transfer status words.
+    let mut command = crate::backend::locale::command(program);
     // A pty is not a terminal until something says which one: the backend inherits no TERM, and
     // without one the CLI draws its frame and never refreshes the device list inside it.
     command.args(args).env("TERM", "xterm-256color")
