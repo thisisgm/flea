@@ -185,8 +185,16 @@ mod tests {
         wire.wake = Some(wake);
         wire.drain_wake();
         assert!(wire.wake_fd() >= 0, "an open wake stays polled after its bytes are read");
+        // A process another test forks holds a copy of the ring until it execs or exits, so the close shows only after the last copy goes.
+        let forked = ring.try_clone().unwrap();
         // The reader thread's end goes away with it; a closed socket would poll ready on every call from then on.
         drop(ring);
+        wire.drain_wake();
+        assert!(wire.wake_fd() >= 0, "a ring a forked copy still holds is not closed yet");
+        drop(forked);
+        // The main loop drains after its poll returns, so the test waits for the close the same way, bounded for a fork that lingers.
+        let (stdin, _held) = UnixStream::pair().unwrap();
+        crate::tui::terminal::wait_input(stdin.as_raw_fd(), wire.wake_fd(), 5000).unwrap();
         wire.drain_wake();
         assert_eq!(wire.wake_fd(), -1);
         drop(wire);
