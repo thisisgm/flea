@@ -16,6 +16,7 @@ pub(crate) struct Spec<'a> {
 }
 
 pub(crate) enum Work {
+    Rclone(super::rclonerun::Send),
     Transfer {
         moving: bool,
         paths: Vec<String>,
@@ -51,6 +52,7 @@ pub(crate) enum Work {
 impl Work {
     pub fn paths(&self) -> Vec<String> {
         match self {
+            Self::Rclone(send) => send.paths.clone(),
             Self::Transfer { paths, .. }
             | Self::Action { paths, .. }
             | Self::Send { paths, .. } => paths.clone(),
@@ -111,6 +113,10 @@ impl Work {
                 .collect()
         };
         match self {
+            Self::Rclone(send) => {
+                send.selection = Some(saved());
+                send.paths = paths;
+            }
             Self::Transfer {
                 paths: held,
                 selection,
@@ -141,6 +147,10 @@ impl Work {
 
     pub fn cancelled_line(&self, id: usize, total: usize) -> String {
         match self {
+            Self::Rclone(send) => format!(
+                r#"{{"t":"rclonesent","id":{},"requestId":{},"ok":false,"cancelled":true,"check":"none","receipt":"","note":"","error":""}}"#,
+                id, send.request
+            ),
             Self::Transfer { .. } => {
                 super::opsreq::transferdone_line(id, 0, 0, total, true, &[], false, "", &[])
             }
@@ -164,6 +174,10 @@ impl Work {
 
     pub fn start(&mut self, id: usize, cancel: Arc<AtomicBool>, tx: Sender<OpMsg>) {
         match self {
+            Self::Rclone(send) => {
+                let send = send.clone();
+                std::thread::spawn(move || super::rclonerun::background(id, send, cancel, tx));
+            }
             Self::Transfer {
                 moving,
                 paths,

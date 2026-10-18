@@ -5,7 +5,14 @@ mod actions;
 mod jobdrive;
 mod jobevents;
 mod jobs;
+mod jobview;
 mod jobwork;
+mod rclone;
+mod rcloneenv;
+mod rclonefolders;
+mod rclonelog;
+mod rcloneproc;
+mod rclonerun;
 
 pub mod listing;
 pub mod filter;

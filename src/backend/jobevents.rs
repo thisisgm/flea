@@ -9,7 +9,8 @@ use std::time::Instant;
 
 pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
     let (id, terminal) = match message {
-        OpMsg::JobEntries { id, .. }
+        OpMsg::SendStatus { id, .. }
+        | OpMsg::JobEntries { id, .. }
         | OpMsg::Progress { id, .. }
         | OpMsg::Item { id, .. }
         | OpMsg::JobSample { id, .. }
@@ -27,6 +28,24 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
     };
     let mut force = terminal;
     match message {
+        OpMsg::SendStatus {
+            phase,
+            check,
+            receipt,
+            rate,
+            left,
+            ..
+        } => {
+            force = job.phase != *phase || job.check != *check || job.receipt != *receipt;
+            job.phase = phase.clone();
+            job.check = check.clone();
+            job.receipt = receipt.clone();
+            job.rate = *rate;
+            job.left = *left;
+            if !force {
+                return;
+            }
+        }
         OpMsg::JobReady { drive, target, .. } => {
             job.drive = Some(drive.clone());
             job.target = target.clone();
@@ -101,19 +120,21 @@ pub(crate) fn observe(out: &mut impl Write, ops: &mut Ops, message: &OpMsg) {
             job.total_bytes = *total_bytes;
             job.item_bytes = *item_bytes;
             let elapsed = job.started.elapsed().as_secs_f64();
-            job.rate = if elapsed > 0.001 {
-                (*bytes as f64 / elapsed) as u64
-            } else {
-                0
-            };
-            job.left = if job.kind == "emptyTrash" {
-                (*done > 0).then(|| {
-                    ((*total - (*done).min(*total)) as f64 * elapsed / *done as f64) as u64
-                })
-            } else {
-                (job.rate > 0 && *total_bytes > 0)
-                    .then(|| total_bytes.saturating_sub(*bytes) / job.rate)
-            };
+            if job.phase.is_empty() {
+                job.rate = if elapsed > 0.001 {
+                    (*bytes as f64 / elapsed) as u64
+                } else {
+                    0
+                };
+                job.left = if job.kind == "emptyTrash" {
+                    (*done > 0).then(|| {
+                        ((*total - (*done).min(*total)) as f64 * elapsed / *done as f64) as u64
+                    })
+                } else {
+                    (job.rate > 0 && *total_bytes > 0)
+                        .then(|| total_bytes.saturating_sub(*bytes) / job.rate)
+                };
+            }
         }
         OpMsg::JobSample {
             done,
@@ -311,6 +332,9 @@ fn retry(job: &mut Job) -> Result<(), String> {
     job.reason.clear();
     job.failed.clear();
     job.output.clear();
+    job.phase.clear();
+    job.check.clear();
+    job.receipt.clear();
     Ok(())
 }
 
@@ -329,6 +353,7 @@ pub(crate) fn changes_history(request: &super::proto::Request) -> bool {
     match request {
         Request::Jobs { line } => field_str(line, "op").as_deref() == Some("retry"),
         Request::Actions { line } => field_str(line, "op").as_deref() == Some("run"),
+        Request::Rclone { line } => field_str(line, "op").as_deref() == Some("send"),
         Request::LocalSend { op, .. } => op == "send",
         Request::MenuAction { line, .. } => {
             matches!(field_str(line, "op").as_deref(), Some("delete" | "newFile"))

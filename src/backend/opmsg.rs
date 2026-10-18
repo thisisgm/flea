@@ -4,6 +4,14 @@ use std::path::PathBuf;
 
 // What an operation thread sends back, joined onto the same receiver every other event already arrives on.
 pub enum OpMsg {
+    SendStatus {
+        id: usize,
+        phase: String,
+        check: String,
+        receipt: String,
+        rate: u64,
+        left: Option<u64>,
+    },
     // Entry and unpacked-byte counts for extraction and adopted operation workers.
     JobEntries {
         id: usize,
