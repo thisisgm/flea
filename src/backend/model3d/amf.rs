@@ -45,6 +45,7 @@ fn instance_transform(doc: &xml::Document, i: usize, unit: f64) -> Result<Transf
     Ok(transform)
 }
 
+// Sample input: <amf unit="millimeter"><object id="1"><mesh><vertices/><volume/></mesh></object></amf>.
 pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
     let archive;
     let bytes = if bytes.starts_with(b"PK") {

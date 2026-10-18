@@ -4,6 +4,11 @@ use std::fs::Metadata;
 use std::os::unix::fs::MetadataExt;
 use std::path::{Path,PathBuf};
 
+const MAX_PNG_PIXELS: u64 = 16_777_216;
+const MAX_CACHE_FILES: usize = 128;
+const ORPHAN_MIN_AGE_SECS: u64 = 60;
+const READER_GRACE_SECS: u64 = 60;
+
 pub(super) fn root() -> PathBuf { thumbcache::default_root().join("flea-3d") }
 
 pub(super) fn key(path: &Path, meta: &Metadata) -> String {
@@ -21,11 +26,11 @@ pub(super) fn header(file: &Path) -> Option<(String,Vec<model3d::Thumbnail>)> {
     model3d::wire::header(input).ok()
 }
 
-// This checks only the PNG container, never decodes pixels outside the thumbnail sandbox.
+// Sample input: PNG signature, IHDR(width,height), CRC-checked IDAT chunks and an empty IEND; pixels are decoded only in the thumbnail jail.
 pub(super) fn png(bytes: &[u8]) -> bool {
     if bytes.len() > model3d::MAX_THUMBNAIL || !bytes.starts_with(b"\x89PNG\r\n\x1a\n") { return false }
     let Some((w,h)) = super::imagesize::from_header(bytes) else { return false };
-    if w == 0 || h == 0 || u64::from(w)*u64::from(h) > 16_777_216 { return false }
+    if w == 0 || h == 0 || u64::from(w)*u64::from(h) > MAX_PNG_PIXELS { return false }
     let mut at = 8usize;
     let mut image = false;
     while at+12 <= bytes.len() {
@@ -70,7 +75,7 @@ pub(super) fn evict(root: &Path) {
             let name = entry.file_name().to_string_lossy().into_owned();
             let pid = name.strip_prefix(".flea-work-model3d-").and_then(|s| s.split('-').next()).and_then(|s| s.parse::<u32>().ok());
             if pid.is_some_and(|pid| pid > 1 && !Path::new(&format!("/proc/{pid}")).exists())
-                && meta.modified().is_ok_and(|time| time.elapsed().is_ok_and(|age| age.as_secs() > 60)) {
+                && meta.modified().is_ok_and(|time| time.elapsed().is_ok_and(|age| age.as_secs() > ORPHAN_MIN_AGE_SECS)) {
                 let _ = std::fs::remove_dir_all(path);
             }
             continue;
@@ -82,8 +87,8 @@ pub(super) fn evict(root: &Path) {
     files.sort_unstable();
     let mut count = files.len();
     for (time,path,len) in files {
-        if count <= 128 && total <= model3d::wire::MAX_WIRE as u64 { break }
-        if time.elapsed().is_ok_and(|d| d.as_secs() > 60) && std::fs::remove_file(path).is_ok() {
+        if count <= MAX_CACHE_FILES && total <= model3d::wire::MAX_WIRE as u64 { break }
+        if time.elapsed().is_ok_and(|d| d.as_secs() > READER_GRACE_SECS) && std::fs::remove_file(path).is_ok() {
             count -= 1;
             total = total.saturating_sub(len);
         }

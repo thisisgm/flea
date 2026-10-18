@@ -166,6 +166,7 @@ pub(super) fn heatshrink(bytes: &[u8], expected: usize, window: usize) -> Result
     Ok(out)
 }
 
+// Sample input: SGVsbG8= decodes to the five bytes Hello.
 pub(super) fn base64(source: &str) -> Result<Vec<u8>> {
     if source.len() > super::MAX_THUMBNAIL*2 { return Err("thumbnail exceeds its bound".into()) }
     let mut out = Vec::new();

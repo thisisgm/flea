@@ -1,5 +1,11 @@
+use super::limits::*;
 use super::{Layer, Model, Result, Segment};
 use std::collections::BTreeMap;
+
+const LAYER_EPSILON_MM: f64 = 0.0001;
+const ARC_STEP_RADIANS: f64 = 0.08726646;
+const MAX_ARC_SEGMENTS: usize = 16_384;
+const MAX_TOOLS: f64 = 256.;
 
 struct Machine {
     position: [f64;3],
@@ -24,6 +30,7 @@ impl Default for Machine {
     }
 }
 
+// Sample input: G1 X10.5 Y-2 E0.3 F1200 (move)*42.
 fn words(source: &str) -> Result<BTreeMap<u8,f64>> {
     let source = source.split('*').next().unwrap_or("");
     let bytes = source.as_bytes();
@@ -49,6 +56,7 @@ fn words(source: &str) -> Result<BTreeMap<u8,f64>> {
     Ok(out)
 }
 
+// Sample input: N42 G1 X10*52.
 fn command_source(source: &str) -> Result<&str> {
     let source = source.split('*').next().unwrap_or("").trim();
     if !source.starts_with(['N','n']) { return Ok(source) }
@@ -61,8 +69,8 @@ fn command_source(source: &str) -> Result<&str> {
 
 impl Machine {
     fn layer(&self, model: &mut Model, z: f64) -> Result<()> {
-        if model.layers.last().is_some_and(|l| (f64::from(l.z_mm)-z).abs() <= 0.0001) { return Ok(()) }
-        if model.layers.len() >= 100_000 { return Err("too many toolpath layers".into()) }
+        if model.layers.last().is_some_and(|l| (f64::from(l.z_mm)-z).abs() <= LAYER_EPSILON_MM) { return Ok(()) }
+        if model.layers.len() >= MAX_LAYERS { return Err("too many toolpath layers".into()) }
         let first = self.last_extrusion;
         if let Some(layer) = model.layers.last_mut() { layer.segment_count = (first-layer.first_segment as usize) as u32 }
         model.layers.push(Layer { z_mm: z as f32, first_segment: first as u32, segment_count: 0 });
@@ -70,8 +78,8 @@ impl Machine {
     }
 
     fn segment(&mut self, model: &mut Model, end: [f64;3], extrusion: f64) -> Result<()> {
-        if model.segments.len() >= super::MAX_SEGMENTS || end.iter().any(|v| !v.is_finite() || v.abs() > 1e9)
-            || !extrusion.is_finite() || extrusion.abs() > 1e9 || !self.feed.is_finite() || self.feed > 1e9 {
+        if model.segments.len() >= super::MAX_SEGMENTS || end.iter().any(|v| !v.is_finite() || v.abs() > MAX_COORDINATE)
+            || !extrusion.is_finite() || extrusion.abs() > MAX_COORDINATE || !self.feed.is_finite() || self.feed > MAX_COORDINATE {
             return Err("G-code geometry exceeds its bound".into());
         }
         if end == self.position { return Ok(()) }
@@ -107,8 +115,8 @@ impl Machine {
         let angle = (start[b]-center[1]).atan2(start[a]-center[0]);
         let mut sweep = ((end[b]-center[1]).atan2(end[a]-center[0])-angle).rem_euclid(std::f64::consts::TAU);
         if clockwise { sweep -= std::f64::consts::TAU } else if sweep == 0. { sweep = std::f64::consts::TAU }
-        let count = (sweep.abs()*radius).max(sweep.abs()/0.08726646).ceil().max(1.) as usize;
-        if count > 16_384 || count > super::MAX_SEGMENTS-model.segments.len() { return Err("G-code arc exceeds its bound".into()) }
+        let count = (sweep.abs()*radius).max(sweep.abs()/ARC_STEP_RADIANS).ceil().max(1.) as usize;
+        if count > MAX_ARC_SEGMENTS || count > super::MAX_SEGMENTS-model.segments.len() { return Err("G-code arc exceeds its bound".into()) }
         if extrusion > 0. { self.layer(model,end[2])? }
         self.arc_layer = true;
         for i in 1..=count {
@@ -138,9 +146,19 @@ impl Machine {
             return Ok(());
         }
         if !source.as_bytes().first().is_some_and(|b| matches!(b.to_ascii_uppercase(),b'G'|b'M'|b'N'|b'T'|b'X'|b'Y'|b'Z'|b'E'|b'F')) { return Ok(()) }
+        let arguments = source[1..].trim_start();
+        let command = source.split_whitespace().next().unwrap_or("");
+        if command.contains('_') && arguments.as_bytes().first().is_some_and(|b| b.is_ascii_alphabetic() || *b == b'_')
+            && command.bytes().all(|b| b.is_ascii_alphanumeric() || b == b'_') { return Ok(()) }
+        if source.starts_with(['G','g']) {
+            let end = arguments.bytes().take_while(|b| b.is_ascii_digit() || *b == b'.').count();
+            if let Ok(g) = super::number(&arguments[..end]) {
+                if !matches!(g,0.|1.|2.|3.|17.|18.|19.|20.|21.|90.|91.|90.1|91.1|92.) { return Ok(()) }
+            }
+        }
         let w = words(source)?;
         if let Some(&tool) = w.get(&b'T') {
-            if tool < 0. || tool.fract() != 0. || tool >= 256. { return Err("invalid G-code tool".into()) }
+            if tool < 0. || tool.fract() != 0. || tool >= MAX_TOOLS { return Err("invalid G-code tool".into()) }
             self.tool = tool as u16;
         }
         if w.get(&b'M') == Some(&82.) { self.relative_e = false; return Ok(()) }
@@ -183,12 +201,13 @@ impl Machine {
     }
 }
 
+// Sample input: ; printer_model = MK4\nG90\nM83\nG1 X10 E1 F1200\n.
 pub(super) fn parse(bytes: &[u8], model: &mut Model) -> Result<()> {
     let source = super::text(bytes)?;
     let mut machine = Machine::default();
     let mut thumbnail: Option<(String,usize,String)> = None;
     for line in source.lines() {
-        if line.len() > 65_536 { return Err("G-code line exceeds its bound".into()) }
+        if line.len() > MAX_LINE_BYTES { return Err("G-code line exceeds its bound".into()) }
         let (code,comment) = line.split_once(';').unwrap_or((line,""));
         let comment = comment.trim();
         if let Some((format,expected,encoded)) = thumbnail.as_mut() {

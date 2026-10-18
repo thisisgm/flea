@@ -18,6 +18,9 @@ extern "C" {
     fn gettid() -> i32;
 }
 
+const CLOCK_MONOTONIC: i32 = 1;
+const CLOCK_THREAD_CPUTIME_ID: i32 = 3;
+
 fn nanos(clock: i32) -> u64 {
     let mut time = Timespec {
         seconds: 0,
@@ -34,8 +37,8 @@ pub fn mark(stage: &str) {
     if matches!(stage, "syscall_begin" | "journal_begin") {
         LOOP_TID.store(unsafe { gettid() }, Ordering::Relaxed);
     }
-    let at = nanos(1);
-    let cpu = nanos(3);
+    let at = nanos(CLOCK_MONOTONIC);
+    let cpu = nanos(CLOCK_THREAD_CPUTIME_ID);
     let sched = std::fs::read_to_string("/proc/thread-self/schedstat").unwrap_or_default();
     let delay = sched.split_whitespace().nth(1).unwrap_or("0");
     eprintln!(
@@ -89,7 +92,7 @@ fn enable() -> thread::JoinHandle<()> {
             let call = std::fs::read_to_string(format!("{root}/syscall")).unwrap_or_default();
             eprintln!(
                 r#"{{"rename_timing":true,"stage":"sample","mono_ns":{},"wait":"{}","syscall":"{}"}}"#,
-                nanos(1),
+                nanos(CLOCK_MONOTONIC),
                 crate::json::escape(wait.trim()),
                 crate::json::escape(call.trim())
             );

@@ -254,3 +254,18 @@ fn a_network_base_reads_no_attributes_even_where_a_file_carries_some() {
     let s = rows_line(std::path::Path::new("/run/user/1000/gvfs/smb-share:server=nas,share=media"), &l, &metas, 0, 0.0, &mime, &icons, &aliases, &thumbs, &mut kinds);
     assert!(!s.contains(r#""tg""#), "{}", s);
 }
+
+#[test]
+fn model3d_rows_advertise_only_embedded_thumbnail_formats() {
+    for (name,expected) in [("part.stl",false),("part.OBJ",false),("part.ply",false),("part.amf",false),("part.3MF",true),("part.GCO",true),("part.bgcode",true)] {
+        let mut listing = Listing::new();
+        listing.push(name,false);
+        let meta = [Meta { size: 1, mtime: 2, mode: 0o100644, target_is_dir: false, target: String::new(), dev: 0 }];
+        let (mime,icons,aliases,thumbs,mut kinds) = dbs();
+        let line = rows_line_in(Path::new("/nonexistent"),"",&listing,&meta,0,0.,&mime,&icons,&aliases,&thumbs,&mut kinds);
+        let line = crate::jsondoc::parse(&line).unwrap();
+        let rows = line.get("rows").unwrap().as_array().unwrap();
+        assert_eq!(rows[0].get("t").and_then(crate::jsondoc::Json::as_bool),Some(expected),"{name}");
+        assert!(crate::backend::model3d::supported(name).is_some());
+    }
+}

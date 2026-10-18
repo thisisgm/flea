@@ -85,7 +85,7 @@ fn rows_line_in(
         // Looked up once and shared with the icon and the Kind text, because it is the only per-row allocation here.
         let mime_name = mime.lookup(name);
         // A directory or a special file is never thumbnailed, so the spec lookup is skipped for one; see AGENTS.md "Thumbnail requests".
-        let can_thumb = thumbnailable(m.mode) && (mime_name.is_some_and(|m| thumbs.for_mime(m, aliases).is_some()) || super::model3d::supported(name).is_some());
+        let can_thumb = thumbnailable(m.mode) && (mime_name.is_some_and(|m| thumbs.for_mime(m, aliases).is_some()) || super::model3d::embedded_thumbnail_supported(name));
         // Only a thumbnailable AppImage carries a, so Images mode can draw its own icon without admitting every executable.
         let appimage = if can_thumb && mime_name.is_some_and(|m| appicon::is_appimage(m, aliases)) { r#","a":true"# } else { "" };
         // A symlink to a directory carries d:false by contract, so only the ICON follows the target.

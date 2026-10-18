@@ -48,7 +48,7 @@ pub(crate) fn thumb_rows(
                 }
                 let declared = crate::backend::meta::thumbnailable(mode).then(|| {
                     tb.mime.lookup(name).filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some()).map(str::to_string)
-                        .or_else(|| super::model3d::supported(name).map(|_| "model/x-flea-3d".to_string()))
+                        .or_else(|| super::model3d::embedded_thumbnail_supported(name).then(|| "model/x-flea-3d".to_string()))
                 }).flatten();
                 let mime = match declared {
                     None => {
@@ -57,7 +57,7 @@ pub(crate) fn thumb_rows(
                     }
                     Some(m) => m,
                 };
-                let table = if super::model3d::supported(name).is_some() { "flea-3d-v1" } else { tb.thumbs.fingerprint() };
+                let table = if super::model3d::embedded_thumbnail_supported(name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
                 match cache.lookup(&path, mtime, table) {
                     Hit::Ready(p) => {
                         writeln!(out, "{}", thumbed_line(row, &p.to_string_lossy(), since(t))).ok();
@@ -95,7 +95,7 @@ pub(crate) fn thumb_rows(
                 .lookup(&name)
                 .filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some())
                 .map(str::to_string)
-                .or_else(|| super::model3d::supported(&name).map(|_| "model/x-flea-3d".to_string()))
+                .or_else(|| super::model3d::embedded_thumbnail_supported(&name).then(|| "model/x-flea-3d".to_string()))
         });
         let mime = match declared {
             // corner: a row no thumbnailer declares is answered at once and never queued, see AGENTS.md.
@@ -106,7 +106,7 @@ pub(crate) fn thumb_rows(
             Some(m) => m,
         };
         let mtime = meta.map(|m| m.mtime()).unwrap_or(0);
-        let table = if super::model3d::supported(&name).is_some() { "flea-3d-v1" } else { tb.thumbs.fingerprint() };
+        let table = if super::model3d::embedded_thumbnail_supported(&name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
         match cache.lookup(&path, mtime, table) {
             Hit::Ready(p) => {
                 writeln!(out, "{}", thumbed_line(row, &p.to_string_lossy(), since(t))).ok();
