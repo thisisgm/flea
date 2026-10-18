@@ -22,7 +22,7 @@ optdepends=('libarchive: archive listing and extraction'
             'dropbox-cli: Dropbox share links'
             'libreoffice: office document previews'
             'zoxide: frecent folders in the folder jump of the path bar')
-options=('!debug')
+options=('!debug' '!lto')
 # SKIP here keeps a version bump to one line; the release workflow pins it from SHASUMS256.txt before the AUR sees it.
 # The local name carries pkgrel, so a rebuilt release is downloaded again, never read from a stale yay cache.
 source=("$pkgname-v$pkgver-$pkgrel.tar.gz::$url/releases/download/v$pkgver/$pkgname-v$pkgver.tar.gz")

@@ -25,7 +25,7 @@ optdepends=('libarchive: archive listing and extraction'
             'dropbox-cli: Dropbox share links'
             'libreoffice: office document previews'
             'zoxide: frecent folders in the folder jump of the path bar')
-options=('!debug')
+options=('!debug' '!lto')
 source=("$pkgname::git+$url.git")
 sha256sums=('SKIP')
 

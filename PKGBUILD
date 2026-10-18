@@ -47,7 +47,7 @@ optdepends=('libarchive: archive listing and extraction'
             'libreoffice: office document previews'
             'zoxide: frecent folders in the folder jump of the path bar')
 # The release profile strips, so a debug package would have nothing to hold.
-options=('!debug')
+options=('!debug' '!lto')
 # Empty on purpose: with no source array makepkg builds from $startdir, so a clone is the source.
 source=()
 
