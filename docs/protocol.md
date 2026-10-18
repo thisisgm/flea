@@ -225,6 +225,31 @@ Stats rows `start..start+count` of the current listing (phase 2) and answers one
 out-of-range window never panics, it just returns fewer rows or none. Missing fields
 default to `0`.
 
+### filter
+
+`{"c":"filter","query":"<string>","id":<uint>}`
+
+Example: `{"c":"filter","query":".PNG","id":7}`
+
+Matches a case-insensitive literal substring against every name in the current listing,
+including rows outside the client's held window. Missing `query` defaults to the empty
+string and missing `id` to `0`. Filtering reads names only, fetches no metadata and
+does not change the listing, its sort order or its numbering. Each request answers once:
+
+`{"t":"filtered","id":7,"query":".PNG","n":1300,"rows":[0,2,4],"ms":0.012,"listing":1}`
+
+`n` is the full listing count. `rows` contains matching indices in ascending order in
+the current sorted listing, with `[]` for no matches. An empty query answers `rows:null`,
+so clearing restores the integer-count model without sending an identity array.
+`ms` measures backend matching and serialization, not UI latency.
+
+The client accepts a reply only while its `id` and `query` name the latest request and
+its `listing` stamp agrees with the rows on screen. A sort or re-list requires a fresh
+filter request against the new numbering. View positions map through `rows`; paths and
+file operations use those original listing indices and the listing stamp. Filtering
+does not emit a `rows` metadata reply or refill a window, even on clear. The client
+requests only windows needed for the displayed matches and refills its viewport after clear.
+
 ### sort
 
 `{"c":"sort","by":"<string>","desc":<bool>,"foldersFirst":<bool>,"groupByKind":<bool>,"hiddenLast":<bool>}`
