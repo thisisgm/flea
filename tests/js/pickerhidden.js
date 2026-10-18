@@ -15,6 +15,7 @@ function windowFor(text, state, parent) {
         + "Item { property Component made: Component { Item {\n"
         + "id: win\nproperty var viewState\nproperty var req\nproperty string home: '/fixture'\n"
         + "property string viewMode: 'list'\nproperty string saveName: ''\n"
+        + "property bool filterTyping: false\nproperty string filterQuery: ''\n"
         + "property var listings: []\nproperty string path: ''\n"
         + declaration[0].replace(/ViewState/g, "win.viewState") + "\n"
         + "function openWithoutHistory(path) { win.path = path; win.listings = win.listings.concat([win.showHidden]) }\n"
@@ -31,8 +32,11 @@ function run(check) {
         + "function changeKey(key, value) { writes++ }\nfunction changeLeaf(key, value) { writes++ }\n}", parent)
     var handler = Source.slice(Source.source("ui/PickerList.qml"), "Keys.onPressed:",
         "// The listing is a window").replace(/^Keys.onPressed:\s*/, "").trim()
-    var dispatch = Source.slice(Source.source("ui/PickerGrid.qml"), "function handleAction(action, key, modifiers)",
+    var gridSource = Source.source("ui/PickerGrid.qml")
+    var dispatch = Source.slice(gridSource, "function handleAction(action, key, modifiers)",
         "Keys.onPressed:").trim()
+    var gridHandler = Source.slice(gridSource, "Keys.onPressed:", "// A scroll refetches")
+        .replace(/^Keys.onPressed:\s*/, "").trim()
     var inputs = ["{}", '{"hidden":true}', '{"hidden":false}', '{"hidden":"true"}',
         '{"hidden":"false"}', '{"hidden":1}', '{"hidden":0}', '{"hidden":null}',
         '{"hidden":[]}', '{"hidden":{}}', "not json", "null"]
@@ -53,7 +57,7 @@ function run(check) {
             var root = { picker: win, firstArmed: false }
             var press = view === "list"
                 ? new Function("root", "Keymap", "Qt", "Sort", "Picker", "return (" + handler + ")")(root, Keymap, Qt, {}, Picker)
-                : PickerKeys.gridPress(dispatch, root)
+                : PickerKeys.gridPress(dispatch, gridHandler, root)
             var event = { key: Qt.Key_Period, text: ".", modifiers: Qt.NoModifier, accepted: false }
             press(event)
             check(label + " hidden key is handled", event.accepted, true)

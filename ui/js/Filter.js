@@ -11,6 +11,8 @@ var WORDS = {
     noMatchMany: "No match among %1 items",
     shown: "%1 of %2 shown",
     shownOfFolder: "%1 of %2 shown · of %3 in this folder",
+    shownRecent: "%1 of %2 shown · Recent",
+    shownOfRecent: "%1 of %2 shown · of %3 in Recent",
     nothingMatched: "Nothing matched %1"
 }
 
@@ -27,14 +29,14 @@ var WORDS = {
 // is no filter at all. Only the rows the pane holds can be tested, so the answer is a subsequence
 // of the held window; scope() below is what says so when the window is not the whole listing.
 // It is a subsequence and never a re-ranking, which is what keeps directories ahead of files.
-function shown(rows, held, query) {
+function shown(rows, held, query, leaf) {
     if (query.length === 0) {
         return null
     }
     var out = []
     for (var i = 0; i < rows.length; i++) {
         // The same run ui/js/Match.js paints in the name, so a row can never match without showing why.
-        if (Match.run(rows[i].n, query).start >= 0) {
+        if (Match.run(leaf === true ? Match.base(rows[i].n) : rows[i].n, query).start >= 0) {
             out.push(held + i)
         }
     }
@@ -62,14 +64,15 @@ function cursorShown(pane) { return viewOf(pane.shown, pane.cursorIndex) >= 0 }
 // could test, and the directory those rows are a window on. The scope is the half that must not be
 // dropped, because zero matches among 350 loaded rows is not zero matches in a 104,812-file
 // directory; the tail goes when the window is the whole listing, which is nothing left to say.
-function summary(list, loaded, total) {
+function summary(list, loaded, total, recent) {
     if (list === null) {
         return ""
     }
     if (total > loaded) {
-        return Format.fill(WORDS.shownOfFolder, Format.count(list.length), Format.count(loaded), Format.count(total))
+        return Format.fill(recent === true ? WORDS.shownOfRecent : WORDS.shownOfFolder,
+            Format.count(list.length), Format.count(loaded), Format.count(total))
     }
-    return Format.fill(WORDS.shown, Format.count(list.length), Format.count(loaded))
+    return Format.fill(recent === true ? WORDS.shownRecent : WORDS.shown, Format.count(list.length), Format.count(loaded))
 }
 
 // States' no-match tile: the pane names the query back and says how many rows it tested, because
