@@ -87,6 +87,7 @@ mod tests {
             generation: 0,
             held: crate::backend::state::Held::List,
             clip_watching: false,
+            nearby: Default::default(),
         }
     }
 
