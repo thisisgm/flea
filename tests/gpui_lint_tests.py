@@ -1,4 +1,5 @@
 """Mutants and controls for each native lint rule, using marked fixture roots."""
+import ast
 import copy
 import json
 import os
@@ -372,6 +373,17 @@ print(json.dumps({"reason": "build-finished", "success": True}))
             "trait method called bare from inside its own trait": "use gpui::*;\ntrait T { fn white(&self) {} fn go(&self) { white(); } }\n",
             "let in another function": "use gpui::*;\nfn b() { let white = 1; }\nfn a() { white(); }\n",
             "nested mod with use super": "use gpui::*;\nmod inner { use super::*; fn a() { white(); } }\n",
+            "1 fn-local use super in a nested mod takes the parent glob": "use gpui::*;\nmod inner { fn a() { use super::*; white(); } }\n",
+            "2 nested fn item does not see the enclosing let": "use gpui::*;\nfn a() { let white = 1; fn b() { white(); } }\n",
+            "2 method body does not see the enclosing let": "use gpui::*;\nfn a() { let white = 1; struct S; impl S { fn go(&self) { white(); } } }\n",
+            "4 absolute glob path": "use ::gpui::*;\nfn a() { white(); }\n",
+            "4 glob inside a use group": "use {gpui::*, other::black};\nfn a() { white(); }\n",
+            "5 use crate glob": "use gpui::*;\nmod inner { use crate::*; fn a() { white(); } }\n",
+            "5 use self path glob": "mod inner { mod colors { pub use gpui::*; } use self::colors::*; fn a() { white(); } }\n",
+            "5 use super path glob": "mod colors { pub use gpui::*; }\nmod inner { use super::colors::*; fn a() { white(); } }\n",
+            "5 use child module glob": "mod colors { pub use gpui::*; }\nuse colors::*;\nfn a() { white(); }\n",
+            "6 block glob before an outer item": "fn white() {}\nfn a() { use gpui::*; white(); }\n",
+            "6 block glob before an outer let": "fn a() { let white = 1; { use gpui::*; white(); } }\n",
         }
         for name, source in reported.items():
             with self.subTest(case=name):
@@ -392,10 +404,29 @@ print(json.dumps({"reason": "build-finished", "success": True}))
             "explicit self and rename use": "use other::{self, black as white};\nfn a() { white(); }\n",
             "fn-local explicit use": "fn a() { use other::white; white(); }\n",
             "explicit use beside the glob": "use gpui::*;\nuse other::white;\nfn a() { white(); }\n",
+            "1 fn-local use super whose parent holds no glob": "mod view { use gpui::*; }\nmod inner { fn a() { use super::*; white(); } }\n",
+            "2 nested fn item sees the enclosing items": "use gpui::*;\nfn a() { fn white() {} fn b() { white(); } }\n",
+            "2 closure sees the enclosing let": "use gpui::*;\nfn a() { let white = 1; let f = || { white(); }; }\n",
+            "3 extern block fn binds at the enclosing level": 'use gpui::*;\nextern "C" { fn white(); }\nfn a() { white(); }\n',
+            "3 extern block without an ABI": "use gpui::*;\nunsafe extern { fn white(); }\nfn a() { white(); }\n",
+            "5 use super path to a module without a gpui glob": "mod view { use gpui::*; }\nmod colors { pub fn tint() {} }\nmod inner { use super::colors::*; fn a() { white(); } }\n",
+            "5 use crate glob in a file without a gpui glob": "mod colors { pub fn tint() {} }\nmod inner { use crate::*; fn a() { white(); } }\n",
+            "6 same-block item before the block glob": "fn a() { use gpui::*; fn white() {} white(); }\n",
+            "6 later let before the block glob": "fn a() { use gpui::*; let white = 1; white(); }\n",
         }
         for name, source in quiet.items():
             with self.subTest(case=name):
                 self.assertEqual([], self.scoped_check(source), source)
+
+    def test_binding_parsers_carry_a_sample_input(self):
+        path = REPO / "tools/gpui_lint/bindings.py"
+        lines = path.read_text().splitlines()
+        tree = ast.parse("\n".join(lines))
+        methods = {id(f) for c in ast.walk(tree) if isinstance(c, ast.ClassDef) for f in c.body}
+        for node in ast.walk(tree):
+            if isinstance(node, ast.FunctionDef) and id(node) not in methods:
+                with self.subTest(function=node.name):
+                    self.assertTrue(lines[node.lineno - 2].lstrip().startswith("# Sample input: "), node.name)
 
     def test_tracked_fails_closed_on_a_broken_checkout(self):
         with patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": str(self.root.parent)}):
