@@ -85,12 +85,10 @@ impl Negotiation {
         self.expire(now);
         if sequence.len() > 128 { return; }
         if let Some(body) = sequence.strip_prefix('?').and_then(|s| s.strip_suffix('u')) {
-            if self.keyboard {
-                if body.parse::<u32>().is_ok() {
-                    self.keyboard = false;
-                    self.detected.keyboard = Keyboard::Kitty;
-                    self.keyboard_pending = true;
-                }
+            if self.keyboard && body.parse::<u32>().is_ok() {
+                self.keyboard = false;
+                self.detected.keyboard = Keyboard::Kitty;
+                self.keyboard_pending = true;
             }
         } else if let Some(body) = sequence.strip_prefix('?').and_then(|s| s.strip_suffix('c')) {
             let numbers = body.split(';').map(str::parse::<u16>).collect::<Result<Vec<_>, _>>();

@@ -44,7 +44,7 @@ fn adv_d_r1_shifted_printables_match_legacy_keys_in_the_real_keymap() {
             };
             let keys = Decoder::default().feed(encoded.as_bytes(), false);
             let legacy = Key::character(shifted, "");
-            assert_eq!(keys, [legacy.clone()], "{encoded:?}");
+            assert_eq!(keys.as_slice(), std::slice::from_ref(&legacy), "{encoded:?}");
             for preset in ["default", "flea", "mac", "windows", "vim"] {
                 for context in ["listing", "editor", "pdf", "media"] {
                     assert_eq!(map.in_context(&keys[0].for_action(), preset, context), map.in_context(&legacy, preset, context), "{preset} {context} {shifted}");
@@ -67,7 +67,7 @@ fn adv_d_r2_shift_without_shifted_text_keeps_its_modifier() {
     ] {
         let keys = Decoder::default().feed(encoded, false);
         let expected = Key::character(printed, "shift");
-        assert_eq!(keys, [expected.clone()], "{encoded:?}");
+        assert_eq!(keys.as_slice(), std::slice::from_ref(&expected), "{encoded:?}");
         assert_eq!(map.action(&keys[0], "flea"), map.action(&expected, "flea"));
         assert_ne!(
             map.action(&keys[0], "flea"),
@@ -85,14 +85,14 @@ fn adv_d_r3_equal_base_shift_metadata_matches_true_legacy_input() {
     for printed in [' ', 'a'] {
         let code = printed as u32;
         let legacy = Key::character(printed, "");
-        assert_eq!(Decoder::default().feed(printed.to_string().as_bytes(), false), [legacy.clone()]);
+        assert_eq!(Decoder::default().feed(printed.to_string().as_bytes(), false).as_slice(), std::slice::from_ref(&legacy));
         for encoded in [
             format!("\x1b[{code}:{code};2u"),
             format!("\x1b[{code};2;{code}u"),
             format!("\x1b[{code}:{code};2;{code}u"),
         ] {
             let keys = Decoder::default().feed(encoded.as_bytes(), false);
-            assert_eq!(keys, [legacy.clone()], "{encoded:?}");
+            assert_eq!(keys.as_slice(), std::slice::from_ref(&legacy), "{encoded:?}");
             for preset in ["default", "flea", "mac", "windows", "vim"] {
                 for context in ["listing", "editor", "pdf", "media"] {
                     assert_eq!(map.in_context(&keys[0], preset, context), map.in_context(&legacy, preset, context));
