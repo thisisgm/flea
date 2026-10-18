@@ -39,6 +39,8 @@ mod model_tests {
     fn extraction_status_uses_newest_job_and_legacy_progress_cannot_replace_it() {
         let (mut wire, reader) = echo_wire();
         let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        // The legacy transfer shares id 12, so only the job_status guard can keep the head below.
+        model.receive(parse(r#"{"t":"transferstarted","id":12,"n":3}"#).unwrap(), &mut wire).unwrap();
         model
             .receive(
                 parse(r#"{"t":"jobs","newest":12,"unfinished":3,"head":"Extracting 7 of 18"}"#)
@@ -64,7 +66,30 @@ mod model_tests {
             )
             .unwrap();
         assert_eq!(model.transfer, "");
-        assert_eq!(model.active_operation(), 0);
+        assert_eq!(model.active_operation(), 12);
+        model.receive(parse(r#"{"t":"transferprogress","id":12,"index":1}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.transfer, "Copying 2 of 3", "with no job active the legacy event draws");
+        finish(wire, reader);
+    }
+
+    #[test]
+    fn an_older_extract_failure_shows_once_while_a_newer_job_owns_progress() {
+        let (mut wire, reader) = echo_wire();
+        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        for line in [
+            r#"{"t":"jobs","newest":12,"unfinished":1,"head":"Extracting A"}"#,
+            r#"{"t":"jobs","newest":13,"unfinished":2,"head":"Extracting B"}"#,
+            r#"{"t":"job","job":{"id":12,"kind":"extract","state":"failed","reason":"A.zip is corrupt"},"unfinished":1}"#,
+            r#"{"t":"jobs","newest":13,"unfinished":1,"head":"Extracting B"}"#,
+            r#"{"t":"archivedone","id":12,"ok":false,"verified":true,"err":"A.zip is corrupt"}"#,
+        ] {
+            model.receive(parse(line).unwrap(), &mut wire).unwrap();
+        }
+        assert_eq!((model.active_operation(), model.transfer.as_str()), (13, "Extracting B"));
+        assert_eq!((model.error.as_str(), model.errors.len()), ("A.zip is corrupt", 0));
+        model.receive(parse(r#"{"t":"job","job":{"id":13,"kind":"extract","state":"failed","reason":"B.zip is corrupt"},"unfinished":0}"#).unwrap(), &mut wire).unwrap();
+        assert_eq!(model.transfer, "");
+        assert_eq!(model.errors.iter().collect::<Vec<_>>(), ["B.zip is corrupt"]);
         finish(wire, reader);
     }
 }
@@ -167,14 +192,17 @@ pub(super) fn receive(model: &mut super::model::Model, value: &crate::jsondoc::J
             .and_then(|jobs| jobs.iter().find(|job| count(job, "id") == status.id))
             .and_then(fraction);
         model.transfer = line(&status.i18n, text(value, "head"), status.count);
-    } else if let Some(job) = value.get("job").filter(|job| count(job, "id") == status.id) {
-        status.fraction = fraction(job);
-        status.count = count(value, "unfinished");
-        model.transfer = if matches!(text(job, "state"), "waiting" | "running") {
-            line(&status.i18n, text(job, "head"), status.count)
-        } else {
-            String::new()
-        };
+    } else if let Some(job) = value.get("job") {
+        if count(job, "id") == status.id {
+            status.fraction = fraction(job);
+            status.count = count(value, "unfinished");
+            model.transfer = if matches!(text(job, "state"), "waiting" | "running") {
+                line(&status.i18n, text(job, "head"), status.count)
+            } else {
+                String::new()
+            };
+        }
+        // A failed extraction says why, whichever job owns the status row.
         if text(job, "kind") == "extract" && text(job, "state") == "failed" {
             model.fail(text(job, "reason").into());
         }

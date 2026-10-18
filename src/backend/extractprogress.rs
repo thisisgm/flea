@@ -9,6 +9,9 @@ use std::path::Path;
 use std::sync::mpsc::Sender;
 use std::time::Instant;
 
+// One sample stats at most this many unfinished members while it looks for the one being written.
+const SAMPLE_PROBES: usize = 256;
+
 pub(crate) struct Progress {
     pub index: Index,
     done: usize,
@@ -40,6 +43,7 @@ impl Progress {
         }
     }
 
+    // Sample: 7z -bb1 stdout "- docs/a.txt", or bsdtar -v stderr "x docs/a.txt".
     pub fn line(&mut self, line: &str, seven: bool, stage: &Path) {
         let name = if seven {
             line.strip_prefix("- ")
@@ -59,6 +63,7 @@ impl Progress {
         }
     }
 
+    // Sample: bsdtar -v stderr "x docs/big.iso" before its "\n", while that member is still being written.
     pub fn preview(&mut self, line: &str) {
         let name = line
             .strip_prefix("x ")
@@ -130,7 +135,7 @@ impl Progress {
                 .members
                 .iter()
                 .filter(|(name, _)| !self.finished.contains(*name))
-                .take(256)
+                .take(SAMPLE_PROBES)
             {
                 if let Some(bytes) = staged_size(stage, name) {
                     if bytes > 0 {
@@ -186,7 +191,6 @@ impl Progress {
 // Descriptor-relative O_PATH opens never follow a staged link, including in an intermediate component.
 fn staged_size(stage: &Path, name: &str) -> Option<u64> {
     const O_PATH: i32 = 0o10000000;
-    const O_NOFOLLOW: i32 = 0o400000;
     let name = relative(name)?;
     if name.is_empty() {
         return None;
@@ -199,7 +203,7 @@ fn staged_size(stage: &Path, name: &str) -> Option<u64> {
         }
         file = std::fs::OpenOptions::new()
             .read(true)
-            .custom_flags(O_PATH | O_NOFOLLOW)
+            .custom_flags(O_PATH | crate::oflags::O_NOFOLLOW)
             .open(format!("/proc/self/fd/{}/{}", file.as_raw_fd(), part))
             .ok()?;
         if parts.peek().is_none() {

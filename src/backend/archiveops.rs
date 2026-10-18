@@ -105,11 +105,7 @@ pub(crate) fn extract_reporting(
         return Err(op_err("archive", &leaf, archivepass::NO_PASSWORD_READER));
     }
     if password.is_some_and(|secret| secret.contains(['\n', '\r'])) {
-        return Err(op_err(
-            "archive",
-            "7z",
-            "a password cannot hold a line break",
-        ));
+        return Err(op_err("archive", &leaf, &format!("the password for {leaf} cannot hold a line break")));
     }
     let index = super::extractindex::read(formats, archive, password, cancel);
     if cancel.load(Ordering::Relaxed) {
