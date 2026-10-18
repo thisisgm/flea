@@ -3,7 +3,7 @@ use std::io::Write;
 use std::os::unix::fs::{MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::os::unix::io::AsRawFd;
 use std::path::{Path, PathBuf};
-use std::sync::atomic::{AtomicUsize, Ordering};
+use std::sync::atomic::{AtomicBool, AtomicUsize, Ordering};
 
 // The one name that makes a directory deletable by this module; a directory without it is never touched.
 const MARKER: &str = ".flea-test-sandbox";
@@ -74,19 +74,24 @@ impl TestDir {
         p
     }
 
-    // Written by a child process: the fork's copy of a held write fd is what made exec fail with ETXTBSY.
     pub fn script(&self, name: &str, body: &str) -> PathBuf {
+        self.executable(name, body.as_bytes(), 0o755)
+    }
+
+    // Written by a child process: the fork's copy of a held write fd is what made exec fail with ETXTBSY. Any file that will be exec'd goes through here.
+    pub fn executable(&self, name: &str, body: &[u8], mode: u32) -> PathBuf {
         let p = self.join(name);
         self.assert_contains(&p);
         let mut writer = std::process::Command::new("/bin/sh")
             .arg("-c")
-            .arg("cat > \"$1\" && chmod 755 \"$1\"")
+            .arg("cat > \"$1\" && chmod \"$2\" \"$1\"")
             .arg("sh")
             .arg(&p)
+            .arg(format!("{mode:o}"))
             .stdin(std::process::Stdio::piped())
             .spawn()
             .expect("test script writer");
-        writer.stdin.take().expect("test script writer stdin").write_all(body.as_bytes()).expect("test script body");
+        writer.stdin.take().expect("test script writer stdin").write_all(body).expect("test script body");
         assert!(writer.wait().expect("test script writer exit").success(), "test script not written: {}", p.display());
         p
     }
@@ -174,6 +179,33 @@ fn open_dir(path: &Path) -> std::io::Result<std::fs::File> {
         .read(true)
         .custom_flags(crate::oflags::O_DIRECTORY | crate::oflags::O_NOFOLLOW)
         .open(path)
+}
+
+// Parallel test threads fork while a write fd is open, and each fork keeps that fd until its own exec. These siblings fork on purpose, each child held in pre_exec, so a write that overlaps a fork fails the next exec with ETXTBSY.
+pub fn with_forking_siblings<T>(body: impl FnOnce() -> T) -> T {
+    use std::os::unix::process::CommandExt;
+    // Stops the siblings even when body panics, or the scope would wait on them forever.
+    struct Stop<'a>(&'a AtomicBool);
+    impl Drop for Stop<'_> {
+        fn drop(&mut self) {
+            self.0.store(true, Ordering::Relaxed);
+        }
+    }
+    let stop = AtomicBool::new(false);
+    std::thread::scope(|scope| {
+        for _ in 0..4 {
+            scope.spawn(|| {
+                while !stop.load(Ordering::Relaxed) {
+                    let mut child = std::process::Command::new("/bin/true");
+                    // SAFETY: the hook only sleeps and touches no shared state, and it runs in the forked child before exec.
+                    unsafe { child.pre_exec(|| { std::thread::sleep(std::time::Duration::from_millis(10)); Ok(()) }); }
+                    child.status().expect("a sibling fork runs");
+                }
+            });
+        }
+        let _stop = Stop(&stop);
+        body()
+    })
 }
 
 #[cfg(test)]
