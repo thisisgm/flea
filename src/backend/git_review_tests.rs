@@ -2,6 +2,70 @@ use super::*;
 use crate::backend::gitfixture::Fixture;
 use std::time::Instant;
 
+const CHILD_ADDRESS_SPACE_BYTES: usize = 256 * 1024 * 1024;
+const MAX_PATH_BYTES: usize = 4096;
+
+fn assert_deep_snapshot(snapshot: &Snapshot, paths: &[(std::path::PathBuf, char)]) {
+    assert_eq!(snapshot.changes.len(), paths.len());
+    for (path, status) in paths {
+        let change = snapshot
+            .changes
+            .iter()
+            .find(|change| change.path.as_os_str() == path.as_os_str())
+            .expect("the byte-exact indexed path must be present");
+        assert_eq!(change.status, *status);
+        assert_eq!(snapshot.mark(path), (Some(*status), false));
+    }
+}
+
+// Sample input: "REVIEW_MEMORY VmHWM:\t123 kB\ntest result: ok. 1 passed; 0 failed; 0 ignored; 0 measured\n".
+fn assert_snapshot_child(output: &std::process::Output) {
+    assert!(
+        output.status.success(),
+        "the bounded Git output must not abort the backend parser"
+    );
+    let stdout = String::from_utf8_lossy(&output.stdout);
+    assert!(
+        stdout
+            .lines()
+            .any(|line| line.starts_with("REVIEW_MEMORY VmHWM:")),
+        "{stdout}"
+    );
+    assert!(
+        stdout.contains("test result: ok. 1 passed; 0 failed"),
+        "{stdout}"
+    );
+}
+
+#[test]
+fn git_deep_snapshot_assertions_reject_wrong_counts_paths_and_marks() {
+    let paths = [(std::path::PathBuf::from("a/a/leaf"), 'D')];
+    for bytes in [
+        b"# branch.head main\0".as_slice(),
+        b"# branch.head main\x001 .D N... 1 1 1 a b wrong\0",
+        b"# branch.head main\0? a/a/leaf\0",
+    ] {
+        let snapshot = super::super::gitstatus::parse(bytes).unwrap();
+        assert!(std::panic::catch_unwind(|| assert_deep_snapshot(&snapshot, &paths)).is_err());
+    }
+}
+
+#[test]
+fn git_snapshot_child_assertions_reject_missing_execution_witnesses() {
+    for filter in [
+        "backend::gitreq::review_tests::missing_after_rename",
+        "backend::gitreq::review_tests::review_git_status_large_snapshot_child",
+    ] {
+        let output = std::process::Command::new(std::env::current_exe().unwrap())
+            .args(["--exact", filter, "--nocapture"])
+            .env_remove("FLEA_REVIEW_STATUS_INPUT")
+            .output()
+            .unwrap();
+        assert!(output.status.success());
+        assert!(std::panic::catch_unwind(|| assert_snapshot_child(&output)).is_err());
+    }
+}
+
 #[test]
 fn review_git_status_with_deep_index_path() {
     if !Fixture::available() || super::super::sandboxprobe::skipped() {
@@ -13,7 +77,8 @@ fn review_git_status_with_deep_index_path() {
     d.git(&["add", "--", "."]);
     d.git(&["commit", "--quiet", "-m", "fixture"]);
     let repo = gitprobe::discover(&d.0).unwrap().unwrap();
-    for depth in [1024, 4096, 8192] {
+    let mut paths = Vec::new();
+    for (depth, expected) in [(1024, 'D'), (4096, 'A'), (8192, 'A')] {
         let path = format!("{}leaf", "a/".repeat(depth));
         d.git(&[
             "update-index",
@@ -23,11 +88,13 @@ fn review_git_status_with_deep_index_path() {
             "e69de29bb2d1d6434b8b29ae775ad8c2e48c5391",
             &path,
         ]);
+        paths.push((std::path::PathBuf::from(path), expected));
         let start = Instant::now();
         let bytes = gitprobe::capture(&gitprobe::argv(&repo), gitprobe::DEADLINE).unwrap();
         let capture_ms = start.elapsed().as_secs_f64() * 1000.0;
         let start = Instant::now();
         let snapshot = super::super::gitstatus::parse(&bytes).unwrap();
+        assert_deep_snapshot(&snapshot, &paths);
         println!("REVIEW_DEEP depth={depth} bytes={} changes={} capture_ms={capture_ms:.3} parse_ms={:.3} {}", bytes.len(), snapshot.changes.len(), start.elapsed().as_secs_f64() * 1000.0, std::fs::read_to_string("/proc/self/status").unwrap().lines().find(|line| line.starts_with("VmHWM:")).unwrap());
     }
 }
@@ -74,7 +141,7 @@ fn review_git_status_deep_index_exhausts_parent_memory() {
     println!("REVIEW_OOM valid_git_stdout_bytes={}", bytes.len());
     d.write("status-output", &bytes);
     let output = std::process::Command::new("/usr/bin/prlimit")
-        .arg("--as=268435456")
+        .arg(format!("--as={CHILD_ADDRESS_SPACE_BYTES}"))
         .arg("--core=0")
         .arg("--")
         .arg(std::env::current_exe().unwrap())
@@ -92,10 +159,7 @@ fn review_git_status_deep_index_exhausts_parent_memory() {
         String::from_utf8_lossy(&output.stdout),
         String::from_utf8_lossy(&output.stderr)
     );
-    assert!(
-        output.status.success(),
-        "the bounded Git output must not abort the backend parser"
-    );
+    assert_snapshot_child(&output);
 }
 
 #[test]
@@ -112,7 +176,7 @@ fn review_git_status_many_normal_length_paths_exhaust_parent_memory() {
     let mut input = String::new();
     for index in 0..512 {
         let path = format!("root-{index:04}/{}leaf", "a/".repeat(1024));
-        assert!(path.len() < 4096);
+        assert!(path.len() < MAX_PATH_BYTES);
         input.push_str(&format!(
             "100644 e69de29bb2d1d6434b8b29ae775ad8c2e48c5391\t{path}\0"
         ));
@@ -164,7 +228,7 @@ fn review_git_status_many_normal_length_paths_exhaust_parent_memory() {
     ] {
         d.write(name, bytes);
         let output = Command::new("/usr/bin/prlimit")
-            .arg("--as=268435456")
+            .arg(format!("--as={CHILD_ADDRESS_SPACE_BYTES}"))
             .arg("--core=0")
             .arg("--")
             .arg(std::env::current_exe().unwrap())
@@ -182,10 +246,7 @@ fn review_git_status_many_normal_length_paths_exhaust_parent_memory() {
             String::from_utf8_lossy(&output.stdout),
             String::from_utf8_lossy(&output.stderr)
         );
-        assert!(
-            output.status.success(),
-            "the bounded Git output must not abort the backend parser"
-        );
+        assert_snapshot_child(&output);
     }
 }
 

@@ -2,6 +2,24 @@ use super::*;
 use crate::backend::gitstatus;
 
 #[test]
+fn git_repository_metadata_accepts_its_limit_and_refuses_one_byte_more() {
+    const EXPECTED_METADATA_LIMIT: usize = 4096;
+    let d = crate::backend::gitfixture::Fixture::new();
+    let mut bytes = vec![b'x'; EXPECTED_METADATA_LIMIT];
+    d.write("metadata", &bytes);
+    assert_eq!(
+        small_file(&d.path("metadata")).unwrap().len(),
+        EXPECTED_METADATA_LIMIT
+    );
+    bytes.push(b'x');
+    d.write("metadata", &bytes);
+    assert_eq!(
+        small_file(&d.path("metadata")).unwrap_err(),
+        "Git status repository metadata is too large."
+    );
+}
+
+#[test]
 fn git_capture_and_parse_share_memory_cancellation_and_deadline() {
     let cancelled = std::cell::Cell::new(false);
     let check = || cancelled.get();

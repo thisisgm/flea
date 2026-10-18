@@ -9,6 +9,17 @@ use std::time::Instant;
 pub(super) mod budget;
 use budget::{Budget, Records};
 
+const ORDINARY_FIELDS: usize = 9;
+const RENAME_FIELDS: usize = 10;
+const UNMERGED_FIELDS: usize = 11;
+const RECORD_TYPE_FIELD: usize = 0;
+const STATUS_FIELD: usize = 1;
+const SUBMODULE_FIELD: usize = 2;
+const INDEX_MODE_FIELD: usize = 4;
+const WORKTREE_MODE_FIELD: usize = 5;
+const UNMERGED_WORKTREE_MODE_FIELD: usize = 6;
+const STATUS_BYTES: usize = 2;
+
 #[derive(Debug, PartialEq, Eq)]
 pub struct Change {
     pub path: PathBuf,
@@ -75,6 +86,7 @@ pub fn parse(bytes: &[u8]) -> Result<Snapshot, String> {
     parse_with(bytes, &budget)
 }
 
+// Sample input: b"# branch.head main\x001 .M N... 100644 100644 100644 a b src/lib.rs\0".
 pub(super) fn parse_with(bytes: &[u8], budget: &Budget<'_>) -> Result<Snapshot, String> {
     budget.check()?;
     let mut records = Records::new(bytes, budget);
@@ -105,26 +117,34 @@ pub(super) fn parse_with(bytes: &[u8], budget: &Budget<'_>) -> Result<Snapshot, 
             ),
             b'1' | b'2' | b'u' => {
                 let count = match record[0] {
-                    b'1' => 9,
-                    b'2' => 10,
-                    _ => 11,
+                    b'1' => ORDINARY_FIELDS,
+                    b'2' => RENAME_FIELDS,
+                    _ => UNMERGED_FIELDS,
                 };
-                let mut fields = [b"".as_slice(); 11];
+                let mut fields = [b"".as_slice(); UNMERGED_FIELDS];
                 let mut parts = record.splitn(count, |byte| *byte == b' ');
                 for field in &mut fields[..count] {
                     *field = parts
                         .next()
                         .ok_or("Git status returned an invalid record.")?;
                 }
-                if fields[0] != &record[..1]
-                    || fields[1].len() != 2
-                    || fields[1].iter().any(|byte| !b".MADRCUT".contains(byte))
+                if fields[RECORD_TYPE_FIELD] != &record[..1]
+                    || fields[STATUS_FIELD].len() != STATUS_BYTES
+                    || fields[STATUS_FIELD]
+                        .iter()
+                        .any(|byte| !b".MADRCUT".contains(byte))
                 {
                     return Err("Git status returned an invalid record.".into());
                 }
-                let xy = fields[1];
-                // A rename or copy adds its destination; the source remains metadata.
-                let status = if xy.contains(&b'D') {
+                let xy = fields[STATUS_FIELD];
+                // Unmerged modes describe presence; rename and copy destinations count as added.
+                let status = if record[0] == b'u' {
+                    if fields[UNMERGED_WORKTREE_MODE_FIELD] == b"000000" {
+                        'D'
+                    } else {
+                        'M'
+                    }
+                } else if xy.contains(&b'D') {
                     'D'
                 } else if xy.contains(&b'A') || xy.contains(&b'R') || xy.contains(&b'C') {
                     'A'
@@ -145,11 +165,11 @@ pub(super) fn parse_with(bytes: &[u8], budget: &Budget<'_>) -> Result<Snapshot, 
                     relative(fields[count - 1], budget)?,
                     status,
                     original,
-                    fields[2].starts_with(b"S"),
+                    fields[SUBMODULE_FIELD].starts_with(b"S"),
                     record[0] == b'1'
                         && xy == b"D."
-                        && fields[4] == b"000000"
-                        && fields[5] == b"000000",
+                        && fields[INDEX_MODE_FIELD] == b"000000"
+                        && fields[WORKTREE_MODE_FIELD] == b"000000",
                 )
             }
             _ => return Err("Git status returned an unknown record.".into()),
