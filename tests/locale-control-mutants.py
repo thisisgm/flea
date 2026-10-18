@@ -46,7 +46,7 @@ def audit(control, variant):
 
 
 # Sample input: run() { ... } followed by run 'mutant --regress-exports' 1 DETECTED... python3 ... .
-def probe(control, variant, keep):
+def probe(control, variant, keep, fail_locale_setup=False):
     parent = REPO / '.superpowers/i0'
     if not parent.resolve().is_relative_to(REPO):
         raise RuntimeError('REFUSED mutant fixture parent outside the repository')
@@ -60,7 +60,7 @@ def probe(control, variant, keep):
     label = variant + ' --regress-' + control
     detection = 'DETECTED --regress-' + REGRESS_FLAGS.get(control, control)
     runner_env = dict(os.environ, LC_ALL='C.UTF-8', LANG='C.UTF-8')
-    if not runner_env.get('LOCPATH'):
+    if not runner_env.get('LOCPATH') or fail_locale_setup:
         locales = root / 'locales'
         locales.mkdir()
         runner_env['LOCPATH'] = str(locales)
@@ -68,6 +68,11 @@ def probe(control, variant, keep):
             setup_env = dict(runner_env)
             setup_env.pop('LANGUAGE', None)
             command = ['localedef', '--no-archive', '-i', 'de_DE', '-f', 'UTF-8', str(locales / 'de_DE.UTF-8')]
+            if fail_locale_setup:
+                stand_in = root / 'localedef'
+                stand_in.write_text("#!/bin/sh\nprintf '%s\\n' 'intentional localedef failure' >&2\nexit 42\n")
+                stand_in.chmod(0o755)
+                command[0] = str(stand_in)
             try:
                 setup = subprocess.run(command, env=setup_env, capture_output=True, text=True)
             except OSError as error:
@@ -75,7 +80,8 @@ def probe(control, variant, keep):
             setup_log = root / 'localedef.log'
             setup_log.write_text(setup.stdout + setup.stderr)
             if setup.returncode:
-                print(f'FAIL {label}: locale setup exit {setup.returncode}; log={setup_log}')
+                print(f'FAIL {label}: locale setup exit {setup.returncode}')
+                print('log=' + str(setup_log))
                 print('evidence=' + str(root))
                 return 1
     command = ['run', label, '1', detection, 'env', 'LC_ALL=C', 'LANG=C',
@@ -133,16 +139,19 @@ def main():
     parser.add_argument('--list', action='store_true')
     parser.add_argument('--audit', action='store_true')
     parser.add_argument('--keep', action='store_true')
+    parser.add_argument('--fail-locale-setup', action='store_true')
     args = parser.parse_args()
     if args.list:
         print('\n'.join(MUTANTS))
         return 0
     if args.control is None or args.variant is None:
         parser.error('control and variant are required')
+    if args.fail_locale_setup and (args.audit or MUTANTS[args.control][0] != 'parsers'):
+        parser.error('--fail-locale-setup requires a parsers probe')
     if args.audit:
         audit(args.control, args.variant)
         raise RuntimeError('audit did not exit')
-    return probe(args.control, args.variant, args.keep)
+    return probe(args.control, args.variant, args.keep, args.fail_locale_setup)
 
 
 if __name__ == '__main__':

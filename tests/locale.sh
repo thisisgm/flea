@@ -145,5 +145,9 @@ else
 fi
 run 'probe with locale variables unset' 0 'PASS mutant --regress-charset: runner exit 1; victim=ps preserves UTF-8 process arguments' \
     env -u LC_ALL -u LANG -u LOCPATH python3 -B tests/locale-control-mutants.py charset mutant
+run 'parser setup with locale variables unset' 0 'PASS mutant --regress-fixture-scope: runner exit 1; victim=matched fixture sort child environment' \
+    env -u LC_ALL -u LANG -u LOCPATH python3 -B tests/locale-control-mutants.py fixture-scope mutant
+run 'parser setup failure with locale variables unset' 1 'FAIL mutant --regress-fixture-scope: locale setup exit 42' \
+    env -u LC_ALL -u LANG -u LOCPATH python3 -B tests/locale-control-mutants.py fixture-scope mutant --fail-locale-setup
 printf 'locale: %d passed, %d failed\n' "$passed" "$failed"
 [ "$failed" -eq 0 ]
