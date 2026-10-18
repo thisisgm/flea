@@ -35,7 +35,7 @@ const CACHE_LEAF: &str = "flea/office";
 // The failure markers keep the thumbnail cache's fail/flea/ shape, beside the PDFs and never in the shared thumbnails tree.
 const FAIL_LEAF: &str = "fail/flea";
 const PROGRAM: &str = "soffice";
-// LibreOffice 26.8.1.1 converted nothing under 3.5 GiB of address space and every file at 4 GiB, so its jail gets twice that floor.
+// LibreOffice 26.8.1.1 converted nothing at 2 GiB of address space and every file at 4 GiB, so its jail gets twice that 4 GiB floor.
 pub(crate) const ADDRESS_SPACE_BYTES: u64 = 8 * 1024 * 1024 * 1024;
 // The jail's own tmpfs, so the profile LibreOffice writes needs no bind.
 const PROFILE_URL: &str = "file:///tmp/flea-office-profile";
@@ -382,14 +382,17 @@ pub(crate) fn jail(argv: Vec<String>, input: &Path, work: &mut Work, stop: &Atom
     run_boxed_cancellable_limited("office", argv, input, work, stop, sandbox::CPU_SECONDS, ADDRESS_SPACE_BYTES)
 }
 
+// The production service over one cache root; the shared instance below uses the user's cache.
+fn service(cache: &Path) -> Arc<Service> {
+    let resolve: Resolve = Box::new(|| {
+        if sandbox::available() { find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default()) } else { None }
+    });
+    Arc::new(Service::new(Store::new(cache), resolve, Box::new(argv), Box::new(jail), CONVERT_TIMEOUT))
+}
+
 fn production() -> &'static Arc<Service> {
     static SERVICE: OnceLock<Arc<Service>> = OnceLock::new();
-    SERVICE.get_or_init(|| {
-        let resolve: Resolve = Box::new(|| {
-            if sandbox::available() { find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default()) } else { None }
-        });
-        Arc::new(Service::new(Store::new(&crate::userfile::cache_home()), resolve, Box::new(argv), Box::new(jail), CONVERT_TIMEOUT))
-    })
+    SERVICE.get_or_init(|| service(&crate::userfile::cache_home()))
 }
 
 // Sample input: {"c":"officepdf","id":4,"path":"/home/gm/Documents/report.docx"}.
@@ -412,6 +415,8 @@ mod tests;
 #[path = "officepdf_fetch.rs"]
 mod fetch;
 pub use fetch::cached_pdf;
+#[cfg(test)]
+pub(crate) use fetch::cached_pdf_in;
 
 #[path = "officepdf_lines.rs"]
 mod lines;

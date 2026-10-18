@@ -15,7 +15,7 @@ fn the_office_jail_has_its_own_address_space_cap_and_every_other_jail_keeps_two_
     let thumbnail = sandbox::wrap(&inner, Path::new("/in/a.mp4"), Path::new("/out"));
     assert_eq!(&thumbnail[..4], ["prlimit", "--cpu=30", "--as=2147483648", "bwrap"], "the thumbnail jail keeps the shared cap");
     let print = sandbox::wrap_compile(&inner, &[], &work.dir);
-    assert_eq!(&print[..4], ["prlimit", "--cpu=30", "--as=2147483648", "bwrap"], "the print tools keep the shared cap");
+    assert_eq!(&print[..4], ["prlimit", "--cpu=30", "--as=2147483648", "bwrap"], "the print and convert image tools (ImageMagick, pdfinfo, combine) keep the shared cap; print's office leg is the office service above");
 }
 
 #[test]
