@@ -8,6 +8,23 @@ use flea_gui::{
     },
 };
 use gpui::App;
+use std::io::Write;
+
+mod renderer;
+
+#[cfg(test)]
+mod renderer_tests;
+
+fn finish_opening<T, E>(opened: Result<T, E>) -> T {
+    let Ok(window) = opened else {
+        renderer::unavailable();
+        let _ = std::io::stdout().flush();
+        let _ = std::io::stderr().flush();
+        // The startup callback precedes the event loop, which clears an earlier quit request.
+        std::process::exit(renderer::UNAVAILABLE);
+    };
+    window
+}
 
 fn main() {
     let (service, initial) = Service::start(flea::i18n::Paths::default()).unwrap_or_else(|error| {
@@ -70,21 +87,11 @@ fn main() {
             }
         })
         .detach();
-        match window::open(launch, locale.clone(), events, cx) {
-            Ok(window) => {
-                let _ = window.update(cx, |root, _, cx| {
-                    root.shell
-                        .update(cx, |shell, cx| shell.follow_locale(&service, cx))
-                });
-                cx.activate(true);
-            }
-            Err(error) => {
-                eprintln!(
-                    "flea-gui: {}",
-                    locale.catalog.tr_args("window.open_failed", &[&error])
-                );
-                cx.quit();
-            }
-        }
+        let window = finish_opening(window::open(launch, locale, events, cx));
+        let _ = window.update(cx, |root, _, cx| {
+            root.shell
+                .update(cx, |shell, cx| shell.follow_locale(&service, cx))
+        });
+        cx.activate(true);
     });
 }
