@@ -22,6 +22,7 @@ pub struct RowAction {
 #[derive(Default)]
 pub struct Requests {
     pub outstanding: Option<WindowRequest>,
+    pub refused: Option<WindowRequest>,
     pub sent: usize,
     pub initial_first: Option<usize>,
 }
@@ -49,18 +50,27 @@ impl Requests {
             count: visible.saturating_add(2 * BUFFER),
             listing: held.listing,
         };
+        // A window answered malformed is asked again only after the listing or the wanted window changes.
+        if self.refused.take() == Some(request) {
+            self.refused = Some(request);
+            return None;
+        }
         self.outstanding = Some(request);
         self.sent += 1;
         Some(request)
     }
 
-    pub fn accepts(&self, held: &Held, start: usize, count: usize, listing: usize) -> bool {
+    pub fn answers(&self, held: &Held, start: usize, listing: usize) -> bool {
         self.outstanding.is_some_and(|request| {
-            request.listing == listing
-                && held.listing == listing
-                && request.start == start
-                && count <= request.count
+            request.listing == listing && held.listing == listing && request.start == start
         })
+    }
+
+    pub fn accepts(&self, held: &Held, start: usize, count: usize, listing: usize) -> bool {
+        self.answers(held, start, listing)
+            && self
+                .outstanding
+                .is_some_and(|request| count <= request.count)
     }
 
     pub fn cancel(&mut self) {
@@ -148,6 +158,7 @@ impl Pane {
         // A malformed answer still settles the request it answers, so the slot never stays taken.
         if taken.is_err() && answered.is_some() && self.requests.outstanding == answered {
             self.requests.cancel();
+            self.requests.refused = answered;
         }
         taken
     }
@@ -165,7 +176,8 @@ impl Pane {
                 return Ok(false);
             };
             if let Some(held) = &pending.ready {
-                if !self.requests.accepts(held, start, rows.len(), listing) {
+                // An answer to the anchor that breaks its bound is a protocol error, never a silent drop.
+                if !self.requests.answers(held, start, listing) {
                     return Ok(false);
                 }
                 Self::check_complete(start, rows.len(), total, pending.first)?;
