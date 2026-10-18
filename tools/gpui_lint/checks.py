@@ -66,29 +66,6 @@ def immediate(ts, matched, start, stop):
     return result
 
 
-def gpui_glob(ts):
-    # Sample input: tokens of "use gpui::{white, *};", which imports every gpui name this module does not define.
-    for i in range(len(ts) - 2):
-        if ts[i].value == "use" and ts[i + 1].value == "gpui" and ts[i + 2].value == "::":
-            end = next((j for j in range(i, len(ts)) if ts[j].value == ";"), len(ts))
-            if any(t.value == "*" for t in ts[i:end]):
-                return True
-    return False
-
-
-def local_names(ts):
-    # A name the module defines itself shadows a gpui glob, so its calls are not gpui calls.
-    names = set()
-    for i in range(len(ts) - 1):
-        if ts[i].value in ("fn", "let", "const", "static", "struct", "enum", "type", "trait", "mod"):
-            j = i + 1
-            if ts[j].value == "mut" and j + 1 < len(ts):
-                j += 1
-            if ts[j].kind == "ident":
-                names.add(ts[j].value)
-    return names
-
-
 def allowed_hex_tokens(unit, entries):
     """Only a named module-level constant can exempt its exact non-colour hex value."""
     ts = unit["tokens"]
@@ -144,7 +121,6 @@ def source_checks(units, policy):
         matched = pairs(ts)
         scopes = environments(ts)
         allowed = allowed_hex_tokens(unit, policy.get("non_color_hex_constants", []))
-        globs, locals_ = gpui_glob(ts), local_names(ts)
         for i, token in enumerate(ts):
             if unit["path"] in surfaces and token.kind == "number" and COLOR_HEX.fullmatch(digits(token.value)) and i not in allowed:
                 errors.append(f"{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception")
@@ -157,7 +133,8 @@ def source_checks(units, policy):
             if end == len(ts):
                 continue
             following = ts[end].value
-            if globs and following == "(" and len(path) == 1 and path[0] not in locals_ and not (i and ts[i - 1].value == "."):
+            # A bare call under a gpui glob is gpui's unless the scope declares that name; a method or fn declaration is not a call.
+            if environment.glob and following == "(" and len(path) == 1 and path[0] not in environment.bound and not (i and ts[i - 1].value in (".", "fn")):
                 path = ("gpui", path[0])
             constructor = name in COLOR_CALLS or any(p in COLOR_TYPES for p in path)
             gpui_symbol = path[0] == "gpui" or path[0].startswith("gpui_") or any(p in COLOR_TYPES for p in path)
