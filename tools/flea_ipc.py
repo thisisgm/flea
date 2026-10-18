@@ -20,6 +20,12 @@ class Client:
         self.binary = os.environ.get("FLEA_BIN", "flea") if name in ("qs", "quickshell", "flea-gui") else binary
         self.helper = str(Path(__file__).resolve().with_name("flea-ipc"))
 
+    @staticmethod
+    def start_owned(path, **options):
+        sys.path.insert(0, str(Path(__file__).resolve().parents[1] / "tests/lib"))
+        from flea_transport import Window
+        return Window.start(path, **options)
+
     def environment(self, environment=None):
         return dict(os.environ if environment is None else environment,
                     FLEA_IPC_KIND=self.kind, FLEA_IPC_BIN=self.binary, FLEA_IPC_HELPER=self.helper)

@@ -382,7 +382,7 @@ case_hiddenlast() {
     # The chooser: its list, then its header sort, which used to forget the setting.
     kill_flea
     FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" FLEA_PICKER="$(jq -cn --arg f "$l2" --arg t "$title" '{mode:"open",folder:$f,title:$t}')" FLEA_PICKER_REPLY="$reply" \
-        setsid nohup qs -p "$flea_ui/boot/picker.qml" >"$fixture_root/hiddenlast-picker.log" 2>&1 </dev/null &
+        flea_test_exec qs -p "$flea_ui/boot/picker.qml" >"$fixture_root/hiddenlast-picker.log" 2>&1 </dev/null &
     for _attempt in $(seq 1 300); do
         omarchy-drive windows --json | jq -e --arg title "$title" '[.windows[] | select(.title == $title)] | length == 1' >/dev/null && break
         sleep 0.05
