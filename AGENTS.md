@@ -437,10 +437,11 @@ single call and `BULK_DEADLINE` of 15 s for a bulk pass, and past it the loop an
 "<mount> is not responding." A mount past its deadline is marked stuck for `STUCK_TTL` of 30 s, and
 a call on one answers at once without a worker until that passes, when the next request probes it
 again. A worker that dies before answering is this machine's fault and marks nothing: only a
-deadline still running marks the mount stuck. A remote `rename` or `mkdir` runs on its own worker with
-CALL_DEADLINE, as reads do, and the loop never waits on it longer than that: a local one stays
-inline with no hop, an in-time remote write answers exactly as before, and past the deadline the loop
-answers a `slow` line and moves on, never marking the mount stuck for a write still running. The worker
+deadline still running marks the mount stuck. Every `rename`, local or remote, runs on its own worker,
+and its journal publication runs off the dispatcher too. A remote `mkdir` runs on its own worker with
+CALL_DEADLINE, as reads do; a local `mkdir` stays inline with no hop. A rename or remote mkdir past
+CALL_DEADLINE answers a `slow` line while the dispatcher keeps serving requests, never marking the
+mount stuck for a write still running. An in-time write answers exactly as before. The worker
 stays tracked and reports through the op channel when it lands, journalled exactly as the in-time path
 would, so one journal entry per request and one undo reverses it. A `link` claims the one-operation slot
 through `start_link` and runs every item on a worker from the start, so the loop stays responsive with

@@ -2,6 +2,11 @@ use super::*;
 use std::collections::{BTreeMap, BTreeSet};
 use std::process::{Command, Stdio};
 
+// The observer must not follow an unexpectedly large process tree without a bound.
+const MAX_OBSERVED_PROCESSES: usize = 512;
+// Short conversions need multiple mapping samples before the converter exits.
+const MAPPING_SAMPLE_INTERVAL: Duration = Duration::from_millis(5);
+
 // The supervisor reports cache visibility before and after the real converter while its private tmpfs still exists.
 const OBSERVE_CACHE: &str = r#"
 import json, os, subprocess, sys
@@ -37,7 +42,7 @@ fn descendants(leader: u32) -> BTreeSet<u32> {
     let mut pending = vec![leader];
     let mut seen = BTreeSet::new();
     while let Some(pid) = pending.pop() {
-        if !seen.insert(pid) || seen.len() > 512 {
+        if !seen.insert(pid) || seen.len() > MAX_OBSERVED_PROCESSES {
             continue;
         }
         let Ok(tasks) = std::fs::read_dir(format!("/proc/{pid}/task")) else {
@@ -47,6 +52,7 @@ fn descendants(leader: u32) -> BTreeSet<u32> {
             let Ok(children) = std::fs::read_to_string(task.path().join("children")) else {
                 continue;
             };
+            // Sample input: /proc/123/task/123/children contains "456 789 " followed by a newline.
             pending.extend(
                 children
                     .split_whitespace()
@@ -63,6 +69,7 @@ fn font_maps(pid: u32) -> Option<FontMaps> {
         return None;
     }
     let mut snapshot = FontMaps::default();
+    // Sample input: 7f000000-7f001000 r--p 00000000 08:01 123 /usr/share/fonts/example.ttc
     for line in std::fs::read_to_string(proc.join("maps")).ok()?.lines() {
         let fields: Vec<_> = line.split_whitespace().collect();
         if fields.len() < 6 {
@@ -86,6 +93,7 @@ fn font_maps(pid: u32) -> Option<FontMaps> {
         snapshot.count += 1;
         snapshot.ttc += usize::from(suffix == "ttc");
     }
+    // Sample input: VmPeak:    123456 kB
     snapshot.vm_peak = std::fs::read_to_string(proc.join("status"))
         .ok()?
         .lines()
@@ -178,7 +186,7 @@ fn matrix_cell(
                 }
             }
         }
-        std::thread::sleep(Duration::from_millis(5));
+        std::thread::sleep(MAPPING_SAMPLE_INTERVAL);
     };
     let output = output.join().unwrap();
     let errors = errors.join().unwrap();

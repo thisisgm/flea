@@ -7,9 +7,9 @@ pub(super) fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &s
         busy(out, "transfer");
         return;
     }
-    let dest = match usable_dest(dest) {
+    // Jobs retain permission failures so Retry can run them after the folder becomes writable.
+    let dest = match crate::backend::opsreq::directory_dest(dest) {
         Ok(d) => d,
-        Err(e) if e.msg == "that folder cannot be written" => PathBuf::from(dest),
         Err(e) => {
             writeln!(out, "{}", error_line(&e)).ok();
             out.flush().ok();
@@ -58,3 +58,102 @@ pub(super) fn start_transfer_checked(out: &mut impl Write, ops: &mut Ops, op: &s
     );
 }
 
+#[cfg(test)]
+mod tests {
+    use super::*;
+    use crate::backend::testdir::TestDir;
+    use std::os::unix::fs::PermissionsExt;
+    use std::sync::mpsc::{channel, Receiver};
+    use std::time::Duration;
+
+    fn settle(ops: &mut Ops, out: &mut Vec<u8>, rx: &Receiver<OpMsg>) {
+        while ops.jobs.unfinished() > 0 {
+            let event = rx
+                .recv_timeout(Duration::from_secs(10))
+                .expect("queued job completes");
+            crate::backend::opsdispatch::report_op(out, ops, event);
+        }
+    }
+
+    #[test]
+    fn queued_permission_failures_remain_retryable() {
+        let root = TestDir::new("queued-readonly-destination");
+        let source = root.file("source", "payload");
+        let dest = root.dir("readonly");
+        root.assert_contains(&dest);
+        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o500)).unwrap();
+        assert!(usable_dest(dest.to_str().unwrap()).is_err());
+        let (tx, rx) = channel();
+        let mut ops = Ops::new(tx);
+        let mut out = Vec::new();
+        start_transfer_checked(
+            &mut out,
+            &mut ops,
+            "copy",
+            vec![source.to_string_lossy().into()],
+            dest.to_str().unwrap(),
+            None,
+            None,
+            crate::backend::collide::Ask::parse("{}"),
+        );
+        assert!(
+            String::from_utf8_lossy(&out).contains("\"t\":\"transferstarted\""),
+            "permission failures must be admitted as retryable jobs: {}",
+            String::from_utf8_lossy(&out)
+        );
+        settle(&mut ops, &mut out, &rx);
+        assert!(matches!(
+            ops.jobs.rows[0].state,
+            crate::backend::jobs::State::Failed
+        ));
+        assert!(!ops.jobs.rows[0].failed.is_empty());
+        root.assert_contains(&dest);
+        std::fs::set_permissions(&dest, std::fs::Permissions::from_mode(0o700)).unwrap();
+        let request = format!(
+            r#"{{"c":"jobs","op":"retry","id":{}}}"#,
+            ops.jobs.rows[0].id
+        );
+        let _ = crate::backend::jobevents::request(&mut out, &mut ops, &request);
+        settle(&mut ops, &mut out, &rx);
+        assert!(matches!(
+            ops.jobs.rows[0].state,
+            crate::backend::jobs::State::Done
+        ));
+        assert_eq!(
+            std::fs::read_to_string(dest.join("source")).unwrap(),
+            "payload"
+        );
+    }
+
+    #[test]
+    fn queued_destinations_preserve_validation_and_path_spelling() {
+        let root = TestDir::new("queued-destination-validation");
+        let folder = root.dir("folder");
+        let spelling = format!("{}/../folder/", folder.display());
+        let checked = crate::backend::opsreq::directory_dest(&spelling).unwrap();
+        assert_eq!(checked.as_os_str(), std::ffi::OsStr::new(&spelling));
+        let file = root.file("file", "payload");
+        for destination in [
+            "relative/path".to_string(),
+            root.join("missing").to_string_lossy().into(),
+            file.to_string_lossy().into(),
+        ] {
+            let (tx, _rx) = channel();
+            let mut ops = Ops::new(tx);
+            let mut out = Vec::new();
+            start_transfer_checked(
+                &mut out,
+                &mut ops,
+                "copy",
+                Vec::new(),
+                &destination,
+                None,
+                None,
+                crate::backend::collide::Ask::parse("{}"),
+            );
+            assert!(ops.jobs.rows.is_empty());
+            assert_eq!(String::from_utf8_lossy(&out).lines().count(), 1);
+            assert!(String::from_utf8_lossy(&out).contains("\"t\":\"error\""));
+        }
+    }
+}

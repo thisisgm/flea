@@ -8,6 +8,12 @@ use crate::error::FleaError;
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
 
+// A closed stderr pipe must never unwind publication or detach its journal history.
+fn diagnostic(message: std::fmt::Arguments<'_>) {
+    use std::io::Write;
+    let _ = writeln!(std::io::stderr().lock(), "flea: {message}");
+}
+
 // Past twice the largest benched tree in manifest bytes the file is foreign, as copymanifest refuses its stream.
 pub(crate) const MAX_FILE_BYTES: u64 = 32 * 1024 * 1024;
 // The redo stack is unbounded in memory, but a file without a cap is not, so it caps here.
@@ -36,7 +42,7 @@ impl Shared {
         match validate_dir(&dir) {
             Ok(()) => Some(Shared { dir }),
             Err(msg) => {
-                eprintln!("flea: {}", msg);
+                diagnostic(format_args!("{}", msg));
                 None
             }
         }
@@ -172,37 +178,37 @@ fn load(shared: &Shared) -> Result<Doc, ()> {
         Ok(meta) => meta,
         Err(e) if e.kind() == std::io::ErrorKind::NotFound => return Ok(empty_doc()),
         Err(e) => {
-            eprintln!("flea: the shared undo journal could not be read ({:?}), so it was ignored", e.kind());
+            diagnostic(format_args!("the shared undo journal could not be read ({:?}), so it was ignored", e.kind()));
             return ignored(shared);
         }
     };
     if meta.file_type().is_symlink() {
-        eprintln!("flea: the shared undo journal is a symbolic link, so it was ignored");
+        diagnostic(format_args!("the shared undo journal is a symbolic link, so it was ignored"));
         return ignored(shared);
     }
     if !meta.is_file() {
-        eprintln!("flea: the shared undo journal is not a regular file, so it was ignored");
+        diagnostic(format_args!("the shared undo journal is not a regular file, so it was ignored"));
         return ignored(shared);
     }
     if meta.uid() != current_uid() {
-        eprintln!("flea: the shared undo journal is not owned by this user, so it was ignored");
+        diagnostic(format_args!("the shared undo journal is not owned by this user, so it was ignored"));
         return ignored(shared);
     }
     let file = match std::fs::File::open(&path) {
         Ok(file) => file,
         Err(e) => {
-            eprintln!("flea: the shared undo journal could not be read ({:?}), so it was ignored", e.kind());
+            diagnostic(format_args!("the shared undo journal could not be read ({:?}), so it was ignored", e.kind()));
             return ignored(shared);
         }
     };
     let mut bytes = Vec::new();
     use std::io::Read as _;
     if file.take(MAX_FILE_BYTES + 1).read_to_end(&mut bytes).is_err() {
-        eprintln!("flea: the shared undo journal could not be read, so it was ignored");
+        diagnostic(format_args!("the shared undo journal could not be read, so it was ignored"));
         return ignored(shared);
     }
     if bytes.len() as u64 > MAX_FILE_BYTES {
-        eprintln!("flea: the shared undo journal is oversized, so it was ignored");
+        diagnostic(format_args!("the shared undo journal is oversized, so it was ignored"));
         return ignored(shared);
     }
     #[cfg(test)]
@@ -210,7 +216,7 @@ fn load(shared: &Shared) -> Result<Doc, ()> {
     let text = match String::from_utf8(bytes) {
         Ok(text) => text,
         Err(_) => {
-            eprintln!("flea: the shared undo journal is not valid UTF-8, so it was ignored");
+            diagnostic(format_args!("the shared undo journal is not valid UTF-8, so it was ignored"));
             return ignored(shared);
         }
     };
@@ -218,7 +224,7 @@ fn load(shared: &Shared) -> Result<Doc, ()> {
         Read::Doc(doc) => Ok(doc),
         Read::Newer => Err(()),
         Read::Malformed => {
-            eprintln!("flea: the shared undo journal is malformed, so it was ignored");
+            diagnostic(format_args!("the shared undo journal is malformed, so it was ignored"));
             Ok(empty_doc())
         }
     }
@@ -282,7 +288,7 @@ pub(crate) fn push_entry_generation(
     if entry.steps.is_empty() {
         return Ok((PushResult::Stored, None));
     }
-    let _guard = lock(shared).map_err(|msg| eprintln!("flea: {}", msg))?;
+    let _guard = lock(shared).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     // A newer file is unavailable, never rewritten: the caller falls back to memory.
     let mut doc = load(shared)?;
     rebase_doc(&mut doc, entry.steps.iter().filter_map(|step| match step {
@@ -299,13 +305,13 @@ pub(crate) fn push_entry_generation(
     let Some(staged) = staged_to_fit(&doc) else {
         return Ok((PushResult::TooBig, None));
     };
-    store(shared, &staged.text()).map_err(|msg| eprintln!("flea: {}", msg))?;
+    store(shared, &staged.text()).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     Ok((PushResult::Stored, Some(doc.job_gen)))
 }
 
 // Every nonce the doc still names, so a journal drops handles for entries it no longer holds.
 pub(crate) fn live_nonces(shared: &Shared) -> Option<std::collections::HashSet<u64>> {
-    let _guard = lock(shared).map_err(|msg| eprintln!("flea: {}", msg)).ok()?;
+    let _guard = lock(shared).map_err(|msg| diagnostic(format_args!("{}", msg))).ok()?;
     let doc = load(shared).ok()?;
     let mut live = std::collections::HashSet::new();
     for entry in &doc.undo {
@@ -337,7 +343,7 @@ pub(crate) fn claim_undo_matching(
     shared: &Shared,
     token: Option<&super::undo::UndoToken>,
 ) -> Result<Option<(Entry, u64)>, ()> {
-    let _guard = lock(shared).map_err(|msg| eprintln!("flea: {}", msg))?;
+    let _guard = lock(shared).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     let mut doc = load(shared)?;
     if token.is_some_and(|key| {
         key.generation != Some(doc.job_gen) || doc.undo.last() != Some(&key.entry)
@@ -347,14 +353,14 @@ pub(crate) fn claim_undo_matching(
     let claimed = doc.undo.pop();
     if claimed.is_some() {
         doc.job_gen = doc.job_gen.wrapping_add(1);
-        store(shared, &Staged::new(&doc).text()).map_err(|msg| eprintln!("flea: {}", msg))?;
+        store(shared, &Staged::new(&doc).text()).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     }
     Ok(claimed.map(|entry| (entry, doc.push_gen)))
 }
 
 // The entry is spent whether the reversal worked or not; a replay lands only with no push since claim.
 pub(crate) fn finish_undone(shared: &Shared, entry: Option<Entry>, changes: &[(ItemIdentity, ItemIdentity)], claimed_gen: u64) -> Result<(), ()> {
-    let _guard = lock(shared).map_err(|msg| eprintln!("flea: {}", msg))?;
+    let _guard = lock(shared).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     let mut doc = load(shared)?;
     rebase_doc(&mut doc, changes.iter().map(|(old, new)| (old, new)));
     if let Some(entry) = entry {
@@ -377,7 +383,7 @@ pub(crate) fn finish_undone(shared: &Shared, entry: Option<Entry>, changes: &[(I
     if !staged.fits(MAX_FILE_BYTES) {
         return Ok(());
     }
-    store(shared, &staged.text()).map_err(|msg| eprintln!("flea: {}", msg))?;
+    store(shared, &staged.text()).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     Ok(())
 }
 
@@ -388,7 +394,7 @@ fn redo_error(msg: &str) -> FleaError {
 
 pub(crate) fn redo_info(shared: &Shared) -> Result<(String, usize), FleaError> {
     let _guard = lock(shared).map_err(|msg| {
-        eprintln!("flea: {}", msg);
+        diagnostic(format_args!("{}", msg));
         redo_error("the undo history could not be read")
     })?;
     let doc = load(shared).map_err(|()| redo_error("the undo history could not be read"))?;
@@ -402,19 +408,19 @@ pub(crate) fn redo_info(shared: &Shared) -> Result<(String, usize), FleaError> {
 }
 
 pub(crate) fn claim_redo(shared: &Shared) -> Result<Option<StoredRedo>, ()> {
-    let _guard = lock(shared).map_err(|msg| eprintln!("flea: {}", msg))?;
+    let _guard = lock(shared).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     let mut doc = load(shared)?;
     let claimed = doc.redo.pop();
     if claimed.is_some() {
         doc.job_gen = doc.job_gen.wrapping_add(1);
-        store(shared, &Staged::new(&doc).text()).map_err(|msg| eprintln!("flea: {}", msg))?;
+        store(shared, &Staged::new(&doc).text()).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     }
     Ok(claimed)
 }
 
 // Mirrors Journal::redo's tail: the redone entry rejoins the undo stack, and a failed redo clears it.
 pub(crate) fn finish_redone(shared: &Shared, entry: Entry, changes: &[(ItemIdentity, ItemIdentity)], failed: bool) -> Result<(), ()> {
-    let _guard = lock(shared).map_err(|msg| eprintln!("flea: {}", msg))?;
+    let _guard = lock(shared).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     let mut doc = load(shared)?;
     rebase_doc(&mut doc, changes.iter().map(|(old, new)| (old, new)));
     if !entry.steps.is_empty() {
@@ -428,7 +434,7 @@ pub(crate) fn finish_redone(shared: &Shared, entry: Entry, changes: &[(ItemIdent
         doc.redo.clear();
     }
     let Some(staged) = staged_to_fit(&doc) else { return Ok(()) };
-    store(shared, &staged.text()).map_err(|msg| eprintln!("flea: {}", msg))?;
+    store(shared, &staged.text()).map_err(|msg| diagnostic(format_args!("{}", msg)))?;
     Ok(())
 }
 

@@ -1,6 +1,93 @@
 use super::*;
 use crate::backend::testdir::TestDir;
 
+#[test]
+fn publisher_keeps_its_history_after_a_diagnostic_write_failure() {
+    use std::io::{Read, Write};
+    use std::os::unix::fs::PermissionsExt;
+    use std::process::{Command, Stdio};
+    const CHILD: &str = "FLEA_JOURNAL_DIAGNOSTIC_CHILD";
+    const TEST: &str =
+        "backend::renamework::tests::publisher_keeps_its_history_after_a_diagnostic_write_failure";
+    if std::env::var_os(CHILD).is_none() {
+        for broken in [false, true] {
+            let mut child = Command::new("/usr/bin/setsid")
+                .arg("-w")
+                .arg(std::env::current_exe().unwrap())
+                .env_clear()
+                .env("HOME", std::env::var_os("HOME").unwrap())
+                .env("TMPDIR", std::env::temp_dir())
+                .args(["--exact", TEST, "--nocapture"])
+                .env(CHILD, "1")
+                .stdin(Stdio::piped())
+                .stdout(Stdio::piped())
+                .stderr(if broken {
+                    Stdio::piped()
+                } else {
+                    Stdio::inherit()
+                })
+                .spawn()
+                .unwrap();
+            if broken {
+                drop(child.stderr.take());
+            }
+            child.stdin.take().unwrap().write_all(b"x").unwrap();
+            let output = child.wait_with_output().unwrap();
+            println!(
+                "broken_stderr={broken} status={}\n{}",
+                output.status,
+                String::from_utf8_lossy(&output.stdout)
+            );
+            assert!(
+                output.status.success(),
+                "journal publication must return its history even when stderr is closed"
+            );
+        }
+        return;
+    }
+    std::io::stdin().read_exact(&mut [0u8; 1]).unwrap();
+    let root = TestDir::new("publication-stderr");
+    let shared = root.dir("shared");
+    root.assert_contains(&shared);
+    std::fs::set_permissions(&shared, std::fs::Permissions::from_mode(0o700)).unwrap();
+    let (tx, rx) = std::sync::mpsc::channel();
+    let mut ops = Ops::new(tx);
+    ops.journal.attach_test_shared(shared.clone());
+    let older = root.file("older", "previous history");
+    ops.journal.push(Entry {
+        op: "older".into(),
+        steps: vec![Step::Created { path: older }],
+    });
+    let previous = std::fs::read(shared.join("undo-journal")).unwrap();
+    let lock = shared.join("undo-journal.lock");
+    assert!(lock.is_absolute() && !lock.as_os_str().is_empty());
+    root.assert_contains(&lock);
+    std::fs::remove_file(&lock).unwrap();
+    std::fs::create_dir(&lock).unwrap();
+    let source = root.file("before", "payload");
+    root.assert_contains(&source);
+    root.assert_contains(&root.join("after"));
+    let outcome = super::super::ops::rename(&source, "after");
+    assert!(outcome.is_ok());
+    ops.journal.reserve(77);
+    publish(&mut ops, Publication::Rename(77, outcome));
+    let event = rx
+        .recv_timeout(Duration::from_secs(2))
+        .expect("publisher must send JournalDone after the shared-lock error");
+    let mut out = Vec::new();
+    super::super::opsdispatch::report_op(&mut out, &mut ops, event);
+    assert!(ops.journal.deferred.is_none());
+    assert!(String::from_utf8_lossy(&out).contains("\"t\":\"renamed\""));
+    assert_eq!(
+        std::fs::read(shared.join("undo-journal")).unwrap(),
+        previous
+    );
+    root.assert_contains(&root.join("after"));
+    root.assert_contains(&source);
+    assert_eq!(ops.journal.undo().unwrap(), "rename");
+    assert_eq!(std::fs::read_to_string(source).unwrap(), "payload");
+}
+
 fn receive(out: &mut Vec<u8>, ops: &mut Ops, rx: &std::sync::mpsc::Receiver<OpMsg>) {
     let event = rx
         .recv_timeout(Duration::from_secs(5))

@@ -136,8 +136,8 @@ mod tests {
         land(&mut buf, &mut o, announced(id, &first));
         let mut next: Vec<u8> = Vec::new();
         start_trash(&mut next, &mut o, vec![missing.to_string_lossy().into()], 0);
-        assert!(String::from_utf8_lossy(&next).contains(r#""t":"trashstarted""#), "a second trash in the window acknowledges acceptance: {}", String::from_utf8_lossy(&next));
         let second = o.live.running().expect("the second trash claimed the slot");
+        assert_eq!(String::from_utf8_lossy(&next), format!(r#"{{"t":"trashstarted","id":{second},"n":1,"cancellable":false}}"#) + "\n", "a second trash acknowledges acceptance without any refusal or extra line");
         land(&mut buf, &mut o, journaled(id, &first));
         assert_eq!(o.live.running(), Some(second), "the first batch landing never frees the second batch's slot");
         let done = rx.recv_timeout(std::time::Duration::from_secs(10)).expect("the second trash reports");
