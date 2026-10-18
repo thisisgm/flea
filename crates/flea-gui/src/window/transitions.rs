@@ -10,6 +10,24 @@ impl Shell {
         self.panes.get(side)?.as_ref().map(|host| &host.pane)
     }
 
+    /// The pane this window draws on this side: the second only in the dual view.
+    pub(crate) fn shown_pane(&self, side: usize) -> Option<&super::pane::PaneHost> {
+        if side == 1 && self.view != super::startup::View::Dual {
+            return None;
+        }
+        self.panes.get(side)?.as_ref()
+    }
+
+    /// The loading mark is drawn while a listing is out past its hold, as LoadingState drew it.
+    pub(crate) fn mark_drawn(&self, side: usize) -> bool {
+        self.shown_pane(side).is_some_and(|host| {
+            let pane = &host.pane;
+            pane.busy()
+                && pane.state.kind == crate::pane::states::Kind::Loading
+                && pane.swap.fell_back
+        })
+    }
+
     pub fn pane_text(&self, side: usize) -> Option<&crate::pane::states::Text> {
         self.panes.get(side)?.as_ref().map(|host| &host.state_text)
     }
