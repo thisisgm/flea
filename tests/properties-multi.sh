@@ -14,3 +14,4 @@ cleanup() {
 }
 trap cleanup EXIT
 python3 tests/properties-multi.py "$test_root" "$BIN"
+printf '%s\n' 'properties-multi: PASS 9 protocol scenarios'
