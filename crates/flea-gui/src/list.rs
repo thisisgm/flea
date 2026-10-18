@@ -166,7 +166,14 @@ impl Element for ListElement {
         window: &mut Window,
         cx: &mut App,
     ) {
-        let style = window.text_style();
+        let mut style = window.text_style();
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        if style.background_color.is_none() {
+            style.color = theme.foreground;
+        }
         let font_size = style.font_size.to_pixels(window.rem_size());
         let width = row_bounds(bounds, 0).size.width;
         let key = TextKey {
@@ -196,11 +203,7 @@ impl Element for ListElement {
                 .line_height
                 .to_pixels(font_size.into(), window.rem_size()),
         );
-        // Derive the background from the inherited text tokens.
-        cache.background = style.background_color.unwrap_or(Hsla {
-            l: 1. - style.color.l,
-            ..style.color
-        });
+        cache.background = style.background_color.unwrap_or(theme.background);
         for (slot, text) in std::iter::once(&self.snapshot.title)
             .chain(self.snapshot.names.iter().take(count))
             .enumerate()
@@ -249,52 +252,5 @@ impl Element for ListElement {
 }
 
 #[cfg(test)]
-mod tests {
-    use super::*;
-    use gpui::{AvailableSpace, TestAppContext};
-
-    #[gpui::test]
-    fn list_element_lays_out_n_fixed_rows_for_n_names(cx: &mut TestAppContext) {
-        let cx = cx.add_empty_window();
-        for count in [0, 1, 7, 20] {
-            let snapshot = Rc::new(Snapshot {
-                title: "files".into(),
-                total: count,
-                start: 0,
-                listing: 1,
-                names: (0..count)
-                    .map(|index| format!("file-{index}").into())
-                    .collect(),
-            });
-            let cache = Rc::new(RefCell::new(NameCache::default()));
-            let height = px((count + 1) as f32 * ROW_HEIGHT);
-            cx.draw(
-                point(px(0.), px(0.)),
-                size(
-                    AvailableSpace::Definite(px(640.)),
-                    AvailableSpace::Definite(height),
-                ),
-                |_, _| ListElement::new(Rc::clone(&snapshot), Rc::clone(&cache)),
-            );
-            let bounds = cache.borrow().bounds;
-            assert_eq!(bounds.size.height, height);
-            assert_eq!(cache.borrow().prepared.len(), count + 1);
-            for index in 0..count {
-                let row = row_bounds(bounds, index + 1);
-                assert_eq!(row.size.height, px(31.));
-                assert_eq!(row.origin.y, px((index + 1) as f32 * 31.));
-            }
-            let first_line = Rc::clone(&cache.borrow().prepared[0]);
-            cx.draw(
-                point(px(0.), px(0.)),
-                size(
-                    AvailableSpace::Definite(px(640.)),
-                    AvailableSpace::Definite(height),
-                ),
-                |_, _| ListElement::new(snapshot, Rc::clone(&cache)),
-            );
-            assert_eq!(cache.borrow().entries.len(), count + 1);
-            assert!(Rc::ptr_eq(&first_line, &cache.borrow().prepared[0]));
-        }
-    }
-}
+#[path = "list_tests.rs"]
+mod tests;
