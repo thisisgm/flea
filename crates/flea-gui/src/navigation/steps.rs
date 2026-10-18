@@ -180,6 +180,11 @@ impl Navigator {
         let patch = self.folders.borrow_mut().toggle_hidden();
         self.persist(patch, failure);
         let path = pane.path().to_owned();
+        // A re-list of this folder is out and the pane cannot tell its answer from a newer one, so the new flag lists once it lands.
+        if pane.busy() && pane.place() == path {
+            self.relist_owed = true;
+            return Ok(false);
+        }
         self.open(pane, &path)
     }
 
@@ -264,10 +269,12 @@ impl Navigator {
     }
 
     pub(crate) fn landing_select(&mut self, pane: &mut Pane, selected: &mut Vec<usize>) {
+        // A search arms its return while the query stands, so its own landings leave it armed.
+        if pane.state.search {
+            return;
+        }
         if let Some(target) = self.pending_select.take() {
-            if !pane.state.search {
-                anchor::apply_select(pane, &target, selected);
-            }
+            anchor::apply_select(pane, &target, selected);
         }
     }
 }

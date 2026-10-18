@@ -176,6 +176,8 @@ impl Shell {
                     ),
                 };
                 if taken {
+                    let now = host.pane.now();
+                    host.nav.settle(&host.pane, now);
                     self.run_navigation(side, window, cx);
                     self.arm_watch(side, window, cx);
                     cx.notify();
@@ -184,7 +186,10 @@ impl Shell {
             }
             BackendEvent::Paths(paths) => {
                 if host.nav.take_paths(&mut host.pane, &paths) {
+                    let now = host.pane.now();
+                    host.nav.settle(&host.pane, now);
                     self.run_navigation(side, window, cx);
+                    self.arm_watch(side, window, cx);
                 }
                 return;
             }

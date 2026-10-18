@@ -128,3 +128,23 @@ fn folder_sizes_ask_only_unasked_visible_folders_and_follow_their_rows_by_name()
     assert!(!sort::wants_sizes("columns", &[], "network", true));
     assert!(!sort::wants_sizes("columns", &[], "local", false));
 }
+
+#[test]
+fn a_sort_after_a_resize_lands_its_reordered_window_at_the_count_it_asked_for() {
+    let (mut pane, mut nav, mut sel) = settled("/f/base", 1000);
+    pane.set_height(900.);
+    assert_eq!(nav.sort_next(&mut pane, &mut sel, String::new()), Ok(true));
+    let count = nav
+        .take()
+        .iter()
+        .find_map(|command| match command {
+            Command::Window { count, .. } => Some(*count),
+            _ => None,
+        })
+        .unwrap();
+    assert_eq!(count, pane.first_count(), "the window follows the live height");
+    let now = pane.now();
+    pane.receive_at(Reply::Listed { path: "/f/base".into(), total: 1000 }, now).unwrap();
+    let landed = pane.receive_at(Reply::Rows { start: 0, rows: rows(0, count, named), listing: 2 }, now);
+    assert_eq!(landed, Ok(true), "window count {count}");
+}

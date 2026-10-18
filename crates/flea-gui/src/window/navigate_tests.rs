@@ -41,3 +41,35 @@ fn shell_routes_steps_watch_notices_and_landings_through_one_navigator(cx: &mut 
         })
     });
 }
+
+#[gpui::test]
+fn a_resolved_anchor_pays_a_held_watch_debt(cx: &mut TestAppContext) {
+    let (backend, _requests) = Backend::test_channel();
+    let cx = cx.add_empty_window();
+    let entity = cx.update(|_, cx| cx.new(|cx| shell_with(backend, cx)));
+    cx.update(|window, cx| {
+        entity.update(cx, |shell, cx| {
+            let host = shell.panes[0].as_mut().unwrap();
+            let mut anchor = crate::navigation::anchor::Anchor::capture(&host.pane, &[], false, false);
+            anchor.locate = Some(7);
+            host.nav.anchor = Some(anchor);
+            let now = host.pane.now();
+            assert!(host.nav.changed(&host.pane, "/files", now));
+            assert!(!host.nav.fire_watch(&mut host.pane, &[], now + 400), "the anchor holds the re-read");
+            assert!(host.nav.watch.stale && host.nav.watch.due.is_none());
+            let located = crate::backend::Located {
+                directory: "/files".into(),
+                path: String::new(),
+                index: -1,
+                id: Some(7),
+                transfer: 0,
+                ok: true,
+                matches: Vec::new(),
+            };
+            shell.receive(0, BackendEvent::Located(located), window, cx);
+            let host = shell.panes[0].as_ref().unwrap();
+            assert!(host.nav.anchor.is_none(), "the batch reply resolved the anchor");
+            assert!(host.nav.watch.due.is_some(), "the held debt must be re-armed once nothing holds the rows");
+        })
+    });
+}
