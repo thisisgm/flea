@@ -77,7 +77,7 @@ fn an_in_process_open_refuses_a_binary_missing_its_bit_without_asking_gio() {
     std::fs::set_permissions(&elf, std::fs::Permissions::from_mode(0o644)).expect("its run bit is off");
     let (path, log) = stub_gio(&dir);
     let out = run_child("FLEA_TEST_OPEN", &elf, path);
-    assert_eq!(out.status.code(), Some(super::FAILED), "the binary is refused");
+    assert_eq!(out.status.code(), Some(crate::runfile::NOT_EXECUTABLE), "the binary is refused under its own status");
     assert!(String::from_utf8_lossy(&out.stderr).contains("that file is a program"), "with the program sentence: {}", String::from_utf8_lossy(&out.stderr));
     let calls = std::fs::read_to_string(&log).unwrap_or_default();
     assert!(!calls.contains("gio open"), "gio was never asked to open it: {calls}");
@@ -164,11 +164,40 @@ fn a_window_open_refuses_a_binary_missing_its_bit_without_a_card() {
         let target = fixture(&dir, name, &bytes, 0o644);
         let (path, log) = stub_gio(&dir);
         let out = run_child_with("FLEA_TEST_OPEN_ASK", target.as_os_str(), path, &[("FLEA_STUB_OPEN", "0".as_ref())]);
-        assert_eq!(out.status.code(), Some(super::FAILED), "{} is refused", target.display());
+        assert_eq!(out.status.code(), Some(crate::runfile::NOT_EXECUTABLE), "{} is refused under its own status", target.display());
         assert!(!String::from_utf8_lossy(&out.stdout).contains(r#""ask""#), "no card was asked for");
         assert!(String::from_utf8_lossy(&out.stderr).contains("that file is a program"), "with the program sentence");
         assert!(!std::fs::read_to_string(&log).unwrap_or_default().contains("gio open"), "gio was never asked to open it");
     }
+}
+
+// The mount table a box without a noexec volume reads: every path below it allows running.
+const MOUNTS: &str = "1 0 8:1 / / rw - ext4 /dev/a rw\n";
+
+// A binary missing its bit answers its own status and never the generic failure the window words as a missing application.
+#[test]
+fn a_binary_missing_its_bit_answers_its_own_status() {
+    let mut elf = b"\x7fELF\x02\x01\x01".to_vec();
+    elf.resize(64, 0);
+    for (name, bytes) in [("tool", elf), ("app.AppImage", appimage_bytes())] {
+        let dir = crate::backend::testdir::TestDir::new("open-unbit-status");
+        let target = fixture(&dir, name, &bytes, 0o644);
+        let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
+        assert_eq!(super::open_snapshot(&target, &opened, true, MOUNTS), crate::runfile::NOT_EXECUTABLE, "{} answers its own status", name);
+    }
+}
+
+// A program on a noexec volume answers the run card's status, and the same program on a volume that allows running still asks.
+#[test]
+fn a_program_on_a_noexec_volume_answers_the_run_card_status() {
+    let mut elf = b"\x7fELF\x02\x01\x01".to_vec();
+    elf.resize(64, 0);
+    let dir = crate::backend::testdir::TestDir::new("open-noexec-status");
+    let target = fixture(&dir, "tool", &elf, 0o755);
+    let opened = crate::runid::snapshot(&target).expect("the fixture is readable");
+    let noexec = format!("1 0 8:1 / / rw - ext4 /dev/a rw\n2 1 0:99 / {} rw,noexec - tmpfs tmpfs rw\n", dir.path().display());
+    assert_eq!(super::open_snapshot(&target, &opened, true, &noexec), crate::runfile::RUN_NOEXEC, "the noexec volume refuses under the card's status");
+    assert_eq!(super::open_snapshot(&target, &opened, true, MOUNTS), crate::runfile::ASK_RUN, "the same program on an exec volume asks");
 }
 
 // F3: an application uninstalled between the ask and the press answers its own exit, and nothing is launched.
