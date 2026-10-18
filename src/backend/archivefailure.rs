@@ -16,10 +16,19 @@ fn signal_name(signal: i32) -> Option<&'static str> {
 const BWRAP_SIGNAL_BASE: i32 = 128;
 
 // bsdtar's generic last line after member errors, which says nothing about which member failed.
-const DELAYED_ERRORS: &str = "Error exit delayed from previous errors.";
+pub(crate) const DELAYED_ERRORS: &str = "Error exit delayed from previous errors.";
+// bsdtar's warning about a header it skipped, which never says why the extract failed.
+const IGNORING: &str = "Ignoring ";
+// bsdtar's note that it is resyncing after damage, printed after the damage error itself.
+const RETRYING: &str = "Retrying...";
+
+// Whether the text after bsdtar's own prefix is a warning or retry note, which never says why the extract failed.
+pub(crate) fn tool_note(text: &str) -> bool {
+    text.starts_with(IGNORING) || text == RETRYING
+}
 
 // Sample: "bsdtar: Ignoring malformed pax extended attributes\nblocked/child: Could not stat blocked/child: Not a directory\nbsdtar: Error exit delayed from previous errors."
-// Issue #211: the last non-blank stderr line diagnoses; under that trailer, the first line without the trailer's tool prefix; otherwise the status does.
+// Issue #211: the last non-blank stderr line diagnoses; under that trailer, the first line without the trailer's tool prefix, else the first prefixed line that is no warning or retry note; otherwise the status does.
 pub(crate) fn failure_message(what: &str, status: &ExitStatus, stderr: &str) -> String {
     // A blank line is not a diagnosis.
     let mut lines = stderr.lines().map(str::trim).filter(|line| !line.is_empty());
@@ -28,9 +37,12 @@ pub(crate) fn failure_message(what: &str, status: &ExitStatus, stderr: &str) -> 
         let Some(tool) = last.strip_suffix(DELAYED_ERRORS) else {
             return last.to_string();
         };
-        // corner: a member error whose own name starts like that prefix reads as a warning, and the first line then answers.
-        let member = std::iter::once(first).chain(lines).find(|line| tool.is_empty() || !line.starts_with(tool));
-        return member.unwrap_or(first).to_string();
+        let mut kept = std::iter::once(first).chain(lines);
+        // corner: a member error whose own name starts like that prefix reads as a tool line, and the archive-level rule below then judges it.
+        let member = kept.clone().find(|line| tool.is_empty() || !line.starts_with(tool));
+        // An archive-level error carries that prefix too, so only the warnings and retry notes beside it are passed over.
+        let archive = kept.find(|line| line.strip_prefix(tool).is_some_and(|text| !tool_note(text)));
+        return member.or(archive).unwrap_or(first).to_string();
     }
     let killed = |signal: i32| match signal_name(signal) {
         Some(name) => format!("the {} tool stopped before it finished (signal {})", what, name),

@@ -1,6 +1,6 @@
 // The extraction-only runner samples progress while preserving the archive jail and cancellation drain.
 use super::archivepass::{Prompt, SevenFailure};
-use super::archivework::{cancel_failure, failure_message, Work, SANDBOX_MISSING};
+use super::archivework::{cancel_failure, failure_message, tool_note, Work, DELAYED_ERRORS, SANDBOX_MISSING};
 use super::extractprogress::Progress;
 use super::opsreq::{op_err, OpMsg};
 use super::{jail, sandbox};
@@ -18,8 +18,10 @@ pub(crate) const LINE_LIMIT: usize = 65_536;
 const POLL: Duration = Duration::from_millis(50);
 // Each kept diagnostic line is cut to this many characters.
 const DIAGNOSTIC_CHARS: usize = 4096;
-// The first member errors are kept apart from progress lines, so a later member never replaces the cause.
+// The first member errors are kept apart from progress lines and bsdtar's own lines, so neither a later member nor a warning replaces the cause.
 const MEMBER_ERRORS: usize = 8;
+// bsdtar names itself before its own lines: warnings, archive-level errors and the delayed-error trailer.
+const TOOL_PREFIX: &str = "bsdtar: ";
 
 pub(crate) struct Command<'a> {
     pub inner: Vec<String>,
@@ -128,19 +130,24 @@ pub(crate) fn run(
 // The progress a pipe feeds, the staging directory it samples, and whether the tool is 7z.
 type Observation<'a> = (&'a Mutex<Progress>, &'a Path, bool);
 
-// The first MEMBER_ERRORS diagnostic lines and the last one, never a bsdtar "x name" progress line.
+// The first MEMBER_ERRORS member errors, bsdtar's own first line and first diagnosis, and the last line; never a bsdtar "x name" progress line.
 #[derive(Default)]
 struct Diagnostics {
     first: Vec<String>,
+    // bsdtar's own first line, then its first line that is no warning or retry note when the first one was.
+    tool: Vec<String>,
+    diagnosed: bool,
     last: String,
 }
 
 impl Diagnostics {
-    fn text(mut self) -> String {
-        if !self.last.is_empty() && self.first.last() != Some(&self.last) {
-            self.first.push(self.last);
+    fn text(self) -> String {
+        let mut lines = self.tool;
+        lines.extend(self.first);
+        if !self.last.is_empty() && lines.last() != Some(&self.last) {
+            lines.push(self.last);
         }
-        self.first.join("\n")
+        lines.join("\n")
     }
 }
 
@@ -193,8 +200,10 @@ fn complete_line(bytes: &[u8], progress: Option<Observation<'_>>, diagnostics: &
     if let Some((progress, stage, seven)) = progress {
         progress.lock().unwrap().line(text, seven, stage);
     }
+    // Only bsdtar's stderr is observed; 7z's stderr is read with no observation and never carries bsdtar's prefix or trailer.
+    let bsdtar = matches!(progress, Some((_, _, false)));
     let line = match text.strip_prefix("x ") {
-        Some(member) if matches!(progress, Some((_, _, false))) => {
+        Some(member) if bsdtar => {
             if !member.contains(": ") {
                 return;
             }
@@ -206,8 +215,18 @@ fn complete_line(bytes: &[u8], progress: Option<Observation<'_>>, diagnostics: &
     if line.is_empty() {
         return;
     }
-    if diagnostics.first.len() < MEMBER_ERRORS {
-        diagnostics.first.push(line.clone());
+    match line.strip_prefix(TOOL_PREFIX).filter(|_| bsdtar) {
+        // The trailer is kept only as the last line.
+        Some(DELAYED_ERRORS) => {}
+        Some(own) => {
+            let note = tool_note(own);
+            if diagnostics.tool.is_empty() || !note && !diagnostics.diagnosed {
+                diagnostics.tool.push(line.clone());
+            }
+            diagnostics.diagnosed |= !note;
+        }
+        None if diagnostics.first.len() < MEMBER_ERRORS => diagnostics.first.push(line.clone()),
+        None => {}
     }
     diagnostics.last = line;
 }
@@ -298,20 +317,58 @@ mod tests {
         assert_eq!(message, "a/b: Can't create 'a/b': Not a directory");
     }
 
+    #[test]
+    fn an_archive_level_error_wins_over_a_tool_warning_before_it() {
+        let progress = Mutex::new(Progress::new(Index::default(), false));
+        let stderr = b"bsdtar: Ignoring malformed pax extended attributes\nx a\nbsdtar: Damaged tar archive\nbsdtar: Retrying...\nbsdtar: Damaged tar archive\nbsdtar: Retrying...\nbsdtar: Error exit delayed from previous errors.\n";
+        let text = read(stderr.as_slice(), Some((&progress, Path::new("/nonexistent"), false)));
+        let status = std::process::ExitStatus::from_raw(256);
+        assert_eq!(failure_message("archive", &status, &text), "bsdtar: Damaged tar archive");
+        let notes = "bsdtar: Ignoring malformed pax extended attributes\nbsdtar: Retrying...\nbsdtar: Error exit delayed from previous errors.";
+        assert_eq!(failure_message("archive", &status, notes), "bsdtar: Ignoring malformed pax extended attributes");
+    }
+
+    #[test]
+    fn nine_tool_warnings_never_crowd_out_a_member_error() {
+        let status = std::process::ExitStatus::from_raw(256);
+        let warnings = "bsdtar: Ignoring malformed pax extended attribute\n".repeat(9);
+        let causes = ["a/b: Could not stat a/b: Not a directory", "bsdtar: Damaged tar archive"];
+        let answers = causes.map(|cause| {
+            let progress = Mutex::new(Progress::new(Index::default(), false));
+            let stderr = format!("{warnings}{cause}\nbsdtar: Error exit delayed from previous errors.\n");
+            failure_message("archive", &status, &read(stderr.as_bytes(), Some((&progress, Path::new("/nonexistent"), false))))
+        });
+        assert_eq!(answers, causes);
+    }
+
+    // Real bsdtar -v -x over a USTAR tar that opens with a malformed pax header and whose bytes `d` the Python line `damage` edits; returns stderr and the reply.
+    fn real_bsdtar(tag: &str, names: &str, damage: &str) -> (String, String) {
+        let root = TestDir::new(tag);
+        root.dir("out");
+        let archive = root.join("bad.tar");
+        let script = format!("import io,sys,tarfile\nwith tarfile.open(sys.argv[1], 'w', format=tarfile.USTAR_FORMAT) as t:\n x=tarfile.TarInfo('pax');x.type=tarfile.XHDTYPE;x.size=8;t.addfile(x,io.BytesIO(b'garbage\\n'))\n for name in {names}:\n  m=tarfile.TarInfo(name);m.size=1;t.addfile(m,io.BytesIO(b'x'))\nd=bytearray(open(sys.argv[1],'rb').read())\n{damage}\nopen(sys.argv[1],'wb').write(d)");
+        assert!(std::process::Command::new("/usr/bin/python3").args(["-c", &script]).arg(&archive).status().unwrap().success());
+        let output = std::process::Command::new("bsdtar").args(["-v", "-x", "-f"]).arg(&archive).arg("-C").arg(root.join("out")).output().unwrap();
+        assert!(!output.status.success());
+        let stderr = String::from_utf8_lossy(&output.stderr).into_owned();
+        assert!(stderr.starts_with("bsdtar: Ignoring malformed pax"), "{stderr}");
+        let progress = Mutex::new(Progress::new(Index::default(), false));
+        let text = read(output.stderr.as_slice(), Some((&progress, &root.join("out"), false)));
+        (stderr, failure_message("archive", &output.status, &text))
+    }
+
     // The acceptance case: real bsdtar warns, reports the member error mid-stream and ends on its generic trailer.
     #[test]
     fn a_real_bsdtar_member_error_survives_the_delayed_error_trailer() {
-        let root = TestDir::new("extractmembererror");
-        root.dir("out");
-        let archive = root.join("bad.tar");
-        let script = "import io,sys,tarfile\nwith tarfile.open(sys.argv[1], 'w', format=tarfile.USTAR_FORMAT) as t:\n x=tarfile.TarInfo('pax');x.type=tarfile.XHDTYPE;x.size=8;t.addfile(x,io.BytesIO(b'garbage\\n'))\n for name in ('blocked', 'blocked/child', 'lastfile'):\n  m=tarfile.TarInfo(name);m.size=1;t.addfile(m,io.BytesIO(b'x'))";
-        assert!(std::process::Command::new("/usr/bin/python3").args(["-c", script]).arg(&archive).status().unwrap().success());
-        let output = std::process::Command::new("bsdtar").args(["-v", "-x", "-f"]).arg(&archive).arg("-C").arg(root.join("out")).output().unwrap();
-        assert!(!output.status.success());
-        assert!(output.stderr.starts_with(b"bsdtar: Ignoring malformed pax"), "{}", String::from_utf8_lossy(&output.stderr));
-        let progress = Mutex::new(Progress::new(Index::default(), false));
-        let text = read(output.stderr.as_slice(), Some((&progress, &root.join("out"), false)));
-        let message = failure_message("archive", &output.status, &text);
+        let (_, message) = real_bsdtar("extractmembererror", "('blocked', 'blocked/child', 'lastfile')", "pass");
         assert!(message.starts_with("blocked/child: ") && message.contains("Not a directory"), "{message}");
+    }
+
+    // A damaged header is an archive-level error, so bsdtar gives it the same prefix as its warnings, and it still answers.
+    #[test]
+    fn a_real_bsdtar_damaged_archive_answers_over_its_warning() {
+        let (stderr, message) = real_bsdtar("extractdamaged", "('a', 'b')", "assert d[2048:2049]==b'b';d[2196:2204]=b'9999999\\0'");
+        assert!(stderr.contains("bsdtar: Retrying..."), "{stderr}");
+        assert_eq!(message, "bsdtar: Damaged tar archive", "{stderr}");
     }
 }
