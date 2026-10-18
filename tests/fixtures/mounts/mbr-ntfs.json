@@ -1,0 +1,71 @@
+{
+  "drives": {
+    "/drives/data": {
+      "Removable": false,
+      "MediaRemovable": false,
+      "ConnectionBus": "ata",
+      "Model": "WDC WD20EZRZ-00Z5HB0",
+      "CanPowerOff": false
+    }
+  },
+  "blocks": {
+    "/blocks/sdb": {
+      "Block": {
+        "Device": "/dev/sdb",
+        "Drive": "/drives/data",
+        "Size": 1000000,
+        "HintIgnore": false,
+        "HintSystem": false,
+        "IdUsage": "",
+        "IdType": "",
+        "IdLabel": "",
+        "IdUUID": "sdb"
+      },
+      "PartitionTable": {
+        "Type": "dos"
+      }
+    },
+    "/blocks/sdb1": {
+      "Block": {
+        "Device": "/dev/sdb1",
+        "Drive": "/drives/data",
+        "Size": 1000000,
+        "HintIgnore": false,
+        "HintSystem": false,
+        "IdUsage": "filesystem",
+        "IdType": "ntfs",
+        "IdLabel": "System Reserved",
+        "IdUUID": "sdb1"
+      },
+      "Filesystem": {
+        "MountPoints": []
+      },
+      "Partition": {
+        "Type": "0x7",
+        "Table": "/blocks/sdb"
+      }
+    },
+    "/blocks/sdb2": {
+      "Block": {
+        "Device": "/dev/sdb2",
+        "Drive": "/drives/data",
+        "Size": 1000000,
+        "HintIgnore": false,
+        "HintSystem": false,
+        "IdUsage": "filesystem",
+        "IdType": "ntfs3",
+        "IdLabel": "Data",
+        "IdUUID": "sdb2"
+      },
+      "Filesystem": {
+        "MountPoints": [
+          "/mnt/data"
+        ]
+      },
+      "Partition": {
+        "Type": "0x7",
+        "Table": "/blocks/sdb"
+      }
+    }
+  }
+}
