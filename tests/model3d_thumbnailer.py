@@ -11,6 +11,9 @@ data = source.read_bytes()
 assert data[:8] == b"\x89PNG\r\n\x1a\n"
 width, height, bits, color, compression, filtering, interlace = struct.unpack_from(">IIBBBBB", data, 16)
 assert (bits, color, compression, filtering, interlace) == (8, 6, 0, 0, 0)
+# The protocol test's marker sits beside this file outside the jail, so seeing it means the decoder ran unsandboxed.
+jailed = not Path(__file__).with_name(".flea-test-sandbox").exists()
+# Sample input: the 8-byte PNG signature, then chunks of u32be length, 4-byte type, payload and u32be CRC32 of type and payload.
 at = 8
 compressed = bytearray()
 while at < len(data):
@@ -42,6 +45,6 @@ def chunk(kind, payload):
 
 
 encoded = b"\x89PNG\r\n\x1a\n" + chunk(b"IHDR", struct.pack(">IIBBBBB", w, h, 8, 6, 0, 0, 0))
-encoded += chunk(b"tEXt", b"Model3D-Test-Decoder\0sandboxed") + chunk(b"IDAT", zlib.compress(resized)) + chunk(b"IEND", b"")
+encoded += chunk(b"tEXt", b"Model3D-Test-Decoder\0" + (b"sandboxed" if jailed else b"outside-sandbox")) + chunk(b"IDAT", zlib.compress(resized)) + chunk(b"IEND", b"")
 with output.open("wb") as file:
     file.write(encoded)

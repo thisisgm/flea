@@ -150,3 +150,58 @@ fn vendor_macro_skips_do_not_hide_malformed_motion_words() {
         assert!(parse("bgcode",&binary).is_err(),"{command}");
     }
 }
+
+// Signed area of each triangle in the z = 0 plane, positive for the counter-clockwise winding the faces below use.
+fn plane_areas(model: &Model) -> Vec<f64> {
+    model.triangles.iter().map(|t| {
+        let [a,b,c] = t.vertices.map(|v| model.vertices[v as usize].position.map(f64::from));
+        ((b[0]-a[0])*(c[1]-a[1])-(b[1]-a[1])*(c[0]-a[0]))/2.
+    }).collect()
+}
+
+#[test]
+fn polygon_revisited_corners_keep_their_outline() {
+    let faces: [(&str,&[u8],f64); 3] = [
+        ("keyhole",b"v 0 0 0\nv 4 0 0\nv 4 4 0\nv 0 4 0\nv 1 1 0\nv 1 3 0\nv 3 3 0\nv 3 1 0\nf 1 2 3 4 1 5 6 7 8 5\n",12.),
+        ("pinch",b"v 0 0 0\nv 2 0 0\nv 2 2 0\nv 0 0 0\nv -2 0 0\nv -1 -2 0\nf 1 2 3 4 5 6\n",4.),
+        ("three lobes",b"v 0 0 0\nv 2 0 0\nv 2 1 0\nv -1 2 0\nv -2 2 0\nv -1 -2 0\nv 0 -2 0\nf 1 2 3 1 4 5 1 6 7\n",3.),
+    ];
+    for (name,source,outline) in faces {
+        let model = parse("obj",source).unwrap_or_else(|reason| panic!("{name}: {reason}"));
+        let areas = plane_areas(&model);
+        assert!(areas.iter().all(|&a| a > 0.),"{name}: a triangle left the face winding: {areas:?}");
+        let covered: f64 = areas.iter().sum();
+        assert!((covered-outline).abs() < 1e-9,"{name}: triangles cover {covered} mm2 where the outline holds {outline}");
+    }
+}
+
+#[test]
+fn gcode_slicer_start_lines_keep_geometry() {
+    let start = ["M862.3 P \"MK4\" ; printer model check","M862.6 P\"Input shaper\"","M115 U5.1.2+13478","M117 Hello","M486 AShape-Box",
+        "M555 X95 Y76 W60 H60","M17 ; enable steppers","M82 ;absolute extrusion mode","M117 Printing...","M205 X10 Y10","T0",
+        "M1002 gcode_claim_action : 2","M73.2   R1.0","G29.1 Z0","M620 S0A","M9833.2","G392 S0","G380 S2 Z-25 F300","T255","N4 M862.3 P \"MK4\"*61"];
+    let mut failures = Vec::new();
+    for line in start {
+        let source = format!("{line}\nG90\nM83\nG1 X10 E1 F1200\n");
+        for format in ["gcode","bgcode"] {
+            let bytes = if format == "gcode" { source.as_bytes().to_vec() } else { bgcode(0,0,source.as_bytes(),source.len()) };
+            match parse(format,&bytes) {
+                Ok(model) if model.segments.len() == 1 => {}
+                other => failures.push(format!("{format} {line}: {:?}",other.map(|m| m.segments.len()))),
+            }
+        }
+    }
+    assert!(failures.is_empty(),"{}",failures.join("; "));
+}
+
+#[test]
+fn optional_xml_with_a_control_character_keeps_valid_geometry() {
+    let files = zip::unpack(&testdata::project()).unwrap();
+    let mut entries: Vec<(&str,&[u8])> = files.iter().map(|(p,b)| (p.as_str(),b.as_slice())).collect();
+    entries.push(("Metadata/extra.xml",b"<a>\x0c</a>"));
+    let parsed = parse("3mf",&archive(&entries));
+    assert!(parsed.is_ok(),"optional metadata with a control byte: {:?}",parsed.err());
+    let required = [("Metadata/model_settings.config".into(),b"<config>\x0c</config>".to_vec())].into();
+    let refused = projectmeta::read(&required,&mut Model::default()).err();
+    assert!(refused.as_deref().is_some_and(|e| e.contains("control")),"required plate metadata with a control byte: {refused:?}");
+}

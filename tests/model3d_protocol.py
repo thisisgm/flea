@@ -1,4 +1,7 @@
+import atexit
 import binascii
+import collections
+import hashlib
 import json
 import os
 from pathlib import Path
@@ -19,12 +22,29 @@ root = Path(tempfile.mkdtemp(prefix="model3d-protocol.", dir=parent))
 assert root.is_absolute() and root.is_relative_to(parent)
 marker = root / ".flea-test-sandbox"
 marker.write_text("3D protocol integration sandbox\n")
+REPLY_TIMEOUT_S = 30
+STDERR_LINES_KEPT = 200
+THUMB_TABLE = "flea-3d-v2"
+
+
+# Every exit path removes the sandbox, checked absolute, marked and inside the parent it was made in.
+def remove_root():
+    assert str(root) and root.is_absolute() and root.is_relative_to(parent) and root != parent and marker.is_file()
+    shutil.rmtree(root)
+
+
+atexit.register(remove_root)
 
 
 def owned(name):
     path = root / name
     assert marker.is_file() and path.is_absolute() and path.is_relative_to(root) and ".." not in path.parts
     return path
+
+
+# The thumbnail cache names an entry by the MD5 of the file's URI, under fail/flea or large.
+def cache_entry(kind, path):
+    return owned("cache/thumbnails") / kind / (hashlib.md5(path.as_uri().encode()).hexdigest() + ".png")
 
 
 def png(width, height, stream=None):
@@ -58,17 +78,27 @@ class Session:
         environment = {"PATH": path if path is not None else os.defpath, "HOME": str(home), "XDG_CACHE_HOME": str(owned("cache")), "XDG_CONFIG_HOME": str(owned("config")), "XDG_DATA_HOME": str(owned("data"))}
         self.child = subprocess.Popen([str(binary), "--backend"], env=environment, stdin=subprocess.PIPE, stdout=subprocess.PIPE, stderr=subprocess.PIPE, text=True)
         self.lines = queue.Queue()
+        self.errors = collections.deque(maxlen=STDERR_LINES_KEPT)
         threading.Thread(target=self.read, daemon=True).start()
+        threading.Thread(target=self.drain, daemon=True).start()
 
     def read(self):
         for line in self.child.stdout:
             self.lines.put(json.loads(line))
 
+    # Backend stderr is read as it comes, so a full pipe never blocks the backend; the tail explains a missing reply.
+    def drain(self):
+        for line in self.child.stderr:
+            self.errors.append(line)
+
     def ask(self, command, kind):
         self.child.stdin.write(json.dumps(command) + "\n")
         self.child.stdin.flush()
         while True:
-            result = self.lines.get(timeout=30)
+            try:
+                result = self.lines.get(timeout=REPLY_TIMEOUT_S)
+            except queue.Empty:
+                raise AssertionError(f"no {kind} reply within {REPLY_TIMEOUT_S} s; backend stderr tail:\n{''.join(self.errors)}") from None
             if result.get("t") == kind:
                 return result
 
@@ -151,14 +181,18 @@ else:
         failed = session.ask({"c": "model3d", "slot": "look", "token": 9, "path": str(path)}, "model3d")
         assert failed["state"] == "failed" and failed["message"] == "This file cannot be previewed."
         assert session.ask({"c": "model3d", "slot": "look", "token": 10, "cancel": True}, "model3d")["state"] == "cancelled"
-        # A mesh with no embedded image gets no thumbnail, and a repeat of that request is answered from the failure record.
+        # A mesh with no embedded image gets no thumbnail but a failure record under the 3D table, which a repeat request reads.
         bare_row = next(i for i, item in enumerate(rows) if item["n"] == bare.name)
         assert rows[bare_row]["t"] is True
         assert session.ask({"c": "thumb", "rows": [bare_row]}, "thumbed")["file"] == ""
+        record = cache_entry("fail/flea", bare).read_bytes()
+        assert f"X-Flea-Table\0{THUMB_TABLE}".encode() in record, record
+        assert f"Thumb::MTime\0{bare.stat().st_mtime_ns // 10**9}".encode() in record, record
         assert session.ask({"c": "thumb", "rows": [bare_row], "cacheOnly": True}, "thumbed")["file"] == ""
         # An embedded PNG whose pixel stream does not decode is refused by the sandboxed decoder and publishes nothing.
         broken_row = next(i for i, item in enumerate(rows) if item["n"] == broken.name)
         assert session.ask({"c": "thumb", "rows": [broken_row]}, "thumbed")["file"] == ""
+        assert not cache_entry("large", broken).exists()
         assert session.ask({"c": "thumb", "rows": [broken_row], "cacheOnly": True}, "thumbed")["file"] == ""
     finally:
         session.close()
