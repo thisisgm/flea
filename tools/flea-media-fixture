@@ -1,9 +1,13 @@
 #!/bin/bash
 # Builds the media fixture, see AGENTS.md "Fixtures".
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 # Hard rule 9's guard owns FIXTURE_ROOT and every absolute, root and containment check below. The
 # marker stays this fixture's own name, so a media build can never delete a matched fixture.
-. "$(LC_ALL=C LANGUAGE= dirname "$0")/../tools/flea-sandbox-guard"
+. "$(dirname "$0")/../tools/flea-sandbox-guard"
 
 
 dir=${DIR:-$FIXTURE_ROOT/flea-media-btrfs}
@@ -62,10 +66,10 @@ if [ "$count" -lt "$mix_period" ]; then
 fi
 
 sandbox_require "$dir"
-parent=$(LC_ALL=C LANGUAGE= dirname "$dir")
+parent=$(dirname "$dir")
 
 # corner: tmpfs pages are the filesystem, so drop_caches cannot evict them, see AGENTS.md "Fixtures".
-fs=$(LC_ALL=C LANGUAGE= findmnt -no FSTYPE -T "$parent" 2>/dev/null)
+fs=$(findmnt -no FSTYPE -T "$parent" 2>/dev/null)
 if [ -z "$fs" ]; then
   fail "findmnt could not name the filesystem holding $parent"
 fi
@@ -137,10 +141,10 @@ done
 rm -f "$seed_png" "$seed_jpg" "$seed_webp" "$seed_heic" "$seed_mp4" "$seed_mkv" "$seed_webm"
 
 # ls skips the dotfile marker, so this counts exactly the files the mix was asked for.
-built=$(LC_ALL=C LANGUAGE= ls "$dir" | LC_ALL=C LANGUAGE= wc -l)
+built=$(ls "$dir" | wc -l)
 if [ "$built" -ne "$count" ]; then
   fail "built $built files in $dir, not $count"
 fi
 
 sync
-echo "flea-media-fixture: $built files in $dir on $(LC_ALL=C LANGUAGE= findmnt -no FSTYPE -T "$dir")"
+echo "flea-media-fixture: $built files in $dir on $(findmnt -no FSTYPE -T "$dir")"

@@ -1,12 +1,12 @@
 #!/usr/bin/env bash
 # Times one share opened through two routes, the kernel mount and the GVFS FUSE path, each in a fresh Flea, interleaved so drift hits both.
 set -uo pipefail
-. "$(LC_ALL=C LANGUAGE= dirname "$0")/flea-sandbox-guard"
-repo=$(cd "$(LC_ALL=C LANGUAGE= dirname "$0")/.." && pwd)
+. "$(dirname "$0")/flea-sandbox-guard"
+repo=$(cd "$(dirname "$0")/.." && pwd)
 
 # Prints the usage, env, output and sample row; a bad argument sends it to stderr.
 usage() {
-  LC_ALL=C LANGUAGE= cat <<'EOU'
+  cat <<'EOU'
 Usage: flea-share-route KERNEL_PATH GVFS_PATH [RUNS]   (RUNS defaults to 9)
        flea-share-route --dry-run [RUNS]               (proves the script on stubs, RUNS defaults to 3)
 Env: FLEA_BIN (default target/release/flea), FLEA_UI (default ui), PRE_RUN (a shell line run before every launch, for dropping caches),
@@ -34,7 +34,7 @@ FLEA_UI=${FLEA_UI:-$repo/ui}
 LISTED_TIMEOUT_MS=${LISTED_TIMEOUT_MS:-60000}
 
 # A marked sandbox of its own holds the per-run state, the CSV and the dry run's fixtures; cleanup deletes only that.
-root=$(LC_ALL=C LANGUAGE= mktemp -d "$FIXTURE_ROOT/flea-share-route-XXXXXX") || exit 1
+root=$(mktemp -d "$FIXTURE_ROOT/flea-share-route-XXXXXX") || exit 1
 case $root in /*/*) ;; *) echo "flea-share-route: mktemp gave '$root'" >&2; exit 1 ;; esac
 sandbox_require "$root" || exit 1
 : > "$root/$SANDBOX_MARKER" || exit 1
@@ -43,7 +43,7 @@ flea_pid=""
 stop_flea() {
   [ "$1" -gt 0 ] 2>/dev/null || return 0
   kill -- "-$1" 2>/dev/null
-  LC_ALL=C LANGUAGE= timeout 10 tail --pid="$1" -f /dev/null
+  timeout 10 tail --pid="$1" -f /dev/null
   wait "$1" 2>/dev/null
   return 0
 }
@@ -72,9 +72,9 @@ else
 fi
 
 # A live process, not a zombie that nothing has reaped yet.
-alive() { local s; s=$(LC_ALL=C LANGUAGE= ps -o stat= -p "$1" 2>/dev/null) && [ -n "$s" ] && [ "${s:0:1}" != Z ]; }
-ipc() { LC_ALL=C LANGUAGE= timeout 2 qs ipc --pid "$qpid" call flea "$@" 2>/dev/null; }
-now_ms() { LC_ALL=C LANGUAGE= date +%s%3N; }
+alive() { local s; s=$(LC_ALL=C.UTF-8 LANGUAGE= ps -o stat= -p "$1" 2>/dev/null) && [ -n "$s" ] && [ "${s:0:1}" != Z ]; }
+ipc() { LC_ALL=C.UTF-8 LANGUAGE= timeout 2 qs ipc --pid "$qpid" call flea "$@" 2>/dev/null; }
+now_ms() { LC_ALL=C.UTF-8 LANGUAGE= date +%s%3N; }
 out=${OUT:-$root/share-route.csv}
 echo "route,run,listed_ms,first_rows_ms,rows" | tee "$out"
 
@@ -107,14 +107,14 @@ one_run() {
   if [ "$dry" = yes ]; then
     # The stub's child outlives the stub, so a stop that signals the pid alone leaves it running.
     local child i
-    child=$(LC_ALL=C LANGUAGE= cat "$root/stub/child.pid")
+    child=$(cat "$root/stub/child.pid")
     for i in 1 2 3 4 5 6 7 8 9 10; do alive "$child" || break; sleep 0.1; done
     if [ -n "$child" ] && alive "$child"; then echo "flea-share-route: stop_flea left the stub child $child running" >&2; return 1; fi
   fi
   flea_pid=""
 }
 
-for run in $(LC_ALL=C LANGUAGE= seq 1 "$runs"); do
+for run in $(seq 1 "$runs"); do
   one_run kernel "$kernel_path" "$run" || exit 1
   one_run gvfs "$gvfs_path" "$run" || exit 1
 done
@@ -128,7 +128,7 @@ summary() {
   done < "$out"
   n=${#vals[@]}
   if [ "$n" -eq 0 ]; then echo "$1 0 0 0 0 $bad"; return; fi
-  mapfile -t sorted < <(printf '%s\n' "${vals[@]}" | LC_ALL=C LANGUAGE= sort -n)
+  mapfile -t sorted < <(printf '%s\n' "${vals[@]}" | LC_ALL=C.UTF-8 LANGUAGE= sort -n)
   echo "$1 $(( (sorted[(n - 1) / 2] + sorted[n / 2] + 1) / 2 )) ${sorted[0]} ${sorted[n - 1]} $n $bad"
 }
 read -r _ km kmin kmax kn kbad <<< "$(summary kernel)"
@@ -139,4 +139,4 @@ if [ "$kn" -eq 0 ] || [ "$gn" -eq 0 ]; then
   echo "kernel/gvfs: a route has no settled run"
   exit 1
 fi
-LC_ALL=C LANGUAGE= awk -v k="$km" -v g="$gm" 'BEGIN { printf "kernel/gvfs %.2f: the kernel route is %s\n", k / g, (k < g ? "faster" : "NOT faster") }'
+LC_ALL=C.UTF-8 LANGUAGE= awk -v k="$km" -v g="$gm" 'BEGIN { printf "kernel/gvfs %.2f: the kernel route is %s\n", k / g, (k < g ? "faster" : "NOT faster") }'

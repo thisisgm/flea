@@ -7,7 +7,7 @@
 set -uo pipefail
 
 # This tool reads machine output and launches no application for the user.
-export LC_ALL=C
+export LC_ALL=C.UTF-8
 unset LANGUAGE
 
 verb=${1:-}
@@ -41,8 +41,8 @@ case $verb in
       key=$(printf 'file://%s/%s' "$fixture" "$name" | md5sum | cut -d' ' -f1)
       printf '%s %s\n' "$key" "$ext" >> "$out"
     done < <(ls -U "$fixture")
-    # join needs both sides sorted in the same collation, so both ends of this tool use LC_ALL=C.
-    LC_ALL=C LANGUAGE= sort -o "$out" "$out"
+    # join needs both sides sorted in the same collation, so both ends of this tool use LC_ALL=C.UTF-8.
+    sort -o "$out" "$out"
     [ -s "$out" ] || { echo "flea-bench-keys: the map is empty, so the fixture held nothing" >&2; exit 1; }
     ;;
 
@@ -60,8 +60,8 @@ case $verb in
     # capability claim this whole section exists to make and a missing row reads as untested.
     total=0
     out=""
-    matched=$(LC_ALL=C LANGUAGE= join -j 1 -o 1.2 "$map" "$keys")
-    for ext in $(cut -d' ' -f2 "$map" | LC_ALL=C LANGUAGE= sort -u); do
+    matched=$(join -j 1 -o 1.2 "$map" "$keys")
+    for ext in $(cut -d' ' -f2 "$map" | sort -u); do
       n=$(printf '%s\n' "$matched" | grep -c "^$ext$")
       out="${out:+$out;}$ext=$n"
       total=$(( total + n ))

@@ -21,7 +21,7 @@ import sys
 import zlib
 
 # Parsed child output uses a fixed locale without changing the caller environment.
-PARSER_ENV = dict(os.environ, LC_ALL="C")
+PARSER_ENV = dict(os.environ, LC_ALL="C.UTF-8")
 PARSER_ENV.pop("LANGUAGE", None)
 
 NAV500 = 500  # Down steps of one run, one file per step

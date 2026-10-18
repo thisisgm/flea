@@ -6,7 +6,7 @@ import subprocess
 import sys
 
 # Parsed child output uses a fixed locale without changing the caller environment.
-PARSER_ENV = dict(os.environ, LC_ALL="C")
+PARSER_ENV = dict(os.environ, LC_ALL="C.UTF-8")
 PARSER_ENV.pop("LANGUAGE", None)
 
 HERE = os.path.dirname(os.path.abspath(__file__))

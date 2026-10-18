@@ -4,7 +4,7 @@ set -u
 # Hard rule 9's guard owns FIXTURE_ROOT and every absolute, root and containment check below, and
 # sandbox_remove's own marker is what stands between this directory and rm -rf. Unlike the media and
 # matched fixtures this one never deletes anything itself, so it carries no second marker of its own.
-. "$(LC_ALL=C LANGUAGE= dirname "$0")/../tools/flea-sandbox-guard"
+. "$(dirname "$0")/../tools/flea-sandbox-guard"
 
 # A zip mounted through gvfsd-archive is a genuine GVFS mount: it lists in "gio mount -l" as a real
 # Mount() line, "gio info" answers a real "local path:" under /run/user/<uid>/gvfs, and "gio mount -u"
@@ -40,7 +40,7 @@ command -v zip >/dev/null || fail "no zip on PATH"
 command -v gio >/dev/null || fail "no gio on PATH"
 
 uri_for() {
-    LC_ALL=C LANGUAGE= python3 - "$1" <<'PY'
+    LC_ALL=C.UTF-8 LANGUAGE= python3 - "$1" <<'PY'
 import sys, urllib.parse
 inner = "file://" + sys.argv[1]
 print("archive://" + urllib.parse.quote(urllib.parse.quote(inner, safe=""), safe="") + "/")
@@ -59,7 +59,7 @@ make_fixture() {
 }
 
 live_uri() {
-    LC_ALL=C LANGUAGE= gio mount -l 2>/dev/null | LC_ALL=C LANGUAGE= sed -n 's/^Mount([0-9]*): [^>]*-> //p' | LC_ALL=C LANGUAGE= grep -F "$zip_name" | LC_ALL=C LANGUAGE= head -1
+    LC_ALL=C.UTF-8 LANGUAGE= gio mount -l 2>/dev/null | LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^Mount([0-9]*): [^>]*-> //p' | LC_ALL=C.UTF-8 LANGUAGE= grep -F "$zip_name" | head -1
 }
 
 case "${1:-make}" in

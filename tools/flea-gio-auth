@@ -19,7 +19,7 @@ if {[regexp -nocase {^davs?://} $uri]} {
 }
 
 # Prompt labels are parsed below, so gettext must not translate them.
-set env(LC_ALL) C
+set env(LC_ALL) C.UTF-8
 unset -nocomplain env(LANGUAGE)
 spawn -noecho gio mount $uri
 expect {

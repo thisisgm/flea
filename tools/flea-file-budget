@@ -3,7 +3,7 @@
 set -u
 
 # This tool reads machine output and launches no application for the user.
-export LC_ALL=C
+export LC_ALL=C.UTF-8
 unset LANGUAGE
 
 soft_rust=250; hard_rust=400
@@ -223,7 +223,7 @@ tests/quicklook-code.qml 463"
 status=0
 
 # A file listed twice hands the ceiling lookup two numbers and breaks its comparison.
-duplicated=$(printf '%s\n' "$known_over_cap" | awk '{ print $1 }' | LC_ALL=C LANGUAGE= sort | LC_ALL=C LANGUAGE= uniq -d)
+duplicated=$(printf '%s\n' "$known_over_cap" | awk '{ print $1 }' | sort | uniq -d)
 if [ -n "$duplicated" ]; then
   echo "DUPLICATE ceiling: $duplicated"
   status=1

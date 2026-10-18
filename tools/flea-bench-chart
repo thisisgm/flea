@@ -24,7 +24,7 @@ import subprocess
 import sys
 
 # Parsed child output uses a fixed locale without changing the caller environment.
-PARSER_ENV = dict(os.environ, LC_ALL="C")
+PARSER_ENV = dict(os.environ, LC_ALL="C.UTF-8")
 PARSER_ENV.pop("LANGUAGE", None)
 
 # The Bench artboard's palette, read off the canvas. A static chart cannot follow the live Omarchy

@@ -13,7 +13,7 @@
 set -u
 
 # This tool reads machine output and launches no application for the user.
-export LC_ALL=C
+export LC_ALL=C.UTF-8
 unset LANGUAGE
 cd "$(dirname "$0")/.." || exit 1
 
@@ -52,7 +52,7 @@ environment_note="Cannot assign binding of type QVariantMap to QVariantHash"
 counts=$(printf '%s' "$json" \
   | jq -r --arg note "$exit_status_note" --arg env "$environment_note" \
     '.files[].warnings[] | select((.message | contains($note)) or (.message | contains($env)) | not) | .id' \
-  | LC_ALL=C LANGUAGE= sort | LC_ALL=C LANGUAGE= uniq -c)
+  | sort | uniq -c)
 exit_status_filtered=$(printf '%s' "$json" \
   | jq -r --arg note "$exit_status_note" '.files[].warnings[] | select(.message | contains($note)) | .id' \
   | wc -l)

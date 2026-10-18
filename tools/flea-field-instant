@@ -1769,8 +1769,8 @@ def calib_window(work, delay):
     shutil.copyfile(os.path.join(REPO, "tests", "search-calib.qml"), os.path.join(cfg, "shell.qml"))
     logp = os.path.join(work, "client-%d-%d.log" % (delay, time.monotonic_ns()))
     logf = open(logp, "w")
-    client = subprocess.Popen(["qs", "-p", cfg, "-n"], env=S.parsed_env(dict(S.ENV, CALIB_DELAY_MS=str(delay),
-                              QT_FORCE_STDERR_LOGGING="1")), stdout=logf, stderr=subprocess.STDOUT)
+    client = subprocess.Popen(["qs", "-p", cfg, "-n"], env=dict(S.ENV, CALIB_DELAY_MS=str(delay),
+                              QT_FORCE_STDERR_LOGGING="1"), stdout=logf, stderr=subprocess.STDOUT)
     logf.close()
     win = S.window_by_pid({client.pid} | S.descendants(client.pid), 20)
     if win is None:

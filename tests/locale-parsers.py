@@ -1,35 +1,25 @@
 #!/usr/bin/env python3
 """Check parser-child locale isolation against the actual shell pipeline and callers."""
 import argparse
+import atexit
+import ast
 import locale
 import os
 from pathlib import Path
-import re
+import runpy
+import shutil
 import subprocess
 import sys
 
 REPO = Path(__file__).resolve().parents[1]
-FILTER = re.compile(
-    r"(?:^|[|;(<]|\b(?:if|then|do)\b)\s*"
-    r"(?P<prefix>(?:(?:LC_ALL=C|LANGUAGE=)\s+)*)"
-    r"(?P<program>sort|uniq|comm|join)(?=\s|[);]|$)", re.M)
-SHELL_LIBRARIES = {"flea-ipc-pid", "flea-sandbox-guard", "flea-pkgrel-field"}
+SHELL = runpy.run_path(str(Path(__file__).with_name("locale-shell.py")))
 
 
 def filter_sites():
-    for path in sorted((REPO / "tools").rglob("*")):
-        if not path.is_file():
-            continue
-        source = path.read_text(errors="replace")
-        if not (source.startswith(("#!/bin/bash", "#!/usr/bin/env bash", "#!/bin/sh"))
-                or path.name in SHELL_LIBRARIES):
-            continue
-        for match in FILTER.finditer(source):
-            start = match.start("program")
-            line = source.count("\n", 0, start) + 1
-            if source.splitlines()[line - 1].lstrip().startswith("#"):
-                continue
-            yield path, line, match["program"], match["prefix"]
+    for path, source in SHELL["shell_files"](REPO):
+        for start, name, prefix in SHELL["commands"](source):
+            if name in SHELL["FILTER"]:
+                yield path, source.count("\n", 0, start) + 1, name, prefix
 
 
 def function(source, name):
@@ -43,23 +33,41 @@ def main():
                         help="remove uniq's locale scope; this negative control must fail")
     parser.add_argument("--regress-caller", action="store_true",
                         help="restore the assignment-only prefix; this negative control must fail")
+    parser.add_argument("--regress-charset", action="store_true",
+                        help="restore the ASCII locale in UTF-8 probes; this control must fail")
+    parser.add_argument("--regress-decimal", action="store_true",
+                        help="remove the numeric formatter pins; this control must fail in de_DE.UTF-8")
+    parser.add_argument("--keep", action="store_true", help="keep the marked fixture root for inspection")
     args = parser.parse_args()
     inherited = dict(os.environ)
     requested = inherited.get("LC_ALL", "C")
     try:
         locale.setlocale(locale.LC_ALL, requested)
+        locale.setlocale(locale.LC_ALL, "de_DE.UTF-8")
+        locale.setlocale(locale.LC_ALL, requested)
     except locale.Error as error:
-        parser.error(f"requested locale {requested} is unavailable: {error}")
+        parser.error(f"requested locale {requested} or required de_DE.UTF-8 is unavailable: {error}")
     inherited["LC_ALL"] = requested
     inherited["LANG"] = requested
     inherited["LANGUAGE"] = "de:ar"
-    temp_env = dict(inherited, LC_ALL="C")
+    temp_env = dict(inherited, LC_ALL="C.UTF-8")
     temp_env.pop("LANGUAGE", None)
+    parent = REPO / ".superpowers/i0"
+    assert parent.resolve().is_relative_to(REPO)
+    parent.mkdir(parents=True, exist_ok=True)
     root = Path(subprocess.check_output(
         ["mktemp", "-d", str(REPO / ".superpowers/i0/locale-regression.XXXXXX")],
         env=temp_env, text=True).strip())
     assert root.is_absolute() and root.parent == REPO / ".superpowers/i0"
     (root / ".flea-test-sandbox").write_text("locale parser regression fixtures\n")
+    def cleanup():
+        if not args.keep:
+            assert str(root) and root.is_absolute() and root.parent == parent.resolve()
+            assert not root.is_symlink() and root.name.startswith("locale-regression.")
+            assert (root / ".flea-test-sandbox").is_file()
+            shutil.rmtree(root)
+
+    atexit.register(cleanup)
     errors = []
     checks = 0
 
@@ -69,10 +77,24 @@ def main():
         if not passed:
             errors.append(f"FAIL {label}: {actual}")
 
+    samples = ["sort a", "ok && sort a", "ok || sort a", "! sort a",
+               "xargs -0 -n 2 sort", "xargs -I {} sort", "xargs -I{} sort",
+               "env -u LANGUAGE LC_ALL=C.UTF-8 sort", "then sort", "do sort",
+               "time -f %e sort", "nice -n 4 sort", "command -- sort",
+               "ok && time nice -n 4 env -u LANGUAGE LC_ALL=C.UTF-8 sort"]
+    for sample in samples:
+        check(f"inventory command position {sample}",
+              sum(name == "sort" for _, name, _ in SHELL["commands"](sample)) == 1, sample)
+    check("inventory ignores data and comments",
+          not any(name in SHELL["FILTER"] for _, name, _ in SHELL["commands"](
+              "echo 'sort a'\n# uniq a\ncat <<'DATA'\nsort a\nDATA\n")), "quoted commands")
     sites = list(filter_sites())
-    for path, line, program, prefix in sites:
-        check(f"{path.relative_to(REPO)}:{line} {program} scope",
-              prefix.split() == ["LC_ALL=C", "LANGUAGE="], repr(prefix))
+    inventory = list(SHELL["inventory"](REPO))
+    for path, line, program, forced, prefix in inventory:
+        check(f"{path.relative_to(REPO)}:{line} {program} scope", forced, repr(prefix))
+    (root / "inventory.tsv").write_text("".join(
+        f"{path.relative_to(REPO)}:{line}\t{program}\t{'UTF-8 scoped' if forced else 'UNPINNED'}\n"
+        for path, line, program, forced, _ in inventory))
 
     files = root / "files"
     files.mkdir()
@@ -91,12 +113,13 @@ def main():
         wrapper.chmod(0o755)
     source = (REPO / "tools/flea-matched-fixture").read_text()
     pipeline = next(line for line in source.splitlines()
-                    if ' ls "$dir" |' in line and "uniq -c" in line)
+                    if 'ls "$dir" |' in line and "uniq -c" in line)
     if args.regress_uniq:
-        pipeline = pipeline.replace("LC_ALL=C LANGUAGE= uniq -c", "uniq -c")
+        pipeline = pipeline.replace("uniq -c", "env -u LC_ALL uniq -c")
     env = dict(inherited, PATH=str(bin_dir) + ":" + inherited["PATH"],
                I0_FILTER_LOG=str(capture))
-    result = subprocess.run(["/bin/bash", "-c", "dir=$1\n" + pipeline,
+    global_scope = "export LC_ALL=C.UTF-8\nunset LANGUAGE\n"
+    result = subprocess.run(["/bin/bash", "-c", global_scope + "dir=$1\n" + pipeline,
                              "locale-regression", str(files)],
                             env=env, capture_output=True, text=True)
     check("matched fixture counts", result.returncode == 0 and
@@ -107,7 +130,7 @@ def main():
           ["sort", "sort", "uniq"], observed)
     for program, actual_locale, language in observed:
         check(f"matched fixture {program} child environment",
-              (actual_locale, language) == ("C", ""),
+              (actual_locale, language) == ("C.UTF-8", "unset"),
               f"{actual_locale}|{language}")
 
     capability = (REPO / "tools/flea-bench-capability").read_text()
@@ -121,7 +144,7 @@ def main():
                        if 'id=$(instance_id_of_pid "$pid")' in line)
     identity = function(capability, "process_identity")
     if args.regress_caller:
-        identity = identity.replace("stat=$(<", "LC_ALL=C LANGUAGE= stat=$(<")
+        identity = identity.replace("stat=$(<", "LC_ALL=C.UTF-8 LANGUAGE= stat=$(<")
     probes = [
         ("process_identity", identity +
          '\nprocess_identity "$$" || exit 1'),
@@ -141,12 +164,69 @@ def main():
               result.returncode == 0 and result.stdout ==
               f"{requested}|de:ar|{requested}",
               (result.returncode, result.stdout, result.stderr))
+    utf8_scope = "LC_ALL=C.UTF-8 LANGUAGE= "
+    if args.regress_charset:
+        utf8_scope = "LC_ALL=C LANGUAGE= "
+    name_filter = next(line for line in field.splitlines() if 'grep -E ".{$min_name_chars,}"' in line)
+    if args.regress_charset:
+        name_filter = name_filter.replace("C.UTF-8", "C")
+    names = root / "names"
+    names.mkdir()
+    for name in ["短名", "四个汉字", "ascii"]:
+        (names / name).touch()
+    names_output = root / "names.txt"
+    body = 'FIXTURE=$1; TUI_NAMES=$2; first_screen_names=10; min_name_chars=4\n' + name_filter
+    result = subprocess.run(["/bin/bash", "-c", body, "names", str(names), str(names_output)],
+                            env=inherited, capture_output=True, text=True)
+    check("minimum name length counts CJK characters", result.returncode == 0 and
+          names_output.read_text().splitlines() == ["ascii", "四个汉字"],
+          (result.returncode, names_output.read_text(), result.stderr))
+    utf8_file = files / "ñandú-é.txt"
+    utf8_file.touch()
+    result = subprocess.run(["/bin/bash", "-c", utf8_scope + 'gio info "$1"', "gio", str(utf8_file)],
+                            env=inherited, capture_output=True, text=True)
+    check("gio preserves UTF-8 display names", result.returncode == 0 and
+          "display name: ñandú-é.txt" in result.stdout, result.stdout)
+    process = subprocess.Popen(["sleep-ñé", "30"], executable="/usr/bin/sleep", env=inherited)
+    try:
+        result = subprocess.run(["/bin/bash", "-c", utf8_scope + 'ps -o args= -p "$1"',
+                                 "ps", str(process.pid)], env=inherited, capture_output=True, text=True)
+        check("ps preserves UTF-8 process arguments", result.returncode == 0 and
+              "sleep-ñé 30" in result.stdout, result.stdout)
+    finally:
+        process.terminate()
+        process.wait(timeout=5)
+
+    cpu_line = next(line.strip() for line in field.splitlines() if line.strip().startswith("cpu_s=$("))
+    numeric = function(field, "sys_seconds") + '\nsys_seconds 1.25 50 100; printf "|"\n'
+    numeric += 'last_entrant=125; ticks_per_second=100\n' + cpu_line + '\nprintf "%s" "$cpu_s"'
+    if args.regress_decimal:
+        numeric = numeric.replace("LC_ALL=C.UTF-8 LANGUAGE= ", "")
+    german = dict(inherited, LC_ALL="de_DE.UTF-8", LANG="de_DE.UTF-8")
+    result = subprocess.run(["/bin/bash", "-c", numeric], env=german, capture_output=True, text=True)
+    check("German sys_seconds and cpu_s use dot decimals", result.returncode == 0 and
+          result.stdout == "1.75|1.25", (result.returncode, result.stdout, result.stderr))
+
+    for tool, function_name in [("flea-field-search", "calibrate"),
+                                ("flea-field-instant", "calib_window"),
+                                ("flea-figure-bench", "one")]:
+        tree = ast.parse((REPO / "tools" / tool).read_text())
+        fn = next(n for n in tree.body if isinstance(n, ast.FunctionDef) and n.name == function_name)
+        launch = next(n for n in ast.walk(fn) if isinstance(n, ast.Call)
+                      and ast.unparse(n.func) == "subprocess.Popen")
+        env_expr = next((k.value for k in launch.keywords if k.arg == "env"), None)
+        namespace = {"env": inherited, "S": type("Session", (), {"ENV": inherited}),
+                     "delay": 0, "str": str, "dict": dict}
+        actual_env = inherited if env_expr is None else eval(compile(ast.Expression(env_expr), tool, "eval"), namespace)
+        result = subprocess.run(["/bin/bash", "-c", probe], env=actual_env, capture_output=True, text=True)
+        check(f"{tool} measured client keeps session locale", result.returncode == 0 and
+              result.stdout == f"{requested}|de:ar|{requested}", result.stdout)
     if errors:
         print("\n".join(errors), file=sys.stderr)
         print(f"FAIL locale={requested}; evidence={root}", file=sys.stderr)
         return 1
     print(f"PASS locale={requested} decimal={locale.localeconv()['decimal_point']!r}; "
-          f"{len(sites)} filter sites, {checks} checks; evidence={root}")
+          f"{len(sites)} filter sites, {len(inventory)} parsed sites, {checks} checks; evidence={root}")
     return 0
 
 

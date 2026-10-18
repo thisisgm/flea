@@ -115,7 +115,8 @@ chmod -x "$scratch/sibling/flea-bench-manifest"
 check "a non-executable sibling manifest tool falls back" "$PWD/tools/flea-bench-manifest" "$(select_manifest)"
 
 # The bench and standalone manifest must compare resolved trees while preserving an empty anchor.
-repo_resolve=$(grep '^FLEA_REPO=$(readlink -f ' "$bench")
+repo_resolve=$(grep '^FLEA_REPO=' "$bench")
+[ -n "$repo_resolve" ] || { echo "FAIL: no FLEA_REPO resolution in $bench"; exit 1; }
 anchor_setup=$(sed -n '/^# anchor setup begin$/,/^# anchor setup end$/p' "$bench")
 anchor_src=$(sed -n '/^anchor_line() {$/,/^}$/p' tools/flea-bench-manifest)
 mkdir -p "$scratch/tree" "$scratch/other"

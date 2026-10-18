@@ -23,7 +23,7 @@
 set -u
 set -o pipefail
 
-repo=$(cd "$(LC_ALL=C LANGUAGE= dirname "$0")/.." && pwd) || exit 1
+repo=$(cd "$(dirname "$0")/.." && pwd) || exit 1
 ui=$repo/ui
 bin=${FLEA_BIN:-$repo/target/release/flea}
 # The operator's own home is the instance; these four are furnished from the stage set for the take.
@@ -101,7 +101,7 @@ fail() {
 # tests/ui.sh both make: a shim named by hand goes stale the day the target is renamed, and the take
 # then hands the operator's real launcher a file in the middle of a recording.
 handoff_in() {
-    LC_ALL=C LANGUAGE= grep -ho 'Command::new("[a-z0-9-]\+")' "$1" | LC_ALL=C LANGUAGE= cut -d'"' -f2 | LC_ALL=C LANGUAGE= sort -u
+    LC_ALL=C.UTF-8 LANGUAGE= grep -ho 'Command::new("[a-z0-9-]\+")' "$1" | cut -d'"' -f2 | LC_ALL=C.UTF-8 LANGUAGE= sort -u
 }
 open_handoff=$(handoff_in "$repo/src/open.rs")
 
@@ -111,18 +111,18 @@ command -v omarchy-drive >/dev/null || fail "omarchy-drive is not on PATH"
 case "$open_handoff" in
     ''|*[!a-z0-9-]*) fail "src/open.rs must name exactly one handoff; got '$open_handoff'" ;;
 esac
-eval "$(LC_ALL=C LANGUAGE= omarchy-drive env)"
+eval "$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive env)"
 
 # omarchy-drive env omits the Qt platform theme, without which no row icon resolves; the same
 # three-step recovery tests/ui.sh uses, ending at a live client's own environment.
 platform_theme() {
-    LC_ALL=C LANGUAGE= systemctl --user show-environment | LC_ALL=C LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | LC_ALL=C LANGUAGE= cut -d= -f2-
+    LC_ALL=C.UTF-8 LANGUAGE= systemctl --user show-environment | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
 }
 platform_theme_from_a_live_client() {
     local pid
-    pid=$(LC_ALL=C LANGUAGE= pgrep -x quickshell | LC_ALL=C LANGUAGE= head -1)
+    pid=$(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x quickshell | head -1)
     [[ -n "$pid" ]] || return 0
-    LC_ALL=C LANGUAGE= tr '\0' '\n' < "/proc/$pid/environ" | LC_ALL=C LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | LC_ALL=C LANGUAGE= cut -d= -f2-
+    LC_ALL=C.UTF-8 LANGUAGE= tr '\0' '\n' < "/proc/$pid/environ" | LC_ALL=C.UTF-8 LANGUAGE= grep '^QT_QPA_PLATFORMTHEME=' | cut -d= -f2-
 }
 [[ -n "${QT_QPA_PLATFORMTHEME:-}" ]] || export QT_QPA_PLATFORMTHEME="$(platform_theme)"
 [[ -n "$QT_QPA_PLATFORMTHEME" ]] || export QT_QPA_PLATFORMTHEME="$(platform_theme_from_a_live_client)"
@@ -144,7 +144,7 @@ stage_y=0
 monitor=""
 read_stage() {
     local mon_w mon_h mon_x mon_y top
-    read -r monitor mon_w mon_h mon_x mon_y top < <(LC_ALL=C LANGUAGE= hyprctl monitors -j | LC_ALL=C LANGUAGE= jq -r '.[0] | "\(.name) \(.width) \(.height) \(.x) \(.y) \(.reserved[1])"')
+    read -r monitor mon_w mon_h mon_x mon_y top < <(LC_ALL=C.UTF-8 LANGUAGE= hyprctl monitors -j | jq -r '.[0] | "\(.name) \(.width) \(.height) \(.x) \(.y) \(.reserved[1])"')
     [[ -n "$top" ]] || fail "hyprctl monitors answered nothing, so there is no stage to place"
     stage_x=$mon_x
     stage_y=$(( mon_y + top ))
@@ -169,7 +169,7 @@ grow_y() { printf '%s' $(( stage_y + (stage_h - grow_h) / 2 )); }
 # monitor: 30 here when shown, 0 when hidden, measured. The bar takes a few seconds to come back.
 bar_flag=$real_home/.local/state/omarchy/toggles/bar-off
 bar_strut() {
-    LC_ALL=C LANGUAGE= hyprctl monitors -j | LC_ALL=C LANGUAGE= jq -r '.[0].reserved[1]'
+    LC_ALL=C.UTF-8 LANGUAGE= hyprctl monitors -j | jq -r '.[0].reserved[1]'
 }
 bar_shown() {
     [[ ! -e "$bar_flag" ]] && (( $(bar_strut) > 0 ))
@@ -185,7 +185,7 @@ bar_hide() {
     if bar_shown; then
         printf 'bar=shown\n' >> "$state"
         omarchy toggle bar on >/dev/null 2>&1
-        for _attempt in $(LC_ALL=C LANGUAGE= seq 1 $((bar_wait_s * 10))); do
+        for _attempt in $(seq 1 $((bar_wait_s * 10))); do
             bar_hidden && { printf 'BAR hidden, strut %s\n' "$(bar_strut)"; return 0; }
             sleep 0.1
         done
@@ -197,11 +197,11 @@ bar_hide() {
 
 bar_restore() {
     [[ -f "$state" ]] || return 0
-    LC_ALL=C LANGUAGE= grep -qx 'bar=shown' "$state" || return 0
+    LC_ALL=C.UTF-8 LANGUAGE= grep -qx 'bar=shown' "$state" || return 0
     [[ -e "$bar_flag" ]] && omarchy toggle bar off >/dev/null 2>&1
     # Three times the hide's wait: after a theme set the shell is still reloading and the bar
     # re-mapped 12 s late on one run; the stock script's own nudge is repeated at ten seconds.
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 $((bar_wait_s * 90))); do
+    for _attempt in $(seq 1 $((bar_wait_s * 90))); do
         bar_shown && { printf 'BAR restored after %s s, verified: flag clear, strut %s\n' "$(( _attempt / 10 ))" "$(bar_strut)"; return 0; }
         # Measured: the flag alone brought the bar back late or not at all, and a theme apply woke it at
         # once, so after ten seconds the current theme is set again, which the shell treats as a full refresh.
@@ -220,7 +220,7 @@ bar_restore() {
 # operator's setting, so an unreadable state is a refusal.
 dnd_state() {
     local seen
-    seen=$(omarchy-shell notifications isDnd 2>/dev/null)
+    seen=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-shell notifications isDnd 2>/dev/null)
     case "$seen" in
         on|off) printf '%s' "$seen" ;;
         *) fail "the shell answered '$seen' for do-not-disturb, not on or off, so nothing is toggled" ;;
@@ -238,7 +238,7 @@ dnd_on() {
     printf 'dnd=turned_on\n' >> "$state"
     printf 'DND turned on for the take\n'
     omarchy toggle notification silencing >/dev/null 2>&1
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 60); do
+    for _attempt in $(seq 1 60); do
         [[ "$(dnd_state)" == "on" ]] && return 0
         sleep 0.05
     done
@@ -249,11 +249,11 @@ dnd_on() {
 dnd_restore() {
     local seen
     [[ -f "$state" ]] || return 0
-    LC_ALL=C LANGUAGE= grep -qx 'dnd=turned_on' "$state" || { printf 'DND was not changed by this run\n'; return 0; }
-    seen=$(omarchy-shell notifications isDnd 2>/dev/null)
+    LC_ALL=C.UTF-8 LANGUAGE= grep -qx 'dnd=turned_on' "$state" || { printf 'DND was not changed by this run\n'; return 0; }
+    seen=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-shell notifications isDnd 2>/dev/null)
     [[ "$seen" == "on" ]] && omarchy toggle notification silencing >/dev/null 2>&1
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 300); do
-        seen=$(omarchy-shell notifications isDnd 2>/dev/null)
+    for _attempt in $(seq 1 300); do
+        seen=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy-shell notifications isDnd 2>/dev/null)
         [[ "$seen" == "off" ]] && { printf 'DND restored, verified off\n'; return 0; }
         sleep 0.1
     done
@@ -307,7 +307,7 @@ fixture_build() {
     [[ -f "$manifest" ]] && fail "a furnishing is already recorded at $manifest; run teardown first"
     for dir in "${furnished[@]}"; do
         [[ -d "$dir" ]] || fail "$dir does not exist, so nothing is furnished"
-        [[ -z "$(LC_ALL=C LANGUAGE= ls -A "$dir")" ]] || fail "$dir is not empty, so nothing of it is touched and nothing is furnished"
+        [[ -z "$(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$dir")" ]] || fail "$dir is not empty, so nothing of it is touched and nothing is furnished"
     done
     mkdir -p "$work" "$shim_dir"
     : > "$manifest"
@@ -316,7 +316,7 @@ fixture_build() {
     furnish_tree "$stage_src/Photos/Studio sessions" "$HOME/Pictures/Studio sessions"
     mkdir "$HOME/Pictures/Camera roll" || fail "could not make the camera roll"
     made "$HOME/Pictures/Camera roll"
-    LC_ALL=C LANGUAGE= ls "$stage_src/Photos/Camera roll" | LC_ALL=C LANGUAGE= sort | LC_ALL=C LANGUAGE= tail -n "$roll_batch" | while IFS= read -r name; do
+    LC_ALL=C.UTF-8 LANGUAGE= ls "$stage_src/Photos/Camera roll" | LC_ALL=C.UTF-8 LANGUAGE= sort | tail -n "$roll_batch" | while IFS= read -r name; do
         ln "$stage_src/Photos/Camera roll/$name" "$HOME/Pictures/Camera roll/$name" || exit 1
         printf '%s\n' "$HOME/Pictures/Camera roll/$name" >> "$manifest"
     done || fail "could not link the camera roll"
@@ -353,8 +353,8 @@ fixture_build() {
       printf 'printf %%s\\\\n "$2" >> "%s/opened.log"\n' "$work"
     } > "$shim_dir/$open_handoff"
     chmod +x "$shim_dir/$open_handoff"
-    printf 'FURNISHED %s paths under %s\n' "$(LC_ALL=C LANGUAGE= wc -l < "$manifest")" "${furnished[*]}"
-    LC_ALL=C LANGUAGE= ls -A "$HOME/Pictures" "$HOME/Documents" "$HOME/Music" "$HOME/Projects"
+    printf 'FURNISHED %s paths under %s\n' "$(wc -l < "$manifest")" "${furnished[*]}"
+    LC_ALL=C.UTF-8 LANGUAGE= ls -A "$HOME/Pictures" "$HOME/Documents" "$HOME/Music" "$HOME/Projects"
 }
 
 # Removal by the manifest, backwards: files unlinked, directories removed empty. A path outside
@@ -365,7 +365,7 @@ fixture_remove() {
     local path dir ok kept=0
     local removable=("${furnished[@]}" "$HOME/Dropbox")
     [[ -f "$manifest" ]] || { printf 'nothing furnished\n'; return 0; }
-    LC_ALL=C LANGUAGE= tac "$manifest" | while IFS= read -r path; do
+    tac "$manifest" | while IFS= read -r path; do
         ok=0
         for dir in "${removable[@]}"; do
             [[ "$path" == "$dir"/* ]] && ok=1
@@ -379,7 +379,7 @@ fixture_remove() {
         fi
     done
     for dir in "${furnished[@]}"; do
-        [[ -z "$(LC_ALL=C LANGUAGE= ls -A "$dir")" ]] || { printf 'flea-showcase: %s IS NOT EMPTY after removal, left for a hand check: %s\n' "$dir" "$(LC_ALL=C LANGUAGE= ls -A "$dir" | LC_ALL=C LANGUAGE= head -3 | LC_ALL=C LANGUAGE= tr '\n' ' ')" >&2; kept=1; }
+        [[ -z "$(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$dir")" ]] || { printf 'flea-showcase: %s IS NOT EMPTY after removal, left for a hand check: %s\n' "$dir" "$(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$dir" | head -3 | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ' ')" >&2; kept=1; }
     done
     rm -f "$manifest"
     (( kept == 0 )) && { printf 'UNFURNISHED, the four directories are empty again\n'; return 0; }
@@ -395,24 +395,24 @@ pid_b=0; id_b=""; addr_b=""
 
 # Sample input, qs list --all --json, one entry: {"config_path":"/home/gm/Work/claude/flea/ui/boot/shell.qml","id":"c0o12e9frkt","pid":3437004,...}
 instance_id_of_pid() {
-    LC_ALL=C LANGUAGE= qs list --all --json 2>/dev/null | LC_ALL=C LANGUAGE= jq -r --argjson p "$1" '.[] | select(.pid == $p) | .id'
+    LC_ALL=C.UTF-8 LANGUAGE= qs list --all --json 2>/dev/null | jq -r --argjson p "$1" '.[] | select(.pid == $p) | .id'
 }
 
 ipc() {
-    LC_ALL=C LANGUAGE= qs ipc -i "$id_a" call flea "$@" 2>/dev/null
+    LC_ALL=C.UTF-8 LANGUAGE= qs ipc -i "$id_a" call flea "$@" 2>/dev/null
 }
 
 ipc_b() {
-    LC_ALL=C LANGUAGE= qs ipc -i "$id_b" call flea "$@" 2>/dev/null
+    LC_ALL=C.UTF-8 LANGUAGE= qs ipc -i "$id_b" call flea "$@" 2>/dev/null
 }
 
 # Sample input, one hyprctl client: {"address":"0x5a1c","pid":3437004,"at":[780,385],"size":[1000,700],"floating":true,...}
 client_json() {
-    LC_ALL=C LANGUAGE= hyprctl clients -j | LC_ALL=C LANGUAGE= jq -c --arg a "$1" '.[] | select(.address == $a)'
+    LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -c --arg a "$1" '.[] | select(.address == $a)'
 }
 
 client_geometry() {
-    client_json "$1" | LC_ALL=C LANGUAGE= jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"'
+    client_json "$1" | jq -r '"\(.at[0]) \(.at[1]) \(.size[0]) \(.size[1])"'
 }
 
 # Keystrokes land on whatever holds focus, so a foreign window on the box is a reason to stop and
@@ -420,7 +420,7 @@ client_geometry() {
 # corner: the real state directory is the theme's; real_state already points at it.
 assert_box_clear() {
     local others
-    others=$(LC_ALL=C LANGUAGE= hyprctl clients -j | LC_ALL=C LANGUAGE= jq -r '.[] | .class' | LC_ALL=C LANGUAGE= sort -u | LC_ALL=C LANGUAGE= tr '\n' ' ')
+    others=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -r '.[] | .class' | LC_ALL=C.UTF-8 LANGUAGE= sort -u | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ' ')
     [[ -z "$others" ]] || fail "another lane holds the display, these windows are open: $others"
 }
 
@@ -433,13 +433,13 @@ spawn() {
     mkdir -p "$work" "$evidence"
     PATH="$shim_dir:$PATH" FLEA_UI="$ui" FLEA_BIN="$bin" setsid nohup "$bin" --gui "$dir" >>"$flea_log" 2>&1 </dev/null 3>&- 4>&- &
     pid=$!
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 300); do
-        addr=$(LC_ALL=C LANGUAGE= hyprctl clients -j | LC_ALL=C LANGUAGE= jq -r --arg c "$flea_window_class" --argjson p "$pid" '.[] | select(.class == $c and .pid == $p) | .address')
+    for _attempt in $(seq 1 300); do
+        addr=$(LC_ALL=C.UTF-8 LANGUAGE= hyprctl clients -j | jq -r --arg c "$flea_window_class" --argjson p "$pid" '.[] | select(.class == $c and .pid == $p) | .address')
         [[ -n "$addr" ]] && break
         sleep 0.05
     done
     [[ -n "$addr" ]] || fail "no Flea window for pid $pid appeared in 15 s"
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         id=$(instance_id_of_pid "$pid")
         [[ -n "$id" ]] && break
         sleep 0.05
@@ -449,7 +449,7 @@ spawn() {
 }
 
 dispatch() {
-    LC_ALL=C LANGUAGE= hyprctl dispatch "$1" >/dev/null
+    hyprctl dispatch "$1" >/dev/null
 }
 
 # Float, size and place one window, then read the compositor back: hyprctl exits 0 on error, so the
@@ -457,11 +457,11 @@ dispatch() {
 # relative one, because the exact and absolute forms are read back rather than trusted.
 place() {
     local addr="$1" x="$2" y="$3" w="$4" h="$5" wx wy ww wh
-    if [[ "$(client_json "$addr" | LC_ALL=C LANGUAGE= jq -r '.floating')" != "true" ]]; then
+    if [[ "$(client_json "$addr" | jq -r '.floating')" != "true" ]]; then
         dispatch "hl.dsp.window.float({ window = \"address:$addr\" })"
         settle
     fi
-    [[ "$(client_json "$addr" | LC_ALL=C LANGUAGE= jq -r '.floating')" == "true" ]] || fail "window $addr would not float"
+    [[ "$(client_json "$addr" | jq -r '.floating')" == "true" ]] || fail "window $addr would not float"
     dispatch "hl.dsp.window.resize({ x = $w, y = $h, exact = true, window = \"address:$addr\" })"
     settle
     read -r wx wy ww wh < <(client_geometry "$addr")
@@ -485,7 +485,7 @@ place() {
 close_window() {
     local addr="$1"
     dispatch "hl.dsp.window.close({ window = \"address:$addr\" })"
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         [[ -z "$(client_json "$addr")" ]] && return
         sleep 0.05
     done
@@ -494,9 +494,9 @@ close_window() {
 
 flea_pids() {
     local pid
-    for pid in $(LC_ALL=C LANGUAGE= pgrep -x qs || true); do
+    for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs || true); do
         [[ -r "/proc/$pid/cmdline" ]] || continue
-        if LC_ALL=C LANGUAGE= tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | LC_ALL=C LANGUAGE= grep -Fq "$ui"; then
+        if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq "$ui"; then
             printf '%s\n' "$pid"
         fi
     done
@@ -504,9 +504,9 @@ flea_pids() {
 
 backend_pids() {
     local pid
-    for pid in $(LC_ALL=C LANGUAGE= pgrep -x flea || true); do
+    for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x flea || true); do
         [[ -r "/proc/$pid/cmdline" ]] || continue
-        if LC_ALL=C LANGUAGE= tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | LC_ALL=C LANGUAGE= grep -Fq -- "$bin --backend"; then
+        if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' ' ' 2>/dev/null < "/proc/$pid/cmdline" | LC_ALL=C.UTF-8 LANGUAGE= grep -Fq -- "$bin --backend"; then
             printf '%s\n' "$pid"
         fi
     done
@@ -516,9 +516,9 @@ backend_pids() {
 # launched and nothing another lane did: the environment is read, not the command line.
 fixture_instances() {
     local pid
-    for pid in $(LC_ALL=C LANGUAGE= pgrep -x qs || true); do
+    for pid in $(LC_ALL=C.UTF-8 LANGUAGE= pgrep -x qs || true); do
         [[ -r "/proc/$pid/environ" ]] || continue
-        if LC_ALL=C LANGUAGE= tr '\0' '\n' 2>/dev/null < "/proc/$pid/environ" | LC_ALL=C LANGUAGE= grep -q "^PATH=$shim_dir:"; then
+        if LC_ALL=C.UTF-8 LANGUAGE= tr '\0' '\n' 2>/dev/null < "/proc/$pid/environ" | LC_ALL=C.UTF-8 LANGUAGE= grep -q "^PATH=$shim_dir:"; then
             printf '%s\n' "$pid"
         fi
     done
@@ -534,7 +534,7 @@ kill_flea() {
     for pid in $(fixture_instances); do
         kill "$pid" 2>/dev/null
     done
-    for waited in $(LC_ALL=C LANGUAGE= seq 1 $((drain_wait_s * 20))); do
+    for waited in $(seq 1 $((drain_wait_s * 20))); do
         [[ -z "$(fixture_instances)$(backend_pids)" ]] && return
         sleep 0.05
     done
@@ -555,7 +555,7 @@ dwell() {
 # Never with a leading "--": omarchy-drive key --window flea -- z exits clean and presses nothing.
 key() {
     [[ "$1" != -- ]] || fail "key: a -- argument is silently dropped, pass the text bare"
-    omarchy-drive key --window "$addr_a" "$@" >/dev/null
+    LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive key --window "$addr_a" "$@" >/dev/null
 }
 
 # A query typed at a reading pace; wtype's -d is the gap between characters.
@@ -580,7 +580,7 @@ chord() {
 expect() {
     local label="$1" want="$2" seen
     shift 2
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         seen=$("$@" 2>/dev/null)
         [[ "$seen" == "$want" ]] && return 0
         sleep 0.05
@@ -597,7 +597,7 @@ expect_ipc() {
 # The status bar's line, matched on a substring because the counts and names in it belong to the fixture.
 expect_message_has() {
     local want="$1" seen
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         seen=$(ipc lastMessage 2>/dev/null)
         [[ "$seen" == *"$want"* ]] && { printf 'BAR %s\n' "$seen"; return 0; }
         sleep 0.05
@@ -607,7 +607,7 @@ expect_message_has() {
 
 expect_message_has_b() {
     local want="$1" seen
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         seen=$(ipc_b lastMessage 2>/dev/null)
         [[ "$seen" == *"$want"* ]] && { printf 'BAR(b) %s\n' "$seen"; return 0; }
         sleep 0.05
@@ -617,7 +617,7 @@ expect_message_has_b() {
 
 expect_selection_past() {
     local floor="$1" seen
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         seen=$(ipc selectionCount 2>/dev/null)
         [[ "$seen" =~ ^[0-9]+$ ]] && (( seen > floor )) && return 0
         sleep 0.05
@@ -627,7 +627,7 @@ expect_selection_past() {
 
 expect_cursor_past() {
     local floor="$1" seen
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         seen=$(ipc cursor 2>/dev/null)
         [[ "$seen" =~ ^[0-9]+$ ]] && (( seen > floor )) && return 0
         sleep 0.05
@@ -638,7 +638,7 @@ expect_cursor_past() {
 # The row under the cursor, by a name pattern, polled because a rename lands on a round trip.
 expect_cursor_row() {
     local want="$1" seen
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         seen=$(ipc rowAt "$(ipc cursor 2>/dev/null)" 2>/dev/null)
         [[ "${seen%%|*}" == $want ]] && return 0
         sleep 0.05
@@ -647,7 +647,7 @@ expect_cursor_row() {
 }
 
 expect_file() {
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 300); do
+    for _attempt in $(seq 1 300); do
         [[ -e "$1" ]] && return 0
         sleep 0.05
     done
@@ -655,7 +655,7 @@ expect_file() {
 }
 
 expect_no_file() {
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 300); do
+    for _attempt in $(seq 1 300); do
         [[ -e "$1" ]] || return 0
         sleep 0.05
     done
@@ -666,7 +666,7 @@ expect_no_file() {
 transfer_wait_s=60
 wait_total() {
     local want="$1" seen
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 $((transfer_wait_s * 10))); do
+    for _attempt in $(seq 1 $((transfer_wait_s * 10))); do
         seen=$(ipc total 2>/dev/null)
         [[ "$seen" == "$want" ]] && return 0
         sleep 0.1
@@ -678,7 +678,7 @@ wait_total() {
 # sight, so it gets a long wait and the state it settled on is printed rather than demanded.
 wait_preview_column() {
     local seen
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 120); do
+    for _attempt in $(seq 1 120); do
         seen=$(ipc previewColumnState 2>/dev/null)
         [[ -n "$seen" && "$seen" != "loading" ]] && { printf 'PREVIEW column settled on %s\n' "$seen"; return 0; }
         sleep 0.1
@@ -691,7 +691,7 @@ wait_preview_column() {
 # The rename field opens on a round trip, so a key typed at once would land on the list instead.
 wait_renaming() {
     local seen
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         seen=$(ipc renamingIndex 2>/dev/null)
         [[ "$seen" =~ ^[0-9]+$ ]] && return 0
         sleep 0.05
@@ -701,7 +701,7 @@ wait_renaming() {
 
 wait_listing() {
     local want="$1" total row
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 600); do
+    for _attempt in $(seq 1 600); do
         total=$(ipc total 2>/dev/null || printf unavailable)
         row=$(ipc rowAt 0 2>/dev/null || printf loading)
         [[ "$total" == "$want" && "$row" != "loading" ]] && return
@@ -714,7 +714,7 @@ wait_listing() {
 # rowAt 0 answers "loading" on an empty listing forever, measured, so it is never the signal here.
 wait_listed() {
     local state
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 600); do
+    for _attempt in $(seq 1 600); do
         state=$(ipc state 2>/dev/null)
         [[ -n "$state" && "$state" != "loading" ]] && return
         sleep 0.05
@@ -746,7 +746,7 @@ row_index_matching() {
 step_down() {
     local want="$1" seen
     key j
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 20); do
+    for _attempt in $(seq 1 20); do
         seen=$(ipc cursor 2>/dev/null)
         [[ "$seen" == "$want" ]] && return 0
         sleep 0.05
@@ -793,7 +793,7 @@ ctrl_down() { ydotool key 29:1 >/dev/null 2>&1; }
 ctrl_up()   { ydotool key 29:0 >/dev/null 2>&1; }
 
 cursor_pos() {
-    LC_ALL=C LANGUAGE= hyprctl cursorpos | LC_ALL=C LANGUAGE= tr -d ','
+    LC_ALL=C.UTF-8 LANGUAGE= hyprctl cursorpos | LC_ALL=C.UTF-8 LANGUAGE= tr -d ','
 }
 
 # Converges on an absolute target with real frame-carrying motion, which is also what a viewer
@@ -801,7 +801,7 @@ cursor_pos() {
 # remaining distance and re-read, never trusted, then single pixels until it is exact.
 glide_to() {
     local tx="$1" ty="$2" i cx cy dx dy
-    for i in $(LC_ALL=C LANGUAGE= seq 1 24); do
+    for i in $(seq 1 24); do
         read -r cx cy < <(cursor_pos)
         dx=$(( tx - cx )); dy=$(( ty - cy ))
         (( dx == 0 && dy == 0 )) && return 0
@@ -846,7 +846,7 @@ list_blank_spot() {
 }
 
 click_at() {
-    omarchy-drive click "$1" "$2" "${@:3}" >/dev/null
+    LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive click "$1" "$2" "${@:3}" >/dev/null
 }
 
 # A drag from one screen point to another through a held left button, at a pace a viewer can follow.
@@ -864,17 +864,17 @@ drag() {
 # ------------------------------------------------------------------ the theme
 
 theme_current() {
-    LC_ALL=C LANGUAGE= omarchy theme current
+    LC_ALL=C.UTF-8 LANGUAGE= omarchy theme current
 }
 
 # omarchy theme list prints display names and omarchy theme dir echoes them back unresolved, so the
 # directory and the set both take the slug: "Tokyo Night" is the directory tokyo-night, measured.
 theme_slug() {
-    printf '%s' "$1" | LC_ALL=C LANGUAGE= tr 'A-Z ' 'a-z-'
+    printf '%s' "$1" | LC_ALL=C.UTF-8 LANGUAGE= tr 'A-Z ' 'a-z-'
 }
 
 background_current() {
-    LC_ALL=C LANGUAGE= readlink "$real_state/background"
+    readlink "$real_state/background"
 }
 
 # Two themes that are not the one the box is on, read at run time: the box has been switched under
@@ -896,7 +896,7 @@ theme_targets() {
 # a light box to a dark one, so the change is unmistakable on a timeline thumbnail.
 live_background_is_dark() {
     local hex r g b
-    hex=$(LC_ALL=C LANGUAGE= grep -E '^background' "$real_state/theme/colors.toml" | LC_ALL=C LANGUAGE= grep -oE '#[0-9A-Fa-f]{6}' | LC_ALL=C LANGUAGE= head -1)
+    hex=$(LC_ALL=C.UTF-8 LANGUAGE= grep -E '^background' "$real_state/theme/colors.toml" | LC_ALL=C.UTF-8 LANGUAGE= grep -oE '#[0-9A-Fa-f]{6}' | head -1)
     [[ -n "$hex" ]] || fail "no background in the live colors.toml"
     r=$((16#${hex:1:2})); g=$((16#${hex:3:2})); b=$((16#${hex:5:2}))
     # Rec. 601 luma, integer weights that sum to 1000; half of 255 is the line between dark and light.
@@ -937,10 +937,10 @@ theme_index=0
 # accent     = "#7aa2f7"
 theme_colours() {
     local dir bg accent
-    dir=$(LC_ALL=C LANGUAGE= omarchy theme dir "$(theme_slug "$1")" 2>/dev/null) || return 1
+    dir=$(LC_ALL=C.UTF-8 LANGUAGE= omarchy theme dir "$(theme_slug "$1")" 2>/dev/null) || return 1
     [[ -f "$dir/colors.toml" ]] || return 1
-    bg=$(LC_ALL=C LANGUAGE= grep -E '^background' "$dir/colors.toml" 2>/dev/null | LC_ALL=C LANGUAGE= grep -oE '#[0-9A-Fa-f]{6}' | LC_ALL=C LANGUAGE= head -1)
-    accent=$(LC_ALL=C LANGUAGE= grep -E '^accent' "$dir/colors.toml" 2>/dev/null | LC_ALL=C LANGUAGE= grep -oE '#[0-9A-Fa-f]{6}' | LC_ALL=C LANGUAGE= head -1)
+    bg=$(LC_ALL=C.UTF-8 LANGUAGE= grep -E '^background' "$dir/colors.toml" 2>/dev/null | LC_ALL=C.UTF-8 LANGUAGE= grep -oE '#[0-9A-Fa-f]{6}' | head -1)
+    accent=$(LC_ALL=C.UTF-8 LANGUAGE= grep -E '^accent' "$dir/colors.toml" 2>/dev/null | LC_ALL=C.UTF-8 LANGUAGE= grep -oE '#[0-9A-Fa-f]{6}' | head -1)
     [[ -n "$bg" ]] || return 1
     printf '%s|%s|%s\n' "$1" "$bg" "${accent:-$bg}"
 }
@@ -957,15 +957,15 @@ theme_pool() {
     theme_order=()
     # Sample line from the python below: "251 213 Flexoki Light", background luma, accent hue, name.
     while IFS= read -r line; do
-        theme_order+=("$(printf '%s' "$line" | LC_ALL=C LANGUAGE= cut -c9-)")
+        theme_order+=("$(printf '%s' "$line" | cut -c9-)")
         printf 'ROTATION luma %s hue %s %s\n' "${line:0:3}" "${line:4:3}" "${line:8}"
     done < <(
         {
-            theme_colours "$current" | LC_ALL=C LANGUAGE= sed 's/^/current|/'
+            theme_colours "$current" | LC_ALL=C.UTF-8 LANGUAGE= sed 's/^/current|/'
             while IFS= read -r name; do
-                theme_colours "$name" | LC_ALL=C LANGUAGE= sed 's/^/pool|/'
-            done < <(LC_ALL=C LANGUAGE= omarchy theme list)
-        } | LC_ALL=C LANGUAGE= python3 -c '
+                theme_colours "$name" | LC_ALL=C.UTF-8 LANGUAGE= sed 's/^/pool|/'
+            done < <(LC_ALL=C.UTF-8 LANGUAGE= omarchy theme list)
+        } | LC_ALL=C.UTF-8 LANGUAGE= python3 -c '
 import sys, colorsys
 def rgb(h): return tuple(int(h[i:i+2], 16) for i in (1, 3, 5))
 def luma(c): return (299*c[0] + 587*c[1] + 114*c[2]) // 1000
@@ -1038,8 +1038,8 @@ rotation_load() {
 theme_restore() {
     local name bg
     [[ -f "$state" ]] || return 0
-    name=$(LC_ALL=C LANGUAGE= grep '^theme=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
-    bg=$(LC_ALL=C LANGUAGE= grep '^background=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
+    name=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^theme=' "$state" | cut -d= -f2-)
+    bg=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^background=' "$state" | cut -d= -f2-)
     [[ -n "$name" ]] || return 0
     if [[ "$(theme_slug "$(theme_current)")" != "$(theme_slug "$name")" ]]; then
         omarchy theme set "$(theme_slug "$name")" >/dev/null 2>&1
@@ -1067,7 +1067,7 @@ theme_wait() {
 # Sample input, one line of the live colors.toml:
 # foreground        = "#c8ccd0"   # content ink
 live_foreground() {
-    LC_ALL=C LANGUAGE= grep -E '^foreground' "$real_state/theme/colors.toml" | LC_ALL=C LANGUAGE= grep -oE '#[0-9A-Fa-f]{6}'
+    LC_ALL=C.UTF-8 LANGUAGE= grep -E '^foreground' "$real_state/theme/colors.toml" | LC_ALL=C.UTF-8 LANGUAGE= grep -oE '#[0-9A-Fa-f]{6}'
 }
 
 # omarchy theme set writes theme.name last, after swapping the theme directory, so the name file
@@ -1076,8 +1076,8 @@ theme_wait_s=20
 wait_theme_applied() {
     local want seen
     want=$(theme_slug "$1")
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 $((theme_wait_s * 10))); do
-        seen=$(LC_ALL=C LANGUAGE= cat "$real_state/theme.name" 2>/dev/null)
+    for _attempt in $(seq 1 $((theme_wait_s * 10))); do
+        seen=$(cat "$real_state/theme.name" 2>/dev/null)
         [[ "$(theme_slug "$seen")" == "$want" ]] && return 0
         sleep 0.1
     done
@@ -1091,7 +1091,7 @@ wait_foreground() {
     want=$(live_foreground)
     [[ -n "$want" ]] || fail "no foreground in the live colors.toml"
     # Case-insensitive: a theme file may write #100F0F where the window reports #100f0f, measured.
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 200); do
+    for _attempt in $(seq 1 200); do
         seen=$(ipc themeForeground 2>/dev/null)
         [[ "${seen,,}" == "${want,,}" ]] && { printf 'FOREGROUND %s (window agrees with colors.toml)\n' "$seen"; return; }
         sleep 0.05
@@ -1105,7 +1105,7 @@ beat_started=0
 beat_name=""
 
 now_ms() {
-    LC_ALL=C LANGUAGE= date +%s%3N
+    LC_ALL=C.UTF-8 LANGUAGE= date +%s%3N
 }
 
 # Opens a beat's clock; the runner closes it, because the beat body runs in a subshell.
@@ -1141,7 +1141,7 @@ menu_seek() {
         i=$((i + 1))
     done
     (( target >= 0 )) || fail "menu_seek: no row labelled $want in $entries"
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 16); do
+    for _attempt in $(seq 1 16); do
         cursor=$(ipc contextMenuCursor)
         [[ "$cursor" == "$target" ]] && return 0
         key j
@@ -1173,7 +1173,7 @@ empty_b="$HOME/Public"
 # Climbs to the home from anywhere inside it, one h at a time, never above it.
 goto_home() {
     local attempt
-    for attempt in $(LC_ALL=C LANGUAGE= seq 1 8); do
+    for attempt in $(seq 1 8); do
         [[ "$(ipc path)" == "$fixture" ]] && return 0
         [[ "$(ipc path)" == "$fixture"/* ]] || fail "the pane is at $(ipc path), outside the home"
         key h
@@ -1240,7 +1240,7 @@ beat_drag() {
     read -r pid_b id_b addr_b < <(spawn "$docs")
     place "$addr_b" "$(side_x)" "$(pair_y)" "$pair_w" "$height"
     expect "second window path" "$docs" ipc_b path
-    omarchy-drive focus "$addr_a" >/dev/null
+    LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive focus "$addr_a" >/dev/null
     dwell 2
     shot drag-two-windows
 
@@ -1453,7 +1453,7 @@ beat_newfolder() {
 beat_scale() {
     local started settled
     beat scale "h to the home: a hundred thousand entries settle; end, start, and a search streams in"
-    home_rows=$(LC_ALL=C LANGUAGE= ls "$HOME" | LC_ALL=C LANGUAGE= wc -l)
+    home_rows=$(LC_ALL=C.UTF-8 LANGUAGE= ls "$HOME" | wc -l)
     started=$(now_ms)
     goto_home
     wait_listing "$home_rows"
@@ -1522,7 +1522,7 @@ beat_theme() {
     wait_theme_applied "$target"
     wait_foreground
     dwell 7
-    shot "theme-$(printf '%s' "$target" | LC_ALL=C LANGUAGE= tr 'A-Z ' 'a-z-')"
+    shot "theme-$(printf '%s' "$target" | LC_ALL=C.UTF-8 LANGUAGE= tr 'A-Z ' 'a-z-')"
     theme_wait
     theme_restore
     wait_foreground
@@ -1711,7 +1711,7 @@ beat_menu() {
 # the manifest's backward walk unlinks the files and then removes the emptied directories.
 made_tree() {
     local p
-    while IFS= read -r p; do made "$p"; done < <(LC_ALL=C LANGUAGE= find "$1" -depth -mindepth 1 2>/dev/null | LC_ALL=C LANGUAGE= tac)
+    while IFS= read -r p; do made "$p"; done < <(LC_ALL=C.UTF-8 LANGUAGE= find "$1" -depth -mindepth 1 2>/dev/null | tac)
     made "$1"
 }
 
@@ -1719,8 +1719,8 @@ made_tree() {
 new_entry_in() {
     local dir="$1" before="$2" name
     while IFS= read -r name; do
-        LC_ALL=C LANGUAGE= grep -qxF -- "$name" <<< "$before" || { printf '%s' "$name"; return 0; }
-    done < <(LC_ALL=C LANGUAGE= ls -A "$dir")
+        LC_ALL=C.UTF-8 LANGUAGE= grep -qxF -- "$name" <<< "$before" || { printf '%s' "$name"; return 0; }
+    done < <(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$dir")
     return 1
 }
 
@@ -1730,21 +1730,21 @@ beat_extract() {
     beat extract "in Archives: m on the press kit, Extract; a folder of 43 entries appears beside it"
     goto_path "$docs/Archives"
     seek_row 'press-kit.zip'
-    before=$(LC_ALL=C LANGUAGE= ls -A "$docs/Archives")
+    before=$(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$docs/Archives")
     key m
     expect_ipc contextMenuVisible true
     dwell 1
     menu_seek "Extract"
     dwell 0.8
     key -k Return
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 200); do
+    for _attempt in $(seq 1 200); do
         out=$(new_entry_in "$docs/Archives" "$before") && [[ -d "$docs/Archives/$out" ]] && break
         sleep 0.1
     done
     [[ -n "${out:-}" && -d "$docs/Archives/$out" ]] || fail "no folder appeared beside the archive; the bar says '$(ipc lastMessage)'"
     made_tree "$docs/Archives/$out"
     expect_message_has "Extracted"
-    printf 'EXTRACT %s -> %s (%s entries)\n' "press-kit.zip" "$out" "$(LC_ALL=C LANGUAGE= find "$docs/Archives/$out" -mindepth 1 | LC_ALL=C LANGUAGE= wc -l)"
+    printf 'EXTRACT %s -> %s (%s entries)\n' "press-kit.zip" "$out" "$(LC_ALL=C.UTF-8 LANGUAGE= find "$docs/Archives/$out" -mindepth 1 | wc -l)"
     dwell 3.5
     shot extract-done
 }
@@ -1755,7 +1755,7 @@ beat_compress() {
     beat compress "in the project: m on the brand folder, Compress, a format; the archive appears"
     goto_path "$lantern"
     seek_row 'brand'
-    before=$(LC_ALL=C LANGUAGE= ls -A "$lantern")
+    before=$(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$lantern")
     key m
     expect_ipc contextMenuVisible true
     dwell 1
@@ -1765,14 +1765,14 @@ beat_compress() {
     dwell 1.5
     shot compress-formats
     key -k Return
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 300); do
+    for _attempt in $(seq 1 300); do
         out=$(new_entry_in "$lantern" "$before") && [[ -s "$lantern/$out" ]] && break
         sleep 0.1
     done
     [[ -n "${out:-}" && -s "$lantern/$out" ]] || fail "no archive appeared; the bar says '$(ipc lastMessage)'"
     made "$lantern/$out"
     expect_message_has "Archive written"
-    printf 'COMPRESS brand -> %s (%s bytes)\n' "$out" "$(LC_ALL=C LANGUAGE= stat -c %s "$lantern/$out")"
+    printf 'COMPRESS brand -> %s (%s bytes)\n' "$out" "$(stat -c %s "$lantern/$out")"
     dwell 3
     shot compress-done
 }
@@ -1783,7 +1783,7 @@ beat_convert() {
     beat convert "in the album: m on the long-named waterfall, Convert; the dialog, then the converted file"
     goto_path "$iceland"
     seek_row 'waterfall*'
-    before=$(LC_ALL=C LANGUAGE= ls -A "$iceland")
+    before=$(LC_ALL=C.UTF-8 LANGUAGE= ls -A "$iceland")
     key m
     expect_ipc contextMenuVisible true
     dwell 1
@@ -1794,7 +1794,7 @@ beat_convert() {
     dwell 3.5
     shot convert-dialog
     key -k Return
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 300); do
+    for _attempt in $(seq 1 300); do
         out=$(new_entry_in "$iceland" "$before") && [[ -s "$iceland/$out" ]] && break
         sleep 0.1
     done
@@ -1826,7 +1826,7 @@ beat_taildrop() {
     # Peers sort by label, so the flyout opens on the NAS and the laptop is the row below it.
     key j
     dwell 1
-    printf 'TAILDROP target: %s\n' "$(printf '%s' "$peers" | LC_ALL=C LANGUAGE= cut -d"|" -f2)"
+    printf 'TAILDROP target: %s\n' "$(printf '%s' "$peers" | cut -d"|" -f2)"
     key -k Return
     expect_message_has "Sending"
     printf 'TAILDROP sent: %s\n' "$(ipc lastMessage)"
@@ -1858,7 +1858,7 @@ beat_dropbox() {
     dwell 1
     key -k Return
     settle
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         [[ "$(ipc lastMessage)" == *[Ll]ink* ]] && break
         sleep 0.1
     done
@@ -1877,7 +1877,7 @@ beat_rail() {
     dwell 1.5
     count=$(ipc railCount)
     last=$(( count - 1 ))
-    for i in $(LC_ALL=C LANGUAGE= seq 1 "$last"); do
+    for i in $(seq 1 "$last"); do
         key j
         expect_ipc railCursor "$i"
         dwell 0.3
@@ -2036,7 +2036,7 @@ theme_check() {
     local name tag
     shots=1
     while read -r name; do
-        tag=theme-check-$(printf '%s' "$name" | LC_ALL=C LANGUAGE= tr 'A-Z ' 'a-z-')
+        tag=theme-check-$(printf '%s' "$name" | LC_ALL=C.UTF-8 LANGUAGE= tr 'A-Z ' 'a-z-')
         theme_switch "$name"
         wait_theme_applied "$name"
         theme_wait
@@ -2051,7 +2051,7 @@ theme_check() {
 # ------------------------------------------------------------------ the recording
 
 recording_path() {
-    LC_ALL=C LANGUAGE= grep '^recording=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-
+    LC_ALL=C.UTF-8 LANGUAGE= grep '^recording=' "$state" | cut -d= -f2-
 }
 
 # The recorder called directly on the monitor: the stock command reaches only its very_high preset
@@ -2061,22 +2061,22 @@ cmd_record() {
     local out stamp pid
     load_state
     command -v gpu-screen-recorder >/dev/null || fail "gpu-screen-recorder is missing"
-    LC_ALL=C LANGUAGE= grep -q '^recording=' "$state" && fail "a recording is already registered: $(recording_path)"
-    stamp=$(LC_ALL=C LANGUAGE= date +%Y-%m-%d-%H%M)
+    LC_ALL=C.UTF-8 LANGUAGE= grep -q '^recording=' "$state" && fail "a recording is already registered: $(recording_path)"
+    stamp=$(LC_ALL=C.UTF-8 LANGUAGE= date +%Y-%m-%d-%H%M)
     mkdir -p "$real_home/Videos"
     out="$real_home/Videos/flea-showcase-$stamp-${stage_w}x${stage_h}.mp4"
     gpu-screen-recorder -w "$monitor" -f "$gsr_fps" -fm cfr -k "$gsr_codec" -q "$gsr_quality" -bm qp \
         -cursor yes -fallback-cpu-encoding yes -o "$out" >"$work/gsr.log" 2>&1 </dev/null 3>&- 4>&- &
     pid=$!
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         [[ -s "$out" ]] && break
-        kill -0 "$pid" 2>/dev/null || fail "the recorder exited before writing anything: $(LC_ALL=C LANGUAGE= tail -3 "$work/gsr.log")"
+        kill -0 "$pid" 2>/dev/null || fail "the recorder exited before writing anything: $(tail -3 "$work/gsr.log")"
         sleep 0.1
     done
-    [[ -s "$out" ]] || fail "the recorder started but wrote nothing in 10 s: $(LC_ALL=C LANGUAGE= tail -3 "$work/gsr.log")"
+    [[ -s "$out" ]] || fail "the recorder started but wrote nothing in 10 s: $(tail -3 "$work/gsr.log")"
     printf 'recording=%s\ngsr_pid=%s\n' "$out" "$pid" >> "$state"
     park_pointer
-    printf 'GSR %s\n' "$(LC_ALL=C LANGUAGE= ps -o args= -p "$pid")"
+    printf 'GSR %s\n' "$(LC_ALL=C.UTF-8 LANGUAGE= ps -o args= -p "$pid")"
     printf 'RECORDING %s\n' "$out"
 }
 
@@ -2086,19 +2086,19 @@ cmd_stop() {
     local out pid
     load_state
     out=$(recording_path)
-    pid=$(LC_ALL=C LANGUAGE= grep '^gsr_pid=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
+    pid=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^gsr_pid=' "$state" | cut -d= -f2-)
     [[ -n "$out" && -n "$pid" ]] || fail "no recording is registered"
     kill -INT "$pid" 2>/dev/null
-    for _attempt in $(LC_ALL=C LANGUAGE= seq 1 100); do
+    for _attempt in $(seq 1 100); do
         kill -0 "$pid" 2>/dev/null || break
         sleep 0.1
     done
     kill -0 "$pid" 2>/dev/null && fail "the recorder did not exit within 10 s of SIGINT; the file may be unfinished"
-    LC_ALL=C LANGUAGE= sed -i '/^recording=/d; /^gsr_pid=/d' "$state"
+    LC_ALL=C.UTF-8 LANGUAGE= sed -i '/^recording=/d; /^gsr_pid=/d' "$state"
     [[ -s "$out" ]] || fail "no file at $out"
     printf 'FILE %s\n' "$out"
-    printf 'SIZE %s bytes\n' "$(LC_ALL=C LANGUAGE= stat -c %s "$out")"
-    ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,r_frame_rate,pix_fmt -of default=nw=1 "$out"
+    printf 'SIZE %s bytes\n' "$(stat -c %s "$out")"
+    LC_ALL=C.UTF-8 LANGUAGE= ffprobe -v error -show_entries format=duration:stream=codec_name,width,height,r_frame_rate,pix_fmt -of default=nw=1 "$out"
 }
 
 # ------------------------------------------------------------------ the commands
@@ -2112,14 +2112,14 @@ save_state() {
 # stage, record, run and stop are separate invocations, so the window and the stage travel through this file.
 load_state() {
     [[ -f "$state" ]] || fail "nothing is staged, run stage first"
-    pid_a=$(LC_ALL=C LANGUAGE= grep '^pid_a=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
-    id_a=$(LC_ALL=C LANGUAGE= grep '^id_a=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
-    addr_a=$(LC_ALL=C LANGUAGE= grep '^addr_a=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
-    stage_x=$(LC_ALL=C LANGUAGE= grep '^stage_x=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
-    stage_y=$(LC_ALL=C LANGUAGE= grep '^stage_y=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
-    stage_w=$(LC_ALL=C LANGUAGE= grep '^stage_w=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
-    stage_h=$(LC_ALL=C LANGUAGE= grep '^stage_h=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
-    monitor=$(LC_ALL=C LANGUAGE= grep '^monitor=' "$state" | LC_ALL=C LANGUAGE= cut -d= -f2-)
+    pid_a=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^pid_a=' "$state" | cut -d= -f2-)
+    id_a=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^id_a=' "$state" | cut -d= -f2-)
+    addr_a=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^addr_a=' "$state" | cut -d= -f2-)
+    stage_x=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^stage_x=' "$state" | cut -d= -f2-)
+    stage_y=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^stage_y=' "$state" | cut -d= -f2-)
+    stage_w=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^stage_w=' "$state" | cut -d= -f2-)
+    stage_h=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^stage_h=' "$state" | cut -d= -f2-)
+    monitor=$(LC_ALL=C.UTF-8 LANGUAGE= grep '^monitor=' "$state" | cut -d= -f2-)
     [[ -n "$addr_a" && -n "$id_a" && -n "$monitor" ]] || fail "the state file names no window or monitor"
 }
 
@@ -2148,7 +2148,7 @@ cmd_teardown() {
     # The trap is disarmed first, so a fail inside a restore cannot start a second teardown.
     trap - EXIT
     printf 'TEARDOWN begins, state %s, manifest %s\n' "$([[ -f "$state" ]] && echo present || echo absent)" "$([[ -f "$manifest" ]] && echo present || echo absent)"
-    if [[ -f "$state" ]] && LC_ALL=C LANGUAGE= grep -q '^gsr_pid=' "$state"; then
+    if [[ -f "$state" ]] && LC_ALL=C.UTF-8 LANGUAGE= grep -q '^gsr_pid=' "$state"; then
         cmd_stop || trouble=1
     fi
     # The theme first: measured on one run, the bar stayed hidden for 90 s with its flag clear and
@@ -2188,7 +2188,7 @@ case "${1:-}" in
         ;;
     teardown) cmd_teardown ;;
     *)
-        LC_ALL=C LANGUAGE= sed -n '2,12p' "$0" | LC_ALL=C LANGUAGE= cut -c3-
+        LC_ALL=C.UTF-8 LANGUAGE= sed -n '2,12p' "$0" | cut -c3-
         exit 2
         ;;
 esac

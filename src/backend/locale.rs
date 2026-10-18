@@ -1,9 +1,9 @@
 use std::ffi::OsStr;
 
-// Machine output must not inherit translated labels, decimal separators or gettext's LANGUAGE override.
+// Parsed commands and all jailed children need untranslated UTF-8 text and dot decimals; Flea translates none of their text.
 pub(crate) fn command(program: impl AsRef<OsStr>) -> std::process::Command {
     let mut child = std::process::Command::new(program);
-    child.env("LC_ALL", "C").env_remove("LANGUAGE");
+    child.env("LC_ALL", "C.UTF-8").env_remove("LANGUAGE");
     child
 }
 
@@ -20,7 +20,10 @@ mod tests {
                 .env("FLEA_LOCALE_TEST_CHILD", "1")
                 .env("LC_ALL", locale).env("LANG", locale).env("LANGUAGE", "de:ar")
                 .output().expect("the isolated locale test starts");
-            assert!(output.status.success(), "{}", String::from_utf8_lossy(&output.stdout));
+            let stdout = String::from_utf8(output.stdout).unwrap();
+            assert!(output.status.success(), "{stdout}");
+            assert!(stdout.lines().any(|line| line.starts_with("test result: ok. 1 passed; 0 failed;")), "{stdout}");
+            assert!(stdout.contains("locale child body completed"), "{stdout}");
         }
     }
 
@@ -31,7 +34,7 @@ mod tests {
         let locale = std::env::var("LC_ALL").unwrap();
         let output = command("/bin/sh").args(["-c", probe]).output().unwrap();
         assert!(output.status.success());
-        assert_eq!(String::from_utf8(output.stdout).unwrap(), format!("C|unset|{locale}"));
+        assert_eq!(String::from_utf8(output.stdout).unwrap(), format!("C.UTF-8|unset|{locale}"));
         let mut opened = Command::new("/bin/sh");
         opened.args(["-c", probe]);
         crate::terminal::detach(&mut opened);
@@ -40,6 +43,7 @@ mod tests {
         assert_eq!(String::from_utf8(output.stdout).unwrap(), format!("{locale}|de:ar|{locale}"));
         assert_eq!(std::env::var("LC_ALL").unwrap(), locale);
         assert_eq!(std::env::var("LANGUAGE").unwrap(), "de:ar");
+        println!("locale child body completed");
     }
 }
 

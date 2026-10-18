@@ -3,7 +3,7 @@
 set -uo pipefail
 
 # This tool reads machine output and launches no application for the user.
-export LC_ALL=C
+export LC_ALL=C.UTF-8
 unset LANGUAGE
 
 json_file=""

@@ -10,7 +10,11 @@
 # Hard rule 9: every write and delete is inside a sandbox tools/flea-sandbox-guard made and marked.
 set -u
 set -o pipefail
-. "$(LC_ALL=C LANGUAGE= dirname "$0")/../tools/flea-sandbox-guard"
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+. "$(dirname "$0")/../tools/flea-sandbox-guard"
 
 # The sandbox carries the guard's marker; the stage is one level inside it, so the marker never
 # appears in a listing on camera even with hidden files shown.
@@ -389,7 +393,7 @@ photo_at() {
 spread_dates() {
     local directory=$1 start=$2 step_minutes=$3
     local epoch index=0 entry
-    epoch=$(LC_ALL=C LANGUAGE= date -d "$start" +%s) || fail "could not read the start date $start"
+    epoch=$(date -d "$start" +%s) || fail "could not read the start date $start"
     for entry in "$directory"/*; do
         [ -e "$entry" ] || continue
         touch -d "@$(( epoch + index * step_minutes * 60 ))" "$entry" \
@@ -428,7 +432,7 @@ build_projects() {
         magick "$base/brand/lantern-logo-dark.png" -resize ${i}x${i} "$base/brand/icons/lantern-mark-${i}.png"
     done
 
-    LC_ALL=C LANGUAGE= cat > "$base/src/main.rs" <<'RUST'
+    cat > "$base/src/main.rs" <<'RUST'
 use crate::render::{Frame, Renderer};
 use std::path::PathBuf;
 
@@ -448,7 +452,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     Ok(())
 }
 RUST
-    LC_ALL=C LANGUAGE= cat > "$base/src/render.rs" <<'RUST'
+    cat > "$base/src/render.rs" <<'RUST'
 // One job: turn a frame description into pixels. Nothing here touches the filesystem except write.
 pub struct Renderer {
     width: u32,
@@ -474,7 +478,7 @@ impl Renderer {
     }
 }
 RUST
-    LC_ALL=C LANGUAGE= cat > "$base/src/config.toml" <<'TOML'
+    cat > "$base/src/config.toml" <<'TOML'
 # Render settings. Width and height are pixels; step is the angle advanced per frame, in degrees.
 width = 1920
 height = 1080
@@ -491,7 +495,7 @@ gamma = 2.2
 format = "png"
 compression = 6
 TOML
-    LC_ALL=C LANGUAGE= cat > "$base/src/package.json" <<'JSON'
+    cat > "$base/src/package.json" <<'JSON'
 {
   "name": "lantern-preview",
   "version": "0.4.2",
@@ -511,7 +515,7 @@ TOML
 }
 JSON
 
-    LC_ALL=C LANGUAGE= cat > "$base/README.md" <<'MD'
+    cat > "$base/README.md" <<'MD'
 # Lantern
 
 A small renderer for turntable sequences. It reads `config.toml`, draws the frames
@@ -536,7 +540,7 @@ The renderer is deliberately single-threaded. Frames are independent, so the eas
 win is to run several processes rather than to thread the inner loop, and that
 keeps the drawing code readable.
 MD
-    LC_ALL=C LANGUAGE= cat > "$base/changelog.md" <<'MD'
+    cat > "$base/changelog.md" <<'MD'
 # Changelog
 
 ## 0.4.2
@@ -592,7 +596,7 @@ build_photos() {
     # as one instant. Eight frames share a timestamp, which is both what a burst on a real camera
     # looks like and what lets one touch date eight files: per-file, this loop spawned 8000.
     local epoch group_epoch burst=8
-    epoch=$(LC_ALL=C LANGUAGE= date -d "2025-09-14 08:12" +%s) || fail "could not read the camera roll start date"
+    epoch=$(date -d "2025-09-14 08:12" +%s) || fail "could not read the camera roll start date"
     local batch=()
     for (( i = 0; i < roll_count; i++ )); do
         batch+=( "$roll/$(printf 'IMG_%04d.jpg' $(( 1000 + i )))" )
@@ -640,7 +644,7 @@ build_documents() {
     {
         printf 'sku,item,shelf,count,condition\n'
         local i shelves=(A1 A2 B1 B2 C1 C2 D1)
-        for i in $(LC_ALL=C LANGUAGE= seq 1 48); do
+        for i in $(seq 1 48); do
             printf 'LS-%04d,Print %s series no %d,%s,%d,%s\n' \
                 $(( 1000 + i )) \
                 "$( [ $(( i % 3 )) -eq 0 ] && printf 'harbour' || printf 'coast' )" \
@@ -649,7 +653,7 @@ build_documents() {
         done
     } > "$base/inventory.csv"
 
-    LC_ALL=C LANGUAGE= cat > "$base/notes/meeting notes, 14 August.md" <<'MD'
+    cat > "$base/notes/meeting notes, 14 August.md" <<'MD'
 # Review, 14 August
 
 Present: the studio, the client's marketing lead, the print supplier.
@@ -673,7 +677,7 @@ Present: the studio, the client's marketing lead, the print supplier.
 - Send the revised schedule by Monday.
 - Book the second press check as provisional.
 MD
-    LC_ALL=C LANGUAGE= cat > "$base/notes/reading list.md" <<'MD'
+    cat > "$base/notes/reading list.md" <<'MD'
 # Reading list
 
 ## Started
@@ -690,7 +694,7 @@ MD
 
 - The one about workflow. Three hundred pages to say keep a list.
 MD
-    LC_ALL=C LANGUAGE= cat > "$base/notes/ideas.txt" <<'TXT'
+    cat > "$base/notes/ideas.txt" <<'TXT'
 ideas, unsorted
 
 - A print series where each frame is the same view an hour apart. Twenty-four frames,
@@ -714,13 +718,13 @@ build_archives() {
     mkdir -p "$staging/press kit/images" "$staging/press kit/text"
 
     local i
-    for i in $(LC_ALL=C LANGUAGE= seq 0 11); do
+    for i in $(seq 0 11); do
         place_photo $(( 12 + i )) "$staging/press kit/images/press-$(printf '%02d' "$i").jpg"
     done
     printf 'Lantern press kit\n\nContact the studio for high resolution files.\n' \
         > "$staging/press kit/text/about.txt"
     printf 'Lantern, a renderer for turntable sequences.\n' > "$staging/press kit/text/one-liner.txt"
-    for i in $(LC_ALL=C LANGUAGE= seq 1 26); do
+    for i in $(seq 1 26); do
         printf 'Caption for plate %d.\n' "$i" > "$staging/press kit/text/caption-$(printf '%02d' "$i").txt"
     done
     ( cd "$staging" && zip -q -r "$base/press-kit.zip" "press kit" ) || fail "zip failed"
@@ -732,13 +736,13 @@ build_archives() {
     bsdtar -a -c -f "$base/site-backup.tar.gz" -C "$staging" site || fail "bsdtar failed"
 
     mkdir -p "$staging/old designs"
-    for i in $(LC_ALL=C LANGUAGE= seq 0 7); do
+    for i in $(seq 0 7); do
         place_photo $(( 30 + i )) "$staging/old designs/concept-$(printf '%02d' "$i").jpg"
     done
     bsdtar -a -c -f "$base/old-designs.tar.zst" -C "$staging" "old designs" || fail "bsdtar failed"
 
     mkdir -p "$staging/raw scans"
-    for i in $(LC_ALL=C LANGUAGE= seq 0 5); do
+    for i in $(seq 0 5); do
         place_photo $(( 48 + i )) "$staging/raw scans/scan-$(printf '%03d' "$i").jpg"
     done
     ( cd "$staging" && 7z a -bd -bso0 "$base/raw-scans.7z" "raw scans" >/dev/null ) || fail "7z failed"
@@ -759,7 +763,7 @@ build_downloads() {
     # Over the 1 MiB preview cap, so the text frame says so instead of drawing a truncated file.
     {
         local i
-        for i in $(LC_ALL=C LANGUAGE= seq 1 24000); do
+        for i in $(seq 1 24000); do
             printf '2026-08-%02d %02d:%02d:%02d  request id=%06d  route=/api/render  status=%d  %dms\n' \
                 $(( 1 + i % 28 )) $(( i % 24 )) $(( i % 60 )) $(( (i * 7) % 60 )) \
                 "$i" "$( [ $(( i % 40 )) -eq 0 ] && printf 500 || printf 200 )" $(( 12 + i % 300 ))
@@ -842,25 +846,25 @@ show_tree() {
     printf 'STAGE %s\n\n' "$stage"
     # The camera roll is thousands of rows, so it is summarised rather than printed. The denied
     # directory refuses find as designed, so its error is dropped and it is reported by name below.
-    ( cd "$stage" && LC_ALL=C LANGUAGE= find . -maxdepth 2 -not -path './Photos/Camera roll/*' 2>/dev/null \
-        | LC_ALL=C LANGUAGE= sort | LC_ALL=C LANGUAGE= sed 's|^\./||' )
-    printf '\nPhotos/Camera roll: %s entries\n' "$(LC_ALL=C LANGUAGE= ls -A "$stage/Photos/Camera roll" | LC_ALL=C LANGUAGE= wc -l)"
-    printf 'Client vault:       %s (unreadable on purpose)\n' "$(LC_ALL=C LANGUAGE= stat -c '%A' "$denied")"
-    printf 'Archive drive:      %s\n' "$(LC_ALL=C LANGUAGE= readlink "$stage/Archive drive") (a target that is not there)"
+    ( cd "$stage" && find . -maxdepth 2 -not -path './Photos/Camera roll/*' 2>/dev/null \
+        | sort | sed 's|^\./||' )
+    printf '\nPhotos/Camera roll: %s entries\n' "$(ls -A "$stage/Photos/Camera roll" | wc -l)"
+    printf 'Client vault:       %s (unreadable on purpose)\n' "$(stat -c '%A' "$denied")"
+    printf 'Archive drive:      %s\n' "$(readlink "$stage/Archive drive") (a target that is not there)"
 }
 
 show_weight() {
     printf '\napparent size, du -sh --apparent-size: %s\n' \
-        "$(LC_ALL=C LANGUAGE= du -sh --apparent-size "$sandbox" 2>/dev/null | LC_ALL=C LANGUAGE= cut -f1)"
+        "$(du -sh --apparent-size "$sandbox" 2>/dev/null | cut -f1)"
     # du reads st_blocks and charges every reflink clone for extents it only shares, so on a set
     # that is mostly clones du is not the weight. What deleting it gives back is what btrfs calls
     # exclusive plus the shared set counted once, which is the line below.
     if command -v btrfs >/dev/null; then
         printf 'on disk, btrfs filesystem du -s:\n'
-        btrfs filesystem du -s "$sandbox" 2>/dev/null | LC_ALL=C LANGUAGE= sed 's/^/  /'
+        btrfs filesystem du -s "$sandbox" 2>/dev/null | sed 's/^/  /'
     fi
     printf 'distinct photographs rendered:         %s\n' "$photo_count"
-    printf 'files in the stage set:                %s\n' "$(LC_ALL=C LANGUAGE= find "$stage" 2>/dev/null | LC_ALL=C LANGUAGE= wc -l)"
+    printf 'files in the stage set:                %s\n' "$(find "$stage" 2>/dev/null | wc -l)"
 }
 
 # The check that was asked for and the only one that settles it: look at the photographs at the
@@ -876,18 +880,18 @@ build_montage() {
             -background "#0e1112" "$out/photos-${size}px.png" || fail "montage failed at ${size}px"
     done
     printf 'MONTAGE %s\n' "$out"
-    LC_ALL=C LANGUAGE= ls -l "$out"
+    ls -l "$out"
 }
 
 # ------------------------------------------------------------------ the subcommands
 
-self=$(cd "$(LC_ALL=C LANGUAGE= dirname "$0")" && pwd)/$(LC_ALL=C LANGUAGE= basename "$0")
+self=$(cd "$(dirname "$0")" && pwd)/$(basename "$0")
 photo_dir=$sandbox/.photos
 photo_count=${FLEA_PHOTO_COUNT:-60}
 
 do_build() {
     require_tools
-    local started=$(LC_ALL=C LANGUAGE= date +%s)
+    local started=$(date +%s)
     unlock_denied
     sandbox_make "$sandbox"
     mkdir -p "$photo_dir" "$stage"
@@ -906,7 +910,7 @@ do_build() {
 
     show_tree
     show_weight
-    printf 'built in %s s\n' "$(( $(LC_ALL=C LANGUAGE= date +%s) - started ))"
+    printf 'built in %s s\n' "$(( $(date +%s) - started ))"
 }
 
 case "${1:-}" in
@@ -916,5 +920,5 @@ case "${1:-}" in
     remove)  unlock_denied; sandbox_remove "$sandbox"; printf 'removed %s\n' "$sandbox" ;;
     # Not for a person to run: one worker of the parallel render, re-entered by xargs.
     scene)   render_photo "$2" "$3" "$4" ;;
-    *)       fail "usage: $(LC_ALL=C LANGUAGE= basename "$0") build|list|montage|remove" ;;
+    *)       fail "usage: $(basename "$0") build|list|montage|remove" ;;
 esac

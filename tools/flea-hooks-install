@@ -3,18 +3,22 @@
 #   tools/flea-hooks-install
 set -u
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 # No cd: the installer works on the invoking repository, which may be any clone or linked worktree.
 
 PIN_HK="2.4.0"
 MARKER="# flea-hook: managed by tools/flea-hooks-install; do not hand edit."
 
 # Sample input (an hk version line): "hk 2.4.0"
-have_hk=$(LC_ALL=C LANGUAGE= hk --version 2>/dev/null) || { echo "flea-hooks-install: refused: hk is not on PATH, want hk $PIN_HK" >&2; exit 2; }
+have_hk=$(hk --version 2>/dev/null) || { echo "flea-hooks-install: refused: hk is not on PATH, want hk $PIN_HK" >&2; exit 2; }
 [ "$have_hk" = "hk $PIN_HK" ] || { echo "flea-hooks-install: refused: have '$have_hk', want 'hk $PIN_HK'" >&2; exit 2; }
 
-hooks_dir=$(LC_ALL=C LANGUAGE= git rev-parse --git-path hooks 2>/dev/null) || { echo "flea-hooks-install: refused: not inside a git work tree" >&2; exit 2; }
+hooks_dir=$(git rev-parse --git-path hooks 2>/dev/null) || { echo "flea-hooks-install: refused: not inside a git work tree" >&2; exit 2; }
 # A configured hooks path points outside this repository, so writing there would affect other clones.
-foreign_hooks=$(LC_ALL=C LANGUAGE= git config --get core.hooksPath 2>/dev/null) || foreign_hooks=""
+foreign_hooks=$(git config --get core.hooksPath 2>/dev/null) || foreign_hooks=""
 [ -z "$foreign_hooks" ] || { echo "flea-hooks-install: refused: core.hooksPath is set to '$foreign_hooks'; unset it and retry" >&2; exit 2; }
 mkdir -p "$hooks_dir" || { echo "flea-hooks-install: refused: cannot create $hooks_dir" >&2; exit 2; }
 
@@ -23,7 +27,7 @@ write_hook() {
   name=$1
   body=$2
   dest="$hooks_dir/$name"
-  if [ -e "$dest" ] && ! LC_ALL=C LANGUAGE= grep -qF "$MARKER" "$dest" 2>/dev/null; then
+  if [ -e "$dest" ] && ! grep -qF "$MARKER" "$dest" 2>/dev/null; then
     echo "flea-hooks-install: refused: $dest exists and is not a flea hook; move it aside and retry" >&2
     exit 2
   fi
@@ -35,7 +39,7 @@ write_hook() {
 }
 
 # The top is resolved at hook time so linked worktrees of this clone share one installer.
-write_hook "pre-commit" 'top=$(LC_ALL=C LANGUAGE= git rev-parse --show-toplevel 2>/dev/null) || { echo "flea pre-commit: refused: not inside a git work tree" >&2; exit 1; }
+write_hook "pre-commit" 'top=$(LC_ALL=C.UTF-8 LANGUAGE= git rev-parse --show-toplevel 2>/dev/null) || { echo "flea pre-commit: refused: not inside a git work tree" >&2; exit 1; }
 exec "$top/tools/flea-hook-check" hook pre-commit'
-write_hook "commit-msg" 'top=$(LC_ALL=C LANGUAGE= git rev-parse --show-toplevel 2>/dev/null) || { echo "flea commit-msg: refused: not inside a git work tree" >&2; exit 1; }
+write_hook "commit-msg" 'top=$(LC_ALL=C.UTF-8 LANGUAGE= git rev-parse --show-toplevel 2>/dev/null) || { echo "flea commit-msg: refused: not inside a git work tree" >&2; exit 1; }
 exec "$top/tools/flea-hook-check" hook commit-msg "$1"'

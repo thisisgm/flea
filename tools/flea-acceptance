@@ -3,7 +3,7 @@
 # --inventory is read-only. Native runs require the caller's FLEA_SOURCE_SHA and FLEA_BINARY_SHA256.
 # The 30-board manifest identifies design authority; native screenshots still require inspection.
 set -uo pipefail
-cd "$(LC_ALL=C LANGUAGE= dirname "$0")/.." || exit 1
+cd "$(dirname "$0")/.." || exit 1
 REPO=$PWD
 . "$REPO/tools/flea-sandbox-guard"
 # Sourced for its function definitions; nothing in it touches the display until drive_all runs.
@@ -51,20 +51,20 @@ require_list() {
 
 # Sample input, docs/protocol.md: "### list" between the "## Requests" and "## Responses" headings.
 derive_requests() {
-  LC_ALL=C LANGUAGE= awk '/^## Requests/,/^## Responses/' "$REPO/docs/protocol.md" \
-    | LC_ALL=C LANGUAGE= sed -n 's/^### //p'
+  LC_ALL=C.UTF-8 LANGUAGE= awk '/^## Requests/,/^## Responses/' "$REPO/docs/protocol.md" \
+    | LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^### //p'
 }
 
 # Sample input, docs/protocol.md: "### listed" after the "## Responses" heading.
 derive_responses() {
-  LC_ALL=C LANGUAGE= sed -n '/^## Responses/,$p' "$REPO/docs/protocol.md" | LC_ALL=C LANGUAGE= sed -n 's/^### //p'
+  LC_ALL=C.UTF-8 LANGUAGE= sed -n '/^## Responses/,$p' "$REPO/docs/protocol.md" | LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^### //p'
 }
 
 # Sample input, ui/js/Menu.js: 'var columns = [["mode", "Mode"], ["size", "Size"], ["date", "Date Modified"], ["kind", "Kind"]]'
 derive_header_keys() {
-  LC_ALL=C LANGUAGE= sed -n '/^[[:space:]]*var columns = \[\[/p' "$REPO/ui/js/Menu.js" \
-    | LC_ALL=C LANGUAGE= tr '[],' '\n' \
-    | LC_ALL=C LANGUAGE= sed -n 's/^[[:space:]]*"\([a-z][a-z]*\)"[[:space:]]*$/\1/p'
+  LC_ALL=C.UTF-8 LANGUAGE= sed -n '/^[[:space:]]*var columns = \[\[/p' "$REPO/ui/js/Menu.js" \
+    | LC_ALL=C.UTF-8 LANGUAGE= tr '[],' '\n' \
+    | LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/^[[:space:]]*"\([a-z][a-z]*\)"[[:space:]]*$/\1/p'
 }
 
 validate_header_keys() {
@@ -90,7 +90,7 @@ validate_header_keys() {
 
 # Sample manifest row: '<64 lowercase hex characters>  Window.html'.
 derive_artboards() {
-  LC_ALL=C LANGUAGE= python3 - "$BOARD_MANIFEST" "${FLEA_BOARD_DIR:-}" <<'PY'
+  LC_ALL=C.UTF-8 LANGUAGE= python3 - "$BOARD_MANIFEST" "${FLEA_BOARD_DIR:-}" <<'PY'
 import hashlib, pathlib, re, sys
 manifest, directory = pathlib.Path(sys.argv[1]), sys.argv[2]
 rows = manifest.read_text().splitlines()
@@ -113,7 +113,7 @@ PY
 # shows up here rather than nowhere. Sample input: the file list of tests/*.sh.
 derive_suites() {
   for f in "$REPO"/tests/*.sh; do
-    [ -f "$f" ] && LC_ALL=C LANGUAGE= basename "$f"
+    [ -f "$f" ] && basename "$f"
   done
 }
 
@@ -122,8 +122,8 @@ derive_suites() {
 # runner script and no CI at all, so every one of them is run by a person or not at all. An uninvoked
 # suite reads as coverage and is not, which is how a nine-check drag suite sat unrun.
 suite_named_by() {
-  LC_ALL=C LANGUAGE= grep -rl "$1" "$REPO"/tests "$REPO"/tools "$REPO"/packaging "$REPO"/PKGBUILD 2>/dev/null \
-    | LC_ALL=C LANGUAGE= grep -v "/tests/$1$" | LC_ALL=C LANGUAGE= sed "s|$REPO/||" | LC_ALL=C LANGUAGE= tr '\n' ' '
+  LC_ALL=C.UTF-8 LANGUAGE= grep -rl "$1" "$REPO"/tests "$REPO"/tools "$REPO"/packaging "$REPO"/PKGBUILD 2>/dev/null \
+    | LC_ALL=C.UTF-8 LANGUAGE= grep -v "/tests/$1$" | LC_ALL=C.UTF-8 LANGUAGE= sed "s|$REPO/||" | LC_ALL=C.UTF-8 LANGUAGE= tr '\n' ' '
 }
 
 # Sample input, ui/NetworkMounts.qml: 'group: "network", kind: "share"'
@@ -131,8 +131,8 @@ suite_named_by() {
 # on kind alone collected PreviewMedia.qml's default property value, "audio", as a sidebar kind. The
 # shape is the filter, not a file list, so a new file that builds entries is picked up on its own.
 derive_sidebar_kinds() {
-  LC_ALL=C LANGUAGE= grep 'group: "' "$REPO"/ui/*.qml \
-    | LC_ALL=C LANGUAGE= sed -n 's/.*kind: "\([a-z][a-z]*\)".*/\1/p' | LC_ALL=C LANGUAGE= sort -u
+  LC_ALL=C.UTF-8 LANGUAGE= grep 'group: "' "$REPO"/ui/*.qml \
+    | LC_ALL=C.UTF-8 LANGUAGE= sed -n 's/.*kind: "\([a-z][a-z]*\)".*/\1/p' | LC_ALL=C.UTF-8 LANGUAGE= sort -u
 }
 
 # ---- the request drivers -----------------------------------------------------------------------
@@ -211,7 +211,7 @@ drive_cancel() {
     || { bad request "$name" "backend pipeline failed: $out"; return; }
   case $out in
     *'"t":"error"'*)
-      bad request "$name" "the backend answered error: $(printf '%s' "$out" | LC_ALL=C LANGUAGE= grep -m1 '"t":"error"')"
+      bad request "$name" "the backend answered error: $(printf '%s' "$out" | LC_ALL=C.UTF-8 LANGUAGE= grep -m1 '"t":"error"')"
       return ;;
   esac
   case $out in
@@ -236,7 +236,7 @@ drive_request() {
     || { bad request "$name" "backend pipeline failed: $out"; return; }
   case $out in
     *'"t":"error"'*)
-      bad request "$name" "the backend answered error: $(printf '%s' "$out" | LC_ALL=C LANGUAGE= grep -m1 '"t":"error"')"
+      bad request "$name" "the backend answered error: $(printf '%s' "$out" | LC_ALL=C.UTF-8 LANGUAGE= grep -m1 '"t":"error"')"
       return ;;
   esac
   case $out in
@@ -255,7 +255,7 @@ drive_quit() {
            printf '{"c":"quit"}\n'
            printf '{"c":"list","path":"%s","first":8,"hidden":true}\n' "$dir"; } | "$BIN" --backend 2>&1 ) \
     || { bad request quit "backend pipeline failed: $out"; return; }
-  n=$(printf '%s\n' "$out" | LC_ALL=C LANGUAGE= grep -c '"t":"listed"')
+  n=$(printf '%s\n' "$out" | LC_ALL=C.UTF-8 LANGUAGE= grep -c '"t":"listed"')
   if [ "$n" = 1 ]; then
     pass request quit
   else
@@ -282,8 +282,8 @@ fi
 
 sandbox_root_ok
 [[ -d "$FIXTURE_ROOT" && -f "$FIXTURE_ROOT/$SANDBOX_MARKER" ]] || die "fixture parent requires its own marker: $FIXTURE_ROOT"
-SB=$(LC_ALL=C LANGUAGE= mktemp -d "$FIXTURE_ROOT/flea-acceptance.XXXXXXXX") || die "could not create owned acceptance sandbox"
-SB=$(LC_ALL=C LANGUAGE= realpath -e "$SB") || die "acceptance sandbox cannot be resolved"
+SB=$(mktemp -d "$FIXTURE_ROOT/flea-acceptance.XXXXXXXX") || die "could not create owned acceptance sandbox"
+SB=$(realpath -e "$SB") || die "acceptance sandbox cannot be resolved"
 printf 'Flea native acceptance\n' > "$SB/$SANDBOX_MARKER"
 DRIVE_EVIDENCE="$SB/evidence"
 drive_guard "$DRIVE_EVIDENCE"
@@ -298,10 +298,10 @@ trap 'acceptance_exit_status=$?; trap - EXIT; drive_stop "$acceptance_exit_statu
 trap 'exit 130' INT
 trap 'exit 143' HUP TERM
 drive_private_state
-BIN=$(LC_ALL=C LANGUAGE= realpath -e "$BIN") || die "candidate binary cannot be resolved"
+BIN=$(realpath -e "$BIN") || die "candidate binary cannot be resolved"
 drive_provenance
-LC_ALL=C LANGUAGE= python3 "$REPO/tools/flea-keymap-gen" "$SB/Keymap.js" "$REPO/keys.toml" || die "keymap regeneration failed"
-LC_ALL=C LANGUAGE= cmp -s "$SB/Keymap.js" "$REPO/ui/js/Keymap.js" || die "generated Keymap.js differs from keys.toml; regenerate before native use"
+LC_ALL=C.UTF-8 LANGUAGE= python3 "$REPO/tools/flea-keymap-gen" "$SB/Keymap.js" "$REPO/keys.toml" || die "keymap regeneration failed"
+cmp -s "$SB/Keymap.js" "$REPO/ui/js/Keymap.js" || die "generated Keymap.js differs from keys.toml; regenerate before native use"
 BINDINGS="$SB/bindings"
 derive_bindings > "$BINDINGS" || die "key matrix derivation failed"
 [[ -s "$BINDINGS" ]] || die "derived no key rows"
@@ -320,7 +320,7 @@ fresh_dir() {
   printf '%s' "$d"
 }
 
-echo "flea-acceptance, checklist derived at $(LC_ALL=C LANGUAGE= date -Is)"
+echo "flea-acceptance, checklist derived at $(LC_ALL=C.UTF-8 LANGUAGE= date -Is)"
 echo
 
 # ---- requests, driven --------------------------------------------------------------------------
