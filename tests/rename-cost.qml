@@ -42,6 +42,10 @@ ShellRoot {
     readonly property int frameSlack: 4
     readonly property int frameSlackDual: 8
     readonly property int readsPerBump: 5
+    // A before phase can run only ahead of its rename, so it runs this many times there; row reads compare only phases that saw the same rests and planner passes.
+    readonly property int beforeRuns: 2
+    // An after phase matching no before phase in rests and planner passes runs again, at most this many more times, before the case fails.
+    readonly property int afterRetries: 3
     // The views the positive control scrolls through, one at a time.
     readonly property var controlViews: ["list", "grid", "columns", "dual"]
     property int controlView: 0
@@ -58,7 +62,9 @@ ShellRoot {
     property int waitTicks: 0
     property int checks: 0
     property var failures: []
-    property var before: null
+    property var befores: []
+    property var afters: []
+    property var jump: null
     property var stepLog: []
     // The delegates alive at the last key, each with the view position it draws.
     property var cells: ({ items: [], at: [] })
@@ -71,7 +77,6 @@ ShellRoot {
     property var warm: null
     property int rests: 0
     property int plans: 0
-    property int backgroundReads: 0
     // Per case: the rows replies it saw, the fields they armed on arrival, and the fields still unarmed in the pane one turn after a reply (the handler arms the reply's rows, not the pane's).
     property var replyLog: []
     property int escapeChecked: 0
@@ -140,24 +145,21 @@ ShellRoot {
         root.tally.rowReads = 0
         root.rests = 0
         root.plans = 0
-        root.backgroundReads = 0
     }
     function counters() {
         return { frames: root.frames, selection: root.selectionBumps, rows: root.rowsReplies, inputs: root.inputs,
-                 cursorRow: root.cursorRowEvals, rowReads: root.tally.rowReads,
-                 rests: root.rests, plans: root.plans, background: root.backgroundReads }
+                 cursorRow: root.cursorRowEvals, rowReads: root.tally.rowReads, rests: root.rests, plans: root.plans }
     }
-    // With thumbnails off and an empty cache, the settle planner reads only each held visible row's t field.
-    function plannedReads() {
-        var area = pane.viewMode === "columns" ? pane.columnsArea.activeColumn() : pane.listArea
-        var range = area.visibleRange()
-        var reads = 0
-        for (var i = range.first; i <= range.last; i++) {
-            var row = pane.rowFor(i)
-            if (row && Object.getOwnPropertyDescriptor(row, "t") !== undefined) reads++
+    // The before phase that saw the same rests and planner passes as an after phase, the one with the fewest row reads; null when none did.
+    function matching(b) {
+        var best = null
+        for (var i = 0; i < root.befores.length; i++) {
+            var a = root.befores[i]
+            if (a.keys.rests === b.keys.rests && a.keys.plans === b.keys.plans && (best === null || a.keys.rowReads < best.keys.rowReads)) best = a
         }
-        return reads
+        return best
     }
+    function idleWork(phases) { return phases.map(function (p) { return p.keys.rests + "/" + p.keys.plans }).join(" ") }
     // rowFor is a QML method and cannot be wrapped, so every field a held row gives out is counted instead; a rows reply arms its rows on arrival, snapshots arm the rest.
     function armRows() {
         var armed = 0
@@ -255,8 +257,7 @@ ShellRoot {
         }
         var head = root.stepLog[0]
         var steps = root.stepLog.slice(1)
-        var sum = { frames: 0, selection: 0, rows: 0, inputs: 0, cursorRow: 0, rowReads: 0, built: 0, destroyed: 0, rebound: 0,
-                    rests: 0, plans: 0, background: 0 }
+        var sum = { frames: 0, selection: 0, rows: 0, inputs: 0, cursorRow: 0, rowReads: 0, built: 0, destroyed: 0, rebound: 0, rests: 0, plans: 0 }
         var missed = 0
         for (var k = 0; k < steps.length; k++) {
             for (var name in sum) sum[name] += steps[k][name]
@@ -291,14 +292,18 @@ ShellRoot {
             var home = c.far ? root.farHome(c.typed + ".txt") : root.indexOfName(c.target)
             if (c.far ? !pane.rowFor(home) : home < 0) { pane.setCursor(c.far ? home : 0); return false }
             pane.setCursor(home)
+            root.befores = []
+            root.afters = []
             root.stage = c.legs ? 2 : 1
             return true
         }
         if (root.stage === 1) {
             var measured = root.phase(tag + " before")
             if (measured === false) return false
-            root.before = measured
-            root.stage = 2
+            root.check(measured.listFocus && measured.missed === 0, tag + " before the rename " + measured.missed + " keys missed the key handler, list focus " + measured.listFocus)
+            root.check(root.befores.length === 0 || measured.path === root.befores[0].path, tag + " the cursor walked " + measured.path + " in one before phase and " + (root.befores.length ? root.befores[0].path : "") + " in another")
+            root.befores.push(measured)
+            if (root.befores.length === root.beforeRuns) root.stage = 2
             return true
         }
         if (root.stage === 2) {
@@ -345,7 +350,15 @@ ShellRoot {
         if (root.stage === 5) {
             var after = root.phase(tag + " after")
             if (after === false) return false
-            root.compare(c, tag, root.before, after)
+            var matched = root.matching(after)
+            root.afters.push(after)
+            root.compare(c, tag, matched || root.befores[0], after, matched !== null)
+            if (matched === null && root.afters.length <= root.afterRetries) {
+                root.line(tag + " idle mismatch", { run: root.afters.length, before: root.idleWork(root.befores), after: root.idleWork([after]) })
+                return true
+            }
+            root.check(matched !== null, tag + " no before and after phase saw the same idle work in " + root.afters.length + " after phases: rests/plans "
+                + root.idleWork(root.befores) + " before, " + root.idleWork(root.afters) + " after")
             root.caseIndex++
             root.stage = 0
             return true
@@ -367,6 +380,8 @@ ShellRoot {
             root.resetCounters()
             root.cells = root.cellSnap()
             pane.setCursor(root.controlJump)
+            // No timer runs inside this turn, so these reads are the jump's own, before any rest or planner pass.
+            root.jump = root.counters()
             root.waitTicks = 0
             root.stage = 1
             return true
@@ -374,10 +389,10 @@ ShellRoot {
         if (++root.waitTicks < root.controlTicks) return false
         var delta = root.cellDelta(root.cells, root.cellSnap())
         var seen = root.counters()
-        root.line(tag, { delta: delta, seen: seen })
+        root.line(tag, { delta: delta, seen: seen, jump: root.jump })
         root.check(delta.rebound + delta.built > 0, tag + " a " + root.controlJump + " row jump rebound or built no delegate")
-        root.check(seen.rowReads > seen.background, tag + " a " + root.controlJump + " row jump read no held row outside the idle work")
-        root.check(seen.rests > 0 && seen.plans > 0, tag + " did not count both background producers")
+        root.check(root.jump.rowReads > 0 && root.jump.rests + root.jump.plans === 0, tag + " a " + root.controlJump + " row jump read no held row before any idle work")
+        root.check(seen.rests > 0 && seen.plans > 0, tag + " counted no rest or no planner pass")
         root.check(seen.cursorRow > 0, tag + " a " + root.controlJump + " row jump left the cursor row alone")
         root.waitTicks = 0
         root.stage = 0
@@ -406,8 +421,7 @@ ShellRoot {
     }
 
     // Per rename end and view, no count of the sixteen keys is higher after the rename than before it; a landed row's selection follows the cursor by design, one bump per key, so selection may rise to the key count.
-    function compare(c, tag, a, b) {
-        root.check(a.listFocus && a.missed === 0, tag + " before the rename " + a.missed + " keys missed the key handler, list focus " + a.listFocus)
+    function compare(c, tag, a, b, matched) {
         root.check(b.listFocus, tag + " the list area lost the keyboard to " + b.focus)
         root.check(b.missed === 0, tag + " " + b.missed + " of " + root.keys.length + " keys never reached the key handler: " + b.trace)
         // Both phases press the same keys from the same row, or their counts compare different work.
@@ -419,12 +433,12 @@ ShellRoot {
         for (var n = 0; n < costs.length; n++)
             root.check(b.keys[costs[n]] <= a.keys[costs[n]], tag + " " + costs[n] + " over " + root.keys.length + " keys " + a.keys[costs[n]] + " before, " + b.keys[costs[n]] + " after")
         root.check(b.keys.frames <= a.keys.frames + (c.view === "dual" ? root.frameSlackDual : root.frameSlack), tag + " frames over " + root.keys.length + " keys " + a.keys.frames + " before, " + b.keys.frames + " after")
-        // Selection costs five reads per bump; subtract only the observed rest and viewport-planner work from both phases.
+        // Each bump of the landed row's selection makes the status strip total that one row in five field reads; an Escape end bumps nothing, so its row reads get no selection allowance.
+        // A rest or a planner pass reads rows too, so row reads compare only two phases that saw the same of each.
         var escape = c.end === Qt.Key_Escape
-        root.check(a.keys.background <= a.keys.rowReads && b.keys.background <= b.keys.rowReads, tag + " background budget exceeded measured reads")
-        root.check(b.keys.rowReads - b.keys.background <= a.keys.rowReads - a.keys.background + (escape ? 0 : root.readsPerBump * b.keys.selection), tag + " row field reads over " + root.keys.length + " keys " + a.keys.rowReads + " before, " + b.keys.rowReads + " after, " + b.keys.selection + " selection bumps, background " + a.keys.background + " before, " + b.keys.background + " after")
+        if (matched) root.check(b.keys.rowReads <= a.keys.rowReads + (escape ? 0 : root.readsPerBump * b.keys.selection), tag + " row field reads over " + root.keys.length + " keys " + a.keys.rowReads + " before, " + b.keys.rowReads + " after, " + b.keys.selection + " selection bumps, rests/plans " + root.idleWork([b]))
         if (escape) {
-            root.escapeChecked++
+            if (matched) root.escapeChecked++
             root.check(a.keys.selection === 0, tag + " selection bumps " + a.keys.selection + " before an Escape rename over " + root.keys.length + " keys")
             root.check(b.keys.selection === 0, tag + " selection bumps " + b.keys.selection + " after an Escape rename over " + root.keys.length + " keys")
         } else {
@@ -472,8 +486,7 @@ ShellRoot {
     }
     Connections {
         target: root.warm ? root.warm.prepare : null
-        // The fixture holds local text files: readsInline reads d and n once when this rest fires.
-        function onRestedChanged() { if (root.warm.prepare.rested) { root.rests++; root.backgroundReads += 2 } }
+        function onRestedChanged() { if (root.warm.prepare.rested) root.rests++ }
     }
     Connections {
         target: root.pane ? root.pane.listArea : null
@@ -481,7 +494,6 @@ ShellRoot {
             root.check(Flea.ViewState.thumbnailMode === "off" && Object.keys(pane.thumbState.file).length === 0
                 && work.ask.length === 0 && work.drop.length === 0, "background planner left the empty thumbnails-off fixture")
             root.plans++
-            root.backgroundReads += root.plannedReads()
         }
     }
     Connections {
