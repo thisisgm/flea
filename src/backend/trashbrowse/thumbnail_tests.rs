@@ -1,6 +1,8 @@
 use super::*;
 use crate::backend::testdir::TestDir;
 use std::os::unix::fs::MetadataExt;
+#[path = "../trashthumb_purge_tests.rs"]
+mod purge_tests;
 
 #[test]
 fn trash_row_thumbnail_is_only_a_current_regular_image_backing() {

@@ -58,10 +58,21 @@ pub(crate) fn request(
     cache: &Cache,
     line: &str,
 ) {
-    let id = field_usize(line, "id").unwrap_or(0);
-    if st.trash_asked.iter().any(|ask| ask.id == id) {
+    let Some(id) = field_usize(line, "id") else {
+        return;
+    };
+    if st
+        .trash_asked
+        .iter()
+        .any(|ask| ask.id == id && !ask.cancelled)
+    {
         return;
     }
+    let cancelled = st
+        .trash_asked
+        .iter()
+        .position(|ask| ask.id == id)
+        .map(|at| st.trash_asked.remove(at));
     let Some((reviewed, path, mtime, mime)) = inspect(line, tb) else {
         reply(out, id, "");
         return;
@@ -90,6 +101,7 @@ pub(crate) fn request(
     let shared = st
         .trash_asked
         .iter()
+        .chain(cancelled.iter())
         .any(|ask| ask.path == path && ask.mtime == mtime && ask.identity == identity);
     st.trash_asked.push(Ask {
         id,

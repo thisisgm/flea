@@ -1,4 +1,7 @@
 use crate::backend::meta::stat_range;
+#[cfg(test)]
+#[path = "trashthumb_protocol_tests.rs"]
+mod trashthumb_protocol_tests;
 use crate::backend::meta::Meta;
 use crate::backend::archivereq::{formats_line, start_archive, start_convert};
 use crate::backend::convert;
