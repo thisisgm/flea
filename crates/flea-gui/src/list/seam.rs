@@ -25,6 +25,9 @@ mod off {
             false
         }
         pub fn frame(&mut self, _: &mut Pane, _: &ListState, _: &gpui::Window) {}
+        pub fn mark(&self) -> crate::feedback::spinner::Arm {
+            crate::feedback::spinner::Arm::Crawl
+        }
     }
 }
 
@@ -34,6 +37,7 @@ mod bench {
         pane::{Pane, ROW_HEIGHT},
         ListState,
     };
+    use crate::feedback::spinner::Arm;
     use gpui::{px, size, Pixels, Size};
     use std::time::{Instant, SystemTime, UNIX_EPOCH};
 
@@ -60,21 +64,35 @@ mod bench {
         armed: bool,
         run: Option<Run>,
         viewport: Option<Size<Pixels>>,
+        mark: Arm,
     }
 
     impl Seam {
         /// FLEA_GUI_BENCH_VIEWPORT, "1024x899", pins the list to the benchmark pane's size at the window's corner.
         pub fn new() -> Self {
-            let viewport = std::env::var("FLEA_GUI_BENCH_VIEWPORT").ok().and_then(|value| {
-                let (width, height) = value.split_once('x')?;
-                Some(size(px(width.parse().ok()?), px(height.parse().ok()?)))
-            });
+            let viewport = std::env::var("FLEA_GUI_BENCH_VIEWPORT")
+                .ok()
+                .and_then(|value| {
+                    let (width, height) = value.split_once('x')?;
+                    Some(size(px(width.parse().ok()?), px(height.parse().ok()?)))
+                });
+            // FLEA_GUI_BENCH_MARK "none" leaves the loading mark undrawn for the floor arm; a number pins its dash offset.
+            let mark = match std::env::var("FLEA_GUI_BENCH_MARK").ok().as_deref() {
+                Some("none") => Arm::Hidden,
+                Some(offset) => offset.parse().map_or(Arm::Crawl, Arm::Pinned),
+                None => Arm::Crawl,
+            };
             Self {
                 ready: false,
                 armed: false,
                 run: None,
                 viewport,
+                mark,
             }
+        }
+
+        pub fn mark(&self) -> Arm {
+            self.mark
         }
 
         pub fn viewport(&self) -> Option<Size<Pixels>> {
@@ -86,7 +104,11 @@ mod bench {
         }
 
         pub fn rows(&mut self, pane: &Pane) {
-            eprintln!("PANE_ROWS start={} count={}", pane.held.start, pane.held.rows.len());
+            eprintln!(
+                "PANE_ROWS start={} count={}",
+                pane.held.start,
+                pane.held.rows.len()
+            );
             if !self.ready {
                 self.ready = true;
                 eprintln!("FEAS_T_LOADED {} rows={}", now_ms(), pane.held.total);
@@ -139,7 +161,9 @@ mod bench {
             pane.scroll_to(run.y);
             let first = (pane.scroll_y / ROW_HEIGHT).floor() as usize;
             let last = (first + pane.visible_rows()).min(pane.held.total);
-            run.misses += (first..last).filter(|&index| pane.held.row(index).is_none()).count();
+            run.misses += (first..last)
+                .filter(|&index| pane.held.row(index).is_none())
+                .count();
             if now.duration_since(run.started).as_secs_f32() < SECONDS {
                 window.request_animation_frame();
                 return;

@@ -1,6 +1,6 @@
 //! The list pane: one custom Element paints the visible rows from prepared lines, with no layout node per row.
 #[cfg(test)]
-mod bench;
+pub(crate) mod bench;
 pub mod pane;
 mod locale;
 pub mod seam;
