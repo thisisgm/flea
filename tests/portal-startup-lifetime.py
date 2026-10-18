@@ -10,6 +10,7 @@ import shutil
 import subprocess
 import sys
 import tempfile
+import threading
 import time
 
 
@@ -147,31 +148,73 @@ def exercise(root):
           f"exit={status}, acquired={acquired_name}")
     check("failed export explains the refusal", "could not export FileChooser" in (root / "export-failure.log").read_text())
 
-    held = activate()
-    start = time.monotonic()
-    pid = daemon("GetConnectionUnixProcessID", GLib.Variant("(s)", (held,)))[0]
-    exit_record = root / f"run/exit-{pid}"
-    last_held = 0.0
-    released = None
-    deadline = start + 4
-    while time.monotonic() < deadline:
-        polled_at = time.monotonic() - start
-        if owner() == held:
-            last_held = polled_at
-        elif released is None:
-            # The last query sent while the bus still held the name bounds release from below, even after a prompt reap.
-            released = last_held
-        if released is not None and exit_record.exists():
-            break
-        time.sleep(0.01)
-    record = json.loads(exit_record.read_text()) if exit_record.exists() else {}
-    elapsed = record.get("at", time.monotonic()) - start
-    minimum = IDLE_BOUND_SEC - IDLE_TOLERANCE_SEC
-    check("an unused activation releases its name and exits after the idle bound",
-          released is not None and minimum <= released <= elapsed <= 4
-          and elapsed >= minimum and record.get("status") == 0 and not owner(),
-          f"release_after={released}, elapsed={elapsed:.3f} s, idle={IDLE_BOUND_SEC} s, "
-          f"tolerance={IDLE_TOLERANCE_SEC} s, exit={record.get('status')}, pid={pid}")
+    events = []
+    event_lock = threading.Lock()
+
+    def observe(connection, message, incoming, user_data):
+        kind = message.get_message_type()
+        if incoming and kind in (Gio.DBusMessageType.METHOD_CALL, Gio.DBusMessageType.SIGNAL):
+            body = message.get_body().unpack() if message.get_body() is not None else ()
+            event = None
+            if (kind == Gio.DBusMessageType.METHOD_CALL and message.get_destination() == "org.freedesktop.DBus"
+                    and message.get_path() == "/org/freedesktop/DBus"
+                    and message.get_interface() == "org.freedesktop.DBus"
+                    and message.get_member() == "ReleaseName" and body == (NAME,)):
+                event = ("release", message.get_sender())
+            elif (kind == Gio.DBusMessageType.SIGNAL and message.get_sender() == "org.freedesktop.DBus"
+                    and message.get_interface() == "org.freedesktop.DBus"
+                    and message.get_member() == "NameOwnerChanged" and len(body) == 3
+                    and body[0] == body[1] and body[0].startswith(":") and body[2] == ""):
+                event = ("closed", body[0])
+            if event is not None:
+                with event_lock:
+                    events.append(event)
+            # Consume mirrored calls so GDBus never replies on the monitor connection.
+            return None
+        return message
+
+    monitor = Gio.DBusConnection.new_for_address_sync(
+        os.environ["DBUS_SESSION_BUS_ADDRESS"],
+        Gio.DBusConnectionFlags.AUTHENTICATION_CLIENT | Gio.DBusConnectionFlags.MESSAGE_BUS_CONNECTION,
+        None, None)
+    monitor.add_filter(observe, None)
+    try:
+        rules = ["type='method_call',interface='org.freedesktop.DBus',member='ReleaseName'",
+                 "type='signal',sender='org.freedesktop.DBus',interface='org.freedesktop.DBus',member='NameOwnerChanged'"]
+        monitor.call_sync("org.freedesktop.DBus", "/org/freedesktop/DBus", "org.freedesktop.DBus.Monitoring",
+                          "BecomeMonitor", GLib.Variant("(asu)", (rules, 0)), None,
+                          Gio.DBusCallFlags.NONE, 3000, None)
+        held = activate()
+        start = time.monotonic()
+        pid = daemon("GetConnectionUnixProcessID", GLib.Variant("(s)", (held,)))[0]
+        exit_record = root / f"run/exit-{pid}"
+        last_held = 0.0
+        released = None
+        ordered = ()
+        deadline = start + 4
+        while time.monotonic() < deadline:
+            polled_at = time.monotonic() - start
+            if owner() == held:
+                last_held = polled_at
+            elif released is None:
+                # The last query sent while the bus still held the name bounds release from below, even after a prompt reap.
+                released = last_held
+            with event_lock:
+                ordered = tuple(kind for kind, sender in events if sender == held)
+            if released is not None and exit_record.exists() and "closed" in ordered:
+                break
+            time.sleep(0.01)
+        record = json.loads(exit_record.read_text()) if exit_record.exists() else {}
+        elapsed = record.get("at", time.monotonic()) - start
+        minimum = IDLE_BOUND_SEC - IDLE_TOLERANCE_SEC
+        explicit_release = "release" in ordered and "closed" in ordered and ordered.index("release") < ordered.index("closed")
+        check("an unused activation releases its name and exits after the idle bound",
+              explicit_release and released is not None and minimum <= released <= elapsed <= 4
+              and elapsed >= minimum and record.get("status") == 0 and not owner(),
+              f"release_after={released}, elapsed={elapsed:.3f} s, idle={IDLE_BOUND_SEC} s, "
+              f"tolerance={IDLE_TOLERANCE_SEC} s, exit={record.get('status')}, pid={pid}, bus_order={ordered}")
+    finally:
+        monitor.close_sync(None)
     held = activate()
     properties()
     check("Get reads the interface version", call(NAME, "org.freedesktop.DBus.Properties", "Get",
