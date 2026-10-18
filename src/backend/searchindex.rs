@@ -218,8 +218,7 @@ fn score_part(fuzzy: &crate::backend::fuzzy::Fuzzy, rows: &[usize], index: &Inde
 
 // A patch distinguishes a vanished directory from a refused or incomplete read.
 fn read_bounded(dir: &Path, body: &str, follow: bool) -> Result<Option<super::searchread::Directory>, crate::error::FleaError> {
-    let owned = dir.to_path_buf();
-    match super::iomount::call(dir, body, "search", move || if follow { super::searchread::read_root(&owned) } else { super::searchread::read(&owned) })? {
+    match super::searchread::bounded(dir, body, follow)? {
         Ok(read) => Ok(Some(read)),
         Err(error) if matches!(error.raw_os_error(), Some(2 | 20 | 40)) => Ok(None),
         Err(error) => Err(crate::error::from_io("search", &dir.to_string_lossy(), &error)),

@@ -20,9 +20,9 @@ shelf/ShelfService.qml 481
 src/backend/copyfile.rs 739
 src/backend/archivequit_tests.rs 401
 src/backend/codereq.rs 425
-src/backend/tags.rs 408
+src/backend/tags.rs 410
 src/backend/searchsession.rs 350
-src/backend/searchtags.rs 444
+src/backend/searchtags.rs 478
 src/backend/searchtags_tests.rs 519
 src/backend/tagsreq_tests.rs 383
 src/backend/copyfile_tests.rs 694

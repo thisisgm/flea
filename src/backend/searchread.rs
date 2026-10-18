@@ -1,7 +1,37 @@
 // Name/type enumeration with explicit read failures and a stat fallback only for DT_UNKNOWN.
 use std::ffi::{c_char, c_int, CStr, CString, OsString};
+use std::collections::HashSet;
 use std::os::unix::ffi::{OsStrExt, OsStringExt};
-use std::path::Path;
+use std::path::{Path, PathBuf};
+use std::sync::{Mutex, OnceLock};
+
+// A cancelled caller may leave one syscall behind; another session must not start a second reader on that mount.
+fn active_mounts() -> &'static Mutex<HashSet<PathBuf>> {
+    static ACTIVE: OnceLock<Mutex<HashSet<PathBuf>>> = OnceLock::new();
+    ACTIVE.get_or_init(Default::default)
+}
+
+struct MountRead(PathBuf);
+
+impl MountRead {
+    fn take(dir: &Path, body: &str) -> Result<Option<Self>, crate::error::FleaError> {
+        if !super::iomount::is_remote(dir, body) { return Ok(None); }
+        let mount = super::iomount::mount_key(dir, body);
+        if !active_mounts().lock().unwrap_or_else(|poisoned| poisoned.into_inner()).insert(mount.clone()) {
+            return Err(crate::error::FleaError {
+                where_: "search".to_string(), path: dir.to_string_lossy().into_owned(),
+                msg: format!("{} is not responding.", mount.display()),
+            });
+        }
+        Ok(Some(Self(mount)))
+    }
+}
+
+impl Drop for MountRead {
+    fn drop(&mut self) {
+        active_mounts().lock().unwrap_or_else(|poisoned| poisoned.into_inner()).remove(&self.0);
+    }
+}
 
 pub(crate) struct Directory {
     pub entries: Vec<(OsString, bool)>,
@@ -50,19 +80,42 @@ pub(crate) fn read(dir: &Path) -> std::io::Result<Directory> {
 
 // An explicitly chosen scope may be a symlink; recursively discovered directories may not.
 pub(crate) fn read_root(dir: &Path) -> std::io::Result<Directory> {
-    read_observing(dir, false, |_| {}, true)
+    read_observing(dir, false, |_| {}, true, || false)
 }
 
 fn read_with(dir: &Path, unknown: bool) -> std::io::Result<Directory> {
-    read_observing(dir, unknown, |_| {}, false)
+    read_observing(dir, unknown, |_| {}, false, || false)
 }
 
-#[cfg(test)]
-pub(crate) fn read_observed(dir: &Path, follow: bool, progress: impl FnMut(usize)) -> std::io::Result<Directory> {
-    read_observing(dir, false, progress, follow)
+pub(crate) fn read_interruptible(dir: &Path, follow: bool, stop: impl Fn() -> bool, progress: impl FnMut(usize)) -> std::io::Result<Directory> {
+    if stop() { return Ok(Directory { entries: Vec::new(), partial: Some("cancelled"), #[cfg(test)] stats: 0 }); }
+    read_observing(dir, false, progress, follow, stop)
 }
 
-fn read_observing(dir: &Path, unknown: bool, mut progress: impl FnMut(usize), follow: bool) -> std::io::Result<Directory> {
+// An abandoned remote reader stops before its next entry when its blocked syscall returns.
+pub(crate) fn bounded(dir: &Path, body: &str, follow: bool) -> Result<std::io::Result<Directory>, crate::error::FleaError> {
+    bounded_observed(dir, body, follow, || false, |_| {})
+}
+
+pub(crate) fn bounded_observed(
+    dir: &Path, body: &str, follow: bool,
+    stop: impl Fn() -> bool + Send + 'static,
+    progress: impl FnMut(usize) + Send + 'static,
+) -> Result<std::io::Result<Directory>, crate::error::FleaError> {
+    use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
+    let lease = MountRead::take(dir, body)?;
+    let abandoned = Arc::new(AtomicBool::new(false));
+    let worker = Arc::clone(&abandoned);
+    let owned = dir.to_path_buf();
+    let result = super::iomount::call(dir, body, "search", move || {
+        let _lease = lease;
+        read_interruptible(&owned, follow, || stop() || worker.load(Ordering::Acquire), progress)
+    });
+    abandoned.store(true, Ordering::Release);
+    result
+}
+
+fn read_observing(dir: &Path, unknown: bool, mut progress: impl FnMut(usize), follow: bool, stop: impl Fn() -> bool) -> std::io::Result<Directory> {
     let path = CString::new(dir.as_os_str().as_bytes())?;
     let flags = 0x80000 | 0x10000 | if follow { 0 } else { 0x20000 };
     let raw = unsafe { open(path.as_ptr(), flags) };
@@ -77,12 +130,14 @@ fn read_observing(dir: &Path, unknown: bool, mut progress: impl FnMut(usize), fo
     let fd = unsafe { dirfd(handle.0) };
     let mut out = Directory { entries: Vec::new(), partial: None, #[cfg(test)] stats: 0 };
     loop {
+        if stop() { out.partial = Some("cancelled"); return Ok(out); }
         unsafe { *__errno_location() = 0 };
         let entry = unsafe { readdir(handle.0) };
         if entry.is_null() {
             if unsafe { *__errno_location() != 0 } { out.partial.get_or_insert("unreadable"); }
             return Ok(out);
         }
+        if stop() { out.partial = Some("cancelled"); return Ok(out); }
         let name = unsafe { CStr::from_ptr((*entry).name.as_ptr()) };
         let bytes = name.to_bytes();
         if bytes == b"." || bytes == b".." { continue; }

@@ -81,7 +81,10 @@ mod searchread;
 mod searchblocks;
 pub mod searchsession;
 pub mod searchtags;
+#[cfg(test)]
+pub(crate) mod tagreadprobe;
 pub mod searchwalk;
+mod searchwalkread;
 #[cfg(test)]
 pub(crate) mod searchwalkhold;
 pub mod searchreq;
