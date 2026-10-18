@@ -556,16 +556,37 @@ check "hidden true includes both dotfile entries" "5" "$(echo "$out" | head -1 |
 check "the dotfile row is present" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotfile"')"
 check "the dot-directory row is present and marked a directory" "1" "$(echo "$out" | sed -n 2p | grep -c '"n":"\.dotdir","d":true')"
 
-# Directory sizes: each argument is one stage; pacing allows asynchronous replies between stages.
+# Directory sizes: a sort or quit drops an unfinished walk (docs/protocol.md "dirsized", "quit"), so a stage owed answers is followed by wait:N, N dirsized lines.
 dirsize_run() {
-  ( for stage in "$@"; do
+  local out="$DZ_SB/dirsize.out" in="$DZ_SB/dirsize.in" step waited pid
+  rm -f "$out" "$in"
+  mkfifo "$in"
+  : > "$out"
+  $BIN --backend < "$in" > "$out" &
+  pid=$!
+  # Read-write, so the open never blocks and a write after an early backend exit raises no SIGPIPE; closing it is the backend's EOF.
+  exec 8<> "$in"
+  for step in "$@"; do
+    case "$step" in
+      wait:*)
+        waited=0
+        until [ "$(grep -c '"t":"dirsized"' "$out")" -ge "${step#wait:}" ]; do
+          waited=$((waited + 1))
+          [ "$waited" -le "$DIRSIZE_WAIT_TENTHS" ] || { echo "dirsize_run: fewer than ${step#wait:} dirsized lines within the wait" >&2; break; }
+          sleep 0.1
+        done ;;
       # $(...) strips a stage's trailing newline, so it comes back here or the next stage glues onto this one's last line.
-      printf '%s\n' "$stage"
-      sleep 0.3
-    done
-    printf '{"c":"quit"}\n'
-  ) | $BIN --backend
+      *) printf '%s\n' "$step" >&8 ;;
+    esac
+  done
+  printf '{"c":"quit"}\n' >&8
+  exec 8>&-
+  wait "$pid"
+  cat "$out"
+  rm -f "$out" "$in"
 }
+# Ten seconds, five times the walk's own 2000 ms deadline, so only a walk that never answers runs it out.
+DIRSIZE_WAIT_TENTHS=100
 
 DZ_SB="$FIXTURE_ROOT/flea-dirsize-test-$$"
 DZ="$DZ_SB/tree"
@@ -575,7 +596,7 @@ mkdir -p "$DZ/sub"
 printf 'abc' > "$DZ/sub/a.txt"
 printf 'de' > "$DZ/file.txt"
 # Directories sort first, so row 0 is sub and row 1 is file.txt.
-out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$DZ")")
+out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$DZ")" wait:1)
 check "a dirsize request answers one dirsized line" "1" "$(echo "$out" | grep -c '"t":"dirsized"')"
 check "it names the row it was asked for" "1" "$(echo "$out" | grep -c '"row":0')"
 check "the walk is not marked partial well inside the 2000 ms deadline" "1" "$(echo "$out" | grep -c '"partial":false')"
@@ -583,14 +604,15 @@ bytes=$(echo "$out" | grep -oE '"bytes":[0-9]+' | cut -d: -f2)
 [ -n "$bytes" ] && [ "$bytes" -gt 3 ] 2>/dev/null
 check "sub's size counts its own entry plus a.txt inside it" "0" "$?"
 
-# A file row is never a valid dirsize target, and neither is one past the end.
-out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[1,99999]}\n' "$DZ")")
-check "a file row and an out-of-range row both answer nothing" "0" "$(echo "$out" | grep -c '"t":"dirsized"')"
+# A file row is never a valid dirsize target, and neither is one past the end; row 0 asked after them answers after anything they were owed.
+out=$(dirsize_run "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[1,99999]}\n' "$DZ")" '{"c":"dirsize","rows":[0]}' wait:1)
+check "a file row and an out-of-range row answer nothing, so the row 0 marker's is the one dirsized line" "1" "$(echo "$out" | grep -c '"t":"dirsized"')"
+check "and that one answer names row 0" "1" "$(echo "$out" | grep '"t":"dirsized"' | grep -c '"row":0[,}]')"
 
 # A row already answered is re-answered at once from the cache; staged separately, or two requests sent together would just dedup against the queue instead.
 out=$(dirsize_run \
-    "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$DZ")" \
-    "$(printf '{"c":"dirsize","rows":[0]}\n')")
+    "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$DZ")" wait:1 \
+    "$(printf '{"c":"dirsize","rows":[0]}\n')" wait:2)
 check "a repeated ask for an already-answered row still answers" "2" "$(echo "$out" | grep -c '"t":"dirsized"')"
 
 # A queued cancellation suppresses the result even if the worker has already picked up the row.
@@ -606,8 +628,8 @@ mkdir -p "$SZ/aaa" "$SZ/zzz"
 printf 'abc' > "$SZ/aaa/small.txt"
 printf '%050d' 0 > "$SZ/zzz/bigger.txt"
 out=$(dirsize_run \
-    "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$SZ")" \
-    "$(printf '{"c":"sort","by":"name","desc":true}\n{"c":"dirsize","rows":[0]}\n')")
+    "$(printf '{"c":"list","path":"%s","first":10}\n{"c":"dirsize","rows":[0]}\n' "$SZ")" wait:1 \
+    "$(printf '{"c":"sort","by":"name","desc":true}\n{"c":"dirsize","rows":[0]}\n')" wait:2)
 check "a sort still answers a fresh dirsize for the row at its new position" "2" "$(echo "$out" | grep -c '"t":"dirsized"')"
 first_bytes=$(echo "$out" | grep -oE '"bytes":[0-9]+' | head -1 | cut -d: -f2)
 second_bytes=$(echo "$out" | grep -oE '"bytes":[0-9]+' | sed -n 2p | cut -d: -f2)
