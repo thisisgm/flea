@@ -165,6 +165,17 @@ fn print_protocol_lists_the_default_and_the_no_printer_state() {
 }
 
 #[test]
+fn print_input_passes_every_other_kind_through_and_leaves_the_cache_alone() {
+    let d = TestDir::new("print-input");
+    let cache = d.dir("cache");
+    let source = d.file("report.pdf", "%PDF-1.4");
+    for kind in [printconvert::Kind::Pdf, printconvert::Kind::Image, printconvert::Kind::Text, printconvert::Kind::Other] {
+        assert_eq!(print_input_in(&cache, &source, kind, &Arc::new(AtomicBool::new(false))), Ok(source.clone()));
+    }
+    assert_eq!(std::fs::read_dir(&cache).unwrap().count(), 0, "a print of any other kind touches no cache");
+}
+
+#[test]
 fn print_protocol_submits_one_lp_per_file_and_keeps_refusals() {
     let mut rig = Rig::new(true);
     let image = rig.dir.file("-photo.png", "pixels");

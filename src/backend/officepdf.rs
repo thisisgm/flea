@@ -415,7 +415,6 @@ mod tests;
 #[path = "officepdf_fetch.rs"]
 mod fetch;
 pub use fetch::cached_pdf;
-#[cfg(test)]
 pub(crate) use fetch::cached_pdf_in;
 
 #[path = "officepdf_lines.rs"]

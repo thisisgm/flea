@@ -138,7 +138,7 @@ fn print_real_protocol_converters_run_in_the_production_jail() {
     for page in [1, 3] { assert_eq!(crate::backend::imagesize::dimensions(&rig.dir.join(&format!("report (page {page}).png"))), Some((150, 150))); }
 }
 
-// Print's office leg (printreq.rs) and convert's both call officepdf::cached_pdf; this runs that fetch on the production service and office jail.
+// Print's own input step, the one print_file calls, over the test's cache root: the office leg converts on the production service and office jail.
 #[test]
 fn print_real_office_leg_converts_through_the_office_service() {
     if !ready(&["soffice"]) || crate::backend::sandboxprobe::skipped() { return; }
@@ -146,7 +146,7 @@ fn print_real_office_leg_converts_through_the_office_service() {
     let fixture = "{\\rtf1\\ansi Print and convert fixture.}";
     let source = d.file("letter.rtf", fixture);
     let cache = d.dir("cache");
-    let pdf = crate::backend::officepdf::cached_pdf_in(&cache, &source, Arc::new(AtomicBool::new(false)))
+    let pdf = print_input_in(&cache, &source, printconvert::Kind::Office, &Arc::new(AtomicBool::new(false)))
         .unwrap_or_else(|e| panic!("office conversion refused: {e}"));
     assert!(pdf.starts_with(&cache), "the PDF is served from the test's own cache: {}", pdf.display());
     assert!(std::fs::read(&pdf).unwrap().starts_with(b"%PDF"), "the office service returned no PDF");

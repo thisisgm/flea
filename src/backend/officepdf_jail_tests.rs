@@ -29,3 +29,22 @@ fn a_clean_exit_without_a_pdf_is_a_recorded_failure_naming_soffice_and_the_input
     assert_eq!(r.ask(2, &src), failed_line(2, &message, false), "the failure is remembered for the file");
     assert_eq!((r.jobs(), r.fail_markers()), (1, 1));
 }
+
+// The argv the production office jail hands to spawn, read back through last_jail, so no soffice is needed.
+#[test]
+fn the_office_jail_runs_the_office_argv_inside_the_full_sandbox() {
+    let d = TestDir::new("officepdf-argv");
+    let source = d.file("letter.rtf", "{\\rtf1\\ansi fixture}");
+    let mut work = Work::new(d.path(), "office-argv").unwrap();
+    let office = argv("/nonexistent/soffice", &source, &work.dir);
+    let _ = jail(office.clone(), &source, &mut work, &AtomicBool::new(false));
+    let full = last_jail().expect("the production office runner builds its jail argv");
+    let (src, out) = (source.to_string_lossy().into_owned(), work.dir.to_string_lossy().into_owned());
+    assert_eq!(&full[..4], ["prlimit", "--cpu=30", "--as=8589934592", "bwrap"]);
+    assert!(full.iter().any(|a| a == "--unshare-all"), "{full:?}");
+    assert!(full.iter().any(|a| a == "--clearenv"), "{full:?}");
+    assert!(full.windows(3).any(|w| w == ["--ro-bind", src.as_str(), src.as_str()]), "{full:?}");
+    assert!(full.windows(3).any(|w| w == ["--bind", out.as_str(), out.as_str()]), "{full:?}");
+    assert_eq!(&full[full.len() - office.len() - 2..][..2], ["--json-status-fd", "7"]);
+    assert_eq!(&full[full.len() - office.len()..], office.as_slice());
+}
