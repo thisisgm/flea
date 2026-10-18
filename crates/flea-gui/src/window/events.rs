@@ -56,6 +56,10 @@ impl Shell {
     pub(crate) fn ipc(&mut self, event: Event, window: &mut Window, cx: &mut Context<Self>) {
         match event {
             Event::Call { request, answer } => {
+                let (request, answer) = match self.visual_call(request, answer, window, cx) {
+                    Some(call) => call,
+                    None => return,
+                };
                 let Some(host) = &self.panes[self.focus_side] else {
                     return;
                 };

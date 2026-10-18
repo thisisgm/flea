@@ -98,19 +98,36 @@ pub struct Labels {
     pub modified: SharedString,
 }
 
+pub(crate) struct Content<'a> {
+    pub paths: [SharedString; 2],
+    pub status: SharedString,
+    pub labels: &'a Labels,
+}
+
 pub(crate) fn render(
     geometry: &Geometry,
     slots: &Slots,
     panes: [Option<AnyElement>; 2],
-    paths: [SharedString; 2],
-    status: SharedString,
-    labels: &Labels,
+    content: Content<'_>,
     dual: bool,
+    probe: Option<crate::visual::Probe>,
 ) -> Div {
-    let chrome = geometry.chrome.element().px(px(14.)).text_size(px(12.));
+    use crate::visual::geometry::{label, surface};
+    let Content {
+        paths,
+        status,
+        labels,
+    } = content;
+    let text = |div: Div, id: String, parent: &str, value: &SharedString, inset: f32, right: bool| {
+        label(div, id, parent.into(), value.clone(), inset, right, probe.clone())
+    };
+    let chrome = surface(geometry.chrome.element(), "chrome", probe.clone())
+        .px(px(14.))
+        .text_size(px(12.));
     let mut root = div().size_full().child(match &slots.chrome {
         Some(view) => chrome.child(view.clone()),
-        None => chrome.child(paths[0].clone()),
+        None => text(chrome, "chrome-path".into(), "chrome", &paths[0], 14., false)
+            .child(paths[0].clone()),
     });
     if let Some(view) = &slots.tabs {
         root = root.child(geometry.tabs.element().child(view.clone()));
@@ -122,16 +139,26 @@ pub(crate) fn render(
         let Some(content) = content else { continue };
         let mut pane = geometry.panes[side].element().flex().flex_col();
         if dual {
+            let id = format!("path-{side}");
+            let row = surface(div(), id.clone(), probe.clone())
+                .relative()
+                .h(px(27.))
+                .flex_none()
+                .px(px(14.))
+                .text_size(px(12.));
             pane = pane.child(
-                div()
-                    .h(px(27.))
-                    .flex_none()
-                    .px(px(14.))
-                    .text_size(px(12.))
+                text(row, format!("{id}-text"), &id, &paths[side], 14., false)
                     .child(paths[side].clone()),
             );
         }
-        let header = div().h(px(27.)).flex_none();
+        let id = format!("header-{side}");
+        let header = surface(div(), id.clone(), probe.clone())
+            .relative()
+            .h(px(27.))
+            .flex_none();
+        let cell = |div: Div, key: &str, value: &SharedString, right: bool| {
+            text(div.relative(), format!("{id}-{key}"), &id, value, 0., right).child(value.clone())
+        };
         pane = pane.child(match &slots.headers[side] {
             Some(view) => header.child(view.clone()),
             None => header
@@ -140,14 +167,14 @@ pub(crate) fn render(
                 .pl(px(14.))
                 .pr(px(28.))
                 .text_size(px(12.))
-                .child(div().flex_1().child(labels.name.clone()))
-                .child(div().w(px(70.)).text_right().child(labels.size.clone()))
-                .child(
-                    div()
-                        .w(px(134.))
-                        .text_right()
-                        .child(labels.modified.clone()),
-                ),
+                .child(cell(div().flex_1(), "name", &labels.name, false))
+                .child(cell(div().w(px(70.)).text_right(), "size", &labels.size, true))
+                .child(cell(
+                    div().w(px(134.)).text_right(),
+                    "modified",
+                    &labels.modified,
+                    true,
+                )),
         });
         if let Some(view) = &slots.strips[side] {
             pane = pane.child(
@@ -159,9 +186,11 @@ pub(crate) fn render(
         }
         root = root.child(pane.child(div().flex_1().min_h_0().overflow_hidden().child(content)));
     }
-    let bar = geometry.status.element().px(px(14.)).text_size(px(12.));
+    let bar = surface(geometry.status.element(), "status", probe.clone())
+        .px(px(14.))
+        .text_size(px(12.));
     root.child(match &slots.status {
         Some(view) => bar.child(view.clone()),
-        None => bar.child(status),
+        None => text(bar, "status-text".into(), "status", &status, 14., false).child(status),
     })
 }

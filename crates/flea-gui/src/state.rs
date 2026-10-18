@@ -13,6 +13,8 @@ use crate::{
 use gpui::{Context, FocusHandle, SharedString, Task, Window};
 
 pub struct Shell {
+    pub(crate) capture: crate::capture::Capture,
+    pub(crate) visual: crate::visual::Visual,
     pub launch: Launch,
     pub slots: Slots,
     pub lifecycle: Lifecycle,
@@ -49,6 +51,7 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) -> Self {
+        let capture = crate::capture::Capture::new(window, cx);
         let focus = cx.focus_handle();
         window.focus(&focus, cx);
         let seam = Seam::new();
@@ -57,6 +60,8 @@ impl Shell {
         let focus_side = launch.focus;
         let path_labels = launch.paths.clone().map(SharedString::from);
         let mut shell = Self {
+            capture,
+            visual: crate::visual::Visual::default(),
             launch,
             view,
             focus_side,

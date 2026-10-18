@@ -27,8 +27,35 @@ pub const LIFECYCLE: &[Function] = &[
     function!("fleapicker", "quit", "void", &[]),
 ];
 
+pub const VISUAL: &[Function] = &[
+    function!(
+        "flea",
+        "scene",
+        "string",
+        &[
+            ("window", "string"),
+            ("name", "string"),
+            ("settings", "string")
+        ]
+    ),
+    function!(
+        "flea",
+        "nativeGeometry",
+        "string",
+        &[
+            ("window", "string"),
+            ("scene", "string"),
+            ("frame", "string")
+        ]
+    ),
+    function!("flea", "pendingRequests", "int", &[]),
+    function!("flea", "previewReadiness", "string", &[]),
+    function!("flea", "sceneState", "string", &[]),
+    function!("flea", "presentedFrame", "string", &[]),
+];
+
 pub fn functions() -> impl Iterator<Item = &'static Function> {
-    ORACLE.iter().chain(LIFECYCLE)
+    ORACLE.iter().chain(LIFECYCLE).chain(VISUAL)
 }
 
 pub fn validate(

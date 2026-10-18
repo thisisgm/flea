@@ -1,0 +1,67 @@
+{
+  "version": 1,
+  "boards": [
+    "columns",
+    "dual",
+    "grid",
+    "list"
+  ],
+  "references": [
+    "cols-cursorfull-1100x700",
+    "dual-populated-1100x700",
+    "grid-populated-1100x700",
+    "list-populated-1100x700"
+  ],
+  "views": [
+    "columns",
+    "dual",
+    "grid",
+    "list"
+  ],
+  "densities": [
+    "comfortable",
+    "compact"
+  ],
+  "required": [
+    "id",
+    "unit",
+    "board",
+    "reference",
+    "reference_tag",
+    "fixture",
+    "width",
+    "height",
+    "text_size",
+    "density",
+    "view",
+    "selection",
+    "cursor",
+    "corner_radius",
+    "reduced_motion",
+    "caret_blink",
+    "theme",
+    "decisions",
+    "changes",
+    "covers"
+  ],
+  "scene_ids": [
+    "g1-01-columns-r0",
+    "g1-01-columns-r8",
+    "g1-01-list-r0",
+    "g1-01-list-r8",
+    "g1-01-grid-r0",
+    "g1-01-grid-r8",
+    "g1-01-dual-r0",
+    "g1-01-dual-r8"
+  ],
+  "decisions": [
+    "columns-name"
+  ],
+  "changes": [
+    "columns",
+    "list",
+    "grid",
+    "dual",
+    "recipes"
+  ]
+}

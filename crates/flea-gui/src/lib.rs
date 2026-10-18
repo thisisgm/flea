@@ -1,4 +1,5 @@
 pub mod backend;
+mod capture;
 pub mod feedback;
 pub mod ipc;
 mod list;
@@ -6,4 +7,5 @@ pub mod navigation;
 pub mod pane;
 mod row;
 pub mod state;
+mod visual;
 pub mod window;

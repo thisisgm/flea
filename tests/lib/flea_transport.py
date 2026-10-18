@@ -192,7 +192,7 @@ class Window:
             raise TransportError("unsupported QML launch command")
         if direct_qml and frontend == "gpui":
             raise TransportError("FLEA_IPC_NOT_PORTED qml.launch")
-        gui = built_binary("flea-gui") if frontend == "gpui" else None
+        gui = built_binary("flea-gui", os.environ.get("FLEA_GUI_BIN")) if frontend == "gpui" else None
         if frontend == "gpui" and picker:
             raise TransportError("FLEA_IPC_NOT_PORTED fleapicker.launch")
         parent = Path(parent or REPO / ".superpowers/g010t")
@@ -334,7 +334,7 @@ def serve(root):
             safe = existing.is_absolute() and any((ancestor / MARKER).is_file() for ancestor in (existing, *existing.parents))
             if not safe:
                 environment[key] = str(directory)
-        command = [options["gui"], "--", options["path"]] if options["gui"] else [options["binary"], "--gui", options["path"]]
+        command = [options["binary"], "--gui", options["path"]]
         if options["command"]:
             command = options["command"]
         if options["picker"]:
