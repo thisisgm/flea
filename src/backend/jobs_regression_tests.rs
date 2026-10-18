@@ -371,8 +371,15 @@ fn a_deferred_job_entry_files_after_earlier_publications_without_a_token() {
 
 #[test]
 fn an_undo_check_never_starts_an_unused_journal() {
+    let root = TestDir::new("undo-check-lazy");
+    let made = root.file("made", "");
     let journal = super::lazy::Local::<super::undo::Journal>::new(|| panic!("the undo check started the journal"));
+    let mut out = Vec::new();
     let mut jobs = super::jobs::Jobs::default();
-    jobs.refresh_undo(&mut Vec::new(), &journal);
-    assert!(journal.get().is_none());
+    jobs.adopt(&mut out, 1, "copy", "", 1, Arc::new(AtomicBool::new(false)));
+    jobs.rows[0].undo = true;
+    jobs.rows[0].undo_key = super::undo::Journal::new().push_for_job(publication_entry(&made));
+    assert!(jobs.rows[0].undo_key.is_some());
+    jobs.refresh_undo(&mut out, &journal);
+    assert!(journal.get().is_none() && jobs.rows[0].undo);
 }
