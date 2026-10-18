@@ -2503,3 +2503,65 @@ listing takes; a failed peek carries neither.
   Qt's PNG decoder runs unconfined in the shell process on bytes it did not write. That is a
   known residual risk, parked for a later plan rather than closed here. See AGENTS.md
   "Deliberate corners".
+
+## Jobs and Actions (0.4.0)
+
+Jobs are additive to the existing transfer, archive, and LocalSend requests and replies. The backend still emits the existing single-operation events with their existing fields. Clients that do not consume jobs can ignore the new event types. Each copy, move, compression, extraction, background action, and LocalSend send has a backend job id, independent of a caller's request id. Empty Trash can adopt its existing operation id and cancellation flag through the same model.
+
+Requests:
+
+```json
+{"c":"jobs","op":"list"}
+{"c":"jobs","op":"cancel","id":12}
+{"c":"jobs","op":"retry","id":12}
+{"c":"jobs","op":"dismiss","id":12}
+{"c":"jobs","op":"undo","id":12}
+```
+
+`list` returns a `jobs` snapshot. A snapshot also accompanies membership and scheduling changes. `jobs` contains the ordered list, newest first, `unfinished` counts only running and waiting jobs, and `newest` identifies the newest unfinished job or is null. `head` is that job's head, or an empty string. This supplies the TUI status row's newest operation and its `· 3 jobs` suffix. A `job` update replaces the matching id without moving its row. Progress updates are limited to one per job per 150 ms; scheduling, completion, cancellation, and Undo availability changes are immediate.
+
+```json
+{"t":"jobs","jobs":[],"unfinished":0,"newest":null,"head":""}
+{"t":"job","job":{"id":12,"kind":"copy","head":"Copying 10 of 18 to NAS","file":"DSC_4944.jpg","done":9,"total":18,"bytes":5300000,"totalBytes":9700000,"itemBytes":458300,"rate":1100000,"left":4,"state":"running","reason":"","output":[],"undo":false,"cancelled":false},"unfinished":3}
+{"t":"joberror","id":12,"error":"Only a failed job can be retried."}
+```
+
+Kinds are `copy`, `move`, `compress`, `extract`, `send`, `action`, and the adoption kind `emptyTrash`. States are `waiting`, `running`, `failed`, and `done`. `done` counts completed top-level items; `total` counts this attempt's items. Extraction starts with zero unknown entry counts until its producer supplies archive entry counts and reports unpacked bytes through `OpMsg::JobEntries`, without changing the wire. `file` is the current item's name; `itemBytes` is its known size. `bytes` is cumulative progress and `totalBytes` is the settled byte total, with zero meaning unknown. `rate` is bytes per second and `left` is estimated seconds or null when no estimate is available. A background action has null byte fields and a file-count bar. Empty Trash has null byte fields, file-count progress, and can retain its current item's size in `itemBytes`.
+
+Copies, moves, and compressions are queued in arrival order per destination filesystem. The device is resolved off the request loop, following a symlinked target. Btrfs subvolumes share the mount's source key because their anonymous `st_dev` values can differ. Separate destination filesystems run concurrently. A waiting copy uses `Copy 8 items to NAS` and names its predecessor in `reason`, for example `waiting for the copy to NAS`. Cancellation addresses only the named job, including a queued job. `transfercancel` also reaches jobs with that id, including compression. A clean shutdown cancels queued and running jobs through the existing drain.
+
+A failure retains its position, with a failure head and its reason. `retry` preserves the row and id, requeues behind jobs already accepted, and narrows the attempt to failed items. The queued work retains each failed source's identity, including its birth time when available. Transfers check that identity before each item, actions before each invocation, and indivisible archive or send operations before their invocation. A replacement is refused and never becomes the identity of a subsequent retry. A compression or extraction is one indivisible failed operation. `dismiss` accepts only failed or done rows.
+
+A successful journalled transfer has `undo:true` only after its journal entry is published. The offer belongs to that backend's job and expires when another operation, Undo, or Redo changes the history, including in another window. The shared journal claim compares the saved history revision and exact entry under its lock; an expired offer is refused with `That job can no longer be undone.` and revoked without consuming any entry. Reversal replies use the existing `undone` or `error` events and update search indexes and tag state through the same path as ordinary Undo, including paths changed before a partial failure. `undo` refuses while another job is unfinished. Compressions, extractions, sends, and arbitrary actions do not invent undo records. A done row is a completion notification and is omitted from the visible card; the backend retains it until the next job starts so its Undo remains addressable. Failed and done jobs do not contribute to `unfinished`.
+
+Archive workers capture source identities before their first invocation and carry them with the completion, including menu selections. Completion handling never inspects those paths to construct a failed set. Later retries retain the captured identities even when a changed source is refused. Job-offer expiry uses its own shared history revision; the generation that guards Redo publication changes only on a new operation push, so overlapping successful Undos both remain redoable when no new operation was pushed.
+
+Actions requests use absolute selection paths, resolved by the caller from one listing before sending. A preview request carries only the cursor file, never the marked selection.
+
+```json
+{"c":"actions","op":"list","id":4,"paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actions","id":4,"actions":[{"id":"action:resize.toml","name":"Resize to 1600 px","mode":"background","selection":"many","script":false}],"errors":[],"error":""}
+{"c":"actions","op":"run","id":5,"action":"action:resize.toml","paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actionstarted","requestId":5,"id":13,"ok":true,"error":""}
+{"c":"actions","op":"preview","id":6,"action":"action:describe.toml","paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actionpreview","id":6,"ok":true,"text":"Description from the previewer\n","error":""}
+```
+
+A terminal handoff or refused run answers `actionstarted` with `requestId`, `ok`, and `error`, without a job id. A terminal action opens each expanded argv through `xdg-terminal-exec --dir=... -- ...`, the Open in Terminal launcher. A preview-only action refuses `run`. A preview answers text suitable for the existing `code` request's `text` input and the code renderer. Its process runs in the existing read-only preview jail with only the cursor file and executable added, a five-second wall deadline, the existing CPU and address-space limits, and a 1,048,576-byte output cap. A newer preview request cancels and suppresses the older reply.
+
+The manifest directory is `$XDG_CONFIG_HOME/flea/actions` or `$HOME/.config/flea/actions`. The parser accepts the specimen's TOML subset: five unique required keys, double-quoted basic strings with JSON-compatible escapes, and possibly multiline string arrays with comments and trailing commas. Raw C0 control bytes other than tab, and raw DEL, are prohibited in strings; supported escaped values remain valid. Other keys, tables, duplicate keys, missing fields, wrong types, empty arrays, invalid modes or selection rules, invalid escapes or placeholders, and files over 16,384 bytes are refused whole. Directory discovery examines at most 257 entries to detect overflow and reads at most 256 manifests; arrays hold at most 128 elements. Nonregular files are refused without blocking. Each refusal appears in the `actions.errors` array as `{"file":"bad.toml","error":"..."}`; valid siblings remain available.
+
+```toml
+name = "Resize to 1600 px"
+mime = ["image/*"]
+selection = "many"
+run = ["magick", "{path}", "-resize",
+       "1600x1600>", "{dir}/{stem}-1600.{ext}"]
+mode = "background"
+```
+
+MIME patterns match the entire MIME string and accept literal characters, `*`, and `?`. Every selected item must match a pattern; `one` requires exactly one item, while `many` accepts one or more. MIME comes from the existing name database, with directories reported as `inode/directory` and unknown files as `application/octet-stream`. Listing and running recheck the actual selected paths. No directory listing is MIME-scanned to populate Actions.
+
+`{path}`, `{dir}`, `{name}`, `{stem}`, and `{ext}` expand separately within each argv element, once per selected file. Replacements are not expanded again. The program is literal and cannot contain placeholders. Paths remain absolute; a placeholder-led argument whose result begins with `-` is prefixed with `./`, so a filename cannot become an option. Invocation uses argv without a shell unless the manifest explicitly names one. A background job retains only its last two merged stdout and stderr lines, each bounded to 4,096 decoded UTF-8 bytes with lossy decoding. `output` replaces the file line once nonempty. Cancel kills the entire invocation's process group with SIGKILL before reaping its leader, including children that ignore SIGTERM.
+
+Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain Actions entries, with ids `script:<filename>` and labels omitting the final extension. They retain the existing Run script contract: one invocation receives all selected absolute paths. The Actions switch retains the `runScript` id in `menu.hidden` and remains hidden by default. No `src/uischema.rs` defaults change.

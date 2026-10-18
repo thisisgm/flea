@@ -51,6 +51,39 @@ fn cancel_at_fires(index: usize) -> bool {
 
 // What an operation thread sends back, joined onto the same receiver every other event already arrives on.
 pub enum OpMsg {
+    // Entry and unpacked-byte counts for extraction and adopted operation workers.
+    #[allow(dead_code)]
+    JobEntries {
+        id: usize,
+        done: usize,
+        total: usize,
+        file: String,
+        bytes: u64,
+        total_bytes: u64,
+        item_bytes: u64,
+    },
+    JobReady {
+        id: usize,
+        drive: String,
+        target: String,
+    },
+    JobSample {
+        id: usize,
+        done: usize,
+        total: usize,
+        file: String,
+        output: Vec<String>,
+    },
+    JobDone {
+        id: usize,
+        failed: Vec<(PathBuf, ItemIdentity)>,
+        error: String,
+        line: String,
+    },
+    ActionReady {
+        request: usize,
+        result: Result<(super::actions::Action, Vec<String>), String>,
+    },
     // scanned is the batch's own total, 0 until the sweep beside the copy settles on one.
     Progress { id: usize, index: usize, name: String, bytes: u64, total: u64, scanned: u64 },
     Item { id: usize, index: usize, name: String, ok: bool, err: String },
@@ -351,6 +384,13 @@ pub(crate) fn run_transfer_checked(
             Ok(metadata) => metadata,
             Err(err) => {
                 failed += 1;
+                if let Some(identity) = selection
+                    .as_ref()
+                    .and_then(|items| items.get(index))
+                    .and_then(|item| item.retry_identity())
+                {
+                    retry.push((src, identity));
+                }
                 let _ = tx.send(OpMsg::Item { id, index, name, ok: false, err });
                 continue;
             }

@@ -1,3 +1,12 @@
+mod actionmanifest;
+mod actionpreview;
+mod actionrun;
+mod actions;
+mod jobdrive;
+mod jobevents;
+mod jobs;
+mod jobwork;
+
 pub mod listing;
 pub mod filter;
 #[cfg(test)]
@@ -260,3 +269,10 @@ pub mod rawbmff;
 pub mod rawraf;
 pub mod rawexif;
 pub mod rawpreview;
+
+#[cfg(test)]
+mod jobs_fix1_tests;
+#[cfg(test)]
+mod jobs_fix2_tests;
+#[cfg(test)]
+mod jobs_tests;

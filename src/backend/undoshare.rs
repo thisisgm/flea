@@ -114,14 +114,21 @@ pub(crate) enum StoredRedo {
 pub(crate) struct Doc {
     pub undo: Vec<Entry>,
     pub redo: Vec<StoredRedo>,
-    // Counts pushes; a finish replays only when no push ran since its claim.
+    // Counts new pushes; overlapping Undo claims must each keep their Redo.
     pub push_gen: u64,
+    // Job offers expire on claims and replay publication as well as new pushes.
+    pub job_gen: u64,
 }
 
 pub(crate) enum PushResult { Stored, TooBig }
 
 fn empty_doc() -> Doc {
-    Doc { undo: Vec::new(), redo: Vec::new(), push_gen: 0 }
+    Doc {
+        undo: Vec::new(),
+        redo: Vec::new(),
+        push_gen: 0,
+        job_gen: 0,
+    }
 }
 
 // A newer writer owns the file when its version reads past ours; a FIFO or endless file answers no.
@@ -250,8 +257,15 @@ fn staged_to_fit(doc: &Doc) -> Option<Staged> {
 }
 
 pub(crate) fn push_entry(shared: &Shared, entry: &Entry) -> Result<PushResult, ()> {
+    push_entry_generation(shared, entry).map(|(result, _)| result)
+}
+
+pub(crate) fn push_entry_generation(
+    shared: &Shared,
+    entry: &Entry,
+) -> Result<(PushResult, Option<u64>), ()> {
     if entry.steps.is_empty() {
-        return Ok(PushResult::Stored);
+        return Ok((PushResult::Stored, None));
     }
     let _guard = lock(shared).map_err(|msg| eprintln!("flea: {}", msg))?;
     // A newer file is unavailable, never rewritten: the caller falls back to memory.
@@ -266,9 +280,12 @@ pub(crate) fn push_entry(shared: &Shared, entry: &Entry) -> Result<PushResult, (
     }
     doc.redo.clear();
     doc.push_gen = doc.push_gen.wrapping_add(1);
-    let Some(staged) = staged_to_fit(&doc) else { return Ok(PushResult::TooBig) };
+    doc.job_gen = doc.job_gen.wrapping_add(1);
+    let Some(staged) = staged_to_fit(&doc) else {
+        return Ok((PushResult::TooBig, None));
+    };
     store(shared, &staged.text()).map_err(|msg| eprintln!("flea: {}", msg))?;
-    Ok(PushResult::Stored)
+    Ok((PushResult::Stored, Some(doc.job_gen)))
 }
 
 // Every nonce the doc still names, so a journal drops handles for entries it no longer holds.
@@ -296,11 +313,25 @@ pub(crate) fn live_nonces(shared: &Shared) -> Option<std::collections::HashSet<u
 }
 
 // One locked read-modify-write pops the newest entry; the generation lets finish drop a stale replay.
+#[cfg(test)]
 pub(crate) fn claim_undo(shared: &Shared) -> Result<Option<(Entry, u64)>, ()> {
+    claim_undo_matching(shared, None)
+}
+
+pub(crate) fn claim_undo_matching(
+    shared: &Shared,
+    token: Option<&super::undo::UndoToken>,
+) -> Result<Option<(Entry, u64)>, ()> {
     let _guard = lock(shared).map_err(|msg| eprintln!("flea: {}", msg))?;
     let mut doc = load(shared)?;
+    if token.is_some_and(|key| {
+        key.generation != Some(doc.job_gen) || doc.undo.last() != Some(&key.entry)
+    }) {
+        return Ok(None);
+    }
     let claimed = doc.undo.pop();
     if claimed.is_some() {
+        doc.job_gen = doc.job_gen.wrapping_add(1);
         store(shared, &Staged::new(&doc).text()).map_err(|msg| eprintln!("flea: {}", msg))?;
     }
     Ok(claimed.map(|entry| (entry, doc.push_gen)))
@@ -360,6 +391,7 @@ pub(crate) fn claim_redo(shared: &Shared) -> Result<Option<StoredRedo>, ()> {
     let mut doc = load(shared)?;
     let claimed = doc.redo.pop();
     if claimed.is_some() {
+        doc.job_gen = doc.job_gen.wrapping_add(1);
         store(shared, &Staged::new(&doc).text()).map_err(|msg| eprintln!("flea: {}", msg))?;
     }
     Ok(claimed)
@@ -371,6 +403,7 @@ pub(crate) fn finish_redone(shared: &Shared, entry: Entry, changes: &[(ItemIdent
     let mut doc = load(shared)?;
     rebase_doc(&mut doc, changes.iter().map(|(old, new)| (old, new)));
     if !entry.steps.is_empty() {
+        doc.job_gen = doc.job_gen.wrapping_add(1);
         doc.undo.push(entry);
         while doc.undo.len() > DEPTH {
             doc.undo.remove(0);

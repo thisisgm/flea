@@ -70,11 +70,62 @@ fn extractstarted_line(id: usize) -> String {
     format!(r#"{{"t":"extractstarted","id":{}}}"#, id)
 }
 
-pub(crate) fn run_archive(id: usize, compressing: bool, paths: Vec<String>, format: String,
-                   archive: PathBuf, dest: PathBuf, formats: &Formats, tx: Sender<OpMsg>, selection: Option<Vec<Selected>>,
-                   cancel: Arc<AtomicBool>, password: String, encrypt_names: bool) {
-    let sources: Vec<PathBuf> = if compressing { paths.iter().map(PathBuf::from).collect() } else { vec![archive.clone()] };
-    let result = if let Err(error) = validate_sources(selection.as_deref(), &sources) {
+#[cfg(test)]
+pub(crate) fn run_archive(
+    id: usize,
+    compressing: bool,
+    paths: Vec<String>,
+    format: String,
+    archive: PathBuf,
+    dest: PathBuf,
+    formats: &Formats,
+    tx: Sender<OpMsg>,
+    selection: Option<Vec<Selected>>,
+    cancel: Arc<AtomicBool>,
+    password: String,
+    encrypt_names: bool,
+) {
+    let line = archive_line(
+        id,
+        compressing,
+        paths,
+        format,
+        archive,
+        dest,
+        formats,
+        selection.as_deref(),
+        cancel,
+        password,
+        encrypt_names,
+    );
+    // An extract frees the slot its terminal line took; a compress claims none and leaves the quit registry when its line is read.
+    let message = if compressing {
+        OpMsg::DetachedDone { id, line }
+    } else {
+        OpMsg::SlotDone { line }
+    };
+    let _ = tx.send(message);
+}
+
+pub(crate) fn archive_line(
+    id: usize,
+    compressing: bool,
+    paths: Vec<String>,
+    format: String,
+    archive: PathBuf,
+    dest: PathBuf,
+    formats: &Formats,
+    selection: Option<&[Selected]>,
+    cancel: Arc<AtomicBool>,
+    password: String,
+    encrypt_names: bool,
+) -> String {
+    let sources: Vec<PathBuf> = if compressing {
+        paths.iter().map(PathBuf::from).collect()
+    } else {
+        vec![archive.clone()]
+    };
+    let result = if let Err(error) = validate_sources(selection, &sources) {
         Err(op_err("archive", "", &error))
     } else if compressing {
         // A compress writes the archive, so nothing verifies it and an empty password is no password.
@@ -91,14 +142,11 @@ pub(crate) fn run_archive(id: usize, compressing: bool, paths: Vec<String>, form
         let password = (!password.is_empty()).then_some(password.as_str());
         extract(formats, &archive, &dest, &cancel, password)
     };
-    let line = match result {
+    match result {
         Ok(verified) => archivedone_line(id, true, verified, ""),
         Err(e) if !compressing && archivepass::asks_again(&e.msg) => archivepass::asks_again_line(id, &e.msg, &archive, &dest),
         Err(e) => archivedone_line(id, false, true, &e.msg),
-    };
-    // An extract frees the slot its terminal line took; a compress claims none and leaves the quit registry when its line is read.
-    let message = if compressing { OpMsg::DetachedDone { id, line } } else { OpMsg::SlotDone { line } };
-    let _ = tx.send(message);
+    }
 }
 
 pub(crate) fn run_convert(id: usize, request_id: usize, input: PathBuf, dest: PathBuf, strip: bool, tx: Sender<OpMsg>, selection: Option<Vec<Selected>>,
@@ -167,24 +215,35 @@ pub fn start_archive(
     if pending_busy_for(out, ops, "archive", &sources, &[target]) {
         return;
     }
-    // A compress runs alongside by design, so its flag is tracked for a quit to set.
-    let (id, cancel) = if compressing { (ops.claim_id(), Arc::new(AtomicBool::new(false))) } else { ops.claim_transfer() };
-    if compressing {
-        ops.detached.insert(id, &cancel);
-    }
+    let id = ops.claim_id();
     writeln!(out, "{}", archivestarted_line(id)).ok();
     if !compressing {
         let name = archive.file_name().map(|n| n.to_string_lossy().to_string()).unwrap_or_default();
         writeln!(out, "{}", extractstarted_line(id)).ok();
-        // The card's name row; no bytes, so no fabricated percentage, rate or time left.
         writeln!(out, "{}", transferprogress_line(id, 0, &name, 0, 0, 0)).ok();
     }
     out.flush().ok();
-    let tx = ops.tx.clone();
-    thread::spawn(move || {
-        run_archive(id, compressing, paths, format, archive, dest, &formats, tx, selection, cancel,
-                    password, encrypt_names)
-    });
+    let target = compressing.then(|| dest.clone());
+    ops.jobs.submit(
+        out,
+        id,
+        if compressing { "compress" } else { "extract" },
+        "Extracting",
+        target,
+        super::jobwork::Work::Archive {
+            compressing,
+            paths,
+            format,
+            archive,
+            dest,
+            formats,
+            selection,
+            password,
+            encrypt_names,
+        },
+        &ops.detached,
+        &ops.tx,
+    );
 }
 
 pub fn start_convert(out: &mut impl Write, ops: &mut Ops, input: PathBuf, dest: PathBuf, strip: bool,

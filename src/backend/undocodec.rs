@@ -139,12 +139,15 @@ pub(crate) fn stored_redo(stored: &StoredRedo) -> Json {
 // The whole document as a tree; the byte pin compares the piecewise render against this form.
 #[cfg(test)]
 pub(crate) fn encode(doc: &Doc) -> Json {
-    obj(vec![
-        ("v", n(VERSION)),
-        ("gen", n(doc.push_gen)),
+    let mut fields = vec![("v", n(VERSION)), ("gen", n(doc.push_gen))];
+    if doc.job_gen != 0 {
+        fields.push(("jobGen", n(doc.job_gen)));
+    }
+    fields.extend([
         ("undo", arr(doc.undo.iter().map(entry).collect())),
         ("redo", arr(doc.redo.iter().map(stored_redo).collect())),
-    ])
+    ]);
+    obj(fields)
 }
 
 pub(crate) fn get<'a>(pairs: &'a [(String, Json)], key: &str) -> Option<&'a Json> {
@@ -371,6 +374,10 @@ pub(crate) fn decode(text: &str) -> Option<Doc> {
 
 pub(crate) fn decode_pairs(pairs: &[(String, Json)]) -> Option<Doc> {
     let push_gen = get(pairs, "gen").and_then(parse_u64).unwrap_or(0);
+    let job_gen = match get(pairs, "jobGen") {
+        Some(value) => parse_u64(value)?,
+        None => 0,
+    };
     let undo_items = get(pairs, "undo")?.as_array()?;
     let redo_items = get(pairs, "redo")?.as_array()?;
     if undo_items.len() > MAX_READ_ENTRIES || redo_items.len() > MAX_READ_ENTRIES {
@@ -384,7 +391,12 @@ pub(crate) fn decode_pairs(pairs: &[(String, Json)]) -> Option<Doc> {
     for item in redo_items {
         redo.push(decode_redo(item)?);
     }
-    Some(Doc { undo, redo, push_gen })
+    Some(Doc {
+        undo,
+        redo,
+        push_gen,
+        job_gen,
+    })
 }
 
 // A newer writer owns the file; the reader falls back to memory and never rewrites it.
