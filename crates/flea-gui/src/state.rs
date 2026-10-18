@@ -13,6 +13,7 @@ pub struct Shell {
     pending_total: Option<usize>,
     requested: usize,
     waiting: bool,
+    backend_error: Option<String>,
     cache: Rc<RefCell<NameCache>>,
     _reader: Option<Task<()>>,
 }
@@ -41,6 +42,7 @@ impl Shell {
             pending_total: None,
             requested,
             waiting: true,
+            backend_error: None,
             snapshot: Rc::new(Snapshot {
                 title,
                 total: 0,
@@ -66,12 +68,16 @@ impl Shell {
                 }));
                 shell.backend = Some(backend);
             }
-            Err(error) => eprintln!("flea-gui: the backend thread could not start: {error}"),
+            Err(error) => {
+                shell.waiting = false;
+                shell.record_error(format!("the backend thread could not start: {error}"));
+            }
         }
         shell
     }
 
     fn receive(&mut self, reply: Result<Reply, String>, cx: &mut Context<Self>) {
+        self.waiting = false;
         match reply {
             Ok(Reply::Listed { path, total }) if path == self.path => {
                 self.pending_total = Some(total)
@@ -96,14 +102,20 @@ impl Shell {
                     listing,
                     names: names.into_iter().map(SharedString::from).collect(),
                 });
-                self.waiting = false;
+                self.backend_error = None;
                 cx.notify();
             }
             Ok(Reply::Error { message, .. }) | Err(message) => {
-                self.waiting = false;
-                eprintln!("flea-gui: {message}");
+                self.record_error(message);
             }
             _ => {}
+        }
+    }
+
+    fn record_error(&mut self, message: String) {
+        if self.backend_error.as_deref() != Some(&message) {
+            eprintln!("flea-gui: {message}");
+            self.backend_error = Some(message);
         }
     }
 }
@@ -113,12 +125,12 @@ impl Render for Shell {
         let wanted = visible_rows(window.viewport_size().height);
         if !self.waiting && wanted != self.requested {
             if let Some(backend) = &self.backend {
+                self.requested = wanted;
                 match backend.window(self.snapshot.start, wanted) {
                     Ok(()) => {
-                        self.requested = wanted;
                         self.waiting = true;
                     }
-                    Err(error) => eprintln!("flea-gui: {error}"),
+                    Err(error) => self.record_error(error),
                 }
             }
         }
@@ -129,7 +141,115 @@ impl Render for Shell {
 #[cfg(test)]
 mod tests {
     use super::*;
-    use gpui::px;
+    use gpui::{prelude::*, px, TestAppContext};
+
+    fn shell_with(backend: Backend) -> Shell {
+        Shell {
+            path: "/files".into(),
+            backend: Some(backend),
+            snapshot: Rc::new(Snapshot {
+                title: "files".into(),
+                total: 20,
+                start: 0,
+                listing: 2,
+                names: Vec::new(),
+            }),
+            pending_total: None,
+            requested: 1,
+            waiting: false,
+            backend_error: None,
+            cache: Rc::new(RefCell::new(NameCache::default())),
+            _reader: None,
+        }
+    }
+
+    #[gpui::test]
+    fn adv_e_r1_dead_backend_prints_once_across_many_renders(cx: &mut TestAppContext) {
+        const CHILD: &str = "FLEA_TEST_DEAD_BACKEND_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "state::tests::adv_e_r1_dead_backend_prints_once_across_many_renders",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            assert_eq!(
+                String::from_utf8_lossy(&output.stderr)
+                    .matches("flea-gui: the backend stopped accepting requests")
+                    .count(),
+                1
+            );
+            return;
+        }
+        let (backend, receiver) = Backend::test_channel();
+        drop(receiver);
+        cx.add_empty_window().update(|window, cx| {
+            let entity = cx.new(|_| shell_with(backend));
+            entity.update(cx, |shell, cx| {
+                for _ in 0..64 {
+                    let _ = shell.render(window, cx);
+                }
+            });
+        });
+    }
+
+    #[gpui::test]
+    fn adv_e_r1_every_reply_releases_the_next_window_request(cx: &mut TestAppContext) {
+        let replies = vec![
+            Ok(Reply::Rows {
+                start: 0,
+                names: vec!["a".into(), "b".into()],
+                listing: 3,
+            }),
+            Ok(Reply::Rows {
+                start: 21,
+                names: Vec::new(),
+                listing: 3,
+            }),
+            Ok(Reply::Rows {
+                start: 0,
+                names: vec!["old".into()],
+                listing: 1,
+            }),
+            Ok(Reply::Listed {
+                path: "/files".into(),
+                total: 20,
+            }),
+            Ok(Reply::Listed {
+                path: "/elsewhere".into(),
+                total: 20,
+            }),
+            Ok(Reply::Other),
+            Ok(Reply::Error {
+                operation: "window".into(),
+                path: "/files".into(),
+                message: "refused".into(),
+            }),
+            Err("malformed reply".into()),
+        ];
+        cx.add_empty_window().update(|window, cx| {
+            let wanted = visible_rows(window.viewport_size().height);
+            assert_ne!(wanted, 1);
+            for reply in replies {
+                let (backend, mut requests) = Backend::test_channel();
+                let entity = cx.new(|_| shell_with(backend));
+                entity.update(cx, |shell, cx| {
+                    shell.waiting = true;
+                    shell.receive(reply, cx);
+                    let _ = shell.render(window, cx);
+                    assert_eq!(requests(), Some((0, wanted)));
+                });
+            }
+        });
+    }
 
     #[test]
     fn only_visible_rows_are_requested_including_a_partial_last_row() {

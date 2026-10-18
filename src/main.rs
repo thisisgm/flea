@@ -1,17 +1,11 @@
 mod backend;
-mod captures;
 mod chooser;
+mod claims;
 mod clip;
 mod defaults;
 mod desktopid;
 mod error;
-mod favourites;
-mod figurebuild;
-mod figurecache;
-mod figurehelper;
-mod figurestore;
 mod gui;
-mod gvfsprefetch;
 mod heap;
 mod hyprkeys;
 mod icdexclude;
@@ -26,8 +20,24 @@ mod paths;
 mod prefetch;
 mod procsignal;
 mod qsregistry;
+mod tearoff;
 mod runfile;
 mod runid;
+mod terminal;
+mod tui;
+mod thp;
+mod unlock;
+mod uischema;
+mod uimigrate;
+mod uistate;
+mod uistatecli;
+mod favourites;
+mod figurebuild;
+mod figurecache;
+mod figurehelper;
+mod figurestore;
+mod gvfsprefetch;
+mod captures;
 mod shelf;
 mod shelfcli;
 mod shelfdrag;
@@ -38,62 +48,17 @@ mod shelfthumb;
 mod shelfundo;
 mod shelfzip;
 mod summon;
-mod tearoff;
-mod terminal;
-mod thp;
-mod tui;
-mod uimigrate;
-mod uischema;
-mod uistate;
-mod uistatecli;
 mod uistore;
-mod unlock;
 mod update;
 mod userfile;
 mod vkprobecache;
 mod vulkan;
 
 use crate::backend::proto::error_line;
+use claims::{claim_both, claim_picker, release_both};
 use std::io::IsTerminal;
 use std::path::PathBuf;
 use std::process::exit;
-
-// --default owns both per-user steps, because a user updating from 0.1.3 has no picker routing yet.
-fn claim_both() -> i32 {
-    let handler = defaults::claim();
-    // A refused handler claim has claimed nothing, so the picker half must not write either.
-    if handler != 0 {
-        return handler;
-    }
-    // A source build has no flea.portal to prefer, which is the picker's precondition, not a failure here.
-    let status = if chooser::backend_installed() {
-        chooser::claim("flea --default")
-    } else {
-        eprintln!(
-            "flea: no file chooser service is installed, so Flea could not become the file chooser"
-        );
-        0
-    };
-    // The one undo line this invocation ends on: --default off releases both halves it just claimed.
-    println!("undo both with: flea --default off");
-    status
-}
-
-// flea --picker on its own, so it owns the undo line --default must not print for it.
-fn claim_picker() -> i32 {
-    let installed = chooser::backend_installed();
-    let status = chooser::claim("flea --picker");
-    if installed {
-        println!("undo both with: flea --picker off");
-    }
-    status
-}
-
-fn release_both() -> i32 {
-    let handler = defaults::release();
-    let picker = chooser::release();
-    handler.max(picker)
-}
 
 pub(crate) fn usage(message: &str) -> ! {
     eprintln!("flea: {}", message);
@@ -105,9 +70,7 @@ pub(crate) fn usage(message: &str) -> ! {
     eprintln!("       flea --run <path> <dev> <ino> <size> <mtime_s> <mtime_ns>");
     eprintln!("       flea --run-terminal <path> <dev> <ino> <size> <mtime_s> <mtime_ns>");
     eprintln!("       flea --open-text <path>");
-    eprintln!(
-        "       flea --open-handler <path> <desktop id> <dev> <ino> <size> <mtime_s> <mtime_ns>"
-    );
+    eprintln!("       flea --open-handler <path> <desktop id> <dev> <ino> <size> <mtime_s> <mtime_ns>");
     eprintln!("       flea --clip get|set copy|cut|clear TOKEN");
     eprintln!("       flea flash choose [start]");
     eprintln!("       flea --version");
@@ -127,8 +90,7 @@ fn select_target(raw: &str) -> Option<(PathBuf, PathBuf)> {
 
 // Only a flash picker invocation takes the verb: a bare flash is a path like any other, so a folder named flash still opens.
 pub(crate) fn flash_picker(args: &[String]) -> bool {
-    args.get(1).map(String::as_str) == Some("flash")
-        && args.get(2).map(String::as_str) == Some("choose")
+    args.get(1).map(String::as_str) == Some("flash") && args.get(2).map(String::as_str) == Some("choose")
 }
 
 #[cfg(test)]
@@ -140,10 +102,7 @@ fn main() {
     let args: Vec<String> = match std::env::args_os().map(|a| a.into_string()).collect() {
         Ok(v) => v,
         Err(bad) => {
-            eprintln!(
-                "flea: {} is not valid UTF-8, and Flea takes text paths",
-                bad.to_string_lossy()
-            );
+            eprintln!("flea: {} is not valid UTF-8, and Flea takes text paths", bad.to_string_lossy());
             exit(2);
         }
     };
@@ -282,11 +241,7 @@ fn main() {
     if args.len() == 3 && args[1] == "--clip" && args[2] == "get" {
         exit(clip::cli::get());
     }
-    if args.len() == 4
-        && args[1] == "--clip"
-        && args[2] == "set"
-        && (args[3] == "copy" || args[3] == "cut")
-    {
+    if args.len() == 4 && args[1] == "--clip" && args[2] == "set" && (args[3] == "copy" || args[3] == "cut") {
         exit(clip::cli::set(&args[3]));
     }
     if args.len() == 4 && args[1] == "--clip" && args[2] == "clear" {
@@ -351,10 +306,7 @@ fn main() {
 
     // A reveal opens the target's directory; a missing target still opens it, with nothing selected.
     let (open_path, select_path) = match select_raw.as_deref().and_then(select_target) {
-        Some((parent, target)) => (
-            Some(parent.to_string_lossy().into_owned()),
-            Some(target.to_string_lossy().into_owned()),
-        ),
+        Some((parent, target)) => (Some(parent.to_string_lossy().into_owned()), Some(target.to_string_lossy().into_owned())),
         None => (start, None),
     };
 
@@ -390,11 +342,7 @@ fn main() {
                     eprintln!("flea: the shelf plugin was not refreshed ({})", e);
                 }
             }
-            exit(gui::exec_qs(
-                &ui,
-                open_path.as_deref(),
-                select_path.as_deref(),
-            ))
+            exit(gui::exec_qs(&ui, open_path.as_deref(), select_path.as_deref()))
         }
         None => {
             eprintln!("{}", paths::missing_ui_message());
@@ -410,15 +358,8 @@ mod tests {
     #[test]
     fn a_path_named_flash_still_opens() {
         let bare = ["flea".to_string(), "flash".to_string()];
-        assert!(
-            !flash_picker(&bare),
-            "a bare flash is a path, not the picker"
-        );
-        let picker = [
-            "flea".to_string(),
-            "flash".to_string(),
-            "choose".to_string(),
-        ];
+        assert!(!flash_picker(&bare), "a bare flash is a path, not the picker");
+        let picker = ["flea".to_string(), "flash".to_string(), "choose".to_string()];
         assert!(flash_picker(&picker), "flash choose runs the picker");
     }
 }

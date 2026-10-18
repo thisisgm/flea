@@ -3,7 +3,12 @@ use gpui::{prelude::*, px, size, App, TitlebarOptions, WindowBounds, WindowOptio
 use std::path::PathBuf;
 
 fn arguments() -> Result<(String, Option<String>), String> {
-    let mut args = std::env::args().skip(1);
+    parse_arguments(std::env::args().skip(1))
+}
+
+fn parse_arguments(
+    mut args: impl Iterator<Item = String>,
+) -> Result<(String, Option<String>), String> {
     let mut path = None;
     let mut select = None;
     while let Some(argument) = args.next() {
@@ -21,21 +26,12 @@ fn arguments() -> Result<(String, Option<String>), String> {
             _ => return Err("only one start directory is accepted".into()),
         }
     }
-    let path = path
-        .or_else(|| {
-            std::env::var("FLEA_PATH")
-                .ok()
-                .filter(|value| !value.is_empty())
-        })
-        .or_else(|| std::env::var("HOME").ok())
-        .unwrap_or_else(|| "/".into());
-    let select = select.or_else(|| {
-        std::env::var("FLEA_SELECT")
-            .ok()
-            .filter(|value| !value.is_empty())
-    });
-    let absolute = if PathBuf::from(&path).is_absolute() {
-        PathBuf::from(path)
+    let path = match path {
+        Some(path) => PathBuf::from(path),
+        None => std::env::current_dir().map_err(|error| error.to_string())?,
+    };
+    let absolute = if path.is_absolute() {
+        path
     } else {
         std::env::current_dir()
             .map_err(|error| error.to_string())?
@@ -73,4 +69,57 @@ fn main() {
         }
         cx.activate(true);
     });
+}
+
+#[cfg(test)]
+mod tests {
+    use super::*;
+
+    #[test]
+    fn adv_e_r1_argv_ignores_parent_path_and_selection() {
+        const CHILD: &str = "FLEA_TEST_ARGV_CHILD";
+        if std::env::var_os(CHILD).is_none() {
+            let output = std::process::Command::new(std::env::current_exe().unwrap())
+                .args([
+                    "--exact",
+                    "tests::adv_e_r1_argv_ignores_parent_path_and_selection",
+                    "--nocapture",
+                ])
+                .env(CHILD, "1")
+                .env("FLEA_PATH", "/stale-parent/path")
+                .env("FLEA_SELECT", "/stale-parent/selection")
+                .output()
+                .unwrap();
+            assert!(
+                output.status.success(),
+                "{}",
+                String::from_utf8_lossy(&output.stderr)
+            );
+            return;
+        }
+        let explicit =
+            parse_arguments(["--", "/explicit/path"].map(str::to_owned).into_iter()).unwrap();
+        assert_eq!(explicit, ("/explicit/path".into(), None));
+        let bare = parse_arguments(std::iter::empty()).unwrap();
+        assert_eq!(
+            bare,
+            (
+                std::env::current_dir()
+                    .unwrap()
+                    .to_string_lossy()
+                    .into_owned(),
+                None
+            )
+        );
+        let selected = parse_arguments(
+            ["--select", "/explicit/file", "--", "/explicit"]
+                .map(str::to_owned)
+                .into_iter(),
+        )
+        .unwrap();
+        assert_eq!(
+            selected,
+            ("/explicit".into(), Some("/explicit/file".into()))
+        );
+    }
 }
