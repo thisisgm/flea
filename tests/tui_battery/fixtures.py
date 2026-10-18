@@ -11,6 +11,8 @@ from .evidence import Blocked, Owned, absolute, digest, save, tree_identity
 WORK = ["A", "Code", "Docs", "Empty", "Locked", "Many", "Media", "notes.txt", "todo.md"]
 OFFICE_BYTES = {"budget.xlsx": 7970, "garden-report.docx": 8025, "garden-report.pdf": 92286,
                 "lease.docx": 8192, "notes.txt": 99, "readme.md": 48, "talk.odp": 19532}
+# Features no family declares: the relay itself implements graphics-negative, and the 3D states' own files are model-source.
+BUILT_IN_FEATURES = frozenset({"graphics-negative", "model-source"})
 NOTES = b"Visual gate notes\n\nThis file is the fixture's plain text sample.\nLine four keeps the preview busy.\n"
 
 
@@ -106,6 +108,46 @@ def import_family(source, family, target):
             "entries": entries, "copied": hashes, "actual_before_directory_modes": receipt,
             "features": spec.get("features", []), "auxiliary": spec.get("auxiliary", []),
             "representations": spec.get("representations", {})}
+
+
+def inventory(source, states):
+    """Verifies, without copying, every family the selected states name: entry bytes, auxiliary bytes and declared features."""
+    source = absolute(source)
+    try:
+        manifest = json.loads(regular_bytes(source / "manifest.json"))
+        families = manifest.get("families", {}) if isinstance(manifest, dict) else None
+        if not isinstance(families, dict):
+            raise Blocked("fixture manifest or its families is not an object")
+    except (OSError, ValueError) as error:
+        raise Blocked(f"fixture manifest is unreadable: {error}") from error
+    report = {}
+    for family in sorted({state["family"] for state in states}):
+        named = sorted(state["id"] for state in states if state["family"] == family)
+        spec = families.get(family)
+        if spec is None:
+            report[family] = {"status": "missing", "states": named}
+            continue
+        try:
+            if not isinstance(spec, dict):
+                raise Blocked(f"fixture family {family} is not an object")
+            base = absolute(source / relative(spec["root"]))
+            rows = [(base / relative(row["path"]), row["path"], row) for row in spec["entries"] if row["kind"] == "file"]
+            rows += [(absolute(source / relative(row["source"])), row["source"], row) for row in spec.get("auxiliary", [])]
+            for path, name, row in rows:
+                data = regular_bytes(path)
+                if len(data) != row["size"]:
+                    raise Blocked(f"fixture source identity mismatch: {family}/{name}: size {len(data)} is not {row['size']}")
+                if hashlib.sha256(data).hexdigest() != row["sha256"]:
+                    raise Blocked(f"fixture source identity mismatch: {family}/{name}: sha256 differs from the manifest")
+            supplied = set(spec.get("features", [])) | BUILT_IN_FEATURES
+            wanted = {need for state in states if state["family"] == family for need in state["requires"]}
+            report[family] = {"status": "present", "states": named, "entries": len(spec["entries"]),
+                              "auxiliary": len(spec.get("auxiliary", [])), "features": spec.get("features", []),
+                              "representations": sorted(spec.get("representations", {})),
+                              "requires_not_supplied": sorted(wanted - supplied)}
+        except (Blocked, OSError, KeyError, TypeError) as error:
+            report[family] = {"status": "invalid", "states": named, "reason": str(error)}
+    return report
 
 
 def seed_auxiliary(source, fx, receipt):

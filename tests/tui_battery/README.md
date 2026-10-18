@@ -75,6 +75,18 @@ The read-only bundle's `manifest.json` has schema:
 ]}}}
 ```
 
+`tools/flea-tui-fixture-bundle OUTPUT [--seed BENCH_WORK_DIR]` writes this bundle, read-only, beneath a marked
+`mktemp` root and prints its `bundle_sha256`. `--seed` copies the bench fixture's Media encoder outputs byte for
+byte; missing ones come from the bench recipe's magick and ffmpeg commands, and `report.pdf` takes the recipe's raw
+pixels in the bundle's own PDF writer, with fixed dates and no `/ID`. In `test_fixture_bundle.py`,
+`test_two_builds_without_a_seed_in_different_seconds_match` checks that two `--without-rasters` builds on one host,
+started in different seconds, print the same digest, and `test_recipe_report_pdf_ignores_the_writer_clock` checks
+that a clock-stamping writer cannot change `report.pdf`. No test covers the reference rasters a build without
+`--without-rasters` adds: they are `pdftoppm` and `ffmpeg -fflags +bitexact` PNGs, and the LibreOffice PDF export
+they rasterize stays in the build's scratch directory.
+With `--fixtures`, `--list` and `--dry-run` verify every family the selected states name and report each family's
+`requires_not_supplied`; a missing or altered family exits 2.
+
 List every directory and file, not only the illustrative entries above. Families
 are `work`, `office`, `prints`, `ja`, `ar` and `trash`. Each contains its own work
 snapshot. Original Docs must have three entries; office Docs must have exactly the
