@@ -3,11 +3,16 @@ use super::pagerange::Pages;
 use std::path::Path;
 
 pub const NO_PRINTER: &str = "No printer is set up.";
+pub const MIN_COPIES: usize = 1;
+pub const MAX_COPIES: usize = 999;
+const MAX_DESTINATION_BYTES: usize = 255;
 
 #[derive(Clone, Debug, PartialEq, Eq)]
 pub struct Destination { pub name: String, pub default: bool }
 
+// lpstat -e sample: Brother
 pub fn destinations(list: &str, default: &str) -> Vec<Destination> {
+    // lpstat -d sample: system default destination: Brother
     let default = default.lines().find_map(|line| line.strip_prefix("system default destination: ")).unwrap_or("").trim();
     let mut seen = std::collections::HashSet::new();
     let mut result: Vec<_> = list.lines().map(str::trim).filter(|name| valid_destination(name) && seen.insert((*name).to_string()))
@@ -17,7 +22,7 @@ pub fn destinations(list: &str, default: &str) -> Vec<Destination> {
 }
 
 pub fn valid_destination(name: &str) -> bool {
-    !name.is_empty() && name.len() <= 255 && !name.starts_with('-') && name.bytes().all(|b| b.is_ascii_alphanumeric() || b"_-./".contains(&b))
+    !name.is_empty() && name.len() <= MAX_DESTINATION_BYTES && !name.starts_with('-') && name.bytes().all(|b| b.is_ascii_alphanumeric() || b"_-./".contains(&b))
 }
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -28,6 +33,7 @@ pub struct Capabilities {
     pub grayscale: bool,
 }
 
+// lpoptions -p Brother -l sample: Duplex/Two-sided: None *DuplexNoTumble DuplexTumble
 pub fn capabilities(text: &str) -> Capabilities {
     let mut caps = Capabilities::default();
     for line in text.lines() {
@@ -35,8 +41,8 @@ pub fn capabilities(text: &str) -> Capabilities {
         let key = key.split('/').next().unwrap_or("").to_ascii_lowercase();
         if key == "duplex" || key == "sides" {
             let two = |s: &str| matches!(s.to_ascii_lowercase().as_str(), "duplexnotumble" | "duplextumble" | "two-sided-long-edge" | "two-sided-short-edge");
-            caps.duplex = choices.split_whitespace().any(|s| two(s.trim_start_matches('*')));
-            caps.two_sided = choices.split_whitespace().filter_map(|s| s.strip_prefix('*')).any(two);
+            caps.duplex |= choices.split_whitespace().any(|s| two(s.trim_start_matches('*')));
+            caps.two_sided |= choices.split_whitespace().filter_map(|s| s.strip_prefix('*')).any(two);
         }
         if matches!(key.as_str(), "colormodel" | "colormode" | "print-color-mode" | "outputmode") {
             let color = |s: &str| matches!(s.to_ascii_lowercase().as_str(), "rgb" | "cmyk" | "cmy" | "color" | "colour" | "srgb" | "adobergb" | "rgba");
@@ -59,7 +65,7 @@ pub struct Options {
 
 pub fn argv(file: &Path, image: bool, paged: bool, options: &Options) -> Result<Vec<String>, String> {
     if !valid_destination(&options.destination) { return Err("Choose a printer.".into()); }
-    if !(1..=999).contains(&options.copies) { return Err("Copies must be between 1 and 999.".into()); }
+    if !(MIN_COPIES..=MAX_COPIES).contains(&options.copies) { return Err(format!("Copies must be between {MIN_COPIES} and {MAX_COPIES}.")); }
     let mut argv = vec!["lp".into(), "-d".into(), options.destination.clone(), "-n".into(), options.copies.to_string()];
     if let Some(pages) = paged.then(|| options.pages.cups()).flatten() { argv.extend(["-P".into(), pages]); }
     if options.two_sided { argv.extend(["-o".into(), "sides=two-sided-long-edge".into()]); }
@@ -80,6 +86,17 @@ pub fn setup_argv() -> Vec<String> { vec!["system-config-printer".into()] }
 #[cfg(test)]
 mod tests {
     use super::*;
+
+    #[test]
+    fn adv_e_r1_duplex_options_accumulate_in_both_orders() {
+        let duplex = "Duplex/Two-sided: None *DuplexNoTumble DuplexTumble\n";
+        let sides = "sides/Sides: *one-sided\n";
+        for text in [format!("{duplex}{sides}"), format!("{sides}{duplex}")] {
+            let caps = capabilities(&text);
+            assert!(caps.duplex, "supported duplex must survive either option order: {text}");
+            assert!(caps.two_sided, "the duplex default must survive either option order: {text}");
+        }
+    }
 
     #[test]
     fn the_system_default_is_first_without_losing_destination_order() {

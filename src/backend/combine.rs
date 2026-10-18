@@ -4,6 +4,10 @@ use crate::json::{field_str, field_usize};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}, mpsc::Sender};
 
+pub const MAX_DIMENSION: u32 = 50_000;
+pub const MIN_GRID_COLUMNS: usize = 1;
+pub const MAX_GRID_COLUMNS: usize = printconvert::MAX_ITEMS;
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Layout { Row, Column, Grid }
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
@@ -63,7 +67,7 @@ pub struct Settings {
 
 pub fn shared_size(layout: Layout, sizes: &[(u32, u32)]) -> Result<(u32, u32), String> {
     let first = *sizes.first().ok_or("The image dimensions could not be used.")?;
-    if sizes.iter().any(|(w, h)| *w == 0 || *h == 0 || *w > 50_000 || *h > 50_000) {
+    if sizes.iter().any(|(w, h)| *w == 0 || *h == 0 || *w > MAX_DIMENSION || *h > MAX_DIMENSION) {
         return Err("The image dimensions could not be used.".into());
     }
     Ok(match layout {
@@ -80,7 +84,7 @@ impl Settings {
         let background = match ask.background.as_str() { "Transparent" => Background::Transparent, "White" => Background::White, "Black" => Background::Black, _ => return Err("Choose Transparent, White or Black.".into()) };
         if !printconvert::COMBINE_FORMATS.contains(&ask.format.as_str()) { return Err("Choose PNG, JPEG or WebP.".into()); }
         if background == Background::Transparent && ask.format == "jpg" { return Err("JPEG does not support a transparent background.".into()); }
-        if layout == Layout::Grid && !(1..=256).contains(&ask.columns) { return Err("Columns must be between 1 and 256.".into()); }
+        if layout == Layout::Grid && !(MIN_GRID_COLUMNS..=MAX_GRID_COLUMNS).contains(&ask.columns) { return Err(format!("Columns must be between {MIN_GRID_COLUMNS} and {MAX_GRID_COLUMNS}.")); }
         Ok(Self { layout, spacing, background, columns: ask.columns })
     }
 
@@ -146,6 +150,7 @@ fn make(ask: &Ask, settings: &Settings, work: &mut Work, cancel: &AtomicBool, id
     for input in &inputs { identify.extend(["--".into(), format!("{}[0]", input.display())]); }
     identify.extend(["-auto-orient".into(), "-format".into(), "%w %h\n".into(), "info:".into()]);
     let info = printtool::boxed(identify, work, cancel)?;
+    // magick -auto-orient -format "%w %h\n" info: sample: 800 600
     let sizes = info.lines().map(|line| {
         let mut words = line.split_whitespace();
         let size = words.next().and_then(|w| w.parse().ok()).zip(words.next().and_then(|h| h.parse().ok()));

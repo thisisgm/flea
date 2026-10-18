@@ -11,6 +11,8 @@ pub const TOOL_WAIT: Duration = Duration::from_secs(60);
 pub const QUERY_WAIT: Duration = Duration::from_secs(10);
 const OUTPUT_CAP: usize = 64 * 1024;
 const STEP: Duration = Duration::from_millis(20);
+const READ_CHUNK_BYTES: usize = 4096;
+const DRAIN_WAIT: Duration = Duration::from_secs(1);
 
 #[derive(Debug)]
 pub struct Failure { pub message: String, pub lingering: bool }
@@ -20,7 +22,7 @@ fn drain(pipe: impl Read + Send + 'static) -> Receiver<Result<Vec<u8>, String>> 
     std::thread::spawn(move || {
         let mut pipe = pipe;
         let mut held = Vec::new();
-        let mut buf = [0; 4096];
+        let mut buf = [0; READ_CHUNK_BYTES];
         let result = loop {
             match pipe.read(&mut buf) {
                 Ok(0) => break Ok(held),
@@ -62,8 +64,8 @@ pub fn run(argv: &[String], cancel: &AtomicBool, wait: Duration) -> Result<Strin
     };
     if !reason.is_empty() {
         jail::kill_tree(&mut jailed);
-        let out_done = out.is_some() || stdout.recv_timeout(Duration::from_secs(1)).is_ok();
-        let err_done = err.is_some() || stderr.recv_timeout(Duration::from_secs(1)).is_ok();
+        let out_done = out.is_some() || stdout.recv_timeout(DRAIN_WAIT).is_ok();
+        let err_done = err.is_some() || stderr.recv_timeout(DRAIN_WAIT).is_ok();
         return Err(Failure { message: reason, lingering: !out_done || !err_done });
     }
     let status = jailed.child.wait().map_err(|e| failure(crate::error::io_message(&e)))?;
@@ -104,7 +106,8 @@ pub fn publish(staged: &Path, dest: &Path) -> Result<(), String> {
 }
 
 pub fn inputs(paths: &[PathBuf]) -> Result<(), String> {
-    if paths.is_empty() || paths.len() > super::printconvert::MAX_ITEMS { return Err("Select between 1 and 256 items.".into()); }
+    use super::printconvert::{MIN_ITEMS, MAX_ITEMS};
+    if !(MIN_ITEMS..=MAX_ITEMS).contains(&paths.len()) { return Err(format!("Select between {MIN_ITEMS} and {MAX_ITEMS} items.")); }
     let mut seen = std::collections::HashSet::new();
     for path in paths {
         if !path.is_absolute() || path.file_name().is_none() || path.components().any(|c| c == std::path::Component::ParentDir) {

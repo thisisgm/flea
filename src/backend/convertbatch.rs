@@ -4,6 +4,11 @@ use crate::json::{escape, field_bool, field_str, field_usize};
 use std::path::{Path, PathBuf};
 use std::sync::{Arc, atomic::{AtomicBool, Ordering}, mpsc::Sender};
 
+pub const PDF_DPI: u32 = 150;
+const MAX_INPUT_EXTENSION_BYTES: usize = 10;
+const PROGRESS_TOTAL: usize = 100;
+const CONVERSION_PROGRESS: usize = PROGRESS_TOTAL / 2;
+
 pub struct Ask {
     pub request_id: usize,
     pub menu_id: usize,
@@ -38,7 +43,7 @@ pub fn image_argv(inputs: &[PathBuf], output: &Path, strip: bool) -> Vec<String>
 
 pub fn pdf_argv(input: &Path, prefix: &Path, page: u32, format: &str) -> Vec<String> {
     let codec = match format { "jpg" => "-jpeg", "tiff" => "-tiff", _ => "-png" };
-    ["pdftoppm", "-r", "150", "-f", &page.to_string(), "-l", &page.to_string(), "-singlefile", codec, "--", &input.to_string_lossy(), &prefix.to_string_lossy()]
+    ["pdftoppm", "-r", &PDF_DPI.to_string(), "-f", &page.to_string(), "-l", &page.to_string(), "-singlefile", codec, "--", &input.to_string_lossy(), &prefix.to_string_lossy()]
         .iter().map(|arg| arg.to_string()).collect()
 }
 
@@ -75,7 +80,7 @@ fn destination(source: &Path, name: String, collision_suffix: bool) -> Result<Pa
 pub(crate) fn staged_inputs(paths: &[PathBuf], work: &Work) -> Result<Vec<PathBuf>, String> {
     paths.iter().enumerate().map(|(n, path)| {
         let ext = printconvert::extension(path);
-        let ext = if ext.len() <= 10 && ext.bytes().all(|b| b.is_ascii_alphanumeric()) { ext.as_str() } else { "image" };
+        let ext = if ext.len() <= MAX_INPUT_EXTENSION_BYTES && ext.bytes().all(|b| b.is_ascii_alphanumeric()) { ext.as_str() } else { "image" };
         let staged = work.dir.join(format!("input-{n}.{ext}"));
         printtool::stage(path, &staged)?;
         Ok(staged)
@@ -101,6 +106,7 @@ pub(crate) fn image_results(output: &Path, dest: &Path, source: &Path) -> Result
     for entry in std::fs::read_dir(parent).map_err(|e| crate::error::io_message(&e))? {
         let entry = entry.map_err(|e| crate::error::io_message(&e))?;
         let name = entry.file_name();
+        // ImageMagick numbered output sample: output-0-2.png
         let Some(scene) = name.to_str().and_then(|n| n.strip_prefix(&prefix)).and_then(|n| n.strip_suffix(&suffix)) else { continue; };
         if scene.is_empty() || !scene.bytes().all(|b| b.is_ascii_digit()) { continue; }
         let scene: usize = scene.parse().map_err(|_| "the converter returned an invalid page number")?;
@@ -122,13 +128,13 @@ pub(crate) fn image_results(output: &Path, dest: &Path, source: &Path) -> Result
 
 fn convert_images(ask: &Ask, work: &mut Work, cancel: &AtomicBool, id: usize, tx: &Sender<OpMsg>) -> Result<Vec<(PathBuf, PathBuf)>, String> {
     let outputs = image_outputs(ask)?;
-    let total = outputs.len() * 2;
+    let count = outputs.len();
     let inputs = staged_inputs(&ask.paths, work)?;
     let mut staged = Vec::new();
     for (n, dest) in outputs.into_iter().enumerate() {
         let output = work.dir.join(format!("output-{n}.{}", ask.format));
         let sources = if ask.combine && ask.format == "pdf" { &inputs[..] } else { &inputs[n..n + 1] };
-        progress(tx, "convert", id, ask.request_id, n, total, &dest);
+        progress(tx, "convert", id, ask.request_id, n * CONVERSION_PROGRESS / count, PROGRESS_TOTAL, &dest);
         printtool::boxed(image_argv(sources, &output, ask.strip && ask.format != "pdf"), work, cancel)?;
         staged.extend(image_results(&output, &dest, &ask.paths[n])?);
     }
@@ -139,12 +145,13 @@ fn convert_pdf(ask: &Ask, work: &mut Work, cancel: &AtomicBool, id: usize, tx: &
     let input = work.dir.join("input.pdf");
     printtool::stage(&ask.paths[0], &input)?;
     let info = printtool::boxed(vec!["pdfinfo".into(), "--".into(), input.to_string_lossy().into_owned()], work, cancel)?;
+    // pdfinfo sample: Pages:           3
     let count = info.lines().find_map(|l| l.strip_prefix("Pages:").and_then(|s| s.trim().parse().ok())).ok_or("the PDF page count could not be read")?;
     let pages = Pages::parse(&ask.pages)?.selected(count)?;
     let outputs = pages.iter().map(|page| destination(&ask.paths[0], printconvert::page_name(&ask.paths[0], *page, &ask.format), true)).collect::<Result<Vec<_>, _>>()?;
     let mut staged = Vec::new();
     for (n, (page, dest)) in pages.iter().zip(outputs).enumerate() {
-        progress(tx, "convert", id, ask.request_id, n, pages.len() * 2, &dest);
+        progress(tx, "convert", id, ask.request_id, n * CONVERSION_PROGRESS / pages.len(), PROGRESS_TOTAL, &dest);
         let prefix = work.dir.join(format!("page-{page}"));
         printtool::boxed(pdf_argv(&input, &prefix, *page, &ask.format), work, cancel)?;
         let rendered = prefix.with_extension(match ask.format.as_str() { "webp" => "png", "tiff" => "tif", format => format });
@@ -193,11 +200,13 @@ pub fn run(ask: Ask, selection: Result<Option<Vec<Selected>>, String>, id: usize
             vacant(dest)?;
         }
         let count = staged.len();
+        progress(tx, "convert", id, ask.request_id, CONVERSION_PROGRESS, PROGRESS_TOTAL, &ask.paths[0]);
         for (source, dest) in staged {
             if cancel.load(Ordering::Relaxed) { return Err("cancelled".into()); }
             printtool::publish(&source, &dest)?;
             published.push(dest);
-            progress(tx, "convert", id, ask.request_id, count + published.len(), count * 2, published.last().unwrap());
+            let done = CONVERSION_PROGRESS + published.len() * (PROGRESS_TOTAL - CONVERSION_PROGRESS) / count;
+            progress(tx, "convert", id, ask.request_id, done, PROGRESS_TOTAL, published.last().unwrap());
         }
         Ok(())
     })();
