@@ -17,6 +17,7 @@ const SIGSTOP: i32 = 19;
 const SIGTSTP: i32 = 20;
 const SIGWINCH: i32 = 28;
 const SIGTTOU: i32 = 22;
+const INPUT_READ_BYTES: usize = 4096;
 // The shown faults of the stty calls: raw mode at the start and the terminal handed back at the end, then the same two around the editor.
 const PREPARE_FAILED: &str = "The terminal could not be prepared";
 const RESTORE_FAILED: &str = "The terminal could not be restored";
@@ -85,6 +86,9 @@ impl Terminal {
         Self::enter_at(Path::new(SHM_DIR))
     }
     fn enter_at(shm_directory: &Path) -> io::Result<Self> {
+        Self::enter_observed(shm_directory, |_| {})
+    }
+    fn enter_observed(shm_directory: &Path, mut installed: impl FnMut(i32)) -> io::Result<Self> {
         let output = Command::new("stty")
             .arg("-g")
             .stdin(Stdio::inherit())
@@ -105,6 +109,8 @@ impl Terminal {
             return Err(io::Error::other(PREPARE_FAILED));
         }
         raw(PREPARE_FAILED)?;
+        STOP.store(false, Ordering::Relaxed);
+        JOB_CONTROL.store(0, Ordering::Relaxed);
         for sig in [SIGINT, SIGTERM, SIGHUP, SIGWINCH, SIGTSTP, SIGCONT] {
             let handler = match sig {
                 SIGWINCH => resized as *const () as usize,
@@ -112,9 +118,8 @@ impl Terminal {
                 _ => stop as *const () as usize,
             };
             terminal.handlers.push((sig, unsafe { signal(sig, handler) }));
+            installed(sig);
         }
-        STOP.store(false, Ordering::Relaxed);
-        JOB_CONTROL.store(0, Ordering::Relaxed);
         terminal.start_screen()?;
         Ok(terminal)
     }
@@ -148,7 +153,7 @@ impl Terminal {
         } else { String::new() };
         let negotiation = super::capabilities::Negotiation::begin(self.transport, ids, !shared.is_empty(), std::time::Instant::now());
         let bytes = opening(&shared, &negotiation);
-        self.decoder.negotiation = negotiation;
+        self.decoder = super::input::Decoder::new(negotiation);
         self.transport.publish();
         self.active = true;
         let mut stdout = io::stdout().lock();
@@ -207,7 +212,7 @@ impl Terminal {
         if self.service_job_control()? || !ready {
             return Ok(Vec::new());
         }
-        let mut bytes = [0; 4096];
+        let mut bytes = [0; INPUT_READ_BYTES];
         // Straight from fd 0: std's stdin reads ahead into a buffer poll cannot see, which would strand a paste's tail.
         let mut stdin = std::mem::ManuallyDrop::new(unsafe { std::fs::File::from_raw_fd(0) });
         let n = match stdin.read(&mut bytes) {
@@ -218,6 +223,9 @@ impl Terminal {
         Ok(bytes[..n].to_vec())
     }
 }
+#[cfg(test)]
+#[path = "terminal_adv_tests.rs"]
+mod adv_tests;
 // The read's poll on its own, so the hold and wire tests can time it on a socket pair; true once stdin has anything to report.
 pub(super) fn wait_input(stdin: i32, wake: i32, timeout_ms: i32) -> io::Result<bool> {
     let mut fds = [PollFd { fd: stdin, events: POLLIN, revents: 0 }, PollFd { fd: wake, events: POLLIN, revents: 0 }];

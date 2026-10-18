@@ -13,20 +13,13 @@ pub enum Keyboard {
     #[default]
     Unknown,
     Legacy,
-    Kitty { previous_flags: u32 },
-}
-#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
-pub enum Color {
-    #[default]
-    Indexed,
-    Rgb,
+    Kitty,
 }
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub struct Capabilities {
     pub graphics: Protocol,
     pub shared_memory: bool,
     pub keyboard: Keyboard,
-    pub color: Color,
     pub transport: Transport,
 }
 
@@ -43,20 +36,18 @@ pub struct Negotiation {
     shared: bool,
     attributes: bool,
     keyboard: bool,
-    rgb: bool,
     keyboard_pending: bool,
 }
 impl Negotiation {
     pub fn begin(transport: Transport, ids: (u32, u32), shared: bool, now: Instant) -> Self {
         Self {
-            detected: Capabilities { transport, color: transport.color(), ..Capabilities::default() },
+            detected: Capabilities { transport, ..Capabilities::default() },
             deadline: Some(now + QUERY_TIME),
             ids,
             graphics: transport.graphics(),
             shared: shared && transport == Transport::Direct,
-            attributes: transport.graphics(),
+            attributes: true,
             keyboard: true,
-            rgb: transport == Transport::Direct,
             keyboard_pending: false,
         }
     }
@@ -69,7 +60,6 @@ impl Negotiation {
         }
         bytes.extend_from_slice(b"\x1b[?u");
         if self.attributes { transport.query(&mut bytes, b"\x1b[c"); }
-        if self.rgb { bytes.extend_from_slice(b"\x1bP+q524742;5463\x1b\\"); }
         bytes
     }
     pub fn expire(&mut self, now: Instant) {
@@ -79,7 +69,6 @@ impl Negotiation {
             self.shared = false;
             self.attributes = false;
             self.keyboard = false;
-            self.rgb = false;
             if self.detected.keyboard == Keyboard::Unknown { self.detected.keyboard = Keyboard::Legacy; }
         }
     }
@@ -91,14 +80,15 @@ impl Negotiation {
     pub fn take_keyboard_enable(&mut self) -> bool {
         std::mem::take(&mut self.keyboard_pending)
     }
+    // Sample input: ?0u reports keyboard support; ?62;4c reports sixel support.
     pub fn csi(&mut self, sequence: &str, now: Instant) {
         self.expire(now);
         if sequence.len() > 128 { return; }
         if let Some(body) = sequence.strip_prefix('?').and_then(|s| s.strip_suffix('u')) {
             if self.keyboard {
-                if let Ok(flags) = body.parse::<u32>() {
+                if body.parse::<u32>().is_ok() {
                     self.keyboard = false;
-                    self.detected.keyboard = Keyboard::Kitty { previous_flags: flags };
+                    self.detected.keyboard = Keyboard::Kitty;
                     self.keyboard_pending = true;
                 }
             }
@@ -116,6 +106,7 @@ impl Negotiation {
             }
         }
     }
+    // Sample input: kind '_' and body Gi=31;OK acknowledge this launch's graphics query.
     pub fn string(&mut self, kind: u8, body: &[u8], now: Instant) {
         self.expire(now);
         if kind == b'_' {
@@ -128,14 +119,6 @@ impl Negotiation {
             } else if self.shared && id == self.ids.1 {
                 self.shared = false;
                 if result == b"OK" { self.detected.shared_memory = true; }
-            }
-        } else if kind == b'P' && self.rgb {
-            if let Some(reply) = body.strip_prefix(b"1+r") {
-                let rgb = reply.split(|b| *b == b';').any(|field| {
-                    let name = field.split(|b| *b == b'=').next().unwrap_or_default();
-                    name.eq_ignore_ascii_case(b"524742") || name.eq_ignore_ascii_case(b"5463")
-                });
-                if rgb { self.detected.color = Color::Rgb; self.rgb = false; }
             }
         }
     }

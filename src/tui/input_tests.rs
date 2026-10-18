@@ -1,4 +1,61 @@
 use super::*;
+
+#[test]
+fn adv_d_r1_keypad_keys_keep_legacy_actions_and_filter_text() {
+    let map = crate::tui::keymap::Map::load();
+    let mut editor = crate::tui::editor::Editor::new("filter", String::new(), "/".into());
+    for (code, c) in (57399..=57408).zip('0'..='9').chain([
+        (57409, '.'), (57410, '/'), (57411, '*'), (57412, '-'),
+        (57413, '+'), (57415, '='), (57416, ','),
+    ]) {
+        for modifiers in [1, 129] {
+            let encoded = format!("\x1b[{code};{modifiers}u");
+            let keys = Decoder::default().feed(encoded.as_bytes(), false);
+            assert_eq!(keys, [Key::character(c, "")], "keypad code {code}");
+            assert_eq!(map.action(&keys[0], "flea"), map.action(&Key::character(c, ""), "flea"));
+            if modifiers == 1 { editor.update(&keys[0]); }
+        }
+    }
+    assert_eq!(editor.value, "0123456789./*-+=,");
+    let keys = Decoder::default().feed(b"\x1b[57409;1;44u\x1b[57414u\x1b[57414;5u", false);
+    assert_eq!(keys, [Key::character(',', ""), Key::named("Return", ""), Key::named("Return", "ctrl")]);
+    editor.update(&keys[0]);
+    assert_eq!(editor.value, "0123456789./*-+=,,");
+    editor.update(&keys[1]);
+    assert_eq!(editor.value, "0123456789./*-+=,,", "keypad Enter does not insert a private-use character");
+    for preset in ["default", "flea", "mac", "windows", "vim"] {
+        assert_eq!(map.action(&keys[1], preset), map.action(&Key::named("Return", ""), preset));
+    }
+}
+
+#[test]
+fn adv_d_r1_shifted_printables_match_legacy_keys_in_the_real_keymap() {
+    let map = crate::tui::keymap::Map::load();
+    for (base, shifted) in ('a'..='z').zip('A'..='Z').chain([
+        ('/', '?'), ('1', '!'), ('2', '@'), ('3', '#'), ('4', '$'), ('5', '%'),
+        ('6', '^'), ('7', '&'), ('8', '*'), ('9', '('), ('0', ')'), ('-', '_'),
+        ('=', '+'), ('[', '{'), (']', '}'), (';', ':'), ('\'', '"'), (',', '<'), ('.', '>'), (' ', ' '),
+    ]) {
+        for variant in 0..3 {
+            let encoded = match variant {
+                0 => format!("\x1b[{}:{};2u", base as u32, shifted as u32),
+                1 => format!("\x1b[{}:{};2;{}u", base as u32, shifted as u32, shifted as u32),
+                _ => format!("\x1b[{};2;{}u", base as u32, shifted as u32),
+            };
+            let keys = Decoder::default().feed(encoded.as_bytes(), false);
+            let legacy = Key::character(shifted, "");
+            assert_eq!(keys, [legacy.clone()], "{encoded:?}");
+            for preset in ["default", "flea", "mac", "windows", "vim"] {
+                for context in ["listing", "editor", "pdf", "media"] {
+                    assert_eq!(map.in_context(&keys[0].for_action(), preset, context), map.in_context(&legacy, preset, context), "{preset} {context} {shifted}");
+                }
+            }
+        }
+    }
+    let keys = Decoder::default().feed(b"\x1b[122:90;6u\x1b[3;2~\x1b[1;2D", false);
+    assert_eq!(keys, [Key::character('Z', "ctrlshift"), Key::named("Delete", "shift"), Key::named("Left", "shift")]);
+    assert_eq!(map.action(&keys[0], "default"), "redo");
+}
     #[test]
     fn terminal_replies_never_become_file_actions() {
         let mut decoder = Decoder::default();
@@ -98,7 +155,7 @@ fn physical_letters_preserve_cyrillic_text_in_editors_and_drive_actions() {
 fn alternate_codes_shifted_text_and_associated_text_are_distinct() {
     let mut d = Decoder::default();
     let keys = d.feed(b"\x1b[103:71;2u\x1b[1086::106;1;1086u\x1b[27;5;13~", false);
-    assert_eq!(keys[0], Key::character('G', "shift"));
+    assert_eq!(keys[0], Key::character('G', ""));
     assert_eq!(keys[1].text, "о");
     assert_eq!(keys[1].for_action().text, "j");
     assert_eq!(keys[2], Key::named("Return", "ctrl"));
