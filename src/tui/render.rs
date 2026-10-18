@@ -3,7 +3,6 @@ use std::io::{self, Write};
 pub use super::cells::{clean, safe, text_width, fit, Wrapped};
 pub use super::layout::{panes, BODY_ROW, CHROME_ROWS, body_height, pane_padding, preview_area, tab_layout};
 use super::layout::footer;
-extern "C" { fn ctime_r(time: *const i64, buffer: *mut std::ffi::c_char) -> *mut std::ffi::c_char; }
 
 pub fn bytes(n: usize) -> String {
     const BYTES_PER_UNIT: f64 = 1000.0;
@@ -52,40 +51,7 @@ pub fn grouped(n: usize) -> String {
     }
     String::from_utf8(out).unwrap_or_else(|_| n.to_string())
 }
-pub fn modified(mtime: i64) -> String {
-    if mtime <= 0 {
-        return String::new();
-    }
-    const SECONDS_PER_MINUTE: u64 = 60;
-    const SECONDS_PER_HOUR: u64 = 3600;
-    const SECONDS_PER_DAY: u64 = 86400;
-    let now = std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap_or_default()
-        .as_secs();
-    let age = now.saturating_sub(mtime as u64);
-    if age < SECONDS_PER_HOUR {
-        return format!("{} min", age / SECONDS_PER_MINUTE);
-    }
-    if age < SECONDS_PER_DAY {
-        return format!("{} h", age / SECONDS_PER_HOUR);
-    }
-    if age < SECONDS_PER_DAY * 7 {
-        return format!("{} d", age / SECONDS_PER_DAY);
-    }
-    let mut buffer = [0; 32];
-    if unsafe { ctime_r(&mtime, buffer.as_mut_ptr()) }.is_null() {
-        return String::new();
-    }
-    // Sample input: Mon Sep  7 23:16:02 2026; ctime_r supplies the local calendar without a subprocess.
-    let stamp = unsafe { std::ffi::CStr::from_ptr(buffer.as_ptr()) }.to_string_lossy();
-    let parts: Vec<&str> = stamp.split_whitespace().collect();
-    if parts.len() >= 3 {
-        format!("{} {}", parts[1], parts[2])
-    } else {
-        String::new()
-    }
-}
+pub use super::calendar::modified;
 pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
     _cell_pixels: Option<(usize, usize)>, elapsed: std::time::Duration, last: &mut String) -> io::Result<bool> {
     let out = frame(m, theme, map, columns, lines, elapsed);
@@ -118,7 +84,7 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
                 out.push_str(&" ".repeat(padding));
             } else {
                 let style = RowStyle { cursor: index == m.cursor, focused: layout::focused(m), marked: m.selected.contains(&index), dimmed: entry.mode == 0, ..Default::default() };
-                out.push_str(&cells::row(entry, middle, Some(&m.row_size(index, entry)), m.marks(), style, theme, &m.filter));
+                out.push_str(&cells::row(entry, middle, Some(&super::detail::value(m, index, entry)), m.marks(), style, theme, &m.filter));
             }
         } else if m.total == 0 && m.pending.is_none() {
             out.push_str(&theme.meta);

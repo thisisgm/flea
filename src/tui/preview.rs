@@ -106,11 +106,9 @@ pub fn load(m: &mut Model, force: bool) {
     m.preview.push(row.name.clone());
     m.preview
         .push(format!("{} · {}", row.kind, super::render::bytes(row.size)));
-    if row.modified > 0 {
-        m.preview_metadata.push(format!(
-            "Modified · {}",
-            super::render::modified(row.modified)
-        ));
+    let modified = super::render::modified(row.modified);
+    if !modified.is_empty() {
+        m.preview_metadata.push(format!("Modified · {modified}"));
     }
     if !row.link.is_empty() {
         m.preview.push(format!("→ {}", row.link));

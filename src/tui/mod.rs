@@ -6,6 +6,8 @@ mod external_editor;
 mod parity;
 mod tmux;
 mod actions;
+mod calendar;
+mod detail;
 mod batch;
 #[cfg(test)]
 mod chafa;
@@ -156,6 +158,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                 wire.send(vec![("c", wire::word("menuaction")), ("op", wire::word("validate")), ("id", wire::number(model.action_id)), ("action", wire::word("open"))])?;
             }
             style.prepare(&mut model, &mut wire)?;
+            detail::prepare(&mut model, &mut wire)?;
             model.taildrop.poll();
             model.advance_taildrop(&mut wire)?;
             if let Some(result) = model.taildrop.sent.take() {
@@ -167,12 +170,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             if let Some(completion) = model.completer.poll() {
                 model.completion = completion;
             }
-            // Match StatusBar.messageMs while keeping the actionable undo receipt until dismissed.
-            const MESSAGE_TIME: std::time::Duration = std::time::Duration::from_millis(4000);
-            if !matches!(model.menu_action.as_str(), "taildropRefresh" | "taildrop")
-                && !model.message.contains("Undo available") && model.message_at.elapsed() >= MESSAGE_TIME {
-                model.message.clear();
-            }
+            model.expire_message(std::time::Instant::now());
             let visible = (model.preview_visible || model.quicklook) && model.selected.len() < 2;
             let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some();
             if (model.menu || model.deletion.is_some()) != menu_tracking {
