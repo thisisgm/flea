@@ -817,7 +817,10 @@ pub(crate) fn report_op(out: &mut impl Write, ops: &mut Ops, mut msg: OpMsg) {
     }
     super::jobevents::observe(out, ops, &msg);
     match msg {
-        OpMsg::JobEntries { .. } | OpMsg::JobReady { .. } | OpMsg::JobSample { .. } => {}
+        OpMsg::SendStatus { .. }
+        | OpMsg::JobEntries { .. }
+        | OpMsg::JobReady { .. }
+        | OpMsg::JobSample { .. } => {}
         OpMsg::JobDone { id, line, .. } => {
             ops.live.finished_if(id);
             if !line.is_empty() {

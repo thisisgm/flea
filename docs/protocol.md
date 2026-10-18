@@ -2776,3 +2776,28 @@ MIME patterns match the entire MIME string and accept literal characters, `*`, a
 `{path}`, `{dir}`, `{name}`, `{stem}`, and `{ext}` expand separately within each argv element, once per selected file. Replacements are not expanded again. The program is literal and cannot contain placeholders. Paths remain absolute; a placeholder-led argument whose result begins with `-` is prefixed with `./`, so a filename cannot become an option. Invocation uses argv without a shell unless the manifest explicitly names one. A background job retains only its last two merged stdout and stderr lines, each bounded to 4,096 decoded UTF-8 bytes with lossy decoding. `output` replaces the file line once nonempty. Cancel kills the entire invocation's process group with SIGKILL before reaping its leader, including children that ignore SIGTERM.
 
 Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain Actions entries, with ids `script:<filename>` and labels omitting the final extension. They retain the existing Run script contract: one invocation receives all selected absolute paths. The Actions switch retains the `runScript` id in `menu.hidden` and remains hidden by default. No `src/uischema.rs` defaults change.
+
+## Checked rclone sends (0.4.0)
+
+The menu's executable capabilities include `providers.rclone` with the existing `installed`, `command`, and `reason` fields. Request configured remotes only when opening the send menu:
+
+```json
+{"c":"rclone","op":"remotes","id":71}
+{"t":"rcloneremotes","id":71,"visible":true,"remotes":["gdrive","b2-photos","nas-crypt"]}
+{"c":"rclone","op":"send","id":72,"remote":"gdrive","folder":"Uploads","paths":["/absolute/photo.jpg"]}
+{"t":"rclonestarted","requestId":72,"id":12,"ok":true,"error":""}
+```
+
+`listremotes` runs off the loop, inherits `RCLONE_CONFIG`, contacts no remote and has a two-second deadline. A missing or unusable rclone, no remotes, or failed discovery answers `visible:false` and `remotes:[]`: hide the menu row. Names omit the trailing colon. Send rechecks that the remote is configured. `folder` is a path within it; empty means its configured root. Source paths must be absolute and are resolved once by the caller. A refused request answers `rclonestarted` with `requestId`, `ok:false`, `error`, and no job id.
+
+A send uses the ordinary jobs list, `kind:"send"`, with independent per-item `copyto` or directory `copy` invocations followed by a separate verification pass using `check --one-way`. Source and target argv follow `--`; no shell is involved. Directory copies preserve the selected directory and empty descendants. A remote that cannot store empty directories refuses any selected tree containing one instead of issuing a checked receipt. Selected symlinks, unsupported item kinds and duplicate destination basenames are refused. Directory descendants are inspected without following links; symlinks, pipes, sockets and other unsupported descendants fail the item with their path. A skip reported during copy or check also fails the item, even when rclone exits successfully. A nonempty remote folder ending in a colon still separates its selected basename with a slash. Source identities are retained through retries and revalidated before every invocation. Originals are never removed.
+
+Job updates add `phase`, `check`, `receipt`, and `note` strings, empty for existing producers. Rclone phases are `sending`, `checking`, `checked`, and `finished`; checks are `none`, `checksum`, and `size`. Sending uses the existing counts and byte fields, with monotonic absolute JSON-stat bytes and rclone's speed and ETA. Checking remains `state:"running"`, with a heading such as `Checking 3 items on gdrive`, `file:"comparing checksums"` or `file:"comparing sizes"`, an indeterminate bar and no rendered byte line. Numeric byte fields retain their prior values. State and phase changes are immediate; ordinary progress remains limited to one update per 150 ms.
+
+Inherited global copy, filter and reporting options, including quiet/verbose and local traversal aliases, are removed from rclone children, while configuration, authentication and unrelated backend options remain inherited. Copy and check explicitly disable link following, link translation, filesystem-boundary filtering and silent skip settings, overriding backend and per-remote traversal settings. A checked receipt covers the explicitly selected content. Remote features are queried before copying and determine available hashes and empty-directory support; a remote with no locally supported hash uses size-only verification. If an individual object cannot supply a hash, the receipt is downgraded to size. Only a successful copy and completed check produce a verified receipt. The terminal notification follows the terminal job update:
+
+```json
+{"t":"rclonesent","id":12,"requestId":72,"ok":true,"cancelled":false,"check":"checksum","receipt":"Sent 3 items to Uploads on gdrive","note":"","error":""}
+```
+
+The receipt has no full stop; clients append muted ` · checked by checksum` or ` · checked by size`. A mismatch fails the job with `Send failed` and a reason naming the failed file and remote. The existing jobs Cancel kills the current process group, including descendants that ignore SIGTERM. Files already copied remain remote; a cancelled check has `check:"none"`, `note:"not checked"`, and `ok:false`. Retry keeps the id and row and resends only failed top-level items with their captured identities. It forces retransmission so a checksum failure can be repaired even when the destination retains the source size and timestamp. Retry counts describe that attempt. Dismiss uses the ordinary job contract. Sends never offer Undo.

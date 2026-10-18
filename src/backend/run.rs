@@ -362,6 +362,7 @@ fn handle_line(
             super::opsdispatch::request_menu_action(out, ops, line, paths, cursor);
         }
         // Directive 71: a CLI run of a second or more, so it answers on its own thread.
+        Request::Rclone { line } => super::rclone::request(out, ops, &line),
         Request::Jobs { line } => {
             let reached = super::jobevents::request(out, ops, &line);
             patch_session_paths(st, reached.dirs);
@@ -795,7 +796,8 @@ fn rows_needed(request: &Request) -> usize {
         // A viewport map, not the listing: these rows index work already queued.
         Request::ThumbCancel { .. } | Request::DirSizeCancel => 0,
         // Operations carry paths or no rows; their rows were resolved by their own earlier ask.
-        Request::Jobs { .. }
+        Request::Rclone { .. }
+        | Request::Jobs { .. }
         | Request::Actions { .. }
         | Request::TransferCancel { .. }
         | Request::Rename { .. }
