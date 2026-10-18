@@ -189,7 +189,7 @@ fn the_archive_jail_has_no_cpu_cap_but_a_boxed_burner_is_stopped() {
     // Burns CPU time past a 1 s cap, then would exit 0: a wall-clock loop finishes under the cap on a loaded host, so this one counts its own CPU.
     let burner = || vec!["/usr/bin/python3".to_string(), "-c".to_string(),
         "import resource,time\ns=time.time()\nx=0\nwhile True:\n x+=1\n if x%200000==0:\n  u=resource.getrusage(resource.RUSAGE_SELF)\n  if u.ru_utime+u.ru_stime>3: break\n  if time.time()-s>120: break".to_string()];
-    let stopped = run_boxed_cancellable_capped_with_cpu("convert", burner(), d.path(), &mut work, &cancel, 1).unwrap_err();
+    let stopped = run_boxed_cancellable_limited("convert", burner(), d.path(), &mut work, &cancel, 1, sandbox::ADDRESS_SPACE_BYTES).unwrap_err();
     assert!(stopped.msg.contains("stopped before it finished (signal"),
             "a boxed job past its bound must be stopped, not silent: {}", stopped.msg);
 }
