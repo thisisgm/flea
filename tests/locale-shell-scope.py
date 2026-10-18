@@ -276,7 +276,12 @@ def emit_detection(audit, args, errors):
             'fixture-byte-mode': ('matched fixture counts a Latin-1 name as jpg',),
         },
     }
+    # CI gio preserves UTF-8 under C; only its label may fall back to the independently required ps failure.
+    alternatives = {'gio preserves UTF-8 display names':
+                    ('gio preserves UTF-8 display names', 'ps preserves UTF-8 process arguments')}
     for flag, labels in signatures[audit].items():
-        if getattr(args, 'regress_' + flag.replace('-', '_'), False) and any(
-                error.startswith('FAIL ' + label) for label in labels for error in errors):
+        if getattr(args, 'regress_' + flag.replace('-', '_'), False) and all(
+                any(error.startswith('FAIL ' + candidate)
+                    for candidate in alternatives.get(label, (label,)) for error in errors)
+                for label in labels):
             print('DETECTED --regress-' + flag)

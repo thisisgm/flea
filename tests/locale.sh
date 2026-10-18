@@ -113,5 +113,16 @@ PY
         run "$script ${args[*]}" 1 "$detection" env LC_ALL="$locale_name" LANG="$locale_name" python3 -B "$script" "${args[@]}"
     done < "$box/controls"
 done
+# Eight dead-check mutants and their unmodified twins add sixteen checks to the original twenty-five.
+if python3 -B tests/locale-control-mutants.py --list > "$box/mutants"; then
+    while read -r control; do
+        for variant in mutant twin; do
+            run "$variant --regress-$control" 0 "" python3 -B tests/locale-control-mutants.py "$control" "$variant"
+        done
+    done < "$box/mutants"
+else
+    failed=$((failed + 1))
+    printf 'FAIL locale mutant discovery\n'
+fi
 printf 'locale: %d passed, %d failed\n' "$passed" "$failed"
 [ "$failed" -eq 0 ]
