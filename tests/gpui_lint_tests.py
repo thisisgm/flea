@@ -360,6 +360,43 @@ print(json.dumps({"reason": "build-finished", "success": True}))
         self.assertEqual([], self.use_check("use gpui::*;\nfn white() -> u32 { 0 }\n", "white();"))
         self.assertEqual([], self.use_check("use palette::*;\n", "white();"))
 
+    def scoped_check(self, source):
+        self.write("crates/flea-gui/src/list.rs", source + LIST)
+        return self.errors()
+
+    def test_glob_shadowing_follows_rust_scopes(self):
+        reported = {
+            "impl method": "use gpui::*;\nstruct S;\nimpl S { fn white(&self) {} }\nfn a() { white(); }\n",
+            "trait method": "use gpui::*;\ntrait T { fn white(&self) {} }\nfn a() { white(); }\n",
+            "impl method called bare from inside its own impl": "use gpui::*;\nstruct S;\nimpl S { fn white(&self) {} fn go(&self) { white(); } }\n",
+            "trait method called bare from inside its own trait": "use gpui::*;\ntrait T { fn white(&self) {} fn go(&self) { white(); } }\n",
+            "let in another function": "use gpui::*;\nfn b() { let white = 1; }\nfn a() { white(); }\n",
+            "nested mod with use super": "use gpui::*;\nmod inner { use super::*; fn a() { white(); } }\n",
+        }
+        for name, source in reported.items():
+            with self.subTest(case=name):
+                self.assertTrue(any("literal colour gpui::white" in e for e in self.scoped_check(source)), source)
+        with self.subTest(case="sibling function sees no fn-local item"):
+            sibling = self.scoped_check("use gpui::*;\nfn a() { fn white() {} white(); }\nfn b() { white(); }\n")
+            self.assertEqual(1, sum("literal colour gpui::white" in e for e in sibling), sibling)
+
+        quiet = {
+            "earlier let in the same function": "use gpui::*;\nfn a() { let white = 1; white(); }\n",
+            "module fn declared later": "use gpui::*;\nfn a() { white(); }\nfn white() {}\n",
+            "fn-local item inside its own function": "use gpui::*;\nfn a() { fn white() {} white(); }\n",
+            "impl method with no bare call": "use gpui::*;\nstruct S;\nimpl S { fn white(&self) {} }\n",
+            "nested mod without a glob does not inherit the parent glob": "use gpui::*;\nmod inner { fn a() { white(); } }\n",
+            "nested mod with use super and its own white": "use gpui::*;\nmod inner { use super::*; fn white() {} fn a() { white(); } }\n",
+            "explicit use without a glob": "use other::white;\nfn a() { white(); }\n",
+            "explicit list use without a glob": "use other::{white};\nfn a() { white(); }\n",
+            "explicit self and rename use": "use other::{self, black as white};\nfn a() { white(); }\n",
+            "fn-local explicit use": "fn a() { use other::white; white(); }\n",
+            "explicit use beside the glob": "use gpui::*;\nuse other::white;\nfn a() { white(); }\n",
+        }
+        for name, source in quiet.items():
+            with self.subTest(case=name):
+                self.assertEqual([], self.scoped_check(source), source)
+
     def test_tracked_fails_closed_on_a_broken_checkout(self):
         with patch.dict(os.environ, {"GIT_CEILING_DIRECTORIES": str(self.root.parent)}):
             (self.root / ".git").mkdir()
