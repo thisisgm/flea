@@ -166,74 +166,9 @@ fn real_pty_startup_resize_legacy_quit_and_signaled_quit_restore_the_terminal() 
 }
 
 
-#[test]
-fn review_suspend_child() {
-    let Some(root) = std::env::var_os("FLEA_T1_REVIEW_SUSPEND_ROOT") else { return; };
-    let root = std::path::PathBuf::from(root);
-    assert!(root.is_absolute() && root.join(".flea-test-sandbox").is_file());
-    unsafe { signal(20, 0); }
-    let mut terminal = Terminal::enter_at(&root).unwrap();
-    terminal.decode(b"\x1b[?0u", false).unwrap();
-    println!("REVIEW_READY");
-    while !terminal.stopped() {
-        let bytes = terminal.read(-1, 20).unwrap();
-        let _ = terminal.decode(&bytes, false).unwrap();
-    }
-}
-
-#[test]
-fn review_suspension_restores_keyboard_flags_and_terminal_mode() {
-    use std::os::fd::{AsRawFd, FromRawFd};
-    #[link(name = "util")]
-    extern "C" {
-        fn openpty(master: *mut i32, slave: *mut i32, name: *mut u8, termios: *const u8, size: *const WindowSize) -> i32;
-    }
-    fn mode(slave: &std::fs::File) -> Vec<u8> {
-        let output = Command::new("stty").arg("-g").stdin(slave.try_clone().unwrap()).output().unwrap();
-        assert!(output.status.success());
-        output.stdout
-    }
-    let dir = TestDir::new("review-suspend");
-    let mut master = -1;
-    let mut slave = -1;
-    let size = WindowSize { rows: 31, columns: 130, x: 1040, y: 682 };
-    assert_eq!(unsafe { openpty(&mut master, &mut slave, std::ptr::null_mut(), std::ptr::null(), &size) }, 0);
-    let mut master = unsafe { std::fs::File::from_raw_fd(master) };
-    let slave = unsafe { std::fs::File::from_raw_fd(slave) };
-    let saved = mode(&slave);
-    let mut child = pty_test_command()
-        .args(["--exact", "tui::terminal::tests::review_suspend_child", "--nocapture"])
-        .env("FLEA_T1_REVIEW_SUSPEND_ROOT", dir.path()).env_remove("TMUX")
-        .stdin(slave.try_clone().unwrap()).stdout(slave.try_clone().unwrap()).stderr(slave.try_clone().unwrap())
-        .process_group(0).spawn().unwrap();
-    let deadline = std::time::Instant::now() + std::time::Duration::from_secs(3);
-    let mut transcript = Vec::new();
-    let mut suspended = false;
-    let mut suspension_sent = false;
-    while std::time::Instant::now() < deadline {
-        if wait_input(master.as_raw_fd(), -1, 20).unwrap() {
-            let mut bytes = [0; 4096];
-            if let Ok(n) = master.read(&mut bytes) { transcript.extend_from_slice(&bytes[..n]); }
-        }
-        if !suspension_sent && transcript.windows(12).any(|p| p == b"REVIEW_READY") {
-            crate::procsignal::signal_group(child.id() as i32, 20).unwrap();
-            suspension_sent = true;
-        }
-        let state = std::fs::read_to_string(format!("/proc/{}/status", child.id())).unwrap_or_default();
-        if state.lines().any(|line| line.starts_with("State:") && line.contains("T (stopped)")) { suspended = true; break; }
-    }
-    let mode_while_stopped = mode(&slave);
-    let pops_at_stop = transcript.windows(super::super::capabilities::KEYBOARD_DISABLE.len())
-        .filter(|p| *p == super::super::capabilities::KEYBOARD_DISABLE).count();
-    crate::procsignal::signal_group(child.id() as i32, SIGCONT).unwrap();
-    crate::procsignal::signal_group(child.id() as i32, SIGTERM).unwrap();
-    assert!(child.wait().unwrap().success());
-    println!("SIGTSTP stopped={suspended}, keyboard pops before stop={pops_at_stop}, raw mode remained={}", mode_while_stopped != saved);
-    assert!(suspended, "child did not suspend");
-    assert_eq!(pops_at_stop, 1, "keyboard protocol remained enabled while suspended");
-    assert_eq!(mode_while_stopped, saved);
-}
-
+#[path = "terminal_suspend_fixture.rs"]
+mod suspension;
+include!("terminal_suspend_tests.rs");
 
 #[test]
 fn review_positive_lifecycle_child() {

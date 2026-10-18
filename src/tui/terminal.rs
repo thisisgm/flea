@@ -23,6 +23,8 @@ const PREPARE_FAILED: &str = "The terminal could not be prepared";
 const RESTORE_FAILED: &str = "The terminal could not be restored";
 const PREPARE_FOR_EDITOR_FAILED: &str = "The terminal could not be prepared for the editor";
 const RESTORE_AFTER_EDITOR_FAILED: &str = "The terminal could not be restored after the editor";
+// The rename's own fault when a stop ends it, inside the editor or while either stty around it runs.
+const EDITOR_INTERRUPTED: &str = "Bulk rename editor interrupted";
 #[repr(C)]
 struct WindowSize {
     rows: u16,
@@ -124,11 +126,14 @@ impl Terminal {
         Ok(terminal)
     }
     pub fn run_editor(&mut self, editor: &str, path: &Path) -> io::Result<()> {
-        self.restore(PREPARE_FOR_EDITOR_FAILED)?;
+        // A stop that lands while either stty runs ends the rename as interrupted, and Drop restores the terminal.
+        if let Err(error) = self.restore(PREPARE_FOR_EDITOR_FAILED) {
+            return Err(if self.stopped() { io::Error::other(EDITOR_INTERRUPTED) } else { error });
+        }
         let result = match EditorJob::start(editor, path) {
             Ok(mut editor) => {
             let result = loop {
-                if self.stopped() { break Err(io::Error::other("Bulk rename editor interrupted")); }
+                if self.stopped() { break Err(io::Error::other(EDITOR_INTERRUPTED)); }
                 match editor.status() {
                     Ok(Some(status)) => break editor_result(status),
                     Err(error) => break Err(error),
@@ -142,7 +147,9 @@ impl Terminal {
             }
             Err(error) => Err(error),
         };
-        raw(RESTORE_AFTER_EDITOR_FAILED)?;
+        if let Err(error) = raw(RESTORE_AFTER_EDITOR_FAILED) {
+            return Err(if self.stopped() { io::Error::other(EDITOR_INTERRUPTED) } else { error });
+        }
         self.start_screen()?;
         result
     }
@@ -182,13 +189,18 @@ impl Terminal {
         if JOB_CONTROL.swap(0, Ordering::Relaxed) != 1 || self.stopped() { return Ok(false); }
         // Keep asynchronous graphics writers off the shell's screen until the alternate screen returns.
         let _output = io::stdout().lock();
-        self.restore(RESTORE_FAILED)?;
+        // A stop that lands while stty runs ends the transition without a fault, and Drop restores the terminal.
+        if let Err(error) = self.restore(RESTORE_FAILED) {
+            return if self.stopped() { Ok(true) } else { Err(error) };
+        }
         if JOB_CONTROL.swap(0, Ordering::Relaxed) != 2 && !self.stopped() {
             crate::procsignal::signal_process(std::process::id() as i32, SIGSTOP)?;
         }
         JOB_CONTROL.compare_exchange(2, 0, Ordering::Relaxed, Ordering::Relaxed).ok();
         if !self.stopped() {
-            raw(PREPARE_FAILED)?;
+            if let Err(error) = raw(PREPARE_FAILED) {
+                return if self.stopped() { Ok(true) } else { Err(error) };
+            }
             self.start_screen()?;
             self.resumed = true;
         }
@@ -235,72 +247,14 @@ pub(super) fn wait_input(stdin: i32, wake: i32, timeout_ms: i32) -> io::Result<b
     }
     Ok(fds[0].revents != 0)
 }
-struct EditorJob {
-    child: Child,
-    foreground: i32,
-    handler: usize,
-    finished: bool,
-    restored: bool,
-}
-impl EditorJob {
-    fn start(editor: &str, path: &Path) -> io::Result<Self> {
-        let foreground = unsafe { tcgetpgrp(0) };
-        if foreground < 0 { return Err(io::Error::last_os_error()); }
-        const IGNORE_SIGNAL: usize = 1;
-        let handler = unsafe { signal(SIGTTOU, IGNORE_SIGNAL) };
-        // Sample input: nvim -f; the user's editor command is shell syntax, while the names path is a positional argument.
-        let child = Command::new("/bin/sh").args(["-c", &format!("exec {} \"$1\"", editor), "flea-bulk-rename"])
-            .arg(path).process_group(0).spawn();
-        let child = match child {
-            Ok(child) => child,
-            Err(error) => { unsafe { signal(SIGTTOU, handler); } return Err(error); }
-        };
-        let job = Self { child, foreground, handler, finished: false, restored: false };
-        if unsafe { tcsetpgrp(0, job.child.id() as i32) } != 0 { return Err(io::Error::last_os_error()); }
-        // A terminal reader may stop before the parent gives its new process group the foreground.
-        let _ = crate::procsignal::signal_group(job.child.id() as i32, SIGCONT);
-        Ok(job)
-    }
-    fn status(&mut self) -> io::Result<Option<std::process::ExitStatus>> {
-        const NO_HANG: i32 = 1;
-        const UNTRACED: i32 = 2;
-        let mut status = 0;
-        let result = unsafe { waitpid(self.child.id() as i32, &mut status, NO_HANG | UNTRACED) };
-        if result < 0 {
-            let error = io::Error::last_os_error();
-            return if error.kind() == io::ErrorKind::Interrupted { Ok(None) } else { Err(error) };
-        }
-        if result == 0 { return Ok(None); }
-        let status = std::process::ExitStatus::from_raw(status);
-        if status.stopped_signal().is_some() {
-            return Err(io::Error::other("Bulk rename editor suspended; rename cancelled"));
-        }
-        self.finished = true;
-        Ok(Some(status))
-    }
-    fn close(&mut self) -> io::Result<()> {
-        self.restored = true;
-        let mut cleanup = Ok(());
-        if !self.finished {
-            const NO_SUCH_PROCESS: i32 = 3;
-            match crate::procsignal::signal_group(self.child.id() as i32, SIGKILL) {
-                Err(error) if error.raw_os_error() != Some(NO_SUCH_PROCESS) => cleanup = Err(error),
-                _ => cleanup = self.child.wait().map(|_| ()),
-            }
-        }
-        let restored = if unsafe { tcsetpgrp(0, self.foreground) } == 0 { Ok(()) } else { Err(io::Error::last_os_error()) };
-        unsafe { signal(SIGTTOU, self.handler); }
-        cleanup.and(restored)
-    }
-}
-impl Drop for EditorJob {
-    fn drop(&mut self) {
-        if !self.restored { if let Err(error) = self.close() { eprintln!("flea: editor cleanup: {}", error); } }
-    }
-}
+#[path = "terminal_editor.rs"]
+mod editor_job;
+use editor_job::EditorJob;
 impl Drop for Terminal {
     fn drop(&mut self) {
-        if let Err(error) = self.restore(RESTORE_FAILED) { eprintln!("flea: {}", error); }
+        // A second stop signal can kill this stty too, and nothing restores the terminal after Drop, so it gets one retry.
+        let restored = self.restore(RESTORE_FAILED).or_else(|_| self.restore(RESTORE_FAILED));
+        if let Err(error) = restored { eprintln!("flea: {}", error); }
         // kitty unlinks the object once it reads it; a terminal that could not read it leaves it here.
         let _ = std::fs::remove_file(self.shm_directory.join(shm_name()));
         for &(sig, handler) in &self.handlers {
@@ -325,6 +279,8 @@ fn shm_query(dir: &Path, name: &str, id: u32) -> Option<String> {
 }
 // A stty call's exit as a shown fault: a nonzero status says what the call was for.
 fn stty_result(status: std::process::ExitStatus, fault: &'static str) -> io::Result<()> {
+    // A stop signal sent to the job kills its stty too, so that death marks the stop before any thread's handler runs.
+    if matches!(status.signal(), Some(SIGINT | SIGTERM | SIGHUP)) { STOP.store(true, Ordering::Relaxed); }
     if status.success() { Ok(()) } else { Err(io::Error::other(fault)) }
 }
 fn raw(fault: &'static str) -> io::Result<()> {
