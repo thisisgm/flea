@@ -44,7 +44,8 @@ class Display:
         return json.loads(compositor(self.commands, function).stdout)
 
     def __enter__(self):
-        help_result = compositor(self.commands, "hypr_query_help")
+        # hyprctl 0.56.2 prints its help and exits 1, so the advertised commands decide, not the exit code.
+        help_result = compositor(self.commands, "hypr_query_help", check=False)
         compositor(self.commands, "hypr_query_version")
         compositor(self.commands, "hypr_query_output_help", check=False)
         if "output" not in (help_result.stdout + help_result.stderr).decode(errors="replace"):
