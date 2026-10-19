@@ -23,25 +23,8 @@ fail() {
     exit 1
 }
 
-# The shared transport launches only worktree binaries, so the case spawns its double the way ui.sh did before it, wrap prefix kept.
-flea_test_launch() {
-    local start_path="$1" flea_log="$2" arg
-    shift 2
-    local -a wrap=()
-    while [ $# -gt 0 ]; do
-        arg=$1
-        case "$arg" in
-            --ui|--binary) [ $# -ge 2 ] || fail "fixture launch got $arg with no value"; shift ;;
-            --ui=*|--binary=*) ;;
-            --wrap=*) wrap+=("${arg#--wrap=}") ;;
-            *) fail "fixture launch takes only --ui, --binary and --wrap, got $arg" ;;
-        esac
-        shift
-    done
-    FLEA_UI="$flea_ui" FLEA_BIN="$flea_bin" ${wrap[@]+"${wrap[@]}"} \
-        setsid nohup "$flea_bin" --gui "$start_path" >"$flea_log" 2>&1 </dev/null &
-    FLEA_TEST_PID=$!
-}
+# The shared transport launches only worktree binaries, so the case spawns its double the way ui.sh did before it.
+. "$repo/tests/lib/fixture-launch.sh"
 
 seed_ui_state() {
     :
