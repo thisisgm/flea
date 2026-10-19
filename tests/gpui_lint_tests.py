@@ -213,10 +213,12 @@ source = "{SOURCE}"
         self.metadata["packages"].append({"id": "helper", "name": "helper", "version": "0.4.0", "source": None,
                                           "manifest_path": str(self.root / "crates/helper/Cargo.toml")})
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
-        # The same helper in that package's integration test crate is not.
+        # The same helper in that package's integration test crate or binaries is not.
         (self.root / "crates/helper/src/lib.rs").unlink()
-        self.write("crates/helper/tests/probe.rs", "fn next() { replies.recv_blocking(); }")
-        self.assertEqual([], self.check_body("rows.iter().next();"))
+        for path in ("crates/helper/tests/probe.rs", "crates/helper/src/main.rs", "crates/helper/src/bin/tool.rs"):
+            self.write(path, "fn next() { replies.recv_blocking(); }")
+            self.assertEqual([], self.check_body("rows.iter().next();"), path)
+            (self.root / path).unlink()
 
     def test_row_height_may_live_in_a_sibling_the_element_uses(self):
         self.policy["hot_surfaces"][0]["row_height_path"] = "crates/flea-gui/src/list/pane.rs"
