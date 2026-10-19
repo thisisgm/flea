@@ -6,6 +6,12 @@ use crate::tui::wire::sort_tests::{drain, requests};
 use std::time::Duration;
 
 const LISTED: &str = r#"{"t":"trashbrowse","id":1,"op":"list","ok":true,"total":1,"start":0,"rows":[{"uri":"trash:///old-draft.txt","original":"/fx/v/work/old-draft.txt","size":13,"deleted":"2025-06-14T09:30:00","directory":false,"icon":"text-plain"}]}"#;
+// A trashbrowse answer for rows start..start+count of a Trash holding total items, named "<prefix><index>.txt".
+fn page(id: usize, op: &str, total: usize, start: usize, count: usize, prefix: &str) -> String {
+    let rows: Vec<String> = (start..(start + count).min(total)).map(|index| format!(
+        r#"{{"uri":"trash:///{prefix}{index}.txt","original":"/fx/v/work/{prefix}{index}.txt","size":13,"deleted":"2025-06-14T09:30:00","directory":false,"icon":"text-plain"}}"#)).collect();
+    format!(r#"{{"t":"trashbrowse","id":{id},"op":"{op}","ok":true,"total":{total},"start":{start},"rows":[{}]}}"#, rows.join(","))
+}
 
 fn press(m: &mut Model, w: &mut Wire, key: Key) { actions::key(m, &key, &Map::load(), w).unwrap(); }
 fn opened(w: &mut Wire) -> Model {
@@ -64,8 +70,6 @@ fn trash_refuses_changing_keys_and_escape_returns_to_the_folder() {
     press(&mut m, &mut w, Key::named("Escape", ""));
     assert!(m.error.is_empty(), "the first Escape clears the sentence");
     assert!(m.prompts.trash.is_some());
-    press(&mut m, &mut w, Key::character('j', ""));
-    assert_eq!(m.cursor, 0, "one row, so the cursor stays");
     press(&mut m, &mut w, Key::named("Escape", ""));
     assert!(m.prompts.trash.is_none());
     assert_eq!((m.path.as_path(), m.restore_cursor, m.restore_path.as_deref(), m.top),
@@ -85,5 +89,43 @@ fn trash_drops_stale_answers_and_folder_rows() {
     assert!(m.rows.is_empty(), "the folder's rows stay out of Trash");
     m.receive(parse(r#"{"t":"trashbrowse","id":1,"op":"list","ok":false,"error":"Trash could not be read."}"#).unwrap(), &mut w).unwrap();
     assert_eq!(m.error, "Trash could not be read.");
+    finish(w, reader);
+}
+// j moves the Trash cursor to the next row, which needs a second row to move to.
+#[test]
+fn trash_j_moves_the_cursor_down_to_a_second_row() {
+    let (mut w, reader) = echo_wire();
+    let mut m = opened(&mut w);
+    drain(&mut w);
+    m.receive(parse(&page(1, "list", 2, 0, 2, "a")).unwrap(), &mut w).unwrap();
+    m.cursor = 0;
+    press(&mut m, &mut w, Key::character('j', ""));
+    assert!(m.error.is_empty(), "{:?}", m.error);
+    assert_eq!(m.cursor, 1, "j moves to the second row");
+    finish(w, reader);
+}
+// A reload of an open Trash drops the rows it held, so a row past the first window is asked for again.
+#[test]
+fn trash_reload_asks_again_for_rows_past_the_first_window() {
+    let (mut w, reader) = echo_wire();
+    let mut m = opened(&mut w);
+    drain(&mut w);
+    m.receive(parse(&page(1, "list", 100, 0, 27, "a")).unwrap(), &mut w).unwrap();
+    m.cursor = 60;
+    window(&mut m, &mut w).unwrap();
+    let id = m.prompts.trash.as_ref().unwrap().id;
+    m.receive(parse(&page(id, "window", 100, m.top, 27, "a")).unwrap(), &mut w).unwrap();
+    assert_eq!(m.rows[&40].name, "a40.txt");
+    open(&mut m, &mut w).unwrap();
+    let id = m.prompts.trash.as_ref().unwrap().id;
+    m.receive(parse(&page(id, "list", 100, 0, 27, "b")).unwrap(), &mut w).unwrap();
+    drain(&mut w);
+    m.cursor = 40;
+    window(&mut m, &mut w).unwrap();
+    let sent = drain(&mut w);
+    assert_eq!(requests(&sent, "trashbrowse").len(), 1, "row 40 is not held after the reload, so Trash asks for the window");
+    let id = m.prompts.trash.as_ref().unwrap().id;
+    m.receive(parse(&page(id, "window", 100, m.top, 27, "b")).unwrap(), &mut w).unwrap();
+    assert_eq!(m.rows[&40].name, "b40.txt");
     finish(w, reader);
 }

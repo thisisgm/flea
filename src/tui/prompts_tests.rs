@@ -5,7 +5,7 @@ use crate::jsondoc::parse;
 use crate::tui::{actions, keymap::{Hints, Map}, render::{self, frame_tests}, wire::{echo_wire, finish}};
 use crate::tui::wire::sort_tests::{drain, requests};
 
-// Each drawn cell with the foreground and background SGR in force when it was printed.
+// Sample input: "\x1b[38;2;1;2;3mA\x1b[0mB" gives [('A', "\x1b[38;2;1;2;3m", ""), ('B', "", "")].
 fn inks(text: &str) -> Vec<(char, String, String)> {
     let (mut fg, mut bg, mut out) = (String::new(), String::new(), Vec::new());
     let mut chars = text.chars().peekable();
@@ -19,7 +19,7 @@ fn inks(text: &str) -> Vec<(char, String, String)> {
             }
             if end == 'm' && args == "0" { fg.clear(); bg.clear(); }
             else if end == 'm' && args.starts_with("38;") { fg = format!("\x1b[{args}m"); }
-            else if end == 'm' && args.starts_with("48;") { bg = format!("\x1b[{args}m"); }
+            else if end == 'm' && (args.starts_with("48;") || args == "49") { bg = format!("\x1b[{args}m"); }
         } else { out.push((c, fg.clone(), bg.clone())); }
     }
     out

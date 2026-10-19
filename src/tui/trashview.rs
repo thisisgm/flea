@@ -35,6 +35,9 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
         m.path = view.back.clone();
         (m.total, m.cursor, m.top) = (0, 0, 0);
         m.prompts.trash = Some(view);
+    } else {
+        m.invalidate_rows();
+        if let Some(view) = &mut m.prompts.trash { view.items.clear(); }
     }
     request(m, "list", 0, w)
 }

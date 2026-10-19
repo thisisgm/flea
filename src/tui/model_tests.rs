@@ -150,7 +150,9 @@
         assert!(enabled(&model, "toggleHidden"));
         model.menu_ready = true;
         assert!(enabled(&model, "open"));
-        assert!(!enabled(&model, "taildrop"), "Taildrop with no machine cannot act");
+        let taildrop: Vec<_> = super::super::render::menu_layout::entries(&model, &map).into_iter().flatten().filter(|row| row.id == "taildrop").collect();
+        assert_eq!(taildrop.len(), 1, "Taildrop with no machine is still a row");
+        assert!(!taildrop[0].enabled(), "Taildrop with no machine cannot act");
         model.menu_path.clear();
         assert!(!enabled(&model, "open"));
     }

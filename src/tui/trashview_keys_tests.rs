@@ -55,6 +55,9 @@ fn trash_judges_a_sequence_whole() {
     press(&mut m, &mut w, Key::character('g', ""));
     press(&mut m, &mut w, Key::character('h', ""));
     assert_eq!(listed(&mut w), [home.as_str()], "g h went where h alone goes");
+    assert!(m.prompts.trash.is_some(), "Trash stays up until the folder answers");
+    m.receive(parse(&format!(r#"{{"t":"listed","n":1,"path":"{home}","v":1,"w":true}}"#)).unwrap(), &mut w).unwrap();
+    assert!(m.prompts.trash.is_none(), "the listed reply takes Trash off");
     let mut m = trash(&mut w, "yazi");
     press(&mut m, &mut w, Key::character('g', ""));
     press(&mut m, &mut w, Key::character('d', ""));
