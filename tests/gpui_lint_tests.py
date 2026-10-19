@@ -205,6 +205,19 @@ source = "{SOURCE}"
         self.policy["ui_callbacks"] = ["flea_gui::window::open"]
         self.assertTrue(any("blocking call recv_blocking in flea_gui::window::open" in e for e in self.errors()))
 
+    def test_ui_reach_follows_another_workspace_package(self):
+        # A helper in another native package's library is reached through the paint path and flagged.
+        self.write("crates/helper/Cargo.toml", '[package]\nname = "helper"\nversion = "0.4.0"\n')
+        self.write("crates/helper/src/lib.rs", "pub fn next() { replies.recv_blocking(); }")
+        self.metadata["workspace_members"].append("helper")
+        self.metadata["packages"].append({"id": "helper", "name": "helper", "version": "0.4.0", "source": None,
+                                          "manifest_path": str(self.root / "crates/helper/Cargo.toml")})
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
+        # The same helper in that package's integration test crate is not.
+        (self.root / "crates/helper/src/lib.rs").unlink()
+        self.write("crates/helper/tests/probe.rs", "fn next() { replies.recv_blocking(); }")
+        self.assertEqual([], self.check_body("rows.iter().next();"))
+
     def test_row_height_may_live_in_a_sibling_the_element_uses(self):
         self.policy["hot_surfaces"][0]["row_height_path"] = "crates/flea-gui/src/list/pane.rs"
         moved = LIST.replace("const ROW_HEIGHT: f32 = 31.;", "use pane::ROW_HEIGHT;")

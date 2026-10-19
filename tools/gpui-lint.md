@@ -4,7 +4,7 @@ Run `tools/flea-gpui-lint` from a Git checkout with Python 3.11 or newer and the
 It reads tracked Rust files in native workspace packages and `cargo metadata --locked --format-version 1`.
 In an archived CI export without Git, it checks every exported native source and manifest.
 Comments and Rust string, raw string, byte string, C string and character literals are opaque tokens.
-It follows imported aliases and local helper calls; only explicit thread or background-executor closures are background boundaries. A call never resolves into another compilation target (an integration test, example or build script), because that crate cannot be called from the product.
+It follows imported aliases and local helper calls; only explicit thread or background-executor closures are background boundaries. A call never resolves into another compilation target (an integration test, example, bench or build script), because that crate cannot be called from the product.
 Imports and local callable aliases follow lexical scopes, including parent-module glob imports. A background boundary must belong to this spawn's receiver and directly supplied closure or future, not another expression in the statement.
 Qualified standard-library joins and blocking channel receives normalize their receiver types, generic arguments and imported aliases before classification; Path::join remains nonblocking.
 In registered hot-surface files, every integer token spelled as 0x plus six or eight hex digits, with Rust underscores ignored, is a finding, even in an unused binding or nested write. Constructor arguments are checked for literal tokens directly. No literal provenance is inferred through variables or control flow.

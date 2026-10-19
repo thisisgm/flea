@@ -24,6 +24,13 @@ silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal
 turquoise violet wheat white whitesmoke yellow yellowgreen""".split())
 
 
+# Sample input: crates/flea-gui/src/row.rs is a package's own source, callable from any other target.
+def library_source(path):
+    parts = path.split("/")
+    base = parts.index("crates") + 2 if "crates" in parts else 0
+    return parts[base:base + 1] == ["src"]
+
+
 # Sample input: crates/flea-gui/tests/g1_03/transport.rs belongs to the g1_03 test crate; every src/ file to the package's own.
 def compilation_target(path):
     parts = path.split("/")
@@ -118,8 +125,9 @@ def source_checks(units, policy):
         function = known[name]
         for symbol, line, args, method in calls(function, known):
             target = resolve(symbol, function, set(known) | helpers)
-            # Another compilation target's item is never callable from this one, however unique its name.
-            if target in known and compilation_target(known[target].path) != compilation_target(function.path):
+            # A test, example, bench or build script item is never callable from another target, however unique its name.
+            if target in known and not library_source(known[target].path) \
+                    and compilation_target(known[target].path) != compilation_target(function.path):
                 target = symbol
             if blocking(target, args, method, helpers) and (name, target) not in exceptions:
                 errors.append(f"{function.path}:{line}: UI blocking call {target} in {name}")
