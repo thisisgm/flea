@@ -207,5 +207,32 @@
     "one": "%1 item already exists in %2.",
     "other": "%1 items already exist in %2."
   },
-  "collide.keys": "enter or b keeps both · r replaces · s skips · esc cancels"
+  "collide.keys": "enter or b keeps both · r replaces · s skips · esc cancels",
+  "media.loading": "Loading media…",
+  "media.play": "Play",
+  "media.pause": "Pause",
+  "media.buffering": "Buffering",
+  "pdf.page": "Page %1 of %2 · %3%",
+  "preview.loading": "Loading…",
+  "preview.loadHint": "%1 to load preview",
+  "preview.tooLarge": "This file is too large to preview.",
+  "preview.entries": {
+    "one": "%1 entry",
+    "other": "%1 entries"
+  },
+  "preview.unpacked": "%1 · %2 unpacked",
+  "preview.more": {
+    "one": "+ %1 more",
+    "other": "+ %1 more"
+  },
+  "preview.archiveUnreadable": "This archive could not be read.",
+  "preview.openWith": "Open With…",
+  "quicklook.lines": {
+    "one": "%1 line",
+    "other": "%1 lines"
+  },
+  "quicklook.pages": {
+    "one": "%1 page",
+    "other": "%1 pages"
+  }
 }

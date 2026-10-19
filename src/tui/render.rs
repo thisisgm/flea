@@ -55,7 +55,7 @@ pub fn grouped(n: usize) -> String {
 pub use super::calendar::modified;
 pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
     _cell_pixels: Option<(usize, usize)>, elapsed: std::time::Duration, last: &mut String) -> io::Result<bool> {
-    let out = frame(m, theme, map, columns, lines, elapsed);
+    let out = super::look::frame(m, theme, map, columns, lines, elapsed);
     if *last == out { return Ok(false); }
     print!("{}\x1b[0m", out);
     io::stdout().flush()?;
@@ -74,7 +74,6 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
     let mut out = format!("\x1b[H{}\x1b[2;1H{}", layout::header(m, theme, columns), layout::rule(columns, m.preview_visible, false, theme));
     for y in 0..body {
         out.push_str(&format!("\x1b[{};1H{}", y + BODY_ROW, base));
-        if m.quicklook { out.push_str(&layout::preview(m, y, columns, body, theme)); continue; }
         if let Some(parent) = m.parents.get(y).filter(|_| !super::trashview::hides(m)) {
             let current = m.path.file_name().is_some_and(|name| name == parent.name.as_str());
             out.push_str(&cells::row(parent, left, None, m.marks(), RowStyle { cursor: current, quiet: true, parent: true, ..Default::default() }, theme, ""));

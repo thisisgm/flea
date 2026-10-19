@@ -611,10 +611,9 @@ fn pointer_key(
                 w,
             );
         }
-        let (start, columns) = super::render::preview_area(m.columns, m.quicklook);
-        if pointer.button == 0 && pointer.y == super::render::BODY_ROW + m.height.saturating_sub(2)
-            && pointer.x > start && pointer.x <= start + columns
-        {
+        if super::look::press(m, pointer) { return Ok(()); }
+        let Some((row, start, columns)) = super::picture::control_row(m) else { return Ok(()) };
+        if pointer.button == 0 && pointer.y == row && pointer.x > start && pointer.x <= start + columns {
             let cell = pointer.x - start - 1;
             if let Some(pdf) = &mut m.pdf {
                 if let Some((control, activate)) = pdf.control_at(cell, m.quicklook, columns) {

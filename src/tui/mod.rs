@@ -9,12 +9,18 @@ mod actions;
 mod calendar;
 mod detail;
 mod batch;
-#[cfg(test)]
 mod chafa;
 mod completion;
 mod cells;
 mod filter;
 mod layout;
+mod look;
+mod pane;
+mod pane_state;
+mod picture;
+mod stage;
+mod still;
+mod syntax;
 mod icons;
 mod editor;
 mod empty;
@@ -94,8 +100,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
         let started = std::time::Instant::now();
         let mut frame = String::new();
         let mut graphics = graphics::Graphics::new();
-        let mut thumbnail = PathBuf::new();
-        let mut preview_generation = 0;
+        let mut shown = stage::Shown::default();
         let mut menu_tracking = false;
         // The listing, peek and preview hold below owns painted and start.
         let mut hold = hold::Hold::new();
@@ -132,7 +137,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                 }
                 model.refresh(&mut wire)?;
                 frame.clear();
-                thumbnail.clear();
+                shown.forget();
                 model.capabilities = terminal.decoder.negotiation.detected;
                 graphics.protocol = model.capabilities.graphics;
             }
@@ -154,7 +159,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                     }
                 }
                 frame.clear();
-                thumbnail.clear();
+                shown.forget();
                 model.capabilities = terminal.decoder.negotiation.detected;
                 graphics.protocol = model.capabilities.graphics;
             }
@@ -174,202 +179,15 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
             }
             completion::land(&mut model);
             model.expire_message(std::time::Instant::now());
-            let visible = (model.preview_visible || model.quicklook) && model.selected.len() < 2;
             let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some();
             if (model.menu || model.deletion.is_some()) != menu_tracking {
                 menu_tracking = model.menu || model.deletion.is_some();
                 print!("{}", if menu_tracking { "\x1b[?1003h" } else { "\x1b[?1003l\x1b[?1002h" });
                 std::io::Write::flush(&mut std::io::stdout())?;
             }
-            let current = model.current_path().filter(|_| prompts::previewed(&model));
-            let preview_allowed =
-                model.preview_loaded && current.as_ref() == Some(&model.preview_path);
-            const PREVIEW_RESERVED_ROWS: usize = 5;
-            let is_pdf = model.rows.get(&model.cursor).is_some_and(model::Row::is_pdf);
-            let reserved = PREVIEW_RESERVED_ROWS + model.preview_metadata.len().min(3)
-                + usize::from(is_pdf);
-            let (preview_start, preview_width) = render::preview_area(size.0, model.quicklook);
-            let geometry = (preview_width, model.height.saturating_sub(reserved), preview_start + 1, render::BODY_ROW + 2);
             let cell_pixels = terminal::cell_pixels();
-            let pixels = cell_pixels
-                .map(|cell| (geometry.0 * cell.0, geometry.1 * cell.1))
-                .filter(|pixels| pixels.0 > 0 && pixels.1 > 0);
-            let graphics_ready = pixels.is_some() || graphics.protocol == graphics::Protocol::None;
-            let pixel_extent = pixels.unwrap_or((0, 0));
-            let kind = model
-                .rows
-                .get(&model.cursor)
-                .map(|r| r.icon.to_lowercase())
-                .unwrap_or_default();
-            let is_media = kind.contains("audio") || kind.contains("video");
-            if !visible
-                || !preview_allowed
-                || !is_media
-                || overlay
-                || model.player.as_ref().is_some_and(|p| {
-                    Some(&p.path) != current.as_ref()
-                        || p.geometry != geometry
-                        || p.pixels != pixel_extent
-                })
-            {
-                if let Some(player) = model.player.take() {
-                    if !player.at_rest() {
-                        model.playback = Some((player.path.clone(), player.position, player.paused));
-                    }
-                }
-            }
-            if !visible
-                || !preview_allowed
-                || !graphics_ready
-                || !is_pdf
-                || model
-                    .pdf
-                    .as_ref()
-                    .is_some_and(|p| Some(&p.path) != current.as_ref())
-            {
-                model.pdf = None;
-            }
-            if visible && preview_allowed {
-                if let Some(path) = current.clone() {
-                    if is_media
-                        && !overlay
-                        && model.player.is_none()
-                        && graphics_ready
-                        && model.preview_failed.as_ref() != Some(&path)
-                    {
-                        let resume = media::resume_for(model.playback.as_ref(), &path);
-                        // A plain terminal shows nothing until play; in kitty with shared memory a video's poster stands in for mpv's paused frame.
-                        let rests = resume.is_none()
-                            && (graphics.protocol == graphics::Protocol::None
-                                || (graphics.protocol == graphics::Protocol::Kitty
-                                    && model.capabilities.shared_memory
-                                    && kind.contains("video")
-                                    && std::path::Path::new(graphics::POSTER).exists()));
-                        if rests {
-                            model.player = Some(media::Player::resting(&path, graphics.protocol, model.capabilities.shared_memory, geometry, size, pixel_extent));
-                        } else {
-                            match media::Player::start(
-                                &path,
-                                graphics.protocol,
-                                model.capabilities.shared_memory,
-                                geometry,
-                                size,
-                                pixel_extent,
-                            ) {
-                                Ok(mut player) => {
-                                    player.resume = resume;
-                                    model.player = Some(player);
-                                }
-                                Err(e) => {
-                                    model.fail(format!("Media preview: {}", crate::error::io_message(&e)));
-                                    model.preview_failed = Some(path.clone());
-                                }
-                            }
-                        }
-                    }
-                    if is_pdf && model.pdf.is_none() && graphics_ready {
-                        model.pdf = Some(pdf::Pdf::new(
-                            path.clone(),
-                            graphics.protocol,
-                            geometry.0,
-                            geometry.1,
-                            pixel_extent,
-                        ));
-                    }
-                    if path != thumbnail || preview_generation != model.preview_generation {
-                        if let Some(index) = model.thumb_index {
-                            wire.send(vec![
-                                ("c", wire::word("thumbcancel")),
-                                ("rows", crate::jsondoc::Json::Arr(vec![wire::number(index)])),
-                            ])?;
-                        }
-                        graphics.clear();
-                        model.image_file = None;
-                        model.thumb_index = None;
-                        thumbnail = path;
-                        preview_generation = model.preview_generation;
-                        if !is_media
-                            && !is_pdf
-                            && model.rows.get(&model.cursor).is_some_and(|r| r.thumbnail)
-                        {
-                            if kind.starts_with("image") {
-                                model.image_file = Some(thumbnail.clone());
-                            } else {
-                                model.thumb_index = Some(model.cursor);
-                                wire.send(vec![
-                                    ("c", wire::word("thumb")),
-                                    (
-                                        "rows",
-                                        crate::jsondoc::Json::Arr(vec![wire::number(model.cursor)]),
-                                    ),
-                                ])?;
-                            }
-                        }
-                    }
-                }
-            } else {
-                if let Some(index) = model.thumb_index.take() {
-                    wire.send(vec![
-                        ("c", wire::word("thumbcancel")),
-                        ("rows", crate::jsondoc::Json::Arr(vec![wire::number(index)])),
-                    ])?;
-                }
-                graphics.clear();
-                model.image_file = None;
-                thumbnail = PathBuf::new();
-            }
-            if let (Some(path), Some(pixels)) = (&model.image_file, pixels) {
-                graphics.request(path.clone(), geometry.0, geometry.1, pixels);
-            }
-            if let Some(player) = &mut model.player {
-                if let Some((w, h, milliseconds)) = model.media_probe {
-                    player.probe(milliseconds);
-                    if let Some(pixels) = pixels.filter(|_| player.at_rest()) {
-                        graphics.request_poster(player.path.clone(), geometry.0, geometry.1, pixels, graphics::poster_side((w, h), pixels));
-                    }
-                }
-                // The poster stays the TUI's own image until mpv's first frame replaces it, or for good if none comes.
-                if !player.at_rest() && !player.handing_off() && graphics.holds(&player.path) {
-                    graphics.release();
-                }
-                player.poster_up = player.at_rest() && graphics.shows(&player.path);
-            }
-            if visible && graphics.protocol != graphics::Protocol::None && pixels.is_none() && (is_media || is_pdf || model.image_file.is_some()) && model.preview_failed != current {
-                model.fail("Inline preview unavailable: terminal did not report pixel dimensions".into());
-                model.preview_failed = current.clone();
-            }
-            if graphics.accept() {
-                frame.clear();
-            }
-            if !graphics.error.is_empty() {
-                model.fail(format!("Image preview: {}", std::mem::take(&mut graphics.error)));
-            }
-            if let Some(player) = &mut model.player {
-                player.poll();
-                if !player.error.is_empty() {
-                    model.preview_failed = Some(player.path.clone());
-                }
-            }
-            if model.player.as_ref().is_some_and(|p| !p.error.is_empty()) {
-                let error = model.player.take().unwrap().error.clone();
-                model.fail(error);
-            }
-            if let Some(pdf) = &mut model.pdf {
-                if (pdf.columns, pdf.rows) != (geometry.0, geometry.1) || pdf.pixels != pixel_extent
-                {
-                    pdf.columns = geometry.0;
-                    pdf.rows = geometry.1;
-                    pdf.pixels = pixel_extent;
-                    pdf.refresh();
-                }
-                if pdf.poll() {
-                    frame.clear();
-                }
-            }
-            if let Some(pdf) = &mut model.pdf {
-                let error = std::mem::take(&mut pdf.error);
-                if !error.is_empty() { model.fail(error); }
-            }
+            model.preview_state.cell = cell_pixels;
+            let place = stage::step(&mut model, &mut graphics, &mut shown, &mut wire, size, overlay, &mut frame)?;
             // Keep the previous frame until rows, peek and the first screen's preview body land, at most the slow-source cap.
             let now = std::time::Instant::now();
             let held = hold.hold(&model, now, started);
@@ -400,7 +218,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                 if writing && !image.is_empty() {
                     use std::io::Write;
                     let mut stdout = std::io::stdout().lock();
-                    write!(stdout, "\x1b[s\x1b[{};{}H", geometry.3, geometry.2)?;
+                    write!(stdout, "\x1b[s\x1b[{};{}H", place.1, place.0)?;
                     graphics::send(&mut stdout, transmit)?;
                     tmux::write_graphics(&mut stdout, image)?;
                     write!(stdout, "\x1b[u")?;
@@ -430,7 +248,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                 model.player = None;
                 model.pdf = None;
                 graphics.protocol = protocol;
-                thumbnail = PathBuf::new();
+                shown.forget();
             }
             let next = terminal::size();
             if next != size {

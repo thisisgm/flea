@@ -70,6 +70,8 @@ pub struct Theme {
     pub tab: String,
     pub match_fill: String,
     pub border: String,
+    // The window's control frame (a media track) and the card frame eased to 3:1 under the menu wash.
+    pub track: String,
     pub frame: String,
     pub rule: String,
     pub wash: String,
@@ -78,6 +80,10 @@ pub struct Theme {
     pub field: String,
     pub stem: String,
     pub ext: String,
+    // Syntax inks in bat's ANSI order: red, green, yellow, blue, magenta, cyan.
+    pub syntax: [String; 6],
+    // The ground as #rrggbb, for a decoder that veils a page with it.
+    pub ground: String,
     pub depth: Depth,
     // The same palette behind a card's scrim; None on the scrim itself.
     pub dim: Option<Box<Theme>>,
@@ -120,6 +126,8 @@ impl Theme {
         let low = channels.into_iter().fold(1.0_f64, f64::min);
         let error = if high == 0.0 || (high - low) / high <= HUE_FLOOR { foreground.clone() } else { contrast(&error, &background) };
         let encode = |hex: &str, bg| color(&if scrim { blend(hex, &background, SCRIM_ALPHA) } else { hex.to_owned() }, bg, depth);
+        let syntax = [["red", "color1"], ["green", "color2"], ["yellow", "color3"], ["blue", "color4"], ["magenta", "color5"], ["cyan", "color6"]]
+            .map(|keys| encode(&contrast(&pick(&keys, &foreground), &background), false));
         Self {
             foreground: encode(&foreground, false), muted: encode(&muted, false), meta: encode(&meta, false),
             accent: encode(&ensure(&accent, &surface, FRAME_CONTRAST), false), error: encode(&error, false),
@@ -132,13 +140,14 @@ impl Theme {
             tab: encode(&blend(&foreground, &background, TAB_ALPHA), true),
             match_fill: encode(&blend(&foreground, &background, MATCH_ALPHA), true),
             border: encode(&blend(&foreground, &background, BORDER_ALPHA), false),
+            track: encode(&muted_frame, false),
             frame: encode(&ensure(&ensure(&muted_frame, &background, FRAME_CONTRAST), &blend(&foreground, &background, TAB_ALPHA), FRAME_CONTRAST), false),
             rule: encode(&blend(&muted_frame, &background, RULE_ALPHA), false),
             wash: encode(&blend(&accent, &background, WASH_ALPHA), true),
             unavailable: encode(&blend(&error, &background, UNAVAILABLE_ALPHA), false),
             unavailable_word: encode(&blend(&muted, &background, UNAVAILABLE_ALPHA), false),
             stem: encode(&blend(&accent, &field, stem_alpha), true), ext: encode(&ensure(&muted, &field, TEXT_CONTRAST), false),
-            field: encode(&field, true), depth, dim: None,
+            field: encode(&field, true), syntax, ground: background.clone(), depth, dim: None,
         }
     }
 }

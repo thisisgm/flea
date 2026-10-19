@@ -66,6 +66,8 @@ fn read_text(path: &Path, cancel: &AtomicBool) -> Result<String, String> {
         if cancel.load(Ordering::Relaxed) { return Err("Preview cancelled".into()); }
         let count = file.read(&mut chunk).map_err(|_| READ_FAILED)?;
         if count == 0 { break; }
+        // Data with a NUL in its first chunk is binary, so the rest of it is never read.
+        if bytes.is_empty() && chunk[..count].contains(&0) { return Ok(String::new()); }
         if bytes.len() as u64 + count as u64 > TEXT_BYTES { return Err("This file is too large to preview.".into()); }
         bytes.extend_from_slice(&chunk[..count]);
     }
@@ -100,6 +102,7 @@ pub fn load(m: &mut Model, force: bool) {
     m.preview_metadata.clear();
     m.media_probe = None;
     m.preview_children = None;
+    super::pane_state::reset(&mut m.preview_state);
     let Some(row) = m.rows.get(&m.cursor) else {
         return;
     };
@@ -110,13 +113,10 @@ pub fn load(m: &mut Model, force: bool) {
     if !modified.is_empty() {
         m.preview_metadata.push(format!("Modified · {modified}"));
     }
-    if !row.link.is_empty() {
-        m.preview.push(format!("→ {}", row.link));
-        return;
-    }
+    let i18n = &m.preview_state.i18n;
     if !m.preview_loaded {
         if !m.hints.load_preview.is_empty() {
-            m.preview.push(format!("{} to load preview", m.hints.load_preview));
+            m.preview.push(i18n.tr_args("preview.loadHint", &[&m.hints.load_preview]));
         }
         return;
     }
@@ -124,15 +124,18 @@ pub fn load(m: &mut Model, force: bool) {
         m.preview.push("Folder".into());
         return;
     }
-    if !row.icon.starts_with("text") && !row.kind.to_lowercase().contains("source") {
+    // Text reads as text, and so does data that holds no NUL; a link reads its target, which the reader opens without following.
+    let text = row.icon.starts_with("text") || row.kind.to_lowercase().contains("source");
+    if !text && super::pane_state::kind(row) != super::pane_state::Kind::Data {
         return;
     }
-    if row.size as u64 > TEXT_BYTES {
-        m.preview.push("This file is too large to preview.".into());
+    if row.size as u64 > TEXT_BYTES && row.link.is_empty() {
+        if text { m.preview.push(i18n.tr("preview.tooLarge")); }
         return;
     }
-    m.preview.push("Loading…".into());
-    m.preview_reader.request(path, m.preview_generation);
+    m.preview.push(i18n.tr("preview.loading"));
+    let content = super::pane_state::content(m).unwrap_or(path);
+    m.preview_reader.request(content, m.preview_generation);
 }
 pub fn poll(m: &mut Model) {
     let Some((generation, result)) = m.preview_reader.poll() else { return };
@@ -145,6 +148,10 @@ pub fn poll(m: &mut Model) {
     m.preview_width = 0;
 }
 pub fn request(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
+    meta(m, wire)?;
+    super::syntax::request(m, wire)
+}
+fn meta(m: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
     use super::wire::{number, word};
     use crate::jsondoc::Json;
     if !m.preview_loaded
@@ -267,6 +274,38 @@ context = "listing"
         m.preview_path.clear();
         load(&mut m, false);
         assert!(!m.preview.iter().any(|line| line.contains("load preview")), "{:?}", m.preview);
+    }
+    // Data without a NUL reads as text and data with one as nothing; a picture is never read; a link reads its target.
+    #[test]
+    fn data_reads_as_text_and_a_link_reads_its_target() {
+        let d = TestDir::new("tui-preview-data");
+        d.file("notes.cfg", "key = value");
+        d.file("real.txt", "target body");
+        std::os::unix::fs::symlink(d.join("real.txt"), d.join("link")).unwrap();
+        assert_eq!(read_text(&d.file("blob.bin", "ab\0cd"), &AtomicBool::new(false)).unwrap(), "");
+        let mut m = Model::new(d.path().into(), &Json::Null);
+        let row = |name: &str, icon: &str, link: &str| Row { name: name.into(), directory: false, size: 11, mode: 0o100644, link: link.into(), kind: "Data".into(), thumbnail: false, modified: 0, icon: icon.into() };
+        let settle = |m: &mut Model| {
+            let started = std::time::Instant::now();
+            while m.preview_reader.outstanding(m.preview_generation) {
+                poll(m);
+                assert!(started.elapsed() < std::time::Duration::from_secs(5), "the text read did not finish");
+                std::thread::sleep(std::time::Duration::from_millis(5));
+            }
+            poll(m);
+        };
+        m.rows.insert(0, row("notes.cfg", "application-octet-stream", ""));
+        load(&mut m, true);
+        assert!(m.preview_reader.outstanding(m.preview_generation), "data was not read as text");
+        settle(&mut m);
+        assert_eq!(m.preview_body, "key = value");
+        m.rows.insert(0, row("photo.png", "image-png", ""));
+        load(&mut m, true);
+        assert!(!m.preview_reader.outstanding(m.preview_generation), "a picture was read as text");
+        m.rows.insert(0, row("link", "text-plain", "real.txt"));
+        load(&mut m, true);
+        settle(&mut m);
+        assert_eq!(m.preview_body, "target body", "{:?}", m.preview);
     }
     #[test]
     fn text_reader_replaces_pending_work_and_discards_stale_results() {
