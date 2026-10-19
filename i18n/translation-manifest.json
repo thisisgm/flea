@@ -2,6 +2,9 @@
   "en": {
     "flea:app.name": "b61286ee7748",
     "flea:folder.empty": "3043f9fa4d31",
+    "flea:grid.drop.copy": "6580347a873d",
+    "flea:grid.drop.link": "7dc98ca1049d",
+    "flea:grid.drop.move": "29599701de14",
     "flea:ipc.invalid_request": "fbcee4ca2de2",
     "flea:ipc.line_too_long": "af0ef8f9ba30",
     "flea:ipc.request_timed_out": "31898cc7d091",
