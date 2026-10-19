@@ -138,8 +138,7 @@ for (const note of drawnNotes) {
     }
 }
 
-// Pele ranks a frame that an edge enters after the frame the edge leaves: in the docs example c1 --> a2 enters frame one from frame three,
-// so one sits below three, while two and three, joined by no edge, share a row side by side.
+// A frame an edge enters ranks after the frame the edge leaves, so one sits below three in the docs example.
 const SIBLING_GAP_MIN = 1;
 const source = "flowchart TB\nc1 --> a2\nsubgraph one\na1 --> a2\nend\nsubgraph two\nb1 --> b2\nend\nsubgraph three\nc1 --> c2\nend";
 const rowTree = parse(render(source, LAYOUT_FACE));

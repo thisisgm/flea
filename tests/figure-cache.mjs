@@ -102,16 +102,23 @@ const tomorrow = { ...today, today: today.today + DAY_MS };
 check(qmlKey("mermaid", gantt, today, true) !== qmlKey("mermaid", gantt, tomorrow, true) && qmlKey("mermaid", gantt, today, true) !== qmlKey("mermaid", gantt, themes[0], true),
     "a Gantt chart has one key per day");
 check(qmlKey("mermaid", gantt, today, true) === cacheKey("mermaid", gantt, today, true), "service and reference agree on a dated key");
-// MarkdownFigure dates a Gantt chart's theme before it asks, so cached finds the answer ask stored under the dated one.
+// MarkdownFigure dates before ask and before its cached lookup, so each side here dates its own theme.
+// Sample input: function ask() dates, then function takeRemembered() dates, in MarkdownFigure.
+const figureSource = readText(resolve(tree, "ui/MarkdownFigure.qml"));
+const askAt = figureSource.indexOf("function ask()");
+const rememberedAt = figureSource.indexOf("function takeRemembered()");
+check(askAt >= 0 && rememberedAt > askAt && figureSource.slice(askAt, rememberedAt).includes("FigureDate.datedTheme")
+    && figureSource.slice(rememberedAt).includes("FigureDate.datedTheme"), "MarkdownFigure dates before ask and before its cached lookup");
 const held = { answerCache: {}, answerOrder: [], cacheMax: themes.length, tableDigestOf: digestOf };
 held.cacheKeyOf = (kind, source, t, display) => qmlKeyOf(held, kind, source, t, display);
 const qmlStore = new Function("root", "kind", "source", "theme", "display", "svg", functionBody(service, "store"));
 const qmlCached = new Function("root", "kind", "source", "theme", "display", functionBody(service, "cached"));
 for (const source of [gantt, "flowchart TD\n    A --> B"]) {
     const svg = "<svg>" + source.length + "</svg>";
-    const asked = dated("mermaid", source, themes[0]);
-    qmlStore(held, "mermaid", source, asked, true, svg);
-    check(qmlCached(held, "mermaid", source, asked, true) === svg, "cached finds the stored answer from the dated theme: " + JSON.stringify(source.slice(0, 20)));
+    const stored = dated("mermaid", source, themes[0]);
+    qmlStore(held, "mermaid", source, stored, true, svg);
+    const lookedUp = dated("mermaid", source, themes[0]);
+    check(qmlCached(held, "mermaid", source, lookedUp, true) === svg, "cached finds the stored answer from the dated theme: " + JSON.stringify(source.slice(0, 20)));
 }
 check(tableDigest(table).length <= DIGEST_LENGTH_MAX && digestOf(table) === tableDigest(table), "the service digest is the reference, " + tableDigest(table));
 check(digestOf(table) !== digestOf(nudged) && digestOf([]) === digestOf(undefined), "one changed entry changes the service digest, and no table digests as none");

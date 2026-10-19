@@ -92,6 +92,16 @@ fn the_argv_carries_the_caps_the_flags_both_binds_and_qjs_last() {
     assert_eq!(tail, ["/usr/bin/qjs", "/ui/vendor/figure-helper.mjs"]);
 }
 
+// Sample argv: "--clearenv", "--setenv", "TZ", "UTC" ahead of the locale pin.
+#[test]
+fn the_helper_argv_sets_utc_after_clearing_the_environment() {
+    let got = argv_for("/usr/bin/qjs");
+    let cleared = got.iter().position(|a| a == "--clearenv").expect("--clearenv");
+    let zone = got.iter().position(|a| a == "TZ").expect("TZ");
+    assert_eq!(got[zone + 1], "UTC");
+    assert!(cleared < zone, "--clearenv must precede TZ or it clears it too");
+}
+
 #[test]
 fn a_verified_bytecode_directory_is_bound_read_only_and_named_after_the_helper() {
     let got = figure_argv(Path::new("/usr/bin/qjs"), Path::new("/ui/vendor"), Some(Path::new("/cache/flea/figures/k")), &[]);

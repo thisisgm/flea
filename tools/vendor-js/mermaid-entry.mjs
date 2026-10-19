@@ -148,7 +148,7 @@ function inAttributes(svg, rewrite) {
         (all, equals, double, single) => (double !== undefined ? equals + '"' + rewrite(double) + '"' : equals + "'" + rewrite(single) + "'")));
 }
 
-// Sample input: a theme without today answers this day's noon in the helper's own zone in ms; FigureService names the day for a Gantt chart, the day its cache key carries.
+// Sample input: a theme without today answers this day's noon UTC in ms; the helper's jail pins TZ=UTC, so local getters read it back as the asked day.
 function todayOf(theme) {
     if (theme.today > 0)
         return theme.today;
