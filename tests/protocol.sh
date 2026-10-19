@@ -1042,7 +1042,7 @@ out=$( ( printf '{"c":"list","path":"%s","first":10}\n' "$WT"
          printf '{"c":"quit"}\n' ) | $BIN --backend)
 check_changed "a change under a search answers nothing, because matches are not a directory" "$out" 0 0
 
-# A live session answers from its index: open changes no rows, a zz query finds nothing, the backend's own create, sent with the next query in one write so both queue ahead of the watch, shows in that answer, and the gen names each answer.
+# A live session answers from its index: open changes no rows, a zz query finds nothing, the backend's own create shows in the next query, and the gen names each answer. The recursive watch may index the create first; a_newfile_patches_the_session_with_no_watch_event pins the own-write patch alone.
 SW="$SB/session"
 mkdir -p "$SW/sub/deep"
 printf 'x' > "$SW/other.txt"
