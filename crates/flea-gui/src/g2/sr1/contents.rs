@@ -1,0 +1,281 @@
+//! Contents results: one fixed-height block per match, the file's row then its first matching line, painted from prepared runs.
+use super::run::{run_in, text_runs, wash_span, RUN_WASH};
+use crate::list::{mark_bounds, Typeface, END_W, LABEL_X, PAD_X};
+use crate::row;
+use flea::protocol::RowFacts;
+use gpui::{
+    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
+    Font, FontFeatures, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, Style,
+    TextRun, TransformationMatrix, Window,
+};
+use std::{cell::RefCell, collections::HashMap, rc::Rc};
+
+// boards_find.py: the result row 31, its matching line 20 at caption 12, 4 of air under the block.
+pub const ROW_H: f32 = 31.;
+pub const LINE_H: f32 = 20.;
+pub const BLOCK_PAD: f32 = 4.;
+pub const BLOCK_H: f32 = ROW_H + LINE_H + BLOCK_PAD;
+// The line number sits right-aligned in the 23 mark column, the line on the label column.
+const NUMBER_W: f32 = 23.;
+const CURSOR_WASH: f32 = 0.18;
+// ui.py .row.hover: the pointer's row is the foreground at 8%, and its mark lifts to the foreground.
+const HOVER: f32 = 0.08;
+const EDGE_W: f32 = 2.;
+const ELLIPSIS: char = '\u{2026}';
+// The run's wash is its inline box, the board's 1.2 line height at caption size.
+const RUN_LINE: f32 = 1.2;
+
+/// The roles a contents block draws with, from the live theme at the join.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Palette {
+    pub background: Hsla,
+    pub foreground: Hsla,
+    pub metadata: Hsla,
+    pub metadata_frame: Hsla,
+    pub muted: Hsla,
+    pub accent: Hsla,
+    pub accent_frame: Hsla,
+}
+
+impl Palette {
+    /// Interim roles from the list's palette until the theme tokens land; muted has no list role yet.
+    pub fn from_list(list: &crate::list::Palette) -> Self {
+        Self {
+            background: list.background,
+            foreground: list.foreground,
+            metadata: list.metadata,
+            metadata_frame: list.metadata_frame,
+            muted: list.metadata,
+            accent: list.accent,
+            accent_frame: list.accent_frame,
+        }
+    }
+}
+
+/// One contents match as its producer will hand it over: the row's facts, the line's number and text.
+#[derive(Clone, Debug, PartialEq)]
+pub struct Block {
+    pub row: RowFacts,
+    pub location: String,
+    pub line_no: u64,
+    pub line: String,
+}
+
+/// The held window of blocks, the integer-count model of every list.
+#[derive(Clone, Debug, Default)]
+pub struct Held {
+    pub listing: usize,
+    pub total: usize,
+    pub start: usize,
+    pub blocks: Vec<Block>,
+}
+
+impl Held {
+    pub fn block(&self, index: usize) -> Option<&Block> {
+        index.checked_sub(self.start).and_then(|at| self.blocks.get(at))
+    }
+}
+
+/// Visible blocks for a viewport: every block any pixel of the viewport crosses, and none past the count.
+pub fn visible(scroll_y: f32, height: f32, total: usize) -> std::ops::Range<usize> {
+    let first = (scroll_y.max(0.) / BLOCK_H).floor() as usize;
+    let last = (((scroll_y.max(0.) + height) / BLOCK_H).ceil() as usize).min(total);
+    first.min(last)..last
+}
+
+pub struct Prepared {
+    pub name: GlyphRun,
+    pub location: GlyphRun,
+    pub size: GlyphRun,
+    pub number: GlyphRun,
+    pub line: GlyphRun,
+    // The run's span on the line, absent inside the cursor's highlight where the run is bold instead.
+    pub wash: Option<(Pixels, Pixels)>,
+    pub mark: row::marks::Mark,
+}
+
+#[derive(PartialEq)]
+struct Key {
+    listing: usize,
+    lifted: bool,
+    cells: usize,
+    scale: u32,
+}
+
+pub struct ContentsState {
+    pub typeface: Typeface,
+    pub query: String,
+    entries: HashMap<usize, (Key, Rc<Prepared>)>,
+    // The query the held entries were shaped for; a new query drops them all.
+    shaped_for: String,
+    pub visible: Vec<(usize, Rc<Prepared>)>,
+    pub misses: u64,
+}
+
+impl ContentsState {
+    pub fn new(typeface: Typeface) -> Self {
+        Self { typeface, query: String::new(), entries: HashMap::new(), shaped_for: String::new(), visible: Vec::new(), misses: 0 }
+    }
+}
+
+pub struct ContentsElement {
+    held: Rc<Held>,
+    scroll_y: f32,
+    cursor: usize,
+    hover: Option<usize>,
+    palette: Palette,
+    state: Rc<RefCell<ContentsState>>,
+}
+
+impl ContentsElement {
+    pub fn new(held: Rc<Held>, scroll_y: f32, cursor: usize, palette: Palette, state: Rc<RefCell<ContentsState>>) -> Self {
+        Self { held, scroll_y, cursor, hover: None, palette, state }
+    }
+
+    /// The block under the pointer, which the window's hover tracking names at the join.
+    pub fn hovered(mut self, index: Option<usize>) -> Self {
+        self.hover = index;
+        self
+    }
+}
+
+// A line cut on the right to the cells it has, the board's text-overflow ellipsis on a monospaced face.
+fn right_elide(text: &str, cells: usize) -> String {
+    if text.chars().count() <= cells {
+        return text.to_owned();
+    }
+    let mut cut: String = text.chars().take(cells.saturating_sub(1)).collect();
+    cut.push(ELLIPSIS);
+    cut
+}
+
+fn prepare(block: &Block, state: &ContentsState, lifted: bool, cells: usize, window: &Window) -> Prepared {
+    let face = &state.typeface;
+    let text = window.text_system();
+    let shaped = |value: &str, size: Pixels, runs: Vec<TextRun>| GlyphRun::new(text.layout_line(value, size, &runs, None));
+    let plain = |value: &str, size: Pixels| shaped(value, size, text_runs(value, None, false, &face.font));
+    // The match is in the file, so the name carries no run; its trailing space is the gap before the folder.
+    let name = format!("{} ", row::decorated_name(&block.row));
+    let line = right_elide(&block.line, cells);
+    let line_run = run_in(&line, &state.query);
+    let unjoined = Font { features: FontFeatures::disable_ligatures(), ..face.font.clone() };
+    let line_glyphs = shaped(&line, face.caption, text_runs(&line, line_run, lifted, &unjoined));
+    Prepared {
+        name: plain(&name, face.body),
+        location: plain(&block.location, face.caption),
+        size: plain(&row::size_text(&block.row), face.caption),
+        number: plain(&block.line_no.to_string(), face.caption),
+        wash: wash_span(line_glyphs.line(), line_run, lifted),
+        line: line_glyphs,
+        mark: row::marks::Mark::for_row(&block.row.icon, block.row.mode),
+    }
+}
+
+fn paint_at(run: &GlyphRun, x: Pixels, top: Pixels, height: f32, color: Hsla, window: &mut Window) {
+    let line = run.line();
+    let baseline = window.pixel_snap(top + (px(height) - line.ascent - line.descent) / 2. + line.ascent);
+    let _ = window.paint_glyph_run(point(x, baseline), run, color);
+}
+
+impl IntoElement for ContentsElement {
+    type Element = Self;
+    fn into_element(self) -> Self {
+        self
+    }
+}
+
+impl Element for ContentsElement {
+    type RequestLayoutState = ();
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<ElementId> {
+        None
+    }
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+
+    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
+        let style = Style { size: size(relative(1.).into(), relative(1.).into()), ..Style::default() };
+        (window.request_layout(style, None, cx), ())
+    }
+
+    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, _: &mut App) {
+        let mut state = self.state.borrow_mut();
+        let advance = f32::from(state.typeface.caption) * 0.6;
+        let room = f32::from(bounds.size.width) - LABEL_X - END_W;
+        let cells = (room / advance).floor().max(0.) as usize;
+        let range = visible(self.scroll_y, f32::from(bounds.size.height), self.held.total);
+        // The bound follows the viewport: entries outside three screens of it go.
+        let keep = range.start.saturating_sub(range.len() * 2)..range.end + range.len() * 2;
+        state.entries.retain(|index, _| keep.contains(index));
+        if state.shaped_for != state.query {
+            state.entries.clear();
+            let query = state.query.clone();
+            state.shaped_for = query;
+        }
+        state.visible.clear();
+        for index in range {
+            let Some(block) = self.held.block(index) else { continue };
+            let key = Key {
+                listing: self.held.listing,
+                lifted: index == self.cursor,
+                cells,
+                scale: window.scale_factor().to_bits(),
+            };
+            let hit = state.entries.get(&index).filter(|(held, _)| *held == key).map(|(_, prepared)| Rc::clone(prepared));
+            let prepared = match hit {
+                Some(prepared) => prepared,
+                None => {
+                    state.misses += 1;
+                    let prepared = Rc::new(prepare(block, &state, key.lifted, cells, window));
+                    state.entries.insert(index, (key, Rc::clone(&prepared)));
+                    prepared
+                }
+            };
+            state.visible.push((index, prepared));
+        }
+    }
+
+    fn paint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), _: &mut (), window: &mut Window, cx: &mut App) {
+        let state = self.state.borrow();
+        let palette = self.palette;
+        let (left, right) = (bounds.origin.x, bounds.origin.x + bounds.size.width);
+        window.paint_quad(fill(bounds, palette.background));
+        window.with_content_mask(Some(ContentMask { bounds }), |window| {
+            for (index, prepared) in &state.visible {
+                let lifted = *index == self.cursor;
+                let top = bounds.origin.y + px(*index as f32 * BLOCK_H - self.scroll_y);
+                if lifted {
+                    // The block wears the cursor rung down both lines.
+                    let block = Bounds::new(point(left, top), size(bounds.size.width, px(BLOCK_H)));
+                    window.paint_quad(fill(block, palette.accent.opacity(CURSOR_WASH)));
+                    window.paint_quad(fill(Bounds::new(point(left, top), size(px(EDGE_W), px(BLOCK_H))), palette.accent_frame));
+                } else if self.hover == Some(*index) {
+                    let block = Bounds::new(point(left, top), size(bounds.size.width, px(BLOCK_H)));
+                    window.paint_quad(fill(block, palette.foreground.opacity(HOVER)));
+                }
+                let (ink, meta) = if lifted { (palette.foreground, palette.foreground) } else { (palette.foreground, palette.metadata) };
+                let gutter = if lifted { palette.foreground } else { palette.muted };
+                let (key, data) = prepared.mark.svg();
+                let mark_ink = if lifted || self.hover == Some(*index) { palette.foreground } else { palette.metadata_frame };
+                let _ = window.paint_svg(mark_bounds(left, top), key, Some(data), TransformationMatrix::unit(), mark_ink, cx);
+                let name_x = left + px(LABEL_X);
+                paint_at(&prepared.name, name_x, top, ROW_H, ink, window);
+                let location_x = name_x + prepared.name.line().width;
+                paint_at(&prepared.location, location_x, top, ROW_H, meta, window);
+                let size_right = right - px(END_W);
+                paint_at(&prepared.size, size_right - prepared.size.line().width, top, ROW_H, meta, window);
+                let line_top = top + px(ROW_H);
+                let number_right = left + px(PAD_X + NUMBER_W);
+                paint_at(&prepared.number, number_right - prepared.number.line().width, line_top, LINE_H, gutter, window);
+                if let Some((start, end)) = prepared.wash {
+                    let tall = f32::from(state.typeface.caption) * RUN_LINE;
+                    let wash = Bounds::new(point(name_x + start, line_top + px((LINE_H - tall) / 2.)), size(end - start, px(tall)));
+                    window.paint_quad(fill(wash, palette.accent.opacity(RUN_WASH)));
+                }
+                paint_at(&prepared.line, name_x, line_top, LINE_H, ink, window);
+            }
+        });
+    }
+}
