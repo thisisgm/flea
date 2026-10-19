@@ -24,27 +24,40 @@ fn list_element_paints_one_fixed_row_per_visible_name() {
         let first = {
             let state = list.borrow();
             assert_eq!(state.visible.len(), count);
-            for (slot, (index, prepared)) in state.visible.iter().enumerate() {
-                assert_eq!(*index, slot);
-                assert!(prepared.is_some());
+            for (slot, shown) in state.visible.iter().enumerate() {
+                assert_eq!(shown.index, slot);
+                assert!(shown.prepared.is_some());
             }
-            state.visible.first().and_then(|row| row.1.clone())
+            state.visible.first().and_then(|row| row.prepared.clone())
         };
         frame(&mut cx, window, 0.);
         let state = list.borrow();
         assert_eq!(state.rows.misses, count as u64, "a visible row was shaped twice");
         if let Some(first) = first {
-            assert!(Rc::ptr_eq(&first, state.visible[0].1.as_ref().unwrap()));
+            assert!(Rc::ptr_eq(
+                &first,
+                state.visible[0].prepared.as_ref().unwrap()
+            ));
         }
     }
     // A scrolled viewport paints the partial rows at both edges and nothing past the end.
     let mut cx = real_cx();
     let window = open(&mut cx, held(fixture("2k").into_iter().take(20).collect()), 900., 7. * ROW_HEIGHT);
     frame(&mut cx, window, 15.);
-    let indices: Vec<usize> = list_of(&mut cx, window).borrow().visible.iter().map(|row| row.0).collect();
+    let indices: Vec<usize> = list_of(&mut cx, window)
+        .borrow()
+        .visible
+        .iter()
+        .map(|row| row.index)
+        .collect();
     assert_eq!(indices, (0..8).collect::<Vec<_>>());
     frame(&mut cx, window, 13. * ROW_HEIGHT);
-    let indices: Vec<usize> = list_of(&mut cx, window).borrow().visible.iter().map(|row| row.0).collect();
+    let indices: Vec<usize> = list_of(&mut cx, window)
+        .borrow()
+        .visible
+        .iter()
+        .map(|row| row.index)
+        .collect();
     assert_eq!(indices, (13..20).collect::<Vec<_>>());
 }
 
@@ -136,7 +149,12 @@ fn a_same_listing_window_refresh_reshapes_changed_rows_and_reuses_equal_ones_wit
     let window = open(&mut cx, held(fixture("uniform")), 900., 10. * ROW_HEIGHT);
     frame(&mut cx, window, 0.);
     let list = list_of(&mut cx, window);
-    let before: Vec<_> = list.borrow().visible.iter().map(|row| row.1.clone().unwrap()).collect();
+    let before: Vec<_> = list
+        .borrow()
+        .visible
+        .iter()
+        .map(|row| row.prepared.clone().unwrap())
+        .collect();
     let misses = list.borrow().rows.misses;
     let heap = allocations();
     frame(&mut cx, window, 0.);
@@ -150,8 +168,11 @@ fn a_same_listing_window_refresh_reshapes_changed_rows_and_reuses_equal_ones_wit
     {
         let state = list.borrow();
         assert_eq!(state.rows.misses, misses, "an equal refresh shaped a row again");
-        for (slot, (_, prepared)) in state.visible.iter().enumerate() {
-            assert!(Rc::ptr_eq(&before[slot], prepared.as_ref().unwrap()), "row {slot} was not reused");
+        for (slot, shown) in state.visible.iter().enumerate() {
+            assert!(
+                Rc::ptr_eq(&before[slot], shown.prepared.as_ref().unwrap()),
+                "row {slot} was not reused"
+            );
         }
     }
 
@@ -165,8 +186,16 @@ fn a_same_listing_window_refresh_reshapes_changed_rows_and_reuses_equal_ones_wit
     window.update(&mut cx, |view, _, _| view.held = changed).unwrap();
     frame(&mut cx, window, 0.);
     let state = list.borrow();
-    assert_eq!(state.rows.misses, misses + 5, "only the five changed rows are shaped again");
-    let now: Vec<_> = state.visible.iter().map(|row| row.1.clone().unwrap()).collect();
+    assert_eq!(
+        state.rows.misses,
+        misses + 5,
+        "only the five changed rows are shaped again"
+    );
+    let now: Vec<_> = state
+        .visible
+        .iter()
+        .map(|row| row.prepared.clone().unwrap())
+        .collect();
     for slot in 0..5 {
         assert!(!Rc::ptr_eq(&before[slot], &now[slot]), "row {slot} kept the row shaped from older facts");
     }
@@ -189,8 +218,8 @@ fn a_painted_row_looks_its_glyph_tiles_up_once_however_often_it_is_painted_or_mo
     let mut seen: Vec<Rc<crate::row::cache::Prepared>> = Vec::new();
     let mut paint = |cx: &mut gpui::TestAppContext, y: f32| {
         frame(cx, window, y);
-        for (_, prepared) in &list.borrow().visible {
-            let prepared = prepared.as_ref().expect("a visible row is prepared");
+        for shown in &list.borrow().visible {
+            let prepared = shown.prepared.as_ref().expect("a visible row is prepared");
             if !seen.iter().any(|kept| Rc::ptr_eq(kept, prepared)) {
                 seen.push(Rc::clone(prepared));
             }
