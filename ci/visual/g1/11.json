@@ -1,0 +1,398 @@
+{
+  "version": 1,
+  "unit": "g1-11",
+  "scenes": [
+    {
+      "scene": "g1/rail-reveal",
+      "unit": "g1-11",
+      "board_png": ".superpowers/g1-11/references/boards/rail-reveal.png",
+      "board_html": ".superpowers/g1-11/references/boards/rail-reveal.html",
+      "before_png": ".superpowers/g1-11/references/before/dual-autohide-reveal-1100x700.png",
+      "sha256": {
+        "board_png": "8ae54c8a10dc232c7db78ee1ac2553311a9c6ad702039d05ec136c517887913d",
+        "board_html": "be51e5e75e76e4bca18b44725c12a5b72754b39ee47c46369a498ecdfc1099a2",
+        "before_png": "6e209d5be035d6794400091bf0a911001e2a5979245238a9fd0eb0a9e53337c6"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "dual",
+        "preset": "default",
+        "places": {
+          "autoHide": true
+        },
+        "input": [
+          {
+            "type": "pointer",
+            "x": 5,
+            "y": 300,
+            "dwell_ms": 300
+          }
+        ]
+      },
+      "assertions": [
+        "rail overlay 192 px at x 0 once the 120 ms dwell and the 180 ms slide have passed (300 ms rest)",
+        "both pane rectangles equal to the unrevealed capture, 550 px each",
+        "left pane cursor A accent wash and edge, right pane cursor A grey fill",
+        "focused cursor mark in foreground",
+        "no rail rows built before the strip entry"
+      ],
+      "parity_ids": [
+        "board:rail-reveal"
+      ],
+      "producer_owner": [
+        "G1.09",
+        "G2-places"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/rail-menu",
+      "unit": "g1-11",
+      "board_png": ".superpowers/g1-11/references/boards/rail-menu.png",
+      "board_html": ".superpowers/g1-11/references/boards/rail-menu.html",
+      "before_png": ".superpowers/g1-11/references/before/rail-menu-place-1100x700.png",
+      "sha256": {
+        "board_png": "c59ad259ebb1a7775525c7c95de1a37d0a8460801e02ce544ee5efefc0497a4d",
+        "board_html": "6f5699ac80d137c2df3a269e71e096b821ed08a709c30a55cdbb7257a5cf1c77",
+        "before_png": "24ae41fb35f7087bc1a93aa3bad44ce869fba886bed85c4ea207f7b1a2bb9898"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "places": {},
+        "input": [
+          {
+            "type": "pointer-press",
+            "button": "right",
+            "target": "rail:Home"
+          }
+        ]
+      },
+      "assertions": [
+        "menu at x 96 y 84 width 257",
+        "Home unplated",
+        "first row Open holds the menu cursor",
+        "list cursor A grey while the menu holds the keyboard",
+        "rail stays drawn while its menu is open"
+      ],
+      "parity_ids": [
+        "board:rail-menu"
+      ],
+      "producer_owner": [
+        "G2-places",
+        "G2-menus"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/rail-favorites",
+      "unit": "g1-11",
+      "board_png": ".superpowers/g1-11/references/boards/rail-favorites.png",
+      "board_html": ".superpowers/g1-11/references/boards/rail-favorites.html",
+      "before_png": ".superpowers/g1-11/references/before/rail-favorites-1100x700.png",
+      "sha256": {
+        "board_png": "35d98eeb17a0903f10e1b390628713d52e8f5acd9c64c872d0e34f76bf160f64",
+        "board_html": "6b2a5683026ffad73a4879b1e86f6c8e4cfad2d5e00b438ee0d56cc37b561a22",
+        "before_png": "0907989c3cb488d4584430d18fb69495ade81f340cb4a9a1bc768361e174a25a"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "places": {
+          "favourites": [
+            {
+              "label": "Docs",
+              "path": "/fx/v/work/Docs"
+            }
+          ]
+        },
+        "input": [
+          {
+            "type": "pointer-press",
+            "button": "right",
+            "target": "rail:Docs"
+          }
+        ]
+      },
+      "assertions": [
+        "menu at x 14 y 200",
+        "first row Remove from Favorites",
+        "list cursor A grey while the menu holds the keyboard"
+      ],
+      "parity_ids": [
+        "board:rail-favorites"
+      ],
+      "producer_owner": [
+        "G2-places",
+        "G2-menus"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/rail-menu-device",
+      "unit": "g1-11",
+      "board_png": ".superpowers/g1-11/references/boards/rail-menu-device.png",
+      "board_html": ".superpowers/g1-11/references/boards/rail-menu-device.html",
+      "before_png": ".superpowers/g1-11/references/before/rail-menu-device-1100x700.png",
+      "sha256": {
+        "board_png": "bcee0896c70ce147b5c2cacd8da4fba1e3e434e03d50688974978b4c99b6a291",
+        "board_html": "d9a874280cec8ac21cdc874fe0c55ee76a229a522c5a9d628c0e1dbe3bbcb9b3",
+        "before_png": "1c260bb8744f56343cac2d81fcde6f9593dd9440695ba7fd84d3995a327884aa"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "places": {},
+        "input": [
+          {
+            "type": "pointer-press",
+            "button": "right",
+            "target": "rail:QEMU"
+          }
+        ],
+        "devices": "qemu-mounted"
+      },
+      "assertions": [
+        "menu at x 14 y 273",
+        "rows Open then Unmount",
+        "mounted square on the device row",
+        "list cursor A grey while the menu holds the keyboard"
+      ],
+      "parity_ids": [
+        "board:rail-menu-device"
+      ],
+      "producer_owner": [
+        "G2-places",
+        "G2-menus"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/rail-menu-device-off",
+      "unit": "g1-11",
+      "board_png": ".superpowers/g1-11/references/boards/rail-menu-device-off.png",
+      "board_html": ".superpowers/g1-11/references/boards/rail-menu-device-off.html",
+      "before_png": ".superpowers/g1-11/references/before/rail-menu-device-off-1100x700.png",
+      "sha256": {
+        "board_png": "8e328b2482cab7a84ac0b46e98d1745efecfce3278d1cadf7dc7f51e366188f2",
+        "board_html": "1af7d3512a4ccea4ab057e856eb7156f050d1ba67f53040241a5e0c837c6837b",
+        "before_png": "1c260bb8744f56343cac2d81fcde6f9593dd9440695ba7fd84d3995a327884aa"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "places": {},
+        "input": [
+          {
+            "type": "pointer-press",
+            "button": "right",
+            "target": "rail:QEMU"
+          }
+        ],
+        "devices": "qemu-unmounted"
+      },
+      "assertions": [
+        "menu at x 14 y 273",
+        "one row Mount",
+        "off square on the device row",
+        "list cursor A grey while the menu holds the keyboard"
+      ],
+      "parity_ids": [
+        "board:rail-menu-device-off"
+      ],
+      "producer_owner": [
+        "G2-places",
+        "G2-menus"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/rail-menu-network",
+      "unit": "g1-11",
+      "board_png": ".superpowers/g1-11/references/boards/rail-menu-network.png",
+      "board_html": ".superpowers/g1-11/references/boards/rail-menu-network.html",
+      "before_png": ".superpowers/g1-11/references/before/rail-menu-network-1100x700.png",
+      "sha256": {
+        "board_png": "0a3148b9add7911b1d5ff8e52012694eee55e64ccc1c56d436e916f7f613434e",
+        "board_html": "db175e41faa5b3dd88a1b423900efce4fa47942fea8847dc65bea53b5fe4b6a6",
+        "before_png": "faa0ee2eaa7aa185b2824867643c3ccb225a2399c4d331634a2f1fd1fa4f1436"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "places": {},
+        "input": [
+          {
+            "type": "pointer-press",
+            "button": "right",
+            "target": "rail:NAS"
+          }
+        ],
+        "network": "nas"
+      },
+      "assertions": [
+        "menu at x 14 y 200",
+        "rows Rename, Edit Address…, Remove from Network",
+        "first row holds the menu cursor",
+        "list cursor A grey while the menu holds the keyboard"
+      ],
+      "parity_ids": [
+        "board:rail-menu-network"
+      ],
+      "producer_owner": [
+        "G2-places",
+        "G2-menus"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/rail-menu-trash",
+      "unit": "g1-11",
+      "board_png": ".superpowers/g1-11/references/boards/rail-menu-trash.png",
+      "board_html": ".superpowers/g1-11/references/boards/rail-menu-trash.html",
+      "before_png": ".superpowers/g1-11/references/before/rail-menu-trash-1100x700.png",
+      "sha256": {
+        "board_png": "979c870be924464770d62b5e7ad9ed5d5dae232a5dcf4fc707b7d6787fa74298",
+        "board_html": "11688fd3fcfb352019fdd25d93ff9e518d907b41148b8215ce7e41c07e1f3593",
+        "before_png": "19f3660c7e2b8e154ee57a55fda8f18a5888308581ed4ab31782be9b037a3ccf"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "cursor": "A",
+        "view": "list",
+        "preset": "default",
+        "places": {},
+        "input": [
+          {
+            "type": "pointer-press",
+            "button": "right",
+            "target": "rail:Trash"
+          }
+        ]
+      },
+      "assertions": [
+        "menu at x 14 y 127",
+        "rows Open, Restore All, Empty Trash… in destructive ink last",
+        "first row holds the menu cursor",
+        "list cursor A grey while the menu holds the keyboard"
+      ],
+      "parity_ids": [
+        "board:rail-menu-trash"
+      ],
+      "producer_owner": [
+        "G2-places",
+        "G2-menus"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    }
+  ]
+}
