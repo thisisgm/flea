@@ -215,10 +215,14 @@ source = "{SOURCE}"
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
         # The same helper in that package's integration test crate or binaries is not.
         (self.root / "crates/helper/src/lib.rs").unlink()
-        for path in ("crates/helper/tests/probe.rs", "crates/helper/src/main.rs", "crates/helper/src/bin/tool.rs"):
+        for path in ("crates/helper/tests/probe.rs", "crates/helper/src/main.rs", "crates/helper/src/bin/tool.rs",
+                     "crates/helper/src/bin/tool/main.rs"):
             self.write(path, "fn next() { replies.recv_blocking(); }")
             self.assertEqual([], self.check_body("rows.iter().next();"), path)
             (self.root / path).unlink()
+        # Inside one package a binary and its modules are one target, so the library's reach into main.rs is followed.
+        self.write("crates/flea-gui/src/main.rs", "fn next() { replies.recv_blocking(); }")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
 
     def test_row_height_may_live_in_a_sibling_the_element_uses(self):
         self.policy["hot_surfaces"][0]["row_height_path"] = "crates/flea-gui/src/list/pane.rs"
