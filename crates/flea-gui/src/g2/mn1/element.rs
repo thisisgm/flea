@@ -3,6 +3,7 @@ use super::glyphs;
 use super::lines::{Ink, Lead, Line, Shaped};
 use super::menu::{Card, Menu};
 use crate::list::Palette;
+use crate::palette::Theme;
 use flea::ui_logic_mn1::fit::{self, CHEVRON, CLEAR, GAP, PAD, PAD_X, ROW, SEP, SLOT};
 use gpui::{
     fill, linear_color_stop, linear_gradient, point, px, quad, size, App, BorderStyle, Bounds,
@@ -306,9 +307,10 @@ impl Element for MenuElement {
         _: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) -> MenuInk {
-        MenuInk::from_palette(&Palette::inherited(&window.text_style()))
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        MenuInk::from_palette(&Palette::inherited(&window.text_style(), theme))
     }
 
     fn paint(

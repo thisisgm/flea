@@ -123,12 +123,15 @@ fn shape(text: &str, font: &Font, size: Pixels, window: &Window) -> GlyphRun {
 
 /// ColumnRow.qml sizeText(): a folder's answered walk, a partial one led by ">", else the list's own cell text.
 pub fn size_text(facts: &RowFacts, walk: Option<Size>) -> String {
+    let locale = flea::i18n::Locale::default();
     match walk {
         Some(walk) if facts.dir && !row::is_symlink(facts.mode) => {
             let lead = if walk.partial { ">" } else { "" };
-            format!("{lead}{}", row::format_size(walk.bytes))
+            format!("{lead}{}", locale.format_size(walk.bytes))
         }
-        _ => row::size_text(facts),
+        _ if row::is_symlink(facts.mode) => "link".into(),
+        _ if facts.dir => "\u{b7}".into(),
+        _ => locale.format_size(facts.size),
     }
 }
 

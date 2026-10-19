@@ -2,6 +2,7 @@
 use super::paint::{paint_run, Ink, Size};
 use super::view::PathView;
 use crate::list::Palette;
+use crate::palette::Theme;
 use gpui::{
     fill, point, px, quad, relative, size, App, BorderStyle, Bounds, ContentMask, CursorStyle, Element, ElementId,
     ElementInputHandler, Entity, GlobalElementId, GlyphRun, Hitbox, HitboxBehavior, InspectorElementId, IntoElement,
@@ -90,6 +91,7 @@ impl Element for FieldElement {
         window: &mut Window,
         cx: &mut App,
     ) -> (Hitbox, Ink) {
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let view = self.view.read(cx);
         let frame = frame(bounds);
         let mut paint = view.paint.borrow_mut();
@@ -115,7 +117,7 @@ impl Element for FieldElement {
         }
         let width = line.run.as_ref().map_or(px(0.), |run| run.line().width);
         line.scroll = line.scroll.min((width - room).max(px(0.))).max(px(0.));
-        let ink = Ink::of(Palette::inherited(&window.text_style()));
+        let ink = Ink::of(Palette::inherited(&window.text_style(), theme));
         (window.insert_hitbox(frame, HitboxBehavior::Normal), ink)
     }
 

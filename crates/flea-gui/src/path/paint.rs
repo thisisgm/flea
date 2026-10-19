@@ -1,6 +1,7 @@
 //! What the path surfaces draw with: the inks, the face's advances, a bounded cache of shaped pieces and the crumb strip Element.
 use super::{menu::Piece, strip::Strip, suggestions::Popup, view::PathView};
 use crate::list::{Palette, Typeface};
+use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, CursorStyle, Element, ElementId, Entity, FontWeight,
     GlobalElementId, GlyphRun, Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
@@ -279,11 +280,12 @@ impl Element for CrumbElement {
         window: &mut Window,
         cx: &mut App,
     ) -> (Hitbox, Ink, bool) {
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let slot = self.place.slot();
         let pad = self.pad();
         let paint = self.view.read(cx).paint.clone();
         let mut paint = paint.borrow_mut();
-        let ink = Ink::of(Palette::inherited(&window.text_style()));
+        let ink = Ink::of(Palette::inherited(&window.text_style(), theme));
         // Dual draws each path on its own pane, so the chrome keeps its slot and builds no crumbs.
         if self.place == Place::Chrome && self.view.read(cx).inputs.dual {
             paint.area = Some(bounds);

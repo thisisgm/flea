@@ -1,5 +1,5 @@
 use super::{number, object};
-use crate::list::{self, pane::ROW_HEIGHT, ListState};
+use crate::list::{self, ListState};
 use flea::jsondoc::Json;
 use gpui::{canvas, point, px, size, Bounds, Div, Pixels, SharedString, Styled, Window};
 use std::{cell::RefCell, rc::Rc};
@@ -112,17 +112,18 @@ fn overlay(div: Div, record: impl FnOnce(Bounds<Pixels>, &Window) + 'static) -> 
     )
 }
 
-pub(crate) fn rows(state: &ListState, bounds: Bounds<Pixels>, scroll: f32, window: &Window) {
+pub(crate) fn rows(state: &ListState, bounds: Bounds<Pixels>, scroll: f32, row: f32, window: &Window) {
     let Some(probe) = &state.probe else { return };
     let surface = format!("list-{}", f32::from(bounds.origin.x));
     probe.push(&surface, "", "surface", bounds, "", window);
-    for (index, prepared) in &state.visible {
-        let Some(prepared) = prepared else { continue };
-        let top = bounds.origin.y + px(*index as f32 * ROW_HEIGHT - scroll);
+    for shown in state.visible() {
+        let Some(prepared) = &shown.prepared else { continue };
+        let index = shown.index;
+        let top = bounds.origin.y + px(index as f32 * row - scroll);
         let id = format!("{surface}-row-{index}");
         let rect = Bounds::new(
             point(bounds.origin.x, top),
-            size(bounds.size.width, px(ROW_HEIGHT)),
+            size(bounds.size.width, px(row)),
         );
         probe.push(&id, &surface, "row", rect, "", window);
         let rect_at = |x, y, width, height| {
@@ -135,7 +136,7 @@ pub(crate) fn rows(state: &ListState, bounds: Bounds<Pixels>, scroll: f32, windo
             &format!("{id}-glyph"),
             &id,
             "glyph",
-            rect_at(list::PAD_X, 0., list::MARK_SLOT, ROW_HEIGHT),
+            rect_at(list::PAD_X, 0., list::MARK_SLOT, row),
             "",
             window,
         );

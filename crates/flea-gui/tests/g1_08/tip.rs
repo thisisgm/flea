@@ -39,12 +39,15 @@ fn a_hovered_elided_caption_shows_the_whole_name_under_its_label() {
     assert!(adapter.caption_state(1).ends_with("\"tip\":null}"), "another row reads no tip");
 }
 
+// One no-show state applied to a fresh host.
+type Set = fn(&mut super::frames::Host);
+
 #[test]
 fn no_tip_on_a_whole_caption_without_hover_while_editing_on_a_drop_target_or_under_a_band() {
     let mut cx = real_cx();
     let window = open(&mut cx, held(names()));
     let grid = state(&mut cx, window);
-    let cases: [(&str, fn(&mut super::frames::Host)); 6] = [
+    let cases: [(&str, Set); 6] = [
         ("a whole wrapped caption", |host| host.view.hovered = Some(1)),
         ("a one-line caption", |host| host.view.hovered = Some(2)),
         ("no hover", |host| host.view.hovered = None),

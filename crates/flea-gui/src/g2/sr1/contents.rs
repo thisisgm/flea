@@ -1,5 +1,6 @@
 //! Contents results: one fixed-height block per match, the file's row then its first matching line, painted from prepared runs.
 use super::run::{run_in, text_runs, wash_span, RUN_WASH};
+use crate::columns::cache::size_text;
 use crate::list::{mark_bounds, Typeface, END_W, LABEL_X, PAD_X};
 use crate::row;
 use flea::protocol::RowFacts;
@@ -163,7 +164,7 @@ fn prepare(block: &Block, state: &ContentsState, lifted: bool, cells: usize, win
     Prepared {
         name: plain(&name, face.body),
         location: plain(&block.location, face.caption),
-        size: plain(&row::size_text(&block.row), face.caption),
+        size: plain(&size_text(&block.row, None), face.caption),
         number: plain(&block.line_no.to_string(), face.caption),
         wash: wash_span(line_glyphs.line(), line_run, lifted),
         line: line_glyphs,

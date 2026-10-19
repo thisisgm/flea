@@ -6,6 +6,7 @@ use super::paint::{
 };
 use super::tracks::{TrackRows, TrackView};
 use crate::list::pane::{visible_rows, Held, ROW_HEIGHT};
+use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
     GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, SharedString, Style,
@@ -165,8 +166,9 @@ impl Element for TrackElement {
         bounds: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) -> Palette {
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let mut paint = self.paint.borrow_mut();
         let advance = f32::from(paint.body_advance(window));
         let view = &self.tracks[self.at];
@@ -208,7 +210,7 @@ impl Element for TrackElement {
                 row.map(|row| cache.get(index, row, mark != Clip::None, walk, &shaping, window));
             visible.push((index, prepared, mark));
         }
-        Palette::inherited(&window.text_style())
+        Palette::inherited(&window.text_style(), theme)
     }
 
     fn paint(
