@@ -35,6 +35,7 @@ board	boards/cols-facts-*	.*	Previews	G2-previews
 board	boards/cols-html.png	.*	Previews	G2-previews
 board	boards/cols*	.*	Drag, clipboard, windows	G1
 qml	ui/Ipc*.qml	.*	Feedback	G0.4
+qml-test	tests/g1-*.qml	.*	Drag, clipboard, windows	G1
 *	*	^(?:flea\.)?(picker|portal)|#(?:123|297|312)\b	Picker	G2-picker
 *	*	^(?:flea\.)?(filedrag|drop|drag|raildrop|rowdrag|rowdrop|tabdrag|selectionband|clipboard|clipmark|clipselection|marquee|xw|tabtearoff|fleatab|windowdrag)|cross.window|#(?:57|231|262)\b	Drag, clipboard, windows	G2-drag
 *	*	^(?:flea\.)?(localsend|send|taildrop|tailscale|dropbox|cloud|sharebrowser|sharelink)|rclone|#176\b	Send	G2-send
