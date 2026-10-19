@@ -1,6 +1,7 @@
 #!/usr/bin/env bash
 . "$(dirname "${BASH_SOURCE[0]}")/../tools/flea-ipc"
-flea_ipc_init "$BIN"
+# Sourced for definitions by callers with no binary, so the binary keeps the same default chain tools/flea-acceptance sets.
+flea_ipc_init "${BIN:-${FLEA_BIN:-flea}}"
 # The display half of tools/flea-acceptance, which sources this. Everything in here needs a real
 # Flea window, which is why it is a separate file behind a separate flag: the request battery still
 # runs headless on a box whose one display another lane is holding.

@@ -1,6 +1,6 @@
 #!/bin/bash
-. "$(dirname "${BASH_SOURCE[0]}")/../../tools/flea-ipc"
 # Verdict helpers shared by the Bottom-layer probe and headless scan; the probe supplies live readers and the scan stubs them.
+. "$(dirname "${BASH_SOURCE[0]}")/../../tools/flea-ipc"
 
 layerdrop_path_attempts=30
 layerdrop_path_poll=0.5
