@@ -100,8 +100,9 @@ try:
         check((refused.returncode, refused.stdout, refused.stderr) ==
               (3, b"", f"FLEA_IPC_NOT_PORTED {target}.{function}\n".encode()), refused)
     show = subprocess.run([str(binary), "ipc", "--pid", str(first.pid), "show"], env=environment, capture_output=True, timeout=6)
-    check(show.returncode == 0 and b"target flea\n" in show.stdout and b"target fleapicker\n" in show.stdout, show)
-    check(sum(line.startswith(b"  function ") for line in show.stdout.splitlines()) == 334, "registry inventory")
+    check(show.returncode == 0 and b"target flea\n" in show.stdout and b"target fleapicker\n" in show.stdout
+          and b"target fleatab\n  function taken(token: string): bool\n" in show.stdout, show)
+    check(sum(line.startswith(b"  function ") for line in show.stdout.splitlines()) == 335, "registry inventory")
     for name in (b"scene(", b"nativeGeometry(", b"pendingRequests(", b"previewReadiness(", b"sceneState(", b"presentedFrame("):
         check(b"function " + name in show.stdout, "native visual registry signature")
     idle = socket.socket(socket.AF_UNIX)

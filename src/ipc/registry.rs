@@ -63,7 +63,7 @@ pub fn validate(
     name: &str,
     arguments: &[String],
 ) -> Result<&'static Function, Reply> {
-    if !["flea", "fleapicker"].contains(&target) {
+    if !["flea", "fleapicker", "fleatab"].contains(&target) {
         return Err(Reply::value("Target not found."));
     }
     let function = functions()
@@ -115,7 +115,7 @@ pub fn refused(function: &Function) -> Reply {
 
 pub fn show() -> Reply {
     let mut output = String::new();
-    for target in ["flea", "fleapicker"] {
+    for target in ["flea", "fleapicker", "fleatab"] {
         output.push_str(&format!("target {target}\n"));
         for function in functions().filter(|f| f.target == target) {
             output.push_str(&format!("  {}\n", signature(function)));
