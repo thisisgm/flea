@@ -121,8 +121,8 @@ function applyPending(pane) {
     resort(pane, held.key, held.desc)
 }
 
+// Each flag is read the way its reader reads it, and state.sort stays as written because Pane.openWithoutHistory compares it with ViewState's own.
 // Sample input: preferences({}) and preferences({hidden: false, foldersFirst: true, groupByKind: false, hiddenLast: false, rememberSort: true}) are the same string.
-// The preferences a pane re-lists for, each flag read the way its reader reads it.
 function preferences(state) {
     return JSON.stringify([state.hidden === true, state.sort, state.foldersFirst !== false,
                            state.groupByKind === true, state.hiddenLast === true, state.rememberSort !== false])

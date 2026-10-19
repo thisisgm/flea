@@ -19,11 +19,9 @@ ShellRoot {
     // The floors a held key cannot go under: the idle first press holds and loads at once, the second step ends that hold, and the settle loads once.
     readonly property int maxHolds: 3
     readonly property int maxLoads: 2
-    // The frames a columns sweep may draw over the same sweep in the list once the key is up. While it is held every loop turn draws,
-    // so the burst's own count follows the CPU share each sweep got; the burst is pinned by its holds, loads, half-built frames and mark.
+    // The extra frames a columns sweep may draw over the list after the release; the burst itself is bounded per move by maxBurstPerMove.
     readonly property int maxExtraFrames: 20
-    // Burst frames per delivered move, columns over the list: the raw burst count follows each sweep's CPU share, so the
-    // check compares the per-move rate; 0.5 holds the loaded worst case with room, and one extra frame a move reads 1.0.
+    // Burst frames per delivered move, columns over the list: 0.5 holds the loaded worst case with room; one frame a move reads 1.0.
     readonly property real maxBurstPerMove: 0.5
     property int checks: 0
     property int failures: 0

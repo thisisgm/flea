@@ -6,8 +6,8 @@ function due(now, last, interval) {
     return elapsed >= interval || elapsed < 0
 }
 
+// A settle armed for this row before its move reached the clock (ColumnsArea's folder to file step) is left to the clock.
 // plan(50, 0, 120, "b", "b", true) keeps the pending timer; plan(1000, 0, 120, "c", "b", true, false) is "now".
-// Pending names a cursor that has not rested since its last move, however late a busy loop delivers the next move.
 function plan(now, last, interval, key, lastKey, armedForKey, pending) {
     if (key === lastKey && armedForKey === true)
         return "same"
