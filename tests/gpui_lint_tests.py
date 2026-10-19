@@ -220,7 +220,7 @@ source = "{SOURCE}"
             self.write(path, "fn next() { replies.recv_blocking(); }")
             self.assertEqual([], self.check_body("rows.iter().next();"), path)
             (self.root / path).unlink()
-        # Inside one package a binary and its modules are one target, so the library's reach into main.rs is followed.
+        # The lint treats one package's src/ files as one target (a path cannot tell a binary's module from the library's), so this reach is followed.
         self.write("crates/flea-gui/src/main.rs", "fn next() { replies.recv_blocking(); }")
         self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
 
