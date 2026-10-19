@@ -59,30 +59,41 @@ export async function importFile(path) {
     return underNode ? await import(url.pathToFileURL(path).href) : await import(path);
 }
 
-// Sample input: forcing the zone answers true under node, and under quickjs-ng when its std names setenv.
-// The figure helper formats in UTC, so a Gantt render asking for one day runs in a UTC zone.
-export function forceUtcZone() {
+// Sample input: TZ=Pacific/Tongatapu answers true under node and under quickjs-ng when its std names setenv.
+// The zone must be set before the first Date use, where both engines read it.
+function setZone(zone) {
     if (underNode) {
-        process.env.TZ = "UTC";
+        process.env.TZ = zone;
         return true;
     }
     if (std !== null && typeof std.setenv === "function") {
-        std.setenv("TZ", "UTC");
+        std.setenv("TZ", zone);
         return true;
     }
     return false;
 }
 
+// Sample input: forcing the zone answers true under node, and under quickjs-ng when its std names setenv.
+// The figure helper formats in UTC, so a Gantt render asking for one day runs in a UTC zone.
+export function forceUtcZone() {
+    return setZone("UTC");
+}
+
 // Run this script again with arguments under a time bound, answering {status, output}; status 0 is a clean exit.
-export function runSelf(metaUrl, args, boundSeconds) {
+// A named zone is set before the child starts, where both engines read it.
+export function runSelf(metaUrl, args, boundSeconds, zone) {
     const script = pathOfUrl(metaUrl);
     if (underNode) {
-        const child = childProcess.spawnSync(process.execPath, [script, ...args], { timeout: boundSeconds * 1000, encoding: "utf8" });
+        const env = zone ? { ...process.env, TZ: zone } : process.env;
+        const child = childProcess.spawnSync(process.execPath, [script, ...args], { timeout: boundSeconds * 1000, encoding: "utf8", env });
         return { status: child.error ? -1 : child.status, output: child.error ? child.error.code : child.stdout.trim() };
     }
     const exe = os.readlink("/proc/self/exe")[0];
     const [readEnd, writeEnd] = os.pipe();
-    const status = os.exec(["timeout", String(boundSeconds), exe, script, ...args], { block: true, stdout: writeEnd, stderr: writeEnd });
+    const command = zone
+        ? ["env", "TZ=" + zone, "timeout", String(boundSeconds), exe, script, ...args]
+        : ["timeout", String(boundSeconds), exe, script, ...args];
+    const status = os.exec(command, { block: true, stdout: writeEnd, stderr: writeEnd });
     os.close(writeEnd);
     const reader = std.fdopen(readEnd, "r");
     const output = reader.readAsString().trim();

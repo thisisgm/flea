@@ -9,7 +9,90 @@ const CYCLE_BOUND_SECONDS = 5;
 const theme = { bg: "#000000", fg: "#ffffff", font: "monospace", bodyPx: 14 };
 // Sample input: two custom properties refer back to each other inside one style block, which the post-pass never reads as a table and the vocabulary never holds.
 const cyclic = '<svg><style>svg { --a: var(--b); --b: var(--a); }</style><rect fill="var(--a)"/></svg>';
-if (argv[0] === "cycle") {
+const roles = { bg: "#000000", fg: "#ffffff", accent: "#ff0000", muted: "#808080", surface: "#202020", font: "monospace", bodyPx: 14 };
+// A Gantt chart draws the day its request names, whatever the clock says, so a figure cached under one day's key is that day's drawing.
+const gantt = "gantt\n    dateFormat YYYY-MM-DD\n    section Work\n    Build :a1, 2001-10-01, 30d\n    Ship  :after a1, 10d";
+const DAY_MS = 86400000;
+const NOON_19 = Date.UTC(2001, 9, 19, 12);
+const realDate = Date;
+function GuardedDate(...args) {
+    if (args.length === 0)
+        throw new Error("the bundle read the clock through a bare new Date()");
+    return new realDate(...args);
+}
+GuardedDate.prototype = realDate.prototype;
+GuardedDate.UTC = realDate.UTC;
+GuardedDate.parse = realDate.parse;
+// A dated render takes the day from the request alone: a bare new Date() on this path throws, so growing one goes red here.
+function guardedRender(today, clock) {
+    GuardedDate.now = () => clock;
+    globalThis.Date = GuardedDate;
+    try {
+        return renderFigure("mermaid", gantt, true, { ...roles, today }, { mermaidToSvg });
+    } finally {
+        globalThis.Date = realDate;
+    }
+}
+// Sample input: Oct 2001 ticks a week apart with the marker on the 19th read "2001-10-19".
+// The marker's calendar day reads off the figure's own weekly grid, so it holds in any render zone.
+function markerDay(svg) {
+    const grid = (svg.match(/<g class="pele-grid"[^>]*>([\s\S]*?)<\/g>/) || [null, ""])[1];
+    const xs = [...grid.matchAll(/M([\d.]+),/g)].map((m) => Number(m[1]));
+    const days = [...svg.matchAll(/<text[^>]*>(2001-[\d-]+)<\/text>/g)].map((m) => m[1].split("-").map(Number));
+    const marker = Number((svg.match(/<g class="pele-today">[\s\S]*?M([\d.]+),/) || [null, NaN])[1]);
+    const first = Date.UTC(days[0][0], days[0][1] - 1, days[0][2]);
+    const scale = (xs[1] - xs[0]) / ((Date.UTC(days[1][0], days[1][1] - 1, days[1][2]) - first) / DAY_MS);
+    return new Date(first + (marker - xs[0]) / scale * DAY_MS).toISOString().slice(0, 10);
+}
+// Sample input: var MIDDAY_HOUR = 12 in the lazy dating library the figures date through.
+// The zone checks run the library's own dating, so a GUI-side regression goes red here, not in date arithmetic.
+const dateLib = readText(resolve(repoRoot(import.meta.url), "ui/js/FigureDate.js"));
+const dateMidday = Number((dateLib.match(/var MIDDAY_HOUR = (\d+);/) || [0, NaN])[1]);
+const dateOpen = dateLib.indexOf("{", dateLib.indexOf("function datedTheme(kind, source, theme)"));
+let dateDepth = 0;
+let dateClose = -1;
+for (let i = dateOpen; i < dateLib.length; i++) {
+    dateDepth += dateLib[i] === "{" ? 1 : dateLib[i] === "}" ? -1 : 0;
+    if (dateDepth === 0) {
+        dateClose = i;
+        break;
+    }
+}
+const datedTheme = new Function("MIDDAY_HOUR", "return function datedTheme(kind, source, theme) {"
+    + dateLib.slice(dateOpen + 1, dateClose) + "}")(dateMidday);
+// One fixed instant in two GUI zones: 2001-10-20 00:30 at +13 and 2001-10-19 00:30 at -11, both 11:30 UTC.
+const FIXED_NOW = Date.UTC(2001, 9, 19, 11, 30);
+function guiDate(fixed) {
+    function F(...args) {
+        return args.length === 0 ? new realDate(fixed) : new realDate(...args);
+    }
+    F.UTC = realDate.UTC;
+    F.parse = realDate.parse;
+    F.now = () => fixed;
+    F.prototype = realDate.prototype;
+    return F;
+}
+// The child dates in its own zone and the UTC parent renders, the split the helper's jail makes.
+if (argv[0] === "zone") {
+    const zone = argv[1];
+    const want = zone === "Pacific/Tongatapu" ? [20, 0] : [19, 0];
+    const probe = new Date(FIXED_NOW);
+    const zoneOk = probe.getDate() === want[0] && probe.getHours() === want[1];
+    globalThis.Date = guiDate(FIXED_NOW);
+    let dated;
+    try {
+        dated = datedTheme("mermaid", gantt, { ...roles });
+    } finally {
+        globalThis.Date = realDate;
+    }
+    const oldNoon = new Date(2001, 9, 20, 12).getTime();
+    console.log(JSON.stringify({ zoneOk, today: dated.today, oldNoon }));
+    finish(zoneOk ? 0 : 1);
+} else if (argv[0] === "late") {
+    const svg = guardedRender(Date.UTC(2001, 9, 20, 12), FIXED_NOW);
+    console.log(svg.startsWith("<svg") ? markerDay(svg) : "no figure");
+    finish(0);
+} else if (argv[0] === "cycle") {
     try {
         postMermaid(cyclic, theme);
         console.log("FAIL two-variable cycle did not refuse the SVG");
@@ -33,7 +116,6 @@ if (argv[0] === "cycle") {
     const child = runSelf(import.meta.url, ["cycle"], CYCLE_BOUND_SECONDS);
     check(child.status === 0, "two-variable cycle refuses the SVG: " + child.output);
     // The bundle resolves every theme role it draws to the request's own colours, so no var() reaches the post-pass, in a fill or a stroke.
-    const roles = { bg: "#000000", fg: "#ffffff", accent: "#ff0000", muted: "#808080", surface: "#202020", font: "monospace", bodyPx: 14 };
     const flow = renderFigure("mermaid", "flowchart TD\nA --> B", false, roles, { mermaidToSvg });
     check(!flow.includes("var(") && /<svg\b[^>]*\sfill="#ffffff"/.test(flow) && flow.includes('<rect x="-24" y="-22.5" width="48" height="45" fill="#202020" stroke="#808080"'),
         "theme roles resolve to the request's colours: text in the foreground, a node on the surface, its border in the muted role");
@@ -158,29 +240,6 @@ if (argv[0] === "cycle") {
         const lines = (drawn.match(/<text\b[^<>]*>[^<]*<\/text>/g) || [drawn]).map((text) => text.replace(/<[^<>]*>/g, ""));
         check(lines.join(" ").includes(words), "a label reading " + words + " draws its own words: " + lines.join(" | "));
     }
-    // A Gantt chart draws the day its request names, whatever the clock says, so a figure cached under one day's key is that day's drawing.
-    const gantt = "gantt\n    dateFormat YYYY-MM-DD\n    section Work\n    Build :a1, 2001-10-01, 30d\n    Ship  :after a1, 10d";
-    const DAY_MS = 86400000;
-    const NOON_19 = Date.UTC(2001, 9, 19, 12);
-    const realDate = Date;
-    function GuardedDate(...args) {
-        if (args.length === 0)
-            throw new Error("the bundle read the clock through a bare new Date()");
-        return new realDate(...args);
-    }
-    GuardedDate.prototype = realDate.prototype;
-    GuardedDate.UTC = realDate.UTC;
-    GuardedDate.parse = realDate.parse;
-    // A dated render takes the day from the request alone: a bare new Date() on this path throws, so growing one goes red here.
-    function guardedRender(today, clock) {
-        GuardedDate.now = () => clock;
-        globalThis.Date = GuardedDate;
-        try {
-            return renderFigure("mermaid", gantt, true, { ...roles, today }, { mermaidToSvg });
-        } finally {
-            globalThis.Date = realDate;
-        }
-    }
     let datedSvg = "";
     try {
         datedSvg = guardedRender(NOON_19, NOON_19);
@@ -200,29 +259,35 @@ if (argv[0] === "cycle") {
     const day19 = ganttAt(NOON_19, NOON_19);
     check(day19 === ganttAt(NOON_19, NOON_19 + 7 * DAY_MS) && day19 !== ganttAt(NOON_19 + 7 * DAY_MS, NOON_19),
         "a Gantt chart draws the day its request names and not the clock's");
-    // A GUI in UTC+13 asking 2001-10-20 used to send 2001-10-19T23:00Z, which the helper drew as the 19th; noon UTC of the asked day is the 20th in every zone.
-    const utcDayOf = (ms) => new Date(ms).toISOString().slice(0, 10);
-    check(utcDayOf(Date.UTC(2001, 9, 20, 12)) === "2001-10-20", "noon UTC of the asked day is the asked day in every zone");
-    check(utcDayOf(Date.UTC(2001, 9, 19, 23)) === "2001-10-19", "the old UTC+13 value named the 19th, which the helper drew");
-    check(utcDayOf(Date.UTC(2001, 9, 20, 23)) === "2001-10-20", "the old UTC-11 value named the 20th, which noon UTC keeps");
-    // The marker's calendar day read off the figure's own weekly grid, whatever zone renders it.
-    function markerDay(svg) {
-        const grid = (svg.match(/<g class="pele-grid"[^>]*>([\s\S]*?)<\/g>/) || [null, ""])[1];
-        const xs = [...grid.matchAll(/M([\d.]+),/g)].map((m) => Number(m[1]));
-        const days = [...svg.matchAll(/<text[^>]*>(2001-[\d-]+)<\/text>/g)].map((m) => m[1].split("-").map(Number));
-        const marker = Number((svg.match(/<g class="pele-today">[\s\S]*?M([\d.]+),/) || [null, NaN])[1]);
-        const first = Date.UTC(days[0][0], days[0][1] - 1, days[0][2]);
-        const scale = (xs[1] - xs[0]) / ((Date.UTC(days[1][0], days[1][1] - 1, days[1][2]) - first) / DAY_MS);
-        return new Date(first + (marker - xs[0]) / scale * DAY_MS).toISOString().slice(0, 10);
-    }
-    // Sample input: Oct 2001 ticks a week apart with the marker on the 19th read "2001-10-19".
+    check(utcRender, "the lane renders its Gantt days in UTC");
     if (utcRender) {
         const drawnDay = datedSvg.startsWith("<svg") ? markerDay(datedSvg) : "no figure: " + datedSvg.slice(0, 60);
-        check(drawnDay === "2001-10-19", "a UTC+13 and a UTC-11 GUI asking 2001-10-19 are drawn the 19th: " + drawnDay);
+        check(drawnDay === "2001-10-19", "noon UTC of 2001-10-19 renders the 19th in UTC: " + drawnDay);
+        let oldNoon = 0;
+        for (const [zone, day] of [["Pacific/Tongatapu", "2001-10-20"], ["Pacific/Pago_Pago", "2001-10-19"]]) {
+            const child = runSelf(import.meta.url, ["zone", zone], CYCLE_BOUND_SECONDS, zone);
+            let info = { zoneOk: false, today: 0, oldNoon: 0 };
+            try {
+                info = JSON.parse(child.output);
+            } catch (error) {
+                info.error = error.message;
+            }
+            check(child.status === 0 && info.zoneOk === true, "a " + zone + " GUI process reads its own day: " + child.output);
+            const svg = guardedRender(info.today, FIXED_NOW);
+            const drawn = svg.startsWith("<svg") ? markerDay(svg) : "no figure: " + svg.slice(0, 60);
+            check(drawn === day, "a " + zone + " GUI asking " + day + " is drawn " + day + ": " + drawn);
+            if (zone === "Pacific/Tongatapu")
+                oldNoon = info.oldNoon;
+        }
+        // Round 1 dated by local noon: at +13 that names the day before, which a UTC helper draws.
+        const oldDrawn = guardedRender(oldNoon, FIXED_NOW);
+        check(oldDrawn.startsWith("<svg") && markerDay(oldDrawn) === "2001-10-19",
+            "local noon of the asked day draws the day before in a +13 GUI zone");
+        // A helper left in the GUI zone: noon UTC rendered at +13 lands a day late, so the pin matters.
+        const late = runSelf(import.meta.url, ["late", "Pacific/Tongatapu"], CYCLE_BOUND_SECONDS, "Pacific/Tongatapu");
+        check(late.status === 0 && late.output !== "2001-10-20",
+            "noon UTC rendered in a +13 zone draws another day: " + late.output);
     }
-    else
-        check(markerDay(ganttAt(Date.UTC(2001, 9, 20, 12), NOON_19)) !== markerDay(ganttAt(Date.UTC(2001, 9, 19, 23), NOON_19)),
-            "the asked noon draws another day than the old UTC+13 value");
     const styled = postMermaid('<svg><rect style="fill:#ffffff;stroke-width:2;rx:4px" stroke="#000000"/><text style="font-size:12px">a</text></svg>', theme);
     check(styled.includes('fill="#ffffff"') && styled.includes('stroke-width="2"') && styled.includes('rx="4"') && styled.includes('font-size="12px"') && !styled.includes("style="),
         "style attributes become SVG presentation attributes");

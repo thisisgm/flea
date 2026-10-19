@@ -78,8 +78,10 @@ for (const [type, mark, label] of types) {
 }
 // The list and the fixtures name each other: a missing or extra fence goes red here, not as a short count.
 const fenced = new Set(readDir(fixtures).filter((name) => name.endsWith(".md")).map((name) => name.slice(0, -".md".length)));
-check(types.length === fenced.size && types.every(([type]) => fenced.has(type)), "every fixture is listed once: "
-    + types.map(([type]) => type).filter((type) => !fenced.has(type)).join(",") + " without a fence; "
-    + [...fenced].filter((type) => !types.some(([listed]) => listed === type)).join(",") + " fenced but unlisted");
+const listed = types.map(([type]) => type);
+check(new Set(listed).size === listed.length && listed.length === fenced.size && listed.every((type) => fenced.has(type)), "every fixture is listed once: "
+    + listed.filter((type, at) => listed.indexOf(type) !== at).join(",") + " listed twice; "
+    + listed.filter((type) => !fenced.has(type)).join(",") + " without a fence; "
+    + [...fenced].filter((type) => !listed.includes(type)).join(",") + " fenced but unlisted");
 console.log(`mermaid-types: ${checks} check(s), ${failures} failed`);
 finish(failures);

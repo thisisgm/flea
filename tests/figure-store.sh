@@ -134,8 +134,8 @@ output=$( ( env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATURE \
     QT_QPA_PLATFORM=offscreen QT_QPA_PLATFORMTHEME=generic QT_QUICK_BACKEND=software QT_QPA_UPDATE_IDLE_TIME=1 QT_FORCE_STDERR_LOGGING=1 \
     timeout 120 qs -p "$test_root/config" 2>&1 ) 2>/dev/null )
 printf '%s\n' "$output" | grep -aoE 'FIGURE_STORE .*'
-# Sample input: FIGURE_STORE 29 checks, 0 failed.
-expected=29
+# Sample input: FIGURE_STORE 31 checks, 0 failed.
+expected=31
 if ! printf '%s\n' "$output" | grep -qE "FIGURE_STORE $expected checks, 0 failed$"; then
     printf 'figure-store.sh: FAIL expected %s checks, 0 failed\n' "$expected"
     printf '%s\n' "$output" | grep -aE 'ERROR|TypeError|ReferenceError|flea:' | head -10

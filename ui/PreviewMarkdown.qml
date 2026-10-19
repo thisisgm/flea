@@ -2,7 +2,7 @@ import QtQuick
 import Quickshell.Io
 import "." as Flea
 import "js/CodeRuns.js" as CodeRuns
-import "js/FigureDate.js" as FigureDate
+import "js/FigureWarm.js" as FigureWarm
 import "js/Markdown.js" as Markdown
 import "js/MarkdownPrepared.js" as Prepared
 
@@ -126,18 +126,10 @@ Item {
     }
     // The warm query's keys and kinds, naming exactly the cache keys the figures' asks will use; null until the probe exists.
     function warmedQuery(blocks, themes) {
-        var keys = [];
-        var kinds = [];
-        for (var i = 0; i < blocks.length; i++) {
-            if (blocks[i].type !== "figure")
-                continue;
-            var theme = FigureDate.datedTheme(blocks[i].kind, blocks[i].source, themes[blocks[i].kind]);
-            // The preview asks every figure as a display figure; a figure with no theme has no key and so is never known.
-            keys.push(theme ? FigureService.cacheKeyOf(blocks[i].kind, blocks[i].source, theme, true) : "");
-            if (kinds.indexOf(blocks[i].kind) < 0)
-                kinds.push(blocks[i].kind);
+        function keyOf(kind, source, theme) {
+            return FigureService.cacheKeyOf(kind, source, theme, true);
         }
-        return { keys: keys, kinds: kinds };
+        return FigureWarm.query(blocks, themes, keyOf);
     }
     // The warm query, so the helper starts warm when figures are on screen; null until the probe exists.
     readonly property var warmRequest: root.hasFigures && themeProbe.item ? root.warmedQuery(root.warmBlocks,
