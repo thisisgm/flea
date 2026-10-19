@@ -176,6 +176,7 @@ pub struct Model {
     pub sheet_top: usize,
     pub transfer_id: usize,
     pub job_status: super::jobstatus::Status,
+    pub preview_state: super::pane_state::State,
     pub transfer_total: usize,
     pub progress_percent: Option<usize>,
     pub transfer_moving: bool,
@@ -346,6 +347,7 @@ impl Model {
             sheet_top: 0,
             transfer_id: 0,
             job_status: super::jobstatus::Status::default(),
+            preview_state: Default::default(),
             transfer_total: 0,
             progress_percent: None,
             transfer_moving: false,
@@ -679,6 +681,7 @@ impl Model {
     pub fn receive(&mut self, value: Json, wire: &mut Wire) -> io::Result<()> {
         match text(&value, "t") {
             "jobs" | "job" => super::jobstatus::receive(self, &value),
+            "code" => super::syntax::receive(self, &value),
             "filtered" => super::filter::receive(self, &value, wire)?,
             "listed" => {
                 if let Some(path) = self.pending.take() {
@@ -846,31 +849,12 @@ impl Model {
                                 String::new()
                             },
                         ),
-                        (
-                            "Entries",
-                            if count(&value, "entries") > 0 {
-                                super::render::grouped(count(&value, "entries"))
-                            } else {
-                                String::new()
-                            },
-                        ),
-                        (
-                            "Unpacked",
-                            if count(&value, "unpacked") > 0 {
-                                super::render::bytes(count(&value, "unpacked"))
-                            } else {
-                                String::new()
-                            },
-                        ),
                     ] {
                         if !value.is_empty() {
                             self.preview_metadata.push(format!("{} · {}", label, value));
                         }
                     }
-                    if flag(&value, "afailed") {
-                        self.preview_metadata
-                            .push("This archive could not be read.".into());
-                    }
+                    super::pane_state::meta(self, &value);
                     self.preview_width = 0;
                 }
             }

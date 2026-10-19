@@ -69,7 +69,7 @@ impl Job {
         )
     }
 
-    fn start_on(
+    pub(super) fn start_on(
         input: File,
         columns: usize,
         rows: usize,
@@ -127,6 +127,11 @@ impl Drop for Job {
                 });
         }
     }
+}
+
+// Whether chafa is on PATH, for a decoder whose only reader would be chafa.
+pub fn installed() -> bool {
+    std::env::var_os("PATH").is_some_and(|path| find_on(&path).is_some())
 }
 
 fn find_on(path: &OsStr) -> Option<PathBuf> {
