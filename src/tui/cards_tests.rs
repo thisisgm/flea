@@ -7,6 +7,7 @@ pub(crate) const PALETTE: &str = "foreground = \"#a9b1d6\"\nbackground = \"#1a1b
 pub(crate) type Ink = (String, String, bool);
 
 // Each cell's foreground, background and bold, read from a frame's cursor moves and SGR codes.
+// Sample input: "\x1b[2;5H\x1b[1;38;2;169;177;214mA" puts a bold A at x 4, y 1.
 pub(crate) fn inks(text: &str, columns: usize, lines: usize) -> Vec<Vec<Ink>> {
     let mut cells = vec![vec![Ink::default(); columns]; lines];
     let (mut x, mut y, mut ink) = (0, 0, Ink::default());
@@ -31,6 +32,7 @@ pub(crate) fn inks(text: &str, columns: usize, lines: usize) -> Vec<Vec<Ink>> {
     }
     cells
 }
+// Sample input: "1;38;2;169;177;214" sets bold and the truecolour foreground.
 fn sgr(args: &str, ink: &mut Ink) {
     let parts: Vec<&str> = args.split(';').collect();
     let mut i = 0;
@@ -204,8 +206,21 @@ fn padded_cards_never_clip_their_text() {
         m.properties = Some(vec![("Path".into(), path.into())]);
         let card = properties_card(&m);
         let (rows, _, _) = screen(&m, &theme);
-        let label = 6;
+        let (label, _) = property_rows(&m);
         let value: String = (0..card.shown).map(|i| at(&rows, card.y + 3 + i, card.left() + label, card.content() - label).trim_end().to_owned()).collect();
         assert_eq!(value, path, "{columns} columns");
     }
+}
+
+#[test]
+fn a_value_still_shows_beside_a_label_wider_than_the_card() {
+    let theme = Theme::from_text(PALETTE);
+    let mut m = model();
+    m.columns = 12;
+    m.sheet = true;
+    m.properties = Some(vec![("Permissions".into(), "0644".into())]);
+    let card = properties_card(&m);
+    let (rows, _, _) = screen(&m, &theme);
+    let shown: String = (0..card.shown).map(|i| at(&rows, card.y + 3 + i, card.left(), card.content())).collect();
+    assert!(shown.contains("0644"), "{shown:?}");
 }

@@ -1,5 +1,5 @@
 use super::{
-    graphics::{kitty, Protocol},
+    graphics::{kitty, Protocol, FALLBACK_CELL},
     job::Job,
     pane::Ink,
 };
@@ -77,7 +77,7 @@ impl Pdf {
         let (width, height) = self.extent();
         let format = if self.protocol == Protocol::Sixel { "sixel:-" } else { "png:-" };
         // The script takes numbers and one #rrggbb ground; /input is the sandbox's held file descriptor.
-        let script="/usr/bin/pdftoppm -f \"$1\" -l \"$1\" -singlefile -scale-to \"$2\" -png /input | /usr/bin/magick png:- -resize \"$3\" -resize \"$4\" -crop \"$5\" +repage -fill \"$7\" -colorize 5% \"$6\"";
+        let script = format!("/usr/bin/pdftoppm -f \"$1\" -l \"$1\" -singlefile -scale-to \"$2\" -png /input | /usr/bin/magick png:- -resize \"$3\" -resize \"$4\" -crop \"$5\" +repage -fill \"$7\" -colorize {VEIL_PERCENT}% \"$6\"");
         self.image = Some(Job::start(
             self.path.clone(),
             vec![
@@ -85,7 +85,7 @@ impl Pdf {
                 "-o".into(),
                 "pipefail".into(),
                 "-c".into(),
-                script.into(),
+                script,
                 "flea-pdf".into(),
                 self.page.to_string(),
                 width.max(height).saturating_mul(3).min(4096).to_string(),
@@ -166,7 +166,7 @@ impl Pdf {
     }
     // The page box in pixels; a half-block page without known cell pixels takes eight by sixteen a cell.
     fn extent(&self) -> (usize, usize) {
-        if self.still && self.pixels.0 * self.pixels.1 == 0 { (self.columns * 8, self.rows * 16) } else { self.pixels }
+        if self.still && self.pixels.0 * self.pixels.1 == 0 { (self.columns * FALLBACK_CELL.0, self.rows * FALLBACK_CELL.1) } else { self.pixels }
     }
     // Page 1 of 12 · 100%, the page line over the controls.
     pub fn page_line(&self, i18n: &crate::i18n::I18n) -> String {
@@ -213,11 +213,14 @@ fn toolbar(control: usize, focused: bool, quicklook: bool, columns: usize) -> (R
     }
     (runs, hits)
 }
+const FALLBACK_GROUND: &str = "#101315";
+const VEIL_PERCENT: usize = 5;
 // The magick colour for the page veil, the ground as #rrggbb or the fallback ground when it is not one.
 fn ground(hex: &str) -> String {
-    if hex.len() == 7 && hex.starts_with('#') && hex[1..].bytes().all(|b| b.is_ascii_hexdigit()) { hex.into() } else { "#101315".into() }
+    if hex.len() == 7 && hex.starts_with('#') && hex[1..].bytes().all(|b| b.is_ascii_hexdigit()) { hex.into() } else { FALLBACK_GROUND.into() }
 }
 // A decoded page's pixels: a PNG's IHDR, or a sixel's raster attributes after its introducer.
+// Sample input: "1;1;640;480
 fn size(bytes: &[u8]) -> Option<(usize, usize)> {
     if bytes.starts_with(b"\x89PNG") && bytes.len() >= 24 {
         let read = |at: usize| u32::from_be_bytes([bytes[at], bytes[at + 1], bytes[at + 2], bytes[at + 3]]) as usize;

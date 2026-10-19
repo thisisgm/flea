@@ -168,7 +168,7 @@ fn still(model: &mut Model, protocol: Protocol, shown: bool, room: (usize, usize
     match pane_state::kind(row) {
         Kind::Image if pane_state::pictured(row) => state.still.want(key((0, 0, 0)), || Some(Source::File(path.clone()))),
         Kind::Video if Path::new(graphics::POSTER).exists() && probe.is_some() => {
-            let side = graphics::poster_side(probe.map_or((0, 0), |(w, h, _)| (w, h)), (room.0 * 8, room.1 * 16));
+            let side = graphics::poster_side(probe.map_or((0, 0), |(w, h, _)| (w, h)), (room.0 * graphics::FALLBACK_CELL.0, room.1 * graphics::FALLBACK_CELL.1));
             state.still.want(key((0, 0, 0)), || Some(Source::Poster(path.clone(), side)));
         }
         Kind::Pdf => match pdf.as_ref().filter(|pdf| !pdf.png.is_empty()) {

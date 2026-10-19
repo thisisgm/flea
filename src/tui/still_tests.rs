@@ -155,3 +155,12 @@ fn a_cancelled_decode_kills_and_reaps_chafa_before_its_worker_returns() {
     assert_eq!(outcome.err().map(|error| error.to_string()).as_deref(), Some("Preview cancelled"));
     assert_eq!(shells(&marker), Vec::<i32>::new(), "chafa outlived the worker that cancelled it");
 }
+
+#[test]
+fn a_poster_job_whose_worker_is_gone_reports_an_error_and_stops_waiting() {
+    let mut still = Still::default();
+    still.stage = Some(crate::tui::job::Job::orphaned());
+    assert!(!still.poll());
+    assert!(still.stage.is_none(), "still waiting on a dead job");
+    assert_eq!(still.error, UNSHOWN);
+}

@@ -190,11 +190,14 @@ pub fn properties(value: &Json, i18n: &I18n) -> Vec<(String, String)> {
     if flag(value, "symlink") { facts.push(fact("properties.target", text(value, "target").into())); }
     facts
 }
+// The label column takes at most half the room, so a long label leaves the value the other half.
+fn label_column(columns: usize, label: usize) -> usize { label.min(room(columns) / 2) }
 // Each fact's rows: its label beside the value's first line, continuation lines under the value column.
 fn property_rows(m: &Model) -> (usize, Vec<(String, String)>) {
     let facts = m.properties.as_deref().unwrap_or_default();
     let label = facts.iter().map(|(label, _)| text_width(label)).max().unwrap_or(0);
     let label = if label == 0 { 0 } else { label + 2 };
+    let label = label_column(m.columns, label);
     let longest = facts.iter().map(|(_, value)| label + text_width(value)).max().unwrap_or(0).max(PROPERTIES_WIDTH);
     let room = longest.min(room(m.columns)).saturating_sub(label).max(1);
     let rows = facts.iter().flat_map(|(name, value)| Wrapped::new(value, room).enumerate()
