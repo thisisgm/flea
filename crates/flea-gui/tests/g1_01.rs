@@ -22,6 +22,8 @@ fn settings(text: &str) -> Settings {
 mod lifecycle;
 #[path = "g1_01/locale.rs"]
 mod locale;
+#[path = "g1_01/shutdown.rs"]
+mod shutdown;
 #[path = "g1_01/startup.rs"]
 mod startup;
 
