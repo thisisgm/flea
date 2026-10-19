@@ -32,6 +32,9 @@ pub fn request(
         .get("hiddenLast")
         .and_then(|v| v.as_bool())
         .unwrap_or(false);
+    if by == "size" && value.get("foldersByName").and_then(|v| v.as_bool()) == Some(true) {
+        return Ok(super::tuifolders::sort(l, base, desc, hidden_last));
+    }
     ordered(l, base, mime, by, desc, folders, groups, hidden_last)
 }
 

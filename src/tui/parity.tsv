@@ -1,0 +1,255 @@
+# Captured 2026-10-17; default keymap SHA-256 e2dac4ef2f5844b61511dab8f0ba60d1213e9506174fe384118af4c958c26980
+mgr	"<Esc>"	"escape"	listing	["<Esc>"]	escape	bound	The equivalent action uses the resolved Flea handler
+mgr	"<C-[>"	"escape"	listing	["<Esc>"]	escape	different	The equivalent action uses the resolved Flea handler
+mgr	"q"	"quit"	listing	["q"]	quit	bound	The equivalent action uses the resolved Flea handler
+mgr	"Q"	"quit --no-cwd-file"	listing	["Q"]	quitNoCwd	bound	The equivalent action uses the resolved Flea handler
+mgr	"<C-c>"	"close"	listing	["<C-c>"]	tabClose	bound	The equivalent action uses the resolved Flea handler
+mgr	"<C-z>"	"suspend"	mgr	[]		unsupported	Process suspension is unavailable; quit and relaunch the terminal interface
+mgr	"k"	"arrow prev"	listing	["k"]	cursorUp	bound	The equivalent action uses the resolved Flea handler
+mgr	"j"	"arrow next"	listing	["j"]	cursorDown	bound	The equivalent action uses the resolved Flea handler
+mgr	"<Up>"	"arrow prev"	listing	["k"]	cursorUp	different	The equivalent action uses the resolved Flea handler
+mgr	"<Down>"	"arrow next"	listing	["j"]	cursorDown	different	The equivalent action uses the resolved Flea handler
+mgr	["g", "g"]	"arrow top"	listing	["g", "g"]	cursorFirst	bound	The equivalent action uses the resolved Flea handler
+mgr	"G"	"arrow bot"	listing	["G"]	cursorLast	bound	The equivalent action uses the resolved Flea handler
+mgr	"<Home>"	"arrow top"	listing	["g", "g"]	cursorFirst	different	The equivalent action uses the resolved Flea handler
+mgr	"<End>"	"arrow bot"	listing	["G"]	cursorLast	different	The equivalent action uses the resolved Flea handler
+mgr	"<C-u>"	"arrow -50%"	listing	["<C-u>"]	halfPageUp	bound	The equivalent action uses the resolved Flea handler
+mgr	"<C-d>"	"arrow 50%"	listing	["<C-d>"]	halfPageDown	bound	The equivalent action uses the resolved Flea handler
+mgr	"<C-b>"	"arrow -100%"	listing	["<C-b>"]	pageUp	bound	The equivalent action uses the resolved Flea handler
+mgr	"<C-f>"	"arrow 100%"	listing	["<C-f>"]	pageDown	bound	The equivalent action uses the resolved Flea handler
+mgr	"<S-PageUp>"	"arrow -50%"	listing	["<C-u>"]	halfPageUp	different	The equivalent action uses the resolved Flea handler
+mgr	"<S-PageDown>"	"arrow 50%"	listing	["<C-d>"]	halfPageDown	different	The equivalent action uses the resolved Flea handler
+mgr	"<PageUp>"	"arrow -100%"	listing	["<C-b>"]	pageUp	different	The equivalent action uses the resolved Flea handler
+mgr	"<PageDown>"	"arrow 100%"	listing	["<C-f>"]	pageDown	different	The equivalent action uses the resolved Flea handler
+mgr	"h"	"leave"	listing	["h"]	parent	bound	The equivalent action uses the resolved Flea handler
+mgr	"l"	"enter"	listing	["l"]	open	bound	The equivalent action uses the resolved Flea handler
+mgr	"<Left>"	"leave"	listing	["h"]	parent	different	The equivalent action uses the resolved Flea handler
+mgr	"<Right>"	"enter"	listing	["l"]	open	different	The equivalent action uses the resolved Flea handler
+mgr	"H"	"back"	listing	["H"]	historyBack	bound	The equivalent action uses the resolved Flea handler
+mgr	"L"	"forward"	listing	["L"]	historyForward	bound	The equivalent action uses the resolved Flea handler
+mgr	"<Space>"	["toggle", "arrow 1"]	listing	["<Space>"]	selectNext	bound	The equivalent action uses the resolved Flea handler
+mgr	"<C-a>"	"toggle_all --state=on"	listing	["<C-a>"]	selectAll	bound	The equivalent action uses the resolved Flea handler
+mgr	"<C-r>"	"toggle_all"	listing	["<C-r>"]	invertSelection	bound	The equivalent action uses the resolved Flea handler
+mgr	"v"	"visual_mode"	mgr	[]		unsupported	Modal visual selection is unavailable; use Shift+Up or Shift+Down to extend selection
+mgr	"V"	"visual_mode --unset"	mgr	[]		unsupported	Subtracting a visual range is unavailable; toggle individual marks with v
+mgr	"K"	"seek -5"	mgr	[]		unsupported	Focus the preview with Tab, then use Left to seek a supported player
+mgr	"J"	"seek 5"	mgr	[]		unsupported	Focus the preview with Tab, then use Right to seek a supported player
+mgr	"<Tab>"	"spot"	listing	["i"]	properties	different	Tab retains preview focus; Properties is on i
+mgr	"o"	"open"	listing	["o"]	open	bound	The equivalent action uses the resolved Flea handler
+mgr	"O"	"open --interactive"	mgr	[]		unsupported	Interactive application picking is unavailable in this terminal build; O opens a folder tab
+mgr	"<Enter>"	"open"	listing	["o"]	open	different	The equivalent action uses the resolved Flea handler
+mgr	"<S-Enter>"	"open --interactive"	mgr	[]		unsupported	Interactive application picking is unavailable in this terminal build; O opens a folder tab
+mgr	"y"	"yank"	listing	["y"]	copy	bound	The equivalent action uses the resolved Flea handler
+mgr	"x"	"yank --cut"	listing	["x"]	cut	bound	The equivalent action uses the resolved Flea handler
+mgr	"p"	"paste"	listing	["p"]	paste	bound	The equivalent action uses the resolved Flea handler
+mgr	"P"	"paste --force"	mgr	[]		unsupported	Forced overwrite is unavailable; paste with p and answer the collision prompt
+mgr	"-"	"link"	mgr	[]		unsupported	Creating links is unavailable in this terminal build
+mgr	"_"	"link --relative"	mgr	[]		unsupported	Creating relative links is unavailable in this terminal build
+mgr	"<C-->"	"hardlink"	mgr	[]		unsupported	Creating hard links is unavailable in this terminal build
+mgr	"Y"	"unyank"	listing	["Y"]	clearClipboard	bound	The equivalent action uses the resolved Flea handler
+mgr	"X"	"unyank"	listing	["Y"]	clearClipboard	different	X remains unbound for the window-only Carry action; Y clears the internal clipboard
+mgr	"d"	"remove"	listing	["d"]	trash	bound	The equivalent action uses the resolved Flea handler
+mgr	"D"	"remove --permanently"	listing	["D"]	deletePermanently	bound	The equivalent action uses the resolved Flea handler
+mgr	"a"	"create"	listing	["a"]	newFile	bound	The equivalent action uses the resolved Flea handler
+mgr	"A"	"bulk_create"	mgr	[]		unsupported	Bulk creation is unavailable; A opens an agent, a creates one file and N creates one folder
+mgr	"r"	"rename --cursor=before_ext"	listing	["r"]	rename	bound	The equivalent action uses the resolved Flea handler
+mgr	";"	"shell --interactive"	mgr	[]		unsupported	Shell prompts are unavailable; Ctrl+T opens a terminal in this folder
+mgr	":"	"shell --block --interactive"	mgr	[]		unsupported	Blocking shell prompts are unavailable; Ctrl+T opens a terminal in this folder
+mgr	"."	"hidden toggle"	listing	["."]	toggleHidden	bound	The equivalent action uses the resolved Flea handler
+mgr	"s"	"plugin fd"	listing	["s"]	search	bound	The optional preset uses Flea’s built-in filename search
+mgr	"S"	"plugin rg"	mgr	[]		unsupported	Content search is unavailable; s opens built-in filename search
+mgr	"<C-s>"	"escape --search"	mgr	[]		unsupported	Closing only search is unavailable; Escape leaves search or clears its active field
+mgr	"z"	"plugin fzf"	mgr	[]		unsupported	Fuzzy-finder plugins are unavailable; f filters the held rows
+mgr	"Z"	"plugin zoxide"	mgr	[]		unsupported	Directory ranking plugins are unavailable; use g then Space to enter a path
+mgr	["m", "s"]	"linemode size"	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	["m", "p"]	"linemode permissions"	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	["m", "b"]	"linemode btime"	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	["m", "m"]	"linemode mtime"	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	["m", "o"]	"linemode owner"	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	["m", "n"]	"linemode none"	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	["c", "c"]	"copy path"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build
+mgr	["c", "C"]	"copy url"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build
+mgr	["c", "d"]	"copy dirpath"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build
+mgr	["c", "D"]	"copy dirurl"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build
+mgr	["c", "f"]	"copy filename"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build
+mgr	["c", "n"]	"copy name_without_ext"	mgr	[]		unsupported	Copying text fields is unavailable in this terminal build
+mgr	"f"	"filter --smart"	listing	["f"]	filter	bound	The equivalent action uses the resolved Flea handler
+mgr	"/"	"find --smart"	mgr	[]		unsupported	Incremental find traversal is unavailable; f filters the held rows
+mgr	"?"	"find --previous --smart"	mgr	[]		unsupported	Reverse find traversal is unavailable; f filters the held rows
+mgr	"n"	"find_arrow"	mgr	[]		unsupported	Find-next traversal is unavailable; f filters the held rows
+mgr	"N"	"find_arrow --previous"	mgr	[]		unsupported	Find-previous traversal is unavailable; N creates a folder
+mgr	[",", "m"]	["sort mtime --reverse=no", "linemode mtime"]	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	[",", "M"]	["sort mtime --reverse=yes", "linemode mtime"]	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	[",", "b"]	["sort btime --reverse=no", "linemode btime"]	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	[",", "B"]	["sort btime --reverse=yes", "linemode btime"]	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	[",", "e"]	"sort extension --reverse=no"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting
+mgr	[",", "E"]	"sort extension --reverse=yes"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting
+mgr	[",", "a"]	"sort alphabetical --reverse=no"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting
+mgr	[",", "A"]	"sort alphabetical --reverse=yes"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting
+mgr	[",", "n"]	"sort natural --reverse=no"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting
+mgr	[",", "N"]	"sort natural --reverse=yes"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting
+mgr	[",", "s"]	["sort size --reverse=no", "linemode size"]	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	[",", "S"]	["sort size --reverse=yes", "linemode size"]	mgr	[]		unsupported	Specific detail modes are unavailable in this terminal build
+mgr	[",", "r"]	"sort random --reverse=no"	mgr	[]		unsupported	This sort order is unavailable; use alphabetical, size or modified-time sorting
+mgr	["g", "h"]	"cd ~"	listing	["g", "h"]	goHome	bound	The equivalent action uses the resolved Flea handler
+mgr	["g", "c"]	"cd ~/.config"	listing	["g", "c"]	goConfig	bound	The equivalent action uses the resolved Flea handler
+mgr	["g", "d"]	"cd ~/Downloads"	listing	["g", "d"]	goDownloads	bound	The equivalent action uses the resolved Flea handler
+mgr	["g", "t"]	"plugin trash"	mgr	[]		unsupported	The Trash browser is unavailable in this terminal build
+mgr	["g", "<Space>"]	"cd --interactive"	listing	["g", "<Space>"]	pathBar	bound	The equivalent action uses the resolved Flea handler
+mgr	["g", "f"]	"follow"	mgr	[]		unsupported	Following a file to its folder is available only through reveal in a search listing
+mgr	["t", "t"]	"tab_create --current"	listing	["t", "t"]	tabNew	bound	The equivalent action uses the resolved Flea handler
+mgr	["t", "r"]	"tab_rename --interactive"	mgr	[]		unsupported	Custom tab names are unavailable; tabs show their folders
+mgr	"1"	"tab_switch 0"	listing	["1"]	tab1	bound	The equivalent action uses the resolved Flea handler
+mgr	"2"	"tab_switch 1"	listing	["2"]	tab2	bound	The equivalent action uses the resolved Flea handler
+mgr	"3"	"tab_switch 2"	listing	["3"]	tab3	bound	The equivalent action uses the resolved Flea handler
+mgr	"4"	"tab_switch 3"	listing	["4"]	tab4	bound	The equivalent action uses the resolved Flea handler
+mgr	"5"	"tab_switch 4"	listing	["5"]	tab5	bound	The equivalent action uses the resolved Flea handler
+mgr	"6"	"tab_switch 5"	listing	["6"]	tab6	bound	The equivalent action uses the resolved Flea handler
+mgr	"7"	"tab_switch 6"	listing	["7"]	tab7	bound	The equivalent action uses the resolved Flea handler
+mgr	"8"	"tab_switch 7"	listing	["8"]	tab8	bound	The equivalent action uses the resolved Flea handler
+mgr	"9"	"tab_switch 8"	listing	["9"]	tab9	bound	The equivalent action uses the resolved Flea handler
+mgr	"["	"tab_switch -1 --relative"	listing	["["]	tabPrevious	bound	The equivalent action uses the resolved Flea handler
+mgr	"]"	"tab_switch 1 --relative"	listing	["]"]	tabNext	bound	The equivalent action uses the resolved Flea handler
+mgr	"{"	"tab_swap -1"	listing	["{"]	tabMoveLeft	bound	The equivalent action uses the resolved Flea handler
+mgr	"}"	"tab_swap 1"	listing	["}"]	tabMoveRight	bound	The equivalent action uses the resolved Flea handler
+mgr	"w"	"tasks:show"	mgr	[]		unsupported	A task list is unavailable; running operations report in the status row
+mgr	"~"	"help"	listing	["~"]	keymapSheet	bound	The equivalent action uses the resolved Flea handler
+mgr	"<F1>"	"help"	listing	["~"]	keymapSheet	different	The equivalent action uses the resolved Flea handler
+tasks	"<Esc>"	"close"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"<C-[>"	"close"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"<C-c>"	"close"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"w"	"close"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"k"	"arrow prev"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"j"	"arrow next"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"<Up>"	"arrow prev"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"<Down>"	"arrow next"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"<Enter>"	"inspect"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"x"	"cancel"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"~"	"help"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+tasks	"<F1>"	"help"	tasks	[]		unsupported	A task list is unavailable; status-row operations use Escape to cancel
+spot	"<Esc>"	"close"	panel	["<Esc>"]	escape	bound	The scrolling panel uses arrows and Escape
+spot	"<C-[>"	"close"	panel	["<Esc>"]	escape	different	The scrolling panel uses arrows and Escape
+spot	"<C-c>"	"close"	panel	["<Esc>"]	escape	different	The scrolling panel uses arrows and Escape
+spot	"<Tab>"	"close"	panel	["<Esc>"]	escape	different	The scrolling panel uses arrows and Escape
+spot	"k"	"arrow prev"	panel	["<Up>"]	cursorUp	different	The scrolling panel uses arrows and Escape
+spot	"j"	"arrow next"	panel	["<Down>"]	cursorDown	different	The scrolling panel uses arrows and Escape
+spot	"h"	"swipe prev"	panel	[]		unsupported	Properties uses one scrolling panel; cell copying and column swipes are unavailable
+spot	"l"	"swipe next"	panel	[]		unsupported	Properties uses one scrolling panel; cell copying and column swipes are unavailable
+spot	"<Up>"	"arrow prev"	panel	["<Up>"]	cursorUp	bound	The scrolling panel uses arrows and Escape
+spot	"<Down>"	"arrow next"	panel	["<Down>"]	cursorDown	bound	The scrolling panel uses arrows and Escape
+spot	"<Left>"	"swipe prev"	panel	[]		unsupported	Properties uses one scrolling panel; cell copying and column swipes are unavailable
+spot	"<Right>"	"swipe next"	panel	[]		unsupported	Properties uses one scrolling panel; cell copying and column swipes are unavailable
+spot	["c", "c"]	"copy cell"	panel	[]		unsupported	Properties uses one scrolling panel; cell copying and column swipes are unavailable
+spot	"~"	"help"	panel	[]		unsupported	Properties uses one scrolling panel; cell copying and column swipes are unavailable
+spot	"<F1>"	"help"	panel	[]		unsupported	Properties uses one scrolling panel; cell copying and column swipes are unavailable
+pick	"<Esc>"	"close"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"<C-[>"	"close"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"<C-c>"	"close"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"<Enter>"	"close --submit"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"k"	"arrow prev"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"j"	"arrow next"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"<Up>"	"arrow prev"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"<Down>"	"arrow next"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"~"	"help"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+pick	"<F1>"	"help"	pick	[]		unsupported	A separate application picker is unavailable in this terminal build
+input	"<C-c>"	"close"	editor	["<Esc>"]	close	different	Insert-only prompts use the terminal editing key directly
+input	"<Enter>"	"close --submit"	editor	["<Enter>"]	close --submit	bound	Insert-only prompts use the terminal editing key directly
+input	"<Esc>"	"escape"	editor	["<Esc>"]	escape	bound	Insert-only prompts use the terminal editing key directly
+input	"<C-[>"	"escape"	editor	["<Esc>"]	escape	different	Insert-only prompts use the terminal editing key directly
+input	"i"	"insert"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"I"	["move first-char", "insert"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"a"	"insert --append"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"A"	["move eol", "insert --append"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"v"	"visual"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"r"	"replace"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"V"	["move bol", "visual", "move eol"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-A>"	["move eol", "visual", "move bol"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-E>"	["move bol", "visual", "move eol"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"h"	"move -1"	editor	["<Left>"]	move -1	different	Insert-only prompts use the terminal editing key directly
+input	"l"	"move 1"	editor	["<Right>"]	move 1	different	Insert-only prompts use the terminal editing key directly
+input	"<Left>"	"move -1"	editor	["<Left>"]	move -1	bound	Insert-only prompts use the terminal editing key directly
+input	"<Right>"	"move 1"	editor	["<Right>"]	move 1	bound	Insert-only prompts use the terminal editing key directly
+input	"<C-b>"	"move -1"	editor	["<Left>"]	move -1	different	Insert-only prompts use the terminal editing key directly
+input	"<C-f>"	"move 1"	editor	["<Right>"]	move 1	different	Insert-only prompts use the terminal editing key directly
+input	"b"	"backward"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"B"	"backward wide"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"w"	"forward"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"W"	"forward wide"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"e"	"forward --end-of-word"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"E"	"forward wide --end-of-word"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<A-b>"	"backward lean"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<A-f>"	"forward lean --end-of-word"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-Left>"	"backward lean"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-Right>"	"forward lean --end-of-word"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"0"	"move bol"	editor	["<Home>"]	move bol	different	Insert-only prompts use the terminal editing key directly
+input	"$"	"move eol"	editor	["<End>"]	move eol	different	Insert-only prompts use the terminal editing key directly
+input	"_"	"move first-char"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"^"	"move first-char"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-a>"	"move bol"	editor	["<Home>"]	move bol	different	Insert-only prompts use the terminal editing key directly
+input	"<C-e>"	"move eol"	editor	["<End>"]	move eol	different	Insert-only prompts use the terminal editing key directly
+input	"<Home>"	"move bol"	editor	["<Home>"]	move bol	bound	Insert-only prompts use the terminal editing key directly
+input	"<End>"	"move eol"	editor	["<End>"]	move eol	bound	Insert-only prompts use the terminal editing key directly
+input	"<Backspace>"	"backspace"	editor	["<Backspace>"]	backspace	bound	Insert-only prompts use the terminal editing key directly
+input	"<Delete>"	"backspace --under"	editor	["<Delete>"]	backspace --under	bound	Insert-only prompts use the terminal editing key directly
+input	"<C-h>"	"backspace"	editor	["<Backspace>"]	backspace	different	Insert-only prompts use the terminal editing key directly
+input	"<C-d>"	"backspace --under"	editor	["<Delete>"]	backspace --under	different	Insert-only prompts use the terminal editing key directly
+input	"<C-u>"	"kill bol"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-k>"	"kill eol"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-w>"	"kill backward"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<A-d>"	"kill forward"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-Backspace>"	"kill backward"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-Delete>"	"kill forward"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"d"	"delete --cut"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"D"	["delete --cut", "move eol"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"c"	"delete --cut --insert"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"C"	["delete --cut --insert", "move eol"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"s"	["delete --cut --insert", "move 1"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"S"	["move bol", "delete --cut --insert", "move eol"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"x"	["delete --cut", "move 1 --in-operating"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"y"	"yank"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"p"	"paste"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"P"	"paste --before"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"u"	["undo", "casefy lower"]	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"U"	"casefy upper"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-r>"	"redo"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"k"	"recall -1"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"j"	"recall 1"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<Up>"	"recall -1"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<Down>"	"recall 1"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-p>"	"recall -1"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<C-n>"	"recall 1"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"~"	"help"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+input	"<F1>"	"help"	input	[]		unsupported	Prompts use insert-only editing; modal editing, history and a text register are unavailable
+confirm	"<Esc>"	"close"	confirm	["<Esc>"]	close	bound	Enter activates the focused button; Escape cancels
+confirm	"<C-[>"	"close"	confirm	["<Esc>"]	close	different	Enter activates the focused button; Escape cancels
+confirm	"<C-c>"	"close"	confirm	["<Esc>"]	close	different	Enter activates the focused button; Escape cancels
+confirm	"<Enter>"	"close --submit"	confirm	["<Tab>", "<Enter>"]	close --submit	different	Tab focuses Delete and Enter confirms; Enter alone keeps the safe Cancel default
+confirm	"n"	"close"	confirm	["<Esc>"]	close	different	Enter activates the focused button; Escape cancels
+confirm	"y"	"close --submit"	confirm	["<Tab>", "<Enter>"]	close --submit	different	Tab focuses Delete and Enter confirms; Enter alone keeps the safe Cancel default
+confirm	"k"	"arrow prev"	confirm	[]		unsupported	Confirmation uses arrows or Tab and Enter; direct yes/no shortcuts are intentionally unavailable
+confirm	"j"	"arrow next"	confirm	[]		unsupported	Confirmation uses arrows or Tab and Enter; direct yes/no shortcuts are intentionally unavailable
+confirm	"<Up>"	"arrow prev"	confirm	[]		unsupported	Confirmation uses arrows or Tab and Enter; direct yes/no shortcuts are intentionally unavailable
+confirm	"<Down>"	"arrow next"	confirm	[]		unsupported	Confirmation uses arrows or Tab and Enter; direct yes/no shortcuts are intentionally unavailable
+confirm	"~"	"help"	confirm	[]		unsupported	Confirmation uses arrows or Tab and Enter; direct yes/no shortcuts are intentionally unavailable
+confirm	"<F1>"	"help"	confirm	[]		unsupported	Confirmation uses arrows or Tab and Enter; direct yes/no shortcuts are intentionally unavailable
+cmp	"<C-c>"	"close"	completion	["<Esc>"]	close	different	Tab accepts the one path suggestion; Escape closes the field
+cmp	"<Tab>"	"close --submit"	completion	["<Tab>"]	close --submit	bound	Tab accepts the one path suggestion; Escape closes the field
+cmp	"<Enter>"	["close --submit", "input:close --submit"]	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+cmp	"<A-k>"	"arrow prev"	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+cmp	"<A-j>"	"arrow next"	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+cmp	"<Up>"	"arrow prev"	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+cmp	"<Down>"	"arrow next"	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+cmp	"<C-p>"	"arrow prev"	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+cmp	"<C-n>"	"arrow next"	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+cmp	"~"	"help"	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+cmp	"<F1>"	"help"	cmp	[]		unsupported	Path completion has one suggestion accepted with Tab; a selectable completion list is unavailable
+help	"<Esc>"	"escape"	panel	["<Esc>"]	escape	bound	The scrolling panel uses arrows and Escape
+help	"<C-[>"	"escape"	panel	["<Esc>"]	escape	different	The scrolling panel uses arrows and Escape
+help	"<C-c>"	"close"	panel	["<Esc>"]	escape	different	The scrolling panel uses arrows and Escape
+help	"<Enter>"	"close --submit"	panel	[]		unsupported	Help uses Up and Down to scroll and Escape to close; filtering help is unavailable
+help	"k"	"arrow prev"	panel	["<Up>"]	cursorUp	different	The scrolling panel uses arrows and Escape
+help	"j"	"arrow next"	panel	["<Down>"]	cursorDown	different	The scrolling panel uses arrows and Escape
+help	"<Up>"	"arrow prev"	panel	["<Up>"]	cursorUp	bound	The scrolling panel uses arrows and Escape
+help	"<Down>"	"arrow next"	panel	["<Down>"]	cursorDown	bound	The scrolling panel uses arrows and Escape
+help	"<C-p>"	"arrow prev"	panel	["<Up>"]	cursorUp	different	The scrolling panel uses arrows and Escape
+help	"<C-n>"	"arrow next"	panel	["<Down>"]	cursorDown	different	The scrolling panel uses arrows and Escape

@@ -20,11 +20,11 @@ flea_ipc_init() {
 
 flea_ipc_call() {
     if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-}${FLEA_TEST_WINDOW:-} ]]; then
-        python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" route -- "$@"
+        LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" route -- "$@"
         return $?
     fi
     case ${FLEA_IPC_KIND:-} in
-        qml) qs ipc "$@" ;;
+        qml) LC_ALL=C.UTF-8 LANGUAGE= qs ipc "$@" ;;
         gpui)
             local arguments=() config= explicit=false pid
             while [[ $# -gt 0 ]]; do
@@ -36,7 +36,7 @@ flea_ipc_call() {
                 esac
             done
             if [[ -n $config && $explicit == false ]]; then
-                pid=$(python3 -B "$(dirname "$FLEA_IPC_HELPER")/flea_ipc.py" pid "$config") || return $?
+                pid=$(LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/flea_ipc.py" pid "$config") || return $?
                 arguments=(--pid "$pid" "${arguments[@]}")
             fi
             "${FLEA_IPC_BIN:-flea}" ipc "${arguments[@]}" "$@"
@@ -47,10 +47,10 @@ flea_ipc_call() {
 
 flea_ipc_drive() {
     if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-}${FLEA_TEST_WINDOW:-} ]]; then
-        python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" drive -- "$@"
+        LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" drive -- "$@"
         return $?
     fi
-    if [[ $FLEA_IPC_KIND == qml ]]; then omarchy-drive ipc "$@"; return; fi
+    if [[ $FLEA_IPC_KIND == qml ]]; then LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive ipc "$@"; return; fi
     local selector=()
     while [[ ${1:-} == -p || ${1:-} == --path || ${1:-} == --pid ]]; do
         [[ $# -ge 2 ]] || return 2
@@ -61,7 +61,7 @@ flea_ipc_drive() {
 }
 
 flea_ipc_wait() {
-    if [[ $FLEA_IPC_KIND == qml && -z ${FLEA_TEST_WINDOWS_ROOT:-}${FLEA_TEST_WINDOW:-} ]]; then omarchy-drive wait ipc "$@"; return; fi
+    if [[ $FLEA_IPC_KIND == qml && -z ${FLEA_TEST_WINDOWS_ROOT:-}${FLEA_TEST_WINDOW:-} ]]; then LC_ALL=C.UTF-8 LANGUAGE= omarchy-drive wait ipc "$@"; return; fi
     local selector=() timeout_s=10 expected target function answer status started=$SECONDS
     while [[ ${1:-} == -p || ${1:-} == --path || ${1:-} == --pid ]]; do
         [[ $# -ge 2 ]] || return 2
@@ -85,13 +85,13 @@ flea_ipc_wait() {
 
 flea_ipc_list() {
     if [[ -n ${FLEA_TEST_WINDOWS_ROOT:-} ]]; then
-        python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" list -- "$@"
+        LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/../tests/lib/flea_transport_cli.py" list -- "$@"
         return $?
     fi
     if [[ $FLEA_IPC_KIND == qml ]]; then
-        qs list "$@"
+        LC_ALL=C.UTF-8 LANGUAGE= qs list "$@"
     else
-        python3 -B "$(dirname "$FLEA_IPC_HELPER")/flea_ipc.py" list "$@"
+        LC_ALL=C.UTF-8 LANGUAGE= python3 -B "$(dirname "$FLEA_IPC_HELPER")/flea_ipc.py" list "$@"
     fi
 }
 

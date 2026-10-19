@@ -2,6 +2,7 @@ use super::{composition, startup::View};
 use crate::{
     feedback::spinner,
     list::{ListElement, Palette},
+    palette::Theme,
     state::Shell,
 };
 use gpui::{div, prelude::*, px, AnyElement, Context, IntoElement, MouseButton, Render, Window};
@@ -11,13 +12,14 @@ impl Render for Shell {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.capture.report(window, cx);
         let geometry = self.geometry(window);
-        let background = crate::list::Palette::inherited(&window.text_style()).background;
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let background = crate::list::Palette::inherited(&window.text_style(), theme).background;
         let viewport = self.seam.viewport();
         let height = viewport.map_or_else(
             || geometry.rows_height(self.view == View::Dual, self.slots.strip_height),
             |viewport| f32::from(viewport.height),
         );
-        let palette = Palette::inherited(&window.text_style());
+        let palette = Palette::inherited(&window.text_style(), theme);
         let drawn = [self.mark_drawn(0), self.mark_drawn(1)];
         for (side, &drawn) in drawn.iter().enumerate() {
             let Some(host) = &self.panes[side] else {

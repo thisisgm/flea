@@ -13,6 +13,7 @@ use std::thread;
 
 // std has no select, so every source of work reaches the loop as one of these.
 pub enum Event {
+    Git(String),
     Request(String),
     Nearby { ticket: u64, line: String },
     Thumb(Done),
@@ -73,8 +74,16 @@ fn read_lines(source: impl BufRead, tx: &Sender<Event>, live: &Live) {
 
 // One line's worth of that job, split out so a cancel and an ordinary request are asserted apart.
 fn read_line(line: String, live: &Live) -> Event {
+    #[cfg(test)]
+    super::renametiming::input(&line);
     if let Some(Request::TransferCancel { id }) = cancel_in(&line) {
         live.cancel(id);
+    }
+    if line.contains("jobs")
+        && crate::json::field_str(&line, "c").as_deref() == Some("jobs")
+        && crate::json::field_str(&line, "op").as_deref() == Some("cancel")
+    {
+        live.cancel(crate::json::field_usize(&line, "id").unwrap_or(0));
     }
     Event::Request(line)
 }

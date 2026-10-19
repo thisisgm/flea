@@ -4,6 +4,7 @@ pub mod feedback;
 pub mod ipc;
 mod list;
 pub mod navigation;
+pub mod palette;
 pub mod pane;
 mod row;
 pub mod state;

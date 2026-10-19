@@ -48,6 +48,7 @@ pub(crate) fn thumb_rows(
                 }
                 let declared = crate::backend::meta::thumbnailable(mode).then(|| {
                     tb.mime.lookup(name).filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some()).map(str::to_string)
+                        .or_else(|| super::model3d::embedded_thumbnail_supported(name).then(|| "model/x-flea-3d".to_string()))
                 }).flatten();
                 let mime = match declared {
                     None => {
@@ -56,7 +57,8 @@ pub(crate) fn thumb_rows(
                     }
                     Some(m) => m,
                 };
-                match cache.lookup(&path, mtime, tb.thumbs.fingerprint()) {
+                let table = if super::model3d::embedded_thumbnail_supported(name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
+                match cache.lookup(&path, mtime, table) {
                     Hit::Ready(p) => {
                         writeln!(out, "{}", thumbed_line(row, &p.to_string_lossy(), since(t))).ok();
                     }
@@ -93,6 +95,7 @@ pub(crate) fn thumb_rows(
                 .lookup(&name)
                 .filter(|m| tb.thumbs.for_mime(m, &tb.aliases).is_some())
                 .map(str::to_string)
+                .or_else(|| super::model3d::embedded_thumbnail_supported(&name).then(|| "model/x-flea-3d".to_string()))
         });
         let mime = match declared {
             // corner: a row no thumbnailer declares is answered at once and never queued, see AGENTS.md.
@@ -103,7 +106,8 @@ pub(crate) fn thumb_rows(
             Some(m) => m,
         };
         let mtime = meta.map(|m| m.mtime()).unwrap_or(0);
-        match cache.lookup(&path, mtime, tb.thumbs.fingerprint()) {
+        let table = if super::model3d::embedded_thumbnail_supported(&name) { super::model3dreq::THUMB_TABLE } else { tb.thumbs.fingerprint() };
+        match cache.lookup(&path, mtime, table) {
             Hit::Ready(p) => {
                 writeln!(out, "{}", thumbed_line(row, &p.to_string_lossy(), since(t))).ok();
             }
@@ -242,12 +246,12 @@ mod tests {
         ));
         assert!(thumbs.for_mime("image/jpeg", &aliases).is_some(), "the fixture declares jpeg");
         Tables {
-            mime: Arc::new(Db::load()),
-            icons: Arc::new(Names::load()),
-            aliases,
-            thumbs,
+            mime: Arc::new(Db::load()).into(),
+            icons: Arc::new(Names::load()).into(),
+            aliases: aliases.into(),
+            thumbs: thumbs.into(),
             kinds: RefCell::new(Kinds::new()),
-            formats: Arc::new(Formats::probe()),
+            formats: Arc::new(Formats::probe()).into(),
         }
     }
 

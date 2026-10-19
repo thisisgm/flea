@@ -19,7 +19,7 @@ fi
 
 # corner: tmpfs pages are the filesystem, so drop_caches cannot evict them, see AGENTS.md.
 parent=$(dirname "$D")
-fstype=$(findmnt -no FSTYPE --target "$parent" 2>/dev/null)
+fstype=$(LC_ALL=C.UTF-8 LANGUAGE= findmnt -no FSTYPE --target "$parent" 2>/dev/null)
 # An empty answer is a findmnt that failed, and reading it as not-tmpfs would pass the gate above an rm -rf.
 if [ -z "$fstype" ]; then
   echo "flea-bench: findmnt could not name the filesystem holding $parent"
@@ -38,7 +38,7 @@ if [ "$COLD" = "1" ]; then
     exit 1
   fi
 else
-  if [ "$(ls -U "$D" 2>/dev/null | wc -l)" != "$N" ]; then
+  if [ "$(LC_ALL=C.UTF-8 LANGUAGE= ls -U "$D" 2>/dev/null | wc -l)" != "$N" ]; then
     echo "building a $N file directory at $D, this takes a minute"
     # Its own marker, like flea-media-fixture and flea-matched-fixture: the name says which fixture
     # a directory is, so a bench rebuild can never take out the media or matched tree.
@@ -50,15 +50,15 @@ else
     mkdir -p "$D" || { echo "flea-bench: could not create $D"; exit 1; }
     # ls -U hides it, so the N-file count this script keeps is unaffected by the marker.
     : > "$D/$marker" || { echo "flea-bench: could not mark $D"; exit 1; }
-    python3 -c "
+    LC_ALL=C.UTF-8 LANGUAGE= python3 -c "
 import os, sys
 d, n = sys.argv[1], int(sys.argv[2])
 for i in range(n):
     open(os.path.join(d, 'some_file_name_%d.txt' % i), 'w').close()
 " "$D" "$N"
     sync
-    if [ "$(ls -U "$D" | wc -l)" != "$N" ]; then
-      echo "flea-bench: building $D produced $(ls -U "$D" | wc -l) files, not $N"
+    if [ "$(LC_ALL=C.UTF-8 LANGUAGE= ls -U "$D" | wc -l)" != "$N" ]; then
+      echo "flea-bench: building $D produced $(LC_ALL=C.UTF-8 LANGUAGE= ls -U "$D" | wc -l) files, not $N"
       exit 1
     fi
   fi
@@ -72,17 +72,17 @@ if [ -z "$out" ]; then
   echo "flea-bench: $BIN --backend produced no output"
   exit 1
 fi
-echo "  phase 1 read : $(echo "$out" | head -1 | grep -oE '"read":[0-9.]+' | cut -d: -f2) ms"
-echo "  phase 1 sort : $(echo "$out" | head -1 | grep -oE '"sort":[0-9.]+' | cut -d: -f2) ms"
-echo "  window stat  : $(echo "$out" | sed -n 2p | grep -oE '"ms":[0-9.]+' | cut -d: -f2) ms"
-echo "  rows in first window: $(echo "$out" | sed -n 2p | grep -o '"n":"' | wc -l | tr -d ' ')"
+echo "  phase 1 read : $(echo "$out" | head -1 | LC_ALL=C.UTF-8 LANGUAGE= grep -oE '"read":[0-9.]+' | cut -d: -f2) ms"
+echo "  phase 1 sort : $(echo "$out" | head -1 | LC_ALL=C.UTF-8 LANGUAGE= grep -oE '"sort":[0-9.]+' | cut -d: -f2) ms"
+echo "  window stat  : $(echo "$out" | LC_ALL=C.UTF-8 LANGUAGE= sed -n 2p | LC_ALL=C.UTF-8 LANGUAGE= grep -oE '"ms":[0-9.]+' | cut -d: -f2) ms"
+echo "  rows in first window: $(echo "$out" | LC_ALL=C.UTF-8 LANGUAGE= sed -n 2p | LC_ALL=C.UTF-8 LANGUAGE= grep -o '"n":"' | wc -l | LC_ALL=C.UTF-8 LANGUAGE= tr -d ' ')"
 
 pid=$$
 PW=/run/user/$(id -u)/flea-bench-prewarm-$pid.json
-start=$(date +%s%3N)
+start=$(LC_ALL=C.UTF-8 LANGUAGE= date +%s%3N)
 if ! "$BIN" --prewarm "$D" "$WINDOW" "$PW"; then
   echo "flea-bench: $BIN --prewarm failed"
   exit 1
 fi
-echo "  prewarm total: $(( $(date +%s%3N) - start )) ms"
+echo "  prewarm total: $(( $(LC_ALL=C.UTF-8 LANGUAGE= date +%s%3N) - start )) ms"
 rm -f "$PW"

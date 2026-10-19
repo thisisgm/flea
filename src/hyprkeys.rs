@@ -210,7 +210,7 @@ pub fn descriptions(binds: &str) -> [Option<String>; 2] {
 }
 
 fn current_descriptions() -> Option<[Option<String>; 2]> {
-    let out = Command::new("hyprctl").arg("binds").stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
+    let out = crate::backend::locale::command("hyprctl").arg("binds").stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
     if !out.status.success() {
         return None;
     }
@@ -238,7 +238,7 @@ fn reload() -> bool {
 
 // None when hyprctl cannot be reached, otherwise what configerrors printed, which is empty when the config loads.
 fn configerrors() -> Option<String> {
-    let out = Command::new("hyprctl").arg("configerrors").stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
+    let out = crate::backend::locale::command("hyprctl").arg("configerrors").stdin(Stdio::null()).stderr(Stdio::null()).output().ok()?;
     if !out.status.success() {
         return None;
     }

@@ -176,6 +176,9 @@ mod tests {
     use std::path::PathBuf;
     use std::time::Duration;
 
+    // How long a test waits, in milliseconds, for the wake socket to poll ready; the poll returns as soon as it does.
+    const WAKE_WAIT_MS: i32 = 5000;
+
     #[test]
     fn a_wake_the_reader_closed_leaves_the_poll() {
         let (mut wire, reader) = echo_wire();
@@ -185,8 +188,16 @@ mod tests {
         wire.wake = Some(wake);
         wire.drain_wake();
         assert!(wire.wake_fd() >= 0, "an open wake stays polled after its bytes are read");
+        // A process another test forks holds a copy of the ring until it execs or exits, so the close shows only after the last copy goes.
+        let forked = ring.try_clone().unwrap();
         // The reader thread's end goes away with it; a closed socket would poll ready on every call from then on.
         drop(ring);
+        wire.drain_wake();
+        assert!(wire.wake_fd() >= 0, "a ring a forked copy still holds is not closed yet");
+        drop(forked);
+        // The main loop drains after its poll returns, so the test waits for the close the same way, bounded for a fork that lingers.
+        let (stdin, _held) = UnixStream::pair().unwrap();
+        crate::tui::terminal::wait_input(stdin.as_raw_fd(), wire.wake_fd(), WAKE_WAIT_MS).unwrap();
         wire.drain_wake();
         assert_eq!(wire.wake_fd(), -1);
         drop(wire);
@@ -199,8 +210,8 @@ mod tests {
         let wire = Wire::start(None).unwrap();
         let (stdin, _held) = UnixStream::pair().unwrap();
         let before = std::time::Instant::now();
-        assert!(!crate::tui::terminal::wait_input(stdin.as_raw_fd(), wire.wake_fd(), 5000).unwrap());
-        assert!(before.elapsed() < Duration::from_millis(5000), "the wake never rang after the backend exited");
+        assert!(!crate::tui::terminal::wait_input(stdin.as_raw_fd(), wire.wake_fd(), WAKE_WAIT_MS).unwrap());
+        assert!(before.elapsed() < Duration::from_millis(WAKE_WAIT_MS as u64), "the wake never rang after the backend exited");
         let event = wire.events.try_recv();
         assert!(matches!(&event, Ok(Err(error)) if error == "The file list stopped; restart Flea"), "a ringing wake had no stop queued: {:?}", event.map(|value| value.map(|_| ())));
     }

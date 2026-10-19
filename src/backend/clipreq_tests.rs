@@ -127,6 +127,7 @@ fn a_watch_starts_once_and_the_second_is_silent() {
     let (events, _events) = channel();
     // Exhaustive construction pins that the backend retains no clipboard report state.
     let mut state = State {
+        git: None,
         listing: Listing::new(),
         base: Default::default(),
         asked: Vec::new(),

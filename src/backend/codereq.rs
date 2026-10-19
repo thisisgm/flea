@@ -115,7 +115,24 @@ pub(super) fn begin(slot: &str) -> Ticket {
     Ticket { slot: slot.to_string(), seq, run }
 }
 
+pub(super) struct Cancellation(Arc<Mutex<Run>>);
+
+impl Cancellation {
+    pub(super) fn cancel(self) {
+        let previous = std::mem::replace(&mut *held(&self.0), Run::Cancelled);
+        if let Run::Live(mut jailed) = previous { jail::kill_tree(&mut jailed); }
+    }
+}
+
 impl Ticket {
+    pub(super) fn cancellation(&self) -> Cancellation { Cancellation(Arc::clone(&self.run)) }
+
+    // A synchronous preview caller has no wire reply, but must release its completed slot.
+    pub(super) fn discard(self) {
+        let mut slots = held(table());
+        if slots.get(&self.slot).is_some_and(|(seq, _)| *seq == self.seq) { slots.remove(&self.slot); }
+    }
+
     pub(super) fn superseded(&self) -> bool {
         matches!(*held(&self.run), Run::Cancelled)
     }

@@ -71,6 +71,7 @@ mod tests {
         listing.push("file", false);
         State {
             trash_asked: Vec::new(),
+            git: None,
             listing,
             base,
             asked: Vec::new(),

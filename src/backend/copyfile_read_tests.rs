@@ -4,7 +4,8 @@ use std::io::{self, Read};
 use std::sync::{mpsc, Arc};
 use std::time::{Duration, Instant};
 
-const BOUND: Duration = Duration::from_millis(250);
+// Each test releases the held read only after the result, so a result inside this deadline came before the read returned; it ends only a cancel that never lands.
+const CANCEL_DEADLINE: Duration = Duration::from_secs(5);
 const SETUP_BOUND: Duration = Duration::from_secs(5);
 
 fn quiet<'a>(flag: &'a AtomicBool, sink: &'a mut dyn FnMut(u64, u64)) -> Progress<'a> {
@@ -72,7 +73,7 @@ fn cancel_held_read(first: bool) {
     let held_destination = std::fs::File::open(&dst).expect("hold the partial inode across unlink");
     flag.store(true, Ordering::Relaxed);
     let started = Instant::now();
-    let prompt = done.recv_timeout(BOUND);
+    let prompt = done.recv_timeout(CANCEL_DEADLINE);
     let elapsed = started.elapsed();
     let prompt_returned = prompt.is_ok();
     let removed_promptly = !dst.exists();
@@ -84,7 +85,7 @@ fn cancel_held_read(first: bool) {
     let (answer, partial) = prompt.unwrap_or_else(|_| done.recv_timeout(SETUP_BOUND).unwrap());
     worker.join().unwrap();
     exited.recv_timeout(SETUP_BOUND).expect("the abandoned reader exits when released");
-    assert!(prompt_returned, "Cancel remained blocked on the source read for at least {:?}", BOUND);
+    assert!(prompt_returned, "Cancel remained blocked on the source read for at least {:?}", CANCEL_DEADLINE);
     assert!(removed_promptly, "cancel must unlink the partial before the read returns");
     assert_eq!(answer.unwrap_err().msg, "cancelled");
     assert!(partial.is_none(), "a cancelled partial is removed rather than journaled");
@@ -168,7 +169,9 @@ fn a_stalled_transfer_reports_cancelled_before_the_read_returns() {
     });
     waiting.recv_timeout(SETUP_BOUND).expect("the transfer is inside its source read");
     live.cancel(17);
-    let prompt = done.recv_timeout(BOUND).is_ok();
+    let started = Instant::now();
+    let prompt = done.recv_timeout(CANCEL_DEADLINE).is_ok();
+    let elapsed = started.elapsed();
     let removed_promptly = !dst.exists();
     release.send(()).unwrap();
     worker.join().unwrap();
@@ -181,6 +184,7 @@ fn a_stalled_transfer_reports_cancelled_before_the_read_returns() {
     }).expect("the cancelled operation sends its terminal row result");
     assert_eq!((terminal.0, terminal.1, terminal.2, terminal.3, terminal.4), (17, 0, 0, 1, true));
     assert!(terminal.5.steps.is_empty(), "a removed partial creates no undo step");
+    eprintln!("stalled transfer cancel returned within {:?}", elapsed);
 }
 
 #[test]

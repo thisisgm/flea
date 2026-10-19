@@ -17,7 +17,7 @@ fn request_line(path: &Path, id: usize) -> String {
 fn fixture(d: &TestDir) -> (Tables, State, Pool, Cache, String, PathBuf, i64) {
     let mut tb = Tables::load();
     tb.thumbs = Arc::new(Thumbnailers::from_entries(&[("test.thumbnailer".into(),
-        "[Thumbnailer Entry]\nExec=/usr/bin/false %i %o %s\nMimeType=image/jpeg;\n".into())], &tb.aliases));
+        "[Thumbnailer Entry]\nExec=/usr/bin/false %i %o %s\nMimeType=image/jpeg;\n".into())], &tb.aliases)).into();
     let (events, _) = channel();
     let st = State::new(crate::backend::dirsizeworker::Worker::new(events));
     d.dir("files");
@@ -326,7 +326,7 @@ fn producer_publication(d: &TestDir, tb: &mut Tables, path: &Path, mtime: i64, i
     });
     let decoder = d.script("trash-producer", &body);
     let entry = format!("[Thumbnailer Entry]\nExec={} %i %o\nMimeType=image/jpeg;\n", decoder.display());
-    tb.thumbs = Arc::new(Thumbnailers::from_entries(&[("producer.thumbnailer".into(), entry)], &tb.aliases));
+    tb.thumbs = Arc::new(Thumbnailers::from_entries(&[("producer.thumbnailer".into(), entry)], &tb.aliases)).into();
     let tables = crate::backend::thumbs::Tables { aliases: Arc::clone(&tb.aliases), specs: Arc::clone(&tb.thumbs), cache: Cache::at(d.join("cache")), worker: None };
     let mut job = Job { path: path.into(), mtime, trash_identity: identity.map(str::to_owned), mime: "image/jpeg".into(), trace: None };
     let result = crate::backend::thumbs::run_one_in(&tables, &mut job, &d.join("raw"));

@@ -68,7 +68,7 @@ impl Taildrop {
         self.peers.clear();
         self.error.clear();
         self.result = None;
-        match Command::new("tailscale")
+        match crate::backend::locale::command("tailscale")
             .args(["status", "--json"])
             .stdin(Stdio::null())
             .stdout(Stdio::piped())

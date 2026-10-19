@@ -437,10 +437,11 @@ single call and `BULK_DEADLINE` of 15 s for a bulk pass, and past it the loop an
 "<mount> is not responding." A mount past its deadline is marked stuck for `STUCK_TTL` of 30 s, and
 a call on one answers at once without a worker until that passes, when the next request probes it
 again. A worker that dies before answering is this machine's fault and marks nothing: only a
-deadline still running marks the mount stuck. A remote `rename` or `mkdir` runs on its own worker with
-CALL_DEADLINE, as reads do, and the loop never waits on it longer than that: a local one stays
-inline with no hop, an in-time remote write answers exactly as before, and past the deadline the loop
-answers a `slow` line and moves on, never marking the mount stuck for a write still running. The worker
+deadline still running marks the mount stuck. Every `rename`, local or remote, runs on its own worker,
+and its journal publication runs off the dispatcher too. A remote `mkdir` runs on its own worker with
+CALL_DEADLINE, as reads do; a local `mkdir` stays inline with no hop. A rename or remote mkdir past
+CALL_DEADLINE answers a `slow` line while the dispatcher keeps serving requests, never marking the
+mount stuck for a write still running. An in-time write answers exactly as before. The worker
 stays tracked and reports through the op channel when it lands, journalled exactly as the in-time path
 would, so one journal entry per request and one undo reverses it. A `link` claims the one-operation slot
 through `start_link` and runs every item on a worker from the start, so the loop stays responsive with
@@ -3949,6 +3950,8 @@ file owns the watched, delete and preference anchor contracts together; `ui/js/A
 counted-reload pins. `ui/PaneSwap.qml` is 186, applying the watched anchor with row height before
 the preference anchor. `tests/xwsettings-tabs.qml` is 416 for the native immediate-reload, kept-file and selection-clear pins, preserving the two-window watch coverage under xw5. Global limits and checks remain unchanged.
 
+The 0.4.0 merges of batches B, D and E into int re-derive their conflicted ceilings with `wc -l`; each ceiling is the merged file's length, where both sides grew a file under its own review: `src/backend/run.rs` 1177, `src/backend/proto.rs` 499, `src/backend/thumbs.rs` 561, `src/backend/dirsizeworker.rs` 577, `src/backend/watch.rs` 555, `src/backend/thumbreq.rs` 472, `src/backend/thumbspec.rs` 479, `src/backend/officepdf.rs` 423 and `src/backend/run_session_tests.rs` 544. Batch B's locale pin moves two mx2 files after that record: `src/figurehelper.rs` 178 to 177 for launching qjs through `locale::command`, and `tools/vendor-js/build.sh` 43 to 47 for exporting `LC_ALL=C.UTF-8` and unsetting `LANGUAGE`. Global limits stay unchanged.
+
 The x5m round 3 fixes re-derive the touched ceilings with `wc -l`: `ui/js/Anchor.js` is 405 for
 request-scoped locate IDs, separate send statements and the unfinished-anchor hold;
 `ui/PaneWire.qml` is 575 and `tests/js/xwwatch.js` is 310 after folding the cited comment blocks
@@ -5525,7 +5528,9 @@ the decoder's wrapper. `sandbox::wrap_archive` is the one `run_boxed_cancellable
 both archive jobs, the same flags and the same 2 GiB address-space cap with the `--cpu`
 argument left out, and `prlimit` stays outermost so that cap still arrives. Convert runs
 on the capped cancellable runner now and keeps the decoder's `--cpu=30`, because convert decodes
-untrusted input and has no UI cancel. A legitimate compress past 30 CPU
+untrusted input and has no UI cancel. The office conversion runs on that runner with its own
+`--as=8589934592`, `officepdf::ADDRESS_SPACE_BYTES`: LibreOffice 26.8.1.1 converted nothing at 2 GiB
+(`std::bad_alloc` or status 139), not every file below 3.5 GiB, and every file at 4 GiB. A legitimate compress past 30 CPU
 seconds is work rather than a runaway, the ticket's own finding for extract. Extract carries
 the operator's cancel, which kills and reaps the child and discards the staging directory.
 When the archive tool has not exited ten seconds after the cancel, its work

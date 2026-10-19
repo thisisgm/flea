@@ -7,6 +7,7 @@ pub mod seam;
 #[cfg(test)]
 mod tests;
 
+use crate::palette::Theme;
 use crate::row::{
     self,
     cache::{Prepared, RowCache, Shaping},
@@ -66,14 +67,14 @@ pub struct Palette {
 }
 
 impl Palette {
-    /// Interim roles from the inherited text style until the theme tokens land.
-    pub fn inherited(style: &TextStyle) -> Self {
-        let foreground = style.color;
+    /// An inherited background keeps its own text colour; otherwise Omarchy's theme sets both.
+    pub fn inherited(style: &TextStyle, theme: Theme) -> Self {
+        let (background, foreground) = match style.background_color {
+            Some(background) => (background, style.color),
+            None => (theme.background, theme.foreground),
+        };
         Self {
-            background: style.background_color.unwrap_or(Hsla {
-                l: 1. - foreground.l,
-                ..foreground
-            }),
+            background,
             foreground,
             metadata: foreground.opacity(0.62),
             metadata_frame: foreground.opacity(0.5),
@@ -258,7 +259,7 @@ impl Element for ListElement {
         bounds: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) -> Palette {
         let mut state = self.state.borrow_mut();
         state.drawn_cursor = Some(self.cursor);
@@ -285,7 +286,8 @@ impl Element for ListElement {
             visible.push((index, prepared));
         }
         crate::visual::geometry::rows(&state, bounds, self.scroll_y, window);
-        Palette::inherited(&window.text_style())
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        Palette::inherited(&window.text_style(), theme)
     }
 
     fn paint(

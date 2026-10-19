@@ -2292,3 +2292,961 @@ action = "previewPageBack"
 label = "page preview back"
 frontend = "gui"
 context = "listing"
+
+# Terminal-only bindings; the GUI generator reads the shared tables above.
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "O"
+action = "openTab"
+label = "Open in new tab"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "Y"
+action = "redo"
+label = "Redo"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrlshift"
+key = "Z"
+action = "redo"
+label = "Redo"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "N"
+action = "newFolder"
+label = "New folder"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrlshift"
+key = "N"
+action = "newFolder"
+label = "New folder"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "M"
+action = "movePaste"
+label = "Move here"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "U"
+action = "duplicate"
+label = "Duplicate"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "i"
+action = "properties"
+label = "Properties"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "E"
+action = "editFile"
+label = "Edit in terminal"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "I"
+action = "detailNext"
+label = "Detail column"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "P"
+action = "print"
+label = "Print…"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "q"
+action = "quit"
+label = "Quit"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "Q"
+action = "quitNoCwd"
+label = "Quit without directory handoff"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "Tab"
+action = "focusPreview"
+label = "Focus the preview"
+context = "listing,preview,pdf,media"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "PageDown"
+action = "tabNext"
+label = "Next tab"
+context = "listing,preview,pdf,media"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "PageUp"
+action = "tabPrevious"
+label = "Previous tab"
+context = "listing,preview,pdf,media"
+
+[[tui]]
+name = "mac"
+mods = "text"
+key = "H"
+action = "historyBack"
+label = "Back"
+context = "listing"
+
+[[tui]]
+name = "mac"
+mods = "text"
+key = "L"
+action = "historyForward"
+label = "Forward"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "j"
+action = "cursorDown"
+label = "Cursor down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "k"
+action = "cursorUp"
+label = "Cursor up"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "C"
+action = "tabClose"
+label = "Close tab"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "BracketLeft"
+action = "escape"
+label = "Close or go back"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "U"
+action = "halfPageUp"
+label = "Half page up"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "D"
+action = "halfPageDown"
+label = "Half page down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "B"
+action = "pageUp"
+label = "Page up"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "F"
+action = "pageDown"
+label = "Page down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "shift"
+key = "PageUp"
+action = "halfPageUp"
+label = "Half page up"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "shift"
+key = "PageDown"
+action = "halfPageDown"
+label = "Half page down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "l"
+action = "open"
+label = "Open"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "none"
+key = "Right"
+action = "open"
+label = "Open"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "none"
+key = "Space"
+action = "selectNext"
+label = "Select and move down"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "R"
+action = "invertSelection"
+label = "Invert selection"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "v"
+action = "toggleSelect"
+label = "Select"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "V"
+action = "clearSelection"
+label = "Clear selection"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "o"
+action = "open"
+label = "Open"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "y"
+action = "copy"
+label = "Copy"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "x"
+action = "cut"
+label = "Cut"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "p"
+action = "paste"
+label = "Paste"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "Y"
+action = "clearClipboard"
+label = "Clear clipboard"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "d"
+action = "trash"
+label = "Move to Trash"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "D"
+action = "deletePermanently"
+label = "Delete permanently"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "a"
+action = "newFile"
+label = "New file"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "r"
+action = "rename"
+label = "Rename"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "f"
+action = "filter"
+label = "Filter"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "/"
+action = "filter"
+label = "Filter"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "s"
+action = "search"
+label = "Find"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "~"
+action = "keymapSheet"
+label = "Keyboard Shortcuts"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "none"
+key = "F1"
+action = "keymapSheet"
+label = "Keyboard Shortcuts"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "g"
+action = "prefix:g"
+label = "prefix:g"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "t"
+action = "prefix:t"
+label = "prefix:t"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = ","
+action = "prefix:,"
+label = "prefix:,"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "c"
+action = "prefix:c"
+label = "prefix:c"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "m"
+action = "prefix:m"
+label = "prefix:m"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "g"
+action = "cursorFirst"
+label = "First item"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "h"
+action = "goHome"
+label = "Home folder"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "c"
+action = "goConfig"
+label = "Configuration folder"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "d"
+action = "goDownloads"
+label = "Downloads folder"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "none"
+key = "Space"
+action = "pathBar"
+label = "Go to folder"
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "t"
+action = "tabNew"
+label = "New tab"
+context = "listing"
+prefix = "t"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "a"
+action = "sortName"
+label = "Sort by name"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "A"
+action = "sortNameReverse"
+label = "Sort by name descending"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "m"
+action = "sortDate"
+label = "Sort by modified time"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "M"
+action = "sortDateReverse"
+label = "Sort by modified time descending"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "s"
+action = "sortSize"
+label = "Sort by size"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "S"
+action = "sortSizeReverse"
+label = "Sort by size descending"
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "s"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = "Detail column"
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "m"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = "Detail column"
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "p"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = "Detail column"
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "o"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = "Detail column"
+context = "listing"
+prefix = "m"
+
+[[tuisheet]]
+action = "deletePermanently"
+label = "Delete permanently"
+
+[[tuisheet]]
+action = "redo"
+label = "Redo"
+
+[[tuisheet]]
+action = "newFile"
+label = "New file"
+
+[[tuisheet]]
+action = "movePaste"
+label = "Move here"
+
+[[tuisheet]]
+action = "duplicate"
+label = "Duplicate"
+
+[[tuisheet]]
+action = "tabMoveLeft"
+label = "Move tab left"
+
+[[tuisheet]]
+action = "tabMoveRight"
+label = "Move tab right"
+
+[[tuisheet]]
+action = "tabNew"
+label = "New tab"
+
+[[tuisheet]]
+action = "tabClose"
+label = "Close tab"
+
+[[tuisheet]]
+action = "tabNext"
+label = "Next tab"
+
+[[tuisheet]]
+action = "tabPrevious"
+label = "Previous tab"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "H"
+action = "historyBack"
+label = "Back"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "L"
+action = "historyForward"
+label = "Forward"
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "P"
+action = "cursorUp"
+label = ""
+context = "panel"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "N"
+action = "cursorDown"
+label = ""
+context = "panel"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "C"
+action = "escape"
+label = ""
+context = "panel"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "BracketLeft"
+action = "escape"
+label = ""
+context = "panel"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "Z"
+action = "unsupported:Process suspension is unavailable; quit and relaunch the terminal interface"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "K"
+action = "unsupported:Focus the preview with Tab, then use Left to seek a supported player"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "J"
+action = "unsupported:Focus the preview with Tab, then use Right to seek a supported player"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "shift"
+key = "Return"
+action = "unsupported:Interactive application picking is unavailable in this terminal build; O opens a folder tab"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "P"
+action = "unsupported:Forced overwrite is unavailable; paste with p and answer the collision prompt"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "-"
+action = "unsupported:Creating links is unavailable in this terminal build"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "_"
+action = "unsupported:Creating relative links is unavailable in this terminal build"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "Minus"
+action = "unsupported:Creating hard links is unavailable in this terminal build"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = ";"
+action = "unsupported:Shell prompts are unavailable; Ctrl+T opens a terminal in this folder"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = ":"
+action = "unsupported:Blocking shell prompts are unavailable; Ctrl+T opens a terminal in this folder"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "S"
+action = "unsupported:Content search is unavailable; s opens built-in filename search"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "ctrl"
+key = "S"
+action = "unsupported:Closing only search is unavailable; Escape leaves search or clears its active field"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "z"
+action = "unsupported:Fuzzy-finder plugins are unavailable; f filters the held rows"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "Z"
+action = "unsupported:Directory ranking plugins are unavailable; use g then Space to enter a path"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "b"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "n"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "m"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "c"
+action = "unsupported:Copying text fields is unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "C"
+action = "unsupported:Copying text fields is unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "d"
+action = "unsupported:Copying text fields is unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "D"
+action = "unsupported:Copying text fields is unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "f"
+action = "unsupported:Copying text fields is unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "n"
+action = "unsupported:Copying text fields is unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "c"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "?"
+action = "unsupported:Reverse find traversal is unavailable; f filters the held rows"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "n"
+action = "unsupported:Find-next traversal is unavailable; f filters the held rows"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "b"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "B"
+action = "unsupported:Specific detail modes are unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "e"
+action = "unsupported:This sort order is unavailable; use alphabetical, size or modified-time sorting"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "n"
+action = "unsupported:This sort order is unavailable; use alphabetical, size or modified-time sorting"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "r"
+action = "unsupported:This sort order is unavailable; use alphabetical, size or modified-time sorting"
+label = ""
+context = "listing"
+prefix = ","
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "t"
+action = "unsupported:The Trash browser is unavailable in this terminal build"
+label = ""
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "f"
+action = "unsupported:Following a file to its folder is available only through reveal in a search listing"
+label = ""
+context = "listing"
+prefix = "g"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "r"
+action = "unsupported:Custom tab names are unavailable; tabs show their folders"
+label = ""
+context = "listing"
+prefix = "t"
+
+[[tui]]
+name = "yazi"
+mods = "text"
+key = "w"
+action = "unsupported:A task list is unavailable; running operations report in the status row"
+label = ""
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "ctrl"
+key = "G"
+action = "searchContents"
+label = "Search contents"
+context = "listing"
+
+[[tui]]
+name = "all"
+mods = "text"
+key = "A"
+action = "openAgent"
+label = "Open agent here"
+context = "listing"

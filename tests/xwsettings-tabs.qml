@@ -21,6 +21,8 @@ ShellRoot {
     property bool finished: false
     property var dragItem: null
     property var railOwner: null
+    // The check a phase waits on, as [label, actual, expected], so a count that never comes fails as that check at the deadline.
+    property var pending: null
     readonly property var otherPane: watchLoader.item ? watchLoader.item.currentPane : null
     property int initialTotal: 0
     property int firstLists: 0
@@ -42,6 +44,8 @@ ShellRoot {
                     + ": got " + JSON.stringify(actual) + ", expected " + JSON.stringify(expected))
     }
     function next() { root.phase++; root.phaseAt = Date.now() }
+    function waitFor(label, actual, expected, waiting) { root.pending = waiting ? [label, actual, expected] : null; return waiting }
+    // A detached launch lands when its launcher runs, which a loaded box delays past any fixed wait, so a phase waits for the count and the probe deadline bounds a launch that never comes.
     function launches() { return String(launchFile.text()).split("\n").filter(function (line) { return line.length > 0 }).length }
     function focusList() { pane.focusView = "list"; pane.listArea.forceActiveFocus() }
     function focusRail() { pane.focusView = "rail"; pane.sidebar.forceActiveFocus() }
@@ -123,7 +127,8 @@ ShellRoot {
                 check("the watch fixture starts with both selected files", pane.selectionCount(), 2)
                 outsideCreate.running = true; next()
             } else if (phase === 1) {
-                if ((otherPane.total === initialTotal || pane.total === initialTotal) && Date.now() - phaseAt < 2000) return
+                if (waitFor("the other window refreshes the watched folder", otherPane.total, initialTotal + 1, otherPane.total === initialTotal)
+                        || waitFor("a selected window refreshes its watched folder", pane.total, initialTotal + 1, pane.total === initialTotal)) return
                 check("the other window refreshes the watched folder", otherPane.total, initialTotal + 1)
                 check("a selected window refreshes its watched folder", pane.total, initialTotal + 1)
                 check("a selected window sends its own watched reread", pane.backend.listRequests > root.firstLists, true)
@@ -179,12 +184,14 @@ ShellRoot {
         } else if (root.mode === "window") {
             if (phase === 0) { focusList(); press(Qt.Key_N, Qt.ControlModifier); next() }
             else if (phase === 1) {
-                if (launches() === 0 && Date.now() - phaseAt < 1000) return
+                var listed = launches()
+                if (waitFor("Ctrl+N in the list launches a window", listed, 1, listed < 1)) return
                 check("Ctrl+N in the list launches a window", launches(), 1)
                 pane.focusView = "rail"; pane.sidebar.forceActiveFocus()
                 press(Qt.Key_N, Qt.ControlModifier); next()
             } else if (phase === 2) {
-                if (Date.now() - phaseAt < 1000) return
+                var railed = launches()
+                if (Date.now() - phaseAt < 1000 || waitFor("Ctrl+N in the rail launches a window", railed, 2, railed < 2)) return
                 check("Ctrl+N in the rail launches a window", launches(), 2)
                 focusRail(); text("t"); next()
             } else if (phase === 3) {
@@ -236,7 +243,8 @@ ShellRoot {
                 check("the second pane owns the shared rail", pane !== root.railOwner, true)
                 focusRail(); press(Qt.Key_N, Qt.ControlModifier); next()
             } else if (phase === 18) {
-                if (Date.now() - phaseAt < 1000) return
+                var shared = launches()
+                if (Date.now() - phaseAt < 1000 || waitFor("Ctrl+N from the shared rail launches a window", shared, 3, shared < 3)) return
                 check("Ctrl+N from the shared rail launches a window", launches(), 3)
                 focusRail(); text("t"); next()
             } else if (phase === 19) {
@@ -374,6 +382,10 @@ ShellRoot {
     Timer {
         interval: 20000
         running: !root.finished
-        onTriggered: { check("the probe finishes before its deadline at phase " + root.phase, false, true); finish() }
+        onTriggered: {
+            if (root.pending) check(root.pending[0] + " before the deadline at phase " + root.phase + ", last read " + JSON.stringify(root.pending[1]) + " of " + JSON.stringify(root.pending[2]), false, true)
+            else check("the probe finishes before its deadline at phase " + root.phase, false, true)
+            finish()
+        }
     }
 }

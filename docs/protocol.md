@@ -154,6 +154,38 @@ completion rather than implying rollback. The caller can use the identity-checke
 or restores its survivors before cancellation stops the next root. The undo journal does not
 cover permanent deletion.
 
+`{"c":"menuaction","op":"properties","id":4}` describes the identities captured by `snapshot`.
+For one item the existing single-item reply is unchanged. For several items it returns `kinds`,
+combined `bytes`, and `newest` and `oldest`, the selected entries' own modification dates in local
+time as `YYYY-MM-DD HH:MM`. Kinds are counted in this order, omitting empty groups: folders,
+symbolic links, texts, images, videos, audio files, files and special files. Regular files use the MIME
+name database's text, image, video and audio groups, with all other regular files grouped as files.
+Counts use singular words for one and comma grouping for thousands, for example `2 images, 1 video`.
+No file contents are opened to classify them, and a symbolic link keeps its own kind, size and date.
+
+A selection containing folders first answers its known file bytes with `done:false`, then walks
+each selected folder on demand using the same walker as `contents`. A selection on a remote mount
+or containing a remote mountpoint has one 15-second bound covering initial metadata, every walk
+and final identity revalidation; cancellation frees the menu worker without waiting for a blocked
+remote syscall. A deadline ends with the retained floor, `done:true,partial:true`. A worker lost
+before a terminal reply returns `ok:false,error:"The selected items stopped answering."`.
+Before initial metadata completes, `kinds`, `newest` and `oldest` are empty and `bytes` includes
+only inspected non-folder entries. A silent syscall marks its current remote mount stuck; a
+subsequent request involving that mount returns a zero partial floor before any stat. Each total
+includes the selected folders' own entries, stays on each starting device and never follows links.
+Each queued child opens without following links through a held directory descriptor and must
+still match its captured identity. A replaced or unreadable descendant leaves a partial floor.
+Progress and the final reply have the same shape:
+`{"t":"menuaction","id":4,"op":"properties","ok":true,"kinds":"2 images, 1 video","bytes":52300000,"newest":"2026-09-23 10:14","oldest":"2026-08-21 12:02","partial":false,"done":true}`.
+`done:true` means the request ended, and only `done:true,partial:false` means the total is exact.
+Unreadable or vanished descendants and already-stuck mounts leave a floor with `partial:true`.
+The overall remote deadline also leaves a partial floor. `close` or a newer `snapshot` cancels the request, whose last reply carries
+`cancelled:true,partial:true,done:false`; a cancellation reply may omit the facts.
+After a close, the caller discards all replies for that snapshot. A moved, vanished or replaced
+selected identity returns `ok:false` with an `error`, including when it changes during the walk.
+Dates and Kinds describe selected entries, not their descendants. Selected roots are summed
+independently, so selecting both a folder and an entry inside it counts that entry in each root.
+
 `{"c":"menuaction","op":"contents","id":4}` counts what the one captured folder holds, for Properties on a folder.
 It walks with the folder size walker and never crosses into a nested mount or follows a symbolic link. A local folder
 walks on the menu worker with no deadline. A folder on a remote mount, or holding one anywhere below it (the walk
@@ -182,6 +214,82 @@ ARW, DNG) from its IFD0 and Exif IFD in the first MiB, and a CR3 from the CMT1, 
 `moov`. Text is cut to 120 characters with control characters turned to spaces. A cancelled request answers `ok:true` with
 `cancelled:true` and no facts. An `id` that is not the captured snapshot, a selection of several items, or an item that is not a
 regular file answers `ok:false` with an `error`; a fifo or a device is never opened.
+
+### gitstatus
+
+`{"c":"gitstatus","path":"/repo","enabled":true,"refresh":false,"id":1}`
+
+Reads one repository-wide snapshot for Git decoration without replacing the ordinary listing,
+its row numbering or its watch. `path` is the absolute directory being displayed. `enabled`
+defaults to false and `refresh` to false; `id` defaults to 0 and is echoed on every reply.
+The shared Boolean setting is `showGitStatus`, off by default. Its window control is
+`Show Git status` in Settings, View, immediately before `Highlight today's dates`.
+
+An enabled directory change discovers the worktree and runs one read-only Git status. The same
+directory reuses a successful cached snapshot until `refresh:true`; failed loads retry on the next
+enabled status request, with the existing mount quarantine still throttling remote discovery.
+Outside a repository no Git process starts. Disabling clears the cache and cancels active or queued
+older work without discovery or process launch. Navigation also cancels the old directory's work.
+Replies may interleave other backend replies, so clients match both `path` and their current `id`
+before displaying them.
+
+The existing `changed` event drives refresh through the client's 400 ms absorbing timer: the
+first notification starts it, later notifications do not restart it, and expiry sends this request
+with `refresh:true`. Keep one status request in flight and preserve later watch debt until its
+reply. The existing non-recursive watch covers the displayed directory, not all repository paths
+or `.git` metadata; another directory change or explicit refresh discovers those other changes.
+
+The argv is `/usr/bin/git -c core.fsmonitor=false -c core.hooksPath=/dev/null -c core.untrackedCache=false
+-c status.renames=true status --porcelain=v2 -z --branch --untracked-files=all --ignore-submodules=none --`.
+The sandbox changes directory to the repository root; there are no path operands or shell.
+It binds the worktree and linked-worktree metadata read-only, isolates the network, clears the
+environment, and sets `GIT_OPTIONAL_LOCKS=0`, `GIT_CONFIG_NOSYSTEM=1`,
+`GIT_CONFIG_GLOBAL=/dev/null` and `GIT_TERMINAL_PROMPT=0`. Capture, parsing and sorting share one
+five-second deadline and navigation cancellation check. Stdout is bounded at 32 MiB, stderr at
+64 KiB, with the normal sandbox resource limits. A checked 64 MiB aggregate allocation budget
+covers both full capture buffers and cumulative snapshot capacity requests, including paths,
+rename sources, branch text, change records and the sorted folder index. Growth is charged before
+fallible allocation, including replacement storage and 64 bytes of overhead per allocation;
+released allocations remain charged conservatively. Folder marks use at most two path references
+per change, with no ancestor copies. Over-budget input refuses the whole snapshot with
+`Git status snapshot is too large.`; an allocator refusal reports
+`Git status could not allocate its snapshot.` One ordinary staged deletion (`1 D.` with zero
+index and worktree modes) plus one untracked entry (`?`) at the same path is legitimate: Git
+emits this after untracking a retained file or symlink, recreating a staged-deleted file, or
+untracking a retained gitlink (`? path/`). These records coalesce to one `?` change, counted once
+in the branch caption and Changes, with `deleted:false`; the untracked entry determines the
+folder flag and path spelling. A lone deletion remains `D` with `deleted:true`. A rename's
+source metadata can also name an untracked entry; the destination and source remain two distinct
+changes. Other repeated destinations, repeated records, or groups larger than two refuse the
+whole snapshot with `Git status returned a duplicate path.` Coalescing allocates no additional
+storage and retains all existing budget charges, deadline and cancellation checks. Process
+failures retain stderr. Remote discovery uses the existing mount bound.
+
+### gitrows
+
+`{"c":"gitrows","path":"/repo","paths":["/repo/Code","/repo/notes.txt"],"id":2}`
+
+Projects the last successful snapshot onto the visible rows only. `path` must match that
+snapshot's directory, and every `paths` entry must be an absolute immediate child. At most
+400 paths are accepted per request; a larger viewport can use several requests. Results follow
+request order, including clean rows, and perform no per-row stat, MIME lookup or subprocess.
+The window draws the marks in a 14 px column before Size; the TUI uses one cell before the size.
+Both use `M`, `A`, `D` and `?`; the TUI represents a changed folder by yellow `■`.
+
+### gitchanges
+
+`{"c":"gitchanges","path":"/repo","start":0,"count":1,"id":3}`
+
+Pages every canonical changed path relative to the worktree root, deleted and untracked paths
+included. `start` defaults to 0 and clamps to `total`; `count` defaults to 400 and caps at 400.
+The window opens this virtual listing by clicking the branch caption. The branch becomes the
+foreground current crumb, the original folder path becomes its muted ancestor, and Back or Esc
+returns to that folder. Folder prefixes within changed paths are muted before the leaf name;
+the cursor row uses foreground. Deleted rows have no Size or Modified value. There is no added
+`esc returns` hint. Changes view is window only in 0.4.0.
+
+This does not replace the ordinary listing or its watch. Changes-view indices never name
+ordinary backend file-operation rows; clients resolve an existing entry against the reply's `root`.
 
 ### listpaths
 
@@ -224,6 +332,38 @@ Stats rows `start..start+count` of the current listing (phase 2) and answers one
 `rows` line. `start` and `count` are clamped to the listing's length, so a stale or
 out-of-range window never panics, it just returns fewer rows or none. Missing fields
 default to `0`.
+
+A count of `0` returns an empty `rows` array and `kinds` array with `ms` of `0.000`,
+the clamped `start`, and the current `listing` stamp. It does not read mountinfo,
+stat rows, load row tables, start workers, or rank the remainder of a session's
+matches. A later nonempty window uses the normal complete row format below.
+
+### filter
+
+`{"c":"filter","query":"<string>","id":<uint>}`
+
+Example: `{"c":"filter","query":".PNG","id":7}`
+
+Matches a case-insensitive literal substring against every name in the current listing,
+including rows outside the client's held window. Missing `query` defaults to the empty
+string and missing `id` to `0`. Filtering reads names only, fetches no metadata and
+does not change the listing, its sort order or its numbering. Each request answers once:
+
+`{"t":"filtered","id":7,"query":".PNG","n":1300,"rows":[0,2,4],"ms":0.012,"listing":1}`
+
+`n` is the full listing count. `rows` contains matching indices in ascending order in
+the current sorted listing, with `[]` for no matches. An empty query answers `rows:null`,
+so clearing restores the integer-count model without sending an identity array.
+`ms` measures backend matching and serialization, not UI latency.
+
+The client accepts a reply only while its `id` and `query` name the latest request, and
+it drops its answer and sends a fresh request whenever a list, sort, search, search
+refresh or final search ranking renumbers the listing, so an accepted reply answers in
+the numbering of the rows on screen, the one its `listing` stamp names. View positions
+map through `rows`; paths and file operations use those original listing indices and
+the listing stamp. Filtering
+does not emit a `rows` metadata reply or refill a window, even on clear. The client
+requests only windows needed for the displayed matches and refills its viewport after clear.
 
 ### sort
 
@@ -676,14 +816,16 @@ indices are resolved against the listing at request time and the operation runs 
 so it still owns a snapshot that outlives whatever the listing does next. `paths` wins when both are
 present, and an index past the end of the listing is dropped in silence.
 
-**One of `transfer`, `trash`, `duplicate` or an archive `extract` runs at a time.** One of those
-arriving while another is still running answers an `error` line saying so and touches nothing. `link`
-and `permissionsBatch` are refused the same way while one runs, without taking the slot: `link`
-answers an `error` line and `permissionsBatch` answers its `permissions` line with `ok` false. The cap
-is one because the status bar carries one transient slot for the running operation, and an extract
-drives that same card, so a second concurrent operation would have nowhere to report. `rename` and
-`mkdir` never take that slot, and an archive `compress` and a `convert` are keyed by their own `id` and
-run alongside by design, so the cap was never one write of any kind.
+**Copies, moves, archive compressions and extractions queue by destination drive.** Each request
+gets its own id and start line, including a request that waits behind another write to the same drive.
+Waiting jobs run in arrival order and name their predecessor and its target in the jobs `reason`.
+Writes to different drives run together; another running job never causes a busy refusal for these
+requests. An extraction writes to the filesystem holding its destination, just as compression does.
+Ordinary `trash`, `duplicate`, `link` and menu deletion share one non-job operation slot.
+Reviewed Trash deletion also claims that slot and refuses while its previous Trash journal is settling;
+destination-queued transfers do not hold it. Ordinary non-job mutations, including `rename`, `mkdir`
+and `permissionsBatch`, refuse while the slot or an unfinished job is active. `rename` and `mkdir`
+do not claim the slot themselves, and `convert` remains independent.
 
 The answer is a `transferstarted` line for a file transfer, then per top-level item a bounded stream of
 `transferprogress` lines and exactly one `transferitem`, then one `transferdone`. An archive `extract`
@@ -882,7 +1024,7 @@ when both are present. A `link` whose `listing` is not the numbering in force
 is refused with `where` of `stale` before a single index is resolved, the
 same rule `transfer` follows.
 
-Like `transfer`, this runs beside the loop and takes the one-operation slot:
+This runs beside the loop and takes the non-job operation slot:
 the busy check and the collide answer are decided on the loop, then one
 thread links each source, replacing through the trash when the card chose
 it, and the answer is written from its message. A source or the destination
@@ -948,12 +1090,12 @@ target mode rather than one mode for all.
 
 Example: `{"c":"transfercancel","id":12}`
 
-Cancels the running transfer or archive `extract` if `id` names it, and does nothing otherwise, so a
-cancel aimed at an operation that already finished can never reach the one after it. A compress
-or a convert has no operator cancel, so a `transfercancel` naming either `id` does nothing and the
-job runs to its end. There is no
-response line of its own: a transfer answers with its own `transferdone` carrying `cancelled` true, and
-an extract answers its own `archivedone` with `ok` false and an `err` of `cancelled`.
+Cancels the waiting or running job named by `id`, including a transfer, archive `extract`, or
+compression, and does nothing for a stale id. Other jobs keep running or waiting independently.
+A convert is not a jobs operation and cannot be cancelled by this request. There is no response line
+of its own: a transfer answers with its own `transferdone` carrying `cancelled` true, and an extract
+answers its own `archivedone` with `ok` false and an `err` of `cancelled`, including when cancelled
+before it runs.
 
 **The item in flight is stopped rather than allowed to finish, and what it had already written is
 removed: a partial file by `copy_file`, a partly-copied directory by `copy_dir`.** A cancel that waited out a multi-gigabyte copy would not be a cancel, and a half-written file
@@ -1107,6 +1249,68 @@ the URI later is ambiguous. The backend therefore reads `gio trash --list` immed
 the call and keeps the entries that are new, which is what makes the operation reversible.
 
 There is no confirmation step anywhere in this request, because the undo journal is the safety.
+
+An accepted request first flushes `{"t":"trashstarted","id":<uint>,"n":<uint>,"cancellable":false}`,
+before the worker touches the Trash or the client re-lists. `n` counts the resolved top-level paths.
+This acknowledgement lets the client draw its pending operation immediately. It is followed by the
+existing `trashed` outcome; journal settlement and its ordering are unchanged. Ordinary trashing does
+not poll a cancel flag, so this acknowledgement must not expose a Cancel action.
+
+### trashbrowse
+
+`{"c":"trashbrowse","op":"prepare","id":<uint>,"all":true,"emptyTrash":true}` reviews the
+current Trash and answers `{"t":"trashbrowse","op":"prepare","id":<uint>,"ok":true,
+"token":<uint>,"all":true,"count":<uint>,"bytes":<uint>,"partial":false}`. The confirmation body
+uses this reviewed count and byte total, including zero bytes for empty files. A partial, pending,
+or failed review supplies no actionable confirmation. Preparation and validation query item details
+in bounded groups of 128, with the same complete snapshot and identity checks as individual queries.
+
+`{"c":"trashbrowse","op":"delete","id":<uint>,"token":<uint>}` deletes that reviewed snapshot.
+An accepted delete claims the non-job operation slot and immediately flushes
+`{"t":"trashdeletestarted","id":<uint>,"requestId":<uint>}` followed by a `transferprogress` line,
+before any queued Trash request, validation, or filesystem work. `id` is the operation id accepted by
+`transfercancel`; `requestId` is the browser request's id. A busy refusal answers only the ordinary
+`trashbrowse` error and starts no job. A pending unsettled trash journal also refuses deletion.
+
+The job uses the operations card's existing progress and terminal types:
+
+`{"t":"transferprogress","id":<uint>,"index":0,"name":"<string>","itemSize":<uint>,"bytes":<uint>,"total":<uint>,"unit":"items","phase":"checking|deleting","checked":<uint>}`
+
+`unit:items` changes the meaning of `bytes` and `total` for this operation only: they count deleted
+and reviewed filesystem entries, including descendants, directories, and zero-byte files. The totals
+come from the complete saved snapshot, so one trashed folder can report thousands of files. The
+`trashbrowse` prepare reply's `count` and the terminal item counts remain top-level Trash entries.
+The immediate sample has total 0 until the worker reads the confirmation; later samples carry the
+recursive total. During
+`checking`, `bytes` stays 0 and `checked` counts validated top-level items; during `deleting`, `bytes`
+counts successfully removed entries, including children of a folder interrupted later. Refused entries
+do not advance this bar. `name` is the original name of the top-level item in flight and `itemSize`
+is its reviewed recursive byte size; an empty name means no current item. Samples are throttled to
+150 ms, with immediate phase, first-item and final samples. Tree nodes poll cancel and sample progress.
+
+The native card's head is `Emptying Trash`. Show validation during checking, then the determinate
+file-count bar and deleted-file count, with the current name and size on its file line. Byte rates
+cannot be derived from these counts; a remaining-time estimate must use observed file deletions per
+second and is unavailable during checking. Keep the Trash strip's prior count until completion,
+then refresh it. The Empty Trash control stays in place and is disabled while the job runs.
+
+Exactly one `transferdone` releases this job's slot, followed by its original `trashbrowse` delete
+reply. `ok`, `failed`, and `skipped` on `transferdone` count deleted, refused, and unstarted items;
+`cancelled` reports interruption. A validation failure carries its sentence in `note`, and the browser
+reply retains the existing `ok:false`, `stale`, and `error` fields. A completed or interrupted deletion
+retains `done`, `failed`, and `failures`, and adds `skipped` and `cancelled`. Deletion is irreversible
+and creates no undo entry. Cancellation during validation preserves the confirmation for another
+attempt. Once deletion starts it consumes the token, so remaining items require a new review.
+
+Cancel, quit, and stdin closing poll the same flag between items and between tree nodes. Completed
+deletions stay deleted. An interrupted folder's surviving payload and `.trashinfo` are put back
+together; a failed rollback retains the existing recovery record and names its quarantine in the
+failure. A cancel for another operation id has no effect. The terminal replies precede any client
+re-list, so displaying progress and completion never waits for that re-list.
+
+Accepting delete supersedes earlier browser reads and confirmation checks through the browser's
+request generation. Its independent operation flag accepts cancel while the job is still queued;
+later browser reads cannot cancel the delete. A superseded check answers its ordinary cancelled error.
 
 ### rename
 
@@ -1591,6 +1795,60 @@ same way, which is why a scripted client waits for its line before sending `quit
 
 ## Responses
 
+### gitstatus
+
+`{"t":"gitstatus","id":1,"path":"/repo","ok":true,"enabled":true,"root":"/repo","branch":"main","label":"main · 8 changed","changed":8}`
+
+`t` names the request, `id` and `path` echo its correlation, and `ok` reports success. `root`
+is the canonical worktree root, `branch` its branch name (`detached` for detached HEAD),
+`changed` the unique changed-path count after coalescing, and `label` the exact branch-caption text derived
+from that count. An unborn branch keeps its real name; a clean repository says `main · 0 changed`.
+The normal window's branch caption is muted; in Changes it is foreground. The illustrated
+`main · 8 changed` count is data, independent of the ordinary listing's item count.
+
+Disabled replies have `enabled:false`, empty `root`, `branch` and `label`, and `changed:0`.
+An enabled directory outside a repository has the same empty values with `enabled:true`.
+Clients hide Git decoration in both cases. A failed status clears stale decoration while
+ordinary file browsing remains usable. A failed load retries on the next enabled status request;
+the existing mount quarantine refuses filesystem work until its stuck TTL expires.
+
+### gitrows
+
+`{"t":"gitrows","id":2,"path":"/repo","ok":true,"marks":[{"path":"/repo/Code","status":"","folder":true},{"path":"/repo/notes.txt","status":"M","folder":false}]}`
+
+`marks` contains each asked absolute `path`, its `status`, and whether it is a `folder` with
+changes inside. A clean row has `status:"",folder:false`. Non-empty statuses are exactly
+`M` modified, `A` added, `D` deleted and `?` untracked. A deleted flag in an ordinary or
+rename/copy record takes precedence, so an `RD` destination uses `D`; other rename/copy
+destinations use `A`, and other tracked changes use `M`.
+An unmerged record uses its worktree mode: a present conflicted path uses `M`, including `UD` and
+`DU` modify/delete conflicts, while a zero worktree mode uses `D`. No per-file stat is needed.
+A coalesced index-deletion/untracked pair instead emits one `?`, as described under `gitstatus`.
+A folder square takes precedence over a simultaneous
+letter for a submodule or embedded repository. The window square is 6 px, yellow and centred
+in the 14 px mark column. Resting letters use yellow, green, error and muted roles respectively,
+each at least 4.5:1; cursor-row text uses foreground. `folder` supplies the same yellow `■`
+to the TUI's one-cell column. No marks outside the viewport are requested or painted.
+
+### gitchanges
+
+`{"t":"gitchanges","id":3,"path":"/repo","ok":true,"root":"/repo","label":"main · 8 changed","total":8,"start":0,"entries":[{"path":"Code/lib.rs","status":"D","original":"","deleted":true}]}`
+
+`root` and `label` identify the same cached snapshot as `gitstatus`; `total` is its complete
+unique changed-path count after coalescing, `start` the clamped page offset, and `entries` the requested page in
+repository-relative path order. Each entry supplies `path`, `status`, `original` and `deleted`.
+`status` has the same four-letter alphabet as `gitrows`. `original` is the source path for
+a rename or copy and otherwise empty; it is metadata, not another counted entry. `deleted`
+is true for a `D` row even when that path no longer exists. These replies contain no size or
+date; clients resolve metadata off-thread for existing visible paths and skip it for deleted rows.
+The Changes footer counts `total`, for example `8 items`, separately from ordinary listing rows.
+
+All three Git requests fail with their own `t`, echoed `id` and `path`, `ok:false` and an
+`error` sentence, for example `{"t":"gitstatus","id":1,"path":"/repo","ok":false,"error":"Git status timed out."}`.
+Errors include unavailable snapshots or sandbox, invalid paths or visible-row requests,
+cancellation, timeout, over-limit output, malformed porcelain and underlying I/O or Git diagnostics.
+These are requested replies; `changed` remains the only unsolicited notification.
+
 ### listed
 
 `{"t":"listed","n":<uint>,"read":<float>,"sort":<float>,"v":<uint>,"w":<bool>,"path":<string>}`
@@ -1948,6 +2206,22 @@ pixels and the EXIF turn, which the copy carries even when the camera put it onl
 its row does), resolved from `/etc/passwd` alone and never through `getpwuid`: that call goes through
 NSS and can wait on a network directory, and the meta thread must never hang the column on one. A uid
 no local account carries answers the empty string, never the number dressed as a name.
+
+### owner
+
+`{"t":"owner","row":<uint>,"token":<uint>,"owner":"<string>","retry":<bool>}`
+
+Example: `{"t":"owner","row":7,"token":91,"owner":"gm","retry":false}`
+
+The answer to one `{"c":"owner","row":<uint>,"token":<uint>}` request, which the TUI's Owner detail
+column sends for one drawn row at a time, echoing its `row` and `token`. `owner` reads as `meta.owner`
+does, the login name from `/etc/passwd`, and is empty for a uid no local account carries, a path that
+cannot be stat'ed or a row past the listing. `retry` is true only when the stat could not run, because
+its remote mount already holds an owner stat, eight remote owner stats are held across all mounts, the
+mount is marked stuck, or the stat missed its five-second deadline. `owner` is empty then too, so a
+reader that ignores `retry` reads the line it always did, and an absent `retry` reads as false. The
+TUI keeps every `retry:false` answer, empty ones included, until its rows change, and asks a
+`retry:true` row again only while the Owner column still draws it, at most once a second.
 
 ### shebang
 
@@ -2414,9 +2688,11 @@ object carries one bit per extension class: `{"archive":<bool>,"sevenZip":<bool>
 `.zip`/`.rar` class served by whichever of those two is installed. The client offers Extract on a package only
 when `sevenZip` is set; the backend's own listing of a package still falls back to `bsdtar` where `7z` is missing,
 as v0.3.8 did, except an `.AppImage`, whose squashfs image only `7z` reads. An `archive` request with an `op` of
-`extract` takes the one-at-a-time slot `transfer` describes, drives that same transfer card and answers
-`archivedone`, never `transferdone`; a `transfercancel` naming its `id` cancels it, and it is not
-journaled, so no `undo` reverses it.
+`extract` joins the destination-drive queue `transfer` describes. It answers `archivestarted` with its
+own id even while waiting, drives that same transfer card through `extractstarted` and
+`transferprogress`, and answers `archivedone`, never `transferdone`. A `transfercancel` naming its
+id cancels only that extraction, whether waiting or running. It is not journaled, so no `undo`
+reverses it.
 
 An `archive` request is `{"c":"archive","op":"compress"|"extract","paths":[<string>,...],"path":"<string>","dest":"<string>","format":"<string>","password":"<string>","encryptNames":<bool>}`.
 A `compress` names absolute `paths` sharing one parent and the `format` to write; an `extract` names the
@@ -2503,3 +2779,90 @@ listing takes; a failed peek carries neither.
   Qt's PNG decoder runs unconfined in the shell process on bytes it did not write. That is a
   known residual risk, parked for a later plan rather than closed here. See AGENTS.md
   "Deliberate corners".
+
+## Jobs and Actions (0.4.0)
+
+Jobs are additive to the existing transfer, archive, and LocalSend requests and replies. The backend still emits the existing single-operation events with their existing fields. Clients that do not consume jobs can ignore the new event types. Each copy, move, compression, extraction, background action, and LocalSend send has a backend job id, independent of a caller's request id. Empty Trash adopts its existing operation id and cancellation flag through the same model, with the head `Emptying Trash`.
+
+Requests:
+
+```json
+{"c":"jobs","op":"list"}
+{"c":"jobs","op":"cancel","id":12}
+{"c":"jobs","op":"retry","id":12}
+{"c":"jobs","op":"dismiss","id":12}
+{"c":"jobs","op":"undo","id":12}
+```
+
+`list` returns a `jobs` snapshot. A snapshot also accompanies membership and scheduling changes. `jobs` contains the ordered list, newest first, `unfinished` counts only running and waiting jobs, and `newest` identifies the newest unfinished job or is null. `head` is that job's head, or an empty string. This supplies the TUI status row's newest operation and its `· 3 jobs` suffix. A `job` update replaces the matching id without moving its row. Progress updates are limited to one per job per 150 ms; scheduling, completion, cancellation, and Undo availability changes are immediate.
+
+```json
+{"t":"jobs","jobs":[],"unfinished":0,"newest":null,"head":""}
+{"t":"job","job":{"id":12,"kind":"copy","head":"Copying 10 of 18 to NAS","file":"DSC_4944.jpg","done":9,"total":18,"bytes":5300000,"totalBytes":9700000,"itemBytes":458300,"rate":1100000,"left":4,"state":"running","reason":"","output":[],"undo":false,"cancelled":false},"unfinished":3}
+{"t":"joberror","id":12,"error":"Only a failed job can be retried."}
+```
+
+Kinds are `copy`, `move`, `compress`, `extract`, `send`, `action`, and the adoption kind `emptyTrash`. States are `waiting`, `running`, `failed`, and `done`. `done` counts completed top-level items; `total` counts this attempt's items. Extraction starts with zero unknown entry counts until its producer supplies archive entry counts and reports unpacked bytes through `OpMsg::JobEntries`, without changing the wire. `file` is the current item's name; `itemBytes` is its known size. `bytes` is cumulative progress and `totalBytes` is the settled byte total, with zero meaning unknown. `rate` is bytes per second and `left` is estimated seconds or null when no estimate is available. A background action has null byte fields and a file-count bar. Empty Trash has null byte fields and counts successfully deleted filesystem nodes, including descendants, against the reviewed recursive total. Its initial total is zero until the worker reads the confirmation. It retains the current top-level item's reviewed size in `itemBytes`; `left` uses deleted nodes and elapsed time. Its terminal legacy replies still count top-level Trash entries, cancellation keeps completed deletions, and retry requires a fresh Trash confirmation.
+
+Copies, moves, compressions, and extractions are queued in arrival order per destination filesystem. The device is resolved off the request loop, following a symlinked target. Btrfs subvolumes share the mount's source key because their anonymous `st_dev` values can differ. Separate destination filesystems run concurrently. A waiting copy uses `Copy 8 items to NAS` and names its predecessor in `reason`, for example `waiting for the copy to NAS`. Cancellation addresses only the named job, including a queued job. `transfercancel` also reaches jobs with that id, including compression. A clean shutdown cancels queued and running jobs through the existing drain.
+
+A failure retains its position, with a failure head and its reason. `retry` preserves the row and id, requeues behind jobs already accepted, and narrows the attempt to failed items. The queued work retains each failed source's identity, including its birth time when available. Transfers check that identity before each item, actions before each invocation, and indivisible archive or send operations before their invocation. A replacement is refused and never becomes the identity of a subsequent retry. A compression or extraction is one indivisible failed operation. `dismiss` accepts only failed or done rows.
+
+A successful journalled transfer has `undo:true` only after its journal entry is published. The offer belongs to that backend's job and expires when another operation, Undo, or Redo changes the history, including in another window. The shared journal claim compares the saved history revision and exact entry under its lock; an expired offer is refused with `That job can no longer be undone.` and revoked without consuming any entry. Reversal replies use the existing `undone` or `error` events and update search indexes and tag state through the same path as ordinary Undo, including paths changed before a partial failure. `undo` refuses while another job is unfinished. Compressions, extractions, sends, and arbitrary actions do not invent undo records. A done row is a completion notification and is omitted from the visible card; the backend retains it until the next job starts so its Undo remains addressable. Failed and done jobs do not contribute to `unfinished`.
+
+Archive workers capture source identities before their first invocation and carry them with the completion, including menu selections. Completion handling never inspects those paths to construct a failed set. Later retries retain the captured identities even when a changed source is refused. Job-offer expiry uses its own shared history revision; the generation that guards Redo publication changes only on a new operation push, so overlapping successful Undos both remain redoable when no new operation was pushed.
+
+Actions requests use absolute selection paths, resolved by the caller from one listing before sending. A preview request carries only the cursor file, never the marked selection.
+
+```json
+{"c":"actions","op":"list","id":4,"paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actions","id":4,"actions":[{"id":"action:resize.toml","name":"Resize to 1600 px","mode":"background","selection":"many","script":false}],"errors":[],"error":""}
+{"c":"actions","op":"run","id":5,"action":"action:resize.toml","paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actionstarted","requestId":5,"id":13,"ok":true,"error":""}
+{"c":"actions","op":"preview","id":6,"action":"action:describe.toml","paths":["/home/user/Photos/photo.jpg"]}
+{"t":"actionpreview","id":6,"ok":true,"text":"Description from the previewer\n","error":""}
+```
+
+A terminal handoff or refused run answers `actionstarted` with `requestId`, `ok`, and `error`, without a job id. A terminal action opens each expanded argv through `xdg-terminal-exec --dir=... -- ...`, the Open in Terminal launcher. A preview-only action refuses `run`. A preview answers text suitable for the existing `code` request's `text` input and the code renderer. Its process runs in the existing read-only preview jail with only the cursor file and executable added, a five-second wall deadline, the existing CPU and address-space limits, and a 1,048,576-byte output cap. A newer preview request cancels and suppresses the older reply.
+
+The manifest directory is `$XDG_CONFIG_HOME/flea/actions` or `$HOME/.config/flea/actions`. The parser accepts the specimen's TOML subset: five unique required keys, double-quoted basic strings with JSON-compatible escapes, and possibly multiline string arrays with comments and trailing commas. Raw C0 control bytes other than tab, and raw DEL, are prohibited in strings; supported escaped values remain valid. Other keys, tables, duplicate keys, missing fields, wrong types, empty arrays, invalid modes or selection rules, invalid escapes or placeholders, and files over 16,384 bytes are refused whole. Directory discovery examines at most 257 entries to detect overflow, counting unrelated entries too, and reports when that entry limit truncates discovery; it reads at most 256 manifests; arrays hold at most 128 elements. Nonregular files are refused without blocking. Each refusal appears in the `actions.errors` array as `{"file":"bad.toml","error":"..."}`; valid siblings remain available.
+
+```toml
+name = "Resize to 1600 px"
+mime = ["image/*"]
+selection = "many"
+run = ["magick", "{path}", "-resize",
+       "1600x1600>", "{dir}/{stem}-1600.{ext}"]
+mode = "background"
+```
+
+MIME patterns match the entire MIME string and accept literal characters, `*`, and `?`. Every selected item must match a pattern; `one` requires exactly one item, while `many` accepts one or more. MIME comes from the existing name database, with directories reported as `inode/directory` and unknown files as `application/octet-stream`. Listing and running recheck the actual selected paths. No directory listing is MIME-scanned to populate Actions.
+
+`{path}`, `{dir}`, `{name}`, `{stem}`, and `{ext}` expand separately within each argv element, once per selected file. Replacements are not expanded again. The program is literal and cannot contain placeholders. Paths remain absolute; a placeholder-led argument whose result begins with `-` is prefixed with `./`, so a filename cannot become an option. Invocation uses argv without a shell unless the manifest explicitly names one. A background job retains only its last two merged stdout and stderr lines, each bounded to 4,096 decoded UTF-8 bytes with lossy decoding. `output` replaces the file line once nonempty. The invocation owns its entire process group: cancellation and leader exit, successful or unsuccessful, kill remaining descendants with SIGKILL before reaping the leader, including children that ignore SIGTERM.
+
+Executable regular files directly under `$XDG_CONFIG_HOME/flea/scripts` remain Actions entries, with ids `script:<filename>` and labels omitting the final extension. They retain the existing Run script contract: one invocation receives all selected absolute paths. The Actions switch retains the `runScript` id in `menu.hidden` and remains hidden by default. No `src/uischema.rs` defaults change.
+
+## Checked rclone sends (0.4.0)
+
+The menu's executable capabilities include `providers.rclone` with the existing `installed`, `command`, and `reason` fields. Request configured remotes only when opening the send menu:
+
+```json
+{"c":"rclone","op":"remotes","id":71}
+{"t":"rcloneremotes","id":71,"visible":true,"remotes":["gdrive","b2-photos","nas-crypt"]}
+{"c":"rclone","op":"send","id":72,"remote":"gdrive","folder":"Uploads","paths":["/absolute/photo.jpg"]}
+{"t":"rclonestarted","requestId":72,"id":12,"ok":true,"error":""}
+```
+
+`listremotes` runs off the loop, inherits `RCLONE_CONFIG`, contacts no remote and has a two-second deadline. A missing or unusable rclone, no remotes, or failed discovery answers `visible:false` and `remotes:[]`: hide the menu row. Names omit the trailing colon. Send rechecks that the remote is configured. `folder` is a path within it; empty means its configured root. A `folder` with any `..` component is refused before a job starts. Source paths must be absolute and are resolved once by the caller. A refused request answers `rclonestarted` with `requestId`, `ok:false`, `error`, and no job id.
+
+A send uses the ordinary jobs list, `kind:"send"`, with independent per-item `copyto` or directory `copy` invocations followed by a separate verification pass using `check --one-way`. Source and target argv follow `--`; no shell is involved. Directory copies preserve the selected directory and empty descendants. A remote that cannot store empty directories refuses any selected tree containing one instead of issuing a checked receipt. Selected symlinks, unsupported item kinds and duplicate destination basenames are refused. Directory descendants are inspected without following links; symlinks, pipes, sockets and other unsupported descendants fail the item with their path. A skip reported during copy or check also fails the item, even when rclone exits successfully. A nonempty remote folder ending in a colon still separates its selected basename with a slash. Source identities are retained through retries and revalidated before every invocation. Originals are never removed.
+
+Job updates add `phase`, `check`, `receipt`, and `note` strings, empty for existing producers. Rclone phases are `sending`, `checking`, `checked`, and `finished`; checks are `none`, `checksum`, and `size`. Sending uses the existing counts and byte fields, with monotonic absolute JSON-stat bytes and rclone's speed and ETA. Checking remains `state:"running"`, with a heading such as `Checking 3 items on gdrive`, `file:"comparing checksums"` or `file:"comparing sizes"`, an indeterminate bar and no rendered byte line. Numeric byte fields retain their prior values. State and phase changes are immediate; ordinary progress remains limited to one update per 150 ms.
+
+Inherited global copy, filter and reporting options, including quiet/verbose and local traversal aliases, are removed from rclone children, while configuration, authentication and unrelated backend options remain inherited. Copy and check explicitly disable link following, link translation, filesystem-boundary filtering and silent skip settings, overriding backend and per-remote traversal settings. A checked receipt covers the explicitly selected content. Remote features are queried before copying and determine available hashes and empty-directory support; a remote with no locally supported hash uses size-only verification. If an individual object cannot supply a hash, the receipt is downgraded to size. Only a successful copy and completed check produce a verified receipt. The terminal notification follows the terminal job update:
+
+```json
+{"t":"rclonesent","id":12,"requestId":72,"ok":true,"cancelled":false,"check":"checksum","receipt":"Sent 3 items to Uploads on gdrive","note":"","error":""}
+```
+
+The receipt has no full stop; clients append muted ` · checked by checksum` or ` · checked by size`. A mismatch fails the job with `Send failed` and a reason naming the failed file and remote. The existing jobs Cancel kills the current process group, including descendants that ignore SIGTERM. Files already copied remain remote; a cancelled check has `check:"none"`, `note:"not checked"`, and `ok:false`. Retry keeps the id and row and resends only failed top-level items with their captured identities. It forces retransmission so a checksum failure can be repaired even when the destination retains the source size and timestamp. Retry counts describe that attempt. Dismiss uses the ordinary job contract. Sends never offer Undo.

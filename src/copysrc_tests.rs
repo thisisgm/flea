@@ -1,10 +1,11 @@
 // COPY-SRC (0.3.10): the sentences the top-level files print, pinned as written, for the lines no function can be called to reach.
-const SOURCES: [(&str, &str); 19] = [
+const SOURCES: [(&str, &str); 20] = [
     ("chooser.rs", include_str!("chooser.rs")),
     ("defaults.rs", include_str!("defaults.rs")),
     ("favourites.rs", include_str!("favourites.rs")),
     ("gui.rs", include_str!("gui.rs")),
     ("hyprkeys.rs", include_str!("hyprkeys.rs")),
+    ("launchargs.rs", include_str!("launchargs.rs")),
     ("main.rs", include_str!("main.rs")),
     ("open.rs", include_str!("open.rs")),
     ("paths.rs", include_str!("paths.rs")),
@@ -71,7 +72,7 @@ const WRITTEN: [(&str, &str, usize); 35] = [
     ("gui.rs", "flea: the window could not start: Quickshell is not installed or could not run", 1),
     ("hyprkeys.rs", "block appended to {}. Hyprland could not be reached, so run hyprctl reload inside the session.", 2),
     ("hyprkeys.rs", "block removed from {}. Hyprland could not be reached, so run hyprctl reload inside the session.", 1),
-    ("main.rs", "--tui and --gui cannot be used together", 1),
+    ("launchargs.rs", "--tui and --gui cannot be used together", 1),
     ("open.rs", "flea: no application on this system opened that file", 1),
     ("paths.rs", "flea: Flea's interface files are missing (/usr/share/flea/ui/{}). Reinstall flea.", 1),
     ("shelfcli.rs", "flea: {} could not be shown: {}", 2),

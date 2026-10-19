@@ -327,3 +327,61 @@ fn a_password_extract_of_a_tar_is_refused_with_one_sentence() {
     let none = std::fs::read_dir(d.path()).unwrap().flatten().filter(|e| e.file_name().to_string_lossy().starts_with(".flea-work-")).count();
     assert_eq!(none, 0, "and staged nothing");
 }
+
+// A listing past the retention cap still feeds exact totals to the empty-output and free-space checks.
+fn extract_past_the_retention_cap(tag: &str, first_size: u64) -> Result<bool, FleaError> {
+    let d = TestDir::new(tag);
+    let archive = d.file("oversized.7z", "stub input");
+    let listing = format!("print('----------')\nfor i in range(70000):\n print('Path = f%d\\nSize = %d\\nEncrypted = -\\n' % (i, {first_size} if i == 0 else 0))\n");
+    let formats = Formats::test_stub(vec!["/usr/bin/python3".into(), "-c".into(), listing], vec!["/usr/bin/true".into()]);
+    extract(&formats, &archive, &d.join("out"), &AtomicBool::new(false), None)
+}
+
+#[test]
+fn an_index_past_the_retention_cap_still_catches_a_tool_that_wrote_nothing() {
+    if crate::backend::sandboxprobe::skipped() { return; }
+    let e = extract_past_the_retention_cap("archcapempty", 1).expect_err("a nonempty archive whose tool writes nothing is refused");
+    assert_eq!(e.msg, "the archive tool wrote nothing");
+}
+
+#[test]
+fn an_index_past_the_retention_cap_still_checks_free_space() {
+    if crate::backend::sandboxprobe::skipped() { return; }
+    let e = extract_past_the_retention_cap("archcaproom", u64::MAX).expect_err("an archive larger than any disk is refused before extracting");
+    assert!(e.msg.starts_with("Extracting oversized.7z needs "), "{}", e.msg);
+}
+
+// A password that 7z cannot read off one stdin line is refused naming the archive, never the secret.
+#[test]
+fn a_line_broken_extract_password_names_the_archive() {
+    let d = TestDir::new("archpwbreakx");
+    let archive = d.file("photos.7z", "unused");
+    let e = extract(&Formats::from_tools(true, true), &archive, &d.join("out"), &AtomicBool::new(false), Some("s3cret\nmore")).unwrap_err();
+    assert_eq!((e.where_.as_str(), e.path.as_str()), ("archive", "photos.7z"));
+    assert!(e.msg.contains("photos.7z") && !e.msg.contains("s3cret"), "{}", e.msg);
+    let request = crate::backend::archivereq::ArchiveRequest {
+        compressing: false, paths: Vec::new(), format: String::new(), archive, dest: d.join("out"), password: "s3cret\rmore".into(), encrypt_names: false,
+    };
+    let line = crate::backend::archivereq::archive_line(42, request, &Formats::from_tools(true, true), None, std::sync::Arc::new(AtomicBool::new(false)), None);
+    assert!(line.contains("photos.7z") && line.contains("line break") && !line.contains("s3cret"), "{line}");
+}
+
+// The compress side of the same refusal names the archive being written, never the secret.
+#[test]
+fn a_line_broken_compress_password_names_the_archive() {
+    let d = TestDir::new("archpwbreakc");
+    d.file("a.txt", "body");
+    let dest = d.join("photos.7z");
+    let formats = Formats::from_tools(true, true);
+    let pw = Password { secret: "s3cret\nmore", encrypt_names: false };
+    let e = compress(&formats, d.path(), &["a.txt".to_string()], "7z", &dest, &AtomicBool::new(false), Some(pw)).unwrap_err();
+    assert_eq!((e.where_.as_str(), e.path.as_str()), ("archive", "photos.7z"));
+    assert!(e.msg.contains("photos.7z") && !e.msg.contains("s3cret"), "{}", e.msg);
+    let request = crate::backend::archivereq::ArchiveRequest {
+        compressing: true, paths: vec![d.join("a.txt").to_string_lossy().to_string()], format: "7z".into(),
+        archive: PathBuf::from("/nonexistent"), dest: dest.clone(), password: "s3cret\rmore".into(), encrypt_names: false,
+    };
+    let line = crate::backend::archivereq::archive_line(43, request, &formats, None, std::sync::Arc::new(AtomicBool::new(false)), None);
+    assert!(line.contains("photos.7z") && line.contains("line break") && !line.contains("s3cret"), "{line}");
+    assert!(!dest.exists(), "a refused compress published a destination");
+}

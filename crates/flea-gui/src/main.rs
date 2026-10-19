@@ -1,5 +1,6 @@
 use flea_gui::{
     ipc::server::Server,
+    palette::Theme,
     window::{
         self,
         locale::Service,
@@ -38,7 +39,11 @@ fn main() {
             let server = flea::ipc::endpoint::runtime()
                 .and_then(|runtime| Server::bind(&runtime))
                 .map_err(|error| ("ipc.start_failed", error.to_string()))?;
-            Ok::<_, (&str, String)>((Launch::resolve(settings, args, &home), server))
+            Ok::<_, (&str, String)>((
+                Launch::resolve(settings, args, &home),
+                server,
+                Theme::load(),
+            ))
         })
         .unwrap_or_else(|error| {
             eprintln!(
@@ -49,7 +54,7 @@ fn main() {
             );
             std::process::exit(2);
         });
-    let (launch, server) = worker
+    let (launch, server, theme) = worker
         .join()
         .unwrap_or_else(|_| std::process::exit(2))
         .unwrap_or_else(|(key, error)| {
@@ -58,6 +63,7 @@ fn main() {
         });
     let events = server.events.clone();
     gpui_platform::application().run(move |cx: &mut App| {
+        cx.set_global(theme);
         cx.on_window_closed(|cx, _| {
             if cx.windows().is_empty() {
                 cx.quit();
