@@ -19,7 +19,7 @@ import zlib
 from . import offline
 from .evidence import Blocked, MARKER, Owned, output_root
 from .driver import main as battery
-from .fixtures import WORK, build, import_family, inventory
+from .fixtures import WORK, build, discard, import_family, inventory
 from .bundle import build as bundle_build, office, standin
 
 HERE = Path(__file__).resolve().parent
@@ -74,6 +74,7 @@ class FixtureBundleTests(unittest.TestCase):
         for family in FAMILIES:
             with self.subTest(family=family):
                 fx, receipt = build(self.case(), family, self.bundle)
+                self.addCleanup(discard, fx.parent)
                 files = [e for e in self.manifest["families"][family]["entries"] if e["kind"] == "file"]
                 self.assertEqual(len(receipt["copied"]), len(files))
                 self.assertTrue(set(WORK).issubset(p.name for p in (fx / "v/work").iterdir()))

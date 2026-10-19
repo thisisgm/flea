@@ -139,8 +139,22 @@ class Display:
                 raise Blocked("owned terminal escaped its headless workspace")
             return client
 
+    def park(self):
+        """Puts the pointer on the owned output's last pixel, outside every window on it, the way the GUI capture tools do."""
+        x, y = self.monitor["x"] + self.monitor["width"] - 1, self.monitor["y"] + self.monitor["height"] - 1
+        for client in self.data("hypr_query_clients"):
+            (cx, cy), (cw, ch) = client.get("at", (0, 0)), client.get("size", (0, 0))
+            if client.get("monitor") == self.monitor["id"] and cx <= x < cx + cw and cy <= y < cy + ch:
+                raise Blocked(f"window {client.get('class')} covers the pointer's parking pixel {x},{y}")
+        compositor(self.commands, "hypr_cursor_move", str(x), str(y))
+        # Sample input, hyprctl -j cursorpos: {"x": 5119, "y": 1439}.
+        cursor = json.loads(compositor(self.commands, "hypr_query_cursor").stdout)
+        if (cursor.get("x"), cursor.get("y")) != (x, y):
+            raise Blocked(f"pointer parked at {x},{y} reads back at {cursor.get('x')},{cursor.get('y')}")
+
     def capture(self, path):
         self.require_shown()
+        self.park()
         self.commands.run(["grim", "-o", self.output, path])
         image = png.read(path)
         if image[:2] != (self.monitor["width"], self.monitor["height"]):
