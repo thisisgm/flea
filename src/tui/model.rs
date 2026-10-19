@@ -205,6 +205,7 @@ pub struct Model {
     pub restore_selection: BTreeSet<PathBuf>,
     pub restore_id: usize,
     pub delete_marks: BTreeMap<PathBuf, Row>,
+    pub prompts: super::prompts::Prompts,
 }
 // "Renamed 1 item · Undo reverts one", the bulk completion line next_rename reports.
 fn bulk_done_line(completed: usize, cancelled: bool) -> String {
@@ -374,6 +375,7 @@ impl Model {
             restore_selection: BTreeSet::new(),
             restore_id: 0,
             delete_marks: BTreeMap::new(),
+            prompts: Default::default(),
         }
     }
     pub fn open(&mut self, path: PathBuf, wire: &mut Wire) -> io::Result<()> {
@@ -428,7 +430,7 @@ impl Model {
             let visible = self.visible();
             self.folder_sizes.retain(|index, _| visible.contains(index));
         }
-        if self.pending.is_some() || self.searching || now.saturating_duration_since(self.size_at) < FOLDER_SIZE_SETTLE
+        if self.pending.is_some() || self.searching || self.prompts.trash.is_some() || now.saturating_duration_since(self.size_at) < FOLDER_SIZE_SETTLE
             || self.disk_path != self.path || crate::backend::extclass::refuses_folder_sizes(&self.disk_class) { return Ok(()); }
         let rows: Vec<_> = self.visible().into_iter().filter(|index| self.rows.get(index).is_some_and(|row| row.directory)
             && !self.folder_sizes.contains_key(index) && !self.size_pending.contains(index)).collect();
@@ -453,7 +455,7 @@ impl Model {
     pub fn refresh(&mut self, wire: &mut Wire) -> io::Result<()> {
         if !self.search.is_empty() && !self.search_query.is_empty() {
             self.searching = true;
-            self.search = "Search: refreshing".into();
+            self.search = self.prompts.i18n.tr("find.starting");
             self.invalidate_rows();
             self.sort_anchor = None;
             wire.send(vec![("c", word("search")), ("path", word(&self.path.to_string_lossy())),
@@ -462,6 +464,7 @@ impl Model {
     }
     pub fn window(&mut self, wire: &mut Wire) -> io::Result<()> {
         if !self.filter.is_empty() { return super::filter::window(self, wire); }
+        if self.prompts.trash.is_some() { return super::trashview::window(self, wire); }
         let old_top = self.top;
         if self.cursor < self.top {
             self.top = self.cursor;
@@ -480,7 +483,7 @@ impl Model {
         self.path.join(&row.name)
     }
     pub fn current_path(&self) -> Option<PathBuf> {
-        self.rows.get(&self.cursor).map(|row| self.row_path(row))
+        self.rows.get(&self.cursor).filter(|_| !super::trashview::hides(self)).map(|row| self.row_path(row))
     }
     pub fn single_row(&self) -> Option<(usize, Row)> {
         match self.selected.len() {
@@ -569,7 +572,7 @@ impl Model {
     }
     pub fn expire_message(&mut self, now: std::time::Instant) {
         if !matches!(self.menu_action.as_str(), "taildropRefresh" | "taildrop")
-            && !self.message.contains("Undo available")
+            && !super::prompts::lasting(self)
             && now.saturating_duration_since(self.message_at) >= MESSAGE_TIME {
             self.message.clear();
         }
@@ -680,10 +683,10 @@ impl Model {
             "listed" => {
                 if let Some(path) = self.pending.take() {
                     self.empty_at = std::time::Instant::now();
-                    self.path = path;
+                    let same = self.prompts.trash.take().is_none() & (std::mem::replace(&mut self.path, path) == self.path);
                     self.last_directory = Some(self.path.clone());
                     self.cursor = self.restore_cursor.take().unwrap_or(0);
-                    self.top = self.cursor;
+                    self.top = if same { self.top } else { self.cursor };
                     self.search.clear();
                     self.search_query.clear();
                     self.searching = false;
@@ -763,7 +766,7 @@ impl Model {
                     }
                 }
             }
-            "rows" => {
+            "rows" if self.prompts.trash.is_none() => {
                 let empty = Vec::new();
                 let kinds = value
                     .get("kinds")
@@ -924,7 +927,7 @@ impl Model {
                 }
                 if self.pending.is_none()
                     && !self.choose_pending
-                    && self.search.is_empty()
+                    && self.search.is_empty() && self.prompts.trash.is_none()
                     && text(&value, "path") == self.path.to_string_lossy()
                 {
                     self.restore_cursor = Some(self.cursor);
@@ -957,11 +960,7 @@ impl Model {
                 if self.pending_clipboard {
                     self.pending_clipboard = false;
                     self.clipboard = paths;
-                    self.say(format!(
-                        "{} {}",
-                        super::render::items(self.clipboard.len()),
-                        if self.cut { "cut" } else { "copied" }
-                    ));
+                    self.say(super::prompts::clipboard(self));
                 }
             }
             "searching" | "searched" => {
@@ -970,12 +969,7 @@ impl Model {
                 }
                 self.total = count(&value, "n");
                 self.searching = text(&value, "t") == "searching";
-                self.search = format!(
-                    "Search: {} {} · {} scanned",
-                    super::render::grouped(self.total),
-                    super::render::word(self.total, "match", "matches"),
-                    super::render::grouped(count(&value, "scanned"))
-                );
+                self.search = super::prompts::found(self, count(&value, "scanned"));
                 if !self.searching {
                     // Ranking changes every index; no action may use the discovery-order window.
                     self.invalidate_rows();
@@ -1062,34 +1056,8 @@ impl Model {
                     }
                     return Ok(());
                 }
-                self.say(match operation {
-                    "renamed" => "Renamed · Undo available".into(),
-                    "made" => "Folder created · Undo available".into(),
-                    "duplicated" => "Duplicated · Undo available".into(),
-                    "undone" => format!("Undid {}", text(&value, "op")),
-                    "redone" => format!("Redid {} · Undo available", text(&value, "op")),
-                    "trashed" => format!(
-                        "Moved {} to Trash · Undo available",
-                        super::render::items(count(&value, "ok"))
-                    ),
-                    _ => format!(
-                        "{} {}{}",
-                        if flag(&value, "cancelled") {
-                            "Cancelled after"
-                        } else {
-                            "Transferred"
-                        },
-                        super::render::items(count(&value, "ok")),
-                        if count(&value, "skipped") > 0 {
-                            format!(" · {} skipped", super::render::grouped(count(&value, "skipped")))
-                        } else {
-                            String::new()
-                        }
-                    ),
-                });
-                if count(&value, "failed") > 0 {
-                    self.fail(format!("{} failed", super::render::grouped(count(&value, "failed"))));
-                }
+                let line = super::prompts::receipt(self, &value);
+                self.say(line);
                 if matches!(operation, "renamed" | "made" | "duplicated") {
                     self.restore_path = Some(PathBuf::from(text(&value, "path")));
                     self.editor = None;
@@ -1106,7 +1074,8 @@ impl Model {
                 }
                 if flag(&value, "ok") {
                     self.editor = None;
-                    self.say("File created · Undo available".into());
+                    super::prompts::record(self, "newfile", vec![PathBuf::from(text(&value, "path"))]);
+                    self.say(super::prompts::undoable(self, self.prompts.i18n.tr("receipt.fileCreated")));
                     self.restore_path = Some(PathBuf::from(text(&value, "path")));
                     self.refresh(wire)?;
                 } else if let Some(editor) = &mut self.editor {
@@ -1223,21 +1192,18 @@ impl Model {
                     self.properties = Some(super::render::cards::properties(&value, &self.i18n));
                 }
             }
+            "trashbrowse" => super::trashview::receive(self, &value),
+            "collisions" | "fatnames" => super::prompts::collided(self, &value, wire)?,
             "error" => {
-                self.fail(if text(&value, "where") == "scan" {
+                let held = self.editor.as_mut().filter(|editor| editor.kind == text(&value, "where")).map(|editor| { editor.pending = false; editor.error = text(&value, "msg").into(); }).is_some();
+                if !held { self.fail(if text(&value, "where") == "scan" {
                     if text(&value, "msg") == "permission denied" { "You don’t have permission to open this folder.".into() }
                     else { text(&value, "msg").into() }
                 }
-                    else { format!("{}: {}", text(&value, "where"), text(&value, "msg")) });
+                    else { format!("{}: {}", text(&value, "where"), text(&value, "msg")) }); }
                 if text(&value, "where") == "rename" && self.bulk.is_some() {
                     self.bulk.as_mut().unwrap().cancelled = true;
                     self.next_rename(wire)?;
-                }
-                if let Some(editor) = &mut self.editor {
-                    if text(&value, "where") == editor.kind {
-                        editor.pending = false;
-                        editor.error = text(&value, "msg").into();
-                    }
                 }
                 if text(&value, "where") == "scan"
                     && self

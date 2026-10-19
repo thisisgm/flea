@@ -152,7 +152,7 @@ pub(crate) fn finish(mut wire: Wire, reader: std::thread::JoinHandle<()>) {
 // The sort-anchor battery, kept beside this suite so this file stays a mechanism file.
 #[cfg(test)]
 #[path = "sort_tests.rs"]
-mod sort_tests;
+pub(super) mod sort_tests;
 
 // Issue 133's key battery, which drives the same echo wire.
 #[cfg(test)]
@@ -262,7 +262,8 @@ mod tests {
         let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
         model.total = 6;
         model.cursor = 3;
-        model.top = 2;
+        // A reload of the same folder keeps its scroll, so the cursor row starts at the top of the view.
+        model.top = 3;
         model.rows.insert(3, Row::parse(&row("charlie.txt"), &[]));
         model.open(model.path.clone(), &mut wire).unwrap();
         assert_eq!(text(&next(&wire), "c"), "list");

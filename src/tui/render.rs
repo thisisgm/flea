@@ -1,8 +1,7 @@
-use super::{cells::{self, RowStyle}, icons, layout, keymap::Map, model::Model, theme::Theme};
+use super::{cells::{self, RowStyle}, layout, keymap::Map, model::Model, theme::Theme};
 use std::io::{self, Write};
 pub use super::cells::{clean, safe, text_width, fit};
-pub use super::layout::{panes, BODY_ROW, CHROME_ROWS, body_height, pane_padding, preview_area, tab_layout};
-use super::layout::footer;
+pub use super::layout::{panes, BODY_ROW, CHROME_ROWS, body_height, preview_area, tab_layout};
 #[path = "cards.rs"]
 pub(super) mod cards;
 #[path = "key_sheet.rs"]
@@ -64,7 +63,7 @@ pub fn draw(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize,
     Ok(true)
 }
 pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: usize, elapsed: std::time::Duration) -> String {
-    if columns < 12 || lines <= CHROME_ROWS { return layout::small(columns, lines, theme); }
+    if columns < 12 || lines <= CHROME_ROWS { return layout::small(columns, lines, theme) + &super::prompts::caret(None, lines); }
     // A card or the keys sheet is the one lit surface: everything behind it draws in the scrim's inks.
     let lit = theme;
     let theme = if m.sheet || m.deletion.is_some() { theme.dim.as_deref().unwrap_or(theme) } else { theme };
@@ -76,27 +75,20 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
     for y in 0..body {
         out.push_str(&format!("\x1b[{};1H{}", y + BODY_ROW, base));
         if m.quicklook { out.push_str(&layout::preview(m, y, columns, body, theme)); continue; }
-        if let Some(parent) = m.parents.get(y) {
+        if let Some(parent) = m.parents.get(y).filter(|_| !super::trashview::hides(m)) {
             let current = m.path.file_name().is_some_and(|name| name == parent.name.as_str());
             out.push_str(&cells::row(parent, left, None, m.marks(), RowStyle { cursor: current, quiet: true, parent: true, ..Default::default() }, theme, ""));
         } else { out.push_str(&" ".repeat(left)); }
         out.push_str(&format!("{}│{}", theme.border, base));
         if let Some((index, entry)) = visible.get(y).and_then(|index| m.rows.get(index).map(|entry| (*index, entry))) {
-            if let Some(editor) = m.editor.as_ref().filter(|e| e.kind == "rename" && e.path == m.row_path(entry)) {
-                let padding = pane_padding(middle);
-                out.push_str(&" ".repeat(padding));
-                out.push_str(&editor.line(&format!("{} ", icons::row(entry, m.marks())), "", middle - padding * 2, &base, &theme.muted, &theme.accent));
-                out.push_str(&" ".repeat(padding));
-            } else {
-                let style = RowStyle { cursor: index == m.cursor, focused: layout::focused(m), marked: m.selected.contains(&index), dimmed: entry.mode == 0, ..Default::default() };
-                out.push_str(&cells::row(entry, middle, Some(&super::detail::value(m, index, entry)), m.marks(), style, theme, &m.filter));
-            }
-        } else if m.total == 0 && m.pending.is_none() {
+            let style = RowStyle { cursor: index == m.cursor, focused: layout::focused(m), marked: m.selected.contains(&index), dimmed: entry.mode == 0, ..Default::default() };
+            out.push_str(&cells::row(entry, middle, Some(&super::trashview::detail(m, index, entry)), m.marks(), style, theme, &m.filter));
+        } else if m.total == 0 && m.pending.is_none() && super::trashview::settled(m) {
             out.push_str(&theme.meta);
             out.push_str(&super::empty::line(y, body, middle, m.marks(), m.empty_at.elapsed()));
         } else if !m.filter.is_empty() && visible.is_empty() {
             out.push_str(&theme.meta);
-            out.push_str(&super::empty::notice(y, body, middle, if m.marks() { icons::FOLDER } else { "›" }, &format!("Nothing matches {}", m.filter)));
+            out.push_str(&super::empty::no_match(y, body, middle, m.marks(), &m.prompts.i18n.tr_args("filter.nothing", &[&m.filter])));
         } else {
             out.push_str(&fit(if m.pending.is_some() && y == body / 2 { "Loading…" } else { "" }, middle));
         }
@@ -110,28 +102,13 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
         for y in top..top + height { out.push_str(&format!("\x1b[{};{}H{}▐{}", BODY_ROW + y, left + middle + 1, theme.muted, base)); }
     }
     out.push_str(&format!("\x1b[{};1H{}\x1b[{};1H{} ", lines - 1, layout::rule(columns, m.preview_visible, true, theme), lines, base));
-    let header_width = columns.saturating_sub(2);
-    if let Some(editor) = &m.editor {
-        if editor.kind == "rename" {
-            let notice = if !editor.error.is_empty() { editor.error.as_str() } else if editor.pending { "Renaming…" }
-                else { "Enter saves · Escape cancels · Ctrl+A selects the full name" };
-            if !editor.error.is_empty() { out.push_str(&theme.error); }
-            out.push_str(&fit(notice, header_width));
-        } else {
-            let prefix = match editor.kind { "path" => ": ".into(), "filter" => "Filter ".into(), _ => format!("{}: ", editor.kind) };
-            let suffix = if editor.pending { " · Working…".into() }
-                else if editor.kind == "path" { m.completion.strip_prefix(&editor.value).unwrap_or("").into() }
-                else if editor.kind == "filter" { format!("  {} of {} shown", m.filter_count(), m.total) }
-                else if editor.kind == "search" { format!(" · in {} · Tab changes scope", if m.search_here { layout::display_path(m) } else { "Home".into() }) }
-                else { String::new() };
-            out.push_str(&editor.line(&prefix, &suffix, header_width, &base, &theme.muted, &theme.accent));
-        }
-    } else { out.push_str(&footer(m, theme, header_width, elapsed)); }
-    out.push_str(&format!("{} ", base));
+    let (status, caret) = super::prompts::status(m, theme, columns.saturating_sub(2), elapsed);
+    out.push_str(&format!("{status}{base} "));
     if m.properties.is_some() { cards::draw_properties(&mut out, m, lit); }
     else if m.sheet { key_sheet::draw(&mut out, m, lit, map); }
     if m.menu { menu_layout::draw(&mut out, m, lit, map); }
     if m.deletion.is_some() { cards::draw_delete(&mut out, m, lit); }
+    out.push_str(&super::prompts::caret(caret, lines));
     out
 }
 pub(super) fn selection_line(m: &Model, y: usize, columns: usize) -> String {

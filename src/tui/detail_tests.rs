@@ -201,8 +201,8 @@ fn detail_receipt_expires_at_four_seconds_without_changing_mode_or_error() {
     model.expire_message(time + Duration::from_secs(4));
     assert!(model.message.is_empty()); assert_eq!(model.error, "Denied");
     assert_eq!(model.detail.mode, Column::Modified);
-    model.say("Undo available".into()); model.expire_message(time + Duration::from_secs(60));
-    assert_eq!(model.message, "Undo available");
+    model.hints.undo = "z".into(); model.say(crate::tui::prompts::undoable(&model, "Renamed".into())); model.expire_message(time + Duration::from_secs(60));
+    assert_eq!(model.message, "Renamed · z undoes");
 }
 
 #[test]

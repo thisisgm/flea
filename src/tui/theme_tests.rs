@@ -82,3 +82,16 @@ fn a_read_that_changes_before_its_second_look_is_not_published() {
     assert_eq!(settled(&path, None, || {}).as_deref(), Some(full));
     assert_eq!(settled(&path, Some(full), || panic!("an unchanged read waits for a second look")), None);
 }
+// The prompt field is the foreground's 7% over the background; its stem wash eases from 24% only as far as foreground text needs.
+#[test]
+fn prompt_field_and_stem_wash_keep_text_contrast() {
+    let theme = Theme::from_text(BENCH);
+    let field = blend("#c6b395", "#1c120d", 0.07);
+    assert_eq!(theme.field, ansi(&field, true));
+    assert_eq!(theme.stem, ansi(&blend("#d28a41", &field, 0.24), true), "full strength where the text already reads");
+    assert_eq!(theme.ext, ansi(&ensure(&contrast(&contrast("#68544b", "#1c120d"), "#150d0a"), &field, 4.5), false));
+    let bright = Theme::from_text("background='#000000'\nforeground='#b0b0b0'\naccent='#ffffff'");
+    let field = blend("#b0b0b0", "#000000", 0.07);
+    assert!(ratio(rgb("#b0b0b0"), rgb(&blend("#ffffff", &field, 0.23))) < 4.5, "the fixture needs the easing");
+    assert_eq!(bright.stem, ansi(&blend("#ffffff", &field, 0.22), true));
+}

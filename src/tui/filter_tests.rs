@@ -73,7 +73,7 @@ fn a_match_outside_the_loaded_rows_is_shown_and_counted() {
     let theme = Theme::from_text("");
     assert!(plain(&crate::tui::layout::footer(&m, &theme, 128, std::time::Duration::ZERO)).starts_with("Filter needle  1 of 100,000 shown"));
     let frame = plain(&crate::tui::render::frame(&m, &theme, &Map::load(), 130, 31, std::time::Duration::ZERO));
-    assert!(frame.contains("Needle.txt") && frame.contains("1 of 100000 shown"), "{frame}");
+    assert!(frame.contains("Needle.txt") && frame.contains("1 of 100,000 shown"), "{frame}");
     wire::finish(w, reader);
 }
 #[test]

@@ -130,10 +130,12 @@ pub fn row(entry: &Row, columns: usize, size: Option<&str>, marks: bool, style: 
     out.push_str(ink);
     let size = size.filter(|s| text_width(s) + 6 <= columns);
     let name_width = columns - 3 - size.map_or(1, |s| text_width(s) + 3);
-    let display_name = fit(&entry.name, text_width(&entry.name));
+    // A search result's name is its path under the search; it prints its name, then its folder in the metadata ink.
+    let (folder, leaf) = entry.name.rsplit_once('/').unwrap_or(("", &entry.name));
+    let display_name = fit(leaf, text_width(leaf));
     let name = ellipsis(&display_name, text_width(&display_name).min(name_width));
     let target_width = name_width - text_width(&name);
-    let target = if entry.link.is_empty() { fit("", target_width) }
+    let target = if !folder.is_empty() { ellipsis(&format!(" {folder}"), target_width) } else if entry.link.is_empty() { fit("", target_width) }
         else { ellipsis(&format!(" → {}", entry.link), target_width) };
     if let Some((start, end)) = match_range(&name, query) {
         out.push_str(&name[..start]);
