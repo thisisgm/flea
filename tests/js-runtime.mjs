@@ -79,8 +79,7 @@ export function forceUtcZone() {
     return setZone("UTC");
 }
 
-// Run this script again with arguments under a time bound, answering {status, output}; status 0 is a clean exit.
-// A named zone is set before the child starts, where both engines read it.
+// Run this script again with arguments under a time bound, zone set first, answering {status, output}; 0 is a clean exit.
 export function runSelf(metaUrl, args, boundSeconds, zone) {
     const script = pathOfUrl(metaUrl);
     if (underNode) {

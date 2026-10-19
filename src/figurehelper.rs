@@ -66,12 +66,10 @@ pub(crate) fn figure_argv(qjs: &Path, vendor: &Path, bytecode: Option<&Path>, wa
     argv
 }
 
-// The Gantt marker is drawn with local getters, so the helper's zone is UTC by argv, never the GUI's.
-// Sample argv: "--clearenv", "--setenv", "TZ", "UTC" ahead of the locale pin.
+// The helper formats with local getters, so its zone is pinned to UTC by argv.
 pub(crate) fn pin_utc(argv: &mut Vec<String>) {
-    if let Some(at) = argv.iter().position(|a| a == "--clearenv") {
-        argv.splice(at + 1..at + 1, ["--setenv".to_string(), "TZ".to_string(), "UTC".to_string()]);
-    }
+    let at = argv.iter().position(|a| a == "--clearenv").map_or(1, |i| i + 1).min(argv.len());
+    argv.splice(at..at, ["--setenv".to_string(), "TZ".to_string(), "UTC".to_string()]);
 }
 
 // The helper's own flag that prints one line per bundle it loads, saying whether it came from bytecode or from source.

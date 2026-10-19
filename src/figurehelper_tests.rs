@@ -97,9 +97,15 @@ fn the_argv_carries_the_caps_the_flags_both_binds_and_qjs_last() {
 fn the_helper_argv_sets_utc_after_clearing_the_environment() {
     let got = argv_for("/usr/bin/qjs");
     let cleared = got.iter().position(|a| a == "--clearenv").expect("--clearenv");
-    let zone = got.iter().position(|a| a == "TZ").expect("TZ");
-    assert_eq!(got[zone + 1], "UTC");
-    assert!(cleared < zone, "--clearenv must precede TZ or it clears it too");
+    assert_eq!(got[cleared + 1..cleared + 4], ["--setenv", "TZ", "UTC"], "the pin must follow --clearenv");
+    assert_eq!(got.iter().filter(|a| a.as_str() == "TZ").count(), 1, "the zone is pinned exactly once");
+}
+
+#[test]
+fn an_argv_without_a_clearenv_still_pins_utc_after_its_program() {
+    let mut argv = ["bwrap", "--unshare-all", "/usr/bin/qjs"].map(String::from).to_vec();
+    pin_utc(&mut argv);
+    assert_eq!(argv, ["bwrap", "--setenv", "TZ", "UTC", "--unshare-all", "/usr/bin/qjs"]);
 }
 
 #[test]
