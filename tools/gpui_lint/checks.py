@@ -24,23 +24,19 @@ silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal
 turquoise violet wheat white whitesmoke yellow yellowgreen""".split())
 
 
-# Sample input: crates/flea-gui/tests/g1_03/transport.rs belongs to the g1_03 test crate, src/main.rs to the binary, other src/ files to the library.
-# Returns the target and whether it is the package's library.
+# Sample input: crates/flea-gui/tests/g1_03/transport.rs belongs to the g1_03 test crate; every src/ file to the package's own.
+# Returns the target and whether another package may call into it: src/main.rs and src/bin/ belong to binaries.
 def compilation_target(path):
     parts = path.split("/")
     base = parts.index("crates") + 2 if "crates" in parts else 0
     rest = parts[base:]
-    if rest == ["src", "main.rs"]:
-        key = "src/main"
-    elif rest[:2] == ["src", "bin"] and len(rest) > 2:
-        key = "src/bin/" + rest[2].removesuffix(".rs")
-    elif rest[:1] == ["src"]:
-        key = "src"
+    if rest[:1] == ["src"]:
+        return "/".join(parts[:base] + ["src"]), rest != ["src", "main.rs"] and rest[:2] != ["src", "bin"]
     elif rest[:1] in (["tests"], ["examples"], ["benches"]) and len(rest) > 1:
         key = rest[0] + "/" + rest[1].removesuffix(".rs")
     else:
         key = "/".join(rest[:1])
-    return "/".join(parts[:base] + [key]), key == "src"
+    return "/".join(parts[:base] + [key]), False
 
 
 def blocking(symbol, args, method, helpers):
@@ -123,7 +119,7 @@ def source_checks(units, policy):
         function = known[name]
         for symbol, line, args, method in calls(function, known):
             target = resolve(symbol, function, set(known) | helpers)
-            # Only a package's library is callable from another target; a test, example, bench, build script or binary item is not.
+            # Another target is reached only through a package's library; a test, example, bench, build script or binary is not.
             if target in known:
                 callee, library = compilation_target(known[target].path)
                 if not library and callee != compilation_target(function.path)[0]:
