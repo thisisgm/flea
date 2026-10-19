@@ -10,6 +10,22 @@ use crate::{
 use gpui::{Context, Window};
 
 impl Shell {
+    // Platform quit closes each backend's stdin and lets go of it, so its EOF cleanup outlives this process.
+    pub(crate) fn stop_for_app_quit(&mut self) {
+        self.lifecycle.begin_close();
+        self._ipc_reader = None;
+        self._locale_reader = None;
+        self.locale_service = None;
+        self.deadlines = [None, None];
+        for host in self.panes.iter_mut().flatten() {
+            host.reader = None;
+            host.stopped = true;
+            if let Some(backend) = host.backend.take() {
+                backend.close_stdin();
+            }
+        }
+    }
+
     pub(crate) fn ensure_ipc_reader(&mut self, window: &Window, cx: &mut Context<Self>) {
         let Some(events) = self.ipc_events.take() else {
             return;

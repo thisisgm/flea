@@ -1,8 +1,8 @@
 //! Wire adapters keep the optional denied-directory mode and captured row numbering intact.
-use super::{parse_reply, Event, Located};
+use super::{Event, Located};
 use crate::navigation::{folder_state::Order, Command, Listing};
 use crate::pane::requests::RowAction;
-use flea::{json::escape, jsondoc, protocol::Reply};
+use flea::{json::escape, jsondoc, protocol::parse_reply, protocol::Reply};
 use std::io::{self, Write};
 
 pub(super) fn parse(line: &str) -> Result<Event, String> {
