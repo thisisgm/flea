@@ -1,5 +1,5 @@
 // Exercise SVG post-processing directly, with the cyclic fixture confined to a child process.
-import { argv, finish, readText, repoRoot, resolve, runSelf } from "./js-runtime.mjs";
+import { argv, finish, forceUtcZone, readText, repoRoot, resolve, runSelf } from "./js-runtime.mjs";
 import { checkSafe, postMermaid, postMath, renderFigure } from "../ui/js/FigureWorker.mjs";
 import { texToSvg } from "../ui/vendor/math.mjs";
 import { mermaidToSvg } from "../ui/vendor/mermaid.mjs";
@@ -27,6 +27,9 @@ if (argv[0] === "cycle") {
         failures += passed ? 0 : 1;
         console.log((passed ? "PASS " : "FAIL ") + label);
     }
+    // The helper formats in UTC, so this run renders its Gantt days in a UTC zone; without a zone seam the relative checks below still hold.
+    const utcRender = forceUtcZone() && new Date(Date.UTC(2001, 9, 20, 12)).getHours() === 12;
+    console.log("figure-worker: the render zone is " + (utcRender ? "UTC" : "the suite lane's own"));
     const child = runSelf(import.meta.url, ["cycle"], CYCLE_BOUND_SECONDS);
     check(child.status === 0, "two-variable cycle refuses the SVG: " + child.output);
     // The bundle resolves every theme role it draws to the request's own colours, so no var() reaches the post-pass, in a fill or a stroke.
@@ -38,6 +41,37 @@ if (argv[0] === "cycle") {
     const nested = mermaidToSvg("flowchart TD\nsubgraph outer [Outer]\nsubgraph inner [Inner]\nA --> B\nend\nC --> A\nend", roles);
     check(!nested.includes("color-mix(") && /<g class="pele-cluster-title"[^<>]*><text fill="none" stroke="#[0-9a-f]{6}" stroke-width="5"/.test(nested),
         "a title halo's colour mix reaches the post-pass as one concrete colour");
+    // The entry names its var() nesting cap after the old worker's, and a 12-deep alias chain resolves while a 20-deep one refuses.
+    const entrySource = readText(resolve(repoRoot(import.meta.url), "tools/vendor-js/mermaid-entry.mjs"));
+    const cap = Number((entrySource.match(/const RESOLVER_DEPTH_MAX = (\d+);/) || [null, NaN])[1]);
+    check(cap === 12, "the entry names its nesting cap RESOLVER_DEPTH_MAX at 12, got " + cap);
+    check(/if \(depth > RESOLVER_DEPTH_MAX\)/.test(entrySource), "resolve bounds its nesting by the named cap");
+    const open = entrySource.indexOf("{", entrySource.indexOf("function resolve(text, table, depth)"));
+    let braceDepth = 0;
+    let close = -1;
+    for (let i = open; i < entrySource.length; i++) {
+        braceDepth += entrySource[i] === "{" ? 1 : entrySource[i] === "}" ? -1 : 0;
+        if (braceDepth === 0) {
+            close = i;
+            break;
+        }
+    }
+    const resolveVar = new Function("const RESOLVER_DEPTH_MAX = " + cap + "; return function resolve(text, table, depth) {"
+        + entrySource.slice(open + 1, close) + "}")();
+    const chain = (n) => {
+        const table = {};
+        for (let i = 1; i <= n; i++)
+            table["a" + i] = i < n ? "var(--a" + (i + 1) + ")" : "#123456";
+        return table;
+    };
+    check(resolveVar("var(--a1)", chain(12), 0) === "#123456", "a 12-deep alias chain resolves");
+    let deep = "";
+    try {
+        resolveVar("var(--a1)", chain(20), 0);
+    } catch (error) {
+        deep = error.message;
+    }
+    check(/too deep/.test(deep), "a 20-deep alias chain refuses: " + deep);
     const mixed = (() => { try { postMermaid('<svg><rect fill="color-mix(in srgb, #ffffff 25%, #000000)"/></svg>', theme); return ""; } catch (error) { return error.message; } })();
     check(/unresolved style/.test(mixed), "a colour mix the bundle left is refused: " + mixed);
     const unresolved = (() => { try { postMermaid('<svg><rect fill="var(--fg)"/></svg>', theme); return ""; } catch (error) { return error.message; } })();
@@ -125,9 +159,35 @@ if (argv[0] === "cycle") {
         check(lines.join(" ").includes(words), "a label reading " + words + " draws its own words: " + lines.join(" | "));
     }
     // A Gantt chart draws the day its request names, whatever the clock says, so a figure cached under one day's key is that day's drawing.
-    const gantt = "gantt\n    dateFormat YYYY-MM-DD\n    section Work\n    Build :a1, 2026-10-01, 30d\n    Ship  :after a1, 10d";
+    const gantt = "gantt\n    dateFormat YYYY-MM-DD\n    section Work\n    Build :a1, 2001-10-01, 30d\n    Ship  :after a1, 10d";
     const DAY_MS = 86400000;
-    const NOON_19 = new Date(2026, 9, 19, 12).getTime();
+    const NOON_19 = Date.UTC(2001, 9, 19, 12);
+    const realDate = Date;
+    function GuardedDate(...args) {
+        if (args.length === 0)
+            throw new Error("the bundle read the clock through a bare new Date()");
+        return new realDate(...args);
+    }
+    GuardedDate.prototype = realDate.prototype;
+    GuardedDate.UTC = realDate.UTC;
+    GuardedDate.parse = realDate.parse;
+    // A dated render takes the day from the request alone: a bare new Date() on this path throws, so growing one goes red here.
+    function guardedRender(today, clock) {
+        GuardedDate.now = () => clock;
+        globalThis.Date = GuardedDate;
+        try {
+            return renderFigure("mermaid", gantt, true, { ...roles, today }, { mermaidToSvg });
+        } finally {
+            globalThis.Date = realDate;
+        }
+    }
+    let datedSvg = "";
+    try {
+        datedSvg = guardedRender(NOON_19, NOON_19);
+    } catch (error) {
+        datedSvg = error.message;
+    }
+    check(datedSvg.startsWith("<svg"), "a dated Gantt render reads no bare new Date(): " + datedSvg.slice(0, 80));
     const realNow = Date.now;
     function ganttAt(today, clock) {
         Date.now = () => clock;
@@ -140,6 +200,29 @@ if (argv[0] === "cycle") {
     const day19 = ganttAt(NOON_19, NOON_19);
     check(day19 === ganttAt(NOON_19, NOON_19 + 7 * DAY_MS) && day19 !== ganttAt(NOON_19 + 7 * DAY_MS, NOON_19),
         "a Gantt chart draws the day its request names and not the clock's");
+    // A GUI in UTC+13 asking 2001-10-20 used to send 2001-10-19T23:00Z, which the helper drew as the 19th; noon UTC of the asked day is the 20th in every zone.
+    const utcDayOf = (ms) => new Date(ms).toISOString().slice(0, 10);
+    check(utcDayOf(Date.UTC(2001, 9, 20, 12)) === "2001-10-20", "noon UTC of the asked day is the asked day in every zone");
+    check(utcDayOf(Date.UTC(2001, 9, 19, 23)) === "2001-10-19", "the old UTC+13 value named the 19th, which the helper drew");
+    check(utcDayOf(Date.UTC(2001, 9, 20, 23)) === "2001-10-20", "the old UTC-11 value named the 20th, which noon UTC keeps");
+    // The marker's calendar day read off the figure's own weekly grid, whatever zone renders it.
+    function markerDay(svg) {
+        const grid = (svg.match(/<g class="pele-grid"[^>]*>([\s\S]*?)<\/g>/) || [null, ""])[1];
+        const xs = [...grid.matchAll(/M([\d.]+),/g)].map((m) => Number(m[1]));
+        const days = [...svg.matchAll(/<text[^>]*>(2001-[\d-]+)<\/text>/g)].map((m) => m[1].split("-").map(Number));
+        const marker = Number((svg.match(/<g class="pele-today">[\s\S]*?M([\d.]+),/) || [null, NaN])[1]);
+        const first = Date.UTC(days[0][0], days[0][1] - 1, days[0][2]);
+        const scale = (xs[1] - xs[0]) / ((Date.UTC(days[1][0], days[1][1] - 1, days[1][2]) - first) / DAY_MS);
+        return new Date(first + (marker - xs[0]) / scale * DAY_MS).toISOString().slice(0, 10);
+    }
+    // Sample input: Oct 2001 ticks a week apart with the marker on the 19th read "2001-10-19".
+    if (utcRender) {
+        const drawnDay = datedSvg.startsWith("<svg") ? markerDay(datedSvg) : "no figure: " + datedSvg.slice(0, 60);
+        check(drawnDay === "2001-10-19", "a UTC+13 and a UTC-11 GUI asking 2001-10-19 are drawn the 19th: " + drawnDay);
+    }
+    else
+        check(markerDay(ganttAt(Date.UTC(2001, 9, 20, 12), NOON_19)) !== markerDay(ganttAt(Date.UTC(2001, 9, 19, 23), NOON_19)),
+            "the asked noon draws another day than the old UTC+13 value");
     const styled = postMermaid('<svg><rect style="fill:#ffffff;stroke-width:2;rx:4px" stroke="#000000"/><text style="font-size:12px">a</text></svg>', theme);
     check(styled.includes('fill="#ffffff"') && styled.includes('stroke-width="2"') && styled.includes('rx="4"') && styled.includes('font-size="12px"') && !styled.includes("style="),
         "style attributes become SVG presentation attributes");

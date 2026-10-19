@@ -266,7 +266,7 @@ arrow_output=$( ( env -u DISPLAY -u WAYLAND_DISPLAY -u HYPRLAND_INSTANCE_SIGNATU
 printf '%s\n' "$arrow_output" | grep -oE 'MARKDOWN_ARROWS .*'
 warnings=$(printf '%s\n' "$arrow_output" | grep -aE 'TypeError|ReferenceError|WARN|invalid nullptr parameter' | grep -vF "$platform_warning")
 [ -z "$warnings" ] || { printf 'FAIL arrow harness warning: %s\n' "$warnings"; exit 1; }
-expected_arrow_checks=24 # Four checks for each of six helper figures: the four head directions, a link marked at both ends and a back link.
+expected_arrow_checks=39 # Every head measured with a displaced-head control: five checks for each of four single heads, eight for the double-marked link, eleven for the back-link loop.
 # Sample input: MARKDOWN_ARROWS 24 checks, 0 failed
 if ! printf '%s\n' "$arrow_output" | grep -qE "(^|: )MARKDOWN_ARROWS $expected_arrow_checks checks, 0 failed$"; then
     printf 'FAIL markdown-figures-render: arrows expected %s checks, 0 failed; arrived [%s]\n' "$expected_arrow_checks" "${arrow_output:-<empty>}" >&2

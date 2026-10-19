@@ -56,9 +56,6 @@ Item {
     property int helperExits: 0
     property int deadlineExpirations: 0
 
-    // A dated figure is asked for one day at this hour, local time, so the helper's own time zone moves it to no other date.
-    readonly property int middayHour: 12
-
     // FNV-1a over the table's comma-joined text, "0" for none.
     function tableDigestOf(table) {
         if (!table || table.length === 0)
@@ -80,19 +77,8 @@ Item {
         return kind + "\n" + key + (t.today ? "|" + t.today : "") + "\n" + !!display + "\n" + source;
     }
 
-    // Sample input: ("mermaid", "gantt\n    title Plan", theme) answers a copy of theme whose today is this day's local noon in ms, since a Gantt chart draws today's date; any other figure answers theme itself.
-    function datedTheme(kind, source, theme) {
-        if (kind !== "mermaid" || !theme || !/(?:^|%%)\s*gantt\b/im.test(source))
-            return theme;
-        var now = new Date();
-        var dated = Object.assign({}, theme);
-        dated.today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), root.middayHour).getTime();
-        return dated;
-    }
-
-    // A figure asks with its undated theme, so the lookup dates a Gantt chart's theme the way ask does and a revisit draws in the first frame.
     function cached(kind, source, theme, display) {
-        var key = root.cacheKeyOf(kind, source, root.datedTheme(kind, source, theme), display);
+        var key = root.cacheKeyOf(kind, source, theme, display);
         var hit = root.answerCache[key];
         if (hit !== undefined) {
             var at = root.answerOrder.indexOf(key);
@@ -325,21 +311,10 @@ Item {
         root.sent(id, w.source);
     }
 
-    // A document with figures is on screen and none is asked for yet: start the helper now, so it is warm when they are asked; `themes` maps each kind to the theme its figures are asked under, so the query names an ask's cache keys.
-    function warm(blocks, themes) {
+    // A document with figures is on screen and none is asked for yet: start the helper now, so it is warm when they are asked; the caller names the keys an ask would use.
+    function warm(keys, kinds) {
         if (!root.available || root.stopping || root.starting || helper.running)
             return false;
-        var kinds = [];
-        var keys = [];
-        for (var i = 0; i < blocks.length; i++) {
-            if (blocks[i].type !== "figure")
-                continue;
-            var theme = themes ? root.datedTheme(blocks[i].kind, blocks[i].source, themes[blocks[i].kind]) : undefined;
-            // The preview asks every figure as a display figure; a kind with no theme has no key and so is never known.
-            keys.push(theme ? root.cacheKeyOf(blocks[i].kind, blocks[i].source, theme, true) : "");
-            if (kinds.indexOf(blocks[i].kind) < 0)
-                kinds.push(blocks[i].kind);
-        }
         if (kinds.length === 0)
             return false;
         root.warmKinds = kinds;
@@ -364,9 +339,8 @@ Item {
         root.armIdle();
     }
 
-    function ask(kind, source, display, asked) {
-        // The day a Gantt chart is asked for rides with its theme, so its key, its stored entry and its drawing name one day.
-        var theme = root.datedTheme(kind, source, asked);
+    // The caller dates a Gantt chart's theme, so the key, the stored entry and the drawing name one day.
+    function ask(kind, source, display, theme) {
         root.seq++;
         var id = root.seq;
         // A revisit or a theme flip back never reaches the helper at all.

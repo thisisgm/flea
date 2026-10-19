@@ -1,5 +1,4 @@
-// The post-pass of ui/js/FigureWorker.mjs over real library output and over hand-built shapes: never a broken viewBox, never a label cut,
-// every label line its own text at its own baseline.
+// The post-pass over real library output and hand-built shapes: never a broken viewBox, never a cut label, one text per label line.
 import { postMermaid } from '../ui/js/FigureWorker.mjs';
 import { mermaidToSvg } from '../ui/vendor/mermaid.mjs';
 import { actors, nodes, parse, texts } from './mermaid-corpus.mjs';

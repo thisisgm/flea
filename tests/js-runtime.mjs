@@ -3,6 +3,14 @@ const underNode = typeof process !== "undefined" && process.versions !== undefin
 const std = underNode ? null : await import("qjs:std");
 const os = underNode ? null : await import("qjs:os");
 const fs = underNode ? await import("node:fs") : null;
+
+// Sample input: the fixtures directory answers its file names in either engine.
+export function readDir(path) {
+    if (underNode)
+        return fs.readdirSync(path);
+    const out = os.readdir(path);
+    return Array.isArray(out[0]) ? out[0] : out;
+}
 const url = underNode ? await import("node:url") : null;
 const childProcess = underNode ? await import("node:child_process") : null;
 
@@ -49,6 +57,20 @@ export function readText(path) {
 // Import a module by absolute path; node needs a file URL, which escapes the path once.
 export async function importFile(path) {
     return underNode ? await import(url.pathToFileURL(path).href) : await import(path);
+}
+
+// Sample input: forcing the zone answers true under node, and under quickjs-ng when its std names setenv.
+// The figure helper formats in UTC, so a Gantt render asking for one day runs in a UTC zone.
+export function forceUtcZone() {
+    if (underNode) {
+        process.env.TZ = "UTC";
+        return true;
+    }
+    if (std !== null && typeof std.setenv === "function") {
+        std.setenv("TZ", "UTC");
+        return true;
+    }
+    return false;
 }
 
 // Run this script again with arguments under a time bound, answering {status, output}; status 0 is a clean exit.

@@ -123,6 +123,7 @@ tests/rename-cost.qml 482
 tests/markdown-linearity.qml 679
 tests/markdown-preview-state.qml 474
 tests/markdown-tables.qml 401
+tests/figure-store.qml 407
 tests/quicklook-firstframe.js 214
 tests/preview-settle-live.qml 584
 tests/preview-decode.qml 1012
@@ -158,7 +159,7 @@ tests/poolpark.qml 419
 tests/touchpad-edge.qml 438
 tests/railmotion.qml 463
 ui/FastScrollHandler.qml 476
-ui/FigureService.qml 421
+ui/FigureService.qml 395
 ui/FlashView.qml 397
 ui/NetworkDialog.qml 435
 ui/NetworkForm.qml 426
@@ -175,7 +176,7 @@ ui/DeviceMounts.qml 540
 ui/js/Facts.js 402
 ui/PreviewPdf.qml 482
 ui/PickerChrome.qml 295
-ui/PreviewMarkdown.qml 668
+ui/PreviewMarkdown.qml 684
 tests/markdown-code.qml 477
 ui/Row.qml 469
 ui/SettingsPanel.qml 547

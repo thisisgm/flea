@@ -12,8 +12,7 @@ function check(ok, why) {
         console.log("FAIL " + why);
     }
 }
-// The library's padding beside a label: inside a box node, a state, an entity header, an actor box and a note, round an edge label's pill,
-// and between the texts of a class or entity row; in px.
+// The library's padding beside a label in a box node, a state or an entity header, in px.
 const BOX_PADS = { "pele-shape-rect": 18, "pele-state": 16, "pele-entity": 18 };
 const ACTOR_PAD = 16;
 const NOTE_PAD = 10;
@@ -26,6 +25,24 @@ const STROKE_PAD = 1;
 const SELF_LABEL_GAP = 8;
 
 function width(rect) { return rect[2] - rect[0]; }
+// Every text of a node fits its outline: the known boxes keep their padding, and any other shape, stadium, hexagon, round or later, holds its labels between its own edges.
+// Sample input: a 250-wide second line in a 120-wide rect box reads [true, false], so an overflowing second label line goes red.
+function textsFit(node, face) {
+    if (node.box === null)
+        return node.texts.map(() => false);
+    const kind = Object.keys(BOX_PADS).find((k) => node.el.attrs.class.split(" ").includes(k));
+    return node.texts.map((t) => {
+        const [left, right] = extent(t, face);
+        return kind !== undefined
+            ? labelWidth(t.string, t.size, face, t.bold) + 2 * BOX_PADS[kind] <= width(node.box) + EPSILON
+            : left >= node.box[0] - EPSILON && right <= node.box[2] + EPSILON;
+    });
+}
+// An overflowing second label line fails the same verdict the loop above checks.
+const wideSecond = { el: { attrs: { class: "pele-node pele-shape-rect" } }, box: [0, 0, 120, 20],
+    texts: [{ string: "ok", size: 13, bold: false, anchor: "middle", x: 60 },
+        { string: "a second label line far too wide for its shape", size: 13, bold: false, anchor: "middle", x: 60 }] };
+check(textsFit(wideSecond, FACES[0]).join(",") === "true,false", "an overflowing second label line fails the fit");
 // Sample input: a 40 by 10 label in a diamond 100 wide and 60 high reaches 20 / 50 + 5 / 30 of its half diagonals, so it fits.
 function insideDiamond(rect, w, h) {
     return (w / 2) / (width(rect) / 2) + (h / 2) / ((rect[3] - rect[1]) / 2) <= 1 + EPSILON;
@@ -55,11 +72,8 @@ for (const face of FACES) {
                 `${name}${tag}: the rect ${r.map((v) => v.toFixed(1))} stays inside the canvas ${canvas}`);
         }
         for (const node of nodes(tree)) {
-            const kind = Object.keys(BOX_PADS).find((k) => node.el.attrs.class.split(" ").includes(k));
-            const label = node.texts[0];
-            if (kind === undefined || label === undefined)
-                continue;
-            check(labelWidth(label.string, label.size, face, label.bold) + 2 * BOX_PADS[kind] <= width(node.box) + EPSILON, `${name}${tag}: node "${label.string}" fits its shape ${width(node.box).toFixed(1)} wide`);
+            const fits = textsFit(node, face);
+            node.texts.forEach((t, i) => check(fits[i], `${name}${tag}: node "${t.string}" fits its shape`));
         }
         for (const node of nodes(tree).filter((n) => n.shape === "diam" || n.shape === "circle")) {
             for (const t of node.texts) {
