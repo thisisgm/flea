@@ -21,7 +21,7 @@ struct WorkerSlot;
 
 impl WorkerSlot {
     fn claim() -> Option<WorkerSlot> {
-        LIVE_READ_WORKERS.fetch_update(Ordering::Relaxed, Ordering::Relaxed, |live| {
+        LIVE_READ_WORKERS.try_update(Ordering::Relaxed, Ordering::Relaxed, |live| {
             if live < MAX_READ_WORKERS { Some(live + 1) } else { None }
         }).ok().map(|_| WorkerSlot)
     }
