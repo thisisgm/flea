@@ -4,15 +4,20 @@ import io
 import json
 import os
 from pathlib import Path
+import pty
 import re
 import shutil
+import socket
+import stat
 import subprocess
+import sys
 import tempfile
 from types import SimpleNamespace
 import unittest
 from unittest.mock import MagicMock, patch
 
-from . import adapters, driver, native
+from . import adapters, driver, dynamic, fixtures, native, offline, png
+from .bundle import build as bundle
 from .evidence import Blocked, Commands, MARKER
 from .review_support import pair
 
@@ -26,6 +31,12 @@ CELL, PADDING, OPENED = (11, 26), (8, 28), (800, 600)
 IDENTITY = "flea.battery.tfixture"
 QUIT = {"key": "q", "mods": "tui", "action": "quit"}
 PALETTE = {"fg": "#c6b395", "bg": "#1c120d"}
+# Stands in for bwrap at the relay's exec: it keeps the argv it was given, the sandbox the candidate would get.
+FAKE_BWRAP = """#!/usr/bin/python3
+import json, os, sys
+with open(os.environ["BWRAP_RECORD"], "x") as record:
+    json.dump(sys.argv[1:], record)
+"""
 
 
 class FakeHyprland:
@@ -38,11 +49,15 @@ class FakeHyprland:
         self.clients, self.cursor = [], {"x": 1280, "y": 720}
         self.rules, self.shortcuts, self.resizes, self.rpcs = [], [], [], []
         self.size, self.pixels, self.quit_after_escape, self.grims = list(OPENED), True, False, 0
+        self.pointer_at_grim = []
 
     def run(self, argv, **_):
         argv = [str(a) for a in argv]
         if argv[0] == "grim":
             self.grims += 1
+            self.pointer_at_grim.append(dict(self.cursor))
+            output = next(m for m in self.monitors if m["name"] == argv[2])
+            png.write(Path(argv[3]), output["width"], output["height"], bytes(output["width"] * output["height"] * 4))
             return subprocess.CompletedProcess(argv, 0, b"", b"")
         code, stdout = getattr(self, argv[5].removeprefix("hypr_"))(*argv[6:])
         return subprocess.CompletedProcess(argv, code, stdout if isinstance(stdout, bytes) else json.dumps(stdout).encode(), b"")
@@ -67,6 +82,10 @@ class FakeHyprland:
 
     def query_cursor(self):
         return 0, self.cursor
+
+    def cursor_move(self, x, y):
+        self.cursor = {"x": int(x), "y": int(y)}
+        return 0, b""
 
     def output_create(self, name):
         self.monitors.append({"name": name, "id": 7, "x": 2560, "y": 0, "width": 2560, "height": 1440, "scale": 1,
@@ -174,6 +193,20 @@ class NativeRootCauseTests(unittest.TestCase):
             self.display.capture(self.case / "calibration.png")
         self.assertEqual(self.fake.grims, 0)
 
+    def test_each_capture_parks_the_pointer_on_the_owned_outputs_last_pixel_first(self):
+        # The 20261019T042958Z smoke drew the pointer inside alacritty's grid, at about 715,418 of its grid-crop.png.
+        self.terminal().launch(["candidate"], {})
+        self.fake.cursor = {"x": 2560 + 880 + 300, "y": 420 + 200}
+        self.display.capture(self.case / "calibration.png")
+        self.assertEqual(self.fake.pointer_at_grim, [{"x": 2560 + 2559, "y": 1439}])
+
+    def test_a_window_over_the_parking_pixel_stops_the_capture_before_grim(self):
+        self.terminal().launch(["candidate"], {})
+        self.fake.clients[0]["size"] = [2560 - 880, 1440 - 420]
+        with self.assertRaisesRegex(Blocked, "covers the pointer's parking pixel 5119,1439"):
+            self.display.capture(self.case / "calibration.png")
+        self.assertEqual(self.fake.grims, 0)
+
     def test_a_terminal_that_opens_at_another_size_is_sized_to_the_battery_grid_from_its_own_cells(self):
         # alacritty's 72x22 PTY failed every state with "diagnostic PTY must report 130x31 cells".
         terminal = self.terminal()
@@ -254,6 +287,165 @@ class IdentityAndShutdownTests(unittest.TestCase):
                         adapter.close(Commands())
                 else:
                     adapter.close(Commands())
+
+
+class TmuxSocketTests(unittest.TestCase):
+    """Flea asks its tmux server for #{client_termfeatures}, so inside the sandbox the socket TMUX names must be there."""
+
+    def setUp(self):
+        parent = Path(os.environ.get("FLEA_BATTERY_TEST_ROOT", HERE.parents[1] / ".superpowers/t12a"))
+        parent.mkdir(parents=True, exist_ok=True)
+        self.root = Path(tempfile.mkdtemp(prefix="tnative-tmux.", dir=parent))
+        self.addCleanup(shutil.rmtree, self.root, ignore_errors=True)
+        (self.root / MARKER).write_text("owned tmux socket regressions\n")
+        self.case = self.root / "case"
+        self.case.mkdir()
+        (self.case / MARKER).write_text("owned relay case\n")
+        # The battery's tmux server listens in its case directory; binding through the directory fd keeps a long root legal.
+        self.socket = self.case / "tmux.sock"
+        server = socket.socket(socket.AF_UNIX)
+        self.addCleanup(server.close)
+        directory = os.open(self.case, os.O_RDONLY | os.O_DIRECTORY)
+        try:
+            server.bind(f"/proc/self/fd/{directory}/tmux.sock")
+        finally:
+            os.close(directory)
+        server.listen(1)
+        tools = self.root / "bin"
+        tools.mkdir()
+        (tools / "bwrap").write_text(FAKE_BWRAP)
+        (tools / "bwrap").chmod(0o755)
+        self.record = self.root / "bwrap.json"
+        with patch("tui_battery.fixtures.shutil.which", return_value="/usr/bin/bwrap"):
+            self.argv = fixtures.namespace("/opt/candidate/flea", self.root / "fx", "/fx/v/work", {})
+        (self.case / "relay-spec.json").write_text(json.dumps(
+            {"argv": self.argv, "environment": {"PATH": f"{tools}:/usr/bin:/bin", "BWRAP_RECORD": str(self.record)}}))
+
+    def relay(self, tmux):
+        """Runs the real relay on a real PTY inside a tmux pane's environment, and returns its exit and stderr."""
+        master, slave = pty.openpty()
+        try:
+            result = REAL_RUN([sys.executable, "-m", "tui_battery.relay", str(self.case / "relay-spec.json")],
+                              stdin=slave, stdout=slave, stderr=subprocess.PIPE, timeout=30,
+                              env={"PATH": "/usr/bin:/bin", "PYTHONPATH": str(HERE.parent), "LANG": "C.UTF-8",
+                                   "TERM": "tmux-256color", "TMUX": tmux})
+        finally:
+            os.close(slave)
+            os.close(master)
+        return result.returncode, result.stderr.decode(errors="replace")
+
+    def test_the_sandbox_gets_tmux_and_its_server_socket_and_nothing_else(self):
+        tmux = f"{self.socket},4242,0"
+        code, stderr = self.relay(tmux)
+        self.assertEqual(code, 0, stderr)
+        index = self.argv.index("--chdir")
+        forwarded = ["--setenv", "TERM", "tmux-256color", "--setenv", "TMUX", tmux, "--ro-bind", str(self.socket), str(self.socket)]
+        # bwrap is argv[0], so its record starts at the first option.
+        self.assertEqual(json.loads(self.record.read_text()), (self.argv[:index] + forwarded + self.argv[index:])[1:])
+
+    def test_a_tmux_variable_naming_no_socket_stops_the_relay_before_the_sandbox(self):
+        stray = self.case / "not-a-socket"
+        stray.write_text("")
+        code, stderr = self.relay(f"{stray},4242,0")
+        self.assertNotEqual(code, 0)
+        self.assertIn("TMUX names no tmux server socket: " + str(stray), stderr)
+        self.assertFalse(self.record.exists())
+
+
+def remove(root):
+    """Removes a marked test root, opening any folder a fixture closed first."""
+    if (root / MARKER).is_file():
+        for path, directories, _ in os.walk(root):
+            for name in directories:
+                if not os.path.islink(os.path.join(path, name)):
+                    os.chmod(os.path.join(path, name), 0o700)
+        shutil.rmtree(root)
+
+
+def total(path):
+    """A folder's size the way Flea's dirsize walk adds it: its own and every entry's lstat size below it."""
+    size = path.lstat().st_size
+    if path.is_dir() and not path.is_symlink():
+        size += sum(total(child) for child in path.iterdir())
+    return size
+
+
+class FontCacheTests(unittest.TestCase):
+    def test_the_sandbox_reads_the_system_font_cache_read_only(self):
+        # Flea's icon probe is fc-list :charset=ea83 under a 150 ms deadline. In the 20261019T042958Z smoke alacritty, foot
+        # and tmux drew › for every folder: with no cache in the sandbox, fc-list rescanned minipc's 799 faces.
+        with patch("tui_battery.fixtures.shutil.which", return_value="/usr/bin/bwrap"), \
+                patch("tui_battery.fixtures.os.path.isdir", side_effect=lambda path: path == "/var/cache/fontconfig"):
+            argv = fixtures.namespace("/opt/candidate/flea", Path("/owned/fx"), "/fx/v/work", {})
+        binds = [argv[i + 1:i + 3] for i, option in enumerate(argv) if option == "--ro-bind"]
+        self.assertIn(["/var/cache/fontconfig", "/var/cache/fontconfig"], binds)
+        self.assertNotIn("/var/cache/fontconfig", [argv[i + 1] for i, option in enumerate(argv) if option == "--bind"])
+
+
+class TmpfsFixtureTests(unittest.TestCase):
+    """The boards' folder totals are the bundle's work tree on tmpfs, so the battery builds each case's fixture there."""
+
+    def setUp(self):
+        parent = Path(os.environ.get("FLEA_BATTERY_TEST_ROOT", HERE.parents[1] / ".superpowers/t12a"))
+        parent.mkdir(parents=True, exist_ok=True)
+        self.root = Path(tempfile.mkdtemp(prefix="tnative-fx.", dir=parent))
+        (self.root / MARKER).write_text("owned tmpfs fixture regressions\n")
+        self.addCleanup(remove, self.root)
+        self.case = self.root / "case"
+        self.case.mkdir()
+        (self.case / MARKER).write_text("owned fixture case\n")
+        self.shm = Path(tempfile.mkdtemp(prefix="tnative-fx.", dir="/dev/shm"))
+        (self.shm / MARKER).write_text("owned tmpfs fixture parent\n")
+        self.addCleanup(remove, self.shm)
+
+    def test_the_bundle_folders_on_the_case_fixture_total_the_boards_digits(self):
+        # On minipc's btrfs a folder reports twice its names' bytes, so the 20261019T042958Z smoke drew A 274 B, Code 170 B,
+        # Docs 22.0 kB, Empty 0 B, Locked >20 B and Many 2.3 kB where the tui-list-text board draws the digits below.
+        fx, _ = fixtures.build(self.case, "work", dry=True, tmpfs=self.shm)
+        seeds = dict.fromkeys(bundle.SEEDS, b"") | {"report.pdf": bytes(bundle.REPORT_BYTES)}
+        board = fx / "tmp/board"
+        for name, (kind, data, _) in sorted(bundle.work_files(seeds, "v0312").items()):
+            if name.split("/")[0] not in ("A", "Code", "Docs", "Empty", "Locked", "Many"):
+                continue
+            (board / name).parent.mkdir(parents=True, exist_ok=True)
+            if kind == "directory":
+                (board / name).mkdir()
+            else:
+                (board / name).write_bytes(data)
+        drawn = {name: dynamic.size(total(board / name)) for name in ("A", "Code", "Docs", "Empty", "Many")}
+        self.assertEqual(drawn, {"A": "462 B", "Code": "216 B", "Docs": "22.1 kB", "Empty": "40 B", "Many": "2.2 kB"})
+        # Flea cannot open Locked, so its total is the folder's own size, drawn as a floor.
+        self.assertEqual((board / "Locked").lstat().st_size, 60)
+
+    def test_a_fixture_parent_that_is_not_tmpfs_is_refused_and_left_clean(self):
+        with self.assertRaisesRegex(Blocked, r"reports \d+ bytes for an empty folder, not tmpfs's 40"):
+            fixtures.build(self.case, "work", dry=True, tmpfs=self.root)
+        self.assertEqual([p.name for p in self.root.glob("flea-battery-fx.*")], [])
+        self.assertFalse((self.case / "fixtures.json").exists())
+
+    def test_retain_copies_the_fixture_into_the_case_and_frees_the_tmpfs(self):
+        fx, _ = fixtures.build(self.case, "work", dry=True, tmpfs=self.shm)
+        (fx / "v/work/Locked/secret.txt").write_bytes(b"locked away\n")
+        (fx / "v/work/Locked").chmod(0)
+        (fx / "v/work/link.txt").symlink_to("notes.txt")
+        os.mkfifo(fx / "runtime/pipe")
+        fixtures.retain(fx, self.case)
+        kept = self.case / "fx/v/work"
+        self.assertFalse(fx.parent.exists())
+        self.assertEqual(stat.S_IMODE((kept / "Locked").lstat().st_mode), 0)
+        (kept / "Locked").chmod(0o700)
+        self.assertEqual((kept / "Locked/secret.txt").read_bytes(), b"locked away\n")
+        self.assertEqual(os.readlink(kept / "link.txt"), "notes.txt")
+        self.assertEqual((kept / "notes.txt").read_bytes(), fixtures.NOTES)
+        self.assertFalse((self.case / "fx/runtime/pipe").exists())
+
+    def test_the_offline_suite_names_a_case_fixture_its_process_left_on_tmpfs(self):
+        fx, _ = fixtures.build(self.case, "work", dry=True, tmpfs=self.shm)
+        marker = f"battery fixture {os.getpid()}\n"
+        with patch.object(offline, "TMPFS", self.shm):
+            self.assertEqual(offline.leaked_fixtures(marker), [str(fx.parent)])
+            fixtures.retain(fx, self.case)
+            self.assertEqual(offline.leaked_fixtures(marker), [])
 
 
 class PreflightAndSmokeTests(unittest.TestCase):

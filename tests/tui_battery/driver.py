@@ -14,7 +14,7 @@ import uuid
 from .adapters import Adapter, TERMINALS, font_profile, owned_identity
 from .geometry import COLUMNS, ROWS, CELL_WIDTH, CELL_HEIGHT
 from .evidence import Blocked, Commands, MARKER, absolute, digest, output_root, save, source_identity
-from .fixtures import BUILT_IN_FEATURES, build, inventory, namespace
+from .fixtures import BUILT_IN_FEATURES, build, inventory, namespace, retain
 from .keys import Keymap
 from .native import WINDOW_ROUNDING, Display, DisplayLost, Terminal
 from .edges import ground_edges
@@ -100,7 +100,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
     relative = f"{terminal_name}/{state['id']}/{variant['id']}"
     case = root.directory(relative)
     (case / MARKER).write_text(uuid.uuid4().hex + "\n")
-    commands, journal, terminal, lost = Commands(), [], None, None
+    commands, journal, terminal, lost, fx = Commands(), [], None, None, None
     verdict = {"terminal": terminal_name, "state": state["id"], "variant": variant["id"], "status": "BLOCKED"}
     try:
         adapter = Adapter(terminal_name, case, owned_identity(), colors, profiles.get(terminal_name))
@@ -229,6 +229,11 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                     verdict.update(status="FAIL", shutdown_reason=failure)
             except (Blocked, OSError, ValueError, RuntimeError) as error:
                 verdict.update(status="FAIL", shutdown_reason=str(error))
+        if fx:
+            try:
+                retain(fx, case)
+            except (Blocked, OSError) as error:
+                verdict["fixture_retain_reason"] = str(error)
         save(case / "state.json", {"requested": state, "variant": variant, "preset": args.preset, "input": journal})
         save(case / "commands.json", commands.records)
         try:

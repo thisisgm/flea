@@ -2,11 +2,13 @@
 from contextlib import ExitStack
 import base64
 import json
+import os
 from pathlib import Path
+import tempfile
 from types import SimpleNamespace
 from unittest.mock import patch
 
-from . import driver
+from . import driver, fixtures
 from .evidence import MARKER, Owned
 from .references import Board
 from .protocol import capabilities
@@ -83,10 +85,13 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
         return {"path": str(config), "font": "JetBrainsMono Nerd Font", "font_size": 14}
 
     def build(*args):
-        fx.mkdir()
+        # The fixture lives on tmpfs, as the real one does, so only the driver's retain brings it into the case.
+        root = Path(tempfile.mkdtemp(prefix="flea-battery-fx.", dir=fixtures.TMPFS))
+        (root / MARKER).write_text(f"battery fixture {os.getpid()}\n")
+        (root / "fx").mkdir()
         receipt = {"family": "work", "manifest_sha256": "approved-fixture"}
         (case / "fixtures.json").write_text(json.dumps(receipt))
-        return fx, receipt
+        return root / "fx", receipt
 
     def launch(*args, **kwargs):
         launches.append(args)

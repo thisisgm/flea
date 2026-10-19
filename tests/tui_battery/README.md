@@ -18,10 +18,18 @@ tools/flea-tui-battery --binary /absolute/path/to/flea \
 ```
 
 The output must be new and beneath an existing, nonempty `.flea-test-sandbox`
-marker. Evidence is retained, including failures. The tool never removes fixtures.
+marker. Evidence is retained, including failures. Each case's `/fx` tree is built
+in its own marked root on tmpfs (`/dev/shm`), the filesystem the boards' folder totals
+come from: a tmpfs folder reports 40 bytes plus 20 per entry, and Flea's folder sizes
+sum those. Once the terminal closes, the tree is copied into the case's `fx` directory,
+where it is retained, and only the tmpfs copy is removed.
 The candidate sees only the private writable `/fx` tree, private temporary files and
 read-only system libraries. `/fx/v/work` is a namespace path, never a host mount.
-The candidate has no host network, clipboard socket or CUPS socket.
+The candidate has no host network, clipboard socket or CUPS socket. Two host resources
+a user's terminal provides are bound read-only: the system font cache
+(`/var/cache/fontconfig`), so Flea's 150 ms font probe answers as it does outside the
+sandbox, and under tmux the server socket that `TMUX` names, so Flea can ask its tmux
+client for RGB.
 
 `--states tui-list-text,tui-empty` and `--terminals foot` select reruns. `--list`
 prints the complete request inventory and exclusions. The original 61 states retain
@@ -49,7 +57,9 @@ window. A native run repeats the same check before it creates its output.
 Each terminal opens on the owned output's shown workspace, never a silent one, and
 must be shown there before calibration. Every capture checks that the owned output
 still shows the owned workspace and that the session is not locked. When either check
-fails, the run stops and blocks every remaining state with the same reason. The
+fails, the run stops and blocks every remaining state with the same reason. Before
+`grim` runs, each capture parks the pointer on the owned output's bottom-right pixel,
+outside every window, and reads its position back. The
 window class is a valid GTK application ID (`flea.battery.t<hex>`), so ghostty keeps
 it. A terminal that opens at another cell size is resized from its own reported cell
 metrics; one that reports no pixel metrics is blocked. Each state quits through the
