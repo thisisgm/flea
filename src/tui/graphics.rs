@@ -53,22 +53,7 @@ impl Graphics {
         if self.protocol != Protocol::Kitty || !self.begin(&path, columns, rows, pixels) {
             return;
         }
-        self.job = Some(Job::start(
-            path,
-            vec![
-                POSTER.into(),
-                "-i".into(),
-                "{input}".into(),
-                "-o".into(),
-                "-".into(),
-                "-c".into(),
-                "png".into(),
-                "-s".into(),
-                side.to_string(),
-                "-t".into(),
-                "0".into(),
-            ],
-        ));
+        self.job = Some(Job::start(path, poster_arguments(side)));
     }
     pub fn holds(&self, path: &std::path::Path) -> bool {
         self.identity == path
@@ -177,6 +162,10 @@ pub(crate) fn unbase64(text: &[u8]) -> Option<Vec<u8>> {
     Some(out)
 }
 pub const POSTER: &str = "/usr/bin/ffmpegthumbnailer";
+// One ffmpegthumbnailer run for a video's first frame as PNG, its longer side this many pixels.
+pub fn poster_arguments(side: usize) -> Vec<String> {
+    [POSTER, "-i", "{input}", "-o", "-", "-c", "png", "-s", &side.to_string(), "-t", "0"].map(String::from).to_vec()
+}
 // The longest side of a w x h picture fitted inside the pane's pixels; an unknown size fits either orientation.
 pub fn poster_side(size: (usize, usize), pixels: (usize, usize)) -> usize {
     let (w, h) = size;

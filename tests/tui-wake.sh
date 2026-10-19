@@ -29,11 +29,12 @@ check() {
 # Sample output: "rows_ms=4 sheet_ms=3 escape_ms=5012 closed=yes exit=0"; -1 is a step that never drew, "killed" a TUI that ignored SIGTERM.
 result=$(env -i PATH=/usr/bin:/bin HOME="$scratch/home" XDG_STATE_HOME="$scratch/state" XDG_CONFIG_HOME="$scratch/config" \
   XDG_CACHE_HOME="$scratch/cache" XDG_RUNTIME_DIR="$scratch/runtime" TERM=xterm-256color FLEA_TUI_INPUT_TIMEOUT_MS=$input_wait_ms \
-  /usr/bin/python3 - "$bin" "$scratch/fixture" <<'PY'
-import os, pty, select, signal, struct, sys, time, fcntl, termios
+  /usr/bin/python3 - "$bin" "$scratch/fixture" "$PWD/i18n/en/flea.json" <<'PY'
+import json, os, pty, select, signal, struct, sys, time, fcntl, termios
 binary, fixture = sys.argv[1], sys.argv[2]
-# The keys sheet's own heading; the TUI writes whole frames and only when one changes, so a frame without it has no sheet.
-SHEET = "\u2500 keys ".encode()
+# The keys sheet's card title, bold, from the English catalog; the TUI writes whole frames and only when one changes, so a frame without it has no sheet.
+with open(sys.argv[3], encoding="utf-8") as catalog:
+    SHEET = ("\x1b[1m" + json.load(catalog)["keys.title"]).encode()
 start = time.monotonic()
 pid, fd = pty.fork()
 if pid == 0:

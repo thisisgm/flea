@@ -237,12 +237,14 @@ fn review_t3_r1_archive_backend_facts_are_rendered() {
     m.receive(crate::jsondoc::parse(&format!(r#"{{"t":"meta","row":7,"token":{},"entries":3,"unpacked":156}}"#, m.preview_requested)).unwrap(), &mut wire).unwrap();
     preview::layout(&mut m);
     crate::tui::layout::prepare(&mut m);
-    assert_eq!(m.preview_metadata, ["Entries · 3", "Unpacked · 156 B"]);
+    // The facts are the archive's own count line under the head now, not two metadata lines.
+    assert!(m.preview_metadata.iter().all(|line| !line.starts_with("Entries") && !line.starts_with("Unpacked")));
     let theme = Theme::from_text("");
-    let body = (0..m.height).map(|y| plain(&crate::tui::layout::preview(&m,y,50,m.height,&theme))).collect::<Vec<_>>().join("\n");
+    let rows = (0..m.height).map(|y| plain(&crate::tui::layout::preview(&m,y,50,m.height,&theme))).collect::<Vec<_>>();
+    let body = rows.join("\n");
     eprintln!("archive preview: {body}");
     wire::finish(wire, reader);
-    assert!(body.contains("Entries · 3") && body.contains("Unpacked · 156 B"), "backend archive facts disappeared from the rendered preview");
+    assert_eq!(rows[2].trim_end(), " 3 entries · 156 B unpacked", "backend archive facts disappeared from the rendered preview");
 }
 
 fn wheel(m: &mut Model, button: u32, wire: &mut crate::tui::wire::Wire) {
@@ -269,7 +271,11 @@ fn review_t3_r1_archive_failure_reply_is_rendered_below_the_header() {
     assert!(rows[0].contains("broken.zip"));
     assert!(rows[1].contains("ZIP archive"));
     assert_eq!(rows[2].trim(), "");
-    assert_eq!(rows[3].trim(), "This archive could not be read.");
+    // The can't-show state is centred in the body: the alert mark, then the sentence on the next row.
+    let sentence = rows.iter().position(|row| row.trim() == "This archive could not be read.").expect("the failure sentence is drawn");
+    assert_eq!(sentence, 3 + (m.height - 3 - 2) / 2 + 1);
+    assert_eq!(rows[sentence - 1].trim(), "\u{ea6c}");
+    assert!(rows[3..sentence - 1].iter().all(|row| row.trim().is_empty()));
     assert!(rows.iter().all(|row| crate::tui::cells::text_width(row) == 50));
     wire::finish(wire, reader);
 }

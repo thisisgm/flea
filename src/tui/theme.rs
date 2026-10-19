@@ -26,6 +26,15 @@ const CURSOR_ALPHA: f64 = 0.18;
 const TAB_ALPHA: f64 = 0.08;
 const MATCH_ALPHA: f64 = 0.14;
 const BORDER_ALPHA: f64 = 0.12;
+// Overlay inks: the rule is the muted frame at 40%, a default button's wash the raw accent at 14%, an unavailable row the window's 55%, and the card scrim mixes everything halfway to the ground.
+const RULE_ALPHA: f64 = 0.40;
+const WASH_ALPHA: f64 = 0.14;
+const UNAVAILABLE_ALPHA: f64 = 0.55;
+const SCRIM_ALPHA: f64 = 0.5;
+// The prompt field's 7% fill, and its selection's accent wash eased down from 24% only as far as foreground text needs.
+const FIELD_ALPHA: f64 = 0.07;
+const STEM_ALPHA_MAX: f64 = 0.24;
+const STEM_ALPHA_MIN: f64 = 0.06;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Depth { Sixteen, Indexed, #[default] Truecolor }
@@ -63,7 +72,23 @@ pub struct Theme {
     pub tab: String,
     pub match_fill: String,
     pub border: String,
+    // The window's control frame (a media track) and the card frame eased to 3:1 under the menu wash.
+    pub track: String,
+    pub frame: String,
+    pub rule: String,
+    pub wash: String,
+    pub unavailable: String,
+    pub unavailable_word: String,
+    pub field: String,
+    pub stem: String,
+    pub ext: String,
+    // Syntax inks in bat's ANSI order: red, green, yellow, blue, magenta, cyan.
+    pub syntax: [String; 6],
+    // The ground as #rrggbb, for a decoder that veils a page with it.
+    pub ground: String,
     pub depth: Depth,
+    // The same palette behind a card's scrim; None on the scrim itself.
+    pub dim: Option<Box<Theme>>,
 }
 impl Theme {
     pub fn path() -> std::path::PathBuf {
@@ -76,6 +101,9 @@ impl Theme {
     #[cfg(test)]
     pub(super) fn from_text(text: &str) -> Self { Self::with_depth(text, Depth::Truecolor) }
     pub fn with_depth(text: &str, depth: Depth) -> Self {
+        Self { dim: Some(Box::new(Self::build(text, depth, true))), ..Self::build(text, depth, false) }
+    }
+    fn build(text: &str, depth: Depth, scrim: bool) -> Self {
         let values = parse(text);
         let pick = |keys: &[&str], fallback: &str| {
             keys.iter().find_map(|key| values.get(*key)).map(String::as_str).unwrap_or(fallback).to_owned()
@@ -87,15 +115,21 @@ impl Theme {
         let darker = rgb(&foreground).map(|v| (v * 255.0 / DARKER_STEP).round() as u8);
         let darker = format!("#{:02x}{:02x}{:02x}", darker[0], darker[1], darker[2]);
         let muted = contrast(&contrast(&pick(&["muted"], &darker), &background), &surface);
+        let muted_frame = ensure(&pick(&["muted"], &darker), &background, FRAME_CONTRAST);
         let meta = contrast(&contrast(&darker, &background), &surface);
         let mut mark_alpha = MARK_ALPHA_MAX;
         while mark_alpha > MARK_ALPHA_MIN && ratio(rgb(&foreground), rgb(&blend(&foreground, &background, mark_alpha))) < TEXT_CONTRAST { mark_alpha -= MARK_ALPHA_STEP; }
+        let field = blend(&foreground, &background, FIELD_ALPHA);
+        let mut stem_alpha = STEM_ALPHA_MAX;
+        while stem_alpha > STEM_ALPHA_MIN && ratio(rgb(&foreground), rgb(&blend(&accent, &field, stem_alpha))) < TEXT_CONTRAST { stem_alpha = ((stem_alpha - MARK_ALPHA_STEP) * 100.0).round() / 100.0; }
         let error = pick(&["urgent"], "#a55555");
         let channels = rgb(&error);
         let high = channels.into_iter().fold(0.0_f64, f64::max);
         let low = channels.into_iter().fold(1.0_f64, f64::min);
         let error = if high == 0.0 || (high - low) / high <= HUE_FLOOR { foreground.clone() } else { contrast(&error, &background) };
-        let encode = |hex: &str, bg| color(hex, bg, depth);
+        let encode = |hex: &str, bg| color(&if scrim { blend(hex, &background, SCRIM_ALPHA) } else { hex.to_owned() }, bg, depth);
+        let syntax = [["red", "color1"], ["green", "color2"], ["yellow", "color3"], ["blue", "color4"], ["magenta", "color5"], ["cyan", "color6"]]
+            .map(|keys| encode(&contrast(&pick(&keys, &foreground), &background), false));
         Self {
             foreground: encode(&foreground, false), muted: encode(&muted, false), meta: encode(&meta, false),
             accent: encode(&ensure(&accent, &surface, FRAME_CONTRAST), false), error: encode(&error, false),
@@ -107,7 +141,15 @@ impl Theme {
             marked: encode(&blend(&foreground, &background, mark_alpha), true),
             tab: encode(&blend(&foreground, &background, TAB_ALPHA), true),
             match_fill: encode(&blend(&foreground, &background, MATCH_ALPHA), true),
-            border: encode(&blend(&foreground, &background, BORDER_ALPHA), false), depth,
+            border: encode(&blend(&foreground, &background, BORDER_ALPHA), false),
+            track: encode(&muted_frame, false),
+            frame: encode(&ensure(&ensure(&muted_frame, &background, FRAME_CONTRAST), &blend(&foreground, &background, TAB_ALPHA), FRAME_CONTRAST), false),
+            rule: encode(&blend(&muted_frame, &background, RULE_ALPHA), false),
+            wash: encode(&blend(&accent, &background, WASH_ALPHA), true),
+            unavailable: encode(&blend(&error, &background, UNAVAILABLE_ALPHA), false),
+            unavailable_word: encode(&blend(&muted, &background, UNAVAILABLE_ALPHA), false),
+            stem: encode(&blend(&accent, &field, stem_alpha), true), ext: encode(&ensure(&muted, &field, TEXT_CONTRAST), false),
+            field: encode(&field, true), syntax, ground: background.clone(), depth, dim: None,
         }
     }
 }
