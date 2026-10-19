@@ -174,7 +174,9 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
 }
 
 // The preview pane's drawing and layout live in pane.rs.
-pub use super::pane::{prepare, preview, preview_scroll_limit};
+pub use super::pane::{prepare, preview_scroll_limit};
+#[cfg(test)]
+pub use super::pane::preview;
 
 pub struct Live {
     pub theme: Theme,

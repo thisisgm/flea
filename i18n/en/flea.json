@@ -190,6 +190,8 @@
   "trash.sort": "Deleted ▾",
   "trash.deleted": "Deleted · %1",
   "trash.original": "Original Location · %1",
+  "trash.kindFolder": "Folder",
+  "trash.kindFile": "File",
   "step.trash": "Move to Trash",
   "step.rename": "Rename",
   "step.duplicate": "Duplicate",
@@ -227,6 +229,8 @@
   },
   "preview.archiveUnreadable": "This archive could not be read.",
   "preview.openWith": "Open With…",
+  "preview.unshown": "Preview could not be shown",
+  "preview.imageError": "Image preview: %1",
   "quicklook.lines": {
     "one": "%1 line",
     "other": "%1 lines"

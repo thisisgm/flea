@@ -170,3 +170,25 @@ fn a_filter_with_no_match_leaves_no_row_to_act_on() {
         assert_eq!(sent_after("zzz", "[]", key.clone()), (vec![], vec![]), "{key:?} reached a row the filter does not draw");
     }
 }
+// The preview's no-match gate looks the cursor up once per frame, by binary search, however many rows match.
+#[test]
+fn the_preview_gate_costs_one_search_per_frame_at_a_million_matches() {
+    let theme = Theme::from_text("");
+    let map = crate::tui::keymap::Map::load();
+    let n = 1_000_000;
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = crate::tui::render::frame_tests::model();
+    (m.preview_visible, m.total) = (true, n);
+    m.apply_filter("e".into(), &mut w).unwrap();
+    let rows = (0..n).map(|i| i.to_string()).collect::<Vec<_>>().join(",");
+    m.receive(jsondoc::parse(&format!(r#"{{"t":"filtered","id":1,"query":"e","n":{n},"rows":[{rows}]}}"#)).unwrap(), &mut w).unwrap();
+    assert_eq!(m.current_path(), Some(m.preview_path.clone()), "the cursor's preview is shown, so the frame asks the gate");
+    crate::tui::prompts::GATE.with(|gate| gate.set((0, 0)));
+    let frame = crate::tui::render::frame(&m, &theme, &map, 130, 31, std::time::Duration::ZERO);
+    let (calls, steps) = crate::tui::prompts::GATE.with(std::cell::Cell::get);
+    assert!(!frame.is_empty());
+    assert_eq!(calls, 1, "the gate ran once per preview row");
+    assert!(steps <= 2 * 20, "{steps} comparisons for one cursor among {n} matches");
+    drain(&mut w);
+    wire::finish(w, reader);
+}

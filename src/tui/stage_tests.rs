@@ -74,3 +74,16 @@ fn the_player_starts_once_the_probe_fixes_its_box_and_an_overlay_stops_it() {
     assert!(m.player.is_none() && m.playback.is_none(), "an overlay left the player up");
     wire::finish(wire, reader);
 }
+
+// A picture that cannot be shown says so through the catalog, in the status row's own sentence.
+#[test]
+fn an_unshown_picture_is_reported_through_the_catalog() {
+    let mut m = shown("image-png", "photo.png");
+    let i18n = crate::i18n::I18n::default();
+    for key in ["preview.unshown", "preview.imageError"] {
+        assert_ne!(i18n.tr(key), key, "the English catalog has {key}");
+    }
+    m.preview_state.still.error = crate::tui::still::UNSHOWN.into();
+    still(&mut m, Protocol::None, true, (48, 21));
+    assert_eq!(m.error, i18n.tr_args("preview.imageError", &[&i18n.tr("preview.unshown")]));
+}

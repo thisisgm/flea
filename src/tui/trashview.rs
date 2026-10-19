@@ -6,7 +6,7 @@ use std::{collections::BTreeMap, io, path::PathBuf};
 
 // The moves that only look: Trash is viewed here, and every action that would change a file is refused with one sentence.
 const LOOKS: &[&str] = &["cursorUp", "cursorDown", "cursorFirst", "cursorLast", "cursorFirstArm", "pageUp", "pageDown", "pageForward",
-    "halfPageUp", "halfPageDown", "keymapSheet", "togglePreview", "focusPreview", "quit", "quitNoCwd", "pathBar", "goHome", "goConfig", "goDownloads"];
+    "halfPageUp", "halfPageDown", "keymapSheet", "togglePreview", "focusPreview", "focusNext", "quit", "quitNoCwd", "pathBar", "goHome", "goConfig", "goDownloads"];
 
 pub struct TrashView {
     id: usize,
@@ -68,8 +68,8 @@ pub fn receive(m: &mut Model, value: &Json) {
         let original = text(row, "original");
         let directory = flag(row, "directory");
         let icon = text(row, "icon");
-        let kind = if directory { "Folder".into() } else {
-            icon.split_once('-').and_then(|(major, minor)| view.kinds.comment(&format!("{major}/{minor}"))).unwrap_or_else(|| "File".into())
+        let kind = if directory { m.prompts.i18n.tr("trash.kindFolder") } else {
+            icon.split_once('-').and_then(|(major, minor)| view.kinds.comment(&format!("{major}/{minor}"))).unwrap_or_else(|| m.prompts.i18n.tr("trash.kindFile"))
         };
         let name = original.rsplit('/').next().unwrap_or(original).to_owned();
         m.rows.insert(start + offset, Row { name, directory, size: count(row, "size"), mode: if directory { 0o40755 } else { 0o100644 },
@@ -89,11 +89,17 @@ fn leave(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     m.path = view.back.clone();
     m.open(view.back, w)
 }
-// In Trash a key either looks, leaves, lists again, or is refused; true when this took the key.
-pub fn refuses(m: &mut Model, key: &Key, map: &Map, w: &mut Wire) -> io::Result<bool> {
-    if m.prompts.trash.is_none() || m.editor.is_some() || m.sheet || m.menu || m.deletion.is_some() || m.preview_focus || m.quicklook { return Ok(false); }
-    if key.pointer.is_some() { return Ok(true); }
-    let action = match m.key_arm.strip_prefix("prefix:") {
+// In Trash a key either looks, leaves, lists again, or is refused; true when this took the key. Armed is the prefix the key before it left.
+pub fn refuses(m: &mut Model, key: &Key, map: &Map, armed: &str, w: &mut Wire) -> io::Result<bool> {
+    if m.prompts.trash.is_none() || m.editor.is_some() || m.sheet || m.menu || m.deletion.is_some() || m.quicklook { return Ok(false); }
+    // Only a press on the preview pane reaches the focused preview; every other press would land on the listing.
+    if let Some(pointer) = &key.pointer {
+        let (left, middle, _) = super::render::panes(m.columns, m.preview_visible);
+        let body = pointer.y >= super::render::BODY_ROW && pointer.y < super::render::BODY_ROW + m.height;
+        return Ok(!(m.preview_focus && m.preview_visible && body && pointer.x > left + middle + 2));
+    }
+    if m.preview_focus { return Ok(false); }
+    let action = match armed.strip_prefix("prefix:") {
         Some(prefix) => map.sequence(prefix, key, &m.preset, "listing"),
         None => map.action(key, &m.preset),
     };
@@ -154,3 +160,7 @@ pub fn preview(m: &Model, y: usize, width: usize, theme: &Theme) -> Option<Strin
 #[cfg(test)]
 #[path = "trashview_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "trashview_keys_tests.rs"]
+mod keys_tests;

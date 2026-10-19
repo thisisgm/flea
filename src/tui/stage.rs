@@ -126,7 +126,8 @@ pub fn step(model: &mut Model, graphics: &mut Graphics, shown: &mut Shown, wire:
         frame.clear();
     }
     if !graphics.error.is_empty() {
-        model.fail(format!("Image preview: {}", std::mem::take(&mut graphics.error)));
+        let sentence = model.preview_state.i18n.tr_args("preview.imageError", &[&std::mem::take(&mut graphics.error)]);
+        model.fail(sentence);
     }
     if let Some(player) = &mut model.player {
         player.poll();
@@ -179,7 +180,10 @@ fn still(model: &mut Model, protocol: Protocol, shown: bool, room: (usize, usize
     state.still.poll();
     let error = std::mem::take(&mut state.still.error);
     if !error.is_empty() {
-        model.fail(format!("Image preview: {error}"));
+        let i18n = &model.preview_state.i18n;
+        let error = if error == super::still::UNSHOWN { i18n.tr(&error) } else { error };
+        let sentence = i18n.tr_args("preview.imageError", &[&error]);
+        model.fail(sentence);
     }
 }
 

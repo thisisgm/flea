@@ -280,6 +280,7 @@ pub(super) fn supported(action: &str) -> bool {
             | "goHome"
             | "goConfig"
             | "goDownloads"
+            | "openTrash"
     )
 }
 fn matches_key(block: &HashMap<String, String>, key: &Key) -> bool {

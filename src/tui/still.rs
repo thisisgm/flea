@@ -32,6 +32,8 @@ pub struct Key {
 
 type Work = (Arc<AtomicBool>, Receiver<io::Result<Option<Grid>>>);
 
+// The catalog key a picture that cannot be shown reports, worded when the status row says it.
+pub const UNSHOWN: &str = "preview.unshown";
 // The half-block picture for terminals without graphics: chafa in its sandbox, never on the input loop.
 #[derive(Default)]
 pub struct Still {
@@ -158,7 +160,7 @@ fn decode(source: Source, cells: (usize, usize), colors: ColorMode, places: Plac
     let (input, _spooled) = match source {
         Source::File(path) => (super::job::held(&path)?, None),
         Source::Bytes(bytes) => spool(&bytes, places.spool).map(|(file, spooled)| (file, Some(spooled)))?,
-        Source::Poster(..) => return Err(io::Error::other("Preview could not be shown")),
+        Source::Poster(..) => return Err(io::Error::other(UNSHOWN)),
     };
     let job = match places.search {
         Some(search) => chafa::Job::start_on(input, cells.0, cells.1, colors, &search)?,
@@ -174,7 +176,7 @@ fn decode(source: Source, cells: (usize, usize), colors: ColorMode, places: Plac
         match job.result.recv_timeout(POLL) {
             Ok(grid) => return grid.map(Some),
             Err(RecvTimeoutError::Timeout) => {}
-            Err(RecvTimeoutError::Disconnected) => return Err(io::Error::other("Preview could not be shown")),
+            Err(RecvTimeoutError::Disconnected) => return Err(io::Error::other(UNSHOWN)),
         }
     }
 }
@@ -195,7 +197,7 @@ fn spool(bytes: &[u8], directory: Option<PathBuf>) -> io::Result<(File, Spooled)
     use std::os::unix::fs::OpenOptionsExt;
     static NEXT: std::sync::atomic::AtomicUsize = std::sync::atomic::AtomicUsize::new(0);
     let directory = directory.or_else(|| qualifying_dirs(&candidate_dirs(current_uid()), &[], current_uid()).into_iter().next())
-        .ok_or_else(|| io::Error::other("Preview could not be shown"))?;
+        .ok_or_else(|| io::Error::other(UNSHOWN))?;
     let path = directory.join(format!("still-{}-{}.png", std::process::id(), NEXT.fetch_add(1, Ordering::Relaxed)));
     let mut file = std::fs::OpenOptions::new().read(true).write(true).create_new(true).mode(0o600).custom_flags(crate::oflags::O_NOFOLLOW).open(&path)?;
     let spooled = Spooled(path);
