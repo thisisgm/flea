@@ -1,5 +1,5 @@
 // Trash as a place: the backend's reviewed Trash list, newest first, never the XDG files folder behind it.
-use super::{cells::{ellipsis, fit}, icons, input::Key, keymap::Map, model::{Model, Row}, theme::Theme,
+use super::{cells::{ellipsis, fit}, icons, input::{Key, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model::{Model, Row}, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
 use std::{collections::BTreeMap, io, path::PathBuf};
@@ -97,6 +97,8 @@ pub fn refuses(m: &mut Model, key: &Key, map: &Map, armed: &str, w: &mut Wire) -
     if m.prompts.trash.is_none() || m.editor.is_some() || m.sheet || m.menu || m.deletion.is_some() || m.quicklook { return Ok(false); }
     // Only a press on the preview pane reaches the focused preview; every other press would land on the listing.
     if let Some(pointer) = &key.pointer {
+        // A wheel turn is not a press: it moves the cursor like it does in a folder.
+        if matches!(pointer.button, WHEEL_UP | WHEEL_DOWN) { return Ok(false); }
         let (left, middle, _) = super::render::panes(m.columns, m.preview_visible);
         let body = pointer.y >= super::render::BODY_ROW && pointer.y < super::render::BODY_ROW + m.height;
         return Ok(!(m.preview_focus && m.preview_visible && body && pointer.x > left + middle + 2));

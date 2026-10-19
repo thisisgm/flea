@@ -153,8 +153,7 @@ impl Editor {
         self.editable_end = self.editable_end + self.value.len() - old_length;
         self.error.clear();
     }
-    /// The status-row field: the text on the 7% fill, a selection on the stem wash, a kept extension and the ghost in the lifted muted ink, then one fill cell.
-    /// Unsafe value characters are filtered at paint time, so byte offsets and the stored name are untouched. Returns the cells drawn and the caret's cell.
+    /// Draws the status-row field and returns its cells and caret cell; unsafe characters are filtered at paint time, so the stored name stays whole.
     pub fn field(&self, ghost: &str, columns: usize, theme: &Theme) -> (String, usize, Option<usize>) {
         if columns == 0 { return (String::new(), 0, None); }
         let (start, end) = (self.cursor.min(self.anchor), self.cursor.max(self.anchor));

@@ -393,7 +393,7 @@ fn the_outcome_is_announced_after_the_trash_and_before_the_settle_list_with_no_s
     }));
     let log = Rc::clone(&events);
     let (ok, failed, reason) = trash_announcing(&items, None, &mut |n, f, r| {
-        log.borrow_mut().push(format!("announce {n} {f} {r:?}"));
+        log.borrow_mut().push(format!("announce {} {f} {r:?}", n.len()));
     }).expect("a batch is not an error");
     assert_eq!((ok.len(), failed, reason.as_str()), (5, 0, ""));
     assert_eq!(*events.borrow(), ["list", "trash", "announce 5 0 \"\"", "list"], "one spawn per stage for five items, announce before the settle list");
@@ -407,7 +407,7 @@ fn an_announced_failure_words_itself_as_the_final_result_does() {
     let said = Rc::new(std::cell::RefCell::new(None::<(usize, usize, String)>));
     let log = Rc::clone(&said);
     let (entries, failed, reason) = trash_announcing(std::slice::from_ref(&kept), None, &mut |n, f, r| {
-        *log.borrow_mut() = Some((n, f, r.to_string()));
+        *log.borrow_mut() = Some((n.len(), f, r.to_string()));
     }).expect("a present path is not an error");
     assert!(entries.is_empty());
     assert_eq!(said.borrow().clone(), Some((0, failed, reason)), "the announce and the result agree");

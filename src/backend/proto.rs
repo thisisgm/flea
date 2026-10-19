@@ -64,7 +64,7 @@ pub enum Request {
     // A clipboard image as a named file; see docs/protocol.md "pasteimage".
     PasteImage(super::pasteimage::Ask),
     TransferCancel { id: usize },
-    Trash { paths: Vec<String>, rows: Vec<usize>, menu_id: usize },
+    Trash { paths: Vec<String>, rows: Vec<usize>, menu_id: usize, request: usize },
     Rename { path: String, to: String, menu_id: usize },
     // Bulk rename: parallel paths and bare new names, validated whole before any rename.
     BulkRename { paths: Vec<String>, names: Vec<String> },
@@ -270,9 +270,8 @@ pub fn parse_request(line: &str) -> Request {
         Some("pasteimage") => Request::PasteImage(super::pasteimage::Ask::parse(line)),
         Some(TRANSFER_CANCEL) => Request::TransferCancel { id: field_usize(line, "id").unwrap_or(0) },
         Some("trash") => Request::Trash {
-            paths: field_str_array(line, "paths"),
-            rows: field_usize_array(line, "rows"),
-            menu_id: field_usize(line, "menuId").unwrap_or(0),
+            paths: field_str_array(line, "paths"), rows: field_usize_array(line, "rows"),
+            menu_id: field_usize(line, "menuId").unwrap_or(0), request: field_usize(line, "id").unwrap_or(0),
         },
         Some("rename") => Request::Rename {
             path: field_str(line, "path").unwrap_or_default(),

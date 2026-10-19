@@ -134,3 +134,62 @@ fn plugin_actions_run_on_the_menu_items_and_delete_opens_its_card() {
     assert_eq!(sent(&drain(&mut w), "menuaction", "snapshot").len(), 1);
     wire::finish(w, reader);
 }
+
+// A folder selected under a file cursor is the target, so Print is not offered for it.
+#[test]
+fn a_selected_folder_is_the_target_not_the_cursor_file() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = model();
+    m.selected = [1].into_iter().collect();
+    press(&mut m, Key::character('m', ""), &mut w);
+    drain(&mut w);
+    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#);
+    assert!(!entries(&m, &Map::load()).iter().flatten().any(|row| row.id == "print"), "a folder target has no Print");
+    wire::finish(w, reader);
+}
+// The same folder target makes Taildrop say files only, because a folder cannot be sent.
+#[test]
+fn a_selected_folder_makes_taildrop_say_files_only() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = model();
+    m.selected = [1].into_iter().collect();
+    press(&mut m, Key::character('m', ""), &mut w);
+    drain(&mut w);
+    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#);
+    answer(&mut m, &mut w, r#"{"t":"formats","id":ID,"archive":["zip"],"providers":{"taildrop":{"installed":true}}}"#);
+    let rows = entries(&m, &Map::load());
+    let taildrop = rows.iter().flatten().find(|row| row.id == "taildrop").expect("Taildrop is offered");
+    assert_eq!(taildrop.trail, m.i18n.tr("menu.state.filesOnly"));
+    wire::finish(w, reader);
+}
+// The Dropbox move is judged on the target: a file outside the root stays movable under a cursor on the root folder.
+#[test]
+fn the_dropbox_move_judges_the_target_not_a_cursor_on_the_root() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = model();
+    m.path = "/home/gm".into();
+    m.rows.get_mut(&0).unwrap().name = "Dropbox".into();
+    m.cursor = 0;
+    m.selected = [7].into_iter().collect();
+    press(&mut m, Key::character('m', ""), &mut w);
+    drain(&mut w);
+    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"snapshot","id":ID,"ok":true}"#);
+    answer(&mut m, &mut w, r#"{"t":"formats","id":ID,"archive":["zip"],"providers":{"taildrop":{"installed":false},"dropbox":{"installed":true},"dropboxInfo":"{\"personal\":{\"path\":\"/home/gm/Dropbox\"}}","dropboxError":""}}"#);
+    assert!(entries(&m, &Map::load()).iter().flatten().any(|row| row.id == "dropbox"), "notes.txt is outside the root");
+    wire::finish(w, reader);
+}
+// The archive lands beside the folder the menu opened on, even after the user navigates before the answer.
+#[test]
+fn compress_lands_beside_the_folder_the_menu_opened_on() {
+    let (mut w, reader) = wire::echo_wire();
+    let mut m = opened(&mut w, false);
+    select(&mut m, "compress");
+    press(&mut m, Key::named("Return", ""), &mut w);
+    press(&mut m, Key::named("Return", ""), &mut w);
+    drain(&mut w);
+    m.path = "/fx/v/other".into();
+    answer(&mut m, &mut w, r#"{"t":"menuaction","op":"activate","id":ID,"ok":true,"action":"compress:zip","paths":["/fx/v/work/notes.txt"],"dest":""}"#);
+    let values = drain(&mut w);
+    assert_eq!(text(sent(&values, "archive", "compress")[0], "dest"), "/fx/v/work/notes.zip");
+    wire::finish(w, reader);
+}

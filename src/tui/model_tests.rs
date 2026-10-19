@@ -9,7 +9,9 @@
         model.search = "Search: stale".into();
         model.receive(crate::jsondoc::parse(r#"{"t":"searched","n":1,"scanned":5}"#).unwrap(), &mut wire).unwrap();
         assert_eq!(model.search, "1 found");
-        model.receive(crate::jsondoc::parse(r#"{"t":"trashed","ok":1,"failed":0}"#).unwrap(), &mut wire).unwrap();
+        model.total = 1;
+        crate::tui::prompts::trash(&mut model, &mut wire).unwrap();
+        model.receive(crate::jsondoc::parse(r#"{"t":"trashed","id":1,"ok":1,"failed":0,"moved":["/listing/a"]}"#).unwrap(), &mut wire).unwrap();
         assert_eq!(model.message, "Moved 1 item to Trash", "no undo key in the hints, so none is named");
         model.transfer_id = 7;
         model.receive(crate::jsondoc::parse(r#"{"t":"transferdone","id":7,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#).unwrap(), &mut wire).unwrap();
@@ -32,7 +34,9 @@
         model.search = "Search: stale".into();
         model.receive(crate::jsondoc::parse(r#"{"t":"searched","n":2000,"scanned":3000}"#).unwrap(), &mut wire).unwrap();
         assert_eq!(model.search, "2,000 found");
-        model.receive(crate::jsondoc::parse(r#"{"t":"trashed","ok":3,"failed":0}"#).unwrap(), &mut wire).unwrap();
+        model.total = 3;
+        crate::tui::prompts::trash(&mut model, &mut wire).unwrap();
+        model.receive(crate::jsondoc::parse(r#"{"t":"trashed","id":1,"ok":3,"failed":0,"moved":["/listing/a","/listing/b","/listing/c"]}"#).unwrap(), &mut wire).unwrap();
         assert_eq!(model.message, "Moved 3 items to Trash");
         model.transfer_id = 7;
         model.receive(crate::jsondoc::parse(r#"{"t":"transferdone","id":7,"ok":1204,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#).unwrap(), &mut wire).unwrap();
@@ -155,4 +159,13 @@
         assert!(!taildrop[0].enabled(), "Taildrop with no machine cannot act");
         model.menu_path.clear();
         assert!(!enabled(&model, "open"));
+    }
+    #[test]
+    fn a_transfer_that_partly_fails_keeps_its_failure_as_an_error() {
+        let (mut wire, reader) = crate::tui::wire::echo_wire();
+        let mut model = Model::new(PathBuf::from("/listing"), &Json::Null);
+        model.transfer_id = 7;
+        model.receive(crate::jsondoc::parse(r#"{"t":"transferdone","id":7,"ok":3,"failed":2,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#).unwrap(), &mut wire).unwrap();
+        assert!(model.error.contains('2'), "error {:?}", model.error);
+        crate::tui::wire::finish(wire, reader);
     }

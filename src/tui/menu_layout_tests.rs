@@ -10,6 +10,7 @@ pub(crate) fn opened() -> Model {
     m.menu_ready = true;
     m.menu_count = 1;
     m.menu_path = m.path.join("notes.txt");
+    m.menu_view.paths = vec![m.menu_path.to_string_lossy().into_owned()];
     m.menu_view.row = 7;
     m.menu_view.formats = vec!["zip".into(), "tar.gz".into()];
     m.menu_view.taildrop = true;

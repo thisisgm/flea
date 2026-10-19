@@ -77,7 +77,7 @@ fn menu_workers_refuse_replacement_sources_before_helpers_or_mutations() {
     assert!(!ok && err.contains("changed") && entry.steps.is_empty());
     assert!(path.is_absolute() && path.starts_with(d.path()));
     let (tx, rx) = channel();
-    run_trash(1, vec![path.to_string_lossy().into()], tx, Some(captured.clone()));
+    run_trash(1, 0, vec![path.to_string_lossy().into()], tx, Some(captured.clone()));
     let results: Vec<_> = rx.iter().collect();
     assert!(results.iter().any(|message| matches!(message, OpMsg::Meta { line } if line.contains("changed"))));
     assert!(results.iter().any(|message| matches!(message, OpMsg::Trashed { ok: 0, failed: 1, entry, .. } if entry.steps.is_empty())));
@@ -117,8 +117,8 @@ fn every_operation_line_matches_the_shape_the_operations_design_names() {
     assert_eq!(transferdone_line(12, 1, 1, 0, false, &[], false, "", &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":1,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":""}"#);
     assert_eq!(transferdone_line(12, 1, 0, 0, false, &[], true, "", &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":true,"note":""}"#);
     assert_eq!(transferdone_line(12, 1, 0, 0, false, &[], false, crate::backend::durable::DIR_UNCONFIRMED, &[]), r#"{"t":"transferdone","id":12,"ok":1,"failed":0,"skipped":0,"cancelled":false,"retryPaths":[],"durable":false,"note":"copied, but the drive did not confirm the folder"}"#);
-    assert_eq!(trashed_line(1, 0, ""), r#"{"t":"trashed","ok":1,"failed":0}"#);
-    assert_eq!(trashed_line(0, 1, "The Trash took too long to answer"), r#"{"t":"trashed","ok":0,"failed":1,"err":"The Trash took too long to answer"}"#);
+    assert_eq!(trashed_line(7, 1, 0, "", &["/a".to_string()]), r#"{"t":"trashed","id":7,"ok":1,"failed":0,"moved":["/a"]}"#);
+    assert_eq!(trashed_line(7, 0, 1, "The Trash took too long to answer", &[]), r#"{"t":"trashed","id":7,"ok":0,"failed":1,"err":"The Trash took too long to answer","moved":[]}"#);
     assert_eq!(renamed_line(true, "/home/gm/new.txt"), r#"{"t":"renamed","ok":true,"path":"/home/gm/new.txt"}"#);
     assert_eq!(
         duplicated_line(true, "/home/gm/photo copy.jpg"),

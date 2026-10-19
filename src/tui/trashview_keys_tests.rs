@@ -107,3 +107,15 @@ fn trash_kind_words_come_from_the_catalog() {
     assert_eq!(m.rows[&2].kind, i18n.tr("trash.kindFile"));
     finish(w, reader);
 }
+
+// A wheel turn over the Trash listing moves its cursor like it does in a folder.
+#[test]
+fn wheel_moves_the_trash_cursor() {
+    let (mut w, reader) = echo_wire();
+    let mut m = trash(&mut w, "default");
+    let (left, _, _) = render::panes(m.columns, m.preview_visible);
+    click(&mut m, &mut w, 65, left / 2, render::BODY_ROW + 1);
+    assert!(m.error.is_empty(), "{:?}", m.error);
+    assert_eq!(m.cursor, 1, "wheel down on the Trash listing");
+    finish(w, reader);
+}

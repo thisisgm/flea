@@ -627,9 +627,9 @@ fn handle_line(
         Request::LinkTarget { path, id } => start_link_target(ops, &path, id),
         Request::PermissionsBatch { paths, modes, id } => do_permissions_batch(out, ops, paths, modes, id),
         Request::TransferCancel { id } => cancel_transfer(out, ops, id),
-        Request::Trash { paths, rows, menu_id } => {
+        Request::Trash { paths, rows, menu_id, request } => {
             let named = resolve_rows(paths, &rows, &st.base, &st.listing);
-            start_trash(out, ops, named, menu_id)
+            start_trash(out, ops, named, menu_id, request)
         }
         Request::Rename { path, to, menu_id } => {
             #[cfg(test)]

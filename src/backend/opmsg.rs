@@ -53,9 +53,9 @@ pub enum OpMsg {
                 retry: Vec<(PathBuf, ItemIdentity)>, durable: bool, note: String, merged: usize, kept_both: usize, into: String,
                 refused: Vec<(String, String)> },
     // The outcome line alone, sent the moment the disk shows it: the slot frees here and only the batch's own journal entry stays pending.
-    TrashAnnounced { id: usize, path: String, ok: usize, failed: usize, reason: String },
+    TrashAnnounced { id: usize, request: usize, path: String, ok: usize, failed: usize, reason: String, moved: Vec<String> },
     // announced is true once TrashAnnounced already wrote this batch's line, so the wire carries it once.
-    Trashed { id: usize, ok: usize, failed: usize, entry: Entry, reason: String, announced: bool },
+    Trashed { id: usize, request: usize, ok: usize, failed: usize, entry: Entry, reason: String, announced: bool },
     Linked { ok: usize, failed: usize, skipped: usize, entry: Entry, note: String, first_err: String, dest: String },
     Duplicated { ok: bool, path: String, err: String, entry: Entry },
     RedoDone { journal: Box<crate::backend::undo::Journal>, result: Result<String, FleaError>, touched: crate::backend::undo::Reached },
