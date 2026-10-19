@@ -183,6 +183,7 @@ fn language_change_invalidates_shaped_rows_and_refreshes_snapshot_text(cx: &mut 
                     caption: px(12.),
                     name_cells: 40,
                     scale: 1.,
+                    ..Shaping::default()
                 },
                 3,
             );
@@ -195,6 +196,7 @@ fn language_change_invalidates_shaped_rows_and_refreshes_snapshot_text(cx: &mut 
                         date: gpui::GlyphRun::new(layout),
                         mark: Mark::File,
                         ink: NameInk::Foreground,
+                        ..Prepared::default()
                     }
                 });
             assert_eq!(list.rows.len(), 1);
@@ -297,5 +299,25 @@ fn ipc_executor_is_cold_until_first_answer_and_then_serves_the_committed_pane(
     assert_eq!(
         receive.try_recv().unwrap().reply,
         flea::ipc::wire::Reply::value("1000")
+    );
+}
+
+// A pane takes the catalog's words when it is built and again on every language change, so its dates never wait on a join.
+#[test]
+fn a_pane_host_holds_catalog_words_from_construction_and_each_language_change() {
+    let catalog = |revision| Snapshot {
+        revision,
+        catalog: Arc::new(flea::i18n::I18n::default()),
+    };
+    let mut host = PaneHost::new("/files".into(), None, 620., &catalog(1));
+    let words = Rc::clone(&host.list.borrow().view.words);
+    assert!(
+        words.ready,
+        "a new pane holds no catalog words, so it draws no dates"
+    );
+    host.translated(&catalog(2));
+    assert!(
+        !Rc::ptr_eq(&words, &host.list.borrow().view.words),
+        "a language change kept the old words"
     );
 }

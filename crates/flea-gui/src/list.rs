@@ -1,44 +1,48 @@
 //! The list pane: one custom Element paints the visible rows from prepared lines, with no layout node per row.
 #[cfg(test)]
 mod bench;
-pub mod pane;
+pub mod columns;
+pub mod element;
+pub mod header;
 mod locale;
-pub mod seam;
+pub mod pane;
+pub(crate) mod seam;
 #[cfg(test)]
 mod tests;
 
-use crate::row::{
-    self,
-    cache::{Prepared, RowCache, Shaping},
-    NameInk,
-};
-use flea::protocol::RowFacts;
-use gpui::{
-    fill, font, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
-    GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, Style,
-    TextRun, TextStyle, TransformationMatrix, Window,
-};
-use pane::{Held, ROW_HEIGHT};
-use std::{cell::RefCell, rc::Rc};
+pub use element::{ListElement, Shown};
+pub use header::HeaderElement;
 
-// Board list.html: 14 padding, a 23 mark slot and 9 gap, a 17 mark, Size 70, Modified 134, a 28 end, a 2 edge.
-const PAD_X: f32 = 14.;
-const MARK_SLOT: f32 = 23.;
-const MARK: f32 = 17.;
-const LABEL_X: f32 = PAD_X + MARK_SLOT + 9.;
-const SIZE_W: f32 = 70.;
-const DATE_W: f32 = 134.;
-const END_W: f32 = 28.;
-const EDGE_W: f32 = 2.;
-const CURSOR_WASH: f32 = 0.18;
+use crate::{
+    navigation::{folder_state::Order, sort::Size},
+    row::{cache::RowCache, format::Words, marks::ClipMarks, NameInk},
+};
+use columns::{Layout, StoredWidths, Switched, Tokens};
+use flea::jsondoc::Json;
+use gpui::{font, px, Bounds, Font, Hsla, LineLayout, Pixels, SharedString, TextStyle, Window};
+use std::{cell::Cell, collections::HashMap, rc::Rc, sync::Arc};
+
 // Rows kept shaped past the viewport, so a short scroll back reshapes nothing.
 const CACHE_SCREENS: usize = 3;
+// ui.py's state washes over the foreground: a hover 8%, the header ground 4%, a hairline 12%, a grey cursor 18%, an unfocused mark 6%.
+pub const HOVER: f32 = 0.08;
+pub const NORMAL: f32 = 0.04;
+pub const HAIRLINE: f32 = 0.12;
+pub const GREY_CURSOR: f32 = 0.18;
+pub const TRACK: f32 = 0.06;
+// The cursor rung is accent 18%, a match run accent 14%, and a cut row draws at Omarchy's disabled opacity.
+pub const CURSOR_WASH: f32 = 0.18;
+pub const MATCH_WASH: f32 = 0.14;
+pub const CUT_DIM: f32 = 0.55;
+// Omarchy's selection plate is the foreground at 0.35, which the theme tokens ease per palette for 4.5:1 text.
+const MARK_FILL: f32 = 0.35;
 
-/// Omarchy's default face at the board's body and caption sizes, until the pane follows the live font-set.
+/// Omarchy's default face at the board's body, small-body and caption sizes, until the pane follows the live font-set.
 #[derive(Clone)]
 pub struct Typeface {
     pub font: Font,
     pub body: Pixels,
+    pub body_small: Pixels,
     pub caption: Pixels,
 }
 
@@ -47,8 +51,67 @@ impl Typeface {
         Self {
             font: font("JetBrainsMono Nerd Font"),
             body: px(14.),
+            body_small: px(13.),
             caption: px(12.),
         }
+    }
+}
+
+/// The pane's geometry at the face's body size, from v0.3.12 Theme.qml's formulas, which list.html and list-textsize.html draw.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Metrics {
+    pub row: f32,
+    pub header: f32,
+    pub header_top: f32,
+    pub pad: f32,
+    pub slot: f32,
+    pub mark: f32,
+    pub gap: f32,
+    pub edge: f32,
+    pub lane: f32,
+    pub clip: f32,
+    pub handle: f32,
+    pub hairline: f32,
+}
+
+// Theme.qml: bodySmall is Omarchy's 0.917 step, a line box is 1.8 of it, and the chrome is 0.72 of a padded row.
+const BODY_SMALL_RATIO: f32 = 0.917;
+const LINE_BOX_RATIO: f32 = 1.8;
+const CHROME_ROW_RATIO: f32 = 0.72;
+// Density's Compact keeps half the control padding, Omarchy's 6 px at its stock base of 12.
+const COMPACT_PADDING: f32 = 0.5;
+const CONTROL_PADDING_Y: f32 = 6.;
+const STOCK_BASE: f32 = 12.;
+// Theme.markSize: a mark is sized from the type scale, and Glyph.qml caps it at its slot.
+const MARK_RATIO: f32 = 1.45;
+
+impl Metrics {
+    pub fn at(body: Pixels) -> Self {
+        let body = f32::from(body);
+        let board = |value: f32| (value * body / 14.).round();
+        let small = (body * BODY_SMALL_RATIO).round();
+        let line = (small * LINE_BOX_RATIO).round();
+        let padding = (CONTROL_PADDING_Y * body / STOCK_BASE).round();
+        let slot = line;
+        Self {
+            row: line + 2. * (padding * COMPACT_PADDING).round(),
+            header: ((line + 2. * padding) * CHROME_ROW_RATIO).round(),
+            header_top: board(4.),
+            pad: board(14.),
+            slot,
+            mark: (small * MARK_RATIO).min(slot),
+            gap: board(9.),
+            edge: board(2.),
+            lane: board(14.),
+            // Theme.clipMarkSize and the resize zone are fixed pixels, as are hairlines.
+            clip: 12.,
+            handle: 9.,
+            hairline: 1.,
+        }
+    }
+
+    pub fn label_x(&self) -> f32 {
+        self.pad + self.slot + self.gap
     }
 }
 
@@ -63,6 +126,8 @@ pub struct Palette {
     pub accent_frame: Hsla,
     pub symlink: Hsla,
     pub executable: Hsla,
+    pub marked: Hsla,
+    pub muted_frame: Hsla,
 }
 
 impl Palette {
@@ -81,10 +146,12 @@ impl Palette {
             accent_frame: foreground,
             symlink: foreground,
             executable: foreground,
+            marked: foreground.opacity(MARK_FILL),
+            muted_frame: foreground.opacity(0.5),
         }
     }
 
-    fn name(&self, ink: NameInk, lifted: bool) -> Hsla {
+    pub fn name(&self, ink: NameInk, lifted: bool) -> Hsla {
         match (lifted, ink) {
             (true, _) | (false, NameInk::Foreground) => self.foreground,
             (false, NameInk::Symlink) => self.symlink,
@@ -93,12 +160,226 @@ impl Palette {
     }
 }
 
-/// Paint state a pane keeps across frames: shaped rows, the face's metrics and this frame's rows.
+/// What the pane's focus, selection and pointer owners say about its rows this frame; the list only reads it.
+#[derive(Clone, Debug, Default)]
+pub struct RowStates {
+    /// The listing these indices belong to; a snapshot from another listing marks no row but the cursor.
+    pub listing: usize,
+    pub cursor: Option<usize>,
+    /// The listing holds the keyboard: the cursor is the accent rung and marks take the plate; else both go grey.
+    pub focused: bool,
+    /// Marked rows in ascending order; None is no selection, which costs nothing.
+    pub selected: Option<Rc<[usize]>>,
+    pub hovered: Option<usize>,
+    pub renaming: Option<usize>,
+    pub drop_target: Option<usize>,
+    /// The drag owner's caption for the drop target, the label Drag.js names: move here, copy here or link here.
+    pub drop_label: Option<SharedString>,
+}
+
+/// One row's states, resolved once in prepaint.
+#[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
+pub struct RowState {
+    pub cursor: bool,
+    pub selected: bool,
+    pub hovered: bool,
+    pub renaming: bool,
+    pub drop_target: bool,
+}
+
+impl RowState {
+    /// Row.qml lifted: the cursor, the pointer, a mark or a drop target draw names, marks and cells in the foreground.
+    pub fn lifted(self) -> bool {
+        self.cursor || self.selected || self.hovered || self.drop_target
+    }
+}
+
+impl RowStates {
+    /// The pane's cursor alone, focused, as a pane without selection or pointer owners draws it.
+    pub fn cursor_only(listing: usize, cursor: usize) -> Self {
+        Self {
+            listing,
+            cursor: Some(cursor),
+            focused: true,
+            ..Self::default()
+        }
+    }
+
+    pub fn row(&self, index: usize, listing: usize) -> RowState {
+        let cursor = self.cursor == Some(index);
+        if self.listing != listing {
+            return RowState {
+                cursor,
+                ..RowState::default()
+            };
+        }
+        RowState {
+            cursor,
+            selected: self
+                .selected
+                .as_ref()
+                .is_some_and(|marked| marked.binary_search(&index).is_ok()),
+            hovered: self.hovered == Some(index),
+            renaming: self.renaming == Some(index),
+            drop_target: self.drop_target == Some(index),
+        }
+    }
+}
+
+/// What the pane's owners set outside paint: the words, the switched columns and stored widths, and the decorations they own.
+pub struct ListView {
+    pub words: Rc<Words>,
+    pub switched: Switched,
+    pub stored: StoredWidths,
+    pub lang_marks: bool,
+    /// A filter or search's needle, whose run each name marks.
+    pub query: String,
+    pub searching: bool,
+    pub dual: bool,
+    pub clip: ClipMarks,
+    pub order: Order,
+    /// Highlight today's dates: today's local midnight while the setting is on.
+    pub today: Option<i64>,
+    /// Folder sizes the walk answered, by row of the current listing.
+    walked: HashMap<usize, Size>,
+    walked_listing: usize,
+    /// Bumped by every walked size, so rows resolve their marks once per answer rather than once per frame.
+    walked_revision: u64,
+    /// Bumped by every change that reshapes text, so the row cache keys on a number rather than on the text itself.
+    text: u64,
+}
+
+impl Default for ListView {
+    fn default() -> Self {
+        Self {
+            words: Rc::default(),
+            switched: Switched::default(),
+            stored: StoredWidths::default(),
+            lang_marks: true,
+            query: String::new(),
+            searching: false,
+            dual: false,
+            clip: ClipMarks::default(),
+            order: Order::default(),
+            today: None,
+            walked: HashMap::new(),
+            walked_listing: 0,
+            walked_revision: 0,
+            text: 0,
+        }
+    }
+}
+
+impl ListView {
+    /// ui.json's list keys: "columns", "columnWidths", "langMarks" (absent reads on) and "highlightToday" (absent reads off).
+    pub fn apply_settings(&mut self, data: &Json, today_start: i64) {
+        self.switched = Switched::from_settings(data);
+        self.stored = StoredWidths::from_settings(data);
+        let lang_marks = data.get("langMarks").and_then(Json::as_bool) != Some(false);
+        if lang_marks != self.lang_marks {
+            self.lang_marks = lang_marks;
+            self.text += 1;
+        }
+        self.today = (data.get("highlightToday").and_then(Json::as_bool) == Some(true))
+            .then_some(today_start);
+    }
+
+    pub fn set_query(&mut self, query: &str) {
+        if self.query != query {
+            self.query.clear();
+            self.query.push_str(query);
+            self.text += 1;
+        }
+    }
+
+    pub fn text_revision(&self) -> u64 {
+        self.text
+    }
+
+    /// A folder's walked size for one row; a new listing forgets the last one's.
+    pub fn folder_size(&mut self, listing: usize, row: usize, size: Size) {
+        if listing != self.walked_listing {
+            self.walked.clear();
+            self.walked_listing = listing;
+        }
+        self.walked.insert(row, size);
+        self.walked_revision += 1;
+    }
+
+    /// What a cached row's clip mark and walked size were resolved against in this listing.
+    pub fn mark_revision(&self, listing: usize) -> crate::row::cache::Revision {
+        (self.clip.revision, self.walked_revision, listing)
+    }
+
+    pub fn walked_for(&self, listing: usize, row: usize) -> Option<Size> {
+        (listing == self.walked_listing)
+            .then(|| self.walked.get(&row).copied())
+            .flatten()
+    }
+}
+
+/// What the last frame drew, read by IPC and tests the way ui/Ipc.qml reads delegate geometry.
+#[derive(Clone, Copy, Debug)]
+pub struct Drawn {
+    pub bounds: Bounds<Pixels>,
+    /// The clip every row paints inside: the list's own box, so a partly scrolled row never reaches the header above it.
+    pub mask: Bounds<Pixels>,
+    pub layout: Layout,
+    pub metrics: Metrics,
+    pub palette: Option<Palette>,
+    pub scroll_y: f32,
+    pub listing: usize,
+    pub frames: u64,
+    /// The drop target row and the box its caption is drawn in, this frame.
+    pub drop: Option<(usize, Bounds<Pixels>)>,
+    /// Rows drawn as Row.qml's loading bar because the pane does not hold them yet.
+    pub loading: usize,
+}
+
+impl Default for Drawn {
+    fn default() -> Self {
+        Self {
+            bounds: Bounds::default(),
+            mask: Bounds::default(),
+            layout: Layout::default(),
+            metrics: Metrics::at(px(14.)),
+            palette: None,
+            scroll_y: 0.,
+            listing: 0,
+            frames: 0,
+            drop: None,
+            loading: 0,
+        }
+    }
+}
+
+// The face's advances of "0": the body's turns the name width into cells, the small body's writes the column widths, the caption's the cell budgets.
+#[derive(Clone, Copy, Debug)]
+struct Advance {
+    body: f32,
+    small: f32,
+    caption: f32,
+}
+
+/// Paint state a pane keeps across frames: shaped rows, the face's metrics, the owners' view and this frame's rows.
 pub struct ListState {
     pub typeface: Typeface,
     pub rows: RowCache,
-    advance: Option<Pixels>,
-    visible: Vec<(usize, Option<Rc<Prepared>>)>,
+    advance: Option<Advance>,
+    visible: Vec<Shown>,
+    pub view: ListView,
+    pub drawn: Drawn,
+    pub header: header::HeaderState,
+    // The one empty line every hidden cell shares, so a column that is not drawn shapes nothing.
+    blank: Arc<LineLayout>,
+    /// Text style reads for the palette, which a theme or style change alone repeats.
+    pub palette_reads: u64,
+    palette: Option<Palette>,
+    // The drag owner's drop caption, shaped once per label, face and size.
+    drop_line: Option<element::DropLine>,
+    /// Marks and cell lines the last paint drew, so a test can see what paint skipped.
+    pub painted_marks: Cell<usize>,
+    pub painted_cells: Cell<usize>,
 }
 
 impl ListState {
@@ -108,206 +389,103 @@ impl ListState {
             rows: RowCache::default(),
             advance: None,
             visible: Vec::new(),
+            view: ListView::default(),
+            drawn: Drawn::default(),
+            header: header::HeaderState::default(),
+            blank: Arc::new(LineLayout::default()),
+            palette_reads: 0,
+            palette: None,
+            drop_line: None,
+            painted_marks: Cell::new(0),
+            painted_cells: Cell::new(0),
         }
     }
 
-    // One advance of "0" at the body size, Theme.bodyAdvance, which turns the name width into cells.
-    fn body_advance(&mut self, window: &Window) -> Pixels {
+    /// The row palette, read from the inherited text style once and again only after restyle().
+    pub fn palette(&mut self, window: &Window) -> Palette {
+        if let Some(palette) = self.palette {
+            return palette;
+        }
+        self.palette_reads += 1;
+        let palette = Palette::inherited(&window.text_style());
+        self.palette = Some(palette);
+        palette
+    }
+
+    /// A theme or text style change: the next frame reads the palette again.
+    pub fn restyle(&mut self) {
+        self.palette = None;
+    }
+
+    /// A list that draws its dates from its first frame, since its words come with it.
+    pub fn with_words(typeface: Typeface, words: Words) -> Self {
+        let mut state = Self::new(typeface);
+        state.view.words = Rc::new(words);
+        state
+    }
+
+    /// New words from a catalog snapshot: every shaped row and title is stale, so all of them go.
+    pub fn set_words(&mut self, words: Words) {
+        self.view.words = Rc::new(words);
+        self.view.text += 1;
+        self.invalidate_text();
+        self.header.forget_titles();
+    }
+
+    /// A list that is not the view on screen holds no shaped rows, so a hidden List costs nothing.
+    pub fn park(&mut self) {
+        self.rows = RowCache::default();
+        self.visible = Vec::new();
+        self.header.forget_titles();
+    }
+
+    pub fn visible(&self) -> &[Shown] {
+        &self.visible
+    }
+
+    // Measured once per face; a language or font change drops it with the shaped rows.
+    fn advance(&mut self, window: &Window) -> Advance {
         if let Some(advance) = self.advance {
             return advance;
         }
         let text = window.text_system();
         let id = text.resolve_font(&self.typeface.font);
-        let advance = text
-            .advance(id, self.typeface.body, '0')
-            .map_or(self.typeface.body * 0.6, |advance| advance.width);
+        let of = |size: Pixels| {
+            text.advance(id, size, '0')
+                .map_or(f32::from(size) * 0.6, |advance| f32::from(advance.width))
+        };
+        let advance = Advance {
+            body: of(self.typeface.body),
+            small: of(self.typeface.body_small),
+            caption: of(self.typeface.caption),
+        };
         self.advance = Some(advance);
         advance
     }
-}
 
-pub struct ListElement {
-    held: Rc<Held>,
-    scroll_y: f32,
-    cursor: usize,
-    state: Rc<RefCell<ListState>>,
-}
-
-impl ListElement {
-    pub fn new(held: Rc<Held>, scroll_y: f32, cursor: usize, state: Rc<RefCell<ListState>>) -> Self {
-        Self {
-            held,
-            scroll_y,
-            cursor,
-            state,
-        }
-    }
-}
-
-/// Shapes one row's three cells once, the name already middle-elided to its cells so no long name is shaped whole.
-fn prepare(facts: &RowFacts, shaping: &Shaping, window: &Window) -> Prepared {
-    let text = window.text_system();
-    let line = |value: &str, size: Pixels| {
-        let run = TextRun {
-            len: value.len(),
-            font: shaping.font.clone(),
-            color: Hsla::default(),
-            background_color: None,
-            underline: None,
-            strikethrough: None,
-        };
-        GlyphRun::new(text.layout_line(value, size, &[run], None))
-    };
-    let name = row::decorated_name(facts);
-    Prepared {
-        name: line(&row::middle_elide(&name, shaping.name_cells), shaping.body),
-        size: line(&row::size_text(facts), shaping.caption),
-        date: line(&row::format_date(facts.mtime), shaping.caption),
-        mark: row::marks::Mark::for_row(&facts.icon, facts.mode),
-        ink: row::name_ink(facts),
-    }
-}
-
-/// Paints a prepared line from the tiles its glyph run kept, so a row already seen costs no lookup per glyph.
-fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
-    let line = run.line();
-    let baseline = window.pixel_snap(top + (px(ROW_HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
-    let _ = window.paint_glyph_run(point(x, baseline), run, color);
-}
-
-impl IntoElement for ListElement {
-    type Element = Self;
-    fn into_element(self) -> Self {
-        self
-    }
-}
-
-impl Element for ListElement {
-    type RequestLayoutState = ();
-    type PrepaintState = Palette;
-
-    fn id(&self) -> Option<ElementId> {
-        None
-    }
-    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
-        None
+    /// The geometry and column tokens at this face.
+    pub fn measure(&mut self, window: &Window) -> (Metrics, Tokens) {
+        let metrics = Metrics::at(self.typeface.body);
+        let advance = self.advance(window);
+        let tokens = Tokens::measure(
+            metrics.pad,
+            metrics.slot,
+            metrics.gap,
+            advance.small,
+            f32::from(self.typeface.body_small),
+        );
+        (metrics, tokens)
     }
 
-    fn request_layout(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        window: &mut Window,
-        cx: &mut App,
-    ) -> (LayoutId, ()) {
-        let style = Style {
-            size: size(relative(1.).into(), relative(1.).into()),
-            ..Style::default()
-        };
-        (window.request_layout(style, None, cx), ())
-    }
-
-    fn prepaint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        window: &mut Window,
-        _: &mut App,
-    ) -> Palette {
-        let mut state = self.state.borrow_mut();
-        let advance = state.body_advance(window);
-        let name_width = bounds.size.width - px(LABEL_X + SIZE_W + DATE_W + END_W);
-        let shaping = Shaping {
-            listing: self.held.listing,
-            font: state.typeface.font.clone(),
-            body: state.typeface.body,
-            caption: state.typeface.caption,
-            name_cells: (name_width / advance).floor().max(0.) as usize,
-            scale: window.scale_factor(),
-        };
-        let height = f32::from(bounds.size.height);
-        let first = (self.scroll_y / ROW_HEIGHT).floor() as usize;
-        let last = (((self.scroll_y + height) / ROW_HEIGHT).ceil() as usize).min(self.held.total);
-        let ListState { rows, visible, .. } = &mut *state;
-        rows.begin(&shaping, pane::visible_rows(height) * CACHE_SCREENS);
-        visible.clear();
-        for index in first..last.max(first) {
-            let prepared = self
-                .held
-                .row(index)
-                .map(|facts| rows.get_or_prepare(index, facts, || prepare(facts, &shaping, window)));
-            visible.push((index, prepared));
-        }
-        Palette::inherited(&window.text_style())
-    }
-
-    fn paint(
-        &mut self,
-        _: Option<&GlobalElementId>,
-        _: Option<&InspectorElementId>,
-        bounds: Bounds<Pixels>,
-        _: &mut (),
-        palette: &mut Palette,
-        window: &mut Window,
-        cx: &mut App,
-    ) {
-        let palette = *palette;
-        let state = self.state.borrow();
-        let left = bounds.origin.x;
-        let right = bounds.origin.x + bounds.size.width;
-        let top_of = |index: usize| bounds.origin.y + px(index as f32 * ROW_HEIGHT - self.scroll_y);
-        window.paint_quad(fill(bounds, palette.background));
-        window.with_content_mask(Some(ContentMask { bounds }), |window| {
-            if state.visible.iter().any(|(index, _)| *index == self.cursor) {
-                let top = top_of(self.cursor);
-                let row = Bounds::new(point(left, top), size(bounds.size.width, px(ROW_HEIGHT)));
-                window.paint_quad(fill(row, palette.accent.opacity(CURSOR_WASH)));
-                let edge = Bounds::new(point(left, top), size(px(EDGE_W), px(ROW_HEIGHT)));
-                window.paint_quad(fill(edge, palette.accent_frame));
-            }
-            // One layer for every mark and glyph, so the scene orders the whole list once rather than once a line.
-            window.paint_layer(bounds, |window| {
-                let names = Bounds::new(
-                    point(left + px(LABEL_X), bounds.origin.y),
-                    size(
-                        (bounds.size.width - px(LABEL_X + SIZE_W + DATE_W + END_W)).max(px(0.)),
-                        bounds.size.height,
-                    ),
-                );
-                for (index, prepared) in &state.visible {
-                    let Some(prepared) = prepared else { continue };
-                    let lifted = *index == self.cursor;
-                    let top = top_of(*index);
-                    let mark_at = point(
-                        left + px(PAD_X + (MARK_SLOT - MARK) / 2.),
-                        top + px((ROW_HEIGHT - MARK) / 2.),
-                    );
-                    let (key, data) = prepared.mark.svg();
-                    let mark_ink = if lifted { palette.foreground } else { palette.metadata_frame };
-                    let _ = window.paint_svg(
-                        Bounds::new(mark_at, size(px(MARK), px(MARK))),
-                        key,
-                        Some(data),
-                        TransformationMatrix::unit(),
-                        mark_ink,
-                        cx,
-                    );
-                    let meta = if lifted { palette.foreground } else { palette.metadata };
-                    let size_right = right - px(END_W + DATE_W);
-                    paint_line(&prepared.size, size_right - prepared.size.line().width, top, meta, window);
-                    let date_right = right - px(END_W);
-                    paint_line(&prepared.date, date_right - prepared.date.line().width, top, meta, window);
-                }
-                window.with_content_mask(Some(ContentMask { bounds: names }), |window| {
-                    for (index, prepared) in &state.visible {
-                        let Some(prepared) = prepared else { continue };
-                        let ink = palette.name(prepared.ink, *index == self.cursor);
-                        paint_line(&prepared.name, names.origin.x, top_of(*index), ink, window);
-                    }
-                });
-            });
-        });
+    /// The drawn columns for a list this wide: the row is the list less its scroll lane.
+    pub fn layout(&mut self, width: f32, window: &Window) -> (Metrics, Tokens, Layout) {
+        let (metrics, tokens) = self.measure(window);
+        let layout = columns::resolve(
+            (width - metrics.lane).max(0.),
+            &tokens,
+            self.view.switched,
+            self.view.stored,
+        );
+        (metrics, tokens, layout)
     }
 }

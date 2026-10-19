@@ -126,12 +126,24 @@ impl Render for View {
 }
 
 pub fn open(cx: &mut TestAppContext, held: Rc<Held>, width: f32, height: f32) -> WindowHandle<View> {
-    let list = Rc::new(RefCell::new(ListState::new(bench_typeface())));
+    let mut state = ListState::new(bench_typeface());
+    // Dates wait for catalog words, so the bench loads the built-in English catalog the way startup does.
+    state.set_words(crate::row::format::Words::from_catalog(&english()));
+    let list = Rc::new(RefCell::new(state));
     cx.open_window(size(px(width), px(height)), |_, _| View {
         held,
         scroll_y: 0.,
         cursor: 0,
         list,
+    })
+}
+
+/// The built-in English catalog alone, with no Omarchy or language file to read.
+pub fn english() -> flea::i18n::I18n {
+    flea::i18n::I18n::load(flea::i18n::Paths {
+        omarchy: "/nonexistent/omarchy".into(),
+        language_file: "/nonexistent/language".into(),
+        catalogs: Vec::new(),
     })
 }
 
