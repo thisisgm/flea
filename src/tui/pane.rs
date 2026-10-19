@@ -1,4 +1,4 @@
-use super::{cells::{self, ellipsis, fit, text_width}, icons, model::Model, picture::{self, Slot}, theme::Theme};
+use super::{cells::{self, ellipsis, fit, name_title, text_width}, icons, model::Model, picture::{self, Slot}, theme::Theme};
 use super::layout::{pane_padding, preview_area, selection_bytes};
 
 // The roles a preview control draws in.
@@ -67,11 +67,11 @@ pub fn preview_row(m: &Model, y: usize, columns: usize, height: usize, theme: &T
     let inner = match y {
         0 => {
             let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
-            let head = format!("{mark}{}", row.name.rsplit('/').next().unwrap_or(&row.name));
-            let name = ellipsis(&head, text_width(&head).min(width));
-            let rest = width - text_width(&name);
+            let leaf = row.name.rsplit('/').next().unwrap_or(&row.name);
+            let head = (text_width(&mark) + text_width(leaf)).min(width);
+            let name = name_title(&mark, leaf, head);
             let target = if row.link.is_empty() { String::new() } else { format!(" → {}", row.link) };
-            format!("{}\x1b[1m{name}\x1b[22m{}{}", theme.foreground, theme.meta, ellipsis(&target, rest))
+            format!("{}{name}{}{}", theme.foreground, theme.meta, ellipsis(&target, width - head))
         }
         1 => {
             let modified = super::render::modified(row.modified);
@@ -185,7 +185,7 @@ fn selection(m: &Model, y: usize, area: &Area, theme: &Theme) -> String {
     let width = area.width();
     let inner = if y == 0 {
         let mark = if m.marks() { format!("{} ", icons::FILES) } else { String::new() };
-        format!("\x1b[1m{}\x1b[22m", ellipsis(&format!("{mark}{} selected", super::render::items(m.selected.len())), width))
+        name_title(&mark, &format!("{} selected", super::render::items(m.selected.len())), width)
     } else if y == 1 {
         let facts = selection_bytes(m).map(|n| format!("Combined · {}", super::render::bytes(n))).unwrap_or_default();
         format!("{}{}", theme.meta, fit(&facts, width))
@@ -262,3 +262,6 @@ pub fn prepare(m: &mut Model) {
 #[cfg(test)]
 #[path = "pane_tests.rs"]
 mod tests;
+#[cfg(test)]
+#[path = "pane_title_tests.rs"]
+mod title_tests;

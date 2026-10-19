@@ -3,7 +3,7 @@ use crate::tui::capabilities::Protocol;
 use crate::tui::chafa::{Cell, Color, ColorMode, Grid};
 use crate::tui::input::Pointer;
 use crate::tui::keymap::Map;
-use crate::tui::render::frame_tests::{grid, model, plain};
+use crate::tui::render::frame_tests::{entry, grid, model, plain};
 
 const BENCH: &str = "background='#1c120d'\nforeground='#c6b395'\naccent='#d28a41'\nmuted='#68544b'";
 
@@ -91,4 +91,66 @@ fn the_bar_names_the_one_fact_its_kind_has() {
     m.rows.get_mut(&7).unwrap().icon = "package-x-generic".into();
     crate::tui::pane_state::meta(&mut m, &crate::jsondoc::parse(r#"{"entries":1,"unpacked":5,"names":[]}"#).unwrap());
     assert_eq!(fact(&m, &m.rows[&7]), "1 entry");
+}
+
+// The bar for one file at a width, with an empty preview so its fact is blank.
+fn bar_row(name: &str, marks: bool, width: usize) -> String {
+    let mut m = model();
+    m.font_marks = marks;
+    let cursor = m.cursor;
+    m.rows.insert(cursor, entry(name, false, 99));
+    m.preview_body.clear();
+    bar(&m, width, &Theme::from_text(BENCH))
+}
+
+#[test]
+fn bar_bolds_only_the_name_with_its_mark_and_padding_plain() {
+    let theme = Theme::from_text(BENCH);
+    let icon = crate::tui::icons::row(&entry("main.rs", false, 99), true);
+    let title = bar_row("main.rs", true, 30);
+    // The mark and its space stay plain, the name is bold, then 19 plain cells (blank fact and gap), then the close mark.
+    assert_eq!(title, format!("{}{icon} \x1b[1mmain.rs\x1b[22m{}{}{}\u{ea76} ", theme.foreground, theme.meta, " ".repeat(19), theme.foreground));
+    assert_eq!(text_width(&plain(&title)), 30);
+}
+
+#[test]
+fn bar_bolds_only_the_name_without_marks() {
+    let theme = Theme::from_text(BENCH);
+    let title = bar_row("main.rs", false, 30);
+    // No mark, so the bold name starts the row; then 21 plain cells (blank fact and gap), then the text close mark.
+    assert_eq!(title, format!("{}\x1b[1mmain.rs\x1b[22m{}{}{}\u{d7} ", theme.foreground, theme.meta, " ".repeat(21), theme.foreground));
+    assert_eq!(text_width(&plain(&title)), 30);
+}
+
+#[test]
+fn bar_cut_name_keeps_its_bold_ellipsis_and_a_plain_mark() {
+    let theme = Theme::from_text(BENCH);
+    let icon = crate::tui::icons::row(&entry("a-very-long-file-name.rs", false, 99), true);
+    let title = bar_row("a-very-long-file-name.rs", true, 16);
+    // The mark stays plain, ten bold name cells and a bold ellipsis fill the title, one plain gap cell, then the close mark.
+    assert_eq!(title, format!("{}{icon} \x1b[1ma-very-lon\u{2026}\x1b[22m{} {}\u{ea76} ", theme.foreground, theme.meta, theme.foreground));
+    assert_eq!(text_width(&plain(&title)), 16);
+}
+
+#[test]
+fn bar_cut_name_without_marks_keeps_its_bold_ellipsis() {
+    let theme = Theme::from_text(BENCH);
+    let title = bar_row("a-very-long-file-name.rs", false, 16);
+    // Twelve bold name cells and a bold ellipsis fill the title, one plain gap cell, then the text close mark.
+    assert_eq!(title, format!("{}\x1b[1ma-very-long-\u{2026}\x1b[22m{} {}\u{d7} ", theme.foreground, theme.meta, theme.foreground));
+    assert_eq!(text_width(&plain(&title)), 16);
+}
+
+#[test]
+fn bar_width_that_cuts_the_mark_keeps_the_ellipsis_plain() {
+    let theme = Theme::from_text(BENCH);
+    let icon = crate::tui::icons::row(&entry("main.rs", false, 99), true);
+    // Width 4 leaves one cell for the title, so the icon is cut and the lone ellipsis is plain.
+    let four = bar_row("main.rs", true, 4);
+    assert_eq!(four, format!("{}\u{2026}{} {}\u{ea76} ", theme.foreground, theme.meta, theme.foreground));
+    assert_eq!(text_width(&plain(&four)), 4);
+    // Width 5 keeps the icon and cuts its space, so the ellipsis after the icon is plain too.
+    let five = bar_row("main.rs", true, 5);
+    assert_eq!(five, format!("{}{icon}\u{2026}{} {}\u{ea76} ", theme.foreground, theme.meta, theme.foreground));
+    assert_eq!(text_width(&plain(&five)), 5);
 }
