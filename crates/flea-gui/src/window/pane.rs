@@ -3,6 +3,7 @@ use crate::{
     backend::{Backend, Failure},
     list::{pane::Pane, ListState, Typeface},
     navigation::Navigator,
+    row::format::Words,
 };
 use gpui::{SharedString, Task};
 use std::{cell::RefCell, rc::Rc};
@@ -34,7 +35,10 @@ impl PaneHost {
             pane: Pane::new(path.clone(), height),
             path,
             select,
-            list: Rc::new(RefCell::new(ListState::new(Typeface::omarchy_default()))),
+            list: Rc::new(RefCell::new(ListState::with_words(
+                Typeface::omarchy_default(),
+                Words::from_catalog(&locale.catalog),
+            ))),
             backend: None,
             reader: None,
             transition: None,
@@ -66,7 +70,9 @@ impl PaneHost {
     }
 
     pub fn translated(&mut self, locale: &Snapshot) {
-        self.list.borrow_mut().invalidate_text();
+        self.list
+            .borrow_mut()
+            .set_words(Words::from_catalog(&locale.catalog));
         self.state_text = self.pane.state.text(&locale.catalog, self.pane.held.total);
         if let Some(failure) = self.failure.clone() {
             self.record_error(failure, locale);
