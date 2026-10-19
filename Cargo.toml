@@ -16,6 +16,11 @@ resolver = "2"
 gpui = { package = "gpui-pre", git = "https://github.com/thisisgm/gpui-omarchy", rev = "af2dfcb28c53876cca170003d65c7b179573b3d2" }
 gpui_platform = { package = "gpui-pre-platform", git = "https://github.com/thisisgm/gpui-omarchy", rev = "af2dfcb28c53876cca170003d65c7b179573b3d2", features = ["font-kit", "x11", "wayland", "runtime_shaders"] }
 
+# Unpublished fork commit for local verification; the join replaces this table with the pinned revision.
+[patch."https://github.com/thisisgm/gpui-omarchy"]
+gpui-pre = { git = "file:///home/gm/flea-work/flea.git", rev = "ef744c13057032467e03629877d01896233ebd90" }
+gpui-pre-platform = { git = "file:///home/gm/flea-work/flea.git", rev = "ef744c13057032467e03629877d01896233ebd90" }
+
 [lib]
 path = "src/lib.rs"
 
