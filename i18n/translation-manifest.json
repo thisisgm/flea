@@ -1,6 +1,9 @@
 {
   "en": {
     "flea:app.name": "b61286ee7748",
+    "flea:columns.peek_path": "dc74a40c27e1",
+    "flea:columns.peek_row_name": "6f14446a5380",
+    "flea:columns.peek_rows": "d4ef1ff84f74",
     "flea:dialogs.file.apply": "e34465e69459",
     "flea:dialogs.file.bulk.clash": "86bdea1d37e9",
     "flea:dialogs.file.bulk.edit": "9cdc7f02f0f4",

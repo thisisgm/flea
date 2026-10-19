@@ -14,6 +14,8 @@ pub struct Options {
     pub search: bool,
     pub hold_walk: bool,
     pub restore_name: Option<String>,
+    // The Esc relist a search exit arms; only its failure drops the cursor file armed for the next listing.
+    pub relist: bool,
 }
 
 pub struct Pending {
