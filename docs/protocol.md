@@ -2474,8 +2474,8 @@ Example: `{"t":"trashed","id":3,"ok":1,"failed":0,"moved":["/home/gm/old.txt"]}`
 `id` echoes the request. `moved` names the original paths that went, so a client records an undo step for only those. Counts, plus the batch's own reason when anything failed: `{"t":"trashed","id":3,"ok":0,"failed":1,"err":"<string>","moved":[]}`.
 Unlike `transferitem` there is no per-path error text, because trash is one `gio` call for
 the batch and its exit status cannot attribute a failure to a single path; a path that is still on disk
-afterwards is counted in `failed`. `err` rides only on a failure, so a successful line is byte-identical
-to before. `gio` runs under a 10 s deadline, so a hung mount answers "The Trash took too long to answer"
+afterwards is counted in `failed`. `err` rides only on a failure, so a successful line has no `err` key.
+`gio` runs under a 10 s deadline, so a hung mount answers "The Trash took too long to answer"
 instead of holding the single operation slot.
 A batch that ran `gio` sends the line once `gio` has returned and each path has been checked on disk (`lstat`), whether
 or not every path went, so a failure goes out the same way with its `failed` count and `err`. It is sent before the second

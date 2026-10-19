@@ -180,7 +180,7 @@ ShellRoot {
         root.step = 1
     }
 
-    // The second change follows the first writer's exit, never a timer, so a writer that never ends fails the drained check.
+    // Each tick reads the book, not a delay: the second change waits for the first writer to exit or fail to start, and one that never ends fails.
     property var watcher: Timer {
         interval: 100
         repeat: true
