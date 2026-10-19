@@ -16,15 +16,14 @@ function translation(transform) {
         throw new Error("the readers place only a translate, got " + transform);
     return [Number(found[1]), Number(found[2] ?? 0)];
 }
-// The figure as a tree: each element has its name, its decoded attributes, its children, its own text, and its offset, font size and weight
-// as inherited from its ancestors.
+// The figure as a tree: each element has its name, its decoded attributes, its children in document order with their text, and its offset, font size and weight.
 // Sample input: <svg font-size="14"><g transform="translate(5,6)"><text x="1" y="2">a &amp; b</text></g></svg> reads a text at offset 5,6, size 14, content "a & b".
 export function parse(svg) {
-    const root = { name: "#root", attrs: {}, children: [], text: "", parent: null, dx: 0, dy: 0, size: NaN, weight: NAMED_WEIGHTS.normal };
+    const root = { name: "#root", attrs: {}, children: [], seq: [], parent: null, dx: 0, dy: 0, size: NaN, weight: NAMED_WEIGHTS.normal };
     let at = root;
     for (const m of svg.matchAll(/<(\/?)([a-zA-Z][\w:-]*)((?:\s+[\w:-]+="[^"]*")*)\s*(\/?)>|([^<]+)/g)) {
         if (m[5] !== undefined) {
-            at.text += decode(m[5]);
+            at.seq.push(decode(m[5]));
             continue;
         }
         if (m[1]) {
@@ -36,9 +35,10 @@ export function parse(svg) {
             attrs[a[1]] = decode(a[2]);
         const [x, y] = translation(attrs.transform);
         const weight = attrs["font-weight"] === undefined ? at.weight : NAMED_WEIGHTS[attrs["font-weight"]] ?? Number(attrs["font-weight"]);
-        const el = { name: m[2], attrs, children: [], text: "", parent: at, dx: at.dx + x, dy: at.dy + y,
+        const el = { name: m[2], attrs, children: [], seq: [], parent: at, dx: at.dx + x, dy: at.dy + y,
             size: attrs["font-size"] === undefined ? at.size : Number(attrs["font-size"]), weight };
         at.children.push(el);
+        at.seq.push(el);
         if (!m[4])
             at = el;
     }
@@ -64,9 +64,10 @@ export function num(el, name) {
 function at0(el, name) {
     return el.attrs[name] === undefined ? 0 : Number(el.attrs[name]);
 }
-// The plain text of an element and its tspans.
+// The plain text of an element and its tspans in document order.
+// Sample input: <text>a <tspan>b</tspan> c</text> reads "a b c".
 function content(el) {
-    return el.text + el.children.map(content).join("");
+    return el.seq.map((part) => typeof part === "string" ? part : content(part)).join("");
 }
 // The texts under a node with their absolute anchor point, inherited size and weight, and plain content.
 // Sample input: <g font-size="12"><text x="10" y="20" text-anchor="middle" font-weight="bold">Animal</text></g> reads anchor middle, size 12, bold.
@@ -137,8 +138,7 @@ export function bounds(el) {
     return null;
 }
 // The graph nodes of a flowchart, state, class or ER diagram: id, kind classes, box and texts.
-// Sample input: <g class="pele-node pele-shape-diam" data-id="B" transform="translate(91,120)"><polygon points="0,-30 40,0 0,30 -40,0"/><text class="pele-label">Is it?</text></g>
-// reads { id: "B", shape: "diam", box: [51, 90, 131, 150], label: "Is it?" }.
+// Sample input: a diam node B at translate(91,120) with a 40 by 30 polygon reads shape diam at box [51, 90, 131, 150].
 export function nodes(tree) {
     return find(tree, "pele-node").filter((n) => !has(n, "pele-actor")).map((n) => {
         const shape = (n.attrs.class.match(/pele-shape-([\w-]+)/) ?? [null, ""])[1];
@@ -172,8 +172,7 @@ function markerKind(el) {
     return (d.match(/M/gi) ?? []).length === 2 ? "cross" : "open";
 }
 // The drawn edges of a graph, each with its ends read from where its line meets a node, its marks, stroke and label.
-// Sample input: <g class="pele-edge" data-id="L_A_B_0"><path d="M25,46L25,87" stroke-dasharray="3 4"/><path class="pele-marker" d="M25,94L21.64,86L28.36,86Z"/></g>
-// reads A to B, dotted, no start mark, an arrow at the end, through [[25, 46], [25, 87]].
+// Sample input: edge L_A_B_0 with a dotted line through [[25, 46], [25, 87]] reads A to B with an arrow at the end.
 export function edges(tree, graphNodes = nodes(tree)) {
     const labels = new Map(find(tree, "pele-edge-label").map((l) => [l.attrs["data-id"], texts(l).map((t) => t.string).join(" ")]));
     return find(tree, "pele-edge").filter((e) => !has(e, "pele-message")).map((e) => {

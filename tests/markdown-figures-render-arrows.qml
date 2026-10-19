@@ -55,19 +55,26 @@ ShellRoot {
             onPaint: if (shell.armed) shell.analyze(getContext("2d"))
         }
     }
-    // Sample input: '<g class="pele-edge" data-id="e"><path d="M25,45L25,86"/><path class="pele-marker" d="M25,93L21.64,85L28.36,85Z"/></g>' answers
-    // { start: { x: 25, y: 86 }, end: { x: 25, y: 93 } }: the end is the first mark's tip, and the start the end of the line nearest it, so the two run along the head.
-    function edge(svg) {
-        var group = svg.match(/<g class="pele-edge(?: [^"]*)?"[^>]*>([\s\S]*?)<\/g>/)
-        var line = group ? group[1].match(/<path(?![^>]*pele-marker)[^>]*\sd="([^"]+)"/) : null
-        var tip = group ? group[1].match(/<path class="pele-marker" d="M(-?[\d.]+),(-?[\d.]+)/) : null
-        var points = line ? line[1].match(/-?\d*\.?\d+/g).map(Number) : []
-        if (!tip || points.length < 4)
-            return null
-        var end = { x: Number(tip[1]), y: Number(tip[2]) }
-        var first = { x: points[0], y: points[1] }, last = { x: points[points.length - 2], y: points[points.length - 1] }
-        var near = Math.hypot(first.x - end.x, first.y - end.y) < Math.hypot(last.x - end.x, last.y - end.y) ? first : last
-        return { start: near, end: end }
+    // Sample input: one pele-edge group with a line and two marks answers one line per mark, each end its tip and each start the line end nearest it, so the two run along the head.
+    // Every edge group is measured, so the C --> A back link of the last arrow case is never skipped for the first forward edge.
+    function edges(svg) {
+        var out = []
+        var groups = svg.match(/<g class="pele-edge"[^>]*>[\s\S]*?<\/g>/g) || []
+        for (var g = 0; g < groups.length; g++) {
+            var id = (groups[g].match(/data-id="([^"]+)"/) || [null, ""])[1]
+            var line = groups[g].match(/<path(?![^>]*pele-marker)[^>]*\sd="([^"]+)"/)
+            var points = line ? line[1].match(/-?\d*\.?\d+/g).map(Number) : []
+            var tipRe = /<path class="pele-marker" d="M(-?[\d.]+),(-?[\d.]+)/g
+            var tip = tipRe.exec(groups[g])
+            while (tip !== null && points.length >= 4) {
+                var end = { x: Number(tip[1]), y: Number(tip[2]) }
+                var first = { x: points[0], y: points[1] }, last = { x: points[points.length - 2], y: points[points.length - 1] }
+                var near = Math.hypot(first.x - end.x, first.y - end.y) < Math.hypot(last.x - end.x, last.y - end.y) ? first : last
+                out.push({ id: id, start: near, end: end })
+                tip = tipRe.exec(groups[g])
+            }
+        }
+        return out
     }
     function head(pixels, fig, line) {
         var at = fig.mapToItem(grab, 0, 0)
@@ -96,22 +103,37 @@ ShellRoot {
         return { count: count, along: along / count, cross: cross / count, tip: tip,
             tipCross: tipCross, wide: wide, narrow: narrow }
     }
+    // One head per link end: a single edge, two for A <--> B, three where C --> A closes the loop.
+    readonly property var edgeCounts: [1, 1, 1, 1, 2, 3]
     function analyze(ctx) {
         ctx.drawImage(shot, 0, 0)
         var pixels = ctx.getImageData(0, 0, 1200, 640).data
         for (var i = 0; i < figures.count; i++) {
             var fig = figures.itemAt(i)
             var label = fig.modelData.replace(/\n\s*/g, "; ")
-            var line = edge(fig.svg)
-            check(line !== null, label + " has an edge")
-            if (!line) continue
-            var h = head(pixels, fig, line)
-            console.log("MARKDOWN_ARROWS PIXELS " + label + " " + JSON.stringify(h))
-            check(h.count >= 10 && Math.abs(h.cross) <= 1 && h.along < -2,
-                label + " head centered behind edge end")
-            check(h.tip >= -2 && h.tip <= 2 && Math.abs(h.tipCross) <= 1.5,
-                label + " tip touches edge end")
-            check(h.wide > h.narrow && h.narrow > 0, label + " head tapers along edge direction")
+            var lines = edges(fig.svg)
+            check(lines.length === shell.edgeCounts[i], label + " measures every head, want " + shell.edgeCounts[i])
+            for (var k = 0; k < lines.length; k++) {
+                var line = lines[k]
+                var tag = label + " " + line.id
+                var h = head(pixels, fig, line)
+                console.log("MARKDOWN_ARROWS PIXELS " + tag + " " + JSON.stringify(h))
+                check(h.count >= 10 && Math.abs(h.cross) <= 1 && h.along < -2,
+                    tag + " head centered behind edge end")
+                check(h.tip >= -2 && h.tip <= 2 && Math.abs(h.tipCross) <= 1.5,
+                    tag + " tip touches edge end")
+                check(h.wide > h.narrow && h.narrow > 0, tag + " head tapers along edge direction")
+            }
+            // A head moved 18 px past its line end goes red, so a displaced back-link head cannot pass.
+            if (lines.length > 0) {
+                var back = lines[lines.length - 1]
+                var bdx = back.end.x - back.start.x, bdy = back.end.y - back.start.y
+                var blen = Math.sqrt(bdx * bdx + bdy * bdy)
+                var off = head(pixels, fig, { start: back.start, end: { x: back.end.x + 18 * bdx / blen, y: back.end.y + 18 * bdy / blen } })
+                check(!(off.count >= 10 && Math.abs(off.cross) <= 1 && off.along < -2)
+                    && !(off.tip >= -2 && off.tip <= 2 && Math.abs(off.tipCross) <= 1.5)
+                    && !(off.wide > off.narrow && off.narrow > 0), label + " displaced head goes red")
+            }
         }
         shell.done = true
         console.log("MARKDOWN_ARROWS " + checks + " checks, " + failures + " failed")

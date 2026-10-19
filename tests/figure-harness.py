@@ -265,6 +265,8 @@ print("x" * {DIAGNOSTIC_FIXTURE_CHARS} + "UNBOUNDED_STDERR_TAIL", file=sys.stder
         component = box / "component"
         component.mkdir()
         shutil.copyfile(tree / "ui/MarkdownFigure.qml", component / "MarkdownFigure.qml")
+        (component / "js").mkdir()
+        shutil.copyfile(tree / "ui/js/FigureDate.js", component / "js/FigureDate.js")
         (component / "qmldir").write_text("singleton Theme 1.0 Theme.qml\nsingleton FigureService 1.0 FigureService.qml\n")
         (component / "Theme.qml").write_text('''pragma Singleton
 import QtQuick

@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Io
 import "." as Flea
 import "js/CodeRuns.js" as CodeRuns
+import "js/FigureDate.js" as FigureDate
 import "js/Markdown.js" as Markdown
 import "js/MarkdownPrepared.js" as Prepared
 
@@ -123,10 +124,25 @@ Item {
             bodyPx: root.bodyPx
         }
     }
-    // The blocks and the themes of both kinds, so the warm query names the cache keys the asks will use; null until the probe exists.
-    readonly property var warmRequest: root.hasFigures && themeProbe.item ? { blocks: root.warmBlocks,
-        themes: { math: themeProbe.item.themeOfKind("math"), mermaid: themeProbe.item.themeOfKind("mermaid") } } : null
-    onWarmRequestChanged: FigureService.warm(root.warmRequest ? root.warmRequest.blocks : [], root.warmRequest ? root.warmRequest.themes : ({}))
+    // The warm query's keys and kinds, naming exactly the cache keys the figures' asks will use; null until the probe exists.
+    function warmedQuery(blocks, themes) {
+        var keys = [];
+        var kinds = [];
+        for (var i = 0; i < blocks.length; i++) {
+            if (blocks[i].type !== "figure")
+                continue;
+            var theme = FigureDate.datedTheme(blocks[i].kind, blocks[i].source, themes[blocks[i].kind]);
+            // The preview asks every figure as a display figure; a figure with no theme has no key and so is never known.
+            keys.push(theme ? FigureService.cacheKeyOf(blocks[i].kind, blocks[i].source, theme, true) : "");
+            if (kinds.indexOf(blocks[i].kind) < 0)
+                kinds.push(blocks[i].kind);
+        }
+        return { keys: keys, kinds: kinds };
+    }
+    // The warm query, so the helper starts warm when figures are on screen; null until the probe exists.
+    readonly property var warmRequest: root.hasFigures && themeProbe.item ? root.warmedQuery(root.warmBlocks,
+        { math: themeProbe.item.themeOfKind("math"), mermaid: themeProbe.item.themeOfKind("mermaid") }) : null
+    onWarmRequestChanged: FigureService.warm(root.warmRequest ? root.warmRequest.keys : [], root.warmRequest ? root.warmRequest.kinds : [])
     // Parse sequence numbers reject replies for an older file.
     property var blockList: []
     property int parseSeq: 0

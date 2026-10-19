@@ -1,5 +1,5 @@
-// Mermaid lays out as mermaid.js does: dagre's cycle breaking in flowcharts, the mirrored boxes and message spacing of a sequence.
-import { FACES, actors, edges, frames, layered, lifelines, load, messages, nodes, notes, notesOf, others, parse, sequences } from "./mermaid-corpus.mjs";
+// Pele lays out the figures: dagre-style cycle breaking in flowcharts, mirrored boxes and spaced messages in a sequence.
+import { FACES, actors, edges, frames, layered, lifelines, load, messages, nodes, notes, notesOf, others, parse, sequences, texts } from "./mermaid-corpus.mjs";
 import { argv, finish } from "./js-runtime.mjs";
 
 const render = await load(argv[0]);
@@ -63,6 +63,11 @@ function dagreReversed(order, edges) {
     order.forEach(dfs);
     return reversed;
 }
+
+// A label mixing words and tspans reads in document order, so a styled middle word never moves to the end.
+// Sample input: <text>a <tspan>b</tspan> c</text> reads "a b c".
+const mixedOrder = texts(parse('<svg><text x="0" y="0">a <tspan>b</tspan> c</text></svg>'))[0].string;
+check(mixedOrder === "a b c", "mixed content keeps document order: " + mixedOrder);
 
 for (const [name, source] of layered) {
     const tree = parse(render(source, LAYOUT_FACE));
@@ -133,8 +138,8 @@ for (const note of drawnNotes) {
     }
 }
 
-// The library ranks a frame that an edge enters after the frame the edge leaves, where mermaid.js shares one row: in the docs example
-// c1 --> a2 enters frame one from frame three, so one sits below three, while two and three, joined by no edge, share a row side by side.
+// Pele ranks a frame that an edge enters after the frame the edge leaves: in the docs example c1 --> a2 enters frame one from frame three,
+// so one sits below three, while two and three, joined by no edge, share a row side by side.
 const SIBLING_GAP_MIN = 1;
 const source = "flowchart TB\nc1 --> a2\nsubgraph one\na1 --> a2\nend\nsubgraph two\nb1 --> b2\nend\nsubgraph three\nc1 --> c2\nend";
 const rowTree = parse(render(source, LAYOUT_FACE));

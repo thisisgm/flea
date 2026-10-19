@@ -1,7 +1,6 @@
-// Every diagram type the bundle draws, one at a time through the real figure path: each renders, draws the type's own mark, keeps a label
-// from its source and has a canvas to draw on, so a bundle that drops or breaks one type fails here by name.
+// Every diagram type the bundle draws, one at a time through the real figure path, so a dropped or broken type fails here by name.
 import { FACES, decode, load } from "./mermaid-corpus.mjs";
-import { absolute, argv, finish, readText, repoRoot, resolve } from "./js-runtime.mjs";
+import { absolute, argv, finish, readDir, readText, repoRoot, resolve } from "./js-runtime.mjs";
 
 const render = await load(argv[0]);
 let checks = 0;
@@ -14,8 +13,7 @@ function check(ok, why) {
     }
 }
 
-// [type, the class only that type's renderer draws, a label the drawing must keep]; each type's source is the fence in tests/fixtures/markdown-mermaid/<type>.md,
-// Mermaid's own docs example, which the native capture case shoots too.
+// [type, the class only that type draws, a label the drawing keeps]; each source is the fence in tests/fixtures/markdown-mermaid/<type>.md.
 const types = [
     ["flowchart", "pele-shape-diam", "Is it working?"],
     ["sequence", "pele-lifeline", "Hello John, how are you?"],
@@ -54,7 +52,13 @@ const types = [
 const fixtures = resolve(argv[0] ? absolute(argv[0]) : repoRoot(import.meta.url), "tests/fixtures/markdown-mermaid");
 
 for (const [type, mark, label] of types) {
-    const fence = readText(resolve(fixtures, type + ".md")).match(/```mermaid\n([\s\S]*?)\n```/);
+    // A missing fence file reads as no fence, so it fails here by name instead of ending the run.
+    let fence = null;
+    try {
+        fence = readText(resolve(fixtures, type + ".md")).match(/```mermaid\n([\s\S]*?)\n```/);
+    } catch (error) {
+        fence = null;
+    }
     check(fence !== null, `${type}: its fixture holds one mermaid fence`);
     const source = fence ? fence[1] : "";
     let svg = "";
@@ -72,7 +76,10 @@ for (const [type, mark, label] of types) {
     const box = (svg.match(/^<svg\b[^>]*\sviewBox="([^"]*)"/) || [0, ""])[1].split(" ").map(Number);
     check(box.length === 4 && box.every(Number.isFinite) && box[2] > 0 && box[3] > 0, `${type}: has a canvas, viewBox ${box.join(" ")}`);
 }
-// Each type is checked once, so a type left out of the list above shows up as a short count.
-check(new Set(types.map((t) => t[0])).size === 33, "all 33 diagram types are listed once");
+// The list and the fixtures name each other: a missing or extra fence goes red here, not as a short count.
+const fenced = new Set(readDir(fixtures).filter((name) => name.endsWith(".md")).map((name) => name.slice(0, -".md".length)));
+check(types.length === fenced.size && types.every(([type]) => fenced.has(type)), "every fixture is listed once: "
+    + types.map(([type]) => type).filter((type) => !fenced.has(type)).join(",") + " without a fence; "
+    + [...fenced].filter((type) => !types.some(([listed]) => listed === type)).join(",") + " fenced but unlisted");
 console.log(`mermaid-types: ${checks} check(s), ${failures} failed`);
 finish(failures);

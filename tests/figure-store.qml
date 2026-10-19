@@ -3,6 +3,7 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "flea/js/FigureDate.js" as FigureDate
 import "flea" as Flea
 
 // The persistent SVG cache through the real helper and store: a figure drawn once answers a repeat from disk with no helper, and no other theme or advance ever does.
@@ -89,6 +90,22 @@ ShellRoot {
 
     readonly property var figureBlock: ({ type: "figure", kind: "math", source: shell.source, display: true })
     readonly property var unknownBlock: ({ type: "figure", kind: "math", source: "never drawn", display: true })
+    // The warm query's keys and kinds for the blocks, naming the keys the blocks' asks will use, the way PreviewMarkdown's warm query does.
+    function warmedQuery(blocks, themes) {
+        var keys = [];
+        var kinds = [];
+        for (var i = 0; i < blocks.length; i++) {
+            var theme = FigureDate.datedTheme(blocks[i].kind, blocks[i].source, themes[blocks[i].kind]);
+            keys.push(theme ? Flea.FigureService.cacheKeyOf(blocks[i].kind, blocks[i].source, theme, true) : "");
+            if (kinds.indexOf(blocks[i].kind) < 0)
+                kinds.push(blocks[i].kind);
+        }
+        return { keys: keys, kinds: kinds };
+    }
+    function warmBlocks(blocks, themes) {
+        var query = shell.warmedQuery(blocks, themes);
+        return Flea.FigureService.warm(query.keys, query.kinds);
+    }
 
     // A case asks or warms; its verdict comes from the answer (cases with a verify) or from the store's known reply (cases with a known).
     readonly property var cases: [
@@ -121,13 +138,13 @@ ShellRoot {
               shell.check(shell.drew(svg, error) && service.sends === shell.sendsMark && disk.hits === shell.hitsMark + 1, "the first advance table's figure is still on disk")
           } },
         // Every figure of this document is on disk under the theme it is asked under, so warming it asks the store and starts no helper.
-        { act: function () { Flea.FigureService.warm([shell.figureBlock], { math: shell.theme }) },
+        { act: function () { shell.warmBlocks([shell.figureBlock], { math: shell.theme }) },
           known: function (all, service) {
               shell.check(all === true && !service.helperRunning && !service.starting && service.sends === shell.sendsMark, "a document whose figures are all on disk starts no helper")
           } },
         // The same figure under a theme never drawn is not known, so the helper starts warm; the gate stub holds the store's reply, so the refusal is judged with the reply owed.
         { hold: true,
-          act: function () { Flea.FigureService.warm([shell.figureBlock], { math: shell.unseenTheme }) },
+          act: function () { shell.warmBlocks([shell.figureBlock], { math: shell.unseenTheme }) },
           held: function (disk) {
               shell.check(!!disk.pid && !disk.starting && !disk.stopping && disk.owed > 0 && disk.queued.length === 0, "the store is running, not starting, with the warm reply owed and nothing queued")
               shell.check(disk.stop() === false, "an idle stop is refused while the store owes the warm query's reply")
@@ -137,7 +154,7 @@ ShellRoot {
               shell.check(all === false && (service.helperRunning || service.starting), "a figure drawn under another accent does not keep the helper from starting warm")
           } },
         // One figure never drawn: the answer is not all, and the helper starts warm.
-        { act: function () { Flea.FigureService.warm([shell.figureBlock, shell.unknownBlock], { math: shell.theme }) },
+        { act: function () { shell.warmBlocks([shell.figureBlock, shell.unknownBlock], { math: shell.theme }) },
           known: function (all, service) {
               shell.check(all === false, "a document with a figure never drawn is not all known")
               shell.check(service.helperRunning || service.starting, "the helper is started warm for it")

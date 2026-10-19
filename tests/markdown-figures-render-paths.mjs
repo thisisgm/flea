@@ -1,5 +1,4 @@
-// A link's marks: Pele draws each as a plain shape beside its line, never as an SVG marker, so both renderers draw it; the post-pass gives an
-// unstyled link's marks the accent, as Flea drew them before, and leaves a link a user style colours as it is.
+// A link's marks: Pele draws each as a plain shape beside its line, and the post-pass gives an unstyled link's marks the accent.
 import { FACES, layered, load, others, sequences, theme } from "./mermaid-corpus.mjs";
 import { argv, finish } from "./js-runtime.mjs";
 import { postMermaid } from "../ui/js/FigureWorker.mjs";

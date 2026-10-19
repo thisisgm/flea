@@ -11,7 +11,7 @@ const MOSTLY = 0.7;
 const HEX_RADIX = 16;
 // CSS color-mix writes each share as a percentage.
 const PERCENT = 100;
-// A Gantt today marker draws at this hour of the day the request names, so the helper's own time zone moves it to no other date.
+// A Gantt today marker draws at this hour UTC of the day the request names, which the helper formats back to that date.
 const MIDDAY_HOUR = 12;
 // The space Pele lays round the drawing, in px, so a border stroke on the canvas edge is not cut.
 const PADDING = 1;
@@ -111,10 +111,13 @@ function rolesOf(theme) {
     };
 }
 
+// A theme alias chain 12 deep still resolves; deeper nesting refuses, so a cyclic alias fails instead of hanging the helper.
+const RESOLVER_DEPTH_MAX = 12;
+
 // Sample input: 'a="var(--_x)" b="var(--y, #fff)"' with --_x defined as var(--z) and --z as #000 reads 'a="#000" b="#fff"'.
 function resolve(text, table, depth) {
     return text.replace(/var\(\s*--([\w-]+)\s*(?:,((?:[^()]|\([^()]*\))*))?\)/g, (all, name, fallback) => {
-        if (depth > 8)
+        if (depth > RESOLVER_DEPTH_MAX)
             throw new Error("diagram style nests too deep");
         if (Object.prototype.hasOwnProperty.call(table, name))
             return resolve(table[name], table, depth + 1);
@@ -145,7 +148,7 @@ function inAttributes(svg, rewrite) {
         (all, equals, double, single) => (double !== undefined ? equals + '"' + rewrite(double) + '"' : equals + "'" + rewrite(single) + "'")));
 }
 
-// Sample input: a theme without today answers this day's local noon in ms; FigureService names the day for a Gantt chart, the day its cache key carries.
+// Sample input: a theme without today answers this day's noon in the helper's own zone in ms; FigureService names the day for a Gantt chart, the day its cache key carries.
 function todayOf(theme) {
     if (theme.today > 0)
         return theme.today;
