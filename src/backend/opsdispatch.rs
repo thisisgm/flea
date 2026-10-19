@@ -230,7 +230,7 @@ pub(crate) fn menu_sources(ops: &Ops, id: usize) -> Result<Option<Vec<super::men
         .and_then(|menu| menu.selection(id)).map(Some)
 }
 
-pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>, menu_id: usize) {
+pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String>, menu_id: usize, request: usize) {
     if ops.live.running().is_some() || ops.jobs.unfinished() > 0 {
         busy(out, "trash");
         return;
@@ -251,7 +251,7 @@ pub(crate) fn start_trash(out: &mut impl Write, ops: &mut Ops, paths: Vec<String
     writeln!(out, r#"{{"t":"trashstarted","id":{},"n":{},"cancellable":false}}"#, id, paths.iter().filter(|path| !path.is_empty()).count()).ok();
     out.flush().ok();
     let tx = ops.tx.clone();
-    thread::spawn(move || run_trash(id, paths, tx, selection));
+    thread::spawn(move || run_trash(id, request, paths, tx, selection));
 }
 
 pub(crate) fn start_duplicate(out: &mut impl Write, ops: &mut Ops, path: &str, menu_id: usize) {
@@ -1149,7 +1149,7 @@ mod tests {
         let mut o = ops();
         o.claim_transfer();
         let mut buf = out();
-        start_trash(&mut buf, &mut o, vec![d.file("a.txt", "a").to_string_lossy().to_string()], 0);
+        start_trash(&mut buf, &mut o, vec![d.file("a.txt", "a").to_string_lossy().to_string()], 0, 0);
         assert!(text(&buf).contains("an operation is already running"));
         assert!(d.join("a.txt").exists(), "the refused operation touched nothing");
     }
@@ -1163,11 +1163,11 @@ mod tests {
         report_op(
             &mut buf,
             &mut o,
-            OpMsg::Trashed { id: 1, ok: 1, failed: 0, entry: Entry { op: "trash".to_string(), steps: vec![Step::Created { path: "/x".into() }] }, reason: String::new(), announced: false },
+            OpMsg::Trashed { id: 1, request: 0, ok: 1, failed: 0, entry: Entry { op: "trash".to_string(), steps: vec![Step::Created { path: "/x".into() }] }, reason: String::new(), announced: false },
         );
         assert!(o.live.running().is_none(), "the cap would otherwise refuse every operation for the rest of the session");
         assert_eq!(o.journal.len(), 1);
-        assert_eq!(text(&buf).trim(), r#"{"t":"trashed","ok":1,"failed":0}"#);
+        assert_eq!(text(&buf).trim(), r#"{"t":"trashed","id":0,"ok":1,"failed":0,"moved":[]}"#);
     }
 
     #[test]
@@ -2091,14 +2091,14 @@ mod tests {
         let remote_trash = remote.file("t.txt", "t");
         let journaled = o.journal.len();
         let mut busy = out();
-        start_trash(&mut busy, &mut o, vec![remote_trash.to_string_lossy().to_string()], 0);
+        start_trash(&mut busy, &mut o, vec![remote_trash.to_string_lossy().to_string()], 0, 0);
         assert!(text(&busy).contains("already running"), "trash on a pending mount waits: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused trash journals nothing");
         assert!(remote_trash.exists(), "the refused trash touches nothing");
         // The same trash elsewhere leaves the process with no refusal on the wire.
         let local_trash = local.file("t.txt", "t");
         let mut quiet = out();
-        start_trash(&mut quiet, &mut o, vec![local_trash.to_string_lossy().to_string()], 0);
+        start_trash(&mut quiet, &mut o, vec![local_trash.to_string_lossy().to_string()], 0, 0);
         assert!(text(&quiet).contains(r#""t":"trashstarted""#), "trash elsewhere acknowledges acceptance in sync: {}", text(&quiet));
         for _ in 0..LAND_ROUNDS {
             let msg = rx.recv_timeout(LAND_BOUND).expect("the trash reports through the op channel");
@@ -2120,7 +2120,7 @@ mod tests {
         let local_other = local.file("other.txt", "o");
         let journaled = o.journal.len();
         let mut busy = out();
-        start_trash(&mut busy, &mut o, vec![local_other.to_string_lossy().to_string()], 5);
+        start_trash(&mut busy, &mut o, vec![local_other.to_string_lossy().to_string()], 5, 0);
         assert!(text(&busy).contains("already running"), "a selection on a pending mount waits: {}", text(&busy));
         assert_eq!(o.journal.len(), journaled, "the refused trash journals nothing");
         assert!(local_other.exists(), "the refused trash touches nothing");

@@ -11,12 +11,13 @@ import sys
 import time
 import uuid
 
-from .adapters import Adapter, TERMINALS, font_profile
+from .adapters import Adapter, TERMINALS, font_profile, owned_identity
 from .geometry import COLUMNS, ROWS, CELL_WIDTH, CELL_HEIGHT
 from .evidence import Blocked, Commands, MARKER, absolute, digest, output_root, save, source_identity
-from .fixtures import BUILT_IN_FEATURES, build, inventory, namespace
+from .fixtures import BUILT_IN_FEATURES, build, inventory, namespace, retain
 from .keys import Keymap
-from .native import Display, Terminal
+from .native import WINDOW_ROUNDING, Display, DisplayLost, Terminal
+from .edges import ground_edges
 from .references import Board, compare_pixels, separator
 from .scenarios import file_assertions, legacy_shift_delete, negatives, settled, steps, visual_review
 from .protocol import capabilities
@@ -25,10 +26,13 @@ from .dynamic import masks as dynamic_masks
 from .reconcile import retained, pixel_status, shutdown_failure
 from .media import inspect as inspect_media, transport_for
 from .case_identity import configuration, seal, verify as verify_case
-from . import fake, png
+from . import fake, png, preflight
 
 HERE = Path(__file__).resolve().parent
 REPO = HERE.parents[1]
+# The smoke run proves the native path with one plain listing per terminal.
+SMOKE_STATE = "tui-list-text"
+REVIEW_PENDING = "controller native visual review required"
 
 
 # Sample input: {"foot":{"font":"JetBrainsMono Nerd Font","font_size":14}}.
@@ -96,12 +100,13 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
     relative = f"{terminal_name}/{state['id']}/{variant['id']}"
     case = root.directory(relative)
     (case / MARKER).write_text(uuid.uuid4().hex + "\n")
-    commands, journal, terminal = Commands(), [], None
+    commands, journal, terminal, lost, fx = Commands(), [], None, None, None
     verdict = {"terminal": terminal_name, "state": state["id"], "variant": variant["id"], "status": "BLOCKED"}
     try:
-        adapter = Adapter(terminal_name, case, "flea-" + uuid.uuid4().hex, colors, profiles.get(terminal_name))
+        adapter = Adapter(terminal_name, case, owned_identity(), colors, profiles.get(terminal_name))
         packages = adapter.preflight(commands)
         profile = adapter.configure()
+        profile["config_check"] = adapter.validate(commands)
         fonts = font_identity(commands, profile["font"], adapter.environment())
         fx, fixture = build(case, state["family"], args.fixtures)
         available = set(fixture.get("features", [])) | BUILT_IN_FEATURES
@@ -125,18 +130,20 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                                        profiles.get(terminal_name), active["steps"], seam)
         save(case / "capture-config.json", capture_config)
         candidate = namespace(args.binary, fx, state["cwd"], environment)
-        terminal = Terminal(display, adapter, case, commands, args.timeout)
+        keymap = Keymap(REPO / "keys.toml", args.preset)
+        terminal = Terminal(display, adapter, case, commands, args.timeout, keymap.resolve("quit"))
         start = terminal.launch(candidate, dict(PATH="/usr/bin:/bin", LANG="C.UTF-8", PYTHONPATH=str(REPO / "tests")),
                                 graphics_negative="graphics-negative" in state["requires"])
         initial = settled(terminal, {"contains": [Path(state["cwd"]).name]}, args.timeout)
         rows, columns, width, height = initial["pty"]
         if rows != ROWS or columns != COLUMNS or not width or not height:
-            raise Blocked(f"diagnostic PTY must report {COLUMNS}x{ROWS} cells and nonzero pixel metrics")
+            raise Blocked(f"diagnostic PTY must report {COLUMNS}x{ROWS} cells and nonzero pixel metrics; "
+                          f"it reports {columns}x{rows} cells and {width}x{height} px")
         calibration_image = display.capture(case / "calibration.png")
         client = terminal.client
         ox, oy = display.monitor["x"], display.monitor["y"]
         client_rect = [client["at"][0] - ox, client["at"][1] - oy, *client["size"]]
-        rect = separator(calibration_image, client_rect, initial["pty"])
+        rect = separator(calibration_image, client_rect, initial["pty"], initial["grid"])
         calibration = {"cell": [width // columns, height // rows],
                        "padding": [client["size"][0] - width, client["size"][1] - height],
                        "origin_padding": [rect[0] - client_rect[0], rect[1] - client_rect[1]],
@@ -144,7 +151,6 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                        "browser_cell": [CELL_WIDTH, CELL_HEIGHT], "resampling_allowed": False}
         save(case / "profile.json", dict(profile, terminal=terminal_name, calibrated=True, calibration=calibration, fonts=fonts,
              packages=packages, theme_sha256=theme_hash, original_rounding=display.original_rounding))
-        keymap = Keymap(REPO / "keys.toml", args.preset)
         steps(terminal, active, fx, keymap, journal, args.timeout)
         if (variant["columns"], variant["rows"]) != (COLUMNS, ROWS):
             terminal.resize(variant["columns"], variant["rows"], calibration)
@@ -165,7 +171,8 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
             px, py = calibration["origin_padding"]
             rect = [client_rect[0] + px, client_rect[1] + py, snapshot["pty"][2], snapshot["pty"][3]]
         else:
-            rect = separator(image, client_rect, snapshot["pty"])
+            rect = separator(image, client_rect, snapshot["pty"], snapshot["grid"])
+        edges = ground_edges(image, client_rect, rect, calibration["cell"], WINDOW_ROUNDING)
         ref = args.boards / "boards" / (state["id"] + ".html")
         board = Board(ref)
         masks, facts = dynamic_masks(board, snapshot, candidate, state["cwd"], commands)
@@ -186,7 +193,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         behavior = file_assertions(state, fx)
         if state["id"] in ("tui-delete", "tui-delete-focus"):
             behavior["legacy_shift_delete"] = legacy_shift_delete(case / "pty.log")
-        verdict.update(behavior=behavior, cells=comparison, pixels=pixels, visual=visual, media=media,
+        verdict.update(behavior=behavior, cells=comparison, pixels=pixels, visual=visual, media=media, edges=edges,
                        predicate={"status": "PASS", "rule": rule}, elf_sha256=identity["elf_sha256"])
         if state["id"] == "tui-sort-size":
             expected = board.cells()
@@ -198,10 +205,13 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                 raise Blocked("size-sort reference folder order conflicts with the name-order ruling")
         if state["id"] == "tui-keys" and re.search(r"shift-delete\s*/\s*X", "".join(r["text"] for r in board.runs), re.I):
             raise Blocked("keys reference still advertises the removed X delete alternative")
-        statuses = [behavior["status"], comparison["geometry"]["status"], comparison["color"]["status"], pixel_status(pixels, visual), visual["status"], media["status"]]
-        verdict["status"] = "FAIL" if "FAIL" in statuses else ("PASS" if statuses == ["PASS"] * 6 else "BLOCKED")
+        statuses = [behavior["status"], comparison["geometry"]["status"], comparison["color"]["status"], pixel_status(pixels, visual), visual["status"], media["status"], edges["status"]]
+        verdict["status"] = "FAIL" if "FAIL" in statuses else ("PASS" if statuses == ["PASS"] * 7 else "BLOCKED")
+        if edges["status"] == "FAIL":
+            verdict["reason"] = edges["reason"]
     except (Blocked, ValueError, OSError, KeyError, AssertionError, RuntimeError) as error:
         verdict["reason"] = str(error)
+        lost = error if isinstance(error, DisplayLost) else None
         if terminal and terminal.client and not (case / "native.png").exists():
             try:
                 display.capture(case / "failure.png")
@@ -219,6 +229,13 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                     verdict.update(status="FAIL", shutdown_reason=failure)
             except (Blocked, OSError, ValueError, RuntimeError) as error:
                 verdict.update(status="FAIL", shutdown_reason=str(error))
+        if fx:
+            try:
+                retain(fx, case)
+            except (Blocked, OSError) as error:
+                verdict["fixture_retain_reason"] = str(error)
+                if verdict["status"] == "PASS":
+                    verdict.update(status="BLOCKED", reason=str(error))
         save(case / "state.json", {"requested": state, "variant": variant, "preset": args.preset, "input": journal})
         save(case / "commands.json", commands.records)
         try:
@@ -234,7 +251,19 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
             if verdict["status"] == "PASS":
                 verdict.update(status="BLOCKED", reason=str(error))
         save(case / "verdict.json", verdict)
+    if lost:
+        raise lost
     return verdict
+
+
+def review_pending(verdict):
+    """A state whose every machine check passed and that now waits only on the controller's look at native.png."""
+    checks = (verdict.get("behavior"), (verdict.get("cells") or {}).get("geometry"), (verdict.get("cells") or {}).get("color"),
+              verdict.get("media"), verdict.get("edges"))
+    return (verdict["status"] == "BLOCKED" and (verdict.get("visual") or {}).get("reason") == REVIEW_PENDING
+            and all((check or {}).get("status") == "PASS" for check in checks)
+            and not verdict.get("shutdown_reason") and not verdict.get("incomplete_artifacts")
+            and not verdict.get("fixture_retain_reason"))
 
 
 def parser():
@@ -255,6 +284,8 @@ def parser():
     result.add_argument("--timeout", type=float, default=15)
     result.add_argument("--dry-run", action="store_true")
     result.add_argument("--list", action="store_true")
+    result.add_argument("--smoke", action="store_true", help=f"one state ({SMOKE_STATE}) per terminal, to prove the native path")
+    result.add_argument("--preflight", action="store_true", help="refuse in seconds unless the display is free for the battery")
     return result
 
 
@@ -264,6 +295,13 @@ def main(argv=None):
     try:
         if not 0 < args.timeout <= 120:
             raise Blocked("timeout must be in (0, 120] seconds")
+        if args.preflight:
+            print(json.dumps(preflight.display(Commands())))
+            return 0
+        if args.smoke:
+            if args.states:
+                raise Blocked("--smoke selects its own state")
+            args.states = SMOKE_STATE
         args.boards = absolute(args.boards)
         spec = contract(args.boards, args.states)
         terminals = selection(args.terminals, TERMINALS)
@@ -272,7 +310,7 @@ def main(argv=None):
         surfaces = load(HERE / "surfaces.json")["states"]
         planned = [{"terminal": t, "state": s["id"], "variant": v["id"]}
                    for t in terminals for s in spec["states"] for v in s["variants"]]
-        manifest = {"schema": 1, "mode": "dry-run" if args.dry_run else "native", "preset": args.preset, "excluded": spec["excluded"],
+        manifest = {"schema": 1, "mode": "dry-run" if args.dry_run else "native", "smoke": args.smoke, "preset": args.preset, "excluded": spec["excluded"],
                     "reserved": spec["reserved"], "requested": planned, "required_primary_records": 305,
                     "required_additional_records": len(spec["additional_states"]) * 5,
                     "required_minimum_native_captures": 310, "records": [], "controls": [], "calendar": calendar,
@@ -331,6 +369,7 @@ def main(argv=None):
                         for t in terminals for s in spec["states"] for v in s["variants"]}
                     manifest["records"] = retained(args.reconcile, identity, planned, args.boards, reviews, configurations)
                 else:
+                    manifest["display_preflight"] = preflight.display(commands)
                     with Display(commands, uuid.uuid4().hex) as display:
                         for terminal in terminals:
                             for state in spec["states"]:
@@ -355,6 +394,9 @@ def main(argv=None):
                             complete_reference_matrix=accepted and len(spec["states"]) == 61 + len(spec["additional_states"]) and len(terminals) == 5,
                             status="PASS" if accepted else ("FAIL" if counts["FAIL"] else "BLOCKED"))
             code = 0 if accepted else (1 if counts["FAIL"] else 2)
+            if args.smoke and not accepted and not manifest.get("display_reason") and manifest["records"] \
+                    and all(r["status"] == "PASS" or review_pending(r) for r in manifest["records"]):
+                manifest["status"], code = "SMOKE-PASS", 0
         save(root.child("commands.json"), commands.records)
         save(root.child("manifest.json"), manifest)
         (root.child("RESULT.md")).write_text(f"Mode: {manifest['mode']}. Status: {manifest['status']}.\n"

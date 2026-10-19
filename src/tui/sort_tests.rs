@@ -9,7 +9,7 @@ use std::time::Duration;
 const FENCE_WAIT: Duration = Duration::from_secs(10);
 
 // Everything the model has sent: the echo returns a fence line after it, so no quiet window can cut it short.
-pub(super) fn drain(wire: &mut Wire) -> Vec<Json> {
+pub(crate) fn drain(wire: &mut Wire) -> Vec<Json> {
     wire.send(vec![("c", word("fence"))]).unwrap();
     let mut out = Vec::new();
     loop {
@@ -22,7 +22,7 @@ pub(super) fn drain(wire: &mut Wire) -> Vec<Json> {
     }
 }
 
-pub(super) fn requests<'a>(sent: &'a [Json], command: &str) -> Vec<&'a Json> {
+pub(crate) fn requests<'a>(sent: &'a [Json], command: &str) -> Vec<&'a Json> {
     sent.iter().filter(|value| text(value, "c") == command).collect()
 }
 

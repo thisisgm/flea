@@ -155,6 +155,7 @@ hypr_session_exec_script() {
 }
 
 # Sample input: hypr_session_exec_rules name:tui-proof FLEA-tui-proof /tmp/case/launch.sh, the script runs under window rules.
+# The workspace rule is not silent: a silent one leaves the output on its first workspace, so its screencopy never shows the window.
 hypr_session_exec_rules() {
     _hypr_arity hypr_session_exec_rules 'WORKSPACE OUTPUT SCRIPT' "$@" || return 1
     _hypr_workspace hypr_session_exec_rules "$1" || return 1
@@ -164,7 +165,7 @@ hypr_session_exec_rules() {
         return 1
     }
     local answer status=0
-    answer=$(hyprctl dispatch "hl.dsp.exec_cmd(\"/bin/bash '$3'\", { workspace = \"$1 silent\", monitor = \"$2\", float = true })" 2>&1) || status=$?
+    answer=$(hyprctl dispatch "hl.dsp.exec_cmd(\"/bin/bash '$3'\", { workspace = \"$1\", monitor = \"$2\", float = true })" 2>&1) || status=$?
     _hypr_reply_ok "$status" "$answer" "$@"
 }
 
@@ -248,6 +249,11 @@ hypr_query_clients() {
     hyprctl -j clients
 }
 
+hypr_query_cursor() {
+    _hypr_arity hypr_query_cursor '' "$@" || return 1
+    hyprctl -j cursorpos
+}
+
 hypr_query_option() {
     _hypr_arity hypr_query_option 'NAME' "$@" || return 1
     _hypr_option_path hypr_query_option "$1" || return 1
@@ -293,6 +299,7 @@ _hypr_program() {
         monitor_mode) hypr_monitor_mode "$@" ;;
         query_monitors) hypr_query_monitors "$@" ;;
         query_clients) hypr_query_clients "$@" ;;
+        query_cursor) hypr_query_cursor "$@" ;;
         query_option) hypr_query_option "$@" ;;
         query_version) hypr_query_version "$@" ;;
         query_help) hypr_query_help "$@" ;;
