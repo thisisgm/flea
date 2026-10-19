@@ -1,6 +1,9 @@
 {
   "app.name": "Flea",
   "folder.empty": "This folder is empty",
+  "grid.drop.move": "move here",
+  "grid.drop.copy": "copy here",
+  "grid.drop.link": "link here",
   "ipc.start_failed": "IPC could not start: %1",
   "ipc.request_timed_out": "IPC request timed out",
   "ipc.line_too_long": "IPC line is too long",
