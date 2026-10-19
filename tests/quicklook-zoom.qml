@@ -169,7 +169,7 @@ ShellRoot {
             shell.fitW = it.pictureItem.width
             shell.fitH = it.pictureItem.height
             shell.check(shell.loads === 0 && it.fullPicture.status === Image.Null && String(it.fullPicture.source) === "", "a full decode started at fit")
-            shell.check(it.pictureItem.sourceSize.width === Math.round(it.width) && it.pictureItem.sourceSize.height === Math.round(it.height), "fit decode is not bound to the surface")
+            shell.check(it.pictureItem.sourceSize.width === Math.round(it.width * it.Screen.devicePixelRatio) && it.pictureItem.sourceSize.height === Math.round(it.height * it.Screen.devicePixelRatio), "fit decode is not bound to the surface")
 
             shell.stepKeepsCentre("zoomIn", 1.25, "first +")
             shell.check(shell.loads === 1 && it.fullPicture.status === Image.Loading, "the first step past fit did not start exactly one full decode: loads " + shell.loads)
@@ -305,11 +305,11 @@ ShellRoot {
             var full = it.fullPicture
             shell.check(full.retainWhileLoading, "the SVG layer does not hold its last frame while it redraws")
             shell.press("zoomIn")
-            shell.check(full.sourceSize.width === Math.round(it.width * 1.25) && full.sourceSize.height === Math.round(it.height * 1.25),
+            shell.check(full.sourceSize.width === Math.round(it.width * 1.25 * it.Screen.devicePixelRatio) && full.sourceSize.height === Math.round(it.height * 1.25 * it.Screen.devicePixelRatio),
                 "the first SVG step asked for " + full.sourceSize.width + "x" + full.sourceSize.height)
             shell.until(function () { return shell.readies === 1 && !it.pictureItem.visible }, function () {
                 shell.press("zoomIn")
-                shell.check(full.sourceSize.width === Math.round(it.width * 1.5) && full.sourceSize.height === Math.round(it.height * 1.5),
+                shell.check(full.sourceSize.width === Math.round(it.width * 1.5 * it.Screen.devicePixelRatio) && full.sourceSize.height === Math.round(it.height * 1.5 * it.Screen.devicePixelRatio),
                     "the second SVG step asked for " + full.sourceSize.width + "x" + full.sourceSize.height)
                 shell.check(full.visible && !it.pictureItem.visible, "the previous SVG frame was dropped while the new one decoded")
                 shell.until(function () { return shell.readies === 2 }, function () {

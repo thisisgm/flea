@@ -138,11 +138,11 @@ Item {
         autoTransform: true
         asynchronous: true
         cache: false
-        // Decoded no larger than the surface: the same 6016x3900 PNG is 94 MB of texture at full size
-        // and 8 MB bound to this box's 2099x1156 surface, measured, for 17 ms more decode.
+        // Decode for the surface in physical pixels so scaled displays retain their detail.
+        // Keep the fit geometry in logical pixels; only the decode target follows display scaling.
         // corner: a zero here means unbounded to Qt, so the floor is 1 and never 0.
-        sourceSize.width: Math.max(1, Math.round(root.width))
-        sourceSize.height: Math.max(1, Math.round(root.areaHeight))
+        sourceSize.width: Math.max(1, Math.round(root.width * Screen.devicePixelRatio))
+        sourceSize.height: Math.max(1, Math.round(root.areaHeight * Screen.devicePixelRatio))
     }
 
     // Past fit the fit picture is drawn scaled until this layer has a frame.
@@ -150,7 +150,7 @@ Item {
         id: sharp
         base: picture
         active: root.zoomed
-        want: root.vector ? Qt.size(Math.max(1, Math.round(root.width * root.zoom)), Math.max(1, Math.round(root.height * root.zoom))) : Qt.size(0, 0)
+        want: root.vector ? Qt.size(Math.max(1, Math.round(root.width * root.zoom * Screen.devicePixelRatio)), Math.max(1, Math.round(root.height * root.zoom * Screen.devicePixelRatio))) : Qt.size(0, 0)
     }
 
     // An animated GIF moves once the still is drawn, in the still's rect at any zoom; it is built for that file alone.
