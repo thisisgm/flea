@@ -56,6 +56,37 @@
   "visual.snapshot": "The requested presented snapshot is unavailable.",
   "visual.timeout": "The requested capture snapshot was not presented in time.",
   "visual.unpresented": "The compositor reports no presented frames for this window.",
+  "search.note.walking": {
+    "one": "%1 found · still scanning",
+    "other": "%1 found · still scanning"
+  },
+  "search.note.walking_shares": {
+    "one": "%1 found · still scanning · shares skipped",
+    "other": "%1 found · still scanning · shares skipped"
+  },
+  "search.note.landed": {
+    "one": "%1 found",
+    "other": "%1 found"
+  },
+  "search.note.landed_shares": {
+    "one": "%1 found · shares skipped",
+    "other": "%1 found · shares skipped"
+  },
+  "search.way.walking": "esc cancels, then returns",
+  "search.way.done": "esc returns",
+  "search.status.searching": {
+    "one": "%1 found · Searching, %2 scanned",
+    "other": "%1 found · Searching, %2 scanned"
+  },
+  "search.status.landed": {
+    "one": "%1 found in %2 s",
+    "other": "%1 found in %2 s"
+  },
+  "search.scope.in": "in %1",
+  "search.scope.everywhere": "everywhere",
+  "search.scope.contents_in": "contents in %1",
+  "search.scope.contents_everywhere": "contents everywhere",
+  "search.nothing_matches": "Nothing matches %1",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
