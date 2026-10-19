@@ -1,0 +1,349 @@
+//! The marks a card draws: a row's own mark, the alert, and the Omarchy spiral of a job, painted from static data.
+use crate::feedback::spinner;
+use flea::ui_logic_op1::card;
+use gpui::{
+    fill, point, px, size, App, Bounds, Element, ElementId, GlobalElementId, Hsla,
+    InspectorElementId, IntoElement, LayoutId, Pixels, ShapedLine, SharedString, Style, TextRun,
+    TransformationMatrix, Window,
+};
+use std::time::Instant;
+
+/// The alert triangle a failed job carries, Lucide's cut at the board's path data.
+pub const ALERT: (&str, &[u8]) = (
+    "flea-op1:alert",
+    br#"<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2" stroke-linecap="square" stroke-linejoin="miter"><path d="M12 2 23 21H1z"/><path d="M12 10v4"/><path d="M12 18L12.01 18"/></svg>"#,
+);
+
+/// The still frame every board draws a job's spiral at: dash offset 30 stroke widths, phase 27 of 57.
+pub const BOARD_PHASE: f32 = 27. / spinner::TRAVEL;
+
+/// What one mark paints.
+#[derive(Clone)]
+pub enum Paint {
+    Svg(SharedString, &'static [u8]),
+    // The spiral: still at a phase, or crawling from the instant the card first drew it; the host asks the one frame for all of them.
+    Spiral { still: Option<f32>, since: Instant },
+}
+
+pub struct Glyph {
+    pub paint: Paint,
+    pub side: f32,
+    pub ink: Hsla,
+}
+
+impl Glyph {
+    pub fn svg((key, data): (&'static str, &'static [u8]), side: f32, ink: Hsla) -> Self {
+        Self {
+            paint: Paint::Svg(SharedString::new_static(key), data),
+            side,
+            ink,
+        }
+    }
+}
+
+impl IntoElement for Glyph {
+    type Element = Self;
+    fn into_element(self) -> Self {
+        self
+    }
+}
+
+impl Element for Glyph {
+    type RequestLayoutState = ();
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<ElementId> {
+        None
+    }
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let style = Style {
+            size: size(px(self.side).into(), px(self.side).into()),
+            flex_shrink: 0.,
+            ..Style::default()
+        };
+        (window.request_layout(style, None, cx), ())
+    }
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut Window,
+        _: &mut App,
+    ) {
+    }
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        match &self.paint {
+            Paint::Svg(key, data) => {
+                let _ = window.paint_svg(
+                    bounds,
+                    key.clone(),
+                    Some(data),
+                    TransformationMatrix::unit(),
+                    self.ink,
+                    cx,
+                );
+            }
+            Paint::Spiral { still, since } => {
+                let phase = match still {
+                    Some(phase) => *phase,
+                    None => spinner::phase(
+                        cx.background_executor()
+                            .now()
+                            .saturating_duration_since(*since),
+                    ),
+                };
+                let scale = window.scale_factor();
+                let unit = self.side * scale / spinner::GRID;
+                let (left, top) = (
+                    (f32::from(bounds.origin.x) * scale).round(),
+                    (f32::from(bounds.origin.y) * scale).round(),
+                );
+                let ink = self.ink;
+                spinner::cells(phase, unit, |[x0, y0, x1, y1], coverage| {
+                    let quad = Bounds::from_corners(
+                        point(px((left + x0) / scale), px((top + y0) / scale)),
+                        point(px((left + x1) / scale), px((top + y1) / scale)),
+                    );
+                    window.paint_quad(fill(quad, ink.opacity(coverage)));
+                });
+            }
+        }
+    }
+}
+
+/// A button's frame, resting wash and pointer wash, inset by whole pixels while pressed so its label never scales.
+pub struct Chrome {
+    pub frame: Hsla,
+    pub frame_width: f32,
+    pub wash: Option<Hsla>,
+    pub overlay: Option<Hsla>,
+    pub radius: f32,
+    // The press's direction and start: going in while held, coming back after release.
+    pub motion: Option<(bool, Instant)>,
+}
+
+impl IntoElement for Chrome {
+    type Element = Self;
+    fn into_element(self) -> Self {
+        self
+    }
+}
+
+impl Element for Chrome {
+    type RequestLayoutState = ();
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<ElementId> {
+        None
+    }
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let mut style = Style {
+            position: gpui::Position::Absolute,
+            ..Style::default()
+        };
+        style.inset = gpui::Edges {
+            top: px(0.).into(),
+            right: px(0.).into(),
+            bottom: px(0.).into(),
+            left: px(0.).into(),
+        };
+        (window.request_layout(style, None, cx), ())
+    }
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut Window,
+        _: &mut App,
+    ) {
+    }
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
+        let progress = match self.motion {
+            None => 0.,
+            Some((down, since)) => {
+                // Reduced motion lands the press at once, with no frame asked.
+                let t = if cx.reduce_motion() {
+                    1.
+                } else {
+                    cx.background_executor()
+                        .now()
+                        .saturating_duration_since(since)
+                        .as_secs_f32()
+                        * 1000.
+                        / card::PRESS_MS as f32
+                };
+                if t < 1. {
+                    window.request_animation_frame();
+                }
+                if down {
+                    t.min(1.)
+                } else {
+                    1. - t.min(1.)
+                }
+            }
+        };
+        let (dx, dy) = (
+            card::press_inset(f32::from(bounds.size.width), progress),
+            card::press_inset(f32::from(bounds.size.height), progress),
+        );
+        let outer = Bounds::new(
+            point(bounds.origin.x + px(dx), bounds.origin.y + px(dy)),
+            size(
+                bounds.size.width - px(2. * dx),
+                bounds.size.height - px(2. * dy),
+            ),
+        );
+        let radius = px(self.radius);
+        window.paint_quad(gpui::quad(
+            outer,
+            radius,
+            self.wash.unwrap_or(self.frame.opacity(0.)),
+            px(self.frame_width),
+            self.frame,
+            gpui::BorderStyle::Solid,
+        ));
+        if let Some(overlay) = self.overlay {
+            let inner = Bounds::new(
+                point(
+                    outer.origin.x + px(self.frame_width),
+                    outer.origin.y + px(self.frame_width),
+                ),
+                size(
+                    outer.size.width - px(2. * self.frame_width),
+                    outer.size.height - px(2. * self.frame_width),
+                ),
+            );
+            window.paint_quad(
+                fill(inner, overlay).corner_radii((radius - px(self.frame_width)).max(px(0.))),
+            );
+        }
+    }
+}
+
+/// One line of text with letter spacing, which GPUI's text style lacks: shaped once per layout, each glyph moved along by the tracking.
+pub struct Tracked {
+    pub text: SharedString,
+    pub size: f32,
+    pub line: f32,
+    pub track: f32,
+    pub ink: Hsla,
+}
+
+impl IntoElement for Tracked {
+    type Element = Self;
+    fn into_element(self) -> Self {
+        self
+    }
+}
+
+impl Element for Tracked {
+    type RequestLayoutState = ShapedLine;
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<ElementId> {
+        None
+    }
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ShapedLine) {
+        let font = window.text_style().font();
+        let run = TextRun {
+            len: self.text.len(),
+            font,
+            color: self.ink,
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        let shaped =
+            window
+                .text_system()
+                .shape_line(self.text.clone(), px(self.size), &[run], None);
+        let width = shaped.width + px(self.track * self.text.chars().count() as f32);
+        let style = Style {
+            size: size(width.into(), px(self.line).into()),
+            flex_shrink: 0.,
+            ..Style::default()
+        };
+        (window.request_layout(style, None, cx), shaped)
+    }
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut ShapedLine,
+        _: &mut Window,
+        _: &mut App,
+    ) {
+    }
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        shaped: &mut ShapedLine,
+        _: &mut (),
+        window: &mut Window,
+        _: &mut App,
+    ) {
+        // The baseline sits where GPUI's own line paint puts it: half the spare height above the ascent.
+        let baseline =
+            bounds.origin.y + (px(self.line) - shaped.ascent - shaped.descent) / 2. + shaped.ascent;
+        let mut at = 0.;
+        for run in &shaped.runs {
+            for glyph in &run.glyphs {
+                let origin = point(bounds.origin.x + glyph.position.x + px(at), baseline);
+                let _ = window.paint_glyph(origin, run.font_id, glyph.id, px(self.size), self.ink);
+                at += self.track;
+            }
+        }
+    }
+}
