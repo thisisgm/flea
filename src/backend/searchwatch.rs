@@ -97,7 +97,7 @@ impl Drop for Watch {
         self.core.stopped.store(true, Ordering::Release);
         if let Some(stop) = &self.stop {
             let value = 1u64;
-            unsafe { write(stop.as_raw_fd(), (&value as *const u64).cast(), size_of::<u64>()); }
+            unsafe { write(stop.as_raw_fd(), (&value as *const u64).cast(), std::mem::size_of::<u64>()); }
         }
         if let Some(handle) = self.handle.take() { let _ = handle.join(); }
         let mut state = self.core.state.lock().unwrap();

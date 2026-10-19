@@ -97,10 +97,10 @@ impl Index {
 
     pub(crate) fn bytes(&self, allocated: bool) -> usize {
         let count = |len, capacity| if allocated { capacity } else { len };
-        size_of::<Self>() + self.names.bytes(allocated) + self.blocks.bytes(allocated)
-            + count(self.rows.len(), self.rows.capacity()) * size_of::<Row>()
+        std::mem::size_of::<Self>() + self.names.bytes(allocated) + self.blocks.bytes(allocated)
+            + count(self.rows.len(), self.rows.capacity()) * std::mem::size_of::<Row>()
             + count(self.kinds.len(), self.kinds.capacity())
-            + count(self.moves.len(), self.moves.capacity()) * size_of::<(usize, usize)>()
+            + count(self.moves.len(), self.moves.capacity()) * std::mem::size_of::<(usize, usize)>()
     }
 
     // Owned bridges make reconstruction visible to callers; no hidden full-path cache exists.

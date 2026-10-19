@@ -22,7 +22,7 @@ impl Index {
     fn remove_row(&mut self, at: usize) {
         let last = self.rows.len() - 1;
         let row = &self.rows[at];
-        self.retired_bytes = self.retired_bytes.saturating_add(self.names.get(row.name).len() + size_of::<Row>());
+        self.retired_bytes = self.retired_bytes.saturating_add(self.names.get(row.name).len() + std::mem::size_of::<Row>());
         let (parent, previous, next) = (row.parent, row.previous, row.next);
         if previous == EMPTY { self.blocks.set_head(parent, next); }
         else { self.rows[previous as usize].next = next; }
