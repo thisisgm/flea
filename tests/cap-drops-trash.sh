@@ -24,7 +24,7 @@ fail() {
 }
 
 # The shared transport launches only worktree binaries, so the case spawns its double the way ui.sh did before it.
-. "$repo/tests/lib/fixture-launch.sh"
+. "$repo/tests/lib/fixture-launch.sh" || fail "cannot load the fixture launch double"
 
 seed_ui_state() {
     :

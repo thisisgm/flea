@@ -72,7 +72,7 @@ run_launch() {
         eval "$helper_def"
         fail() { printf 'FAIL: %s\n' "$*"; exit 1; }
         # The shared transport launches only worktree binaries, so the subshell spawns the bridge stub the way ui.sh did before it.
-        . "$repo/tests/lib/fixture-launch.sh"
+        . "$repo/tests/lib/fixture-launch.sh" || fail "cannot load the fixture launch double"
         flea_pids() { :; }
         backend_pids() { :; }
         owned_trash_monitors() { :; }
