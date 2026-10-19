@@ -56,6 +56,71 @@
   "visual.snapshot": "The requested presented snapshot is unavailable.",
   "visual.timeout": "The requested capture snapshot was not presented in time.",
   "visual.unpresented": "The compositor reports no presented frames for this window.",
+  "trash.title": "Trash",
+  "trash.empty_action": "Empty Trash…",
+  "trash.up_unavailable": "Up unavailable in Trash",
+  "trash.header.name": "Name",
+  "trash.header.location": "Original Location",
+  "trash.header.deleted": "Deleted",
+  "trash.unknown": "Unknown",
+  "trash.reading": "Reading Trash…",
+  "trash.is_empty": "Trash is empty",
+  "trash.strip.size": "%1 · %2",
+  "trash.strip.size_partial": "%1 · ≥ %2",
+  "trash.error.action": "That Trash action could not be completed.",
+  "trash.error.selection_changed": "Trash selection changed; select the items again.",
+  "trash.recovery.failed": "Flea could not finish an interrupted file action",
+  "trash.recovered": {
+    "one": "Recovered %1 interrupted file operation",
+    "other": "Recovered %1 interrupted file operations"
+  },
+  "trash.done.restored": {
+    "one": "Restored %2 of %1 item",
+    "other": "Restored %2 of %1 items"
+  },
+  "trash.done.deleted": {
+    "one": "Deleted %2 of %1 item",
+    "other": "Deleted %2 of %1 items"
+  },
+  "trash.done.failed": "%1 · %2 failed",
+  "trash.done.failure": "%1 failed: %2",
+  "trash.arm.one": "Press %1 again to move it to Trash, or press %2 on its own.",
+  "trash.arm.many": "Press %1 again to move them to Trash, or press %2 on its own.",
+  "trash.arm.one_alone": "Press %1 again to move it to Trash.",
+  "trash.arm.many_alone": "Press %1 again to move them to Trash.",
+  "trash.arm.review": "Press %1 again to review permanent deletion, or %2 on its own.",
+  "trash.arm.review_alone": "Press %1 again to review permanent deletion.",
+  "trash.confirm.empty_title": "Empty Trash?",
+  "trash.confirm.delete_title": {
+    "one": "Delete %1 item permanently?",
+    "other": "Delete %1 items permanently?"
+  },
+  "trash.confirm.empty_body": {
+    "one": "%1 item, %2. This deletes it from disk. This cannot be undone.",
+    "other": "%1 items, %2. This deletes them from disk. This cannot be undone."
+  },
+  "trash.confirm.trash_body": {
+    "one": "This Trash item is deleted from disk. This cannot be undone.",
+    "other": "These Trash items are deleted from disk. This cannot be undone."
+  },
+  "trash.confirm.items_body": {
+    "one": "This item is deleted from disk. This cannot be undone.",
+    "other": "These items are deleted from disk. This cannot be undone."
+  },
+  "trash.confirm.empty_button": "Empty Trash",
+  "trash.confirm.delete_button": "Delete",
+  "trash.confirm.cancel": "Cancel",
+  "trash.menu.open": "Open",
+  "trash.menu.restore": "Restore",
+  "trash.menu.delete": "Delete permanently",
+  "trash.menu.restore_all": "Restore All",
+  "trash.menu.empty": "Empty Trash…",
+  "trash.drop.line": {
+    "one": "Move %1 item to Trash",
+    "other": "Move %1 items to Trash"
+  },
+  "trash.monitor.count_failed": "Could not read the Trash count.",
+  "trash.monitor.watch_failed": "Flea cannot watch the Trash, so its count may be out of date.",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
