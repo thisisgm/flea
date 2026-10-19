@@ -8,6 +8,7 @@ pub mod keys;
 mod jsonstring;
 pub mod oflags;
 pub mod protocol;
+pub mod ui_logic_op3;
 
 // The catalog and locale API shares the backend's regular-file and wall-clock primitives.
 pub mod backend {
