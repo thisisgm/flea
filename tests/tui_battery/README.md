@@ -144,8 +144,12 @@ are Ctrl+Enter/O, Ctrl+Shift+Z/Ctrl+Y and Ctrl+Shift+N/N; Ctrl+Tab retains Ctrl+
 
 `--profiles FILE` supplies per-terminal `font` and `font_size`. Initial values are
 launch seeds. Actual PTY integer cell metrics, compositor client geometry and the
-observed row-2 separator calibrate the grid before input is sent. An absent or ambiguous
-separator fails. Native images are never stretched to the browser's 8.4 by 22 cells.
+observed row-2 separator calibrate the grid before input is sent. The rule's full-width run
+fixes the grid's left edge. Its thinnest column gives its thickness, since a junction's stroke
+continues below it. The grid's top follows from where alacritty, foot, ghostty and kitty draw a
+light rule, `(cell height - thickness) // 2` pixels below the top of its cell. The first plain
+filled cell on screen then confirms that top, because a cell background covers exactly its cell.
+An absent or ambiguous separator, or a fill that disagrees, blocks with the coordinates it compared. Native images are never stretched to the browser's 8.4 by 22 cells.
 The two small-window reference origins are `(4,9)` and `(4,175)`.
 
 Board HTML supplies text, wide cells, frames, fills and ink roles at exact cell
