@@ -37,9 +37,11 @@ def board_file(root, name="tui-list-text", text="A", decoration=""):
 
 
 def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_kind=False, references=None, frame=None, validate=None,
-         launches=None):
+         launches=None, adapters=None, capture=None):
     # Each terminal launch appends its arguments here, so a caller can tell whether the pair launched at all.
     launches = [] if launches is None else launches
+    # Each Adapter construction appends its arguments here: terminal name, case directory, window identity.
+    adapters = [] if adapters is None else adapters
     if references:
         (root / "boards").mkdir()
         for extension in ("html", "png"):
@@ -66,7 +68,7 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
     image, size, grid = frame or ((1040, 682, bytes([0, 0, 0, 255]) * (1040 * 682)), [1040, 682], [0, 0, 1040, 682])
     client = {"at": [0, 0], "size": size}
 
-    def capture(path):
+    def capture_double(path):
         path.write_bytes(b"native boundary double")
         return image
 
@@ -101,11 +103,11 @@ def pair(root, preset="default", state_id="tui-list-text", exit_code=0, wrong_ki
     terminal = SimpleNamespace(client=client, launched=True, launch=launch, close=close, snapshot=lambda: snapshot)
     adapter = SimpleNamespace(identity="owned", preflight=lambda *a: {}, configure=configure, environment=lambda: {},
                               validate=validate or (lambda *a: {"status": "PASS"}))
-    display = SimpleNamespace(monitor={"x": 0, "y": 0}, original_rounding=0, capture=capture, client=lambda *a: client)
+    display = SimpleNamespace(monitor={"x": 0, "y": 0}, original_rounding=0, capture=capture or capture_double, client=lambda *a: client)
     args = SimpleNamespace(preset=preset, fixtures=None, binary=Path("/candidate"), boards=root, timeout=1)
     state = {"id": state_id, "family": "work", "requires": [], "cwd": "/fx/v/work", "steps": [], "predicate": {}}
     variant = {"id": "primary", "columns": 130, "rows": 31, "origin": [4, 9]}
-    doubles = {"Adapter": lambda *a: adapter, "Terminal": lambda *a: terminal, "build": build,
+    doubles = {"Adapter": lambda *a: adapters.append(a) or adapter, "Terminal": lambda *a: terminal, "build": build,
                "font_identity": lambda *a: {}, "private_theme": lambda *a: "theme", "namespace": lambda *a: [],
                "settled": lambda *a, **k: snapshot, "separator": lambda *a: grid,
                "steps": lambda *a: None, "dynamic_masks": lambda *a: ([], None), "capabilities": lambda *a: {},

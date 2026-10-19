@@ -1,13 +1,19 @@
 """Private terminal profiles and supported native launch arguments."""
 import os
 from pathlib import Path
+import re
 import shutil
+import uuid
 
 from .evidence import Blocked, digest, save
 from .cells import PALETTE
 from .geometry import COLUMNS, ROWS, ORIGIN
 
 TERMINALS = ("alacritty", "foot", "ghostty", "kitty", "tmux")
+# Every owned window's class and title start here; the class is also a valid GTK application ID.
+OWNED_CLASS_PREFIX = "flea.battery."
+# GLib's g_application_id_is_valid: dot-separated elements of [A-Za-z0-9_-], none empty or starting with a digit, 255 bytes at most.
+APPLICATION_ID = re.compile(r"(?=.{1,255}$)[A-Za-z_-][A-Za-z0-9_-]*(\.[A-Za-z_-][A-Za-z0-9_-]*)+")
 OPTIONS = {
     "alacritty": ("--config-file", "--class", "--title"),
     "foot": ("--config", "--app-id", "--title"),
@@ -25,6 +31,10 @@ CHECKERS = {
     "ghostty": (lambda config: ["+validate-config", f"--config-file={config}"], False),
     "kitty": (lambda config: ["+runpy", KITTY_CHECK, config], True),
 }
+
+
+def owned_identity():
+    return OWNED_CLASS_PREFIX + "t" + uuid.uuid4().hex
 
 
 def font_profile(profile):
@@ -145,6 +155,9 @@ class Adapter:
         if self.name == "foot":
             return ["foot", "--config", config_path, "--app-id", app, "--title", app, *command]
         if self.name == "ghostty":
+            # ghostty drops a --class GTK would refuse and maps as com.mitchellh.ghostty, which no owned-client query matches.
+            if not APPLICATION_ID.fullmatch(app):
+                raise Blocked(f"ghostty class must be a valid GTK application ID: {app}")
             return ["ghostty", "--config-default-files=false", f"--config-file={config_path}", f"--class={app}",
                     f"--title={app}", "--gtk-single-instance=false", "-e", *command]
         if self.name == "kitty":
@@ -167,4 +180,8 @@ class Adapter:
 
     def close(self, commands):
         if self.tmux_socket and Path(self.tmux_socket).exists():
-            commands.run(["tmux", "-S", self.tmux_socket, "kill-server"])
+            result = commands.run(["tmux", "-S", self.tmux_socket, "kill-server"], check=False)
+            message = result.stderr.decode(errors="replace")
+            # exit-empty ends the private server with its last session, so after a quit there is nothing left to kill.
+            if result.returncode and "no server running" not in message and "error connecting" not in message:
+                raise Blocked(f"command exited {result.returncode}: tmux: {message[:300]}")
