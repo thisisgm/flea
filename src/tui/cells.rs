@@ -54,8 +54,7 @@ pub fn ellipsis(text: &str, limit: usize) -> String {
 pub fn centered(text: &str, limit: usize) -> String {
     fit(&format!("{}{}", " ".repeat(limit.saturating_sub(text_width(text)) / 2), text), limit)
 }
-// Bold on the name's cells only: the mark, its space and the padding stay plain, a cut name keeps its ellipsis bold.
-// The plain text is ellipsis(mark + name, columns), so the title is exactly columns cells.
+// Bold on the name's cells only (mark, space and padding plain, a cut name's ellipsis bold); the title is exactly columns cells.
 pub fn name_title(mark: &str, name: &str, columns: usize) -> String {
     if columns == 0 { return String::new(); }
     let cut = text_width(mark) + text_width(name) > columns;
