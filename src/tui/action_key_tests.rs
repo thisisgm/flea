@@ -84,6 +84,9 @@ fn mac_move_and_duplicate_have_plain_keys_and_windows_ctrl_d_still_trashes() {
     let mut m = listing(&mut wire, "mac");
     m.clipboard = vec!["/source/file".into()];
     press(&mut m, &mut wire, Key::character('M', ""));
+    // Paste asks the destination for collisions first; with none the move goes ahead.
+    let id = wire::count(requests(&drain(&mut wire), "collisions")[0], "id");
+    m.receive(jsondoc::parse(&format!(r#"{{"t":"collisions","id":{id},"total":0,"names":[],"mergeable":false}}"#)).unwrap(), &mut wire).unwrap();
     let sent = drain(&mut wire);
     assert_eq!(text(requests(&sent, "transfer")[0], "op"), "move");
     press(&mut m, &mut wire, Key::character('U', ""));

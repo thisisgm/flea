@@ -1,6 +1,7 @@
 use super::{
     graphics::Protocol,
     mpv::Process,
+    pane::Ink,
     wire::{number, text, word},
 };
 use crate::jsondoc::{self, Json};
@@ -270,9 +271,10 @@ impl Player {
                 .max(1),
         )
     }
-    pub fn line(&self, columns: usize) -> String {
+    // The controls as inked runs: brackets and the diamond only while the preview holds the keyboard.
+    pub fn runs(&self, columns: usize, focused: bool, i18n: &crate::i18n::I18n) -> Vec<(Ink, String)> {
         if self.socket.is_none() && self.error.is_empty() && !self.probed {
-            return "Loading media…".into();
+            return vec![(Ink::Meta, i18n.tr("media.loading"))];
         }
         let (_, length) = self.track(columns);
         let ratio = if self.duration > 0.0 {
@@ -281,29 +283,24 @@ impl Player {
             0.0
         };
         let position = (ratio * length.saturating_sub(1) as f64).round() as usize;
-        let track: String = (0..length)
-            .map(|cell| {
-                if cell == position {
-                    if self.control == 1 {
-                        '◆'
-                    } else {
-                        '●'
-                    }
-                } else {
-                    '─'
-                }
-            })
-            .collect();
-        format!(
-            "{}{:<5}{}  {}  {} / {}{}",
-            if self.control == 0 { "[" } else { " " },
-            if self.paused { "Play" } else { "Pause" },
-            if self.control == 0 { "]" } else { " " },
-            track,
-            clock(self.position),
-            clock(self.duration),
-            if self.buffering { " · Buffering" } else { "" }
-        )
+        let mark = if focused && self.control == 1 { "◆" } else { "●" };
+        let bracket = |text: &'static str| if focused && self.control == 0 { text } else { " " };
+        let label = i18n.tr(if self.paused { "media.play" } else { "media.pause" });
+        let mut runs = vec![
+            (Ink::Foreground, format!("{}{label:<5}{}  ", bracket("["), bracket("]"))),
+            (Ink::Frame, "─".repeat(position)),
+            (Ink::Foreground, mark.into()),
+            (Ink::Frame, "─".repeat(length.saturating_sub(position + 1))),
+            (Ink::Muted, format!("  {} / {}", clock(self.position), clock(self.duration))),
+        ];
+        if self.buffering {
+            runs.push((Ink::Muted, format!(" · {}", i18n.tr("media.buffering"))));
+        }
+        runs
+    }
+    #[cfg(test)]
+    pub fn line(&self, columns: usize, focused: bool, i18n: &crate::i18n::I18n) -> String {
+        self.runs(columns, focused, i18n).into_iter().map(|(_, text)| text).collect()
     }
 }
 impl Drop for Player {

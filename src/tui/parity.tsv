@@ -94,7 +94,7 @@ mgr	[",", "r"]	"sort random --reverse=no"	mgr	[]		unsupported	This sort order is
 mgr	["g", "h"]	"cd ~"	listing	["g", "h"]	goHome	bound	The equivalent action uses the resolved Flea handler
 mgr	["g", "c"]	"cd ~/.config"	listing	["g", "c"]	goConfig	bound	The equivalent action uses the resolved Flea handler
 mgr	["g", "d"]	"cd ~/Downloads"	listing	["g", "d"]	goDownloads	bound	The equivalent action uses the resolved Flea handler
-mgr	["g", "t"]	"plugin trash"	mgr	[]		unsupported	The Trash browser is unavailable in this terminal build
+mgr	["g", "t"]	"plugin trash"	listing	["g", "t"]	openTrash	bound	The equivalent action uses the resolved Flea handler
 mgr	["g", "<Space>"]	"cd --interactive"	listing	["g", "<Space>"]	pathBar	bound	The equivalent action uses the resolved Flea handler
 mgr	["g", "f"]	"follow"	mgr	[]		unsupported	Following a file to its folder is available only through reveal in a search listing
 mgr	["t", "t"]	"tab_create --current"	listing	["t", "t"]	tabNew	bound	The equivalent action uses the resolved Flea handler

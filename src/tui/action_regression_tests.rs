@@ -23,7 +23,7 @@ fn review_t2_pdf_tab_keeps_quick_look_controls_and_wraps() {
             let mut m = listing(&mut wire, preset);
             m.preview_focus = true;
             m.quicklook = quicklook;
-            m.pdf = Some(Pdf::new(path.clone(), Protocol::None, 80, 20, (0, 0)));
+            m.pdf = Some(Pdf::new(path.clone(), Protocol::None, 80, 20, (0, 0), "#101315", false));
             let controls = if quicklook { 6 } else { 5 };
             for index in 1..=controls {
                 press(&mut m, &mut wire, Key::named("Tab", ""));
@@ -79,7 +79,7 @@ fn cancelled_clipboard(request: char, failure: bool) {
     assert_eq!(requests(&drain(&mut wire), "paths").len(), 1);
     m.receive(jsondoc::parse(r#"{"t":"paths","paths":["/listing/folder"]}"#).unwrap(), &mut wire).unwrap();
     assert_eq!(m.clipboard, ["/listing/folder"]);
-    assert_eq!(m.message, "1 item copied");
+    assert_eq!(m.message, "Copied 1 item");
     wire::finish(wire, reader);
 }
 
