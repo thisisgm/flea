@@ -1042,7 +1042,7 @@ out=$( ( printf '{"c":"list","path":"%s","first":10}\n' "$WT"
          printf '{"c":"quit"}\n' ) | $BIN --backend)
 check_changed "a change under a search answers nothing, because matches are not a directory" "$out" 0 0
 
-# A live session answers from its index: open changes no rows, a zz query finds nothing, the backend's own create shows next, and the gen names each answer.
+# A live session answers from its index: open changes no rows, a zz query finds nothing, the backend's own create shows in the latest answer, and the gen names each answer.
 SW="$SB/session"
 mkdir -p "$SW/sub/deep"
 printf 'x' > "$SW/other.txt"
@@ -1057,11 +1057,11 @@ out=$( ( printf '{"c":"searchopen","path":"%s","folder":"%s"}\n' "$SW" "$SW"
          printf '{"c":"quit"}\n' ) | $BIN --backend)
 check "open answers searchopened and changes no rows" "1" "$(echo "$out" | grep -c '"t":"searchopened"')"
 check "the first query finds no zz" "0" "$(echo "$out" | grep '"t":"searched"' | sed -n 1p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
-check "the backend's own create shows in the next query" "1" "$(echo "$out" | grep '"t":"searched"' | sed -n 2p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
-check "that answer carries the newer generation" "2" "$(echo "$out" | grep '"t":"searched"' | sed -n 2p | grep -oE '"gen":[0-9]+' | cut -d: -f2)"
-check "that answer lands after the walk" "1" "$(echo "$out" | grep '"t":"searched"' | sed -n 2p | grep -c '"walking":false')"
+check "the backend's own create shows in the next query" "1" "$(echo "$out" | grep '"t":"searched"' | tail -n1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "that answer carries the newer generation" "2" "$(echo "$out" | grep '"t":"searched"' | tail -n1 | grep -oE '"gen":[0-9]+' | cut -d: -f2)"
+check "that answer lands after the walk" "1" "$(echo "$out" | grep '"t":"searched"' | tail -n1 | grep -c '"walking":false')"
 
-# An outside file two levels down stays invisible until a reopen re-walks the scope.
+# An outside file two levels down reaches the index through the recursive watch, which pushes the standing query again; a reopen re-walks it.
 out=$( ( printf '{"c":"searchopen","path":"%s","folder":"%s"}\n' "$SW" "$SW"
          sleep 0.5
          printf '{"c":"searchquery","query":"deepzz","gen":1}\n'
@@ -1077,8 +1077,9 @@ out=$( ( printf '{"c":"searchopen","path":"%s","folder":"%s"}\n' "$SW" "$SW"
          printf '{"c":"searchquery","query":"deepzz","gen":3}\n'
          sleep 0.4
          printf '{"c":"quit"}\n' ) | $BIN --backend)
-check "an outside change two levels down hides until a reopen" "0" "$(echo "$out" | grep '"t":"searched"' | sed -n 2p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
-check "the reopen walks it into the index" "1" "$(echo "$out" | grep '"t":"searched"' | sed -n 3p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "the recursive watch pushes the standing query again with the change" "1" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":1,' | sed -n 2p | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "an outside change two levels down shows without a reopen" "1" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":2,' | head -n1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
+check "the reopen walks it into the index" "1" "$(echo "$out" | grep '"t":"searched"' | grep '"gen":3,' | head -n1 | grep -oE '"n":[0-9]+' | cut -d: -f2)"
 rm -rf "$SW"
 
 # A cancel right behind the open races the 200-directory walk: mid-walk it answers one searched line naming the stop, after the landing it says nothing; run_session_tests parks the walk to pin the stop.

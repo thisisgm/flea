@@ -43,7 +43,7 @@ pub(super) fn tagged(s: &mut Session, rx: &Receiver<Event>, gen: usize, query: &
     let partial = s.query(gen, query, 50).expect("a newer generation answers");
     assert!(partial.walking, "{query}: an answer on unread names says it is still walking");
     s.tags.release_read();
-    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
+    crate::backend::searchwalkhold::wait_landed(rx, DEADLINE);
     assert!(s.poll_walked(), "the loop sees the tag landing");
     let whole = s.re_answer_standing().expect("the standing tagged query is re-run once");
     assert!(!whole.walking, "{query}: the re-run is whole");
@@ -132,7 +132,7 @@ fn an_empty_text_with_a_tag_matches_every_carrying_entry() {
 
 // The names swap in, the landing event arrives, and the standing query is re-run once.
 pub(super) fn landed(s: &mut Session, rx: &Receiver<Event>) -> Answer {
-    crate::backend::searchwalkhold::wait_landed(&rx, DEADLINE);
+    crate::backend::searchwalkhold::wait_landed(rx, DEADLINE);
     assert!(s.poll_walked(), "the loop sees the rewrite landing");
     let whole = s.re_answer_standing().expect("the standing tagged query is re-run once");
     assert!(!whole.walking, "the re-run is whole");

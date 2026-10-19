@@ -74,15 +74,18 @@ fn directory_type(dtype: u8, fallback: impl FnOnce() -> std::io::Result<u32>) ->
     fallback().map(|mode| mode & 0o170000 == 0o040000)
 }
 
+#[cfg(test)]
 pub(crate) fn read(dir: &Path) -> std::io::Result<Directory> {
     read_with(dir, false)
 }
 
 // An explicitly chosen scope may be a symlink; recursively discovered directories may not.
+#[cfg(test)]
 pub(crate) fn read_root(dir: &Path) -> std::io::Result<Directory> {
     read_observing(dir, false, |_| {}, true, || false)
 }
 
+#[cfg(test)]
 fn read_with(dir: &Path, unknown: bool) -> std::io::Result<Directory> {
     read_observing(dir, unknown, |_| {}, false, || false)
 }

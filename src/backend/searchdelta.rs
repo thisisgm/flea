@@ -4,7 +4,7 @@ use std::sync::Arc;
 
 impl Session {
     pub(crate) fn apply_watch_token(&mut self, token: usize) -> bool {
-        if self.watch.as_ref().is_none_or(|watch| watch.core.token != token) { return false; }
+        if !self.watch.as_ref().is_some_and(|watch| watch.core.token == token) { return false; }
         self.apply_watch_deltas()
     }
 

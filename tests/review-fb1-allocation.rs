@@ -46,16 +46,18 @@ fn review_fb1_storage_round_trip() {
     assert_eq!(blocks.directory(&names, parent, raw).unwrap(), child);
     assert_eq!(blocks.len(), 2);
     assert_eq!(blocks.record(child), (raw, parent));
+    assert_eq!(blocks.identity(child), Some((parent, raw)));
+    assert_eq!(blocks.identity(searchnames::EMPTY), None);
     assert_eq!(blocks.text_len(child) as usize, String::from_utf8_lossy(b"plain/dir\xff").len());
     let mut ancestors = vec![searchnames::EMPTY];
     blocks.ancestors(child, &mut ancestors);
     assert_eq!(ancestors, [raw, plain]);
-    blocks.append(parent, 0).unwrap();
-    let one_run = blocks.bytes(false);
-    blocks.append(parent, 1).unwrap();
-    assert_eq!(blocks.bytes(false), one_run);
-    blocks.append(child, 2).unwrap();
-    assert!(blocks.bytes(false) > one_run);
+    assert_eq!(blocks.children(parent), [child]);
+    let heads = blocks.bytes(false);
+    blocks.set_head(parent, 0);
+    blocks.set_head(child, 2);
+    assert_eq!((blocks.head(parent), blocks.head(child)), (0, 2));
+    assert_eq!(blocks.bytes(false), heads);
     assert!(blocks.bytes(true) >= blocks.bytes(false));
 }
 
