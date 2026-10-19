@@ -39,6 +39,27 @@ PTY and the real relay. Diagnostics check fragmented query-response forwarding, 
 exit status and termios restoration. They also run negative predicate, separator and
 capability controls. No diagnostic image or fake terminal result counts as native proof.
 
+## Display ownership, preflight and smoke
+
+`--preflight` (with `--boards`) answers in about three seconds. It refuses a locked
+session, a `FLEA-` output or a `flea.battery.` window left by another run, a mapped
+screensaver, and any pointer, focus, workspace or window change during its quiet
+window. A native run repeats the same check before it creates its output.
+
+Each terminal opens on the owned output's shown workspace, never a silent one, and
+must be shown there before calibration. Every capture checks that the owned output
+still shows the owned workspace and that the session is not locked. When either check
+fails, the run stops and blocks every remaining state with the same reason. The
+window class is a valid GTK application ID (`flea.battery.t<hex>`), so ghostty keeps
+it. A terminal that opens at another cell size is resized from its own reported cell
+metrics; one that reports no pixel metrics is blocked. Each state quits through the
+keymap's quit key, with an Escape retry, and the relay only signals a candidate that
+did not exit.
+
+`--smoke` runs one state (`tui-list-text`) per terminal. Its status is `SMOKE-PASS`
+when every machine check passes and only the controller's visual review is pending.
+`SMOKE-PASS` proves the native path, never acceptance.
+
 ## Offline CI suite
 
 `tests/tui-battery.sh` is registered in `tests/run-all.sh`. It discovers every
