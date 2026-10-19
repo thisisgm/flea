@@ -64,10 +64,13 @@ while IFS= read -r line; do
     printf '%s\n' "$line"
 done < tests/run-all.sh > "$box/tests/run-all.sh"
 chmod +x "$box/tests/run-all.sh"
-[ "$(grep -c '^headless=' "$box/tests/run-all.sh")" -eq "$shipped_lists" ] && [ "$shipped_lists" -ge 1 ] && check ok "the copy keeps all $shipped_lists shipped headless= lists as stubs" \
-    || check bad "the copy keeps all $shipped_lists shipped headless= lists as stubs"
+# Every shipped list must be swapped: a shipped headless= line left in the copy would run real suites.
+[ "$shipped_lists" -ge 1 ] && [ "$(grep -c '^headless=' "$box/tests/run-all.sh")" -eq "$shipped_lists" ] \
+    && ! grep -qxF -f <(grep '^headless=' tests/run-all.sh) "$box/tests/run-all.sh" \
+    && check ok "the copy swaps all $shipped_lists shipped headless= lists for stubs" \
+    || check bad "the copy swaps all $shipped_lists shipped headless= lists for stubs"
 
-# The scratch copy swaps both lists for stubs, so the shipped lists are read here: a name with no tests/NAME.sh, such as two names run together, runs nothing.
+# The scratch copy swaps every list for stubs, so the shipped lists are read here: a name with no tests/NAME.sh, such as two names run together, runs nothing.
 headless=""
 while IFS= read -r line; do
     [[ "$line" == headless=* ]] && eval "$line"
