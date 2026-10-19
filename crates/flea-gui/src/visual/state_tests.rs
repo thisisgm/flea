@@ -457,7 +457,13 @@ fn frames_without_a_scene_queue_no_visual_work(cx: &mut TestAppContext) {
     entity.update(cx, |shell, _| {
         assert!(shell.visual.awaiting.is_none() && shell.visual.presented.is_none());
         assert!(shell.visual.probe.empty());
-        assert!(shell.panes[0].as_ref().unwrap().list.borrow().probe.is_none());
+        assert!(shell.panes[0]
+            .as_ref()
+            .unwrap()
+            .list
+            .borrow()
+            .probe
+            .is_none());
     });
 }
 
@@ -512,10 +518,20 @@ fn apply(
     receive
 }
 
-fn land_rows(entity: &gpui::Entity<Shell>, cx: &mut gpui::VisualTestContext, path: &str, total: usize) {
+fn land_rows(
+    entity: &gpui::Entity<Shell>,
+    cx: &mut gpui::VisualTestContext,
+    path: &str,
+    total: usize,
+) {
     cx.update(|window, cx| {
         entity.update(cx, |shell, cx| {
-            let count = shell.panes[0].as_ref().unwrap().pane.first_count().min(total);
+            let count = shell.panes[0]
+                .as_ref()
+                .unwrap()
+                .pane
+                .first_count()
+                .min(total);
             for reply in [
                 Reply::Listed {
                     path: path.into(),
@@ -541,7 +557,10 @@ fn expire(
     for _ in 0..3 {
         draw_frame(entity, cx);
     }
-    assert!(receive.try_recv().is_err(), "no receipt for a frame that cannot draw the scene");
+    assert!(
+        receive.try_recv().is_err(),
+        "no receipt for a frame that cannot draw the scene"
+    );
     cx.executor()
         .advance_clock(std::time::Duration::from_millis(1501));
     cx.run_until_parked();
@@ -562,12 +581,24 @@ fn a_text_size_the_rows_do_not_draw_earns_no_receipt(cx: &mut TestAppContext) {
 fn the_receipt_text_size_is_the_size_the_rows_drew(cx: &mut TestAppContext) {
     let (entity, cx, _requests) = root_shell(cx);
     entity.update(cx, |shell, _| {
-        shell.panes[0].as_ref().unwrap().list.borrow_mut().typeface.body = px(16.);
+        shell.panes[0]
+            .as_ref()
+            .unwrap()
+            .list
+            .borrow_mut()
+            .typeface
+            .body = px(16.);
     });
     let receive = apply(&entity, cx, scene_spec("/files", "text_size", "14"));
     expire(&entity, cx, &receive);
     entity.update(cx, |shell, _| {
-        shell.panes[0].as_ref().unwrap().list.borrow_mut().typeface.body = px(16.);
+        shell.panes[0]
+            .as_ref()
+            .unwrap()
+            .list
+            .borrow_mut()
+            .typeface
+            .body = px(16.);
     });
     let receive = apply(&entity, cx, scene_spec("/files", "text_size", "16"));
     draw_frame(&entity, cx);
@@ -588,11 +619,20 @@ fn a_cursor_after_a_path_change_is_drawn_by_the_receipt_frame(cx: &mut TestAppCo
         let (answer, drawn) = cx.update(|window, cx| {
             window.simulate_next_frame(cx);
             entity.update(cx, |shell, _| present(shell, window));
-            let drawn = entity.read(cx).panes[0].as_ref().unwrap().list.borrow().drawn_cursor;
+            let drawn = entity.read(cx).panes[0]
+                .as_ref()
+                .unwrap()
+                .list
+                .borrow()
+                .drawn_cursor;
             (receive.try_recv().ok(), drawn)
         });
         if let Some(answer) = answer {
-            assert_eq!(drawn, Some(5), "the frame the receipt names drew the scene's cursor");
+            assert_eq!(
+                drawn,
+                Some(5),
+                "the frame the receipt names drew the scene's cursor"
+            );
             reply = Some(answer.reply);
             break;
         }
@@ -606,5 +646,7 @@ fn a_cursor_after_a_path_change_is_drawn_by_the_receipt_frame(cx: &mut TestAppCo
     let receipt = flea::jsondoc::parse(&reply.stdout).unwrap();
     assert_eq!(receipt.get("cursor").and_then(Json::as_f64), Some(5.));
     assert_eq!(receipt.get("path"), Some(&Json::Str("/other".into())));
-    entity.update(cx, |shell, _| assert_eq!(shell.panes[0].as_ref().unwrap().pane.cursor, 5));
+    entity.update(cx, |shell, _| {
+        assert_eq!(shell.panes[0].as_ref().unwrap().pane.cursor, 5)
+    });
 }

@@ -200,8 +200,8 @@ impl Preference {
 
     pub fn apply(&self, pane: &mut Pane, selected: &mut Vec<usize>) {
         let total = pane.held.total;
-        let cursor = index_of(pane, &self.name)
-            .or_else(|| (total > 0).then(|| self.index.min(total - 1)));
+        let cursor =
+            index_of(pane, &self.name).or_else(|| (total > 0).then(|| self.index.min(total - 1)));
         let marks: Vec<usize> = self
             .selected
             .iter()

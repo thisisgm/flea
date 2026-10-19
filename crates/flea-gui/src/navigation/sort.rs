@@ -195,7 +195,10 @@ impl super::Navigator {
         pane.scroll_to(0.);
         // While a pair is armed, a request out at the resorted top answers before this sort's listed line, so the pair takes it at its own count.
         if pane.swap.unheld_total.is_none()
-            || pane.requests.outstanding.is_some_and(|request| request.start != 0)
+            || pane
+                .requests
+                .outstanding
+                .is_some_and(|request| request.start != 0)
         {
             pane.requests.cancel();
         }

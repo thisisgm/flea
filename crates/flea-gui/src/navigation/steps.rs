@@ -35,8 +35,7 @@ impl Navigator {
     }
 
     pub fn capture(&self, pane: &Pane) -> Entry {
-        self.pending_entry(pane)
-            .unwrap_or_else(|| self.drawn(pane))
+        self.pending_entry(pane).unwrap_or_else(|| self.drawn(pane))
     }
 
     // A new destination discards the forward branch and pushes the drawn place unless the listing out already did.

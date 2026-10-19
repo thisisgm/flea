@@ -203,8 +203,7 @@ pub fn load_settings() -> Result<Settings, String> {
         .map(PathBuf::from)
         .unwrap_or_else(|| home.join(".config"));
     let body = std::fs::read_to_string(config.join("user-dirs.dirs")).unwrap_or_default();
-    settings.newest =
-        crate::navigation::folder_state::newest_paths(&body, &home.to_string_lossy());
+    settings.newest = crate::navigation::folder_state::newest_paths(&body, &home.to_string_lossy());
     Ok(settings)
 }
 

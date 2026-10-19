@@ -101,11 +101,14 @@ pub(crate) fn label(
 fn overlay(div: Div, record: impl FnOnce(Bounds<Pixels>, &Window) + 'static) -> Div {
     use gpui::ParentElement;
     div.child(
-        canvas(move |bounds, window, _| record(bounds, window), |_, _, _, _| {})
-            .absolute()
-            .left(px(0.))
-            .top(px(0.))
-            .size_full(),
+        canvas(
+            move |bounds, window, _| record(bounds, window),
+            |_, _, _, _| {},
+        )
+        .absolute()
+        .left(px(0.))
+        .top(px(0.))
+        .size_full(),
     )
 }
 

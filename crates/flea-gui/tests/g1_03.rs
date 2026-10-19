@@ -69,7 +69,13 @@ pub fn settled(path: &str, total: usize) -> (Pane, Navigator, Vec<usize>) {
     let mut pane = Pane::new(path.into(), 620.);
     let mut nav = navigator("{}");
     let mut selected = Vec::new();
-    assert!(land(&mut pane, &mut nav, &mut selected, (path, total, 0, 1), named));
+    assert!(land(
+        &mut pane,
+        &mut nav,
+        &mut selected,
+        (path, total, 0, 1),
+        named
+    ));
     (pane, nav, selected)
 }
 

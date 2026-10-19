@@ -233,10 +233,22 @@ mod tests {
         assert_eq!(middle_elide("short.txt", 49), "short.txt");
         assert_eq!(middle_elide("abcdef", 0), "\u{2026}");
         // Wide chars count two cells, so a 5-cell budget keeps one head and one tail char.
-        assert_eq!(middle_elide("\u{4f60}\u{597d}\u{754c}\u{9762}", 5), "\u{4f60}\u{2026}\u{9762}");
+        assert_eq!(
+            middle_elide("\u{4f60}\u{597d}\u{754c}\u{9762}", 5),
+            "\u{4f60}\u{2026}\u{9762}"
+        );
         // A combining accent stays on its base on either side of the cut.
-        assert_eq!(middle_elide("e\u{301}abcde\u{301}", 3), "e\u{301}\u{2026}e\u{301}");
-        assert_eq!(middle_elide("e\u{301}\u{301}\u{301}ab", 3), "e\u{301}\u{301}\u{301}ab");
-        assert_eq!(middle_elide("a\u{1f389}b\u{1f389}c\u{1f389}d", 5), "a\u{2026}d");
+        assert_eq!(
+            middle_elide("e\u{301}abcde\u{301}", 3),
+            "e\u{301}\u{2026}e\u{301}"
+        );
+        assert_eq!(
+            middle_elide("e\u{301}\u{301}\u{301}ab", 3),
+            "e\u{301}\u{301}\u{301}ab"
+        );
+        assert_eq!(
+            middle_elide("a\u{1f389}b\u{1f389}c\u{1f389}d", 5),
+            "a\u{2026}d"
+        );
     }
 }

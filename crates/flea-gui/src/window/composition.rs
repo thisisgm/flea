@@ -118,16 +118,32 @@ pub(crate) fn render(
         status,
         labels,
     } = content;
-    let text = |div: Div, id: String, parent: &str, value: &SharedString, inset: f32, right: bool| {
-        label(div, id, parent.into(), value.clone(), inset, right, probe.clone())
-    };
+    let text =
+        |div: Div, id: String, parent: &str, value: &SharedString, inset: f32, right: bool| {
+            label(
+                div,
+                id,
+                parent.into(),
+                value.clone(),
+                inset,
+                right,
+                probe.clone(),
+            )
+        };
     let chrome = surface(geometry.chrome.element(), "chrome", probe.clone())
         .px(px(14.))
         .text_size(px(12.));
     let mut root = div().size_full().child(match &slots.chrome {
         Some(view) => chrome.child(view.clone()),
-        None => text(chrome, "chrome-path".into(), "chrome", &paths[0], 14., false)
-            .child(paths[0].clone()),
+        None => text(
+            chrome,
+            "chrome-path".into(),
+            "chrome",
+            &paths[0],
+            14.,
+            false,
+        )
+        .child(paths[0].clone()),
     });
     if let Some(view) = &slots.tabs {
         root = root.child(geometry.tabs.element().child(view.clone()));
@@ -168,7 +184,12 @@ pub(crate) fn render(
                 .pr(px(28.))
                 .text_size(px(12.))
                 .child(cell(div().flex_1(), "name", &labels.name, false))
-                .child(cell(div().w(px(70.)).text_right(), "size", &labels.size, true))
+                .child(cell(
+                    div().w(px(70.)).text_right(),
+                    "size",
+                    &labels.size,
+                    true,
+                ))
                 .child(cell(
                     div().w(px(134.)).text_right(),
                     "modified",

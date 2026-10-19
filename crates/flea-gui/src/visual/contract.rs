@@ -85,7 +85,10 @@ impl Spec {
             .filter(|path| path.starts_with('/') && !path.contains('\0'))
             .ok_or("visual.settings")?
             .to_owned();
-        let cursor = scene.get("cursor").and_then(index).ok_or("visual.settings")?;
+        let cursor = scene
+            .get("cursor")
+            .and_then(index)
+            .ok_or("visual.settings")?;
         let selection = scene
             .get("selection")
             .and_then(Json::as_array)

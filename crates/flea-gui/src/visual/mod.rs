@@ -239,7 +239,11 @@ impl Shell {
 }
 
 /// Gives a pane the scene's cursor, when it holds that row, and its selection.
-pub(crate) fn apply_marks(host: &mut crate::window::pane::PaneHost, cursor: usize, selection: &[usize]) {
+pub(crate) fn apply_marks(
+    host: &mut crate::window::pane::PaneHost,
+    cursor: usize,
+    selection: &[usize],
+) {
     if host.pane.cursor != cursor && cursor < host.pane.held.total {
         host.pane.cursor = cursor;
         host.pane.reveal_cursor();

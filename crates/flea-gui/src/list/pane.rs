@@ -292,7 +292,8 @@ impl Pane {
         if operation == "window" {
             if path == self.path && !self.busy() {
                 // While a sort's pair keeps its count, a window error answers that sort's window, so the view's request stays out.
-                if self.swap.unheld_total.is_some() && matches!(self.swap.unheld_own, Own::Sort(_)) {
+                if self.swap.unheld_total.is_some() && matches!(self.swap.unheld_own, Own::Sort(_))
+                {
                     self.swap.unheld_own = Own::Asked;
                 } else {
                     self.requests.cancel();

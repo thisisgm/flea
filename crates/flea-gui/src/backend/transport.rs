@@ -82,16 +82,20 @@ pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
         _ => None,
     };
     Ok(match document.get("t") {
-        Some(jsondoc::Json::Str(kind)) if kind == "changed" => {
-            Some(Event::Changed { path: text("path")? })
-        }
+        Some(jsondoc::Json::Str(kind)) if kind == "changed" => Some(Event::Changed {
+            path: text("path")?,
+        }),
         Some(jsondoc::Json::Str(kind)) if kind == "paths" => Some(Event::Paths(
             document
                 .get("paths")
                 .and_then(jsondoc::Json::as_array)
                 .ok_or("paths must be an array")?
                 .iter()
-                .map(|path| path.as_str().map(str::to_owned).ok_or("paths must be strings"))
+                .map(|path| {
+                    path.as_str()
+                        .map(str::to_owned)
+                        .ok_or("paths must be strings")
+                })
                 .collect::<Result<_, _>>()?,
         )),
         Some(jsondoc::Json::Str(kind)) if kind == "located" => {
@@ -119,7 +123,12 @@ pub(super) fn other(line: &str) -> Result<Option<Event>, String> {
     })
 }
 
-fn order_fields(order: Order, folders_first: bool, group_by_kind: bool, hidden_last: bool) -> String {
+fn order_fields(
+    order: Order,
+    folders_first: bool,
+    group_by_kind: bool,
+    hidden_last: bool,
+) -> String {
     format!(
         "\"by\":\"{}\",\"desc\":{},\"foldersFirst\":{folders_first},\"groupByKind\":{group_by_kind},\"hiddenLast\":{hidden_last}",
         order.key, order.desc
@@ -134,7 +143,12 @@ pub fn list_line(listing: &Listing) -> String {
         listing.first,
         listing.hidden,
         listing.want_changed,
-        order_fields(listing.order, listing.folders_first, listing.group_by_kind, listing.hidden_last)
+        order_fields(
+            listing.order,
+            listing.folders_first,
+            listing.group_by_kind,
+            listing.hidden_last
+        )
     );
     if let Some(select) = &listing.select {
         line.push_str(&format!(",\"select\":\"{}\"", escape(select)));
@@ -164,7 +178,10 @@ pub(super) fn command_line(command: &Command) -> Option<String> {
                 .iter()
                 .map(|path| format!("\"{}\"", escape(path)))
                 .collect();
-            format!("{{\"c\":\"locate\",\"paths\":[{}],\"id\":{id}}}", paths.join(","))
+            format!(
+                "{{\"c\":\"locate\",\"paths\":[{}],\"id\":{id}}}",
+                paths.join(",")
+            )
         }
         Command::Paths(_) | Command::Persist(_) => return None,
     })
