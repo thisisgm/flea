@@ -7,6 +7,7 @@ fn registry_matches_every_target_signature_in_the_frozen_oracle() {
     for (target, text) in [
         ("flea", include_str!("../../ui/Ipc.qml")),
         ("fleapicker", include_str!("../../ui/PickerWindow.qml")),
+        ("fleatab", include_str!("../../ui/boot/fleatab.qml")),
     ] {
         let text = text.split_once(&format!("target: \"{target}\"")).unwrap().1;
         for line in text
@@ -37,7 +38,7 @@ fn registry_matches_every_target_signature_in_the_frozen_oracle() {
             assert!(expected.insert((target, name)), "duplicate {target}.{name}");
         }
     }
-    assert_eq!(ORACLE.len(), 324);
+    assert_eq!(ORACLE.len(), 325);
     assert_eq!(expected.len(), ORACLE.len());
     assert_eq!(
         ORACLE
@@ -57,7 +58,7 @@ fn every_registered_function_has_a_distinct_not_ported_answer() {
         assert!(reply.stdout.is_empty());
         assert!(messages.insert(reply.stderr));
     }
-    assert_eq!(messages.len(), 324);
+    assert_eq!(messages.len(), 325);
 }
 
 #[test]

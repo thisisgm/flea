@@ -324,4 +324,5 @@
     function!("fleapicker", "saveState", "string", &[]),
     function!("fleapicker", "cohesionControls", "string", &[]),
     function!("fleapicker", "snapshot", "string", &[]),
+    function!("fleatab", "taken", "bool", &[("token", "string")]),
 ]
