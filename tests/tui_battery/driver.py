@@ -143,7 +143,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
         client = terminal.client
         ox, oy = display.monitor["x"], display.monitor["y"]
         client_rect = [client["at"][0] - ox, client["at"][1] - oy, *client["size"]]
-        rect = separator(calibration_image, client_rect, initial["pty"])
+        rect = separator(calibration_image, client_rect, initial["pty"], initial["grid"])
         calibration = {"cell": [width // columns, height // rows],
                        "padding": [client["size"][0] - width, client["size"][1] - height],
                        "origin_padding": [rect[0] - client_rect[0], rect[1] - client_rect[1]],
@@ -171,7 +171,7 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
             px, py = calibration["origin_padding"]
             rect = [client_rect[0] + px, client_rect[1] + py, snapshot["pty"][2], snapshot["pty"][3]]
         else:
-            rect = separator(image, client_rect, snapshot["pty"])
+            rect = separator(image, client_rect, snapshot["pty"], snapshot["grid"])
         edges = ground_edges(image, client_rect, rect, calibration["cell"], WINDOW_ROUNDING)
         ref = args.boards / "boards" / (state["id"] + ".html")
         board = Board(ref)
