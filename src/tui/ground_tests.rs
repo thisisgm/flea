@@ -54,9 +54,15 @@ fn replay(stream: &str) -> Replay {
 }
 // The stream render::draw writes for these frames in order, each followed by its reset.
 fn drawn(frames: &[String]) -> String { frames.iter().map(|frame| format!("{frame}\x1b[0m")).collect() }
+// The plates a frame may paint behind its cells; a scrimmed frame's plates are the scrim's own, mixed halfway to the ground.
+fn washes(theme: &Theme, scrimmed: bool) -> Vec<String> {
+    let lit = [&theme.selected, &theme.cursor, &theme.marked, &theme.tab, &theme.match_fill, &theme.wash].map(|wash| parameters(wash));
+    let scrim = if scrimmed { theme.dim.as_deref().map(|dim| [&dim.selected, &dim.cursor, &dim.marked, &dim.tab, &dim.match_fill, &dim.wash].map(|wash| parameters(wash))) } else { None };
+    lit.into_iter().chain(scrim.into_iter().flatten()).collect()
+}
 // Fails on the first cell outside a wash that carries an explicit background and on any erase under one; returns the washed cells.
-fn assert_ground(case: &str, theme: &Theme, stream: &str) -> Vec<String> {
-    let washes = [&theme.selected, &theme.cursor, &theme.marked, &theme.tab, &theme.match_fill].map(|wash| parameters(wash));
+fn assert_ground(case: &str, theme: &Theme, stream: &str, scrimmed: bool) -> Vec<String> {
+    let washes = washes(theme, scrimmed);
     let replay = replay(stream);
     assert!(replay.cells.len() > 40, "{case}: the frame drew no cells");
     for (x, y, c, background) in &replay.cells {
@@ -82,36 +88,36 @@ fn tui_ground_is_the_terminal_default_background_in_every_frame_and_erase() {
         m.selected.insert(2);
         m.tabs.push(Tab { path: "/fx/v/Docs".into(), cursor: 0, back: Vec::new(), forward: Vec::new() });
         m.tab = 1;
-        let washed = assert_ground(&case("listing with marked row, cursor and tabs"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]));
+        let washed = assert_ground(&case("listing with marked row, cursor and tabs"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]), false);
         if depth == Depth::Truecolor {
             for wash in [&theme.cursor, &theme.marked, &theme.tab] {
                 assert!(washed.contains(&parameters(wash)), "the listing lost its {wash:?} plate");
             }
         }
         m.preview_focus = true;
-        let washed = assert_ground(&case("unfocused cursor"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]));
+        let washed = assert_ground(&case("unfocused cursor"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]), false);
         if depth == Depth::Truecolor { assert!(washed.contains(&parameters(&theme.selected)), "the unfocused cursor lost its plate"); }
         let mut m = model();
         m.filter = "o".into();
-        let washed = assert_ground(&case("filtered listing"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]));
+        let washed = assert_ground(&case("filtered listing"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]), false);
         if depth == Depth::Truecolor { assert!(washed.contains(&parameters(&theme.match_fill)), "the filter lost its match plate"); }
         let mut m = model();
         m.total = 0; m.rows.clear(); m.path.push("Empty");
-        assert_ground(&case("empty folder"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]));
+        assert_ground(&case("empty folder"), &theme, &drawn(&[frame(&m, &theme, 130, 31)]), false);
         for overlay in ["menu", "sheet", "delete"] {
             let mut m = model();
             match overlay {
                 "menu" => m.menu = true,
                 "sheet" => m.sheet = true,
-                _ => m.deletion = Some(Deletion { token: 1, count: 1, bytes: 42, ..Default::default() }),
+                _ => m.deletion = Some(Deletion { token: 1, count: 1, ..Default::default() }),
             }
-            assert_ground(&case(overlay), &theme, &drawn(&[frame(&m, &theme, 130, 31)]));
+            assert_ground(&case(overlay), &theme, &drawn(&[frame(&m, &theme, 130, 31)]), overlay != "menu");
         }
         let m = model();
         let sizes = [(130, 31), (11, 4), (40, 12), (130, 4), (130, 31)];
         let frames: Vec<String> = sizes.iter().map(|&(columns, lines)| frame(&m, &theme, columns, lines)).collect();
         assert!(frames.iter().any(|frame| frame.contains("\x1b[2J")), "the resize run never reached the erasing small frame");
-        assert_ground(&case("resize redraw"), &theme, &drawn(&frames));
+        assert_ground(&case("resize redraw"), &theme, &drawn(&frames), false);
         // A frame also leaves the default background behind it, so whatever the terminal erases next takes the ground.
         for (frame, (columns, lines)) in frames.iter().zip(sizes) {
             assert_eq!(replay(frame).last, None, "a {columns}x{lines} frame at {depth:?} ends on an explicit background");

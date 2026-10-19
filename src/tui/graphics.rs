@@ -166,6 +166,8 @@ pub const POSTER: &str = "/usr/bin/ffmpegthumbnailer";
 pub fn poster_arguments(side: usize) -> Vec<String> {
     [POSTER, "-i", "{input}", "-o", "-", "-c", "png", "-s", &side.to_string(), "-t", "0"].map(String::from).to_vec()
 }
+// The cell size in pixels when the terminal reports none, so half-block pictures still have a box.
+pub const FALLBACK_CELL: (usize, usize) = (8, 16);
 // The longest side of a w x h picture fitted inside the pane's pixels; an unknown size fits either orientation.
 pub fn poster_side(size: (usize, usize), pixels: (usize, usize)) -> usize {
     let (w, h) = size;

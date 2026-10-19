@@ -198,3 +198,12 @@ exit "$bad"
         assert_eq!(result.unwrap_err(), "item not found");
     }
 }
+
+#[cfg(test)]
+impl Job {
+    // A job whose worker is already gone: its result channel reads Disconnected.
+    pub fn orphaned() -> Self {
+        let (_, result) = mpsc::channel();
+        Self { cancel: Arc::new(AtomicBool::new(false)), result }
+    }
+}

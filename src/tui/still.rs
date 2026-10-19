@@ -91,7 +91,11 @@ impl Still {
                     self.stage = None;
                     self.error = error;
                 }
-                Err(_) => {}
+                Err(TryRecvError::Empty) => {}
+                Err(TryRecvError::Disconnected) => {
+                    self.stage = None;
+                    self.error = UNSHOWN.into();
+                }
             }
         }
         let Some((_, result)) = &self.work else { return false };
