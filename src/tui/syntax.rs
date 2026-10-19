@@ -7,6 +7,8 @@ use std::io;
 // The backend's slot for the TUI's one text preview, and how many lines one request colours.
 const SLOT: &str = "tui";
 const WINDOW: usize = 400;
+// Syntax inks in bat's ANSI order, so a run's role indexes theme.syntax.
+pub const SYNTAX_INKS: usize = 6;
 
 // The backend's syntax runs for the shown text: per source line, each run's role and byte length.
 #[derive(Default)]
@@ -60,6 +62,7 @@ pub fn request(m: &mut Model, wire: &mut Wire) -> io::Result<()> {
 }
 
 // Keeps a reply's runs only for lines whose runs spell exactly the line the preview shows.
+// Sample input: {"t":"code","token":4,"slot":"tui","state":"styled","first":1,"total":2,"lines":[[5,"fn",0," main"],[]]}
 pub fn receive(m: &mut Model, value: &Json) {
     let code = &mut m.preview_state.code;
     if text(value, "slot") != SLOT || count(value, "token") != code.token || code.token == 0 || code.generation != m.preview_generation {
@@ -77,7 +80,7 @@ pub fn receive(m: &mut Model, value: &Json) {
         let parts = reply.as_array().unwrap_or(&[]);
         for pair in parts.chunks(2) {
             let (Some(Json::Num(role)), Some(Json::Str(run))) = (pair.first(), pair.get(1)) else { break };
-            runs.push((role.parse::<u8>().unwrap_or(0).min(6), run.len()));
+            runs.push((role.parse::<u8>().unwrap_or(0).min(SYNTAX_INKS as u8), run.len()));
             spelled.push_str(run);
         }
         code.lines.push(if spelled == line { runs } else { Vec::new() });

@@ -372,8 +372,7 @@ def total(path):
 
 class FontCacheTests(unittest.TestCase):
     def test_the_sandbox_reads_the_system_font_cache_read_only(self):
-        # Flea's icon probe is fc-list :charset=ea83 under a 150 ms deadline. In the 20261019T042958Z smoke alacritty, foot
-        # and tmux drew › for every folder: with no cache in the sandbox, fc-list rescanned minipc's 799 faces.
+        # Without the font cache, fc-list outlasts the 150 ms icon probe, so folders draw text marks instead of icons.
         with patch("tui_battery.fixtures.shutil.which", return_value="/usr/bin/bwrap"), \
                 patch("tui_battery.fixtures.os.path.isdir", side_effect=lambda path: path == "/var/cache/fontconfig"):
             argv = fixtures.namespace("/opt/candidate/flea", Path("/owned/fx"), "/fx/v/work", {})
@@ -399,8 +398,7 @@ class TmpfsFixtureTests(unittest.TestCase):
         self.addCleanup(remove, self.shm)
 
     def test_the_bundle_folders_on_the_case_fixture_total_the_boards_digits(self):
-        # On minipc's btrfs a folder reports twice its names' bytes, so the 20261019T042958Z smoke drew A 274 B, Code 170 B,
-        # Docs 22.0 kB, Empty 0 B, Locked >20 B and Many 2.3 kB where the tui-list-text board draws the digits below.
+        # Folder totals on btrfs differ from tmpfs, so the digits are checked against a tmpfs fixture.
         fx, _ = fixtures.build(self.case, "work", dry=True, tmpfs=self.shm)
         seeds = dict.fromkeys(bundle.SEEDS, b"") | {"report.pdf": bytes(bundle.REPORT_BYTES)}
         board = fx / "tmp/board"
@@ -438,6 +436,30 @@ class TmpfsFixtureTests(unittest.TestCase):
         self.assertEqual(os.readlink(kept / "link.txt"), "notes.txt")
         self.assertEqual((kept / "notes.txt").read_bytes(), fixtures.NOTES)
         self.assertFalse((self.case / "fx/runtime/pipe").exists())
+
+    def test_a_failed_copy_keeps_the_tmpfs_copy_and_refuses_to_free_it(self):
+        fx, _ = fixtures.build(self.case, "work", dry=True, tmpfs=self.shm)
+        self.addCleanup(remove, fx.parent)
+        (fx / "v/work/notes.txt").chmod(0)
+        with self.assertRaises(Blocked):
+            fixtures.retain(fx, self.case)
+        self.assertTrue((fx.parent / MARKER).is_file(), "retain freed the only copy of the run's fixture after a failed copy")
+
+    def test_a_retain_failure_downgrades_a_pass_verdict_to_blocked(self):
+        copy = driver.retain
+        def copy_then_fail(fx, case):
+            copy(fx, case)
+            raise OSError("copy into the case failed")
+        root = self.root / "retained"
+        root.mkdir()
+        with patch.object(driver, "retain", side_effect=copy_then_fail):
+            verdict, _ = pair(root)
+        self.assertEqual((verdict["status"], verdict["fixture_retain_reason"]), ("BLOCKED", "copy into the case failed"))
+
+    def test_the_default_build_places_the_fixture_on_tmpfs(self):
+        fx, _ = fixtures.build(self.case, "work", dry=True)
+        self.addCleanup(remove, fx.parent)
+        self.assertEqual(fx.parent.parent, fixtures.TMPFS)
 
     def test_the_offline_suite_names_a_case_fixture_its_process_left_on_tmpfs(self):
         fx, _ = fixtures.build(self.case, "work", dry=True, tmpfs=self.shm)
@@ -537,6 +559,16 @@ class PreflightAndSmokeTests(unittest.TestCase):
             return verdict
         code, manifest, _ = self.smoke(failing)
         self.assertEqual((code, manifest["status"]), (1, "FAIL"))
+
+    def test_a_smoke_run_never_promotes_a_verdict_whose_fixture_was_not_retained(self):
+        def unretained(args, root, display, terminal, state, variant, *_):
+            return {"terminal": terminal, "state": state["id"], "variant": variant["id"], "status": "BLOCKED",
+                    "behavior": {"status": "PASS"}, "cells": {"geometry": {"status": "PASS"}, "color": {"status": "PASS"}},
+                    "media": {"status": "PASS"}, "edges": {"status": "PASS", "sides": {}}, "pixels": {"status": "REVIEW"},
+                    "visual": {"status": "BLOCKED", "reason": "controller native visual review required"},
+                    "fixture_retain_reason": "copy into the case failed"}
+        code, manifest, _ = self.smoke(unretained)
+        self.assertEqual((code, manifest["status"]), (2, "BLOCKED"))
 
     def test_smoke_refuses_a_state_filter(self):
         with redirect_stderr(io.StringIO()) as err:
