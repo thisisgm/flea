@@ -86,7 +86,7 @@ try:
         run('hyprctl', 'eval', f'hl.config({{ decoration = {{ rounding = {scene["corner_radius"]} }} }})')
         option = json.loads(run('hyprctl', 'getoption', 'decoration:rounding', '-j'))
         scenes.require(option['int'] == scene['corner_radius'], 'compositor corner mismatch')
-        run('hyprctl', 'dispatch', 'hl.dsp.cursor.move({x = 2559, y = 1439})')
+        run('bash', str(REPO / 'tests/lib/hypr-dispatch.sh'), 'cursor_move', '2559', '1439')
         window = Window.start(root / 'fixture', parent=root, frontend='gpui', log=logs / f'{name}-app.log', timeout=15)
         windows.append(window)
         wait(window, 'total', '2')

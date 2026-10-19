@@ -1,6 +1,6 @@
 #!/bin/bash
-. "$(dirname "${BASH_SOURCE[0]}")/../../tools/flea-ipc"
 # Proves an empty-desktop drop reaches a Bottom-layer receiver and prints exactly one LAYERDROP line on stdout, with diagnostics on stderr.
+. "$(dirname "${BASH_SOURCE[0]}")/../../tools/flea-ipc"
 set -u
 out() { printf 'LAYERDROP %s\n' "$*"; }
 refuse() {

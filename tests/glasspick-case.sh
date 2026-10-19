@@ -197,6 +197,9 @@ STUB
             *) fail "unexpected IPC call: $*" ;;
         esac
     }
+    # The registry entry the evaluated xw_ipc calls answers through the case's qs double, keeping every captured IPC byte owned.
+    flea_ipc_helper_stub() { qs ipc "$@"; }
+    FLEA_IPC_HELPER=flea_ipc_helper_stub
     omarchy-drive() {
         [[ "$1 $2" != 'window center' ]] || return 0
         if [[ "$1 $2 $3" == 'key --window flea' ]]; then

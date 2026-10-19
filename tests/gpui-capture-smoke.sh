@@ -7,6 +7,8 @@ if [[ ${FLEA_GPUI_CAPTURE_CLEAN:-} != 1 ]]; then
     exec setsid -w env -i PATH=/usr/local/bin:/usr/bin:/bin FLEA_GPUI_CAPTURE_CLEAN=1 \
         CARGO_TARGET_DIR="${CARGO_TARGET_DIR:-$repo/target}" FLEA_GPUI_SCENES="${FLEA_GPUI_SCENES:-0}" /bin/bash "$repo/tests/gpui-capture-smoke.sh" </dev/null
 fi
+# Only these typed functions build compositor commands; cursor parking goes through hypr_cursor_move below.
+. "$repo/tests/lib/hypr-dispatch.sh"
 parent=$repo/.superpowers/g010c
 mkdir -p "$parent"
 root=$(mktemp -d "$parent/run.XXXXXX")
@@ -198,7 +200,7 @@ for backend in vulkan gl; do
         cat "$logs/$backend-app.log" >&2
         fail "$backend fixture did not reach the owned IPC surface"
     }
-    hctl dispatch 'hl.dsp.cursor.move({x = 2559, y = 1439})' > "$logs/$backend-pointer-park.log"
+    HYPRLAND_INSTANCE_SIGNATURE="$signature" XDG_RUNTIME_DIR="$runtime" hypr_cursor_move 2559 1439 > "$logs/$backend-pointer-park.log"
     hctl cursorpos -j | jq -e '.x == 2559 and .y == 1439' > "$logs/$backend-pointer-check.log"
     geometry=$(jq -r '"\(.at[0]),\(.at[1]) \(.size[0])x\(.size[1])"' "$logs/$backend-client.json")
     "${private[@]}" timeout 10 grim -g "$geometry" "$root/a.png"
