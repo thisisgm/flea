@@ -121,6 +121,14 @@ function applyPending(pane) {
     resort(pane, held.key, held.desc)
 }
 
+// The preferences a pane re-lists for, each flag read the way its reader reads it, so a settled document that only spells out a default is no change.
+// The saved sort stays as written, since Pane.openWithoutHistory compares it with ViewState's own.
+// Sample input: preferences({}) and preferences({hidden: false, foldersFirst: true, groupByKind: false, hiddenLast: false, rememberSort: true}) are the same string.
+function preferences(state) {
+    return JSON.stringify([state.hidden === true, state.sort, state.foldersFirst !== false,
+                           state.groupByKind === true, state.hiddenLast === true, state.rememberSort !== false])
+}
+
 // A sorted column's title: the label and the geometric mark of the direction, characters the stock monospace has, so the mark scales with the font like the label.
 function title(label, descending) {
     return label + " " + (descending ? "\u25be" : "\u25b4")

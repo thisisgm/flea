@@ -70,6 +70,8 @@ ShellRoot {
         return out
     }
     function allDrawnHaveRows() { var d = drawn(); return d.drawn > 0 && d.blank === 0 && d.wrong === 0 }
+    // The height grow's own window reply: only the window it asks for reaches past the one held before it.
+    function grownWindowLanded() { return pane.held + pane.rows.length > heightStart.heldEnd }
     function scanTo(label) {
         var d = drawn()
         drawnCount = d.drawn; blankCount = d.blank; wrongCount = d.wrong; firstDrawn = d.first
@@ -167,7 +169,8 @@ ShellRoot {
                 heightStart = { width: pane.width, rows: grid().visibleTileRows, y: grid().contentY,
                     origin: grid().originY, heldEnd: pane.held + pane.rows.length }
                 pane.height = 6000
-                waitUntil = Date.now() + 1500
+                // The checks wait for that reply however long a loaded box takes to lay out and answer the grow; one never sent stalls the case.
+                waitFor = grownWindowLanded
             },
             function () {
                 var g = grid(), range = g.visibleRange()
