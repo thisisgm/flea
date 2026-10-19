@@ -341,30 +341,24 @@ ShellRoot {
             root.check("rapid move trails", backend.metaCalls === root.metaMark)
             var heldAt = preview.lastMoveAt - root.duplicateBackdateMs
             preview.lastMoveAt = heldAt
-            // The settle Timer is the one Timer under preview; its root type declares none.
-            var settleTimer = null
-            var timers = 0
+            // The settle and the rest of a load made at once are the Timers under preview; its root type declares none.
+            var previewTimers = []
             for (var i = 0; i < preview.resources.length; i++) {
-                if (preview.resources[i] instanceof Timer) {
-                    timers += 1
-                    settleTimer = preview.resources[i]
-                }
+                if (preview.resources[i] instanceof Timer)
+                    previewTimers.push(preview.resources[i])
             }
-            // restart() on a running Timer is stop then start, so it emits runningChanged twice and a second arm reads settleRestarts 2.
+            var timers = previewTimers.length
+            // restart() on a running Timer is stop then start, so it emits runningChanged twice and a second arm of either reads settleRestarts 2.
             var settleRestarts = 0
             var counted = function () {
                 settleRestarts += 1
             }
-            if (timers === 1) {
-                settleTimer.runningChanged.connect(counted)
-            }
+            previewTimers.forEach(function (timer) { timer.runningChanged.connect(counted) })
             root.step(7)
-            if (timers === 1) {
-                settleTimer.runningChanged.disconnect(counted)
-            }
+            previewTimers.forEach(function (timer) { timer.runningChanged.disconnect(counted) })
             root.check("duplicate moves no second arm", backend.metaCalls === root.metaMark
                 && preview.lastMoveKey === pane.path + "\n7" && preview.lastMoveAt === heldAt && settleRestarts === 0
-                && timers === 1, "timers=" + timers)
+                && timers === 2, "timers=" + timers)
             root.pollFor(7, 400, root.stage + 1)
         },
         function () {

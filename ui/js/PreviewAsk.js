@@ -14,7 +14,7 @@ function workFor(o) {
 
 // The idle half of the early ask is the settle's own rule: a walk step trails and asks nothing early.
 function earlyWorkFor(o) {
-    if (PreviewSettle.plan(o.now, o.lastMoveAt, o.interval, o.key, o.lastMoveKey, o.armed) !== "now")
+    if (PreviewSettle.plan(o.now, o.lastMoveAt, o.interval, o.key, o.lastMoveKey, o.armed, o.pending) !== "now")
         return null
     if (ExtThumbs.manualHold(o.storageClass, o.preview)) return null
     return workFor(o)

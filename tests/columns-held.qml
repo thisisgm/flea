@@ -19,7 +19,8 @@ ShellRoot {
     // The floors a held key cannot go under: the idle first press holds and loads at once, the second step ends that hold, and the settle loads once.
     readonly property int maxHolds: 3
     readonly property int maxLoads: 2
-    // The frames a columns sweep may draw over the same sweep in the list.
+    // The frames a columns sweep may draw over the same sweep in the list once the key is up. While it is held every loop turn draws,
+    // so the burst's own count follows the CPU share each sweep got; the burst is pinned by its holds, loads, half-built frames and mark.
     readonly property int maxExtraFrames: 20
     property int checks: 0
     property int failures: 0
@@ -37,9 +38,16 @@ ShellRoot {
     property int loads: 0
     property int markFrames: 0
     property int markBurst: 0
+    property int releaseFrames: 0
     property var mark: null
     property var hooked: []
+    // Holds and loads at the press the replacement goes out on in sweep 1, taken at that press in every sweep: whether a sweep's second press
+    // captures again turns on whether the first preview landed in between, so only the span from this press on tells what the replacement took.
+    property var atReplace: ({ holds: 0, loads: 0 })
     property string trace: ""
+    // QtTest runs the event loop inside every key it sends, so on a slow turn the next tick falls due inside the last one's press;
+    // that tick waits for the next, or it would send a press the count has not taken yet.
+    property bool sending: false
     readonly property string view: stages[stage]
 
     function check(name, ok, detail) {
@@ -159,7 +167,8 @@ ShellRoot {
                     rebinds: now.rebinds - before.rebinds, rowsLanded: now.rowsLanded - before.rowsLanded, delegates: hooked.length,
                     mid: now.mid - before.mid, heldFrames: now.heldFrames - before.heldFrames,
                     markFrames: now.markFrames - before.markFrames, markBurst: now.markBurst - before.markBurst,
-                    frames: now.frames - before.frames, built: now.built - before.built }
+                    frames: now.frames - before.frames, restFrames: now.frames - releaseFrames, built: now.built - before.built,
+                    lateHolds: now.holds - atReplace.holds, lateLoads: now.loads - atReplace.loads }
         results[view + sweep] = out
         console.log("COLHELD SWEEP view=" + view + " n=" + sweep + " " + fmt(out) + " held=" + before.held + "+" + before.rows + ">" + now.held + "+" + now.rows)
         console.log("COLHELD   requests " + fmt(req) + " storage=" + pane.storageClass)
@@ -178,15 +187,17 @@ ShellRoot {
                   cols.holds + " holds " + cols.bursts + " bursts")
             check("sweep " + n + " columns draws no half-built frame", cols.mid === 0, cols.mid)
             check("sweep " + n + " columns shows no loading mark while the key is held", cols.markBurst === 0, cols.markBurst)
-            check("sweep " + n + " columns draws no more than " + root.maxExtraFrames + " frames over the list", cols.frames <= list.frames + root.maxExtraFrames,
-                  cols.frames + " vs " + list.frames)
+            check("sweep " + n + " columns draws no more than " + root.maxExtraFrames + " frames over the list after the release", cols.restFrames <= list.restFrames + root.maxExtraFrames,
+                  cols.restFrames + " vs " + list.restFrames)
             if (n !== 1) check("sweep " + n + " columns rebinds no more rows than the list", cols.rebinds <= list.rebinds, cols.rebinds + " > " + list.rebinds)
         }
         // The replaced rows rebind each live delegate once, on top of what the same sweep costs without the replacement.
         check("rows replacement landed in both views", results.list1.rowsLanded === 1 && results.columns1.rowsLanded === 1,
               results.list1.rowsLanded + "/" + results.columns1.rowsLanded)
-        check("rows replacement under the burst takes no hold and no load of its own", results.columns1.holds === results.columns0.holds
-              && results.columns1.loads === results.columns0.loads, results.columns1.holds + "/" + results.columns0.holds + " " + results.columns1.loads + "/" + results.columns0.loads)
+        // Sweep 0 runs the same presses with no replacement, so from the replacement's press to the sweep's end the two must take the same holds and loads.
+        check("rows replacement under the burst takes no hold and no load of its own", results.columns1.lateHolds === results.columns0.lateHolds
+              && results.columns1.lateLoads === results.columns0.lateLoads,
+              results.columns1.lateHolds + "/" + results.columns0.lateHolds + " " + results.columns1.lateLoads + "/" + results.columns0.lateLoads)
         check("rows replacement rebinds each live delegate at most once", results.columns1.rebinds - results.columns0.rebinds <= results.columns1.delegates,
               (results.columns1.rebinds - results.columns0.rebinds) + " > " + results.columns1.delegates)
     }
@@ -254,17 +265,24 @@ ShellRoot {
         running: root.phase === 5
         repeat: true
         onTriggered: {
+            if (root.sending) return
+            root.sending = true
             if (root.pressed < root.steps) {
                 keys.keyPressChar("j", Qt.NoModifier, -1)
                 root.pressed += 1
-                if (root.pressed === root.replaceAt && root.sweep === 1) pane.backend.window(pane.held, pane.windowSize)
                 var sw = root.swapNow()
+                if (root.pressed === root.replaceAt) {
+                    root.atReplace = { holds: sw === null ? 0 : sw.holds, loads: root.loads }
+                    if (root.sweep === 1) pane.backend.window(pane.held, pane.windowSize)
+                }
                 root.trace += sw === null ? "-" : (sw.capturing ? "C" : sw.holding ? "H" : sw.fellBack ? "F" : ".")
             } else {
                 keys.keyReleaseChar("j", Qt.NoModifier, -1)
+                root.releaseFrames = root.frames
                 root.rest = 0
                 root.phase = 6
             }
+            root.sending = false
         }
     }
     // Ends 30 s before the shell's timeout 150, so a stall names its phase before the timeout kills qs.
