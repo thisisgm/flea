@@ -25,6 +25,15 @@
   "pane.reply_window": "The backend answered rows outside the requested window",
   "pane.row_request": "The row request is invalid",
   "pane.busy": "A directory is already loading.",
+  "path.nothing_starts_with": "Nothing in %1 starts with that",
+  "path.items_start_with": {
+    "one": "%1 item starts with that",
+    "other": "%1 items start with that"
+  },
+  "path.refused_uri": "That URI names a file on another host, not a path on this machine.",
+  "path.missing": "%1 does not exist or cannot be reached.",
+  "path.filtered": "%1 is hidden by the file filter or the hidden files setting.",
+  "path.network_unavailable": "That network address cannot be opened here.",
   "selection.count": {
     "one": "%1 item selected in %2",
     "other": "%1 items selected in %2"
