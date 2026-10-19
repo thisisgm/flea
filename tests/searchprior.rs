@@ -15,6 +15,7 @@ mod jsonstring;
 #[path = "../src/jsondoc.rs"]
 mod jsondoc;
 mod backend {
+    #[allow(dead_code)]
     pub mod testdir { include!("../src/backend/testdir.rs"); }
 }
 #[path = "../src/backend/searchprior_protocol_tests.rs"]
