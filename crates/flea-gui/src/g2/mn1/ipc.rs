@@ -1,0 +1,129 @@
+//! The menu's read-back readers on the IPC seam, read off the drawn rows so a test asserts what the card shows.
+use super::lines::{Lead, Line};
+use super::menu::{Card, Menu};
+use crate::ipc::Adapter;
+use flea::ipc::wire::Reply;
+use flea::json::escape;
+use flea::ui_logic_mn1::{fit, Brand};
+
+pub struct MenuAdapter<'a> {
+    pub menu: &'a Menu,
+    // The window's offset, so a rect or centre is in window pixels as the QML readers gave them.
+    pub origin: (f32, f32),
+}
+
+fn label(line: &Line) -> &str {
+    if line.separator {
+        "-"
+    } else {
+        line.label.as_ref().map_or("", |l| l.text.as_str())
+    }
+}
+
+fn glyph(line: &Line) -> &str {
+    match &line.lead {
+        _ if line.separator => "-",
+        Lead::Cut(name) => name,
+        Lead::Brand(Brand::Tailscale) => "tailscale",
+        Lead::Brand(Brand::Dropbox) => "dropbox",
+        Lead::Brand(Brand::LocalSend) => "localsend",
+        Lead::Tag(_) => "tag",
+        Lead::Check(true) => "checkmark",
+        Lead::Icon(name) => name,
+        Lead::None | Lead::Check(false) => "",
+    }
+}
+
+fn joined(card: Option<&Card>, part: impl Fn(&Line) -> &str) -> String {
+    card.map(|c| c.built.lines.iter().map(part).collect::<Vec<_>>().join("|"))
+        .unwrap_or_default()
+}
+
+impl MenuAdapter<'_> {
+    fn rect(&self, card: Option<&Card>) -> String {
+        card.map(|c| {
+            let f = c.frame;
+            format!(
+                "{} {} {} {}",
+                (f.x + self.origin.0).round(),
+                (f.y + self.origin.1).round(),
+                f.w.round(),
+                f.h.round()
+            )
+        })
+        .unwrap_or_default()
+    }
+
+    fn centre(&self, card: Option<&Card>, index: &str) -> String {
+        let Some(card) = card else {
+            return String::new();
+        };
+        let Some(index) = index
+            .parse::<usize>()
+            .ok()
+            .filter(|i| *i < card.entries.len())
+        else {
+            return String::new();
+        };
+        let top = card.row_screen_top(index) - card.frame.y;
+        if top + fit::height(&card.entries[index]) as f32 <= fit::PAD as f32
+            || top >= (fit::PAD + card.view_h) as f32
+        {
+            return String::new();
+        }
+        let x = card.frame.x + card.frame.w / 2. + self.origin.0;
+        let y = card.row_screen_top(index)
+            + fit::height(&card.entries[index]) as f32 / 2.
+            + self.origin.1;
+        format!("{} {}", x.round(), y.round())
+    }
+
+    fn state(&self) -> String {
+        let menu = self.menu;
+        let flyout = menu.flyout.as_ref();
+        let cursor = menu
+            .card
+            .as_ref()
+            .and_then(|c| c.cursor)
+            .map_or(-1, |c| c as i64);
+        format!(
+            "{{\"opened\":{},\"cursor\":{cursor},\"submenu\":{},\"submenuCursor\":{},\"lone\":{},\"handle\":\"{}\",\"frame\":\"{}\",\"flyout\":\"{}\",\"scroll\":{},\"view\":{}}}",
+            menu.opened(),
+            flyout.is_some(),
+            flyout.and_then(|f| f.card.cursor).map_or(-1, |c| c as i64),
+            flyout.is_some_and(|f| f.parent.is_none()),
+            escape(&menu.handle),
+            self.rect(menu.card.as_ref()),
+            self.rect(flyout.map(|f| &f.card)),
+            menu.card.as_ref().map_or(0, |c| c.content_y),
+            menu.card.as_ref().map_or(0, |c| c.view_h),
+        )
+    }
+}
+
+impl Adapter for MenuAdapter<'_> {
+    fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
+        let menu = self.menu;
+        let card = menu.card.as_ref();
+        let flyout = menu.flyout.as_ref().map(|f| &f.card);
+        let first = arguments.first().map_or("", String::as_str);
+        let value = match function {
+            "contextMenuVisible" => menu.opened().to_string(),
+            "contextMenuEntries" => joined(card, label),
+            "contextMenuHints" => joined(card, |l| l.key.as_ref().map_or("", |k| k.text.as_str())),
+            "contextMenuGlyphs" => joined(card, glyph),
+            "contextMenuSubmenuEntries" => joined(flyout, label),
+            "contextMenuSubmenuGlyphs" => joined(flyout, glyph),
+            "contextMenuCursor" => card
+                .and_then(|c| c.cursor)
+                .map_or(-1, |c| c as i64)
+                .to_string(),
+            "contextMenuRect" => self.rect(card),
+            "contextMenuRowCentre" => self.centre(card, first),
+            "contextMenuSubmenuRowCentre" => self.centre(flyout, first),
+            "menuState" => self.state(),
+            _ => return None,
+        };
+        Some(Reply::value(value))
+    }
+}

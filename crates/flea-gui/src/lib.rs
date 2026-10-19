@@ -1,6 +1,7 @@
 pub mod backend;
 mod capture;
 pub mod feedback;
+pub mod g2;
 pub mod ipc;
 mod list;
 pub mod navigation;
