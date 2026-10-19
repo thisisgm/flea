@@ -1,0 +1,557 @@
+{
+  "version": 1,
+  "unit": "g1-10",
+  "scenes": [
+    {
+      "scene": "g1/tabs",
+      "unit": "g1-10",
+      "board_png": ".superpowers/g1-10/references/boards/tabs.png",
+      "board_html": ".superpowers/g1-10/references/boards/tabs.html",
+      "before_png": ".superpowers/g1-10/references/before/tabs-open-1100x700.png",
+      "sha256": {
+        "board_png": "d380a32dad30bfb42a214bc1656fc6d02e0cd7ceb064a35f77c60d3de8d66f95",
+        "board_html": "0c49bd8a475a6cac0b160294406429e7595cce81b1d45f45284083e6e1cf881c",
+        "before_png": "8febcccbe63996909ef735719fc8245d1abd782f6d7e45c0bcf20670bcd79766"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "view": "list",
+        "preset": "default",
+        "disk_free": "16.0 MB",
+        "cursor": "Docs",
+        "input": [
+          {
+            "type": "physical",
+            "key": "Return",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "pointer",
+            "button": "right",
+            "x": 262,
+            "y": 40
+          }
+        ],
+        "wait": {
+          "tabLabels": "work|Docs",
+          "tabIndex": "1",
+          "path": "/fx/v/work/Docs",
+          "tabMenu": "open"
+        }
+      },
+      "assertions": [
+        "Ctrl+Return opens the cursor folder in a new tab and focuses it",
+        "labels work|Docs, Docs current with the 3 px accent edge",
+        "a secondary press on Docs at x 262 opens the tab menu with its top at y 57, 3 under the strip",
+        "notes.txt cursor grey while the menu holds the keyboard",
+        "close mark on each tab and New tab after the last"
+      ],
+      "parity_ids": [
+        "board:tabs"
+      ],
+      "producer_owner": [
+        "G1.10",
+        "G2-menus"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/tabs-two",
+      "unit": "g1-10",
+      "board_png": ".superpowers/g1-10/references/boards/tabs-two.png",
+      "board_html": ".superpowers/g1-10/references/boards/tabs-two.html",
+      "before_png": ".superpowers/g1-10/references/before/tabs-1100x700.png",
+      "sha256": {
+        "board_png": "6b2a1ef796ab4c34dc7dc336a518962fa0bfa9f54e10002dfcfb61922c3c80dc",
+        "board_html": "202c2596fb57ebcf617f3130d8d95300c2612adf246f34e27b8994091c016287",
+        "before_png": "989e2e895ddcb75a6ac7251bd8fd188c95b4459f668f69b1a4847847d5fd4acc"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "view": "list",
+        "preset": "default",
+        "disk_free": "16.0 MB",
+        "input": [
+          {
+            "type": "text",
+            "value": "t"
+          }
+        ],
+        "wait": {
+          "tabCount": "2"
+        }
+      },
+      "assertions": [
+        "second tab opens on the same folder",
+        "strip row 27 under the chrome with a 1 px hair",
+        "current plate with the accent edge",
+        "labels work|work"
+      ],
+      "parity_ids": [
+        "board:tabs-two"
+      ],
+      "producer_owner": [
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/tabs-move-left",
+      "unit": "g1-10",
+      "board_png": ".superpowers/g1-10/references/boards/tabs-move-left.png",
+      "board_html": ".superpowers/g1-10/references/boards/tabs-move-left.html",
+      "before_png": ".superpowers/g1-10/references/before/tabs-move-left-1100x700.png",
+      "sha256": {
+        "board_png": "c86302c0535100bdbd8dd8ab0ee1d444a6f94c06410b4fdd865fb47cb7b42c60",
+        "board_html": "857ce139e788bda8d9f981298ce14cfa7586cc3a7cfb92ca32d34e9f860643f1",
+        "before_png": "f4b482a426b25de8d072552c76e55a8fd4d5eba844271623167d5d8517c8a475"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "view": "list",
+        "preset": "default",
+        "disk_free": "16.0 MB",
+        "input": [
+          {
+            "type": "cursor_to",
+            "value": "Docs"
+          },
+          {
+            "type": "physical",
+            "key": "Return",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "["
+          },
+          {
+            "type": "cursor_to",
+            "value": "Media"
+          },
+          {
+            "type": "physical",
+            "key": "Return",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "{"
+          }
+        ],
+        "wait": {
+          "tabLabels": "work|Media|Docs",
+          "tabIndex": "1"
+        }
+      },
+      "assertions": [
+        "{ moves the current tab one place left",
+        "labels work|Media|Docs",
+        "current stays current",
+        "the move lists nothing"
+      ],
+      "parity_ids": [
+        "board:tabs-move-left"
+      ],
+      "producer_owner": [
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/tabs-move-right",
+      "unit": "g1-10",
+      "board_png": ".superpowers/g1-10/references/boards/tabs-move-right.png",
+      "board_html": ".superpowers/g1-10/references/boards/tabs-move-right.html",
+      "before_png": ".superpowers/g1-10/references/before/tabs-move-right-1100x700.png",
+      "sha256": {
+        "board_png": "0696c0683a0f5c0143c6231479daf57956906bf1e5e2dfcabaf5f4c034cd07c9",
+        "board_html": "79fa8f436d006072bc38c6a7e2ac0ddfd7701fd0c2ce6bcf27b0d2cf91b3ff06",
+        "before_png": "72bbc7bd5fa36986fdff32c9581e93fa80a82657ed7ccd7271e112b57e0a282e"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "view": "list",
+        "preset": "default",
+        "disk_free": "16.0 MB",
+        "input": [
+          {
+            "type": "cursor_to",
+            "value": "Docs"
+          },
+          {
+            "type": "physical",
+            "key": "Return",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "["
+          },
+          {
+            "type": "cursor_to",
+            "value": "Media"
+          },
+          {
+            "type": "physical",
+            "key": "Return",
+            "modifiers": [
+              "control"
+            ]
+          },
+          {
+            "type": "text",
+            "value": "["
+          },
+          {
+            "type": "text",
+            "value": "}"
+          }
+        ],
+        "wait": {
+          "tabLabels": "work|Media|Docs",
+          "tabIndex": "2"
+        }
+      },
+      "assertions": [
+        "} moves the current tab one place right",
+        "labels work|Media|Docs",
+        "current stays current",
+        "the move lists nothing"
+      ],
+      "parity_ids": [
+        "board:tabs-move-right"
+      ],
+      "producer_owner": [
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/tabs-single",
+      "unit": "g1-10",
+      "board_png": ".superpowers/g1-10/references/boards/list.png",
+      "board_html": ".superpowers/g1-10/references/boards/list.html",
+      "before_png": ".superpowers/g1-10/references/before/list-populated-1100x700.png",
+      "sha256": {
+        "board_png": "d110107e81229f16c1c576a60e68f3f7a9f88ccb3c5a8bf6386bfc377d3b7ab9",
+        "board_html": "953d1d3133cfa9274b7e426e726b72cf92c47bce397e0a5f3a484f1382767386",
+        "before_png": "9afc0f8bd5907ffc91079e2a429656fda8482d3807cbead4743778b499fab65d"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "view": "list",
+        "preset": "default",
+        "disk_free": "16.0 MB",
+        "input": [
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "w"
+          }
+        ],
+        "wait": {
+          "tabCount": "1",
+          "tabBarVisible": "false"
+        }
+      },
+      "assertions": [
+        "closing the second tab gives the strip row back to the rows",
+        "no strip drawn for one tab"
+      ],
+      "parity_ids": [
+        "board:list"
+      ],
+      "producer_owner": [
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/tabs-maximum",
+      "unit": "g1-10",
+      "board_png": ".superpowers/g1-10/references/boards/tabs-two.png",
+      "board_html": ".superpowers/g1-10/references/boards/tabs-two.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "6b2a1ef796ab4c34dc7dc336a518962fa0bfa9f54e10002dfcfb61922c3c80dc",
+        "board_html": "202c2596fb57ebcf617f3130d8d95300c2612adf246f34e27b8994091c016287",
+        "before_png": null
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "view": "list",
+        "preset": "default",
+        "disk_free": "16.0 MB",
+        "input": [
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "t"
+          },
+          {
+            "type": "text",
+            "value": "t"
+          }
+        ],
+        "wait": {
+          "tabCount": "9",
+          "lastMessage": "Nine tabs is the most."
+        }
+      },
+      "assertions": [
+        "nine tabs share the strip at the three close slot floor",
+        "the tenth is refused in words",
+        "the refusal costs no listing"
+      ],
+      "parity_ids": [
+        "js-test:tests/js/tabs.js"
+      ],
+      "producer_owner": [
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/tabs-restore",
+      "unit": "g1-10",
+      "board_png": ".superpowers/g1-10/references/boards/tabs-two.png",
+      "board_html": ".superpowers/g1-10/references/boards/tabs-two.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "6b2a1ef796ab4c34dc7dc336a518962fa0bfa9f54e10002dfcfb61922c3c80dc",
+        "board_html": "202c2596fb57ebcf617f3130d8d95300c2612adf246f34e27b8994091c016287",
+        "before_png": null
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "view": "list",
+        "preset": "default",
+        "disk_free": "16.0 MB",
+        "state": {
+          "startIn": "last",
+          "lastPath": "/fx/v/work/Docs",
+          "lastTabs": {
+            "paths": [
+              "/fx/v/work",
+              "/fx/v/work/Docs",
+              "/fx/v/work/Media"
+            ],
+            "index": 1
+          }
+        },
+        "input": [],
+        "wait": {
+          "tabLabels": "work|Docs|Media",
+          "tabIndex": "1"
+        }
+      },
+      "assertions": [
+        "Last folder reopens every remembered tab in order",
+        "the remembered tab is current",
+        "one listing for the current tab only"
+      ],
+      "parity_ids": [
+        "js-test:tests/js/tabrestore.js"
+      ],
+      "producer_owner": [
+        "G1.10"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/tabs-transfer-refused",
+      "unit": "g1-10",
+      "board_png": ".superpowers/g1-10/references/boards/tabs-two.png",
+      "board_html": ".superpowers/g1-10/references/boards/tabs-two.html",
+      "before_png": null,
+      "sha256": {
+        "board_png": "6b2a1ef796ab4c34dc7dc336a518962fa0bfa9f54e10002dfcfb61922c3c80dc",
+        "board_html": "202c2596fb57ebcf617f3130d8d95300c2612adf246f34e27b8994091c016287",
+        "before_png": null
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "fixture": "Docs3",
+        "entries": 9,
+        "view": "list",
+        "preset": "default",
+        "disk_free": "16.0 MB",
+        "input": [
+          {
+            "type": "text",
+            "value": "t"
+          }
+        ],
+        "drop": {
+          "payload": "foreign",
+          "path": "/fx/v/missing"
+        },
+        "wait": {
+          "lastMessage": "That folder is no longer there."
+        }
+      },
+      "assertions": [
+        "a dropped tab whose folder is gone is refused in words",
+        "the source window keeps its tab",
+        "no acknowledgment is sent"
+      ],
+      "parity_ids": [
+        "qml-test:tests/tabreceive.qml"
+      ],
+      "producer_owner": [
+        "G1.10",
+        "G2-drag"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    }
+  ]
+}
