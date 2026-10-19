@@ -1,6 +1,6 @@
 use super::{
     editor::Editor,
-    input::Key,
+    input::{Key, WHEEL_DOWN, WHEEL_UP},
     keymap::Map,
     model::{Model, Tab},
     wire::{word, Wire},
@@ -578,8 +578,8 @@ fn pointer_key(
         return Ok(());
     }
     let scroll = match pointer.button {
-        64 => -1,
-        65 => 1,
+        WHEEL_UP => -1,
+        WHEEL_DOWN => 1,
         _ => 0,
     };
     if m.editor.is_some() {

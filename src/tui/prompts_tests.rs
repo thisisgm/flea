@@ -214,8 +214,10 @@ fn trash_keeps_the_scroll_and_its_undo_lands_on_the_restored_file() {
     press(&mut m, &mut w, Key::character('d', ""));
     assert_eq!(m.message, "Press d again to move it to Trash, or press Delete on its own.");
     press(&mut m, &mut w, Key::character('d', ""));
-    assert_eq!(requests(&drain(&mut w), "trash").len(), 1);
-    event(&mut m, &mut w, r#"{"t":"trashed","ok":1,"failed":0}"#);
+    let values = drain(&mut w);
+    let sent = requests(&values, "trash");
+    assert_eq!(sent.len(), 1);
+    event(&mut m, &mut w, &format!(r#"{{"t":"trashed","id":{},"ok":1,"failed":0,"moved":["/listing/f15.txt"]}}"#, count(sent[0], "id")));
     assert_eq!(m.message, "Moved 1 item to Trash · z undoes");
     let footer = inks(&crate::tui::layout::footer(&m, &theme, 128, Duration::ZERO));
     assert_eq!(span(&footer, 10, "Moved 1 item to Trash").0, theme.foreground);
@@ -361,4 +363,37 @@ fn only_a_receipt_that_names_its_undo_outlasts_the_message_time() {
     m.say(undoable(&m, "Renamed".into()));
     m.expire_message(m.message_at + Duration::from_secs(4));
     assert!(m.message.is_empty(), "with no undo key the receipt is an ordinary message");
+}
+// Two trashes in flight, answered out of order: each receipt undoes the paths that its own request moved.
+#[test]
+fn two_trashes_in_flight_each_receipt_undoes_its_own_paths() {
+    let (mut w, reader) = echo_wire();
+    let mut m = frame_tests::model();
+    m.cursor = 7;
+    trash(&mut m, &mut w).unwrap();
+    m.cursor = 8;
+    trash(&mut m, &mut w).unwrap();
+    let values = drain(&mut w);
+    let sent = requests(&values, "trash");
+    let (first, second) = (count(sent[0], "id"), count(sent[1], "id"));
+    event(&mut m, &mut w, &format!(r#"{{"t":"trashed","id":{second},"ok":1,"failed":0,"moved":["/fx/v/work/todo.md"]}}"#));
+    event(&mut m, &mut w, &format!(r#"{{"t":"trashed","id":{first},"ok":1,"failed":0,"moved":["/fx/v/work/notes.txt"]}}"#));
+    event(&mut m, &mut w, r#"{"t":"undone","op":"trash","ok":true}"#);
+    assert_eq!(m.restore_path.as_deref(), Some(std::path::Path::new("/fx/v/work/notes.txt")), "the answer recorded last undoes first");
+    event(&mut m, &mut w, r#"{"t":"undone","op":"trash","ok":true}"#);
+    assert_eq!(m.restore_path.as_deref(), Some(std::path::Path::new("/fx/v/work/todo.md")), "the other answer undoes to its own item");
+    finish(w, reader);
+}
+// A partly failed trash: the undo anchor is an item that moved, never the first requested item that failed.
+#[test]
+fn undo_of_a_partly_failed_trash_lands_on_the_item_that_moved() {
+    let (mut w, reader) = echo_wire();
+    let mut m = frame_tests::model();
+    m.selected.extend([7, 8]);
+    trash(&mut m, &mut w).unwrap();
+    let id = count(requests(&drain(&mut w), "trash")[0], "id");
+    event(&mut m, &mut w, &format!(r#"{{"t":"trashed","id":{id},"ok":1,"failed":1,"err":"permission denied","moved":["/fx/v/work/todo.md"]}}"#));
+    event(&mut m, &mut w, r#"{"t":"undone","op":"trash","ok":true}"#);
+    assert_eq!(m.restore_path.as_deref(), Some(std::path::Path::new("/fx/v/work/todo.md")), "the undo lands on the item that moved");
+    finish(w, reader);
 }

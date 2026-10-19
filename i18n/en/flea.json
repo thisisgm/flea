@@ -165,6 +165,10 @@
   "receipt.skipped": "· %1 skipped",
   "receipt.failed": "· %1 failed",
   "receipt.cancelled": "· cancelled",
+  "transfer.failed": {
+    "one": "%1 item could not be transferred.",
+    "other": "%1 items could not be transferred."
+  },
   "clipboard.copied": {
     "one": "Copied %1 item",
     "other": "Copied %1 items"

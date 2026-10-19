@@ -116,12 +116,13 @@ pub fn retain_retry(retry: &[(PathBuf, ItemIdentity)], matches: &mut Vec<(&str, 
         ItemIdentity::inspect(Path::new(path)).is_ok_and(|current| original.same_item(&current))));
 }
 
-// err rides only on a failure, so a successful trash line is byte-identical to before.
-pub fn trashed_line(ok: usize, failed: usize, reason: &str) -> String {
+// The line names the request it answers and the paths that moved; err rides only on a failure.
+pub fn trashed_line(request: usize, ok: usize, failed: usize, reason: &str, moved: &[String]) -> String {
+    let moved: Vec<String> = moved.iter().map(|path| format!("\"{}\"", escape(path))).collect();
     if reason.is_empty() {
-        return format!(r#"{{"t":"trashed","ok":{},"failed":{}}}"#, ok, failed);
+        return format!(r#"{{"t":"trashed","id":{},"ok":{},"failed":{},"moved":[{}]}}"#, request, ok, failed, moved.join(","));
     }
-    format!(r#"{{"t":"trashed","ok":{},"failed":{},"err":"{}"}}"#, ok, failed, escape(reason))
+    format!(r#"{{"t":"trashed","id":{},"ok":{},"failed":{},"err":"{}","moved":[{}]}}"#, request, ok, failed, escape(reason), moved.join(","))
 }
 
 pub fn renamed_line(ok: bool, path: &str) -> String {

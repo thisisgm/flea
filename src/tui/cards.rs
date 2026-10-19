@@ -1,7 +1,7 @@
 //! The window's cards in cells: a framed ground with two cells of air, the bold title beside a muted esc, the rule, and bracket buttons.
 use crate::i18n::I18n;
 use crate::jsondoc::Json;
-use crate::tui::{cells::{fit, text_width, Wrapped}, input::Key, keymap::Map, model::Model, theme::Theme};
+use crate::tui::{cells::{fit, text_width, Wrapped}, input::{Key, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model::Model, theme::Theme};
 use crate::tui::wire::{count, flag, number, text, word, Wire};
 use std::io;
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
@@ -136,8 +136,8 @@ pub fn delete_key(m: &mut Model, key: &Key, wire: &mut Wire) -> io::Result<()> {
     let mut cancel = key.name == "Escape";
     if let Some(pointer) = &key.pointer {
         if pointer.released { return Ok(()); }
-        if matches!(pointer.button, 64 | 65) {
-            let scroll = if pointer.button == 64 { card.top.saturating_sub(1) } else { (card.top + 1).min(most) };
+        if matches!(pointer.button, WHEEL_UP | WHEEL_DOWN) {
+            let scroll = if pointer.button == WHEEL_UP { card.top.saturating_sub(1) } else { (card.top + 1).min(most) };
             m.deletion.as_mut().unwrap().scroll = scroll;
         } else if !card.contains(pointer.x, pointer.y) && pointer.button == 0 && !pointer.motion { cancel = true; }
         else if let Some(index) = card.button(pointer.x, pointer.y).filter(|_| pointer.motion || pointer.button == 0) {
@@ -228,7 +228,7 @@ pub fn sheet_key(m: &mut Model, key: &Key, map: &Map) -> io::Result<()> {
     let mut close = false;
     if let Some(pointer) = &key.pointer {
         if pointer.released { return Ok(()); }
-        if matches!(pointer.button, 64 | 65) { m.sheet_top = if pointer.button == 64 { m.sheet_top.saturating_sub(1) } else { (m.sheet_top + 1).min(limit) }; }
+        if matches!(pointer.button, WHEEL_UP | WHEEL_DOWN) { m.sheet_top = if pointer.button == WHEEL_UP { m.sheet_top.saturating_sub(1) } else { (m.sheet_top + 1).min(limit) }; }
         else if pointer.button == 0 && !pointer.motion { close = !card.contains(pointer.x, pointer.y) || card.button(pointer.x, pointer.y).is_some(); }
     } else {
         let action = map.in_context(key, &m.preset, "panel");

@@ -1,6 +1,7 @@
 //! The file menu in cells: which rows it has, where it sits under its row, what a cell hits and what a row does.
 use crate::tui::{cells::{fit, text_width}, keymap::Map, model::Model, theme::Theme, wire::flag};
 use crate::jsondoc::Json;
+use std::path::PathBuf;
 
 // The window's menu marks: Codicons for the verbs, each brand row keeping its own mark.
 const OPEN: &str = "\u{eaf7}";
@@ -50,6 +51,8 @@ pub struct View {
     pub hints: bool,
     pub hidden: Vec<String>,
     pub paths: Vec<String>,
+    // The folder the menu opened in, so an archive lands beside its items even after the user navigates.
+    pub folder: PathBuf,
 }
 impl View {
     // Settings > Menus hides rows by id; a state with no menu section keeps the shipped hidden set.
@@ -101,7 +104,7 @@ pub fn entries(m: &Model, map: &Map) -> Vec<Option<Entry>> {
                 if !v.formats.is_empty() { archive.push(Entry { chevron: true, ..Entry::new("compress", ARCHIVE, tr("menu.compress"), wait(Ink::Plain)) }); }
                 archive.extend(v.actions.iter().map(|(id, name)| Entry::new(&format!("action:{id}"), HASH, name.clone(), wait(Ink::Plain))));
                 if v.taildrop { share.push(taildrop(m, tr("menu.taildrop"))); }
-                if let Some(account) = v.dropbox.as_ref().filter(|root| !within(root, &m.menu_path.to_string_lossy())) {
+                if let Some(account) = v.dropbox.as_ref().filter(|root| m.menu_view.paths.is_empty() || !m.menu_view.paths.iter().all(|path| within(root, path))) {
                     let mut row = Entry::new("dropbox", DROPBOX, tr("menu.dropbox"), wait(Ink::Plain));
                     if !account.starts_with('/') { row.ink = Ink::Unavailable; row.trail = tr(account); }
                     share.push(row);

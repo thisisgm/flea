@@ -1,6 +1,6 @@
 //! The file menu's keys, pointer and rows at work: opening it, stepping it, and each row's request and answer.
 use super::menu_layout::{entries, hit, place, Entry, Sub};
-use crate::tui::{input::{Key, Pointer}, keymap::Map, model::Model, wire::{count, flag, number, text, word, Wire}};
+use crate::tui::{input::{Key, Pointer, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model::Model, wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
 use std::io;
 
@@ -14,8 +14,10 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     m.menu_action.clear();
     m.menu_path = m.current_path().unwrap_or_default();
     m.menu_directory = m.rows.get(&m.cursor).is_some_and(|row| row.directory);
+    let folder = m.path.clone();
     let row = m.visible().iter().position(|index| *index == m.cursor).unwrap_or(0);
     let view = &mut m.menu_view;
+    view.folder = folder;
     view.sub = Sub::Root;
     view.apps = None;
     view.queued = None;
@@ -30,7 +32,10 @@ pub fn open(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     w.send(vec![("c", word("formats")), ("id", number(m.action_id))])?;
     if rows.is_empty() { return Ok(()); }
     let targets = &rows[..m.menu_count];
+    m.menu_directory = targets.iter().filter_map(|index| m.selected_rows.get(index).or_else(|| m.rows.get(index))).any(|row| row.directory);
     m.menu_view.paths = targets.iter().filter_map(|index| m.selected_rows.get(index).or_else(|| m.rows.get(index))).map(|row| m.row_path(row).to_string_lossy().into_owned()).collect();
+    // A single target is what the menu acts on, so a selected folder under a file cursor is the target.
+    if let [only] = m.menu_view.paths.as_slice() { m.menu_path = only.into(); }
     let paths = Json::Arr(m.menu_view.paths.iter().map(|path| word(path)).collect());
     w.send(vec![("c", word("actions")), ("op", word("list")), ("id", number(m.action_id)), ("paths", paths)])?;
     m.menu_action = "menu".into();
@@ -46,6 +51,7 @@ pub fn ready(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     Ok(())
 }
 // The backend's formats and Actions answers for the open menu.
+// Sample input: {"t":"formats","id":7,"archive":["zip"],"providers":{"taildrop":{"installed":false},"dropbox":{"installed":true},"dropboxInfo":"{\"personal\":{\"path\":\"/home/gm/Dropbox\"}}","dropboxError":""}}; the facts answer the rows read.
 pub fn receive(m: &mut Model, value: &Json) {
     if count(value, "id") != m.menu_view.request { return; }
     let list = |key: &str| value.get(key).and_then(Json::as_array).unwrap_or(&[]);
@@ -101,7 +107,7 @@ fn back(m: &mut Model) {
 }
 fn pointer_key(m: &mut Model, pointer: &Pointer, map: &Map, w: &mut Wire) -> io::Result<()> {
     if pointer.released { return Ok(()); }
-    if matches!(pointer.button, 64 | 65) { return key(m, &Key::named(if pointer.button == 64 { "Up" } else { "Down" }, ""), map, w); }
+    if matches!(pointer.button, WHEEL_UP | WHEEL_DOWN) { return key(m, &Key::named(if pointer.button == WHEEL_UP { "Up" } else { "Down" }, ""), map, w); }
     match hit(m, map, pointer.x, pointer.y) {
         Some(Some(index)) if (pointer.motion || pointer.button == 0) && entries(m, map)[index].as_ref().is_some_and(Entry::enabled) => {
             m.menu_cursor = index;
@@ -180,6 +186,7 @@ fn run(m: &mut Model, id: &str, w: &mut Wire) -> io::Result<()> {
     w.send(fields)
 }
 // The menu slot's answers this module asked for; false hands the reply back to the model's own branches.
+// Sample input: {"t":"menuaction","op":"activate","id":7,"ok":true,"action":"compress:zip","paths":["/fx/v/work/notes.txt"],"dest":""}; the answer to an activate.
 pub fn reply(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
     let close = |m: &mut Model, w: &mut Wire| { m.menu_action.clear(); w.send(vec![("c", word("menuaction")), ("op", word("close")), ("id", number(m.action_id))]) };
     match (text(value, "op"), m.menu_action.as_str()) {
@@ -211,9 +218,9 @@ pub fn reply(m: &mut Model, value: &Json, w: &mut Wire) -> io::Result<bool> {
             let name = |path: &str| path.rsplit('/').next().unwrap_or_default().to_owned();
             let stem = match paths.as_slice() {
                 [one] => { let leaf = name(one); leaf.rfind('.').filter(|cut| *cut > 0).map_or(leaf.clone(), |cut| leaf[..cut].to_owned()) }
-                _ => m.path.file_name().map_or("archive".into(), |leaf| leaf.to_string_lossy().into_owned()),
+                _ => m.menu_view.folder.file_name().map_or("archive".into(), |leaf| leaf.to_string_lossy().into_owned()),
             };
-            let dest = m.path.join(format!("{stem}.{format}"));
+            let dest = m.menu_view.folder.join(format!("{stem}.{format}"));
             m.say(m.i18n.trn_args("menu.compressing", paths.len() as i64, &[&format]));
             w.send(vec![("c", word("archive")), ("op", word("compress")), ("paths", Json::Arr(paths.iter().map(|p| word(p)).collect())),
                 ("dest", word(&dest.to_string_lossy())), ("format", word(&format)), ("menuId", number(m.action_id))])?;

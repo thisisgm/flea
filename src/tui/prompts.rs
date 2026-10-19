@@ -2,7 +2,7 @@
 use super::{cells::{ellipsis, fit, text_width}, editor::Editor, input::Key, model::Model, render::grouped, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::{i18n::I18n, jsondoc::Json};
-use std::{io, path::PathBuf, time::Duration};
+use std::{collections::BTreeSet, io, path::PathBuf, time::Duration};
 
 #[derive(Default)]
 pub struct Prompts {
@@ -11,8 +11,8 @@ pub struct Prompts {
     asked: Option<Paste>,
     pub question: Option<Paste>,
     id: usize,
-    // The rows a trash request named, kept until its answer says how many moved.
-    trashing: Vec<PathBuf>,
+    // The trash requests still waiting for their answer, by request id, so each answer records once.
+    trashing: BTreeSet<usize>,
     // This client's journaled steps, newest last; a step another client took leaves them out of step, and they clear.
     undo: Vec<Step>,
     redo: Vec<Step>,
@@ -123,12 +123,13 @@ pub fn trash_arm(m: &Model, arm: &str) -> String {
     };
     m.prompts.i18n.tr_args(key, &[arm, &m.hints.trash])
 }
-// Sends a trash of the selection or the cursor row, remembering the rows it names for the undo that may bring them back.
+// Sends a trash of the selection or the cursor row under a request id, so its answer is recorded once and names what moved.
 pub fn trash(m: &mut Model, w: &mut Wire) -> io::Result<()> {
     if m.total == 0 { return Ok(()); }
-    let indices: Vec<usize> = if m.selected.is_empty() { vec![m.cursor] } else { m.selected.iter().copied().collect() };
-    m.prompts.trashing = indices.iter().filter_map(|i| m.selected_rows.get(i).or_else(|| m.rows.get(i))).map(|row| m.row_path(row)).collect();
-    w.send(vec![("c", word("trash")), ("rows", m.indices())])
+    m.prompts.id = m.prompts.id.wrapping_add(1).max(1);
+    let request = m.prompts.id;
+    m.prompts.trashing.insert(request);
+    w.send(vec![("c", word("trash")), ("id", number(request)), ("rows", m.indices())])
 }
 fn step(i18n: &I18n, op: &str) -> Option<String> {
     let key = match op {
@@ -170,15 +171,16 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
             if undone { line } else { undoable(m, line) }
         }
         "trashed" => {
-            let paths = std::mem::take(&mut m.prompts.trashing);
             if failed > 0 {
                 let why = text(value, "err").trim_end_matches('.');
                 let sentence = if why.is_empty() { i18n.trn("trash.failed", failed as i64) } else { i18n.trn_args("trash.failedWhy", failed as i64, &[why]) };
                 m.fail(sentence);
             }
-            if ok == 0 { return String::new(); }
+            // An answer whose request this client no longer waits on records nothing, so no undo step is taken twice.
+            if !m.prompts.trashing.remove(&count(value, "id")) || ok == 0 { return String::new(); }
+            let moved: Vec<PathBuf> = value.get("moved").and_then(Json::as_array).unwrap_or(&[]).iter().filter_map(Json::as_str).map(PathBuf::from).collect();
             let line = m.prompts.i18n.trn("receipt.trashed", ok as i64);
-            record(m, "trash", paths);
+            record(m, "trash", moved);
             undoable(m, line)
         }
         _ => {
@@ -186,6 +188,7 @@ pub fn receipt(m: &mut Model, value: &Json) -> String {
             if skipped > 0 { line.push_str(&format!(" {}", i18n.tr_args("receipt.skipped", &[&grouped(skipped)]))); }
             if failed > 0 { line.push_str(&format!(" {}", i18n.tr_args("receipt.failed", &[&grouped(failed)]))); }
             if flag(value, "cancelled") { line.push_str(&format!(" {}", i18n.tr("receipt.cancelled"))); }
+            if failed > 0 { m.fail(i18n.trn("transfer.failed", failed as i64)); }
             if ok == 0 { return line; }
             record(m, if m.transfer_moving { "move" } else { "copy" }, Vec::new());
             undoable(m, line)

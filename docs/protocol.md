@@ -1226,10 +1226,12 @@ not a bare kernel name, or a drive the flasher would not list (a system disk), a
 
 ### trash
 
-`{"c":"trash","paths":["<string>",...],"rows":[<uint>,...]}`
+`{"c":"trash","id":<uint>,"paths":["<string>",...],"rows":[<uint>,...]}`
 
-Example: `{"c":"trash","paths":["/home/gm/old.txt"]}`
-Example: `{"c":"trash","rows":[4,9]}`
+`id` is the client's request id; the `trashed` line that answers it echoes it. Omitted, it is 0.
+
+Example: `{"c":"trash","id":3,"paths":["/home/gm/old.txt"]}`
+Example: `{"c":"trash","id":4,"rows":[4,9]}`
 
 `rows` is the same alternative to `paths` that `transfer` documents above, resolved the same way.
 
@@ -2465,11 +2467,11 @@ The helper's eject verdict: `busy` keeps the rail's shipped "still mounted" sent
 
 ### trashed
 
-`{"t":"trashed","ok":<uint>,"failed":<uint>}`
+`{"t":"trashed","id":<uint>,"ok":<uint>,"failed":<uint>,"moved":[<string>,...]}`
 
-Example: `{"t":"trashed","ok":1,"failed":0}`
+Example: `{"t":"trashed","id":3,"ok":1,"failed":0,"moved":["/home/gm/old.txt"]}`
 
-Counts, plus the batch's own reason when anything failed: `{"t":"trashed","ok":0,"failed":1,"err":"<string>"}`.
+`id` echoes the request. `moved` names the original paths that went, so a client records an undo step for only those. Counts, plus the batch's own reason when anything failed: `{"t":"trashed","id":3,"ok":0,"failed":1,"err":"<string>","moved":[]}`.
 Unlike `transferitem` there is no per-path error text, because trash is one `gio` call for
 the batch and its exit status cannot attribute a failure to a single path; a path that is still on disk
 afterwards is counted in `failed`. `err` rides only on a failure, so a successful line is byte-identical

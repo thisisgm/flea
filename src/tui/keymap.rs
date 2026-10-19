@@ -185,9 +185,9 @@ fn block_key<'a>(kind: &'a str, block: &'a HashMap<String, String>) -> Option<(&
     };
     Some((name, key))
 }
-// The key as the sheet and the hints print it: its modifier prefix, then the name the keymap gives it.
 // A key pressed on its own, with no modifier held.
 fn plain(key: &Key) -> bool { matches!(key.mods.as_str(), "text" | "code" | "none" | "") }
+// The key as the sheet and the hints print it: its modifier prefix, then the name the keymap gives it.
 fn spell(key: &Key, name: &str) -> String {
     let prefix = match key.mods.as_str() {
         "ctrl" => "Ctrl+",
