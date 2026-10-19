@@ -1,4 +1,5 @@
 //! GridTile.qml nameTip: the whole name under a hovered tile whose caption Flea elided, on the surface plate with a muted hairline frame.
+use super::Drawn;
 use crate::grid::geometry::{Metrics, Rect};
 use gpui::{px, Font, GlyphRun, Hsla, Pixels, TextRun, Window};
 
@@ -40,8 +41,9 @@ fn wrap(name: &str, full: &GlyphRun, width: f32) -> Vec<std::ops::Range<usize>> 
     lines
 }
 
-/// Lays the tip out under the label, centred on the cell: the name's own width plus a gap each side, capped at two minimum cells.
-pub fn prepare(kept: Option<Tip>, listing: usize, name: &str, cell: Rect, label_bottom: f32, metrics: &Metrics, font: &Font, window: &Window) -> Tip {
+/// Lays the tip out under the tile's painted label, centred on its cell: the name's own width plus a gap each side, capped at two minimum cells.
+pub fn prepare(kept: Option<Tip>, drawn: &Drawn, name: &str, metrics: &Metrics, font: &Font, window: &Window) -> Tip {
+    let (listing, cell, label_bottom) = (drawn.listing, drawn.cell, drawn.caption.y + drawn.painted.height);
     let size = px(metrics.caption);
     let gap = metrics.gap;
     let shaped = kept.filter(|tip| tip.name == name && tip.size == size);

@@ -5,6 +5,7 @@ use super::{
     ListState, ListView, Metrics, Palette, RowState, RowStates, CACHE_SCREENS, CURSOR_WASH,
     CUT_DIM, GREY_CURSOR, HOVER, MATCH_WASH, TRACK,
 };
+use crate::palette::Theme;
 use crate::row::{
     self,
     cache::{Extra, Prepared, Shaping},
@@ -188,6 +189,9 @@ fn prepare(
     let (name, run) = drawn_name(facts, extra, shaping, &view.query);
     let words = &view.words;
     Prepared {
+        label: name.clone(),
+        size_text: format::size_text(facts, extra.walked, words),
+        date_text: format::date_text(facts.mtime, words),
         name: shape(&name, shaping.body),
         size: cell(Column::Size, &|| {
             format::size_text(facts, extra.walked, words)
@@ -321,12 +325,15 @@ impl Element for ListElement {
         bounds: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) -> Frame {
         let mut state = self.state.borrow_mut();
         let (metrics, _, layout) = state.layout(f32::from(bounds.size.width), window);
         let advance = state.advance(window);
-        let palette = state.palette(window);
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let palette = state.palette(window, theme);
+        state.drawn_cursor = self.states.cursor;
+        crate::visual::geometry::rows(&state, bounds, self.scroll_y, metrics.row, window);
         let held = &*self.held;
         let ListState {
             typeface,

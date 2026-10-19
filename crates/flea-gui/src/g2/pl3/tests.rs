@@ -74,7 +74,8 @@ pub(super) fn english() -> Arc<I18n> {
 pub(super) fn ink() -> Ink {
     let base = Hsla { h: 0.08, s: 0.3, l: 0.8, a: 1. };
     let palette = Palette { background: base.opacity(0.1), foreground: base, metadata: base.opacity(0.6), metadata_frame: base.opacity(0.5),
-        accent: Hsla { h: 0.09, s: 0.6, l: 0.5, a: 1. }, accent_frame: Hsla { h: 0.09, s: 0.6, l: 0.5, a: 1. }, symlink: base, executable: base };
+        accent: Hsla { h: 0.09, s: 0.6, l: 0.5, a: 1. }, accent_frame: Hsla { h: 0.09, s: 0.6, l: 0.5, a: 1. }, symlink: base, executable: base,
+        marked: base.opacity(0.35), muted_frame: base.opacity(0.5) };
     Ink { mark_fill: base.opacity(0.3), muted_frame: base.opacity(0.4), ..Ink::interim(&palette, px(8.)) }
 }
 

@@ -113,9 +113,9 @@ impl Shell {
                         let drawn = host
                             .list
                             .borrow()
-                            .visible
+                            .visible()
                             .iter()
-                            .any(|(index, prepared)| *index == i && prepared.is_some());
+                            .any(|shown| shown.index == i && shown.prepared.is_some());
                         if !drawn {
                             return None;
                         }

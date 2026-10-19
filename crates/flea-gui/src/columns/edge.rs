@@ -1,6 +1,7 @@
 //! The preview edge's hover paint: the accent line on the hairline and the move-horizontal mark beside it, over the area.
 use super::element::{paint_svg, MOVE_SVG};
 use super::paint::Palette;
+use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, Element, ElementId, GlobalElementId,
     InspectorElementId, IntoElement, LayoutId, Pixels, Style, Window,
@@ -73,9 +74,10 @@ impl Element for EdgeElement {
         _: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) -> Palette {
-        Palette::inherited(&window.text_style())
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        Palette::inherited(&window.text_style(), theme)
     }
 
     fn paint(

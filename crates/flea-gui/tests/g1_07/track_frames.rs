@@ -3,6 +3,7 @@ use super::check::Checks;
 use super::fixture::{peek_row, row};
 use super::frames::{frame, held, open, read, real_cx, set, typeface, View};
 use flea::protocol::RowFacts;
+use flea_gui::palette::Theme;
 use flea_gui::columns::{
     geometry::{cells, name_budget, Slot, GAP},
     middle_elide,
@@ -112,7 +113,10 @@ pub fn visible(cx: &mut TestAppContext, window: WindowHandle<View>, slot: Slot) 
 
 pub fn palette(cx: &mut TestAppContext, window: WindowHandle<View>) -> Palette {
     window
-        .update(cx, |_, window, _| Palette::inherited(&window.text_style()))
+        .update(cx, |_, window, cx| {
+            let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+            Palette::inherited(&window.text_style(), theme)
+        })
         .expect("the frame window is open")
 }
 

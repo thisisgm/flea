@@ -11,6 +11,12 @@ mod off {
     /// Without the feature every hook is empty, so a packaged build carries none of it.
     pub struct Seam;
 
+    impl Default for Seam {
+        fn default() -> Self {
+            Self::new()
+        }
+    }
+
     impl Seam {
         pub fn new() -> Self {
             Self

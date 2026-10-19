@@ -130,8 +130,7 @@ impl GridElement {
         let kept = state.tip.take();
         state.tip = shown_tip.and_then(|drawn| {
             let name = self.held.row(drawn.listing).map(|row| row.name.as_str())?;
-            let bottom = drawn.caption.y + drawn.painted.height;
-            Some(super::tip::prepare(kept, drawn.listing, name, drawn.cell, bottom, &layout.metrics, &state.font, window))
+            Some(super::tip::prepare(kept, drawn, name, &layout.metrics, &state.font, window))
         });
         state.layout = Some(layout);
         state.scroll = scroll;

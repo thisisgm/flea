@@ -2,7 +2,7 @@
 use super::paint::{line, paint_run, Ink, Paint, Size};
 use super::suggestions::{Popup, Suggestion, FADE, FRAME, GAP, MARK, PAD, PAD_X, ROW};
 use super::view::PathView;
-use crate::{list::Palette, row::marks::Mark};
+use crate::{list::Palette, palette::Theme, row::marks::Mark};
 use gpui::{
     fill, linear_color_stop, linear_gradient, point, px, quad, relative, size, App, BorderStyle, Bounds, ContentMask,
     Element, ElementId, Entity, GlobalElementId, GlyphRun, InspectorElementId, IntoElement, LayoutId, Pixels, Style,
@@ -134,6 +134,7 @@ impl Element for MenuElement {
         window: &mut Window,
         cx: &mut App,
     ) -> Ink {
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let view = self.view.read(cx);
         let mut paint = view.paint.borrow_mut();
         let rows = view.jump.entries.len();
@@ -147,7 +148,7 @@ impl Element for MenuElement {
         paint.popup = Some(popup);
         let visible = popup.visible(view.scroll, rows);
         paint.lay_menu(&view.jump.entries, view.jump.cursor, visible, |typeface, text, bold| line(typeface, text, Size::Body, bold, window));
-        Ink::of(Palette::inherited(&window.text_style()))
+        Ink::of(Palette::inherited(&window.text_style(), theme))
     }
 
     fn paint(

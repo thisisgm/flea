@@ -26,6 +26,14 @@ use gpui::{
 };
 use pane::ROW_HEIGHT;
 use std::{cell::Cell, collections::HashMap, rc::Rc, sync::Arc};
+
+// Board list.html: 14 padding, a 23 mark slot and 9 gap, a 17 mark, Size 70, Modified 134, a 28 end, a 2 edge.
+pub(crate) const PAD_X: f32 = 14.;
+pub(crate) const MARK_SLOT: f32 = 23.;
+pub(crate) const MARK: f32 = 17.;
+pub(crate) const LABEL_X: f32 = PAD_X + MARK_SLOT + 9.;
+pub(crate) const DATE_W: f32 = 134.;
+pub(crate) const END_W: f32 = 28.;
 // Rows kept shaped past the viewport, so a short scroll back reshapes nothing.
 const CACHE_SCREENS: usize = 3;
 // ui.py's state washes over the foreground: a hover 8%, the header ground 4%, a hairline 12%, a grey cursor 18%, an unfocused mark 6%.
@@ -411,12 +419,12 @@ impl ListState {
     }
 
     /// The row palette, read from the inherited text style once and again only after restyle().
-    pub fn palette(&mut self, window: &Window) -> Palette {
+    pub fn palette(&mut self, window: &Window, theme: Theme) -> Palette {
         if let Some(palette) = self.palette {
             return palette;
         }
         self.palette_reads += 1;
-        let palette = Palette::inherited(&window.text_style());
+        let palette = Palette::inherited(&window.text_style(), theme);
         self.palette = Some(palette);
         palette
     }

@@ -4,6 +4,7 @@ use super::{
     transfer::{Lift, PendingDrop},
 };
 use crate::list::{Palette, Typeface};
+use crate::palette::Theme;
 use gpui::{
     fill, point, px, relative, size, App, Bounds, CursorStyle, Element, ElementId,
     GlobalElementId, GlyphRun, Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, SharedString, Style, TextRun,
@@ -534,8 +535,9 @@ impl Element for StripElement {
         bounds: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) -> (Palette, Hitbox) {
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         self.labels.borrow_mut().prepare(&self.frame, window);
         // Every tab and New tab take the pointing hand, as the shipped strip's HoverHandlers did.
         let reach = px(self.frame.tab_width) * self.frame.labels.len() as f32 + px(HIT_MIN);
@@ -544,7 +546,7 @@ impl Element for StripElement {
             size(reach, px(TAB_HEIGHT)),
         );
         (
-            Palette::inherited(&window.text_style()),
+            Palette::inherited(&window.text_style(), theme),
             window.insert_hitbox(pointer, HitboxBehavior::Normal),
         )
     }

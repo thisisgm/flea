@@ -7,6 +7,7 @@ use super::{
 };
 use crate::{
     navigation::{folder_state::Order, sort},
+    palette::Theme,
     row::{format, is_symlink},
 };
 use gpui::{
@@ -349,10 +350,11 @@ impl Element for HeaderElement {
         bounds: Bounds<Pixels>,
         _: &mut (),
         window: &mut Window,
-        _: &mut App,
+        cx: &mut App,
     ) -> HeaderFrame {
         let mut state = self.state.borrow_mut();
-        let palette = state.palette(window);
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let palette = state.palette(window, theme);
         let width = f32::from(bounds.size.width);
         let (metrics, tokens, mut layout) = state.layout(width, window);
         let drag = state.header.drag;

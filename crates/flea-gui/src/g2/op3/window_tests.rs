@@ -3,13 +3,15 @@ use super::keys::Key;
 use super::shell::{Card, DialogShell, StandIn};
 use super::tests::{english, open_with, permissions};
 use crate::list::{Palette, Typeface};
+use crate::palette::Theme;
 use gpui::{prelude::*, px, size, Bounds, Context, Pixels, Render, TestAppContext, Window};
 
 struct Probe(Card, Typeface);
 
 impl Render for Probe {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let palette = Palette::inherited(&window.text_style());
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        let palette = Palette::inherited(&window.text_style(), theme);
         StandIn.present(&self.0, &palette, &self.1, f32::from(window.viewport_size().width))
     }
 }

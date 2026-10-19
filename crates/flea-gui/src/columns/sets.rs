@@ -1,5 +1,5 @@
 //! ui/js/Columns.js and ColumnFit.js for the list views: the column sets a width draws, the floors that drop them and the autofit widths.
-use crate::row::{self, format_date, format_size};
+use crate::row;
 
 pub const MIN_LIST_WIDTH: u32 = 48;
 pub const MAX_LIST_WIDTH: u32 = 480;
@@ -168,15 +168,16 @@ pub fn cell_text(
     kind: Option<&str>,
     walk: Option<(u64, bool)>,
 ) -> String {
+    let locale = flea::i18n::Locale::default();
     match key {
         "mode" => permissions(facts.mode),
         "size" if row::is_symlink(facts.mode) => "link".into(),
-        "size" if !facts.dir => format_size(facts.size),
+        "size" if !facts.dir => locale.format_size(facts.size),
         "size" => walk.map_or_else(
             || "\u{b7}".into(),
-            |(bytes, partial)| format!("{}{}", if partial { ">" } else { "" }, format_size(bytes)),
+            |(bytes, partial)| format!("{}{}", if partial { ">" } else { "" }, locale.format_size(bytes)),
         ),
-        "date" => mtime.map_or_else(|| "--".into(), format_date),
+        "date" => mtime.and_then(|stamp| locale.format_date(stamp)).unwrap_or_else(|| "--".into()),
         _ => kind.unwrap_or("").into(),
     }
 }

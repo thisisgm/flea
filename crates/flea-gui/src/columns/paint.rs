@@ -3,6 +3,7 @@ use super::cache::{Prepared, TrackCache};
 use super::geometry::Slot;
 use super::tracks::TrackView;
 use crate::list::Typeface;
+use crate::palette::Theme;
 use crate::navigation::sort::{DirSizes, Size};
 use gpui::{Hsla, Pixels, TextStyle, Window};
 use std::{cell::RefCell, rc::Rc};
@@ -32,8 +33,8 @@ pub struct Palette {
 }
 
 impl Palette {
-    pub fn inherited(style: &TextStyle) -> Self {
-        let base = crate::list::Palette::inherited(style);
+    pub fn inherited(style: &TextStyle, theme: Theme) -> Self {
+        let base = crate::list::Palette::inherited(style, theme);
         Self {
             background: base.background,
             foreground: base.foreground,
