@@ -5,6 +5,7 @@
 # case_cap_markdown_kinds, below, shoots the other Markdown kinds the same way, also by name only.
 # case_cap_markdown_fences shoots every fence shape in Quick Look from each view, in the preview column and in Dual, also by name only.
 # case_cap_markdown_fences14 repeats it at text size 14 with more fence shapes and logs what Quick Look built for every shot, also by name only.
+# case_cap_markdown_pele shoots one figure of every Mermaid diagram type at text size 14, in Quick Look and in the preview column, also by name only.
 # Figures settle after the preview opens, so the shot waits for them.
 capmarkdown_wait_figures() {
     local figs=""
@@ -885,5 +886,51 @@ case_cap_markdown_fences14() {
         [[ "$(ipc previewOpen)" == "false" ]] || fail "capmdfence14: Escape did not close Quick Look on $name in dual"
     done
     printf 'CAPMDFENCE14 done list=ok grid=ok columns=ok columnpane=ok dual=ok\n'
+    kill_flea
+}
+# The text size and the fixture set of the Mermaid type shots, one document per diagram type.
+capmdpele_body_px=14
+capmdpele_set=markdown-mermaid
+# Every Mermaid diagram type (tests/fixtures/markdown-mermaid, one figure each) in Quick Look and then in the preview column at text size 14, shot as pele.<type>.<engine>.quicklook and .column; the engine is read off the bundle the tree ships, so a scratch tree holding the previous figure files shoots the other arm, and FLEA_CAPMDPELE_THEME names a stock theme to draw under in a fixture HOME (default the live theme). By name only.
+case_cap_markdown_pele() {
+    local dir="$fixture_root/capmdpele" engine=beautiful-mermaid doc name type figs theme="${FLEA_CAPMDPELE_THEME:-live}" real_home="$HOME" home
+    grep -q 'pele-edge' "$flea_ui/vendor/mermaid.mjs" && engine=pele
+    sandbox_scratch "$dir"
+    mkdir -p "$dir/listing"
+    cp "$repo"/tests/fixtures/"$capmdpele_set"/*.md "$dir/listing/"
+    seed_ui_state "$fixture_root/capmdpele-state" "$(jq -cn --argjson px "$capmdpele_body_px" '{keys:"default",view:"list",display:{textSize:{mode:$px}}}')"
+    if [[ "$theme" != live ]]; then
+        home=$(coh_home "$theme") || fail "capmdpele: no fixture HOME for the theme $theme"
+        export HOME="$home"
+    fi
+    launch "$dir/listing"
+    export HOME="$real_home"
+    wait_listing "$(find "$dir/listing" -mindepth 1 -maxdepth 1 | wc -l | tr -d ' ')"
+    for _attempt in $(seq 1 "$capmarkdownkinds_poll_attempts"); do [[ "$(ipc bodyPx)" == "$capmdpele_body_px" ]] && break; sleep "$capmarkdownkinds_poll_seconds"; done
+    [[ "$(ipc bodyPx)" == "$capmdpele_body_px" ]] || fail "capmdpele: body text is $(ipc bodyPx) px after launch, not $capmdpele_body_px"
+    for doc in "$dir"/listing/*.md; do
+        name="${doc##*/}"; type="${name%.md}"
+        capmarkdownkinds_open "$name"
+        # A type the engine cannot draw shows its fenced source, which is the shot the native review compares against.
+        figs="$(capmarkdown_wait_figures)"
+        settle
+        shot "pele.$type.$engine.quicklook"
+        printf 'CAPMDPELE %s %s quicklook figures=%s\n' "$engine" "$type" "$figs"
+        key -k Escape >/dev/null
+        settle
+        [[ "$(ipc previewOpen)" == "false" ]] || fail "capmdpele: Escape did not close Quick Look on $name"
+    done
+    # The preview column draws the same figures from the cache Quick Look filled, so one settle after its render is the figure.
+    switch_view columns
+    for doc in "$dir"/listing/*.md; do
+        name="${doc##*/}"; type="${name%.md}"
+        goto_row "$(row_index_of "$name")"
+        settle
+        capmarkdown_wait_column_rendered
+        settle
+        shot "pele.$type.$engine.column"
+    done
+    [[ "$theme" != live ]] || theme="live:$(cat "$real_state_dir/theme.name" 2>/dev/null)"
+    printf 'CAPMDPELE done engine=%s theme=%s types=%s\n' "$engine" "$theme" "$(find "$dir/listing" -name '*.md' | wc -l | tr -d ' ')"
     kill_flea
 }

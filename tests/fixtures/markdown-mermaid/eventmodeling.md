@@ -1,0 +1,9 @@
+# Event model
+
+```mermaid
+eventmodeling
+
+tf 01 ui CartUI
+tf 02 cmd AddItem
+tf 03 evt ItemAdded
+```

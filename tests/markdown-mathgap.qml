@@ -66,7 +66,7 @@ ShellRoot {
             if (!fig || !fig.ready || fig.working || !image || image.status !== Image.Ready || image.height <= 0)
                 return false
         }
-        // Two consecutive mermaids settle like the display maths, and draw without their shared canvas margins.
+        // Two consecutive mermaids settle like the display maths, and Pele draws each frame on its canvas edge, so the list's gap is the ink gap.
         for (var m = 7; m <= 8; m++) {
             var dia = Checks.figure(md, m)
             var poster = Checks.imageOf(dia)
