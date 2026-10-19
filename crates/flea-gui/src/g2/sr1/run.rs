@@ -1,6 +1,6 @@
 //! A result's typed run and location caption: the run washed at rest and bold inside the cursor's highlight.
 use flea::ui_logic_sr1::{self as core, Scope};
-use gpui::{FontWeight, Font, Hsla, LineLayout, Pixels, TextRun};
+use gpui::{Font, FontWeight, Hsla, LineLayout, Pixels, TextRun};
 
 // ui.py .mrun: the run's wash is the accent at 14%, the cursor rung's 18% wash stays the row's.
 pub const RUN_WASH: f32 = 0.14;
@@ -11,7 +11,12 @@ pub fn run_in(label: &str, query: &str) -> Option<(usize, usize)> {
 }
 
 /// One label's text runs: the typed run in bold inside the cursor's highlight, one plain run otherwise.
-pub fn text_runs(label: &str, run: Option<(usize, usize)>, lifted: bool, font: &Font) -> Vec<TextRun> {
+pub fn text_runs(
+    label: &str,
+    run: Option<(usize, usize)>,
+    lifted: bool,
+    font: &Font,
+) -> Vec<TextRun> {
     let plain = |len: usize, font: Font| TextRun {
         len,
         font,
@@ -22,19 +27,30 @@ pub fn text_runs(label: &str, run: Option<(usize, usize)>, lifted: bool, font: &
     };
     match run {
         Some((start, end)) if lifted && end > start => {
-            let bold = Font { weight: FontWeight::BOLD, ..font.clone() };
-            [(start, font.clone()), (end - start, bold), (label.len() - end, font.clone())]
-                .into_iter()
-                .filter(|(len, _)| *len > 0)
-                .map(|(len, font)| plain(len, font))
-                .collect()
+            let bold = Font {
+                weight: FontWeight::BOLD,
+                ..font.clone()
+            };
+            [
+                (start, font.clone()),
+                (end - start, bold),
+                (label.len() - end, font.clone()),
+            ]
+            .into_iter()
+            .filter(|(len, _)| *len > 0)
+            .map(|(len, font)| plain(len, font))
+            .collect()
         }
         _ => vec![plain(label.len(), font.clone())],
     }
 }
 
 /// The wash's span on the shaped label, for a row outside the cursor's highlight.
-pub fn wash_span(line: &LineLayout, run: Option<(usize, usize)>, lifted: bool) -> Option<(Pixels, Pixels)> {
+pub fn wash_span(
+    line: &LineLayout,
+    run: Option<(usize, usize)>,
+    lifted: bool,
+) -> Option<(Pixels, Pixels)> {
     let (start, end) = run?;
     (!lifted && end > start).then(|| (line.x_for_index(start), line.x_for_index(end)))
 }

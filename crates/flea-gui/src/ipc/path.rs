@@ -35,16 +35,29 @@ impl PathAdapter<'_> {
         let Some((left, width)) = self.view.strips[slot].extent(index) else {
             return String::new();
         };
-        let pad = if slot == 0 { 0. } else { crate::path::paint::STRIP_PAD };
+        let pad = if slot == 0 {
+            0.
+        } else {
+            crate::path::paint::STRIP_PAD
+        };
         let x = f32::from(bounds.origin.x) + pad + left;
         if x < f32::from(bounds.origin.x) || x + width > f32::from(bounds.right()) {
             return String::new();
         }
-        centre(x, f32::from(bounds.origin.y), width, f32::from(bounds.size.height))
+        centre(
+            x,
+            f32::from(bounds.origin.y),
+            width,
+            f32::from(bounds.size.height),
+        )
     }
 
     fn crumb_text(&self, slot: usize) -> String {
-        self.view.strips[slot].crumbs().iter().map(|crumb| crumb.text.as_str()).collect()
+        self.view.strips[slot]
+            .crumbs()
+            .iter()
+            .map(|crumb| crumb.text.as_str())
+            .collect()
     }
 
     fn pane(&self, arguments: &[String]) -> Option<usize> {
@@ -56,21 +69,42 @@ impl PathAdapter<'_> {
 impl Adapter for PathAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         let view = self.view;
-        let index = |at: usize| arguments.get(at).and_then(|value| value.parse::<usize>().ok());
+        let index = |at: usize| {
+            arguments
+                .get(at)
+                .and_then(|value| value.parse::<usize>().ok())
+        };
         let value = match function {
             "pathBarOpen" => view.editing().to_string(),
             "pathBarText" => view.entry.text.clone(),
             "pathCentre" => view.paint.borrow().area.map_or_else(String::new, |area| {
-                centre(f32::from(area.origin.x), f32::from(area.origin.y), f32::from(area.size.width), f32::from(area.size.height))
+                centre(
+                    f32::from(area.origin.x),
+                    f32::from(area.origin.y),
+                    f32::from(area.size.width),
+                    f32::from(area.size.height),
+                )
             }),
-            "pathFrameRect" => view.paint.borrow().frame.filter(|_| view.built).map_or_else(String::new, rect),
+            "pathFrameRect" => view
+                .paint
+                .borrow()
+                .frame
+                .filter(|_| view.built)
+                .map_or_else(String::new, rect),
             "crumbCount" => view.strips[0].crumbs().len().to_string(),
             "crumbText" => self.crumb_text(0),
             "crumbCentre" if view.editing() || view.inputs.dual => String::new(),
             "crumbCentre" => self.crumb_centre(0, index(0)),
-            "paneCrumbCount" => self.pane(arguments).map_or(0, |slot| view.strips[slot].crumbs().len()).to_string(),
-            "paneCrumbText" => self.pane(arguments).map_or_else(String::new, |slot| self.crumb_text(slot)),
-            "paneCrumbCentre" => self.pane(arguments).map_or_else(String::new, |slot| self.crumb_centre(slot, index(1))),
+            "paneCrumbCount" => self
+                .pane(arguments)
+                .map_or(0, |slot| view.strips[slot].crumbs().len())
+                .to_string(),
+            "paneCrumbText" => self
+                .pane(arguments)
+                .map_or_else(String::new, |slot| self.crumb_text(slot)),
+            "paneCrumbCentre" => self
+                .pane(arguments)
+                .map_or_else(String::new, |slot| self.crumb_centre(slot, index(1))),
             "panePathRect" => self
                 .pane(arguments)
                 .and_then(|slot| view.paint.borrow().strips[slot])

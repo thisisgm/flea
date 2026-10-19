@@ -12,19 +12,40 @@ impl Render for Probe {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let palette = Palette::inherited(&window.text_style(), theme);
-        StandIn.present(&self.0, &palette, &self.1, f32::from(window.viewport_size().width))
+        StandIn.present(
+            &self.0,
+            &palette,
+            &self.1,
+            f32::from(window.viewport_size().width),
+        )
     }
 }
 
 fn drawn(cx: &mut TestAppContext, card: Card, body: f32) -> (Bounds<Pixels>, Vec<Bounds<Pixels>>) {
     let buttons = card.buttons.len();
-    let typeface = Typeface { body: px(body), ..Typeface::omarchy_default() };
+    let typeface = Typeface {
+        body: px(body),
+        ..Typeface::omarchy_default()
+    };
     let (_, cx) = cx.add_window_view(|_, _| Probe(card, typeface));
     cx.simulate_resize(size(px(1100.), px(700.)));
     cx.run_until_parked();
-    let frame = cx.debug_bounds("op3-card").expect("the card frame is drawn");
-    let names = ["op3-button-0", "op3-button-1", "op3-button-2", "op3-button-3"];
-    (frame, names[..buttons].iter().map(|n| cx.debug_bounds(n).expect("each button is drawn")).collect())
+    let frame = cx
+        .debug_bounds("op3-card")
+        .expect("the card frame is drawn");
+    let names = [
+        "op3-button-0",
+        "op3-button-1",
+        "op3-button-2",
+        "op3-button-3",
+    ];
+    (
+        frame,
+        names[..buttons]
+            .iter()
+            .map(|n| cx.debug_bounds(n).expect("each button is drawn"))
+            .collect(),
+    )
 }
 
 fn properties_file() -> Card {
@@ -39,25 +60,49 @@ fn properties_file() -> Card {
 fn every_card_draws_at_its_board_width_and_centres_in_the_window(cx: &mut TestAppContext) {
     let i18n = english();
     let run = super::runcard::RunCard::open(&i18n, "flea", "/fx/v/work/hello.sh", r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":1,"mtimeNs":2,"target":"/fx/v/work/hello.sh"}"#).unwrap();
-    let bulk = super::bulkrename::BulkRename::open(vec!["/fx/b/alpha.txt".into(), "/fx/b/beta.md".into()]);
-    for (card, width) in [(open_with().card(&i18n), 630.), (permissions().card(&i18n), 480.), (properties_file(), 552.), (run.card(&i18n), 500.), (bulk.card(&i18n), 640.)] {
+    let bulk =
+        super::bulkrename::BulkRename::open(vec!["/fx/b/alpha.txt".into(), "/fx/b/beta.md".into()]);
+    for (card, width) in [
+        (open_with().card(&i18n), 630.),
+        (permissions().card(&i18n), 480.),
+        (properties_file(), 552.),
+        (run.card(&i18n), 500.),
+        (bulk.card(&i18n), 640.),
+    ] {
         let title = card.title.clone();
         let (frame, buttons) = drawn(cx, card, 14.);
         assert_eq!(f32::from(frame.size.width), width, "{title}");
-        assert!((f32::from(frame.origin.x) - (1100. - width) / 2.).abs() <= 0.5, "{title} centres");
+        assert!(
+            (f32::from(frame.origin.x) - (1100. - width) / 2.).abs() <= 0.5,
+            "{title} centres"
+        );
         for button in &buttons {
-            assert_eq!(f32::from(button.size.height), 30., "{title}: a button stands 30 tall");
+            assert_eq!(
+                f32::from(button.size.height),
+                30.,
+                "{title}: a button stands 30 tall"
+            );
         }
         let last = buttons.last().unwrap();
-        assert!((f32::from(frame.right()) - f32::from(last.right()) - 17.).abs() <= 0.5, "{title}: 16 padding and the hairline frame");
-        assert!((f32::from(frame.bottom()) - f32::from(last.bottom()) - 17.).abs() <= 0.5, "{title}: the buttons sit 16 over the frame");
+        assert!(
+            (f32::from(frame.right()) - f32::from(last.right()) - 17.).abs() <= 0.5,
+            "{title}: 16 padding and the hairline frame"
+        );
+        assert!(
+            (f32::from(frame.bottom()) - f32::from(last.bottom()) - 17.).abs() <= 0.5,
+            "{title}: the buttons sit 16 over the frame"
+        );
     }
 }
 
 #[gpui::test]
 fn a_files_properties_card_measures_the_boards_298_frame_to_frame(cx: &mut TestAppContext) {
     let (frame, _) = drawn(cx, properties_file(), 14.);
-    assert!((f32::from(frame.size.height) - 298.).abs() <= 1., "{:?}", frame.size);
+    assert!(
+        (f32::from(frame.size.height) - 298.).abs() <= 1.,
+        "{:?}",
+        frame.size
+    );
 }
 
 #[gpui::test]
@@ -82,18 +127,48 @@ fn properties_of(id: u64, reply: &str, more: &[&str]) -> Card {
 fn every_card_matches_its_boards_frame_height(cx: &mut TestAppContext) {
     let i18n = english();
     let run = super::runcard::RunCard::open(&i18n, "flea", "/fx/v/work/hello.sh", r#"{"ask":"run","kind":"script","size":21,"handlerId":"","handlerName":"","dev":"8","ino":"9","mtimeS":1,"mtimeNs":2,"target":"/fx/v/work/hello.sh"}"#).unwrap();
-    let bulk = super::bulkrename::BulkRename::open(vec!["/fx/b/alpha.txt".into(), "/fx/b/beta.md".into()]);
-    let mut clash = super::bulkrename::BulkRename::open(vec!["/fx/b/alpha.txt".into(), "/fx/b/gamma.txt".into()]);
-    for key in "alpha".chars().map(|c| Key::Text(c.into())).chain([Key::Tab]).chain("gamma".chars().map(|c| Key::Text(c.into()))) {
+    let bulk =
+        super::bulkrename::BulkRename::open(vec!["/fx/b/alpha.txt".into(), "/fx/b/beta.md".into()]);
+    let mut clash = super::bulkrename::BulkRename::open(vec![
+        "/fx/b/alpha.txt".into(),
+        "/fx/b/gamma.txt".into(),
+    ]);
+    for key in "alpha"
+        .chars()
+        .map(|c| Key::Text(c.into()))
+        .chain([Key::Tab])
+        .chain("gamma".chars().map(|c| Key::Text(c.into())))
+    {
         clash.key(key);
     }
-    let (mut several, _) = super::permissions::Permissions::open(3, (0..9).map(|n| format!("/fx/p/{n}.jpg")).collect(), "");
+    let (mut several, _) = super::permissions::Permissions::open(
+        3,
+        (0..9).map(|n| format!("/fx/p/{n}.jpg")).collect(),
+        "",
+    );
     for at in 0..9 {
         let mode = if at % 2 == 0 { "0644" } else { "0755" };
-        several.reply(&i18n, &flea::jsondoc::parse(&format!(r#"{{"op":"inspect","id":{},"ok":true,"mode":"{mode}","reason":""}}"#, 3000 + at)).unwrap());
+        several.reply(
+            &i18n,
+            &flea::jsondoc::parse(&format!(
+                r#"{{"op":"inspect","id":{},"ok":true,"mode":"{mode}","reason":""}}"#,
+                3000 + at
+            ))
+            .unwrap(),
+        );
     }
-    let folder = properties_of(6, r#"{"op":"properties","id":6,"ok":true,"path":"/fx/v/work/Media","kind":"Directory","directory":true,"bytes":4096,"modified":0,"mode":"0755","owner":"gm","uid":1000,"gid":1000}"#, &[r#"{"op":"contents","id":6,"ok":true,"bytes":2560562,"items":11,"partial":false,"done":true}"#]);
-    let tagged = properties_of(8, r#"{"op":"properties","id":8,"ok":true,"path":"/fx/v/work/tagged.txt","kind":"File","bytes":13,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000,"tags":["Red","Blue"]}"#, &[]);
+    let folder = properties_of(
+        6,
+        r#"{"op":"properties","id":6,"ok":true,"path":"/fx/v/work/Media","kind":"Directory","directory":true,"bytes":4096,"modified":0,"mode":"0755","owner":"gm","uid":1000,"gid":1000}"#,
+        &[
+            r#"{"op":"contents","id":6,"ok":true,"bytes":2560562,"items":11,"partial":false,"done":true}"#,
+        ],
+    );
+    let tagged = properties_of(
+        8,
+        r#"{"op":"properties","id":8,"ok":true,"path":"/fx/v/work/tagged.txt","kind":"File","bytes":13,"modified":0,"mode":"0644","owner":"gm","uid":1000,"gid":1000,"tags":["Red","Blue"]}"#,
+        &[],
+    );
     let boards = [
         ("openwith", open_with().card(&i18n), 546.),
         ("permissions", permissions().card(&i18n), 558.),

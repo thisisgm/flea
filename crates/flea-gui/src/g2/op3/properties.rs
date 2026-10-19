@@ -1,5 +1,9 @@
 //! The Properties card: one item's two-column facts with a folder walk counted off the UI thread, or several items' summary.
-use super::{keys::Key, shell::{Block, Button, Card, Fact, Ink}, Effect};
+use super::{
+    keys::Key,
+    shell::{Block, Button, Card, Fact, Ink},
+    Effect,
+};
 use flea::i18n::I18n;
 use flea::jsondoc::Json;
 use flea::ui_logic_op3::openwith::close_request;
@@ -29,8 +33,20 @@ pub struct Properties {
 impl Properties {
     /// The snapshot captures the selection first, so a later cursor move cannot change what is described.
     pub fn open(id: u64, rows: &[usize]) -> (Self, Vec<Effect>) {
-        let card = Self { id, several: rows.len() > 1, shown: Shown::Asking, extras: Vec::new(), mime_kind: String::new() };
-        (card, vec![Effect::Send(logic::snapshot_request(id, rows)), Effect::Send(logic::properties_request(id))])
+        let card = Self {
+            id,
+            several: rows.len() > 1,
+            shown: Shown::Asking,
+            extras: Vec::new(),
+            mime_kind: String::new(),
+        };
+        (
+            card,
+            vec![
+                Effect::Send(logic::snapshot_request(id, rows)),
+                Effect::Send(logic::properties_request(id)),
+            ],
+        )
     }
 
     pub fn set_extras(&mut self, extras: Vec<(String, String)>, mime_kind: &str) {
@@ -58,10 +74,18 @@ impl Properties {
         let ok = reply.get("ok").and_then(Json::as_bool) == Some(true);
         let error = reply.get("error").and_then(Json::as_str).unwrap_or("");
         match (reply.get("op").and_then(Json::as_str), &mut self.shown) {
-            (Some("properties"), _) if !ok => self.shown = Shown::Refused(logic::refusal(i18n, error)),
+            (Some("properties"), _) if !ok => {
+                self.shown = Shown::Refused(logic::refusal(i18n, error))
+            }
             // A cancelled several-item walk ends quietly, never as an error toast.
-            (Some("properties"), _) if self.several && reply.get("cancelled").and_then(Json::as_bool) == Some(true) => return vec![Effect::Close],
-            (Some("properties"), _) if self.several => self.shown = Shown::Several(Several::from_reply(reply)),
+            (Some("properties"), _)
+                if self.several && reply.get("cancelled").and_then(Json::as_bool) == Some(true) =>
+            {
+                return vec![Effect::Close]
+            }
+            (Some("properties"), _) if self.several => {
+                self.shown = Shown::Several(Several::from_reply(reply))
+            }
             (Some("properties"), _) => {
                 let facts = Facts::from_reply(reply);
                 let walk = facts.directory.then(|| logic::begin(&facts));
@@ -78,15 +102,28 @@ impl Properties {
 
     pub fn card(&self, i18n: &I18n) -> Card {
         let (pairs, tags) = match &self.shown {
-            Shown::One(facts, walk) => (logic::pairs(i18n, facts, *walk, &self.extras, &self.mime_kind), facts.tags.clone()),
+            Shown::One(facts, walk) => (
+                logic::pairs(i18n, facts, *walk, &self.extras, &self.mime_kind),
+                facts.tags.clone(),
+            ),
             Shown::Several(several) => (logic::several_pairs(i18n, several), Vec::new()),
             Shown::Asking | Shown::Refused(_) => (Vec::new(), Vec::new()),
         };
         let mut body = Vec::new();
         match &self.shown {
-            Shown::Refused(text) => body.push(Block::Note { text: text.clone(), inset: 0., ink: Ink::Error, lift: 0. }),
+            Shown::Refused(text) => body.push(Block::Note {
+                text: text.clone(),
+                inset: 0.,
+                ink: Ink::Error,
+                lift: 0.,
+            }),
             // Until the first reply lands the card says it is working, in the caption's muted ink, as v0.3.12 did.
-            Shown::Asking => body.push(Block::Note { text: i18n.tr("dialogs.file.properties.working"), inset: 0., ink: Ink::Muted, lift: 0. }),
+            Shown::Asking => body.push(Block::Note {
+                text: i18n.tr("dialogs.file.properties.working"),
+                inset: 0.,
+                ink: Ink::Muted,
+                lift: 0.,
+            }),
             _ => {}
         }
         if !pairs.is_empty() {
@@ -94,9 +131,20 @@ impl Properties {
                 .into_iter()
                 .map(|pair| match pair.name {
                     // Tags draw one by one, each after its colour mark, as the tagged board does.
-                    Name::Own(Label::Tags) => Fact::Tags { name: i18n.tr(Label::Tags.key()), tags: tags.clone() },
-                    Name::Own(label) => Fact::Text { name: i18n.tr(label.key()), value: pair.line.value, tail: pair.line.tail },
-                    Name::Extra(name) => Fact::Text { name, value: pair.line.value, tail: pair.line.tail },
+                    Name::Own(Label::Tags) => Fact::Tags {
+                        name: i18n.tr(Label::Tags.key()),
+                        tags: tags.clone(),
+                    },
+                    Name::Own(label) => Fact::Text {
+                        name: i18n.tr(label.key()),
+                        value: pair.line.value,
+                        tail: pair.line.tail,
+                    },
+                    Name::Extra(name) => Fact::Text {
+                        name,
+                        value: pair.line.value,
+                        tail: pair.line.tail,
+                    },
                 })
                 .collect();
             body.push(Block::Facts(facts));
@@ -107,7 +155,12 @@ impl Properties {
             width: WIDTH,
             bleed: false,
             body,
-            buttons: vec![Button { label: i18n.tr("dialogs.file.properties.close"), primary: true, focused: true, enabled: true }],
+            buttons: vec![Button {
+                label: i18n.tr("dialogs.file.properties.close"),
+                primary: true,
+                focused: true,
+                enabled: true,
+            }],
         }
     }
 }

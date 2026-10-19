@@ -32,12 +32,19 @@ impl Drop for Monitor {
 }
 
 fn spawn(argv: &[String], stdout: Stdio) -> std::io::Result<Child> {
-    Command::new(&argv[0]).args(&argv[1..]).stdin(Stdio::null()).stdout(stdout).stderr(Stdio::null()).spawn()
+    Command::new(&argv[0])
+        .args(&argv[1..])
+        .stdin(Stdio::null())
+        .stdout(stdout)
+        .stderr(Stdio::null())
+        .spawn()
 }
 
 // One count read with the oracle's 10 s ceiling; the reader thread keeps the wait off this one.
 fn read_count(query: &[String]) -> (i32, bool, String) {
-    let Ok(mut child) = spawn(query, Stdio::piped()) else { return (-1, false, String::new()) };
+    let Ok(mut child) = spawn(query, Stdio::piped()) else {
+        return (-1, false, String::new());
+    };
     let mut stdout = child.stdout.take().expect("piped stdout");
     let reader = std::thread::spawn(move || {
         let mut text = String::new();
@@ -47,7 +54,13 @@ fn read_count(query: &[String]) -> (i32, bool, String) {
     let deadline = Instant::now() + Duration::from_millis(TIMEOUT_MS);
     loop {
         match child.try_wait() {
-            Ok(Some(status)) => return (status.code().unwrap_or(-1), false, reader.join().unwrap_or_default()),
+            Ok(Some(status)) => {
+                return (
+                    status.code().unwrap_or(-1),
+                    false,
+                    reader.join().unwrap_or_default(),
+                )
+            }
             Ok(None) if Instant::now() < deadline => std::thread::sleep(Duration::from_millis(20)),
             _ => {
                 let _ = child.kill();
@@ -62,7 +75,10 @@ impl Monitor {
     /// GIO's watch and count, each tied to this process so neither outlives the window.
     pub fn start() -> Started {
         let pid = std::process::id();
-        Self::start_with(monitor::owned_command(pid, &monitor::WATCH), monitor::owned_command(pid, &monitor::QUERY))
+        Self::start_with(
+            monitor::owned_command(pid, &monitor::WATCH),
+            monitor::owned_command(pid, &monitor::QUERY),
+        )
     }
 
     /// Any watch whose stdout lines are changes and any query that prints `trash::item-count: N`.
@@ -110,7 +126,11 @@ fn run(changed: mpsc::Receiver<()>, query: Vec<String>, heard: Sender<Heard>) {
                 more = true;
             }
             let read = count.finished(exit, timed_out, &output);
-            let message = if read.failed { Heard::Failed("trash.monitor.count_failed") } else { Heard::Count(count.count) };
+            let message = if read.failed {
+                Heard::Failed("trash.monitor.count_failed")
+            } else {
+                Heard::Count(count.count)
+            };
             if heard.send_blocking(message).is_err() {
                 return;
             }

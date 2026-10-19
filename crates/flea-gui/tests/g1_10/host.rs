@@ -132,7 +132,11 @@ fn the_drawn_strip_brightens_the_mark_under_the_pointer_and_a_secondary_press_as
     let hover = cx.update(|_, cx| shell.read(cx).strip.bar.close_hover);
     assert_eq!(hover, None, "the tab body is not the mark");
     let at = PAD_X + width + 40.;
-    cx.simulate_mouse_down(point(px(at), middle), MouseButton::Right, Modifiers::default());
+    cx.simulate_mouse_down(
+        point(px(at), middle),
+        MouseButton::Right,
+        Modifiers::default(),
+    );
     let menu = cx.update(|_, cx| shell.read(cx).strip.menu);
     assert_eq!(
         menu,
@@ -164,7 +168,11 @@ fn hover_first_mark(shell: &Entity<Shell>, cx: &mut VisualTestContext) -> f32 {
     let mark = PAD_X + width - HIT_MIN / 2.;
     cx.simulate_mouse_move(point(px(mark), px(middle)), None, Modifiers::default());
     let hover = cx.update(|_, cx| shell.read(cx).strip.bar.close_hover);
-    assert_eq!(hover, Some(0), "the first tab's mark under the pointer draws bright");
+    assert_eq!(
+        hover,
+        Some(0),
+        "the first tab's mark under the pointer draws bright"
+    );
     middle
 }
 
@@ -202,7 +210,11 @@ fn a_closed_tab_or_a_hidden_strip_hands_its_bright_mark_to_no_other_tab(cx: &mut
             (shell.strip.tabs[0].count(), shell.strip.bar.close_hover)
         })
     });
-    assert_eq!(after_open, (3, None), "a tab count change drops the bright mark");
+    assert_eq!(
+        after_open,
+        (3, None),
+        "a tab count change drops the bright mark"
+    );
     let hidden = cx.update(|window, cx| {
         shell.update(cx, |shell, cx| {
             shell.strip.bar.close_hover = Some(1);

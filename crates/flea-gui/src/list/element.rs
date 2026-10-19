@@ -70,6 +70,9 @@ pub struct Shown {
     pub state: RowState,
 }
 
+// The list surface's fixed row height: the scroll model and every reader share it from here.
+pub const ROW_HEIGHT: f32 = 31.;
+
 pub struct ListElement {
     held: Rc<Held>,
     scroll_y: f32,

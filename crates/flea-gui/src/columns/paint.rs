@@ -3,8 +3,8 @@ use super::cache::{Prepared, TrackCache};
 use super::geometry::Slot;
 use super::tracks::TrackView;
 use crate::list::Typeface;
-use crate::palette::Theme;
 use crate::navigation::sort::{DirSizes, Size};
+use crate::palette::Theme;
 use gpui::{Hsla, Pixels, TextStyle, Window};
 use std::{cell::RefCell, rc::Rc};
 

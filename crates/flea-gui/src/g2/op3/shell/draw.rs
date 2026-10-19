@@ -21,7 +21,11 @@ impl Draw<'_> {
     pub(super) fn check(&self, check: Check) -> AnyElement {
         let t = self.t;
         let on = check.value != Tri::Off;
-        let frame = if on || check.focused { t.fg } else { t.muted_frame };
+        let frame = if on || check.focused {
+            t.fg
+        } else {
+            t.muted_frame
+        };
         let mut box_ = div()
             .size(self.px(CHECK))
             .flex_none()
@@ -39,14 +43,31 @@ impl Draw<'_> {
         };
         // A focused filled box takes a ring 2 outside it, since its own frame is already foreground.
         if check.focused && on {
-            let ring = div().absolute().top(px(-2.)).left(px(-2.)).right(px(-2.)).bottom(px(-2.)).border_1().border_color(t.fg).rounded(self.px(RADIUS / 2.));
-            return div().relative().flex_none().child(box_).child(ring).into_any_element();
+            let ring = div()
+                .absolute()
+                .top(px(-2.))
+                .left(px(-2.))
+                .right(px(-2.))
+                .bottom(px(-2.))
+                .border_1()
+                .border_color(t.fg)
+                .rounded(self.px(RADIUS / 2.));
+            return div()
+                .relative()
+                .flex_none()
+                .child(box_)
+                .child(ring)
+                .into_any_element();
         }
         box_.into_any_element()
     }
 
     pub(super) fn label(&self, text: &str) -> Div {
-        self.text(CAPTION).line_height(self.px(14.)).mb(self.px(5.)).text_color(self.t.muted).child(text.to_uppercase())
+        self.text(CAPTION)
+            .line_height(self.px(14.))
+            .mb(self.px(5.))
+            .text_color(self.t.muted)
+            .child(text.to_uppercase())
     }
 
     pub(super) fn field(&self, field: &Field) -> Div {
@@ -60,7 +81,11 @@ impl Draw<'_> {
             .px(self.px(BUTTON_PAD))
             .bg(t.ground)
             .border_1()
-            .border_color(if field.focused { t.accent_frame } else { t.muted_frame })
+            .border_color(if field.focused {
+                t.accent_frame
+            } else {
+                t.muted_frame
+            })
             .rounded(self.px(RADIUS))
             .text_color(t.fg)
             .whitespace_nowrap();
@@ -73,7 +98,12 @@ impl Draw<'_> {
                 text = text.child(caret());
             }
             if !field.placeholder.is_empty() {
-                text = text.child(div().ml(px(1.)).text_color(t.muted).child(field.placeholder.clone()));
+                text = text.child(
+                    div()
+                        .ml(px(1.))
+                        .text_color(t.muted)
+                        .child(field.placeholder.clone()),
+                );
             }
         } else {
             text = text.child(field.value.clone());
@@ -87,7 +117,6 @@ impl Draw<'_> {
             None => line,
         }
     }
-
 
     pub(super) fn button(&self, button: &Button) -> Div {
         let t = self.t;
@@ -113,9 +142,19 @@ impl Draw<'_> {
 }
 
 impl DialogShell for StandIn {
-    fn present(&self, card: &Card, palette: &Palette, typeface: &Typeface, room: f32) -> AnyElement {
+    fn present(
+        &self,
+        card: &Card,
+        palette: &Palette,
+        typeface: &Typeface,
+        room: f32,
+    ) -> AnyElement {
         let s = f32::from(typeface.body) / BOARD_BODY;
-        let draw = Draw { t: Tokens::of(palette), s, typeface };
+        let draw = Draw {
+            t: Tokens::of(palette),
+            s,
+            typeface,
+        };
         let t = draw.t;
         let head = draw
             .text(TITLE)
@@ -124,8 +163,20 @@ impl DialogShell for StandIn {
             .gap(draw.px(ROW_GAP))
             .font_weight(FontWeight::BOLD)
             .text_color(t.fg)
-            .child(div().min_w_0().overflow_hidden().text_ellipsis().child(card.title.clone()))
-            .child(draw.text(CAPTION).ml_auto().font_weight(FontWeight::NORMAL).text_color(t.muted).child(card.esc.clone()));
+            .child(
+                div()
+                    .min_w_0()
+                    .overflow_hidden()
+                    .text_ellipsis()
+                    .child(card.title.clone()),
+            )
+            .child(
+                draw.text(CAPTION)
+                    .ml_auto()
+                    .font_weight(FontWeight::NORMAL)
+                    .text_color(t.muted)
+                    .child(card.esc.clone()),
+            );
         let mut frame = div()
             .debug_selector(|| "op3-card".into())
             .w(px(scaled(card.width, f32::from(typeface.body), room)))
@@ -145,10 +196,24 @@ impl DialogShell for StandIn {
         for block in &card.body {
             frame = frame.child(draw.block(block));
         }
-        let mut buttons = div().mt(draw.px(ABOVE_BUTTONS)).flex().justify_end().items_center().gap(draw.px(ROW_GAP));
+        let mut buttons = div()
+            .mt(draw.px(ABOVE_BUTTONS))
+            .flex()
+            .justify_end()
+            .items_center()
+            .gap(draw.px(ROW_GAP));
         for (at, button) in card.buttons.iter().enumerate() {
-            buttons = buttons.child(draw.button(button).debug_selector(|| format!("op3-button-{at}")));
+            buttons = buttons.child(
+                draw.button(button)
+                    .debug_selector(|| format!("op3-button-{at}")),
+            );
         }
-        div().size_full().flex().items_center().justify_center().child(frame.child(buttons)).into_any_element()
+        div()
+            .size_full()
+            .flex()
+            .items_center()
+            .justify_center()
+            .child(frame.child(buttons))
+            .into_any_element()
     }
 }

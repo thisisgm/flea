@@ -12,7 +12,14 @@ use flea::ui_logic_pl3::rows::Reply;
 use flea::ui_logic_pl3::view::{Anchor, Keys, Press, Signal, View, CHECK_MS};
 use flea::ui_logic_pl3::words::{self, Scope, Snapshot};
 use gpui::{Context, FocusHandle, ImageAssetLoader, Resource, Task, Window};
-use std::{cell::RefCell, collections::HashSet, path::Path, rc::Rc, sync::Arc, time::{Duration, Instant}};
+use std::{
+    cell::RefCell,
+    collections::HashSet,
+    path::Path,
+    rc::Rc,
+    sync::Arc,
+    time::{Duration, Instant},
+};
 
 /// Empty Trash…'s pointer state; keyboard focus is the view's strip_focus.
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
@@ -49,13 +56,24 @@ pub struct TrashPane {
 }
 
 impl TrashPane {
-    pub fn new(catalog: Arc<I18n>, outside: Box<dyn Outside>, ink: Ink, preset: &str, home: String, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        catalog: Arc<I18n>,
+        outside: Box<dyn Outside>,
+        ink: Ink,
+        preset: &str,
+        home: String,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let typeface = crate::list::Typeface::omarchy_default();
         Self {
             host: Host::new(View::new(ROW_H)),
             catalog,
             outside,
-            paint: Rc::new(RefCell::new(ListPaint::new(typeface.font, typeface.body, ink))),
+            paint: Rc::new(RefCell::new(ListPaint::new(
+                typeface.font,
+                typeface.body,
+                ink,
+            ))),
             focus: cx.focus_handle(),
             button: Button::default(),
             menu_open: false,
@@ -93,7 +111,9 @@ impl TrashPane {
 
     // The watch outlives a close, as the rail's TrashMonitor does; it starts with the first open.
     fn watch(&mut self, cx: &mut Context<Self>) {
-        let Some(start) = self.monitor_start.filter(|_| self.monitor.is_none()) else { return };
+        let Some(start) = self.monitor_start.filter(|_| self.monitor.is_none()) else {
+            return;
+        };
         match start() {
             Ok((monitor, heard)) => {
                 let listener = cx.spawn(async move |this, cx| {
@@ -105,7 +125,9 @@ impl TrashPane {
                 });
                 self.monitor = Some((monitor, listener));
             }
-            Err(_) => self.outside.status(self.catalog.tr("trash.monitor.watch_failed"), true),
+            Err(_) => self
+                .outside
+                .status(self.catalog.tr("trash.monitor.watch_failed"), true),
         }
     }
     pub fn close(&mut self, cx: &mut Context<Self>) {
@@ -136,7 +158,9 @@ impl TrashPane {
 
     /// One backend line on this session: a trashbrowse reply or a trashthumbed answer.
     pub fn line(&mut self, text: &str, cx: &mut Context<Self>) {
-        let Ok(message) = jsondoc::parse(text) else { return };
+        let Ok(message) = jsondoc::parse(text) else {
+            return;
+        };
         match message.get("t").and_then(Json::as_str) {
             Some("trashbrowse") => {
                 if let Some(reply) = Reply::read(message) {
@@ -170,17 +194,26 @@ impl TrashPane {
             }
             return self.pump(cx);
         }
-        if name == "escape" && self.host.view.confirmation.is_none() && self.outside.escape_taken() {
+        if name == "escape" && self.host.view.confirmation.is_none() && self.outside.escape_taken()
+        {
             self.host.view.arm.clear();
             return self.pump(cx);
         }
-        let (now, keys) = (self.now(), Keys { arm: &self.keys.0, alone: &self.keys.1 });
+        let (now, keys) = (
+            self.now(),
+            Keys {
+                arm: &self.keys.0,
+                alone: &self.keys.1,
+            },
+        );
         let press = match name {
             "parent" | "back" => Press::Backspace,
             "reload" => Press::F5,
             other => Press::Action(other),
         };
-        self.host.view.press(press, repeat, now, &self.catalog, keys);
+        self.host
+            .view
+            .press(press, repeat, now, &self.catalog, keys);
         self.pump(cx);
     }
 
@@ -197,7 +230,11 @@ impl TrashPane {
     }
 
     pub fn click_row(&mut self, index: usize, toggle: bool, cx: &mut Context<Self>) {
-        let extend = if toggle { flea::ui_logic_pl3::selection::Extend::Toggle } else { flea::ui_logic_pl3::selection::Extend::No };
+        let extend = if toggle {
+            flea::ui_logic_pl3::selection::Extend::Toggle
+        } else {
+            flea::ui_logic_pl3::selection::Extend::No
+        };
         self.host.view.strip_focus = false;
         self.host.view.choose(index as isize, extend);
         self.pump(cx);
@@ -205,7 +242,9 @@ impl TrashPane {
     pub fn right_click(&mut self, index: Option<usize>, x: f32, y: f32, cx: &mut Context<Self>) {
         let view = &mut self.host.view;
         if let Some(index) = index {
-            let marked = view.row_at(index).is_some_and(|row| view.is_selected(&row.uri));
+            let marked = view
+                .row_at(index)
+                .is_some_and(|row| view.is_selected(&row.uri));
             if !marked {
                 view.choose(index as isize, flea::ui_logic_pl3::selection::Extend::No);
             }
@@ -228,10 +267,20 @@ impl TrashPane {
 
     fn open_menu(&mut self, at: Anchor, selection: bool) {
         let view = &self.host.view;
-        let items = if selection { host::selection_menu(view.busy(), &self.hidden) } else { host::trash_menu(view.total, view.busy()) };
+        let items = if selection {
+            host::selection_menu(view.busy(), &self.hidden)
+        } else {
+            host::trash_menu(view.total, view.busy())
+        };
         let at = match at {
-            Anchor::Row(index) => At { x: PAD_X, y: STRIP_H + HEADER_H + (index + 1) as f32 * ROW_H - view.scroll_y + MENU_DROP },
-            Anchor::Top => At { x: self.width / 2., y: STRIP_H },
+            Anchor::Row(index) => At {
+                x: PAD_X,
+                y: STRIP_H + HEADER_H + (index + 1) as f32 * ROW_H - view.scroll_y + MENU_DROP,
+            },
+            Anchor::Top => At {
+                x: self.width / 2.,
+                y: STRIP_H,
+            },
             Anchor::Point(x, y) => At { x, y },
         };
         self.menu_open = true;
@@ -249,7 +298,9 @@ impl TrashPane {
     }
     /// op1 answered the card: the destructive button's token, or None for Cancel and Escape.
     pub fn card_answered(&mut self, token: Option<u64>, cx: &mut Context<Self>) {
-        let Some(shown) = self.card.as_ref().map(|card| card.token) else { return };
+        let Some(shown) = self.card.as_ref().map(|card| card.token) else {
+            return;
+        };
         if token.is_some_and(|token| token != shown) {
             return;
         }
@@ -265,10 +316,17 @@ impl TrashPane {
         }
         for signal in self.host.view.signals() {
             match signal {
-                Signal::Settle { generation, delay_ms } => self.settle(generation, delay_ms, cx),
+                Signal::Settle {
+                    generation,
+                    delay_ms,
+                } => self.settle(generation, delay_ms, cx),
                 Signal::Status { text, error } => self.outside.status(text, error),
                 Signal::Arm(text) => self.outside.status(text, false),
-                Signal::Result { headline, detail, error } => self.outside.result(headline, detail, error),
+                Signal::Result {
+                    headline,
+                    detail,
+                    error,
+                } => self.outside.result(headline, detail, error),
                 Signal::Count(total) => self.outside.count(total),
                 Signal::Back => self.outside.back(),
                 Signal::FocusRail => self.outside.focus_rail(),
@@ -289,7 +347,9 @@ impl TrashPane {
             self.checker = None;
         } else if self.checker.is_none() {
             self.checker = Some(cx.spawn(async move |this, cx| {
-                cx.background_executor().timer(Duration::from_millis(CHECK_MS)).await;
+                cx.background_executor()
+                    .timer(Duration::from_millis(CHECK_MS))
+                    .await;
                 let _ = this.update(cx, |pane, cx| {
                     pane.checker = None;
                     pane.host.view.check();
@@ -301,7 +361,9 @@ impl TrashPane {
 
     fn settle(&mut self, generation: u64, delay_ms: u64, cx: &mut Context<Self>) {
         self.timer = Some(cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(Duration::from_millis(delay_ms)).await;
+            cx.background_executor()
+                .timer(Duration::from_millis(delay_ms))
+                .await;
             let _ = this.update(cx, |pane, cx| {
                 pane.host.view.settled(generation);
                 pane.pump(cx);
@@ -318,12 +380,22 @@ impl TrashPane {
         if self.card.take().is_some() {
             self.outside.card(None);
         }
-        let Some(snapshot) = view.confirmation.clone() else { return };
-        let scope = if snapshot.all { Scope::Trash } else { Scope::Items };
+        let Some(snapshot) = view.confirmation.clone() else {
+            return;
+        };
+        let scope = if snapshot.all {
+            Scope::Trash
+        } else {
+            Scope::Items
+        };
         let card = Card {
             title: words::confirm_title(&self.catalog, &snapshot),
             body: words::confirm_body(&self.catalog, &snapshot, scope),
-            confirm: self.catalog.tr(if snapshot.all { "trash.confirm.empty_button" } else { "trash.confirm.delete_button" }),
+            confirm: self.catalog.tr(if snapshot.all {
+                "trash.confirm.empty_button"
+            } else {
+                "trash.confirm.delete_button"
+            }),
             cancel: self.catalog.tr("trash.confirm.cancel"),
             token: snapshot.token,
             empty: snapshot.all,
@@ -335,17 +407,29 @@ impl TrashPane {
     fn sync_paint(&mut self) {
         let view = &self.host.view;
         let mut paint = self.paint.borrow_mut();
-        let lines: Vec<Line> = view.rows.iter().enumerate().map(|(at, row)| Line {
-            name: row.name().to_string(),
-            location: words::location_text(&self.catalog, &row.original, &self.home),
-            deleted: words::deleted_text(&self.catalog, row.deleted.as_deref()),
-            mark: if row.directory { Mark::Folder } else { Mark::for_row(&row.icon, 0o100644) },
-            marked: view.is_selected(&row.uri),
-            thumb: Some(view.thumbs.file_for(view.first + at, view.policy)).filter(|file| !file.is_empty())
-                .map(|file| Resource::Path(Arc::from(Path::new(file)))),
-        }).collect();
+        let lines: Vec<Line> = view
+            .rows
+            .iter()
+            .enumerate()
+            .map(|(at, row)| Line {
+                name: row.name().to_string(),
+                location: words::location_text(&self.catalog, &row.original, &self.home),
+                deleted: words::deleted_text(&self.catalog, row.deleted.as_deref()),
+                mark: if row.directory {
+                    Mark::Folder
+                } else {
+                    Mark::for_row(&row.icon, 0o100644)
+                },
+                marked: view.is_selected(&row.uri),
+                thumb: Some(view.thumbs.file_for(view.first + at, view.policy))
+                    .filter(|file| !file.is_empty())
+                    .map(|file| Resource::Path(Arc::from(Path::new(file)))),
+            })
+            .collect();
         let same_text = lines.len() == paint.lines.len()
-            && lines.iter().zip(&paint.lines).all(|(a, b)| a.name == b.name && a.location == b.location && a.deleted == b.deleted);
+            && lines.iter().zip(&paint.lines).all(|(a, b)| {
+                a.name == b.name && a.location == b.location && a.deleted == b.deleted
+            });
         if !same_text || paint.first != view.first {
             paint.revision += 1;
         }

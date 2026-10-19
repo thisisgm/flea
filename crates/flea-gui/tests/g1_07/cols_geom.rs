@@ -17,23 +17,173 @@ const COLUMN_H: f32 = 200.;
 const ADVANCES: [f32; 2] = [8.4, 8.0];
 
 /// One checkPaneRow call: label, width, size shown, chevron, row, name, clipped, tight, budgets.
-type PaneRow = (&'static str, f32, bool, bool, usize, &'static str, bool, bool, [usize; 2]);
+type PaneRow = (
+    &'static str,
+    f32,
+    bool,
+    bool,
+    usize,
+    &'static str,
+    bool,
+    bool,
+    [usize; 2],
+);
 
 const PANE_ROWS: [PaneRow; 14] = [
-    ("an active column at 366", 366., true, false, 0, LONG, false, true, [24, 25]),
-    ("an active column at 853", 853., true, false, 0, LONG, false, true, [82, 86]),
-    ("a clipped row at 366", 366., true, false, 0, LONG, true, false, [24, 25]),
-    ("a peek column at 366", 366., false, false, 0, LONG, false, true, [34, 36]),
-    ("a peek column at 853", 853., false, false, 0, LONG, false, true, [92, 97]),
-    ("a short name at 366", 366., true, false, 1, SHORT, false, false, [24, 25]),
-    ("a short peek name at 366", 366., false, false, 1, SHORT, false, false, [34, 36]),
-    ("a chevron row at 366", 366., true, true, 2, LONG, false, true, [22, 24]),
-    ("a chevron row at 853", 853., true, true, 2, LONG, false, true, [80, 84]),
-    ("a chevron peek at 366", 366., false, true, 2, LONG, false, true, [33, 35]),
-    ("a chevron peek at 853", 853., false, true, 2, LONG, false, true, [91, 95]),
-    ("a file under the cursor at 366", 366., true, false, 0, LONG, false, true, [24, 25]),
-    ("a directory off the cursor at 366", 366., true, false, 2, LONG, false, true, [24, 25]),
-    ("a lifted directory at 366", 366., true, true, 2, LONG, false, true, [22, 24]),
+    (
+        "an active column at 366",
+        366.,
+        true,
+        false,
+        0,
+        LONG,
+        false,
+        true,
+        [24, 25],
+    ),
+    (
+        "an active column at 853",
+        853.,
+        true,
+        false,
+        0,
+        LONG,
+        false,
+        true,
+        [82, 86],
+    ),
+    (
+        "a clipped row at 366",
+        366.,
+        true,
+        false,
+        0,
+        LONG,
+        true,
+        false,
+        [24, 25],
+    ),
+    (
+        "a peek column at 366",
+        366.,
+        false,
+        false,
+        0,
+        LONG,
+        false,
+        true,
+        [34, 36],
+    ),
+    (
+        "a peek column at 853",
+        853.,
+        false,
+        false,
+        0,
+        LONG,
+        false,
+        true,
+        [92, 97],
+    ),
+    (
+        "a short name at 366",
+        366.,
+        true,
+        false,
+        1,
+        SHORT,
+        false,
+        false,
+        [24, 25],
+    ),
+    (
+        "a short peek name at 366",
+        366.,
+        false,
+        false,
+        1,
+        SHORT,
+        false,
+        false,
+        [34, 36],
+    ),
+    (
+        "a chevron row at 366",
+        366.,
+        true,
+        true,
+        2,
+        LONG,
+        false,
+        true,
+        [22, 24],
+    ),
+    (
+        "a chevron row at 853",
+        853.,
+        true,
+        true,
+        2,
+        LONG,
+        false,
+        true,
+        [80, 84],
+    ),
+    (
+        "a chevron peek at 366",
+        366.,
+        false,
+        true,
+        2,
+        LONG,
+        false,
+        true,
+        [33, 35],
+    ),
+    (
+        "a chevron peek at 853",
+        853.,
+        false,
+        true,
+        2,
+        LONG,
+        false,
+        true,
+        [91, 95],
+    ),
+    (
+        "a file under the cursor at 366",
+        366.,
+        true,
+        false,
+        0,
+        LONG,
+        false,
+        true,
+        [24, 25],
+    ),
+    (
+        "a directory off the cursor at 366",
+        366.,
+        true,
+        false,
+        2,
+        LONG,
+        false,
+        true,
+        [24, 25],
+    ),
+    (
+        "a lifted directory at 366",
+        366.,
+        true,
+        true,
+        2,
+        LONG,
+        false,
+        true,
+        [22, 24],
+    ),
 ];
 
 #[test]
@@ -71,13 +221,23 @@ fn a_row_holds_its_name_between_the_mark_and_the_size() {
             &format!("{label} ends its name at {end} over the size at {size_x}"),
             end <= size_x + 0.5,
         );
-        c.eq(225, &format!("{label} starts its size at"), size_x, want_size);
+        c.eq(
+            225,
+            &format!("{label} starts its size at"),
+            size_x,
+            want_size,
+        );
         c.ok(
             227,
             &format!("{label} ends its size at {size_right} over the chevron at {chevron_x}"),
             size_right <= chevron_x + 0.5,
         );
-        c.eq(227, &format!("{label} sets its chevron at"), chevron_x, want_chevron);
+        c.eq(
+            227,
+            &format!("{label} sets its chevron at"),
+            chevron_x,
+            want_chevron,
+        );
         c.ok(
             229,
             &format!("{label} starts its size at {size_x} {left_of}"),
@@ -150,7 +310,11 @@ fn a_track_hands_each_row_the_largest_budget_that_fits() {
         }
         // The short name under the cursor is a file: it keeps the plain budget and fits it whole.
         let budget = name_budget(366., true, false, advance);
-        c.ok(364, "a short name at 366 builds no delegate at 1", 1 < shown);
+        c.ok(
+            364,
+            "a short name at 366 builds no delegate at 1",
+            1 < shown,
+        );
         c.ok(
             366,
             &format!("a short name draws elided at 366 (advance {advance}, budget {budget})"),
@@ -167,7 +331,12 @@ fn a_track_hands_each_row_the_largest_budget_that_fits() {
 #[test]
 fn a_cut_row_dims_at_the_board_opacity() {
     let mut c = Checks::new(SOURCE);
-    c.eq(307, &format!("a scissors row dims at {CUT}, want 0.55"), CUT, 0.55);
+    c.eq(
+        307,
+        &format!("a scissors row dims at {CUT}, want 0.55"),
+        CUT,
+        0.55,
+    );
     c.covers(&[310, 311]);
     c.finish();
 }

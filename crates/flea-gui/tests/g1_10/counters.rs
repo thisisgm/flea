@@ -208,11 +208,21 @@ fn only_the_close_mark_under_the_pointer_brightens_and_a_drag_names_none() {
     let width = bar.tab_width(3);
     let mark = PAD_X + 2. * width - HIT_MIN / 2.;
     assert!(bar.hovered(Some(mark), 3), "entering a mark is a change");
-    assert_eq!(bar.close_hover, Some(1), "the second tab's mark is under it");
-    assert!(!bar.hovered(Some(mark + 1.), 3), "moving inside it is no change");
+    assert_eq!(
+        bar.close_hover,
+        Some(1),
+        "the second tab's mark is under it"
+    );
+    assert!(
+        !bar.hovered(Some(mark + 1.), 3),
+        "moving inside it is no change"
+    );
     let frame = bar.frame(&side.state, "/tmp/c", "/home/gm", "Home");
     assert_eq!(frame.close_hover, Some(1), "and the frame draws it bright");
-    assert!(bar.hovered(Some(PAD_X + width + 1.), 3), "the tab body is not the mark");
+    assert!(
+        bar.hovered(Some(PAD_X + width + 1.), 3),
+        "the tab body is not the mark"
+    );
     assert_eq!(bar.close_hover, None);
     bar.hovered(Some(mark), 3);
     bar.settle(Some(3));
@@ -223,7 +233,10 @@ fn only_the_close_mark_under_the_pointer_brightens_and_a_drag_names_none() {
     bar.settle(None);
     assert_eq!(bar.close_hover, None, "and a hidden strip keeps none");
     bar.drag_started(Some(0));
-    assert!(!bar.hovered(Some(mark), 3), "a running drag brightens no mark");
+    assert!(
+        !bar.hovered(Some(mark), 3),
+        "a running drag brightens no mark"
+    );
     assert_eq!(bar.close_hover, None);
 }
 
@@ -240,13 +253,21 @@ fn a_secondary_press_asks_the_tab_menu_three_under_the_strip_at_the_pointer() {
         }),
         "the menu names the tab pressed and opens 3 under the 27 strip"
     );
-    assert_eq!(HEIGHT + MENU_GAP, 30., "the board's 57 top, 3 under the strip's 54 bottom");
+    assert_eq!(
+        HEIGHT + MENU_GAP,
+        30.,
+        "the board's 57 top, 3 under the strip's 54 bottom"
+    );
     assert_eq!(
         bar.menu_at(PAD_X + 3. * width - 2., 3).map(|ask| ask.index),
         Some(2),
         "a press on a tab's mark asks for that tab"
     );
-    assert_eq!(bar.menu_at(PAD_X + 3. * width + 1., 3), None, "New tab has no tab menu");
+    assert_eq!(
+        bar.menu_at(PAD_X + 3. * width + 1., 3),
+        None,
+        "New tab has no tab menu"
+    );
     assert_eq!(bar.menu_at(PAD_X - 1., 3), None, "nor has the pad");
 }
 

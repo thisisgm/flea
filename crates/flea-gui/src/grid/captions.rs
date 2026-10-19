@@ -24,7 +24,11 @@ fn units(text: &str) -> Vec<Unit> {
                 continue;
             }
         }
-        out.push(Unit { start: at, end, cells: cells_of(ch) });
+        out.push(Unit {
+            start: at,
+            end,
+            cells: cells_of(ch),
+        });
     }
     out
 }
@@ -42,31 +46,46 @@ fn cells(units: &[Unit], range: Range<usize>) -> usize {
 // Elements from pos fitting in this many cells.
 fn span_from(units: &[Unit], pos: usize, budget: usize) -> usize {
     let mut used = 0;
-    units[pos..].iter().take_while(|unit| {
-        used += unit.cells;
-        used <= budget
-    }).count()
+    units[pos..]
+        .iter()
+        .take_while(|unit| {
+            used += unit.cells;
+            used <= budget
+        })
+        .count()
 }
 
 // Trailing elements fitting in this many cells.
 fn tail_span(units: &[Unit], budget: usize) -> usize {
     let mut used = 0;
-    units.iter().rev().take_while(|unit| {
-        used += unit.cells;
-        used <= budget
-    }).count()
+    units
+        .iter()
+        .rev()
+        .take_while(|unit| {
+            used += unit.cells;
+            used <= budget
+        })
+        .count()
 }
 
 // The extension is the last dot's tail; a leading dot names a dotfile, and a trailing one names nothing.
 fn extension_length(text: &str, units: &[Unit]) -> usize {
-    match (1..units.len()).rev().find(|&at| single(text, units[at], &['.'])) {
+    match (1..units.len())
+        .rev()
+        .find(|&at| single(text, units[at], &['.']))
+    {
         Some(dot) if dot != units.len() - 1 => units.len() - dot,
         _ => 0,
     }
 }
 
 // The head takes the odd cell; the tail keeps a one-line extension whole when the mark still fits beside it.
-fn elide_split(capacity: usize, extension: usize, extension_cells: usize, per_line: usize) -> (usize, usize) {
+fn elide_split(
+    capacity: usize,
+    extension: usize,
+    extension_cells: usize,
+    per_line: usize,
+) -> (usize, usize) {
     let (mut head, mut tail) = ((capacity - 1).div_ceil(2), (capacity - 1) / 2);
     if extension > 0 && extension_cells <= per_line && extension_cells < capacity {
         tail = tail.max(extension_cells);
@@ -88,15 +107,27 @@ fn elide(text: &str, units: &[Unit], capacity: usize, per_line: usize) -> String
     let head = span_from(units, 0, head);
     let tail = tail_span(units, tail);
     let head_end = units.get(head).map_or(text.len(), |unit| unit.start);
-    let tail_start = units.get(units.len() - tail).map_or(text.len(), |unit| unit.start);
+    let tail_start = units
+        .get(units.len() - tail)
+        .map_or(text.len(), |unit| unit.start);
     format!("{}{ELLIPSIS}{}", &text[..head_end], &text[tail_start..])
 }
 
 // The break a line takes: the last separator whose rest still fits, the extension's own dot losing to any earlier one.
-fn break_cut(text: &str, units: &[Unit], far: usize, pos: usize, left: usize, per_line: usize, dot: usize) -> usize {
+fn break_cut(
+    text: &str,
+    units: &[Unit],
+    far: usize,
+    pos: usize,
+    left: usize,
+    per_line: usize,
+    dot: usize,
+) -> usize {
     let mut kept_dot = None;
     for at in (pos + 1..far).rev() {
-        if !single(text, units[at], &BREAKS) || cells(units, at + 1..units.len()) > (left - 1) * per_line {
+        if !single(text, units[at], &BREAKS)
+            || cells(units, at + 1..units.len()) > (left - 1) * per_line
+        {
             continue;
         }
         if at == dot {
@@ -125,7 +156,15 @@ fn wrap(text: &str, units: &[Unit], per_line: usize, count: usize) -> Vec<Range<
             out.push(pos..far);
             break;
         }
-        let cut = break_cut(text, units, far.max(pos + 1), pos, count - line, per_line, dot);
+        let cut = break_cut(
+            text,
+            units,
+            far.max(pos + 1),
+            pos,
+            count - line,
+            per_line,
+            dot,
+        );
         out.push(pos..cut);
         pos = cut;
     }
@@ -172,7 +211,10 @@ pub fn grid_caption(name: &str, per_line: f64, lines: f64) -> Cow<'_, str> {
 
 /// GridNames.lastLineCells: the cells of the caption's last line, so a mark sits past the glyphs it follows.
 pub fn last_line_cells(caption: &str) -> usize {
-    caption.rsplit('\n').next().map_or(0, |line| units(line).iter().map(|unit| unit.cells).sum())
+    caption
+        .rsplit('\n')
+        .next()
+        .map_or(0, |line| units(line).iter().map(|unit| unit.cells).sum())
 }
 
 /// Match.run: the first case-insensitive occurrence of the query, as a byte range of the haystack.
@@ -209,11 +251,17 @@ pub fn caption_marks(caption: &str, query: &str) -> Vec<LineMark> {
     let mut out = Vec::new();
     let mut pos = 0;
     for (line, text) in caption.split('\n').enumerate() {
-        let centred = text.trim_end_matches(|ch: char| ch.is_whitespace() || ch == '\u{feff}').len();
+        let centred = text
+            .trim_end_matches(|ch: char| ch.is_whitespace() || ch == '\u{feff}')
+            .len();
         let from = found.start.max(pos) - pos;
         let to = found.end.min(pos + centred).saturating_sub(pos);
         if from < to {
-            out.push(LineMark { line, run: from..to, centred });
+            out.push(LineMark {
+                line,
+                run: from..to,
+                centred,
+            });
         }
         pos += text.len();
     }
@@ -227,9 +275,18 @@ mod tests {
     #[test]
     fn the_board_sample_and_the_samples_beside_it_break_as_gridnames_does() {
         let full = "screenshot-2026-08-30-final-review-for-gm-after-the-bench-v3.png";
-        assert_eq!(grid_caption(full, 16., 2.), "screenshot-2026-\n\u{2026}he-bench-v3.png");
-        assert_eq!(grid_caption("my-vacation-1.jpeg", 16., 2.), "my-vacation-\n1.jpeg");
-        assert_eq!(grid_caption("a verylongnamewithoutanyspacesatall.png", 16., 2.), "a verylongnamewi\n\u{2026}spacesatall.png");
+        assert_eq!(
+            grid_caption(full, 16., 2.),
+            "screenshot-2026-\n\u{2026}he-bench-v3.png"
+        );
+        assert_eq!(
+            grid_caption("my-vacation-1.jpeg", 16., 2.),
+            "my-vacation-\n1.jpeg"
+        );
+        assert_eq!(
+            grid_caption("a verylongnamewithoutanyspacesatall.png", 16., 2.),
+            "a verylongnamewi\n\u{2026}spacesatall.png"
+        );
         assert_eq!(grid_caption("IMG_4121.jpg", 16., 2.), "IMG_4121.jpg");
         assert_eq!(grid_caption("abcdef", f64::NAN, 2.), "abcdef");
         assert_eq!(last_line_cells("ab\nc\u{1f389}"), 3);

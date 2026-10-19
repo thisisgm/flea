@@ -8,8 +8,8 @@ use super::{
 };
 use crate::window::input::{clean_paste, modifiers, paste_key};
 use gpui::{
-    deferred, div, prelude::*, px, AnyElement, ClipboardItem, Context, Entity, KeyDownEvent, MouseButton,
-    MouseDownEvent, MouseMoveEvent, ScrollWheelEvent, Window,
+    deferred, div, prelude::*, px, AnyElement, ClipboardItem, Context, Entity, KeyDownEvent,
+    MouseButton, MouseDownEvent, MouseMoveEvent, ScrollWheelEvent, Window,
 };
 
 impl Render for PathView {
@@ -32,7 +32,11 @@ impl Render for PathView {
                 cx.on_next_frame(window, |view, _, _| view.pointer.settling = false);
             }
             let rows = self.jump.entries.len();
-            let width = self.paint.borrow().area.map_or(0., |area| f32::from(area.size.width));
+            let width = self
+                .paint
+                .borrow()
+                .area
+                .map_or(0., |area| f32::from(area.size.width));
             let popup = Popup::measure(f32::from(window.viewport_size().height), 0., width, rows);
             let menu = div()
                 .absolute()
@@ -42,7 +46,10 @@ impl Render for PathView {
                 .h(px(popup.height))
                 .occlude()
                 .on_mouse_down(MouseButton::Left, cx.listener(Self::menu_press))
-                .on_mouse_down(MouseButton::Right, cx.listener(|_, _: &MouseDownEvent, window, _| window.prevent_default()))
+                .on_mouse_down(
+                    MouseButton::Right,
+                    cx.listener(|_, _: &MouseDownEvent, window, _| window.prevent_default()),
+                )
                 .on_mouse_move(cx.listener(Self::menu_move))
                 .on_scroll_wheel(cx.listener(Self::menu_wheel))
                 .child(MenuElement::new(view));
@@ -60,14 +67,20 @@ pub fn pane_strip(view: &Entity<PathView>, side: usize, cx: &mut gpui::App) -> A
     if !view.read(cx).inputs.dual {
         return div().into_any_element();
     }
-    view.update(cx, |_, cx| strip(view.clone(), Place::Pane(side), cx).into_any_element())
+    view.update(cx, |_, cx| {
+        strip(view.clone(), Place::Pane(side), cx).into_any_element()
+    })
 }
 
 fn strip(view: Entity<PathView>, place: Place, cx: &mut Context<PathView>) -> impl IntoElement {
     let slot = place.slot();
     let origin = move |view: &PathView, x: gpui::Pixels| {
         let bounds = view.paint.borrow().strips[slot];
-        let pad = if place == Place::Chrome { 0. } else { super::paint::STRIP_PAD };
+        let pad = if place == Place::Chrome {
+            0.
+        } else {
+            super::paint::STRIP_PAD
+        };
         bounds.map(|bounds| f32::from(x - bounds.origin.x) - pad)
     };
     div()
@@ -76,8 +89,17 @@ fn strip(view: Entity<PathView>, place: Place, cx: &mut Context<PathView>) -> im
         .on_mouse_down(
             MouseButton::Left,
             cx.listener(move |view, event: &MouseDownEvent, window, cx| {
-                let Some(x) = origin(view, event.position.x) else { return };
-                view.press_strip(slot, x, event.click_count, modifiers(event.modifiers), window, cx);
+                let Some(x) = origin(view, event.position.x) else {
+                    return;
+                };
+                view.press_strip(
+                    slot,
+                    x,
+                    event.click_count,
+                    modifiers(event.modifiers),
+                    window,
+                    cx,
+                );
                 cx.stop_propagation();
             }),
         )
@@ -118,8 +140,12 @@ impl PathView {
             }
             "left" | "right" | "home" | "end" => {
                 let to = match key {
-                    "left" if !held.shift && !self.entry.selected.is_empty() => self.entry.selected.start,
-                    "right" if !held.shift && !self.entry.selected.is_empty() => self.entry.selected.end,
+                    "left" if !held.shift && !self.entry.selected.is_empty() => {
+                        self.entry.selected.start
+                    }
+                    "right" if !held.shift && !self.entry.selected.is_empty() => {
+                        self.entry.selected.end
+                    }
                     "left" => self.entry.previous(at),
                     "right" => self.entry.next(at),
                     "home" => 0,
@@ -137,7 +163,11 @@ impl PathView {
                 self.edited(cx);
             }
             _ if paste_key(event) => {
-                let text = cx.read_from_clipboard().and_then(|item| item.text()).map(|text| clean_paste(&text)).unwrap_or_default();
+                let text = cx
+                    .read_from_clipboard()
+                    .and_then(|item| item.text())
+                    .map(|text| clean_paste(&text))
+                    .unwrap_or_default();
                 if !text.is_empty() {
                     self.entry.replace(None, &text);
                     self.edited(cx);
@@ -177,8 +207,12 @@ impl PathView {
             2 => {
                 let text = &self.entry.text;
                 let word = |c: char| c != '/' && !c.is_whitespace();
-                let start = text[..at].rfind(|c: char| !word(c)).map_or(0, |cut| cut + 1);
-                let end = text[at..].find(|c: char| !word(c)).map_or(text.len(), |cut| at + cut);
+                let start = text[..at]
+                    .rfind(|c: char| !word(c))
+                    .map_or(0, |cut| cut + 1);
+                let end = text[at..]
+                    .find(|c: char| !word(c))
+                    .map_or(text.len(), |cut| at + cut);
                 self.entry.move_to(start);
                 self.entry.select_to(end);
             }
@@ -197,14 +231,22 @@ impl PathView {
 
     fn row_at(&self, x: gpui::Pixels, y: gpui::Pixels) -> Option<usize> {
         let popup = self.paint.borrow().popup?;
-        popup.row_at(f32::from(x), f32::from(y), self.scroll, self.jump.entries.len())
+        popup.row_at(
+            f32::from(x),
+            f32::from(y),
+            self.scroll,
+            self.jump.entries.len(),
+        )
     }
 
     // A press on a row opens it; one on the popup's own padding closes the bar with nothing opened, the menu recipe.
     fn menu_press(&mut self, event: &MouseDownEvent, window: &mut Window, cx: &mut Context<Self>) {
         window.prevent_default();
         cx.stop_propagation();
-        match self.row_at(event.position.x, event.position.y).and_then(|at| self.jump.entries.get(at)) {
+        match self
+            .row_at(event.position.x, event.position.y)
+            .and_then(|at| self.jump.entries.get(at))
+        {
             Some(row) => {
                 let path = row.path.clone();
                 self.choose(path, cx);

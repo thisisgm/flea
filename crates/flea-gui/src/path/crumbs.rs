@@ -12,7 +12,12 @@ pub struct Crumb {
 
 impl Crumb {
     fn new(text: String, path: String) -> Self {
-        Self { text, path, last: false, elided: false }
+        Self {
+            text,
+            path,
+            last: false,
+            elided: false,
+        }
     }
 
     /// A parent opens on one tap; the leaf and the collapsed marker name nowhere new.
@@ -35,7 +40,10 @@ pub struct Alias {
 
 // The home test is the whole component, so a sibling like /home/gmx is not inside /home/gm.
 fn inside(path: &str, root: &str) -> bool {
-    path == root || path.strip_prefix(root).is_some_and(|rest| rest.starts_with('/'))
+    path == root
+        || path
+            .strip_prefix(root)
+            .is_some_and(|rest| rest.starts_with('/'))
 }
 
 pub fn clean_root(path: &str) -> &str {
@@ -63,7 +71,10 @@ pub fn crumbs(path: &str, home: &str, alias: Option<&Alias>) -> Vec<Crumb> {
         let root = clean_root(&alias.path);
         if !root.is_empty() && !alias.label.is_empty() && inside(path, root) {
             // The label is one crumb even when it holds a "/"; only the real suffix adds targets.
-            let parts: Vec<&str> = path[root.len()..].split('/').filter(|part| !part.is_empty()).collect();
+            let parts: Vec<&str> = path[root.len()..]
+                .split('/')
+                .filter(|part| !part.is_empty())
+                .collect();
             let sep = if parts.is_empty() { "" } else { "/" };
             let mut out = vec![Crumb::new(format!("{}{sep}", alias.label), root.to_owned())];
             let mut walked = root.to_owned();
@@ -75,12 +86,28 @@ pub fn crumbs(path: &str, home: &str, alias: Option<&Alias>) -> Vec<Crumb> {
         }
     }
     let in_home = !home.is_empty() && inside(path, home);
-    let display = if in_home { format!("~{}", &path[home.len()..]) } else { path.to_owned() };
+    let display = if in_home {
+        format!("~{}", &path[home.len()..])
+    } else {
+        path.to_owned()
+    };
     let parts: Vec<&str> = display.split('/').collect();
-    let mut walked = if in_home { home.to_owned() } else { String::new() };
+    let mut walked = if in_home {
+        home.to_owned()
+    } else {
+        String::new()
+    };
     // The leading "~" and the leading "/" are crumbs of their own, naming home and the root.
-    let first = if parts.len() > 1 { format!("{}/", parts[0]) } else { parts[0].to_owned() };
-    let target = if walked.is_empty() { "/".to_owned() } else { walked.clone() };
+    let first = if parts.len() > 1 {
+        format!("{}/", parts[0])
+    } else {
+        parts[0].to_owned()
+    };
+    let target = if walked.is_empty() {
+        "/".to_owned()
+    } else {
+        walked.clone()
+    };
     let mut out = vec![Crumb::new(first, target)];
     for part in parts.iter().skip(1).filter(|part| !part.is_empty()) {
         walked = format!("{walked}/{part}");
@@ -101,11 +128,12 @@ pub fn alias_at(path: &str, aliases: &[Alias]) -> Option<Alias> {
             best = Some(alias);
         }
     }
-    best.filter(|alias| !alias.label.is_empty()).map(|alias| Alias {
-        path: clean_root(&alias.path).to_owned(),
-        label: alias.label.clone(),
-        key: alias.key.clone(),
-    })
+    best.filter(|alias| !alias.label.is_empty())
+        .map(|alias| Alias {
+            path: clean_root(&alias.path).to_owned(),
+            label: alias.label.clone(),
+            key: alias.key.clone(),
+        })
 }
 
 pub fn remember_alias(aliases: &[Alias], path: &str, label: &str, key: Option<&str>) -> Vec<Alias> {
@@ -119,7 +147,11 @@ pub fn remember_alias(aliases: &[Alias], path: &str, label: &str, key: Option<&s
         .filter(|alias| alias.key != id && clean_root(&alias.path) != root)
         .cloned()
         .collect();
-    out.push(Alias { path: root.to_owned(), label: label.to_owned(), key: id.to_owned() });
+    out.push(Alias {
+        path: root.to_owned(),
+        label: label.to_owned(),
+        key: id.to_owned(),
+    });
     out
 }
 
@@ -131,10 +163,17 @@ pub struct Place<'a> {
     pub saved: bool,
 }
 
-pub fn labels_by_key(entries: &[Place<'_>], key_for: impl Fn(&str) -> String) -> HashMap<String, String> {
+pub fn labels_by_key(
+    entries: &[Place<'_>],
+    key_for: impl Fn(&str) -> String,
+) -> HashMap<String, String> {
     let mut out = HashMap::new();
     for entry in entries {
-        let address = if entry.uri.is_empty() { entry.path } else { entry.uri };
+        let address = if entry.uri.is_empty() {
+            entry.path
+        } else {
+            entry.uri
+        };
         if entry.saved && !address.is_empty() && !entry.label.is_empty() {
             out.insert(key_for(address), entry.label.to_owned());
         }
@@ -146,10 +185,15 @@ pub fn labels_by_key(entries: &[Place<'_>], key_for: impl Fn(&str) -> String) ->
 pub fn relabel_aliases(aliases: &[Alias], labels: &HashMap<String, String>) -> Vec<Alias> {
     aliases
         .iter()
-        .map(|alias| match labels.get(&alias.key).filter(|label| !label.is_empty()) {
-            Some(label) => Alias { label: label.clone(), ..alias.clone() },
-            None => alias.clone(),
-        })
+        .map(
+            |alias| match labels.get(&alias.key).filter(|label| !label.is_empty()) {
+                Some(label) => Alias {
+                    label: label.clone(),
+                    ..alias.clone()
+                },
+                None => alias.clone(),
+            },
+        )
         .collect()
 }
 
@@ -193,9 +237,19 @@ pub fn fit_crumbs(list: Vec<Crumb>, budget: usize) -> Vec<Crumb> {
     if list.len() < 4 || crumb_chars(&list) <= budget {
         return elide_leaf(list, budget);
     }
-    let marker = Crumb { text: format!("{ELLIPSIS}/"), path: String::new(), last: false, elided: true };
+    let marker = Crumb {
+        text: format!("{ELLIPSIS}/"),
+        path: String::new(),
+        last: false,
+        elided: true,
+    };
     let count = list.len();
-    let mut shown = vec![list[0].clone(), marker, list[count - 2].clone(), list[count - 1].clone()];
+    let mut shown = vec![
+        list[0].clone(),
+        marker,
+        list[count - 2].clone(),
+        list[count - 1].clone(),
+    ];
     // The room the marker leaves goes back to the crumbs nearest the root, in walking order.
     for (at, crumb) in list.iter().enumerate().take(count - 2).skip(1) {
         let width = crumb_chars(&shown) + crumb.chars();

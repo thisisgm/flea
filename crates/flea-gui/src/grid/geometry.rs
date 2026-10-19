@@ -23,7 +23,12 @@ impl ThumbSize {
 
     /// The stop a saved preview.thumbSize names; anything else is medium, as Density.thumbPixelsFor answers.
     pub fn named(name: &str) -> Self {
-        Self(THUMB_STOPS.iter().position(|stop| stop.0 == name).unwrap_or(1))
+        Self(
+            THUMB_STOPS
+                .iter()
+                .position(|stop| stop.0 == name)
+                .unwrap_or(1),
+        )
     }
     pub fn name(self) -> &'static str {
         THUMB_STOPS[self.0].0
@@ -116,7 +121,9 @@ pub fn columns_for(width: f32, min_cell: f32, tile: f32, pad_x: f32, gap: f32, l
 
 /// cellWidthFor(800, 5, 8, 0) is 158, five cells filling the 792 beside the gap.
 pub fn cell_width_for(width: f32, columns: usize, gap: f32, lane: f32) -> f32 {
-    ((width - gap - lane) / columns.max(1) as f32).floor().max(1.)
+    ((width - gap - lane) / columns.max(1) as f32)
+        .floor()
+        .max(1.)
 }
 
 /// A cell is its slot, the name gap, two caption lines and the pad above and below; cellHeightFor(128, 9, 33, 14) is 198.
@@ -135,7 +142,14 @@ pub struct WindowPlan {
 }
 
 /// windowFor(18, 11, 150, 26, 124, 25) is 576 items of buffer, a 1350 window and a margin of two tile rows.
-pub fn window_for(columns: usize, visible: usize, buffer_rows: usize, row_height: f32, cell_height: f32, refetch: usize) -> WindowPlan {
+pub fn window_for(
+    columns: usize,
+    visible: usize,
+    buffer_rows: usize,
+    row_height: f32,
+    cell_height: f32,
+    refetch: usize,
+) -> WindowPlan {
     let across = columns.max(1);
     let rows = ((buffer_rows as f32 * row_height / cell_height.max(1.)).ceil() as usize).max(1);
     let visible = visible.max(1);
@@ -149,15 +163,30 @@ pub fn window_for(columns: usize, visible: usize, buffer_rows: usize, row_height
 }
 
 /// The window the visible items owe once they come within the margin of an edge the held rows have more beyond; first may sit one row above 0 while the top margin shows.
-pub fn drift_ask(plan: &WindowPlan, first: i64, last: i64, held: usize, length: usize, total: usize) -> Option<(usize, usize)> {
+pub fn drift_ask(
+    plan: &WindowPlan,
+    first: i64,
+    last: i64,
+    held: usize,
+    length: usize,
+    total: usize,
+) -> Option<(usize, usize)> {
     let end = held + length;
     let behind = held > 0 && first - (held as i64) < plan.margin as i64;
     let ahead = end < total && (end as i64) - last < plan.margin as i64;
-    (length == 0 || behind || ahead).then(|| ((first - plan.buffer as i64).max(0) as usize, plan.size))
+    (length == 0 || behind || ahead)
+        .then(|| ((first - plan.buffer as i64).max(0) as usize, plan.size))
 }
 
 /// The window a far cursor landing owes before the view moves, None for a step or a landing the held rows reach.
-pub fn landing_ask(plan: &WindowPlan, cursor: usize, first: i64, total: usize, held: usize, length: usize) -> Option<(usize, usize)> {
+pub fn landing_ask(
+    plan: &WindowPlan,
+    cursor: usize,
+    first: i64,
+    total: usize,
+    held: usize,
+    length: usize,
+) -> Option<(usize, usize)> {
     let columns = plan.columns as i64;
     let row = cursor as i64 / columns;
     let seen = first.div_euclid(columns);
@@ -198,10 +227,18 @@ impl Rect {
 /// A decoded picture aspect-fit in its slot and centred on whole pixels, GridTile.qml's PreserveAspectFit in a slot-sized Image.
 pub fn fit_picture(slot: Rect, width: u32, height: u32) -> Rect {
     if width == 0 || height == 0 {
-        return Rect { x: slot.x, y: slot.y, width: 0., height: 0. };
+        return Rect {
+            x: slot.x,
+            y: slot.y,
+            width: 0.,
+            height: 0.,
+        };
     }
     let scale = (slot.width / width as f32).min(slot.height / height as f32);
-    let (w, h) = ((width as f32 * scale).round().max(1.), (height as f32 * scale).round().max(1.));
+    let (w, h) = (
+        (width as f32 * scale).round().max(1.),
+        (height as f32 * scale).round().max(1.),
+    );
     Rect {
         x: slot.x + ((slot.width - w) / 2.).floor(),
         y: slot.y + ((slot.height - h) / 2.).floor(),
@@ -221,8 +258,25 @@ mod tests {
         let columns = columns_for(908., m.min_cell, 64., m.pad_x, m.gap, m.pad_x);
         assert_eq!(columns, 6);
         assert_eq!(cell_width_for(908., columns, m.gap, m.pad_x), 147.);
-        assert_eq!(cell_height_for(64., m.gap, m.caption_height().ceil(), pad_y), 134.);
-        assert_eq!([grid_pad_y(14., Density::Tight), pad_y, grid_pad_y(14., Density::Comfortable)], [7., 14., 28.]);
-        assert_eq!((ThumbSize::named("huge").pixels(), ThumbSize::named("nope"), ThumbSize::MEDIUM.stepped(9).name()), (192., ThumbSize::MEDIUM, "largest"));
+        assert_eq!(
+            cell_height_for(64., m.gap, m.caption_height().ceil(), pad_y),
+            134.
+        );
+        assert_eq!(
+            [
+                grid_pad_y(14., Density::Tight),
+                pad_y,
+                grid_pad_y(14., Density::Comfortable)
+            ],
+            [7., 14., 28.]
+        );
+        assert_eq!(
+            (
+                ThumbSize::named("huge").pixels(),
+                ThumbSize::named("nope"),
+                ThumbSize::MEDIUM.stepped(9).name()
+            ),
+            (192., ThumbSize::MEDIUM, "largest")
+        );
     }
 }

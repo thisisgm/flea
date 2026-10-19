@@ -49,8 +49,17 @@ fn a_landing_builds_no_track_and_copies_no_row() {
     pane.go("/probe/big", big.clone());
     sync(&mut area, &pane, &mut producers, 1);
     let built = built_since(&area, mark);
-    c.eq(273, &format!("landing: built {built} delegates, want 0"), built, 0);
-    c.ok(273, "landing: the active column copies the listing it landed", reads_listing(&area));
+    c.eq(
+        273,
+        &format!("landing: built {built} delegates, want 0"),
+        built,
+        0,
+    );
+    c.ok(
+        273,
+        "landing: the active column copies the listing it landed",
+        reads_listing(&area),
+    );
 
     // A Back to the 1-row folder, then the 1000 rows again.
     pane.go("/probe", folder("big"));
@@ -60,8 +69,17 @@ fn a_landing_builds_no_track_and_copies_no_row() {
     pane.go("/probe/big", big.clone());
     sync(&mut area, &pane, &mut producers, 3);
     let built = built_since(&area, mark);
-    c.eq(312, &format!("landing: built {built} delegates, want 0"), built, 0);
-    c.ok(312, "landing: the active column copies the listing it landed", reads_listing(&area));
+    c.eq(
+        312,
+        &format!("landing: built {built} delegates, want 0"),
+        built,
+        0,
+    );
+    c.ok(
+        312,
+        "landing: the active column copies the listing it landed",
+        reads_listing(&area),
+    );
 
     // (a) a Back, then (e) the 1000 rows once more.
     pane.go("/probe", folder("big"));
@@ -106,7 +124,11 @@ fn a_landing_builds_no_track_and_copies_no_row() {
         built,
         0,
     );
-    c.ok(237, "drain: the active column copies the listing it landed", reads_listing(&area));
+    c.ok(
+        237,
+        "drain: the active column copies the listing it landed",
+        reads_listing(&area),
+    );
     c.covers(&[
         245, 259, 264, 274, 279, 286, 287, 308, 313, 331, 332, 336, 354, 356, 360, 370, 371, 381,
         397, 405, 413,

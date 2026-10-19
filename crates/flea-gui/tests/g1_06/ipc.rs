@@ -226,24 +226,9 @@ fn colours_follow_row_qml_and_a_cut_row_keeps_its_ink() {
         colour(palette.foreground),
         "a cut row dimmed today's date"
     );
-    assert_eq!(
-        colour(gpui::Hsla {
-            h: 0.,
-            s: 0.,
-            l: 1.,
-            a: 1.
-        }),
-        "#ffffff"
-    );
-    assert_eq!(
-        colour(gpui::Hsla {
-            h: 0.,
-            s: 0.,
-            l: 0.,
-            a: 0.5
-        }),
-        "#80000000"
-    );
+    // The hex mapping on the theme roles themselves: an opaque ink prints bare, a dimmed one leads with its alpha.
+    assert_eq!(colour(palette.foreground), "#cacccc");
+    assert_eq!(colour(palette.background.opacity(0.5)), "#80101315");
 }
 
 #[test]

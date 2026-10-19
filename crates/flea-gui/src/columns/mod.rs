@@ -14,9 +14,9 @@ mod tracks;
 
 /// The listing window and face the active track reads, re-exported read-only for the shell and the unit tests.
 pub use crate::list::{pane::Held, Typeface};
+use crate::navigation::history::join;
 /// The elision every track's names take, for a reader that checks a drawn name.
 pub use crate::row::middle_elide;
-use crate::navigation::history::join;
 use carry::Plan;
 use flea::protocol::RowFacts;
 use geometry::{keep_asks, neighbour_asks, Layout};
@@ -245,7 +245,11 @@ impl Area {
         }
         let child = pane.child();
         // A settled entrance lasts its own landing: the hero entrance runs again once the child leaves.
-        if self.hero_settled.as_deref().is_some_and(|path| path != child) {
+        if self
+            .hero_settled
+            .as_deref()
+            .is_some_and(|path| path != child)
+        {
             self.hero_settled = None;
         }
         let seen = Seen {

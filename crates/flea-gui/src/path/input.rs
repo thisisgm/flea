@@ -28,7 +28,12 @@ impl EntityInputHandler for PathView {
         self.entry.text.get(range).map(str::to_owned)
     }
 
-    fn selected_text_range(&mut self, _: bool, _: &mut Window, _: &mut Context<Self>) -> Option<UTF16Selection> {
+    fn selected_text_range(
+        &mut self,
+        _: bool,
+        _: &mut Window,
+        _: &mut Context<Self>,
+    ) -> Option<UTF16Selection> {
         self.entry.editing.then(|| UTF16Selection {
             range: self.entry.range_to_utf16(&self.entry.selected),
             reversed: self.entry.reversed,
@@ -36,7 +41,10 @@ impl EntityInputHandler for PathView {
     }
 
     fn marked_text_range(&self, _: &mut Window, _: &mut Context<Self>) -> Option<Range<usize>> {
-        self.entry.marked.as_ref().map(|range| self.entry.range_to_utf16(range))
+        self.entry
+            .marked
+            .as_ref()
+            .map(|range| self.entry.range_to_utf16(range))
     }
 
     fn unmark_text(&mut self, _: &mut Window, cx: &mut Context<Self>) {
@@ -44,7 +52,13 @@ impl EntityInputHandler for PathView {
         cx.notify();
     }
 
-    fn replace_text_in_range(&mut self, range: Option<Range<usize>>, text: &str, _: &mut Window, cx: &mut Context<Self>) {
+    fn replace_text_in_range(
+        &mut self,
+        range: Option<Range<usize>>,
+        text: &str,
+        _: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         // A held Enter stands for the line as it was.
         if !self.entry.editing || self.jump.enter_waiting {
             return;
@@ -89,7 +103,12 @@ impl EntityInputHandler for PathView {
         ))
     }
 
-    fn character_index_for_point(&mut self, at: Point<Pixels>, _: &mut Window, _: &mut Context<Self>) -> Option<usize> {
+    fn character_index_for_point(
+        &mut self,
+        at: Point<Pixels>,
+        _: &mut Window,
+        _: &mut Context<Self>,
+    ) -> Option<usize> {
         let origin = self.paint.borrow().field_origin;
         let line = self.line.borrow();
         let index = line.index_for(at.x - origin + line.scroll);

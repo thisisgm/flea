@@ -19,7 +19,11 @@ fn a_short_column_draws_the_rows_it_asks_clip_marks_for() {
         &format!("copied builds no delegate at {COPIED}"),
         COPIED < drawn,
     );
-    c.ok(193, &format!("cut builds no delegate at {COPIED}"), COPIED < drawn);
+    c.ok(
+        193,
+        &format!("cut builds no delegate at {COPIED}"),
+        COPIED < drawn,
+    );
     c.covers(&[
         101, 108, 114, 120, 126, 132, 135, 159, 164, 185, 202, 211, 217, 225, 228, 242, 247,
     ]);

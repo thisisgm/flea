@@ -21,8 +21,9 @@ for arm in qml gpui; do
         XDG_RUNTIME_DIR="$E/$arm/runtime" bash tests/ui.sh "${cases[@]}" > "$E/$arm/ui.log" 2>&1 || printf '%s ui.sh exit %s\n' "$arm" "$?" >> "$E/failures"
 done
 test -x tools/flea-ci-visual || { printf 'BLOCKED: the GPUI scene CLI tools/flea-ci-visual is absent\n' >&2; exit 2; }
+: "${FLEA_VISUAL_DESIGN:?the caller passes the design-hig root the boards resolve under}"
 for arm in qml gpui; do
-    tools/flea-ci-visual --frontend "$arm" --manifest tests/visual/g2/op3.json --output "$E/visual/$arm"
+    tools/flea-ci-visual --frontend "$arm" --manifest tests/visual/g2/op3.json --output "$E/visual/$arm" --design "$FLEA_VISUAL_DESIGN"
 done
 printf 'evidence %s\n' "$E"
 [ ! -s "$E/failures" ]

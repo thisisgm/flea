@@ -12,9 +12,19 @@ pub type Exit = (Option<i32>, String);
 
 /// Blocking; call it only from the background executor.
 pub fn run(argv: &[String]) -> Exit {
-    let Some((program, args)) = argv.split_first() else { return (None, String::new()) };
-    match Command::new(program).args(args).stdin(Stdio::null()).stderr(Stdio::null()).output() {
-        Ok(out) => (out.status.code(), String::from_utf8_lossy(&out.stdout).into_owned()),
+    let Some((program, args)) = argv.split_first() else {
+        return (None, String::new());
+    };
+    match Command::new(program)
+        .args(args)
+        .stdin(Stdio::null())
+        .stderr(Stdio::null())
+        .output()
+    {
+        Ok(out) => (
+            out.status.code(),
+            String::from_utf8_lossy(&out.stdout).into_owned(),
+        ),
         Err(_) => (None, String::new()),
     }
 }
@@ -26,22 +36,42 @@ pub fn spawn(cx: &App, argv: Vec<String>) -> Task<Exit> {
 
 /// The editor the session names, VISUAL before EDITOR, as v0.3.12 read them.
 pub fn session_editor() -> Option<String> {
-    ["VISUAL", "EDITOR"].iter().filter_map(|key| std::env::var(key).ok()).find(|value| !value.trim().is_empty())
+    ["VISUAL", "EDITOR"]
+        .iter()
+        .filter_map(|key| std::env::var(key).ok())
+        .find(|value| !value.trim().is_empty())
 }
 
 /// The scratch base, TMPDIR or /tmp.
 pub fn scratch_base() -> String {
-    std::env::var("TMPDIR").ok().filter(|dir| dir.starts_with('/') && dir.len() > 1).map_or_else(|| "/tmp".into(), |dir| dir.trim_end_matches('/').to_string())
+    std::env::var("TMPDIR")
+        .ok()
+        .filter(|dir| dir.starts_with('/') && dir.len() > 1)
+        .map_or_else(
+            || "/tmp".into(),
+            |dir| dir.trim_end_matches('/').to_string(),
+        )
 }
 
 /// Bulk rename's Edit in Terminal: names into a 0600 file in a 0700 flea-rename dir, the editor over it, the text read back, the dir removed.
-pub fn edit_names(base: &str, folder: &str, editor: Option<&str>, names: &[String]) -> Result<String, &'static str> {
+pub fn edit_names(
+    base: &str,
+    folder: &str,
+    editor: Option<&str>,
+    names: &[String],
+) -> Result<String, &'static str> {
     let editor = editor.ok_or("dialogs.file.bulk.err_editor")?.to_string();
-    edit_names_with(base, names, |file| run(&bulk::editor_argv(folder, &editor, file)).0 == Some(0))
+    edit_names_with(base, names, |file| {
+        run(&bulk::editor_argv(folder, &editor, file)).0 == Some(0)
+    })
 }
 
 /// The same lane with the launch handed in, so a test drives it without a terminal.
-pub fn edit_names_with(base: &str, names: &[String], launch: impl FnOnce(&str) -> bool) -> Result<String, &'static str> {
+pub fn edit_names_with(
+    base: &str,
+    names: &[String],
+    launch: impl FnOnce(&str) -> bool,
+) -> Result<String, &'static str> {
     let dir = scratch_dir(base).ok_or("dialogs.file.bulk.err_dir")?;
     let file = format!("{dir}/names");
     let written = OpenOptions::new()
@@ -53,7 +83,9 @@ pub fn edit_names_with(base: &str, names: &[String], launch: impl FnOnce(&str) -
     let outcome = match written {
         Err(_) => Err("dialogs.file.bulk.err_file"),
         Ok(()) if !launch(&file) => Err("dialogs.file.bulk.err_editor"),
-        Ok(()) => fs::read(&file).map(|bytes| String::from_utf8_lossy(&bytes).into_owned()).map_err(|_| "dialogs.file.bulk.err_file"),
+        Ok(()) => fs::read(&file)
+            .map(|bytes| String::from_utf8_lossy(&bytes).into_owned())
+            .map_err(|_| "dialogs.file.bulk.err_file"),
     };
     // Only the dir this call made is removed, and only when it is still the base plus one flea-rename leaf.
     if dir.starts_with('/') && is_scratch_dir(base, &dir) && Path::new(&dir).is_dir() {
@@ -63,9 +95,16 @@ pub fn edit_names_with(base: &str, names: &[String], launch: impl FnOnce(&str) -
 }
 
 fn scratch_dir(base: &str) -> Option<String> {
-    let stamp = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+    let stamp = std::time::SystemTime::now()
+        .duration_since(std::time::UNIX_EPOCH)
+        .map_or(0, |d| d.as_nanos());
     (0..16).find_map(|attempt| {
-        let dir = format!("{base}/{}{}-{stamp:x}-{attempt}", bulk::SCRATCH_STEM, std::process::id());
-        (is_scratch_dir(base, &dir) && DirBuilder::new().mode(0o700).create(&dir).is_ok()).then_some(dir)
+        let dir = format!(
+            "{base}/{}{}-{stamp:x}-{attempt}",
+            bulk::SCRATCH_STEM,
+            std::process::id()
+        );
+        (is_scratch_dir(base, &dir) && DirBuilder::new().mode(0o700).create(&dir).is_ok())
+            .then_some(dir)
     })
 }

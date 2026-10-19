@@ -175,9 +175,17 @@ pub fn cell_text(
         "size" if !facts.dir => locale.format_size(facts.size),
         "size" => walk.map_or_else(
             || "\u{b7}".into(),
-            |(bytes, partial)| format!("{}{}", if partial { ">" } else { "" }, locale.format_size(bytes)),
+            |(bytes, partial)| {
+                format!(
+                    "{}{}",
+                    if partial { ">" } else { "" },
+                    locale.format_size(bytes)
+                )
+            },
         ),
-        "date" => mtime.and_then(|stamp| locale.format_date(stamp)).unwrap_or_else(|| "--".into()),
+        "date" => mtime
+            .and_then(|stamp| locale.format_date(stamp))
+            .unwrap_or_else(|| "--".into()),
         _ => kind.unwrap_or("").into(),
     }
 }

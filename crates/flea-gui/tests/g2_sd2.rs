@@ -4,8 +4,9 @@ use flea::ui_logic_sd2::present::Bar;
 use flea_gui::g2::sd2::seams::Wire;
 use flea_gui::g2::sd2::sweep::{Sweep, SweepBar, BOARD_AT, HEIGHT};
 use flea_gui::g2::sd2::RcloneSend;
+use flea_gui::palette::Theme;
 use gpui::{
-    div, hsla, px, AppContext, Context, IntoElement, ParentElement, Render, Styled, TestAppContext,
+    div, px, AppContext, Context, IntoElement, ParentElement, Render, Styled, TestAppContext,
     Window,
 };
 use std::cell::{Cell, RefCell};
@@ -248,10 +249,12 @@ struct Bench {
 
 impl Render for Bench {
     fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        // The theme roles stand in: the sweep asserts motion, never inks.
+        let theme = Theme::default();
         let bar = SweepBar {
             sweep: Rc::clone(&self.sweep),
-            track: hsla(0., 0., 0.5, 1.),
-            segment: hsla(0.6, 0.5, 0.5, 1.),
+            track: theme.background,
+            segment: theme.foreground,
         };
         div().w(px(366.)).h(px(40.)).child(bar)
     }

@@ -137,7 +137,10 @@ pub struct Preview {
 
 impl Preview {
     pub fn count(&self, call: &str) -> usize {
-        self.calls.iter().filter(|seen| seen.as_str() == call).count()
+        self.calls
+            .iter()
+            .filter(|seen| seen.as_str() == call)
+            .count()
     }
 }
 
@@ -192,7 +195,10 @@ pub fn drain_asks(area: &mut Area) -> Vec<String> {
         .drain(..)
         .map(|line| {
             let doc = flea::jsondoc::parse(&line).expect("peek line is JSON");
-            doc.get("path").and_then(|path| path.as_str()).unwrap_or("").to_owned()
+            doc.get("path")
+                .and_then(|path| path.as_str())
+                .unwrap_or("")
+                .to_owned()
         })
         .collect()
 }
@@ -203,7 +209,14 @@ pub fn reply(path: &str, rows: &[(&str, bool)]) -> Peeked {
 }
 
 /// A peeked reply in wire form, so it parses through the same reader the transport uses; order is ",\"by\":..." or "".
-pub fn reply_with(path: &str, rows: &[(&str, bool)], hidden: bool, hidden_last: bool, first: usize, order: &str) -> Peeked {
+pub fn reply_with(
+    path: &str,
+    rows: &[(&str, bool)],
+    hidden: bool,
+    hidden_last: bool,
+    first: usize,
+    order: &str,
+) -> Peeked {
     let rows_json: Vec<String> = rows
         .iter()
         .map(|(name, dir)| {
@@ -221,5 +234,7 @@ pub fn reply_with(path: &str, rows: &[(&str, bool)], hidden: bool, hidden_last: 
         rows_json.join(",")
     );
     let doc = flea::jsondoc::parse(&text).expect("reply is JSON");
-    Peeked::from_json(&doc).expect("a peeked reply").expect("a well formed reply")
+    Peeked::from_json(&doc)
+        .expect("a peeked reply")
+        .expect("a well formed reply")
 }

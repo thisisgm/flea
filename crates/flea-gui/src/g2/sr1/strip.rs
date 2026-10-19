@@ -76,7 +76,15 @@ pub fn layout(width: f32, query_w: f32, scope_w: f32, note_w: f32, way_w: f32) -
     let way_x = width - PAD_X - way_w;
     let scope_w = scope_w.min((way_x - scope_x - note_w - 2. * GAP).max(0.));
     let note_x = scope_x + scope_w + GAP;
-    Boxes { mark_x, query_x, caret_x, scope_x, scope_w, note_x, way_x }
+    Boxes {
+        mark_x,
+        query_x,
+        caret_x,
+        scope_x,
+        scope_w,
+        note_x,
+        way_x,
+    }
 }
 
 /// One shaping of the strip, kept until its words, width or face change.
@@ -99,7 +107,11 @@ pub struct StripState {
 
 impl StripState {
     pub fn new(typeface: Typeface) -> Self {
-        Self { typeface, prepared: None, shapings: 0 }
+        Self {
+            typeface,
+            prepared: None,
+            shapings: 0,
+        }
     }
 }
 
@@ -111,7 +123,11 @@ pub struct StripElement {
 
 impl StripElement {
     pub fn new(words: Rc<Words>, palette: Palette, state: Rc<RefCell<StripState>>) -> Self {
-        Self { words, palette, state }
+        Self {
+            words,
+            palette,
+            state,
+        }
     }
 }
 
@@ -147,7 +163,13 @@ fn prepare(words: &Words, width: f32, typeface: &Typeface, window: &Window) -> P
     let way_out = shape(&words.way_out, caption, typeface, window);
     let full = shape(&words.scope, caption, typeface, window);
     let natural = f32::from(full.line().width);
-    let boxes = layout(width, f32::from(query.line().width), natural, f32::from(note.line().width), f32::from(way_out.line().width));
+    let boxes = layout(
+        width,
+        f32::from(query.line().width),
+        natural,
+        f32::from(note.line().width),
+        f32::from(way_out.line().width),
+    );
     let (scope, scope_text) = if boxes.scope_w + 0.5 >= natural {
         (full, words.scope.clone())
     } else {
@@ -156,7 +178,11 @@ fn prepare(words: &Words, width: f32, typeface: &Typeface, window: &Window) -> P
         (shape(&text, caption, typeface, window), text)
     };
     Prepared {
-        key: (words.clone(), width.to_bits(), window.scale_factor().to_bits()),
+        key: (
+            words.clone(),
+            width.to_bits(),
+            window.scale_factor().to_bits(),
+        ),
         query,
         scope,
         note,
@@ -168,7 +194,8 @@ fn prepare(words: &Words, width: f32, typeface: &Typeface, window: &Window) -> P
 
 fn paint_line(run: &GlyphRun, x: Pixels, top: Pixels, color: Hsla, window: &mut Window) {
     let line = run.line();
-    let baseline = window.pixel_snap(top + (px(HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
+    let baseline =
+        window.pixel_snap(top + (px(HEIGHT) - line.ascent - line.descent) / 2. + line.ascent);
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
@@ -190,16 +217,35 @@ impl Element for StripElement {
         None
     }
 
-    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
-        let style = Style { size: size(relative(1.).into(), px(HEIGHT).into()), ..Style::default() };
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let style = Style {
+            size: size(relative(1.).into(), px(HEIGHT).into()),
+            ..Style::default()
+        };
         (window.request_layout(style, None, cx), ())
     }
 
-    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, _: &mut App) {
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        window: &mut Window,
+        _: &mut App,
+    ) {
         let mut state = self.state.borrow_mut();
         let width = f32::from(bounds.size.width);
         let fresh = state.prepared.as_ref().is_some_and(|prepared| {
-            prepared.key.0 == *self.words && prepared.key.1 == width.to_bits() && prepared.key.2 == window.scale_factor().to_bits()
+            prepared.key.0 == *self.words
+                && prepared.key.1 == width.to_bits()
+                && prepared.key.2 == window.scale_factor().to_bits()
         });
         if !fresh {
             let prepared = prepare(&self.words, width, &state.typeface, window);
@@ -208,26 +254,77 @@ impl Element for StripElement {
         }
     }
 
-    fn paint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), _: &mut (), window: &mut Window, cx: &mut App) {
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         let state = self.state.borrow();
-        let Some(prepared) = &state.prepared else { return };
+        let Some(prepared) = &state.prepared else {
+            return;
+        };
         let palette = self.palette;
         let (left, top) = (bounds.origin.x, bounds.origin.y);
         let boxes = prepared.boxes;
         window.paint_quad(fill(bounds, palette.surface));
-        let rule = Bounds::new(point(left, top + px(HEIGHT - HAIRLINE)), size(bounds.size.width, px(HAIRLINE)));
+        let rule = Bounds::new(
+            point(left, top + px(HEIGHT - HAIRLINE)),
+            size(bounds.size.width, px(HAIRLINE)),
+        );
         window.paint_quad(fill(rule, palette.foreground.opacity(RULE_OPACITY)));
-        let mark = Bounds::new(point(left + px(boxes.mark_x), top + px((HEIGHT - MARK) / 2.)), size(px(MARK), px(MARK)));
-        let _ = window.paint_svg(mark, SharedString::new_static("flea-mark:search"), Some(SEARCH_MARK), TransformationMatrix::unit(), palette.accent, cx);
-        paint_line(&prepared.query, left + px(boxes.query_x), top, palette.foreground, window);
+        let mark = Bounds::new(
+            point(left + px(boxes.mark_x), top + px((HEIGHT - MARK) / 2.)),
+            size(px(MARK), px(MARK)),
+        );
+        let _ = window.paint_svg(
+            mark,
+            SharedString::new_static("flea-mark:search"),
+            Some(SEARCH_MARK),
+            TransformationMatrix::unit(),
+            palette.accent,
+            cx,
+        );
+        paint_line(
+            &prepared.query,
+            left + px(boxes.query_x),
+            top,
+            palette.foreground,
+            window,
+        );
         if self.words.typing {
-            let caret = Bounds::new(point(left + px(boxes.caret_x), top + px((HEIGHT - CARET_H) / 2.)), size(px(CARET_W), px(CARET_H)));
+            let caret = Bounds::new(
+                point(left + px(boxes.caret_x), top + px((HEIGHT - CARET_H) / 2.)),
+                size(px(CARET_W), px(CARET_H)),
+            );
             window.paint_quad(fill(caret, palette.accent));
         }
         if boxes.scope_w > 0. {
-            paint_line(&prepared.scope, left + px(boxes.scope_x), top, palette.muted, window);
+            paint_line(
+                &prepared.scope,
+                left + px(boxes.scope_x),
+                top,
+                palette.muted,
+                window,
+            );
         }
-        paint_line(&prepared.note, left + px(boxes.note_x), top, palette.muted, window);
-        paint_line(&prepared.way_out, left + px(boxes.way_x), top, palette.muted, window);
+        paint_line(
+            &prepared.note,
+            left + px(boxes.note_x),
+            top,
+            palette.muted,
+            window,
+        );
+        paint_line(
+            &prepared.way_out,
+            left + px(boxes.way_x),
+            top,
+            palette.muted,
+            window,
+        );
     }
 }

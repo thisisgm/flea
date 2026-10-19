@@ -73,9 +73,18 @@ impl Glyph {
         let (key, data) = match self {
             Self::Back => glyph!("flea-pl3:arrow-left", "M19 12H5 M12 19l-7-7 7-7"),
             Self::Up => glyph!("flea-pl3:arrow-up", "M12 19V5 M5 12l7-7 7 7"),
-            Self::FolderOpen => glyph!("flea-pl3:folder-open", "M2 20V3h6l2 3h12v3 M22 11l-2.5 9H2l2.5-9z"),
-            Self::Undo => glyph!("flea-pl3:undo", "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5"),
-            Self::Trash => glyph!("flea-pl3:trash", "M3 6h18 M8 6V3h8v3 M6 6l1.2 15h9.6L18 6 M10 10v7 M14 10v7"),
+            Self::FolderOpen => glyph!(
+                "flea-pl3:folder-open",
+                "M2 20V3h6l2 3h12v3 M22 11l-2.5 9H2l2.5-9z"
+            ),
+            Self::Undo => glyph!(
+                "flea-pl3:undo",
+                "M3 12a9 9 0 1 0 9-9 9.75 9.75 0 0 0-6.74 2.74L3 8 M3 3v5h5"
+            ),
+            Self::Trash => glyph!(
+                "flea-pl3:trash",
+                "M3 6h18 M8 6V3h8v3 M6 6l1.2 15h9.6L18 6 M10 10v7 M14 10v7"
+            ),
         };
         (SharedString::new_static(key), data)
     }

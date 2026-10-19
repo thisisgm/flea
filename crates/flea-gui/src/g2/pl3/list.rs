@@ -55,14 +55,31 @@ pub struct ListPaint {
 impl ListPaint {
     pub fn new(font: Font, body: Pixels, ink: Ink) -> Self {
         Self {
-            font, body, ink, first: 0, total: 0, lines: Vec::new(), revision: 0, scroll_y: 0., cursor: 0, hover: None,
-            edge: true, shaped: Vec::new(), shaped_for: (u64::MAX, 0), advance: None, images: Vec::new(),
-            painted: Vec::new(), drawn_images: Vec::new(), shapes: 0,
+            font,
+            body,
+            ink,
+            first: 0,
+            total: 0,
+            lines: Vec::new(),
+            revision: 0,
+            scroll_y: 0.,
+            cursor: 0,
+            hover: None,
+            edge: true,
+            shaped: Vec::new(),
+            shaped_for: (u64::MAX, 0),
+            advance: None,
+            images: Vec::new(),
+            painted: Vec::new(),
+            drawn_images: Vec::new(),
+            shapes: 0,
         }
     }
 
     pub fn line(&self, index: usize) -> Option<&Line> {
-        index.checked_sub(self.first).and_then(|at| self.lines.get(at))
+        index
+            .checked_sub(self.first)
+            .and_then(|at| self.lines.get(at))
     }
 
     /// The row's ground: the cursor rung while the list has the keyboard, the marked plate, or the pointer wash.
@@ -85,7 +102,9 @@ impl ListPaint {
         }
         let text = window.text_system();
         let id = text.resolve_font(&self.font);
-        let advance = text.advance(id, self.body, '0').map_or(self.body * 0.6, |a| a.width);
+        let advance = text
+            .advance(id, self.body, '0')
+            .map_or(self.body * 0.6, |a| a.width);
         self.advance = Some(advance);
         advance
     }
@@ -109,13 +128,21 @@ impl IntoElement for TrashList {
 }
 
 fn shape(text: &str, font: &Font, body: Pixels, window: &Window) -> GlyphRun {
-    let run = TextRun { len: text.len(), font: font.clone(), color: Hsla::default(), background_color: None, underline: None, strikethrough: None };
+    let run = TextRun {
+        len: text.len(),
+        font: font.clone(),
+        color: Hsla::default(),
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    };
     GlyphRun::new(window.text_system().layout_line(text, body, &[run], None))
 }
 
 fn paint_text(run: &GlyphRun, x: Pixels, top: Pixels, ink: Hsla, window: &mut Window) {
     let line = run.line();
-    let baseline = window.pixel_snap(top + (px(ROW_H) - line.ascent - line.descent) / 2. + line.ascent);
+    let baseline =
+        window.pixel_snap(top + (px(ROW_H) - line.ascent - line.descent) / 2. + line.ascent);
     let _ = window.paint_glyph_run(point(x, baseline), run, ink);
 }
 
@@ -130,12 +157,29 @@ impl Element for TrashList {
         None
     }
 
-    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
-        let style = Style { size: size(relative(1.).into(), relative(1.).into()), ..Style::default() };
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let style = Style {
+            size: size(relative(1.).into(), relative(1.).into()),
+            ..Style::default()
+        };
         (window.request_layout(style, None, cx), ())
     }
 
-    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, cx: &mut App) {
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         let mut state = self.0.borrow_mut();
         let advance = state.advance(window);
         let (_, name_w, _, _) = columns(f32::from(bounds.size.width));
@@ -147,25 +191,59 @@ impl Element for TrashList {
             state.shaped.resize_with(count, || None);
         }
         let first = (state.scroll_y / ROW_H).floor() as usize;
-        let last = (((state.scroll_y + f32::from(bounds.size.height)) / ROW_H).ceil() as usize).min(state.total);
-        let (location_cells, deleted_cells) = ((px(LOCATION_W) / advance) as usize, (px(DELETED_W) / advance) as usize);
-        let ListPaint { lines, shaped, painted, images, drawn_images, font, body, first: held_first, shapes, .. } = &mut *state;
+        let last = (((state.scroll_y + f32::from(bounds.size.height)) / ROW_H).ceil() as usize)
+            .min(state.total);
+        let (location_cells, deleted_cells) = (
+            (px(LOCATION_W) / advance) as usize,
+            (px(DELETED_W) / advance) as usize,
+        );
+        let ListPaint {
+            lines,
+            shaped,
+            painted,
+            images,
+            drawn_images,
+            font,
+            body,
+            first: held_first,
+            shapes,
+            ..
+        } = &mut *state;
         painted.clear();
         images.clear();
         drawn_images.clear();
         for index in first..last.max(first) {
-            let Some(at) = index.checked_sub(*held_first).filter(|at| *at < lines.len()) else { continue };
+            let Some(at) = index
+                .checked_sub(*held_first)
+                .filter(|at| *at < lines.len())
+            else {
+                continue;
+            };
             painted.push(index);
             let line = &lines[at];
             if shaped[at].is_none() {
                 *shapes += 1;
                 shaped[at] = Some(Shaped {
                     name: shape(&elide::right(&line.name, name_cells), font, *body, window),
-                    location: shape(&elide::left(&line.location, location_cells), font, *body, window),
-                    deleted: shape(&elide::right(&line.deleted, deleted_cells), font, *body, window),
+                    location: shape(
+                        &elide::left(&line.location, location_cells),
+                        font,
+                        *body,
+                        window,
+                    ),
+                    deleted: shape(
+                        &elide::right(&line.deleted, deleted_cells),
+                        font,
+                        *body,
+                        window,
+                    ),
                 });
             }
-            let image = line.thumb.as_ref().and_then(|source| window.use_asset::<ImageAssetLoader>(source, cx)).and_then(Result::ok);
+            let image = line
+                .thumb
+                .as_ref()
+                .and_then(|source| window.use_asset::<ImageAssetLoader>(source, cx))
+                .and_then(Result::ok);
             if image.is_some() {
                 drawn_images.push(index);
             }
@@ -173,7 +251,16 @@ impl Element for TrashList {
         }
     }
 
-    fn paint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), _: &mut (), window: &mut Window, cx: &mut App) {
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         let state = self.0.borrow();
         let ink = state.ink;
         let (left, width) = (bounds.origin.x, f32::from(bounds.size.width));
@@ -187,29 +274,72 @@ impl Element for TrashList {
                     window.paint_quad(fill(row, ground));
                 }
                 if *index == state.cursor && state.edge {
-                    window.paint_quad(fill(Bounds::new(point(left, top), size(px(EDGE), px(ROW_H))), ink.accent_frame));
+                    window.paint_quad(fill(
+                        Bounds::new(point(left, top), size(px(EDGE), px(ROW_H))),
+                        ink.accent_frame,
+                    ));
                 }
-                let Some(line) = state.line(*index) else { continue };
-                let glyph = Bounds::new(point(left + px(PAD_X + (SLOT - GLYPH) / 2.), top + px((ROW_H - GLYPH) / 2.)), size(px(GLYPH), px(GLYPH)));
+                let Some(line) = state.line(*index) else {
+                    continue;
+                };
+                let glyph = Bounds::new(
+                    point(
+                        left + px(PAD_X + (SLOT - GLYPH) / 2.),
+                        top + px((ROW_H - GLYPH) / 2.),
+                    ),
+                    size(px(GLYPH), px(GLYPH)),
+                );
                 match &state.images[slot] {
                     Some(image) => {
                         let fit = ObjectFit::Contain.get_bounds(glyph, image.size(0));
-                        let _ = window.paint_image(glyph, fit, Corners::default(), Arc::clone(image), 0, false);
+                        let _ = window.paint_image(
+                            glyph,
+                            fit,
+                            Corners::default(),
+                            Arc::clone(image),
+                            0,
+                            false,
+                        );
                     }
                     None => {
                         let (key, data) = line.mark.svg();
-                        let _ = window.paint_svg(glyph, key, Some(data), TransformationMatrix::unit(), ink.foreground, cx);
+                        let _ = window.paint_svg(
+                            glyph,
+                            key,
+                            Some(data),
+                            TransformationMatrix::unit(),
+                            ink.foreground,
+                            cx,
+                        );
                     }
                 }
-                let Some(shaped) = state.shaped.get(*index - state.first).and_then(Option::as_ref) else { continue };
+                let Some(shaped) = state
+                    .shaped
+                    .get(*index - state.first)
+                    .and_then(Option::as_ref)
+                else {
+                    continue;
+                };
                 let names = Bounds::new(point(left + px(name_x), top), size(px(name_w), px(ROW_H)));
                 window.with_content_mask(Some(ContentMask { bounds: names }), |window| {
                     paint_text(&shaped.name, names.origin.x, top, ink.foreground, window);
                 });
                 let location_right = left + px(location_x + LOCATION_W);
-                paint_text(&shaped.location, location_right - shaped.location.line().width, top, ink.foreground, window);
+                paint_text(
+                    &shaped.location,
+                    location_right - shaped.location.line().width,
+                    top,
+                    ink.foreground,
+                    window,
+                );
                 let deleted_right = left + px(deleted_x + DELETED_W);
-                paint_text(&shaped.deleted, deleted_right - shaped.deleted.line().width, top, ink.foreground, window);
+                paint_text(
+                    &shaped.deleted,
+                    deleted_right - shaped.deleted.line().width,
+                    top,
+                    ink.foreground,
+                    window,
+                );
             }
         });
     }

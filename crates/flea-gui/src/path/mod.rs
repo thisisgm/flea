@@ -68,7 +68,11 @@ fn decode(text: &str) -> Option<String> {
     while at < bytes.len() {
         if bytes[at] == b'%' {
             let hex = text.get(at + 1..at + 3)?;
-            run.push(u8::from_str_radix(hex, 16).ok().filter(|_| hex.bytes().all(|b| b.is_ascii_hexdigit()))?);
+            run.push(
+                u8::from_str_radix(hex, 16)
+                    .ok()
+                    .filter(|_| hex.bytes().all(|b| b.is_ascii_hexdigit()))?,
+            );
             at += 3;
             continue;
         }
@@ -91,12 +95,14 @@ fn trim(text: &str) -> &str {
 // A typed smb:// (or sftp://, davs://, ...) is a network location, handed back whole for the network open.
 pub fn is_network_uri(text: &str) -> bool {
     let line = trim(text);
-    ["smb", "sftp", "ftp", "ftps", "dav", "davs", "nfs", "afp"].iter().any(|scheme| {
-        line.len() >= scheme.len() + 3
-            && line.is_char_boundary(scheme.len())
-            && line[..scheme.len()].eq_ignore_ascii_case(scheme)
-            && line[scheme.len()..].starts_with("://")
-    })
+    ["smb", "sftp", "ftp", "ftps", "dav", "davs", "nfs", "afp"]
+        .iter()
+        .any(|scheme| {
+            line.len() >= scheme.len() + 3
+                && line.is_char_boundary(scheme.len())
+                && line[..scheme.len()].eq_ignore_ascii_case(scheme)
+                && line[scheme.len()..].starts_with("://")
+        })
 }
 
 // The typed line as an absolute path, or "" for a line that names nothing.
@@ -148,7 +154,10 @@ pub struct Ask {
 }
 
 pub fn request_key(dir: &str, hidden: bool) -> Ask {
-    Ask { dir: dir.to_owned(), hidden }
+    Ask {
+        dir: dir.to_owned(),
+        hidden,
+    }
 }
 
 pub fn common_prefix<S: AsRef<str>>(names: &[S]) -> String {
@@ -162,7 +171,10 @@ pub fn common_prefix<S: AsRef<str>>(names: &[S]) -> String {
             .zip(name.as_ref().chars())
             .find(|((_, a), b)| a != b)
             .map_or(prefix.len().min(name.as_ref().len()), |((at, _), _)| at);
-        let shared = (0..=shared).rev().find(|cut| prefix.is_char_boundary(*cut)).unwrap_or(0);
+        let shared = (0..=shared)
+            .rev()
+            .find(|cut| prefix.is_char_boundary(*cut))
+            .unwrap_or(0);
         prefix = &prefix[..shared];
     }
     prefix.to_owned()
@@ -187,14 +199,21 @@ pub struct Completion {
 pub fn complete<S: AsRef<str>>(text: &str, names: &[S]) -> Completion {
     let (head, leaf) = split(text);
     let pick = |fold| -> Vec<&str> {
-        names.iter().map(AsRef::as_ref).filter(|name| starts_with(name, leaf, fold)).collect()
+        names
+            .iter()
+            .map(AsRef::as_ref)
+            .filter(|name| starts_with(name, leaf, fold))
+            .collect()
     };
     let mut matched = pick(false);
     if matched.is_empty() {
         matched = pick(true);
     }
     if matched.is_empty() {
-        return Completion { text: text.to_owned(), matches: 0 };
+        return Completion {
+            text: text.to_owned(),
+            matches: 0,
+        };
     }
     let mut grown = common_prefix(&matched);
     // A fold can share less than was typed ("re" against README and ReadMe.bak), and the line never shrinks.
@@ -202,7 +221,10 @@ pub fn complete<S: AsRef<str>>(text: &str, names: &[S]) -> Completion {
         grown = leaf.to_owned();
     }
     let tail = if matched.len() == 1 { "/" } else { "" };
-    Completion { text: format!("{head}{grown}{tail}"), matches: matched.len() }
+    Completion {
+        text: format!("{head}{grown}{tail}"),
+        matches: matched.len(),
+    }
 }
 
 // Sample input: should_navigate("/etc", "/etc", false) is false, the settled no-op that keeps the selection.
@@ -256,7 +278,9 @@ pub enum Said {
 impl Said {
     pub fn text(&self, catalog: &I18n) -> String {
         match self {
-            Self::NothingStartsWith(dir) => catalog.tr_args("path.nothing_starts_with", &[dir.as_str()]),
+            Self::NothingStartsWith(dir) => {
+                catalog.tr_args("path.nothing_starts_with", &[dir.as_str()])
+            }
             Self::ManyStart(count) => catalog.trn("path.items_start_with", *count as i64),
             Self::RefusedUri => catalog.tr("path.refused_uri"),
             Self::Missing(path) => catalog.tr_args("path.missing", &[path.as_str()]),

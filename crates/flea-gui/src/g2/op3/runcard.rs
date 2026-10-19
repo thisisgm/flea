@@ -1,5 +1,9 @@
 //! The run card: three buttons for a program the opener refused to run unasked, with Shift relabelling Run in Terminal to Run.
-use super::{keys::Key, shell::{Block, Button as Drawn, Card, Glyph}, Effect};
+use super::{
+    keys::Key,
+    shell::{Block, Button as Drawn, Card, Glyph},
+    Effect,
+};
 use flea::i18n::I18n;
 use flea::ui_logic_op3::runfile::{self as logic, Action, Ask, Button, Step};
 
@@ -22,7 +26,14 @@ impl RunCard {
         let ask = logic::parse_ask(line).ok_or_else(|| i18n.tr("dialogs.file.run.unchecked"))?;
         let buttons = logic::buttons_for(ask.kind, ask.has_handler());
         let focus = logic::start_focus(&buttons, None);
-        Ok(Self { flea: flea.to_string(), name: flea::ui_logic_op3::permissions::leaf_of(path).to_string(), ask, buttons, focus, shift: false })
+        Ok(Self {
+            flea: flea.to_string(),
+            name: flea::ui_logic_op3::permissions::leaf_of(path).to_string(),
+            ask,
+            buttons,
+            focus,
+            shift: false,
+        })
     }
 
     /// The listed row's mark name for a binary, for the icon service to resolve.
@@ -47,7 +58,10 @@ impl RunCard {
             Button::Terminal if self.shift => Action::Run,
             Button::Terminal => Action::Terminal,
         };
-        vec![Effect::Launch(logic::argv(&self.flea, action, &self.ask)), Effect::Close]
+        vec![
+            Effect::Launch(logic::argv(&self.flea, action, &self.ask)),
+            Effect::Close,
+        ]
     }
 
     /// The action a launch ran, so its exit is read with the right sentence.
@@ -84,11 +98,19 @@ impl RunCard {
             esc: i18n.tr("dialogs.file.esc"),
             width: WIDTH,
             bleed: false,
-            body: vec![Block::Program { glyph: self.mark(), text: logic::subtitle(i18n, self.ask.kind, self.ask.size) }],
+            body: vec![Block::Program {
+                glyph: self.mark(),
+                text: logic::subtitle(i18n, self.ask.kind, self.ask.size),
+            }],
             buttons: self
                 .buttons
                 .iter()
-                .map(|b| Drawn { label: logic::label_for(i18n, *b, &self.ask.handler_name, self.shift), primary: *b == default, focused: *b == self.focus, enabled: true })
+                .map(|b| Drawn {
+                    label: logic::label_for(i18n, *b, &self.ask.handler_name, self.shift),
+                    primary: *b == default,
+                    focused: *b == self.focus,
+                    enabled: true,
+                })
                 .collect(),
         }
     }
