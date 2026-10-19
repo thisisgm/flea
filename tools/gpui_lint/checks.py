@@ -24,25 +24,23 @@ silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal
 turquoise violet wheat white whitesmoke yellow yellowgreen""".split())
 
 
-# Sample input: crates/flea-gui/src/row.rs is a package's own source, callable from any other target.
-def library_source(path):
-    parts = path.split("/")
-    base = parts.index("crates") + 2 if "crates" in parts else 0
-    return parts[base:base + 1] == ["src"]
-
-
-# Sample input: crates/flea-gui/tests/g1_03/transport.rs belongs to the g1_03 test crate; every src/ file to the package's own.
+# Sample input: crates/flea-gui/tests/g1_03/transport.rs belongs to the g1_03 test crate, src/main.rs to the binary, other src/ files to the library.
+# Returns the target and whether it is the package's library.
 def compilation_target(path):
     parts = path.split("/")
     base = parts.index("crates") + 2 if "crates" in parts else 0
     rest = parts[base:]
-    if rest[:1] == ["src"]:
+    if rest == ["src", "main.rs"]:
+        key = "src/main"
+    elif rest[:2] == ["src", "bin"] and len(rest) > 2:
+        key = "src/bin/" + rest[2].removesuffix(".rs")
+    elif rest[:1] == ["src"]:
         key = "src"
     elif rest[:1] in (["tests"], ["examples"], ["benches"]) and len(rest) > 1:
         key = rest[0] + "/" + rest[1].removesuffix(".rs")
     else:
         key = "/".join(rest[:1])
-    return "/".join(parts[:base] + [key])
+    return "/".join(parts[:base] + [key]), key == "src"
 
 
 def blocking(symbol, args, method, helpers):
@@ -125,10 +123,11 @@ def source_checks(units, policy):
         function = known[name]
         for symbol, line, args, method in calls(function, known):
             target = resolve(symbol, function, set(known) | helpers)
-            # A test, example, bench or build script item is never callable from another target, however unique its name.
-            if target in known and not library_source(known[target].path) \
-                    and compilation_target(known[target].path) != compilation_target(function.path):
-                target = symbol
+            # Only a package's library is callable from another target; a test, example, bench, build script or binary item is not.
+            if target in known:
+                callee, library = compilation_target(known[target].path)
+                if not library and callee != compilation_target(function.path)[0]:
+                    target = symbol
             if blocking(target, args, method, helpers) and (name, target) not in exceptions:
                 errors.append(f"{function.path}:{line}: UI blocking call {target} in {name}")
             if target in known:
