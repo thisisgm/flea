@@ -234,6 +234,8 @@ def execute_pair(args, root, display, terminal_name, state, variant, colors, ide
                 retain(fx, case)
             except (Blocked, OSError) as error:
                 verdict["fixture_retain_reason"] = str(error)
+                if verdict["status"] == "PASS":
+                    verdict.update(status="BLOCKED", reason=str(error))
         save(case / "state.json", {"requested": state, "variant": variant, "preset": args.preset, "input": journal})
         save(case / "commands.json", commands.records)
         try:
@@ -260,7 +262,8 @@ def review_pending(verdict):
               verdict.get("media"), verdict.get("edges"))
     return (verdict["status"] == "BLOCKED" and (verdict.get("visual") or {}).get("reason") == REVIEW_PENDING
             and all((check or {}).get("status") == "PASS" for check in checks)
-            and not verdict.get("shutdown_reason") and not verdict.get("incomplete_artifacts"))
+            and not verdict.get("shutdown_reason") and not verdict.get("incomplete_artifacts")
+            and not verdict.get("fixture_retain_reason"))
 
 
 def parser():

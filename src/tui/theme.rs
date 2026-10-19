@@ -83,7 +83,7 @@ pub struct Theme {
     pub stem: String,
     pub ext: String,
     // Syntax inks in bat's ANSI order: red, green, yellow, blue, magenta, cyan.
-    pub syntax: [String; 6],
+    pub syntax: [String; super::syntax::SYNTAX_INKS],
     // The ground as #rrggbb, for a decoder that veils a page with it.
     pub ground: String,
     pub depth: Depth,

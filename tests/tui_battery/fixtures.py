@@ -15,8 +15,7 @@ OFFICE_BYTES = {"budget.xlsx": 7970, "garden-report.docx": 8025, "garden-report.
 # Features no family declares: the relay itself implements graphics-negative, and the 3D states' own files are model-source.
 BUILT_IN_FEATURES = frozenset({"graphics-negative", "model-source"})
 NOTES = b"Visual gate notes\n\nThis file is the fixture's plain text sample.\nLine four keeps the preview busy.\n"
-# The boards were drawn from a fixture on tmpfs, whose folders report 40 bytes plus 20 per entry; Flea's folder totals
-# sum those sizes, so only a tmpfs fixture draws the boards' digits (folder A is 462 B there and 274 B on btrfs).
+# Only a tmpfs fixture draws the boards' digits, because its folders report 40 bytes plus 20 per entry.
 TMPFS = Path("/dev/shm")
 TMPFS_EMPTY_FOLDER_BYTES = 40
 FONT_CACHE = "/var/cache/fontconfig"
@@ -243,15 +242,16 @@ def specials(directory, names):
 def retain(fx, case):
     """Copies the case's tmpfs fixture to case/fx, where its sealed receipts and reconciliation read it, then frees the tmpfs."""
     root = Owned(fx.parent).path
+    modes = unlock(fx)
+    target = Owned(case).child("fx")
     try:
-        modes = unlock(fx)
-        target = Owned(case).child("fx")
         shutil.copytree(fx, target, symlinks=True, ignore=specials)
         # Deepest first, so a closed folder such as Locked closes only after everything below it is copied.
         for relative, mode in sorted(modes.items(), key=lambda item: len(item[0].parts), reverse=True):
             (target / relative).chmod(mode)
-    finally:
-        discard(root)
+    except OSError as error:
+        raise Blocked(f"copy into {case} failed; the tmpfs copy stays at {root}: {error}") from error
+    discard(root)
 
 
 def namespace(binary, fx, cwd, environment):
@@ -261,8 +261,7 @@ def namespace(binary, fx, cwd, environment):
     for path in ("/usr", "/bin", "/lib", "/lib64", "/etc"):
         if Path(path).exists():
             argv += ["--ro-bind", path, path]
-    # The system font cache: without it fc-list rescans every font into the empty /fx/cache, which outlasts Flea's 150 ms
-    # font probe (src/tui/icons.rs), so Flea draws text marks where a user's terminal draws icons.
+    # Without the system font cache, fc-list outlasts Flea's 150 ms icon probe (src/tui/icons.rs) and draws text marks.
     if os.path.isdir(FONT_CACHE):
         argv += ["--ro-bind", FONT_CACHE, FONT_CACHE]
     argv += ["--proc", "/proc", "--dev", "/dev", "--ro-bind", "/sys", "/sys",
