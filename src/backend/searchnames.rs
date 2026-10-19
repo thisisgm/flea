@@ -102,10 +102,10 @@ impl Names {
     pub(crate) fn bytes(&self, allocated: bool) -> usize {
         let count = |len, capacity| if allocated { capacity } else { len };
         self.slabs.iter().map(|slab| slab.capacity()).sum::<usize>()
-            + count(self.slabs.len(), self.slabs.capacity()) * size_of::<Vec<u8>>()
-            + count(self.refs.len(), self.refs.capacity()) * size_of::<Name>()
-            + self.lookup.capacity() * size_of::<u32>()
-            + count(self.groups.len(), self.groups.capacity()) * size_of::<u64>()
+            + count(self.slabs.len(), self.slabs.capacity()) * std::mem::size_of::<Vec<u8>>()
+            + count(self.refs.len(), self.refs.capacity()) * std::mem::size_of::<Name>()
+            + self.lookup.capacity() * std::mem::size_of::<u32>()
+            + count(self.groups.len(), self.groups.capacity()) * std::mem::size_of::<u64>()
     }
 
     pub(crate) fn bits(&self, id: usize) -> u64 { self.refs[id].bits }

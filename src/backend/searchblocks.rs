@@ -103,8 +103,8 @@ impl Blocks {
 
     pub(crate) fn bytes(&self, allocated: bool) -> usize {
         let count = |len, capacity| if allocated { capacity } else { len };
-        count(self.dirs.len(), self.dirs.capacity()) * size_of::<Directory>()
-            + self.lookup.capacity() * size_of::<u32>()
+        count(self.dirs.len(), self.dirs.capacity()) * std::mem::size_of::<Directory>()
+            + self.lookup.capacity() * std::mem::size_of::<u32>()
     }
 }
 
