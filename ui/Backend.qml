@@ -529,7 +529,7 @@ Item {
     // Sample input: {"t":"mergecollisions","id":8,"total":3,"names":[{"n":"IMG_4120.HEIC","d":false,"i":"image-x-generic"}]}
     // Sample input: {"t":"linked","ok":1,"failed":1,"skipped":0,"note":"the link left at /home/gm/b.txt could not be removed (stale)"}
     // Sample input: {"t":"fatnames","id":7,"fstype":"exfat","volume":"128GB","renames":[{"old":"clip: x.mp4","new":"clip_ x.mp4","d":false,"i":"video-x-generic"}]}
-    // Sample input: {"t":"trashed","ok":1,"failed":0}
+    // Sample input: {"t":"trashed","id":3,"ok":1,"failed":0,"moved":["/home/gm/old.txt"]}
     // Sample input: {"t":"bulkrenamed","ok":5,"unchanged":1}
     // Sample input: {"t":"made","ok":true,"path":"/home/gm/Pictures/New Folder"}
     // Sample input: {"t":"undone","op":"move","ok":true}
