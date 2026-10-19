@@ -198,41 +198,41 @@ impl Backend {
                     };
                     let mut graceful = false;
                     let result = writeln!(input, "{first_line}")
-                    .and_then(|()| input.flush())
-                    .and_then(|()| {
-                        for control in receiver {
-                            match control {
-                                Control::List {
-                                    path,
-                                    select,
-                                    first,
-                                } => Request::List {
-                                    path: &path,
-                                    select: select.as_deref(),
-                                    first,
+                        .and_then(|()| input.flush())
+                        .and_then(|()| {
+                            for control in receiver {
+                                match control {
+                                    Control::List {
+                                        path,
+                                        select,
+                                        first,
+                                    } => Request::List {
+                                        path: &path,
+                                        select: select.as_deref(),
+                                        first,
+                                    }
+                                    .write_to(&mut input)?,
+                                    Control::Window { start, count } => {
+                                        Request::Window { start, count }.write_to(&mut input)?
+                                    }
+                                    Control::Rows { command, action } => {
+                                        transport::write_rows(&mut input, command, &action)?
+                                    }
+                                    Control::Line(line) => {
+                                        writeln!(input, "{line}")?;
+                                        input.flush()?
+                                    }
+                                    Control::Quit => {
+                                        Request::Quit.write_to(&mut input)?;
+                                        graceful = true;
+                                        break;
+                                    }
+                                    Control::Eof => break,
                                 }
-                                .write_to(&mut input)?,
-                                Control::Window { start, count } => {
-                                    Request::Window { start, count }.write_to(&mut input)?
-                                }
-                                Control::Rows { command, action } => {
-                                    transport::write_rows(&mut input, command, &action)?
-                                }
-                                Control::Line(line) => {
-                                    writeln!(input, "{line}")?;
-                                    input.flush()?
-                                }
-                                Control::Quit => {
-                                    Request::Quit.write_to(&mut input)?;
-                                    graceful = true;
-                                    break;
-                                }
-                                Control::Eof => break,
                             }
-                        }
-                        Ok(())
-                    })
-                    .map_err(|error| failure("window.backend_write", error));
+                            Ok(())
+                        })
+                        .map_err(|error| failure("window.backend_write", error));
                     drop(input);
                     let waited = reap(&mut child, graceful);
                     let _ = reader.join();

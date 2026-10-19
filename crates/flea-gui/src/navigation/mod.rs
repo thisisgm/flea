@@ -2,10 +2,10 @@
 pub mod anchor;
 pub mod folder_state;
 pub mod history;
-pub mod sort;
-pub mod watch;
 mod landing;
+pub mod sort;
 mod steps;
+pub mod watch;
 
 use crate::pane::{requests::RowAction, swap::Options, Pane};
 use anchor::{Anchor, Preference};

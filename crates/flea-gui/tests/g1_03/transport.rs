@@ -7,7 +7,11 @@ use std::{path::PathBuf, process::Command as Process};
 fn root() -> PathBuf {
     let parent = PathBuf::from(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/g1-03");
     std::fs::create_dir_all(&parent).unwrap();
-    let output = Process::new("mktemp").arg("-d").arg(parent.join("test.XXXXXXXX")).output().unwrap();
+    let output = Process::new("mktemp")
+        .arg("-d")
+        .arg(parent.join("test.XXXXXXXX"))
+        .output()
+        .unwrap();
     assert!(output.status.success());
     let root = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
     assert!(root.is_absolute());
@@ -49,7 +53,10 @@ for line in sys.stdin:
         first: 320,
         hidden: true,
         want_changed: false,
-        order: Order { key: "mtime", desc: true },
+        order: Order {
+            key: "mtime",
+            desc: true,
+        },
         folders_first: true,
         group_by_kind: false,
         hidden_last: true,
@@ -61,15 +68,62 @@ for line in sys.stdin:
     assert!(matches!(next(&backend), Event::Reply(Reply::Listed { .. })));
     assert!(matches!(next(&backend), Event::Reply(Reply::Rows { .. })));
     assert!(matches!(next(&backend), Event::Changed { path } if path == "/f/ho\"me/"));
-    let order = Order { key: "size", desc: false };
-    backend.command(&Command::Sort { order, folders_first: false, group_by_kind: true, hidden_last: false }).unwrap();
-    backend.command(&Command::Locate { path: "/f/base/a".into() }).unwrap();
-    let Event::Located(single) = next(&backend) else { panic!() };
-    assert_eq!((single.directory.as_str(), single.path.as_str(), single.index, single.id), ("/f/base", "/f/base/a", 42, None));
-    backend.command(&Command::LocateMany { paths: vec!["/f/base/b".into()], id: 2_147_483_649 }).unwrap();
-    let Event::Located(many) = next(&backend) else { panic!() };
-    assert_eq!(many, Located { directory: "/f/base".into(), path: String::new(), index: -1, id: Some(2_147_483_649), transfer: 0, ok: true, matches: vec![("/f/base/b".into(), 7)] });
-    backend.command(&Command::Paths(flea_gui::pane::requests::RowAction { listing: 1, rows: vec![0] })).unwrap();
+    let order = Order {
+        key: "size",
+        desc: false,
+    };
+    backend
+        .command(&Command::Sort {
+            order,
+            folders_first: false,
+            group_by_kind: true,
+            hidden_last: false,
+        })
+        .unwrap();
+    backend
+        .command(&Command::Locate {
+            path: "/f/base/a".into(),
+        })
+        .unwrap();
+    let Event::Located(single) = next(&backend) else {
+        panic!()
+    };
+    assert_eq!(
+        (
+            single.directory.as_str(),
+            single.path.as_str(),
+            single.index,
+            single.id
+        ),
+        ("/f/base", "/f/base/a", 42, None)
+    );
+    backend
+        .command(&Command::LocateMany {
+            paths: vec!["/f/base/b".into()],
+            id: 2_147_483_649,
+        })
+        .unwrap();
+    let Event::Located(many) = next(&backend) else {
+        panic!()
+    };
+    assert_eq!(
+        many,
+        Located {
+            directory: "/f/base".into(),
+            path: String::new(),
+            index: -1,
+            id: Some(2_147_483_649),
+            transfer: 0,
+            ok: true,
+            matches: vec![("/f/base/b".into(), 7)]
+        }
+    );
+    backend
+        .command(&Command::Paths(flea_gui::pane::requests::RowAction {
+            listing: 1,
+            rows: vec![0],
+        }))
+        .unwrap();
     assert!(matches!(next(&backend), Event::Paths(paths) if paths == ["/f/base/a"]));
     backend.command(&Command::Persist("{}".into())).unwrap();
     backend.quit();
@@ -95,20 +149,44 @@ fn navigation_keys_resolve_with_english_fallback_and_follow_a_language_change() 
     let root = root();
     std::fs::create_dir_all(root.join("catalog/de")).unwrap();
     std::fs::create_dir_all(root.join("omarchy/default/i18n")).unwrap();
-    std::fs::write(root.join("omarchy/default/i18n/locales.json"), r#"{"en":{},"de":{"name":"Deutsch"}}"#).unwrap();
+    std::fs::write(
+        root.join("omarchy/default/i18n/locales.json"),
+        r#"{"en":{},"de":{"name":"Deutsch"}}"#,
+    )
+    .unwrap();
     std::fs::write(root.join("language"), "en").unwrap();
-    std::fs::write(root.join("catalog/de/flea.json"), r#"{"navigation.row_not_loaded":"Diese Zeile ist noch nicht geladen."}"#).unwrap();
+    std::fs::write(
+        root.join("catalog/de/flea.json"),
+        r#"{"navigation.row_not_loaded":"Diese Zeile ist noch nicht geladen."}"#,
+    )
+    .unwrap();
     let mut catalog = I18n::load(Paths {
         omarchy: root.join("omarchy"),
         language_file: root.join("language"),
         catalogs: vec![root.join("catalog")],
     });
-    assert_eq!(catalog.tr(Refusal::NotLoaded.key()), "That row has not loaded yet.");
-    assert_eq!(catalog.tr("navigation.save_failed"), "The folder setting could not be saved.");
+    assert_eq!(
+        catalog.tr(Refusal::NotLoaded.key()),
+        "That row has not loaded yet."
+    );
+    assert_eq!(
+        catalog.tr("navigation.save_failed"),
+        "The folder setting could not be saved."
+    );
     std::fs::write(root.join("language.next"), "de\n").unwrap();
     std::fs::rename(root.join("language.next"), root.join("language")).unwrap();
     assert!(catalog.poll_changed());
-    assert_eq!(catalog.tr(Refusal::NotLoaded.key()), "Diese Zeile ist noch nicht geladen.");
-    assert_eq!(catalog.tr("navigation.save_failed"), "The folder setting could not be saved.", "English per-string fallback");
-    assert_eq!(catalog.tr(Refusal::Busy.key()), "A directory is already loading.");
+    assert_eq!(
+        catalog.tr(Refusal::NotLoaded.key()),
+        "Diese Zeile ist noch nicht geladen."
+    );
+    assert_eq!(
+        catalog.tr("navigation.save_failed"),
+        "The folder setting could not be saved.",
+        "English per-string fallback"
+    );
+    assert_eq!(
+        catalog.tr(Refusal::Busy.key()),
+        "A directory is already loading."
+    );
 }

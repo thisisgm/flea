@@ -59,7 +59,12 @@ impl RowCache {
     }
 
     /// The row shaped from exactly these facts: an entry whose facts differ is shaped again, an equal one is reused as is.
-    pub fn get_or_prepare(&mut self, index: usize, facts: &RowFacts, prepare: impl FnOnce() -> Prepared) -> Rc<Prepared> {
+    pub fn get_or_prepare(
+        &mut self,
+        index: usize,
+        facts: &RowFacts,
+        prepare: impl FnOnce() -> Prepared,
+    ) -> Rc<Prepared> {
         self.clock += 1;
         if let Some(entry) = self.entries.get_mut(&index) {
             if entry.facts == *facts {
@@ -96,7 +101,12 @@ impl RowCache {
     }
 
     fn evict(&mut self) {
-        if let Some(oldest) = self.entries.iter().min_by_key(|(_, entry)| entry.used).map(|(index, _)| *index) {
+        if let Some(oldest) = self
+            .entries
+            .iter()
+            .min_by_key(|(_, entry)| entry.used)
+            .map(|(index, _)| *index)
+        {
             self.entries.remove(&oldest);
         }
     }
@@ -124,7 +134,8 @@ mod tests {
         Prepared {
             label: String::new(),
             size_text: String::new(),
-            date_text: String::new(),            name: GlyphRun::new(Arc::clone(&layout)),
+            date_text: String::new(),
+            name: GlyphRun::new(Arc::clone(&layout)),
             size: GlyphRun::new(Arc::clone(&layout)),
             date: GlyphRun::new(layout),
             mark: Mark::File,
@@ -155,11 +166,16 @@ mod tests {
         }
         assert_eq!((cache.misses, cache.hits, cache.peak), (10_000, 0, 87));
         let kept = cache.get_or_prepare(9_999, &row, || panic!("a cached row was shaped again"));
-        assert!(Rc::ptr_eq(&kept, &cache.get_or_prepare(9_999, &row, prepared)));
+        assert!(Rc::ptr_eq(
+            &kept,
+            &cache.get_or_prepare(9_999, &row, prepared)
+        ));
         assert_eq!(cache.hits, 2);
         cache.begin(&shaping(1), 30);
         assert_eq!(cache.len(), 30);
-        cache.get_or_prepare(9_999, &row, || panic!("the newest row was evicted before older ones"));
+        cache.get_or_prepare(9_999, &row, || {
+            panic!("the newest row was evicted before older ones")
+        });
         cache.begin(&shaping(2), 30);
         assert_eq!(cache.len(), 0);
     }
@@ -170,7 +186,8 @@ mod tests {
         cache.begin(&shaping(1), 87);
         let first = cache.get_or_prepare(0, &facts("a.txt"), prepared);
         let fresh_copy = facts("a.txt");
-        let reused = cache.get_or_prepare(0, &fresh_copy, || panic!("equal facts were shaped again"));
+        let reused =
+            cache.get_or_prepare(0, &fresh_copy, || panic!("equal facts were shaped again"));
         assert!(Rc::ptr_eq(&first, &reused));
         let changes: [fn(&mut RowFacts); 7] = [
             |row| row.size = 12_345_678,
@@ -186,11 +203,20 @@ mod tests {
             let mut row = facts("a.txt");
             change(&mut row);
             let shaped = cache.get_or_prepare(0, &row, prepared);
-            assert!(!Rc::ptr_eq(&last, &shaped), "change {step} reused the row shaped from older facts");
-            assert!(Rc::ptr_eq(&shaped, &cache.get_or_prepare(0, &row, || panic!("change {step} shaped twice"))));
+            assert!(
+                !Rc::ptr_eq(&last, &shaped),
+                "change {step} reused the row shaped from older facts"
+            );
+            assert!(Rc::ptr_eq(
+                &shaped,
+                &cache.get_or_prepare(0, &row, || panic!("change {step} shaped twice"))
+            ));
             last = cache.get_or_prepare(0, &facts("a.txt"), prepared);
         }
         assert_eq!(cache.len(), 1, "a reshaped row took a second entry");
-        assert_eq!((cache.misses, cache.hits), (1 + 2 * changes.len() as u64, 1 + changes.len() as u64));
+        assert_eq!(
+            (cache.misses, cache.hits),
+            (1 + 2 * changes.len() as u64, 1 + changes.len() as u64)
+        );
     }
 }

@@ -113,10 +113,13 @@ impl Folders {
     // Downloads, Pictures and Videos open newest first until a user order replaces it.
     pub fn default_order(&self, path: &str) -> Option<Order> {
         let folder = path.trim_end_matches('/');
-        self.newest.iter().any(|own| own == folder).then_some(Order {
-            key: "mtime",
-            desc: true,
-        })
+        self.newest
+            .iter()
+            .any(|own| own == folder)
+            .then_some(Order {
+                key: "mtime",
+                desc: true,
+            })
     }
 
     pub fn order_for(&self, path: &str) -> Order {
@@ -230,7 +233,10 @@ fn user_dir(line: &str, home: &str) -> Option<(String, Option<String>)> {
         }
     }
     let path = path.trim_end_matches('/').to_owned();
-    Some((role.into(), (closed && path.starts_with('/')).then_some(path)))
+    Some((
+        role.into(),
+        (closed && path.starts_with('/')).then_some(path),
+    ))
 }
 
 // Sample input: XDG_DOWNLOAD_DIR="$HOME/Inbox"; absent PICTURES and VIDEOS use their conventional names.

@@ -2,9 +2,9 @@
 pub mod composition;
 mod events;
 pub mod input;
-pub mod navigate;
 pub mod lifecycle;
 pub mod locale;
+pub mod navigate;
 pub(crate) mod pane;
 mod render;
 pub mod root;

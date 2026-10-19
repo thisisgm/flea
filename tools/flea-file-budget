@@ -13,7 +13,10 @@ soft_js=200;   hard_js=300
 # Recorded debts and scoped release exceptions retain exact per-file ceilings; global limits stay unchanged.
 known_over_cap="shelf/Model.js 701
 crates/flea-gui/src/list.rs 377
-crates/flea-gui/src/visual/state_tests.rs 610
+crates/flea-gui/src/visual/state_tests.rs 652
+crates/flea-gui/src/list/tests.rs 431
+crates/flea-gui/tests/g1_03/sort.rs 472
+crates/flea-gui/tests/g1_03/sort_window.rs 506
 tests/csv-preview.qml 520
 shelf/Panel.qml 443
 shelf/ShelfCard.qml 444

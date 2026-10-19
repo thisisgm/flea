@@ -65,7 +65,13 @@ impl Shell {
     }
 
     // Producers that own the rows report here; a released gate pays the owed re-read and held sort.
-    pub fn set_gate(&mut self, side: usize, gate: Gate, window: &mut Window, cx: &mut Context<Self>) {
+    pub fn set_gate(
+        &mut self,
+        side: usize,
+        gate: Gate,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let failure = self.locale.catalog.tr("navigation.save_failed");
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return;
@@ -99,7 +105,12 @@ impl Shell {
         self.arm_watch(side, window, cx);
     }
 
-    pub(crate) fn run_navigation(&mut self, side: usize, window: &mut Window, cx: &mut Context<Self>) {
+    pub(crate) fn run_navigation(
+        &mut self,
+        side: usize,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let Some(host) = self.panes.get_mut(side).and_then(Option::as_mut) else {
             return;
         };
@@ -111,7 +122,9 @@ impl Shell {
                 host.waiting = false;
                 host.changed(&self.locale);
             }
-            let Some(backend) = &host.backend else { continue };
+            let Some(backend) = &host.backend else {
+                continue;
+            };
             if let Err(error) = backend.command(command) {
                 host.pane.fail("backend", "", "", 0, host.pane.now());
                 host.changed(&self.locale);
@@ -134,7 +147,11 @@ impl Shell {
             host.watch_task = None;
             return;
         };
-        if host.watch_task.as_ref().is_some_and(|(armed, _)| *armed == due) {
+        if host
+            .watch_task
+            .as_ref()
+            .is_some_and(|(armed, _)| *armed == due)
+        {
             return;
         }
         let wait = due.saturating_sub(host.pane.now());

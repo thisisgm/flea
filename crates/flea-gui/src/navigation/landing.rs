@@ -91,7 +91,13 @@ impl Navigator {
     }
 
     // The locate reply for a waiting landing fetches the window holding the row, or the clamped index on a miss.
-    pub fn take_located(&mut self, pane: &mut Pane, directory: &str, path: &str, index: i64) -> bool {
+    pub fn take_located(
+        &mut self,
+        pane: &mut Pane,
+        directory: &str,
+        path: &str,
+        index: i64,
+    ) -> bool {
         let Some(restore) = self.restore.as_mut() else {
             return false;
         };

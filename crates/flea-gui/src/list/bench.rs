@@ -2,8 +2,8 @@
 use super::{pane::Held, ListElement, ListState, Typeface};
 use flea::protocol::RowFacts;
 use gpui::{
-    div, font, prelude::*, px, size, Context, IntoElement, Render, TestAppContext,
-    TestDispatcher, Window, WindowHandle,
+    div, font, prelude::*, px, size, Context, IntoElement, Render, TestAppContext, TestDispatcher,
+    Window, WindowHandle,
 };
 use std::{
     alloc::{GlobalAlloc, Layout, System},
@@ -66,7 +66,14 @@ pub fn fixture(name: &str) -> Vec<RowFacts> {
     match name {
         "2k" => (0..2_000)
             .map(|ix| {
-                let prefix = format!("{ix:06}_{}", if ix % 17 == 0 { "\u{8d44}\u{6599}" } else { "sample" });
+                let prefix = format!(
+                    "{ix:06}_{}",
+                    if ix % 17 == 0 {
+                        "\u{8d44}\u{6599}"
+                    } else {
+                        "sample"
+                    }
+                );
                 if ix < 8 {
                     row(prefix + "_folder", "folder", 4096, true)
                 } else if ix % 5 == 0 {
@@ -125,7 +132,12 @@ impl Render for View {
     }
 }
 
-pub fn open(cx: &mut TestAppContext, held: Rc<Held>, width: f32, height: f32) -> WindowHandle<View> {
+pub fn open(
+    cx: &mut TestAppContext,
+    held: Rc<Held>,
+    width: f32,
+    height: f32,
+) -> WindowHandle<View> {
     let list = Rc::new(RefCell::new(ListState::new(bench_typeface())));
     cx.open_window(size(px(width), px(height)), |_, _| View {
         held,

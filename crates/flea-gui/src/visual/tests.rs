@@ -90,7 +90,10 @@ fn scene_with(key: &str, value: &str) -> Result<Spec, &'static str> {
 #[test]
 fn manifest_selection_cursor_and_text_size_reach_their_value_checks() {
     let spec = scene_with("selection", "[2, 4]").unwrap();
-    assert_eq!((spec.cursor, spec.selection, spec.text_size), (0, vec![2, 4], 14));
+    assert_eq!(
+        (spec.cursor, spec.selection, spec.text_size),
+        (0, vec![2, 4], 14)
+    );
     assert_eq!(scene_with("cursor", "3").unwrap().cursor, 3);
     for size in ["8", "16", "32"] {
         assert!(scene_with("text_size", size).is_ok(), "{size}");
@@ -110,6 +113,10 @@ fn manifest_selection_cursor_and_text_size_reach_their_value_checks() {
         ("caret_blink", "true"),
         ("view", r#""tree""#),
     ] {
-        assert_eq!(scene_with(key, value).err(), Some("visual.settings"), "{key}={value}");
+        assert_eq!(
+            scene_with(key, value).err(),
+            Some("visual.settings"),
+            "{key}={value}"
+        );
     }
 }

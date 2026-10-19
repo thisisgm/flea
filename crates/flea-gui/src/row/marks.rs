@@ -108,6 +108,9 @@ mod tests {
         let (key, data) = Mark::Folder.svg();
         assert_eq!(key.as_ref(), "flea-mark:folder");
         let text = std::str::from_utf8(data).unwrap();
-        assert!(text.starts_with("<svg ") && text.ends_with(r#"<path d="M2 20V3h6l2 3h12v14H2z"/></svg>"#));
+        assert!(
+            text.starts_with("<svg ")
+                && text.ends_with(r#"<path d="M2 20V3h6l2 3h12v14H2z"/></svg>"#)
+        );
     }
 }
