@@ -271,6 +271,44 @@
   "search.scope.contents_in": "contents in %1",
   "search.scope.contents_everywhere": "contents everywhere",
   "search.nothing_matches": "Nothing matches %1",
+  "send.rclone.row": "Send with rclone",
+  "send.rclone.title": {
+    "one": "Send %1 Item to %2",
+    "other": "Send %1 Items to %2"
+  },
+  "send.rclone.folder": "Folder",
+  "send.rclone.folder_invalid": "An rclone folder cannot contain a .. component or a control character.",
+  "send.rclone.send": "Send",
+  "send.rclone.cancel": "omarchy:shell.common.cancel",
+  "send.rclone.cancelling": "Cancelling",
+  "send.rclone.retry": "Retry",
+  "send.rclone.dismiss": "Dismiss",
+  "send.rclone.sending": "Sending %1 of %2 to %3",
+  "send.rclone.checking": {
+    "one": "Checking %1 item on %2",
+    "other": "Checking %1 items on %2"
+  },
+  "send.rclone.comparing_checksums": "comparing checksums",
+  "send.rclone.comparing_sizes": "comparing sizes",
+  "send.rclone.file": "%1 · %2",
+  "send.rclone.of": " of ",
+  "send.rclone.sep": " · ",
+  "send.rclone.rate": "%1/s",
+  "send.rclone.left": " left",
+  "send.rclone.sent_bytes": " sent",
+  "send.rclone.sent": {
+    "one": "Sent %1 item to %2 on %3",
+    "other": "Sent %1 items to %2 on %3"
+  },
+  "send.rclone.sent_root": {
+    "one": "Sent %1 item to %2",
+    "other": "Sent %1 items to %2"
+  },
+  "send.rclone.checked_checksum": "checked by checksum",
+  "send.rclone.checked_size": "checked by size",
+  "send.rclone.not_checked": "not checked",
+  "send.rclone.failed": "Send failed",
+  "send.rclone.reason": "%1",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",
