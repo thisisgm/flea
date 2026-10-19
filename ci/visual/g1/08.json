@@ -1,0 +1,559 @@
+{
+  "version": 1,
+  "unit": "g1-08",
+  "scenes": [
+    {
+      "scene": "g1/grid",
+      "unit": "g1-08",
+      "board_png": ".superpowers/g1-08/references/boards/grid.png",
+      "board_html": ".superpowers/g1-08/references/boards/grid.html",
+      "before_png": ".superpowers/g1-08/references/before/grid-populated-1100x700.png",
+      "sha256": {
+        "board_png": "21b330de7cb088b25037444fb1c2ea6743ac45407395bd3b99bd790b34c5126a",
+        "board_html": "5d08c3ae9b61c68af9fb6b055009e13bc5a06baeeba0404149c78f5fb66f409d",
+        "before_png": "1f3ed956a9c794e55178403d0f977fdc8a7e31ed3bd1de0225cca3d88d4b28db"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Media",
+        "entries": 11,
+        "cursor": "blob.dat",
+        "view": "grid",
+        "disk_free": "64.1 MB",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "view grid",
+        "cursor name blob.dat",
+        "6 columns, cell 147 x 134, 1 px inner accent frame on the cursor tile",
+        "partial second row of 5 tiles",
+        "status 11 items, tmpfs 64.1 MB free"
+      ],
+      "parity_ids": [
+        "board:grid"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/grid-empty",
+      "unit": "g1-08",
+      "board_png": ".superpowers/g1-08/references/boards/grid-empty.png",
+      "board_html": ".superpowers/g1-08/references/boards/grid-empty.html",
+      "before_png": ".superpowers/g1-08/references/before/grid-empty-1100x700.png",
+      "sha256": {
+        "board_png": "9b7e7825eac51e86f593e97823bc5cdfe7c7bb085ecdd92a5aee6705b1fcc6be",
+        "board_html": "6542c916f721a6e71cb6f14c897b4bc70fa8182d073dbd699f72bdc3d98b8afb",
+        "before_png": "1b2bce59043340ffe292ef49ede853f2434cbf47f262c81d7b03f387a2047a7c"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Empty",
+        "entries": 0,
+        "view": "grid",
+        "disk_free": "64.1 MB",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "no tile drawn",
+        "pane empty state NOTHING HERE YET",
+        "status 0 items"
+      ],
+      "parity_ids": [
+        "board:grid-empty"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/grid-filter-rest",
+      "unit": "g1-08",
+      "board_png": ".superpowers/g1-08/references/boards/grid-filter-rest.png",
+      "board_html": ".superpowers/g1-08/references/boards/grid-filter-rest.html",
+      "before_png": ".superpowers/g1-08/references/before/grid-filter-rest-1100x700.png",
+      "sha256": {
+        "board_png": "cde2a121563dc6ea8beeabd7c6f9358c35f4ad4dbfed8e5f1523968160061d67",
+        "board_html": "e6c4881a45a277e34ed4c0757d9e43d0a8247c105ba375237c503d7ffacd52b1",
+        "before_png": "61b2b41aa81ac7bce0b36b19f25e4c398558a795b3903d5dc640ddad17dfb199"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "entries": 9,
+        "cursor": "A",
+        "view": "grid",
+        "filter": "",
+        "disk_free": "64.1 MB",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "slash strip open and empty",
+        "all 9 tiles drawn",
+        "cursor name A",
+        "status 9 items"
+      ],
+      "parity_ids": [
+        "board:grid-filter-rest"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/grid-filter-matches",
+      "unit": "g1-08",
+      "board_png": ".superpowers/g1-08/references/boards/grid-filter-matches.png",
+      "board_html": ".superpowers/g1-08/references/boards/grid-filter-matches.html",
+      "before_png": ".superpowers/g1-08/references/before/grid-filter-matches-1100x700.png",
+      "sha256": {
+        "board_png": "7571ae83ac75b0507b05319a3a8f3943888a2f5c70063e00f533f9a1444094e4",
+        "board_html": "537bcc6f9e73da990d97ee16db419b68f3d8260cb7b6cb8bc741c6b8b0212386",
+        "before_png": "4d916a0d16b58587eba379a226a2bbb85b66392344d4ed2abadd00b4c4d7e6a5"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "entries": 9,
+        "cursor": "Docs",
+        "view": "grid",
+        "filter": "do",
+        "disk_free": "64.1 MB",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "2 of 9 shown, Docs then todo.md",
+        "cursor tile shows the run bold with no wash",
+        "todo.md shows the 14% accent wash on its run",
+        "status 2 of 9"
+      ],
+      "parity_ids": [
+        "board:grid-filter-matches"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/grid-filter-nomatch",
+      "unit": "g1-08",
+      "board_png": ".superpowers/g1-08/references/boards/grid-filter-nomatch.png",
+      "board_html": ".superpowers/g1-08/references/boards/grid-filter-nomatch.html",
+      "before_png": ".superpowers/g1-08/references/before/grid-filter-nomatch-1100x700.png",
+      "sha256": {
+        "board_png": "b680706666233ddfb76bd1ae48e64f09531183c3700c901a1415edea72d6016a",
+        "board_html": "f8784045921d56070f16065328dd88a0502673f5efcdd4246d5b5983bad48f0e",
+        "before_png": "e06aaa108ba5e8de4867bb20f0d439a44f840e6ebf13c9f823f640e7cfe1919e"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work",
+        "entries": 9,
+        "view": "grid",
+        "filter": "zzz",
+        "disk_free": "64.1 MB",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "no tile drawn",
+        "NOTHING MATCHES zzz alone, query as typed",
+        "status 0 of 9"
+      ],
+      "parity_ids": [
+        "board:grid-filter-nomatch"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/grid-locked",
+      "unit": "g1-08",
+      "board_png": ".superpowers/g1-08/references/boards/grid-locked.png",
+      "board_html": ".superpowers/g1-08/references/boards/grid-locked.html",
+      "before_png": ".superpowers/g1-08/references/before/grid-locked-1100x700.png",
+      "sha256": {
+        "board_png": "95222fd8a5bb4477d7e0eb95c131d4c49dd51caee0122a09c237935a84574383",
+        "board_html": "ee51bdc2370ea62e9dcba63cd74b93947392b2d2868b330abd9530e9c58f5b24",
+        "before_png": "cf36eec2cb99ccbaa68c89a741ebc938c02671268411dfa943fa1a95ba36fccd"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Locked",
+        "view": "grid",
+        "refused": "permission",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "no tile drawn",
+        "pane and status read the one permission sentence",
+        "unavailable and unknown state as the board"
+      ],
+      "parity_ids": [
+        "board:grid-locked"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/grid-raw",
+      "unit": "g1-08",
+      "board_png": ".superpowers/g1-08/references/boards/grid-raw.png",
+      "board_html": ".superpowers/g1-08/references/boards/grid-raw.html",
+      "before_png": ".superpowers/g1-08/references/before/grid-raw-1100x700.png",
+      "sha256": {
+        "board_png": "41a2a4b0dd906314549c22317e5590e019a74215b4107d912481a1ff8efa61f6",
+        "board_html": "19ec4c1cc9f8b3d6562c5282e00110971a7ae1c42e59614b7f8c021f3c794753",
+        "before_png": "db46b663c2ed6e7169e39ef1dd7df270999eb0bab94814fb2cc59e682e40d6f4"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/raw",
+        "entries": 1,
+        "cursor": "L1000921.DNG",
+        "view": "grid",
+        "disk_free": "16.0 MB",
+        "producer_ready": "thumbnail",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "cursor name L1000921.DNG",
+        "picture is the sandboxed raw preview, kind Raw, identity name size mtime of the row",
+        "picture box is the decoded size fit to the 64 px slot",
+        "status 1 item, tmpfs 16.0 MB free"
+      ],
+      "parity_ids": [
+        "board:grid-raw"
+      ],
+      "producer_owner": [
+        "G1.08",
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/grid-3d",
+      "unit": "g1-08",
+      "board_png": ".superpowers/g1-08/references/boards/grid-3d.png",
+      "board_html": ".superpowers/g1-08/references/boards/grid-3d.html",
+      "before_png": ".superpowers/g1-08/references/before/grid-populated-1100x700.png",
+      "sha256": {
+        "board_png": "d9acf281e5c9e849a24b4ac752e7748dd7b1b841a209ef4db1e0c90ee8d3a459",
+        "board_html": "bb179750b1c16d444342fe1fa1b71a0382074b5106857f322a96dc583f72d0f4",
+        "before_png": "1f3ed956a9c794e55178403d0f977fdc8a7e31ed3bd1de0225cca3d88d4b28db"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs8",
+      "setup": {
+        "path": "/fx/v/work/Prints",
+        "entries": 5,
+        "cursor": "benchy.3mf",
+        "view": "grid",
+        "disk_free": "64.1 MB",
+        "producer_ready": "thumbnail",
+        "fixture": "Docs8",
+        "preset": "default"
+      },
+      "assertions": [
+        "benchy.3mf, benchy.gcode, shelf-kit.3mf draw the slicer embedded picture",
+        "bracket.stl and knob.obj draw the rendered picture in two foreground shades",
+        "every picture box is its decoded size fit to the 64 px slot",
+        "status 5 items"
+      ],
+      "parity_ids": [
+        "board:grid-3d"
+      ],
+      "producer_owner": [
+        "G1.08",
+        "G2-previews"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g1/grid-resize",
+      "unit": "g1-08",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Many",
+        "entries": 80,
+        "view": "grid",
+        "input": [
+          "End",
+          "resize 2536x1386",
+          "resize 1024x899",
+          "zoom in",
+          "zoom out"
+        ],
+        "cursor": "item-80.txt",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "cursor tile item-80.txt visible after every step",
+        "last tile row bottom one gap above the status bar in the same frame",
+        "columns follow width, first drawn tile row anchored on a height-only change",
+        "drawn tiles equal the viewport rows plus the cache rows"
+      ],
+      "parity_ids": [
+        "functional:grid-resize"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        8
+      ],
+      "comparison": "fresh v0.3.12 capture in the same state; no board"
+    },
+    {
+      "scene": "g1/grid-partial-row",
+      "unit": "g1-08",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Media",
+        "entries": 11,
+        "view": "grid",
+        "input": [
+          "click tile 11",
+          "shift click tile 8",
+          "drag link.png onto partial-row folder space"
+        ],
+        "cursor": "tone.ogg",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "partial second row draws 5 tiles whole",
+        "the empty cells after tone.ogg are bare ground, no hit",
+        "selection marks tiles 8 to 11 with the 35% plate"
+      ],
+      "parity_ids": [
+        "functional:grid-partial-row"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        8
+      ],
+      "comparison": "fresh v0.3.12 capture in the same state; no board"
+    },
+    {
+      "scene": "g1/grid-caption-wrap",
+      "unit": "g1-08",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "run-owned/Long",
+        "entries": 4,
+        "view": "grid",
+        "files": [
+          "screenshot-2026-08-30-final-review-for-gm-after-the-bench-v3.png",
+          "my-vacation-1.jpeg",
+          "a verylongnamewithoutanyspacesatall.png",
+          "IMG_4121.jpg"
+        ],
+        "filter": "n-1",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "screenshot caption reads screenshot-2026- then the ellipsis line ending .png",
+        "my-vacation-1.jpeg breaks after the hyphen and the run n-1 washes both lines",
+        "IMG_4121.jpg stays one line",
+        "ipc gridCaptionState wrapAt and lines match the drawn frame"
+      ],
+      "parity_ids": [
+        "functional:grid-caption-wrap"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        8
+      ],
+      "comparison": "fresh v0.3.12 capture in the same state; no board"
+    },
+    {
+      "scene": "g1/grid-rename-bottom",
+      "unit": "g1-08",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Docs3",
+      "setup": {
+        "path": "/fx/v/work/Many",
+        "entries": 80,
+        "view": "grid",
+        "input": [
+          "End",
+          "F2"
+        ],
+        "cursor": "item-80.txt",
+        "fixture": "Docs3",
+        "preset": "default"
+      },
+      "assertions": [
+        "every cell grows by the editor extra and the editing tile stays in view",
+        "editor state survives scrolling the tile out of the drawn window and back",
+        "Escape restores the cell height with no jump"
+      ],
+      "parity_ids": [
+        "functional:grid-rename-bottom"
+      ],
+      "producer_owner": [
+        "G1.08"
+      ],
+      "rounding_variants": [
+        8
+      ],
+      "comparison": "fresh v0.3.12 capture in the same state; no board"
+    }
+  ]
+}

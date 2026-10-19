@@ -4,6 +4,7 @@ pub mod columns;
 pub mod g2;
 pub mod feedback;
 pub mod g2;
+pub mod grid;
 pub mod ipc;
 mod list;
 pub mod navigation;
