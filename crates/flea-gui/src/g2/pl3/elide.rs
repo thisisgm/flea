@@ -14,11 +14,18 @@ pub fn right(text: &str, cells: usize) -> Cow<'_, str> {
         return Cow::Borrowed(text);
     }
     let mut used = 1;
-    let head: String = text.chars().take_while(|ch| {
-        used += cells_of(*ch);
-        used <= cells
-    }).collect();
-    Cow::Owned(if cells == 0 { String::new() } else { format!("{head}{ELLIPSIS}") })
+    let head: String = text
+        .chars()
+        .take_while(|ch| {
+            used += cells_of(*ch);
+            used <= cells
+        })
+        .collect();
+    Cow::Owned(if cells == 0 {
+        String::new()
+    } else {
+        format!("{head}{ELLIPSIS}")
+    })
 }
 
 /// Text.ElideLeft: an ellipsis, then the tail that fits, so a location keeps its last folders.
@@ -27,10 +34,18 @@ pub fn left(text: &str, cells: usize) -> Cow<'_, str> {
         return Cow::Borrowed(text);
     }
     let mut used = 1;
-    let mut tail: Vec<char> = text.chars().rev().take_while(|ch| {
-        used += cells_of(*ch);
-        used <= cells
-    }).collect();
+    let mut tail: Vec<char> = text
+        .chars()
+        .rev()
+        .take_while(|ch| {
+            used += cells_of(*ch);
+            used <= cells
+        })
+        .collect();
     tail.reverse();
-    Cow::Owned(if cells == 0 { String::new() } else { std::iter::once(ELLIPSIS).chain(tail).collect() })
+    Cow::Owned(if cells == 0 {
+        String::new()
+    } else {
+        std::iter::once(ELLIPSIS).chain(tail).collect()
+    })
 }

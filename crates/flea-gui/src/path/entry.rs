@@ -41,7 +41,11 @@ impl Entry {
             return false;
         }
         self.editing = true;
-        self.text = if path == "/" { "/".into() } else { format!("{path}/") };
+        self.text = if path == "/" {
+            "/".into()
+        } else {
+            format!("{path}/")
+        };
         self.selected = 0..self.text.len();
         self.reversed = false;
         self.marked = None;
@@ -78,7 +82,12 @@ impl Entry {
     }
 
     /// A peek came back: only the asked (dir, hidden) pair answers, and only while the line still reads that directory.
-    pub fn complete_with(&mut self, peeked: &Peeked, current: &str, home: &str) -> Option<Option<Said>> {
+    pub fn complete_with(
+        &mut self,
+        peeked: &Peeked,
+        current: &str,
+        home: &str,
+    ) -> Option<Option<Said>> {
         let ask = request_key(&peeked.path, peeked.hidden);
         if self.pending.as_ref() != Some(&ask) {
             return None;
@@ -159,23 +168,36 @@ impl Entry {
 
     fn boundary(&self, offset: usize) -> usize {
         let offset = offset.min(self.text.len());
-        (0..=offset).rev().find(|at| self.text.is_char_boundary(*at)).unwrap_or(0)
+        (0..=offset)
+            .rev()
+            .find(|at| self.text.is_char_boundary(*at))
+            .unwrap_or(0)
     }
 
     pub fn previous(&self, offset: usize) -> usize {
-        self.text[..offset.min(self.text.len())].char_indices().next_back().map_or(0, |(at, _)| at)
+        self.text[..offset.min(self.text.len())]
+            .char_indices()
+            .next_back()
+            .map_or(0, |(at, _)| at)
     }
 
     pub fn next(&self, offset: usize) -> usize {
         let offset = offset.min(self.text.len());
-        self.text[offset..].chars().next().map_or(offset, |next| offset + next.len_utf8())
+        self.text[offset..]
+            .chars()
+            .next()
+            .map_or(offset, |next| offset + next.len_utf8())
     }
 
     /// Backspace and Delete: the selection goes, or else one character on that side of the caret.
     pub fn erase(&mut self, forward: bool) {
         if self.selected.is_empty() {
             let at = self.cursor();
-            let to = if forward { self.next(at) } else { self.previous(at) };
+            let to = if forward {
+                self.next(at)
+            } else {
+                self.previous(at)
+            };
             if to == at {
                 return;
             }
@@ -195,19 +217,28 @@ impl Entry {
     }
 
     /// The input method's composing text, underlined until it commits.
-    pub fn replace_and_mark(&mut self, range: Option<Range<usize>>, text: &str, selected: Option<Range<usize>>) {
+    pub fn replace_and_mark(
+        &mut self,
+        range: Option<Range<usize>>,
+        text: &str,
+        selected: Option<Range<usize>>,
+    ) {
         let range = self.target(range);
         self.text.replace_range(range.clone(), text);
         self.marked = (!text.is_empty()).then(|| range.start..range.start + text.len());
         self.selected = selected
-            .map(|inner| self.boundary(range.start + inner.start)..self.boundary(range.start + inner.end))
+            .map(|inner| {
+                self.boundary(range.start + inner.start)..self.boundary(range.start + inner.end)
+            })
             .unwrap_or(range.start + text.len()..range.start + text.len());
         self.reversed = false;
         self.revision += 1;
     }
 
     fn target(&self, range: Option<Range<usize>>) -> Range<usize> {
-        let range = range.or_else(|| self.marked.clone()).unwrap_or_else(|| self.selected.clone());
+        let range = range
+            .or_else(|| self.marked.clone())
+            .unwrap_or_else(|| self.selected.clone());
         self.boundary(range.start)..self.boundary(range.end.max(range.start))
     }
 
@@ -223,7 +254,10 @@ impl Entry {
     }
 
     pub fn offset_to_utf16(&self, offset: usize) -> usize {
-        self.text[..self.boundary(offset)].chars().map(char::len_utf16).sum()
+        self.text[..self.boundary(offset)]
+            .chars()
+            .map(char::len_utf16)
+            .sum()
     }
 
     pub fn range_from_utf16(&self, range: &Range<usize>) -> Range<usize> {

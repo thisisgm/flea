@@ -22,10 +22,9 @@
   "hot_surfaces": [
     {
       "name": "list",
-      "path": "crates/flea-gui/src/list.rs",
+      "path": "crates/flea-gui/src/list/element.rs",
       "element": "ListElement",
-      "row_height": "ROW_HEIGHT",
-      "row_height_path": "crates/flea-gui/src/list/pane.rs"
+      "row_height": "ROW_HEIGHT"
     },
     {
       "name": "columns",

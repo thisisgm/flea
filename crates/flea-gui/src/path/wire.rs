@@ -51,7 +51,13 @@ fn strings(document: &Json, key: &str) -> Vec<String> {
     document
         .get(key)
         .and_then(Json::as_array)
-        .map(|items| items.iter().filter_map(Json::as_str).map(str::to_owned).collect())
+        .map(|items| {
+            items
+                .iter()
+                .filter_map(Json::as_str)
+                .map(str::to_owned)
+                .collect()
+        })
         .unwrap_or_default()
 }
 
@@ -67,9 +73,17 @@ pub fn answer(document: &Json) -> Option<Answer> {
     match document.get("t")?.as_str()? {
         "peeked" => Some(Answer::Peeked(Peeked {
             path: document.get("path")?.as_str()?.to_owned(),
-            hidden: document.get("hidden").and_then(Json::as_bool).unwrap_or(false),
-            failed: document.get("failed").and_then(Json::as_bool).unwrap_or(false),
-            mode: number(document, "mode").and_then(|mode| u32::try_from(mode).ok()).unwrap_or(0),
+            hidden: document
+                .get("hidden")
+                .and_then(Json::as_bool)
+                .unwrap_or(false),
+            failed: document
+                .get("failed")
+                .and_then(Json::as_bool)
+                .unwrap_or(false),
+            mode: number(document, "mode")
+                .and_then(|mode| u32::try_from(mode).ok())
+                .unwrap_or(0),
             dirs: document
                 .get("rows")
                 .and_then(Json::as_array)
@@ -90,7 +104,10 @@ pub fn answer(document: &Json) -> Option<Answer> {
                 .get("frecency")
                 .and_then(Json::as_object)
                 .map(|pairs| {
-                    pairs.iter().filter_map(|(path, score)| Some((path.clone(), score.as_f64()?))).collect()
+                    pairs
+                        .iter()
+                        .filter_map(|(path, score)| Some((path.clone(), score.as_f64()?)))
+                        .collect()
                 })
                 .unwrap_or_default(),
         })),

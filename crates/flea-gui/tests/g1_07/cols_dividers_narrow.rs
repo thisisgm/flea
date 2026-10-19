@@ -66,7 +66,11 @@ fn check_active(c: &mut Checks, area: &Area, want: bool, label: &str) {
         .tracks()
         .iter()
         .find(|view| view.slot == Slot::Active && view.rows == TrackRows::Listing);
-    c.ok(83, &format!("{label} finds no active pane"), active.is_some());
+    c.ok(
+        83,
+        &format!("{label} finds no active pane"),
+        active.is_some(),
+    );
     let Some(active) = active else {
         return;
     };
@@ -95,13 +99,20 @@ fn check_wide(c: &mut Checks, area: &Area, label: &str, ancestors: &[f32]) {
     let want = panes.saturating_sub(1);
     c.eq(
         100,
-        &format!("{label} draws {} dividers over {panes} panes, want {want}", edges.len()),
+        &format!(
+            "{label} draws {} dividers over {panes} panes, want {want}",
+            edges.len()
+        ),
         edges.len() + 1,
         panes,
     );
     for view in shown(area) {
         if view.slot == Slot::Active {
-            c.ok(109, &format!("{label} the rightmost pane draws a divider"), !view.divider);
+            c.ok(
+                109,
+                &format!("{label} the rightmost pane draws a divider"),
+                !view.divider,
+            );
         } else {
             c.ok(
                 111,
@@ -135,11 +146,19 @@ fn the_active_column_draws_its_edge_only_while_the_third_draws() {
     );
     c.eq(
         271,
-        &format!("at 900 px with an empty third shows {} panes, want 2", panes(&area)),
+        &format!(
+            "at 900 px with an empty third shows {} panes, want 2",
+            panes(&area)
+        ),
         panes(&area),
         2,
     );
-    c.eq(273, "an empty third shows thirdShown true, want false", third_shown(&area), false);
+    c.eq(
+        273,
+        "an empty third shows thirdShown true, want false",
+        third_shown(&area),
+        false,
+    );
     check_active(&mut c, &area, false, "empty third");
 
     // A child folder under the cursor draws in the third column once its peek lands.
@@ -155,13 +174,19 @@ fn the_active_column_draws_its_edge_only_while_the_third_draws() {
     );
     c.eq(
         293,
-        &format!("a child folder with rows shows {} panes, want 3", panes(&area)),
+        &format!(
+            "a child folder with rows shows {} panes, want 3",
+            panes(&area)
+        ),
         panes(&area),
         3,
     );
     c.eq(
         295,
-        &format!("a child folder with rows draws {} dividers, want 2", edges(&area).len()),
+        &format!(
+            "a child folder with rows draws {} dividers, want 2",
+            edges(&area).len()
+        ),
         edges(&area),
         vec![299., 599.],
     );
@@ -178,7 +203,12 @@ fn the_active_column_draws_its_edge_only_while_the_third_draws() {
         third_shown(&area),
         true,
     );
-    check_active(&mut c, &area, true, "file preview with the preview column on");
+    check_active(
+        &mut c,
+        &area,
+        true,
+        "file preview with the preview column on",
+    );
 
     area.settings.column = false;
     sync(&mut area, &pane, &mut producers, 5);
@@ -208,11 +238,19 @@ fn the_active_column_draws_its_edge_only_while_the_third_draws() {
     );
     c.eq(
         348,
-        &format!("at 5 columns with an empty third shows {} panes, want 4", panes(&area)),
+        &format!(
+            "at 5 columns with an empty third shows {} panes, want 4",
+            panes(&area)
+        ),
         panes(&area),
         4,
     );
-    check_wide(&mut c, &area, "at 2400 px with limit 5", &[479., 959., 1439.]);
+    check_wide(
+        &mut c,
+        &area,
+        "at 2400 px with limit 5",
+        &[479., 959., 1439.],
+    );
 
     area.resize(1800., 600.);
     sync(&mut area, &pane, &mut producers, 8);
@@ -225,7 +263,10 @@ fn the_active_column_draws_its_edge_only_while_the_third_draws() {
     );
     c.eq(
         365,
-        &format!("at 4 columns with an empty third shows {} panes, want 3", panes(&area)),
+        &format!(
+            "at 4 columns with an empty third shows {} panes, want 3",
+            panes(&area)
+        ),
         panes(&area),
         3,
     );

@@ -49,7 +49,12 @@ impl Strip {
     /// budget is the room in characters, as the oracle's fit counts it; place then lays the crumbs out in pixels.
     pub fn fit(&mut self, path: &str, home: &str, alias: Option<&Alias>, budget: usize) -> bool {
         let (kept_path, kept_home, kept_alias, kept_budget) = &self.key;
-        if self.revision > 0 && kept_path == path && kept_home == home && kept_alias.as_ref() == alias && *kept_budget == budget {
+        if self.revision > 0
+            && kept_path == path
+            && kept_home == home
+            && kept_alias.as_ref() == alias
+            && *kept_budget == budget
+        {
             return false;
         }
         self.key = (path.to_owned(), home.to_owned(), alias.cloned(), budget);
@@ -113,17 +118,27 @@ impl Strip {
     /// taps is the platform's click count; a second tap only pairs with a first on the same crumb of the same fit.
     pub fn press(&mut self, hit: Hit, taps: usize, modifiers: u8) -> Tap {
         let met = self.met(hit);
-        let taps = if taps >= 2 && self.last_press != Some(met) { 1 } else { taps };
+        let taps = if taps >= 2 && self.last_press != Some(met) {
+            1
+        } else {
+            taps
+        };
         self.last_press = Some(met);
         let crumb = match hit {
             Hit::Crumb(index) => self.crumbs.get(index),
             Hit::Ground => None,
         };
-        let row = if crumb.is_some_and(Crumb::parent) { "parent" } else { "inert" };
+        let row = if crumb.is_some_and(Crumb::parent) {
+            "parent"
+        } else {
+            "inert"
+        };
         let Ok(taps) = u8::try_from(taps) else {
             return Tap::Nothing;
         };
-        match flea::keys::pointer("chrome", row, "left", modifiers, taps).map(|binding| binding.effect) {
+        match flea::keys::pointer("chrome", row, "left", modifiers, taps)
+            .map(|binding| binding.effect)
+        {
             Some("goToCrumb") => crumb.map_or(Tap::Nothing, |crumb| Tap::Open(crumb.path.clone())),
             Some("pathBar") => Tap::Edit,
             _ => Tap::Nothing,
@@ -133,7 +148,11 @@ impl Strip {
     /// Hovering a parent lights it; the marker and the leaf have nothing to light.
     pub fn hover(&mut self, hit: Option<Hit>) -> bool {
         let next = match hit {
-            Some(Hit::Crumb(index)) if self.crumbs.get(index).is_some_and(|crumb| !crumb.elided) => Some(index),
+            Some(Hit::Crumb(index))
+                if self.crumbs.get(index).is_some_and(|crumb| !crumb.elided) =>
+            {
+                Some(index)
+            }
             _ => None,
         };
         let changed = next != self.hovered;

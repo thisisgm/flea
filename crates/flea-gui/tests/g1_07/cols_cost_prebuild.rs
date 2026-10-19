@@ -97,7 +97,12 @@ fn check_dividers(c: &mut Checks, area: &Area) {
         DIVIDER,
         1.,
     );
-    c.eq(124, &format!("a column divider opacifies at {HAIR}, want 0.12"), HAIR, 0.12);
+    c.eq(
+        124,
+        &format!("a column divider opacifies at {HAIR}, want 0.12"),
+        HAIR,
+        0.12,
+    );
 }
 
 #[test]
@@ -119,13 +124,27 @@ fn the_default_limit_builds_three_tracks_and_drops_what_it_stops_drawing() {
         3,
     );
     let built = area.tracks_built();
-    c.eq(330, &format!("at 3 columns holds {built} ColumnPanes, want 3"), built, 3);
-    c.eq(330, "at 3 columns holds paint states, want 3", painters.built(), 3);
+    c.eq(
+        330,
+        &format!("at 3 columns holds {built} ColumnPanes, want 3"),
+        built,
+        3,
+    );
+    c.eq(
+        330,
+        "at 3 columns holds paint states, want 3",
+        painters.built(),
+        3,
+    );
     let deep = area
         .tracks()
         .iter()
         .any(|view| matches!(view.slot, Slot::Grandparent | Slot::GreatGrandparent));
-    c.ok(330, "at 3 columns builds a grandparent or great-grandparent track", !deep);
+    c.ok(
+        330,
+        "at 3 columns builds a grandparent or great-grandparent track",
+        !deep,
+    );
     check_dividers(&mut c, &area);
     c.ok(
         309,
@@ -150,8 +169,18 @@ fn the_default_limit_builds_three_tracks_and_drops_what_it_stops_drawing() {
         5,
     );
     let built = area.tracks_built();
-    c.eq(355, &format!("at 5 columns holds {built} ColumnPanes, want 5"), built, 5);
-    c.eq(355, "at 5 columns holds paint states, want 5", painters.built(), 5);
+    c.eq(
+        355,
+        &format!("at 5 columns holds {built} ColumnPanes, want 5"),
+        built,
+        5,
+    );
+    c.eq(
+        355,
+        "at 5 columns holds paint states, want 5",
+        painters.built(),
+        5,
+    );
     c.eq(
         357,
         "the grandparent pane is not bound to its rows",
@@ -165,9 +194,17 @@ fn the_default_limit_builds_three_tracks_and_drops_what_it_stops_drawing() {
         Some(1),
     );
     let grandparent = row_at(&area, &pane, "columnGrandparentRowCentre");
-    c.ok(361, "grandparentItemAt(0) answers null with 5 columns", !grandparent.is_empty());
+    c.ok(
+        361,
+        "grandparentItemAt(0) answers null with 5 columns",
+        !grandparent.is_empty(),
+    );
     let great = row_at(&area, &pane, "columnGreatGrandparentRowCentre");
-    c.ok(363, "greatGrandparentItemAt(0) answers null with 5 columns", !great.is_empty());
+    c.ok(
+        363,
+        "greatGrandparentItemAt(0) answers null with 5 columns",
+        !great.is_empty(),
+    );
 
     // 1800 px draws four: the great-grandparent track and its paint state are dropped, not hidden.
     let before = (area.tracks_dropped(), painters.dropped);
@@ -182,17 +219,33 @@ fn the_default_limit_builds_three_tracks_and_drops_what_it_stops_drawing() {
         4,
     );
     let built = area.tracks_built();
-    c.eq(375, &format!("at 4 columns holds {built} ColumnPanes, want 4"), built, 4);
+    c.eq(
+        375,
+        &format!("at 4 columns holds {built} ColumnPanes, want 4"),
+        built,
+        4,
+    );
     c.eq(
         375,
         "at 4 columns drops one track and one paint state",
-        (area.tracks_dropped() - before.0, painters.dropped - before.1),
+        (
+            area.tracks_dropped() - before.0,
+            painters.dropped - before.1,
+        ),
         (1, 1),
     );
     let grandparent = row_at(&area, &pane, "columnGrandparentRowCentre");
-    c.ok(377, "grandparentItemAt(0) answers null with 4 columns", !grandparent.is_empty());
+    c.ok(
+        377,
+        "grandparentItemAt(0) answers null with 4 columns",
+        !grandparent.is_empty(),
+    );
     let great = row_at(&area, &pane, "columnGreatGrandparentRowCentre");
-    c.ok(379, "greatGrandparentItemAt(0) answers non-null with 4 columns", great.is_empty());
+    c.ok(
+        379,
+        "greatGrandparentItemAt(0) answers non-null with 4 columns",
+        great.is_empty(),
+    );
 
     // Back to the shipped limit at 900 px: both deeper ancestors go.
     area.set_limit(None);
@@ -200,10 +253,25 @@ fn the_default_limit_builds_three_tracks_and_drops_what_it_stops_drawing() {
     sync(&mut area, &pane, &mut producers, 4);
     draw(&mut painters, &area, &typeface);
     let count = area.count();
-    c.eq(389, &format!("narrowed back draws {count} columns, want 3"), count, 3);
+    c.eq(
+        389,
+        &format!("narrowed back draws {count} columns, want 3"),
+        count,
+        3,
+    );
     let built = area.tracks_built();
-    c.eq(392, &format!("narrowed back holds {built} ColumnPanes, want 3"), built, 3);
-    c.eq(392, "narrowed back holds paint states, want 3", painters.built(), 3);
+    c.eq(
+        392,
+        &format!("narrowed back holds {built} ColumnPanes, want 3"),
+        built,
+        3,
+    );
+    c.eq(
+        392,
+        "narrowed back holds paint states, want 3",
+        painters.built(),
+        3,
+    );
     let grandparent = row_at(&area, &pane, "columnGrandparentRowCentre");
     c.ok(
         394,

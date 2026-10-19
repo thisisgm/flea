@@ -6,9 +6,9 @@ use super::{
 use crate::list::{Palette, Typeface};
 use crate::palette::Theme;
 use gpui::{
-    fill, point, px, relative, size, App, Bounds, CursorStyle, Element, ElementId,
-    GlobalElementId, GlyphRun, Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, SharedString, Style, TextRun,
-    TransformationMatrix, Window,
+    fill, point, px, relative, size, App, Bounds, CursorStyle, Element, ElementId, GlobalElementId,
+    GlyphRun, Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
+    SharedString, Style, TextRun, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, collections::VecDeque, rc::Rc};
 

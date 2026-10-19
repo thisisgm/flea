@@ -170,12 +170,26 @@ impl GridView {
     }
 
     pub fn layout(&self, shown: Shown) -> Layout {
-        Layout::new(self.metrics, self.size, self.thumb, self.density, shown.total(), self.rename_extra)
+        Layout::new(
+            self.metrics,
+            self.size,
+            self.thumb,
+            self.density,
+            shown.total(),
+            self.rename_extra,
+        )
     }
     /// GridArea.qml windowPlan: the list's 150-row buffer in pixels rebuilt in tile rows.
     pub fn plan(&self, layout: &Layout) -> WindowPlan {
         use crate::pane::requests::{BUFFER, MARGIN};
-        window_for(layout.columns, layout.visible_rows(), BUFFER, crate::pane::ROW_HEIGHT, layout.cell_height, MARGIN)
+        window_for(
+            layout.columns,
+            layout.visible_rows(),
+            BUFFER,
+            crate::pane::ROW_HEIGHT,
+            layout.cell_height,
+            MARGIN,
+        )
     }
 
     /// GridArea.qml canAsk: no window while hidden, while a filter narrows held rows, or while a listing is out.
@@ -185,7 +199,11 @@ impl GridView {
 
     // The pane's one request slot: every ask waits behind what is out, so each reply still meets its own request, and a refused window is not asked again.
     fn ask(pane: &mut Pane, (start, count): (usize, usize)) -> Option<(usize, usize)> {
-        let request = WindowRequest { start, count, listing: pane.held.listing };
+        let request = WindowRequest {
+            start,
+            count,
+            listing: pane.held.listing,
+        };
         if pane.requests.outstanding.is_some() || pane.requests.refused == Some(request) {
             return None;
         }
@@ -195,20 +213,38 @@ impl GridView {
     }
 
     /// A cursor move: a far landing asks its window first and waits for it; any other move reveals the tile now, in one pass.
-    pub fn follow_cursor(&mut self, pane: &mut Pane, shown: Shown, focus: &dyn FocusFacts) -> Option<(usize, usize)> {
+    pub fn follow_cursor(
+        &mut self,
+        pane: &mut Pane,
+        shown: Shown,
+        focus: &dyn FocusFacts,
+    ) -> Option<(usize, usize)> {
         let view = shown.view_of(focus.cursor())?;
         if self.hidden_held {
             return None;
         }
         let layout = self.layout(shown);
         let held = &pane.held;
-        let need = geometry::landing_ask(&self.plan(&layout), view, layout.viewport(self.scroll).0, held.total, held.start, held.rows.len());
+        let need = geometry::landing_ask(
+            &self.plan(&layout),
+            view,
+            layout.viewport(self.scroll).0,
+            held.total,
+            held.start,
+            held.rows.len(),
+        );
         let owes = self.can_ask(pane, shown) && held.row(focus.cursor()).is_none();
         self.landing_wait = need.is_some() && owes;
         self.landing_start = need.map(|need| need.0);
-        let asked = need.filter(|_| self.can_ask(pane, shown)).and_then(|need| Self::ask(pane, need));
+        let asked = need
+            .filter(|_| self.can_ask(pane, shown))
+            .and_then(|need| Self::ask(pane, need));
         self.counters.landing_asks += asked.is_some() as usize;
-        let busy = |need: (usize, usize)| pane.requests.outstanding.is_some_and(|out| (out.start, out.count) != need);
+        let busy = |need: (usize, usize)| {
+            pane.requests
+                .outstanding
+                .is_some_and(|out| (out.start, out.count) != need)
+        };
         self.landing_held = need.filter(|&need| self.landing_wait && asked.is_none() && busy(need));
         if !self.landing_wait {
             self.reveal(&layout, view);
@@ -224,7 +260,12 @@ impl GridView {
     }
 
     /// Call after every window reply or refusal: a held landing asks once the slot is free, and the wait ends on its own reply, its refusal, or once the cursor's rows are held.
-    pub fn rows_landed(&mut self, pane: &mut Pane, shown: Shown, focus: &dyn FocusFacts) -> Option<(usize, usize)> {
+    pub fn rows_landed(
+        &mut self,
+        pane: &mut Pane,
+        shown: Shown,
+        focus: &dyn FocusFacts,
+    ) -> Option<(usize, usize)> {
         if !self.landing_wait {
             return None;
         }
@@ -241,7 +282,11 @@ impl GridView {
             }
         }
         self.landing_held = None;
-        let refused = pane.requests.outstanding.is_none() && pane.requests.refused.is_some_and(|out| Some(out.start) == self.landing_start);
+        let refused = pane.requests.outstanding.is_none()
+            && pane
+                .requests
+                .refused
+                .is_some_and(|out| Some(out.start) == self.landing_start);
         if owed && !refused && Some(pane.held.start) != self.landing_start {
             return None;
         }
@@ -273,7 +318,14 @@ impl GridView {
         }
         let layout = self.layout(shown);
         let (first, last) = layout.viewport(self.scroll);
-        let need = geometry::drift_ask(&self.plan(&layout), first, last, pane.held.start, pane.held.rows.len(), pane.held.total)?;
+        let need = geometry::drift_ask(
+            &self.plan(&layout),
+            first,
+            last,
+            pane.held.start,
+            pane.held.rows.len(),
+            pane.held.total,
+        )?;
         let asked = Self::ask(pane, need);
         self.counters.drift_asks += asked.is_some() as usize;
         asked
@@ -311,7 +363,9 @@ impl GridView {
     /// A size, zoom, density or rename height change re-flows the tiles: the first visible tile keeps its place, and a cursor in view stays in view.
     pub fn reflow(&mut self, shown: Shown, focus: &dyn FocusFacts, change: impl FnOnce(&mut Self)) {
         let before = self.layout(shown);
-        let cursor = shown.view_of(focus.cursor()).filter(|&view| before.covers(self.scroll, view));
+        let cursor = shown
+            .view_of(focus.cursor())
+            .filter(|&view| before.covers(self.scroll, view));
         let anchor = before.drawn(self.scroll).start;
         let offset = before.row_top(anchor / before.columns) - self.scroll;
         change(self);
@@ -323,7 +377,12 @@ impl GridView {
     }
 
     /// GridArea.qml zoomWheel: travel accrues and whole steps walk the thumbnail stops; the answer is the size to persist as preview.thumbSize.
-    pub fn zoom(&mut self, shown: Shown, focus: &dyn FocusFacts, input: ZoomInput) -> Option<ThumbSize> {
+    pub fn zoom(
+        &mut self,
+        shown: Shown,
+        focus: &dyn FocusFacts,
+        input: ZoomInput,
+    ) -> Option<ThumbSize> {
         self.zoom_travel += zoom_travel(input);
         let steps = self.zoom_travel.trunc();
         if steps == 0. {

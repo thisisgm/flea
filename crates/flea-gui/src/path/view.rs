@@ -180,7 +180,10 @@ impl PathView {
         let side = self.inputs.side;
         for ask in std::mem::take(&mut self.asks) {
             cx.emit(match ask {
-                Ask::Jump { id, ranking } => Out::Send { side, line: jump_line(id, ranking, &self.favourites, &self.recent) },
+                Ask::Jump { id, ranking } => Out::Send {
+                    side,
+                    line: jump_line(id, ranking, &self.favourites, &self.recent),
+                },
                 Ask::ReadHistory => Out::ReadHistory,
             });
         }
@@ -194,7 +197,12 @@ impl PathView {
 
     /// Enter on the line, or a jump that declined it.
     pub fn commit(&mut self, cx: &mut Context<Self>) {
-        let (path, home, failed, side) = (self.path().to_owned(), self.inputs.home.clone(), self.inputs.failed, self.inputs.side);
+        let (path, home, failed, side) = (
+            self.path().to_owned(),
+            self.inputs.home.clone(),
+            self.inputs.failed,
+            self.inputs.side,
+        );
         let commit = self.entry.commit(&path, &home, failed);
         self.jump.close();
         self.hold = None;
@@ -209,7 +217,8 @@ impl PathView {
     }
 
     pub(super) fn choose(&mut self, path: String, cx: &mut Context<Self>) {
-        let (current, failed, side) = (self.path().to_owned(), self.inputs.failed, self.inputs.side);
+        let (current, failed, side) =
+            (self.path().to_owned(), self.inputs.failed, self.inputs.side);
         self.close(cx);
         if should_navigate(&path, &current, failed) {
             cx.emit(Out::Open { side, path });
@@ -222,7 +231,9 @@ impl PathView {
             Enter::Declined => self.commit(cx),
             Enter::Held => {
                 self.hold = Some(cx.spawn_in(window, async move |view, cx| {
-                    cx.background_executor().timer(Duration::from_millis(ANSWER_LIMIT_MS)).await;
+                    cx.background_executor()
+                        .timer(Duration::from_millis(ANSWER_LIMIT_MS))
+                        .await;
                     let _ = view.update(cx, |view, cx| {
                         if view.jump.expire() {
                             view.commit(cx);
@@ -244,7 +255,10 @@ impl PathView {
             }
             Tab::Asked(ask) => {
                 let line = peek_line(&ask.dir, self.inputs.first, ask.hidden);
-                cx.emit(Out::Send { side: self.inputs.side, line });
+                cx.emit(Out::Send {
+                    side: self.inputs.side,
+                    line,
+                });
             }
         }
         cx.notify();
@@ -262,7 +276,13 @@ impl PathView {
             }
             Answer::Jumped(jumped) => {
                 let shown = self.jump.shown();
-                let enter = self.jump.take(&jumped, self.ranker.as_mut(), &home, &self.entry.text, &mut self.asks);
+                let enter = self.jump.take(
+                    &jumped,
+                    self.ranker.as_mut(),
+                    &home,
+                    &self.entry.text,
+                    &mut self.asks,
+                );
                 self.flush(cx);
                 self.reshown(shown);
                 if let Some(enter) = enter {
@@ -291,19 +311,33 @@ impl PathView {
     }
 
     pub(super) fn reveal(&mut self) {
-        let Some(cursor) = self.jump.cursor else { return };
+        let Some(cursor) = self.jump.cursor else {
+            return;
+        };
         let rows = self.jump.entries.len();
-        let popup = self.paint.borrow().popup.map_or_else(|| Popup::measure(f32::MAX, 0., 0., rows), |kept| Popup::framed(kept.x, kept.y, kept.width, kept.height, rows));
+        let popup = self.paint.borrow().popup.map_or_else(
+            || Popup::measure(f32::MAX, 0., 0., rows),
+            |kept| Popup::framed(kept.x, kept.y, kept.width, kept.height, rows),
+        );
         self.scroll = popup.reveal(self.scroll, cursor, rows);
     }
 
     /// Enter while the jump may still answer: its chosen row, a hold, or None for the line itself.
     pub(super) fn press_enter(&mut self) -> Option<Enter> {
-        self.jump.press_enter(self.ranker.as_ref(), &self.entry.text)
+        self.jump
+            .press_enter(self.ranker.as_ref(), &self.entry.text)
     }
 
     /// A press on a strip: a parent opens on the first tap, and only inert ground answers a double click.
-    pub fn press_strip(&mut self, slot: usize, x: f32, taps: usize, modifiers: u8, window: &mut Window, cx: &mut Context<Self>) {
+    pub fn press_strip(
+        &mut self,
+        slot: usize,
+        x: f32,
+        taps: usize,
+        modifiers: u8,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
         let side = slot.saturating_sub(1).min(1);
         if slot > 0 {
             self.inputs.side = side;
@@ -311,7 +345,10 @@ impl PathView {
         }
         let hit = self.strips[slot].hit(x);
         match self.strips[slot].press(hit, taps, modifiers) {
-            Tap::Open(path) => cx.emit(Out::Open { side: if slot == 0 { self.inputs.side } else { side }, path }),
+            Tap::Open(path) => cx.emit(Out::Open {
+                side: if slot == 0 { self.inputs.side } else { side },
+                path,
+            }),
             Tap::Edit => self.open(window, cx),
             Tap::Nothing => {}
         }

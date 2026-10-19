@@ -112,12 +112,20 @@ fn overlay(div: Div, record: impl FnOnce(Bounds<Pixels>, &Window) + 'static) -> 
     )
 }
 
-pub(crate) fn rows(state: &ListState, bounds: Bounds<Pixels>, scroll: f32, row: f32, window: &Window) {
+pub(crate) fn rows(
+    state: &ListState,
+    bounds: Bounds<Pixels>,
+    scroll: f32,
+    row: f32,
+    window: &Window,
+) {
     let Some(probe) = &state.probe else { return };
     let surface = format!("list-{}", f32::from(bounds.origin.x));
     probe.push(&surface, "", "surface", bounds, "", window);
     for shown in state.visible() {
-        let Some(prepared) = &shown.prepared else { continue };
+        let Some(prepared) = &shown.prepared else {
+            continue;
+        };
         let index = shown.index;
         let top = bounds.origin.y + px(index as f32 * row - scroll);
         let id = format!("{surface}-row-{index}");

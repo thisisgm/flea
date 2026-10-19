@@ -11,11 +11,15 @@ pub struct GridAdapter<'a> {
 impl GridAdapter<'_> {
     /// Ipc.qml gridCaptionState: "{}" for a row no tile draws; wrapAt counts UTF-16 units as the JavaScript seam did.
     pub fn caption_state(&self, listing: usize) -> String {
-        let (Some(drawn), Some(layout)) = (self.state.drawn_row(listing), self.state.layout.as_ref()) else {
+        let (Some(drawn), Some(layout)) =
+            (self.state.drawn_row(listing), self.state.layout.as_ref())
+        else {
             return "{}".into();
         };
         let name = drawn.caption_text().unwrap_or("");
-        let wrap_at = name.find('\n').map_or(-1, |at| name[..at].encode_utf16().count() as i64);
+        let wrap_at = name
+            .find('\n')
+            .map_or(-1, |at| name[..at].encode_utf16().count() as i64);
         let shaped = name.split('\n').count();
         let truncated = drawn.truncated();
         let text_height = drawn.lines as f32 * layout.metrics.caption_line;
@@ -40,7 +44,14 @@ impl GridAdapter<'_> {
     // GridTile.qml nameTip as the seam reads it: the whole name and its box while the tip shows on this row, else null.
     fn tip(&self, listing: usize) -> String {
         match self.state.tip().filter(|tip| tip.0 == listing) {
-            Some((_, name, rect)) => format!("{{\"text\":\"{}\",\"x\":{},\"y\":{},\"width\":{},\"height\":{}}}", escape(name), rect.x, rect.y, rect.width, rect.height),
+            Some((_, name, rect)) => format!(
+                "{{\"text\":\"{}\",\"x\":{},\"y\":{},\"width\":{},\"height\":{}}}",
+                escape(name),
+                rect.x,
+                rect.y,
+                rect.width,
+                rect.height
+            ),
             None => "null".into(),
         }
     }
@@ -49,7 +60,14 @@ impl GridAdapter<'_> {
 impl Adapter for GridAdapter<'_> {
     fn call(&self, function: &str, arguments: &[String]) -> Option<Reply> {
         let value = match function {
-            "gridColumns" => self.state.layout.map_or_else(|| self.view.layout(Shown::All(0)).columns, |layout| layout.columns).to_string(),
+            "gridColumns" => self
+                .state
+                .layout
+                .map_or_else(
+                    || self.view.layout(Shown::All(0)).columns,
+                    |layout| layout.columns,
+                )
+                .to_string(),
             "gridCaptionState" => self.caption_state(arguments.first()?.parse().ok()?),
             _ => return None,
         };

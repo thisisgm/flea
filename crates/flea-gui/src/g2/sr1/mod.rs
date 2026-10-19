@@ -103,7 +103,9 @@ impl Search {
 
     /// A key while the query line has the keyboard; every key is taken, as the strip owns them all.
     pub fn key(&mut self, key: StripKey, host: &mut dyn Host) {
-        let clip = matches!(key, StripKey::Paste).then(|| host.clipboard_text()).flatten();
+        let clip = matches!(key, StripKey::Paste)
+            .then(|| host.clipboard_text())
+            .flatten();
         let effects = {
             let pane: Pane = host.pane().into();
             let key = match key {
@@ -238,7 +240,13 @@ impl Search {
         if !session.live() {
             return (String::new(), String::new());
         }
-        let line = core::status_line(i18n, session.running, session.total, session.scanned, session.ms);
+        let line = core::status_line(
+            i18n,
+            session.running,
+            session.total,
+            session.scanned,
+            session.ms,
+        );
         let headline = if session.total == 0 && !session.running {
             core::nothing_matches(i18n, &session.query)
         } else {

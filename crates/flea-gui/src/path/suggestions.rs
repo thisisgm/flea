@@ -86,10 +86,16 @@ impl Jump {
         self.reset(true);
         if self.history_kept && self.history_read_at == Some(self.history_changes) {
             self.whole_asked = true;
-            out.push(Ask::Jump { id: self.asked, ranking: 0 });
+            out.push(Ask::Jump {
+                id: self.asked,
+                ranking: 0,
+            });
         } else {
             self.provisional = self.asked;
-            out.push(Ask::Jump { id: self.asked, ranking: 0 });
+            out.push(Ask::Jump {
+                id: self.asked,
+                ranking: 0,
+            });
             self.history_reading = true;
             self.history_read_at = Some(self.history_changes);
             out.push(Ask::ReadHistory);
@@ -131,15 +137,26 @@ impl Jump {
         }
         self.whole_asked = true;
         self.asked += 1;
-        out.push(Ask::Jump { id: self.asked, ranking: self.provisional });
+        out.push(Ask::Jump {
+            id: self.asked,
+            ranking: self.provisional,
+        });
     }
 
     /// The backend's answer; one for another open, or after the bar closed, is dropped. A provisional answer never spends a held Enter.
-    pub fn take(&mut self, answer: &Jumped, ranker: &mut dyn Ranker, home: &str, line: &str, out: &mut Vec<Ask>) -> Option<Enter> {
+    pub fn take(
+        &mut self,
+        answer: &Jumped,
+        ranker: &mut dyn Ranker,
+        home: &str,
+        line: &str,
+        out: &mut Vec<Ask>,
+    ) -> Option<Enter> {
         if !self.editing {
             return None;
         }
-        let provisional = answer.id == self.provisional && self.provisional != 0 && !self.whole_taken;
+        let provisional =
+            answer.id == self.provisional && self.provisional != 0 && !self.whole_taken;
         if answer.id != self.asked && !provisional {
             return None;
         }
@@ -247,13 +264,27 @@ impl Popup {
         let content = rows as f32 * ROW + 2. * PAD;
         let room = (window_height - TOP - STATUS - CLEAR).max(0.);
         let height = (content + 2. * FRAME).min(room);
-        Self { x, y: TOP, width, height, content, inner: (height - 2. * FRAME).max(0.) }
+        Self {
+            x,
+            y: TOP,
+            width,
+            height,
+            content,
+            inner: (height - 2. * FRAME).max(0.),
+        }
     }
 
     /// The popup as it was laid out, its rows' content measured against the frame it got.
     pub fn framed(x: f32, y: f32, width: f32, height: f32, rows: usize) -> Self {
         let content = rows as f32 * ROW + 2. * PAD;
-        Self { x, y, width, height, content, inner: (height - 2. * FRAME).max(0.) }
+        Self {
+            x,
+            y,
+            width,
+            height,
+            content,
+            inner: (height - 2. * FRAME).max(0.),
+        }
     }
 
     /// The rows any part of which shows at this scroll.
@@ -271,7 +302,11 @@ impl Popup {
     pub fn reveal(&self, scroll: f32, index: usize, rows: usize) -> f32 {
         let top = PAD + index as f32 * ROW;
         let low = if index == 0 { 0. } else { top };
-        let high = if index + 1 >= rows { self.content } else { top + ROW };
+        let high = if index + 1 >= rows {
+            self.content
+        } else {
+            top + ROW
+        };
         let scroll = if low < scroll {
             low
         } else if high > scroll + self.inner {
@@ -288,7 +323,11 @@ impl Popup {
 
     /// The row under a window point, if any.
     pub fn row_at(&self, x: f32, y: f32, scroll: f32, rows: usize) -> Option<usize> {
-        if x < self.x || x >= self.x + self.width || y < self.y + FRAME || y >= self.y + self.height - FRAME {
+        if x < self.x
+            || x >= self.x + self.width
+            || y < self.y + FRAME
+            || y >= self.y + self.height - FRAME
+        {
             return None;
         }
         let inside = y - self.y - FRAME + scroll - PAD;

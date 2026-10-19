@@ -7,7 +7,7 @@ use crate::pane::{
 use flea::protocol::{Reply, RowFacts};
 use std::{rc::Rc, time::Instant};
 
-pub const ROW_HEIGHT: f32 = 31.;
+pub use super::element::ROW_HEIGHT;
 
 #[derive(Default)]
 pub struct Held {

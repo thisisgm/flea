@@ -125,7 +125,13 @@ impl Render for View {
     }
 }
 
-pub fn open(cx: &mut TestAppContext, tracks: Rc<[TrackView]>, held: Rc<Held>, width: f32, height: f32) -> WindowHandle<View> {
+pub fn open(
+    cx: &mut TestAppContext,
+    tracks: Rc<[TrackView]>,
+    held: Rc<Held>,
+    width: f32,
+    height: f32,
+) -> WindowHandle<View> {
     cx.open_window(size(px(width), px(height)), |_, _| View {
         tracks,
         held,
@@ -155,7 +161,11 @@ pub fn set(cx: &mut TestAppContext, window: WindowHandle<View>, change: impl FnO
         .expect("the frame window is open");
 }
 
-pub fn read<R>(cx: &mut TestAppContext, window: WindowHandle<View>, look: impl FnOnce(&View) -> R) -> R {
+pub fn read<R>(
+    cx: &mut TestAppContext,
+    window: WindowHandle<View>,
+    look: impl FnOnce(&View) -> R,
+) -> R {
     window
         .update(cx, |view, _, _| look(view))
         .expect("the frame window is open")

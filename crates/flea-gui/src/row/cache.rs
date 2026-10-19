@@ -112,7 +112,12 @@ impl RowCache {
     }
 
     /// The row shaped from exactly these facts: an entry whose facts differ is shaped again, an equal one is reused as is.
-    pub fn get_or_prepare(&mut self, index: usize, facts: &RowFacts, prepare: impl FnOnce() -> Prepared) -> Rc<Prepared> {
+    pub fn get_or_prepare(
+        &mut self,
+        index: usize,
+        facts: &RowFacts,
+        prepare: impl FnOnce() -> Prepared,
+    ) -> Rc<Prepared> {
         self.get_or_prepare_with(index, facts, Extra::default(), prepare)
     }
 

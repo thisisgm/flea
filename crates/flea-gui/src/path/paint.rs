@@ -3,9 +3,9 @@ use super::{menu::Piece, strip::Strip, suggestions::Popup, view::PathView};
 use crate::list::{Palette, Typeface};
 use crate::palette::Theme;
 use gpui::{
-    fill, point, px, relative, size, App, Bounds, ContentMask, CursorStyle, Element, ElementId, Entity, FontWeight,
-    GlobalElementId, GlyphRun, Hitbox, HitboxBehavior, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels,
-    Style, TextRun, Window,
+    fill, point, px, relative, size, App, Bounds, ContentMask, CursorStyle, Element, ElementId,
+    Entity, FontWeight, GlobalElementId, GlyphRun, Hitbox, HitboxBehavior, Hsla,
+    InspectorElementId, IntoElement, LayoutId, Pixels, Style, TextRun, Window,
 };
 use std::rc::Rc;
 
@@ -20,6 +20,10 @@ pub struct Ink {
     pub accent: Hsla,
     pub accent_frame: Hsla,
 }
+
+// Board inks: hover is the foreground at 8%, the hairline 12%.
+const HOVER: f32 = 0.08;
+const HAIR: f32 = 0.12;
 
 impl Ink {
     pub fn of(palette: Palette) -> Self {
@@ -36,13 +40,13 @@ impl Ink {
 
     // Board inks: hover is the foreground at 8%, the washes the accent at 14% and 24%, the hairline 12%.
     pub fn hover(&self) -> Hsla {
-        self.foreground.opacity(0.08)
+        self.foreground.opacity(HOVER)
     }
     pub fn wash(&self, share: f32) -> Hsla {
         self.accent.opacity(share)
     }
     pub fn hair(&self) -> Hsla {
-        self.foreground.opacity(0.12)
+        self.foreground.opacity(HAIR)
     }
 }
 
@@ -73,7 +77,13 @@ pub struct Shapes {
 
 impl Shapes {
     pub fn new(limit: usize) -> Self {
-        Self { kept: Vec::with_capacity(limit), limit, clock: 0, hits: 0, misses: 0 }
+        Self {
+            kept: Vec::with_capacity(limit),
+            limit,
+            clock: 0,
+            hits: 0,
+            misses: 0,
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -84,16 +94,32 @@ impl Shapes {
         self.kept.is_empty()
     }
 
-    pub fn get(&mut self, text: &str, size: Size, bold: bool, shape: impl FnOnce() -> GlyphRun) -> Rc<GlyphRun> {
+    pub fn get(
+        &mut self,
+        text: &str,
+        size: Size,
+        bold: bool,
+        shape: impl FnOnce() -> GlyphRun,
+    ) -> Rc<GlyphRun> {
         self.clock += 1;
-        if let Some(kept) = self.kept.iter_mut().find(|kept| kept.size == size && kept.bold == bold && kept.text == text) {
+        if let Some(kept) = self
+            .kept
+            .iter_mut()
+            .find(|kept| kept.size == size && kept.bold == bold && kept.text == text)
+        {
             kept.used = self.clock;
             self.hits += 1;
             return Rc::clone(&kept.run);
         }
         self.misses += 1;
         let run = Rc::new(shape());
-        let shape = Shape { text: text.to_owned(), size, bold, run: Rc::clone(&run), used: self.clock };
+        let shape = Shape {
+            text: text.to_owned(),
+            size,
+            bold,
+            run: Rc::clone(&run),
+            used: self.clock,
+        };
         if self.kept.len() < self.limit {
             self.kept.push(shape);
         } else if let Some(oldest) = self.kept.iter_mut().min_by_key(|kept| kept.used) {
@@ -150,7 +176,9 @@ impl Paint {
         let pixels = self.pixels(size);
         let text = window.text_system();
         let id = text.resolve_font(&self.typeface.font);
-        let advance = text.advance(id, pixels, '0').map_or(pixels * 0.6, |advance| advance.width);
+        let advance = text
+            .advance(id, pixels, '0')
+            .map_or(pixels * 0.6, |advance| advance.width);
         self.advances[slot] = Some(advance);
         advance
     }
@@ -161,17 +189,33 @@ impl Paint {
     }
 
     pub fn shape(&mut self, text: &str, size: Size, bold: bool, window: &Window) -> Rc<GlyphRun> {
-        let Self { typeface, shapes, .. } = self;
-        shapes.get(text, size, bold, || line(typeface, text, size, bold, window))
+        let Self {
+            typeface, shapes, ..
+        } = self;
+        shapes.get(text, size, bold, || {
+            line(typeface, text, size, bold, window)
+        })
     }
 
     /// Refills slot's kept runs from the cache and places the strip on their shaped widths; shape runs only on a miss.
-    pub fn lay_strip(&mut self, slot: usize, strip: &mut Strip, mut shape: impl FnMut(&Typeface, &str) -> GlyphRun) {
-        let Self { typeface, shapes, runs, .. } = self;
+    pub fn lay_strip(
+        &mut self,
+        slot: usize,
+        strip: &mut Strip,
+        mut shape: impl FnMut(&Typeface, &str) -> GlyphRun,
+    ) {
+        let Self {
+            typeface,
+            shapes,
+            runs,
+            ..
+        } = self;
         let runs = &mut runs[slot];
         runs.clear();
         for crumb in strip.crumbs() {
-            runs.push(shapes.get(&crumb.text, Size::Caption, false, || shape(typeface, &crumb.text)));
+            runs.push(shapes.get(&crumb.text, Size::Caption, false, || {
+                shape(typeface, &crumb.text)
+            }));
         }
         strip.place(runs.iter().map(|run| f32::from(run.line().width)));
     }
@@ -191,8 +235,19 @@ pub fn line(typeface: &Typeface, text: &str, size: Size, bold: bool, window: &Wi
     if bold {
         font.weight = FontWeight::BOLD;
     }
-    let run = TextRun { len: text.len(), font, color: Hsla::default(), background_color: None, underline: None, strikethrough: None };
-    GlyphRun::new(window.text_system().layout_line(text, pixels(typeface, size), &[run], None))
+    let run = TextRun {
+        len: text.len(),
+        font,
+        color: Hsla::default(),
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    };
+    GlyphRun::new(
+        window
+            .text_system()
+            .layout_line(text, pixels(typeface, size), &[run], None),
+    )
 }
 
 impl Default for Paint {
@@ -202,9 +257,17 @@ impl Default for Paint {
 }
 
 /// Paints a shaped piece with its glyphs centred in a band height tall.
-pub fn paint_run(run: &GlyphRun, x: Pixels, top: Pixels, height: Pixels, color: Hsla, window: &mut Window) {
+pub fn paint_run(
+    run: &GlyphRun,
+    x: Pixels,
+    top: Pixels,
+    height: Pixels,
+    color: Hsla,
+    window: &mut Window,
+) {
     let line = run.line();
-    let baseline = window.pixel_snap(top + (height - line.ascent - line.descent) / 2. + line.ascent);
+    let baseline =
+        window.pixel_snap(top + (height - line.ascent - line.descent) / 2. + line.ascent);
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
@@ -238,7 +301,11 @@ impl CrumbElement {
     }
 
     fn pad(&self) -> f32 {
-        if self.place == Place::Chrome { 0. } else { STRIP_PAD }
+        if self.place == Place::Chrome {
+            0.
+        } else {
+            STRIP_PAD
+        }
     }
 }
 
@@ -267,7 +334,10 @@ impl Element for CrumbElement {
         window: &mut Window,
         cx: &mut App,
     ) -> (LayoutId, ()) {
-        let style = Style { size: size(relative(1.).into(), relative(1.).into()), ..Style::default() };
+        let style = Style {
+            size: size(relative(1.).into(), relative(1.).into()),
+            ..Style::default()
+        };
         (window.request_layout(style, None, cx), ())
     }
 
@@ -283,26 +353,39 @@ impl Element for CrumbElement {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let slot = self.place.slot();
         let pad = self.pad();
-        let paint = self.view.read(cx).paint.clone();
+        // Updates open the view without a read on the paint path.
+        let paint = self.view.update(cx, |view, _| view.paint.clone());
         let mut paint = paint.borrow_mut();
         let ink = Ink::of(Palette::inherited(&window.text_style(), theme));
         // Dual draws each path on its own pane, so the chrome keeps its slot and builds no crumbs.
-        if self.place == Place::Chrome && self.view.read(cx).inputs.dual {
+        if self.place == Place::Chrome && self.view.update(cx, |view, _| view.inputs.dual) {
             paint.area = Some(bounds);
             paint.runs[slot].clear();
-            return (window.insert_hitbox(bounds, HitboxBehavior::Normal), ink, false);
+            return (
+                window.insert_hitbox(bounds, HitboxBehavior::Normal),
+                ink,
+                false,
+            );
         }
         let advance = paint.advance(Size::Caption, window);
-        let budget = ((f32::from(bounds.size.width) - 2. * pad) / f32::from(advance)).floor().max(0.) as usize;
+        let budget = ((f32::from(bounds.size.width) - 2. * pad) / f32::from(advance))
+            .floor()
+            .max(0.) as usize;
         let focused = self.view.update(cx, |view, _| view.fit(slot, budget));
         paint.strips[slot] = Some(bounds);
         if self.place == Place::Chrome {
             paint.area = Some(bounds);
         }
         self.view.update(cx, |view, _| {
-            paint.lay_strip(slot, &mut view.strips[slot], |typeface, text| line(typeface, text, Size::Caption, false, window));
+            paint.lay_strip(slot, &mut view.strips[slot], |typeface, text| {
+                line(typeface, text, Size::Caption, false, window)
+            });
         });
-        (window.insert_hitbox(bounds, HitboxBehavior::Normal), ink, focused)
+        (
+            window.insert_hitbox(bounds, HitboxBehavior::Normal),
+            ink,
+            focused,
+        )
     }
 
     fn paint(
@@ -315,34 +398,59 @@ impl Element for CrumbElement {
         window: &mut Window,
         cx: &mut App,
     ) {
-        let view = self.view.read(cx);
-        if self.place == Place::Chrome && view.inputs.dual {
-            return;
-        }
-        let slot = self.place.slot();
-        let strip = &view.strips[slot];
-        let paint = view.paint.borrow();
-        let pane = self.place != Place::Chrome;
-        if pane {
-            window.paint_quad(fill(bounds, if *focused { ink.surface } else { ink.background }));
-            let rule = Bounds::new(point(bounds.origin.x, bounds.bottom() - px(1.)), size(bounds.size.width, px(1.)));
-            window.paint_quad(fill(rule, ink.muted_frame));
-        }
-        // The ancestors rest muted in the chrome and in the foreground on a dual pane; the leaf and a lit parent draw in the foreground.
-        let rest = if pane { ink.foreground } else { ink.muted };
-        let style = match strip.hovered.and_then(|at| strip.crumbs().get(at)) {
-            Some(crumb) if crumb.parent() => CursorStyle::PointingHand,
-            _ => CursorStyle::IBeam,
-        };
-        window.set_cursor_style(style, hitbox);
-        let left = bounds.origin.x + px(self.pad());
-        let height = if pane { bounds.size.height - px(1.) } else { bounds.size.height };
-        window.with_content_mask(Some(ContentMask { bounds }), |window| {
-            for (index, (crumb, run)) in strip.crumbs().iter().zip(&paint.runs[slot]).enumerate() {
-                let lit = crumb.last || (strip.hovered == Some(index) && !crumb.elided);
-                let x = left + px(strip.extent(index).map_or(0., |(left, _)| left));
-                paint_run(run, x, bounds.origin.y, height, if lit { ink.foreground } else { rest }, window);
+        // An update opens the view without a read on the paint path.
+        self.view.update(cx, |view, _| {
+            if self.place == Place::Chrome && view.inputs.dual {
+                return;
             }
+            let slot = self.place.slot();
+            let strip = &view.strips[slot];
+            let paint = view.paint.borrow();
+            let pane = self.place != Place::Chrome;
+            if pane {
+                window.paint_quad(fill(
+                    bounds,
+                    if *focused {
+                        ink.surface
+                    } else {
+                        ink.background
+                    },
+                ));
+                let rule = Bounds::new(
+                    point(bounds.origin.x, bounds.bottom() - px(1.)),
+                    size(bounds.size.width, px(1.)),
+                );
+                window.paint_quad(fill(rule, ink.muted_frame));
+            }
+            // The ancestors rest muted in the chrome and in the foreground on a dual pane; the leaf and a lit parent draw in the foreground.
+            let rest = if pane { ink.foreground } else { ink.muted };
+            let style = match strip.hovered.and_then(|at| strip.crumbs().get(at)) {
+                Some(crumb) if crumb.parent() => CursorStyle::PointingHand,
+                _ => CursorStyle::IBeam,
+            };
+            window.set_cursor_style(style, hitbox);
+            let left = bounds.origin.x + px(self.pad());
+            let height = if pane {
+                bounds.size.height - px(1.)
+            } else {
+                bounds.size.height
+            };
+            window.with_content_mask(Some(ContentMask { bounds }), |window| {
+                for (index, (crumb, run)) in
+                    strip.crumbs().iter().zip(&paint.runs[slot]).enumerate()
+                {
+                    let lit = crumb.last || (strip.hovered == Some(index) && !crumb.elided);
+                    let x = left + px(strip.extent(index).map_or(0., |(left, _)| left));
+                    paint_run(
+                        run,
+                        x,
+                        bounds.origin.y,
+                        height,
+                        if lit { ink.foreground } else { rest },
+                        window,
+                    );
+                }
+            });
         });
     }
 }

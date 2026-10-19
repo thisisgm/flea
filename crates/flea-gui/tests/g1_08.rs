@@ -70,9 +70,26 @@ fn named(index: usize) -> RowFacts {
 /// A pane on a listing of total rows with its first window held, as the backend answers a new folder.
 fn listed(total: usize, height: f32) -> Pane {
     let mut pane = Pane::new("/fixture/grid".into(), height);
-    assert!(!pane.receive_at(Reply::Listed { path: "/fixture/grid".into(), total }, 1).unwrap());
+    assert!(!pane
+        .receive_at(
+            Reply::Listed {
+                path: "/fixture/grid".into(),
+                total
+            },
+            1
+        )
+        .unwrap());
     let first = pane.first_count().min(total);
-    assert!(pane.receive_at(Reply::Rows { start: 0, rows: (0..first).map(named).collect(), listing: 1 }, 1).unwrap());
+    assert!(pane
+        .receive_at(
+            Reply::Rows {
+                start: 0,
+                rows: (0..first).map(named).collect(),
+                listing: 1
+            },
+            1
+        )
+        .unwrap());
     pane
 }
 
@@ -80,8 +97,15 @@ fn listed(total: usize, height: f32) -> Pane {
 fn answer(pane: &mut Pane) -> bool {
     let request = pane.requests.outstanding.expect("a window is out");
     let end = (request.start + request.count).min(pane.held.total);
-    pane.receive_at(Reply::Rows { start: request.start, rows: (request.start..end).map(named).collect(), listing: request.listing }, 2)
-        .unwrap()
+    pane.receive_at(
+        Reply::Rows {
+            start: request.start,
+            rows: (request.start..end).map(named).collect(),
+            listing: request.listing,
+        },
+        2,
+    )
+    .unwrap()
 }
 
 /// The board grid at text size 14: 908 by 640, six columns of 147 by 134.
@@ -90,7 +114,10 @@ fn board_view() -> GridView {
 }
 
 fn focus(cursor: usize) -> FocusSnapshot {
-    FocusSnapshot { cursor, ..FocusSnapshot::default() }
+    FocusSnapshot {
+        cursor,
+        ..FocusSnapshot::default()
+    }
 }
 
 fn all(pane: &Pane) -> Shown<'static> {

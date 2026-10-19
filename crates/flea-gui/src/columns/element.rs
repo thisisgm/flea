@@ -2,7 +2,7 @@
 use super::cache::{Row, Shaping};
 use super::geometry::{cells, name_budget, Slot, CHEVRON, DIVIDER, GAP, MARK, MARK_SLOT, PAD_X};
 use super::paint::{
-    Clip, ClipMarks, FolderSizes, Focus, Palette, TrackPaint, CACHE_SCREENS, CLIP, EDGE,
+    Clip, ClipMarks, Focus, FolderSizes, Palette, TrackPaint, CACHE_SCREENS, CLIP, EDGE,
 };
 use super::tracks::{TrackRows, TrackView};
 use crate::list::pane::{visible_rows, Held, ROW_HEIGHT};

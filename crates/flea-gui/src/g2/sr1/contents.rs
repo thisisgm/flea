@@ -5,9 +5,9 @@ use crate::list::{mark_bounds, Typeface, END_W, LABEL_X, PAD_X};
 use crate::row;
 use flea::protocol::RowFacts;
 use gpui::{
-    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, GlobalElementId,
-    Font, FontFeatures, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId, Pixels, Style,
-    TextRun, TransformationMatrix, Window,
+    fill, point, px, relative, size, App, Bounds, ContentMask, Element, ElementId, Font,
+    FontFeatures, GlobalElementId, GlyphRun, Hsla, InspectorElementId, IntoElement, LayoutId,
+    Pixels, Style, TextRun, TransformationMatrix, Window,
 };
 use std::{cell::RefCell, collections::HashMap, rc::Rc};
 
@@ -73,7 +73,9 @@ pub struct Held {
 
 impl Held {
     pub fn block(&self, index: usize) -> Option<&Block> {
-        index.checked_sub(self.start).and_then(|at| self.blocks.get(at))
+        index
+            .checked_sub(self.start)
+            .and_then(|at| self.blocks.get(at))
     }
 }
 
@@ -115,7 +117,14 @@ pub struct ContentsState {
 
 impl ContentsState {
     pub fn new(typeface: Typeface) -> Self {
-        Self { typeface, query: String::new(), entries: HashMap::new(), shaped_for: String::new(), visible: Vec::new(), misses: 0 }
+        Self {
+            typeface,
+            query: String::new(),
+            entries: HashMap::new(),
+            shaped_for: String::new(),
+            visible: Vec::new(),
+            misses: 0,
+        }
     }
 }
 
@@ -129,8 +138,21 @@ pub struct ContentsElement {
 }
 
 impl ContentsElement {
-    pub fn new(held: Rc<Held>, scroll_y: f32, cursor: usize, palette: Palette, state: Rc<RefCell<ContentsState>>) -> Self {
-        Self { held, scroll_y, cursor, hover: None, palette, state }
+    pub fn new(
+        held: Rc<Held>,
+        scroll_y: f32,
+        cursor: usize,
+        palette: Palette,
+        state: Rc<RefCell<ContentsState>>,
+    ) -> Self {
+        Self {
+            held,
+            scroll_y,
+            cursor,
+            hover: None,
+            palette,
+            state,
+        }
     }
 
     /// The block under the pointer, which the window's hover tracking names at the join.
@@ -150,17 +172,33 @@ fn right_elide(text: &str, cells: usize) -> String {
     cut
 }
 
-fn prepare(block: &Block, state: &ContentsState, lifted: bool, cells: usize, window: &Window) -> Prepared {
+fn prepare(
+    block: &Block,
+    state: &ContentsState,
+    lifted: bool,
+    cells: usize,
+    window: &Window,
+) -> Prepared {
     let face = &state.typeface;
     let text = window.text_system();
-    let shaped = |value: &str, size: Pixels, runs: Vec<TextRun>| GlyphRun::new(text.layout_line(value, size, &runs, None));
-    let plain = |value: &str, size: Pixels| shaped(value, size, text_runs(value, None, false, &face.font));
+    let shaped = |value: &str, size: Pixels, runs: Vec<TextRun>| {
+        GlyphRun::new(text.layout_line(value, size, &runs, None))
+    };
+    let plain =
+        |value: &str, size: Pixels| shaped(value, size, text_runs(value, None, false, &face.font));
     // The match is in the file, so the name carries no run; its trailing space is the gap before the folder.
     let name = format!("{} ", row::decorated_name(&block.row));
     let line = right_elide(&block.line, cells);
     let line_run = run_in(&line, &state.query);
-    let unjoined = Font { features: FontFeatures::disable_ligatures(), ..face.font.clone() };
-    let line_glyphs = shaped(&line, face.caption, text_runs(&line, line_run, lifted, &unjoined));
+    let unjoined = Font {
+        features: FontFeatures::disable_ligatures(),
+        ..face.font.clone()
+    };
+    let line_glyphs = shaped(
+        &line,
+        face.caption,
+        text_runs(&line, line_run, lifted, &unjoined),
+    );
     Prepared {
         name: plain(&name, face.body),
         location: plain(&block.location, face.caption),
@@ -174,7 +212,8 @@ fn prepare(block: &Block, state: &ContentsState, lifted: bool, cells: usize, win
 
 fn paint_at(run: &GlyphRun, x: Pixels, top: Pixels, height: f32, color: Hsla, window: &mut Window) {
     let line = run.line();
-    let baseline = window.pixel_snap(top + (px(height) - line.ascent - line.descent) / 2. + line.ascent);
+    let baseline =
+        window.pixel_snap(top + (px(height) - line.ascent - line.descent) / 2. + line.ascent);
     let _ = window.paint_glyph_run(point(x, baseline), run, color);
 }
 
@@ -196,17 +235,38 @@ impl Element for ContentsElement {
         None
     }
 
-    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
-        let style = Style { size: size(relative(1.).into(), relative(1.).into()), ..Style::default() };
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let style = Style {
+            size: size(relative(1.).into(), relative(1.).into()),
+            ..Style::default()
+        };
         (window.request_layout(style, None, cx), ())
     }
 
-    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, _: &mut App) {
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        window: &mut Window,
+        _: &mut App,
+    ) {
         let mut state = self.state.borrow_mut();
         let advance = f32::from(state.typeface.caption) * 0.6;
         let room = f32::from(bounds.size.width) - LABEL_X - END_W;
         let cells = (room / advance).floor().max(0.) as usize;
-        let range = visible(self.scroll_y, f32::from(bounds.size.height), self.held.total);
+        let range = visible(
+            self.scroll_y,
+            f32::from(bounds.size.height),
+            self.held.total,
+        );
         // The bound follows the viewport: entries outside three screens of it go.
         let keep = range.start.saturating_sub(range.len() * 2)..range.end + range.len() * 2;
         state.entries.retain(|index, _| keep.contains(index));
@@ -217,14 +277,20 @@ impl Element for ContentsElement {
         }
         state.visible.clear();
         for index in range {
-            let Some(block) = self.held.block(index) else { continue };
+            let Some(block) = self.held.block(index) else {
+                continue;
+            };
             let key = Key {
                 listing: self.held.listing,
                 lifted: index == self.cursor,
                 cells,
                 scale: window.scale_factor().to_bits(),
             };
-            let hit = state.entries.get(&index).filter(|(held, _)| *held == key).map(|(_, prepared)| Rc::clone(prepared));
+            let hit = state
+                .entries
+                .get(&index)
+                .filter(|(held, _)| *held == key)
+                .map(|(_, prepared)| Rc::clone(prepared));
             let prepared = match hit {
                 Some(prepared) => prepared,
                 None => {
@@ -238,7 +304,16 @@ impl Element for ContentsElement {
         }
     }
 
-    fn paint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), _: &mut (), window: &mut Window, cx: &mut App) {
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         let state = self.state.borrow();
         let palette = self.palette;
         let (left, right) = (bounds.origin.x, bounds.origin.x + bounds.size.width);
@@ -251,28 +326,67 @@ impl Element for ContentsElement {
                     // The block wears the cursor rung down both lines.
                     let block = Bounds::new(point(left, top), size(bounds.size.width, px(BLOCK_H)));
                     window.paint_quad(fill(block, palette.accent.opacity(CURSOR_WASH)));
-                    window.paint_quad(fill(Bounds::new(point(left, top), size(px(EDGE_W), px(BLOCK_H))), palette.accent_frame));
+                    window.paint_quad(fill(
+                        Bounds::new(point(left, top), size(px(EDGE_W), px(BLOCK_H))),
+                        palette.accent_frame,
+                    ));
                 } else if self.hover == Some(*index) {
                     let block = Bounds::new(point(left, top), size(bounds.size.width, px(BLOCK_H)));
                     window.paint_quad(fill(block, palette.foreground.opacity(HOVER)));
                 }
-                let (ink, meta) = if lifted { (palette.foreground, palette.foreground) } else { (palette.foreground, palette.metadata) };
-                let gutter = if lifted { palette.foreground } else { palette.muted };
+                let (ink, meta) = if lifted {
+                    (palette.foreground, palette.foreground)
+                } else {
+                    (palette.foreground, palette.metadata)
+                };
+                let gutter = if lifted {
+                    palette.foreground
+                } else {
+                    palette.muted
+                };
                 let (key, data) = prepared.mark.svg();
-                let mark_ink = if lifted || self.hover == Some(*index) { palette.foreground } else { palette.metadata_frame };
-                let _ = window.paint_svg(mark_bounds(left, top), key, Some(data), TransformationMatrix::unit(), mark_ink, cx);
+                let mark_ink = if lifted || self.hover == Some(*index) {
+                    palette.foreground
+                } else {
+                    palette.metadata_frame
+                };
+                let _ = window.paint_svg(
+                    mark_bounds(left, top),
+                    key,
+                    Some(data),
+                    TransformationMatrix::unit(),
+                    mark_ink,
+                    cx,
+                );
                 let name_x = left + px(LABEL_X);
                 paint_at(&prepared.name, name_x, top, ROW_H, ink, window);
                 let location_x = name_x + prepared.name.line().width;
                 paint_at(&prepared.location, location_x, top, ROW_H, meta, window);
                 let size_right = right - px(END_W);
-                paint_at(&prepared.size, size_right - prepared.size.line().width, top, ROW_H, meta, window);
+                paint_at(
+                    &prepared.size,
+                    size_right - prepared.size.line().width,
+                    top,
+                    ROW_H,
+                    meta,
+                    window,
+                );
                 let line_top = top + px(ROW_H);
                 let number_right = left + px(PAD_X + NUMBER_W);
-                paint_at(&prepared.number, number_right - prepared.number.line().width, line_top, LINE_H, gutter, window);
+                paint_at(
+                    &prepared.number,
+                    number_right - prepared.number.line().width,
+                    line_top,
+                    LINE_H,
+                    gutter,
+                    window,
+                );
                 if let Some((start, end)) = prepared.wash {
                     let tall = f32::from(state.typeface.caption) * RUN_LINE;
-                    let wash = Bounds::new(point(name_x + start, line_top + px((LINE_H - tall) / 2.)), size(end - start, px(tall)));
+                    let wash = Bounds::new(
+                        point(name_x + start, line_top + px((LINE_H - tall) / 2.)),
+                        size(end - start, px(tall)),
+                    );
                     window.paint_quad(fill(wash, palette.accent.opacity(RUN_WASH)));
                 }
                 paint_at(&prepared.line, name_x, line_top, LINE_H, ink, window);

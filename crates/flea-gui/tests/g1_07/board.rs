@@ -1,16 +1,17 @@
 //! The Columns boards' own numbers: track rects, dividers, row cells and each row state's plate and inks.
-use flea_gui::columns::geometry::{cells, Layout, Slot, CHEVRON, MARK, MARK_SLOT, PAD_X, SIZE_W};
-use flea_gui::columns::paint::{Clip, Focus, Palette, EDGE, HOVER, MARKED, SELECTION, WASH};
 use super::fixture::row;
 use super::frames::{frame, held, open, real_cx, set, typeface};
 use super::track_frames::{self, look};
 use flea::protocol::RowFacts;
 use flea_gui::columns::cache::size_text;
+use flea_gui::columns::geometry::{cells, Layout, Slot, CHEVRON, MARK, MARK_SLOT, PAD_X, SIZE_W};
+use flea_gui::columns::paint::{Clip, Focus, Palette, EDGE, HOVER, MARKED, SELECTION, WASH};
 use flea_gui::columns::{TrackRows, TrackState, TrackView};
 use flea_gui::navigation::sort::{DirSizes, Size};
-use flea_gui::pane::ROW_HEIGHT;
+use flea_gui::palette::Theme;
 use flea_gui::pane::states::hero_span;
-use gpui::{hsla, Hsla, TestAppContext, TextRun};
+use flea_gui::pane::ROW_HEIGHT;
+use gpui::{Hsla, TestAppContext, TextRun};
 use std::rc::Rc;
 
 // The 1100 x 700 boards: a 192 rail leaves the columns 908 wide; the four-column boards are 2560 wide, 2368 after the rail.
@@ -38,13 +39,15 @@ fn view(slot: Slot, x: f32, width: f32, divider: bool) -> TrackView {
 }
 
 fn palette() -> Palette {
+    // The theme roles stand in: every assertion below wires roles to roles, never absolute inks.
+    let theme = Theme::default();
     Palette {
-        background: hsla(0.06, 0.37, 0.08, 1.),
-        foreground: hsla(0.10, 0.31, 0.68, 1.),
-        muted: hsla(0.04, 0.09, 0.50, 1.),
-        muted_frame: hsla(0.05, 0.13, 0.39, 1.),
-        accent: hsla(0.08, 0.61, 0.54, 1.),
-        accent_frame: hsla(0.08, 0.61, 0.55, 1.),
+        background: theme.background,
+        foreground: theme.foreground,
+        muted: theme.foreground.opacity(0.5),
+        muted_frame: theme.foreground.opacity(0.4),
+        accent: theme.foreground,
+        accent_frame: theme.foreground,
     }
 }
 
@@ -55,17 +58,41 @@ fn alpha(ink: Hsla, a: f32) -> Hsla {
 #[test]
 fn the_default_board_draws_three_tracks_302_302_304_with_two_hairlines() {
     let layout = Layout::new(AREA, None, 0., None);
-    let want = vec![(Slot::Parent, 0., 302.), (Slot::Active, 302., 302.), (Slot::Child, 604., 304.)];
-    assert_eq!(rects(&layout), want, "columns.html: surfaces at left 0, 302 and 604, 302, 302 and 304 wide");
-    assert_eq!(view(Slot::Parent, 0., 302., true).divider_x(), Some(301.), "the parent's 1 px hair at right 0");
-    assert_eq!(view(Slot::Active, 302., 302., true).divider_x(), Some(603.), "the active track's 1 px hair at right 0");
-    assert_eq!(view(Slot::Child, 604., 304., false).divider_x(), None, "the third column draws no hair");
+    let want = vec![
+        (Slot::Parent, 0., 302.),
+        (Slot::Active, 302., 302.),
+        (Slot::Child, 604., 304.),
+    ];
+    assert_eq!(
+        rects(&layout),
+        want,
+        "columns.html: surfaces at left 0, 302 and 604, 302, 302 and 304 wide"
+    );
+    assert_eq!(
+        view(Slot::Parent, 0., 302., true).divider_x(),
+        Some(301.),
+        "the parent's 1 px hair at right 0"
+    );
+    assert_eq!(
+        view(Slot::Active, 302., 302., true).divider_x(),
+        Some(603.),
+        "the active track's 1 px hair at right 0"
+    );
+    assert_eq!(
+        view(Slot::Child, 604., 304., false).divider_x(),
+        None,
+        "the third column draws no hair"
+    );
 }
 
 #[test]
 fn two_and_four_column_boards_keep_their_rects_and_hero_spans() {
     let two = Layout::new(AREA, Some(2.), 0., None);
-    assert_eq!(rects(&two), vec![(Slot::Active, 0., 454.), (Slot::Child, 454., 454.)], "cols2-*: active and third");
+    assert_eq!(
+        rects(&two),
+        vec![(Slot::Active, 0., 454.), (Slot::Child, 454., 454.)],
+        "cols2-*: active and third"
+    );
     // cols2-hero-*: the hero box at left 0, 908 wide, since the active track starts at 0.
     assert_eq!(hero_span(AREA, two.active_x(), 140.), (0., AREA));
     let four = Layout::new(AREA_WIDE, Some(4.), 0., None);
@@ -87,7 +114,11 @@ fn two_and_four_column_boards_keep_their_rects_and_hero_spans() {
 #[test]
 fn a_row_keeps_the_board_cells_in_every_track() {
     assert_eq!(ROW_HEIGHT, 31., ".row height 31");
-    assert_eq!((PAD_X, MARK_SLOT, MARK), (14., 23., 17.), "14 left padding, 23 glyph box, 17 svg");
+    assert_eq!(
+        (PAD_X, MARK_SLOT, MARK),
+        (14., 23., 17.),
+        "14 left padding, 23 glyph box, 17 svg"
+    );
     // The active 302 track: name at 46, the 70 wide size ending 9 before the 28 right padding, at 265.
     let active = cells(302., true, false);
     assert_eq!((active.mark_x, active.name_x), (14., 46.));
@@ -102,37 +133,79 @@ fn a_row_keeps_the_board_cells_in_every_track() {
     assert_eq!((lifted.size_right, lifted.chevron_x), (None, Some(262.)));
     // A peek row: no size, no chevron, the name runs to the padding.
     let peek = cells(304., false, false);
-    assert_eq!((peek.size_right, peek.chevron_x, peek.name_right), (None, None, 304. - 28.));
+    assert_eq!(
+        (peek.size_right, peek.chevron_x, peek.name_right),
+        (None, None, 304. - 28.)
+    );
 }
 
 #[test]
 fn each_row_state_paints_the_board_plate_and_inks() {
     let p = palette();
-    let focused = Focus { cursor: Some(1), grey: false, selected: Rc::from([3usize]), hover: Some((Slot::Child, 2)) };
+    let focused = Focus {
+        cursor: Some(1),
+        grey: false,
+        selected: Rc::from([3usize]),
+        hover: Some((Slot::Child, 2)),
+    };
     // Ancestor at rest: no plate, muted name, muted-frame mark.
     assert_eq!(focused.plate(&p, Slot::Parent, 4, false), None);
     let rest = p.row_ink(Clip::None, false, false, true);
-    assert_eq!((rest.name, rest.mark), (p.muted, p.muted_frame), "columns.html Code: --muted name, --muted-frame glyph");
+    assert_eq!(
+        (rest.name, rest.mark),
+        (p.muted, p.muted_frame),
+        "columns.html Code: --muted name, --muted-frame glyph"
+    );
     // Ancestor lifted: the 8% hover plate, foreground name, muted-frame mark and chevron.
-    assert_eq!(focused.plate(&p, Slot::Parent, 0, true), Some(alpha(p.foreground, HOVER)));
+    assert_eq!(
+        focused.plate(&p, Slot::Parent, 0, true),
+        Some(alpha(p.foreground, HOVER))
+    );
     let lifted = p.row_ink(Clip::None, false, true, true);
-    assert_eq!((lifted.name, lifted.mark, lifted.chevron), (p.foreground, p.muted_frame, p.muted_frame), "columns.html A");
+    assert_eq!(
+        (lifted.name, lifted.mark, lifted.chevron),
+        (p.foreground, p.muted_frame, p.muted_frame),
+        "columns.html A"
+    );
     // Active at rest: foreground name and size, muted-frame mark.
     assert_eq!(focused.plate(&p, Slot::Active, 0, false), None);
     let plain = p.row_ink(Clip::None, false, false, false);
-    assert_eq!((plain.name, plain.mark), (p.foreground, p.muted_frame), "columns.html empty, 40 B");
+    assert_eq!(
+        (plain.name, plain.mark),
+        (p.foreground, p.muted_frame),
+        "columns.html empty, 40 B"
+    );
     // Cursor with the keyboard: the 18% accent wash, the 2 px accent-frame edge, foreground name, mark and chevron.
-    assert_eq!(focused.plate(&p, Slot::Active, 1, false), Some(alpha(p.accent, WASH)));
+    assert_eq!(
+        focused.plate(&p, Slot::Active, 1, false),
+        Some(alpha(p.accent, WASH))
+    );
     assert!(focused.edge(Slot::Active, 1) && EDGE == 2.);
     let cursor = p.row_ink(Clip::None, true, false, false);
-    assert_eq!((cursor.name, cursor.mark, cursor.chevron), (p.foreground, p.foreground, p.foreground), "columns.html full");
+    assert_eq!(
+        (cursor.name, cursor.mark, cursor.chevron),
+        (p.foreground, p.foreground, p.foreground),
+        "columns.html full"
+    );
     // Cursor without the keyboard: the grey 18% rung, no edge.
-    let grey = Focus { grey: true, ..focused.clone() };
-    assert_eq!(grey.plate(&p, Slot::Active, 1, false), Some(alpha(p.foreground, SELECTION)));
+    let grey = Focus {
+        grey: true,
+        ..focused.clone()
+    };
+    assert_eq!(
+        grey.plate(&p, Slot::Active, 1, false),
+        Some(alpha(p.foreground, SELECTION))
+    );
     assert!(!grey.edge(Slot::Active, 1));
     // A marked row: the 35% plate; a hovered peek row: the 8% plate; the cursor never paints outside the active track.
-    assert_eq!(focused.plate(&p, Slot::Active, 3, false), Some(alpha(p.foreground, MARKED)));
-    assert_eq!(focused.plate(&p, Slot::Child, 2, false), Some(alpha(p.foreground, HOVER)));
+    assert_eq!(
+        focused.plate(&p, Slot::Active, 3, false),
+        Some(alpha(p.foreground, MARKED))
+    );
+    assert_eq!(
+        focused.plate(&p, Slot::Child, 2, false),
+        Some(alpha(p.foreground, HOVER))
+    );
     assert_eq!(focused.plate(&p, Slot::Child, 1, false), None);
     assert!(!focused.edge(Slot::Parent, 1));
     // Peek rows: foreground name, muted-frame mark (columns.html f1.txt).
@@ -144,13 +217,52 @@ fn each_row_state_paints_the_board_plate_and_inks() {
 fn a_folder_size_reads_its_answered_walk() {
     let folder = row("Docs", true);
     // cols-filter-rest: Docs 22.1 kB, Locked >60 B; before an answer a folder shows the dot, a file its own size.
-    assert_eq!(size_text(&folder, Some(Size { bytes: 22_100, partial: false })), "22.1 kB");
-    assert_eq!(size_text(&folder, Some(Size { bytes: 60, partial: true })), ">60 B");
+    assert_eq!(
+        size_text(
+            &folder,
+            Some(Size {
+                bytes: 22_100,
+                partial: false
+            })
+        ),
+        "22.1 kB"
+    );
+    assert_eq!(
+        size_text(
+            &folder,
+            Some(Size {
+                bytes: 60,
+                partial: true
+            })
+        ),
+        ">60 B"
+    );
     assert_eq!(size_text(&folder, None), "\u{b7}");
     let file = row("notes.txt", false);
-    assert_eq!(size_text(&file, Some(Size { bytes: 99, partial: false })), "13 B");
-    let link = RowFacts { mode: 0o120777, ..row("A", true) };
-    assert_eq!(size_text(&link, Some(Size { bytes: 462, partial: false })), "link");
+    assert_eq!(
+        size_text(
+            &file,
+            Some(Size {
+                bytes: 99,
+                partial: false
+            })
+        ),
+        "13 B"
+    );
+    let link = RowFacts {
+        mode: 0o120777,
+        ..row("A", true)
+    };
+    assert_eq!(
+        size_text(
+            &link,
+            Some(Size {
+                bytes: 462,
+                partial: false
+            })
+        ),
+        "link"
+    );
 }
 
 #[test]
@@ -174,24 +286,66 @@ fn the_active_track_draws_the_walk_and_reshapes_once_when_it_lands() {
                 underline: None,
                 strikethrough: None,
             };
-            let line = window.text_system().layout_line(want, face.caption, &[style], None);
+            let line = window
+                .text_system()
+                .layout_line(want, face.caption, &[style], None);
             let ids = |runs: &[gpui::ShapedRun]| {
-                runs.iter().flat_map(|r| r.glyphs.iter().map(|g| g.id)).collect::<Vec<_>>()
+                runs.iter()
+                    .flat_map(|r| r.glyphs.iter().map(|g| g.id))
+                    .collect::<Vec<_>>()
             };
             run.line().len == line.len && ids(&run.line().runs) == ids(&line.runs)
         })
     };
-    assert!(caption(&mut cx, 0, "\u{b7}"), "an unasked folder draws the dot");
+    assert!(
+        caption(&mut cx, 0, "\u{b7}"),
+        "an unasked folder draws the dot"
+    );
     let before = track_frames::misses(&mut cx, window, Slot::Active);
     let mut sizes = DirSizes::default();
-    sizes.remember(0, Size { bytes: 462, partial: false }, 8);
-    sizes.remember(1, Size { bytes: 60, partial: true }, 8);
-    sizes.remember(2, Size { bytes: 5, partial: false }, 8);
+    sizes.remember(
+        0,
+        Size {
+            bytes: 462,
+            partial: false,
+        },
+        8,
+    );
+    sizes.remember(
+        1,
+        Size {
+            bytes: 60,
+            partial: true,
+        },
+        8,
+    );
+    sizes.remember(
+        2,
+        Size {
+            bytes: 5,
+            partial: false,
+        },
+        8,
+    );
     set(&mut cx, window, |view| view.sizes = Some(Rc::new(sizes)));
     frame(&mut cx, window);
-    assert!(caption(&mut cx, 0, "462 B") && caption(&mut cx, 1, ">60 B"), "answered walks draw in the size cell");
-    assert!(caption(&mut cx, 2, "13 B"), "a file keeps its own size whatever the walk table says");
-    assert_eq!(track_frames::misses(&mut cx, window, Slot::Active) - before, 2, "only the two answered folders reshape");
+    assert!(
+        caption(&mut cx, 0, "462 B") && caption(&mut cx, 1, ">60 B"),
+        "answered walks draw in the size cell"
+    );
+    assert!(
+        caption(&mut cx, 2, "13 B"),
+        "a file keeps its own size whatever the walk table says"
+    );
+    assert_eq!(
+        track_frames::misses(&mut cx, window, Slot::Active) - before,
+        2,
+        "only the two answered folders reshape"
+    );
     frame(&mut cx, window);
-    assert_eq!(track_frames::misses(&mut cx, window, Slot::Active) - before, 2, "an unchanged walk reshapes nothing");
+    assert_eq!(
+        track_frames::misses(&mut cx, window, Slot::Active) - before,
+        2,
+        "an unchanged walk reshapes nothing"
+    );
 }

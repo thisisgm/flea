@@ -8,9 +8,13 @@ use super::{
     tile::{Line, Tile, TileCache},
     FocusFacts, GridView,
 };
+use crate::list::Palette;
+use crate::palette::Theme;
 use crate::pane::Held;
 use flea::{i18n::I18n, protocol::RowFacts};
-use gpui::{font, Font, GlyphRun, Hsla, IntoElement, Pixels, RenderImage, SharedString, TextStyle, Window};
+use gpui::{
+    font, Font, GlyphRun, Hsla, IntoElement, Pixels, RenderImage, SharedString, TextStyle, Window,
+};
 use std::{cell::RefCell, rc::Rc, sync::Arc};
 
 /// Which picture a sandboxed thumbnail is: an image's own pixels, a raw photo's embedded preview, or a print file's picture.
@@ -31,7 +35,11 @@ pub struct Identity {
 
 impl Identity {
     pub fn of(row: &RowFacts) -> Self {
-        Self { name: row.name.clone(), size: row.size, mtime: row.mtime }
+        Self {
+            name: row.name.clone(),
+            size: row.size,
+            mtime: row.mtime,
+        }
     }
     fn is(&self, row: &RowFacts) -> bool {
         self.name == row.name && self.size == row.size && self.mtime == row.mtime
@@ -106,14 +114,15 @@ pub struct Ink {
 }
 
 impl Ink {
-    pub fn inherited(style: &TextStyle) -> Self {
-        let foreground = style.color;
+    pub fn inherited(style: &TextStyle, theme: Theme) -> Self {
+        // The list's roles, as its own tiles draw them: the theme sets the ground, never an inverted literal.
+        let base = Palette::inherited(style, theme);
         Self {
-            background: style.background_color.unwrap_or(Hsla { l: 1. - foreground.l, ..foreground }),
-            foreground,
-            muted_frame: foreground.opacity(0.5),
-            accent: foreground,
-            accent_frame: foreground,
+            background: base.background,
+            foreground: base.foreground,
+            muted_frame: base.muted_frame,
+            accent: base.accent,
+            accent_frame: base.accent_frame,
         }
     }
 }
@@ -154,7 +163,9 @@ impl Drawn {
     }
     /// More lines than the tile draws, or a line wider than its label: what Qt would report as cut.
     pub fn truncated(&self) -> bool {
-        self.tile.as_ref().is_some_and(|tile| tile.lines.len() > self.lines || tile.widest > self.caption.width + 0.5)
+        self.tile.as_ref().is_some_and(|tile| {
+            tile.lines.len() > self.lines || tile.widest > self.caption.width + 0.5
+        })
     }
 }
 
@@ -204,7 +215,8 @@ impl GridState {
 
     /// Takes a new catalog's drop labels; a change drops their shaped lines so the next frame shapes the new words once.
     pub fn set_catalog(&mut self, catalog: &I18n) {
-        let labels = ["grid.drop.move", "grid.drop.copy", "grid.drop.link"].map(|key| catalog.tr(key));
+        let labels =
+            ["grid.drop.move", "grid.drop.copy", "grid.drop.link"].map(|key| catalog.tr(key));
         if labels != self.labels {
             self.labels = labels;
             self.shaped_labels = None;
@@ -222,7 +234,9 @@ impl GridState {
     }
     /// The name tip the last frame drew: its row, its whole name and its box in grid pixels.
     pub fn tip(&self) -> Option<(usize, &str, Rect)> {
-        self.tip.as_ref().map(|tip| (tip.listing, tip.name.as_str(), tip.rect))
+        self.tip
+            .as_ref()
+            .map(|tip| (tip.listing, tip.name.as_str(), tip.rect))
     }
     pub fn cached_tiles(&self) -> usize {
         self.tiles.size()
@@ -236,7 +250,10 @@ impl GridState {
         let layout = self.layout?;
         let view = layout.index_at(self.scroll, x, y)?;
         let first = self.drawn.first()?.view;
-        let drawn = self.drawn.get(view.checked_sub(first)?).filter(|drawn| drawn.view == view)?;
+        let drawn = self
+            .drawn
+            .get(view.checked_sub(first)?)
+            .filter(|drawn| drawn.view == view)?;
         (drawn.editing || drawn.slot.contains(x, y) || drawn.painted.contains(x, y)).then_some(view)
     }
 
@@ -247,7 +264,9 @@ impl GridState {
             _ => {
                 let text = window.text_system();
                 let id = text.resolve_font(&self.font);
-                let advance = text.advance(id, size, '0').map_or(f32::from(size) * 0.6, |advance| f32::from(advance.width));
+                let advance = text
+                    .advance(id, size, '0')
+                    .map_or(f32::from(size) * 0.6, |advance| f32::from(advance.width));
                 self.advance = Some((size, advance));
                 advance
             }
@@ -267,8 +286,24 @@ pub struct GridElement {
 
 impl GridElement {
     /// shown is the filter's kept rows, None for every row; the view is the host's GridView for this frame.
-    pub fn new(held: Rc<Held>, shown: Option<Rc<[usize]>>, view: GridView, focus: Rc<dyn FocusFacts>, decor: Rc<dyn Decor>, overlay: Overlay, state: Rc<RefCell<GridState>>) -> Self {
-        Self { held, shown, view, focus, decor, overlay, state }
+    pub fn new(
+        held: Rc<Held>,
+        shown: Option<Rc<[usize]>>,
+        view: GridView,
+        focus: Rc<dyn FocusFacts>,
+        decor: Rc<dyn Decor>,
+        overlay: Overlay,
+        state: Rc<RefCell<GridState>>,
+    ) -> Self {
+        Self {
+            held,
+            shown,
+            view,
+            focus,
+            decor,
+            overlay,
+            state,
+        }
     }
 }
 

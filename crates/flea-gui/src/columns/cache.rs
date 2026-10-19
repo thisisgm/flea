@@ -194,13 +194,9 @@ impl TrackCache {
     ) -> Rc<Prepared> {
         self.clock += 1;
         let clock = self.clock;
-        if let Some(entry) = self
-            .entries
-            .get_mut(&index)
-            .filter(|entry| {
-                entry.clipped == clipped && entry.walk == walk && row.matches(&entry.facts)
-            })
-        {
+        if let Some(entry) = self.entries.get_mut(&index).filter(|entry| {
+            entry.clipped == clipped && entry.walk == walk && row.matches(&entry.facts)
+        }) {
             entry.used = clock;
             self.hits += 1;
             return Rc::clone(&entry.prepared);

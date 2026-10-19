@@ -1,5 +1,9 @@
 //! The bulk rename card: find and replace over the old names, editable new lines, and Edit in Terminal through the opener lane.
-use super::{keys::{edit, Key}, shell::{Block, Button, Card, Field, Ink, NameLine}, Effect};
+use super::{
+    keys::{edit, Key},
+    shell::{Block, Button, Card, Field, Ink, NameLine},
+    Effect,
+};
 use flea::i18n::I18n;
 use flea::ui_logic_op3::bulkrename::{self as logic, Reloaded, Stop};
 
@@ -22,8 +26,21 @@ pub struct BulkRename {
 impl BulkRename {
     /// Opens with Find focused and every new name its old name.
     pub fn open(paths: Vec<String>) -> Self {
-        let old: Vec<String> = paths.iter().map(|p| flea::ui_logic_op3::permissions::leaf_of(p).to_string()).collect();
-        Self { paths, base: old.clone(), names: old.clone(), old, find: String::new(), replace: String::new(), focus: Stop::Find, editing: false, error: String::new() }
+        let old: Vec<String> = paths
+            .iter()
+            .map(|p| flea::ui_logic_op3::permissions::leaf_of(p).to_string())
+            .collect();
+        Self {
+            paths,
+            base: old.clone(),
+            names: old.clone(),
+            old,
+            find: String::new(),
+            replace: String::new(),
+            focus: Stop::Find,
+            editing: false,
+            error: String::new(),
+        }
     }
 
     fn recompute(&mut self) {
@@ -38,7 +55,8 @@ impl BulkRename {
         if !logic::can_rename(self.counts()) || self.editing {
             return Vec::new();
         }
-        logic::request(&self.paths, &self.names).map_or_else(Vec::new, |line| vec![Effect::Send(line), Effect::Close])
+        logic::request(&self.paths, &self.names)
+            .map_or_else(Vec::new, |line| vec![Effect::Send(line), Effect::Close])
     }
 
     /// Enter and a click on Edit in Terminal both land here, with the names the card shows now (#305).
@@ -48,7 +66,10 @@ impl BulkRename {
         }
         self.editing = true;
         self.error.clear();
-        vec![Effect::EditNames { folder: logic::folder_of(self.paths.first().map_or("", String::as_str)).to_string(), names: self.names.clone() }]
+        vec![Effect::EditNames {
+            folder: logic::folder_of(self.paths.first().map_or("", String::as_str)).to_string(),
+            names: self.names.clone(),
+        }]
     }
 
     /// The editor exited: its lines become the new names, or the card says why they were refused.
@@ -83,14 +104,20 @@ impl BulkRename {
             (Key::Escape, _) => return vec![Effect::Close],
             (Key::Tab, _) => self.focus = logic::next_stop(Some(self.focus), false, lines),
             (Key::Backtab, _) => self.focus = logic::next_stop(Some(self.focus), true, lines),
-            (Key::Enter | Key::Down, Stop::Line(at)) if at + 1 < lines => self.focus = Stop::Line(at + 1),
+            (Key::Enter | Key::Down, Stop::Line(at)) if at + 1 < lines => {
+                self.focus = Stop::Line(at + 1)
+            }
             (Key::Up, Stop::Line(at)) if at > 0 => self.focus = Stop::Line(at - 1),
             (Key::Enter, Stop::Line(_)) => {}
             (Key::Enter, stop) => return self.press(stop),
             (Key::Left | Key::Right, Stop::Edit | Stop::Cancel | Stop::Rename) => {
                 let row = [Stop::Edit, Stop::Cancel, Stop::Rename];
                 let at = row.iter().position(|s| *s == self.focus).unwrap_or(2);
-                self.focus = row[if key == Key::Left { at.saturating_sub(1) } else { (at + 1).min(2) }];
+                self.focus = row[if key == Key::Left {
+                    at.saturating_sub(1)
+                } else {
+                    (at + 1).min(2)
+                }];
             }
             (_, Stop::Find) if edit(&mut self.find, &key) => self.recompute(),
             (_, Stop::Replace) if edit(&mut self.replace, &key) => self.recompute(),
@@ -127,15 +154,45 @@ impl BulkRename {
                 NameLine { text, ink, reason }
             })
             .collect();
-        let field = |label: &str, value: &str, stop: Stop| Field { label: Some(tr(label)), value: value.to_string(), placeholder: String::new(), glyph: None, focused: self.focus == stop };
+        let field = |label: &str, value: &str, stop: Stop| Field {
+            label: Some(tr(label)),
+            value: value.to_string(),
+            placeholder: String::new(),
+            glyph: None,
+            focused: self.focus == stop,
+        };
         // An editor's refusal takes the count line's place in the error ink, as v0.3.12 did.
-        let (summary, ink) = if self.error.is_empty() { (logic::footer(i18n, counts), Ink::Foreground) } else { (self.error.clone(), Ink::Error) };
+        let (summary, ink) = if self.error.is_empty() {
+            (logic::footer(i18n, counts), Ink::Foreground)
+        } else {
+            (self.error.clone(), Ink::Error)
+        };
         let body = vec![
-            Block::Fields(field("dialogs.file.bulk.find", &self.find, Stop::Find), field("dialogs.file.bulk.replace", &self.replace, Stop::Replace)),
-            Block::Names { old_label: tr("dialogs.file.bulk.old_names"), old: self.old.clone(), new_label: tr("dialogs.file.bulk.new_names"), new, focused: matches!(self.focus, Stop::Line(_)), error: logic::clash_line(i18n, &reasons) },
-            Block::Note { text: summary, inset: 0., ink, lift: 0. },
+            Block::Fields(
+                field("dialogs.file.bulk.find", &self.find, Stop::Find),
+                field("dialogs.file.bulk.replace", &self.replace, Stop::Replace),
+            ),
+            Block::Names {
+                old_label: tr("dialogs.file.bulk.old_names"),
+                old: self.old.clone(),
+                new_label: tr("dialogs.file.bulk.new_names"),
+                new,
+                focused: matches!(self.focus, Stop::Line(_)),
+                error: logic::clash_line(i18n, &reasons),
+            },
+            Block::Note {
+                text: summary,
+                inset: 0.,
+                ink,
+                lift: 0.,
+            },
         ];
-        let button = |label: String, stop: Stop, primary: bool, enabled: bool| Button { label, primary, focused: self.focus == stop, enabled };
+        let button = |label: String, stop: Stop, primary: bool, enabled: bool| Button {
+            label,
+            primary,
+            focused: self.focus == stop,
+            enabled,
+        };
         Card {
             title: logic::title(i18n, self.old.len()),
             esc: tr("dialogs.file.esc"),
@@ -143,9 +200,19 @@ impl BulkRename {
             bleed: false,
             body,
             buttons: vec![
-                button(tr("dialogs.file.bulk.edit"), Stop::Edit, false, !self.editing),
+                button(
+                    tr("dialogs.file.bulk.edit"),
+                    Stop::Edit,
+                    false,
+                    !self.editing,
+                ),
                 button(tr("dialogs.file.cancel"), Stop::Cancel, false, true),
-                button(logic::rename_label(i18n, counts.renamed), Stop::Rename, true, logic::can_rename(counts) && !self.editing),
+                button(
+                    logic::rename_label(i18n, counts.renamed),
+                    Stop::Rename,
+                    true,
+                    logic::can_rename(counts) && !self.editing,
+                ),
             ],
         }
     }

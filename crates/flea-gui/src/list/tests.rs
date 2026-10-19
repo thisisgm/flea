@@ -56,14 +56,16 @@ fn list_element_paints_one_fixed_row_per_visible_name() {
         .borrow()
         .visible
         .iter()
-        .map(|row| row.index)        .collect();
+        .map(|row| row.index)
+        .collect();
     assert_eq!(indices, (0..8).collect::<Vec<_>>());
     frame(&mut cx, window, 13. * ROW_HEIGHT);
     let indices: Vec<usize> = list_of(&mut cx, window)
         .borrow()
         .visible
         .iter()
-        .map(|row| row.index)        .collect();
+        .map(|row| row.index)
+        .collect();
     assert_eq!(indices, (13..20).collect::<Vec<_>>());
 }
 
@@ -183,7 +185,8 @@ fn a_same_listing_window_refresh_reshapes_changed_rows_and_reuses_equal_ones_wit
         .borrow()
         .visible
         .iter()
-        .map(|row| row.prepared.clone().unwrap())        .collect();
+        .map(|row| row.prepared.clone().unwrap())
+        .collect();
     let misses = list.borrow().rows.misses;
     let heap = allocations();
     frame(&mut cx, window, 0.);
@@ -202,10 +205,14 @@ fn a_same_listing_window_refresh_reshapes_changed_rows_and_reuses_equal_ones_wit
     );
     {
         let state = list.borrow();
-        assert_eq!(state.rows.misses, misses, "an equal refresh shaped a row again");
+        assert_eq!(
+            state.rows.misses, misses,
+            "an equal refresh shaped a row again"
+        );
         for (slot, shown) in state.visible.iter().enumerate() {
             assert!(
-                Rc::ptr_eq(&before[slot], shown.prepared.as_ref().unwrap()),                "row {slot} was not reused"
+                Rc::ptr_eq(&before[slot], shown.prepared.as_ref().unwrap()),
+                "row {slot} was not reused"
             );
         }
     }
@@ -230,7 +237,8 @@ fn a_same_listing_window_refresh_reshapes_changed_rows_and_reuses_equal_ones_wit
     let now: Vec<_> = state
         .visible
         .iter()
-        .map(|row| row.prepared.clone().unwrap())        .collect();
+        .map(|row| row.prepared.clone().unwrap())
+        .collect();
     for slot in 0..5 {
         assert!(
             !Rc::ptr_eq(&before[slot], &now[slot]),

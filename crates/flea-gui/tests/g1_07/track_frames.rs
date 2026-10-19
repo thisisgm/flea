@@ -3,7 +3,6 @@ use super::check::Checks;
 use super::fixture::{peek_row, row};
 use super::frames::{frame, held, open, read, real_cx, set, typeface, View};
 use flea::protocol::RowFacts;
-use flea_gui::palette::Theme;
 use flea_gui::columns::{
     geometry::{cells, name_budget, Slot, GAP},
     middle_elide,
@@ -11,6 +10,7 @@ use flea_gui::columns::{
     peeks::PeekRow,
     TrackRows, TrackState, TrackView,
 };
+use flea_gui::palette::Theme;
 use gpui::{GlyphRun, Hsla, TestAppContext, TextRun, Window, WindowHandle};
 use std::{
     cell::{Cell, RefCell},

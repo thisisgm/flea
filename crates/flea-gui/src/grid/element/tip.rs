@@ -15,7 +15,14 @@ pub struct Tip {
 }
 
 fn run(text: &str, font: &Font, size: Pixels, window: &Window) -> GlyphRun {
-    let style = TextRun { len: text.len(), font: font.clone(), color: Hsla::default(), background_color: None, underline: None, strikethrough: None };
+    let style = TextRun {
+        len: text.len(),
+        font: font.clone(),
+        color: Hsla::default(),
+        background_color: None,
+        underline: None,
+        strikethrough: None,
+    };
     GlyphRun::new(window.text_system().layout_line(text, size, &[style], None))
 }
 
@@ -26,9 +33,15 @@ fn wrap(name: &str, full: &GlyphRun, width: f32) -> Vec<std::ops::Range<usize>> 
     let mut start = 0;
     while start < name.len() {
         let left = f32::from(layout.x_for_index(start));
-        let mut end = layout.index_for_x(px(left + width)).unwrap_or(name.len()).min(name.len());
+        let mut end = layout
+            .index_for_x(px(left + width))
+            .unwrap_or(name.len())
+            .min(name.len());
         if end < name.len() {
-            if let Some(blank) = name[start..end].rfind(char::is_whitespace).filter(|&at| at > 0) {
+            if let Some(blank) = name[start..end]
+                .rfind(char::is_whitespace)
+                .filter(|&at| at > 0)
+            {
                 end = start + blank + 1;
             }
         }
@@ -42,8 +55,19 @@ fn wrap(name: &str, full: &GlyphRun, width: f32) -> Vec<std::ops::Range<usize>> 
 }
 
 /// Lays the tip out under the tile's painted label, centred on its cell: the name's own width plus a gap each side, capped at two minimum cells.
-pub fn prepare(kept: Option<Tip>, drawn: &Drawn, name: &str, metrics: &Metrics, font: &Font, window: &Window) -> Tip {
-    let (listing, cell, label_bottom) = (drawn.listing, drawn.cell, drawn.caption.y + drawn.painted.height);
+pub fn prepare(
+    kept: Option<Tip>,
+    drawn: &Drawn,
+    name: &str,
+    metrics: &Metrics,
+    font: &Font,
+    window: &Window,
+) -> Tip {
+    let (listing, cell, label_bottom) = (
+        drawn.listing,
+        drawn.cell,
+        drawn.caption.y + drawn.painted.height,
+    );
     let size = px(metrics.caption);
     let gap = metrics.gap;
     let shaped = kept.filter(|tip| tip.name == name && tip.size == size);
@@ -54,12 +78,28 @@ pub fn prepare(kept: Option<Tip>, drawn: &Drawn, name: &str, metrics: &Metrics, 
             let natural = f32::from(full.line().width);
             let width = (natural + 2. * gap).min(metrics.min_cell * 2.) - 2. * gap;
             let line = f32::from(full.line().ascent + full.line().descent).ceil();
-            let lines = wrap(name, &full, width.max(1.)).into_iter().map(|range| run(name[range].trim_end(), font, size, window)).collect();
+            let lines = wrap(name, &full, width.max(1.))
+                .into_iter()
+                .map(|range| run(name[range].trim_end(), font, size, window))
+                .collect();
             (lines, line, natural)
         }
     };
     let width = (natural + 2. * gap).min(metrics.min_cell * 2.);
     let height = lines.len() as f32 * line + gap;
-    let rect = Rect { x: cell.x + ((cell.width - width) / 2.).round(), y: label_bottom + metrics.hairline, width, height };
-    Tip { listing, name: name.to_owned(), rect, line, size, natural, lines }
+    let rect = Rect {
+        x: cell.x + ((cell.width - width) / 2.).round(),
+        y: label_bottom + metrics.hairline,
+        width,
+        height,
+    };
+    Tip {
+        listing,
+        name: name.to_owned(),
+        rect,
+        line,
+        size,
+        natural,
+        lines,
+    }
 }

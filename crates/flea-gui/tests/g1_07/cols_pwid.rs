@@ -45,7 +45,10 @@ fn release_hold(area: &mut Area, pane: &Pane, producers: &mut Producers, now: u6
 }
 
 fn rects(area: &Area) -> Vec<(f32, f32)> {
-    area.layout.tracks().map(|track| (track.x, track.width)).collect()
+    area.layout
+        .tracks()
+        .map(|track| (track.x, track.width))
+        .collect()
 }
 
 fn widths(area: &Area) -> Vec<f32> {
@@ -81,17 +84,35 @@ fn the_edge_drags_clamps_stores_once_and_restores() {
         vec![400., 400., 400.],
     );
     c.ok(235, "rest: the rects tile the area", tiled(&rects(&area)));
-    c.eq(236, "rest: the edge zone exists", Edge::zone(&area.layout), (795., 9.));
-    c.eq(238, "rest: nothing was saved", (area.stored.len(), area.share), (0, 0.));
+    c.eq(
+        236,
+        "rest: the edge zone exists",
+        Edge::zone(&area.layout),
+        (795., 9.),
+    );
+    c.eq(
+        238,
+        "rest: nothing was saved",
+        (area.stored.len(), area.share),
+        (0, 0.),
+    );
 
     // Twenty moves of 6 px left: the edge holds within the drag distance, then follows each move.
     area.edge_press(800.);
-    let built = (area.tracks_constructed(), area.tracks_dropped(), area.tracks_built());
+    let built = (
+        area.tracks_constructed(),
+        area.tracks_dropped(),
+        area.tracks_built(),
+    );
     let mut good = true;
     for step in 1..=20 {
         let shift = 6. * step as f32;
         area.edge_move(800. - shift);
-        let want = if shift > START_DRAG_DISTANCE { 800. - shift } else { 800. };
+        let want = if shift > START_DRAG_DISTANCE {
+            800. - shift
+        } else {
+            800.
+        };
         good &= area.layout.edge() == want && tiled(&rects(&area));
     }
     c.ok(
@@ -105,8 +126,17 @@ fn the_edge_drags_clamps_stores_once_and_restores() {
         widths(&area),
         vec![340., 340., 520.],
     );
-    let after = (area.tracks_constructed(), area.tracks_dropped(), area.tracks_built());
-    c.eq(283, "drag: no delegate was built or dropped in 20 moves", after, built);
+    let after = (
+        area.tracks_constructed(),
+        area.tracks_dropped(),
+        area.tracks_built(),
+    );
+    c.eq(
+        283,
+        "drag: no delegate was built or dropped in 20 moves",
+        after,
+        built,
+    );
     c.eq(
         284,
         "drag: nothing is written while the pointer is down",
@@ -114,7 +144,12 @@ fn the_edge_drags_clamps_stores_once_and_restores() {
         (0, 0.),
     );
     let _ = area.edge_release();
-    c.eq(288, "release: exactly one write, the whole percent", area.stored.clone(), vec![43]);
+    c.eq(
+        288,
+        "release: exactly one write, the whole percent",
+        area.stored.clone(),
+        vec![43],
+    );
     c.eq(288, "release: the stored share", area.share, 43.);
     c.eq(
         289,
@@ -134,7 +169,12 @@ fn the_edge_drags_clamps_stores_once_and_restores() {
         vec![300., 300., 600.],
     );
     let _ = area.edge_release();
-    c.eq(299, "clamp: far left writes 50", area.stored.clone(), vec![43, 50]);
+    c.eq(
+        299,
+        "clamp: far left writes 50",
+        area.stored.clone(),
+        vec![43, 50],
+    );
 
     // Far right: the last column stops at 300 px.
     area.edge_press(600.);
@@ -147,11 +187,21 @@ fn the_edge_drags_clamps_stores_once_and_restores() {
         vec![450., 450., 300.],
     );
     let _ = area.edge_release();
-    c.eq(308, "clamp: far right writes 25", area.stored.clone(), vec![43, 50, 25]);
+    c.eq(
+        308,
+        "clamp: far right writes 25",
+        area.stored.clone(),
+        vec![43, 50, 25],
+    );
 
     // j: the folder under the cursor shows in the last column at the stored width.
     folder(&mut area, &mut pane, &mut producers, 1);
-    c.eq(314, "j: the folder shows in the last column", area.host.shown.is_dir, true);
+    c.eq(
+        314,
+        "j: the folder shows in the last column",
+        area.host.shown.is_dir,
+        true,
+    );
     c.eq(
         315,
         "j: file to folder leaves every edge where it was",
@@ -163,7 +213,12 @@ fn the_edge_drags_clamps_stores_once_and_restores() {
     pane.cursor = 0;
     sync(&mut area, &pane, &mut producers, 3);
     release_hold(&mut area, &pane, &mut producers, 4);
-    c.eq(324, "k: the file shows in the last column again", area.host.shown.is_dir, false);
+    c.eq(
+        324,
+        "k: the file shows in the last column again",
+        area.host.shown.is_dir,
+        false,
+    );
     c.eq(
         325,
         "k: folder back to file leaves every edge where it was",
@@ -183,7 +238,12 @@ fn the_edge_drags_clamps_stores_once_and_restores() {
         widths(&area),
         vec![400., 400., 400.],
     );
-    c.eq(331, "double click: it writes 0", area.stored.clone(), vec![43, 50, 25, 0]);
+    c.eq(
+        331,
+        "double click: it writes 0",
+        area.stored.clone(),
+        vec![43, 50, 25, 0],
+    );
 
     // The last drag, from the default third: 100 px left stores 42.
     let base = area.stored.len();
@@ -191,7 +251,12 @@ fn the_edge_drags_clamps_stores_once_and_restores() {
     area.edge_move(750.);
     area.edge_move(700.);
     let _ = area.edge_release();
-    c.eq(345, "last drag writes 42", area.stored[base..].to_vec(), vec![42]);
+    c.eq(
+        345,
+        "last drag writes 42",
+        area.stored[base..].to_vec(),
+        vec![42],
+    );
     c.covers(&[34, 35]);
     c.finish();
 }
@@ -203,13 +268,22 @@ fn a_relaunch_lays_out_the_stored_share_on_its_first_pass() {
     let (area, _pane, _producers) = studio(42.);
     c.eq(355, "relaunch: the stored percent is read", area.share, 42.);
     // The first rebuild is what the first frame draws, so it must already carry the stored width.
-    let first: Vec<(f32, f32)> = area.tracks().iter().map(|view| (view.x, view.width)).collect();
+    let first: Vec<(f32, f32)> = area
+        .tracks()
+        .iter()
+        .map(|view| (view.x, view.width))
+        .collect();
     let third = area
         .tracks()
         .iter()
         .find(|view| view.slot == Slot::Child)
         .map(|view| view.rows.clone());
-    c.eq(356, "relaunch: a frame drew the preview column", third, Some(TrackRows::Preview));
+    c.eq(
+        356,
+        "relaunch: a frame drew the preview column",
+        third,
+        Some(TrackRows::Preview),
+    );
     let first_widths: Vec<f32> = first.iter().map(|rect| rect.1).collect();
     c.eq(
         358,
@@ -217,14 +291,22 @@ fn a_relaunch_lays_out_the_stored_share_on_its_first_pass() {
         first_widths,
         vec![348., 348., 504.],
     );
-    c.ok(359, "relaunch: the first frame tiles the area", tiled(&first));
+    c.ok(
+        359,
+        "relaunch: the first frame tiles the area",
+        tiled(&first),
+    );
     c.eq(
         361,
         "relaunch: the width lays the rects out",
         widths(&area),
         vec![348., 348., 504.],
     );
-    c.ok(362, "relaunch: the rects tile the area", tiled(&rects(&area)));
+    c.ok(
+        362,
+        "relaunch: the rects tile the area",
+        tiled(&rects(&area)),
+    );
     c.eq(364, "relaunch: nothing was written", area.stored.len(), 0);
     c.finish();
 }
@@ -234,7 +316,12 @@ fn resting(c: &mut Checks, area: &Area, name: &str) {
     let edge = &area.host.edge;
     let lines = usize::from(edge.line(&area.layout, HEIGHT).is_some());
     let marks = usize::from(edge.mark(&area.layout, HEIGHT).is_some());
-    c.eq(193, &format!("{name}: no accent line on the edge"), lines, 0);
+    c.eq(
+        193,
+        &format!("{name}: no accent line on the edge"),
+        lines,
+        0,
+    );
     c.eq(194, &format!("{name}: no mark by the edge"), marks, 0);
 }
 
@@ -248,7 +335,12 @@ fn the_edge_draws_its_line_and_mark_only_while_hovered() {
     area.edge_hover(800.);
     let line = area.host.edge.line(&area.layout, HEIGHT);
     let mark = area.host.edge.mark(&area.layout, HEIGHT);
-    c.eq(247, "hover: one accent line", usize::from(line.is_some()), 1);
+    c.eq(
+        247,
+        "hover: one accent line",
+        usize::from(line.is_some()),
+        1,
+    );
     c.eq(248, "hover: one mark", usize::from(mark.is_some()), 1);
     c.eq(
         252,
@@ -273,7 +365,12 @@ fn the_edge_draws_its_line_and_mark_only_while_hovered() {
         usize::from(area.host.edge.line(&area.layout, HEIGHT).is_some()),
         usize::from(area.host.edge.mark(&area.layout, HEIGHT).is_some()),
     );
-    c.eq(319, "j: the handle is live over a folder's contents", live, (1, 1));
+    c.eq(
+        319,
+        "j: the handle is live over a folder's contents",
+        live,
+        (1, 1),
+    );
     let (relaunch, _pane, _producers) = studio(42.);
     resting(&mut c, &relaunch, "relaunch");
     c.covers(&[237, 242, 263, 363]);
@@ -282,7 +379,11 @@ fn the_edge_draws_its_line_and_mark_only_while_hovered() {
 
 /// placed(): every drawn track sits where the layout puts it, the running sum from the left.
 fn placed(area: &Area) -> bool {
-    let drawn: Vec<(f32, f32)> = area.tracks().iter().map(|view| (view.x, view.width)).collect();
+    let drawn: Vec<(f32, f32)> = area
+        .tracks()
+        .iter()
+        .map(|view| (view.x, view.width))
+        .collect();
     drawn == rects(area)
 }
 
@@ -295,7 +396,11 @@ fn a_stored_share_places_every_drawn_track() {
         area.edge_move(800. - 6. * step as f32);
     }
     let _ = area.edge_release();
-    c.ok(290, "release: the row placed every column where its width says", placed(&area));
+    c.ok(
+        290,
+        "release: the row placed every column where its width says",
+        placed(&area),
+    );
     // j and k re-lay the drawn tracks at 43 percent, then a double click restores the third.
     folder(&mut area, &mut pane, &mut producers, 1);
     pane.cursor = 0;

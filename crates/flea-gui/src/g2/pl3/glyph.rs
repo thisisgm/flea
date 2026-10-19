@@ -1,8 +1,8 @@
 //! One board glyph as an alpha mask in its own box, for the strip's chrome buttons.
 use super::board::Glyph;
 use gpui::{
-    px, size, App, Bounds, Element, ElementId, GlobalElementId, Hsla, InspectorElementId, IntoElement, LayoutId,
-    Pixels, Style, TransformationMatrix, Window,
+    px, size, App, Bounds, Element, ElementId, GlobalElementId, Hsla, InspectorElementId,
+    IntoElement, LayoutId, Pixels, Style, TransformationMatrix, Window,
 };
 
 pub struct GlyphBox {
@@ -28,13 +28,47 @@ impl Element for GlyphBox {
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         None
     }
-    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
-        let style = Style { size: size(px(self.side).into(), px(self.side).into()), ..Style::default() };
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let style = Style {
+            size: size(px(self.side).into(), px(self.side).into()),
+            ..Style::default()
+        };
         (window.request_layout(style, None, cx), ())
     }
-    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, _: Bounds<Pixels>, _: &mut (), _: &mut Window, _: &mut App) {}
-    fn paint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), _: &mut (), window: &mut Window, cx: &mut App) {
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut Window,
+        _: &mut App,
+    ) {
+    }
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         let (key, data) = self.glyph.svg();
-        let _ = window.paint_svg(bounds, key, Some(data), TransformationMatrix::unit(), self.ink, cx);
+        let _ = window.paint_svg(
+            bounds,
+            key,
+            Some(data),
+            TransformationMatrix::unit(),
+            self.ink,
+            cx,
+        );
     }
 }

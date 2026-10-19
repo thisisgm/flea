@@ -42,7 +42,10 @@ const DISABLED: f32 = 0.55;
 
 /// A card's width in the window: the board width grown with the body size, held inside the room less the shell's gap.
 pub fn scaled(board: f32, body: f32, room: f32) -> f32 {
-    (board * body / BOARD_BODY).ceil().min((room - 2. * GAP).floor()).max(0.)
+    (board * body / BOARD_BODY)
+        .ceil()
+        .min((room - 2. * GAP).floor())
+        .max(0.)
 }
 
 /// The board's marks, drawn from their own 24 unit paths.
@@ -97,9 +100,17 @@ pub enum Cursor {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum AppRow {
-    Eyebrow { text: String, first: bool },
+    Eyebrow {
+        text: String,
+        first: bool,
+    },
     /// `mark` is the window mark the board draws for an entry with no themed icon; a themed icon is the icon service's.
-    App { label: String, tail: String, cursor: Cursor, mark: Option<Glyph> },
+    App {
+        label: String,
+        tail: String,
+        cursor: Cursor,
+        mark: Option<Glyph>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -111,8 +122,15 @@ pub struct NameLine {
 
 #[derive(Clone, Debug, PartialEq)]
 pub enum Fact {
-    Text { name: String, value: String, tail: String },
-    Tags { name: String, tags: Vec<String> },
+    Text {
+        name: String,
+        value: String,
+        tail: String,
+    },
+    Tags {
+        name: String,
+        tags: Vec<String>,
+    },
 }
 
 #[derive(Clone, Debug, PartialEq)]
@@ -121,20 +139,55 @@ pub enum Block {
     /// Two fields side by side, 12 apart, as bulk rename's Find and Replace.
     Fields(Field, Field),
     /// Old names beside new names; the new column wears the field frame and holds its error line under it, empty or not, so the card keeps one height.
-    Names { old_label: String, old: Vec<String>, new_label: String, new: Vec<NameLine>, focused: bool, error: String },
+    Names {
+        old_label: String,
+        old: Vec<String>,
+        new_label: String,
+        new: Vec<NameLine>,
+        focused: bool,
+        error: String,
+    },
     /// Open With's list, full bleed, closed by a hairline; the filler holds seven rows' height under a short list.
     Apps(Vec<AppRow>, f32),
-    CheckLine { check: Check, label: String },
+    CheckLine {
+        check: Check,
+        label: String,
+    },
     /// A 12 px note at line height 1.5, inset to sit under a checkbox's label when asked.
-    Note { text: String, inset: f32, ink: Ink, lift: f32 },
+    Note {
+        text: String,
+        inset: f32,
+        ink: Ink,
+        lift: f32,
+    },
     /// Permissions' subject line: the mark, the name and the kind word.
-    Subject { glyph: Glyph, name: String, kind: String },
+    Subject {
+        glyph: Glyph,
+        name: String,
+        kind: String,
+    },
     /// The run card's line: the mark in foreground and the kind and size.
-    Program { glyph: Glyph, text: String },
-    Rule { above: f32, below: f32 },
-    Grid { columns: Vec<String>, rows: Vec<(String, [Check; 3])> },
-    Info { label: String, value: String, tail: String },
-    Section { head: String, lines: Vec<String> },
+    Program {
+        glyph: Glyph,
+        text: String,
+    },
+    Rule {
+        above: f32,
+        below: f32,
+    },
+    Grid {
+        columns: Vec<String>,
+        rows: Vec<(String, [Check; 3])>,
+    },
+    Info {
+        label: String,
+        value: String,
+        tail: String,
+    },
+    Section {
+        head: String,
+        lines: Vec<String>,
+    },
     Facts(Vec<Fact>),
     /// Parts that sit flush, with none of the card's 12 between them.
     Stack(Vec<Block>),
@@ -168,7 +221,8 @@ impl Card {
 
 /// op1's shell owns the scrim, placement and focus trap; a card only hands it plain data.
 pub trait DialogShell {
-    fn present(&self, card: &Card, palette: &Palette, typeface: &Typeface, room: f32) -> AnyElement;
+    fn present(&self, card: &Card, palette: &Palette, typeface: &Typeface, room: f32)
+        -> AnyElement;
 }
 
 /// The board tokens a card draws with, read from the palette roles the theme fills.
