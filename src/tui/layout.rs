@@ -17,12 +17,14 @@ pub fn preview_area(columns: usize, quicklook: bool) -> (usize, usize) {
     (start + padding, width - padding * 2)
 }
 pub fn display_path(m: &Model) -> String {
+    if let Some(place) = super::trashview::place(m) { return place; }
     let home = std::env::var_os("HOME").filter(|s| !s.is_empty()).map(std::path::PathBuf::from);
     if let Some(tail) = home.as_ref().and_then(|home| m.path.strip_prefix(home).ok()) {
         if tail.as_os_str().is_empty() { "~".into() } else { format!("~/{}", tail.to_string_lossy()) }
     } else { m.path.to_string_lossy().into_owned() }
 }
 fn sort_label(m: &Model) -> String {
+    if let Some(sort) = super::trashview::sort(m) { return sort; }
     let name = match m.sort.as_str() { "size" => "Size", "mtime" | "date" => "Modified", "kind" => "Kind", _ => "Name" };
     format!("{name} {}", if m.reverse { "▾" } else { "▴" })
 }
@@ -94,7 +96,7 @@ pub fn rule(columns: usize, preview: bool, bottom: bool, theme: &Theme) -> Strin
 }
 pub fn focused(m: &Model) -> bool {
     !m.preview_focus && !m.menu && !m.sheet && m.deletion.is_none() && !m.quicklook
-        && m.editor.as_ref().map_or(true, |editor| matches!(editor.kind, "filter" | "search"))
+        && m.editor.as_ref().map_or(m.prompts.question.is_none(), |editor| matches!(editor.kind, "filter" | "search"))
 }
 pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
     let (first, total) = super::filter::lane(m);
@@ -122,14 +124,12 @@ pub fn selection_bytes(m: &Model) -> Option<usize> {
 pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> String {
     let base = theme.base();
     let help = if m.hints.keys.is_empty() { String::new() } else { format!("{} keys", m.hints.keys) };
-    let disk = if m.disk_path == m.path && !m.disk_fs.is_empty() { format!("{} · {} free", m.disk_fs, super::render::bytes(m.disk_free)) } else { String::new() };
-    let count = if !m.filter.is_empty() {
-        format!("Filter {}  {} of {} shown", m.filter, super::render::grouped(m.filter_count()), super::render::grouped(m.total))
-    } else if !m.selected.is_empty() {
+    let disk = if (m.disk_path == m.path || super::trashview::opened_from(m) == Some(&m.disk_path)) && !m.disk_fs.is_empty() { format!("{} · {} free", m.disk_fs, super::render::bytes(m.disk_free)) } else { String::new() };
+    let count = if !m.selected.is_empty() {
         format!("{} of {} selected{}", super::render::grouped(m.selected.len()), super::render::grouped(m.total),
             selection_bytes(m).map(|bytes| format!(" · {}", super::render::bytes(bytes))).unwrap_or_default())
     } else { super::render::items(m.total) };
-    let mut parts = vec![(theme.foreground.as_str(), count, 0)];
+    let mut parts = super::prompts::lead(m, theme, count);
     if !m.error.is_empty() { parts.push((&theme.error, m.error.clone(), 2)); }
     if !m.transfer.is_empty() {
         // A job list of more than one job names its count after the bar, in the muted ink.
@@ -142,8 +142,7 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
         }
         if !suffix.is_empty() { parts.push((&theme.muted, suffix.trim_start().into(), 2)); }
     }
-    if !m.search.is_empty() { parts.push((&theme.foreground, m.search.clone(), 2)); }
-    if m.error.is_empty() && m.transfer.is_empty() && m.search.is_empty() && !m.message.is_empty() { parts.push((&theme.foreground, m.message.clone(), 2)); }
+    if m.error.is_empty() && m.transfer.is_empty() && m.search.is_empty() && !m.message.is_empty() { parts.extend(super::prompts::message(m, theme)); }
     let left_width = parts.iter().map(|(_, s, gap)| text_width(s) + gap).sum::<usize>();
     let mut right = String::new();
     let mut right_width = 0;
@@ -195,10 +194,11 @@ pub fn preview(m: &Model, y: usize, columns: usize, body: usize, theme: &Theme) 
             out.push_str(&theme.meta);
             out.push_str(&fit(&super::render::selection_line(m, y + m.preview_scroll, width), width));
         } else { out.push_str(&fit("", width)); }
-    } else if let Some(row) = m.rows.get(&m.cursor).filter(|_| m.current_path().as_ref() == Some(&m.preview_path)) {
+    } else if let Some(line) = super::trashview::preview(m, y, width, theme) { out.push_str(&line);
+    } else if let Some(row) = m.rows.get(&m.cursor).filter(|_| m.current_path().as_ref() == Some(&m.preview_path) && super::prompts::previewed(m)) {
         if y == 0 {
             let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
-            out.push_str(&format!("\x1b[1m{}\x1b[22m", ellipsis(&format!("{mark}{}", row.name), width)));
+            out.push_str(&format!("\x1b[1m{}\x1b[22m", ellipsis(&format!("{mark}{}", row.name.rsplit('/').next().unwrap_or(&row.name)), width)));
         } else if y == 1 {
             let modified = super::render::modified(row.modified);
             let facts = format!("{} · {}{}", if row.directory { "Folder" } else { &row.kind }, m.row_size(m.cursor, row),

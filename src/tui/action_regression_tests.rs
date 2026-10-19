@@ -79,7 +79,7 @@ fn cancelled_clipboard(request: char, failure: bool) {
     assert_eq!(requests(&drain(&mut wire), "paths").len(), 1);
     m.receive(jsondoc::parse(r#"{"t":"paths","paths":["/listing/folder"]}"#).unwrap(), &mut wire).unwrap();
     assert_eq!(m.clipboard, ["/listing/folder"]);
-    assert_eq!(m.message, "1 item copied");
+    assert_eq!(m.message, "Copied 1 item");
     wire::finish(wire, reader);
 }
 

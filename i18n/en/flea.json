@@ -121,5 +121,91 @@
   "keys.menu": "Menu",
   "keys.openTerminal": "Open terminal",
   "keys.openAgent": "Open agent here",
-  "keys.print": "Print…"
+  "keys.print": "Print…",
+  "prompt.rename": "Rename",
+  "prompt.folder": "Folder name",
+  "prompt.file": "File name",
+  "prompt.path": "Go to",
+  "prompt.filter": "Filter",
+  "prompt.find": "Find",
+  "prompt.renaming": "Renaming…",
+  "prompt.working": "Working…",
+  "prompt.renameHint": "enter saves · esc cancels · ctrl-a selects the whole name",
+  "prompt.scope": "in %1 · tab changes scope",
+  "prompt.home": "Home",
+  "prompt.newFolder": "New Folder",
+  "prompt.newFile": "New File",
+  "filter.shown": "%1 of %2 shown",
+  "filter.nothing": "NOTHING MATCHES %1",
+  "find.status": "Find “%1” in %2",
+  "find.scanning": "%1 found · %2 scanned",
+  "find.found": "%1 found",
+  "find.starting": "Finding…",
+  "receipt.undoes": "· %1 undoes",
+  "receipt.renamed": "Renamed",
+  "receipt.made": "Folder created",
+  "receipt.duplicated": "Duplicated",
+  "receipt.fileCreated": "File created",
+  "receipt.undid": "Undid %1",
+  "receipt.redid": "Redid %1",
+  "receipt.undidLast": "Undid the last action",
+  "receipt.redidLast": "Redid the last action",
+  "receipt.trashed": {
+    "one": "Moved %1 item to Trash",
+    "other": "Moved %1 items to Trash"
+  },
+  "receipt.copied": {
+    "one": "Copied %1 item",
+    "other": "Copied %1 items"
+  },
+  "receipt.moved": {
+    "one": "Moved %1 item",
+    "other": "Moved %1 items"
+  },
+  "receipt.skipped": "· %1 skipped",
+  "receipt.failed": "· %1 failed",
+  "receipt.cancelled": "· cancelled",
+  "clipboard.copied": {
+    "one": "Copied %1 item",
+    "other": "Copied %1 items"
+  },
+  "clipboard.cut": {
+    "one": "Cut %1 item",
+    "other": "Cut %1 items"
+  },
+  "trash.armOne": "Press %1 again to move it to Trash, or press %2 on its own.",
+  "trash.armMany": "Press %1 again to move them to Trash, or press %2 on its own.",
+  "trash.armOneAlone": "Press %1 again to move it to Trash.",
+  "trash.armManyAlone": "Press %1 again to move them to Trash.",
+  "trash.failed": {
+    "one": "%1 item could not be moved to Trash.",
+    "other": "%1 items could not be moved to Trash."
+  },
+  "trash.failedWhy": {
+    "one": "%1 item could not be moved to Trash: %2.",
+    "other": "%1 items could not be moved to Trash: %2."
+  },
+  "trash.viewOnly": "Trash is only viewed here; restore or delete its items in the window.",
+  "trash.place": "Trash",
+  "trash.sort": "Deleted ▾",
+  "trash.deleted": "Deleted · %1",
+  "trash.original": "Original Location · %1",
+  "step.trash": "Move to Trash",
+  "step.rename": "Rename",
+  "step.duplicate": "Duplicate",
+  "step.mkdir": "New Folder",
+  "step.newfile": "New File",
+  "step.copy": "Copy",
+  "step.move": "Move",
+  "step.merge": "Merge",
+  "step.link": "Make Link",
+  "step.permissions": "Permissions",
+  "paste.nothing": "Nothing to paste",
+  "paste.waiting": "A transfer is already waiting on its question; try again once it is answered.",
+  "collide.one": "%1 already exists in %2.",
+  "collide.many": {
+    "one": "%1 item already exists in %2.",
+    "other": "%1 items already exist in %2."
+  },
+  "collide.keys": "enter or b keeps both · r replaces · s skips · esc cancels"
 }

@@ -29,6 +29,10 @@ const RULE_ALPHA: f64 = 0.40;
 const WASH_ALPHA: f64 = 0.14;
 const UNAVAILABLE_ALPHA: f64 = 0.55;
 const SCRIM_ALPHA: f64 = 0.5;
+// The prompt field's 7% fill, and its selection's accent wash eased down from 24% only as far as foreground text needs.
+const FIELD_ALPHA: f64 = 0.07;
+const STEM_ALPHA_MAX: f64 = 0.24;
+const STEM_ALPHA_MIN: f64 = 0.06;
 
 #[derive(Clone, Copy, Debug, Default, PartialEq, Eq)]
 pub enum Depth { Sixteen, Indexed, #[default] Truecolor }
@@ -71,6 +75,9 @@ pub struct Theme {
     pub wash: String,
     pub unavailable: String,
     pub unavailable_word: String,
+    pub field: String,
+    pub stem: String,
+    pub ext: String,
     pub depth: Depth,
     // The same palette behind a card's scrim; None on the scrim itself.
     pub dim: Option<Box<Theme>>,
@@ -104,6 +111,9 @@ impl Theme {
         let meta = contrast(&contrast(&darker, &background), &surface);
         let mut mark_alpha = MARK_ALPHA_MAX;
         while mark_alpha > MARK_ALPHA_MIN && ratio(rgb(&foreground), rgb(&blend(&foreground, &background, mark_alpha))) < TEXT_CONTRAST { mark_alpha -= MARK_ALPHA_STEP; }
+        let field = blend(&foreground, &background, FIELD_ALPHA);
+        let mut stem_alpha = STEM_ALPHA_MAX;
+        while stem_alpha > STEM_ALPHA_MIN && ratio(rgb(&foreground), rgb(&blend(&accent, &field, stem_alpha))) < TEXT_CONTRAST { stem_alpha = ((stem_alpha - MARK_ALPHA_STEP) * 100.0).round() / 100.0; }
         let error = pick(&["urgent"], "#a55555");
         let channels = rgb(&error);
         let high = channels.into_iter().fold(0.0_f64, f64::max);
@@ -127,7 +137,8 @@ impl Theme {
             wash: encode(&blend(&accent, &background, WASH_ALPHA), true),
             unavailable: encode(&blend(&error, &background, UNAVAILABLE_ALPHA), false),
             unavailable_word: encode(&blend(&muted, &background, UNAVAILABLE_ALPHA), false),
-            depth, dim: None,
+            stem: encode(&blend(&accent, &field, stem_alpha), true), ext: encode(&ensure(&muted, &field, TEXT_CONTRAST), false),
+            field: encode(&field, true), depth, dim: None,
         }
     }
 }

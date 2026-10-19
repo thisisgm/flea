@@ -23,8 +23,10 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
         let action = map.action(key, &model.preset);
         return if matches!(action.as_str(), "escape" | "quit") { act(model, &action, wire) } else { Ok(()) };
     }
+    if model.prompts.question.is_some() { return super::prompts::answer(model, key, wire); }
     if model.menu { return super::render::menu_run::key(model, key, map, wire); }
     if model.sheet { return super::render::cards::sheet_key(model, key, map); }
+    if super::trashview::refuses(model, key, map, wire)? { return Ok(()); }
     if let Some(pointer) = &key.pointer {
         return pointer_key(model, key, pointer, map, wire);
     }
@@ -161,11 +163,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
             if action == "trashArm" {
                 model.trash_armed_at = Some(std::time::Instant::now());
                 let arm = if key.text.is_empty() { key.name.as_str() } else { key.text.as_str() };
-                model.say(if model.hints.trash.is_empty() {
-                    format!("Press {} again to trash", arm)
-                } else {
-                    format!("Press {} again to trash, or {} on its own", arm, model.hints.trash)
-                });
+                model.say(super::prompts::trash_arm(model, arm));
             }
             model.key_arm = action;
             return Ok(());
@@ -338,7 +336,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
                 m.fail("Selected item is unavailable; select it again to rename".into());
             }
         }
-        "newFolder" => m.editor = Some(Editor::new("mkdir", "New Folder".into(), m.path.clone())),
+        "newFolder" => m.editor = Some(Editor::named("mkdir", m.prompts.i18n.tr("prompt.newFolder"), m.path.clone())),
         "copy" | "cut" => {
             if m.pending_clipboard || m.taildrop_target.is_some() {
                 return Ok(());
@@ -353,33 +351,9 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
             m.discard_clipboard |= m.pending_clipboard;
             m.say("Clipboard cleared".into());
         }
-        "paste" | "movePaste" => {
-            if m.clipboard.is_empty() {
-                m.say("Nothing to paste".into());
-            } else {
-                w.send(vec![
-                    ("c", word("transfer")),
-                    (
-                        "op",
-                        word(if m.cut || action == "movePaste" {
-                            "move"
-                        } else {
-                            "copy"
-                        }),
-                    ),
-                    (
-                        "paths",
-                        Json::Arr(m.clipboard.iter().map(|p| word(p)).collect()),
-                    ),
-                    ("dest", word(&m.path.to_string_lossy())),
-                ])?;
-            }
-        }
-        "trash" | "trashArm" => {
-            if m.total > 0 {
-                w.send(vec![("c", word("trash")), ("rows", m.indices())])?;
-            }
-        }
+        "paste" | "movePaste" => super::prompts::paste(m, action, w)?,
+        "trash" | "trashArm" => super::prompts::trash(m, w)?,
+        "openTrash" => super::trashview::open(m, w)?,
         "undo" | "redo" => w.send(vec![("c", word(action))])?,
         "deletePermanently" => {
             m.action_id = m.action_id.wrapping_add(1).max(1);
@@ -407,7 +381,7 @@ pub(super) fn act(m: &mut Model, action: &str, w: &mut Wire) -> io::Result<()> {
         }
         "newFile" => {
             m.action_id = m.action_id.wrapping_add(1).max(1);
-            m.editor = Some(Editor::new("newfile", "New File".into(), m.path.clone()));
+            m.editor = Some(Editor::named("newfile", m.prompts.i18n.tr("prompt.newFile"), m.path.clone()));
         }
         "detailNext" => super::detail::cycle(m),
         "sortNext" | "sortReverse" | "sortName" | "sortNameReverse" | "sortDate" | "sortDateReverse" | "sortSize" | "sortSizeReverse" => {
@@ -878,7 +852,7 @@ fn edit(m: &mut Model, key: &Key, w: &mut Wire) -> io::Result<()> {
                 m.total = 0;
                 m.searching = true;
                 m.search_query = value.clone();
-                m.search = "Search: starting".into();
+                m.search = m.prompts.i18n.tr("find.starting");
                 m.sort_anchor = None;
                 w.send(vec![
                     ("c", word("search")),

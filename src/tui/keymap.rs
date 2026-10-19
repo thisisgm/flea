@@ -12,6 +12,7 @@ pub struct Hints {
     pub load_preview: String,
     pub delete_permanently: String,
     pub trash: String,
+    pub undo: String,
 }
 impl Hints {
     pub fn new(map: &Map, preset: &str) -> Self {
@@ -21,6 +22,8 @@ impl Hints {
             load_preview: chord("loadPreview"),
             delete_permanently: chord("deletePermanently"),
             trash: chord("trash"),
+            // A receipt names the plain undo key before any chord, the way the boards draw "z undoes".
+            undo: map.chord_where("undo", preset, "listing", plain).or_else(|| map.chord("undo", preset, "listing")).unwrap_or_default(),
         }
     }
 }
@@ -127,12 +130,14 @@ impl Map {
             .map(|(_, block)| get(block, "action").into()).unwrap_or_default()
     }
     // The first key a preset binds to an action in a context, spelled as the sheet spells it: "Ctrl+Space", "Escape", "?".
-    pub fn chord(&self, action: &str, preset: &str, context: &str) -> Option<String> {
+    pub fn chord(&self, action: &str, preset: &str, context: &str) -> Option<String> { self.chord_where(action, preset, context, |_| true) }
+    // The first key of action whose modifiers keep accepts.
+    pub fn chord_where(&self, action: &str, preset: &str, context: &str, keep: fn(&Key) -> bool) -> Option<String> {
         self.blocks
             .iter()
             .filter(|(_, block)| get(block, "action") == action)
             .filter_map(|(kind, block)| block_key(kind, block))
-            .find(|(_, key)| self.in_context(key, preset, context) == action)
+            .find(|(_, key)| keep(key) && self.in_context(key, preset, context) == action)
             .map(|(name, key)| spell(&key, name))
     }
 }
@@ -181,6 +186,8 @@ fn block_key<'a>(kind: &'a str, block: &'a HashMap<String, String>) -> Option<(&
     Some((name, key))
 }
 // The key as the sheet and the hints print it: its modifier prefix, then the name the keymap gives it.
+// A key pressed on its own, with no modifier held.
+fn plain(key: &Key) -> bool { matches!(key.mods.as_str(), "text" | "code" | "none" | "") }
 fn spell(key: &Key, name: &str) -> String {
     let prefix = match key.mods.as_str() {
         "ctrl" => "Ctrl+",

@@ -18,6 +18,8 @@ mod layout;
 mod icons;
 mod editor;
 mod empty;
+mod prompts;
+mod trashview;
 pub(crate) mod graphics;
 mod input;
 mod job;
@@ -170,9 +172,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                     Err(error) => model.fail(error),
                 }
             }
-            if let Some(completion) = model.completer.poll() {
-                model.completion = completion;
-            }
+            completion::land(&mut model);
             model.expire_message(std::time::Instant::now());
             let visible = (model.preview_visible || model.quicklook) && model.selected.len() < 2;
             let overlay = model.menu || model.sheet || model.editor.is_some() || model.deletion.is_some();
@@ -181,7 +181,7 @@ pub fn run(path: Option<&str>, select: Option<&str>, options: &cwd::Options) -> 
                 print!("{}", if menu_tracking { "\x1b[?1003h" } else { "\x1b[?1003l\x1b[?1002h" });
                 std::io::Write::flush(&mut std::io::stdout())?;
             }
-            let current = model.current_path();
+            let current = model.current_path().filter(|_| prompts::previewed(&model));
             let preview_allowed =
                 model.preview_loaded && current.as_ref() == Some(&model.preview_path);
             const PREVIEW_RESERVED_ROWS: usize = 5;

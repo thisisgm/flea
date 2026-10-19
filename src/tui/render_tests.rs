@@ -1,4 +1,5 @@
     use super::*;
+    use crate::tui::layout::{footer, pane_padding};
     use crate::tui::model::Row;
     use crate::tui::cells::{match_range, Wrapped};
     #[test]
@@ -44,12 +45,12 @@
         model.filter = "a".into();
         model.rows = [(0, row())].into_iter().collect();
         let filtered = footer(&model, &theme, 120, std::time::Duration::ZERO);
-        assert!(filtered.contains("Filter a  1 of 1 shown"), "one match of one row: {filtered}");
+        assert!(crate::tui::render::frame_tests::plain(&filtered).contains("Filter a  1 of 1 shown"), "one match of one row: {filtered}");
         assert!(!filtered.contains("matches") && !filtered.contains("rows"), "no plural may survive it: {filtered}");
         model.total = 2;
         model.rows.insert(1, row());
         let filtered = footer(&model, &theme, 120, std::time::Duration::ZERO);
-        assert!(filtered.contains("Filter a  2 of 2 shown"), "two matches of two rows: {filtered}");
+        assert!(crate::tui::render::frame_tests::plain(&filtered).contains("Filter a  2 of 2 shown"), "two matches of two rows: {filtered}");
     }
     #[test]
     fn active_tab_remains_in_the_same_visible_hit_map() {
@@ -76,7 +77,8 @@
         let output = footer(&model, &theme, 120, std::time::Duration::ZERO);
         assert!(output.contains(&format!("{}Denied\x1b[0m", theme.error)));
         assert!(output.find("Denied").unwrap() < output.find("Copying").unwrap());
-        assert!(output.find("Copying").unwrap() < output.find("Searching").unwrap());
+        // The find status takes the count's place at the head of the row; the transfer still follows the error.
+        assert!(output.find("Searching").unwrap() < output.find("Denied").unwrap());
         assert!(crate::tui::render::frame_tests::plain(&output).ends_with("? keys"));
         assert_eq!(output.matches(&theme.error).count(), 1);
     }

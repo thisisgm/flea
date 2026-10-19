@@ -1,4 +1,5 @@
 use super::*;
+use crate::tui::layout::footer;
 use crate::jsondoc::Json;
 use std::time::Duration;
 
