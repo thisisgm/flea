@@ -8,6 +8,7 @@ import pty
 import select
 import signal
 import socket
+import stat
 import struct
 import sys
 import termios
@@ -28,6 +29,8 @@ FLUSH_SECONDS = .15
 ANSWER_SECONDS = 2
 SHUTDOWN_SECONDS = 3
 SHUTDOWN_POLL_SECONDS = .02
+# The terminal facts a candidate reads from its environment; TMUX also names the one socket its tmux client dials.
+FORWARDED = ("TERM", "COLORTERM", "TERM_PROGRAM", "TMUX")
 
 
 def write_all(fd, data):
@@ -42,8 +45,32 @@ def winsize(fd):
     return list(struct.unpack("HHHH", fcntl.ioctl(fd, termios.TIOCGWINSZ, bytes(8))))
 
 
+def sandboxed(argv, environ):
+    """The candidate argv; a bwrap one gains this terminal's variables and, under tmux, its server socket bound read-only."""
+    argv = list(argv)
+    if argv[0] != "bwrap":
+        return argv
+    forwarded = []
+    for name in FORWARDED:
+        if name in environ:
+            forwarded += ["--setenv", name, environ[name]]
+    # Sample input: TMUX=/run/user/1000/tmux-1000/default,4242,0, the server's socket, its pid and the session index.
+    path = environ.get("TMUX", "").split(",")[0]
+    if path:
+        try:
+            listening = os.path.isabs(path) and stat.S_ISSOCK(os.stat(path).st_mode)
+        except OSError:
+            listening = False
+        if not listening:
+            raise RuntimeError("TMUX names no tmux server socket: " + path)
+        forwarded += ["--ro-bind", path, path]
+    index = argv.index("--chdir")
+    return argv[:index] + forwarded + argv[index:]
+
+
 def serve(spec_path):
     spec = json.loads(Path(spec_path).read_text())
+    argv = sandboxed(spec["argv"], os.environ)
     case = Path(spec_path).parent
     owner = Owned(case)
     control_path = owner.child("relay.sock")
@@ -71,14 +98,6 @@ def serve(spec_path):
         stderr = os.open(owner.child("candidate.stderr"), os.O_WRONLY | os.O_CREAT | os.O_EXCL, 0o600)
         os.dup2(stderr, 2)
         os.close(stderr)
-        argv = list(spec["argv"])
-        if argv[0] == "bwrap":
-            index = argv.index("--chdir")
-            forwarded = []
-            for name in ("TERM", "COLORTERM", "TERM_PROGRAM", "TMUX"):
-                if name in os.environ:
-                    forwarded += ["--setenv", name, os.environ[name]]
-            argv[index:index] = forwarded
         os.execvpe(argv[0], argv, spec["environment"])
     os.close(start_read)
     status, stopping, total = None, False, 0

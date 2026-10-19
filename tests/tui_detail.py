@@ -1,4 +1,5 @@
 """Behavioral PTY evidence for detail modes, calendar facts, sorting and clean terminal restoration."""
+import json
 import os
 from pathlib import Path
 import pwd
@@ -8,6 +9,9 @@ from tui_pty import Session, fixture
 
 binary, root = Path(sys.argv[1]).resolve(), Path(sys.argv[2]).resolve()
 work, env = fixture(root)
+# The Properties card's title and Modified label, from the English catalog the TUI draws them with.
+catalog = json.loads((Path(__file__).resolve().parent.parent / 'i18n/en/flea.json').read_text())
+card_title, modified = catalog['properties.title'], catalog['properties.modified']
 
 with Session(binary, root, work, env) as terminal:
     wait, send, grid = terminal.wait, terminal.send, terminal.grid
@@ -41,9 +45,12 @@ with Session(binary, root, work, env) as terminal:
     rows = wait(lambda rows: 'Size ▾' in rows[0] and 'large.txt' in rows[4])
     assert rows[2][31:32] == 'A' and rows[3][31:32] == 'Z', rows[2:6]
     send(b'i')
-    wait(lambda rows: any('Modified · 2026-09-23 10:14' in row for row in rows))
+    # The card's title row, then its Modified row: the label, the label column's padding, the local date.
+    card_row = lambda row, text: row.split('│')[-2].strip().startswith(text) if row.count('│') >= 3 else False
+    wait(lambda rows: any(card_row(row, card_title) for row in rows)
+         and any(card_row(row, modified) and row.split('│')[-2].split()[1:3] == ['2026-09-23', '10:14'] for row in rows))
     send(b'\x1b')
-    wait(lambda rows: not any('─ properties ' in row for row in rows))
+    wait(lambda rows: not any(card_row(row, card_title) for row in rows))
     send(b'q')
     terminal.finish()
     print('PASS tui-detail: four modes, local dates, properties, folder-name size sorting, clean TTY quit')

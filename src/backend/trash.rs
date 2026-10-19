@@ -135,8 +135,8 @@ pub(crate) fn trash_checked(paths: &[PathBuf], selection: Option<&[super::menu_a
     trash_announcing(paths, selection, &mut |_, _, _| {})
 }
 
-// announce(ok, failed, reason) fires once gio has returned and the disk shows the outcome, before the settle list that only names the journal's URIs.
-pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::menu_actions::Selected]>, announce: &mut dyn FnMut(usize, usize, &str)) -> Result<(Vec<Entry>, usize, String), String> {
+// announce(moved, failed, reason) fires once gio has returned and the disk shows the outcome, before the settle list that only names the journal's URIs.
+pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::menu_actions::Selected]>, announce: &mut dyn FnMut(&[PathBuf], usize, &str)) -> Result<(Vec<Entry>, usize, String), String> {
     // A leading empty path is a drag that left this window. The receiver may already have moved
     // the file and still accepted a move; a path that is gone is then nothing left to delete.
     let (quiet_gone, paths) = match paths.first() {
@@ -200,9 +200,9 @@ pub(crate) fn trash_announcing(paths: &[PathBuf], selection: Option<&[super::men
         still_here = gone.iter().filter(|g| !**g).count();
         failed += still_here;
         let gio_failed = !matches!(&output, Some(o) if o.status.success());
-        let moved = entries.iter().flatten().count() + gone.len() - still_here;
-        let reason = trash_reason(failed, gio_failed, still_here, &output, moved > 0);
-        announce(moved, failed, &reason);
+        let moved: Vec<PathBuf> = entries.iter().enumerate().filter(|(_, entry)| entry.is_some()).map(|(i, _)| present[i].to_path_buf()).chain(rest.iter().zip(&gone).filter(|(_, gone)| **gone).map(|(&i, _)| present[i].to_path_buf())).collect();
+        let reason = trash_reason(failed, gio_failed, still_here, &output, !moved.is_empty());
+        announce(&moved, failed, &reason);
         let after = list();
         for (pos, i) in rest.into_iter().enumerate() {
             if !gone[pos] {

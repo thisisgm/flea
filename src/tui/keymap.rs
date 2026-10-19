@@ -12,6 +12,7 @@ pub struct Hints {
     pub load_preview: String,
     pub delete_permanently: String,
     pub trash: String,
+    pub undo: String,
 }
 impl Hints {
     pub fn new(map: &Map, preset: &str) -> Self {
@@ -21,6 +22,8 @@ impl Hints {
             load_preview: chord("loadPreview"),
             delete_permanently: chord("deletePermanently"),
             trash: chord("trash"),
+            // A receipt names the plain undo key before any chord, the way the boards draw "z undoes".
+            undo: map.chord_where("undo", preset, "listing", plain).or_else(|| map.chord("undo", preset, "listing")).unwrap_or_default(),
         }
     }
 }
@@ -127,44 +130,15 @@ impl Map {
             .map(|(_, block)| get(block, "action").into()).unwrap_or_default()
     }
     // The first key a preset binds to an action in a context, spelled as the sheet spells it: "Ctrl+Space", "Escape", "?".
-    pub fn chord(&self, action: &str, preset: &str, context: &str) -> Option<String> {
+    pub fn chord(&self, action: &str, preset: &str, context: &str) -> Option<String> { self.chord_where(action, preset, context, |_| true) }
+    // The first key of action whose modifiers keep accepts.
+    pub fn chord_where(&self, action: &str, preset: &str, context: &str, keep: fn(&Key) -> bool) -> Option<String> {
         self.blocks
             .iter()
             .filter(|(_, block)| get(block, "action") == action)
             .filter_map(|(kind, block)| block_key(kind, block))
-            .find(|(_, key)| self.in_context(key, preset, context) == action)
+            .find(|(_, key)| keep(key) && self.in_context(key, preset, context) == action)
             .map(|(name, key)| spell(&key, name))
-    }
-    pub fn sheet(&self, preset: &str) -> Vec<String> {
-        let mut resolved = Vec::new();
-        for (kind, block) in &self.blocks {
-            let Some((name, key)) = block_key(kind, block) else { continue; };
-            let prefix = get(block, "prefix");
-            let found = if prefix.is_empty() { self.action(&key, preset) }
-                else {
-                    let start = self.action(&Key::character(prefix.chars().next().unwrap(), ""), preset);
-                    if start != format!("prefix:{}", prefix) { continue; }
-                    self.sequence(prefix, &key, preset, "listing")
-                };
-            if found.is_empty() { continue; }
-            let chord = format!("{}{}{}", if prefix.is_empty() { String::new() } else { format!("{} ", prefix) },
-                spell(&key, name), if found.ends_with("Arm") { name } else { "" });
-            let entry = (canonical(&found).to_string(), chord);
-            if !resolved.contains(&entry) { resolved.push(entry); }
-        }
-        let mut rows = Vec::new();
-        let mut seen = Vec::new();
-        for (_, label) in self.blocks.iter().filter(|(kind, _)| matches!(kind.as_str(), "sheet" | "tuisheet" | "tui")) {
-            let action = canonical(get(label, "action"));
-            if seen.contains(&action) || get(label, "label").is_empty() || !supported(action) { continue; }
-            let keys: Vec<_> = resolved.iter().filter(|(a, _)| a == action).map(|(_, key)| key.as_str()).collect();
-            if !keys.is_empty() {
-                seen.push(action);
-                rows.push(format!("{}  {}", keys.join(" / "), get(label, "label")));
-            }
-        }
-        rows.push("1–9  Select tab".into());
-        rows
     }
 }
 // A block as the key it binds and the name the sheet prints for it; None for a block that binds no key the sheet can show.
@@ -211,6 +185,8 @@ fn block_key<'a>(kind: &'a str, block: &'a HashMap<String, String>) -> Option<(&
     };
     Some((name, key))
 }
+// A key pressed on its own, with no modifier held.
+fn plain(key: &Key) -> bool { matches!(key.mods.as_str(), "text" | "code" | "none" | "") }
 // The key as the sheet and the hints print it: its modifier prefix, then the name the keymap gives it.
 fn spell(key: &Key, name: &str) -> String {
     let prefix = match key.mods.as_str() {
@@ -224,16 +200,6 @@ fn spell(key: &Key, name: &str) -> String {
         _ => "",
     };
     format!("{}{}", prefix, name)
-}
-fn canonical(action: &str) -> &str {
-    match action {
-        "copyArm" => "copy",
-        "cutArm" => "cut",
-        "pasteArm" => "paste",
-        "cursorFirstArm" => "cursorFirst",
-        "trashArm" => "trash",
-        _ => action,
-    }
 }
 pub(super) fn supported(action: &str) -> bool {
     matches!(
@@ -314,6 +280,7 @@ pub(super) fn supported(action: &str) -> bool {
             | "goHome"
             | "goConfig"
             | "goDownloads"
+            | "openTrash"
     )
 }
 fn matches_key(block: &HashMap<String, String>, key: &Key) -> bool {

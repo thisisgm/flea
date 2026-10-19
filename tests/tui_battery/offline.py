@@ -11,7 +11,8 @@ from .adapters import TERMINALS
 from .bundle import standin
 from .bundle.build import main as fixture_bundle
 from .driver import main as battery
-from .evidence import Blocked, Owned, digest
+from .evidence import MARKER, Blocked, Owned, digest
+from .fixtures import TMPFS
 
 HERE = Path(__file__).resolve().parent
 
@@ -61,6 +62,18 @@ def bundle_dry_run(owner, boards):
     return code, output
 
 
+def leaked_fixtures(marker):
+    """Case fixtures this process left on tmpfs; each lives there only until the driver's retain copies it out."""
+    leaked = []
+    for root in sorted(TMPFS.glob("flea-battery-fx.*")):
+        try:
+            if (root / MARKER).read_text() == marker:
+                leaked.append(str(root))
+        except OSError:
+            continue
+    return leaked
+
+
 def main(scratch):
     owner = Owned(Path(scratch))
     if os.isatty(0):
@@ -97,6 +110,9 @@ def main(scratch):
             or {row["adapter"] for row in records} != set(TERMINALS)
             or any(row["status"] != "ADAPTER-PASS" or row["exit_code"] != 0 or row["fake"] is not True for row in records)):
         raise Blocked("offline fake-adapter diagnostics did not complete")
+    leaked = leaked_fixtures(f"battery fixture {os.getpid()}\n")
+    if leaked:
+        raise Blocked("offline suite left case fixtures on tmpfs: " + ", ".join(leaked))
     print(f"tui-battery: fixture bundle families present: {', '.join(sorted(families))}")
     print(f"PASS tui-battery: {result.testsRun} regressions, {len(records)} fake adapters")
     return 0

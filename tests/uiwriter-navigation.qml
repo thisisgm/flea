@@ -99,5 +99,6 @@ ShellRoot {
         }
     }
     Timer { interval: 100; running: true; repeat: true; onTriggered: shell.advance() }
-    Timer { interval: 20000; running: true; onTriggered: { console.log("NAVWRITE FAIL stalled"); Qt.quit() } }
+    // Five writers run one after another here, so the backstop sits inside the suite's 60 s kill and names the step a loaded box held up.
+    Timer { interval: 50000; running: true; onTriggered: { console.log("NAVWRITE FAIL stalled phase=" + shell.phase); Qt.quit() } }
 }

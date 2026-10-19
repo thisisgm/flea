@@ -184,6 +184,12 @@
     "reply": "[{\"pid\":111,\"address\":\"0xabc\"}]\n"
   },
   {
+    "operation": "query_cursor",
+    "args": [],
+    "text": "-j cursorpos",
+    "reply": "{\"x\":1280,\"y\":720}\n"
+  },
+  {
     "operation": "query_option",
     "args": [
       "decoration:rounding"
@@ -209,6 +215,6 @@
     "text": "output --help",
     "reply": "usage: hyprctl output create|remove\n"
   },
-{"operation": "session_exec_rules", "args": ["name:flea-fixture", "FLEA-fixture", "/tmp/flea-sandbox/run.sh"], "text": "hl.dsp.exec_cmd(\"/bin/bash '/tmp/flea-sandbox/run.sh'\", { workspace = \"name:flea-fixture silent\", monitor = \"FLEA-fixture\", float = true })"},
-{"operation": "session_exec_rules", "args": ["99", "FLEA-fixture", "/tmp/flea-sandbox/run.sh"], "text": "hl.dsp.exec_cmd(\"/bin/bash '/tmp/flea-sandbox/run.sh'\", { workspace = \"99 silent\", monitor = \"FLEA-fixture\", float = true })"}
+{"operation": "session_exec_rules", "args": ["name:flea-fixture", "FLEA-fixture", "/tmp/flea-sandbox/run.sh"], "text": "hl.dsp.exec_cmd(\"/bin/bash '/tmp/flea-sandbox/run.sh'\", { workspace = \"name:flea-fixture\", monitor = \"FLEA-fixture\", float = true })"},
+{"operation": "session_exec_rules", "args": ["99", "FLEA-fixture", "/tmp/flea-sandbox/run.sh"], "text": "hl.dsp.exec_cmd(\"/bin/bash '/tmp/flea-sandbox/run.sh'\", { workspace = \"99\", monitor = \"FLEA-fixture\", float = true })"}
 ]

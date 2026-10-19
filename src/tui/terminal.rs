@@ -283,7 +283,7 @@ fn raw(fault: &'static str) -> io::Result<()> {
     stty_result(Command::new("stty").args(["raw", "-echo", "min", "0", "time", "0"]).status()?, fault)
 }
 const ENTER: &[u8] = b"\x1b[?1049h\x1b[?25l\x1b[?1002h\x1b[?1006h\x1b[?2004h";
-const LEAVE: &[u8] = b"\x1b[?1003l\x1b[?1002l\x1b[?1006l\x1b[?2004l\x1b[0m\x1b[?25h\x1b[?1049l";
+const LEAVE: &[u8] = b"\x1b[?1003l\x1b[?1002l\x1b[?1006l\x1b[?2004l\x1b[0m\x1b[0 q\x1b[?25h\x1b[?1049l";
 fn query_ids() -> (u32, u32) {
     static NEXT: std::sync::atomic::AtomicU32 = std::sync::atomic::AtomicU32::new(0);
     let id = std::process::id().wrapping_mul(1024).wrapping_add(NEXT.fetch_add(2, Ordering::Relaxed)).max(100);
