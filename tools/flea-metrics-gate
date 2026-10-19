@@ -10,6 +10,10 @@
 # the only number that counts is the one the app resolved. A token that exists and is spelled right
 # can still be the wrong one, which is the defect this exists to catch.
 set -u
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 cd "$(dirname "$0")/.." || exit 1
 ui=$PWD/ui
 flea_ipc_init "${FLEA_BIN:-$PWD/target/release/flea}"

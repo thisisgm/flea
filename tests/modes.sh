@@ -688,7 +688,9 @@ check "and its refusal is one sentence saying no application opened it" "1" \
 check "with no errno in it" "0" "$(echo "$out" | grep -c 'os error')"
 
 out=$($BIN --open 2>&1 </dev/null)
-check "--open with no path is a usage error" "1" "$(echo "$out" | grep -c -- '--open takes one path')"
+rc=$?
+check "--open with no path exits 2" "2" "$rc"
+check "--open usage names its path and optional gallery" "1" "$(echo "$out" | grep -F -c -- '--open <path> [images...]')"
 
 # Every program the openers hand off to by name must be shipped by a PKGBUILD dependency, or the
 # package installs and the button it belongs to does nothing at all. The three sources are src/open.rs,
@@ -989,17 +991,22 @@ check "and bindings.lua is left untouched" "-- stock omarchy bindings" "$(cat "$
 sandbox_remove "$D"
 
 # At a terminal --picker restarts the portal as Settings does; piped, it leaves that to its caller.
-D="$FIXTURE_ROOT/flea-portal-restart-test-$$"
-sandbox_make "$D"
+sandbox_root_ok
+D=$(mktemp -d "$SANDBOX_ROOT/flea-portal-restart-test.XXXXXX") || exit 1
+: > "$D/$SANDBOX_MARKER"
 mkdir -p "$D/data/xdg-desktop-portal/portals" "$D/config/hypr" "$D/bin"
 : > "$D/data/xdg-desktop-portal/portals/flea.portal"
 printf -- '-- stock omarchy bindings\n' > "$D/config/hypr/bindings.lua"
 # Sample input: systemctl --user try-restart xdg-desktop-portal.service
 printf '#!/bin/sh\nprintf "%%s\\n" "$*" >> "%s/restarts"\nexit "$(cat "%s/restart-status")"\n' "$D" "$D" > "$D/bin/systemctl"
+# Only the real readiness command is accepted, and the reply and exit status belong to this fixture.
+printf '#!/bin/sh\ncase "$*" in\n  "--user --auto-start=no --timeout=5s get-property org.freedesktop.portal.Desktop /org/freedesktop/portal/desktop org.freedesktop.portal.FileChooser version") ;;\n  *) exit 9 ;;\nesac\ncat "%s/probe-reply"\nexit "$(cat "%s/probe-status")"\n' "$D" "$D" > "$D/bin/busctl"
 # hyprctl unreachable, so the float block is written but the operator's own Hyprland is never reloaded.
 printf '#!/bin/sh\nexit 1\n' > "$D/bin/hyprctl"
-chmod 755 "$D/bin/systemctl" "$D/bin/hyprctl"
+chmod 755 "$D/bin/systemctl" "$D/bin/busctl" "$D/bin/hyprctl"
 echo 0 > "$D/restart-status"
+echo 0 > "$D/probe-status"
+printf 'u 4\n' > "$D/probe-reply"
 picker_env=(env XDG_DATA_HOME="$D/data" XDG_DATA_DIRS="$D/no-such-data-dir" XDG_CONFIG_HOME="$D/config" XDG_CURRENT_DESKTOP=Hyprland
   PATH="$D/bin:/usr/bin:/bin")
 # script(1) runs the command on a pseudo-terminal; the first argument is shell redirection applied inside it.
@@ -1060,17 +1067,29 @@ check "and writes no picker window rule into bindings.lua" "$binds_before" "$(ca
 check "and writes no portals.conf behind it" "no" "$([ -e "$D/config/xdg-desktop-portal/portals.conf" ] && echo yes || echo no)"
 check "and restarts nothing" "5" "$(restarts)"
 # With no desktop named and no desktop file, portals.conf is the only user file the portal can read.
-rm "$shadow"
+[ -n "$D" ] && [[ "$D" = /* ]] && [ -f "$D/$SANDBOX_MARKER" ] && [[ "$shadow" = "$D/"* ]] && rm -- "$shadow"
 out=$(script -qec "$(printf '%q ' "${no_desktop[@]}" "$BIN_REAL" --picker); echo rc=\$?" /dev/null </dev/null | tr -d '\r')
 check "a claim with no desktop named and no desktop file writes portals.conf" "1" "$(grep -c 'flea;gtk, written to .*/xdg-desktop-portal/portals.conf' <<<"$out")"
 check "and exits 0" "1" "$(grep -cx 'rc=0' <<<"$out")"
 check "and restarts the portal" "6" "$(restarts)"
 # The routing alone decides: a claim whose float block fails (no bindings.lua) still exits 1 but restarts.
-rm "$D/config/hypr/bindings.lua"
+[ -n "$D" ] && [[ "$D" = /* ]] && [ -f "$D/$SANDBOX_MARKER" ] && rm -- "$D/config/hypr/bindings.lua"
 out=$(at_terminal "" --picker)
 check "a routed claim whose window half failed names that failure" "1" "$(grep -c 'bindings.lua could not be read' <<<"$out")"
 check "and still restarts the portal" "7" "$(restarts)"
 check "and says file dialogs follow now" "$restarted" "$(grep '^xdg-desktop-portal ' <<<"$out")"
+# An accepted restart still needs a working frontend, and a missing or unready one gets recovery commands.
+printf -- '-- stock omarchy bindings\n' > "$D/config/hypr/bindings.lua"
+echo 1 > "$D/probe-status"
+out=$(at_terminal "" --picker)
+check "a successful restart with a failed readiness call is tried once" "8" "$(restarts)"
+check "and gives the restart command instead of claiming success" "$at_startup" "$(grep '^xdg-desktop-portal ' <<<"$out")"
+check "and gives the journal command for the failed frontend" "1" "$(grep -c 'journalctl --user -u xdg-desktop-portal.service -b --no-pager' <<<"$out")"
+echo 0 > "$D/probe-status"
+printf 'u 0\n' > "$D/probe-reply"
+out=$(at_terminal "" --picker)
+check "a zero interface version still restarts only once" "9" "$(restarts)"
+check "and is not reported as a ready frontend" "$at_startup" "$(grep '^xdg-desktop-portal ' <<<"$out")"
 sandbox_remove "$D"
 
 # An unknown flag is a usage error naming the flag, never a silent fallthrough.

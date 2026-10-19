@@ -98,11 +98,12 @@ ShellRoot {
         else if (md.contentReady) Qt.callLater(shell.report)
     }
 
-    readonly property int watchdogMs: 30000
+    // A hang bound on the wait for contentReady alone, about six times the slowest wait measured on a loaded host.
+    readonly property int watchdogMs: 300000
     Timer {
         interval: shell.watchdogMs
         repeat: false
-        running: !shell.done
+        running: !shell.done && !md.contentReady
         onTriggered: shell.fail("watchdog waiting for Markdown contentReady")
     }
 

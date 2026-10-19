@@ -25,6 +25,12 @@ pub fn local_time(timestamp: i64) -> Option<WallClock> {
     if unsafe { localtime_r(&timestamp, &mut out) }.is_null() { None } else { Some(out) }
 }
 
+// Properties uses the same local wall clock as the rest of the desktop, with minute precision.
+pub fn modified_local(seconds: i64) -> Result<String, String> {
+    let out = local_time(seconds).ok_or_else(|| "Could not format the selected items' modification dates.".to_string())?;
+    Ok(format!("{:04}-{:02}-{:02} {:02}:{:02}", out.year + 1900, out.mon + 1, out.mday, out.hour, out.min))
+}
+
 // Stamps a .trashinfo DeletionDate in local time, the way the desktop's own trash names it.
 pub fn deletion_date_local() -> String {
     let now = unsafe { time(std::ptr::null_mut()) };

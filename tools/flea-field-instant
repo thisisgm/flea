@@ -674,7 +674,7 @@ class Session:
 
     def ipc(self, fn, *args):
         out = subprocess.run(self.ipc_client.command("--pid", self.qs_pid, "call", "flea", fn) + [str(a) for a in args],
-                             env=self.ipc_client.environment(S.ENV), capture_output=True, text=True, timeout=10)
+                             env=self.ipc_client.environment(S.parsed_env(S.ENV)), capture_output=True, text=True, timeout=10)
         return out.stdout.strip()
 
     def ipc_int(self, fn, *args):
@@ -838,7 +838,7 @@ def qs_pid(ctx, proc, ipc_client):
     want = ctx["tree"] + "/ui/boot/shell.qml"
     t0 = time.monotonic()
     while time.monotonic() - t0 < 10:
-        out = subprocess.run(ipc_client.command("list", "--all"), env=ipc_client.environment(S.ENV), capture_output=True, text=True, timeout=10).stdout
+        out = subprocess.run(ipc_client.command("list", "--all"), env=ipc_client.environment(S.parsed_env(S.ENV)), capture_output=True, text=True, timeout=10).stdout
         pid, found = None, []
         # Sample input: "  Process ID: 1318508" (qs list --all indents two spaces).
         for line in out.splitlines():
@@ -2243,7 +2243,7 @@ def run_part(part, root, tree, out_dir, samples=20, dry=False, evidence=True, on
     if part in ("p2-held", "smoke"):
         ctx["repeat"].update(repeat_probe(keys, ctx["repeat"]))
     mon = S.monitor()
-    rev = subprocess.run(["git", "-C", tree, "rev-parse", "HEAD"], capture_output=True, text=True)
+    rev = subprocess.run(["git", "-C", tree, "rev-parse", "HEAD"], capture_output=True, text=True, env=S.parsed_env())
     head = rev.stdout.strip()
     if rev.returncode != 0 or not head:
         raise SystemExit("flea tree %s is not a git tree, git rev-parse HEAD says: %s" % (tree, rev.stderr.strip() or "nothing"))

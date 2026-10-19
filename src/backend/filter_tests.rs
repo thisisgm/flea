@@ -99,6 +99,59 @@ fn one_clear_keeps_numbering_and_allows_an_explicit_top_window_refill() {
 }
 
 #[test]
+fn filters_after_sort_and_relist_name_the_current_numbering() {
+    let fixture = Fixture::new(12);
+    let lines = fixture.run(&(fixture.list()
+        + "{\"c\":\"filter\",\"query\":\"ITEM-000000\",\"id\":41}\n"
+        + "{\"c\":\"sort\",\"by\":\"name\",\"desc\":true}\n"
+        + "{\"c\":\"filter\",\"query\":\"ITEM-000000\",\"id\":42}\n"
+        + "{\"c\":\"paths\",\"rows\":[11],\"listing\":2}\n"
+        + &fixture.list()
+        + "{\"c\":\"filter\",\"query\":\"ITEM-000000\",\"id\":43}\n"
+        + "{\"c\":\"paths\",\"rows\":[0],\"listing\":3}\n"
+        + "{\"c\":\"paths\",\"rows\":[11],\"listing\":2}\n{\"c\":\"quit\"}\n"));
+    let filtered = typed(&lines, "filtered");
+    assert_eq!(filtered.len(), 3, "each query answers in its current listing: {lines:?}");
+    for (index, row) in [0, 11, 0].into_iter().enumerate() {
+        assert_eq!(field_usize_array(filtered[index], "rows"), vec![row]);
+        assert_eq!(field_usize(filtered[index], "id"), Some(41 + index));
+        assert_eq!(field_usize(filtered[index], "listing"), Some(1 + index));
+        assert_eq!(field_usize(filtered[index], "n"), Some(12));
+        assert_eq!(field_str(filtered[index], "query").as_deref(), Some("ITEM-000000"));
+    }
+    let paths = typed(&lines, "paths");
+    assert_eq!(paths.len(), 2, "old filter indices must not resolve after a re-list");
+    assert!(paths.iter().all(|line| line.contains("item-000000.png")));
+    let stale = typed(&lines, "error");
+    assert_eq!(stale.len(), 1, "old numbering is refused: {lines:?}");
+    assert_eq!(field_str(stale[0], "where").as_deref(), Some("stale"));
+    assert_eq!(field_str(stale[0], "path").as_deref(), Some("paths"));
+}
+
+#[test]
+fn a_query_burst_keeps_ids_sorted_indices_and_one_clear_without_metadata_replies() {
+    let fixture = Fixture::new(12);
+    let lines = fixture.run(&(fixture.list()
+        + "{\"c\":\"sort\",\"by\":\"name\",\"desc\":true}\n"
+        + "{\"c\":\"filter\",\"query\":\".PNG\",\"id\":101}\n"
+        + "{\"c\":\"filter\",\"query\":\"item-000010\",\"id\":102}\n"
+        + "{\"c\":\"filter\",\"query\":\"png\",\"id\":103}\n"
+        + "{\"c\":\"filter\",\"query\":\"\",\"id\":104}\n{\"c\":\"quit\"}\n"));
+    let filtered = typed(&lines, "filtered");
+    assert_eq!(filtered.len(), 4, "narrow, backspace and clear retain their own answers: {lines:?}");
+    for (index, reply) in filtered.iter().enumerate() {
+        assert_eq!(field_usize(reply, "id"), Some(101 + index));
+        assert_eq!(field_usize(reply, "listing"), Some(2));
+        assert_eq!(field_usize(reply, "n"), Some(12));
+    }
+    assert_eq!(field_usize_array(filtered[0], "rows"), vec![1, 3, 5, 7, 9, 11]);
+    assert_eq!(field_usize_array(filtered[1], "rows"), vec![1]);
+    assert_eq!(field_usize_array(filtered[2], "rows"), vec![1, 3, 5, 7, 9, 11]);
+    assert!(filtered[3].contains("\"rows\":null"));
+    assert_eq!(typed(&lines, "rows").len(), 1, "only the list fetches row metadata");
+}
+
+#[test]
 #[ignore = "three-run protocol latency evidence, run explicitly with --ignored --nocapture"]
 fn filter_latency() {
     for count in [1300, 100_000] {

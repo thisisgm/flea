@@ -7,6 +7,11 @@ import os
 import re
 import subprocess
 import sys
+from urllib.parse import unquote, urlsplit
+
+# Parsed child output uses a fixed locale without changing the caller environment.
+PARSER_ENV = dict(os.environ, LC_ALL="C.UTF-8")
+PARSER_ENV.pop("LANGUAGE", None)
 
 DENY = ("correctness", "suspicious")
 GROUPS = ("cargo", "complexity", "correctness", "nursery", "pedantic", "perf", "restriction", "style", "suspicious")
@@ -16,6 +21,16 @@ def die(msg):
     print("FAIL clippy could not judge the tree: " + msg)
     print("clippy: ERROR " + msg)
     sys.exit(2)
+
+
+def core_package(package):
+    if package.rsplit("#", 1)[-1].startswith("flea@") or package.startswith("flea "):
+        return True
+    # Cargo omits the name when it equals the directory, as in path+file:///work/flea#0.4.0.
+    if package.startswith("path+file:"):
+        spec = urlsplit(package.removeprefix("path+"))
+        return unquote(spec.path).rstrip("/").rsplit("/", 1)[-1] == "flea" and bool(re.match(r"\d", spec.fragment))
+    return False
 
 
 # Sample input (clippy-driver -W help): "                           clippy::correctness  clippy::approx-constant, clippy::eq-op"
@@ -113,14 +128,14 @@ def main():
     try:
         with open(stream, "w") as out, open(os.path.join(outdir, "clippy-cargo.log"), "w") as err:
             rc = subprocess.call(
-                ["cargo", "clippy", "--locked", "--all-targets", "--message-format=json", "--",
+                ["cargo", "clippy", "--locked", "--workspace", "--all-targets", "--message-format=json", "--",
                  # Correctness stays a warning here so every target is checked; this script denies it.
                  "-W", "clippy::correctness"],
-                stdout=out, stderr=err)
+                stdout=out, stderr=err, env=PARSER_ENV)
     except OSError as e:
         die(f"cargo clippy did not start: {e}")
     try:
-        helped = subprocess.run(["clippy-driver", "-W", "help"], capture_output=True, text=True)
+        helped = subprocess.run(["clippy-driver", "-W", "help"], capture_output=True, text=True, env=PARSER_ENV)
     except OSError as e:
         die(f"clippy-driver did not start: {e}")
     if helped.returncode != 0:
@@ -181,6 +196,13 @@ def main():
             elif reason == "build-script-executed":
                 continue
             elif reason == "compiler-message":
+                # Only flea owns this ratchet; flea-gui has an independent strict gate below.
+                package = rec.get("package_id", "")
+                if not isinstance(package, str):
+                    malformed += 1
+                    continue
+                if package and not core_package(package):
+                    continue
                 msg = rec.get("message")
                 if not isinstance(msg, dict):
                     malformed += 1
@@ -298,7 +320,16 @@ def main():
     status = "FAIL" if denied or rose else "PASS"
     print(f"clippy: {status} denied={denied} rose={rose} fell={fell} findings={sum(counts.values())} "
           f"lints={len(counts)} cargo_rc={rc}")
-    sys.exit(1 if status == "FAIL" else 0)
+    # The GUI cannot spend the core crate's historical warning allowance.
+    try:
+        with open(os.path.join(outdir, "clippy-gui.log"), "w") as log:
+            strict = subprocess.call(
+                ["cargo", "clippy", "--locked", "-p", "flea-gui", "--all-targets", "--", "-D", "warnings"],
+                stdout=log, stderr=subprocess.STDOUT)
+    except OSError as e:
+        die(f"strict flea-gui clippy did not start: {e}")
+    print(f"clippy flea-gui: {'PASS' if strict == 0 else 'FAIL'} cargo_rc={strict}; see clippy-gui.log")
+    sys.exit(1 if status == "FAIL" or strict else 0)
 
 
 if __name__ == "__main__":

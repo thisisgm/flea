@@ -1,12 +1,36 @@
 use flea::jsondoc::{self, Json};
 use std::fs;
+use std::io::Write;
 use std::os::unix::fs::PermissionsExt;
-use std::path::PathBuf;
-use std::process::{Command, Output};
-use std::sync::Mutex;
+use std::os::unix::process::CommandExt;
+use std::path::{Path, PathBuf};
+use std::process::{Command, Output, Stdio};
+use std::sync::atomic::{AtomicBool, Ordering};
+use std::sync::{Arc, Mutex};
+use std::thread;
+use std::time::Duration;
 
 // A concurrent child launch can retain a copied executable's writable fd until exec.
 static EXECUTABLE_FIXTURES: Mutex<()> = Mutex::new(());
+
+// A sibling fork inherits any descriptor held open for writing, and exec then fails with ETXTBSY.
+fn write_in_child(path: &Path, contents: &[u8]) {
+    let mut child = Command::new("sh")
+        .arg("-c")
+        .arg("cat > \"$1\"")
+        .arg("sh")
+        .arg(path)
+        .stdin(Stdio::piped())
+        .spawn()
+        .unwrap();
+    child.stdin.take().unwrap().write_all(contents).unwrap();
+    let status = child.wait().unwrap();
+    assert!(
+        status.success(),
+        "writing {} failed: {status}",
+        path.display()
+    );
+}
 
 struct Sandbox {
     root: PathBuf,
@@ -34,7 +58,11 @@ impl Sandbox {
         assert_eq!(root.canonicalize().unwrap(), root);
         assert!(root.is_dir());
         fs::write(root.join(".flea-test-sandbox"), "gpui launcher test\n").unwrap();
-        fs::copy(env!("CARGO_BIN_EXE_flea"), root.join("flea")).unwrap();
+        write_in_child(
+            &root.join("flea"),
+            &fs::read(env!("CARGO_BIN_EXE_flea")).unwrap(),
+        );
+        fs::set_permissions(root.join("flea"), fs::Permissions::from_mode(0o755)).unwrap();
         fs::create_dir(root.join("files")).unwrap();
         Self { root, temporary }
     }
@@ -56,11 +84,11 @@ impl Sandbox {
 
     fn frontend(&self) {
         let path = self.root.join("flea-gui");
-        fs::write(&path, r#"#!/usr/bin/python3
+        write_in_child(&path, r#"#!/usr/bin/python3
 import json,os,sys
 keys=('QSG_RHI_BACKEND','FLEA_RENDERER_AUTOMATIC','FLEA_VK_PIN','VK_DRIVER_FILES','VK_ICD_FILENAMES','FLEA_PATH','FLEA_SELECT')
 print(json.dumps({'argv':sys.argv[1:],'env':{key:os.environ.get(key) for key in keys}}))
-"#).unwrap();
+"#.as_bytes());
         fs::set_permissions(path, fs::Permissions::from_mode(0o755)).unwrap();
     }
 
@@ -233,7 +261,7 @@ fn gpui_exec_errors_name_the_program_and_os_reason() {
     let _serial = EXECUTABLE_FIXTURES.lock().unwrap();
     let denied = Sandbox::new();
     let frontend = denied.root.join("flea-gui");
-    fs::write(&frontend, "not executable\n").unwrap();
+    write_in_child(&frontend, b"not executable\n");
     let output = denied
         .command()
         .env("QSG_RHI_BACKEND", "opengl")
@@ -260,6 +288,48 @@ fn gpui_exec_errors_name_the_program_and_os_reason() {
         error.contains(&std::io::Error::from_raw_os_error(2).to_string()),
         "{error}"
     );
+}
+
+#[test]
+fn executables_written_beside_forking_siblings_exec() {
+    let stop = Arc::new(AtomicBool::new(false));
+    let siblings: Vec<_> = (0..4)
+        .map(|_| {
+            let stop = Arc::clone(&stop);
+            thread::spawn(move || {
+                while !stop.load(Ordering::Relaxed) {
+                    let mut command = Command::new("/bin/true");
+                    // Holds each child before exec, so it keeps every descriptor this process has open.
+                    unsafe {
+                        command.pre_exec(|| {
+                            thread::sleep(Duration::from_millis(10));
+                            Ok(())
+                        });
+                    }
+                    command.status().unwrap();
+                }
+            })
+        })
+        .collect();
+    for _ in 0..50 {
+        let sandbox = Sandbox::new();
+        let status = Command::new(sandbox.root.join("flea"))
+            .arg("--version")
+            .stdout(Stdio::null())
+            .status()
+            .unwrap();
+        assert!(status.success());
+        sandbox.frontend();
+        let status = Command::new(sandbox.root.join("flea-gui"))
+            .stdout(Stdio::null())
+            .status()
+            .unwrap();
+        assert!(status.success());
+    }
+    stop.store(true, Ordering::Relaxed);
+    for sibling in siblings {
+        sibling.join().unwrap();
+    }
 }
 
 #[test]

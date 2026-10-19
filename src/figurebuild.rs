@@ -276,7 +276,7 @@ fn remove_stale_lock(lock: &Path) {
 
 // Runs the argv with a wall bound and answers its stdout; the real Runner.
 pub fn run_jailed(argv: &[String], input: &str) -> Result<String, String> {
-    let mut child = Command::new(&argv[0])
+    let mut child = crate::backend::locale::command(&argv[0])
         .args(&argv[1..])
         .stdin(Stdio::piped())
         .stdout(Stdio::piped())

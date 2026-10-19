@@ -1,6 +1,10 @@
 #!/bin/bash
 # Builds tools/flea-framecap into DIR (default a new mktemp -d) and prints the binary path.
 set -uo pipefail
+
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 src=$(cd "$(dirname "$0")" && pwd)
 dir=${1:-$(mktemp -d)} || exit 1
 mkdir -p "$dir" || exit 1

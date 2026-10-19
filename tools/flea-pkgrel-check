@@ -2,6 +2,10 @@
 # Fails when a fresh pkgver does not start at pkgrel 1; docs/release.md states the usage and exit codes.
 set -u
 
+# This tool reads machine output and launches no application for the user.
+export LC_ALL=C.UTF-8
+unset LANGUAGE
+
 die() {
   printf 'flea-pkgrel-check: ERROR %s\n' "$*" >&2
   exit 2

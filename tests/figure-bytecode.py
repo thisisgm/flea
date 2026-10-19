@@ -71,7 +71,7 @@ def build_tree():
 (IFS="$(printf '\\t')"; printf '%s\\t%s\\n' "$$" "$*" >> "$JAIL_LOG")
 while [ $# -gt 0 ]; do
     case "$1" in
-        --setenv|--ro-bind|--bind|--symlink) shift 3 ;;
+        --setenv|--ro-bind|--ro-bind-try|--bind|--symlink) shift 3 ;;
         --proc|--dev|--tmpfs|--json-status-fd) shift 2 ;;
         --*) shift ;;
         *) break ;;

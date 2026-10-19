@@ -17,16 +17,22 @@ const LENGTH_BYTES: u64 = 8;
 pub struct Cancellation {
     generation: Arc<AtomicUsize>,
     expected: usize,
+    flag: Option<Arc<std::sync::atomic::AtomicBool>>,
 }
 impl Cancellation {
+    pub fn operation(flag: Arc<std::sync::atomic::AtomicBool>) -> Self {
+        Self { flag: Some(flag), ..Self::default() }
+    }
     pub fn next(&self) -> Self {
         Self {
             generation: self.generation.clone(),
             expected: self.generation.fetch_add(1, Ordering::Relaxed) + 1,
+            flag: self.flag.clone(),
         }
     }
     pub fn check(&self) -> Result<(), String> {
-        if self.generation.load(Ordering::Relaxed) == self.expected {
+        if self.generation.load(Ordering::Relaxed) == self.expected
+            && !self.flag.as_ref().is_some_and(|flag| flag.load(Ordering::Relaxed)) {
             Ok(())
         } else {
             Err("Trash request cancelled.".into())
@@ -44,6 +50,8 @@ pub enum Outcome {
     Changed,
     ConfirmAgain,
     NothingDeleted,
+    // No node was deleted; after a claim this outcome survives only a successful rollback.
+    Cancelled,
     ItemChanged,
     Damaged,
     Kept(PathBuf),
@@ -105,6 +113,7 @@ impl Refusal {
         Self { outcome, detail: format!("{what}: {error}"), reason: crate::error::io_message(error) }
     }
     pub fn said(text: String) -> Self { Self { detail: text.clone(), outcome: Outcome::Text(text), reason: String::new() } }
+    pub fn cancelled(text: String) -> Self { Self::new(Outcome::Cancelled, text) }
     pub fn because(mut self, reason: impl Into<String>) -> Self { self.reason = reason.into(); self }
     // The same failure under the outcome of the step that met it, its cause carried into that sentence.
     pub fn wrap(&self, outcome: Outcome) -> Self { Self { outcome, detail: self.detail.clone(), reason: self.cause() } }
@@ -121,6 +130,7 @@ impl Refusal {
             Outcome::ItemChanged => "the item changed".into(),
             Outcome::Damaged => "the Trash record is damaged".into(),
             Outcome::Text(text) => text.trim_end_matches('.').to_string(),
+            Outcome::Cancelled => self.detail.trim_end_matches('.').to_string(),
             _ => "the contents changed".into(),
         }
     }
@@ -132,6 +142,7 @@ impl Refusal {
             Outcome::Changed => "The Trash changed, so nothing was done. Try again.".into(),
             Outcome::ConfirmAgain => "The Trash changed, so nothing was done; confirm again.".into(),
             Outcome::NothingDeleted => "The Trash changed, so nothing was deleted.".into(),
+            Outcome::Cancelled => self.detail.clone(),
             Outcome::ItemChanged => "The item changed after you confirmed, so nothing was deleted.".into(),
             Outcome::Damaged => "The Trash record for this item is damaged, so nothing was restored.".into(),
             Outcome::Kept(at) => format!("The Trash changed, so nothing was done. Kept items are in {}.", at.display()),

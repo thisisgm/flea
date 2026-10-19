@@ -49,41 +49,9 @@ fn cancel_at_fires(index: usize) -> bool {
     CANCEL_AT.with(|v| v.get() == Some(index))
 }
 
-// What an operation thread sends back, joined onto the same receiver every other event already arrives on.
-pub enum OpMsg {
-    // scanned is the batch's own total, 0 until the sweep beside the copy settles on one.
-    Progress { id: usize, index: usize, name: String, bytes: u64, total: u64, scanned: u64 },
-    Item { id: usize, index: usize, name: String, ok: bool, err: String },
-    // refused names each entry a drive could not hold inside a copied tree, by its path under dest, at most unheld::NAMED.
-    TransferDone { id: usize, ok: usize, failed: usize, skipped: usize, cancelled: bool, entry: Entry,
-                   retry: Vec<(PathBuf, ItemIdentity)>, durable: bool, note: String, refused: Vec<(String, String)> },
-    MergeDone { id: usize, ok: usize, failed: usize, skipped: usize, cancelled: bool, entry: Entry,
-                retry: Vec<(PathBuf, ItemIdentity)>, durable: bool, note: String, merged: usize, kept_both: usize, into: String,
-                refused: Vec<(String, String)> },
-    // The outcome line alone, sent the moment the disk shows it: the slot frees here and only the batch's own journal entry stays pending.
-    TrashAnnounced { id: usize, path: String, ok: usize, failed: usize, reason: String },
-    // announced is true once TrashAnnounced already wrote this batch's line, so the wire carries it once.
-    Trashed { id: usize, ok: usize, failed: usize, entry: Entry, reason: String, announced: bool },
-    Linked { ok: usize, failed: usize, skipped: usize, entry: Entry, note: String, first_err: String, dest: String },
-    Duplicated { ok: bool, path: String, err: String, entry: Entry },
-    RedoDone { journal: super::undo::Journal, result: Result<String, FleaError>, touched: super::undo::Reached },
-    MenuDeleteDone { line: String },
-    // A terminal line, written like Meta: SlotDone also releases the slot, DetachedDone drops a compress or convert from the quit registry.
-    SlotDone { line: String },
-    DetachedDone { id: usize, line: String },
-    // A collisions answer, kept as the latest question before its line goes out; it claims no slot.
-    Asked { turn: usize, question: crate::backend::collide::Question, line: String },
-    // A pasted clipboard image, journaled beside its line; it claims no slot either.
-    Pasted { line: String, entry: Option<Entry> },
-    // A slow remote write reporting late: the loop journals it exactly as the in-time path would.
-    RenameDone { id: usize, result: Result<(PathBuf, Vec<Step>), FleaError> },
-    MkdirDone { id: usize, result: Result<(PathBuf, Vec<Step>), FleaError> },
-    // A slow bulk rename reporting late: the landed steps with the batch counts.
-    BulkRenameDone { id: usize, result: Result<super::bulkrename::BulkOutcome, FleaError> },
-    SetTagsDone { id: usize, result: super::tagsreq::Written },
-    // Meta rides this channel because a media probe is a subprocess; it claims no operation slot.
-    Meta { line: String },
-}
+#[path = "opmsg.rs"]
+mod opmsg;
+pub use opmsg::OpMsg;
 
 // One link request's whole answer: its counts, its journal steps and the first failure's words.
 pub struct LinkOutcome {
@@ -174,6 +142,14 @@ pub fn undone_line(op: &str, ok: bool) -> String {
 
 // A destination Flea will not create as a side effect, checked once before any item is touched.
 pub fn usable_dest(dest: &str) -> Result<PathBuf, FleaError> {
+    checked_dest(dest, true)
+}
+
+pub(crate) fn directory_dest(dest: &str) -> Result<PathBuf, FleaError> {
+    checked_dest(dest, false)
+}
+
+fn checked_dest(dest: &str, require_writable: bool) -> Result<PathBuf, FleaError> {
     let p = PathBuf::from(dest);
     if !p.is_absolute() {
         return Err(op_err("transfer", dest, "a destination must be an absolute path"));
@@ -182,7 +158,7 @@ pub fn usable_dest(dest: &str) -> Result<PathBuf, FleaError> {
     let owned = p.clone();
     let dest_owned = dest.to_string();
     super::iomount::call(&p, &body, "transfer", move || match owned.metadata() {
-        Ok(m) if m.is_dir() && crate::backend::ops::dir_writable(&owned) => Ok(owned),
+        Ok(m) if m.is_dir() && (!require_writable || crate::backend::ops::dir_writable(&owned)) => Ok(owned),
         Ok(m) if m.is_dir() => Err(op_err("transfer", &dest_owned, "that folder cannot be written")),
         Ok(_) => Err(op_err("transfer", &dest_owned, "the destination is not a folder")),
         Err(e) => Err(from_io("transfer", &dest_owned, &e)),
@@ -351,6 +327,13 @@ pub(crate) fn run_transfer_checked(
             Ok(metadata) => metadata,
             Err(err) => {
                 failed += 1;
+                if let Some(identity) = selection
+                    .as_ref()
+                    .and_then(|items| items.get(index))
+                    .and_then(|item| item.retry_identity())
+                {
+                    retry.push((src, identity));
+                }
                 let _ = tx.send(OpMsg::Item { id, index, name, ok: false, err });
                 continue;
             }

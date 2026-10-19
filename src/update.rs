@@ -210,9 +210,8 @@ struct Ran {
 
 // A read-only query under the C locale, because pacman translates the field names -Qi prints.
 fn run(program: &str, args: &[&str]) -> Option<Ran> {
-    let output = Command::new(program)
+    let output = crate::backend::locale::command(program)
         .args(args)
-        .env("LC_ALL", "C")
         .stdin(Stdio::null())
         .stderr(Stdio::null())
         .output()

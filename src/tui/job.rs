@@ -49,11 +49,15 @@ fn run(path: &Path, arguments: &mut [String], cancel: &AtomicBool) -> io::Result
             *argument = "/input".into();
         }
     }
-    // Pass the held file through stdin: the sandbox cannot inspect its parent's protected /proc descriptors.
+    // Bwrap consumes the read-only descriptor while mounting /input, before decoder exec.
     let mut wrapped = sandbox::wrap_readonly(arguments, Path::new("/proc/self/fd/0"));
     let destination = wrapped.len() - arguments.len() - 1;
+    wrapped[destination - 2] = "--ro-bind-fd".into();
+    wrapped[destination - 1] = "0".into();
     wrapped[destination] = "/input".into();
     sandbox::add_status(&mut wrapped, arguments.len());
+    #[cfg(test)]
+    super::chafa::test_support::host_loader(&mut wrapped);
     let mut jailed = crate::backend::jail::spawn_jailed(&wrapped, |cmd| {
         cmd.stdin(Stdio::from(input));
         cmd.stdout(Stdio::piped());
@@ -106,10 +110,59 @@ fn decoded(status: std::process::ExitStatus, bytes: Vec<u8>) -> io::Result<Vec<u
 mod tests {
     use super::*;
     use crate::backend::testdir::TestDir;
+    use super::super::chafa::test_support::sandboxed;
+
+    #[test]
+    fn no_process_can_write_chmod_truncate_or_touch_the_held_host_file() {
+        use std::os::unix::fs::PermissionsExt;
+        if !sandboxed() {
+            return;
+        }
+        let root = TestDir::new("preview-host-mutations");
+        let path = root.file("image", "held preview source\n");
+        root.assert_contains(&path);
+        std::fs::set_permissions(&path, std::fs::Permissions::from_mode(0o644)).unwrap();
+        let before = std::fs::metadata(&path).unwrap().modified().unwrap();
+        let script = r#"
+bad=0; matches=0
+[ "$(/usr/bin/cat /input)" = 'held preview source' ] || exit 1
+for path in /proc/[0-9]*/fd/* /proc/[0-9]*/map_files/* /proc/[0-9]*/cwd /proc/[0-9]*/root/input; do
+    [ -e "$path" ] || continue
+    if [ "$path" -ef /input ]; then
+        matches=$((matches+1))
+        if /bin/sh -c 'printf rewritten > "$1"' sh "$path" 2>/dev/null; then bad=$((bad+1)); fi
+        if chmod 0666 "$path" 2>/dev/null; then bad=$((bad+1)); fi
+        if /usr/bin/truncate -s 0 "$path" 2>/dev/null; then bad=$((bad+1)); fi
+        if /usr/bin/touch -d 2000-01-01 "$path" 2>/dev/null; then bad=$((bad+1)); fi
+    fi
+done
+# Every match attempts all four mutations, so a run with no match would prove nothing.
+[ "$matches" -gt 0 ] || exit 1
+printf 'held preview source\n'
+exit "$bad"
+"#;
+        for _ in 0..3 {
+            let job = Job::start(
+                path.clone(),
+                vec!["/bin/sh".into(), "-c".into(), script.into()],
+            );
+            let result = job.result.recv_timeout(Duration::from_secs(5)).unwrap();
+            let after = std::fs::metadata(&path).unwrap();
+            assert_eq!(
+                (
+                    std::fs::read(&path).unwrap(),
+                    after.permissions().mode() & 0o777,
+                    after.modified().unwrap(),
+                ),
+                (b"held preview source\n".to_vec(), 0o644, before),
+            );
+            assert_eq!(result.unwrap(), b"held preview source\n");
+        }
+    }
 
     #[test]
     fn preview_worker_reads_held_source_in_readonly_sandbox() {
-        if crate::backend::sandboxprobe::skipped() { return; }
+        if !sandboxed() { return; }
         let root = TestDir::new("tui-preview-held");
         let path = root.file("source.txt", "held preview source\n");
         let job = Job::start(path.clone(), vec![
@@ -133,7 +186,7 @@ mod tests {
 
     #[test]
     fn missing_preview_source_reports_plain_worker_error() {
-        if crate::backend::sandboxprobe::skipped() { return; }
+        if !sandboxed() { return; }
         let root = TestDir::new("tui-preview-error");
         let job = Job::start(root.join("missing.pdf"), vec!["/usr/bin/pdfinfo".into(), "{input}".into()]);
         let result = job.result.recv_timeout(Duration::from_secs(5)).expect("preview worker did not finish");

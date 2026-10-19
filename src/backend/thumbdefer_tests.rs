@@ -28,12 +28,12 @@ fn tables() -> Tables {
         &aliases,
     ));
     Tables {
-        mime: Arc::new(Db::load()),
-        icons: Arc::new(Names::load()),
-        aliases,
-        thumbs,
+        mime: Arc::new(Db::load()).into(),
+        icons: Arc::new(Names::load()).into(),
+        aliases: aliases.into(),
+        thumbs: thumbs.into(),
         kinds: RefCell::new(Kinds::new()),
-        formats: Arc::new(Formats::probe()),
+        formats: Arc::new(Formats::probe()).into(),
     }
 }
 

@@ -10,7 +10,7 @@ use crate::backend::metareq::spawn as spawn_meta;
 use crate::backend::opsdispatch::{cancel_transfer, do_mkdir, do_newfile, do_permissions_batch, do_rename, do_undo, report_op, resolve_rows, start_duplicate, start_link, start_link_target, start_trash, start_transfer, start_menu_transfer, start_redo, Ops};
 use crate::backend::opsreq::OpMsg;
 use crate::backend::dirsizereq::{queue_dirsizes, seed_answered, start_next, report_done as report_dirsize};
-use crate::backend::events::{spawn_forwarder, spawn_op_forwarder, spawn_reader, Event};
+use crate::backend::events::{spawn_op_forwarder, spawn_reader, Event};
 use crate::backend::{flashop, flashslot};
 use crate::backend::fsinfo::fsinfo_line;
 use crate::backend::fsinforeq::FsInfo;
@@ -18,17 +18,17 @@ use crate::backend::listpaths;
 use crate::backend::listwork::{self, Gate};
 use crate::backend::proto::{error_line, listed_line, parse_request, paths_line, thumbed_line, Request};
 use crate::backend::proto::with_anchor;
-use crate::backend::rows::rows_line;
-use crate::backend::sandbox;
 use crate::backend::listing::Listing;
 use crate::backend::search::Search;
 use crate::backend::searchsession::{Session, FIRST_WINDOW_DEFAULT};
 use crate::backend::state::{Held, State, Tables};
 use crate::backend::searchreq::{collapse_query_burst, emit_session_answer, finish_search, is_search_query_line,
     op_tag_paths, op_write_paths, searchclosed_line, searchopened_line, step_search};
-use crate::backend::thumbcache::{default_root, Cache};
+use crate::backend::thumbcache::Cache;
 use crate::backend::thumbreq::{cancel_all, cancel_row, report_done, thumb_rows};
-use crate::backend::thumbs::{Done, Pool};
+use crate::backend::thumbs::Pool;
+#[cfg(test)]
+use crate::backend::thumbs::Done;
 use crate::backend::thumbwrite::sweep_own_temps;
 use crate::backend::unmount::leave_mount;
 use crate::backend::watch::{changed_line, Watch};
@@ -59,34 +59,34 @@ enum Control {
 
 // Errors are responses, so the loop never exits on a bad request.
 pub fn run() -> i32 {
+    if let Some(status) = super::model3dreq::worker_entry() { return status }
     // Before the first listing, because a threshold glibc has already ratcheted strands the next arena on the heap.
     heap::pin_mmap_threshold();
-    // Recorded when the first rows go out, the next launch's prefetch list; see src/prefetch.rs.
-    crate::prefetch::record_after_first_rows();
     let mut out = BufWriter::new(io::stdout());
     let tb = Tables::load();
     let (tx, rx) = channel::<Event>();
     let mut st = State::new(super::dirsizeworker::Worker::new(tx.clone()));
-    let (results, done) = channel::<Done>();
     let (op_tx, op_rx) = channel::<OpMsg>();
-    let mut ops = Ops::new_shared(op_tx);
-    let pool = Pool::new(THUMB_WORKERS, results, default_root(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+    let mut ops = Ops::new_shared(op_tx.clone());
+    let op_events = tx.clone();
+    ops.tx = super::lazy::DeferredSender::new(move || {
+        spawn_op_forwarder(op_rx, op_events);
+        op_tx
+    });
+    let pool = Pool::lazy(THUMB_WORKERS, &tb, super::thumbcache::default_root(), tx.clone());
     let cache = Cache::new();
-    // Every thumbnail job fails closed without these two, so the reason is said once here rather than never; see AGENTS.md "Thumbnail sandbox".
-    if !sandbox::available() {
-        eprintln!("flea: thumbnails are disabled, bwrap or prlimit is not on PATH");
-    }
-    // The workers hold senders too, so no exit can come from a disconnect and every exit is an explicit event; see AGENTS.md "Thumbnail requests".
-    spawn_forwarder(done, tx.clone());
-    spawn_op_forwarder(op_rx, tx.clone());
     // One flash at a time beside transfers; its worker reports on its own channel, joined the same way.
     let (flash_tx, flash_rx) = channel::<flashslot::FlashMsg>();
-    let mut flash = flashslot::Ctx::new(flash_tx);
-    flashslot::spawn_forwarder(flash_rx, tx.clone());
+    let mut flash = flashslot::Ctx::new(flash_tx.clone());
+    let flash_events = tx.clone();
+    flash.tx = super::lazy::DeferredSender::new(move || {
+        flashslot::spawn_forwarder(flash_rx, flash_events);
+        flash_tx
+    });
     spawn_reader(tx.clone(), Arc::clone(&ops.live));
     let mut fsinfo = FsInfo::new(tx.clone());
     let loop_tx = tx.clone();
-    // Armed before the first request, so no listing is ever answered with nothing watching it.
+    // The descriptor starts on first use, still armed before the listing scan.
     let mut watch = Watch::start(tx.clone());
     let mut peeks = PeekWatch::start(tx.clone());
     let poller = super::watchpoll::Poller::new(tx.clone());
@@ -181,6 +181,7 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                 return Control::Quit;
             }
         }
+        Event::Git(line) => say(out, &line),
         Event::Thumb(d) => report_done(out, st, pool, d),
         Event::Nearby { ticket, line } => if st.nearby.accept(ticket) { say(out, &line) },
         Event::Flash(m) => flash.report(out, &m),
@@ -194,12 +195,16 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         }
         // The one line no client asked for, and only ever for the directory being listed now.
         Event::Changed(wd) => {
+            #[cfg(test)]
+            super::renametiming::mark("watch_begin");
             // The current descriptor is unknown while a scan is out, so the burst waits for the scan's answer.
             if gate.holds() {
                 gate.note_change(wd);
             } else if watch.is_current(wd) {
                 say_changed(out, st);
             }
+            #[cfg(test)]
+            super::renametiming::mark("watch_end");
         }
         // The open mount went away; while a scan is out the current descriptor is unknown, so it waits for the scan's answer.
         Event::Unmounted(wd) => if gate.holds() { gate.note_unmount(wd) } else { leave_mount(out, &st.base, watch, poller, wd) },
@@ -217,6 +222,8 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
         // A late list worker's descriptor goes unless a re-list aliased it onto the live watch, which a scan still out may not have committed yet.
         Event::AbandonWatch(wd) => gate.park_late(wd).into_iter().for_each(|late| watch.abandon_wd(late)),
         Event::Op(m) => {
+            #[cfg(test)]
+            if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_begin"); }
             if let Some(session) = st.search_session.as_mut() {
                 // An own write under the scope patches the index, and a due batch re-runs the standing query.
                 let patched = session.patch_after_writes(&op_write_paths(&m));
@@ -228,6 +235,8 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
                     }
                 }
             }
+            #[cfg(test)]
+            if matches!(&m, crate::backend::opsreq::OpMsg::RenameDone { .. }) { super::renametiming::mark("patch_end"); }
             report_op(out, ops, m);
         }
         // A session walk landed; the standing query is re-run once when it is still the newest.
@@ -323,6 +332,10 @@ fn handle_line(
     match request {
         Request::Nearby { op, id } => say(out, &st.nearby.request(&op, id, loop_tx.clone())),
         Request::NetworkAddress { address, id } => say(out, &super::networkaddress::answer(id, &address)),
+        Request::Git { line } => st
+            .git
+            .get_or_insert_with(|| super::gitreq::Worker::new(loop_tx.clone()))
+            .request(line),
         Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
         Request::Picker { line } => {
             let replies = ops.tx.clone();
@@ -335,22 +348,55 @@ fn handle_line(
             super::opsdispatch::request_menu_action(out, ops, line, paths, cursor);
         }
         // Directive 71: a CLI run of a second or more, so it answers on its own thread.
-        Request::LocalSend { op, peer, paths, id } => super::localsend::request(op, peer, paths, id, ops.tx.clone()),
+        Request::Rclone { line } => super::rclone::request(out, ops, &line),
+        Request::Jobs { line } => {
+            let reached = super::jobevents::request(out, ops, &line);
+            patch_session_paths(st, reached.dirs);
+            note_tag_writes(st, &reached.tags);
+        }
+        Request::Actions { line } => {
+            super::actions::request(line, Arc::clone(&tb.mime), ops.tx.clone())
+        }
+        Request::LocalSend {
+            op,
+            peer,
+            paths,
+            id,
+        } => {
+            if op == "send" {
+                let job = ops.claim_id();
+                ops.jobs.submit(
+                    out,
+                    job,
+                    super::jobwork::Spec { kind: "send", label: "Sending", target: None },
+                    super::jobwork::Work::Send {
+                        peer,
+                        paths,
+                        request: id,
+                        selection: None,
+                    },
+                    &ops.detached,
+                    &ops.tx,
+                );
+            } else {
+                super::localsend::request(op, peer, paths, id, ops.tx.clone());
+            }
+        }
         Request::TrashBrowse { line } => {
-            let replies = ops.tx.clone();
-            // The browser resolves its originals inside, so the mounts held slow travel with the request.
-            let pending = ops.pending.iter().map(|held| held.mount.clone()).collect();
-            let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
-            ops.trashbrowser.get_or_insert_with(|| super::trashbrowse::TrashBrowser::new(replies)).request(line, pending, body);
+            super::trashbrowse::request(out, ops, line);
         }
         // A local list lands inline here, a remote one as Event::List; both land through finish.
         Request::List { path, first, hidden, want_changed } => {
+            #[cfg(test)]
+            super::renametiming::mark("dispatch_list");
             // The session goes first; start then ends the walk and forgets its rows before the scan.
             close_search_session(st);
             let job = listwork::Job { path, first, line: line.to_string(), hidden, want_changed, session: None };
             if let listwork::Started::Inline(landed) = listwork::start(out, st, pool, watch, gate, job, Arc::clone(&tb.mime)) {
                 land(out, st, tb, pool, watch, fsinfo, poller, *landed);
             }
+            #[cfg(test)]
+            super::renametiming::mark("list_complete");
         }
         // A set of named paths is not a directory, so the watch stops rather than following its base.
         Request::ListPaths { paths, first } => {
@@ -364,11 +410,14 @@ fn handle_line(
             say(out, &super::rowguard::stamped(line, st.generation));
         }
         Request::Window { start, count } => {
+            let start = st.window_start(start);
+            if count == 0 {
+                say(out, &super::rowguard::stamped(super::rows::empty_line(start, 0.0), st.generation));
+                return Control::Continue;
+            }
             match window_metas(st, start, count) {
                 Ok((metas, ms)) => {
-                    let start_w = start.min(st.listing.len());
-                    let mut kinds = tb.kinds.borrow_mut();
-                    let line = super::rows::rows_line(&st.base, &st.listing, &metas, start_w, ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
+                    let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
                     writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok();
                 }
                 Err(e) => {
@@ -583,7 +632,9 @@ fn handle_line(
             start_trash(out, ops, named, menu_id)
         }
         Request::Rename { path, to, menu_id } => {
-            // A rename is an own write: its landed paths patch the index with no walk.
+            #[cfg(test)]
+            super::renametiming::begin();
+            // The worker result patches the search index using the rename's owned paths.
             let touched = if menu_id == 0 { do_rename(out, ops, &path, &to) }
                 else { super::opsdispatch::do_menu_rename(out, ops, &path, &to, menu_id) };
             patch_session_paths(st, touched);
@@ -635,6 +686,10 @@ fn handle_line(
         Request::OfficePdf { id, path } => super::officepdf::serve(out, ops, &tb.mime, &tb.aliases, id, &path),
         Request::FontLook(ask) => super::fontinfo::render::spawn(ask, Arc::clone(&tb.mime), Arc::clone(&tb.aliases), ops.tx.clone()),
         // One row, only when a client asked: the same no-sweep rule thumb and dirsize already follow.
+        Request::Owner { row, token } => {
+            let path = (row < st.listing.len()).then(|| st.base.join(st.listing.name(row)));
+            super::owner::spawn(row, path, token, ops.tx.clone());
+        }
         Request::Meta { row, text, media, archive, token } => {
             if row < st.listing.len() {
                 let want = if archive { Some(Arc::clone(&tb.formats)) } else { None };
@@ -648,6 +703,7 @@ fn handle_line(
         // Answered on a thread, since bat runs in a jail and a read on a hung mount never returns.
         Request::Code(ask) => super::codereq::spawn(ask, ops.tx.clone()),
         Request::Html(ask) => super::htmlreq::spawn(ask, ops.tx.clone()),
+        Request::Model3d(ask) => super::model3dreq::spawn(ask, ops.tx.clone()),
         // Answered on a thread: diff runs in a jail and a read on a hung mount never returns.
         Request::Compare(ask) => super::compare::spawn(ask, ops.tx.clone()),
         tags @ (Request::SetTags { .. } | Request::TagStates { .. }) => {
@@ -656,6 +712,15 @@ fn handle_line(
         }
         Request::Paths { rows } =>
             say(out, &paths_line(&resolve_rows(Vec::new(), &rows, &st.base, &st.listing))),
+        Request::ImagePaths(ask) => say(
+            out,
+            &paths_line(&super::viewerpaths::ordered(
+                &st.base,
+                &st.listing,
+                &tb.mime,
+                &ask,
+            )),
+        ),
         Request::Locate { path } => {
             let index = st.listing.index_of(&st.base, Path::new(&path));
             say(out, &super::proto::located_line(&st.base.to_string_lossy(), &path, index));
@@ -683,6 +748,8 @@ fn handle_line(
         // corner: an unrecognised line is answered with silence, see AGENTS.md.
         Request::Unknown => {}
     }
+    super::renamework::flush_pending(ops);
+    ops.jobs.refresh_undo(out, &ops.journal);
     Control::Continue
 }
 
@@ -708,6 +775,7 @@ fn rows_end(rows: &[usize]) -> usize {
 // One past the last row a request can read; no wildcard arm, so a new request must classify its rows to compile.
 fn rows_needed(request: &Request) -> usize {
     match request {
+        Request::Window { count: 0, .. } => 0,
         Request::Window { start, count } => start.saturating_add(*count),
         Request::MenuAction { rows, .. }
         | Request::Thumb { rows, .. }
@@ -717,7 +785,12 @@ fn rows_needed(request: &Request) -> usize {
         | Request::Link { rows, .. }
         | Request::Trash { rows, .. }
         | Request::Paths { rows } => rows_end(rows),
-        Request::Meta { row, .. } => row.saturating_add(1),
+        Request::ImagePaths(ask) => ask
+            .rows
+            .as_ref()
+            .map_or(usize::MAX, |rows| rows_end(rows))
+            .max(ask.start.saturating_add(1)),
+        Request::Meta { row, .. } | Request::Owner { row, .. } => row.saturating_add(1),
         // Tags apply to and read held rows; the bulk rename names paths, never rows.
         Request::SetTags { rows, .. } | Request::TagStates { rows, .. } => rows_end(rows),
         Request::BulkRename { .. } => 0,
@@ -734,7 +807,10 @@ fn rows_needed(request: &Request) -> usize {
         // A viewport map, not the listing: these rows index work already queued.
         Request::ThumbCancel { .. } | Request::DirSizeCancel => 0,
         // Operations carry paths or no rows; their rows were resolved by their own earlier ask.
-        Request::TransferCancel { .. }
+        Request::Rclone { .. }
+        | Request::Jobs { .. }
+        | Request::Actions { .. }
+        | Request::TransferCancel { .. }
         | Request::Rename { .. }
         | Request::Duplicate { .. }
         | Request::MkDir { .. }
@@ -751,6 +827,7 @@ fn rows_needed(request: &Request) -> usize {
         Request::Shebang { .. }
         | Request::Code(_)
         | Request::Html(_)
+        | Request::Model3d(_)
         | Request::Compare(_)
         | Request::FsInfo
         | Request::Peek { .. }
@@ -774,6 +851,7 @@ fn rows_needed(request: &Request) -> usize {
         | Request::ClipClear { .. }
         | Request::ClipWatch
         | Request::Quit
+        | Request::Git { .. }
         | Request::Unknown => 0,
     }
 }
@@ -863,10 +941,10 @@ fn adopt_listed_as(out: &mut impl Write, st: &mut State, pool: &Pool, tb: &Table
     };
     let listed = if same && want_changed { crate::backend::proto::with_changed(&listed, changed) } else { listed };
     writeln!(out, "{}", listed).ok();
-    let mut kinds = tb.kinds.borrow_mut();
-    let line = super::rows::rows_line(&st.base, &st.listing, &done.first_metas, done.first_start, done.first_ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
+    let start = st.window_start(done.first_start);
+    let line = tb.rows_line(&st.base, &st.listing, &done.first_metas, start, done.first_ms);
     let line = match gen {
-        Some(gen) => super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, done.first_start..done.first_start + done.first_metas.len()),
+        Some(gen) => super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..start + done.first_metas.len()),
         None => super::rowguard::stamped(line, st.generation),
     };
     writeln!(out, "{}", line).ok();
@@ -900,8 +978,8 @@ pub(crate) fn drain(
     if let Some(id) = flash.slot.running() {
         flash.slot.cancel(id);
     }
-    // A trash batch past its announce has freed the slot but still owes its journal entry, so the drain waits for it too.
-    while st.outstanding > 0 || ops.live.running().is_some() || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
+    // A trash batch past its announce has freed the slot but still owes its journal entry, so the drain waits for it too; a journal no request started owes none.
+    while st.outstanding > 0 || ops.live.running().is_some() || !ops.pending.is_empty() || ops.journal.get().is_some_and(|journal| journal.deferred.is_some()) || !ops.settling.is_empty() || !ops.detached.is_empty() || flash.slot.running().is_some() {
         match rx.recv_timeout(deadline.saturating_duration_since(Instant::now())) {
             Ok(Event::Thumb(d)) => report_done(out, st, pool, d),
             Ok(Event::Op(m)) => report_op(out, ops, m),
@@ -910,7 +988,9 @@ pub(crate) fn drain(
             Err(_) => break,
         }
     }
-    ops.journal.release_held();
+    if let Some(journal) = ops.journal.get_mut() {
+        journal.release_held();
+    }
     pool.cancel_all();
     // The queue is empty now, so no worker can start a new job and the temps still on disk are exactly the abandoned ones.
     if st.outstanding > 0 {
@@ -938,16 +1018,15 @@ pub fn write_window_gen(
     tb: &Tables,
     gen: Option<usize>,
 ) {
-    let (metas, ms) = stat_range(&st.base, &st.listing, start, count);
-    let start = start.min(st.listing.len());
+    let start = st.window_start(start);
+    let (metas, ms) = if count == 0 { (Vec::new(), 0.0) } else { stat_range(&st.base, &st.listing, start, count) };
     for (i, m) in metas.iter().enumerate() {
         st.window_meta.insert(start + i, (m.mode, m.mtime, m.target_is_dir));
     }
     // Sample window: start 0 with 3 metas keeps keys 0..3, so a scrolled-past window never grows the map.
     let end = start.saturating_add(metas.len());
     st.window_meta.retain(|&row, _| row >= start && row < end);
-    let mut kinds = tb.kinds.borrow_mut();
-    let line = rows_line(&st.base, &st.listing, &metas, start, ms, &tb.mime, &tb.icons, &tb.aliases, &tb.thumbs, &mut kinds);
+    let line = tb.rows_line(&st.base, &st.listing, &metas, start, ms);
     match gen {
         Some(gen) => writeln!(out, "{}", super::answersizes::with_sizes(super::rowguard::stamped_gen(line, st.generation, gen), &st.dirsizes, start..end)).ok(),
         None => writeln!(out, "{}", super::rowguard::stamped(line, st.generation)).ok(),
@@ -964,6 +1043,9 @@ pub(crate) fn search_root_info(base: &Path) -> Result<(u64, bool), FleaError> {
 
 // One window's metas: remoteness is decided before anything is moved, so a local window stats inline with no clone and a remote one moves only its rows to the worker.
 pub(crate) fn window_metas(st: &State, start: usize, count: usize) -> Result<(Vec<Meta>, f64), FleaError> {
+    if count == 0 {
+        return Ok((Vec::new(), 0.0));
+    }
     let body = std::fs::read_to_string("/proc/self/mountinfo").unwrap_or_default();
     if super::iomount::is_remote(&st.base, &body) {
         let rows = super::meta::window_rows(&st.listing, start, count);
@@ -978,6 +1060,10 @@ pub(crate) fn window_metas(st: &State, start: usize, count: usize) -> Result<(Ve
 #[cfg(test)]
 #[path = "run_tags_tests.rs"]
 mod tags_tests;
+
+#[cfg(test)]
+#[path = "run_empty_tests.rs"]
+mod empty_tests;
 
 #[cfg(test)]
 mod tests {
@@ -1063,8 +1149,8 @@ mod tests {
             st.listing.push("a.txt", false);
             st.listing.push("b.txt", false);
             let (results, _done) = channel();
-            let pool = Pool::new(THUMB_TEST_WORKERS, results, cache_root, Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
-            let cache = Cache::new();
+            let pool = Pool::new(THUMB_TEST_WORKERS, results, cache_root.clone(), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+            let cache = Cache::at(cache_root);
             let (tx, rx) = channel();
             let mut ops = Ops::new(tx);
             let (flash_tx, _flash_rx) = channel();
@@ -1140,9 +1226,25 @@ mod tests {
 mod gate_tests;
 
 #[cfg(test)]
+#[path = "run_jobs_tests.rs"]
+mod jobs_tests;
+
+#[cfg(test)]
 #[path = "run_session_tests.rs"]
 mod session_wire_tests;
 
 #[cfg(test)]
 #[path = "run_hold_tests.rs"]
 mod hold_wire_tests;
+
+#[cfg(test)]
+#[path = "viewerorder_tests.rs"]
+mod viewerorder_tests;
+
+#[cfg(test)]
+#[path = "run_git_tests.rs"]
+mod git_wire_tests;
+
+#[cfg(test)]
+#[path = "run_emptytrash_tests.rs"]
+mod emptytrash_tests;

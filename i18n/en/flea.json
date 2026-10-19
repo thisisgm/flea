@@ -56,6 +56,12 @@
   "visual.snapshot": "The requested presented snapshot is unavailable.",
   "visual.timeout": "The requested capture snapshot was not presented in time.",
   "visual.unpresented": "The compositor reports no presented frames for this window.",
+  "jobs.count": {
+    "one": "%1 job",
+    "other": "%1 jobs"
+  },
+  "jobs.suffix": "· %1",
+  "progress.percent": "%1%",
   "keys.label.bd0b7be215ce": "Close editor",
   "keys.label.e9619e148ed8": "Control+X is inert",
   "keys.label.1426edd106ac": "Copy file URI",

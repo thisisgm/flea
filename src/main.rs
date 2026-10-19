@@ -12,11 +12,13 @@ mod hyprkeys;
 #[cfg_attr(not(test), allow(dead_code))]
 mod i18n;
 mod icdexclude;
+mod imageopen;
 mod json;
 mod jsondoc;
 mod jsonmembers;
 mod jsonstring;
 mod launcher;
+mod launchargs;
 mod oflags;
 mod open;
 mod paths;
@@ -147,12 +149,12 @@ fn main() {
         usage("--prewarm takes a path, a first index and a destination");
     }
 
-    // flea --open <path>: the window's entrance, which asks the run card; in-process callers use open::open.
-    if args.len() == 3 && args[1] == "--open" {
-        exit(open::open_ask(&args[2]));
+    // flea --open <path> [images...]: the window's entrance; the first target still asks the run card.
+    if args.len() >= 3 && args[1] == "--open" {
+        exit(open::open_many(&args[2..]));
     }
     if args.get(1).map(String::as_str) == Some("--open") {
-        usage("--open takes one path");
+        usage("--open <path> [images...]");
     }
 
     // flea --terminal <dir>
@@ -256,32 +258,8 @@ fn main() {
         Some("flash") if flash_picker(&args) => exit(shelfplaces::flash_command(&args)),
         _ => {}
     }
-    let mut want_tui = false;
-    let mut want_gui = false;
-    let mut print_target = false;
-    let mut select_raw: Option<String> = None;
-    let mut start: Option<String> = None;
-    let mut i = 1;
-    while i < args.len() {
-        match args[i].as_str() {
-            "--tui" => want_tui = true,
-            "--gui" => want_gui = true,
-            "--print-target" => print_target = true,
-            "--select" => {
-                i += 1;
-                match args.get(i) {
-                    Some(v) => select_raw = Some(v.clone()),
-                    None => usage("--select needs a target"),
-                }
-            }
-            a if a.starts_with("--") => usage(&format!("unknown flag {}", a)),
-            a => start = start.or_else(|| Some(a.to_string())),
-        }
-        i += 1;
-    }
-    if want_tui && want_gui {
-        usage("--tui and --gui cannot be used together");
-    }
+    let launchargs::Options { want_tui, print_target, tui_options, select_raw, start } =
+        launchargs::Options::parse(&args).unwrap_or_else(|error| usage(&error));
     // A relative start or reveal is resolved here, because the window has no launch directory to read it against.
     let start = start.map(|s| paths::commandline_path(&s));
     let select_raw = select_raw.map(|s| paths::commandline_path(&s));
@@ -310,7 +288,7 @@ fn main() {
             eprintln!("flea: the terminal interface needs a terminal on stdin and stdout");
             exit(2);
         }
-        exit(tui::run(open_path.as_deref(), select_path.as_deref()));
+        exit(tui::run(open_path.as_deref(), select_path.as_deref(), &tui_options));
     }
 
     if !paths::has_display() {

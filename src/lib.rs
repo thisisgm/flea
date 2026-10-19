@@ -1,5 +1,6 @@
 //! Shared, dependency-free protocol primitives for Flea frontends.
 
+pub mod colours;
 pub mod i18n;
 pub mod ipc;
 pub mod json;

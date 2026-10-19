@@ -77,7 +77,7 @@ pub(crate) fn internal_failure(where_: &str, path: &Path) -> FleaError {
     }
 }
 // A remote call runs on a worker with a deadline; a local call runs inline with no hop.
-fn call_with<T: Send + 'static>(
+pub(super) fn call_with<T: Send + 'static>(
     path: &Path,
     body: &str,
     where_: &str,

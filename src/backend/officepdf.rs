@@ -1,6 +1,6 @@
 // An office document becomes one cached PDF: LibreOffice runs headless in the jail Convert uses, one job at a time, and the PDF viewer draws the result.
 use crate::backend::aliases::Aliases;
-use crate::backend::archivework::{run_boxed_cancellable_capped, Work};
+use crate::backend::archivework::{run_boxed_office, Work};
 use crate::backend::iomount;
 use crate::backend::md5;
 use crate::backend::mime::Db;
@@ -10,7 +10,6 @@ use crate::backend::sandbox;
 use crate::backend::thumbcache::uri_for;
 use crate::error::FleaError;
 use crate::figurestore::{evict_leaf, Names};
-use crate::json::escape;
 use std::io::{Read, Write};
 use std::os::unix::fs::{DirBuilderExt, MetadataExt, OpenOptionsExt, PermissionsExt};
 use std::path::{Path, PathBuf};
@@ -35,6 +34,8 @@ const OFFICE_TYPES: [&str; 10] = [
 const CACHE_LEAF: &str = "flea/office";
 // The failure markers keep the thumbnail cache's fail/flea/ shape, beside the PDFs and never in the shared thumbnails tree.
 const FAIL_LEAF: &str = "fail/flea";
+// Bump this version when the conversion argv or jail profile changes; cached PDFs stay reusable.
+const FAILURE_PROFILE: &str = "flea-office-profile-v3\n";
 const PROGRAM: &str = "soffice";
 // The jail's own tmpfs, so the profile LibreOffice writes needs no bind.
 const PROFILE_URL: &str = "file:///tmp/flea-office-profile";
@@ -109,7 +110,11 @@ impl Store {
     pub fn lookup(&self, key: &str, mtime: SystemTime) -> Hit {
         let failed = self.fail_path(key);
         if Store::stamped(&failed, mtime) {
-            return Hit::Failed(std::fs::read_to_string(&failed).unwrap_or_default());
+            if let Ok(body) = std::fs::read_to_string(&failed) {
+                if let Some(message) = body.strip_prefix(FAILURE_PROFILE) {
+                    return Hit::Failed(message.to_string());
+                }
+            }
         }
         let pdf = self.pdf_path(key);
         if Store::stamped(&pdf, mtime) { Hit::Ready(pdf) } else { Hit::Miss }
@@ -137,7 +142,8 @@ impl Store {
 
     fn record_failure(&self, key: &str, mtime: SystemTime, message: &str) {
         let dest = self.fail_path(key);
-        if Store::publish(&dest, mtime, &mut message.as_bytes()).is_ok() {
+        let body = format!("{FAILURE_PROFILE}{message}");
+        if Store::publish(&dest, mtime, &mut body.as_bytes()).is_ok() {
             self.prune(dest.parent().unwrap_or(&self.dir));
         }
     }
@@ -148,20 +154,6 @@ impl Store {
         let age = |m: &std::fs::Metadata| SystemTime::UNIX_EPOCH + Duration::new(m.ctime().max(0) as u64, m.ctime_nsec() as u32);
         evict_leaf(dir, self.entries, self.bytes, &Names { entry: &cached, scratch: &|_| false, age: &age });
     }
-}
-
-pub fn ready_line(id: usize, path: &Path) -> String {
-    format!(r#"{{"t":"officepdf","id":{},"state":"ready","path":"{}"}}"#, id, escape(&path.to_string_lossy()))
-}
-
-pub fn converting_line(id: usize) -> String {
-    format!(r#"{{"t":"officepdf","id":{},"state":"converting"}}"#, id)
-}
-
-// unavailable marks a box or a file that will never convert, so the viewer keeps today's preview.
-pub fn failed_line(id: usize, err: &str, unavailable: bool) -> String {
-    let flag = if unavailable { r#","unavailable":true"# } else { "" };
-    format!(r#"{{"t":"officepdf","id":{},"state":"failed","err":"{}"{}}}"#, id, escape(err), flag)
 }
 
 struct Waiter {
@@ -357,7 +349,7 @@ impl Service {
                 Fail::Converter(e.msg)
             });
         }
-        let produced = produced_pdf(&work.dir).ok_or_else(|| Fail::Converter("the converter wrote no PDF".to_string()))?;
+        let produced = produced_pdf(&work.dir).ok_or_else(|| Fail::Converter(format!("{PROGRAM} wrote no PDF of {}", job.input.display())))?;
         let dest = self.store.pdf_path(&job.key);
         let mut body = std::fs::File::open(&produced).map_err(local)?;
         Store::publish(&dest, job.mtime, &mut body).map_err(local)?;
@@ -390,15 +382,22 @@ fn answer(waiters: Vec<Waiter>, outcome: Result<PathBuf, String>) {
     }
 }
 
+// The production runner: the convert jail with the office address-space cap.
+pub(crate) fn jail(argv: Vec<String>, input: &Path, work: &mut Work, stop: &AtomicBool) -> Result<(), FleaError> {
+    run_boxed_office(argv, input, work, stop)
+}
+
+// The production service over one cache root; the shared instance below uses the user's cache.
+fn service(cache: &Path) -> Arc<Service> {
+    let resolve: Resolve = Box::new(|| {
+        if sandbox::available() { find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default()) } else { None }
+    });
+    Arc::new(Service::new(Store::new(cache), resolve, Box::new(argv), Box::new(jail), CONVERT_TIMEOUT))
+}
+
 fn production() -> &'static Arc<Service> {
     static SERVICE: OnceLock<Arc<Service>> = OnceLock::new();
-    SERVICE.get_or_init(|| {
-        let resolve: Resolve = Box::new(|| {
-            if sandbox::available() { find_program(PROGRAM, &std::env::var("PATH").unwrap_or_default()) } else { None }
-        });
-        let jail: Runner = Box::new(|argv, input, work, stop| run_boxed_cancellable_capped("office", argv, input, work, stop));
-        Arc::new(Service::new(Store::new(&crate::userfile::cache_home()), resolve, Box::new(argv), jail, CONVERT_TIMEOUT))
-    })
+    SERVICE.get_or_init(|| service(&crate::userfile::cache_home()))
 }
 
 // Sample input: {"c":"officepdf","id":4,"path":"/home/gm/Documents/report.docx"}.
@@ -421,3 +420,9 @@ mod tests;
 #[path = "officepdf_fetch.rs"]
 mod fetch;
 pub use fetch::cached_pdf;
+#[cfg(test)]
+pub(crate) use fetch::cached_pdf_in;
+
+#[path = "officepdf_lines.rs"]
+mod lines;
+pub use lines::{converting_line, failed_line, ready_line};

@@ -6,11 +6,14 @@ use std::sync::atomic::{AtomicBool, Ordering};
 use std::sync::{Arc, Mutex};
 
 // The operation on the thread and the flag it polls, or None while nothing is running.
-pub(crate) struct Live(Mutex<Option<(usize, Arc<AtomicBool>)>>);
+pub(crate) struct Live(
+    Mutex<Option<(usize, Arc<AtomicBool>)>>,
+    pub Arc<DetachedJobs>,
+);
 
 impl Live {
     pub fn new() -> Live {
-        Live(Mutex::new(None))
+        Live(Mutex::new(None), Arc::new(DetachedJobs::new()))
     }
 
     pub fn claim(&self, id: usize, cancel: &Arc<AtomicBool>) {
@@ -41,6 +44,7 @@ impl Live {
     // The id is what keeps a cancel off the operation after the one it was aimed at, and the lock is
     // what keeps it off one claimed between the read and the store.
     pub fn cancel(&self, id: usize) {
+        self.1.cancel(id);
         if let Ok(held) = self.0.lock() {
             if let Some((running, flag)) = held.as_ref() {
                 if *running == id {
@@ -61,6 +65,13 @@ impl DetachedJobs {
     pub fn insert(&self, id: usize, cancel: &Arc<AtomicBool>) {
         if let Ok(mut held) = self.0.lock() {
             held.insert(id, Arc::clone(cancel));
+        }
+    }
+    pub fn cancel(&self, id: usize) {
+        if let Ok(held) = self.0.lock() {
+            if let Some(flag) = held.get(&id) {
+                flag.store(true, Ordering::Relaxed);
+            }
         }
     }
     pub fn remove(&self, id: usize) {

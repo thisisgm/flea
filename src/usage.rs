@@ -3,6 +3,9 @@ use std::process::exit;
 pub(crate) fn usage(message: &str) -> ! {
     eprintln!("flea: {}", message);
     eprintln!("usage: flea [--tui|--gui] [--select <uri|path>] [path]");
+    eprintln!(
+        "       flea --tui [--cwd-file PATH] [--chooser-file PATH] [--tui-keymap PRESET] [path]"
+    );
     eprintln!("       flea --default [off]");
     eprintln!("       flea --picker [off]");
     eprintln!("       flea --ui-state [<json patch>]");

@@ -125,7 +125,7 @@ fn is_barrier(entry: &Entry) -> bool {
 }
 
 // One user-visible operation, however many steps it took, named the way the status bar already named it.
-#[derive(Clone, Debug)]
+#[derive(Clone, Debug, PartialEq)]
 pub struct Entry {
     pub op: String,
     pub steps: Vec<Step>,
@@ -160,11 +160,22 @@ impl Reached {
     }
 }
 
+pub(crate) struct UndoToken {
+    pub(crate) generation: Option<u64>,
+    pub(crate) entry: Entry,
+    revision: u64,
+}
+
 pub struct Journal {
+    pub(crate) deferred: Option<Vec<super::renamework::Publication>>,
     entries: Vec<Entry>,
+    revision: u64,
+    recorded: Option<UndoToken>,
+    // Entries a busy shared lock turned away, filed in order before any later entry.
+    pending: Vec<Entry>,
     redo: Vec<Result<super::redo::Replay, FleaError>>,
     shared: Option<super::undoshare::Shared>,
-    // Entries queue here behind any open trash reservation, so they file in the order the operations were accepted.
+    // Entries queue behind open trash or rename reservations, so they file in acceptance order.
     gate: super::journalgate::Gate,
     // Paths the last reversal touched, so a session patches its index; cleared on take and on entry.
     last_touched: Reached,
@@ -173,41 +184,6 @@ pub struct Journal {
     next_nonce: u32,
     // Random per journal, so two journals in one process never mint the same nonce.
     nonce_high: u32,
-}
-
-// Four bytes of randomness read once per journal, with no new crate.
-const NONCE_BYTES: usize = 4;
-// The starttime field index after the comm in /proc/self/stat.
-const START_INDEX: usize = 19;
-// A fixed mix when neither urandom nor /proc answers, so the fallback still differs by pid.
-const FALLBACK_XOR: u32 = 0x9e3779b9;
-
-// One random read per journal; the fallback mixes pid with process start time.
-fn nonce_high_once() -> u32 {
-    if let Ok(mut file) = std::fs::File::open("/dev/urandom") {
-        let mut buf = [0u8; NONCE_BYTES];
-        use std::io::Read;
-        if file.read_exact(&mut buf).is_ok() {
-            return u32::from_le_bytes(buf);
-        }
-    }
-    fallback_nonce_high()
-}
-
-// Pid xor start time, so a restarted backend reusing a pid still differs.
-fn fallback_nonce_high() -> u32 {
-    let pid = std::process::id();
-    match process_start_time() {
-        Some(time) => pid ^ (time as u32) ^ ((time >> 32) as u32),
-        None => pid ^ FALLBACK_XOR,
-    }
-}
-
-// Field 22 of /proc/self/stat; the comm may hold spaces, so split after the last paren.
-fn process_start_time() -> Option<u64> {
-    let text = std::fs::read_to_string("/proc/self/stat").ok()?;
-    let after = text.rsplit(')').next()?;
-    after.split_whitespace().nth(START_INDEX)?.parse::<u64>().ok()
 }
 
 impl Journal {
@@ -237,7 +213,20 @@ impl Journal {
         std::mem::take(&mut self.last_touched)
     }
     pub fn new() -> Journal {
-        Journal { entries: Vec::new(), redo: Vec::new(), shared: None, gate: Default::default(), last_touched: Reached::default(), manifests: std::collections::HashMap::new(), next_nonce: 0, nonce_high: nonce_high_once() }
+        Journal {
+            deferred: None,
+            entries: Vec::new(),
+            revision: 0,
+            recorded: None,
+            pending: Vec::new(),
+            redo: Vec::new(),
+            shared: None,
+            gate: Default::default(),
+            last_touched: Reached::default(),
+            manifests: std::collections::HashMap::new(),
+            next_nonce: 0,
+            nonce_high: nonce_high_once(),
+        }
     }
 
     // Production attaches the session journal file; a refused directory keeps the in-memory one.
@@ -265,12 +254,6 @@ impl Journal {
         }
     }
 
-    // A nonce this backend alone can reattach; the random high half keeps it unique across backends.
-    fn next_nonce(&mut self) -> u64 {
-        self.next_nonce = self.next_nonce.wrapping_add(1);
-        ((self.nonce_high as u64) << 32) | (self.next_nonce as u64)
-    }
-
     // Drops every manifest whose nonce left the shared doc with its entry.
     fn prune(&mut self) {
         let Some(shared) = self.shared.clone() else { return };
@@ -278,13 +261,8 @@ impl Journal {
         self.manifests.retain(|nonce, _| live.contains(nonce));
     }
 
-    // Test-only: the next nonce without recording anything, so uniqueness is pinned directly.
-    #[cfg(test)]
-    pub(crate) fn test_nonce(&mut self) -> u64 {
-        self.next_nonce()
-    }
-
     pub fn push(&mut self, entry: Entry) {
+        if let Some(queue) = self.deferred.as_mut() { queue.push(super::renamework::Publication::Push(entry)); return; }
         if let Some(entry) = self.gate.hold(entry) {
             self.file(entry);
         }
@@ -292,11 +270,13 @@ impl Journal {
 
     // A trash batch reserves its place at the announce, so a write accepted in the settle window files after it.
     pub(crate) fn reserve(&mut self, id: usize) {
+        if let Some(queue) = self.deferred.as_mut() { queue.push(super::renamework::Publication::Reserve(id)); return; }
         self.gate.reserve(id);
     }
 
     // The batch's entry (empty when all failed) fills its place, and every ready entry now leading files in queue order.
     pub(crate) fn fill(&mut self, id: usize, entry: Entry) {
+        if let Some(queue) = self.deferred.as_mut() { queue.push(super::renamework::Publication::Fill(id, entry)); return; }
         if let Some(entry) = self.gate.fill(id, entry) {
             self.push(entry);
         }
@@ -307,6 +287,7 @@ impl Journal {
 
     // A quit files what the gate still holds, so a write accepted in the settle window keeps its entry past the window.
     pub(crate) fn release_held(&mut self) {
+        if let Some(queue) = self.deferred.as_mut() { queue.push(super::renamework::Publication::Release); return; }
         for ready in self.gate.release() {
             self.file(ready);
         }
@@ -314,6 +295,19 @@ impl Journal {
 
     // An operation that changed nothing records nothing, so undo never reports a no-op as work.
     fn file(&mut self, entry: Entry) {
+        self.file_inner(entry, false);
+    }
+
+    fn file_inner(&mut self, entry: Entry, job: bool) {
+        if entry.steps.is_empty() {
+            return;
+        }
+        if !self.pending.is_empty() {
+            self.pending.push(entry);
+            return;
+        }
+        self.revision = self.revision.wrapping_add(1);
+        self.recorded = None;
         let shared = match &self.shared {
             Some(shared) => shared.clone(),
             None => {
@@ -323,6 +317,13 @@ impl Journal {
                 self.redo.clear();
                 for step in &entry.steps {
                     if let Step::Moved { before, after, .. } = step { self.rebase(before, after); }
+                }
+                if job {
+                    self.recorded = Some(UndoToken {
+                        generation: None,
+                        entry: entry.clone(),
+                        revision: self.revision,
+                    });
                 }
                 self.entries.push(entry);
                 if self.entries.len() > DEPTH {
@@ -346,12 +347,19 @@ impl Journal {
                 *manifest_nonce = Some(nonce);
             }
         }
-        match super::undoshare::push_entry(&shared, &filed) {
-            Ok(super::undoshare::PushResult::Stored) => {
+        match super::undoshare::push_entry_generation(&shared, &filed) {
+            Ok((super::undoshare::PushResult::Stored, generation)) => {
+                if job {
+                    self.recorded = generation.map(|generation| UndoToken {
+                        generation: Some(generation),
+                        entry: filed,
+                        revision: self.revision,
+                    });
+                }
                 self.prune();
                 return;
             }
-            Ok(super::undoshare::PushResult::TooBig) => {
+            Ok((super::undoshare::PushResult::TooBig, _)) => {
                 for nonce in &nonces {
                     self.manifests.remove(nonce);
                 }
@@ -363,8 +371,19 @@ impl Journal {
                         return;
                     }
                     Ok(super::undoshare::PushResult::TooBig) => return,
+                    Err(()) if shared.contended() => {
+                        self.pending.push(entry);
+                        return;
+                    }
                     Err(()) => self.shared = None,
                 }
+            }
+            Err(()) if shared.contended() => {
+                for nonce in &nonces {
+                    self.manifests.remove(nonce);
+                }
+                self.pending.push(entry);
+                return;
             }
             Err(()) => {
                 for nonce in &nonces {
@@ -379,6 +398,13 @@ impl Journal {
         self.redo.clear();
         for step in &entry.steps {
             if let Step::Moved { before, after, .. } = step { self.rebase(before, after); }
+        }
+        if job {
+            self.recorded = Some(UndoToken {
+                generation: None,
+                entry: entry.clone(),
+                revision: self.revision,
+            });
         }
         self.entries.push(entry);
         if self.entries.len() > DEPTH {
@@ -399,16 +425,40 @@ impl Journal {
 
     // A failing step stops the rest, mode and tag steps skip changed paths with a note, and shared entries reattach this backend's manifests.
     pub fn undo(&mut self) -> Result<String, FleaError> {
+        self.undo_matching(None)
+    }
+
+    fn undo_matching(&mut self, token: Option<&UndoToken>) -> Result<String, FleaError> {
         self.last_touched = Reached::default();
+        self.retry_pending();
+        if self.has_pending() {
+            return Err(err("the undo history is busy; try again"));
+        }
+        if token.is_some_and(|key| {
+            key.revision != self.revision || key.generation.is_some() != self.shared.is_some()
+        }) {
+            return Err(err("That job can no longer be undone."));
+        }
+        self.recorded = None;
         if let Some(shared) = self.shared.clone() {
-            let (mut entry, gen) = match super::undoshare::claim_undo(&shared) {
+            let (mut entry, gen) = match super::undoshare::claim_undo_matching(&shared, token) {
                 Ok(Some(pair)) => pair,
-                Ok(None) => return Err(err("there is nothing to undo")),
+                Ok(None) => {
+                    return Err(err(if token.is_some() {
+                        "That job can no longer be undone."
+                    } else {
+                        "there is nothing to undo"
+                    }))
+                }
+                Err(()) if shared.contended() => {
+                    return Err(err("the undo history is busy; try again"))
+                }
                 Err(()) => {
                     self.shared = None;
                     return Err(FleaError { where_: "undo".into(), path: String::new(), msg: "the undo history could not be read".into() });
                 }
             };
+            self.revision = self.revision.wrapping_add(1);
             // The claim already spent the barrier, so this answers and never replays it.
             if is_barrier(&entry) {
                 self.prune();
@@ -442,10 +492,14 @@ impl Journal {
             self.prune();
             return Ok(op);
         }
+        if token.is_some_and(|key| self.entries.last() != Some(&key.entry)) {
+            return Err(err("That job can no longer be undone."));
+        }
         let entry = match self.entries.pop() {
             Some(e) => e,
             None => return Err(err("there is nothing to undo")),
         };
+        self.revision = self.revision.wrapping_add(1);
         self.last_touched = Reached::of(&entry.steps);
         let mut skipped: Vec<String> = Vec::new();
         let mut restored: Vec<Step> = Vec::new();
@@ -480,6 +534,10 @@ impl Journal {
     }
 
     pub fn redo_info(&mut self) -> Result<(String, usize), FleaError> {
+        self.retry_pending();
+        if self.has_pending() {
+            return Err(err("the undo history is busy; try again"));
+        }
         if let Some(shared) = self.shared.clone() {
             let info = super::undoshare::redo_info(&shared);
             self.prune();
@@ -494,6 +552,12 @@ impl Journal {
 
     pub fn redo(&mut self, id: usize, cancel: &std::sync::atomic::AtomicBool,
                 tx: &std::sync::mpsc::Sender<super::opsreq::OpMsg>) -> Result<String, FleaError> {
+        self.retry_pending();
+        if self.has_pending() {
+            return Err(err("the undo history is busy; try again"));
+        }
+        self.revision = self.revision.wrapping_add(1);
+        self.recorded = None;
         self.last_touched = Reached::default();
         if self.shared.is_some() {
             let (result, touched) = super::undoshare::redo_newest(&mut self.shared, id, cancel, tx);
@@ -715,3 +779,14 @@ pub(crate) fn restore_mode(path: &Path, dev: u64, ino: u64, born: super::filegen
 #[cfg(test)]
 #[path = "undo_tests.rs"]
 mod tests;
+
+#[path = "undojobs.rs"]
+mod jobs;
+
+#[path = "undononce.rs"]
+mod nonce;
+use nonce::nonce_high_once;
+
+#[cfg(test)]
+#[path = "undo_job_tests.rs"]
+mod job_tests;

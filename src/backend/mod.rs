@@ -1,3 +1,21 @@
+pub(crate) mod locale;
+mod actionmanifest;
+mod actionpreview;
+mod actionrun;
+mod actions;
+mod jobdrive;
+mod jobevents;
+mod jobs;
+mod jobview;
+mod jobstart;
+mod jobwork;
+mod rclone;
+mod rcloneenv;
+mod rclonefolders;
+mod rclonelog;
+mod rcloneproc;
+mod rclonerun;
+
 pub mod listing;
 pub mod filter;
 #[cfg(test)]
@@ -12,12 +30,22 @@ pub mod archivepass;
 pub mod archivespec;
 pub mod archivereq;
 pub mod archivework;
+mod extractindex;
+mod extractprogress;
+mod extractrun;
 pub mod appicon;
 pub mod mime;
 pub mod fsinfo;
 pub mod fsname;
 pub mod fsinforeq;
 pub mod extclass;
+#[cfg(test)]
+pub(crate) mod gitfixture;
+pub mod gitprobe;
+pub mod gitreq;
+#[cfg(test)]
+mod gitreq_process_tests;
+pub mod gitstatus;
 pub mod gvfsroot;
 pub mod netfs;
 pub mod networkaddress;
@@ -34,6 +62,7 @@ pub mod linecount;
 pub mod dirsize;
 pub mod dirsizereq;
 pub mod listpaths;
+pub mod viewerpaths;
 // Issue 144: a remote list scans off the event loop; see src/backend/listwork.rs.
 pub mod listwork;
 pub mod unmount;
@@ -66,8 +95,14 @@ mod htmlsandbox;
 pub mod compare;
 pub mod sort;
 pub mod ordering;
+mod tuifolders;
 pub mod state;
+pub(crate) mod lazy;
 pub mod mediaprobe;
+pub mod model3d;
+pub mod model3dreq;
+mod model3dadmit;
+mod model3dcache;
 pub mod meta;
 pub mod metareq;
 pub mod metasort;
@@ -88,6 +123,9 @@ mod menu_slot;
 pub(crate) mod menu_registry;
 mod menu_registry_work;
 mod menucontents;
+mod menuproperties;
+#[cfg(test)]
+mod menuproperties_tests;
 mod menufacts;
 mod walkmounts;
 mod menudelete;
@@ -96,6 +134,7 @@ pub(crate) mod trashthumb;
 pub(crate) mod trashthumbcache;
 pub mod trashland;
 pub mod journalgate;
+pub(crate) mod renamework;
 pub mod trashdelete;
 pub mod trashmanifest;
 pub mod rows;
@@ -217,6 +256,9 @@ mod undostage_tests;
 // Test-only: a kernel network mount's EINVAL on RENAME_NOREPLACE, routed to a plain rename and never a copy.
 #[cfg(test)]
 mod renamecompat_tests;
+// Test-only: a program's execute bit through a copy and the two moves the ops run.
+#[cfg(test)]
+mod copyexec_tests;
 // Test-only: the closing progress line a paced transfer sends after its last item.
 #[cfg(test)]
 mod transferclose_tests;
@@ -243,6 +285,9 @@ mod manifestfsize_tests;
 // Test-only: hard rule 9's sandbox root, so no destructive test names a path outside one.
 #[cfg(test)]
 pub mod testdir;
+// Test-only: a disk-backed sandbox and bounded recreation on a genuinely reused inode.
+#[cfg(test)]
+mod inodereuse;
 // Test-only: the fifo, writer and bound every hang test shares.
 #[cfg(test)]
 pub mod fifotest;
@@ -262,6 +307,9 @@ pub mod quietpanic;
 #[cfg(test)]
 pub mod reaphold;
 
+#[cfg(test)]
+pub mod renametiming;
+
 pub mod dirsizeworker;
 // The decode-free RAW container walker: the largest embedded JPEG preview plus EXIF facts.
 pub mod rawembed;
@@ -271,3 +319,13 @@ pub mod rawbmff;
 pub mod rawraf;
 pub mod rawexif;
 pub mod rawpreview;
+
+#[cfg(test)]
+mod jobs_fix1_tests;
+#[cfg(test)]
+mod jobs_fix2_tests;
+#[cfg(test)]
+mod jobs_tests;
+
+#[cfg(test)]
+mod jobs_regression_tests;

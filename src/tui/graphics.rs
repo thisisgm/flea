@@ -1,12 +1,7 @@
 use super::job::Job;
 use std::path::PathBuf;
 
-#[derive(Clone, Copy, PartialEq)]
-pub enum Protocol {
-    None,
-    Sixel,
-    Kitty,
-}
+pub use super::capabilities::Protocol;
 pub struct Graphics {
     pub protocol: Protocol,
     job: Option<Job>,
@@ -125,7 +120,7 @@ impl Graphics {
     }
     pub fn clear(&mut self) {
         if self.protocol == Protocol::Kitty && (!self.bytes.is_empty() || !self.identity.as_os_str().is_empty()) {
-            print!("\x1b_Ga=d,d=I,i=42,q=2\x1b\\");
+            let _ = super::tmux::write_graphics(&mut std::io::stdout().lock(), b"\x1b_Ga=d,d=I,i=42,q=2\x1b\\");
         }
         self.job = None;
         self.bytes.clear();
@@ -197,7 +192,7 @@ pub fn send(out: &mut impl std::io::Write, transmit: Vec<u8>) -> std::io::Result
     if transmit.is_empty() {
         return Ok(());
     }
-    out.write_all(&transmit)?;
+    super::tmux::write_graphics(out, &transmit)?;
     drop(transmit);
     crate::heap::give_back();
     Ok(())

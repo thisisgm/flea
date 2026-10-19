@@ -24,7 +24,7 @@ case "$tool" in
  bwrap)
   while [ "$#" -gt 0 ]; do
    case "$1" in
-    --ro-bind|--bind|--symlink|--setenv) shift 3 ;;
+    --ro-bind|--ro-bind-try|--bind|--symlink|--setenv) shift 3 ;;
     --tmpfs|--proc|--dev|--json-status-fd) shift 2 ;;
     --*) shift ;;
     *) exec "$@" ;;
@@ -162,6 +162,18 @@ fn print_protocol_lists_the_default_and_the_no_printer_state() {
     rig.dir.file("no-printer", "yes");
     let replies = rig.ask(r#"{"c":"printoptions","id":42}"#, "printoptions");
     assert!(replies.last().unwrap().contains("No printer is set up."));
+}
+
+#[test]
+fn print_input_fetches_an_office_document_and_passes_every_other_kind_through() {
+    let (source, fetched) = (PathBuf::from("/in/report.docx"), PathBuf::from("/cache/report.pdf"));
+    let (calls, cancel) = (std::cell::Cell::new(0), Arc::new(AtomicBool::new(false)));
+    let fetch = |p: &std::path::Path, _| { calls.set(calls.get() + 1); assert_eq!(p, source); Ok(fetched.clone()) };
+    assert_eq!(print_input_with(fetch, &source, printconvert::Kind::Office, &cancel), Ok(fetched.clone()));
+    for kind in [printconvert::Kind::Pdf, printconvert::Kind::Image, printconvert::Kind::Text, printconvert::Kind::Other] {
+        assert_eq!(print_input_with(fetch, &source, kind, &cancel), Ok(source.clone()));
+    }
+    assert_eq!(calls.get(), 1, "only the office document is fetched");
 }
 
 #[test]

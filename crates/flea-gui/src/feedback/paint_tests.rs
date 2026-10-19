@@ -1,6 +1,7 @@
 use super::spinner::{cells, phase, Crawl, Slot, GRID, PERIOD_MS, TRAVEL};
 use super::spinner_tests::{frame, FRAME};
 use crate::list::{bench::allocations, Palette};
+use crate::palette::Theme;
 use gpui::{
     div, fill, point, prelude::*, px, size, App, Bounds, Context, DevicePixels, Element, ElementId,
     GlobalElementId, Hsla, InspectorElementId, LayoutId, Pixels, Render, Style, SvgRenderer,
@@ -143,8 +144,9 @@ fn the_mark_builds_no_geometry_and_allocates_nothing_after_its_first_frame(
     for pinned in [false, true] {
         // The mark and its reference draw in two windows in lockstep, so GPUI's own scene growth and frame request match.
         let (mark, reference) = (probe(cx), probe(cx));
-        cx.update_window(mark.2.into(), |_, window, _| {
-            let ink = Palette::inherited(&window.text_style()).metadata_frame;
+        cx.update_window(mark.2.into(), |_, window, cx| {
+            let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+            let ink = Palette::inherited(&window.text_style(), theme).metadata_frame;
             mark.0.show(true, ink);
             reference.0.show(false, ink);
         })

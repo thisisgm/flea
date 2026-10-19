@@ -302,19 +302,6 @@ fn without_soffice_no_request_is_served() {
 }
 
 #[test]
-fn the_production_runner_converts_through_the_real_jail() {
-    if skipped() { return; }
-    let d = TestDir::new("officepdf-jail");
-    let jail: Runner = Box::new(|argv, input, work, stop| run_boxed_cancellable_capped("office", argv, input, work, stop));
-    let r = rig_in(&d, MAKE_PDF, CONVERT_TIMEOUT, jail);
-    let src = d.file("a.docx", "doc");
-    assert_eq!(r.ask(1, &src), converting_line(1));
-    let pdf = r.svc.store.pdf_path(&Store::key(&src));
-    assert_eq!(r.end().1, ready_line(1, &pdf));
-    assert_eq!(std::fs::read(&pdf).unwrap(), b"%PDF-1.4 stub");
-}
-
-#[test]
 fn a_request_on_a_stuck_mount_answers_the_refusal_and_converts_nothing() {
     let d = TestDir::new("officepdf-stuck");
     let r = rig(&d, MAKE_PDF, CONVERT_TIMEOUT);
@@ -389,3 +376,5 @@ fn the_cache_holds_the_figure_stores_bound_and_drops_the_oldest_conversion() {
 #[path = "officepdf_order_tests.rs"] mod order;
 #[path = "officepdf_kind_tests.rs"] mod kinds;
 #[path = "officepdf_cancel_tests.rs"] mod cancel;
+#[path = "officepdf_jail_tests.rs"] mod jail_caps;
+#[path = "officepdf_limits_tests.rs"] mod limits;
