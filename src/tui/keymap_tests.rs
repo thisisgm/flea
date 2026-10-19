@@ -42,7 +42,7 @@ fn compiled_source_drives_text_and_native_ctrl() {
     );
 }
 #[test]
-fn contexts_share_only_declared_actions_and_sheet_matches_preset() {
+fn contexts_share_only_declared_actions() {
     let map = Map::load();
     assert_eq!(map.in_context(&Key::character('d', ""), "vim", "pdf"), "");
     assert_eq!(

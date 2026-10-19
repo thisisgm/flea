@@ -180,9 +180,7 @@ ShellRoot {
         root.step = 1
     }
 
-    // The second change is made once the first writer has exited or failed to start, read off the
-    // book and not off a timing; once the second writer has ended too, the probe prints the drained
-    // line the suite checks, so a writer that never ends leaves only the stalled line and fails.
+    // The second change follows the first writer's exit, never a timer, so a writer that never ends fails the drained check.
     property var watcher: Timer {
         interval: 100
         repeat: true
@@ -419,8 +417,7 @@ two_windows() {
   # Printed, so what is said about this pair is read off the run rather than off the check labels.
   echo "     the waiting window changed $waits and sent ${two_sent##*PROBE sent=}"
   echo "     and the file then held $two_flat"
-  # Each window prints this line only once its own writer has drained, so a writer that never ends,
-  # or a window its kill ended first, leaves the line out and the pair fails.
+  # Each window prints its drained line only once its writer ends, so a writer still running or killed first fails the pair.
   check "two windows: the acting window's writer drained with nothing reported" "1" "$(grep -c 'PROBE failures=0' "$SANDBOX/two/acting.log" 2>/dev/null)"
   check "two windows: and the waiting window's did too" "1" "$(grep -c 'PROBE failures=0' "$SANDBOX/two/waiting.log" 2>/dev/null)"
   check "two windows: and both windows quit by themselves" "0 0" "$two_act_rc $two_wait_rc"
