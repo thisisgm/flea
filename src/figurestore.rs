@@ -8,8 +8,8 @@ use std::os::unix::fs::{DirBuilderExt, OpenOptionsExt};
 use std::path::{Path, PathBuf};
 use std::time::{Duration, SystemTime};
 
-// The first line of an entry, so a future layout is a different file and not a misread one.
-const FORMAT: &str = "flea-figure-svg 1";
+// The first line of an entry, so a future layout or engine is a different file and not a misread one (2: the Pele bundle's figures).
+const FORMAT: &str = "flea-figure-svg 2";
 const SVG_DIR: &str = "svg";
 const EXTENSION: &str = ".svg";
 const SCRATCH_MARK: &str = ".tmp-";
@@ -73,7 +73,7 @@ fn encode(key: &str, svg: &str) -> Vec<u8> {
     bytes
 }
 
-// Sample input: "flea-figure-svg 1\n5 3\nhello<s/>" is key "hello" and svg "<s/>"; any other length or key is refused.
+// Sample input: "flea-figure-svg 2\n5 3\nhello<s/>" is key "hello" and svg "<s/>"; any other length or key is refused.
 fn decode(bytes: &[u8], key: &str) -> Option<String> {
     let body = bytes.strip_prefix(FORMAT.as_bytes())?.strip_prefix(b"\n")?;
     let end = body.iter().position(|&b| b == b'\n')?;
@@ -167,12 +167,17 @@ pub(crate) fn evict_leaf(dir: &Path, entries: usize, bytes: u64, names: &Names) 
     }
 }
 
-// True when every listed key has its own entry, a plain file, so a warm helper would likely go unused; a theme, display or advance drawn otherwise is not known.
+// True when every listed key has its own entry of this format, a plain file, so a warm helper would likely go unused; a theme, display, advance or format drawn otherwise is not known.
 fn known(dir: &Path, keys: &[String]) -> bool {
-    !keys.is_empty()
-        && keys.iter().all(|key| {
-            entry_name(key).is_some_and(|name| fs::symlink_metadata(dir.join(name)).is_ok_and(|meta| meta.is_file()))
-        })
+    !keys.is_empty() && keys.iter().all(|key| entry_name(key).is_some_and(|name| current(&dir.join(name))))
+}
+
+// Sample input: a plain file opening "flea-figure-svg 2\n" is current; a link, a directory or an entry an earlier format wrote is not.
+fn current(path: &Path) -> bool {
+    let mut head = [0u8; FORMAT.len() + 1];
+    fs::symlink_metadata(path).is_ok_and(|meta| meta.is_file())
+        && fs::OpenOptions::new().read(true).custom_flags(O_NOFOLLOW).open(path).and_then(|mut file| file.read_exact(&mut head)).is_ok()
+        && head.strip_suffix(b"\n") == Some(FORMAT.as_bytes())
 }
 
 // The store directory unless a link sits there: get and put would follow it out of the cache; a swap after this check is the same-user race the 0700 root bounds.

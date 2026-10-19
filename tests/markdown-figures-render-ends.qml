@@ -78,10 +78,12 @@ ShellRoot {
             onPaint: if (shell.armed) shell.analyze(getContext("2d"))
         }
     }
-    // Sample input: '<path class="edge" d="M10,20 L30,40"/>' answers { start: { x: 10, y: 20 }, end: { x: 30, y: 40 } }; an svg with no edge answers null.
+    // Sample input: '<g class="pele-edge" data-id="e"><path d="M10,20L30,40"/></g>' answers { start: { x: 10, y: 20 }, end: { x: 30, y: 40 } }, the first link's line
+    // and not its marks; an svg with no link answers null.
     function edge(svg) {
-        var found = svg.match(/<(?:polyline|path)\b[^>]*class="(?:edge|class-relationship)"[^>]*\s(?:points|d)="([^"]+)"/)
-        var points = found ? found[1].replace(/[ML]/g, " ").trim().split(/[\s,]+/).map(Number) : []
+        var group = svg.match(/<g class="pele-edge(?: [^"]*)?"[^>]*>([\s\S]*?)<\/g>/)
+        var line = group ? group[1].match(/<path(?![^>]*pele-marker)[^>]*\sd="([^"]+)"/) : null
+        var points = line ? line[1].match(/-?\d*\.?\d+/g).map(Number) : []
         if (points.length < 4)
             return null
         return { start: { x: points[0], y: points[1] }, end: { x: points[points.length - 2], y: points[points.length - 1] } }

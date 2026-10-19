@@ -5,7 +5,7 @@ pkgver=0.4.0
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy'
 arch=('x86_64' 'aarch64')
-license=('MIT' 'Apache-2.0' 'EPL-2.0' 'BSD-2-Clause')
+license=('MIT' 'Apache-2.0')
 # omarchy owns /usr/share/omarchy/shell, which ui/Commons and ui/Ui link into; quickshell owns qs.
 # util-linux ships prlimit, which the thumbnail and archive sandboxes require alongside bubblewrap.
 # xdg-terminal-exec is what --terminal execs, so the topbar's terminal button needs it installed.

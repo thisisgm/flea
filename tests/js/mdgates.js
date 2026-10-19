@@ -8,7 +8,7 @@ function run(check) {
     var preview = Source.source("ui/PreviewMarkdown.qml")
     check("md3z F2 one preview header", !/\/\/[^\n]*\n\/\/[^\n]*\nItem \{/.test(preview), true)
     check("md3z F2 image sentence beside resolution", /\/\/ Resolve images[^\n]*\n    function askParse/.test(preview), true)
-    check("md3z F3 markerPaths sample", /\/\/ Sample input:[^\n]*points=[^\n]*\nfunction markerPaths/.test(Source.source("ui/js/FigureWorker.mjs")), true)
+    check("md3z F3 accentMarks sample", /\/\/ Sample input:[^\n]*pele-marker[^\n]*\nfunction accentMarks/.test(Source.source("ui/js/FigureWorker.mjs")), true)
     var commentFiles = ["ui/MarkdownFigure.qml", "ui/MarkdownText.qml", "ui/MarkdownPane.qml",
         "ui/PreviewMarkdown.qml", "ui/js/MdBlocks.js", "ui/js/MdItems.js", "ui/js/MdMath.js", "ui/js/MdEmph.js", "ui/js/MdBreak.js", "ui/js/MarkdownLists.js", "ui/js/MdChunks.js"]
     for (var f = 0; f < commentFiles.length; f++) {

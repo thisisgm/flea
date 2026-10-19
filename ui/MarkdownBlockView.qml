@@ -24,16 +24,12 @@ Item {
     readonly property int pictureGap: (view.block.type === "images" || view.block.type === "image") && view.blockIndex < view.blockCount - 1 && !view.nextIsPicture ? view.preview.blockGap : 0
     // The blocks beside this one in the list that holds it: the document's list at the top, the item's or quote's parts inside one.
     property var siblings: null
-    // Two consecutive figures share one canvas margin each, so the upper lends both back and the list's spacing reads exact.
+    // The block after this one in the same list, which decides whether a picture keeps the block gap.
     readonly property var neighbourList: view.siblings !== null ? view.siblings : (view.preview !== null ? view.preview.blockList : null)
     readonly property var nextBlock: neighbourList === null || neighbourList === undefined || view.blockIndex + 1 >= neighbourList.length
         ? null : neighbourList[view.blockIndex + 1]
-    // One canvas margin per mermaid side, FigureWorker.mjs CANVAS_MARGIN.
-    readonly property int canvasMargin: 1
-    readonly property int pairTrim: view.block.type === "figure" && nextBlock !== null && nextBlock !== undefined && nextBlock.type === "figure"
-        ? (view.block.kind === "mermaid" ? view.canvasMargin : 0) + (nextBlock.kind === "mermaid" ? view.canvasMargin : 0) : 0
     // Only the drawn block lends its height, and a list or table chunk lies flush by its own negative y.
-    height: kind.item ? kind.item.height + kind.item.y + view.pictureGap - view.pairTrim : 0
+    height: kind.item ? kind.item.height + kind.item.y + view.pictureGap : 0
 
     // A block builds only the parts its own kind draws, on the view; an empty heading or quote builds none, so it has no height.
     Loader {

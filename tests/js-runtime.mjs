@@ -68,15 +68,6 @@ export function runSelf(metaUrl, args, boundSeconds) {
     return { status, output };
 }
 
-// ELK's GWT code takes Error from global, and its in-process worker posts through setTimeout, which quickjs-ng lacks until named here.
-export function prepareEngine() {
-    globalThis.global = globalThis;
-    if (!underNode) {
-        globalThis.setTimeout = os.setTimeout;
-        globalThis.clearTimeout = os.clearTimeout;
-    }
-}
-
 // End the run with the failure count as its status.
 export function finish(failures) {
     if (underNode)

@@ -1,0 +1,10 @@
+# Tree view
+
+```mermaid
+treeView-beta
+├── src/
+│   ├── index.ts
+│   └── utils.ts
+├── package.json
+└── README.md
+```

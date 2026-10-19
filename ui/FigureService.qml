@@ -56,6 +56,9 @@ Item {
     property int helperExits: 0
     property int deadlineExpirations: 0
 
+    // A dated figure is asked for one day at this hour, local time, so the helper's own time zone moves it to no other date.
+    readonly property int middayHour: 12
+
     // FNV-1a over the table's comma-joined text, "0" for none.
     function tableDigestOf(table) {
         if (!table || table.length === 0)
@@ -70,15 +73,26 @@ Item {
         return (hash >>> 0).toString(hexRadix);
     }
 
-    // The figure cache key, including the display mode that changes formula layout.
+    // The figure cache key, including the display mode that changes formula layout; a dated figure's day joins it, so the next day's ask draws that day's chart.
     function cacheKeyOf(kind, source, t, display) {
         var key = [t.bg, t.fg, t.accent || "", t.muted || "", t.line || "", t.surface || "",
             t.border || "", t.font || "", t.bodyPx || 0, t.exPx || 0, root.tableDigestOf(t.advances), root.tableDigestOf(t.boldAdvances)].join("|");
-        return kind + "\n" + key + "\n" + !!display + "\n" + source;
+        return kind + "\n" + key + (t.today ? "|" + t.today : "") + "\n" + !!display + "\n" + source;
     }
 
+    // Sample input: ("mermaid", "gantt\n    title Plan", theme) answers a copy of theme whose today is this day's local noon in ms, since a Gantt chart draws today's date; any other figure answers theme itself.
+    function datedTheme(kind, source, theme) {
+        if (kind !== "mermaid" || !theme || !/(?:^|%%)\s*gantt\b/im.test(source))
+            return theme;
+        var now = new Date();
+        var dated = Object.assign({}, theme);
+        dated.today = new Date(now.getFullYear(), now.getMonth(), now.getDate(), root.middayHour).getTime();
+        return dated;
+    }
+
+    // A figure asks with its undated theme, so the lookup dates a Gantt chart's theme the way ask does and a revisit draws in the first frame.
     function cached(kind, source, theme, display) {
-        var key = root.cacheKeyOf(kind, source, theme, display);
+        var key = root.cacheKeyOf(kind, source, root.datedTheme(kind, source, theme), display);
         var hit = root.answerCache[key];
         if (hit !== undefined) {
             var at = root.answerOrder.indexOf(key);
@@ -320,7 +334,7 @@ Item {
         for (var i = 0; i < blocks.length; i++) {
             if (blocks[i].type !== "figure")
                 continue;
-            var theme = themes ? themes[blocks[i].kind] : undefined;
+            var theme = themes ? root.datedTheme(blocks[i].kind, blocks[i].source, themes[blocks[i].kind]) : undefined;
             // The preview asks every figure as a display figure; a kind with no theme has no key and so is never known.
             keys.push(theme ? root.cacheKeyOf(blocks[i].kind, blocks[i].source, theme, true) : "");
             if (kinds.indexOf(blocks[i].kind) < 0)
@@ -350,7 +364,9 @@ Item {
         root.armIdle();
     }
 
-    function ask(kind, source, display, theme) {
+    function ask(kind, source, display, asked) {
+        // The day a Gantt chart is asked for rides with its theme, so its key, its stored entry and its drawing name one day.
+        var theme = root.datedTheme(kind, source, asked);
         root.seq++;
         var id = root.seq;
         // A revisit or a theme flip back never reaches the helper at all.
