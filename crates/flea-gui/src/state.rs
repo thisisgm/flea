@@ -81,22 +81,10 @@ impl Shell {
             _app_quit: None,
             deadlines: [None, None],
         };
+        // Returns at once: no kill and no wait inside the platform's shutdown budget.
         shell._app_quit = Some(cx.on_app_quit(|shell, _| {
-            let pending: Vec<_> = shell
-                .panes
-                .iter()
-                .flatten()
-                .filter_map(|host| host.backend.as_ref())
-                .map(|backend| {
-                    backend.quit();
-                    backend.drained()
-                })
-                .collect();
-            async move {
-                for backend in pending {
-                    let _ = backend.recv().await;
-                }
-            }
+            shell.stop_for_app_quit();
+            std::future::ready(())
         }));
         shell.start_pane(0, window, cx);
         if view == View::Dual {

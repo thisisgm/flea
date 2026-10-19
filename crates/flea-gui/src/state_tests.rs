@@ -329,3 +329,58 @@ fn a_pane_host_holds_catalog_words_from_construction_and_each_language_change() 
         "a language change kept the old words"
     );
 }
+#[gpui::test]
+fn every_flea_quit_entry_waits_for_the_window_barrier(cx: &mut TestAppContext) {
+    for entry in ["close", "ipc", "key"] {
+        let (backend, _) = Backend::test_channel();
+        let window = cx.add_empty_window();
+        window.update(|window, cx| {
+            let entity = cx.new(|cx| shell_with(backend, cx));
+            entity.update(cx, |shell, cx| {
+                match entry {
+                    "close" => {
+                        shell.close(window, cx);
+                    }
+                    "ipc" => shell.ipc(Event::Quit, window, cx),
+                    "key" => shell.key(
+                        &gpui::KeyDownEvent {
+                            keystroke: gpui::Keystroke::parse("ctrl-q").unwrap(),
+                            is_held: false,
+                            prefer_character_input: false,
+                        },
+                        window,
+                        cx,
+                    ),
+                    _ => unreachable!(),
+                }
+                assert_eq!(shell.lifecycle.phase(), Phase::Draining, "{entry}");
+                let backend = shell.panes[0].as_ref().unwrap().backend.as_ref().unwrap();
+                assert!(backend.window(0, 1).is_err(), "{entry}");
+                shell.receive(0, BackendEvent::Drained, window, cx);
+                assert_eq!(shell.lifecycle.phase(), Phase::Closed, "{entry}");
+            });
+        });
+    }
+}
+
+#[gpui::test]
+fn platform_quit_stops_window_tasks_and_releases_backend_ownership(cx: &mut TestAppContext) {
+    let (backend, _) = Backend::test_channel();
+    let closing = backend.closing_probe();
+    let entity = cx.new(|cx| shell_with(backend, cx));
+    entity.update(cx, |shell, cx| {
+        shell._ipc_reader = Some(cx.spawn(async |_, _| std::future::pending::<()>().await));
+        shell._locale_reader = Some(cx.spawn(async |_, _| std::future::pending::<()>().await));
+        shell.deadlines[0] = Some(cx.spawn(async |_, _| std::future::pending::<()>().await));
+        shell.panes[0].as_mut().unwrap().reader =
+            Some(cx.spawn(async |_, _| std::future::pending::<()>().await));
+        shell.stop_for_app_quit();
+        // The dropped handle's quit must not arm the 30-second barrier over a closed stdin.
+        assert_eq!(closing(), crate::backend::Closing::Stdin);
+        assert!(shell._ipc_reader.is_none());
+        assert!(shell._locale_reader.is_none());
+        assert!(shell.deadlines.iter().all(Option::is_none));
+        let host = shell.panes[0].as_ref().unwrap();
+        assert!(host.stopped && host.reader.is_none() && host.backend.is_none());
+    });
+}

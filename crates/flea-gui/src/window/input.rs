@@ -49,6 +49,11 @@ impl Shell {
         if self.lifecycle.phase() != Phase::Open {
             return;
         }
+        if event.keystroke.modifiers.control && event.keystroke.key == "q" {
+            self.close(window, cx);
+            cx.stop_propagation();
+            return;
+        }
         if modifiers(event.keystroke.modifiers) == 0 {
             if let Some(host) = &mut self.panes[self.focus_side] {
                 // The seam acts only while idle, so no plain key touches a listing being replaced.
