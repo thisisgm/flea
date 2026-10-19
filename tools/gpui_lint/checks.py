@@ -24,6 +24,20 @@ silver skyblue slateblue slategray slategrey snow springgreen steelblue tan teal
 turquoise violet wheat white whitesmoke yellow yellowgreen""".split())
 
 
+# Sample input: crates/flea-gui/tests/g1_03/transport.rs belongs to the g1_03 test crate; every src/ file to the package's own.
+def compilation_target(path):
+    parts = path.split("/")
+    base = parts.index("crates") + 2 if "crates" in parts else 0
+    rest = parts[base:]
+    if rest[:1] == ["src"]:
+        key = "src"
+    elif rest[:1] in (["tests"], ["examples"], ["benches"]) and len(rest) > 1:
+        key = rest[0] + "/" + rest[1].removesuffix(".rs")
+    else:
+        key = "/".join(rest[:1])
+    return "/".join(parts[:base] + [key])
+
+
 def blocking(symbol, args, method, helpers):
     parts = symbol.split("::")
     if symbol in helpers or parts[:2] == ["std", "fs"]:
@@ -104,6 +118,9 @@ def source_checks(units, policy):
         function = known[name]
         for symbol, line, args, method in calls(function, known):
             target = resolve(symbol, function, set(known) | helpers)
+            # Another compilation target's item is never callable from this one, however unique its name.
+            if target in known and compilation_target(known[target].path) != compilation_target(function.path):
+                target = symbol
             if blocking(target, args, method, helpers) and (name, target) not in exceptions:
                 errors.append(f"{function.path}:{line}: UI blocking call {target} in {name}")
             if target in known:
@@ -168,9 +185,13 @@ def source_checks(units, policy):
                    if f.symbol.rsplit("::", 2)[-2] == entry["element"]}
         if not {"request_layout", "prepaint", "paint"} <= methods:
             errors.append(f"{entry['path']}: custom Element must implement layout, prepaint and paint")
-        values = [t.value for t in unit["tokens"] if t.kind in ("ident", "punct")]
+        # The constant may live in a sibling module the Element file names, recorded as row_height_path.
+        height_unit = by_path.get(entry.get("row_height_path", entry["path"]))
+        values = [t.value for t in height_unit["tokens"] if t.kind in ("ident", "punct")] if height_unit else []
         if not any(values[i:i + 2] == ["const", entry["row_height"]] for i in range(len(values) - 1)):
-            errors.append(f"{entry['path']}: missing fixed row height {entry['row_height']}")
+            errors.append(f"{entry.get('row_height_path', entry['path'])}: missing fixed row height {entry['row_height']}")
+        elif height_unit is not unit and not any(t.kind == "ident" and t.value == entry["row_height"] for t in unit["tokens"]):
+            errors.append(f"{entry['path']}: Element file does not use its fixed row height {entry['row_height']}")
         pending_hot = [f.symbol for f in unit["functions"]]
         seen_hot = set()
         while pending_hot:

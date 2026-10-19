@@ -4,10 +4,10 @@
     "rev": "af2dfcb28c53876cca170003d65c7b179573b3d2"
   },
   "ui_callbacks": [
-    "flea_gui::run",
+    "flea_gui::window::open",
     "flea_gui::state::Shell::new",
-    "flea_gui::state::Shell::receive",
-    "flea_gui::state::Shell::render"
+    "flea_gui::window::events::Shell::receive",
+    "flea_gui::window::render::Shell::render"
   ],
   "blocking_helpers": [],
   "blocking_exceptions": [],
@@ -24,7 +24,8 @@
       "name": "list",
       "path": "crates/flea-gui/src/list.rs",
       "element": "ListElement",
-      "row_height": "ROW_HEIGHT"
+      "row_height": "ROW_HEIGHT",
+      "row_height_path": "crates/flea-gui/src/list/pane.rs"
     },
     {
       "name": "columns",

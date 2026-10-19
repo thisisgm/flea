@@ -190,6 +190,36 @@ source = "{SOURCE}"
         self.assertTrue(any("empty" in e for e in self.errors()))
         self.assertTrue(any("empty" in e for e in rust_checks([], self.policy)))
 
+    def test_ui_reach_stays_in_its_compilation_target(self):
+        # A test crate's free fn named like an iterator method is not the paint path's .next().
+        self.write("crates/flea-gui/tests/probe.rs", "mod transport;")
+        self.write("crates/flea-gui/tests/probe/transport.rs", "fn next() { replies.recv_blocking(); }")
+        self.assertEqual([], self.check_body("rows.iter().next();"))
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("replies.recv_blocking();")))
+        # The same helper inside the product crate is still reached and flagged.
+        (self.root / "crates/flea-gui/tests/probe/transport.rs").unlink()
+        (self.root / "crates/flea-gui/tests/probe.rs").unlink()
+        self.write("crates/flea-gui/src/row.rs", "fn next() { replies.recv_blocking(); }")
+        self.assertTrue(any("blocking call recv_blocking" in e for e in self.check_body("rows.iter().next();")))
+        self.write("crates/flea-gui/src/window.rs", "fn open() { replies.recv_blocking(); }")
+        self.policy["ui_callbacks"] = ["flea_gui::window::open"]
+        self.assertTrue(any("blocking call recv_blocking in flea_gui::window::open" in e for e in self.errors()))
+
+    def test_row_height_may_live_in_a_sibling_the_element_uses(self):
+        self.policy["hot_surfaces"][0]["row_height_path"] = "crates/flea-gui/src/list/pane.rs"
+        moved = LIST.replace("const ROW_HEIGHT: f32 = 31.;", "use pane::ROW_HEIGHT;")
+        self.write("crates/flea-gui/src/list.rs", moved)
+        self.write("crates/flea-gui/src/list/pane.rs", "pub const ROW_HEIGHT: f32 = 31.;")
+        self.assertEqual([], self.errors())
+        self.write("crates/flea-gui/src/list/pane.rs", "pub const OTHER: f32 = 31.;")
+        self.assertTrue(any("missing fixed row height ROW_HEIGHT" in e for e in self.errors()))
+        self.write("crates/flea-gui/src/list/pane.rs", "pub const ROW_HEIGHT: f32 = 31.;")
+        self.write("crates/flea-gui/src/list.rs", LIST.replace("const ROW_HEIGHT: f32 = 31.;", ""))
+        self.assertTrue(any("does not use its fixed row height" in e for e in self.errors()))
+        del self.policy["hot_surfaces"][0]["row_height_path"]
+        self.write("crates/flea-gui/src/list.rs", moved)
+        self.assertTrue(any("missing fixed row height ROW_HEIGHT" in e for e in self.errors()))
+
     def test_manifest_metadata_and_lock_sources(self):
         def check(meta=None):
             return source_checks(self.root, self.paths(), meta or self.metadata, self.policy)

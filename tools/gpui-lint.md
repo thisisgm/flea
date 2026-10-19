@@ -4,7 +4,7 @@ Run `tools/flea-gpui-lint` from a Git checkout with Python 3.11 or newer and the
 It reads tracked Rust files in native workspace packages and `cargo metadata --locked --format-version 1`.
 In an archived CI export without Git, it checks every exported native source and manifest.
 Comments and Rust string, raw string, byte string, C string and character literals are opaque tokens.
-It follows imported aliases and local helper calls; only explicit thread or background-executor closures are background boundaries.
+It follows imported aliases and local helper calls; only explicit thread or background-executor closures are background boundaries. A call never resolves into another compilation target (an integration test, example or build script), because that crate cannot be called from the product.
 Imports and local callable aliases follow lexical scopes, including parent-module glob imports. A background boundary must belong to this spawn's receiver and directly supplied closure or future, not another expression in the statement.
 Qualified standard-library joins and blocking channel receives normalize their receiver types, generic arguments and imported aliases before classification; Path::join remains nonblocking.
 In registered hot-surface files, every integer token spelled as 0x plus six or eight hex digits, with Rust underscores ignored, is a finding, even in an unused binding or nested write. Constructor arguments are checked for literal tokens directly. No literal provenance is inferred through variables or control flow.
@@ -17,7 +17,7 @@ In registered hot-surface files, every integer token spelled as 0x plus six or e
 - `blocking_exceptions` requires an exact `caller`, exact called `symbol` and nonempty `reason`. Wildcards fail.
 - `color_modules` requires an exact `module`, `kind` of `palette` or `content`, and a `reason`. Drawing and callback modules cannot be exempted.
 - `non_color_hex_constants` permits a genuine non-colour mask through an exact module-level constant `symbol`, exact hex `literal` and nonempty `reason`. It exempts that declaration only; constructor literal arguments remain forbidden. The product currently needs no entries.
-- `hot_surfaces` records each surface's file, custom `element` and fixed `row_height` constant. A pending surface must be registered when its file appears.
+- `hot_surfaces` records each surface's file, custom `element` and fixed `row_height` constant. An optional `row_height_path` names the sibling file that declares the constant; the Element file must still use it. A pending surface must be registered when its file appears.
 
 Run `tests/gpui-lint.sh` and `tests/budget.sh` for mutants and controls.
 The lint suite includes full-CLI review regressions in `tests/gpui_lint_regressions.py`, with a metadata-only Cargo fixture.
@@ -28,7 +28,7 @@ All test writes and cleanup stay within marked temporary roots.
 This source gate does not prove zero warmed-paint allocations, visible-range request bounds or atomic swaps.
 Element tests and runtime probes own those checks.
 It is a lexical guard backed by review and runtime frame/UI-thread gates, not a Rust dataflow or soundness proof.
-The native list scene tests check the default root canvas and application theme roles. Palette loading runs before the application starts; `flea_gui::run` registers the actual UI setup callback.
+The native list scene tests check the default root canvas and application theme roles. Palette loading runs on the startup worker before the application starts; `flea_gui::window::open` is the UI setup callback the application runs.
 The root license policy limits additional licenses to exact package/version exceptions.
 Run `tests/license-policy.sh` in the license lane with `cargo-deny` installed; it requires a version bump to lose its exception.
 Audit the full graph with `cargo deny --locked --workspace check`:
