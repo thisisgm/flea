@@ -285,8 +285,8 @@ if (argv[0] === "zone") {
             "local noon of the asked day draws the day before in a +13 GUI zone");
         // A helper left in the GUI zone: noon UTC rendered at +13 lands a day late, so the pin matters.
         const late = runSelf(import.meta.url, ["late", "Pacific/Tongatapu"], CYCLE_BOUND_SECONDS, "Pacific/Tongatapu");
-        check(late.status === 0 && late.output !== "2001-10-20",
-            "noon UTC rendered in a +13 zone draws another day: " + late.output);
+        check(late.status === 0 && late.output === "2001-10-21",
+            "noon UTC of 2001-10-20 rendered in a +13 zone draws the 21st: " + late.output);
     }
     const styled = postMermaid('<svg><rect style="fill:#ffffff;stroke-width:2;rx:4px" stroke="#000000"/><text style="font-size:12px">a</text></svg>', theme);
     check(styled.includes('fill="#ffffff"') && styled.includes('stroke-width="2"') && styled.includes('rx="4"') && styled.includes('font-size="12px"') && !styled.includes("style="),

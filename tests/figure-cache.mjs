@@ -107,8 +107,9 @@ check(qmlKey("mermaid", gantt, today, true) === cacheKey("mermaid", gantt, today
 const figureSource = readText(resolve(tree, "ui/MarkdownFigure.qml"));
 const askAt = figureSource.indexOf("function ask()");
 const rememberedAt = figureSource.indexOf("function takeRemembered()");
+const rememberedEnd = figureSource.indexOf("\n    }\n", rememberedAt);
 check(askAt >= 0 && rememberedAt > askAt && figureSource.slice(askAt, rememberedAt).includes("FigureDate.datedTheme")
-    && figureSource.slice(rememberedAt).includes("FigureDate.datedTheme"), "MarkdownFigure dates before ask and before its cached lookup");
+    && rememberedEnd > rememberedAt && figureSource.slice(rememberedAt, rememberedEnd).includes("FigureDate.datedTheme"), "MarkdownFigure dates before ask and before its cached lookup");
 const held = { answerCache: {}, answerOrder: [], cacheMax: themes.length, tableDigestOf: digestOf };
 held.cacheKeyOf = (kind, source, t, display) => qmlKeyOf(held, kind, source, t, display);
 const qmlStore = new Function("root", "kind", "source", "theme", "display", "svg", functionBody(service, "store"));
