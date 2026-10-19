@@ -258,10 +258,23 @@ fn ask(m: &Model, question: &Paste, theme: &Theme, columns: usize) -> String {
     format!("{}{}{base}{}{}{}{base}{}", theme.foreground, ellipsis(&head, head_width), " ".repeat(gap), theme.muted,
         ellipsis(&i18n.tr("collide.keys"), keys_width), " ".repeat(columns - head_width - gap - keys_width))
 }
-// No preview stands for a cursor row the filter does not draw, so a query that matches nothing leaves the pane empty.
+// No preview stands for a cursor row the filter does not draw, so a query that matches nothing leaves the pane empty; one lookup, never a copy of the matches.
 pub fn previewed(m: &Model) -> bool {
-    m.filter.is_empty() || m.shown().contains(&m.cursor)
+    #[cfg(test)]
+    GATE.with(|gate| gate.set((gate.get().0 + 1, gate.get().1)));
+    if m.filter.is_empty() { return true; }
+    match super::filter::answered(m) {
+        Some(rows) => rows.binary_search_by(|row| {
+            #[cfg(test)]
+            GATE.with(|gate| gate.set((gate.get().0, gate.get().1 + 1)));
+            row.cmp(&m.cursor)
+        }).is_ok(),
+        None => m.rows.get(&m.cursor).is_some_and(|row| row.name.to_lowercase().contains(&m.filter.to_lowercase())),
+    }
 }
+// The gate's calls and comparisons on this thread, for the cost test.
+#[cfg(test)]
+thread_local! { pub(super) static GATE: std::cell::Cell<(usize, usize)> = const { std::cell::Cell::new((0, 0)) }; }
 // The terminal's own bar cursor is the caret while a prompt holds a cell for it, and it hides otherwise.
 pub fn caret(at: Option<usize>, lines: usize) -> String {
     at.map_or_else(|| "\x1b[?25l".into(), |x| format!("\x1b[{lines};{}H\x1b[6 q\x1b[?25h", x + 2))

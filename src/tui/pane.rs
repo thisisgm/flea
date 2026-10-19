@@ -44,8 +44,13 @@ fn padded(inner: &str, area: &Area, theme: &Theme) -> String {
     format!("{base}{pad}{inner}{base}{pad}{base}")
 }
 
-// One row of the preview pane: the head, then the body the file's kind draws.
+// One row of the preview pane, asking the no-match gate itself, for tests that draw one row.
+#[cfg(test)]
 pub fn preview(m: &Model, y: usize, columns: usize, height: usize, theme: &Theme) -> String {
+    preview_row(m, y, columns, height, theme, super::prompts::previewed(m))
+}
+// One row of the preview pane, the head then the body the file's kind draws, with the no-match gate already answered so a frame asks it once.
+pub fn preview_row(m: &Model, y: usize, columns: usize, height: usize, theme: &Theme, previewed: bool) -> String {
     let padding = pane_padding(columns);
     let area = Area { columns, padding, height: height.saturating_sub(3), card: false };
     let width = area.width();
@@ -55,7 +60,7 @@ pub fn preview(m: &Model, y: usize, columns: usize, height: usize, theme: &Theme
     if let Some(line) = super::trashview::preview(m, y, width, theme) {
         return padded(&line, &area, theme);
     }
-    let Some(row) = m.rows.get(&m.cursor).filter(|_| m.current_path().as_ref() == Some(&m.preview_path) && super::prompts::previewed(m)) else {
+    let Some(row) = m.rows.get(&m.cursor).filter(|_| m.current_path().as_ref() == Some(&m.preview_path) && previewed) else {
         return padded(&fit("", width), &area, theme);
     };
     let state = &m.preview_state;
@@ -123,8 +128,8 @@ fn stacked(m: &Model, i: usize, area: &Area, theme: &Theme) -> String {
     let i18n = &m.preview_state.i18n;
     let focused = m.preview_focus || m.quicklook;
     match picture::slot(m, i, area) {
-        // Behind a card the pane's picture is cleared; a terminal could only dim it by sending it again.
-        Slot::Picture(y) => match picture::grid(m).filter(|_| area.card || !m.quicklook) {
+        // Behind a card (Quick Look, the keys sheet, Properties or the delete card) the pane's picture is cleared; a terminal could only dim it by sending it again.
+        Slot::Picture(y) => match picture::grid(m).filter(|_| area.card || !(m.quicklook || m.sheet || m.deletion.is_some())) {
             Some(grid) => {
                 let offset = if area.card { width.saturating_sub(grid.columns) / 2 } else { 0 };
                 format!("{}{}", " ".repeat(offset), super::still::row(grid, y, width - offset, theme))

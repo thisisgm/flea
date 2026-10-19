@@ -71,6 +71,7 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
     let body = body_height(lines);
     let base = theme.base();
     let visible = m.visible();
+    let previewed = m.preview_visible && super::prompts::previewed(m);
     let mut out = format!("\x1b[H{}\x1b[2;1H{}", layout::header(m, theme, columns), layout::rule(columns, m.preview_visible, false, theme));
     for y in 0..body {
         out.push_str(&format!("\x1b[{};1H{}", y + BODY_ROW, base));
@@ -94,7 +95,7 @@ pub(super) fn frame(m: &Model, theme: &Theme, map: &Map, columns: usize, lines: 
         out.push_str(&base);
         if m.preview_visible {
             out.push_str(&format!("{}│{}", theme.border, base));
-            out.push_str(&layout::preview(m, y, right, body, theme));
+            out.push_str(&super::pane::preview_row(m, y, right, body, theme, previewed));
         }
     }
     if let Some((top, height)) = layout::thumb(m, body, std::time::Instant::now()) {

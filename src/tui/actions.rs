@@ -26,7 +26,7 @@ pub fn key(model: &mut Model, key: &Key, map: &Map, wire: &mut Wire) -> io::Resu
     if model.prompts.question.is_some() { return super::prompts::answer(model, key, wire); }
     if model.menu { return super::render::menu_run::key(model, key, map, wire); }
     if model.sheet { return super::render::cards::sheet_key(model, key, map); }
-    if super::trashview::refuses(model, key, map, wire)? { return Ok(()); }
+    if super::trashview::refuses(model, key, map, &armed, wire)? { return Ok(()); }
     if let Some(pointer) = &key.pointer {
         return pointer_key(model, key, pointer, map, wire);
     }

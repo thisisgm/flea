@@ -88,3 +88,34 @@ fn control_runs_paint_in_their_own_inks_and_fill_the_width() {
     assert_eq!(paint(&runs, 4, &theme), format!("{}──{}x{} ", theme.track, theme.muted, theme.foreground));
     assert_eq!(plain(&paint(&runs, 1, &theme)), "─");
 }
+
+// A half-block picture is cleared under every card, the keys sheet, Properties and the delete card as well as Quick Look, and comes back after.
+#[test]
+fn the_half_block_picture_is_cleared_under_every_card() {
+    use crate::tui::capabilities::Protocol;
+    use crate::tui::chafa::{Cell, Color, ColorMode, Grid};
+    let theme = Theme::from_text("");
+    let map = crate::tui::keymap::Map::load();
+    let mut m = model();
+    m.preview_visible = true;
+    let row = m.rows.get_mut(&7).unwrap();
+    (row.icon, row.name, row.thumbnail) = ("image-png".into(), "photo.png".into(), true);
+    m.preview_path = m.path.join("photo.png");
+    m.image_file = Some(m.path.join("photo.png"));
+    m.capabilities.graphics = Protocol::None;
+    let picture = Grid { columns: 4, rows: 2, cells: vec![Cell { symbol: '▀', foreground: Color::Rgb(201, 9, 9), background: Color::Default }; 8] };
+    let key = crate::tui::still::Key { path: m.path.join("photo.png"), generation: m.preview_generation, page: (0, 0, 0), cells: (48, 21), colors: ColorMode::Truecolor };
+    m.preview_state.still.hold(key, picture);
+    let lit = "\x1b[38;2;201;9;9m";
+    let drawn = |m: &Model| crate::tui::render::frame(m, &theme, &map, 130, 31, std::time::Duration::ZERO).contains(lit);
+    assert!(drawn(&m), "the fixture draws its half-block picture");
+    m.sheet = true;
+    assert!(!drawn(&m), "the keys sheet left the picture lit");
+    m.properties = Some(vec![(String::new(), "Loading properties…".into())]);
+    assert!(!drawn(&m), "Properties left the picture lit");
+    (m.sheet, m.properties) = (false, None);
+    m.deletion = Some(Default::default());
+    assert!(!drawn(&m), "the delete card left the picture lit");
+    m.deletion = None;
+    assert!(drawn(&m), "the picture comes back once the card closes");
+}
