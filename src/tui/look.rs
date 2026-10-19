@@ -1,4 +1,4 @@
-use super::cells::{ellipsis, fit, text_width};
+use super::cells::{ellipsis, fit, name_title, text_width};
 use super::layout::{BODY_ROW, CHROME_ROWS};
 use super::model::Model;
 use super::pane::Area;
@@ -68,13 +68,14 @@ fn bar(m: &Model, width: usize, theme: &Theme) -> String {
     let close = if m.marks() { "\u{ea76}" } else { "×" };
     let room = width.saturating_sub(3);
     let mark = if m.marks() { format!("{} ", super::icons::row(row, true)) } else { String::new() };
-    let head = format!("{mark}{}", row.name.rsplit('/').next().unwrap_or(&row.name));
-    let name = ellipsis(&head, text_width(&head).min(room));
+    let leaf = row.name.rsplit('/').next().unwrap_or(&row.name);
+    let head = (text_width(&mark) + text_width(leaf)).min(room);
+    let name = name_title(&mark, leaf, head);
     let fact = fact(m, row);
-    let rest = room - text_width(&name);
+    let rest = room - head;
     let fact = if fact.is_empty() || rest < 3 { fit("", rest) } else { format!("  {}", ellipsis(&fact, text_width(&fact).min(rest - 2))) };
-    let gap = width.saturating_sub(2 + text_width(&name) + text_width(&fact));
-    format!("{}\x1b[1m{name}\x1b[22m{}{fact}{}{}{close} ", theme.foreground, theme.meta, " ".repeat(gap), theme.foreground)
+    let gap = width.saturating_sub(2 + head + text_width(&fact));
+    format!("{}{name}{}{fact}{}{}{close} ", theme.foreground, theme.meta, " ".repeat(gap), theme.foreground)
 }
 
 // The fact the window's Quick Look bar names: a picture's size, a sound's length, a page or line count.

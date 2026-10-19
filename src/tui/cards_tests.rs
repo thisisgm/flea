@@ -87,6 +87,7 @@ fn delete_card_matches_its_board_and_cancel_stays_default_as_focus_moves() {
     assert_eq!(ink[12][35].0, role(&theme.frame));
     assert_eq!(at(&rows, 13, 38, 26), "Delete 1 item permanently?");
     assert!(ink[13][38].2, "the title is bold");
+    assert!((64..87).all(|x| !ink[13][x].2), "the padding after the title is plain");
     assert_eq!((at(&rows, 13, 89, 3), ink[13][89].0.clone()), ("esc".into(), role(&theme.muted)));
     assert_eq!((at(&rows, 14, 37, 56), ink[14][38].0.clone()), (format!(" {} ", "─".repeat(54)), role(&theme.rule)));
     assert_eq!(at(&rows, 15, 38, 54), "This item is deleted from disk. This cannot be undone.");
@@ -223,4 +224,22 @@ fn a_value_still_shows_beside_a_label_wider_than_the_card() {
     let (rows, _, _) = screen(&m, &theme);
     let shown: String = (0..card.shown).map(|i| at(&rows, card.y + 3 + i, card.left(), card.content())).collect();
     assert!(shown.contains("0644"), "{shown:?}");
+}
+
+#[test]
+fn a_card_title_cut_for_its_room_is_plain_text_with_a_bold_ellipsis() {
+    let theme = Theme::from_text(PALETTE);
+    let m = deleting(1, 1);
+    let card = delete_card(&m);
+    let room = card.content() - (text_width(&m.i18n.tr("card.esc")) + 2);
+    let title = "Delete one item permanently and remove every copy from the disk, ok?";
+    let mut out = String::new();
+    frame(&mut out, &m, &theme, &card, title);
+    let lines = m.height + crate::tui::layout::CHROME_ROWS;
+    let (rows, ink) = (grid(&out, m.columns, lines), inks(&out, m.columns, lines));
+    let (y, x) = (card.y + 1, card.left());
+    let shown: String = title.chars().take(room - 1).collect();
+    assert_eq!(at(&rows, y, x, room), format!("{shown}\u{2026}"));
+    assert!((x..x + room).all(|c| ink[y][c].2), "the cut title and its ellipsis are bold");
+    assert_eq!(at(&rows, y, x + room + 2, 3), "esc");
 }

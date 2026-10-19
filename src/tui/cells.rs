@@ -54,6 +54,37 @@ pub fn ellipsis(text: &str, limit: usize) -> String {
 pub fn centered(text: &str, limit: usize) -> String {
     fit(&format!("{}{}", " ".repeat(limit.saturating_sub(text_width(text)) / 2), text), limit)
 }
+// Bold on the name's cells only: the mark, its space and the padding stay plain, a cut name keeps its ellipsis bold.
+// The plain text is ellipsis(mark + name, columns), so the title is exactly columns cells.
+pub fn name_title(mark: &str, name: &str, columns: usize) -> String {
+    if columns == 0 { return String::new(); }
+    let cut = text_width(mark) + text_width(name) > columns;
+    let limit = if cut { columns - 1 } else { columns };
+    let mut shown = Vec::new();
+    let mut used = 0;
+    for (is_name, c) in mark.chars().map(|c| (false, c)).chain(name.chars().map(|c| (true, c))) {
+        if !safe(c) { continue; }
+        let n = width(c);
+        if used + n > limit { break; }
+        if n == 0 && used == 0 { continue; }
+        shown.push((is_name, c));
+        used += n;
+    }
+    let name_shown = shown.iter().any(|&(is_name, c)| is_name && width(c) > 0);
+    shown.resize(shown.len() + limit - used, (false, ' '));
+    if cut { shown.push((name_shown, '…')); }
+    let mut out = String::new();
+    let mut bold = false;
+    for (is_name, c) in shown {
+        if is_name != bold {
+            out.push_str(if is_name { "\x1b[1m" } else { "\x1b[22m" });
+            bold = is_name;
+        }
+        out.push(c);
+    }
+    if bold { out.push_str("\x1b[22m"); }
+    out
+}
 pub struct Wrapped<'a> { remaining: Option<&'a str>, columns: usize }
 impl<'a> Wrapped<'a> {
     pub fn new(text: &'a str, columns: usize) -> Self { Self { remaining: (columns > 0).then_some(text), columns } }

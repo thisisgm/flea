@@ -1,7 +1,7 @@
 //! The window's cards in cells: a framed ground with two cells of air, the bold title beside a muted esc, the rule, and bracket buttons.
 use crate::i18n::I18n;
 use crate::jsondoc::Json;
-use crate::tui::{cells::{fit, text_width, Wrapped}, input::{Key, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model::Model, theme::Theme};
+use crate::tui::{cells::{fit, name_title, text_width, Wrapped}, input::{Key, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model::Model, theme::Theme};
 use crate::tui::wire::{count, flag, number, text, word, Wire};
 use std::io;
 use std::sync::{atomic::{AtomicBool, Ordering}, Arc};
@@ -83,7 +83,7 @@ pub fn frame(out: &mut String, m: &Model, theme: &Theme, card: &Card, title: &st
     let content = card.content();
     let esc = m.i18n.tr("card.esc");
     let room = content.saturating_sub(text_width(&esc) + 2);
-    out.push_str(&format!("\x1b[{};{}H{}\x1b[1m{}{}", card.y + 2, card.left() + 1, base, fit(title, if room > 0 { room } else { content }), base));
+    out.push_str(&format!("\x1b[{};{}H{}{}{}", card.y + 2, card.left() + 1, base, name_title("", title, if room > 0 { room } else { content }), base));
     if room > 0 { out.push_str(&format!("  {}{}{}", theme.muted, esc, base)); }
     out.push_str(&format!("\x1b[{};{}H{}{}{}", card.y + 3, card.left() + 1, theme.rule, "─".repeat(content), base));
 }

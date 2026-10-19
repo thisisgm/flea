@@ -1,5 +1,5 @@
 // Trash as a place: the backend's reviewed Trash list, newest first, never the XDG files folder behind it.
-use super::{cells::{ellipsis, fit}, icons, input::{Key, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model::{Model, Row}, theme::Theme,
+use super::{cells::{ellipsis, fit, name_title}, icons, input::{Key, WHEEL_DOWN, WHEEL_UP}, keymap::Map, model::{Model, Row}, theme::Theme,
     wire::{count, flag, number, text, word, Wire}};
 use crate::jsondoc::Json;
 use std::{collections::BTreeMap, io, path::PathBuf};
@@ -153,7 +153,7 @@ pub fn preview(m: &Model, y: usize, width: usize, theme: &Theme) -> Option<Strin
     Some(match y {
         0 => {
             let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
-            format!("\x1b[1m{}\x1b[22m", ellipsis(&format!("{mark}{}", row.name), width))
+            name_title(&mark, &row.name, width)
         }
         1 => format!("{}{}", theme.meta, ellipsis(&format!("{} · {}", row.kind, super::render::bytes(row.size)), width)),
         2 => format!("{}{}", theme.meta, ellipsis(&i18n.tr_args("trash.deleted", &[&super::calendar::value(&Json::Str(deleted.clone()))]), width)),
