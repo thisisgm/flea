@@ -18,10 +18,18 @@ tools/flea-tui-battery --binary /absolute/path/to/flea \
 ```
 
 The output must be new and beneath an existing, nonempty `.flea-test-sandbox`
-marker. Evidence is retained, including failures. The tool never removes fixtures.
+marker. Evidence is retained, including failures. Each case's `/fx` tree is built
+in its own marked root on tmpfs (`/dev/shm`), the filesystem the boards' folder totals
+come from: a tmpfs folder reports 40 bytes plus 20 per entry, and Flea's folder sizes
+sum those. Once the terminal closes, the tree is copied into the case's `fx` directory,
+where it is retained, and only the tmpfs copy is removed.
 The candidate sees only the private writable `/fx` tree, private temporary files and
 read-only system libraries. `/fx/v/work` is a namespace path, never a host mount.
-The candidate has no host network, clipboard socket or CUPS socket.
+The candidate has no host network, clipboard socket or CUPS socket. Two host resources
+a user's terminal provides are bound read-only: the system font cache
+(`/var/cache/fontconfig`), so Flea's 150 ms font probe answers as it does outside the
+sandbox, and under tmux the server socket that `TMUX` names, so Flea can ask its tmux
+client for RGB.
 
 `--states tui-list-text,tui-empty` and `--terminals foot` select reruns. `--list`
 prints the complete request inventory and exclusions. The original 61 states retain
@@ -38,6 +46,29 @@ or fixture arguments. Each adapter launches a fake terminal around a real contro
 PTY and the real relay. Diagnostics check fragmented query-response forwarding, input,
 exit status and termios restoration. They also run negative predicate, separator and
 capability controls. No diagnostic image or fake terminal result counts as native proof.
+
+## Display ownership, preflight and smoke
+
+`--preflight` (with `--boards`) answers in about three seconds. It refuses a locked
+session, a `FLEA-` output or a `flea.battery.` window left by another run, a mapped
+screensaver, and any pointer, focus, workspace or window change during its quiet
+window. A native run repeats the same check before it creates its output.
+
+Each terminal opens on the owned output's shown workspace, never a silent one, and
+must be shown there before calibration. Every capture checks that the owned output
+still shows the owned workspace and that the session is not locked. When either check
+fails, the run stops and blocks every remaining state with the same reason. Before
+`grim` runs, each capture parks the pointer on the owned output's bottom-right pixel,
+outside every window, and reads its position back. The
+window class is a valid GTK application ID (`flea.battery.t<hex>`), so ghostty keeps
+it. A terminal that opens at another cell size is resized from its own reported cell
+metrics; one that reports no pixel metrics is blocked. Each state quits through the
+keymap's quit key, with an Escape retry, and the relay only signals a candidate that
+did not exit.
+
+`--smoke` runs one state (`tui-list-text`) per terminal. Its status is `SMOKE-PASS`
+when every machine check passes and only the controller's visual review is pending.
+`SMOKE-PASS` proves the native path, never acceptance.
 
 ## Offline CI suite
 
@@ -123,8 +154,12 @@ are Ctrl+Enter/O, Ctrl+Shift+Z/Ctrl+Y and Ctrl+Shift+N/N; Ctrl+Tab retains Ctrl+
 
 `--profiles FILE` supplies per-terminal `font` and `font_size`. Initial values are
 launch seeds. Actual PTY integer cell metrics, compositor client geometry and the
-observed row-2 separator calibrate the grid before input is sent. An absent or ambiguous
-separator fails. Native images are never stretched to the browser's 8.4 by 22 cells.
+observed row-2 separator calibrate the grid before input is sent. The rule's full-width run
+fixes the grid's left edge. Its thinnest column gives its thickness, since a junction's stroke
+continues below it. The grid's top follows from where alacritty, foot, ghostty and kitty draw a
+light rule, `(cell height - thickness) // 2` pixels below the top of its cell. The first plain
+filled cell on screen then confirms that top, because a cell background covers exactly its cell.
+An absent or ambiguous separator, or a fill that disagrees, blocks with the coordinates it compared. Native images are never stretched to the browser's 8.4 by 22 cells.
 The two small-window reference origins are `(4,9)` and `(4,175)`.
 
 Board HTML supplies text, wide cells, frames, fills and ink roles at exact cell
