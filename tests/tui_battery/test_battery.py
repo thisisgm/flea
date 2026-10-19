@@ -344,9 +344,9 @@ class BatteryTests(unittest.TestCase):
 
     def test_separator_stays_inside_client_and_requires_observed_rule(self):
         pixels = bytearray([28, 18, 13, 255]) * 200 * 140
-        # A one-pixel rule centered in the second 22-pixel cell, inside a padded client.
+        # A one-pixel rule where terminals draw it in the second 22-pixel cell, (22 - 1) // 2 rows down, inside a padded client.
         for x in range(20, 180):
-            pixels[(43 * 200 + x) * 4:(43 * 200 + x) * 4 + 4] = bytes([90, 90, 90, 255])
+            pixels[(42 * 200 + x) * 4:(42 * 200 + x) * 4 + 4] = bytes([90, 90, 90, 255])
         rect = separator((200, 140, pixels), (10, 10, 180, 100), (4, 20, 160, 88))
         self.assertEqual(rect, (20, 10, 160, 88))
         with self.assertRaises(Blocked):

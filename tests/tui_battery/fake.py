@@ -13,7 +13,7 @@ import termios
 import time
 import tty
 
-from .adapters import Adapter, OPTIONS
+from .adapters import Adapter, OPTIONS, OWNED_CLASS_PREFIX
 from .cells import predicate
 from .evidence import Blocked, MARKER, save
 from .geometry import COLUMNS, ROWS
@@ -95,7 +95,7 @@ def adapter_diagnostic(name, case, commands, palette):
         wrapper = fakebin / executable
         wrapper.write_text("#!/bin/sh\nexec " + shlex.join([sys.executable, "-m", "tui_battery.fake", "--terminal", executable]) + ' "$@"\n')
         wrapper.chmod(0o700)
-    adapter = Adapter(name, case, "fake-battery", palette)
+    adapter = Adapter(name, case, OWNED_CLASS_PREFIX + "fake", palette)
     adapter.configure()
     environment = dict(adapter.environment(), PATH=str(fakebin) + ":/usr/bin:/bin", PYTHONPATH=root, PYTHONDONTWRITEBYTECODE="1")
     preflight = adapter.preflight(commands, str(fakebin), environment)
