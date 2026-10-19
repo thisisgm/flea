@@ -1,0 +1,209 @@
+//! The stand-in's body blocks: Open With's list, bulk rename's names, the permission grid, the facts and every other part.
+use super::*;
+use gpui::{div, prelude::*, px, relative, AnyElement, Div, FontWeight};
+
+impl Draw<'_> {
+    fn apps(&self, rows: &[AppRow], filler: f32) -> Div {
+        let t = self.t;
+        let mut list = div().flex().flex_col().mx(self.px(-PAD));
+        for row in rows {
+            list = match row {
+                AppRow::Eyebrow { text, first } => {
+                    let air = if *first { FIRST_EYEBROW_AIR } else { LATER_EYEBROW_AIR };
+                    let list = if *first { list } else { list.child(self.hairline()) };
+                    list.child(
+                        self.text(CAPTION)
+                            .h(self.px(EYEBROW))
+                            .mt(self.px(air))
+                            .px(self.px(ROW_INSET))
+                            .flex()
+                            .items_center()
+                            .font_weight(FontWeight::BOLD)
+                            .text_color(t.muted)
+                            .child(text.to_uppercase()),
+                    )
+                }
+                AppRow::App { label, tail, cursor, mark } => {
+                    let mut line = self
+                        .text(BOARD_BODY)
+                        .relative()
+                        .h(self.px(APP_ROW))
+                        .flex()
+                        .items_center()
+                        .gap(self.px(ROW_GAP))
+                        .px(self.px(ROW_INSET))
+                        .text_color(t.fg);
+                    line = match cursor {
+                        Cursor::None => line,
+                        Cursor::Waiting => line.bg(t.fg.opacity(HOVER)),
+                        Cursor::Focused => line
+                            .bg(t.accent.opacity(WASH_CURSOR))
+                            .child(div().absolute().left_0().top_0().bottom_0().w(px(2.)).bg(t.accent_frame)),
+                    };
+                    // A themed icon fills this slot once the icon service hands it over.
+                    let slot = match mark {
+                        Some(mark) => glyph(*mark, MARK * self.s, t.fg).into_any_element(),
+                        None => div().size(self.px(MARK)).flex_none().into_any_element(),
+                    };
+                    let line = line
+                        .child(slot)
+                        .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().child(label.clone()));
+                    let line = if tail.is_empty() { line } else { line.child(self.text(CAPTION).text_color(t.muted).child(tail.clone())) };
+                    list.child(line)
+                }
+            };
+        }
+        list.child(div().h(self.px(filler)).flex_none()).child(self.hairline())
+    }
+
+    fn names(&self, old_label: &str, old: &[String], new_label: &str, new: &[NameLine], focused: bool, error: &str) -> Div {
+        let t = self.t;
+        let line = || self.text(BOARD_BODY).h(self.px(NAME_LINE)).flex().items_center();
+        let mut old_column = div().flex().flex_col().py(self.px(3.)).border_t_1().border_r_1().border_b_1().border_color(gpui::transparent_black());
+        for name in old {
+            old_column = old_column.child(line().text_color(t.muted).child(name.clone()));
+        }
+        let mut new_column = div()
+            .flex()
+            .flex_col()
+            .py(self.px(3.))
+            .px(self.px(BUTTON_PAD))
+            .border_1()
+            .border_color(if focused { t.accent_frame } else { t.muted_frame })
+            .rounded(self.px(RADIUS));
+        for name in new {
+            let row = line().text_color(t.ink(name.ink)).child(div().flex_1().min_w_0().overflow_hidden().child(name.text.clone()));
+            new_column = new_column.child(if name.reason.is_empty() { row } else { row.child(self.text(CAPTION).child(name.reason.clone())) });
+        }
+        let half = |label: &str, column: Div| div().flex_1().min_w_0().flex().flex_col().child(self.label(label)).child(column);
+        let error = self.text(CAPTION).h(self.px(ERROR_LINE)).line_height(self.px(ERROR_LINE)).mt(self.px(6.)).text_color(t.error).child(error.to_string());
+        div().flex().gap(self.px(GAP)).child(half(old_label, old_column)).child(half(new_label, new_column).child(error))
+    }
+
+    fn grid(&self, columns: &[String], rows: &[(String, [Check; 3])]) -> Div {
+        let cell = || div().flex_1().flex().justify_center();
+        let mut head = self.text(CAPTION).h(self.px(GRID_HEAD)).flex().items_center().text_color(self.t.fg).child(div().w(self.px(LABEL_COLUMN)).flex_none());
+        for name in columns {
+            head = head.child(cell().child(name.to_uppercase()));
+        }
+        let mut grid = div().flex().flex_col().child(head);
+        for (name, checks) in rows {
+            let mut line = self.text(BOARD_BODY).h(self.px(LINE_40)).flex().items_center().text_color(self.t.fg).child(div().w(self.px(LABEL_COLUMN)).flex_none().child(name.clone()));
+            for check in checks {
+                line = line.child(cell().child(self.check(*check)));
+            }
+            grid = grid.child(line);
+        }
+        grid
+    }
+
+    fn facts(&self, facts: &[Fact]) -> Div {
+        let t = self.t;
+        let line = |size: f32| self.text(size).h(self.px(FACT_LINE)).line_height(self.px(FACT_LINE)).flex().items_center();
+        let mut names = div().flex().flex_col().flex_none();
+        let mut values = div().flex().flex_col().flex_1().min_w_0();
+        for fact in facts {
+            let (name, value) = match fact {
+                Fact::Text { name, value, tail } => {
+                    let value = line(BOARD_BODY).text_color(t.fg).child(value.clone());
+                    (name, if tail.is_empty() { value } else { value.child(div().text_color(t.muted).child(tail.clone())) })
+                }
+                Fact::Tags { name, tags } => {
+                    let mut value = line(BOARD_BODY).text_color(t.fg);
+                    for (at, tag) in tags.iter().enumerate() {
+                        // The tag's 14 px colour mark fills this slot once the tag ink reaches the palette.
+                        let gap = if at + 1 < tags.len() { 14. } else { 0. };
+                        value = value.child(div().size(self.px(14.)).flex_none()).child(div().ml(self.px(7.)).mr(self.px(gap)).child(tag.clone()));
+                    }
+                    (name, value)
+                }
+            };
+            names = names.child(line(CAPTION).text_color(t.muted).child(name.clone()));
+            values = values.child(value);
+        }
+        div().flex().gap(self.px(FACT_GAP)).child(names).child(values)
+    }
+
+    pub(super) fn block(&self, block: &Block) -> AnyElement {
+        let t = self.t;
+        match block {
+            Block::Field(field) => self.field(field).into_any_element(),
+            Block::Fields(left, right) => div()
+                .flex()
+                .gap(self.px(GAP))
+                .child(div().flex_1().min_w_0().child(self.field(left)))
+                .child(div().flex_1().min_w_0().child(self.field(right)))
+                .into_any_element(),
+            Block::Names { old_label, old, new_label, new, focused, error } => self.names(old_label, old, new_label, new, *focused, error).into_any_element(),
+            Block::Apps(rows, filler) => self.apps(rows, *filler).into_any_element(),
+            Block::CheckLine { check, label } => self
+                .text(BOARD_BODY)
+                .mt(self.px(-4.))
+                .flex()
+                .items_center()
+                .gap(self.px(ROW_GAP))
+                .text_color(t.fg)
+                .child(self.check(*check))
+                .child(label.clone())
+                .into_any_element(),
+            Block::Note { text, inset, ink, lift } => div()
+                .text_size(self.px(CAPTION))
+                .line_height(relative(1.5))
+                .mt(self.px(-*lift))
+                .pl(self.px(*inset))
+                .text_color(t.ink(*ink))
+                .child(text.clone())
+                .into_any_element(),
+            Block::Subject { glyph: mark, name, kind } => self
+                .text(BOARD_BODY)
+                .h(self.px(LINE_40))
+                .flex()
+                .items_center()
+                .gap(self.px(ROW_GAP))
+                .text_color(t.fg)
+                .child(glyph(*mark, 19. * self.s, t.muted_frame))
+                .child(div().flex_1().min_w_0().overflow_hidden().text_ellipsis().child(name.clone()))
+                .child(self.text(CAPTION).child(kind.clone()))
+                .into_any_element(),
+            Block::Program { glyph: mark, text } => self
+                .text(BOARD_BODY)
+                .flex()
+                .items_center()
+                .gap(self.px(ROW_GAP))
+                .text_color(t.fg)
+                .child(glyph(*mark, 19. * self.s, t.fg))
+                .child(text.clone())
+                .into_any_element(),
+            Block::Rule { above, below } => self.hairline().mt(self.px(*above)).mb(self.px(*below)).into_any_element(),
+            Block::Grid { columns, rows } => self.grid(columns, rows).into_any_element(),
+            Block::Info { label, value, tail } => self
+                .text(BOARD_BODY)
+                .h(self.px(LINE_40))
+                .flex()
+                .items_center()
+                .gap(self.px(ROW_GAP))
+                .text_color(t.fg)
+                .child(div().w(self.px(LABEL_COLUMN)).flex_none().child(label.clone()))
+                .child(div().flex_1().min_w_0().overflow_hidden().child(value.clone()))
+                .child(self.text(CAPTION).child(tail.clone()))
+                .into_any_element(),
+            Block::Section { head, lines } => {
+                let mut section = div().flex().flex_col().text_size(self.px(CAPTION)).text_color(t.fg).child(div().line_height(self.px(18.)).pb(self.px(3.)).child(head.to_uppercase()));
+                for (at, line) in lines.iter().enumerate() {
+                    let height = if at + 1 == lines.len() { 20. } else { 16. };
+                    section = section.child(div().line_height(self.px(height)).child(line.clone()));
+                }
+                section.into_any_element()
+            }
+            Block::Facts(facts) => self.facts(facts).into_any_element(),
+            Block::Stack(blocks) => {
+                let mut stack = div().flex().flex_col();
+                for block in blocks {
+                    stack = stack.child(self.block(block));
+                }
+                stack.into_any_element()
+            }
+        }
+    }
+
+}
