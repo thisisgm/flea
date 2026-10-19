@@ -1,3 +1,4 @@
+pub mod columns;
 pub mod navigation;
 pub mod pane;
 pub mod server;

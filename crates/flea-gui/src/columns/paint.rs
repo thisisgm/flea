@@ -1,0 +1,252 @@
+//! What a track paints with: the palette rungs, the focus snapshot, the clip marks and each slot's retained paint state.
+use super::cache::{Prepared, TrackCache};
+use super::geometry::Slot;
+use super::tracks::TrackView;
+use crate::list::Typeface;
+use crate::navigation::sort::{DirSizes, Size};
+use gpui::{Hsla, Pixels, TextStyle, Window};
+use std::{cell::RefCell, rc::Rc};
+
+// The board's rungs over the theme roles: hairline 12%, hover 8%, grey cursor and accent wash 18%, marked plate 35%, a cut row 55%.
+pub const HAIR: f32 = 0.12;
+pub const HOVER: f32 = 0.08;
+pub const SELECTION: f32 = 0.18;
+pub const WASH: f32 = 0.18;
+pub const MARKED: f32 = 0.35;
+pub const CUT: f32 = 0.55;
+pub const EDGE: f32 = 2.;
+/// Theme.clipMarkSize: the clip mark 12 px square, one gap after the name.
+pub const CLIP: f32 = 12.;
+// Rows kept shaped past the viewport, so a short scroll back reshapes nothing.
+pub const CACHE_SCREENS: usize = 3;
+
+/// The roles a track draws with, interim from the inherited text style until the theme tokens land.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct Palette {
+    pub background: Hsla,
+    pub foreground: Hsla,
+    pub muted: Hsla,
+    pub muted_frame: Hsla,
+    pub accent: Hsla,
+    pub accent_frame: Hsla,
+}
+
+impl Palette {
+    pub fn inherited(style: &TextStyle) -> Self {
+        let base = crate::list::Palette::inherited(style);
+        Self {
+            background: base.background,
+            foreground: base.foreground,
+            muted: base.metadata,
+            muted_frame: base.metadata_frame,
+            accent: base.accent,
+            accent_frame: base.accent_frame,
+        }
+    }
+}
+
+/// One row's inks: a cut row dims its mark, name and size to CUT; the chevron and the clip glyph keep theirs.
+#[derive(Clone, Copy, Debug, PartialEq)]
+pub struct RowInk {
+    pub mark: Hsla,
+    pub name: Hsla,
+    pub chevron: Hsla,
+    pub clip: Hsla,
+}
+
+impl Palette {
+    pub fn row_ink(&self, clip: Clip, cursor: bool, lifted: bool, dim: bool) -> RowInk {
+        let cut = |ink: Hsla| {
+            if clip == Clip::Cut {
+                Hsla { a: CUT, ..ink }
+            } else {
+                ink
+            }
+        };
+        let frame = if cursor {
+            self.foreground
+        } else {
+            self.muted_frame
+        };
+        RowInk {
+            mark: cut(frame),
+            name: cut(if cursor || lifted || !dim {
+                self.foreground
+            } else {
+                self.muted
+            }),
+            chevron: frame,
+            clip: self.muted_frame,
+        }
+    }
+
+    /// The column divider and the rail hairline share one ink.
+    pub fn hairline(&self) -> Hsla {
+        self.foreground.opacity(HAIR)
+    }
+}
+
+/// The focus and selection the active track paints, G1.05's read-only snapshot; peek tracks read only the hover.
+#[derive(Clone, Debug, Default, PartialEq)]
+pub struct Focus {
+    pub cursor: Option<usize>,
+    /// The pane does not hold the keyboard, so the cursor draws Omarchy's grey rung without the edge.
+    pub grey: bool,
+    /// Marked listing indices, sorted.
+    pub selected: Rc<[usize]>,
+    pub hover: Option<(Slot, usize)>,
+}
+
+impl Focus {
+    /// The plate under one row: the grey or accent cursor first, then a marked row, then a lifted or hovered one.
+    pub fn plate(&self, palette: &Palette, slot: Slot, index: usize, lifted: bool) -> Option<Hsla> {
+        let active = slot == Slot::Active;
+        let cursor = active && self.cursor == Some(index);
+        match () {
+            _ if cursor && self.grey => Some(palette.foreground.opacity(SELECTION)),
+            _ if cursor => Some(palette.accent.opacity(WASH)),
+            _ if active && self.selected.binary_search(&index).is_ok() => {
+                Some(palette.foreground.opacity(MARKED))
+            }
+            _ if lifted || self.hover == Some((slot, index)) => {
+                Some(palette.foreground.opacity(HOVER))
+            }
+            _ => None,
+        }
+    }
+
+    /// The 2 px accent edge stands only beside the cursor of a pane that holds the keyboard.
+    pub fn edge(&self, slot: Slot, index: usize) -> bool {
+        slot == Slot::Active && self.cursor == Some(index) && !self.grey
+    }
+}
+
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub enum Clip {
+    None,
+    Copy,
+    Cut,
+}
+
+/// The clipboard's marks per row, the clip producer's; an empty clipboard is asked once per frame, never per row.
+pub trait ClipMarks {
+    fn is_empty(&self) -> bool;
+    fn mark(&self, dir: &str, name: &str) -> Clip;
+}
+
+/// The pane's answered folder walks by listing index, G1.03's DirSizes; only the active track reads it.
+pub trait FolderSizes {
+    fn size_for(&self, index: usize) -> Option<Size>;
+}
+
+impl FolderSizes for DirSizes {
+    fn size_for(&self, index: usize) -> Option<Size> {
+        DirSizes::size_for(self, index)
+    }
+}
+
+/// Paint state one track keeps across frames: its shaped rows, the face's advance and this frame's rows.
+pub struct TrackPaint {
+    pub typeface: Typeface,
+    pub cache: TrackCache,
+    advance: Option<Pixels>,
+    pub(super) visible: Vec<(usize, Option<Rc<Prepared>>, Clip)>,
+}
+
+impl TrackPaint {
+    pub fn new(typeface: Typeface) -> Self {
+        Self {
+            typeface,
+            cache: TrackCache::default(),
+            advance: None,
+            visible: Vec::new(),
+        }
+    }
+
+    /// The indices this frame paints, for a test and the IPC rects.
+    pub fn visible(&self) -> impl Iterator<Item = usize> + '_ {
+        self.visible
+            .iter()
+            .filter(|row| row.1.is_some())
+            .map(|row| row.0)
+    }
+
+    pub fn prepared(&self, index: usize) -> Option<&Rc<Prepared>> {
+        self.visible
+            .iter()
+            .find(|row| row.0 == index)
+            .and_then(|row| row.1.as_ref())
+    }
+
+    pub fn clip(&self, index: usize) -> Clip {
+        self.visible
+            .iter()
+            .find(|row| row.0 == index)
+            .map_or(Clip::None, |row| row.2)
+    }
+
+    /// Keeps only the rows the last frame drew.
+    pub fn park(&mut self) {
+        let live: Vec<usize> = self.visible().collect();
+        self.cache.keep(&live);
+    }
+
+    /// One advance of "0" at the body size, Theme.bodyAdvance, which turns a name width into cells.
+    pub fn body_advance(&mut self, window: &Window) -> Pixels {
+        if let Some(advance) = self.advance {
+            return advance;
+        }
+        let text = window.text_system();
+        let id = text.resolve_font(&self.typeface.font);
+        let advance = text
+            .advance(id, self.typeface.body, '0')
+            .map_or(self.typeface.body * 0.6, |advance| advance.width);
+        self.advance = Some(advance);
+        advance
+    }
+}
+
+/// One paint state per slot, built when its track is first drawn and dropped when the count no longer draws it.
+#[derive(Default)]
+pub struct Painters {
+    slots: [Option<Rc<RefCell<TrackPaint>>>; 5],
+    pub constructed: usize,
+    pub dropped: usize,
+}
+
+impl Painters {
+    pub fn painter(&mut self, slot: Slot, typeface: &Typeface) -> Rc<RefCell<TrackPaint>> {
+        let held = &mut self.slots[slot.index()];
+        if held.is_none() {
+            self.constructed += 1;
+        }
+        Rc::clone(
+            held.get_or_insert_with(|| Rc::new(RefCell::new(TrackPaint::new(typeface.clone())))),
+        )
+    }
+
+    /// Drop every slot the drawn tracks no longer name.
+    pub fn retain(&mut self, tracks: &[TrackView]) {
+        for (at, held) in self.slots.iter_mut().enumerate() {
+            if held.is_some() && !tracks.iter().any(|view| view.slot.index() == at) {
+                *held = None;
+                self.dropped += 1;
+            }
+        }
+    }
+
+    /// A hidden view keeps each track's live rows, so a kept return reshapes nothing, and drops the rest.
+    pub fn park(&mut self) {
+        for paint in self.slots.iter().flatten() {
+            paint.borrow_mut().park();
+        }
+    }
+
+    pub fn built(&self) -> usize {
+        self.slots.iter().flatten().count()
+    }
+
+    pub fn get(&self, slot: Slot) -> Option<&Rc<RefCell<TrackPaint>>> {
+        self.slots[slot.index()].as_ref()
+    }
+}

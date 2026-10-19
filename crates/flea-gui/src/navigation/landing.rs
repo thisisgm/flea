@@ -21,6 +21,9 @@ impl Navigator {
             self.land_restore(pane);
             self.landing_select(pane, selected);
             self.land_anchor(pane, selected);
+            if let Some(at) = self.menus.landed(pane) {
+                self.background_at = Some(at);
+            }
             if let Some(preference) = self.preference.take() {
                 if preference.path == pane.path() {
                     preference.apply(pane, selected);
@@ -144,18 +147,26 @@ impl Navigator {
             self.take_paths(pane, &[]);
             return;
         }
-        if pane.busy() || !matches!(pane.state.kind, Kind::Error | Kind::Locked) {
-            return;
+        let ended = !pane.busy() && matches!(pane.state.kind, Kind::Error | Kind::Locked);
+        self.menus.failed(operation, ended);
+        if ended {
+            self.restore = None;
+            // Only a failed Esc relist drops the cursor file; any other ended listing keeps it armed (ui/js/Swap.js failListing).
+            if std::mem::take(&mut self.relisting) {
+                self.pending_select = None;
+            }
+            self.relist_owed = false;
+            if self
+                .anchor
+                .as_ref()
+                .is_some_and(|anchor| anchor.need_paths.is_none())
+            {
+                self.anchor = None;
+            }
         }
-        self.restore = None;
-        self.pending_select = None;
-        self.relist_owed = false;
-        if self
-            .anchor
-            .as_ref()
-            .is_some_and(|anchor| anchor.need_paths.is_none())
-        {
-            self.anchor = None;
+        // The names on disk changed in a way no reply listed, so re-read the listing and select nothing.
+        if matches!(operation, "rename-kept" | "rename-stranded") {
+            let _ = self.refresh(pane, None);
         }
     }
 }

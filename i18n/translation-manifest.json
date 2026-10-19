@@ -1,6 +1,9 @@
 {
   "en": {
     "flea:app.name": "b61286ee7748",
+    "flea:columns.peek_path": "dc74a40c27e1",
+    "flea:columns.peek_row_name": "6f14446a5380",
+    "flea:columns.peek_rows": "d4ef1ff84f74",
     "flea:folder.empty": "3043f9fa4d31",
     "flea:ipc.invalid_request": "fbcee4ca2de2",
     "flea:ipc.line_too_long": "af0ef8f9ba30",

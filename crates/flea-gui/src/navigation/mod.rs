@@ -7,6 +7,7 @@ pub mod watch;
 mod landing;
 mod steps;
 
+use crate::columns::menu::Deferred;
 use crate::pane::{requests::RowAction, swap::Options, Pane};
 use anchor::{Anchor, Preference};
 use folder_state::{Folders, Order, Writer};
@@ -90,6 +91,8 @@ pub struct Navigator {
     pub preserve_sort: bool,
     pub pending_sort: Option<sort::Request>,
     pub pending_select: Option<String>,
+    pub menus: Deferred,
+    pub background_at: Option<(f32, f32)>,
     pub folders: Rc<RefCell<Folders>>,
     pub writer: Rc<RefCell<Writer>>,
     pub counters: Counters,
@@ -97,6 +100,7 @@ pub struct Navigator {
     seen: usize,
     locate_seq: u64,
     relist_owed: bool,
+    relisting: bool,
 }
 
 impl Navigator {
@@ -188,14 +192,18 @@ impl Navigator {
             }
             self.restore = None;
         }
+        // A hop elsewhere drops a waiting background menu, while the armed hop keeps its own request.
+        self.menus.hop(path);
         options.restore_name = restore
             .as_ref()
             .map(|restore| restore.entry.name.clone())
             .filter(|name| !name.is_empty());
+        let relisting = options.relist;
         let now = pane.now();
         if !pane.begin(path.into(), options, now) {
             return Ok(false);
         }
+        self.relisting = relisting;
         self.restore = restore;
         self.pending_sort = None;
         self.relist_owed = false;
