@@ -22,6 +22,9 @@ ShellRoot {
     // The frames a columns sweep may draw over the same sweep in the list once the key is up. While it is held every loop turn draws,
     // so the burst's own count follows the CPU share each sweep got; the burst is pinned by its holds, loads, half-built frames and mark.
     readonly property int maxExtraFrames: 20
+    // Burst frames per delivered move, columns over the list: the raw burst count follows each sweep's CPU share, so the
+    // check compares the per-move rate; 0.5 holds the loaded worst case with room, and one extra frame a move reads 1.0.
+    readonly property real maxBurstPerMove: 0.5
     property int checks: 0
     property int failures: 0
     property int phase: 0
@@ -167,7 +170,7 @@ ShellRoot {
                     rebinds: now.rebinds - before.rebinds, rowsLanded: now.rowsLanded - before.rowsLanded, delegates: hooked.length,
                     mid: now.mid - before.mid, heldFrames: now.heldFrames - before.heldFrames,
                     markFrames: now.markFrames - before.markFrames, markBurst: now.markBurst - before.markBurst,
-                    frames: now.frames - before.frames, restFrames: now.frames - releaseFrames, built: now.built - before.built,
+                    frames: now.frames - before.frames, restFrames: now.frames - releaseFrames, burst: releaseFrames - before.frames, built: now.built - before.built,
                     lateHolds: now.holds - atReplace.holds, lateLoads: now.loads - atReplace.loads }
         results[view + sweep] = out
         console.log("COLHELD SWEEP view=" + view + " n=" + sweep + " " + fmt(out) + " held=" + before.held + "+" + before.rows + ">" + now.held + "+" + now.rows)
@@ -189,6 +192,9 @@ ShellRoot {
             check("sweep " + n + " columns shows no loading mark while the key is held", cols.markBurst === 0, cols.markBurst)
             check("sweep " + n + " columns draws no more than " + root.maxExtraFrames + " frames over the list after the release", cols.restFrames <= list.restFrames + root.maxExtraFrames,
                   cols.restFrames + " vs " + list.restFrames)
+            check("sweep " + n + " columns draws no more than " + root.maxBurstPerMove + " burst frames per move over the list",
+                  cols.burst / cols.moved <= list.burst / list.moved + root.maxBurstPerMove,
+                  (cols.burst / cols.moved).toFixed(2) + " vs " + (list.burst / list.moved).toFixed(2))
             if (n !== 1) check("sweep " + n + " columns rebinds no more rows than the list", cols.rebinds <= list.rebinds, cols.rebinds + " > " + list.rebinds)
         }
         // The replaced rows rebind each live delegate once, on top of what the same sweep costs without the replacement.
