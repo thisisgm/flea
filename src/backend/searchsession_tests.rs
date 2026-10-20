@@ -21,7 +21,7 @@ fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
     let mut s = Session::open_sync(&root, &root, false);
     assert_eq!(s.counters.walks_started, 1, "1 walk over the session's directories");
     assert_eq!(s.walk_dirs(), 4, "the scope, docs, docs/work and downloads over 4 directories walked");
-    assert!(!s.capped(), "the fixture never reaches the cap");
+    assert_eq!(s.partial_reason(), None, "the fixture has complete coverage");
     assert_eq!(crate::backend::mountinfo::test_reads(), 1, "1 mountinfo read over the session's directories");
     let mut previous = usize::MAX;
     for (i, len) in (1..=10).enumerate() {
@@ -30,7 +30,8 @@ fn ten_queries_cost_one_walk_and_one_mountinfo_read() {
         assert_eq!(s.counters.walks_started, 1, "still 1 walk after query {}", i + 1);
         assert_eq!(crate::backend::mountinfo::test_reads(), 1, "still 1 mountinfo read after query {}", i + 1);
         if i > 0 {
-            assert_eq!(s.counters.rows_scored, previous, "query {} scores the {} previous matches", i + 1, previous);
+            let expected = if len < 4 { previous } else { s.indexed() };
+            assert_eq!(s.counters.rows_scored, expected, "only zero-edit extensions narrow; edit-eligible queries rescore the index");
         }
         previous = answer.total;
     }
@@ -180,26 +181,17 @@ fn an_own_write_two_levels_down_shows_in_the_next_query_with_no_walk() {
 }
 
 #[test]
-fn an_outside_change_in_the_open_folder_shows_with_no_walk_but_two_levels_down_needs_a_reopen() {
+fn an_outside_change_two_levels_down_is_visible_without_reopening() {
     crate::backend::mountinfo::test_reset();
     let d = fixture();
     let root = d.path().to_str().expect("utf-8").to_string();
     let mut s = Session::open_sync(&root, &root, false);
-    let added = d.file("bench-outside.txt", "");
-    assert!(s.patch_open_dir(added.parent().unwrap()), "the open folder's change patches the index");
-    let answer = s.query(1, "bench-outside", 100).expect("the next query answers");
-    assert_eq!(answer.total, 1, "the open folder's change shows with {} match", answer.total);
-    assert_eq!(s.counters.walks_started, 1, "still 1 walk after the open folder's change");
     d.file("docs/work/bench-deep.txt", "");
-    let before = s.query(2, "bench-deep", 100).expect("a query before the reopen answers");
-    assert_eq!(before.total, 0, "a change two levels down stays unseen before the reopen over {} rows", before.indexed);
-    // Reopening is a fresh searchopen on the wire: the session closes and one new walk runs.
-    let _ = s.close();
-    assert_eq!(crate::backend::mountinfo::test_reads(), 1, "1 mountinfo read over the first session");
-    let mut reopened = Session::open_sync(&root, &root, false);
-    assert_eq!(crate::backend::mountinfo::test_reads(), 2, "the reopen costs its 1 mountinfo read");
-    let after = reopened.query(1, "bench-deep", 100).expect("the query after the reopen answers");
-    assert_eq!(after.total, 1, "the deep file shows after the reopen over {} rows", after.indexed);
+    assert!(s.apply_watch_deltas(), "the recursive event applies without another query");
+    let after = s.query(1, "bench-deep", 100).expect("the query answers");
+    assert_eq!(after.total, 1);
+    assert_eq!(s.counters.walks_started, 1, "the existing blocks were patched");
+    assert_eq!(crate::backend::mountinfo::test_reads(), 1, "no scope reopen or mount-table sweep");
 }
 
 #[test]

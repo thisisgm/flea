@@ -550,9 +550,18 @@ untouched: no `listed`, no `rows`, no row invalidation. Answers one line:
 `{"t":"searchopened","path":"<scope>"}`
 
 `hidden` follows `list`'s rule exactly. The scope walks once per session with
-one mountinfo read; a local scope walks with bounded worker threads, a remote
-one with the single bounded worker `search` uses. One session runs at a time;
-opening a second closes the first in silence. A `list`, `listpaths`, `sort`,
+one mountinfo read. Every directory is classified against that snapshot by its
+deepest enclosing mount, including local mounts below remote mounts. Local
+directories use the bounded local walk threads. Network and FUSE directories,
+including ones below a local scope, share one serial remote lane with the existing
+5 s call deadline and 30 s stuck-mount TTL. A mount refused during a walk is not
+retried by that walk's remaining directories. A remote-root scope walks serially.
+Only one name reader may remain active per remote mount across sessions and
+patches. A reader still blocked after cancel or timeout keeps that slot until
+its syscall returns; another request reports partial coverage instead of starting
+another reader, even if the stuck TTL has elapsed.
+One session runs at a time; opening a second closes the first in silence.
+A `list`, `listpaths`, `sort`,
 `search` or `searchclose` closes the session too, and drops
 its index. Closing mid-walk cancels it: no directory opens after close.
 
@@ -584,7 +593,7 @@ the listing swap already follows for `list`:
    each folder row among the first `sizes` rows whose complete size is known.
 3. One terminal line naming the generation:
 
-`{"t":"searched","n":<matches>,"scanned":<entries>,"ms":<ms>,"cancelled":false,"gen":<gen>,"walking":<bool>}`
+`{"t":"searched","n":<matches>,"scanned":<entries>,"ms":<ms>,"cancelled":false,"gen":<gen>,"walking":<bool>,"partial":<bool>,"partial_reason":<string>}`
 
 `scanned` is the index size the query scored over. `walking` is true while
 the walk is still running: the answer comes from the partial index, and the
@@ -606,6 +615,10 @@ own listing, the folder the session was opened from, in its own sort, with
 `listed.path` that folder, in the same listed, rows, searched order with that
 gen. No walk of the scope runs; one readdir of the folder is all it costs. Its
 rows line carries `z` for the folder's own folder rows the same way.
+An unmount of the search scope also completes an empty standing query with one
+`searched` status at that query's generation, `walking:false`, `partial:true`
+and reason `watch_failed`. It preserves the folder's rows, count and listing
+number; it emits no replacement `listed` or `rows` lines.
 
 A size is known when the session learned it earlier, from a `dirsize` answer
 given while it is open or from its own walk for an earlier answer, keyed by
@@ -617,17 +630,85 @@ that session; both still carry the sizes the session knows. A walk the
 scheduler had not started by the deadline marks nothing. Every patch of the
 index, from a write or the open folder's watch, forgets the known sizes.
 
-The index is the session's snapshot: no per-directory watches and no
-per-query mtime sweep. The backend's own writes under the scope patch the
-index when they land, the open folder's existing watch patches that one
-directory's entries when it reports a change, and reopening the session or
-changing scope re-walks. An outside change deeper than the open folder shows
-after a reopen. The index holds at most 200,000 entries; past it the walk
-stops adding and the count stands.
+Local sessions own a recursive inotify instance, separate from the pane and column
+watches. Each local directory is armed before enumeration, including directories
+on local USB filesystems. Nested network and FUSE directories are never armed,
+including during own-write patches and subtree replacement. Those directories
+use bounded enumeration and own-write/manual reconciliation, as remote roots do.
+Queued changes are replayed before the completed walk is announced.
+External root and deep create, rename,
+delete, replacement and subtree moves reconcile affected directory blocks without
+another query. The standing nonempty query is then pushed again as `listed`, `rows`,
+`searched`, with the same query `gen` and a new listing generation. Clients replace
+the old rows even when the query generation is unchanged, and discard row indices
+from the old listing generation. Applying an index delta always precedes this push.
+The first idle event has no timer delay; subsequent events already queued share a
+reconciliation. There is no per-query mtime sweep or whole-index repack per event.
+Retained name storage is reclaimed only after retired bytes exceed both 1 MiB and
+one percent of logical storage. Dense row swaps and reclamation invalidate internal
+query caches and any pageable remainder before another answer.
 
-The scorer and ranking contract are `search`'s own. A query extending the
-previous one scores only the previous matches; any other change scores the
-index. The first window is selected and ordered without a full sort; the rest
+The backend's own writes and the open folder's existing watch retain their patch
+paths. A remote-root session uses bounded enumeration and own-write/manual
+reconciliation; it does not claim recursive notification. Closing or cancelling a
+running walk stops and joins the recursive pump and closes its descriptors. A new
+scope rejects queued events carrying the old session's token.
+An unmount event from any recursively watched directory stops the whole scope's
+walk, releases its recursive watches, and retains any usable snapshot with
+`walking:false`, `partial:true` and reason `watch_failed` unless an earlier failure
+already supplies a reason. The scope remains terminally unmounted until reopen:
+queued index patches are discarded, and later own-write or open-directory
+notifications cannot reconcile its retained identities. Explicit user cancellation
+keeps its existing patch behavior. Pending tag reads and retries stop too, with
+the stop flag checked before each new path or chunk and after an in-flight read
+returns, including remote workers and tag rereads. It does not
+scan the exposed mountpoint or automatically resume the scope. Reopen to establish a new
+mount snapshot. A remote read abandoned by timeout or cancellation stops before
+its next entry when a blocked syscall returns; the syscall itself is not killed.
+
+The index has no fixed entry-count cap. Raw basenames are interned and paths are
+reconstructed from parent references. Checked ID or arena bounds and allocation
+refusals stop adding entries and preserve identities already held.
+
+Every session `searched` line carries `partial` and `partial_reason`. Once
+`walking:false`, `partial:false` and an empty reason certify enumeration without a
+refused directory and no reported local recursive-watch failure. This certifies
+a snapshot, with no automatic remote freshness guarantee.
+While enumeration or tag loading continues, `walking:true` carries `partial:true`
+with reason `walking`, unless an earlier failure supplies a reason. Incomplete
+coverage carries `unreadable`, `capacity` or `allocation`; cancellation carries
+`cancelled:true`, `walking:false`, `partial:true` and reason `cancelled`. Watch
+registration, descriptor or unmount failure carries `watch_failed`. A queue
+overflow reconciles all registered directory blocks and carries `watch_overflow`.
+Both watch failures remain partial until reopen, even if reconciliation recovers
+usable results, so no failed scope claims complete live coverage. For a nonempty
+query, `scanned` counts retained identities even when no entry matches; an empty
+query retains its folder-row count. A patch read refusal also makes coverage partial.
+A partial result remains usable but never certifies a complete live scope inventory.
+
+The session has its own lexical scorer; one-shot `search` and folder `jump`
+keep their existing scorer. The query and candidate characters fold without
+Unicode normalization. Exact basenames rank before clean basename prefixes,
+word prefixes, aligned paths, ordinary subsequences and typo-only matches.
+Subsequences use the best run and boundary alignment across the whole relative
+path, including separators, with no first-occurrence limit. ASCII letter
+presence masks reject impossible names before scoring, and an interned basename
+is scored once per query. Unknown and non-ASCII classes bypass this rejection.
+
+Typo-only matching starts at a word boundary and permits letter replacement,
+insertion, deletion and adjacent swap, including the first letter. The budget
+is zero below four alphanumeric query characters, one from four through seven,
+and two from eight onward. Digits and punctuation are never edited. A query
+beginning with punctuation, such as `.svg`, permits no edits. Explicit path
+queries may correct letters in parent components as well as the basename.
+Fresh lexical ties use shorter relative paths and natural raw identity order.
+The final history and folder-distance order belongs to the read-only ranking
+prior layer; it adds no control or result mark.
+
+Only extensions with zero edit budgets on both sides may reuse the previous
+matches, and only with identical tags, complete prior coverage and an unchanged
+index. Backspace, scope or index changes, unfinished tag reads and edit-eligible
+queries rescore candidates. The first window is selected and ordered without a full sort; the rest
 stays scored but unranked until a row past the window is asked for, when the
 next chunk is ordered with the same comparator and appended behind the head,
 the request's need or one window, whichever is larger, at least doubling the
@@ -1226,10 +1307,12 @@ not a bare kernel name, or a drive the flasher would not list (a system disk), a
 
 ### trash
 
-`{"c":"trash","paths":["<string>",...],"rows":[<uint>,...]}`
+`{"c":"trash","id":<uint>,"paths":["<string>",...],"rows":[<uint>,...]}`
 
-Example: `{"c":"trash","paths":["/home/gm/old.txt"]}`
-Example: `{"c":"trash","rows":[4,9]}`
+`id` is the client's request id; the `trashed` line that answers it echoes it. Omitted, it is 0.
+
+Example: `{"c":"trash","id":3,"paths":["/home/gm/old.txt"]}`
+Example: `{"c":"trash","id":4,"rows":[4,9]}`
 
 `rows` is the same alternative to `paths` that `transfer` documents above, resolved the same way.
 
@@ -2465,15 +2548,15 @@ The helper's eject verdict: `busy` keeps the rail's shipped "still mounted" sent
 
 ### trashed
 
-`{"t":"trashed","ok":<uint>,"failed":<uint>}`
+`{"t":"trashed","id":<uint>,"ok":<uint>,"failed":<uint>,"moved":[<string>,...]}`
 
-Example: `{"t":"trashed","ok":1,"failed":0}`
+Example: `{"t":"trashed","id":3,"ok":1,"failed":0,"moved":["/home/gm/old.txt"]}`
 
-Counts, plus the batch's own reason when anything failed: `{"t":"trashed","ok":0,"failed":1,"err":"<string>"}`.
+`id` echoes the request. `moved` names the original paths that went, so a client records an undo step for only those. Counts, plus the batch's own reason when anything failed: `{"t":"trashed","id":3,"ok":0,"failed":1,"err":"<string>","moved":[]}`.
 Unlike `transferitem` there is no per-path error text, because trash is one `gio` call for
 the batch and its exit status cannot attribute a failure to a single path; a path that is still on disk
-afterwards is counted in `failed`. `err` rides only on a failure, so a successful line is byte-identical
-to before. `gio` runs under a 10 s deadline, so a hung mount answers "The Trash took too long to answer"
+afterwards is counted in `failed`. `err` rides only on a failure, so a successful line has no `err` key.
+`gio` runs under a 10 s deadline, so a hung mount answers "The Trash took too long to answer"
 instead of holding the single operation slot.
 A batch that ran `gio` sends the line once `gio` has returned and each path has been checked on disk (`lstat`), whether
 or not every path went, so a failure goes out the same way with its `failed` count and `err`. It is sent before the second

@@ -1,5 +1,5 @@
 // One live search session: the scope's snapshot index plus the standing query and its generation.
-use crate::backend::fuzzy::Fuzzy;
+use crate::backend::searchmatch::Matcher;
 use crate::backend::searchindex::{self, rank_cmp, select_head, Index};
 use crate::backend::searchreq::Answer;
 use crate::backend::searchwalk::WalkProbes;
@@ -40,7 +40,11 @@ pub(crate) struct Session {
     pub(crate) walk_ms: f64,
     pub(crate) probes: Arc<WalkProbes>,
     pub(crate) handle: Option<std::thread::JoinHandle<usize>>,
+    pub(crate) watch: Option<crate::backend::searchwatch::Watch>,
+    // Unmount freezes this scope until reopen; explicit user cancellation still permits patches.
+    pub(crate) unmounted: bool,
     pub(crate) last_query: String,
+    pub(crate) matched_index_len: usize,
     pub(crate) last_matches: Vec<usize>,
     // Scored but unranked matches past the head, ranked on scroll; a patch drops them because it moves row ids.
     pub(crate) pending_rest: Option<Vec<(i32, usize)>>,
@@ -117,9 +121,8 @@ impl Session {
         self.index.lock().unwrap().len()
     }
 
-    #[cfg(test)]
-    pub(crate) fn capped(&self) -> bool {
-        self.index.lock().unwrap().capped
+    pub(crate) fn partial_reason(&self) -> Option<&'static str> {
+        self.index.lock().unwrap().partial
     }
 
     // Bytes the arena holds now; zero once close frees it, counted not sampled.
@@ -223,19 +226,22 @@ impl Session {
     pub(crate) fn answer(&mut self, query: &str, count: usize) -> Answer {
         let started = Instant::now();
         let terms = crate::backend::searchtags::Tags::terms(query);
-        let narrow = self.tags.narrows(&self.last_query, query);
+        let narrow = self.tags.narrows(&self.last_query, query)
+            && !self.walking() && !self.standing_while_walking
+            && Matcher::can_narrow(&crate::backend::searchtags::Tags::terms(&self.last_query).text, &terms.text);
         let unread = self.tags.prepare(&terms, &self.index, &self.scope, &self.body, self.walking());
-        let fuzzy = Fuzzy::new(&terms.text);
+        let fuzzy = Matcher::new(&terms.text);
+        let priors = crate::backend::searchprior::snapshot();
         let index = self.index.lock().unwrap();
-        // Incremental narrowing: an extension scores only the previous matches, any other change scores the index.
-        let candidates: Vec<usize> = if narrow {
+        // Only complete, unchanged zero-edit extensions can reuse their previous candidates.
+        let candidates: Vec<usize> = if narrow && index.partial.is_none() && index.len() == self.matched_index_len {
             self.last_matches.clone()
         } else {
             (0..index.len()).collect()
         };
         #[cfg(test)]
         let scored = candidates.len();
-        let mut hits = searchindex::score_all(&fuzzy, &candidates, &index);
+        let mut hits = crate::backend::searchprior::rank(priors, &self.scope, &self.folder, &index, searchindex::score_all(&fuzzy, &candidates, &index));
         self.tags.keep(&mut hits, &terms);
         #[cfg(test)]
         {
@@ -260,9 +266,11 @@ impl Session {
             self.counters.rank_compares = compares.get();
         }
         let rows: Vec<(String, bool)> =
-            hits[..window].iter().map(|&(_, row)| (index.path(row).to_string(), index.is_dir(row))).collect();
+            hits[..window].iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
         let total = all.len();
         let indexed = index.len();
+        self.matched_index_len = indexed;
+        let partial = index.partial;
         drop(index);
         Answer {
             gen: 0,
@@ -271,6 +279,7 @@ impl Session {
             total,
             indexed,
             walking: self.walking() || unread,
+            partial,
             ms: started.elapsed().as_secs_f64() * 1000.0,
             count,
             scope: self.scope.clone(),
@@ -314,7 +323,7 @@ impl Session {
             }
             let taken: Vec<(i32, usize)> = rest.drain(..take).collect();
             let rows: Vec<(String, bool)> =
-                taken.iter().map(|&(_, row)| (index.path(row).to_string(), index.is_dir(row))).collect();
+                taken.iter().map(|&(_, row)| (index.path(row), index.is_dir(row))).collect();
             (rows, rest.is_empty())
         };
         if spent {
@@ -325,6 +334,7 @@ impl Session {
 
     // Patches one directory's entries when the open folder's watch reports it; false when its mount does not answer.
     pub(crate) fn patch_open_dir(&mut self, path: &Path) -> bool {
+        if self.unmounted { return false; }
         let Ok(rel) = path.strip_prefix(&self.scope) else { return false };
         let probe = path.to_path_buf();
         let Ok(is_dir) = crate::backend::iomount::call(path, &self.body, "search", move || probe.is_dir()) else {
@@ -348,3 +358,11 @@ impl Session {
 #[cfg(test)]
 #[path = "searchsession_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "searchconservative_tests.rs"]
+mod conservative_tests;
+
+#[cfg(test)]
+#[path = "searchcache_tests.rs"]
+mod cache_tests;

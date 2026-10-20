@@ -17,12 +17,14 @@ pub fn preview_area(columns: usize, quicklook: bool) -> (usize, usize) {
     (start + padding, width - padding * 2)
 }
 pub fn display_path(m: &Model) -> String {
+    if let Some(place) = super::trashview::place(m) { return place; }
     let home = std::env::var_os("HOME").filter(|s| !s.is_empty()).map(std::path::PathBuf::from);
     if let Some(tail) = home.as_ref().and_then(|home| m.path.strip_prefix(home).ok()) {
         if tail.as_os_str().is_empty() { "~".into() } else { format!("~/{}", tail.to_string_lossy()) }
     } else { m.path.to_string_lossy().into_owned() }
 }
 fn sort_label(m: &Model) -> String {
+    if let Some(sort) = super::trashview::sort(m) { return sort; }
     let name = match m.sort.as_str() { "size" => "Size", "mtime" | "date" => "Modified", "kind" => "Kind", _ => "Name" };
     format!("{name} {}", if m.reverse { "▾" } else { "▴" })
 }
@@ -94,7 +96,7 @@ pub fn rule(columns: usize, preview: bool, bottom: bool, theme: &Theme) -> Strin
 }
 pub fn focused(m: &Model) -> bool {
     !m.preview_focus && !m.menu && !m.sheet && m.deletion.is_none() && !m.quicklook
-        && m.editor.as_ref().map_or(true, |editor| matches!(editor.kind, "filter" | "search"))
+        && m.editor.as_ref().map_or(m.prompts.question.is_none(), |editor| matches!(editor.kind, "filter" | "search"))
 }
 pub fn thumb(m: &Model, body: usize, now: Instant) -> Option<(usize, usize)> {
     let (first, total) = super::filter::lane(m);
@@ -122,14 +124,12 @@ pub fn selection_bytes(m: &Model) -> Option<usize> {
 pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> String {
     let base = theme.base();
     let help = if m.hints.keys.is_empty() { String::new() } else { format!("{} keys", m.hints.keys) };
-    let disk = if m.disk_path == m.path && !m.disk_fs.is_empty() { format!("{} · {} free", m.disk_fs, super::render::bytes(m.disk_free)) } else { String::new() };
-    let count = if !m.filter.is_empty() {
-        format!("Filter {}  {} of {} shown", m.filter, super::render::grouped(m.filter_count()), super::render::grouped(m.total))
-    } else if !m.selected.is_empty() {
+    let disk = if (m.disk_path == m.path || super::trashview::opened_from(m) == Some(&m.disk_path)) && !m.disk_fs.is_empty() { format!("{} · {} free", m.disk_fs, super::render::bytes(m.disk_free)) } else { String::new() };
+    let count = if !m.selected.is_empty() {
         format!("{} of {} selected{}", super::render::grouped(m.selected.len()), super::render::grouped(m.total),
             selection_bytes(m).map(|bytes| format!(" · {}", super::render::bytes(bytes))).unwrap_or_default())
     } else { super::render::items(m.total) };
-    let mut parts = vec![(theme.foreground.as_str(), count, 0)];
+    let mut parts = super::prompts::lead(m, theme, count);
     if !m.error.is_empty() { parts.push((&theme.error, m.error.clone(), 2)); }
     if !m.transfer.is_empty() {
         // A job list of more than one job names its count after the bar, in the muted ink.
@@ -142,8 +142,7 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
         }
         if !suffix.is_empty() { parts.push((&theme.muted, suffix.trim_start().into(), 2)); }
     }
-    if !m.search.is_empty() { parts.push((&theme.foreground, m.search.clone(), 2)); }
-    if m.error.is_empty() && m.transfer.is_empty() && m.search.is_empty() && !m.message.is_empty() { parts.push((&theme.foreground, m.message.clone(), 2)); }
+    if m.error.is_empty() && m.transfer.is_empty() && m.search.is_empty() && !m.message.is_empty() { parts.extend(super::prompts::message(m, theme)); }
     let left_width = parts.iter().map(|(_, s, gap)| text_width(s) + gap).sum::<usize>();
     let mut right = String::new();
     let mut right_width = 0;
@@ -174,129 +173,10 @@ pub fn footer(m: &Model, theme: &Theme, columns: usize, _elapsed: Duration) -> S
     out
 }
 
-pub fn preview(m: &Model, y: usize, columns: usize, body: usize, theme: &Theme) -> String {
-    let padding = pane_padding(columns);
-    let width = columns - padding * 2;
-    let base = theme.base();
-    let mut out = format!("{}{}", base, " ".repeat(padding));
-    if m.selected.len() > 1 {
-        if y == 0 {
-            let mark = if m.marks() { format!("{} ", icons::FILES) } else { String::new() };
-            out.push_str(&format!("\x1b[1m{}\x1b[22m", ellipsis(&format!("{mark}{} selected", super::render::items(m.selected.len())), width)));
-        } else if y == 1 {
-            out.push_str(&theme.meta);
-            let facts = selection_bytes(m).map(|n| format!("Combined · {}", super::render::bytes(n))).unwrap_or_default();
-            out.push_str(&fit(&facts, width));
-        } else if y >= 3 {
-            if let Some(row) = m.selected_rows.values().nth(m.preview_scroll + y - 3) {
-                out = cells::row(row, columns, Some(&super::render::bytes(row.size)), m.marks(), cells::RowStyle { quiet: true, ..Default::default() }, theme, "");
-                return out;
-            }
-            out.push_str(&theme.meta);
-            out.push_str(&fit(&super::render::selection_line(m, y + m.preview_scroll, width), width));
-        } else { out.push_str(&fit("", width)); }
-    } else if let Some(row) = m.rows.get(&m.cursor).filter(|_| m.current_path().as_ref() == Some(&m.preview_path)) {
-        if y == 0 {
-            let mark = if m.marks() { format!("{} ", icons::row(row, true)) } else { String::new() };
-            out.push_str(&format!("\x1b[1m{}\x1b[22m", ellipsis(&format!("{mark}{}", row.name), width)));
-        } else if y == 1 {
-            let modified = super::render::modified(row.modified);
-            let facts = format!("{} · {}{}", if row.directory { "Folder" } else { &row.kind }, m.row_size(m.cursor, row),
-                if modified.is_empty() { String::new() } else { format!(" · {modified}") });
-            out.push_str(&theme.meta);
-            out.push_str(&ellipsis(&facts, width));
-        } else if row.directory && m.preview_rows_generation == m.preview_generation {
-            if !m.preview_refusal.is_empty() {
-                let height = body.saturating_sub(3);
-                let line = y.saturating_sub(3);
-                let start = height.saturating_sub(m.preview_line_count) / 2;
-                if y >= 3 && line >= start {
-                    let index = line - start;
-                    if m.preview_scroll + index == 0 {
-                        out.push_str(&theme.error);
-                        out.push_str(&cells::centered(if m.marks() { icons::LOCK } else { "!" }, width));
-                    } else {
-                        out.push_str(&cells::centered(m.preview_display.get(index).map(String::as_str).unwrap_or(""), width));
-                    }
-                } else { out.push_str(&fit("", width)); }
-            } else if y >= 3 && m.preview_rows.get(m.preview_scroll + y - 3).is_some() {
-                let child = &m.preview_rows[m.preview_scroll + y - 3];
-                let size = (child.mode != 0).then(|| super::render::bytes(child.size));
-                return cells::row(child, columns, size.as_deref(), m.marks(), cells::RowStyle { quiet: true, ..Default::default() }, theme, "");
-            } else {
-                out.push_str(&fit(y.checked_sub(3).and_then(|i| m.preview_display.get(i)).map(String::as_str).unwrap_or(""), width));
-            }
-        } else if m.player.is_some() || m.pdf.is_some() || m.image_file.is_some() {
-            let details = m.preview_metadata.len().min(3);
-            let start = body.saturating_sub(2 + details + usize::from(m.pdf.is_some()));
-            let content = if y == body.saturating_sub(2) {
-                m.player.as_ref().map(|p| p.line(width)).or_else(|| m.pdf.as_ref().map(|p| p.line(m.quicklook, width))).unwrap_or_default()
-            } else if m.pdf.is_some() && y == body.saturating_sub(3) { m.pdf.as_ref().unwrap().prefix() }
-            else if y >= start && y < start + details { m.preview_metadata[y - start].clone() } else { String::new() };
-            out.push_str(&theme.meta);
-            out.push_str(&fit(&content, width));
-        } else if let Some(content) = y.checked_sub(3).and_then(|i| m.preview_display.get(i)) {
-            out.push_str(&theme.meta);
-            out.push_str(&fit(content, width));
-        } else if let Some((number, text)) = y.checked_sub(3 + m.preview_display.len()).and_then(|i| m.text_lines.get(i)) {
-            let gutter = m.text_gutter;
-            let number = number.map(|n| format!("{:>gutter$}", super::render::grouped(n))).unwrap_or_else(|| " ".repeat(gutter));
-            out.push_str(&format!("{}{} {}{}", theme.meta, number, theme.foreground, fit(text, width.saturating_sub(gutter + 1))));
-        } else { out.push_str(&fit("", width)); }
-    } else { out.push_str(&fit("", width)); }
-    out.push_str(&" ".repeat(padding));
-    out.push_str(&base);
-    out
-}
-
-pub fn preview_scroll_limit(m: &Model) -> usize {
-    let rows = m.height.saturating_sub(3);
-    if rows == 0 { 0 } else { m.preview_line_count.saturating_sub(rows) }
-}
-fn plain_lines(m: &Model, columns: usize) -> impl Iterator<Item = &str> {
-    m.preview.iter().skip(2).filter(|line| !line.is_empty())
-        .chain(m.preview_metadata.iter().filter(|line| !line.starts_with("Modified · ")))
-        .flat_map(move |line| cells::Wrapped::new(line, columns))
-}
-fn text_lines(m: &Model, columns: usize) -> impl Iterator<Item = (Option<usize>, &str)> {
-    m.preview_body.lines().enumerate().flat_map(move |(i, line)| {
-        cells::Wrapped::new(line, columns).enumerate().map(move |(part, text)| ((part == 0).then_some(i + 1), text))
-    })
-}
-// One body layout owns visible rows and scrolling below the fixed three-row header.
-pub fn prepare(m: &mut Model) {
-    let columns = if m.quicklook || m.preview_visible { preview_area(m.columns, m.quicklook).1 } else { 0 };
-    let changed = m.preview_width != columns || m.preview_layout_generation != m.preview_generation || m.preview_body_bytes != m.preview_body.len();
-    if m.selected.len() <= 1 && !changed && m.preview_layout_scroll == m.preview_scroll && m.preview_layout_height == m.height { return; }
-    let rows = m.height.saturating_sub(3);
-    let folder = m.rows.get(&m.cursor).is_some_and(|row| row.directory) && m.preview_rows_generation == m.preview_generation;
-    let refusal = folder && !m.preview_refusal.is_empty();
-    let graphical = m.player.is_some() || m.pdf.is_some() || m.image_file.is_some();
-    m.text_gutter = super::render::grouped(m.preview_body.lines().count()).len();
-    let text_width = columns.saturating_sub(m.text_gutter + 1);
-    if changed || m.selected.len() > 1 {
-        m.preview_line_count = if m.selected.len() > 1 { m.selected_rows.len() + usize::from(m.selected_rows.len() < m.selected.len()) }
-        else if refusal { 1 + cells::words(&m.preview_refusal, columns).len() }
-        else if folder && !m.preview_rows.is_empty() { m.preview_rows.len() }
-        else if graphical { 0 }
-        else { plain_lines(m, columns).count() + text_lines(m, text_width).count() };
-    }
-    m.preview_scroll = m.preview_scroll.min(preview_scroll_limit(m));
-    m.preview_display = if refusal {
-        std::iter::once(String::new()).chain(cells::words(&m.preview_refusal, columns)).skip(m.preview_scroll).take(rows).collect()
-    } else if m.selected.len() > 1 || graphical || (folder && !m.preview_rows.is_empty()) { Vec::new() }
-        else { plain_lines(m, columns).skip(m.preview_scroll).take(rows).map(cells::clean).collect() };
-    m.text_lines = if m.preview_body.is_empty() || m.selected.len() > 1 || folder || graphical { Vec::new() }
-        else {
-            let skip = m.preview_scroll.saturating_sub(plain_lines(m, columns).count());
-            text_lines(m, text_width).skip(skip).take(rows.saturating_sub(m.preview_display.len())).map(|(number, line)| (number, cells::clean(line))).collect()
-        };
-    m.preview_body_bytes = m.preview_body.len();
-    m.preview_width = columns;
-    m.preview_layout_generation = m.preview_generation;
-    m.preview_layout_scroll = m.preview_scroll;
-    m.preview_layout_height = m.height;
-}
+// The preview pane's drawing and layout live in pane.rs.
+pub use super::pane::{prepare, preview_scroll_limit};
+#[cfg(test)]
+pub use super::pane::preview;
 
 pub struct Live {
     pub theme: Theme,
@@ -314,6 +194,10 @@ impl Live {
     }
     pub fn prepare(&mut self, model: &mut Model, wire: &mut super::wire::Wire) -> std::io::Result<()> {
         self.poll(model);
+        let state = &mut model.preview_state;
+        state.colors = super::still::colors(self.depth);
+        if state.ground != self.theme.ground { state.ground = self.theme.ground.clone(); }
+        if model.quicklook != state.probed { state.probed = model.quicklook; if model.quicklook { super::render::cards::probe(&model.rounded); } }
         model.request_sizes(wire, Instant::now())?;
         super::preview::load(model, false);
         super::preview::poll(model);

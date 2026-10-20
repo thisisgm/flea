@@ -99,15 +99,15 @@ action = "trash"
     let (mut wire, reader) = echo_wire();
     let mut model = listing("/listing", "default", &mut wire);
     press(&mut model, &mut wire, &key("d", "d", ""));
-    assert_eq!(model.message, "Press d again to trash, or Delete on its own", "the shipped keys, and a status line takes no period");
+    assert_eq!(model.message, "Press d again to move it to Trash, or press Delete on its own.", "the shipped keys");
     model.hints = Hints::new(&rebound, "default");
     model.key_arm.clear();
     press(&mut model, &mut wire, &key("d", "d", ""));
-    assert_eq!(model.message, "Press d again to trash, or Backspace on its own", "a rebound trash key");
+    assert_eq!(model.message, "Press d again to move it to Trash, or press Backspace on its own.", "a rebound trash key");
     model.hints.trash.clear();
     model.key_arm.clear();
     press(&mut model, &mut wire, &key("d", "d", ""));
-    assert_eq!(model.message, "Press d again to trash", "no key left to name");
+    assert_eq!(model.message, "Press d again to move it to Trash.", "no key left to name");
     finish(wire, reader);
     let (mut wire, reader) = echo_wire();
     let mut model = listing(SHARE, "default", &mut wire);

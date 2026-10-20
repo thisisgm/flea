@@ -1,5 +1,5 @@
 // The session walk: bounded parallel threads over a shared queue locally, one bounded worker per directory remotely.
-use super::searchindex::{index_bytes, is_hidden, read_entries, Index, WALK_THREADS};
+use super::searchindex::{index_bytes, is_hidden, Index, WALK_THREADS};
 use super::searchreq::Cancelled;
 use super::searchsession::Session;
 #[cfg(test)]
@@ -16,19 +16,33 @@ const CANCEL_RECHECK: Duration = Duration::from_millis(50);
 // How many directories the walk has opened; tests read it beside the cancel flag.
 pub(crate) struct WalkProbes {
     pub opened: AtomicUsize,
-    pub cancel: AtomicBool,
+    pub cancel: Arc<AtomicBool>,
+    pub(crate) watch: Mutex<Option<Arc<super::searchwatch::Core>>>,
     // Test seam: parks this walk alone once it has opened `at` directories, until released.
     #[cfg(test)]
     pub(crate) hold: Mutex<Option<crate::backend::searchwalkhold::WalkHold>>,
+    #[cfg(test)]
+    pub(crate) read_hold: Arc<Mutex<Option<crate::backend::searchwalkhold::ReadHold>>>,
+    #[cfg(test)]
+    pub(crate) remote_reads: AtomicUsize,
+    #[cfg(test)]
+    pub(crate) body: Mutex<Option<String>>,
 }
 
 impl WalkProbes {
     pub(crate) fn new() -> WalkProbes {
         WalkProbes {
             opened: AtomicUsize::new(0),
-            cancel: AtomicBool::new(false),
+            cancel: Arc::new(AtomicBool::new(false)),
+            watch: Mutex::new(None),
             #[cfg(test)]
             hold: Mutex::new(None),
+            #[cfg(test)]
+            read_hold: Arc::new(Mutex::new(None)),
+            #[cfg(test)]
+            remote_reads: AtomicUsize::new(0),
+            #[cfg(test)]
+            body: Mutex::new(None),
         }
     }
 }
@@ -56,15 +70,20 @@ pub(crate) fn fill(
     body: &str,
     probes: &WalkProbes,
 ) -> usize {
-    if remote {
-        walk_remote(out, root, hidden, body, probes)
+    let reader = super::searchwalkread::Reader::new(body);
+    let dirs = if remote {
+        walk_remote(out, root, hidden, &reader, probes)
     } else {
-        walk_local(out, root, hidden, probes)
-    }
+        walk_local(out, root, hidden, body, &reader, probes)
+    };
+    let mut index = out.lock().unwrap();
+    if probes.cancel.load(Ordering::Relaxed) { index.mark_partial("cancelled"); }
+    index.finish();
+    dirs
 }
 
 // Local scopes walk with bounded worker threads over a shared directory queue.
-fn walk_local(out: &Mutex<Index>, root: &Path, hidden: bool, probes: &WalkProbes) -> usize {
+fn walk_local(out: &Mutex<Index>, root: &Path, hidden: bool, body: &str, reader: &super::searchwalkread::Reader<'_>, probes: &WalkProbes) -> usize {
     let threads = std::thread::available_parallelism().map(|n| n.get()).unwrap_or(1).clamp(1, WALK_THREADS);
     // The queue beside how many threads hold a popped directory; a thread ends only when both are empty.
     let work: Mutex<(VecDeque<PathBuf>, usize)> = Mutex::new((VecDeque::from([root.to_path_buf()]), 0));
@@ -74,7 +93,7 @@ fn walk_local(out: &Mutex<Index>, root: &Path, hidden: bool, probes: &WalkProbes
         for _ in 0..threads {
             scope.spawn(|| {
                 while let Some(dir) = next_dir(&work, &ready, &probes.cancel) {
-                    let subdirs = open_local(out, root, &dir, hidden, probes);
+                    let subdirs = open_directory(out, root, &dir, hidden, Some(body), reader, probes);
                     if subdirs.is_some() {
                         dirs.fetch_add(1, Ordering::Relaxed);
                     }
@@ -110,11 +129,14 @@ fn next_dir(work: &Mutex<(VecDeque<PathBuf>, usize)>, ready: &Condvar, cancel: &
 }
 
 // Opens one directory, pushes its rows, and returns its subdirectories; None once the walk is cancelled.
-fn open_local(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, probes: &WalkProbes) -> Option<Vec<PathBuf>> {
+fn open_directory(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, watch_body: Option<&str>, reader: &super::searchwalkread::Reader<'_>, probes: &WalkProbes) -> Option<Vec<PathBuf>> {
     // A close cancels the walk at once: no directory opens after close.
     if probes.cancel.load(Ordering::Relaxed) {
         return None;
     }
+    let watch_failed = if let (Some(body), Some(watch)) = (watch_body, probes.watch.lock().unwrap().as_ref()) {
+        !watch.arm_local(&rel_of(root, dir), body)
+    } else { false };
     probes.opened.fetch_add(1, Ordering::Relaxed);
     #[cfg(test)]
     probes.hold_if_due(probes.opened.load(Ordering::Relaxed), dir, false);
@@ -122,9 +144,18 @@ fn open_local(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, probes:
         return None;
     }
     let rel = rel_of(root, dir);
-    let mut rows: Vec<(PathBuf, bool)> = Vec::new();
+    let mut rows = Vec::new();
     let mut subdirs = Vec::new();
-    for (name, is_dir) in read_entries(dir) {
+    let read = match reader.read(dir, dir == root, watch_body.is_none(), probes) {
+        Ok(read) => read,
+        Err(error) if dir != root && !reader.is_remote(dir) && matches!(error.raw_os_error(), Some(2 | 20 | 40)) => return None,
+        Err(_) => {
+            out.lock().unwrap().mark_partial("unreadable");
+            return None;
+        }
+    };
+    let partial = read.partial;
+    for (name, is_dir) in read.entries {
         // A dot-prefixed name is dropped before it is counted, matching scan.rs's own hidden rule.
         if !hidden && is_hidden(&name) {
             continue;
@@ -133,7 +164,7 @@ fn open_local(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, probes:
         if is_dir {
             subdirs.push(dir.join(&name));
         }
-        rows.push((rel.join(&name), is_dir));
+        rows.push((name, is_dir));
     }
     #[cfg(test)]
     probes.hold_if_due(probes.opened.load(Ordering::Relaxed), dir, true);
@@ -143,14 +174,14 @@ fn open_local(out: &Mutex<Index>, root: &Path, dir: &Path, hidden: bool, probes:
     if probes.cancel.load(Ordering::Relaxed) {
         return None;
     }
-    for (path, is_dir) in rows {
-        index.push(path, is_dir);
-    }
+    if let Some(reason) = partial { index.mark_partial(reason); }
+    if watch_failed { index.mark_partial("watch_failed"); }
+    if !index.push_directory(rel.as_os_str(), &rows) { return None; }
     Some(subdirs)
 }
 
 // A remote scope keeps today's single bounded worker, so one dead server costs one deadline, never the walk.
-fn walk_remote(out: &Mutex<Index>, root: &Path, hidden: bool, body: &str, probes: &WalkProbes) -> usize {
+fn walk_remote(out: &Mutex<Index>, root: &Path, hidden: bool, reader: &super::searchwalkread::Reader<'_>, probes: &WalkProbes) -> usize {
     let mut pending: Vec<PathBuf> = vec![root.to_path_buf()];
     let mut dirs = 0;
     while let Some(dir) = pending.pop() {
@@ -158,35 +189,10 @@ fn walk_remote(out: &Mutex<Index>, root: &Path, hidden: bool, body: &str, probes
         if probes.cancel.load(Ordering::Relaxed) {
             break;
         }
-        probes.opened.fetch_add(1, Ordering::Relaxed);
-        #[cfg(test)]
-        probes.hold_if_due(probes.opened.load(Ordering::Relaxed), &dir, false);
-        if probes.cancel.load(Ordering::Relaxed) {
-            break;
+        if let Some(subdirs) = open_directory(out, root, &dir, hidden, None, reader, probes) {
+            pending.extend(subdirs);
+            dirs += 1;
         }
-        // One bound for opendir, getdents and d_type together, so a dead server costs one deadline.
-        let owned = dir.clone();
-        let entries = match super::iomount::call(&dir, body, "search", move || read_entries(&owned)) {
-            Ok(entries) => entries,
-            _ => continue,
-        };
-        let rel = rel_of(root, &dir);
-        {
-            let mut index = out.lock().unwrap();
-            if probes.cancel.load(Ordering::Relaxed) {
-                break;
-            }
-            for (name, is_dir) in entries {
-                if !hidden && is_hidden(&name) {
-                    continue;
-                }
-                index.push(rel.join(&name), is_dir);
-                if is_dir {
-                    pending.push(dir.join(&name));
-                }
-            }
-        }
-        dirs += 1;
     }
     dirs
 }
@@ -205,6 +211,9 @@ impl Session {
         walked: std::sync::mpsc::Sender<crate::backend::events::Event>,
         probes: Arc<WalkProbes>,
     ) -> Session {
+        #[cfg(test)]
+        let body = probes.body.lock().unwrap().take().unwrap_or_else(crate::backend::mountinfo::read_body);
+        #[cfg(not(test))]
         let body = crate::backend::mountinfo::read_body();
         let scope_buf = PathBuf::from(scope);
         let remote = crate::backend::iomount::is_remote(&scope_buf, &body);
@@ -221,6 +230,8 @@ impl Session {
         let thread_scope = scope_buf.clone();
         let thread_body = body.clone();
         let opened_at = Instant::now();
+        let watch = (!remote).then(|| super::searchwatch::Watch::new(&scope_buf, hidden, walked.clone()));
+        *probes.watch.lock().unwrap() = watch.as_ref().map(|watch| Arc::clone(&watch.core));
         let tags = crate::backend::searchtags::Tags::new(walked.clone());
         let handle = std::thread::spawn(move || {
             let dirs = fill(&thread_index, &thread_scope, hidden, remote, &thread_body, &thread_probes);
@@ -244,7 +255,10 @@ impl Session {
             walk_ms: 0.0,
             probes,
             handle: Some(handle),
+            watch,
+            unmounted: false,
             last_query: String::new(),
+            matched_index_len: 0,
             last_matches: Vec::new(),
             pending_rest: None,
             pending_patches: Default::default(),
@@ -270,6 +284,8 @@ impl Session {
             self.walk_dirs = handle.join().unwrap_or(0);
         }
         self.walk_done.store(true, Ordering::Relaxed);
+        self.apply_watch_deltas();
+        self.flush_patches();
         self.announced = true;
         self.walk_ms = self.opened_at.elapsed().as_secs_f64() * 1000.0;
     }
@@ -289,6 +305,7 @@ impl Session {
             self.walk_dirs = handle.join().unwrap_or(0);
         }
         self.walk_ms = self.opened_at.elapsed().as_secs_f64() * 1000.0;
+        self.apply_watch_deltas();
         self.flush_patches();
         true
     }
@@ -300,6 +317,8 @@ impl Session {
             return None;
         }
         self.probes.cancel.store(true, Ordering::Relaxed);
+        self.watch.take();
+        self.index.lock().unwrap().mark_partial("cancelled");
         self.flush_patches();
         self.stand_held();
         // The landing event still arrives; swallowing it here stops the re-run it would fire.
@@ -327,6 +346,7 @@ impl Session {
     // Close cancels a running walk at once; a landed walk frees its arena bytes, a running one detaches and frees none yet.
     pub(crate) fn close(mut self) -> usize {
         self.probes.cancel.store(true, Ordering::Relaxed);
+        self.watch.take();
         // A landed walk's thread is already gone, so joining ends at once; a running one detaches behind cancel.
         if self.walk_done.load(Ordering::Relaxed) {
             if let Some(handle) = self.handle.take() {
@@ -342,3 +362,11 @@ impl Session {
 #[cfg(test)]
 #[path = "searchwalk_tests.rs"]
 mod tests;
+
+#[cfg(test)]
+#[path = "searchmount_tests.rs"]
+mod mount_tests;
+
+#[cfg(test)]
+#[path = "searchmountprobe_tests.rs"]
+mod mount_probe;

@@ -223,4 +223,12 @@ function run(check) {
     // Sample input: "    onListInFlightChanged: if (!root.listInFlight) { preferences.restart(); Sort.applyPending(root) }".
     check("a hold that outlived its listing applies once the rows land",
           /^\s*onListInFlightChanged: if \(!root\.listInFlight\) \{[^}]*Sort\.applyPending\(root\)/m.test(flightSrc), true)
+    // A settled ui.json spells out the schema defaults the first save left unwritten; the pane must not re-list for them.
+    var bare = Sort.preferences({ view: "list" })
+    check("a document that only spells out the defaults is no change", Sort.preferences({ view: "grid", hidden: false,
+          foldersFirst: true, groupByKind: false, hiddenLast: false, rememberSort: true }), bare)
+    var changes = [{ hidden: true }, { sort: { key: "size", reverse: false } }, { sort: { key: "name", reverse: true } },
+                   { foldersFirst: false }, { groupByKind: true }, { hiddenLast: true }, { rememberSort: false }]
+    check("every real preference change is a change", changes.filter(function (c) { return Sort.preferences(c) === bare }).length, 0)
+    check("the pane compares effective preferences", /^\s*readonly property string listingPreferences: Sort\.preferences\(ViewState\.state\)$/m.test(flightSrc), true)
 }

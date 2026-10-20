@@ -247,6 +247,8 @@ fn dispatch<W: Write>(event: Event, out: &mut W, st: &mut State, tb: &Tables, po
             }
         }
         Event::SearchHeld => super::searchhold::on_search_held(out, st, tb, pool),
+        Event::SearchDelta(token) if gate.holds() => gate.hold(Event::SearchDelta(token)),
+        Event::SearchDelta(token) => super::searchdelta::on_delta(out, st, tb, pool, token),
         Event::ReadError(e) => {
             st.nearby.close();
             // The framing cannot be trusted past a decode failure, so this reports at once and the reader reads no further.
@@ -627,9 +629,9 @@ fn handle_line(
         Request::LinkTarget { path, id } => start_link_target(ops, &path, id),
         Request::PermissionsBatch { paths, modes, id } => do_permissions_batch(out, ops, paths, modes, id),
         Request::TransferCancel { id } => cancel_transfer(out, ops, id),
-        Request::Trash { paths, rows, menu_id } => {
+        Request::Trash { paths, rows, menu_id, request } => {
             let named = resolve_rows(paths, &rows, &st.base, &st.listing);
-            start_trash(out, ops, named, menu_id)
+            start_trash(out, ops, named, menu_id, request)
         }
         Request::Rename { path, to, menu_id } => {
             #[cfg(test)]
@@ -887,7 +889,7 @@ fn on_search_walked(out: &mut impl Write, st: &mut State, tb: &Tables, pool: &Po
             if let Some(answer) = session.answer_held().or_else(|| session.re_answer_standing()) {
                 emit_session_answer(out, st, tb, pool, &answer);
             } else if let Some((gen, n, scanned, ms)) = session.landing_empty() {
-                writeln!(out, "{}", super::searchreq::searched_gen_line(n, scanned, ms, gen, false)).ok();
+                writeln!(out, "{}", super::searchreq::searched_status_line(n, scanned, ms, gen, false, session.partial_reason())).ok();
                 out.flush().ok();
             }
         }

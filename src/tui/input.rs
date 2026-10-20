@@ -13,6 +13,9 @@ pub struct Pointer {
     pub released: bool,
     pub motion: bool,
 }
+// A wheel turn arrives as a pointer button, one per notch.
+pub const WHEEL_UP: u32 = 64;
+pub const WHEEL_DOWN: u32 = 65;
 impl Key {
     pub fn named(name: &str, mods: &str) -> Self {
         Self {

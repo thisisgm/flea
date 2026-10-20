@@ -94,6 +94,8 @@ pub fn read_raw(path: &Path) -> Result<Option<Vec<u8>>, FleaError> {
 }
 
 pub fn read(path: &Path) -> Result<Vec<String>, FleaError> {
+    #[cfg(test)]
+    super::tagreadprobe::observe(path);
     Ok(read_raw(path)?.map(|raw| parse(&raw)).unwrap_or_default())
 }
 

@@ -31,7 +31,7 @@ OPERATIONS = ("workspace_focus", "window_focus", "window_float", "window_resize"
               "window_move_absolute", "window_opacity", "cursor_move", "session_exec_script",
               "session_exec_rules", "window_send_shortcut",
               "window_rounding", "output_create", "output_remove", "monitor_mode", "query_monitors", "query_clients",
-              "query_option", "query_version", "query_help", "query_output_help")
+              "query_cursor", "query_option", "query_version", "query_help", "query_output_help")
 ENTRY_POINTS = tuple("hypr_" + operation for operation in OPERATIONS)
 RULE_REPLIES = ("error: =[C]:-1: buildRuleFromTable: unknown effect 'bogus'",
                 "error: =[C]:-1: buildRuleFromTable: failed to build table for exec rules from argument")
@@ -46,6 +46,7 @@ case "$1" in
         case "$2" in
             monitors) printf '%s\n' '[{"name":"FLEA-fixture","id":7}]' ;;
             clients) printf '%s\n' '[{"pid":111,"address":"0xabc"}]' ;;
+            cursorpos) printf '%s\n' '{"x":1280,"y":720}' ;;
             getoption) printf '%s\n' '{"option":"decoration:rounding","int":8}' ;;
             *) printf 'fake hyprctl refused unexpected query: %s\n' "$*" >&2; exit 2 ;;
         esac

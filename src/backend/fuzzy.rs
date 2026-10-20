@@ -33,6 +33,7 @@ pub(crate) enum Hay<'a> {
 }
 
 // One candidate folded once, packed tight: ASCII rows cost one byte per char, wide rows one word.
+#[cfg(test)]
 pub(crate) enum Packed {
     Ascii(Vec<u8>),
     Wide(Vec<u32>),
@@ -51,6 +52,7 @@ fn pack_char(c: char) -> u32 {
 }
 
 // Folds one candidate into a fresh packed form, for rows that outlive the call.
+#[cfg(test)]
 pub(crate) fn fold_packed(candidate: &str) -> Packed {
     if candidate.is_ascii() {
         Packed::Ascii(candidate.bytes().map(pack_byte).collect())

@@ -50,9 +50,9 @@ shelf/ShelfService.qml 481
 src/backend/copyfile.rs 739
 src/backend/archivequit_tests.rs 401
 src/backend/codereq.rs 425
-src/backend/tags.rs 408
+src/backend/tags.rs 410
 src/backend/searchsession.rs 350
-src/backend/searchtags.rs 444
+src/backend/searchtags.rs 478
 src/backend/searchtags_tests.rs 519
 src/backend/tagsreq_tests.rs 383
 src/backend/copyfile_tests.rs 694
@@ -75,9 +75,9 @@ src/backend/opsdispatch.rs 2414
 src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
-src/backend/run.rs 1270
-src/backend/officepdf.rs 430
-src/backend/run_session_tests.rs 544
+src/backend/officepdf.rs 428
+src/backend/run.rs 1252
+src/backend/run_session_tests.rs 582
 src/backend/ops.rs 440
 src/backend/thumbs.rs 562
 src/backend/thumbspec.rs 479

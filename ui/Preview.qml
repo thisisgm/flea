@@ -367,7 +367,7 @@ Item {
         var key = newPath + "\n" + newIcon + "\n" + newSize + "\n" + newKind
         // Pending covers a repeat; a settled revisit of the shown target stays put, anything else reloads.
         var now = Date.now()
-        var decision = PreviewSettle.plan(now, root.lastMoveAt, root.followSettleMs, key, root.lastMoveKey, followSettle.running)
+        var decision = PreviewSettle.plan(now, root.lastMoveAt, root.followSettleMs, key, root.lastMoveKey, followSettle.running, followSettle.running)
         if (decision === "same") return
         if (key === root.lastMoveKey && root.isShown(newPath, newIcon, newSize, newKind)) return
         root.lastMoveKey = key

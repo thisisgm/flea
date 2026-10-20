@@ -362,8 +362,8 @@ FocusScope {
             ViewState.changeKey("view", mode)
         root.restoreView(path)
     }
-    readonly property string listingPreferences: JSON.stringify([ViewState.state.hidden, ViewState.state.sort,
-        ViewState.state.foldersFirst, ViewState.state.groupByKind, ViewState.state.hiddenLast, ViewState.state.rememberSort])
+    // Effective values, so a settled ui.json that only spells out the defaults re-lists nothing and leaves the view where it is.
+    readonly property string listingPreferences: Sort.preferences(ViewState.state)
     property string appliedListingPreferences: ""
     // A preference re-list keeps selection and cursor by name, Finder's rule; the watcher defers
     // while a selection stands, this one preserves it instead. Cleared when its rows land.

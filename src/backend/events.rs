@@ -43,6 +43,8 @@ pub enum Event {
     PeekGone(i32),
     // A session walk landed; the loop re-runs the standing query once when it is still the newest.
     SearchWalked,
+    // The session token rejects events from a closed scope before directory deltas are applied.
+    SearchDelta(usize),
     // A query held while a session walk runs reached the listing swap's cap; the loop answers it from the partial index.
     SearchHeld,
     ReadError(FleaError),

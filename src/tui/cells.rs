@@ -54,6 +54,36 @@ pub fn ellipsis(text: &str, limit: usize) -> String {
 pub fn centered(text: &str, limit: usize) -> String {
     fit(&format!("{}{}", " ".repeat(limit.saturating_sub(text_width(text)) / 2), text), limit)
 }
+// Bold on the name's cells only (mark, space and padding plain, a cut name's ellipsis bold); the title is exactly columns cells.
+pub fn name_title(mark: &str, name: &str, columns: usize) -> String {
+    if columns == 0 { return String::new(); }
+    let cut = text_width(mark) + text_width(name) > columns;
+    let limit = if cut { columns - 1 } else { columns };
+    let mut shown = Vec::new();
+    let mut used = 0;
+    for (is_name, c) in mark.chars().map(|c| (false, c)).chain(name.chars().map(|c| (true, c))) {
+        if !safe(c) { continue; }
+        let n = width(c);
+        if used + n > limit { break; }
+        if n == 0 && used == 0 { continue; }
+        shown.push((is_name, c));
+        used += n;
+    }
+    let name_shown = shown.iter().any(|&(is_name, c)| is_name && width(c) > 0);
+    shown.resize(shown.len() + limit - used, (false, ' '));
+    if cut { shown.push((name_shown, '…')); }
+    let mut out = String::new();
+    let mut bold = false;
+    for (is_name, c) in shown {
+        if is_name != bold {
+            out.push_str(if is_name { "\x1b[1m" } else { "\x1b[22m" });
+            bold = is_name;
+        }
+        out.push(c);
+    }
+    if bold { out.push_str("\x1b[22m"); }
+    out
+}
 pub struct Wrapped<'a> { remaining: Option<&'a str>, columns: usize }
 impl<'a> Wrapped<'a> {
     pub fn new(text: &'a str, columns: usize) -> Self { Self { remaining: (columns > 0).then_some(text), columns } }
@@ -130,10 +160,12 @@ pub fn row(entry: &Row, columns: usize, size: Option<&str>, marks: bool, style: 
     out.push_str(ink);
     let size = size.filter(|s| text_width(s) + 6 <= columns);
     let name_width = columns - 3 - size.map_or(1, |s| text_width(s) + 3);
-    let display_name = fit(&entry.name, text_width(&entry.name));
+    // A search result's name is its path under the search; it prints its name, then its folder in the metadata ink.
+    let (folder, leaf) = entry.name.rsplit_once('/').unwrap_or(("", &entry.name));
+    let display_name = fit(leaf, text_width(leaf));
     let name = ellipsis(&display_name, text_width(&display_name).min(name_width));
     let target_width = name_width - text_width(&name);
-    let target = if entry.link.is_empty() { fit("", target_width) }
+    let target = if !folder.is_empty() { ellipsis(&format!(" {folder}"), target_width) } else if entry.link.is_empty() { fit("", target_width) }
         else { ellipsis(&format!(" → {}", entry.link), target_width) };
     if let Some((start, end)) = match_range(&name, query) {
         out.push_str(&name[..start]);
