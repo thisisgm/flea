@@ -691,8 +691,7 @@ Item {
         onTriggered: root.load(root.pendingPath, root.pendingIcon, root.pendingSize, root.pendingKind, root.pendingThumb, root.pendingImageRow)
         onRunningChanged: if (!followSettle.running) Qt.callLater(root.revealIfReady)
     }
-    // A single-shot Timer stays running until its trigger, a posted event, is handled, so a held key's next repeat that a starved loop
-    // handles before then has not rested, however late its own load work made it, and trails instead of loading at once again.
+    // A single-shot Timer runs until its posted trigger is handled, so a repeat a starved loop serves first has not rested and trails.
     Timer { id: rested; interval: root.followSettleMs }
 
     Timer {

@@ -5,16 +5,14 @@ import QtTest
 import Quickshell
 import "flea/js/PreviewKeys.js" as PreviewKeys
 
-// quicklook-followrest: a held j with Quick Look open loads only its own first repeat, and the release settles once.
-// A busy wait starves the loop past the rest a load made at once owes, so a late repeat must trail, not load.
+// quicklook-followrest: a held j in Quick Look loads only its first repeat, a repeat a starved loop serves late trails, and the release settles once.
 ShellRoot {
     id: root
 
     readonly property string uiDir: Quickshell.env("QLFR_UI")
     readonly property string fixture: Quickshell.env("QLFR_DIR")
     readonly property int stepMs: 25
-    // Presses per burst; a busy wait of starveMs is served before the 1-based press numbers each
-    // sweep lists, so the rest event that press owes cannot be handled between the two.
+    // Presses per burst; a starveMs busy wait runs before each listed 1-based press, so the rest that press owes is not handled between them.
     readonly property var sweeps: [
         { steps: 12, starve: [2, 5, 9] },
         { steps: 12, starve: [2, 3, 7] }
