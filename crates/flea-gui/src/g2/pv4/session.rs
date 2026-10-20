@@ -14,7 +14,11 @@ pub struct Session {
 
 impl Session {
     pub fn new(slot: &'static str) -> Self {
-        Self { slot, token: 0, live: false }
+        Self {
+            slot,
+            token: 0,
+            live: false,
+        }
     }
 
     pub fn slot(&self) -> &'static str {

@@ -63,8 +63,17 @@ impl UnlockView {
         self.refresh(cx);
     }
 
-    pub fn open_for(&mut self, device: &str, label: &str, size: u64, fstype: &str, window: &mut Window, cx: &mut Context<Self>) {
-        self.host.open_for(device, label, size, fstype, self.rail.as_ref());
+    pub fn open_for(
+        &mut self,
+        device: &str,
+        label: &str,
+        size: u64,
+        fstype: &str,
+        window: &mut Window,
+        cx: &mut Context<Self>,
+    ) {
+        self.host
+            .open_for(device, label, size, fstype, self.rail.as_ref());
         window.focus(&self.focus, cx);
         self.refresh(cx);
     }
@@ -105,7 +114,11 @@ impl UnlockView {
                     self._readers.push(cx.spawn(async move |this, cx| {
                         while let Ok(event) = events.recv().await {
                             let done = matches!(event, Event::Exited(_));
-                            if this.update(cx, |view, cx| view.child_event(proc, run, event, cx)).is_err() || done {
+                            if this
+                                .update(cx, |view, cx| view.child_event(proc, run, event, cx))
+                                .is_err()
+                                || done
+                            {
                                 break;
                             }
                         }
@@ -129,7 +142,8 @@ impl UnlockView {
                     self._readers.push(cx.spawn(async move |this, cx| {
                         while let Ok(event) = events.recv().await {
                             if let Event::Exited(outcome) = event {
-                                let _ = this.update(cx, |view, cx| view.name_exited(run, &outcome, cx));
+                                let _ =
+                                    this.update(cx, |view, cx| view.name_exited(run, &outcome, cx));
                                 break;
                             }
                         }
@@ -158,14 +172,21 @@ impl UnlockView {
         if !self.name_job.ended(run) {
             return;
         }
-        let effects = self.host.name_exited(outcome, self.now(), self.rail.as_ref());
+        let effects = self
+            .host
+            .name_exited(outcome, self.now(), self.rail.as_ref());
         self.apply(effects, cx);
     }
 
     fn child_event(&mut self, proc: Proc, run: u64, event: Event, cx: &mut Context<Self>) {
         let now = self.now();
         let effects = match event {
-            Event::Started => self.host.card.as_mut().map(|c| c.started(proc)).unwrap_or_default(),
+            Event::Started => self
+                .host
+                .card
+                .as_mut()
+                .map(|c| c.started(proc))
+                .unwrap_or_default(),
             Event::Exited(outcome) => {
                 self.handles[proc as usize].ended(run);
                 return self.exited(proc, &outcome, now, cx);
@@ -182,7 +203,11 @@ impl UnlockView {
     /// One timer at the next deadline of the card or its name poller, never a per-frame poll.
     fn arm_timer(&mut self, cx: &mut Context<Self>) {
         let card = self.host.card.as_ref().and_then(|c| c.deadline());
-        let Some(at) = [card, self.host.name_deadline()].into_iter().flatten().min() else {
+        let Some(at) = [card, self.host.name_deadline()]
+            .into_iter()
+            .flatten()
+            .min()
+        else {
             self._timer = None;
             return;
         };
@@ -191,7 +216,12 @@ impl UnlockView {
             cx.background_executor().timer(wait).await;
             let _ = this.update(cx, |view, cx| {
                 let now = view.now();
-                let effects = view.host.card.as_mut().map(|c| c.tick(now)).unwrap_or_default();
+                let effects = view
+                    .host
+                    .card
+                    .as_mut()
+                    .map(|c| c.tick(now))
+                    .unwrap_or_default();
                 view.card_did(effects, cx);
             });
         }));
@@ -199,20 +229,39 @@ impl UnlockView {
 
     pub fn submit(&mut self, cx: &mut Context<Self>) {
         let now = self.now();
-        let effects = self.host.card.as_mut().map(|c| c.submit(now)).unwrap_or_default();
+        let effects = self
+            .host
+            .card
+            .as_mut()
+            .map(|c| c.submit(now))
+            .unwrap_or_default();
         self.card_did(effects, cx);
     }
 
     pub fn close(&mut self, cx: &mut Context<Self>) {
-        let effects = self.host.card.as_mut().map(|c| c.close()).unwrap_or_default();
+        let effects = self
+            .host
+            .card
+            .as_mut()
+            .map(|c| c.close())
+            .unwrap_or_default();
         self.card_did(effects, cx);
     }
 
     fn key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
-        let Some(card) = self.host.card.as_mut().filter(|c| c.opened) else { return };
+        let Some(card) = self.host.card.as_mut().filter(|c| c.opened) else {
+            return;
+        };
         let stroke = &event.keystroke;
-        let plain = !stroke.modifiers.control && !stroke.modifiers.alt && !stroke.modifiers.platform;
-        let key = Key { name: &stroke.key, text: stroke.key_char.as_deref(), shift: stroke.modifiers.shift, plain, held: event.is_held };
+        let plain =
+            !stroke.modifiers.control && !stroke.modifiers.alt && !stroke.modifiers.platform;
+        let key = Key {
+            name: &stroke.key,
+            text: stroke.key_char.as_deref(),
+            shift: stroke.modifiers.shift,
+            plain,
+            held: event.is_held,
+        };
         let action = act(card, key);
         if action == Act::Ignore {
             return;
@@ -232,8 +281,15 @@ impl UnlockView {
 
 impl Render for UnlockView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let root = div().id("g2-pl1-unlock").absolute().size_full().track_focus(&self.focus).on_key_down(cx.listener(Self::key));
-        let Some(state) = self.host.card.as_ref().filter(|c| c.opened) else { return root };
+        let root = div()
+            .id("g2-pl1-unlock")
+            .absolute()
+            .size_full()
+            .track_focus(&self.focus)
+            .on_key_down(cx.listener(Self::key));
+        let Some(state) = self.host.card.as_ref().filter(|c| c.opened) else {
+            return root;
+        };
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -242,7 +298,13 @@ impl Render for UnlockView {
         let width = f32::from(window.viewport_size().width);
         let cancel = cx.listener(|view: &mut Self, _, _, cx| view.close(cx));
         let unlock = cx.listener(|view: &mut Self, _, _, cx| view.submit(cx));
-        let press = Press { cancel: Box::new(cancel), unlock: Box::new(unlock) };
-        root.flex().items_center().justify_center().child(card(state, &self.text, &ink, width, press))
+        let press = Press {
+            cancel: Box::new(cancel),
+            unlock: Box::new(unlock),
+        };
+        root.flex()
+            .items_center()
+            .justify_center()
+            .child(card(state, &self.text, &ink, width, press))
     }
 }

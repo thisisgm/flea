@@ -14,6 +14,7 @@ pub struct RailView {
 impl RailView {
     /// The entries in rail order the release key resolves against: places, network, then devices.
     pub fn device_at(&self, index: usize) -> Option<&RailEntry> {
-        self.devices.get(index.checked_sub(self.places + self.network)?)
+        self.devices
+            .get(index.checked_sub(self.places + self.network)?)
     }
 }

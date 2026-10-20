@@ -4,7 +4,10 @@ use super::page::{Card, Key, PluginsPage};
 use super::seam::{Effect, PluginsWire, Tokens};
 use flea::i18n::I18n;
 use flea::ui_logic_st2::pages::{Row, UPDATE_ID};
-use gpui::{div, prelude::*, px, Context, Div, EventEmitter, FocusHandle, FontWeight, Hsla, KeyDownEvent, SharedString, Stateful, Window};
+use gpui::{
+    div, prelude::*, px, Context, Div, EventEmitter, FocusHandle, FontWeight, Hsla, KeyDownEvent,
+    SharedString, Stateful, Window,
+};
 use std::collections::HashMap;
 use std::rc::Rc;
 use std::sync::Arc;
@@ -25,10 +28,23 @@ const MARK_BYTES: u64 = 64 * 1024;
 
 impl PluginsPane {
     /// radius is the compositor's corner radius in pixels, the boards' --r.
-    pub fn new(i18n: Arc<I18n>, wire: Rc<dyn PluginsWire>, tokens: Tokens, radius: f32, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        i18n: Arc<I18n>,
+        wire: Rc<dyn PluginsWire>,
+        tokens: Tokens,
+        radius: f32,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let mut page = PluginsPage::new(i18n);
         page.start(wire.as_ref());
-        Self { page, wire, tokens, radius, marks: HashMap::new(), focus: cx.focus_handle() }
+        Self {
+            page,
+            wire,
+            tokens,
+            radius,
+            marks: HashMap::new(),
+            focus: cx.focus_handle(),
+        }
     }
 
     pub fn page(&self) -> &PluginsPage {
@@ -82,12 +98,21 @@ impl PluginsPane {
 
     // A community plugin's mark.svg is read once, off the UI thread.
     fn load_marks(&mut self, cx: &mut Context<Self>) {
-        let wanted: Vec<String> = self.page.plugins().iter().map(|p| p.mark_path.clone()).filter(|p| !p.is_empty() && !self.marks.contains_key(p)).collect();
+        let wanted: Vec<String> = self
+            .page
+            .plugins()
+            .iter()
+            .map(|p| p.mark_path.clone())
+            .filter(|p| !p.is_empty() && !self.marks.contains_key(p))
+            .collect();
         for path in wanted {
             self.marks.insert(path.clone(), None);
             let read = path.clone();
             cx.spawn(async move |this, cx| {
-                let data = cx.background_executor().spawn(async move { read_mark(&read) }).await;
+                let data = cx
+                    .background_executor()
+                    .spawn(async move { read_mark(&read) })
+                    .await;
                 let _ = this.update(cx, |pane, cx| {
                     if let Some(data) = data {
                         pane.marks.insert(path, Some(data));
@@ -101,7 +126,9 @@ impl PluginsPane {
 
     fn on_key(&mut self, event: &KeyDownEvent, _: &mut Window, cx: &mut Context<Self>) {
         let keystroke = &event.keystroke;
-        let plain = !keystroke.modifiers.control && !keystroke.modifiers.alt && !keystroke.modifiers.platform;
+        let plain = !keystroke.modifiers.control
+            && !keystroke.modifiers.alt
+            && !keystroke.modifiers.platform;
         let key = match keystroke.key.as_str() {
             "up" => Key::Up,
             "down" => Key::Down,
@@ -146,7 +173,12 @@ impl PluginsPane {
 
     fn slot(&self, glyph: &str, size: f32, mark_path: &str) -> Div {
         let ink = self.tokens.muted_frame;
-        let owned = self.marks.get(mark_path).cloned().flatten().map(|data| Mark::owned(mark_path, data, size, ink));
+        let owned = self
+            .marks
+            .get(mark_path)
+            .cloned()
+            .flatten()
+            .map(|data| Mark::owned(mark_path, data, size, ink));
         div()
             .w(px(m::SLOT))
             .h(px(m::BOX))
@@ -157,25 +189,52 @@ impl PluginsPane {
             .children(owned.or_else(|| Mark::named(glyph, size, ink)))
     }
 
-    fn heading(&self, label: &str, switch: Option<bool>, action: Option<&str>, index: usize, cursor: bool, cx: &mut Context<Self>) -> AnyRow {
+    fn heading(
+        &self,
+        label: &str,
+        switch: Option<bool>,
+        action: Option<&str>,
+        index: usize,
+        cursor: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyRow {
         let (t, first) = (&self.tokens, index == 0);
         let mut row = div()
             .id(("st2-row", index))
             .flex()
             .items_center()
             .px(px(m::PAD_X))
-            .pt(px(if first { m::FIRST_HEADING_TOP } else { m::HEADING_TOP }))
+            .pt(px(if first {
+                m::FIRST_HEADING_TOP
+            } else {
+                m::HEADING_TOP
+            }))
             .pb(px(m::HEADING_BOTTOM))
             .text_size(px(m::CAPTION))
             .text_color(t.muted)
             .child(tracked(&label.to_uppercase(), m::TRACKING).font_weight(FontWeight::BOLD))
             .child(div().flex_1());
         if !first {
-            row = row.mt(px(m::HEADING_GAP)).border_t_1().border_color(t.rule());
+            row = row
+                .mt(px(m::HEADING_GAP))
+                .border_t_1()
+                .border_color(t.rule());
         }
         if let Some(on) = switch {
-            let word = self.page.catalog().tr(if on { "plugins.switch.on" } else { "plugins.switch.off" });
-            row = row.child(div().flex().items_center().gap(px(m::GAP)).h(px(14.)).child(tracked(&word, m::TRACKING)).child(self.checkbox(on, index, cx)));
+            let word = self.page.catalog().tr(if on {
+                "plugins.switch.on"
+            } else {
+                "plugins.switch.off"
+            });
+            row = row.child(
+                div()
+                    .flex()
+                    .items_center()
+                    .gap(px(m::GAP))
+                    .h(px(14.))
+                    .child(tracked(&word, m::TRACKING))
+                    .child(self.checkbox(on, index, cx)),
+            );
         }
         if let Some(action) = action {
             row = row.child(
@@ -193,7 +252,14 @@ impl PluginsPane {
     }
 
     // Hover and the pane cursor both draw the boards' --hover fill; a click acts as Enter.
-    fn interactive(&self, row: Stateful<Div>, index: usize, cursor: bool, live: bool, cx: &mut Context<Self>) -> AnyRow {
+    fn interactive(
+        &self,
+        row: Stateful<Div>,
+        index: usize,
+        cursor: bool,
+        live: bool,
+        cx: &mut Context<Self>,
+    ) -> AnyRow {
         if !live {
             return row;
         }
@@ -207,62 +273,117 @@ impl PluginsPane {
     }
 
     fn line(&self, index: usize) -> Stateful<Div> {
-        div().id(("st2-row", index)).h(px(m::ROW)).flex().items_center().gap(px(m::GAP)).px(px(m::PAD_X)).text_size(px(m::BODY)).whitespace_nowrap()
+        div()
+            .id(("st2-row", index))
+            .h(px(m::ROW))
+            .flex()
+            .items_center()
+            .gap(px(m::GAP))
+            .px(px(m::PAD_X))
+            .text_size(px(m::BODY))
+            .whitespace_nowrap()
     }
 
     fn label(text: &str, ink: Hsla) -> Div {
-        div().flex_1().min_w(px(0.)).overflow_hidden().text_ellipsis().text_color(ink).child(SharedString::from(text.to_string()))
+        div()
+            .flex_1()
+            .min_w(px(0.))
+            .overflow_hidden()
+            .text_ellipsis()
+            .text_color(ink)
+            .child(SharedString::from(text.to_string()))
     }
 
     fn value(text: &str, ink: Hsla) -> Div {
-        div().flex_none().text_size(px(m::BODY)).text_color(ink).child(SharedString::from(text.to_string()))
+        div()
+            .flex_none()
+            .text_size(px(m::BODY))
+            .text_color(ink)
+            .child(SharedString::from(text.to_string()))
     }
 
     fn chevron(&self) -> Option<Mark> {
         Mark::named("chevron-right", m::CHEVRON, self.tokens.muted_frame)
     }
 
-    fn chips(&self, index: usize, values: &[String], labels: &[String], selected: &str, cx: &mut Context<Self>) -> Div {
+    fn chips(
+        &self,
+        index: usize,
+        values: &[String],
+        labels: &[String],
+        selected: &str,
+        cx: &mut Context<Self>,
+    ) -> Div {
         let t = self.tokens;
         let radius = self.radius;
-        div().flex().flex_none().gap(px(m::CHIP_GAP)).children(values.iter().zip(labels).enumerate().map(|(n, (value, label))| {
-            let on = value == selected;
-            let value = value.clone();
-            div()
-                .id(("st2-chip", index * 64 + n))
-                .h(px(m::CHIP))
-                .min_w(px(m::CHIP))
-                .px(px(m::CHIP_PAD))
-                .flex()
-                .items_center()
-                .justify_center()
-                .text_size(px(m::CAPTION))
-                .text_color(if on { t.fg } else { t.muted })
-                .border_1()
-                .border_color(if on { t.fg } else { t.frame() })
-                .rounded(px(radius))
-                .child(SharedString::from(label.clone()))
-                .on_click(cx.listener(move |pane, _, _, cx| {
-                    cx.stop_propagation();
-                    pane.page.pick(index, &value, pane.wire.as_ref());
-                    cx.notify();
-                }))
-        }))
+        div().flex().flex_none().gap(px(m::CHIP_GAP)).children(
+            values
+                .iter()
+                .zip(labels)
+                .enumerate()
+                .map(|(n, (value, label))| {
+                    let on = value == selected;
+                    let value = value.clone();
+                    div()
+                        .id(("st2-chip", index * 64 + n))
+                        .h(px(m::CHIP))
+                        .min_w(px(m::CHIP))
+                        .px(px(m::CHIP_PAD))
+                        .flex()
+                        .items_center()
+                        .justify_center()
+                        .text_size(px(m::CAPTION))
+                        .text_color(if on { t.fg } else { t.muted })
+                        .border_1()
+                        .border_color(if on { t.fg } else { t.frame() })
+                        .rounded(px(radius))
+                        .child(SharedString::from(label.clone()))
+                        .on_click(cx.listener(move |pane, _, _, cx| {
+                            cx.stop_propagation();
+                            pane.page.pick(index, &value, pane.wire.as_ref());
+                            cx.notify();
+                        }))
+                }),
+        )
     }
 
     fn row(&self, index: usize, row: &Row, cursor: bool, cx: &mut Context<Self>) -> AnyRow {
         let t = self.tokens;
         let note = |text: &str, pad: &[f32]| {
-            let mut d = div().text_size(px(m::CAPTION)).line_height(gpui::relative(1.5)).text_color(t.muted).pt(px(pad[0])).pr(px(pad[1])).pb(px(pad[2]));
+            let mut d = div()
+                .text_size(px(m::CAPTION))
+                .line_height(gpui::relative(1.5))
+                .text_color(t.muted)
+                .pt(px(pad[0]))
+                .pr(px(pad[1]))
+                .pb(px(pad[2]));
             d = d.pl(px(*pad.get(3).unwrap_or(&pad[1])));
-            d.id(("st2-row", index)).child(SharedString::from(text.to_string()))
+            d.id(("st2-row", index))
+                .child(SharedString::from(text.to_string()))
         };
         match row {
-            Row::Group { label, switch, action, .. } => self.heading(label, *switch, action.as_deref(), index, cursor, cx),
-            Row::Rule => div().id(("st2-row", index)).mt(px(m::RULE_ABOVE)).h(px(m::RULE_BELOW)).border_t_1().border_color(t.rule()),
+            Row::Group {
+                label,
+                switch,
+                action,
+                ..
+            } => self.heading(label, *switch, action.as_deref(), index, cursor, cx),
+            Row::Rule => div()
+                .id(("st2-row", index))
+                .mt(px(m::RULE_ABOVE))
+                .h(px(m::RULE_BELOW))
+                .border_t_1()
+                .border_color(t.rule()),
             Row::Description { text } => note(text, &m::DESCRIPTION),
             Row::Hint { text } => note(text, &m::HINT),
-            Row::Plugin { name, glyph, mark, on, failure, .. } => {
+            Row::Plugin {
+                name,
+                glyph,
+                mark,
+                on,
+                failure,
+                ..
+            } => {
                 let line = self
                     .line(index)
                     .child(self.slot(glyph, m::MARK, mark))
@@ -272,47 +393,123 @@ impl PluginsPane {
                     .children(self.chevron());
                 self.interactive(line, index, cursor, true, cx)
             }
-            Row::Check { label, glyph, on, available, .. } => {
-                let line = self.line(index).child(self.slot(glyph, m::ROW_GLYPH, "")).child(Self::label(label, t.fg)).child(self.checkbox(*on, index, cx));
-                self.interactive(line, index, cursor, *available, cx).when(!available, |row| row.opacity(m::DISABLED))
+            Row::Check {
+                label,
+                glyph,
+                on,
+                available,
+                ..
+            } => {
+                let line = self
+                    .line(index)
+                    .child(self.slot(glyph, m::ROW_GLYPH, ""))
+                    .child(Self::label(label, t.fg))
+                    .child(self.checkbox(*on, index, cx));
+                self.interactive(line, index, cursor, *available, cx)
+                    .when(!available, |row| row.opacity(m::DISABLED))
             }
-            Row::Choice { label, glyph, values, labels, selected, available, .. } => {
-                let line = self.line(index).child(self.slot(glyph, m::ROW_GLYPH, "")).child(Self::label(label, t.fg)).child(self.chips(index, values, labels, selected, cx));
-                self.interactive(line, index, cursor, *available, cx).when(!available, |row| row.opacity(m::DISABLED))
+            Row::Choice {
+                label,
+                glyph,
+                values,
+                labels,
+                selected,
+                available,
+                ..
+            } => {
+                let line = self
+                    .line(index)
+                    .child(self.slot(glyph, m::ROW_GLYPH, ""))
+                    .child(Self::label(label, t.fg))
+                    .child(self.chips(index, values, labels, selected, cx));
+                self.interactive(line, index, cursor, *available, cx)
+                    .when(!available, |row| row.opacity(m::DISABLED))
             }
-            Row::Number { label, value, unit, available, .. } => {
+            Row::Number {
+                label,
+                value,
+                unit,
+                available,
+                ..
+            } => {
                 let count = self.page.catalog().locale().format_count(*value);
-                let shown = if unit.is_empty() { count } else { self.page.catalog().tr_args("plugins.value.unit", &[&count, unit]) };
-                let line = self.line(index).child(self.slot("", m::ROW_GLYPH, "")).child(Self::label(label, t.fg)).child(Self::value(&shown, t.fg));
-                self.interactive(line, index, cursor, *available, cx).when(!available, |row| row.opacity(m::DISABLED))
+                let shown = if unit.is_empty() {
+                    count
+                } else {
+                    self.page
+                        .catalog()
+                        .tr_args("plugins.value.unit", &[&count, unit])
+                };
+                let line = self
+                    .line(index)
+                    .child(self.slot("", m::ROW_GLYPH, ""))
+                    .child(Self::label(label, t.fg))
+                    .child(Self::value(&shown, t.fg));
+                self.interactive(line, index, cursor, *available, cx)
+                    .when(!available, |row| row.opacity(m::DISABLED))
             }
-            Row::Field { label, value, placeholder, available, .. } => {
-                let (shown, ink) = if value.is_empty() { (placeholder, t.muted) } else { (value, t.fg) };
-                let line = self.line(index).child(self.slot("", m::ROW_GLYPH, "")).child(Self::label(label, t.fg)).child(Self::value(shown, ink));
-                self.interactive(line, index, cursor, *available, cx).when(!available, |row| row.opacity(m::DISABLED))
+            Row::Field {
+                label,
+                value,
+                placeholder,
+                available,
+                ..
+            } => {
+                let (shown, ink) = if value.is_empty() {
+                    (placeholder, t.muted)
+                } else {
+                    (value, t.fg)
+                };
+                let line = self
+                    .line(index)
+                    .child(self.slot("", m::ROW_GLYPH, ""))
+                    .child(Self::label(label, t.fg))
+                    .child(Self::value(shown, ink));
+                self.interactive(line, index, cursor, *available, cx)
+                    .when(!available, |row| row.opacity(m::DISABLED))
             }
-            Row::Fact { text, value } => self.line(index).child(self.slot("", m::ROW_GLYPH, "")).child(Self::label(text, t.muted)).child(Self::value(value, t.muted)),
-            Row::Action { id, label, glyph, value, chevron } => {
+            Row::Fact { text, value } => self
+                .line(index)
+                .child(self.slot("", m::ROW_GLYPH, ""))
+                .child(Self::label(text, t.muted))
+                .child(Self::value(value, t.muted)),
+            Row::Action {
+                id,
+                label,
+                glyph,
+                value,
+                chevron,
+            } => {
                 let ink = if id == UPDATE_ID { t.fg } else { t.muted };
                 let line = self
                     .line(index)
                     .child(self.slot(glyph, m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
-                    .when(!value.is_empty(), |line| line.child(Self::value(value, ink)))
+                    .when(!value.is_empty(), |line| {
+                        line.child(Self::value(value, ink))
+                    })
                     .when(*chevron, |line| line.children(self.chevron()));
                 self.interactive(line, index, cursor, true, cx)
             }
-            Row::Favourite { label, glyph, error, available, .. } => {
+            Row::Favourite {
+                label,
+                glyph,
+                error,
+                available,
+                ..
+            } => {
                 let line = self
                     .line(index)
                     .child(self.slot(glyph, m::ROW_GLYPH, ""))
                     .child(Self::label(label, t.fg))
-                    .when(!error.is_empty(), |line| line.child(Self::value(error, t.error)));
-                self.interactive(line, index, cursor, true, cx).when(!available, |row| row.opacity(m::DISABLED))
+                    .when(!error.is_empty(), |line| {
+                        line.child(Self::value(error, t.error))
+                    });
+                self.interactive(line, index, cursor, true, cx)
+                    .when(!available, |row| row.opacity(m::DISABLED))
             }
         }
     }
-
 }
 
 type AnyRow = Stateful<Div>;
@@ -320,15 +517,27 @@ type AnyRow = Stateful<Div>;
 fn read_mark(path: &str) -> Option<Arc<[u8]>> {
     use std::io::Read;
     let mut data = Vec::new();
-    std::fs::File::open(path).ok()?.take(MARK_BYTES + 1).read_to_end(&mut data).ok()?;
+    std::fs::File::open(path)
+        .ok()?
+        .take(MARK_BYTES + 1)
+        .read_to_end(&mut data)
+        .ok()?;
     (data.len() as u64 <= MARK_BYTES).then(|| Arc::from(data))
 }
 
 impl Render for PluginsPane {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let cursor = if self.focus.is_focused(window) || *self.page.card() != Card::None { self.page.cursor() } else { None };
+        let cursor = if self.focus.is_focused(window) || *self.page.card() != Card::None {
+            self.page.cursor()
+        } else {
+            None
+        };
         let rows: Vec<Row> = self.page.rows().to_vec();
-        let drawn: Vec<AnyRow> = rows.iter().enumerate().map(|(index, row)| self.row(index, row, cursor == Some(index), cx)).collect();
+        let drawn: Vec<AnyRow> = rows
+            .iter()
+            .enumerate()
+            .map(|(index, row)| self.row(index, row, cursor == Some(index), cx))
+            .collect();
         div()
             .id("st2-plugins")
             .size_full()
@@ -336,6 +545,14 @@ impl Render for PluginsPane {
             .track_focus(&self.focus)
             .on_key_down(cx.listener(Self::on_key))
             .child(div().flex().flex_col().pb(px(8.)).children(drawn))
-            .children(self.card().map(|card| div().absolute().inset_0().flex().items_center().justify_center().child(card)))
+            .children(self.card().map(|card| {
+                div()
+                    .absolute()
+                    .inset_0()
+                    .flex()
+                    .items_center()
+                    .justify_center()
+                    .child(card)
+            }))
     }
 }

@@ -22,12 +22,21 @@ fn keystrokes_reach_the_panel_and_requests_reach_the_host(cx: &mut TestAppContex
     cx.update(|window, cx| {
         let focus = view.read(cx).focus.clone();
         window.focus(&focus, cx);
-        cx.subscribe(&view, move |_, request: &Request, _| sink.borrow_mut().push(request.clone())).detach();
+        cx.subscribe(&view, move |_, request: &Request, _| {
+            sink.borrow_mut().push(request.clone())
+        })
+        .detach();
     });
     cx.run_until_parked();
     cx.simulate_keystrokes("j space");
     view.update(cx, |view, _| {
-        assert_eq!(view.panel.document().get("rememberViewPerFolder").and_then(flea::jsondoc::Json::as_bool), Some(true));
+        assert_eq!(
+            view.panel
+                .document()
+                .get("rememberViewPerFolder")
+                .and_then(flea::jsondoc::Json::as_bool),
+            Some(true)
+        );
     });
     cx.simulate_keystrokes("/ t h u m b");
     view.update(cx, |view, _| assert_eq!(view.panel.title(), "Settings"));
@@ -39,7 +48,11 @@ fn keystrokes_reach_the_panel_and_requests_reach_the_host(cx: &mut TestAppContex
 #[gpui::test]
 fn every_section_draws_in_a_frame(cx: &mut TestAppContext) {
     let (view, cx) = cx.add_window_view(|_, cx| SettingsView::new(panel("{}"), cx));
-    for section in flea::ui_logic_st1::pages::SECTIONS.iter().map(|section| section.id).chain(["columns"]) {
+    for section in flea::ui_logic_st1::pages::SECTIONS
+        .iter()
+        .map(|section| section.id)
+        .chain(["columns"])
+    {
         view.update(cx, |view, cx| {
             view.panel.show_section(section);
             cx.notify();
@@ -50,7 +63,9 @@ fn every_section_draws_in_a_frame(cx: &mut TestAppContext) {
 
 #[gpui::test]
 fn the_sheet_draws_its_groups_and_its_query(cx: &mut TestAppContext) {
-    let (view, cx) = cx.add_window_view(|_, cx| SheetView::new(Sheet::new("default", english(), Sources::default()), cx));
+    let (view, cx) = cx.add_window_view(|_, cx| {
+        SheetView::new(Sheet::new("default", english(), Sources::default()), cx)
+    });
     cx.update(|window, cx| {
         let focus = view.read(cx).focus.clone();
         window.focus(&focus, cx);

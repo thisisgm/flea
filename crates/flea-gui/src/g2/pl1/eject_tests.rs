@@ -11,16 +11,30 @@ const MOUNTED_ISO: &str = concat!(
     r#"{"name":"loop0p2","path":"/dev/loop0p2","label":null,"mountpoints":[null],"rm":false,"size":24117248,"type":"part","model":null}]}"#,
     r#"]}"#,
 );
-const GONE: &str = r#"{"blockdevices":[{"name":"nvme0n1","path":"/dev/nvme0n1","mountpoints":["/"]}]}"#;
+const GONE: &str =
+    r#"{"blockdevices":[{"name":"nvme0n1","path":"/dev/nvme0n1","mountpoints":["/"]}]}"#;
 const KEPT: &str = r#"{"blockdevices":[{"name":"loop0","path":"/dev/loop0","children":[{"name":"loop0p1","path":"/dev/loop0p1","mountpoints":["/run/media/user/OMARCHY_202608"]}]}]}"#;
 const STALE: &str = r#"{"blockdevices":[{"name":"loop0","children":[{"name":"loop0p1","mountpoints":["/old-mount"]}]}]}"#;
 
 fn listed(body: &str) -> Outcome {
-    Outcome { code: 0, stdout: body.into(), stderr: String::new() }
+    Outcome {
+        code: 0,
+        stdout: body.into(),
+        stderr: String::new(),
+    }
 }
 
 fn messages(effects: &[Effect]) -> Vec<String> {
-    effects.iter().filter_map(|e| if let Effect::Message(n, error) = e { Some(format!("{}|{error}", n.english())) } else { None }).collect()
+    effects
+        .iter()
+        .filter_map(|e| {
+            if let Effect::Message(n, error) = e {
+                Some(format!("{}|{error}", n.english()))
+            } else {
+                None
+            }
+        })
+        .collect()
 }
 
 /// Ejects the loop partition, lets a listing started before the exit land stale, then judges the next one.
@@ -28,19 +42,40 @@ fn eject_message(code: i32, listing: &str) -> String {
     let mut d = Devices::new("host");
     d.poll(0);
     d.list_exited(&listed(MOUNTED_ISO));
-    let index = d.entries.iter().position(|e| e.device == "/dev/loop0p1").expect("the loop partition is a row");
+    let index = d
+        .entries
+        .iter()
+        .position(|e| e.device == "/dev/loop0p1")
+        .expect("the loop partition is a row");
     let effects = d.eject(index, 10);
     assert!(effects.iter().any(|e| matches!(e, Effect::Start(Proc::Eject, job) if job.argv.iter().any(|a| a == "/dev/loop0"))));
-    assert!(d.poll(15).iter().any(|e| matches!(e, Effect::Start(Proc::List, _))), "a listing already under way");
-    assert!(d.eject_exited(&Outcome::code(code), 20).is_empty(), "the running listing is not the witness");
-    assert!(messages(&d.list_exited(&listed(STALE))).is_empty(), "a listing started before gio exited settles nothing");
-    assert!(d.poll(30).iter().any(|e| matches!(e, Effect::Start(Proc::List, _))));
+    assert!(
+        d.poll(15)
+            .iter()
+            .any(|e| matches!(e, Effect::Start(Proc::List, _))),
+        "a listing already under way"
+    );
+    assert!(
+        d.eject_exited(&Outcome::code(code), 20).is_empty(),
+        "the running listing is not the witness"
+    );
+    assert!(
+        messages(&d.list_exited(&listed(STALE))).is_empty(),
+        "a listing started before gio exited settles nothing"
+    );
+    assert!(d
+        .poll(30)
+        .iter()
+        .any(|e| matches!(e, Effect::Start(Proc::List, _))));
     messages(&d.list_exited(&listed(listing))).join(";")
 }
 
 #[test]
 fn exit_3_with_an_unmounted_loop_reports_the_failed_detach() {
-    assert_eq!(eject_message(3, GONE), "Unmounted OMARCHY_202608, but its loop device is still attached.|true");
+    assert_eq!(
+        eject_message(3, GONE),
+        "Unmounted OMARCHY_202608, but its loop device is still attached.|true"
+    );
 }
 
 #[test]
@@ -50,7 +85,10 @@ fn exit_1_with_the_mount_gone_is_judged_ejected_by_the_next_listing() {
 
 #[test]
 fn exit_1_with_the_mount_kept_reports_still_mounted() {
-    assert_eq!(eject_message(1, KEPT), "OMARCHY_202608 is still mounted; close what is using it.|true");
+    assert_eq!(
+        eject_message(1, KEPT),
+        "OMARCHY_202608 is still mounted; close what is using it.|true"
+    );
 }
 
 #[test]
@@ -60,12 +98,18 @@ fn exit_0_with_the_mount_gone_reports_ejected_without_an_unplug_line() {
 
 #[test]
 fn exit_0_with_the_mount_kept_never_reports_success() {
-    assert_eq!(eject_message(0, KEPT), "OMARCHY_202608 is still mounted; close what is using it.|true");
+    assert_eq!(
+        eject_message(0, KEPT),
+        "OMARCHY_202608 is still mounted; close what is using it.|true"
+    );
 }
 
 #[test]
 fn exit_0_with_another_partition_mounted_reports_only_the_target_ejected() {
-    assert_eq!(eject_message(0, &KEPT.replace("loop0p1", "loop0p2")), "Ejected OMARCHY_202608.|false");
+    assert_eq!(
+        eject_message(0, &KEPT.replace("loop0p1", "loop0p2")),
+        "Ejected OMARCHY_202608.|false"
+    );
 }
 
 #[test]
@@ -73,10 +117,17 @@ fn a_second_eject_while_one_is_judged_is_refused() {
     let mut d = Devices::new("host");
     d.poll(0);
     d.list_exited(&listed(MOUNTED_ISO));
-    let index = d.entries.iter().position(|e| e.device == "/dev/loop0p1").unwrap();
+    let index = d
+        .entries
+        .iter()
+        .position(|e| e.device == "/dev/loop0p1")
+        .unwrap();
     d.eject(index, 10);
     let again = d.eject(index, 11);
-    assert_eq!(messages(&again), ["Still ejecting OMARCHY_202608; wait for its result|false"]);
+    assert_eq!(
+        messages(&again),
+        ["Still ejecting OMARCHY_202608; wait for its result|false"]
+    );
 }
 
 #[test]
@@ -84,11 +135,21 @@ fn no_witness_by_the_bound_says_do_not_unplug() {
     let mut d = Devices::new("host");
     d.poll(0);
     d.list_exited(&listed(MOUNTED_ISO));
-    let index = d.entries.iter().position(|e| e.device == "/dev/loop0p1").unwrap();
+    let index = d
+        .entries
+        .iter()
+        .position(|e| e.device == "/dev/loop0p1")
+        .unwrap();
     d.eject(index, 10);
     d.eject_exited(&Outcome::code(0), 20);
     let effects = d.tick(20 + super::devices::EJECT_VERDICT_MS);
-    assert!(messages(&effects).iter().any(|m| m.ends_with("|true") && m.contains("do not unplug")), "{:?}", messages(&effects));
+    assert!(
+        messages(&effects)
+            .iter()
+            .any(|m| m.ends_with("|true") && m.contains("do not unplug")),
+        "{:?}",
+        messages(&effects)
+    );
     assert!(!d.releasing());
 }
 
@@ -104,7 +165,13 @@ const LOOP_CRYPT: &str = concat!(
 );
 
 fn lock_argv(effects: &[Effect]) -> Option<String> {
-    effects.iter().find_map(|e| if let Effect::Start(Proc::Lock, job) = e { Some(job.argv.join(" ")) } else { None })
+    effects.iter().find_map(|e| {
+        if let Effect::Start(Proc::Lock, job) = e {
+            Some(job.argv.join(" "))
+        } else {
+            None
+        }
+    })
 }
 
 fn listed_devices(body: &str) -> Devices {
@@ -117,20 +184,37 @@ fn listed_devices(body: &str) -> Devices {
 #[test]
 fn an_unmount_locks_from_the_listing_it_already_holds_and_a_refusal_is_one_attempt() {
     let mut d = listed_devices(OPEN_CRYPT);
-    let index = d.entries.iter().position(|e| e.device == "/dev/mapper/luks-vault").expect("the open crypt is a row");
+    let index = d
+        .entries
+        .iter()
+        .position(|e| e.device == "/dev/mapper/luks-vault")
+        .expect("the open crypt is a row");
     let effects = d.unmount(index);
     assert!(effects.iter().any(|e| matches!(e, Effect::Start(Proc::Unmount, job) if job.argv.join(" ") == "gio mount -u /run/media/gm/vault")));
     let effects = d.unmount_exited(&Outcome::code(0), 10);
-    assert_eq!(lock_argv(&effects).as_deref(), Some("udisksctl lock --block-device /dev/sdb1"));
+    assert_eq!(
+        lock_argv(&effects).as_deref(),
+        Some("udisksctl lock --block-device /dev/sdb1")
+    );
     let effects = d.lock_exited(&Outcome::code(1), 20);
-    assert_eq!(messages(&effects), ["vault was unmounted but could not be locked; close what is using it.|true"]);
-    assert!(lock_argv(&effects).is_none(), "a container gvfs already locked gets one refused attempt");
+    assert_eq!(
+        messages(&effects),
+        ["vault was unmounted but could not be locked; close what is using it.|true"]
+    );
+    assert!(
+        lock_argv(&effects).is_none(),
+        "a container gvfs already locked gets one refused attempt"
+    );
 }
 
 /// Ejects the loop-backed crypt and judges the given listing as its witness.
 fn eject_crypt(witness: &str) -> Vec<Effect> {
     let mut d = listed_devices(LOOP_CRYPT);
-    let index = d.entries.iter().position(|e| e.device == "/dev/mapper/luks-6f1c").expect("the crypt leaf is a row");
+    let index = d
+        .entries
+        .iter()
+        .position(|e| e.device == "/dev/mapper/luks-6f1c")
+        .expect("the crypt leaf is a row");
     d.eject(index, 10);
     d.eject_exited(&Outcome::code(0), 20);
     d.list_exited(&listed(witness))
@@ -138,14 +222,26 @@ fn eject_crypt(witness: &str) -> Vec<Effect> {
 
 #[test]
 fn a_crypt_the_judged_listing_still_shows_is_locked() {
-    let witness = LOOP_CRYPT.replace(r#""mountpoints":["/run/media/gm/S1LUKS"]"#, r#""mountpoints":[null]"#);
+    let witness = LOOP_CRYPT.replace(
+        r#""mountpoints":["/run/media/gm/S1LUKS"]"#,
+        r#""mountpoints":[null]"#,
+    );
     let effects = eject_crypt(&witness);
-    assert_eq!(lock_argv(&effects).as_deref(), Some("udisksctl lock --block-device /dev/loop0"), "{:?}", messages(&effects));
+    assert_eq!(
+        lock_argv(&effects).as_deref(),
+        Some("udisksctl lock --block-device /dev/loop0"),
+        "{:?}",
+        messages(&effects)
+    );
 }
 
 #[test]
 fn a_container_gvfs_already_locked_gets_no_lock() {
     let effects = eject_crypt(GONE);
     assert!(lock_argv(&effects).is_none());
-    assert!(messages(&effects).iter().any(|m| m.ends_with("|false")), "{:?}", messages(&effects));
+    assert!(
+        messages(&effects).iter().any(|m| m.ends_with("|false")),
+        "{:?}",
+        messages(&effects)
+    );
 }

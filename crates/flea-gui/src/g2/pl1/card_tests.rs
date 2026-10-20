@@ -1,7 +1,7 @@
 //! The card's words against the unlock and unlock-empty boards, through the real catalog and its omarchy references.
 use super::card::CardText;
-use super::unlock::{Card, Proc};
 use super::process::Outcome;
+use super::unlock::{Card, Proc};
 use flea::i18n::{I18n, Paths};
 use std::fs;
 use std::path::{Path, PathBuf};
@@ -14,7 +14,9 @@ struct Root(PathBuf);
 impl Root {
     fn new(tag: &str) -> Self {
         let base = Path::new(env!("CARGO_MANIFEST_DIR")).join("../../.superpowers/g2-pl1/scratch");
-        let nanos = std::time::SystemTime::now().duration_since(std::time::UNIX_EPOCH).map_or(0, |d| d.as_nanos());
+        let nanos = std::time::SystemTime::now()
+            .duration_since(std::time::UNIX_EPOCH)
+            .map_or(0, |d| d.as_nanos());
         let root = base.join(format!("{tag}-{}-{nanos}", std::process::id()));
         fs::create_dir_all(&root).unwrap();
         fs::write(root.join(MARKER), "").unwrap();
@@ -24,7 +26,8 @@ impl Root {
 
 impl Drop for Root {
     fn drop(&mut self) {
-        if self.0.is_absolute() && self.0.join(MARKER).is_file() && self.0.components().count() > 4 {
+        if self.0.is_absolute() && self.0.join(MARKER).is_file() && self.0.components().count() > 4
+        {
             let _ = fs::remove_dir_all(&self.0);
         }
     }
@@ -41,7 +44,11 @@ fn catalog(root: &Root) -> I18n {
     )
     .unwrap();
     fs::write(root.0.join("language"), "en\n").unwrap();
-    I18n::load(Paths { omarchy, language_file: root.0.join("language"), catalogs: vec![root.0.join("catalogs")] })
+    I18n::load(Paths {
+        omarchy,
+        language_file: root.0.join("language"),
+        catalogs: vec![root.0.join("catalogs")],
+    })
 }
 
 fn board_card() -> Card {
@@ -70,7 +77,11 @@ fn unlock_wrong_board_words_and_seven_held_dots() {
     let mut card = board_card();
     card.type_text("1234567");
     card.submit(0);
-    let refused = Outcome { code: 1, stdout: String::new(), stderr: "GDBus.Error:org.freedesktop.UDisks2.Error.Failed: x".into() };
+    let refused = Outcome {
+        code: 1,
+        stdout: String::new(),
+        stderr: "GDBus.Error:org.freedesktop.UDisks2.Error.Failed: x".into(),
+    };
     card.exited(Proc::Unlock, &refused, 5);
     let text = CardText::of(&card, &catalog(&root));
     assert_eq!(text.note, "That passphrase did not work. Check Caps Lock.");
@@ -114,22 +125,50 @@ fn a_hovered_or_pressed_unlock_keeps_its_accent_wash_under_the_pointer_wash() {
     use super::card::{button_wash, WASH_HOVER, WASH_PRESS};
     let ink = distinct_ink();
     let unlock = button_wash(true, true, &ink);
-    assert_eq!(unlock.rest, Some(ink.wash), "the primary rests on the accent wash in every pointer state");
+    assert_eq!(
+        unlock.rest,
+        Some(ink.wash),
+        "the primary rests on the accent wash in every pointer state"
+    );
     assert_eq!(unlock.hover, Some(ink.foreground.opacity(WASH_HOVER)));
     assert_eq!(unlock.press, Some(ink.foreground.opacity(WASH_PRESS)));
     let cancel = button_wash(false, true, &ink);
     assert_eq!(cancel.rest, None, "a secondary has no resting wash");
-    assert_eq!((cancel.hover, cancel.press), (unlock.hover, unlock.press), "both buttons take the same pointer washes");
+    assert_eq!(
+        (cancel.hover, cancel.press),
+        (unlock.hover, unlock.press),
+        "both buttons take the same pointer washes"
+    );
     let unavailable = button_wash(true, false, &ink);
-    assert_eq!(unavailable, super::card::ButtonWash { rest: None, hover: None, press: None }, "unavailable Unlock draws no wash and answers no pointer");
+    assert_eq!(
+        unavailable,
+        super::card::ButtonWash {
+            rest: None,
+            hover: None,
+            press: None
+        },
+        "unavailable Unlock draws no wash and answers no pointer"
+    );
 }
 
 #[test]
 fn a_focused_primary_on_a_hued_accent_keeps_one_foreground_hairline() {
     use super::card::button_frame;
     let mut ink = distinct_ink();
-    assert_eq!(button_frame(true, true, true, &ink), (ink.foreground, false), "Buttons.focusFrame with a hued accent: one foreground hairline");
-    assert_eq!(button_frame(true, true, false, &ink), (ink.accent_frame, false), "the resting primary keeps its accent frame");
+    assert_eq!(
+        button_frame(true, true, true, &ink),
+        (ink.foreground, false),
+        "Buttons.focusFrame with a hued accent: one foreground hairline"
+    );
+    assert_eq!(
+        button_frame(true, true, false, &ink),
+        (ink.accent_frame, false),
+        "the resting primary keeps its accent frame"
+    );
     ink.accent_frame = ink.foreground;
-    assert_eq!(button_frame(true, true, true, &ink), (ink.foreground, true), "RING wide only where the rest frame is the foreground");
+    assert_eq!(
+        button_frame(true, true, true, &ink),
+        (ink.foreground, true),
+        "RING wide only where the rest frame is the foreground"
+    );
 }

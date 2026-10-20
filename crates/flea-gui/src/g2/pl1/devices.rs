@@ -23,9 +23,17 @@ pub enum Effect {
     Kill(Proc),
     Opened(String),
     Message(Note, bool),
-    Operation { headline: Option<Note>, detail: String },
+    Operation {
+        headline: Option<Note>,
+        detail: String,
+    },
     Quiesce(String),
-    UnlockRequested { device: String, label: String, size: u64, fstype: String },
+    UnlockRequested {
+        device: String,
+        label: String,
+        size: u64,
+        fstype: String,
+    },
     Forget(Note),
     ReadSectors(String),
 }
@@ -77,7 +85,12 @@ pub struct Devices {
 
 impl Devices {
     pub fn new(hostname: &str) -> Self {
-        Self { show_unmounted: true, polling: true, hostname: hostname.to_string(), ..Self::default() }
+        Self {
+            show_unmounted: true,
+            polling: true,
+            hostname: hostname.to_string(),
+            ..Self::default()
+        }
     }
 
     pub fn running(&self, proc: Proc) -> bool {
@@ -95,7 +108,11 @@ impl Devices {
     }
 
     fn poll_wanted(&self) -> bool {
-        self.polling || !self.first_answered || self.releasing() || !self.pending_open_device.is_empty() || !self.power_disk.is_empty()
+        self.polling
+            || !self.first_answered
+            || self.releasing()
+            || !self.pending_open_device.is_empty()
+            || !self.power_disk.is_empty()
     }
 
     pub fn poll(&mut self, now: u64) -> Vec<Effect> {
@@ -117,7 +134,16 @@ impl Devices {
     /// The earliest moment tick has work, so a driver arms one timer instead of polling frames.
     pub fn deadline(&self) -> Option<u64> {
         let poll = (self.poll_wanted() && self.poll_armed).then_some(self.next_poll);
-        [poll, self.list_deadline, self.mount_deadline, self.verdict_deadline, self.power_deadline].into_iter().flatten().min()
+        [
+            poll,
+            self.list_deadline,
+            self.mount_deadline,
+            self.verdict_deadline,
+            self.power_deadline,
+        ]
+        .into_iter()
+        .flatten()
+        .min()
     }
 
     /// Every timer the service keeps, as deadlines against one clock.
@@ -140,7 +166,10 @@ impl Devices {
             self.mount_deadline = None;
             if !self.pending_open_device.is_empty() {
                 self.pending_open_device.clear();
-                out.push(Effect::Message(Note::new("device.no_folder", &[&self.pending_open_label]), true));
+                out.push(Effect::Message(
+                    Note::new("device.no_folder", &[&self.pending_open_label]),
+                    true,
+                ));
             }
         }
         if self.verdict_deadline.is_some_and(|at| now >= at) {
@@ -190,7 +219,13 @@ impl Devices {
         if self.pending_open_device.is_empty() {
             return Vec::new();
         }
-        let Some(e) = self.entries.iter().find(|e| e.device == self.pending_open_device && e.mounted) else { return Vec::new() };
+        let Some(e) = self
+            .entries
+            .iter()
+            .find(|e| e.device == self.pending_open_device && e.mounted)
+        else {
+            return Vec::new();
+        };
         let path = e.path.clone();
         self.pending_open_device.clear();
         self.mount_deadline = None;
@@ -199,16 +234,26 @@ impl Devices {
 
     /// A disk or mounted volume opens; a locked one asks for its passphrase; any other mounts first.
     pub fn activate(&mut self, index: usize) -> Vec<Effect> {
-        let Some(e) = self.entries.get(index).cloned() else { return Vec::new() };
+        let Some(e) = self.entries.get(index).cloned() else {
+            return Vec::new();
+        };
         if e.locked {
-            let request = Effect::UnlockRequested { device: e.device, label: e.label, size: e.size.unwrap_or(0), fstype: e.fstype };
+            let request = Effect::UnlockRequested {
+                device: e.device,
+                label: e.label,
+                size: e.size.unwrap_or(0),
+                fstype: e.fstype,
+            };
             return vec![request];
         }
         if e.mounted {
             return vec![Effect::Opened(e.path)];
         }
         if self.running(Proc::Mount) {
-            return vec![Effect::Message(Note::new("device.another_mounting", &[]), false)];
+            return vec![Effect::Message(
+                Note::new("device.another_mounting", &[]),
+                false,
+            )];
         }
         self.pending_open_device = e.device.clone();
         self.pending_open_label = e.label.clone();
@@ -218,16 +263,32 @@ impl Devices {
     /// Unmount, which is not Eject: a fixed disk stays and only its filesystem goes away.
     pub fn unmount(&mut self, index: usize) -> Vec<Effect> {
         if !self.power_disk.is_empty() {
-            return vec![Effect::Message(Note::new("device.still_ejecting", &[&self.eject_label]), false)];
+            return vec![Effect::Message(
+                Note::new("device.still_ejecting", &[&self.eject_label]),
+                false,
+            )];
         }
-        let Some(e) = self.entries.get(index).filter(|e| e.kind == Kind::Volume && e.mounted).cloned() else { return Vec::new() };
+        let Some(e) = self
+            .entries
+            .get(index)
+            .filter(|e| e.kind == Kind::Volume && e.mounted)
+            .cloned()
+        else {
+            return Vec::new();
+        };
         if self.running(Proc::Unmount) {
-            return vec![Effect::Message(Note::new("device.still_unmounting", &[&self.unmount_label]), false)];
+            return vec![Effect::Message(
+                Note::new("device.still_unmounting", &[&self.unmount_label]),
+                false,
+            )];
         }
         self.unmount_label = e.label.clone();
         self.unmount_device = e.device.clone();
         self.unmounting = true;
-        vec![Effect::Quiesce(e.path.clone()), self.start(Proc::Unmount, Job::plain(&["gio", "mount", "-u", &e.path]))]
+        vec![
+            Effect::Quiesce(e.path.clone()),
+            self.start(Proc::Unmount, Job::plain(&["gio", "mount", "-u", &e.path])),
+        ]
     }
 
     pub fn mount_exited(&mut self, outcome: &Outcome, now: u64) -> Vec<Effect> {
@@ -254,7 +315,15 @@ impl Devices {
         if !self.power_disk.is_empty() {
             if outcome.code != 0 {
                 self.end_chain();
-                out.push(failure(mount_error(Op::Unmount, outcome.code, &outcome.stderr, &self.eject_label), &outcome.stderr));
+                out.push(failure(
+                    mount_error(
+                        Op::Unmount,
+                        outcome.code,
+                        &outcome.stderr,
+                        &self.eject_label,
+                    ),
+                    &outcome.stderr,
+                ));
             } else {
                 out.extend(self.power_off_next(now));
             }
@@ -262,9 +331,21 @@ impl Devices {
             return out;
         }
         if outcome.code != 0 {
-            out.push(failure(mount_error(Op::Unmount, outcome.code, &outcome.stderr, &self.unmount_label), &outcome.stderr));
+            out.push(failure(
+                mount_error(
+                    Op::Unmount,
+                    outcome.code,
+                    &outcome.stderr,
+                    &self.unmount_label,
+                ),
+                &outcome.stderr,
+            ));
         } else {
-            let (device, label, listing) = (self.unmount_device.clone(), self.unmount_label.clone(), self.listing.clone());
+            let (device, label, listing) = (
+                self.unmount_device.clone(),
+                self.unmount_label.clone(),
+                self.listing.clone(),
+            );
             if let Some(lock) = self.lock_crypt(&device, &label, &listing) {
                 out.extend(lock);
                 return out;
@@ -275,7 +356,12 @@ impl Devices {
     }
 
     /// Locks the container behind a released crypt; None when the device has no backing container.
-    pub(super) fn lock_crypt(&mut self, device: &str, label: &str, listing: &str) -> Option<Vec<Effect>> {
+    pub(super) fn lock_crypt(
+        &mut self,
+        device: &str,
+        label: &str,
+        listing: &str,
+    ) -> Option<Vec<Effect>> {
         let backing = backing_for(listing, device);
         if backing.is_empty() {
             return None;
@@ -285,7 +371,15 @@ impl Devices {
             return Some(Vec::new());
         }
         self.lock_label = label.to_string();
-        Some(vec![self.start(Proc::Lock, Job::plain(&lock_argv(&backing).iter().map(String::as_str).collect::<Vec<_>>()))])
+        Some(vec![self.start(
+            Proc::Lock,
+            Job::plain(
+                &lock_argv(&backing)
+                    .iter()
+                    .map(String::as_str)
+                    .collect::<Vec<_>>(),
+            ),
+        )])
     }
 
     pub fn lock_exited(&mut self, outcome: &Outcome, now: u64) -> Vec<Effect> {
@@ -298,7 +392,17 @@ impl Devices {
         if !self.lock_queue.is_empty() {
             let (backing, next) = self.lock_queue.remove(0);
             self.lock_label = next;
-            out.push(self.start(Proc::Lock, Job::plain(&lock_argv(&backing).iter().map(String::as_str).collect::<Vec<_>>())));
+            out.push(
+                self.start(
+                    Proc::Lock,
+                    Job::plain(
+                        &lock_argv(&backing)
+                            .iter()
+                            .map(String::as_str)
+                            .collect::<Vec<_>>(),
+                    ),
+                ),
+            );
             return out;
         }
         out.extend(self.poll(now));
@@ -308,5 +412,8 @@ impl Devices {
 
 /// A failed operation: its sentence and gio's own reason as the detail line.
 pub(super) fn failure(headline: Option<Note>, stderr: &str) -> Effect {
-    Effect::Operation { headline, detail: mount_detail(stderr) }
+    Effect::Operation {
+        headline,
+        detail: mount_detail(stderr),
+    }
 }

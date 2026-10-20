@@ -18,7 +18,11 @@ pub struct PageCache {
 
 impl PageCache {
     pub fn new(limit: usize) -> Self {
-        PageCache { entries: Vec::with_capacity(limit + 1), limit, released: Vec::new() }
+        PageCache {
+            entries: Vec::with_capacity(limit + 1),
+            limit,
+            released: Vec::new(),
+        }
     }
 
     pub fn len(&self) -> usize {
@@ -37,7 +41,10 @@ impl PageCache {
 
     /// The page at exactly this width.
     pub fn exact(&self, page: usize, width: u32) -> Option<&Arc<RenderImage>> {
-        self.entries.iter().find(|e| e.page == page && e.width == width).map(|e| &e.image)
+        self.entries
+            .iter()
+            .find(|e| e.page == page && e.width == width)
+            .map(|e| &e.image)
     }
 
     /// The page at the width closest to this one, which stands in while the exact one renders.
@@ -51,7 +58,11 @@ impl PageCache {
 
     /// A landed page; a page kept wanted by `keep` is never the one trimmed.
     pub fn insert(&mut self, page: usize, width: u32, image: Arc<RenderImage>, keep: &[usize]) {
-        if let Some(at) = self.entries.iter().position(|e| e.page == page && e.width == width) {
+        if let Some(at) = self
+            .entries
+            .iter()
+            .position(|e| e.page == page && e.width == width)
+        {
             let old = self.entries.remove(at);
             self.released.push(old.image);
         }
@@ -89,7 +100,8 @@ impl PageCache {
 
     /// Another document's pages are never this one's: every page leaves.
     pub fn clear(&mut self) {
-        self.released.extend(self.entries.drain(..).map(|e| e.image));
+        self.released
+            .extend(self.entries.drain(..).map(|e| e.image));
     }
 
     /// Images to release from the atlas, taken once by paint.

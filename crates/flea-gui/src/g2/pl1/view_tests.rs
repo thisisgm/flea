@@ -32,22 +32,36 @@ impl Runner for Recorder {
 
 impl Recorder {
     fn lists(&self) -> usize {
-        self.argv.borrow().iter().filter(|a| a.first().is_some_and(|p| p == "lsblk")).count()
+        self.argv
+            .borrow()
+            .iter()
+            .filter(|a| a.first().is_some_and(|p| p == "lsblk"))
+            .count()
     }
 
     fn answer(&self, job: usize, outcome: Outcome) {
-        self.answers.borrow()[job].try_send(Event::Exited(outcome)).unwrap();
+        self.answers.borrow()[job]
+            .try_send(Event::Exited(outcome))
+            .unwrap();
     }
 }
 
 fn listed(body: &str) -> Outcome {
-    Outcome { code: 0, stdout: body.into(), stderr: String::new() }
+    Outcome {
+        code: 0,
+        stdout: body.into(),
+        stderr: String::new(),
+    }
 }
 
 fn view(cx: &mut TestAppContext) -> (Rc<Recorder>, Entity<UnlockView>, &mut VisualTestContext) {
     let recorder = Rc::new(Recorder::default());
     let runner: Rc<dyn Runner> = recorder.clone();
-    let catalog = Arc::new(I18n::load(Paths { omarchy: PathBuf::from("/nonexistent/omarchy"), language_file: PathBuf::from("/nonexistent/language"), catalogs: Vec::new() }));
+    let catalog = Arc::new(I18n::load(Paths {
+        omarchy: PathBuf::from("/nonexistent/omarchy"),
+        language_file: PathBuf::from("/nonexistent/language"),
+        catalogs: Vec::new(),
+    }));
     let cx = cx.add_empty_window();
     let view = cx.update(|_, cx| cx.new(|cx| UnlockView::new(catalog, runner, cx)));
     (recorder, view, cx)
@@ -65,12 +79,24 @@ fn a_killed_name_listings_late_exit_never_answers_the_reopened_card(cx: &mut Tes
     cx.run_until_parked();
     cx.update(|_, cx| {
         let host = &view.read(cx).host;
-        assert_eq!(host.unnamed_device, "/dev/loop9", "the killed listing's exit is not the reopened card's answer");
-        assert!(host.name_polling(), "the reopened card still waits on its own listing");
+        assert_eq!(
+            host.unnamed_device, "/dev/loop9",
+            "the killed listing's exit is not the reopened card's answer"
+        );
+        assert!(
+            host.name_polling(),
+            "the reopened card still waits on its own listing"
+        );
     });
     recorder.answer(1, listed(ROW));
     cx.run_until_parked();
-    cx.update(|_, cx| assert_eq!(view.read(cx).host.card.as_ref().unwrap().label, "cap-loop9", "its own listing names it"));
+    cx.update(|_, cx| {
+        assert_eq!(
+            view.read(cx).host.card.as_ref().unwrap().label,
+            "cap-loop9",
+            "its own listing names it"
+        )
+    });
 }
 
 #[gpui::test]
@@ -78,19 +104,43 @@ fn a_timed_out_name_listing_lists_again_once_its_killed_lsblk_exits(cx: &mut Tes
     let (recorder, view, cx) = view(cx);
     cx.update(|window, cx| view.update(cx, |v, cx| v.open_for_device("/dev/loop9", window, cx)));
     assert_eq!(recorder.lists(), 1);
-    assert!(!recorder.probes.borrow()[0].killed(), "the hung lsblk runs until the bound");
+    assert!(
+        !recorder.probes.borrow()[0].killed(),
+        "the hung lsblk runs until the bound"
+    );
     cx.update(|_, cx| view.update(cx, |v, cx| v.rail_changed(None, cx)));
-    assert!(!recorder.probes.borrow()[0].killed(), "a host turn before the bound does not kill the hung lsblk");
+    assert!(
+        !recorder.probes.borrow()[0].killed(),
+        "a host turn before the bound does not kill the hung lsblk"
+    );
     // The view's clock is wall time, so the bound passes for real; any host turn after it runs the poller's tick.
     std::thread::sleep(Duration::from_millis(LIST_TIMEOUT_MS + 200));
     cx.update(|_, cx| view.update(cx, |v, cx| v.rail_changed(None, cx)));
-    cx.update(|_, cx| assert!(view.read(cx).host.name_polling(), "the card still waits on its name"));
-    assert_eq!(recorder.lists(), 1, "the bound does not list again until the hung lsblk exits");
-    assert!(recorder.probes.borrow()[0].killed(), "the bound kills the hung lsblk, not only its wait");
+    cx.update(|_, cx| {
+        assert!(
+            view.read(cx).host.name_polling(),
+            "the card still waits on its name"
+        )
+    });
+    assert_eq!(
+        recorder.lists(),
+        1,
+        "the bound does not list again until the hung lsblk exits"
+    );
+    assert!(
+        recorder.probes.borrow()[0].killed(),
+        "the bound kills the hung lsblk, not only its wait"
+    );
     recorder.answer(0, Outcome::code(-1));
     cx.run_until_parked();
     assert_eq!(recorder.lists(), 2, "the killed lsblk's exit lists again at once, as host_tests timed_out_listing_lists_again_at_the_bound pins for the host");
     recorder.answer(1, listed(ROW));
     cx.run_until_parked();
-    cx.update(|_, cx| assert_eq!(view.read(cx).host.card.as_ref().unwrap().label, "cap-loop9", "the retried listing names the card"));
+    cx.update(|_, cx| {
+        assert_eq!(
+            view.read(cx).host.card.as_ref().unwrap().label,
+            "cap-loop9",
+            "the retried listing names the card"
+        )
+    });
 }

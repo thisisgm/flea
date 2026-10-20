@@ -36,7 +36,11 @@ impl Field {
 
     /// How many dots to draw.
     pub fn dots(&self) -> usize {
-        if self.text.is_empty() { self.held_mask } else { self.text.chars() }
+        if self.text.is_empty() {
+            self.held_mask
+        } else {
+            self.text.chars()
+        }
     }
 
     pub fn masked(&self) -> bool {

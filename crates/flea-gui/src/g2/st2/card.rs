@@ -43,30 +43,76 @@ impl PluginsPane {
                     .rounded(px(self.radius))
                     .child(SharedString::from(card.text.clone()))
                     .child(div().w(px(1.)).h(px(m::CARET)).bg(t.fg));
-                let label = tracked(&i18n.tr("plugins.add.field").to_uppercase(), m::FIELD_TRACKING)
-                    .text_size(px(m::CAPTION))
-                    .line_height(px(14.))
-                    .text_color(t.muted)
-                    .mb(px(m::FIELD_LABEL_GAP));
+                let label = tracked(
+                    &i18n.tr("plugins.add.field").to_uppercase(),
+                    m::FIELD_TRACKING,
+                )
+                .text_size(px(m::CAPTION))
+                .line_height(px(14.))
+                .text_color(t.muted)
+                .mb(px(m::FIELD_LABEL_GAP));
                 let mut parts = vec![div().child(label).child(field)];
-                parts.push(div().text_size(px(m::CAPTION)).line_height(gpui::relative(1.5)).text_color(t.muted).child(SharedString::from(i18n.tr("plugins.add.warning"))));
+                parts.push(
+                    div()
+                        .text_size(px(m::CAPTION))
+                        .line_height(gpui::relative(1.5))
+                        .text_color(t.muted)
+                        .child(SharedString::from(i18n.tr("plugins.add.warning"))),
+                );
                 if let Some(error) = &card.error {
-                    parts.push(div().text_size(px(m::CAPTION)).line_height(gpui::relative(1.5)).text_color(t.error).child(SharedString::from(error.clone())));
+                    parts.push(
+                        div()
+                            .text_size(px(m::CAPTION))
+                            .line_height(gpui::relative(1.5))
+                            .text_color(t.error)
+                            .child(SharedString::from(error.clone())),
+                    );
                 }
-                let buttons = div().flex().justify_end().items_center().gap(px(m::GAP)).mt(px(m::BUTTONS_ABOVE))
+                let buttons = div()
+                    .flex()
+                    .justify_end()
+                    .items_center()
+                    .gap(px(m::GAP))
+                    .mt(px(m::BUTTONS_ABOVE))
                     .child(self.button(&i18n.tr("plugins.add.cancel"), false, true, false))
-                    .child(self.button(&i18n.tr("plugins.add.confirm"), true, card.can_add(), false));
+                    .child(self.button(
+                        &i18n.tr("plugins.add.confirm"),
+                        true,
+                        card.can_add(),
+                        false,
+                    ));
                 (i18n.tr("plugins.add.title"), parts, buttons)
             }
-            Card::Remove { name, busy, error, .. } => {
-                let mut parts = vec![div().text_size(px(m::CAPTION)).line_height(gpui::relative(1.5)).text_color(t.muted).child(SharedString::from(i18n.tr("plugins.remove.body")))];
+            Card::Remove {
+                name, busy, error, ..
+            } => {
+                let mut parts = vec![div()
+                    .text_size(px(m::CAPTION))
+                    .line_height(gpui::relative(1.5))
+                    .text_color(t.muted)
+                    .child(SharedString::from(i18n.tr("plugins.remove.body")))];
                 if let Some(error) = error {
-                    parts.push(div().text_size(px(m::CAPTION)).line_height(gpui::relative(1.5)).text_color(t.error).child(SharedString::from(error.clone())));
+                    parts.push(
+                        div()
+                            .text_size(px(m::CAPTION))
+                            .line_height(gpui::relative(1.5))
+                            .text_color(t.error)
+                            .child(SharedString::from(error.clone())),
+                    );
                 }
-                let buttons = div().flex().justify_end().items_center().gap(px(m::GAP)).mt(px(m::BUTTONS_ABOVE))
+                let buttons = div()
+                    .flex()
+                    .justify_end()
+                    .items_center()
+                    .gap(px(m::GAP))
+                    .mt(px(m::BUTTONS_ABOVE))
                     .child(self.button(&i18n.tr("plugins.add.cancel"), false, true, false))
                     .child(self.button(&i18n.tr("plugins.remove.confirm"), true, !busy, true));
-                (i18n.tr_args("plugins.remove.title", &[name]), parts, buttons)
+                (
+                    i18n.tr_args("plugins.remove.title", &[name]),
+                    parts,
+                    buttons,
+                )
             }
         };
         let header = div()
@@ -76,8 +122,21 @@ impl PluginsPane {
             .text_size(px(m::CARD_TITLE))
             .font_weight(FontWeight::BOLD)
             .text_color(t.fg)
-            .child(div().flex_1().min_w(px(0.)).overflow_hidden().text_ellipsis().child(SharedString::from(title)))
-            .child(div().text_size(px(m::CAPTION)).font_weight(FontWeight::NORMAL).text_color(t.muted).child(SharedString::from(i18n.tr("plugins.card.esc"))));
+            .child(
+                div()
+                    .flex_1()
+                    .min_w(px(0.))
+                    .overflow_hidden()
+                    .text_ellipsis()
+                    .child(SharedString::from(title)),
+            )
+            .child(
+                div()
+                    .text_size(px(m::CAPTION))
+                    .font_weight(FontWeight::NORMAL)
+                    .text_color(t.muted)
+                    .child(SharedString::from(i18n.tr("plugins.card.esc"))),
+            );
         Some(
             div()
                 .w(px(m::CARD_WIDTH))

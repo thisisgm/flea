@@ -30,7 +30,10 @@ pub struct Listing {
 
 impl Listing {
     pub fn new() -> Self {
-        Self { active: true, ..Self::default() }
+        Self {
+            active: true,
+            ..Self::default()
+        }
     }
 
     /// A poll asked for mid-listing runs the moment the listing ends instead of being dropped.
@@ -45,7 +48,11 @@ impl Listing {
         self.timed_out = false;
         self.running = true;
         self.deadline = Some(now + TIMEOUT_MS);
-        vec![Effect::Start(Job::c_locale(vec!["gio".into(), "mount".into(), "-li".into()]))]
+        vec![Effect::Start(Job::c_locale(vec![
+            "gio".into(),
+            "mount".into(),
+            "-li".into(),
+        ]))]
     }
 
     pub fn tick(&mut self, now: u64) -> Vec<Effect> {

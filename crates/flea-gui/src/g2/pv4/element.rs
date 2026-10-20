@@ -2,9 +2,10 @@
 use super::{live::Live, seam};
 use crate::list::Palette as Roles;
 use gpui::{
-    relative, size, App, Bounds, Corners, CursorStyle, DispatchPhase, Element, ElementId, GlobalElementId, Hitbox,
-    HitboxBehavior, InspectorElementId, IntoElement, LayoutId, MouseButton, MouseDownEvent,
-    MouseMoveEvent, MouseUpEvent, Pixels, RenderImage, ScrollDelta, ScrollWheelEvent, Style, Window,
+    relative, size, App, Bounds, Corners, CursorStyle, DispatchPhase, Element, ElementId,
+    GlobalElementId, Hitbox, HitboxBehavior, InspectorElementId, IntoElement, LayoutId,
+    MouseButton, MouseDownEvent, MouseMoveEvent, MouseUpEvent, Pixels, RenderImage, ScrollDelta,
+    ScrollWheelEvent, Style, Window,
 };
 use std::{cell::RefCell, rc::Rc, sync::Arc, time::Instant};
 
@@ -45,7 +46,10 @@ pub struct Viewport {
 }
 
 fn seconds(epoch: Instant, cx: &App) -> f64 {
-    cx.background_executor().now().saturating_duration_since(epoch).as_secs_f64()
+    cx.background_executor()
+        .now()
+        .saturating_duration_since(epoch)
+        .as_secs_f64()
 }
 
 impl IntoElement for Viewport {
@@ -66,13 +70,33 @@ impl Element for Viewport {
         None
     }
 
-    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
-        let style = Style { size: size(relative(1.).into(), relative(1.).into()), ..Style::default() };
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let style = Style {
+            size: size(relative(1.).into(), relative(1.).into()),
+            ..Style::default()
+        };
         (window.request_layout(style, None, cx), ())
     }
 
-    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, cx: &mut App) -> Hitbox {
-        let host = seam::Host { focused: self.host.focused && window.is_window_active(), ..self.host };
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) -> Hitbox {
+        let host = seam::Host {
+            focused: self.host.focused && window.is_window_active(),
+            ..self.host
+        };
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
@@ -110,7 +134,16 @@ impl Element for Viewport {
         window.insert_hitbox(bounds, HitboxBehavior::Normal)
     }
 
-    fn paint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), hitbox: &mut Hitbox, window: &mut Window, _: &mut App) {
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        hitbox: &mut Hitbox,
+        window: &mut Window,
+        _: &mut App,
+    ) {
         let mut presented = self.presented.borrow_mut();
         while let Some(old) = presented.retired.pop() {
             let _ = window.drop_image(old.clone());
@@ -124,7 +157,11 @@ impl Element for Viewport {
         if let (Some(image), false) = (&presented.image, live.thumbnail) {
             let _ = window.paint_image(bounds, bounds, Corners::default(), image.clone(), 0, false);
         }
-        let grip = if live.dragging.is_some() { CursorStyle::ClosedHand } else { CursorStyle::OpenHand };
+        let grip = if live.dragging.is_some() {
+            CursorStyle::ClosedHand
+        } else {
+            CursorStyle::OpenHand
+        };
         window.set_cursor_style(grip, hitbox);
         drop(live);
         listen(self, bounds, hitbox.clone(), window);
@@ -134,7 +171,12 @@ impl Element for Viewport {
 // Pointer input: a left drag orbits, shift or middle drag pans, the wheel zooms at the pointer and a double-click frames again.
 fn listen(viewport: &Viewport, bounds: Bounds<Pixels>, hitbox: Hitbox, window: &mut Window) {
     let (live, epoch) = (viewport.live.clone(), viewport.epoch);
-    let local = move |p: gpui::Point<Pixels>| (f32::from(p.x - bounds.origin.x), f32::from(p.y - bounds.origin.y));
+    let local = move |p: gpui::Point<Pixels>| {
+        (
+            f32::from(p.x - bounds.origin.x),
+            f32::from(p.y - bounds.origin.y),
+        )
+    };
     let (down, hit) = (live.clone(), hitbox.clone());
     window.on_mouse_event(move |e: &MouseDownEvent, phase, window, cx| {
         if phase != DispatchPhase::Bubble || !hit.is_hovered(window) {
@@ -149,7 +191,9 @@ fn listen(viewport: &Viewport, bounds: Bounds<Pixels>, hitbox: Hitbox, window: &
         let mut live = down.borrow_mut();
         live.thumbnail = false;
         let (x, y) = local(e.position);
-        let Some(viewer) = live.viewer.as_mut() else { return };
+        let Some(viewer) = live.viewer.as_mut() else {
+            return;
+        };
         if e.click_count == 2 && !pan {
             viewer.double_click(now);
         } else {
@@ -164,7 +208,9 @@ fn listen(viewport: &Viewport, bounds: Bounds<Pixels>, hitbox: Hitbox, window: &
             return;
         }
         let mut live = moved.borrow_mut();
-        let Some((x0, y0, pan)) = live.dragging else { return };
+        let Some((x0, y0, pan)) = live.dragging else {
+            return;
+        };
         let (x, y) = local(e.position);
         live.dragging = Some((x, y, pan));
         if let Some(viewer) = live.viewer.as_mut() {
@@ -178,7 +224,9 @@ fn listen(viewport: &Viewport, bounds: Bounds<Pixels>, hitbox: Hitbox, window: &
             return;
         }
         let mut live = up.borrow_mut();
-        let Some((_, _, pan)) = live.dragging.take() else { return };
+        let Some((_, _, pan)) = live.dragging.take() else {
+            return;
+        };
         if let Some(viewer) = live.viewer.as_mut() {
             viewer.release(pan, seconds(epoch, cx));
         }

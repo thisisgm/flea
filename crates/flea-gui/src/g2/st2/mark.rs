@@ -1,8 +1,8 @@
 //! The boards' Settings metrics, a mark painted as an alpha mask, and CSS letter-spacing for capitals.
 use super::glyphs::{self, DROPBOX_ASPECT, TICK};
 use gpui::{
-    div, prelude::*, px, App, Bounds, Div, Element, ElementId, GlobalElementId, Hsla, InspectorElementId, LayoutId, Pixels,
-    SharedString, Style, TransformationMatrix, Window,
+    div, prelude::*, px, App, Bounds, Div, Element, ElementId, GlobalElementId, Hsla,
+    InspectorElementId, LayoutId, Pixels, SharedString, Style, TransformationMatrix, Window,
 };
 use std::sync::Arc;
 
@@ -65,16 +65,38 @@ enum MarkData {
 impl Mark {
     pub fn named(name: &str, size: f32, ink: Hsla) -> Option<Self> {
         let (key, data) = glyphs::glyph(name)?;
-        let aspect = if name == "dropbox" { DROPBOX_ASPECT } else { 1. };
-        Some(Self { key, data: MarkData::Static(data), size, aspect, ink })
+        let aspect = if name == "dropbox" {
+            DROPBOX_ASPECT
+        } else {
+            1.
+        };
+        Some(Self {
+            key,
+            data: MarkData::Static(data),
+            size,
+            aspect,
+            ink,
+        })
     }
 
     pub(super) fn tick(ink: Hsla) -> Self {
-        Self { key: SharedString::new_static(TICK.0), data: MarkData::Static(TICK.1), size: m::TICK, aspect: 1., ink }
+        Self {
+            key: SharedString::new_static(TICK.0),
+            data: MarkData::Static(TICK.1),
+            size: m::TICK,
+            aspect: 1.,
+            ink,
+        }
     }
 
     pub(super) fn owned(path: &str, data: Arc<[u8]>, size: f32, ink: Hsla) -> Self {
-        Self { key: SharedString::from(format!("flea-st2-mark:{path}")), data: MarkData::Owned(data), size, aspect: 1., ink }
+        Self {
+            key: SharedString::from(format!("flea-st2-mark:{path}")),
+            data: MarkData::Owned(data),
+            size,
+            aspect: 1.,
+            ink,
+        }
     }
 }
 
@@ -95,23 +117,69 @@ impl Element for Mark {
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         None
     }
-    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
-        let style = Style { size: gpui::size(px(self.size).into(), px(self.size).into()), flex_shrink: 0., ..Style::default() };
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
+        let style = Style {
+            size: gpui::size(px(self.size).into(), px(self.size).into()),
+            flex_shrink: 0.,
+            ..Style::default()
+        };
         (window.request_layout(style, None, cx), ())
     }
-    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, _: Bounds<Pixels>, _: &mut (), _: &mut Window, _: &mut App) {}
-    fn paint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), _: &mut (), window: &mut Window, cx: &mut App) {
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut Window,
+        _: &mut App,
+    ) {
+    }
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut (),
+        window: &mut Window,
+        cx: &mut App,
+    ) {
         let height = bounds.size.height * self.aspect;
-        let shape = Bounds::new(gpui::point(bounds.origin.x, bounds.origin.y + (bounds.size.height - height) / 2.), gpui::size(bounds.size.width, height));
+        let shape = Bounds::new(
+            gpui::point(
+                bounds.origin.x,
+                bounds.origin.y + (bounds.size.height - height) / 2.,
+            ),
+            gpui::size(bounds.size.width, height),
+        );
         let data = match &self.data {
             MarkData::Static(data) => *data,
             MarkData::Owned(data) => data,
         };
-        let _ = window.paint_svg(shape, self.key.clone(), Some(data), TransformationMatrix::unit(), self.ink, cx);
+        let _ = window.paint_svg(
+            shape,
+            self.key.clone(),
+            Some(data),
+            TransformationMatrix::unit(),
+            self.ink,
+            cx,
+        );
     }
 }
 
 // CSS letter-spacing: each character with the spacing after it, the last one included.
 pub(super) fn tracked(text: &str, spacing: f32) -> Div {
-    div().flex().flex_none().pr(px(spacing)).gap(px(spacing)).children(text.chars().map(|c| SharedString::from(c.to_string())))
+    div()
+        .flex()
+        .flex_none()
+        .pr(px(spacing))
+        .gap(px(spacing))
+        .children(text.chars().map(|c| SharedString::from(c.to_string())))
 }

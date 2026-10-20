@@ -5,8 +5,8 @@ use super::words::say;
 use flea::i18n::I18n;
 use flea::ui_logic_pl1::unlock::{subtitle, title};
 use gpui::{
-    div, prelude::*, px, App, Bounds, ClickEvent, Element, ElementId, FontWeight, GlobalElementId, Hsla, InspectorElementId,
-    LayoutId, Pixels, SharedString, Style, TransformationMatrix, Window,
+    div, prelude::*, px, App, Bounds, ClickEvent, Element, ElementId, FontWeight, GlobalElementId,
+    Hsla, InspectorElementId, LayoutId, Pixels, SharedString, Style, TransformationMatrix, Window,
 };
 
 /// A Lucide path drawn in the cut: square caps, mitred joins.
@@ -50,13 +50,21 @@ pub struct CardText {
 
 impl CardText {
     pub fn of(card: &Card, catalog: &I18n) -> Self {
-        let size = if card.size > 0 { catalog.locale().format_size(card.size) } else { String::new() };
+        let size = if card.size > 0 {
+            catalog.locale().format_size(card.size)
+        } else {
+            String::new()
+        };
         Self {
             title: say(catalog, &title(&card.label)),
             esc: "esc".into(),
             subtitle: say(catalog, &subtitle(&card.label, &size, &card.crypto)),
             label: catalog.tr("device.unlock.passphrase").to_uppercase(),
-            note: card.note.as_ref().map(|(n, _)| say(catalog, n)).unwrap_or_default(),
+            note: card
+                .note
+                .as_ref()
+                .map(|(n, _)| say(catalog, n))
+                .unwrap_or_default(),
             cancel: catalog.tr("device.unlock.cancel"),
             unlock: catalog.tr("device.unlock.button"),
         }
@@ -64,7 +72,13 @@ impl CardText {
 }
 
 /// The card element for a card state and its words.
-pub fn card(card: &Card, text: &CardText, ink: &CardInk, window_width: f32, press: Press) -> impl IntoElement {
+pub fn card(
+    card: &Card,
+    text: &CardText,
+    ink: &CardInk,
+    window_width: f32,
+    press: Press,
+) -> impl IntoElement {
     let note_error = card.note.as_ref().is_some_and(|(_, e)| *e);
     let field_frame = if card.field.error {
         ink.error
@@ -96,8 +110,22 @@ pub fn card(card: &Card, text: &CardText, ink: &CardInk, window_width: f32, pres
                 .gap(px(9.))
                 .font_weight(FontWeight::BOLD)
                 .text_size(px(16.))
-                .child(div().min_w_0().overflow_hidden().whitespace_nowrap().text_ellipsis().child(text.title.clone()))
-                .child(div().ml_auto().font_weight(FontWeight::NORMAL).text_size(px(12.)).text_color(ink.muted).child(text.esc.clone())),
+                .child(
+                    div()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .whitespace_nowrap()
+                        .text_ellipsis()
+                        .child(text.title.clone()),
+                )
+                .child(
+                    div()
+                        .ml_auto()
+                        .font_weight(FontWeight::NORMAL)
+                        .text_size(px(12.))
+                        .text_color(ink.muted)
+                        .child(text.esc.clone()),
+                ),
         )
         .child(div().h(px(1.)).bg(ink.rule))
         .child(
@@ -107,13 +135,27 @@ pub fn card(card: &Card, text: &CardText, ink: &CardInk, window_width: f32, pres
                 .gap(px(9.))
                 .text_size(px(14.))
                 .child(Mark::new(DRIVE, 19., ink.foreground))
-                .child(div().min_w_0().overflow_hidden().whitespace_nowrap().text_ellipsis().child(text.subtitle.clone())),
+                .child(
+                    div()
+                        .min_w_0()
+                        .overflow_hidden()
+                        .whitespace_nowrap()
+                        .text_ellipsis()
+                        .child(text.subtitle.clone()),
+                ),
         )
         .child(
             div()
                 .mt(px(4.))
                 .opacity(if unlocking { DISABLED_OPACITY } else { 1. })
-                .child(div().text_size(px(12.)).line_height(px(14.)).mb(px(5.)).text_color(ink.muted).child(text.label.clone()))
+                .child(
+                    div()
+                        .text_size(px(12.))
+                        .line_height(px(14.))
+                        .mb(px(5.))
+                        .text_color(ink.muted)
+                        .child(text.label.clone()),
+                )
                 .child(
                     div()
                         .h(px(FIELD_H))
@@ -152,8 +194,24 @@ pub fn card(card: &Card, text: &CardText, ink: &CardInk, window_width: f32, pres
                 .justify_end()
                 .items_center()
                 .gap(px(9.))
-                .child(button("g2-pl1-cancel", &text.cancel, false, true, card.focus == Some(Part::Cancel), ink, press.cancel))
-                .child(button("g2-pl1-unlock", &text.unlock, true, available, card.focus == Some(Part::Unlock), ink, press.unlock)),
+                .child(button(
+                    "g2-pl1-cancel",
+                    &text.cancel,
+                    false,
+                    true,
+                    card.focus == Some(Part::Cancel),
+                    ink,
+                    press.cancel,
+                ))
+                .child(button(
+                    "g2-pl1-unlock",
+                    &text.unlock,
+                    true,
+                    available,
+                    card.focus == Some(Part::Unlock),
+                    ink,
+                    press.unlock,
+                )),
         )
 }
 
@@ -196,7 +254,15 @@ pub fn button_frame(primary: bool, enabled: bool, focused: bool, ink: &CardInk) 
 }
 
 /// The board's framed button: accent frame over a 14% wash when primary, foreground frame on focus, 8% hover, 14% press.
-fn button(id: &'static str, label: &str, primary: bool, enabled: bool, focused: bool, ink: &CardInk, click: Click) -> impl IntoElement {
+fn button(
+    id: &'static str,
+    label: &str,
+    primary: bool,
+    enabled: bool,
+    focused: bool,
+    ink: &CardInk,
+    click: Click,
+) -> impl IntoElement {
     let (frame, ring) = button_frame(primary, enabled, focused, ink);
     let wash = button_wash(primary, enabled, ink);
     // Pointer wash inside the frame: hover while over the button, press only while held inside it (pressShown).
@@ -206,9 +272,16 @@ fn button(id: &'static str, label: &str, primary: bool, enabled: bool, focused: 
         .inset_0()
         .rounded(px(RADIUS - if ring { RING } else { 1. }))
         .opacity(0.)
-        .when_some(wash.hover, |d, c| d.group_hover(id, move |s| s.opacity(1.).bg(c)))
+        .when_some(wash.hover, |d, c| {
+            d.group_hover(id, move |s| s.opacity(1.).bg(c))
+        })
         .when_some(wash.press, |d, c| d.group_active(id, move |s| s.bg(c)));
-    let pointer = div().id(id).group(id).absolute().inset_0().child(pointer_wash);
+    let pointer = div()
+        .id(id)
+        .group(id)
+        .absolute()
+        .inset_0()
+        .child(pointer_wash);
     div()
         .relative()
         .h(px(FIELD_H))
@@ -223,12 +296,22 @@ fn button(id: &'static str, label: &str, primary: bool, enabled: bool, focused: 
         .rounded(px(RADIUS))
         .when_some(wash.rest, |d, c| d.bg(c))
         .opacity(if enabled { 1. } else { DISABLED_OPACITY })
-        .child(if enabled { pointer.on_click(move |event, window, cx| click(event, window, cx)) } else { pointer })
+        .child(if enabled {
+            pointer.on_click(move |event, window, cx| click(event, window, cx))
+        } else {
+            pointer
+        })
         .child(label.to_string())
 }
 
-const DRIVE: (&str, &[u8]) = ("flea-mark:drive", mark_svg!("M6 4h12l4 8v8H2v-8z M2 12h20 M6 16L6.01 16 M10 16L10.01 16"));
-const EYE: (&str, &[u8]) = ("flea-mark:eye", mark_svg!("M12 5 22 12 12 19 2 12z M10 10h4v4h-4z"));
+const DRIVE: (&str, &[u8]) = (
+    "flea-mark:drive",
+    mark_svg!("M6 4h12l4 8v8H2v-8z M2 12h20 M6 16L6.01 16 M10 16L10.01 16"),
+);
+const EYE: (&str, &[u8]) = (
+    "flea-mark:eye",
+    mark_svg!("M12 5 22 12 12 19 2 12z M10 10h4v4h-4z"),
+);
 
 /// One cut mark at a fixed size, painted from its path with no allocation in paint.
 pub struct Mark {
@@ -240,7 +323,12 @@ pub struct Mark {
 
 impl Mark {
     pub fn new(mark: (&'static str, &'static [u8]), size: f32, ink: Hsla) -> Self {
-        Self { key: mark.0, data: mark.1, size, ink }
+        Self {
+            key: mark.0,
+            data: mark.1,
+            size,
+            ink,
+        }
     }
 }
 
@@ -260,14 +348,29 @@ impl Element for Mark {
     fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
         None
     }
-    fn request_layout(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, window: &mut Window, cx: &mut App) -> (LayoutId, ()) {
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ()) {
         let mut style = Style::default();
         style.size.width = px(self.size).into();
         style.size.height = px(self.size).into();
         style.flex_shrink = 0.;
         (window.request_layout(style, None, cx), ())
     }
-    fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, _: Bounds<Pixels>, _: &mut (), _: &mut Window, _: &mut App) {}
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut (),
+        _: &mut Window,
+        _: &mut App,
+    ) {
+    }
     fn paint(
         &mut self,
         _: Option<&GlobalElementId>,
@@ -279,6 +382,13 @@ impl Element for Mark {
         cx: &mut App,
     ) {
         let key = SharedString::new_static(self.key);
-        let _ = window.paint_svg(bounds, key, Some(self.data), TransformationMatrix::unit(), self.ink, cx);
+        let _ = window.paint_svg(
+            bounds,
+            key,
+            Some(self.data),
+            TransformationMatrix::unit(),
+            self.ink,
+            cx,
+        );
     }
 }

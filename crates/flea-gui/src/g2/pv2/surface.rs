@@ -11,7 +11,11 @@ use std::{path::PathBuf, sync::Arc, time::Duration};
 pub enum Command {
     Open(PathBuf),
     Close(DocId),
-    Render { doc: DocId, page: usize, width: u32 },
+    Render {
+        doc: DocId,
+        page: usize,
+        width: u32,
+    },
     /// The host's slow storage copy for this document, answered through `copied`.
     Fetch(String),
 }
@@ -131,7 +135,11 @@ impl Surface {
 
     // The device width a page renders at: the stack's width, or that page fitted inside the frame.
     fn target(&self, page: usize) -> u32 {
-        let width = if self.continuous { self.width } else { pdf::fit(self.width, self.view_height, self.aspect_of(page)).0 };
+        let width = if self.continuous {
+            self.width
+        } else {
+            pdf::fit(self.width, self.view_height, self.aspect_of(page)).0
+        };
         (width * self.scale).round() as u32
     }
 
@@ -147,12 +155,14 @@ impl Surface {
             self.page = 0;
         }
         self.path = path.to_string();
-        self.opener.request(&self.path, self.active, now, self.render_busy());
+        self.opener
+            .request(&self.path, self.active, now, self.render_busy());
     }
 
     pub fn set_active(&mut self, active: bool, now: u64) {
         self.active = active;
-        self.opener.request(&self.path, self.active, now, self.render_busy());
+        self.opener
+            .request(&self.path, self.active, now, self.render_busy());
     }
 
     /// The next presented frame after a press.
@@ -230,7 +240,8 @@ impl Surface {
 
     /// The frame the pages draw in, in logical pixels, and the window's scale.
     pub fn set_frame(&mut self, width: f64, view_height: f64, scale: f64, gap: f64) {
-        let changed = (width, view_height, scale, gap) != (self.width, self.view_height, self.scale, self.gap);
+        let changed = (width, view_height, scale, gap)
+            != (self.width, self.view_height, self.scale, self.gap);
         self.width = width;
         self.view_height = view_height;
         self.scale = scale;
@@ -244,7 +255,9 @@ impl Surface {
         if self.continuous {
             let ratios: Vec<f64> = self.sizes.iter().map(|&(w, h)| pdf::ratio(w, h)).collect();
             self.layout = Layout::new(&ratios, self.width, self.gap);
-            self.view_top = self.view_top.min((self.layout.height - self.view_height).max(0.));
+            self.view_top = self
+                .view_top
+                .min((self.layout.height - self.view_height).max(0.));
         }
         let target = self.target(self.page);
         self.render_width = pdf::render_width(self.render_width, target);
@@ -261,7 +274,13 @@ impl Surface {
                 self.relayout();
             }
             Reply::OpenFailed { doc, .. } if Some(doc) == self.doc => self.open_failed = true,
-            Reply::Rendered { doc, page, width, image, took } if Some(doc) == self.doc => {
+            Reply::Rendered {
+                doc,
+                page,
+                width,
+                image,
+                took,
+            } if Some(doc) == self.doc => {
                 self.counters.landed += 1;
                 self.counters.last_render = took;
                 self.inflight.retain(|&(p, w)| (p, w) != (page, width));
@@ -321,14 +340,22 @@ impl Surface {
             return;
         }
         let wanted: Vec<usize> = if self.continuous {
-            pdf::sync_slots(&mut self.slots, self.layout.near(self.view_top, self.view_height), self.sizes.len());
+            pdf::sync_slots(
+                &mut self.slots,
+                self.layout.near(self.view_top, self.view_height),
+                self.sizes.len(),
+            );
             self.cache.set_limit(self.slots.len() + 2);
             self.slots.iter().map(|slot| slot.page).collect()
         } else {
             self.neighbours()
         };
         for page in wanted {
-            let width = if self.continuous || page == self.page { self.render_width } else { self.target(page) };
+            let width = if self.continuous || page == self.page {
+                self.render_width
+            } else {
+                self.target(page)
+            };
             if self.cache.exact(page, width).is_some() || self.inflight.contains(&(page, width)) {
                 continue;
             }
@@ -345,7 +372,11 @@ impl Surface {
     fn neighbours(&self) -> Vec<usize> {
         let count = self.sizes.len();
         let mut pages = vec![self.page];
-        pages.extend([self.page + 1, self.page.wrapping_sub(1)].into_iter().filter(|&p| p < count));
+        pages.extend(
+            [self.page + 1, self.page.wrapping_sub(1)]
+                .into_iter()
+                .filter(|&p| p < count),
+        );
         pages
     }
 
@@ -398,7 +429,9 @@ impl Surface {
         if self.continuous || self.cap.fell_back {
             return None;
         }
-        self.cap.shown_page.and_then(|shown| self.cache.nearest(shown, self.render_width))
+        self.cap
+            .shown_page
+            .and_then(|shown| self.cache.nearest(shown, self.render_width))
     }
 }
 

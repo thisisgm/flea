@@ -1,6 +1,5 @@
 //! The loaded model and the frames it asks for: the viewer runs on the UI thread, and each changed frame is a job a worker rasterizes.
 use super::seam::Host;
-use gpui::RenderImage;
 use flea::ui_logic_pv4::{
     camera::{Home, View},
     color::Palette,
@@ -8,6 +7,7 @@ use flea::ui_logic_pv4::{
     raster::{Prepared, Raster, Stats, Style},
     scene::{decimate, edges, Edge, PlateRect, Scene, CPU_LIVE_TRIANGLES},
 };
+use gpui::RenderImage;
 use std::sync::{Arc, OnceLock};
 
 /// One plate ready to draw, built off the main thread and shared read-only with the frame worker.
@@ -24,7 +24,11 @@ impl Model {
     pub fn build(mut scene: Scene, plate: usize, palette: Palette) -> Result<Self, String> {
         scene.check()?;
         scene.recentre();
-        let plate = if plate < scene.plate_count() { plate } else { 0 };
+        let plate = if plate < scene.plate_count() {
+            plate
+        } else {
+            0
+        };
         let scene = if scene.is_toolpath() {
             scene.keep_extrusions();
             scene
@@ -33,12 +37,23 @@ impl Model {
         };
         let home = Home::new(&scene, 0).ok_or("empty model")?;
         let prepared = Prepared::new(&scene, palette);
-        Ok(Self { scene, prepared, home, edges: OnceLock::new() })
+        Ok(Self {
+            scene,
+            prepared,
+            home,
+            edges: OnceLock::new(),
+        })
     }
 
     /// The wireframe's edges, built by the worker on the first wireframe frame.
     pub fn edges(&self) -> &[Edge] {
-        self.edges.get_or_init(|| if self.scene.is_toolpath() { Vec::new() } else { edges(&self.scene, 0) })
+        self.edges.get_or_init(|| {
+            if self.scene.is_toolpath() {
+                Vec::new()
+            } else {
+                edges(&self.scene, 0)
+            }
+        })
     }
 
     pub fn has_edges(&self) -> bool {
@@ -84,8 +99,25 @@ pub struct Drawn {
 impl Job {
     /// Draws the frame into the pixel buffer it carries; a still at two samples a side hands its raster back empty, so a view at rest holds none.
     pub fn draw(self) -> Drawn {
-        let Self { generation, model, mut raster, mut pixels, view, size: (w, h, ss), palette, wire, layer, plate } = self;
-        let style = Style { palette, wire: wire.then(|| model.edges()), layer, plate: Some(plate), ground: Some(palette.ground) };
+        let Self {
+            generation,
+            model,
+            mut raster,
+            mut pixels,
+            view,
+            size: (w, h, ss),
+            palette,
+            wire,
+            layer,
+            plate,
+        } = self;
+        let style = Style {
+            palette,
+            wire: wire.then(|| model.edges()),
+            layer,
+            plate: Some(plate),
+            ground: Some(palette.ground),
+        };
         let grew = pixels.capacity() < w * h * 4;
         // A moving frame draws straight into the buffer it hands over.
         if ss == 1 {
@@ -98,14 +130,24 @@ impl Job {
         if ss > 1 {
             raster.release();
         }
-        Drawn { generation, pixels, size: (w, h), raster, stats, grew }
+        Drawn {
+            generation,
+            pixels,
+            size: (w, h),
+            raster,
+            stats,
+            grew,
+        }
     }
 }
 
 impl Drawn {
     /// Hands the pixels to GPUI as they are, with nothing encoded or decoded; the buffer comes back through `Live::recycle` once the atlas drops the picture.
     pub fn picture(&mut self) -> Option<Arc<RenderImage>> {
-        let (w, h) = (u32::try_from(self.size.0).ok()?, u32::try_from(self.size.1).ok()?);
+        let (w, h) = (
+            u32::try_from(self.size.0).ok()?,
+            u32::try_from(self.size.1).ok()?,
+        );
         RenderImage::from_bgra(w, h, std::mem::take(&mut self.pixels)).map(Arc::new)
     }
 }
@@ -201,7 +243,10 @@ impl Live {
     /// Takes back the pixel buffer of a picture nothing else holds, so the next moving frame draws into it; a view at rest keeps none.
     pub fn recycle(&mut self, image: Arc<RenderImage>) {
         let moving = self.key.is_some_and(|key| key.size.2 == 1);
-        if let (true, Some(pixels)) = (moving, Arc::try_unwrap(image).ok().and_then(RenderImage::into_bgra)) {
+        if let (true, Some(pixels)) = (
+            moving,
+            Arc::try_unwrap(image).ok().and_then(RenderImage::into_bgra),
+        ) {
             self.counters.recycled += 1;
             if pixels.capacity() > self.spare.capacity() {
                 self.spare = pixels;
@@ -210,16 +255,35 @@ impl Live {
     }
 
     /// Advances the view to `now` and, when anything it shows changed and no worker is busy, hands out the frame at `scale`.
-    pub fn frame(&mut self, now: f64, host: &Host, size: (f32, f32), scale: f32, palette: Palette) -> Frame {
+    pub fn frame(
+        &mut self,
+        now: f64,
+        host: &Host,
+        size: (f32, f32),
+        scale: f32,
+        palette: Palette,
+    ) -> Frame {
         self.palette = Some(palette);
-        let idle = Frame { moving: false, job: None };
-        let Some(model) = self.model.clone() else { return idle };
+        let idle = Frame {
+            moving: false,
+            job: None,
+        };
+        let Some(model) = self.model.clone() else {
+            return idle;
+        };
         let (w, h) = size;
         if w < 1. || h < 1. {
             return idle;
         }
         let viewer = self.viewer.get_or_insert_with(|| {
-            let mut viewer = Viewer::from_home(self.surface, model.home, (0, 1), model.scene.layers.len(), w, h);
+            let mut viewer = Viewer::from_home(
+                self.surface,
+                model.home,
+                (0, 1),
+                model.scene.layers.len(),
+                w,
+                h,
+            );
             viewer.opened(now, host.animations);
             viewer
         });
@@ -242,17 +306,48 @@ impl Live {
         if self.thumbnail || !host.shown {
             return Frame { moving, job: None };
         }
-        let ss = if moving || self.dragging.is_some() { 1 } else { 2 };
+        let ss = if moving || self.dragging.is_some() {
+            1
+        } else {
+            2
+        };
         let (wd, hd) = ((w * scale).round() as usize, (h * scale).round() as usize);
-        let key = Key { view: viewer.view, size: (wd, hd, ss), palette, wire: viewer.wire, layer: viewer.layer };
+        let key = Key {
+            view: viewer.view,
+            size: (wd, hd, ss),
+            palette,
+            wire: viewer.wire,
+            layer: viewer.layer,
+        };
         if self.key == Some(key) {
             return Frame { moving, job: None };
         }
-        let Some(raster) = self.raster.take() else { return Frame { moving, job: None } };
+        let Some(raster) = self.raster.take() else {
+            return Frame { moving, job: None };
+        };
         self.key = Some(key);
-        let view = View { scale: viewer.view.scale * scale, cx: viewer.view.cx * scale, cy: viewer.view.cy * scale, ..viewer.view };
+        let view = View {
+            scale: viewer.view.scale * scale,
+            cx: viewer.view.cx * scale,
+            cy: viewer.view.cy * scale,
+            ..viewer.view
+        };
         let pixels = std::mem::take(&mut self.spare);
-        let job = Job { generation: self.generation, model, raster, pixels, view, size: key.size, palette, wire: key.wire, layer: key.layer, plate: viewer.rect };
-        Frame { moving, job: Some(job) }
+        let job = Job {
+            generation: self.generation,
+            model,
+            raster,
+            pixels,
+            view,
+            size: key.size,
+            palette,
+            wire: key.wire,
+            layer: key.layer,
+            plate: viewer.rect,
+        };
+        Frame {
+            moving,
+            job: Some(job),
+        }
     }
 }

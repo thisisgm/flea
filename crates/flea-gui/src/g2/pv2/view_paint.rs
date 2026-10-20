@@ -2,8 +2,8 @@
 use super::PdfView;
 use flea::ui_logic_pv2::pdf;
 use gpui::{
-    canvas, div, fill, point, prelude::*, px, size, Bounds, ContentMask, Context, Corners, Hsla, Pixels, Render,
-    RenderImage, Window,
+    canvas, div, fill, point, prelude::*, px, size, Bounds, ContentMask, Context, Corners, Hsla,
+    Pixels, Render, RenderImage, Window,
 };
 use std::sync::Arc;
 
@@ -15,16 +15,26 @@ impl PdfView {
     }
 
     /// Lays the surface out in its bounds before paint, and hands back the images paint must release from the atlas.
-    pub(super) fn layout(&mut self, bounds: Bounds<Pixels>, scale: f32, cx: &mut Context<Self>) -> Vec<Arc<RenderImage>> {
+    pub(super) fn layout(
+        &mut self,
+        bounds: Bounds<Pixels>,
+        scale: f32,
+        cx: &mut Context<Self>,
+    ) -> Vec<Arc<RenderImage>> {
         self.frame = (f64::from(bounds.size.width), f64::from(bounds.size.height));
         let gap = f64::from(self.metrics.gap);
         if self.surface.continuous {
-            self.surface.set_frame(self.frame.0, self.frame.1, f64::from(scale), gap);
+            self.surface
+                .set_frame(self.frame.0, self.frame.1, f64::from(scale), gap);
         } else {
             let margin = f64::from(self.metrics.margin);
             let (_, content) = self.zoomed();
-            let inner = ((content.0 - 2. * margin).max(0.), (content.1 - 2. * margin).max(0.));
-            self.surface.set_frame(inner.0, inner.1, f64::from(scale), gap);
+            let inner = (
+                (content.0 - 2. * margin).max(0.),
+                (content.1 - 2. * margin).max(0.),
+            );
+            self.surface
+                .set_frame(inner.0, inner.1, f64::from(scale), gap);
             self.pan = (
                 self.pan.0.min(content.0 - self.frame.0).max(0.),
                 self.pan.1.min(content.1 - self.frame.1).max(0.),
@@ -63,15 +73,21 @@ impl PdfView {
         window.with_content_mask(Some(ContentMask { bounds }), |window| {
             if s.continuous {
                 for (page_no, top, height) in self.drawn_pages() {
-                    let Some(image) = s.image(page_no) else { continue };
+                    let Some(image) = s.image(page_no) else {
+                        continue;
+                    };
                     let rect = Bounds::new(
                         bounds.origin + point(px(0.), px(top as f32)),
                         size(px(s.width as f32), px(height as f32)),
                     );
                     page(window, rect, image, veil);
                 }
-            } else if let (Some((x, y, w, h)), Some(image)) = (self.single_rect(), s.single_image()) {
-                let rect = Bounds::new(bounds.origin + point(px(x as f32), px(y as f32)), size(px(w as f32), px(h as f32)));
+            } else if let (Some((x, y, w, h)), Some(image)) = (self.single_rect(), s.single_image())
+            {
+                let rect = Bounds::new(
+                    bounds.origin + point(px(x as f32), px(y as f32)),
+                    size(px(w as f32), px(h as f32)),
+                );
                 page(window, rect, image, veil);
             }
         });
@@ -89,20 +105,23 @@ fn page(window: &mut Window, rect: Bounds<Pixels>, image: &Arc<RenderImage>, vei
 impl Render for PdfView {
     fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let (laid, painted) = (cx.entity(), cx.entity());
-        div().size_full().on_scroll_wheel(cx.listener(|view, event, _, cx| view.wheel(event, cx))).child(
-            canvas(
-                move |bounds, window, cx| {
-                    let scale = window.scale_factor();
-                    laid.update(cx, |view, cx| view.layout(bounds, scale, cx))
-                },
-                move |bounds, released, window, cx| {
-                    for image in released {
-                        let _ = window.drop_image(image);
-                    }
-                    painted.read(cx).paint(bounds, window);
-                },
+        div()
+            .size_full()
+            .on_scroll_wheel(cx.listener(|view, event, _, cx| view.wheel(event, cx)))
+            .child(
+                canvas(
+                    move |bounds, window, cx| {
+                        let scale = window.scale_factor();
+                        laid.update(cx, |view, cx| view.layout(bounds, scale, cx))
+                    },
+                    move |bounds, released, window, cx| {
+                        for image in released {
+                            let _ = window.drop_image(image);
+                        }
+                        painted.read(cx).paint(bounds, window);
+                    },
+                )
+                .size_full(),
             )
-            .size_full(),
-        )
     }
 }
