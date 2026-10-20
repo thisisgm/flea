@@ -6,7 +6,7 @@ use crate::list::Palette as ListPalette;
 use crate::palette::Theme;
 use crate::row::format::{size_text, Words};
 use gpui::{
-    div, prelude::*, px, size, Context, GlyphRun, Hsla, IntoElement, Render, ShapedRun,
+    div, prelude::*, px, size, AppContext, Context, GlyphRun, Hsla, IntoElement, Render, ShapedRun,
     TestAppContext, TextRun, Window, WindowHandle,
 };
 use std::{cell::RefCell, rc::Rc};
@@ -101,11 +101,39 @@ fn the_contents_fixture_gives_each_role_its_own_ink() {
     }
 }
 
+// The contents module's EDGE_W, private there: the lifted block's edge is 2 wide.
+const EDGE_W: f32 = 2.;
+
 #[test]
 fn the_lifted_block_edge_paints_in_the_accent_frame() {
+    let mut cx = real_cx();
+    let (window, _) = open(&mut cx, held(4), 4.);
+    frame(&mut cx, window, 0.);
     let palette = Palette::from_list(&distinct_palette());
-    assert_eq!(palette.edge(), palette.accent_frame);
-    assert_ne!(palette.edge(), palette.foreground);
+    let (bounds, colour) = cx
+        .update_window(window.into(), |_, window, _| {
+            let scale = window.scale_factor();
+            let mut edges: Vec<_> = window
+                .painted_quads()
+                .into_iter()
+                .filter(|quad| {
+                    quad.bounds.size.width.as_f32() == EDGE_W * scale
+                        && quad.bounds.size.height.as_f32() == BLOCK_H * scale
+                })
+                .map(|quad| (quad.bounds, quad.background.as_solid()))
+                .collect();
+            assert_eq!(edges.len(), 1, "the lifted block paints one edge quad");
+            edges.pop().unwrap()
+        })
+        .expect("the contents window is open");
+    assert_eq!(
+        (bounds.origin.x.as_f32(), bounds.origin.y.as_f32()),
+        (0., 0.),
+        "the edge quad sits on the lifted block's left"
+    );
+    assert_eq!(colour, Some(palette.accent_frame), "the lifted block's edge paints in the accent frame");
+    assert_ne!(colour, Some(palette.accent), "the edge is not the accent");
+    assert_ne!(colour, Some(palette.foreground), "the edge is not the foreground");
 }
 
 fn open(

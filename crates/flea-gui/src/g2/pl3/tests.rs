@@ -131,13 +131,6 @@ fn the_ink_fixture_gives_each_drawn_role_its_own_ink() {
     }
 }
 
-#[test]
-fn the_cursor_edge_paints_in_the_accent_frame() {
-    let ink = ink();
-    assert_eq!(ink.edge(), ink.accent_frame);
-    assert_ne!(ink.edge(), ink.foreground);
-}
-
 pub(super) fn open(cx: &mut TestAppContext) -> (WindowHandle<TrashPane>, Rc<RefCell<Vec<Call>>>) {
     let calls = Rc::new(RefCell::new(Vec::new()));
     let recorder = Recorder(calls.clone());

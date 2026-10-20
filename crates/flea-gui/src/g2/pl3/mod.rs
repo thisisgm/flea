@@ -1,5 +1,7 @@
 //! pl3, the Trash browser: the core session in flea::ui_logic_pl3 drawn by custom Elements behind narrow seams.
 pub mod board;
+#[cfg(test)]
+mod edge_tests;
 mod elide;
 #[cfg(test)]
 mod fix_tests;
