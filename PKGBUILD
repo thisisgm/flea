@@ -5,7 +5,7 @@ pkgver=0.4.0
 pkgrel=1
 pkgdesc='Fast, keyboard-first file manager for Omarchy'
 arch=('x86_64' 'aarch64')
-license=('MIT' 'Apache-2.0')
+license=('Apache-2.0' 'BSD-2-Clause' 'BSD-3-Clause' 'CC0-1.0' 'ISC' 'MIT' 'MPL-2.0' 'Unicode-3.0' 'Zlib')
 # omarchy owns /usr/share/omarchy/shell, which ui/Commons and ui/Ui link into; quickshell owns qs.
 # util-linux ships prlimit, which the thumbnail and archive sandboxes require alongside bubblewrap.
 # xdg-terminal-exec is what --terminal execs, so the topbar's terminal button needs it installed.
@@ -94,7 +94,7 @@ package() {
   install -Dm755 tools/flea-mpris "$pkgdir/usr/lib/flea/flea-mpris"
   install -Dm644 packaging/com.thisisgm.flea.desktop -t "$pkgdir/usr/share/applications"
   install -Dm644 packaging/com.thisisgm.flea.svg -t "$pkgdir/usr/share/icons/hicolor/scalable/apps"
-  install -Dm644 LICENSE -t "$pkgdir/usr/share/licenses/$pkgname"
+  install -Dm644 LICENSE THIRD-PARTY-LICENSES.txt -t "$pkgdir/usr/share/licenses/$pkgname"
   # Issue 173: a tracked alpm hook, not a scriptlet, that prints the per-user undo commands on removal.
   install -Dm644 packaging/flea.hook -t "$pkgdir/usr/share/libalpm/hooks"
 

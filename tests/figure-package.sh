@@ -31,7 +31,7 @@ for name in root flea flea-git flea-bin; do
             flea-bin) tree="$srcdir/$_pkgname-$pkgver-linux-$CARCH" ;;
         esac
         mkdir -p "$tree"
-        for data in ui tools packaging shelf LICENSE; do
+        for data in ui tools packaging shelf LICENSE THIRD-PARTY-LICENSES.txt; do
             ln -s "$repo/$data" "$tree/$data"
         done
         cp "$srcdir/target/release/flea" "$tree/flea"
@@ -73,6 +73,9 @@ else:
                     if path.is_file() and not path.is_symlink() and not any(part.startswith(".") or part == "__pycache__" for part in path.relative_to(source_shelf).parts)}
 # Every file that can name a /usr/lib/flea helper: tracked sources plus the packaging registrations.
 repo_root = pathlib.Path(sys.argv[2])
+notices = (repo_root / "THIRD-PARTY-LICENSES.txt").read_bytes()
+license_line = next(line for line in notices.decode().splitlines() if line.startswith("Package licenses: "))
+expected_licenses = set(license_line.split(": ", 1)[1].split())
 tracked_all = subprocess.run(["git", "-C", sys.argv[2], "ls-files", "-z", "--", "src", "ui", "shelf", "packaging"], capture_output=True)
 # Sample input: b"src/main.rs\0ui/App.qml\0" gives ["src/main.rs", "ui/App.qml"].
 if tracked_all.returncode == 0 and tracked_all.stdout:
@@ -125,6 +128,16 @@ def helper_installed(base, name):
 # Sample inputs: import { renderFigure } from "../js/FigureWorker.mjs"; await import("./math.mjs").
 imports = re.compile(r'\b(?:from\s*|import\s*\(\s*|import\s*)["\'](\.[^"\']+)["\']')
 for package in ("root", "flea", "flea-git", "flea-bin"):
+    checks += 2
+    actual_licenses = (root / f"{package}.licenses").read_text().splitlines()
+    if len(actual_licenses) != len(expected_licenses) or set(actual_licenses) != expected_licenses:
+        failures += 1
+        print(f"FAIL {package}: license array does not cover the locked binary inventory")
+    package_name = "flea" if package == "root" else package
+    installed_notice = root / package / "pkg/usr/share/licenses" / package_name / "THIRD-PARTY-LICENSES.txt"
+    if not installed_notice.is_file() or installed_notice.read_bytes() != notices:
+        failures += 1
+        print(f"FAIL {package}: third-party license inventory is missing or changed")
     for binary, expected in (("flea", b"package binary fixture\n"), ("flea-gui", b"GUI package binary fixture\n")):
         checks += 1
         installed = root / package / "pkg/usr/bin" / binary

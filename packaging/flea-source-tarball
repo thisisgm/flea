@@ -44,6 +44,11 @@ roots=$(tar -tzf "$stage/first.tar.gz" | cut -d/ -f1 | sort -u)
 [ "$roots" = "$root" ] || {
   echo "flea-source-tarball: the tarball's roots are '$roots', not '$root'" >&2; exit 1; }
 
+tar -xOzf "$stage/first.tar.gz" "$root/THIRD-PARTY-LICENSES.txt" > "$stage/notices.txt" || {
+  echo "flea-source-tarball: $tag has no third-party license inventory" >&2; exit 1; }
+[ -s "$stage/notices.txt" ] || {
+  echo "flea-source-tarball: $tag has an empty third-party license inventory" >&2; exit 1; }
+
 mkdir -p "$outdir"
 mv "$stage/first.tar.gz" "$outdir/$asset"
 (cd "$outdir" && sha256sum "$asset" > "$asset.sha256")

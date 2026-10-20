@@ -85,6 +85,20 @@ case "$package_name" in
   *) fail "unexpected package name $package_name"; exit 1 ;;
 esac
 
+if bsdtar -xOf "$pkg" "usr/share/licenses/$package_name/THIRD-PARTY-LICENSES.txt" > "$work/third-party.txt" &&
+   cmp -s "$repo/THIRD-PARTY-LICENSES.txt" "$work/third-party.txt"; then
+  pass "archive carries the complete third-party license inventory"
+else
+  fail "archive has missing or stale third-party license notices"
+fi
+sed -n 's/^Package licenses: //p' "$repo/THIRD-PARTY-LICENSES.txt" | tr ' ' '\n' | sort > "$work/expected-licenses"
+bsdtar -xOf "$pkg" .PKGINFO | sed -n 's/^license = //p' | sort > "$work/package-licenses"
+if [ -s "$work/expected-licenses" ] && cmp -s "$work/expected-licenses" "$work/package-licenses"; then
+  pass "archive metadata declares exactly the derived license set"
+else
+  fail "archive metadata does not cover the third-party license inventory"
+fi
+
 # Inspect the actual archive even when no password was supplied for the pacman round trip.
 mkdir -p "$work/packaged"
 if bsdtar -xf "$pkg" -C "$work/packaged" usr/bin/flea usr/bin/flea-gui; then
@@ -146,7 +160,7 @@ else
            usr/share/flea/ui/boot/Commons usr/share/flea/ui/boot/Ui \
            usr/share/applications/com.thisisgm.flea.desktop \
            usr/share/icons/hicolor/scalable/apps/com.thisisgm.flea.svg \
-           "usr/share/licenses/$package_name/LICENSE"; do
+           "usr/share/licenses/$package_name/LICENSE" "usr/share/licenses/$package_name/THIRD-PARTY-LICENSES.txt"; do
     if [ -e "$fakeroot/$p" ] || [ -L "$fakeroot/$p" ]; then pass "installed $p"; else fail "missing $p"; fi
   done
 
