@@ -42,6 +42,10 @@ flea_ui() {
   env XDG_STATE_HOME="$STATE" XDG_CONFIG_HOME="$CONFIG" $BIN --ui-state "$@" </dev/null
 }
 
+plugins_value() {
+  python3 -c 'import json,sys; print(json.dumps(json.load(sys.stdin)["plugins"], sort_keys=True, separators=(",", ":")))'
+}
+
 sandbox_make "$SANDBOX" || exit 1
 
 # A read answers the whole shape and writes nothing: a first launch leaves no file behind.
@@ -51,7 +55,8 @@ check "a read exits 0" "0" "$rc"
 check "a read answers the shipped view" "1" "$(echo "$out" | grep -c '"view": "list"')"
 check "a read answers the shipped menu.hidden" "1" "$(echo "$out" | grep -c '"copyAs"')"
 check "a read ships Open folders while dragging off" "1" "$(echo "$out" | grep -c '"openFoldersWhileDragging": false')"
-check "a read answers every top-level key" "42" "$(echo "$out" | grep -c '^  "')"
+check "a read answers every top-level key" "43" "$(echo "$out" | grep -c '^  "')"
+check "a fresh read answers empty plugin state" "{}" "$(printf '%s\n' "$out" | plugins_value)"
 check "a read leaves no state file behind" "0" "$([ -e "$UI" ] && echo 1 || echo 0)"
 
 # The window paints a first launch before any file exists, so the two fallbacks it holds have to be
@@ -99,16 +104,21 @@ check "a patch writes the file" "1" "$([ -f "$UI" ] && echo 1 || echo 0)"
 # 240 is not a stop, so src/uistate.rs Rule::SidebarWidth snaps it down to 224: this asserted the
 # raw number and had been failing since the snap was written, which is why it pins the snap now.
 check "the stored file carries the patched width, snapped to a stop" "1" "$(grep -c '"sidebarWidth": 224' "$UI")"
-check "the stored file keeps every other key" "42" "$(grep -c '^  "' "$UI")"
+check "the stored file keeps every other key" "43" "$(grep -c '^  "' "$UI")"
+check "a view patch keeps empty plugin state" "{}" "$(plugins_value < "$UI")"
 check "the state file is owner only" "600" "$(stat -c '%a' "$UI")"
 check "the state directory is owner only" "700" "$(stat -c '%a' "$STATE/flea")"
 # ls -A: ui.json and its lock, and no temp file left behind by the rename.
 check "no temp file survives the write" "ui.json ui.json.lock" "$(ls -A "$STATE/flea" | sort | tr '\n' ' ' | sed 's/ $//')"
 
+flea_ui '{"plugins":{"fixture.plugin":{"enabled":true,"settings":{"value":"kept"}}}}' >/dev/null 2>&1; rc=$?
+check "a plugin state patch exits 0" "0" "$rc"
+
 # A second patch merges rather than replacing, which is what "caller-key merge" has to mean.
 flea_ui '{"hidden":true}' >/dev/null 2>&1
 check "the earlier key survives the later patch" "1" "$(grep -c '"view": "grid"' "$UI")"
 check "the later key landed" "1" "$(grep -c '"hidden": true' "$UI")"
+check "a write of another key preserves plugin state" '{"fixture.plugin":{"enabled":true,"settings":{"value":"kept"}}}' "$(plugins_value < "$UI")"
 
 # A key from a newer Flea is kept and rewritten as it was read, so an older Flea cannot eat it.
 fresh
@@ -399,7 +409,7 @@ check "and the read still answers the full default shape" "1" "$(flea_ui 2>&1 | 
 out=$(flea_ui '{"hidden":true}' 2>&1); rc=$?
 check "a patch onto that same file exits 0" "0" "$rc"
 check "and does not leave the operator's bytes" "1" "$([ "$(sha256sum "$UI" | cut -d' ' -f1)" != "$broken_sha" ] && echo 1 || echo 0)"
-check "it writes the full default document instead" "42" "$(grep -c '^  "' "$UI")"
+check "it writes the full default document instead" "43" "$(grep -c '^  "' "$UI")"
 check "so the hand-written key is gone" "1" "$(grep -c '"density": "compact"' "$UI")"
 check "and the patch itself landed" "1" "$(grep -c '"hidden": true' "$UI")"
 

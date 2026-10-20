@@ -78,6 +78,27 @@ class Sidecars(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
             scenes.manifest(target)
 
+    def test_non_object_scenes_fail_with_validation_error(self):
+        target = self.root / 'non-object.json'
+        for scene in (None, 'x'):
+            with self.subTest(scene=scene):
+                target.write_text(json.dumps(dict(version=1, scenes=[scene])))
+                with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+                    scenes.manifest(target)
+
+    def test_listing_id_cannot_borrow_a_card_board_reference_exemption(self):
+        source = Path(__file__).with_name('scenes') / 'g1-01.json'
+        listing = next(scene for scene in scenes.manifest(source) if scene['id'] == 'g1-01-grid-r8')
+        target = self.root / 'wrong-card.json'
+        for board in ('copyto', 'copyto-empty'):
+            with self.subTest(board=board):
+                scene = dict(listing, board=board)
+                scene.pop('reference')
+                scene.pop('reference_tag')
+                target.write_text(json.dumps(dict(version=1, scenes=[scene])))
+                with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+                    scenes.manifest(target)
+
     def test_another_unit_registers_its_own_scene_values(self):
         source = Path(__file__).with_name('scenes') / 'g1-01.json'
         schema = json.loads(Path(scenes.__file__).with_name('schema.json').read_text())

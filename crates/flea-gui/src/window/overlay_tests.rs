@@ -125,7 +125,7 @@ fn copy_to_paints_its_scrim_and_card_over_the_window(cx: &mut TestAppContext) {
     let handle = open(cx, backend);
     let own = frame(cx, handle);
     open_copy_to(cx, handle);
-    frame(cx, handle);
+    let opened = frame(cx, handle);
     let view = viewport(cx, handle);
     let scrim = marks(cx, handle, "op1-scrim").expect("the open card dims the window");
     assert_eq!(
@@ -147,6 +147,30 @@ fn copy_to_paints_its_scrim_and_card_over_the_window(cx: &mut TestAppContext) {
         f32::from(scrim.size.height),
         f32::from(view.height),
         "the scrim spans the window"
+    );
+    let (ink, scale) = shell(cx, handle, |_, window, cx| {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        (
+            theme
+                .background
+                .opacity(flea::ui_logic_op1::card::scrim_alpha(0)),
+            window.scale_factor(),
+        )
+    });
+    assert!(ink.a > 0., "the theme's scrim fill is visible");
+    let painted = scrim.scale(scale);
+    assert!(
+        opened.iter().any(|quad| {
+            quad.bounds == painted
+                && quad.bounds.intersect(&quad.content_mask.bounds) == painted
+                && quad.background.as_solid().is_some_and(|fill| {
+                    (fill.h, fill.s, fill.l, fill.a) == (ink.h, ink.s, ink.l, ink.a)
+                })
+        }),
+        "the open frame paints the non-transparent theme scrim over the whole window"
     );
     let card = marks(cx, handle, "op1-card").expect("the open card draws centred");
     assert!(

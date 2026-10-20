@@ -11,22 +11,13 @@ pub(super) fn parse(line: &str) -> Result<Event, String> {
             operation,
             path,
             message,
-        } => {
-            let document = jsondoc::parse(line)?;
-            let mode = match document.get("mode") {
-                None => 0,
-                Some(jsondoc::Json::Num(value)) => {
-                    value.parse().map_err(|_| "mode must fit a mode")?
-                }
-                _ => return Err("mode must be an unsigned integer".into()),
-            };
-            Ok(Event::Refused {
-                operation,
-                path,
-                message,
-                mode,
-            })
-        }
+            mode,
+        } => Ok(Event::Refused {
+            operation,
+            path,
+            message,
+            mode,
+        }),
         Reply::Other => Ok(other(line)?.unwrap_or(Event::Reply(Reply::Other))),
         reply => {
             // Canonical plain windows have no gen; escaped keys still take the structural parser.
