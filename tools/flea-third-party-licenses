@@ -18,6 +18,7 @@ PACKAGES = ("PKGBUILD", "packaging/flea/PKGBUILD", "packaging/flea-git/PKGBUILD"
 LEGAL = ("LICENSE", "LICENCE", "COPYING", "NOTICE", "UNLICENSE")
 
 
+# Sample input: "MIT OR Apache-2.0", "(MIT AND Zlib) OR ISC" and "MIT/Apache-2.0" parse; "MIT OR" and "(MIT" raise ValueError.
 def alternatives(expression):
     """Parse SPDX AND/OR/WITH and Cargo's older slash-as-OR spelling."""
     expression = expression.replace("/", " OR ")
@@ -208,6 +209,7 @@ def render(root, metadata_by_target):
     return "\n".join(lines), licenses
 
 
+# Sample input: a PKGBUILD line "license=('Apache-2.0' 'MIT')" is read as the set {"Apache-2.0", "MIT"}; "license=()" reads as empty.
 def package_licenses(root, expected):
     for filename in PACKAGES:
         match = re.search(r"^license=\(([^\n]*)\)$", (root / filename).read_text(), re.M)

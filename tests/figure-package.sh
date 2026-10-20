@@ -74,6 +74,7 @@ else:
 # Every file that can name a /usr/lib/flea helper: tracked sources plus the packaging registrations.
 repo_root = pathlib.Path(sys.argv[2])
 notices = (repo_root / "THIRD-PARTY-LICENSES.txt").read_bytes()
+# Sample input: "Package licenses: Apache-2.0 MIT Zlib" splits at ": " and then on spaces into {"Apache-2.0", "MIT", "Zlib"}.
 license_line = next(line for line in notices.decode().splitlines() if line.startswith("Package licenses: "))
 expected_licenses = set(license_line.split(": ", 1)[1].split())
 tracked_all = subprocess.run(["git", "-C", sys.argv[2], "ls-files", "-z", "--", "src", "ui", "shelf", "packaging"], capture_output=True)

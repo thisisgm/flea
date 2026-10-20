@@ -91,7 +91,9 @@ if bsdtar -xOf "$pkg" "usr/share/licenses/$package_name/THIRD-PARTY-LICENSES.txt
 else
   fail "archive has missing or stale third-party license notices"
 fi
+# Sample input: "Package licenses: Apache-2.0 MIT Zlib" in the notice file prints "Apache-2.0 MIT Zlib", one id per line after tr.
 sed -n 's/^Package licenses: //p' "$repo/THIRD-PARTY-LICENSES.txt" | tr ' ' '\n' | sort > "$work/expected-licenses"
+# Sample input: the .PKGINFO lines "license = MIT" and "license = Apache-2.0" print "MIT" and "Apache-2.0"; "pkgname = flea" prints nothing.
 bsdtar -xOf "$pkg" .PKGINFO | sed -n 's/^license = //p' | sort > "$work/package-licenses"
 if [ -s "$work/expected-licenses" ] && cmp -s "$work/expected-licenses" "$work/package-licenses"; then
   pass "archive metadata declares exactly the derived license set"
