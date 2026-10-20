@@ -1,6 +1,8 @@
 #!/bin/bash
 # Run on the controller's Omarchy machine; all generated files stay in a fresh marked scratch root.
 set -euo pipefail
+export LC_ALL=C.UTF-8
+unset LANGUAGE
 W=$(cd -- "$(dirname -- "${BASH_SOURCE[0]}")/../.." && pwd -P)
 commons=${1:?usage: run.sh OMARCHY_SHELL FROZEN_UI [PALETTE_ROOT...]}
 oracle=${2:?usage: run.sh OMARCHY_SHELL FROZEN_UI [PALETTE_ROOT...]}

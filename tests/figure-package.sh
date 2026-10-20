@@ -3,8 +3,12 @@
 set -euo pipefail
 cd "$(dirname "$0")/.."
 repo=$PWD
-box=$(mktemp -d "${TMPDIR:-/tmp}/flea-figure-package.XXXXXX")
-trap 'rm -rf -- "$box"' EXIT
+. tools/flea-sandbox-guard
+sandbox_require "$FIXTURE_ROOT/flea-figure-package"
+mkdir -p "$SANDBOX_ROOT"
+box=$(mktemp -d "$SANDBOX_ROOT/flea-figure-package.XXXXXX")
+printf 'figure package regression\n' > "$box/$SANDBOX_MARKER"
+trap 'sandbox_remove "$box"' EXIT
 for name in root flea flea-git flea-bin; do
     (
         if [ "$name" = root ]; then
@@ -20,6 +24,7 @@ for name in root flea flea-git flea-bin; do
         CARCH=x86_64
         mkdir -p "$srcdir/target/release"
         printf 'package binary fixture\n' > "$srcdir/target/release/flea"
+        printf 'GUI package binary fixture\n' > "$srcdir/target/release/flea-gui"
         case "$name" in
             root|flea) tree="$srcdir/$pkgname-$pkgver" ;;
             flea-git) tree="$srcdir/$pkgname" ;;
@@ -30,6 +35,7 @@ for name in root flea flea-git flea-bin; do
             ln -s "$repo/$data" "$tree/$data"
         done
         cp "$srcdir/target/release/flea" "$tree/flea"
+        cp "$srcdir/target/release/flea-gui" "$tree/flea-gui"
         cd "$srcdir"
         package
     )
@@ -119,6 +125,12 @@ def helper_installed(base, name):
 # Sample inputs: import { renderFigure } from "../js/FigureWorker.mjs"; await import("./math.mjs").
 imports = re.compile(r'\b(?:from\s*|import\s*\(\s*|import\s*)["\'](\.[^"\']+)["\']')
 for package in ("root", "flea", "flea-git", "flea-bin"):
+    for binary, expected in (("flea", b"package binary fixture\n"), ("flea-gui", b"GUI package binary fixture\n")):
+        checks += 1
+        installed = root / package / "pkg/usr/bin" / binary
+        if not helper_installed(installed.parent, binary) or installed.read_bytes() != expected:
+            failures += 1
+            print(f"FAIL {package}: /usr/bin/{binary} is not the executable binary fixture")
     checks += 1
     dependencies = (root / f"{package}.depends").read_text().splitlines()
     if dependencies.count("quickjs-ng") != 1:
