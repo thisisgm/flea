@@ -336,6 +336,7 @@ fn handle_line(
             .git
             .get_or_insert_with(|| super::gitreq::Worker::new(loop_tx.clone()))
             .request(line),
+        Request::Plugins { line } => super::plugins::request(line, ops.tx.clone()),
         Request::Permissions { line } => say(out, &ops.permissions.handle(&line)),
         Request::Picker { line } => {
             let replies = ops.tx.clone();
@@ -840,6 +841,7 @@ fn rows_needed(request: &Request) -> usize {
         | Request::LocalSend { .. }
         | Request::Nearby { .. }
         | Request::NetworkAddress { .. }
+        | Request::Plugins { .. }
         | Request::TrashBrowse { .. }
         | Request::TrashThumb { .. }
         | Request::TrashThumbCancel { .. }

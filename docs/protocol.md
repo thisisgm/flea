@@ -1779,6 +1779,41 @@ pidfd trigger covers Flea owners; a selection owned by another program and empti
 on Hyprland reports nothing until the next selection. Paste always reads fresh,
 so no file operation can act on that stale watcher state. See `clip` below.
 
+### plugins
+
+`{"c":"plugins","op":"list","id":1}`, and `enable`, `disable`, `update` and `remove` with `"plugin":"<id>"`,
+`set` with `"plugin"`, `"key"` and `"value"`, `add` and `validate` with `"source"` (a Git URL, or an absolute folder
+or `~/` folder).
+
+Settings > Plugins and `flea plugin <verb>`. Answered on its own thread, so a clone, a pull or a start check never
+holds the loop. `list` answers one `plugins` line; every other verb answers one `pluginop` line and then the
+`plugins` listing it left, both carrying the request's `id`. Changes run one at a time.
+
+The listing names the four built-ins first (Shelf, LocalSend, Tailscale, Dropbox), then every folder under
+`$XDG_CONFIG_HOME/flea/plugins/` whose name does not start with a dot, in name order. Each plugin carries its
+manifest's facts, `enabled`, `source` (`builtin`, `git` with the origin in the plugin's own `.git` folder, `folder`
+with the folder it was added from, or empty), its `schema` in the manifest's own shape and its `settings` clamped to that schema. The Shelf also carries
+`shelf`, the ui.json shelf group and its pins. `failure` names why an enabled plugin cannot run, or why a folder is
+not a plugin, as a code with one `detail`; it is empty otherwise.
+
+The Shelf's switch is `shelf.enabled`, and a change of it installs or removes the bar plugin as `--ui-state` does. Every
+other switch and setting lives in ui.json's `plugins` map, and `set` stores the value clamped. `add` copies or clones
+into a dot folder first and renames it into place only when its manifest is valid and its id is free, so a failed add
+leaves nothing; an added plugin arrives disabled. A folder add copies regular files and folders only, skips every dot
+entry (`.git` included), and refuses a tree past 4096 entries or 64 MB with `write` before anything is written; each
+file opens without following a link and without blocking, and anything but a regular file refuses the add. A Git add
+checks its clone against the same 4096 entries and 64 MB, counting every tracked entry, dot entries included, and
+setting aside only the clone's own top-level `.git`; past either it refuses with `write` before the clone moves into
+place. The listing reads a Git plugin's `.git/config` only as a regular file of at most 64 KiB, and `update` lists it
+through Git under a ten second deadline. A folder add records its folder in `.sources/<id>` under the plugins folder, never inside the
+plugin; the listing reads that record only as a regular file of at most 4 KiB, and `remove` deletes it.
+`enable` saves the switch and then sends the plugin's executable `hello`; the five second deadline starts before
+`hello` is written, and no `ready` within it records `start` until the plugin is switched off, updated or starts.
+`update` is `git pull --ff-only` and reaches only a plugin added from Git. Every Git call runs without system or user
+config, hooks or fsmonitor, and `update` refuses with `git` a plugin whose `.git` is not a plain folder or whose config
+holds anything a clone does not write (`core.worktree`, `core.hooksPath` and `core.fsmonitor` among them).
+`remove` deletes the plugin's folder and its settings; a built-in refuses `remove` and `update` with `builtin`.
+
 ### quit
 
 `{"c":"quit"}`
@@ -2627,6 +2662,21 @@ not as a guarantee. A
 network mount is the other case: inotify sees the local kernel's own view of a directory, so a
 change another machine makes to an NFS or SMB share is not delivered, and Flea is stale there in
 exactly the way it was before this line existed.
+
+### plugins
+
+`{"t":"plugins","id":1,"plugins":[{"id":"flea.shelf","name":"Shelf","version":"0.4.0","author":"Flea","license":"MIT","description":"...","kinds":["shelf"],"glyph":"flea","mark":"","access":["shelf:pile"],"source":"builtin","origin":"","enabled":false,"failure":"","detail":"","schema":[],"settings":{},"shelf":{"enabled":false,"bar":true,"rail":"off","screenshots":true,"recordings":true,"recent":3,"pins":[]}}]}`
+
+The whole installed list after the request named by `id`; see `plugins` above. `mark` is an absolute path to the
+plugin's own SVG when it has one. `shelf` is `null` on every plugin but the Shelf.
+
+### pluginop
+
+`{"t":"pluginop","id":2,"op":"add","plugin":"mtorvik.checksums","ok":true,"code":"","detail":"","version":"0.2.0"}`
+
+One change's outcome. A refusal has `ok` false and a `code` with one `detail` argument; the codes are the ones
+`src/ui_logic_st2.rs` and `src/ui_logic_st2/wire.rs` list, each selecting a `plugins.error.*` or
+`plugins.invalid.*` catalog sentence. `version` is the plugin's version after an `add` or `update`.
 
 ### error
 

@@ -38,8 +38,7 @@ impl Shelf {
         }
     }
 
-    // Read by this file's own tests, which reach for the pile without going through a verb.
-    #[cfg(test)]
+    // Read by this file's own tests and by Settings > Plugins, which lists the pins.
     pub fn pile_file(&self) -> &Path {
         &self.pile
     }

@@ -52,6 +52,28 @@ pub mod networkaddress;
 pub mod nearby;
 pub mod nearbyrows;
 mod nearbytool;
+// Settings > Plugins; see docs/protocol.md "plugins".
+pub mod plugins;
+pub mod pluginadd;
+pub mod pluginfs;
+pub mod plugingit;
+mod pluginops;
+#[cfg(test)]
+mod plugins_tests;
+#[cfg(test)]
+mod pluginadd_tests;
+#[cfg(test)]
+mod pluginsafe_tests;
+#[cfg(test)]
+mod pluginbound_tests;
+#[cfg(test)]
+mod pluginsource_tests;
+#[cfg(test)]
+mod rev2_st2_tests;
+#[cfg(test)]
+mod rev3_st2_tests;
+#[cfg(test)]
+mod rev4_st2_tests;
 pub mod durable;
 pub mod icons;
 pub mod regfile;

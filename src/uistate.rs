@@ -66,6 +66,7 @@ fn check(pairs: &[(String, Json)], schema: &[(&str, Rule)], prefix: &str) -> Res
             Rule::FolderSorts if is_folder_sorts_patch(value) => {}
             // A null folderViews entry forgets that path, and only a patch may send one.
             Rule::FolderViews if is_folder_views_patch(value) => {}
+            Rule::Plugins if crate::uiplugins::is_patch(value) => {}
             _ if fits(rule, value) => {}
             _ => return Err(format!("{}{} does not take {}", prefix, key, one_line(value))),
         }
@@ -88,6 +89,7 @@ fn apply(current: &Json, patch: &Json, schema: &[(&str, Rule)]) -> Json {
             (None, held, Some(Rule::FolderSorts)) => merge_folder_sorts(held, value),
             (None, held, Some(Rule::FolderViews)) => merge_folder_views(held, value),
             (None, held, Some(Rule::ColumnWidths)) => merge_column_widths(held, value),
+            (None, held, Some(Rule::Plugins)) => crate::uiplugins::merged(held, value),
             _ => normalized(rule, value),
         };
         match out.iter_mut().find(|(k, _)| k == key) {
@@ -114,6 +116,7 @@ fn merge(default: &Json, found: &Json, schema: &[(&str, Rule)]) -> Json {
                 // A hand-edited map heals one bad entry rather than losing the key.
                 Rule::FolderSorts => normalized(Some(rule), &clean_folder_sorts(value)),
                 Rule::FolderViews => normalized(Some(rule), &clean_folder_views(value)),
+                Rule::Plugins => crate::uiplugins::clean(value),
                 _ if fits(rule, value) => normalized(Some(rule), value),
                 _ => fallback,
             },
@@ -214,6 +217,7 @@ fn fits(rule: &Rule, value: &Json) -> bool {
         Rule::FolderSorts => is_folder_sorts(value),
         Rule::FolderViews => is_folder_views(value),
         Rule::ColumnWidths => is_column_widths(value),
+        Rule::Plugins => crate::uiplugins::fits(value),
         Rule::Count(low, high) => match value.as_f64() {
             Some(n) => n.fract() == 0.0 && n >= *low && n <= *high,
             None => false,
