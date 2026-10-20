@@ -10,6 +10,10 @@ use flea_gui::{
 use gpui::App;
 
 fn main() {
+    let words: Vec<String> = std::env::args().skip(1).collect();
+    if let Some(status) = flea_gui::g2::pv3::dispatch(&words) {
+        std::process::exit(status);
+    }
     let (service, initial) = Service::start(flea::i18n::Paths::default()).unwrap_or_else(|error| {
         eprintln!("flea-gui: {error}");
         std::process::exit(2);

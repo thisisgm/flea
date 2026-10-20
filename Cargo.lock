@@ -1442,6 +1442,7 @@ version = "0.4.0"
 dependencies = [
  "async-channel",
  "flea",
+ "image",
  "gpui-pre",
  "gpui-pre-platform",
  "image",
