@@ -149,7 +149,11 @@ impl Render for EmptyHero {
         } else if let Some(deadline) = self.rotation.next_deadline() {
             self.arm(deadline, now, cx);
         }
-        let ink = Ink::interim(&Palette::inherited(&window.text_style()));
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = Ink::interim(&Palette::inherited(&window.text_style(), theme));
         let caption = self.phrases.get(frame.phrase).cloned().unwrap_or_default();
         let metrics = self.metrics();
         let mut font = self.typeface.font.clone();

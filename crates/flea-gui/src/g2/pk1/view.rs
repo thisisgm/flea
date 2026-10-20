@@ -86,7 +86,11 @@ impl Picker {
 
 impl Render for Picker {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let palette = Palette::inherited(&window.text_style());
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let palette = Palette::inherited(&window.text_style(), theme);
         let reviewing = self.accept_state().collision_review();
         let available = if reviewing {
             logic::replace_allowed(&self.accept_state())

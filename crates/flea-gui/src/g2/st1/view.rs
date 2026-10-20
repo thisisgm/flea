@@ -272,7 +272,11 @@ impl SettingsView {
 
 impl Render for SettingsView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let ink = Ink::inherited(&window.text_style());
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = Ink::inherited(&window.text_style(), theme);
         let viewport = window.viewport_size();
         let (card_w, card_h) = g::card_size(f32::from(viewport.width), f32::from(viewport.height), self.panel.view_height);
         let pane = g::pane_size(card_w, card_h);

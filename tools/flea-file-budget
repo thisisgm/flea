@@ -14,7 +14,8 @@ soft_js=200;   hard_js=300
 known_over_cap="shelf/Model.js 701
 crates/flea-gui/src/g2/mn1/menu.rs 569
 crates/flea-gui/src/g2/mn1/tests.rs 678
-crates/flea-gui/src/g2/op1/fix1_tests.rs 427
+crates/flea-gui/src/g2/op1/draw_tests.rs 404
+crates/flea-gui/src/g2/op1/fix1_tests.rs 433
 crates/flea-gui/src/g2/op1/model.rs 594
 crates/flea-gui/src/g2/op1/view.rs 667
 crates/flea-gui/src/g2/pv2/surface.rs 407

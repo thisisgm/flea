@@ -232,8 +232,12 @@ impl Model3dView {
 }
 
 impl Render for Model3dView {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let roles = Roles::inherited(&window.text_style());
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let roles = Roles::inherited(&window.text_style(), theme);
         // The viewport stays mounted while empty so a retired picture still leaves the atlas; a plate step keeps the old frame.
         let mut root = div().size_full().flex().flex_col();
         let mut stage = div().relative().flex_1().min_h_0();

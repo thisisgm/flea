@@ -154,7 +154,11 @@ struct Host {
 
 impl Render for Host {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let ink = MediaInk::inherited(&window.text_style());
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = MediaInk::inherited(&window.text_style(), theme);
         let card = div().w(px(902.)).h(px(574.));
         let Some(player) = self.player.borrow().clone() else {
             return card;

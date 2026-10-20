@@ -164,9 +164,13 @@ impl MessageLine {
 }
 
 impl Render for MessageLine {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         bump(&self.counters.renders);
-        let ink = Ink::interim(&Palette::inherited(&window.text_style()));
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = Ink::interim(&Palette::inherited(&window.text_style(), theme));
         let drawn = &self.drawn;
         let text = |value: SharedString| {
             div()
@@ -245,8 +249,12 @@ pub const DETAIL_PAD_Y: f32 = 7.;
 pub const DETAIL_LINE: f32 = 16.;
 
 impl RenderOnce for Detail {
-    fn render(self, window: &mut Window, _: &mut App) -> impl IntoElement {
-        let palette = Palette::inherited(&window.text_style());
+    fn render(self, window: &mut Window, cx: &mut App) -> impl IntoElement {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let palette = Palette::inherited(&window.text_style(), theme);
         let ink = Ink::interim(&palette);
         let cap = window.viewport_size().height / 3.;
         div()

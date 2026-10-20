@@ -197,7 +197,11 @@ fn card_size(window: &Window) -> (f32, f32) {
 
 impl Render for SheetView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let ink = Ink::inherited(&window.text_style());
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = Ink::inherited(&window.text_style(), theme);
         let searching = !self.sheet.query.is_empty();
         if searching {
             let viewport = self.viewport(window);
