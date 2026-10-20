@@ -30,14 +30,17 @@ def manifest(path):
     seen = set()
     # Types, safe IDs and registry membership only; each scene's own values belong to its manifest.
     for scene in data['scenes']:
+        require(isinstance(scene, dict), 'missing or unknown scene field')
         # Only a card scene names its board alone; every listing scene keeps the v0.3.12 reference pair.
         paired = 'reference' in scene
         require(paired == ('reference_tag' in scene), 'reference needs its tag')
         want = set(schema['required'])
         if not paired:
-            require(scene.get('board') in ('copyto', 'copyto-empty'), 'missing or unknown scene field')
+            require(scene.get('id') in ('g2.op1.copyto.r8', 'g2.op1.copyto.r0',
+                                        'g2.op1.copyto-empty.r8', 'g2.op1.copyto-empty.r0'),
+                    'missing or unknown scene field')
             want -= {'reference', 'reference_tag'}
-        require(isinstance(scene, dict) and set(scene) == want, 'missing or unknown scene field')
+        require(set(scene) == want, 'missing or unknown scene field')
         for key in ('id', 'unit', 'board', 'fixture', 'theme'):
             require(isinstance(scene[key], str) and re.fullmatch(r'[A-Za-z0-9_.-]+', scene[key]), f'unsafe {key}')
         require(scene['id'] in schema['scene_ids'], 'unknown scene id')

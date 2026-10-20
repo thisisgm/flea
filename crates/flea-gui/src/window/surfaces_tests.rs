@@ -124,6 +124,38 @@ fn a_window_that_shows_no_state_builds_no_state_surface(cx: &mut TestAppContext)
 }
 
 #[gpui::test]
+fn a_refused_reply_draws_the_directory_mode_from_the_backend(cx: &mut TestAppContext) {
+    for (mode, permissions) in [(0o40700, "rwx------"), (0o40000, "---------")] {
+        let (backend, _receiver) = Backend::test_channel();
+        let handle = open(cx, backend);
+        frame(cx, handle);
+        let line = format!(
+            r#"{{"t":"error","where":"scan","path":"/files","msg":"Permission denied","mode":{mode}}}"#
+        );
+        let reply = flea::protocol::parse_reply(&line).unwrap();
+        let expected = handle
+            .update(cx, |shell, window, cx| {
+                shell.panes[0].as_mut().unwrap().pane.begin(
+                    "/files".into(),
+                    crate::pane::swap::Options::default(),
+                    0,
+                );
+                shell.receive(0, BackendEvent::Reply(reply), window, cx);
+                flea::ui_logic_fb1::errors::locked_line(mode, &shell.locale.catalog)
+            })
+            .expect("the shell window is open");
+        frame(cx, handle);
+        let drawn = facts(cx, handle).expect("the refused reply mounts the Locked message");
+        assert_eq!(drawn.kind, crate::g2::fb1::state::Kind::Locked);
+        assert!(expected.contains(permissions));
+        assert_eq!(drawn.detail.as_ref(), expected);
+        let detail = marks(cx, handle, "fb1-state-detail")
+            .expect("the directory's permission line draws in the Locked pane");
+        assert!(inside(pane_rect(cx, handle), detail));
+    }
+}
+
+#[gpui::test]
 fn an_empty_pane_mounts_the_hero_and_its_quads_replace_the_list(cx: &mut TestAppContext) {
     let (backend, _receiver) = Backend::test_channel();
     let handle = open(cx, backend);
@@ -170,9 +202,7 @@ fn a_refused_listing_mounts_its_message_and_clears_on_return(cx: &mut TestAppCon
             "{part} at {drawn:?} leaves the pane {pane:?}"
         );
     }
-    // The refusal drives navigation (after_failure consumes the relist, transitions re-arm), so the
-    // return frame is not byte-identical to the pristine one; the contract is the message leaves
-    // and the listing comes back. Exact restoration is proven on the pure empty path above.
+    // The refusal drives navigation (after_failure consumes the relist, transitions re-arm), so return proves the message leaves and the listing returns; only the pure empty path proves byte-identical restoration.
     set_kind(cx, handle, Kind::Ready);
     frame(cx, handle);
     let kind = handle

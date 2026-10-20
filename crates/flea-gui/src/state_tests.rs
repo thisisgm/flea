@@ -118,6 +118,7 @@ fn adv_e_r2_unrelated_replies_keep_the_window_request_in_flight(cx: &mut TestApp
                     operation: "window".into(),
                     path: "/elsewhere".into(),
                     message: "unrelated".into(),
+                    mode: 0,
                 },
             ] {
                 shell.receive(0, BackendEvent::Reply(reply), window, cx);

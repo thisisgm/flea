@@ -170,7 +170,8 @@ impl Pane {
                 operation,
                 path,
                 message,
-            } => Ok(self.fail(&operation, &path, &message, 0, now)),
+                mode,
+            } => Ok(self.fail(&operation, &path, &message, mode, now)),
             _ => Ok(false),
         }
     }

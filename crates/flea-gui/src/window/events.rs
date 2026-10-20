@@ -227,17 +227,20 @@ impl Shell {
             BackendEvent::Reply(reply) => {
                 let failure = match &reply {
                     flea::protocol::Reply::Error {
-                        operation, message, ..
-                    } => Some((operation.clone(), message.clone())),
+                        operation,
+                        message,
+                        mode,
+                        ..
+                    } => Some((operation.clone(), message.clone(), *mode)),
                     _ => None,
                 };
                 match host.pane.receive(reply) {
                     Ok(true) => {
-                        if let Some((operation, message)) = failure {
+                        if let Some((operation, message, mode)) = failure {
                             self.surfaces[side].refuse(crate::window::surfaces::Refusal {
                                 operation,
                                 message,
-                                mode: 0,
+                                mode,
                             });
                         }
                         host.changed(&self.locale);

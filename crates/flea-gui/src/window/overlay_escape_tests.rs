@@ -1,5 +1,4 @@
-//! Escape through the window's own key path: the open card closes through op1's close,
-//! and a cardless entity drops while the stroke still reaches the window.
+//! Escape through the window's key path closes the open card through op1; a cardless entity drops while the stroke still reaches the window.
 use crate::{
     backend::Backend,
     g2::op1::press::Press,
