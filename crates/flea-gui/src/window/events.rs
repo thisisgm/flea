@@ -164,6 +164,11 @@ impl Shell {
                     .pane
                     .fail(&operation, &path, &message, mode, host.pane.now());
                 if ended {
+                    self.surfaces[side].refuse(crate::window::surfaces::Refusal {
+                        operation: operation.clone(),
+                        message: message.clone(),
+                        mode,
+                    });
                     host.changed(&self.locale);
                 }
                 host.nav.after_failure(&mut host.pane, &operation);
