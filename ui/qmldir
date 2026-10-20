@@ -138,6 +138,7 @@ PreviewMedia 1.0 PreviewMedia.qml
 QuickLookPrepare 1.0 QuickLookPrepare.qml
 QuickLookWarm 1.0 QuickLookWarm.qml
 QuickLookSwap 1.0 QuickLookSwap.qml
+QuickLookArchive 1.0 QuickLookArchive.qml
 PreviewText 1.0 PreviewText.qml
 Row 1.0 Row.qml
 ResizeHandle 1.0 ResizeHandle.qml

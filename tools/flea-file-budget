@@ -124,7 +124,7 @@ tests/markdown-linearity.qml 679
 tests/markdown-preview-state.qml 474
 tests/markdown-tables.qml 401
 tests/quicklook-firstframe.js 214
-tests/preview-settle-live.qml 584
+tests/preview-settle-live.qml 603
 tests/preview-decode.qml 1012
 tests/js/status.js 349
 tests/rename-grid-bottom.qml 439
