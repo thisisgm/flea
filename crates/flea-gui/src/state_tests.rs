@@ -54,6 +54,7 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         focus_side: 0,
         keyboard: Default::default(),
         panes: [Some(host), None],
+        surfaces: Default::default(),
         focus: cx.focus_handle(),
         seam: Seam::new(),
         ipc_events: None,

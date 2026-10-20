@@ -9,6 +9,7 @@ pub(crate) mod pane;
 mod render;
 pub mod root;
 pub mod startup;
+pub(crate) mod surfaces;
 mod transitions;
 
 use crate::{ipc::server::Event, state::Shell};
@@ -46,5 +47,7 @@ pub fn open(
     .map_err(|error| error.to_string())
 }
 
+#[cfg(test)]
+mod surfaces_tests;
 #[cfg(test)]
 mod transition_tests;
