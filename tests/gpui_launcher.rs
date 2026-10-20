@@ -181,16 +181,34 @@ fn gpui_skips_qt_renderer_switches_and_diagnostics() {
             Some("/operator-icd.json")
         );
     }
+    let software = sandbox.root.join("config/vulkan/icd.d/software.json");
+    fs::create_dir_all(software.parent().unwrap()).unwrap();
+    fs::write(
+        &software,
+        r#"{"ICD":{"library_path":"libvulkan_lvp.so"}}"#,
+    )
+    .unwrap();
     let output = sandbox
         .command()
         .env("QSG_RHI_BACKEND", "opengl")
+        .env("FLEA_RENDERER_AUTOMATIC", "1")
+        .env("VK_LOADER_DRIVERS_DISABLE", "*")
         .env("FLEA_VK_PIN", "1")
         .output()
         .unwrap();
     let document = reply(&output);
     let environment = document.get("env").unwrap();
-    for key in ["FLEA_VK_PIN", "VK_DRIVER_FILES", "VK_ICD_FILENAMES"] {
-        assert_eq!(environment.get(key), Some(&Json::Null));
+    assert!(
+        output.stderr.is_empty(),
+        "{}",
+        String::from_utf8_lossy(&output.stderr)
+    );
+    for key in ["QSG_RHI_BACKEND", "FLEA_RENDERER_AUTOMATIC"] {
+        assert_eq!(environment.get(key), Some(&Json::Null), "{key}");
+    }
+    assert_eq!(environment.get("FLEA_VK_PIN").and_then(Json::as_str), Some("1"));
+    for key in ["VK_DRIVER_FILES", "VK_ICD_FILENAMES"] {
+        assert_eq!(environment.get(key).and_then(Json::as_str), software.to_str());
     }
 }
 
