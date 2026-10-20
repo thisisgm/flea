@@ -62,7 +62,7 @@ run_phase() {
     fail_count=$(printf '%s\n' "$output" | grep -ac 'PREVIEWSETTLE FAIL')
     done_count=$(printf '%s\n' "$output" | grep -ac 'PREVIEWSETTLE DONE')
     clean_count=$(printf '%s\n' "$output" | grep -acE 'PREVIEWSETTLE DONE failures=0$')
-    expected=41
+    expected=44
     [ "$label" = manual ] && expected=3
     warnings=$(printf '%s\n' "$output" | grep -aiE 'WARN|ERROR|TypeError|ReferenceError|not ready|not a type|is not defined|file not found' || true)
     if [ "$code" -ne "$self_kill_exit" ] || [ "$done_count" -ne 1 ] || [ "$clean_count" -ne 1 ] \

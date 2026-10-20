@@ -1,5 +1,5 @@
-// Mermaid lays out as mermaid.js does: dagre's cycle breaking in flowcharts, the mirrored boxes and message spacing of a sequence.
-import { FACES, bounds, edgePaths, frame, groups, layered, lifelines, load, notes, num, others, sequences, text, texts } from "./mermaid-corpus.mjs";
+// Pele lays out the figures: dagre-style cycle breaking in flowcharts, mirrored boxes and spaced messages in a sequence.
+import { FACES, actors, edges, frames, layered, lifelines, load, messages, nodes, notes, notesOf, others, parse, sequences, texts } from "./mermaid-corpus.mjs";
 import { argv, finish } from "./js-runtime.mjs";
 
 const render = await load(argv[0]);
@@ -13,7 +13,7 @@ function check(ok, why) {
     }
 }
 const LAYOUT_FACE = FACES[0];
-// A tolerance for the float arithmetic of ELK's coordinates, in px.
+// A tolerance for the float arithmetic of the layout's coordinates, in px.
 const EPSILON = 0.01;
 // The gap between a message label's descent and its arrow stays at least this, so a label never sits on its arrow.
 const MESSAGE_GAP_MIN = 2;
@@ -36,13 +36,9 @@ function readSource(source) {
     }
     return { order, edges };
 }
-// What each diagram kind draws: its node group, the attributes its edges carry, and the direction it flows.
-function kindOf(source) {
-    if (/^erDiagram/.test(source))
-        return { node: "entity", edge: /<polyline class="er-relationship"([^>]*)>/g, ends: ["data-entity1", "data-entity2"], direction: "LR" };
-    if (/^classDiagram/.test(source))
-        return { node: "class-node", edge: /<(?:path|polyline) class="class-relationship"([^>]*)>/g, ends: ["data-from", "data-to"], direction: "TD" };
-    return { node: "node", edge: /<(?:path|polyline) class="edge"([^>]*)>/g, ends: ["data-from", "data-to"], direction: (source.match(/^flowchart (\w+)/) ?? [0, "TD"])[1] };
+// The direction each diagram kind flows: a flowchart names it, and the state, class and ER layouts run top down, as mermaid.js lays them.
+function directionOf(source) {
+    return (source.match(/^flowchart (\w+)/) ?? [0, "TD"])[1];
 }
 // dagre's acyclic pass (dfsFAS): nodes in declaration order, out edges in declaration order, an edge to a node on the DFS stack is reversed.
 function dagreReversed(order, edges) {
@@ -68,56 +64,67 @@ function dagreReversed(order, edges) {
     return reversed;
 }
 
+// A label mixing words and tspans reads in document order, so a styled middle word never moves to the end.
+// Sample input: <text>a <tspan>b</tspan> c</text> reads "a b c".
+const mixedOrder = texts(parse('<svg><text x="0" y="0">a <tspan>b</tspan> c</text></svg>'))[0].string;
+check(mixedOrder === "a b c", "mixed content keeps document order: " + mixedOrder);
+
 for (const [name, source] of layered) {
-    const svg = render(source, LAYOUT_FACE);
-    const { order, edges } = readSource(source);
-    const { node: nodeGroup, edge: edgePattern, ends, direction } = kindOf(source);
-    const box = new Map();
-    for (const node of groups(svg, nodeGroup))
-        box.set(text(node.attrs, "data-id"), bounds(node.body));
-    const drawn = [...svg.matchAll(edgePattern)].map((m) => text(m[1], ends[0]) + ">" + text(m[1], ends[1])).sort();
-    check(JSON.stringify(drawn) === JSON.stringify(edges.map((e) => e.join(">")).sort()), `${name}: the reader and the figure agree on the edge set, ${drawn.join(" ")}`);
+    const tree = parse(render(source, LAYOUT_FACE));
+    const { order, edges: sourceEdges } = readSource(source);
+    const direction = directionOf(source);
+    const graph = nodes(tree);
+    const box = new Map(graph.map((n) => [n.id, n.box]));
+    const drawnEdges = edges(tree, graph);
+    const drawn = drawnEdges.map((e) => e.from + ">" + e.to).sort();
+    check(JSON.stringify(drawn) === JSON.stringify(sourceEdges.map((e) => e.join(">")).sort()), `${name}: the reader and the figure agree on the edge set, ${drawn.join(" ")}`);
     // Flow position along the direction: a larger value is later in the flow.
     const horizontal = direction === "LR" || direction === "RL";
     const sign = direction === "BT" || direction === "RL" ? -1 : 1;
     const span = (id) => horizontal ? [box.get(id)[0], box.get(id)[2]] : [box.get(id)[1], box.get(id)[3]];
     const start = (id) => sign > 0 ? span(id)[0] : -span(id)[1];
     const end = (id) => sign > 0 ? span(id)[1] : -span(id)[0];
-    if (!edges.every((e) => e.every((id) => box.has(id)))) {
+    if (!sourceEdges.every((e) => e.every((id) => box.has(id) && box.get(id) !== null))) {
         check(false, `${name}: every edge end is a drawn node`);
         continue;
     }
-    const against = new Set(edges.filter(([from, to]) => from !== to && start(to) < start(from)).map((e) => e.join(">")));
-    const expected = dagreReversed(order, edges);
+    const against = new Set(sourceEdges.filter(([from, to]) => from !== to && start(to) < start(from)).map((e) => e.join(">")));
+    const expected = dagreReversed(order, sourceEdges);
     check(JSON.stringify([...against].sort()) === JSON.stringify([...expected].sort()),
         `${name}: edges drawn against the flow [${[...against].sort()}] equal dagre's reversed set [${[...expected].sort()}]`);
-    for (const [from, to] of edges) {
+    for (const [from, to] of sourceEdges) {
         if (from === to || expected.has(from + ">" + to))
             continue;
         check(start(to) > end(from) - EPSILON, `${name}: ${to} sits in a layer after its predecessor ${from}`);
     }
     // A forward edge never doubles back: along the flow, each point of its line is no earlier than the one before.
-    if (nodeGroup === "node") {
-        for (const drawnEdge of edgePaths(svg)) {
-            if (expected.has(drawnEdge.from + ">" + drawnEdge.to) || drawnEdge.from === drawnEdge.to)
-                continue;
-            const along = drawnEdge.points.map((p) => sign * (horizontal ? p[0] : p[1]));
-            check(along.every((v, i) => i === 0 || v >= along[i - 1] - EPSILON), `${name}: the forward edge ${drawnEdge.from} to ${drawnEdge.to} runs one way along the flow, ${along.map((v) => v.toFixed(0))}`);
-        }
+    for (const drawnEdge of drawnEdges) {
+        if (expected.has(drawnEdge.from + ">" + drawnEdge.to) || drawnEdge.from === drawnEdge.to)
+            continue;
+        const along = drawnEdge.points.map((p) => sign * (horizontal ? p[0] : p[1]));
+        check(along.every((v, i) => i === 0 || v >= along[i - 1] - EPSILON), `${name}: the forward edge ${drawnEdge.from} to ${drawnEdge.to} runs one way along the flow, ${along.map((v) => v.toFixed(0))}`);
     }
 }
 
 // A note stands beside its lifeline within this, in px; mermaid's own margin is 25.
 const NOTE_BESIDE_MAX = 40;
-const noteSvg = render(notes[1], LAYOUT_FACE);
-const lifelineX = new Map(lifelines(noteSvg).map((l) => [l.id, l.x]));
-for (const note of groups(noteSvg, "note")) {
-    const [left, , right] = bounds(note.body);
-    const ids = text(note.attrs, "data-actors").split(",");
-    const position = text(note.attrs, "data-position");
+const noteTree = parse(render(notes[1], LAYOUT_FACE));
+const lifelineX = new Map(lifelines(noteTree).map((l) => [l.id, l.x]));
+// Sample input: "Note over A,C: spans all three" reads { position: "over", ids: ["A", "C"] } for the text "spans all three".
+const noteLines = new Map(notes[1].split("\n").map((l) => l.match(/^Note (over|left of|right of) ([\w,]+): (.*)$/)).filter((m) => m)
+    .map((m) => [m[3], { position: m[1].split(" ")[0], ids: m[2].split(",") }]));
+const drawnNotes = notesOf(noteTree);
+check(drawnNotes.length === noteLines.size, `the notes source draws ${drawnNotes.length} notes, want ${noteLines.size}`);
+for (const note of drawnNotes) {
+    const [left, , right] = note.box;
+    const name = `note "${note.texts[0].string}"`;
+    const line = noteLines.get(note.texts[0].string);
+    check(line !== undefined, `${name} is a note of the source`);
+    if (line === undefined)
+        continue;
+    const { position, ids } = line;
     const first = lifelineX.get(ids[0]);
     const last = lifelineX.get(ids[ids.length - 1]);
-    const name = `note "${texts(note.body)[0].string}"`;
     if (position === "over" && ids.length > 1) {
         check(left < first && right > last, `${name} spans lifeline ${ids[0]} at ${first} to ${ids[ids.length - 1]} at ${last}, drawn ${left} to ${right}`);
         const outside = [...lifelineX.values()].filter((x) => x < first - EPSILON || x > last + EPSILON);
@@ -131,21 +138,18 @@ for (const note of groups(noteSvg, "note")) {
     }
 }
 
-// A subgraph with an edge leaving it is laid out with the whole graph, as mermaid.js lays it, so the docs example's three frames share one row; one with no edge leaving stays a block of its own.
+// A frame an edge enters ranks after the frame the edge leaves, so one sits below three in the docs example.
 const SIBLING_GAP_MIN = 1;
 const source = "flowchart TB\nc1 --> a2\nsubgraph one\na1 --> a2\nend\nsubgraph two\nb1 --> b2\nend\nsubgraph three\nc1 --> c2\nend";
-const rowIds = ["one", "two", "three"];
-const rowFrames = rowIds.map((id) => frame(render(source, LAYOUT_FACE), id));
-check(rowFrames.every((f) => f !== null), "docs example: the three frames are drawn");
-if (rowFrames.every((f) => f !== null)) {
-    for (let i = 0; i < rowFrames.length; i++) {
-        for (let j = i + 1; j < rowFrames.length; j++) {
-            const [a, b] = [rowFrames[i], rowFrames[j]];
-            const along = Math.min(a[3], b[3]) - Math.max(a[1], b[1]);
-            check(a[2] + SIBLING_GAP_MIN <= b[0] || b[2] + SIBLING_GAP_MIN <= a[0], `docs example: ${rowIds[i]} and ${rowIds[j]} stand side by side, not on top of each other (${a} against ${b})`);
-            check(along > 0, `docs example: ${rowIds[i]} and ${rowIds[j]} share a row, overlapping ${along.toFixed(1)} px`);
-        }
-    }
+const rowTree = parse(render(source, LAYOUT_FACE));
+const [one, two, three] = ["one", "two", "three"].map((id) => frames(rowTree).get(id)?.box ?? null);
+check(one !== null && two !== null && three !== null, "docs example: the three frames are drawn");
+if (one !== null && two !== null && three !== null) {
+    const along = Math.min(two[3], three[3]) - Math.max(two[1], three[1]);
+    check(two[2] + SIBLING_GAP_MIN <= three[0] || three[2] + SIBLING_GAP_MIN <= two[0], `docs example: two and three stand side by side, not on top of each other (${two} against ${three})`);
+    check(along > 0, `docs example: two and three share a row, overlapping ${along.toFixed(1)} px`);
+    check(one[1] >= three[3] + SIBLING_GAP_MIN, `docs example: one, which c1 --> a2 enters, sits below three, which it leaves (${one} against ${three})`);
+    check(one[1] >= two[3] + SIBLING_GAP_MIN || one[2] + SIBLING_GAP_MIN <= two[0] || two[2] + SIBLING_GAP_MIN <= one[0], `docs example: one does not cross two (${one} against ${two})`);
 }
 
 // A frame holds only its own members, and frames that are not nested never cross: the clash sources fall back to the nested layout, so a stubbed clash check goes red here.
@@ -180,53 +184,53 @@ const clashSources = [
     ["right to left subgraph title", others.find(([name]) => name === "right to left subgraph title")[1]]
 ];
 for (const [name, clashSource] of clashSources) {
-    const svg = render(clashSource, LAYOUT_FACE);
+    const tree = parse(render(clashSource, LAYOUT_FACE));
     const { members, parents } = readFrames(clashSource);
     check(members.size > 0 && [...members.values()].every((m) => m.size > 0), `${name}: the reader finds frames that hold members, so the checks below can go red`);
-    const frames = new Map([...members.keys()].map((id) => [id, frame(svg, id)]));
-    const boxes = new Map(groups(svg, "node").map((n) => [text(n.attrs, "data-id"), bounds(n.body)]));
+    const drawnFrames = frames(tree);
+    const outlines = new Map([...members.keys()].map((id) => [id, drawnFrames.get(id)?.box ?? null]));
+    const boxes = new Map(nodes(tree).map((n) => [n.id, n.box]));
     const nested = (a, b) => { for (let at = a; at; at = parents.get(at)) if (at === b) return true; return false; };
-    for (const [id, f] of frames) {
+    for (const [id, f] of outlines) {
         check(f !== null, `${name}: frame ${id} is drawn`);
         if (f === null)
             continue;
-        for (const [nodeId, box] of boxes)
-            check(members.get(id).has(nodeId) === overlap(f, box), `${name}: frame ${id} ${members.get(id).has(nodeId) ? "holds its member" : "keeps out the stranger"} ${nodeId}, frame ${f} against node ${box}`);
+        for (const [nodeId, nodeBox] of boxes)
+            check(members.get(id).has(nodeId) === overlap(f, nodeBox), `${name}: frame ${id} ${members.get(id).has(nodeId) ? "holds its member" : "keeps out the stranger"} ${nodeId}, frame ${f} against node ${nodeBox}`);
     }
-    for (const a of frames.keys()) {
-        for (const b of frames.keys()) {
-            if (a < b && frames.get(a) && frames.get(b) && !nested(a, b) && !nested(b, a))
-                check(!overlap(frames.get(a), frames.get(b)), `${name}: sibling frames ${a} and ${b} do not cross, ${frames.get(a)} against ${frames.get(b)}`);
+    for (const a of outlines.keys()) {
+        for (const b of outlines.keys()) {
+            if (a < b && outlines.get(a) && outlines.get(b) && !nested(a, b) && !nested(b, a))
+                check(!overlap(outlines.get(a), outlines.get(b)), `${name}: sibling frames ${a} and ${b} do not cross, ${outlines.get(a)} against ${outlines.get(b)}`);
         }
     }
 }
 
-const BOX_GROUP = "actor";
 for (const [name, source] of sequences) {
-    const svg = render(source, LAYOUT_FACE);
+    const tree = parse(render(source, LAYOUT_FACE));
     // Sample input: "participant A as Alice" reads the id A.
     const ids = [...new Set(source.split("\n").filter((l) => /^participant/.test(l)).map((l) => l.split(" ")[1]))];
-    const actors = groups(svg, BOX_GROUP);
-    const lines = lifelines(svg);
-    check(actors.length === ids.length * 2, `${name}: ${ids.length} participants draw ${actors.length} boxes, want one top and one bottom each`);
+    const boxes = actors(tree);
+    const lines = lifelines(tree);
+    check(boxes.length === ids.length * 2, `${name}: ${ids.length} participants draw ${boxes.length} boxes, want one top and one bottom each`);
     for (const id of ids) {
-        const own = actors.filter((a) => text(a.attrs, "data-id") === id).map((a) => ({ a, r: bounds(a.body), t: texts(a.body)[0] })).sort((p, q) => p.r[1] - q.r[1]);
+        const own = boxes.filter((a) => a.id === id).map((a) => ({ r: a.box, t: a.texts[0], footer: a.footer })).sort((p, q) => p.r[1] - q.r[1]);
         const line = lines.find((l) => l.id === id);
-        check(own.length === 2, `${name}: ${id} has a top and a bottom box`);
-        if (own.length !== 2)
+        check(own.length === 2 && !own[0].footer && own[1].footer, `${name}: ${id} has a top and a bottom box`);
+        if (own.length !== 2 || line === undefined)
             continue;
         const [top, bottom] = own;
         check(top.r[2] - top.r[0] === bottom.r[2] - bottom.r[0] && top.r[3] - top.r[1] === bottom.r[3] - bottom.r[1], `${name}: ${id}'s bottom box has the size of its top box`);
         check(top.r[0] === bottom.r[0] && top.t.string === bottom.t.string && top.t.x === bottom.t.x, `${name}: ${id}'s bottom box has the label and column of its top box`);
+        check(Math.abs(top.r[3] - line.top) < EPSILON, `${name}: ${id}'s lifeline starts where its top box ends, ${line.top} against ${top.r[3]}`);
         check(Math.abs(bottom.r[1] - line.end) < EPSILON, `${name}: ${id}'s bottom box begins where its lifeline ends, ${bottom.r[1]} against ${line.end}`);
     }
-    for (const m of groups(svg, "message")) {
-        const label = texts(m.body)[0];
-        const arrow = m.body.match(/<line\b[^>]*>/);
-        if (!arrow || !label)
+    // A message between two lifelines is one level line with its label above it; a self message loops beside its lifeline instead.
+    for (const m of messages(tree)) {
+        const y = m.points.length ? m.points[0][1] : NaN;
+        if (!m.label || !m.points.every((p) => Math.abs(p[1] - y) < EPSILON))
             continue;
-        const y = num(arrow[0], "y1");
-        check(label.y + DESCENT_RATIO * label.size <= y - MESSAGE_GAP_MIN, `${name}: "${label.string}" sits above its arrow, baseline ${label.y} against ${y}`);
+        check(m.label.y + DESCENT_RATIO * m.label.size <= y - MESSAGE_GAP_MIN, `${name}: "${m.label.string}" sits above its arrow, baseline ${m.label.y} against ${y}`);
     }
 }
 console.log(`mermaid-layout: ${checks} check(s), ${failures} failed`);

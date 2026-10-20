@@ -2,6 +2,7 @@ import QtQuick
 import Quickshell.Io
 import "." as Flea
 import "js/CodeRuns.js" as CodeRuns
+import "js/FigureWarm.js" as FigureWarm
 import "js/Markdown.js" as Markdown
 import "js/MarkdownPrepared.js" as Prepared
 
@@ -123,10 +124,17 @@ Item {
             bodyPx: root.bodyPx
         }
     }
-    // The blocks and the themes of both kinds, so the warm query names the cache keys the asks will use; null until the probe exists.
-    readonly property var warmRequest: root.hasFigures && themeProbe.item ? { blocks: root.warmBlocks,
-        themes: { math: themeProbe.item.themeOfKind("math"), mermaid: themeProbe.item.themeOfKind("mermaid") } } : null
-    onWarmRequestChanged: FigureService.warm(root.warmRequest ? root.warmRequest.blocks : [], root.warmRequest ? root.warmRequest.themes : ({}))
+    // The warm query's keys and kinds, naming exactly the cache keys the figures' asks will use; null until the probe exists.
+    function warmedQuery(blocks, themes) {
+        function keyOf(kind, source, theme) {
+            return FigureService.cacheKeyOf(kind, source, theme, true);
+        }
+        return FigureWarm.query(blocks, themes, keyOf);
+    }
+    // The warm query, so the helper starts warm when figures are on screen; null until the probe exists.
+    readonly property var warmRequest: root.hasFigures && themeProbe.item ? root.warmedQuery(root.warmBlocks,
+        { math: themeProbe.item.themeOfKind("math"), mermaid: themeProbe.item.themeOfKind("mermaid") }) : null
+    onWarmRequestChanged: FigureService.warm(root.warmRequest ? root.warmRequest.keys : [], root.warmRequest ? root.warmRequest.kinds : [])
     // Parse sequence numbers reject replies for an older file.
     property var blockList: []
     property int parseSeq: 0

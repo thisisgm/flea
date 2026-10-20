@@ -1,37 +1,60 @@
-import { postMermaid } from '../ui/js/FigureWorker.mjs';
+// A link's marks: Pele draws each as a plain shape beside its line, and the post-pass gives an unstyled link's marks the accent.
+import { FACES, layered, load, others, sequences, theme } from "./mermaid-corpus.mjs";
+import { argv, finish } from "./js-runtime.mjs";
+import { postMermaid } from "../ui/js/FigureWorker.mjs";
 
-const assert = {
-    ok(value, why) { if (!value) throw new Error(why); },
-    match(value, pattern) { this.ok(pattern.test(value), 'missing ' + pattern); },
-    doesNotMatch(value, pattern) { this.ok(!pattern.test(value), 'unexpected ' + pattern); }
-};
-const theme = { bg: '#101315', fg: '#c0caf5', accent: '#7aa2f7', font: 'monospace', bodyPx: 14 };
-const cases = [];
 let checks = 0;
-const marker = '<defs><marker id="tip" markerWidth="8" markerHeight="5" refX="8" refY="2.5" orient="auto-start-reverse"><polygon points="0 0, 8 2.5, 0 5" fill="#7aa2f7"/></marker></defs>';
-for (const atStart of [false, true]) {
-    for (const angle of [0, 45, 90, 135, 180, 225, 270, 315]) {
-        const radians = angle * Math.PI / 180;
-        const dx = Math.round(30 * Math.cos(radians)), dy = Math.round(30 * Math.sin(radians));
-        const first = `${60 - dx},${60 - dy}`, last = `${60 + dx},${60 + dy}`;
-        const points = `${first} ${last} ${last}`;
-        const edge = `<polyline class="edge" points="${points}" fill="none" stroke="#c0caf5" stroke-width="1" marker-${atStart ? 'start' : 'end'}="url(#tip)"/>`;
-        const svg = postMermaid(`<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 120" width="120" height="120">${marker}${edge}</svg>`, theme);
-        assert.match(svg, /<path\b/);
-        assert.doesNotMatch(svg, /<polyline\b[^>]*marker-(?:start|end)=/);
-        assert.ok(svg.includes(marker), 'marker orient, reference point and default stroke units are preserved');
-        checks += 3;
-        cases.push({ name: `${atStart ? 'start' : 'end'} ${angle} degrees`, svg, atStart });
+let failures = 0;
+function check(ok, why) {
+    checks++;
+    if (!ok) {
+        failures++;
+        console.log("FAIL " + why);
     }
 }
-const plain = '<polyline points="10,10 20,20" fill="none" stroke="#c0caf5"/>';
-const line = '<line x1="10" y1="20" x2="80" y2="20" stroke="#c0caf5" marker-end="url(#tip)"/>';
-const canvas = `<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">${marker}${plain}${line}</svg>`;
-const unchanged = postMermaid(canvas, theme);
-assert.ok(unchanged.includes(plain), 'unmarked polylines stay unchanged');
-assert.ok(unchanged.includes(line), 'horizontal sequence lines stay unchanged');
-const scientific = postMermaid(`<svg xmlns="http://www.w3.org/2000/svg" width="120" height="120">${marker}<polyline points="+1e1,-2e-1 3.5E1,.4" marker-end="url(#tip)"/></svg>`, theme);
-assert.match(scientific, /d="M\+1e1 -2e-1 L3\.5E1 \.4"/);
-checks += 3;
-console.log(`MARKDOWN_PATHS ${checks} checks, 0 failed`);
-console.log(JSON.stringify(cases));
+
+const render = await load(argv[0]);
+const line = theme.fg;
+const marks = (svg) => svg.match(/<[a-z]+\b[^<>]*\sclass="pele-marker"[^<>]*>/g) || [];
+// Every end mark Mermaid has for a flowchart, a class, a state, an ER and a sequence link, beside the corpus diagrams.
+const ends = [
+    ["flowchart ends", "flowchart LR\na <--> b\nb o--o c\nc x--x d\nd <-.-> e\ne <==> f"],
+    ["class ends", "classDiagram\nA <|-- B\nC *-- D\nE o-- F\nG <-- H\nI ..|> J\nK ..> L"],
+    ["state ends", "stateDiagram-v2\n[*] --> A\nA --> B\nB --> A\nB --> [*]"],
+    ["er ends", "erDiagram\nA ||--o{ B : has\nC }|..|| D : uses\nE |o--|{ F : keeps"],
+    ["sequence ends", "sequenceDiagram\nA->>B: solid\nB-->>A: dotted\nA-xB: cross\nA-)B: async\nA->B: open"]
+];
+for (const [name, source] of [...layered, ...sequences, ...others, ...ends]) {
+    const svg = render(source, FACES[0]);
+    check(!/\smarker-(?:start|mid|end)=|<marker\b|<polyline\b/.test(svg), name + ": no SVG marker and no polyline");
+    const drawn = marks(svg);
+    check(drawn.every((m) => !m.includes('"' + line + '"')), name + ": no mark draws in the line colour " + drawn.filter((m) => m.includes('"' + line + '"')).join(" "));
+    check(drawn.every((m) => m.includes('"' + theme.accent + '"')), name + ": every mark draws in the accent");
+    if (ends.some((e) => e[0] === name))
+        check(drawn.length >= 4, name + ": draws its marks, " + drawn.length);
+}
+
+// A link a user style colours keeps its marks in that colour, and the unstyled link beside it takes the accent.
+const styled = render("flowchart LR\na --x b\nb --o c\nc --> d\nlinkStyle 0 stroke:#ff0000\nlinkStyle 1 stroke:#00ff00", FACES[0]);
+const groups = styled.match(/<g class="pele-edge"[^<>]*>[\s\S]*?<\/g>/g) || [];
+check(groups.length === 3, "three links, " + groups.length);
+check(/stroke="#ff0000"/.test(groups[0] || "") && marks(groups[0] || "").length === 1 && !marks(groups[0] || "").join("").includes(theme.accent), "the red link's cross inherits red");
+check(marks(groups[1] || "").join("").includes('fill="#00ff00"') && !marks(groups[1] || "").join("").includes(theme.accent), "the green link's circle stays green");
+check(marks(groups[2] || "").join("").includes('fill="' + theme.accent + '"'), "the unstyled link's head takes the accent");
+
+// The rule on hand-built shapes: a filled head, a stroked mark that inherits, a hollow ring, and a mark outside any link stay apart.
+const edges = '<g class="pele-edges" fill="none" stroke="#565f89">';
+const hand = postMermaid('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 120 40" width="120" height="40">' + edges
+    + '<g class="pele-edge" data-id="e"><path d="M1,20L80,20"/><path class="pele-marker" d="M88,20L80,23L80,17Z" fill="#565f89" stroke="none"/>'
+    + '<path class="pele-marker" d="M4,16L4,24"/><circle class="pele-marker" cx="8" cy="20" r="3" fill="#101315"/></g></g>'
+    + '<circle class="pele-marker pele-start" cx="100" cy="20" r="3" fill="#565f89"/></svg>', theme);
+check(hand.includes('<path class="pele-marker" d="M88,20L80,23L80,17Z" fill="#7aa2f7" stroke="none"/>'), "a filled head takes the accent fill and keeps stroke none");
+check(hand.includes('<path class="pele-marker" d="M4,16L4,24" stroke="#7aa2f7"/>'), "a stroked mark that inherits the link stroke gets the accent stroke");
+check(hand.includes('<circle class="pele-marker" cx="8" cy="20" r="3" fill="#101315" stroke="#7aa2f7"/>'), "a hollow ring keeps its ground fill and gets the accent stroke");
+check(hand.includes('<circle class="pele-marker pele-start" cx="100" cy="20" r="3" fill="#565f89"/>'), "a mark outside any link is left alone");
+const accentless = postMermaid('<svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 20 20" width="20" height="20">' + edges
+    + '<g class="pele-edge"><path class="pele-marker" d="M9,9L1,1L1,9Z" fill="#565f89" stroke="none"/></g></g></svg>', { ...theme, accent: "" });
+check(accentless.includes('fill="' + theme.fg + '"'), "with no accent in the theme a mark takes the foreground, as the bundle's accent role does");
+
+console.log(`MARKDOWN_PATHS ${checks} checks, ${failures} failed`);
+finish(failures);

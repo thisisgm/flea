@@ -15,7 +15,7 @@ Item {
     property bool available: true
     // A reply later than this ends the store: its figures draw by the helper.
     property int replyMs: 2000
-    // A get or known queued behind a drain or a start waits this long, then it is a miss for the helper to draw; the store itself is left alone.
+    // A get or known queued behind a drain waits this long, then it is a miss for the helper to draw; behind a start it waits for the start, since only its outcome answers it.
     property int drainMs: root.replyMs
     // A drain still running at this bound is a hung store and is killed, never latched: 60 s commits 15 puts of the 4 MiB entry cap (MAX_ENTRY_BYTES, src/figurestore.rs) at a 1 MiB/s slow-disk write rate.
     property int drainHangMs: 60000
@@ -90,7 +90,8 @@ Item {
                 var asked = root.outstanding[id];
                 // A line not yet written to the process has no reply clock, only the wait for a drain or a start.
                 if (asked.sentAt === null) {
-                    if (Date.now() - asked.queuedAt > root.drainMs)
+                    // A slow start under load still answers, so only a drain can lapse a queued line.
+                    if (!root.starting && Date.now() - asked.queuedAt > root.drainMs)
                         lapsed.push(id);
                 } else if (Date.now() - asked.sentAt > root.replyMs) {
                     root.fail();

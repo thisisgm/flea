@@ -3,6 +3,8 @@
 import QtQuick
 import Quickshell
 import Quickshell.Io
+import "flea/js/FigureDate.js" as FigureDate
+import "flea/js/FigureWarm.js" as FigureWarm
 import "flea" as Flea
 
 // The persistent SVG cache through the real helper and store: a figure drawn once answers a repeat from disk with no helper, and no other theme or advance ever does.
@@ -89,6 +91,19 @@ ShellRoot {
 
     readonly property var figureBlock: ({ type: "figure", kind: "math", source: shell.source, display: true })
     readonly property var unknownBlock: ({ type: "figure", kind: "math", source: "never drawn", display: true })
+    readonly property string ganttSource: "gantt\n    dateFormat YYYY-MM-DD\n    section Work\n    Build :a1, 2001-10-01, 30d"
+    readonly property var ganttBlock: ({ type: "figure", kind: "mermaid", source: shell.ganttSource, display: true })
+    // The warm query through the production key building, so a Gantt regression in it goes red here.
+    function warmBlocks(blocks, themes) {
+        function keyOf(kind, source, theme) {
+            return Flea.FigureService.cacheKeyOf(kind, source, theme, true);
+        }
+        var query = FigureWarm.query(blocks, themes, keyOf);
+        var ok = Flea.FigureService.warm(query.keys, query.kinds);
+        if (!ok)
+            shell.check(false, "warm query refused while the helper stood idle");
+        return ok;
+    }
 
     // A case asks or warms; its verdict comes from the answer (cases with a verify) or from the store's known reply (cases with a known).
     readonly property var cases: [
@@ -121,13 +136,13 @@ ShellRoot {
               shell.check(shell.drew(svg, error) && service.sends === shell.sendsMark && disk.hits === shell.hitsMark + 1, "the first advance table's figure is still on disk")
           } },
         // Every figure of this document is on disk under the theme it is asked under, so warming it asks the store and starts no helper.
-        { act: function () { Flea.FigureService.warm([shell.figureBlock], { math: shell.theme }) },
+        { act: function () { shell.warmBlocks([shell.figureBlock], { math: shell.theme }) },
           known: function (all, service) {
               shell.check(all === true && !service.helperRunning && !service.starting && service.sends === shell.sendsMark, "a document whose figures are all on disk starts no helper")
           } },
         // The same figure under a theme never drawn is not known, so the helper starts warm; the gate stub holds the store's reply, so the refusal is judged with the reply owed.
         { hold: true,
-          act: function () { Flea.FigureService.warm([shell.figureBlock], { math: shell.unseenTheme }) },
+          act: function () { shell.warmBlocks([shell.figureBlock], { math: shell.unseenTheme }) },
           held: function (disk) {
               shell.check(!!disk.pid && !disk.starting && !disk.stopping && disk.owed > 0 && disk.queued.length === 0, "the store is running, not starting, with the warm reply owed and nothing queued")
               shell.check(disk.stop() === false, "an idle stop is refused while the store owes the warm query's reply")
@@ -137,10 +152,19 @@ ShellRoot {
               shell.check(all === false && (service.helperRunning || service.starting), "a figure drawn under another accent does not keep the helper from starting warm")
           } },
         // One figure never drawn: the answer is not all, and the helper starts warm.
-        { act: function () { Flea.FigureService.warm([shell.figureBlock, shell.unknownBlock], { math: shell.theme }) },
+        { act: function () { shell.warmBlocks([shell.figureBlock, shell.unknownBlock], { math: shell.theme }) },
           known: function (all, service) {
               shell.check(all === false, "a document with a figure never drawn is not all known")
               shell.check(service.helperRunning || service.starting, "the helper is started warm for it")
+          } },
+        // A Gantt chart is asked for today, then warming its document finds it on disk and starts no helper.
+        { act: function () { shell.ask("mermaid", shell.ganttSource, FigureDate.datedTheme("mermaid", shell.ganttSource, shell.theme)) },
+          verify: function (svg, error, service, disk) {
+              shell.check(shell.drew(svg, error) && service.sends === shell.sendsMark + 1, "a Gantt chart is drawn by the helper under its dated theme")
+          } },
+        { act: function () { shell.warmBlocks([shell.ganttBlock], { mermaid: shell.theme }) },
+          known: function (all, service) {
+              shell.check(all === true && !service.helperRunning && !service.starting && service.sends === shell.sendsMark, "a Gantt document warmed from disk starts no helper")
           } },
         // A get starts the store, then a large put and an idle stop land in one turn: stdin closes and the store drains, where a kill would lose the entry.
         { act: function () { Flea.FigureService.persistent.get(shell.probeId, "math\nnever stored\nfalse\nx") },

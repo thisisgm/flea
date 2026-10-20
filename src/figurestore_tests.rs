@@ -83,7 +83,7 @@ fn a_corrupt_entry_is_a_miss_and_the_next_put_replaces_it() {
     longer.push(b'x');
     // Only the format line's version digit changes, so the key and both lengths still match and only the magic can refuse it.
     let mut foreign_magic = good.clone();
-    foreign_magic[FORMAT.len() - 1] = b'2';
+    foreign_magic[FORMAT.len() - 1] = b'9';
     let wrong_length = String::from_utf8(good.clone()).expect("text").replacen(&format!("{} {}", k.len(), SVG.len()), &format!("{} {}", k.len(), SVG.len() + 1), 1).into_bytes();
     let cases: Vec<(&str, Vec<u8>)> = vec![("an empty file", Vec::new()), ("a truncated file", good[..good.len() - 1].to_vec()), ("a trailing byte", longer),
         ("a flipped byte", flipped), ("a foreign magic", foreign_magic),
@@ -105,6 +105,22 @@ fn a_corrupt_entry_is_a_miss_and_the_next_put_replaces_it() {
     put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("replace the link");
     assert!(fs::symlink_metadata(&target).expect("entry").is_file(), "the link is replaced by a plain file");
     assert_eq!(fs::read_to_string(dir.join("elsewhere")).expect("target").len(), encode(&k, SVG).len(), "the link's target is untouched");
+}
+
+#[test]
+fn an_entry_the_previous_bundle_drew_is_a_miss() {
+    let dir = TestDir::new("figure-store-previous");
+    let store = dir.join("svg");
+    let k = key("mermaid", THEME_A, false, "flowchart TD\n    A --> B");
+    put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("put");
+    let target = store.join(entry_name(&k).expect("name"));
+    // The same key and lengths under the format the beautiful-mermaid figures were stored in.
+    let previous = String::from_utf8(encode(&k, SVG)).expect("text").replacen(FORMAT, "flea-figure-svg 1", 1);
+    assert!(previous.starts_with("flea-figure-svg 1\n"), "the entry reads as the previous format");
+    fs::write(&target, previous).expect("an entry from the previous bundle");
+    assert_eq!(get(&store, &k), None, "a figure the previous bundle drew is never served");
+    put(&store, &k, SVG, MAX_ENTRIES, MAX_BYTES).expect("redraw");
+    assert_eq!(get(&store, &k).as_deref(), Some(SVG), "the redrawn figure replaces it");
 }
 
 #[test]
@@ -179,6 +195,16 @@ fn known_asks_whether_this_exact_key_was_drawn() {
     let linked = key("math", THEME_A, true, "z^2");
     std::os::unix::fs::symlink(dir.file("elsewhere", "x"), store.join(entry_name(&linked).expect("name"))).expect("link");
     assert!(!known(&store, &[linked]), "a linked entry is not known");
+    // An entry the previous bundle drew is a miss for get, so it is not known either, and the first open after an upgrade warms the helper.
+    let previous = key("mermaid", THEME_A, true, flow);
+    put(&store, &previous, SVG, MAX_ENTRIES, MAX_BYTES).expect("put");
+    let target = store.join(entry_name(&previous).expect("name"));
+    assert!(known(&store, std::slice::from_ref(&previous)), "an entry of this format is known");
+    fs::write(&target, String::from_utf8(encode(&previous, SVG)).expect("text").replacen(FORMAT, "flea-figure-svg 1", 1)).expect("format 1");
+    assert!(!known(&store, &[previous]), "an entry of the previous format is not known");
+    let short = key("math", THEME_A, true, "w^2");
+    fs::write(store.join(entry_name(&short).expect("name")), "flea-figure-svg").expect("short");
+    assert!(!known(&store, &[short]), "a file shorter than the format line is not known");
 }
 
 #[test]
