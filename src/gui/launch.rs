@@ -49,6 +49,33 @@ pub fn exec_gpui(start: Option<&str>, select: Option<&str>) -> i32 {
     1
 }
 
+fn gpui_pick_argv(binary: &Path, reply: &str) -> Command {
+    let mut cmd = Command::new(binary);
+    cmd.arg("--pick").arg(reply);
+    cmd
+}
+
+// The chooser needs a graphical session, then runs on GPUI when chosen; None leaves it to Quickshell.
+pub(super) fn chooser_frontend(reply: &str) -> Option<i32> {
+    if !crate::paths::has_display() {
+        eprintln!("flea: there is no graphical session to open a file chooser in");
+        return Some(2);
+    }
+    use_gpui().then(|| exec_gpui_pick(reply))
+}
+
+// flea --pick under the GPUI frontend: FLEA_PICKER rides the environment, the reply path the argument.
+fn exec_gpui_pick(reply: &str) -> i32 {
+    let executable = std::env::current_exe().ok();
+    let binary = gpui_binary(executable.as_deref(), |path| path.is_file());
+    let mut cmd = gpui_pick_argv(&binary, reply);
+    configure_gpui(&mut cmd);
+    thp::disable();
+    let error = cmd.exec();
+    eprintln!("flea: the file chooser could not start: {}: {error}", binary.display());
+    1
+}
+
 fn configure_gpui(cmd: &mut Command) {
     configure_child(cmd);
     set_backend_binary(cmd);
@@ -114,6 +141,14 @@ mod tests {
             assert!(!frontend_is_gpui(value));
         }
         assert!(frontend_is_gpui(Some(OsStr::new("gpui"))));
+    }
+
+    #[test]
+    fn a_gpui_pick_hands_the_reply_path_as_its_one_argument() {
+        let cmd = gpui_pick_argv(Path::new("/usr/bin/flea-gui"), "/run/user/1/flea-picker-x/reply.json");
+        assert_eq!(cmd.get_program(), "/usr/bin/flea-gui");
+        let args: Vec<_> = cmd.get_args().collect();
+        assert_eq!(args, ["--pick", "/run/user/1/flea-picker-x/reply.json"]);
     }
 
     #[test]

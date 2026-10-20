@@ -87,7 +87,13 @@ pub fn exchange(path: &Path, request: &Request) -> io::Result<Reply> {
 }
 
 pub fn execute(root: &Path, options: &Options) -> Reply {
-    let sockets = match endpoint::instances(root) {
+    // A chooser is reached only by its pid, never by the default route.
+    let sockets = match endpoint::instances(root).and_then(|mut sockets| {
+        if options.pid.is_some() {
+            sockets.extend(endpoint::pickers(root)?);
+        }
+        Ok(sockets)
+    }) {
         Ok(sockets) => sockets,
         Err(error) => return Reply::error(255, format!("flea ipc: {error}")),
     };
