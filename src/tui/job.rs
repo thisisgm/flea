@@ -38,12 +38,7 @@ fn run(path: &Path, arguments: &mut [String], cancel: &AtomicBool) -> io::Result
     if !sandbox::available() {
         return Err(io::Error::other("Preview sandbox is unavailable"));
     }
-    let before = std::fs::symlink_metadata(path)?;
-    let input = regfile::open_if_regular(path, O_NOFOLLOW)?;
-    let after = input.metadata()?;
-    if before.dev() != after.dev() || before.ino() != after.ino() {
-        return Err(io::Error::other("Selected item changed"));
-    }
+    let input = held(path)?;
     for argument in arguments.iter_mut() {
         if argument == "{input}" {
             *argument = "/input".into();
@@ -97,6 +92,16 @@ fn run(path: &Path, arguments: &mut [String], cancel: &AtomicBool) -> io::Result
         .join()
         .map_err(|_| io::Error::other("Preview reader stopped"))??;
     decoded(status, bytes)
+}
+// The regular file at path, opened without following a link and refused if it was swapped between the look and the open.
+pub fn held(path: &Path) -> io::Result<std::fs::File> {
+    let before = std::fs::symlink_metadata(path)?;
+    let input = regfile::open_if_regular(path, O_NOFOLLOW)?;
+    let after = input.metadata()?;
+    if before.dev() != after.dev() || before.ino() != after.ino() {
+        return Err(io::Error::other("Selected item changed"));
+    }
+    Ok(input)
 }
 // The decoder's output when it exited cleanly inside the limit, and a plain refusal otherwise.
 fn decoded(status: std::process::ExitStatus, bytes: Vec<u8>) -> io::Result<Vec<u8>> {
@@ -191,5 +196,14 @@ exit "$bad"
         let job = Job::start(root.join("missing.pdf"), vec!["/usr/bin/pdfinfo".into(), "{input}".into()]);
         let result = job.result.recv_timeout(Duration::from_secs(5)).expect("preview worker did not finish");
         assert_eq!(result.unwrap_err(), "item not found");
+    }
+}
+
+#[cfg(test)]
+impl Job {
+    // A job whose worker is already gone: its result channel reads Disconnected.
+    pub fn orphaned() -> Self {
+        let (_, result) = mpsc::channel();
+        Self { cancel: Arc::new(AtomicBool::new(false)), result }
     }
 }

@@ -453,6 +453,44 @@ fn a_locate_after_a_partial_extension_finds_a_row_in_the_held_remainder() {
         assert!(!session.walking() && session.probes_opened() == opened, "both undos patch with no walk");
     }
 
+    // A newfile through the wire patches the index itself; no watch event is dispatched, so only the own-write patch can show it.
+    #[test]
+    fn a_newfile_patches_the_session_with_no_watch_event() {
+        let d = TestDir::new("sessionnewfile");
+        d.dir("sub");
+        d.file("other.txt", "x");
+        let root = d.path().to_str().expect("the sandbox path is utf-8").to_string();
+        let tb = Tables::load();
+        let (events, events_rx) = channel::<Event>();
+        let mut st = State::new(super::super::dirsizeworker::Worker::new(events.clone()));
+        let (results, _done) = channel();
+        let pool = Pool::new(1, results, d.join("cache"), Arc::clone(&tb.aliases), Arc::clone(&tb.thumbs));
+        let cache = Cache::new();
+        let (tx, _rx) = channel();
+        let mut ops = Ops::new(tx);
+        let (mut watch, mut peeks) = (Watch::start(events.clone()), PeekWatch::start(events.clone()));
+        let mut fsinfo = FsInfo::new(events.clone());
+        let poller = super::super::watchpoll::Poller::new(events.clone());
+        let mut out = Vec::new();
+        let mut ask = |line: &str, st: &mut State, ops: &mut Ops| -> Vec<String> {
+            assert!(
+                handle_line(line, &mut out, st, &tb, &pool, &cache, ops, &mut flashslot::Ctx::new(channel().0), &mut watch, &mut peeks, &mut fsinfo, &poller, &events, &mut Gate::new(events.clone()))
+                    == Control::Continue
+            );
+            String::from_utf8(std::mem::take(&mut out)).expect("utf-8").lines().map(str::to_string).collect()
+        };
+        ask(&format!(r#"{{"c":"searchopen","path":"{}","folder":"{}"}}"#, root, root), &mut st, &mut ops);
+        while !matches!(events_rx.recv_timeout(WIRE_DEADLINE).expect("the walk lands"), Event::SearchWalked) {}
+        let last = |lines: &[String], key: &str| crate::json::field_usize(lines.last().expect("a searched line"), key);
+        let first = ask(r#"{"c":"searchquery","query":"zz","gen":1,"count":100}"#, &mut st, &mut ops);
+        assert_eq!((last(&first, "n"), last(&first, "gen")), (Some(0), Some(1)), "the first query finds no zz: {first:?}");
+        let created = ask(&format!(r#"{{"c":"newfile","path":"{}","name":"zzfile.txt","id":7}}"#, root), &mut st, &mut ops);
+        assert!(d.path().join("zzfile.txt").exists(), "the newfile lands on disk: {created:?}");
+        let next = ask(r#"{"c":"searchquery","query":"zz","gen":2,"count":100}"#, &mut st, &mut ops);
+        assert_eq!((last(&next, "n"), last(&next, "gen")), (Some(1), Some(2)), "the backend's own create shows in the next query: {next:?}");
+        assert!(next.last().expect("a searched line").contains(r#""walking":false"#), "that answer lands after the walk");
+    }
+
     // A cancel over a parked walk answers the held key, keeps the session and its partial index; a bare cancel answers only its searched line.
     #[test]
     fn a_cancel_stops_the_walk_and_keeps_the_session() {

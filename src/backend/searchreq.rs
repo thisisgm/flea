@@ -56,10 +56,16 @@ pub fn searchclosed_line(path: &str) -> String {
 }
 
 // Sample output: {"t":"searched","n":11,"scanned":1040,"ms":12.400,"cancelled":false,"gen":7,"walking":false}
+#[cfg(test)]
 pub fn searched_gen_line(n: usize, scanned: usize, ms: f64, gen: usize, walking: bool) -> String {
+    searched_status_line(n, scanned, ms, gen, walking, None)
+}
+
+pub(crate) fn searched_status_line(n: usize, scanned: usize, ms: f64, gen: usize, walking: bool, reason: Option<&str>) -> String {
+    let reason = reason.unwrap_or(if walking { "walking" } else { "" });
     format!(
-        r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":false,"gen":{},"walking":{}}}"#,
-        n, scanned, ms, gen, walking
+        r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":false,"gen":{},"walking":{},"partial":{},"partial_reason":"{}"}}"#,
+        n, scanned, ms, gen, walking, !reason.is_empty(), reason
     )
 }
 
@@ -72,6 +78,7 @@ pub(crate) struct Answer {
     pub total: usize,
     pub indexed: usize,
     pub walking: bool,
+    pub partial: Option<&'static str>,
     pub ms: f64,
     pub count: usize,
     pub scope: PathBuf,
@@ -188,7 +195,7 @@ pub fn emit_session_answer_cancelled(
     if cancelled {
         writeln!(out, "{}", searched_cancelled_line(answer.total, answer.indexed, answer.ms, answer.gen)).ok();
     } else {
-        writeln!(out, "{}", searched_gen_line(answer.total, answer.indexed, answer.ms, answer.gen, answer.walking)).ok();
+        writeln!(out, "{}", searched_status_line(answer.total, answer.indexed, answer.ms, answer.gen, answer.walking, answer.partial)).ok();
     }
     out.flush().ok();
 }
@@ -196,7 +203,7 @@ pub fn emit_session_answer_cancelled(
 // The terminal line of a stopped walk: the gen it keeps, walking false, cancelled true.
 pub fn searched_cancelled_line(n: usize, scanned: usize, ms: f64, gen: usize) -> String {
     format!(
-        r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":true,"gen":{},"walking":false}}"#,
+        r#"{{"t":"searched","n":{},"scanned":{},"ms":{:.3},"cancelled":true,"gen":{},"walking":false,"partial":true,"partial_reason":"cancelled"}}"#,
         n, scanned, ms, gen
     )
 }

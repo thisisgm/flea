@@ -249,6 +249,8 @@ fn a_rename_behind_a_trash_reservation_never_publishes_on_the_dispatcher() {
             ok: 0,
             failed: 1,
             reason: String::new(),
+            request: 0,
+            moved: Vec::new(),
         },
     );
     super::super::opsdispatch::do_rename(&mut out, &mut ops, source.to_str().unwrap(), "after");
@@ -266,6 +268,7 @@ fn a_rename_behind_a_trash_reservation_never_publishes_on_the_dispatcher() {
             &mut ops,
             OpMsg::Trashed {
                 id: 600,
+                request: 0,
                 ok: 0,
                 failed: 1,
                 entry: Entry {

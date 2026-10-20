@@ -1,13 +1,19 @@
 """Private terminal profiles and supported native launch arguments."""
 import os
 from pathlib import Path
+import re
 import shutil
+import uuid
 
 from .evidence import Blocked, digest, save
 from .cells import PALETTE
 from .geometry import COLUMNS, ROWS, ORIGIN
 
 TERMINALS = ("alacritty", "foot", "ghostty", "kitty", "tmux")
+# Every owned window's class and title start here; the class is also a valid GTK application ID.
+OWNED_CLASS_PREFIX = "flea.battery."
+# GLib's g_application_id_is_valid: dot-separated elements of [A-Za-z0-9_-], none empty or starting with a digit, 255 bytes at most.
+APPLICATION_ID = re.compile(r"(?=.{1,255}$)[A-Za-z_-][A-Za-z0-9_-]*(\.[A-Za-z_-][A-Za-z0-9_-]*)+")
 OPTIONS = {
     "alacritty": ("--config-file", "--class", "--title"),
     "foot": ("--config", "--app-id", "--title"),
@@ -15,6 +21,20 @@ OPTIONS = {
     "kitty": ("--config", "--class", "--title"),
     "tmux": (),
 }
+# kitty logs an unknown key or a bad line and still exits 0, so its check also fails on any output.
+KITTY_CHECK = ("import sys\nfrom kitty.config import load_config\nbad = []\nload_config(sys.argv[-1], accumulate_bad_lines=bad)\n"
+               "for line in bad:\n    print(f'{line.file}:{line.number}: {line.exception}: {line.line}', file=sys.stderr)\n"
+               "sys.exit(1 if bad else 0)\n")
+# Each terminal's own config checker as (arguments, any output fails); alacritty 0.17 ships none.
+CHECKERS = {
+    "foot": (lambda config: ["--check-config", "--config", config], False),
+    "ghostty": (lambda config: ["+validate-config", f"--config-file={config}"], False),
+    "kitty": (lambda config: ["+runpy", KITTY_CHECK, config], True),
+}
+
+
+def owned_identity():
+    return OWNED_CLASS_PREFIX + "t" + uuid.uuid4().hex
 
 
 def font_profile(profile):
@@ -78,7 +98,7 @@ class Adapter:
         elif self.name in ("foot", "tmux"):
             content = (f'[main]\nfont={font}:size={size}\ninitial-window-size-chars={COLUMNS}x{ROWS}\n'
                        f'pad={padding_x}x{padding_y}\n'
-                       f'[colors]\nbackground={bg[1:]}\nforeground={fg[1:]}\n')
+                       f'[colors-dark]\nbackground={bg[1:]}\nforeground={fg[1:]}\n')
         elif self.name == "ghostty":
             content = (f'font-family = {font}\nfont-size = {size}\nbackground = {bg}\nforeground = {fg}\n'
                        f'window-width = {COLUMNS}\nwindow-height = {ROWS}\n'
@@ -110,6 +130,24 @@ class Adapter:
             receipt["tmux_config_sha256"] = digest(self.directory / "tmux.conf")
         return receipt
 
+    def validate(self, commands, path=None, environment=None):
+        """Runs the terminal's own checker on the config just written; a rejected config blocks the state, never a run on defaults."""
+        executable = "foot" if self.name == "tmux" else self.name
+        if executable not in CHECKERS:
+            return {"status": "UNCHECKED", "reason": f"{executable} ships no config checker"}
+        arguments, quiet = CHECKERS[executable]
+        resolved = shutil.which(executable, path=path)
+        if not resolved:
+            raise Blocked(f"missing terminal executable: {executable}")
+        result = commands.run([resolved, *arguments(str(self.config))], check=False,
+                              env=self.environment() if environment is None else environment)
+        lines = [line.strip() for line in (result.stderr + result.stdout).decode(errors="replace").splitlines() if line.strip()]
+        if result.returncode or (quiet and lines):
+            # foot prints its warnings before its error, so its first err: line names the rejection.
+            line = next((line for line in lines if line.startswith("err:")), lines[0] if lines else f"exit {result.returncode}")
+            raise Blocked(f"{executable} rejects the private terminal config: {line}")
+        return {"status": "PASS", "checker": executable, "exit_code": result.returncode}
+
     def argv(self, command):
         app, config_path = self.identity, str(self.config)
         if self.name == "alacritty":
@@ -117,6 +155,9 @@ class Adapter:
         if self.name == "foot":
             return ["foot", "--config", config_path, "--app-id", app, "--title", app, *command]
         if self.name == "ghostty":
+            # ghostty drops a --class GTK would refuse and maps as com.mitchellh.ghostty, which no owned-client query matches.
+            if not APPLICATION_ID.fullmatch(app):
+                raise Blocked(f"ghostty class must be a valid GTK application ID: {app}")
             return ["ghostty", "--config-default-files=false", f"--config-file={config_path}", f"--class={app}",
                     f"--title={app}", "--gtk-single-instance=false", "-e", *command]
         if self.name == "kitty":
@@ -139,4 +180,8 @@ class Adapter:
 
     def close(self, commands):
         if self.tmux_socket and Path(self.tmux_socket).exists():
-            commands.run(["tmux", "-S", self.tmux_socket, "kill-server"])
+            result = commands.run(["tmux", "-S", self.tmux_socket, "kill-server"], check=False)
+            message = result.stderr.decode(errors="replace")
+            # exit-empty ends the private server with its last session, so after a quit there is nothing left to kill.
+            if result.returncode and "no server running" not in message and "error connecting" not in message:
+                raise Blocked(f"command exited {result.returncode}: tmux: {message[:300]}")

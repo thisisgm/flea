@@ -1,4 +1,5 @@
 """Read cell positions and ink recipes directly from immutable board HTML."""
+from collections import Counter
 from html.parser import HTMLParser
 import math
 import re
@@ -217,8 +218,8 @@ class Board(HTMLParser):
                 "probe": dict(GEOMETRY, html_sha256=self.sha256, source="positioned board HTML")}
 
 
-def separator(image, client, pty):
-    """Locate the first rule inside the owned client, never desktop-wide changes."""
+def separator(image, client, pty, cells=None):
+    """Locate the row-2 rule inside the owned client, never desktop-wide changes, and place the grid from it."""
     w, h, pixels = image
     cx, cy, cw, ch = client
     rows, columns, grid_w, grid_h = pty
@@ -227,12 +228,16 @@ def separator(image, client, pty):
     if grid_w % columns or grid_h % rows:
         raise Blocked("native PTY reports fractional cell pixels")
     cell_h = grid_h // rows
-    anchors = []
-    for y in range(cy + cell_h, min(h - 1, cy + ch - grid_h + 2 * cell_h)):
+
+    def pixel(x, y):
+        return pixels[(y * w + x) * 4:(y * w + x) * 4 + 3]
+
+    first, last = cy + cell_h, min(h - 1, cy + ch - grid_h + 2 * cell_h)
+    anchors, seen, longest = [], [], (0, None, None)
+    for y in range(first, last):
         runs, start = [], None
         for x in range(cx, min(w, cx + cw)):
-            a = pixels[(y * w + x) * 4:(y * w + x) * 4 + 3]
-            b = pixels[((y - 1) * w + x) * 4:((y - 1) * w + x) * 4 + 3]
+            a, b = pixel(x, y), pixel(x, y - 1)
             if a != b and start is None:
                 start = x
             if a == b and start is not None:
@@ -241,19 +246,53 @@ def separator(image, client, pty):
         if start is not None:
             runs.append((start, min(w, cx + cw)))
         for left, right in runs:
-            if right - left == grid_w:
-                section = lambda row: pixels[(row * w + left) * 4:(row * w + right) * 4]
-                background = section(y - 1)
-                for bottom in range(y + 1, min(h, y + cell_h)):
-                    if section(bottom) == background:
-                        top = round((y + bottom - 1) / 2 - 1.5 * cell_h)
-                        if cy <= top and top + grid_h <= cy + ch:
-                            anchors.append((left, top, grid_w, grid_h))
-                        break
+            longest = max(longest, (right - left, y, left))
+            if right - left != grid_w:
+                continue
+            # The rule is as thick as its thinnest column, since a junction's stroke runs on past the cell.
+            thickness = min(next((k for k in range(1, min(cell_h, h - y)) if pixel(x, y + k) == pixel(x, y - 1)), cell_h)
+                            for x in range(left, right))
+            # alacritty, foot, ghostty and kitty all draw a light rule (cell_h - thickness) // 2 pixels below its cell's top.
+            top = y - cell_h - (cell_h - thickness) // 2
+            refusal = (" not thinner than a cell" if thickness >= cell_h
+                       else "" if cy <= top and top + grid_h <= cy + ch else " outside the client")
+            seen.append(f"y={y} x={left} thickness={thickness} top={top}{refusal}")
+            if not refusal:
+                anchors.append((left, top, grid_w, grid_h))
     unique = sorted(set(anchors))
     if len(unique) != 1:
-        raise Blocked(f"row-2 separator missing or ambiguous: {len(unique)} anchors")
+        found = "; ".join(seen) if seen else f"longest change {longest[0]} px at y={longest[1]} x={longest[2]}"
+        raise Blocked(f"row-2 separator missing or ambiguous: {len(unique)} anchors; client {cx},{cy} {cw}x{ch}, "
+                      f"PTY {columns}x{rows} cells in {grid_w}x{grid_h} px, rows {first}..{last - 1} searched "
+                      f"for a {grid_w} px rule; {found}")
+    if cells:
+        fill_edges(image, unique[0], cells)
     return unique[0]
+
+
+def fill_edges(image, rect, cells):
+    """Checks a placed grid against the first plain filled cell, since a cell background covers exactly its cell."""
+    w, h, pixels = image
+    left, top, grid_w, grid_h = rect
+    rows, columns = len(cells), len(cells[0])
+    cell_w, cell_h = grid_w // columns, grid_h // rows
+    ground = Counter(cell.get("bg") for row in cells for cell in row).most_common(1)[0][0]
+    for r in range(1, rows - 1):
+        for c in range(columns):
+            cell, bg = cells[r][c], cells[r][c].get("bg")
+            plain = cell.get("ch") == " " and not cell.get("reverse") and not cell.get("underline")
+            if (not plain or not re.fullmatch(r"#[0-9a-fA-F]{6}", str(bg)) or bg == ground
+                    or bg in (cells[r - 1][c].get("bg"), cells[r + 1][c].get("bg"))):
+                continue
+            x, y = left + c * cell_w + cell_w // 2, top + r * cell_h
+            if not (0 < y and y + cell_h < h and x < w):
+                continue
+            colour = bytes.fromhex(bg[1:])
+            observed = [bytes(pixels[(row * w + x) * 4:(row * w + x) * 4 + 3]) for row in (y - 1, y, y + cell_h - 1, y + cell_h)]
+            if observed[1] != colour or observed[2] != colour or colour in (observed[0], observed[3]):
+                raise Blocked(f"grid placed at {left},{top} disagrees with cell {c},{r} filled {bg}: pixels at x={x}, "
+                              f"y={y - 1},{y},{y + cell_h - 1},{y + cell_h} read " + ", ".join("#" + o.hex() for o in observed))
+            return
 
 
 def compare_pixels(native, board, rect, directory, reference_rect=(*ORIGIN, round(COLUMNS * CELL_WIDTH), ROWS * CELL_HEIGHT)):

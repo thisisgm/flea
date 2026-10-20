@@ -5,8 +5,9 @@ import os
 from pathlib import Path
 import shutil
 import stat
+import tempfile
 
-from .evidence import Blocked, Owned, absolute, digest, save, tree_identity
+from .evidence import MARKER, Blocked, Owned, absolute, digest, save, tree_identity
 
 WORK = ["A", "Code", "Docs", "Empty", "Locked", "Many", "Media", "notes.txt", "todo.md"]
 OFFICE_BYTES = {"budget.xlsx": 7970, "garden-report.docx": 8025, "garden-report.pdf": 92286,
@@ -14,6 +15,10 @@ OFFICE_BYTES = {"budget.xlsx": 7970, "garden-report.docx": 8025, "garden-report.
 # Features no family declares: the relay itself implements graphics-negative, and the 3D states' own files are model-source.
 BUILT_IN_FEATURES = frozenset({"graphics-negative", "model-source"})
 NOTES = b"Visual gate notes\n\nThis file is the fixture's plain text sample.\nLine four keeps the preview busy.\n"
+# Only a tmpfs fixture draws the boards' digits, because its folders report 40 bytes plus 20 per entry.
+TMPFS = Path("/dev/shm")
+TMPFS_EMPTY_FOLDER_BYTES = 40
+FONT_CACHE = "/var/cache/fontconfig"
 
 
 def regular_bytes(path, limit=64 * 1024 * 1024):
@@ -175,28 +180,78 @@ def seed_auxiliary(source, fx, receipt):
     receipt["auxiliary_copied"] = copied
 
 
-def build(case, family, source=None, dry=False):
-    owner = Owned(case)
-    fx = owner.directory("fx")
-    work = fx / "v/work"
-    work.mkdir(parents=True)
-    for name in ("home", "config", "data", "state", "cache", "runtime", "tmp", "tools"):
-        (fx / name).mkdir(mode=0o700)
-    if source:
-        receipt = import_family(source, family, work)
-        seed_auxiliary(source, fx, receipt)
-    elif dry:
-        for name in WORK[:-2]:
-            (work / name).mkdir()
-        (work / "notes.txt").write_bytes(NOTES)
-        (work / "todo.md").write_bytes(b"fixture markdown\n")
-        for i in range(1, 81):
-            (work / "Many" / f"item-{i:02d}.txt").write_bytes(b"item X\n")
-        receipt = {"family": family, "synthetic": True, "entries": tree_identity(work)}
-    else:
-        raise Blocked("approved fixture bytes and metadata manifest required via --fixtures")
-    save(case / "fixtures.json", receipt)
+def unlock(top):
+    """Opens every directory below top to its owner and returns the modes it replaced, by path relative to top."""
+    modes = {}
+    for path, directories, _ in os.walk(top):
+        for name in directories:
+            child = Path(path) / name
+            if not child.is_symlink():
+                modes[child.relative_to(top)] = stat.S_IMODE(child.lstat().st_mode)
+                child.chmod(0o700)
+    return modes
+
+
+def discard(root):
+    Owned(root)
+    unlock(root)
+    shutil.rmtree(root)
+
+
+def build(case, family, source=None, dry=False, tmpfs=TMPFS):
+    """The case's fixture, built in its own marked root on tmpfs; retain copies it into the case once the terminal is closed."""
+    Owned(case)
+    root = Path(tempfile.mkdtemp(prefix="flea-battery-fx.", dir=tmpfs))
+    (root / MARKER).write_text(f"battery fixture {os.getpid()}\n")
+    try:
+        fx = Owned(root).directory("fx")
+        folder = fx.lstat().st_size
+        if folder != TMPFS_EMPTY_FOLDER_BYTES:
+            raise Blocked(f"fixture root {root} reports {folder} bytes for an empty folder, not tmpfs's "
+                          f"{TMPFS_EMPTY_FOLDER_BYTES}, so its folder totals would not be the boards'")
+        work = fx / "v/work"
+        work.mkdir(parents=True)
+        for name in ("home", "config", "data", "state", "cache", "runtime", "tmp", "tools"):
+            (fx / name).mkdir(mode=0o700)
+        if source:
+            receipt = import_family(source, family, work)
+            seed_auxiliary(source, fx, receipt)
+        elif dry:
+            for name in WORK[:-2]:
+                (work / name).mkdir()
+            (work / "notes.txt").write_bytes(NOTES)
+            (work / "todo.md").write_bytes(b"fixture markdown\n")
+            for i in range(1, 81):
+                (work / "Many" / f"item-{i:02d}.txt").write_bytes(b"item X\n")
+            receipt = {"family": family, "synthetic": True, "entries": tree_identity(work)}
+        else:
+            raise Blocked("approved fixture bytes and metadata manifest required via --fixtures")
+        save(case / "fixtures.json", receipt)
+    except BaseException:
+        discard(root)
+        raise
     return fx, receipt
+
+
+def specials(directory, names):
+    """Sockets, pipes and devices a run left in its fixture; a copy would block on a pipe and cannot recreate a socket."""
+    return [name for name in names if not stat.S_ISREG(mode := os.lstat(os.path.join(directory, name)).st_mode)
+            and not stat.S_ISDIR(mode) and not stat.S_ISLNK(mode)]
+
+
+def retain(fx, case):
+    """Copies the case's tmpfs fixture to case/fx, where its sealed receipts and reconciliation read it, then frees the tmpfs."""
+    root = Owned(fx.parent).path
+    modes = unlock(fx)
+    target = Owned(case).child("fx")
+    try:
+        shutil.copytree(fx, target, symlinks=True, ignore=specials)
+        # Deepest first, so a closed folder such as Locked closes only after everything below it is copied.
+        for relative, mode in sorted(modes.items(), key=lambda item: len(item[0].parts), reverse=True):
+            (target / relative).chmod(mode)
+    except OSError as error:
+        raise Blocked(f"copy into {case} failed; the tmpfs copy stays at {root}: {error}") from error
+    discard(root)
 
 
 def namespace(binary, fx, cwd, environment):
@@ -206,6 +261,9 @@ def namespace(binary, fx, cwd, environment):
     for path in ("/usr", "/bin", "/lib", "/lib64", "/etc"):
         if Path(path).exists():
             argv += ["--ro-bind", path, path]
+    # Without the system font cache, fc-list outlasts Flea's 150 ms icon probe (src/tui/icons.rs) and draws text marks.
+    if os.path.isdir(FONT_CACHE):
+        argv += ["--ro-bind", FONT_CACHE, FONT_CACHE]
     argv += ["--proc", "/proc", "--dev", "/dev", "--ro-bind", "/sys", "/sys",
              "--dir", "/opt", "--ro-bind", str(binary), "/opt/flea", "--bind", str(fx), "/fx",
              "--bind", str(fx / "tmp"), "/tmp", "--clearenv"]

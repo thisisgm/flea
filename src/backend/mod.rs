@@ -76,14 +76,27 @@ pub mod jump;
 pub mod devsreq;
 pub mod search;
 pub mod searchindex;
+mod searchnames;
+mod searchread;
+mod searchblocks;
+mod searchbits;
+mod searchmatch;
+mod searchtypo;
+mod searchprior;
 pub mod searchsession;
 pub mod searchtags;
+#[cfg(test)]
+pub(crate) mod tagreadprobe;
 pub mod searchwalk;
+mod searchwalkread;
 #[cfg(test)]
 pub(crate) mod searchwalkhold;
 pub mod searchreq;
 pub mod searchhold;
 pub mod searchpatch;
+pub(crate) mod searchwatch;
+mod searchwatchpump;
+mod searchdelta;
 pub mod answersizes;
 pub mod shebang;
 pub mod sgr;

@@ -121,6 +121,13 @@ function applyPending(pane) {
     resort(pane, held.key, held.desc)
 }
 
+// Each flag is read the way its reader reads it, and state.sort stays as written because Pane.openWithoutHistory compares it with ViewState's own.
+// Sample input: preferences({}) and preferences({hidden: false, foldersFirst: true, groupByKind: false, hiddenLast: false, rememberSort: true}) are the same string.
+function preferences(state) {
+    return JSON.stringify([state.hidden === true, state.sort, state.foldersFirst !== false,
+                           state.groupByKind === true, state.hiddenLast === true, state.rememberSort !== false])
+}
+
 // A sorted column's title: the label and the geometric mark of the direction, characters the stock monospace has, so the mark scales with the font like the label.
 function title(label, descending) {
     return label + " " + (descending ? "\u25be" : "\u25b4")
