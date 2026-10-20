@@ -131,9 +131,17 @@ fn the_lifted_block_edge_paints_in_the_accent_frame() {
         (0., 0.),
         "the edge quad sits on the lifted block's left"
     );
-    assert_eq!(colour, Some(palette.accent_frame), "the lifted block's edge paints in the accent frame");
+    assert_eq!(
+        colour,
+        Some(palette.accent_frame),
+        "the lifted block's edge paints in the accent frame"
+    );
     assert_ne!(colour, Some(palette.accent), "the edge is not the accent");
-    assert_ne!(colour, Some(palette.foreground), "the edge is not the foreground");
+    assert_ne!(
+        colour,
+        Some(palette.foreground),
+        "the edge is not the foreground"
+    );
 }
 
 fn open(

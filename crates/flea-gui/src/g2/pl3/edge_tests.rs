@@ -33,7 +33,15 @@ fn the_cursor_edge_paints_in_the_accent_frame() {
         (0., (STRIP_H + HEADER_H) * scale),
         "the edge quad sits on the cursor row's left beneath the header"
     );
-    assert_eq!(colour, Some(ink.accent_frame), "the cursor edge paints in the accent frame");
+    assert_eq!(
+        colour,
+        Some(ink.accent_frame),
+        "the cursor edge paints in the accent frame"
+    );
     assert_ne!(colour, Some(ink.accent), "the edge is not the accent");
-    assert_ne!(colour, Some(ink.foreground), "the edge is not the foreground");
+    assert_ne!(
+        colour,
+        Some(ink.foreground),
+        "the edge is not the foreground"
+    );
 }

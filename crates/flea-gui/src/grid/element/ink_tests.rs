@@ -15,15 +15,37 @@ fn tile_ink_takes_the_style_ground_and_the_style_colour() {
         ..Default::default()
     };
     let ink = Ink::inherited(&style, theme);
-    assert_eq!(ink.background, background, "the tile ground is the style background");
+    assert_eq!(
+        ink.background, background,
+        "the tile ground is the style background"
+    );
     assert_eq!(ink.foreground, colour, "the tile text is the style colour");
     assert_eq!(ink.accent, colour, "the tile accent is the style colour");
-    assert_eq!(ink.accent_frame, colour, "the tile accent frame is the style colour");
-    assert_eq!(ink.muted_frame, colour.opacity(0.5), "the tile muted frame is the style colour at 0.5");
+    assert_eq!(
+        ink.accent_frame, colour,
+        "the tile accent frame is the style colour"
+    );
+    assert_eq!(
+        ink.muted_frame,
+        colour.opacity(0.5),
+        "the tile muted frame is the style colour at 0.5"
+    );
     let list = Palette::inherited(&style, theme);
     assert_eq!(
-        (ink.background, ink.foreground, ink.muted_frame, ink.accent, ink.accent_frame),
-        (list.background, list.foreground, list.muted_frame, list.accent, list.accent_frame),
+        (
+            ink.background,
+            ink.foreground,
+            ink.muted_frame,
+            ink.accent,
+            ink.accent_frame
+        ),
+        (
+            list.background,
+            list.foreground,
+            list.muted_frame,
+            list.accent,
+            list.accent_frame
+        ),
         "the tile ink reads the list palette role for role"
     );
 }
@@ -37,9 +59,25 @@ fn tile_ink_falls_back_to_the_theme_without_a_style_ground() {
         ..Default::default()
     };
     let ink = Ink::inherited(&style, theme);
-    assert_eq!(ink.background, theme.background, "the tile ground is the theme background");
-    assert_eq!(ink.foreground, theme.foreground, "the tile text is the theme foreground");
-    assert_eq!(ink.accent, theme.foreground, "the tile accent is the theme foreground");
-    assert_eq!(ink.accent_frame, theme.foreground, "the tile accent frame is the theme foreground");
-    assert_eq!(ink.muted_frame, theme.foreground.opacity(0.5), "the tile muted frame is the theme foreground at 0.5");
+    assert_eq!(
+        ink.background, theme.background,
+        "the tile ground is the theme background"
+    );
+    assert_eq!(
+        ink.foreground, theme.foreground,
+        "the tile text is the theme foreground"
+    );
+    assert_eq!(
+        ink.accent, theme.foreground,
+        "the tile accent is the theme foreground"
+    );
+    assert_eq!(
+        ink.accent_frame, theme.foreground,
+        "the tile accent frame is the theme foreground"
+    );
+    assert_eq!(
+        ink.muted_frame,
+        theme.foreground.opacity(0.5),
+        "the tile muted frame is the theme foreground at 0.5"
+    );
 }
