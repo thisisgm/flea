@@ -41,7 +41,11 @@ impl Drop for Root {
 pub fn root() -> Root {
     let parent = scratch();
     std::fs::create_dir_all(&parent).unwrap();
-    let output = Command::new("mktemp").arg("-d").arg(parent.join("test.XXXXXXXX")).output().unwrap();
+    let output = Command::new("mktemp")
+        .arg("-d")
+        .arg(parent.join("test.XXXXXXXX"))
+        .output()
+        .unwrap();
     assert!(output.status.success());
     let root = PathBuf::from(String::from_utf8(output.stdout).unwrap().trim());
     assert!(root.is_absolute());

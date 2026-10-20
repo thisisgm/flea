@@ -40,19 +40,31 @@ impl Phones {
     }
 
     pub fn unmount(&mut self, index: usize) -> Vec<Effect> {
-        let Some(e) = self.entries.get(index).filter(|e| e.kind == Kind::Phone && e.mounted && !self.running) else {
+        let Some(e) = self
+            .entries
+            .get(index)
+            .filter(|e| e.kind == Kind::Phone && e.mounted && !self.running)
+        else {
             return Vec::new();
         };
         self.unmount_label = e.label.clone();
         self.running = true;
-        vec![Effect::Start(Job::plain(&["gio", "mount", "-u", &e.uri.clone()]))]
+        vec![Effect::Start(Job::plain(&[
+            "gio",
+            "mount",
+            "-u",
+            &e.uri.clone(),
+        ]))]
     }
 
     pub fn exited(&mut self, outcome: &Outcome) -> Vec<Effect> {
         self.running = false;
         let mut out = Vec::new();
         if outcome.code != 0 {
-            out.push(Effect::Message(Note::new("device.transfer_using", &[&self.unmount_label]), true));
+            out.push(Effect::Message(
+                Note::new("device.transfer_using", &[&self.unmount_label]),
+                true,
+            ));
         }
         out.push(Effect::Released);
         out

@@ -59,16 +59,31 @@ pub fn glyph(name: &str) -> Option<(SharedString, &'static [u8])> {
         "localsend" => ("flea-st2:localsend", LOCALSEND),
         "tailscale" => ("flea-st2:tailscale", TAILSCALE),
         "dropbox" => ("flea-st2:dropbox", DROPBOX),
-        "maximize" => ("flea-st2:maximize", cut!("M8 3H3v5 M16 3h5v5 M8 21H3v-5 M16 21h5v-5")),
-        "image" => ("flea-st2:image", cut!("M3 3h18v18H3z M7 9A2 2 0 1 0 11 9A2 2 0 1 0 7 9Z M21 15l-3-3L6 21")),
+        "maximize" => (
+            "flea-st2:maximize",
+            cut!("M8 3H3v5 M16 3h5v5 M8 21H3v-5 M16 21h5v-5"),
+        ),
+        "image" => (
+            "flea-st2:image",
+            cut!("M3 3h18v18H3z M7 9A2 2 0 1 0 11 9A2 2 0 1 0 7 9Z M21 15l-3-3L6 21"),
+        ),
         "film" => (
             "flea-st2:film",
             cut!("M3 3h18v18H3z M7 3v18 M3 7.5h4 M3 12h18 M3 16.5h4 M17 3v18 M17 7.5h4 M17 16.5h4"),
         ),
-        "list" => ("flea-st2:list", cut!("M8 6h13 M8 12h13 M8 18h13 M3 6L3.01 6 M3 12L3.01 12 M3 18L3.01 18")),
-        "download" => ("flea-st2:download", cut!("M12 15V3 M7 10l5 5 5-5 M3 15v6h18v-6")),
+        "list" => (
+            "flea-st2:list",
+            cut!("M8 6h13 M8 12h13 M8 18h13 M3 6L3.01 6 M3 12L3.01 12 M3 18L3.01 18"),
+        ),
+        "download" => (
+            "flea-st2:download",
+            cut!("M12 15V3 M7 10l5 5 5-5 M3 15v6h18v-6"),
+        ),
         "plus" => ("flea-st2:plus", cut!("M5 12h14 M12 5v14")),
-        "plug" => ("flea-st2:plug", cut!("M12 22v-5 M9 8V2 M15 8V2 M6 8h12v6l-3 3H9l-3-3z")),
+        "plug" => (
+            "flea-st2:plug",
+            cut!("M12 22v-5 M9 8V2 M15 8V2 M6 8h12v6l-3 3H9l-3-3z"),
+        ),
         "chevron-right" => ("flea-st2:chevron-right", cut!("M9 18l6-6-6-6")),
         "folder" => ("flea-st2:folder", cut!("M2 20V3h6l2 3h12v14H2z")),
         "file" => ("flea-st2:file", cut!("M4 22V2h10l6 6v14H4z M14 2v6h6")),

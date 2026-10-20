@@ -21,10 +21,26 @@ pub enum Job {
 
 pub enum Reply {
     /// Every page's size in points, read once when the document opened.
-    Opened { doc: DocId, sizes: Vec<(f64, f64)> },
-    OpenFailed { doc: DocId, failure: Failure },
-    Rendered { doc: DocId, page: usize, width: u32, image: Arc<RenderImage>, took: Duration },
-    RenderFailed { doc: DocId, page: usize, width: u32 },
+    Opened {
+        doc: DocId,
+        sizes: Vec<(f64, f64)>,
+    },
+    OpenFailed {
+        doc: DocId,
+        failure: Failure,
+    },
+    Rendered {
+        doc: DocId,
+        page: usize,
+        width: u32,
+        image: Arc<RenderImage>,
+        took: Duration,
+    },
+    RenderFailed {
+        doc: DocId,
+        page: usize,
+        width: u32,
+    },
 }
 
 /// The handle a surface keeps; dropping it ends the thread once the jobs in hand are done.
@@ -38,8 +54,14 @@ impl Renderer {
     pub fn spawn() -> Self {
         let (jobs, inbox) = mpsc::channel();
         let (outbox, replies) = async_channel::unbounded();
-        let _ = thread::Builder::new().name("flea-pdf".into()).spawn(move || work(inbox, outbox));
-        Renderer { jobs, replies, next: Cell::new(0) }
+        let _ = thread::Builder::new()
+            .name("flea-pdf".into())
+            .spawn(move || work(inbox, outbox));
+        Renderer {
+            jobs,
+            replies,
+            next: Cell::new(0),
+        }
     }
 
     pub fn open(&self, path: PathBuf) -> DocId {
@@ -93,7 +115,8 @@ fn work(inbox: mpsc::Receiver<Job>, outbox: async_channel::Sender<Reply>) {
                     if !done.insert((doc, page, width)) {
                         continue;
                     }
-                    docs.get(&doc).map(|document| render(document, doc, page, width))
+                    docs.get(&doc)
+                        .map(|document| render(document, doc, page, width))
                 }
             };
             if let Some(reply) = reply {
@@ -112,7 +135,13 @@ fn render(document: &Document, doc: DocId, page: usize, width: u32) -> Reply {
         Some(Arc::new(RenderImage::new(vec![image::Frame::new(buffer)])))
     });
     match image {
-        Some(image) => Reply::Rendered { doc, page, width, image, took: started.elapsed() },
+        Some(image) => Reply::Rendered {
+            doc,
+            page,
+            width,
+            image,
+            took: started.elapsed(),
+        },
         None => Reply::RenderFailed { doc, page, width },
     }
 }

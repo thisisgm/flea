@@ -121,7 +121,9 @@ impl Panel {
     /// Rows come from the document, so every write or catalog change rebuilds the pane and any standing search.
     pub fn rebuild(&mut self) {
         self.rows = self.section_rows(self.section);
-        self.view_height = geometry::heights(&self.section_rows("view"), &[]).iter().sum();
+        self.view_height = geometry::heights(&self.section_rows("view"), &[])
+            .iter()
+            .sum();
         self.cursor = self.cursor.min(self.rows.len().saturating_sub(1));
         if self.query.is_some() {
             self.everything = SECTIONS
@@ -148,7 +150,11 @@ impl Panel {
         if self.query.as_deref().is_some_and(|query| !query.is_empty()) {
             return self.catalog.tr("settings.title");
         }
-        let id = if self.section == "columns" { "view" } else { self.section };
+        let id = if self.section == "columns" {
+            "view"
+        } else {
+            self.section
+        };
         self.catalog.tr(SECTIONS[pages::section_index(id)].label)
     }
 
@@ -165,16 +171,27 @@ impl Panel {
         if self.lines.len() == self.rows.len() {
             return geometry::heights(&self.rows, &self.lines);
         }
-        let lines: Vec<usize> = self.rows.iter().map(|row| match row.kind {
-            Kind::Hint => {
-                let (size, inset) = if row.footer { (12., 2. * geometry::PAD_X) } else { (12., geometry::LABEL_X + geometry::PAD_X) };
-                geometry::estimated_lines(&row.label.resolve(&self.catalog), size, self.pane.0 - inset)
-            }
-            _ => 1,
-        }).collect();
+        let lines: Vec<usize> = self
+            .rows
+            .iter()
+            .map(|row| match row.kind {
+                Kind::Hint => {
+                    let (size, inset) = if row.footer {
+                        (12., 2. * geometry::PAD_X)
+                    } else {
+                        (12., geometry::LABEL_X + geometry::PAD_X)
+                    };
+                    geometry::estimated_lines(
+                        &row.label.resolve(&self.catalog),
+                        size,
+                        self.pane.0 - inset,
+                    )
+                }
+                _ => 1,
+            })
+            .collect();
         geometry::heights(&self.rows, &lines)
     }
-
 
     /// The window's own layout: a pane of another size or a hint that wraps otherwise moves the scroll.
     pub fn laid_out(&mut self, pane: (f32, f32), lines: Vec<usize>) {
@@ -186,7 +203,13 @@ impl Panel {
     }
 
     fn reveal(&mut self) {
-        self.scroll = geometry::reveal(&self.rows, &self.heights(), self.cursor, self.scroll, self.pane.1);
+        self.scroll = geometry::reveal(
+            &self.rows,
+            &self.heights(),
+            self.cursor,
+            self.scroll,
+            self.pane.1,
+        );
     }
 
     /// A wheel turn over the pane, kept inside the content.
@@ -224,8 +247,15 @@ impl Panel {
                 }
             }
             Press::Drag(rows) => {
-                let Some(from) = self.rows[index].favourite else { return };
-                let last = self.rows.iter().filter(|row| row.kind == Kind::Favourite).count().saturating_sub(1) as isize;
+                let Some(from) = self.rows[index].favourite else {
+                    return;
+                };
+                let last = self
+                    .rows
+                    .iter()
+                    .filter(|row| row.kind == Kind::Favourite)
+                    .count()
+                    .saturating_sub(1) as isize;
                 let to = (from as isize + rows).clamp(0, last) as usize;
                 if to != from {
                     self.requests.push(Request::MoveFavourite { from, to });
@@ -255,7 +285,9 @@ impl Panel {
                 self.requests.push(Request::Close);
                 self.requests.push(Request::OpenSheet);
             }
-            Edit::Host(id) if id == "startFolder" => self.choose_start_folder(&self.facts.pane_path.clone()),
+            Edit::Host(id) if id == "startFolder" => {
+                self.choose_start_folder(&self.facts.pane_path.clone())
+            }
             Edit::Host(id) => self.requests.push(Request::Host(id)),
         }
     }
@@ -272,7 +304,12 @@ impl Panel {
         let Some(row) = self.rows.get(index) else {
             return;
         };
-        let change = edit::activate(self.section, row, self.store.document(), self.facts.base_size);
+        let change = edit::activate(
+            self.section,
+            row,
+            self.store.document(),
+            self.facts.base_size,
+        );
         self.apply(change);
     }
 
@@ -304,7 +341,11 @@ impl Panel {
             return self.requests.push(Request::Close);
         }
         if key == "tab" {
-            self.side = if self.side == Side::Rail { Side::Pane } else { Side::Rail };
+            self.side = if self.side == Side::Rail {
+                Side::Pane
+            } else {
+                Side::Rail
+            };
             return;
         }
         if text == "/" {
@@ -313,7 +354,8 @@ impl Panel {
             return;
         }
         let row = self.rows.get(self.cursor).cloned();
-        let favourite = self.side == Side::Pane && row.as_ref().is_some_and(|row| row.kind == Kind::Favourite);
+        let favourite =
+            self.side == Side::Pane && row.as_ref().is_some_and(|row| row.kind == Kind::Favourite);
         if favourite && shift && matches!(text, "J" | "K") {
             return self.press(self.cursor, Press::Drag(if text == "J" { 1 } else { -1 }));
         }
@@ -328,7 +370,9 @@ impl Panel {
             ("enter" | "space", _) if self.side == Side::Rail => self.side = Side::Pane,
             ("enter", _) => self.activate(self.cursor),
             // Space toggles a check or a master, and never walks a choice.
-            ("space", _) if row.is_some_and(|row| matches!(row.kind, Kind::Check | Kind::Group)) => {
+            ("space", _)
+                if row.is_some_and(|row| matches!(row.kind, Kind::Check | Kind::Group)) =>
+            {
                 self.activate(self.cursor)
             }
             _ => {}

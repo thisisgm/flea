@@ -23,11 +23,19 @@ pub struct Job {
 impl Job {
     /// A C-locale job, so every parsed answer is the untranslated one.
     pub fn c_locale(argv: Vec<String>) -> Self {
-        Self { argv, env: vec![("LC_ALL".into(), "C".into())], stdin: None }
+        Self {
+            argv,
+            env: vec![("LC_ALL".into(), "C".into())],
+            stdin: None,
+        }
     }
 
     pub fn plain(argv: &[&str]) -> Self {
-        Self { argv: argv.iter().map(|s| s.to_string()).collect(), env: Vec::new(), stdin: None }
+        Self {
+            argv: argv.iter().map(|s| s.to_string()).collect(),
+            env: Vec::new(),
+            stdin: None,
+        }
     }
 }
 
@@ -41,7 +49,10 @@ pub struct Outcome {
 
 impl Outcome {
     pub fn code(code: i32) -> Self {
-        Self { code, ..Self::default() }
+        Self {
+            code,
+            ..Self::default()
+        }
     }
 }
 
@@ -67,7 +78,13 @@ impl Handle {
     /// A handle with no process behind it, for a runner that only records jobs.
     pub fn detached() -> (Self, Sender<Event>) {
         let (send, events) = async_channel::unbounded();
-        (Self { events, control: Arc::default() }, send)
+        (
+            Self {
+                events,
+                control: Arc::default(),
+            },
+            send,
+        )
     }
 
     pub fn kill(&self) {
@@ -79,7 +96,14 @@ impl Handle {
     pub fn probed() -> (Self, Sender<Event>, KillProbe) {
         let (send, events) = async_channel::unbounded();
         let control = Arc::<Control>::default();
-        (Self { events, control: control.clone() }, send, KillProbe(control))
+        (
+            Self {
+                events,
+                control: control.clone(),
+            },
+            send,
+            KillProbe(control),
+        )
     }
 
     /// Closes stdin with nothing written, if the child has not been handed its input yet.
@@ -165,10 +189,15 @@ impl Runner for ThreadRunner {
         let (send, events) = async_channel::unbounded();
         let control = Arc::new(Control::default());
         let worker = control.clone();
-        let spawned = thread::Builder::new().name("flea-device-job".into()).spawn(move || run(job, &worker, &send));
+        let spawned = thread::Builder::new()
+            .name("flea-device-job".into())
+            .spawn(move || run(job, &worker, &send));
         if spawned.is_err() {
             let (handle, send) = Handle::detached();
-            let _ = send.try_send(Event::Exited(Outcome { code: -1, ..Outcome::default() }));
+            let _ = send.try_send(Event::Exited(Outcome {
+                code: -1,
+                ..Outcome::default()
+            }));
             return handle;
         }
         Handle { events, control }
@@ -181,14 +210,26 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
         return;
     };
     let mut command = Command::new(program);
-    command.args(args).envs(job.env.iter().map(|(k, v)| (k, v))).stdout(Stdio::piped()).stderr(Stdio::piped());
+    command
+        .args(args)
+        .envs(job.env.iter().map(|(k, v)| (k, v)))
+        .stdout(Stdio::piped())
+        .stderr(Stdio::piped());
     // Its own group, so a kill also ends what a shell job started and nothing is left holding the pipes.
     command.process_group(0);
-    command.stdin(if job.stdin.is_some() { Stdio::piped() } else { Stdio::null() });
+    command.stdin(if job.stdin.is_some() {
+        Stdio::piped()
+    } else {
+        Stdio::null()
+    });
     let mut child = match command.spawn() {
         Ok(child) => child,
         Err(error) => {
-            let _ = send.send_blocking(Event::Exited(Outcome { code: -1, stdout: String::new(), stderr: error.to_string() }));
+            let _ = send.send_blocking(Event::Exited(Outcome {
+                code: -1,
+                stdout: String::new(),
+                stderr: error.to_string(),
+            }));
             return;
         }
     };
@@ -212,7 +253,9 @@ fn run(mut job: Job, control: &Control, send: &Sender<Event>) {
             Err(_) => break None,
         }
     };
-    let collect = |reader: Option<thread::JoinHandle<String>>| reader.and_then(|r| r.join().ok()).unwrap_or_default();
+    let collect = |reader: Option<thread::JoinHandle<String>>| {
+        reader.and_then(|r| r.join().ok()).unwrap_or_default()
+    };
     let outcome = Outcome {
         code: status.and_then(|s| s.code()).unwrap_or(-1),
         stdout: collect(out),
@@ -229,7 +272,9 @@ const SIGKILL: i32 = 9;
 
 /// SIGKILL to the child's group; a pid that is not a real leader above 1 is never signalled.
 fn kill_group(pid: u32) {
-    let Ok(leader) = i32::try_from(pid) else { return };
+    let Ok(leader) = i32::try_from(pid) else {
+        return;
+    };
     if leader > 1 {
         // SAFETY: kill(2) takes plain integers, and a negative leader above 1 names only that group.
         unsafe { kill(-leader, SIGKILL) };

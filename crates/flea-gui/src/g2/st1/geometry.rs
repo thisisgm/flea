@@ -92,7 +92,8 @@ pub fn reveal(rows: &[Row], heights: &[f32], cursor: usize, scroll: f32, viewpor
     }
     let mut bottom = top + height + FADE;
     if let Some(next) = rows.get(cursor + 1) {
-        bottom = bottom.max(top + height + ink_top(next, cursor + 1 == 0) + (FADE * CUT_SHARE).round());
+        bottom =
+            bottom.max(top + height + ink_top(next, cursor + 1 == 0) + (FADE * CUT_SHARE).round());
     }
     if bottom > scroll + viewport {
         return (bottom - viewport).clamp(0., most);
@@ -110,18 +111,27 @@ pub fn card_size(window_w: f32, window_h: f32, view_h: f32) -> (f32, f32) {
     let rail = RAIL_PAD_TOP + 8. * RAIL_ROW_H + RAIL_PAD_TOP;
     let want = HEAD_H + 2. * BORDER + rail.max(view_h + PANE_FOOT);
     let span = |want: f32, room: f32| want.ceil().min(room.floor()).max(0.);
-    (span(CARD_W, window_w - 2. * CLAMP), span(want, window_h - 2. * CLAMP))
+    (
+        span(CARD_W, window_w - 2. * CLAMP),
+        span(want, window_h - 2. * CLAMP),
+    )
 }
 
 /// The pane's inside: the card less its frame and the rail across, less the head and the foot down.
 pub fn pane_size(card_w: f32, card_h: f32) -> (f32, f32) {
-    (card_w - 2. * BORDER - RAIL_W, card_h - 2. * BORDER - HEAD_H - BORDER - PANE_FOOT)
+    (
+        card_w - 2. * BORDER - RAIL_W,
+        card_h - 2. * BORDER - HEAD_H - BORDER - PANE_FOOT,
+    )
 }
 
 /// Hint lines in a monospace face, a stand-in until the window has shaped the text: wide characters take two cells.
 pub fn estimated_lines(text: &str, size: f32, width: f32) -> usize {
     let wide = |letter: char| matches!(letter as u32, 0x1100..=0x115F | 0x2E80..=0xA4CF | 0xAC00..=0xD7A3 | 0xF900..=0xFAFF | 0xFF00..=0xFF60);
-    let cells: usize = text.chars().map(|letter| if wide(letter) { 2 } else { 1 }).sum();
+    let cells: usize = text
+        .chars()
+        .map(|letter| if wide(letter) { 2 } else { 1 })
+        .sum();
     let per_line = ((width / (size * 0.6)).floor() as usize).max(1);
     cells.div_ceil(per_line).max(1)
 }

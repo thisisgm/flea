@@ -8,7 +8,6 @@ use flea::ui_logic_st1::{
 };
 use std::sync::Arc;
 
-
 /// The sources a query reads. Menus, rail places and recent files are seams for the menu, rail and recents contracts.
 #[derive(Clone, Debug, Default)]
 pub struct Sources {
@@ -73,7 +72,10 @@ impl Sheet {
             presentation::hint_for(&self.preset, action).to_owned()
         }));
         all.extend(sheet::place_candidates(&self.sources.rail));
-        all.extend(sheet::recent_candidates(&self.sources.recent, &self.sources.home));
+        all.extend(sheet::recent_candidates(
+            &self.sources.recent,
+            &self.sources.home,
+        ));
         all
     }
 
@@ -91,7 +93,14 @@ impl Sheet {
     pub fn reveal(&mut self, viewport: f32, row: f32) {
         let top = self.cursor as f32 * row;
         let most = (self.ranked.len() as f32 * row - viewport).max(0.);
-        self.scroll = if top < self.scroll { top } else if top + row > self.scroll + viewport { top + row - viewport } else { self.scroll }.clamp(0., most);
+        self.scroll = if top < self.scroll {
+            top
+        } else if top + row > self.scroll + viewport {
+            top + row - viewport
+        } else {
+            self.scroll
+        }
+        .clamp(0., most);
     }
 
     /// The pointer over a result highlights it; a click runs it as Enter does.

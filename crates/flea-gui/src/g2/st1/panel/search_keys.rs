@@ -1,15 +1,24 @@
 //! The panel's standing search: its hits, the highlighted result and the keys typed while the field is open.
 use super::{Panel, Side};
-use flea::ui_logic_st1::{pages::SECTIONS, rows::{focusable, Row}};
+use flea::ui_logic_st1::{
+    pages::SECTIONS,
+    rows::{focusable, Row},
+};
 
 impl Panel {
     /// A section's rows as the standing search read them.
     pub fn everything_rows(&self, section: usize) -> &[Row] {
-        self.everything.iter().find(|(index, _)| *index == section).map_or(&[], |(_, rows)| rows)
+        self.everything
+            .iter()
+            .find(|(index, _)| *index == section)
+            .map_or(&[], |(_, rows)| rows)
     }
 
     pub(super) fn hit_count(&self) -> usize {
-        self.results.iter().map(|group| group.hits.len().max(1)).sum()
+        self.results
+            .iter()
+            .map(|group| group.hits.len().max(1))
+            .sum()
     }
 
     /// The section and row the highlighted result opens at.

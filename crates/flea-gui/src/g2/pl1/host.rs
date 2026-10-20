@@ -40,10 +40,22 @@ impl Host {
     }
 
     /// Opens the card over a locked row; the card is built on first use.
-    pub fn open_for(&mut self, device: &str, label: &str, size: u64, fstype: &str, rail: Option<&RailView>) {
+    pub fn open_for(
+        &mut self,
+        device: &str,
+        label: &str,
+        size: u64,
+        fstype: &str,
+        rail: Option<&RailView>,
+    ) {
         self.locked_cursor = cursor_on_row(rail, device);
-        let fsver = self.lookup_row(rail, device).map(|r| r.fsver.clone()).unwrap_or_default();
-        self.card.get_or_insert_with(Card::new).open_for(device, label, size, fstype, &fsver);
+        let fsver = self
+            .lookup_row(rail, device)
+            .map(|r| r.fsver.clone())
+            .unwrap_or_default();
+        self.card
+            .get_or_insert_with(Card::new)
+            .open_for(device, label, size, fstype, &fsver);
     }
 
     /// flea --unlock before the rail's first listing: the card shows the device's leaf until a locked row names it.
@@ -57,7 +69,11 @@ impl Host {
     }
 
     fn lookup_row<'a>(&'a self, rail: Option<&'a RailView>, device: &str) -> Option<&'a RailEntry> {
-        naming_row(rail.map_or(&[][..], |r| &r.devices), &self.poll_entries, device)
+        naming_row(
+            rail.map_or(&[][..], |r| &r.devices),
+            &self.poll_entries,
+            device,
+        )
     }
 
     pub fn card_touched(&self) -> bool {
@@ -66,7 +82,10 @@ impl Host {
 
     /// Whether the one-shot name listing should run now.
     pub fn name_polling(&self) -> bool {
-        !self.unnamed_device.is_empty() && self.opened() && !self.name_poll_done && !self.card_touched()
+        !self.unnamed_device.is_empty()
+            && self.opened()
+            && !self.name_poll_done
+            && !self.card_touched()
     }
 
     /// Runs the one-shot lsblk while the card waits on its name; a touched card drops it.
@@ -75,15 +94,26 @@ impl Host {
             self.name_poll_done = true;
         }
         if !self.name_polling() {
-            let running = self.poller.take().is_some_and(|p| p.running(ListProc::List));
-            return if running { vec![Effect::NameKill] } else { Vec::new() };
+            let running = self
+                .poller
+                .take()
+                .is_some_and(|p| p.running(ListProc::List));
+            return if running {
+                vec![Effect::NameKill]
+            } else {
+                Vec::new()
+            };
         }
         let poller = self.poller.get_or_insert_with(|| {
             let mut once = Devices::new("");
             once.polling = false;
             once
         });
-        poller.tick(now).into_iter().filter_map(name_effect).collect()
+        poller
+            .tick(now)
+            .into_iter()
+            .filter_map(name_effect)
+            .collect()
     }
 
     /// When the name poller next needs a tick.
@@ -97,19 +127,38 @@ impl Host {
     }
 
     /// The poller's lsblk ended; a timed-out one lists again at once, a dropped poller's exit is ignored.
-    pub fn name_exited(&mut self, outcome: &Outcome, now: u64, rail: Option<&RailView>) -> Vec<Effect> {
-        let Some(poller) = self.poller.as_mut() else { return Vec::new() };
+    pub fn name_exited(
+        &mut self,
+        outcome: &Outcome,
+        now: u64,
+        rail: Option<&RailView>,
+    ) -> Vec<Effect> {
+        let Some(poller) = self.poller.as_mut() else {
+            return Vec::new();
+        };
         poller.list_exited(outcome);
         let (entries, timed_out) = (poller.entries.clone(), poller.list_timed_out);
         if self.name_poll_answered(entries, timed_out, rail) {
-            return self.poller.as_mut().map(|p| p.poll(now)).unwrap_or_default().into_iter().filter_map(name_effect).collect();
+            return self
+                .poller
+                .as_mut()
+                .map(|p| p.poll(now))
+                .unwrap_or_default()
+                .into_iter()
+                .filter_map(name_effect)
+                .collect();
         }
         self.poller = None;
         Vec::new()
     }
 
     /// The one-shot listing answered; a timed-out one asks again, any other answer ends the wait.
-    pub fn name_poll_answered(&mut self, entries: Vec<RailEntry>, timed_out: bool, rail: Option<&RailView>) -> bool {
+    pub fn name_poll_answered(
+        &mut self,
+        entries: Vec<RailEntry>,
+        timed_out: bool,
+        rail: Option<&RailView>,
+    ) -> bool {
         if timed_out {
             return true;
         }
@@ -128,7 +177,11 @@ impl Host {
             self.unnamed_device.clear();
             return;
         };
-        if self.unnamed_device.is_empty() || !card.opened || card.device != self.unnamed_device || card.touched() {
+        if self.unnamed_device.is_empty()
+            || !card.opened
+            || card.device != self.unnamed_device
+            || card.touched()
+        {
             self.unnamed_device.clear();
             return;
         }
@@ -166,7 +219,9 @@ impl Host {
         let mut out = Vec::new();
         if !self.pending_path.is_empty() {
             match rail {
-                Some(r) if r.cursor.is_none() || r.cursor == self.locked_cursor => out.extend(self.land_cursor(rail, false)),
+                Some(r) if r.cursor.is_none() || r.cursor == self.locked_cursor => {
+                    out.extend(self.land_cursor(rail, false))
+                }
                 _ => self.pending_path.clear(),
             }
         }
@@ -175,7 +230,11 @@ impl Host {
     }
 
     /// Routes the card's own effects, turning its endings into the window's.
-    pub fn card_effects(&mut self, effects: Vec<CardEffect>, rail: Option<&RailView>) -> Vec<Effect> {
+    pub fn card_effects(
+        &mut self,
+        effects: Vec<CardEffect>,
+        rail: Option<&RailView>,
+    ) -> Vec<Effect> {
         let mut out = Vec::new();
         for effect in effects {
             match effect {
@@ -198,8 +257,18 @@ impl Host {
         out
     }
 
-    pub fn exited(&mut self, proc: Proc, outcome: &Outcome, now: u64, rail: Option<&RailView>) -> Vec<Effect> {
-        let effects = self.card.as_mut().map(|c| c.exited(proc, outcome, now)).unwrap_or_default();
+    pub fn exited(
+        &mut self,
+        proc: Proc,
+        outcome: &Outcome,
+        now: u64,
+        rail: Option<&RailView>,
+    ) -> Vec<Effect> {
+        let effects = self
+            .card
+            .as_mut()
+            .map(|c| c.exited(proc, outcome, now))
+            .unwrap_or_default();
         self.card_effects(effects, rail)
     }
 }
@@ -216,6 +285,8 @@ fn name_effect(effect: ListEffect) -> Option<Effect> {
 fn cursor_on_row(rail: Option<&RailView>, device: &str) -> Option<usize> {
     let rail = rail?;
     let cursor = rail.cursor?;
-    let row = rail.devices.get(cursor.checked_sub(rail.places + rail.network)?)?;
+    let row = rail
+        .devices
+        .get(cursor.checked_sub(rail.places + rail.network)?)?;
     (row.device == device).then_some(cursor)
 }

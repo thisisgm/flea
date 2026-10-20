@@ -153,7 +153,10 @@ pub enum Request {
     /// A row whose effect is the window's: a favourite, the start folder, a web route, the updater.
     Host(String),
     /// A favourite dragged by its grip from one place in the list to another.
-    MoveFavourite { from: usize, to: usize },
+    MoveFavourite {
+        from: usize,
+        to: usize,
+    },
     /// A favourite's own remove mark.
     RemoveFavourite(usize),
 }

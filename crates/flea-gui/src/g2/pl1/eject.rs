@@ -2,7 +2,10 @@
 use super::devices::{failure, Devices, Effect, Proc, EJECT_VERDICT_MS, POWER_OFF_WAIT_MS};
 use super::process::{Job, Outcome};
 use flea::ui_logic_pl1::eject::{blockers, sentence, verdict, Verdict};
-use flea::ui_logic_pl1::power::{eject_command, mount_error, power_off_disk, power_off_queue, written_sectors, Op, DETACH_FAILED_EXIT};
+use flea::ui_logic_pl1::power::{
+    eject_command, mount_error, power_off_disk, power_off_queue, written_sectors, Op,
+    DETACH_FAILED_EXIT,
+};
 use flea::ui_logic_pl1::{Kind, Note, RailEntry};
 
 impl Devices {
@@ -16,9 +19,19 @@ impl Devices {
 
     /// Eject by mount point; a non-removable USB disk powers off instead, so nothing remounts it.
     pub fn eject(&mut self, index: usize, now: u64) -> Vec<Effect> {
-        let Some(e) = self.entries.get(index).filter(|e| e.kind == Kind::Volume && e.mounted).cloned() else { return Vec::new() };
+        let Some(e) = self
+            .entries
+            .get(index)
+            .filter(|e| e.kind == Kind::Volume && e.mounted)
+            .cloned()
+        else {
+            return Vec::new();
+        };
         if self.running(Proc::Eject) || !self.eject_device.is_empty() {
-            return vec![Effect::Message(Note::new("device.still_ejecting", &[&self.eject_label]), false)];
+            return vec![Effect::Message(
+                Note::new("device.still_ejecting", &[&self.eject_label]),
+                false,
+            )];
         }
         let disk = power_off_disk(&e.device);
         if !e.loop_device && !disk.is_empty() && !e.media_removable {
@@ -27,20 +40,32 @@ impl Devices {
         self.arm_eject(&e);
         vec![
             Effect::Quiesce(e.path.clone()),
-            self.start(Proc::Eject, Job { argv: eject_command(&e), ..Job::default() }),
+            self.start(
+                Proc::Eject,
+                Job {
+                    argv: eject_command(&e),
+                    ..Job::default()
+                },
+            ),
             Effect::Message(Note::new("device.ejecting", &[&e.label]), false),
         ]
     }
 
     fn power_off(&mut self, e: &RailEntry, disk: &str, now: u64) -> Vec<Effect> {
         if self.running(Proc::Unmount) {
-            return vec![Effect::Message(Note::new("device.still_unmounting_try_again", &[&e.label]), false)];
+            return vec![Effect::Message(
+                Note::new("device.still_unmounting_try_again", &[&e.label]),
+                false,
+            )];
         }
         self.arm_eject(e);
         self.power_disk = disk.to_string();
         self.power_queue = power_off_queue(&self.listing, disk, &self.entries);
         self.power_sectors.clear();
-        let mut out = vec![Effect::Quiesce(e.path.clone()), Effect::Message(Note::new("device.ejecting", &[&e.label]), false)];
+        let mut out = vec![
+            Effect::Quiesce(e.path.clone()),
+            Effect::Message(Note::new("device.ejecting", &[&e.label]), false),
+        ];
         out.extend(self.power_off_next(now));
         out
     }
@@ -53,7 +78,10 @@ impl Devices {
             return vec![self.start(Proc::Eject, Job::plain(&["gio", "mount", "-t", &disk]))];
         }
         let leg = self.power_queue.remove(0);
-        vec![self.start(Proc::Unmount, Job::plain(&["gio", "mount", "-u", &leg.path]))]
+        vec![self.start(
+            Proc::Unmount,
+            Job::plain(&["gio", "mount", "-u", &leg.path]),
+        )]
     }
 
     /// A grown write counter is progress, so the deadline restarts instead of ending the chain.
@@ -65,7 +93,10 @@ impl Devices {
         if sectors.is_empty() {
             return;
         }
-        if !self.power_sectors.is_empty() && sectors != self.power_sectors && self.power_deadline.is_some() {
+        if !self.power_sectors.is_empty()
+            && sectors != self.power_sectors
+            && self.power_deadline.is_some()
+        {
             self.power_deadline = Some(now + POWER_OFF_WAIT_MS);
         }
         self.power_sectors = sectors;
@@ -79,7 +110,9 @@ impl Devices {
     }
 
     pub(super) fn power_off_expired(&mut self) -> Vec<Effect> {
-        if self.power_disk.is_empty() || (!self.running(Proc::Unmount) && !self.running(Proc::Eject)) {
+        if self.power_disk.is_empty()
+            || (!self.running(Proc::Unmount) && !self.running(Proc::Eject))
+        {
             return Vec::new();
         }
         let kill = if self.running(Proc::Unmount) {
@@ -110,7 +143,10 @@ impl Devices {
 
     /// Only a listing started after gio exited is a witness; one that cannot be judged settles nothing.
     pub(super) fn judge_eject(&mut self, body: &str) -> Vec<Effect> {
-        if self.eject_device.is_empty() || self.verdict_from == 0 || self.listings_started < self.verdict_from {
+        if self.eject_device.is_empty()
+            || self.verdict_from == 0
+            || self.listings_started < self.verdict_from
+        {
             return Vec::new();
         }
         let v = verdict(body, &self.eject_device);
@@ -121,13 +157,22 @@ impl Devices {
         self.report_eject(v, &others, body)
     }
 
-    pub(super) fn report_eject(&mut self, v: Verdict, others: &[String], body: &str) -> Vec<Effect> {
+    pub(super) fn report_eject(
+        &mut self,
+        v: Verdict,
+        others: &[String],
+        body: &str,
+    ) -> Vec<Effect> {
         if self.eject_device.is_empty() {
             return Vec::new();
         }
         self.power_deadline = None;
         self.verdict_deadline = None;
-        let shown = if v == Verdict::Safe && self.detach_failed { Verdict::Attached } else { v };
+        let shown = if v == Verdict::Safe && self.detach_failed {
+            Verdict::Attached
+        } else {
+            v
+        };
         let (note, error) = sentence(shown, &self.eject_label, others, self.eject_loop);
         let mut out = Vec::new();
         if !error {
@@ -162,7 +207,11 @@ impl Devices {
 
     /// The guard state in one line, so a failed eject names its guard through ipc.
     pub fn eject_state(&self) -> String {
-        let last = self.last_verdict.as_ref().map(Note::english).unwrap_or_default();
+        let last = self
+            .last_verdict
+            .as_ref()
+            .map(Note::english)
+            .unwrap_or_default();
         format!(
             "{}|{}|{}|{}|{}|{}|{}",
             self.eject_device,

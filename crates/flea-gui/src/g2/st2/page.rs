@@ -14,7 +14,12 @@ pub enum Card {
     #[default]
     None,
     Add(AddCard),
-    Remove { plugin: String, name: String, busy: bool, error: Option<String> },
+    Remove {
+        plugin: String,
+        name: String,
+        busy: bool,
+        error: Option<String>,
+    },
 }
 
 /// The keys the section acts on, named after the G1 key table's actions.
@@ -112,9 +117,18 @@ impl PluginsPage {
         &self.i18n
     }
 
-    pub(super) fn request(&mut self, wire: &dyn PluginsWire, op: &str, plugin: &str, extra: Vec<(&str, Json)>) -> bool {
+    pub(super) fn request(
+        &mut self,
+        wire: &dyn PluginsWire,
+        op: &str,
+        plugin: &str,
+        extra: Vec<(&str, Json)>,
+    ) -> bool {
         self.next += 1;
-        if wire.send(wire::request_line(self.next, op, plugin, extra)).is_err() {
+        if wire
+            .send(wire::request_line(self.next, op, plugin, extra))
+            .is_err()
+        {
             self.failed();
             return false;
         }
@@ -123,7 +137,8 @@ impl PluginsPage {
     }
 
     fn sentence(&self, error: &Invalid) -> String {
-        self.i18n.tr_args(&sentence_key(error.code), &[&error.detail])
+        self.i18n
+            .tr_args(&sentence_key(error.code), &[&error.detail])
     }
 
     /// One reply line; false when it changed nothing, as for a malformed or stale line.
@@ -143,7 +158,9 @@ impl PluginsPage {
                 true
             }
             Ok(Reply::Outcome(outcome)) => {
-                let Some(op) = self.pending.remove(&outcome.id) else { return false };
+                let Some(op) = self.pending.remove(&outcome.id) else {
+                    return false;
+                };
                 let error = outcome.error.as_ref().map(|e| self.sentence(e));
                 match (op.as_str(), &mut self.card) {
                     ("add", Card::Add(card)) if card.busy => match error {
@@ -156,7 +173,12 @@ impl PluginsPage {
                             self.want = Some(outcome.plugin.clone());
                         }
                     },
-                    ("remove", Card::Remove { busy, error: shown, .. }) if *busy => match error {
+                    (
+                        "remove",
+                        Card::Remove {
+                            busy, error: shown, ..
+                        },
+                    ) if *busy => match error {
                         Some(sentence) => {
                             *busy = false;
                             *shown = Some(sentence);
@@ -202,24 +224,42 @@ impl PluginsPage {
     pub(super) fn rebuild(&mut self) {
         self.rows = match self.open_plugin() {
             Some(plugin) => {
-                let update = self.updates.get(&plugin.manifest.id).cloned().unwrap_or_default();
+                let update = self
+                    .updates
+                    .get(&plugin.manifest.id)
+                    .cloned()
+                    .unwrap_or_default();
                 pages::page_rows(plugin, &update, &self.i18n)
             }
             None => pages::list_rows(&self.plugins, &self.i18n),
         };
-        let wanted = self.want.as_deref().and_then(|w| self.rows.iter().position(|r| r.focusable() && r.id() == w));
+        let wanted = self
+            .want
+            .as_deref()
+            .and_then(|w| self.rows.iter().position(|r| r.focusable() && r.id() == w));
         if wanted.is_some() {
             self.want = None;
         }
-        let found = wanted.or_else(|| self.rows.iter().position(|r| r.focusable() && !self.focus.is_empty() && r.id() == self.focus));
+        let found = wanted.or_else(|| {
+            self.rows
+                .iter()
+                .position(|r| r.focusable() && !self.focus.is_empty() && r.id() == self.focus)
+        });
         self.cursor = found.or_else(|| self.near(self.cursor.unwrap_or(0)));
-        self.focus = self.cursor.map(|i| self.rows[i].id().to_string()).unwrap_or_default();
+        self.focus = self
+            .cursor
+            .map(|i| self.rows[i].id().to_string())
+            .unwrap_or_default();
     }
 
     // The focusable row at or after index, else the last one before it.
     fn near(&self, index: usize) -> Option<usize> {
         let after = (index..self.rows.len()).find(|&i| self.rows[i].focusable());
-        after.or_else(|| (0..index.min(self.rows.len())).rev().find(|&i| self.rows[i].focusable()))
+        after.or_else(|| {
+            (0..index.min(self.rows.len()))
+                .rev()
+                .find(|&i| self.rows[i].focusable())
+        })
     }
 
     pub(super) fn put(&mut self, index: usize) {
@@ -254,7 +294,11 @@ impl PluginsPage {
                 }
                 Key::Enter if card.can_add() => {
                     card.busy = true;
-                    send = Some(("add", String::new(), vec![("source", Json::Str(card.text.trim().to_string()))]));
+                    send = Some((
+                        "add",
+                        String::new(),
+                        vec![("source", Json::Str(card.text.trim().to_string()))],
+                    ));
                 }
                 Key::Escape => self.card = Card::None,
                 _ => {}

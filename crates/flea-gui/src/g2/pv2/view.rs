@@ -67,7 +67,12 @@ pub struct PdfView {
 
 impl PdfView {
     /// A surface with its own render thread; replies land on the foreground as they come.
-    pub fn new(continuous: bool, palette: Palette, metrics: Metrics, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        continuous: bool,
+        palette: Palette,
+        metrics: Metrics,
+        cx: &mut Context<Self>,
+    ) -> Self {
         let renderer = Renderer::spawn();
         let replies = renderer.replies.clone();
         let pump = cx.spawn(async move |this, cx| {
@@ -95,11 +100,19 @@ impl PdfView {
     }
 
     pub fn now(&self, cx: &App) -> u64 {
-        cx.background_executor().now().saturating_duration_since(self.origin).as_millis() as u64
+        cx.background_executor()
+            .now()
+            .saturating_duration_since(self.origin)
+            .as_millis() as u64
     }
 
     /// The backend a slow document is fetched through, and which viewer this is so cleanup touches only its copy.
-    pub fn set_copy_host(&mut self, host: Box<dyn CopyHost>, slot: &'static str, fetch_first: bool) {
+    pub fn set_copy_host(
+        &mut self,
+        host: Box<dyn CopyHost>,
+        slot: &'static str,
+        fetch_first: bool,
+    ) {
         self.copy = Some((host, slot));
         self.surface.set_fetch(fetch_first, true);
     }
@@ -150,7 +163,9 @@ impl PdfView {
         }
         let wait = due.saturating_sub(self.now(cx));
         let task = cx.spawn(async move |this, cx| {
-            cx.background_executor().timer(std::time::Duration::from_millis(wait)).await;
+            cx.background_executor()
+                .timer(std::time::Duration::from_millis(wait))
+                .await;
             let _ = this.update(cx, |view, cx| {
                 view.timer = None;
                 let now = view.now(cx);
@@ -193,7 +208,14 @@ impl PdfView {
     }
 
     /// The host's copy reply for a slow document.
-    pub fn copied(&mut self, id: u64, path: &str, error: &str, stalled: bool, cx: &mut Context<Self>) {
+    pub fn copied(
+        &mut self,
+        id: u64,
+        path: &str,
+        error: &str,
+        stalled: bool,
+        cx: &mut Context<Self>,
+    ) {
         self.surface.copied(id, path, error, stalled);
         self.flush(cx);
         cx.notify();
@@ -203,8 +225,12 @@ impl PdfView {
     pub fn bar(&self, i18n: &I18n) -> Option<Bar> {
         let viewer = self.viewer.as_ref()?;
         let (page, count) = (self.surface.page, self.surface.page_count());
-        let counter = viewer::counter(self.surface.drawn_page(), count)
-            .map(|(drawn, count)| i18n.tr_args("document.pdf_page_count", &[&drawn.to_string(), &count.to_string()]));
+        let counter = viewer::counter(self.surface.drawn_page(), count).map(|(drawn, count)| {
+            i18n.tr_args(
+                "document.pdf_page_count",
+                &[&drawn.to_string(), &count.to_string()],
+            )
+        });
         let items = viewer
             .strip(page, count)
             .into_iter()
@@ -215,7 +241,9 @@ impl PdfView {
 
     /// The one sentence a failed document gets, which the host's error recipe draws under its alert mark.
     pub fn fail_sentence(&self, i18n: &I18n) -> Option<String> {
-        self.surface.failed().then(|| i18n.tr(self.surface.fetch.fail_key()))
+        self.surface
+            .failed()
+            .then(|| i18n.tr(self.surface.fetch.fail_key()))
     }
 
     /// A turn: the stack scrolls to the page's top, the single page shows the next one.

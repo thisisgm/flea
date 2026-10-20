@@ -56,11 +56,21 @@ pub struct Model3dView {
 }
 
 fn slot(surface: Surface) -> &'static str {
-    if surface == Surface::Column { "column" } else { "look" }
+    if surface == Surface::Column {
+        "column"
+    } else {
+        "look"
+    }
 }
 
 impl Model3dView {
-    pub fn new(surface: Surface, wire: Rc<dyn Wire>, reader: Arc<dyn ModelReader>, i18n: Arc<I18n>, cx: &mut Context<Self>) -> Self {
+    pub fn new(
+        surface: Surface,
+        wire: Rc<dyn Wire>,
+        reader: Arc<dyn ModelReader>,
+        i18n: Arc<I18n>,
+        cx: &mut Context<Self>,
+    ) -> Self {
         Self {
             host: Host::default(),
             phase: Phase::Idle,
@@ -134,12 +144,18 @@ impl Model3dView {
 
     /// Applies one backend line; answers whether it was this view's live reply.
     pub fn on_line(&mut self, line: &str, cx: &mut Context<Self>) -> bool {
-        let Ok(reply) = wire::parse(line) else { return false };
+        let Ok(reply) = wire::parse(line) else {
+            return false;
+        };
         if !self.session.accept(&reply) {
             return false;
         }
         match reply.state {
-            State::Ready { file, thumbnail, data } => self.build(file, thumbnail, *data, cx),
+            State::Ready {
+                file,
+                thumbnail,
+                data,
+            } => self.build(file, thumbnail, *data, cx),
             State::Failed { reason } => self.fail(reason),
             State::Cancelled => self.phase = Phase::Idle,
         }
@@ -150,10 +166,17 @@ impl Model3dView {
     fn build(&mut self, file: String, thumbnail: String, data: Data, cx: &mut Context<Self>) {
         self.generation += 1;
         let (generation, plate, reader) = (self.generation, self.plate, self.reader.clone());
-        let palette = self.live.borrow().palette.unwrap_or(Palette { ground: [0.; 3], foreground: [1.; 3], muted: [0.6; 3], frame: [0.5; 3] });
+        let palette = self.live.borrow().palette.unwrap_or(Palette {
+            ground: [0.; 3],
+            foreground: [1.; 3],
+            muted: [0.6; 3],
+            frame: [0.5; 3],
+        });
         let read = data.clone();
         let job = cx.background_executor().spawn(async move {
-            reader.read(std::path::Path::new(&file), &read).and_then(|scene| Model::build(scene, plate, palette))
+            reader
+                .read(std::path::Path::new(&file), &read)
+                .and_then(|scene| Model::build(scene, plate, palette))
         });
         self._build = Some(cx.spawn(async move |this, cx| {
             let built = job.await;
@@ -163,7 +186,9 @@ impl Model3dView {
                 }
                 match built {
                     Ok(model) => {
-                        view.live.borrow_mut().set(Some(model), !thumbnail.is_empty());
+                        view.live
+                            .borrow_mut()
+                            .set(Some(model), !thumbnail.is_empty());
                         view.thumbnail = thumbnail;
                         view.data = Some(data);
                         view.phase = Phase::Ready;
@@ -188,20 +213,35 @@ impl Model3dView {
 
     /// Applies a preview key action by its key table name; answers whether the view took it.
     pub fn act(&mut self, name: &str, cx: &mut Context<Self>) -> bool {
-        let Some(action) = action(name) else { return false };
+        let Some(action) = action(name) else {
+            return false;
+        };
         if matches!(action, Action::PlatePrevious | Action::PlateNext) {
             let plates = self.plates();
             if plates < 2 || self.surface() == Surface::Column || self.phase != Phase::Ready {
                 return false;
             }
-            let step = if action == Action::PlateNext { 1 } else { plates - 1 };
+            let step = if action == Action::PlateNext {
+                1
+            } else {
+                plates - 1
+            };
             let path = self.path.clone().unwrap_or_default();
             self.show(&path, (self.plate + step) % plates, cx);
             return true;
         }
-        let now = cx.background_executor().now().saturating_duration_since(self.epoch).as_secs_f64();
+        let now = cx
+            .background_executor()
+            .now()
+            .saturating_duration_since(self.epoch)
+            .as_secs_f64();
         let animations = self.host.animations;
-        let taken = self.live.borrow_mut().viewer.as_mut().is_some_and(|v| v.act(action, now, animations));
+        let taken = self
+            .live
+            .borrow_mut()
+            .viewer
+            .as_mut()
+            .is_some_and(|v| v.act(action, now, animations));
         if taken {
             cx.notify();
         }
@@ -210,11 +250,17 @@ impl Model3dView {
 
     pub fn bar(&self) -> Option<Bar> {
         let data = self.data.as_ref()?;
-        Some(Bar { fact: facts::bar_fact(&self.i18n, data, self.plate), words: facts::plate_words(&self.i18n, self.plates()), chosen: self.plate })
+        Some(Bar {
+            fact: facts::bar_fact(&self.i18n, data, self.plate),
+            words: facts::plate_words(&self.i18n, self.plates()),
+            chosen: self.plate,
+        })
     }
 
     pub fn facts(&self, file: FileFacts) -> Vec<Vec<Row>> {
-        self.data.as_ref().map_or_else(Vec::new, |data| facts::rows(&self.i18n, file, data, self.plate))
+        self.data.as_ref().map_or_else(Vec::new, |data| {
+            facts::rows(&self.i18n, file, data, self.plate)
+        })
     }
 
     /// The shared sentence a failed preview says, for the host's no-preview state.
@@ -227,7 +273,12 @@ impl Model3dView {
         let (viewer, model) = (live.viewer.as_ref()?, live.model.as_ref()?);
         let layer = viewer.layer?;
         let z = model.scene.layers.get(layer)?.z;
-        Some(facts::layer_label(&self.i18n, layer + 1, viewer.layers(), z))
+        Some(facts::layer_label(
+            &self.i18n,
+            layer + 1,
+            viewer.layers(),
+            z,
+        ))
     }
 }
 
@@ -242,11 +293,26 @@ impl Render for Model3dView {
         let mut root = div().size_full().flex().flex_col();
         let mut stage = div().relative().flex_1().min_h_0();
         if self.live.borrow().thumbnail {
-            stage = stage.child(div().absolute().size_full().child(img(PathBuf::from(&self.thumbnail)).size_full()));
+            stage = stage.child(
+                div()
+                    .absolute()
+                    .size_full()
+                    .child(img(PathBuf::from(&self.thumbnail)).size_full()),
+            );
         }
-        root = root.child(stage.child(Viewport { live: self.live.clone(), presented: self.presented.clone(), host: self.host, epoch: self.epoch }));
+        root = root.child(stage.child(Viewport {
+            live: self.live.clone(),
+            presented: self.presented.clone(),
+            host: self.host,
+            epoch: self.epoch,
+        }));
         if let Some(label) = self.layer_label() {
-            root = root.child(parts::layer_strip(self.live.clone(), label, &roles, self.host.ground));
+            root = root.child(parts::layer_strip(
+                self.live.clone(),
+                label,
+                &roles,
+                self.host.ground,
+            ));
         }
         root
     }

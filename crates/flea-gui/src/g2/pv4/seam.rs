@@ -37,7 +37,12 @@ pub struct Host {
 
 impl Default for Host {
     fn default() -> Self {
-        Self { focused: true, shown: true, animations: true, ground: gpui::black() }
+        Self {
+            focused: true,
+            shown: true,
+            animations: true,
+            ground: gpui::black(),
+        }
     }
 }
 
@@ -48,5 +53,10 @@ fn rgb(color: Hsla) -> [f32; 3] {
 
 /// The view's palette from the window's roles: the foreground's two shades, the muted hairlines and the frame edge.
 pub fn palette(roles: &crate::list::Palette, ground: Hsla) -> Palette {
-    Palette { ground: rgb(ground), foreground: rgb(roles.foreground), muted: rgb(roles.metadata), frame: rgb(roles.metadata_frame) }
+    Palette {
+        ground: rgb(ground),
+        foreground: rgb(roles.foreground),
+        muted: rgb(roles.metadata),
+        frame: rgb(roles.metadata_frame),
+    }
 }

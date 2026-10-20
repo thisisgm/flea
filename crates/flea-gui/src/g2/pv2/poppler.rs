@@ -114,7 +114,9 @@ unsafe fn load() -> Result<Api, String> {
 
 fn api() -> Result<&'static Api, Failure> {
     // SAFETY: load only resolves symbols; their signatures are the libraries' documented C API.
-    API.get_or_init(|| unsafe { load() }).as_ref().map_err(|reason| Failure::Library(reason.clone()))
+    API.get_or_init(|| unsafe { load() })
+        .as_ref()
+        .map_err(|reason| Failure::Library(reason.clone()))
 }
 
 /// Why a document or a page gave nothing: no renderer on this box, or a file that could not be read.
@@ -143,7 +145,10 @@ pub fn raster_size(points: (f64, f64), width: u32) -> Option<(u32, u32)> {
     if pixels > MAX_PIXELS as f64 {
         scale *= (MAX_PIXELS as f64 / pixels).sqrt();
     }
-    let size = ((w * scale).round().max(1.) as u32, (h * scale).round().max(1.) as u32);
+    let size = (
+        (w * scale).round().max(1.) as u32,
+        (h * scale).round().max(1.) as u32,
+    );
     Some(size)
 }
 
@@ -188,7 +193,11 @@ impl Document {
         let index = c_int::try_from(index).ok()?;
         // SAFETY: raw is a live document and Poppler answers null for an index outside it.
         let raw = unsafe { (self.api.get_page)(self.raw, index) };
-        (!raw.is_null()).then_some(Page { raw, api: self.api, _document: std::marker::PhantomData })
+        (!raw.is_null()).then_some(Page {
+            raw,
+            api: self.api,
+            _document: std::marker::PhantomData,
+        })
     }
 
     /// A page's size in points, as the page shows after its own rotation.
@@ -225,7 +234,11 @@ impl Document {
                 for y in 0..h as usize {
                     bgra.extend_from_slice(std::slice::from_raw_parts(data.add(y * stride), row));
                 }
-                Raster { width: w, height: h, bgra }
+                Raster {
+                    width: w,
+                    height: h,
+                    bgra,
+                }
             });
             (api.surface_destroy)(surface);
             raster

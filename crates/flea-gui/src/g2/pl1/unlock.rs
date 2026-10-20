@@ -3,8 +3,8 @@ use super::field::Field;
 use super::process::{Job, Outcome};
 use super::secret::Secret;
 use flea::ui_logic_pl1::unlock::{
-    crypto_name, lock_argv, lock_note, mount_note, parse_mounted, parse_unlocked, refusal_note, unlock_argv,
-    unlock_failed_note, unlocked_note, unlocking_note, wrong_note,
+    crypto_name, lock_argv, lock_note, mount_note, parse_mounted, parse_unlocked, refusal_note,
+    unlock_argv, unlock_failed_note, unlocked_note, unlocking_note, wrong_note,
 };
 use flea::ui_logic_pl1::Note;
 
@@ -22,7 +22,11 @@ pub enum Effect {
     Start(Proc, Job),
     Kill(Proc),
     WithholdInput(Proc),
-    Unlocked { path: String, label: String, note: Note },
+    Unlocked {
+        path: String,
+        label: String,
+        note: Note,
+    },
     Closed,
     LockFailed(Note),
 }
@@ -83,7 +87,11 @@ pub struct Card {
 
 impl Card {
     pub fn new() -> Self {
-        Self { timeout_ms: UNLOCK_TIMEOUT_MS, crypto: "LUKS".into(), ..Self::default() }
+        Self {
+            timeout_ms: UNLOCK_TIMEOUT_MS,
+            crypto: "LUKS".into(),
+            ..Self::default()
+        }
     }
 
     pub fn stage(&self) -> Stage {
@@ -117,7 +125,11 @@ impl Card {
 
     /// Names the drive, so a later rail row can name a card flea --unlock opened on a bare device.
     pub fn describe(&mut self, label: &str, size: u64, fstype: &str, fsver: &str) {
-        self.label = if label.is_empty() { self.device.clone() } else { label.to_string() };
+        self.label = if label.is_empty() {
+            self.device.clone()
+        } else {
+            label.to_string()
+        };
         self.size = size;
         self.crypto = crypto_name(fstype, fsver);
     }
@@ -228,8 +240,16 @@ impl Card {
 
     fn lock_container(&mut self, relock: bool, device: &str, label: &str) -> Effect {
         self.stage = if relock { Stage::Relock } else { Stage::Idle };
-        self.lock_label = if label.is_empty() { self.label.clone() } else { label.to_string() };
-        let device = if device.is_empty() { self.device.clone() } else { device.to_string() };
+        self.lock_label = if label.is_empty() {
+            self.label.clone()
+        } else {
+            label.to_string()
+        };
+        let device = if device.is_empty() {
+            self.device.clone()
+        } else {
+            device.to_string()
+        };
         self.running[Proc::Lock as usize] = true;
         Effect::Start(Proc::Lock, Job::c_locale(lock_argv(&device)))
     }
@@ -299,7 +319,11 @@ impl Card {
             return Vec::new();
         }
         self.started = true;
-        if self.stage == Stage::Unlock { Vec::new() } else { vec![Effect::WithholdInput(Proc::Unlock)] }
+        if self.stage == Stage::Unlock {
+            Vec::new()
+        } else {
+            vec![Effect::WithholdInput(Proc::Unlock)]
+        }
     }
 
     pub fn exited(&mut self, proc: Proc, outcome: &Outcome, now: u64) -> Vec<Effect> {
@@ -340,7 +364,10 @@ impl Card {
         }
         self.stage = Stage::Mount;
         self.running[Proc::Mount as usize] = true;
-        let argv = ["udisksctl", "mount", "--block-device", &mapped].iter().map(|s| s.to_string()).collect();
+        let argv = ["udisksctl", "mount", "--block-device", &mapped]
+            .iter()
+            .map(|s| s.to_string())
+            .collect();
         vec![Effect::Start(Proc::Mount, Job::c_locale(argv))]
     }
 
@@ -352,7 +379,11 @@ impl Card {
         if self.stage != Stage::Mount {
             return Vec::new();
         }
-        let folder = if outcome.code == 0 { parse_mounted(&outcome.stdout) } else { String::new() };
+        let folder = if outcome.code == 0 {
+            parse_mounted(&outcome.stdout)
+        } else {
+            String::new()
+        };
         if folder.is_empty() {
             return vec![self.lock_container(true, "", "")];
         }
@@ -361,7 +392,14 @@ impl Card {
         self.stage = Stage::Idle;
         self.field.clear();
         self.opened = false;
-        vec![Effect::Closed, Effect::Unlocked { path: folder, label, note }]
+        vec![
+            Effect::Closed,
+            Effect::Unlocked {
+                path: folder,
+                label,
+                note,
+            },
+        ]
     }
 
     fn lock_exited(&mut self, code: i32) -> Vec<Effect> {
@@ -374,6 +412,10 @@ impl Card {
                 self.stage = Stage::Idle;
             }
         }
-        if code != 0 { vec![Effect::LockFailed(lock_note(&self.lock_label))] } else { Vec::new() }
+        if code != 0 {
+            vec![Effect::LockFailed(lock_note(&self.lock_label))]
+        } else {
+            Vec::new()
+        }
     }
 }
