@@ -83,6 +83,16 @@ ShellRoot {
         return null
     }
 
+    function followSettle() { return root.quickTimer(function (t) { return t.objectName === "followSettle" }) }
+    function followTimersRunning() {
+        var n = 0
+        for (var i = 0; i < quick.resources.length; i++) {
+            var t = quick.resources[i]
+            if (t instanceof Timer && t.interval === quick.followSettleMs && t.running) n += 1
+        }
+        return n
+    }
+
     function later(ms) {
         waiter.interval = ms
         waiter.restart()
@@ -464,6 +474,12 @@ ShellRoot {
             root.later(200)
         },
         function () {
+            var followTimers = 0
+            for (var i = 0; i < quick.resources.length; i++) {
+                var t = quick.resources[i]
+                if (t instanceof Timer && t.interval === quick.followSettleMs && t.repeat === false) followTimers += 1
+            }
+            root.check("Quick Look keeps the follow settle and its rest as the two follow-interval timers", followTimers === 2, "timers=" + followTimers)
             quick.follow(root.imagePath(6), "image-x-generic", 1006, "")
             root.check("quick follow stages its pending row", quick.pendingPath === root.imagePath(6))
             root.qpollFor(root.imagePath(6), 3000)
@@ -497,11 +513,20 @@ ShellRoot {
         function () {
             root.check("quick reopens the fresh row", quick.active && quick.path === root.imagePath(1)
                 && quick.pendingPath === root.imagePath(1) && root.qlLoads === 4)
+            // The reopen's load arms its rest once its own work returns; the held move waits for that rest to run out.
+            root.later(quick.followSettleMs + 30)
+        },
+        function () {
+            root.check("quick reopen rest has run out before the held move", root.followTimersRunning() === 0,
+                "running=" + root.followTimersRunning())
             root.qlOld = quick.path
             root.qlMid0 = quick.swapState().midFrames
             quick.lastMoveAt = 0
             var target = root.imagePath(2)
             quick.follow(target, "image-x-generic", 1002, "")
+            var settle = root.followSettle()
+            root.check("quick held move loads at once", settle !== null && settle.running === false,
+                "settleRunning=" + (settle === null ? "missing" : settle.running))
             root.check("quick held move captures before it starts",
                 quick.swap && quick.swap.capturing === true && quick.swap.started === false,
                 "capturing=" + (quick.swap && quick.swap.capturing) + " started=" + (quick.swap && quick.swap.started))
@@ -521,7 +546,7 @@ ShellRoot {
             pane.cursorIndex = -1
             quick.lastMoveAt = 0
             quick.follow(root.imagePath(3), "image-x-generic", 1003, "")
-            root.holdSettle = root.quickTimer(function (t) { return t.interval === quick.followSettleMs })
+            root.holdSettle = root.quickTimer(function (t) { return t.objectName === "followSettle" })
             root.holdCap = root.quickTimer(function (t) { return t.running && t.interval !== quick.followSettleMs && t.interval !== quick.stripHideMs })
             root.holdCaps = quick.revealCaps
             if (root.holdCap)
