@@ -85,6 +85,7 @@ pub struct View {
     pub sizes: Option<Rc<dyn FolderSizes>>,
     pub painters: Painters,
     pub typeface: Typeface,
+    pub words: Rc<flea_gui::row::format::Words>,
 }
 
 impl Render for View {
@@ -106,6 +107,7 @@ impl Render for View {
                 scroll,
                 self.clip.clone(),
                 paint,
+                Rc::clone(&self.words),
             );
             let element = match &self.sizes {
                 Some(sizes) => element.with_sizes(Rc::clone(sizes)),
@@ -142,6 +144,7 @@ pub fn open(
         sizes: None,
         painters: Painters::default(),
         typeface: typeface(),
+        words: Rc::new(super::fixture::words()),
     })
 }
 

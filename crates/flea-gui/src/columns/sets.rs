@@ -167,24 +167,17 @@ pub fn cell_text(
     mtime: Option<i64>,
     kind: Option<&str>,
     walk: Option<(u64, bool)>,
+    words: &row::format::Words,
 ) -> String {
-    let locale = flea::i18n::Locale::default();
     match key {
         "mode" => permissions(facts.mode),
-        "size" if row::is_symlink(facts.mode) => "link".into(),
-        "size" if !facts.dir => locale.format_size(facts.size),
-        "size" => walk.map_or_else(
-            || "\u{b7}".into(),
-            |(bytes, partial)| {
-                format!(
-                    "{}{}",
-                    if partial { ">" } else { "" },
-                    locale.format_size(bytes)
-                )
-            },
+        "size" => row::format::size_text(
+            facts,
+            walk.map(|(bytes, partial)| crate::navigation::sort::Size { bytes, partial }),
+            words,
         ),
         "date" => mtime
-            .and_then(|stamp| locale.format_date(stamp))
+            .and_then(|stamp| words.locale.format_date(stamp))
             .unwrap_or_else(|| "--".into()),
         _ => kind.unwrap_or("").into(),
     }

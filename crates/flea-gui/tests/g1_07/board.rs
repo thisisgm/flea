@@ -1,5 +1,6 @@
 //! The Columns boards' own numbers: track rects, dividers, row cells and each row state's plate and inks.
 use super::fixture::row;
+use super::fixture::words;
 use super::frames::{frame, held, open, real_cx, set, typeface};
 use super::track_frames::{self, look};
 use flea::protocol::RowFacts;
@@ -40,14 +41,35 @@ fn view(slot: Slot, x: f32, width: f32, divider: bool) -> TrackView {
 
 fn palette() -> Palette {
     // The theme roles stand in: every assertion below wires roles to roles, never absolute inks.
+    // Each role blends the theme foreground at its own opacity, so a role drawn in another's place changes the ink.
     let theme = Theme::default();
+    let foreground = theme.foreground;
     Palette {
         background: theme.background,
-        foreground: theme.foreground,
-        muted: theme.foreground.opacity(0.5),
-        muted_frame: theme.foreground.opacity(0.4),
-        accent: theme.foreground,
-        accent_frame: theme.foreground,
+        foreground,
+        muted: foreground.opacity(0.5),
+        muted_frame: foreground.opacity(0.4),
+        accent: foreground.opacity(0.8),
+        accent_frame: foreground.opacity(0.7),
+    }
+}
+
+#[test]
+fn the_palette_fixture_gives_each_role_its_own_ink() {
+    let palette = palette();
+    let roles = [
+        palette.background,
+        palette.foreground,
+        palette.muted,
+        palette.muted_frame,
+        palette.accent,
+        palette.accent_frame,
+    ];
+    for (at, role) in roles.iter().enumerate() {
+        assert!(
+            roles[at + 1..].iter().all(|other| other != role),
+            "role {at} shares its ink with a later role"
+        );
     }
 }
 
@@ -178,9 +200,14 @@ fn each_row_state_paints_the_board_plate_and_inks() {
     // Cursor with the keyboard: the 18% accent wash, the 2 px accent-frame edge, foreground name, mark and chevron.
     assert_eq!(
         focused.plate(&p, Slot::Active, 1, false),
-        Some(alpha(p.accent, WASH))
+        Some(p.accent.opacity(WASH))
     );
     assert!(focused.edge(Slot::Active, 1) && EDGE == 2.);
+    assert_eq!(
+        p.edge(),
+        p.accent_frame,
+        "the cursor edge draws in the accent frame"
+    );
     let cursor = p.row_ink(Clip::None, true, false, false);
     assert_eq!(
         (cursor.name, cursor.mark, cursor.chevron),
@@ -223,7 +250,8 @@ fn a_folder_size_reads_its_answered_walk() {
             Some(Size {
                 bytes: 22_100,
                 partial: false
-            })
+            }),
+            &words()
         ),
         "22.1 kB"
     );
@@ -233,11 +261,12 @@ fn a_folder_size_reads_its_answered_walk() {
             Some(Size {
                 bytes: 60,
                 partial: true
-            })
+            }),
+            &words()
         ),
         ">60 B"
     );
-    assert_eq!(size_text(&folder, None), "\u{b7}");
+    assert_eq!(size_text(&folder, None, &words()), "\u{b7}");
     let file = row("notes.txt", false);
     assert_eq!(
         size_text(
@@ -245,7 +274,8 @@ fn a_folder_size_reads_its_answered_walk() {
             Some(Size {
                 bytes: 99,
                 partial: false
-            })
+            }),
+            &words()
         ),
         "13 B"
     );
@@ -259,7 +289,8 @@ fn a_folder_size_reads_its_answered_walk() {
             Some(Size {
                 bytes: 462,
                 partial: false
-            })
+            }),
+            &words()
         ),
         "link"
     );

@@ -23,7 +23,7 @@ impl Theme {
     }
 
     // Sample input: color0='#101315' or background = "#101315", one key=value per line.
-    fn from_text(text: &str) -> Self {
+    pub fn from_text(text: &str) -> Self {
         let values: Vec<_> = colours::entries(text)
             .into_iter()
             .filter_map(|(key, hex)| Some((key, u32::from_str_radix(&hex[1..], 16).ok()?)))

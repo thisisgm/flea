@@ -276,7 +276,7 @@ impl Element for TrashList {
                 if *index == state.cursor && state.edge {
                     window.paint_quad(fill(
                         Bounds::new(point(left, top), size(px(EDGE), px(ROW_H))),
-                        ink.accent_frame,
+                        ink.edge(),
                     ));
                 }
                 let Some(line) = state.line(*index) else {

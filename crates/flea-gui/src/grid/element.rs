@@ -1,4 +1,6 @@
 //! The grid tile Element: one Element paints every drawn tile from prepared captions and lent pictures, with no layout node per tile.
+#[cfg(test)]
+mod ink_tests;
 mod paint;
 mod tip;
 

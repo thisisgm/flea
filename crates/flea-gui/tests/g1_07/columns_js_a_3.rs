@@ -1,6 +1,6 @@
 //! tests/js/columns.js runListWidths, runColumnFit, runStoredWidths: drag and fit widths.
 use super::check::Checks;
-use super::fixture::row;
+use super::fixture::{row, words};
 use flea::jsondoc::Json;
 use flea::protocol::RowFacts;
 use flea_gui::columns::sets::{
@@ -84,37 +84,44 @@ fn a_fit_measures_the_strings_a_row_draws() {
     c.eq(
         273,
         "a file fits its size",
-        cell_text("size", &file, None, None, None),
+        cell_text("size", &file, None, None, None, &words()),
         "18.0 kB".to_owned(),
     );
     c.eq(
         274,
         "a link fits its kind, not its target length",
-        cell_text("size", &link, None, None, None),
+        cell_text("size", &link, None, None, None, &words()),
         "link".to_owned(),
     );
     c.eq(
         276,
         "a folder without a walk fits the bare mark",
-        cell_text("size", &folder, None, None, None),
+        cell_text("size", &folder, None, None, None, &words()),
         "\u{b7}".to_owned(),
     );
     c.eq(
         278,
         "a folder with a walk fits its size",
-        cell_text("size", &folder, None, None, Some((124_700_000, false))),
+        cell_text(
+            "size",
+            &folder,
+            None,
+            None,
+            Some((124_700_000, false)),
+            &words(),
+        ),
         "124.7 MB".to_owned(),
     );
     c.eq(
         280,
         "a partial walk keeps its mark",
-        cell_text("size", &folder, None, None, Some((1000, true))),
+        cell_text("size", &folder, None, None, Some((1000, true)), &words()),
         ">1.0 kB".to_owned(),
     );
     c.eq(
         282,
         "a row with no mtime fits the bare mark",
-        cell_text("date", &file, None, None, None),
+        cell_text("date", &file, None, None, None, &words()),
         "--".to_owned(),
     );
     // The kind dictionary holds one name, so index 99 resolves to no name at all.
@@ -122,7 +129,7 @@ fn a_fit_measures_the_strings_a_row_draws() {
     c.eq(
         284,
         "a kind past the dictionary reads empty, never a crash",
-        cell_text("kind", &file, None, kinds.get(99).copied(), None),
+        cell_text("kind", &file, None, kinds.get(99).copied(), None, &words()),
         String::new(),
     );
     c.finish();

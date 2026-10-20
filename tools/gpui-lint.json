@@ -10,7 +10,38 @@
     "flea_gui::window::render::Shell::render"
   ],
   "blocking_helpers": [],
-  "blocking_exceptions": [],
+  "blocking_exceptions": [
+    {
+      "caller": "flea_gui::path::field::FieldElement::prepaint",
+      "symbol": "read",
+      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
+    },
+    {
+      "caller": "flea_gui::path::field::FieldElement::paint",
+      "symbol": "read",
+      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
+    },
+    {
+      "caller": "flea_gui::path::menu::MenuElement::prepaint",
+      "symbol": "read",
+      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
+    },
+    {
+      "caller": "flea_gui::path::menu::MenuElement::paint",
+      "symbol": "read",
+      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
+    },
+    {
+      "caller": "flea_gui::path::paint::CrumbElement::prepaint",
+      "symbol": "read",
+      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
+    },
+    {
+      "caller": "flea_gui::path::paint::CrumbElement::paint",
+      "symbol": "read",
+      "reason": "gpui Entity::read returns a shared borrow of the entity state, not I/O"
+    }
+  ],
   "non_color_hex_constants": [],
   "color_modules": [
     {

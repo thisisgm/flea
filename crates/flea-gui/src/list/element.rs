@@ -336,7 +336,6 @@ impl Element for ListElement {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
         let palette = state.palette(window, theme);
         state.drawn_cursor = self.states.cursor;
-        crate::visual::geometry::rows(&state, bounds, self.scroll_y, metrics.row, window);
         let held = &*self.held;
         let ListState {
             typeface,
@@ -468,6 +467,8 @@ impl Element for ListElement {
             }),
             loading,
         };
+        // The probe reads this frame's rows, so it runs after the visible rows are rebuilt above.
+        crate::visual::geometry::rows(&state, bounds, self.scroll_y, metrics.row, window);
         Frame {
             palette,
             metrics,

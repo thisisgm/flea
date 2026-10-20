@@ -57,18 +57,17 @@ case $dup_out in
   *) echo "FAIL duplicate is named: got '$dup_out'"; fail=1 ;;
 esac
 
-# The crates scanner reads the index, so an untracked scratch file cannot stand in for coverage.
-# The line counts below track the tool's record for this file; the join's merge message names the new record.
+# The crates scanner reads the index, so the scratch list.rs is staged and counted at the tool's recorded 538 lines.
 mkdir -p "$scratch/crates/flea-gui/src"
 git -C "$scratch" init -q || exit 1
-seq 1 533 | sed 's/^/\/\/ line /' > "$scratch/crates/flea-gui/src/list.rs"
+seq 1 538 | sed 's/^/\/\/ line /' > "$scratch/crates/flea-gui/src/list.rs"
 git -C "$scratch" add crates || exit 1
 ( cd "$scratch" && "$repo/tools/flea-file-budget" > crates-control.log 2>&1 )
-check "a tracked crates file at its recorded 533 lines passes" 0 $?
+check "a tracked crates file at its recorded 538 lines passes" 0 $?
 printf '// growth\n' >> "$scratch/crates/flea-gui/src/list.rs"
 ( cd "$scratch" && "$repo/tools/flea-file-budget" > crates-mutant.log 2>&1 )
 check "a tracked crates file past its record fails" 1 $?
-if grep -qF 'GREW      crates/flea-gui/src/list.rs: 534 lines, recorded 533' "$scratch/crates-mutant.log"; then
+if grep -qF 'GREW      crates/flea-gui/src/list.rs: 539 lines, recorded 538' "$scratch/crates-mutant.log"; then
   echo "ok   crates growth names its measured record"
 else
   echo "FAIL crates growth did not name its measured record"

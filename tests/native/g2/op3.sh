@@ -4,6 +4,7 @@ set -euo pipefail
 : "${W:?absolute staged candidate tree}" "${Q_BIN:?verified v0.3.12 launcher}" "${G_BIN:?verified GPUI flea binary}"
 [[ $W == /* && -d $W ]] || { printf 'W must be an absolute tree\n' >&2; exit 2; }
 cd "$W"
+[ -n "${FLEA_VISUAL_DESIGN:-}" ] || { printf 'BLOCKED: FLEA_VISUAL_DESIGN unset\n' >&2; exit 2; }
 mkdir -p "$W/.superpowers/g2-op3"
 E=$(mktemp -d "$W/.superpowers/g2-op3/native.XXXXXXXX")
 : > "$E/.flea-test-sandbox"
@@ -21,7 +22,6 @@ for arm in qml gpui; do
         XDG_RUNTIME_DIR="$E/$arm/runtime" bash tests/ui.sh "${cases[@]}" > "$E/$arm/ui.log" 2>&1 || printf '%s ui.sh exit %s\n' "$arm" "$?" >> "$E/failures"
 done
 test -x tools/flea-ci-visual || { printf 'BLOCKED: the GPUI scene CLI tools/flea-ci-visual is absent\n' >&2; exit 2; }
-: "${FLEA_VISUAL_DESIGN:?the caller passes the design-hig root the boards resolve under}"
 for arm in qml gpui; do
     tools/flea-ci-visual --frontend "$arm" --manifest tests/visual/g2/op3.json --output "$E/visual/$arm" --design "$FLEA_VISUAL_DESIGN"
 done

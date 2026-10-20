@@ -2,7 +2,7 @@
 use super::check::Checks;
 use super::fixture::{drain_asks, reply, row, Pane, Producers, SETTINGS};
 use super::frames::{frame, held, open, read, real_cx, set};
-use super::track_frames::{active, files, misses, palette, peeks, track, visible};
+use super::track_frames::{active, files, install_theme, misses, palette, peeks, track, visible};
 use flea_gui::columns::{
     geometry::Slot,
     paint::{Clip, CUT},
@@ -155,6 +155,7 @@ fn a_short_column_draws_every_row() {
 fn a_cut_row_dims_its_content_and_an_uncut_row_keeps_its_roles() {
     let mut c = Checks::new("tests/columnrow-geom.qml");
     let mut cx = real_cx();
+    install_theme(&mut cx);
     let window = open(
         &mut cx,
         Rc::from([active(294.)]),

@@ -23,9 +23,12 @@ pub struct TrackElement {
     clip: Option<Rc<dyn ClipMarks>>,
     sizes: Option<Rc<dyn FolderSizes>>,
     paint: Rc<RefCell<TrackPaint>>,
+    words: Rc<crate::row::format::Words>,
 }
 
 impl TrackElement {
+    // Words is required: a default would let a track print another locale's size text unnoticed.
+    #[allow(clippy::too_many_arguments)]
     pub fn new(
         tracks: Rc<[TrackView]>,
         at: usize,
@@ -34,6 +37,7 @@ impl TrackElement {
         scroll_y: f32,
         clip: Option<Rc<dyn ClipMarks>>,
         paint: Rc<RefCell<TrackPaint>>,
+        words: Rc<crate::row::format::Words>,
     ) -> Self {
         Self {
             tracks,
@@ -44,6 +48,7 @@ impl TrackElement {
             clip,
             sizes: None,
             paint,
+            words,
         }
     }
 
@@ -183,6 +188,7 @@ impl Element for TrackElement {
             clip_cells: ((GAP + CLIP) / advance.max(1.)).ceil() as usize,
             size: shows_size,
             scale: window.scale_factor(),
+            words: Rc::clone(&self.words),
         };
         let height = f32::from(bounds.size.height);
         let total = self.total();
@@ -210,7 +216,9 @@ impl Element for TrackElement {
                 row.map(|row| cache.get(index, row, mark != Clip::None, walk, &shaping, window));
             visible.push((index, prepared, mark));
         }
-        Palette::inherited(&window.text_style(), theme)
+        let palette = Palette::inherited(&window.text_style(), theme);
+        paint.painted = Some(palette);
+        palette
     }
 
     fn paint(
@@ -247,7 +255,7 @@ impl Element for TrackElement {
                     window.paint_quad(fill(row_box(top, width), plate));
                 }
                 if self.focus.edge(view.slot, *index) {
-                    window.paint_quad(fill(row_box(top, EDGE), palette.accent_frame));
+                    window.paint_quad(fill(row_box(top, EDGE), palette.edge()));
                 }
             }
             // One layer for every mark and glyph, so the scene orders the whole track once rather than once a line.
