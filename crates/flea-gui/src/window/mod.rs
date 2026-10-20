@@ -5,6 +5,7 @@ pub mod input;
 pub mod lifecycle;
 pub mod locale;
 pub mod navigate;
+pub mod overlay;
 pub(crate) mod pane;
 mod render;
 pub mod root;
@@ -47,6 +48,10 @@ pub fn open(
     .map_err(|error| error.to_string())
 }
 
+#[cfg(test)]
+mod overlay_escape_tests;
+#[cfg(test)]
+mod overlay_tests;
 #[cfg(test)]
 mod surfaces_tests;
 #[cfg(test)]

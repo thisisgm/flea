@@ -23,6 +23,9 @@ pub struct Shell {
     pub keyboard: crate::window::input::Keyboard,
     pub(crate) panes: [Option<PaneHost>; 2],
     pub(crate) surfaces: [crate::window::surfaces::Surfaces; 2],
+    pub(crate) overlay: Option<gpui::Entity<crate::g2::op1::host::Overlay>>,
+    /// The corner rounding scenes drive and cards draw; the compositor seam default until a scene sets it.
+    pub(crate) corner: f32,
     pub(crate) locale: Snapshot,
     pub(crate) labels: Labels,
     pub(crate) path_labels: [SharedString; 2],
@@ -74,6 +77,8 @@ impl Shell {
             seam,
             panes: [None, None],
             surfaces: Default::default(),
+            overlay: None,
+            corner: crate::g2::st1::seams::COMPOSITOR_CORNER_DEFAULT,
             slots: Slots::default(),
             lifecycle: Lifecycle::default(),
             ipc_events: Some(events),

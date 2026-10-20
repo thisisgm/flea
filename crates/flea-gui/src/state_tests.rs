@@ -55,6 +55,8 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         keyboard: Default::default(),
         panes: [Some(host), None],
         surfaces: Default::default(),
+        overlay: None,
+        corner: crate::g2::st1::seams::COMPOSITOR_CORNER_DEFAULT,
         focus: cx.focus_handle(),
         seam: Seam::new(),
         ipc_events: None,

@@ -1,0 +1,101 @@
+{
+  "scenes": [
+    {
+      "board": "copyto",
+      "caret_blink": false,
+      "changes": [
+        "list"
+      ],
+      "corner_radius": 8,
+      "covers": [
+        "board:copyto"
+      ],
+      "cursor": 0,
+      "decisions": [],
+      "density": "compact",
+      "fixture": "work",
+      "height": 700,
+      "id": "g2.op1.copyto.r8",
+      "reduced_motion": true,
+      "selection": [],
+      "text_size": 14,
+      "theme": "bench",
+      "unit": "G2-op1",
+      "view": "list",
+      "width": 1100
+    },
+    {
+      "board": "copyto",
+      "caret_blink": false,
+      "changes": [
+        "list"
+      ],
+      "corner_radius": 0,
+      "covers": [
+        "board:copyto"
+      ],
+      "cursor": 0,
+      "decisions": [],
+      "density": "compact",
+      "fixture": "work",
+      "height": 700,
+      "id": "g2.op1.copyto.r0",
+      "reduced_motion": true,
+      "selection": [],
+      "text_size": 14,
+      "theme": "bench",
+      "unit": "G2-op1",
+      "view": "list",
+      "width": 1100
+    },
+    {
+      "board": "copyto-empty",
+      "caret_blink": false,
+      "changes": [
+        "list"
+      ],
+      "corner_radius": 8,
+      "covers": [
+        "board:copyto-empty"
+      ],
+      "cursor": 0,
+      "decisions": [],
+      "density": "compact",
+      "fixture": "work",
+      "height": 700,
+      "id": "g2.op1.copyto-empty.r8",
+      "reduced_motion": true,
+      "selection": [],
+      "text_size": 14,
+      "theme": "bench",
+      "unit": "G2-op1",
+      "view": "list",
+      "width": 1100
+    },
+    {
+      "board": "copyto-empty",
+      "caret_blink": false,
+      "changes": [
+        "list"
+      ],
+      "corner_radius": 0,
+      "covers": [
+        "board:copyto-empty"
+      ],
+      "cursor": 0,
+      "decisions": [],
+      "density": "compact",
+      "fixture": "work",
+      "height": 700,
+      "id": "g2.op1.copyto-empty.r0",
+      "reduced_motion": true,
+      "selection": [],
+      "text_size": 14,
+      "theme": "bench",
+      "unit": "G2-op1",
+      "view": "list",
+      "width": 1100
+    }
+  ],
+  "version": 1
+}
