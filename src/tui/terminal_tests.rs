@@ -152,6 +152,7 @@ fn real_pty_startup_resize_legacy_quit_and_signaled_quit_restore_the_terminal() 
             }
             if let Some(status) = child.try_wait().unwrap() { break status; }
         };
+        drain_exited_pty(&mut master, &mut transcript);
         assert!(status.success(), "PTY child failed: {}", String::from_utf8_lossy(&transcript));
         assert!(String::from_utf8_lossy(&transcript).contains("flea: terminal capabilities Capabilities { graphics: None"));
         assert_eq!(mode(&slave), saved);
@@ -163,6 +164,38 @@ fn real_pty_startup_resize_legacy_quit_and_signaled_quit_restore_the_terminal() 
         if enhanced { assert!(observed.contains("keyboard: Kitty")); } else { assert!(!observed.contains("keyboard: Kitty")); }
         println!("PTY {name}: saved={:?} restored={:?} observed={observed}", saved, mode(&slave));
     }
+}
+
+fn drain_exited_pty(master: &mut std::fs::File, transcript: &mut Vec<u8>) {
+    use std::os::fd::AsRawFd;
+    // Child exit can become visible between the last poll and the child's final terminal write.
+    while wait_input(master.as_raw_fd(), -1, 0).unwrap() {
+        let mut bytes = [0; 4096];
+        match master.read(&mut bytes) {
+            Ok(0) | Err(_) => break,
+            Ok(n) => transcript.extend_from_slice(&bytes[..n]),
+        }
+    }
+}
+
+#[test]
+fn an_exited_pty_child_still_has_its_final_terminal_write_to_drain() {
+    use std::os::fd::{AsRawFd, FromRawFd};
+    #[link(name = "util")]
+    extern "C" {
+        fn openpty(master: *mut i32, slave: *mut i32, name: *mut u8, termios: *const u8, size: *const WindowSize) -> i32;
+    }
+    let (mut master, mut slave) = (-1, -1);
+    assert_eq!(unsafe { openpty(&mut master, &mut slave, std::ptr::null_mut(), std::ptr::null(), std::ptr::null()) }, 0);
+    let mut master = unsafe { std::fs::File::from_raw_fd(master) };
+    let slave = unsafe { std::fs::File::from_raw_fd(slave) };
+    let mut child = Command::new("/usr/bin/printf").args(["%s", std::str::from_utf8(LEAVE).unwrap()])
+        .stdout(slave.try_clone().unwrap()).spawn().unwrap();
+    assert!(child.wait().unwrap().success());
+    assert!(wait_input(master.as_raw_fd(), -1, 0).unwrap(), "exited child must have unread output");
+    let mut transcript = Vec::new();
+    drain_exited_pty(&mut master, &mut transcript);
+    assert_eq!(transcript, LEAVE);
 }
 
 

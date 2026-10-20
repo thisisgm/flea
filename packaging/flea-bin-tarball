@@ -59,7 +59,7 @@ root="$stage/$name"
 umask 022
 install -Dm755 "$binary" "$root/flea"
 install -Dm755 "$gui" "$root/flea-gui"
-install -Dm644 "$repo/LICENSE" -t "$root"
+install -Dm644 "$repo/LICENSE" "$repo/THIRD-PARTY-LICENSES.txt" -t "$root"
 install -Dm755 "$repo/tools/flea-gio-auth" "$repo/tools/flea-udisks" "$repo/tools/flea-portal" "$repo/tools/flea-filemanager1" "$repo/tools/flea-mpris" -t "$root/tools"
 install -Dm644 "$repo/packaging/flea.portal" \
   "$repo/packaging/org.freedesktop.impl.portal.desktop.flea.service" \
