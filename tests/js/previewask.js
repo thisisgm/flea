@@ -55,6 +55,14 @@ function run(check) {
     // A load made at once leaves its rest running, armed only once the load returns, so a key its work held back trails.
     check("an at-once load arms the rest after its own work",
         /root\.fireSettle\(\)\s*\/\/[^\n]*\n\s*rested\.restart\(\)/.test(column), true)
+    // Quick Look's follow reads the same rule: the settle it keeps for an earlier row, or a load made at once whose rest has not run out.
+    var quick = Source.source("ui/Preview.qml")
+    check("Quick Look passes an unrested cursor to its follow decision",
+        quick.indexOf("followSettle.running, root.unrested(key))") >= 0
+        && quick.indexOf("function unrested(key) { return (followSettle.running && root.lastMoveKey !== key) || rested.running }") >= 0, true)
+    check("an at-once follow arms the rest after its own work",
+        /root\.load\(newPath, newIcon, newSize, newKind, newThumb, root\.pendingImageRow\)\s*\/\/[^\n]*\n\s*rested\.restart\(\)/.test(quick)
+        && quick.indexOf("Timer { id: rested; interval: root.followSettleMs }") >= 0, true)
     check("unknown storage asks nothing early, a NAS image would thumbnail in full",
         PreviewAsk.earlyWorkFor(earlyBase({ storageKnown: false })), null)
     check("and load's own ask stays held too", PreviewAsk.workFor(base({ storageKnown: false })), null)
