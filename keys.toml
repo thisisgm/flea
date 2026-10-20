@@ -682,6 +682,195 @@ windows = ["ctrl-c", "ctrl-v"]
 key = "hint.filter"
 text = "Press %1 to filter this folder by name"
 
+# The terminal keys sheet: its title and row labels, kept with their catalog keys.
+[[native_copy]]
+key = "title"
+text = "Keyboard Shortcuts"
+
+[[native_copy]]
+key = "cursorDown"
+text = "Cursor down"
+
+[[native_copy]]
+key = "cursorUp"
+text = "Cursor up"
+
+[[native_copy]]
+key = "cursorFirst"
+text = "First item"
+
+[[native_copy]]
+key = "cursorLast"
+text = "Last item"
+
+[[native_copy]]
+key = "pageDown"
+text = "Page down"
+
+[[native_copy]]
+key = "pageUp"
+text = "Page up"
+
+[[native_copy]]
+key = "open"
+text = "Open"
+
+[[native_copy]]
+key = "parent"
+text = "Parent folder"
+
+[[native_copy]]
+key = "historyBack"
+text = "Back"
+
+[[native_copy]]
+key = "historyForward"
+text = "Forward"
+
+[[native_copy]]
+key = "focusPreview"
+text = "Focus the preview"
+
+[[native_copy]]
+key = "tabNew"
+text = "New tab"
+
+[[native_copy]]
+key = "openTab"
+text = "Open in new tab"
+
+[[native_copy]]
+key = "tabClose"
+text = "Close tab"
+
+[[native_copy]]
+key = "tabNext"
+text = "Next tab"
+
+[[native_copy]]
+key = "tabPrevious"
+text = "Previous tab"
+
+[[native_copy]]
+key = "tabMoveLeft"
+text = "Move tab left"
+
+[[native_copy]]
+key = "tabMoveRight"
+text = "Move tab right"
+
+[[native_copy]]
+key = "escape"
+text = "Close or go back"
+
+[[native_copy]]
+key = "selectTab"
+text = "Select tab"
+
+[[native_copy]]
+key = "quit"
+text = "Quit"
+
+[[native_copy]]
+key = "keymapSheet"
+text = "Keyboard Shortcuts"
+
+[[native_copy]]
+key = "preview"
+text = "Quick Look"
+
+[[native_copy]]
+key = "toggleHidden"
+text = "Hidden files"
+
+[[native_copy]]
+key = "detailNext"
+text = "Detail column"
+
+[[native_copy]]
+key = "filter"
+text = "Filter"
+
+[[native_copy]]
+key = "search"
+text = "Find"
+
+[[native_copy]]
+key = "searchContents"
+text = "Search contents"
+
+[[native_copy]]
+key = "reveal"
+text = "Reveal"
+
+[[native_copy]]
+key = "sortNext"
+text = "Sort"
+
+[[native_copy]]
+key = "sortReverse"
+text = "Reverse sort"
+
+[[native_copy]]
+key = "pathBar"
+text = "Go to folder"
+
+[[native_copy]]
+key = "copy"
+text = "Copy"
+
+[[native_copy]]
+key = "cut"
+text = "Cut"
+
+[[native_copy]]
+key = "paste"
+text = "Paste"
+
+[[native_copy]]
+key = "rename"
+text = "Rename"
+
+[[native_copy]]
+key = "trash"
+text = "Move to Trash"
+
+[[native_copy]]
+key = "deletePermanently"
+text = "Delete permanently"
+
+[[native_copy]]
+key = "undo"
+text = "Undo"
+
+[[native_copy]]
+key = "redo"
+text = "Redo"
+
+[[native_copy]]
+key = "newFolder"
+text = "New folder"
+
+[[native_copy]]
+key = "toggleSelect"
+text = "Select"
+
+[[native_copy]]
+key = "menu"
+text = "Menu"
+
+[[native_copy]]
+key = "openTerminal"
+text = "Open terminal"
+
+[[native_copy]]
+key = "openAgent"
+text = "Open agent here"
+
+[[native_copy]]
+key = "print"
+text = "Print…"
+
 # Native presentation uses the approved action names; legacy generated JavaScript stays frozen.
 [native_labels]
 cursorDown = "Cursor down"
