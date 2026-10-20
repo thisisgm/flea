@@ -14,6 +14,10 @@ soft_js=200;   hard_js=300
 known_over_cap="shelf/Model.js 701
 crates/flea-gui/src/g2/mn1/menu.rs 569
 crates/flea-gui/src/g2/mn1/tests.rs 678
+crates/flea-gui/src/g2/op1/fix1_tests.rs 427
+crates/flea-gui/src/g2/op1/model.rs 594
+crates/flea-gui/src/g2/op1/view.rs 667
+crates/flea-gui/src/g2/pv2/surface.rs 407
 crates/flea-gui/src/columns/mod.rs 404
 crates/flea-gui/src/g2/op3/card_tests.rs 474
 crates/flea-gui/src/g2/pl3/pane.rs 456
@@ -75,7 +79,7 @@ src/backend/opsdispatch.rs 2414
 src/backend/opsreq.rs 605
 src/backend/opsreq/tests.rs 502
 src/backend/permissions.rs 703
-src/backend/run.rs 1270
+src/backend/run.rs 1252
 src/backend/officepdf.rs 430
 src/backend/run_session_tests.rs 544
 src/backend/ops.rs 440
@@ -89,7 +93,7 @@ src/backend/undo_tests.rs 439
 src/backend/undoshare.rs 468
 src/backend/undoshare_tests.rs 574
 src/backend/collide_replace_tests.rs 492
-src/backend/proto.rs 406
+src/backend/proto.rs 408
 src/backend/sandbox.rs 410
 src/backend/thumbworker.rs 961
 src/backend/trashbrowse.rs 1055
@@ -104,8 +108,8 @@ src/tui/input.rs 455
 src/tui/model.rs 1286
 src/tui/mod.rs 459
 src/tui/render.rs 260
-src/uischema.rs 615
-src/uistate.rs 849
+src/uischema.rs 619
+src/uistate.rs 853
 src/uistore.rs 568
 src/vulkan.rs 751
 tests/js/columns.js 687
@@ -325,7 +329,3 @@ done < <(
 )
 
 exit $status
-src/backend/run.rs 1150
-src/backend/proto.rs 491
-src/uischema.rs 601
-src/uistate.rs 853
