@@ -49,6 +49,9 @@ impl Shell {
         }
         let entered = surfaces.shown.map(|(previous, _, _)| previous) != Some(kind);
         surfaces.shown = Some(key);
+        if !matches!(kind, Kind::Locked | Kind::Error) {
+            surfaces.refusal = None;
+        }
         let catalog = self.locale.catalog.clone();
         let in_list = self.view == View::List;
         let metrics = if self.view == View::Grid { GRID } else { LIST };
@@ -100,5 +103,11 @@ impl Surfaces {
     /// Entities built so far; a window that has not shown a state builds none.
     pub(crate) fn built(&self) -> usize {
         usize::from(self.hero.is_some()) + usize::from(self.notice.is_some())
+    }
+    /// The facts the mounted message draws, if it draws any.
+    pub(crate) fn facts(&self, cx: &impl AppContext) -> Option<Facts> {
+        self.notice
+            .as_ref()
+            .and_then(|notice| notice.read_with(cx, |notice, _| notice.facts().cloned()))
     }
 }

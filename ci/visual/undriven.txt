@@ -1,18 +1,16 @@
-# G2 scenes BLOCKED from native registration (gcomp-wire). One line per scene: <id> BLOCKED <owner>: <reason>.
-# No scene file under ci/visual/g2 is registered: no v0.3.12 before-capture or board copy exists in the units,
-# and the native scene runner (G0.10) is absent, so a registered scene would carry invented provenance.
-g2.op1.collide-merge-inner.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.collide-merge.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.collide-replace.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.collide-skip.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.collide.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.copyto-empty.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.copyto.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.delete-focus.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.delete.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.jobs.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.trash-arm.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
-g2.op1.trash-emptying.primary BLOCKED op1: G1 compositor radius, G1.05 keys, G1 transport, G0.10: op1 overlay slot has no route
+# G2 scenes BLOCKED from native registration (gcomp-wire FIX1). One line per scene: <id> BLOCKED <owner>: <reason>.
+# Registered in ci/visual/g2/fb1.json (empty, locked, grid-empty, grid-locked, empty-rest, extra.empty-reduced) and ci/visual/g2/op1.json
+# (copyto, copyto-empty); the copy_to scenes also resolve in the compiled scene registry (ci/visual/scenes/g2-op1.json).
+g2.op1.collide-merge-inner.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.collide-merge.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.collide-replace.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.collide-skip.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.collide.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
+g2.op1.delete-focus.primary BLOCKED op1: menu Delete row (mn1 menu) and G1.05 keys; G0.10 runner
+g2.op1.delete.primary BLOCKED op1: menu Delete row (mn1 menu) and G1.05 keys; G0.10 runner
+g2.op1.jobs.primary BLOCKED op1: job backend lines (G1.02 transport); G0.10 runner
+g2.op1.trash-arm.primary BLOCKED op1: Trash view arming and status producers (G1.13); G0.10 runner
+g2.op1.trash-emptying.primary BLOCKED op1: Trash view and emptying lines (G1.02 transport); G0.10 runner
 g2.pv2.cols-preview-pdf3.primary BLOCKED pv2: pv1 Quick Look host (not in tree)
 g2.pv2.ql-pdf.primary BLOCKED pv2: pv1 Quick Look host (not in tree)
 g2.pv2.ql-pdf3.primary BLOCKED pv2: pv1 Quick Look host (not in tree)
@@ -60,35 +58,29 @@ g2.st1.settings-view.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11
 g2.pk1 BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
 g2.pk1.picker-open.primary BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
 g2.pk1.picker-save.primary BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
-g2.fb1.cols-insideempty.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.cols-peekempty.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.cols2-hero-empty.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.cols4-hero-empty.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.empty-beat.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.empty-rest.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.empty.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.error.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.empty-beat2 BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.empty-beat3 BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.empty-reduced BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.error-detail BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.error-then-receipt BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.focus-return-324 BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.hints-off BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.hints-on BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.loading-cancel BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.loading-slow BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.locale-de BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.no-trash BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.receipt-then-error BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.reload-under-card BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.undo-hint BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.extra.waiting BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.grid-empty.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.grid-locked.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.locked.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.open-refused.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
-g2.fb1.reload-notice.primary BLOCKED fb1: G0.10 scene registration and v0.3.12 before captures; status-line states also G1.13
+g2.fb1.cols-insideempty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
+g2.fb1.cols-peekempty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
+g2.fb1.cols2-hero-empty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
+g2.fb1.cols4-hero-empty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
+g2.fb1.empty-beat.primary BLOCKED fb1: G0.10 runner time control: must catch the first beat, a path and view setup has no clock
+g2.fb1.error.primary BLOCKED fb1: G1.02 transport: needs a failing backend, a fixture path alone cannot fail
+g2.fb1.extra.empty-beat2 BLOCKED fb1: G0.10 runner time control: must catch the second beat, a path and view setup has no clock
+g2.fb1.extra.empty-beat3 BLOCKED fb1: G0.10 runner time control: must catch the third beat, a path and view setup has no clock
+g2.fb1.extra.error-detail BLOCKED fb1: G1.02 transport: needs a long-detail backend error, a fixture path alone cannot fail
+g2.fb1.extra.error-then-receipt BLOCKED fb1: G1.02 transport: needs backend event ordering, a fixture setup sends one listing
+g2.fb1.extra.focus-return-324 BLOCKED fb1: G1.13 status refusal path: needs a status refusal before focus can return to the pane
+g2.fb1.extra.hints-off BLOCKED fb1: G1.05 keys: needs the key hints preset, no key reaches the window in a scene setup
+g2.fb1.extra.hints-on BLOCKED fb1: G1.05 keys: needs the key hints preset, no key reaches the window in a scene setup
+g2.fb1.extra.loading-cancel BLOCKED fb1: G1.05 keys: needs a cancel keystroke mid-load
+g2.fb1.extra.loading-slow BLOCKED fb1: G1.02 transport: needs a slow backend, a fixture answers at once
+g2.fb1.extra.locale-de BLOCKED fb1: G0.10 runner: scene settings carry no language, so no setup can switch the catalog live
+g2.fb1.extra.no-trash BLOCKED fb1: G1.05 keys: needs the shift-delete hint
+g2.fb1.extra.receipt-then-error BLOCKED fb1: G1.02 transport: needs backend event ordering, a fixture setup sends one listing
+g2.fb1.extra.reload-under-card BLOCKED fb1: G1.13 status MessageLine: the card half mounts now, the reload notice lives in the status bar
+g2.fb1.extra.undo-hint BLOCKED fb1: G1.05 keys: needs the z keystroke under the pointer
+g2.fb1.extra.waiting BLOCKED fb1: G1.02 transport: needs a pending listing, a fixture never pends
+g2.fb1.open-refused.primary BLOCKED fb1: G1.05 keys plus a backend refusal, and the G1.13 status MessageLine: a setup cannot drive an open, so nothing refuses it and no notice can show
+g2.fb1.reload-notice.primary BLOCKED fb1: G1.13 status MessageLine: the notice lives in the status bar, not in a pane slot
 g2.st2.plugin-add.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough
 g2.st2.plugin-failed.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough
 g2.st2.plugin-git-page.primary BLOCKED st2: st1 host mount, backend PluginsWire send, pluginop passthrough

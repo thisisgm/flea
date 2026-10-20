@@ -11,7 +11,14 @@ pub struct Root {
 }
 
 impl Render for Root {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, _: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // The operations card draws last over the panes, in an absolute full-window box, once open.
+        let overlay = self
+            .shell
+            .read(cx)
+            .overlay
+            .clone()
+            .map(|view| div().absolute().top_0().left_0().size_full().child(view));
         div()
             .size_full()
             .child(
@@ -21,6 +28,7 @@ impl Render for Root {
             )
             // A surface that covers a pane (Quick Look, menus, sheets, dialogs) paints in a later layer than this overlay, a GPUI deferred, so no mark draws over it.
             .child(Overlay(self.shell.clone()))
+            .children(overlay)
     }
 }
 

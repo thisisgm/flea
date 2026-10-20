@@ -114,6 +114,9 @@ impl Store for MemoryStore {
     }
 }
 
+/// Hyprland's decoration rounding until G1's compositor service reads the live value.
+pub const COMPOSITOR_CORNER_DEFAULT: f32 = 8.;
+
 /// What Settings reads but never writes. Seam for G1's Omarchy font and compositor services and the About facts.
 #[derive(Clone, Debug)]
 pub struct Facts {
@@ -131,7 +134,7 @@ pub struct Facts {
 impl Default for Facts {
     fn default() -> Self {
         Self {
-            corner: 8.,
+            corner: COMPOSITOR_CORNER_DEFAULT,
             home: String::new(),
             base_size: 14,
             monitor_scale: f64::NAN,

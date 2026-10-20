@@ -68,6 +68,16 @@ class Sidecars(unittest.TestCase):
         target.write_bytes(source.read_bytes())
         scenes.controls(target)
 
+    def test_listing_scene_without_reference_pair_fails(self):
+        source = Path(__file__).with_name('scenes') / 'g1-01.json'
+        data = json.loads(source.read_text())
+        data['scenes'][3].pop('reference')
+        data['scenes'][3].pop('reference_tag')
+        target = self.root / 'unpaired.json'
+        target.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+            scenes.manifest(target)
+
     def test_another_unit_registers_its_own_scene_values(self):
         source = Path(__file__).with_name('scenes') / 'g1-01.json'
         schema = json.loads(Path(scenes.__file__).with_name('schema.json').read_text())
