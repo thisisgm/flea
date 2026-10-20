@@ -129,7 +129,12 @@ fn string(value: &Json, key: &str) -> Result<String, String> {
 pub fn read_line(input: &mut impl BufRead, limit: usize) -> io::Result<String> {
     let mut bytes = Vec::new();
     loop {
-        let chunk = input.fill_buf()?;
+        // A signal under a receive timeout, or a stop and continue, interrupts the read and is retried.
+        let chunk = match input.fill_buf() {
+            Ok(chunk) => chunk,
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        };
         if chunk.is_empty() {
             return Err(io::Error::new(
                 io::ErrorKind::UnexpectedEof,

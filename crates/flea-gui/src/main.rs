@@ -21,7 +21,12 @@ fn main() {
     let locale = initial
         .recv_blocking()
         .unwrap_or_else(|_| std::process::exit(2));
-    let mut args = Arguments::parse(std::env::args().skip(1)).unwrap_or_else(|error| {
+    let argv: Vec<String> = std::env::args().skip(1).collect();
+    if argv.first().map(String::as_str) == Some("--pick") {
+        let reply = if argv.len() == 2 { argv[1].as_str() } else { "" };
+        std::process::exit(flea_gui::g2::pk1::launch::main(reply, service, locale));
+    }
+    let mut args = Arguments::parse(argv.into_iter()).unwrap_or_else(|error| {
         eprintln!(
             "flea-gui: {}",
             locale.catalog.tr_args(error.key, &[&error.argument])
