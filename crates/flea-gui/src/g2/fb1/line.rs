@@ -1,0 +1,271 @@
+//! The status line's message lane: the window's one message service, drawn as primary, hint, the rest of the lane and the undo target.
+use super::{bump, now_ms, Counters, Ink};
+use crate::list::{Palette, Typeface};
+use flea::i18n::I18n;
+use flea::ui_logic_fb1::messages::{Line, Messages};
+use flea::ui_logic_fb1::status::{Arm, SEP};
+use gpui::{
+    div, prelude::*, px, App, Context, EventEmitter, IntoElement, Render, RenderOnce, SharedString,
+    Task, Window,
+};
+use std::{rc::Rc, sync::Arc, time::Instant};
+
+/// The bar ended an arm on its own clock or by a move, so its owner must zero that stamp.
+#[derive(Clone, Copy, Debug, PartialEq, Eq)]
+pub struct ArmLost(pub Arm);
+
+/// What the undo target runs; the caller gates it through the same predicate as the undo key.
+pub type Undo = Rc<dyn Fn(&mut Window, &mut App)>;
+
+/// The drawn line, translated and joined when the service changes, never per render.
+#[derive(Clone, Debug, Default, PartialEq, Eq)]
+pub struct Drawn {
+    pub primary: SharedString,
+    pub error: bool,
+    pub hint: SharedString,
+    pub extra: SharedString,
+    pub undo: SharedString,
+    pub detail: SharedString,
+    pub busy: bool,
+}
+
+impl From<Line> for Drawn {
+    fn from(line: Line) -> Self {
+        Self {
+            primary: line.primary.into(),
+            error: line.error,
+            hint: line.hint.into(),
+            extra: line.extra.into(),
+            undo: line.undo.into(),
+            detail: line.detail.into(),
+            busy: line.busy,
+        }
+    }
+}
+
+pub struct MessageLine {
+    messages: Messages,
+    catalog: Arc<I18n>,
+    state_message: String,
+    drawn: Drawn,
+    typeface: Typeface,
+    base: Instant,
+    timer: Option<(u64, Task<()>)>,
+    undo: Option<Undo>,
+    pub counters: Rc<Counters>,
+}
+
+impl EventEmitter<ArmLost> for MessageLine {}
+
+impl MessageLine {
+    pub fn new(preset: &str, catalog: Arc<I18n>, cx: &mut Context<Self>) -> Self {
+        Self {
+            messages: Messages::new(preset),
+            catalog,
+            state_message: String::new(),
+            drawn: Drawn::default(),
+            typeface: Typeface::omarchy_default(),
+            base: cx.background_executor().now(),
+            timer: None,
+            undo: None,
+            counters: Rc::default(),
+        }
+    }
+
+    pub fn messages(&self) -> &Messages {
+        &self.messages
+    }
+
+    pub fn drawn(&self) -> &Drawn {
+        &self.drawn
+    }
+
+    pub fn now(&self, cx: &App) -> u64 {
+        now_ms(self.base, cx)
+    }
+
+    /// The head error's detail for the status composition to draw under the strip; None when there is none.
+    pub fn detail(&self) -> Option<Detail> {
+        (!self.drawn.detail.is_empty()).then(|| Detail {
+            text: self.drawn.detail.clone(),
+            typeface: self.typeface.clone(),
+        })
+    }
+
+    pub fn on_undo(&mut self, undo: Undo) {
+        self.undo = Some(undo);
+    }
+
+    /// A new language re-joins the hint words; standing sentences keep the words they were said in.
+    pub fn translated(&mut self, catalog: Arc<I18n>, cx: &mut Context<Self>) {
+        self.catalog = catalog;
+        self.refresh(cx);
+    }
+
+    /// The pane's own state sentence, under which the dismiss key is no news.
+    pub fn set_state_message(&mut self, text: &str, cx: &mut Context<Self>) {
+        if self.state_message != text {
+            self.state_message = text.into();
+            self.refresh(cx);
+        }
+    }
+
+    /// Every change goes through here with the service's clock, then the line is joined and the next wake armed.
+    pub fn update<R>(
+        &mut self,
+        cx: &mut Context<Self>,
+        change: impl FnOnce(&mut Messages, u64) -> R,
+    ) -> R {
+        let now = self.now(cx);
+        let result = change(&mut self.messages, now);
+        self.refresh(cx);
+        result
+    }
+
+    fn refresh(&mut self, cx: &mut Context<Self>) {
+        let drawn = Drawn::from(self.messages.line(&self.catalog, &self.state_message));
+        if drawn != self.drawn {
+            self.drawn = drawn;
+            cx.notify();
+        }
+        self.arm(cx);
+    }
+
+    fn arm(&mut self, cx: &mut Context<Self>) {
+        let Some(deadline) = self.messages.next_deadline() else {
+            self.timer = None;
+            return;
+        };
+        if self
+            .timer
+            .as_ref()
+            .is_some_and(|(armed, _)| *armed == deadline)
+        {
+            return;
+        }
+        bump(&self.counters.timers);
+        let wait = std::time::Duration::from_millis(deadline.saturating_sub(self.now(cx)));
+        let task = cx.spawn(async move |this, cx| {
+            cx.background_executor().timer(wait).await;
+            let _ = this.update(cx, |line, cx| line.due(cx));
+        });
+        self.timer = Some((deadline, task));
+    }
+
+    fn due(&mut self, cx: &mut Context<Self>) {
+        self.timer = None;
+        let now = self.now(cx);
+        let tick = self.messages.tick(now);
+        if let Some(arm) = tick.arm_lost {
+            cx.emit(ArmLost(arm));
+        }
+        self.refresh(cx);
+    }
+}
+
+impl Render for MessageLine {
+    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        bump(&self.counters.renders);
+        let ink = Ink::interim(&Palette::inherited(&window.text_style()));
+        let drawn = &self.drawn;
+        let text = |value: SharedString| {
+            div()
+                .font_family(self.typeface.font.family.clone())
+                .text_size(self.typeface.caption)
+                .whitespace_nowrap()
+                .child(value)
+        };
+        let undo = self.undo.clone();
+        div()
+            .flex()
+            .flex_row()
+            .items_center()
+            .justify_end()
+            .min_w_0()
+            .overflow_hidden()
+            .when(!drawn.primary.is_empty(), |row| {
+                row.child(
+                    text(drawn.primary.clone())
+                        .flex_shrink(1.)
+                        .min_w_0()
+                        .overflow_hidden()
+                        .text_ellipsis_middle()
+                        .text_color(if drawn.error {
+                            ink.error
+                        } else {
+                            ink.foreground
+                        }),
+                )
+            })
+            .when(!drawn.hint.is_empty(), |row| {
+                row.child(text(drawn.hint.clone()).flex_none().text_color(ink.muted))
+            })
+            .when(!drawn.extra.is_empty(), |row| {
+                row.child(
+                    text(drawn.extra.clone())
+                        .flex_shrink(1.)
+                        .min_w_0()
+                        .overflow_hidden()
+                        .text_ellipsis()
+                        .text_color(ink.muted),
+                )
+            })
+            .when(!drawn.undo.is_empty(), |row| {
+                row.child(text(SEP.into()).flex_none().text_color(ink.muted))
+                    .child(
+                        text(drawn.undo.clone())
+                            .id("fb1-undo")
+                            .debug_selector(|| "fb1-undo".into())
+                            .flex_none()
+                            .cursor_pointer()
+                            .text_color(ink.muted)
+                            .hover(move |style| style.text_color(ink.foreground))
+                            // A press and its release on the target, as the oracle's ReleaseWithinBounds tap; a drag ending here does nothing.
+                            .on_click(move |_, window, cx| {
+                                if let Some(undo) = &undo {
+                                    undo(window, cx);
+                                }
+                            }),
+                    )
+            })
+    }
+}
+
+/// StatusBar.qml's detailView: the whole width under the strip, the row padding round wrapped caption text, at most a third of the window, scrolling past that.
+#[derive(IntoElement)]
+pub struct Detail {
+    text: SharedString,
+    typeface: Typeface,
+}
+
+/// Row padding, Theme.spacing.rowPaddingX and rowPaddingY at body 14.
+pub const DETAIL_PAD_X: f32 = 14.;
+pub const DETAIL_PAD_Y: f32 = 7.;
+/// A caption line, as the hero's caption draws it.
+pub const DETAIL_LINE: f32 = 16.;
+
+impl RenderOnce for Detail {
+    fn render(self, window: &mut Window, _: &mut App) -> impl IntoElement {
+        let palette = Palette::inherited(&window.text_style());
+        let ink = Ink::interim(&palette);
+        let cap = window.viewport_size().height / 3.;
+        div()
+            .id("fb1-detail")
+            .debug_selector(|| "fb1-detail".into())
+            .w_full()
+            .max_h(cap)
+            .overflow_y_scroll()
+            .bg(palette.background)
+            .child(
+                div()
+                    .debug_selector(|| "fb1-detail-text".into())
+                    .mx(px(DETAIL_PAD_X))
+                    .my(px(DETAIL_PAD_Y))
+                    .font_family(self.typeface.font.family.clone())
+                    .text_size(self.typeface.caption)
+                    .line_height(px(DETAIL_LINE))
+                    .text_color(ink.error)
+                    .child(self.text),
+            )
+    }
+}

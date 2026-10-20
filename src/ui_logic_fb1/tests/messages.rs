@@ -1,0 +1,258 @@
+use super::english;
+use crate::ui_logic_fb1::messages::{Escape, Messages, MESSAGE_MS};
+use crate::ui_logic_fb1::status::{Hint, Note};
+
+#[test]
+fn a_matching_withdraw_clears_the_notice_and_keeps_the_error() {
+    let mut bar = Messages::new("default");
+    bar.say("The last tab cannot be closed", false, "", Hint::None, 0);
+    let own = bar.notice_serial();
+    bar.say("Copy failed.", true, "", Hint::None, 0);
+    bar.withdraw(own, 0);
+    assert_eq!(bar.notice(), "");
+    assert_eq!(bar.errors().len(), 1);
+    assert_eq!(bar.shown().text, "Copy failed.");
+}
+
+#[test]
+fn a_stale_withdraw_keeps_the_later_notice() {
+    let mut bar = Messages::new("default");
+    bar.say("The last tab cannot be closed", false, "", Hint::None, 0);
+    let stale = bar.notice_serial();
+    bar.say("Copy failed.", true, "", Hint::None, 0);
+    bar.say("Later notice.", false, "", Hint::None, 0);
+    bar.withdraw(stale, 0);
+    assert_eq!(bar.notice(), "Later notice.");
+    assert_eq!(bar.errors().len(), 1);
+}
+
+#[test]
+fn a_notice_times_out_but_one_carrying_undo_stands() {
+    let mut bar = Messages::new("default");
+    bar.say("Renamed to notes.txt", false, "", Hint::None, 100);
+    assert_eq!(bar.next_deadline(), Some(100 + MESSAGE_MS));
+    assert!(!bar.tick(100 + MESSAGE_MS - 1).notice_cleared);
+    assert!(bar.tick(100 + MESSAGE_MS).notice_cleared);
+    assert_eq!((bar.notice(), bar.next_deadline()), ("", None));
+    bar.say("Moved 4 items to Trash", false, "", Hint::Undo, 0);
+    assert_eq!(bar.next_deadline(), None);
+    bar.say(
+        "Copied 5 items",
+        false,
+        "",
+        Hint::Note(Note::Background, true),
+        0,
+    );
+    assert_eq!(bar.next_deadline(), None);
+}
+
+#[test]
+fn a_notice_hidden_behind_an_error_keeps_its_whole_time_after_acknowledgement() {
+    let mut bar = Messages::new("default");
+    bar.say("Copy failed.", true, "", Hint::None, 0);
+    bar.say("Renamed to notes.txt", false, "", Hint::None, 10);
+    assert_eq!(bar.next_deadline(), None);
+    assert_eq!(bar.escape(true, 9000), Escape::Dismissed);
+    assert_eq!(bar.next_deadline(), Some(9000 + MESSAGE_MS));
+    assert_eq!(bar.shown().text, "Renamed to notes.txt");
+}
+
+#[test]
+fn empty_say_dismisses_the_head_and_forget_names_its_own() {
+    let mut bar = Messages::new("default");
+    bar.say("First failed.", true, "", Hint::None, 0);
+    bar.say("Second failed.", true, "", Hint::None, 0);
+    bar.forget("Second failed.", 0);
+    assert_eq!(bar.errors().len(), 1);
+    bar.say("", false, "", Hint::None, 0);
+    assert!(bar.errors().is_empty());
+    bar.say("Notice", false, "", Hint::None, 0);
+    bar.dismiss(0);
+    assert_eq!(bar.notice(), "");
+}
+
+#[test]
+fn an_arm_lives_on_its_owners_stamp_and_ends_everywhere_at_once() {
+    let mut bar = Messages::new("default");
+    let prompt = "Press d again to move it to Trash, or Delete on its own.";
+    bar.set_arm_owner(7, 0, 0);
+    bar.say_arm(prompt, 4000, 0);
+    assert!(!bar.arm_live());
+    assert_eq!(bar.notice(), prompt);
+    bar.set_arm_owner(7, 1000, 1000);
+    bar.say_arm(prompt, 4000, 1000);
+    assert!(bar.arm_live());
+    assert_eq!((bar.notice(), bar.shown().text.as_str()), ("", prompt));
+    bar.say("Older failed.", true, "", Hint::None, 1000);
+    assert_eq!(bar.shown().text, prompt);
+    assert_eq!(bar.next_deadline(), Some(5000));
+    let lost = bar.tick(5000).arm_lost;
+    assert_eq!(lost.map(|arm| (arm.owner, arm.stamp)), Some((7, 1000)));
+    assert!(!bar.arm_live());
+    assert_eq!(bar.shown().text, "Older failed.");
+    bar.set_arm_owner(7, 2000, 2000);
+    bar.say_arm(prompt, 4000, 2000);
+    bar.owner_stamp(0, 2100);
+    assert!(bar.arm().is_none());
+    bar.owner_stamp(3000, 3000);
+    bar.say_arm(prompt, 4000, 3000);
+    assert!(bar.set_path("/elsewhere", 3100).is_some());
+    assert!(bar.arm().is_none());
+    bar.owner_stamp(4000, 4000);
+    bar.say_arm(prompt, 4000, 4000);
+    assert!(bar.set_arm_owner(8, 0, 4100).is_some());
+}
+
+#[test]
+fn escape_dismisses_then_cancels_a_cancellable_transfer_once() {
+    let mut bar = Messages::new("default");
+    bar.set_activity(1, "Copying 1 of 5", 9, true, false, 0);
+    assert_eq!(bar.escape(false, 0), Escape::Ignored);
+    bar.say("Copy failed.", true, "", Hint::None, 0);
+    assert_eq!(bar.escape(true, 0), Escape::Dismissed);
+    assert_eq!(bar.escape(true, 0), Escape::Cancel(9));
+    // StatusBar.escapePressed consumes every escape while a cancellable transfer runs, a cancel already sent included.
+    assert_ne!(bar.escape(true, 0), Escape::Ignored);
+    assert_eq!(bar.escape(true, 0), Escape::Cancelling);
+    assert_eq!(bar.escape(false, 0), Escape::Ignored);
+}
+
+/// StatusBar.qml restarts its clear timer from say, the arm's start and end and three visibility edges, never from progress.
+#[test]
+fn progress_lines_never_restart_a_shown_notices_time() {
+    let mut bar = Messages::new("default");
+    bar.say("Renamed to notes.txt", false, "", Hint::None, 0);
+    let mut cleared_at = None;
+    for now in (500..=MESSAGE_MS + 2000).step_by(500) {
+        bar.set_activity(
+            1,
+            &format!("Copying {} of 99", now / 500),
+            7,
+            true,
+            false,
+            now,
+        );
+        bar.set_path("/a", now);
+        bar.set_arm_owner(3, 0, now);
+        bar.forget("nothing standing", now);
+        if bar.tick(now).notice_cleared && cleared_at.is_none() {
+            cleared_at = Some(now);
+        }
+    }
+    assert_eq!(cleared_at, Some(MESSAGE_MS));
+    bar.set_activity(1, "", 7, false, false, 7000);
+    bar.say("Copied 2 items", false, "", Hint::None, 7000);
+    bar.set_activity(2, "Waiting for NAS", 0, false, false, 7500);
+    assert_eq!(
+        bar.next_deadline(),
+        None,
+        "a sticky line hides the notice and stops its clock"
+    );
+    bar.set_activity(2, "", 0, false, false, 9000);
+    assert_eq!(
+        bar.next_deadline(),
+        Some(9000 + MESSAGE_MS),
+        "the sticky leaving shows it again with its whole time"
+    );
+}
+
+#[test]
+fn the_line_splits_the_undo_target_and_keeps_esc_ahead_of_it() {
+    let catalog = english();
+    let mut bar = Messages::new("default");
+    bar.say("Copied 1 item", false, "", Hint::Undo, 0);
+    let line = bar.line(&catalog, "");
+    assert_eq!(
+        (
+            line.primary.as_str(),
+            line.secondary.as_str(),
+            line.undo.as_str()
+        ),
+        ("Copied 1 item", "", "z undoes")
+    );
+    bar.say("Renamed to notes.txt", false, "", Hint::None, 0);
+    let line = bar.line(&catalog, "");
+    assert_eq!((line.secondary.as_str(), line.undo.as_str()), ("", ""));
+    bar.say("Copy failed.", true, "disk full", Hint::Undo, 0);
+    let line = bar.line(&catalog, "");
+    assert!(line.error);
+    assert_eq!(
+        (
+            line.secondary.as_str(),
+            line.undo.as_str(),
+            line.detail.as_str()
+        ),
+        (" · esc dismisses", "z undoes", "disk full")
+    );
+    let same = bar.line(&catalog, "Copy failed.");
+    assert_eq!(same.secondary, "");
+    bar.dismiss(0);
+    bar.say(
+        "Copied 5 items",
+        false,
+        "",
+        Hint::Note(Note::Background, true),
+        0,
+    );
+    let line = bar.line(&catalog, "");
+    assert_eq!(
+        (line.secondary.as_str(), line.undo.as_str()),
+        (" · rclone uploads them in the background", "z undoes")
+    );
+    bar.say("Copied 1 item", false, "", Hint::Paste, 0);
+    assert_eq!(bar.line(&catalog, "").secondary, " · p pastes");
+}
+
+#[test]
+fn a_no_trash_refusal_carries_its_key_and_belongs_to_its_place() {
+    let catalog = english();
+    let mut bar = Messages::new("default");
+    bar.set_path("/run/user/1000/gvfs/mtp:host=x", 0);
+    let text = catalog.tr("feedback.no_trash");
+    bar.say_placed(&text, Hint::Deletes, 0);
+    bar.say_placed(&text, Hint::Deletes, 0);
+    assert_eq!(bar.errors().len(), 1);
+    let line = bar.line(&catalog, "");
+    assert_eq!(
+        (line.primary.as_str(), line.secondary.as_str()),
+        (
+            "This location has no Trash",
+            " · esc dismisses · shift-delete deletes"
+        )
+    );
+    assert_eq!(
+        (line.hint.as_str(), line.extra.as_str()),
+        (" · esc dismisses · shift-delete deletes", "")
+    );
+    bar.set_activity(1, "Converting 1 of 3", 0, false, false, 0);
+    let line = bar.line(&catalog, "");
+    assert_eq!(
+        (line.hint.as_str(), line.extra.as_str()),
+        (" · esc dismisses", " · Converting 1 of 3")
+    );
+    bar.set_activity(1, "", 0, false, false, 0);
+    bar.set_path("/run/user/1000/gvfs", 0);
+    assert!(bar.errors().is_empty());
+}
+
+#[test]
+fn activity_and_search_take_the_hint_away_and_the_busy_mark_follows_starting() {
+    let catalog = english();
+    let mut bar = Messages::new("default");
+    bar.say("Copied 1 item", false, "", Hint::Undo, 0);
+    bar.set_search("3 found", 0);
+    let line = bar.line(&catalog, "");
+    assert_eq!((line.primary.as_str(), line.undo.as_str()), ("3 found", ""));
+    bar.set_search("", 0);
+    bar.set_activity(1, "Starting Pixel 8", 0, false, true, 0);
+    let line = bar.line(&catalog, "");
+    assert_eq!(
+        (line.primary.as_str(), line.busy),
+        ("Starting Pixel 8", true)
+    );
+    bar.set_retry("c.txt selected for retry");
+    assert_eq!(
+        bar.line(&catalog, "").secondary,
+        " · c.txt selected for retry"
+    );
+}

@@ -9,6 +9,7 @@ pub mod keys;
 mod jsonstring;
 pub mod oflags;
 pub mod protocol;
+pub mod ui_logic_fb1;
 pub mod ui_logic_mn1;
 pub mod ui_logic_op1;
 pub mod ui_logic_op3;
