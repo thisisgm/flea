@@ -78,11 +78,25 @@ fn the_player_starts_once_the_probe_fixes_its_box_and_an_overlay_stops_it() {
 // A picture that cannot be shown says so through the catalog, in the status row's own sentence.
 #[test]
 fn an_unshown_picture_is_reported_through_the_catalog() {
+    use std::time::{Duration, Instant};
     let mut m = shown("image-png", "photo.png");
     let i18n = crate::i18n::I18n::default();
     for key in ["preview.unshown", "preview.imageError"] {
         assert_ne!(i18n.tr(key), key, "the English catalog has {key}");
     }
+    // The picture starts a file job for a missing file, so wait until it answers and drop its error.
+    still(&mut m, Protocol::None, true, (48, 21));
+    let start = Instant::now();
+    while m.preview_state.still.running() {
+        m.preview_state.still.poll();
+        assert!(start.elapsed() < Duration::from_secs(15), "the file job did not answer");
+        std::thread::sleep(Duration::from_millis(5));
+    }
+    m.preview_state.still.poll();
+    let _ = std::mem::take(&mut m.preview_state.still.error);
+    m.error.clear();
+    m.errors.clear();
+    // The same key asks for nothing new, so the planted error survives the poll.
     m.preview_state.still.error = crate::tui::still::UNSHOWN.into();
     still(&mut m, Protocol::None, true, (48, 21));
     assert_eq!(m.error, i18n.tr_args("preview.imageError", &[&i18n.tr("preview.unshown")]));
