@@ -99,7 +99,16 @@ fn opened<'a>(cx: &'a mut TestAppContext, typed: &str, focus: Option<Part>) -> (
             cx.notify();
         })
     });
-    let drawn = cx.update(|window, _| Drawn { ink: CardInk::inherited(&Palette::inherited(&window.text_style())), scale: window.scale_factor() });
+    let drawn = cx.update(|window, cx| {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        Drawn {
+            ink: CardInk::inherited(&Palette::inherited(&window.text_style(), theme)),
+            scale: window.scale_factor(),
+        }
+    });
     (view, cx, drawn)
 }
 
@@ -256,7 +265,16 @@ fn clickable<'a>(cx: &'a mut TestAppContext, typed: &str) -> (Rc<Starts>, Entity
             cx.notify();
         })
     });
-    let drawn = cx.update(|window, _| Drawn { ink: CardInk::inherited(&Palette::inherited(&window.text_style())), scale: window.scale_factor() });
+    let drawn = cx.update(|window, cx| {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        Drawn {
+            ink: CardInk::inherited(&Palette::inherited(&window.text_style(), theme)),
+            scale: window.scale_factor(),
+        }
+    });
     (starts, view, cx, drawn)
 }
 

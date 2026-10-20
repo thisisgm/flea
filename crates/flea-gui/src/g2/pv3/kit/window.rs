@@ -214,7 +214,11 @@ impl Kit {
 
 impl Render for Kit {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
-        let ink = MediaInk::inherited(&window.text_style());
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = MediaInk::inherited(&window.text_style(), theme);
         let known = Facts::default();
         let card = QuickLook {
             player: &self.player,

@@ -26,8 +26,8 @@ pub struct Ink {
 }
 
 impl Ink {
-    pub fn inherited(style: &TextStyle) -> Self {
-        let palette = Palette::inherited(style);
+    pub fn inherited(style: &TextStyle, theme: crate::palette::Theme) -> Self {
+        let palette = Palette::inherited(style, theme);
         Self::mixed(Self {
             background: palette.background,
             surface: palette.background,

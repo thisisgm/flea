@@ -234,7 +234,11 @@ impl Render for UnlockView {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let root = div().id("g2-pl1-unlock").absolute().size_full().track_focus(&self.focus).on_key_down(cx.listener(Self::key));
         let Some(state) = self.host.card.as_ref().filter(|c| c.opened) else { return root };
-        let ink = CardInk::inherited(&Palette::inherited(&window.text_style()));
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = CardInk::inherited(&Palette::inherited(&window.text_style(), theme));
         let width = f32::from(window.viewport_size().width);
         let cancel = cx.listener(|view: &mut Self, _, _, cx| view.close(cx));
         let unlock = cx.listener(|view: &mut Self, _, _, cx| view.submit(cx));

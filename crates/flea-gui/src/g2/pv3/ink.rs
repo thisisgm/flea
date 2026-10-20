@@ -20,8 +20,8 @@ const HAIR: f32 = 0.12;
 
 impl MediaInk {
     /// Interim roles from the list's inherited palette until the theme tokens land.
-    pub fn inherited(style: &TextStyle) -> Self {
-        let palette = Palette::inherited(style);
+    pub fn inherited(style: &TextStyle, theme: crate::palette::Theme) -> Self {
+        let palette = Palette::inherited(style, theme);
         Self {
             background: palette.background,
             surface: palette.background,

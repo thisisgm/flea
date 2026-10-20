@@ -73,7 +73,11 @@ impl Element for Viewport {
 
     fn prepaint(&mut self, _: Option<&GlobalElementId>, _: Option<&InspectorElementId>, bounds: Bounds<Pixels>, _: &mut (), window: &mut Window, cx: &mut App) -> Hitbox {
         let host = seam::Host { focused: self.host.focused && window.is_window_active(), ..self.host };
-        let palette = seam::palette(&Roles::inherited(&window.text_style()), host.ground);
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let palette = seam::palette(&Roles::inherited(&window.text_style(), theme), host.ground);
         let now = seconds(self.epoch, cx);
         let size = (f32::from(bounds.size.width), f32::from(bounds.size.height));
         let mut live = self.live.borrow_mut();

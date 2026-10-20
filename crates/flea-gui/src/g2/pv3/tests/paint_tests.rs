@@ -139,8 +139,12 @@ struct Card {
 }
 
 impl Render for Card {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let ink = MediaInk::inherited(&window.text_style());
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = MediaInk::inherited(&window.text_style(), theme);
         let typeface = bench_typeface();
         let view = StripView {
             playing: true,
@@ -225,11 +229,16 @@ struct Bare {
 }
 
 impl Render for Bare {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         let heard = self.heard.clone();
         let strip = StripElement {
             view: self.view,
-            ink: MediaInk::inherited(&window.text_style()),
+            ink: MediaInk::inherited(
+                &window.text_style(),
+                cx.try_global::<crate::palette::Theme>()
+                    .copied()
+                    .unwrap_or_default(),
+            ),
             typeface: bench_typeface(),
             cache: self.cache.clone(),
             on_input: Rc::new(move |input, _, _| heard.borrow_mut().push(input)),

@@ -43,9 +43,15 @@ fn re_reviewing(cat: &I18n) -> Operations {
 // r3-1, review PROOF1 turned: busy over 1000..4000 ms sends nothing 1 ms after it clears and the check 2500 ms after.
 #[gpui::test]
 fn the_check_restarts_a_full_interval_when_the_trash_view_frees(cx: &mut TestAppContext) {
-    let (overlay, vcx) = cx.add_window_view(|window, _| {
-        let palette =
-            CardPalette::from_list(&crate::list::Palette::inherited(&window.text_style()), 8.);
+    let (overlay, vcx) = cx.add_window_view(|window, cx| {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let palette = CardPalette::from_list(
+            &crate::list::Palette::inherited(&window.text_style(), theme),
+            8.,
+        );
         Overlay::new(Arc::new(I18n::default()), palette, "default")
     });
     overlay.update(vcx, |o, cx| {

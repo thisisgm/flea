@@ -142,9 +142,13 @@ impl Default for StateMessage {
 }
 
 impl Render for StateMessage {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         bump(&self.counters.renders);
-        let ink = Ink::interim(&Palette::inherited(&window.text_style()));
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let ink = Ink::interim(&Palette::inherited(&window.text_style(), theme));
         let root = div()
             .size_full()
             .flex()

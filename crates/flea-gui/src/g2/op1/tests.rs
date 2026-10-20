@@ -171,9 +171,15 @@ fn the_ipc_reader_reports_the_open_card() {
 
 #[gpui::test]
 fn the_overlay_draws_every_card_and_the_jobs_block(cx: &mut TestAppContext) {
-    let handle = cx.add_window(|window, _| {
-        let palette =
-            CardPalette::from_list(&crate::list::Palette::inherited(&window.text_style()), 0.);
+    let handle = cx.add_window(|window, cx| {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let palette = CardPalette::from_list(
+            &crate::list::Palette::inherited(&window.text_style(), theme),
+            0.,
+        );
         Overlay::new(Arc::new(I18n::default()), palette, "default")
     });
     for open in 0..4 {

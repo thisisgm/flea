@@ -21,9 +21,15 @@ fn open_card(
     height: f32,
     open: impl FnOnce(&mut Overlay),
 ) -> (gpui::Entity<Overlay>, &mut gpui::VisualTestContext) {
-    let (overlay, vcx) = cx.add_window_view(|window, _| {
-        let palette =
-            CardPalette::from_list(&crate::list::Palette::inherited(&window.text_style()), 8.);
+    let (overlay, vcx) = cx.add_window_view(|window, cx| {
+        let theme = cx
+            .try_global::<crate::palette::Theme>()
+            .copied()
+            .unwrap_or_default();
+        let palette = CardPalette::from_list(
+            &crate::list::Palette::inherited(&window.text_style(), theme),
+            8.,
+        );
         Overlay::new(Arc::new(I18n::default()), palette, "default")
     });
     vcx.simulate_resize(gpui::size(gpui::px(width), gpui::px(height)));
