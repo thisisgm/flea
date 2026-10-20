@@ -4110,6 +4110,8 @@ The qlatomic note round moves two ceilings, each re-derived with `wc -l`: `ui/Pr
 
 The qlab round moves two ceilings, each re-derived with `wc -l`: `ui/Preview.qml` 735 to 737 for the reveal that waits out `followSettle` and the `followSettle` rerun of `revealIfReady` once it stops; `tests/preview-settle-live.qml` 457 to 532 (one line for the poll's `landed` term, then the rest) for the live burst inside Quick Look's open hold that comes back to the open's file, which must land nothing while the settle runs and land once it stops, well before a lengthened cap. `tests/js/previewswap.js` stays at 462, since that live check replaces the source check that a settling move lands nothing.
 
+The Quick Look follow-at-rest round moves `tests/preview-settle-live.qml` 584 to 603, re-derived with `wc -l`, for the starved-repeat check that reads the `followSettle` timer by its object name after each press and the reopen stage that waits out the settle before its held move. `ui/Preview.qml` makes room for the rest timer by moving the whole archive tile into `ui/QuickLookArchive.qml` (38 lines), so its own ceiling does not move.
+
 2026-10-08 moves one ceiling, re-derived with `wc -l`: `ui/js/MdHtml.js` 300 to 307 for the count of HTML links wearing the ink (`inked.open`), so an `</a>` takes off only ink its own opener put on.
 
 The CPU-only skip moves one ceiling, re-derived with `wc -l`: `src/vulkan.rs` 747 to 751 for the test's early return when every Vulkan device is a CPU device, the shape a VM's virtual VGA beside lavapipe reports.
