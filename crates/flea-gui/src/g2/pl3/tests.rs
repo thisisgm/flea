@@ -88,24 +88,54 @@ pub(super) fn english() -> Arc<I18n> {
 
 pub(super) fn ink() -> Ink {
     // The window's own text style is unavailable here, so the theme roles stand in, as Palette::inherited does.
+    // Each role blends the theme foreground at its own opacity, so a role drawn in another's place changes the ink.
     let theme = Theme::default();
+    let foreground = theme.foreground;
     let palette = Palette {
         background: theme.background,
-        foreground: theme.foreground,
-        metadata: theme.foreground.opacity(0.62),
-        metadata_frame: theme.foreground.opacity(0.5),
-        accent: theme.foreground,
-        accent_frame: theme.foreground,
-        symlink: theme.foreground,
-        executable: theme.foreground,
-        marked: theme.foreground.opacity(0.35),
-        muted_frame: theme.foreground.opacity(0.5),
+        foreground,
+        metadata: foreground.opacity(0.62),
+        metadata_frame: foreground.opacity(0.5),
+        accent: foreground.opacity(0.9),
+        accent_frame: foreground.opacity(0.85),
+        symlink: foreground.opacity(0.8),
+        executable: foreground.opacity(0.75),
+        marked: foreground.opacity(0.35),
+        muted_frame: foreground.opacity(0.45),
     };
     Ink {
-        mark_fill: palette.marked,
-        muted_frame: palette.muted_frame,
+        mark_fill: foreground.opacity(0.3),
+        muted_frame: foreground.opacity(0.42),
         ..Ink::interim(&palette, px(8.))
     }
+}
+
+#[test]
+fn the_ink_fixture_gives_each_drawn_role_its_own_ink() {
+    // The surface and the error ink are the background and the foreground by design, so they are not checked here.
+    let ink = ink();
+    let roles = [
+        ink.background,
+        ink.foreground,
+        ink.muted,
+        ink.muted_frame,
+        ink.accent,
+        ink.accent_frame,
+        ink.mark_fill,
+    ];
+    for (at, role) in roles.iter().enumerate() {
+        assert!(
+            roles[at + 1..].iter().all(|other| other != role),
+            "role {at} shares its ink with a later role"
+        );
+    }
+}
+
+#[test]
+fn the_cursor_edge_paints_in_the_accent_frame() {
+    let ink = ink();
+    assert_eq!(ink.edge(), ink.accent_frame);
+    assert_ne!(ink.edge(), ink.foreground);
 }
 
 pub(super) fn open(cx: &mut TestAppContext) -> (WindowHandle<TrashPane>, Rc<RefCell<Vec<Call>>>) {

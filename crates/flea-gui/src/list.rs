@@ -6,7 +6,11 @@ pub mod element;
 pub mod header;
 mod locale;
 pub mod pane;
+#[cfg(test)]
+mod probe_tests;
 pub mod seam;
+#[cfg(test)]
+pub(crate) mod size_tests;
 #[cfg(test)]
 mod tests;
 
@@ -389,7 +393,8 @@ pub struct ListState {
     blank: Arc<LineLayout>,
     /// Text style reads for the palette, which a theme or style change alone repeats.
     pub palette_reads: u64,
-    palette: Option<Palette>,
+    // The palette and the theme it was read for: a different theme reads it again.
+    palette: Option<(Theme, Palette)>,
     // The drag owner's drop caption, shaped once per label, face and size.
     drop_line: Option<element::DropLine>,
     /// Marks and cell lines the last paint drew, so a test can see what paint skipped.
@@ -418,14 +423,14 @@ impl ListState {
         }
     }
 
-    /// The row palette, read from the inherited text style once and again only after restyle().
+    /// The row palette, read from the inherited text style once per theme and again only after restyle().
     pub fn palette(&mut self, window: &Window, theme: Theme) -> Palette {
-        if let Some(palette) = self.palette {
+        if let Some((_, palette)) = self.palette.filter(|(read, _)| *read == theme) {
             return palette;
         }
         self.palette_reads += 1;
         let palette = Palette::inherited(&window.text_style(), theme);
-        self.palette = Some(palette);
+        self.palette = Some((theme, palette));
         palette
     }
 

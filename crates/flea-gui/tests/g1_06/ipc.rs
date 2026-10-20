@@ -4,6 +4,7 @@ use flea_gui::ipc::{
     Adapter,
 };
 use flea_gui::list::{columns::Column, RowStates};
+use flea_gui::palette::Theme;
 use flea_gui::row::format::Words;
 use gpui::TestAppContext;
 use std::rc::Rc;
@@ -226,9 +227,13 @@ fn colours_follow_row_qml_and_a_cut_row_keeps_its_ink() {
         colour(palette.foreground),
         "a cut row dimmed today's date"
     );
-    // The hex mapping on the theme roles themselves: an opaque ink prints bare, a dimmed one leads with its alpha.
-    assert_eq!(colour(palette.foreground), "#cacccc");
-    assert_eq!(colour(palette.background.opacity(0.5)), "#80101315");
+    // The hex mapping at its boundaries: an opaque ink prints bare, a dimmed one leads with its alpha.
+    let boundary = |text: &str| Theme::from_text(text).background;
+    assert_eq!(colour(boundary("background = \"#ffffff\"")), "#ffffff");
+    assert_eq!(
+        colour(boundary("background = \"#000000\"").opacity(0.5)),
+        "#80000000"
+    );
 }
 
 #[test]

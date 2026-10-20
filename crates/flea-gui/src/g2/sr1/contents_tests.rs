@@ -1,11 +1,13 @@
 // Contents blocks: fixed 55 px blocks from the board, only the visible ones shaped, and no allocation on a still frame.
 use super::contents::Palette;
 use super::contents::{visible, Block, ContentsElement, ContentsState, Held, BLOCK_H};
-use crate::list::bench::{allocations, bench_typeface, fixture, real_cx};
+use crate::list::bench::{allocations, bench_typeface, english, fixture, real_cx};
 use crate::list::Palette as ListPalette;
 use crate::palette::Theme;
+use crate::row::format::{size_text, Words};
 use gpui::{
-    div, prelude::*, px, size, Context, IntoElement, Render, TestAppContext, Window, WindowHandle,
+    div, prelude::*, px, size, Context, GlyphRun, Hsla, IntoElement, Render, ShapedRun,
+    TestAppContext, TextRun, Window, WindowHandle,
 };
 use std::{cell::RefCell, rc::Rc};
 
@@ -46,9 +48,8 @@ struct View {
 }
 
 impl Render for View {
-    fn render(&mut self, window: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
-        let list = ListPalette::inherited(&window.text_style(), Theme::default());
-        let palette = Palette::from_list(&list);
+    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+        let palette = Palette::from_list(&distinct_palette());
         div().size_full().child(ContentsElement::new(
             Rc::clone(&self.held),
             self.scroll_y,
@@ -59,12 +60,60 @@ impl Render for View {
     }
 }
 
+/// Each role blends the theme foreground at its own opacity, so a role drawn in another's place changes the ink.
+fn distinct_palette() -> ListPalette {
+    let theme = Theme::default();
+    let foreground = theme.foreground;
+    ListPalette {
+        background: theme.background,
+        foreground,
+        metadata: foreground.opacity(0.62),
+        metadata_frame: foreground.opacity(0.5),
+        accent: foreground.opacity(0.9),
+        accent_frame: foreground.opacity(0.85),
+        symlink: foreground.opacity(0.8),
+        executable: foreground.opacity(0.75),
+        marked: foreground.opacity(0.35),
+        muted_frame: foreground.opacity(0.45),
+    }
+}
+
+#[test]
+fn the_contents_fixture_gives_each_role_its_own_ink() {
+    let palette = distinct_palette();
+    let roles = [
+        palette.background,
+        palette.foreground,
+        palette.metadata,
+        palette.metadata_frame,
+        palette.accent,
+        palette.accent_frame,
+        palette.symlink,
+        palette.executable,
+        palette.marked,
+        palette.muted_frame,
+    ];
+    for (at, role) in roles.iter().enumerate() {
+        assert!(
+            roles[at + 1..].iter().all(|other| other != role),
+            "role {at} shares its ink with a later role"
+        );
+    }
+}
+
+#[test]
+fn the_lifted_block_edge_paints_in_the_accent_frame() {
+    let palette = Palette::from_list(&distinct_palette());
+    assert_eq!(palette.edge(), palette.accent_frame);
+    assert_ne!(palette.edge(), palette.foreground);
+}
+
 fn open(
     cx: &mut TestAppContext,
     held: Rc<Held>,
     blocks: f32,
 ) -> (WindowHandle<View>, Rc<RefCell<ContentsState>>) {
-    let mut state = ContentsState::new(bench_typeface());
+    let mut state = ContentsState::new(bench_typeface(), Words::from_catalog(&english()));
     state.query = "report".into();
     let state = Rc::new(RefCell::new(state));
     let kept = Rc::clone(&state);
@@ -128,4 +177,66 @@ fn the_cursor_block_reshapes_its_run_bold_and_unwashed() {
     );
     let (start, end) = rest.wash.expect("a resting block washes its run");
     assert!(end > start);
+}
+
+// The text a shaped run prints, judged by its glyphs as the track tests judge theirs.
+fn prints(cx: &mut TestAppContext, window: WindowHandle<View>, run: &GlyphRun, text: &str) -> bool {
+    cx.update_window(window.into(), |_, window, _| {
+        let style = TextRun {
+            len: text.len(),
+            font: bench_typeface().font,
+            color: Hsla::default(),
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        let want = window
+            .text_system()
+            .layout_line(text, bench_typeface().caption, &[style], None);
+        let glyphs = |runs: &[ShapedRun]| {
+            runs.iter()
+                .flat_map(|run| run.glyphs.iter().map(|glyph| glyph.id))
+                .collect::<Vec<_>>()
+        };
+        run.line().len == want.len && glyphs(&run.line().runs) == glyphs(&want.runs)
+    })
+    .expect("the contents window is open")
+}
+
+#[test]
+fn the_size_cell_prints_the_list_text_under_localized_words() {
+    let mut cx = real_cx();
+    let words = crate::list::size_tests::german_words();
+    let file = fixture("uniform").into_iter().next().expect("a row");
+    let mut link = file.clone();
+    link.mode = 0o120777;
+    for row in [file, link] {
+        let want = size_text(&row, None, &words);
+        let block = Block {
+            row,
+            location: "src".into(),
+            line_no: 1,
+            line: "let report = load();".into(),
+        };
+        let held = Rc::new(Held {
+            listing: 1,
+            total: 1,
+            start: 0,
+            blocks: vec![block],
+        });
+        let mut state = ContentsState::new(bench_typeface(), words.clone());
+        state.query = "report".into();
+        let state = Rc::new(RefCell::new(state));
+        let window = cx.open_window(size(px(900.), px(BLOCK_H)), |_, _| View {
+            held,
+            scroll_y: 0.,
+            state: Rc::clone(&state),
+        });
+        frame(&mut cx, window, 0.);
+        let shown = Rc::clone(&state.borrow().visible[0].1);
+        assert!(
+            prints(&mut cx, window, &shown.size, &want),
+            "the sr1 size cell differs from the list's {want:?}"
+        );
+    }
 }

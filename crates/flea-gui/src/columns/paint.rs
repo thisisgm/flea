@@ -85,6 +85,10 @@ impl Palette {
     pub fn hairline(&self) -> Hsla {
         self.foreground.opacity(HAIR)
     }
+    /// The track cursor's 2 px edge, drawn in the accent frame.
+    pub fn edge(&self) -> Hsla {
+        self.accent_frame
+    }
 }
 
 /// The focus and selection the active track paints, G1.05's read-only snapshot; peek tracks read only the hover.
@@ -152,6 +156,8 @@ pub struct TrackPaint {
     pub cache: TrackCache,
     advance: Option<Pixels>,
     pub(super) visible: Vec<(usize, Option<Rc<Prepared>>, Clip)>,
+    /// The palette the last frame drew with, for a test that checks the installed theme reached the track.
+    pub painted: Option<Palette>,
 }
 
 impl TrackPaint {
@@ -161,6 +167,7 @@ impl TrackPaint {
             cache: TrackCache::default(),
             advance: None,
             visible: Vec::new(),
+            painted: None,
         }
     }
 

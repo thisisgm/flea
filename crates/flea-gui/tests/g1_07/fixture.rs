@@ -238,3 +238,12 @@ pub fn reply_with(
         .expect("a peeked reply")
         .expect("a well formed reply")
 }
+
+/// The built-in English words the list prints, with no Omarchy or language file to read.
+pub fn words() -> flea_gui::row::format::Words {
+    flea_gui::row::format::Words::from_catalog(&flea::i18n::I18n::load(flea::i18n::Paths {
+        omarchy: "/nonexistent/omarchy".into(),
+        language_file: "/nonexistent/language".into(),
+        catalogs: Vec::new(),
+    }))
+}

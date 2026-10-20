@@ -43,4 +43,8 @@ impl Ink {
     pub fn small_radius(&self) -> Pixels {
         self.radius / 2.
     }
+    /// The cursor's edge, drawn in the accent frame.
+    pub fn edge(&self) -> Hsla {
+        self.accent_frame
+    }
 }

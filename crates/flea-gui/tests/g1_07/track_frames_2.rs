@@ -2,7 +2,9 @@
 use super::check::Checks;
 use super::fixture::{reply, row, Pane, Producers, SETTINGS};
 use super::frames::{allocations, frame, held, open, read, real_cx, set};
-use super::track_frames::{active, files, look, misses, palette, peeks, track, Marks};
+use super::track_frames::{
+    active, files, install_theme, look, misses, palette, peeks, track, Marks,
+};
 use flea_gui::columns::{
     geometry::{cells, contain_y, Slot},
     paint::{Clip, ClipMarks, Palette, CUT, HAIR},
@@ -19,6 +21,7 @@ fn the_clipboard_is_asked_per_row_only_while_it_holds_something() {
     let marks = Rc::new(Marks::default());
     let clip: Rc<dyn ClipMarks> = marks.clone();
     let mut cx = real_cx();
+    install_theme(&mut cx);
     let window = open(&mut cx, Rc::from([active(400.)]), held(names), 400., 185.);
     set(&mut cx, window, |view| view.clip = Some(clip));
     let clips = |cx: &mut TestAppContext| {
@@ -204,6 +207,7 @@ fn each_track_draws_one_divider_where_its_edge_is() {
         (Some(299.), None),
     );
     let mut cx = real_cx();
+    install_theme(&mut cx);
     let window = open(
         &mut cx,
         Rc::clone(area.tracks()),
@@ -225,6 +229,7 @@ fn each_track_draws_one_divider_where_its_edge_is() {
 fn a_peek_row_with_no_clip_paints_whole_and_still() {
     let mut c = Checks::new("tests/columnscost.qml");
     let mut cx = real_cx();
+    install_theme(&mut cx);
     let one = Rc::from([track(
         Slot::Parent,
         0.,

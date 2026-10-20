@@ -51,6 +51,10 @@ impl Palette {
             accent_frame: list.accent_frame,
         }
     }
+    /// The lifted block's edge, drawn in the accent frame.
+    pub fn edge(&self) -> Hsla {
+        self.accent_frame
+    }
 }
 
 /// One contents match as its producer will hand it over: the row's facts, the line's number and text.
@@ -113,10 +117,12 @@ pub struct ContentsState {
     shaped_for: String,
     pub visible: Vec<(usize, Rc<Prepared>)>,
     pub misses: u64,
+    // The localized words the size cell prints, the same ones the list reads.
+    words: row::format::Words,
 }
 
 impl ContentsState {
-    pub fn new(typeface: Typeface) -> Self {
+    pub fn new(typeface: Typeface, words: row::format::Words) -> Self {
         Self {
             typeface,
             query: String::new(),
@@ -124,6 +130,7 @@ impl ContentsState {
             shaped_for: String::new(),
             visible: Vec::new(),
             misses: 0,
+            words,
         }
     }
 }
@@ -202,7 +209,7 @@ fn prepare(
     Prepared {
         name: plain(&name, face.body),
         location: plain(&block.location, face.caption),
-        size: plain(&size_text(&block.row, None), face.caption),
+        size: plain(&size_text(&block.row, None, &state.words), face.caption),
         number: plain(&block.line_no.to_string(), face.caption),
         wash: wash_span(line_glyphs.line(), line_run, lifted),
         line: line_glyphs,
@@ -328,7 +335,7 @@ impl Element for ContentsElement {
                     window.paint_quad(fill(block, palette.accent.opacity(CURSOR_WASH)));
                     window.paint_quad(fill(
                         Bounds::new(point(left, top), size(px(EDGE_W), px(BLOCK_H))),
-                        palette.accent_frame,
+                        palette.edge(),
                     ));
                 } else if self.hover == Some(*index) {
                     let block = Bounds::new(point(left, top), size(bounds.size.width, px(BLOCK_H)));

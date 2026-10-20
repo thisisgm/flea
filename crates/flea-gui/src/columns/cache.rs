@@ -88,6 +88,7 @@ pub struct Shaping {
     pub clip_cells: usize,
     pub size: bool,
     pub scale: f32,
+    pub words: Rc<row::format::Words>,
 }
 
 struct Entry {
@@ -121,18 +122,9 @@ fn shape(text: &str, font: &Font, size: Pixels, window: &Window) -> GlyphRun {
     GlyphRun::new(window.text_system().layout_line(text, size, &[run], None))
 }
 
-/// ColumnRow.qml sizeText(): a folder's answered walk, a partial one led by ">", else the list's own cell text.
-pub fn size_text(facts: &RowFacts, walk: Option<Size>) -> String {
-    let locale = flea::i18n::Locale::default();
-    match walk {
-        Some(walk) if facts.dir && !row::is_symlink(facts.mode) => {
-            let lead = if walk.partial { ">" } else { "" };
-            format!("{lead}{}", locale.format_size(walk.bytes))
-        }
-        _ if row::is_symlink(facts.mode) => "link".into(),
-        _ if facts.dir => "\u{b7}".into(),
-        _ => locale.format_size(facts.size),
-    }
+/// ColumnRow.qml sizeText(): the list's own formatter, so every pane prints one text under the same words.
+pub fn size_text(facts: &RowFacts, walk: Option<Size>, words: &row::format::Words) -> String {
+    row::format::size_text(facts, walk, words)
 }
 
 /// Shapes one row once, the name middle-elided to its cells first so no long name is shaped whole.
@@ -153,7 +145,7 @@ fn prepare(
         .map(|text| shape(&text, &shaping.font, shaping.body, window));
     let size = match row {
         Row::Listing(facts) if shaping.size => Some(shape(
-            &size_text(facts, walk),
+            &size_text(facts, walk, &shaping.words),
             &shaping.font,
             shaping.caption,
             window,

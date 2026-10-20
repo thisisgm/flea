@@ -111,10 +111,25 @@ pub fn visible(cx: &mut TestAppContext, window: WindowHandle<View>, slot: Slot) 
     })
 }
 
+/// A theme distinct from Theme::default, so a palette that ignores the installed theme cannot match it.
+pub fn test_theme() -> Theme {
+    let base = Theme::default();
+    Theme {
+        background: base.foreground,
+        foreground: base.background,
+    }
+}
+
+/// Installs test_theme before the window opens, the way the app installs its theme at startup.
+pub fn install_theme(cx: &mut TestAppContext) {
+    cx.update(|cx| cx.set_global(test_theme()));
+}
+
 pub fn palette(cx: &mut TestAppContext, window: WindowHandle<View>) -> Palette {
+    // The expectation comes from the installed theme, never from the element's own fallback expression.
+    let theme = test_theme();
     window
-        .update(cx, |_, window, cx| {
-            let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
+        .update(cx, |_, window, _| {
             Palette::inherited(&window.text_style(), theme)
         })
         .expect("the frame window is open")
@@ -139,12 +154,33 @@ pub fn paints(
 }
 
 #[test]
+fn a_track_paints_with_the_installed_theme() {
+    let mut cx = real_cx();
+    install_theme(&mut cx);
+    let tracks: Rc<[TrackView]> = Rc::from([active(400.)]);
+    let rows = files((0..3).map(|i| format!("row-{i}.txt")));
+    let window = open(&mut cx, tracks, held(rows), 400., 600.);
+    frame(&mut cx, window);
+    let painted = read(&mut cx, window, |view| {
+        view.painters
+            .get(Slot::Active)
+            .and_then(|paint| paint.borrow().painted)
+    });
+    assert_eq!(
+        painted,
+        Some(palette(&mut cx, window)),
+        "the track painted with a theme other than the installed one"
+    );
+}
+
+#[test]
 fn a_narrowed_listing_paints_its_own_rows_in_the_same_track() {
     let mut c = Checks::new("tests/columnnarrow.qml");
     let full = files((0..40).map(|i| format!("row-{i:02}.txt")));
     let narrowed: Vec<RowFacts> = full.iter().step_by(2).cloned().collect();
     let tracks: Rc<[TrackView]> = Rc::from([active(400.)]);
     let mut cx = real_cx();
+    install_theme(&mut cx);
     let window = open(&mut cx, Rc::clone(&tracks), held(full.clone()), 400., 600.);
     frame(&mut cx, window);
     c.ok(

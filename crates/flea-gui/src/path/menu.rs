@@ -156,26 +156,24 @@ impl Element for MenuElement {
         cx: &mut App,
     ) -> Ink {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
-        // An update opens the view without a read on the paint path.
-        self.view.update(cx, |view, _| {
-            let mut paint = view.paint.borrow_mut();
-            let rows = view.jump.entries.len();
-            let popup = Popup::framed(
-                f32::from(bounds.origin.x),
-                f32::from(bounds.origin.y),
-                f32::from(bounds.size.width),
-                f32::from(bounds.size.height),
-                rows,
-            );
-            paint.popup = Some(popup);
-            let visible = popup.visible(view.scroll, rows);
-            paint.lay_menu(
-                &view.jump.entries,
-                view.jump.cursor,
-                visible,
-                |typeface, text, bold| line(typeface, text, Size::Body, bold, window),
-            );
-        });
+        let view = self.view.read(cx);
+        let mut paint = view.paint.borrow_mut();
+        let rows = view.jump.entries.len();
+        let popup = Popup::framed(
+            f32::from(bounds.origin.x),
+            f32::from(bounds.origin.y),
+            f32::from(bounds.size.width),
+            f32::from(bounds.size.height),
+            rows,
+        );
+        paint.popup = Some(popup);
+        let visible = popup.visible(view.scroll, rows);
+        paint.lay_menu(
+            &view.jump.entries,
+            view.jump.cursor,
+            visible,
+            |typeface, text, bold| line(typeface, text, Size::Body, bold, window),
+        );
         Ink::of(Palette::inherited(&window.text_style(), theme))
     }
 
@@ -189,112 +187,104 @@ impl Element for MenuElement {
         window: &mut Window,
         cx: &mut App,
     ) {
-        // An update opens the view without a read on the paint path.
-        self.view.update(cx, |view, cx| {
-            let paint = view.paint.borrow();
-            let Some(popup) = paint.popup else { return };
-            let scroll = view.scroll;
-            // Radius 0 until the theme's corner token lands.
-            window.paint_quad(quad(
-                bounds,
-                px(0.),
-                ink.surface,
-                px(FRAME),
-                ink.muted_frame,
-                BorderStyle::Solid,
-            ));
-            let inner = Bounds::new(
-                point(bounds.origin.x + px(FRAME), bounds.origin.y + px(FRAME)),
-                size(
-                    (bounds.size.width - px(2. * FRAME)).max(px(0.)),
-                    (bounds.size.height - px(2. * FRAME)).max(px(0.)),
-                ),
-            );
-            let top_of = |index: usize| inner.origin.y + px(PAD + index as f32 * ROW - scroll);
-            let label_x = inner.origin.x + px(PAD_X + MARK + GAP);
-            let label_w = (inner.size.width - px(PAD_X + MARK + GAP + PAD_X)).max(px(0.));
-            window.with_content_mask(Some(ContentMask { bounds: inner }), |window| {
-                let (first, last) = popup.visible(scroll, view.jump.entries.len());
-                for index in first..last {
-                    let top = top_of(index);
-                    let layers = layers(&view.jump.entries[index], view.jump.cursor == Some(index));
-                    if layers.band {
-                        window.paint_quad(fill(
-                            Bounds::new(
-                                point(inner.origin.x, top),
-                                size(inner.size.width, px(ROW)),
-                            ),
-                            ink.hover(),
-                        ));
-                    }
-                    let (key, data) = Mark::for_row("folder", S_IFDIR).svg();
-                    let at = point(inner.origin.x + px(PAD_X), top + px((ROW - MARK) / 2.));
-                    let _ = window.paint_svg(
-                        Bounds::new(at, size(px(MARK), px(MARK))),
-                        key,
-                        Some(data),
-                        TransformationMatrix::unit(),
-                        ink.muted_frame,
-                        cx,
-                    );
-                    let pieces = paint.pieces.iter().filter(|piece| piece.row == index);
-                    let drawn = pieces
-                        .clone()
-                        .next_back()
-                        .map_or(0., |piece| piece.x + piece.width());
-                    // A path too long for the slot slides left inside it, because the tail names the folder.
-                    let slide = (label_w - px(drawn)).min(px(0.));
-                    let band = Bounds::new(point(label_x, top), size(label_w, px(ROW)));
-                    window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
-                        for piece in pieces {
-                            let x = label_x + slide + px(piece.x);
-                            if piece.wash && layers.run_wash {
-                                let width = piece.run.line().width;
-                                window.paint_quad(fill(
-                                    Bounds::new(
-                                        point(x, top + px(10.)),
-                                        size(width, px(ROW - 20.)),
-                                    ),
-                                    ink.wash(RUN_WASH),
-                                ));
-                            }
-                            let color = if piece.leaf {
-                                ink.foreground
-                            } else {
-                                ink.muted
-                            };
-                            paint_run(&piece.run, x, top, px(ROW), color, window);
+        let view = self.view.read(cx);
+        let paint = view.paint.borrow();
+        let Some(popup) = paint.popup else { return };
+        let scroll = view.scroll;
+        // Radius 0 until the theme's corner token lands.
+        window.paint_quad(quad(
+            bounds,
+            px(0.),
+            ink.surface,
+            px(FRAME),
+            ink.muted_frame,
+            BorderStyle::Solid,
+        ));
+        let inner = Bounds::new(
+            point(bounds.origin.x + px(FRAME), bounds.origin.y + px(FRAME)),
+            size(
+                (bounds.size.width - px(2. * FRAME)).max(px(0.)),
+                (bounds.size.height - px(2. * FRAME)).max(px(0.)),
+            ),
+        );
+        let top_of = |index: usize| inner.origin.y + px(PAD + index as f32 * ROW - scroll);
+        let label_x = inner.origin.x + px(PAD_X + MARK + GAP);
+        let label_w = (inner.size.width - px(PAD_X + MARK + GAP + PAD_X)).max(px(0.));
+        window.with_content_mask(Some(ContentMask { bounds: inner }), |window| {
+            let (first, last) = popup.visible(scroll, view.jump.entries.len());
+            for index in first..last {
+                let top = top_of(index);
+                let layers = layers(&view.jump.entries[index], view.jump.cursor == Some(index));
+                if layers.band {
+                    window.paint_quad(fill(
+                        Bounds::new(point(inner.origin.x, top), size(inner.size.width, px(ROW))),
+                        ink.hover(),
+                    ));
+                }
+                let (key, data) = Mark::for_row("folder", S_IFDIR).svg();
+                let at = point(inner.origin.x + px(PAD_X), top + px((ROW - MARK) / 2.));
+                let _ = window.paint_svg(
+                    Bounds::new(at, size(px(MARK), px(MARK))),
+                    key,
+                    Some(data),
+                    TransformationMatrix::unit(),
+                    ink.muted_frame,
+                    cx,
+                );
+                let pieces = paint.pieces.iter().filter(|piece| piece.row == index);
+                let drawn = pieces
+                    .clone()
+                    .next_back()
+                    .map_or(0., |piece| piece.x + piece.width());
+                // A path too long for the slot slides left inside it, because the tail names the folder.
+                let slide = (label_w - px(drawn)).min(px(0.));
+                let band = Bounds::new(point(label_x, top), size(label_w, px(ROW)));
+                window.with_content_mask(Some(ContentMask { bounds: band }), |window| {
+                    for piece in pieces {
+                        let x = label_x + slide + px(piece.x);
+                        if piece.wash && layers.run_wash {
+                            let width = piece.run.line().width;
+                            window.paint_quad(fill(
+                                Bounds::new(point(x, top + px(10.)), size(width, px(ROW - 20.))),
+                                ink.wash(RUN_WASH),
+                            ));
                         }
-                    });
-                }
-                let (above, below) = popup.fades(scroll);
-                let clear = ink.surface.opacity(0.);
-                if above {
-                    let band = Bounds::new(inner.origin, size(inner.size.width, px(FADE)));
-                    window.paint_quad(fill(
-                        band,
-                        linear_gradient(
-                            180.,
-                            linear_color_stop(ink.surface, 0.),
-                            linear_color_stop(clear, 1.),
-                        ),
-                    ));
-                }
-                if below {
-                    let band = Bounds::new(
-                        point(inner.origin.x, inner.bottom() - px(FADE)),
-                        size(inner.size.width, px(FADE)),
-                    );
-                    window.paint_quad(fill(
-                        band,
-                        linear_gradient(
-                            0.,
-                            linear_color_stop(ink.surface, 0.),
-                            linear_color_stop(clear, 1.),
-                        ),
-                    ));
-                }
-            });
+                        let color = if piece.leaf {
+                            ink.foreground
+                        } else {
+                            ink.muted
+                        };
+                        paint_run(&piece.run, x, top, px(ROW), color, window);
+                    }
+                });
+            }
+            let (above, below) = popup.fades(scroll);
+            let clear = ink.surface.opacity(0.);
+            if above {
+                let band = Bounds::new(inner.origin, size(inner.size.width, px(FADE)));
+                window.paint_quad(fill(
+                    band,
+                    linear_gradient(
+                        180.,
+                        linear_color_stop(ink.surface, 0.),
+                        linear_color_stop(clear, 1.),
+                    ),
+                ));
+            }
+            if below {
+                let band = Bounds::new(
+                    point(inner.origin.x, inner.bottom() - px(FADE)),
+                    size(inner.size.width, px(FADE)),
+                );
+                window.paint_quad(fill(
+                    band,
+                    linear_gradient(
+                        0.,
+                        linear_color_stop(ink.surface, 0.),
+                        linear_color_stop(clear, 1.),
+                    ),
+                ));
+            }
         });
     }
 }
