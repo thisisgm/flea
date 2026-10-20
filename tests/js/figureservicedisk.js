@@ -20,8 +20,8 @@ function run(check, service) {
     fake.disk.available = true
     var themeA = { bg: "#101315", fg: "#c0caf5", accent: "#7aa2f7", font: "monospace", bodyPx: 14 }
     var themeB = { bg: "#101315", fg: "#c0caf5", accent: "#f7768e", font: "monospace", bodyPx: 14 }
-    var blocks = [{ type: "figure", kind: "math", source: "x^2", display: true }, { type: "para" }, { type: "figure", kind: "mermaid", source: "flowchart TD\n    A --> B", display: true }]
-    var warmed = fake.root.warm(blocks, { math: themeA, mermaid: themeB })
+    var keys = [fake.root.cacheKeyOf("math", "x^2", themeA, true), fake.root.cacheKeyOf("mermaid", "flowchart TD\n    A --> B", themeB, true)];
+    var warmed = fake.root.warm(keys, ["math", "mermaid"])
     var asked = fake.disk.asks[0]
     check("a warm query asks the store before a helper starts", warmed === true && fake.disk.asks.length === 1 && !fake.root.starting, true)
     check("it names each figure by the key an ask would use, theme and display mode included", asked !== undefined && asked.keys.length === 2

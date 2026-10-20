@@ -1,11 +1,5 @@
 // One sandboxed figure renderer: newline-delimited JSON in and out, started by flea --figure-helper under bwrap with no network or writable paths.
 import * as std from "qjs:std";
-import * as os from "qjs:os";
-
-// ELK's GWT code takes Error from global and its in-process FakeWorker posts through setTimeout; neither exists until named here.
-globalThis.global = globalThis;
-globalThis.setTimeout = os.setTimeout;
-globalThis.clearTimeout = os.clearTimeout;
 
 // Sample input: {"id":3,"kind":"math","source":"\\frac{a}{b}","display":true,"theme":{"bg":"#101315","fg":"#c0caf5"}}.
 var worker = await import("../js/FigureWorker.mjs");

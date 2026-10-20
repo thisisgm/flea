@@ -70,11 +70,11 @@ Item {
         return (hash >>> 0).toString(hexRadix);
     }
 
-    // The figure cache key, including the display mode that changes formula layout.
+    // The figure cache key, including the display mode that changes formula layout; a dated figure's day joins it, so the next day's ask draws that day's chart.
     function cacheKeyOf(kind, source, t, display) {
         var key = [t.bg, t.fg, t.accent || "", t.muted || "", t.line || "", t.surface || "",
             t.border || "", t.font || "", t.bodyPx || 0, t.exPx || 0, root.tableDigestOf(t.advances), root.tableDigestOf(t.boldAdvances)].join("|");
-        return kind + "\n" + key + "\n" + !!display + "\n" + source;
+        return kind + "\n" + key + (t.today ? "|" + t.today : "") + "\n" + !!display + "\n" + source;
     }
 
     function cached(kind, source, theme, display) {
@@ -311,21 +311,10 @@ Item {
         root.sent(id, w.source);
     }
 
-    // A document with figures is on screen and none is asked for yet: start the helper now, so it is warm when they are asked; `themes` maps each kind to the theme its figures are asked under, so the query names an ask's cache keys.
-    function warm(blocks, themes) {
+    // A document with figures is on screen and none is asked for yet: start the helper now, so it is warm when they are asked; the caller names the keys an ask would use.
+    function warm(keys, kinds) {
         if (!root.available || root.stopping || root.starting || helper.running)
             return false;
-        var kinds = [];
-        var keys = [];
-        for (var i = 0; i < blocks.length; i++) {
-            if (blocks[i].type !== "figure")
-                continue;
-            var theme = themes ? themes[blocks[i].kind] : undefined;
-            // The preview asks every figure as a display figure; a kind with no theme has no key and so is never known.
-            keys.push(theme ? root.cacheKeyOf(blocks[i].kind, blocks[i].source, theme, true) : "");
-            if (kinds.indexOf(blocks[i].kind) < 0)
-                kinds.push(blocks[i].kind);
-        }
         if (kinds.length === 0)
             return false;
         root.warmKinds = kinds;
@@ -350,6 +339,7 @@ Item {
         root.armIdle();
     }
 
+    // The caller dates a Gantt chart's theme, so the key, the stored entry and the drawing name one day.
     function ask(kind, source, display, theme) {
         root.seq++;
         var id = root.seq;
