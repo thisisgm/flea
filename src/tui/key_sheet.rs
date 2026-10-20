@@ -111,7 +111,8 @@ pub fn hint(map: &Map, preset: &str, action: &str) -> String {
 enum Line { Heading(String), Binding(String, String), Key(String), Words(String) }
 fn groups(m: &Model, map: &Map) -> Vec<Vec<Line>> {
     GROUPS.iter().map(|group| {
-        let mut lines = vec![Line::Heading(m.i18n.tr(&format!("keys.group.{group}")))];
+        // The catalog keeps headings as the key table generator writes them; the sheet draws them in capitals, as the GUI sheet does.
+        let mut lines = vec![Line::Heading(m.i18n.tr(&format!("keys.group.{group}")).to_uppercase())];
         let answered = |row: &&Row| row.1.iter().any(|action| *action == "tab1" || crate::tui::keymap::supported(action));
         lines.extend(ROWS.iter().filter(|row| row.0 == *group).filter(answered).filter_map(|row| {
             let keys = spelling(map, &m.preset, row);
