@@ -1,0 +1,5 @@
+# Info
+
+```mermaid
+info
+```

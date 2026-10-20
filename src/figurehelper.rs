@@ -61,7 +61,17 @@ pub(crate) fn figure_argv(qjs: &Path, vendor: &Path, bytecode: Option<&Path>, wa
         inner.push(format!("--warm={}", warm.join(",")));
     }
     let refs: Vec<&Path> = binds.iter().map(PathBuf::as_path).collect();
-    sandbox::wrap_readonly_extra(&inner, &refs)
+    let mut argv = sandbox::wrap_readonly_extra(&inner, &refs);
+    pin_utc(&mut argv);
+    argv
+}
+
+// The helper formats with local getters, so its zone is pinned to UTC: after --clearenv, else after bwrap; a non-jail argv is left alone.
+pub(crate) fn pin_utc(argv: &mut Vec<String>) {
+    let at = argv.iter().position(|a| a == "--clearenv").or_else(|| argv.iter().position(|a| a == sandbox::BWRAP));
+    if let Some(at) = at.map(|i| i + 1) {
+        argv.splice(at..at, ["--setenv".to_string(), "TZ".to_string(), "UTC".to_string()]);
+    }
 }
 
 // The helper's own flag that prints one line per bundle it loads, saying whether it came from bytecode or from source.

@@ -19,18 +19,6 @@ done
 
 npm ci || exit 1
 
-# Flea's patch to the pinned library (see ui/vendor/LICENSES); a reject, a fuzz or an offset hunk fails the build.
-patched=$(patch -d node_modules/beautiful-mermaid -p1 --forward --batch --fuzz=0 --no-backup-if-mismatch < patches/beautiful-mermaid+1.1.3.patch 2>&1) || {
-    printf '%s\n' "$patched"
-    echo "vendor-js: the beautiful-mermaid patch did not apply cleanly"
-    exit 1
-}
-printf '%s\n' "$patched"
-if printf '%s\n' "$patched" | grep -qiE 'fuzz|offset|reject|failed'; then
-    echo "vendor-js: the beautiful-mermaid patch applied with an offset, fuzz or reject"
-    exit 1
-fi
-
 # Bundles use one exact command each: minified ES modules for quickjs-ng, neutral platform, es2017.
 npx esbuild math-entry.mjs --bundle --format=esm --platform=neutral --target=es2017 --minify --outfile=math-bundle.mjs || exit 1
 npx esbuild mermaid-entry.mjs --bundle --format=esm --platform=neutral --target=es2017 --minify --outfile=mermaid-bundle.mjs || exit 1

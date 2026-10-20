@@ -7,22 +7,16 @@ pinned packages plus the entry files in tools/vendor-js/.
    Licence text: ui/vendor/LICENSES/Apache-2.0-mathjax.txt.
    Used for: texToSvg(source, display) in ui/vendor/math.mjs.
 
-2. beautiful-mermaid 1.1.3 (https://www.npmjs.com/package/beautiful-mermaid),
-   MIT. Licence text: ui/vendor/LICENSES/MIT-beautiful-mermaid.txt.
-   Used for: mermaidToSvg(source, bg, fg) in ui/vendor/mermaid.mjs.
-   Modified: Flea patches dist/index.js (cycle breaking, label measurement,
-   flowchart link and subgraph syntax, sequence diagram layout) with tools/vendor-js/patches/beautiful-mermaid+1.1.3.patch,
-   applied by tools/vendor-js/build.sh; the patch is the modification record.
-
-3. elkjs 0.11.1 (https://github.com/kieler/elkjs), EPL-2.0.
-   elkjs is a dependency of beautiful-mermaid and is bundled into
-   ui/vendor/mermaid.mjs. Its upstream source is https://github.com/kieler/elkjs
-   (EPL-2.0 section 3: the source of a distributed binary must be named).
-   Licence text: ui/vendor/LICENSES/EPL-2.0-elkjs.txt.
-
-4. entities 7.0.1 (https://github.com/fb55/entities), BSD-2-Clause.
-   entities is a dependency of beautiful-mermaid and is bundled into
-   ui/vendor/mermaid.mjs.
-   Licence text: ui/vendor/LICENSES/BSD-2-Clause-entities.txt.
+2. Pele 1.6.0 (https://github.com/obsidianmd/pele), MIT.
+   Package: pele 1.6.0 from npm, published from commit
+   659c3593ce43794dce7ec7ab45d424ad2de182a5 (tag 1.6.0).
+   Licence text: ui/vendor/LICENSES/MIT-pele.txt, the package's LICENSE file
+   as published. That file also carries the ISC notice of the Lucide icon in
+   Pele's zoom controls; the bundle does not include the zoom controls.
+   Used for: mermaidToSvg(source, theme) in ui/vendor/mermaid.mjs.
+   Unmodified: tools/vendor-js/mermaid-entry.mjs only calls Pele's render()
+   with a text measurer built from the request's advance tables, and
+   resolves its theme variables and its one colour mix to the colours Flea
+   hands it.
 
 Build tool esbuild 0.28.2 is a dev-only build dependency and is not shipped.
