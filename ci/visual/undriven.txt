@@ -1,6 +1,4 @@
-# G2 scenes BLOCKED from native registration (gcomp-wire FIX1). One line per scene: <id> BLOCKED <owner>: <reason>.
-# Registered in ci/visual/g2/fb1.json (empty, locked, grid-empty, grid-locked, empty-rest, extra.empty-reduced) and ci/visual/g2/op1.json
-# (copyto, copyto-empty); the copy_to scenes also resolve in the compiled scene registry (ci/visual/scenes/g2-op1.json).
+# Native-undriven G2 scenes: <id> BLOCKED <owner>: <reason>; only the four op1 card ids are compiled from ci/visual/scenes/g2-op1.json.
 g2.op1.collide-merge-inner.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
 g2.op1.collide-merge.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
 g2.op1.collide-replace.primary BLOCKED op1: paste collision backend lines (G1.02 transport) and G1.05 keys; G0.10 runner
@@ -58,6 +56,12 @@ g2.st1.settings-view.primary BLOCKED st1: G1 state writer (ui.json Store), G1.11
 g2.pk1 BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
 g2.pk1.picker-open.primary BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
 g2.pk1.picker-save.primary BLOCKED pk1: pk2 listing, PickerGeometry on IPC, G0.10 picker sockets
+g2.fb1.empty.primary BLOCKED fb1: G0.10 native registration and geometry: board inventory only, no compiled fb1 sidecar; the validator requires row roles absent from a zero-row frame
+g2.fb1.locked.primary BLOCKED fb1: G0.10 native registration and geometry: no compiled fb1 sidecar or state-message roles satisfying the listing-row geometry contract
+g2.fb1.grid-empty.primary BLOCKED fb1: G0.10 native registration and geometry: no compiled fb1 sidecar; the validator requires row roles absent from a zero-row frame
+g2.fb1.grid-locked.primary BLOCKED fb1: G0.10 native registration and geometry: no compiled fb1 sidecar or state-message roles satisfying the listing-row geometry contract
+g2.fb1.empty-rest.primary BLOCKED fb1: G0.10 native time control: no compiled fb1 sidecar or setup to present the hero after its third beat
+g2.fb1.extra.empty-reduced BLOCKED fb1: G0.10 native registration and geometry: no compiled fb1 sidecar; reduced motion does not supply the required listing-row roles
 g2.fb1.cols-insideempty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
 g2.fb1.cols-peekempty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it
 g2.fb1.cols2-hero-empty.primary BLOCKED fb1: G1.07 columns view: the hero must mount inside a column, the pane slot cannot place it

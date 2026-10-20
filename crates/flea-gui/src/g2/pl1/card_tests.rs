@@ -106,18 +106,13 @@ fn the_pointer_washes_are_the_oracle_dialog_buttons() {
 }
 
 fn distinct_ink() -> super::ink::CardInk {
-    let tone = |h: f32| gpui::hsla(h, 0.5, 0.5, 1.);
-    super::ink::CardInk {
-        surface: tone(0.0),
-        ground: tone(0.1),
-        foreground: tone(0.2),
-        muted: tone(0.3),
-        frame: tone(0.4),
-        accent_frame: tone(0.5),
-        error: tone(0.6),
-        rule: tone(0.7),
-        wash: tone(0.8).opacity(0.14),
-    }
+    let mut palette = crate::list::Palette::inherited(
+        &gpui::TextStyle::default(),
+        crate::palette::Theme::default(),
+    );
+    palette.accent = palette.background;
+    palette.accent_frame = palette.background;
+    super::ink::CardInk::inherited(&palette)
 }
 
 #[test]
@@ -155,6 +150,7 @@ fn a_hovered_or_pressed_unlock_keeps_its_accent_wash_under_the_pointer_wash() {
 fn a_focused_primary_on_a_hued_accent_keeps_one_foreground_hairline() {
     use super::card::button_frame;
     let mut ink = distinct_ink();
+    assert_ne!(ink.accent_frame, ink.foreground);
     assert_eq!(
         button_frame(true, true, true, &ink),
         (ink.foreground, false),

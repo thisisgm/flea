@@ -3,27 +3,15 @@ use super::page::Card;
 use super::page_tests::{builtins, checksums, english, listing, Recorder};
 use super::seam::{Effect, PluginsWire, Tokens};
 use super::view::PluginsPane;
-use gpui::{point, px, size, Entity, Hsla, Modifiers, TestAppContext, VisualTestContext};
+use gpui::{point, px, size, Entity, Modifiers, TestAppContext, VisualTestContext};
 use std::cell::RefCell;
 use std::rc::Rc;
 
 fn tokens() -> Tokens {
-    let ink = |l: f32| Hsla {
-        h: 0.08,
-        s: 0.3,
-        l,
-        a: 1.,
-    };
-    Tokens {
-        bg: ink(0.08),
-        surface: ink(0.06),
-        fg: ink(0.68),
-        muted: ink(0.5),
-        muted_frame: ink(0.4),
-        accent: ink(0.55),
-        accent_frame: ink(0.55),
-        error: ink(0.57),
-    }
+    Tokens::interim(&crate::list::Palette::inherited(
+        &gpui::TextStyle::default(),
+        crate::palette::Theme::default(),
+    ))
 }
 
 type Effects = Rc<RefCell<Vec<Effect>>>;

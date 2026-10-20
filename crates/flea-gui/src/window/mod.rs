@@ -49,6 +49,8 @@ pub fn open(
 }
 
 #[cfg(test)]
+mod modal_tests;
+#[cfg(test)]
 mod overlay_escape_tests;
 #[cfg(test)]
 mod overlay_tests;
