@@ -180,9 +180,9 @@ impl Shell {
         }
         // A later scene starts with no card open; the reset runs before any scene's own setup.
         if self.overlay.is_some() {
-            self.close_overlay(cx);
+            self.close_overlay(window, cx);
         }
-        // The window holds one corner value: the driving scene's rounding, if it names one.
+        // The window holds the rounding every scene names.
         self.corner = spec.corner as f32;
         // The operations scenes open their card on the overlay slot; copy_to needs no backend reply.
         if matches!(

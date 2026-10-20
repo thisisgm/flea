@@ -104,7 +104,7 @@ impl Render for Moving {
             size: typeface.caption,
             line: px(16.),
             tracking: px(TRACKING),
-            color: gpui::black(),
+            color: crate::palette::Theme::default().foreground,
         };
         div().size_full().child(Counted(tracked, self.0))
     }

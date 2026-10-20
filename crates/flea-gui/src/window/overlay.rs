@@ -21,13 +21,18 @@ impl Shell {
             .overlay
             .get_or_insert_with(|| cx.new(|_| Overlay::new(catalog, palette, "default")))
             .clone();
-        overlay.update(cx, |overlay, cx| overlay.copy_to(0, moving, path, cx));
+        overlay.update(cx, |overlay, cx| {
+            overlay.copy_to(0, moving, path, cx);
+            overlay.sync_focus(window, cx);
+        });
         cx.notify();
     }
 
     /// Closes whatever card the overlay shows; the window draws its own frame again.
-    pub(crate) fn close_overlay(&mut self, cx: &mut Context<Self>) {
-        self.overlay = None;
+    pub(crate) fn close_overlay(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if let Some(overlay) = self.overlay.take() {
+            overlay.update(cx, |overlay, cx| overlay.release_focus(window, cx));
+        }
         cx.notify();
     }
 }

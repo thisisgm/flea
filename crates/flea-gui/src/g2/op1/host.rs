@@ -11,7 +11,8 @@ use flea::ui_logic_op1::{
     trash::{Review, Scope},
 };
 use gpui::{
-    div, prelude::*, px, App, Context, Div, KeyDownEvent, MouseButton, Stateful, Task, Window,
+    div, prelude::*, px, App, Context, Div, FocusHandle, KeyDownEvent, MouseButton, Stateful, Task,
+    Window,
 };
 use std::sync::Arc;
 use std::time::{Duration, Instant};
@@ -30,6 +31,8 @@ pub struct Overlay {
     // The host's own clock: milliseconds since its first line, so the beat and the check need no caller.
     epoch: Option<Instant>,
     beat: Option<(u64, Task<()>)>,
+    focus: Option<FocusHandle>,
+    previous_focus: Option<FocusHandle>,
 }
 
 impl Overlay {
@@ -44,6 +47,35 @@ impl Overlay {
             since: None,
             epoch: None,
             beat: None,
+            focus: None,
+            previous_focus: None,
+        }
+    }
+
+    // One focus handle serves the card's internal field/button focus; no handle exists before a modal opens.
+    pub(crate) fn sync_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        if !self.model.open() {
+            self.release_focus(window, cx);
+            return;
+        }
+        if self.focus.is_none() {
+            self.previous_focus = window.focused(cx);
+            self.focus = Some(cx.focus_handle());
+        }
+        window.focus(self.focus.as_ref().expect("the open card owns focus"), cx);
+    }
+
+    pub(crate) fn release_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
+        let Some(focus) = self.focus.take() else {
+            return;
+        };
+        let previous = self.previous_focus.take();
+        if focus.is_focused(window) {
+            if let Some(previous) = previous {
+                window.focus(&previous, cx);
+            } else {
+                window.blur(cx);
+            }
         }
     }
 
@@ -136,7 +168,8 @@ impl Overlay {
     }
 
     // A card swallows Control, Alt and Super combinations whole, Escape excepted, as every v0.3.12 card does.
-    pub fn key(&mut self, event: &KeyDownEvent, _window: &mut Window, cx: &mut Context<Self>) {
+    pub fn key(&mut self, event: &KeyDownEvent, window: &mut Window, cx: &mut Context<Self>) {
+        self.sync_focus(window, cx);
         let keys = &event.keystroke;
         let held = keys.modifiers.control || keys.modifiers.alt || keys.modifiers.platform;
         if held && keys.key != "escape" {
@@ -153,6 +186,7 @@ impl Overlay {
             cx.notify();
             self.schedule(cx);
         }
+        self.sync_focus(window, cx);
     }
 }
 
@@ -194,12 +228,13 @@ impl Overlay {
                     let at = cx.background_executor().now();
                     let _ = up.update(cx, |this, cx| this.release(press, at, cx));
                 })
-                .on_click(move |_, _, cx| {
+                .on_click(move |_, window, cx| {
                     let at = cx.background_executor().now();
                     let _ = click.update(cx, |this, cx| {
                         this.release(press, at, cx);
                         let catalog = this.catalog.clone();
                         this.model.press(&catalog, press);
+                        this.sync_focus(window, cx);
                         if !matches!(press, Press::Job(..)) && !this.model.open() {
                             this.pointer = Pointer::default();
                         }
@@ -210,9 +245,10 @@ impl Overlay {
     }
 
     // A press outside the card answers as Escape does, so a collision is cancelled on the wire too.
-    fn dismiss(&mut self, cx: &mut Context<Self>) {
+    fn dismiss(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let catalog = self.catalog.clone();
         self.model.key(&catalog, "escape", false);
+        self.sync_focus(window, cx);
         self.pointer = Pointer::default();
         cx.notify();
         self.schedule(cx);
@@ -229,11 +265,13 @@ impl Overlay {
 
 impl Render for Overlay {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        self.sync_focus(window, cx);
         let size = window.viewport_size();
         let window_size = (f32::from(size.width), f32::from(size.height));
         let mut root = div()
             .size_full()
             .relative()
+            .when_some(self.focus.as_ref(), |root, focus| root.track_focus(focus))
             .on_key_down(cx.listener(Self::key));
         let wire = self.wire(cx);
         let showing = !self.model.jobs.folded && self.model.jobs.visible();
@@ -283,11 +321,11 @@ impl Render for Overlay {
             let scrim = view::scrim(&self.palette, self.cards_below, card)
                 .on_mouse_down(
                     gpui::MouseButton::Left,
-                    cx.listener(|this, _, _, cx| this.dismiss(cx)),
+                    cx.listener(|this, _, window, cx| this.dismiss(window, cx)),
                 )
                 .on_mouse_down(
                     gpui::MouseButton::Right,
-                    cx.listener(|this, _, _, cx| this.dismiss(cx)),
+                    cx.listener(|this, _, window, cx| this.dismiss(window, cx)),
                 )
                 .on_scroll_wheel(|_, _, cx| cx.stop_propagation());
             root = root.child(scrim);

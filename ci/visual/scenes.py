@@ -36,7 +36,8 @@ def manifest(path):
         require(paired == ('reference_tag' in scene), 'reference needs its tag')
         want = set(schema['required'])
         if not paired:
-            require(scene.get('id') in ('g2.op1.copyto.r8', 'g2.op1.copyto.r0',
+            require(scene.get('board') in ('copyto', 'copyto-empty')
+                    and scene.get('id') in ('g2.op1.copyto.r8', 'g2.op1.copyto.r0',
                                         'g2.op1.copyto-empty.r8', 'g2.op1.copyto-empty.r0'),
                     'missing or unknown scene field')
             want -= {'reference', 'reference_tag'}

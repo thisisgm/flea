@@ -41,7 +41,7 @@ impl Default for Host {
             focused: true,
             shown: true,
             animations: true,
-            ground: gpui::black(),
+            ground: crate::palette::Theme::default().background,
         }
     }
 }

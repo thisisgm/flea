@@ -3,7 +3,7 @@ use super::fixture::{Page, LANDSCAPE, LETTER, TURNED};
 use super::{document, root};
 use flea::ui_logic_pv2::{pdf, viewer};
 use flea_gui::g2::pv2::{Metrics, Palette, PdfView};
-use gpui::{hsla, AppContext as _, TestAppContext, WindowHandle};
+use gpui::{AppContext as _, TestAppContext, WindowHandle};
 use std::time::{Duration, Instant};
 
 const METRICS: Metrics = Metrics {
@@ -12,16 +12,21 @@ const METRICS: Metrics = Metrics {
     row_height: 28.,
 };
 
-fn palette(lightness: f32) -> Palette {
+fn palette(light: bool) -> Palette {
+    let theme = flea_gui::palette::Theme::default();
     Palette {
-        background: hsla(0., 0., lightness, 1.),
+        background: if light {
+            theme.foreground
+        } else {
+            theme.background
+        },
     }
 }
 
 // The render thread is real, so its wakes come from outside the deterministic scheduler, the case parking exists for.
 fn open(cx: &mut TestAppContext, continuous: bool) -> WindowHandle<PdfView> {
     cx.executor().allow_parking();
-    cx.add_window(|_, cx| PdfView::new(continuous, palette(0.08), METRICS, cx))
+    cx.add_window(|_, cx| PdfView::new(continuous, palette(false), METRICS, cx))
 }
 
 fn with<R>(
@@ -301,11 +306,11 @@ fn pv2_a_walk_waits_for_the_settle_and_a_switch_drops_the_old_pages(cx: &mut Tes
 #[test]
 fn pv2_the_veil_is_for_dark_grounds_only() {
     assert_eq!(
-        palette(0.9).veil(),
+        palette(true).veil(),
         None,
         "a light theme leaves the page as authored"
     );
-    let veil = palette(0.08).veil().expect("a dark theme veils the page");
+    let veil = palette(false).veil().expect("a dark theme veils the page");
     assert!((veil.a - 0.05).abs() < 1e-6, "at 5% of the window ground");
     let _ = Page {
         width: 1.,

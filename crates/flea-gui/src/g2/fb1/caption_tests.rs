@@ -38,7 +38,7 @@ pub(super) fn shaped(
     let run = TextRun {
         len: text.len(),
         font,
-        color: gpui::black(),
+        color: crate::palette::Theme::default().foreground,
         background_color: None,
         underline: None,
         strikethrough: None,

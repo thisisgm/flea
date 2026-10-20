@@ -49,31 +49,33 @@ impl Shell {
         if self.lifecycle.phase() != Phase::Open {
             return;
         }
+        // Every modal key belongs to the card; a cardless Escape still reaches the window.
+        if let Some(overlay) = self.overlay.clone() {
+            let modal = overlay.read_with(cx, |card, _| card.model.open());
+            if modal
+                || (event.keystroke.key == "escape" && modifiers(event.keystroke.modifiers) == 0)
+            {
+                let showing = overlay.read_with(cx, |card, _| {
+                    card.model.open() || (card.model.jobs.visible() && !card.model.jobs.folded)
+                });
+                overlay.update(cx, |card, cx| card.key(event, window, cx));
+                let still = overlay.read_with(cx, |card, _| {
+                    card.model.open() || (card.model.jobs.visible() && !card.model.jobs.folded)
+                });
+                if !still {
+                    self.overlay = None;
+                }
+                cx.notify();
+                if showing {
+                    cx.stop_propagation();
+                    return;
+                }
+            }
+        }
         if event.keystroke.modifiers.control && event.keystroke.key == "q" {
             self.close(window, cx);
             cx.stop_propagation();
             return;
-        }
-        // An open card takes Escape itself; with no card or Jobs showing the stroke falls through.
-        if event.keystroke.key == "escape"
-            && modifiers(event.keystroke.modifiers) == 0
-            && self.overlay.is_some()
-        {
-            let overlay = self.overlay.clone().expect("an open overlay");
-            let showing = overlay.read_with(cx, |card, _| {
-                card.model.open() || (card.model.jobs.visible() && !card.model.jobs.folded)
-            });
-            overlay.update(cx, |card, cx| card.key(event, window, cx));
-            let still = overlay.read_with(cx, |card, _| {
-                card.model.open() || (card.model.jobs.visible() && !card.model.jobs.folded)
-            });
-            if !still {
-                self.overlay = None;
-            }
-            cx.notify();
-            if showing {
-                return;
-            }
         }
         if modifiers(event.keystroke.modifiers) == 0 {
             if let Some(host) = &mut self.panes[self.focus_side] {

@@ -179,7 +179,9 @@ fn copy_to_paints_its_scrim_and_card_over_the_window(cx: &mut TestAppContext) {
             && f32::from(card.bottom()) < f32::from(view.height),
         "the card at {card:?} sits inside the viewport {view:?}"
     );
-    shell(cx, handle, |shell, _, cx| shell.close_overlay(cx));
+    shell(cx, handle, |shell, window, cx| {
+        shell.close_overlay(window, cx)
+    });
     let back = frame(cx, handle);
     assert!(
         same_frame(&back, &own),

@@ -8,6 +8,31 @@ from gpui_lint_tests import LintTests, LIST, REPO
 
 
 CASES = {
+    "executor_expression": [
+        ("thread_helper", 'std::thread::spawn(move || worker());', "", 'fn worker() { replies.recv(); }', 0),
+        ("named_thread_helper", 'std::thread::Builder::new().name("worker".into()).spawn(move || worker());', "", 'fn worker() { replies.recv(); stream.write_all(bytes); std::thread::sleep(delay); }', 0),
+        ("thread_alias", 'threads::Builder::new().name("worker".into()).spawn(move || worker());', "use std::thread as threads;", 'fn worker() { replies.recv(); }', 0),
+        ("background_helper", 'cx.background_executor().spawn(async move || worker());', "", 'fn worker() { std::fs::read("x"); }', 0),
+        ("foreground_helper", 'cx.spawn(move || worker());', "", 'fn worker() { replies.recv(); }', 1),
+        ("ordinary_spawn", 'executor.spawn(move || worker());', "", 'fn worker() { replies.recv(); }', 1),
+        ("direct_helper", 'worker();', "", 'fn worker() { replies.recv(); }', 1),
+        ("helper_on_both_threads", 'std::thread::spawn(move || worker()); worker();', "", 'fn worker() { replies.recv(); }', 1),
+        ("argument_is_foreground", 'std::thread::Builder::new().name(std::fs::read_to_string("x").unwrap()).spawn(move || worker());', "", 'fn worker() { replies.recv(); }', 1),
+        ("argument_factory_is_foreground", 'std::thread::spawn(make(worker()));', "", 'fn worker() { replies.recv(); }', 1),
+    ],
+    "color_forms": [
+        ("return_type", 'theme.background;', "", 'fn ink() -> gpui::Hsla { theme.foreground.opacity(0.08) }', 0),
+        ("reference_return_type", 'theme.background;', "", 'fn ink() -> &gpui::Hsla { log(0.08); theme.foreground }', 0),
+        ("typed_binding", 'let ink: gpui::Hsla = theme.background; paint(ink);', "", "", 0),
+        ("appearance_variant", 'gpui::WindowBackgroundAppearance::Transparent;', "", "", 0),
+        ("color_variant", 'Color::RED;', "", "", 0),
+        ("named_functions", 'gpui::black(); gpui::white();', "", "", 1),
+        ("transparent_function", 'gpui::transparent_black();', "", "", 0),
+        ("rgba_struct", 'gpui::Rgba { r: 0.5, g: 0., b: 0., a: 1. };', "", "", 1),
+        ("hsla_struct", 'gpui::Hsla { h: 0.5, s: 0., l: 0., a: 1. };', "", "", 1),
+        ("closure_struct", 'let ink = |l| gpui::Hsla { h: 0.5, s: 0., l, a: 1. };', "", "", 1),
+        ("return_literal", 'theme.background;', "", 'fn ink() -> gpui::Hsla { gpui::Hsla { h: 0.5, s: 0., l: 0., a: 1. } }', 1),
+    ],
     "executor_receiver": [
         ("foreground", 'cx.spawn(async move |_| { std::fs::read("x"); });', "", "", 1),
         ("background", 'cx.background_executor().spawn(async move { std::fs::read("x"); });', "", "", 0),
@@ -106,6 +131,12 @@ class ReviewTests(unittest.TestCase):
 
     def test_executor_receiver(self):
         self.check_cases("executor_receiver")
+
+    def test_executor_expression(self):
+        self.check_cases("executor_expression")
+
+    def test_color_forms(self):
+        self.check_cases("color_forms")
 
     def test_import_scope(self):
         self.check_cases("import_scope")

@@ -125,6 +125,18 @@ class Sidecars(unittest.TestCase):
         finally:
             scenes.ROOT = root
 
+    def test_card_ids_cannot_borrow_listing_boards_without_references(self):
+        source = Path(__file__).with_name('scenes') / 'g2-op1.json'
+        cards = scenes.manifest(source)
+        self.assertEqual(len(cards), 4)
+        target = self.root / 'wrong-listing.json'
+        for card in cards:
+            for board in ('list', 'grid'):
+                with self.subTest(scene=card['id'], board=board):
+                    target.write_text(json.dumps(dict(version=1, scenes=[dict(card, board=board)])))
+                    with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+                        scenes.manifest(target)
+
 
 if __name__ == '__main__':
     unittest.main()
