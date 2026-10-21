@@ -39,7 +39,7 @@ def manifest(path):
         require(paired == ('reference_tag' in scene), 'reference needs its tag')
         want = set(schema['required'])
         if not paired:
-            require(CARD_BOARDS.get(scene.get('id')) == scene.get('board'), 'card scene must name its own board')
+            require(isinstance(scene.get('id'), str) and CARD_BOARDS.get(scene.get('id')) == scene.get('board'), 'card scene must name its own board')
             want -= {'reference', 'reference_tag'}
         require(set(scene) == want, 'missing or unknown scene field')
         for key in ('id', 'unit', 'board', 'fixture', 'theme'):
