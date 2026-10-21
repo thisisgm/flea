@@ -148,6 +148,18 @@ class Sidecars(unittest.TestCase):
         with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
             scenes.manifest(target)
 
+    def test_unhashable_card_id_fails_with_validation_error(self):
+        card = scenes.manifest(Path(__file__).with_name('scenes') / 'g2-op1.json')[0]
+        target = self.root / 'unhashable.json'
+        for bad in (['g2.op1.copyto.r8'], {'id': 'g2.op1.copyto.r8'}):
+            with self.subTest(id=bad):
+                scene = dict(card, id=bad)
+                scene.pop('reference', None)
+                scene.pop('reference_tag', None)
+                target.write_text(json.dumps(dict(version=1, scenes=[scene])))
+                with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
+                    scenes.manifest(target)
+
 
 if __name__ == '__main__':
     unittest.main()
