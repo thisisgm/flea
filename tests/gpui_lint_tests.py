@@ -163,7 +163,7 @@ source = "{SOURCE}"
     def test_literal_colors_theme_control_and_module_exemptions(self):
         self.assertEqual([], self.check_body('paint(theme.background);'))
         for code in ('rgb(0xff1122);', 'rgba(1);', 'hsla(1., 0., 0., 1.);', 'Hsla { l: 0.5, ..theme.ink };',
-                     'gpui::white();', 'div.bg("rebeccapurple");', 'div.text_color("#fff");'):
+                     'gpui::white();', 'Color::RED;', 'div.bg("rebeccapurple");', 'div.text_color("#fff");'):
             with self.subTest(code=code):
                 self.assertTrue(any("literal colour" in e for e in self.check_body(code)), code)
         self.write("crates/flea-gui/src/palette.rs", "fn parse() { rgb(0xff1122); }")

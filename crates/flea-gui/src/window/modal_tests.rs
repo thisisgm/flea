@@ -194,18 +194,40 @@ fn keys_stay_in_card(cx: &mut TestAppContext, steal_focus: bool) {
                 !shell.focus.is_focused(window),
                 "the hidden listing must not hold focus"
             );
-            assert!(window.focused(cx).is_some(), "the card owns keyboard focus");
             let card = shell.overlay.as_ref().unwrap().read(cx);
+            let handle = card
+                .focus_handle()
+                .expect("the open card holds a focus handle");
             assert!(
-                matches!(
-                    card.model.dialog,
-                    Some(Dialog::CopyTo {
-                        focus: CopyFocus::Field,
-                        ..
-                    })
-                ),
-                "the path field keeps focus after {key}"
+                handle.is_focused(window),
+                "the card's own handle owns keyboard focus"
             );
+            assert_eq!(window.focused(cx), Some(handle), "nothing else is focused");
+            // No text input exists yet, so the field text is the path the card opened with and only Return acts on it.
+            let submitted = key == "enter";
+            let Some(Dialog::CopyTo {
+                path,
+                focus: CopyFocus::Field,
+                busy,
+                ..
+            }) = &card.model.dialog
+            else {
+                panic!("the path field keeps focus after {key}");
+            };
+            assert_eq!(path, "/files", "{key} must leave the field text as it was");
+            assert_eq!(*busy, submitted, "only Return submits the field, not {key}");
+            assert_eq!(
+                card.model.outbox.len(),
+                usize::from(submitted),
+                "{key} reaches the card exactly when it acts"
+            );
+            if submitted {
+                let line = &card.model.outbox[0];
+                assert!(
+                    line.contains("\"op\":\"validate\"") && line.contains("\"dest\":\"/files\""),
+                    "Return validates the field's path: {line}"
+                );
+            }
         });
     }
 }

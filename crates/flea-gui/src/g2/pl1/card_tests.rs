@@ -105,14 +105,54 @@ fn the_pointer_washes_are_the_oracle_dialog_buttons() {
     assert_eq!(super::card::WASH_PRESS, 0.14);
 }
 
+/// The nine roles read through the card, each a different theme ink so a wash or frame taken from the wrong role shows.
 fn distinct_ink() -> super::ink::CardInk {
-    let mut palette = crate::list::Palette::inherited(
+    let theme = crate::palette::Theme::default();
+    let ink = super::ink::CardInk {
+        surface: theme.background,
+        ground: theme.background.opacity(0.9),
+        foreground: theme.foreground,
+        muted: theme.foreground.opacity(0.62),
+        frame: theme.foreground.opacity(0.5),
+        accent_frame: theme.foreground.opacity(0.7),
+        error: theme.foreground.opacity(0.8),
+        rule: theme.foreground.opacity(0.4),
+        wash: theme.foreground.opacity(0.33),
+    };
+    assert_pairwise_distinct(&ink);
+    ink
+}
+
+fn assert_pairwise_distinct(ink: &super::ink::CardInk) {
+    let roles = [
+        ("surface", ink.surface),
+        ("ground", ink.ground),
+        ("foreground", ink.foreground),
+        ("muted", ink.muted),
+        ("frame", ink.frame),
+        ("accent_frame", ink.accent_frame),
+        ("error", ink.error),
+        ("rule", ink.rule),
+        ("wash", ink.wash),
+    ];
+    for (i, (one, first)) in roles.iter().enumerate() {
+        for (other, second) in &roles[i + 1..] {
+            assert_ne!(
+                first, second,
+                "card ink roles must be pairwise distinct: {one} and {other}"
+            );
+        }
+    }
+}
+
+#[test]
+#[should_panic(expected = "pairwise distinct")]
+fn the_inherited_ink_collapses_roles_so_the_helper_rejects_it() {
+    let palette = crate::list::Palette::inherited(
         &gpui::TextStyle::default(),
         crate::palette::Theme::default(),
     );
-    palette.accent = palette.background;
-    palette.accent_frame = palette.background;
-    super::ink::CardInk::inherited(&palette)
+    assert_pairwise_distinct(&super::ink::CardInk::inherited(&palette));
 }
 
 #[test]

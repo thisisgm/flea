@@ -11,6 +11,9 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parent
+# The card scenes that carry no reference pair, each bound to the board ci/visual/g2/op1.json names for it.
+CARD_BOARDS = {'g2.op1.copyto.r8': 'copyto', 'g2.op1.copyto.r0': 'copyto',
+               'g2.op1.copyto-empty.r8': 'copyto-empty', 'g2.op1.copyto-empty.r0': 'copyto-empty'}
 
 
 def require(condition, message):
@@ -36,10 +39,7 @@ def manifest(path):
         require(paired == ('reference_tag' in scene), 'reference needs its tag')
         want = set(schema['required'])
         if not paired:
-            require(scene.get('board') in ('copyto', 'copyto-empty')
-                    and scene.get('id') in ('g2.op1.copyto.r8', 'g2.op1.copyto.r0',
-                                        'g2.op1.copyto-empty.r8', 'g2.op1.copyto-empty.r0'),
-                    'missing or unknown scene field')
+            require(CARD_BOARDS.get(scene.get('id')) == scene.get('board'), 'card scene must name its own board')
             want -= {'reference', 'reference_tag'}
         require(set(scene) == want, 'missing or unknown scene field')
         for key in ('id', 'unit', 'board', 'fixture', 'theme'):
