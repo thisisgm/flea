@@ -157,9 +157,10 @@ def source_checks(units, policy):
             # A bare call under a gpui glob is gpui's unless the scope declares that name; a method or fn declaration is not a call.
             if environment.glob and following == "(" and len(path) == 1 and path[0] not in environment.items and path[0] not in environment.lets and not (i and ts[i - 1].value in (".", "fn")):
                 path = ("gpui", path[0])
-            constructor = (following == "(" and name in COLOR_CALLS) or (following == "{" and name in COLOR_TYPES)
+            constructor = following in ("(", "{") and (name in COLOR_CALLS or any(p in COLOR_TYPES for p in path))
             gpui_symbol = path[0] == "gpui" or path[0].startswith("gpui_") or any(p in COLOR_TYPES for p in path)
-            named = following == "(" and gpui_symbol and name.lower() in COLOR_NAMES
+            # A named colour is a call, a constant or a function value; a variant of a type that is not a colour type is not one.
+            named = gpui_symbol and name.lower() in COLOR_NAMES and not any(p[0].isupper() and p not in COLOR_TYPES for p in path[:-1])
             args = ts[end + 1:matched[end]] if following in ("(", "{") else []
             literal = any(t.kind in ("number", "string") for t in args)
             direct = immediate(ts, matched, end + 1, matched[end]) if following in ("(", "{") else []

@@ -65,6 +65,12 @@ impl Overlay {
         window.focus(self.focus.as_ref().expect("the open card owns focus"), cx);
     }
 
+    // The handle the open card holds focus with; None while no card is open.
+    #[cfg(test)]
+    pub(crate) fn focus_handle(&self) -> Option<FocusHandle> {
+        self.focus.clone()
+    }
+
     pub(crate) fn release_focus(&mut self, window: &mut Window, cx: &mut Context<Self>) {
         let Some(focus) = self.focus.take() else {
             return;

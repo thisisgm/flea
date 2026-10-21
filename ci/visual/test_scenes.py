@@ -75,7 +75,7 @@ class Sidecars(unittest.TestCase):
         data['scenes'][3].pop('reference_tag')
         target = self.root / 'unpaired.json'
         target.write_text(json.dumps(data))
-        with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+        with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
             scenes.manifest(target)
 
     def test_non_object_scenes_fail_with_validation_error(self):
@@ -96,7 +96,7 @@ class Sidecars(unittest.TestCase):
                 scene.pop('reference')
                 scene.pop('reference_tag')
                 target.write_text(json.dumps(dict(version=1, scenes=[scene])))
-                with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+                with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
                     scenes.manifest(target)
 
     def test_another_unit_registers_its_own_scene_values(self):
@@ -125,17 +125,28 @@ class Sidecars(unittest.TestCase):
         finally:
             scenes.ROOT = root
 
-    def test_card_ids_cannot_borrow_listing_boards_without_references(self):
+    def test_card_scenes_validate_only_on_their_own_board(self):
         source = Path(__file__).with_name('scenes') / 'g2-op1.json'
         cards = scenes.manifest(source)
         self.assertEqual(len(cards), 4)
-        target = self.root / 'wrong-listing.json'
+        target = self.root / 'card.json'
         for card in cards:
-            for board in ('list', 'grid'):
+            target.write_text(json.dumps(dict(version=1, scenes=[card])))
+            self.assertEqual(scenes.manifest(target)[0]['id'], card['id'])
+            for board in ('list', 'grid', 'copyto', 'copyto-empty'):
+                if board == card['board']:
+                    continue
                 with self.subTest(scene=card['id'], board=board):
                     target.write_text(json.dumps(dict(version=1, scenes=[dict(card, board=board)])))
-                    with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+                    with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
                         scenes.manifest(target)
+
+    def test_a_card_scene_still_fails_the_field_set_check(self):
+        card = scenes.manifest(Path(__file__).with_name('scenes') / 'g2-op1.json')[0]
+        target = self.root / 'extra.json'
+        target.write_text(json.dumps(dict(version=1, scenes=[dict(card, extra=1)])))
+        with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+            scenes.manifest(target)
 
 
 if __name__ == '__main__':
