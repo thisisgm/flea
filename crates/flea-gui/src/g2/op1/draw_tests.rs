@@ -22,14 +22,12 @@ fn open_card(
     open: impl FnOnce(&mut Overlay),
 ) -> (gpui::Entity<Overlay>, &mut gpui::VisualTestContext) {
     let (overlay, vcx) = cx.add_window_view(|window, cx| {
+        window.set_rem_size(gpui::px(14.));
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let palette = CardPalette::from_list(
-            &crate::list::Palette::inherited(&window.text_style(), theme),
-            8.,
-        );
+        let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
         Overlay::new(Arc::new(I18n::default()), palette, "default")
     });
     vcx.simulate_resize(gpui::size(gpui::px(width), gpui::px(height)));

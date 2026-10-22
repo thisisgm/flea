@@ -113,11 +113,9 @@ pub fn visible(cx: &mut TestAppContext, window: WindowHandle<View>, slot: Slot) 
 
 /// A theme distinct from Theme::default, so a palette that ignores the installed theme cannot match it.
 pub fn test_theme() -> Theme {
-    let base = Theme::default();
-    Theme {
-        background: base.foreground,
-        foreground: base.background,
-    }
+    let mut theme = Theme::default();
+    std::mem::swap(&mut theme.background, &mut theme.foreground);
+    theme
 }
 
 /// Installs test_theme before the window opens, the way the app installs its theme at startup.
