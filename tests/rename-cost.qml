@@ -416,6 +416,8 @@ ShellRoot {
         function onSelectionVersionChanged() { root.selectionBumps++ }
         function onCursorRowChanged() { root.cursorRowEvals++ }
         function onInputAtChanged() { root.inputs++ }
+        // Qt 6.12 hands each rows handler its own copy of the reply, so the pane's held rows are armed as they land.
+        function onRowsChanged() { Cost.armRows(root) }
     }
     Connections {
         target: root.warm ? root.warm.prepare : null
@@ -431,7 +433,7 @@ ShellRoot {
     }
     Connections {
         target: root.pane ? root.pane.backend : null
-        // This handler runs before the pane's own takeRows, so it arms the reply's own row objects, which the pane then holds.
+        // This handler runs before the pane's own takeRows and arms the reply's row objects, the ones the pane holds before Qt 6.12.
         function onRows(start, items) {
             root.rowsReplies++
             var seen = root.replyLog[root.caseIndex]
