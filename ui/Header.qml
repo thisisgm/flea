@@ -144,6 +144,7 @@ Item {
         visible: root.cols.kind && !root.recent && !root.underStrip
         width: root.cols.kind && !root.recent ? (root.dragKey === "kind" ? root.dragPreview : Theme.column.kind) : 0
         text: root.title("Kind", "kind")
+        horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
 
         TapHandler { enabled: root.sortable; onTapped: root.sortRequested("kind") }

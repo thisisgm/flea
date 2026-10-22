@@ -346,6 +346,7 @@ Item {
         color: root.cellInk
         font.family: Theme.font.family
         font.pixelSize: Theme.font.caption
+        horizontalAlignment: Text.AlignRight
         elide: Text.ElideRight
         textFormat: Text.PlainText
     }
