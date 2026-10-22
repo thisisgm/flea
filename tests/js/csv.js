@@ -78,6 +78,13 @@ function run(check) {
     check("an unknown gap ordinal is not numbered by physical line", Csv.table({ 1: { t: "h" }, 5: { t: "v" } }, 5, ",").rows.length, 0)
 
     check("no header until line 1 is held", Csv.table({ 2: { t: "1,2" } }, 2, ",").header, null)
+
+    var bom = Csv.table({ 1: { t: '\uFEFF"Name, full",Amount' }, 2: { t: 'Alice,10' } }, 2, ",")
+    check("a BOM before a quoted header adds no column", JSON.stringify(bom.header), '["Name, full","Amount"]')
+    check("a BOM header leaves body columns aligned", JSON.stringify(bom.rows[0].cells), '["Alice","10"]')
+    var bomLines = Csv.table({ 1: { t: '\uFEFF"Full' }, 2: { t: 'name"\tAmount' }, 3: { t: 'Alice\t10' }, 8: { t: '\uFEFFBob\t20', record: 7 } }, 8, "\t")
+    check("a BOM before a quoted TSV header keeps the newline", JSON.stringify(bomLines.header), '["Full\\nname","Amount"]')
+    check("only the file prefix is a BOM, not a later window", bomLines.rows[1].cells[0], '\uFEFFBob')
     check("no body rows are keyed without a header", Object.keys(Csv.table({ 2: { t: "1,2" } }, 2, ",").byLine).length, 0)
     check("a block that ends mid-record leaves the open record out", Csv.table({ 1: { t: "a" }, 2: { t: "\"b" } }, 9, ",").rows.length, 0)
     check("a block that ends the file keeps its open record", Csv.table({ 1: { t: "a" }, 2: { t: "\"b" } }, 2, ",").rows.length, 1)

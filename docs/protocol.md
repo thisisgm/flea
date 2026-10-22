@@ -1253,7 +1253,8 @@ bytes the verdict was made on.
 
 A raw table request may carry `csv`: `","` for CSV or `"\t"` for TSV. The backend scans
 the already loaded bytes as RFC 4180 records, with quotes opening only at a field start,
-`""` escaping a quote inside quotes and quotes in unquoted fields staying literal. It moves
+`""` escaping a quote inside quotes and quotes in unquoted fields staying literal. An initial
+UTF-8 BOM is ignored when parsing records; returned raw lines retain those bytes. It moves
 `first` back to the start of the record containing the asked first line, and extends the
 asked end through its record's last line, or EOF for an unterminated quote. Thus the reply
 contains whole records and can exceed the 400-line request cap, bounded by the 1 MiB size
