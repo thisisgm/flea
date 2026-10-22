@@ -6,6 +6,7 @@ import "js/Cloud.js" as Cloud
 import "js/Crumbs.js" as Crumbs
 import "js/Format.js" as Format
 import "js/Mounts.js" as Mounts
+import "js/Dnssd.js" as Dnssd
 import "js/Protocols.js" as Protocols
 import "js/Dropbox.js" as Dropbox
 
@@ -46,6 +47,11 @@ Item {
     signal startingBridge(string text, var origin)
     // Client-side only, see "listShares" below: ui/ShareBrowser.qml renders these as pane rows.
     signal sharesListed(string baseUri, string baseLabel, var names, var origin)
+
+    // The hosts layer of the network browser: avahi's resolved _smb._tcp services, one name per
+    // host, in the service's own spelling (AIBox.local). The share browser opens these as rows on
+    // the bare workgroup root, so activating a row runs the bare-root open that lists its shares.
+    signal hostsListed(var names, var origin)
     // Fired once ui/NetworkPlaces.qml's write has actually landed, so a caller's reload reads it.
     signal renamed()
     signal retryRequested(string uri, string label, string password, string reason, bool failedConnect, var origin)
@@ -75,8 +81,25 @@ Item {
     // Set right before mountTimeout terminates that leg's process, so its own onExited does not
     // also report a second, redundant failure for the exact same open attempt.
     property bool _mountTimedOut: false
+    // The deadline's one warm retry for a cold bare-root contact; reset by every fresh open.
+    property bool _warmRetried: false
     property bool _infoTimedOut: false
     property bool _listSharesTimedOut: false
+
+    property string _hostsOutput: ""
+    property bool _hostsTimedOut: false
+    // The hosts leg's answers belong to the run that asked for them. A browse that a timeout
+    // killed, or one a newer ＋ replaced, must not write rows into the live run's arrays or emit
+    // a second answer under it, so each start stamps the run and only an exit carrying the
+    // window's current stamp counts — the same one-way rule the showmount leg below already uses.
+    property int _hostsLiveRun: 0
+    property int _hostsSmbStamp: 0
+    property int _hostsSftpStamp: 0
+    property Item _hostsOrigin: null
+    property var _hostsSmb: []
+    property var _hostsSftp: []
+    property bool _hostsSmbDone: false
+    property bool _hostsSftpDone: false
     // Set from "gio mount"'s own exit code and consumed by the "gio info" that follows it, which is
     // what actually decides whether the location is mounted; this only colours the failure message.
     property bool _mountFailed: false
@@ -381,7 +404,7 @@ Item {
                 var coveredKey = Mounts.normalize(marks[j].uri)
                 if (seen[coveredKey]) continue
                 seen[coveredKey] = true
-                out.push({ path: "", label: marks[j].label, group: "network", kind: "share", uri: marks[j].uri, mountUri: mounts[i].uri, mounted: true, glyph: "server" })
+                out.push({ path: "", label: marks[j].label, group: "network", kind: "share", uri: marks[j].uri, mountUri: mounts[i].uri, mounted: true, saved: true, glyph: "server" })
             }
             if (covered) continue
             var mkey = Mounts.normalize(mounts[i].uri)
@@ -393,7 +416,7 @@ Item {
             var bkey = Mounts.normalize(marks[k].uri)
             if (seen[bkey]) continue
             seen[bkey] = true
-            out.push({ path: "", label: marks[k].label, group: "network", kind: "share", uri: marks[k].uri, mounted: false, glyph: "server" })
+            out.push({ path: "", label: marks[k].label, group: "network", kind: "share", uri: marks[k].uri, mounted: false, saved: true, glyph: "server" })
         }
         if (root.dropboxPath.length > 0) {
             out.push({ path: root.dropboxPath, label: "Dropbox", group: "network", kind: "dropbox", uri: "", mounted: true, glyph: "" })
@@ -515,6 +538,7 @@ Item {
         root._requestPassword = request.password || ""
         root._pendingOrigin = request.origin === undefined ? root.origin : request.origin
         root._mountFailed = false
+        root._warmRetried = false
         if (alreadyMounted) {
             root.result = "resolving"
             root.runInfo(uri)
@@ -556,10 +580,14 @@ Item {
     // refused says the server itself turned the credential down. Only that invalidates it: a helper
     // that could not start and a host that never answered say nothing about the password, and the
     // reopened dialog has to be populated from it exactly as 0.1.6 populated it.
-    function failMount(reason, password, refused, missing) {
+    function failMount(reason, password, refused, missing, quiet) {
         root._pendingPassword = ""
         root.result = missing === true ? "missing-credential" : "failed"
-        root.message(reason, true)
+        // The sign-in invitation is not an error: when the form opens carrying the reason, the
+        // pane is not told at all, because a red line under a working server reads as a failure
+        // the server never had. Every failing arm still speaks; only the invitation is quiet.
+        if (quiet !== true)
+            root.message(reason, true)
         var attempted = password || root._requestPassword
         // Keeping a refused secret meant every later click on that location replayed it with no
         // prompt at all, which is how a domain account locks itself out.
@@ -704,6 +732,111 @@ Item {
         mountTimeout.restart()
     }
 
+    // A host that also exports NFS shows those exports beside its SMB shares, because the rows
+    // beneath a host are "what this machine offers", not "what one protocol offers". NFS has no
+    // discovery service of its own, so its exports are read per-host with showmount the moment a
+    // host is chosen, and only when showmount is installed at all — the share rows stay SMB-only
+    // everywhere else, the way a present-only-when-installed extra always behaves here.
+    property bool _showmountAvailable: false
+    property string _nfsHost: ""
+    property var _nfsNames: []
+    property var _nfsOrigin: null
+    property bool _nfsTimedOut: false
+    // Set by the browse that supersedes a showmount ask still in flight; only the dying exit
+    // reads and clears it, so the stale answer can never speak for the ask that replaced it.
+    property bool _nfsSuperseded: false
+
+    function hostOf(uri) {
+        var rest = String(uri || "").replace(/^smb:\/\//, "")
+        var slash = rest.indexOf("/")
+        return slash < 0 ? rest : rest.slice(0, slash)
+    }
+
+    function emitShares(names, origin) {
+        root.result = "mounted"
+        root.finishRequest(true, "")
+        root.sharesListed(root._pendingUri, root._pendingLabel, names, origin)
+    }
+
+    function listNfsExports(host, names, origin) {
+        // A second host's browse can arrive while this ask is still outstanding; the one
+        // process instance is reused, so the ask it supersedes is killed and marked, and its
+        // own onExited neither stops this ask's timer nor answers with the wrong host's rows.
+        // Only the dying exit clears the mark, the same one-way rule as _nfsTimedOut, so a
+        // queued exit can never race the ask that replaced it.
+        if (showmountProcess.running) {
+            root._nfsSuperseded = true
+            showmountProcess.running = false
+        }
+        root._nfsHost = host
+        root._nfsNames = names
+        root._nfsOrigin = origin
+        showmountProcess.command = ["showmount", "-e", host]
+        showmountProcess.running = true
+        nfsTimeout.restart()
+    }
+
+    // The availability probe runs once, before any share listing can need its answer.
+    Component.onCompleted: {
+        showmountProbe.running = true
+    }
+
+    Process {
+        id: showmountProbe
+        command: ["sh", "-c", "command -v showmount"]
+        onExited: function (exitCode) { root._showmountAvailable = exitCode === 0 }
+    }
+
+    // The hosts leg is client-side only and shares no state with the mount legs: avahi's own
+    // browse answers in well under a second on a live LAN and not at all on a quiet one, so it
+    // carries its own bound instead of the mount deadline. An empty answer is a real answer and
+    // reaches the window host, which says so rather than opening an empty browser.
+    function listHosts(origin) {
+        // A browse still in flight belongs to an ask this one replaces: end it, so its late exit
+        // carries a stale stamp and lands nowhere, and the starts below genuinely begin this
+        // run's own pair (a running Process ignores running = true; the restart after a stop
+        // starts fresh — verified against Quickshell directly, see AGENTS.md).
+        if (hostsProcess.running || hostsSftpProcess.running) {
+            hostsProcess.running = false
+            hostsSftpProcess.running = false
+        }
+        root._hostsOrigin = origin
+        root._hostsOutput = ""
+        root._hostsSmb = []
+        root._hostsSftp = []
+        root._hostsSmbDone = false
+        root._hostsSftpDone = false
+        root._hostsLiveRun += 1
+        root._hostsSmbStamp = root._hostsLiveRun
+        root._hostsSftpStamp = root._hostsLiveRun
+        hostsProcess.running = true
+        hostsSftpProcess.running = true
+        hostsTimeout.restart()
+    }
+
+    // The two browses answer independently, so the rows wait for both: a host that offers SMB
+    // and SSH is one row reached the way every other desktop reaches it, and a host that
+    // offers only SSH keeps its own root as a row that is itself a URI.
+    function hostsReady() {
+        if (!root._hostsSmbDone || !root._hostsSftpDone)
+            return
+        hostsTimeout.stop()
+        var names = []
+        var seen = ({})
+        var i
+        for (i = 0; i < root._hostsSmb.length; i++) {
+            seen[root._hostsSmb[i].host] = true
+            names.push(root._hostsSmb[i].host)
+        }
+        for (i = 0; i < root._hostsSftp.length; i++) {
+            if (seen[root._hostsSftp[i].host])
+                continue
+            seen[root._hostsSftp[i].host] = true
+            names.push(Dnssd.hostUri(root._hostsSftp[i]))
+        }
+        root.hostsListed(names, root._hostsOrigin)
+    }
+
     // One shared ContextMenu preserves keyboard focus; this service performs its Unmount action.
     function unmount(index) {
         var e = root.entries[index]
@@ -721,6 +854,13 @@ Item {
     function rename(uri, name) { places.rename(uri, name) }
     function forget(uri) { places.forget(uri) }
     function replacePlace(oldUri) { places.replace(oldUri, root._pendingUri, root._pendingLabel) }
+
+    // The rail's own pin: a mounted share the browser opened becomes a saved place, the one-way
+    // counterpart of forget(). Browsing itself never writes a bookmark (AGENTS.md "The share
+    // browser overlay"); this is the explicit gesture that does. The write's own answer rides
+    // back up: a toast that says saved on a write that refused would lose the share at unmount
+    // while insisting it was kept.
+    function savePlace(uri, label) { return places.add(uri, label) }
     function pollMounts() { listing.poll() }
 
     Timer {
@@ -732,6 +872,18 @@ Item {
             if (mountProcess.running) {
                 root._mountTimedOut = true
                 mountProcess.running = false
+                // A first-ever contact often completes in gvfs seconds after this deadline cut
+                // it down, and the next open then lands on the already-mounted fast path — so a
+                // bare-root browse gets one automatic warm retry before "no answer" is declared.
+                // Only once per open: a server that stays silent twice has answered.
+                if (!root._warmRetried && root.isBareRoot(root._pendingUri)
+                        && String(root._pendingUri).indexOf("smb://") === 0) {
+                    root._warmRetried = true
+                    root.result = "mounting"
+                    mountProcess.running = true
+                    mountTimeout.restart()
+                    return
+                }
             } else if (infoProcess.running) {
                 root._infoTimedOut = true
                 infoProcess.running = false
@@ -889,12 +1041,113 @@ Item {
             var body = String(listSharesOut.text || root._listSharesOutput || "")
             var names = body.split("\n").map(function (s) { return s.trim() }).filter(function (s) { return s.length > 0 })
             if (exitCode !== 0 || names.length === 0) {
+                // An SMB server that mounted and then shows a guest nothing is asking for a
+                // sign-in, not refusing: the form is the one place the account can be given,
+                // and its connect reopens this same listing with the credential attached.
+                if (exitCode === 0 && names.length === 0 && root.isBareRoot(root._pendingUri)
+                        && String(root._pendingUri).indexOf("smb://") === 0) {
+                    root.failMount("This server shows a guest nothing. Sign in to see its shares.",
+                                   root.passwordFor(root._pendingUri), false, true, true)
+                    return
+                }
                 root.failMount(Errors.WORDS.connectNoFolder, root.passwordFor(root._pendingUri))
                 return
             }
-            root.result = "mounted"
-            root.finishRequest(true, "")
-            root.sharesListed(root._pendingUri, root._pendingLabel, names, root._pendingOrigin)
+            if (root._showmountAvailable && String(root._pendingUri).indexOf("smb://") === 0) {
+                // The SMB answer stands on its own; NFS rows join it or it ships without them.
+                root.listNfsExports(root.hostOf(root._pendingUri), names, root._pendingOrigin)
+                return
+            }
+            root.emitShares(names, root._pendingOrigin)
+        }
+    }
+
+    Process {
+        id: showmountProcess
+        environment: root.gioEnvironment
+        command: ["showmount", "-e"]
+        onExited: function (exitCode) {
+            var timedOut = root._nfsTimedOut
+            root._nfsTimedOut = false
+            var superseded = root._nfsSuperseded
+            root._nfsSuperseded = false
+            // The superseding ask owns the timer and the answer now; this exit belongs to a
+            // browse the user already replaced, so it neither stops nor speaks.
+            if (superseded) return
+            nfsTimeout.stop()
+            if (timedOut) return
+            var names = root._nfsNames
+            if (exitCode === 0) {
+                var exports = Dnssd.parseExports(String(showmountOut.text || ""))
+                for (var i = 0; i < exports.length; i++)
+                    names.push("nfs://" + root._nfsHost + exports[i])
+            }
+            root.emitShares(names, root._nfsOrigin)
+        }
+        stdout: StdioCollector { id: showmountOut; waitForEnd: true }
+    }
+
+    Timer {
+        id: nfsTimeout
+        // showmount against a portmapper that will not answer hangs like any other dead leg;
+        // the SMB rows already in hand ship without waiting longer than this.
+        interval: 8000
+        repeat: false
+        onTriggered: {
+            if (showmountProcess.running) {
+                root._nfsTimedOut = true
+                showmountProcess.running = false
+                root.emitShares(root._nfsNames, root._nfsOrigin)
+            }
+        }
+    }
+
+    Process {
+        id: hostsProcess
+        environment: root.gioEnvironment
+        // avahi-browse takes one service type per call, so the SMB half of the answer is its
+        // own browse; the SSH half sits in the process below and the two are merged by host.
+        command: ["avahi-browse", "-rt", "_smb._tcp"]
+        stdout: StdioCollector { id: hostsOut; waitForEnd: true; onStreamFinished: root._hostsOutput = text }
+        onExited: function (exitCode) {
+            if (root._hostsSmbStamp !== root._hostsLiveRun) return
+            root._hostsSmb = Dnssd.parse(String(hostsOut.text || root._hostsOutput || ""))
+            root._hostsSmbDone = true
+            root.hostsReady()
+        }
+    }
+
+    Process {
+        id: hostsSftpProcess
+        environment: root.gioEnvironment
+        command: ["avahi-browse", "-rt", "_sftp-ssh._tcp"]
+        stdout: StdioCollector { id: hostsSftpOut; waitForEnd: true }
+        onExited: function (exitCode) {
+            if (root._hostsSftpStamp !== root._hostsLiveRun) return
+            root._hostsSftp = Dnssd.parse(String(hostsSftpOut.text || ""))
+            root._hostsSftpDone = true
+            root.hostsReady()
+        }
+    }
+
+    Timer {
+        id: hostsTimeout
+        // Generous beside avahi's sub-second answer, but bounded: a browse that never ends
+        // must not leave the dialog's origin waiting forever.
+        interval: 10000
+        repeat: false
+        onTriggered: {
+            if (hostsProcess.running || hostsSftpProcess.running) {
+                root._hostsTimedOut = true
+                // The killed pair's late exits must land nowhere: the run they belong to is over,
+                // and this arm has already emitted the answer the forced-done flags carry.
+                root._hostsLiveRun += 1
+                hostsProcess.running = false
+                hostsSftpProcess.running = false
+                root._hostsSmbDone = true
+                root._hostsSftpDone = true
+                root.hostsReady()
+            }
         }
     }
 

@@ -27,6 +27,8 @@ Item {
     property bool saveNewPlace: true
     readonly property bool busy: root.connecting || root.saving
     readonly property string dialogTitle: root.failedConnect ? "Could not connect to the network share" : root.baseTitle()
+    // Downstream (driveway-fm) test seam: the Browse button's centre, so the mouse lane can press it.
+    readonly property alias browseButtonCentre: browseButton
     // The card keeps this much window above and below it when the window is shorter than the card.
     readonly property int clampMargin: 8
     // var, not Item: BorderSurface is a qs.Ui type qmllint cannot resolve, and Item would read as incompatible.
@@ -36,6 +38,10 @@ Item {
     signal closed()
     signal mountRequested(string requestId, string uri, string label, string password)
     signal cancelRequested(string requestId)
+
+    // The hosts leg of the network browser: avahi's answer replaces the form with the share
+    // browser's host rows, so a user who does not know an address can still find one.
+    signal browseRequested()
 
     // A plain overlay, not a QQC Popup, the same call ui/ContextMenu.qml already made.
     anchors.fill: parent
@@ -89,6 +95,13 @@ Item {
         // The host is the one field the form actually needs, so it takes the caret on open.
         form.focusHost()
     }
+
+    // The form's fields hold the caret whenever the dialog is open, and a key travels from the
+    // focused item up that item's own parents, so neither of the handlers below can see Escape
+    // from a field: pendingFocus is a sibling of the card, and the card's focus ring wraps the
+    // fields without being their parent. The dialog root is every field's ancestor, so Escape
+    // lands here from wherever the caret is; close() itself still refuses mid-save.
+    Keys.onEscapePressed: root.close()
 
     function close() {
         if (root.saving) return
@@ -341,6 +354,20 @@ Item {
                 Row {
                     anchors.right: parent.right
                     spacing: Theme.spacing.gap
+
+                    Flea.DialogButton {
+                        id: browseButton
+                        // An alternative entry, not an answer: it steps out of the form into
+                        // discovery, the way Cancel steps out of the dialog entirely.
+                        label: "Browse the network"
+                        available: !root.busy
+                        tabHandle: true
+                        onTabbed: function (from, back) { form.step(from, back ? -1 : 1) }
+                        onActivated: {
+                            root.browseRequested()
+                            root.close()
+                        }
+                    }
 
                     Flea.DialogButton {
                         id: cancelButton

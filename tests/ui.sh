@@ -1077,15 +1077,26 @@ probe_network_mark_target() {
         read -r x want <<< "$probe"
         omarchy-drive click "$((x + wx))" "$((cy + wy))" >/dev/null
         settle
-        opened=$(ipc dialogOpen)
-        printf 'NETWORK probe x=%s want-open=%s opened=%s\n' "$x" "$want" "$opened"
+        # The + leads somewhere either way: the hosts page when discovery answers, the form with
+        # its banner when the LAN says nothing. Both settle within their own bounds, so the probe
+        # polls both surfaces for the whole bound — a miss that only looks like a miss because
+        # discovery had not answered yet would pass the wrong edge.
+        local waited=0 opened=false surface=""
+        while (( waited < 6 )); do
+            settle
+            waited=$((waited + 1))
+            if [[ "$(ipc dialogOpen)" == "true" ]]; then opened=true; surface=dialog; break; fi
+            if [[ "$(ipc shareBrowserOpen)" == "true" ]]; then opened=true; surface=hosts; break; fi
+        done
+        printf 'NETWORK probe x=%s want-open=%s opened=%s surface=%s\n' "$x" "$want" "$opened" "$surface"
         if [[ "$opened" == "true" ]]; then
             key -k Escape >/dev/null
             settle
-            [[ "$(ipc dialogOpen)" == "false" ]] || fail "network: Escape did not close the probed dialog"
+            [[ "$(ipc dialogOpen)" == "false" && "$(ipc shareBrowserOpen)" == "false" ]] \
+                || fail "network: Escape did not close the probed $surface"
         fi
         [[ "$opened" == "$want" ]] \
-            || fail "network: a click at x=$x reported dialogOpen=$opened against the target box [$tx,$((tx + tw)))"
+            || fail "network: a click at x=$x reported $surface=$opened against the target box [$tx,$((tx + tw)))"
     done
 }
 

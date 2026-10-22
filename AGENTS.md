@@ -8337,6 +8337,92 @@ Enter on a row calls the exact same `openShare(uri, false, label)` a bookmarked 
 mounts but is slow to enumerate over the network still shows the overlay until there is something
 real to show instead of it.
 
+### The hosts layer: avahi's answer becomes the browser's first page (downstream)
+
+The overlay above starts one level deeper than a user who does not know an address can reach.
+avahi-browse answers with one resolved service per LAN host — and takes one service type per
+call, so the hosts leg runs two Process browses in parallel (`_smb._tcp` and `_sftp-ssh._tcp`)
+and `hostsReady()` merges them by host: SMB wins the row a host offers both, because that is how
+every other desktop reaches it, and an SSH-only host keeps `sftp://host/` as a row that is
+itself a URI. `ui/js/Dnssd.js` folds each answer into `{ label, host, kind }` rows (service name
+labels the row, the `hostname = [x.local]` line beneath it targets it, duplicates by host drop,
+any new service line — known or not, `=` or `+` — ends the previous service so a printer's
+hostname is never filed under a server). `ui/NetworkMounts.qml`'s `listHosts()` runs both with
+their own ten-second bound — not the mount deadline the share legs share, because a quiet LAN
+answers nothing and that is a real answer, not a failure — and fires `hostsListed(names, origin)`.
+
+The rail's "+" is the entry (`ui/WindowBody.qml`'s `browseHosts()`, shared with the dialog's
+"Browse the network" button so the two cannot drift), and the rows it produces ride the bare
+workgroup root: `shareBrowser.openHosts(names)` makes each host row's own activation the
+bare-root open that round 2 above already handles — mount, `gio info`, `listShares`, the
+overlay reopens with that host's shares. The hosts page ends in its own last row, "Add
+manually…", which fires `manualRequested()` and opens the form over the page that led to it:
+discovery first, manual entry one press away, `Ctrl+K`'s form unchanged for the address that is
+already known. No new activation path exists; the browser walks down one level on the machinery
+that was already there. Discovery takes seconds to answer, so `browseHosts()` opens the
+overlay's scanning page first (`ShareBrowser.openScanning()`: the `Spinner` crawl and one word,
+"looking", `ui/LoadingState.qml`'s terms) and the answer replaces it — hosts rows when avahi
+answers, the form when the LAN stays quiet (the crawl closes before that handoff, so the
+looking page never waits behind a dialog). An empty host list is a real answer, not a failure.
+A host row's activation owns the same wait: `onActivated` opens the crawl with its word
+"reading" (`openReading()`) before the bare-root open runs, and the shares — or the sign-in
+form — replace it. A crawl that ends in a refusal or an invitation falls back to the cached
+hosts page (`revertToHosts()`, called from `onMessage` and `onRetryRequested`), so no looking
+or reading page outlives its own ask. The sign-in invitation itself is quiet on the pane
+(`failMount`'s `quiet` flag): the form carries the reason, because a red line under a working
+server reads as a failure the server never had.
+
+The shares page carries its own way back: its first row is ".." (`backRow`), which reopens the
+hosts page `openHosts()` cached (`hostsPage`) — the level up the pane's own navigation cannot
+express, because the pane is already inside the share. The cache is instant, so ".." never
+re-asks the LAN for a list it just gave; a shares page opened without a hosts page behind it
+(a saved bare-root place from the rail) shows no back row, because there is nowhere of the
+browser's to go back to. A first-ever contact can race the
+mount deadline exactly the way any first mount can, so a bare-root browse gets one automatic
+warm retry: the deadline arm (`ui/NetworkMounts.qml`'s `mountTimeout`) restarts the mount leg
+once when it cut down a bare-root SMB mount (`_warmRetried`, reset by every fresh open), because
+gvfs usually finishes that negotiation seconds later and the retry lands on the already-mounted
+fast path; a server silent twice has answered, and the failure arm reports as before.
+
+An SMB server that mounts for a guest and then lists nothing is not failing — it is asking who
+is asking. The shares leg of a bare-root `smb://` open that exits cleanly with zero names routes
+to the sign-in form instead of the no-folder refusal: `failMount(reason, password, false,
+missing=true)` marks the result `missing-credential`, and with no dialog request pending the
+`retryRequested` handoff reopens the form pre-filled with the host and the reason ("This server
+shows a guest nothing. Sign in to see its shares."). The form's connect then runs the existing
+authenticated mount leg, the same listing reruns with the credential attached, and "Save place"
+pins it like any other. Anonymous stays the first try everywhere; the form appears only when a
+server answered and had nothing to show for it.
+
+A host's shares can carry a second protocol's rows beside them: when `showmount` is on PATH
+(probed once at startup, `command -v`, the present-only-when-installed rule), the shares leg of
+an `smb://` host runs it before answering and appends one `nfs://host/export` row per export
+(`Dnssd.parseExports`, own eight-second bound — the SMB rows ship without NFS when the
+portmapper stays silent). NFS has no discovery service of its own, so its exports ride the hosts
+the LAN does advertise. A row that is itself a URI — an SSH-only host's root, an NFS export —
+activates as itself; a plain name stays a share of the open base.
+
+### The rail's pin: browsing still writes nothing; this one row does (downstream)
+
+Round 2's rule stands — browsing never writes a bookmark — but a share the browser mounted then
+vanishes with its unmount, and the rail is where the user is looking when they decide to keep
+one. A mounted share the bookmarks file does not cover (`entry.saved !== true`) offers "Save
+place" between Rename and Edit address (`ui/js/Menu.js`, the pin glyph from `Icons.js`), which
+calls `RailMenu.pinShare()` → `NetworkMounts.savePlace()` → `NetworkPlaces.add()`, the append
+half of `replace()`'s own writer: read the file itself, `Places.replace(body, "", uri, name)`,
+write. Kernel mounts keep their `editable: false` refusal — fstab's mounts are fstab's to keep —
+and a saved row offers Rename and Remove instead, so the pin's own row disappears once its work
+is done. Saved-but-unmounted rows now carry `saved: true` from the entry build in
+`ui/NetworkMounts.qml` so the rule reads one flag instead of re-deriving coverage.
+
+### The dialog's Escape lands on the root, not a sibling (downstream)
+
+The form's fields hold the caret whenever the dialog is open, and a key travels from the focused
+item up that item's own parents. Both existing Escape handlers sat where no field's key could
+reach them: `pendingFocus` is a sibling of the card, and the card's focus ring wraps the fields
+without being their parent. `ui/NetworkDialog.qml`'s root Item now carries the Escape — every
+field's ancestor — and `close()` still refuses mid-save on its own.
+
 ### "Already mounted" is not just a bare-root quirk
 
 Proving the overlay's own Enter action live against the real NAS surfaced a second bug in code
@@ -9591,3 +9677,51 @@ Before the Markdown Source merge, the Compare request, dispatch, answer route, o
 `ui/Pane.qml` is 1232 lines against its 1233 ceiling: moving its direct Compare import to the existing Ops import removed one line after the ceiling was recorded. `ui/js/Focus.js` was 490 against 491 before the Markdown Source merge: the same import move took it from 489 to 488, and the merged paging handlers then added two lines and raised the ceiling by two, from 489 to 491, a raise counted on a tree that still held the import line, so one line was spare in each ceiling at that step.
 
 Before the Markdown Source merge, the code wrap keys joined beside the image zoom keys moved one ceiling, re-derived with `wc -l`: `tests/js/previewkeys.js` crossed the hard cap at 303 with `runImageZoom` and `runWrapKeys` side by side, each pinning one Quick Look key family; recorded because the join added no lines of its own.
+
+The network feature's land raises ten recorded ceilings, each re-derived with `wc -l`:
+`ui/NetworkMounts.qml` 913 to 1141 for the hosts leg, the NFS stage and its supersede guard,
+the guest-empty sign-in handoff, the deadline's warm retry and the quiet invitation;
+`ui/WindowBody.qml` 817 to 877 for the `browseHosts()` entry, its crawl opens and reversion,
+and the hosts-listed arms; `ui/Ipc.qml` 993 to 1044 for the browser's own probes;
+`ui/Sidebar.qml` 716 to 724 and `ui/js/Menu.js` 513 to 520 for the pin's drop target and the
+save-place row; `ui/NetworkDialog.qml` 435 to 462 and `ui/js/Mounts.js` 320 to 321 for the
+browse button and the bare-root normalization; `src/backend/proto.rs` 473 to 476 and
+`src/backend/run.rs` 1116 to 1118 for the `kind` request; `tests/js/menu.js` 673 to 678 for the
+save-place checks. `ui/ShareBrowser.qml` (209 lines) sits under the soft budget and records no
+debt. The crawl has two words: "looking" while the LAN is asked, "reading" while a host's own
+shares are (`ui/LoadingState.qml`'s word for a slow source). The sign-in invitation is quiet on
+the pane — the form carries it, because a red line under a working server reads as a failure
+the server never had.
+
+A second host's browse while a `showmount` ask is still in flight
+supersedes it (`_nfsSuperseded`, set by the replacing browse, read and cleared only by the
+dying exit — the one-way rule of `_nfsTimedOut`), so a stale portmapper answer can neither
+stop the live ask's timer nor append the wrong host's exports to it.
+
+The review round after those lines (2026-10-21) verified Quickshell's Process
+restart directly instead of trusting either reading of the docs: a config that
+starts a process, stops it and starts it again in the same synchronous block
+prints two started/exited pairs (15/1 then 0/0), so the stop-then-start the warm
+retry and the NFS supersede use genuinely begins the replacement leg. What the
+hosts leg still owed was the same rule the showmount leg already had, and the
+review caught it: `listHosts` now ends any browse still in flight and stamps the
+run (`_hostsLiveRun` with per-leg `_hostsSmbStamp`/`_hostsSftpStamp`), both
+avahi exits drop answers whose stamp is not the live run, and the timeout arm
+advances the run before it kills so the dying pair's late exits land nowhere. A
+A late hosts answer the window no longer waits for steers nothing
+(`ui/WindowBody.qml` handles it only while the crawl is still scanning, and the
+share browser wrapper forwards the crawl's `scanning` the way it already
+forwarded `active` — a wrapper read that is not forwarded reads `undefined`,
+which is falsy, which is how a guard meant to drop late answers silently drops
+every one), the hosts page's way back dies with the session that asked for it
+(`ui/ShareBrowser.qml` clears its cache on close, so an unrelated server root
+carries no stale ".." row), the manual row's form opens on the browser's own
+owner rather than the focused pane, and the pin's toast waits on the bookmark
+write's own answer (`NetworkPlaces.add` returns it through
+`NetworkMounts.savePlace` to `RailMenu.pinShare`, which no longer says saved on
+a write that refused). `ui/PinHeadingDrop.qml` keeps its refused drops from
+replacing the pinned request and treats a completed save whose readback failed
+as the failure it is. Two ceilings move, each re-derived with `wc -l`:
+`ui/NetworkMounts.qml` 1141 to 1166 for the run stamp and its guards, and
+`ui/WindowBody.qml` 877 to 889 for the late-answer guard, the manual row's
+holder, and the wrapper's `scanning` forward.

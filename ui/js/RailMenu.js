@@ -2,6 +2,7 @@
 
 .import "Menu.js" as Menu
 .import "Mounts.js" as Mounts
+.import "Format.js" as Format
 .import "PlaceMenu.js" as PlaceMenu
 
 // The rail's own menu: which one a row opens, what a chosen row does, and the Edit that rewrites a
@@ -43,6 +44,19 @@ function editPlace(sidebar, share) {
     sidebar.editingPlace = Mounts.normalize(entry.uri)
     sidebar.editingRequest = ""
     sidebar.editRequested(entry.uri, entry.label, "", "Edit this address, then connect and save.", false, sidebar.navigationPane)
+}
+
+// The rail's pin: a share the browser opened becomes a saved place, the one gesture that writes a
+// bookmark out of browsing (AGENTS.md "The share browser overlay"). The row stays where it is with
+// the label it has; only its unmount can take it now, which the next poll's own rows reflect.
+function pinShare(mounts, sidebar, share) {
+    var entry = sidebar.networkEntries[share]
+    if (!entry)
+        return
+    // The write's own answer decides the toast: a place that did not land is not said saved,
+    // and the writer has already said why on the pane it failed to reach the file on.
+    if (mounts.savePlace(entry.uri, entry.label))
+        sidebar.navigationPane.message(Format.fill(Mounts.WORDS.placeSaved, entry.label), false)
 }
 
 // Each attempt this dialog makes, so a mount that was already in flight when the rail armed cannot
@@ -124,6 +138,8 @@ function release(action, key, devices, mounts, sidebar) {
         return
     if (action === "unmount")
         mounts.unmount(share)
+    else if (action === "savePlace")
+        pinShare(mounts, sidebar, share)
     else if (action === "editPlace")
         editPlace(sidebar, share)
     else if (action === "rename")
