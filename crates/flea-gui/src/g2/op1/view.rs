@@ -1,6 +1,7 @@
 //! The dialog shell, its scrim and every operations card, drawn from the model with theme roles only.
-use super::glyph::{self, Chrome, Glyph, Paint, Tracked};
-use super::model::{CopyFocus, Dialog, Operations};
+use super::geometry::Metrics;
+use super::glyph::{self, Chrome, Glyph, Paint};
+use super::model::{Dialog, Operations};
 use super::palette::CardPalette;
 use super::press::Press;
 use crate::row::marks::Mark;
@@ -28,6 +29,7 @@ pub struct Pointer {
 
 /// What every draw call reads: the roles, the words, the pointer, and how a button is wired to its press.
 pub struct Scene<'a> {
+    pub typeface: &'a crate::list::Typeface,
     pub palette: &'a CardPalette,
     pub catalog: &'a I18n,
     pub pointer: &'a Pointer,
@@ -40,6 +42,7 @@ pub struct Scene<'a> {
 // One button, with its look decided by the shared rule before any colour is picked.
 pub fn button(scene: &Scene, press: Press, label: String, mut state: ButtonState) -> Stateful<Div> {
     let (palette, pointer) = (scene.palette, scene.pointer);
+    let m = Metrics::new(scene.typeface);
     // A held press shows only while the pointer stays over its button, since only a release there activates.
     state.hovered = pointer.hovered == Some(press);
     state.pressed = state.hovered && pointer.pressed == Some(press);
@@ -64,12 +67,12 @@ pub fn button(scene: &Scene, press: Press, label: String, mut state: ButtonState
         ))
         .relative()
         .flex_none()
-        .h(px(card::BUTTON_HEIGHT))
-        .px(px(card::BUTTON_PAD_X + card::BORDER))
+        .h(px(m.button))
+        .px(px(m.button_pad + card::BORDER))
         .flex()
         .items_center()
         .whitespace_nowrap()
-        .text_size(px(card::BODY_SIZE))
+        .text_size(px(m.body))
         .text_color(palette.ink(look.label).unwrap_or(palette.foreground))
         .opacity(look.alpha)
         .child(chrome)
@@ -117,6 +120,7 @@ pub fn shell(
     buttons: Vec<Stateful<Div>>,
 ) -> Div {
     let palette = scene.palette;
+    let m = Metrics::new(scene.typeface);
     let header = div()
         .debug_selector(|| "op1-title".into())
         .flex()
@@ -129,7 +133,7 @@ pub fn shell(
                 .flex_1()
                 .min_w_0()
                 .truncate()
-                .text_size(px(card::TITLE_SIZE))
+                .text_size(px(m.title))
                 .font_weight(FontWeight::BOLD)
                 .text_color(palette.foreground)
                 .child(title),
@@ -137,7 +141,7 @@ pub fn shell(
         .child(
             div()
                 .flex_none()
-                .text_size(px(card::ESC_SIZE))
+                .text_size(px(m.caption))
                 .text_color(palette.muted)
                 .child(scene.catalog.tr("jobs.esc")),
         );
@@ -148,32 +152,33 @@ pub fn shell(
             .flex_row()
             .items_center()
             .justify_end()
-            .gap(px(card::BUTTON_GAP))
-            .mt(px(card::BUTTONS_MARGIN)),
+            .gap(px(m.button_gap))
+            .mt(px(m.buttons_margin)),
         |row, (at, b)| row.child(b.debug_selector(move || format!("op1-button-{at}"))),
     );
-    let room = card::frame(card::TITLE_LINE, f32::MAX, window.1).body;
+    let room = m.body_room(window.1);
     let body = div()
         .id("op1-body")
         .debug_selector(|| "op1-body".into())
         .flex()
         .flex_col()
-        .gap(px(card::GAP))
+        .gap(px(m.gap))
         .max_h(px(room))
         .overflow_y_scroll()
         .children(body);
     div()
         .debug_selector(|| "op1-card".into())
-        .w(px(card::fitted_width(kind, window.0)))
-        .p(px(card::PADDING))
+        .w(px(m.width(kind, window.0)))
+        .p(px(m.padding))
         .flex()
         .flex_col()
-        .gap(px(card::GAP))
+        .gap(px(m.gap))
         .bg(palette.surface)
         .border_1()
         .border_color(palette.muted_frame)
         .rounded(px(palette.radius))
-        .text_size(px(card::BODY_SIZE))
+        .font_family(scene.typeface.font.family.clone())
+        .text_size(px(m.body))
         .line_height(relative(card::LINE))
         .text_color(palette.foreground)
         .child(header)
@@ -199,7 +204,12 @@ pub fn scrim(palette: &CardPalette, cards_below: usize, card: Div) -> Stateful<D
         .child(card)
 }
 
-fn state(primary: bool, focused: bool, destructive: bool, disabled: bool) -> ButtonState {
+pub(super) fn state(
+    primary: bool,
+    focused: bool,
+    destructive: bool,
+    disabled: bool,
+) -> ButtonState {
     ButtonState {
         primary,
         focused,
@@ -384,101 +394,7 @@ pub fn dialog(model: &Operations, scene: &Scene, window: (f32, f32)) -> Option<D
             focus,
             busy,
             ..
-        } => {
-            let in_field = *focus == CopyFocus::Field;
-            // The chooser's path opens selected on the 24% accent wash; an empty field shows only the caret.
-            let content = if path.is_empty() {
-                let caret = in_field.then(|| {
-                    div()
-                        .w(px(card::RULE))
-                        .h(px(card::CARET_HEIGHT))
-                        .bg(palette.foreground)
-                });
-                div().flex().items_center().children(caret)
-            } else {
-                let text = div()
-                    .h(px(card::FIELD_SELECTION))
-                    .flex()
-                    .items_center()
-                    .min_w_0()
-                    .truncate()
-                    .child(path.clone());
-                if in_field {
-                    text.bg(palette.accent.opacity(card::FIELD_WASH))
-                } else {
-                    text
-                }
-            };
-            let field = div()
-                .debug_selector(|| "op1-field".into())
-                .h(px(card::BUTTON_HEIGHT))
-                .px(px(card::BUTTON_PAD_X))
-                .flex()
-                .items_center()
-                .gap(px(card::FIELD_GAP))
-                .border_1()
-                .border_color(if in_field {
-                    palette.accent_frame
-                } else {
-                    palette.muted_frame
-                })
-                .rounded(px(palette.radius))
-                .bg(palette.background)
-                .child(content);
-            // The field name keeps its source case in the catalog and draws in capitals, as the boards' CSS does.
-            let tracked = Tracked {
-                text: catalog.tr("jobs.copyto.field").to_uppercase().into(),
-                size: card::EXPLAIN_SIZE,
-                line: card::FIELD_LABEL_LINE,
-                track: card::FIELD_LABEL_TRACK,
-                ink: palette.muted,
-            };
-            let label = div()
-                .flex()
-                .debug_selector(|| "op1-field-label".into())
-                .mb(px(card::FIELD_LABEL_GAP))
-                .child(
-                    div()
-                        .debug_selector(|| "op1-field-label-text".into())
-                        .child(tracked),
-                );
-            let body = vec![div()
-                .flex()
-                .flex_col()
-                .child(label)
-                .child(field)
-                .into_any_element()];
-            let confirm = catalog.tr(if *moving {
-                "jobs.button.move"
-            } else {
-                "jobs.button.copy"
-            });
-            let buttons = vec![
-                button(
-                    scene,
-                    Press::CopyCancel,
-                    catalog.tr("jobs.button.cancel"),
-                    state(false, *focus == CopyFocus::Cancel, false, false),
-                ),
-                button(
-                    scene,
-                    Press::CopyConfirm,
-                    confirm,
-                    state(
-                        true,
-                        *focus == CopyFocus::Confirm,
-                        false,
-                        *busy || !Operations::copy_enabled(path),
-                    ),
-                ),
-            ];
-            let title = catalog.tr(if *moving {
-                "jobs.copyto.moveto"
-            } else {
-                "jobs.copyto.title"
-            });
-            shell(scene, Kind::CopyTo, window, title, body, buttons)
-        }
+        } => super::copy_to::card(scene, window, *moving, path, *focus, *busy),
     };
     Some(card)
 }

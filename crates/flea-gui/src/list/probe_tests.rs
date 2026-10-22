@@ -58,10 +58,8 @@ fn a_changed_theme_reads_the_palette_again_without_restyle() {
         .update(&mut cx, |view, _, _| Rc::clone(&view.list))
         .expect("the bench window is open");
     let original = Theme::default();
-    let swapped = Theme {
-        background: original.foreground,
-        foreground: original.background,
-    };
+    let mut swapped = original;
+    std::mem::swap(&mut swapped.background, &mut swapped.foreground);
     let first = cx
         .update_window(window.into(), |_, window, _| {
             list.borrow_mut().palette(window, original)

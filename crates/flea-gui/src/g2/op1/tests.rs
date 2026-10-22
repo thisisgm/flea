@@ -172,6 +172,7 @@ fn the_ipc_reader_reports_the_open_card() {
 #[gpui::test]
 fn the_overlay_draws_every_card_and_the_jobs_block(cx: &mut TestAppContext) {
     let handle = cx.add_window(|window, cx| {
+        window.set_rem_size(gpui::px(14.));
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()

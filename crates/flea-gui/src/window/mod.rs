@@ -46,6 +46,7 @@ pub fn open(
                 );
             }
         }
+        window.set_rem_size(crate::list::Typeface::omarchy_default().body);
         let shell = cx.new(|cx| Shell::new(launch, locale, events, window, cx));
         let weak = shell.downgrade();
         window.on_window_should_close(cx, move |window, cx| {

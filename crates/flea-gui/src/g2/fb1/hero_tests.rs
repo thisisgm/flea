@@ -36,7 +36,10 @@ pub(super) fn run<V: 'static>(cx: &mut TestAppContext, handle: WindowHandle<V>, 
 
 pub(super) fn open(cx: &mut TestAppContext) -> WindowHandle<EmptyHero> {
     let catalog = english();
-    let handle = cx.add_window(|_, cx| EmptyHero::new(&catalog, cx));
+    let handle = cx.add_window(|window, cx| {
+        window.set_rem_size(px(14.));
+        EmptyHero::new(&catalog, cx)
+    });
     handle
         .update(cx, |hero, _, cx| hero.show(true, cx))
         .unwrap();

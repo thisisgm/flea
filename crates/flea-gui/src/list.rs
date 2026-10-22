@@ -13,6 +13,7 @@ pub mod seam;
 pub(crate) mod size_tests;
 #[cfg(test)]
 mod tests;
+mod typeface;
 
 pub use element::{ListElement, Shown};
 pub use header::HeaderElement;
@@ -25,8 +26,8 @@ use crate::{
 use columns::{Layout, StoredWidths, Switched, Tokens};
 use flea::jsondoc::Json;
 use gpui::{
-    font, point, px, size, Bounds, Font, GlyphRun, Hsla, LineLayout, Pixels, SharedString,
-    TextStyle, Window,
+    point, px, size, Bounds, Font, GlyphRun, Hsla, LineLayout, Pixels, SharedString, TextStyle,
+    Window,
 };
 use pane::ROW_HEIGHT;
 use std::{cell::Cell, collections::HashMap, rc::Rc, sync::Arc};
@@ -60,17 +61,6 @@ pub struct Typeface {
     pub body: Pixels,
     pub body_small: Pixels,
     pub caption: Pixels,
-}
-
-impl Typeface {
-    pub fn omarchy_default() -> Self {
-        Self {
-            font: font("JetBrainsMono Nerd Font"),
-            body: px(14.),
-            body_small: px(13.),
-            caption: px(12.),
-        }
-    }
 }
 
 /// The pane's geometry at the face's body size, from v0.3.12 Theme.qml's formulas, which list.html and list-textsize.html draw.

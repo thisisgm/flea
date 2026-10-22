@@ -389,11 +389,8 @@ fn default_root_paints_a_contrasting_canvas() {
 #[test]
 fn root_uses_the_installed_theme() {
     let mut cx = real_cx();
-    let original = crate::palette::Theme::default();
-    let theme = crate::palette::Theme {
-        background: original.foreground,
-        foreground: original.background,
-    };
+    let mut theme = crate::palette::Theme::default();
+    std::mem::swap(&mut theme.background, &mut theme.foreground);
     cx.update(|cx| cx.set_global(theme));
     let window = open(&mut cx, held(Vec::new()), 320., 120.);
     assert_eq!(

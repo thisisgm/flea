@@ -1,5 +1,5 @@
 //! The two marks a pane state draws: the brand spiral drawing itself in, and a 40 px state glyph from the monochrome atlas.
-use crate::feedback::spinner::{self, GRID};
+use super::brand::{self, GRID};
 use gpui::{
     fill, point, px, size, App, Bounds, Element, ElementId, GlobalElementId, Hsla,
     InspectorElementId, IntoElement, LayoutId, Pixels, SharedString, Style, TransformationMatrix,
@@ -7,7 +7,7 @@ use gpui::{
 };
 
 /// The hero mark's side, board States at 48.
-pub const HERO: f32 = spinner::HERO;
+pub const HERO: f32 = 48.;
 /// A failure or no-match mark's side, board States at 40.
 pub const STATE: f32 = 40.;
 /// The spiral's centreline length in grid units.
@@ -15,6 +15,7 @@ pub const LENGTH: f32 = 114.;
 
 /// The spiral with `drawn` of its length painted, at `opacity`, as quads like the loading mark.
 pub struct Spiral {
+    pub side: f32,
     pub drawn: f32,
     pub opacity: f32,
     pub ink: Hsla,
@@ -62,6 +63,7 @@ impl Glyph {
 
 /// A glyph in its state slot.
 pub struct StateMark {
+    pub side: f32,
     pub glyph: Glyph,
     pub ink: Hsla,
 }
@@ -76,7 +78,7 @@ fn square(side: f32, window: &mut Window, cx: &mut App) -> LayoutId {
 }
 
 macro_rules! leaf {
-    ($ty:ty, $side:expr, |$this:ident, $bounds:ident, $window:ident, $cx:ident| $paint:block) => {
+    ($ty:ty, $side:ident, |$this:ident, $bounds:ident, $window:ident, $cx:ident| $paint:block) => {
         impl IntoElement for $ty {
             type Element = Self;
             fn into_element(self) -> Self {
@@ -100,7 +102,7 @@ macro_rules! leaf {
                 window: &mut Window,
                 cx: &mut App,
             ) -> (LayoutId, ()) {
-                (square($side, window, cx), ())
+                (square(self.$side, window, cx), ())
             }
             fn prepaint(
                 &mut self,
@@ -129,7 +131,7 @@ macro_rules! leaf {
     };
 }
 
-leaf!(Spiral, HERO, |this, bounds, window, _cx| {
+leaf!(Spiral, side, |this, bounds, window, _cx| {
     if this.drawn <= 0. || this.opacity <= 0. {
         return;
     }
@@ -139,7 +141,7 @@ leaf!(Spiral, HERO, |this, bounds, window, _cx| {
     let left = (f32::from(bounds.origin.x + (bounds.size.width - side) / 2.) * scale).round();
     let top = (f32::from(bounds.origin.y + (bounds.size.height - side) / 2.) * scale).round();
     let (ink, opacity) = (this.ink, this.opacity);
-    spinner::drawn(LENGTH * this.drawn, unit, |[x0, y0, x1, y1], coverage| {
+    brand::drawn(LENGTH * this.drawn, unit, |[x0, y0, x1, y1], coverage| {
         let quad = Bounds::from_corners(
             point(px((left + x0) / scale), px((top + y0) / scale)),
             point(px((left + x1) / scale), px((top + y1) / scale)),
@@ -148,7 +150,7 @@ leaf!(Spiral, HERO, |this, bounds, window, _cx| {
     });
 });
 
-leaf!(StateMark, STATE, |this, bounds, window, cx| {
+leaf!(StateMark, side, |this, bounds, window, cx| {
     let (key, data) = this.glyph.svg();
     let _ = window.paint_svg(
         bounds,
