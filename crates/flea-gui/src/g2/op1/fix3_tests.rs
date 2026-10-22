@@ -44,14 +44,12 @@ fn re_reviewing(cat: &I18n) -> Operations {
 #[gpui::test]
 fn the_check_restarts_a_full_interval_when_the_trash_view_frees(cx: &mut TestAppContext) {
     let (overlay, vcx) = cx.add_window_view(|window, cx| {
+        window.set_rem_size(gpui::px(14.));
         let theme = cx
             .try_global::<crate::palette::Theme>()
             .copied()
             .unwrap_or_default();
-        let palette = CardPalette::from_list(
-            &crate::list::Palette::inherited(&window.text_style(), theme),
-            8.,
-        );
+        let palette = CardPalette::from_theme(&window.text_style(), theme, 8.);
         Overlay::new(Arc::new(I18n::default()), palette, "default")
     });
     overlay.update(vcx, |o, cx| {

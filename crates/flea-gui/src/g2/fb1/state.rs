@@ -41,6 +41,21 @@ pub const GRID: Metrics = Metrics {
     detail_drop: 0.,
 };
 
+impl Metrics {
+    fn at(self, face: &Typeface) -> Self {
+        let body = f32::from(face.body);
+        let caption = f32::from(face.caption);
+        Self {
+            top: (self.top * body / 14.).round(),
+            gap: (8. * body / 12.).round() + self.gap - GRID.gap,
+            under_mark: self.under_mark,
+            sentence_line: self.sentence_line * body / 14.,
+            detail_line: self.detail_line * caption / 12.,
+            detail_drop: self.detail_drop,
+        }
+    }
+}
+
 #[derive(Clone, Copy, Debug, PartialEq, Eq)]
 pub enum Kind {
     Locked,
@@ -89,6 +104,14 @@ impl Facts {
             Glyph::Lock
         } else {
             Glyph::Alert
+        }
+    }
+
+    pub fn mark_ink(&self, ink: Ink) -> gpui::Hsla {
+        if self.kind == Kind::Locked {
+            ink.foreground
+        } else {
+            ink.error
         }
     }
 }
@@ -149,6 +172,7 @@ impl Render for StateMessage {
             .copied()
             .unwrap_or_default();
         let ink = Ink::interim(&Palette::inherited(&window.text_style(), theme));
+        self.typeface = Typeface::for_window(window, cx);
         let root = div()
             .size_full()
             .flex()
@@ -158,7 +182,7 @@ impl Render for StateMessage {
         let Some(facts) = &self.facts else {
             return root;
         };
-        let metrics = self.metrics;
+        let metrics = self.metrics.at(&self.typeface);
         let line = |part: &'static str, text: SharedString, size, height: f32, color| {
             div()
                 .debug_selector(move || part.into())
@@ -177,8 +201,9 @@ impl Render for StateMessage {
                     .debug_selector(|| "fb1-state-mark".into())
                     .mb(px(metrics.under_mark))
                     .child(StateMark {
+                        side: (f32::from(self.typeface.body_small) * 3.1).round(),
                         glyph: facts.glyph(),
-                        ink: ink.error,
+                        ink: facts.mark_ink(ink),
                     }),
             )
             .child(line(

@@ -1,0 +1,117 @@
+//! Copy To draws its field and buttons in the shared card at the live type scale.
+use super::{
+    geometry::Metrics,
+    glyph::Tracked,
+    model::{CopyFocus, Operations},
+    press::Press,
+    view::{button, state, Scene},
+};
+use flea::ui_logic_op1::card::{self, Kind};
+use gpui::{div, prelude::*, px, Div};
+
+pub(super) fn card(
+    scene: &Scene,
+    window: (f32, f32),
+    moving: bool,
+    path: &str,
+    focus: CopyFocus,
+    busy: bool,
+) -> Div {
+    let (palette, catalog) = (scene.palette, scene.catalog);
+    let m = Metrics::new(scene.typeface);
+    let in_field = focus == CopyFocus::Field;
+    // The chooser's path opens selected on the 24% accent wash; an empty field shows only the caret.
+    let content = if path.is_empty() {
+        let caret = in_field.then(|| {
+            div()
+                .debug_selector(|| "op1-caret".into())
+                .w(px(card::RULE))
+                .h(px(m.caret))
+                .bg(palette.foreground)
+        });
+        div().flex().items_center().children(caret)
+    } else {
+        let text = div()
+            .debug_selector(|| "op1-selection".into())
+            .h(px(m.selection))
+            .flex()
+            .items_center()
+            .min_w_0()
+            .truncate()
+            .child(path.to_owned());
+        if in_field {
+            text.bg(palette.accent.opacity(card::FIELD_WASH))
+        } else {
+            text
+        }
+    };
+    let field = div()
+        .debug_selector(|| "op1-field".into())
+        .h(px(m.button))
+        .px(px(m.button_pad))
+        .flex()
+        .items_center()
+        .gap(px(m.field_gap))
+        .border_1()
+        .border_color(if in_field {
+            palette.accent_frame
+        } else {
+            palette.muted_frame
+        })
+        .rounded(px(palette.radius))
+        .bg(palette.background)
+        .child(content);
+    // The field name keeps its source case in the catalog and draws in capitals, as the boards' CSS does.
+    let tracked = Tracked {
+        text: catalog.tr("jobs.copyto.field").to_uppercase().into(),
+        size: m.caption,
+        line: m.label_line,
+        track: card::FIELD_LABEL_TRACK,
+        ink: palette.muted,
+    };
+    let label = div()
+        .flex()
+        .debug_selector(|| "op1-field-label".into())
+        .mb(px(m.label_gap))
+        .child(
+            div()
+                .debug_selector(|| "op1-field-label-text".into())
+                .child(tracked),
+        );
+    let body = vec![div()
+        .flex()
+        .flex_col()
+        .child(label)
+        .child(field)
+        .into_any_element()];
+    let confirm = catalog.tr(if moving {
+        "jobs.button.move"
+    } else {
+        "jobs.button.copy"
+    });
+    let buttons = vec![
+        button(
+            scene,
+            Press::CopyCancel,
+            catalog.tr("jobs.button.cancel"),
+            state(false, focus == CopyFocus::Cancel, false, false),
+        ),
+        button(
+            scene,
+            Press::CopyConfirm,
+            confirm,
+            state(
+                true,
+                focus == CopyFocus::Confirm,
+                false,
+                busy || !Operations::copy_enabled(path),
+            ),
+        ),
+    ];
+    let title = catalog.tr(if moving {
+        "jobs.copyto.moveto"
+    } else {
+        "jobs.copyto.title"
+    });
+    super::view::shell(scene, Kind::CopyTo, window, title, body, buttons)
+}

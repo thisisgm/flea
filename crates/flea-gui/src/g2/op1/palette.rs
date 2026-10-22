@@ -19,6 +19,15 @@ pub struct CardPalette {
 }
 
 impl CardPalette {
+    pub fn from_theme(style: &gpui::TextStyle, theme: crate::palette::Theme, radius: f32) -> Self {
+        Self {
+            surface: theme.surface,
+            accent: theme.accent,
+            accent_frame: theme.accent_frame,
+            ..Self::from_list(&Palette::inherited(style, theme), radius)
+        }
+    }
+
     pub fn from_list(palette: &Palette, radius: f32) -> Self {
         Self {
             background: palette.background,
