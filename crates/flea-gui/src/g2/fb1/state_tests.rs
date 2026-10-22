@@ -4,7 +4,10 @@ use super::state::{Facts, Kind, StateMessage, GRID, LIST};
 use gpui::{px, size, Pixels, TestAppContext, WindowHandle};
 
 fn open(cx: &mut TestAppContext) -> WindowHandle<StateMessage> {
-    let handle = cx.add_window(|_, _| StateMessage::new());
+    let handle = cx.add_window(|window, _| {
+        window.set_rem_size(px(14.));
+        StateMessage::new()
+    });
     cx.run_until_parked();
     handle
 }

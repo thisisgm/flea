@@ -5,6 +5,9 @@ use gpui::{Global, Hsla};
 pub struct Theme {
     pub background: Hsla,
     pub foreground: Hsla,
+    pub surface: Hsla,
+    pub accent: Hsla,
+    pub accent_frame: Hsla,
 }
 
 impl Global for Theme {}
@@ -34,10 +37,23 @@ impl Theme {
                 .map(|(_, value)| *value)
                 .unwrap_or(fallback)
         };
-        // Reuse ui/Theme.qml's canvas and src/tui/theme.rs's foreground fallbacks.
+        let background = pick(&["background", "color0"], 0x101315);
+        let foreground = pick(&["foreground", "color7"], 0xcacccc);
+        let surface = pick(&["dark_background"], background);
+        let accent = pick(&["accent", "blue", "color4"], foreground);
+        let frame = flea::ui_logic_pl4::tagtheme::ensure_ratio(
+            &format!("#{accent:06x}"),
+            &format!("#{surface:06x}"),
+            3.,
+        );
+        let accent_frame = u32::from_str_radix(&frame[1..], 16).unwrap_or(foreground);
+        // Reuse the shipped canvas fallbacks and the board's accent-frame contrast recipe.
         Self {
-            background: gpui::rgb(pick(&["background", "color0"], 0x101315)).into(),
-            foreground: gpui::rgb(pick(&["foreground", "color7"], 0xcacccc)).into(),
+            background: gpui::rgb(background).into(),
+            foreground: gpui::rgb(foreground).into(),
+            surface: gpui::rgb(surface).into(),
+            accent: gpui::rgb(accent).into(),
+            accent_frame: gpui::rgb(accent_frame).into(),
         }
     }
 }
@@ -74,5 +90,23 @@ mod tests {
             Theme::from_text("foreground=#12345").foreground,
             Theme::default().foreground
         );
+    }
+}
+
+#[cfg(test)]
+mod control_tests {
+    use super::Theme;
+
+    #[test]
+    fn fix9_control_roles_keep_the_two_oracle_palettes() {
+        for (text, accent, surface) in [
+            ("background='#1c120d'\nforeground='#c6b395'\naccent='#d28a41'\ndark_background='#150d0a'", 0xd28a41, 0x150d0a),
+            ("background='#eff1f5'\nforeground='#4c4f69'\naccent='#1e66f5'\ndark_background='#e6e9ef'", 0x1e66f5, 0xe6e9ef),
+        ] {
+            let theme = Theme::from_text(text);
+            assert_eq!(theme.accent, gpui::rgb(accent).into());
+            assert_eq!(theme.accent_frame, gpui::rgb(accent).into());
+            assert_eq!(theme.surface, gpui::rgb(surface).into());
+        }
     }
 }

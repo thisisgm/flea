@@ -167,11 +167,6 @@ pub fn cells(phase: f32, unit: f32, mut emit: impl FnMut([f32; 4], f32)) {
     }
 }
 
-/// The spiral drawn from its outer corner along `length` units, as the empty hero's mark draws itself in.
-pub(crate) fn drawn(length: f32, unit: f32, mut emit: impl FnMut([f32; 4], f32)) {
-    run(0., length.clamp(0., LENGTH), unit, &mut emit);
-}
-
 // Square caps and miter corners are one more half stroke at each end; a run carried over a corner starts past the square its predecessor drew.
 fn run(from: f32, to: f32, unit: f32, emit: &mut impl FnMut([f32; 4], f32)) {
     for at in 0..SPIRAL.len() - 1 {

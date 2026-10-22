@@ -272,6 +272,11 @@ impl Overlay {
 impl Render for Overlay {
     fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
         self.sync_focus(window, cx);
+        if let Some(theme) = cx.try_global::<crate::palette::Theme>() {
+            self.palette =
+                CardPalette::from_theme(&window.text_style(), *theme, self.palette.radius);
+        }
+        let typeface = crate::list::Typeface::for_window(window, cx);
         let size = window.viewport_size();
         let window_size = (f32::from(size.width), f32::from(size.height));
         let mut root = div()
@@ -303,6 +308,7 @@ impl Render for Overlay {
             window.request_animation_frame();
         }
         let scene = Scene {
+            typeface: &typeface,
             palette: &self.palette,
             catalog: &self.catalog,
             pointer: &self.pointer,

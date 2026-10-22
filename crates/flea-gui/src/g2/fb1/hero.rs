@@ -28,6 +28,20 @@ pub const BOARDS: HeroMetrics = HeroMetrics {
     caption_line: 16.,
 };
 
+impl HeroMetrics {
+    fn at(self, face: &Typeface) -> Self {
+        let body = f32::from(face.body);
+        Self {
+            gap: (8. * body / 12.).round() + self.gap - BOARDS.gap,
+            caption_line: if self == LIST_FIRST {
+                body * 1.2
+            } else {
+                f32::from(face.caption) * 4. / 3.
+            },
+        }
+    }
+}
+
 pub struct EmptyHero {
     rotation: Rotation,
     phrases: Vec<SharedString>,
@@ -88,9 +102,9 @@ impl EmptyHero {
     /// The list draws empty.html's numbers until a beat's swap lands, unseen; every other view draws the shared ones.
     pub fn metrics(&self) -> HeroMetrics {
         if self.in_list && !self.rotation.landed() {
-            LIST_FIRST
+            LIST_FIRST.at(&self.typeface)
         } else {
-            BOARDS
+            BOARDS.at(&self.typeface)
         }
     }
 
@@ -154,6 +168,7 @@ impl Render for EmptyHero {
             .copied()
             .unwrap_or_default();
         let ink = Ink::interim(&Palette::inherited(&window.text_style(), theme));
+        self.typeface = Typeface::for_window(window, cx);
         let caption = self.phrases.get(frame.phrase).cloned().unwrap_or_default();
         let metrics = self.metrics();
         let mut font = self.typeface.font.clone();
@@ -177,6 +192,7 @@ impl Render for EmptyHero {
                             div()
                                 .debug_selector(|| "fb1-hero-mark".into())
                                 .child(Spiral {
+                                    side: (f32::from(self.typeface.body_small) * 3.7).round(),
                                     drawn: frame.mark_drawn,
                                     opacity: frame.mark_opacity,
                                     ink: ink.muted_frame,

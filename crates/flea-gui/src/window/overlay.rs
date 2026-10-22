@@ -1,5 +1,5 @@
 //! The operations overlay slot: op1's Overlay over the panes under its scrim, built on first open.
-use crate::{g2::op1::host::Overlay, list::Palette, palette::Theme, state::Shell};
+use crate::{g2::op1::host::Overlay, palette::Theme, state::Shell};
 use gpui::{AppContext, Context, Window};
 
 impl Shell {
@@ -12,8 +12,9 @@ impl Shell {
         cx: &mut Context<Self>,
     ) {
         let theme = cx.try_global::<Theme>().copied().unwrap_or_default();
-        let palette = crate::g2::op1::palette::CardPalette::from_list(
-            &Palette::inherited(&window.text_style(), theme),
+        let palette = crate::g2::op1::palette::CardPalette::from_theme(
+            &window.text_style(),
+            theme,
             self.corner,
         );
         let catalog = self.locale.catalog.clone();
