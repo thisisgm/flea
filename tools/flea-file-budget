@@ -141,7 +141,7 @@ tests/js/previewkeys.js 344
 tests/button-members.qml 524
 tests/chromering.qml 413
 tests/columnrow-geom.qml 426
-tests/dialog-board.qml 663
+tests/dialog-board.qml 664
 tests/columnscost.qml 418
 tests/rowcost.qml 441
 tests/gridmark.qml 419

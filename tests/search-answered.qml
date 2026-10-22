@@ -57,8 +57,10 @@ ShellRoot {
         return out
     }
     // The rows behind a proxy that counts each whole-array serialisation: JSON.stringify asks the array for toJSON once.
+    // Qt 6.12 hands a handler's var rows as a sequence wrapper whose length getter refuses the proxy as its receiver, so the
+    // proxy stands over a plain array of the same row objects.
     function counted(rows, tally) {
-        return new Proxy(rows, { get: function (target, key, receiver) {
+        return new Proxy(Array.prototype.slice.call(rows), { get: function (target, key, receiver) {
             if (key === "toJSON") tally.serialised += 1
             return Reflect.get(target, key, receiver)
         } })

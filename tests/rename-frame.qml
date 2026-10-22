@@ -49,8 +49,11 @@ ShellRoot {
     property int measured: 0
     property int overhung: 0
     property int overhungAtStart: 0
-    // The smallest stop at Tight, where the row is shorter than the typed line and the frame overhangs it.
+    // The smallest stop at Tight, where a face whose typed line is taller than the row's line box overhangs it: Noto Sans Mono's
+    // 9 px line is 13 px under Qt 6.12, so its frame of 15 overhangs the 14 px row, where the CI face's 12 px line fills it.
     readonly property int overhangStop: 9
+    // rename-frame.sh's second pass runs that stop alone under Noto Sans Mono, so the overhang arm is measured every run.
+    readonly property bool overhangPass: Quickshell.env("RENAMEFRAME_PASS") === "overhang"
     // Room left under the frame in its column before the error shows, read to prove the last row needs the scroll.
     property real roomBelow: 0
     property bool errorMeasured: false
@@ -213,6 +216,10 @@ ShellRoot {
     }
 
     function buildCombos() {
+        if (root.overhangPass) {
+            root.combos = [{ stop: root.overhangStop, density: "tight" }]
+            return
+        }
         var out = []
         for (var i = 0; i < root.allStops.length; i++)
             for (var d = 0; d < root.densities.length; d++)
@@ -303,8 +310,8 @@ ShellRoot {
             return true
         }
         if (root.stage === 6) {
-            // The overhang arm is only worth its code while a stop still exercises it, so the smallest Tight stop must.
-            if (combo.stop === root.overhangStop && combo.density === "tight")
+            // The overhang arm is only worth its code while a stop still exercises it, so the smallest Tight stop must under the overhang pass's face.
+            if (root.overhangPass && combo.stop === root.overhangStop && combo.density === "tight")
                 root.check(root.overhung > root.overhungAtStart, "stop " + combo.stop + " tight overhung no frame, so the overhang arm went unmeasured")
             root.stage = 0
             root.comboIndex++
