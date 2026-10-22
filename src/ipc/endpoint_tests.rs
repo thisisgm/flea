@@ -80,3 +80,65 @@ fn stale_requires_both_a_dead_pid_and_a_refused_connection() {
     prune(&directory).unwrap();
     assert_eq!(fs::read_to_string(file).unwrap(), "not a socket");
 }
+
+// Review g2-pk1-r1-4: a chooser's socket has its own role, so default routing never lands on it.
+#[test]
+fn a_picker_socket_is_listed_apart_and_skipped_by_default_routing() {
+    use super::super::client::{execute, Options};
+    use super::super::wire::{Reply, Request};
+    let root = root();
+    let picker = Endpoint::bind_picker(&root).unwrap();
+    assert!(picker
+        .path
+        .file_name()
+        .unwrap()
+        .to_str()
+        .unwrap()
+        .starts_with("picker-"));
+    assert_eq!(
+        instances(&root).unwrap(),
+        [],
+        "default routing sees no main window"
+    );
+    assert_eq!(
+        pickers(&root).unwrap(),
+        [(std::process::id(), picker.path.clone())]
+    );
+    let window = Endpoint::bind(&root).unwrap();
+    assert_eq!(
+        instances(&root).unwrap(),
+        [(std::process::id(), window.path.clone())]
+    );
+    drop(window);
+    let listener = picker.listener.try_clone().unwrap();
+    let served = std::thread::spawn(move || {
+        let (mut stream, _) = listener.accept().unwrap();
+        let mut line = String::new();
+        std::io::BufRead::read_line(
+            &mut std::io::BufReader::new(stream.try_clone().unwrap()),
+            &mut line,
+        )
+        .unwrap();
+        super::super::wire::write_line(&mut stream, &Reply::value("picked").encode()).unwrap();
+    });
+    let call = |pid| Options {
+        pid,
+        request: Request::Call {
+            target: "fleapicker".into(),
+            function: "ready".into(),
+            arguments: Vec::new(),
+        },
+    };
+    assert_eq!(
+        execute(&root, &call(None)).code,
+        255,
+        "no main window, so no default target"
+    );
+    let reached = execute(&root, &call(Some(std::process::id())));
+    assert_eq!(
+        reached.stdout.trim_end(),
+        "picked",
+        "an explicit pid reaches the chooser: {reached:?}"
+    );
+    served.join().unwrap();
+}

@@ -58,3 +58,27 @@ fn bounded_lines_refuse_truncation_invalid_utf8_and_oversize() {
     }
     assert!(Reply::decode("{\"code\":256,\"stdout\":\"\",\"stderr\":\"\"}").is_err());
 }
+
+// Review g2-pk1-r2-1: a signal mid-read (SIGCHLD under a receive timeout, or Ctrl-Z then fg) is retried, never a failed call.
+#[test]
+fn an_interrupted_read_is_retried() {
+    struct Interrupted<'a>(bool, Cursor<&'a [u8]>);
+    impl io::Read for Interrupted<'_> {
+        fn read(&mut self, buf: &mut [u8]) -> io::Result<usize> {
+            io::Read::read(&mut self.1, buf)
+        }
+    }
+    impl io::BufRead for Interrupted<'_> {
+        fn fill_buf(&mut self) -> io::Result<&[u8]> {
+            if std::mem::take(&mut self.0) {
+                return Err(io::ErrorKind::Interrupted.into());
+            }
+            self.1.fill_buf()
+        }
+        fn consume(&mut self, used: usize) {
+            self.1.consume(used)
+        }
+    }
+    let mut input = Interrupted(true, Cursor::new(b"one\n".as_slice()));
+    assert_eq!(read_line(&mut input, 8).unwrap(), "one\n");
+}

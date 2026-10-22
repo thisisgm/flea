@@ -59,6 +59,7 @@ pub const DEFAULTS: &str = r#"{
             "moveto", "copyto", "properties", "permissions", "copyAs", "pasteAs",
             "invertSelection", "extThumbs", "run", "openAsText"] },
   "updates": { "autoCheck": true },
+  "plugins": {},
   "stateVersion": 3
 }"#;
 
@@ -96,6 +97,8 @@ pub enum Rule {
     FolderSorts,
     // A folder path to one browser view, at most MAX_FOLDER_VIEWS entries; see folderViews above.
     FolderViews,
+    // A plugin id to its switch and raw settings; src/uiplugins.rs keeps the map's shape.
+    Plugins,
     Group(&'static [(&'static str, Rule)]),
 }
 
@@ -236,6 +239,7 @@ pub const SCHEMA: &[(&str, Rule)] = &[
     ("display", Rule::Group(DISPLAY)),
     ("menu", Rule::Group(MENU)),
     ("updates", Rule::Group(UPDATES)),
+    ("plugins", Rule::Plugins),
     // Not a setting: the stamp that makes each migration once, for the window, the TUI and the CLI alike.
     (STATE_VERSION, Rule::Version),
 ];
@@ -307,7 +311,7 @@ mod tests {
                 "startFolder",
                 "lastPath", "lastTabs", "newTab", "trashAutoEmpty", "trashSweptOn", "places", "shelf",
                 "preview", "previewFacts", "keys",
-                "display", "menu", "updates", "stateVersion"
+                "display", "menu", "updates", "plugins", "stateVersion"
             ]
         );
         assert_eq!(d.get(STATE_VERSION).and_then(Json::as_f64), Some(3.0), "a fresh document is already stamped");

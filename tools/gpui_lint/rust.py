@@ -172,17 +172,19 @@ def calls(function, known=None):
         background = path == ("std", "thread", "spawn") or (
             method and path[-1] == "spawn" and (receiver == ("background_executor",) or builder))
         if background:
-            # Only a directly supplied future/closure body runs on the executor.
+            # A directly supplied closure body, including an expression, runs after the thread boundary.
             opening = end + 1
             while opening < close and ts[opening].value in ("async", "move"):
                 opening += 1
+            direct = False
             if opening < close and ts[opening].value == "|":
                 other = next((j for j in range(opening + 1, close) if ts[j].value == "|"), close)
                 opening = other + 1
-            if opening < close and ts[opening].value == "{":
-                direct = end + 1 < close and ts[end + 1].value in ("async", "move", "|")
-                if direct:
-                    skipped.update(range(opening, matched[opening] + 1))
+                direct = other < close
+            elif opening < close and ts[opening].value == "{":
+                direct = ts[end + 1].value == "async"
+            if direct:
+                skipped.update(range(opening, close))
         awaited = close + 2 < len(ts) and ts[close + 1].value == "." and ts[close + 2].value == "await"
         # Async channel receives are not blocking mpsc receives; std::fs calls remain forbidden.
         result.append(("::".join(path), token.line, ts[end + 1:close], method and not (path[-1] == "recv" and awaited)))

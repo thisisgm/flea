@@ -126,7 +126,13 @@ impl Shell {
                 continue;
             };
             if let Err(error) = backend.command(command) {
-                host.pane.fail("backend", "", "", 0, host.pane.now());
+                if host.pane.fail("backend", "", "", 0, host.pane.now()) {
+                    self.surfaces[side].refuse(crate::window::surfaces::Refusal {
+                        operation: "backend".into(),
+                        message: String::new(),
+                        mode: 0,
+                    });
+                }
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
                 break;

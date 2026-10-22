@@ -129,6 +129,7 @@ pub enum Request {
     // Directive 71: op is "peers" for the flyout's own list and "send" for the transfer it chooses.
     LocalSend { op: String, peer: String, paths: Vec<String>, id: usize },
     Nearby { op: String, id: usize },
+    Plugins { line: String },
     NetworkAddress { address: String, id: usize },
     TrashBrowse { line: String },
     // The device of each path named, symlinks followed, for the drop verb of a target that is not the listing; see docs/protocol.md "devs".
@@ -155,6 +156,7 @@ pub fn parse_request(line: &str) -> Request {
             line: line.to_string(),
         },
         Some("trashbrowse") => Request::TrashBrowse { line: line.to_string() },
+        Some("plugins") => Request::Plugins { line: line.to_string() },
         Some("permissions") => Request::Permissions { line: line.to_string() },
         Some("permissionsBatch") => Request::PermissionsBatch {
             paths: field_str_array(line, "paths"),

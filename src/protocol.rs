@@ -76,6 +76,7 @@ pub enum Reply {
         operation: String,
         path: String,
         message: String,
+        mode: u32,
     },
     Other,
 }
@@ -106,6 +107,11 @@ pub fn parse_reply(line: &str) -> Result<Reply, String> {
             operation: string(&document, "where")?.to_owned(),
             path: string(&document, "path")?.to_owned(),
             message: string(&document, "msg")?.to_owned(),
+            mode: match document.get("mode") {
+                None => 0,
+                Some(Json::Num(value)) => value.parse().map_err(|_| "mode must fit a mode")?,
+                _ => return Err("mode must be an unsigned integer".into()),
+            },
         }),
         _ => Ok(Reply::Other),
     }
@@ -122,7 +128,10 @@ fn row_facts(row: &Json) -> Result<RowFacts, String> {
     };
     Ok(RowFacts {
         name: string(row, "n")?.to_owned(),
-        dir: row.get("d").and_then(Json::as_bool).ok_or("d must be a boolean")?,
+        dir: row
+            .get("d")
+            .and_then(Json::as_bool)
+            .ok_or("d must be a boolean")?,
         size: uint(row, "s")? as u64,
         mtime: int(row, "m")?,
         mode: u32::try_from(uint(row, "p")?).map_err(|_| "p must fit a mode")?,

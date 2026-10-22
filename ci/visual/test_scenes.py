@@ -68,6 +68,37 @@ class Sidecars(unittest.TestCase):
         target.write_bytes(source.read_bytes())
         scenes.controls(target)
 
+    def test_listing_scene_without_reference_pair_fails(self):
+        source = Path(__file__).with_name('scenes') / 'g1-01.json'
+        data = json.loads(source.read_text())
+        data['scenes'][3].pop('reference')
+        data['scenes'][3].pop('reference_tag')
+        target = self.root / 'unpaired.json'
+        target.write_text(json.dumps(data))
+        with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
+            scenes.manifest(target)
+
+    def test_non_object_scenes_fail_with_validation_error(self):
+        target = self.root / 'non-object.json'
+        for scene in (None, 'x'):
+            with self.subTest(scene=scene):
+                target.write_text(json.dumps(dict(version=1, scenes=[scene])))
+                with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+                    scenes.manifest(target)
+
+    def test_listing_id_cannot_borrow_a_card_board_reference_exemption(self):
+        source = Path(__file__).with_name('scenes') / 'g1-01.json'
+        listing = next(scene for scene in scenes.manifest(source) if scene['id'] == 'g1-01-grid-r8')
+        target = self.root / 'wrong-card.json'
+        for board in ('copyto', 'copyto-empty'):
+            with self.subTest(board=board):
+                scene = dict(listing, board=board)
+                scene.pop('reference')
+                scene.pop('reference_tag')
+                target.write_text(json.dumps(dict(version=1, scenes=[scene])))
+                with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
+                    scenes.manifest(target)
+
     def test_another_unit_registers_its_own_scene_values(self):
         source = Path(__file__).with_name('scenes') / 'g1-01.json'
         schema = json.loads(Path(scenes.__file__).with_name('schema.json').read_text())
@@ -93,6 +124,41 @@ class Sidecars(unittest.TestCase):
                     scenes.manifest(target)
         finally:
             scenes.ROOT = root
+
+    def test_card_scenes_validate_only_on_their_own_board(self):
+        source = Path(__file__).with_name('scenes') / 'g2-op1.json'
+        cards = scenes.manifest(source)
+        self.assertEqual(len(cards), 4)
+        target = self.root / 'card.json'
+        for card in cards:
+            target.write_text(json.dumps(dict(version=1, scenes=[card])))
+            self.assertEqual(scenes.manifest(target)[0]['id'], card['id'])
+            for board in ('list', 'grid', 'copyto', 'copyto-empty'):
+                if board == card['board']:
+                    continue
+                with self.subTest(scene=card['id'], board=board):
+                    target.write_text(json.dumps(dict(version=1, scenes=[dict(card, board=board)])))
+                    with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
+                        scenes.manifest(target)
+
+    def test_a_card_scene_still_fails_the_field_set_check(self):
+        card = scenes.manifest(Path(__file__).with_name('scenes') / 'g2-op1.json')[0]
+        target = self.root / 'extra.json'
+        target.write_text(json.dumps(dict(version=1, scenes=[dict(card, extra=1)])))
+        with self.assertRaisesRegex(ValueError, 'missing or unknown scene field'):
+            scenes.manifest(target)
+
+    def test_unhashable_card_id_fails_with_validation_error(self):
+        card = scenes.manifest(Path(__file__).with_name('scenes') / 'g2-op1.json')[0]
+        target = self.root / 'unhashable.json'
+        for bad in (['g2.op1.copyto.r8'], {'id': 'g2.op1.copyto.r8'}):
+            with self.subTest(id=bad):
+                scene = dict(card, id=bad)
+                scene.pop('reference', None)
+                scene.pop('reference_tag', None)
+                target.write_text(json.dumps(dict(version=1, scenes=[scene])))
+                with self.assertRaisesRegex(ValueError, 'card scene must name its own board'):
+                    scenes.manifest(target)
 
 
 if __name__ == '__main__':

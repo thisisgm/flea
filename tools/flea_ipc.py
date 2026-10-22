@@ -48,8 +48,11 @@ def instances():
     for socket in directory.glob("*.sock"):
         try:
             info = socket.lstat()
-            pid = int(socket.stem)
-            if socket.stem != str(pid) or pid < 1 or not stat.S_ISSOCK(info.st_mode):
+            # A file chooser binds picker-<pid>.sock; its config path names the chooser's boot file.
+            stem = socket.stem.removeprefix("picker-")
+            picker = stem != socket.stem
+            pid = int(stem)
+            if stem != str(pid) or pid < 1 or not stat.S_ISSOCK(info.st_mode):
                 continue
             if info.st_uid != os.geteuid() or info.st_mode & 0o077:
                 continue
@@ -63,8 +66,8 @@ def instances():
             ui = environment.get("FLEA_UI")
             if not ui:
                 ui = str(binary.parents[2] / "ui") if binary.parent.name in ("debug", "release") else "/usr/share/flea/ui"
-            rows.append({"id": str(pid), "pid": pid, "shell_id": "flea",
-                         "config_path": str(Path(ui).resolve() / "boot/shell.qml")})
+            rows.append({"id": str(pid), "pid": pid, "shell_id": "fleapicker" if picker else "flea",
+                         "config_path": str(Path(ui).resolve() / ("boot/picker.qml" if picker else "boot/shell.qml"))})
         except (OSError, ValueError):
             continue
     return sorted(rows, key=lambda row: row["pid"])
@@ -88,4 +91,4 @@ if __name__ == "__main__":
         print(json.dumps(rows))
     else:
         for row in rows:
-            print(f'Instance {row["id"]}:\n  Process ID: {row["pid"]}\n  Shell ID: flea\n  Config path: {row["config_path"]}')
+            print(f'Instance {row["id"]}:\n  Process ID: {row["pid"]}\n  Shell ID: {row["shell_id"]}\n  Config path: {row["config_path"]}')

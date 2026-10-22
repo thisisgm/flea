@@ -9,11 +9,21 @@ pub mod keys;
 mod jsonstring;
 pub mod oflags;
 pub mod protocol;
+pub mod ui_logic_fb1;
 pub mod ui_logic_mn1;
+pub mod ui_logic_op1;
 pub mod ui_logic_op3;
+pub mod ui_logic_pk1;
+pub mod ui_logic_pl1;
 pub mod ui_logic_pl3;
+pub mod ui_logic_pl4;
+pub mod ui_logic_pv2;
+pub mod ui_logic_pv3;
+pub mod ui_logic_pv4;
 pub mod ui_logic_sd2;
 pub mod ui_logic_sr1;
+pub mod ui_logic_st1;
+pub mod ui_logic_st2;
 
 // The catalog and locale API shares the backend's regular-file and wall-clock primitives.
 pub mod backend {

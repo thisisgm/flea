@@ -9,6 +9,8 @@ flea = { path = "../.." }
 gpui = { workspace = true }
 gpui_platform = { workspace = true }
 async-channel = "=2.5.0"
+# The frame container GPUI's RenderImage takes; already in the lock through gpui, default features off.
+image = { version = "=0.25.10", default-features = false }
 
 [features]
 # Bench-only: a benchmark driver's markers and scroll test, never enabled by packaging or any default build.

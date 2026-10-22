@@ -150,7 +150,13 @@ impl Shell {
                 }
             }
             BackendEvent::Failed(error) => {
-                host.pane.fail("backend", "", "", 0, host.pane.now());
+                if host.pane.fail("backend", "", "", 0, host.pane.now()) {
+                    self.surfaces[side].refuse(crate::window::surfaces::Refusal {
+                        operation: "backend".into(),
+                        message: String::new(),
+                        mode: 0,
+                    });
+                }
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
             }
@@ -164,6 +170,11 @@ impl Shell {
                     .pane
                     .fail(&operation, &path, &message, mode, host.pane.now());
                 if ended {
+                    self.surfaces[side].refuse(crate::window::surfaces::Refusal {
+                        operation: operation.clone(),
+                        message: message.clone(),
+                        mode,
+                    });
                     host.changed(&self.locale);
                 }
                 host.nav.after_failure(&mut host.pane, &operation);
@@ -213,32 +224,56 @@ impl Shell {
                 }
                 return;
             }
-            BackendEvent::Reply(reply) => match host.pane.receive(reply) {
-                Ok(true) => {
-                    host.changed(&self.locale);
-                    self.path_labels[side] = host.path.clone().into();
-                    if host.answered {
-                        self.deadlines[side] = None;
+            BackendEvent::Reply(reply) => {
+                let failure = match &reply {
+                    flea::protocol::Reply::Error {
+                        operation,
+                        message,
+                        mode,
+                        ..
+                    } => Some((operation.clone(), message.clone(), *mode)),
+                    _ => None,
+                };
+                match host.pane.receive(reply) {
+                    Ok(true) => {
+                        if let Some((operation, message, mode)) = failure {
+                            self.surfaces[side].refuse(crate::window::surfaces::Refusal {
+                                operation,
+                                message,
+                                mode,
+                            });
+                        }
+                        host.changed(&self.locale);
+                        self.path_labels[side] = host.path.clone().into();
+                        if host.answered {
+                            self.deadlines[side] = None;
+                        }
+                        self.seam.rows(&host.pane);
                     }
-                    self.seam.rows(&host.pane);
+                    Ok(false) => {
+                        self.after_navigation(side, &before, window, cx);
+                        self.arm_transition(side, window, cx);
+                        return;
+                    }
+                    Err(message) => {
+                        if host.pane.fail("protocol", "", "", 0, host.pane.now()) {
+                            self.surfaces[side].refuse(crate::window::surfaces::Refusal {
+                                operation: "protocol".into(),
+                                message: String::new(),
+                                mode: 0,
+                            });
+                        }
+                        host.changed(&self.locale);
+                        host.record_error(
+                            Failure {
+                                key: "window.backend_protocol",
+                                detail: self.locale.catalog.tr(&message),
+                            },
+                            &self.locale,
+                        );
+                    }
                 }
-                Ok(false) => {
-                    self.after_navigation(side, &before, window, cx);
-                    self.arm_transition(side, window, cx);
-                    return;
-                }
-                Err(message) => {
-                    host.pane.fail("protocol", "", "", 0, host.pane.now());
-                    host.changed(&self.locale);
-                    host.record_error(
-                        Failure {
-                            key: "window.backend_protocol",
-                            detail: self.locale.catalog.tr(&message),
-                        },
-                        &self.locale,
-                    );
-                }
-            },
+            }
         }
         self.after_navigation(side, &before, window, cx);
         self.arm_transition(side, window, cx);

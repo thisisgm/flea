@@ -141,10 +141,11 @@ def source_checks(units, policy):
         matched = pairs(ts)
         scopes = environments(ts)
         allowed = allowed_hex_tokens(unit, policy.get("non_color_hex_constants", []))
+        signatures = {id(token) for function in unit["functions"] for token in function.signature}
         for i, token in enumerate(ts):
             if unit["path"] in surfaces and token.kind == "number" and COLOR_HEX.fullmatch(digits(token.value)) and i not in allowed:
                 errors.append(f"{unit['path']}:{token.line}: literal colour-sized hex {token.value}; use theme roles or a named non-colour constant exception")
-            if token.kind != "ident" or (i and ts[i - 1].value == "::"):
+            if token.kind != "ident" or id(token) in signatures or (i and ts[i - 1].value == "::"):
                 continue
             environment = scopes[i]
             aliases = environment.aliases
@@ -156,9 +157,10 @@ def source_checks(units, policy):
             # A bare call under a gpui glob is gpui's unless the scope declares that name; a method or fn declaration is not a call.
             if environment.glob and following == "(" and len(path) == 1 and path[0] not in environment.items and path[0] not in environment.lets and not (i and ts[i - 1].value in (".", "fn")):
                 path = ("gpui", path[0])
-            constructor = name in COLOR_CALLS or any(p in COLOR_TYPES for p in path)
+            constructor = following in ("(", "{") and (name in COLOR_CALLS or any(p in COLOR_TYPES for p in path))
             gpui_symbol = path[0] == "gpui" or path[0].startswith("gpui_") or any(p in COLOR_TYPES for p in path)
-            named = name.lower() in COLOR_NAMES and gpui_symbol
+            # A named colour is a call, a constant or a function value; a variant of a type that is not a colour type is not one.
+            named = gpui_symbol and name.lower() in COLOR_NAMES and not any(p[0].isupper() and p not in COLOR_TYPES for p in path[:-1])
             args = ts[end + 1:matched[end]] if following in ("(", "{") else []
             literal = any(t.kind in ("number", "string") for t in args)
             direct = immediate(ts, matched, end + 1, matched[end]) if following in ("(", "{") else []

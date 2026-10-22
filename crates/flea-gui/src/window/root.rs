@@ -1,7 +1,7 @@
 //! The window root: the shell as one cached view, with each frame's pane probes and loading marks painted over it.
 use crate::{feedback::spinner::Arm, pane::states::Kind, state::Shell};
 use gpui::{
-    div, prelude::*, relative, size, App, Bounds, Context, Element, ElementId, Entity,
+    deferred, div, prelude::*, relative, size, App, Bounds, Context, Element, ElementId, Entity,
     GlobalElementId, InspectorElementId, IntoElement, LayoutId, Pixels, Position, Render, Style,
     StyleRefinement, Window,
 };
@@ -11,7 +11,18 @@ pub struct Root {
 }
 
 impl Render for Root {
-    fn render(&mut self, _: &mut Window, _: &mut Context<Self>) -> impl IntoElement {
+    fn render(&mut self, window: &mut Window, cx: &mut Context<Self>) -> impl IntoElement {
+        // The modal scrim and card share the highest deferred layer, above menus and pane marks.
+        let overlay = self.shell.read(cx).overlay.clone().map(|view| {
+            view.update(cx, |overlay, cx| overlay.sync_focus(window, cx));
+            let priority = if view.read(cx).model.open() {
+                usize::MAX
+            } else {
+                0
+            };
+            deferred(div().absolute().top_0().left_0().size_full().child(view))
+                .with_priority(priority)
+        });
         div()
             .size_full()
             .child(
@@ -19,8 +30,9 @@ impl Render for Root {
                     .clone()
                     .cached(StyleRefinement::default().size_full()),
             )
-            // A surface that covers a pane (Quick Look, menus, sheets, dialogs) paints in a later layer than this overlay, a GPUI deferred, so no mark draws over it.
+            // Pane marks paint over the cached shell and below deferred surfaces.
             .child(Overlay(self.shell.clone()))
+            .children(overlay)
     }
 }
 

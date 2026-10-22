@@ -1,0 +1,148 @@
+//! A one-line caption drawn glyph by glyph with letter spacing, which GPUI's text style cannot express.
+use gpui::{
+    point, size, App, Bounds, Element, ElementId, Font, GlobalElementId, Hsla, InspectorElementId,
+    IntoElement, LayoutId, LineLayout, Pixels, ShapedLine, SharedString, Style, TextRun, Window,
+};
+
+/// The hero caption's letter spacing, `.statecap` at 1.2px on every hero board.
+pub const TRACKING: f32 = 1.2;
+
+/// The scripts the boards draw with no capitals and no tracking, `.statecap:is(:lang(ja), ...)`.
+pub const CASELESS: [&str; 8] = ["ja", "zh", "ko", "ar", "fa", "he", "ur", "th"];
+
+/// Whether a language code's primary subtag is one of the boards' caseless scripts.
+pub fn caseless(language: &str) -> bool {
+    CASELESS.contains(&language.split(['-', '_']).next().unwrap_or(""))
+}
+
+/// The caption tracking for a language: 1.2px, or none for a caseless script, which tracking would also cut apart.
+pub fn tracking_for(language: &str) -> f32 {
+    if caseless(language) {
+        0.
+    } else {
+        TRACKING
+    }
+}
+
+#[cfg(test)]
+thread_local! {
+    /// Test hook: while armed, paint records each glyph's x from the caption's left edge.
+    pub static PAINTED: std::cell::RefCell<Option<Vec<Pixels>>> = const { std::cell::RefCell::new(None) };
+}
+
+/// One line of `text` with `tracking` after every glyph, as CSS letter-spacing lays it out, in a `line` box.
+pub struct Tracked {
+    pub text: SharedString,
+    pub font: Font,
+    pub size: Pixels,
+    pub line: Pixels,
+    pub tracking: Pixels,
+    pub color: Hsla,
+}
+
+/// Each glyph's x in the line once `tracking` follows every glyph before it, for tests.
+#[cfg(test)]
+pub fn origins(layout: &LineLayout, tracking: Pixels) -> Vec<Pixels> {
+    let glyphs = layout.runs.iter().flat_map(|run| run.glyphs.iter());
+    glyphs
+        .enumerate()
+        .map(|(i, glyph)| glyph.position.x + tracking * i as f32)
+        .collect()
+}
+
+/// The tracked line's width: the shaped advance plus one tracking step per glyph, the last included.
+pub fn width(layout: &LineLayout, tracking: Pixels) -> Pixels {
+    let glyphs: usize = layout.runs.iter().map(|run| run.glyphs.len()).sum();
+    layout.width + tracking * glyphs as f32
+}
+
+impl IntoElement for Tracked {
+    type Element = Self;
+    fn into_element(self) -> Self {
+        self
+    }
+}
+
+impl Element for Tracked {
+    type RequestLayoutState = ShapedLine;
+    type PrepaintState = ();
+
+    fn id(&self) -> Option<ElementId> {
+        None
+    }
+
+    fn source_location(&self) -> Option<&'static core::panic::Location<'static>> {
+        None
+    }
+
+    // Shaped once per frame here and reused by paint; GPUI's line cache carries the shape across frames.
+    fn request_layout(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        window: &mut Window,
+        cx: &mut App,
+    ) -> (LayoutId, ShapedLine) {
+        let run = TextRun {
+            len: self.text.len(),
+            font: self.font.clone(),
+            color: self.color,
+            background_color: None,
+            underline: None,
+            strikethrough: None,
+        };
+        let shaped = window
+            .text_system()
+            .shape_line(self.text.clone(), self.size, &[run], None);
+        let style = Style {
+            size: size(width(&shaped, self.tracking).into(), self.line.into()),
+            flex_shrink: 0.,
+            ..Style::default()
+        };
+        (window.request_layout(style, None, cx), shaped)
+    }
+
+    fn prepaint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        _: Bounds<Pixels>,
+        _: &mut ShapedLine,
+        _: &mut Window,
+        _: &mut App,
+    ) {
+    }
+
+    fn paint(
+        &mut self,
+        _: Option<&GlobalElementId>,
+        _: Option<&InspectorElementId>,
+        bounds: Bounds<Pixels>,
+        shaped: &mut ShapedLine,
+        _: &mut (),
+        window: &mut Window,
+        _: &mut App,
+    ) {
+        let baseline =
+            bounds.origin.y + (self.line - shaped.ascent - shaped.descent) / 2. + shaped.ascent;
+        let mut i = 0;
+        for run in shaped.runs.iter() {
+            for glyph in run.glyphs.iter() {
+                let x = glyph.position.x + self.tracking * i as f32;
+                i += 1;
+                #[cfg(test)]
+                PAINTED.with(|painted| {
+                    if let Some(xs) = painted.borrow_mut().as_mut() {
+                        xs.push(x);
+                    }
+                });
+                let origin = point(bounds.origin.x + x, baseline + glyph.position.y);
+                let _ = if glyph.is_emoji {
+                    window.paint_emoji(origin, run.font_id, glyph.id, shaped.font_size)
+                } else {
+                    window.paint_glyph(origin, run.font_id, glyph.id, shaped.font_size, self.color)
+                };
+            }
+        }
+    }
+}
