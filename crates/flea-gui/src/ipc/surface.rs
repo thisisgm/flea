@@ -46,7 +46,7 @@ impl Surface<'_> {
         let reply = match (adapted, target.as_str(), function.name) {
             (Some(reply), _, _) => reply,
             (_, _, "version") => Reply::value(env!("CARGO_PKG_VERSION")),
-            (_, _, "quit") => Reply {
+            (_, "flea", "quit") => Reply {
                 code: 0,
                 stdout: String::new(),
                 stderr: String::new(),
@@ -75,7 +75,8 @@ impl Surface<'_> {
             _ => registry::refused(function),
         };
         Answer {
-            quit: function.name == "quit",
+            // The chooser's quit is refused here; it reaches a chooser only through `--pid` (G0.10 seam).
+            quit: target == "flea" && function.name == "quit",
             reply,
         }
     }
@@ -125,5 +126,32 @@ mod tests {
             answer.reply,
             Reply::error(3, "FLEA_IPC_NOT_PORTED fleapicker.path")
         );
+    }
+
+    // Review g2-pk1-r2-2: a main window refuses the chooser's quit, so `flea ipc call fleapicker quit` never closes it.
+    #[test]
+    fn a_main_window_never_quits_for_the_chooser() {
+        let surface = Surface {
+            path: "/",
+            total: 0,
+            cursor: 0,
+            selected: &[],
+        };
+        let call = |target: &str| {
+            surface.dispatch(Request::Call {
+                target: target.into(),
+                function: "quit".into(),
+                arguments: vec![],
+            })
+        };
+        let refused = call("fleapicker");
+        assert_eq!(
+            (refused.reply, refused.quit),
+            (
+                Reply::error(3, "FLEA_IPC_NOT_PORTED fleapicker.quit"),
+                false
+            )
+        );
+        assert!(call("flea").quit, "the window's own quit still quits it");
     }
 }

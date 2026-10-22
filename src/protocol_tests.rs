@@ -125,9 +125,28 @@ fn rejects_malformed_fields_and_never_uses_nested_envelope_fields() {
         Reply::Error {
             operation: "scan".into(),
             path: "/files".into(),
-            message: "denied".into()
+            message: "denied".into(),
+            mode: 0,
         }
     );
+}
+
+#[test]
+fn refused_directory_modes_survive_the_reply_parser() {
+    for mode in [0, 0o40000, 0o40700] {
+        let line = format!(
+            r#"{{"t":"error","where":"scan","path":"/files","msg":"denied","mode":{mode}}}"#
+        );
+        assert!(
+            matches!(parse_reply(&line).unwrap(), Reply::Error { mode: got, .. } if got == mode)
+        );
+    }
+    for mode in ["-1", "1.5", "4294967296", "\"448\"", "null"] {
+        let line = format!(
+            r#"{{"t":"error","where":"scan","path":"/files","msg":"denied","mode":{mode}}}"#
+        );
+        assert!(parse_reply(&line).is_err(), "invalid mode {mode}");
+    }
 }
 
 #[test]

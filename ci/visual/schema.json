@@ -4,7 +4,9 @@
     "columns",
     "dual",
     "grid",
-    "list"
+    "list",
+    "copyto",
+    "copyto-empty"
   ],
   "references": [
     "cols-cursorfull-1100x700",
@@ -52,7 +54,11 @@
     "g1-01-grid-r0",
     "g1-01-grid-r8",
     "g1-01-dual-r0",
-    "g1-01-dual-r8"
+    "g1-01-dual-r8",
+    "g2.op1.copyto.r8",
+    "g2.op1.copyto.r0",
+    "g2.op1.copyto-empty.r8",
+    "g2.op1.copyto-empty.r0"
   ],
   "decisions": [
     "columns-name"

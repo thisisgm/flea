@@ -127,10 +127,7 @@ pub fn pick(reply: &str) -> i32 {
         eprintln!("flea: --pick needs the reply file tools/flea-portal names, and it was empty");
         return 2;
     }
-    if !paths::has_display() {
-        eprintln!("flea: there is no graphical session to open a file chooser in");
-        return 2;
-    }
+    if let Some(code) = launch::chooser_frontend(reply) { return code; }
     let Some(ui) = paths::ui_dir() else {
         eprintln!("{}", paths::missing_ui_message());
         return 2;

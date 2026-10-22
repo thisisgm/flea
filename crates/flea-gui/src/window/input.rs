@@ -49,6 +49,29 @@ impl Shell {
         if self.lifecycle.phase() != Phase::Open {
             return;
         }
+        // Every modal key belongs to the card; a cardless Escape still reaches the window.
+        if let Some(overlay) = self.overlay.clone() {
+            let modal = overlay.read_with(cx, |card, _| card.model.open());
+            if modal
+                || (event.keystroke.key == "escape" && modifiers(event.keystroke.modifiers) == 0)
+            {
+                let showing = overlay.read_with(cx, |card, _| {
+                    card.model.open() || (card.model.jobs.visible() && !card.model.jobs.folded)
+                });
+                overlay.update(cx, |card, cx| card.key(event, window, cx));
+                let still = overlay.read_with(cx, |card, _| {
+                    card.model.open() || (card.model.jobs.visible() && !card.model.jobs.folded)
+                });
+                if !still {
+                    self.overlay = None;
+                }
+                cx.notify();
+                if showing {
+                    cx.stop_propagation();
+                    return;
+                }
+            }
+        }
         if event.keystroke.modifiers.control && event.keystroke.key == "q" {
             self.close(window, cx);
             cx.stop_propagation();

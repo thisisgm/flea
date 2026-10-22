@@ -11,6 +11,9 @@ import struct
 import sys
 
 ROOT = Path(__file__).resolve().parent
+# The card scenes that carry no reference pair, each bound to the board ci/visual/g2/op1.json names for it.
+CARD_BOARDS = {'g2.op1.copyto.r8': 'copyto', 'g2.op1.copyto.r0': 'copyto',
+               'g2.op1.copyto-empty.r8': 'copyto-empty', 'g2.op1.copyto-empty.r0': 'copyto-empty'}
 
 
 def require(condition, message):
@@ -30,15 +33,24 @@ def manifest(path):
     seen = set()
     # Types, safe IDs and registry membership only; each scene's own values belong to its manifest.
     for scene in data['scenes']:
-        require(isinstance(scene, dict) and set(scene) == set(schema['required']), 'missing or unknown scene field')
-        for key in ('id', 'unit', 'board', 'reference', 'fixture', 'theme'):
+        require(isinstance(scene, dict), 'missing or unknown scene field')
+        # Only a card scene names its board alone; every listing scene keeps the v0.3.12 reference pair.
+        paired = 'reference' in scene
+        require(paired == ('reference_tag' in scene), 'reference needs its tag')
+        want = set(schema['required'])
+        if not paired:
+            require(isinstance(scene.get('id'), str) and CARD_BOARDS.get(scene.get('id')) == scene.get('board'), 'card scene must name its own board')
+            want -= {'reference', 'reference_tag'}
+        require(set(scene) == want, 'missing or unknown scene field')
+        for key in ('id', 'unit', 'board', 'fixture', 'theme'):
             require(isinstance(scene[key], str) and re.fullmatch(r'[A-Za-z0-9_.-]+', scene[key]), f'unsafe {key}')
         require(scene['id'] in schema['scene_ids'], 'unknown scene id')
         require(scene['id'] not in seen, 'duplicate scene id')
         seen.add(scene['id'])
         require(scene['board'] in schema['boards'], 'unknown board id')
-        require(scene['reference'] in schema['references'], 'unknown reference id')
-        require(isinstance(scene['reference_tag'], str) and re.fullmatch(r'[0-9a-f]{8,40}', scene['reference_tag']), 'unsafe reference tag')
+        if paired:
+            require(scene['reference'] in schema['references'], 'unknown reference id')
+            require(isinstance(scene['reference_tag'], str) and re.fullmatch(r'[0-9a-f]{8,40}', scene['reference_tag']), 'unsafe reference tag')
         require(scene['view'] in schema['views'] and scene['density'] in schema['densities'], 'unknown view or density')
         for key, low, high in (('width', 1, 2560), ('height', 1, 1440), ('text_size', 8, 32), ('corner_radius', 0, 64), ('cursor', 0, 1 << 31)):
             require(type(scene[key]) is int and low <= scene[key] <= high, f'invalid {key}')

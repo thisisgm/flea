@@ -33,6 +33,9 @@ impl Render for Shell {
                 self.pane_mark_shown(side, drawn, window, cx);
             }
         }
+        for side in 0..2 {
+            self.sync_surfaces(side, cx);
+        }
         let mut panes: [Option<AnyElement>; 2] = [None, None];
         let marks = self.visual_marks();
         for (side, host) in self.panes.iter_mut().enumerate() {

@@ -300,3 +300,28 @@ fn migrated_harness_doubles_keep_their_process_and_timeout_proofs() {
         );
     }
 }
+
+// Review g2-pk1-r2-1: a signal that lands while the server waits under its read timeout is retried, never a dropped client.
+#[test]
+fn a_signal_during_a_request_read_is_retried() {
+    extern "C" {
+        fn signal(signum: i32, handler: usize) -> usize;
+        fn pthread_kill(thread: std::os::unix::thread::RawPthread, signum: i32) -> i32;
+    }
+    extern "C" fn woken(_: i32) {}
+    const SIGUSR1: i32 = 10;
+    assert_ne!(
+        unsafe { signal(SIGUSR1, woken as *const () as usize) },
+        usize::MAX
+    );
+    let (mut client, mut server) = UnixStream::pair().unwrap();
+    let reader = thread::spawn(move || read_request(&mut server, &I18n::default()));
+    let thread = std::os::unix::thread::JoinHandleExt::as_pthread_t(&reader);
+    for _ in 0..10 {
+        thread::sleep(Duration::from_millis(20));
+        assert_eq!(unsafe { pthread_kill(thread, SIGUSR1) }, 0);
+    }
+    let _ = wire::write_line(&mut client, &request("ready").encode());
+    let read = reader.join().unwrap();
+    assert!(read.is_ok(), "the signal failed the read: {read:?}");
+}

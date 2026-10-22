@@ -37,6 +37,8 @@ mod uischema;
 mod uimigrate;
 mod uistate;
 mod uistatecli;
+mod uiplugins;
+mod plugincli;
 mod favourites;
 mod figurebuild;
 mod figurecache;
@@ -256,6 +258,7 @@ fn main() {
     match args.get(1).map(String::as_str) {
         Some("--favourites") => exit(favourites::command(&args)),
         Some("shelf") => exit(shelfcli::command(&args)),
+        Some("plugin") if plugincli::is_command(&args) => exit(plugincli::command(&args)),
         Some("flash") if flash_picker(&args) => exit(shelfplaces::flash_command(&args)),
         _ => {}
     }

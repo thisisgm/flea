@@ -72,7 +72,13 @@ impl Shell {
         host.changed(&self.locale);
         if let Some(backend) = &host.backend {
             if let Err(error) = backend.list(path, select, host.pane.first_count()) {
-                host.pane.fail("backend", "", "", 0, host.pane.now());
+                if host.pane.fail("backend", "", "", 0, host.pane.now()) {
+                    self.surfaces[side].refuse(crate::window::surfaces::Refusal {
+                        operation: "backend".into(),
+                        message: String::new(),
+                        mode: 0,
+                    });
+                }
                 host.changed(&self.locale);
                 host.record_error(error, &self.locale);
             }

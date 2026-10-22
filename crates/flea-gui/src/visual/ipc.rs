@@ -178,6 +178,24 @@ impl Shell {
             host.selected = selection;
             self.path_labels[side] = spec.path.clone().into();
         }
+        // A later scene starts with no card open; the reset runs before any scene's own setup.
+        if self.overlay.is_some() {
+            self.close_overlay(window, cx);
+        }
+        // The window holds the rounding every scene names.
+        self.corner = spec.corner as f32;
+        // The operations scenes open their card on the overlay slot; copy_to needs no backend reply.
+        if matches!(
+            spec.name.as_str(),
+            "g2.op1.copyto.r8"
+                | "g2.op1.copyto.r0"
+                | "g2.op1.copyto-empty.r8"
+                | "g2.op1.copyto-empty.r0"
+        ) {
+            let empty = spec.name.as_str() == "g2.op1.copyto-empty.r8"
+                || spec.name.as_str() == "g2.op1.copyto-empty.r0";
+            self.open_overlay_copy_to(false, if empty { "" } else { &spec.path }, window, cx);
+        }
         cx.set_reduce_motion(spec.reduced_motion);
         window.set_rem_size(px(spec.text_size as f32));
         self.visual.pending = Some(Pending { spec, answer });

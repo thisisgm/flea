@@ -1,0 +1,247 @@
+//! Pure rules for the CSV and TSV table preview: delimiter, records, numbers, alignment and layout.
+
+use std::collections::BTreeMap;
+
+/// One parsed record: its cells, the physical lines it spans, and whether its quote never closed.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Record {
+    pub cells: Vec<String>,
+    pub span: usize,
+    pub open: bool,
+}
+
+/// A held physical line: its text and, for a record-aligned block, its starting record ordinal.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Held {
+    pub t: String,
+    pub record: Option<usize>,
+}
+
+/// A table row: its first physical line, record ordinal, line span and padded cells.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Row {
+    pub line: usize,
+    pub record: usize,
+    pub span: usize,
+    pub cells: Vec<String>,
+}
+
+/// An unfinished record: its first line, last line and record ordinal.
+#[derive(Debug, Clone, PartialEq)]
+pub struct OpenRecord {
+    pub line: usize,
+    pub to: usize,
+    pub record: usize,
+}
+
+/// The parsed table: header, body rows, lookups by line and by record, column count and open records.
+#[derive(Debug, Clone, PartialEq)]
+pub struct Table {
+    pub header: Option<Vec<String>>,
+    pub rows: Vec<Row>,
+    pub by_line: BTreeMap<usize, Row>,
+    pub by_record: BTreeMap<usize, Row>,
+    pub cols: usize,
+    pub open: Vec<OpenRecord>,
+}
+
+/// The field separator for a table by extension, in any case; None for any other name.
+pub fn delimiter(path: &str) -> Option<char> {
+    let dot = path.rfind('.')?;
+    match path[dot + 1..].to_lowercase().as_str() {
+        "csv" => Some(','),
+        "tsv" => Some('\t'),
+        _ => None,
+    }
+}
+
+/// Records of whole lines, read from the first line to the last.
+pub fn records(lines: &[String], delim: Option<char>) -> Vec<Record> {
+    let mut out = Vec::new();
+    let mut at = 0;
+    while at < lines.len() {
+        let rec = record(lines, at, delim);
+        at += rec.span;
+        out.push(rec);
+    }
+    out
+}
+
+/// One record from lines[at]; a quoted field may run on into the following lines.
+pub fn record(lines: &[String], at: usize, delim: Option<char>) -> Record {
+    let mut cells: Vec<String> = Vec::new();
+    let mut field = String::new();
+    let mut quoting = false;
+    let mut field_start = true;
+    let mut i = at;
+    loop {
+        let chars: Vec<char> = lines[i].chars().collect();
+        let mut p = 0;
+        while p < chars.len() {
+            let c = chars[p];
+            if quoting {
+                if c != '"' {
+                    field.push(c);
+                } else if chars.get(p + 1) == Some(&'"') {
+                    field.push('"');
+                    p += 1;
+                } else {
+                    quoting = false;
+                }
+            } else if Some(c) == delim {
+                cells.push(std::mem::take(&mut field));
+                field_start = true;
+                p += 1;
+                continue;
+            } else if c == '"' && field_start {
+                quoting = true;
+            } else {
+                field.push(c);
+            }
+            field_start = false;
+            p += 1;
+        }
+        if !quoting {
+            cells.push(field);
+            return Record { cells, span: i - at + 1, open: false };
+        }
+        i += 1;
+        if i >= lines.len() {
+            cells.push(field);
+            return Record { cells, span: i - at, open: true };
+        }
+        field.push('\n');
+    }
+}
+
+/// The row padded with empty cells to the table width; a longer row keeps every cell.
+pub fn padded(cells: &[String], width: usize) -> Vec<String> {
+    let mut out = cells.to_vec();
+    while out.len() < width {
+        out.push(String::new());
+    }
+    out
+}
+
+/// The widest row's cell count, which is the table's column count.
+pub fn column_count(rows: &[Vec<String>]) -> usize {
+    rows.iter().map(|row| row.len()).max().unwrap_or(0)
+}
+
+/// Parses the held lines into a table; each record-aligned block carries its starting ordinal.
+pub fn table(held: &BTreeMap<usize, Held>, total: usize, delim: Option<char>) -> Table {
+    let last = held.keys().copied().max().unwrap_or(0);
+    let mut all: Vec<Row> = Vec::new();
+    let mut open: Vec<OpenRecord> = Vec::new();
+    let mut i = 1;
+    while i <= last {
+        if !held.contains_key(&i) {
+            i += 1;
+            continue;
+        }
+        let start = i;
+        let mut lines: Vec<String> = Vec::new();
+        while i <= last {
+            match held.get(&i) {
+                Some(entry) => lines.push(entry.t.clone()),
+                None => break,
+            }
+            i += 1;
+        }
+        let first = &held[&start];
+        if start != 1 && first.record.is_none() {
+            continue;
+        }
+        let mut at = start;
+        let from = match first.record {
+            Some(record) if record != 0 => record,
+            _ => 1,
+        };
+        let last_line = start + lines.len() - 1;
+        for (ordinal, rec) in (from..).zip(records(&lines, delim)) {
+            if rec.open && last_line < total {
+                open.push(OpenRecord { line: at, to: last_line, record: ordinal });
+                break;
+            }
+            all.push(Row {
+                line: at,
+                record: ordinal,
+                span: rec.span,
+                cells: rec.cells,
+            });
+            at += rec.span;
+        }
+    }
+    if all.is_empty() || all[0].line != 1 {
+        return Table {
+            header: None,
+            rows: Vec::new(),
+            by_line: BTreeMap::new(),
+            by_record: BTreeMap::new(),
+            cols: 0,
+            open,
+        };
+    }
+    let widths: Vec<Vec<String>> = all.iter().map(|row| row.cells.clone()).collect();
+    let cols = column_count(&widths);
+    let header = padded(&all[0].cells, cols);
+    let rows: Vec<Row> = all[1..]
+        .iter()
+        .map(|row| Row {
+            line: row.line,
+            record: row.record,
+            span: row.span,
+            cells: padded(&row.cells, cols),
+        })
+        .collect();
+    let mut by_line = BTreeMap::new();
+    let mut by_record = BTreeMap::new();
+    for row in &rows {
+        by_line.insert(row.line, row.clone());
+        by_record.insert(row.record, row.clone());
+    }
+    Table {
+        header: Some(header),
+        rows,
+        by_line,
+        by_record,
+        cols,
+        open,
+    }
+}
+
+/// True when every unfinished record starts after ordinal to, so the first screen is complete.
+pub fn ready(t: &Table, to: usize) -> bool {
+    t.open.iter().all(|rec| rec.record > to)
+}
+
+/// The raw lines of backend text: a terminal newline adds no line, and one trailing CR is removed from each line.
+pub fn plain_lines(text: &str) -> Vec<String> {
+    if text.is_empty() {
+        return Vec::new();
+    }
+    let mut lines: Vec<&str> = text.split('\n').collect();
+    if lines.last() == Some(&"") {
+        lines.pop();
+    }
+    lines
+        .iter()
+        .map(|&line| line.strip_suffix('\r').unwrap_or(line).to_string())
+        .collect()
+}
+
+/// A cell drawn on one line: each newline shows as a space.
+pub fn one_line(text: &str) -> String {
+    text.replace('\n', " ")
+}
+
+#[path = "csv_number.rs"]
+mod number;
+pub use number::{is_number, numeric_columns};
+#[path = "csv_layout.rs"]
+mod layout;
+pub use layout::{data_rows, fit, grid, row_number, Slot};
+
+#[cfg(test)]
+#[path = "csv_tests.rs"]
+mod tests;

@@ -1,0 +1,270 @@
+{
+  "version": 1,
+  "unit": "g2-pv3",
+  "scenes": [
+    {
+      "scene": "g2.pv3.cols-preview-video.primary",
+      "unit": "g2-pv3",
+      "board_png": "design-hig/boards/cols-preview-video.png",
+      "board_html": "design-hig/boards/cols-preview-video.html",
+      "before_png": "design-hig/before/cols-preview-video-1100x700.png",
+      "sha256": {
+        "board_png": "5f236a9fc8d5d25303804e5f67129f609a70b8951079b76ce8319e5056912a12",
+        "board_html": "d92579c6d717ee704fc7c78019232d7fb75d290827f2aa632f2de2db632df77e",
+        "before_png": "b608f3762a69cc255fc8c6c40b5f8aeb8e2220a3827834f8a2c4861ecf55abd8"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Media",
+      "setup": {
+        "path": "/fx/v/work/Media",
+        "fixture": "Media",
+        "entries": 11,
+        "cursor": "clip.mp4",
+        "view": "columns",
+        "player": "none",
+        "disk_free": "64.1 MB"
+      },
+      "assertions": [
+        "framed strip 27 tall, 1px muted frame on every side, padding 8, gap 9",
+        "play slot 24x25 with a 13 px play mark in the foreground",
+        "seek track 2 px muted frame, handle 6x6 accent frame at the start",
+        "clock 0:00 / 0:02 in the muted ink at caption 12",
+        "mute slot 24x25 with the volume mark, no volume track",
+        "no player process exists before Play"
+      ],
+      "parity_ids": [
+        "board:cols-preview-video"
+      ],
+      "producer_owner": [
+        "G2.pv1",
+        "G2.pv3"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.pv3.ql-audio.primary",
+      "unit": "g2-pv3",
+      "board_png": "design-hig/boards/ql-audio.png",
+      "board_html": "design-hig/boards/ql-audio.html",
+      "before_png": "design-hig/before/ql-audio-1100x700.png",
+      "sha256": {
+        "board_png": "7a0b001279e5a9f7fa33c4c20921247dbe5bc3a320329f80a31d542a52ef4e46",
+        "board_html": "7bb7644b2fa13b74dac57a28058eb9b60848e7fad05815e5ddc93fa67fd207d7",
+        "before_png": "e94316e7243076625d5abcb6a0cc41a91470ff5eb2f59ae00e2375bbca232314"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Media",
+      "setup": {
+        "path": "/fx/v/work/Media",
+        "fixture": "Media",
+        "entries": 11,
+        "cursor": "tone.ogg",
+        "view": "list",
+        "overlay": "quicklook",
+        "playback": "ended",
+        "disk_free": "16.0 MB"
+      },
+      "assertions": [
+        "card 902x574 at 99,63, its frame running round the strip",
+        "music mark 40 in the muted frame ink at 0.7, gap 14, text column 820",
+        "name tone.ogg at body 14 line 18 in the foreground",
+        "facts Ogg audio · 0:02 · 44.1 kHz · 6.9 kB at caption 12 line 16 in the muted ink",
+        "strip 27 tall on the surface, 1px hair top divider, padding 9, gap 9, slots 24x26, 13 px marks",
+        "track and 60 px volume track fully played in the accent frame with 6x6 handles at their ends",
+        "clock 0:02 / 0:02 muted caption 12"
+      ],
+      "parity_ids": [
+        "board:ql-audio"
+      ],
+      "producer_owner": [
+        "G2.pv1",
+        "G2.pv3"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.pv3.ql-video.primary",
+      "unit": "g2-pv3",
+      "board_png": "design-hig/boards/ql-video.png",
+      "board_html": "design-hig/boards/ql-video.html",
+      "before_png": "design-hig/before/ql-video-1100x700.png",
+      "sha256": {
+        "board_png": "0729c1a4036b7b2c0dda55da66678140af4ca0a672f314b87f8eb695ab10c948",
+        "board_html": "cecf66cc691330cee558c0bb2758ccffacac09d29b77e6ca82d65a095aa6b5d6",
+        "before_png": "bb06a040ff256a56f4b6e87f94a56f12b9e351c4cd5e4579b502fa3464548597"
+      },
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Media",
+      "setup": {
+        "path": "/fx/v/work/Media",
+        "fixture": "Media",
+        "entries": 11,
+        "cursor": "clip.mp4",
+        "view": "list",
+        "overlay": "quicklook",
+        "playback": "ended",
+        "disk_free": "16.0 MB"
+      },
+      "assertions": [
+        "card 902x574 at 99,63, its frame running round the video and strip",
+        "picture area above the strip on the background ink, play mark 40 in the muted frame ink at 0.7 centred in it",
+        "strip as ql-audio: play, full track, clock 0:02 / 0:02, volume mark, 60 px volume track"
+      ],
+      "parity_ids": [
+        "board:ql-video"
+      ],
+      "producer_owner": [
+        "G2.pv1",
+        "G2.pv3"
+      ],
+      "rounding_variants": [
+        0,
+        8
+      ]
+    },
+    {
+      "scene": "g2.pv3.ql-video.playing",
+      "unit": "g2-pv3",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Media",
+      "setup": {
+        "path": "/fx/v/work/Media",
+        "fixture": "Media",
+        "entries": 11,
+        "cursor": "clip.mp4",
+        "view": "list",
+        "overlay": "quicklook",
+        "playback": "ended",
+        "disk_free": "16.0 MB"
+      },
+      "assertions": [
+        "a decoded frame fitted on the letterbox while playing, strip shown"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2.pv1",
+        "G2.pv3"
+      ],
+      "rounding_variants": [
+        8
+      ],
+      "board_state": "none: the board draws only the primary state"
+    },
+    {
+      "scene": "g2.pv3.ql-video.failed",
+      "unit": "g2-pv3",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Media",
+      "setup": {
+        "path": "/fx/v/work/Media",
+        "fixture": "Media",
+        "entries": 11,
+        "cursor": "clip.mp4",
+        "view": "list",
+        "overlay": "quicklook",
+        "playback": "ended",
+        "disk_free": "16.0 MB"
+      },
+      "assertions": [
+        "alert mark 40 in the error ink over This file could not be played. at caption 12"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2.pv1",
+        "G2.pv3"
+      ],
+      "rounding_variants": [
+        8
+      ],
+      "board_state": "none: the board draws only the primary state"
+    },
+    {
+      "scene": "g2.pv3.ql-audio.muted",
+      "unit": "g2-pv3",
+      "board_png": null,
+      "board_html": null,
+      "before_png": null,
+      "sha256": {},
+      "size": [
+        1100,
+        700
+      ],
+      "scale": 1,
+      "text_size": 14,
+      "rounding": 8,
+      "language": "en",
+      "fixture_variant": "Media",
+      "setup": {
+        "path": "/fx/v/work/Media",
+        "fixture": "Media",
+        "entries": 11,
+        "cursor": "tone.ogg",
+        "view": "list",
+        "overlay": "quicklook",
+        "playback": "ended",
+        "disk_free": "16.0 MB"
+      },
+      "assertions": [
+        "volume-x mark in the foreground, the level unchanged"
+      ],
+      "parity_ids": [],
+      "producer_owner": [
+        "G2.pv1",
+        "G2.pv3"
+      ],
+      "rounding_variants": [
+        8
+      ],
+      "board_state": "none: the board draws only the primary state"
+    }
+  ]
+}

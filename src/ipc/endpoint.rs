@@ -79,10 +79,22 @@ pub fn alive(pid: u32) -> bool {
     unsafe { kill(pid as i32, 0) == 0 || io::Error::last_os_error().raw_os_error() != Some(3) }
 }
 
-fn pid_of(path: &Path) -> Option<u32> {
+// A file chooser binds under its own role, so default routing never reaches it and its quit never ends a window.
+const PICKER: &str = "picker-";
+
+// Sample input: "4242.sock" is a window, "picker-4242.sock" a chooser; anything else is not an endpoint.
+fn endpoint_of(path: &Path) -> Option<(u32, bool)> {
     let name = path.file_name()?.to_str()?.strip_suffix(".sock")?;
+    let (name, picker) = match name.strip_prefix(PICKER) {
+        Some(name) => (name, true),
+        None => (name, false),
+    };
     let pid = name.parse::<u32>().ok()?;
-    (pid.to_string() == name && pid > 0 && pid <= i32::MAX as u32).then_some(pid)
+    (pid.to_string() == name && pid > 0 && pid <= i32::MAX as u32).then_some((pid, picker))
+}
+
+fn pid_of(path: &Path) -> Option<u32> {
+    endpoint_of(path).map(|(pid, _)| pid)
 }
 
 pub fn prune(directory: &Path) -> io::Result<()> {
@@ -114,7 +126,16 @@ pub fn prune(directory: &Path) -> io::Result<()> {
     Ok(())
 }
 
+// The windows default routing may reach, oldest first; choosers are listed apart by pickers.
 pub fn instances(root: &Path) -> io::Result<Vec<(u32, PathBuf)>> {
+    live(root, false)
+}
+
+pub fn pickers(root: &Path) -> io::Result<Vec<(u32, PathBuf)>> {
+    live(root, true)
+}
+
+fn live(root: &Path, pickers: bool) -> io::Result<Vec<(u32, PathBuf)>> {
     validate_runtime(root)?;
     let directory = root.join("flea-ipc");
     if !directory.try_exists()? {
@@ -124,7 +145,12 @@ pub fn instances(root: &Path) -> io::Result<Vec<(u32, PathBuf)>> {
     let mut sockets = Vec::new();
     for entry in fs::read_dir(directory)? {
         let path = entry?.path();
-        let Some(pid) = pid_of(&path) else { continue };
+        let Some((pid, picker)) = endpoint_of(&path) else {
+            continue;
+        };
+        if picker != pickers {
+            continue;
+        }
         if let Ok(metadata) = socket_metadata(&path) {
             if alive(pid) {
                 sockets.push((metadata.mtime(), metadata.mtime_nsec(), pid, path));
@@ -146,9 +172,17 @@ pub struct Endpoint {
 
 impl Endpoint {
     pub fn bind(root: &Path) -> io::Result<Self> {
+        Self::bind_as(root, "")
+    }
+
+    pub fn bind_picker(root: &Path) -> io::Result<Self> {
+        Self::bind_as(root, PICKER)
+    }
+
+    fn bind_as(root: &Path, role: &str) -> io::Result<Self> {
         let directory = directory(root)?;
         prune(&directory)?;
-        let path = directory.join(format!("{}.sock", std::process::id()));
+        let path = directory.join(format!("{role}{}.sock", std::process::id()));
         let listener = UnixListener::bind(&path)?;
         fs::set_permissions(&path, fs::Permissions::from_mode(0o600))?;
         let identity = socket_metadata(&path)?;

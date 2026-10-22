@@ -54,6 +54,9 @@ pub(crate) fn shell_with(backend: Backend, cx: &mut Context<Shell>) -> Shell {
         focus_side: 0,
         keyboard: Default::default(),
         panes: [Some(host), None],
+        surfaces: Default::default(),
+        overlay: None,
+        corner: crate::g2::st1::seams::COMPOSITOR_CORNER_DEFAULT,
         focus: cx.focus_handle(),
         seam: Seam::new(),
         ipc_events: None,
@@ -115,6 +118,7 @@ fn adv_e_r2_unrelated_replies_keep_the_window_request_in_flight(cx: &mut TestApp
                     operation: "window".into(),
                     path: "/elsewhere".into(),
                     message: "unrelated".into(),
+                    mode: 0,
                 },
             ] {
                 shell.receive(0, BackendEvent::Reply(reply), window, cx);

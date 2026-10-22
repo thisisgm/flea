@@ -41,7 +41,15 @@ pub struct Server {
 impl Server {
     // Bind before entering the GUI event loop; no filesystem operation runs on a frame.
     pub fn bind(runtime: &Path) -> io::Result<Self> {
-        let endpoint = Endpoint::bind(runtime)?;
+        Self::serve(Endpoint::bind(runtime)?)
+    }
+
+    // A file chooser's endpoint, under the role default routing skips.
+    pub fn bind_picker(runtime: &Path) -> io::Result<Self> {
+        Self::serve(Endpoint::bind_picker(runtime)?)
+    }
+
+    fn serve(endpoint: Endpoint) -> io::Result<Self> {
         let listener = endpoint.listener.try_clone()?;
         let i18n = Arc::new(I18n::default());
         let stopping = Arc::new(AtomicBool::new(false));
@@ -105,7 +113,11 @@ fn read_request(stream: &mut UnixStream, i18n: &I18n) -> io::Result<Request> {
                 io::Error::new(io::ErrorKind::TimedOut, i18n.tr("ipc.request_timed_out"))
             })?;
         stream.set_read_timeout(Some(remaining))?;
-        let count = stream.read(&mut chunk)?;
+        let count = match stream.read(&mut chunk) {
+            Ok(count) => count,
+            Err(error) if error.kind() == io::ErrorKind::Interrupted => continue,
+            Err(error) => return Err(error),
+        };
         if count == 0 {
             return Err(io::ErrorKind::UnexpectedEof.into());
         }

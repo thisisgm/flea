@@ -1,0 +1,207 @@
+use super::hero_tests::{english, frame, run};
+use super::line::{ArmLost, MessageLine};
+use flea::ui_logic_fb1::messages::MESSAGE_MS;
+use flea::ui_logic_fb1::status::Hint;
+use gpui::{
+    point, px, size, Modifiers, MouseButton, TestAppContext, VisualTestContext, WindowHandle,
+};
+use std::{cell::Cell, cell::RefCell, rc::Rc, sync::Arc};
+
+fn open(cx: &mut TestAppContext) -> WindowHandle<MessageLine> {
+    let catalog = Arc::new(english());
+    let handle = cx.add_window(|_, cx| MessageLine::new("default", catalog, cx));
+    cx.run_until_parked();
+    handle
+}
+
+fn drawn(
+    cx: &mut TestAppContext,
+    handle: WindowHandle<MessageLine>,
+) -> (String, String, String, String) {
+    handle
+        .update(cx, |line, _, _| {
+            let d = line.drawn();
+            (
+                d.primary.to_string(),
+                d.hint.to_string(),
+                d.extra.to_string(),
+                d.undo.to_string(),
+            )
+        })
+        .unwrap()
+}
+
+#[gpui::test]
+fn a_notice_leaves_on_its_timer_and_the_lane_is_idle_after(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    handle
+        .update(cx, |line, _, cx| {
+            line.update(cx, |m, now| {
+                m.say("Renamed to notes.txt", false, "", Hint::None, now)
+            })
+        })
+        .unwrap();
+    assert_eq!(drawn(cx, handle).0, "Renamed to notes.txt");
+    assert_eq!(run(cx, handle, MESSAGE_MS - 64), 0);
+    assert_eq!(drawn(cx, handle).0, "Renamed to notes.txt");
+    run(cx, handle, 128);
+    assert_eq!(drawn(cx, handle).0, "");
+    let (renders, timers) = handle
+        .update(cx, |line, _, _| {
+            (line.counters.renders.get(), line.counters.timers.get())
+        })
+        .unwrap();
+    assert_eq!(run(cx, handle, 10_000), 0);
+    assert_eq!(
+        handle
+            .update(cx, |line, _, _| (
+                line.counters.renders.get(),
+                line.counters.timers.get()
+            ))
+            .unwrap(),
+        (renders, timers)
+    );
+}
+
+#[gpui::test]
+fn a_long_error_keeps_its_whole_hint_and_an_undo_notice_splits_its_target(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let long = format!("Copy failed: {}.txt · permission denied", "0".repeat(200));
+    handle
+        .update(cx, |line, _, cx| {
+            line.update(cx, |m, now| m.say(&long, true, "", Hint::None, now))
+        })
+        .unwrap();
+    run(cx, handle, 32);
+    assert_eq!(
+        drawn(cx, handle),
+        (
+            long.clone(),
+            " · esc dismisses".into(),
+            String::new(),
+            String::new()
+        )
+    );
+    handle
+        .update(cx, |line, _, cx| {
+            line.update(cx, |m, now| {
+                m.dismiss(now);
+                m.say("Copied 1 item", false, "", Hint::Undo, now)
+            })
+        })
+        .unwrap();
+    assert_eq!(
+        drawn(cx, handle),
+        (
+            "Copied 1 item".into(),
+            String::new(),
+            String::new(),
+            "z undoes".into()
+        )
+    );
+    assert_eq!(run(cx, handle, MESSAGE_MS + 500), 0);
+    assert_eq!(drawn(cx, handle).0, "Copied 1 item");
+}
+
+#[gpui::test]
+fn the_state_sentence_drops_the_dismiss_key(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let sentence = "You don’t have permission to open this folder.";
+    handle
+        .update(cx, |line, _, cx| {
+            line.set_state_message(sentence, cx);
+            line.update(cx, |m, now| m.say(sentence, true, "", Hint::None, now))
+        })
+        .unwrap();
+    assert_eq!(
+        drawn(cx, handle),
+        (sentence.into(), String::new(), String::new(), String::new())
+    );
+}
+
+#[gpui::test]
+fn an_arm_run_out_on_its_clock_is_reported_to_its_owner(cx: &mut TestAppContext) {
+    let handle = open(cx);
+    let lost = Rc::new(RefCell::new(Vec::new()));
+    let seen = Rc::clone(&lost);
+    let entity = handle.update(cx, |_, _, cx| cx.entity()).unwrap();
+    let _keep = cx.update(|cx| {
+        cx.subscribe(&entity, move |_, event: &ArmLost, _| {
+            seen.borrow_mut().push(event.0)
+        })
+    });
+    let start = handle.update(cx, |line, _, cx| line.now(cx)).unwrap();
+    handle
+        .update(cx, |line, _, cx| {
+            line.update(cx, |m, now| {
+                m.set_arm_owner(5, now.max(1), now);
+                m.say_arm(
+                    "Press d again to move it to Trash, or Delete on its own.",
+                    1500,
+                    now,
+                )
+            })
+        })
+        .unwrap();
+    assert!(drawn(cx, handle).0.starts_with("Press d again"));
+    run(cx, handle, 1600);
+    assert_eq!(lost.borrow().len(), 1);
+    assert_eq!(lost.borrow()[0].owner, 5);
+    assert_eq!(lost.borrow()[0].stamp, start.max(1));
+    assert_eq!(drawn(cx, handle).0, "");
+}
+
+/// A 400x24 lane saying "Copied 1 item" with its undo target, and a counter of undo runs.
+fn undo_lane(cx: &mut TestAppContext) -> (WindowHandle<MessageLine>, Rc<Cell<usize>>) {
+    let handle = open(cx);
+    let undone = Rc::new(Cell::new(0usize));
+    let seen = Rc::clone(&undone);
+    handle
+        .update(cx, |line, _, cx| {
+            line.on_undo(Rc::new(move |_, _| seen.set(seen.get() + 1)));
+            line.update(cx, |m, now| {
+                m.say("Copied 1 item", false, "", Hint::Undo, now)
+            });
+        })
+        .unwrap();
+    cx.simulate_window_resize(handle.into(), size(px(400.), px(24.)));
+    frame(cx, handle);
+    frame(cx, handle);
+    (handle, undone)
+}
+
+/// StatusBar.qml's undo TapHandler is ReleaseWithinBounds: a drag or marquee released over "z undoes" never runs undo.
+#[gpui::test]
+fn a_release_whose_press_began_elsewhere_never_runs_undo(cx: &mut TestAppContext) {
+    let (handle, undone) = undo_lane(cx);
+    let mut vcx = VisualTestContext::from_window(handle.into(), cx);
+    for y in (1..24).step_by(2) {
+        for x in (0..400).step_by(2) {
+            let at = point(px(x as f32), px(y as f32));
+            vcx.simulate_mouse_down(point(px(1.), px(1.)), MouseButton::Left, Modifiers::none());
+            vcx.simulate_mouse_move(at, MouseButton::Left, Modifiers::none());
+            vcx.simulate_mouse_up(at, MouseButton::Left, Modifiers::none());
+        }
+    }
+    assert_eq!(
+        undone.get(),
+        0,
+        "undo ran on releases whose press began at (1,1)"
+    );
+}
+
+/// A press and a release on the target run undo once, and a press on it released elsewhere does not.
+#[gpui::test]
+fn a_click_on_the_undo_target_runs_undo_once(cx: &mut TestAppContext) {
+    let (handle, undone) = undo_lane(cx);
+    let mut vcx = VisualTestContext::from_window(handle.into(), cx);
+    let target = vcx
+        .debug_bounds("fb1-undo")
+        .expect("the undo target is drawn");
+    vcx.simulate_click(target.center(), Modifiers::none());
+    assert_eq!(undone.get(), 1);
+    vcx.simulate_mouse_down(target.center(), MouseButton::Left, Modifiers::none());
+    vcx.simulate_mouse_move(point(px(1.), px(1.)), MouseButton::Left, Modifiers::none());
+    vcx.simulate_mouse_up(point(px(1.), px(1.)), MouseButton::Left, Modifiers::none());
+    assert_eq!(undone.get(), 1);
+}

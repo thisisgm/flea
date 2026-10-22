@@ -1,0 +1,75 @@
+// The plugins request's smaller changes: a switch, a setting, a removal and a validation.
+use super::pluginfs;
+use super::plugins::{check_start, find, read_manifest, record_start, write, Env};
+use flea::jsondoc::Json;
+use flea::ui_logic_st2::manifest::{self, Invalid};
+use flea::ui_logic_st2::{builtin, schema, shelf, store};
+use std::path::Path;
+
+pub(super) fn switch(env: &Env, plugin: &str, on: bool) -> Result<(String, String), Invalid> {
+    let found = find(env, plugin)?;
+    let was = found.plugin.enabled;
+    write(env, &store::enable_patch(plugin, on))?;
+    if plugin == builtin::SHELF && was != on {
+        // The ui.json write is the switch; a bar that could not follow is said on stderr, as `flea --ui-state` says it.
+        if let Err(e) = (env.shelf_sync)(on) {
+            eprintln!("flea: the shelf plugin did not follow its switch ({e})");
+        }
+    }
+    if on
+        && found
+            .plugin
+            .failure
+            .as_ref()
+            .map_or(true, |f| f.code == "start")
+    {
+        check_start(env, &found);
+    } else if !on {
+        record_start(plugin, Ok(()));
+    }
+    Ok((plugin.to_string(), found.plugin.manifest.version))
+}
+
+pub(super) fn set(
+    env: &Env,
+    plugin: &str,
+    key: &str,
+    raw: &Json,
+) -> Result<(String, String), Invalid> {
+    let found = find(env, plugin)?;
+    let refused = || Invalid::new("setting", key);
+    let value = if plugin == builtin::SHELF {
+        shelf::value(key, raw).ok_or_else(refused)?
+    } else {
+        let field = found
+            .plugin
+            .manifest
+            .schema
+            .iter()
+            .find(|f| f.key == key)
+            .ok_or_else(refused)?;
+        schema::clamp(field, Some(raw))
+    };
+    write(env, &store::setting_patch(plugin, key, &value))?;
+    Ok((plugin.to_string(), found.plugin.manifest.version))
+}
+
+pub(super) fn remove(env: &Env, plugin: &str) -> Result<(String, String), Invalid> {
+    let found = find(env, plugin)?;
+    let folder = found
+        .folder
+        .ok_or_else(|| Invalid::new("builtin", plugin))?;
+    pluginfs::remove(&env.dir, &folder).map_err(|e| Invalid::new("write", e))?;
+    pluginfs::forget_source(&env.dir, plugin).map_err(|e| Invalid::new("write", e))?;
+    record_start(plugin, Ok(()));
+    write(env, &store::forget_patch(plugin))?;
+    Ok((plugin.to_string(), String::new()))
+}
+
+pub(super) fn validate(folder: &Path) -> Result<(String, String), Invalid> {
+    let text = read_manifest(folder)
+        .ok_or_else(|| Invalid::new("no_manifest", folder.to_string_lossy()))?;
+    let m = manifest::parse(&text, false)?;
+    pluginfs::entry(folder, &m.run)?;
+    Ok((m.id, m.version))
+}
