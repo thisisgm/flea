@@ -1484,6 +1484,19 @@ network or FUSE mount runs under the same 5 s bound a listing has, then the moun
 answers 0 at once, so a dead share costs one thread and one wait, never one per ask. An absent `paths` asks nothing.
 Rail hover requests include a positive `id`, echoed in the answer, so leaving or changing a row discards its late answer.
 
+### kind
+
+`{"c":"kind","paths":[<string>,...],"id":<uint optional>}`
+
+Example: `{"c":"kind","paths":["/home/gm/Downloads","/home/gm/notes.txt"]}`
+
+The file kind of each path named, symlinks followed, so a link names the kind of the directory it
+points at. A directory answers `"dir"`, every other answer `"file"`, and a missing path, a relative
+path or a mount that does not answer in time answers `""`, which no drop arms on: the FAVORITES
+heading's pin drop asks this for the one path a drag carries, and pins only a directory. Answers one
+`kind` line from a thread of its own and marks a stuck mount exactly as `devs` does, with the same
+positive-`id` echo, so leaving the heading discards a late answer. An absent `paths` asks nothing.
+
 ### clipSet
 
 `{"c":"clipSet","op":"copy"|"cut","paths":[<string>,...]}`

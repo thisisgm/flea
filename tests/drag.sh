@@ -35,6 +35,15 @@ case "$drag_case" in
     SB="$capture_root/fixture"
     printf 'RAILDROP_EVIDENCE_ROOT=%s\n' "$capture_root"
     ;;
+  pindrop)
+    sandbox_root_ok
+    mkdir -p "$SANDBOX_ROOT" || exit 1
+    capture_root=$(mktemp -d "$SANDBOX_ROOT/native.XXXXXXXX") || exit 1
+    printf 'pindrop native captures\n' > "$capture_root/$SANDBOX_MARKER" || exit 1
+    FIXTURE_ROOT="$capture_root"
+    SB="$capture_root/fixture"
+    printf 'PINDROP_EVIDENCE_ROOT=%s\n' "$capture_root"
+    ;;
   look235)
     look235_started=$SECONDS
     FIXTURE_ROOT="$repo/.superpowers/look235"
@@ -46,7 +55,7 @@ case "$drag_case" in
     SB="$capture_root/fixture"
     printf 'LOOK235_EVIDENCE_ROOT=%s\n' "$capture_root"
     ;;
-  *) printf 'Usage: %s [all|headless|raildrop|look235]\n' "$0" >&2; exit 2 ;;
+  *) printf 'Usage: %s [all|headless|raildrop|pindrop|look235]\n' "$0" >&2; exit 2 ;;
 esac
 HOMEDIR=$SB/home
 pass=0
@@ -759,6 +768,80 @@ raildrop_case() {
 if [[ "$drag_case" == raildrop ]]; then
   raildrop_case
   printf 'RAILDROP_NATIVE DONE failed=%s evidence=%s\n' "$fail" "$capture_root/raildrop-evidence"
+  exit "$fail"
+fi
+
+# Native pin proof: one folder held over the FAVORITES heading arms and pins on release, a file
+# over the same heading arms nothing, and undo has nothing to say about a pin because no file moved.
+pindrop_case() {
+  local sx sy x y point state index pin_home evidence before
+  expect_ipc listInFlight false
+  mkdir -p "$HOMEDIR/pin-source.dir"
+  printf 'pin payload\n' > "$HOMEDIR/pin-source.dir/inside.txt"
+  pin_home="$HOMEDIR/pin-source.dir"
+  evidence="${capture_root:-$SB}/pindrop-evidence"
+  mkdir -p "$evidence" || die "pindrop: cannot create evidence directory"
+  point=$(ipc railPinCentre)
+  # Sample input: "412 88" is the FAVORITES heading's centre in window coordinates.
+  [[ "$point" =~ ^[0-9]+\ [0-9]+$ ]] || die "pindrop: the FAVORITES heading has no geometry: $point"
+  read -r x y <<< "$point"
+  # A click on the heading is inert (no row sits under it) and lands the window's focus, so the
+  # suite's own ydotool keys reach the app without omarchy-drive, which not every box carries.
+  warp "$((WX + x))" "$((WY + y))"; sleep 0.2
+  press; release
+  ydotool key 1 >/dev/null 2>&1 || die "pindrop: the Escape tap failed"
+
+  # A file over the heading arms nothing: the kind answer says file, so the cue never lights.
+  printf 'file payload\n' > "$HOMEDIR/plain-file.txt"
+  centre_into sx sy plain-file.txt
+  warp "$sx" "$sy"; sleep 0.4
+  press; sleep 0.3
+  glide_to "$((WX + x))" "$((WY + y))"
+  state=$(ipc railPinState)
+  jq -e '.armed == false' <<< "$state" >/dev/null || die "pindrop: a file armed the heading: $state"
+  printf '%s\n' "$state" > "$evidence/file.state.json"
+  release
+  wait_for "$HOMEDIR/plain-file.txt" present || die "pindrop: the refused file drop moved the file"
+  rm -- "$HOMEDIR/plain-file.txt"
+
+  # One folder over the heading arms the pin, and the drop pins it, labelled by its own name.
+  before=$(ipc railEntries) || die "pindrop: rail entries unavailable"
+  centre_into sx sy pin-source.dir
+  warp "$sx" "$sy"; sleep 0.4
+  press; sleep 0.3
+  glide_to "$((WX + x))" "$((WY + y))"
+  expect_ipc railPinState "{\"armed\":true,\"pending\":\"$pin_home\",\"kind\":\"dir\"}"
+  ipc railPinState > "$evidence/folder.state.json"
+  [[ "$button_down" == true ]] || die "pindrop: capture lost its held pointer"
+  release
+  expect_ipc favouritesSaving false
+  state=$(ipc railEntries) || die "pindrop: rail entries unavailable after the pin"
+  jq -e --arg label pin-source.dir --arg home "$pin_home" 'to_entries | map(select(.value.label == $label and .value.group == "favourite" and .value.path == $home)) | length == 1' <<< "$state" >/dev/null || die "pindrop: the pin never landed: $state"
+  index=$(jq -er --arg label pin-source.dir --arg home "$pin_home" 'to_entries | map(select(.value.label == $label and .value.group == "favourite" and .value.path == $home)) | if length == 1 then .[0].value.favouriteIndex else error("pin row missing or ambiguous") end' <<< "$state") || die "pindrop: no unique pinned favourite"
+  printf '%s\n' "$state" > "$evidence/folder.railEntries.json"
+
+  # A pin is a favourite, not a move: the folder stayed home and undo says nothing about it.
+  [[ -d "$pin_home" ]] || die "pindrop: the pinned folder left home"
+  ydotool key 44 >/dev/null 2>&1 || die "pindrop: the undo tap failed"
+  sleep 1
+  state=$(ipc railEntries)
+  jq -e --arg label pin-source.dir 'any(.[]; .label == $label and .group == "favourite")' <<< "$state" >/dev/null || die "pindrop: undo unpinned the favourite: $state"
+  [[ -d "$pin_home" ]] || die "pindrop: undo moved the pinned folder"
+
+  # The menu's own removal path unpins, and the rail reads back the way it began.
+  ipc favouriteRemove "$index" >/dev/null || die "pindrop: favouriteRemove refused"
+  expect_ipc favouritesSaving false
+  state=$(ipc railEntries)
+  printf '%s\n' "$state" > "$evidence/after-unpin.railEntries.json"
+  printf '%s\n' "$before" > "$evidence/before.railEntries.json"
+  [[ "$state" == "$before" ]] || { diff <(jq -S . "$evidence/before.railEntries.json") <(jq -S . "$evidence/after-unpin.railEntries.json") | head -8 >&2; die "pindrop: the rail did not read back (diff above, before vs after-unpin)"; }
+  rm -rf -- "$pin_home"
+  printf 'PINDROP file=refused folder=pinned armed=true undo=silent unpin=restored\n'
+}
+
+if [[ "$drag_case" == pindrop ]]; then
+  pindrop_case
+  printf 'PINDROP_NATIVE DONE failed=%s evidence=%s\n' "$fail" "$capture_root/pindrop-evidence"
   exit "$fail"
 fi
 

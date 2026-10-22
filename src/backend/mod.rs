@@ -38,6 +38,8 @@ pub mod fuzzy;
 pub mod jump;
 // A drop target's device, stat'd off the loop; see docs/protocol.md "devs".
 pub mod devsreq;
+// The file kind of each path named, symlinks followed, for the FAVORITES heading's pin drop; see docs/protocol.md "kind".
+pub mod kindreq;
 pub mod search;
 pub mod searchindex;
 pub mod searchsession;
