@@ -10,6 +10,7 @@ use std::{cell::RefCell, rc::Rc};
 
 pub(crate) struct PaneHost {
     pub search: super::search::Runtime,
+    pub filter: super::filter::Runtime,
     pub columns: Option<super::columns::Columns>,
     pub path: String,
     pub pane: Pane,
@@ -53,6 +54,7 @@ impl PaneHost {
     ) -> Self {
         Self {
             search: super::search::Runtime::new(typeface.clone()),
+            filter: super::filter::Runtime::new(typeface.clone()),
             columns: None,
             pane: Pane::at_row_height(
                 path.clone(),
@@ -144,6 +146,7 @@ impl PaneHost {
 
     pub fn changed(&mut self, locale: &Snapshot) {
         let generation = self.pane.held.listing;
+        let before = std::mem::take(&mut self.path);
         if generation != self.applied_listing {
             // A replacement listing cannot restore the previous band's cursor.
             self.input.band = None;
@@ -153,6 +156,7 @@ impl PaneHost {
             self.input.press = None;
             self.selected.clear();
             self.applied_listing = generation;
+            self.filter_follow(&before);
         }
         self.path = self.pane.path().into();
         self.answered = !self.pane.busy();

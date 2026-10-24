@@ -3,6 +3,7 @@ pub mod columns;
 pub mod composition;
 pub(crate) mod dispatch;
 mod events;
+pub(crate) mod filter;
 pub(crate) mod frame_feedback;
 pub mod input;
 pub mod lifecycle;
