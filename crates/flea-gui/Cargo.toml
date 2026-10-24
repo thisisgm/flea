@@ -6,6 +6,7 @@ license = "MIT"
 
 [dependencies]
 flea = { path = "../.." }
+flate2 = "=1.1.10"
 gpui = { workspace = true }
 gpui_platform = { workspace = true }
 async-channel = "=2.5.0"
