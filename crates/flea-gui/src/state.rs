@@ -44,6 +44,8 @@ pub struct Shell {
     pub(crate) seam: Seam,
     pub(crate) ipc_events: Option<async_channel::Receiver<Event>>,
     pub(crate) _ipc_reader: Option<Task<()>>,
+    /// True until the first listing answers; calls meanwhile are refused at once, never queued.
+    pub(crate) ipc_cold: bool,
     pub(crate) _locale_reader: Option<Task<()>>,
     pub(crate) locale_service: Option<locale::Service>,
     pub(crate) presentation_service: Option<crate::presentation::Service>,
@@ -125,6 +127,7 @@ impl Shell {
             lifecycle: Lifecycle::default(),
             ipc_events: Some(events),
             _ipc_reader: None,
+            ipc_cold: true,
             _locale_reader: None,
             locale_service: None,
             presentation_service: None,
@@ -156,6 +159,7 @@ impl Shell {
             constructor_fixture::configure_monitor(&host.pane, cx);
             host.pane.update(cx, |pane, cx| pane.watch(cx));
         }
+        shell.start_ipc_reader(window, cx);
         if shell.panes[0].as_ref().is_some_and(|host| host.stopped) {
             shell.ensure_ipc_reader(window, cx);
         }

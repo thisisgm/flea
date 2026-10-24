@@ -59,13 +59,18 @@ pub fn functions() -> impl Iterator<Item = &'static Function> {
     ORACLE.iter().chain(LIFECYCLE).chain(VISUAL)
 }
 
+/// Quickshell's answer for a target with no seam loaded, which v0.3.12 gave until its first listing settled.
+pub fn no_target() -> Reply {
+    Reply::value("Target not found.")
+}
+
 pub fn validate(
     target: &str,
     name: &str,
     arguments: &[String],
 ) -> Result<&'static Function, Reply> {
     if !["flea", "fleapicker", "fleatab"].contains(&target) {
-        return Err(Reply::value("Target not found."));
+        return Err(no_target());
     }
     let function = functions()
         .find(|f| f.target == target && f.name == name)
