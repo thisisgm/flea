@@ -45,7 +45,7 @@ impl Shell {
             let mut list = host.list.borrow_mut();
             list.view.switched = Switched::from_settings(&self.launch.settings.data);
             list.view.stored = StoredWidths::from_settings(&self.launch.settings.data);
-            list.view.order = host.nav.order;
+            list.view.order = host.nav.drawn_order();
             list.view.dual = self.view == View::Dual;
             list.view.set_searching(host.pane.state.search);
             // A listing out keeps the handles, as Header.qml gates only on view, Dual and search.
