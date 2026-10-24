@@ -295,15 +295,30 @@ fn surface_after_painted_rows(view: View, kind: Kind) {
     window
         .update(&mut cx, |shell, window, cx| {
             let path = if kind == Kind::Empty { "/" } else { "/missing" };
-            let pane = &mut shell.panes[0].as_mut().unwrap().pane;
-            let now = pane.now();
-            assert!(pane.begin(path.into(), crate::pane::swap::Options::default(), now));
+            if kind != Kind::Empty {
+                let pane = &mut shell.panes[0].as_mut().unwrap().pane;
+                let now = pane.now();
+                assert!(pane.begin(path.into(), crate::pane::swap::Options::default(), now));
+            }
             match kind {
                 Kind::Loading => {
-                    assert!(pane.tick(now + crate::pane::swap::CAP_MS));
+                    let pane = &mut shell.panes[0].as_mut().unwrap().pane;
+                    assert!(pane.tick(pane.now() + crate::pane::swap::CAP_MS));
                     assert!(pane.swap.fell_back, "the real cap expired");
                 }
                 Kind::Empty => {
+                    // Another program deleted the last file: the watch notice, its debounce, then the anchored re-read.
+                    shell.receive(0, BackendEvent::Changed { path: path.into() }, window, cx);
+                    let host = shell.panes[0].as_mut().unwrap();
+                    let due = host.nav.watch.due.expect("the notice armed the watch");
+                    assert!(host.nav.fire_watch(&mut host.pane, &[], due));
+                    assert_eq!(host.nav.watch.rereads, 1);
+                    assert!(
+                        host.nav.anchor.as_ref().is_some_and(|anchor| anchor.path == path),
+                        "the re-read rides the cursor anchor"
+                    );
+                    assert!(host.pane.busy(), "the watched re-read is in flight");
+                    shell.run_navigation(0, window, cx);
                     for reply in [
                         BackendReply::Listed {
                             path: path.into(),
