@@ -120,12 +120,11 @@ impl Shell {
         window: &mut Window,
         cx: &mut Context<Self>,
     ) {
-        let corner = self
-            .visual
-            .scene_corner
-            .unwrap_or_else(|| crate::compositor::valid_corner(f64::from(corner)));
+        let live = crate::compositor::valid_corner(f64::from(corner));
+        // The app global carries only the compositor value; a scene corner stays in this window.
+        cx.set_global(crate::compositor::Corner(live));
+        let corner = self.visual.scene_corner.unwrap_or(live);
         self.corner = corner;
-        cx.set_global(crate::compositor::Corner(corner));
         if let Some(view) = &self.settings.panel {
             view.update(cx, |view, cx| {
                 view.panel.facts.corner = corner;

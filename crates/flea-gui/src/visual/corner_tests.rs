@@ -46,7 +46,11 @@ fn m9_corner_visual_scene_stays_sticky_after_service_updates(cx: &mut TestAppCon
                 for live in [8. - radius, radius, 8. - radius] {
                     shell.receive_settings(Update::Corner(live), window, cx);
                     assert_eq!(shell.corner, radius);
-                    assert_eq!(crate::compositor::corner(cx), radius);
+                    assert_eq!(
+                        crate::compositor::corner(cx),
+                        live,
+                        "the app global must keep the compositor value, never this window's scene corner"
+                    );
                     assert_eq!(
                         shell
                             .settings

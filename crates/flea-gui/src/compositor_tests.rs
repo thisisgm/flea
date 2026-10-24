@@ -225,12 +225,48 @@ fn m9_corner_missing_and_lost_socket_reconnects_and_rereads() {
     assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 0.);
     let mut stream = accept(&listener);
     assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 8.);
-    root.answer(r#"{"int":0}"#);
+    // A value other than CORNER_DEFAULT pins the reload branch, not a socket-loss publish.
+    root.answer(r#"{"int":4}"#);
     stream.write_all(b"configreloaded>>\n").unwrap();
-    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 0.);
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 4.);
     stream
         .set_read_timeout(Some(Duration::from_secs(5)))
         .unwrap();
     drop(service);
     assert_eq!(stream.read(&mut [0]).unwrap(), 0);
+}
+
+#[test]
+fn m9_corner_reload_buffered_after_drop_is_ignored() {
+    use std::{io::Write, os::unix::net::UnixListener, sync::mpsc};
+    let root = Fixture::new();
+    root.answer(r#"{"int":8}"#);
+    let socket = root.socket();
+    let listener = UnixListener::bind(&socket).unwrap();
+    let (send, updates) = mpsc::channel();
+    let (gate, opened) = mpsc::channel::<()>();
+    let mut calls = 0;
+    let service = Service::at(Some(socket), root.command(0), move |value| {
+        calls += 1;
+        let sent = send.send(value).is_ok();
+        // The first reload holds the reader until the service is dropped.
+        if calls == 2 {
+            let _ = opened.recv();
+        }
+        sent
+    })
+    .unwrap();
+    let mut stream = accept(&listener);
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 8.);
+    stream
+        .write_all(b"configreloaded>>\nconfigreloaded>>\n")
+        .unwrap();
+    assert_eq!(updates.recv_timeout(Duration::from_secs(5)).unwrap(), 8.);
+    drop(service);
+    gate.send(()).unwrap();
+    assert_eq!(
+        updates.recv_timeout(Duration::from_secs(5)),
+        Err(mpsc::RecvTimeoutError::Disconnected),
+        "a reload read after Drop must not publish"
+    );
 }
